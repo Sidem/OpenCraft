@@ -46,6 +46,7 @@ export class Hud {
   private readonly mineFill = $<HTMLDivElement>('mine-fill');
   private readonly toastBox = $<HTMLDivElement>('toasts');
   private readonly debug = $<HTMLPreElement>('debug');
+  private readonly mutedBadge = $<HTMLDivElement>('muted');
 
   constructor(private readonly game: Game, texPixels: Uint8Array, texSize: number) {
     const layerBytes = texSize * texSize * 4;
@@ -78,6 +79,10 @@ export class Hud {
   toggleDebug(): void {
     this.debugVisible = !this.debugVisible;
     this.debug.classList.toggle('hidden', !this.debugVisible);
+  }
+
+  setMuted(muted: boolean): void {
+    this.mutedBadge.classList.toggle('hidden', !muted);
   }
 
   update(now: number, info: DebugInfo): void {

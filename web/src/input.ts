@@ -3,6 +3,7 @@ export type Action =
   | { kind: 'scroll'; delta: number }
   | { kind: 'fly' }
   | { kind: 'drop' }
+  | { kind: 'mute' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -112,6 +113,7 @@ export class Input {
       if (digit) this.actions.push({ kind: 'slot', slot: Number(digit[1]) - 1 });
       else if (e.code === 'KeyF') this.actions.push({ kind: 'fly' });
       else if (e.code === 'KeyQ') this.actions.push({ kind: 'drop' });
+      else if (e.code === 'KeyM') this.actions.push({ kind: 'mute' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
   }

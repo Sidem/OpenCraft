@@ -3,8 +3,11 @@
 A browser game in the space between **Minecraft** and **Satisfactory**: a voxel world you mine and build in,
 growing towards resource extraction, automation and factories.
 
+**Play it: <https://sidem.github.io/OpenCraft/>** (desktop browser with keyboard and mouse).
+
 The simulation core is **Rust compiled to WebAssembly** (with SIMD). Rendering is **raw WebGL2**. There is no
-game engine and no runtime dependencies. The production bundle is about 55 KB gzipped.
+game engine and no runtime dependencies. Every texture and sound effect is generated procedurally at startup,
+so there are no asset files, and the production bundle is under 60 KB gzipped.
 
 ## Quick start
 
@@ -47,6 +50,7 @@ default 8).
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |
+| M                   | Mute / unmute sound                       |
 | F3                  | Debug stats                               |
 | Esc                 | Release the mouse                         |
 
@@ -74,7 +78,8 @@ Each frame:
 2. `game.work_step()` is called in a loop until a time budget runs out (6 ms, or 28 ms while loading).
    Each step generates or meshes one chunk, nearest first.
 3. Mesh and unload events are drained. Mesh data is read with a `Uint32Array` view directly on wasm memory
-   and uploaded, with no copy and no serialization.
+   and uploaded, with no copy and no serialization. Sound events (dig, break, place, footstep, landing,
+   pickup, drop) are read the same way. Each carries a sound material and a camera-relative position.
 4. Chunks are frustum-culled and drawn front to back, opaque pass first, then cutout.
 
 ### Performance choices
@@ -93,6 +98,9 @@ Each frame:
   hashes of their source cell. Chunks can therefore be generated in any order, which prepares for moving
   generation to worker threads.
 - **Wasm SIMD128, fat LTO, `wasm-opt -O3`.**
+- **Procedural audio.** Six block materials (stone, dirt, grass, sand, wood, leaves) are synthesized once from
+  filtered noise, grain crackle and resonant modes, in several variants each. Playback adds pitch jitter,
+  distance falloff and stereo panning, and a compressor sits on the master bus.
 
 Measured in Chrome with an RTX 3060: generating or meshing one chunk takes a median of about 0.1 ms, and
 99% finish within about 1.1 ms. The full 8-chunk radius (about 2,150 chunks) streams in about 350 ms of CPU
@@ -113,15 +121,24 @@ crates/engine/src/
   raycast.rs    voxel DDA for targeting
   entities.rs   dropped items (physics, magnet pickup, instancing)
   inventory.rs  hotbar
+  sound.rs      gameplay sound events for the host
   textures.rs   procedural 16×16 block textures
   noise.rs      seeded Perlin noise + fBm
 web/
   index.html, src/main.ts   bootstrap + frame loop
   src/render/               WebGL2 renderer, shaders, matrix helpers
   src/input.ts              keyboard/mouse, pointer lock
+  src/audio.ts              procedural sound synthesis + spatial playback
   src/ui/hud.ts             hotbar, target readout, pickup toasts, debug panel
 scripts/                    wasm build + dev watcher
+.github/workflows/pages.yml CI: test, build, deploy to GitHub Pages
 ```
+
+## Deployment
+
+Every push to `main` runs `.github/workflows/pages.yml`. It runs the engine tests, builds the wasm and the Vite
+bundle, and publishes `dist/` to GitHub Pages. The build uses relative asset URLs (`base: './'`), so it
+works from any sub-path.
 
 For debugging, the running game is exposed as `window.opencraft.game` in the devtools console. For example,
 `opencraft.game.give(8, 64)` gives a stack of iron ore, and `opencraft.game.teleport(0, 120, 0)` moves you.

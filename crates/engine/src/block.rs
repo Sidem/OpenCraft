@@ -57,6 +57,18 @@ pub struct BlockDef {
     pub faces: [u16; 6],
     /// Item dropped when broken.
     pub drop: BlockId,
+    /// Sound material used for digging, breaking, placing and footsteps (see [`sound`]).
+    pub sound: u8,
+}
+
+/// Sound materials. Must match `MATERIALS` in `web/src/audio.ts`.
+pub mod sound {
+    pub const STONE: u8 = 0;
+    pub const DIRT: u8 = 1;
+    pub const GRASS: u8 = 2;
+    pub const SAND: u8 = 3;
+    pub const WOOD: u8 = 4;
+    pub const LEAVES: u8 = 5;
 }
 
 const fn all(t: u16) -> [u16; 6] {
@@ -67,17 +79,25 @@ const fn pillar(side: u16, top: u16, bottom: u16) -> [u16; 6] {
     [side, side, top, bottom, side, side]
 }
 
-const fn cube(name: &'static str, break_time: f32, faces: [u16; 6], drop: BlockId) -> BlockDef {
-    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop }
+const fn cube(name: &'static str, break_time: f32, faces: [u16; 6], drop: BlockId, sound: u8) -> BlockDef {
+    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop, sound }
 }
 
 const DEFS: [BlockDef; BLOCK_COUNT] = [
-    BlockDef { name: "Air", render: Render::None, solid: false, break_time: 0.0, faces: all(0), drop: AIR },
-    cube("Stone", 1.1, all(tex::STONE), STONE),
-    cube("Dirt", 0.45, all(tex::DIRT), DIRT),
-    cube("Grass", 0.5, pillar(tex::GRASS_SIDE, tex::GRASS_TOP, tex::DIRT), DIRT),
-    cube("Sand", 0.45, all(tex::SAND), SAND),
-    cube("Log", 0.9, pillar(tex::LOG_SIDE, tex::LOG_TOP, tex::LOG_TOP), LOG),
+    BlockDef {
+        name: "Air",
+        render: Render::None,
+        solid: false,
+        break_time: 0.0,
+        faces: all(0),
+        drop: AIR,
+        sound: sound::STONE,
+    },
+    cube("Stone", 1.1, all(tex::STONE), STONE, sound::STONE),
+    cube("Dirt", 0.45, all(tex::DIRT), DIRT, sound::DIRT),
+    cube("Grass", 0.5, pillar(tex::GRASS_SIDE, tex::GRASS_TOP, tex::DIRT), DIRT, sound::GRASS),
+    cube("Sand", 0.45, all(tex::SAND), SAND, sound::SAND),
+    cube("Log", 0.9, pillar(tex::LOG_SIDE, tex::LOG_TOP, tex::LOG_TOP), LOG, sound::WOOD),
     BlockDef {
         name: "Leaves",
         render: Render::Cutout,
@@ -85,11 +105,12 @@ const DEFS: [BlockDef; BLOCK_COUNT] = [
         break_time: 0.2,
         faces: all(tex::LEAVES),
         drop: LEAVES,
+        sound: sound::LEAVES,
     },
-    cube("Coal Ore", 1.4, all(tex::COAL_ORE), COAL_ORE),
-    cube("Iron Ore", 1.6, all(tex::IRON_ORE), IRON_ORE),
-    cube("Copper Ore", 1.6, all(tex::COPPER_ORE), COPPER_ORE),
-    cube("Bedrock", -1.0, all(tex::BEDROCK), BEDROCK),
+    cube("Coal Ore", 1.4, all(tex::COAL_ORE), COAL_ORE, sound::STONE),
+    cube("Iron Ore", 1.6, all(tex::IRON_ORE), IRON_ORE, sound::STONE),
+    cube("Copper Ore", 1.6, all(tex::COPPER_ORE), COPPER_ORE, sound::STONE),
+    cube("Bedrock", -1.0, all(tex::BEDROCK), BEDROCK, sound::STONE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

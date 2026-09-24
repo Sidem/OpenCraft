@@ -36,11 +36,22 @@ pub struct Player {
     pub on_ground: bool,
     pub flying: bool,
     pub input: PlayerInput,
+    /// Downward speed at the most recent touchdown; the game consumes and resets it (landing sound).
+    pub landing_speed: f64,
 }
 
 impl Player {
     pub fn new(pos: Vec3) -> Self {
-        Self { pos, vel: Vec3::ZERO, yaw: 0.0, pitch: 0.0, on_ground: false, flying: false, input: PlayerInput::default() }
+        Self {
+            pos,
+            vel: Vec3::ZERO,
+            yaw: 0.0,
+            pitch: 0.0,
+            on_ground: false,
+            flying: false,
+            input: PlayerInput::default(),
+            landing_speed: 0.0,
+        }
     }
 
     pub fn aabb(&self) -> Aabb {
@@ -103,6 +114,9 @@ impl Player {
         let dy = move_axis(&mut bb, 1, want_y, solid);
         if (dy - want_y).abs() > 1e-9 {
             if want_y < 0.0 {
+                if !self.on_ground {
+                    self.landing_speed = self.landing_speed.max(-self.vel.y);
+                }
                 self.on_ground = true;
             }
             self.vel.y = 0.0;

@@ -1,5 +1,6 @@
 import './style.css';
 import init, { Game } from './wasm/engine.js';
+import { SoundSystem } from './audio';
 import { Input } from './input';
 import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
@@ -26,6 +27,8 @@ async function main(): Promise<void> {
   renderer.setTextures(texPixels, game.texture_size(), game.texture_layers());
   const hud = new Hud(game, texPixels, game.texture_size());
   const input = new Input(canvas);
+  const sound = new SoundSystem();
+  hud.setMuted(sound.muted);
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -33,9 +36,14 @@ async function main(): Promise<void> {
   const loadingFill = document.getElementById('loading-fill')!;
   const loadingText = document.getElementById('loading-text')!;
   document.getElementById('world-info')!.textContent = `seed ${seed} · render distance ${viewRadius} chunks`;
-  play.addEventListener('click', () => void input.lock());
+  // Audio can only start inside a user gesture, so the same click that captures the mouse unlocks it.
+  const start = () => {
+    sound.unlock();
+    void input.lock();
+  };
+  play.addEventListener('click', start);
   canvas.addEventListener('click', () => {
-    if (!input.locked && !play.disabled) void input.lock();
+    if (!input.locked && !play.disabled) start();
   });
   input.onLockChange = (locked) => {
     menu.classList.toggle('hidden', locked);
@@ -53,7 +61,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound } });
 
   // ---- frame loop
   let last = performance.now();
@@ -88,15 +96,20 @@ async function main(): Promise<void> {
       game.set_mining(input.mining);
       game.set_using(input.using);
     }
+    const slotBefore = game.selected_slot();
     for (const a of input.takeActions()) {
       if (a.kind === 'debug') hud.toggleDebug();
       else if (a.kind === 'slot') game.select_slot(a.slot);
       else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
+      else if (a.kind === 'mute') hud.setMuted(sound.toggleMute());
     }
+    if (game.selected_slot() !== slotBefore) sound.ui();
 
     game.update(dt);
+    sound.playEvents(new Float32Array(wasm.memory.buffer, game.sound_ptr(), game.sound_count() * 6), game.sound_count(), game.yaw());
+    game.clear_sounds();
 
     const ready = game.ready();
     const budget = ready ? WORK_BUDGET_MS : LOADING_WORK_BUDGET_MS;

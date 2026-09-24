@@ -15,6 +15,7 @@ mod noise;
 mod physics;
 mod player;
 mod raycast;
+mod sound;
 mod textures;
 mod world;
 mod worldgen;
@@ -30,12 +31,18 @@ use math::{hash2, IVec3, Rng, Vec3};
 use physics::Aabb;
 use player::Player;
 use raycast::{raycast, RayHit};
+use sound::Sounds;
 use world::{Event, MeshData, World};
 
 const REACH: f64 = 5.0;
 const PLACE_REPEAT_SECONDS: f32 = 0.22;
 const BREAK_COOLDOWN_SECONDS: f32 = 0.12;
 const PHYSICS_STEP: f64 = 1.0 / 120.0;
+const DIG_SOUND_INTERVAL: f32 = 0.24;
+/// Horizontal distance walked between footstep sounds.
+const STEP_STRIDE: f64 = 1.7;
+/// Touchdowns slower than this (e.g. walking down a slab edge) make no landing sound.
+const LAND_SOUND_MIN_SPEED: f64 = 5.0;
 
 #[wasm_bindgen(start)]
 pub fn start() {
@@ -57,6 +64,9 @@ pub struct Game {
     mine_cooldown: f32,
     using: bool,
     use_cooldown: f32,
+    dig_timer: f32,
+    step_distance: f64,
+    sounds: Sounds,
     textures: Vec<u8>,
     pickups: VecDeque<(BlockId, u32)>,
     cur_pickup: (BlockId, u32),
@@ -84,6 +94,9 @@ impl Game {
             mine_cooldown: 0.0,
             using: false,
             use_cooldown: 0.0,
+            dig_timer: 0.0,
+            step_distance: 0.0,
+            sounds: Sounds::default(),
             textures: textures::generate(),
             pickups: VecDeque::new(),
             cur_pickup: (AIR, 0),
@@ -140,6 +153,7 @@ impl Game {
             let dir = self.player.look_dir();
             let pos = self.player.eye() + dir * 0.4 - Vec3::new(0.0, 0.3, 0.0);
             self.items.spawn(pos, dir * 6.0 + Vec3::new(0.0, 1.5, 0.0), item, n, 1.5);
+            self.play(sound::DROP, 0, pos, 1.0);
         }
     }
 
@@ -180,6 +194,7 @@ impl Game {
         if self.player.pos.y < -64.0 {
             self.teleport(self.spawn.x, self.spawn.y + 2.0, self.spawn.z);
         }
+        self.update_movement_sounds(feet);
 
         self.update_target();
         self.update_mining(dt as f32);
@@ -189,14 +204,65 @@ impl Game {
         let mut solid = |x, y, z| world.is_solid(x, y, z);
         let loaded = |p: Vec3| world.is_loaded(p);
         let pickups = &mut self.pickups;
+        let sounds = &mut self.sounds;
         let center = self.player.pos + Vec3::new(0.0, player::HEIGHT * 0.5, 0.0);
         self.items.update(dt, center, &mut solid, &loaded, &mut self.inventory, |item, n| {
             match pickups.back_mut() {
                 Some((last, count)) if *last == item => *count += n,
                 _ => pickups.push_back((item, n)),
             }
+            sounds.push(sound::PICKUP, 0, Vec3::new(0.0, -0.6, 0.0), 1.0);
         });
         self.items.write_instances(self.player.eye());
+    }
+
+    /// Queues a sound at a world position (stored camera-relative for the host).
+    fn play(&mut self, kind: u8, material: u8, at: Vec3, volume: f64) {
+        self.sounds.push(kind, material, at - self.player.eye(), volume);
+    }
+
+    /// Sound material of the block the player is standing on (checks the footprint corners so
+    /// standing on an edge still finds the supporting block).
+    fn ground_material(&self) -> Option<u8> {
+        let p = self.player.pos;
+        let y = (p.y - 0.05).floor() as i32;
+        let hw = player::HALF_WIDTH;
+        for (dx, dz) in [(0.0, 0.0), (-hw, -hw), (hw, -hw), (hw, hw), (-hw, hw)] {
+            let b = self.world.get_block(IVec3::new((p.x + dx).floor() as i32, y, (p.z + dz).floor() as i32))?;
+            if block::SOLID[b as usize] {
+                return Some(block::def(b).sound);
+            }
+        }
+        None
+    }
+
+    fn update_movement_sounds(&mut self, feet_before: Vec3) {
+        let landing = std::mem::take(&mut self.player.landing_speed);
+        if self.player.flying || !self.player.on_ground {
+            return;
+        }
+        let Some(material) = self.ground_material() else { return };
+        let feet = self.player.pos;
+        if landing > LAND_SOUND_MIN_SPEED {
+            let volume = ((landing - LAND_SOUND_MIN_SPEED) / 15.0).clamp(0.3, 1.0);
+            self.play(sound::LAND, material, feet, volume);
+            self.step_distance = 0.0;
+            return;
+        }
+        let (dx, dz) = (feet.x - feet_before.x, feet.z - feet_before.z);
+        self.step_distance += (dx * dx + dz * dz).sqrt();
+        if self.step_distance >= STEP_STRIDE {
+            self.step_distance = 0.0;
+            let inp = self.player.input;
+            let volume = if inp.crouch {
+                0.3
+            } else if inp.sprint {
+                0.8
+            } else {
+                0.6
+            };
+            self.play(sound::STEP, material, feet, volume);
+        }
     }
 
     fn update_target(&mut self) {
@@ -209,6 +275,7 @@ impl Game {
         let Some(hit) = self.target.filter(|_| self.mining) else {
             self.mine_block = None;
             self.mine_progress = 0.0;
+            self.dig_timer = 0.0;
             return;
         };
         if self.mine_cooldown > 0.0 {
@@ -217,8 +284,16 @@ impl Game {
         if self.mine_block != Some(hit.block) {
             self.mine_block = Some(hit.block);
             self.mine_progress = 0.0;
+            self.dig_timer = 0.0;
         }
         let def = block::def(hit.id);
+        let center = hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
+        // Dig ticks play even on unbreakable blocks, so the player hears that they are hitting it.
+        self.dig_timer -= dt;
+        if self.dig_timer <= 0.0 {
+            self.dig_timer = DIG_SOUND_INTERVAL;
+            self.play(sound::DIG, def.sound, center, 1.0);
+        }
         if def.break_time < 0.0 {
             return;
         }
@@ -226,11 +301,14 @@ impl Game {
         if self.mine_progress < 1.0 {
             return;
         }
-        if self.world.set_block(hit.block, AIR) && def.drop != AIR {
-            let c = hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
-            let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
-            self.items.spawn(c, vel, def.drop, 1, 0.25);
+        if self.world.set_block(hit.block, AIR) {
+            self.play(sound::BREAK, def.sound, center, 1.0);
+            if def.drop != AIR {
+                let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
+                self.items.spawn(center, vel, def.drop, 1, 0.25);
+            }
         }
+        self.dig_timer = 0.0;
         self.mine_block = None;
         self.mine_progress = 0.0;
         self.mine_cooldown = BREAK_COOLDOWN_SECONDS;
@@ -272,6 +350,7 @@ impl Game {
             return false;
         }
         self.inventory.take_selected(1);
+        self.play(sound::PLACE, block::def(stack.item).sound, p.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
         true
     }
 
@@ -409,6 +488,23 @@ impl Game {
         self.items.instances.len() / INSTANCE_FLOATS
     }
 
+    // ---------------------------------------------------------------- sound
+
+    /// Byte offset of this frame's sound events: `sound_count()` records of
+    /// (kind, material, camera-relative x, y, z, volume) as f32.
+    pub fn sound_ptr(&self) -> usize {
+        self.sounds.as_ptr() as usize
+    }
+
+    pub fn sound_count(&self) -> usize {
+        self.sounds.count()
+    }
+
+    /// Call after the host has played this frame's sounds.
+    pub fn clear_sounds(&mut self) {
+        self.sounds.clear();
+    }
+
     pub fn inventory_version(&self) -> u32 {
         self.inventory.version
     }
@@ -535,6 +631,7 @@ mod tests {
             g.update(1.0 / 60.0);
         }
         assert!(g.on_ground(), "player should be standing after spawning");
+        g.clear_sounds();
 
         // Look straight down and mine the block underfoot.
         g.set_look(0.0, -1.5);
@@ -561,6 +658,11 @@ mod tests {
         assert_eq!(g.slot_count(0), 1);
         assert!(g.next_pickup());
         assert_eq!(g.pickup_item(), expected);
+        let heard = g.sounds.kinds();
+        for kind in [sound::DIG, sound::BREAK, sound::LAND, sound::PICKUP] {
+            assert!(heard.contains(&kind), "missing sound {kind} in {heard:?}");
+        }
+        g.clear_sounds();
 
         // Hover above the hole and put the block back.
         g.toggle_fly();
@@ -573,5 +675,51 @@ mod tests {
         g.set_using(false);
         assert_eq!(g.slot_count(0), 0, "placing consumes the item");
         assert_eq!(g.world.get_block(IVec3::new(tx, ty, tz)), Some(expected));
+        assert_eq!(g.sounds.kinds(), vec![sound::PLACE]);
+    }
+
+    #[test]
+    fn footsteps_and_landing_make_sounds() {
+        let mut g = Game::new(2024, 3);
+        run_until_ready(&mut g);
+        for _ in 0..60 {
+            g.update(1.0 / 60.0);
+        }
+
+        // Drop from 4 blocks up: one landing thud, positioned below the camera.
+        g.clear_sounds();
+        let (x, y, z) = (g.player_x(), g.player_y(), g.player_z());
+        g.teleport(x, y + 4.0, z);
+        for _ in 0..90 {
+            g.update(1.0 / 60.0);
+        }
+        assert_eq!(g.sounds.kinds(), vec![sound::LAND]);
+        g.clear_sounds();
+
+        // Walking produces footsteps; flying produces none. Carve a flat corridor towards -Z
+        // (the forward direction at yaw 0) so terrain can't block the walk.
+        let feet = Vec3::new(g.player_x(), g.player_y(), g.player_z()).floor();
+        for dz in 0..12 {
+            let p = feet - IVec3::new(0, 0, dz);
+            g.world.set_block(p - IVec3::new(0, 1, 0), block::STONE);
+            g.world.set_block(p, AIR);
+            g.world.set_block(p + IVec3::new(0, 1, 0), AIR);
+        }
+        g.teleport(feet.x as f64 + 0.5, feet.y as f64, feet.z as f64 + 0.5);
+        g.set_look(0.0, 0.0);
+        g.update(1.0 / 60.0);
+        g.clear_sounds();
+        g.set_move(1.0, 0.0, false, false, false);
+        for _ in 0..90 {
+            g.update(1.0 / 60.0);
+        }
+        let steps = g.sounds.kinds().iter().filter(|&&k| k == sound::STEP).count();
+        assert!(steps >= 2, "expected footsteps, got {:?}", g.sounds.kinds());
+        g.clear_sounds();
+        g.toggle_fly();
+        for _ in 0..90 {
+            g.update(1.0 / 60.0);
+        }
+        assert!(g.sounds.kinds().is_empty());
     }
 }
