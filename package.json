@@ -1,0 +1,23 @@
+{
+  "name": "opencraft",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser voxel sandbox meets factory builder. Rust/WebAssembly simulation, WebGL2 rendering.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build-wasm.mjs && tsc --noEmit && vite build",
+    "build:wasm": "node scripts/build-wasm.mjs",
+    "build:wasm:dev": "node scripts/build-wasm.mjs --dev",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "cargo test --workspace"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

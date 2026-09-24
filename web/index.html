@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>OpenCraft</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2360a040' d='M8 1l7 3.5-7 3.5-7-3.5z'/%3E%3Cpath fill='%23806040' d='M1 4.5l7 3.5v7l-7-3.5z'/%3E%3Cpath fill='%23604830' d='M15 4.5l-7 3.5v7l7-3.5z'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <div id="hud">
+      <div id="crosshair"></div>
+      <div id="target" class="hidden">
+        <span id="target-name"></span>
+        <div id="mine-bar"><div id="mine-fill"></div></div>
+      </div>
+      <div id="toasts"></div>
+      <div id="hotbar"></div>
+      <pre id="debug" class="hidden"></pre>
+    </div>
+
+    <div id="menu">
+      <div class="panel">
+        <h1>OpenCraft</h1>
+        <p class="tagline">Voxel sandbox × factory builder · MVP</p>
+        <div class="loading">
+          <div class="bar"><div id="loading-fill"></div></div>
+          <span id="loading-text">Loading engine...</span>
+        </div>
+        <button id="play" disabled>Click to play</button>
+        <dl class="controls">
+          <dt>WASD</dt><dd>Move</dd>
+          <dt>Space</dt><dd>Jump</dd>
+          <dt>Shift</dt><dd>Sprint</dd>
+          <dt>C</dt><dd>Crouch (no falling off edges)</dd>
+          <dt>Hold left mouse</dt><dd>Mine block</dd>
+          <dt>Right mouse</dt><dd>Place selected block</dd>
+          <dt>1–9 / wheel</dt><dd>Select hotbar slot</dd>
+          <dt>Q</dt><dd>Drop one item</dd>
+          <dt>F</dt><dd>Toggle fly (Space / C to rise and sink)</dd>
+          <dt>F3</dt><dd>Debug stats</dd>
+          <dt>Esc</dt><dd>Release mouse</dd>
+        </dl>
+        <p id="world-info" class="world-info"></p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
