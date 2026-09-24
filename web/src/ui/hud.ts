@@ -99,7 +99,7 @@ export class Hud {
         if (item !== s.item || n !== s.n) {
           const ctx = s.icon.getContext('2d')!;
           ctx.clearRect(0, 0, ICON_PX, ICON_PX);
-          if (n > 0) ctx.drawImage(this.icon(item), 0, 0);
+          if (n > 0) ctx.drawImage(this.blockIcon(item), 0, 0);
           s.count.textContent = n > 1 ? String(n) : '';
           s.item = item;
           s.n = n;
@@ -158,7 +158,7 @@ export class Hud {
     el.className = 'toast';
     const icon = document.createElement('canvas');
     icon.width = icon.height = ICON_PX;
-    icon.getContext('2d')!.drawImage(this.icon(item), 0, 0);
+    icon.getContext('2d')!.drawImage(this.blockIcon(item), 0, 0);
     const label = document.createElement('span');
     label.className = 'amount';
     label.textContent = `+${count}`;
@@ -170,7 +170,7 @@ export class Hud {
   }
 
   /** Isometric block icon drawn from the block's top and side textures. */
-  private icon(item: number): HTMLCanvasElement {
+  blockIcon(item: number): HTMLCanvasElement {
     let c = this.icons.get(item);
     if (c) return c;
     c = document.createElement('canvas');

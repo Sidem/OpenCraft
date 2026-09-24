@@ -7,7 +7,7 @@ growing towards resource extraction, automation and factories.
 
 The simulation core is **Rust compiled to WebAssembly** (with SIMD). Rendering is **raw WebGL2**. There is no
 game engine and no runtime dependencies. Every texture and sound effect is generated procedurally at startup,
-so there are no asset files, and the production bundle is under 60 KB gzipped.
+so there are no asset files, and the whole production build is about 70 KB gzipped.
 
 ## Quick start
 
@@ -51,10 +51,26 @@ default 8).
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |
 | M                   | Mute / unmute sound                       |
+| O                   | Open the sound designer                   |
 | F3                  | Debug stats                               |
 | Esc                 | Release the mouse                         |
 
 Mined blocks drop as items, which are pulled into your hotbar when you get close.
+
+## Sound designer
+
+Press **O** in game (or **Sound designer** in the pause menu) to tune every sound with dials. You don't need
+any sound-design experience to use it.
+
+- **Materials** (Stone, Dirt, Grass, Sand, Wood, Leaves): each has ten dials with plain meanings, such as
+  Pitch (deep ↔ high), Tone (muffled ↔ bright), Crunch (smooth ↔ gritty), Scatter (one hit ↔ many bits),
+  Snap (soft ↔ sharp), Thud, Ring, Length, Volume and Variation. Hover over a dial for an explanation.
+- **Listen** buttons play mining, breaking, placing, footsteps and landing on the material. Walk and mining
+  loops keep playing while you turn dials. Pressing O while looking at a block opens that block's material.
+- **Actions** adjusts footsteps, landing, pickup and so on for every material at once.
+- Changes apply in the game immediately and are saved in the browser.
+- **Copy settings** exports the whole design as JSON. To make a design the built-in default, paste it over
+  DEFAULT_DESIGN in web/src/audio/settings.ts, since it uses the same shape.
 
 ## Architecture
 
@@ -98,9 +114,11 @@ Each frame:
   hashes of their source cell. Chunks can therefore be generated in any order, which prepares for moving
   generation to worker threads.
 - **Wasm SIMD128, fat LTO, `wasm-opt -O3`.**
-- **Procedural audio.** Six block materials (stone, dirt, grass, sand, wood, leaves) are synthesized once from
-  filtered noise, grain crackle and resonant modes, in several variants each. Playback adds pitch jitter,
-  distance falloff and stereo panning, and a compressor sits on the master bus.
+- **Procedural audio.** Each material sound is layered from noise bursts (grainy or smooth, single or scattered),
+  a tone filter, a low thud and tuned resonators. The designer's dials map directly onto these layers.
+  Buffers are synthesized in 4 ms background slices and rebuilt only when a dial affecting them changes.
+  Fixed seeds keep a sound's randomness stable while you tune it. Playback adds pitch jitter, distance
+  falloff and stereo panning, and a compressor sits on the master bus.
 
 Measured in Chrome with an RTX 3060: generating or meshing one chunk takes a median of about 0.1 ms, and
 99% finish within about 1.1 ms. The full 8-chunk radius (about 2,150 chunks) streams in about 350 ms of CPU
@@ -128,8 +146,12 @@ web/
   index.html, src/main.ts   bootstrap + frame loop
   src/render/               WebGL2 renderer, shaders, matrix helpers
   src/input.ts              keyboard/mouse, pointer lock
-  src/audio.ts              procedural sound synthesis + spatial playback
+  src/audio/settings.ts     sound design: dials, defaults, presets, save/load, copy/paste format
+  src/audio/synth.ts        procedural foley synthesis (dials -> samples)
+  src/audio/sound.ts        sound events -> Web Audio voices, buffer cache, previews
   src/ui/hud.ts             hotbar, target readout, pickup toasts, debug panel
+  src/ui/sound-lab.ts       sound designer panel + volume/mute control
+  src/ui/knob.ts            rotary dial widget
 scripts/                    wasm build + dev watcher
 .github/workflows/pages.yml CI: test, build, deploy to GitHub Pages
 ```

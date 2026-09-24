@@ -554,6 +554,11 @@ impl Game {
         block::def(id).name.to_string()
     }
 
+    /// Sound material a block uses (`block::sound`), i.e. which bank its dig/step/place sounds come from.
+    pub fn block_sound(&self, id: u8) -> u8 {
+        block::def(id).sound
+    }
+
     /// Texture layer for a block face (0..6 = +X, -X, +Y, -Y, +Z, -Z).
     pub fn block_face_texture(&self, id: u8, face: u32) -> u32 {
         block::def(id).faces[(face as usize).min(5)] as u32

@@ -1,9 +1,10 @@
 import './style.css';
 import init, { Game } from './wasm/engine.js';
-import { SoundSystem } from './audio';
+import { SoundSystem } from './audio/sound';
 import { Input } from './input';
 import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
+import { SoundLab, VolumeControl } from './ui/sound-lab';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel
 const WORK_BUDGET_MS = 6; // per frame, for streaming world generation and meshing
@@ -29,6 +30,14 @@ async function main(): Promise<void> {
   const input = new Input(canvas);
   const sound = new SoundSystem();
   hud.setMuted(sound.muted);
+  sound.subscribe(() => hud.setMuted(sound.muted));
+  // Every block except air, with the sound material it uses.
+  const blocks = Array.from({ length: game.block_count() - 1 }, (_, i) => ({
+    id: i + 1,
+    name: game.block_name(i + 1),
+    material: game.block_sound(i + 1),
+  }));
+  const soundLab = new SoundLab(sound, blocks, (id) => hud.blockIcon(id));
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -36,6 +45,11 @@ async function main(): Promise<void> {
   const loadingFill = document.getElementById('loading-fill')!;
   const loadingText = document.getElementById('loading-text')!;
   document.getElementById('world-info')!.textContent = `seed ${seed} · render distance ${viewRadius} chunks`;
+  document.getElementById('menu-volume')!.append(new VolumeControl(sound).el);
+  document.getElementById('open-sound-lab')!.addEventListener('click', () => {
+    sound.unlock();
+    soundLab.open(sound.lastMaterial);
+  });
   // Audio can only start inside a user gesture, so the same click that captures the mouse unlocks it.
   const start = () => {
     sound.unlock();
@@ -43,7 +57,7 @@ async function main(): Promise<void> {
   };
   play.addEventListener('click', start);
   canvas.addEventListener('click', () => {
-    if (!input.locked && !play.disabled) start();
+    if (!input.locked && !play.disabled && !soundLab.isOpen) start();
   });
   input.onLockChange = (locked) => {
     menu.classList.toggle('hidden', locked);
@@ -61,7 +75,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab } });
 
   // ---- frame loop
   let last = performance.now();
@@ -103,7 +117,12 @@ async function main(): Promise<void> {
       else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
-      else if (a.kind === 'mute') hud.setMuted(sound.toggleMute());
+      else if (a.kind === 'mute') sound.toggleMute();
+      else if (a.kind === 'sound-lab') {
+        // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
+        document.exitPointerLock();
+        soundLab.open(game.has_target() ? game.block_sound(game.target_block()) : sound.lastMaterial);
+      }
     }
     if (game.selected_slot() !== slotBefore) sound.ui();
 

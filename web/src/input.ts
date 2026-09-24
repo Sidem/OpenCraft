@@ -4,6 +4,7 @@ export type Action =
   | { kind: 'fly' }
   | { kind: 'drop' }
   | { kind: 'mute' }
+  | { kind: 'sound-lab' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -114,6 +115,7 @@ export class Input {
       else if (e.code === 'KeyF') this.actions.push({ kind: 'fly' });
       else if (e.code === 'KeyQ') this.actions.push({ kind: 'drop' });
       else if (e.code === 'KeyM') this.actions.push({ kind: 'mute' });
+      else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
   }
