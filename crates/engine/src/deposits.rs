@@ -215,14 +215,10 @@ impl DepositState {
 
     fn nearest_ore(&self, world: &World, near: IVec3) -> Option<IVec3> {
         let ore = self.deposit.ore();
-        self.members
-            .iter()
-            .copied()
-            .filter(|&p| world.block_anywhere(p).unwrap_or(ore) == ore)
-            .min_by_key(|&p| {
-                let d = p - near;
-                d.x * d.x + d.y * d.y + d.z * d.z
-            })
+        self.members.iter().copied().filter(|&p| world.block_anywhere(p).unwrap_or(ore) == ore).min_by_key(|&p| {
+            let d = p - near;
+            d.x * d.x + d.y * d.y + d.z * d.z
+        })
     }
 }
 

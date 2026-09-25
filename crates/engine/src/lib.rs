@@ -306,7 +306,8 @@ impl Game {
 
     fn update_target(&mut self) {
         let world = &self.world;
-        self.target = raycast(self.player.eye(), self.player.look_dir(), REACH, |p| world.get_block(p).filter(|&b| b != AIR));
+        self.target =
+            raycast(self.player.eye(), self.player.look_dir(), REACH, |p| world.get_block(p).filter(|&b| b != AIR));
     }
 
     fn update_mining(&mut self, dt: f32) {

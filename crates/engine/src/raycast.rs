@@ -13,7 +13,12 @@ pub struct RayHit {
 
 /// Walks the grid from `origin` along unit vector `dir` and returns the first cell for which
 /// `probe` yields a block id.
-pub fn raycast(origin: Vec3, dir: Vec3, max_dist: f64, mut probe: impl FnMut(IVec3) -> Option<BlockId>) -> Option<RayHit> {
+pub fn raycast(
+    origin: Vec3,
+    dir: Vec3,
+    max_dist: f64,
+    mut probe: impl FnMut(IVec3) -> Option<BlockId>,
+) -> Option<RayHit> {
     let mut cell = origin.floor();
     if let Some(id) = probe(cell) {
         return Some(RayHit { block: cell, normal: IVec3::ZERO, id });
@@ -37,7 +42,11 @@ pub fn raycast(origin: Vec3, dir: Vec3, max_dist: f64, mut probe: impl FnMut(IVe
     }
     loop {
         let a = if t_max[0] < t_max[1] {
-            if t_max[0] < t_max[2] { 0 } else { 2 }
+            if t_max[0] < t_max[2] {
+                0
+            } else {
+                2
+            }
         } else if t_max[1] < t_max[2] {
             1
         } else {
@@ -74,14 +83,17 @@ mod tests {
 
     #[test]
     fn hits_floor_from_above() {
-        let hit = raycast(Vec3::new(0.5, 5.5, 0.5), Vec3::new(0.0, -1.0, 0.0), 10.0, |p| (p.y <= 0).then_some(1)).unwrap();
+        let hit =
+            raycast(Vec3::new(0.5, 5.5, 0.5), Vec3::new(0.0, -1.0, 0.0), 10.0, |p| (p.y <= 0).then_some(1)).unwrap();
         assert_eq!(hit.block, IVec3::new(0, 0, 0));
         assert_eq!(hit.normal, IVec3::new(0, 1, 0));
     }
 
     #[test]
     fn respects_max_distance() {
-        assert!(raycast(Vec3::new(0.5, 50.5, 0.5), Vec3::new(0.0, -1.0, 0.0), 5.0, |p| (p.y <= 0).then_some(1)).is_none());
+        assert!(
+            raycast(Vec3::new(0.5, 50.5, 0.5), Vec3::new(0.0, -1.0, 0.0), 5.0, |p| (p.y <= 0).then_some(1)).is_none()
+        );
     }
 
     #[test]

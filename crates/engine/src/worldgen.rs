@@ -26,11 +26,8 @@ const SPAWN_CLEARING: i32 = 6;
 const ORE_SPAWN_CLEARING: i32 = 10;
 
 /// Per ore: (block, outcrops per chunk column, chance of a vein per column, weight when picking a lode's ore).
-const ORE_GEN: [(BlockId, u32, f64, u32); 3] = [
-    (COAL_ORE, 4, 0.5, 1),
-    (IRON_ORE, 4, 0.45, 2),
-    (COPPER_ORE, 3, 0.35, 1),
-];
+const ORE_GEN: [(BlockId, u32, f64, u32); 3] =
+    [(COAL_ORE, 4, 0.5, 1), (IRON_ORE, 4, 0.45, 2), (COPPER_ORE, 3, 0.35, 1)];
 /// Chance that a chunk column seeds a lode (roughly one per 40 columns, i.e. per ~200 x 200 blocks).
 const LODE_CHANCE: f64 = 1.0 / 40.0;
 
@@ -208,7 +205,12 @@ impl WorldGen {
                 if x.abs() < ORE_SPAWN_CLEARING && z.abs() < ORE_SPAWN_CLEARING {
                     continue;
                 }
-                out.push(Deposit { key: key(Tier::Outcrop, i as u16), center: IVec3::new(x, y, z), radii: [r, r * squash, r], seed });
+                out.push(Deposit {
+                    key: key(Tier::Outcrop, i as u16),
+                    center: IVec3::new(x, y, z),
+                    radii: [r, r * squash, r],
+                    seed,
+                });
             }
             if rng.next_f64() < vein_chance {
                 let x = x0 + rng.below(32) as i32;
@@ -346,7 +348,10 @@ impl WorldGen {
                         BEDROCK
                     } else if wy <= 3 && hash3(self.seed, wx, wy, wz) % (wy as u32 + 1) == 0 {
                         BEDROCK
-                    } else if depth > 5 && wy > 4 && caves.as_ref().is_some_and(|c| c.is_cave(x, (wy - base.y) as usize, z)) {
+                    } else if depth > 5
+                        && wy > 4
+                        && caves.as_ref().is_some_and(|c| c.is_cave(x, (wy - base.y) as usize, z))
+                    {
                         AIR
                     } else if depth == 0 {
                         top

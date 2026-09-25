@@ -104,11 +104,7 @@ impl Perlin {
             lerp(
                 v,
                 lerp(u, grad3(pm[aa + 1], xf, yf, zf - 1.0), grad3(pm[ba + 1], xf - 1.0, yf, zf - 1.0)),
-                lerp(
-                    u,
-                    grad3(pm[ab + 1], xf, yf - 1.0, zf - 1.0),
-                    grad3(pm[bb + 1], xf - 1.0, yf - 1.0, zf - 1.0),
-                ),
+                lerp(u, grad3(pm[ab + 1], xf, yf - 1.0, zf - 1.0), grad3(pm[bb + 1], xf - 1.0, yf - 1.0, zf - 1.0)),
             ),
         )
     }

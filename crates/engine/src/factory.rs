@@ -71,7 +71,15 @@ fn opposite(dir: u8) -> u8 {
 
 /// Pushes one box instance (see [`INSTANCE_FLOATS`]).
 #[allow(clippy::too_many_arguments)]
-pub fn push_box(out: &mut Vec<f32>, center: Vec3, yaw: f32, size: [f32; 3], scroll: f32, tex: [u16; 3], world_uv: bool) {
+pub fn push_box(
+    out: &mut Vec<f32>,
+    center: Vec3,
+    yaw: f32,
+    size: [f32; 3],
+    scroll: f32,
+    tex: [u16; 3],
+    world_uv: bool,
+) {
     out.extend_from_slice(&[
         center.x as f32,
         center.y as f32,
@@ -104,7 +112,10 @@ struct BeltItem {
 enum Link {
     None,
     /// `mid`: joining from the side, so the item enters halfway along the target belt.
-    Belt { belt: u32, mid: bool },
+    Belt {
+        belt: u32,
+        mid: bool,
+    },
     Storage(u32),
 }
 
@@ -424,9 +435,7 @@ impl Factory {
 
         // Machines feed belts that lead away from them.
         let feeds = |pos: IVec3| -> Vec<u32> {
-            (0..4u8)
-                .filter_map(|s| belt_at(pos + DIRS[s as usize]).filter(|&j| belts[j as usize].dir == s))
-                .collect()
+            (0..4u8).filter_map(|s| belt_at(pos + DIRS[s as usize]).filter(|&j| belts[j as usize].dir == s)).collect()
         };
         let miner_outs: Vec<Vec<Link>> = self
             .miners
@@ -624,7 +633,15 @@ impl Factory {
             let yaw = b.dir as f32 * FRAC_PI_2;
             let (s, c) = yaw.sin_cos();
             let at = |x: f32, y: f32, z: f32| rel + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
-            push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, [tex::BELT_TOP, tex::FRAME, tex::FRAME], true);
+            push_box(
+                out,
+                at(0.0, BELT_HEIGHT * 0.5, 0.0),
+                yaw,
+                [0.84, BELT_HEIGHT, 1.0],
+                scroll,
+                [tex::BELT_TOP, tex::FRAME, tex::FRAME],
+                true,
+            );
             for side in [-0.46, 0.46] {
                 push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, [tex::FRAME; 3], true);
             }
@@ -650,7 +667,15 @@ impl Factory {
             };
             let running = m.status == MinerStatus::Running && m.draw_rate > 0.01;
             let pump = if running { 0.05 * (0.5 + 0.5 * (time * 10.0).sin()) } else { 0.0 };
-            push_box(out, rel + f * -0.13, 0.0, size(0.7, 0.86), 0.0, [tex::MINER_TOP, tex::MINER_SIDE, tex::FRAME], true);
+            push_box(
+                out,
+                rel + f * -0.13,
+                0.0,
+                size(0.7, 0.86),
+                0.0,
+                [tex::MINER_TOP, tex::MINER_SIDE, tex::FRAME],
+                true,
+            );
             push_box(out, rel + f * 0.27, 0.0, size(0.1, 0.6), 0.0, [tex::FRAME; 3], true);
             push_box(out, rel + f * (0.44 + pump), 0.0, size(0.36, 0.22), 0.0, [tex::DRILL; 3], true);
             let lamp = match m.status {
@@ -705,8 +730,11 @@ impl Factory {
                 }
                 let mut lines = vec![format!("{used} of {STORAGE_SLOTS} slots used")];
                 if !totals.is_empty() {
-                    let list: Vec<String> =
-                        totals.iter().take(3).map(|(item, n)| format!("{} {}", fmt_int(*n as u64), block::def(*item).name)).collect();
+                    let list: Vec<String> = totals
+                        .iter()
+                        .take(3)
+                        .map(|(item, n)| format!("{} {}", fmt_int(*n as u64), block::def(*item).name))
+                        .collect();
                     lines.push(list.join(", ") + if totals.len() > 3 { ", ..." } else { "" });
                     lines.push("Right-click to take everything".to_string());
                 }
@@ -755,7 +783,9 @@ impl Factory {
     #[cfg(test)]
     pub fn storage_count_at(&self, pos: IVec3, item: BlockId) -> u32 {
         match self.at.get(&pos) {
-            Some(Slot::Storage(i)) => self.storages[*i as usize].slots.iter().filter(|s| s.item == item).map(|s| s.count).sum(),
+            Some(Slot::Storage(i)) => {
+                self.storages[*i as usize].slots.iter().filter(|s| s.item == item).map(|s| s.count).sum()
+            }
             _ => 0,
         }
     }
@@ -799,7 +829,12 @@ mod tests {
     fn spacing_ok(f: &Factory) {
         for b in &f.belts {
             for w in b.items.windows(2) {
-                assert!(w[0].p - w[1].p >= ITEM_SPACING - 1e-4, "items too close on belt at {:?}: {:?}", b.pos, b.items);
+                assert!(
+                    w[0].p - w[1].p >= ITEM_SPACING - 1e-4,
+                    "items too close on belt at {:?}: {:?}",
+                    b.pos,
+                    b.items
+                );
             }
             for it in &b.items {
                 assert!((0.0..=1.0).contains(&it.p), "item off the belt: {it:?}");
@@ -928,6 +963,9 @@ mod tests {
         add_to_slots(slots, STONE, 1);
         let text = f.describe(pos).unwrap();
         // 130 iron fills three stacks of 64.
-        assert_eq!(text, "6 of 24 slots used\n130 Iron Ore, 40 Copper Ore, 5 Coal Ore, ...\nRight-click to take everything");
+        assert_eq!(
+            text,
+            "6 of 24 slots used\n130 Iron Ore, 40 Copper Ore, 5 Coal Ore, ...\nRight-click to take everything"
+        );
     }
 }

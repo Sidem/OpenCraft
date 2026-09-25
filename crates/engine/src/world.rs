@@ -264,7 +264,10 @@ impl World {
         let mut q = std::mem::take(&mut self.mesh_queue);
         q.clear();
         q.extend(
-            self.dirty.iter().filter(|p| ring_dist2(p.x - cx, p.z - cz, 0) <= r2 && self.neighbors_loaded(**p)).copied(),
+            self.dirty
+                .iter()
+                .filter(|p| ring_dist2(p.x - cx, p.z - cz, 0) <= r2 && self.neighbors_loaded(**p))
+                .copied(),
         );
         let focus = self.focus;
         q.sort_unstable_by_key(|&p| std::cmp::Reverse(priority(focus, p)));

@@ -34,14 +34,8 @@ const STRIDE: [isize; 3] = [1, P2 as isize, P as isize];
 
 /// Per face: (normal axis, normal sign, u axis, v axis), with u × v = normal so that
 /// corners (0,0) (1,0) (1,1) (0,1) wind counter-clockwise seen from outside.
-const FACES: [(usize, isize, usize, usize); 6] = [
-    (0, 1, 1, 2),
-    (0, -1, 2, 1),
-    (1, 1, 2, 0),
-    (1, -1, 0, 2),
-    (2, 1, 0, 1),
-    (2, -1, 1, 0),
-];
+const FACES: [(usize, isize, usize, usize); 6] =
+    [(0, 1, 1, 2), (0, -1, 2, 1), (1, 1, 2, 0), (1, -1, 0, 2), (2, 1, 0, 1), (2, -1, 1, 0)];
 
 /// Neighbour slot for chunk offset (dx, dy, dz) ∈ [-1, 1]³ in the array passed to [`Mesher::mesh`].
 #[inline]
@@ -97,11 +91,7 @@ impl Mesher {
         let mut verts = Vec::with_capacity(self.opaque.len() + self.cutout.len());
         verts.extend_from_slice(&self.opaque);
         verts.extend_from_slice(&self.cutout);
-        MeshOutput {
-            verts,
-            opaque_quads: (self.opaque.len() / 4) as u32,
-            cutout_quads: (self.cutout.len() / 4) as u32,
-        }
+        MeshOutput { verts, opaque_quads: (self.opaque.len() / 4) as u32, cutout_quads: (self.cutout.len() / 4) as u32 }
     }
 
     /// Air chunks and solid chunks buried in solid chunks produce no faces; skip the scan.
