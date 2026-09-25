@@ -13,7 +13,8 @@ folder with `mod.rs`.
 | Module | Owns |
 |---|---|
 | `lib.rs` | The `Game` struct (core `sim`, `local` id, `bodies`, items, the local player's hands and view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `act` / `act_as` (queue an action), `body()` / `inventory()` (the local player's); the module list |
-| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `PlayerId`, `SimEvent` |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `state_hash` / `write_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
+| `bytes.rs` | `ByteWriter` (little-endian canonical encoding of core state; each type has a `write_state`), `fnv1a` |
 | `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
 | `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world), loose items and pickups for the nearest player (`step_items`), `throw`, `join` / `leave` |
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
@@ -24,7 +25,7 @@ folder with `mod.rs`.
 | `api/crafting.rs` | Recipe queries and `craft` |
 | `api/content.rs` | Block names and sound materials, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
-| `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
+| `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `block.rs` | Block ids (= item ids for now), `DEFS` table, texture layers `tex`, sound materials, lookup tables |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
@@ -49,7 +50,7 @@ folder with `mod.rs`.
 | `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant |
 | `noise.rs` | Seeded Perlin noise + fBm |
-| `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng` |
+| `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
 | `sound.rs` | Sound event buffer read by the host |
 | `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, a second player, frame-rate independence) |
 
@@ -122,8 +123,9 @@ that file. Build DOM with `h()` / `button()` from `ui/dom.ts`; reuse `.secondary
 Construct it in `main.ts`. To open it with a key: an `Action` in `input.ts` and a branch in main.ts's
 action loop.
 
-**Core state, a way to change it, or a reaction to it.** State: a field on `Sim` (`sim.rs`) and, from step
-1.6, in the save format; per-player state goes in `PlayerCore`. A change: an `Action` variant and its arm
+**Core state, a way to change it, or a reaction to it.** State: a field on `Sim` (`sim.rs`) or the type
+that owns it (per-player state in `PlayerCore`), plus its bytes in that type's `write_state`, which the
+state hash and saves use. A change: an `Action` variant and its arm
 in `Sim::apply_to_player` (`action.rs`); `Game` queues it with `act` (local player) or `act_as`. A reaction
 (sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and its arm in
 `Game::handle_sim_events` (`events.rs`). Per-player state the authority keeps (body-related) goes in

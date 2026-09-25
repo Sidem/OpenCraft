@@ -13,7 +13,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
 | `npm run build` | Wasm, typecheck, and the Vite production bundle into `dist/`. |
-| `cargo test --workspace -q` | Engine tests only (66 after step 1.4). Add a name to filter. |
+| `cargo test --workspace -q` | Engine tests only (71 after step 1.5). Add a name to filter. |
 | `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
 | `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
@@ -39,7 +39,7 @@ section 3.1) and use the browser for final visual proof.
 - Useful: `block_at`, `find_deposit(tier)` (0 lode, 1 vein, 2 outcrop), `skip_time(s)` (silent),
   `run_ticks(n)`, `give(id, n)`, `craft(r, n)`, `target_detail()`, and `opencraft.inventory.open()`.
   `add_player()` / `remove_player(id)` add an invisible second body at spawn (nothing draws other
-  players yet).
+  players yet). `state_hash()` (a BigInt) fingerprints the core state; it changes every tick.
 - `update(dt)` runs whole 60 Hz ticks, so a single `update(1/144)` may run none. `run_ticks(n)` steps the
   simulation exactly; follow it with `update(0)` to refresh the camera and box instances.
 - Mutating calls (`give`, `craft`, `click_slot`, `select_slot`, `drop_selected`, placing, breaking) are

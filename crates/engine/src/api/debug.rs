@@ -1,6 +1,6 @@
 //! Debug and testing helpers, used from the browser console (`window.opencraft.game`) and tests:
-//! give items, teleport, add and remove players, run ticks and fast-forward time, find deposits, read
-//! blocks and the position.
+//! give items, teleport, add and remove players, the state hash, run ticks and fast-forward time,
+//! find deposits, read blocks and the position.
 
 use wasm_bindgen::prelude::*;
 
@@ -38,6 +38,12 @@ impl Game {
         if let Ok(id) = u8::try_from(id) {
             self.leave(PlayerId(id));
         }
+    }
+
+    /// Fingerprint of the core state (world edits, machines, deposits, inventories, tick), e.g. to
+    /// check that a reloaded world matches the one that was saved.
+    pub fn state_hash(&self) -> u64 {
+        self.sim.state_hash()
     }
 
     /// Runs `n` simulation ticks at once, sounds included (tests and catch-up).

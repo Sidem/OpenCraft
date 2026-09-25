@@ -52,22 +52,39 @@ fn find_outcrop_block(g: &mut Game, min_blocks: u32) -> (IVec3, DepositKey) {
     panic!("no outcrop near spawn");
 }
 
+/// Points the local player's hands at `block` (targeting normally comes from the camera).
+fn aim(g: &mut Game, block: IVec3) {
+    let id = g.sim.world.get_block(block).unwrap();
+    g.target = Some(RayHit { block, normal: IVec3::new(0, 1, 0), id });
+}
+
 #[test]
 fn target_detail_leaves_the_core_unchanged() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
+    let before = g.sim.state_hash();
     let p = nearby_ore(&g)[0];
-    let id = g.sim.world.get_block(p).unwrap();
-    g.target = Some(RayHit { block: p, normal: IVec3::new(0, 1, 0), id });
+    aim(&mut g, p);
 
     let detail = g.target_detail();
     assert!(detail.contains("blocks left"), "{detail}");
     assert_eq!(g.sim.factory.deposits.tracked(), 0, "looking must not track the deposit");
     assert_eq!(g.target_detail(), detail, "the survey is cached and stable");
+    assert_eq!(g.sim.state_hash(), before);
 
     // Once something tracks the deposit, the readout shows the same figures from the core.
     g.sim.factory.deposits.lookup(&mut g.sim.world, p).unwrap();
     assert_eq!(g.target_detail(), detail);
+
+    // Machine readouts are pure too.
+    let (m, chest) = build_mine(&mut g, p);
+    g.run_ticks(60);
+    let before = g.sim.state_hash();
+    for block in [m, m + IVec3::new(1, 0, 0), chest, p] {
+        aim(&mut g, block);
+        assert!(!g.target_detail().is_empty());
+    }
+    assert_eq!(g.sim.state_hash(), before);
 }
 
 #[test]
@@ -295,7 +312,7 @@ fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
     run_until_ready(&mut g);
     let (p, key) = find_outcrop_block(&mut g, 6);
     let (miner, chest) = build_mine(&mut g, p);
-    let (start, first_tick) = (g.body().pos.floor(), g.sim.tick);
+    let first_tick = g.sim.tick;
     g.set_look(0.7, 0.0);
     g.set_move(1.0, 0.3, true, true, false);
     feed(&mut g, 1.5, &mut next_dt);
@@ -322,16 +339,7 @@ fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
         m.held,
         g.sim.factory.storage_count_at(chest, key.ore)
     );
-    let mut hash = 0xcbf2_9ce4_8422_2325u64;
-    for y in -6..6 {
-        for z in -12..12 {
-            for x in -12..12 {
-                let b = g.sim.world.get_block(start + IVec3::new(x, y, z)).unwrap_or(255);
-                hash = (hash ^ b as u64).wrapping_mul(0x100_0000_01b3);
-            }
-        }
-    }
-    s += &format!("blocks {hash:x}\n");
+    s += &format!("core {:x}\n", g.sim.state_hash());
     (g, s)
 }
 

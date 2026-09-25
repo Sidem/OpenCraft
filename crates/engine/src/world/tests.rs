@@ -50,3 +50,14 @@ fn edits_survive_unload() {
     drain(&mut w);
     assert_eq!(w.get_block(p), Some(STONE));
 }
+
+#[test]
+fn rewriting_a_block_is_not_an_edit_anywhere() {
+    let mut w = World::new(9, 2);
+    let p = IVec3::new(700, 200, 700);
+    assert!(!w.set_block_anywhere(p, AIR), "already air");
+    assert_eq!(w.block_anywhere(p), None, "no stored copy was made");
+    assert!(w.set_block_anywhere(p, STONE));
+    assert!(!w.set_block_anywhere(p, STONE));
+    assert_eq!(w.block_anywhere(p), Some(STONE));
+}

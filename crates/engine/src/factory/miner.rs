@@ -4,6 +4,7 @@
 //! decide how much it actually gets (`deposits.rs`).
 
 use crate::block::{BlockId, STONE};
+use crate::bytes::ByteWriter;
 use crate::deposits::{DepositKey, Deposits};
 use crate::math::IVec3;
 use crate::sim::SimEvent;
@@ -64,6 +65,22 @@ impl Miner {
             draw_rate: 0.0,
             pulse: 0,
         }
+    }
+
+    /// Core state (`ore` follows from the deposit; `outs` is rebuilt by `relink`).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.ivec3(self.pos);
+        w.u8(self.drill);
+        w.bool(self.deposit.is_some());
+        if let Some(key) = &self.deposit {
+            key.write_state(w);
+        }
+        w.u32(self.held);
+        w.f64(self.carry);
+        w.u32(self.next_out as u32);
+        w.u8(self.status as u8);
+        w.f64(self.draw_rate);
+        w.u32(self.pulse);
     }
 
     /// Draws from the deposit into `held`, then updates the status and the smoothed draw rate.

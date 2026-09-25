@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions) and
-1.4 (several players) done · **Next up: Milestone 1, step 1.5 (state hash and determinism tests).**
+**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions),
+1.4 (several players) and 1.5 (state hash) done · **Next up: Milestone 1, step 1.6 (save format).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -86,7 +86,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after step 1.4)
+## 2. Where the code stands (after step 1.5)
 
 ### Architecture
 
@@ -95,7 +95,8 @@ Rust owns all game state and hot loops (`crates/engine`, compiled to wasm with w
 box instances, sound events, textures) is read zero-copy from wasm memory through `*_ptr` / `*_count`
 accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs` and acts
 for the local player (`Game.local`). The deterministic core is `Sim` (`sim.rs`: tick, world, factory with
-deposits, each player's inventory, rng). The authority (`authority.rs`) owns every player's body and the
+deposits, each player's inventory, rng); `Sim::state_hash` fingerprints it through the canonical encoding
+in `bytes.rs`. The authority (`authority.rs`) owns every player's body and the
 loose items. The local player's hands (mining, placing, footsteps) live in `interaction.rs`. `Game`
 changes the core only by queuing `Action`s (`action.rs`), applied at the next tick; the core answers with
 `SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
@@ -134,8 +135,8 @@ Each frame, `web/src/main.ts`:
 - **Items are blocks:** `BlockId` (u8) doubles as the item id. Ids 0–14: AIR, STONE, DIRT, GRASS, SAND,
   LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER, STORAGE.
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
-  `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`.
-- **Size:** about 100 KB gzipped in total (wasm 73 KB, JS 25 KB).
+  `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
+- **Size:** about 100 KB gzipped in total (wasm 76 KB, JS 25 KB).
 
 ### Known limitations and technical debt (Milestone 1 fixes most of these)
 
@@ -266,8 +267,8 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 - Report gzipped sizes when the build grows noticeably (`npx vite build` prints them).
 - Avoid formatting floats in Rust (`{:.1}` pulls in about 25 KB). Round to integers, or format in
   TypeScript.
-- Avoid new instantiations of the std sorts on small lists (about 5–9 KB each). An insertion sort is fine
-  for short lists; see `worldgen::sort_by_ownership`.
+- Avoid new instantiations of the std sorts (about 5–9 KB each). Use the insertion sort
+  `math::sort_small_by_key`.
 - No new crates without a reason worth their size. Hand-written serialisation beats serde+bincode here.
 
 ### 3.4 Determinism (required for co-op; enforced from Milestone 1)
@@ -409,34 +410,35 @@ on every peer.
     gzipped; the two exports are 1.75 KB raw of it). Browser: mining, pickup, toast, drop, adding and
     removing a player all work.
 
-- [ ] **1.5 State hash and determinism tests** (`sim.rs` tests, maybe `tests/determinism.rs`)
-  - `Sim::state_hash() -> u64` over the canonical core state: tick, edited chunks (sorted by coordinate),
-    factory entities in `Vec` order, deposit states that differ from generation (sorted by key), player
-    inventories, rng state. FxHash or FNV is fine; it only needs to be stable.
-  - Tests:
-    1. **Same actions, same state.** Two `Sim`s with the same seed and a scripted action log: place a
-       miner on a deposit, belts and a box, break ore by hand, craft, run 2,000+ ticks. Hashes match every
-       tick.
-    2. **Save/load continuity** (after 1.6): save at tick K, load into a fresh `Sim`, run both to tick N,
-       and the hashes match.
-    3. **Local conditions don't matter.** Different loaded-chunk sets, or one `Sim` whose action targets
-       sit in unloaded chunks, give equal hashes.
-    4. **Queries are pure.** `target_detail` and `describe` don't change the hash.
-  - **Done when:** these pass and run in CI (`cargo test --workspace`).
+- [x] **1.5 State hash and determinism tests** (done 2026-09-25)
+  - `bytes.rs` (new): `ByteWriter`, the canonical little-endian encoding of core state, and `fnv1a`.
+    Each core type writes itself in a `write_state` next to its fields, skipping derived data.
+    `Sim::write_state` writes tick, rng, players, edited chunks (loaded or stored, sorted by coordinate,
+    run-length encoded), machines in `Vec` order, then every tracked deposit sorted by key.
+    `Sim::state_hash` is FNV-1a over those bytes. It is exposed to JS as `state_hash()` (a BigInt).
+  - Pending actions are not hashed, since peers may already hold different actions for future ticks.
+  - `World::set_block_anywhere` no longer marks an unloaded chunk as edited when the block is already
+    there, matching `set_block`.
+  - `math::sort_small_by_key` replaces `worldgen::sort_by_ownership`.
+  - Tests in `sim/tests.rs`: same actions, same hash every tick for 6,300 ticks (miner, belts, box,
+    hand mining, crafting, two players, first spent rock); loaded versus bare core with the chunks
+    streamed out and back; the hash covers inventories, players, time and seed.
+    `target_detail_leaves_the_core_unchanged` also checks the hash across ore and machine readouts. The
+    frame-rate test compares state hashes. A mutation check (breaking read loaded chunks only) fails at
+    tick 1. Test 2 (save/load continuity) comes with step 1.6.
+  - 71 tests, suite still about 1.5 s. Wasm 206,788 bytes (+5.6 KB raw, +2.4 KB gzipped, almost all of it
+    the encoding that saves will reuse).
 
 - [ ] **1.6 Save format** (`save.rs` new)
-  - Binary, little-endian, hand-written `ByteWriter` / `ByteReader`. Header: magic `OCW1`,
-    `SAVE_VERSION: u32`, `WORLDGEN_VERSION: u32`.
+  - Binary, little-endian. Header: magic `OCW1`, `SAVE_VERSION: u32`, `WORLDGEN_VERSION: u32`.
   - **Bump `WORLDGEN_VERSION` whenever generation changes incompatibly.** Old saves' untouched terrain and
     deposits would otherwise regenerate differently under their edits.
-  - Sections:
-    - meta: seed, tick, world name, play time,
-    - players: id, name, body position, yaw and pitch, flying, 36 slots, cursor, selected,
-    - edited chunks: coordinate plus run-length-encoded blocks (a dense chunk is 32 KB raw),
-    - factory: belts with their items and progress, miners (held, carry, status), storages (slots),
-    - deposit states that differ from generation: key, remaining blocks, partial,
-    - loose item entities,
-    - core rng state.
+  - The core section is exactly `Sim::write_state` (step 1.5): add a `ByteReader` to `bytes.rs` and a
+    `read_state` beside every `write_state`. Tracked deposits rebuild their members with a survey.
+  - Sections outside the core:
+    - meta: seed, world name, play time,
+    - bodies: id, body position, yaw and pitch, flying (names come with co-op),
+    - loose item entities.
   - Don't save derived data (belt links, `order`, `dirty`, meshes, deposit member lists, budgets);
     rebuild it on load.
   - The API is `Game::save() -> Vec<u8>` and `Game::load(bytes) -> Result<Game, String>`. The error
@@ -537,3 +539,7 @@ and the balance numbers. Read the section you need.
   which the plan text didn't name. Bodies, loose items and pickups moved out of `lib.rs` into the new
   `authority.rs`. The plan listed `player.rs`, but it needed no change. Open for Milestone 3: whether a
   leaving player's inventory is kept for rejoining (today it is dropped). Debt item 5 closed.
+- **2026-09-25:** Step 1.5 done (state hash). The plan said to hash only deposit states that "differ from
+  generation"; all tracked states are hashed instead, because tracking changes behaviour: a miner draws
+  nothing from an untracked deposit. The hash covers the same bytes the save will store, so step 1.6 now
+  starts from `bytes.rs` and the `write_state` methods, and its section list was updated to match.

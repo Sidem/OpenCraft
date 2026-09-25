@@ -2,6 +2,7 @@
 //! box pushes one item from its last non-empty slot into the next belt leading away (round-robin).
 
 use crate::block::BlockId;
+use crate::bytes::ByteWriter;
 use crate::inventory::{Stack, MAX_STACK};
 use crate::math::IVec3;
 
@@ -20,6 +21,15 @@ pub struct Storage {
 impl Storage {
     pub fn new(pos: IVec3) -> Storage {
         Storage { pos, slots: [Stack::default(); STORAGE_SLOTS], outs: Vec::new(), next_out: 0 }
+    }
+
+    /// Core state: position, slots and the round-robin position (`outs` is rebuilt by `relink`).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.ivec3(self.pos);
+        for s in &self.slots {
+            s.write_state(w);
+        }
+        w.u32(self.next_out as u32);
     }
 
     pub fn can_accept(&self, item: BlockId) -> bool {

@@ -34,8 +34,7 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 ## Wasm size (check `npx vite build` when it could grow)
 
 - No float formatting (`{:.1}`, `to_string()` on floats): about 25 KB. Round to integers or format in TS.
-- No new instantiations of std sorts on short lists (5–9 KB each): use an insertion sort
-  (`worldgen/ore.rs::sort_by_ownership`).
+- No new instantiations of std sorts (5–9 KB each): use `math::sort_small_by_key` (insertion sort).
 - No new crates without a reason worth their size. Hand-written serialisation over serde.
 
 ## Determinism (DEV_PLAN section 3.4)
@@ -44,8 +43,9 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   changes only in `Sim::step`: the tick's queued actions (`action.rs`), then the factory by exactly
   `TICK`. Never depend on frame time, loaded chunks, the camera, `Sounds`, UI state or hash-map order;
   report outward with a `SimEvent`. Per-frame work in `Game::update` is presentation only.
-  `results_do_not_depend_on_frame_rate` (`src/tests.rs`) guards this; extend its snapshot when you add
-  core state.
+- New core state must be written by its type's `write_state` (`bytes.rs`), or `Sim::state_hash` (and
+  saves) miss it. `sim/tests.rs` (same actions, same hash; loaded chunks don't matter) and
+  `results_do_not_depend_on_frame_rate` (`src/tests.rs`) compare hashes.
 - Core reads and edits use `World::block_anywhere_or_generate` / `set_block_anywhere`. `get_block` /
   `set_block` only see loaded chunks (the render cache), and `set_block` silently fails elsewhere.
 - Queries must not create core state: `target_detail` uses `deposits::owner_of` and

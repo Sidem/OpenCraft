@@ -3,6 +3,7 @@
 //! the UI redraws only when needed. `add_to_slots` is shared with storage boxes.
 
 use crate::block::{BlockId, AIR};
+use crate::bytes::ByteWriter;
 
 pub const HOTBAR_SLOTS: usize = 9;
 pub const INVENTORY_SLOTS: usize = 36;
@@ -17,6 +18,12 @@ pub struct Stack {
 impl Stack {
     pub fn is_empty(&self) -> bool {
         self.count == 0
+    }
+
+    /// Item and count; every empty stack writes as (AIR, 0), whatever item it last held.
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.u8(if self.is_empty() { AIR } else { self.item });
+        w.u32(self.count);
     }
 }
 
@@ -59,6 +66,15 @@ impl Default for Inventory {
 }
 
 impl Inventory {
+    /// Core state: slots, cursor and selection (not `version`, which only serves the UI).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        for s in &self.slots {
+            s.write_state(w);
+        }
+        self.cursor.write_state(w);
+        w.u8(self.selected as u8);
+    }
+
     /// Room left for `item` across all slots.
     pub fn space_for(&self, item: BlockId) -> u32 {
         self.slots

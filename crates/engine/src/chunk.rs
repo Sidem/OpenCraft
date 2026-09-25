@@ -3,6 +3,7 @@
 //! when the chunk streams out. Memory layout: see [`index`].
 
 use crate::block::BlockId;
+use crate::bytes::ByteWriter;
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_SHIFT: i32 = 5;
@@ -76,6 +77,27 @@ impl Chunk {
         match &self.data {
             Data::Uniform(_) => None,
             Data::Dense(d) => Some(d),
+        }
+    }
+
+    /// The blocks in [`index`] order as runs of (length `u16`, block), so the same contents give the
+    /// same bytes whether stored uniform or dense.
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        let blocks = match &self.data {
+            Data::Uniform(b) => {
+                w.u16(CHUNK_VOLUME as u16);
+                w.u8(*b);
+                return;
+            }
+            Data::Dense(d) => d,
+        };
+        let mut start = 0;
+        for i in 1..=CHUNK_VOLUME {
+            if i == CHUNK_VOLUME || blocks[i] != blocks[start] {
+                w.u16((i - start) as u16);
+                w.u8(blocks[start]);
+                start = i;
+            }
         }
     }
 }

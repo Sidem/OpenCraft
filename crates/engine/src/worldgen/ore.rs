@@ -10,7 +10,7 @@
 use crate::block::{BlockId, COAL_ORE, COPPER_ORE, DIRT, GRASS, IRON_ORE, STONE};
 use crate::chunk::{index, CHUNK_SIZE};
 use crate::deposits::{Deposit, DepositKey, Tier};
-use crate::math::{hash2, hash3, IVec3, Rng};
+use crate::math::{hash2, hash3, sort_small_by_key, IVec3, Rng};
 
 use super::{WorldGen, WORLD_HEIGHT};
 
@@ -39,7 +39,7 @@ impl WorldGen {
                 out.extend(col.deposits.iter().filter(|d| d.intersects(lo, hi)));
             }
         }
-        sort_by_ownership(&mut out);
+        sort_small_by_key(&mut out, |d| d.key);
         out.dedup_by_key(|d| d.key);
         out
     }
@@ -76,7 +76,7 @@ impl WorldGen {
         let lo = IVec3::new(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE);
         let hi = IVec3::new(lo.x + CHUNK_SIZE - 1, WORLD_HEIGHT - 1, lo.z + CHUNK_SIZE - 1);
         all.retain(|d| d.intersects(lo, hi));
-        sort_by_ownership(&mut all);
+        sort_small_by_key(&mut all, |d| d.key);
         all
     }
 
@@ -170,16 +170,4 @@ pub(super) fn stamp_deposit(d: &Deposit, base: IVec3, b: &mut [BlockId]) {
 #[inline]
 fn ore_replaceable(b: BlockId) -> bool {
     matches!(b, STONE | DIRT | GRASS)
-}
-
-/// Sorts deposits into ownership order. The lists are a few columns' worth at most, and an
-/// insertion sort keeps another instantiation of the general-purpose sort out of the wasm.
-fn sort_by_ownership(v: &mut [Deposit]) {
-    for i in 1..v.len() {
-        let mut j = i;
-        while j > 0 && v[j - 1].key > v[j].key {
-            v.swap(j - 1, j);
-            j -= 1;
-        }
-    }
 }

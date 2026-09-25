@@ -10,11 +10,13 @@
 //! Anything the rest of the game should react to leaves as a [`SimEvent`] in `events`;
 //! `Game::handle_sim_events` (events.rs) drains them every tick.
 //!
-//! To add core state: a field here (and, from step 1.6, in the save format). To change it: an `Action`.
+//! To add core state: a field here (or on the type that owns it) and its bytes in that type's
+//! `write_state`, which `state_hash` and (from step 1.6) saves use. To change it: an `Action`.
 //! To tell the game about something: a `SimEvent` variant and its arm in `handle_sim_events`.
 
 use crate::action::Action;
 use crate::block::BlockId;
+use crate::bytes::{fnv1a, ByteWriter};
 use crate::factory::Factory;
 use crate::inventory::Inventory;
 use crate::math::{hash2, IVec3, Rng, Vec3};
@@ -129,6 +131,32 @@ impl Sim {
         self.factory.update(&mut self.world, self.tick, &mut self.events);
         self.tick += 1;
     }
+
+    /// Fingerprint of the core state. Two cores with equal hashes behave the same from here on,
+    /// given the same actions. Compare it between peers, runs or a save and its reload.
+    pub fn state_hash(&self) -> u64 {
+        let mut w = ByteWriter::default();
+        self.write_state(&mut w);
+        fnv1a(&w.bytes)
+    }
+
+    /// The canonical core state: tick, rng, players (up to the last one here), world edits, factory
+    /// and deposits. Pending actions and undrained events are not state: peers may hold different
+    /// queues for future ticks.
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.u64(self.tick);
+        w.u64(self.rng.state());
+        let players = self.players.iter().rposition(Option::is_some).map_or(0, |last| last + 1);
+        w.count(players);
+        for p in &self.players[..players] {
+            w.bool(p.is_some());
+            if let Some(p) = p {
+                p.inventory.write_state(w);
+            }
+        }
+        self.world.write_state(w);
+        self.factory.write_state(w);
+    }
 }
 
 struct Queued {
@@ -143,3 +171,6 @@ impl Queued {
         (self.tick, self.player, self.seq)
     }
 }
+
+#[cfg(test)]
+mod tests;

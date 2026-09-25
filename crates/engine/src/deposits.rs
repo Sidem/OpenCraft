@@ -15,8 +15,9 @@
 use rustc_hash::FxHashMap;
 
 use crate::block::{self, BlockId, SPENT_ROCK};
+use crate::bytes::ByteWriter;
 use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
-use crate::math::{hash3, unit, IVec3};
+use crate::math::{hash3, sort_small_by_key, unit, IVec3};
 use crate::world::World;
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
@@ -83,6 +84,16 @@ pub struct DepositKey {
     pub cz: i32,
     pub ore: BlockId,
     pub index: u16,
+}
+
+impl DepositKey {
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.u8(self.tier as u8);
+        w.i32(self.cx);
+        w.i32(self.cz);
+        w.u8(self.ore);
+        w.u16(self.index);
+    }
 }
 
 /// Deposit geometry: a ragged ellipsoid.
@@ -251,6 +262,19 @@ impl Deposits {
 
     pub fn tracked(&self) -> usize {
         self.states.len()
+    }
+
+    /// Core state: every tracked deposit, sorted by key, with what is left of it. Its geometry and
+    /// members follow from generation; the draw budget only lives within a tick.
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        let mut states: Vec<&DepositState> = self.states.values().collect();
+        sort_small_by_key(&mut states, |s| s.deposit.key);
+        w.count(states.len());
+        for s in states {
+            s.deposit.key.write_state(w);
+            w.u32(s.remaining_blocks);
+            w.f64(s.partial);
+        }
     }
 
     /// The deposit owning the ore (or spent rock) block at `p`, starting to track it if needed.

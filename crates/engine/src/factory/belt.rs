@@ -6,6 +6,7 @@
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
 
 use crate::block::BlockId;
+use crate::bytes::ByteWriter;
 use crate::math::IVec3;
 
 use super::storage::Storage;
@@ -40,6 +41,17 @@ pub struct Belt {
 impl Belt {
     pub fn new(pos: IVec3, dir: u8) -> Belt {
         Belt { pos, dir: dir % 4, items: Vec::new(), out: Link::None, curve_from: None }
+    }
+
+    /// Core state: position, direction and items (`out` and `curve_from` are rebuilt by `relink`).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.ivec3(self.pos);
+        w.u8(self.dir);
+        w.count(self.items.len());
+        for it in &self.items {
+            w.u8(it.item);
+            w.f32(it.p);
+        }
     }
 
     /// Item offset from the cell centre (horizontal) at progress `p`.

@@ -14,8 +14,9 @@ use std::collections::VecDeque;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::block::{BlockId, AIR, BEDROCK, SOLID, STONE};
+use crate::bytes::ByteWriter;
 use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT, CHUNK_SIZE};
-use crate::math::{IVec3, Vec3};
+use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::mesher::Mesher;
 use crate::worldgen::{WorldGen, WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
 
@@ -112,7 +113,8 @@ impl World {
     }
 
     /// Like [`World::set_block`], but also works where no chunk is loaded (machines keep running
-    /// while the player is away): the edit goes into the stored copy of that chunk.
+    /// while the player is away): the edit goes into the stored copy of that chunk. As with
+    /// `set_block`, writing the block that is already there changes nothing and returns false.
     pub fn set_block_anywhere(&mut self, p: IVec3, b: BlockId) -> bool {
         if p.y < 0 || p.y >= WORLD_HEIGHT {
             return false;
@@ -121,15 +123,34 @@ impl World {
         if self.chunks.contains_key(&c) {
             return self.set_block(p, b);
         }
-        let mut chunk = match self.saved.remove(&c) {
-            Some(chunk) => chunk,
-            None => self.generator.generate(c),
-        };
         let (x, y, z) = local_of(p);
+        if let Some(chunk) = self.saved.get_mut(&c) {
+            if chunk.get(x, y, z) == b {
+                return false;
+            }
+            chunk.set(x, y, z, b);
+            return true;
+        }
+        let mut chunk = self.generator.generate(c);
+        if chunk.get(x, y, z) == b {
+            return false;
+        }
         chunk.set(x, y, z, b);
         chunk.modified = true;
         self.saved.insert(c, chunk);
         true
+    }
+
+    /// Core state: every edited chunk, loaded or stored, sorted by coordinate (x, y, z).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        let loaded = self.chunks.iter().filter(|(_, e)| e.chunk.modified).map(|(&c, e)| (c, &e.chunk));
+        let mut edited: Vec<(IVec3, &Chunk)> = loaded.chain(self.saved.iter().map(|(&c, chunk)| (c, chunk))).collect();
+        sort_small_by_key(&mut edited, |(c, _)| (c.x, c.y, c.z));
+        w.count(edited.len());
+        for (c, chunk) in edited {
+            w.ivec3(c);
+            chunk.write_state(w);
+        }
     }
 
     pub fn set_view_radius(&mut self, r: i32) {

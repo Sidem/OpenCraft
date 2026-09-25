@@ -23,6 +23,7 @@ mod storage;
 use rustc_hash::FxHashMap;
 
 use crate::block::BlockId;
+use crate::bytes::ByteWriter;
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::{add_to_slots, Stack, MAX_STACK};
 use crate::math::IVec3;
@@ -162,6 +163,18 @@ impl Factory {
             }
             _ => false,
         }
+    }
+
+    /// Core state: every machine in `Vec` order, then the deposits. `at`, `order` and the links are
+    /// derived from these.
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.count(self.belts.len());
+        self.belts.iter().for_each(|b| b.write_state(w));
+        w.count(self.miners.len());
+        self.miners.iter().for_each(|m| m.write_state(w));
+        w.count(self.storages.len());
+        self.storages.iter().for_each(|s| s.write_state(w));
+        self.deposits.write_state(w);
     }
 
     /// Runs every machine for one tick (`TICK` seconds). `tick` must differ between calls: the

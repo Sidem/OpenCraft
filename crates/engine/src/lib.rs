@@ -23,6 +23,7 @@ mod action;
 mod api;
 mod authority;
 mod block;
+mod bytes;
 mod chunk;
 mod deposits;
 mod entities;

@@ -1,5 +1,5 @@
-//! Small vector types (`Vec3` f64, `IVec3` i32), integer hashing (`hash2`, `hash3`, `unit`) and a
-//! deterministic RNG (`Rng`). Kept dependency-free on purpose. Hashes and the RNG feed world
+//! Small vector types (`Vec3` f64, `IVec3` i32), integer hashing (`hash2`, `hash3`, `unit`), a
+//! deterministic RNG (`Rng`) and a small-list sort (`sort_small_by_key`). Kept dependency-free on purpose. Hashes and the RNG feed world
 //! generation and the core simulation, so their output must never change for the same input.
 
 use std::ops::{Add, AddAssign, Mul, Sub};
@@ -156,12 +156,29 @@ pub fn smoothstep(e0: f64, e1: f64, x: f64) -> f64 {
     t * t * (3.0 - 2.0 * t)
 }
 
+/// Stable sort by `key` for short lists. An insertion sort keeps more instantiations of the
+/// general-purpose std sort (5–9 KB each) out of the wasm.
+pub fn sort_small_by_key<T, K: Ord>(v: &mut [T], key: impl Fn(&T) -> K) {
+    for i in 1..v.len() {
+        let mut j = i;
+        while j > 0 && key(&v[j - 1]) > key(&v[j]) {
+            v.swap(j - 1, j);
+            j -= 1;
+        }
+    }
+}
+
 /// SplitMix64: tiny, fast, statistically solid for gameplay randomness.
 pub struct Rng(u64);
 
 impl Rng {
     pub fn new(seed: u64) -> Self {
         Rng(seed)
+    }
+
+    /// The whole generator state (for the state hash and saves).
+    pub fn state(&self) -> u64 {
+        self.0
     }
 
     #[inline]
