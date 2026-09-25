@@ -6,14 +6,14 @@ use wasm_bindgen::prelude::*;
 use crate::block::{AIR, BLOCK_COUNT};
 use crate::deposits::Tier;
 use crate::math::{IVec3, Vec3};
-use crate::{Game, TICK_RATE};
+use crate::{Game, LOCAL, TICK_RATE};
 
 #[wasm_bindgen]
 impl Game {
     /// Debug / creative helper: adds items straight to the inventory.
     pub fn give(&mut self, item: u8, count: u32) -> u32 {
         if item != AIR && (item as usize) < BLOCK_COUNT {
-            self.inventory.add(item, count)
+            self.sim.players[LOCAL].inventory.add(item, count)
         } else {
             count
         }
@@ -45,7 +45,8 @@ impl Game {
     /// (0 = lode, 1 = vein, 2 = outcrop) as `[x, y, z, ore]`, or empty if none is within ~500 blocks.
     pub fn find_deposit(&self, tier: u8) -> Vec<i32> {
         let Some(tier) = Tier::from_u8(tier) else { return Vec::new() };
-        self.world
+        self.sim
+            .world
             .generator()
             .find_deposit(self.player.pos.floor(), tier, 16)
             .map_or_else(Vec::new, |d| vec![d.center.x, d.center.y, d.center.z, d.ore() as i32])
@@ -53,7 +54,7 @@ impl Game {
 
     /// Block at a position in a loaded chunk (air otherwise). For testing and the console.
     pub fn block_at(&self, x: i32, y: i32, z: i32) -> u8 {
-        self.world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR)
+        self.sim.world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR)
     }
 
     pub fn player_x(&self) -> f64 {

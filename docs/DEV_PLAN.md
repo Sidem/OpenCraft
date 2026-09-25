@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · steps 1.0 (restructure for agents) and 1.1 (fixed 60 Hz tick) done ·
-**Next up: Milestone 1, step 1.2 (separate the core from presentation).**
+**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick) and 1.2 (core `Sim` separated from
+presentation) done · **Next up: Milestone 1, step 1.3 (actions).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -86,7 +86,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after step 1.1)
+## 2. Where the code stands (after step 1.2)
 
 ### Architecture
 
@@ -94,14 +94,17 @@ Rust owns all game state and hot loops (`crates/engine`, compiled to wasm with w
 (`web/src`) is a thin platform layer: input, WebGL2 rendering, DOM UI, Web Audio. Bulk data (chunk meshes,
 box instances, sound events, textures) is read zero-copy from wasm memory through `*_ptr` / `*_count`
 accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs`, and
-mining, placing and movement sounds live in `interaction.rs`. `docs/CODEMAP.md` maps every module.
+mining, placing and movement sounds live in `interaction.rs`. The deterministic core is `Sim` (`sim.rs`:
+tick, world, factory with deposits, player inventories, rng); `Game` adds the local player's body, loose
+items and presentation. `docs/CODEMAP.md` maps every module.
 
 Each frame, `web/src/main.ts`:
 
 1. forwards input (`set_move`, `look`, `set_mining`, `set_using`, actions from `input.ts`),
 2. calls `game.update(dt)`. This runs streaming, then as many fixed 60 Hz ticks as the frame time adds up to
-   (`Game::run_tick`: player physics, targeting, mining and placing, item entities, the factory), then
-   interpolates the camera between the last two ticks and writes box instances,
+   (`Game::run_tick`: player physics, targeting, mining and placing, item entities, then the core's
+   `Sim::step`, then `present_events` turns `SimEvent`s into sounds), then interpolates the camera between
+   the last two ticks and writes box instances,
 3. runs `begin_work()` + `work_step()` under a time budget (generate or mesh one chunk per step),
 4. drains mesh and unload events to the renderer, plays sound events, renders, updates the HUD.
 
@@ -135,35 +138,22 @@ Each frame, `web/src/main.ts`:
 ### Known limitations and technical debt (Milestone 1 fixes most of these)
 
 1. **No saving.** A page refresh loses everything.
-2. ~~Frame-rate dependent simulation.~~ Fixed in step 1.1. What remains frame- or load-dependent: the
-   player only moves while its chunk is loaded, and targeting, placing and breaking read loaded chunks
-   only (steps 1.2 and 1.3).
-3. **Presentation mixed into simulation.**
-   - `Factory::update` takes the camera `eye` and `&mut Sounds` (for dig sounds).
-   - `Game::target_detail` (`api/hud.rs`) calls `Deposits::lookup`, which **creates** deposit state just because the
-     player looked at ore.
-4. **State changes are direct calls.** `set_using`, `click_slot`, `craft` and others mutate state
-   immediately; there is no action layer.
-5. **One player is built in.** `Game` has a single `player`, `inventory` and mining state, and streaming
-   centres on that player.
-6. **`World::set_block` silently fails in unloaded chunks.** Only miners use `set_block_anywhere`.
+2. ~~Frame-rate dependent simulation.~~ Fixed in step 1.1. The player's body still only moves while its
+   chunk is loaded, but that is the authority's business, not the core's.
+3. ~~Presentation mixed into simulation.~~ Fixed in step 1.2: the factory emits `SimEvent`s, and
+   `target_detail` no longer tracks deposits.
+4. **State changes are direct calls.** `set_using`, `click_slot`, `craft` and others mutate `Sim` state
+   directly from `Game`; there is no action layer.
+5. **One player is built in.** `Game` has a single `player` body and mining state, `Sim.players` has one
+   entry addressed by the `LOCAL` constant, and streaming centres on that player.
+6. ~~`World::set_block` silently fails in unloaded chunks.~~ Core edits use `set_block_anywhere` since
+   step 1.2.
 7. Belts can't climb, and there are no splitters or filters.
 8. Veins and lodes can only be found by digging; there's no prospecting.
 9. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
 10. Items share the block id space; a separate item registry is needed for ingots and parts (Milestone 2).
 11. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
     order of sound materials and event kinds. Replace them with getters when touching that code.
-
----|---|---|
-    | `lib.rs` | 1,095 (862) | God object: every feature edits `impl Game` |
-    | `factory.rs` | 933 (779) | Every machine type in one file |
-    | `style.css` | 1,206 | All UI styles in one file |
-    | `worldgen.rs` | 560 (468) | Terrain and deposit placement mixed |
-    | `sound-lab.ts` | 516 | Over the 400-line budget |
-    | `render/renderer.ts` | 410 | Just over budget; the box-instance pipeline could be its own file |
-
-    14 engine modules keep their tests inline. There is no rustfmt config (the code isn't rustfmt-clean),
-    no single check command, no code map, and no size guardrail.
 
 ---
 
@@ -362,22 +352,21 @@ on every peer.
     then the factory, all advanced by `TICK`. `look()` stays per frame (yaw and pitch aren't core state).
   - Optional polish left for later: interpolating item and belt instances.
 
-- [ ] **1.2 Separate the core from presentation** (`sim.rs` new, `lib.rs`, `factory/`, `deposits.rs`,
-  `api/hud.rs`)
-  - Create `Sim` holding the core state: `tick: u64`, `world: World` (edits live in it), `factory` (with
-    `deposits`), `players: Vec<PlayerCore>` (inventory, cursor, selected slot), `rng`. For now `World` still
-    also holds the render cache. That's acceptable, as long as the core never reads blocks through
-    load-dependent accessors.
-  - `Factory::update(&mut self, world, events: &mut Vec<SimEvent>)`: drop `eye` and `Sounds`. Emit
-    `SimEvent::MinerWorking { pos }` and similar instead of `Miner::sound_step`; the view turns events into
-    sounds, filtered by distance to the camera (keep the current 0.9 s cadence and 24-block range).
-  - `target_detail` must be read-only. Add a non-mutating deposit query that computes figures without
-    inserting into `Deposits.states`, or excludes state created only by looking from saving and hashing.
-    Prefer the former.
-  - Add `World::block_anywhere_or_generate(p)`, or equivalent, so core logic can read any block. Use
-    `set_block_anywhere` for every core edit (placing and breaking included).
-  - **Done when:** no core code path takes the camera, `Sounds`, or frame `dt`, and a test shows
-    `target_detail` leaves the core unchanged.
+- [x] **1.2 Separate the core from presentation** (done 2026-09-25)
+  - `sim.rs`: `Sim { tick, world, factory, players: Vec<PlayerCore>, rng, events }` and `Sim::step`.
+    `PlayerCore` holds the `Inventory` (slots, cursor, selection). `Game` keeps `sim` plus the body, items
+    and view state; `LOCAL` (lib.rs) indexes the local player until step 1.4. `World` still holds the render
+    cache too.
+  - `Factory::update(world, tick, events)` takes the `Sim` tick instead of keeping its own counter. Miners
+    emit `SimEvent::MinerWorking { pos }` every 54 ticks while drawing (`pulse_step`), and
+    `Game::present_events` plays them within 24 blocks of the camera.
+  - `deposits::owner_of` and `DepositState::survey` are read-only. `target_detail` caches one survey in
+    `Game.surveyed` (a view cache, rebuilt when the target's deposit changes); `lookup` alone tracks.
+  - `World::block_anywhere_or_generate` added. Breaking and placing use it and `set_block_anywhere`.
+  - `world.rs` crossed 400 lines, so it became `world/mod.rs` plus `world/streaming.rs`.
+  - Tests `target_detail_leaves_the_core_unchanged` and `working_miner_reports_itself_and_is_heard_nearby`.
+    59 tests; wasm 189,797 bytes (+908). Browser (seed 1337 outcrop): looking at ore shows its figures
+    with `deposits_tracked()` still 0; the placed miner tracks it, runs, and pulses.
 
 - [ ] **1.3 Actions** (`action.rs` new, `sim.rs`, `lib.rs`, `interaction.rs`, `api/`)
   - `enum Action` with an explicit `player: PlayerId` on each variant. The initial set covers today's
@@ -530,3 +519,6 @@ and the balance numbers. Read the section you need.
   layout now points to `docs/CODEMAP.md`.
 - **2026-09-25:** Step 1.1 done (fixed 60 Hz tick). The cap is 8 ticks per frame rather than about 6, so a
   0.1 s frame never loses time. Debt item 2 now lists what is still load-dependent.
+- **2026-09-25:** Step 1.2 done (`Sim`). `Factory::update` takes the tick from `Sim` rather than the planned
+  `(world, events)` signature, so there is one tick counter. Debt items 3 and 6 closed; removed a broken
+  leftover table from section 2.

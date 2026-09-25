@@ -8,12 +8,12 @@ const SOUTH: u8 = 2;
 
 fn run(f: &mut Factory, seconds: f64, mut check: impl FnMut(&Factory)) {
     let mut world = World::new(1, 2);
-    let mut sounds = Sounds::default();
-    let steps = (seconds * 60.0) as usize;
-    for _ in 0..steps {
-        f.update(1.0 / 60.0, &mut world, Vec3::ZERO, &mut sounds);
+    let mut events = Vec::new();
+    let ticks = (seconds * crate::TICK_RATE as f64) as u64;
+    for tick in 0..ticks {
+        f.update(&mut world, tick, &mut events);
         check(f);
-        sounds.clear();
+        events.clear();
     }
 }
 

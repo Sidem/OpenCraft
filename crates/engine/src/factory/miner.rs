@@ -3,11 +3,12 @@
 //! or adjacent boxes (never through the drill face). The deposit's shared draw cap and taper
 //! decide how much it actually gets (`deposits.rs`).
 
-use crate::block::{self, BlockId, STONE};
+use crate::block::{BlockId, STONE};
 use crate::deposits::{DepositKey, Deposits};
-use crate::math::{IVec3, Vec3};
-use crate::sound::{self, Sounds};
+use crate::math::IVec3;
+use crate::sim::SimEvent;
 use crate::world::World;
+use crate::TICK_RATE;
 
 use super::belt::Belt;
 use super::storage::Storage;
@@ -19,8 +20,8 @@ pub const MINER_RATE: f64 = 1.0;
 pub const MINER_RECOVERY: f64 = 0.6;
 /// Ore a miner holds before it stops drilling.
 pub const MINER_BUFFER: u32 = 64;
-const MINER_SOUND_INTERVAL: f32 = 0.9;
-const MINER_SOUND_RANGE: f64 = 24.0;
+/// Ticks between `SimEvent::MinerWorking` reports while drawing (0.9 s; the view plays a drill sound).
+const MINER_PULSE_TICKS: u32 = TICK_RATE * 9 / 10;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum MinerStatus {
@@ -44,7 +45,8 @@ pub struct Miner {
     pub status: MinerStatus,
     /// Smoothed draw in units per second, for the readout.
     pub draw_rate: f64,
-    pub sound_timer: f32,
+    /// Ticks until the next `MinerWorking` report.
+    pub pulse: u32,
 }
 
 impl Miner {
@@ -60,7 +62,7 @@ impl Miner {
             next_out: 0,
             status: if deposit.is_some() { MinerStatus::Running } else { MinerStatus::NoDeposit },
             draw_rate: 0.0,
-            sound_timer: 0.0,
+            pulse: 0,
         }
     }
 
@@ -115,18 +117,15 @@ impl Miner {
         }
     }
 
-    /// Drill noise near the camera while the miner is drawing.
-    pub fn sound_step(&mut self, drawn: f64, dt: f64, eye: Vec3, sounds: &mut Sounds) {
+    /// While drawing, reports `MinerWorking` on the first tick and every [`MINER_PULSE_TICKS`] after.
+    pub fn pulse_step(&mut self, drawn: f64, events: &mut Vec<SimEvent>) {
         if drawn <= 0.0 {
             return;
         }
-        self.sound_timer -= dt as f32;
-        if self.sound_timer <= 0.0 {
-            self.sound_timer = MINER_SOUND_INTERVAL;
-            let at = (self.pos + FACES[self.drill as usize]).as_vec3() + Vec3::new(0.5, 0.5, 0.5);
-            if (at - eye).length() < MINER_SOUND_RANGE {
-                sounds.push(sound::DIG, block::sound::STONE, at - eye, 0.35);
-            }
+        if self.pulse == 0 {
+            self.pulse = MINER_PULSE_TICKS;
+            events.push(SimEvent::MinerWorking { pos: self.pos + FACES[self.drill as usize] });
         }
+        self.pulse -= 1;
     }
 }

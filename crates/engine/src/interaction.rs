@@ -14,7 +14,7 @@ use crate::physics::Aabb;
 use crate::player;
 use crate::raycast::raycast;
 use crate::sound;
-use crate::Game;
+use crate::{Game, LOCAL};
 
 const REACH: f64 = 5.0;
 const PLACE_REPEAT_SECONDS: f32 = 0.22;
@@ -69,7 +69,7 @@ impl Game {
     }
 
     pub(crate) fn update_target(&mut self) {
-        let world = &self.world;
+        let world = &self.sim.world;
         self.target =
             raycast(self.player.eye(), self.player.look_dir(), REACH, |p| world.get_block(p).filter(|&b| b != AIR));
     }
@@ -118,20 +118,20 @@ impl Game {
     pub(crate) fn break_block(&mut self, p: IVec3, id: BlockId) -> bool {
         let ore = block::is_ore(id);
         if ore {
-            self.factory.deposits.hand_mined(&mut self.world, p);
+            self.sim.factory.deposits.hand_mined(&mut self.sim.world, p);
         }
-        if !self.world.set_block(p, AIR) {
+        if !self.sim.world.set_block_anywhere(p, AIR) {
             return false;
         }
         let def = block::def(id);
         let center = p.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
         self.play(sound::BREAK, def.sound, center, 1.0);
-        let mut drops = self.factory.remove(p);
+        let mut drops = self.sim.factory.remove(p);
         if def.drop != AIR {
             drops.insert(0, Stack { item: def.drop, count: if ore { HAND_YIELD } else { 1 } });
         }
         for s in drops {
-            let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
+            let vel = Vec3::new(self.sim.rng.range(-1.5, 1.5), 4.0, self.sim.rng.range(-1.5, 1.5));
             self.items.spawn(center, vel, s.item, s.count, 0.25);
         }
         true
@@ -153,10 +153,10 @@ impl Game {
 
     /// Moves a box's or miner's contents into the inventory. False if `pos` is neither.
     pub(crate) fn take_from_machine(&mut self, pos: IVec3) -> bool {
-        let inventory = &mut self.inventory;
+        let inventory = &mut self.sim.players[LOCAL].inventory;
         let pickups = &mut self.pickups;
         let mut got = 0;
-        let handled = self.factory.take_contents(pos, |item, n| {
+        let handled = self.sim.factory.take_contents(pos, |item, n| {
             let taken = n - inventory.add(item, n);
             if taken > 0 {
                 pickups.push_back((item, taken));
@@ -180,32 +180,32 @@ impl Game {
         if hit.normal == IVec3::ZERO {
             return false;
         }
-        let stack = self.inventory.selected_stack();
+        let stack = self.sim.players[LOCAL].inventory.selected_stack();
         if stack.is_empty() || !block::is_placeable(stack.item) {
             return false;
         }
         let p = hit.block + hit.normal;
-        if self.world.get_block(p) != Some(AIR) {
+        if self.sim.world.block_anywhere_or_generate(p) != AIR {
             return false;
         }
         let cell = Aabb { min: p.as_vec3(), max: p.as_vec3() + Vec3::new(1.0, 1.0, 1.0) };
         if block::SOLID[stack.item as usize] && cell.intersects(&self.player.aabb()) {
             return false;
         }
-        if !self.world.set_block(p, stack.item) {
+        if !self.sim.world.set_block_anywhere(p, stack.item) {
             return false;
         }
         match stack.item {
-            BELT => self.factory.add_belt(p, factory::dir_from_yaw(self.player.yaw)),
+            BELT => self.sim.factory.add_belt(p, factory::dir_from_yaw(self.player.yaw)),
             MINER => {
-                let deposit = self.factory.deposits.lookup(&mut self.world, hit.block);
+                let deposit = self.sim.factory.deposits.lookup(&mut self.sim.world, hit.block);
                 let drill = factory::face_of(hit.block - p).unwrap_or(block::FACE_BOTTOM as u8);
-                self.factory.add_miner(p, drill, deposit);
+                self.sim.factory.add_miner(p, drill, deposit);
             }
-            STORAGE => self.factory.add_storage(p),
+            STORAGE => self.sim.factory.add_storage(p),
             _ => {}
         }
-        self.inventory.take_selected(1);
+        self.sim.players[LOCAL].inventory.take_selected(1);
         self.play(sound::PLACE, block::def(stack.item).sound, p.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
         true
     }
@@ -217,7 +217,7 @@ impl Game {
         let y = (p.y - 0.05).floor() as i32;
         let hw = player::HALF_WIDTH;
         for (dx, dz) in [(0.0, 0.0), (-hw, -hw), (hw, -hw), (hw, hw), (-hw, hw)] {
-            let b = self.world.get_block(IVec3::new((p.x + dx).floor() as i32, y, (p.z + dz).floor() as i32))?;
+            let b = self.sim.world.get_block(IVec3::new((p.x + dx).floor() as i32, y, (p.z + dz).floor() as i32))?;
             if block::SOLID[b as usize] {
                 return Some(block::def(b).sound);
             }

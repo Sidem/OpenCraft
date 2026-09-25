@@ -67,7 +67,7 @@ fn members_are_exactly_the_blocks_a_deposit_owns() {
     for tier in [Tier::Outcrop, Tier::Vein] {
         let (p, d) = find_ore(&mut world, tier);
         let mut deps = Deposits::default();
-        deps.ensure(&mut world, d);
+        deps.states.insert(d.key, DepositState::survey(&mut world, d));
         let st = deps.get(&d.key).unwrap();
         assert!(st.members.contains(&p));
         assert_eq!(st.remaining_blocks, st.initial_blocks, "nothing has been mined yet");
@@ -83,7 +83,7 @@ fn drawing_converts_the_nearest_block_even_while_unloaded() {
     let mut world = World::new(11, 2);
     let (p, d) = find_ore(&mut world, Tier::Outcrop);
     let mut deps = Deposits::default();
-    deps.ensure(&mut world, d);
+    deps.states.insert(d.key, DepositState::survey(&mut world, d));
     let blocks = deps.get(&d.key).unwrap().remaining_blocks;
     let grade = Tier::Outcrop.grade() as f64;
     let cap = Tier::Outcrop.draw_cap();

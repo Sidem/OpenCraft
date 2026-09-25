@@ -13,29 +13,29 @@ use crate::Game;
 #[wasm_bindgen]
 impl Game {
     pub fn set_view_radius(&mut self, r: u32) {
-        self.world.set_view_radius(r as i32);
+        self.sim.world.set_view_radius(r as i32);
     }
 
     /// Prepares this frame's work queues. Call once per frame before [`Game::work_step`].
     pub fn begin_work(&mut self) {
-        self.world.begin_work();
+        self.sim.world.begin_work();
     }
 
     /// Generates or meshes one chunk (nearest first). Returns false when there is nothing to do.
     /// The host calls this in a loop until its per-frame time budget is spent.
     pub fn work_step(&mut self) -> bool {
-        self.world.work_step()
+        self.sim.world.work_step()
     }
 
     pub fn ready(&self) -> bool {
-        self.world.area_ready(1)
+        self.sim.world.area_ready(1)
     }
 
     /// Pops the next renderer event: 0 = none, 1 = chunk mesh (see `mesh_*`), 2 = chunk unloaded.
     /// The position of either event is available through `event_x/y/z`.
     pub fn next_event(&mut self) -> u32 {
         self.cur_mesh = None;
-        match self.world.events.pop_front() {
+        match self.sim.world.events.pop_front() {
             None => 0,
             Some(Event::Mesh(m)) => {
                 self.cur_event_pos = m.pos;

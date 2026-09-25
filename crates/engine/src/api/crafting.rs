@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::block::AIR;
 use crate::recipes::RECIPES;
-use crate::Game;
+use crate::{Game, LOCAL};
 
 #[wasm_bindgen]
 impl Game {
@@ -30,7 +30,9 @@ impl Game {
     }
 
     pub fn can_craft(&self, r: u32) -> bool {
-        RECIPES.get(r as usize).is_some_and(|x| x.inputs.iter().all(|&(i, n)| self.inventory.count(i) >= n))
+        RECIPES
+            .get(r as usize)
+            .is_some_and(|x| x.inputs.iter().all(|&(i, n)| self.sim.players[LOCAL].inventory.count(i) >= n))
     }
 
     /// Crafts recipe `r` up to `times` times from inventory items. Returns how many times it ran.
@@ -39,9 +41,9 @@ impl Game {
         let mut done = 0;
         while done < times && self.can_craft(r) {
             for &(item, n) in recipe.inputs {
-                self.inventory.remove(item, n);
+                self.sim.players[LOCAL].inventory.remove(item, n);
             }
-            let left = self.inventory.add(recipe.output, recipe.count);
+            let left = self.sim.players[LOCAL].inventory.add(recipe.output, recipe.count);
             if left > 0 {
                 self.throw(recipe.output, left);
             }

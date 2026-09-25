@@ -7,7 +7,8 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 - One feature, one module or folder. A module with submodules is a folder with `mod.rs`.
 - Tests go in `src/<module>/tests.rs` via `#[cfg(test)] mod tests;` (`src/tests.rs` for Game-level
   scenario tests). Never inline. Test-only helpers on a type are `#[cfg(test)]` methods.
-- `Game` (lib.rs) is a thin facade. JS-facing methods live in `api/*.rs` and only forward. Gameplay that
+- `Game` (lib.rs) is a thin facade over the core `Sim` (`sim.rs`) plus the local player's body, loose
+  items and presentation. JS-facing methods live in `api/*.rs` and only forward. Gameplay that
   needs several `Game` fields lives in a child module (`interaction.rs`): child modules can read `Game`'s
   private fields, and cross-module methods are `pub(crate)`.
 - Header first (`//!`: owns, invariants, how to extend), then public items, then private helpers.
@@ -34,14 +35,16 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 
 ## Determinism (DEV_PLAN section 3.4)
 
-- Core state (world edits, factory, deposits, inventories) advances only in `Game::run_tick`, by exactly
-  `TICK`, and through actions. Never depend on frame time, loaded chunks, the camera, UI state or hash-map
-  order. Per-frame work in `Game::update` is presentation only. `results_do_not_depend_on_frame_rate`
-  (`src/tests.rs`) guards this; extend its snapshot when you add core state.
-- Core reads and edits use `World::block_anywhere` / `set_block_anywhere`. `get_block` / `set_block` only
-  see loaded chunks, and `set_block` silently fails elsewhere.
-- Queries must not create state. Known violation until step 1.2: `target_detail` calls
-  `Deposits::lookup`, which inserts deposit state.
+- Core state lives in `Sim` (`sim.rs`): world edits, factory, deposits, inventories, tick, rng. It
+  advances only in `Game::run_tick` (via `Sim::step`), by exactly `TICK`, and (from step 1.3) through
+  actions. Never depend on frame time, loaded chunks, the camera, `Sounds`, UI state or hash-map order;
+  report to the view with a `SimEvent`. Per-frame work in `Game::update` is presentation only.
+  `results_do_not_depend_on_frame_rate` (`src/tests.rs`) guards this; extend its snapshot when you add
+  core state.
+- Core reads and edits use `World::block_anywhere_or_generate` / `set_block_anywhere`. `get_block` /
+  `set_block` only see loaded chunks (the render cache), and `set_block` silently fails elsewhere.
+- Queries must not create core state: `target_detail` uses `deposits::owner_of` and
+  `DepositState::survey`, never `Deposits::lookup` (which starts tracking).
 
 ## Gotchas
 

@@ -3,7 +3,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::player::PlayerInput;
-use crate::Game;
+use crate::{Game, LOCAL};
 
 #[wasm_bindgen]
 impl Game {
@@ -35,11 +35,11 @@ impl Game {
     }
 
     pub fn select_slot(&mut self, slot: u32) {
-        self.inventory.select(slot as usize);
+        self.sim.players[LOCAL].inventory.select(slot as usize);
     }
 
     pub fn scroll_slot(&mut self, delta: i32) {
-        self.inventory.scroll(delta);
+        self.sim.players[LOCAL].inventory.scroll(delta);
     }
 
     pub fn toggle_fly(&mut self) {
@@ -49,7 +49,7 @@ impl Game {
 
     /// Throws one item from the selected slot.
     pub fn drop_selected(&mut self) {
-        if let Some((item, n)) = self.inventory.take_selected(1) {
+        if let Some((item, n)) = self.sim.players[LOCAL].inventory.take_selected(1) {
             self.throw(item, n);
         }
     }

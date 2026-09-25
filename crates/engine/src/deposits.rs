@@ -154,6 +154,23 @@ pub struct DepositState {
 }
 
 impl DepositState {
+    /// The deposit's figures as the world stands now, computed without tracking it. Readouts use this
+    /// for deposits nobody has touched; it costs a generation pass over the deposit's chunks.
+    pub fn survey(world: &mut World, d: Deposit) -> DepositState {
+        let members = members_of(world, &d);
+        let ore = d.ore();
+        let remaining = members.iter().filter(|&&p| world.block_anywhere(p).unwrap_or(ore) == ore).count() as u32;
+        DepositState {
+            deposit: d,
+            initial_blocks: members.len() as u32,
+            remaining_blocks: remaining,
+            members,
+            partial: 0.0,
+            budget: 0.0,
+            budget_tick: u64::MAX,
+        }
+    }
+
     pub fn grade(&self) -> u32 {
         self.deposit.tier().grade()
     }
@@ -238,15 +255,8 @@ impl Deposits {
 
     /// The deposit owning the ore (or spent rock) block at `p`, starting to track it if needed.
     pub fn lookup(&mut self, world: &mut World, p: IVec3) -> Option<DepositKey> {
-        let b = world.get_block(p)?;
-        if !block::is_ore(b) && b != SPENT_ROCK {
-            return None;
-        }
-        let d = world.generator_mut().deposit_at(p)?;
-        if b != SPENT_ROCK && d.ore() != b {
-            return None;
-        }
-        self.ensure(world, d);
+        let d = owner_of(world, p)?;
+        self.states.entry(d.key).or_insert_with(|| DepositState::survey(world, d));
         Some(d.key)
     }
 
@@ -272,27 +282,20 @@ impl Deposits {
             None => 0.0,
         }
     }
+}
 
-    fn ensure(&mut self, world: &mut World, d: Deposit) {
-        if self.states.contains_key(&d.key) {
-            return;
-        }
-        let members = members_of(world, &d);
-        let ore = d.ore();
-        let remaining = members.iter().filter(|&&p| world.block_anywhere(p).unwrap_or(ore) == ore).count() as u32;
-        self.states.insert(
-            d.key,
-            DepositState {
-                deposit: d,
-                initial_blocks: members.len() as u32,
-                remaining_blocks: remaining,
-                members,
-                partial: 0.0,
-                budget: 0.0,
-                budget_tick: u64::MAX,
-            },
-        );
+/// The deposit owning the ore (or spent rock) block at `p`, loaded or not. Tracks nothing, so
+/// queries can use it; `&mut` only for the world generator's caches.
+pub fn owner_of(world: &mut World, p: IVec3) -> Option<Deposit> {
+    let b = world.block_anywhere_or_generate(p);
+    if !block::is_ore(b) && b != SPENT_ROCK {
+        return None;
     }
+    let d = world.generator_mut().deposit_at(p)?;
+    if b != SPENT_ROCK && d.ore() != b {
+        return None;
+    }
+    Some(d)
 }
 
 /// Every block world generation made into this deposit's ore: inside the shape, generated as this

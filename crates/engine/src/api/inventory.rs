@@ -4,12 +4,12 @@ use wasm_bindgen::prelude::*;
 
 use crate::block::AIR;
 use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
-use crate::Game;
+use crate::{Game, LOCAL};
 
 #[wasm_bindgen]
 impl Game {
     pub fn inventory_version(&self) -> u32 {
-        self.inventory.version
+        self.sim.players[LOCAL].inventory.version
     }
 
     pub fn hotbar_size(&self) -> u32 {
@@ -22,44 +22,44 @@ impl Game {
     }
 
     pub fn slot_item(&self, slot: u32) -> u8 {
-        self.inventory.slots.get(slot as usize).map_or(AIR, |s| s.item)
+        self.sim.players[LOCAL].inventory.slots.get(slot as usize).map_or(AIR, |s| s.item)
     }
 
     pub fn slot_count(&self, slot: u32) -> u32 {
-        self.inventory.slots.get(slot as usize).map_or(0, |s| s.count)
+        self.sim.players[LOCAL].inventory.slots.get(slot as usize).map_or(0, |s| s.count)
     }
 
     pub fn selected_slot(&self) -> u32 {
-        self.inventory.selected as u32
+        self.sim.players[LOCAL].inventory.selected as u32
     }
 
     /// Inventory screen click. `shift` moves the stack between hotbar and backpack.
     pub fn click_slot(&mut self, slot: u32, shift: bool) {
         if shift {
-            self.inventory.quick_move(slot as usize);
+            self.sim.players[LOCAL].inventory.quick_move(slot as usize);
         } else {
-            self.inventory.click(slot as usize);
+            self.sim.players[LOCAL].inventory.click(slot as usize);
         }
     }
 
     pub fn cursor_item(&self) -> u8 {
-        self.inventory.cursor.item
+        self.sim.players[LOCAL].inventory.cursor.item
     }
 
     pub fn cursor_count(&self) -> u32 {
-        self.inventory.cursor.count
+        self.sim.players[LOCAL].inventory.cursor.count
     }
 
     /// Closing the inventory screen: the stack on the cursor goes back (or is thrown if full).
     pub fn close_inventory(&mut self) {
-        let left = self.inventory.return_cursor();
+        let left = self.sim.players[LOCAL].inventory.return_cursor();
         if !left.is_empty() {
             self.throw(left.item, left.count);
         }
     }
 
     pub fn item_total(&self, item: u8) -> u32 {
-        self.inventory.count(item)
+        self.sim.players[LOCAL].inventory.count(item)
     }
 
     /// Pops the next pickup notification; read it with `pickup_item` / `pickup_count`.

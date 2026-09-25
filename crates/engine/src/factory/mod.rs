@@ -5,8 +5,9 @@
 //! a `Vec` in its own file (`belt.rs`, `miner.rs`, `storage.rs`); removal is `swap_remove` plus
 //! fixing the moved entry's `at` slot. Machines keep running when their chunk is streamed out.
 //!
-//! `update` runs miners, then boxes, then belts (downstream first, see `links.rs`). Belt links and
-//! the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
+//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick, miners, then boxes, then belts
+//! (downstream first, see `links.rs`), and reports to the view only through `SimEvent`s. Belt links
+//! and the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
 //!
 //! To add a machine kind (Milestone 2 turns this into a registry, together with the smelter):
 //! a file with its struct and `*_step` methods, a `Slot` variant, an `add_*` method, arms in
@@ -24,9 +25,10 @@ use rustc_hash::FxHashMap;
 use crate::block::BlockId;
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::{add_to_slots, Stack, MAX_STACK};
-use crate::math::{IVec3, Vec3};
-use crate::sound::Sounds;
+use crate::math::IVec3;
+use crate::sim::SimEvent;
 use crate::world::World;
+use crate::TICK;
 
 use belt::{belt_step, Belt};
 use miner::Miner;
@@ -69,7 +71,6 @@ pub struct Factory {
     order: Vec<u32>,
     dirty: bool,
     pub deposits: Deposits,
-    tick: u64,
 }
 
 impl Factory {
@@ -163,17 +164,18 @@ impl Factory {
         }
     }
 
-    pub fn update(&mut self, dt: f64, world: &mut World, eye: Vec3, sounds: &mut Sounds) {
+    /// Runs every machine for one tick (`TICK` seconds). `tick` must differ between calls: the
+    /// deposits' shared draw budgets refill once per tick.
+    pub fn update(&mut self, world: &mut World, tick: u64, events: &mut Vec<SimEvent>) {
         if self.dirty {
             self.relink();
         }
-        self.tick += 1;
-        let tick = self.tick;
+        let dt = TICK;
         let Factory { belts, miners, storages, deposits, order, .. } = self;
         for m in miners.iter_mut() {
             let drawn = m.draw_step(deposits, world, tick, dt);
             m.output_step(belts, storages);
-            m.sound_step(drawn, dt, eye, sounds);
+            m.pulse_step(drawn, events);
         }
         for s in storages.iter_mut() {
             s.output_step(belts);

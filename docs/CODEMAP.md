@@ -12,7 +12,8 @@ folder with `mod.rs`.
 
 | Module | Owns |
 |---|---|
-| `lib.rs` | The `Game` struct (every field), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`); the module list |
+| `lib.rs` | The `Game` struct (core `sim` + local body, items, view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `present_events` (SimEvents → sounds); the module list |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`PlayerCore`: inventory), rng; `step`; `SimEvent` |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
@@ -24,13 +25,14 @@ folder with `mod.rs`.
 | `interaction.rs` | Local player's hands and feet: targeting, mining, `break_block`, `try_place`, `take_from_machine`, `throw`, footsteps |
 | `block.rs` | Block ids (= item ids for now), `DEFS` table, texture layers `tex`, sound materials, lookup tables |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
-| `world.rs` | Loaded chunks, streaming queues, edits (`saved` keeps edited chunks), `*_anywhere` accessors, render events |
+| `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code), render events |
+| `world/streaming.rs` | Streaming and meshing: re-centring, generation and mesh queues, `work_step`, `remesh`, `area_ready` |
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)` |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit` |
-| `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD` |
-| `factory/mod.rs` | `Factory`: machine `Vec`s, position index `at`, add/remove/take, `update` orchestration |
+| `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
+| `factory/mod.rs` | `Factory`: machine `Vec`s, position index `at`, add/remove/take, `update` (one tick, emits `SimEvent`s) |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step`; belt constants |
-| `factory/miner.rs` | Miner Mk1: `draw_step`, `output_step`, `sound_step`; miner constants |
+| `factory/miner.rs` | Miner Mk1: `draw_step`, `output_step`, `pulse_step` (`MinerWorking` events); miner constants |
 | `factory/storage.rs` | Storage box slots and `output_step`; `STORAGE_SLOTS` |
 | `factory/links.rs` | `relink`: belt outputs, corners, machine outputs, downstream-first belt order (derived data) |
 | `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`) and machine models |
@@ -117,6 +119,10 @@ that file. Build DOM with `h()` / `button()` from `ui/dom.ts`; reuse `.secondary
 Construct it in `main.ts`. To open it with a key: an `Action` in `input.ts` and a branch in main.ts's
 action loop.
 
+**Core state, or something the view should react to.** A field on `Sim` (`sim.rs`) and, from step 1.6, in the
+save format. For a reaction (a sound, later a toast): a `SimEvent` variant, pushed by the core, and its arm
+in `Game::present_events` (`lib.rs`).
+
 **A sound material.** Engine: a constant in `block::sound` and point blocks' `DEFS` rows at it. Web: append
 the name to `MATERIALS` (same order as the engine), add a `MATERIAL_LABELS` entry and a
 `DEFAULT_DESIGN.materials` entry in `audio/settings.ts`. The designer gets a tab automatically.
@@ -128,7 +134,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 
 | Module | Constants |
 |---|---|
-| `lib.rs` | `TICK_RATE` (60), physics substeps per tick, `MAX_TICKS_PER_FRAME` |
+| `lib.rs` | `TICK_RATE` (60), physics substeps per tick, `MAX_TICKS_PER_FRAME`, `MINER_SOUND_RANGE` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |

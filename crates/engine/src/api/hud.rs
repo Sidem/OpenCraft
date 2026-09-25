@@ -4,7 +4,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::block::{self, AIR, SPENT_ROCK};
-use crate::deposits::HAND_YIELD;
+use crate::deposits::{owner_of, DepositState, HAND_YIELD};
 use crate::factory::{self, MINER_RECOVERY};
 use crate::Game;
 
@@ -48,17 +48,22 @@ impl Game {
     }
 
     /// Extra lines for the target readout: deposit details for ore, status for machines.
-    /// Lines are separated by `\n`; empty when there is nothing to add.
+    /// Lines are separated by `\n`; empty when there is nothing to add. Leaves the core unchanged:
+    /// a deposit nobody has touched is surveyed into `self.surveyed`, not tracked.
     pub fn target_detail(&mut self) -> String {
         let Some(hit) = self.target else { return String::new() };
-        if let Some(text) = self.factory.describe(hit.block) {
+        if let Some(text) = self.sim.factory.describe(hit.block) {
             return text;
         }
         if !block::is_ore(hit.id) && hit.id != SPENT_ROCK {
             return String::new();
         }
-        let Some(key) = self.factory.deposits.lookup(&mut self.world, hit.block) else { return String::new() };
-        let Some(st) = self.factory.deposits.get(&key) else { return String::new() };
+        let Some(d) = owner_of(&mut self.sim.world, hit.block) else { return String::new() };
+        let untracked = self.sim.factory.deposits.get(&d.key).is_none();
+        if untracked && self.surveyed.as_ref().is_none_or(|s| s.deposit.key != d.key) {
+            self.surveyed = Some(DepositState::survey(&mut self.sim.world, d));
+        }
+        let Some(st) = self.sim.factory.deposits.get(&d.key).or(self.surveyed.as_ref()) else { return String::new() };
         let int = |n: u64| factory::fmt_int(n);
         let left = format!(
             "{} of {} blocks left · {} units",
@@ -80,15 +85,15 @@ impl Game {
     }
 
     pub fn chunks_loaded(&self) -> u32 {
-        self.world.loaded_count() as u32
+        self.sim.world.loaded_count() as u32
     }
 
     pub fn chunks_pending(&self) -> u32 {
-        self.world.pending_count() as u32
+        self.sim.world.pending_count() as u32
     }
 
     pub fn chunks_dirty(&self) -> u32 {
-        self.world.dirty_count() as u32
+        self.sim.world.dirty_count() as u32
     }
 
     pub fn item_entities(&self) -> u32 {
@@ -96,18 +101,18 @@ impl Game {
     }
 
     pub fn belts(&self) -> u32 {
-        self.factory.belt_count() as u32
+        self.sim.factory.belt_count() as u32
     }
 
     pub fn miners(&self) -> u32 {
-        self.factory.miner_count() as u32
+        self.sim.factory.miner_count() as u32
     }
 
     pub fn boxes(&self) -> u32 {
-        self.factory.storage_count() as u32
+        self.sim.factory.storage_count() as u32
     }
 
     pub fn deposits_tracked(&self) -> u32 {
-        self.factory.deposits.tracked() as u32
+        self.sim.factory.deposits.tracked() as u32
     }
 }
