@@ -3,7 +3,6 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::block::AIR;
 use crate::recipes::RECIPES;
 use crate::Game;
 
@@ -13,8 +12,8 @@ impl Game {
         RECIPES.len() as u32
     }
 
-    pub fn recipe_output(&self, r: u32) -> u8 {
-        RECIPES.get(r as usize).map_or(AIR, |x| x.output)
+    pub fn recipe_output(&self, r: u32) -> u16 {
+        RECIPES.get(r as usize).map_or(0, |x| x.output.0)
     }
 
     pub fn recipe_output_count(&self, r: u32) -> u32 {
@@ -23,7 +22,7 @@ impl Game {
 
     /// Inputs as flat (item, count) pairs.
     pub fn recipe_inputs(&self, r: u32) -> Vec<u32> {
-        RECIPES.get(r as usize).map_or_else(Vec::new, |x| x.inputs.iter().flat_map(|&(i, n)| [i as u32, n]).collect())
+        RECIPES.get(r as usize).map_or_else(Vec::new, |x| x.inputs.iter().flat_map(|&(i, n)| [i.0 as u32, n]).collect())
     }
 
     pub fn recipe_blurb(&self, r: u32) -> String {

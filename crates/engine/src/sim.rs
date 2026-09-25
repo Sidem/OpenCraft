@@ -19,6 +19,7 @@ use crate::block::BlockId;
 use crate::bytes::{fnv1a, ByteReader, ByteWriter};
 use crate::factory::Factory;
 use crate::inventory::Inventory;
+use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::world::World;
 
@@ -46,26 +47,26 @@ pub enum SimEvent {
     /// Items entered a player's inventory from the world (a pickup or a machine's contents).
     Gained {
         player: PlayerId,
-        item: BlockId,
+        item: ItemId,
         count: u32,
     },
     /// A player crafted `count` of `item` (some may have been thrown for lack of room).
     Crafted {
         player: PlayerId,
-        item: BlockId,
+        item: ItemId,
         count: u32,
     },
     /// Loose items to spawn at `pos` with velocity `vel` (a broken block's drops).
     Dropped {
         pos: Vec3,
         vel: Vec3,
-        item: BlockId,
+        item: ItemId,
         count: u32,
     },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
     Thrown {
         player: PlayerId,
-        item: BlockId,
+        item: ItemId,
         count: u32,
     },
 }

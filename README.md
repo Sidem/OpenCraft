@@ -49,6 +49,7 @@ the render distance in chunks (2 to 24, default 8).
 | Hold left mouse     | Mine the targeted block                   |
 | Right mouse (hold)  | Place the selected block. Belts run the way you face |
 | Right mouse on a box or miner | Take everything it holds. Hold C to place against it instead |
+| Right mouse on a smelter or constructor | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
@@ -102,9 +103,20 @@ size.
   them. A belt ending in another belt's side merges into it. A belt fed only from one side turns the corner.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box or miner to take its contents.
+- **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns. Feed it ore
+  and fuel (coal ore burns 8 seconds, a log 4) by belt or from a miner next to it; it sorts them itself.
+  It burns fuel only while smelting, and pushes ingots into a belt leading away. Its lamp shows green when
+  working, red when out of fuel and yellow when its output is full.
+- **A constructor** shapes ingots into parts: iron plates (2 ingots each), iron rods, screws (4 from a rod)
+  and copper wire (2 from a copper ingot). Right-click it to choose what it makes; changing the choice
+  gives back the ingots it held. Belts bring the input and a belt leading away takes the parts. Parts are
+  for the machines still to come (power, better miners).
+- **Machine panels.** Right-click a smelter or constructor to see what it's doing, put items in straight
+  from your inventory (ore, fuel, ingots), and take what it made.
 
 Craft machines in the build menu (E): a Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
-cost 1 iron ore and 2 stone, and a box costs 6 logs and 2 iron ore. Hand-mining an outcrop or two covers
+cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, and a constructor 10 iron ingots,
+4 copper ingots and 8 stone. Hand-mining an outcrop or two covers
 your first miner. After that, let it do the work.
 
 ## Sound designer
@@ -208,7 +220,8 @@ works from any sub-path.
 For debugging, the running game is exposed as `window.opencraft.game` in the devtools console. For example:
 
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
-  12 belt, 13 miner, 14 box.
+  12 belt, 13 miner, 14 box, 15 smelter, 16 constructor; items: 256 iron ingot, 257 copper ingot, 258 iron
+  plate, 259 iron rod, 260 screws, 261 copper wire.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).
@@ -236,8 +249,10 @@ Factory layer (the Satisfactory half):
 
 - [x] Ore deposits (outcrop, vein, lode) with shared pools, draw limits and depletion
 - [x] Miner Mk1, conveyor belts (merging, corners) and storage boxes, crafted by hand
-- [ ] Item registry separate from blocks (ingots, plates, parts) and machine recipes
-- [ ] Machines: smelter, constructor, assembler
+- [x] Item registry separate from blocks (ingots so far) and machine recipes
+- [x] Smelter: ore and fuel into ingots
+- [x] Constructor and parts (plates, rods, screws, wire), with a machine panel
+- [ ] Machines: assembler
 - [ ] Miner and belt tiers, splitters, belts that climb
 - [ ] Prospecting: find veins and lodes without digging blind
 - [ ] Power grid: generators, poles, consumption

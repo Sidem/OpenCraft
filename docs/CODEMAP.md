@@ -14,8 +14,8 @@ folder with `mod.rs`.
 |---|---|
 | `lib.rs` | The `Game` struct (core `sim`, `local` id, `bodies`, items, the local player's hands and view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `act` / `act_as` (queue an action), `body()` / `inventory()` (the local player's); the module list |
 | `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
-| `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`), `fnv1a` |
-| `save.rs` | Save file: header (magic, `SAVE_VERSION`, `WORLDGEN_VERSION`), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals. Tests in `save/tests.rs` |
+| `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
+| `save.rs` | Save file: header (magic, `SAVE_VERSION`, `WORLDGEN_VERSION`), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` fixture) |
 | `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
 | `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world), loose items and pickups for the nearest player (`step_items`), `throw`, `join` / `leave` |
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
@@ -23,29 +23,35 @@ folder with `mod.rs`.
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, `close_inventory`, pickup notifications |
+| `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, put in, take) |
 | `api/crafting.rs` | Recipe queries and `craft` |
-| `api/content.rs` | Block names and sound materials, `hand_yield`, `miner_recovery` |
+| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (texture layers and box proportions), `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
-| `block.rs` | Block ids (= item ids for now), `DEFS` table, texture layers `tex`, sound materials, lookup tables |
+| `block.rs` | Block ids, `DEFS` table, texture layers `tex` (item textures too), sound materials, lookup tables |
+| `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code), render events |
 | `world/streaming.rs` | Streaming and meshing: re-centring, generation and mesh queues, `work_step`, `remesh`, `area_ready` |
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; `WORLDGEN_VERSION` |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
-| `factory/mod.rs` | `Factory`: machine `Vec`s, position index `at`, add/remove/take, `update` (one tick, emits `SimEvent`s) |
-| `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step`; belt constants |
-| `factory/miner.rs` | Miner Mk1: `draw_step`, `output_step`, `pulse_step` (`MinerWorking` events); miner constants |
-| `factory/storage.rs` | Storage box slots and `output_step`; `STORAGE_SLOTS` |
-| `factory/links.rs` | `relink`: belt outputs, corners, machine outputs, downstream-first belt order (derived data) |
-| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`) and machine models |
-| `factory/describe.rs` | Machine readout text, `fmt_int`, `fmt_duration` |
+| `factory/mod.rs` | Machine table (`Kind`, `MACHINES` with slots and `panel`, `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, state bytes, `update` (one tick, emits `SimEvent`s) |
+| `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
+| `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step`; its bytes, readout and model; belt constants |
+| `factory/miner.rs` | Miner Mk1: `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
+| `factory/storage.rs` | Storage box: `step` (feeds belts leading away); its bytes and readout |
+| `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
+| `factory/constructor.rs` | Constructor: one input into parts with the recipe chosen in its panel; `set_recipe` hands inputs back; bytes, readout, panel, model |
+| `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role), `set_recipe`, `insert`, `wants`, `take_contents` |
+| `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs, corners, machine outputs, downstream-first belt order (derived data) |
+| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models |
+| `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
 | `entities.rs` | Dropped items: physics, magnet pickup by the nearest `Collector` with room, instances |
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
-| `recipes.rs` | Hand-crafting recipe table |
+| `recipes.rs` | Hand-crafting recipes (`RECIPES`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` burn times |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
@@ -54,7 +60,7 @@ folder with `mod.rs`.
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
 | `sound.rs` | Sound event buffer read by the host |
-| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, a second player, frame-rate independence); helpers shared with `save/tests.rs` |
+| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, a smelter line, crafting, a second player, frame-rate independence); helpers shared with `save/tests.rs` |
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
@@ -70,8 +76,9 @@ folder with `mod.rs`.
 | `render/shaders.ts` | GLSL sources |
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |
-| `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts, debug overlay, `blockIcon` |
+| `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts, debug overlay, `itemIcon` (isometric box from `item_icon`) |
 | `ui/inventory.ts` + `.css` | Inventory and build screen (E) |
+| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter or constructor): status, progress, buffers, recipe choice, put-in and take buttons |
 | `ui/menu.css` | Pause/start menu styles (markup in `web/index.html`) |
 | `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |
@@ -99,25 +106,23 @@ folder with `mod.rs`.
 (`cube`, `ore` or `machine` helper). New texture: a `tex` constant plus its arm in `textures::pixel`.
 Placeable blocks work at once; worldgen use goes in `worldgen/`.
 
-**An item or recipe.** Items are blocks until Milestone 2 adds an item registry, so a new item is a new
-block (non-placeable if it shouldn't exist in the world). A recipe is a row in `recipes.rs`; the build menu
-shows every row.
+**An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
+and a row in `item.rs` `EXTRA`, with a texture layer in `block::tex` and its pattern in `textures::pixel`
+if it needs a new look; the HUD icon and the loose and belt models follow from the row. A recipe is a row
+in `recipes.rs`; the build menu shows every row.
 
-**A machine** (today; Milestone 2 turns this into a registry):
+**A machine.**
 
-1. The block in `block.rs` (`machine(...)` if drawn as a model, `cube(...)` if meshed).
-2. `factory/<machine>.rs`: struct, constructor, `*_step` methods, and its tuning constants.
-3. `factory/mod.rs`: a `Vec` field, a `Slot` variant, `add_<machine>`, arms in `remove` and
-   `take_contents`, and a call in `update`.
-4. Arms in `factory/links.rs` (outputs), `factory/describe.rs` (readout), `factory/render.rs` (model).
-5. `action.rs` `Sim::place_block`: a match arm calling `add_<machine>`. A recipe in `recipes.rs`.
-6. Tests in `factory/tests.rs` (see `run` and `stocked_box`).
-
-*Intended registry (Milestone 2, with the smelter):* keep typed storage per kind (a `Vec` per machine
-struct, no trait objects). Content moves into a machine table (block id, name, buffer size, recipe set,
-textures), and each kind's file exposes the same set of functions (`step`, `outputs`, `describe`,
-`model`), so that `mod.rs`, `links.rs`, `describe.rs` and `render.rs` each dispatch through one `match`
-on `Slot`. Adding a machine then means its file, a `Slot` variant and one table row.
+1. Its file `factory/<machine>.rs`: the struct (holding a `Buffer` if it holds items), `new`, `step`,
+   `impl Machine` (bytes, contents, readout, model) and its tuning constants.
+2. `factory/mod.rs`: a `Kind` and a `Slot` variant, a `MACHINES` row (block, kind, slots), a `Vec` field.
+   Then follow the compiler through the `match`es on `Kind` and `Slot` (`place`, `remove`,
+   `take_contents`, `describe`) and add its list to `write_state` / `read_state`, `update`,
+   `write_instances`, and its outputs to `links.rs`. If belts and miners deliver into it, an arm in
+   `Slot::is_sink` and a field in `Sinks` (`links.rs`); what it makes is a `MACHINE_RECIPES` row. A panel:
+   `panel: true` in its row, a `panel()` method and its arms in `panel.rs`; the host panel needs nothing.
+3. Its block in `block.rs` (`machine(...)` if drawn as a model, `cube(...)` if meshed); a hand recipe
+   in `recipes.rs`. Tests in `factory/tests.rs` (see `run` and `stocked_box`).
 
 **A wasm API method.** Put it in the `api/*.rs` file for its area and keep it a thin forwarder; logic goes
 in a module. Run `npm run build:wasm`, then call it from TS (types come from `web/src/wasm/engine.d.ts`).
@@ -137,9 +142,10 @@ its arm in `Game::handle_sim_events` (`events.rs`). Per-player state the authori
 goes in `authority.rs`, indexed by `PlayerId` like `Sim.players`.
 
 **Something saved.** Core state: as above. Bodies and loose items: `Player` / `Items` `write_state` and
-`read_state`, called from `save.rs`. Any change to the bytes bumps `SAVE_VERSION` (older saves are then
-refused with a message); a change to world generation bumps `WORLDGEN_VERSION`. The browser side
-(`web/src/save/`) only stores bytes and never needs to change.
+`read_state`, called from `save.rs`. Any change to the bytes bumps `SAVE_VERSION`; keep older saves
+loading when a read can follow the old layout cheaply (branch on `ByteReader::version`, add a fixture
+test), else raise `OLDEST_VERSION`. A change to world generation bumps `WORLDGEN_VERSION`. The browser
+side (`web/src/save/`) only stores bytes and never needs to change.
 
 **A sound material.** Engine: a constant in `block::sound` and point blocks' `DEFS` rows at it. Web: append
 the name to `MATERIALS` (same order as the engine), add a `MATERIAL_LABELS` entry and a
@@ -155,11 +161,12 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `lib.rs` | `TICK_RATE` (60), `MAX_TICKS_PER_FRAME` |
 | `authority.rs` | `PHYSICS_SUBSTEPS` (per tick), `FALL_LIMIT` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
-| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` |
+| `factory/mod.rs` | `MACHINES` (buffer slots per machine) |
+| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY` |
+| `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |
-| `factory/storage.rs` | `STORAGE_SLOTS` |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
-| `recipes.rs` | `RECIPES` |
+| `recipes.rs` | `RECIPES` (hand) |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |
 | `events.rs` | `MINER_SOUND_RANGE`, drop pickup delay |
 | `player.rs` | Movement speeds, jump, gravity |

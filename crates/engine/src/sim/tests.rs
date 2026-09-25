@@ -2,13 +2,16 @@
 //! chunks happen to be loaded, and a core read back from its bytes carries on identically.
 
 use super::*;
-use crate::block::{AIR, BELT, IRON_ORE, MINER, SPENT_ROCK, STONE, STORAGE};
+use crate::block::{AIR, BELT, CONSTRUCTOR, IRON_ORE, MINER, SMELTER, SPENT_ROCK, STONE, STORAGE};
 use crate::deposits::{owner_of, DepositKey, Tier};
-use crate::recipes::RECIPES;
+use crate::item::{IRON_INGOT, IRON_PLATE};
+use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
 const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
+/// Where the scripted 6,300-tick run below ends.
+const GOLDEN_HASH: u64 = 0xdcb0_3b10_95c4_89c6;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -38,24 +41,34 @@ fn outcrop() -> (IVec3, IVec3, DepositKey) {
 }
 
 /// The action log: A builds a miner on the outcrop's top block feeding two belts into a box, crafts
-/// belts and hand-mines another ore block; B joins and puts stone on the box.
+/// belts and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
+/// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
+/// ingots it puts in by hand.
 fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let cell = |dx| top + IVec3::new(dx, 1, 0);
     let above_box = cell(3) + IVec3::new(0, 1, 0);
-    let belts = RECIPES.iter().position(|r| r.output == BELT).unwrap() as u16;
+    let above_miner = cell(0) + IVec3::new(0, 1, 0);
+    let press = cell(2) + IVec3::new(0, 1, 0);
+    let plates = MACHINE_RECIPES.iter().position(|r| r.output.0 == IRON_PLATE).unwrap() as u16;
+    let belts = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u16;
     let give = |item, count| Action::Give { item, count };
     let place = |pos, slot, facing, against| Action::PlaceBlock { pos, slot, facing, against };
     // A's slots: 0 miner, 1 belts, 2 box.
     let mut log = vec![
-        (0, A, give(MINER, 1)),
-        (0, A, give(BELT, 1)),
-        (0, A, give(STORAGE, 1)),
-        (0, A, give(IRON_ORE, 1)),
-        (0, A, give(STONE, 2)),
+        (0, A, give(MINER.into(), 1)),
+        (0, A, give(BELT.into(), 1)),
+        (0, A, give(STORAGE.into(), 1)),
+        (0, A, give(IRON_ORE.into(), 1)),
+        (0, A, give(STONE.into(), 2)),
         (0, A, Action::Craft { recipe: belts, times: 1 }),
         (0, B, Action::Join),
-        (0, B, give(STONE, 3)),
+        (0, B, give(STONE.into(), 3)),
+        (0, B, give(SMELTER.into(), 1)),
+        (0, B, give(CONSTRUCTOR.into(), 1)),
+        (0, B, give(IRON_INGOT, 5)),
         (1, B, Action::BreakBlock { pos: above_box }),
+        (1, B, Action::BreakBlock { pos: above_miner }),
+        (1, B, Action::BreakBlock { pos: press }),
     ];
     // Clear the cells first (breaking air does nothing).
     log.extend((0..4).map(|dx| (1, A, Action::BreakBlock { pos: cell(dx) })));
@@ -65,6 +78,10 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (2, A, place(cell(2), 1, 1, cell(2))),
         (2, A, place(cell(3), 2, 0, cell(3))),
         (3, B, place(above_box, 0, 0, cell(3))),
+        (3, B, place(above_miner, 1, 0, cell(0))),
+        (3, B, place(press, 2, 0, cell(2))),
+        (4, B, Action::SetRecipe { pos: press, recipe: plates }),
+        (5, B, Action::Insert { pos: press, item: IRON_INGOT }),
         (5, A, Action::BreakBlock { pos: other }),
     ]);
     log
@@ -98,14 +115,22 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
+    // Recorded with the constructor (step 2.4). Only a deliberate change to the rules or the state bytes may
+    // update it.
+    assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 
     // The scenario really ran.
     assert_eq!(a.world.block_anywhere_or_generate(top), SPENT_ROCK);
     assert_eq!(a.world.block_anywhere_or_generate(other), AIR);
     let st = a.factory.deposits.get(&key).unwrap();
     assert_eq!(st.remaining_blocks, st.initial_blocks - 2, "one hand-mined, one drilled");
-    assert!(a.factory.storage_count_at(top + IVec3::new(3, 1, 0), key.ore) > 30);
-    assert_eq!(a.player(B).unwrap().inventory.count(STONE), 2, "B placed one");
+    let boxed = a.factory.storage_count_at(top + IVec3::new(3, 1, 0), key.ore.into());
+    let smelter = a.factory.smelter_at(top + IVec3::new(0, 2, 0));
+    assert!(smelter.input.total() + smelter.fuel.total() > 20 && boxed > 20, "{boxed} boxed");
+    assert_eq!(a.player(B).unwrap().inventory.count(STONE.into()), 2, "B placed one");
+    let press = a.factory.constructor_at(top + IVec3::new(2, 2, 0));
+    assert_eq!((press.out.total(), press.input.total()), (2, 1), "two plates from four ingots, one left");
+    assert_eq!(a.player(B).unwrap().inventory.count(IRON_INGOT), 0);
 }
 
 #[test]
@@ -166,7 +191,7 @@ fn the_hash_covers_inventories_players_and_time() {
     };
     let fresh = hash(&|_| {});
     assert_eq!(fresh, Sim::new(SEED, 2).state_hash());
-    assert_ne!(hash(&|s| s.apply(A, Action::Give { item: STONE, count: 1 })), fresh);
+    assert_ne!(hash(&|s| s.apply(A, Action::Give { item: STONE.into(), count: 1 })), fresh);
     assert_ne!(hash(&|s| s.apply(A, Action::SelectSlot { slot: 3 })), fresh);
     assert_ne!(hash(&|s| s.apply(B, Action::Join)), fresh);
     assert_ne!(hash(&|s| s.step()), fresh);

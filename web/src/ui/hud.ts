@@ -1,6 +1,6 @@
 // In-game HUD: crosshair, target name with detail text and mining bar, hotbar, pickup toasts,
 // the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
-// when `inventory_version` changes. `blockIcon` renders the item icons other panels reuse.
+// when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse.
 
 import './hud.css';
 import type { Game } from '../wasm/engine.js';
@@ -42,6 +42,7 @@ export class Hud {
   private readonly slots: Slot[] = [];
   private readonly icons = new Map<number, HTMLCanvasElement>();
   private readonly layers: HTMLCanvasElement[] = [];
+  /** Block names, for the target readout. */
   private readonly names: string[] = [];
   private readonly toasts = new Map<number, Toast>();
   private invVersion = -1;
@@ -105,11 +106,11 @@ export class Hud {
         const item = g.slot_item(i);
         const n = g.slot_count(i);
         s.root.classList.toggle('selected', i === selected);
-        s.root.title = n > 0 ? this.names[item] : '';
+        s.root.title = n > 0 ? g.item_name(item) : '';
         if (item !== s.item || n !== s.n) {
           const ctx = s.icon.getContext('2d')!;
           ctx.clearRect(0, 0, ICON_PX, ICON_PX);
-          if (n > 0) ctx.drawImage(this.blockIcon(item), 0, 0);
+          if (n > 0) ctx.drawImage(this.itemIcon(item), 0, 0);
           s.count.textContent = n > 1 ? String(n) : '';
           s.item = item;
           s.n = n;
@@ -179,28 +180,38 @@ export class Hud {
     el.className = 'toast';
     const icon = document.createElement('canvas');
     icon.width = icon.height = ICON_PX;
-    icon.getContext('2d')!.drawImage(this.blockIcon(item), 0, 0);
+    icon.getContext('2d')!.drawImage(this.itemIcon(item), 0, 0);
     const label = document.createElement('span');
     label.className = 'amount';
     label.textContent = `+${count}`;
     const name = document.createElement('span');
-    name.textContent = this.names[item];
+    name.textContent = this.game.item_name(item);
     el.append(icon, label, name);
     this.toastBox.append(el);
     this.toasts.set(item, { el, label, count, until: now + TOAST_MS });
   }
 
-  /** Isometric block icon drawn from the block's top and side textures. */
-  blockIcon(item: number): HTMLCanvasElement {
+  /**
+   * Isometric icon of an item's box model (`item_icon`: top, side and bottom texture layers, then the
+   * box's x, y, z proportions, 1 = a full cube), centred in the canvas. Blocks are full cubes.
+   */
+  itemIcon(item: number): HTMLCanvasElement {
     let c = this.icons.get(item);
     if (c) return c;
     c = document.createElement('canvas');
     c.width = c.height = ICON_PX;
     const ctx = c.getContext('2d')!;
     ctx.imageSmoothingEnabled = false;
-    const S = ICON_PX * 0.9, o = (ICON_PX - S) / 2, k = S / 16;
-    const top = this.layers[this.game.block_face_texture(item, 2)];
-    const side = this.layers[this.game.block_face_texture(item, 0)];
+    const info = this.game.item_icon(item);
+    this.icons.set(item, c);
+    if (info.length < 6) return c;
+    const [topLayer, sideLayer, , a, h, b] = info;
+    // A unit cube spans S pixels; +x runs right-down, +z left-down, +y up.
+    const S = ICON_PX * 0.9, k = S / 16;
+    const cx = ICON_PX / 2 - ((a - b) * S) / 4;
+    const cy = ICON_PX / 2 - (((a + b) * S) / 4 - (h * S) / 2) / 2;
+    const top = this.layers[topLayer];
+    const side = this.layers[sideLayer];
     const face = (img: HTMLCanvasElement, m: [number, number, number, number, number, number], shade: number) => {
       ctx.setTransform(...m);
       ctx.drawImage(img, 0, 0);
@@ -212,11 +223,12 @@ export class Hud {
       }
     };
     // Each face is shaded with `source-atop` inside its own parallelogram, so it only darkens itself.
-    face(side, [k / 2, k / 4, 0, k / 2, o, o + S / 4], 0.22);
-    face(side, [k / 2, -k / 4, 0, k / 2, o + S / 2, o + S / 2], 0.4);
-    face(top, [k / 2, k / 4, -k / 2, k / 4, o + S / 2, o], 0);
+    // Each face maps the whole 16×16 layer onto its parallelogram: the z = b side, the x = a side, the top.
+    const topY = cy - (h * S) / 2;
+    face(side, [(a * k) / 2, (a * k) / 4, 0, (h * k) / 2, cx - (b * S) / 2, topY + (b * S) / 4], 0.22);
+    face(side, [(b * k) / 2, (-b * k) / 4, 0, (h * k) / 2, cx + ((a - b) * S) / 2, topY + ((a + b) * S) / 4], 0.4);
+    face(top, [(a * k) / 2, (a * k) / 4, (-b * k) / 2, (b * k) / 4, cx, topY], 0);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.icons.set(item, c);
     return c;
   }
 }

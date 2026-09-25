@@ -7,6 +7,7 @@ use wasm_bindgen::prelude::*;
 use crate::action::Action;
 use crate::block::AIR;
 use crate::deposits::Tier;
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::sim::PlayerId;
 use crate::{Game, TICK_RATE};
@@ -14,8 +15,8 @@ use crate::{Game, TICK_RATE};
 #[wasm_bindgen]
 impl Game {
     /// Debug / creative helper: adds items to the inventory at the next tick (what doesn't fit is lost).
-    pub fn give(&mut self, item: u8, count: u32) {
-        self.act(Action::Give { item, count });
+    pub fn give(&mut self, item: u16, count: u32) {
+        self.act(Action::Give { item: ItemId(item), count });
     }
 
     pub fn teleport(&mut self, x: f64, y: f64, z: f64) {

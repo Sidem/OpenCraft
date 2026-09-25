@@ -1,45 +1,62 @@
-//! Factory machines: conveyor belts, miners and storage boxes.
+//! Factory machines: conveyor belts, miners, storage boxes, smelters and constructors.
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
-//! breaking work unchanged) while their state lives here, keyed by position in `at`. Each kind is
-//! a `Vec` in its own file (`belt.rs`, `miner.rs`, `storage.rs`); removal is `swap_remove` plus
+//! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
+//! table `MACHINES` maps a block to its kind and buffer size. Each kind is a struct in its own file
+//! implementing [`Machine`] (state bytes, contents, readout, model), stored in its own `Vec`; code
+//! that acts on one machine finds it through one `match` on `Slot`. Removal is `swap_remove` plus
 //! fixing the moved entry's `at` slot. Machines keep running when their chunk is streamed out.
 //!
-//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick, miners, then boxes, then belts
-//! (downstream first, see `links.rs`), and reports to the view only through `SimEvent`s. Belt links
-//! and the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
+//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick, miners, then boxes and processing
+//! machines, then belts (downstream first, see `links.rs`), and reports to the view only through `SimEvent`s. Links and
+//! the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
 //!
-//! To add a machine kind (Milestone 2 turns this into a registry, together with the smelter):
-//! a file with its struct and `*_step` methods, a `Slot` variant, an `add_*` method, arms in
-//! `remove`, `take_contents`, `relink`, `describe` and `write_instances`, and a block id.
+//! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a
+//! `MACHINES` row and a `Vec` field, then follow the compiler through the `match`es (`place`, `remove`,
+//! `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in `block.rs`, its
+//! recipe in `recipes.rs`.
 
 mod belt;
+mod buffer;
+mod constructor;
 mod describe;
 mod links;
 mod miner;
+mod panel;
 mod render;
+mod smelter;
 mod storage;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::BlockId;
+use crate::block::{BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, MINER, SMELTER, STORAGE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
-use crate::inventory::{add_to_slots, Stack, MAX_STACK};
-use crate::math::IVec3;
+use crate::inventory::Stack;
+#[cfg(test)]
+use crate::item::ItemId;
+use crate::math::{IVec3, Vec3};
 use crate::sim::SimEvent;
 use crate::world::World;
-use crate::TICK;
+use crate::{TICK, TICK_RATE};
 
 use belt::{belt_step, Belt};
+use constructor::Constructor;
+use links::{Sinks, Slot};
 use miner::Miner;
+use smelter::Smelter;
 use storage::Storage;
 
+#[cfg(test)]
+pub use constructor::ConstructorStatus;
 pub use describe::fmt_int;
 #[cfg(test)]
-pub use miner::MINER_BUFFER;
-pub use miner::{MinerStatus, MINER_RECOVERY};
+pub use miner::MinerStatus;
+pub use miner::MINER_RECOVERY;
+pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use render::{push_box, INSTANCE_FLOATS};
+#[cfg(test)]
+pub use smelter::SmelterStatus;
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
 pub const DIRS: [IVec3; 4] = [IVec3::new(0, 0, -1), IVec3::new(1, 0, 0), IVec3::new(0, 0, 1), IVec3::new(-1, 0, 0)];
@@ -62,11 +79,69 @@ pub fn face_of(v: IVec3) -> Option<u8> {
     FACES.iter().position(|&f| f == v).map(|i| i as u8)
 }
 
+/// Machine kinds, in `MACHINES` order.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Kind {
+    Belt,
+    Miner,
+    Storage,
+    Smelter,
+    Constructor,
+}
+
+pub struct MachineDef {
+    /// The block that is this machine (its name, textures and breaking come from `block.rs`).
+    pub block: BlockId,
+    pub kind: Kind,
+    /// Item stacks per buffer: a box's slots, a miner's output, each of a smelter's ore, fuel and
+    /// output buffers. Belts carry items instead (0).
+    pub slots: usize,
+    /// Right-click opens its panel (`panel.rs`) instead of taking what it holds.
+    pub panel: bool,
+}
+
+/// The machine table: one row per kind, in `Kind` order.
+pub const MACHINES: [MachineDef; 5] = [
+    MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
+    MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: false },
+    MachineDef { block: SMELTER, kind: Kind::Smelter, slots: 1, panel: true },
+    MachineDef { block: CONSTRUCTOR, kind: Kind::Constructor, slots: 1, panel: true },
+];
+
+impl Kind {
+    pub fn def(self) -> &'static MachineDef {
+        &MACHINES[self as usize]
+    }
+}
+
+/// The machine `block` is, if it is one.
+pub fn machine(block: BlockId) -> Option<&'static MachineDef> {
+    MACHINES.iter().find(|m| m.block == block)
+}
+
+/// What every machine kind provides. Static dispatch only: callers `match` on `Slot` or loop over
+/// one kind's `Vec`.
+trait Machine: Sized {
+    fn pos(&self) -> IVec3;
+    /// Its core state (derived data such as links is left out).
+    fn write_state(&self, w: &mut ByteWriter);
+    fn read_state(r: &mut ByteReader) -> Option<Self>;
+    /// Everything it holds or carries, dropped when it is removed.
+    fn contents(&self) -> Vec<Stack>;
+    /// Readout lines for the HUD ("" for nothing to say).
+    fn describe(&self, f: &Factory) -> String;
+    /// Box instances for its model; `rel` is its cell centre relative to the camera.
+    fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64);
+}
+
 #[derive(Default)]
 pub struct Factory {
     belts: Vec<Belt>,
     miners: Vec<Miner>,
     storages: Vec<Storage>,
+    smelters: Vec<Smelter>,
+    constructors: Vec<Constructor>,
     at: FxHashMap<IVec3, Slot>,
     /// Belt indices, downstream first.
     order: Vec<u32>,
@@ -87,24 +162,46 @@ impl Factory {
         self.storages.len()
     }
 
+    /// Adds the machine that `block` is at `pos` (nothing for other blocks). `facing` is the placing
+    /// player's horizontal direction (belts run that way); `against` is the clicked block, which a
+    /// miner drills if it is adjacent.
+    pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3) {
+        let Some(def) = machine(block) else { return };
+        match def.kind {
+            Kind::Belt => self.add_belt(pos, facing),
+            Kind::Miner => {
+                let drill = face_of(against - pos);
+                let deposit = drill.and_then(|_| self.deposits.lookup(world, against));
+                self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit);
+            }
+            Kind::Storage => self.add_storage(pos),
+            Kind::Smelter => {
+                self.remove(pos);
+                add_to(&mut self.smelters, Smelter::new(pos), &mut self.at, Slot::Smelter);
+            }
+            Kind::Constructor => {
+                self.remove(pos);
+                add_to(&mut self.constructors, Constructor::new(pos), &mut self.at, Slot::Constructor);
+            }
+        }
+        self.dirty = true;
+    }
+
     pub fn add_belt(&mut self, pos: IVec3, dir: u8) {
         self.remove(pos);
-        self.at.insert(pos, Slot::Belt(self.belts.len() as u32));
-        self.belts.push(Belt::new(pos, dir));
+        add_to(&mut self.belts, Belt::new(pos, dir), &mut self.at, Slot::Belt);
         self.dirty = true;
     }
 
     pub fn add_miner(&mut self, pos: IVec3, drill: u8, deposit: Option<DepositKey>) {
         self.remove(pos);
-        self.at.insert(pos, Slot::Miner(self.miners.len() as u32));
-        self.miners.push(Miner::new(pos, drill, deposit));
+        add_to(&mut self.miners, Miner::new(pos, drill, deposit), &mut self.at, Slot::Miner);
         self.dirty = true;
     }
 
     pub fn add_storage(&mut self, pos: IVec3) {
         self.remove(pos);
-        self.at.insert(pos, Slot::Storage(self.storages.len() as u32));
-        self.storages.push(Storage::new(pos));
+        add_to(&mut self.storages, Storage::new(pos), &mut self.at, Slot::Storage);
         self.dirty = true;
     }
 
@@ -112,95 +209,40 @@ impl Factory {
     pub fn remove(&mut self, pos: IVec3) -> Vec<Stack> {
         let Some(slot) = self.at.remove(&pos) else { return Vec::new() };
         self.dirty = true;
+        let at = &mut self.at;
         match slot {
-            Slot::Belt(i) => {
-                let b = self.belts.swap_remove(i as usize);
-                if let Some(moved) = self.belts.get(i as usize) {
-                    self.at.insert(moved.pos, Slot::Belt(i));
-                }
-                stacks_of(b.items.iter().map(|it| it.item))
-            }
-            Slot::Miner(i) => {
-                let m = self.miners.swap_remove(i as usize);
-                if let Some(moved) = self.miners.get(i as usize) {
-                    self.at.insert(moved.pos, Slot::Miner(i));
-                }
-                if m.held > 0 {
-                    vec![Stack { item: m.ore, count: m.held }]
-                } else {
-                    Vec::new()
-                }
-            }
-            Slot::Storage(i) => {
-                let s = self.storages.swap_remove(i as usize);
-                if let Some(moved) = self.storages.get(i as usize) {
-                    self.at.insert(moved.pos, Slot::Storage(i));
-                }
-                s.slots.into_iter().filter(|s| !s.is_empty()).collect()
-            }
+            Slot::Belt(i) => swap_out(&mut self.belts, i, at, Slot::Belt),
+            Slot::Miner(i) => swap_out(&mut self.miners, i, at, Slot::Miner),
+            Slot::Storage(i) => swap_out(&mut self.storages, i, at, Slot::Storage),
+            Slot::Smelter(i) => swap_out(&mut self.smelters, i, at, Slot::Smelter),
+            Slot::Constructor(i) => swap_out(&mut self.constructors, i, at, Slot::Constructor),
         }
     }
 
-    /// Right-click on a box or miner: moves its contents into `take(item, count)`, which returns
-    /// how many it accepted. Returns false if there is no such machine at `pos`.
-    pub fn take_contents(&mut self, pos: IVec3, mut take: impl FnMut(BlockId, u32) -> u32) -> bool {
-        match self.at.get(&pos) {
-            Some(Slot::Storage(i)) => {
-                for s in self.storages[*i as usize].slots.iter_mut().filter(|s| !s.is_empty()) {
-                    s.count -= take(s.item, s.count).min(s.count);
-                    if s.count == 0 {
-                        *s = Stack::default();
-                    }
-                }
-                true
-            }
-            Some(Slot::Miner(i)) => {
-                let m = &mut self.miners[*i as usize];
-                if m.held > 0 {
-                    m.held -= take(m.ore, m.held).min(m.held);
-                }
-                true
-            }
-            _ => false,
-        }
-    }
-
-    /// Core state: every machine in `Vec` order, then the deposits. `at`, `order` and the links are
-    /// derived from these.
+    /// Core state: every machine in `Vec` order, kind by kind, then the deposits. `at`, `order` and
+    /// the links are derived from these.
     pub fn write_state(&self, w: &mut ByteWriter) {
-        w.count(self.belts.len());
-        self.belts.iter().for_each(|b| b.write_state(w));
-        w.count(self.miners.len());
-        self.miners.iter().for_each(|m| m.write_state(w));
-        w.count(self.storages.len());
-        self.storages.iter().for_each(|s| s.write_state(w));
+        write_list(w, &self.belts);
+        write_list(w, &self.miners);
+        write_list(w, &self.storages);
+        write_list(w, &self.smelters);
+        write_list(w, &self.constructors);
         self.deposits.write_state(w);
     }
 
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
-    /// Links are rebuilt at the first `update`. Two machines in one place is damage.
+    /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
+    /// version 3 have no smelters, before version 4 no constructors.
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
-        for _ in 0..r.count()? {
-            let b = Belt::read_state(r)?;
-            if f.at.insert(b.pos, Slot::Belt(f.belts.len() as u32)).is_some() {
-                return None;
-            }
-            f.belts.push(b);
+        read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
+        read_list(r, &mut f.miners, &mut f.at, Slot::Miner)?;
+        read_list(r, &mut f.storages, &mut f.at, Slot::Storage)?;
+        if r.version >= 3 {
+            read_list(r, &mut f.smelters, &mut f.at, Slot::Smelter)?;
         }
-        for _ in 0..r.count()? {
-            let m = Miner::read_state(r)?;
-            if f.at.insert(m.pos, Slot::Miner(f.miners.len() as u32)).is_some() {
-                return None;
-            }
-            f.miners.push(m);
-        }
-        for _ in 0..r.count()? {
-            let s = Storage::read_state(r)?;
-            if f.at.insert(s.pos, Slot::Storage(f.storages.len() as u32)).is_some() {
-                return None;
-            }
-            f.storages.push(s);
+        if r.version >= 4 {
+            read_list(r, &mut f.constructors, &mut f.at, Slot::Constructor)?;
         }
         f.deposits.read_state(world, r)?;
         Some(f)
@@ -212,26 +254,51 @@ impl Factory {
         if self.dirty {
             self.relink();
         }
-        let dt = TICK;
-        let Factory { belts, miners, storages, deposits, order, .. } = self;
+        let Factory { belts, miners, storages, smelters, constructors, deposits, order, .. } = self;
+        let mut sinks = Sinks { storages, smelters, constructors };
         for m in miners.iter_mut() {
-            let drawn = m.draw_step(deposits, world, tick, dt);
-            m.output_step(belts, storages);
-            m.pulse_step(drawn, events);
+            m.step(deposits, world, tick, belts, &mut sinks, events);
         }
-        for s in storages.iter_mut() {
-            s.output_step(belts);
+        for s in sinks.storages.iter_mut() {
+            s.step(belts);
         }
-        belt_step(belts, storages, order, dt);
+        for s in sinks.smelters.iter_mut() {
+            s.step(belts);
+        }
+        for c in sinks.constructors.iter_mut() {
+            c.step(belts);
+        }
+        belt_step(belts, &mut sinks, order, TICK);
     }
 
     #[cfg(test)]
-    pub fn storage_count_at(&self, pos: IVec3, item: BlockId) -> u32 {
+    pub fn storage_count_at(&self, pos: IVec3, item: ItemId) -> u32 {
         match self.at.get(&pos) {
-            Some(Slot::Storage(i)) => {
-                self.storages[*i as usize].slots.iter().filter(|s| s.item == item).map(|s| s.count).sum()
-            }
+            Some(Slot::Storage(i)) => self.storages[*i as usize].buf.count(item),
             _ => 0,
+        }
+    }
+
+    /// Puts `n` of `item` into the box at `pos`.
+    #[cfg(test)]
+    pub fn stock(&mut self, pos: IVec3, item: ItemId, n: u32) {
+        let Some(Slot::Storage(i)) = self.at.get(&pos) else { panic!("no box at {pos:?}") };
+        self.storages[*i as usize].buf.add(item, n);
+    }
+
+    #[cfg(test)]
+    pub fn smelter_at(&self, pos: IVec3) -> &Smelter {
+        match self.at.get(&pos) {
+            Some(Slot::Smelter(i)) => &self.smelters[*i as usize],
+            _ => panic!("no smelter at {pos:?}"),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn constructor_at(&self, pos: IVec3) -> &Constructor {
+        match self.at.get(&pos) {
+            Some(Slot::Constructor(i)) => &self.constructors[*i as usize],
+            _ => panic!("no constructor at {pos:?}"),
         }
     }
 
@@ -252,50 +319,57 @@ impl Factory {
     }
 }
 
-/// Where a belt, miner or box delivers to.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub(crate) enum Link {
-    None,
-    /// `mid`: joining from the side, so the item enters halfway along the target belt.
-    Belt {
-        belt: u32,
-        mid: bool,
-    },
-    Storage(u32),
-}
-
-/// What occupies a position: an index into the matching machine `Vec`.
-#[derive(Clone, Copy, Debug)]
-enum Slot {
-    Belt(u32),
-    Miner(u32),
-    Storage(u32),
-}
-
 #[inline]
 fn opposite(dir: u8) -> u8 {
     (dir + 2) % 4
 }
 
-/// Hands one item to a link. `overflow` is how far past the end of the source belt it already is.
-fn deliver(belts: &mut [Belt], storages: &mut [Storage], link: Link, item: BlockId, overflow: f32) -> bool {
-    match link {
-        Link::None => false,
-        Link::Belt { belt, mid } => belts[belt as usize].accept(item, mid, overflow),
-        Link::Storage(s) => add_to_slots(&mut storages[s as usize].slots, item, 1) == 0,
-    }
+/// Whole ticks in `seconds` (machine work is counted in ticks).
+fn ticks(seconds: f64) -> u32 {
+    (seconds * TICK_RATE as f64).round() as u32
 }
 
-/// Merges loose items into stacks (for dropping a machine's contents).
-fn stacks_of(items: impl Iterator<Item = BlockId>) -> Vec<Stack> {
-    let mut out: Vec<Stack> = Vec::new();
-    for item in items {
-        match out.iter_mut().find(|s| s.item == item && s.count < MAX_STACK) {
-            Some(s) => s.count += 1,
-            None => out.push(Stack { item, count: 1 }),
-        }
+/// Appends `m` to its kind's list and indexes its position.
+fn add_to<T: Machine>(list: &mut Vec<T>, m: T, at: &mut FxHashMap<IVec3, Slot>, slot: fn(u32) -> Slot) {
+    at.insert(m.pos(), slot(list.len() as u32));
+    list.push(m);
+}
+
+/// Removes entry `i` (already gone from `at`), re-indexes the entry moved into its place, and
+/// returns the removed machine's contents.
+fn swap_out<T: Machine>(
+    list: &mut Vec<T>,
+    i: u32,
+    at: &mut FxHashMap<IVec3, Slot>,
+    slot: fn(u32) -> Slot,
+) -> Vec<Stack> {
+    let m = list.swap_remove(i as usize);
+    if let Some(moved) = list.get(i as usize) {
+        at.insert(moved.pos(), slot(i));
     }
-    out
+    m.contents()
+}
+
+fn write_list<T: Machine>(w: &mut ByteWriter, list: &[T]) {
+    w.count(list.len());
+    list.iter().for_each(|m| m.write_state(w));
+}
+
+/// Reads one kind's list; a position already taken is damage.
+fn read_list<T: Machine>(
+    r: &mut ByteReader,
+    list: &mut Vec<T>,
+    at: &mut FxHashMap<IVec3, Slot>,
+    slot: fn(u32) -> Slot,
+) -> Option<()> {
+    for _ in 0..r.count()? {
+        let m = T::read_state(r)?;
+        if at.contains_key(&m.pos()) {
+            return None;
+        }
+        add_to(list, m, at, slot);
+    }
+    Some(())
 }
 
 #[cfg(test)]

@@ -3,10 +3,14 @@
 //! meshes, links, deposit members and the camera, is derived and rebuilt on load.
 //!
 //! Layout: magic `OCW1`, `SAVE_VERSION`, `WORLDGEN_VERSION`, seed, core, local player id, bodies,
-//! loose items. Invariants: loading refuses, with a message a player can read, any file from another
-//! format or generation version and any damaged file; it never panics on bad bytes. Until 1.0, a
-//! format change just bumps `SAVE_VERSION` (old saves are refused). To save something new: write and
-//! read it in its type's `write_state` / `read_state`, then bump `SAVE_VERSION`.
+//! loose items. Invariants: loading refuses, with a message a player can read, any file from a newer
+//! format, another generation version, a format older than `OLDEST_VERSION`, and any damaged file; it
+//! never panics on bad bytes. To save something new: write and read it in its type's `write_state` /
+//! `read_state` and bump `SAVE_VERSION`. Older saves keep loading when a read can follow the old layout
+//! cheaply (`ByteReader::version`); otherwise raise `OLDEST_VERSION`.
+//!
+//! Versions: 1 = items as `u8` block ids; 2 = items as `u16` `ItemId`s; 3 = adds the smelter list;
+//! 4 = adds the constructor list.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
@@ -16,7 +20,9 @@ use crate::worldgen::WORLDGEN_VERSION;
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 1;
+pub const SAVE_VERSION: u32 = 4;
+/// The oldest format that still loads.
+const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";
 const DAMAGED: &str = "This world file is damaged and can't be loaded.";
 
@@ -51,12 +57,13 @@ impl Game {
         if version > SAVE_VERSION {
             return Err("This world was saved by a newer version of OpenCraft. Reload the page to update.".into());
         }
-        if version < SAVE_VERSION {
+        if version < OLDEST_VERSION {
             return Err("This world was saved by an older version of OpenCraft that can't be loaded any more.".into());
         }
         if worldgen != WORLDGEN_VERSION {
             return Err("World generation has changed since this world was saved, so it can't be loaded.".into());
         }
+        r.version = version;
         read_game(&mut r, view_radius).ok_or_else(|| DAMAGED.into())
     }
 }

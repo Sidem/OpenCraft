@@ -1,0 +1,181 @@
+/* Machine panel (machine.ts): status and progress, buffer slots, recipe choice, put-in buttons.
+   Slots reuse `.slot` from hud.css. */
+
+.mp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 10, 14, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.mp {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: rgba(20, 22, 29, 0.97);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  outline: none;
+}
+
+.mp-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 16px 60px 12px 22px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.mp-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.mp-keys {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mp-head .close-btn {
+  top: 8px;
+}
+
+.mp-body {
+  overflow-y: auto;
+  padding: 14px 22px 18px;
+}
+
+.mp h3 {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.mp-status {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.mp-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.mp-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.mp-fire {
+  display: block;
+  min-height: 16px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #ffb37a;
+}
+
+.mp-slots {
+  display: flex;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.mp-slot {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.mp-slot-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.mp-take:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mp-recipes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.mp-recipe {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  font: 13px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.mp-recipe:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.mp-recipe:disabled {
+  cursor: default;
+}
+
+.mp-recipe.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.mp-recipe-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.mp-recipe-text {
+  display: grid;
+}
+
+.mp-recipe-text small {
+  color: var(--muted);
+}
+
+.mp-inserts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mp-insert {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mp-chip-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.mp-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}

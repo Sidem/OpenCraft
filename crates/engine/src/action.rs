@@ -7,10 +7,10 @@
 //! Results leave as `SimEvent`s. To add an action: a variant here and its arm in
 //! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet).
 
-use crate::block::{self, BlockId, AIR, BELT, MINER, STORAGE};
+use crate::block::{self, AIR};
 use crate::deposits::HAND_YIELD;
-use crate::factory::face_of;
 use crate::inventory::Stack;
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
 use crate::sim::{PlayerCore, PlayerId, Sim, SimEvent};
@@ -30,9 +30,20 @@ pub enum Action {
         facing: u8,
         against: IVec3,
     },
-    /// Empties the box or miner at `pos` into the inventory.
+    /// Empties the box or miner at `pos` into the inventory, or takes a machine's output.
     TakeContents {
         pos: IVec3,
+    },
+    /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
+    /// The inputs it held go back to the player.
+    SetRecipe {
+        pos: IVec3,
+        recipe: u16,
+    },
+    /// Puts as many of `item` from the inventory into the machine at `pos` as it takes.
+    Insert {
+        pos: IVec3,
+        item: ItemId,
     },
     Craft {
         recipe: u16,
@@ -56,12 +67,12 @@ pub enum Action {
     },
     /// Issued by the authority when a loose item reaches the player.
     PickUp {
-        item: BlockId,
+        item: ItemId,
         count: u32,
     },
     /// Debug and creative only.
     Give {
-        item: BlockId,
+        item: ItemId,
         count: u32,
     },
     /// The player joins with an empty inventory (nothing happens if it is already here).
@@ -107,6 +118,21 @@ impl Sim {
                     taken
                 });
             }
+            Action::SetRecipe { pos, recipe } => {
+                let recipe = (recipe != u16::MAX).then_some(recipe);
+                for s in self.factory.set_recipe(pos, recipe).unwrap_or_default() {
+                    let left = inv.add(s.item, s.count);
+                    if left > 0 {
+                        self.events.push(SimEvent::Thrown { player, item: s.item, count: left });
+                    }
+                }
+            }
+            Action::Insert { pos, item } => {
+                let put = self.factory.insert(pos, item, inv.count(item));
+                if put > 0 {
+                    inv.remove(item, put);
+                }
+            }
             Action::Craft { recipe, times } => {
                 let Some(r) = RECIPES.get(recipe as usize) else { return };
                 let mut done = 0;
@@ -149,7 +175,7 @@ impl Sim {
                 }
             }
             Action::Give { item, count } => {
-                if item != AIR && (item as usize) < block::BLOCK_COUNT {
+                if item.is_valid() {
                     inv.add(item, count);
                 }
             }
@@ -172,7 +198,7 @@ impl Sim {
         self.events.push(SimEvent::BlockBroken { player, pos, block: id });
         let mut drops = self.factory.remove(pos);
         if def.drop != AIR {
-            drops.insert(0, Stack { item: def.drop, count: if ore { HAND_YIELD } else { 1 } });
+            drops.insert(0, Stack { item: ItemId::block(def.drop), count: if ore { HAND_YIELD } else { 1 } });
         }
         let center = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
         for s in drops {
@@ -185,25 +211,13 @@ impl Sim {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
         let inv = &mut core.inventory;
         let Some(stack) = inv.slots.get(slot as usize).copied() else { return };
-        if stack.is_empty() || !block::is_placeable(stack.item) {
-            return;
-        }
-        if self.world.block_anywhere_or_generate(pos) != AIR || !self.world.set_block_anywhere(pos, stack.item) {
+        let Some(placed) = stack.item.places().filter(|_| !stack.is_empty()) else { return };
+        if self.world.block_anywhere_or_generate(pos) != AIR || !self.world.set_block_anywhere(pos, placed) {
             return;
         }
         inv.take_slot(slot as usize, 1);
-        match stack.item {
-            BELT => self.factory.add_belt(pos, facing % 4),
-            MINER => {
-                // The drill faces the clicked block, and only an adjacent one can be drilled.
-                let drill = face_of(against - pos);
-                let deposit = drill.and_then(|_| self.factory.deposits.lookup(&mut self.world, against));
-                self.factory.add_miner(pos, drill.unwrap_or(block::FACE_BOTTOM as u8), deposit);
-            }
-            STORAGE => self.factory.add_storage(pos),
-            _ => {}
-        }
-        self.events.push(SimEvent::BlockPlaced { player, pos, block: stack.item });
+        self.factory.place(&mut self.world, placed, pos, facing, against);
+        self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
     }
 }
 

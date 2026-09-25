@@ -31,6 +31,7 @@ mod events;
 mod factory;
 mod interaction;
 mod inventory;
+mod item;
 mod math;
 mod mesher;
 mod noise;
@@ -50,10 +51,10 @@ use std::collections::VecDeque;
 use wasm_bindgen::prelude::*;
 
 use action::Action;
-use block::{BlockId, AIR};
 use deposits::DepositState;
 use entities::Items;
 use inventory::Inventory;
+use item::ItemId;
 use math::{IVec3, Vec3};
 use player::Player;
 use raycast::RayHit;
@@ -100,14 +101,16 @@ pub struct Game {
     mine_cooldown: f32,
     using: bool,
     use_cooldown: f32,
+    /// A machine the player right-clicked whose panel the host should open (`take_panel_request`).
+    panel_request: Option<IVec3>,
     dig_timer: f32,
     step_distance: f64,
     sounds: Sounds,
     textures: Vec<u8>,
     /// Box instances (dropped items, belt items, machine parts) for the current frame.
     instances: Vec<f32>,
-    pickups: VecDeque<(BlockId, u32)>,
-    cur_pickup: (BlockId, u32),
+    pickups: VecDeque<(ItemId, u32)>,
+    cur_pickup: (ItemId, u32),
     cur_mesh: Option<MeshData>,
     cur_event_pos: IVec3,
     /// Figures of the last untracked deposit `target_detail` showed, so looking stays cheap
@@ -139,13 +142,14 @@ impl Game {
             mine_cooldown: 0.0,
             using: false,
             use_cooldown: 0.0,
+            panel_request: None,
             dig_timer: 0.0,
             step_distance: 0.0,
             sounds: Sounds::default(),
             textures: textures::generate(),
             instances: Vec::new(),
             pickups: VecDeque::new(),
-            cur_pickup: (AIR, 0),
+            cur_pickup: (ItemId::NONE, 0),
             cur_mesh: None,
             cur_event_pos: IVec3::ZERO,
             surveyed: None,

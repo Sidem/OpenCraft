@@ -2,16 +2,15 @@
 //! the mouse cursor while the inventory screen is open. `version` increments on every change so
 //! the UI redraws only when needed. `add_to_slots` is shared with storage boxes.
 
-use crate::block::{BlockId, AIR};
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::item::{stack_size, ItemId};
 
 pub const HOTBAR_SLOTS: usize = 9;
 pub const INVENTORY_SLOTS: usize = 36;
-pub const MAX_STACK: u32 = 64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Stack {
-    pub item: BlockId,
+    pub item: ItemId,
     pub count: u32,
 }
 
@@ -20,17 +19,17 @@ impl Stack {
         self.count == 0
     }
 
-    /// Item and count; every empty stack writes as (AIR, 0), whatever item it last held.
+    /// Item and count; every empty stack writes as (`ItemId::NONE`, 0), whatever item it last held.
     pub fn write_state(&self, w: &mut ByteWriter) {
-        w.u8(if self.is_empty() { AIR } else { self.item });
+        w.item(if self.is_empty() { ItemId::NONE } else { self.item });
         w.u32(self.count);
     }
 
     pub fn read_state(r: &mut ByteReader) -> Option<Stack> {
-        let (item, count) = (r.block()?, r.u32()?);
+        let (item, count) = (r.item()?, r.u32()?);
         match count {
             0 => Some(Stack::default()),
-            1..=MAX_STACK if item != AIR => Some(Stack { item, count }),
+            n if item != ItemId::NONE && n <= stack_size(item) => Some(Stack { item, count }),
             _ => None,
         }
     }
@@ -38,12 +37,13 @@ impl Stack {
 
 /// Adds up to `count` of `item` into `slots`, topping up matching stacks before filling empty
 /// slots (in slice order). Returns what didn't fit.
-pub fn add_to_slots(slots: &mut [Stack], item: BlockId, mut count: u32) -> u32 {
-    if item == AIR {
+pub fn add_to_slots(slots: &mut [Stack], item: ItemId, mut count: u32) -> u32 {
+    if item == ItemId::NONE {
         return count;
     }
+    let max = stack_size(item);
     for s in slots.iter_mut().filter(|s| !s.is_empty() && s.item == item) {
-        let n = count.min(MAX_STACK - s.count);
+        let n = count.min(max.saturating_sub(s.count));
         s.count += n;
         count -= n;
     }
@@ -51,7 +51,7 @@ pub fn add_to_slots(slots: &mut [Stack], item: BlockId, mut count: u32) -> u32 {
         if count == 0 {
             break;
         }
-        let n = count.min(MAX_STACK);
+        let n = count.min(max);
         *s = Stack { item, count: n };
         count -= n;
     }
@@ -95,12 +95,13 @@ impl Inventory {
     }
 
     /// Room left for `item` across all slots.
-    pub fn space_for(&self, item: BlockId) -> u32 {
+    pub fn space_for(&self, item: ItemId) -> u32 {
+        let max = stack_size(item);
         self.slots
             .iter()
             .map(|s| match s {
-                s if s.is_empty() => MAX_STACK,
-                s if s.item == item => MAX_STACK - s.count,
+                s if s.is_empty() => max,
+                s if s.item == item => max.saturating_sub(s.count),
                 _ => 0,
             })
             .sum()
@@ -108,8 +109,8 @@ impl Inventory {
 
     /// Adds items: tops up existing stacks anywhere, then fills empty hotbar slots before the
     /// backpack. Returns what didn't fit.
-    pub fn add(&mut self, item: BlockId, count: u32) -> u32 {
-        if item == AIR || count == 0 {
+    pub fn add(&mut self, item: ItemId, count: u32) -> u32 {
+        if item == ItemId::NONE || count == 0 {
             return count;
         }
         let left = add_to_slots(&mut self.slots, item, count);
@@ -120,12 +121,12 @@ impl Inventory {
     }
 
     /// Total number of `item` held.
-    pub fn count(&self, item: BlockId) -> u32 {
+    pub fn count(&self, item: ItemId) -> u32 {
         self.slots.iter().filter(|s| s.item == item).map(|s| s.count).sum()
     }
 
     /// Removes `n` of `item`, backpack first so the hotbar keeps its layout. All or nothing.
-    pub fn remove(&mut self, item: BlockId, mut n: u32) -> bool {
+    pub fn remove(&mut self, item: ItemId, mut n: u32) -> bool {
         if self.count(item) < n {
             return false;
         }
@@ -149,7 +150,7 @@ impl Inventory {
     }
 
     /// Removes up to `n` items from `slot`, returning the item id and amount taken.
-    pub fn take_slot(&mut self, slot: usize, n: u32) -> Option<(BlockId, u32)> {
+    pub fn take_slot(&mut self, slot: usize, n: u32) -> Option<(ItemId, u32)> {
         let s = self.slots.get_mut(slot)?;
         if s.is_empty() || n == 0 {
             return None;
@@ -188,7 +189,7 @@ impl Inventory {
         } else if s.is_empty() {
             *s = std::mem::take(c);
         } else if s.item == c.item {
-            let n = c.count.min(MAX_STACK - s.count);
+            let n = c.count.min(stack_size(s.item).saturating_sub(s.count));
             s.count += n;
             c.count -= n;
             if c.count == 0 {
@@ -222,7 +223,7 @@ impl Inventory {
         }
         self.version += 1;
         let left = add_to_slots(&mut self.slots, c.item, c.count);
-        Stack { item: if left > 0 { c.item } else { AIR }, count: left }
+        Stack { item: if left > 0 { c.item } else { ItemId::NONE }, count: left }
     }
 }
 

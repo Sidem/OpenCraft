@@ -54,7 +54,7 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 ## Gotchas
 
 - A `pub` field whose type is private to the parent module triggers the `private_interfaces` lint; make
-  the type `pub(crate)` (see `factory::Link`).
+  the type `pub(crate)` (see `factory::links::Link`).
 - `Factory::relink` runs lazily when `dirty` is set, so read links only after an `update` (the belt
   readout skips link text while dirty).
-- Block ids double as item ids. `BLOCK_COUNT` sizes the lookup tables; append ids, never renumber.
+- Items are `ItemId` (`item.rs`); ids below 256 are the blocks. Append block and item ids, never renumber.

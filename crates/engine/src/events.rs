@@ -5,7 +5,8 @@
 //!
 //! To react to a new event: add its arm to `handle_sim_events`.
 
-use crate::block::{self, BlockId};
+use crate::block;
+use crate::item::ItemId;
 use crate::math::Vec3;
 use crate::sim::SimEvent;
 use crate::sound;
@@ -54,7 +55,7 @@ impl Game {
     }
 
     /// Queues a pickup notification, merging with the previous one for the same item.
-    fn toast(&mut self, item: BlockId, count: u32) {
+    fn toast(&mut self, item: ItemId, count: u32) {
         match self.pickups.back_mut() {
             Some((last, n)) if *last == item => *n += count,
             _ => self.pickups.push_back((item, count)),

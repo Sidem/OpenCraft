@@ -1,5 +1,6 @@
 use super::*;
-use crate::inventory::{INVENTORY_SLOTS, MAX_STACK};
+use crate::inventory::INVENTORY_SLOTS;
+use crate::item::MAX_STACK;
 
 fn collector(x: f64, y: f64, z: f64) -> Collector {
     Collector { center: Vec3::new(x, y, z), room: Inventory::default() }
@@ -8,7 +9,7 @@ fn collector(x: f64, y: f64, z: f64) -> Collector {
 #[test]
 fn item_falls_and_is_collected() {
     let mut items = Items::default();
-    items.spawn(Vec3::new(0.5, 3.0, 0.5), Vec3::ZERO, 1, 2, 0.0);
+    items.spawn(Vec3::new(0.5, 3.0, 0.5), Vec3::ZERO, ItemId(1), 2, 0.0);
     let mut floor = |_x: i32, y: i32, _z: i32| y < 0;
     let loaded = |_p: Vec3| true;
     let mut far = [collector(50.0, 0.0, 50.0)];
@@ -30,7 +31,7 @@ fn item_falls_and_is_collected() {
 /// Who picks up one stone lying on the floor at the origin: (collector, count) per pickup.
 fn pickups(collectors: &mut [Collector]) -> Vec<(usize, u32)> {
     let mut items = Items::default();
-    items.spawn(Vec3::new(0.5, 0.2, 0.5), Vec3::ZERO, 1, 1, 0.0);
+    items.spawn(Vec3::new(0.5, 0.2, 0.5), Vec3::ZERO, ItemId(1), 1, 0.0);
     let mut got = Vec::new();
     for _ in 0..120 {
         let mut floor = |_: i32, y: i32, _: i32| y < 0;
@@ -45,6 +46,6 @@ fn the_nearest_player_with_room_gets_the_item() {
 
     // A full inventory doesn't attract items; the next player in reach gets them.
     let mut full = collector(1.2, 0.9, 0.5);
-    full.room.add(2, INVENTORY_SLOTS as u32 * MAX_STACK);
+    full.room.add(ItemId(2), INVENTORY_SLOTS as u32 * MAX_STACK);
     assert_eq!(pickups(&mut [collector(2.0, 0.9, 0.5), full]), vec![(0, 1)]);
 }

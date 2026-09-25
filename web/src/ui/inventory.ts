@@ -42,14 +42,12 @@ export class InventoryPanel {
   private readonly slots: SlotView[] = [];
   private readonly recipes: RecipeView[] = [];
   private readonly cursor: SlotView;
-  private readonly names: string[] = [];
   private version = -1;
 
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
   ) {
-    for (let id = 0; id < game.block_count(); id++) this.names.push(game.block_name(id));
     this.dialog.setAttribute('role', 'dialog');
     this.dialog.setAttribute('aria-modal', 'true');
     this.dialog.setAttribute('aria-labelledby', 'inv-title');
@@ -188,7 +186,7 @@ export class InventoryPanel {
     const out = g.recipe_output(r);
     const root = h('div', 'recipe');
     const text = h('div', 'recipe-text');
-    const title = h('h4', '', this.names[out]);
+    const title = h('h4', '', g.item_name(out));
     const n = g.recipe_output_count(r);
     if (n > 1) title.append(h('span', 'recipe-yield', ` ×${n}`));
     const inputs = h('div', 'recipe-inputs');
@@ -197,9 +195,9 @@ export class InventoryPanel {
     for (let k = 0; k + 1 < flat.length; k += 2) {
       const item = flat[k], need = flat[k + 1];
       const el = h('span', 'chip');
-      el.title = this.names[item];
+      el.title = this.game.item_name(item);
       const have = h('span', 'chip-have');
-      el.append(this.iconCanvas(item, 'chip-icon'), this.names[item], have);
+      el.append(this.iconCanvas(item, 'chip-icon'), this.game.item_name(item), have);
       inputs.append(el);
       chips.push({ item, need, el, have });
     }
@@ -224,7 +222,7 @@ export class InventoryPanel {
   }
 
   private drawSlot(s: SlotView, item: number, n: number): void {
-    s.root.title = n > 0 ? `${this.names[item]}${n > 1 ? ` ×${n}` : ''}` : '';
+    s.root.title = n > 0 ? `${this.game.item_name(item)}${n > 1 ? ` ×${n}` : ''}` : '';
     if (item === s.item && n === s.n) return;
     const ctx = s.icon.getContext('2d')!;
     ctx.clearRect(0, 0, ICON_PX, ICON_PX);

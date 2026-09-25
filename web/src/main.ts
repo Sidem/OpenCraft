@@ -14,6 +14,7 @@ import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/ses
 import { WorldStore } from './save/store';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
+import { MachinePanel } from './ui/machine';
 import { SoundLab } from './ui/sound-lab';
 import { VolumeControl } from './ui/volume-control';
 import { WorldsPanel } from './ui/worlds';
@@ -70,9 +71,11 @@ async function main(): Promise<void> {
     name: game.block_name(i + 1),
     material: game.block_sound(i + 1),
   }));
-  const soundLab = new SoundLab(sound, blocks, (id) => hud.blockIcon(id));
-  const inventory = new InventoryPanel(game, (id) => hud.blockIcon(id));
+  const soundLab = new SoundLab(sound, blocks, (id) => hud.itemIcon(id));
+  const inventory = new InventoryPanel(game, (id) => hud.itemIcon(id));
   inventory.onCraft = () => sound.ui();
+  const machine = new MachinePanel(game, (id) => hud.itemIcon(id));
+  const panelOpen = () => inventory.isOpen || machine.isOpen;
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -94,23 +97,27 @@ async function main(): Promise<void> {
   };
   play.addEventListener('click', start);
   canvas.addEventListener('click', () => {
-    if (!input.locked && !play.disabled && !soundLab.isOpen && !inventory.isOpen) start();
+    if (!input.locked && !play.disabled && !soundLab.isOpen && !panelOpen()) start();
   });
   // E or a click outside goes straight back to play (both are gestures that allow re-locking);
   // Escape lands on the pause menu, like it does from the game.
-  inventory.onClose = (resume) => {
-    game.close_inventory();
+  const closed = (resume: boolean) => {
     if (resume) start();
     else menu.classList.remove('hidden');
   };
+  inventory.onClose = (resume) => {
+    game.close_inventory();
+    closed(resume);
+  };
+  machine.onClose = closed;
   input.onLockChange = (locked) => {
-    menu.classList.toggle('hidden', locked || inventory.isOpen);
+    menu.classList.toggle('hidden', locked || panelOpen());
     if (!locked) {
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
       game.set_mining(false);
       game.set_using(false);
-      if (!inventory.isOpen) session?.save().catch(() => {}); // pausing saves
+      if (!panelOpen()) session?.save().catch(() => {}); // pausing saves
     }
   };
   canvas.addEventListener('webglcontextlost', (e) => {
@@ -121,7 +128,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, session } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, machine, session } });
 
   // ---- frame loop
   let last = performance.now();
@@ -174,6 +181,13 @@ async function main(): Promise<void> {
       }
     }
     game.update(dt);
+    // A right-clicked machine with a panel: free the mouse and open it.
+    const request = game.take_panel_request();
+    if (request.length === 3) {
+      document.exitPointerLock();
+      machine.open(request[0], request[1], request[2]);
+      sound.ui();
+    }
     // Hotbar changes are engine actions that land on the next tick, so compare across frames.
     if (game.selected_slot() !== lastSlot) {
       lastSlot = game.selected_slot();
@@ -217,6 +231,7 @@ async function main(): Promise<void> {
     fps = fps * 0.9 + (dt > 0 ? 1 / dt : 0) * 0.1;
     hud.update(now, { fps, frameMs, workMs, ...renderer.stats });
     inventory.update();
+    machine.update();
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

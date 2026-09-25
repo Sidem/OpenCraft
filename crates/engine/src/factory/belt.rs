@@ -5,12 +5,19 @@
 //! stalls for a tick at cell borders. A belt hands its front item to whatever is in front of it:
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
 
-use crate::block::BlockId;
-use crate::bytes::{ByteReader, ByteWriter};
-use crate::math::IVec3;
+use std::f32::consts::FRAC_PI_2;
 
-use super::storage::Storage;
-use super::{deliver, Link, DIRS};
+use crate::block::{self, tex};
+use crate::bytes::{ByteReader, ByteWriter};
+use crate::inventory::Stack;
+use crate::item::{self, ItemId};
+use crate::math::{IVec3, Vec3};
+
+use super::links::{deliver, Link, Sinks};
+use super::render::push_box;
+use super::{Factory, Machine, DIRS};
+
+const DIR_NAMES: [&str; 4] = ["north", "east", "south", "west"];
 
 /// Belt speed in blocks per second.
 pub const BELT_SPEED: f32 = 1.0;
@@ -23,7 +30,7 @@ pub const BELT_HEIGHT: f32 = 0.18;
 
 #[derive(Clone, Copy, Debug)]
 pub struct BeltItem {
-    pub item: BlockId,
+    pub item: ItemId,
     pub p: f32,
 }
 
@@ -43,26 +50,6 @@ impl Belt {
         Belt { pos, dir: dir % 4, items: Vec::new(), out: Link::None, curve_from: None }
     }
 
-    /// Core state: position, direction and items (`out` and `curve_from` are rebuilt by `relink`).
-    pub fn write_state(&self, w: &mut ByteWriter) {
-        w.ivec3(self.pos);
-        w.u8(self.dir);
-        w.count(self.items.len());
-        for it in &self.items {
-            w.u8(it.item);
-            w.f32(it.p);
-        }
-    }
-
-    pub fn read_state(r: &mut ByteReader) -> Option<Belt> {
-        let (pos, dir) = (r.ivec3()?, r.u8()?);
-        let mut belt = Belt::new(pos, dir);
-        for _ in 0..r.count()? {
-            belt.items.push(BeltItem { item: r.block()?, p: r.f32()? });
-        }
-        (dir < 4).then_some(belt)
-    }
-
     /// Item offset from the cell centre (horizontal) at progress `p`.
     pub fn offset(&self, p: f32) -> (f32, f32) {
         let (d, t) = match self.curve_from {
@@ -77,7 +64,7 @@ impl Belt {
     }
 
     /// Accepts an item at the start (with `overflow` progress already travelled) or in the middle.
-    pub fn accept(&mut self, item: BlockId, mid: bool, overflow: f32) -> bool {
+    pub fn accept(&mut self, item: ItemId, mid: bool, overflow: f32) -> bool {
         if mid {
             if !self.mid_free() {
                 return false;
@@ -97,7 +84,7 @@ impl Belt {
 }
 
 /// Moves every belt's items forward by `dt` and hands front items on, downstream belts first.
-pub fn belt_step(belts: &mut [Belt], storages: &mut [Storage], order: &[u32], dt: f64) {
+pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) {
     let step = BELT_SPEED * dt as f32;
     for &bi in order.iter() {
         let bi = bi as usize;
@@ -115,8 +102,8 @@ pub fn belt_step(belts: &mut [Belt], storages: &mut [Storage], order: &[u32], dt
                     1.0
                 }
             }
-            Link::Storage(k) => {
-                if storages[k as usize].can_accept(front.item) {
+            Link::Machine(slot) => {
+                if sinks.can_accept(slot, front.item) {
                     f32::INFINITY
                 } else {
                     1.0
@@ -131,12 +118,91 @@ pub fn belt_step(belts: &mut [Belt], storages: &mut [Storage], order: &[u32], dt
             if front.p < 1.0 {
                 break;
             }
-            if deliver(belts, storages, out, front.item, front.p - 1.0) {
+            if deliver(belts, sinks, out, front.item, front.p - 1.0) {
                 belts[bi].items.remove(0);
             } else {
                 belts[bi].items[0].p = 1.0;
                 break;
             }
+        }
+    }
+}
+
+impl Machine for Belt {
+    fn pos(&self) -> IVec3 {
+        self.pos
+    }
+
+    /// Core state: position, direction and items (`out` and `curve_from` are rebuilt by `relink`).
+    fn write_state(&self, w: &mut ByteWriter) {
+        w.ivec3(self.pos);
+        w.u8(self.dir);
+        w.count(self.items.len());
+        for it in &self.items {
+            w.item(it.item);
+            w.f32(it.p);
+        }
+    }
+
+    fn read_state(r: &mut ByteReader) -> Option<Belt> {
+        let (pos, dir) = (r.ivec3()?, r.u8()?);
+        let mut belt = Belt::new(pos, dir);
+        for _ in 0..r.count()? {
+            belt.items.push(BeltItem { item: r.item()?, p: r.f32()? });
+        }
+        (dir < 4).then_some(belt)
+    }
+
+    /// The carried items, merged into stacks.
+    fn contents(&self) -> Vec<Stack> {
+        let mut out: Vec<Stack> = Vec::new();
+        for it in &self.items {
+            match out.iter_mut().find(|s| s.item == it.item && s.count < item::stack_size(it.item)) {
+                Some(s) => s.count += 1,
+                None => out.push(Stack { item: it.item, count: 1 }),
+            }
+        }
+        out
+    }
+
+    /// Load, heading and what it delivers into (skipped until the links are rebuilt).
+    fn describe(&self, f: &Factory) -> String {
+        let load = match self.items.len() {
+            0 => "Empty".to_string(),
+            1 => "Carrying 1 item".to_string(),
+            n => format!("Carrying {n} items"),
+        };
+        let end = if f.dirty {
+            String::new()
+        } else {
+            match self.out {
+                Link::None => " · nothing in front, items wait at the end".to_string(),
+                Link::Belt { mid: true, .. } => " · joins the next belt from the side".to_string(),
+                Link::Belt { .. } => String::new(),
+                Link::Machine(slot) => format!(" · delivers into the {}", block::def(slot.kind().def().block).name),
+            }
+        };
+        format!("{load} · heading {}{end}", DIR_NAMES[self.dir as usize])
+    }
+
+    /// A scrolling rubber top between two rails, and the items riding on it.
+    fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+        let base = rel - Vec3::new(0.0, 0.5, 0.0);
+        let scroll = (time * BELT_SPEED as f64).fract() as f32;
+        let yaw = self.dir as f32 * FRAC_PI_2;
+        let (s, c) = yaw.sin_cos();
+        let at = |x: f32, y: f32, z: f32| base + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
+        let top = [tex::BELT_TOP, tex::FRAME, tex::FRAME];
+        push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, top, true);
+        for side in [-0.46, 0.46] {
+            push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, [tex::FRAME; 3], true);
+        }
+        for it in &self.items {
+            let Some(def) = item::def(it.item) else { continue };
+            let (x, z) = self.offset(it.p);
+            let size = def.size.map(|s| s * ITEM_SIZE);
+            let pos = base + Vec3::new(x as f64, (BELT_HEIGHT + size[1] * 0.5) as f64, z as f64);
+            push_box(out, pos, yaw, size, 0.0, def.tex, false);
         }
     }
 }

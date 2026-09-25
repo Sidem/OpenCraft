@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 1 (Foundation) done · **Next up: Milestone 2, step 2.1 (item
-registry).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.4 done · **Next up: step 2.5
+(splitter and filter).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -123,37 +123,45 @@ Each frame, `web/src/main.ts`:
     becomes `SPENT_ROCK` for each block's worth drawn, even in unloaded chunks.
   - Ownership is deterministic: the first deposit in `DepositKey` order wins.
   - Hand mining keeps `HAND_YIELD` = 3 per block and costs the deposit one block.
-- **Factory** (`factory/`, one file per machine kind):
+- **Factory** (`factory/`, one file per machine kind, a machine table and a `Machine` trait):
   - The Miner Mk1 draws 1 unit/s and recovers 60%.
   - Belts move 1 block/s, with per-cell item lists, side-joins, corners and back-pressure.
   - Storage boxes hold 24 slots and push into belts leading away.
+  - The smelter melts ore into ingots with coal or logs as fuel (`MACHINE_RECIPES`, `FUELS` in
+    `recipes.rs`); belts and miners deliver into it through `links.rs` (`Sinks`).
+  - The constructor makes one input into parts (plates, rods, screws, wire) with the recipe chosen in
+    its panel. Right-click on a smelter or constructor opens the machine panel (`factory/panel.rs`,
+    `ui/machine.ts`): status, progress, buffers, recipe choice, put-in and take buttons.
   - Machine models are drawn as instanced boxes, and status readouts come from `describe`.
 - **Inventory** (`inventory.rs`): 36 slots (hotbar 0–8), a cursor stack, click, shift-click and
   quick-move.
-- **Crafting** (`recipes.rs`): hand recipes for Miner Mk1, belts ×4 and Storage Box, used by the build menu
+- **Crafting** (`recipes.rs`): hand recipes for Miner Mk1, belts ×4, Storage Box, Smelter and
+  Constructor, used by the build menu
   (`web/src/ui/inventory.ts`, key E).
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
-- **Items are blocks:** `BlockId` (u8) doubles as the item id. Ids 0–14: AIR, STONE, DIRT, GRASS, SAND,
-  LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER, STORAGE.
+- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–16: AIR,
+  STONE, DIRT, GRASS, SAND, LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER,
+  STORAGE, SMELTER, CONSTRUCTOR); from 256: iron ingot, copper ingot (from the smelter), iron plate, iron
+  rod, screws, copper wire (from the constructor; no use yet, power and Mk2 will use them). Every item is drawn as a textured box.
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
   exports and imports them.
-- **Size:** about 113 KB gzipped in total (wasm 81 KB, JS 28 KB, CSS 4 KB).
+- **Size:** about 131 KB gzipped in total (wasm 97.1 KB, JS 29 KB, CSS 4 KB).
 
 ### Known limitations and technical debt
 
-1. Items share the block id space; ingots and parts need an item registry (step 2.1).
-2. Belts can't climb, and there are no splitters or filters (steps 2.5, 2.6).
-3. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
+1. Belts can't climb, and there are no splitters or filters (steps 2.5, 2.6). Players can't put items
+   into a box by hand (machines take them through their panel).
+2. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
    isn't loaded), only the local player has hands, nothing draws other players' bodies, and a leaving
    player's inventory is dropped. Milestone 3 handles these.
-4. Two tabs on the same world overwrite each other's saves (the later save wins).
-5. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
-6. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
-7. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
+3. Two tabs on the same world overwrite each other's saves (the later save wins).
+4. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
+5. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
+6. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
    order of sound materials and event kinds. Replace them with getters when touching that code.
-8. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
+7. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
 
 ---
 
@@ -311,7 +319,7 @@ Rules for every step:
 
 ### Steps
 
-- [ ] **2.1 Item registry** (`item.rs` new; `inventory.rs`, `recipes.rs`, `factory/`, `entities.rs`,
+- [x] **2.1 Item registry** (`item.rs` new; `inventory.rs`, `recipes.rs`, `factory/`, `entities.rs`,
   `action.rs`, `api/`, `web/src/ui/`)
   - `ItemId(u16)` newtype and an `ITEMS` table (name, stack size, icon, the block it places). **Ids below
     256 are the blocks with the same number**, so today's ids and saves stay valid. Non-block items
@@ -322,10 +330,12 @@ Rules for every step:
     through the API like block textures. `hud.blockIcon` becomes `itemIcon`. No constants mirrored in TS.
   - First non-block items: iron ingot and copper ingot (no source until 2.3; `give` works).
   - Save: `SAVE_VERSION` 2 writes `u16` item ids; version-1 saves still load.
+  - *Done:* icons are isometric boxes (`item_icon`: three texture layers plus box proportions), so
+    ingots are small bars in the HUD, on belts and on the ground; `ByteReader::version` reads v1 saves.
   - **Done when:** all tests pass on `ItemId`; a test loads a version-1 save made before the change
     (commit the bytes as a test fixture); `give` shows ingots with icons in the inventory.
 
-- [ ] **2.2 Machine registry** (restructure only, no behaviour change; `factory/`)
+- [x] **2.2 Machine registry** (restructure only, no behaviour change; `factory/`)
   - First add a golden test: the scripted 6,300-tick run in `sim/tests.rs` ends at a recorded
     `state_hash`. The refactor must not change it.
   - Keep typed storage per kind (a `Vec` per machine struct, no trait objects). Each kind's file exposes
@@ -334,10 +344,13 @@ Rules for every step:
     `match` on `Slot`.
   - A machine table (block id → kind, name, buffer sizes) replaces scattered per-kind constants.
   - Shared input/output buffers (`factory/buffer.rs`) for the processing machines to come.
+  - *Done:* a small `Machine` trait (static dispatch) holds each kind's bytes, contents, readout and
+    model; placement moved from `action.rs` into `Factory::place`; miners and boxes hold a `Buffer`.
+    Adding a machine still touches a few `match`es and loops in `mod.rs`, all found by the compiler.
   - **Done when:** same tests and golden hash. The code map's "How to add a machine" shrinks to: its
     file, a `Slot` variant, a table row, a hand recipe. `factory/mod.rs` stays under 400 lines.
 
-- [ ] **2.3 Smelter** (`factory/smelter.rs`, a machine recipe table, block, textures, model)
+- [x] **2.3 Smelter** (`factory/smelter.rs`, a machine recipe table, block, textures, model)
   - Machine recipes are data: `{ machine, inputs, outputs, seconds }` (in `recipes.rs` or a new
     `processing.rs` if it grows).
   - The smelter takes ore plus fuel (coal ore or logs, each with a burn time) and makes ingots. The
@@ -348,7 +361,7 @@ Rules for every step:
   - **Done when:** a scenario test runs miner → belt → smelter, with coal fed from a box, → ingots in a
     box at the computed rate. The state hash test covers a smelter. Browser screenshot of the line.
 
-- [ ] **2.4 Machine panel and constructor** (`ui/machine.ts` + `.css`, `factory/constructor.rs`,
+- [x] **2.4 Machine panel and constructor** (`ui/machine.ts` + `.css`, `factory/constructor.rs`,
   `api/machine.rs`)
   - Right-click on a machine with a panel opens it: recipe choice, buffers, status, and a take-output
     button. Right-click on a box keeps taking everything.
@@ -359,6 +372,9 @@ Rules for every step:
     playing.
   - **Done when:** a scenario test (ingots → constructor set to plates → plates in a box); the panel
     works in the browser; a save round trip keeps recipes and buffers.
+  - *Added:* an `Insert` action and put-in buttons in the panel, so ore and fuel can go into a smelter by
+    hand (in 2.3, fuel could only come from a miner on coal). *Done:* no hand recipe asks for parts yet;
+    the parts get their first uses in 2.7 (generator, poles) and 2.9 (Mk2).
 
 - [ ] **2.5 Belt logistics: splitter and filter** (`factory/splitter.rs`, `factory/filter.rs`)
   - Splitter: one input, round robin to up to three outputs, skipping blocked ones. Belts side-joining
@@ -480,3 +496,27 @@ and the balance numbers. Read the section you need.
   and detailed as steps 2.1–2.11. Before detailing it, the M2 questions (research style, upgrades raising
   recovery, a burner tier) could not be asked mid-task, so they were put to the user with the milestone
   report; steps 2.8 and 2.9 wait for the answers, and the rest doesn't depend on them.
+- **2026-09-25:** Step 2.1 (item registry) done. `ItemId(u16)` and the item table in `item.rs`; block
+  items derive from `block::DEFS`. Saves are version 2 (`u16` item ids); version 1 still loads, tested
+  against the committed `save/v1.ocworld`. Tests 74 → 78; wasm 81.5 → 83.5 KB gzipped.
+- **2026-09-25:** Step 2.2 (machine registry) done, behaviour unchanged: the golden hash test
+  (`sim/tests.rs`, recorded before the refactor) still passes. Machine table `MACHINES`, the `Machine`
+  trait, `factory/buffer.rs`; `MINER_BUFFER` and `STORAGE_SLOTS` became table rows. Tests 78 → 79;
+  wasm 83.5 → 84.2 KB gzipped; `factory/mod.rs` 341 lines.
+- **2026-09-25:** Step 2.3 (smelter) done. `factory/smelter.rs` (three one-slot buffers, work and fire in
+  whole ticks, fire burns only while smelting); `MACHINE_RECIPES` and `FUELS` in `recipes.rs`. Belts and
+  miners deliver into any machine through `Link::Machine(Slot)` and `Sinks` (`Link::Storage` is gone);
+  `Link`, `Slot`, `Sinks` and `deliver` moved to `links.rs` to keep `factory/mod.rs` at 352 lines.
+  Deviation: a machine recipe has one `output` (item, count), not a list, until a machine needs more.
+  Saves are version 3 (adds the smelter list; 1 and 2 still load). The golden hash was re-recorded with
+  a smelter in the script. The browser run showed a coal miner and an iron miner feeding a smelter, 28
+  ingots in a minute. Tests 79 → 84; wasm 84.2 → 88.6 KB gzipped.
+- **2026-09-25:** Step 2.4 (machine panel and constructor) done. `factory/constructor.rs` (recipe chosen
+  by the player; changing it hands the inputs back), `factory/panel.rs` (panel view, `set_recipe`,
+  `insert`, `take_contents` moved here), `api/machine.rs`, `ui/machine.ts`. Actions `SetRecipe` and
+  `Insert` (added to the step: put items in by hand). Right-click on a machine with `panel: true` sets
+  `Game::panel_request`, which the host polls. Four parts join the item table. `Buffer::feed` replaces
+  three copies of the round-robin push. Saves are version 4 (adds the constructor list; 1–3 still load,
+  and a version-3 world opened in the browser). Golden hash re-recorded with a constructor in the script.
+  Tests 84 → 90; wasm 88.6 → 97.1 KB gzipped (14 panel exports, the constructor, the panel view; no float
+  formatting); `factory/mod.rs` 376 lines.

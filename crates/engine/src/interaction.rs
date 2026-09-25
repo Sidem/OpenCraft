@@ -2,11 +2,11 @@
 //! sounds. Only the local player has hands here; in co-op every peer runs its own and sends actions.
 //!
 //! Called from `Game::run_tick` (lib.rs), which advances the timers by one `TICK`. The hands only
-//! decide *what* to do and queue an `Action` (break, place, take contents); the core applies it
-//! (`action.rs`). What a placed block does is decided there, in `Sim::place_block`.
+//! decide *what* to do and queue an `Action` (break, place, take contents), or, for a machine with a
+//! panel, set `panel_request` for the host to open it; the core applies actions (`action.rs`). What a placed block does is decided there, in `Sim::place_block`.
 
 use crate::action::Action;
-use crate::block::{self, AIR, MINER, STORAGE};
+use crate::block::{self, AIR};
 use crate::factory;
 use crate::math::{IVec3, Vec3};
 use crate::physics::Aabb;
@@ -112,6 +112,14 @@ impl Game {
         if self.use_cooldown > 0.0 {
             return;
         }
+        // A machine with a panel: ask the host to open it (unless crouching, which places against it).
+        if let Some(hit) =
+            self.target.filter(|h| !self.body().input.crouch && factory::machine(h.id).is_some_and(|m| m.panel))
+        {
+            self.panel_request = Some(hit.block);
+            self.using = false;
+            return;
+        }
         if let Some(action) = self.right_click_action() {
             self.act(action);
             self.use_cooldown = PLACE_REPEAT_SECONDS;
@@ -124,7 +132,7 @@ impl Game {
     fn right_click_action(&self) -> Option<Action> {
         let hit = self.target?;
         let body = self.body();
-        if !body.input.crouch && matches!(hit.id, MINER | STORAGE) {
+        if !body.input.crouch && factory::machine(hit.id).is_some_and(|m| m.slots > 0) {
             return Some(Action::TakeContents { pos: hit.block });
         }
         if hit.normal == IVec3::ZERO {
@@ -132,16 +140,14 @@ impl Game {
         }
         let inv = self.inventory();
         let stack = inv.selected_stack();
-        if stack.is_empty() || !block::is_placeable(stack.item) {
-            return None;
-        }
+        let placed = stack.item.places().filter(|_| !stack.is_empty())?;
         let pos = hit.block + hit.normal;
         if self.sim.world.get_block(pos) != Some(AIR) {
             return None;
         }
         // The body is the authority's to check: don't place a solid block where the player stands.
         let cell = Aabb { min: pos.as_vec3(), max: pos.as_vec3() + Vec3::new(1.0, 1.0, 1.0) };
-        if block::SOLID[stack.item as usize] && cell.intersects(&body.aabb()) {
+        if block::SOLID[placed as usize] && cell.intersects(&body.aabb()) {
             return None;
         }
         let facing = factory::dir_from_yaw(body.yaw);

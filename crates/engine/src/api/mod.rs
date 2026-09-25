@@ -11,5 +11,6 @@ mod debug;
 mod hud;
 mod input;
 mod inventory;
+mod machine;
 mod render;
 mod save;

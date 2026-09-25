@@ -121,11 +121,6 @@ impl Game {
         self.sounds.clear();
     }
 
-    /// Texture layer for a block face (0..6 = +X, -X, +Y, -Y, +Z, -Z).
-    pub fn block_face_texture(&self, id: u8, face: u32) -> u32 {
-        block::def(id).faces[(face as usize).min(5)] as u32
-    }
-
     pub fn texture_ptr(&self) -> usize {
         self.textures.as_ptr() as usize
     }

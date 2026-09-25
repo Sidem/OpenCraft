@@ -1,7 +1,7 @@
 //! Game-level scenario tests: mining, placing, sounds, miners and crafting through the `Game` API.
 
 use super::*;
-use crate::block::{BELT, MINER, SPENT_ROCK, STONE, STORAGE};
+use crate::block::{AIR, BELT, MINER, SPENT_ROCK, STONE, STORAGE};
 use crate::deposits::{DepositKey, Tier, HAND_YIELD};
 use crate::factory::{MinerStatus, MINER_RECOVERY};
 use crate::inventory::INVENTORY_SLOTS;
@@ -117,7 +117,7 @@ fn mine_collect_place_loop() {
     for _ in 0..300 {
         g.update(1.0 / 60.0);
     }
-    let expected = block::def(mined).drop;
+    let expected = block::def(mined).drop as u16;
     assert_eq!(g.slot_item(0), expected);
     assert_eq!(g.slot_count(0), 1);
     assert!(g.next_pickup());
@@ -138,7 +138,7 @@ fn mine_collect_place_loop() {
     g.update(1.0 / 60.0);
     g.set_using(false);
     assert_eq!(g.slot_count(0), 0, "placing consumes the item");
-    assert_eq!(g.sim.world.get_block(IVec3::new(tx, ty, tz)), Some(expected));
+    assert_eq!(g.sim.world.get_block(IVec3::new(tx, ty, tz)), Some(expected as u8));
     assert_eq!(g.sounds.kinds(), vec![sound::PLACE]);
 }
 
@@ -199,8 +199,8 @@ fn hand_mining_ore_keeps_a_handful_and_costs_a_block() {
     assert_eq!(g.sim.world.get_block(p), Some(AIR));
     assert_eq!(g.sim.factory.deposits.get(&key).unwrap().remaining_blocks, before - 1);
     let drop = g.items.list.last().unwrap();
-    assert_eq!((drop.item, drop.count), (ore, HAND_YIELD));
-    assert!(!block::is_placeable(ore), "ore can't be put back");
+    assert_eq!((drop.item, drop.count), (ore.into(), HAND_YIELD));
+    assert_eq!(drop.item.places(), None, "ore can't be put back");
 }
 
 /// Miner on top of an outcrop block, a belt leading east, and a box at the end.
@@ -235,7 +235,7 @@ fn miner_drills_the_pool_and_turns_blocks_into_spent_rock() {
     assert_eq!(st.remaining_blocks, blocks - 2);
     assert_eq!(g.sim.world.get_block(p), Some(SPENT_ROCK), "the block under the drill goes first");
     let recovered = (250.0 * MINER_RECOVERY) as u32;
-    let stored = g.sim.factory.storage_count_at(chest, ore);
+    let stored = g.sim.factory.storage_count_at(chest, ore.into());
     assert!(stored + 4 >= recovered && stored <= recovered, "stored {stored} of ~{recovered}");
     assert_eq!(g.sim.factory.miner_at(m).status, MinerStatus::Running);
     assert!((st.remaining_units() - (blocks as f64 * grade - 250.0)).abs() < 1.0);
@@ -283,14 +283,14 @@ fn miner_without_output_fills_up_and_stops() {
     g.skip_time(300.0);
     let miner = g.sim.factory.miner_at(m);
     assert_eq!(miner.status, MinerStatus::OutputFull);
-    assert_eq!(miner.held, factory::MINER_BUFFER);
+    assert_eq!(miner.out.total(), crate::item::MAX_STACK);
     let used = units - g.sim.factory.deposits.get(&key).unwrap().remaining_units();
     assert!(used < 110.0, "a full miner stops drawing, used {used}");
 
     // Right-click empties it into the inventory.
     g.act(Action::TakeContents { pos: m });
     g.run_ticks(1);
-    assert_eq!(g.item_total(key.ore), factory::MINER_BUFFER);
+    assert_eq!(g.item_total(key.ore.into()), crate::item::MAX_STACK);
     assert!(g.sounds.kinds().contains(&sound::PICKUP));
 }
 
@@ -329,15 +329,15 @@ fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
         (0..INVENTORY_SLOTS as u32).map(|i| (g.slot_item(i), g.slot_count(i))).filter(|s| s.1 > 0).collect();
     s += &format!("slots {slots:?}\n");
     for e in &g.items.list {
-        s += &format!("item {} x{} at {:?} vel {:?} age {}\n", e.item, e.count, e.pos, e.vel, e.age);
+        s += &format!("item {} x{} at {:?} vel {:?} age {}\n", e.item.0, e.count, e.pos, e.vel, e.age);
     }
     let m = g.sim.factory.miner_at(miner);
     let units = g.sim.factory.deposits.get(&key).unwrap().remaining_units();
     s += &format!(
         "miner {:?} {} box {} deposit {units}\n",
         m.status,
-        m.held,
-        g.sim.factory.storage_count_at(chest, key.ore)
+        m.out.total(),
+        g.sim.factory.storage_count_at(chest, key.ore.into())
     );
     s += &format!("core {:x}\n", g.sim.state_hash());
     (g, s)
@@ -388,8 +388,8 @@ fn a_second_player_has_its_own_body_pickups_and_throws() {
     // B breaks the stone: B picks it up; the local player, far below, gets nothing and no toast.
     g.act_as(b, Action::BreakBlock { pos: wall });
     g.run_ticks(60);
-    assert_eq!(g.sim.player(b).unwrap().inventory.count(STONE), 1);
-    assert_eq!(g.item_total(STONE), 0);
+    assert_eq!(g.sim.player(b).unwrap().inventory.count(STONE.into()), 1);
+    assert_eq!(g.item_total(STONE.into()), 0);
     assert!(!g.next_pickup());
 
     // B's throw leaves from B's body.
@@ -410,16 +410,103 @@ fn a_second_player_has_its_own_body_pickups_and_throws() {
 #[test]
 fn crafting_consumes_inputs() {
     let mut g = Game::new(7, 2);
-    g.give(block::IRON_ORE, 3);
-    g.give(block::STONE, 5);
+    g.give(block::IRON_ORE.into(), 3);
+    g.give(block::STONE.into(), 5);
     g.run_ticks(1);
-    let belt = RECIPES.iter().position(|r| r.output == BELT).unwrap() as u32;
+    let belt = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u32;
     assert_eq!(g.craft(belt, 5), 2, "what the inventory can pay for");
-    assert_eq!(g.item_total(BELT), 0, "applied at the next tick");
+    assert_eq!(g.item_total(BELT.into()), 0, "applied at the next tick");
     g.run_ticks(1);
-    assert_eq!(g.item_total(BELT), 8);
-    assert!(g.next_pickup() && g.pickup_item() == BELT && g.pickup_count() == 8);
-    assert_eq!(g.item_total(block::IRON_ORE), 1);
-    assert_eq!(g.item_total(block::STONE), 1);
+    assert_eq!(g.item_total(BELT.into()), 8);
+    assert!(g.next_pickup() && g.pickup_item() == BELT as u16 && g.pickup_count() == 8);
+    assert_eq!(g.item_total(block::IRON_ORE.into()), 1);
+    assert_eq!(g.item_total(block::STONE.into()), 1);
     assert!(!g.can_craft(belt));
+}
+
+#[test]
+fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
+    use crate::block::{COAL_ORE, SMELTER};
+    use crate::factory::SmelterStatus;
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    // An iron or copper outcrop (coal would be burned, not smelted).
+    let (p, key) = nearby_ore(&g)
+        .into_iter()
+        .find_map(|p| {
+            let key = g.sim.factory.deposits.lookup(&mut g.sim.world, p)?;
+            (key.tier == Tier::Outcrop && key.ore != COAL_ORE).then_some((p, key))
+        })
+        .expect("a metal outcrop near spawn");
+    // Miner ? belt ? smelter ? belt ? box, and a box of coal ? belt ? smelter from the north.
+    let m = p + IVec3::new(0, 1, 0);
+    let at = |dx, dz| m + IVec3::new(dx, 0, dz);
+    let (smelter, chest, coal) = (at(2, 0), at(4, 0), at(2, -2));
+    let blocks = [(m, MINER), (at(1, 0), BELT), (smelter, SMELTER), (at(3, 0), BELT), (chest, STORAGE)];
+    for (pos, b) in blocks.into_iter().chain([(coal, STORAGE), (at(2, -1), BELT)]) {
+        g.sim.world.set_block(pos, b);
+    }
+    let f = &mut g.sim.factory;
+    f.add_miner(m, block::FACE_BOTTOM as u8, Some(key));
+    f.add_belt(at(1, 0), 1);
+    f.place(&mut g.sim.world, SMELTER, smelter, 0, m);
+    f.add_belt(at(3, 0), 1);
+    f.add_storage(chest);
+    f.add_storage(coal);
+    f.stock(coal, COAL_ORE.into(), 40);
+    f.add_belt(at(2, -1), 2);
+
+    // The miner (0.6 ore/s) is slower than the smelter (1 ingot per 1.5 s), so it sets the rate.
+    g.skip_time(120.0);
+    let ingot = crate::recipes::machine_recipe_using(SMELTER, key.ore.into())
+        .map(|i| crate::recipes::MACHINE_RECIPES[i as usize].output.0);
+    let ingots = g.sim.factory.storage_count_at(chest, ingot.unwrap());
+    let mined = (120.0 * MINER_RECOVERY) as u32;
+    assert!(ingots + 6 >= mined && ingots <= mined, "{ingots} ingots of ~{mined} ore");
+    // Coal burns only while smelting: 1.5 s of fire per ingot, 8 s per coal.
+    let burned =
+        40 - g.sim.factory.storage_count_at(coal, COAL_ORE.into()) - g.sim.factory.smelter_at(smelter).fuel.total();
+    let needed = (ingots as f64 * 1.5 / 8.0).ceil() as u32;
+    assert!((needed..=needed + 1).contains(&burned), "{burned} coal for {ingots} ingots (and one in the works)");
+    assert_ne!(g.sim.factory.smelter_at(smelter).status, SmelterStatus::NoFuel);
+}
+
+#[test]
+fn right_click_opens_a_panel_whose_buttons_drive_the_machine() {
+    use crate::block::CONSTRUCTOR;
+    use crate::item::{IRON_INGOT, IRON_PLATE};
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let feet = g.body().pos.floor();
+    let c = feet + IVec3::new(0, 0, -2);
+    g.sim.world.set_block(c, CONSTRUCTOR);
+    g.sim.factory.place(&mut g.sim.world, CONSTRUCTOR, c, 0, c);
+    g.act(Action::Give { item: IRON_INGOT, count: 7 });
+    g.run_ticks(1);
+
+    // Right-click asks the host to open the panel instead of acting.
+    g.target = Some(RayHit { block: c, normal: IVec3::new(0, 0, 1), id: CONSTRUCTOR });
+    g.using = true;
+    g.update_placing(1.0 / 60.0);
+    assert_eq!(g.take_panel_request(), vec![c.x, c.y, c.z]);
+    assert!(g.take_panel_request().is_empty() && !g.using);
+    let panel = g.machine_panel(c.x, c.y, c.z);
+    assert_eq!((panel[1], panel[4], panel[5]), (u32::MAX, 1, 2), "no recipe yet, input and output slots");
+
+    // Choose plates, put the ingots in, wait, take the plates.
+    let plates =
+        g.machine_recipes(CONSTRUCTOR).into_iter().find(|&i| g.machine_recipe_output(i)[0] == IRON_PLATE.0 as u32);
+    g.set_machine_recipe(c.x, c.y, c.z, plates.unwrap() as i32);
+    g.run_ticks(1);
+    assert!(g.machine_wants(c.x, c.y, c.z, IRON_INGOT.0));
+    g.insert_into_machine(c.x, c.y, c.z, IRON_INGOT.0);
+    g.skip_time(7.0);
+    assert!(g.machine_status(c.x, c.y, c.z).starts_with("Waiting for 2 Iron Ingot"));
+    g.take_machine_output(c.x, c.y, c.z);
+    g.run_ticks(1);
+    assert_eq!((g.item_total(IRON_PLATE.0), g.item_total(IRON_INGOT.0)), (3, 0));
+    // Clearing the recipe hands back the odd ingot.
+    g.set_machine_recipe(c.x, c.y, c.z, -1);
+    g.run_ticks(1);
+    assert_eq!(g.item_total(IRON_INGOT.0), 1);
 }

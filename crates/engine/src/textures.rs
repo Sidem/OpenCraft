@@ -1,4 +1,4 @@
-//! Procedural 16×16 block textures, generated at startup so the MVP ships with zero art assets.
+//! Procedural 16×16 block and item textures, generated at startup so the MVP ships with zero art assets.
 //! Every pattern tiles seamlessly (noise lattices wrap at the texture edge). `generate` writes one
 //! RGBA layer per `block::tex` constant; to add a texture, add the constant there and its pattern
 //! arm in `pixel`.
@@ -188,6 +188,75 @@ fn lamp(x: i32, y: i32, c: [f64; 3]) -> [u8; 4] {
     rgb(c, glow)
 }
 
+/// Cast metal: a bright bevelled rim around a slightly mottled face.
+fn ingot(x: i32, y: i32, c: [f64; 3]) -> [u8; 4] {
+    let k = 0.9 + 0.08 * n(53, x, y) + 0.06 * smooth(54, x, y, 4);
+    if x == 0 || y == 0 {
+        rgb(c, 1.2)
+    } else if x == 15 || y == 15 {
+        rgb(c, 0.7)
+    } else {
+        rgb(c, k)
+    }
+}
+
+/// Fire bricks in running bond (rows of 4 pixels), with a glowing grate low on the sides.
+fn smelter(x: i32, y: i32, side: bool) -> [u8; 4] {
+    if side && (10..=13).contains(&y) && (5..=10).contains(&x) {
+        let glow = if x % 2 == 0 { 0.7 } else { 1.0 + 0.2 * n(57, x, y) };
+        return rgb([236.0, 124.0, 44.0], glow);
+    }
+    let row = y / 4;
+    let shift = if row % 2 == 0 { 0 } else { 4 };
+    let mortar = y % 4 == 3 || (x + shift) % 8 == 7;
+    let k = 0.82 + 0.14 * n(55, x, y) + 0.1 * n(56, (x + shift) / 8, row);
+    if mortar {
+        rgb([96.0, 90.0, 84.0], 0.9 + 0.1 * n(58, x, y))
+    } else {
+        rgb([150.0, 82.0, 62.0], k)
+    }
+}
+
+/// Rolled steel: brushed streaks, a bevelled edge and a punched hole in each corner.
+fn plate(x: i32, y: i32) -> [u8; 4] {
+    let hole = (x == 2 || x == 13) && (y == 2 || y == 13);
+    let k = 0.9 + 0.1 * n(59, x / 6, y) + 0.04 * n(60, x, y);
+    if hole {
+        rgb([52.0, 54.0, 60.0], 1.0)
+    } else if x == 0 || y == 0 || x == 15 || y == 15 {
+        rgb([150.0, 156.0, 166.0], 0.8)
+    } else {
+        rgb([168.0, 174.0, 184.0], k)
+    }
+}
+
+/// Coiled copper wire: bright turns with dark gaps between them.
+fn wire(x: i32, y: i32) -> [u8; 4] {
+    let turn = (y + x / 8).rem_euclid(3);
+    let k = 0.9 + 0.12 * n(61, x, y);
+    match turn {
+        0 => rgb([120.0, 62.0, 34.0], k),
+        1 => rgb([230.0, 146.0, 86.0], k),
+        _ => rgb([200.0, 112.0, 60.0], k),
+    }
+}
+
+/// Teal machine panel with a dark inspection window (sides) or a press plate (top).
+fn constructor(x: i32, y: i32, side: bool) -> [u8; 4] {
+    let edge = x == 0 || y == 0 || x == 15 || y == 15;
+    let k = 0.88 + 0.12 * n(62, x, y);
+    if edge {
+        rgb([34.0, 52.0, 56.0], k)
+    } else if side && (4..=11).contains(&x) && (3..=8).contains(&y) {
+        let glint = x - y == 1 || x - y == 2;
+        rgb(if glint { [120.0, 150.0, 156.0] } else { [26.0, 34.0, 38.0] }, 1.0)
+    } else if !side && (3..=12).contains(&x) && (3..=12).contains(&y) {
+        rgb([150.0, 156.0, 166.0], 0.85 + 0.15 * n(63, x, y / 3))
+    } else {
+        rgb([58.0, 132.0, 138.0], k)
+    }
+}
+
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
         tex::STONE => stone(x, y),
@@ -246,6 +315,14 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::LAMP_GREEN => lamp(x, y, [96.0, 214.0, 112.0]),
         tex::LAMP_YELLOW => lamp(x, y, [236.0, 190.0, 64.0]),
         tex::LAMP_RED => lamp(x, y, [226.0, 72.0, 60.0]),
+        tex::IRON_INGOT => ingot(x, y, [176.0, 180.0, 188.0]),
+        tex::COPPER_INGOT => ingot(x, y, [206.0, 118.0, 70.0]),
+        tex::SMELTER_SIDE => smelter(x, y, true),
+        tex::SMELTER_TOP => smelter(x, y, false),
+        tex::IRON_PLATE => plate(x, y),
+        tex::COPPER_WIRE => wire(x, y),
+        tex::CONSTRUCTOR_SIDE => constructor(x, y, true),
+        tex::CONSTRUCTOR_TOP => constructor(x, y, false),
         _ => [255, 0, 255, 255],
     }
 }

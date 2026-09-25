@@ -3,8 +3,8 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::block::AIR;
 use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
+use crate::item::ItemId;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -22,8 +22,8 @@ impl Game {
         INVENTORY_SLOTS as u32
     }
 
-    pub fn slot_item(&self, slot: u32) -> u8 {
-        self.inventory().slots.get(slot as usize).map_or(AIR, |s| s.item)
+    pub fn slot_item(&self, slot: u32) -> u16 {
+        self.inventory().slots.get(slot as usize).map_or(0, |s| s.item.0)
     }
 
     pub fn slot_count(&self, slot: u32) -> u32 {
@@ -40,8 +40,8 @@ impl Game {
         self.act(Action::ClickSlot { slot: slot.min(u8::MAX as u32) as u8, shift });
     }
 
-    pub fn cursor_item(&self) -> u8 {
-        self.inventory().cursor.item
+    pub fn cursor_item(&self) -> u16 {
+        self.inventory().cursor.item.0
     }
 
     pub fn cursor_count(&self) -> u32 {
@@ -53,8 +53,8 @@ impl Game {
         self.act(Action::CloseInventory);
     }
 
-    pub fn item_total(&self, item: u8) -> u32 {
-        self.inventory().count(item)
+    pub fn item_total(&self, item: u16) -> u32 {
+        self.inventory().count(ItemId(item))
     }
 
     /// Pops the next pickup notification; read it with `pickup_item` / `pickup_count`.
@@ -68,8 +68,8 @@ impl Game {
         }
     }
 
-    pub fn pickup_item(&self) -> u8 {
-        self.cur_pickup.0
+    pub fn pickup_item(&self) -> u16 {
+        self.cur_pickup.0 .0
     }
 
     pub fn pickup_count(&self) -> u32 {

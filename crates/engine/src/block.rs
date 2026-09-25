@@ -1,7 +1,7 @@
 //! Block registry: ids, one `BlockDef` row per block in `DEFS`, texture layers (`tex`), sound
 //! materials (`sound`), and flat lookup tables (`OPAQUE`, `SOLID`, `FACE_TEX`…) for hot loops.
-//! Block ids double as item ids until a separate item layer arrives (Milestone 2); blocks that
-//! should never exist as a placed item (ore, bedrock) are simply not placeable.
+//! Every block is also the item with the same id (`item.rs`); blocks that should never be put back
+//! into the world (ore, bedrock) are simply not placeable.
 //!
 //! To add a block: append an id constant (never renumber; ids will be saved) and bump
 //! `BLOCK_COUNT`, add its `DEFS` row (`cube`, `ore` or `machine`), and any new texture layers in
@@ -25,7 +25,9 @@ pub const SPENT_ROCK: BlockId = 11;
 pub const BELT: BlockId = 12;
 pub const MINER: BlockId = 13;
 pub const STORAGE: BlockId = 14;
-pub const BLOCK_COUNT: usize = 15;
+pub const SMELTER: BlockId = 15;
+pub const CONSTRUCTOR: BlockId = 16;
+pub const BLOCK_COUNT: usize = 17;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -52,7 +54,15 @@ pub mod tex {
     pub const LAMP_GREEN: u16 = 20;
     pub const LAMP_YELLOW: u16 = 21;
     pub const LAMP_RED: u16 = 22;
-    pub const COUNT: usize = 23;
+    pub const IRON_INGOT: u16 = 23;
+    pub const COPPER_INGOT: u16 = 24;
+    pub const SMELTER_SIDE: u16 = 25;
+    pub const SMELTER_TOP: u16 = 26;
+    pub const IRON_PLATE: u16 = 27;
+    pub const COPPER_WIRE: u16 = 28;
+    pub const CONSTRUCTOR_SIDE: u16 = 29;
+    pub const CONSTRUCTOR_TOP: u16 = 30;
+    pub const COUNT: usize = 31;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -78,7 +88,7 @@ pub struct BlockDef {
     pub break_time: f32,
     /// Texture layer per face (+X, -X, +Y, -Y, +Z, -Z).
     pub faces: [u16; 6],
-    /// Item dropped when broken.
+    /// Item dropped when broken (the block item with this id).
     pub drop: BlockId,
     /// Sound material used for digging, breaking, placing and footsteps (see [`sound`]).
     pub sound: u8,
@@ -119,7 +129,7 @@ const fn machine(name: &'static str, solid: bool, break_time: f32, faces: [u16; 
     BlockDef { render: Render::None, solid, ..cube(name, break_time, faces, id, sound::METAL) }
 }
 
-const DEFS: [BlockDef; BLOCK_COUNT] = [
+pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     BlockDef {
         name: "Air",
         render: Render::None,
@@ -153,6 +163,11 @@ const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Conveyor Belt", false, 0.3, pillar(tex::FRAME, tex::BELT_TOP, tex::FRAME), BELT),
     machine("Miner Mk1", true, 0.8, pillar(tex::MINER_SIDE, tex::MINER_TOP, tex::FRAME), MINER),
     cube("Storage Box", 0.7, pillar(tex::BOX_SIDE, tex::BOX_TOP, tex::BOX_TOP), STORAGE, sound::WOOD),
+    BlockDef {
+        sound: sound::STONE,
+        ..machine("Smelter", true, 1.0, pillar(tex::SMELTER_SIDE, tex::SMELTER_TOP, tex::SMELTER_TOP), SMELTER)
+    },
+    machine("Constructor", true, 0.8, pillar(tex::CONSTRUCTOR_SIDE, tex::CONSTRUCTOR_TOP, tex::FRAME), CONSTRUCTOR),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -212,11 +227,6 @@ pub const FACE_TEX: [[u16; 6]; 256] = {
 #[inline]
 pub fn def(id: BlockId) -> &'static BlockDef {
     BLOCK_DEFS.get(id as usize).unwrap_or(&BLOCK_DEFS[AIR as usize])
-}
-
-#[inline]
-pub fn is_placeable(id: BlockId) -> bool {
-    def(id).placeable
 }
 
 #[inline]

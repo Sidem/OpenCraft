@@ -1,6 +1,7 @@
 use super::*;
 use crate::action::Action;
-use crate::block::{BELT, STONE, STORAGE};
+use crate::block::{BELT, COAL_ORE, COPPER_ORE, IRON_ORE, LOG, STONE, STORAGE};
+use crate::item::IRON_INGOT;
 use crate::math::{IVec3, Vec3};
 use crate::tests::{build_mine, find_outcrop_block, run_until_ready};
 
@@ -12,11 +13,11 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     let (p, _) = find_outcrop_block(&mut g, 6);
     build_mine(&mut g, p);
     let b = g.join().unwrap();
-    g.act_as(b, Action::Give { item: STONE, count: 7 });
-    g.give(BELT, 3);
+    g.act_as(b, Action::Give { item: STONE.into(), count: 7 });
+    g.give(BELT.into(), 3);
     g.toggle_fly();
     let far = g.body().pos + Vec3::new(20.0, 5.0, 0.0);
-    g.items.spawn(far, Vec3::ZERO, STONE, 2, 0.0);
+    g.items.spawn(far, Vec3::ZERO, STONE.into(), 2, 0.0);
     g.run_ticks(300);
 
     let saved = g.save();
@@ -26,20 +27,20 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     assert_eq!(loaded.body().pos, g.body().pos);
     assert!(loaded.body().flying);
     assert_eq!(loaded.items.list.len(), g.items.list.len());
-    assert_eq!(loaded.sim.player(b).unwrap().inventory.count(STONE), 7);
-    assert_eq!(loaded.item_total(BELT), 3);
+    assert_eq!(loaded.sim.player(b).unwrap().inventory.count(STONE.into()), 7);
+    assert_eq!(loaded.item_total(BELT.into()), 3);
 }
 
 /// A small world with a bit of everything and no chunks loaded, so the file is a few hundred bytes.
 fn small_save() -> Vec<u8> {
     let mut g = Game::new(7, 2);
     let (chest, belt) = (IVec3::new(5, 200, 5), IVec3::new(6, 200, 5));
-    g.give(STORAGE, 1);
-    g.give(BELT, 2);
+    g.give(STORAGE.into(), 1);
+    g.give(BELT.into(), 2);
     g.act(Action::PlaceBlock { pos: chest, slot: 0, facing: 0, against: chest });
     g.act(Action::PlaceBlock { pos: belt, slot: 1, facing: 1, against: belt });
     g.join().unwrap();
-    g.items.spawn(Vec3::new(40.5, 150.0, 40.5), Vec3::ZERO, STONE, 3, 0.0);
+    g.items.spawn(Vec3::new(40.5, 150.0, 40.5), Vec3::ZERO, STONE.into(), 3, 0.0);
     g.run_ticks(2);
     assert_eq!(g.sim.factory.storage_count(), 1);
     g.save()
@@ -57,7 +58,7 @@ fn foreign_old_and_damaged_files_are_refused() {
         b
     };
     assert!(refused(&with(4, SAVE_VERSION + 1)).contains("newer version"));
-    assert!(refused(&with(4, SAVE_VERSION - 1)).contains("older version"));
+    assert!(refused(&with(4, OLDEST_VERSION - 1)).contains("older version"));
     assert!(refused(&with(8, WORLDGEN_VERSION + 1)).contains("World generation has changed"));
 
     for len in MAGIC.len()..saved.len() {
@@ -73,4 +74,39 @@ fn foreign_old_and_damaged_files_are_refused() {
         b[i] ^= 0x5a;
         let _ = Game::load(&b, 2);
     }
+}
+
+/// Saved before items got their own ids (version 1: `u8` block ids): a box at (5, 200, 5) that held
+/// 20 iron ore and 5 coal, feeding a belt east of it; 30 stone, 5 logs and a belt in the inventory;
+/// a second player; 3 copper ore lying at (40.5, 150, 40.5).
+const V1_SAVE: &[u8] = include_bytes!("v1.ocworld");
+
+#[test]
+fn a_version_1_save_still_loads() {
+    assert_eq!(u32::from_le_bytes(V1_SAVE[4..8].try_into().unwrap()), 1);
+    let mut g = Game::load(V1_SAVE, 2).expect("loads");
+    assert_eq!(g.item_total(STONE.into()), 30);
+    assert_eq!(g.item_total(LOG.into()), 5);
+    assert_eq!(g.item_total(BELT.into()), 1);
+    assert!(g.sim.player(PlayerId(1)).is_some());
+    let loose = &g.items.list[0];
+    assert_eq!((loose.item, loose.count), (COPPER_ORE.into(), 3));
+
+    // Every ore item is still in the box or on the belt (the box feeds its last stack, coal, first).
+    let (chest, belt) = (IVec3::new(5, 200, 5), IVec3::new(6, 200, 5));
+    let f = &mut g.sim.factory;
+    let in_box = [f.storage_count_at(chest, IRON_ORE.into()), f.storage_count_at(chest, COAL_ORE.into())];
+    let on_belt = f.remove(belt);
+    assert!(!on_belt.is_empty() && on_belt.iter().all(|s| s.item == COAL_ORE.into()), "{on_belt:?}");
+    assert_eq!(in_box[0], 20);
+    assert_eq!(in_box[1] + on_belt.iter().map(|s| s.count).sum::<u32>(), 5);
+
+    // It saves in the new format, which holds items that aren't blocks.
+    g.give(IRON_INGOT.0, 4);
+    g.run_ticks(1);
+    let saved = g.save();
+    assert_eq!(u32::from_le_bytes(saved[4..8].try_into().unwrap()), SAVE_VERSION);
+    let back = Game::load(&saved, 2).expect("loads");
+    assert_eq!(back.item_total(IRON_INGOT.0), 4);
+    assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

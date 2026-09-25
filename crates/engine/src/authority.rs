@@ -9,8 +9,8 @@
 //! The authority never edits the core: pickups become `PickUp` actions.
 
 use crate::action::Action;
-use crate::block::BlockId;
 use crate::entities::Collector;
+use crate::item::ItemId;
 use crate::math::Vec3;
 use crate::player::{self, Player};
 use crate::sim::PlayerId;
@@ -98,7 +98,7 @@ impl Game {
     }
 
     /// Throws items out in front of a player (nothing happens if its body is gone).
-    pub(crate) fn throw(&mut self, id: PlayerId, item: BlockId, n: u32) {
+    pub(crate) fn throw(&mut self, id: PlayerId, item: ItemId, n: u32) {
         let Some(Some(body)) = self.bodies.get(id.0 as usize) else { return };
         let dir = body.look_dir();
         let pos = body.eye() + dir * 0.4 - Vec3::new(0.0, 0.3, 0.0);

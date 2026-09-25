@@ -5,10 +5,10 @@
 //! that collector has room, and despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through
 //! `factory::push_box`.
 
-use crate::block::{BlockId, AIR, FACE_BOTTOM, FACE_SIDE, FACE_TEX, FACE_TOP};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::push_box;
 use crate::inventory::Inventory;
+use crate::item::{self, ItemId};
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
 
@@ -21,7 +21,7 @@ const PICKUP_RADIUS: f64 = 0.7;
 pub struct ItemEntity {
     pub pos: Vec3,
     pub vel: Vec3,
-    pub item: BlockId,
+    pub item: ItemId,
     pub count: u32,
     pub age: f32,
     pub pickup_delay: f32,
@@ -41,7 +41,7 @@ pub struct Collector {
 }
 
 impl Items {
-    pub fn spawn(&mut self, pos: Vec3, vel: Vec3, item: BlockId, count: u32, pickup_delay: f32) {
+    pub fn spawn(&mut self, pos: Vec3, vel: Vec3, item: ItemId, count: u32, pickup_delay: f32) {
         self.list.push(ItemEntity { pos, vel, item, count, age: 0.0, pickup_delay, on_ground: false });
     }
 
@@ -51,7 +51,7 @@ impl Items {
         for e in &self.list {
             w.vec3(e.pos);
             w.vec3(e.vel);
-            w.u8(e.item);
+            w.item(e.item);
             w.u32(e.count);
             w.f32(e.age);
             w.f32(e.pickup_delay);
@@ -61,8 +61,8 @@ impl Items {
     pub fn read_state(r: &mut ByteReader) -> Option<Items> {
         let mut items = Items::default();
         for _ in 0..r.count()? {
-            let (pos, vel, item, count, age, delay) = (r.vec3()?, r.vec3()?, r.block()?, r.u32()?, r.f32()?, r.f32()?);
-            if item == AIR || count == 0 {
+            let (pos, vel, item, count, age, delay) = (r.vec3()?, r.vec3()?, r.item()?, r.u32()?, r.f32()?, r.f32()?);
+            if item == ItemId::NONE || count == 0 {
                 return None;
             }
             items.spawn(pos, vel, item, count, delay);
@@ -79,7 +79,7 @@ impl Items {
         collectors: &mut [Collector],
         solid: &mut impl FnMut(i32, i32, i32) -> bool,
         loaded: &impl Fn(Vec3) -> bool,
-        mut collected: impl FnMut(usize, BlockId, u32),
+        mut collected: impl FnMut(usize, ItemId, u32),
     ) {
         let mut i = 0;
         while i < self.list.len() {
@@ -147,12 +147,12 @@ impl Items {
 
     /// Appends camera-relative box instances (see `factory::INSTANCE_FLOATS`) for the renderer.
     pub fn write_instances(&self, out: &mut Vec<f32>, eye: Vec3) {
-        let size = (HALF * 2.0) as f32;
         for e in &self.list {
-            let faces = FACE_TEX[e.item as usize];
-            let bob = (e.age as f64 * 2.6).sin() * 0.05 + 0.05;
-            let tex = [faces[FACE_TOP], faces[FACE_SIDE], faces[FACE_BOTTOM]];
-            push_box(out, e.pos - eye + Vec3::new(0.0, bob, 0.0), e.age * 1.7, [size; 3], 0.0, tex, false);
+            let Some(def) = item::def(e.item) else { continue };
+            let size = def.size.map(|s| s * (HALF * 2.0) as f32);
+            // Resting on the same floor as a full cube, bobbing a little.
+            let bob = (e.age as f64 * 2.6).sin() * 0.05 + 0.05 - HALF * (1.0 - def.size[1] as f64);
+            push_box(out, e.pos - eye + Vec3::new(0.0, bob, 0.0), e.age * 1.7, size, 0.0, def.tex, false);
         }
     }
 }

@@ -1,18 +1,20 @@
-//! Storage boxes: [`STORAGE_SLOTS`] item stacks. Belts and miners deliver into them; each step a
-//! box pushes one item from its last non-empty slot into the next belt leading away (round-robin).
+//! Storage boxes: a buffer of item stacks (slot count in `MACHINES`). Belts and miners deliver into
+//! them; each step a box pushes one item from its last non-empty slot into the next belt leading away
+//! (round-robin). The box is an ordinary meshed cube, so it has no model of its own.
 
-use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::inventory::{Stack, MAX_STACK};
-use crate::math::IVec3;
+use crate::inventory::Stack;
+use crate::item::{self, ItemId};
+use crate::math::{sort_small_by_key, IVec3, Vec3};
 
 use super::belt::Belt;
-
-pub const STORAGE_SLOTS: usize = 24;
+use super::buffer::Buffer;
+use super::describe::fmt_int;
+use super::{Factory, Kind, Machine};
 
 pub struct Storage {
     pub pos: IVec3,
-    pub slots: [Stack; STORAGE_SLOTS],
+    pub buf: Buffer,
     /// Belt indices leading away from this box.
     pub outs: Vec<u32>,
     pub next_out: usize,
@@ -20,50 +22,61 @@ pub struct Storage {
 
 impl Storage {
     pub fn new(pos: IVec3) -> Storage {
-        Storage { pos, slots: [Stack::default(); STORAGE_SLOTS], outs: Vec::new(), next_out: 0 }
+        Storage { pos, buf: Buffer::new(Kind::Storage.def().slots), outs: Vec::new(), next_out: 0 }
+    }
+
+    /// Pushes one item into the next belt leading away that accepts it.
+    pub fn step(&mut self, belts: &mut [Belt]) {
+        self.buf.feed(&self.outs, &mut self.next_out, belts);
+    }
+}
+
+impl Machine for Storage {
+    fn pos(&self) -> IVec3 {
+        self.pos
     }
 
     /// Core state: position, slots and the round-robin position (`outs` is rebuilt by `relink`).
-    pub fn write_state(&self, w: &mut ByteWriter) {
+    fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
-        for s in &self.slots {
-            s.write_state(w);
-        }
+        self.buf.write_state(w);
         w.u32(self.next_out as u32);
     }
 
-    pub fn read_state(r: &mut ByteReader) -> Option<Storage> {
+    fn read_state(r: &mut ByteReader) -> Option<Storage> {
         let mut s = Storage::new(r.ivec3()?);
-        for slot in &mut s.slots {
-            *slot = Stack::read_state(r)?;
-        }
+        s.buf = Buffer::read_state(r, s.buf.slots.len())?;
         s.next_out = r.u32()? as usize;
         Some(s)
     }
 
-    pub fn can_accept(&self, item: BlockId) -> bool {
-        self.slots.iter().any(|s| s.is_empty() || (s.item == item && s.count < MAX_STACK))
+    fn contents(&self) -> Vec<Stack> {
+        self.buf.contents()
     }
 
-    /// Pushes one item into the next belt leading away that accepts it.
-    pub fn output_step(&mut self, belts: &mut [Belt]) {
-        if self.outs.is_empty() {
-            return;
-        }
-        let Some(src) = self.slots.iter().rposition(|st| !st.is_empty()) else { return };
-        let item = self.slots[src].item;
-        let n = self.outs.len();
-        for i in 0..n {
-            let slot = (self.next_out + i) % n;
-            if belts[self.outs[slot] as usize].accept(item, false, 0.0) {
-                let st = &mut self.slots[src];
-                st.count -= 1;
-                if st.count == 0 {
-                    *st = Stack::default();
-                }
-                self.next_out = (slot + 1) % n;
-                break;
+    /// Slots used and the three largest stocks.
+    fn describe(&self, _: &Factory) -> String {
+        let used = self.buf.slots.iter().filter(|st| !st.is_empty()).count();
+        let mut totals: Vec<(ItemId, u32)> = Vec::new();
+        for st in self.buf.contents() {
+            match totals.iter_mut().find(|(item, _)| *item == st.item) {
+                Some((_, n)) => *n += st.count,
+                None => totals.push((st.item, st.count)),
             }
         }
+        sort_small_by_key(&mut totals, |&(_, n)| u32::MAX - n);
+        let mut lines = vec![format!("{used} of {} slots used", self.buf.slots.len())];
+        if !totals.is_empty() {
+            let list: Vec<String> = totals
+                .iter()
+                .take(3)
+                .map(|(item, n)| format!("{} {}", fmt_int(*n as u64), item::name(*item)))
+                .collect();
+            lines.push(list.join(", ") + if totals.len() > 3 { ", ..." } else { "" });
+            lines.push("Right-click to take everything".to_string());
+        }
+        lines.join("\n")
     }
+
+    fn model(&self, _: &mut Vec<f32>, _: Vec3, _: f64) {}
 }

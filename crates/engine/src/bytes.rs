@@ -7,9 +7,12 @@
 //! its fields, and reads itself back in a `read_state` beside it; derived data (links, caches,
 //! anything rebuilt on load) is left out. Reads return `None` on anything malformed (past the end, an
 //! unknown block id, an impossible value), so a damaged save fails cleanly instead of panicking later.
+//! A reader knows the save version it reads (`version`), so a read can follow an older layout.
 
 use crate::block::{BlockId, BLOCK_COUNT};
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
+use crate::save::SAVE_VERSION;
 
 #[derive(Default)]
 pub struct ByteWriter {
@@ -70,17 +73,23 @@ impl ByteWriter {
         self.f64(v.y);
         self.f64(v.z);
     }
+
+    pub fn item(&mut self, v: ItemId) {
+        self.u16(v.0);
+    }
 }
 
 /// Reads what a `ByteWriter` wrote, in the same order. Its primitives are not inlined either (0.4 KB).
 pub struct ByteReader<'a> {
     bytes: &'a [u8],
     pos: usize,
+    /// The save format being read (`SAVE_VERSION` unless a save header says otherwise).
+    pub version: u32,
 }
 
 impl<'a> ByteReader<'a> {
     pub fn new(bytes: &'a [u8]) -> Self {
-        ByteReader { bytes, pos: 0 }
+        ByteReader { bytes, pos: 0, version: SAVE_VERSION }
     }
 
     /// The next `n` raw bytes.
@@ -152,10 +161,17 @@ impl<'a> ByteReader<'a> {
         Some(Vec3::new(self.f64()?, self.f64()?, self.f64()?))
     }
 
-    /// A block or item id that exists (unknown ids would index past the block tables).
+    /// A block id that exists (unknown ids would index past the block tables).
     #[inline(never)]
     pub fn block(&mut self) -> Option<BlockId> {
         self.u8().filter(|&b| (b as usize) < BLOCK_COUNT)
+    }
+
+    /// An item id in the table, or `ItemId::NONE`. Version 1 saves stored items as block ids (`u8`).
+    #[inline(never)]
+    pub fn item(&mut self) -> Option<ItemId> {
+        let id = if self.version < 2 { ItemId::block(self.block()?) } else { ItemId(self.u16()?) };
+        (id == ItemId::NONE || id.is_valid()).then_some(id)
     }
 }
 
