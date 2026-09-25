@@ -1,11 +1,11 @@
 use super::*;
-use crate::block::{BEDROCK, DIRT, STONE};
+use crate::block::{BEDROCK, DIRT, IRON_ORE, STONE};
 use crate::inventory::{INVENTORY_SLOTS, MAX_STACK};
 
 const P: PlayerId = PlayerId(0);
 
 fn inv(sim: &Sim) -> &crate::inventory::Inventory {
-    &sim.player(P).inventory
+    &sim.player(P).unwrap().inventory
 }
 
 #[test]
@@ -62,6 +62,58 @@ fn place_and_break_work_where_no_chunk_is_loaded() {
         sim.events[..],
         [SimEvent::BlockBroken { block: STORAGE, .. }, SimEvent::Dropped { item: STORAGE, count: 1, .. }]
     ));
+}
+
+#[test]
+fn two_players_build_and_craft_with_their_own_inventories() {
+    let mut sim = Sim::new(7, 2);
+    let b = PlayerId(1);
+    let belt = RECIPES.iter().position(|r| r.output == BELT).unwrap() as u16;
+    sim.queue(0, b, Action::Join);
+    sim.queue(0, b, Action::Give { item: IRON_ORE, count: 1 });
+    sim.queue(0, b, Action::Give { item: STONE, count: 2 });
+    sim.queue(0, b, Action::Craft { recipe: belt, times: 1 });
+    sim.queue(0, P, Action::Give { item: STORAGE, count: 1 });
+    sim.queue(0, P, Action::Craft { recipe: belt, times: 1 });
+    sim.step();
+    assert_eq!(sim.events, vec![SimEvent::Crafted { player: b, item: BELT, count: 4 }], "only B can pay");
+    let inv_b = &sim.player(b).unwrap().inventory;
+    assert_eq!((inv_b.count(BELT), inv_b.count(IRON_ORE), inv_b.count(STONE)), (4, 0, 0));
+    assert_eq!((inv(&sim).count(BELT), inv(&sim).count(STORAGE)), (0, 1));
+
+    // Same tick: A places a box, B places a belt and breaks A's box. The player order decides.
+    sim.events.clear();
+    let (box_at, belt_at) = (IVec3::new(100, 200, 0), IVec3::new(104, 200, 0));
+    sim.queue(1, b, Action::PlaceBlock { pos: belt_at, slot: 0, facing: 1, against: belt_at });
+    sim.queue(1, b, Action::BreakBlock { pos: box_at });
+    sim.queue(1, P, Action::PlaceBlock { pos: box_at, slot: 0, facing: 0, against: box_at });
+    sim.step();
+    assert!(
+        matches!(
+            sim.events[..],
+            [
+                SimEvent::BlockPlaced { player: P, block: STORAGE, .. },
+                SimEvent::BlockPlaced { player: PlayerId(1), block: BELT, .. },
+                SimEvent::BlockBroken { player: PlayerId(1), block: STORAGE, .. },
+                SimEvent::Dropped { item: STORAGE, count: 1, .. },
+            ]
+        ),
+        "{:?}",
+        sim.events
+    );
+    assert_eq!((sim.world.block_anywhere(box_at), sim.world.block_anywhere(belt_at)), (Some(AIR), Some(BELT)));
+    assert_eq!((sim.factory.storage_count(), sim.factory.belt_count()), (0, 1));
+    assert_eq!((inv(&sim).count(STORAGE), sim.player(b).unwrap().inventory.count(BELT)), (0, 3));
+
+    // After leaving, B's actions do nothing; joining again starts empty.
+    sim.queue(2, b, Action::Leave);
+    sim.queue(2, b, Action::Give { item: STONE, count: 1 });
+    sim.step();
+    assert!(sim.player(b).is_none());
+    sim.queue(3, b, Action::Join);
+    sim.step();
+    assert_eq!(sim.player(b).unwrap().inventory.count(BELT), 0);
+    assert_eq!(inv(&sim).selected, 0, "A is untouched");
 }
 
 #[test]

@@ -1,8 +1,9 @@
 //! Dropped item entities: physics, magnet pickup and GPU instance data.
 //!
 //! Items fall and slide only while their position is in a loaded chunk (elsewhere they wait), are
-//! pulled towards the player once their pickup delay has passed and the inventory has room, and
-//! despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through `factory::push_box`.
+//! pulled towards the nearest [`Collector`] (a player) in reach once their pickup delay has passed and
+//! that collector has room, and despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through
+//! `factory::push_box`.
 
 use crate::block::{BlockId, FACE_BOTTOM, FACE_SIDE, FACE_TEX, FACE_TOP};
 use crate::factory::push_box;
@@ -31,20 +32,27 @@ pub struct Items {
     pub list: Vec<ItemEntity>,
 }
 
+/// Something items fly to: a player's body centre and a scratch copy of its inventory, which the
+/// pickups fill so later items see the room that is left.
+pub struct Collector {
+    pub center: Vec3,
+    pub room: Inventory,
+}
+
 impl Items {
     pub fn spawn(&mut self, pos: Vec3, vel: Vec3, item: BlockId, count: u32, pickup_delay: f32) {
         self.list.push(ItemEntity { pos, vel, item, count, age: 0.0, pickup_delay, on_ground: false });
     }
 
-    /// Steps all items. `collected(item, n)` is called for every successful pickup.
+    /// Steps all items. `collected(collector, item, n)` is called for every successful pickup, with the
+    /// collector's index; ties in distance go to the lower index.
     pub fn update(
         &mut self,
         dt: f64,
-        player_center: Vec3,
+        collectors: &mut [Collector],
         solid: &mut impl FnMut(i32, i32, i32) -> bool,
         loaded: &impl Fn(Vec3) -> bool,
-        inventory: &mut Inventory,
-        mut collected: impl FnMut(BlockId, u32),
+        mut collected: impl FnMut(usize, BlockId, u32),
     ) {
         let mut i = 0;
         while i < self.list.len() {
@@ -55,15 +63,23 @@ impl Items {
                 continue;
             }
 
-            let to_player = player_center - e.pos;
-            let dist = to_player.length();
-            let magnet = e.age >= e.pickup_delay && dist < MAGNET_RADIUS && inventory.space_for(e.item) > 0;
-            if magnet {
+            let mut nearest: Option<(usize, f64)> = None;
+            if e.age >= e.pickup_delay {
+                for (c, col) in collectors.iter().enumerate() {
+                    let dist = (col.center - e.pos).length();
+                    if dist < MAGNET_RADIUS && nearest.is_none_or(|(_, d)| dist < d) && col.room.space_for(e.item) > 0 {
+                        nearest = Some((c, dist));
+                    }
+                }
+            }
+            if let Some((c, dist)) = nearest {
+                let col = &mut collectors[c];
+                let to_player = col.center - e.pos;
                 if dist < PICKUP_RADIUS {
-                    let left = inventory.add(e.item, e.count);
+                    let left = col.room.add(e.item, e.count);
                     let taken = e.count - left;
                     if taken > 0 {
-                        collected(e.item, taken);
+                        collected(c, e.item, taken);
                     }
                     if left == 0 {
                         self.list.swap_remove(i);

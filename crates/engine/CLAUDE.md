@@ -7,12 +7,13 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 - One feature, one module or folder. A module with submodules is a folder with `mod.rs`.
 - Tests go in `src/<module>/tests.rs` via `#[cfg(test)] mod tests;` (`src/tests.rs` for Game-level
   scenario tests). Never inline. Test-only helpers on a type are `#[cfg(test)]` methods.
-- `Game` (lib.rs) is a thin facade over the core `Sim` (`sim.rs`) plus the local player's body, loose
-  items and presentation. JS-facing methods live in `api/*.rs` and only forward. Gameplay that
-  needs several `Game` fields lives in a child module (`interaction.rs`, `events.rs`): child modules can
-  read `Game`'s private fields, and cross-module methods are `pub(crate)`.
-- `Game` never mutates `Sim` state: it reads it, and changes it with `self.act(Action::…)`, applied at
-  the next tick. Only the render cache inside `World` (streaming, meshes) is touched directly.
+- `Game` (lib.rs) is a thin facade over the core `Sim` (`sim.rs`), the authority (all bodies, loose
+  items: `authority.rs`) and the local player's hands and view. `api/*.rs` methods only forward and act
+  for the local player (`self.body()`, `self.inventory()`). Gameplay needing several `Game` fields lives
+  in a child module (`interaction.rs`, `authority.rs`, `events.rs`) with `pub(crate)` methods.
+- `Game` never mutates `Sim` state: it reads it and queues `self.act(Action::…)` (`act_as` for another
+  player), applied at the next tick. Only `World`'s render cache (streaming, meshes) is touched
+  directly. `Sim.players` and `Game.bodies` are both indexed by `PlayerId`.
 - Header first (`//!`: owns, invariants, how to extend), then public items, then private helpers.
 - Balance numbers are named constants at the top of the module that uses them.
 - Formatting: `rustfmt.toml` (width 120). `npm run check` runs fmt, clippy `-D warnings` and tests.
@@ -24,7 +25,7 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 - Prefer headless scenario tests over the browser. Patterns to copy:
   - `src/tests.rs`: `run_until_ready(&mut g)` streams the world in; `find_outcrop_block` finds ore;
     `build_mine` places a miner, belt and box directly through `factory`. Actions: `g.act(…)` or the
-    API method, then `g.run_ticks(1)` before asserting.
+    API method, then `g.run_ticks(1)`. More players: `g.add_player()`, `g.act_as(id, …)`, `g.bodies`.
   - `action/tests.rs`: a bare `Sim` with `apply` / `queue` + `step`; works without loaded chunks.
   - `factory/tests.rs`: `run(&mut f, seconds, check)` steps a bare `Factory`; `stocked_box` fills a box.
 - Worldgen is seeded; tests use fixed seeds (2024, 1337, 7). Changing generation can move the features

@@ -4,7 +4,8 @@
 //! Actions carry resolved data (positions, slots, facing), never "what the player is looking at", so
 //! any peer can apply them without that player's camera. `apply` validates against the current state
 //! and quietly does nothing when an action no longer fits (the block changed, the slot is empty).
-//! Results leave as `SimEvent`s. To add an action: a variant here and its arm in `Sim::apply`.
+//! Results leave as `SimEvent`s. To add an action: a variant here and its arm in
+//! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet).
 
 use crate::block::{self, BlockId, AIR, BELT, MINER, STORAGE};
 use crate::deposits::HAND_YIELD;
@@ -12,7 +13,7 @@ use crate::factory::face_of;
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
-use crate::sim::{PlayerId, Sim, SimEvent};
+use crate::sim::{PlayerCore, PlayerId, Sim, SimEvent};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Action {
@@ -63,13 +64,37 @@ pub enum Action {
         item: BlockId,
         count: u32,
     },
+    /// The player joins with an empty inventory (nothing happens if it is already here).
+    Join,
+    /// The player leaves; its inventory goes with it and its id is free again.
+    Leave,
 }
 
 impl Sim {
     pub fn apply(&mut self, player: PlayerId, action: Action) {
-        let Some(core) = self.players.get_mut(player.0 as usize) else { return };
+        let slot = player.0 as usize;
+        match action {
+            Action::Join => {
+                if self.players.len() <= slot {
+                    self.players.resize_with(slot + 1, || None);
+                }
+                self.players[slot].get_or_insert_with(PlayerCore::default);
+            }
+            Action::Leave => {
+                if let Some(core) = self.players.get_mut(slot) {
+                    *core = None;
+                }
+            }
+            _ => self.apply_to_player(player, action),
+        }
+    }
+
+    /// Everything except joining and leaving, which needs the player to be here.
+    fn apply_to_player(&mut self, player: PlayerId, action: Action) {
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
         let inv = &mut core.inventory;
         match action {
+            Action::Join | Action::Leave => {}
             Action::BreakBlock { pos } => self.break_block(player, pos),
             Action::PlaceBlock { pos, slot, facing, against } => self.place_block(player, pos, slot, facing, against),
             Action::TakeContents { pos } => {
@@ -157,7 +182,8 @@ impl Sim {
     }
 
     fn place_block(&mut self, player: PlayerId, pos: IVec3, slot: u8, facing: u8, against: IVec3) {
-        let inv = &mut self.players[player.0 as usize].inventory;
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        let inv = &mut core.inventory;
         let Some(stack) = inv.slots.get(slot as usize).copied() else { return };
         if stack.is_empty() || !block::is_placeable(stack.item) {
             return;

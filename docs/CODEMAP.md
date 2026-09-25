@@ -12,10 +12,11 @@ folder with `mod.rs`.
 
 | Module | Owns |
 |---|---|
-| `lib.rs` | The `Game` struct (core `sim` + local body, items, view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `act` (queue a local action); the module list |
-| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`PlayerCore`: inventory), rng, action queue (`queue`); `step`; `PlayerId`, `SimEvent` |
-| `action.rs` | `Action` enum and `Sim::apply`: break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
-| `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, pickup toasts |
+| `lib.rs` | The `Game` struct (core `sim`, `local` id, `bodies`, items, the local player's hands and view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `act` / `act_as` (queue an action), `body()` / `inventory()` (the local player's); the module list |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `PlayerId`, `SimEvent` |
+| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
+| `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world), loose items and pickups for the nearest player (`step_items`), `throw`, `join` / `leave` |
+| `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
@@ -23,8 +24,8 @@ folder with `mod.rs`.
 | `api/crafting.rs` | Recipe queries and `craft` |
 | `api/content.rs` | Block names and sound materials, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
-| `api/debug.rs` | `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
-| `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `throw`, footsteps |
+| `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
+| `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `block.rs` | Block ids (= item ids for now), `DEFS` table, texture layers `tex`, sound materials, lookup tables |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code), render events |
@@ -39,7 +40,7 @@ folder with `mod.rs`.
 | `factory/links.rs` | `relink`: belt outputs, corners, machine outputs, downstream-first belt order (derived data) |
 | `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`) and machine models |
 | `factory/describe.rs` | Machine readout text, `fmt_int`, `fmt_duration` |
-| `entities.rs` | Dropped items: physics, magnet pickup, instances |
+| `entities.rs` | Dropped items: physics, magnet pickup by the nearest `Collector` with room, instances |
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
 | `recipes.rs` | Hand-crafting recipe table |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
@@ -50,7 +51,7 @@ folder with `mod.rs`.
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng` |
 | `sound.rs` | Sound event buffer read by the host |
-| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, frame-rate independence) |
+| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, a second player, frame-rate independence) |
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
@@ -122,9 +123,11 @@ Construct it in `main.ts`. To open it with a key: an `Action` in `input.ts` and 
 action loop.
 
 **Core state, a way to change it, or a reaction to it.** State: a field on `Sim` (`sim.rs`) and, from step
-1.6, in the save format. A change: an `Action` variant and its arm in `Sim::apply` (`action.rs`); `Game`
-queues it with `act`. A reaction (sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and
-its arm in `Game::handle_sim_events` (`events.rs`).
+1.6, in the save format; per-player state goes in `PlayerCore`. A change: an `Action` variant and its arm
+in `Sim::apply_to_player` (`action.rs`); `Game` queues it with `act` (local player) or `act_as`. A reaction
+(sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and its arm in
+`Game::handle_sim_events` (`events.rs`). Per-player state the authority keeps (body-related) goes in
+`authority.rs`, indexed by `PlayerId` like `Sim.players`.
 
 **A sound material.** Engine: a constant in `block::sound` and point blocks' `DEFS` rows at it. Web: append
 the name to `MATERIALS` (same order as the engine), add a `MATERIAL_LABELS` entry and a
@@ -137,7 +140,8 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 
 | Module | Constants |
 |---|---|
-| `lib.rs` | `TICK_RATE` (60), physics substeps per tick, `MAX_TICKS_PER_FRAME` |
+| `lib.rs` | `TICK_RATE` (60), `MAX_TICKS_PER_FRAME` |
+| `authority.rs` | `PHYSICS_SUBSTEPS` (per tick), `FALL_LIMIT` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |

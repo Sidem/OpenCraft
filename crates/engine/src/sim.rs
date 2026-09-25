@@ -1,5 +1,6 @@
 //! The deterministic core: the tick counter, the world's blocks (edits included), the factory with its
 //! deposits, each player's inventory, the core random stream, and the queue of pending actions.
+//! Players join and leave through actions too, so every peer agrees on who exists at each tick.
 //!
 //! Invariants (DEV_PLAN section 3.4): state changes only in `step`, which first applies the actions due
 //! this tick (`action.rs`) in (tick, player, sequence) order and then advances the factory by `TICK`.
@@ -19,7 +20,7 @@ use crate::inventory::Inventory;
 use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::world::World;
 
-/// Index of a player in `Sim::players`.
+/// Index of a player in `Sim::players`. Ids are reused after a player leaves.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct PlayerId(pub u8);
 
@@ -79,7 +80,9 @@ pub struct Sim {
     pub tick: u64,
     pub world: World,
     pub factory: Factory,
-    pub players: Vec<PlayerCore>,
+    /// Indexed by `PlayerId`; `None` where no player is (it left, or never joined). Changed only by the
+    /// `Join` and `Leave` actions.
+    pub players: Vec<Option<PlayerCore>>,
     pub rng: Rng,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
@@ -89,13 +92,13 @@ pub struct Sim {
 }
 
 impl Sim {
-    /// A fresh world with one player.
+    /// A fresh world with one player, `PlayerId(0)`.
     pub fn new(seed: u32, view_radius: i32) -> Sim {
         Sim {
             tick: 0,
             world: World::new(seed, view_radius),
             factory: Factory::default(),
-            players: vec![PlayerCore::default()],
+            players: vec![Some(PlayerCore::default())],
             rng: Rng::new(hash2(seed, 17, 42) as u64),
             events: Vec::new(),
             pending: Vec::new(),
@@ -103,8 +106,9 @@ impl Sim {
         }
     }
 
-    pub fn player(&self, id: PlayerId) -> &PlayerCore {
-        &self.players[id.0 as usize]
+    /// A player's core state; `None` before its `Join` applies and after its `Leave`.
+    pub fn player(&self, id: PlayerId) -> Option<&PlayerCore> {
+        self.players.get(id.0 as usize)?.as_ref()
     }
 
     /// Schedules `action` for `tick` (a tick already run means the next one).

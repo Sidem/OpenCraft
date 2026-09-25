@@ -1,7 +1,7 @@
 //! Game-level scenario tests: mining, placing, sounds, miners and crafting through the `Game` API.
 
 use super::*;
-use crate::block::{BELT, MINER, SPENT_ROCK, STORAGE};
+use crate::block::{BELT, MINER, SPENT_ROCK, STONE, STORAGE};
 use crate::deposits::{DepositKey, Tier, HAND_YIELD};
 use crate::factory::{MinerStatus, MINER_RECOVERY};
 use crate::inventory::INVENTORY_SLOTS;
@@ -24,7 +24,7 @@ fn run_until_ready(g: &mut Game) {
 
 /// Loaded ore blocks near spawn, top layer first.
 fn nearby_ore(g: &Game) -> Vec<IVec3> {
-    let base = g.player.pos.floor();
+    let base = g.body().pos.floor();
     let mut out = Vec::new();
     for y in (8..base.y + 4).rev() {
         for z in -40..40 {
@@ -295,7 +295,7 @@ fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
     run_until_ready(&mut g);
     let (p, key) = find_outcrop_block(&mut g, 6);
     let (miner, chest) = build_mine(&mut g, p);
-    let (start, first_tick) = (g.player.pos.floor(), g.sim.tick);
+    let (start, first_tick) = (g.body().pos.floor(), g.sim.tick);
     g.set_look(0.7, 0.0);
     g.set_move(1.0, 0.3, true, true, false);
     feed(&mut g, 1.5, &mut next_dt);
@@ -305,7 +305,7 @@ fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
     feed(&mut g, 2.5, &mut next_dt);
     assert_eq!(g.sim.tick - first_tick, 4 * TICK_RATE as u64, "4 s of frames run 240 ticks");
 
-    let pl = &g.player;
+    let pl = g.body();
     let mut s = format!("pos {:?} vel {:?} ground {}\n", pl.pos, pl.vel, pl.on_ground);
     s += &format!("mining {:?} {} cooldown {}\n", g.mine_block, g.mine_progress, g.mine_cooldown);
     let slots: Vec<_> =
@@ -339,7 +339,7 @@ fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
 fn results_do_not_depend_on_frame_rate() {
     let fixed = |dt: f64| move || dt;
     let (g, reference) = play_scenario(fixed(1.0 / 60.0));
-    let moved = g.player.pos - g.spawn;
+    let moved = g.body().pos - g.spawn;
     assert!(moved.x.abs() + moved.z.abs() > 2.0, "the player should have walked:\n{reference}");
     assert!(reference.contains("slots [("), "mined blocks should reach the inventory:\n{reference}");
     assert!(!reference.contains("box 0 "), "the miner should have filled the box:\n{reference}");
@@ -353,6 +353,50 @@ fn results_do_not_depend_on_frame_rate() {
     ] {
         assert_eq!(snapshot, reference, "{name} differs from 60 fps");
     }
+}
+
+#[test]
+fn a_second_player_has_its_own_body_pickups_and_throws() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let b = PlayerId(g.add_player().unwrap() as u8);
+    assert_eq!(b, PlayerId(1));
+
+    // A stone ledge high above the ground east of spawn; B stands on it next to a stone block.
+    let f = g.spawn.floor() + IVec3::new(8, 12, 0);
+    for dx in -1..=2 {
+        for dz in -1..=1 {
+            for dy in 0..4 {
+                g.sim.world.set_block(f + IVec3::new(dx, dy, dz), if dy == 0 { STONE } else { AIR });
+            }
+        }
+    }
+    let wall = f + IVec3::new(1, 1, 0);
+    g.sim.world.set_block(wall, STONE);
+    g.bodies[1].as_mut().unwrap().pos = f.as_vec3() + Vec3::new(0.5, 1.0, 0.5);
+    g.run_ticks(30);
+    assert!(g.bodies[1].as_ref().unwrap().on_ground, "B stands on the ledge");
+
+    // B breaks the stone: B picks it up; the local player, far below, gets nothing and no toast.
+    g.act_as(b, Action::BreakBlock { pos: wall });
+    g.run_ticks(60);
+    assert_eq!(g.sim.player(b).unwrap().inventory.count(STONE), 1);
+    assert_eq!(g.item_total(STONE), 0);
+    assert!(!g.next_pickup());
+
+    // B's throw leaves from B's body.
+    g.act_as(b, Action::DropSelected { count: 1 });
+    g.run_ticks(1);
+    let thrown = g.items.list.last().unwrap();
+    assert!((thrown.pos - g.bodies[1].as_ref().unwrap().eye()).length() < 1.0);
+
+    // Removing B takes its body now and its inventory at the next tick. The local player stays.
+    g.remove_player(1);
+    g.remove_player(0);
+    assert!(g.bodies[1].is_none() && g.bodies[0].is_some());
+    g.run_ticks(1);
+    assert!(g.sim.player(b).is_none() && g.sim.player(g.local).is_some());
+    assert_eq!(g.add_player(), Some(1), "the id is free again");
 }
 
 #[test]

@@ -1,5 +1,6 @@
 //! Debug and testing helpers, used from the browser console (`window.opencraft.game`) and tests:
-//! give items, teleport, run ticks and fast-forward time, find deposits, read blocks and the position.
+//! give items, teleport, add and remove players, run ticks and fast-forward time, find deposits, read
+//! blocks and the position.
 
 use wasm_bindgen::prelude::*;
 
@@ -7,6 +8,7 @@ use crate::action::Action;
 use crate::block::AIR;
 use crate::deposits::Tier;
 use crate::math::{IVec3, Vec3};
+use crate::sim::PlayerId;
 use crate::{Game, TICK_RATE};
 
 #[wasm_bindgen]
@@ -17,11 +19,25 @@ impl Game {
     }
 
     pub fn teleport(&mut self, x: f64, y: f64, z: f64) {
-        self.player.pos = Vec3::new(x, y, z);
-        self.player.vel = Vec3::ZERO;
+        let body = self.body_mut();
+        body.pos = Vec3::new(x, y, z);
+        body.vel = Vec3::ZERO;
         // Cut the camera to the new spot instead of gliding there.
-        self.prev_eye = self.player.eye();
+        self.prev_eye = self.body().eye();
         self.render_eye = self.prev_eye;
+    }
+
+    /// Adds a player (a body at spawn; its inventory from the next tick) and returns its id, or
+    /// nothing if 256 players are already here. For tests now, co-op joins later.
+    pub fn add_player(&mut self) -> Option<u32> {
+        self.join().map(|id| id.0 as u32)
+    }
+
+    /// Removes a player and its inventory (never the local player).
+    pub fn remove_player(&mut self, id: u32) {
+        if let Ok(id) = u8::try_from(id) {
+            self.leave(PlayerId(id));
+        }
     }
 
     /// Runs `n` simulation ticks at once, sounds included (tests and catch-up).
@@ -45,7 +61,7 @@ impl Game {
         self.sim
             .world
             .generator()
-            .find_deposit(self.player.pos.floor(), tier, 16)
+            .find_deposit(self.body().pos.floor(), tier, 16)
             .map_or_else(Vec::new, |d| vec![d.center.x, d.center.y, d.center.z, d.ore() as i32])
     }
 
@@ -55,14 +71,14 @@ impl Game {
     }
 
     pub fn player_x(&self) -> f64 {
-        self.player.pos.x
+        self.body().pos.x
     }
 
     pub fn player_y(&self) -> f64 {
-        self.player.pos.y
+        self.body().pos.y
     }
 
     pub fn player_z(&self) -> f64 {
-        self.player.pos.z
+        self.body().pos.z
     }
 }

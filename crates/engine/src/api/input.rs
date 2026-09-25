@@ -11,18 +11,20 @@ use crate::Game;
 #[wasm_bindgen]
 impl Game {
     pub fn set_move(&mut self, forward: f64, strafe: f64, jump: bool, sprint: bool, crouch: bool) {
-        self.player.input = PlayerInput { forward, strafe, jump, sprint, crouch };
+        self.body_mut().input = PlayerInput { forward, strafe, jump, sprint, crouch };
     }
 
     /// Mouse look, in radians.
     pub fn look(&mut self, d_yaw: f64, d_pitch: f64) {
-        self.player.yaw = (self.player.yaw + d_yaw).rem_euclid(std::f64::consts::TAU);
-        self.player.pitch = (self.player.pitch - d_pitch).clamp(-1.55, 1.55);
+        let body = self.body_mut();
+        body.yaw = (body.yaw + d_yaw).rem_euclid(std::f64::consts::TAU);
+        body.pitch = (body.pitch - d_pitch).clamp(-1.55, 1.55);
     }
 
     pub fn set_look(&mut self, yaw: f64, pitch: f64) {
-        self.player.yaw = yaw.rem_euclid(std::f64::consts::TAU);
-        self.player.pitch = pitch.clamp(-1.55, 1.55);
+        let body = self.body_mut();
+        body.yaw = yaw.rem_euclid(std::f64::consts::TAU);
+        body.pitch = pitch.clamp(-1.55, 1.55);
     }
 
     pub fn set_mining(&mut self, on: bool) {
@@ -46,8 +48,9 @@ impl Game {
     }
 
     pub fn toggle_fly(&mut self) {
-        self.player.flying = !self.player.flying;
-        self.player.vel.y = 0.0;
+        let body = self.body_mut();
+        body.flying = !body.flying;
+        body.vel.y = 0.0;
     }
 
     /// Throws one item from the selected slot.

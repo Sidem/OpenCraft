@@ -11,11 +11,11 @@ use crate::Game;
 #[wasm_bindgen]
 impl Game {
     pub fn flying(&self) -> bool {
-        self.player.flying
+        self.body().flying
     }
 
     pub fn on_ground(&self) -> bool {
-        self.player.on_ground
+        self.body().on_ground
     }
 
     pub fn has_target(&self) -> bool {

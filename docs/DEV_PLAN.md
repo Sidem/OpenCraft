@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`) and 1.3 (actions)
-done · **Next up: Milestone 1, step 1.4 (several players in the engine).**
+**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions) and
+1.4 (several players) done · **Next up: Milestone 1, step 1.5 (state hash and determinism tests).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -86,26 +86,27 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after step 1.3)
+## 2. Where the code stands (after step 1.4)
 
 ### Architecture
 
 Rust owns all game state and hot loops (`crates/engine`, compiled to wasm with wasm-bindgen). TypeScript
 (`web/src`) is a thin platform layer: input, WebGL2 rendering, DOM UI, Web Audio. Bulk data (chunk meshes,
 box instances, sound events, textures) is read zero-copy from wasm memory through `*_ptr` / `*_count`
-accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs`, and
-mining, placing and movement sounds live in `interaction.rs`. The deterministic core is `Sim` (`sim.rs`:
-tick, world, factory with deposits, player inventories, rng); `Game` adds the local player's body, loose
-items and presentation. `Game` changes the core only by queuing `Action`s (`action.rs`), applied at the
-next tick; the core answers with `SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
+accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs` and acts
+for the local player (`Game.local`). The deterministic core is `Sim` (`sim.rs`: tick, world, factory with
+deposits, each player's inventory, rng). The authority (`authority.rs`) owns every player's body and the
+loose items. The local player's hands (mining, placing, footsteps) live in `interaction.rs`. `Game`
+changes the core only by queuing `Action`s (`action.rs`), applied at the next tick; the core answers with
+`SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
 
 Each frame, `web/src/main.ts`:
 
 1. forwards input (`set_move`, `look`, `set_mining`, `set_using`, actions from `input.ts`),
 2. calls `game.update(dt)`. This runs streaming, then as many fixed 60 Hz ticks as the frame time adds up to
-   (`Game::run_tick`: player physics, targeting, mining and placing, item entities, all queuing actions,
-   then the core's `Sim::step`, then `handle_sim_events` for item spawns, sounds and toasts), then
-   interpolates the camera between the last two ticks and writes box instances,
+   (`Game::run_tick`: every body's physics, the local player's targeting, mining and placing, item
+   entities, all queuing actions, then the core's `Sim::step`, then `handle_sim_events` for item spawns,
+   sounds and toasts), then interpolates the camera between the last two ticks and writes box instances,
 3. runs `begin_work()` + `work_step()` under a time budget (generate or mesh one chunk per step),
 4. drains mesh and unload events to the renderer, plays sound events, renders, updates the HUD.
 
@@ -133,8 +134,8 @@ Each frame, `web/src/main.ts`:
 - **Items are blocks:** `BlockId` (u8) doubles as the item id. Ids 0–14: AIR, STONE, DIRT, GRASS, SAND,
   LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER, STORAGE.
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
-  `block_at`, `toggle_fly`, `set_look`.
-- **Size:** about 100 KB gzipped in total (wasm 71 KB, JS 25 KB).
+  `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`.
+- **Size:** about 100 KB gzipped in total (wasm 73 KB, JS 25 KB).
 
 ### Known limitations and technical debt (Milestone 1 fixes most of these)
 
@@ -145,8 +146,9 @@ Each frame, `web/src/main.ts`:
    `target_detail` no longer tracks deposits.
 4. ~~State changes are direct calls.~~ Fixed in step 1.3 (actions). Tests and `find_outcrop_block` /
    `build_mine` still set up worlds directly, which is fine for tests.
-5. **One player is built in.** `Game` has a single `player` body and mining state, `Sim.players` has one
-   entry addressed by the `LOCAL` constant, and streaming centres on that player.
+5. ~~One player is built in.~~ Fixed in step 1.4. Still single-player-shaped: streaming centres on the
+   local player (other bodies wait where the ground isn't loaded), only the local player has hands, and
+   nothing draws other players' bodies. Milestone 3 handles these.
 6. ~~`World::set_block` silently fails in unloaded chunks.~~ Core edits use `set_block_anywhere` since
    step 1.2.
 7. Belts can't climb, and there are no splitters or filters.
@@ -391,14 +393,21 @@ on every peer.
     +1.6 KB gzipped: the queue, `apply` and event handling). Browser: DOM craft button, slot clicks,
     close, hotbar select, drop, mining and placing a miner all work through actions.
 
-- [ ] **1.4 Several players in the engine** (`sim.rs`, `lib.rs`, `player.rs`)
-  - `PlayerId(u8)`. `Sim.players` holds per-player core state; the authority holds a `Player` body per id.
-    `Game.local: PlayerId` (0 in single-player).
-  - The wasm API keeps working on the local player (`slot_item`, `inventory_version`, `cursor_*` and so on).
-    Add `add_player() -> id` and `remove_player(id)` for tests now and co-op later.
-  - Streaming stays centred on the local player. The co-op host loads more; see Milestone 3.
-  - **Done when:** a test runs two players placing and breaking blocks and crafting in one `Sim`, with
-    independent inventories.
+- [x] **1.4 Several players in the engine** (done 2026-09-25)
+  - `Sim.players: Vec<Option<PlayerCore>>` indexed by `PlayerId`; the new `Join` and `Leave` actions add
+    and remove entries, so joins happen at a tick boundary like any change. Leaving drops the inventory,
+    and ids are reused.
+  - `authority.rs` (new): `Game.bodies: Vec<Option<Player>>` indexed the same way; `step_bodies` (physics,
+    fall reset), `step_items` (items fly to the nearest player with room: `entities::Collector`),
+    `throw` from the right body, `join` / `leave`. `Game.local` replaces the `LOCAL` constant;
+    `body()` and `inventory()` give the local player's. The hands stay local-only.
+  - API: `add_player() -> id | undefined` and `remove_player(id)` in `api/debug.rs`; everything else still
+    acts for the local player. No TS changes.
+  - Tests: `two_players_build_and_craft_with_their_own_inventories` (bare `Sim`: joining, crafting,
+    placing and breaking in one tick, leaving), `a_second_player_has_its_own_body_pickups_and_throws`,
+    `the_nearest_player_with_room_gets_the_item`. 66 tests. Wasm 201,229 bytes (+5.9 KB raw, +1.9 KB
+    gzipped; the two exports are 1.75 KB raw of it). Browser: mining, pickup, toast, drop, adding and
+    removing a player all work.
 
 - [ ] **1.5 State hash and determinism tests** (`sim.rs` tests, maybe `tests/determinism.rs`)
   - `Sim::state_hash() -> u64` over the canonical core state: tick, edited chunks (sorted by coordinate),
@@ -524,3 +533,7 @@ and the balance numbers. Read the section you need.
   one tick all count; the planned `Spill` / `BlockChanged` / `Sound` events became `Dropped`, `Thrown`,
   `BlockBroken`, `BlockPlaced`, `Gained` and `Crafted`, which the new `events.rs` maps to spawns, sounds
   and toasts. Debt item 4 closed.
+- **2026-09-25:** Step 1.4 done (several players). Joining and leaving became actions (`Join`, `Leave`),
+  which the plan text didn't name. Bodies, loose items and pickups moved out of `lib.rs` into the new
+  `authority.rs`. The plan listed `player.rs`, but it needed no change. Open for Milestone 3: whether a
+  leaving player's inventory is kept for rejoining (today it is dropped). Debt item 5 closed.

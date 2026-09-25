@@ -6,11 +6,12 @@
 //! of wasm linear memory through `*_ptr` / `*_len` accessors.
 //!
 //! This file holds the `Game` struct, its constructor, the per-frame `update` and the fixed tick
-//! (`run_tick`). `Game` wraps the deterministic core (`sim.rs`) with the local player's body, loose
-//! items and presentation (camera, sounds, instances). The JS-facing API lives in `api/*.rs` (one
-//! `#[wasm_bindgen] impl Game` block per area); every method there only forwards to a module. `Game`
-//! never edits the core directly: it queues `Action`s (`act`), applied at the next tick. The hands
-//! (mining, right-click, footsteps) live in `interaction.rs`, reactions to core events in `events.rs`.
+//! (`run_tick`). `Game` wraps the deterministic core (`sim.rs`) with the authority (every player's
+//! body, loose items: `authority.rs`) and the local player's view (hands, camera, sounds, instances).
+//! The JS-facing API lives in `api/*.rs` (one `#[wasm_bindgen] impl Game` block per area); every method
+//! there only forwards to a module, and acts for the local player. `Game` never edits the core
+//! directly: it queues `Action`s (`act`), applied at the next tick. The hands (mining, right-click,
+//! footsteps) live in `interaction.rs`, reactions to core events in `events.rs`.
 //! To add a wasm method: put it in the matching `api/` file (see docs/CODEMAP.md).
 //!
 //! Invariant: game state advances only in `run_tick`, by exactly [`TICK`] seconds, so the same inputs
@@ -20,6 +21,7 @@
 
 mod action;
 mod api;
+mod authority;
 mod block;
 mod chunk;
 mod deposits;
@@ -49,6 +51,7 @@ use action::Action;
 use block::{BlockId, AIR};
 use deposits::DepositState;
 use entities::Items;
+use inventory::Inventory;
 use math::{IVec3, Vec3};
 use player::Player;
 use raycast::RayHit;
@@ -60,15 +63,11 @@ use world::MeshData;
 pub const TICK_RATE: u32 = 60;
 /// Length of one tick, in seconds.
 pub const TICK: f64 = 1.0 / TICK_RATE as f64;
-/// Player physics substeps per tick (1/120 s each).
-const PHYSICS_SUBSTEPS: u32 = 2;
 /// Most ticks one frame may run. A 0.1 s frame (the host's cap) plus a leftover partial tick needs
 /// 7; anything longer (e.g. a hidden tab) drops the excess instead of spiralling.
 const MAX_TICKS_PER_FRAME: u32 = 8;
 /// Float slack when comparing accumulated frame time with `TICK`, so 60 frames of 1/60 s run 60 ticks.
 const TICK_SLACK: f64 = 1e-9;
-/// The local player (step 1.4 makes this a `Game` field).
-const LOCAL: PlayerId = PlayerId(0);
 
 #[wasm_bindgen(start)]
 pub fn start() {
@@ -79,7 +78,10 @@ pub fn start() {
 pub struct Game {
     /// The deterministic core: world blocks, factory, deposits, inventories, tick.
     sim: Sim,
-    player: Player,
+    /// The player this game shows and takes input for (0 in single-player).
+    local: PlayerId,
+    /// Every player's body, indexed by `PlayerId` (authority, see authority.rs).
+    bodies: Vec<Option<Player>>,
     items: Items,
     spawn: Vec3,
     /// Frame time not yet run as ticks, in seconds.
@@ -88,6 +90,7 @@ pub struct Game {
     /// and the current eye (presentation only).
     prev_eye: Vec3,
     render_eye: Vec3,
+    /// The local player's hands (interaction.rs). Other players run their own on their machines.
     target: Option<RayHit>,
     mining: bool,
     mine_block: Option<IVec3>,
@@ -120,7 +123,8 @@ impl Game {
         let eye = player.eye();
         Game {
             sim,
-            player,
+            local: PlayerId(0),
+            bodies: vec![Some(player)],
             items: Items::default(),
             spawn,
             accumulator: 0.0,
@@ -149,7 +153,7 @@ impl Game {
     /// Per frame: runs the whole ticks that `dt` seconds of frame time add up to, then prepares this
     /// frame's camera and box instances.
     pub fn update(&mut self, dt: f64) {
-        self.sim.world.update_streaming(self.player.pos);
+        self.sim.world.update_streaming(self.body().pos);
         self.accumulator += dt.max(0.0);
         let mut ran = 0;
         while self.accumulator >= TICK - TICK_SLACK && ran < MAX_TICKS_PER_FRAME {
@@ -162,7 +166,7 @@ impl Game {
         }
 
         let alpha = (self.accumulator / TICK).clamp(0.0, 1.0);
-        self.render_eye = self.prev_eye + (self.player.eye() - self.prev_eye) * alpha;
+        self.render_eye = self.prev_eye + (self.body().eye() - self.prev_eye) * alpha;
         self.update_target();
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();
@@ -172,47 +176,45 @@ impl Game {
 }
 
 impl Game {
-    /// Advances the game by one tick of exactly [`TICK`] seconds: the local player's body and hands,
+    /// Advances the game by one tick of exactly [`TICK`] seconds: every body, the local player's hands,
     /// loose items, then the core (`Sim::step` applies this tick's actions), then its events.
     fn run_tick(&mut self) {
-        self.prev_eye = self.player.eye();
-        let feet = self.player.pos;
-        if self.sim.world.is_loaded(feet) && self.sim.world.is_loaded(feet - Vec3::new(0.0, 1.0, 0.0)) {
-            let world = &self.sim.world;
-            let mut solid = |x, y, z| world.is_solid(x, y, z);
-            for _ in 0..PHYSICS_SUBSTEPS {
-                self.player.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid);
-            }
-        }
-        if self.player.pos.y < -64.0 {
-            self.teleport(self.spawn.x, self.spawn.y + 2.0, self.spawn.z);
-        }
+        self.prev_eye = self.body().eye();
+        let feet = self.body().pos;
+        self.step_bodies();
         self.update_movement_sounds(feet);
 
         self.update_target();
         self.update_mining(TICK as f32);
         self.update_placing(TICK as f32);
 
-        // Loose items only predict what fits, on a scratch copy of the inventory; the core applies
-        // the `PickUp` (and throws back anything that no longer fits).
-        let world = &self.sim.world;
-        let mut solid = |x, y, z| world.is_solid(x, y, z);
-        let loaded = |p: Vec3| world.is_loaded(p);
-        let center = self.player.pos + Vec3::new(0.0, player::HEIGHT * 0.5, 0.0);
-        let mut room = self.sim.player(LOCAL).inventory.clone();
-        let mut picked = Vec::new();
-        self.items.update(TICK, center, &mut solid, &loaded, &mut room, |item, count| picked.push((item, count)));
-        for (item, count) in picked {
-            self.act(Action::PickUp { item, count });
-        }
-
+        self.step_items();
         self.sim.step();
         self.handle_sim_events();
     }
 
     /// Queues an action by the local player for the coming tick.
     fn act(&mut self, action: Action) {
-        self.sim.queue(self.sim.tick, LOCAL, action);
+        self.act_as(self.local, action);
+    }
+
+    /// Queues an action by any player for the coming tick (the authority's pickups, joins, tests).
+    fn act_as(&mut self, player: PlayerId, action: Action) {
+        self.sim.queue(self.sim.tick, player, action);
+    }
+
+    /// The local player's body, which always exists.
+    fn body(&self) -> &Player {
+        self.bodies[self.local.0 as usize].as_ref().expect("local body")
+    }
+
+    fn body_mut(&mut self) -> &mut Player {
+        self.bodies[self.local.0 as usize].as_mut().expect("local body")
+    }
+
+    /// The local player's inventory; the local player is always in the core.
+    fn inventory(&self) -> &Inventory {
+        &self.sim.player(self.local).expect("local player").inventory
     }
 }
 

@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 use crate::action::Action;
 use crate::block::AIR;
 use crate::recipes::RECIPES;
-use crate::{Game, LOCAL};
+use crate::Game;
 
 #[wasm_bindgen]
 impl Game {
@@ -31,14 +31,14 @@ impl Game {
     }
 
     pub fn can_craft(&self, r: u32) -> bool {
-        RECIPES.get(r as usize).is_some_and(|x| x.affordable(&self.sim.player(LOCAL).inventory) > 0)
+        RECIPES.get(r as usize).is_some_and(|x| x.affordable(self.inventory()) > 0)
     }
 
     /// Crafts recipe `r` up to `times` times from inventory items, at the next tick. Returns how many
     /// times the inventory can pay for it now, i.e. how many will run.
     pub fn craft(&mut self, r: u32, times: u32) -> u32 {
         let Some(recipe) = RECIPES.get(r as usize) else { return 0 };
-        let n = times.min(recipe.affordable(&self.sim.player(LOCAL).inventory));
+        let n = times.min(recipe.affordable(self.inventory()));
         if n > 0 {
             self.act(Action::Craft { recipe: r as u16, times: n });
         }

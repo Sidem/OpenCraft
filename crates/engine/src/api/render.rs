@@ -93,11 +93,11 @@ impl Game {
     }
 
     pub fn yaw(&self) -> f64 {
-        self.player.yaw
+        self.body().yaw
     }
 
     pub fn pitch(&self) -> f64 {
-        self.player.pitch
+        self.body().pitch
     }
 
     /// Byte offset of this frame's box instances (dropped items, belt items, machine parts):

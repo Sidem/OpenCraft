@@ -5,12 +5,12 @@ use wasm_bindgen::prelude::*;
 use crate::action::Action;
 use crate::block::AIR;
 use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
-use crate::{Game, LOCAL};
+use crate::Game;
 
 #[wasm_bindgen]
 impl Game {
     pub fn inventory_version(&self) -> u32 {
-        self.sim.player(LOCAL).inventory.version
+        self.inventory().version
     }
 
     pub fn hotbar_size(&self) -> u32 {
@@ -23,15 +23,15 @@ impl Game {
     }
 
     pub fn slot_item(&self, slot: u32) -> u8 {
-        self.sim.player(LOCAL).inventory.slots.get(slot as usize).map_or(AIR, |s| s.item)
+        self.inventory().slots.get(slot as usize).map_or(AIR, |s| s.item)
     }
 
     pub fn slot_count(&self, slot: u32) -> u32 {
-        self.sim.player(LOCAL).inventory.slots.get(slot as usize).map_or(0, |s| s.count)
+        self.inventory().slots.get(slot as usize).map_or(0, |s| s.count)
     }
 
     pub fn selected_slot(&self) -> u32 {
-        self.sim.player(LOCAL).inventory.selected as u32
+        self.inventory().selected as u32
     }
 
     /// Inventory screen click (applied at the next tick; watch `inventory_version`). `shift` moves the
@@ -41,11 +41,11 @@ impl Game {
     }
 
     pub fn cursor_item(&self) -> u8 {
-        self.sim.player(LOCAL).inventory.cursor.item
+        self.inventory().cursor.item
     }
 
     pub fn cursor_count(&self) -> u32 {
-        self.sim.player(LOCAL).inventory.cursor.count
+        self.inventory().cursor.count
     }
 
     /// Closing the inventory screen: the stack on the cursor goes back (or is thrown if full).
@@ -54,7 +54,7 @@ impl Game {
     }
 
     pub fn item_total(&self, item: u8) -> u32 {
-        self.sim.player(LOCAL).inventory.count(item)
+        self.inventory().count(item)
     }
 
     /// Pops the next pickup notification; read it with `pickup_item` / `pickup_count`.
