@@ -10,7 +10,8 @@
 //! cheaply (`ByteReader::version`); otherwise raise `OLDEST_VERSION`.
 //!
 //! Versions: 1 = items as `u8` block ids; 2 = items as `u16` `ItemId`s; 3 = adds the smelter list;
-//! 4 = adds the constructor list; 5 = adds the router (splitter, filter) list; 6 = belts have a shape.
+//! 4 = adds the constructor list; 5 = adds the router (splitter, filter) list; 6 = belts have a shape;
+//! 7 = adds the generator and pole lists, constructor progress in thousandths of a tick.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
@@ -20,7 +21,7 @@ use crate::worldgen::WORLDGEN_VERSION;
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 6;
+pub const SAVE_VERSION: u32 = 7;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";

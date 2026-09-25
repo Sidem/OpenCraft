@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.6 done · **Next up: step 2.7
-(power).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.7 done · **Next up: step 2.10
+(onboarding hints)** while steps 2.8 and 2.9 wait for the user's answers (section 6).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -391,7 +391,7 @@ Rules for every step:
   - *Done:* five belt blocks share `Kind::Belt` with a saved `shape`. Items cross an underpass
     instantly (hidden under the hoods); a lift entered from the side of a stack pops to its centre.
 
-- [ ] **2.7 Power** (`factory/power.rs`, generator and pole blocks, wire instances)
+- [x] **2.7 Power** (`factory/power.rs`, generator and pole blocks, wire instances)
   - A coal generator burns fuel into power. Poles link with wires to other poles and machines in range.
     Placing a pole links it to the nearest pole automatically, and wires are drawn as thin boxes.
   - The grid is a graph. Its connected components are derived data, rebuilt when poles or machines
@@ -401,6 +401,9 @@ Rules for every step:
   - Readouts show supply, demand and speed.
   - **Done when:** tests for components, a brownout halving speed, and poles in unloaded chunks; save
     round trip; screenshot of a powered line.
+  - As built: machines hang on the nearest pole within `POLE_REACH` (no explicit machine wires), and poles
+    link to every pole within `WIRE_RANGE`, so placing is all the wiring there is. Generators burn in list
+    order only until supply meets demand. Constructor progress counts thousandths of a tick.
 
 - [ ] **2.8 Research** (`research.rs`, a station block or a delivery point, `ui/research.ts`)
   - **Needs the user's answer first** (section 6: lab consuming parts, or milestone deliveries).
@@ -454,7 +457,7 @@ Milestone 2 was planned (step 1.9); record the answers in section 1 and adjust t
 |---|---|
 | M2 (2.8) | Research style: a lab consuming parts (Factorio) or milestone deliveries (Satisfactory)? |
 | M2 (2.9) | Confirm upgrades raise recovery (proposal: Mk2 ≈ 75%) and that bulk materials stay infinite. |
-| M2 (2.7) | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Default: yes.) |
+| M2 (2.7) | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Default: yes; built that way in 2.7, easy to change.) |
 | M2 or later | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
 | M3 | Where to host the signalling service and TURN relay (needs an account, e.g. Cloudflare)? |
 | M3 | Target co-op size (2–4? up to 8?). Sets bandwidth and performance budgets. |
@@ -543,3 +546,15 @@ and the balance numbers. Read the section you need.
   shift-clicks move whole stacks both ways (actions `ClickBox`, `StoreSlot`; `inventory::click_stack` is
   shared). Right-click on a miner still takes its ore. Also a test that every hand recipe crafts.
   Tests 96 → 98.
+- **2026-09-25:** Step 2.7 (power) done. `factory/power.rs`: `Pole` (a machine kind) and `Power`, derived
+  in `relink`: poles within 10 blocks form a grid (union-find), each generator and machine hangs on the
+  nearest pole within 5. Each tick `balance` sums demand (constructor 15 kW while working, splitter or
+  filter 1 kW while holding an item), lights generators in order until supply covers it, and gives each
+  grid a speed (supply/demand, in thousandths). `factory/generator.rs`: coal generator (60 kW, fuel
+  panel). Wires are sagging segment boxes. The burner-tier default was used: miners and smelters stay
+  unpowered; worlds from before 2.7 need a generator and pole before their constructors, splitters and
+  filters run again. The save bytes moved to `factory/state.rs` and machine textures to
+  `textures/machines.rs` (size budgets). Saves are version 7 (generator and pole lists; constructor
+  progress in thousandths, older saves scaled); golden hash re-recorded with a pole and generator in the
+  script. Browser: generator → pole → constructor making rods, wires drawn, generator panel. Tests 98 →
+  102; wasm 102.4 → 112.1 KB gzipped (power about 8 KB, the box screen the rest).

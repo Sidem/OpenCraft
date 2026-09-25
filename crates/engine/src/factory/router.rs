@@ -5,6 +5,8 @@
 //! - Filter: its chosen item (set in the panel, `SetFilter`) goes straight on; everything else goes
 //!   left or right (round robin). With no item chosen, everything goes to the sides.
 //!
+//! Both need power (`power.rs`): unpowered, the held item waits.
+//!
 //! Invariants: at most one item held; it only leaves into a belt that accepts it, so nothing is lost.
 
 use crate::block::{tex, FILTER};
@@ -15,6 +17,7 @@ use crate::math::{IVec3, Vec3};
 
 use super::belt::{Belt, ITEM_SIZE};
 use super::panel::{Panel, ROLE_INPUT};
+use super::power::POLE_REACH;
 use super::render::push_box;
 use super::{Factory, Machine};
 
@@ -31,12 +34,15 @@ pub struct Router {
     pub outs: [Option<u32>; 3],
     /// The output to try first (round robin).
     pub next_out: u8,
+    /// Whether its grid had any power last tick (derived, for the readout).
+    pub powered: bool,
 }
 
 impl Router {
     pub fn new(pos: IVec3, dir: u8, is_filter: bool) -> Router {
         let none = ItemId::NONE;
-        Router { pos, dir: dir % 4, is_filter, filter: none, held: none, outs: [None; 3], next_out: 0 }
+        let outs = [None; 3];
+        Router { pos, dir: dir % 4, is_filter, filter: none, held: none, outs, next_out: 0, powered: false }
     }
 
     /// The horizontal directions of its outputs: front, left, right.
@@ -56,9 +62,16 @@ impl Router {
         free
     }
 
-    /// Passes the held item into the next output that is allowed for it and accepts it.
-    pub fn step(&mut self, belts: &mut [Belt]) {
-        if self.held == ItemId::NONE {
+    /// Whether it needs power this tick (it holds an item to pass on).
+    pub fn wants_power(&self) -> bool {
+        self.held != ItemId::NONE
+    }
+
+    /// Passes the held item into the next output that is allowed for it and accepts it, if its grid
+    /// has power (`speed` above 0).
+    pub fn step(&mut self, belts: &mut [Belt], speed: u32) {
+        self.powered = speed > 0;
+        if self.held == ItemId::NONE || !self.powered {
             return;
         }
         let allowed = |slot: usize| !self.is_filter || (slot == 0) == (self.held == self.filter);
@@ -74,6 +87,9 @@ impl Router {
     }
 
     fn status_text(&self) -> String {
+        if !self.powered && self.held != ItemId::NONE {
+            return format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator");
+        }
         match self.filter {
             ItemId::NONE => "No item chosen: everything goes left and right".to_string(),
             f => format!("{} goes straight on; everything else left and right", item::name(f)),
@@ -129,6 +145,8 @@ impl Machine for Router {
         let outs = format!("{used} of 3 outputs connected (front, left, right)");
         if self.is_filter {
             format!("{}\n{outs}\nRight-click to choose the item", self.status_text())
+        } else if !self.powered && self.held != ItemId::NONE {
+            format!("{}\n{outs}", self.status_text())
         } else {
             format!("Splits items evenly between the belts leading away\n{outs}")
         }

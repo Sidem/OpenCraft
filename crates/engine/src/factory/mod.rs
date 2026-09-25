@@ -1,4 +1,4 @@
-//! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors, splitters and filters.
+//! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors, splitters, filters, and power (generators, poles).
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
 //! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
@@ -8,12 +8,13 @@
 //! fixing the moved entry's `at` slot. Machines keep running when their chunk is streamed out.
 //!
 //! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick, miners, then boxes and processing
-//! machines, then routers, then belts (downstream first, see `links.rs`), and reports to the view only
+//! machines, then power (`power.rs`) and the powered machines, then belts (downstream first, see `links.rs`),
+//! and reports to the view only
 //! through `SimEvent`s. Links and the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
 //!
 //! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a
-//! `MACHINES` row and a `Vec` field, then follow the compiler through the `match`es (`place`, `remove`,
-//! `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in `block.rs`, its
+//! `MACHINES` row and a `Vec` field (saved in `state.rs`), then follow the compiler through the `match`es
+//! (`place`, `remove`, `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in `block.rs`, its
 //! recipe in `recipes.rs`.
 
 mod belt;
@@ -21,19 +22,22 @@ mod belt_shape;
 mod buffer;
 mod constructor;
 mod describe;
+mod generator;
 mod links;
 mod miner;
 mod panel;
+mod power;
 mod render;
 mod router;
 mod smelter;
+mod state;
 mod storage;
 
 use rustc_hash::FxHashMap;
 
 use crate::block::{
-    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, LIFT, MINER, RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE,
-    UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, GENERATOR, LIFT, MINER, POLE, RAMP_DOWN, RAMP_UP, SMELTER,
+    SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
@@ -48,8 +52,10 @@ use crate::{TICK, TICK_RATE};
 use belt::{belt_step, Belt};
 use belt_shape::Shape;
 use constructor::Constructor;
+use generator::Generator;
 use links::{Sinks, Slot};
 use miner::Miner;
+use power::{Pole, Power};
 use router::Router;
 use smelter::Smelter;
 use storage::Storage;
@@ -95,6 +101,8 @@ pub enum Kind {
     Smelter,
     Constructor,
     Router,
+    Generator,
+    Pole,
 }
 
 pub struct MachineDef {
@@ -110,13 +118,15 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 12] = [
+pub const MACHINES: [MachineDef; 14] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
     MachineDef { block: SMELTER, kind: Kind::Smelter, slots: 1, panel: true },
     MachineDef { block: CONSTRUCTOR, kind: Kind::Constructor, slots: 1, panel: true },
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
+    MachineDef { block: GENERATOR, kind: Kind::Generator, slots: 1, panel: true },
+    MachineDef { block: POLE, kind: Kind::Pole, slots: 0, panel: false },
     MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
     MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
@@ -159,6 +169,10 @@ pub struct Factory {
     smelters: Vec<Smelter>,
     constructors: Vec<Constructor>,
     routers: Vec<Router>,
+    generators: Vec<Generator>,
+    poles: Vec<Pole>,
+    /// Grids and last tick's supply and demand (derived, see `power.rs`).
+    power: Power,
     at: FxHashMap<IVec3, Slot>,
     /// Belt indices, downstream first.
     order: Vec<u32>,
@@ -204,6 +218,14 @@ impl Factory {
                 self.remove(pos);
                 add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), &mut self.at, Slot::Router);
             }
+            Kind::Generator => {
+                self.remove(pos);
+                add_to(&mut self.generators, Generator::new(pos), &mut self.at, Slot::Generator);
+            }
+            Kind::Pole => {
+                self.remove(pos);
+                add_to(&mut self.poles, Pole { pos }, &mut self.at, Slot::Pole);
+            }
         }
         self.dirty = true;
     }
@@ -243,40 +265,9 @@ impl Factory {
             Slot::Smelter(i) => swap_out(&mut self.smelters, i, at, Slot::Smelter),
             Slot::Constructor(i) => swap_out(&mut self.constructors, i, at, Slot::Constructor),
             Slot::Router(i) => swap_out(&mut self.routers, i, at, Slot::Router),
+            Slot::Generator(i) => swap_out(&mut self.generators, i, at, Slot::Generator),
+            Slot::Pole(i) => swap_out(&mut self.poles, i, at, Slot::Pole),
         }
-    }
-
-    /// Core state: every machine in `Vec` order, kind by kind, then the deposits. `at`, `order` and
-    /// the links are derived from these.
-    pub fn write_state(&self, w: &mut ByteWriter) {
-        write_list(w, &self.belts);
-        write_list(w, &self.miners);
-        write_list(w, &self.storages);
-        write_list(w, &self.smelters);
-        write_list(w, &self.constructors);
-        write_list(w, &self.routers);
-        self.deposits.write_state(w);
-    }
-
-    /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
-    /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
-    /// version 3 have no smelters, before 4 no constructors, before 5 no routers.
-    pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
-        let mut f = Factory { dirty: true, ..Factory::default() };
-        read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
-        read_list(r, &mut f.miners, &mut f.at, Slot::Miner)?;
-        read_list(r, &mut f.storages, &mut f.at, Slot::Storage)?;
-        if r.version >= 3 {
-            read_list(r, &mut f.smelters, &mut f.at, Slot::Smelter)?;
-        }
-        if r.version >= 4 {
-            read_list(r, &mut f.constructors, &mut f.at, Slot::Constructor)?;
-        }
-        if r.version >= 5 {
-            read_list(r, &mut f.routers, &mut f.at, Slot::Router)?;
-        }
-        f.deposits.read_state(world, r)?;
-        Some(f)
     }
 
     /// Runs every machine for one tick (`TICK` seconds). `tick` must differ between calls: the
@@ -285,8 +276,20 @@ impl Factory {
         if self.dirty {
             self.relink();
         }
-        let Factory { belts, miners, storages, smelters, constructors, routers, deposits, order, .. } = self;
-        let mut sinks = Sinks { storages, smelters, constructors, routers };
+        let Factory {
+            belts,
+            miners,
+            storages,
+            smelters,
+            constructors,
+            routers,
+            generators,
+            power,
+            deposits,
+            order,
+            ..
+        } = self;
+        let mut sinks = Sinks { storages, smelters, constructors, routers, generators };
         for m in miners.iter_mut() {
             m.step(deposits, world, tick, belts, &mut sinks, events);
         }
@@ -296,11 +299,12 @@ impl Factory {
         for s in sinks.smelters.iter_mut() {
             s.step(belts);
         }
-        for c in sinks.constructors.iter_mut() {
-            c.step(belts);
+        power.balance(sinks.generators, sinks.constructors, sinks.routers);
+        for (c, &p) in sinks.constructors.iter_mut().zip(&power.constructor_pole) {
+            c.step(belts, power.speed(p));
         }
-        for r in sinks.routers.iter_mut() {
-            r.step(belts);
+        for (r, &p) in sinks.routers.iter_mut().zip(&power.router_pole) {
+            r.step(belts, power.speed(p));
         }
         belt_step(belts, &mut sinks, order, TICK);
     }
@@ -335,28 +339,6 @@ fn swap_out<T: Machine>(
         at.insert(moved.pos(), slot(i));
     }
     m.contents()
-}
-
-fn write_list<T: Machine>(w: &mut ByteWriter, list: &[T]) {
-    w.count(list.len());
-    list.iter().for_each(|m| m.write_state(w));
-}
-
-/// Reads one kind's list; a position already taken is damage.
-fn read_list<T: Machine>(
-    r: &mut ByteReader,
-    list: &mut Vec<T>,
-    at: &mut FxHashMap<IVec3, Slot>,
-    slot: fn(u32) -> Slot,
-) -> Option<()> {
-    for _ in 0..r.count()? {
-        let m = T::read_state(r)?;
-        if at.contains_key(&m.pos()) {
-            return None;
-        }
-        add_to(list, m, at, slot);
-    }
-    Some(())
 }
 
 #[cfg(test)]

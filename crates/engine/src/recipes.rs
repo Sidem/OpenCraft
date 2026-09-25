@@ -105,6 +105,20 @@ pub const RECIPES: &[Recipe] = &[
         inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
         blurb: "Where items come back up from an underpass entry behind it, then carry on like a belt.",
     },
+    Recipe {
+        output: b(GENERATOR),
+        count: 1,
+        inputs: &[(IRON_INGOT, 12), (COPPER_INGOT, 8), (b(STONE), 10)],
+        blurb: "Burns coal ore or logs into 60 kW of power, only while its grid needs it. Place a power pole \
+                within 5 blocks; belts bring fuel in. Right-click to open it.",
+    },
+    Recipe {
+        output: b(POLE),
+        count: 2,
+        inputs: &[(IRON_INGOT, 1), (COPPER_INGOT, 1), (b(LOG), 1)],
+        blurb: "Links to every pole within 10 blocks and powers generators and machines within 5. \
+                Constructors, splitters and filters need power.",
+    },
 ];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after

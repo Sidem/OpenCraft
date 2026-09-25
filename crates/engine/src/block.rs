@@ -34,7 +34,9 @@ pub const RAMP_DOWN: BlockId = 20;
 pub const LIFT: BlockId = 21;
 pub const UNDERPASS_IN: BlockId = 22;
 pub const UNDERPASS_OUT: BlockId = 23;
-pub const BLOCK_COUNT: usize = 24;
+pub const GENERATOR: BlockId = 24;
+pub const POLE: BlockId = 25;
+pub const BLOCK_COUNT: usize = 26;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -76,7 +78,10 @@ pub mod tex {
     pub const LIFT_SIDE: u16 = 35;
     pub const UNDERPASS_IN_SIDE: u16 = 36;
     pub const UNDERPASS_OUT_SIDE: u16 = 37;
-    pub const COUNT: usize = 38;
+    pub const GENERATOR_SIDE: u16 = 38;
+    pub const GENERATOR_TOP: u16 = 39;
+    pub const POLE_SIDE: u16 = 40;
+    pub const COUNT: usize = 41;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -189,6 +194,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Belt Lift", false, 0.4, pillar(tex::LIFT_SIDE, tex::FRAME, tex::FRAME), LIFT),
     machine("Underpass Entry", false, 0.4, pillar(tex::UNDERPASS_IN_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_IN),
     machine("Underpass Exit", false, 0.4, pillar(tex::UNDERPASS_OUT_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_OUT),
+    machine("Coal Generator", true, 0.8, pillar(tex::GENERATOR_SIDE, tex::GENERATOR_TOP, tex::FRAME), GENERATOR),
+    machine("Power Pole", false, 0.3, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), POLE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

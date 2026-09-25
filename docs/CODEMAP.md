@@ -38,7 +38,10 @@ folder with `mod.rs`.
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; `WORLDGEN_VERSION` |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
-| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, state bytes, `update` (one tick, emits `SimEvent`s) |
+| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, `update` (one tick: miners, boxes, smelters, power balance, powered machines, belts; emits `SimEvent`s) |
+| `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds), then the deposits |
+| `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators burn in order until supply meets it, speed per grid), wire drawing; power constants |
+| `factory/generator.rs` | Coal generator: fuel buffer, burns `FUELS` only while its grid needs power; bytes, readout, panel, model |
 | `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE` |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step`; its bytes, readout and model; belt constants |
@@ -58,7 +61,8 @@ folder with `mod.rs`.
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
 | `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format |
-| `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant |
+| `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; nature and ore patterns |
+| `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
 | `sound.rs` | Sound event buffer read by the host |
@@ -119,8 +123,9 @@ in `recipes.rs`; the build menu shows every row.
    `impl Machine` (bytes, contents, readout, model) and its tuning constants.
 2. `factory/mod.rs`: a `Kind` and a `Slot` variant, a `MACHINES` row (block, kind, slots), a `Vec` field.
    Then follow the compiler through the `match`es on `Kind` and `Slot` (`place`, `remove`,
-   `take_contents`, `describe`) and add its list to `write_state` / `read_state`, `update`,
-   `write_instances`, and its outputs to `links.rs`. If belts and miners deliver into it, an arm in
+   `take_contents`, `describe`) and add its list to `write_state` / `read_state` (`state.rs`), `update`,
+   `write_instances`, and its outputs to `links.rs`. If it uses power: a demand in `Power::balance`
+   and its pole in `Power::rebuild` (`power.rs`), and a `speed` argument to its `step`. If belts and miners deliver into it, an arm in
    `Slot::is_sink` and a field in `Sinks` (`links.rs`); what it makes is a `MACHINE_RECIPES` row. A panel:
    `panel: true` in its row, a `panel()` method and its arms in `panel.rs`; the host panel needs nothing.
 3. Its block in `block.rs` (`machine(...)` if drawn as a model, `cube(...)` if meshed); a hand recipe
@@ -169,6 +174,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY` |
 | `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |
+| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `WIRE_RANGE`, `POLE_REACH` |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes.rs` | `RECIPES` (hand) |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |

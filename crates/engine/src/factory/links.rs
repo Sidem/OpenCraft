@@ -1,7 +1,7 @@
 //! Where items go. `Slot` names a machine, `Link` is where a belt or miner delivers, `Sinks` borrows
 //! the machines that take items and `deliver` hands one over. `relink` rebuilds the derived data after
 //! any machine is added or removed: belt outputs (for every belt shape) and corner curves, the outputs of every other machine,
-//! and the downstream-first belt update order. Nothing here is saved; links are a pure function of the
+//! and the downstream-first belt update order, and the power grids (`power.rs`). Nothing here is saved; links are a pure function of the
 //! machines and their positions. A new machine that takes items: an arm in `Slot::is_sink` and in
 //! `Sinks`.
 
@@ -11,6 +11,8 @@ use crate::math::IVec3;
 use super::belt::Belt;
 use super::belt_shape::{Shape, UNDERPASS_RANGE};
 use super::constructor::Constructor;
+use super::generator::Generator;
+use super::power::Power;
 use super::router::Router;
 use super::smelter::Smelter;
 use super::storage::Storage;
@@ -40,14 +42,16 @@ pub(crate) enum Slot {
     Smelter(u32),
     Constructor(u32),
     Router(u32),
+    Generator(u32),
+    Pole(u32),
 }
 
 impl Slot {
     /// Whether belts and miners can deliver into it (belts are linked separately).
     pub(super) fn is_sink(self) -> bool {
         match self {
-            Slot::Storage(_) | Slot::Smelter(_) | Slot::Constructor(_) | Slot::Router(_) => true,
-            Slot::Belt(_) | Slot::Miner(_) => false,
+            Slot::Storage(_) | Slot::Smelter(_) | Slot::Constructor(_) | Slot::Router(_) | Slot::Generator(_) => true,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) => false,
         }
     }
 
@@ -59,6 +63,8 @@ impl Slot {
             Slot::Smelter(_) => Kind::Smelter,
             Slot::Constructor(_) => Kind::Constructor,
             Slot::Router(_) => Kind::Router,
+            Slot::Generator(_) => Kind::Generator,
+            Slot::Pole(_) => Kind::Pole,
         }
     }
 }
@@ -69,6 +75,7 @@ pub(crate) struct Sinks<'a> {
     pub(super) smelters: &'a mut [Smelter],
     pub(super) constructors: &'a mut [Constructor],
     pub(super) routers: &'a mut [Router],
+    pub(super) generators: &'a mut [Generator],
 }
 
 impl Sinks<'_> {
@@ -79,7 +86,8 @@ impl Sinks<'_> {
             Slot::Smelter(i) => self.smelters[i as usize].can_accept(item),
             Slot::Constructor(i) => self.constructors[i as usize].room_for(item) > 0,
             Slot::Router(i) => self.routers[i as usize].can_accept(),
-            Slot::Belt(_) | Slot::Miner(_) => false,
+            Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) => false,
         }
     }
 
@@ -90,7 +98,8 @@ impl Sinks<'_> {
             Slot::Smelter(i) => self.smelters[i as usize].accept(item),
             Slot::Constructor(i) => self.constructors[i as usize].accept(item),
             Slot::Router(i) => self.routers[i as usize].accept(item),
-            Slot::Belt(_) | Slot::Miner(_) => false,
+            Slot::Generator(i) => self.generators[i as usize].accept(item),
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) => false,
         }
     }
 }
@@ -256,6 +265,8 @@ impl Factory {
         for (r, o) in self.routers.iter_mut().zip(router_outs) {
             r.outs = o;
         }
+
+        self.power = Power::rebuild(&self.poles, &self.generators, &self.constructors, &self.routers);
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt
         // and appending it reversed puts every belt after the one it feeds.

@@ -292,7 +292,19 @@ fn recipe_for(item: ItemId) -> u16 {
     crate::recipes::MACHINE_RECIPES.iter().position(|r| r.output.0 == item).unwrap() as u16
 }
 
+/// Power for machines near the origin: a pole at (2, 3, 0) and a generator beside it with a stack of
+/// coal (once per factory).
+fn powered(f: &mut Factory) {
+    let (pole, gen) = (IVec3::new(2, 3, 0), IVec3::new(3, 3, 0));
+    if !f.at.contains_key(&pole) {
+        f.place(&mut World::new(1, 2), crate::block::POLE, pole, 0, pole);
+        f.place(&mut World::new(1, 2), crate::block::GENERATOR, gen, 0, gen);
+        assert_eq!(f.insert(gen, crate::block::COAL_ORE.into(), 64), 64);
+    }
+}
+
 fn constructor(f: &mut Factory, pos: IVec3, makes: ItemId) {
+    powered(f);
     f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos - IVec3::new(0, 1, 0));
     assert!(f.set_recipe(pos, Some(recipe_for(makes))).is_some_and(|back| back.is_empty()));
 }
@@ -318,6 +330,7 @@ fn a_constructor_takes_only_its_recipe_input() {
     use crate::item::{IRON_INGOT, IRON_PLATE, IRON_ROD, SCREW};
     let mut f = Factory::default();
     let p = IVec3::ZERO;
+    powered(&mut f);
     f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, p, 0, p);
     assert_eq!(f.insert(p, IRON_INGOT, 5), 0, "no recipe, nothing goes in");
     assert_eq!(f.set_recipe(p, Some(0)), None, "a smelter recipe is refused");
@@ -382,6 +395,7 @@ fn constructors_survive_a_save_round_trip() {
 }
 
 fn router(f: &mut Factory, pos: IVec3, dir: u8, filter: bool) {
+    powered(f);
     let block = if filter { crate::block::FILTER } else { crate::block::SPLITTER };
     f.place(&mut World::new(1, 2), block, pos, dir, pos);
 }
@@ -534,4 +548,81 @@ fn an_underpass_carries_items_under_a_crossing_belt() {
     assert_eq!((count(IVec3::new(6, 0, 0), IRON_ORE), count(IVec3::new(6, 0, 0), COAL_ORE)), (6, 0));
     assert_eq!((count(IVec3::new(3, 0, 3), COAL_ORE), count(IVec3::new(3, 0, 3), IRON_ORE)), (6, 0));
     assert_eq!(count(IVec3::new(4, 0, 0), COAL_ORE), 3);
+}
+
+/// A constructor at `pos` making rods, with `ingots` iron ingots put in.
+fn rod_maker(f: &mut Factory, pos: IVec3, ingots: u32) {
+    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos);
+    f.set_recipe(pos, Some(recipe_for(crate::item::IRON_ROD)));
+    assert_eq!(f.insert(pos, crate::item::IRON_INGOT, ingots), ingots);
+}
+
+fn place_block(f: &mut Factory, block: BlockId, pos: IVec3) {
+    f.place(&mut World::new(1, 2), block, pos, 0, pos);
+}
+
+#[test]
+fn poles_in_range_form_one_grid_and_machines_hang_on_the_nearest() {
+    use crate::block::POLE;
+    let mut f = Factory::default();
+    for x in [0, 10, 20, 31] {
+        place_block(&mut f, POLE, IVec3::new(x, 0, 0));
+    }
+    rod_maker(&mut f, IVec3::new(29, 0, 2), 0);
+    rod_maker(&mut f, IVec3::new(50, 0, 0), 0);
+    run(&mut f, 0.1, |_| {});
+    let p = &f.power;
+    assert_eq!(p.pole_grid, [0, 0, 0, 1], "10 blocks apart link; 11 don't");
+    assert_eq!(p.wires, [(0, 1), (1, 2)]);
+    assert_eq!(p.constructor_pole, [Some(3), None], "nearest pole within reach, or none");
+    // Removing the middle pole splits the grid.
+    f.remove(IVec3::new(10, 0, 0));
+    run(&mut f, 0.1, |_| {});
+    assert_eq!(f.power.pole_grid.len(), 3);
+    assert!(f.power.wires.is_empty());
+}
+
+#[test]
+fn a_brownout_slows_every_machine_on_the_grid() {
+    use crate::block::{COAL_ORE, GENERATOR, POLE};
+    use crate::item::IRON_ROD;
+    let rods_after = |makers: i32, seconds: f64| {
+        let mut f = Factory::default();
+        place_block(&mut f, POLE, IVec3::new(0, 3, 0));
+        place_block(&mut f, GENERATOR, IVec3::new(0, 4, 0));
+        f.insert(IVec3::new(0, 4, 0), COAL_ORE.into(), 10);
+        for x in 0..makers {
+            rod_maker(&mut f, IVec3::new(x - 3, 0, 0), 20);
+        }
+        run(&mut f, seconds, |_| {});
+        let speed = f.power.speed(f.power.constructor_pole[0]);
+        (f.constructor_at(IVec3::new(-3, 0, 0)).out.count(IRON_ROD), speed, f.power.demand[0])
+    };
+    // One generator (60 kW) runs four constructors (15 kW each) at full speed: a rod per 2 s.
+    assert_eq!(rods_after(4, 8.05), (4, 1000, 60));
+    // Eight need 120 kW: half speed, half the rods.
+    assert_eq!(rods_after(8, 8.05), (2, 500, 120));
+}
+
+#[test]
+fn generators_burn_only_what_their_grid_needs() {
+    use crate::block::{COAL_ORE, GENERATOR, POLE};
+    let mut f = Factory::default();
+    place_block(&mut f, POLE, IVec3::new(0, 3, 0));
+    for x in [0, 1] {
+        place_block(&mut f, GENERATOR, IVec3::new(x, 4, 0));
+        f.insert(IVec3::new(x, 4, 0), COAL_ORE.into(), 2);
+    }
+    run(&mut f, 5.0, |_| {});
+    let fuel = |f: &Factory, x| f.generators.iter().find(|g| g.pos.x == x).unwrap().fuel.total();
+    assert_eq!((fuel(&f, 0), fuel(&f, 1)), (2, 2), "no demand, no burning");
+    // One constructor needs 15 kW: the first generator covers it; the second stays cold.
+    rod_maker(&mut f, IVec3::new(0, 0, 0), 30);
+    let mut f = round_trip(&f);
+    run(&mut f, 17.0, |_| {});
+    assert_eq!((fuel(&f, 0), fuel(&f, 1)), (0, 1), "two coal burned in 16 s, then the second lit");
+    assert!(f.generators[1].running && !f.generators[0].running);
+    run(&mut f, 16.0, |_| {});
+    let c = f.constructor_at(IVec3::ZERO);
+    assert_eq!((c.status, c.out.count(crate::item::IRON_ROD)), (ConstructorStatus::NoPower, 16), "32 s of fuel");
 }

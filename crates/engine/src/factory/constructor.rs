@@ -4,9 +4,10 @@
 //! refused, and with no recipe it takes nothing. Like a box, it pushes one part a tick into the next
 //! belt leading away.
 //!
-//! Invariants: a batch uses up its input when it starts and only starts when its output fits; work
-//! is counted in whole ticks. Changing the recipe hands back the input buffer and an unfinished
-//! batch's input. Unpowered for now; power (step 2.7) will scale its speed.
+//! Invariants: a batch uses up its input when it starts and only starts when its output fits (and
+//! power is there); work is counted in thousandths of a tick at full power, so a grid short of power
+//! (`power.rs`) slows it exactly. Changing the recipe hands back the input buffer and an unfinished
+//! batch's input.
 
 use crate::block::{tex, CONSTRUCTOR};
 use crate::bytes::{ByteReader, ByteWriter};
@@ -18,6 +19,7 @@ use crate::recipes::{machine_recipe, MachineRecipe};
 use super::belt::Belt;
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_INPUT, ROLE_OUTPUT};
+use super::power::{FULL_SPEED, POLE_REACH};
 use super::render::push_box;
 use super::{ticks, Factory, Kind, Machine};
 
@@ -27,14 +29,16 @@ pub enum ConstructorStatus {
     Working,
     NoInput,
     OutputFull,
+    NoPower,
 }
 
 /// Every status, in declaration order: saves store `status as u8`.
-const STATUSES: [ConstructorStatus; 4] = [
+const STATUSES: [ConstructorStatus; 5] = [
     ConstructorStatus::NoRecipe,
     ConstructorStatus::Working,
     ConstructorStatus::NoInput,
     ConstructorStatus::OutputFull,
+    ConstructorStatus::NoPower,
 ];
 
 pub struct Constructor {
@@ -43,9 +47,11 @@ pub struct Constructor {
     pub recipe: Option<u16>,
     pub input: Buffer,
     pub out: Buffer,
-    /// Whether a batch is in progress, and the ticks of work it has had.
+    /// Whether a batch is in progress, and the work it has had (thousandths of a full-power tick).
     pub busy: bool,
     pub progress: u32,
+    /// Last tick's speed from its grid, in thousandths (derived, for the readout).
+    pub speed: u32,
     /// Belt indices leading away from it.
     pub outs: Vec<u32>,
     pub next_out: usize,
@@ -62,6 +68,7 @@ impl Constructor {
             out: Buffer::new(slots),
             busy: false,
             progress: 0,
+            speed: 0,
             outs: Vec::new(),
             next_out: 0,
             status: ConstructorStatus::NoRecipe,
@@ -94,34 +101,56 @@ impl Constructor {
         back
     }
 
-    /// One tick: work on the batch (starting one if it can), then push a part out.
-    pub fn step(&mut self, belts: &mut [Belt]) {
-        self.work();
+    /// One tick at `speed` (thousandths, from its grid): work on the batch (starting one if it can),
+    /// then push a part out.
+    pub fn step(&mut self, belts: &mut [Belt], speed: u32) {
+        self.speed = speed;
+        self.work(speed);
         self.out.feed(&self.outs, &mut self.next_out, belts);
     }
 
-    fn work(&mut self) {
+    /// Whether it would work this tick if powered (its grid counts it as demand).
+    pub fn wants_power(&self) -> bool {
+        self.busy || self.recipe_def().is_some_and(|r| self.blocked(r).is_none())
+    }
+
+    /// Why a new batch of `r` can't start, if it can't.
+    fn blocked(&self, r: &MachineRecipe) -> Option<ConstructorStatus> {
+        let (item, need) = r.inputs[0];
+        let s = self.input.slots[0];
+        if s.is_empty() || s.item != item || s.count < need {
+            Some(ConstructorStatus::NoInput)
+        } else if self.out.space_for(r.output.0) < r.output.1 {
+            Some(ConstructorStatus::OutputFull)
+        } else {
+            None
+        }
+    }
+
+    fn work(&mut self, speed: u32) {
         let Some(r) = self.recipe_def() else {
             self.status = ConstructorStatus::NoRecipe;
             return;
         };
         if !self.busy {
-            let (item, need) = r.inputs[0];
-            let s = self.input.slots[0];
-            if s.is_empty() || s.item != item || s.count < need {
-                self.status = ConstructorStatus::NoInput;
+            if let Some(why) = self.blocked(r) {
+                self.status = why;
                 return;
             }
-            if self.out.space_for(r.output.0) < r.output.1 {
-                self.status = ConstructorStatus::OutputFull;
+            if speed == 0 {
+                self.status = ConstructorStatus::NoPower;
                 return;
             }
-            self.input.take(0, need);
+            self.input.take(0, r.inputs[0].1);
             (self.busy, self.progress) = (true, 0);
         }
+        if speed == 0 {
+            self.status = ConstructorStatus::NoPower;
+            return;
+        }
         self.status = ConstructorStatus::Working;
-        self.progress += 1;
-        if self.progress >= ticks(r.seconds) {
+        self.progress += speed;
+        if self.progress >= ticks(r.seconds) * FULL_SPEED {
             self.out.add(r.output.0, r.output.1);
             (self.busy, self.progress) = (false, 0);
         }
@@ -135,11 +164,15 @@ impl Constructor {
     pub fn status_text(&self) -> String {
         match (self.status, self.recipe_def()) {
             (_, None) => "No recipe: choose what it makes".to_string(),
-            (ConstructorStatus::Working, Some(r)) => format!(
-                "Making {} · {} a minute",
-                item::name(r.output.0),
-                (r.output.1 as f64 * 60.0 / r.seconds).round() as u32
-            ),
+            (ConstructorStatus::Working, Some(r)) => {
+                let rate = (r.output.1 as f64 * 60.0 / r.seconds * self.speed as f64 / FULL_SPEED as f64).round();
+                let slow =
+                    if self.speed < FULL_SPEED { format!(" (low power: {}%)", self.speed / 10) } else { String::new() };
+                format!("Making {} · {} a minute{slow}", item::name(r.output.0), rate as u32)
+            }
+            (ConstructorStatus::NoPower, _) => {
+                format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator")
+            }
             (ConstructorStatus::OutputFull, _) => "Output full: put a belt leading away, or take the parts".to_string(),
             (_, Some(r)) => format!("Waiting for {} {}", r.inputs[0].1, item::name(r.inputs[0].0)),
         }
@@ -151,7 +184,7 @@ impl Constructor {
             block: CONSTRUCTOR,
             recipe: self.recipe,
             choosable: true,
-            progress: if self.busy { self.progress * 1000 / total } else { 0 },
+            progress: if self.busy { self.progress / total } else { 0 },
             fire: 0,
             slots: vec![(ROLE_INPUT, self.input.slots[0]), (ROLE_OUTPUT, self.out.slots[0])],
             status: self.status_text(),
@@ -187,6 +220,9 @@ impl Machine for Constructor {
         c.out = Buffer::read_state(r, slots)?;
         c.busy = r.bool()?;
         c.progress = r.u32()?;
+        if r.version < 7 {
+            c.progress = c.progress.saturating_mul(FULL_SPEED); // whole ticks before power
+        }
         c.next_out = r.u32()? as usize;
         c.status = *STATUSES.get(r.u8()? as usize)?;
         let valid = c.recipe.is_none_or(|i| machine_recipe(CONSTRUCTOR, i).is_some());
@@ -225,7 +261,7 @@ impl Machine for Constructor {
         let lamp = match self.status {
             ConstructorStatus::Working => tex::LAMP_GREEN,
             ConstructorStatus::OutputFull => tex::LAMP_YELLOW,
-            ConstructorStatus::NoRecipe => tex::LAMP_RED,
+            ConstructorStatus::NoRecipe | ConstructorStatus::NoPower => tex::LAMP_RED,
             ConstructorStatus::NoInput => tex::FRAME,
         };
         push_box(out, rel + Vec3::new(0.3, 0.42, 0.3), 0.0, [0.14, 0.1, 0.14], 0.0, [lamp; 3], false);

@@ -115,18 +115,24 @@ size.
 - **A constructor** shapes ingots into parts: iron plates (2 ingots each), iron rods, screws (4 from a rod)
   and copper wire (2 from a copper ingot). Right-click it to choose what it makes; changing the choice
   gives back the ingots it held. Belts bring the input and a belt leading away takes the parts. Parts build
-  splitters and filters, and the machines still to come (power, better miners).
+  splitters and filters, and the machines still to come (better miners).
 - **Splitters and filters** sit in a belt line. A splitter shares items between the belts leading away in
   front, to the left and to the right, skipping any that are full. A filter sends the item you choose in
   its panel straight on and everything else to the sides.
-- **Machine panels.** Right-click a smelter, constructor or filter to see what it's doing, put items in straight
+- **Power.** Constructors, splitters and filters need power; miners and smelters don't. A coal generator burns
+  coal ore or logs (by belt or by hand) into 60 kW, only while its grid needs it. Power poles link to every
+  pole within 10 blocks, and each generator and machine hangs on the nearest pole within 5 (you see the
+  wires). A working constructor draws 15 kW, a splitter or filter 1 kW. Short of power, every machine on the
+  grid slows down to match; with none, it stops.
+- **Machine panels.** Right-click a smelter, constructor, filter or generator to see what it's doing, put items in straight
   from your inventory (ore, fuel, ingots), and take what it made.
 
 Craft machines in the build menu (E): a Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
 wire and 2 belts. Two ramps (up or down) cost an iron plate and 2 belts, two lifts 2 iron rods and 2
-belts, and an underpass entry or exit 2 iron plates and 2 belts. Hand-mining an outcrop or two covers
+belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 12 iron ingots, 8
+copper ingots and 10 stone; two power poles an iron ingot, a copper ingot and a log. Hand-mining an outcrop or two covers
 your first miner. After that, let it do the work.
 
 ## Sound designer
@@ -231,7 +237,7 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
-  23 underpass exit; items: 256 iron ingot, 257 copper ingot, 258 iron
+  23 underpass exit, 24 generator, 25 power pole; items: 256 iron ingot, 257 copper ingot, 258 iron
   plate, 259 iron rod, 260 screws, 261 copper wire.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
@@ -268,7 +274,7 @@ Factory layer (the Satisfactory half):
 - [x] Belts that climb (ramps, lifts) and cross (underpasses)
 - [ ] Miner and belt tiers
 - [ ] Prospecting: find veins and lodes without digging blind
-- [ ] Power grid: generators, poles, consumption
+- [x] Power grid: coal generators, poles, consumption and brownouts
 - [ ] Research, and an optional endgame megaproject that doesn't end the game
 - [ ] Terraforming machines: excavators, graders, tunnel borers
 - [ ] Blueprints and construction drones

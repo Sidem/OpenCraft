@@ -515,7 +515,22 @@ fn right_click_opens_a_panel_whose_buttons_drive_the_machine() {
     g.run_ticks(1);
     assert!(g.machine_wants(c.x, c.y, c.z, IRON_INGOT.0));
     g.insert_into_machine(c.x, c.y, c.z, IRON_INGOT.0);
+    g.skip_time(1.0);
+    assert!(g.machine_status(c.x, c.y, c.z).starts_with("No power"));
+
+    // Power it: a pole beside it and a generator fuelled through its panel.
+    let (pole, gen) = (c + IVec3::new(2, 0, 0), c + IVec3::new(3, 0, 0));
+    for (pos, block) in [(pole, block::POLE), (gen, block::GENERATOR)] {
+        g.sim.world.set_block(pos, block);
+        g.sim.factory.place(&mut g.sim.world, block, pos, 0, pos);
+    }
+    g.act(Action::Give { item: block::COAL_ORE.into(), count: 2 });
+    g.run_ticks(1);
+    assert!(g.machine_wants(gen.x, gen.y, gen.z, block::COAL_ORE as u16));
+    g.insert_into_machine(gen.x, gen.y, gen.z, block::COAL_ORE as u16);
     g.skip_time(7.0);
+    assert_eq!(g.machine_status(gen.x, gen.y, gen.z), "Idle: nothing on its grid needs power");
+    assert_eq!(g.machine_panel(gen.x, gen.y, gen.z)[5], 1, "one fuel slot");
     assert!(g.machine_status(c.x, c.y, c.z).starts_with("Waiting for 2 Iron Ingot"));
     g.take_machine_output(c.x, c.y, c.z);
     g.run_ticks(1);

@@ -149,3 +149,29 @@ fn a_box_screen_moves_stacks_both_ways() {
     sim.apply(P, Action::StoreSlot { pos: pos + IVec3::new(1, 0, 0), slot: 0 });
     assert_eq!(inv(&sim).count(STONE.into()), 30);
 }
+
+#[test]
+fn a_powered_line_works_where_no_chunk_is_loaded() {
+    use crate::block::{COAL_ORE, CONSTRUCTOR, GENERATOR, POLE};
+    use crate::item::{IRON_INGOT, IRON_ROD};
+    let mut sim = Sim::new(7, 2);
+    let at = |dx| IVec3::new(900 + dx, 200, -900);
+    // Each block lands in slot 0, which the previous placement emptied.
+    for (i, block) in [GENERATOR, POLE, CONSTRUCTOR].into_iter().enumerate() {
+        sim.apply(P, Action::Give { item: block.into(), count: 1 });
+        let pos = at(i as i32 * 4);
+        sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos });
+    }
+    let rods = crate::recipes::MACHINE_RECIPES.iter().position(|r| r.output.0 == IRON_ROD).unwrap() as u16;
+    sim.apply(P, Action::SetRecipe { pos: at(8), recipe: rods });
+    sim.apply(P, Action::Give { item: COAL_ORE.into(), count: 1 });
+    sim.apply(P, Action::Give { item: IRON_INGOT, count: 3 });
+    sim.apply(P, Action::Insert { pos: at(0), item: COAL_ORE.into() });
+    sim.apply(P, Action::Insert { pos: at(8), item: IRON_INGOT });
+    for _ in 0..crate::TICK_RATE * 7 {
+        sim.step();
+    }
+    assert!(!sim.world.is_loaded(at(0).as_vec3()), "nothing was streamed in");
+    let out = sim.factory.panel(at(8)).unwrap().slots[1].1;
+    assert_eq!((out.item, out.count), (IRON_ROD, 3), "the pole 4 blocks away powered it");
+}
