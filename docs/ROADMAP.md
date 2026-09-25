@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 2)
+# OpenCraft roadmap (after Milestone 3)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -6,39 +6,7 @@ plan and detail it there (steps with where, how and done-when).
 
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) apply to all of it.
-Every milestone ends with a cleanup step like DEV_PLAN step 2.11.
-
-## Milestone 3: Co-op multiplayer
-
-- **Transport interface** in TypeScript (`send(bytes)`, `onMessage`) with three implementations:
-  - Loopback, for tests,
-  - `BroadcastChannel`, for two tabs on one machine; the fastest way to develop,
-  - WebRTC data channels (reliable, ordered).
-- **Signalling:** a tiny service that swaps connection offers for a room code or link, then steps aside.
-  A small serverless function is enough. Hosting and account are the user's decision (DEV_PLAN section 6).
-  Use public STUN, plus a TURN relay fallback for networks where direct connections fail.
-- **Protocol:**
-  1. `Hello` / `Welcome`: build hash must match, otherwise refuse with a message.
-  2. Snapshot: the compressed save (`save.rs`, `Game.save()`).
-  3. Actions, stamped by the host with `current_tick + input_delay`, where the delay is 3–6 ticks.
-  4. `PlayerState` at 10–20 Hz: position, look, flying.
-  5. Loose item entities, host-authoritative.
-  6. A checksum every ~60 ticks (`state_hash`), with resync from a host snapshot on mismatch.
-- **Prediction:** show your own placed or broken blocks immediately, and roll back if the host rejects the
-  action. Your own movement is local (co-op trust model).
-- **Host streaming:** the host needs block data around every player for item physics. Load around all
-  players, but mesh only around the local one.
-- **Sim in a Web Worker.** Browsers pause `requestAnimationFrame` in background tabs, so a host that
-  switches tabs would freeze everyone. Spike first:
-  - (a) Zero-copy needs `SharedArrayBuffer`, which needs COOP/COEP headers. GitHub Pages can't set headers;
-    the `coi-serviceworker` workaround exists.
-  - (b) Alternatively, transfer mesh and instance buffers as transferable `ArrayBuffer`s (one copy).
-  - (c) Verify how timers in dedicated workers behave in hidden tabs.
-  - Decide from measurements.
-- **UI:** Host game → share link; Join via link; player list and names; remote players drawn as simple
-  box avatars through the instance renderer.
-- **Later:** a dedicated server. The engine crate compiles natively (feature-gate wasm-bindgen) and speaks
-  WebSocket, with `libm` on both sides for identical math.
+Every milestone ends with a cleanup step like DEV_PLAN step 3.10.
 
 ## Milestone 4: Reasons to explore
 
@@ -97,4 +65,6 @@ Every milestone ends with a cleanup step like DEV_PLAN step 2.11.
   costly.
 - A world settings screen: ore richness, deposit size, peaceful toggle.
 - Catch-up on return: factories run forward for the time the game was closed, capped (DEV_PLAN section 6).
-- Weather, mod support, a native dedicated server (see Milestone 3).
+- Weather, mod support.
+- A dedicated server: the engine crate compiles natively (feature-gate wasm-bindgen) and speaks WebSocket,
+  with `libm` on both sides for identical math. Co-op itself is player-hosted (DEV_PLAN Milestone 3).

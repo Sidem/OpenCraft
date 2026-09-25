@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.10 done · **Next up: step 2.11
-(milestone cleanup)**.
+**Status:** 2026-09-25 · Milestones 1 and 2 done · **Next up: Milestone 3 (co-op), step 3.1 (actions on
+the wire)**.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -16,21 +16,22 @@ next. README.md covers setup and how the game works for players; this file cover
 
 ## 0. Handover: read this first
 
-You are picking up a working browser game (Rust → wasm engine, TypeScript/WebGL2 host). The extraction
-concept (finite ore deposits, lossy hand mining, efficient miners, belts, boxes) is built and live at
+You are picking up a working browser factory game (Rust → wasm engine, TypeScript/WebGL2 host), live at
 <https://sidem.github.io/OpenCraft/>.
 
 - **Milestone 1 (Foundation) is done** (section 8): a fixed 60 Hz tick, a deterministic core changed only
   by actions, several players in the engine, state hashes, and worlds that save in the browser.
-- **The next job is Milestone 2: Make it a game** (section 4): items separate from blocks, a smelter and
-  constructor, belt logistics, power, research and upgrades.
+- **Milestone 2 (Make it a game) is done** (section 8): items, smelter, constructor, belt logistics, power,
+  research with science packs, Mk2 upgrades and onboarding tips.
+- **The next job is Milestone 3: Co-op** (section 4): 2–4 players in one world over WebRTC, with the host's
+  browser as the authority and a small Cloudflare service to connect them.
 
 Before you change code:
 
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (109 engine tests).
+   (113 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -79,15 +80,18 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-25 | **Upgrades raise recovery**, not just speed (Mk2 miner ≈ 75%), so upgrading extends a deposit's life. |
 | 2026-09-25 | **Bulk materials** (stone, sand, clay, gravel) stay effectively infinite for quarries. |
 | 2026-09-25 | **Approach for co-op** (proposed by Claude, adopted with this plan): player-hosted over WebRTC; a deterministic simulation core driven by tick-stamped actions (Factorio-style); player movement and loose items replicated from the host. Revisit only if Milestone 3 prototyping shows a real problem. |
+| 2026-09-25 | **Co-op hosting on Cloudflare**: a Cloudflare Worker for signalling and Cloudflare TURN as the relay. The user owns the account. |
+| 2026-09-25 | **Co-op size: 2–4 players.** This sets the bandwidth and performance budgets. |
 
 ### Proposed, not yet confirmed by the user
 
-- The Miner Mk1 and the smelter stay unpowered (a burner tier); newer machines need power (step 2.7).
-- Old saves keep loading across format changes where a migration is cheap (Milestone 2 rules).
+- The Miner Mk1 and the smelter stay unpowered (a burner tier); newer machines need power. Built this way.
+- Old saves keep loading across format changes where a migration is cheap. Every save since version 1
+  still loads.
 
 ---
 
-## 2. Where the code stands (after Milestone 1)
+## 2. Where the code stands (after Milestone 2)
 
 ### Architecture
 
@@ -96,11 +100,12 @@ Rust owns all game state and hot loops (`crates/engine`, compiled to wasm with w
 box instances, sound events, textures) is read zero-copy from wasm memory through `*_ptr` / `*_count`
 accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs` and acts
 for the local player (`Game.local`). The deterministic core is `Sim` (`sim.rs`: tick, world, factory with
-deposits, each player's inventory, rng); `Sim::state_hash` fingerprints it through the canonical encoding
-in `bytes.rs`, which `save.rs` also reads back for saves. The authority (`authority.rs`) owns every
-player's body and the loose items. The local player's hands (mining, placing, footsteps) live in `interaction.rs`. `Game`
-changes the core only by queuing `Action`s (`action.rs`), applied at the next tick; the core answers with
-`SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
+deposits and research, each player's inventory, rng); `Sim::state_hash` fingerprints it through the
+canonical encoding in `bytes.rs`, which `save.rs` also reads back for saves. The authority
+(`authority.rs`) owns every player's body and the loose items. The local player's hands (mining, placing,
+footsteps) live in `interaction.rs`. `Game` changes the core only by queuing `Action`s (`action.rs`),
+applied at the next tick; the core answers with `SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps
+every module.
 
 Each frame, `web/src/main.ts`:
 
@@ -116,39 +121,35 @@ Each frame, `web/src/main.ts`:
 
 - **World:** 32³ chunks, 256 tall; seeded terrain with cliffs, caves and trees; greedy mesher with AO;
   streaming nearest-first; edits kept when chunks unload (`World.saved`).
-- **Deposits** (`deposits.rs`, placed by `worldgen/ore.rs`):
-  - Outcrops, veins and lodes of coal, iron and copper. The tiers are outcrop 100 units per block with a
-    60/min shared draw cap, vein 1,000 with 240/min, and lode 2,000 with 1,200/min.
-  - A pool is shared per deposit. Output tapers over the last 20%, and the block nearest the miner
-    becomes `SPENT_ROCK` for each block's worth drawn, even in unloaded chunks.
-  - Ownership is deterministic: the first deposit in `DepositKey` order wins.
-  - Hand mining keeps `HAND_YIELD` = 3 per block and costs the deposit one block.
-- **Factory** (`factory/`, one file per machine kind, a machine table and a `Machine` trait):
-  - The Miner Mk1 draws 1 unit/s and recovers 60%.
-  - Belts move 1 block/s, with per-cell item lists, side-joins, corners and back-pressure.
-  - Storage boxes hold 24 slots and push into belts leading away.
-  - The smelter melts ore into ingots with coal or logs as fuel (`MACHINE_RECIPES`, `FUELS` in
-    `recipes.rs`); belts and miners deliver into it through `links.rs` (`Sinks`).
-  - The constructor makes one input into parts (plates, rods, screws, wire) with the recipe chosen in
-    its panel. Right-click on a smelter or constructor opens the machine panel (`factory/panel.rs`,
-    `ui/machine.ts`): status, progress, buffers, recipe choice, put-in and take buttons.
-  - Machine models are drawn as instanced boxes, and status readouts come from `describe`.
+- **Deposits** (`deposits.rs`, placed by `worldgen/ore.rs`): outcrops, veins and lodes of coal, iron and
+  copper (100 / 1,000 / 2,000 units per block, shared draw caps 60 / 240 / 1,200 per minute). A pool is
+  shared per deposit, output tapers over the last 20%, and blocks turn to `SPENT_ROCK` as it drains, even
+  in unloaded chunks. Hand mining keeps `HAND_YIELD` = 3 per block and costs the deposit one block.
+- **Factory** (`factory/`, one file per machine kind, the `MACHINES` table and a `Machine` trait; one kind
+  can serve several blocks through extra table rows):
+  - Miners: Mk1 (1 unit/s, 60% recovery, unpowered) and Mk2 (2 units/s, 75%, 20 kW).
+  - Belts (1 block/s; fast belts 2) with side-joins, corners, back-pressure, ramps, lifts and underpasses
+    (`belt_shape.rs`); splitter and filter (`router.rs`); storage boxes (24 slots, open like a chest).
+  - Smelter (ore plus coal or logs → ingots) and constructor (ingots → plates, rods, screws, wire), with
+    machine recipes and fuels as data (`recipes.rs`). Right-click opens a machine panel (`panel.rs`,
+    `ui/machine.ts`): status, buffers, recipe or filter choice, put-in and take buttons.
+  - Power (`power.rs`): coal generators, poles that link within 10 blocks into grids, machines on the
+    nearest pole within 5, brownouts as a speed factor.
+  - Research labs (`lab.rs`) working through the tech tree (`research.rs`, key R) with red and green
+    science packs; six techs unlock routing, climbing, underpasses, green packs, Mk2 and fast belts.
+  - Models are instanced boxes; status readouts come from `describe`.
 - **Inventory** (`inventory.rs`): 36 slots (hotbar 0–8), a cursor stack, click, shift-click and
-  quick-move.
-- **Crafting** (`recipes.rs`): hand recipes for every machine and the science packs, used by the build
-  menu (`web/src/ui/inventory.ts`, key E), which greys out recipes research still locks.
-- **Research** (`research.rs`, `factory/lab.rs`, `ui/research.ts`, key R): a four-tech tree (Belt Routing,
-  Belt Climbing, Green Science, Underpasses) that labs work through with red and green science packs.
+  quick-move. **Crafting** (`recipes.rs`): hand recipes in the build menu (key E), greyed while locked.
+- **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): seven tips from finding ore to research.
+- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–28, see
+  `block.rs`); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
+  science packs. Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
-- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–16: AIR,
-  STONE, DIRT, GRASS, SAND, LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER,
-  STORAGE, SMELTER, CONSTRUCTOR); from 256: iron ingot, copper ingot (from the smelter), iron plate, iron
-  rod, screws, copper wire (from the constructor; no use yet, power and Mk2 will use them). Every item is drawn as a textured box.
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them.
-- **Size:** about 155 KB gzipped in total (wasm 118.3 KB, JS 31.4 KB, CSS 4.6 KB).
+  exports and imports them. Save version 9; every version since 1 loads.
+- **Size:** about 158 KB gzipped in total (wasm 120.3 KB, JS 31.8 KB, CSS 4.7 KB).
 
 ### Known limitations and technical debt
 
@@ -161,6 +162,8 @@ Each frame, `web/src/main.ts`:
 5. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
    order of sound materials and event kinds. Replace them with getters when touching that code.
 6. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
+7. Balance is untested by real play: pack costs, research times and Mk2 costs will need tuning
+   (`docs/WORKFLOW.md` section 6 lists the numbers).
 
 ---
 
@@ -194,7 +197,7 @@ you measure and defend.** If a change would break these rules, restructure first
 - **Boring, explicit code.** Shallow call chains, no macro tricks, no deep generic towers, no ECS framework.
   Plain data-oriented modules: typed storage in `Vec`s plus one function per system. Don't build
   abstractions ahead of need. Introduce a registry when the second instance of a kind arrives (e.g. the
-  machine registry, step 2.2, as the smelter arrives).
+  machine registry arrived with the smelter).
 
 **Size budgets** (enforced by `scripts/check-size.mjs`, part of `npm run check`)
 
@@ -233,7 +236,8 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
   them only when working in that folder, so they cost nothing elsewhere. Keep them short.
 - **This plan details only the current milestone.** When a milestone finishes, compress it into section 8
   (a few lines) and move the next milestone in from `docs/ROADMAP.md`, detailed to the level of the
-  current one (steps with where, how and done-when). Future milestones stay as short bullet lists in the roadmap, which is read only when planning.
+  current one (steps with where, how and done-when). Future milestones stay as short bullet lists in the
+  roadmap, which is read only when planning.
 - **Operational reference lives in `docs/WORKFLOW.md`** (commands, verification, gotchas); read only the
   section you need.
 - The root `CLAUDE.md` holds rules and pointers only.
@@ -256,7 +260,7 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 - Read line ranges and symbols, not whole files. Use the code map. For a broad search, use a search
   sub-agent so only its conclusion enters the main context.
 - End every session by updating this plan (checkboxes, status, change log) and the code map.
-- **Every milestone ends with a cleanup step** (see step 2.11): size check clean, code map current, plan
+- **Every milestone ends with a cleanup step** (see step 3.10): size check clean, code map current, plan
   compressed, dead code gone.
 
 ### 3.2 Performance
@@ -276,8 +280,9 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 
 ### 3.4 Determinism (required for co-op; enforced from Milestone 1)
 
-The **deterministic core** (world edits, factory, deposits, inventories, crafting) must produce identical
-state on every machine given the same seed and the same actions. Therefore core code must not depend on:
+The **deterministic core** (world edits, factory, deposits, inventories, crafting, research) must produce
+identical state on every machine given the same seed and the same actions. Therefore core code must not
+depend on:
 
 - frame time: advance only in fixed ticks,
 - which chunks happen to be loaded or meshed locally: use the `*_anywhere` accessors, which generate or
@@ -300,180 +305,182 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Milestone 2: Make it a game (NEXT)
+## 4. Milestone 3: Co-op (NEXT)
 
-**Goal:** turn the extraction slice into a factory game. Items become separate from blocks. Ore goes through
-a processing chain (smelter, then constructor). Belts get real logistics, machines get power, and research
-and upgrades give progression. Everything stays deterministic, saved and hashed like Milestone 1's core,
-and every machine is a registry entry, not a special case.
+**Goal:** 2–4 players build in one world together. One player's browser hosts: it runs the world, saves
+it, and orders everyone's actions. Every peer runs the same deterministic core from the same actions
+(lockstep), so only actions travel, not world state. Movement is each player's own (co-op trust), and the
+host alone runs loose items. Peers connect over WebRTC data channels; a Cloudflare Worker introduces them
+and Cloudflare TURN relays when a direct connection fails.
+
+How lockstep works here:
+
+- Each peer sends its local actions to the host. The host stamps each with a tick,
+  `current_tick + INPUT_DELAY` (4 ticks to start, tuned in play within 3–6), queues it and sends it to
+  every peer. The host's own actions take the same path, so it has no advantage.
+- The host sends one **frame** per tick it runs: the tick number plus the actions it stamped during that
+  tick (usually none). A client steps its core only through the last tick it has a frame for. When frames
+  arrive late it waits, then catches up (at most 8 extra ticks per rendered frame, as today).
+- Every 60 ticks each peer compares `state_hash` with the host's. A mismatch is a bug: log it with the
+  tick, then resync from a fresh host snapshot.
 
 Rules for every step:
 
-- New core state goes in its type's `write_state` / `read_state` (hash and saves).
-- A save format change bumps `SAVE_VERSION`. Players have worlds now, so **migrate older saves when it's
-  cheap** (a version-aware read). Refuse them with the existing message only when it isn't.
-- A world generation change bumps `WORLDGEN_VERSION`.
-- Balance numbers are named constants; record them in `docs/WORKFLOW.md` section 6.
-- Browser proof: build the chain, save, reload, screenshot. Tests first.
+- The core never learns about the network. Networking moves actions, snapshots and presentation state
+  (bodies, loose items) only. Solo play takes exactly today's path, and its golden hash stays unchanged
+  unless core state changes on purpose.
+- Engine networking lives in `net/` (Rust) with its API in `api/net.rs`; the host side lives in
+  `web/src/net/`, one file per concern. The Worker lives in `signal/`.
+- **The dev loop is two tabs on one machine** over `BroadcastChannel` (step 3.3), and before that two
+  `Game`s wired together in a Rust test. WebRTC comes only once everything works over the channel.
+- Budgets for 4 players: a star through the host (clients talk only to the host), under ~10 KB/s per
+  client outside snapshots, and the host's frame time under 2 ms more than solo.
+- A save format change bumps `SAVE_VERSION` and migrates older saves.
+- Accounts and deploys on Cloudflare are the user's: agents write the code and the steps in
+  `docs/WORKFLOW.md`, and the user runs the login and deploy commands.
 
 ### Steps
 
-- [x] **2.1 Item registry** (`item.rs` new; `inventory.rs`, `recipes.rs`, `factory/`, `entities.rs`,
-  `action.rs`, `api/`, `web/src/ui/`)
-  - `ItemId(u16)` newtype and an `ITEMS` table (name, stack size, icon, the block it places). **Ids below
-    256 are the blocks with the same number**, so today's ids and saves stay valid. Non-block items
-    start at 256.
-  - Stacks, recipes, belts, boxes, miners' buffers, loose items and events carry `ItemId`. Placing asks
-    the table for the block. `ByteReader::block` for items becomes `item` (validated against the table).
-  - Icons: procedural 16×16 icons for non-block items (texture layers or a small icon atlas), read by TS
-    through the API like block textures. `hud.blockIcon` becomes `itemIcon`. No constants mirrored in TS.
-  - First non-block items: iron ingot and copper ingot (no source until 2.3; `give` works).
-  - Save: `SAVE_VERSION` 2 writes `u16` item ids; version-1 saves still load.
-  - *Done:* icons are isometric boxes (`item_icon`: three texture layers plus box proportions), so
-    ingots are small bars in the HUD, on belts and on the ground; `ByteReader::version` reads v1 saves.
-  - **Done when:** all tests pass on `ItemId`; a test loads a version-1 save made before the change
-    (commit the bytes as a test fixture); `give` shows ingots with icons in the inventory.
+- [ ] **3.1 Actions on the wire** (`action/codec.rs`, `net/mod.rs`, `lib.rs`, `api/net.rs`)
+  - A submodule `action/codec.rs` (beside `action/tests.rs`): each `Action` writes to and reads from bytes
+    (`ByteWriter` / `ByteReader`), validated like save reads: bad bytes give `None`, never a panic. One
+    exhaustive `match` each way, so a new action can't be forgotten.
+  - `Game` gets a role: `Solo` (today), `Host` or `Client`. Outside `Solo`, `Game::act` puts the local
+    player's actions in an outbox (`take_outbox() -> Vec<u8>`) instead of queuing them.
+  - Host: `host_stamp(player, bytes)` stamps a peer's actions and queues them; after each tick the host
+    produces that tick's frame (`take_frames() -> Vec<u8>`, all ticks run this frame).
+  - Client: `push_frames(bytes)` queues the actions and moves the confirmed tick forward; `run_tick`
+    keeps stepping bodies and hands every tick, but `Sim::step` only through the confirmed tick.
+  - **Done when:** a round-trip test covers every `Action` variant, and garbage bytes fail cleanly. A
+    Rust test wires a host `Game` and a client `Game` (made from the same seed) through byte buffers: both
+    players act (break, place, craft, build a small line), and the hashes match at every 60th tick,
+    including when the client's frames arrive in late bursts.
 
-- [x] **2.2 Machine registry** (restructure only, no behaviour change; `factory/`)
-  - First add a golden test: the scripted 6,300-tick run in `sim/tests.rs` ends at a recorded
-    `state_hash`. The refactor must not change it.
-  - Keep typed storage per kind (a `Vec` per machine struct, no trait objects). Each kind's file exposes
-    the same functions (`step`, `outputs`, `describe`, `model`, `write_state` / `read_state`,
-    `contents`), and `mod.rs`, `links.rs`, `describe.rs` and `render.rs` each dispatch through one
-    `match` on `Slot`.
-  - A machine table (block id → kind, name, buffer sizes) replaces scattered per-kind constants.
-  - Shared input/output buffers (`factory/buffer.rs`) for the processing machines to come.
-  - *Done:* a small `Machine` trait (static dispatch) holds each kind's bytes, contents, readout and
-    model; placement moved from `action.rs` into `Factory::place`; miners and boxes hold a `Buffer`.
-    Adding a machine still touches a few `match`es and loops in `mod.rs`, all found by the compiler.
-  - **Done when:** same tests and golden hash. The code map's "How to add a machine" shrinks to: its
-    file, a `Slot` variant, a table row, a hand recipe. `factory/mod.rs` stays under 400 lines.
+- [ ] **3.2 Joining and returning players** (`net/snapshot.rs`, `sim.rs`, `authority.rs`, `save.rs`)
+  - A join snapshot is the save bytes (`save_bytes`) plus the actions already queued for future ticks
+    (the codec from 3.1), since those aren't in a save. `Game::from_snapshot(bytes, local)` starts a
+    client; the host queues the joiner's `Join` in the same order as any other action.
+  - Players have a **key**: a random id each browser keeps in `localStorage` and sends when joining.
+    `Leave` keeps the inventory and position under that key (`Sim.away`, saved and hashed), and `Join`
+    with a known key gives them back. This fixes limitation 1's lost inventory.
+  - The host's save stores the away players. Clients never save the host's world (`save/session.ts`
+    skips autosave for a client).
+  - Save version 10 (away players). Version 9 and older still load with none.
+  - Cap: 4 players (`MAX_PLAYERS`, easy to raise). A fifth gets a readable refusal.
+  - **Done when:** a test has the host run a factory for a while, a client join mid-run, and the hashes
+    match 600 ticks later; a player who leaves and rejoins gets their inventory back; a save round trip
+    keeps away players; a version-9 save loads.
 
-- [x] **2.3 Smelter** (`factory/smelter.rs`, a machine recipe table, block, textures, model)
-  - Machine recipes are data: `{ machine, inputs, outputs, seconds }` (in `recipes.rs` or a new
-    `processing.rs` if it grows).
-  - The smelter takes ore plus fuel (coal ore or logs, each with a burn time) and makes ingots. The
-    recipe follows the ore it's given. Belts deliver into it (items sorted into the ore or fuel buffer),
-    and it pushes ingots into a belt leading away, like a box. Right-click takes its output.
-  - `describe` shows status (working, no fuel, no ore, output full) and rates; the model shows a lamp.
-  - A hand recipe builds it (stone plus iron ore).
-  - **Done when:** a scenario test runs miner → belt → smelter, with coal fed from a box, → ingots in a
-    box at the computed rate. The state hash test covers a smelter. Browser screenshot of the line.
+- [ ] **3.3 Transport and two tabs** (`web/src/net/transport.ts`, `broadcast.ts`, `protocol.ts`,
+  `session.ts`; `main.ts` one registration)
+  - `Transport`: `send(bytes)`, `onMessage`, `onClose`, `close()`. Implementations: `Loopback` (a pair,
+    for tests and debugging) and `BroadcastChannel` (a room name, for tabs on one machine).
+  - `protocol.ts`: a one-byte message type, then the payload. `Hello` (build id, player key, name),
+    `Welcome` (player id, snapshot) or `Refuse` (a readable reason), `Actions` (client to host),
+    `Frames` (host to clients), `Checksum` (tick, hash), `Bye`. The build id comes from the build (Vite
+    `define` with the git commit); a mismatch is refused with "the host runs a different version".
+  - `session.ts` runs the host or client side each frame: send the outbox, deliver frames, compare
+    checksums, and turn a closed transport into `Leave`.
+  - For now, `?host=<room>` and `?join=<room>` in the URL start a session (the UI is step 3.7).
+  - **Done when:** two tabs play one world: a block placed or a machine built in either tab shows in
+    both, a miner fills a box that both see, and checksums match for 10 minutes (the console shows one
+    line per mismatch, and there should be none). Screenshots of both tabs.
 
-- [x] **2.4 Machine panel and constructor** (`ui/machine.ts` + `.css`, `factory/constructor.rs`,
-  `api/machine.rs`)
-  - Right-click on a machine with a panel opens it: recipe choice, buffers, status, and a take-output
-    button. Right-click on a box keeps taking everything.
-  - New action `SetRecipe { pos, recipe }`. Changing the recipe returns buffered inputs to the player.
-  - The constructor makes one input into parts, with the recipe chosen in the panel: iron plate, iron
-    rod, screws (from rods) and copper wire. New items join the table.
-  - Hand recipes may start asking for parts (e.g. a Miner Mk1 needs plates). Tune numbers after
-    playing.
-  - **Done when:** a scenario test (ingots → constructor set to plates → plates in a box); the panel
-    works in the browser; a save round trip keeps recipes and buffers.
-  - *Added:* an `Insert` action and put-in buttons in the panel, so ore and fuel can go into a smelter by
-    hand (in 2.3, fuel could only come from a miner on coal). *Done:* no hand recipe asks for parts yet;
-    the parts get their first uses in 2.7 (generator, poles) and 2.9 (Mk2).
+- [ ] **3.4 Seeing each other** (`net/players.rs`, `authority.rs`, `render.rs` or a new
+  `avatars.rs`, `web/src/net/session.ts`)
+  - `PlayerState` at 20 Hz: position, look and flying. The host relays each player's state to the
+    others. Remote bodies take the latest state and are smoothed between updates. Only the local body
+    runs physics.
+  - Avatars: a simple box body and head per remote player, drawn through the instance renderer, with the
+    name shown above it (a DOM label, positioned in TS).
+  - Loose items: only the host runs item physics and pickups, and sends the items near each client at
+    10 Hz (id, item, position). Clients draw that list and don't simulate items.
+  - Host streaming: the host generates chunks around every player (no meshing for remote ones), so item
+    physics works where remote players are. Limitation 1 goes away.
+  - **Done when:** two tabs show each other's avatar moving smoothly; an item thrown in one tab lands in
+    both and is picked up by whoever walks over it; the host's frame time is measured with 4 players
+    (2 extra added with `add_player`) and recorded here.
 
-- [x] **2.5 Belt logistics: splitter and filter** (`factory/router.rs`)
-  - Splitter: one input, round robin to up to three outputs, skipping blocked ones. Belts side-joining
-    already merge, so no merger block unless play shows a need.
-  - Filter: the chosen item goes straight on, everything else to the sides. The item is set in the
-    machine panel (2.4).
-  - **Done when:** tests for round robin with a blocked output and for filtering; save round trip.
-  - *Done:* one `Router` machine kind serves both blocks (`MACHINES` gained a second row per kind). The
-    splitter and filter recipes are the first to use parts (plates, wire).
+- [ ] **3.5 A host in a hidden tab keeps ticking** (spike, then build; `web/src/net/` or `main.ts`)
+  - Browsers pause `requestAnimationFrame` in background tabs and throttle timers, so a host that
+    switches tabs would freeze everyone. Measure the options for 10 minutes each in a hidden tab:
+    - (a) a tiny dedicated Worker that posts 60 Hz messages to the main thread, which runs
+      `game.update` without rendering while hidden (cheapest, try first),
+    - (b) the whole engine in a Worker, with meshes and instances sent as transferable buffers (one
+      copy),
+    - (c) the engine in a Worker with `SharedArrayBuffer` (needs COOP/COEP headers; GitHub Pages can't
+      set them, so it needs `coi-serviceworker`).
+  - Pick the cheapest that keeps a steady tick rate, and record the numbers here.
+  - **Done when:** a host tab hidden for 10 minutes keeps a client in step (no growing lag, no checksum
+    mismatch).
 
-- [x] **2.6 Belt logistics: climbing and crossing** (`factory/belt_shape.rs`, `factory/links.rs`)
-  - Ramps: a belt that rises or falls one block per cell. A vertical lift for taller climbs. An
-    underpass that carries items under a crossing belt for a few cells.
-  - Everything stays on the grid (free-form curves fight the voxels).
-  - **Done when:** tests for items going up a ramp, up a lift and under a crossing; screenshot.
-  - *Done:* five belt blocks share `Kind::Belt` with a saved `shape`. Items cross an underpass
-    instantly (hidden under the hoods); a lift entered from the side of a stack pops to its centre.
+- [ ] **3.6 WebRTC and Cloudflare signalling** (`signal/` Worker, `web/src/net/webrtc.ts`)
+  - `signal/`: a Cloudflare Worker with one Durable Object per room. `POST /room` gives a short room
+    code; a WebSocket on `/room/<code>` passes WebRTC offers, answers and ICE candidates between the
+    host and each joiner, then steps aside. `GET /ice` returns public STUN plus short-lived Cloudflare
+    TURN credentials (the Worker keeps the TURN key as a secret). It gets its own `tsconfig.json`, which
+    `npm run check` typechecks. No game logic in the Worker.
+  - `webrtc.ts`: a `Transport` over one reliable, ordered data channel per peer; the host holds one per
+    client.
+  - The user creates the Cloudflare account, runs `npx wrangler login` and `npx wrangler deploy`, and
+    sets the TURN secrets. The steps go in `docs/WORKFLOW.md`, and the Worker's URL goes in one constant
+    in `web/src/net/`.
+  - **Done when:** two browsers on different machines play together through the live site, and a
+    session forced through the relay (`iceTransportPolicy: 'relay'`) works too.
 
-- [x] **2.7 Power** (`factory/power.rs`, generator and pole blocks, wire instances)
-  - A coal generator burns fuel into power. Poles link with wires to other poles and machines in range.
-    Placing a pole links it to the nearest pole automatically, and wires are drawn as thin boxes.
-  - The grid is a graph. Its connected components are derived data, rebuilt when poles or machines
-    change. Each component's supply over its demand gives a speed factor for its consumers.
-  - Consumers: the constructor, splitter and filter, and the Mk2 machines of 2.9. The Miner Mk1 and the
-    smelter stay unpowered (the burner tier). This is a proposal; see section 1.
-  - Readouts show supply, demand and speed.
-  - **Done when:** tests for components, a brownout halving speed, and poles in unloaded chunks; save
-    round trip; screenshot of a powered line.
-  - As built: machines hang on the nearest pole within `POLE_REACH` (no explicit machine wires), and poles
-    link to every pole within `WIRE_RANGE`, so placing is all the wiring there is. Generators burn in list
-    order only until supply meets demand. Constructor progress counts thousandths of a tick.
+- [ ] **3.7 Co-op UI** (`ui/coop.ts` + `.css`)
+  - Menu: "Host this world" gives a share link (`?join=<code>`) and the code. "Join" takes a link or a
+    code. Each player sets a name, kept in `localStorage`.
+  - In game: a player list (Tab) with names and ping; notices when someone joins or leaves; a readable
+    message when a join is refused or the connection drops. When the host leaves, the session ends for
+    everyone, and clients return to the menu.
+  - **Done when:** a friend can join from a pasted link with no URL editing, and every failure case
+    (wrong version, full world, host gone, no connection) shows a message a player understands.
 
-- [x] **2.8 Research** (`research.rs`, a station block or a delivery point, `ui/research.ts`)
-  - The user chose Factorio-style research: labs use science packs crafted from parts.
-  - The tech tree is data in Rust: nodes with costs and the recipes they unlock. Research state is core
-    state (saved, hashed, shared by all players in a world). The build menu hides or greys locked recipes.
-  - Start small: about six nodes covering the constructor, logistics, power and Mk2.
-  - **Done when:** tests for unlocking and for locked recipes being refused by `Craft`; a screenshot of
-    the research screen.
-  - As built: a research lab (`factory/lab.rs`, powered, 10 kW) holds one stack per pack kind; each unit
-    of the chosen tech uses one of each of its packs and 5 or 10 s of lab time; labs never start more units
-    than a tech has left. Red packs (plate + 2 wire) and green packs (2 belts + 4 screws) are hand recipes.
-    Four techs: Belt Routing (splitter, filter), Belt Climbing (ramps, lift), Green Science (the green
-    pack), Underpasses (red + green). The constructor, generator and poles stay unlocked, since the first
-    packs need them. The research screen (R) chooses the tech; a HUD tracker shows progress and a notice
-    when a tech is done.
+- [ ] **3.8 Resync and robustness** (`web/src/net/session.ts`, `net/snapshot.rs`)
+  - On a checksum mismatch the client asks for a fresh snapshot and reloads from it, keeping its own
+    body and view. It logs the tick and both hashes, so the bug can become a replayable test.
+  - A client that falls more than about 5 seconds behind resyncs the same way. A silent peer times out
+    and leaves.
+  - **Done when:** a test forces a mismatch (a debug action that changes one client's core) and the
+    client recovers to matching hashes; a tab closed abruptly leaves cleanly on the host.
 
-- [x] **2.9 Upgrades** (`factory/miner.rs`, `factory/belt.rs`, recipes, `research.rs`)
-  - Confirmed by the user: upgrades raise recovery, not just speed.
-  - Miner Mk2: recovery about 75%, rate about 2 units/s, needs power, crafted from parts. Fast belt:
-    2 blocks/s. Both unlocked by research: append techs "Miner Mk2" and "Fast Belts" to `TECHS`, needing
-    Green Science and costing red + green packs.
-  - As built: `Miner.mk2` and `Belt.fast` on the existing kinds (extra `MACHINES` rows). The Mk2 draws
-    20 kW; power now balances at the start of each tick so miners see this tick's supply. One Mk2 makes
-    1.5 ore/s at most, which a plain belt (2.9 items/s) already carries; a fast belt carries 5.7.
-  - **Done when:** tests show Mk2 extracting more ore from the same deposit than Mk1; a fast belt keeps up
-    with a Mk2.
+- [ ] **3.9 Instant feedback for your own edits** (only if play shows it's needed; `interaction.rs`)
+  - A client sees its own actions after the round trip plus `INPUT_DELAY`, about 100–200 ms. If placing
+    and breaking feel laggy, show your own block edits at once in the render cache only, and undo that
+    when the core disagrees once the action applies. The core stays untouched.
+  - **Done when:** measured in play; built only if it helps, otherwise noted here as skipped.
 
-- [x] **2.10 Onboarding hints** (`ui/hints.ts` + `.css`)
-  - Short hints in plain language, shown in order, one at a time, dismissable: dig to find the outcrop,
-    craft a miner, place it against ore, add belts and a box, build a smelter.
-  - Progress comes from engine getters (items owned, machines placed). Which hints were dismissed is UI
-    state in `localStorage`, not game state.
-  - **Done when:** a new world walks through the hints in the browser; screenshot.
-  - As built: the hints are engine data (`hints.rs`: text plus a check), so TS mirrors no ids; progress
-    is the index after the last hint done, so later steps imply earlier ones. Seven tips, the last two
-    on power and research. H skips a tip; the menu can show skipped tips again.
-
-- [ ] **2.11 Milestone cleanup** (every milestone ends with this step)
+- [ ] **3.10 Milestone cleanup** (every milestone ends with this step)
   - `npm run check` passes with no size warnings. Split anything that grew past its soft limit.
-  - Remove dead code and leftover old paths from the refactors.
+  - Remove dead code and leftover old paths.
   - The code map matches the tree, and the nested `CLAUDE.md` files are current.
-  - Compress this plan: Milestone 2 becomes a few lines in section 8. Move Milestone 3 from
-    `docs/ROADMAP.md` into section 4 and detail it to this level. Ask the user the open questions tagged
-    M3 (section 6) before detailing it.
+  - Compress this plan: Milestone 3 becomes a few lines in section 8. Move Milestone 4 from
+    `docs/ROADMAP.md` into section 4 and detail it to this level. Ask the user the open questions for
+    M4 (section 6) before detailing it.
 
 **Suggested commits:** one per step, or per clean part of a step. Every commit passes `npm run check`, and
 the game still works.
 
 ---
 
-## 5. Roadmap after Milestone 2
+## 5. Roadmap after Milestone 3
 
-Milestones 3–7 (co-op, exploration, terrain and scale, fluids and depth, endgame) are in
-`docs/ROADMAP.md`. Read it only when planning the next milestone; step 2.11 moves Milestone 3 from there
-into this plan.
+Milestones 4–7 (exploration, terrain and scale, fluids and depth, endgame) are in `docs/ROADMAP.md`. Read
+it only when planning the next milestone; step 3.10 moves Milestone 4 from there into this plan.
 
 ---
 
 ## 6. Open questions for the user
 
-Ask these when the milestone that needs the answer comes up, not before. The M2 ones were asked when
-Milestone 2 was planned (step 1.9); record the answers in section 1 and adjust the steps.
+Ask these when the milestone that needs the answer comes up, not before. Record the answers in section 1
+and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M2 (2.7) | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Default: yes; built that way in 2.7, easy to change.) |
-| M2 or later | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
-| M3 | Where to host the signalling service and TURN relay (needs an account, e.g. Cloudflare)? |
-| M3 | Target co-op size (2–4? up to 8?). Sets bandwidth and performance budgets. |
+| Any time | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Built that way; easy to change.) |
+| M4 or later | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
+| M4 | Which ores and rock types, and how rare should veins and lodes be once prospecting can find them? |
 | M7 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
 
 ---
@@ -493,104 +500,43 @@ and the balance numbers. Read the section you need.
   codebase from growing unwieldy is of utmost importance. Added section 3.1 (mandatory agent rules), the
   restructure-first step, the milestone cleanup step, and the rule that the plan details only the current
   milestone (milestones 2–7 moved to `docs/ROADMAP.md`, the operational reference to `docs/WORKFLOW.md`).
-- **2026-09-25: Milestone 1 (Foundation) done**, commits `31bb05b` to the step 1.9 commit.
+- **2026-09-25: Milestone 1 (Foundation) done**, commits `31bb05b` to `74fb476`.
   - Built: the restructure for agents (1.0); a fixed 60 Hz tick with at most 8 ticks per frame and an
     interpolated camera (1.1); the core `Sim` separated from the view (1.2); every core change an
     `Action` applied at a tick, answered by `SimEvent`s (1.3); several players, with `Join` / `Leave`
     actions and `authority.rs` (1.4); canonical bytes (`bytes.rs`) and an FNV-1a state hash with
     determinism tests (1.5); the save format (`save.rs`, 1.6); saving in the browser with a world list
-    (`web/src/save/`, `ui/worlds.ts`, 1.7); the README (1.8).
+    (`web/src/save/`, `ui/worlds.ts`, 1.7); the README (1.8); cleanup (1.9).
   - Deviations worth knowing: the player id sits beside each queued action, not inside it; all tracked
     deposits are hashed and saved, because tracking changes behaviour; world names and play time live in
     the browser's record, not the save; switching worlds reloads the page; each world keeps its previous
     save as a backup slot.
-  - Cost: tests 56 → 74. Wasm 188,923 → 218,063 bytes raw, 81.5 KB gzipped (of which about +3.5 KB for
-    actions and players, +2.4 KB for the hash, +4.5 KB for loading saves); JS +2.7 KB gzipped.
-  - Lessons: new generic code shows up in the wasm size, so measure each step. Keeping the byte
-    primitives out of line (`#[inline(never)]`) saved 1.6 KB. Hash tests catch determinism bugs at the
-    exact tick, and the browser pane can't lock the pointer, so drive `window.opencraft.game`.
-- **2026-09-25:** Step 1.9 (milestone cleanup): no size warnings; removed the unused `set_view_radius`;
-  code map and `CLAUDE.md` files checked against the tree. Milestone 2 moved in from `docs/ROADMAP.md`
-  and detailed as steps 2.1–2.11. Before detailing it, the M2 questions (research style, upgrades raising
-  recovery, a burner tier) could not be asked mid-task, so they were put to the user with the milestone
-  report; steps 2.8 and 2.9 wait for the answers, and the rest doesn't depend on them.
-- **2026-09-25:** Step 2.1 (item registry) done. `ItemId(u16)` and the item table in `item.rs`; block
-  items derive from `block::DEFS`. Saves are version 2 (`u16` item ids); version 1 still loads, tested
-  against the committed `save/v1.ocworld`. Tests 74 → 78; wasm 81.5 → 83.5 KB gzipped.
-- **2026-09-25:** Step 2.2 (machine registry) done, behaviour unchanged: the golden hash test
-  (`sim/tests.rs`, recorded before the refactor) still passes. Machine table `MACHINES`, the `Machine`
-  trait, `factory/buffer.rs`; `MINER_BUFFER` and `STORAGE_SLOTS` became table rows. Tests 78 → 79;
-  wasm 83.5 → 84.2 KB gzipped; `factory/mod.rs` 341 lines.
-- **2026-09-25:** Step 2.3 (smelter) done. `factory/smelter.rs` (three one-slot buffers, work and fire in
-  whole ticks, fire burns only while smelting); `MACHINE_RECIPES` and `FUELS` in `recipes.rs`. Belts and
-  miners deliver into any machine through `Link::Machine(Slot)` and `Sinks` (`Link::Storage` is gone);
-  `Link`, `Slot`, `Sinks` and `deliver` moved to `links.rs` to keep `factory/mod.rs` at 352 lines.
-  Deviation: a machine recipe has one `output` (item, count), not a list, until a machine needs more.
-  Saves are version 3 (adds the smelter list; 1 and 2 still load). The golden hash was re-recorded with
-  a smelter in the script. The browser run showed a coal miner and an iron miner feeding a smelter, 28
-  ingots in a minute. Tests 79 → 84; wasm 84.2 → 88.6 KB gzipped.
-- **2026-09-25:** Step 2.4 (machine panel and constructor) done. `factory/constructor.rs` (recipe chosen
-  by the player; changing it hands the inputs back), `factory/panel.rs` (panel view, `set_recipe`,
-  `insert`, `take_contents` moved here), `api/machine.rs`, `ui/machine.ts`. Actions `SetRecipe` and
-  `Insert` (added to the step: put items in by hand). Right-click on a machine with `panel: true` sets
-  `Game::panel_request`, which the host polls. Four parts join the item table. `Buffer::feed` replaces
-  three copies of the round-robin push. Saves are version 4 (adds the constructor list; 1–3 still load,
-  and a version-3 world opened in the browser). Golden hash re-recorded with a constructor in the script.
-  Tests 84 → 90; wasm 88.6 → 97.1 KB gzipped (14 panel exports, the constructor, the panel view; no float
-  formatting); `factory/mod.rs` 376 lines.
-- **2026-09-25:** Step 2.5 (splitter and filter) done. `factory/router.rs`: one `Router` kind for both
-  blocks (holds one item; front/left/right outputs from `relink`; splitter round robin skipping blocked
-  outputs; filter sends its item straight on, the rest aside). `MACHINES` rows are Kind-ordered first,
-  then extra blocks sharing a kind. Action `SetFilter`; the panel shows a filter's item choice. Recipes
-  use plates and wire. Test-only factory accessors moved to `factory/tests.rs` (`factory/mod.rs` 349
-  lines). Saves are version 5 (adds the router list); golden hash re-recorded with a filter in the
-  script. Browser: constructor → splitter → three boxes, 6 plates each per minute. Tests 90 → 93; wasm
-  97.1 → 99.7 KB gzipped.
-- **2026-09-25:** Step 2.6 (climbing and crossing) done. `factory/belt_shape.rs`: ramp up, ramp down,
-  lift and underpass entry/exit are belts with a `Shape` (extra `MACHINES` rows of `Kind::Belt`), so
-  items, spacing and `belt_step` are shared; `relink` works out each shape's output (an `into` helper
-  for "arriving at cell t going dir"), lift stacks and which belts machines may feed (not down ramps or
-  exits). Models: stepped ramps, lift posts, underpass hoods. Saves are version 6 (belts gain a shape;
-  a version-5 world loaded in the browser); golden hash re-recorded with a ramp the box feeds. Browser:
-  plates up two lifts onto a hill, under a crossing belt and down a ramp into a box. Tests 93 → 96;
-  wasm 99.7 → 102.4 KB gzipped.
-- **2026-09-25:** Added at the user's request: boxes open like a chest. Right-click shows the box's 24
-  slots above the inventory (the inventory screen in box mode); clicks move stacks with the cursor and
-  shift-clicks move whole stacks both ways (actions `ClickBox`, `StoreSlot`; `inventory::click_stack` is
-  shared). Right-click on a miner still takes its ore. Also a test that every hand recipe crafts.
-  Tests 96 → 98.
-- **2026-09-25:** Step 2.7 (power) done. `factory/power.rs`: `Pole` (a machine kind) and `Power`, derived
-  in `relink`: poles within 10 blocks form a grid (union-find), each generator and machine hangs on the
-  nearest pole within 5. Each tick `balance` sums demand (constructor 15 kW while working, splitter or
-  filter 1 kW while holding an item), lights generators in order until supply covers it, and gives each
-  grid a speed (supply/demand, in thousandths). `factory/generator.rs`: coal generator (60 kW, fuel
-  panel). Wires are sagging segment boxes. The burner-tier default was used: miners and smelters stay
-  unpowered; worlds from before 2.7 need a generator and pole before their constructors, splitters and
-  filters run again. The save bytes moved to `factory/state.rs` and machine textures to
-  `textures/machines.rs` (size budgets). Saves are version 7 (generator and pole lists; constructor
-  progress in thousandths, older saves scaled); golden hash re-recorded with a pole and generator in the
-  script. Browser: generator → pole → constructor making rods, wires drawn, generator panel. Tests 98 →
-  102; wasm 102.4 → 112.1 KB gzipped (power about 8 KB, the box screen the rest).
-- **2026-09-25:** The user answered the M2 questions: Factorio-style research with science packs crafted
-  from parts, upgrades raise recovery, bulk materials stay infinite (section 1). Steps 2.8 and 2.9 go
-  ahead of 2.10.
-- **2026-09-25:** Step 2.8 (research) done. `research.rs`: the tech table `TECHS` and `Research` (current
-  tech, units done), owned and saved by the factory, shared by every player. `factory/lab.rs`: the lab, a
-  powered machine kind (`LAB_POWER` 10 kW) with one slot per science pack; `step_labs` counts units in
-  progress so labs never overshoot. Items: red and green science packs. Action `SetResearch`; `Craft`
-  refuses locked recipes (`Research::locked_by`), and the build menu greys them out naming the tech.
-  `api/research.rs`, `ui/research.ts` (R): tech cards, a HUD tracker and a "research done" notice. Saves are
-  version 8 (lab list and research; older worlds load with nothing researched, so their splitters, filters,
-  ramps, lifts and underpasses need research before more can be crafted; placed ones keep working).
-  Golden hash re-recorded with a lab in the script. Browser: an existing version-7 world loaded; two labs
-  researched Belt Routing at 2 units per 5 s, the notice showed and the splitter unlocked. Tests 102 →
-  109; wasm 112.1 → 118.3 KB gzipped (the lab, 14 research exports, textures).- **2026-09-25:** Step 2.9 (upgrades) done. Miner Mk2 (`MK2_RATE` 2 units/s, `MK2_RECOVERY` 0.75,
-  `MINER_MK2_POWER` 20 kW) and fast belts (`FAST_BELT_SPEED` 2 blocks/s) are the existing miner and belt
-  kinds with a flag, each an extra `MACHINES` row and block; both unlocked by new techs needing Green
-  Science. `Factory::update` now balances power before miners run. Saves are version 9 (the flags);
-  golden hash re-recorded. Tests: a Mk2 on the same outcrop draws the same (the cap) but keeps 25% more;
-  fast belts carry twice as much and mix with slow ones. Tests 109 → 111.- **2026-09-25:** Step 2.10 (onboarding hints) done. `hints.rs` (seven tips from finding ore to research,
-  each with a check on the player's inventory and the factory; `progress`), `hint_*` getters in
-  `api/hud.rs`, `ui/hints.ts` (tip card, H skips, skipped tips in localStorage, "Show tips again" in the
-  menu). `Factory::count(kind)` replaced the three per-kind counters. Browser: a new world showed tip 1,
-  then 2 and 3 as ore and a miner arrived. Tests 111 → 113.
+  - Cost: tests 56 → 74. Wasm 81.5 KB gzipped; JS +2.7 KB gzipped.
+  - Lessons: new generic code shows up in the wasm size, so measure each step. Hash tests catch
+    determinism bugs at the exact tick, and the browser pane can't lock the pointer, so drive
+    `window.opencraft.game`.
+- **2026-09-25: Milestone 2 (Make it a game) done**, commits `b49b766` to the step 2.11 commit.
+  - Built: `ItemId` and the item table (2.1); the machine registry `MACHINES`, the `Machine` trait and
+    `Buffer` (2.2); the smelter with machine recipes and fuels (2.3); the machine panel and the
+    constructor, actions `SetRecipe` / `Insert` (2.4); splitter and filter as one `Router` kind (2.5);
+    ramps, lifts and underpasses as belt shapes (2.6); boxes that open like a chest (user request);
+    power with generators, poles, grids and brownouts (2.7); research with labs, red and green packs and
+    six techs (2.8); Miner Mk2 (75% recovery) and fast belts behind research (2.9); onboarding tips as
+    engine data (2.10); cleanup (2.11).
+  - The user chose Factorio-style research, upgrades that raise recovery, and infinite bulk materials.
+    The burner tier (Mk1 miner and smelter unpowered) was built as the default.
+  - Deviations worth knowing: one kind serves several blocks through extra `MACHINES` rows plus a flag
+    or shape; machines hang on the nearest pole, with no manual wiring; power balances at the start of
+    each tick, before miners; labs count units in progress so they never overshoot; tips are engine data
+    with checks, so TS mirrors no ids.
+  - Saves are version 9, and every version since 1 loads (version 1 tested with the committed
+    `save/v1.ocworld`, the others in the browser). The golden hash in `sim/tests.rs` was re-recorded on
+    purpose at each format change, with the new machine added to the script.
+  - Cost: tests 74 → 113. Wasm 81.5 → 120.3 KB gzipped (panels about 8 KB, power about 8, research
+    about 6); JS 31.8 KB.
+  - Lessons: the golden hash catches every unintended core change; scenario tests with a bare `Factory`
+    replace most browser checks; exported getters cost wasm size, so group them per panel.
+- **2026-09-25:** Step 2.11 (milestone cleanup): no size warnings and no dead code found; code map and
+  `CLAUDE.md` files checked against the tree. The user answered the M3 questions (Cloudflare Worker plus
+  Cloudflare TURN; 2–4 players). Milestone 3 moved in from `docs/ROADMAP.md` and detailed as steps
+  3.1–3.10.
