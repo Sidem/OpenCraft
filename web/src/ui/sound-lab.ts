@@ -1,6 +1,9 @@
-// Sound controls: the master volume/mute control (pause menu and designer footer) and the sound
-// designer, where every material and action is tuned with plain-language dials while listening.
+// The sound designer (key O): every sound material and action tuned with plain-language dials while
+// listening. One tab per material (Listen buttons, loops, dial groups) plus an Actions tab. The footer
+// and settings copy/paste live in sound-lab-footer.ts; dial definitions live in audio/settings.ts.
+// To add a dial: add it to audio/settings.ts; the tabs render whatever is listed there.
 
+import './sound-lab.css';
 import type { SoundSystem } from '../audio/sound';
 import {
   ACTIONS,
@@ -12,17 +15,11 @@ import {
   MATERIAL_GROUPS,
   MATERIAL_LABELS,
   PRESETS,
-  defaultDesign,
-  exportDesign,
-  mergeDesign,
   type ActionName,
 } from '../audio/settings';
+import { button, h } from './dom';
 import { Knob } from './knob';
-
-const SPEAKER_ON =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
-const SPEAKER_OFF =
-  '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
+import { LabFooter } from './sound-lab-footer';
 
 const TIP =
   'Drag a dial up or down to turn it (hold Shift for fine control), or scroll over it. Double-click a dial to reset it; the small mark on its rim shows the default, and a dot next to its name means it was changed.';
@@ -31,59 +28,6 @@ const TIP =
 const LISTEN: ActionName[] = ['dig', 'break', 'place', 'step', 'land'];
 /** Minimum gap between automatic previews while a dial is being turned. */
 const AUDITION_GAP_MS = 280;
-
-function h<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (className) e.className = className;
-  if (text) e.textContent = text;
-  return e;
-}
-
-function button(className: string, text: string, onClick: (b: HTMLButtonElement) => void): HTMLButtonElement {
-  const b = h('button', className, text);
-  b.type = 'button';
-  b.addEventListener('click', () => onClick(b));
-  return b;
-}
-
-/** Mute button, volume slider and level readout, kept in sync with the sound system. */
-export class VolumeControl {
-  readonly el = h('div', 'volume-control');
-  private readonly toggle: HTMLButtonElement;
-  private readonly range = h('input');
-  private readonly readout = h('span', 'volume-value');
-
-  constructor(private readonly sound: SoundSystem) {
-    this.toggle = button('mute-toggle', '', () => {
-      sound.unlock();
-      sound.toggleMute();
-    });
-    this.range.type = 'range';
-    this.range.min = '0';
-    this.range.max = '100';
-    this.range.setAttribute('aria-label', 'Volume');
-    this.range.addEventListener('input', () => {
-      sound.unlock();
-      if (sound.muted) sound.setMuted(false);
-      sound.setVolume(Number(this.range.value));
-    });
-    // A sample on release, so the new level can be judged.
-    this.range.addEventListener('change', () => sound.preview('place', 0));
-    this.el.append(this.toggle, this.range, this.readout);
-    sound.subscribe(() => this.sync());
-    this.sync();
-  }
-
-  private sync(): void {
-    const { volume, muted } = this.sound.settings;
-    this.range.value = String(volume);
-    this.readout.textContent = muted ? 'Muted' : `${volume}%`;
-    this.toggle.innerHTML = muted || volume === 0 ? SPEAKER_OFF : SPEAKER_ON;
-    this.toggle.title = muted ? 'Unmute (M)' : 'Mute (M)';
-    this.toggle.setAttribute('aria-label', muted ? 'Unmute' : 'Mute');
-    this.el.classList.toggle('muted', muted);
-  }
-}
 
 export interface SoundBlock {
   id: number;
@@ -105,9 +49,7 @@ export class SoundLab {
   private readonly note = h('div', 'lab-note hidden');
   private readonly body = h('div', 'lab-scroll');
   private readonly help = h('p', 'lab-help', TIP);
-  private readonly paste = h('div', 'lab-paste hidden');
-  private readonly pasteText = h('textarea');
-  private readonly pasteStatus = h('span', 'lab-paste-status');
+  private readonly footer: LabFooter;
   private readonly loopButtons = new Map<Loop['kind'], HTMLButtonElement>();
   private readonly listenButtons = new Map<ActionName, HTMLButtonElement>();
 
@@ -117,7 +59,6 @@ export class SoundLab {
   private hearOn = 0;
   /** The action replayed when a material dial turns. */
   private listen: ActionName = 'dig';
-  private playOnChange = true;
   private loop: Loop | null = null;
   private lastAudition = 0;
   private auditionTimer = 0;
@@ -142,7 +83,7 @@ export class SoundLab {
         'lab-intro',
         'Pick a material, press a Listen button, then turn the dials until it sounds right. Changes apply in the game straight away and are saved in this browser.',
       ),
-      button('lab-close', '×', () => this.close()),
+      button('close-btn', '×', () => this.close()),
     );
     head.lastElementChild!.setAttribute('aria-label', 'Close sound designer');
 
@@ -164,7 +105,8 @@ export class SoundLab {
       if (this.sound.settings.volume === 0) this.sound.setVolume(80);
     }));
 
-    this.dialog.append(head, this.tabBar, this.note, this.body, this.help, this.buildPaste(), this.buildFooter());
+    this.footer = new LabFooter(sound, () => this.render());
+    this.dialog.append(head, this.tabBar, this.note, this.body, this.help, this.footer.paste, this.footer.el);
     this.backdrop.append(this.dialog);
     this.backdrop.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
@@ -350,93 +292,9 @@ export class SoundLab {
     }
   }
 
-  private buildFooter(): HTMLElement {
-    const foot = h('div', 'lab-foot');
-    const check = h('label', 'lab-check');
-    const box = h('input');
-    box.type = 'checkbox';
-    box.checked = this.playOnChange;
-    box.addEventListener('change', () => (this.playOnChange = box.checked));
-    check.append(box, 'Play the sound when I turn a dial');
-
-    const copy = button('secondary-btn', 'Copy settings', (b) => void this.copy(b));
-    copy.title = 'Copies every sound setting as text, to keep, share, or make the new defaults.';
-    const paste = button('secondary-btn', 'Paste settings', () => this.showPaste(''));
-    paste.title = 'Load settings copied earlier.';
-    let armed = 0;
-    const resetAll = button('secondary-btn danger', 'Reset everything', (b) => {
-      if (!armed) {
-        b.textContent = 'Click again to reset all';
-        armed = window.setTimeout(() => {
-          armed = 0;
-          b.textContent = 'Reset everything';
-        }, 3000);
-        return;
-      }
-      clearTimeout(armed);
-      armed = 0;
-      b.textContent = 'Reset everything';
-      this.sound.setDesign(defaultDesign());
-      this.render();
-    });
-    foot.append(new VolumeControl(this.sound).el, check, h('span', 'spacer'), copy, paste, resetAll);
-    return foot;
-  }
-
-  private buildPaste(): HTMLElement {
-    this.pasteText.spellcheck = false;
-    this.pasteText.setAttribute('aria-label', 'Sound settings text');
-    const row = h('div', 'lab-paste-row');
-    row.append(
-      button('secondary-btn', 'Apply', () => this.applyPaste()),
-      button('secondary-btn', 'Close', () => this.paste.classList.add('hidden')),
-      this.pasteStatus,
-    );
-    this.paste.append(this.pasteText, row);
-    return this.paste;
-  }
-
-  private showPaste(text: string, status = 'Paste settings text below, then press Apply.'): void {
-    this.paste.classList.remove('hidden');
-    this.pasteText.value = text;
-    this.pasteStatus.textContent = status;
-    this.pasteText.focus();
-    if (text) this.pasteText.select();
-  }
-
-  private applyPaste(): void {
-    let data: unknown;
-    try {
-      data = JSON.parse(this.pasteText.value);
-    } catch {
-      this.pasteStatus.textContent = "That doesn't look like copied sound settings.";
-      return;
-    }
-    const next = structuredClone(this.sound.design);
-    const applied = mergeDesign(next, data);
-    if (!applied) {
-      this.pasteStatus.textContent = 'No sound settings found in that text.';
-      return;
-    }
-    this.sound.setDesign(next);
-    this.render();
-    this.pasteStatus.textContent = `Applied ${applied} settings.`;
-  }
-
-  private async copy(b: HTMLButtonElement): Promise<void> {
-    const text = exportDesign(this.sound.design);
-    try {
-      await navigator.clipboard.writeText(text);
-      b.textContent = 'Copied ✓';
-      setTimeout(() => (b.textContent = 'Copy settings'), 1500);
-    } catch {
-      this.showPaste(text, 'Your browser blocked copying: press Ctrl+C to copy the selected text.');
-    }
-  }
-
   /** A dial moved: replay the relevant sound, unless a loop is already playing it. */
   private dialTurned(action: ActionName, material: number): void {
-    if (this.playOnChange && !this.loop) this.audition(action, material);
+    if (this.footer.playOnChange && !this.loop) this.audition(action, material);
   }
 
   /**

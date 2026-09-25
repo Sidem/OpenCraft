@@ -1,3 +1,4 @@
+import './hud.css';
 import type { Game } from '../wasm/engine.js';
 
 const ICON_PX = 64;

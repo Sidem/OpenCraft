@@ -1,3 +1,8 @@
+// WebGL2 world renderer: chunk meshes (opaque then cutout pass, frustum-culled, front to back with
+// fog), instanced boxes (boxes.ts), and the target outline plus mining-crack overlay.
+// Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
+
+import { BoxPipeline } from './boxes';
 import { createProgram, uniforms } from './gl';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
 import * as S from './shaders';
@@ -5,8 +10,6 @@ import * as S from './shaders';
 const CHUNK = 32;
 export const SKY_COLOR: [number, number, number] = [0.62, 0.79, 0.96];
 const FOV_Y = (72 * Math.PI) / 180;
-/** Floats per box instance; must match `factory::INSTANCE_FLOATS` in the engine. */
-export const INSTANCE_FLOATS = 12;
 
 interface ChunkMesh {
   x: number;
@@ -68,28 +71,6 @@ function cubeVertices(): Float32Array {
   return new Float32Array(out);
 }
 
-/**
- * Unit cube for instanced boxes: 36 vertices of (corner.xyz, face index). Faces follow the mesher's
- * order and axes (u × v = normal), so triangles wind counter-clockwise seen from outside.
- */
-function boxCorners(): Float32Array {
-  const faces: [number[], number[], number[]][] = [
-    [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-    [[-1, 0, 0], [0, 0, 1], [0, 1, 0]],
-    [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
-    [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
-    [[0, 0, 1], [1, 0, 0], [0, 1, 0]],
-    [[0, 0, -1], [0, 1, 0], [1, 0, 0]],
-  ];
-  const out: number[] = [];
-  faces.forEach(([n, u, v], face) => {
-    const corner = (cu: number, cv: number) => [0, 1, 2].map((i) => n[i] * 0.5 + (cu - 0.5) * u[i] + (cv - 0.5) * v[i]);
-    const c = [corner(0, 0), corner(1, 0), corner(1, 1), corner(0, 1)];
-    for (const i of [0, 1, 2, 0, 2, 3]) out.push(...c[i], face);
-  });
-  return new Float32Array(out);
-}
-
 function boxEdges(): Float32Array {
   const e: number[] = [];
   for (let a = 0; a < 3; a++) {
@@ -118,14 +99,11 @@ export class Renderer {
 
   private readonly opaque;
   private readonly cutout;
-  private readonly box;
   private readonly line;
   private readonly crack;
 
   private readonly cubeVao: WebGLVertexArrayObject;
-  private readonly boxVao: WebGLVertexArrayObject;
-  private readonly boxInstances: WebGLBuffer;
-  private boxCapacity = 0;
+  private readonly boxes: BoxPipeline;
   private readonly lineVao: WebGLVertexArrayObject;
 
   private readonly proj = new Float32Array(16);
@@ -147,12 +125,10 @@ export class Renderer {
     const lit = ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT']);
-    const boxProg = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
     const crackProg = createProgram(gl, S.crackVert, S.crackFrag);
     this.opaque = { prog: opaqueProg, u: uniforms(gl, opaqueProg, lit) };
     this.cutout = { prog: cutoutProg, u: uniforms(gl, cutoutProg, lit) };
-    this.box = { prog: boxProg, u: uniforms(gl, boxProg, lit) };
     this.line = { prog: lineProg, u: uniforms(gl, lineProg, ['u_viewProj', 'u_offset', 'u_color'] as const) };
     this.crack = { prog: crackProg, u: uniforms(gl, crackProg, ['u_viewProj', 'u_offset', 'u_progress'] as const) };
 
@@ -170,21 +146,7 @@ export class Renderer {
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
 
-    // Instanced boxes: one unit cube, per-instance centre/size/rotation/textures.
-    this.boxVao = gl.createVertexArray()!;
-    gl.bindVertexArray(this.boxVao);
-    const corners = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, corners);
-    gl.bufferData(gl.ARRAY_BUFFER, boxCorners(), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
-    this.boxInstances = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.boxInstances);
-    for (const [loc, offset] of [[1, 0], [2, 16], [3, 32]]) {
-      gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, INSTANCE_FLOATS * 4, offset);
-      gl.vertexAttribDivisor(loc, 1);
-    }
+    this.boxes = new BoxPipeline(gl);
 
     this.lineVao = gl.createVertexArray()!;
     gl.bindVertexArray(this.lineVao);
@@ -353,24 +315,7 @@ export class Renderer {
       }
     }
 
-    if (f.boxCount > 0) {
-      const u = this.box.u;
-      gl.useProgram(this.box.prog);
-      gl.uniformMatrix4fv(u.u_viewProj, false, this.viewProj);
-      gl.uniform1i(u.u_tex, 0);
-      gl.uniform3f(u.u_fogColor, SKY_COLOR[0], SKY_COLOR[1], SKY_COLOR[2]);
-      gl.uniform2f(u.u_fog, fogStart, fogEnd);
-      gl.bindBuffer(gl.ARRAY_BUFFER, this.boxInstances);
-      const bytes = f.boxCount * INSTANCE_FLOATS * 4;
-      if (bytes > this.boxCapacity) {
-        this.boxCapacity = Math.max(bytes, this.boxCapacity * 2);
-        gl.bufferData(gl.ARRAY_BUFFER, this.boxCapacity, gl.DYNAMIC_DRAW);
-      }
-      gl.bufferSubData(gl.ARRAY_BUFFER, 0, f.boxes, 0, f.boxCount * INSTANCE_FLOATS);
-      gl.bindVertexArray(this.boxVao);
-      gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, f.boxCount);
-      drawCalls++;
-    }
+    drawCalls += this.boxes.draw(this.viewProj, SKY_COLOR, [fogStart, fogEnd], f.boxes, f.boxCount);
 
     if (f.target) {
       const [tx, ty, tz] = f.target;

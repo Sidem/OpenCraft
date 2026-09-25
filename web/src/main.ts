@@ -1,11 +1,14 @@
-import './style.css';
+import './base.css';
+import './ui/menu.css';
 import init, { Game } from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
 import { Input } from './input';
-import { INSTANCE_FLOATS, Renderer } from './render/renderer';
+import { INSTANCE_FLOATS } from './render/boxes';
+import { Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
-import { SoundLab, VolumeControl } from './ui/sound-lab';
+import { SoundLab } from './ui/sound-lab';
+import { VolumeControl } from './ui/volume-control';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel
 const WORK_BUDGET_MS = 6; // per frame, for streaming world generation and meshing

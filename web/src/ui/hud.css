@@ -1,0 +1,236 @@
+/* In-game HUD (hud.ts): crosshair, target readout and mining bar, hotbar, pickup toasts, debug. */
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+#crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: difference;
+}
+
+#crosshair::before,
+#crosshair::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+}
+
+#crosshair::before {
+  left: 10px;
+  top: 0;
+  width: 2px;
+  height: 22px;
+}
+
+#crosshair::after {
+  top: 10px;
+  left: 0;
+  width: 22px;
+  height: 2px;
+}
+
+#target {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 150px;
+  padding: 6px 14px 8px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+#target-detail {
+  max-width: 380px;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  color: var(--muted);
+  white-space: pre-line;
+}
+
+#mine-bar {
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+#target.mining #mine-bar {
+  opacity: 1;
+}
+
+#mine-fill {
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+#hotbar {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+}
+
+.slot {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+}
+
+.slot.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 12px rgba(250, 149, 73, 0.45);
+}
+
+.slot canvas {
+  width: 40px;
+  height: 40px;
+}
+
+.slot .key {
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.slot .count {
+  position: absolute;
+  right: 5px;
+  bottom: 2px;
+  font-size: 13px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px #000;
+}
+
+#toasts {
+  position: absolute;
+  right: 18px;
+  bottom: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 6px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--accent);
+  font-size: 14px;
+  animation: toast-in 0.18s ease-out;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast canvas {
+  width: 26px;
+  height: 26px;
+}
+
+.toast .amount {
+  color: var(--accent);
+  font-weight: 700;
+  min-width: 2.2em;
+}
+
+.toast.bump {
+  animation: toast-bump 0.2s ease-out;
+}
+
+.toast.out {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes toast-bump {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+#debug {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.55);
+  font: 12px/1.55 var(--mono);
+  white-space: pre;
+}
+
+#muted {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 640px) {
+  .slot {
+    width: 36px;
+    height: 36px;
+  }
+
+  .slot canvas {
+    width: 28px;
+    height: 28px;
+  }
+
+  #hotbar {
+    gap: 3px;
+    padding: 4px;
+  }
+}

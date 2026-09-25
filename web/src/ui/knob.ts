@@ -2,6 +2,7 @@
 // mouse wheel or arrow keys to nudge it, double-click to reset. A small tick on the rim marks the
 // default, and the words under the dial say what each end means.
 
+import './knob.css';
 import type { DialInfo } from '../audio/settings';
 
 const SWEEP = 270; // degrees of travel, centred on 12 o'clock

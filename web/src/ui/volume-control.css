@@ -1,0 +1,55 @@
+/* Mute button, volume slider and readout (volume-control.ts). */
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mute-toggle {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.mute-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mute-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.volume-control.muted .mute-toggle {
+  color: var(--accent);
+  border-color: rgba(250, 149, 73, 0.5);
+}
+
+.volume-control input[type='range'] {
+  flex: 1;
+  min-width: 60px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.volume-control.muted input[type='range'] {
+  opacity: 0.45;
+}
+
+.volume-value {
+  min-width: 3.4em;
+  text-align: right;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}

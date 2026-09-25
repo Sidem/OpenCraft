@@ -1,18 +1,13 @@
 // Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the
 // hand-crafting recipes for the first factory machines.
 
+import './inventory.css';
 import type { Game } from '../wasm/engine.js';
+import { h } from './dom';
 
 const ICON_PX = 64;
 /** Shift-clicking Craft makes up to this many at once. */
 const BULK_CRAFT = 5;
-
-function h<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (className) e.className = className;
-  if (text) e.textContent = text;
-  return e;
-}
 
 interface SlotView {
   root: HTMLDivElement;
@@ -63,7 +58,7 @@ export class InventoryPanel {
     const head = h('div', 'inv-head');
     const title = h('h2', '', 'Inventory & build');
     title.id = 'inv-title';
-    const close = h('button', 'lab-close', '×');
+    const close = h('button', 'close-btn', '×');
     close.type = 'button';
     close.setAttribute('aria-label', 'Close inventory');
     close.addEventListener('click', () => this.close(true));
