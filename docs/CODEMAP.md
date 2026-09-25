@@ -13,7 +13,7 @@ folder with `mod.rs`.
 | Module | Owns |
 |---|---|
 | `lib.rs` | The `Game` struct (core `sim`, `local` id, `bodies`, items, the local player's hands and view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `act` / `act_as` (queue an action), `body()` / `inventory()` (the local player's); the module list |
-| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `state_hash` / `write_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, `WORLDGEN_VERSION`), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals. Tests in `save/tests.rs` |
 | `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
@@ -54,7 +54,7 @@ folder with `mod.rs`.
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
 | `sound.rs` | Sound event buffer read by the host |
-| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, a second player, frame-rate independence) |
+| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, a second player, frame-rate independence); helpers shared with `save/tests.rs` |
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
@@ -129,12 +129,17 @@ Construct it in `main.ts`. To open it with a key: an `Action` in `input.ts` and 
 action loop.
 
 **Core state, a way to change it, or a reaction to it.** State: a field on `Sim` (`sim.rs`) or the type
-that owns it (per-player state in `PlayerCore`), plus its bytes in that type's `write_state` and `read_state`,
-which the state hash and saves use (a save test fails if the two disagree). A change: an `Action` variant and its arm
-in `Sim::apply_to_player` (`action.rs`); `Game` queues it with `act` (local player) or `act_as`. A reaction
-(sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and its arm in
-`Game::handle_sim_events` (`events.rs`). Per-player state the authority keeps (body-related) goes in
-`authority.rs`, indexed by `PlayerId` like `Sim.players`.
+that owns it (per-player state in `PlayerCore`), plus its bytes in that type's `write_state` and
+`read_state`, which the state hash and saves use (a save test fails if the two disagree). A change: an
+`Action` variant and its arm in `Sim::apply_to_player` (`action.rs`); `Game` queues it with `act` (local
+player) or `act_as`. A reaction (sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and
+its arm in `Game::handle_sim_events` (`events.rs`). Per-player state the authority keeps (body-related)
+goes in `authority.rs`, indexed by `PlayerId` like `Sim.players`.
+
+**Something saved.** Core state: as above. Bodies and loose items: `Player` / `Items` `write_state` and
+`read_state`, called from `save.rs`. Any change to the bytes bumps `SAVE_VERSION` (older saves are then
+refused with a message); a change to world generation bumps `WORLDGEN_VERSION`. The browser side
+(`web/src/save/`) only stores bytes and never needs to change.
 
 **A sound material.** Engine: a constant in `block::sound` and point blocks' `DEFS` rows at it. Web: append
 the name to `MATERIALS` (same order as the engine), add a `MATERIAL_LABELS` entry and a

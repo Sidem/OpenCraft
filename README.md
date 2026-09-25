@@ -7,7 +7,7 @@ growing towards resource extraction, automation and factories.
 
 The simulation core is **Rust compiled to WebAssembly** (with SIMD). Rendering is **raw WebGL2**. There is no
 game engine and no runtime dependencies. Every texture and sound effect is generated procedurally at startup,
-so there are no asset files, and the whole production build is about 100 KB gzipped.
+so there are no asset files, and the whole production build is about 115 KB gzipped.
 
 ## Quick start
 
@@ -35,8 +35,8 @@ as usual.
 | `npm run typecheck` | TypeScript check                                            |
 | `npm run check`     | Pre-commit checks: format, lints, tests, types, sizes       |
 
-URL parameters: `?seed=1234` picks the world seed, and `?rd=12` sets the render distance in chunks (2 to 24,
-default 8).
+URL parameters: `?seed=1234` starts a new world with that seed (saved like any other), and `?rd=12` sets
+the render distance in chunks (2 to 24, default 8).
 
 ## Controls
 
@@ -61,6 +61,25 @@ default 8).
 Mined blocks drop as items, which are pulled into your inventory when you get close. In the inventory screen
 (E), click a slot to pick up a stack and click again to put it down. Shift-click moves a stack between the
 hotbar and the backpack.
+
+## Saving and worlds
+
+Your world saves itself: every minute, whenever you pause (Esc), and when you switch tabs or close the page.
+Opening the game again brings back the world you played last. Press **Continue** and everything is where
+you left it, machines still running.
+
+The **Worlds** list in the pause menu manages several worlds:
+
+- **New world** takes a name and an optional seed. A number gives that exact world, any other text works
+  as a seed too, and leaving it blank picks one at random.
+- **Play** switches to another world (the current one is saved first).
+- **Export** downloads a world as an `.ocworld` file, and **Import** adds one, so you can keep a backup or
+  move a world to another browser.
+- **Delete** removes a world for good, after asking.
+
+Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
+want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
+latest save can't be read.
 
 ## Resources and extraction
 
@@ -106,19 +125,29 @@ any sound-design experience to use it.
 ## Architecture
 
 ```
-┌────────────────────── Rust → wasm (crates/engine) ───────────────────────┐
-│ worldgen ─► chunk storage ─► greedy mesher ─► event queue (mesh/unload)  │
-│ player physics · raycast · mining/placing · item entities · inventory    │
-│ ore deposits · factory (miners, belts, boxes) · crafting                 │
-└───────────────▲──────────────────────────────────────┬───────────────────┘
-      input, dt │                                      │ pointers into wasm memory
-┌───────────────┴──── TypeScript platform (web/src) ───▼───────────────────┐
-│ input.ts (pointer lock) · render/ (WebGL2) · ui/hud.ts (DOM)             │
-└──────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────── Rust → wasm (crates/engine) ─────────────────────────┐
+│ Game (lib.rs, api/): what the host calls; acts for the local player          │
+│  ├─ core: Sim        deterministic: tick, world edits, factory, deposits,    │
+│  │                   inventories, rng. Changes only by applying Actions at   │
+│  │                   a tick, and reports back with SimEvents                 │
+│  ├─ authority        every player's body (physics), loose items, pickups     │
+│  └─ view (local)     camera, targeting, mining, streaming, greedy meshing,   │
+│                      box instances, sounds, toasts                           │
+│ save.rs: the core's bytes (also its state hash) + bodies + items ⇄ save file │
+└───────────────▲──────────────────────────────────────────────┬───────────────┘
+      input, dt │                                              │ pointers into wasm memory
+┌───────────────┴───────── TypeScript platform (web/src) ──────▼───────────────┐
+│ input.ts · render/ (WebGL2) · ui/ (DOM) · audio/ · save/ (IndexedDB)         │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 Rust owns all game state and every hot loop. TypeScript is a thin platform layer: it forwards input, uploads
-data to the GPU, and draws the HUD.
+data to the GPU, draws the HUD and stores saves.
+
+Inside the engine, the core only changes when a queued action is applied at a tick, so the same actions
+always produce the same world. Tests compare state hashes tick by tick, and a world reloaded from a save
+carries on identically. This is the groundwork for co-op, where every player's machine will run the core and
+the host will be the authority. The view is local presentation and never feeds back into the core.
 
 Each frame:
 
@@ -194,8 +223,8 @@ The plan of record, with decisions, rules and the current milestone's steps, is
 
 Sandbox foundation:
 
-- [ ] Fixed simulation tick, deterministic core driven by actions (groundwork for co-op)
-- [ ] Save and load worlds (IndexedDB; edited chunks are already tracked)
+- [x] Fixed simulation tick, deterministic core driven by actions (groundwork for co-op)
+- [x] Save and load worlds: autosave, several worlds, export and import
 - [ ] Co-op multiplayer: player-hosted over WebRTC
 - [ ] Simulation and worldgen in Web Workers
 - [ ] Water and transparent blocks

@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions),
-1.4 (several players), 1.5 (state hash), 1.6 (save format) and 1.7 (saving in the browser) done ·
-**Next up: Milestone 1, step 1.8 (docs).**
+1.4 (several players), 1.5 (state hash), 1.6 (save format), 1.7 (saving in the browser) and 1.8 (docs)
+done · **Next up: Milestone 1, step 1.9 (milestone cleanup).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -472,11 +472,12 @@ on every peer.
     delete, a damaged newest save (backup used), both saves damaged (error plus world list) all work.
     No console errors. JS +2.7 KB and CSS +0.2 KB gzipped; wasm unchanged.
 
-- [ ] **1.8 Docs**
-  - README: saving and world management for players, plus the architecture diagram updated with core,
-    authority and view.
-  - `docs/CODEMAP.md`: the new modules (`sim`, `action`, `save`, view and authority parts, `web/src/save/`).
-  - This file: tick the steps, update the status, fill in section 8.
+- [x] **1.8 Docs** (done 2026-09-25)
+  - README: a "Saving and worlds" section for players, `?seed=` described as starting a new world, the
+    architecture diagram redrawn as core, authority and view plus `save.rs`, a paragraph on the
+    deterministic core, roadmap ticks, the size figure.
+  - `docs/CODEMAP.md`: every Milestone 1 module was already listed step by step; added a recipe for
+    changing what gets saved and reflowed the core-state recipe.
 
 - [ ] **1.9 Milestone cleanup** (every milestone ends with this step)
   - `npm run check` passes with no size warnings. Split anything that grew past its soft limit.
@@ -560,3 +561,5 @@ and the balance numbers. Read the section you need.
   slots rather than a separate swap. Saves made while the page closes skip compression. "Load" is a
   Play button per world, and switching worlds reloads the page. The M1 question was settled by the
   default (several named worlds).
+- **2026-09-25:** Step 1.8 done (docs). The code map had been kept current in each step, so this step
+  was mostly the README.
