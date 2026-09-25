@@ -187,7 +187,7 @@ impl WorldGen {
                 for wy in base.y..=y_end {
                     let depth = h - wy;
                     // Solid bedrock at y = 0, thinning out over the next three layers.
-                    let id = if wy == 0 || (wy <= 3 && hash3(self.seed, wx, wy, wz) % (wy as u32 + 1) == 0) {
+                    let id = if wy == 0 || (wy <= 3 && hash3(self.seed, wx, wy, wz).is_multiple_of(wy as u32 + 1)) {
                         BEDROCK
                     } else if depth > 5
                         && wy > 4

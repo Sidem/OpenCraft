@@ -205,7 +205,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         }
         tex::SAND => rgb([222.0, 206.0, 152.0], 0.9 + 0.08 * n(10, x, y) + 0.06 * smooth(11, x, y, 4)),
         tex::LOG_SIDE => {
-            let groove = hash3(12, x, 0, 0) % 4 == 0;
+            let groove = hash3(12, x, 0, 0).is_multiple_of(4);
             let k = 0.74 + 0.18 * n(13, x, 0) + 0.1 * n(14, x, y / 3) - if groove { 0.18 } else { 0.0 };
             rgb([112.0, 84.0, 52.0], k)
         }
