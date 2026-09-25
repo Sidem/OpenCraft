@@ -33,6 +33,7 @@ as usual.
 | `npm run preview`   | Serve the production build                                  |
 | `npm test`          | Engine unit tests (`cargo test`)                            |
 | `npm run typecheck` | TypeScript check                                            |
+| `npm run check`     | Pre-commit checks: format, lints, tests, types, sizes       |
 
 URL parameters: `?seed=1234` picks the world seed, and `?rd=12` sets the render distance in chunks (2 to 24,
 default 8).
@@ -163,43 +164,13 @@ time.
 
 ## Project layout
 
-```
-crates/engine/src/
-  lib.rs        wasm-bindgen API (`Game`), frame update, mining/placing
-  world.rs      chunk map, streaming, work queues, edits, render events
-  worldgen.rs   terrain, cliffs, caves, ore deposit placement, trees
-  deposits.rs   ore deposits: tiers, shapes, shared pools, draw limits, depletion
-  factory.rs    miners, conveyor belts, storage boxes; their simulation and models
-  recipes.rs    hand-crafting recipes
-  mesher.rs     greedy mesher + ambient occlusion
-  chunk.rs      32³ block storage
-  block.rs      block registry and lookup tables
-  player.rs     character controller
-  physics.rs    swept AABB vs voxel collision
-  raycast.rs    voxel DDA for targeting
-  entities.rs   dropped items (physics, magnet pickup, instancing)
-  inventory.rs  hotbar, backpack and the stack held on the cursor
-  sound.rs      gameplay sound events for the host
-  textures.rs   procedural 16×16 block textures
-  noise.rs      seeded Perlin noise + fBm
-web/
-  index.html, src/main.ts   bootstrap + frame loop
-  src/render/               WebGL2 renderer, shaders, matrix helpers
-  src/input.ts              keyboard/mouse, pointer lock
-  src/audio/settings.ts     sound design: dials, defaults, presets, save/load, copy/paste format
-  src/audio/synth.ts        procedural foley synthesis (dials -> samples)
-  src/audio/sound.ts        sound events -> Web Audio voices, buffer cache, previews
-  src/ui/hud.ts             hotbar, target readout, pickup toasts, debug panel
-  src/ui/inventory.ts       inventory and build menu (E)
-  src/ui/sound-lab.ts       sound designer panel + volume/mute control
-  src/ui/knob.ts            rotary dial widget
-scripts/                    wasm build + dev watcher
-.github/workflows/pages.yml CI: test, build, deploy to GitHub Pages
-```
+`crates/engine` is the Rust engine, which owns all game state. `web/` is the TypeScript host (rendering, input,
+UI, audio), and `scripts/` holds the build, dev and check scripts. [docs/CODEMAP.md](docs/CODEMAP.md) lists
+every module and explains how to add blocks, recipes, machines, API methods, UI panels and sound materials.
 
 ## Deployment
 
-Every push to `main` runs `.github/workflows/pages.yml`. It runs the engine tests, builds the wasm and the Vite
+Every push to `main` runs `.github/workflows/pages.yml`. It builds the wasm, runs `npm run check`, builds the Vite
 bundle, and publishes `dist/` to GitHub Pages. The build uses relative asset URLs (`base: './'`), so it
 works from any sub-path.
 

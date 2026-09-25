@@ -8,13 +8,14 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 
 | Command | Purpose |
 |---|---|
-| `npm run check` | **(Added in DEV_PLAN step 1.0.)** Everything before a commit: format, clippy with warnings as errors, tests, typecheck, size budgets. Quiet output. |
+| `npm run check` | Everything before a commit: format, clippy with warnings as errors, tests, typecheck, size budgets. Quiet output: one line per step, details only for failures. Needs `web/src/wasm` (`npm run build:wasm`). |
 | `npm run dev` | Dev server (Vite) plus a Rust watcher. Any `.rs` change rebuilds the wasm and reloads the page. |
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
 | `npm run build` | Wasm, typecheck, and the Vite production bundle into `dist/`. |
-| `cargo test --workspace --release` | Engine tests (56 at `3239215`). CI runs `cargo test --workspace`. |
-| `cargo clippy --workspace --release --all-targets` | Lints (one known pre-existing warning until step 1.0 fixes it). |
+| `cargo test --workspace -q` | Engine tests only (56 after step 1.0). Add a name to filter. |
+| `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
+| `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
 
 Line counts: use `(Get-Content <file>).Count`. `Measure-Object -Line` skips blank lines and undercounts.
@@ -46,7 +47,8 @@ section 3.1) and use the browser for final visual proof.
 
 - The shell is PowerShell 5.1: no `&&` (use `; if ($?) { … }`). **The Bash tool fails on this machine.**
 - `git commit -F -` with a here-string doesn't reach stdin. Write the message to a file in the
-  scratchpad and use `git commit -F <file>`.
+  scratchpad and use `git commit -F <file>`. Write that file with the Write tool or `-Encoding ascii`:
+  `Out-File -Encoding utf8` adds a BOM, which ends up in the commit subject.
 - `Set-Content -Encoding utf8` writes a BOM, which broke `package.json` once. Use the Write and Edit tools
   or Node for files.
 - Cargo's "Blocking waiting for file lock" is reported as a NativeCommandError; it's harmless.
@@ -66,15 +68,15 @@ Every push to `main` runs `.github/workflows/pages.yml`: engine tests, build, th
 - Balance numbers are expected to change; keep them as named constants near the top of their module.
 - Offer recommendations, not surveys of options.
 
-## 6. Tuning knobs (values at `3239215`)
+## 6. Tuning knobs (values after step 1.0)
+
+`docs/CODEMAP.md` lists where every tuning constant lives; this is the current balance at a glance.
 
 | Where | Constant | Value |
 |---|---|---|
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR` | 3, 0.2, 0.25 |
 | `deposits.rs` | `Tier::grade` / `draw_cap` (units per s) | lode 2000 / 20, vein 1000 / 4, outcrop 100 / 1 |
-| `factory.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` | 1.0 units/s, 0.6, 64 |
-| `factory.rs` | `BELT_SPEED`, `ITEM_SPACING`, `STORAGE_SLOTS` | 1.0 blocks/s, 0.35, 24 |
-| `worldgen.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` | per ore (outcrops per column, vein chance, lode weight); 1/40; 10 |
+| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` | 1.0 units/s, 0.6, 64 |
+| `factory/belt.rs`, `factory/storage.rs` | `BELT_SPEED`, `ITEM_SPACING`, `STORAGE_SLOTS` | 1.0 blocks/s, 0.35, 24 |
+| `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` | per ore (outcrops per column, vein chance, lode weight); 1/40; 10 |
 | `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron |
-
-After step 1.0 moves files, `docs/CODEMAP.md` says where each constant lives.

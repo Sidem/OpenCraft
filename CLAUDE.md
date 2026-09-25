@@ -3,7 +3,8 @@
 Browser voxel sandbox × factory builder: a Rust → wasm engine (`crates/engine`) with a thin TypeScript/WebGL2
 host (`web/src`).
 
-**Start every session by reading `docs/DEV_PLAN.md` (sections 0–4), then `docs/CODEMAP.md` (once it exists).**
+**Start every session by reading `docs/DEV_PLAN.md` (sections 0–4), then `docs/CODEMAP.md`.** Area conventions
+live in `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md`.
 The plan is the plan of record: direction, the user's settled decisions, what exists, and the exact next steps
 with acceptance criteria. Keep it current: tick finished steps, update its status line, add to its change log.
 
@@ -33,8 +34,8 @@ matters as much as any feature.** The full rules are in plan section 3.1 and are
   asked.
 - Windows machine: use PowerShell and the file tools (the Bash tool fails here). For commit messages, write a
   file and use `git commit -F <file>`.
-- Checks: `npm run check` (after plan step 1.0), or `cargo test --workspace --release`, `npm run typecheck`,
-  `npm run build`. Browser: `preview_start` name `opencraft`, then drive `window.opencraft.game` directly.
+- Checks: `npm run check` (fmt, clippy, tests, typecheck, size budgets; needs `npm run build:wasm` once).
+  Browser: `preview_start` name `opencraft`, then drive `window.opencraft.game` directly.
 - Performance first: state and hot loops in Rust, zero-copy data to TS, dependencies justified, wasm size
   watched.
 - The deterministic core (world edits, factory, deposits, inventories) stays deterministic: fixed ticks,

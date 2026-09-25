@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · code at commit `3239215` (deposits, miners, belts, boxes, inventory, build menu) ·
-**Next up: Milestone 1, step 1.0 (restructure the codebase for agents).**
+**Status:** 2026-09-25 · step 1.0 done (codebase restructured for agents; `npm run check`, `docs/CODEMAP.md`) ·
+**Next up: Milestone 1, step 1.1 (fixed simulation tick).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -20,18 +20,18 @@ You are picking up a working browser game (Rust → wasm engine, TypeScript/WebG
 concept (finite ore deposits, lossy hand mining, efficient miners, belts, boxes) is built and live at
 <https://sidem.github.io/OpenCraft/>. The next job is **Milestone 1: Foundation** (section 4).
 
-- **It starts with step 1.0,** a purely structural restructure that makes the codebase cheap for agents to
-  work on before it grows.
-- **Then comes the foundation itself:** fixed simulation ticks, all state changes as actions, several
+- **Step 1.0 is done:** the codebase was restructured so it's cheap for agents to work on (small modules,
+  tests in their own files, `npm run check`, a code map).
+- **Next comes the foundation itself:** fixed simulation ticks, all state changes as actions, several
   players in the engine, a deterministic core with tests, and saving. It's mostly invisible to players, but
   multiplayer, saving, catch-up and everything after build on it.
 
 Before you change code:
 
-1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md` once it exists (step 1.0
-   creates it). Skim README.md only if you need the player's view.
-2. Run the checks in `docs/WORKFLOW.md` section 1 to confirm a green baseline (56 engine tests, typecheck,
-   build).
+1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
+   `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
+2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
+   (56 engine tests).
 3. Work through Milestone 1 in step order. Each step lists where, how and when it's done. Do one step, or
    one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -86,15 +86,15 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (commit `3239215`)
+## 2. Where the code stands (after step 1.0)
 
 ### Architecture
 
 Rust owns all game state and hot loops (`crates/engine`, compiled to wasm with wasm-bindgen). TypeScript
 (`web/src`) is a thin platform layer: input, WebGL2 rendering, DOM UI, Web Audio. Bulk data (chunk meshes,
 box instances, sound events, textures) is read zero-copy from wasm memory through `*_ptr` / `*_count`
-accessors. `impl Game` in `crates/engine/src/lib.rs` is the entire JS-facing API, grouped by comment
-headers.
+accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs`, and
+mining, placing and movement sounds live in `interaction.rs`. `docs/CODEMAP.md` maps every module.
 
 Each frame, `web/src/main.ts`:
 
@@ -108,14 +108,14 @@ Each frame, `web/src/main.ts`:
 
 - **World:** 32³ chunks, 256 tall; seeded terrain with cliffs, caves and trees; greedy mesher with AO;
   streaming nearest-first; edits kept when chunks unload (`World.saved`).
-- **Deposits** (`deposits.rs`, placed by `worldgen.rs`):
+- **Deposits** (`deposits.rs`, placed by `worldgen/ore.rs`):
   - Outcrops, veins and lodes of coal, iron and copper. The tiers are outcrop 100 units per block with a
     60/min shared draw cap, vein 1,000 with 240/min, and lode 2,000 with 1,200/min.
   - A pool is shared per deposit. Output tapers over the last 20%, and the block nearest the miner
     becomes `SPENT_ROCK` for each block's worth drawn, even in unloaded chunks.
   - Ownership is deterministic: the first deposit in `DepositKey` order wins.
   - Hand mining keeps `HAND_YIELD` = 3 per block and costs the deposit one block.
-- **Factory** (`factory.rs`):
+- **Factory** (`factory/`, one file per machine kind):
   - The Miner Mk1 draws 1 unit/s and recovers 60%.
   - Belts move 1 block/s, with per-cell item lists, side-joins, corners and back-pressure.
   - Storage boxes hold 24 slots and push into belts leading away.
@@ -136,10 +136,10 @@ Each frame, `web/src/main.ts`:
 1. **No saving.** A page refresh loses everything.
 2. **Frame-rate dependent simulation.** Player physics substeps are `dt / ceil(dt / PHYSICS_STEP)`, so the
    step size varies with frame time. The factory, items, mining and placing timers all advance by frame
-   `dt`. See `Game::update` in `lib.rs`.
+   `dt`. See `Game::update` in `lib.rs` and the timers in `interaction.rs`.
 3. **Presentation mixed into simulation.**
    - `Factory::update` takes the camera `eye` and `&mut Sounds` (for dig sounds).
-   - `Game::target_detail` calls `Deposits::lookup`, which **creates** deposit state just because the
+   - `Game::target_detail` (`api/hud.rs`) calls `Deposits::lookup`, which **creates** deposit state just because the
      player looked at ore.
 4. **State changes are direct calls.** `set_using`, `click_slot`, `craft` and others mutate state
    immediately; there is no action layer.
@@ -150,12 +150,10 @@ Each frame, `web/src/main.ts`:
 8. Veins and lodes can only be found by digging; there's no prospecting.
 9. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
 10. Items share the block id space; a separate item registry is needed for ingots and parts (Milestone 2).
-11. A pre-existing clippy warning, `worldgen.rs` "if has identical blocks" (the bedrock layer), must be
-    fixed in step 1.0, once clippy treats warnings as errors.
-12. **Agent-unfriendly structure** (step 1.0 fixes it). Line counts at `3239215`, all lines:
+11. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
+    order of sound materials and event kinds. Replace them with getters when touching that code.
 
-    | File | Lines (without inline tests) | Problem |
-    |---|---|---|
+---|---|---|
     | `lib.rs` | 1,095 (862) | God object: every feature edits `impl Game` |
     | `factory.rs` | 933 (779) | Every machine type in one file |
     | `style.css` | 1,206 | All UI styles in one file |
@@ -200,7 +198,7 @@ you measure and defend.** If a change would break these rules, restructure first
   abstractions ahead of need. Introduce a registry when the second instance of a kind arrives (e.g. the
   machine registry with the smelter in Milestone 2).
 
-**Size budgets** (enforced by `scripts/check-size.mjs` after step 1.0)
+**Size budgets** (enforced by `scripts/check-size.mjs`, part of `npm run check`)
 
 | Kind | Soft limit (warn) | Hard limit (fail) |
 |---|---|---|
@@ -231,7 +229,7 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 
 **Docs: maps, not history**
 
-- `docs/CODEMAP.md` (created in step 1.0): one line per module (what it owns) plus "how to add X" recipes.
+- `docs/CODEMAP.md`: one line per module (what it owns) plus "how to add X" recipes.
   **Update it in the same commit as any structural change.** It replaces most exploration.
 - **Nested `CLAUDE.md` files** in `crates/engine/` and `web/src/` hold subsystem conventions. Claude Code loads
   them only when working in that folder, so they cost nothing elsewhere. Keep them short.
@@ -244,7 +242,7 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 
 **Feedback loops: fast and quiet**
 
-- **`npm run check`** (step 1.0) runs format check, clippy with warnings as errors, engine tests, typecheck
+- **`npm run check`** runs format check, clippy with warnings as errors, engine tests, typecheck
   and size budgets, and prints only a summary and the failures. Run it before every commit.
 - **Prefer headless tests over the browser.** Scenario tests in Rust (build a layout through actions, run
   ticks, assert on state or `describe` text) and text debug dumps (e.g. an ASCII map of an area with
@@ -308,7 +306,7 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 **Goal:**
 
-- First, restructure the codebase so agents can work on it cheaply (step 1.0).
+- First, restructure the codebase so agents can work on it cheaply (step 1.0, done).
 - Then:
   - the game runs on a fixed tick,
   - every change to the core is an action,
@@ -337,70 +335,19 @@ on every peer.
 
 ### Steps
 
-- [ ] **1.0 Restructure for agents (do this first; purely structural)**
+- [x] **1.0 Restructure for agents** (done 2026-09-25, nine commits starting at `31bb05b`)
+  - `rustfmt.toml` (width 120) and a one-off `cargo fmt`; every inline test module moved to
+    `<module>/tests.rs`.
+  - `lib.rs` split into `api/*.rs` (one `#[wasm_bindgen] impl Game` per area) and `interaction.rs`;
+    `factory.rs` became `factory/` (belt, miner, storage, links, render, describe);
+    `worldgen/ore.rs` split out; `style.css` became one CSS file per component; `sound-lab.ts` and
+    `renderer.ts` split.
+  - Every module has a header. `npm run check` (fmt, clippy `-D warnings`, tests, tsc, size budgets) runs
+    in CI. `docs/CODEMAP.md`, `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md` written.
+  - Same 56 tests and JS API; wasm 188,960 bytes vs 188,923 before (+0.02%); browser smoke test passed.
 
-  Section 3.1 explains why. This is the cheapest moment, because steps 1.1–1.4 rewrite `lib.rs` and touch
-  `factory.rs` anyway. **No behaviour changes in this step:** the same tests pass, the same JS API
-  (`engine.d.ts` unchanged apart from ordering), and wasm size within ±1%. Commit each part separately so
-  every commit is green.
-
-  1. **Formatting baseline.** Add `rustfmt.toml` matching the current style as closely as possible (start
-     with `max_width = 120`, `use_small_heuristics = "Max"`; tune until the diff is small). Run
-     `cargo fmt` once, as a commit containing nothing else.
-  2. **Tests out of implementation files.** Move every inline `mod tests { … }` (14 modules) into
-     `src/<module>/tests.rs` via `#[cfg(test)] mod tests;`. Pure moves; 56 tests still pass.
-  3. **Split `lib.rs`.**
-     - `lib.rs` keeps the module list, the `Game` struct, `new` and `update`.
-     - The wasm API moves into `src/api/` by area, as separate `#[wasm_bindgen] impl Game` blocks:
-       - `input.rs`: movement, look, mining and using, slots,
-       - `render.rs`: events, meshes, instances, textures, sounds,
-       - `inventory.rs`: slots, cursor, pickups,
-       - `crafting.rs`,
-       - `hud.rs`: target, readouts, stats,
-       - `debug.rs`: `give`, `teleport`, `skip_time`, `find_deposit`, `block_at`.
-     - Gameplay internals (`break_block`, `try_place`, `take_from_machine`, mining and placing timers,
-       movement sounds) move to `src/interaction.rs`.
-     - Every resulting file is under 400 lines.
-  4. **Turn `factory.rs` into `src/factory/`:**
-     - `mod.rs`: `Factory`, its public API, orchestration of `update`,
-     - `belt.rs`, `miner.rs`, `storage.rs`,
-     - `links.rs`: relinking and update order,
-     - `render.rs`: `write_instances`, `push_box`,
-     - `describe.rs`,
-     - `tests.rs`.
-
-     Don't build the machine registry yet. Describe the intended pattern in the code map; Milestone 2 adds
-     the registry together with the smelter.
-  5. **Split the other files over budget.**
-     - `worldgen.rs`: move deposit seeding and stamping to `worldgen/deposits.rs` (or similar) with a
-       header.
-     - `sound-lab.ts`: split by tab or panel.
-     - `render/renderer.ts`: move the instanced box pipeline into its own file.
-     - `style.css`: one CSS file per UI component (`web/src/ui/*.css`) plus `web/src/base.css`, each
-       imported by its own TS file. Vite bundles them.
-  6. **Module headers.** Every Rust and TS module gets a header of at most ~15 lines (what it owns,
-     invariants, how to extend); many already have one. Put public items first.
-  7. **Guardrails.**
-     - `scripts/check-size.mjs`: line counts for `crates/*/src/**/*.rs` (excluding `tests.rs`),
-       `web/src/**/*.{ts,css}` (excluding `web/src/wasm/`), every `CLAUDE.md`, and `docs/*.md`, all
-       against the budgets in section 3.1. It warns at the soft limit, fails at the hard limit, and prints
-       only offenders.
-     - `npm run check`: `cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`,
-       `cargo test --workspace -q`, `tsc --noEmit`, and the size check. Output is a compact summary.
-     - Fix the pre-existing clippy warning in worldgen.
-     - Add `npm run check` to `.github/workflows/pages.yml` before the build step.
-  8. **Maps.**
-     - `docs/CODEMAP.md`: one line per module, then short "how to add …" recipes. Cover a block, an item
-       or recipe, a machine, a wasm API method, a UI panel, and a sound material.
-     - `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md`, each under 60 lines: that area's conventions,
-       testing approach, and gotchas.
-
-  **Done when:** `npm run check` passes with no size warnings; the engine test count is unchanged; the game
-  behaves the same in a browser smoke test; wasm size is within ±1%; and the code map is complete.
-
-*From 1.1 on, file names refer to the layout before step 1.0. Look up their new homes in `docs/CODEMAP.md`.*
-
-- [ ] **1.1 Fixed simulation tick** (`lib.rs`, `player.rs`, `entities.rs`, `factory.rs`)
+- [ ] **1.1 Fixed simulation tick** (`lib.rs`, `interaction.rs`, `player.rs`, `entities.rs`, `factory/`,
+  `api/debug.rs`)
   - `pub const TICK_RATE: u32 = 60;` and `TICK = 1.0 / 60.0`. `Game::update(dt)` accumulates frame time
     and runs whole ticks, at most about 6 per frame. When far behind (e.g. a hidden tab), drop the excess
     rather than spiral.
@@ -418,14 +365,15 @@ on every peer.
     different `dt` sequences with the same total and comparing state), and everything feels unchanged in
     the browser.
 
-- [ ] **1.2 Separate the core from presentation** (`sim.rs` new, `lib.rs`, `factory.rs`, `deposits.rs`)
+- [ ] **1.2 Separate the core from presentation** (`sim.rs` new, `lib.rs`, `factory/`, `deposits.rs`,
+  `api/hud.rs`)
   - Create `Sim` holding the core state: `tick: u64`, `world: World` (edits live in it), `factory` (with
     `deposits`), `players: Vec<PlayerCore>` (inventory, cursor, selected slot), `rng`. For now `World` still
     also holds the render cache. That's acceptable, as long as the core never reads blocks through
     load-dependent accessors.
   - `Factory::update(&mut self, world, events: &mut Vec<SimEvent>)`: drop `eye` and `Sounds`. Emit
-    `SimEvent::MinerWorking { pos }` and similar; the view turns events into sounds, filtered by distance
-    to the camera (keep the current 0.9 s cadence and 24-block range).
+    `SimEvent::MinerWorking { pos }` and similar instead of `Miner::sound_step`; the view turns events into
+    sounds, filtered by distance to the camera (keep the current 0.9 s cadence and 24-block range).
   - `target_detail` must be read-only. Add a non-mutating deposit query that computes figures without
     inserting into `Deposits.states`, or excludes state created only by looking from saving and hashing.
     Prefer the former.
@@ -434,7 +382,7 @@ on every peer.
   - **Done when:** no core code path takes the camera, `Sounds`, or frame `dt`, and a test shows
     `target_detail` leaves the core unchanged.
 
-- [ ] **1.3 Actions** (`action.rs` new, `sim.rs`, `lib.rs`)
+- [ ] **1.3 Actions** (`action.rs` new, `sim.rs`, `lib.rs`, `interaction.rs`, `api/`)
   - `enum Action` with an explicit `player: PlayerId` on each variant. The initial set covers today's
     features:
     - `BreakBlock { pos }`: validates the block; ore calls `hand_mined` and drops `HAND_YIELD`; machines
@@ -506,7 +454,7 @@ on every peer.
   - **Done when:** there's a round-trip test (save, load, save again; the bytes are identical) plus test 2
     from step 1.5.
 
-- [ ] **1.7 Saving in the browser** (`web/src/save/` new, `main.ts`, `index.html`, `style.css`)
+- [ ] **1.7 Saving in the browser** (`web/src/save/` new, `main.ts`, `index.html`, a `ui/` panel + CSS)
   - IndexedDB store `worlds`: `{ id, name, seed, updated, playTime, bytes }`. Compress with the browser's
     built-in `CompressionStream('gzip')`, which costs no wasm size.
   - Autosave every 60 s, and on `visibilitychange` → hidden and on `pagehide`. Write the new save, then
@@ -535,7 +483,7 @@ on every peer.
     `docs/ROADMAP.md` into section 4 and detail it to the level Milestone 1 has now (steps with where, how
     and done-when). Ask the user the open questions tagged M2 (section 6) before detailing it.
 
-**Suggested commits:** one per step (step 1.0 in parts). Every commit passes `npm run check`, and the game
+**Suggested commits:** one per step, or per clean part of a step. Every commit passes `npm run check`, and the game
 still works.
 
 ---
@@ -580,3 +528,6 @@ and the balance numbers. Read the section you need.
   1.0 (restructure first), step 1.9 (the milestone cleanup pattern), and the rule that the plan details only
   the current milestone. Following that rule, moved milestones 2–7 to `docs/ROADMAP.md` and the
   operational reference to `docs/WORKFLOW.md`.
+- **2026-09-25:** Step 1.0 done (restructure for agents). Section 2 now describes the new layout; steps
+  1.1–1.7 name the new files. Added debt item 11 (constants TypeScript still mirrors). README's project
+  layout now points to `docs/CODEMAP.md`.
