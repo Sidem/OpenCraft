@@ -1,6 +1,10 @@
+//! Game-level scenario tests: mining, placing, sounds, miners and crafting through the `Game` API.
+
 use super::*;
-use crate::deposits::DepositKey;
-use crate::factory::MinerStatus;
+use crate::block::{BELT, MINER, SPENT_ROCK, STORAGE};
+use crate::deposits::{DepositKey, Tier, HAND_YIELD};
+use crate::factory::{MinerStatus, MINER_RECOVERY};
+use crate::recipes::RECIPES;
 
 fn run_until_ready(g: &mut Game) {
     for _ in 0..10_000 {
