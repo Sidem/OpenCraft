@@ -13,7 +13,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
 | `npm run build` | Wasm, typecheck, and the Vite production bundle into `dist/`. |
-| `cargo test --workspace -q` | Engine tests only (74 after step 1.6). Add a name to filter. |
+| `cargo test --workspace -q` | Engine tests only (74 after Milestone 1). Add a name to filter. |
 | `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
 | `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
@@ -75,7 +75,7 @@ Every push to `main` runs `.github/workflows/pages.yml`: engine tests, build, th
 - Balance numbers are expected to change; keep them as named constants near the top of their module.
 - Offer recommendations, not surveys of options.
 
-## 6. Tuning knobs (values after step 1.0)
+## 6. Tuning knobs (values after Milestone 1)
 
 `docs/CODEMAP.md` lists where every tuning constant lives; this is the current balance at a glance.
 

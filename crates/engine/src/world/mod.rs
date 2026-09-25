@@ -167,11 +167,6 @@ impl World {
         Some(())
     }
 
-    pub fn set_view_radius(&mut self, r: i32) {
-        self.view_radius = r.max(2);
-        self.center = None;
-    }
-
     /// Render distance in blocks.
     pub fn view_distance(&self) -> f64 {
         (self.view_radius * CHUNK_SIZE) as f64

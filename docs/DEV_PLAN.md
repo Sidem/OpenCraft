@@ -1,8 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions),
-1.4 (several players), 1.5 (state hash), 1.6 (save format), 1.7 (saving in the browser) and 1.8 (docs)
-done · **Next up: Milestone 1, step 1.9 (milestone cleanup).**
+**Status:** 2026-09-25 · Milestone 1 (Foundation) done · **Next up: Milestone 2, step 2.1 (item
+registry).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -19,22 +18,21 @@ next. README.md covers setup and how the game works for players; this file cover
 
 You are picking up a working browser game (Rust → wasm engine, TypeScript/WebGL2 host). The extraction
 concept (finite ore deposits, lossy hand mining, efficient miners, belts, boxes) is built and live at
-<https://sidem.github.io/OpenCraft/>. The next job is **Milestone 1: Foundation** (section 4).
+<https://sidem.github.io/OpenCraft/>.
 
-- **Step 1.0 is done:** the codebase was restructured so it's cheap for agents to work on (small modules,
-  tests in their own files, `npm run check`, a code map).
-- **Next comes the foundation itself:** fixed simulation ticks, all state changes as actions, several
-  players in the engine, a deterministic core with tests, and saving. It's mostly invisible to players, but
-  multiplayer, saving, catch-up and everything after build on it.
+- **Milestone 1 (Foundation) is done** (section 8): a fixed 60 Hz tick, a deterministic core changed only
+  by actions, several players in the engine, state hashes, and worlds that save in the browser.
+- **The next job is Milestone 2: Make it a game** (section 4): items separate from blocks, a smelter and
+  constructor, belt logistics, power, research and upgrades.
 
 Before you change code:
 
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (56 engine tests).
-3. Work through Milestone 1 in step order. Each step lists where, how and when it's done. Do one step, or
-   one clean part of a step, per session, and stop in a green, committed state.
+   (74 engine tests).
+3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
+   one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
    the change log (section 8). Update `docs/CODEMAP.md` in the same commit as any structural change. Keep
    this file truthful; the next session relies on it.
@@ -84,10 +82,12 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 - Upgrades raise **recovery**, not just speed (Mk2 miner ≈ 75%), so upgrading extends a deposit's life.
 - Bulk materials (stone, sand, clay, gravel) stay effectively infinite for quarries.
 - Research via a lab that consumes parts (Factorio) vs. milestone deliveries (Satisfactory). See section 6.
+- The Miner Mk1 and the smelter stay unpowered (a burner tier); newer machines need power (step 2.7).
+- Old saves keep loading across format changes where a migration is cheap (Milestone 2 rules).
 
 ---
 
-## 2. Where the code stands (after step 1.6)
+## 2. Where the code stands (after Milestone 1)
 
 ### Architecture
 
@@ -97,8 +97,8 @@ box instances, sound events, textures) is read zero-copy from wasm memory throug
 accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs` and acts
 for the local player (`Game.local`). The deterministic core is `Sim` (`sim.rs`: tick, world, factory with
 deposits, each player's inventory, rng); `Sim::state_hash` fingerprints it through the canonical encoding
-in `bytes.rs`, which `save.rs` also reads back for saves. The authority (`authority.rs`) owns every player's body and the
-loose items. The local player's hands (mining, placing, footsteps) live in `interaction.rs`. `Game`
+in `bytes.rs`, which `save.rs` also reads back for saves. The authority (`authority.rs`) owns every
+player's body and the loose items. The local player's hands (mining, placing, footsteps) live in `interaction.rs`. `Game`
 changes the core only by queuing `Action`s (`action.rs`), applied at the next tick; the core answers with
 `SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
 
@@ -141,27 +141,19 @@ Each frame, `web/src/main.ts`:
   exports and imports them.
 - **Size:** about 113 KB gzipped in total (wasm 81 KB, JS 28 KB, CSS 4 KB).
 
-### Known limitations and technical debt (Milestone 1 fixes most of these)
+### Known limitations and technical debt
 
-1. ~~No saving.~~ Worlds save in the browser since step 1.7. Two tabs on the same world overwrite each
-   other's saves (the later save wins).
-2. ~~Frame-rate dependent simulation.~~ Fixed in step 1.1. The player's body still only moves while its
-   chunk is loaded, but that is the authority's business, not the core's.
-3. ~~Presentation mixed into simulation.~~ Fixed in step 1.2: the factory emits `SimEvent`s, and
-   `target_detail` no longer tracks deposits.
-4. ~~State changes are direct calls.~~ Fixed in step 1.3 (actions). Tests and `find_outcrop_block` /
-   `build_mine` still set up worlds directly, which is fine for tests.
-5. ~~One player is built in.~~ Fixed in step 1.4. Still single-player-shaped: streaming centres on the
-   local player (other bodies wait where the ground isn't loaded), only the local player has hands, and
-   nothing draws other players' bodies. Milestone 3 handles these.
-6. ~~`World::set_block` silently fails in unloaded chunks.~~ Core edits use `set_block_anywhere` since
-   step 1.2.
-7. Belts can't climb, and there are no splitters or filters.
-8. Veins and lodes can only be found by digging; there's no prospecting.
-9. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
-10. Items share the block id space; a separate item registry is needed for ingots and parts (Milestone 2).
-11. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
-    order of sound materials and event kinds. Replace them with getters when touching that code.
+1. Items share the block id space; ingots and parts need an item registry (step 2.1).
+2. Belts can't climb, and there are no splitters or filters (steps 2.5, 2.6).
+3. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
+   isn't loaded), only the local player has hands, nothing draws other players' bodies, and a leaving
+   player's inventory is dropped. Milestone 3 handles these.
+4. Two tabs on the same world overwrite each other's saves (the later save wins).
+5. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
+6. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
+7. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
+   order of sound materials and event kinds. Replace them with getters when touching that code.
+8. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
 
 ---
 
@@ -195,7 +187,7 @@ you measure and defend.** If a change would break these rules, restructure first
 - **Boring, explicit code.** Shallow call chains, no macro tricks, no deep generic towers, no ECS framework.
   Plain data-oriented modules: typed storage in `Vec`s plus one function per system. Don't build
   abstractions ahead of need. Introduce a registry when the second instance of a kind arrives (e.g. the
-  machine registry with the smelter in Milestone 2).
+  machine registry, step 2.2, as the smelter arrives).
 
 **Size budgets** (enforced by `scripts/check-size.mjs`, part of `npm run check`)
 
@@ -233,8 +225,8 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 - **Nested `CLAUDE.md` files** in `crates/engine/` and `web/src/` hold subsystem conventions. Claude Code loads
   them only when working in that folder, so they cost nothing elsewhere. Keep them short.
 - **This plan details only the current milestone.** When a milestone finishes, compress it into section 8
-  (a few lines) and move the next milestone in from `docs/ROADMAP.md`, detailed to the level Milestone 1
-  has now. Future milestones stay as short bullet lists in the roadmap, which is read only when planning.
+  (a few lines) and move the next milestone in from `docs/ROADMAP.md`, detailed to the level of the
+  current one (steps with where, how and done-when). Future milestones stay as short bullet lists in the roadmap, which is read only when planning.
 - **Operational reference lives in `docs/WORKFLOW.md`** (commands, verification, gotchas); read only the
   section you need.
 - The root `CLAUDE.md` holds rules and pointers only.
@@ -257,7 +249,7 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 - Read line ranges and symbols, not whole files. Use the code map. For a broad search, use a search
   sub-agent so only its conclusion enters the main context.
 - End every session by updating this plan (checkboxes, status, change log) and the code map.
-- **Every milestone ends with a cleanup step** (see step 1.9): size check clean, code map current, plan
+- **Every milestone ends with a cleanup step** (see step 2.11): size check clean, code map current, plan
   compressed, dead code gone.
 
 ### 3.2 Performance
@@ -301,214 +293,151 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Milestone 1: Foundation (NEXT)
+## 4. Milestone 2: Make it a game (NEXT)
 
-**Goal:**
+**Goal:** turn the extraction slice into a factory game. Items become separate from blocks. Ore goes through
+a processing chain (smelter, then constructor). Belts get real logistics, machines get power, and research
+and upgrades give progression. Everything stays deterministic, saved and hashed like Milestone 1's core,
+and every machine is a registry entry, not a special case.
 
-- First, restructure the codebase so agents can work on it cheaply (step 1.0, done).
-- Then:
-  - the game runs on a fixed tick,
-  - every change to the core is an action,
-  - the engine can hold several players,
-  - a test proves two engines fed the same actions stay identical,
-  - worlds save and load in the browser.
+Rules for every step:
 
-No networking yet. **Behaviour must stay the same as today** apart from saving; all existing tests keep
-passing (adjust them to the new API where needed).
-
-### Target structure
-
-```
-Game (thin wasm facade: lib.rs + api/*.rs) → same JS API where practical, so the TS changes stay small
- ├─ core: Sim (new, sim.rs)     deterministic: tick, World edits, Factory, Deposits,
- │                              players' inventories/cursor/selection, core Rng
- │   └─ apply(Action) + step()  → emits SimEvents (block broken, spill items, miner working…)
- ├─ authority (host side)       player bodies (physics), loose item entities, pickups;
- │                              turns intents into Actions; turns SimEvents into item spawns
- └─ view (local only)           camera + interpolation, targeting, mining progress, streaming/meshing,
-                                box instances, sounds, pickup toasts, readouts
-```
-
-In single-player the local game is the authority. In co-op (Milestone 3) only the host is, and the core runs
-on every peer.
+- New core state goes in its type's `write_state` / `read_state` (hash and saves).
+- A save format change bumps `SAVE_VERSION`. Players have worlds now, so **migrate older saves when it's
+  cheap** (a version-aware read). Refuse them with the existing message only when it isn't.
+- A world generation change bumps `WORLDGEN_VERSION`.
+- Balance numbers are named constants; record them in `docs/WORKFLOW.md` section 6.
+- Browser proof: build the chain, save, reload, screenshot. Tests first.
 
 ### Steps
 
-- [x] **1.0 Restructure for agents** (done 2026-09-25, nine commits starting at `31bb05b`)
-  - `rustfmt.toml` (width 120) and a one-off `cargo fmt`; every inline test module moved to
-    `<module>/tests.rs`.
-  - `lib.rs` split into `api/*.rs` (one `#[wasm_bindgen] impl Game` per area) and `interaction.rs`;
-    `factory.rs` became `factory/` (belt, miner, storage, links, render, describe);
-    `worldgen/ore.rs` split out; `style.css` became one CSS file per component; `sound-lab.ts` and
-    `renderer.ts` split.
-  - Every module has a header. `npm run check` (fmt, clippy `-D warnings`, tests, tsc, size budgets) runs
-    in CI. `docs/CODEMAP.md`, `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md` written.
-  - Same 56 tests and JS API; wasm 188,960 bytes vs 188,923 before (+0.02%); browser smoke test passed.
+- [ ] **2.1 Item registry** (`item.rs` new; `inventory.rs`, `recipes.rs`, `factory/`, `entities.rs`,
+  `action.rs`, `api/`, `web/src/ui/`)
+  - `ItemId(u16)` newtype and an `ITEMS` table (name, stack size, icon, the block it places). **Ids below
+    256 are the blocks with the same number**, so today's ids and saves stay valid. Non-block items
+    start at 256.
+  - Stacks, recipes, belts, boxes, miners' buffers, loose items and events carry `ItemId`. Placing asks
+    the table for the block. `ByteReader::block` for items becomes `item` (validated against the table).
+  - Icons: procedural 16×16 icons for non-block items (texture layers or a small icon atlas), read by TS
+    through the API like block textures. `hud.blockIcon` becomes `itemIcon`. No constants mirrored in TS.
+  - First non-block items: iron ingot and copper ingot (no source until 2.3; `give` works).
+  - Save: `SAVE_VERSION` 2 writes `u16` item ids; version-1 saves still load.
+  - **Done when:** all tests pass on `ItemId`; a test loads a version-1 save made before the change
+    (commit the bytes as a test fixture); `give` shows ingots with icons in the inventory.
 
-- [x] **1.1 Fixed simulation tick** (done 2026-09-25)
-  - `Game::update` accumulates frame time and calls `Game::run_tick` (`lib.rs`) for each whole tick, at most
-    8 per frame (a 0.1 s host frame plus a leftover partial tick needs 7, so no time is lost at normal frame
-    rates). Beyond that the excess is dropped.
-  - `prev_eye` / `render_eye` give the interpolated camera (`eye_x/y/z`). Box instances are drawn relative to
-    it but not interpolated themselves. `update_target` also runs per frame, for the HUD.
-  - `skip_time` runs whole ticks (all systems, not only the factory) and discards their sounds. `run_ticks(n)`
-    added. `teleport` resets the interpolation. `Game.time` became `tick: u64`.
-  - Test `results_do_not_depend_on_frame_rate`: walking, jumping, mining and a running miner give identical
-    state at 30, 60, 144 fps and irregular frames. 57 tests; wasm 188,889 bytes (−71). In the browser, the
-    camera moves every frame at 144 fps while the ticks advance every 2–3 frames.
-  - Per tick: player physics as 2 substeps of 1/120 s, then targeting, mining, placing and item entities,
-    then the factory, all advanced by `TICK`. `look()` stays per frame (yaw and pitch aren't core state).
-  - Optional polish left for later: interpolating item and belt instances.
+- [ ] **2.2 Machine registry** (restructure only, no behaviour change; `factory/`)
+  - First add a golden test: the scripted 6,300-tick run in `sim/tests.rs` ends at a recorded
+    `state_hash`. The refactor must not change it.
+  - Keep typed storage per kind (a `Vec` per machine struct, no trait objects). Each kind's file exposes
+    the same functions (`step`, `outputs`, `describe`, `model`, `write_state` / `read_state`,
+    `contents`), and `mod.rs`, `links.rs`, `describe.rs` and `render.rs` each dispatch through one
+    `match` on `Slot`.
+  - A machine table (block id → kind, name, buffer sizes) replaces scattered per-kind constants.
+  - Shared input/output buffers (`factory/buffer.rs`) for the processing machines to come.
+  - **Done when:** same tests and golden hash. The code map's "How to add a machine" shrinks to: its
+    file, a `Slot` variant, a table row, a hand recipe. `factory/mod.rs` stays under 400 lines.
 
-- [x] **1.2 Separate the core from presentation** (done 2026-09-25)
-  - `sim.rs`: `Sim { tick, world, factory, players: Vec<PlayerCore>, rng, events }` and `Sim::step`.
-    `PlayerCore` holds the `Inventory` (slots, cursor, selection). `Game` keeps `sim` plus the body, items
-    and view state; `LOCAL` (lib.rs) indexes the local player until step 1.4. `World` still holds the render
-    cache too.
-  - `Factory::update(world, tick, events)` takes the `Sim` tick instead of keeping its own counter. Miners
-    emit `SimEvent::MinerWorking { pos }` every 54 ticks while drawing (`pulse_step`), and
-    `Game::present_events` plays them within 24 blocks of the camera.
-  - `deposits::owner_of` and `DepositState::survey` are read-only. `target_detail` caches one survey in
-    `Game.surveyed` (a view cache, rebuilt when the target's deposit changes); `lookup` alone tracks.
-  - `World::block_anywhere_or_generate` added. Breaking and placing use it and `set_block_anywhere`.
-  - `world.rs` crossed 400 lines, so it became `world/mod.rs` plus `world/streaming.rs`.
-  - Tests `target_detail_leaves_the_core_unchanged` and `working_miner_reports_itself_and_is_heard_nearby`.
-    59 tests; wasm 189,797 bytes (+908). Browser (seed 1337 outcrop): looking at ore shows its figures
-    with `deposits_tracked()` still 0; the placed miner tracks it, runs, and pulses.
+- [ ] **2.3 Smelter** (`factory/smelter.rs`, a machine recipe table, block, textures, model)
+  - Machine recipes are data: `{ machine, inputs, outputs, seconds }` (in `recipes.rs` or a new
+    `processing.rs` if it grows).
+  - The smelter takes ore plus fuel (coal ore or logs, each with a burn time) and makes ingots. The
+    recipe follows the ore it's given. Belts deliver into it (items sorted into the ore or fuel buffer),
+    and it pushes ingots into a belt leading away, like a box. Right-click takes its output.
+  - `describe` shows status (working, no fuel, no ore, output full) and rates; the model shows a lamp.
+  - A hand recipe builds it (stone plus iron ore).
+  - **Done when:** a scenario test runs miner → belt → smelter, with coal fed from a box, → ingots in a
+    box at the computed rate. The state hash test covers a smelter. Browser screenshot of the line.
 
-- [x] **1.3 Actions** (done 2026-09-25)
-  - `action.rs`: `Action` (`BreakBlock`, `PlaceBlock { pos, slot, facing, against }`, `TakeContents`,
-    `Craft`, `ClickSlot`, `CloseInventory`, `SelectSlot`, `ScrollSlot { delta }`, `DropSelected`,
-    `PickUp`, `Give`) and `Sim::apply`, which validates against current state and does nothing when an
-    action no longer fits. The player travels beside the action: `Sim::queue(tick, player, action)`.
-    `PlayerId(u8)` exists now; `LOCAL` is `PlayerId(0)`.
-  - `Sim::step` applies due actions in (tick, player, sequence) order, then the factory. `Game::act`
-    queues for the current tick, so single-player sees results within the same frame, usually.
-  - The hands queue actions: the mining timer queues `BreakBlock`; right-click resolves `TakeContents`
-    or `PlaceBlock` (`interaction::right_click_action`). Loose items predict pickups on a scratch copy of
-    the inventory and queue `PickUp`; what no longer fits comes back as `Thrown`.
-  - Events: `BlockBroken`, `BlockPlaced` (sounds), `Gained` (toast and pickup sound), `Crafted` (toast),
-    `Dropped` (block drops, spawned by the authority), `Thrown` (thrown in front of the player).
-    `events.rs` (`Game::handle_sim_events`) reacts to them.
-  - JS API names unchanged. `craft` now returns how many crafts the inventory can pay for (they run at
-    the next tick); `give` returns nothing. `main.ts` plays the hotbar tick sound when the selection
-    changes across frames.
-  - Tests: `action/tests.rs` (queue order, stale actions, place and break in unloaded chunks, pickup
-    overflow); Game tests now queue actions and run a tick. 63 tests. Wasm 195,320 bytes (+5.5 KB raw,
-    +1.6 KB gzipped: the queue, `apply` and event handling). Browser: DOM craft button, slot clicks,
-    close, hotbar select, drop, mining and placing a miner all work through actions.
+- [ ] **2.4 Machine panel and constructor** (`ui/machine.ts` + `.css`, `factory/constructor.rs`,
+  `api/machine.rs`)
+  - Right-click on a machine with a panel opens it: recipe choice, buffers, status, and a take-output
+    button. Right-click on a box keeps taking everything.
+  - New action `SetRecipe { pos, recipe }`. Changing the recipe returns buffered inputs to the player.
+  - The constructor makes one input into parts, with the recipe chosen in the panel: iron plate, iron
+    rod, screws (from rods) and copper wire. New items join the table.
+  - Hand recipes may start asking for parts (e.g. a Miner Mk1 needs plates). Tune numbers after
+    playing.
+  - **Done when:** a scenario test (ingots → constructor set to plates → plates in a box); the panel
+    works in the browser; a save round trip keeps recipes and buffers.
 
-- [x] **1.4 Several players in the engine** (done 2026-09-25)
-  - `Sim.players: Vec<Option<PlayerCore>>` indexed by `PlayerId`; the new `Join` and `Leave` actions add
-    and remove entries, so joins happen at a tick boundary like any change. Leaving drops the inventory,
-    and ids are reused.
-  - `authority.rs` (new): `Game.bodies: Vec<Option<Player>>` indexed the same way; `step_bodies` (physics,
-    fall reset), `step_items` (items fly to the nearest player with room: `entities::Collector`),
-    `throw` from the right body, `join` / `leave`. `Game.local` replaces the `LOCAL` constant;
-    `body()` and `inventory()` give the local player's. The hands stay local-only.
-  - API: `add_player() -> id | undefined` and `remove_player(id)` in `api/debug.rs`; everything else still
-    acts for the local player. No TS changes.
-  - Tests: `two_players_build_and_craft_with_their_own_inventories` (bare `Sim`: joining, crafting,
-    placing and breaking in one tick, leaving), `a_second_player_has_its_own_body_pickups_and_throws`,
-    `the_nearest_player_with_room_gets_the_item`. 66 tests. Wasm 201,229 bytes (+5.9 KB raw, +1.9 KB
-    gzipped; the two exports are 1.75 KB raw of it). Browser: mining, pickup, toast, drop, adding and
-    removing a player all work.
+- [ ] **2.5 Belt logistics: splitter and filter** (`factory/splitter.rs`, `factory/filter.rs`)
+  - Splitter: one input, round robin to up to three outputs, skipping blocked ones. Belts side-joining
+    already merge, so no merger block unless play shows a need.
+  - Filter: the chosen item goes straight on, everything else to the sides. The item is set in the
+    machine panel (2.4).
+  - **Done when:** tests for round robin with a blocked output and for filtering; save round trip.
 
-- [x] **1.5 State hash and determinism tests** (done 2026-09-25)
-  - `bytes.rs` (new): `ByteWriter`, the canonical little-endian encoding of core state, and `fnv1a`.
-    Each core type writes itself in a `write_state` next to its fields, skipping derived data.
-    `Sim::write_state` writes tick, rng, players, edited chunks (loaded or stored, sorted by coordinate,
-    run-length encoded), machines in `Vec` order, then every tracked deposit sorted by key.
-    `Sim::state_hash` is FNV-1a over those bytes. It is exposed to JS as `state_hash()` (a BigInt).
-  - Pending actions are not hashed, since peers may already hold different actions for future ticks.
-  - `World::set_block_anywhere` no longer marks an unloaded chunk as edited when the block is already
-    there, matching `set_block`.
-  - `math::sort_small_by_key` replaces `worldgen::sort_by_ownership`.
-  - Tests in `sim/tests.rs`: same actions, same hash every tick for 6,300 ticks (miner, belts, box,
-    hand mining, crafting, two players, first spent rock); loaded versus bare core with the chunks
-    streamed out and back; the hash covers inventories, players, time and seed.
-    `target_detail_leaves_the_core_unchanged` also checks the hash across ore and machine readouts. The
-    frame-rate test compares state hashes. A mutation check (breaking read loaded chunks only) fails at
-    tick 1. Test 2 (save/load continuity) comes with step 1.6.
-  - 71 tests, suite still about 1.5 s. Wasm 206,788 bytes (+5.6 KB raw, +2.4 KB gzipped, almost all of it
-    the encoding that saves will reuse).
+- [ ] **2.6 Belt logistics: climbing and crossing** (`factory/belt.rs`, `factory/links.rs`, models)
+  - Ramps: a belt that rises or falls one block per cell. A vertical lift for taller climbs. An
+    underpass that carries items under a crossing belt for a few cells.
+  - Everything stays on the grid (free-form curves fight the voxels).
+  - **Done when:** tests for items going up a ramp, up a lift and under a crossing; screenshot.
 
-- [x] **1.6 Save format** (done 2026-09-25)
-  - `save.rs` (new): magic `OCW1`, `SAVE_VERSION`, `WORLDGEN_VERSION` (`worldgen/mod.rs`; **bump it
-    whenever generation changes incompatibly**), seed, then exactly `Sim::write_state`, then the local
-    player's id, every body (position, velocity, yaw, pitch, flying) and the loose items.
-  - `bytes.rs` gained `ByteReader`, and every `write_state` a `read_state` beside it. Reads return
-    `None` on anything malformed (past the end, unknown block ids, bad enums, duplicate chunks, deposits
-    or machine positions, lengths the data can't hold, bytes left over). Machines are rebuilt through
-    their constructors and the factory relinks on the first tick; tracked deposits are looked up again
-    by key (`deposit_by_key`) and re-surveyed.
-  - API (`api/save.rs`): `save() -> Uint8Array`, static `Game.load(bytes, view_radius)` which throws a
-    sentence a player can read (not an OpenCraft world, newer version, older version, world generation
-    changed, damaged), plus `seed()` and `play_seconds()` for the world list.
-  - Tests: `a_saved_world_loads_back_to_the_same_bytes` (a miner line, a second player, flying, loose
-    items: save, load, save gives identical bytes and hash), `foreign_old_and_damaged_files_are_refused`
-    (every truncation, a trailing byte, every single-byte corruption: refused or loaded, never a panic),
-    and test 2, `a_reloaded_core_carries_on_identically` (reload at tick 3,000, equal hashes to 6,300).
-  - 74 tests. Wasm 218,177 bytes (+11.4 KB raw, about +4.5 KB gzipped: reading back and checking every
-    type; the reader's primitives are kept out of line to save 0.4 KB).
+- [ ] **2.7 Power** (`factory/power.rs`, generator and pole blocks, wire instances)
+  - A coal generator burns fuel into power. Poles link with wires to other poles and machines in range.
+    Placing a pole links it to the nearest pole automatically, and wires are drawn as thin boxes.
+  - The grid is a graph. Its connected components are derived data, rebuilt when poles or machines
+    change. Each component's supply over its demand gives a speed factor for its consumers.
+  - Consumers: the constructor, splitter and filter, and the Mk2 machines of 2.9. The Miner Mk1 and the
+    smelter stay unpowered (the burner tier). This is a proposal; see section 1.
+  - Readouts show supply, demand and speed.
+  - **Done when:** tests for components, a brownout halving speed, and poles in unloaded chunks; save
+    round trip; screenshot of a powered line.
 
-- [x] **1.7 Saving in the browser** (done 2026-09-25)
-  - `save/store.ts`: IndexedDB `opencraft` with two stores: `worlds` holds `{ id, name, seed, updated,
-    playTime, slot }` and `saves` holds the bytes under `[id, slot]`. Each save goes into the slot that
-    isn't newest, in one transaction with the record, so the previous save stays as a backup. Bytes
-    are gzipped with `CompressionStream`, except saves made as the page hides or closes, which go in raw
-    so the write starts at once (`unpack` accepts both).
-  - `save/session.ts`: startup opens the most recently played world, falling back to the backup (with a
-    notice) if the newest save won't load. `Session` autosaves every 60 s, on pause, on hide and on
-    `pagehide`, skipping a save when no tick has run since the last one. Switching worlds saves, marks
-    the target as latest and reloads the page (one `Game` per page; wasm memory never shrinks).
-  - `ui/worlds.ts` + `.css` in the menu: the world list (Play, Export, Delete with confirmation; the
-    open world is marked Playing), New world (name, seed as a number or any text, blank for random),
-    Import. The play button says Continue for a saved world. `?seed=N` creates a world named
-    "Seed N" and drops the parameter, so a reload continues it. First visit: "My world", seed 1337.
-  - Browser, verified: built a miner line (miner, 3 belts, box); reloading with no explicit save
-    brought back the same play time, position, flying and line, and the box kept filling (28 → 40 ore
-    in 20 s, the miner's 36/min). New world, switching back, export (532 bytes gzipped), import,
-    delete, a damaged newest save (backup used), both saves damaged (error plus world list) all work.
-    No console errors. JS +2.7 KB and CSS +0.2 KB gzipped; wasm unchanged.
+- [ ] **2.8 Research** (`research.rs`, a station block or a delivery point, `ui/research.ts`)
+  - **Needs the user's answer first** (section 6: lab consuming parts, or milestone deliveries).
+  - The tech tree is data in Rust: nodes with costs and the recipes they unlock. Research state is core
+    state (saved, hashed, shared by all players in a world). The build menu hides or greys locked recipes.
+  - Start small: about six nodes covering the constructor, logistics, power and Mk2.
+  - **Done when:** tests for unlocking and for locked recipes being refused by `Craft`; a screenshot of
+    the research screen.
 
-- [x] **1.8 Docs** (done 2026-09-25)
-  - README: a "Saving and worlds" section for players, `?seed=` described as starting a new world, the
-    architecture diagram redrawn as core, authority and view plus `save.rs`, a paragraph on the
-    deterministic core, roadmap ticks, the size figure.
-  - `docs/CODEMAP.md`: every Milestone 1 module was already listed step by step; added a recipe for
-    changing what gets saved and reflowed the core-state recipe.
+- [ ] **2.9 Upgrades** (`factory/miner.rs`, `factory/belt.rs`, recipes)
+  - **Needs the user's confirmation** (section 6) that upgrades raise recovery, not just speed.
+  - Miner Mk2: recovery about 75%, rate about 2 units/s, needs power, crafted from parts. Fast belt:
+    2 blocks/s. Both unlocked by research.
+  - **Done when:** tests show Mk2 extracting more ore from the same deposit than Mk1; a fast belt keeps up
+    with a Mk2.
 
-- [ ] **1.9 Milestone cleanup** (every milestone ends with this step)
+- [ ] **2.10 Onboarding hints** (`ui/hints.ts` + `.css`)
+  - Short hints in plain language, shown in order, one at a time, dismissable: dig to find the outcrop,
+    craft a miner, place it against ore, add belts and a box, build a smelter.
+  - Progress comes from engine getters (items owned, machines placed). Which hints were dismissed is UI
+    state in `localStorage`, not game state.
+  - **Done when:** a new world walks through the hints in the browser; screenshot.
+
+- [ ] **2.11 Milestone cleanup** (every milestone ends with this step)
   - `npm run check` passes with no size warnings. Split anything that grew past its soft limit.
   - Remove dead code and leftover old paths from the refactors.
   - The code map matches the tree, and the nested `CLAUDE.md` files are current.
-  - Compress this plan: Milestone 1 becomes a few lines in section 8. Move Milestone 2 from
-    `docs/ROADMAP.md` into section 4 and detail it to the level Milestone 1 has now (steps with where, how
-    and done-when). Ask the user the open questions tagged M2 (section 6) before detailing it.
+  - Compress this plan: Milestone 2 becomes a few lines in section 8. Move Milestone 3 from
+    `docs/ROADMAP.md` into section 4 and detail it to this level. Ask the user the open questions tagged
+    M3 (section 6) before detailing it.
 
-**Suggested commits:** one per step, or per clean part of a step. Every commit passes `npm run check`, and the game
-still works.
+**Suggested commits:** one per step, or per clean part of a step. Every commit passes `npm run check`, and
+the game still works. Steps 2.8 and 2.9 wait for the user's answers; if those haven't come, do 2.10 first.
 
 ---
 
-## 5. Roadmap after Milestone 1
+## 5. Roadmap after Milestone 2
 
-Milestones 2–7 (content, co-op, exploration, terrain and scale, fluids and depth, endgame) are in
-`docs/ROADMAP.md`. Read it only when planning the next milestone; step 1.9 moves Milestone 2 from there
+Milestones 3–7 (co-op, exploration, terrain and scale, fluids and depth, endgame) are in
+`docs/ROADMAP.md`. Read it only when planning the next milestone; step 2.11 moves Milestone 3 from there
 into this plan.
 
 ---
 
 ## 6. Open questions for the user
 
-Ask these when the milestone that needs the answer comes up, not before.
+Ask these when the milestone that needs the answer comes up, not before. The M2 ones were asked when
+Milestone 2 was planned (step 1.9); record the answers in section 1 and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M1/M2 | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
-| M2 | Research style: a lab consuming parts (Factorio) or milestone deliveries (Satisfactory)? |
-| M2 | Confirm upgrades raise recovery (proposal: Mk2 ≈ 75%) and that bulk materials stay infinite. |
+| M2 (2.8) | Research style: a lab consuming parts (Factorio) or milestone deliveries (Satisfactory)? |
+| M2 (2.9) | Confirm upgrades raise recovery (proposal: Mk2 ≈ 75%) and that bulk materials stay infinite. |
+| M2 (2.7) | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Default: yes.) |
+| M2 or later | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
 | M3 | Where to host the signalling service and TURN relay (needs an account, e.g. Cloudflare)? |
 | M3 | Target co-op size (2–4? up to 8?). Sets bandwidth and performance budgets. |
 | M7 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
@@ -527,39 +456,27 @@ and the balance numbers. Read the section you need.
 - **2026-09-25:** Plan created after the deposits and factory slice (`3239215`). It records the decisions
   (peaceful, open-ended, co-op), the co-op approach, Milestone 1 in detail, and the roadmap to Milestone 7.
 - **2026-09-25:** The user stated the project is developed entirely by AI agents and that keeping the
-  codebase from growing unwieldy is of utmost importance. Added section 3.1 (mandatory agent rules), step
-  1.0 (restructure first), step 1.9 (the milestone cleanup pattern), and the rule that the plan details only
-  the current milestone. Following that rule, moved milestones 2–7 to `docs/ROADMAP.md` and the
-  operational reference to `docs/WORKFLOW.md`.
-- **2026-09-25:** Step 1.0 done (restructure for agents). Section 2 now describes the new layout; steps
-  1.1–1.7 name the new files. Added debt item 11 (constants TypeScript still mirrors). README's project
-  layout now points to `docs/CODEMAP.md`.
-- **2026-09-25:** Step 1.1 done (fixed 60 Hz tick). The cap is 8 ticks per frame rather than about 6, so a
-  0.1 s frame never loses time. Debt item 2 now lists what is still load-dependent.
-- **2026-09-25:** Step 1.2 done (`Sim`). `Factory::update` takes the tick from `Sim` rather than the planned
-  `(world, events)` signature, so there is one tick counter. Debt items 3 and 6 closed; removed a broken
-  leftover table from section 2.
-- **2026-09-25:** Step 1.3 done (actions). Differences from the plan text: the player id sits beside the
-  action in the queue rather than in every variant; `ScrollSlot { delta }` added so several scrolls within
-  one tick all count; the planned `Spill` / `BlockChanged` / `Sound` events became `Dropped`, `Thrown`,
-  `BlockBroken`, `BlockPlaced`, `Gained` and `Crafted`, which the new `events.rs` maps to spawns, sounds
-  and toasts. Debt item 4 closed.
-- **2026-09-25:** Step 1.4 done (several players). Joining and leaving became actions (`Join`, `Leave`),
-  which the plan text didn't name. Bodies, loose items and pickups moved out of `lib.rs` into the new
-  `authority.rs`. The plan listed `player.rs`, but it needed no change. Open for Milestone 3: whether a
-  leaving player's inventory is kept for rejoining (today it is dropped). Debt item 5 closed.
-- **2026-09-25:** Step 1.5 done (state hash). The plan said to hash only deposit states that "differ from
-  generation"; all tracked states are hashed instead, because tracking changes behaviour: a miner draws
-  nothing from an untracked deposit. The hash covers the same bytes the save will store, so step 1.6 now
-  starts from `bytes.rs` and the `write_state` methods, and its section list was updated to match.
-- **2026-09-25:** Step 1.6 done (save format). Differences from the plan text: the file holds no world
-  name or play time (the browser's world record keeps the name, and play time comes from the saved tick);
-  bodies also save their velocity and are stored by slot (the slot is the id), and the local player's id
-  is saved. `Game.load` takes a view radius, since the host picks it.
-- **2026-09-25:** Step 1.7 done (saving in the browser). Differences from the plan text: save bytes live
-  in their own `saves` store so listing worlds never reads them, and the backup is the other of two
-  slots rather than a separate swap. Saves made while the page closes skip compression. "Load" is a
-  Play button per world, and switching worlds reloads the page. The M1 question was settled by the
-  default (several named worlds).
-- **2026-09-25:** Step 1.8 done (docs). The code map had been kept current in each step, so this step
-  was mostly the README.
+  codebase from growing unwieldy is of utmost importance. Added section 3.1 (mandatory agent rules), the
+  restructure-first step, the milestone cleanup step, and the rule that the plan details only the current
+  milestone (milestones 2–7 moved to `docs/ROADMAP.md`, the operational reference to `docs/WORKFLOW.md`).
+- **2026-09-25: Milestone 1 (Foundation) done**, commits `31bb05b` to the step 1.9 commit.
+  - Built: the restructure for agents (1.0); a fixed 60 Hz tick with at most 8 ticks per frame and an
+    interpolated camera (1.1); the core `Sim` separated from the view (1.2); every core change an
+    `Action` applied at a tick, answered by `SimEvent`s (1.3); several players, with `Join` / `Leave`
+    actions and `authority.rs` (1.4); canonical bytes (`bytes.rs`) and an FNV-1a state hash with
+    determinism tests (1.5); the save format (`save.rs`, 1.6); saving in the browser with a world list
+    (`web/src/save/`, `ui/worlds.ts`, 1.7); the README (1.8).
+  - Deviations worth knowing: the player id sits beside each queued action, not inside it; all tracked
+    deposits are hashed and saved, because tracking changes behaviour; world names and play time live in
+    the browser's record, not the save; switching worlds reloads the page; each world keeps its previous
+    save as a backup slot.
+  - Cost: tests 56 → 74. Wasm 188,923 → 218,063 bytes raw, 81.5 KB gzipped (of which about +3.5 KB for
+    actions and players, +2.4 KB for the hash, +4.5 KB for loading saves); JS +2.7 KB gzipped.
+  - Lessons: new generic code shows up in the wasm size, so measure each step. Keeping the byte
+    primitives out of line (`#[inline(never)]`) saved 1.6 KB. Hash tests catch determinism bugs at the
+    exact tick, and the browser pane can't lock the pointer, so drive `window.opencraft.game`.
+- **2026-09-25:** Step 1.9 (milestone cleanup): no size warnings; removed the unused `set_view_radius`;
+  code map and `CLAUDE.md` files checked against the tree. Milestone 2 moved in from `docs/ROADMAP.md`
+  and detailed as steps 2.1–2.11. Before detailing it, the M2 questions (research style, upgrades raising
+  recovery, a burner tier) could not be asked mid-task, so they were put to the user with the milestone
+  report; steps 2.8 and 2.9 wait for the answers, and the rest doesn't depend on them.

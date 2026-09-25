@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 1)
+# OpenCraft roadmap (after Milestone 2)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -6,28 +6,7 @@ plan and detail it there (steps with where, how and done-when).
 
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) apply to all of it.
-Every milestone ends with a cleanup step like DEV_PLAN step 1.9.
-
-## Milestone 2: Make it a game (content)
-
-- **Item registry separate from blocks.** A `u16` item id; blocks become a subset of items. Procedural
-  16×16 icons for non-block items. Needed for ingots, plates and parts.
-- **First processing chain.**
-  - A smelter takes ore plus fuel (coal or logs) and makes ingots.
-  - A constructor makes ingots into plates, rods, wire and screws.
-  - Machines get input and output buffers, belt I/O, and a machine panel UI (recipe, buffers, status).
-  - Introduce the **machine registry** here, with the second machine kind: one file per machine plus one
-    registration line.
-- **Belt logistics:** splitter, merger, filter/sorter, one-block ramps, a vertical lift, and belts that pass
-  under others. Keep everything on the grid; free-form curved belts fight the voxels.
-- **Power:**
-  - A coal generator; power poles with wire links within a range, drawn as simple line segments; consumers.
-  - The grid is a graph: supply over demand gives a machine speed factor. Poles double as zipline anchors
-    later.
-- **Research:** a station or lab that unlocks recipes. The tech tree is data in Rust. Style is to be
-  decided; see DEV_PLAN section 6.
-- **Upgrades:** Miner Mk2 with higher recovery (proposed ~75%) and rate; faster belt tier.
-- **Onboarding:** light hints (dig to find the outcrop, craft a miner, and so on).
+Every milestone ends with a cleanup step like DEV_PLAN step 2.11.
 
 ## Milestone 3: Co-op multiplayer
 
@@ -40,7 +19,7 @@ Every milestone ends with a cleanup step like DEV_PLAN step 1.9.
   Use public STUN, plus a TURN relay fallback for networks where direct connections fail.
 - **Protocol:**
   1. `Hello` / `Welcome`: build hash must match, otherwise refuse with a message.
-  2. Snapshot: the compressed save (DEV_PLAN step 1.6).
+  2. Snapshot: the compressed save (`save.rs`, `Game.save()`).
   3. Actions, stamped by the host with `current_tick + input_delay`, where the delay is 3–6 ticks.
   4. `PlayerState` at 10–20 Hz: position, look, flying.
   5. Loose item entities, host-authoritative.
@@ -73,7 +52,7 @@ Every milestone ends with a cleanup step like DEV_PLAN step 1.9.
   rails.
 - **Day/night cycle and voxel lighting:** sky light plus block light propagated in the mesher and stored per
   chunk; lamps. Makes caves and deep lodes atmospheric, and later gives solar power a reason to vary.
-- Remember to bump `WORLDGEN_VERSION` (DEV_PLAN step 1.6).
+- Remember to bump `WORLDGEN_VERSION` (`worldgen/mod.rs`).
 
 ## Milestone 5: Scale and terrain
 

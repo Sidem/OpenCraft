@@ -1,4 +1,4 @@
-//! Determinism (DEV_PLAN step 1.5): cores fed the same actions keep equal state hashes, whatever
+//! Determinism (DEV_PLAN section 3.4): cores fed the same actions keep equal state hashes, whatever
 //! chunks happen to be loaded, and a core read back from its bytes carries on identically.
 
 use super::*;

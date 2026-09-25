@@ -11,7 +11,7 @@
 //! `Game::handle_sim_events` (events.rs) drains them every tick.
 //!
 //! To add core state: a field here (or on the type that owns it) and its bytes in that type's
-//! `write_state`, which `state_hash` and (from step 1.6) saves use. To change it: an `Action`.
+//! `write_state`, which `state_hash` and saves use. To change it: an `Action`.
 //! To tell the game about something: a `SimEvent` variant and its arm in `handle_sim_events`.
 
 use crate::action::Action;

@@ -12,10 +12,6 @@ use crate::Game;
 
 #[wasm_bindgen]
 impl Game {
-    pub fn set_view_radius(&mut self, r: u32) {
-        self.sim.world.set_view_radius(r as i32);
-    }
-
     /// Prepares this frame's work queues. Call once per frame before [`Game::work_step`].
     pub fn begin_work(&mut self) {
         self.sim.world.begin_work();
