@@ -164,12 +164,12 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
 // prettier-ignore
 /** Starting points for a material. The first six are the built-in defaults. */
 export const PRESETS: Record<string, MaterialParams> = {
-  Stone:  { pitch: 55, tone: 62, length: 25, crunch: 35, scatter: 10, snap: 90, thud: 30, ring: 30, volume: 50, variation: 50 },
-  Dirt:   { pitch: 40, tone: 30, length: 40, crunch: 55, scatter: 35, snap: 55, thud: 50, ring: 0, volume: 50, variation: 55 },
-  Grass:  { pitch: 50, tone: 55, length: 40, crunch: 65, scatter: 50, snap: 40, thud: 30, ring: 0, volume: 50, variation: 60 },
-  Sand:   { pitch: 55, tone: 65, length: 45, crunch: 45, scatter: 65, snap: 25, thud: 15, ring: 0, volume: 50, variation: 50 },
-  Wood:   { pitch: 42, tone: 45, length: 20, crunch: 15, scatter: 0, snap: 85, thud: 35, ring: 55, volume: 50, variation: 45 },
-  Leaves: { pitch: 60, tone: 78, length: 55, crunch: 70, scatter: 80, snap: 20, thud: 0, ring: 0, volume: 45, variation: 60 },
+  Stone:  { pitch: 33, tone: 53, length: 16, crunch: 19, scatter: 2, snap: 70, thud: 19, ring: 7, volume: 15, variation: 35 },
+  Dirt:   { pitch: 53, tone: 46, length: 28, crunch: 37, scatter: 84, snap: 42, thud: 16, ring: 0, volume: 15, variation: 24 },
+  Grass:  { pitch: 40, tone: 30, length: 40, crunch: 55, scatter: 35, snap: 55, thud: 50, ring: 0, volume: 10, variation: 55 },
+  Sand:   { pitch: 72, tone: 75, length: 64, crunch: 33, scatter: 100, snap: 20, thud: 11, ring: 0, volume: 11, variation: 50 },
+  Wood:   { pitch: 15, tone: 28, length: 8, crunch: 33, scatter: 0, snap: 35, thud: 82, ring: 2, volume: 21, variation: 45 },
+  Leaves: { pitch: 60, tone: 78, length: 55, crunch: 56, scatter: 84, snap: 35, thud: 9, ring: 0, volume: 10, variation: 60 },
   Gravel: { pitch: 50, tone: 50, length: 30, crunch: 85, scatter: 70, snap: 75, thud: 25, ring: 10, volume: 50, variation: 60 },
   Snow:   { pitch: 50, tone: 45, length: 50, crunch: 30, scatter: 60, snap: 20, thud: 10, ring: 0, volume: 45, variation: 50 },
   Metal:  { pitch: 60, tone: 70, length: 30, crunch: 5, scatter: 0, snap: 95, thud: 20, ring: 85, volume: 45, variation: 30 },
