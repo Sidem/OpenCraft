@@ -1,4 +1,5 @@
 use super::*;
+use crate::deposits::Tier;
 
 #[test]
 fn generation_is_deterministic() {

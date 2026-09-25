@@ -33,9 +33,9 @@ use miner::Miner;
 use storage::Storage;
 
 pub use describe::fmt_int;
-pub use miner::{MinerStatus, MINER_RECOVERY};
 #[cfg(test)]
 pub use miner::MINER_BUFFER;
+pub use miner::{MinerStatus, MINER_RECOVERY};
 pub use render::{push_box, INSTANCE_FLOATS};
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
