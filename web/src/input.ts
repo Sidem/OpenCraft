@@ -12,6 +12,7 @@ export type Action =
   | { kind: 'sound-lab' }
   | { kind: 'inventory' }
   | { kind: 'research' }
+  | { kind: 'hint' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -125,6 +126,7 @@ export class Input {
       else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
       else if (e.code === 'KeyR') this.actions.push({ kind: 'research' });
+      else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
   }

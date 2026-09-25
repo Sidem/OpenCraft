@@ -1,0 +1,36 @@
+/* Onboarding tip (hints.ts): a small card on the left of the HUD. */
+
+.hint {
+  position: absolute;
+  left: 12px;
+  bottom: 96px;
+  width: min(320px, calc(100vw - 24px));
+  padding: 9px 13px 11px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid rgba(250, 149, 73, 0.45);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.hint-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 3px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hint-count {
+  color: var(--accent);
+}
+
+.hint-key {
+  color: var(--muted);
+}
+
+.hint-text {
+  margin: 0;
+}

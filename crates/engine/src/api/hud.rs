@@ -1,11 +1,12 @@
-//! HUD readouts: player state, the targeted block with its mining progress and detail text, and
-//! the stats overlay counters.
+//! HUD readouts: player state, the targeted block with its mining progress and detail text, the
+//! onboarding hints, and the stats overlay counters.
 
 use wasm_bindgen::prelude::*;
 
 use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
-use crate::factory::{self, MINER_RECOVERY, MK2_RECOVERY};
+use crate::factory::{self, Kind, MINER_RECOVERY, MK2_RECOVERY};
+use crate::hints::{self, HINTS};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -85,6 +86,19 @@ impl Game {
         )
     }
 
+    pub fn hint_count(&self) -> u32 {
+        HINTS.len() as u32
+    }
+
+    pub fn hint_text(&self, i: u32) -> String {
+        HINTS.get(i as usize).map_or_else(String::new, |h| h.text.to_string())
+    }
+
+    /// The first hint the local player hasn't done yet (`hint_count` when all are done).
+    pub fn hint_progress(&self) -> u32 {
+        hints::progress(self.inventory(), &self.sim.factory) as u32
+    }
+
     pub fn chunks_loaded(&self) -> u32 {
         self.sim.world.loaded_count() as u32
     }
@@ -102,15 +116,15 @@ impl Game {
     }
 
     pub fn belts(&self) -> u32 {
-        self.sim.factory.belt_count() as u32
+        self.sim.factory.count(Kind::Belt) as u32
     }
 
     pub fn miners(&self) -> u32 {
-        self.sim.factory.miner_count() as u32
+        self.sim.factory.count(Kind::Miner) as u32
     }
 
     pub fn boxes(&self) -> u32 {
-        self.sim.factory.storage_count() as u32
+        self.sim.factory.count(Kind::Storage) as u32
     }
 
     pub fn deposits_tracked(&self) -> u32 {

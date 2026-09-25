@@ -1,5 +1,6 @@
 use super::*;
 use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE};
+use crate::factory::Kind;
 use crate::inventory::INVENTORY_SLOTS;
 use crate::item::{IRON_PLATE, MAX_STACK};
 
@@ -53,14 +54,14 @@ fn place_and_break_work_where_no_chunk_is_loaded() {
     sim.apply(P, Action::Give { item: STORAGE.into(), count: 1 });
     sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos - IVec3::new(0, 1, 0) });
     assert_eq!(sim.world.block_anywhere(pos), Some(STORAGE));
-    assert_eq!(sim.factory.storage_count(), 1);
+    assert_eq!(sim.factory.count(Kind::Storage), 1);
     assert_eq!(inv(&sim).count(STORAGE.into()), 0);
     assert_eq!(sim.events, vec![SimEvent::BlockPlaced { player: P, pos, block: STORAGE }]);
 
     sim.events.clear();
     sim.apply(P, Action::BreakBlock { pos });
     assert_eq!(sim.world.block_anywhere(pos), Some(AIR));
-    assert_eq!(sim.factory.storage_count(), 0);
+    assert_eq!(sim.factory.count(Kind::Storage), 0);
     assert!(matches!(
         sim.events[..],
         [SimEvent::BlockBroken { block: STORAGE, .. }, SimEvent::Dropped { item: BOX_ITEM, count: 1, .. }]
@@ -105,7 +106,7 @@ fn two_players_build_and_craft_with_their_own_inventories() {
         sim.events
     );
     assert_eq!((sim.world.block_anywhere(box_at), sim.world.block_anywhere(belt_at)), (Some(AIR), Some(BELT)));
-    assert_eq!((sim.factory.storage_count(), sim.factory.belt_count()), (0, 1));
+    assert_eq!((sim.factory.count(Kind::Storage), sim.factory.count(Kind::Belt)), (0, 1));
     assert_eq!((inv(&sim).count(STORAGE.into()), sim.player(b).unwrap().inventory.count(BELT.into())), (0, 3));
 
     // After leaving, B's actions do nothing; joining again starts empty.

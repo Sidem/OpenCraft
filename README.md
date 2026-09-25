@@ -53,6 +53,7 @@ the render distance in chunks (2 to 24, default 8).
 | Right mouse on a smelter, constructor, filter, generator or lab | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
 | R                   | Research: choose what labs work on        |
+| H                   | Skip the tip on screen (the menu can show tips again) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |

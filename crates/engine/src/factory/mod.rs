@@ -192,16 +192,19 @@ pub struct Factory {
 }
 
 impl Factory {
-    pub fn belt_count(&self) -> usize {
-        self.belts.len()
-    }
-
-    pub fn miner_count(&self) -> usize {
-        self.miners.len()
-    }
-
-    pub fn storage_count(&self) -> usize {
-        self.storages.len()
+    /// How many machines of `kind` there are.
+    pub fn count(&self, kind: Kind) -> usize {
+        match kind {
+            Kind::Belt => self.belts.len(),
+            Kind::Miner => self.miners.len(),
+            Kind::Storage => self.storages.len(),
+            Kind::Smelter => self.smelters.len(),
+            Kind::Constructor => self.constructors.len(),
+            Kind::Router => self.routers.len(),
+            Kind::Generator => self.generators.len(),
+            Kind::Pole => self.poles.len(),
+            Kind::Lab => self.labs.len(),
+        }
     }
 
     /// Adds the machine that `block` is at `pos` (nothing for other blocks). `facing` is the placing

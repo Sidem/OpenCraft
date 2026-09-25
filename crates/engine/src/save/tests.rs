@@ -42,7 +42,7 @@ fn small_save() -> Vec<u8> {
     g.join().unwrap();
     g.items.spawn(Vec3::new(40.5, 150.0, 40.5), Vec3::ZERO, STONE.into(), 3, 0.0);
     g.run_ticks(2);
-    assert_eq!(g.sim.factory.storage_count(), 1);
+    assert_eq!(g.sim.factory.count(crate::factory::Kind::Storage), 1);
     g.save()
 }
 

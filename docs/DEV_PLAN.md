@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.9 done · **Next up: step 2.10
-(onboarding hints)**, then 2.11 (milestone cleanup).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.10 done · **Next up: step 2.11
+(milestone cleanup)**.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -432,12 +432,15 @@ Rules for every step:
   - **Done when:** tests show Mk2 extracting more ore from the same deposit than Mk1; a fast belt keeps up
     with a Mk2.
 
-- [ ] **2.10 Onboarding hints** (`ui/hints.ts` + `.css`)
+- [x] **2.10 Onboarding hints** (`ui/hints.ts` + `.css`)
   - Short hints in plain language, shown in order, one at a time, dismissable: dig to find the outcrop,
     craft a miner, place it against ore, add belts and a box, build a smelter.
   - Progress comes from engine getters (items owned, machines placed). Which hints were dismissed is UI
     state in `localStorage`, not game state.
   - **Done when:** a new world walks through the hints in the browser; screenshot.
+  - As built: the hints are engine data (`hints.rs`: text plus a check), so TS mirrors no ids; progress
+    is the index after the last hint done, so later steps imply earlier ones. Seven tips, the last two
+    on power and research. H skips a tip; the menu can show skipped tips again.
 
 - [ ] **2.11 Milestone cleanup** (every milestone ends with this step)
   - `npm run check` passes with no size warnings. Split anything that grew past its soft limit.
@@ -586,4 +589,8 @@ and the balance numbers. Read the section you need.
   kinds with a flag, each an extra `MACHINES` row and block; both unlocked by new techs needing Green
   Science. `Factory::update` now balances power before miners run. Saves are version 9 (the flags);
   golden hash re-recorded. Tests: a Mk2 on the same outcrop draws the same (the cap) but keeps 25% more;
-  fast belts carry twice as much and mix with slow ones. Tests 109 → 111.
+  fast belts carry twice as much and mix with slow ones. Tests 109 → 111.- **2026-09-25:** Step 2.10 (onboarding hints) done. `hints.rs` (seven tips from finding ore to research,
+  each with a check on the player's inventory and the factory; `progress`), `hint_*` getters in
+  `api/hud.rs`, `ui/hints.ts` (tip card, H skips, skipped tips in localStorage, "Show tips again" in the
+  menu). `Factory::count(kind)` replaced the three per-kind counters. Browser: a new world showed tip 1,
+  then 2 and 3 as ore and a miner arrived. Tests 111 → 113.

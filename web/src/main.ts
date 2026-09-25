@@ -12,6 +12,7 @@ import { INSTANCE_FLOATS } from './render/boxes';
 import { Renderer } from './render/renderer';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
+import { Hints } from './ui/hints';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
@@ -78,6 +79,7 @@ async function main(): Promise<void> {
   const machine = new MachinePanel(game, (id) => hud.itemIcon(id));
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
+  const hints = new Hints(game);
   const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen;
 
   // ---- menu / pointer lock
@@ -132,7 +134,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, machine, research, session } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, session } });
 
   // ---- frame loop
   let last = performance.now();
@@ -170,6 +172,7 @@ async function main(): Promise<void> {
     }
     for (const a of input.takeActions()) {
       if (a.kind === 'debug') hud.toggleDebug();
+      else if (a.kind === 'hint') hints.skip();
       else if (a.kind === 'slot') game.select_slot(a.slot);
       else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();
@@ -242,6 +245,7 @@ async function main(): Promise<void> {
     inventory.update();
     machine.update();
     research.update(now);
+    hints.update();
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

@@ -165,7 +165,7 @@ fn removing_a_belt_returns_its_items_and_relinks() {
     assert!(dropped.iter().map(|s| s.count).sum::<u32>() > 0);
     // The box has no belt leading away any more; the rest of the line still drains forward.
     run(&mut f, 1.0, spacing_ok);
-    assert_eq!(f.belt_count(), 3);
+    assert_eq!(f.count(Kind::Belt), 3);
     assert!(f.belt_at(IVec3::new(2, 0, 0)).out != Link::None);
 }
 

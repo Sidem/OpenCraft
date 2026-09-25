@@ -29,6 +29,7 @@ mod deposits;
 mod entities;
 mod events;
 mod factory;
+mod hints;
 mod interaction;
 mod inventory;
 mod item;
