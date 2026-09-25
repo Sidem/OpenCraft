@@ -215,13 +215,19 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 
 ## Roadmap
 
+The plan of record, with decisions, rules and the current milestone's steps, is
+[docs/DEV_PLAN.md](docs/DEV_PLAN.md). Later milestones are in [docs/ROADMAP.md](docs/ROADMAP.md). In short:
+
 Sandbox foundation:
 
+- [ ] Fixed simulation tick, deterministic core driven by actions (groundwork for co-op)
 - [ ] Save and load worlds (IndexedDB; edited chunks are already tracked)
-- [ ] Worldgen in Web Workers
+- [ ] Co-op multiplayer: player-hosted over WebRTC
+- [ ] Simulation and worldgen in Web Workers
 - [ ] Water and transparent blocks
 - [x] Full inventory screen
-- [ ] Day/night cycle and sky
+- [ ] Day/night cycle, sky and voxel lighting
+- [ ] Biomes that shape resources, and a minimap
 
 Factory layer (the Satisfactory half):
 
@@ -232,4 +238,7 @@ Factory layer (the Satisfactory half):
 - [ ] Miner and belt tiers, splitters, belts that climb
 - [ ] Prospecting: find veins and lodes without digging blind
 - [ ] Power grid: generators, poles, consumption
-- [ ] Blueprint and hologram placement for multi-block buildings
+- [ ] Research, and an optional endgame megaproject that doesn't end the game
+- [ ] Terraforming machines: excavators, graders, tunnel borers
+- [ ] Blueprints and construction drones
+- [ ] Trucks and trains
