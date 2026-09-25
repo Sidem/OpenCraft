@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick) and 1.2 (core `Sim` separated from
-presentation) done · **Next up: Milestone 1, step 1.3 (actions).**
+**Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`) and 1.3 (actions)
+done · **Next up: Milestone 1, step 1.4 (several players in the engine).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -86,7 +86,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after step 1.2)
+## 2. Where the code stands (after step 1.3)
 
 ### Architecture
 
@@ -96,15 +96,16 @@ box instances, sound events, textures) is read zero-copy from wasm memory throug
 accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs`, and
 mining, placing and movement sounds live in `interaction.rs`. The deterministic core is `Sim` (`sim.rs`:
 tick, world, factory with deposits, player inventories, rng); `Game` adds the local player's body, loose
-items and presentation. `docs/CODEMAP.md` maps every module.
+items and presentation. `Game` changes the core only by queuing `Action`s (`action.rs`), applied at the
+next tick; the core answers with `SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
 
 Each frame, `web/src/main.ts`:
 
 1. forwards input (`set_move`, `look`, `set_mining`, `set_using`, actions from `input.ts`),
 2. calls `game.update(dt)`. This runs streaming, then as many fixed 60 Hz ticks as the frame time adds up to
-   (`Game::run_tick`: player physics, targeting, mining and placing, item entities, then the core's
-   `Sim::step`, then `present_events` turns `SimEvent`s into sounds), then interpolates the camera between
-   the last two ticks and writes box instances,
+   (`Game::run_tick`: player physics, targeting, mining and placing, item entities, all queuing actions,
+   then the core's `Sim::step`, then `handle_sim_events` for item spawns, sounds and toasts), then
+   interpolates the camera between the last two ticks and writes box instances,
 3. runs `begin_work()` + `work_step()` under a time budget (generate or mesh one chunk per step),
 4. drains mesh and unload events to the renderer, plays sound events, renders, updates the HUD.
 
@@ -142,8 +143,8 @@ Each frame, `web/src/main.ts`:
    chunk is loaded, but that is the authority's business, not the core's.
 3. ~~Presentation mixed into simulation.~~ Fixed in step 1.2: the factory emits `SimEvent`s, and
    `target_detail` no longer tracks deposits.
-4. **State changes are direct calls.** `set_using`, `click_slot`, `craft` and others mutate `Sim` state
-   directly from `Game`; there is no action layer.
+4. ~~State changes are direct calls.~~ Fixed in step 1.3 (actions). Tests and `find_outcrop_block` /
+   `build_mine` still set up worlds directly, which is fine for tests.
 5. **One player is built in.** `Game` has a single `player` body and mining state, `Sim.players` has one
    entry addressed by the `LOCAL` constant, and streaming centres on that player.
 6. ~~`World::set_block` silently fails in unloaded chunks.~~ Core edits use `set_block_anywhere` since
@@ -368,31 +369,27 @@ on every peer.
     59 tests; wasm 189,797 bytes (+908). Browser (seed 1337 outcrop): looking at ore shows its figures
     with `deposits_tracked()` still 0; the placed miner tracks it, runs, and pulses.
 
-- [ ] **1.3 Actions** (`action.rs` new, `sim.rs`, `lib.rs`, `interaction.rs`, `api/`)
-  - `enum Action` with an explicit `player: PlayerId` on each variant. The initial set covers today's
-    features:
-    - `BreakBlock { pos }`: validates the block; ore calls `hand_mined` and drops `HAND_YIELD`; machines
-      return their contents via `factory.remove`.
-    - `PlaceBlock { pos, slot, facing, against }`: consumes 1 from `slot`. `facing` is the belt direction
-      (`dir_from_yaw`). `against` is the clicked block, which gives the miner's drill face and deposit.
-    - `TakeContents { pos }`, `Craft { recipe, times }`, `ClickSlot { slot, shift }`,
-      `CloseInventory`, `SelectSlot { slot }`, `DropSelected { count }`.
-    - `PickUp { item, count }`: issued by the authority when a loose item reaches a player.
-    - `Give { item, count }`: debug only.
-  - Actions carry **resolved** data: positions, slot, facing. They never carry "what the player is looking
-    at", so any peer can execute them without the player's camera.
-  - `Sim::queue(tick, action)`, then at each tick apply that tick's actions in a stable order (tick,
-    player, sequence) before `step()`. Single-player queues for the current tick.
-  - Route every mutating wasm method through actions: the view resolves the target when the mining timer
-    completes, or on right-click, and queues an action. Keep the JS API names working so
-    `main.ts`, `hud.ts` and `inventory.ts` barely change.
-  - Results that the old code handled inline become `SimEvent`s:
-    - `Spill { pos, vel_hint, item, count }` → the authority spawns item entities (drops, throws,
-      inventory overflow).
-    - `Gained { player, item, count }` → toasts.
-    - `BlockChanged`, `Sound`.
-  - **Done when:** grepping `impl Game` finds no direct mutation of core state outside `Sim::apply`,
-    except debug helpers, which also go through `Give`-style actions.
+- [x] **1.3 Actions** (done 2026-09-25)
+  - `action.rs`: `Action` (`BreakBlock`, `PlaceBlock { pos, slot, facing, against }`, `TakeContents`,
+    `Craft`, `ClickSlot`, `CloseInventory`, `SelectSlot`, `ScrollSlot { delta }`, `DropSelected`,
+    `PickUp`, `Give`) and `Sim::apply`, which validates against current state and does nothing when an
+    action no longer fits. The player travels beside the action: `Sim::queue(tick, player, action)`.
+    `PlayerId(u8)` exists now; `LOCAL` is `PlayerId(0)`.
+  - `Sim::step` applies due actions in (tick, player, sequence) order, then the factory. `Game::act`
+    queues for the current tick, so single-player sees results within the same frame, usually.
+  - The hands queue actions: the mining timer queues `BreakBlock`; right-click resolves `TakeContents`
+    or `PlaceBlock` (`interaction::right_click_action`). Loose items predict pickups on a scratch copy of
+    the inventory and queue `PickUp`; what no longer fits comes back as `Thrown`.
+  - Events: `BlockBroken`, `BlockPlaced` (sounds), `Gained` (toast and pickup sound), `Crafted` (toast),
+    `Dropped` (block drops, spawned by the authority), `Thrown` (thrown in front of the player).
+    `events.rs` (`Game::handle_sim_events`) reacts to them.
+  - JS API names unchanged. `craft` now returns how many crafts the inventory can pay for (they run at
+    the next tick); `give` returns nothing. `main.ts` plays the hotbar tick sound when the selection
+    changes across frames.
+  - Tests: `action/tests.rs` (queue order, stale actions, place and break in unloaded chunks, pickup
+    overflow); Game tests now queue actions and run a tick. 63 tests. Wasm 195,320 bytes (+5.5 KB raw,
+    +1.6 KB gzipped: the queue, `apply` and event handling). Browser: DOM craft button, slot clicks,
+    close, hotbar select, drop, mining and placing a miner all work through actions.
 
 - [ ] **1.4 Several players in the engine** (`sim.rs`, `lib.rs`, `player.rs`)
   - `PlayerId(u8)`. `Sim.players` holds per-player core state; the authority holds a `Player` body per id.
@@ -522,3 +519,8 @@ and the balance numbers. Read the section you need.
 - **2026-09-25:** Step 1.2 done (`Sim`). `Factory::update` takes the tick from `Sim` rather than the planned
   `(world, events)` signature, so there is one tick counter. Debt items 3 and 6 closed; removed a broken
   leftover table from section 2.
+- **2026-09-25:** Step 1.3 done (actions). Differences from the plan text: the player id sits beside the
+  action in the queue rather than in every variant; `ScrollSlot { delta }` added so several scrolls within
+  one tick all count; the planned `Spill` / `BlockChanged` / `Sound` events became `Dropped`, `Thrown`,
+  `BlockBroken`, `BlockPlaced`, `Gained` and `Crafted`, which the new `events.rs` maps to spawns, sounds
+  and toasts. Debt item 4 closed.

@@ -13,7 +13,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
 | `npm run build` | Wasm, typecheck, and the Vite production bundle into `dist/`. |
-| `cargo test --workspace -q` | Engine tests only (56 after step 1.0). Add a name to filter. |
+| `cargo test --workspace -q` | Engine tests only (63 after step 1.3). Add a name to filter. |
 | `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
 | `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
@@ -40,6 +40,8 @@ section 3.1) and use the browser for final visual proof.
   `run_ticks(n)`, `give(id, n)`, `craft(r, n)`, `target_detail()`, and `opencraft.inventory.open()`.
 - `update(dt)` runs whole 60 Hz ticks, so a single `update(1/144)` may run none. `run_ticks(n)` steps the
   simulation exactly; follow it with `update(0)` to refresh the camera and box instances.
+- Mutating calls (`give`, `craft`, `click_slot`, `select_slot`, `drop_selected`, placing, breaking) are
+  actions applied at the next tick: run `update(1/60)` or `run_ticks(1)` before reading the result.
 - Any Rust edit reloads the page and wipes the unsaved world. Keep the scene setup as one re-runnable
   script. That problem goes away once saving exists.
 - A tested scene: the iron outcrop at (11, 62, 2), seed 1337. Dig (11, 64, z) for z = 2..6. Place a box

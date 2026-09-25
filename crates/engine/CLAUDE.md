@@ -9,8 +9,10 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   scenario tests). Never inline. Test-only helpers on a type are `#[cfg(test)]` methods.
 - `Game` (lib.rs) is a thin facade over the core `Sim` (`sim.rs`) plus the local player's body, loose
   items and presentation. JS-facing methods live in `api/*.rs` and only forward. Gameplay that
-  needs several `Game` fields lives in a child module (`interaction.rs`): child modules can read `Game`'s
-  private fields, and cross-module methods are `pub(crate)`.
+  needs several `Game` fields lives in a child module (`interaction.rs`, `events.rs`): child modules can
+  read `Game`'s private fields, and cross-module methods are `pub(crate)`.
+- `Game` never mutates `Sim` state: it reads it, and changes it with `self.act(Action::…)`, applied at
+  the next tick. Only the render cache inside `World` (streaming, meshes) is touched directly.
 - Header first (`//!`: owns, invariants, how to extend), then public items, then private helpers.
 - Balance numbers are named constants at the top of the module that uses them.
 - Formatting: `rustfmt.toml` (width 120). `npm run check` runs fmt, clippy `-D warnings` and tests.
@@ -21,7 +23,9 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   `cargo test -q <name>`.
 - Prefer headless scenario tests over the browser. Patterns to copy:
   - `src/tests.rs`: `run_until_ready(&mut g)` streams the world in; `find_outcrop_block` finds ore;
-    `build_mine` places a miner, belt and box directly through `factory`.
+    `build_mine` places a miner, belt and box directly through `factory`. Actions: `g.act(…)` or the
+    API method, then `g.run_ticks(1)` before asserting.
+  - `action/tests.rs`: a bare `Sim` with `apply` / `queue` + `step`; works without loaded chunks.
   - `factory/tests.rs`: `run(&mut f, seconds, check)` steps a bare `Factory`; `stocked_box` fills a box.
 - Worldgen is seeded; tests use fixed seeds (2024, 1337, 7). Changing generation can move the features
   such tests look for.
@@ -36,9 +40,9 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 ## Determinism (DEV_PLAN section 3.4)
 
 - Core state lives in `Sim` (`sim.rs`): world edits, factory, deposits, inventories, tick, rng. It
-  advances only in `Game::run_tick` (via `Sim::step`), by exactly `TICK`, and (from step 1.3) through
-  actions. Never depend on frame time, loaded chunks, the camera, `Sounds`, UI state or hash-map order;
-  report to the view with a `SimEvent`. Per-frame work in `Game::update` is presentation only.
+  changes only in `Sim::step`: the tick's queued actions (`action.rs`), then the factory by exactly
+  `TICK`. Never depend on frame time, loaded chunks, the camera, `Sounds`, UI state or hash-map order;
+  report outward with a `SimEvent`. Per-frame work in `Game::update` is presentation only.
   `results_do_not_depend_on_frame_rate` (`src/tests.rs`) guards this; extend its snapshot when you add
   core state.
 - Core reads and edits use `World::block_anywhere_or_generate` / `set_block_anywhere`. `get_block` /

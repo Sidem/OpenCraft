@@ -96,6 +96,7 @@ async function main(): Promise<void> {
 
   // ---- frame loop
   let last = performance.now();
+  let lastSlot = game.selected_slot();
   let fps = 0, frameMs = 0, workMs = 0;
   let wasReady = false;
 
@@ -127,7 +128,6 @@ async function main(): Promise<void> {
       game.set_mining(input.mining);
       game.set_using(input.using);
     }
-    const slotBefore = game.selected_slot();
     for (const a of input.takeActions()) {
       if (a.kind === 'debug') hud.toggleDebug();
       else if (a.kind === 'slot') game.select_slot(a.slot);
@@ -144,9 +144,12 @@ async function main(): Promise<void> {
         inventory.open();
       }
     }
-    if (game.selected_slot() !== slotBefore) sound.ui();
-
     game.update(dt);
+    // Hotbar changes are engine actions that land on the next tick, so compare across frames.
+    if (game.selected_slot() !== lastSlot) {
+      lastSlot = game.selected_slot();
+      sound.ui();
+    }
     sound.playEvents(new Float32Array(wasm.memory.buffer, game.sound_ptr(), game.sound_count() * 6), game.sound_count(), game.yaw());
     game.clear_sounds();
 

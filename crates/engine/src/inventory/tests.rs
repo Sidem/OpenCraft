@@ -31,9 +31,9 @@ fn hotbar_fills_before_backpack() {
 fn take_clears_empty_slot() {
     let mut inv = Inventory::default();
     inv.add(3, 1);
-    assert_eq!(inv.take_selected(1), Some((3, 1)));
+    assert_eq!(inv.take_slot(inv.selected, 1), Some((3, 1)));
     assert!(inv.slots[0].is_empty());
-    assert_eq!(inv.take_selected(1), None);
+    assert_eq!(inv.take_slot(inv.selected, 1), None);
 }
 
 #[test]

@@ -3,20 +3,17 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::block::{AIR, BLOCK_COUNT};
+use crate::action::Action;
+use crate::block::AIR;
 use crate::deposits::Tier;
 use crate::math::{IVec3, Vec3};
-use crate::{Game, LOCAL, TICK_RATE};
+use crate::{Game, TICK_RATE};
 
 #[wasm_bindgen]
 impl Game {
-    /// Debug / creative helper: adds items straight to the inventory.
-    pub fn give(&mut self, item: u8, count: u32) -> u32 {
-        if item != AIR && (item as usize) < BLOCK_COUNT {
-            self.sim.players[LOCAL].inventory.add(item, count)
-        } else {
-            count
-        }
+    /// Debug / creative helper: adds items to the inventory at the next tick (what doesn't fit is lost).
+    pub fn give(&mut self, item: u8, count: u32) {
+        self.act(Action::Give { item, count });
     }
 
     pub fn teleport(&mut self, x: f64, y: f64, z: f64) {

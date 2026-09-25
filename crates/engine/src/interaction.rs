@@ -1,14 +1,13 @@
-//! The local player's hands and feet: targeting, mining progress, breaking and placing blocks,
-//! emptying machines, throwing items, and footstep / landing sounds.
+//! The local player's hands and feet: targeting, mining progress, right-click, throwing items, and
+//! footstep / landing sounds.
 //!
-//! Called from `Game::run_tick` (lib.rs), which advances the timers by one `TICK`, and from a few API
-//! methods. DEV_PLAN step 1.3 turns breaking and placing into actions.
-//! To make a new block kind do something when placed: add a match arm in `try_place`.
+//! Called from `Game::run_tick` (lib.rs), which advances the timers by one `TICK`. The hands only
+//! decide *what* to do and queue an `Action` (break, place, take contents); the core applies it
+//! (`action.rs`). What a placed block does is decided there, in `Sim::place_block`.
 
-use crate::block::{self, BlockId, AIR, BELT, MINER, STORAGE};
-use crate::deposits::HAND_YIELD;
+use crate::action::Action;
+use crate::block::{self, BlockId, AIR, MINER, STORAGE};
 use crate::factory;
-use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 use crate::physics::Aabb;
 use crate::player;
@@ -105,36 +104,11 @@ impl Game {
         if self.mine_progress < 1.0 {
             return;
         }
-        self.break_block(hit.block, hit.id);
+        self.act(Action::BreakBlock { pos: hit.block });
         self.dig_timer = 0.0;
         self.mine_block = None;
         self.mine_progress = 0.0;
         self.mine_cooldown = BREAK_COOLDOWN_SECONDS;
-        self.update_target();
-    }
-
-    /// Breaks a block by hand. Ore keeps only [`HAND_YIELD`] items and costs its deposit a whole
-    /// block's share; machines drop themselves plus whatever they held.
-    pub(crate) fn break_block(&mut self, p: IVec3, id: BlockId) -> bool {
-        let ore = block::is_ore(id);
-        if ore {
-            self.sim.factory.deposits.hand_mined(&mut self.sim.world, p);
-        }
-        if !self.sim.world.set_block_anywhere(p, AIR) {
-            return false;
-        }
-        let def = block::def(id);
-        let center = p.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
-        self.play(sound::BREAK, def.sound, center, 1.0);
-        let mut drops = self.sim.factory.remove(p);
-        if def.drop != AIR {
-            drops.insert(0, Stack { item: def.drop, count: if ore { HAND_YIELD } else { 1 } });
-        }
-        for s in drops {
-            let vel = Vec3::new(self.sim.rng.range(-1.5, 1.5), 4.0, self.sim.rng.range(-1.5, 1.5));
-            self.items.spawn(center, vel, s.item, s.count, 0.25);
-        }
-        true
     }
 
     pub(crate) fn update_placing(&mut self, dt: f32) {
@@ -145,69 +119,39 @@ impl Game {
         if self.use_cooldown > 0.0 {
             return;
         }
-        if self.try_place() {
+        if let Some(action) = self.right_click_action() {
+            self.act(action);
             self.use_cooldown = PLACE_REPEAT_SECONDS;
-            self.update_target();
         }
     }
 
-    /// Moves a box's or miner's contents into the inventory. False if `pos` is neither.
-    pub(crate) fn take_from_machine(&mut self, pos: IVec3) -> bool {
-        let inventory = &mut self.sim.players[LOCAL].inventory;
-        let pickups = &mut self.pickups;
-        let mut got = 0;
-        let handled = self.sim.factory.take_contents(pos, |item, n| {
-            let taken = n - inventory.add(item, n);
-            if taken > 0 {
-                pickups.push_back((item, taken));
-                got += taken;
-            }
-            taken
-        });
-        if got > 0 {
-            self.sounds.push(sound::PICKUP, 0, Vec3::new(0.0, -0.6, 0.0), 1.0);
-        }
-        handled
-    }
-
-    /// Right-click: empties a targeted box or miner (unless crouching), otherwise places the
-    /// selected block against the targeted face.
-    fn try_place(&mut self) -> bool {
-        let Some(hit) = self.target else { return false };
-        if !self.player.input.crouch && self.take_from_machine(hit.block) {
-            return true;
+    /// What right-clicking the target would do: empty a box or miner (unless crouching), or place
+    /// the selected block against the targeted face. `None` when it would fail, so holding the
+    /// button keeps trying.
+    fn right_click_action(&self) -> Option<Action> {
+        let hit = self.target?;
+        if !self.player.input.crouch && matches!(hit.id, MINER | STORAGE) {
+            return Some(Action::TakeContents { pos: hit.block });
         }
         if hit.normal == IVec3::ZERO {
-            return false;
+            return None;
         }
-        let stack = self.sim.players[LOCAL].inventory.selected_stack();
+        let inv = &self.sim.player(LOCAL).inventory;
+        let stack = inv.selected_stack();
         if stack.is_empty() || !block::is_placeable(stack.item) {
-            return false;
+            return None;
         }
-        let p = hit.block + hit.normal;
-        if self.sim.world.block_anywhere_or_generate(p) != AIR {
-            return false;
+        let pos = hit.block + hit.normal;
+        if self.sim.world.get_block(pos) != Some(AIR) {
+            return None;
         }
-        let cell = Aabb { min: p.as_vec3(), max: p.as_vec3() + Vec3::new(1.0, 1.0, 1.0) };
+        // The body is the authority's to check: don't place a solid block where the player stands.
+        let cell = Aabb { min: pos.as_vec3(), max: pos.as_vec3() + Vec3::new(1.0, 1.0, 1.0) };
         if block::SOLID[stack.item as usize] && cell.intersects(&self.player.aabb()) {
-            return false;
+            return None;
         }
-        if !self.sim.world.set_block_anywhere(p, stack.item) {
-            return false;
-        }
-        match stack.item {
-            BELT => self.sim.factory.add_belt(p, factory::dir_from_yaw(self.player.yaw)),
-            MINER => {
-                let deposit = self.sim.factory.deposits.lookup(&mut self.sim.world, hit.block);
-                let drill = factory::face_of(hit.block - p).unwrap_or(block::FACE_BOTTOM as u8);
-                self.sim.factory.add_miner(p, drill, deposit);
-            }
-            STORAGE => self.sim.factory.add_storage(p),
-            _ => {}
-        }
-        self.sim.players[LOCAL].inventory.take_selected(1);
-        self.play(sound::PLACE, block::def(stack.item).sound, p.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
-        true
+        let facing = factory::dir_from_yaw(self.player.yaw);
+        Some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block })
     }
 
     /// Sound material of the block the player is standing on (checks the footprint corners so

@@ -1,26 +1,70 @@
 //! The deterministic core: the tick counter, the world's blocks (edits included), the factory with its
-//! deposits, each player's inventory, and the core random stream.
+//! deposits, each player's inventory, the core random stream, and the queue of pending actions.
 //!
-//! Invariants (DEV_PLAN section 3.4): `step` advances exactly one tick and depends only on this state.
+//! Invariants (DEV_PLAN section 3.4): state changes only in `step`, which first applies the actions due
+//! this tick (`action.rs`) in (tick, player, sequence) order and then advances the factory by `TICK`.
 //! It never takes frame time, the camera or `Sounds`, and never asks which chunks are loaded. Core code
 //! reads and writes blocks through `World::block_anywhere_or_generate` / `set_block_anywhere`. `World`
 //! also still holds the render cache (loaded chunks, meshes, streaming), which the core must not read.
-//! Anything the presentation should react to leaves as a [`SimEvent`] in `events`; `Game::run_tick`
-//! drains them every tick.
+//! Anything the rest of the game should react to leaves as a [`SimEvent`] in `events`;
+//! `Game::handle_sim_events` (events.rs) drains them every tick.
 //!
-//! To add core state: a field here (and, from step 1.6, in the save format). To tell the view about
-//! something: a `SimEvent` variant and its arm in `Game::present_events` (lib.rs).
+//! To add core state: a field here (and, from step 1.6, in the save format). To change it: an `Action`.
+//! To tell the game about something: a `SimEvent` variant and its arm in `handle_sim_events`.
 
+use crate::action::Action;
+use crate::block::BlockId;
 use crate::factory::Factory;
 use crate::inventory::Inventory;
-use crate::math::{hash2, IVec3, Rng};
+use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::world::World;
 
-/// Something that happened in the core that the presentation may want to show or play.
+/// Index of a player in `Sim::players`.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct PlayerId(pub u8);
+
+/// Something that happened in the core that the authority or the view reacts to.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum SimEvent {
     /// A miner is drawing ore; `pos` is the block it drills. Sent every `MINER_PULSE_TICKS`.
-    MinerWorking { pos: IVec3 },
+    MinerWorking {
+        pos: IVec3,
+    },
+    BlockBroken {
+        player: PlayerId,
+        pos: IVec3,
+        block: BlockId,
+    },
+    BlockPlaced {
+        player: PlayerId,
+        pos: IVec3,
+        block: BlockId,
+    },
+    /// Items entered a player's inventory from the world (a pickup or a machine's contents).
+    Gained {
+        player: PlayerId,
+        item: BlockId,
+        count: u32,
+    },
+    /// A player crafted `count` of `item` (some may have been thrown for lack of room).
+    Crafted {
+        player: PlayerId,
+        item: BlockId,
+        count: u32,
+    },
+    /// Loose items to spawn at `pos` with velocity `vel` (a broken block's drops).
+    Dropped {
+        pos: Vec3,
+        vel: Vec3,
+        item: BlockId,
+        count: u32,
+    },
+    /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
+    Thrown {
+        player: PlayerId,
+        item: BlockId,
+        count: u32,
+    },
 }
 
 /// A player's core state. The body (position, physics) is not core: it belongs to the authority.
@@ -31,7 +75,7 @@ pub struct PlayerCore {
 }
 
 pub struct Sim {
-    /// Ticks run so far; game time is `tick as f64 * TICK`.
+    /// Ticks run so far; game time is `tick as f64 * TICK`. Actions queued for `tick` run in the next `step`.
     pub tick: u64,
     pub world: World,
     pub factory: Factory,
@@ -39,6 +83,9 @@ pub struct Sim {
     pub rng: Rng,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
+    /// Actions not yet applied, sorted by (tick, player, sequence).
+    pending: Vec<Queued>,
+    next_seq: u32,
 }
 
 impl Sim {
@@ -51,12 +98,44 @@ impl Sim {
             players: vec![PlayerCore::default()],
             rng: Rng::new(hash2(seed, 17, 42) as u64),
             events: Vec::new(),
+            pending: Vec::new(),
+            next_seq: 0,
         }
     }
 
-    /// Advances the core by one tick of `TICK` seconds.
+    pub fn player(&self, id: PlayerId) -> &PlayerCore {
+        &self.players[id.0 as usize]
+    }
+
+    /// Schedules `action` for `tick` (a tick already run means the next one).
+    pub fn queue(&mut self, tick: u64, player: PlayerId, action: Action) {
+        let q = Queued { tick: tick.max(self.tick), player, seq: self.next_seq, action };
+        self.next_seq = self.next_seq.wrapping_add(1);
+        let at = self.pending.iter().position(|p| p.key() > q.key()).unwrap_or(self.pending.len());
+        self.pending.insert(at, q);
+    }
+
+    /// Advances the core by one tick of `TICK` seconds: this tick's actions, then the factory.
     pub fn step(&mut self) {
+        let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
+        let later = self.pending.split_off(due);
+        for q in std::mem::replace(&mut self.pending, later) {
+            self.apply(q.player, q.action);
+        }
         self.factory.update(&mut self.world, self.tick, &mut self.events);
         self.tick += 1;
+    }
+}
+
+struct Queued {
+    tick: u64,
+    player: PlayerId,
+    seq: u32,
+    action: Action,
+}
+
+impl Queued {
+    fn key(&self) -> (u64, PlayerId, u32) {
+        (self.tick, self.player, self.seq)
     }
 }

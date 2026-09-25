@@ -42,6 +42,7 @@ pub fn add_to_slots(slots: &mut [Stack], item: BlockId, mut count: u32) -> u32 {
     count
 }
 
+#[derive(Clone)]
 pub struct Inventory {
     pub slots: [Stack; INVENTORY_SLOTS],
     pub selected: usize,
@@ -112,10 +113,10 @@ impl Inventory {
         self.slots[self.selected]
     }
 
-    /// Removes up to `n` items from the selected slot, returning the item id and amount taken.
-    pub fn take_selected(&mut self, n: u32) -> Option<(BlockId, u32)> {
-        let s = &mut self.slots[self.selected];
-        if s.is_empty() {
+    /// Removes up to `n` items from `slot`, returning the item id and amount taken.
+    pub fn take_slot(&mut self, slot: usize, n: u32) -> Option<(BlockId, u32)> {
+        let s = self.slots.get_mut(slot)?;
+        if s.is_empty() || n == 0 {
             return None;
         }
         let taken = n.min(s.count);

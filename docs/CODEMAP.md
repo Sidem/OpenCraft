@@ -12,8 +12,10 @@ folder with `mod.rs`.
 
 | Module | Owns |
 |---|---|
-| `lib.rs` | The `Game` struct (core `sim` + local body, items, view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `present_events` (SimEvents → sounds); the module list |
-| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`PlayerCore`: inventory), rng; `step`; `SimEvent` |
+| `lib.rs` | The `Game` struct (core `sim` + local body, items, view state), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`), `act` (queue a local action); the module list |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`PlayerCore`: inventory), rng, action queue (`queue`); `step`; `PlayerId`, `SimEvent` |
+| `action.rs` | `Action` enum and `Sim::apply`: break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
+| `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, pickup toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
@@ -22,7 +24,7 @@ folder with `mod.rs`.
 | `api/content.rs` | Block names and sound materials, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
 | `api/debug.rs` | `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
-| `interaction.rs` | Local player's hands and feet: targeting, mining, `break_block`, `try_place`, `take_from_machine`, `throw`, footsteps |
+| `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `throw`, footsteps |
 | `block.rs` | Block ids (= item ids for now), `DEFS` table, texture layers `tex`, sound materials, lookup tables |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code), render events |
@@ -48,7 +50,7 @@ folder with `mod.rs`.
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng` |
 | `sound.rs` | Sound event buffer read by the host |
-| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting) |
+| `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, crafting, frame-rate independence) |
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
@@ -101,7 +103,7 @@ shows every row.
 3. `factory/mod.rs`: a `Vec` field, a `Slot` variant, `add_<machine>`, arms in `remove` and
    `take_contents`, and a call in `update`.
 4. Arms in `factory/links.rs` (outputs), `factory/describe.rs` (readout), `factory/render.rs` (model).
-5. `interaction.rs` `try_place`: a match arm calling `add_<machine>`. A recipe in `recipes.rs`.
+5. `action.rs` `Sim::place_block`: a match arm calling `add_<machine>`. A recipe in `recipes.rs`.
 6. Tests in `factory/tests.rs` (see `run` and `stocked_box`).
 
 *Intended registry (Milestone 2, with the smelter):* keep typed storage per kind (a `Vec` per machine
@@ -119,9 +121,10 @@ that file. Build DOM with `h()` / `button()` from `ui/dom.ts`; reuse `.secondary
 Construct it in `main.ts`. To open it with a key: an `Action` in `input.ts` and a branch in main.ts's
 action loop.
 
-**Core state, or something the view should react to.** A field on `Sim` (`sim.rs`) and, from step 1.6, in the
-save format. For a reaction (a sound, later a toast): a `SimEvent` variant, pushed by the core, and its arm
-in `Game::present_events` (`lib.rs`).
+**Core state, a way to change it, or a reaction to it.** State: a field on `Sim` (`sim.rs`) and, from step
+1.6, in the save format. A change: an `Action` variant and its arm in `Sim::apply` (`action.rs`); `Game`
+queues it with `act`. A reaction (sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and
+its arm in `Game::handle_sim_events` (`events.rs`).
 
 **A sound material.** Engine: a constant in `block::sound` and point blocks' `DEFS` rows at it. Web: append
 the name to `MATERIALS` (same order as the engine), add a `MATERIAL_LABELS` entry and a
@@ -134,7 +137,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 
 | Module | Constants |
 |---|---|
-| `lib.rs` | `TICK_RATE` (60), physics substeps per tick, `MAX_TICKS_PER_FRAME`, `MINER_SOUND_RANGE` |
+| `lib.rs` | `TICK_RATE` (60), physics substeps per tick, `MAX_TICKS_PER_FRAME` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |
@@ -142,4 +145,5 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes.rs` | `RECIPES` |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |
+| `events.rs` | `MINER_SOUND_RANGE`, drop pickup delay |
 | `player.rs` | Movement speeds, jump, gravity |

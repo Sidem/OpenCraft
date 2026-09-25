@@ -5,7 +5,9 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
 ## Rules
 
 - **No game state in TS.** Read everything from `game` (the wasm `Game`) each frame; send input and
-  actions to it. If TS needs a number the engine owns, expose a getter (see `api/content.rs`) rather than
+  actions to it. Mutating calls (`click_slot`, `craft`, `select_slot`, `drop_selected`, `give`…) are
+  engine actions applied at the next tick, so read results on a later frame (`inventory_version`), not
+  right after the call. If TS needs a number the engine owns, expose a getter (see `api/content.rs`) rather than
   copying the constant. Existing mirrors to remove when touched: `INSTANCE_FLOATS` (`render/boxes.ts`),
   the 6 floats per sound event (`main.ts`), `MATERIALS` and `EVENT_ACTIONS` order (`audio/`).
 - **Zero-copy bulk data.** Meshes, instances, sounds and textures are typed-array views on
@@ -33,6 +35,7 @@ Prefer engine tests; use the browser for visual proof (`docs/WORKFLOW.md` sectio
 - Pointer lock never engages in the automated pane, and `requestAnimationFrame` pauses while the pane is
   hidden: step the engine by calling `game.update(1/60)` yourself.
 - Hide the menu: `document.getElementById('menu').classList.add('hidden')`. A screenshot forces a render.
+- Inventory screen DOM order is backpack first: find hotbar slot `i` by its `.key` label (`i + 1`).
 
 ## Style
 

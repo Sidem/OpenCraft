@@ -7,6 +7,7 @@ use crate::factory::{MinerStatus, MINER_RECOVERY};
 use crate::inventory::INVENTORY_SLOTS;
 use crate::math::Rng;
 use crate::recipes::RECIPES;
+use crate::sim::SimEvent;
 
 fn run_until_ready(g: &mut Game) {
     for _ in 0..10_000 {
@@ -176,7 +177,9 @@ fn hand_mining_ore_keeps_a_handful_and_costs_a_block() {
     let (p, key) = find_outcrop_block(&mut g, 2);
     let before = g.sim.factory.deposits.get(&key).unwrap().remaining_blocks;
     let ore = g.sim.world.get_block(p).unwrap();
-    assert!(g.break_block(p, ore));
+    g.act(Action::BreakBlock { pos: p });
+    g.run_ticks(1);
+    assert_eq!(g.sim.world.get_block(p), Some(AIR));
     assert_eq!(g.sim.factory.deposits.get(&key).unwrap().remaining_blocks, before - 1);
     let drop = g.items.list.last().unwrap();
     assert_eq!((drop.item, drop.count), (ore, HAND_YIELD));
@@ -241,12 +244,12 @@ fn working_miner_reports_itself_and_is_heard_nearby() {
     g.clear_sounds();
     g.teleport(p.x as f64 + 0.5, p.y as f64 + 3.0, p.z as f64 + 0.5);
     g.sim.events = events.clone();
-    g.present_events();
+    g.handle_sim_events();
     assert_eq!(g.sounds.kinds(), vec![sound::DIG; 3]);
     g.clear_sounds();
     g.teleport(p.x as f64 + 40.0, p.y as f64, p.z as f64);
     g.sim.events = events;
-    g.present_events();
+    g.handle_sim_events();
     assert!(g.sounds.kinds().is_empty());
 }
 
@@ -268,8 +271,10 @@ fn miner_without_output_fills_up_and_stops() {
     assert!(used < 110.0, "a full miner stops drawing, used {used}");
 
     // Right-click empties it into the inventory.
-    assert!(g.take_from_machine(m));
+    g.act(Action::TakeContents { pos: m });
+    g.run_ticks(1);
     assert_eq!(g.item_total(key.ore), factory::MINER_BUFFER);
+    assert!(g.sounds.kinds().contains(&sound::PICKUP));
 }
 
 /// Feeds frames of `next_dt()` seconds until exactly `seconds` of frame time have passed.
@@ -355,9 +360,13 @@ fn crafting_consumes_inputs() {
     let mut g = Game::new(7, 2);
     g.give(block::IRON_ORE, 3);
     g.give(block::STONE, 5);
+    g.run_ticks(1);
     let belt = RECIPES.iter().position(|r| r.output == BELT).unwrap() as u32;
-    assert_eq!(g.craft(belt, 5), 2);
+    assert_eq!(g.craft(belt, 5), 2, "what the inventory can pay for");
+    assert_eq!(g.item_total(BELT), 0, "applied at the next tick");
+    g.run_ticks(1);
     assert_eq!(g.item_total(BELT), 8);
+    assert!(g.next_pickup() && g.pickup_item() == BELT && g.pickup_count() == 8);
     assert_eq!(g.item_total(block::IRON_ORE), 1);
     assert_eq!(g.item_total(block::STONE), 1);
     assert!(!g.can_craft(belt));

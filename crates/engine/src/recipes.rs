@@ -3,6 +3,7 @@
 //! build menu lists every row in order.
 
 use crate::block::*;
+use crate::inventory::Inventory;
 
 pub struct Recipe {
     pub output: BlockId,
@@ -10,6 +11,13 @@ pub struct Recipe {
     pub inputs: &'static [(BlockId, u32)],
     /// One line for the build menu.
     pub blurb: &'static str,
+}
+
+impl Recipe {
+    /// How many times `inv` can pay for this recipe (inputs are distinct items).
+    pub fn affordable(&self, inv: &Inventory) -> u32 {
+        self.inputs.iter().map(|&(item, n)| inv.count(item) / n).min().unwrap_or(0)
+    }
 }
 
 pub const RECIPES: &[Recipe] = &[

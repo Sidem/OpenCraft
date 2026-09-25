@@ -8,20 +8,23 @@
 //! This file holds the `Game` struct, its constructor, the per-frame `update` and the fixed tick
 //! (`run_tick`). `Game` wraps the deterministic core (`sim.rs`) with the local player's body, loose
 //! items and presentation (camera, sounds, instances). The JS-facing API lives in `api/*.rs` (one
-//! `#[wasm_bindgen] impl Game` block per area); every method there only forwards to a module. Mining,
-//! placing and movement sounds live in `interaction.rs`. To add a wasm method: put it in the matching
-//! `api/` file (see docs/CODEMAP.md).
+//! `#[wasm_bindgen] impl Game` block per area); every method there only forwards to a module. `Game`
+//! never edits the core directly: it queues `Action`s (`act`), applied at the next tick. The hands
+//! (mining, right-click, footsteps) live in `interaction.rs`, reactions to core events in `events.rs`.
+//! To add a wasm method: put it in the matching `api/` file (see docs/CODEMAP.md).
 //!
 //! Invariant: game state advances only in `run_tick`, by exactly [`TICK`] seconds, so the same inputs
 //! give the same results at any frame rate. `update` turns frame time into whole ticks and does the
 //! per-frame presentation work (streaming, the interpolated camera, box instances). Look direction is
 //! the one input applied per frame, for responsiveness.
 
+mod action;
 mod api;
 mod block;
 mod chunk;
 mod deposits;
 mod entities;
+mod events;
 mod factory;
 mod interaction;
 mod inventory;
@@ -42,13 +45,14 @@ use std::collections::VecDeque;
 
 use wasm_bindgen::prelude::*;
 
+use action::Action;
 use block::{BlockId, AIR};
 use deposits::DepositState;
 use entities::Items;
 use math::{IVec3, Vec3};
 use player::Player;
 use raycast::RayHit;
-use sim::{Sim, SimEvent};
+use sim::{PlayerId, Sim};
 use sound::Sounds;
 use world::MeshData;
 
@@ -63,10 +67,8 @@ const PHYSICS_SUBSTEPS: u32 = 2;
 const MAX_TICKS_PER_FRAME: u32 = 8;
 /// Float slack when comparing accumulated frame time with `TICK`, so 60 frames of 1/60 s run 60 ticks.
 const TICK_SLACK: f64 = 1e-9;
-/// The local player's index in `Sim::players` (step 1.4 makes this a `PlayerId` field).
-const LOCAL: usize = 0;
-/// Working miners are heard within this many blocks of the camera.
-const MINER_SOUND_RANGE: f64 = 24.0;
+/// The local player (step 1.4 makes this a `Game` field).
+const LOCAL: PlayerId = PlayerId(0);
 
 #[wasm_bindgen(start)]
 pub fn start() {
@@ -171,7 +173,7 @@ impl Game {
 
 impl Game {
     /// Advances the game by one tick of exactly [`TICK`] seconds: the local player's body and hands,
-    /// loose items, then the core (`Sim::step`), then the core's events.
+    /// loose items, then the core (`Sim::step` applies this tick's actions), then its events.
     fn run_tick(&mut self) {
         self.prev_eye = self.player.eye();
         let feet = self.player.pos;
@@ -191,38 +193,26 @@ impl Game {
         self.update_mining(TICK as f32);
         self.update_placing(TICK as f32);
 
+        // Loose items only predict what fits, on a scratch copy of the inventory; the core applies
+        // the `PickUp` (and throws back anything that no longer fits).
         let world = &self.sim.world;
         let mut solid = |x, y, z| world.is_solid(x, y, z);
         let loaded = |p: Vec3| world.is_loaded(p);
-        let pickups = &mut self.pickups;
-        let sounds = &mut self.sounds;
         let center = self.player.pos + Vec3::new(0.0, player::HEIGHT * 0.5, 0.0);
-        let inventory = &mut self.sim.players[LOCAL].inventory;
-        self.items.update(TICK, center, &mut solid, &loaded, inventory, |item, n| {
-            match pickups.back_mut() {
-                Some((last, count)) if *last == item => *count += n,
-                _ => pickups.push_back((item, n)),
-            }
-            sounds.push(sound::PICKUP, 0, Vec3::new(0.0, -0.6, 0.0), 1.0);
-        });
+        let mut room = self.sim.player(LOCAL).inventory.clone();
+        let mut picked = Vec::new();
+        self.items.update(TICK, center, &mut solid, &loaded, &mut room, |item, count| picked.push((item, count)));
+        for (item, count) in picked {
+            self.act(Action::PickUp { item, count });
+        }
 
         self.sim.step();
-        self.present_events();
+        self.handle_sim_events();
     }
 
-    /// Turns the core's events from this tick into sounds near the camera.
-    fn present_events(&mut self) {
-        let eye = self.player.eye();
-        for event in self.sim.events.drain(..) {
-            match event {
-                SimEvent::MinerWorking { pos } => {
-                    let at = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
-                    if (at - eye).length() < MINER_SOUND_RANGE {
-                        self.sounds.push(sound::DIG, block::sound::STONE, at - eye, 0.35);
-                    }
-                }
-            }
-        }
+    /// Queues an action by the local player for the coming tick.
+    fn act(&mut self, action: Action) {
+        self.sim.queue(self.sim.tick, LOCAL, action);
     }
 }
 

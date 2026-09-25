@@ -1,9 +1,12 @@
 //! Player input from the host: movement, look, mining and using, hotbar selection, fly toggle.
+//! Movement, look and the mining/using buttons drive the body and hands directly; hotbar changes and
+//! drops are actions, applied at the next tick.
 
 use wasm_bindgen::prelude::*;
 
+use crate::action::Action;
 use crate::player::PlayerInput;
-use crate::{Game, LOCAL};
+use crate::Game;
 
 #[wasm_bindgen]
 impl Game {
@@ -35,11 +38,11 @@ impl Game {
     }
 
     pub fn select_slot(&mut self, slot: u32) {
-        self.sim.players[LOCAL].inventory.select(slot as usize);
+        self.act(Action::SelectSlot { slot: slot.min(u8::MAX as u32) as u8 });
     }
 
     pub fn scroll_slot(&mut self, delta: i32) {
-        self.sim.players[LOCAL].inventory.scroll(delta);
+        self.act(Action::ScrollSlot { delta: delta.signum() as i8 });
     }
 
     pub fn toggle_fly(&mut self) {
@@ -49,8 +52,6 @@ impl Game {
 
     /// Throws one item from the selected slot.
     pub fn drop_selected(&mut self) {
-        if let Some((item, n)) = self.sim.players[LOCAL].inventory.take_selected(1) {
-            self.throw(item, n);
-        }
+        self.act(Action::DropSelected { count: 1 });
     }
 }
