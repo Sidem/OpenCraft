@@ -4,6 +4,7 @@ use super::*;
 use crate::block::{BELT, MINER, SPENT_ROCK, STORAGE};
 use crate::deposits::{DepositKey, Tier, HAND_YIELD};
 use crate::factory::{MinerStatus, MINER_RECOVERY};
+use crate::inventory::INVENTORY_SLOTS;
 use crate::recipes::RECIPES;
 
 fn run_until_ready(g: &mut Game) {
@@ -218,6 +219,84 @@ fn miner_without_output_fills_up_and_stops() {
     // Right-click empties it into the inventory.
     assert!(g.take_from_machine(m));
     assert_eq!(g.item_total(key.ore), factory::MINER_BUFFER);
+}
+
+/// Feeds frames of `next_dt()` seconds until exactly `seconds` of frame time have passed.
+fn feed(g: &mut Game, seconds: f64, next_dt: &mut impl FnMut() -> f64) {
+    let mut fed = 0.0;
+    while seconds - fed > 1e-12 {
+        let dt = next_dt().min(seconds - fed);
+        g.update(dt);
+        g.clear_sounds();
+        fed += dt;
+    }
+}
+
+/// Walks and jumps next to a running mine, then digs straight down. Returns the game and a text
+/// snapshot of the core state, which must not depend on how the time was split into frames.
+fn play_scenario(mut next_dt: impl FnMut() -> f64) -> (Game, String) {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let (p, key) = find_outcrop_block(&mut g, 6);
+    let (miner, chest) = build_mine(&mut g, p);
+    let (start, first_tick) = (g.player.pos.floor(), g.tick);
+    g.set_look(0.7, 0.0);
+    g.set_move(1.0, 0.3, true, true, false);
+    feed(&mut g, 1.5, &mut next_dt);
+    g.set_move(0.0, 0.0, false, false, false);
+    g.set_look(0.7, -1.5);
+    g.set_mining(true);
+    feed(&mut g, 2.5, &mut next_dt);
+    assert_eq!(g.tick - first_tick, 4 * TICK_RATE as u64, "4 s of frames run 240 ticks");
+
+    let pl = &g.player;
+    let mut s = format!("pos {:?} vel {:?} ground {}\n", pl.pos, pl.vel, pl.on_ground);
+    s += &format!("mining {:?} {} cooldown {}\n", g.mine_block, g.mine_progress, g.mine_cooldown);
+    let slots: Vec<_> =
+        (0..INVENTORY_SLOTS as u32).map(|i| (g.slot_item(i), g.slot_count(i))).filter(|s| s.1 > 0).collect();
+    s += &format!("slots {slots:?}\n");
+    for e in &g.items.list {
+        s += &format!("item {} x{} at {:?} vel {:?} age {}\n", e.item, e.count, e.pos, e.vel, e.age);
+    }
+    let m = g.factory.miner_at(miner);
+    let units = g.factory.deposits.get(&key).unwrap().remaining_units();
+    s += &format!(
+        "miner {:?} {} box {} deposit {units}\n",
+        m.status,
+        m.held,
+        g.factory.storage_count_at(chest, key.ore)
+    );
+    let mut hash = 0xcbf2_9ce4_8422_2325u64;
+    for y in -6..6 {
+        for z in -12..12 {
+            for x in -12..12 {
+                let b = g.world.get_block(start + IVec3::new(x, y, z)).unwrap_or(255);
+                hash = (hash ^ b as u64).wrapping_mul(0x100_0000_01b3);
+            }
+        }
+    }
+    s += &format!("blocks {hash:x}\n");
+    (g, s)
+}
+
+#[test]
+fn results_do_not_depend_on_frame_rate() {
+    let fixed = |dt: f64| move || dt;
+    let (g, reference) = play_scenario(fixed(1.0 / 60.0));
+    let moved = g.player.pos - g.spawn;
+    assert!(moved.x.abs() + moved.z.abs() > 2.0, "the player should have walked:\n{reference}");
+    assert!(reference.contains("slots [("), "mined blocks should reach the inventory:\n{reference}");
+    assert!(!reference.contains("box 0 "), "the miner should have filled the box:\n{reference}");
+
+    let mut rng = Rng::new(99);
+    let irregular = move || rng.range(0.001, 0.1);
+    for (name, snapshot) in [
+        ("30 fps", play_scenario(fixed(1.0 / 30.0)).1),
+        ("144 fps", play_scenario(fixed(1.0 / 144.0)).1),
+        ("irregular frames", play_scenario(irregular).1),
+    ] {
+        assert_eq!(snapshot, reference, "{name} differs from 60 fps");
+    }
 }
 
 #[test]

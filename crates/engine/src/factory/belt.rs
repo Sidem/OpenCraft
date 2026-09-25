@@ -2,7 +2,7 @@
 //! 0..1 along its length, front (highest `p`) first, kept at least [`ITEM_SPACING`] apart.
 //!
 //! `belt_step` walks belts downstream first (the `order` from `links.rs`), so a moving line never
-//! stalls for a frame at cell borders. A belt hands its front item to whatever is in front of it:
+//! stalls for a tick at cell borders. A belt hands its front item to whatever is in front of it:
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
 
 use crate::block::BlockId;

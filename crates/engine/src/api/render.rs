@@ -79,16 +79,17 @@ impl Game {
         self.cur_mesh.as_ref().map_or(0, |m| m.cutout_quads)
     }
 
+    /// Camera position for this frame, interpolated between the last two ticks.
     pub fn eye_x(&self) -> f64 {
-        self.player.eye().x
+        self.render_eye.x
     }
 
     pub fn eye_y(&self) -> f64 {
-        self.player.eye().y
+        self.render_eye.y
     }
 
     pub fn eye_z(&self) -> f64 {
-        self.player.eye().z
+        self.render_eye.z
     }
 
     pub fn yaw(&self) -> f64 {

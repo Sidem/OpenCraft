@@ -1,16 +1,12 @@
 //! Debug and testing helpers, used from the browser console (`window.opencraft.game`) and tests:
-//! give items, teleport, fast-forward the factory, find deposits, read blocks and the position.
+//! give items, teleport, run ticks and fast-forward time, find deposits, read blocks and the position.
 
 use wasm_bindgen::prelude::*;
 
 use crate::block::{AIR, BLOCK_COUNT};
 use crate::deposits::Tier;
 use crate::math::{IVec3, Vec3};
-use crate::sound::Sounds;
-use crate::Game;
-
-/// Factory step used when fast-forwarding time.
-const SKIP_STEP: f64 = 0.05;
+use crate::{Game, TICK_RATE};
 
 #[wasm_bindgen]
 impl Game {
@@ -26,19 +22,23 @@ impl Game {
     pub fn teleport(&mut self, x: f64, y: f64, z: f64) {
         self.player.pos = Vec3::new(x, y, z);
         self.player.vel = Vec3::ZERO;
+        // Cut the camera to the new spot instead of gliding there.
+        self.prev_eye = self.player.eye();
+        self.render_eye = self.prev_eye;
     }
 
-    /// Runs the factory (miners, belts, boxes) for `seconds` of game time at once.
-    pub fn skip_time(&mut self, seconds: f64) {
-        let eye = self.player.eye();
-        let mut quiet = Sounds::default();
-        let mut left = seconds.max(0.0);
-        while left > 0.0 {
-            let dt = left.min(SKIP_STEP);
-            self.factory.update(dt, &mut self.world, eye, &mut quiet);
-            self.time += dt;
-            left -= dt;
+    /// Runs `n` simulation ticks at once, sounds included (tests and catch-up).
+    pub fn run_ticks(&mut self, n: u32) {
+        for _ in 0..n {
+            self.run_tick();
         }
+    }
+
+    /// Fast-forwards `seconds` of game time (rounded to whole ticks) and discards the sounds it makes.
+    pub fn skip_time(&mut self, seconds: f64) {
+        let pending = std::mem::take(&mut self.sounds);
+        self.run_ticks((seconds.max(0.0) * TICK_RATE as f64).round() as u32);
+        self.sounds = pending;
     }
 
     /// Prospecting aid for testing: centre and ore of the nearest deposit of `tier`

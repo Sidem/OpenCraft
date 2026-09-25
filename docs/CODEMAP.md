@@ -12,7 +12,7 @@ folder with `mod.rs`.
 
 | Module | Owns |
 |---|---|
-| `lib.rs` | The `Game` struct (every field), `Game::new`, the per-frame `Game::update`; the module list |
+| `lib.rs` | The `Game` struct (every field), `Game::new`, the per-frame `update` (ticks, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`); the module list |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
@@ -20,7 +20,7 @@ folder with `mod.rs`.
 | `api/crafting.rs` | Recipe queries and `craft` |
 | `api/content.rs` | Block names and sound materials, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
-| `api/debug.rs` | `give`, `teleport`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
+| `api/debug.rs` | `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining, `break_block`, `try_place`, `take_from_machine`, `throw`, footsteps |
 | `block.rs` | Block ids (= item ids for now), `DEFS` table, texture layers `tex`, sound materials, lookup tables |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
@@ -128,6 +128,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 
 | Module | Constants |
 |---|---|
+| `lib.rs` | `TICK_RATE` (60), physics substeps per tick, `MAX_TICKS_PER_FRAME` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MINER_BUFFER` |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |

@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · step 1.0 done (codebase restructured for agents; `npm run check`, `docs/CODEMAP.md`) ·
-**Next up: Milestone 1, step 1.1 (fixed simulation tick).**
+**Status:** 2026-09-25 · steps 1.0 (restructure for agents) and 1.1 (fixed 60 Hz tick) done ·
+**Next up: Milestone 1, step 1.2 (separate the core from presentation).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -86,7 +86,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after step 1.0)
+## 2. Where the code stands (after step 1.1)
 
 ### Architecture
 
@@ -99,8 +99,9 @@ mining, placing and movement sounds live in `interaction.rs`. `docs/CODEMAP.md` 
 Each frame, `web/src/main.ts`:
 
 1. forwards input (`set_move`, `look`, `set_mining`, `set_using`, actions from `input.ts`),
-2. calls `game.update(dt)`. This runs streaming, player physics, targeting, mining and placing, item
-   entities, the factory, then writes box instances,
+2. calls `game.update(dt)`. This runs streaming, then as many fixed 60 Hz ticks as the frame time adds up to
+   (`Game::run_tick`: player physics, targeting, mining and placing, item entities, the factory), then
+   interpolates the camera between the last two ticks and writes box instances,
 3. runs `begin_work()` + `work_step()` under a time budget (generate or mesh one chunk per step),
 4. drains mesh and unload events to the renderer, plays sound events, renders, updates the HUD.
 
@@ -127,16 +128,16 @@ Each frame, `web/src/main.ts`:
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Items are blocks:** `BlockId` (u8) doubles as the item id. Ids 0–14: AIR, STONE, DIRT, GRASS, SAND,
   LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER, STORAGE.
-- **Debug API** on `window.opencraft.game`: `give`, `teleport`, `skip_time`, `find_deposit`,
+- **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`.
 - **Size:** about 100 KB gzipped in total (wasm 71 KB, JS 25 KB).
 
 ### Known limitations and technical debt (Milestone 1 fixes most of these)
 
 1. **No saving.** A page refresh loses everything.
-2. **Frame-rate dependent simulation.** Player physics substeps are `dt / ceil(dt / PHYSICS_STEP)`, so the
-   step size varies with frame time. The factory, items, mining and placing timers all advance by frame
-   `dt`. See `Game::update` in `lib.rs` and the timers in `interaction.rs`.
+2. ~~Frame-rate dependent simulation.~~ Fixed in step 1.1. What remains frame- or load-dependent: the
+   player only moves while its chunk is loaded, and targeting, placing and breaking read loaded chunks
+   only (steps 1.2 and 1.3).
 3. **Presentation mixed into simulation.**
    - `Factory::update` takes the camera `eye` and `&mut Sounds` (for dig sounds).
    - `Game::target_detail` (`api/hud.rs`) calls `Deposits::lookup`, which **creates** deposit state just because the
@@ -346,24 +347,20 @@ on every peer.
     in CI. `docs/CODEMAP.md`, `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md` written.
   - Same 56 tests and JS API; wasm 188,960 bytes vs 188,923 before (+0.02%); browser smoke test passed.
 
-- [ ] **1.1 Fixed simulation tick** (`lib.rs`, `interaction.rs`, `player.rs`, `entities.rs`, `factory/`,
-  `api/debug.rs`)
-  - `pub const TICK_RATE: u32 = 60;` and `TICK = 1.0 / 60.0`. `Game::update(dt)` accumulates frame time
-    and runs whole ticks, at most about 6 per frame. When far behind (e.g. a hidden tab), drop the excess
-    rather than spiral.
-  - Per tick:
-    1. player physics as exactly 2 substeps of 1/120 s,
-    2. mining progress, place cooldown and item entities, all advanced by `TICK`,
-    3. the factory, advanced by `TICK`.
-  - Keep `look()` per frame for responsiveness; yaw and pitch aren't core state.
-  - Rendering interpolates the camera between the previous and current tick
-    (`alpha = accumulator / TICK`); store the previous player position. Interpolating item and belt
-    instances is optional polish.
-  - `skip_time(s)` becomes "run N ticks quietly". Add `run_ticks(n)` for tests and catch-up.
-  - Streaming, `work_step` and instance writing stay per frame (presentation).
-  - **Done when:** the same inputs give the same results at 30, 60 and 144 fps (test by feeding
-    different `dt` sequences with the same total and comparing state), and everything feels unchanged in
-    the browser.
+- [x] **1.1 Fixed simulation tick** (done 2026-09-25)
+  - `Game::update` accumulates frame time and calls `Game::run_tick` (`lib.rs`) for each whole tick, at most
+    8 per frame (a 0.1 s host frame plus a leftover partial tick needs 7, so no time is lost at normal frame
+    rates). Beyond that the excess is dropped.
+  - `prev_eye` / `render_eye` give the interpolated camera (`eye_x/y/z`). Box instances are drawn relative to
+    it but not interpolated themselves. `update_target` also runs per frame, for the HUD.
+  - `skip_time` runs whole ticks (all systems, not only the factory) and discards their sounds. `run_ticks(n)`
+    added. `teleport` resets the interpolation. `Game.time` became `tick: u64`.
+  - Test `results_do_not_depend_on_frame_rate`: walking, jumping, mining and a running miner give identical
+    state at 30, 60, 144 fps and irregular frames. 57 tests; wasm 188,889 bytes (−71). In the browser, the
+    camera moves every frame at 144 fps while the ticks advance every 2–3 frames.
+  - Per tick: player physics as 2 substeps of 1/120 s, then targeting, mining, placing and item entities,
+    then the factory, all advanced by `TICK`. `look()` stays per frame (yaw and pitch aren't core state).
+  - Optional polish left for later: interpolating item and belt instances.
 
 - [ ] **1.2 Separate the core from presentation** (`sim.rs` new, `lib.rs`, `factory/`, `deposits.rs`,
   `api/hud.rs`)
@@ -531,3 +528,5 @@ and the balance numbers. Read the section you need.
 - **2026-09-25:** Step 1.0 done (restructure for agents). Section 2 now describes the new layout; steps
   1.1–1.7 name the new files. Added debt item 11 (constants TypeScript still mirrors). README's project
   layout now points to `docs/CODEMAP.md`.
+- **2026-09-25:** Step 1.1 done (fixed 60 Hz tick). The cap is 8 ticks per frame rather than about 6, so a
+  0.1 s frame never loses time. Debt item 2 now lists what is still load-dependent.

@@ -32,10 +32,12 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   (`worldgen/ore.rs::sort_by_ownership`).
 - No new crates without a reason worth their size. Hand-written serialisation over serde.
 
-## Determinism (DEV_PLAN section 3.4; enforced from Milestone 1 step 1.1)
+## Determinism (DEV_PLAN section 3.4)
 
-- Core state (world edits, factory, deposits, inventories) advances only in fixed ticks and through
-  actions. Never depend on frame time, loaded chunks, the camera, UI state or hash-map order.
+- Core state (world edits, factory, deposits, inventories) advances only in `Game::run_tick`, by exactly
+  `TICK`, and through actions. Never depend on frame time, loaded chunks, the camera, UI state or hash-map
+  order. Per-frame work in `Game::update` is presentation only. `results_do_not_depend_on_frame_rate`
+  (`src/tests.rs`) guards this; extend its snapshot when you add core state.
 - Core reads and edits use `World::block_anywhere` / `set_block_anywhere`. `get_block` / `set_block` only
   see loaded chunks, and `set_block` silently fails elsewhere.
 - Queries must not create state. Known violation until step 1.2: `target_detail` calls

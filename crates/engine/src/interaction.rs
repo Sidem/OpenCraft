@@ -1,8 +1,8 @@
 //! The local player's hands and feet: targeting, mining progress, breaking and placing blocks,
 //! emptying machines, throwing items, and footstep / landing sounds.
 //!
-//! Called from `Game::update` (lib.rs) and a few API methods. Timers advance by frame `dt` for now;
-//! DEV_PLAN step 1.1 moves them to fixed ticks and step 1.3 turns breaking and placing into actions.
+//! Called from `Game::run_tick` (lib.rs), which advances the timers by one `TICK`, and from a few API
+//! methods. DEV_PLAN step 1.3 turns breaking and placing into actions.
 //! To make a new block kind do something when placed: add a match arm in `try_place`.
 
 use crate::block::{self, BlockId, AIR, BELT, MINER, STORAGE};

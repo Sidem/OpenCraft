@@ -122,8 +122,10 @@ data to the GPU, and draws the HUD.
 
 Each frame:
 
-1. `game.update(dt)` runs input, fixed-substep physics (120 Hz), targeting, mining and placing, items and
-   the factory. It then writes one box instance (12 floats) per dropped item, belt item and machine part.
+1. `game.update(dt)` runs the simulation in fixed 60 Hz ticks (physics at 120 Hz, targeting, mining and
+   placing, items, the factory), so it behaves the same at any frame rate. The camera is interpolated
+   between the last two ticks. It then writes one box instance (12 floats) per dropped item, belt item and
+   machine part.
 2. `game.work_step()` is called in a loop until a time budget runs out (6 ms, or 28 ms while loading).
    Each step generates or meshes one chunk, nearest first.
 3. Mesh and unload events are drained. Mesh data is read with a `Uint32Array` view directly on wasm memory
@@ -181,7 +183,8 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).
-- `opencraft.game.skip_time(600)` runs the factory ten minutes ahead.
+- `opencraft.game.skip_time(600)` runs the game ten minutes ahead, silently (dropped items older than five
+  minutes despawn).
 - `opencraft.game.block_at(x, y, z)` reads a block.
 
 ## Roadmap

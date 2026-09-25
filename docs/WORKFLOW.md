@@ -36,8 +36,10 @@ section 3.1) and use the browser for final visual proof.
 - Aim by teleporting the eye above a face. `teleport` takes the feet position; the eye is 1.62 higher.
   Then call `set_look(atan2(dx, -dz), asin(dy / len))`. Mine with `set_mining(true)` plus `update` steps;
   place with `set_using(true)`. Take a screenshot to force a render.
-- Useful: `block_at`, `find_deposit(tier)` (0 lode, 1 vein, 2 outcrop), `skip_time(s)`, `give(id, n)`,
-  `craft(r, n)`, `target_detail()`, and `opencraft.inventory.open()`.
+- Useful: `block_at`, `find_deposit(tier)` (0 lode, 1 vein, 2 outcrop), `skip_time(s)` (silent),
+  `run_ticks(n)`, `give(id, n)`, `craft(r, n)`, `target_detail()`, and `opencraft.inventory.open()`.
+- `update(dt)` runs whole 60 Hz ticks, so a single `update(1/144)` may run none. `run_ticks(n)` steps the
+  simulation exactly; follow it with `update(0)` to refresh the camera and box instances.
 - Any Rust edit reloads the page and wipes the unsaved world. Keep the scene setup as one re-runnable
   script. That problem goes away once saving exists.
 - A tested scene: the iron outcrop at (11, 62, 2), seed 1337. Dig (11, 64, z) for z = 2..6. Place a box
