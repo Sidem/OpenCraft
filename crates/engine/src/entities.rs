@@ -1,4 +1,8 @@
 //! Dropped item entities: physics, magnet pickup and GPU instance data.
+//!
+//! Items fall and slide only while their position is in a loaded chunk (elsewhere they wait), are
+//! pulled towards the player once their pickup delay has passed and the inventory has room, and
+//! despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through `factory::push_box`.
 
 use crate::block::{BlockId, FACE_BOTTOM, FACE_SIDE, FACE_TEX, FACE_TOP};
 use crate::factory::push_box;

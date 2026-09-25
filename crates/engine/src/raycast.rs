@@ -1,4 +1,5 @@
-//! Voxel traversal (Amanatides & Woo) for block targeting.
+//! Voxel traversal (Amanatides & Woo) for block targeting. `raycast` walks the grid cell by cell
+//! and returns the first cell the `probe` accepts, with the face normal it entered through.
 
 use crate::block::BlockId;
 use crate::math::{IVec3, Vec3};

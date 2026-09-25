@@ -1,4 +1,6 @@
-//! Axis-separated swept AABB collision against the voxel grid.
+//! Axis-separated swept AABB collision against the voxel grid, shared by the player and dropped
+//! items. `move_axis` moves a box along one axis and stops it at the first solid block; callers pass
+//! a `solid(x, y, z)` closure, so this module never touches the world directly.
 
 use crate::math::Vec3;
 

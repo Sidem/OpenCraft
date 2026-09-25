@@ -1,4 +1,6 @@
-//! First-person character controller.
+//! First-person character controller: walking, sprinting, crouching (no falling off edges),
+//! jumping, flying, and collision through `physics`. `step` advances one physics substep; the
+//! caller decides the substep size. Tuning constants sit at the top of the file.
 
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};

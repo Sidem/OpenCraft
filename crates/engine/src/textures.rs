@@ -1,5 +1,7 @@
 //! Procedural 16×16 block textures, generated at startup so the MVP ships with zero art assets.
-//! Every pattern tiles seamlessly (noise lattices wrap at the texture edge).
+//! Every pattern tiles seamlessly (noise lattices wrap at the texture edge). `generate` writes one
+//! RGBA layer per `block::tex` constant; to add a texture, add the constant there and its pattern
+//! arm in `pixel`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};

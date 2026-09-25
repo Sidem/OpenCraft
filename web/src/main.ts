@@ -1,3 +1,7 @@
+// Entry point: loads the wasm engine, builds the renderer, HUD, input, sound and panels, wires the
+// pause menu, and runs the frame loop (input → `game.update` → sounds → streaming work → mesh
+// events → render → HUD). Keeps no game state of its own; everything lives in the engine.
+
 import './base.css';
 import './ui/menu.css';
 import init, { Game } from './wasm/engine.js';

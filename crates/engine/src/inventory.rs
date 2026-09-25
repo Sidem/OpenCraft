@@ -1,5 +1,6 @@
 //! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack, and the stack held by
-//! the mouse cursor while the inventory screen is open.
+//! the mouse cursor while the inventory screen is open. `version` increments on every change so
+//! the UI redraws only when needed. `add_to_slots` is shared with storage boxes.
 
 use crate::block::{BlockId, AIR};
 

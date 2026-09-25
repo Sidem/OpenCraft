@@ -1,9 +1,11 @@
 //! Gameplay sound events. The engine decides *what* is heard and *where*; the host synthesises and
 //! spatialises the audio. Events are read zero-copy from wasm memory once per frame, then cleared.
+//! To add a sound kind: a constant here, plus its entry in `EVENT_ACTIONS` (`web/src/audio/sound.ts`)
+//! and an action in `web/src/audio/settings.ts`.
 
 use crate::math::Vec3;
 
-/// Event kinds. Must match `Sfx` in `web/src/audio.ts`.
+/// Event kinds. Must match `EVENT_ACTIONS` in `web/src/audio/sound.ts`.
 pub const DIG: u8 = 0;
 pub const BREAK: u8 = 1;
 pub const PLACE: u8 = 2;

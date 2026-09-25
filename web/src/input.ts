@@ -1,3 +1,8 @@
+// Keyboard and mouse input. Held state (movement, mining, using) is read every frame; one-shot
+// keys become `Action`s that main.ts drains with `takeActions()`. Gameplay input is captured only
+// while the pointer is locked to the canvas. To add a key: an `Action` variant, a line in the
+// keydown handler, and its handling in main.ts's action loop.
+
 export type Action =
   | { kind: 'slot'; slot: number }
   | { kind: 'scroll'; delta: number }

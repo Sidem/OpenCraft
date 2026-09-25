@@ -1,5 +1,11 @@
-//! Block registry. Block ids double as item ids until a separate item layer arrives; blocks that
+//! Block registry: ids, one `BlockDef` row per block in `DEFS`, texture layers (`tex`), sound
+//! materials (`sound`), and flat lookup tables (`OPAQUE`, `SOLID`, `FACE_TEX`…) for hot loops.
+//! Block ids double as item ids until a separate item layer arrives (Milestone 2); blocks that
 //! should never exist as a placed item (ore, bedrock) are simply not placeable.
+//!
+//! To add a block: append an id constant (never renumber; ids will be saved) and bump
+//! `BLOCK_COUNT`, add its `DEFS` row (`cube`, `ore` or `machine`), and any new texture layers in
+//! `tex` with their patterns in `textures::pixel`. A machine also needs factory code (docs/CODEMAP.md).
 
 pub type BlockId = u8;
 

@@ -1,3 +1,5 @@
+// Small WebGL2 helpers: program compilation with `#define` injection and uniform location lookup.
+
 /** Compiles and links a program. `defines` are injected right after the `#version` line. */
 export function createProgram(
   gl: WebGL2RenderingContext,

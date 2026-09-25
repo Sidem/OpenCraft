@@ -29,26 +29,6 @@ const TREE_CELL: i32 = 7;
 const TREE_REACH: i32 = 2;
 const SPAWN_CLEARING: i32 = 6;
 
-struct Tree {
-    x: i32,
-    z: i32,
-    ground: i32,
-    trunk: i32,
-}
-
-/// Per chunk-column data shared by all 8 vertical chunks of that column.
-struct Column {
-    heights: Vec<i32>,
-    surface: Vec<(BlockId, BlockId)>,
-    trees: Vec<Tree>,
-    /// Deposits (seeded here or in a neighbouring column) whose shape reaches into this column,
-    /// sorted by key: stamping and ownership lookups both walk them in this order.
-    deposits: Vec<Deposit>,
-    /// Highest non-air voxel in the column, including tree canopies.
-    max_y: i32,
-    max_ground: i32,
-}
-
 pub struct WorldGen {
     seed: u32,
     continent: Perlin,
@@ -231,6 +211,26 @@ impl WorldGen {
         }
         Chunk::from_blocks(b)
     }
+}
+
+struct Tree {
+    x: i32,
+    z: i32,
+    ground: i32,
+    trunk: i32,
+}
+
+/// Per chunk-column data shared by all 8 vertical chunks of that column.
+struct Column {
+    heights: Vec<i32>,
+    surface: Vec<(BlockId, BlockId)>,
+    trees: Vec<Tree>,
+    /// Deposits (seeded here or in a neighbouring column) whose shape reaches into this column,
+    /// sorted by key: stamping and ownership lookups both walk them in this order.
+    deposits: Vec<Deposit>,
+    /// Highest non-air voxel in the column, including tree canopies.
+    max_y: i32,
+    max_ground: i32,
 }
 
 fn stamp_tree(t: &Tree, base: IVec3, seed: u32, b: &mut [BlockId]) {

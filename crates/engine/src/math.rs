@@ -1,4 +1,6 @@
-//! Small vector types, hashing and a deterministic RNG. Kept dependency-free on purpose.
+//! Small vector types (`Vec3` f64, `IVec3` i32), integer hashing (`hash2`, `hash3`, `unit`) and a
+//! deterministic RNG (`Rng`). Kept dependency-free on purpose. Hashes and the RNG feed world
+//! generation and the core simulation, so their output must never change for the same input.
 
 use std::ops::{Add, AddAssign, Mul, Sub};
 

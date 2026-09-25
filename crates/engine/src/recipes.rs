@@ -1,5 +1,6 @@
-//! Hand-crafting recipes for the first factory buildings. Inputs are raw resources for now; ingots
-//! and parts arrive with smelting.
+//! Hand-crafting recipes for the first factory buildings, as a data table. Inputs are raw resources
+//! for now; ingots and parts arrive with smelting. To add a recipe: add a row to [`RECIPES`]; the
+//! build menu lists every row in order.
 
 use crate::block::*;
 

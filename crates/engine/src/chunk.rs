@@ -1,4 +1,6 @@
-//! 32³ block storage. Homogeneous chunks (all air, all stone) cost no heap memory.
+//! 32³ block storage for one chunk. Homogeneous chunks (all air, all stone) cost no heap memory;
+//! writing a different block makes them dense. `modified` marks player edits, which `World` keeps
+//! when the chunk streams out. Memory layout: see [`index`].
 
 use crate::block::BlockId;
 

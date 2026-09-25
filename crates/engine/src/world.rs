@@ -2,6 +2,11 @@
 //!
 //! Work is split into small units (generate one chunk / mesh one chunk) that the host calls under a
 //! per-frame time budget, nearest-first. Results reach the renderer through an ordered event queue.
+//!
+//! Invariants: player-edited chunks are never lost; when they stream out they move to `saved` and
+//! come back instead of being regenerated. `get_block` / `set_block` only see loaded chunks;
+//! `block_anywhere` / `set_block_anywhere` work everywhere, which is what deterministic core code
+//! must use (DEV_PLAN section 3.4).
 
 use std::collections::VecDeque;
 
@@ -25,33 +30,9 @@ pub enum Event {
     Unload(IVec3),
 }
 
-struct Entry {
-    chunk: Chunk,
-    has_mesh: bool,
-}
-
 #[inline]
 pub fn chunk_of(p: IVec3) -> IVec3 {
     IVec3::new(p.x >> CHUNK_SHIFT, p.y >> CHUNK_SHIFT, p.z >> CHUNK_SHIFT)
-}
-
-#[inline]
-fn local_of(p: IVec3) -> (usize, usize, usize) {
-    ((p.x & CHUNK_MASK) as usize, (p.y & CHUNK_MASK) as usize, (p.z & CHUNK_MASK) as usize)
-}
-
-/// Squared horizontal distance in chunks, after shrinking each axis by `shrink` chunks.
-#[inline]
-fn ring_dist2(dx: i32, dz: i32, shrink: i32) -> i32 {
-    let ax = (dx.abs() - shrink).max(0);
-    let az = (dz.abs() - shrink).max(0);
-    ax * ax + az * az
-}
-
-#[inline]
-fn priority(focus: IVec3, p: IVec3) -> i32 {
-    let d = p - focus;
-    d.x * d.x + d.z * d.z + d.y * d.y
 }
 
 pub struct World {
@@ -381,6 +362,30 @@ impl World {
     pub fn dirty_count(&self) -> usize {
         self.dirty.len()
     }
+}
+
+struct Entry {
+    chunk: Chunk,
+    has_mesh: bool,
+}
+
+#[inline]
+fn local_of(p: IVec3) -> (usize, usize, usize) {
+    ((p.x & CHUNK_MASK) as usize, (p.y & CHUNK_MASK) as usize, (p.z & CHUNK_MASK) as usize)
+}
+
+/// Squared horizontal distance in chunks, after shrinking each axis by `shrink` chunks.
+#[inline]
+fn ring_dist2(dx: i32, dz: i32, shrink: i32) -> i32 {
+    let ax = (dx.abs() - shrink).max(0);
+    let az = (dz.abs() - shrink).max(0);
+    ax * ax + az * az
+}
+
+#[inline]
+fn priority(focus: IVec3, p: IVec3) -> i32 {
+    let d = p - focus;
+    d.x * d.x + d.z * d.z + d.y * d.y
 }
 
 #[cfg(test)]

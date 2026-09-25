@@ -1,4 +1,5 @@
-//! Seeded gradient noise (Perlin's improved noise) with fBm helpers.
+//! Seeded gradient noise (Perlin's improved noise) with fBm helpers, used by world generation.
+//! Output must stay bit-identical for a seed: terrain, caves and trees are derived from it.
 
 use crate::math::{lerp, Rng};
 

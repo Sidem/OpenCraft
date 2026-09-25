@@ -1,3 +1,7 @@
+// In-game HUD: crosshair, target name with detail text and mining bar, hotbar, pickup toasts,
+// the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
+// when `inventory_version` changes. `blockIcon` renders the item icons other panels reuse.
+
 import './hud.css';
 import type { Game } from '../wasm/engine.js';
 
