@@ -1,6 +1,7 @@
-// Machine panel: opens when the player right-clicks a smelter or constructor (the engine asks with
-// `take_panel_request`). Shows what the machine is doing, its buffers, the recipe choice for machines
-// where the player picks it, buttons to put items in from the inventory, and a take-output button.
+// Machine panel: opens when the player right-clicks a smelter, constructor or filter (the engine asks
+// with `take_panel_request`). Shows what the machine is doing, its buffers, the recipe choice for
+// machines where the player picks it, a filter's item choice, buttons to put items in from the
+// inventory, and a take-output button. Sections a machine doesn't use are hidden.
 // Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions.
 // A new machine with a panel needs no change here unless it adds a buffer role (`ROLE_LABELS`).
 
@@ -29,6 +30,10 @@ export class MachinePanel {
   private readonly recipeHead = h('h3', '', 'Recipe');
   private readonly recipeList = h('div', 'mp-recipes');
   private readonly inserts = h('div', 'mp-inserts');
+  private readonly put = h('section', 'mp-put');
+  private readonly progress = h('div', 'mp-bar');
+  private readonly filterSection = h('section', 'mp-filter');
+  private readonly filterList = h('div', 'mp-inserts');
   private readonly take: HTMLButtonElement;
   private readonly roleLabels: Map<number, string>;
   private recipes: RecipeButton[] = [];
@@ -54,18 +59,17 @@ export class MachinePanel {
     close.setAttribute('aria-label', 'Close');
     head.append(this.title, h('span', 'mp-keys', 'E or click outside to return'), close);
 
-    const bar = h('div', 'mp-bar');
-    bar.append(this.bar);
+    this.progress.append(this.bar);
     this.take = button('secondary-btn mp-take', 'Take output', () => {
       this.game.take_machine_output(...this.pos);
     });
     const state = h('section', 'mp-state');
-    state.append(this.status, bar, this.fire, this.slots, this.take);
+    state.append(this.status, this.progress, this.fire, this.slots, this.take);
 
-    const put = h('section', 'mp-put');
-    put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
+    this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
+    this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
     const body = h('div', 'mp-body');
-    body.append(state, this.recipeHead, this.recipeList, put);
+    body.append(state, this.filterSection, this.recipeHead, this.recipeList, this.put);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -129,20 +133,60 @@ export class MachinePanel {
     this.status.textContent = g.machine_status(...this.pos);
     this.fire.textContent = fire > 0 ? `Fire: ${fire} s left` : '';
     this.slots.replaceChildren();
-    let output = 0;
+    let output = -1;
+    let held = 0;
     for (let i = 0; i < count; i++) {
       const role = data[6 + i * 3], item = data[7 + i * 3], n = data[8 + i * 3];
-      if (role === g.panel_role_output()) output += n;
+      if (role === g.panel_role_output()) output = Math.max(output, 0) + n;
+      else if (n > 0) held = item;
       this.slots.append(this.slotView(this.roleLabels.get(role) ?? '', item, n));
     }
-    this.take.disabled = output === 0;
+    this.take.disabled = output <= 0;
+    this.take.classList.toggle('hidden', output < 0);
+
+    const filter = g.machine_filter(...this.pos);
+    const filtering = filter !== 0xffffffff;
+    this.filterSection.classList.toggle('hidden', !filtering);
+    this.put.classList.toggle('hidden', filtering);
+    this.progress.classList.toggle('hidden', filtering);
+    if (filtering) this.drawFilter(filter, held);
+    this.recipeHead.classList.toggle('hidden', this.recipes.length === 0);
 
     for (const r of this.recipes) {
       r.el.classList.toggle('active', r.id === recipe);
       r.el.disabled = !choosable;
     }
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from the ore it gets)';
-    this.drawInserts();
+    if (!filtering) this.drawInserts();
+  }
+
+  /** The filter's choice: nothing, or any item in the inventory, the current choice or the held item. */
+  private drawFilter(filter: number, held: number): void {
+    const g = this.game;
+    const items = new Set(this.inventoryTotals().keys());
+    if (filter !== 0) items.add(filter);
+    if (held !== 0) items.add(held);
+    const none = button('secondary-btn mp-insert', 'Nothing', () => g.set_machine_filter(...this.pos, 0));
+    none.classList.toggle('active', filter === 0);
+    const buttons = [none];
+    for (const item of items) {
+      const b = button('secondary-btn mp-insert', '', () => g.set_machine_filter(...this.pos, item));
+      b.classList.toggle('active', item === filter);
+      b.append(this.iconCanvas(item, 'mp-chip-icon'), g.item_name(item));
+      buttons.push(b);
+    }
+    this.filterList.replaceChildren(...buttons);
+  }
+
+  /** Each item in the inventory with how many there are. */
+  private inventoryTotals(): Map<number, number> {
+    const g = this.game;
+    const totals = new Map<number, number>();
+    for (let s = 0; s < g.inventory_size(); s++) {
+      const n = g.slot_count(s);
+      if (n > 0) totals.set(g.slot_item(s), (totals.get(g.slot_item(s)) ?? 0) + n);
+    }
+    return totals;
   }
 
   private buildRecipes(block: number): void {
@@ -170,13 +214,8 @@ export class MachinePanel {
   /** One button per item in the inventory that the machine would take now. */
   private drawInserts(): void {
     const g = this.game;
-    const totals = new Map<number, number>();
-    for (let s = 0; s < g.inventory_size(); s++) {
-      const n = g.slot_count(s);
-      if (n > 0) totals.set(g.slot_item(s), (totals.get(g.slot_item(s)) ?? 0) + n);
-    }
     const buttons: HTMLElement[] = [];
-    for (const [item, n] of totals) {
+    for (const [item, n] of this.inventoryTotals()) {
       if (!g.machine_wants(...this.pos, item)) continue;
       const b = button('secondary-btn mp-insert', '', () => g.insert_into_machine(...this.pos, item));
       b.append(this.iconCanvas(item, 'mp-chip-icon'), `${g.item_name(item)} ×${n}`);

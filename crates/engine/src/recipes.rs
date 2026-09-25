@@ -57,6 +57,20 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "Shapes ingots into parts: plates, rods, screws and wire. Right-click to choose what it makes; \
                 belts bring the ingots in and take the parts away.",
     },
+    Recipe {
+        output: b(SPLITTER),
+        count: 1,
+        inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
+        blurb: "Takes items from belts leading into it and shares them between the belts leading away in \
+                front, to the left and to the right.",
+    },
+    Recipe {
+        output: b(FILTER),
+        count: 1,
+        inputs: &[(IRON_PLATE, 2), (COPPER_WIRE, 2), (b(BELT), 2)],
+        blurb: "Sends the item you choose straight on and everything else to the left and right. \
+                Right-click to choose the item.",
+    },
 ];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after

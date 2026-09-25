@@ -45,6 +45,7 @@ impl Factory {
         models(&self.storages, out, eye, time, range);
         models(&self.smelters, out, eye, time, range);
         models(&self.constructors, out, eye, time, range);
+        models(&self.routers, out, eye, time, range);
     }
 }
 

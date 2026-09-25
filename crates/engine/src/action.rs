@@ -40,6 +40,11 @@ pub enum Action {
         pos: IVec3,
         recipe: u16,
     },
+    /// Sets what the filter at `pos` sends straight on (`NONE` for nothing).
+    SetFilter {
+        pos: IVec3,
+        item: ItemId,
+    },
     /// Puts as many of `item` from the inventory into the machine at `pos` as it takes.
     Insert {
         pos: IVec3,
@@ -127,6 +132,7 @@ impl Sim {
                     }
                 }
             }
+            Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
             Action::Insert { pos, item } => {
                 let put = self.factory.insert(pos, item, inv.count(item));
                 if put > 0 {

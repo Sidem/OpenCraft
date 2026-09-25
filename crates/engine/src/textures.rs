@@ -257,6 +257,26 @@ fn constructor(x: i32, y: i32, side: bool) -> [u8; 4] {
     }
 }
 
+/// Router top: dark steel with arrows pointing towards row 0 (the router's front, like the belt) and,
+/// for the splitter, out to both sides; the filter's front arrow is amber.
+fn router_top(x: i32, y: i32, filter: bool) -> [u8; 4] {
+    let (fx, fy) = (x as f64 - 7.5, y as f64 - 7.5);
+    // Arrowhead: a triangle with its tip at row 0.
+    let front = (-7.0..-1.0).contains(&fy) && fx.abs() <= (fy + 7.0) * 0.7;
+    let side = fy.abs() < 1.2 && fx.abs() > 2.0 && fx.abs() < 7.0;
+    let stem = fx.abs() < 1.0 && (0.0..6.0).contains(&fy);
+    let k = 0.9 + 0.1 * n(64, x, y);
+    if x == 0 || y == 0 || x == 15 || y == 15 {
+        rgb([34.0, 36.0, 42.0], k)
+    } else if front {
+        rgb(if filter { [236.0, 170.0, 60.0] } else { [200.0, 204.0, 212.0] }, k)
+    } else if side || stem {
+        rgb([150.0, 156.0, 166.0], k)
+    } else {
+        rgb([62.0, 66.0, 76.0], k)
+    }
+}
+
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
         tex::STONE => stone(x, y),
@@ -323,6 +343,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::COPPER_WIRE => wire(x, y),
         tex::CONSTRUCTOR_SIDE => constructor(x, y, true),
         tex::CONSTRUCTOR_TOP => constructor(x, y, false),
+        tex::SPLITTER_TOP => router_top(x, y, false),
+        tex::FILTER_TOP => router_top(x, y, true),
         _ => [255, 0, 255, 255],
     }
 }

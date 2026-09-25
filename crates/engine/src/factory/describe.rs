@@ -40,6 +40,7 @@ impl Factory {
             Slot::Storage(i) => self.storages[i as usize].describe(self),
             Slot::Smelter(i) => self.smelters[i as usize].describe(self),
             Slot::Constructor(i) => self.constructors[i as usize].describe(self),
+            Slot::Router(i) => self.routers[i as usize].describe(self),
         };
         Some(text).filter(|t| !t.is_empty())
     }

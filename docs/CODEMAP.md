@@ -23,7 +23,7 @@ folder with `mod.rs`.
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, `close_inventory`, pickup notifications |
-| `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, put in, take) |
+| `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take) |
 | `api/crafting.rs` | Recipe queries and `craft` |
 | `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (texture layers and box proportions), `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
@@ -38,14 +38,15 @@ folder with `mod.rs`.
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; `WORLDGEN_VERSION` |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
-| `factory/mod.rs` | Machine table (`Kind`, `MACHINES` with slots and `panel`, `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, state bytes, `update` (one tick, emits `SimEvent`s) |
+| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, state bytes, `update` (one tick, emits `SimEvent`s) |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step`; its bytes, readout and model; belt constants |
 | `factory/miner.rs` | Miner Mk1: `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
 | `factory/storage.rs` | Storage box: `step` (feeds belts leading away); its bytes and readout |
+| `factory/router.rs` | Splitter and filter (one `Router` kind): holds one item, passes it front/left/right (round robin; a filter sends its item front, others aside); bytes, readout, filter panel, model |
 | `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
 | `factory/constructor.rs` | Constructor: one input into parts with the recipe chosen in its panel; `set_recipe` hands inputs back; bytes, readout, panel, model |
-| `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role), `set_recipe`, `insert`, `wants`, `take_contents` |
+| `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role, filter item), `set_recipe`, `set_filter`, `insert`, `wants`, `take_contents` |
 | `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs, corners, machine outputs, downstream-first belt order (derived data) |
 | `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models |
 | `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
@@ -78,7 +79,7 @@ folder with `mod.rs`.
 | `ui/dom.ts` | `h()` and `button()` element helpers |
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts, debug overlay, `itemIcon` (isometric box from `item_icon`) |
 | `ui/inventory.ts` + `.css` | Inventory and build screen (E) |
-| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter or constructor): status, progress, buffers, recipe choice, put-in and take buttons |
+| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor or filter): status, progress, buffers, recipe choice, filter item, put-in and take buttons |
 | `ui/menu.css` | Pause/start menu styles (markup in `web/index.html`) |
 | `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |
@@ -122,7 +123,9 @@ in `recipes.rs`; the build menu shows every row.
    `Slot::is_sink` and a field in `Sinks` (`links.rs`); what it makes is a `MACHINE_RECIPES` row. A panel:
    `panel: true` in its row, a `panel()` method and its arms in `panel.rs`; the host panel needs nothing.
 3. Its block in `block.rs` (`machine(...)` if drawn as a model, `cube(...)` if meshed); a hand recipe
-   in `recipes.rs`. Tests in `factory/tests.rs` (see `run` and `stocked_box`).
+   in `recipes.rs`. Tests in `factory/tests.rs` (see `run` and `stocked_box`; test-only accessors such as `stock` live
+   there too). A second block with the same behaviour (splitter/filter) is an extra `MACHINES` row after
+   the Kind-ordered ones, not a new kind.
 
 **A wasm API method.** Put it in the `api/*.rs` file for its area and keep it a thin forwarder; logic goes
 in a module. Run `npm run build:wasm`, then call it from TS (types come from `web/src/wasm/engine.d.ts`).

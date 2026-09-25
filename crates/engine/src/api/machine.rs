@@ -78,6 +78,17 @@ impl Game {
         self.act(Action::SetRecipe { pos: IVec3::new(x, y, z), recipe });
     }
 
+    /// The filter's chosen item (0 for none), or `u32::MAX` if the machine there isn't a filter.
+    pub fn machine_filter(&self, x: i32, y: i32, z: i32) -> u32 {
+        let p = self.sim.factory.panel(IVec3::new(x, y, z));
+        p.and_then(|p| p.filter).map_or(u32::MAX, |f| f.0 as u32)
+    }
+
+    /// Sets what the filter sends straight on (0 for nothing; next tick).
+    pub fn set_machine_filter(&mut self, x: i32, y: i32, z: i32, item: u16) {
+        self.act(Action::SetFilter { pos: IVec3::new(x, y, z), item: ItemId(item) });
+    }
+
     /// Puts as many of `item` from the inventory into the machine as it takes (next tick).
     pub fn insert_into_machine(&mut self, x: i32, y: i32, z: i32, item: u16) {
         self.act(Action::Insert { pos: IVec3::new(x, y, z), item: ItemId(item) });

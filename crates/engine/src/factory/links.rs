@@ -10,6 +10,7 @@ use crate::math::IVec3;
 
 use super::belt::Belt;
 use super::constructor::Constructor;
+use super::router::Router;
 use super::smelter::Smelter;
 use super::storage::Storage;
 use super::{opposite, Factory, Kind, DIRS, FACES};
@@ -35,13 +36,14 @@ pub(crate) enum Slot {
     Storage(u32),
     Smelter(u32),
     Constructor(u32),
+    Router(u32),
 }
 
 impl Slot {
     /// Whether belts and miners can deliver into it (belts are linked separately).
     pub(super) fn is_sink(self) -> bool {
         match self {
-            Slot::Storage(_) | Slot::Smelter(_) | Slot::Constructor(_) => true,
+            Slot::Storage(_) | Slot::Smelter(_) | Slot::Constructor(_) | Slot::Router(_) => true,
             Slot::Belt(_) | Slot::Miner(_) => false,
         }
     }
@@ -53,6 +55,7 @@ impl Slot {
             Slot::Storage(_) => Kind::Storage,
             Slot::Smelter(_) => Kind::Smelter,
             Slot::Constructor(_) => Kind::Constructor,
+            Slot::Router(_) => Kind::Router,
         }
     }
 }
@@ -62,6 +65,7 @@ pub(crate) struct Sinks<'a> {
     pub(super) storages: &'a mut [Storage],
     pub(super) smelters: &'a mut [Smelter],
     pub(super) constructors: &'a mut [Constructor],
+    pub(super) routers: &'a mut [Router],
 }
 
 impl Sinks<'_> {
@@ -71,6 +75,7 @@ impl Sinks<'_> {
             Slot::Storage(i) => self.storages[i as usize].buf.can_accept(item),
             Slot::Smelter(i) => self.smelters[i as usize].can_accept(item),
             Slot::Constructor(i) => self.constructors[i as usize].room_for(item) > 0,
+            Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Belt(_) | Slot::Miner(_) => false,
         }
     }
@@ -81,6 +86,7 @@ impl Sinks<'_> {
             Slot::Storage(i) => self.storages[i as usize].buf.add(item, 1) == 0,
             Slot::Smelter(i) => self.smelters[i as usize].accept(item),
             Slot::Constructor(i) => self.constructors[i as usize].accept(item),
+            Slot::Router(i) => self.routers[i as usize].accept(item),
             Slot::Belt(_) | Slot::Miner(_) => false,
         }
     }
@@ -184,6 +190,9 @@ impl Factory {
         let storage_outs: Vec<Vec<u32>> = self.storages.iter().map(|s| feeds(s.pos)).collect();
         let smelter_outs: Vec<Vec<u32>> = self.smelters.iter().map(|s| feeds(s.pos)).collect();
         let constructor_outs: Vec<Vec<u32>> = self.constructors.iter().map(|c| feeds(c.pos)).collect();
+        let lead_away = |pos: IVec3, s: u8| belt_at(pos + DIRS[s as usize]).filter(|&j| belts[j as usize].dir == s);
+        let router_outs: Vec<[Option<u32>; 3]> =
+            self.routers.iter().map(|r| r.out_dirs().map(|s| lead_away(r.pos, s))).collect();
 
         for ((b, c), o) in self.belts.iter_mut().zip(curves).zip(outs) {
             b.curve_from = c;
@@ -204,6 +213,9 @@ impl Factory {
         for (c, o) in self.constructors.iter_mut().zip(constructor_outs) {
             c.outs = o;
             c.next_out %= c.outs.len().max(1);
+        }
+        for (r, o) in self.routers.iter_mut().zip(router_outs) {
+            r.outs = o;
         }
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt

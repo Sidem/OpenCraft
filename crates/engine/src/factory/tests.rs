@@ -4,6 +4,50 @@ use super::links::Link;
 use super::*;
 use crate::block::IRON_ORE;
 
+/// Test-only accessors (inherent methods, so every test module in the crate can use them).
+impl Factory {
+    pub(crate) fn storage_count_at(&self, pos: IVec3, item: ItemId) -> u32 {
+        match self.at.get(&pos) {
+            Some(Slot::Storage(i)) => self.storages[*i as usize].buf.count(item),
+            _ => 0,
+        }
+    }
+
+    /// Puts `n` of `item` into the box at `pos`.
+    pub(crate) fn stock(&mut self, pos: IVec3, item: ItemId, n: u32) {
+        let Some(Slot::Storage(i)) = self.at.get(&pos) else { panic!("no box at {pos:?}") };
+        self.storages[*i as usize].buf.add(item, n);
+    }
+
+    pub(crate) fn smelter_at(&self, pos: IVec3) -> &Smelter {
+        match self.at.get(&pos) {
+            Some(Slot::Smelter(i)) => &self.smelters[*i as usize],
+            _ => panic!("no smelter at {pos:?}"),
+        }
+    }
+
+    pub(crate) fn constructor_at(&self, pos: IVec3) -> &Constructor {
+        match self.at.get(&pos) {
+            Some(Slot::Constructor(i)) => &self.constructors[*i as usize],
+            _ => panic!("no constructor at {pos:?}"),
+        }
+    }
+
+    pub(crate) fn belt_at(&self, pos: IVec3) -> &Belt {
+        match self.at.get(&pos) {
+            Some(Slot::Belt(i)) => &self.belts[*i as usize],
+            _ => panic!("no belt at {pos:?}"),
+        }
+    }
+
+    pub(crate) fn miner_at(&self, pos: IVec3) -> &Miner {
+        match self.at.get(&pos) {
+            Some(Slot::Miner(i)) => &self.miners[*i as usize],
+            _ => panic!("no miner at {pos:?}"),
+        }
+    }
+}
+
 const EAST: u8 = 1;
 const SOUTH: u8 = 2;
 
@@ -127,7 +171,7 @@ fn removing_a_belt_returns_its_items_and_relinks() {
 
 #[test]
 fn machine_table_rows_follow_kind_order() {
-    for (i, def) in MACHINES.iter().enumerate() {
+    for (i, def) in MACHINES.iter().enumerate().take(Kind::Router as usize + 1) {
         assert_eq!(def.kind as usize, i, "row {i}");
         assert_eq!(machine(def.block).map(|m| m.kind), Some(def.kind));
     }
@@ -335,4 +379,80 @@ fn constructors_survive_a_save_round_trip() {
     assert_eq!((c.recipe, c.busy, c.out.count(IRON_PLATE)), (Some(recipe_for(IRON_PLATE)), true, 1));
     run(&mut g, 10.0, |_| {});
     assert_eq!(g.constructor_at(IVec3::new(2, 0, 0)).out.count(IRON_PLATE), 4);
+}
+
+fn router(f: &mut Factory, pos: IVec3, dir: u8, filter: bool) {
+    let block = if filter { crate::block::FILTER } else { crate::block::SPLITTER };
+    f.place(&mut World::new(1, 2), block, pos, dir, pos);
+}
+
+/// A belt from `from` running `dir` for one cell into a box beyond it.
+fn belt_to_box(f: &mut Factory, from: IVec3, dir: u8) -> IVec3 {
+    f.add_belt(from, dir);
+    let chest = from + DIRS[dir as usize];
+    f.add_storage(chest);
+    chest
+}
+
+#[test]
+fn a_splitter_shares_items_round_robin_and_skips_a_blocked_output() {
+    const NORTH: u8 = 0;
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 30);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    router(&mut f, IVec3::new(2, 0, 0), EAST, false);
+    let front = belt_to_box(&mut f, IVec3::new(3, 0, 0), EAST);
+    let left = belt_to_box(&mut f, IVec3::new(2, 0, -1), NORTH);
+    // The right-hand belt leads nowhere, so it fills up and blocks.
+    f.add_belt(IVec3::new(2, 0, 1), SOUTH);
+    run(&mut f, 40.0, spacing_ok);
+    let stuck = f.belt_at(IVec3::new(2, 0, 1)).items.len() as u32;
+    let (a, b) = (f.storage_count_at(front, IRON_ORE.into()), f.storage_count_at(left, IRON_ORE.into()));
+    assert!((2..=3).contains(&stuck), "{stuck} waiting on the blocked belt");
+    assert_eq!(a + b + stuck, 30, "nothing lost");
+    assert!(a.abs_diff(b) <= 1, "{a} and {b} should be even");
+}
+
+#[test]
+fn a_filter_sends_its_item_straight_on_and_the_rest_aside() {
+    use crate::block::COAL_ORE;
+    const NORTH: u8 = 0;
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 10);
+    f.stock(IVec3::new(0, 0, 0), COAL_ORE.into(), 10);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    router(&mut f, IVec3::new(2, 0, 0), EAST, true);
+    f.set_filter(IVec3::new(2, 0, 0), IRON_ORE.into());
+    let front = belt_to_box(&mut f, IVec3::new(3, 0, 0), EAST);
+    let left = belt_to_box(&mut f, IVec3::new(2, 0, -1), NORTH);
+    let right = belt_to_box(&mut f, IVec3::new(2, 0, 1), SOUTH);
+    run(&mut f, 10.0, spacing_ok);
+    // Mid-run, the routers' bytes read back unchanged.
+    let mut w = crate::bytes::ByteWriter::default();
+    f.write_state(&mut w);
+    let mut g = Factory::read_state(&mut World::new(1, 2), &mut crate::bytes::ByteReader::new(&w.bytes)).unwrap();
+    let mut again = crate::bytes::ByteWriter::default();
+    g.write_state(&mut again);
+    assert!(again.bytes == w.bytes);
+    run(&mut g, 20.0, spacing_ok);
+    let count = |pos, item: crate::block::BlockId| g.storage_count_at(pos, item.into());
+    assert_eq!((count(front, IRON_ORE), count(front, COAL_ORE)), (10, 0));
+    assert_eq!((count(left, IRON_ORE), count(right, IRON_ORE)), (0, 0));
+    assert_eq!(count(left, COAL_ORE) + count(right, COAL_ORE), 10);
+    assert!(count(left, COAL_ORE).abs_diff(count(right, COAL_ORE)) <= 1);
+}
+
+#[test]
+fn a_filter_with_no_item_sends_everything_aside() {
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 6);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    router(&mut f, IVec3::new(2, 0, 0), EAST, true);
+    let front = belt_to_box(&mut f, IVec3::new(3, 0, 0), EAST);
+    let right = belt_to_box(&mut f, IVec3::new(2, 0, 1), SOUTH);
+    run(&mut f, 15.0, spacing_ok);
+    assert_eq!((f.storage_count_at(front, IRON_ORE.into()), f.storage_count_at(right, IRON_ORE.into())), (0, 6));
+    assert!(f.panel(IVec3::new(2, 0, 0)).is_some(), "a filter has a panel");
+    router(&mut f, IVec3::new(5, 0, 5), EAST, false);
+    assert!(f.panel(IVec3::new(5, 0, 5)).is_none(), "a splitter has none");
 }

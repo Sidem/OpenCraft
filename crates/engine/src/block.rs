@@ -27,7 +27,9 @@ pub const MINER: BlockId = 13;
 pub const STORAGE: BlockId = 14;
 pub const SMELTER: BlockId = 15;
 pub const CONSTRUCTOR: BlockId = 16;
-pub const BLOCK_COUNT: usize = 17;
+pub const SPLITTER: BlockId = 17;
+pub const FILTER: BlockId = 18;
+pub const BLOCK_COUNT: usize = 19;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -62,7 +64,9 @@ pub mod tex {
     pub const COPPER_WIRE: u16 = 28;
     pub const CONSTRUCTOR_SIDE: u16 = 29;
     pub const CONSTRUCTOR_TOP: u16 = 30;
-    pub const COUNT: usize = 31;
+    pub const SPLITTER_TOP: u16 = 31;
+    pub const FILTER_TOP: u16 = 32;
+    pub const COUNT: usize = 33;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -168,6 +172,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         ..machine("Smelter", true, 1.0, pillar(tex::SMELTER_SIDE, tex::SMELTER_TOP, tex::SMELTER_TOP), SMELTER)
     },
     machine("Constructor", true, 0.8, pillar(tex::CONSTRUCTOR_SIDE, tex::CONSTRUCTOR_TOP, tex::FRAME), CONSTRUCTOR),
+    machine("Splitter", false, 0.4, pillar(tex::FRAME, tex::SPLITTER_TOP, tex::FRAME), SPLITTER),
+    machine("Filter", false, 0.4, pillar(tex::FRAME, tex::FILTER_TOP, tex::FRAME), FILTER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

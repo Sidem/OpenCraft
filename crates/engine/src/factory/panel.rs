@@ -1,5 +1,5 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
-//! a smelter or constructor), `set_recipe`, `insert` (put items in from the inventory) and
+//! a smelter, constructor or filter), `set_recipe`, `set_filter`, `insert` (put items in from the inventory) and
 //! `take_contents` (right-click on a box or miner, the panel's take button). The actions that call
 //! these live in `action.rs`; the host draws the panel (`web/src/ui/machine.ts`).
 //!
@@ -34,6 +34,8 @@ pub struct Panel {
     pub slots: Vec<(u8, Stack)>,
     /// One line: what it's doing or what it needs.
     pub status: String,
+    /// A filter's chosen item (`Some(NONE)`: none yet); `None` for machines that don't filter.
+    pub filter: Option<ItemId>,
 }
 
 impl Factory {
@@ -42,7 +44,18 @@ impl Factory {
         match *self.at.get(&pos)? {
             Slot::Smelter(i) => Some(self.smelters[i as usize].panel()),
             Slot::Constructor(i) => Some(self.constructors[i as usize].panel()),
+            Slot::Router(i) => Some(&self.routers[i as usize]).filter(|r| r.is_filter).map(|r| r.panel()),
             Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) => None,
+        }
+    }
+
+    /// Sets what the filter at `pos` sends straight on (`NONE` for nothing).
+    pub fn set_filter(&mut self, pos: IVec3, item: ItemId) {
+        if let Some(&Slot::Router(i)) = self.at.get(&pos) {
+            let r = &mut self.routers[i as usize];
+            if r.is_filter && (item == ItemId::NONE || item.is_valid()) {
+                r.filter = item;
+            }
         }
     }
 
@@ -92,7 +105,7 @@ impl Factory {
             Some(Slot::Storage(i)) => &mut self.storages[*i as usize].buf,
             Some(Slot::Smelter(i)) => &mut self.smelters[*i as usize].out,
             Some(Slot::Constructor(i)) => &mut self.constructors[*i as usize].out,
-            Some(Slot::Belt(_)) | None => return false,
+            Some(Slot::Belt(_) | Slot::Router(_)) | None => return false,
         };
         buf.drain(take);
         true

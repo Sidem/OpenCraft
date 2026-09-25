@@ -88,4 +88,4 @@ Every push to `main` runs `.github/workflows/pages.yml`: engine tests, build, th
 | `factory/mod.rs` | `MACHINES` slots | miner 1 stack (64 ore), box 24, smelter and constructor 1 per buffer |
 | `recipes.rs` | `MACHINE_RECIPES`, `FUELS` | smelter: 1 ore → 1 ingot in 1.5 s · coal ore 8 s, log 4 s of fire · constructor: 2 iron ingots → plate 2 s, 1 → rod 2 s, rod → 4 screws 3 s, copper ingot → 2 wire 2 s |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` | per ore (outcrops per column, vein chance, lode weight); 1/40; 10 |
-| `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone |
+| `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone · Splitter 2 plates, 2 belts · Filter 2 plates, 2 wire, 2 belts |

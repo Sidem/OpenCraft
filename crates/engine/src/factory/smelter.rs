@@ -182,6 +182,7 @@ impl Smelter {
                 (ROLE_OUTPUT, self.out.slots[0]),
             ],
             status: self.status_text(),
+            filter: None,
         }
     }
 }

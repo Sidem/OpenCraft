@@ -155,6 +155,7 @@ impl Constructor {
             fire: 0,
             slots: vec![(ROLE_INPUT, self.input.slots[0]), (ROLE_OUTPUT, self.out.slots[0])],
             status: self.status_text(),
+            filter: None,
         }
     }
 }

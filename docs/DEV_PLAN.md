@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.4 done · **Next up: step 2.5
-(splitter and filter).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.5 done · **Next up: step 2.6
+(climbing and crossing).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -147,11 +147,11 @@ Each frame, `web/src/main.ts`:
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
   exports and imports them.
-- **Size:** about 131 KB gzipped in total (wasm 97.1 KB, JS 29 KB, CSS 4 KB).
+- **Size:** about 131 KB gzipped in total (wasm 99.7 KB, JS 30 KB, CSS 4 KB).
 
 ### Known limitations and technical debt
 
-1. Belts can't climb, and there are no splitters or filters (steps 2.5, 2.6). Players can't put items
+1. Belts can't climb or cross (step 2.6). Players can't put items
    into a box by hand (machines take them through their panel).
 2. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
    isn't loaded), only the local player has hands, nothing draws other players' bodies, and a leaving
@@ -376,12 +376,14 @@ Rules for every step:
     hand (in 2.3, fuel could only come from a miner on coal). *Done:* no hand recipe asks for parts yet;
     the parts get their first uses in 2.7 (generator, poles) and 2.9 (Mk2).
 
-- [ ] **2.5 Belt logistics: splitter and filter** (`factory/splitter.rs`, `factory/filter.rs`)
+- [x] **2.5 Belt logistics: splitter and filter** (`factory/router.rs`)
   - Splitter: one input, round robin to up to three outputs, skipping blocked ones. Belts side-joining
     already merge, so no merger block unless play shows a need.
   - Filter: the chosen item goes straight on, everything else to the sides. The item is set in the
     machine panel (2.4).
   - **Done when:** tests for round robin with a blocked output and for filtering; save round trip.
+  - *Done:* one `Router` machine kind serves both blocks (`MACHINES` gained a second row per kind). The
+    splitter and filter recipes are the first to use parts (plates, wire).
 
 - [ ] **2.6 Belt logistics: climbing and crossing** (`factory/belt.rs`, `factory/links.rs`, models)
   - Ramps: a belt that rises or falls one block per cell. A vertical lift for taller climbs. An
@@ -520,3 +522,11 @@ and the balance numbers. Read the section you need.
   and a version-3 world opened in the browser). Golden hash re-recorded with a constructor in the script.
   Tests 84 → 90; wasm 88.6 → 97.1 KB gzipped (14 panel exports, the constructor, the panel view; no float
   formatting); `factory/mod.rs` 376 lines.
+- **2026-09-25:** Step 2.5 (splitter and filter) done. `factory/router.rs`: one `Router` kind for both
+  blocks (holds one item; front/left/right outputs from `relink`; splitter round robin skipping blocked
+  outputs; filter sends its item straight on, the rest aside). `MACHINES` rows are Kind-ordered first,
+  then extra blocks sharing a kind. Action `SetFilter`; the panel shows a filter's item choice. Recipes
+  use plates and wire. Test-only factory accessors moved to `factory/tests.rs` (`factory/mod.rs` 349
+  lines). Saves are version 5 (adds the router list); golden hash re-recorded with a filter in the
+  script. Browser: constructor → splitter → three boxes, 6 plates each per minute. Tests 90 → 93; wasm
+  97.1 → 99.7 KB gzipped.
