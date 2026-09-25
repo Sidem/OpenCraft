@@ -5,7 +5,8 @@
 //! that collector has room, and despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through
 //! `factory::push_box`.
 
-use crate::block::{BlockId, FACE_BOTTOM, FACE_SIDE, FACE_TEX, FACE_TOP};
+use crate::block::{BlockId, AIR, FACE_BOTTOM, FACE_SIDE, FACE_TEX, FACE_TOP};
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::push_box;
 use crate::inventory::Inventory;
 use crate::math::Vec3;
@@ -42,6 +43,32 @@ pub struct Collector {
 impl Items {
     pub fn spawn(&mut self, pos: Vec3, vel: Vec3, item: BlockId, count: u32, pickup_delay: f32) {
         self.list.push(ItemEntity { pos, vel, item, count, age: 0.0, pickup_delay, on_ground: false });
+    }
+
+    /// What a save keeps of each item (`on_ground` is recomputed every step).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.count(self.list.len());
+        for e in &self.list {
+            w.vec3(e.pos);
+            w.vec3(e.vel);
+            w.u8(e.item);
+            w.u32(e.count);
+            w.f32(e.age);
+            w.f32(e.pickup_delay);
+        }
+    }
+
+    pub fn read_state(r: &mut ByteReader) -> Option<Items> {
+        let mut items = Items::default();
+        for _ in 0..r.count()? {
+            let (pos, vel, item, count, age, delay) = (r.vec3()?, r.vec3()?, r.block()?, r.u32()?, r.f32()?, r.f32()?);
+            if item == AIR || count == 0 {
+                return None;
+            }
+            items.spawn(pos, vel, item, count, delay);
+            items.list.last_mut()?.age = age;
+        }
+        Some(items)
     }
 
     /// Steps all items. `collected(collector, item, n)` is called for every successful pickup, with the

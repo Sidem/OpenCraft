@@ -6,7 +6,7 @@
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
 
 use crate::block::BlockId;
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 
 use super::storage::Storage;
@@ -52,6 +52,15 @@ impl Belt {
             w.u8(it.item);
             w.f32(it.p);
         }
+    }
+
+    pub fn read_state(r: &mut ByteReader) -> Option<Belt> {
+        let (pos, dir) = (r.ivec3()?, r.u8()?);
+        let mut belt = Belt::new(pos, dir);
+        for _ in 0..r.count()? {
+            belt.items.push(BeltItem { item: r.block()?, p: r.f32()? });
+        }
+        (dir < 4).then_some(belt)
     }
 
     /// Item offset from the cell centre (horizontal) at progress `p`.

@@ -23,7 +23,7 @@ mod storage;
 use rustc_hash::FxHashMap;
 
 use crate::block::BlockId;
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::{add_to_slots, Stack, MAX_STACK};
 use crate::math::IVec3;
@@ -175,6 +175,35 @@ impl Factory {
         w.count(self.storages.len());
         self.storages.iter().for_each(|s| s.write_state(w));
         self.deposits.write_state(w);
+    }
+
+    /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
+    /// Links are rebuilt at the first `update`. Two machines in one place is damage.
+    pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
+        let mut f = Factory { dirty: true, ..Factory::default() };
+        for _ in 0..r.count()? {
+            let b = Belt::read_state(r)?;
+            if f.at.insert(b.pos, Slot::Belt(f.belts.len() as u32)).is_some() {
+                return None;
+            }
+            f.belts.push(b);
+        }
+        for _ in 0..r.count()? {
+            let m = Miner::read_state(r)?;
+            if f.at.insert(m.pos, Slot::Miner(f.miners.len() as u32)).is_some() {
+                return None;
+            }
+            f.miners.push(m);
+        }
+        for _ in 0..r.count()? {
+            let s = Storage::read_state(r)?;
+            if f.at.insert(s.pos, Slot::Storage(f.storages.len() as u32)).is_some() {
+                return None;
+            }
+            f.storages.push(s);
+        }
+        f.deposits.read_state(world, r)?;
+        Some(f)
     }
 
     /// Runs every machine for one tick (`TICK` seconds). `tick` must differ between calls: the

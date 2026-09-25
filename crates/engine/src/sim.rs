@@ -16,7 +16,7 @@
 
 use crate::action::Action;
 use crate::block::BlockId;
-use crate::bytes::{fnv1a, ByteWriter};
+use crate::bytes::{fnv1a, ByteReader, ByteWriter};
 use crate::factory::Factory;
 use crate::inventory::Inventory;
 use crate::math::{hash2, IVec3, Rng, Vec3};
@@ -156,6 +156,24 @@ impl Sim {
         }
         self.world.write_state(w);
         self.factory.write_state(w);
+    }
+
+    /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed.
+    pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
+        self.tick = r.u64()?;
+        self.rng = Rng::new(r.u64()?);
+        let players = r.count()?;
+        if players > 256 {
+            return None;
+        }
+        self.players.clear();
+        for _ in 0..players {
+            let present = r.bool()?;
+            self.players.push(if present { Some(PlayerCore { inventory: Inventory::read_state(r)? }) } else { None });
+        }
+        self.world.read_state(r)?;
+        self.factory = Factory::read_state(&mut self.world, r)?;
+        Some(())
     }
 }
 

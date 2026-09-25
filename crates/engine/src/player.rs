@@ -2,6 +2,7 @@
 //! jumping, flying, and collision through `physics`. `step` advances one physics substep; the
 //! caller decides the substep size. Tuning constants sit at the top of the file.
 
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
 
@@ -54,6 +55,25 @@ impl Player {
             input: PlayerInput::default(),
             landing_speed: 0.0,
         }
+    }
+
+    /// What a save keeps of a body: position, velocity, view and flying (input and ground contact
+    /// are live and come back by themselves).
+    pub fn write_state(&self, w: &mut ByteWriter) {
+        w.vec3(self.pos);
+        w.vec3(self.vel);
+        w.f64(self.yaw);
+        w.f64(self.pitch);
+        w.bool(self.flying);
+    }
+
+    pub fn read_state(r: &mut ByteReader) -> Option<Player> {
+        let mut p = Player::new(r.vec3()?);
+        p.vel = r.vec3()?;
+        p.yaw = r.f64()?;
+        p.pitch = r.f64()?;
+        p.flying = r.bool()?;
+        Some(p)
     }
 
     pub fn aabb(&self) -> Aabb {

@@ -1,5 +1,5 @@
 //! Determinism (DEV_PLAN step 1.5): cores fed the same actions keep equal state hashes, whatever
-//! chunks happen to be loaded.
+//! chunks happen to be loaded, and a core read back from its bytes carries on identically.
 
 use super::*;
 use crate::block::{AIR, BELT, IRON_ORE, MINER, SPENT_ROCK, STONE, STORAGE};
@@ -106,6 +106,34 @@ fn same_actions_give_the_same_state_every_tick() {
     assert_eq!(st.remaining_blocks, st.initial_blocks - 2, "one hand-mined, one drilled");
     assert!(a.factory.storage_count_at(top + IVec3::new(3, 1, 0), key.ore) > 30);
     assert_eq!(a.player(B).unwrap().inventory.count(STONE), 2, "B placed one");
+}
+
+#[test]
+fn a_reloaded_core_carries_on_identically() {
+    let (top, other, key) = outcrop();
+    let mut a = scripted(&script(top, other));
+    for _ in 0..3000 {
+        step(&mut a);
+    }
+    let mut w = ByteWriter::default();
+    a.write_state(&mut w);
+    let mut b = Sim::new(SEED, 2);
+    b.read_state(&mut ByteReader::new(&w.bytes)).expect("reads back");
+    let mut again = ByteWriter::default();
+    b.write_state(&mut again);
+    assert!(again.bytes == w.bytes, "the same bytes after a round trip");
+
+    // Past the first spent rock, which happens after the reload.
+    for t in 3000..6300 {
+        step(&mut a);
+        step(&mut b);
+        assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
+    }
+    assert_eq!(b.world.block_anywhere_or_generate(top), SPENT_ROCK);
+    assert_eq!(
+        b.factory.deposits.get(&key).unwrap().remaining_blocks,
+        a.factory.deposits.get(&key).unwrap().remaining_blocks
+    );
 }
 
 #[test]

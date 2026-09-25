@@ -2,7 +2,7 @@
 //! box pushes one item from its last non-empty slot into the next belt leading away (round-robin).
 
 use crate::block::BlockId;
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::{Stack, MAX_STACK};
 use crate::math::IVec3;
 
@@ -30,6 +30,15 @@ impl Storage {
             s.write_state(w);
         }
         w.u32(self.next_out as u32);
+    }
+
+    pub fn read_state(r: &mut ByteReader) -> Option<Storage> {
+        let mut s = Storage::new(r.ivec3()?);
+        for slot in &mut s.slots {
+            *slot = Stack::read_state(r)?;
+        }
+        s.next_out = r.u32()? as usize;
+        Some(s)
     }
 
     pub fn can_accept(&self, item: BlockId) -> bool {

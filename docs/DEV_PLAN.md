@@ -1,7 +1,8 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions),
-1.4 (several players) and 1.5 (state hash) done · **Next up: Milestone 1, step 1.6 (save format).**
+1.4 (several players), 1.5 (state hash) and 1.6 (save format) done · **Next up: Milestone 1, step 1.7
+(saving in the browser).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -86,7 +87,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after step 1.5)
+## 2. Where the code stands (after step 1.6)
 
 ### Architecture
 
@@ -96,7 +97,7 @@ box instances, sound events, textures) is read zero-copy from wasm memory throug
 accessors. `Game` (`lib.rs`) is a thin facade: its JS-facing API is split by area into `api/*.rs` and acts
 for the local player (`Game.local`). The deterministic core is `Sim` (`sim.rs`: tick, world, factory with
 deposits, each player's inventory, rng); `Sim::state_hash` fingerprints it through the canonical encoding
-in `bytes.rs`. The authority (`authority.rs`) owns every player's body and the
+in `bytes.rs`, which `save.rs` also reads back for saves. The authority (`authority.rs`) owns every player's body and the
 loose items. The local player's hands (mining, placing, footsteps) live in `interaction.rs`. `Game`
 changes the core only by queuing `Action`s (`action.rs`), applied at the next tick; the core answers with
 `SimEvent`s (`events.rs` reacts). `docs/CODEMAP.md` maps every module.
@@ -140,7 +141,8 @@ Each frame, `web/src/main.ts`:
 
 ### Known limitations and technical debt (Milestone 1 fixes most of these)
 
-1. **No saving.** A page refresh loses everything.
+1. **No saving in the browser yet.** The engine can save and load (step 1.6), but a page refresh still
+   loses everything until step 1.7.
 2. ~~Frame-rate dependent simulation.~~ Fixed in step 1.1. The player's body still only moves while its
    chunk is loaded, but that is the authority's business, not the core's.
 3. ~~Presentation mixed into simulation.~~ Fixed in step 1.2: the factory emits `SimEvent`s, and
@@ -429,24 +431,24 @@ on every peer.
   - 71 tests, suite still about 1.5 s. Wasm 206,788 bytes (+5.6 KB raw, +2.4 KB gzipped, almost all of it
     the encoding that saves will reuse).
 
-- [ ] **1.6 Save format** (`save.rs` new)
-  - Binary, little-endian. Header: magic `OCW1`, `SAVE_VERSION: u32`, `WORLDGEN_VERSION: u32`.
-  - **Bump `WORLDGEN_VERSION` whenever generation changes incompatibly.** Old saves' untouched terrain and
-    deposits would otherwise regenerate differently under their edits.
-  - The core section is exactly `Sim::write_state` (step 1.5): add a `ByteReader` to `bytes.rs` and a
-    `read_state` beside every `write_state`. Tracked deposits rebuild their members with a survey.
-  - Sections outside the core:
-    - meta: seed, world name, play time,
-    - bodies: id, body position, yaw and pitch, flying (names come with co-op),
-    - loose item entities.
-  - Don't save derived data (belt links, `order`, `dirty`, meshes, deposit member lists, budgets);
-    rebuild it on load.
-  - The API is `Game::save() -> Vec<u8>` and `Game::load(bytes) -> Result<Game, String>`. The error
-    string must be readable by a player ("made with a newer version", "world generation changed").
-  - Until 1.0, breaking format changes are allowed, but old saves must be **detected and refused with a
-    message**, never crash or silently corrupt.
-  - **Done when:** there's a round-trip test (save, load, save again; the bytes are identical) plus test 2
-    from step 1.5.
+- [x] **1.6 Save format** (done 2026-09-25)
+  - `save.rs` (new): magic `OCW1`, `SAVE_VERSION`, `WORLDGEN_VERSION` (`worldgen/mod.rs`; **bump it
+    whenever generation changes incompatibly**), seed, then exactly `Sim::write_state`, then the local
+    player's id, every body (position, velocity, yaw, pitch, flying) and the loose items.
+  - `bytes.rs` gained `ByteReader`, and every `write_state` a `read_state` beside it. Reads return
+    `None` on anything malformed (past the end, unknown block ids, bad enums, duplicate chunks, deposits
+    or machine positions, lengths the data can't hold, bytes left over). Machines are rebuilt through
+    their constructors and the factory relinks on the first tick; tracked deposits are looked up again
+    by key (`deposit_by_key`) and re-surveyed.
+  - API (`api/save.rs`): `save() -> Uint8Array`, static `Game.load(bytes, view_radius)` which throws a
+    sentence a player can read (not an OpenCraft world, newer version, older version, world generation
+    changed, damaged), plus `seed()` and `play_seconds()` for the world list.
+  - Tests: `a_saved_world_loads_back_to_the_same_bytes` (a miner line, a second player, flying, loose
+    items: save, load, save gives identical bytes and hash), `foreign_old_and_damaged_files_are_refused`
+    (every truncation, a trailing byte, every single-byte corruption: refused or loaded, never a panic),
+    and test 2, `a_reloaded_core_carries_on_identically` (reload at tick 3,000, equal hashes to 6,300).
+  - 74 tests. Wasm 218,177 bytes (+11.4 KB raw, about +4.5 KB gzipped: reading back and checking every
+    type; the reader's primitives are kept out of line to save 0.4 KB).
 
 - [ ] **1.7 Saving in the browser** (`web/src/save/` new, `main.ts`, `index.html`, a `ui/` panel + CSS)
   - IndexedDB store `worlds`: `{ id, name, seed, updated, playTime, bytes }`. Compress with the browser's
@@ -543,3 +545,7 @@ and the balance numbers. Read the section you need.
   generation"; all tracked states are hashed instead, because tracking changes behaviour: a miner draws
   nothing from an untracked deposit. The hash covers the same bytes the save will store, so step 1.6 now
   starts from `bytes.rs` and the `write_state` methods, and its section list was updated to match.
+- **2026-09-25:** Step 1.6 done (save format). Differences from the plan text: the file holds no world
+  name or play time (the browser's world record keeps the name, and play time comes from the saved tick);
+  bodies also save their velocity and are stored by slot (the slot is the id), and the local player's id
+  is saved. `Game.load` takes a view radius, since the host picks it.

@@ -9,7 +9,7 @@ use crate::math::Rng;
 use crate::recipes::RECIPES;
 use crate::sim::SimEvent;
 
-fn run_until_ready(g: &mut Game) {
+pub(crate) fn run_until_ready(g: &mut Game) {
     for _ in 0..10_000 {
         g.update(1.0 / 60.0);
         g.begin_work();
@@ -23,7 +23,7 @@ fn run_until_ready(g: &mut Game) {
 }
 
 /// Loaded ore blocks near spawn, top layer first.
-fn nearby_ore(g: &Game) -> Vec<IVec3> {
+pub(crate) fn nearby_ore(g: &Game) -> Vec<IVec3> {
     let base = g.body().pos.floor();
     let mut out = Vec::new();
     for y in (8..base.y + 4).rev() {
@@ -40,7 +40,7 @@ fn nearby_ore(g: &Game) -> Vec<IVec3> {
 }
 
 /// An outcrop ore block near spawn whose deposit has at least `min_blocks` blocks (now tracked).
-fn find_outcrop_block(g: &mut Game, min_blocks: u32) -> (IVec3, DepositKey) {
+pub(crate) fn find_outcrop_block(g: &mut Game, min_blocks: u32) -> (IVec3, DepositKey) {
     for p in nearby_ore(g) {
         if let Some(key) = g.sim.factory.deposits.lookup(&mut g.sim.world, p) {
             let st = g.sim.factory.deposits.get(&key).unwrap();
@@ -204,7 +204,7 @@ fn hand_mining_ore_keeps_a_handful_and_costs_a_block() {
 }
 
 /// Miner on top of an outcrop block, a belt leading east, and a box at the end.
-fn build_mine(g: &mut Game, p: IVec3) -> (IVec3, IVec3) {
+pub(crate) fn build_mine(g: &mut Game, p: IVec3) -> (IVec3, IVec3) {
     let m = p + IVec3::new(0, 1, 0);
     let belt = m + IVec3::new(1, 0, 0);
     let chest = m + IVec3::new(2, 0, 0);

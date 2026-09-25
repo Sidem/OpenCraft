@@ -44,6 +44,13 @@ impl WorldGen {
         out
     }
 
+    /// The deposit generation seeds under `key`, if any (loading a save).
+    pub fn deposit_by_key(&self, key: DepositKey) -> Option<Deposit> {
+        let mut seeded = Vec::new();
+        self.seed_deposits(key.cx, key.cz, &mut seeded);
+        seeded.into_iter().find(|d| d.key == key)
+    }
+
     /// Nearest deposit of `tier` seeded within `radius` chunk columns of `near` (a prospecting aid).
     pub fn find_deposit(&self, near: IVec3, tier: Tier, radius: i32) -> Option<Deposit> {
         let (pcx, pcz) = (near.x >> 5, near.z >> 5);

@@ -4,7 +4,7 @@
 //! decide how much it actually gets (`deposits.rs`).
 
 use crate::block::{BlockId, STONE};
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::math::IVec3;
 use crate::sim::SimEvent;
@@ -31,6 +31,10 @@ pub enum MinerStatus {
     NoDeposit,
     Exhausted,
 }
+
+/// Every status, in declaration order: saves store `status as u8`.
+const STATUSES: [MinerStatus; 4] =
+    [MinerStatus::Running, MinerStatus::OutputFull, MinerStatus::NoDeposit, MinerStatus::Exhausted];
 
 pub struct Miner {
     pub pos: IVec3,
@@ -81,6 +85,19 @@ impl Miner {
         w.u8(self.status as u8);
         w.f64(self.draw_rate);
         w.u32(self.pulse);
+    }
+
+    pub fn read_state(r: &mut ByteReader) -> Option<Miner> {
+        let (pos, drill) = (r.ivec3()?, r.u8()?);
+        let deposit = if r.bool()? { Some(DepositKey::read_state(r)?) } else { None };
+        let mut m = Miner::new(pos, drill, deposit);
+        m.held = r.u32()?;
+        m.carry = r.f64()?;
+        m.next_out = r.u32()? as usize;
+        m.status = *STATUSES.get(r.u8()? as usize)?;
+        m.draw_rate = r.f64()?;
+        m.pulse = r.u32()?;
+        (drill < 6).then_some(m)
     }
 
     /// Draws from the deposit into `held`, then updates the status and the smoothed draw rate.

@@ -13,7 +13,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
 | `npm run build` | Wasm, typecheck, and the Vite production bundle into `dist/`. |
-| `cargo test --workspace -q` | Engine tests only (71 after step 1.5). Add a name to filter. |
+| `cargo test --workspace -q` | Engine tests only (74 after step 1.6). Add a name to filter. |
 | `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
 | `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |

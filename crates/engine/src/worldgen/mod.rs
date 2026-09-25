@@ -5,8 +5,8 @@
 //! *source* cell, and each chunk stamps whatever part of its neighbours' features overlaps it. That
 //! keeps generation order-independent, which is what later lets it move to worker threads.
 //! Per-column data (heights, surface, trees, deposits) is cached in `columns` and shared by the
-//! column's 8 vertical chunks. Any change to generated output must bump the save format's
-//! `WORLDGEN_VERSION` once saving exists (DEV_PLAN step 1.6).
+//! column's 8 vertical chunks. **Any change to generated output for a given seed must bump
+//! [`WORLDGEN_VERSION`]:** saves store only edited chunks and regenerate the rest.
 
 mod ore;
 
@@ -20,6 +20,9 @@ use crate::deposits::Deposit;
 use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
+/// Saves record this and refuse to load under a different one, since their untouched terrain and
+/// deposits would come back different under the player's edits.
+pub const WORLDGEN_VERSION: u32 = 1;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -53,6 +56,10 @@ impl WorldGen {
             cave_b: Perlin::new(s ^ 0x06),
             columns: FxHashMap::default(),
         }
+    }
+
+    pub fn seed(&self) -> u32 {
+        self.seed
     }
 
     /// Terrain surface height (y of the top solid block) at a world column.

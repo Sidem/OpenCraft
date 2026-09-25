@@ -14,7 +14,7 @@ use std::collections::VecDeque;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::block::{BlockId, AIR, BEDROCK, SOLID, STONE};
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT, CHUNK_SIZE};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::mesher::Mesher;
@@ -151,6 +151,20 @@ impl World {
             w.ivec3(c);
             chunk.write_state(w);
         }
+    }
+
+    /// Restores the edited chunks `write_state` wrote, into a world with no edits yet. They go to
+    /// storage and stream in like any edited chunk.
+    pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
+        for _ in 0..r.count()? {
+            let c = r.ivec3()?;
+            let mut chunk = Chunk::read_state(r)?;
+            chunk.modified = true;
+            if !(0..WORLD_HEIGHT_CHUNKS).contains(&c.y) || self.saved.insert(c, chunk).is_some() {
+                return None;
+            }
+        }
+        Some(())
     }
 
     pub fn set_view_radius(&mut self, r: i32) {

@@ -15,7 +15,7 @@
 use rustc_hash::FxHashMap;
 
 use crate::block::{self, BlockId, SPENT_ROCK};
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
 use crate::math::{hash3, sort_small_by_key, unit, IVec3};
 use crate::world::World;
@@ -93,6 +93,10 @@ impl DepositKey {
         w.i32(self.cz);
         w.u8(self.ore);
         w.u16(self.index);
+    }
+
+    pub fn read_state(r: &mut ByteReader) -> Option<DepositKey> {
+        Some(DepositKey { tier: Tier::from_u8(r.u8()?)?, cx: r.i32()?, cz: r.i32()?, ore: r.block()?, index: r.u16()? })
     }
 }
 
@@ -275,6 +279,23 @@ impl Deposits {
             w.u32(s.remaining_blocks);
             w.f64(s.partial);
         }
+    }
+
+    /// Reads what `write_state` wrote, re-surveying each deposit's geometry and members from
+    /// generation (`world` must already hold the saved edits). A key generation doesn't know is damage.
+    pub fn read_state(&mut self, world: &mut World, r: &mut ByteReader) -> Option<()> {
+        for _ in 0..r.count()? {
+            let key = DepositKey::read_state(r)?;
+            let (remaining, partial) = (r.u32()?, r.f64()?);
+            let d = world.generator().deposit_by_key(key)?;
+            let mut st = DepositState::survey(world, d);
+            st.remaining_blocks = remaining;
+            st.partial = partial;
+            if self.states.insert(key, st).is_some() {
+                return None;
+            }
+        }
+        Some(())
     }
 
     /// The deposit owning the ore (or spent rock) block at `p`, starting to track it if needed.

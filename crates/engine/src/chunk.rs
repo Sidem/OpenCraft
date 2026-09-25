@@ -3,7 +3,7 @@
 //! when the chunk streams out. Memory layout: see [`index`].
 
 use crate::block::BlockId;
-use crate::bytes::ByteWriter;
+use crate::bytes::{ByteReader, ByteWriter};
 
 pub const CHUNK_SIZE: i32 = 32;
 pub const CHUNK_SHIFT: i32 = 5;
@@ -99,6 +99,19 @@ impl Chunk {
                 start = i;
             }
         }
+    }
+
+    /// Reads what `write_state` wrote. The chunk comes back unmodified; the caller marks edits.
+    pub fn read_state(r: &mut ByteReader) -> Option<Chunk> {
+        let mut blocks: Vec<BlockId> = Vec::with_capacity(CHUNK_VOLUME);
+        while blocks.len() < CHUNK_VOLUME {
+            let (n, b) = (r.u16()? as usize, r.block()?);
+            if n == 0 || blocks.len() + n > CHUNK_VOLUME {
+                return None;
+            }
+            blocks.resize(blocks.len() + n, b);
+        }
+        Some(Chunk::from_blocks(blocks))
     }
 }
 
