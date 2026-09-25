@@ -16,6 +16,9 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
 - **One UI component, one file pair:** `ui/<name>.ts` plus `ui/<name>.css`, imported at the top of that
   TS file. Shared styles (`.hidden`, `.secondary-btn`, `.close-btn`, theme variables) live in `base.css`.
   Build DOM with `h()` / `button()` from `ui/dom.ts`.
+- **One `game` per page.** Switching worlds saves and reloads the page (`save/session.ts`), so panels
+  take `game` once in their constructor. Save bytes are the engine's (`game.save()`, `Game.load`); TS
+  only stores them.
 - Every file starts with a header comment: what it owns and how to extend it.
 - Size budgets: 400/600 lines per TS file, 300/500 per CSS file (`npm run check` reports them).
 
@@ -31,7 +34,7 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
 Prefer engine tests; use the browser for visual proof (`docs/WORKFLOW.md` section 2 has the details).
 
 - `preview_start` name `opencraft`, then drive `window.opencraft.game` with `javascript_tool`.
-  `window.opencraft` also exposes `renderer`, `sound`, `soundLab` and `inventory`.
+  `window.opencraft` also exposes `renderer`, `sound`, `soundLab`, `inventory` and `session`.
 - Pointer lock never engages in the automated pane, and `requestAnimationFrame` pauses while the pane is
   hidden: step the engine by calling `game.update(1/60)` yourself.
 - Hide the menu: `document.getElementById('menu').classList.add('hidden')`. A screenshot forces a render.

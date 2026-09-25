@@ -1,18 +1,22 @@
-// Entry point: loads the wasm engine, builds the renderer, HUD, input, sound and panels, wires the
-// pause menu, and runs the frame loop (input → `game.update` → sounds → streaming work → mesh
-// events → render → HUD). Keeps no game state of its own; everything lives in the engine.
+// Entry point: loads the wasm engine, opens the latest world (save/), builds the renderer, HUD, input,
+// sound and panels, wires the pause menu, and runs the frame loop (input → `game.update` → sounds →
+// streaming work → mesh events → render → HUD). Keeps no game state of its own; everything lives in
+// the engine.
 
 import './base.css';
 import './ui/menu.css';
-import init, { Game } from './wasm/engine.js';
+import init from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
 import { Input } from './input';
 import { INSTANCE_FLOATS } from './render/boxes';
 import { Renderer } from './render/renderer';
+import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
+import { WorldStore } from './save/store';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { SoundLab } from './ui/sound-lab';
 import { VolumeControl } from './ui/volume-control';
+import { WorldsPanel } from './ui/worlds';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel
 const WORK_BUDGET_MS = 6; // per frame, for streaming world generation and meshing
@@ -26,10 +30,31 @@ const intParam = (params: URLSearchParams, name: string, fallback: number, min: 
 async function main(): Promise<void> {
   const wasm = await init();
   const params = new URLSearchParams(location.search);
-  const seed = intParam(params, 'seed', 1337, 0, 0xffffffff);
+  const seed = params.has('seed') ? intParam(params, 'seed', FIRST_SEED, 0, 0xffffffff) : null;
   const viewRadius = intParam(params, 'rd', 8, 2, 24);
+  // `?seed=` starts a new world once; dropping it makes a reload continue that world.
+  if (seed !== null) {
+    params.delete('seed');
+    history.replaceState(null, '', params.size ? `?${params}` : location.pathname);
+  }
 
-  const game = new Game(seed, viewRadius);
+  // ---- world: the latest one, kept saved (save/) and managed from the menu (ui/worlds.ts)
+  const worlds = document.getElementById('worlds')!;
+  const store = await WorldStore.open().catch(() => null);
+  let opened: Opened;
+  try {
+    opened = await openWorld(store, seed, viewRadius);
+  } catch (err) {
+    // The latest world can't be loaded: offer the others instead of starting.
+    document.getElementById('loading-text')!.textContent = message(err);
+    if (store) worlds.append(new WorldsPanel(store, null).el);
+    return;
+  }
+  const { game, meta } = opened;
+  const session = store && new Session(store, meta, game);
+  if (store) worlds.append(new WorldsPanel(store, session, opened.notice).el);
+  else worlds.textContent = opened.notice;
+
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const renderer = new Renderer(canvas, viewRadius);
   const texPixels = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
@@ -54,7 +79,9 @@ async function main(): Promise<void> {
   const play = document.getElementById('play') as HTMLButtonElement;
   const loadingFill = document.getElementById('loading-fill')!;
   const loadingText = document.getElementById('loading-text')!;
-  document.getElementById('world-info')!.textContent = `seed ${seed} · render distance ${viewRadius} chunks`;
+  document.getElementById('world-info')!.textContent =
+    `${meta.name} · seed ${meta.seed} · render distance ${viewRadius} chunks`;
+  if (opened.restored) play.textContent = 'Continue';
   document.getElementById('menu-volume')!.append(new VolumeControl(sound).el);
   document.getElementById('open-sound-lab')!.addEventListener('click', () => {
     sound.unlock();
@@ -83,16 +110,18 @@ async function main(): Promise<void> {
       game.set_move(0, 0, false, false, false);
       game.set_mining(false);
       game.set_using(false);
+      if (!inventory.isOpen) session?.save().catch(() => {}); // pausing saves
     }
   };
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
+    session?.saveNow();
     loadingText.textContent = 'Graphics context lost. Reload the page to continue.';
     menu.classList.remove('hidden');
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, session } });
 
   // ---- frame loop
   let last = performance.now();

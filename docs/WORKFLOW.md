@@ -44,8 +44,9 @@ section 3.1) and use the browser for final visual proof.
   simulation exactly; follow it with `update(0)` to refresh the camera and box instances.
 - Mutating calls (`give`, `craft`, `click_slot`, `select_slot`, `drop_selected`, placing, breaking) are
   actions applied at the next tick: run `update(1/60)` or `run_ticks(1)` before reading the result.
-- Any Rust edit reloads the page and wipes the unsaved world. Keep the scene setup as one re-runnable
-  script. That problem goes away once saving exists.
+- Any edit reloads the page. The world is saved as the page closes and comes back, but keep scene setup
+  as one re-runnable script anyway. `?seed=N` starts a new saved world; `opencraft.session.save()`
+  saves now. Test worlds pile up in the pane's IndexedDB: `indexedDB.deleteDatabase('opencraft')`.
 - A tested scene: the iron outcrop at (11, 62, 2), seed 1337. Dig (11, 64, z) for z = 2..6. Place a box
   at z = 6, belts facing +Z (yaw π) at z = 5, 4, 3, and the miner at z = 2 against the ore top face.
 

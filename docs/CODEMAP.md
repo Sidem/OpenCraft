@@ -60,7 +60,9 @@ folder with `mod.rs`.
 
 | Module | Owns |
 |---|---|
-| `main.ts` | Bootstrap, pause menu wiring, the frame loop; imports `base.css` and `ui/menu.css` |
+| `main.ts` | Bootstrap (opens the latest world), pause menu wiring, the frame loop; imports `base.css` and `ui/menu.css` |
+| `save/store.ts` | IndexedDB: `worlds` records (`WorldMeta`) and `saves` bytes in two slots per world (newest + backup); gzip `pack` / `unpack` |
+| `save/session.ts` | `openWorld` (latest world, backup fallback, `?seed=`), `Session` (autosave: every minute, on pause, hide and close), `switchTo` (save, then reload into another world) |
 | `base.css` | Theme variables, reset, focus rings, shared `.hidden`, `.secondary-btn`, `.close-btn` |
 | `input.ts` | Keyboard/mouse, pointer lock, held state and one-shot `Action`s |
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack |
@@ -71,6 +73,7 @@ folder with `mod.rs`.
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts, debug overlay, `blockIcon` |
 | `ui/inventory.ts` + `.css` | Inventory and build screen (E) |
 | `ui/menu.css` | Pause/start menu styles (markup in `web/index.html`) |
+| `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |
 | `ui/sound-lab-footer.ts` + `.css` | Designer footer: volume, copy/paste/reset settings |
 | `ui/volume-control.ts` + `.css` | Mute button + volume slider (menu and designer) |

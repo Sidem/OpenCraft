@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-25 · steps 1.0 (restructure), 1.1 (fixed 60 Hz tick), 1.2 (core `Sim`), 1.3 (actions),
-1.4 (several players), 1.5 (state hash) and 1.6 (save format) done · **Next up: Milestone 1, step 1.7
-(saving in the browser).**
+1.4 (several players), 1.5 (state hash), 1.6 (save format) and 1.7 (saving in the browser) done ·
+**Next up: Milestone 1, step 1.8 (docs).**
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -137,12 +137,14 @@ Each frame, `web/src/main.ts`:
   LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER, STORAGE.
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
-- **Size:** about 100 KB gzipped in total (wasm 76 KB, JS 25 KB).
+- **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
+  exports and imports them.
+- **Size:** about 113 KB gzipped in total (wasm 81 KB, JS 28 KB, CSS 4 KB).
 
 ### Known limitations and technical debt (Milestone 1 fixes most of these)
 
-1. **No saving in the browser yet.** The engine can save and load (step 1.6), but a page refresh still
-   loses everything until step 1.7.
+1. ~~No saving.~~ Worlds save in the browser since step 1.7. Two tabs on the same world overwrite each
+   other's saves (the later save wins).
 2. ~~Frame-rate dependent simulation.~~ Fixed in step 1.1. The player's body still only moves while its
    chunk is loaded, but that is the authority's business, not the core's.
 3. ~~Presentation mixed into simulation.~~ Fixed in step 1.2: the factory emits `SimEvent`s, and
@@ -450,20 +452,25 @@ on every peer.
   - 74 tests. Wasm 218,177 bytes (+11.4 KB raw, about +4.5 KB gzipped: reading back and checking every
     type; the reader's primitives are kept out of line to save 0.4 KB).
 
-- [ ] **1.7 Saving in the browser** (`web/src/save/` new, `main.ts`, `index.html`, a `ui/` panel + CSS)
-  - IndexedDB store `worlds`: `{ id, name, seed, updated, playTime, bytes }`. Compress with the browser's
-    built-in `CompressionStream('gzip')`, which costs no wasm size.
-  - Autosave every 60 s, and on `visibilitychange` → hidden and on `pagehide`. Write the new save, then
-    swap it in, keeping the previous one as a backup, so a crash mid-write can't lose the world.
-  - The pause menu gets world management:
-    - Continue (latest world),
-    - New world (name, optional seed),
-    - Load,
-    - Delete (with confirmation),
-    - Export (download a `.ocworld` file) and Import.
-  - `?seed=` in the URL still starts a fresh world.
-  - **Done when:** in the browser you build a miner line, reload the page, press Continue, and the
-    factory is exactly where it was and still running. Verify with `describe` readouts and a screenshot.
+- [x] **1.7 Saving in the browser** (done 2026-09-25)
+  - `save/store.ts`: IndexedDB `opencraft` with two stores: `worlds` holds `{ id, name, seed, updated,
+    playTime, slot }` and `saves` holds the bytes under `[id, slot]`. Each save goes into the slot that
+    isn't newest, in one transaction with the record, so the previous save stays as a backup. Bytes
+    are gzipped with `CompressionStream`, except saves made as the page hides or closes, which go in raw
+    so the write starts at once (`unpack` accepts both).
+  - `save/session.ts`: startup opens the most recently played world, falling back to the backup (with a
+    notice) if the newest save won't load. `Session` autosaves every 60 s, on pause, on hide and on
+    `pagehide`, skipping a save when no tick has run since the last one. Switching worlds saves, marks
+    the target as latest and reloads the page (one `Game` per page; wasm memory never shrinks).
+  - `ui/worlds.ts` + `.css` in the menu: the world list (Play, Export, Delete with confirmation; the
+    open world is marked Playing), New world (name, seed as a number or any text, blank for random),
+    Import. The play button says Continue for a saved world. `?seed=N` creates a world named
+    "Seed N" and drops the parameter, so a reload continues it. First visit: "My world", seed 1337.
+  - Browser, verified: built a miner line (miner, 3 belts, box); reloading with no explicit save
+    brought back the same play time, position, flying and line, and the box kept filling (28 → 40 ore
+    in 20 s, the miner's 36/min). New world, switching back, export (532 bytes gzipped), import,
+    delete, a damaged newest save (backup used), both saves damaged (error plus world list) all work.
+    No console errors. JS +2.7 KB and CSS +0.2 KB gzipped; wasm unchanged.
 
 - [ ] **1.8 Docs**
   - README: saving and world management for players, plus the architecture diagram updated with core,
@@ -498,7 +505,6 @@ Ask these when the milestone that needs the answer comes up, not before.
 
 | Needed by | Question |
 |---|---|
-| M1 (1.7) | Several named worlds, or a single world? (Default if not asked: several, with a world list.) |
 | M1/M2 | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
 | M2 | Research style: a lab consuming parts (Factorio) or milestone deliveries (Satisfactory)? |
 | M2 | Confirm upgrades raise recovery (proposal: Mk2 ≈ 75%) and that bulk materials stay infinite. |
@@ -549,3 +555,8 @@ and the balance numbers. Read the section you need.
   name or play time (the browser's world record keeps the name, and play time comes from the saved tick);
   bodies also save their velocity and are stored by slot (the slot is the id), and the local player's id
   is saved. `Game.load` takes a view radius, since the host picks it.
+- **2026-09-25:** Step 1.7 done (saving in the browser). Differences from the plan text: save bytes live
+  in their own `saves` store so listing worlds never reads them, and the backup is the other of two
+  slots rather than a separate swap. Saves made while the page closes skip compression. "Load" is a
+  Play button per world, and switching worlds reloads the page. The M1 question was settled by the
+  default (several named worlds).
