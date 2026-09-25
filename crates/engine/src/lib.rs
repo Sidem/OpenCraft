@@ -1,13 +1,15 @@
 //! OpenCraft engine: the whole simulation (world streaming, terrain generation, meshing, physics,
-//! interaction, inventory) compiled to WebAssembly.
+//! interaction, inventory, ore deposits and factory machines) compiled to WebAssembly.
 //!
 //! The JavaScript host only owns the platform: WebGL2, input and DOM UI. Bulk data (chunk meshes,
-//! item instances, textures) never gets copied across the boundary; the host reads it straight out
+//! box instances, textures) never gets copied across the boundary; the host reads it straight out
 //! of wasm linear memory through the `*_ptr` / `*_len` accessors below.
 
 mod block;
 mod chunk;
+mod deposits;
 mod entities;
+mod factory;
 mod inventory;
 mod math;
 mod mesher;
@@ -15,6 +17,7 @@ mod noise;
 mod physics;
 mod player;
 mod raycast;
+mod recipes;
 mod sound;
 mod textures;
 mod world;
@@ -24,13 +27,16 @@ use std::collections::VecDeque;
 
 use wasm_bindgen::prelude::*;
 
-use block::{BlockId, AIR, BLOCK_COUNT};
-use entities::{Items, INSTANCE_FLOATS};
-use inventory::{Inventory, HOTBAR_SLOTS};
+use block::{BlockId, AIR, BELT, BLOCK_COUNT, MINER, SPENT_ROCK, STORAGE};
+use deposits::{Tier, HAND_YIELD};
+use entities::Items;
+use factory::{Factory, INSTANCE_FLOATS, MINER_RECOVERY};
+use inventory::{Inventory, Stack, HOTBAR_SLOTS, INVENTORY_SLOTS};
 use math::{hash2, IVec3, Rng, Vec3};
 use physics::Aabb;
 use player::Player;
 use raycast::{raycast, RayHit};
+use recipes::RECIPES;
 use sound::Sounds;
 use world::{Event, MeshData, World};
 
@@ -43,6 +49,8 @@ const DIG_SOUND_INTERVAL: f32 = 0.24;
 const STEP_STRIDE: f64 = 1.7;
 /// Touchdowns slower than this (e.g. walking down a slab edge) make no landing sound.
 const LAND_SOUND_MIN_SPEED: f64 = 5.0;
+/// Factory step used when fast-forwarding time.
+const SKIP_STEP: f64 = 0.05;
 
 #[wasm_bindgen(start)]
 pub fn start() {
@@ -55,8 +63,10 @@ pub struct Game {
     player: Player,
     inventory: Inventory,
     items: Items,
+    factory: Factory,
     rng: Rng,
     spawn: Vec3,
+    time: f64,
     target: Option<RayHit>,
     mining: bool,
     mine_block: Option<IVec3>,
@@ -68,6 +78,8 @@ pub struct Game {
     step_distance: f64,
     sounds: Sounds,
     textures: Vec<u8>,
+    /// Box instances (dropped items, belt items, machine parts) for the current frame.
+    instances: Vec<f32>,
     pickups: VecDeque<(BlockId, u32)>,
     cur_pickup: (BlockId, u32),
     cur_mesh: Option<MeshData>,
@@ -85,8 +97,10 @@ impl Game {
             player: Player::new(spawn),
             inventory: Inventory::default(),
             items: Items::default(),
+            factory: Factory::default(),
             rng: Rng::new(hash2(seed, 17, 42) as u64),
             spawn,
+            time: 0.0,
             target: None,
             mining: false,
             mine_block: None,
@@ -98,6 +112,7 @@ impl Game {
             step_distance: 0.0,
             sounds: Sounds::default(),
             textures: textures::generate(),
+            instances: Vec::new(),
             pickups: VecDeque::new(),
             cur_pickup: (AIR, 0),
             cur_mesh: None,
@@ -150,16 +165,13 @@ impl Game {
     /// Throws one item from the selected slot.
     pub fn drop_selected(&mut self) {
         if let Some((item, n)) = self.inventory.take_selected(1) {
-            let dir = self.player.look_dir();
-            let pos = self.player.eye() + dir * 0.4 - Vec3::new(0.0, 0.3, 0.0);
-            self.items.spawn(pos, dir * 6.0 + Vec3::new(0.0, 1.5, 0.0), item, n, 1.5);
-            self.play(sound::DROP, 0, pos, 1.0);
+            self.throw(item, n);
         }
     }
 
     /// Debug / creative helper: adds items straight to the inventory.
     pub fn give(&mut self, item: u8, count: u32) -> u32 {
-        if (item as usize) < BLOCK_COUNT {
+        if item != AIR && (item as usize) < BLOCK_COUNT {
             self.inventory.add(item, count)
         } else {
             count
@@ -213,12 +225,39 @@ impl Game {
             }
             sounds.push(sound::PICKUP, 0, Vec3::new(0.0, -0.6, 0.0), 1.0);
         });
-        self.items.write_instances(self.player.eye());
+
+        let eye = self.player.eye();
+        self.factory.update(dt, &mut self.world, eye, &mut self.sounds);
+        self.time += dt;
+        self.instances.clear();
+        self.items.write_instances(&mut self.instances, eye);
+        self.factory.write_instances(&mut self.instances, eye, self.time, self.world.view_distance());
+    }
+
+    /// Debug helper: runs the factory (miners, belts, boxes) for `seconds` of game time at once.
+    pub fn skip_time(&mut self, seconds: f64) {
+        let eye = self.player.eye();
+        let mut quiet = Sounds::default();
+        let mut left = seconds.max(0.0);
+        while left > 0.0 {
+            let dt = left.min(SKIP_STEP);
+            self.factory.update(dt, &mut self.world, eye, &mut quiet);
+            self.time += dt;
+            left -= dt;
+        }
     }
 
     /// Queues a sound at a world position (stored camera-relative for the host).
     fn play(&mut self, kind: u8, material: u8, at: Vec3, volume: f64) {
         self.sounds.push(kind, material, at - self.player.eye(), volume);
+    }
+
+    /// Throws items out in front of the player.
+    fn throw(&mut self, item: BlockId, n: u32) {
+        let dir = self.player.look_dir();
+        let pos = self.player.eye() + dir * 0.4 - Vec3::new(0.0, 0.3, 0.0);
+        self.items.spawn(pos, dir * 6.0 + Vec3::new(0.0, 1.5, 0.0), item, n, 1.5);
+        self.play(sound::DROP, 0, pos, 1.0);
     }
 
     /// Sound material of the block the player is standing on (checks the footprint corners so
@@ -301,18 +340,36 @@ impl Game {
         if self.mine_progress < 1.0 {
             return;
         }
-        if self.world.set_block(hit.block, AIR) {
-            self.play(sound::BREAK, def.sound, center, 1.0);
-            if def.drop != AIR {
-                let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
-                self.items.spawn(center, vel, def.drop, 1, 0.25);
-            }
-        }
+        self.break_block(hit.block, hit.id);
         self.dig_timer = 0.0;
         self.mine_block = None;
         self.mine_progress = 0.0;
         self.mine_cooldown = BREAK_COOLDOWN_SECONDS;
         self.update_target();
+    }
+
+    /// Breaks a block by hand. Ore keeps only [`HAND_YIELD`] items and costs its deposit a whole
+    /// block's share; machines drop themselves plus whatever they held.
+    fn break_block(&mut self, p: IVec3, id: BlockId) -> bool {
+        let ore = block::is_ore(id);
+        if ore {
+            self.factory.deposits.hand_mined(&mut self.world, p);
+        }
+        if !self.world.set_block(p, AIR) {
+            return false;
+        }
+        let def = block::def(id);
+        let center = p.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
+        self.play(sound::BREAK, def.sound, center, 1.0);
+        let mut drops = self.factory.remove(p);
+        if def.drop != AIR {
+            drops.insert(0, Stack { item: def.drop, count: if ore { HAND_YIELD } else { 1 } });
+        }
+        for s in drops {
+            let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
+            self.items.spawn(center, vel, s.item, s.count, 0.25);
+        }
+        true
     }
 
     fn update_placing(&mut self, dt: f32) {
@@ -329,8 +386,13 @@ impl Game {
         }
     }
 
+    /// Right-click: empties a targeted box or miner (unless crouching), otherwise places the
+    /// selected block against the targeted face.
     fn try_place(&mut self) -> bool {
         let Some(hit) = self.target else { return false };
+        if !self.player.input.crouch && self.take_from_machine(hit.block) {
+            return true;
+        }
         if hit.normal == IVec3::ZERO {
             return false;
         }
@@ -349,9 +411,38 @@ impl Game {
         if !self.world.set_block(p, stack.item) {
             return false;
         }
+        match stack.item {
+            BELT => self.factory.add_belt(p, factory::dir_from_yaw(self.player.yaw)),
+            MINER => {
+                let deposit = self.factory.deposits.lookup(&mut self.world, hit.block);
+                let drill = factory::face_of(hit.block - p).unwrap_or(block::FACE_BOTTOM as u8);
+                self.factory.add_miner(p, drill, deposit);
+            }
+            STORAGE => self.factory.add_storage(p),
+            _ => {}
+        }
         self.inventory.take_selected(1);
         self.play(sound::PLACE, block::def(stack.item).sound, p.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
         true
+    }
+
+    /// Moves a box's or miner's contents into the inventory. False if `pos` is neither.
+    fn take_from_machine(&mut self, pos: IVec3) -> bool {
+        let inventory = &mut self.inventory;
+        let pickups = &mut self.pickups;
+        let mut got = 0;
+        let handled = self.factory.take_contents(pos, |item, n| {
+            let taken = n - inventory.add(item, n);
+            if taken > 0 {
+                pickups.push_back((item, taken));
+                got += taken;
+            }
+            taken
+        });
+        if got > 0 {
+            self.sounds.push(sound::PICKUP, 0, Vec3::new(0.0, -0.6, 0.0), 1.0);
+        }
+        handled
     }
 
     // ---------------------------------------------------------------- streaming work
@@ -478,14 +569,48 @@ impl Game {
         }
     }
 
-    // ---------------------------------------------------------------- items & inventory
-
-    pub fn item_instances_ptr(&self) -> usize {
-        self.items.instances.as_ptr() as usize
+    /// Extra lines for the target readout: deposit details for ore, status for machines.
+    /// Lines are separated by `\n`; empty when there is nothing to add.
+    pub fn target_detail(&mut self) -> String {
+        let Some(hit) = self.target else { return String::new() };
+        if let Some(text) = self.factory.describe(hit.block) {
+            return text;
+        }
+        if !block::is_ore(hit.id) && hit.id != SPENT_ROCK {
+            return String::new();
+        }
+        let Some(key) = self.factory.deposits.lookup(&mut self.world, hit.block) else { return String::new() };
+        let Some(st) = self.factory.deposits.get(&key) else { return String::new() };
+        let int = |n: u64| factory::fmt_int(n);
+        let left = format!(
+            "{} of {} blocks left · {} units",
+            int(st.remaining_blocks as u64),
+            int(st.initial_blocks as u64),
+            int(st.remaining_units() as u64)
+        );
+        if hit.id == SPENT_ROCK {
+            return format!("Worked-out part of a {}\n{left}", st.deposit.name());
+        }
+        let grade = st.grade();
+        format!(
+            "{} · {} units per block\n{left}\nBy hand you keep {HAND_YIELD} and lose {}. A miner recovers {}%.",
+            st.deposit.name(),
+            int(grade as u64),
+            int(grade.saturating_sub(HAND_YIELD) as u64),
+            (MINER_RECOVERY * 100.0).round() as u32
+        )
     }
 
-    pub fn item_instance_count(&self) -> usize {
-        self.items.instances.len() / INSTANCE_FLOATS
+    // ---------------------------------------------------------------- box instances
+
+    /// Byte offset of this frame's box instances (dropped items, belt items, machine parts):
+    /// `instance_count()` records of `factory::INSTANCE_FLOATS` f32 each.
+    pub fn instance_ptr(&self) -> usize {
+        self.instances.as_ptr() as usize
+    }
+
+    pub fn instance_count(&self) -> usize {
+        self.instances.len() / INSTANCE_FLOATS
     }
 
     // ---------------------------------------------------------------- sound
@@ -505,12 +630,19 @@ impl Game {
         self.sounds.clear();
     }
 
+    // ---------------------------------------------------------------- inventory
+
     pub fn inventory_version(&self) -> u32 {
         self.inventory.version
     }
 
     pub fn hotbar_size(&self) -> u32 {
         HOTBAR_SLOTS as u32
+    }
+
+    /// All slots: the hotbar (0..9) followed by the backpack.
+    pub fn inventory_size(&self) -> u32 {
+        INVENTORY_SLOTS as u32
     }
 
     pub fn slot_item(&self, slot: u32) -> u8 {
@@ -523,6 +655,35 @@ impl Game {
 
     pub fn selected_slot(&self) -> u32 {
         self.inventory.selected as u32
+    }
+
+    /// Inventory screen click. `shift` moves the stack between hotbar and backpack.
+    pub fn click_slot(&mut self, slot: u32, shift: bool) {
+        if shift {
+            self.inventory.quick_move(slot as usize);
+        } else {
+            self.inventory.click(slot as usize);
+        }
+    }
+
+    pub fn cursor_item(&self) -> u8 {
+        self.inventory.cursor.item
+    }
+
+    pub fn cursor_count(&self) -> u32 {
+        self.inventory.cursor.count
+    }
+
+    /// Closing the inventory screen: the stack on the cursor goes back (or is thrown if full).
+    pub fn close_inventory(&mut self) {
+        let left = self.inventory.return_cursor();
+        if !left.is_empty() {
+            self.throw(left.item, left.count);
+        }
+    }
+
+    pub fn item_total(&self, item: u8) -> u32 {
+        self.inventory.count(item)
     }
 
     /// Pops the next pickup notification; read it with `pickup_item` / `pickup_count`.
@@ -542,6 +703,63 @@ impl Game {
 
     pub fn pickup_count(&self) -> u32 {
         self.cur_pickup.1
+    }
+
+    // ---------------------------------------------------------------- crafting
+
+    /// Ore kept per block mined by hand.
+    pub fn hand_yield(&self) -> u32 {
+        HAND_YIELD
+    }
+
+    /// Fraction of drilled ore a miner delivers.
+    pub fn miner_recovery(&self) -> f64 {
+        MINER_RECOVERY
+    }
+
+    pub fn recipe_count(&self) -> u32 {
+        RECIPES.len() as u32
+    }
+
+    pub fn recipe_output(&self, r: u32) -> u8 {
+        RECIPES.get(r as usize).map_or(AIR, |x| x.output)
+    }
+
+    pub fn recipe_output_count(&self, r: u32) -> u32 {
+        RECIPES.get(r as usize).map_or(0, |x| x.count)
+    }
+
+    /// Inputs as flat (item, count) pairs.
+    pub fn recipe_inputs(&self, r: u32) -> Vec<u32> {
+        RECIPES.get(r as usize).map_or_else(Vec::new, |x| x.inputs.iter().flat_map(|&(i, n)| [i as u32, n]).collect())
+    }
+
+    pub fn recipe_blurb(&self, r: u32) -> String {
+        RECIPES.get(r as usize).map_or_else(String::new, |x| x.blurb.to_string())
+    }
+
+    pub fn can_craft(&self, r: u32) -> bool {
+        RECIPES.get(r as usize).is_some_and(|x| x.inputs.iter().all(|&(i, n)| self.inventory.count(i) >= n))
+    }
+
+    /// Crafts recipe `r` up to `times` times from inventory items. Returns how many times it ran.
+    pub fn craft(&mut self, r: u32, times: u32) -> u32 {
+        let Some(recipe) = RECIPES.get(r as usize) else { return 0 };
+        let mut done = 0;
+        while done < times && self.can_craft(r) {
+            for &(item, n) in recipe.inputs {
+                self.inventory.remove(item, n);
+            }
+            let left = self.inventory.add(recipe.output, recipe.count);
+            if left > 0 {
+                self.throw(recipe.output, left);
+            }
+            done += 1;
+        }
+        if done > 0 {
+            self.pickups.push_back((recipe.output, recipe.count * done));
+        }
+        done
     }
 
     // ---------------------------------------------------------------- content
@@ -580,7 +798,7 @@ impl Game {
         block::tex::COUNT as u32
     }
 
-    // ---------------------------------------------------------------- stats
+    // ---------------------------------------------------------------- stats & debugging
 
     pub fn chunks_loaded(&self) -> u32 {
         self.world.loaded_count() as u32
@@ -596,6 +814,37 @@ impl Game {
 
     pub fn item_entities(&self) -> u32 {
         self.items.list.len() as u32
+    }
+
+    pub fn belts(&self) -> u32 {
+        self.factory.belt_count() as u32
+    }
+
+    pub fn miners(&self) -> u32 {
+        self.factory.miner_count() as u32
+    }
+
+    pub fn boxes(&self) -> u32 {
+        self.factory.storage_count() as u32
+    }
+
+    pub fn deposits_tracked(&self) -> u32 {
+        self.factory.deposits.tracked() as u32
+    }
+
+    /// Prospecting aid for testing: centre and ore of the nearest deposit of `tier`
+    /// (0 = lode, 1 = vein, 2 = outcrop) as `[x, y, z, ore]`, or empty if none is within ~500 blocks.
+    pub fn find_deposit(&self, tier: u8) -> Vec<i32> {
+        let Some(tier) = Tier::from_u8(tier) else { return Vec::new() };
+        self.world
+            .generator()
+            .find_deposit(self.player.pos.floor(), tier, 16)
+            .map_or_else(Vec::new, |d| vec![d.center.x, d.center.y, d.center.z, d.ore() as i32])
+    }
+
+    /// Block at a position in a loaded chunk (air otherwise). For testing and the console.
+    pub fn block_at(&self, x: i32, y: i32, z: i32) -> u8 {
+        self.world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR)
     }
 
     pub fn player_x(&self) -> f64 {
@@ -614,6 +863,8 @@ impl Game {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::deposits::DepositKey;
+    use crate::factory::MinerStatus;
 
     fn run_until_ready(g: &mut Game) {
         for _ in 0..10_000 {
@@ -626,6 +877,29 @@ mod tests {
             }
         }
         panic!("world never became ready");
+    }
+
+    /// An outcrop ore block near spawn whose deposit has at least `min_blocks` blocks.
+    fn find_outcrop_block(g: &mut Game, min_blocks: u32) -> (IVec3, DepositKey) {
+        let base = g.player.pos.floor();
+        for y in (8..base.y + 4).rev() {
+            for z in -40..40 {
+                for x in -40..40 {
+                    let p = IVec3::new(base.x + x, y, base.z + z);
+                    let Some(b) = g.world.get_block(p) else { continue };
+                    if !block::is_ore(b) {
+                        continue;
+                    }
+                    if let Some(key) = g.factory.deposits.lookup(&mut g.world, p) {
+                        let st = g.factory.deposits.get(&key).unwrap();
+                        if key.tier == Tier::Outcrop && st.initial_blocks >= min_blocks {
+                            return (p, key);
+                        }
+                    }
+                }
+            }
+        }
+        panic!("no outcrop near spawn");
     }
 
     #[test]
@@ -726,5 +1000,96 @@ mod tests {
             g.update(1.0 / 60.0);
         }
         assert!(g.sounds.kinds().is_empty());
+    }
+
+    #[test]
+    fn hand_mining_ore_keeps_a_handful_and_costs_a_block() {
+        let mut g = Game::new(2024, 3);
+        run_until_ready(&mut g);
+        let (p, key) = find_outcrop_block(&mut g, 2);
+        let before = g.factory.deposits.get(&key).unwrap().remaining_blocks;
+        let ore = g.world.get_block(p).unwrap();
+        assert!(g.break_block(p, ore));
+        assert_eq!(g.factory.deposits.get(&key).unwrap().remaining_blocks, before - 1);
+        let drop = g.items.list.last().unwrap();
+        assert_eq!((drop.item, drop.count), (ore, HAND_YIELD));
+        assert!(!block::is_placeable(ore), "ore can't be put back");
+    }
+
+    /// Miner on top of an outcrop block, a belt leading east, and a box at the end.
+    fn build_mine(g: &mut Game, p: IVec3) -> (IVec3, IVec3) {
+        let m = p + IVec3::new(0, 1, 0);
+        let belt = m + IVec3::new(1, 0, 0);
+        let chest = m + IVec3::new(2, 0, 0);
+        g.world.set_block(m, MINER);
+        g.world.set_block(belt, BELT);
+        g.world.set_block(chest, STORAGE);
+        let key = g.factory.deposits.lookup(&mut g.world, p);
+        assert!(key.is_some());
+        g.factory.add_miner(m, block::FACE_BOTTOM as u8, key);
+        g.factory.add_belt(belt, 1);
+        g.factory.add_storage(chest);
+        (m, chest)
+    }
+
+    #[test]
+    fn miner_drills_the_pool_and_turns_blocks_into_spent_rock() {
+        let mut g = Game::new(2024, 3);
+        run_until_ready(&mut g);
+        let (p, key) = find_outcrop_block(&mut g, 6);
+        let ore = key.ore;
+        let (m, chest) = build_mine(&mut g, p);
+        let st = g.factory.deposits.get(&key).unwrap();
+        let (blocks, grade) = (st.remaining_blocks, st.grade() as f64);
+
+        // An outcrop allows 1 unit/s; after 250 s, two blocks' worth (100 units each) are gone.
+        g.skip_time(250.0);
+        let st = g.factory.deposits.get(&key).unwrap();
+        assert_eq!(st.remaining_blocks, blocks - 2);
+        assert_eq!(g.world.get_block(p), Some(SPENT_ROCK), "the block under the drill goes first");
+        let recovered = (250.0 * MINER_RECOVERY) as u32;
+        let stored = g.factory.storage_count_at(chest, ore);
+        assert!(stored + 4 >= recovered && stored <= recovered, "stored {stored} of ~{recovered}");
+        assert_eq!(g.factory.miner_at(m).status, MinerStatus::Running);
+        assert!((st.remaining_units() - (blocks as f64 * grade - 250.0)).abs() < 1.0);
+
+        // The readout names the deposit.
+        let detail = g.factory.describe(m).unwrap();
+        assert!(detail.contains("outcrop"), "{detail}");
+    }
+
+    #[test]
+    fn miner_without_output_fills_up_and_stops() {
+        let mut g = Game::new(2024, 3);
+        run_until_ready(&mut g);
+        let (p, key) = find_outcrop_block(&mut g, 2);
+        let m = p + IVec3::new(0, 1, 0);
+        g.world.set_block(m, MINER);
+        let k = g.factory.deposits.lookup(&mut g.world, p);
+        g.factory.add_miner(m, block::FACE_BOTTOM as u8, k);
+        let units = g.factory.deposits.get(&key).unwrap().remaining_units();
+        g.skip_time(300.0);
+        let miner = g.factory.miner_at(m);
+        assert_eq!(miner.status, MinerStatus::OutputFull);
+        assert_eq!(miner.held, factory::MINER_BUFFER);
+        let used = units - g.factory.deposits.get(&key).unwrap().remaining_units();
+        assert!(used < 110.0, "a full miner stops drawing, used {used}");
+
+        // Right-click empties it into the inventory.
+        assert!(g.take_from_machine(m));
+        assert_eq!(g.item_total(key.ore), factory::MINER_BUFFER);
+    }
+
+    #[test]
+    fn crafting_consumes_inputs() {
+        let mut g = Game::new(7, 2);
+        g.give(block::IRON_ORE, 3);
+        g.give(block::STONE, 5);
+        let belt = RECIPES.iter().position(|r| r.output == BELT).unwrap() as u32;
+        assert_eq!(g.craft(belt, 5), 2);
+        assert_eq!(g.item_total(BELT), 8);
+        assert_eq!(g.item_total(block::IRON_ORE), 1);
+        assert_eq!(g.item_total(block::STONE), 1);
+        assert!(!g.can_craft(belt));
     }
 }

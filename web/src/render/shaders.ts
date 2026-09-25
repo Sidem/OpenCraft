@@ -68,13 +68,15 @@ void main() {
 }
 `;
 
-export const itemVert = /* glsl */ `#version 300 es
+// Instanced boxes: dropped items, items on belts and machine parts, all in one draw call.
+// Instance layout matches `factory::INSTANCE_FLOATS` in the engine.
+export const boxVert = /* glsl */ `#version 300 es
 precision highp float;
 
-layout(location = 0) in vec3 a_pos;   // unit cube corner, centred on the origin
-layout(location = 1) in vec4 a_face;  // uv, face kind (0 top, 1 side, 2 bottom), shade
-layout(location = 2) in vec4 a_inst;  // camera-relative position, spin angle
-layout(location = 3) in vec4 a_tex;   // layer top, side, bottom, scale
+layout(location = 0) in vec4 a_corner; // unit cube corner (±0.5) and face index (+X, -X, +Y, -Y, +Z, -Z)
+layout(location = 1) in vec4 a_i0;     // camera-relative centre, yaw
+layout(location = 2) in vec4 a_i1;     // size, uv scroll (top face)
+layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; uv mode (0 whole texture, 1 world-scaled)
 
 uniform mat4 u_viewProj;
 
@@ -82,14 +84,29 @@ out vec3 v_uvl;
 out float v_light;
 out vec3 v_rel;
 
+const vec3 NORMALS[6] = vec3[6](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0, 0, -1));
+
 void main() {
-  float s = sin(a_inst.w), c = cos(a_inst.w);
-  vec3 p = a_pos * a_tex.w;
-  p = vec3(c * p.x + s * p.z, p.y, -s * p.x + c * p.z);
-  float layer = a_face.z < 0.5 ? a_tex.x : (a_face.z < 1.5 ? a_tex.y : a_tex.z);
-  v_uvl = vec3(a_face.xy, layer);
-  v_light = a_face.w;
-  v_rel = a_inst.xyz + p;
+  int face = int(a_corner.w + 0.5);
+  vec3 local = a_corner.xyz * a_i1.xyz;
+  // Whole texture on every face (items), or texels at world scale like terrain (machine parts).
+  vec3 q = mix(a_corner.xyz, local, a_i2.w) + 0.5;
+  vec2 uv;
+  if (face == 0) uv = vec2(-q.z, -q.y);
+  else if (face == 1) uv = vec2(q.z, -q.y);
+  else if (face == 2) uv = vec2(q.x, q.z + a_i1.w);
+  else if (face == 3) uv = vec2(q.x, -q.z);
+  else if (face == 4) uv = vec2(q.x, -q.y);
+  else uv = vec2(-q.x, -q.y);
+  float layer = face == 2 ? a_i2.x : (face == 3 ? a_i2.z : a_i2.y);
+
+  // Yaw turns local -Z towards (sin, 0, -cos), matching the player's look direction.
+  float s = sin(a_i0.w), c = cos(a_i0.w);
+  mat3 rot = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c);
+  vec3 n = rot * NORMALS[face];
+  v_light = n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86));
+  v_uvl = vec3(uv, layer);
+  v_rel = a_i0.xyz + rot * local;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }
 `;

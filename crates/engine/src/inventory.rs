@@ -1,8 +1,10 @@
-//! Player inventory (hotbar only for the MVP).
+//! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack, and the stack held by
+//! the mouse cursor while the inventory screen is open.
 
 use crate::block::{BlockId, AIR};
 
 pub const HOTBAR_SLOTS: usize = 9;
+pub const INVENTORY_SLOTS: usize = 36;
 pub const MAX_STACK: u32 = 64;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -17,12 +19,41 @@ impl Stack {
     }
 }
 
-#[derive(Default)]
+/// Adds up to `count` of `item` into `slots`, topping up matching stacks before filling empty
+/// slots (in slice order). Returns what didn't fit.
+pub fn add_to_slots(slots: &mut [Stack], item: BlockId, mut count: u32) -> u32 {
+    if item == AIR {
+        return count;
+    }
+    for s in slots.iter_mut().filter(|s| !s.is_empty() && s.item == item) {
+        let n = count.min(MAX_STACK - s.count);
+        s.count += n;
+        count -= n;
+    }
+    for s in slots.iter_mut().filter(|s| s.is_empty()) {
+        if count == 0 {
+            break;
+        }
+        let n = count.min(MAX_STACK);
+        *s = Stack { item, count: n };
+        count -= n;
+    }
+    count
+}
+
 pub struct Inventory {
-    pub slots: [Stack; HOTBAR_SLOTS],
+    pub slots: [Stack; INVENTORY_SLOTS],
     pub selected: usize,
+    /// Held by the mouse in the inventory screen.
+    pub cursor: Stack,
     /// Bumped on every change so the UI can skip redundant redraws.
     pub version: u32,
+}
+
+impl Default for Inventory {
+    fn default() -> Self {
+        Self { slots: [Stack::default(); INVENTORY_SLOTS], selected: 0, cursor: Stack::default(), version: 0 }
+    }
 }
 
 impl Inventory {
@@ -38,29 +69,42 @@ impl Inventory {
             .sum()
     }
 
-    /// Adds items, topping up existing stacks before using empty slots. Returns what didn't fit.
-    pub fn add(&mut self, item: BlockId, mut count: u32) -> u32 {
+    /// Adds items: tops up existing stacks anywhere, then fills empty hotbar slots before the
+    /// backpack. Returns what didn't fit.
+    pub fn add(&mut self, item: BlockId, count: u32) -> u32 {
         if item == AIR || count == 0 {
             return count;
         }
-        let before = count;
-        for s in self.slots.iter_mut().filter(|s| !s.is_empty() && s.item == item) {
-            let n = count.min(MAX_STACK - s.count);
-            s.count += n;
-            count -= n;
-        }
-        for s in self.slots.iter_mut().filter(|s| s.is_empty()) {
-            if count == 0 {
-                break;
-            }
-            let n = count.min(MAX_STACK);
-            *s = Stack { item, count: n };
-            count -= n;
-        }
-        if count != before {
+        let left = add_to_slots(&mut self.slots, item, count);
+        if left != count {
             self.version += 1;
         }
-        count
+        left
+    }
+
+    /// Total number of `item` held.
+    pub fn count(&self, item: BlockId) -> u32 {
+        self.slots.iter().filter(|s| s.item == item).map(|s| s.count).sum()
+    }
+
+    /// Removes `n` of `item`, backpack first so the hotbar keeps its layout. All or nothing.
+    pub fn remove(&mut self, item: BlockId, mut n: u32) -> bool {
+        if self.count(item) < n {
+            return false;
+        }
+        for s in self.slots.iter_mut().rev().filter(|s| s.item == item && !s.is_empty()) {
+            let k = n.min(s.count);
+            s.count -= k;
+            n -= k;
+            if s.count == 0 {
+                *s = Stack::default();
+            }
+            if n == 0 {
+                break;
+            }
+        }
+        self.version += 1;
+        true
     }
 
     pub fn selected_stack(&self) -> Stack {
@@ -94,6 +138,55 @@ impl Inventory {
         let n = HOTBAR_SLOTS as i32;
         self.select((self.selected as i32 + delta).rem_euclid(n) as usize);
     }
+
+    /// Inventory-screen click: pick up, put down, merge or swap with the cursor stack.
+    pub fn click(&mut self, slot: usize) {
+        let Some(s) = self.slots.get_mut(slot) else { return };
+        let c = &mut self.cursor;
+        if c.is_empty() {
+            if s.is_empty() {
+                return;
+            }
+            *c = std::mem::take(s);
+        } else if s.is_empty() {
+            *s = std::mem::take(c);
+        } else if s.item == c.item {
+            let n = c.count.min(MAX_STACK - s.count);
+            s.count += n;
+            c.count -= n;
+            if c.count == 0 {
+                *c = Stack::default();
+            }
+        } else {
+            std::mem::swap(s, c);
+        }
+        self.version += 1;
+    }
+
+    /// Shift-click: moves a stack between the hotbar and the backpack.
+    pub fn quick_move(&mut self, slot: usize) {
+        if slot >= INVENTORY_SLOTS || self.slots[slot].is_empty() {
+            return;
+        }
+        let s = std::mem::take(&mut self.slots[slot]);
+        let target = if slot < HOTBAR_SLOTS { HOTBAR_SLOTS..INVENTORY_SLOTS } else { 0..HOTBAR_SLOTS };
+        let left = add_to_slots(&mut self.slots[target], s.item, s.count);
+        if left > 0 {
+            self.slots[slot] = Stack { item: s.item, count: left };
+        }
+        self.version += 1;
+    }
+
+    /// Puts the cursor stack back into the inventory. Returns whatever didn't fit.
+    pub fn return_cursor(&mut self) -> Stack {
+        let c = std::mem::take(&mut self.cursor);
+        if c.is_empty() {
+            return c;
+        }
+        self.version += 1;
+        let left = add_to_slots(&mut self.slots, c.item, c.count);
+        Stack { item: if left > 0 { c.item } else { AIR }, count: left }
+    }
 }
 
 #[cfg(test)]
@@ -114,9 +207,17 @@ mod tests {
     #[test]
     fn overflow_is_returned() {
         let mut inv = Inventory::default();
-        assert_eq!(inv.add(1, 64 * 9 + 5), 5);
+        assert_eq!(inv.add(1, 64 * INVENTORY_SLOTS as u32 + 5), 5);
         assert_eq!(inv.space_for(1), 0);
         assert_eq!(inv.space_for(2), 0);
+    }
+
+    #[test]
+    fn hotbar_fills_before_backpack() {
+        let mut inv = Inventory::default();
+        inv.add(1, 64 * 10);
+        assert!(inv.slots[..HOTBAR_SLOTS].iter().all(|s| s.item == 1 && s.count == 64));
+        assert_eq!(inv.slots[HOTBAR_SLOTS], Stack { item: 1, count: 64 });
     }
 
     #[test]
@@ -135,5 +236,47 @@ mod tests {
         assert_eq!(inv.selected, HOTBAR_SLOTS - 1);
         inv.scroll(1);
         assert_eq!(inv.selected, 0);
+    }
+
+    #[test]
+    fn remove_takes_from_backpack_first() {
+        let mut inv = Inventory::default();
+        inv.slots[0] = Stack { item: 5, count: 10 };
+        inv.slots[20] = Stack { item: 5, count: 4 };
+        assert!(inv.remove(5, 6));
+        assert!(inv.slots[20].is_empty());
+        assert_eq!(inv.slots[0].count, 8);
+        assert!(!inv.remove(5, 9), "not enough left");
+        assert_eq!(inv.count(5), 8);
+    }
+
+    #[test]
+    fn cursor_pick_place_merge_swap() {
+        let mut inv = Inventory::default();
+        inv.slots[0] = Stack { item: 1, count: 40 };
+        inv.slots[1] = Stack { item: 1, count: 30 };
+        inv.slots[2] = Stack { item: 2, count: 5 };
+        inv.click(0);
+        assert_eq!(inv.cursor, Stack { item: 1, count: 40 });
+        inv.click(1);
+        assert_eq!(inv.slots[1].count, 64);
+        assert_eq!(inv.cursor.count, 6);
+        inv.click(2);
+        assert_eq!(inv.slots[2], Stack { item: 1, count: 6 });
+        assert_eq!(inv.cursor, Stack { item: 2, count: 5 });
+        inv.click(10);
+        assert!(inv.cursor.is_empty());
+        assert_eq!(inv.slots[10], Stack { item: 2, count: 5 });
+    }
+
+    #[test]
+    fn quick_move_between_sections() {
+        let mut inv = Inventory::default();
+        inv.slots[3] = Stack { item: 7, count: 12 };
+        inv.quick_move(3);
+        assert!(inv.slots[3].is_empty());
+        assert_eq!(inv.slots[HOTBAR_SLOTS], Stack { item: 7, count: 12 });
+        inv.quick_move(HOTBAR_SLOTS);
+        assert_eq!(inv.slots[0], Stack { item: 7, count: 12 });
     }
 }

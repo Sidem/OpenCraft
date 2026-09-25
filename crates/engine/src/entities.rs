@@ -1,6 +1,7 @@
 //! Dropped item entities: physics, magnet pickup and GPU instance data.
 
 use crate::block::{BlockId, FACE_BOTTOM, FACE_SIDE, FACE_TEX, FACE_TOP};
+use crate::factory::push_box;
 use crate::inventory::Inventory;
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
@@ -10,8 +11,6 @@ const GRAVITY: f64 = 22.0;
 const DESPAWN_SECONDS: f32 = 300.0;
 const MAGNET_RADIUS: f64 = 2.4;
 const PICKUP_RADIUS: f64 = 0.7;
-/// Floats per instance: rel x, rel y, rel z, spin, tex top, tex side, tex bottom, scale.
-pub const INSTANCE_FLOATS: usize = 8;
 
 pub struct ItemEntity {
     pub pos: Vec3,
@@ -26,7 +25,6 @@ pub struct ItemEntity {
 #[derive(Default)]
 pub struct Items {
     pub list: Vec<ItemEntity>,
-    pub instances: Vec<f32>,
 }
 
 impl Items {
@@ -100,23 +98,14 @@ impl Items {
         }
     }
 
-    /// Writes camera-relative instance data for the renderer.
-    pub fn write_instances(&mut self, eye: Vec3) {
-        self.instances.clear();
+    /// Appends camera-relative box instances (see `factory::INSTANCE_FLOATS`) for the renderer.
+    pub fn write_instances(&self, out: &mut Vec<f32>, eye: Vec3) {
+        let size = (HALF * 2.0) as f32;
         for e in &self.list {
             let faces = FACE_TEX[e.item as usize];
             let bob = (e.age as f64 * 2.6).sin() * 0.05 + 0.05;
-            let r = e.pos - eye;
-            self.instances.extend_from_slice(&[
-                r.x as f32,
-                (r.y + bob) as f32,
-                r.z as f32,
-                e.age * 1.7,
-                faces[FACE_TOP] as f32,
-                faces[FACE_SIDE] as f32,
-                faces[FACE_BOTTOM] as f32,
-                (HALF * 2.0) as f32,
-            ]);
+            let tex = [faces[FACE_TOP], faces[FACE_SIDE], faces[FACE_BOTTOM]];
+            push_box(out, e.pos - eye + Vec3::new(0.0, bob, 0.0), e.age * 1.7, [size; 3], 0.0, tex, false);
         }
     }
 }

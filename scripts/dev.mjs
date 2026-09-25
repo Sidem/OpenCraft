@@ -16,7 +16,9 @@ if (!(await buildWasm({ dev }))) {
   process.exit(1);
 }
 
-const server = await createServer({ configFile: path.join(root, 'vite.config.ts') });
+// PORT overrides the configured port, so several dev servers can run side by side.
+const port = Number(process.env.PORT) || undefined;
+const server = await createServer({ configFile: path.join(root, 'vite.config.ts'), server: { port } });
 await server.listen();
 server.printUrls();
 

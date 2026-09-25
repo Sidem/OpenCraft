@@ -17,7 +17,7 @@
 //! Quads are merged only where AO is constant along the merge direction, so greedy merging never
 //! changes how the AO gradient looks.
 
-use crate::block::{BlockId, AIR, CUTOUT, FACE_TEX, OPAQUE};
+use crate::block::{BlockId, AIR, CUTOUT, FACE_TEX, MESHED, OPAQUE};
 use crate::chunk::{index, Chunk};
 
 const N: usize = 32;
@@ -107,7 +107,7 @@ impl Mesher {
     /// Air chunks and solid chunks buried in solid chunks produce no faces; skip the scan.
     fn is_trivially_empty(&self, n: &[&Chunk; 27]) -> bool {
         match n[neighbor_index(0, 0, 0)].as_uniform() {
-            Some(AIR) => true,
+            Some(b) if !MESHED[b as usize] => true,
             Some(b) if OPAQUE[b as usize] => [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
                 .iter()
                 .all(|&(x, y, z)| n[neighbor_index(x, y, z)].as_uniform().is_some_and(|u| OPAQUE[u as usize])),
@@ -156,7 +156,7 @@ impl Mesher {
                     let p = pidx(c[0], c[1], c[2]);
                     let b = pad[p];
                     let mut key = 0u32;
-                    if b != AIR {
+                    if MESHED[b as usize] {
                         let q = (p as isize + sn) as usize;
                         if !OPAQUE[pad[q] as usize] {
                             let o = |off: isize| OPAQUE[pad[(q as isize + off) as usize] as usize];
@@ -350,6 +350,20 @@ mod tests {
             .min()
             .unwrap();
         assert!(top_face_min_ao < 3);
+    }
+
+    #[test]
+    fn machines_are_left_to_the_host_and_do_not_hide_faces() {
+        use crate::block::{BELT, MINER, STORAGE};
+        let m = mesh_single(|c| {
+            c.set(4, 4, 4, MINER);
+            c.set(5, 4, 4, STONE);
+            c.set(8, 4, 4, BELT);
+        });
+        // Only the stone is meshed, with all six faces (the miner beside it hides nothing).
+        assert_eq!(m.opaque_quads, 6);
+        let boxed = mesh_single(|c| c.set(1, 1, 1, STORAGE));
+        assert_eq!(boxed.opaque_quads, 6, "storage boxes are plain cubes");
     }
 
     #[test]

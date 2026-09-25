@@ -4,7 +4,7 @@
 // browser can be pasted back here as the new DEFAULT_DESIGN.
 
 /** Sound materials in engine order; must match `block::sound` in the engine. */
-export const MATERIALS = ['stone', 'dirt', 'grass', 'sand', 'wood', 'leaves'] as const;
+export const MATERIALS = ['stone', 'dirt', 'grass', 'sand', 'wood', 'leaves', 'metal'] as const;
 export type MaterialName = (typeof MATERIALS)[number];
 
 export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', 'snap', 'thud', 'ring', 'volume', 'variation'] as const;
@@ -39,6 +39,7 @@ export const MATERIAL_LABELS: Record<MaterialName, string> = {
   sand: 'Sand',
   wood: 'Wood',
   leaves: 'Leaves',
+  metal: 'Metal',
 };
 
 export const MATERIAL_DIAL_INFO: Record<MaterialDial, DialInfo> = {
@@ -162,7 +163,7 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
 };
 
 // prettier-ignore
-/** Starting points for a material. The first six are the built-in defaults. */
+/** Starting points for a material. The first six are the built-in defaults; Metal's default is METAL_DEFAULT. */
 export const PRESETS: Record<string, MaterialParams> = {
   Stone:  { pitch: 33, tone: 53, length: 16, crunch: 19, scatter: 2, snap: 70, thud: 19, ring: 7, volume: 15, variation: 35 },
   Dirt:   { pitch: 53, tone: 46, length: 28, crunch: 37, scatter: 84, snap: 42, thud: 16, ring: 0, volume: 15, variation: 24 },
@@ -181,6 +182,9 @@ export const PRESETS: Record<string, MaterialParams> = {
 // object here would make a dial move several sounds at once.
 const neutral = (): ActionParams => ({ volume: 50, pitch: 50, length: 50, weight: 50, debris: 50 });
 
+/** Machines (belts, miners). Not tuned by ear yet; levelled to sit with the hand-tuned materials. */
+const METAL_DEFAULT: MaterialParams = { ...PRESETS.Metal, ring: 55, thud: 30, volume: 14 };
+
 export const DEFAULT_DESIGN: SoundDesign = {
   materials: {
     stone: { ...PRESETS.Stone },
@@ -189,6 +193,7 @@ export const DEFAULT_DESIGN: SoundDesign = {
     sand: { ...PRESETS.Sand },
     wood: { ...PRESETS.Wood },
     leaves: { ...PRESETS.Leaves },
+    metal: { ...METAL_DEFAULT },
   },
   actions: {
     dig: neutral(),

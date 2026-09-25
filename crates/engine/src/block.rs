@@ -1,4 +1,5 @@
-//! Block registry. Block ids double as item ids until the item/recipe layer arrives.
+//! Block registry. Block ids double as item ids until a separate item layer arrives; blocks that
+//! should never exist as a placed item (ore, bedrock) are simply not placeable.
 
 pub type BlockId = u8;
 
@@ -13,7 +14,12 @@ pub const COAL_ORE: BlockId = 7;
 pub const IRON_ORE: BlockId = 8;
 pub const COPPER_ORE: BlockId = 9;
 pub const BEDROCK: BlockId = 10;
-pub const BLOCK_COUNT: usize = 11;
+/// What an ore block turns into once a miner has drawn its share out of the deposit.
+pub const SPENT_ROCK: BlockId = 11;
+pub const BELT: BlockId = 12;
+pub const MINER: BlockId = 13;
+pub const STORAGE: BlockId = 14;
+pub const BLOCK_COUNT: usize = 15;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -29,7 +35,18 @@ pub mod tex {
     pub const IRON_ORE: u16 = 9;
     pub const COPPER_ORE: u16 = 10;
     pub const BEDROCK: u16 = 11;
-    pub const COUNT: usize = 12;
+    pub const SPENT_ROCK: u16 = 12;
+    pub const BELT_TOP: u16 = 13;
+    pub const FRAME: u16 = 14;
+    pub const MINER_SIDE: u16 = 15;
+    pub const MINER_TOP: u16 = 16;
+    pub const DRILL: u16 = 17;
+    pub const BOX_SIDE: u16 = 18;
+    pub const BOX_TOP: u16 = 19;
+    pub const LAMP_GREEN: u16 = 20;
+    pub const LAMP_YELLOW: u16 = 21;
+    pub const LAMP_RED: u16 = 22;
+    pub const COUNT: usize = 23;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -39,7 +56,7 @@ pub const FACE_SIDE: usize = 0;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Render {
-    /// Not drawn at all.
+    /// Not drawn by the chunk mesher (air, or machines the host draws as instanced models).
     None,
     /// Full cube that hides the faces of its neighbours.
     Opaque,
@@ -59,9 +76,11 @@ pub struct BlockDef {
     pub drop: BlockId,
     /// Sound material used for digging, breaking, placing and footsteps (see [`sound`]).
     pub sound: u8,
+    /// Whether the item can be put back into the world.
+    pub placeable: bool,
 }
 
-/// Sound materials. Must match `MATERIALS` in `web/src/audio.ts`.
+/// Sound materials. Must match `MATERIALS` in `web/src/audio/settings.ts`.
 pub mod sound {
     pub const STONE: u8 = 0;
     pub const DIRT: u8 = 1;
@@ -69,6 +88,7 @@ pub mod sound {
     pub const SAND: u8 = 3;
     pub const WOOD: u8 = 4;
     pub const LEAVES: u8 = 5;
+    pub const METAL: u8 = 6;
 }
 
 const fn all(t: u16) -> [u16; 6] {
@@ -80,7 +100,17 @@ const fn pillar(side: u16, top: u16, bottom: u16) -> [u16; 6] {
 }
 
 const fn cube(name: &'static str, break_time: f32, faces: [u16; 6], drop: BlockId, sound: u8) -> BlockDef {
-    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop, sound }
+    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop, sound, placeable: true }
+}
+
+/// Ore stays in the ground: mining it by hand yields a handful of ore items that can't be placed.
+const fn ore(name: &'static str, faces: [u16; 6], drop: BlockId) -> BlockDef {
+    BlockDef { placeable: false, ..cube(name, 1.6, faces, drop, sound::STONE) }
+}
+
+/// A machine drawn by the host as an instanced model rather than by the chunk mesher.
+const fn machine(name: &'static str, solid: bool, break_time: f32, faces: [u16; 6], id: BlockId) -> BlockDef {
+    BlockDef { render: Render::None, solid, ..cube(name, break_time, faces, id, sound::METAL) }
 }
 
 const DEFS: [BlockDef; BLOCK_COUNT] = [
@@ -92,6 +122,7 @@ const DEFS: [BlockDef; BLOCK_COUNT] = [
         faces: all(0),
         drop: AIR,
         sound: sound::STONE,
+        placeable: false,
     },
     cube("Stone", 1.1, all(tex::STONE), STONE, sound::STONE),
     cube("Dirt", 0.45, all(tex::DIRT), DIRT, sound::DIRT),
@@ -106,11 +137,16 @@ const DEFS: [BlockDef; BLOCK_COUNT] = [
         faces: all(tex::LEAVES),
         drop: LEAVES,
         sound: sound::LEAVES,
+        placeable: true,
     },
-    cube("Coal Ore", 1.4, all(tex::COAL_ORE), COAL_ORE, sound::STONE),
-    cube("Iron Ore", 1.6, all(tex::IRON_ORE), IRON_ORE, sound::STONE),
-    cube("Copper Ore", 1.6, all(tex::COPPER_ORE), COPPER_ORE, sound::STONE),
-    cube("Bedrock", -1.0, all(tex::BEDROCK), BEDROCK, sound::STONE),
+    ore("Coal Ore", all(tex::COAL_ORE), COAL_ORE),
+    ore("Iron Ore", all(tex::IRON_ORE), IRON_ORE),
+    ore("Copper Ore", all(tex::COPPER_ORE), COPPER_ORE),
+    BlockDef { placeable: false, ..cube("Bedrock", -1.0, all(tex::BEDROCK), BEDROCK, sound::STONE) },
+    cube("Spent Rock", 0.7, all(tex::SPENT_ROCK), SPENT_ROCK, sound::STONE),
+    machine("Conveyor Belt", false, 0.3, pillar(tex::FRAME, tex::BELT_TOP, tex::FRAME), BELT),
+    machine("Miner Mk1", true, 0.8, pillar(tex::MINER_SIDE, tex::MINER_TOP, tex::FRAME), MINER),
+    cube("Storage Box", 0.7, pillar(tex::BOX_SIDE, tex::BOX_TOP, tex::BOX_TOP), STORAGE, sound::WOOD),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -131,6 +167,17 @@ pub const CUTOUT: [bool; 256] = {
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = matches!(DEFS[i].render, Render::Cutout);
+        i += 1;
+    }
+    t
+};
+
+/// Blocks the chunk mesher draws (opaque or cutout).
+pub const MESHED: [bool; 256] = {
+    let mut t = [false; 256];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        t[i] = !matches!(DEFS[i].render, Render::None);
         i += 1;
     }
     t
@@ -163,5 +210,20 @@ pub fn def(id: BlockId) -> &'static BlockDef {
 
 #[inline]
 pub fn is_placeable(id: BlockId) -> bool {
-    id != AIR && (id as usize) < BLOCK_COUNT
+    def(id).placeable
+}
+
+#[inline]
+pub fn is_ore(id: BlockId) -> bool {
+    matches!(id, COAL_ORE | IRON_ORE | COPPER_ORE)
+}
+
+/// Short resource name used in deposit names ("Iron vein").
+pub fn ore_label(id: BlockId) -> &'static str {
+    match id {
+        COAL_ORE => "Coal",
+        IRON_ORE => "Iron",
+        COPPER_ORE => "Copper",
+        _ => "Ore",
+    }
 }

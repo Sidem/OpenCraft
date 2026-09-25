@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::block::{BlockId, AIR, BEDROCK, SOLID, STONE};
-use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT};
+use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT, CHUNK_SIZE};
 use crate::math::{IVec3, Vec3};
 use crate::mesher::{neighbor_index, Mesher};
 use crate::worldgen::{WorldGen, WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
@@ -96,9 +96,58 @@ impl World {
         &self.generator
     }
 
+    pub fn generator_mut(&mut self) -> &mut WorldGen {
+        &mut self.generator
+    }
+
+    /// The chunk exactly as world generation produced it, ignoring any edits.
+    pub fn original_chunk(&mut self, c: IVec3) -> Chunk {
+        self.generator.generate(c)
+    }
+
+    /// A block anywhere in the world, loaded or not. `None` means the chunk is neither loaded nor
+    /// edited, i.e. it still holds exactly what generation produced there.
+    pub fn block_anywhere(&self, p: IVec3) -> Option<BlockId> {
+        if p.y < 0 || p.y >= WORLD_HEIGHT {
+            return self.get_block(p);
+        }
+        let c = chunk_of(p);
+        let (x, y, z) = local_of(p);
+        match self.chunks.get(&c) {
+            Some(e) => Some(e.chunk.get(x, y, z)),
+            None => self.saved.get(&c).map(|chunk| chunk.get(x, y, z)),
+        }
+    }
+
+    /// Like [`World::set_block`], but also works where no chunk is loaded (machines keep running
+    /// while the player is away): the edit goes into the stored copy of that chunk.
+    pub fn set_block_anywhere(&mut self, p: IVec3, b: BlockId) -> bool {
+        if p.y < 0 || p.y >= WORLD_HEIGHT {
+            return false;
+        }
+        let c = chunk_of(p);
+        if self.chunks.contains_key(&c) {
+            return self.set_block(p, b);
+        }
+        let mut chunk = match self.saved.remove(&c) {
+            Some(chunk) => chunk,
+            None => self.generator.generate(c),
+        };
+        let (x, y, z) = local_of(p);
+        chunk.set(x, y, z, b);
+        chunk.modified = true;
+        self.saved.insert(c, chunk);
+        true
+    }
+
     pub fn set_view_radius(&mut self, r: i32) {
         self.view_radius = r.max(2);
         self.center = None;
+    }
+
+    /// Render distance in blocks.
+    pub fn view_distance(&self) -> f64 {
+        (self.view_radius * CHUNK_SIZE) as f64
     }
 
     pub fn get_block(&self, p: IVec3) -> Option<BlockId> {

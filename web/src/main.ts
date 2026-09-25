@@ -2,8 +2,9 @@ import './style.css';
 import init, { Game } from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
 import { Input } from './input';
-import { Renderer } from './render/renderer';
+import { INSTANCE_FLOATS, Renderer } from './render/renderer';
 import { Hud } from './ui/hud';
+import { InventoryPanel } from './ui/inventory';
 import { SoundLab, VolumeControl } from './ui/sound-lab';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel
@@ -38,6 +39,8 @@ async function main(): Promise<void> {
     material: game.block_sound(i + 1),
   }));
   const soundLab = new SoundLab(sound, blocks, (id) => hud.blockIcon(id));
+  const inventory = new InventoryPanel(game, (id) => hud.blockIcon(id));
+  inventory.onCraft = () => sound.ui();
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -57,10 +60,17 @@ async function main(): Promise<void> {
   };
   play.addEventListener('click', start);
   canvas.addEventListener('click', () => {
-    if (!input.locked && !play.disabled && !soundLab.isOpen) start();
+    if (!input.locked && !play.disabled && !soundLab.isOpen && !inventory.isOpen) start();
   });
+  // E or a click outside goes straight back to play (both are gestures that allow re-locking);
+  // Escape lands on the pause menu, like it does from the game.
+  inventory.onClose = (resume) => {
+    game.close_inventory();
+    if (resume) start();
+    else menu.classList.remove('hidden');
+  };
   input.onLockChange = (locked) => {
-    menu.classList.toggle('hidden', locked);
+    menu.classList.toggle('hidden', locked || inventory.isOpen);
     if (!locked) {
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
@@ -75,7 +85,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory } });
 
   // ---- frame loop
   let last = performance.now();
@@ -122,6 +132,9 @@ async function main(): Promise<void> {
         // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
         document.exitPointerLock();
         soundLab.open(game.has_target() ? game.block_sound(game.target_block()) : sound.lastMaterial);
+      } else if (a.kind === 'inventory') {
+        document.exitPointerLock();
+        inventory.open();
       }
     }
     if (game.selected_slot() !== slotBefore) sound.ui();
@@ -157,13 +170,14 @@ async function main(): Promise<void> {
       pitch: game.pitch(),
       target: hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
       mineProgress: game.mine_progress(),
-      items: new Float32Array(wasm.memory.buffer, game.item_instances_ptr(), game.item_instance_count() * 8),
-      itemCount: game.item_instance_count(),
+      boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
+      boxCount: game.instance_count(),
     });
 
     frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
     fps = fps * 0.9 + (dt > 0 ? 1 / dt : 0) * 0.1;
     hud.update(now, { fps, frameMs, workMs, ...renderer.stats });
+    inventory.update();
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

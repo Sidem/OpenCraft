@@ -2,6 +2,8 @@ import type { Game } from '../wasm/engine.js';
 
 const ICON_PX = 64;
 const TOAST_MS = 2600;
+/** How often the target's detail text (deposit size, machine status) is refreshed. */
+const DETAIL_MS = 150;
 
 interface Slot {
   root: HTMLDivElement;
@@ -40,9 +42,12 @@ export class Hud {
   private invVersion = -1;
   private debugVisible = false;
   private lastDebug = 0;
+  private lastDetail = 0;
+  private detailKey = '';
 
   private readonly target = $<HTMLDivElement>('target');
   private readonly targetName = $<HTMLSpanElement>('target-name');
+  private readonly targetDetail = $<HTMLDivElement>('target-detail');
   private readonly mineFill = $<HTMLDivElement>('mine-fill');
   private readonly toastBox = $<HTMLDivElement>('toasts');
   private readonly debug = $<HTMLPreElement>('debug');
@@ -113,8 +118,18 @@ export class Hud {
       const p = g.mine_progress();
       this.mineFill.style.transform = `scaleX(${p})`;
       this.target.classList.toggle('mining', p > 0);
+      // Refresh at once on a new target, then a few times a second for live machine status.
+      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()}`;
+      if (key !== this.detailKey || now - this.lastDetail > DETAIL_MS) {
+        this.detailKey = key;
+        this.lastDetail = now;
+        const text = g.target_detail();
+        this.targetDetail.textContent = text;
+        this.targetDetail.classList.toggle('hidden', text === '');
+      }
     } else {
       this.target.classList.add('hidden');
+      this.detailKey = '';
     }
 
     while (g.next_pickup()) this.pushToast(g.pickup_item(), g.pickup_count(), now);
@@ -139,6 +154,7 @@ export class Hud {
         `meshes ${info.meshes} · drawn ${info.visible} · ${info.drawCalls} draw calls · ${(info.quads / 1000).toFixed(1)}k quads`,
         `items ${g.item_entities()}` +
           (g.has_target() ? ` · target ${this.names[g.target_block()]} @ ${g.target_x()} ${g.target_y()} ${g.target_z()}` : ''),
+        `factory ${g.belts()} belts · ${g.miners()} miners · ${g.boxes()} boxes · ${g.deposits_tracked()} deposits tracked`,
       ].join('\n');
     }
   }
