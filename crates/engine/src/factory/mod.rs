@@ -8,8 +8,8 @@
 //! that acts on one machine finds it through one `match` on `Slot`. Removal is `swap_remove` plus
 //! fixing the moved entry's `at` slot. Machines keep running when their chunk is streamed out.
 //!
-//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick, miners, then boxes and processing
-//! machines, then power (`power.rs`) and the powered machines, then belts (downstream first, see `links.rs`),
+//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick: power (`power.rs`: this tick's
+//! supply and demand), miners, boxes and processing machines, the powered machines, then belts (downstream first, see `links.rs`),
 //! and reports to the view only
 //! through `SimEvent`s. Links and the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
 //!
@@ -38,8 +38,8 @@ mod storage;
 use rustc_hash::FxHashMap;
 
 use crate::block::{
-    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, GENERATOR, LAB, LIFT, MINER, POLE, RAMP_DOWN, RAMP_UP, SMELTER,
-    SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, POLE,
+    RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
@@ -69,7 +69,7 @@ pub use constructor::ConstructorStatus;
 pub use describe::fmt_int;
 #[cfg(test)]
 pub use miner::MinerStatus;
-pub use miner::MINER_RECOVERY;
+pub use miner::{MINER_RECOVERY, MK2_RECOVERY};
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use render::{push_box, INSTANCE_FLOATS};
 #[cfg(test)]
@@ -123,7 +123,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 15] = [
+pub const MACHINES: [MachineDef; 17] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -139,6 +139,8 @@ pub const MACHINES: [MachineDef; 15] = [
     MachineDef { block: LIFT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: UNDERPASS_IN, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: UNDERPASS_OUT, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
+    MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },
 ];
 
 impl Kind {
@@ -208,11 +210,11 @@ impl Factory {
     pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3) {
         let Some(def) = machine(block) else { return };
         match def.kind {
-            Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block)),
+            Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block), block == FAST_BELT),
             Kind::Miner => {
                 let drill = face_of(against - pos);
                 let deposit = drill.and_then(|_| self.deposits.lookup(world, against));
-                self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit);
+                self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit, block == MINER_MK2);
             }
             Kind::Storage => self.add_storage(pos),
             Kind::Smelter => {
@@ -245,18 +247,18 @@ impl Factory {
 
     #[cfg(test)]
     pub fn add_belt(&mut self, pos: IVec3, dir: u8) {
-        self.add_shaped_belt(pos, dir, Shape::Flat);
+        self.add_shaped_belt(pos, dir, Shape::Flat, false);
     }
 
-    fn add_shaped_belt(&mut self, pos: IVec3, dir: u8, shape: Shape) {
+    fn add_shaped_belt(&mut self, pos: IVec3, dir: u8, shape: Shape, fast: bool) {
         self.remove(pos);
-        add_to(&mut self.belts, Belt::new(pos, dir, shape), &mut self.at, Slot::Belt);
+        add_to(&mut self.belts, Belt::new(pos, dir, shape, fast), &mut self.at, Slot::Belt);
         self.dirty = true;
     }
 
-    pub fn add_miner(&mut self, pos: IVec3, drill: u8, deposit: Option<DepositKey>) {
+    pub fn add_miner(&mut self, pos: IVec3, drill: u8, deposit: Option<DepositKey>, mk2: bool) {
         self.remove(pos);
-        add_to(&mut self.miners, Miner::new(pos, drill, deposit), &mut self.at, Slot::Miner);
+        add_to(&mut self.miners, Miner::new(pos, drill, deposit, mk2), &mut self.at, Slot::Miner);
         self.dirty = true;
     }
 
@@ -305,8 +307,10 @@ impl Factory {
             order,
             ..
         } = self;
+        power.balance(generators, miners, constructors, routers, labs, research);
         let mut sinks = Sinks { storages, smelters, constructors, routers, generators, labs };
-        for m in miners.iter_mut() {
+        for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
+            m.speed = power.speed(p);
             m.step(deposits, world, tick, belts, &mut sinks, events);
         }
         for s in sinks.storages.iter_mut() {
@@ -315,7 +319,6 @@ impl Factory {
         for s in sinks.smelters.iter_mut() {
             s.step(belts);
         }
-        power.balance(sinks.generators, sinks.constructors, sinks.routers, sinks.labs, research);
         for (c, &p) in sinks.constructors.iter_mut().zip(&power.constructor_pole) {
             c.step(belts, power.speed(p));
         }

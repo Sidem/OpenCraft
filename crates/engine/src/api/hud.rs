@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
-use crate::factory::{self, MINER_RECOVERY};
+use crate::factory::{self, MINER_RECOVERY, MK2_RECOVERY};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -76,11 +76,12 @@ impl Game {
         }
         let grade = st.grade();
         format!(
-            "{} · {} units per block\n{left}\nBy hand you keep {HAND_YIELD} and lose {}. A miner recovers {}%.",
+            "{} · {} units per block\n{left}\nBy hand you keep {HAND_YIELD} and lose {}. A Miner Mk1 recovers {}%, a Mk2 {}%.",
             st.deposit.name(),
             int(grade as u64),
             int(grade.saturating_sub(HAND_YIELD) as u64),
-            (MINER_RECOVERY * 100.0).round() as u32
+            (MINER_RECOVERY * 100.0).round() as u32,
+            (MK2_RECOVERY * 100.0).round() as u32
         )
     }
 

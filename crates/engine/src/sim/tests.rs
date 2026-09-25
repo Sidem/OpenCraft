@@ -14,7 +14,7 @@ const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0xed2f_810d_c780_e7e6;
+const GOLDEN_HASH: u64 = 0x4d5a_535f_278b_30f2;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -143,7 +143,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with a lab (step 2.8). Only a deliberate change to the rules or the state bytes may
+    // Recorded after step 2.9 (belts save their speed; power balances before miners run). Only a deliberate change to the rules or the state bytes may
     // update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

@@ -12,7 +12,7 @@
 //! Versions: 1 = items as `u8` block ids; 2 = items as `u16` `ItemId`s; 3 = adds the smelter list;
 //! 4 = adds the constructor list; 5 = adds the router (splitter, filter) list; 6 = belts have a shape;
 //! 7 = adds the generator and pole lists, constructor progress in thousandths of a tick; 8 = adds the lab
-//! list and the research after the deposits.
+//! list and the research after the deposits; 9 = miners and belts say whether they are the upgraded kind.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
@@ -22,7 +22,7 @@ use crate::worldgen::WORLDGEN_VERSION;
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 8;
+pub const SAVE_VERSION: u32 = 9;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";

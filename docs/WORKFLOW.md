@@ -83,13 +83,13 @@ Every push to `main` runs `.github/workflows/pages.yml`: engine tests, build, th
 |---|---|---|
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR` | 3, 0.2, 0.25 |
 | `deposits.rs` | `Tier::grade` / `draw_cap` (units per s) | lode 2000 / 20, vein 1000 / 4, outcrop 100 / 1 |
-| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY` | 1.0 units/s, 0.6 |
-| `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` | 1.0 blocks/s, 0.35 |
+| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MK2_RATE`, `MK2_RECOVERY` | Mk1 1.0 units/s, 0.6 · Mk2 2.0 units/s (at full power), 0.75 |
+| `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` | 1.0 and 2.0 blocks/s (about 2.9 and 5.7 items/s), 0.35 |
 | `factory/belt_shape.rs` | `UNDERPASS_RANGE` | 5 cells |
-| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER` | 60 kW (burns coal 8 s, log 4 s), 15 kW while working, 1 kW while holding an item, 10 kW while researching |
-| `research.rs` | `TECHS` (units × seconds, packs per unit) | Belt Routing 10 × 5 s red · Belt Climbing 20 × 5 s red · Green Science 30 × 5 s red · Underpasses 15 × 10 s red + green |
+| `factory/power.rs` | `GENERATOR_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER` | 60 kW (burns coal 8 s, log 4 s), Mk2 20 kW while drilling, constructor 15 kW while working, 1 kW while holding an item, 10 kW while researching |
+| `research.rs` | `TECHS` (units × seconds, packs per unit) | Belt Routing 10 × 5 s red · Belt Climbing 20 × 5 s red · Green Science 30 × 5 s red · Underpasses 15 × 10 s red + green · Miner Mk2 30 × 10 s red + green · Fast Belts 20 × 10 s red + green |
 | `factory/power.rs` | `WIRE_RANGE`, `POLE_REACH` | poles link within 10 blocks, machines hang on the nearest pole within 5 |
 | `factory/mod.rs` | `MACHINES` slots | miner 1 stack (64 ore), box 24, smelter and constructor 1 per buffer, generator 1 fuel stack, lab 1 stack per pack kind |
 | `recipes.rs` | `MACHINE_RECIPES`, `FUELS` | smelter: 1 ore → 1 ingot in 1.5 s · coal ore 8 s, log 4 s of fire · constructor: 2 iron ingots → plate 2 s, 1 → rod 2 s, rod → 4 screws 3 s, copper ingot → 2 wire 2 s |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` | per ore (outcrops per column, vein chance, lode weight); 1/40; 10 |
-| `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone · Splitter 2 plates, 2 belts · Filter 2 plates, 2 wire, 2 belts · 2 ramps (up or down) 1 plate, 2 belts · 2 lifts 2 rods, 2 belts · underpass entry or exit 2 plates, 2 belts · Generator 12 iron ingots, 8 copper ingots, 10 stone · 2 poles 1 iron ingot, 1 copper ingot, 1 log · Lab 6 plates, 8 wire, 4 belts · red pack 1 plate, 2 wire · green pack 2 belts, 4 screws |
+| `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone · Splitter 2 plates, 2 belts · Filter 2 plates, 2 wire, 2 belts · 2 ramps (up or down) 1 plate, 2 belts · 2 lifts 2 rods, 2 belts · underpass entry or exit 2 plates, 2 belts · Generator 12 iron ingots, 8 copper ingots, 10 stone · 2 poles 1 iron ingot, 1 copper ingot, 1 log · Lab 6 plates, 8 wire, 4 belts · red pack 1 plate, 2 wire · green pack 2 belts, 4 screws · Miner Mk2 a Mk1, 8 plates, 16 screws, 12 wire · 2 fast belts 2 belts, 1 plate, 4 screws |

@@ -695,3 +695,31 @@ fn a_lab_needs_one_of_each_pack_and_power() {
     assert_eq!(lab.status, LabStatus::NoPacks);
     assert_eq!(f.remove(IVec3::ZERO), vec![crate::inventory::Stack { item: RED_PACK, count: 3 }]);
 }
+
+#[test]
+fn fast_belts_carry_twice_as_much_and_mix_with_slow_ones() {
+    use crate::block::FAST_BELT;
+    let carried = |fast_cells: &[i32]| {
+        let mut f = Factory::default();
+        stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 64);
+        for x in 1..=4 {
+            if fast_cells.contains(&x) {
+                shaped(&mut f, FAST_BELT, IVec3::new(x, 0, 0), EAST);
+            } else {
+                f.add_belt(IVec3::new(x, 0, 0), EAST);
+            }
+        }
+        f.add_storage(IVec3::new(5, 0, 0));
+        run(&mut f, 5.0, spacing_ok);
+        let mut g = round_trip(&f);
+        run(&mut g, 5.0, spacing_ok);
+        assert_eq!(g.belt_at(IVec3::new(1, 0, 0)).fast, fast_cells.contains(&1), "saved");
+        g.storage_count_at(IVec3::new(5, 0, 0), IRON_ORE.into())
+    };
+    let (slow, fast) = (carried(&[]), carried(&[1, 2, 3, 4]));
+    // Items take 4 s (slow) or 2 s (fast) to reach the box, then arrive at up to 2.9 or 5.7 a second.
+    assert!(slow >= 15 && fast >= 2 * slow, "slow {slow}, fast {fast} in 10 s");
+    // A slow belt in the line limits it to slow throughput (it only arrives sooner), keeping spacing.
+    let mixed = carried(&[1, 2, 4]);
+    assert!(mixed > slow && mixed + 10 < fast, "mixed {mixed}");
+}

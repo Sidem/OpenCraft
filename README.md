@@ -130,7 +130,11 @@ size.
   every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
   the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
   2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Climbing (20 red),
-  Green Science (30 red) and Underpasses (15 red + green). A lab draws 10 kW while it works.
+  Green Science (30 red), and with red and green packs Underpasses (15), Miner Mk2 (30) and Fast Belts
+  (20). A lab draws 10 kW while it works.
+- **Upgrades.** The Miner Mk2 draws twice as fast as a Mk1 (where the deposit allows) and keeps 75% of
+  what it draws instead of 60%, so the same deposit yields a quarter more ore. It needs power (20 kW while
+  drilling). Fast belts move items at 2 blocks a second and mix freely with ordinary belts.
 - **Machine panels.** Right-click a smelter, constructor, filter, generator or lab to see what it's doing, put items in
   straight from your inventory (ore, fuel, ingots, packs), and take what it made.
 
@@ -140,7 +144,8 @@ cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 sto
 wire and 2 belts. Two ramps (up or down) cost an iron plate and 2 belts, two lifts 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 12 iron ingots, 8
 copper ingots and 10 stone; two power poles an iron ingot, a copper ingot and a log; a research lab 6 iron plates,
-8 copper wire and 4 belts. Hand-mining an outcrop or two covers
+8 copper wire and 4 belts; a Miner Mk2 a Mk1, 8 iron plates, 16 screws and 12 copper wire; two fast belts 2
+belts, an iron plate and 4 screws. Hand-mining an outcrop or two covers
 your first miner. After that, let it do the work.
 
 ## Sound designer
@@ -245,7 +250,8 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
-  23 underpass exit, 24 generator, 25 power pole, 26 research lab; items: 256 iron ingot, 257 copper ingot,
+  23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
+  28 fast belt; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
@@ -280,7 +286,7 @@ Factory layer (the Satisfactory half):
 - [ ] Machines: assembler
 - [x] Splitters and filters
 - [x] Belts that climb (ramps, lifts) and cross (underpasses)
-- [ ] Miner and belt tiers
+- [x] Miner and belt tiers (Miner Mk2, fast belts)
 - [ ] Prospecting: find veins and lodes without digging blind
 - [x] Power grid: coal generators, poles, consumption and brownouts
 - [x] Research: labs, science packs and a small tech tree

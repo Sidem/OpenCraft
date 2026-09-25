@@ -3,9 +3,9 @@
 
 use super::{n, rgb, smooth};
 
-/// Rubber belt with chevrons pointing towards texture row 0, which the belt model maps to its
+/// Rubber belt with `chevron`-coloured chevrons pointing towards texture row 0, which the belt model maps to its
 /// travel direction; the pattern repeats every 8 rows so scrolling the texture loops seamlessly.
-pub(super) fn belt_top(x: i32, y: i32) -> [u8; 4] {
+pub(super) fn belt_top(x: i32, y: i32, chevron_color: [f64; 3]) -> [u8; 4] {
     if x == 0 || x == 15 {
         return rgb([26.0, 26.0, 30.0], 1.0);
     }
@@ -14,7 +14,7 @@ pub(super) fn belt_top(x: i32, y: i32) -> [u8; 4] {
     let chevron = ((y as f64 - dx * 0.75).floor() as i32).rem_euclid(8) < 2 && dx < 6.0;
     let k = 0.9 + 0.12 * n(46, x, y);
     if chevron {
-        rgb([176.0, 150.0, 92.0], k)
+        rgb(chevron_color, k)
     } else if y % 4 == 3 {
         rgb([34.0, 34.0, 38.0], k)
     } else {
@@ -22,15 +22,15 @@ pub(super) fn belt_top(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Dark machine housing with a band of hazard stripes.
-pub(super) fn miner_side(x: i32, y: i32) -> [u8; 4] {
+/// Dark machine housing with a band of `stripe`-coloured hazard stripes.
+pub(super) fn miner_side(x: i32, y: i32, stripe: [f64; 3]) -> [u8; 4] {
     let edge = x == 0 || y == 0 || x == 15 || y == 15;
     let k = 0.88 + 0.12 * n(47, x, y);
     if edge {
         rgb([38.0, 40.0, 46.0], k)
     } else if (10..=12).contains(&y) {
         if (x + y).rem_euclid(4) < 2 {
-            rgb([232.0, 146.0, 60.0], k)
+            rgb(stripe, k)
         } else {
             rgb([40.0, 38.0, 36.0], k)
         }

@@ -277,7 +277,8 @@ impl Factory {
             r.outs = o;
         }
 
-        self.power = Power::rebuild(&self.poles, &self.generators, &self.constructors, &self.routers, &self.labs);
+        self.power =
+            Power::rebuild(&self.poles, &self.generators, &self.miners, &self.constructors, &self.routers, &self.labs);
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt
         // and appending it reversed puts every belt after the one it feeds.

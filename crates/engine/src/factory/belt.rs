@@ -4,7 +4,8 @@
 //! `belt_step` walks belts downstream first (the `order` from `links.rs`), so a moving line never
 //! stalls for a tick at cell borders. A belt hands its front item to whatever is in front of it:
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
-//! Ramps, lifts and underpasses are belts with a `shape` (`belt_shape.rs`).
+//! Ramps, lifts and underpasses are belts with a `shape` (`belt_shape.rs`); a fast belt is a flat belt
+//! with `fast` set, moving at [`FAST_BELT_SPEED`].
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -23,6 +24,7 @@ const DIR_NAMES: [&str; 4] = ["north", "east", "south", "west"];
 
 /// Belt speed in blocks per second.
 pub const BELT_SPEED: f32 = 1.0;
+pub const FAST_BELT_SPEED: f32 = 2.0;
 /// Minimum distance between item centres on a belt, in blocks.
 pub const ITEM_SPACING: f32 = 0.35;
 pub const ITEM_SIZE: f32 = 0.25;
@@ -49,12 +51,22 @@ pub struct Belt {
     /// A lift that takes items from the lift below / hands them to the lift above (derived).
     pub lift_below: bool,
     pub lift_above: bool,
+    pub fast: bool,
 }
 
 impl Belt {
-    pub fn new(pos: IVec3, dir: u8, shape: Shape) -> Belt {
+    pub fn new(pos: IVec3, dir: u8, shape: Shape, fast: bool) -> Belt {
         let (items, out, curve_from) = (Vec::new(), Link::None, None);
-        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below: false, lift_above: false }
+        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below: false, lift_above: false, fast }
+    }
+
+    /// Blocks per second.
+    pub fn speed(&self) -> f32 {
+        if self.fast {
+            FAST_BELT_SPEED
+        } else {
+            BELT_SPEED
+        }
     }
 
     /// Item offset from the cell centre (horizontal) at progress `p`.
@@ -92,9 +104,9 @@ impl Belt {
 
 /// Moves every belt's items forward by `dt` and hands front items on, downstream belts first.
 pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) {
-    let step = BELT_SPEED * dt as f32;
     for &bi in order.iter() {
         let bi = bi as usize;
+        let step = belts[bi].speed() * dt as f32;
         let out = belts[bi].out;
         let Some(front) = belts[bi].items.first().copied() else { continue };
         let mut limit = match out {
@@ -140,12 +152,13 @@ impl Machine for Belt {
         self.pos
     }
 
-    /// Core state: position, direction, shape and items (`out`, `curve_from` and the lift flags are
-    /// rebuilt by `relink`). Saves before version 6 have only flat belts.
+    /// Core state: position, direction, shape, speed and items (`out`, `curve_from` and the lift flags
+    /// are rebuilt by `relink`). Saves before version 6 have only flat belts, before 9 only slow ones.
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.dir);
         w.u8(self.shape as u8);
+        w.bool(self.fast);
         w.count(self.items.len());
         for it in &self.items {
             w.item(it.item);
@@ -156,7 +169,8 @@ impl Machine for Belt {
     fn read_state(r: &mut ByteReader) -> Option<Belt> {
         let (pos, dir) = (r.ivec3()?, r.u8()?);
         let shape = if r.version >= 6 { Shape::from_u8(r.u8()?)? } else { Shape::Flat };
-        let mut belt = Belt::new(pos, dir, shape);
+        let fast = r.version >= 9 && r.bool()?;
+        let mut belt = Belt::new(pos, dir, shape, fast);
         for _ in 0..r.count()? {
             belt.items.push(BeltItem { item: r.item()?, p: r.f32()? });
         }
@@ -201,12 +215,12 @@ impl Machine for Belt {
     /// A scrolling rubber top between two rails (or the shape's model), and the items riding on it.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let base = rel - Vec3::new(0.0, 0.5, 0.0);
-        let scroll = (time * BELT_SPEED as f64).fract() as f32;
+        let scroll = (time * self.speed() as f64).fract() as f32;
         let yaw = self.dir as f32 * FRAC_PI_2;
         let (s, c) = yaw.sin_cos();
         let at = |x: f32, y: f32, z: f32| base + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
         if matches!(self.shape, Shape::Flat | Shape::Entry | Shape::Exit) {
-            let top = [tex::BELT_TOP, tex::FRAME, tex::FRAME];
+            let top = [if self.fast { tex::FAST_BELT_TOP } else { tex::BELT_TOP }, tex::FRAME, tex::FRAME];
             push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, top, true);
             for side in [-0.46, 0.46] {
                 push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, [tex::FRAME; 3], true);

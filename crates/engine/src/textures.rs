@@ -157,9 +157,11 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             rgb([130.0, 130.0, 136.0], k)
         }
         tex::SPENT_ROCK => spent_rock(x, y),
-        tex::BELT_TOP => belt_top(x, y),
+        tex::BELT_TOP => belt_top(x, y, [176.0, 150.0, 92.0]),
+        tex::FAST_BELT_TOP => belt_top(x, y, [96.0, 170.0, 236.0]),
         tex::FRAME => frame(x, y),
-        tex::MINER_SIDE => miner_side(x, y),
+        tex::MINER_SIDE => miner_side(x, y, [232.0, 146.0, 60.0]),
+        tex::MINER_MK2_SIDE => miner_side(x, y, [96.0, 170.0, 236.0]),
         tex::MINER_TOP => miner_top(x, y),
         tex::DRILL => drill(x, y),
         tex::BOX_SIDE => crate_wood(x, y, false),

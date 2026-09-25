@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.8 done · **Next up: step 2.9
-(upgrades: Miner Mk2 and fast belts, unlocked by research)**, then 2.10 (onboarding hints).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.9 done · **Next up: step 2.10
+(onboarding hints)**, then 2.11 (milestone cleanup).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -421,11 +421,14 @@ Rules for every step:
     packs need them. The research screen (R) chooses the tech; a HUD tracker shows progress and a notice
     when a tech is done.
 
-- [ ] **2.9 Upgrades** (`factory/miner.rs`, `factory/belt.rs`, recipes, `research.rs`)
+- [x] **2.9 Upgrades** (`factory/miner.rs`, `factory/belt.rs`, recipes, `research.rs`)
   - Confirmed by the user: upgrades raise recovery, not just speed.
   - Miner Mk2: recovery about 75%, rate about 2 units/s, needs power, crafted from parts. Fast belt:
     2 blocks/s. Both unlocked by research: append techs "Miner Mk2" and "Fast Belts" to `TECHS`, needing
     Green Science and costing red + green packs.
+  - As built: `Miner.mk2` and `Belt.fast` on the existing kinds (extra `MACHINES` rows). The Mk2 draws
+    20 kW; power now balances at the start of each tick so miners see this tick's supply. One Mk2 makes
+    1.5 ore/s at most, which a plain belt (2.9 items/s) already carries; a fast belt carries 5.7.
   - **Done when:** tests show Mk2 extracting more ore from the same deposit than Mk1; a fast belt keeps up
     with a Mk2.
 
@@ -578,4 +581,9 @@ and the balance numbers. Read the section you need.
   ramps, lifts and underpasses need research before more can be crafted; placed ones keep working).
   Golden hash re-recorded with a lab in the script. Browser: an existing version-7 world loaded; two labs
   researched Belt Routing at 2 units per 5 s, the notice showed and the splitter unlocked. Tests 102 →
-  109; wasm 112.1 → 118.3 KB gzipped (the lab, 14 research exports, textures).
+  109; wasm 112.1 → 118.3 KB gzipped (the lab, 14 research exports, textures).- **2026-09-25:** Step 2.9 (upgrades) done. Miner Mk2 (`MK2_RATE` 2 units/s, `MK2_RECOVERY` 0.75,
+  `MINER_MK2_POWER` 20 kW) and fast belts (`FAST_BELT_SPEED` 2 blocks/s) are the existing miner and belt
+  kinds with a flag, each an extra `MACHINES` row and block; both unlocked by new techs needing Green
+  Science. `Factory::update` now balances power before miners run. Saves are version 9 (the flags);
+  golden hash re-recorded. Tests: a Mk2 on the same outcrop draws the same (the cap) but keeps 25% more;
+  fast belts carry twice as much and mix with slow ones. Tests 109 → 111.

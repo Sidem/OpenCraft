@@ -3,12 +3,13 @@
 //! - A pole links to every pole within `WIRE_RANGE`; each connected group is a grid. A generator or a
 //!   powered machine joins the grid of the nearest pole within `POLE_REACH` (ties: the lower pole
 //!   index). All of this is derived from positions (`rebuild`, run by `relink`), never saved.
-//! - Each tick `balance` adds up what each grid's machines need (`CONSTRUCTOR_POWER` while one works,
+//! - Each tick `balance` adds up what each grid's machines need (`MINER_MK2_POWER` while a Mk2 drills,
+//!   `CONSTRUCTOR_POWER` while one works,
 //!   `ROUTER_POWER` while a splitter or filter holds an item, `LAB_POWER` while a lab researches), then burns generators in list order
 //!   until supply covers demand. A grid short of power runs its machines at `speed` = supply / demand.
 //!   Generators burn only while their grid needs power.
 //!
-//! Consumers: the constructor, splitter, filter and lab. The miner and smelter are the unpowered burner
+//! Consumers: the Miner Mk2, constructor, splitter, filter and lab. The Mk1 miner and smelter are the unpowered burner
 //! tier. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
 //! `balance`, and a speed argument to its `step`.
 
@@ -22,12 +23,15 @@ use crate::research::Research;
 use super::constructor::Constructor;
 use super::generator::Generator;
 use super::lab::Lab;
+use super::miner::Miner;
 use super::render::push_box;
 use super::router::Router;
 use super::{ticks, Factory, Machine};
 
 /// What one burning generator supplies, in kW.
 pub const GENERATOR_POWER: u32 = 60;
+/// What a drilling Miner Mk2 draws, in kW.
+pub const MINER_MK2_POWER: u32 = 20;
 /// What a working constructor draws, in kW.
 pub const CONSTRUCTOR_POWER: u32 = 15;
 /// What a splitter or filter draws while it holds an item, in kW.
@@ -53,8 +57,9 @@ pub(crate) struct Power {
     pub pole_grid: Vec<u32>,
     /// Pole pairs that are wired together (lower index first).
     pub wires: Vec<(u32, u32)>,
-    /// The pole each generator, constructor, router and lab hangs on, if any is in reach.
+    /// The pole each generator, miner (Mk2 only), constructor, router and lab hangs on, if any is in reach.
     pub gen_pole: Vec<Option<u32>>,
+    pub miner_pole: Vec<Option<u32>>,
     pub constructor_pole: Vec<Option<u32>>,
     pub router_pole: Vec<Option<u32>>,
     pub lab_pole: Vec<Option<u32>>,
@@ -68,6 +73,7 @@ impl Power {
     pub fn rebuild(
         poles: &[Pole],
         gens: &[Generator],
+        miners: &[Miner],
         constructors: &[Constructor],
         routers: &[Router],
         labs: &[Lab],
@@ -101,6 +107,7 @@ impl Power {
             pole_grid,
             wires,
             gen_pole: gens.iter().map(|g| hang(g.pos)).collect(),
+            miner_pole: miners.iter().map(|m| if m.mk2 { hang(m.pos) } else { None }).collect(),
             constructor_pole: constructors.iter().map(|c| hang(c.pos)).collect(),
             router_pole: routers.iter().map(|r| hang(r.pos)).collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
@@ -113,6 +120,7 @@ impl Power {
     pub fn balance(
         &mut self,
         gens: &mut [Generator],
+        miners: &[Miner],
         constructors: &[Constructor],
         routers: &[Router],
         labs: &[Lab],
@@ -120,6 +128,11 @@ impl Power {
     ) {
         self.supply.iter_mut().for_each(|s| *s = 0);
         self.demand.iter_mut().for_each(|d| *d = 0);
+        for (m, p) in miners.iter().zip(&self.miner_pole) {
+            if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
+                self.demand[self.pole_grid[p as usize] as usize] += MINER_MK2_POWER;
+            }
+        }
         for (c, p) in constructors.iter().zip(&self.constructor_pole) {
             if let Some(&p) = p.as_ref().filter(|_| c.wants_power()) {
                 self.demand[self.pole_grid[p as usize] as usize] += CONSTRUCTOR_POWER;
@@ -203,7 +216,8 @@ impl Machine for Pole {
         let on = |p: &Option<u32>| p.is_some_and(|p| Some(f.power.pole_grid[p as usize]) == grid);
         let poles = f.power.pole_grid.iter().filter(|&&g| Some(g) == grid).count();
         let gens = f.power.gen_pole.iter().filter(|p| on(p)).count();
-        let machines = f.power.constructor_pole.iter().chain(&f.power.router_pole).chain(&f.power.lab_pole);
+        let machines = f.power.miner_pole.iter().chain(&f.power.constructor_pole).chain(&f.power.router_pole);
+        let machines = machines.chain(&f.power.lab_pole);
         let machines = machines.filter(|p| on(p)).count();
         format!(
             "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\nLinks to poles within \
@@ -239,6 +253,7 @@ impl Factory {
         }
         let hookups = [
             (&self.power.gen_pole, self.generators.iter().map(|g| g.pos).collect::<Vec<_>>()),
+            (&self.power.miner_pole, self.miners.iter().map(|m| m.pos).collect()),
             (&self.power.constructor_pole, self.constructors.iter().map(|c| c.pos).collect()),
             (&self.power.router_pole, self.routers.iter().map(|r| r.pos).collect()),
             (&self.power.lab_pole, self.labs.iter().map(|l| l.pos).collect()),

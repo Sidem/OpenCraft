@@ -37,7 +37,9 @@ pub const UNDERPASS_OUT: BlockId = 23;
 pub const GENERATOR: BlockId = 24;
 pub const POLE: BlockId = 25;
 pub const LAB: BlockId = 26;
-pub const BLOCK_COUNT: usize = 27;
+pub const MINER_MK2: BlockId = 27;
+pub const FAST_BELT: BlockId = 28;
+pub const BLOCK_COUNT: usize = 29;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -86,7 +88,9 @@ pub mod tex {
     pub const LAB_TOP: u16 = 42;
     pub const RED_PACK: u16 = 43;
     pub const GREEN_PACK: u16 = 44;
-    pub const COUNT: usize = 45;
+    pub const MINER_MK2_SIDE: u16 = 45;
+    pub const FAST_BELT_TOP: u16 = 46;
+    pub const COUNT: usize = 47;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -202,6 +206,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Coal Generator", true, 0.8, pillar(tex::GENERATOR_SIDE, tex::GENERATOR_TOP, tex::FRAME), GENERATOR),
     machine("Power Pole", false, 0.3, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), POLE),
     machine("Research Lab", true, 0.8, pillar(tex::LAB_SIDE, tex::LAB_TOP, tex::FRAME), LAB),
+    machine("Miner Mk2", true, 0.8, pillar(tex::MINER_MK2_SIDE, tex::MINER_TOP, tex::FRAME), MINER_MK2),
+    machine("Fast Belt", false, 0.3, pillar(tex::FRAME, tex::FAST_BELT_TOP, tex::FRAME), FAST_BELT),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

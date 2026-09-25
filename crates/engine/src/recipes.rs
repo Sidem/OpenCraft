@@ -138,6 +138,19 @@ pub const RECIPES: &[Recipe] = &[
         inputs: &[(b(BELT), 2), (SCREW, 4)],
         blurb: "A lab uses these, with red packs, for later techs.",
     },
+    Recipe {
+        output: b(MINER_MK2),
+        count: 1,
+        inputs: &[(b(MINER), 1), (IRON_PLATE, 8), (SCREW, 16), (COPPER_WIRE, 12)],
+        blurb: "Drills twice as fast as a Mk1 and recovers 75% of what it draws, so the same deposit gives \
+                more ore. Needs power.",
+    },
+    Recipe {
+        output: b(FAST_BELT),
+        count: 2,
+        inputs: &[(b(BELT), 2), (IRON_PLATE, 1), (SCREW, 4)],
+        blurb: "Carries items twice as fast as a belt. Mixes freely with ordinary belts.",
+    },
 ];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after
