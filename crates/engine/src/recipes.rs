@@ -71,6 +71,40 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "Sends the item you choose straight on and everything else to the left and right. \
                 Right-click to choose the item.",
     },
+    Recipe {
+        output: b(RAMP_UP),
+        count: 2,
+        inputs: &[(IRON_PLATE, 1), (b(BELT), 2)],
+        blurb: "A belt that climbs one level: it hands items on one block ahead and one up. Place it \
+                facing uphill.",
+    },
+    Recipe {
+        output: b(RAMP_DOWN),
+        count: 2,
+        inputs: &[(IRON_PLATE, 1), (b(BELT), 2)],
+        blurb: "A belt that goes down one level: a belt one block up behind it feeds its high end. Place \
+                it facing downhill.",
+    },
+    Recipe {
+        output: b(LIFT),
+        count: 2,
+        inputs: &[(IRON_ROD, 2), (b(BELT), 2)],
+        blurb: "Carries items straight up. Stack lifts facing the same way to climb higher; the top one \
+                hands items on one block ahead and one up.",
+    },
+    Recipe {
+        output: b(UNDERPASS_IN),
+        count: 1,
+        inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
+        blurb: "Takes items under whatever is in front of it to an underpass exit facing the same way, \
+                up to 5 blocks ahead. Lets belts cross.",
+    },
+    Recipe {
+        output: b(UNDERPASS_OUT),
+        count: 1,
+        inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
+        blurb: "Where items come back up from an underpass entry behind it, then carry on like a belt.",
+    },
 ];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after

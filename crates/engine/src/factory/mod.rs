@@ -1,4 +1,4 @@
-//! Factory machines: conveyor belts, miners, storage boxes, smelters, constructors, splitters and filters.
+//! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors, splitters and filters.
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
 //! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
@@ -17,6 +17,7 @@
 //! recipe in `recipes.rs`.
 
 mod belt;
+mod belt_shape;
 mod buffer;
 mod constructor;
 mod describe;
@@ -30,7 +31,10 @@ mod storage;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, MINER, SMELTER, SPLITTER, STORAGE};
+use crate::block::{
+    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, LIFT, MINER, RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE,
+    UNDERPASS_IN, UNDERPASS_OUT,
+};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
@@ -42,6 +46,7 @@ use crate::world::World;
 use crate::{TICK, TICK_RATE};
 
 use belt::{belt_step, Belt};
+use belt_shape::Shape;
 use constructor::Constructor;
 use links::{Sinks, Slot};
 use miner::Miner;
@@ -105,7 +110,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 7] = [
+pub const MACHINES: [MachineDef; 12] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: false },
@@ -113,6 +118,11 @@ pub const MACHINES: [MachineDef; 7] = [
     MachineDef { block: CONSTRUCTOR, kind: Kind::Constructor, slots: 1, panel: true },
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
     MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
+    MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: LIFT, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: UNDERPASS_IN, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: UNDERPASS_OUT, kind: Kind::Belt, slots: 0, panel: false },
 ];
 
 impl Kind {
@@ -175,7 +185,7 @@ impl Factory {
     pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3) {
         let Some(def) = machine(block) else { return };
         match def.kind {
-            Kind::Belt => self.add_belt(pos, facing),
+            Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block)),
             Kind::Miner => {
                 let drill = face_of(against - pos);
                 let deposit = drill.and_then(|_| self.deposits.lookup(world, against));
@@ -198,9 +208,14 @@ impl Factory {
         self.dirty = true;
     }
 
+    #[cfg(test)]
     pub fn add_belt(&mut self, pos: IVec3, dir: u8) {
+        self.add_shaped_belt(pos, dir, Shape::Flat);
+    }
+
+    fn add_shaped_belt(&mut self, pos: IVec3, dir: u8, shape: Shape) {
         self.remove(pos);
-        add_to(&mut self.belts, Belt::new(pos, dir), &mut self.at, Slot::Belt);
+        add_to(&mut self.belts, Belt::new(pos, dir, shape), &mut self.at, Slot::Belt);
         self.dirty = true;
     }
 

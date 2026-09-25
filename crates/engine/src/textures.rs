@@ -277,6 +277,34 @@ fn router_top(x: i32, y: i32, filter: bool) -> [u8; 4] {
     }
 }
 
+/// Icon sides of the belts that climb and cross: a steel panel with the belt's path in rubber
+/// (`kind`: 0 ramp up, 1 ramp down, 2 lift, 3 underpass entry, 4 underpass exit). An underpass has an
+/// amber hood over the end where items go under or come back up.
+fn belt_side(x: i32, y: i32, kind: u8) -> [u8; 4] {
+    let (fx, fy) = (x as f64, 15.0 - y as f64);
+    let path = match kind {
+        0 => (fy - fx).abs() < 2.5,
+        1 => (fy + fx - 15.0).abs() < 2.5,
+        2 => (fx - 7.5).abs() < 3.0,
+        _ => (1.0..5.0).contains(&fy),
+    };
+    let stripe = (y as f64 + (fx - 7.5).abs() * 0.8) as i32 % 5 == 0;
+    let (hx, hy) = (fx - if kind == 3 { 11.5 } else { 3.5 }, fy - 2.0);
+    let hood = kind >= 3 && hy >= 0.0 && (4.5..7.0).contains(&(hx * hx + hy * hy).sqrt());
+    let k = 0.9 + 0.1 * n(65, x, y);
+    if x == 0 || y == 0 || x == 15 || y == 15 {
+        rgb([34.0, 36.0, 42.0], k)
+    } else if hood {
+        rgb([236.0, 170.0, 60.0], k)
+    } else if path && kind == 2 && stripe {
+        rgb([176.0, 150.0, 92.0], k)
+    } else if path {
+        rgb([40.0, 40.0, 46.0], k)
+    } else {
+        rgb([120.0, 126.0, 134.0], k)
+    }
+}
+
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
         tex::STONE => stone(x, y),
@@ -345,6 +373,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::CONSTRUCTOR_TOP => constructor(x, y, false),
         tex::SPLITTER_TOP => router_top(x, y, false),
         tex::FILTER_TOP => router_top(x, y, true),
+        tex::RAMP_UP_SIDE..=tex::UNDERPASS_OUT_SIDE => belt_side(x, y, (layer - tex::RAMP_UP_SIDE) as u8),
         _ => [255, 0, 255, 255],
     }
 }

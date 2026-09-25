@@ -101,6 +101,10 @@ size.
   chunks that aren't loaded. A worked-out deposit is gone for good.
 - **Conveyor belts** carry items one block per second and run the way you were facing when you placed
   them. A belt ending in another belt's side merges into it. A belt fed only from one side turns the corner.
+- **Climbing and crossing.** A ramp up hands items on one block ahead and one up; a ramp down takes them
+  from a belt one block up behind it. Stacked lifts carry items straight up, and the top one hands them on
+  one ahead and one up. An underpass entry sends items under whatever is in front of it to the nearest
+  exit facing the same way, up to 5 blocks ahead, so two lines can cross.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box or miner to take its contents.
 - **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns. Feed it ore
@@ -119,8 +123,9 @@ size.
 
 Craft machines in the build menu (E): a Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
-4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, and a filter 2 iron plates, 2 copper
-wire and 2 belts. Hand-mining an outcrop or two covers
+4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
+wire and 2 belts. Two ramps (up or down) cost an iron plate and 2 belts, two lifts 2 iron rods and 2
+belts, and an underpass entry or exit 2 iron plates and 2 belts. Hand-mining an outcrop or two covers
 your first miner. After that, let it do the work.
 
 ## Sound designer
@@ -224,7 +229,8 @@ works from any sub-path.
 For debugging, the running game is exposed as `window.opencraft.game` in the devtools console. For example:
 
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
-  12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter; items: 256 iron ingot, 257 copper ingot, 258 iron
+  12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
+  23 underpass exit; items: 256 iron ingot, 257 copper ingot, 258 iron
   plate, 259 iron rod, 260 screws, 261 copper wire.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
@@ -258,7 +264,8 @@ Factory layer (the Satisfactory half):
 - [x] Constructor and parts (plates, rods, screws, wire), with a machine panel
 - [ ] Machines: assembler
 - [x] Splitters and filters
-- [ ] Miner and belt tiers, belts that climb
+- [x] Belts that climb (ramps, lifts) and cross (underpasses)
+- [ ] Miner and belt tiers
 - [ ] Prospecting: find veins and lodes without digging blind
 - [ ] Power grid: generators, poles, consumption
 - [ ] Research, and an optional endgame megaproject that doesn't end the game

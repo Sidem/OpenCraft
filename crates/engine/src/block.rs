@@ -29,7 +29,12 @@ pub const SMELTER: BlockId = 15;
 pub const CONSTRUCTOR: BlockId = 16;
 pub const SPLITTER: BlockId = 17;
 pub const FILTER: BlockId = 18;
-pub const BLOCK_COUNT: usize = 19;
+pub const RAMP_UP: BlockId = 19;
+pub const RAMP_DOWN: BlockId = 20;
+pub const LIFT: BlockId = 21;
+pub const UNDERPASS_IN: BlockId = 22;
+pub const UNDERPASS_OUT: BlockId = 23;
+pub const BLOCK_COUNT: usize = 24;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -66,7 +71,12 @@ pub mod tex {
     pub const CONSTRUCTOR_TOP: u16 = 30;
     pub const SPLITTER_TOP: u16 = 31;
     pub const FILTER_TOP: u16 = 32;
-    pub const COUNT: usize = 33;
+    pub const RAMP_UP_SIDE: u16 = 33;
+    pub const RAMP_DOWN_SIDE: u16 = 34;
+    pub const LIFT_SIDE: u16 = 35;
+    pub const UNDERPASS_IN_SIDE: u16 = 36;
+    pub const UNDERPASS_OUT_SIDE: u16 = 37;
+    pub const COUNT: usize = 38;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -174,6 +184,11 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Constructor", true, 0.8, pillar(tex::CONSTRUCTOR_SIDE, tex::CONSTRUCTOR_TOP, tex::FRAME), CONSTRUCTOR),
     machine("Splitter", false, 0.4, pillar(tex::FRAME, tex::SPLITTER_TOP, tex::FRAME), SPLITTER),
     machine("Filter", false, 0.4, pillar(tex::FRAME, tex::FILTER_TOP, tex::FRAME), FILTER),
+    machine("Belt Ramp Up", false, 0.3, pillar(tex::RAMP_UP_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_UP),
+    machine("Belt Ramp Down", false, 0.3, pillar(tex::RAMP_DOWN_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_DOWN),
+    machine("Belt Lift", false, 0.4, pillar(tex::LIFT_SIDE, tex::FRAME, tex::FRAME), LIFT),
+    machine("Underpass Entry", false, 0.4, pillar(tex::UNDERPASS_IN_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_IN),
+    machine("Underpass Exit", false, 0.4, pillar(tex::UNDERPASS_OUT_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_OUT),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

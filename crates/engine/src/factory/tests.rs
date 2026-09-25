@@ -456,3 +456,82 @@ fn a_filter_with_no_item_sends_everything_aside() {
     router(&mut f, IVec3::new(5, 0, 5), EAST, false);
     assert!(f.panel(IVec3::new(5, 0, 5)).is_none(), "a splitter has none");
 }
+
+/// Places belt block `block` (any shape) at `pos` facing `dir`.
+fn shaped(f: &mut Factory, block: BlockId, pos: IVec3, dir: u8) {
+    f.place(&mut World::new(1, 2), block, pos, dir, pos);
+}
+
+/// The factory after its bytes are written and read back, checking they read back unchanged.
+fn round_trip(f: &Factory) -> Factory {
+    let mut w = crate::bytes::ByteWriter::default();
+    f.write_state(&mut w);
+    let g = Factory::read_state(&mut World::new(1, 2), &mut crate::bytes::ByteReader::new(&w.bytes)).unwrap();
+    let mut again = crate::bytes::ByteWriter::default();
+    g.write_state(&mut again);
+    assert!(again.bytes == w.bytes);
+    g
+}
+
+#[test]
+fn items_climb_a_ramp_and_come_back_down() {
+    use crate::block::{RAMP_DOWN, RAMP_UP};
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 8);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    shaped(&mut f, RAMP_UP, IVec3::new(2, 0, 0), EAST);
+    f.add_belt(IVec3::new(3, 1, 0), EAST);
+    shaped(&mut f, RAMP_DOWN, IVec3::new(4, 0, 0), EAST);
+    f.add_storage(IVec3::new(5, 0, 0));
+    run(&mut f, 4.0, spacing_ok);
+    assert!(matches!(f.belt_at(IVec3::new(2, 0, 0)).out, Link::Belt { mid: false, .. }), "up onto the high belt");
+    assert!(matches!(f.belt_at(IVec3::new(3, 1, 0)).out, Link::Belt { mid: false, .. }), "down the ramp");
+    let ramp = f.belt_at(IVec3::new(2, 0, 0));
+    assert_eq!((ramp.item_at(0.0).1, ramp.item_at(1.0).1), (0.0, 1.0));
+    let mut g = round_trip(&f);
+    run(&mut g, 15.0, spacing_ok);
+    assert_eq!(g.storage_count_at(IVec3::new(5, 0, 0), IRON_ORE.into()), 8);
+}
+
+#[test]
+fn a_stack_of_lifts_carries_items_up_and_hands_them_on_ahead() {
+    use crate::block::LIFT;
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 6);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    for y in 0..3 {
+        shaped(&mut f, LIFT, IVec3::new(2, y, 0), EAST);
+    }
+    f.add_storage(IVec3::new(3, 3, 0));
+    run(&mut f, 20.0, spacing_ok);
+    assert_eq!(f.storage_count_at(IVec3::new(3, 3, 0), IRON_ORE.into()), 6);
+    let (bottom, top) = (f.belt_at(IVec3::new(2, 0, 0)), f.belt_at(IVec3::new(2, 2, 0)));
+    assert_eq!((bottom.lift_below, bottom.lift_above, top.lift_below, top.lift_above), (false, true, true, false));
+    assert_eq!(top.item_at(1.0), (0.5, 1.0, 0.0), "the top lift hands on ahead and up");
+}
+
+#[test]
+fn an_underpass_carries_items_under_a_crossing_belt() {
+    use crate::block::{COAL_ORE, UNDERPASS_IN, UNDERPASS_OUT};
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 6);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    shaped(&mut f, UNDERPASS_IN, IVec3::new(2, 0, 0), EAST);
+    // A coal line running south crosses at x = 3.
+    stocked_box(&mut f, IVec3::new(3, 0, -3), COAL_ORE.into(), 6);
+    for z in -2..=2 {
+        f.add_belt(IVec3::new(3, 0, z), SOUTH);
+    }
+    f.add_storage(IVec3::new(3, 0, 3));
+    shaped(&mut f, UNDERPASS_OUT, IVec3::new(5, 0, 0), EAST);
+    f.add_storage(IVec3::new(6, 0, 0));
+    // A machine doesn't feed an exit, and the exit's back doesn't take from the line beside it.
+    stocked_box(&mut f, IVec3::new(4, 0, 0), COAL_ORE.into(), 3);
+    run(&mut f, 3.0, spacing_ok);
+    let mut g = round_trip(&f);
+    run(&mut g, 20.0, spacing_ok);
+    let count = |pos, item: BlockId| g.storage_count_at(pos, item.into());
+    assert_eq!((count(IVec3::new(6, 0, 0), IRON_ORE), count(IVec3::new(6, 0, 0), COAL_ORE)), (6, 0));
+    assert_eq!((count(IVec3::new(3, 0, 3), COAL_ORE), count(IVec3::new(3, 0, 3), IRON_ORE)), (6, 0));
+    assert_eq!(count(IVec3::new(4, 0, 0), COAL_ORE), 3);
+}

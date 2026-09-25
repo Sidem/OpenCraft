@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.5 done · **Next up: step 2.6
-(climbing and crossing).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.6 done · **Next up: step 2.7
+(power).** Steps 2.8 and 2.9 wait for the user's answers (section 6).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -147,11 +147,11 @@ Each frame, `web/src/main.ts`:
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
   exports and imports them.
-- **Size:** about 131 KB gzipped in total (wasm 99.7 KB, JS 30 KB, CSS 4 KB).
+- **Size:** about 131 KB gzipped in total (wasm 102.4 KB, JS 30 KB, CSS 4 KB).
 
 ### Known limitations and technical debt
 
-1. Belts can't climb or cross (step 2.6). Players can't put items
+1. Players can't put items
    into a box by hand (machines take them through their panel).
 2. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
    isn't loaded), only the local player has hands, nothing draws other players' bodies, and a leaving
@@ -385,11 +385,13 @@ Rules for every step:
   - *Done:* one `Router` machine kind serves both blocks (`MACHINES` gained a second row per kind). The
     splitter and filter recipes are the first to use parts (plates, wire).
 
-- [ ] **2.6 Belt logistics: climbing and crossing** (`factory/belt.rs`, `factory/links.rs`, models)
+- [x] **2.6 Belt logistics: climbing and crossing** (`factory/belt_shape.rs`, `factory/links.rs`)
   - Ramps: a belt that rises or falls one block per cell. A vertical lift for taller climbs. An
     underpass that carries items under a crossing belt for a few cells.
   - Everything stays on the grid (free-form curves fight the voxels).
   - **Done when:** tests for items going up a ramp, up a lift and under a crossing; screenshot.
+  - *Done:* five belt blocks share `Kind::Belt` with a saved `shape`. Items cross an underpass
+    instantly (hidden under the hoods); a lift entered from the side of a stack pops to its centre.
 
 - [ ] **2.7 Power** (`factory/power.rs`, generator and pole blocks, wire instances)
   - A coal generator burns fuel into power. Poles link with wires to other poles and machines in range.
@@ -530,3 +532,11 @@ and the balance numbers. Read the section you need.
   lines). Saves are version 5 (adds the router list); golden hash re-recorded with a filter in the
   script. Browser: constructor → splitter → three boxes, 6 plates each per minute. Tests 90 → 93; wasm
   97.1 → 99.7 KB gzipped.
+- **2026-09-25:** Step 2.6 (climbing and crossing) done. `factory/belt_shape.rs`: ramp up, ramp down,
+  lift and underpass entry/exit are belts with a `Shape` (extra `MACHINES` rows of `Kind::Belt`), so
+  items, spacing and `belt_step` are shared; `relink` works out each shape's output (an `into` helper
+  for "arriving at cell t going dir"), lift stacks and which belts machines may feed (not down ramps or
+  exits). Models: stepped ramps, lift posts, underpass hoods. Saves are version 6 (belts gain a shape;
+  a version-5 world loaded in the browser); golden hash re-recorded with a ramp the box feeds. Browser:
+  plates up two lifts onto a hill, under a crossing belt and down a ramp into a box. Tests 93 → 96;
+  wasm 99.7 → 102.4 KB gzipped.

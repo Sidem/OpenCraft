@@ -2,7 +2,7 @@
 //! chunks happen to be loaded, and a core read back from its bytes carries on identically.
 
 use super::*;
-use crate::block::{AIR, BELT, CONSTRUCTOR, FILTER, IRON_ORE, MINER, SMELTER, SPENT_ROCK, STONE, STORAGE};
+use crate::block::{AIR, BELT, CONSTRUCTOR, FILTER, IRON_ORE, MINER, RAMP_UP, SMELTER, SPENT_ROCK, STONE, STORAGE};
 use crate::deposits::{owner_of, DepositKey, Tier};
 use crate::item::{IRON_INGOT, IRON_PLATE};
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
@@ -11,7 +11,7 @@ const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0xa26d_0f7e_b6b0_f0cb;
+const GOLDEN_HASH: u64 = 0xceb4_8825_0603_f9cb;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -43,7 +43,7 @@ fn outcrop() -> (IVec3, IVec3, DepositKey) {
 /// The action log: A builds a miner on the outcrop's top block feeding two belts into a box, crafts
 /// belts and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
 /// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
-/// ingots it puts in by hand, and a filter set to plates.
+/// ingots it puts in by hand, a filter set to plates, and a ramp the box feeds.
 fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let cell = |dx| top + IVec3::new(dx, 1, 0);
     let above_box = cell(3) + IVec3::new(0, 1, 0);
@@ -68,13 +68,14 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (0, B, give(CONSTRUCTOR.into(), 1)),
         (0, B, give(IRON_INGOT, 5)),
         (0, B, give(FILTER.into(), 1)),
+        (0, B, give(RAMP_UP.into(), 1)),
         (1, B, Action::BreakBlock { pos: above_box }),
         (1, B, Action::BreakBlock { pos: above_miner }),
         (1, B, Action::BreakBlock { pos: press }),
         (1, B, Action::BreakBlock { pos: sieve }),
     ];
     // Clear the cells first (breaking air does nothing).
-    log.extend((0..4).map(|dx| (1, A, Action::BreakBlock { pos: cell(dx) })));
+    log.extend((0..5).map(|dx| (1, A, Action::BreakBlock { pos: cell(dx) })));
     log.extend([
         (2, A, place(cell(0), 0, 0, top)),
         (2, A, place(cell(1), 1, 1, cell(1))),
@@ -87,6 +88,7 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (5, B, Action::Insert { pos: press, item: IRON_INGOT }),
         (6, B, place(sieve, 4, 1, cell(1))),
         (7, B, Action::SetFilter { pos: sieve, item: IRON_PLATE }),
+        (8, B, place(cell(4), 5, 1, cell(4))),
         (5, A, Action::BreakBlock { pos: other }),
     ]);
     log
@@ -120,7 +122,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with a filter (step 2.5). Only a deliberate change to the rules or the state bytes may
+    // Recorded with a ramp (step 2.6). Only a deliberate change to the rules or the state bytes may
     // update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 
@@ -137,6 +139,8 @@ fn same_actions_give_the_same_state_every_tick() {
     assert_eq!((press.out.total(), press.input.total()), (2, 1), "two plates from four ingots, one left");
     assert_eq!(a.player(B).unwrap().inventory.count(IRON_INGOT), 0);
     assert_eq!(a.factory.panel(top + IVec3::new(1, 2, 0)).and_then(|p| p.filter), Some(IRON_PLATE));
+    let ramp = a.factory.belt_at(top + IVec3::new(4, 1, 0));
+    assert!(ramp.item_at(1.0).1 == 1.0 && !ramp.items.is_empty(), "the box feeds the ramp");
 }
 
 #[test]

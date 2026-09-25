@@ -39,6 +39,7 @@ folder with `mod.rs`.
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
 | `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, state bytes, `update` (one tick, emits `SimEvent`s) |
+| `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE` |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step`; its bytes, readout and model; belt constants |
 | `factory/miner.rs` | Miner Mk1: `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
@@ -47,7 +48,7 @@ folder with `mod.rs`.
 | `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
 | `factory/constructor.rs` | Constructor: one input into parts with the recipe chosen in its panel; `set_recipe` hands inputs back; bytes, readout, panel, model |
 | `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role, filter item), `set_recipe`, `set_filter`, `insert`, `wants`, `take_contents` |
-| `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs, corners, machine outputs, downstream-first belt order (derived data) |
+| `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs for every shape, corners, lift stacks, machine outputs, downstream-first belt order (derived data) |
 | `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models |
 | `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
 | `entities.rs` | Dropped items: physics, magnet pickup by the nearest `Collector` with room, instances |
