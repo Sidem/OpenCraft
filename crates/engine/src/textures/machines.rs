@@ -246,3 +246,44 @@ pub(super) fn pole(x: i32, y: i32) -> [u8; 4] {
         [0, 0, 0, 0]
     }
 }
+
+/// Research lab: white panels with a blue band and a window of glowing flasks on the side; a glass
+/// dome ring on top.
+pub(super) fn lab(x: i32, y: i32, top: bool) -> [u8; 4] {
+    let k = 0.9 + 0.1 * n(68, x, y);
+    if x == 0 || y == 0 || x == 15 || y == 15 {
+        return rgb([60.0, 70.0, 88.0], k);
+    }
+    if top {
+        let r = ((x as f64 - 7.5).powi(2) + (y as f64 - 7.5).powi(2)).sqrt();
+        return match r {
+            r if r < 4.5 => rgb([120.0, 190.0, 236.0], 0.9 + 0.3 * n(69, x, y)),
+            r if r < 5.5 => rgb([60.0, 70.0, 88.0], k),
+            _ => rgb([214.0, 220.0, 228.0], k),
+        };
+    }
+    if (4..=9).contains(&y) && (3..=12).contains(&x) {
+        let flask = [[220.0, 70.0, 64.0], [80.0, 196.0, 96.0]][((x - 3) / 5) as usize];
+        return if y >= 6 && (x - 3) % 5 != 4 { rgb(flask, k) } else { rgb([30.0, 36.0, 48.0], 1.0) };
+    }
+    if (11..=12).contains(&y) {
+        rgb([70.0, 118.0, 200.0], k)
+    } else {
+        rgb([214.0, 220.0, 228.0], k)
+    }
+}
+
+/// Science pack: a glass flask of coloured liquid with a cork, on a clear background.
+pub(super) fn flask(x: i32, y: i32, c: [f64; 3]) -> [u8; 4] {
+    let k = 0.9 + 0.12 * n(70, x, y);
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 10.0);
+    if (1..=2).contains(&y) && (6..=9).contains(&x) {
+        rgb([150.0, 106.0, 70.0], k)
+    } else if (3..=5).contains(&y) && (6..=9).contains(&x) {
+        rgb([200.0, 216.0, 226.0], k)
+    } else if dx * dx + dy * dy < 26.0 {
+        rgb(c, if dx + dy < -3.0 { 1.3 } else { k })
+    } else {
+        [0, 0, 0, 0]
+    }
+}

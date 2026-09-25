@@ -1,4 +1,5 @@
-//! The factory's core state bytes: every machine list in `Vec` order, kind by kind, then the deposits.
+//! The factory's core state bytes: every machine list in `Vec` order, kind by kind, then the deposits
+//! and the research.
 //! Derived data (`at` is rebuilt while reading; links, order and power at the first `update`) is not
 //! saved. To add a kind: append its list to both functions, read behind a `r.version` check.
 
@@ -7,6 +8,7 @@ use rustc_hash::FxHashMap;
 use super::{add_to, Factory, Machine, Slot};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
+use crate::research::Research;
 use crate::world::World;
 
 impl Factory {
@@ -21,12 +23,14 @@ impl Factory {
         write_list(w, &self.routers);
         write_list(w, &self.generators);
         write_list(w, &self.poles);
+        write_list(w, &self.labs);
         self.deposits.write_state(w);
+        self.research.write_state(w);
     }
 
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
-    /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power.
+    /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power, before 8 no labs or research.
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
         read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
@@ -45,7 +49,13 @@ impl Factory {
             read_list(r, &mut f.generators, &mut f.at, Slot::Generator)?;
             read_list(r, &mut f.poles, &mut f.at, Slot::Pole)?;
         }
+        if r.version >= 8 {
+            read_list(r, &mut f.labs, &mut f.at, Slot::Lab)?;
+        }
         f.deposits.read_state(world, r)?;
+        if r.version >= 8 {
+            f.research = Research::read_state(r)?;
+        }
         Some(f)
     }
 }

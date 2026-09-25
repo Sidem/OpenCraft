@@ -1,7 +1,7 @@
 use super::*;
 use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE};
 use crate::inventory::INVENTORY_SLOTS;
-use crate::item::MAX_STACK;
+use crate::item::{IRON_PLATE, MAX_STACK};
 
 const P: PlayerId = PlayerId(0);
 /// The box as an item, for matching events.
@@ -174,4 +174,21 @@ fn a_powered_line_works_where_no_chunk_is_loaded() {
     assert!(!sim.world.is_loaded(at(0).as_vec3()), "nothing was streamed in");
     let out = sim.factory.panel(at(8)).unwrap().slots[1].1;
     assert_eq!((out.item, out.count), (IRON_ROD, 3), "the pole 4 blocks away powered it");
+}
+
+#[test]
+fn crafting_a_recipe_research_locks_does_nothing() {
+    use crate::block::SPLITTER;
+    let mut sim = Sim::new(7, 2);
+    sim.apply(P, Action::Join);
+    sim.apply(P, Action::Give { item: IRON_PLATE, count: 4 });
+    sim.apply(P, Action::Give { item: BELT.into(), count: 4 });
+    let splitter = RECIPES.iter().position(|r| r.output == SPLITTER.into()).unwrap() as u16;
+    sim.apply(P, Action::Craft { recipe: splitter, times: 1 });
+    assert_eq!((inv(&sim).count(SPLITTER.into()), inv(&sim).count(IRON_PLATE)), (0, 4), "Belt Routing isn't done");
+    sim.apply(P, Action::SetResearch { tech: 0 });
+    assert_eq!(sim.factory.research.current, Some(0));
+    (0..crate::research::TECHS[0].units).for_each(|_| sim.factory.research.add_unit(0));
+    sim.apply(P, Action::Craft { recipe: splitter, times: 1 });
+    assert_eq!(inv(&sim).count(SPLITTER.into()), 1);
 }

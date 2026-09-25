@@ -1,4 +1,5 @@
-//! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors, splitters, filters, and power (generators, poles).
+//! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors,
+//! splitters, filters, power (generators, poles) and research labs (with the world's `Research`).
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
 //! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
@@ -23,6 +24,7 @@ mod buffer;
 mod constructor;
 mod describe;
 mod generator;
+mod lab;
 mod links;
 mod miner;
 mod panel;
@@ -36,7 +38,7 @@ mod storage;
 use rustc_hash::FxHashMap;
 
 use crate::block::{
-    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, GENERATOR, LIFT, MINER, POLE, RAMP_DOWN, RAMP_UP, SMELTER,
+    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FILTER, GENERATOR, LAB, LIFT, MINER, POLE, RAMP_DOWN, RAMP_UP, SMELTER,
     SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
@@ -45,6 +47,7 @@ use crate::inventory::Stack;
 #[cfg(test)]
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
+use crate::research::{Research, PACKS};
 use crate::sim::SimEvent;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
@@ -53,6 +56,7 @@ use belt::{belt_step, Belt};
 use belt_shape::Shape;
 use constructor::Constructor;
 use generator::Generator;
+use lab::{step_labs, Lab};
 use links::{Sinks, Slot};
 use miner::Miner;
 use power::{Pole, Power};
@@ -103,6 +107,7 @@ pub enum Kind {
     Router,
     Generator,
     Pole,
+    Lab,
 }
 
 pub struct MachineDef {
@@ -118,7 +123,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 14] = [
+pub const MACHINES: [MachineDef; 15] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -127,6 +132,7 @@ pub const MACHINES: [MachineDef; 14] = [
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
     MachineDef { block: GENERATOR, kind: Kind::Generator, slots: 1, panel: true },
     MachineDef { block: POLE, kind: Kind::Pole, slots: 0, panel: false },
+    MachineDef { block: LAB, kind: Kind::Lab, slots: PACKS.len(), panel: true },
     MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
     MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
@@ -171,6 +177,7 @@ pub struct Factory {
     routers: Vec<Router>,
     generators: Vec<Generator>,
     poles: Vec<Pole>,
+    labs: Vec<Lab>,
     /// Grids and last tick's supply and demand (derived, see `power.rs`).
     power: Power,
     at: FxHashMap<IVec3, Slot>,
@@ -178,6 +185,8 @@ pub struct Factory {
     order: Vec<u32>,
     dirty: bool,
     pub deposits: Deposits,
+    /// The world's research, which labs advance.
+    pub research: Research,
 }
 
 impl Factory {
@@ -226,6 +235,10 @@ impl Factory {
                 self.remove(pos);
                 add_to(&mut self.poles, Pole { pos }, &mut self.at, Slot::Pole);
             }
+            Kind::Lab => {
+                self.remove(pos);
+                add_to(&mut self.labs, Lab::new(pos), &mut self.at, Slot::Lab);
+            }
         }
         self.dirty = true;
     }
@@ -267,6 +280,7 @@ impl Factory {
             Slot::Router(i) => swap_out(&mut self.routers, i, at, Slot::Router),
             Slot::Generator(i) => swap_out(&mut self.generators, i, at, Slot::Generator),
             Slot::Pole(i) => swap_out(&mut self.poles, i, at, Slot::Pole),
+            Slot::Lab(i) => swap_out(&mut self.labs, i, at, Slot::Lab),
         }
     }
 
@@ -284,12 +298,14 @@ impl Factory {
             constructors,
             routers,
             generators,
+            labs,
             power,
             deposits,
+            research,
             order,
             ..
         } = self;
-        let mut sinks = Sinks { storages, smelters, constructors, routers, generators };
+        let mut sinks = Sinks { storages, smelters, constructors, routers, generators, labs };
         for m in miners.iter_mut() {
             m.step(deposits, world, tick, belts, &mut sinks, events);
         }
@@ -299,13 +315,14 @@ impl Factory {
         for s in sinks.smelters.iter_mut() {
             s.step(belts);
         }
-        power.balance(sinks.generators, sinks.constructors, sinks.routers);
+        power.balance(sinks.generators, sinks.constructors, sinks.routers, sinks.labs, research);
         for (c, &p) in sinks.constructors.iter_mut().zip(&power.constructor_pole) {
             c.step(belts, power.speed(p));
         }
         for (r, &p) in sinks.routers.iter_mut().zip(&power.router_pole) {
             r.step(belts, power.speed(p));
         }
+        step_labs(sinks.labs, &power.lab_pole, power, research);
         belt_step(belts, &mut sinks, order, TICK);
     }
 }

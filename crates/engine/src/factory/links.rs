@@ -12,6 +12,7 @@ use super::belt::Belt;
 use super::belt_shape::{Shape, UNDERPASS_RANGE};
 use super::constructor::Constructor;
 use super::generator::Generator;
+use super::lab::Lab;
 use super::power::Power;
 use super::router::Router;
 use super::smelter::Smelter;
@@ -44,13 +45,19 @@ pub(crate) enum Slot {
     Router(u32),
     Generator(u32),
     Pole(u32),
+    Lab(u32),
 }
 
 impl Slot {
     /// Whether belts and miners can deliver into it (belts are linked separately).
     pub(super) fn is_sink(self) -> bool {
         match self {
-            Slot::Storage(_) | Slot::Smelter(_) | Slot::Constructor(_) | Slot::Router(_) | Slot::Generator(_) => true,
+            Slot::Storage(_)
+            | Slot::Smelter(_)
+            | Slot::Constructor(_)
+            | Slot::Router(_)
+            | Slot::Generator(_)
+            | Slot::Lab(_) => true,
             Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) => false,
         }
     }
@@ -65,6 +72,7 @@ impl Slot {
             Slot::Router(_) => Kind::Router,
             Slot::Generator(_) => Kind::Generator,
             Slot::Pole(_) => Kind::Pole,
+            Slot::Lab(_) => Kind::Lab,
         }
     }
 }
@@ -76,6 +84,7 @@ pub(crate) struct Sinks<'a> {
     pub(super) constructors: &'a mut [Constructor],
     pub(super) routers: &'a mut [Router],
     pub(super) generators: &'a mut [Generator],
+    pub(super) labs: &'a mut [Lab],
 }
 
 impl Sinks<'_> {
@@ -87,6 +96,7 @@ impl Sinks<'_> {
             Slot::Constructor(i) => self.constructors[i as usize].room_for(item) > 0,
             Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
+            Slot::Lab(i) => self.labs[i as usize].room_for(item) > 0,
             Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) => false,
         }
     }
@@ -99,6 +109,7 @@ impl Sinks<'_> {
             Slot::Constructor(i) => self.constructors[i as usize].accept(item),
             Slot::Router(i) => self.routers[i as usize].accept(item),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
+            Slot::Lab(i) => self.labs[i as usize].accept(item),
             Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) => false,
         }
     }
@@ -266,7 +277,7 @@ impl Factory {
             r.outs = o;
         }
 
-        self.power = Power::rebuild(&self.poles, &self.generators, &self.constructors, &self.routers);
+        self.power = Power::rebuild(&self.poles, &self.generators, &self.constructors, &self.routers, &self.labs);
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt
         // and appending it reversed puts every belt after the one it feeds.

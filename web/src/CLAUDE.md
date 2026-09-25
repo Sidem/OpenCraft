@@ -34,7 +34,7 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
 Prefer engine tests; use the browser for visual proof (`docs/WORKFLOW.md` section 2 has the details).
 
 - `preview_start` name `opencraft`, then drive `window.opencraft.game` with `javascript_tool`.
-  `window.opencraft` also exposes `renderer`, `sound`, `soundLab`, `inventory`, `machine` (panel: `open(x, y, z)`)
+  `window.opencraft` also exposes `renderer`, `sound`, `soundLab`, `inventory`, `machine` (panel: `open(x, y, z)`), `research`
   and `session`. The frame loop opens panels from `game.take_panel_request()`; while rAF is paused, do it by hand.
 - Pointer lock never engages in the automated pane, and `requestAnimationFrame` pauses while the pane is
   hidden: step the engine by calling `game.update(1/60)` yourself.

@@ -45,6 +45,8 @@ pub const IRON_PLATE: ItemId = ItemId(258);
 pub const IRON_ROD: ItemId = ItemId(259);
 pub const SCREW: ItemId = ItemId(260);
 pub const COPPER_WIRE: ItemId = ItemId(261);
+pub const RED_PACK: ItemId = ItemId(262);
+pub const GREEN_PACK: ItemId = ItemId(263);
 
 /// Stack size of every item so far.
 pub const MAX_STACK: u32 = 64;
@@ -92,13 +94,15 @@ const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> ItemDef {
     ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
 }
 
-const EXTRA: [ItemDef; 6] = [
+const EXTRA: [ItemDef; 8] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
     part("Iron Rod", tex::IRON_INGOT, [1.0, 0.2, 0.2]),
     part("Screws", tex::DRILL, [0.35, 0.35, 0.35]),
     part("Copper Wire", tex::COPPER_WIRE, [0.6, 0.4, 0.6]),
+    part("Red Science Pack", tex::RED_PACK, [0.4, 0.6, 0.4]),
+    part("Green Science Pack", tex::GREEN_PACK, [0.4, 0.6, 0.4]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

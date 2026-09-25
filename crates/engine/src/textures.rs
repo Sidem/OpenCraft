@@ -9,8 +9,8 @@ use crate::math::{hash3, unit};
 mod machines;
 
 use machines::{
-    belt_side, belt_top, constructor, crate_wood, drill, generator, ingot, lamp, miner_side, miner_top, plate, pole,
-    router_top, smelter, wire,
+    belt_side, belt_top, constructor, crate_wood, drill, flask, generator, ingot, lab, lamp, miner_side, miner_top,
+    plate, pole, router_top, smelter, wire,
 };
 
 pub const TEX_SIZE: usize = 16;
@@ -181,6 +181,10 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::GENERATOR_SIDE => generator(x, y, false),
         tex::GENERATOR_TOP => generator(x, y, true),
         tex::POLE_SIDE => pole(x, y),
+        tex::LAB_SIDE => lab(x, y, false),
+        tex::LAB_TOP => lab(x, y, true),
+        tex::RED_PACK => flask(x, y, [214.0, 60.0, 56.0]),
+        tex::GREEN_PACK => flask(x, y, [72.0, 190.0, 88.0]),
         _ => [255, 0, 255, 255],
     }
 }

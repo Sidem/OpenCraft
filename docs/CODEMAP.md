@@ -16,7 +16,7 @@ folder with `mod.rs`.
 | `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory), rng, action queue (`queue`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, `WORLDGEN_VERSION`), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` fixture) |
-| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, craft, inventory clicks, select, drop, pick up, give |
+| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings, set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give |
 | `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world), loose items and pickups for the nearest player (`step_items`), `throw`, `join` / `leave` |
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
@@ -24,22 +24,25 @@ folder with `mod.rs`.
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, sound events, textures |
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, `close_inventory`, pickup notifications |
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); box screens (`box_slots`, `click_box`, `store_slot`) |
-| `api/crafting.rs` | Recipe queries and `craft` |
+| `api/crafting.rs` | Recipe queries (`recipe_locked_by`) and `craft` |
+| `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
 | `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (texture layers and box proportions), `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, stats counters |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `block.rs` | Block ids, `DEFS` table, texture layers `tex` (item textures too), sound materials, lookup tables |
-| `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots |
+| `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
+| `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, unlocked recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `add_unit`) |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code), render events |
 | `world/streaming.rs` | Streaming and meshing: re-centring, generation and mesh queues, `work_step`, `remesh`, `area_ready` |
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; `WORLDGEN_VERSION` |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
-| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `place` / add / remove, `update` (one tick: miners, boxes, smelters, power balance, powered machines, belts; emits `SimEvent`s) |
-| `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds), then the deposits |
+| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, the world's `research`, `place` / add / remove, `update` (one tick: miners, boxes, smelters, power balance, powered machines and labs, belts; emits `SimEvent`s) |
+| `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds), then the deposits and the research |
+| `factory/lab.rs` | Research lab: one buffer slot per science pack, `step_labs` (units for the current tech, never more than it has left, at its grid's speed); bytes, readout, panel, model |
 | `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators burn in order until supply meets it, speed per grid), wire drawing; power constants |
 | `factory/generator.rs` | Coal generator: fuel buffer, burns `FUELS` only while its grid needs power; bytes, readout, panel, model |
 | `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE` |
@@ -84,7 +87,8 @@ folder with `mod.rs`.
 | `ui/dom.ts` | `h()` and `button()` element helpers |
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts, debug overlay, `itemIcon` (isometric box from `item_icon`) |
 | `ui/inventory.ts` + `.css` | Inventory and build screen (E); opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
-| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor or filter): status, progress, buffers, recipe choice, filter item, put-in and take buttons |
+| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor, filter, generator or lab): status, progress, buffers, recipe choice, filter item, put-in and take buttons |
+| `ui/research.ts` + `.css` | Research screen (R): a card per tech (state, unlocks, cost, progress, choose); HUD tracker and "research done" notice |
 | `ui/menu.css` | Pause/start menu styles (markup in `web/index.html`) |
 | `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |
@@ -115,7 +119,12 @@ Placeable blocks work at once; worldgen use goes in `worldgen/`.
 **An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
 and a row in `item.rs` `EXTRA`, with a texture layer in `block::tex` and its pattern in `textures::pixel`
 if it needs a new look; the HUD icon and the loose and belt models follow from the row. A recipe is a row
-in `recipes.rs`; the build menu shows every row.
+in `recipes.rs`; the build menu shows every row. To lock it behind research, list its output in a tech's
+`unlocks` (`research.rs`).
+
+**A tech.** A row appended to `TECHS` in `research.rs` (saves store progress by index): name, blurb,
+prerequisites by index, packs per unit, units, seconds, unlocked items. The research screen and the build
+menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` (labs get a slot for it).
 
 **A machine.**
 
@@ -174,7 +183,8 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY` |
 | `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
 | `factory/belt.rs` | `BELT_SPEED`, `ITEM_SPACING` |
-| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `research.rs` | `TECHS` (units, seconds, packs per unit) |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes.rs` | `RECIPES` (hand) |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |

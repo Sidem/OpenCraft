@@ -15,6 +15,7 @@ import { WorldStore } from './save/store';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
+import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
 import { VolumeControl } from './ui/volume-control';
 import { WorldsPanel } from './ui/worlds';
@@ -75,7 +76,9 @@ async function main(): Promise<void> {
   const inventory = new InventoryPanel(game, (id) => hud.itemIcon(id));
   inventory.onCraft = () => sound.ui();
   const machine = new MachinePanel(game, (id) => hud.itemIcon(id));
-  const panelOpen = () => inventory.isOpen || machine.isOpen;
+  const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
+  research.onDone = () => sound.ui();
+  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen;
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -110,6 +113,7 @@ async function main(): Promise<void> {
     closed(resume);
   };
   machine.onClose = closed;
+  research.onClose = closed;
   input.onLockChange = (locked) => {
     menu.classList.toggle('hidden', locked || panelOpen());
     if (!locked) {
@@ -128,7 +132,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, machine, session } });
+  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, machine, research, session } });
 
   // ---- frame loop
   let last = performance.now();
@@ -178,6 +182,9 @@ async function main(): Promise<void> {
       } else if (a.kind === 'inventory') {
         document.exitPointerLock();
         inventory.open();
+      } else if (a.kind === 'research') {
+        document.exitPointerLock();
+        research.open();
       }
     }
     game.update(dt);
@@ -234,6 +241,7 @@ async function main(): Promise<void> {
     hud.update(now, { fps, frameMs, workMs, ...renderer.stats });
     inventory.update();
     machine.update();
+    research.update(now);
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);

@@ -39,6 +39,7 @@ mod physics;
 mod player;
 mod raycast;
 mod recipes;
+mod research;
 mod save;
 mod sim;
 mod sound;

@@ -432,6 +432,12 @@ fn every_hand_recipe_gives_its_output() {
             g.give(item.0, n);
         }
         g.run_ticks(1);
+        if g.recipe_locked_by(i as u32) >= 0 {
+            assert!(!g.can_craft(i as u32) && g.craft(i as u32, 1) == 0, "recipe {i} waits for research");
+            for (t, tech) in crate::research::TECHS.iter().enumerate() {
+                (0..tech.units).for_each(|_| g.sim.factory.research.add_unit(t as u8));
+            }
+        }
         assert_eq!(g.craft(i as u32, 1), 1, "recipe {i}");
         g.run_ticks(1);
         assert_eq!(g.item_total(r.output.0), r.count, "recipe {i} made its output");

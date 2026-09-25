@@ -626,3 +626,72 @@ fn generators_burn_only_what_their_grid_needs() {
     let c = f.constructor_at(IVec3::ZERO);
     assert_eq!((c.status, c.out.count(crate::item::IRON_ROD)), (ConstructorStatus::NoPower, 16), "32 s of fuel");
 }
+
+/// Test-only lab accessor.
+impl Factory {
+    pub(crate) fn lab_at(&self, pos: IVec3) -> &Lab {
+        match self.at.get(&pos) {
+            Some(Slot::Lab(i)) => &self.labs[*i as usize],
+            _ => panic!("no lab at {pos:?}"),
+        }
+    }
+}
+
+/// A lab at `pos` holding `red` red packs.
+fn lab_with(f: &mut Factory, pos: IVec3, red: u32) {
+    place_block(f, crate::block::LAB, pos);
+    assert_eq!(f.insert(pos, crate::item::RED_PACK, red), red);
+}
+
+#[test]
+fn labs_research_the_chosen_tech_and_never_overshoot() {
+    use crate::research::TechState;
+    use lab::LabStatus;
+    let mut f = Factory::default();
+    powered(&mut f);
+    let labs = [IVec3::new(0, 0, 0), IVec3::new(1, 0, 0), IVec3::new(3, 0, 0)];
+    for pos in labs {
+        lab_with(&mut f, pos, 10);
+    }
+    let packs = |f: &Factory| labs.iter().map(|&p| f.lab_at(p).packs.total()).sum::<u32>();
+    run(&mut f, 1.0, |_| {});
+    assert_eq!((f.lab_at(labs[0]).status, packs(&f), f.power.demand[0]), (LabStatus::NoResearch, 30, 0));
+    // Belt Routing: 10 units of 5 s. Three labs finish three units at a time.
+    f.research.set_current(Some(0));
+    run(&mut f, 5.05, |_| {});
+    assert_eq!((f.research.progress(0), packs(&f), f.power.demand[0]), (3, 24, 30), "three done, three started");
+    let mut f = round_trip(&f);
+    run(&mut f, 15.0, |f| assert!(f.research.progress(0) <= 10));
+    assert_eq!(f.research.state(0), TechState::Done);
+    assert_eq!((f.research.current, packs(&f)), (None, 20), "exactly one pack per unit");
+    assert!(labs.iter().all(|&p| f.lab_at(p).status == LabStatus::NoResearch && f.lab_at(p).unit.is_none()));
+    assert_eq!(f.research.locked_by(crate::block::SPLITTER.into()), None);
+}
+
+#[test]
+fn a_lab_needs_one_of_each_pack_and_power() {
+    use crate::item::{GREEN_PACK, RED_PACK};
+    use lab::LabStatus;
+    let mut f = Factory::default();
+    for (tech, units) in [(0, 10), (2, 30)] {
+        (0..units).for_each(|_| f.research.add_unit(tech));
+    }
+    f.research.set_current(Some(3)); // Underpasses: red and green, 10 s a unit
+    powered(&mut f);
+    lab_with(&mut f, IVec3::ZERO, 5);
+    lab_with(&mut f, IVec3::new(20, 0, 0), 5); // out of reach of the pole
+    assert_eq!(f.insert(IVec3::new(20, 0, 0), GREEN_PACK, 5), 5);
+    assert!(!f.wants(IVec3::ZERO, crate::item::IRON_PLATE), "packs only");
+    run(&mut f, 2.0, |_| {});
+    assert_eq!(f.lab_at(IVec3::ZERO).status, LabStatus::NoPacks);
+    assert_eq!(f.lab_at(IVec3::new(20, 0, 0)).status, LabStatus::NoPower);
+    assert_eq!(f.lab_at(IVec3::new(20, 0, 0)).packs.total(), 10, "nothing used without power");
+    // A belt brings the green packs.
+    stocked_box(&mut f, IVec3::new(-2, 0, 0), GREEN_PACK, 2);
+    f.add_belt(IVec3::new(-1, 0, 0), EAST);
+    run(&mut f, 22.0, |_| {});
+    let lab = f.lab_at(IVec3::ZERO);
+    assert_eq!((f.research.progress(3), lab.packs.count(RED_PACK), lab.packs.count(GREEN_PACK)), (2, 3, 0));
+    assert_eq!(lab.status, LabStatus::NoPacks);
+    assert_eq!(f.remove(IVec3::ZERO), vec![crate::inventory::Stack { item: RED_PACK, count: 3 }]);
+}

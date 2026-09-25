@@ -1,5 +1,5 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
-//! a smelter, constructor, filter or generator), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
+//! a smelter, constructor, filter, generator or lab), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
 //! `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
@@ -50,6 +50,7 @@ impl Factory {
                 let g = &self.generators[i as usize];
                 Some(g.panel(g.status_text(self)))
             }
+            Slot::Lab(i) => Some(self.labs[i as usize].panel(&self.research)),
             Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) => None,
         }
     }
@@ -104,6 +105,7 @@ impl Factory {
                 let g = &mut self.generators[*i as usize];
                 (g.room_for(item), Some(&mut g.fuel))
             }
+            Some(Slot::Lab(i)) => return n - self.labs[*i as usize].add(item, n),
             _ => return 0,
         };
         let Some(buf) = buf else { return 0 };
@@ -118,6 +120,7 @@ impl Factory {
             Some(Slot::Smelter(i)) => self.smelters[*i as usize].room_for(item) > 0,
             Some(Slot::Constructor(i)) => self.constructors[*i as usize].room_for(item) > 0,
             Some(Slot::Generator(i)) => self.generators[*i as usize].room_for(item) > 0,
+            Some(Slot::Lab(i)) => self.labs[*i as usize].room_for(item) > 0,
             _ => false,
         }
     }
@@ -130,7 +133,9 @@ impl Factory {
             Some(Slot::Storage(i)) => &mut self.storages[*i as usize].buf,
             Some(Slot::Smelter(i)) => &mut self.smelters[*i as usize].out,
             Some(Slot::Constructor(i)) => &mut self.constructors[*i as usize].out,
-            Some(Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_)) | None => return false,
+            Some(Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_)) | None => {
+                return false
+            }
         };
         buf.drain(take);
         true

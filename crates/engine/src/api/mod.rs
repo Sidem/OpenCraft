@@ -13,4 +13,5 @@ mod input;
 mod inventory;
 mod machine;
 mod render;
+mod research;
 mod save;

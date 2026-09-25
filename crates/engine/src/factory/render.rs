@@ -48,6 +48,7 @@ impl Factory {
         models(&self.routers, out, eye, time, range);
         models(&self.generators, out, eye, time, range);
         models(&self.poles, out, eye, time, range);
+        models(&self.labs, out, eye, time, range);
         self.write_wires(out, eye, range);
     }
 }

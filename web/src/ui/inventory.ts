@@ -1,5 +1,5 @@
 // Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the
-// hand-crafting recipes for the first factory machines. Opened on a storage box (right-click), it shows
+// hand-crafting recipes (greyed out, naming the tech, while research locks them). Opened on a storage box (right-click), it shows
 // the box's slots above the inventory instead of the recipes, like a chest: clicks move stacks with the
 // cursor, shift-clicks move whole stacks between the box and the inventory.
 
@@ -31,6 +31,8 @@ interface RecipeView {
   root: HTMLDivElement;
   craft: HTMLButtonElement;
   chips: Chip[];
+  /** Which research unlocks it, while it's locked. */
+  lock: HTMLParagraphElement;
 }
 
 export class InventoryPanel {
@@ -207,6 +209,10 @@ export class InventoryPanel {
       const ok = g.can_craft(r.id);
       r.craft.disabled = !ok;
       r.root.classList.toggle('ready', ok);
+      const tech = g.recipe_locked_by(r.id);
+      r.root.classList.toggle('locked', tech >= 0);
+      r.craft.textContent = tech >= 0 ? 'Locked' : 'Craft';
+      r.lock.textContent = tech >= 0 ? `Research ${g.tech_name(tech)} to unlock it (R).` : '';
     }
   }
 
@@ -248,7 +254,8 @@ export class InventoryPanel {
       inputs.append(el);
       chips.push({ item, need, el, have });
     }
-    text.append(title, h('p', '', g.recipe_blurb(r)), inputs);
+    const lock = h('p', 'recipe-lock');
+    text.append(title, h('p', '', g.recipe_blurb(r)), inputs, lock);
 
     const craft = h('button', 'secondary-btn craft-btn', 'Craft');
     craft.type = 'button';
@@ -258,7 +265,7 @@ export class InventoryPanel {
       this.update();
     });
     root.append(this.iconCanvas(out, 'recipe-icon'), text, craft);
-    return { id: r, root, craft, chips };
+    return { id: r, root, craft, chips, lock };
   }
 
   private iconCanvas(item: number, className: string): HTMLCanvasElement {

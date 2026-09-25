@@ -3,18 +3,18 @@
 
 use super::*;
 use crate::block::{
-    AIR, BELT, COAL_ORE, CONSTRUCTOR, FILTER, GENERATOR, IRON_ORE, MINER, POLE, RAMP_UP, SMELTER, SPENT_ROCK, STONE,
-    STORAGE,
+    AIR, BELT, COAL_ORE, CONSTRUCTOR, FILTER, GENERATOR, IRON_ORE, LAB, MINER, POLE, RAMP_UP, SMELTER, SPENT_ROCK,
+    STONE, STORAGE,
 };
 use crate::deposits::{owner_of, DepositKey, Tier};
-use crate::item::{IRON_INGOT, IRON_PLATE};
+use crate::item::{IRON_INGOT, IRON_PLATE, RED_PACK};
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
 const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0x0721_1221_a85b_9398;
+const GOLDEN_HASH: u64 = 0xed2f_810d_c780_e7e6;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -47,7 +47,7 @@ fn outcrop() -> (IVec3, IVec3, DepositKey) {
 /// belts and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
 /// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
 /// ingots it puts in by hand, a filter set to plates, a ramp the box feeds, and a pole and a
-/// generator (fuelled by hand) that power the constructor and filter.
+/// generator (fuelled by hand) that power the constructor, the filter and a lab researching the first tech.
 fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let cell = |dx| top + IVec3::new(dx, 1, 0);
     let above_box = cell(3) + IVec3::new(0, 1, 0);
@@ -56,6 +56,7 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let sieve = cell(1) + IVec3::new(0, 1, 0);
     let post = press + IVec3::new(0, 1, 0);
     let dynamo = above_box + IVec3::new(0, 1, 0);
+    let lab = sieve + IVec3::new(0, 1, 0);
     let plates = MACHINE_RECIPES.iter().position(|r| r.output.0 == IRON_PLATE).unwrap() as u16;
     let belts = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u16;
     let give = |item, count| Action::Give { item, count };
@@ -78,12 +79,15 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (0, B, give(GENERATOR.into(), 1)),
         (0, B, give(POLE.into(), 1)),
         (0, B, give(COAL_ORE.into(), 3)),
+        (0, B, give(LAB.into(), 1)),
+        (0, B, give(RED_PACK, 6)),
         (1, B, Action::BreakBlock { pos: above_box }),
         (1, B, Action::BreakBlock { pos: above_miner }),
         (1, B, Action::BreakBlock { pos: press }),
         (1, B, Action::BreakBlock { pos: sieve }),
         (1, B, Action::BreakBlock { pos: post }),
         (1, B, Action::BreakBlock { pos: dynamo }),
+        (1, B, Action::BreakBlock { pos: lab }),
     ];
     // Clear the cells first (breaking air does nothing).
     log.extend((0..5).map(|dx| (1, A, Action::BreakBlock { pos: cell(dx) })));
@@ -103,6 +107,9 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (9, B, place(post, 7, 0, press)),
         (9, B, place(dynamo, 6, 0, above_box)),
         (10, B, Action::Insert { pos: dynamo, item: COAL_ORE.into() }),
+        (11, B, place(lab, 9, 0, sieve)),
+        (11, B, Action::SetResearch { tech: 0 }),
+        (12, B, Action::Insert { pos: lab, item: RED_PACK }),
         (5, A, Action::BreakBlock { pos: other }),
     ]);
     log
@@ -136,7 +143,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with power (step 2.7). Only a deliberate change to the rules or the state bytes may
+    // Recorded with a lab (step 2.8). Only a deliberate change to the rules or the state bytes may
     // update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 
@@ -156,7 +163,9 @@ fn same_actions_give_the_same_state_every_tick() {
     let ramp = a.factory.belt_at(top + IVec3::new(4, 1, 0));
     assert!(ramp.item_at(1.0).1 == 1.0 && !ramp.items.is_empty(), "the box feeds the ramp");
     let fuel = a.factory.panel(top + IVec3::new(3, 3, 0)).unwrap().slots[0].1.count;
-    assert_eq!(fuel, 2, "one coal lit for the plates, the rest waits");
+    assert_eq!(fuel, 0, "the lab keeps the generator burning");
+    let research = &a.factory.research;
+    assert_eq!((research.current, research.progress(0)), (Some(0), 4), "24 s of coal: four 5 s units");
 }
 
 #[test]

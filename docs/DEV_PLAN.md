@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.7 done · **Next up: step 2.10
-(onboarding hints)** while steps 2.8 and 2.9 wait for the user's answers (section 6).
+**Status:** 2026-09-25 · Milestone 2 in progress: steps 2.1–2.8 done · **Next up: step 2.9
+(upgrades: Miner Mk2 and fast belts, unlocked by research)**, then 2.10 (onboarding hints).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -30,7 +30,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (74 engine tests).
+   (109 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -75,13 +75,13 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-25 | **Open-ended.** An optional final construction (e.g. a rocket ship) needing enormous resources and advanced research. Completing it must **not** end the game; it should unlock something. |
 | 2026-09-25 | **Built entirely by AI coding agents.** Keeping the codebase from growing unwieldy is of utmost importance; token efficiency and fast iteration drive architecture choices (section 3.1). |
 | 2026-09-25 | **Co-op multiplayer must be possible**: other people can join a world. |
+| 2026-09-25 | **Research is Factorio-style**: labs use science packs crafted from increasingly complex parts (<https://wiki.factorio.com/Science_pack>). |
+| 2026-09-25 | **Upgrades raise recovery**, not just speed (Mk2 miner ≈ 75%), so upgrading extends a deposit's life. |
+| 2026-09-25 | **Bulk materials** (stone, sand, clay, gravel) stay effectively infinite for quarries. |
 | 2026-09-25 | **Approach for co-op** (proposed by Claude, adopted with this plan): player-hosted over WebRTC; a deterministic simulation core driven by tick-stamped actions (Factorio-style); player movement and loose items replicated from the host. Revisit only if Milestone 3 prototyping shows a real problem. |
 
 ### Proposed, not yet confirmed by the user
 
-- Upgrades raise **recovery**, not just speed (Mk2 miner ≈ 75%), so upgrading extends a deposit's life.
-- Bulk materials (stone, sand, clay, gravel) stay effectively infinite for quarries.
-- Research via a lab that consumes parts (Factorio) vs. milestone deliveries (Satisfactory). See section 6.
 - The Miner Mk1 and the smelter stay unpowered (a burner tier); newer machines need power (step 2.7).
 - Old saves keep loading across format changes where a migration is cheap (Milestone 2 rules).
 
@@ -135,9 +135,10 @@ Each frame, `web/src/main.ts`:
   - Machine models are drawn as instanced boxes, and status readouts come from `describe`.
 - **Inventory** (`inventory.rs`): 36 slots (hotbar 0–8), a cursor stack, click, shift-click and
   quick-move.
-- **Crafting** (`recipes.rs`): hand recipes for Miner Mk1, belts ×4, Storage Box, Smelter and
-  Constructor, used by the build menu
-  (`web/src/ui/inventory.ts`, key E).
+- **Crafting** (`recipes.rs`): hand recipes for every machine and the science packs, used by the build
+  menu (`web/src/ui/inventory.ts`, key E), which greys out recipes research still locks.
+- **Research** (`research.rs`, `factory/lab.rs`, `ui/research.ts`, key R): a four-tech tree (Belt Routing,
+  Belt Climbing, Green Science, Underpasses) that labs work through with red and green science packs.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–16: AIR,
   STONE, DIRT, GRASS, SAND, LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, BEDROCK, SPENT_ROCK, BELT, MINER,
@@ -147,7 +148,7 @@ Each frame, `web/src/main.ts`:
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
   exports and imports them.
-- **Size:** about 131 KB gzipped in total (wasm 102.4 KB, JS 30 KB, CSS 4 KB).
+- **Size:** about 155 KB gzipped in total (wasm 118.3 KB, JS 31.4 KB, CSS 4.6 KB).
 
 ### Known limitations and technical debt
 
@@ -405,18 +406,26 @@ Rules for every step:
     link to every pole within `WIRE_RANGE`, so placing is all the wiring there is. Generators burn in list
     order only until supply meets demand. Constructor progress counts thousandths of a tick.
 
-- [ ] **2.8 Research** (`research.rs`, a station block or a delivery point, `ui/research.ts`)
-  - **Needs the user's answer first** (section 6: lab consuming parts, or milestone deliveries).
+- [x] **2.8 Research** (`research.rs`, a station block or a delivery point, `ui/research.ts`)
+  - The user chose Factorio-style research: labs use science packs crafted from parts.
   - The tech tree is data in Rust: nodes with costs and the recipes they unlock. Research state is core
     state (saved, hashed, shared by all players in a world). The build menu hides or greys locked recipes.
   - Start small: about six nodes covering the constructor, logistics, power and Mk2.
   - **Done when:** tests for unlocking and for locked recipes being refused by `Craft`; a screenshot of
     the research screen.
+  - As built: a research lab (`factory/lab.rs`, powered, 10 kW) holds one stack per pack kind; each unit
+    of the chosen tech uses one of each of its packs and 5 or 10 s of lab time; labs never start more units
+    than a tech has left. Red packs (plate + 2 wire) and green packs (2 belts + 4 screws) are hand recipes.
+    Four techs: Belt Routing (splitter, filter), Belt Climbing (ramps, lift), Green Science (the green
+    pack), Underpasses (red + green). The constructor, generator and poles stay unlocked, since the first
+    packs need them. The research screen (R) chooses the tech; a HUD tracker shows progress and a notice
+    when a tech is done.
 
-- [ ] **2.9 Upgrades** (`factory/miner.rs`, `factory/belt.rs`, recipes)
-  - **Needs the user's confirmation** (section 6) that upgrades raise recovery, not just speed.
+- [ ] **2.9 Upgrades** (`factory/miner.rs`, `factory/belt.rs`, recipes, `research.rs`)
+  - Confirmed by the user: upgrades raise recovery, not just speed.
   - Miner Mk2: recovery about 75%, rate about 2 units/s, needs power, crafted from parts. Fast belt:
-    2 blocks/s. Both unlocked by research.
+    2 blocks/s. Both unlocked by research: append techs "Miner Mk2" and "Fast Belts" to `TECHS`, needing
+    Green Science and costing red + green packs.
   - **Done when:** tests show Mk2 extracting more ore from the same deposit than Mk1; a fast belt keeps up
     with a Mk2.
 
@@ -436,7 +445,7 @@ Rules for every step:
     M3 (section 6) before detailing it.
 
 **Suggested commits:** one per step, or per clean part of a step. Every commit passes `npm run check`, and
-the game still works. Steps 2.8 and 2.9 wait for the user's answers; if those haven't come, do 2.10 first.
+the game still works.
 
 ---
 
@@ -455,8 +464,6 @@ Milestone 2 was planned (step 1.9); record the answers in section 1 and adjust t
 
 | Needed by | Question |
 |---|---|
-| M2 (2.8) | Research style: a lab consuming parts (Factorio) or milestone deliveries (Satisfactory)? |
-| M2 (2.9) | Confirm upgrades raise recovery (proposal: Mk2 ≈ 75%) and that bulk materials stay infinite. |
 | M2 (2.7) | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Default: yes; built that way in 2.7, easy to change.) |
 | M2 or later | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
 | M3 | Where to host the signalling service and TURN relay (needs an account, e.g. Cloudflare)? |
@@ -558,3 +565,17 @@ and the balance numbers. Read the section you need.
   progress in thousandths, older saves scaled); golden hash re-recorded with a pole and generator in the
   script. Browser: generator → pole → constructor making rods, wires drawn, generator panel. Tests 98 →
   102; wasm 102.4 → 112.1 KB gzipped (power about 8 KB, the box screen the rest).
+- **2026-09-25:** The user answered the M2 questions: Factorio-style research with science packs crafted
+  from parts, upgrades raise recovery, bulk materials stay infinite (section 1). Steps 2.8 and 2.9 go
+  ahead of 2.10.
+- **2026-09-25:** Step 2.8 (research) done. `research.rs`: the tech table `TECHS` and `Research` (current
+  tech, units done), owned and saved by the factory, shared by every player. `factory/lab.rs`: the lab, a
+  powered machine kind (`LAB_POWER` 10 kW) with one slot per science pack; `step_labs` counts units in
+  progress so labs never overshoot. Items: red and green science packs. Action `SetResearch`; `Craft`
+  refuses locked recipes (`Research::locked_by`), and the build menu greys them out naming the tech.
+  `api/research.rs`, `ui/research.ts` (R): tech cards, a HUD tracker and a "research done" notice. Saves are
+  version 8 (lab list and research; older worlds load with nothing researched, so their splitters, filters,
+  ramps, lifts and underpasses need research before more can be crafted; placed ones keep working).
+  Golden hash re-recorded with a lab in the script. Browser: an existing version-7 world loaded; two labs
+  researched Belt Routing at 2 units per 5 s, the notice showed and the splitter unlocked. Tests 102 →
+  109; wasm 112.1 → 118.3 KB gzipped (the lab, 14 research exports, textures).

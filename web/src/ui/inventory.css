@@ -168,6 +168,20 @@
   border-color: rgba(250, 149, 73, 0.35);
 }
 
+.recipe.locked > :not(.recipe-text),
+.recipe.locked .recipe-text > :not(.recipe-lock) {
+  opacity: 0.45;
+}
+
+.recipe-text .recipe-lock {
+  margin: 6px 0 0;
+  color: var(--accent);
+}
+
+.recipe-text .recipe-lock:empty {
+  display: none;
+}
+
 .recipe-icon {
   width: 44px;
   height: 44px;

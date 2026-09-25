@@ -4,7 +4,7 @@
 
 use crate::block::*;
 use crate::inventory::Inventory;
-use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD, SCREW};
+use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, RED_PACK, SCREW};
 
 pub struct Recipe {
     pub output: ItemId,
@@ -117,7 +117,26 @@ pub const RECIPES: &[Recipe] = &[
         count: 2,
         inputs: &[(IRON_INGOT, 1), (COPPER_INGOT, 1), (b(LOG), 1)],
         blurb: "Links to every pole within 10 blocks and powers generators and machines within 5. \
-                Constructors, splitters and filters need power.",
+                Constructors, splitters, filters and labs need power.",
+    },
+    Recipe {
+        output: b(LAB),
+        count: 1,
+        inputs: &[(IRON_PLATE, 6), (COPPER_WIRE, 8), (b(BELT), 4)],
+        blurb: "Uses science packs to research new machines (press R to choose what). Belts bring packs in; \
+                needs power.",
+    },
+    Recipe {
+        output: RED_PACK,
+        count: 1,
+        inputs: &[(IRON_PLATE, 1), (COPPER_WIRE, 2)],
+        blurb: "A lab uses these to research the first techs.",
+    },
+    Recipe {
+        output: GREEN_PACK,
+        count: 1,
+        inputs: &[(b(BELT), 2), (SCREW, 4)],
+        blurb: "A lab uses these, with red packs, for later techs.",
     },
 ];
 

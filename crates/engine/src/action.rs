@@ -45,6 +45,10 @@ pub enum Action {
         pos: IVec3,
         item: ItemId,
     },
+    /// Chooses what every lab in the world researches (`u8::MAX` to stop); only an available tech.
+    SetResearch {
+        tech: u8,
+    },
     /// Puts as many of `item` from the inventory into the machine at `pos` as it takes.
     Insert {
         pos: IVec3,
@@ -145,6 +149,7 @@ impl Sim {
                 }
             }
             Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
+            Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
             Action::Insert { pos, item } => {
                 let put = self.factory.insert(pos, item, inv.count(item));
                 if put > 0 {
@@ -153,6 +158,9 @@ impl Sim {
             }
             Action::Craft { recipe, times } => {
                 let Some(r) = RECIPES.get(recipe as usize) else { return };
+                if self.factory.research.locked_by(r.output).is_some() {
+                    return;
+                }
                 let mut done = 0;
                 while done < times && r.affordable(inv) > 0 {
                     for &(item, n) in r.inputs {

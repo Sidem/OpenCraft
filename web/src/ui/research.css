@@ -1,0 +1,115 @@
+/* Research screen (research.ts): one card per tech, and the HUD tracker. The dialog frame is .mp
+   (machine.css); chips are .chip (inventory.css). */
+
+.rs {
+  width: min(640px, 100%);
+}
+
+.rs-intro {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+.rs-tech {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.rs-tech.locked {
+  opacity: 0.55;
+}
+
+.rs-tech.chosen {
+  border-color: rgba(250, 149, 73, 0.6);
+  background: var(--accent-soft);
+}
+
+.rs-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rs-title h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.rs-state {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rs-tech.done .rs-state {
+  color: #8fdc9c;
+}
+
+.rs-tech.chosen .rs-state {
+  color: var(--accent);
+}
+
+.rs-blurb {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.rs-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rs-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.rs-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.rs-choose {
+  justify-self: start;
+}
+
+.rs-tracker {
+  position: absolute;
+  top: 44px;
+  right: 12px;
+  display: grid;
+  gap: 5px;
+  width: 260px;
+  padding: 8px 12px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rs-tracker.rs-notice {
+  border-color: rgba(143, 220, 156, 0.6);
+}
+
+.rs-tracker.rs-notice .mp-bar-fill {
+  background: #8fdc9c;
+}

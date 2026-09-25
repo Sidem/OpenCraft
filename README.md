@@ -50,8 +50,9 @@ the render distance in chunks (2 to 24, default 8).
 | Right mouse (hold)  | Place the selected block. Belts run the way you face |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
-| Right mouse on a smelter, constructor or filter | Open its panel. Hold C to place against it instead |
+| Right mouse on a smelter, constructor, filter, generator or lab | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
+| R                   | Research: choose what labs work on        |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |
@@ -124,15 +125,22 @@ size.
   pole within 10 blocks, and each generator and machine hangs on the nearest pole within 5 (you see the
   wires). A working constructor draws 15 kW, a splitter or filter 1 kW. Short of power, every machine on the
   grid slows down to match; with none, it stops.
-- **Machine panels.** Right-click a smelter, constructor, filter or generator to see what it's doing, put items in straight
-  from your inventory (ore, fuel, ingots), and take what it made.
+- **Research.** Splitters, filters, ramps, lifts, underpasses and green science packs start locked (greyed
+  out in the build menu). A research lab uses science packs to unlock them: press R, choose a tech, and
+  every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
+  the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
+  2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Climbing (20 red),
+  Green Science (30 red) and Underpasses (15 red + green). A lab draws 10 kW while it works.
+- **Machine panels.** Right-click a smelter, constructor, filter, generator or lab to see what it's doing, put items in
+  straight from your inventory (ore, fuel, ingots, packs), and take what it made.
 
 Craft machines in the build menu (E): a Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
 wire and 2 belts. Two ramps (up or down) cost an iron plate and 2 belts, two lifts 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 12 iron ingots, 8
-copper ingots and 10 stone; two power poles an iron ingot, a copper ingot and a log. Hand-mining an outcrop or two covers
+copper ingots and 10 stone; two power poles an iron ingot, a copper ingot and a log; a research lab 6 iron plates,
+8 copper wire and 4 belts. Hand-mining an outcrop or two covers
 your first miner. After that, let it do the work.
 
 ## Sound designer
@@ -237,8 +245,8 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
-  23 underpass exit, 24 generator, 25 power pole; items: 256 iron ingot, 257 copper ingot, 258 iron
-  plate, 259 iron rod, 260 screws, 261 copper wire.
+  23 underpass exit, 24 generator, 25 power pole, 26 research lab; items: 256 iron ingot, 257 copper ingot,
+  258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).
@@ -275,7 +283,8 @@ Factory layer (the Satisfactory half):
 - [ ] Miner and belt tiers
 - [ ] Prospecting: find veins and lodes without digging blind
 - [x] Power grid: coal generators, poles, consumption and brownouts
-- [ ] Research, and an optional endgame megaproject that doesn't end the game
+- [x] Research: labs, science packs and a small tech tree
+- [ ] An optional endgame megaproject that doesn't end the game
 - [ ] Terraforming machines: excavators, graders, tunnel borers
 - [ ] Blueprints and construction drones
 - [ ] Trucks and trains
