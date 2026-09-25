@@ -11,6 +11,7 @@
     "build:wasm:dev": "node scripts/build-wasm.mjs --dev",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "check": "node scripts/check.mjs",
     "test": "cargo test --workspace"
   },
   "engines": {
