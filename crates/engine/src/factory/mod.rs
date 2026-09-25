@@ -113,7 +113,7 @@ pub struct MachineDef {
 pub const MACHINES: [MachineDef; 12] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
-    MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: false },
+    MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
     MachineDef { block: SMELTER, kind: Kind::Smelter, slots: 1, panel: true },
     MachineDef { block: CONSTRUCTOR, kind: Kind::Constructor, slots: 1, panel: true },
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },

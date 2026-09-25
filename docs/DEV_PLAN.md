@@ -151,17 +151,15 @@ Each frame, `web/src/main.ts`:
 
 ### Known limitations and technical debt
 
-1. Players can't put items
-   into a box by hand (machines take them through their panel).
-2. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
+1. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
    isn't loaded), only the local player has hands, nothing draws other players' bodies, and a leaving
    player's inventory is dropped. Milestone 3 handles these.
-3. Two tabs on the same world overwrite each other's saves (the later save wins).
-4. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
-5. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
-6. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
+2. Two tabs on the same world overwrite each other's saves (the later save wins).
+3. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
+4. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
+5. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
    order of sound materials and event kinds. Replace them with getters when touching that code.
-7. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
+6. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
 
 ---
 
@@ -540,3 +538,8 @@ and the balance numbers. Read the section you need.
   a version-5 world loaded in the browser); golden hash re-recorded with a ramp the box feeds. Browser:
   plates up two lifts onto a hill, under a crossing belt and down a ramp into a box. Tests 93 → 96;
   wasm 99.7 → 102.4 KB gzipped.
+- **2026-09-25:** Added at the user's request: boxes open like a chest. Right-click shows the box's 24
+  slots above the inventory (the inventory screen in box mode); clicks move stacks with the cursor and
+  shift-clicks move whole stacks both ways (actions `ClickBox`, `StoreSlot`; `inventory::click_stack` is
+  shared). Right-click on a miner still takes its ore. Also a test that every hand recipe crafts.
+  Tests 96 → 98.

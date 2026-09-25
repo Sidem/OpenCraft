@@ -1,6 +1,6 @@
 //! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack, and the stack held by
 //! the mouse cursor while the inventory screen is open. `version` increments on every change so
-//! the UI redraws only when needed. `add_to_slots` is shared with storage boxes.
+//! the UI redraws only when needed. `add_to_slots` and `click_stack` are shared with storage boxes.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{stack_size, ItemId};
@@ -56,6 +56,29 @@ pub fn add_to_slots(slots: &mut [Stack], item: ItemId, mut count: u32) -> u32 {
         count -= n;
     }
     count
+}
+
+/// A click on slot `s` holding the cursor stack `c` (inventory or box screen): pick up, put down,
+/// merge or swap. Returns whether anything changed.
+pub fn click_stack(s: &mut Stack, c: &mut Stack) -> bool {
+    if c.is_empty() {
+        if s.is_empty() {
+            return false;
+        }
+        *c = std::mem::take(s);
+    } else if s.is_empty() {
+        *s = std::mem::take(c);
+    } else if s.item == c.item {
+        let n = c.count.min(stack_size(s.item).saturating_sub(s.count));
+        s.count += n;
+        c.count -= n;
+        if c.count == 0 {
+            *c = Stack::default();
+        }
+    } else {
+        std::mem::swap(s, c);
+    }
+    true
 }
 
 #[derive(Clone)]
@@ -180,25 +203,9 @@ impl Inventory {
     /// Inventory-screen click: pick up, put down, merge or swap with the cursor stack.
     pub fn click(&mut self, slot: usize) {
         let Some(s) = self.slots.get_mut(slot) else { return };
-        let c = &mut self.cursor;
-        if c.is_empty() {
-            if s.is_empty() {
-                return;
-            }
-            *c = std::mem::take(s);
-        } else if s.is_empty() {
-            *s = std::mem::take(c);
-        } else if s.item == c.item {
-            let n = c.count.min(stack_size(s.item).saturating_sub(s.count));
-            s.count += n;
-            c.count -= n;
-            if c.count == 0 {
-                *c = Stack::default();
-            }
-        } else {
-            std::mem::swap(s, c);
+        if click_stack(s, &mut self.cursor) {
+            self.version += 1;
         }
-        self.version += 1;
     }
 
     /// Shift-click: moves a stack between the hotbar and the backpack.

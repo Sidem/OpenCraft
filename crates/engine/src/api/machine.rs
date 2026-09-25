@@ -1,5 +1,6 @@
-//! Machine panels (`web/src/ui/machine.ts`): which panel to open, what it shows (`factory/panel.rs`),
-//! the machine recipe table, and the panel's buttons, which queue actions for the local player.
+//! Machine panels (`web/src/ui/machine.ts`) and box screens (`ui/inventory.ts`): which panel to open,
+//! what it shows (`factory/panel.rs`), the machine recipe table, and the buttons and slot clicks, which
+//! queue actions for the local player.
 
 use wasm_bindgen::prelude::*;
 
@@ -92,6 +93,22 @@ impl Game {
     /// Puts as many of `item` from the inventory into the machine as it takes (next tick).
     pub fn insert_into_machine(&mut self, x: i32, y: i32, z: i32, item: u16) {
         self.act(Action::Insert { pos: IVec3::new(x, y, z), item: ItemId(item) });
+    }
+
+    /// The box's slots as flat (item, count) pairs; empty if there is no box there.
+    pub fn box_slots(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        let slots = self.sim.factory.box_slots(IVec3::new(x, y, z)).unwrap_or_default();
+        slots.iter().flat_map(|s| [s.item.0 as u32, s.count]).collect()
+    }
+
+    /// Box-screen click on box slot `slot` (with the cursor stack; `shift` moves it to the inventory).
+    pub fn click_box(&mut self, x: i32, y: i32, z: i32, slot: u8, shift: bool) {
+        self.act(Action::ClickBox { pos: IVec3::new(x, y, z), slot, shift });
+    }
+
+    /// Box-screen shift-click on inventory slot `slot`: moves its stack into the box.
+    pub fn store_slot(&mut self, x: i32, y: i32, z: i32, slot: u8) {
+        self.act(Action::StoreSlot { pos: IVec3::new(x, y, z), slot });
     }
 
     /// Takes the machine's output into the inventory (next tick).

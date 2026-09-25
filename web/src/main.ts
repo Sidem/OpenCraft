@@ -181,11 +181,13 @@ async function main(): Promise<void> {
       }
     }
     game.update(dt);
-    // A right-clicked machine with a panel: free the mouse and open it.
+    // A right-clicked machine with a panel: free the mouse and open it (a box opens like a chest).
     const request = game.take_panel_request();
     if (request.length === 3) {
+      const [x, y, z] = request;
       document.exitPointerLock();
-      machine.open(request[0], request[1], request[2]);
+      if (game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
+      else machine.open(x, y, z);
       sound.ui();
     }
     // Hotbar changes are engine actions that land on the next tick, so compare across frames.

@@ -425,6 +425,21 @@ fn crafting_consumes_inputs() {
 }
 
 #[test]
+fn every_hand_recipe_gives_its_output() {
+    for (i, r) in RECIPES.iter().enumerate() {
+        let mut g = Game::new(7, 2);
+        for &(item, n) in r.inputs {
+            g.give(item.0, n);
+        }
+        g.run_ticks(1);
+        assert_eq!(g.craft(i as u32, 1), 1, "recipe {i}");
+        g.run_ticks(1);
+        assert_eq!(g.item_total(r.output.0), r.count, "recipe {i} made its output");
+        assert!(r.inputs.iter().all(|&(item, _)| g.item_total(item.0) == 0), "recipe {i} used its inputs");
+    }
+}
+
+#[test]
 fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
     use crate::block::{COAL_ORE, SMELTER};
     use crate::factory::SmelterStatus;

@@ -1,4 +1,4 @@
-/* Inventory and build screen (inventory.ts): slot grids, cursor stack, recipe cards. */
+/* Inventory and build screen (inventory.ts): slot grids, cursor stack, recipe cards, box screen. */
 
 .inv-backdrop {
   position: fixed;
@@ -75,6 +75,35 @@
 
 .inv-hotbar {
   margin-bottom: 4px;
+}
+
+/* Box screen: the box's slots above the inventory, recipes hidden. */
+.inv.inv-with-box {
+  width: auto;
+}
+
+.inv-with-box .inv-body {
+  grid-template-columns: auto;
+}
+
+.inv-box {
+  margin-bottom: 18px;
+}
+
+.inv-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.inv-box-head h3 {
+  margin: 0;
+}
+
+.inv-box-grid {
+  grid-template-columns: repeat(8, auto);
 }
 
 .inv-grid + h3 {

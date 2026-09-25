@@ -1,5 +1,7 @@
 // Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the
-// hand-crafting recipes for the first factory machines.
+// hand-crafting recipes for the first factory machines. Opened on a storage box (right-click), it shows
+// the box's slots above the inventory instead of the recipes, like a chest: clicks move stacks with the
+// cursor, shift-clicks move whole stacks between the box and the inventory.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
@@ -43,6 +45,16 @@ export class InventoryPanel {
   private readonly recipes: RecipeView[] = [];
   private readonly cursor: SlotView;
   private version = -1;
+  private readonly title = h('h2', '', 'Inventory & build');
+  private readonly build = h('section', 'inv-build');
+  private readonly boxSection = h('section', 'inv-box hidden');
+  private readonly boxGrid = h('div', 'inv-grid inv-box-grid');
+  private readonly boxSlots: SlotView[] = [];
+  /** The open box's position, or null for the plain inventory screen. */
+  private box: [number, number, number] | null = null;
+  /** Whether Shift was held for the slot click being handled. */
+  private shift = false;
+  private boxKey = '';
 
   constructor(
     private readonly game: Game,
@@ -54,7 +66,7 @@ export class InventoryPanel {
     this.dialog.tabIndex = -1;
 
     const head = h('div', 'inv-head');
-    const title = h('h2', '', 'Inventory & build');
+    const title = this.title;
     title.id = 'inv-title';
     const close = h('button', 'close-btn', '×');
     close.type = 'button';
@@ -64,7 +76,13 @@ export class InventoryPanel {
 
     // Backpack (slots 9..35) above the hotbar (0..8), as in the HUD.
     const size = game.inventory_size(), hotbar = game.hotbar_size();
-    for (let i = 0; i < size; i++) this.slots.push(this.makeSlot(i));
+    for (let i = 0; i < size; i++) {
+      const slot = this.makeSlot(() =>
+        this.box && this.shift ? game.store_slot(...this.box, i) : game.click_slot(i, this.shift),
+      );
+      if (i < hotbar) slot.root.append(h('span', 'key', String(i + 1)));
+      this.slots.push(slot);
+    }
     const pack = h('div', 'inv-grid');
     pack.append(...this.slots.slice(hotbar).map((s) => s.root));
     const bar = h('div', 'inv-grid inv-hotbar');
@@ -77,9 +95,15 @@ export class InventoryPanel {
         'Look at ore to see how big its deposit is.',
     );
     const items = h('section', 'inv-items');
-    items.append(h('h3', '', 'Backpack'), pack, h('h3', '', 'Hotbar'), bar, note);
+    const boxHead = h('div', 'inv-box-head');
+    const takeAll = h('button', 'secondary-btn', 'Take all');
+    takeAll.type = 'button';
+    takeAll.addEventListener('click', () => this.box && game.take_machine_output(...this.box));
+    boxHead.append(h('h3', '', 'Storage box'), takeAll);
+    this.boxSection.append(boxHead, this.boxGrid);
+    items.append(this.boxSection, h('h3', '', 'Backpack'), pack, h('h3', '', 'Hotbar'), bar, note);
 
-    const build = h('section', 'inv-build');
+    const build = this.build;
     const list = h('div', 'recipe-list');
     for (let r = 0; r < game.recipe_count(); r++) {
       const view = this.makeRecipe(r);
@@ -123,9 +147,23 @@ export class InventoryPanel {
     return !this.backdrop.classList.contains('hidden');
   }
 
-  open(): void {
+  /** Opens the screen, on the box at `box` if given. */
+  open(box: [number, number, number] | null = null): void {
+    this.box = box;
+    const n = box ? this.game.box_slots(...box).length / 2 : 0;
+    while (this.boxSlots.length < n) {
+      const i = this.boxSlots.length;
+      const slot = this.makeSlot(() => this.box && this.game.click_box(...this.box, i, this.shift));
+      this.boxSlots.push(slot);
+      this.boxGrid.append(slot.root);
+    }
+    this.boxSection.classList.toggle('hidden', !box);
+    this.build.classList.toggle('hidden', !!box);
+    this.dialog.classList.toggle('inv-with-box', !!box);
+    this.title.textContent = box ? 'Storage box' : 'Inventory & build';
     this.backdrop.classList.remove('hidden');
     this.version = -1;
+    this.boxKey = '';
     this.update();
     this.dialog.focus();
   }
@@ -141,8 +179,16 @@ export class InventoryPanel {
     if (!this.isOpen) return;
     const g = this.game;
     const v = g.inventory_version();
-    if (v === this.version) return;
+    const boxData = this.box ? g.box_slots(...this.box) : null;
+    if (boxData && boxData.length === 0) {
+      this.close(false); // the box is gone
+      return;
+    }
+    const boxKey = boxData ? boxData.join(',') : '';
+    if (v === this.version && boxKey === this.boxKey) return;
     this.version = v;
+    this.boxKey = boxKey;
+    if (boxData) this.boxSlots.forEach((s, i) => this.drawSlot(s, boxData[i * 2], boxData[i * 2 + 1]));
 
     const selected = g.selected_slot();
     this.slots.forEach((s, i) => {
@@ -164,17 +210,18 @@ export class InventoryPanel {
     }
   }
 
-  private makeSlot(i: number): SlotView {
+  /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held). */
+  private makeSlot(click: () => void): SlotView {
     const root = h('div', 'slot inv-slot');
     const icon = h('canvas');
     icon.width = icon.height = ICON_PX;
     const count = h('span', 'count');
     root.append(icon, count);
-    if (i < this.game.hotbar_size()) root.append(h('span', 'key', String(i + 1)));
     root.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       e.preventDefault();
-      this.game.click_slot(i, e.shiftKey);
+      this.shift = e.shiftKey;
+      click();
       this.moveCursor(e.clientX, e.clientY);
       this.update();
     });

@@ -48,7 +48,8 @@ the render distance in chunks (2 to 24, default 8).
 | C                   | Crouch (you won't walk off edges)         |
 | Hold left mouse     | Mine the targeted block                   |
 | Right mouse (hold)  | Place the selected block. Belts run the way you face |
-| Right mouse on a box or miner | Take everything it holds. Hold C to place against it instead |
+| Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
+| Right mouse on a miner | Take everything it holds |
 | Right mouse on a smelter, constructor or filter | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
@@ -106,7 +107,7 @@ size.
   one ahead and one up. An underpass entry sends items under whatever is in front of it to the nearest
   exit facing the same way, up to 5 blocks ahead, so two lines can cross.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
-  from them, and miners next to a box fill it directly. Right-click a box or miner to take its contents.
+  from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
 - **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns. Feed it ore
   and fuel (coal ore burns 8 seconds, a log 4) by belt or from a miner next to it; it sorts them itself.
   It burns fuel only while smelting, and pushes ingots into a belt leading away. Its lamp shows green when

@@ -1,7 +1,8 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
-//! a smelter, constructor or filter), `set_recipe`, `set_filter`, `insert` (put items in from the inventory) and
-//! `take_contents` (right-click on a box or miner, the panel's take button). The actions that call
-//! these live in `action.rs`; the host draws the panel (`web/src/ui/machine.ts`).
+//! a smelter, constructor or filter), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
+//! `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
+//! buttons). The actions that call these live in `action.rs`; the host draws the panels
+//! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
 //!
 //! To give a machine a panel: `panel: true` in its `MACHINES` row, a `panel()` method on it, and its
 //! arms here.
@@ -46,6 +47,21 @@ impl Factory {
             Slot::Constructor(i) => Some(self.constructors[i as usize].panel()),
             Slot::Router(i) => Some(&self.routers[i as usize]).filter(|r| r.is_filter).map(|r| r.panel()),
             Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) => None,
+        }
+    }
+
+    /// The slots of the box at `pos`, if there is one (its screen shows them, `ClickBox` edits them).
+    pub fn box_slots(&self, pos: IVec3) -> Option<&[Stack]> {
+        match self.at.get(&pos) {
+            Some(Slot::Storage(i)) => Some(&self.storages[*i as usize].buf.slots),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn box_slots_mut(&mut self, pos: IVec3) -> Option<&mut [Stack]> {
+        match self.at.get(&pos) {
+            Some(Slot::Storage(i)) => Some(&mut self.storages[*i as usize].buf.slots),
+            _ => None,
         }
     }
 

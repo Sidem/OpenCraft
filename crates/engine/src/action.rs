@@ -9,7 +9,7 @@
 
 use crate::block::{self, AIR};
 use crate::deposits::HAND_YIELD;
-use crate::inventory::Stack;
+use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
@@ -58,6 +58,18 @@ pub enum Action {
     ClickSlot {
         slot: u8,
         shift: bool,
+    },
+    /// Box-screen click on the box's `slot`: like `ClickSlot` with the cursor stack; `shift` moves the
+    /// stack into the inventory (what doesn't fit stays).
+    ClickBox {
+        pos: IVec3,
+        slot: u8,
+        shift: bool,
+    },
+    /// Box-screen shift-click on inventory `slot`: moves the stack into the box (what doesn't fit stays).
+    StoreSlot {
+        pos: IVec3,
+        slot: u8,
     },
     /// The inventory screen closed: the cursor stack goes back, or is thrown if there is no room.
     CloseInventory,
@@ -158,6 +170,25 @@ impl Sim {
             }
             Action::ClickSlot { slot, shift: true } => inv.quick_move(slot as usize),
             Action::ClickSlot { slot, shift: false } => inv.click(slot as usize),
+            Action::ClickBox { pos, slot, shift } => {
+                let Some(s) = self.factory.box_slots_mut(pos).and_then(|b| b.get_mut(slot as usize)) else { return };
+                if shift && !s.is_empty() {
+                    s.count = inv.add(s.item, s.count);
+                    if s.is_empty() {
+                        *s = Stack::default();
+                    }
+                } else if !shift && click_stack(s, &mut inv.cursor) {
+                    inv.version += 1;
+                }
+            }
+            Action::StoreSlot { pos, slot } => {
+                let Some(b) = self.factory.box_slots_mut(pos) else { return };
+                let Some((item, n)) = inv.take_slot(slot as usize, u32::MAX) else { return };
+                let left = add_to_slots(b, item, n);
+                if left > 0 {
+                    inv.slots[slot as usize] = Stack { item, count: left };
+                }
+            }
             Action::CloseInventory => {
                 let left = inv.return_cursor();
                 if !left.is_empty() {

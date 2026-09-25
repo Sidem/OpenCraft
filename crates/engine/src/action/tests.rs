@@ -127,3 +127,25 @@ fn pickup_that_no_longer_fits_is_thrown_back() {
     assert_eq!(inv(&sim).count(DIRT.into()), 0);
     assert_eq!(sim.events, vec![SimEvent::Thrown { player: P, item: DIRT.into(), count: 3 }]);
 }
+
+#[test]
+fn a_box_screen_moves_stacks_both_ways() {
+    let mut sim = Sim::new(7, 2);
+    let pos = IVec3::new(0, 200, 0);
+    sim.factory.add_storage(pos);
+    let slots = |sim: &Sim| sim.factory.box_slots(pos).unwrap().to_vec();
+    sim.apply(P, Action::Give { item: STONE.into(), count: 30 });
+    sim.apply(P, Action::Give { item: DIRT.into(), count: 5 });
+    // Shift-click stores the stone; a click picks the dirt up and puts it in box slot 3.
+    sim.apply(P, Action::StoreSlot { pos, slot: 0 });
+    sim.apply(P, Action::ClickSlot { slot: 1, shift: false });
+    sim.apply(P, Action::ClickBox { pos, slot: 3, shift: false });
+    assert_eq!((slots(&sim)[0].count, slots(&sim)[3].count, slots(&sim)[3].item), (30, 5, DIRT.into()));
+    assert!(inv(&sim).cursor.is_empty() && inv(&sim).count(STONE.into()) == 0);
+    // Shift-click on a box slot takes it back.
+    sim.apply(P, Action::ClickBox { pos, slot: 0, shift: true });
+    assert_eq!((slots(&sim)[0].count, inv(&sim).count(STONE.into())), (0, 30));
+    // No box there: nothing happens.
+    sim.apply(P, Action::StoreSlot { pos: pos + IVec3::new(1, 0, 0), slot: 0 });
+    assert_eq!(inv(&sim).count(STONE.into()), 30);
+}
