@@ -6,8 +6,8 @@ import { INSTANCE_FLOATS } from '../src/render/boxes.ts';
 
 const materials = new URLSearchParams(location.search).get('view') === 'materials';
 document.body.classList.toggle('materials', materials);
-document.querySelector('#title').textContent = 'Alpine · natural materials';
-document.querySelector('#description').textContent = 'Blue slate, fern turf, cool earth and clustered foliage. Production Rust textures with world-anchored terrain tint.';
+document.querySelector('#title').textContent = 'Alpine · material study';
+document.querySelector('#description').textContent = 'Natural materials and readable ore families. Production Rust textures with world-anchored terrain tint.';
 const status=document.querySelector('#status');
 try {
   const wasm=await init();
@@ -67,6 +67,7 @@ try {
     ['Stone','Stone',0], ['Grass','Grass',0], ['Dirt','Dirt',0], ['Grass edge','Grass',1],
     ['Sand','Sand',0], ['Bark','Log',1], ['End grain','Log',0], ['Leaves','Leaves',0],
     ['Bedrock','Bedrock',0], ['Spent rock','Spent Rock',0],
+    ['Coal seam','Coal Ore',0], ['Iron bloom','Iron Ore',0], ['Copper vein','Copper Ore',0],
   ];
   const size = game.texture_size(), layerBytes = size * size * 4;
   for(const [name,block,face] of materials ? samples : samples.slice(0,2)) {

@@ -165,7 +165,7 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 - [x] **A1. Natural blocks.** Richer stone, dirt, grass (top and side lip), sand, logs (bark sides,
   rings on the ends), leaves (cutout holes), spent rock; the rest of `DEFS` in `block.rs` to match.
   Seamless tiling.
-- [ ] **A2. Ores.** Every ore readable at 20 blocks and distinct without colour (shape of flecks,
+- [x] **A2. Ores.** Every ore readable at 20 blocks and distinct without colour (shape of flecks,
   brightness). Keep each ore's family look in sync with its ingot and plate icons.
 - [ ] **A3. Item icons and loose items.** Ingots, plates, rods, screws, wire, science packs. If single
   boxes aren't enough, add multi-box item models (`item_models.rs`, keyed by item id, used by
@@ -240,3 +240,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   +12 kB art budget. Whole `Game::new` median 0.76 ms (includes texture generation, under
   20 ms); synthetic 1,600-box browser render 0.10 ms median with or without tint at the
   available timer resolution, GL error 0. User approved commits on `art`; no merge or push.
+- **2026-09-26, A2:** Rebased on `main`; coal now has dark fractures, iron has broad pale
+  blooms, and copper has fine angular veins with oxidised edges. All three use the Alpine slate
+  base and differ in grayscale as well as hue; cast iron/copper icons retain the same metal
+  families. Added ore swatches to the fixed preview and tests for wrapping and value contrast.
+  Same-scene screenshots: `artifacts/a1/after.png` → `artifacts/a2/after.png`; tiled material
+  detail: `artifacts/a1/materials.png` → `artifacts/a2/materials.png`. `npm run check` green
+  (144 tests), golden hash unchanged. Vite wasm **140.09 kB gzip**, +0.65 kB over the
+  rebuilt A1/P1–P5 baseline of 139.44 kB. No merge or push.

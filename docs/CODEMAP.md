@@ -83,6 +83,7 @@ folder with `mod.rs`.
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
 | `textures/nature.rs` | Alpine palettes and periodic natural block patterns: slate, earth, turf, sand, bark/end grain, leaf cutouts, bedrock and spent rock |
+| `textures/ores.rs` | Tileable coal fractures, iron blooms and copper veins on the shared slate base |
 | `textures/tools.rs` | Placeholder tool pictures (pickaxe, axe, shovel per tier; scanner, core drill) |
 | `textures/plants.rs` | Placeholder plant pictures on transparent ground (sapling) |
 | `textures/geology.rs` | Placeholder rocks and minerals (granite, sandstone, basalt, limestone, glass) |

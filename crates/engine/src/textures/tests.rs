@@ -16,7 +16,18 @@ fn every_layer_is_generated() {
 fn natural_surfaces_have_no_tile_border() {
     // Compare wrap-edge jumps with interior pixel jumps, not identical first/last pixels:
     // neighbouring texels should remain neighbours when a greedy quad repeats the texture.
-    for layer in [tex::STONE, tex::DIRT, tex::GRASS_TOP, tex::SAND, tex::LEAVES, tex::BEDROCK, tex::SPENT_ROCK] {
+    for layer in [
+        tex::STONE,
+        tex::DIRT,
+        tex::GRASS_TOP,
+        tex::SAND,
+        tex::LEAVES,
+        tex::BEDROCK,
+        tex::SPENT_ROCK,
+        tex::COAL_ORE,
+        tex::IRON_ORE,
+        tex::COPPER_ORE,
+    ] {
         let mut interior = 0u32;
         let mut seam = 0u32;
         let difference = |a: [u8; 4], b: [u8; 4]| (0..3).map(|i| a[i].abs_diff(b[i]) as u32).sum::<u32>();
@@ -35,6 +46,24 @@ fn natural_surfaces_have_no_tile_border() {
         }
         assert!(seam * 15 <= interior * 2 + 480, "layer {layer} has a visible wrap border");
     }
+}
+
+#[test]
+fn ore_marks_read_without_hue() {
+    let luma = |c: [u8; 4]| (u32::from(c[0]) * 54 + u32::from(c[1]) * 183 + u32::from(c[2]) * 19) / 256;
+    let mut ranges = Vec::new();
+    for layer in [tex::COAL_ORE, tex::IRON_ORE, tex::COPPER_ORE] {
+        let values: Vec<_> = (0..16).flat_map(|y| (0..16).map(move |x| luma(pixel(layer, x, y)))).collect();
+        let dark = values.iter().filter(|&&v| v < 55).count();
+        let light = values.iter().filter(|&&v| v > 170).count();
+        ranges.push((dark, light));
+    }
+    assert!(ranges[0].0 > 20, "coal needs broad dark seams");
+    assert!(ranges[1].1 > 20, "iron needs broad pale blooms");
+    assert!(
+        ranges[2].0 < ranges[0].0 && ranges[2].1 < ranges[1].1,
+        "copper's fine medium-value veins must sit between coal and iron"
+    );
 }
 
 #[test]

@@ -10,9 +10,8 @@ mod geology;
 mod machines;
 mod plants;
 mod nature;
+mod ores;
 mod tools;
-
-use nature::stone;
 
 use machines::{
     belt_side, belt_top, constructor, crate_wood, drill, flask, generator, ingot, lab, lamp, miner_side, miner_top,
@@ -57,22 +56,6 @@ fn rgb(c: [f64; 3], k: f64) -> [u8; 4] {
     [ch(c[0]), ch(c[1]), ch(c[2]), 255]
 }
 
-/// Stone with 5 tileable mineral clusters.
-fn ore(x: i32, y: i32, seed: u32, main: [f64; 3], accent: [f64; 3]) -> [u8; 4] {
-    for i in 0..5 {
-        let h = hash3(seed, i, 0, 0);
-        let (cx, cy) = ((h & 15) as i32, ((h >> 4) & 15) as i32);
-        let wrap = |d: i32| d.abs().min(16 - d.abs());
-        let (dx, dy) = (wrap(x - cx), wrap(y - cy));
-        let r2 = 1 + ((h >> 8) % 3) as i32;
-        if dx * dx + dy * dy <= r2 {
-            let k = 0.8 + 0.3 * n(seed + 1, x, y);
-            return if n(seed + 2, x, y) < 0.3 { rgb(accent, k) } else { rgb(main, k) };
-        }
-    }
-    stone(x, y)
-}
-
 /// Brushed steel with a dark rim and corner rivets.
 fn frame(x: i32, y: i32) -> [u8; 4] {
     let edge = x == 0 || y == 0 || x == 15 || y == 15;
@@ -104,9 +87,7 @@ fn avatar(x: i32, y: i32, part: u16) -> [u8; 4] {
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
         tex::STONE..=tex::LEAVES | tex::BEDROCK | tex::SPENT_ROCK => nature::pixel(layer, x, y),
-        tex::COAL_ORE => ore(x, y, 21, [40.0, 40.0, 44.0], [74.0, 74.0, 82.0]),
-        tex::IRON_ORE => ore(x, y, 24, [218.0, 180.0, 152.0], [168.0, 112.0, 86.0]),
-        tex::COPPER_ORE => ore(x, y, 27, [226.0, 134.0, 72.0], [88.0, 172.0, 140.0]),
+        tex::COAL_ORE..=tex::COPPER_ORE => ores::pixel(layer, x, y),
         tex::BELT_TOP => belt_top(x, y, [176.0, 150.0, 92.0]),
         tex::FAST_BELT_TOP => belt_top(x, y, [96.0, 170.0, 236.0]),
         tex::FRAME => frame(x, y),
