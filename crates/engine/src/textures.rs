@@ -6,7 +6,9 @@
 use crate::block::tex;
 use crate::math::{hash3, unit};
 
+mod geology;
 mod machines;
+mod plants;
 mod tools;
 
 use machines::{
@@ -207,6 +209,19 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             let i = layer - tex::STONE_PICKAXE;
             tools::tool(x, y, i % 3, i >= 3)
         }
+        tex::SAPLING => plants::sapling(x, y),
+        tex::GRANITE => geology::granite(x, y),
+        tex::SANDSTONE => geology::sandstone(x, y),
+        tex::BASALT => geology::basalt(x, y),
+        tex::LIMESTONE => geology::limestone(x, y),
+        tex::QUARTZ_ORE => ore(x, y, 80, [236.0, 232.0, 240.0], [196.0, 190.0, 214.0]),
+        tex::GLASS => geology::glass(x, y),
+        tex::RUSTY_SOIL => geology::soil(x, y, [176.0, 84.0, 40.0]),
+        tex::DARK_SOIL => geology::soil(x, y, [40.0, 34.0, 30.0]),
+        tex::GREEN_SOIL => geology::soil(x, y, [80.0, 150.0, 120.0]),
+        tex::PALE_SOIL => geology::soil(x, y, [226.0, 218.0, 196.0]),
+        tex::SCANNER => tools::scanner(x, y),
+        tex::CORE_DRILL => tools::core_drill(x, y),
         _ => [255, 0, 255, 255],
     }
 }

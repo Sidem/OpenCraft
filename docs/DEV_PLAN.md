@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
-TURN for now) · play-test notes P1–P5 done · **Next up: Milestone 4 (ask its questions first, section 6)** · A graphics agent
+TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.6 done) · **Next up: step 4.7** · A graphics agent
 works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -26,8 +26,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   research with science packs, Mk2 upgrades and onboarding tips.
 - **Milestone 3 (Co-op) is done** (section 8): 2–4 players in one world over WebRTC, the host's browser as
   the authority, a Cloudflare Worker to connect them, hosting and joining from the menu.
-- **The user's play-test notes P1–P5 are done** (section 4). **Next: Milestone 4: Reasons to explore.**
-  Ask the user its open questions first (section 6), then detail it in section 4.
+- **The user's play-test notes P1–P5 are done.** **Now: Milestone 4: Reasons to explore** (section 4:
+  biomes, rock types and geology-driven ores, prospecting, day and night, lighting), step by step.
 - **A second agent improves textures and models in parallel** (`docs/ART_HANDOVER.md`, branch `art` in its
   own worktree). Don't restyle the files it owns (listed there); when gameplay needs a new look, append a
   `tex` layer with a plain placeholder pattern and add a line to that file's request list.
@@ -37,7 +37,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (141 engine tests).
+   (161 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -90,6 +90,10 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-25 | **Co-op size: 2–4 players.** This sets the bandwidth and performance budgets. |
 | 2026-09-26 | **No TURN relay for now**: STUN only. Players whose networks block direct connections can't join; adding the two TURN secrets later (`docs/WORKFLOW.md` section 4) needs no code change. |
 | 2026-09-26 | **Tools wear out and come in tiers.** A better pickaxe keeps slightly more ore by hand, but nowhere near what machines recover (step P5). |
+| 2026-09-26 | **Ores follow geology.** Coal, iron and copper are placed by rock type and biome (for example copper in mountains, coal in lowlands); limestone and quartz are added; visible rock types (granite, sandstone, basalt) say what lies beneath. |
+| 2026-09-26 | **Deposit rates stay as today** (how many outcrops, veins and lodes); tune after play. |
+| 2026-09-26 | **The world pauses while the game is closed.** No simulating missed time. |
+| 2026-09-26 | **New generation rules for new worlds only.** Worlds made before Milestone 4 keep generator version 1 and play as before. |
 
 ### Proposed, not yet confirmed by the user
 
@@ -136,7 +140,10 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 ### What exists
 
 - **World:** 32³ chunks, 256 tall; seeded terrain with cliffs, caves and trees; greedy mesher with AO;
-  streaming nearest-first; edits kept when chunks unload (`World.saved`).
+  streaming nearest-first; edits kept when chunks unload (`World.saved`). Generator versions: a world
+  keeps its own (`WorldGen::version`); version 2 adds biomes (`worldgen/biome.rs`: plains, desert over
+  sandstone, highlands over granite, lowlands, basalt fields; spawn always plains) and ores by biome
+  (`worldgen/geology.rs`, including limestone and quartz).
 - **Deposits** (`deposits.rs`, placed by `worldgen/ore.rs`): outcrops, veins and lodes of coal, iron and
   copper (100 / 1,000 / 2,000 units per block, shared draw caps 60 / 240 / 1,200 per minute). A pool is
   shared per deposit, output tapers over the last 20%, and blocks turn to `SPENT_ROCK` as it drains, even
@@ -159,17 +166,20 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): seven tips from finding ore to research.
 - **Minimap** (`minimap.rs`, `ui/minimap.ts`, key N): loaded terrain around the player, north up, arrows
   for every player; presentation only.
-- **Block timers** (`sim/timers.rs`, core state): leaves of a felled tree decay (half-life 5 s, no drops),
-  grass spreads onto bare dirt beside it (30 s) and turns to dirt under a solid block (15 s). Timers start
-  only from block changes, never from scanning chunks.
-- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–28, see
-  `block.rs`); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
-  science packs. Every item is drawn as a textured box.
+- **Block timers** (`sim/timers.rs`, core state): leaves of a felled tree decay (half-life 5 s), grass
+  spreads onto bare dirt beside it (30 s) and turns to dirt under a solid block (15 s), saplings grow.
+  Timers start only from block changes, never from scanning chunks.
+- **Saplings** (`sim/saplings.rs`): leaves drop one 1 time in 25 (broken or decayed); planted on dirt or
+  grass, it grows after 60 s plus a 90 s half-life into a tree shaped like generated ones
+  (`worldgen::tree_blocks`); drawn as crossed quads (`Render::Plant`, mesher faces 6 and 7).
+- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–39, see
+  `block.rs`; 29 is the sapling, 30–39 Milestone 4's rocks, ores, glass and stained soils); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
+  science packs, the six tools (264–269), scanner (270) and core drill (271). Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 11; every version since 1 loads.
+  exports and imports them. Save version 12; every version since 1 loads.
 - **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
   menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
   or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
@@ -180,7 +190,10 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Tools** (`tools.rs`, recipes at the end of `RECIPES`): pickaxe, axe and shovel in stone (150 uses, 2×)
   and iron (600, 4×, an iron pickaxe keeps 4 ore); a tool's stack count is its uses left, shown as a wear
   bar (`showAmount` in `ui/hud.ts`). Placeholder looks in `textures/tools.rs`.
-- **Size:** about 185 KB gzipped in total (wasm 138.0 KB, JS 40.0 KB, CSS 5.3 KB).
+- **Prospecting** (`prospect.rs`, `ui/prospect.ts`): the scanner lists deposits within 48 blocks (ore,
+  tier, live bearing and distance, depth, size band); the core drill (3 s hold) gives a column's exact
+  figures. Queries only: no actions, the state hash never moves. Devices are tools that never wear.
+- **Size:** about 194 KB gzipped in total (wasm 146.2 KB, JS 41.5 KB, CSS 5.4 KB).
 
 ### Known limitations and technical debt
 
@@ -342,70 +355,113 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: play-test notes (P1–P5), then Milestone 4
+## 4. Now: Milestone 4: Reasons to explore
 
-The user played co-op across two machines (2026-09-26, "it worked fine") and asked for these first, in
-this order. Each is one session, green and committed. P3 builds what P4 reuses.
+The play-test notes P1–P5 (Escape, minimap, leaf decay, grass, tools) are done (change log, section 8).
+The user answered Milestone 4's questions on 2026-09-26 (section 1): coal, iron and copper placed by rock
+type and biome, plus limestone and quartz, under visible rock types (granite, sandstone, basalt); today's
+deposit rates; the world pauses while the game is closed; **new rules for new worlds only**.
 
-- [x] **P1. Escape closes a panel first.** Now Escape in the inventory, a box or machine panel, or research
-  closes the panel *and* shows the pause menu (`closed(false)` in `main.ts`; the panels' keydown handlers in
-  `ui/inventory.ts`, `machine.ts`, `research.ts`). The browser won't re-lock the mouse from an Escape key
-  press (Escape is not a user gesture), so: Escape closes the panel and leaves the game on screen with a
-  small "Click to keep playing" hint over the canvas (the existing canvas click already re-locks); a
-  second Escape opens the pause menu. E and a click outside still resume at once. **Done when:** from each
-  panel, Escape → game view with the hint → click plays on; Escape again → pause menu; no double menus
-  in co-op (the menu's co-op section still works).
-- [x] **P2. Minimap, on by default.** Presentation only (never core state). Engine: new `minimap.rs`
-  writes an RGBA image (about 128 × 128, one pixel per column, north up, centred on the local player) from
-  *loaded* chunks: the top block's average texture colour (computed once from `textures::generate`)
-  shaded by the height step to its north-west neighbour, water tinted. Redraw only when the player crosses
-  a block or chunks mesh, at most 4 times a second; zero-copy view to TS. Web: `ui/minimap.ts` + `.css`
-  draws it in a top-right round frame with arrows for the local player (facing) and co-op players; M
-  toggles it (saved in localStorage). This takes "Minimap" out of Milestone 4, which then adds deposit and
-  machine markers. **Done when:** the map matches the terrain in a screenshot, follows the player and
-  turns with them, costs under 0.2 ms per redraw, and the wasm grows under 3 KB gzipped.
-- [x] **P3. Block timers + leaf decay.** New core state `sim/timers.rs`: `BlockTimers`, pending
-  (due tick, position, kind) entries, run in `Sim::step` after the tick's actions in (tick, position)
-  order, saved and hashed (`write_state` / `read_state`, bump `SAVE_VERSION` to 11; older saves load with
-  none pending), capped (for example 4096; beyond that new entries are dropped, deterministically).
-  Timers edit through `set_block_anywhere`, so they work in unloaded chunks. Leaf decay: when an action
-  removes a `LOG`, look at leaves within 6 blocks; each that has no log within 4 steps through leaves gets
-  a decay timer drawn from `Sim.rng` with a half-life (start at 8 s: exponential, `-ln(u) · 8 s / ln 2`).
-  When it fires, check again (a log placed meanwhile saves it) and remove the leaf; a leaf that decays
-  drops nothing for now (saplings come later). Report it with a `SimEvent` so a soft sound and a few
-  particles can play. **Done when:** scenario tests: a felled tree's leaves are gone within a minute
-  with the same hash on two cores; leaves still connected to another tree stay; a save mid-decay resumes;
-  `results_do_not_depend_on_frame_rate` and the loaded-chunks test still pass.
-- [x] **P4. Grass spreads onto dirt.** Uses P3's timers. When a block changes (any action or timer), each
-  `DIRT` within 1 block (the 3 × 3 × 3 around the change) with air above and a `GRASS` among its 8
-  horizontal or ±1-height neighbours gets a grow timer (half-life about 30 s); when it fires, grow if
-  still true, then schedule the dirt around the new grass the same way, so it keeps spreading. Also: a
-  solid block placed on grass turns it to dirt after a timer. No random block ticks, no scanning
-  chunks: only changes start timers, so it stays cheap and independent of loaded chunks. **Done when:**
-  scenario test: dig a 5 × 5 dirt patch beside grass and it greens edge-inwards within a few minutes;
-  covered grass turns to dirt; two cores match.
-- [x] **P5. Tools: pickaxe, axe, shovel, in tiers, that wear out** (the user's answers, section 1).
-  Tools are items (`item.rs`, stack 1; a new `tools.rs` holds the tool table) in two tiers now: stone
-  (stone and logs, craftable by hand from the start) and iron (iron plates and rods); steel is the third
-  tier once steel exists (Milestone 5), so keep the tier table open. Each speeds breaking of one material
-  class (from `BlockDef.sound`: stone and ore → pickaxe, wood → axe, dirt, grass, sand → shovel) while
-  selected in the hotbar: stone about 2×, iron about 4×; hands still break everything, slowly. Wear: each
-  block broken with the right tool costs one use (start: stone 150, iron 600); the slot shows a wear bar,
-  and a worn-out tool breaks with a sound and a toast. Pickaxe yield: ore by hand keeps `HAND_YIELD` (3)
-  bare-handed or with stone, 4 with iron, 5 with steel later: slightly more, never near a miner's 60%+.
-  Break speed lives in the hands (`interaction.rs`, not core); the tool, its wear and the yield are core
-  (the `Break` action reads the selected slot; wear is item state, so saves and the hash carry it:
-  bump `SAVE_VERSION`). Looks: placeholder `tex` layers and icons; the graphics agent refines them
-  (request list in `docs/ART_HANDOVER.md`). **Done when:** scenario tests: stone breaks faster with a
-  pickaxe, wear counts down and the tool breaks at zero, an iron pickaxe keeps 4 ore; the hotbar shows
-  wear; two cores match.
+Goal: the world has places worth travelling to, you can find what lies underground, and night makes
+lamps and caves matter. Everything new stays deterministic (section 3.4). Prospecting and markers are
+queries and presentation; they never create core state. Each step is one session, green and committed.
 
-### Milestone 4: Reasons to explore (after P1–P5)
-
-**Before detailing it, ask the user the M4 questions in section 6** (ores and rock types, how rare veins
-and lodes should be, and whether factories run on while the game is closed). Then detail it here to the
-level Milestone 3 had: numbered steps, each with where, how and a **Done when**, ending with a cleanup
-step. Record the answers in section 1.
+- [x] **4.1 Versioned world generation.** Old worlds keep today's generator; new worlds get the new
+  rules. `WorldGen` gets a `version` (1 = today's rules, frozen forever; 2 = Milestone 4's). Today's code
+  stays the version-1 path; version 2 branches at a few named points (`surface_for`, the filler and stone
+  in `generate`, ore seeding) into new files (`worldgen/biome.rs`, `worldgen/geology.rs`), so nothing
+  version 1 does changes. `WORLDGEN_VERSION` becomes the newest (2); `Game::new` makes the newest; the
+  save header writes the world's own version and the loader accepts 1..=`WORLDGEN_VERSION` (a newer one
+  is refused like a newer save format). A co-op join carries it inside the save bytes; the snapshot
+  check in `net/snapshot.rs` compares version as well as seed. In this step version 2 still generates
+  exactly what version 1 does. **Done when:** a test pins a hash of a few version-1 chunks (seed 1337,
+  surface, cave and lode chunks) recorded before any change, and it never changes again; the `v1` and
+  `v9` fixtures load as version 1; a new game saves and reloads as version 2; a co-op join gets the
+  host's version; the golden hash is unchanged.
+- [x] **Saplings** (the user's request, 2026-09-26, built after 4.1): leaves sometimes drop a sapling;
+  planted on dirt or grass it grows into a tree after a while (a block timer). **Done when:** scenario
+  tests: leaves drop saplings at about the set rate, a planted sapling grows into a full tree on two
+  cores with the same hash, it needs soil and room; a screenshot of a sapling and the grown tree.
+- [x] **4.2 New blocks: rocks, limestone, quartz, glass.** Blocks (appended ids): `GRANITE`, `SANDSTONE`,
+  `BASALT` (building rocks that drop themselves; `sound::STONE` so pickaxes work; granite and basalt
+  break slower than stone, sandstone faster), `LIMESTONE` and `QUARTZ_ORE` (deposit ores; limestone
+  drops itself and is a light building stone for now, its industrial use as flux and concrete comes
+  with Milestone 5; quartz ore drops `QUARTZ`), and `GLASS` (cutout like leaves; the smelter makes it
+  from quartz, a new smelter recipe). `ore_replaceable` also takes the three rocks and sand. Placeholder
+  `tex` layers and item icons; add the looks to the request list in `docs/ART_HANDOVER.md`. No
+  generation uses them yet. **Done when:** unit tests: each new block breaks with the right tool, the
+  smelter turns quartz into glass; glass renders see-through in a screenshot; wasm growth noted.
+- [x] **4.3 Biomes and rock provinces (version 2 only).** `worldgen/biome.rs`: two new low-frequency
+  fields (temperature, moisture; new `Perlin`s never touch version 1's) plus height pick a biome per
+  column: **plains** (today's grass and forest over stone), **desert** (sand over sandstone down to
+  about 12 blocks, no trees), **highlands** (mountains and high ground: granite beneath, bare rock above
+  `ROCK_LEVEL` as today), **lowlands** (low, flat and wet: dense forest, dark soil, stone with limestone
+  beds), and rare **basalt fields** (a separate blob field in any biome: basalt surface and rock). The
+  biome decides the surface pair, tree density and the rock that replaces `STONE` below the filler.
+  Borders blend (a hash-dithered edge a few blocks wide). Spawn is always plains, so stone and trees
+  are at hand. The minimap shows it for free. **Done when:** tests: every biome occurs within 1500
+  blocks of spawn for seeds 2024, 1337 and 7; spawn is plains; generation is order-independent (the
+  existing test for version 2); a chunk generates at most 15 % slower than version 1 (measure and note
+  it); the version-1 pin holds; a screenshot of each biome.
+- [x] **4.4 Geology-driven ores (version 2 only).** `worldgen/geology.rs`: the same number of deposits
+  as today (keep today's rates: 11 outcrops per column, vein chances summing to 1.3, a lode per 40
+  columns), but each deposit's ore is drawn from its rock province's weights, for example plains stone:
+  coal, iron, some copper and limestone; lowlands: mostly coal and limestone; highlands granite: copper,
+  quartz, some iron; desert sandstone: quartz, limestone, iron; basalt: rich iron, copper. The table is
+  data at the top of the file (tune after play). Deposit keys stay stable per (column, slot) so
+  `deposit_by_key` reproduces them for saves. **Done when:** tests: over a 64 × 64-column area of
+  version 2, each province's ore shares match its weights within tolerance and the totals match
+  version 1 within 5 %; a miner on a limestone and on a quartz deposit fills a box with the right items;
+  version-1 deposit lists are unchanged.
+- [x] **4.5 Surface hints (version 2 only).** Above each vein and lode, some surface columns over its
+  footprint (plus a margin of 3, hash-scattered, about a quarter of them) get a stained soil block in
+  place of grass or sand: rusty (iron), dark (coal), green (copper), pale (limestone and quartz). They
+  behave like dirt (shovel, drop dirt; grass may spread onto them, which is fine: hints fade where you
+  build). Placeholder textures plus art requests. Outcrops need no hint; they already show. **Done
+  when:** tests: every version-2 vein and lode in a test area has hint blocks above it and version 1
+  has none; a screenshot of a rust patch in the game and on the minimap.
+- [x] **4.6 Prospecting: scanner and core drill.** Two tool items (`tools.rs` table, hand recipes from
+  iron plates, copper wire and screws; they don't wear). **Scanner:** with it selected, the use button
+  runs `Game::scan()`, a query (no action, no core state) over deposits within 48 blocks horizontally:
+  ore, tier, bearing and depth from the player, and a size band (small, medium, large, from
+  `DepositState::survey`'s remaining ore; untracked deposits count as full). Results show in a small
+  panel (`ui/prospect.ts`) and play a sweep sound; a cooldown of about 2 s. **Core drill:** hold use on
+  a block for about 3 s (progress like mining) to get exact figures for the deposits below that column
+  (within 2 blocks, down to bedrock): ore, exact ore left, top and bottom y. Makes veins and lodes
+  findable (limitation 3). **Done when:** tests: `scan` lists exactly the deposits a brute-force search
+  finds in range, exhausted ones excluded; core-drill figures equal the deposit's remaining count; the
+  state hash is unchanged by scanning and drilling (and in a co-op pair); a screenshot of the panel.
+- [ ] **4.7 Minimap markers.** Deposits once prospected (scan or drill results, kept per world in the
+  browser's world record in IndexedDB, so they survive reloads; presentation, not the save file) and
+  machines (engine `minimap_marks`: kind and position of factory machines within the map's range, from
+  the factory lists). TS draws small coloured marks over the image, clipped to the round frame; a
+  prospected deposit that runs dry drops its mark. **Done when:** a screenshot with deposit and machine
+  marks; marks survive a reload; building them costs under 0.05 ms per redraw.
+- [ ] **4.8 Day and night.** The time of day is derived from the tick (`(tick + start) % DAY_TICKS`, a
+  20-minute day starting in the morning), so it is core state already, saved and identical in co-op, with
+  no format change. The engine exposes `time_of_day()`; the renderer takes a sun direction, a sky and fog
+  colour and a daylight level from it (dawn and dusk tints; night dark blue, never black: a moonlight
+  floor). The pause menu shows the time. **Done when:** screenshots at noon, dusk and midnight; two
+  players see the same time; the golden hash is unchanged; the shader change costs nothing measurable.
+- [ ] **4.9 Sky light.** Light becomes part of the render cache (derived from blocks, never core): when a
+  chunk meshes, sky light 0–15 fills columns from the top down to the first opaque block and floods
+  sideways (−1 per step) through air and cutout blocks, reading a margin from the neighbour chunks the
+  mesher already touches. Each vertex gets a smoothed sky light like its ambient occlusion (the packed
+  `u32` vertex is full: add a second `u32` or a byte stream, and key the greedy merge on light); the
+  shader scales it by the daylight from 4.8. An edit re-meshes the chunks its light can reach. **Done
+  when:** caves and overhangs are dark at noon while open ground looks as today; digging a shaft lets
+  light in (a test on the light field); meshing a chunk costs at most 1.5 × today (measured and noted);
+  wasm and mesh memory growth noted.
+- [ ] **4.10 Block light and lamps.** Emitting blocks (`BlockDef` gets a light level) flood block light
+  0–15 the same way, stored beside sky light; the shader adds it, warm-tinted, unaffected by daylight. A
+  `LAMP` block (hand recipe: glass, iron plate, copper wire; unpowered for now, electric lamps can come
+  with a later power pass) emits 15; a working smelter glows a little. **Done when:** a lamp lights a
+  cave room and removing it darkens it again (a light-field test and a screenshot); light crosses chunk
+  borders correctly; meshing stays within 4.9's budget.
+- [ ] **4.11 Milestone 4 cleanup.** Size budgets hold (split anything over 400 lines); CODEMAP, README
+  (biomes, rocks, prospecting, day and night, lamps) and `docs/WORKFLOW.md` balance numbers are current;
+  the art request list is complete; compress this section to a summary; move Milestone 5 from
+  `docs/ROADMAP.md` into this section, and ask the user its questions (section 6) before detailing it.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -417,22 +473,6 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
   laggy in real play: show your own block edits at once in the render cache, undo them if the core
   disagrees, never touch the core (`interaction.rs`).
 - A client's every resync logs the tick and both hashes; turn any real one into a replayable test.
-
-The scope, from `docs/ROADMAP.md` (to be split into steps):
-
-- **Geology-driven ores:** rock types and biomes decide which ores appear where, for example copper in
-  mountains, coal in lowland swamps, quartz and sand in deserts.
-- **Surface hints:** rust-stained soil above iron, and similar.
-- **Biomes that matter for resources and building,** not just colour.
-- **Prospecting:** a scanner reveals deposits within a radius with size estimates; a core drill gives exact
-  figures. Makes veins and lodes findable (limitation 3).
-- **Minimap markers** (the map itself is P2): deposits once prospected, machines, later rails.
-- **Day/night cycle and voxel lighting:** sky light plus block light propagated in the mesher and stored per
-  chunk; lamps. Makes caves and deep lodes atmospheric, and later gives solar power a reason to vary.
-- Generation changes bump `WORLDGEN_VERSION` (`worldgen/mod.rs`), which stops older worlds from loading;
-  agree with the user on that (or on a migration) before the first such step.
-- Everything new in the core stays deterministic and co-op-safe (section 3.4): the time of day is core
-  state advanced by ticks; prospecting results are queries that never create core state.
 
 ---
 
@@ -451,8 +491,6 @@ and adjust the steps.
 | Needed by | Question |
 |---|---|
 | Any time | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Built that way; easy to change.) |
-| M4 or later | Should factories keep running while the game is closed (simulate the missed time on load, capped)? |
-| M4 | Which ores and rock types, and how rare should veins and lodes be once prospecting can find them? |
 | M7 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
 
 ---
@@ -516,3 +554,44 @@ and the balance numbers. Read the section you need.
   worn tools of a kind pool their uses; dropping a tool drops it whole. A box feeding a belt would split
   a tool into one-use pieces (harmless, and they pool again). A `ToolWornOut` event plays a sound and a
   "wore out" toast (a pickup notice with count 0). Tests 136 → 141; wasm 136.8 → 138.0 KB gzipped.
+- **2026-09-26:** P1–P5 pushed (`233371b`). The user answered the Milestone 4 questions (section 1: ores
+  follow geology with limestone and quartz added, today's rates, the world pauses while closed, new
+  rules for new worlds only), and Milestone 4 was detailed as steps 4.1–4.11.
+- **2026-09-26:** 4.1 done: `WorldGen::version` (`WorldGen::with_version`; `WORLDGEN_VERSION` is now 2, the
+  newest), written in the save header and carried by co-op snapshots; the loader takes 1..=2. Version 1
+  is pinned by a digest test (`version_1_output_never_changes`); version 2 still generates the same. The
+  pause menu says "classic terrain" for version-1 worlds. `Sim::new` and `World::new` are test-only now
+  (`with_generator`). Tests 141 → 143.
+- **2026-09-26:** Saplings (the user's request): `SAPLING` block 29 drawn as crossed quads (`Render::Plant`,
+  a mesher pass, shader faces 6 and 7), dropped by broken or decayed leaves (1 in 25), grown by a
+  `SaplingGrow` block timer (60 s plus a 90 s half-life; retries while it lacks soil or room) through
+  `worldgen::tree_blocks`, the shape generation uses (version 1 unchanged). A `TreeGrew` event plays a
+  rustle. Save version 12. Tests 143 → 146.
+- **2026-09-26:** 4.2 done: blocks 30–35 (granite, sandstone, basalt, limestone, quartz ore, glass),
+  placeholder looks in `textures/geology.rs`, and a smelter recipe (2 quartz ore → 1 glass, appended to
+  `MACHINE_RECIPES`, whose indexes machines save). Deviations: limestone and quartz ore are deposit
+  ores like iron (not placeable, so a placed block can't be mined as ore again), and quartz ore drops
+  itself rather than a separate `QUARTZ` item; `ore_replaceable` takes the new rocks now but sand only
+  in version 2 (4.4), since version 1 has sand. Tests 146 → 147; wasm 138.0 → 140.3 KB gzipped over 4.1, saplings and 4.2.
+- **2026-09-26:** 4.3 done: `worldgen/biome.rs` (version 2 only): temperature, moisture and basalt fields
+  plus height pick plains (about 55 % near spawn), desert (10–13 %), highlands (above 112, 10–13 %),
+  lowlands (14–18 %) and basalt fields (3 %); the column cache gains `rock`, which replaces stone below
+  the soil; tree density per biome. Deviations: borders fray by reading the climate up to 2 blocks off
+  the column (a value dither made wide speckled bands); basalt fields are bare basalt, even below sand
+  level, and have no trees; lowlands have no dark soil yet (no block for it). Version 2 generates about
+  10 % slower than version 1 (`bench_generation`, ignored by default). Tests 147 → 151.
+- **2026-09-26:** 4.4 done: `worldgen/geology.rs` seeds version 2's deposits (11 outcrops per column, vein
+  slots with chances 1.0 and 0.3, a lode per 40 columns: version 1's rates) and draws each one's ore
+  from its biome's weights (`ORES_BY_BIOME`); version 1's outcrop, vein and lode shapes became shared
+  helpers in `ore.rs` (same draws; the pin holds). Version 2 outcrops also replace sand. The golden
+  hash was re-recorded, and `sim::tests::outcrop` now picks the nearest coal, iron or copper outcrop
+  (the scenario feeds a smelter). Tests 151 → 155.
+- **2026-09-26:** 4.5 done: stained soils (blocks 36–39: rusty, dark, verdigris, pale; drop dirt) put on
+  about one in four grass, sand or dirt tops within a vein's or lode's footprint plus 3 blocks
+  (`geology::stain_surface`, written into the column cache so the minimap shows them).
+  `deposits_for_column` split into `deposits_near` (seeded once per column) and `ore::in_column`.
+  All 202 veins and lodes in the test area show hints. Tests 155 → 156.
+- **2026-09-26:** 4.6 done: scanner (270) and core drill (271), `DEVICE_TIER` tools that never wear.
+  `prospect.rs`: `scan` (size band estimated from the shape's radii, not surveyed, so scans generate no
+  chunks) and `core_sample` (exact figures, tracked or a throwaway survey). Panel at the top left (the
+  right is taken), a `scan` ping. wasm 140.3 → 146.2 KB over 4.3–4.6. Tests 156 → 161.

@@ -58,10 +58,16 @@ pub struct World {
 }
 
 impl World {
+    /// A world from the newest generator.
+    #[cfg(test)]
     pub fn new(seed: u32, view_radius: i32) -> Self {
+        Self::with_generator(WorldGen::new(seed), view_radius)
+    }
+
+    pub fn with_generator(generator: WorldGen, view_radius: i32) -> Self {
         Self {
             chunks: FxHashMap::default(),
-            generator: WorldGen::new(seed),
+            generator,
             saved: FxHashMap::default(),
             dirty: FxHashSet::default(),
             gen_queue: Vec::new(),

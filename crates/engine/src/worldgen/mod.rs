@@ -5,10 +5,20 @@
 //! *source* cell, and each chunk stamps whatever part of its neighbours' features overlaps it. That
 //! keeps generation order-independent, which is what later lets it move to worker threads.
 //! Per-column data (heights, surface, trees, deposits) is cached in `columns` and shared by the
-//! column's 8 vertical chunks. **Any change to generated output for a given seed must bump
-//! [`WORLDGEN_VERSION`]:** saves store only edited chunks and regenerate the rest.
+//! column's 8 vertical chunks.
+//!
+//! Versions: saves store only edited chunks and regenerate the rest, so a world keeps the generator
+//! version it was made with (`WorldGen::version`, written in the save header). **What a released
+//! version generates for a seed never changes** (`worldgen/tests.rs` pins version 1); new rules go in a
+//! new version, branched from the same code at a few named points. 1 = the first terrain (Milestones 1
+//! to 3); 2 = Milestone 4's biomes and rock provinces (`biome.rs`: branches in `build_column` and
+//! `trees_near`; the column's `rock` replaces stone), geology-driven ores to come.
 
+mod biome;
+mod geology;
 mod ore;
+
+pub use biome::Biome;
 
 use std::rc::Rc;
 
@@ -20,9 +30,8 @@ use crate::deposits::Deposit;
 use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
-/// Saves record this and refuse to load under a different one, since their untouched terrain and
-/// deposits would come back different under the player's edits.
-pub const WORLDGEN_VERSION: u32 = 1;
+/// The newest generator version, which new worlds get. A save records its world's own version.
+pub const WORLDGEN_VERSION: u32 = 2;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -34,32 +43,52 @@ const SPAWN_CLEARING: i32 = 6;
 
 pub struct WorldGen {
     seed: u32,
+    version: u32,
     continent: Perlin,
     hills: Perlin,
     ridges: Perlin,
     forest: Perlin,
     cave_a: Perlin,
     cave_b: Perlin,
+    /// Version 2's climate and basalt fields (`biome.rs`).
+    temperature: Perlin,
+    moisture: Perlin,
+    basalt: Perlin,
     columns: FxHashMap<(i32, i32), Rc<Column>>,
 }
 
 impl WorldGen {
+    /// The newest generator.
     pub fn new(seed: u32) -> Self {
+        Self::with_version(seed, WORLDGEN_VERSION)
+    }
+
+    /// The generator of `version` (1..=[`WORLDGEN_VERSION`]).
+    pub fn with_version(seed: u32, version: u32) -> Self {
+        debug_assert!((1..=WORLDGEN_VERSION).contains(&version));
         let s = seed as u64;
         Self {
             seed,
+            version,
             continent: Perlin::new(s ^ 0x01),
             hills: Perlin::new(s ^ 0x02),
             ridges: Perlin::new(s ^ 0x03),
             forest: Perlin::new(s ^ 0x04),
             cave_a: Perlin::new(s ^ 0x05),
             cave_b: Perlin::new(s ^ 0x06),
+            temperature: Perlin::new(s ^ 0x07),
+            moisture: Perlin::new(s ^ 0x08),
+            basalt: Perlin::new(s ^ 0x09),
             columns: FxHashMap::default(),
         }
     }
 
     pub fn seed(&self) -> u32 {
         self.seed
+    }
+
+    pub fn version(&self) -> u32 {
+        self.version
     }
 
     /// Terrain surface height (y of the top solid block) at a world column.
@@ -115,6 +144,7 @@ impl WorldGen {
         }
         let mut heights = vec![0i32; 1024];
         let mut surface = vec![(AIR, AIR); 1024];
+        let mut rock = vec![STONE; 1024];
         let mut max_ground = 0;
         for z in 0..32 {
             for x in 0..32 {
@@ -122,15 +152,25 @@ impl WorldGen {
                 let slope = (hm[(z + 1) * P + x + 2] - hm[(z + 1) * P + x])
                     .abs()
                     .max((hm[(z + 2) * P + x + 1] - hm[z * P + x + 1]).abs());
-                heights[z * 32 + x] = h;
-                surface[z * 32 + x] = Self::surface_for(h, slope);
+                let i = z * 32 + x;
+                heights[i] = h;
+                if self.version >= 2 {
+                    let biome = self.biome_at(x0 + x as i32, z0 + z as i32, h);
+                    (surface[i], rock[i]) = Self::surface_v2(biome, h, slope);
+                } else {
+                    surface[i] = Self::surface_for(h, slope);
+                }
                 max_ground = max_ground.max(h);
             }
         }
         let trees = self.trees_near(x0, z0);
         let max_y = trees.iter().map(|t| t.ground + t.trunk + 2).fold(max_ground, i32::max);
-        let deposits = self.deposits_for_column(cx, cz);
-        Column { heights, surface, trees, deposits, max_y, max_ground }
+        let near = self.deposits_near(cx, cz);
+        if self.version >= 2 {
+            self.stain_surface(x0, z0, &near, &mut surface);
+        }
+        let deposits = ore::in_column(near, cx, cz);
+        Column { heights, surface, rock, trees, deposits, max_y, max_ground }
     }
 
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
@@ -151,12 +191,18 @@ impl WorldGen {
                     continue;
                 }
                 let f = self.forest.fbm2(x as f64 / 220.0, z as f64 / 220.0, 3);
-                let density = smoothstep(-0.2, 0.3, f) * 0.85 + 0.03;
+                let ground = self.height_at(x, z);
+                let biome = (self.version >= 2).then(|| self.biome_at(x, z, ground));
+                let density = (smoothstep(-0.2, 0.3, f) * 0.85 + 0.03) * biome.map_or(1.0, Biome::tree_factor);
                 if unit(hash2(self.seed ^ 0x5EED, gx, gz)) >= density {
                     continue;
                 }
-                let ground = self.height_at(x, z);
-                if Self::surface_for(ground, self.slope_at(x, z)).0 != GRASS {
+                let slope = self.slope_at(x, z);
+                let top = match biome {
+                    Some(b) => Self::surface_v2(b, ground, slope).0 .0,
+                    None => Self::surface_for(ground, slope).0,
+                };
+                if top != GRASS {
                     continue;
                 }
                 out.push(Tree { x, z, ground, trunk: 4 + ((h >> 16) % 3) as i32 });
@@ -199,7 +245,7 @@ impl WorldGen {
                     } else if depth <= 3 {
                         filler
                     } else {
-                        STONE
+                        col.rock[z * 32 + x]
                     };
                     b[index(x, (wy - base.y) as usize, z)] = id;
                 }
@@ -209,7 +255,7 @@ impl WorldGen {
         if base.y < col.max_ground {
             let top = base + IVec3::new(CHUNK_SIZE - 1, CHUNK_SIZE - 1, CHUNK_SIZE - 1);
             for d in col.deposits.iter().filter(|d| d.intersects(base, top)) {
-                ore::stamp_deposit(d, base, &mut b);
+                ore::stamp_deposit(d, base, &mut b, self.version >= 2);
             }
         }
         for t in &col.trees {
@@ -230,6 +276,8 @@ struct Tree {
 struct Column {
     heights: Vec<i32>,
     surface: Vec<(BlockId, BlockId)>,
+    /// The rock below the soil (stone everywhere in version 1).
+    rock: Vec<BlockId>,
     trees: Vec<Tree>,
     /// Deposits (seeded here or in a neighbouring column) whose shape reaches into this column,
     /// sorted by key: stamping and ownership lookups both walk them in this order.
@@ -240,35 +288,41 @@ struct Column {
 }
 
 fn stamp_tree(t: &Tree, base: IVec3, seed: u32, b: &mut [BlockId]) {
-    let mut put = |x: i32, y: i32, z: i32, id: BlockId, replace_solid: bool| {
-        let (lx, ly, lz) = (x - base.x, y - base.y, z - base.z);
-        if !(0..CHUNK_SIZE).contains(&lx) || !(0..CHUNK_SIZE).contains(&ly) || !(0..CHUNK_SIZE).contains(&lz) {
+    tree_blocks(IVec3::new(t.x, t.ground, t.z), t.trunk, seed, |p, id, replace_solid| {
+        let l = p - base;
+        if !(0..CHUNK_SIZE).contains(&l.x) || !(0..CHUNK_SIZE).contains(&l.y) || !(0..CHUNK_SIZE).contains(&l.z) {
             return;
         }
-        let i = index(lx as usize, ly as usize, lz as usize);
+        let i = index(l.x as usize, l.y as usize, l.z as usize);
         if replace_solid || b[i] == AIR {
             b[i] = id;
         }
-    };
+    });
+}
 
-    let top = t.ground + t.trunk;
+/// A tree standing on the block at `ground` with a trunk `trunk` blocks tall, block by block: leaves
+/// (which only go into air), then the logs and the dirt under them (which replace anything). Shared
+/// by generation and grown saplings (`sim/saplings.rs`), so they look alike. Version 1 depends on it.
+pub fn tree_blocks(ground: IVec3, trunk: i32, seed: u32, mut put: impl FnMut(IVec3, BlockId, bool)) {
+    let (x, z) = (ground.x, ground.z);
+    let top = ground.y + trunk;
     // Canopy: two wide layers, then two narrow ones; corners are randomly trimmed.
     for y in (top - 2)..=(top + 1) {
         let r: i32 = if y < top { 2 } else { 1 };
         for dz in -r..=r {
             for dx in -r..=r {
                 let corner = dx.abs() == r && dz.abs() == r;
-                if corner && (y == top + 1 || hash3(seed ^ 0x1EAF, t.x + dx, y, t.z + dz) & 1 == 0) {
+                if corner && (y == top + 1 || hash3(seed ^ 0x1EAF, x + dx, y, z + dz) & 1 == 0) {
                     continue;
                 }
-                put(t.x + dx, y, t.z + dz, LEAVES, false);
+                put(IVec3::new(x + dx, y, z + dz), LEAVES, false);
             }
         }
     }
-    for y in (t.ground + 1)..=top {
-        put(t.x, y, t.z, LOG, true);
+    for y in (ground.y + 1)..=top {
+        put(IVec3::new(x, y, z), LOG, true);
     }
-    put(t.x, t.ground, t.z, DIRT, true);
+    put(ground, DIRT, true);
 }
 
 /// Spaghetti caves: tunnels where two independent noise fields are both near zero.

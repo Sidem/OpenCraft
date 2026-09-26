@@ -43,6 +43,12 @@ impl Game {
                         self.play(sound::BREAK, block::sound::LEAVES, at, 0.2);
                     }
                 }
+                SimEvent::TreeGrew { pos } => {
+                    let at = pos.as_vec3() + Vec3::new(0.5, 1.5, 0.5);
+                    if (at - self.body().eye()).length() < LEAF_SOUND_RANGE {
+                        self.play(sound::PLACE, block::sound::LEAVES, at, 0.6);
+                    }
+                }
                 SimEvent::ToolWornOut { player, item } => {
                     if let Some(body) = self.bodies.get(player.0 as usize).and_then(Option::as_ref) {
                         self.play(sound::BREAK, block::sound::WOOD, body.eye(), 0.8);

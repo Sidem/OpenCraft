@@ -3,10 +3,10 @@
 
 use super::*;
 use crate::block::{
-    AIR, BELT, COAL_ORE, CONSTRUCTOR, FILTER, GENERATOR, IRON_ORE, LAB, MINER, POLE, RAMP_UP, SMELTER, SPENT_ROCK,
-    STONE, STORAGE,
+    AIR, BELT, COAL_ORE, CONSTRUCTOR, COPPER_ORE, FILTER, GENERATOR, IRON_ORE, LAB, MINER, POLE, RAMP_UP, SMELTER,
+    SPENT_ROCK, STONE, STORAGE,
 };
-use crate::deposits::{owner_of, DepositKey, Tier};
+use crate::deposits::{owner_of, Deposit, DepositKey, Tier};
 use crate::item::{IRON_INGOT, IRON_PLATE, RED_PACK};
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
@@ -14,7 +14,7 @@ pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0x8ab9_3b09_6f05_0432;
+const GOLDEN_HASH: u64 = 0xbd1e_92ed_3405_632c;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -22,10 +22,13 @@ fn load_around(sim: &mut Sim, p: IVec3) {
     while sim.world.work_step() {}
 }
 
-/// The outcrop nearest the origin: its top ore block, another of its ore blocks, and its key.
+/// The coal, iron or copper outcrop nearest the origin (a smelter takes their ore): its top ore block,
+/// another of its ore blocks, and its key.
 pub(crate) fn outcrop() -> (IVec3, IVec3, DepositKey) {
     let mut sim = Sim::new(SEED, 2);
-    let d = sim.world.generator().find_deposit(IVec3::ZERO, Tier::Outcrop, 16).expect("an outcrop");
+    let near = sim.world.generator_mut().deposits_touching(IVec3::new(-256, 0, -256), IVec3::new(256, 255, 256));
+    let smeltable = |d: &&Deposit| d.tier() == Tier::Outcrop && matches!(d.ore(), COAL_ORE | IRON_ORE | COPPER_ORE);
+    let d = *near.iter().filter(smeltable).min_by_key(|d| d.center.x.abs() + d.center.z.abs()).expect("an outcrop");
     load_around(&mut sim, d.center);
     let (lo, hi) = d.bounds();
     let mut ore = Vec::new();
@@ -143,7 +146,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded after steps P3 and P4 (block timers: leaf decay, grass spreading). Only a deliberate
+    // Recorded after step 4.4 (new worlds get generator version 2's geology). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

@@ -17,6 +17,7 @@ import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/ses
 import { WorldStore } from './save/store';
 import { CoopPanel } from './ui/coop';
 import { Hints } from './ui/hints';
+import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
@@ -88,6 +89,8 @@ async function main(): Promise<void> {
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const hints = new Hints(game);
+  const prospect = new ProspectPanel(game);
+  prospect.onReading = () => sound.scan();
   const minimap = new Minimap(game, wasm.memory);
   const nameTags = new NameTags();
   const playerList = new PlayerList();
@@ -103,8 +106,10 @@ async function main(): Promise<void> {
   const play = document.getElementById('play') as HTMLButtonElement;
   const loadingFill = document.getElementById('loading-fill')!;
   const loadingText = document.getElementById('loading-text')!;
+  // Worlds made before Milestone 4 keep their first terrain (generator version 1).
+  const terrain = game.worldgen_version() === 1 ? ' · classic terrain' : '';
   document.getElementById('world-info')!.textContent =
-    `${meta.name} · seed ${meta.seed} · render distance ${viewRadius} chunks`;
+    `${meta.name} · seed ${meta.seed}${terrain} · render distance ${viewRadius} chunks`;
   if (opened.restored) play.textContent = 'Continue';
   document.getElementById('menu-volume')!.append(new VolumeControl(sound).el);
   document.getElementById('open-sound-lab')!.addEventListener('click', () => {
@@ -162,7 +167,7 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  const handles = { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, minimap, session, coop };
+  const handles = { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, session, coop };
   Object.assign(window, { opencraft: handles });
 
   // ---- frame loop
@@ -292,6 +297,7 @@ async function main(): Promise<void> {
     machine.update();
     research.update(now);
     hints.update();
+    prospect.update();
     minimap.update(now);
     playerList.update(coop, input.held('Tab'), now);
     coopPanel.update(now);

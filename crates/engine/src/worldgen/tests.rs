@@ -14,6 +14,41 @@ fn generation_is_deterministic() {
     }
 }
 
+/// Blocks, heights and deposits that version 1 generates for seed 1337 around spawn, a cave and a lode.
+fn version_1_digest() -> u64 {
+    let mut g = WorldGen::with_version(1337, 1);
+    let mut bytes = Vec::new();
+    for z in (-600..600).step_by(97) {
+        for x in (-600..600).step_by(89) {
+            bytes.extend_from_slice(&g.height_at(x, z).to_le_bytes());
+        }
+    }
+    let lode = g.find_deposit(IVec3::new(0, 64, 0), Tier::Lode, 16).expect("a lode").center;
+    let lode_chunk = IVec3::new(lode.x >> 5, lode.y >> 5, lode.z >> 5);
+    let spawn_y = g.height_at(0, 0) >> 5;
+    for c in [IVec3::new(0, spawn_y, 0), IVec3::new(0, spawn_y - 1, 0), IVec3::new(-3, 2, 5), lode_chunk] {
+        let chunk = g.generate(c);
+        for i in 0..CHUNK_VOLUME {
+            bytes.push(chunk.get(i & 31, i >> 10, (i >> 5) & 31));
+        }
+        for d in g.deposits_for_column(c.x, c.z) {
+            let k = d.key;
+            let words = [k.tier as i32, k.cx, k.cz, k.ore as i32, k.index as i32, d.center.x, d.center.y, d.center.z];
+            words.iter().for_each(|w| bytes.extend_from_slice(&w.to_le_bytes()));
+            d.radii.iter().for_each(|r| bytes.extend_from_slice(&r.to_bits().to_le_bytes()));
+            bytes.extend_from_slice(&d.seed.to_le_bytes());
+        }
+    }
+    crate::bytes::fnv1a(&bytes)
+}
+
+/// Worlds made with version 1 regenerate their untouched terrain from it, so its output is frozen.
+/// Recorded before Milestone 4 changed anything; if this fails, a change leaked into version 1.
+#[test]
+fn version_1_output_never_changes() {
+    assert_eq!(version_1_digest(), 0xefee_9cc6_179e_584f);
+}
+
 #[test]
 fn bottom_is_bedrock_and_sky_is_empty() {
     let mut g = WorldGen::new(1);

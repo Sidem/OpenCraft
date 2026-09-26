@@ -17,7 +17,7 @@ import {
   type SoundDesign,
   type SoundSettings,
 } from './settings';
-import { blip, breakSound, hitSound, mulberry32, tick, whoosh, type HitMods } from './synth';
+import { blip, breakSound, hitSound, mulberry32, ping, tick, whoosh, type HitMods } from './synth';
 
 const EVENT_FLOATS = 6;
 const MAX_VOICES = 24;
@@ -53,6 +53,7 @@ const ACTION_BASE: Record<ActionName, ActionBase> = {
   pickup: { gain: 0.2, jitter: 0.35, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
   drop: { gain: 0.28, jitter: 0.1, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
   click: { gain: 0.12, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  scan: { gain: 0.22, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
 };
 
 /** Typical in-game event volume and distance, so previews match what you hear while playing. */
@@ -186,6 +187,11 @@ export class SoundSystem {
     if (this.audible()) this.play('click', 0, 1, 0);
   }
 
+  /** A scanner or core-drill reading arrived. */
+  scan(): void {
+    if (this.audible()) this.play('scan', 0, 1, 0);
+  }
+
   private audible(): boolean {
     return this.ctx?.state === 'running' && !this.muted && this.settings.volume > 0;
   }
@@ -295,6 +301,7 @@ export class SoundSystem {
     else if (action === 'pickup') data = blip(sr, mods);
     else if (action === 'drop') data = whoosh(sr, rand, mods);
     else if (action === 'click') data = tick(sr, mods);
+    else if (action === 'scan') data = ping(sr, mods);
     else data = hitSound(sr, rand, m, mods);
     const buffer = ctx.createBuffer(1, data.length, sr);
     buffer.getChannelData(0).set(data);

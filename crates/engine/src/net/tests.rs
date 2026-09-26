@@ -7,6 +7,7 @@ use super::players::STATE_TICKS;
 use super::*;
 use crate::authority::MAX_PLAYERS;
 use crate::block::{MINER, STONE};
+use crate::item::SCANNER;
 use crate::math::{IVec3, Vec3};
 use crate::sim::tests::{outcrop, script, SEED};
 use crate::tests::run_until_ready;
@@ -106,6 +107,33 @@ fn everyone_waits_the_input_delay_even_the_host() {
     }
     assert_eq!(client.inventory().count(STONE.into()), 2);
     assert_eq!(host.sim.state_hash(), client.sim.state_hash());
+}
+
+#[test]
+fn prospecting_in_co_op_sends_nothing_and_stays_in_step() {
+    let (mut host, mut client) = pair();
+    client.act(Action::Give { item: SCANNER, count: 1 });
+    let mut hashes = vec![host.sim.state_hash()];
+    for t in 0..400 {
+        if t == 20 {
+            let slot = client.inventory().slots.iter().position(|s| s.item == SCANNER).expect("given");
+            client.act(Action::SelectSlot { slot: slot as u8 });
+        }
+        if t == 30 {
+            assert_eq!(client.inventory().selected_stack().item, SCANNER);
+            client.using = true;
+        }
+        assert!(host.host_stamp(1, &client.take_outbox()));
+        let frames = frames_of(&mut host, 1);
+        hashes.push(host.sim.state_hash());
+        assert!(client.push_frames(&frames));
+        client.run_ticks(1);
+        assert_eq!(client.sim.state_hash(), hashes[client.sim.tick as usize]);
+        if t > 30 {
+            assert!(client.take_outbox().is_empty(), "scanning sends no actions");
+        }
+    }
+    assert!(client.prospect.seq >= 3 && host.prospect.seq == 0);
 }
 
 #[test]
@@ -219,6 +247,15 @@ fn a_player_who_leaves_and_rejoins_gets_their_things_back() {
     let other = host.host_join(78).unwrap();
     host.run_ticks(INPUT_DELAY as u32 + 1);
     assert_eq!(host.sim.player(PlayerId(other as u8)).unwrap().inventory.count(STONE.into()), 0);
+}
+
+#[test]
+fn a_joiner_gets_the_hosts_generator_version() {
+    let mut host = Game::with_generator(crate::worldgen::WorldGen::with_version(SEED, 1), 2);
+    host.start_host();
+    let id = host.host_join(3).unwrap();
+    let client = Game::from_snapshot(&host.snapshot(), id, 2).unwrap();
+    assert_eq!((client.seed(), client.worldgen_version()), (SEED, 1));
 }
 
 #[test]

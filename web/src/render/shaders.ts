@@ -23,7 +23,8 @@ out vec3 v_uvl;
 out float v_light;
 out vec3 v_rel;
 
-const float FACE_SHADE[6] = float[6](0.72, 0.72, 1.0, 0.52, 0.86, 0.86);
+// Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads.
+const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
 const float AO_CURVE[4] = float[4](0.40, 0.60, 0.80, 1.0);
 
 void main() {
@@ -39,7 +40,9 @@ void main() {
   else if (face == 2u) uv = p.xz;
   else if (face == 3u) uv = vec2(p.x, -p.z);
   else if (face == 4u) uv = vec2(p.x, -p.y);
-  else uv = vec2(-p.x, -p.y);
+  else if (face == 5u) uv = vec2(-p.x, -p.y);
+  else if (face == 6u) uv = vec2(p.x, -p.y);
+  else uv = vec2(p.z, -p.y);
 
   v_uvl = vec3(uv, layer);
   v_light = FACE_SHADE[face] * AO_CURVE[ao];

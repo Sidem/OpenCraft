@@ -5,8 +5,8 @@
 use crate::block::*;
 use crate::inventory::Inventory;
 use crate::item::{
-    ItemId, COPPER_INGOT, COPPER_WIRE, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE, IRON_ROD,
-    IRON_SHOVEL, RED_PACK, SCREW, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE,
+    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 use crate::tools::{IRON_TIER, STONE_TIER};
 
@@ -192,6 +192,20 @@ pub const RECIPES: &[Recipe] = &[
         inputs: &[(IRON_PLATE, 1), (IRON_ROD, 2)],
         blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
     },
+    Recipe {
+        output: SCANNER,
+        count: 1,
+        inputs: &[(IRON_PLATE, 4), (COPPER_WIRE, 6), (SCREW, 4)],
+        blurb: "Hold it and right-click to list the ore deposits within 48 blocks: what, how deep, which way \
+                and how big. Never wears out.",
+    },
+    Recipe {
+        output: CORE_DRILL,
+        count: 1,
+        inputs: &[(IRON_PLATE, 6), (COPPER_WIRE, 2), (SCREW, 8)],
+        blurb: "Hold right-click on the ground for 3 seconds to learn exactly how much ore lies beneath it, \
+                and at what depth. Never wears out.",
+    },
 ];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after
@@ -211,6 +225,8 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { machine: CONSTRUCTOR, inputs: &[(IRON_INGOT, 1)], output: (IRON_ROD, 1), seconds: 2.0 },
     MachineRecipe { machine: CONSTRUCTOR, inputs: &[(IRON_ROD, 1)], output: (SCREW, 4), seconds: 3.0 },
     MachineRecipe { machine: CONSTRUCTOR, inputs: &[(COPPER_INGOT, 1)], output: (COPPER_WIRE, 2), seconds: 2.0 },
+    // Appended: machines save the index of their recipe.
+    MachineRecipe { machine: SMELTER, inputs: &[(b(QUARTZ_ORE), 2)], output: (b(GLASS), 1), seconds: 2.0 },
 ];
 
 /// The recipe `i` if `machine` makes it.

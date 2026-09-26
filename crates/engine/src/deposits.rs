@@ -202,6 +202,13 @@ impl DepositState {
         self.remaining_blocks == 0
     }
 
+    /// Lowest and highest y of the blocks generation made into this deposit.
+    pub fn y_span(&self) -> (i32, i32) {
+        let ys = self.members.iter().map(|p| p.y);
+        let c = self.deposit.center.y;
+        (ys.clone().min().unwrap_or(c), ys.max().unwrap_or(c))
+    }
+
     /// Output multiplier: 1 until the last [`TAPER_START`] of the reserve, then falling to [`TAPER_FLOOR`].
     pub fn taper(&self) -> f64 {
         let initial = self.initial_units();

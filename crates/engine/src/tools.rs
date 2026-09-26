@@ -8,18 +8,25 @@
 //! two worn tools of one kind simply pool their uses. The break speed is the hands' business
 //! (`interaction.rs`, presentation), the uses and the ore kept are the core's.
 //!
+//! The prospecting devices (scanner, core drill: `prospect.rs`) are tools too, of [`DEVICE_TIER`]: one
+//! per slot, and no block wants them, so they never wear.
+//!
 //! To add a tier: a `Tier` constant, three item ids and rows in `item.rs`, three rows in `TOOLS` and hand
 //! recipes in `recipes.rs`.
 
 use crate::block::{self, sound, BlockId};
 use crate::deposits::HAND_YIELD;
-use crate::item::{ItemId, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL};
+use crate::item::{
+    ItemId, CORE_DRILL, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, SCANNER, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ToolKind {
     Pickaxe,
     Axe,
     Shovel,
+    Scanner,
+    CoreDrill,
 }
 
 pub struct Tier {
@@ -33,6 +40,8 @@ pub struct Tier {
 
 pub const STONE_TIER: Tier = Tier { uses: 150, speed: 2.0, ore_yield: HAND_YIELD };
 pub const IRON_TIER: Tier = Tier { uses: 600, speed: 4.0, ore_yield: HAND_YIELD + 1 };
+/// Prospecting devices: a stack of one that no block wears down.
+pub const DEVICE_TIER: Tier = Tier { uses: 1, speed: 1.0, ore_yield: HAND_YIELD };
 
 pub struct ToolDef {
     pub item: ItemId,
@@ -40,14 +49,21 @@ pub struct ToolDef {
     pub tier: &'static Tier,
 }
 
-pub const TOOLS: [ToolDef; 6] = [
+pub const TOOLS: [ToolDef; 8] = [
     ToolDef { item: STONE_PICKAXE, kind: ToolKind::Pickaxe, tier: &STONE_TIER },
     ToolDef { item: STONE_AXE, kind: ToolKind::Axe, tier: &STONE_TIER },
     ToolDef { item: STONE_SHOVEL, kind: ToolKind::Shovel, tier: &STONE_TIER },
     ToolDef { item: IRON_PICKAXE, kind: ToolKind::Pickaxe, tier: &IRON_TIER },
     ToolDef { item: IRON_AXE, kind: ToolKind::Axe, tier: &IRON_TIER },
     ToolDef { item: IRON_SHOVEL, kind: ToolKind::Shovel, tier: &IRON_TIER },
+    ToolDef { item: SCANNER, kind: ToolKind::Scanner, tier: &DEVICE_TIER },
+    ToolDef { item: CORE_DRILL, kind: ToolKind::CoreDrill, tier: &DEVICE_TIER },
 ];
+
+/// Which prospecting device `item` is, if any.
+pub fn device(item: ItemId) -> Option<ToolKind> {
+    tool(item).map(|t| t.kind).filter(|k| matches!(k, ToolKind::Scanner | ToolKind::CoreDrill))
+}
 
 pub fn tool(item: ItemId) -> Option<&'static ToolDef> {
     TOOLS.iter().find(|t| t.item == item)

@@ -39,9 +39,11 @@ impl Game {
         self.target.map_or(AIR, |t| t.id)
     }
 
-    /// 0..1 while the targeted block is being mined.
+    /// 0..1 while the targeted block is being mined, or drilled for a core sample.
     pub fn mine_progress(&self) -> f32 {
-        if self.mine_block.is_some() {
+        if let Some(p) = self.prospect.drill_progress() {
+            p
+        } else if self.mine_block.is_some() {
             self.mine_progress
         } else {
             0.0

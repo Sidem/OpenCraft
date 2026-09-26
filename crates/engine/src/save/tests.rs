@@ -28,6 +28,7 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     let saved = g.save();
     let loaded = Game::load(&saved, 3).expect("loads");
     assert!(loaded.save() == saved, "the same bytes after a round trip");
+    assert_eq!(loaded.worldgen_version(), WORLDGEN_VERSION, "new worlds get the newest generator");
     assert_eq!(loaded.sim.state_hash(), g.sim.state_hash());
     assert_eq!(loaded.body().pos, g.body().pos);
     assert!(loaded.body().flying);
@@ -66,7 +67,8 @@ fn foreign_old_and_damaged_files_are_refused() {
     };
     assert!(refused(&with(4, SAVE_VERSION + 1)).contains("newer version"));
     assert!(refused(&with(4, OLDEST_VERSION - 1)).contains("older version"));
-    assert!(refused(&with(8, WORLDGEN_VERSION + 1)).contains("World generation has changed"));
+    assert!(refused(&with(8, WORLDGEN_VERSION + 1)).contains("newer version"));
+    assert_eq!(refused(&with(8, 0)), DAMAGED);
 
     for len in MAGIC.len()..saved.len() {
         assert_eq!(refused(&saved[..len]), DAMAGED, "cut at {len}");
@@ -113,7 +115,9 @@ fn a_version_1_save_still_loads() {
     g.run_ticks(1);
     let saved = g.save();
     assert_eq!(u32::from_le_bytes(saved[4..8].try_into().unwrap()), SAVE_VERSION);
+    assert_eq!(u32::from_le_bytes(saved[8..12].try_into().unwrap()), 1, "an old world keeps its terrain");
     let back = Game::load(&saved, 2).expect("loads");
+    assert_eq!(back.worldgen_version(), 1);
     assert_eq!(back.item_total(IRON_INGOT.0), 4);
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }
@@ -126,6 +130,7 @@ const V9_SAVE: &[u8] = include_bytes!("v9.ocworld");
 fn a_version_9_save_still_loads() {
     assert_eq!(u32::from_le_bytes(V9_SAVE[4..8].try_into().unwrap()), 9);
     let mut g = Game::load(V9_SAVE, 2).expect("loads");
+    assert_eq!(g.worldgen_version(), 1);
     assert_eq!(g.sim.factory.count(crate::factory::Kind::Storage), 1);
     assert_eq!(g.sim.factory.count(crate::factory::Kind::Belt), 1);
     assert_eq!(g.sim.player(PlayerId(1)).map(|p| p.key), Some(0), "no keys before version 10");

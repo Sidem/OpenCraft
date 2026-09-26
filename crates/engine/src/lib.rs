@@ -42,6 +42,7 @@ mod net;
 mod noise;
 mod physics;
 mod player;
+mod prospect;
 mod raycast;
 mod recipes;
 mod research;
@@ -67,10 +68,12 @@ use math::{IVec3, Vec3};
 use minimap::Minimap;
 use net::Role;
 use player::Player;
+use prospect::Prospect;
 use raycast::RayHit;
 use sim::{PlayerId, Sim};
 use sound::Sounds;
 use world::MeshData;
+use worldgen::WorldGen;
 
 /// Simulation ticks per second.
 pub const TICK_RATE: u32 = 60;
@@ -131,13 +134,21 @@ pub struct Game {
     /// Figures of the last untracked deposit `target_detail` showed, so looking stays cheap
     /// without making the core track it.
     surveyed: Option<DepositState>,
+    /// The scanner's and core drill's latest reading (prospect.rs).
+    prospect: Prospect,
 }
 
 #[wasm_bindgen]
 impl Game {
     #[wasm_bindgen(constructor)]
     pub fn new(seed: u32, view_radius: u32) -> Game {
-        let sim = Sim::new(seed, view_radius as i32);
+        Game::with_generator(WorldGen::new(seed), view_radius)
+    }
+}
+
+impl Game {
+    pub(crate) fn with_generator(generator: WorldGen, view_radius: u32) -> Game {
+        let sim = Sim::with_generator(generator, view_radius as i32);
         let spawn = Vec3::new(0.5, sim.world.generator().height_at(0, 0) as f64 + 1.0, 0.5);
         let player = Player::new(spawn);
         let eye = player.eye();
@@ -172,9 +183,13 @@ impl Game {
             cur_mesh: None,
             cur_event_pos: IVec3::ZERO,
             surveyed: None,
+            prospect: Prospect::default(),
         }
     }
+}
 
+#[wasm_bindgen]
+impl Game {
     /// Per frame: runs the whole ticks that `dt` seconds of frame time add up to, then prepares this
     /// frame's camera and box instances.
     pub fn update(&mut self, dt: f64) {

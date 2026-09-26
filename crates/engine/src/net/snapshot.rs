@@ -46,7 +46,8 @@ impl Game {
             return Err("Only a co-op client can resync.".into());
         }
         let fresh = Game::read_snapshot(bytes, self.local, 2)?;
-        if fresh.sim.world.generator().seed() != self.sim.world.generator().seed() {
+        let (a, b) = (fresh.sim.world.generator(), self.sim.world.generator());
+        if (a.seed(), a.version()) != (b.seed(), b.version()) {
             return Err(DAMAGED.into());
         }
         let old = std::mem::replace(&mut self.sim, fresh.sim);

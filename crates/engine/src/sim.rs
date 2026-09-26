@@ -23,7 +23,9 @@ use crate::inventory::Inventory;
 use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::world::World;
+use crate::worldgen::WorldGen;
 
+mod saplings;
 mod timers;
 
 pub use timers::BlockTimers;
@@ -73,8 +75,12 @@ pub enum SimEvent {
         player: PlayerId,
         item: ItemId,
     },
-    /// A leaf decayed (block timers): it is gone and drops nothing.
+    /// A leaf decayed (block timers): it is gone (a sapling it left comes as a `Dropped`).
     LeafDecayed {
+        pos: IVec3,
+    },
+    /// The sapling at `pos` grew into a tree.
+    TreeGrew {
         pos: IVec3,
     },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
@@ -124,11 +130,17 @@ pub struct Sim {
 }
 
 impl Sim {
-    /// A fresh world with one player, `PlayerId(0)`.
+    /// A fresh world from the newest generator with one player, `PlayerId(0)`.
+    #[cfg(test)]
     pub fn new(seed: u32, view_radius: i32) -> Sim {
+        Sim::with_generator(WorldGen::new(seed), view_radius)
+    }
+
+    pub fn with_generator(generator: WorldGen, view_radius: i32) -> Sim {
+        let seed = generator.seed();
         Sim {
             tick: 0,
-            world: World::new(seed, view_radius),
+            world: World::with_generator(generator, view_radius),
             factory: Factory::default(),
             players: vec![Some(PlayerCore::default())],
             away: Vec::new(),

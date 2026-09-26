@@ -8,7 +8,7 @@
 //! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet) and its
 //! bytes in `action/codec.rs` (co-op sends actions to every peer).
 
-use crate::block::{self, BlockId, AIR};
+use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
 use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -266,6 +266,9 @@ impl Sim {
                 Stack { item: ItemId::block(def.drop), count: if ore { tools::ore_yield(held) } else { 1 } },
             );
         }
+        if id == LEAVES && self.leaf_drops_sapling() {
+            drops.push(Stack { item: SAPLING.into(), count: 1 });
+        }
         let center = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
         for s in drops {
             let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
@@ -293,6 +296,11 @@ impl Sim {
         let inv = &mut core.inventory;
         let Some(stack) = inv.slots.get(slot as usize).copied() else { return };
         let Some(placed) = stack.item.places().filter(|_| !stack.is_empty()) else { return };
+        if placed == SAPLING && !self.can_plant(pos) {
+            return;
+        }
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        let inv = &mut core.inventory;
         if self.world.block_anywhere_or_generate(pos) != AIR || !self.world.set_block_anywhere(pos, placed) {
             return;
         }

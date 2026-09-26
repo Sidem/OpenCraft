@@ -251,6 +251,20 @@ fn one_coal_smelts_five_and_a_third_ingots() {
 }
 
 #[test]
+fn the_smelter_makes_glass_from_quartz() {
+    use crate::block::{COAL_ORE, GLASS, QUARTZ_ORE};
+    let mut f = Factory::default();
+    smelter(&mut f, IVec3::ZERO);
+    let s = smelter_mut(&mut f, IVec3::ZERO);
+    assert!(s.accept(QUARTZ_ORE.into()));
+    s.input.add(QUARTZ_ORE.into(), 3);
+    s.accept(COAL_ORE.into());
+    run(&mut f, 6.0, |_| {});
+    let s = f.smelter_at(IVec3::ZERO);
+    assert_eq!((s.out.count(GLASS.into()), s.input.total()), (2, 0), "two quartz make one glass");
+}
+
+#[test]
 fn smelter_waits_while_its_output_is_full() {
     let mut f = Factory::default();
     smelter(&mut f, IVec3::ZERO);

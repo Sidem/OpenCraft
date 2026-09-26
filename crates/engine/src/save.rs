@@ -2,9 +2,11 @@
 //! hash covers), then what the authority keeps (bodies and loose items). Everything else, such as
 //! meshes, links, deposit members and the camera, is derived and rebuilt on load.
 //!
-//! Layout: magic `OCW1`, `SAVE_VERSION`, `WORLDGEN_VERSION`, seed, core, local player id, bodies,
-//! loose items. Invariants: loading refuses, with a message a player can read, any file from a newer
-//! format, another generation version, a format older than `OLDEST_VERSION`, and any damaged file; it
+//! Layout: magic `OCW1`, `SAVE_VERSION`, the world's generator version, seed, core, local player id,
+//! bodies, loose items. A world keeps the generator it was made with (1..=`WORLDGEN_VERSION`), so older
+//! worlds regenerate their untouched terrain exactly as before. Invariants: loading refuses, with a
+//! message a player can read, any file from a newer format or generator, a format older than
+//! `OLDEST_VERSION`, and any damaged file; it
 //! never panics on bad bytes. To save something new: write and read it in its type's `write_state` /
 //! `read_state` and bump `SAVE_VERSION`. Older saves keep loading when a read can follow the old layout
 //! cheaply (`ByteReader::version`); otherwise raise `OLDEST_VERSION`.
@@ -14,17 +16,17 @@
 //! 7 = adds the generator and pole lists, constructor progress in thousandths of a tick; 8 = adds the lab
 //! list and the research after the deposits; 9 = miners and belts say whether they are the upgraded kind;
 //! 10 = players have keys, and players away (left with a key) follow the players; 11 = block timers
-//! (leaf decay, grass) follow the factory.
+//! (leaf decay, grass) follow the factory; 12 = saplings (block 29 and sapling timers, kind 3).
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
 use crate::player::Player;
 use crate::sim::PlayerId;
-use crate::worldgen::WORLDGEN_VERSION;
+use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 11;
+pub const SAVE_VERSION: u32 = 12;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";
@@ -36,7 +38,7 @@ impl Game {
         let mut w = ByteWriter::default();
         w.bytes.extend_from_slice(MAGIC);
         w.u32(SAVE_VERSION);
-        w.u32(WORLDGEN_VERSION);
+        w.u32(self.sim.world.generator().version());
         w.u32(self.sim.world.generator().seed());
         self.sim.write_state(&mut w);
         w.u8(self.local.0);
@@ -58,22 +60,22 @@ impl Game {
             return Err("This is not an OpenCraft world file.".into());
         }
         let (Some(version), Some(worldgen)) = (r.u32(), r.u32()) else { return Err(DAMAGED.into()) };
-        if version > SAVE_VERSION {
+        if version > SAVE_VERSION || worldgen > WORLDGEN_VERSION {
             return Err("This world was saved by a newer version of OpenCraft. Reload the page to update.".into());
         }
         if version < OLDEST_VERSION {
             return Err("This world was saved by an older version of OpenCraft that can't be loaded any more.".into());
         }
-        if worldgen != WORLDGEN_VERSION {
-            return Err("World generation has changed since this world was saved, so it can't be loaded.".into());
+        if worldgen == 0 {
+            return Err(DAMAGED.into());
         }
         r.version = version;
-        read_game(&mut r, view_radius).ok_or_else(|| DAMAGED.into())
+        read_game(&mut r, worldgen, view_radius).ok_or_else(|| DAMAGED.into())
     }
 }
 
-fn read_game(r: &mut ByteReader, view_radius: u32) -> Option<Game> {
-    let mut g = Game::new(r.u32()?, view_radius);
+fn read_game(r: &mut ByteReader, worldgen: u32, view_radius: u32) -> Option<Game> {
+    let mut g = Game::with_generator(WorldGen::with_version(r.u32()?, worldgen), view_radius);
     g.sim.read_state(r)?;
     g.local = PlayerId(r.u8()?);
     let bodies = r.count()?;

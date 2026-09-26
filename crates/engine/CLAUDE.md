@@ -44,8 +44,8 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   `TICK`. Never depend on frame time, loaded chunks, the camera, `Sounds`, UI state or hash-map order;
   report outward with a `SimEvent`. Per-frame work in `Game::update` is presentation only.
 - New core state goes in its type's `write_state` and `read_state` (`bytes.rs`), or the state hash and
-  saves miss it. A format change bumps `SAVE_VERSION` (`save.rs`); a generation change `WORLDGEN_VERSION`. `sim/tests.rs` (same actions, same hash; loaded chunks don't matter) and
-  `results_do_not_depend_on_frame_rate` (`src/tests.rs`) compare hashes.
+  saves miss it. Format change: bump `SAVE_VERSION`; generation change: a new generator version
+  (`worldgen/mod.rs`). `sim/tests.rs` and `results_do_not_depend_on_frame_rate` compare hashes.
 - Core reads and edits use `World::block_anywhere_or_generate` / `set_block_anywhere`. `get_block` /
   `set_block` only see loaded chunks (the render cache), and `set_block` silently fails elsewhere.
 - Queries must not create core state: `target_detail` uses `deposits::owner_of` and

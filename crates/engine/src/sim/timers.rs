@@ -1,5 +1,6 @@
 //! Block timers (core state): single-block changes due at a later tick. Leaves decay once no log
-//! holds them up; grass spreads onto bare dirt next to it and turns back to dirt under a solid block.
+//! holds them up; grass spreads onto bare dirt next to it and turns back to dirt under a solid block;
+//! saplings grow into trees (`sim/saplings.rs`).
 //!
 //! Invariants: timers start only from block changes (`Sim::block_changed`, called by the actions that
 //! break and place blocks and by the timers themselves), never from scanning chunks, and they read and
@@ -12,9 +13,9 @@
 //! To add a timed rule: a `TimerKind` (append: saves store it as a byte), its check in `block_changed`
 //! and its effect in `fire`.
 
-use crate::block::{BlockId, AIR, DIRT, GRASS, LEAVES, LOG, SOLID};
+use crate::block::{BlockId, AIR, DIRT, GRASS, LEAVES, LOG, SAPLING, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::math::IVec3;
+use crate::math::{IVec3, Vec3};
 use crate::sim::{Sim, SimEvent};
 use crate::TICK_RATE;
 
@@ -34,6 +35,7 @@ pub enum TimerKind {
     LeafDecay = 0,
     GrassGrow = 1,
     GrassDie = 2,
+    SaplingGrow = 3,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -76,6 +78,7 @@ impl BlockTimers {
                 0 => TimerKind::LeafDecay,
                 1 => TimerKind::GrassGrow,
                 2 => TimerKind::GrassDie,
+                3 => TimerKind::SaplingGrow,
                 _ => return None,
             };
             timers.schedule(Timer { due, pos, kind });
@@ -86,8 +89,12 @@ impl BlockTimers {
 
 impl Sim {
     /// Starts the timers a block change at `pos` (from `old` to what is there now) calls for: leaves
-    /// near a removed log, dirt that can grow grass and grass that is now covered, around `pos`.
+    /// near a removed log, dirt that can grow grass and grass that is now covered, around `pos`, and a
+    /// sapling planted at `pos`.
     pub(crate) fn block_changed(&mut self, pos: IVec3, old: BlockId) {
+        if self.block(pos) == SAPLING {
+            self.schedule_growth(pos);
+        }
         if old == LOG {
             let r = LEAF_CHECK_RADIUS;
             for p in cube(pos, r) {
@@ -134,6 +141,7 @@ impl Sim {
             TimerKind::LeafDecay => (LEAVES, AIR),
             TimerKind::GrassGrow => (DIRT, GRASS),
             TimerKind::GrassDie => (GRASS, DIRT),
+            TimerKind::SaplingGrow => return self.grow_sapling(t.pos),
         };
         if self.block(t.pos) != block {
             return;
@@ -142,24 +150,34 @@ impl Sim {
             TimerKind::LeafDecay => !self.leaf_supported(t.pos),
             TimerKind::GrassGrow => self.grass_can_grow(t.pos),
             TimerKind::GrassDie => self.covered(t.pos),
+            TimerKind::SaplingGrow => false, // returned above
         };
         if !holds || !self.world.set_block_anywhere(t.pos, new) {
             return;
         }
         if t.kind == TimerKind::LeafDecay {
             self.events.push(SimEvent::LeafDecayed { pos: t.pos });
+            if self.leaf_drops_sapling() {
+                let (pos, vel) = (t.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.0, 1.0, 0.0));
+                self.events.push(SimEvent::Dropped { pos, vel, item: SAPLING.into(), count: 1 });
+            }
         }
         self.block_changed(t.pos, block);
     }
 
     /// Schedules `kind` at `pos` after an exponential delay with the given half-life (at least a tick).
     fn schedule(&mut self, pos: IVec3, kind: TimerKind, half_life: f64) {
+        self.schedule_after(pos, kind, 0.0, half_life);
+    }
+
+    /// Schedules `kind` at `pos` after `min` seconds plus an exponential delay with the given half-life.
+    pub(super) fn schedule_after(&mut self, pos: IVec3, kind: TimerKind, min: f64, half_life: f64) {
         let u = 1.0 - self.rng.next_f64(); // (0, 1]
-        let ticks = (-u.ln() * half_life / std::f64::consts::LN_2 * TICK_RATE as f64) as u64;
+        let ticks = ((min - u.ln() * half_life / std::f64::consts::LN_2) * TICK_RATE as f64) as u64;
         self.timers.schedule(Timer { due: self.tick + ticks.max(1), pos, kind });
     }
 
-    fn block(&mut self, p: IVec3) -> BlockId {
+    pub(super) fn block(&mut self, p: IVec3) -> BlockId {
         self.world.block_anywhere_or_generate(p)
     }
 

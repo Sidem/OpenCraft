@@ -1,0 +1,59 @@
+/* Prospecting panel (prospect.ts): a card at the top left while a scanner or core drill is in hand
+   (the right side holds the minimap, the mute badge and the research tracker). */
+
+.prospect {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: min(340px, calc(100vw - 24px));
+  padding: 8px 12px 10px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid rgba(120, 230, 140, 0.4);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.prospect-title {
+  margin-bottom: 4px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgb(120, 230, 140);
+}
+
+.prospect-row {
+  display: grid;
+  grid-template-columns: 16px 1fr auto auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 1px 0;
+}
+
+.prospect-sample {
+  grid-template-columns: 1fr auto;
+}
+
+.prospect-sample .prospect-figures {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.prospect-arrow {
+  display: inline-block;
+  text-align: center;
+  color: rgb(120, 230, 140);
+}
+
+.prospect-where,
+.prospect-size {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.prospect-note {
+  margin: 2px 0 0;
+  color: var(--muted);
+}

@@ -278,6 +278,23 @@ export function whoosh(sr: number, rand: Rand, mods: HitMods): Float32Array {
   return normalize(out);
 }
 
+/** A scanner reading: a sonar-like ping gliding down, with one fainter echo. */
+export function ping(sr: number, mods: HitMods): Float32Array {
+  const echo = 0.2 * mods.length;
+  const decay = 0.09 * mods.length;
+  const n = Math.ceil(sr * (echo + 5 * decay));
+  const out = new Float32Array(n);
+  for (const [start, amp] of [[0, 1], [echo, 0.35]]) {
+    let phase = 0;
+    for (let i = Math.floor(start * sr); i < n; i++) {
+      const t = i / sr - start;
+      phase += (2 * Math.PI * (1400 - 300 * Math.min(1, t / (4 * decay))) * mods.pitch) / sr;
+      out[i] += amp * Math.sin(phase) * Math.min(1, t / 0.004) * Math.exp(-t / decay);
+    }
+  }
+  return normalize(out);
+}
+
 /** Hotbar selection click. */
 export function tick(sr: number, mods: HitMods): Float32Array {
   const n = Math.ceil(sr * 0.03 * mods.length);

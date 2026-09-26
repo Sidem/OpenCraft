@@ -83,6 +83,14 @@ The **Worlds** list in the pause menu manages several worlds:
   move a world to another browser.
 - **Delete** removes a world for good, after asking.
 
+New worlds have **biomes**: plains and forest around where you start, sandy deserts over sandstone,
+highlands over granite, wet lowlands thick with trees, and bare black basalt fields. The rock under
+each biome decides which ores lie in it: coal and limestone in the lowlands, copper and quartz in the
+highlands, quartz and limestone in the deserts, rich iron in the basalt, a bit of everything on the plains.
+Deep veins and lodes give themselves away at the surface: rusty soil above iron, dark soil above coal,
+blue-green soil above copper and pale soil above limestone and quartz. Outcrops simply show. Worlds made before biomes existed keep their original terrain
+(the menu calls it "classic terrain"), so nothing you built there changes.
+
 Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
 latest save can't be read.
@@ -123,6 +131,14 @@ size.
   right tool uses it up a little (stone tools last 150 blocks, iron 600); the bar under its slot shows
   what's left. Stone tools cost 3 stone (1 for a shovel) and 2 logs; iron tools 3 iron plates (1 for a
   shovel) and 2 iron rods. Bare hands still break everything, only slower.
+- **Saplings.** Leaves now and then leave a sapling behind, whether you break them or they fall off a
+  felled tree. Plant it on dirt or grass and it grows into a tree after a few minutes, as long as
+  nothing blocks its trunk.
+- **Prospecting.** A scanner (4 iron plates, 6 copper wire, 4 screws) lists the deposits within 48
+  blocks when you right-click with it: which ore, vein or outcrop, how far, which way, how deep and
+  roughly how big; the arrows turn as you walk. A core drill (6 iron plates, 2 copper wire, 8 screws)
+  held on the ground for 3 seconds tells you exactly what lies beneath: how many blocks and units are
+  left, and between which heights. Neither wears out.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it
   drills. All miners on one deposit share its draw limit. Output slows over the last 20% of the pool.
   Each time a block's worth is used up, the ore block nearest the miner turns into spent rock, even in
@@ -135,7 +151,8 @@ size.
   exit facing the same way, up to 5 blocks ahead, so two lines can cross.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
-- **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns. Feed it ore
+- **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and two
+  quartz ore into a block of glass every 2 seconds). Feed it ore
   and fuel (coal ore burns 8 seconds, a log 4) by belt or from a miner next to it; it sorts them itself.
   It burns fuel only while smelting, and pushes ingots into a belt leading away. Its lamp shows green when
   working, red when out of fuel and yellow when its output is full.
@@ -240,7 +257,7 @@ Each frame:
   the shader from position, and texture wrapping tiles merged quads. One shared index buffer serves every chunk.
 - **Texture array** (`TEXTURE_2D_ARRAY`) instead of an atlas. There is no bleeding, and mipmaps and
   anisotropic filtering work correctly.
-- **Separate opaque and cutout passes.** Only leaves use `discard`, so opaque geometry keeps early-z.
+- **Separate opaque and cutout passes.** Only leaves and plants use `discard`, so opaque geometry keeps early-z.
 - **Camera-relative rendering.** Chunk offsets are computed in float64 on the CPU, so precision holds at
   any distance from the origin.
 - **Order-independent world generation.** Trees and ore deposits crossing chunk borders are derived from
@@ -278,8 +295,9 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
   23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
-  28 fast belt; items: 256 iron ingot, 257 copper ingot,
-  258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack.
+  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils; items: 256 iron ingot, 257 copper ingot,
+  258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
+  264–269 stone and iron tools, 270 scanner, 271 core drill.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).
@@ -302,9 +320,12 @@ Sandbox foundation:
 - [x] Full inventory screen
 - [ ] Day/night cycle, sky and voxel lighting
 - [x] Minimap
-- [x] A living surface: leaves of felled trees decay, grass grows back over bare dirt
+- [x] A living surface: leaves of felled trees decay, grass grows back over bare dirt, saplings grow into trees
 - [x] Tools that wear out: pickaxe, axe and shovel in stone and iron
-- [ ] Biomes that shape resources
+- [x] Biomes: plains, desert, highlands, lowlands, basalt fields, each with its own rock
+- [x] Ores that follow the rock: limestone and quartz join coal, iron and copper
+- [x] Surface hints: stained soil above deep deposits
+- [x] Prospecting: a scanner and a core drill
 
 Factory layer (the Satisfactory half):
 
@@ -317,7 +338,7 @@ Factory layer (the Satisfactory half):
 - [x] Splitters and filters
 - [x] Belts that climb (ramps, lifts) and cross (underpasses)
 - [x] Miner and belt tiers (Miner Mk2, fast belts)
-- [ ] Prospecting: find veins and lodes without digging blind
+- [x] Prospecting: find veins and lodes without digging blind
 - [x] Power grid: coal generators, poles, consumption and brownouts
 - [x] Research: labs, science packs and a small tech tree
 - [ ] An optional endgame megaproject that doesn't end the game

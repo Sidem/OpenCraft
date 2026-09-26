@@ -21,6 +21,11 @@ impl Game {
         self.sim.world.generator().seed()
     }
 
+    /// The generator version this world was made with (1 = the terrain before Milestone 4).
+    pub fn worldgen_version(&self) -> u32 {
+        self.sim.world.generator().version()
+    }
+
     /// Game time played in this world, in seconds.
     pub fn play_seconds(&self) -> f64 {
         self.sim.tick as f64 * TICK

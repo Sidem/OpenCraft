@@ -14,6 +14,7 @@ mod inventory;
 mod machine;
 mod minimap;
 mod net;
+mod prospect;
 mod render;
 mod research;
 mod save;

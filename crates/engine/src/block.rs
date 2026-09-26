@@ -39,7 +39,23 @@ pub const POLE: BlockId = 25;
 pub const LAB: BlockId = 26;
 pub const MINER_MK2: BlockId = 27;
 pub const FAST_BELT: BlockId = 28;
-pub const BLOCK_COUNT: usize = 29;
+/// Dropped now and then by leaves; grows into a tree on dirt or grass (`sim/saplings.rs`).
+pub const SAPLING: BlockId = 29;
+/// Rocks of generator version 2's provinces (`worldgen/`); building blocks that drop themselves.
+pub const GRANITE: BlockId = 30;
+pub const SANDSTONE: BlockId = 31;
+pub const BASALT: BlockId = 32;
+/// Deposit ores of generator version 2.
+pub const LIMESTONE: BlockId = 33;
+pub const QUARTZ_ORE: BlockId = 34;
+/// Smelted from quartz; see-through (cutout).
+pub const GLASS: BlockId = 35;
+/// Stained soil above version 2's veins and lodes (`worldgen/geology.rs`); behaves like dirt.
+pub const RUSTY_SOIL: BlockId = 36;
+pub const DARK_SOIL: BlockId = 37;
+pub const GREEN_SOIL: BlockId = 38;
+pub const PALE_SOIL: BlockId = 39;
+pub const BLOCK_COUNT: usize = 40;
 
 /// Texture array layers. Order must match `textures::pixel`.
 pub mod tex {
@@ -100,7 +116,20 @@ pub mod tex {
     pub const IRON_PICKAXE: u16 = 54;
     pub const IRON_AXE: u16 = 55;
     pub const IRON_SHOVEL: u16 = 56;
-    pub const COUNT: usize = 57;
+    pub const SAPLING: u16 = 57;
+    pub const GRANITE: u16 = 58;
+    pub const SANDSTONE: u16 = 59;
+    pub const BASALT: u16 = 60;
+    pub const LIMESTONE: u16 = 61;
+    pub const QUARTZ_ORE: u16 = 62;
+    pub const GLASS: u16 = 63;
+    pub const RUSTY_SOIL: u16 = 64;
+    pub const DARK_SOIL: u16 = 65;
+    pub const GREEN_SOIL: u16 = 66;
+    pub const PALE_SOIL: u16 = 67;
+    pub const SCANNER: u16 = 68;
+    pub const CORE_DRILL: u16 = 69;
+    pub const COUNT: usize = 70;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
@@ -116,6 +145,8 @@ pub enum Render {
     Opaque,
     /// Alpha-tested cube (leaves). Drawn in a separate pass so the opaque shader never uses `discard`.
     Cutout,
+    /// Two crossed, alpha-tested quads (saplings), drawn with the cutout pass; hides no neighbour faces.
+    Plant,
 }
 
 pub struct BlockDef {
@@ -218,6 +249,26 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Research Lab", true, 0.8, pillar(tex::LAB_SIDE, tex::LAB_TOP, tex::FRAME), LAB),
     machine("Miner Mk2", true, 0.8, pillar(tex::MINER_MK2_SIDE, tex::MINER_TOP, tex::FRAME), MINER_MK2),
     machine("Fast Belt", false, 0.3, pillar(tex::FRAME, tex::FAST_BELT_TOP, tex::FRAME), FAST_BELT),
+    BlockDef {
+        name: "Sapling",
+        render: Render::Plant,
+        solid: false,
+        break_time: 0.1,
+        faces: all(tex::SAPLING),
+        drop: SAPLING,
+        sound: sound::LEAVES,
+        placeable: true,
+    },
+    cube("Granite", 1.5, all(tex::GRANITE), GRANITE, sound::STONE),
+    cube("Sandstone", 0.8, all(tex::SANDSTONE), SANDSTONE, sound::STONE),
+    cube("Basalt", 1.6, all(tex::BASALT), BASALT, sound::STONE),
+    ore("Limestone", all(tex::LIMESTONE), LIMESTONE),
+    ore("Quartz Ore", all(tex::QUARTZ_ORE), QUARTZ_ORE),
+    BlockDef { render: Render::Cutout, ..cube("Glass", 0.3, all(tex::GLASS), GLASS, sound::STONE) },
+    cube("Rusty Soil", 0.45, all(tex::RUSTY_SOIL), DIRT, sound::DIRT),
+    cube("Dark Soil", 0.45, all(tex::DARK_SOIL), DIRT, sound::DIRT),
+    cube("Verdigris Soil", 0.45, all(tex::GREEN_SOIL), DIRT, sound::DIRT),
+    cube("Pale Soil", 0.45, all(tex::PALE_SOIL), DIRT, sound::DIRT),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -243,12 +294,23 @@ pub const CUTOUT: [bool; 256] = {
     t
 };
 
-/// Blocks the chunk mesher draws (opaque or cutout).
+/// Blocks the chunk mesher draws as cubes (opaque or cutout).
 pub const MESHED: [bool; 256] = {
     let mut t = [false; 256];
     let mut i = 0;
     while i < BLOCK_COUNT {
-        t[i] = !matches!(DEFS[i].render, Render::None);
+        t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout);
+        i += 1;
+    }
+    t
+};
+
+/// Blocks the chunk mesher draws as crossed quads.
+pub const PLANT: [bool; 256] = {
+    let mut t = [false; 256];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        t[i] = matches!(DEFS[i].render, Render::Plant);
         i += 1;
     }
     t
@@ -281,7 +343,7 @@ pub fn def(id: BlockId) -> &'static BlockDef {
 
 #[inline]
 pub fn is_ore(id: BlockId) -> bool {
-    matches!(id, COAL_ORE | IRON_ORE | COPPER_ORE)
+    matches!(id, COAL_ORE | IRON_ORE | COPPER_ORE | LIMESTONE | QUARTZ_ORE)
 }
 
 /// Short resource name used in deposit names ("Iron vein").
@@ -290,6 +352,8 @@ pub fn ore_label(id: BlockId) -> &'static str {
         COAL_ORE => "Coal",
         IRON_ORE => "Iron",
         COPPER_ORE => "Copper",
+        LIMESTONE => "Limestone",
+        QUARTZ_ORE => "Quartz",
         _ => "Ore",
     }
 }

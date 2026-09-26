@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -160,6 +160,12 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     dials: ['volume', 'pitch', 'length'],
   },
   click: { label: 'Hotbar click', help: 'The tick when you change hotbar slots.', material: false, dials: ['volume', 'pitch'] },
+  scan: {
+    label: 'Scanner',
+    help: 'The ping when the scanner or core drill reports what it found.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
 };
 
 // prettier-ignore
@@ -204,6 +210,7 @@ export const DEFAULT_DESIGN: SoundDesign = {
     pickup: neutral(),
     drop: neutral(),
     click: neutral(),
+    scan: neutral(),
   },
 };
 

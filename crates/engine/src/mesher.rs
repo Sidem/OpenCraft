@@ -6,7 +6,7 @@
 //! bits  0..6   x  (0..=32, chunk-local)
 //! bits  6..12  y
 //! bits 12..18  z
-//! bits 18..21  face  (+X, -X, +Y, -Y, +Z, -Z)
+//! bits 18..21  face  (+X, -X, +Y, -Y, +Z, -Z; 6 and 7 are a plant's two diagonal quads)
 //! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded)
 //! bits 23..32  texture array layer
 //! ```
@@ -15,9 +15,10 @@
 //! simply tiles its texture five by three times (texture wrap = REPEAT).
 //!
 //! Quads are merged only where AO is constant along the merge direction, so greedy merging never
-//! changes how the AO gradient looks.
+//! changes how the AO gradient looks. Plants (`block::PLANT`) are two crossed quads, each emitted in
+//! both windings, into the cutout list and never merged.
 
-use crate::block::{BlockId, AIR, CUTOUT, FACE_TEX, MESHED, OPAQUE};
+use crate::block::{BlockId, AIR, CUTOUT, FACE_TEX, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
 
 const N: usize = 32;
@@ -87,6 +88,7 @@ impl Mesher {
             for face in 0..6 {
                 self.mesh_face(face);
             }
+            self.mesh_plants();
         }
         let mut verts = Vec::with_capacity(self.opaque.len() + self.cutout.len());
         verts.extend_from_slice(&self.opaque);
@@ -210,6 +212,33 @@ impl Mesher {
                     let out = if key & (1 << 17) != 0 { &mut self.cutout } else { &mut self.opaque };
                     emit_quad(out, face, (d, u, v), plane, (bu as u32, bv as u32), (w as u32, h as u32), key);
                     bu += w;
+                }
+            }
+        }
+    }
+}
+
+impl Mesher {
+    /// Two diagonal quads per plant block (faces 6 and 7), each in both windings, unshaded by AO.
+    fn mesh_plants(&mut self) {
+        for y in 0..N {
+            for z in 0..N {
+                for x in 0..N {
+                    let b = self.pad[pidx(x + 1, y + 1, z + 1)];
+                    if !PLANT[b as usize] {
+                        continue;
+                    }
+                    let (x, y, z) = (x as u32, y as u32, z as u32);
+                    let layer = FACE_TEX[b as usize][0] as u32;
+                    let v = |dx: u32, dy: u32, dz: u32, face: u32| {
+                        (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (layer << 23)
+                    };
+                    let a = [v(0, 0, 0, 6), v(1, 0, 1, 6), v(1, 1, 1, 6), v(0, 1, 0, 6)];
+                    let b = [v(1, 0, 0, 7), v(0, 0, 1, 7), v(0, 1, 1, 7), v(1, 1, 0, 7)];
+                    for q in [a, b] {
+                        self.cutout.extend_from_slice(&q);
+                        self.cutout.extend_from_slice(&[q[3], q[2], q[1], q[0]]);
+                    }
                 }
             }
         }

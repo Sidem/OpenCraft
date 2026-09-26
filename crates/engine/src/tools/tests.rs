@@ -22,6 +22,10 @@ fn each_block_wants_the_tool_for_its_material() {
         assert_eq!(kind_for(b), Some(ToolKind::Shovel));
     }
     assert_eq!(kind_for(LEAVES), None);
+    use crate::block::{BASALT, GLASS, GRANITE, LIMESTONE, QUARTZ_ORE, SANDSTONE};
+    for b in [GRANITE, SANDSTONE, BASALT, LIMESTONE, QUARTZ_ORE, GLASS] {
+        assert_eq!(kind_for(b), Some(ToolKind::Pickaxe), "{}", crate::block::def(b).name);
+    }
     assert_eq!(break_speed(STONE_PICKAXE, LOG), 1.0, "the wrong tool is just a hand");
     assert_eq!(break_speed(IRON_AXE, LOG), 4.0);
     assert_eq!(break_speed(IRON_PLATE, STONE), 1.0);

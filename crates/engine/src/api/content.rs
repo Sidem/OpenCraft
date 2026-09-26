@@ -39,9 +39,9 @@ impl Game {
     }
 
     /// A tool's uses when new, which is also its stack size (its count is the uses left); 0 for
-    /// anything that isn't a tool.
+    /// anything that isn't a tool or doesn't wear (the prospecting devices).
     pub fn tool_uses(&self, id: u16) -> u32 {
-        tools::tool(ItemId(id)).map_or(0, |t| t.tier.uses)
+        tools::tool(ItemId(id)).filter(|t| tools::device(t.item).is_none()).map_or(0, |t| t.tier.uses)
     }
 
     /// Ore kept per block mined by hand.

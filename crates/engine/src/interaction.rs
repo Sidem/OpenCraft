@@ -107,7 +107,8 @@ impl Game {
     }
 
     pub(crate) fn update_placing(&mut self, dt: f32) {
-        if !self.using {
+        // A scanner or core drill in hand makes the use button prospect instead (prospect.rs).
+        if self.update_prospecting(dt) || !self.using {
             return;
         }
         self.use_cooldown -= dt;

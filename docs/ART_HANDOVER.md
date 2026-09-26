@@ -177,6 +177,18 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   at a glance: icons, loose-item models and held models. Placeholders: layers `tex::STONE_PICKAXE`..`IRON_SHOVEL`
   (51–56) drawn by `textures/tools.rs` on flat plates (`item.rs` `tool()` size). The hotbar wear bar is
   `.slot.tool::after` in `hud.css`.
+- [ ] (Saplings, landed) A sapling: layer `tex::SAPLING` (57) by `textures/plants.rs`, drawn on two
+  crossed quads (`Render::Plant`), so keep the background transparent. Also its icon and loose item.
+- [ ] (4.2, landed) Rocks and minerals for Milestone 4's biomes: granite, sandstone, basalt (building
+  rocks that fill whole regions underground, so they must tile well and read apart from stone),
+  limestone and quartz ore (deposit ores), glass (cutout: keep most texels transparent). Layers
+  `tex::GRANITE`..`tex::GLASS` (58–63) in `textures/geology.rs`; quartz uses `ore()` in `textures.rs`.
+- [ ] (4.6, landed) Prospecting devices, drawn like the tools (flat item plates): a handheld scanner
+  (`tex::SCANNER`, 68) and a core drill (`tex::CORE_DRILL`, 69); `scanner()` and `core_drill()` in
+  `textures/tools.rs`.
+- [ ] (4.5, landed) Stained soils that hint at ore below: rusty (iron), dark (coal), verdigris
+  (copper), pale (limestone, quartz). Readable from a distance and on the minimap, but still soil.
+  Layers `tex::RUSTY_SOIL`..`tex::PALE_SOIL` (64–67), `soil()` in `textures/geology.rs`.
 - [ ] (P3, landed) A leaf-decay particle or puff, if cheap; otherwise none. There is no particle system;
   the `LeafDecayed` event (`events.rs`) only plays a sound today.
 
@@ -186,3 +198,6 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - **2026-09-26 (roadmap agent):** `main` gained P1–P5: new `tex` layers 51–56 (tools) with `tex::COUNT` = 57,
   an arm in `textures.rs` `pixel` and `textures/tools.rs`. Rebase `art` onto `main`; renumber your appended
   layers after 56 if you added any.
+- **2026-09-26 (roadmap agent):** `main` gained saplings: `tex::SAPLING` = 57 (`tex::COUNT` = 58) in the new
+  `textures/plants.rs`, and plant quads in the chunk shader (`shaders.ts` faces 6 and 7). Renumber your
+  appended layers after 57. Then 4.2 added layers 58–63 (`textures/geology.rs`; `tex::COUNT` = 64), and 4.5 layers 64–67 (`tex::COUNT` = 68), and 4.6 layers 68–69 (`tex::COUNT` = 70).

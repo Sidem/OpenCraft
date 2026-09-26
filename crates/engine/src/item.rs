@@ -10,7 +10,7 @@
 //! texture layer in `block::tex` with its pattern in `textures::pixel` if it needs a new look.
 
 use crate::block::{self, tex, BlockId, AIR, BLOCK_COUNT, FACE_BOTTOM, FACE_SIDE, FACE_TOP};
-use crate::tools::{Tier, IRON_TIER, STONE_TIER};
+use crate::tools::{Tier, DEVICE_TIER, IRON_TIER, STONE_TIER};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct ItemId(pub u16);
@@ -54,6 +54,8 @@ pub const STONE_SHOVEL: ItemId = ItemId(266);
 pub const IRON_PICKAXE: ItemId = ItemId(267);
 pub const IRON_AXE: ItemId = ItemId(268);
 pub const IRON_SHOVEL: ItemId = ItemId(269);
+pub const SCANNER: ItemId = ItemId(270);
+pub const CORE_DRILL: ItemId = ItemId(271);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -106,7 +108,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.8, 0.1, 0.8], places: AIR }
 }
 
-const EXTRA: [ItemDef; 14] = [
+const EXTRA: [ItemDef; 16] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -121,6 +123,8 @@ const EXTRA: [ItemDef; 14] = [
     tool("Iron Pickaxe", tex::IRON_PICKAXE, &IRON_TIER),
     tool("Iron Axe", tex::IRON_AXE, &IRON_TIER),
     tool("Iron Shovel", tex::IRON_SHOVEL, &IRON_TIER),
+    tool("Scanner", tex::SCANNER, &DEVICE_TIER),
+    tool("Core Drill", tex::CORE_DRILL, &DEVICE_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.
