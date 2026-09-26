@@ -1,7 +1,8 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed; the user's cross-machine test is next; no
-TURN for now) · **Next up: Milestone 4, once the user answers its questions (section 6)**.
+**Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
+TURN for now) · **Next up: the play-test notes P1–P5 (section 4), then Milestone 4** · A graphics agent
+works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -25,7 +26,11 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   research with science packs, Mk2 upgrades and onboarding tips.
 - **Milestone 3 (Co-op) is done** (section 8): 2–4 players in one world over WebRTC, the host's browser as
   the authority, a Cloudflare Worker to connect them, hosting and joining from the menu.
-- **The next job is Milestone 4: Reasons to explore** (section 4). Ask the user its open questions first.
+- **The next job is the user's play-test notes, steps P1–P5** (section 4), then **Milestone 4: Reasons to
+  explore**. Ask the user its open questions first.
+- **A second agent improves textures and models in parallel** (`docs/ART_HANDOVER.md`, branch `art` in its
+  own worktree). Don't restyle the files it owns (listed there); when gameplay needs a new look, append a
+  `tex` layer with a plain placeholder pattern and add a line to that file's request list.
 
 Before you change code:
 
@@ -84,6 +89,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-25 | **Co-op hosting on Cloudflare**: a Cloudflare Worker for signalling and Cloudflare TURN as the relay. The user owns the account. |
 | 2026-09-25 | **Co-op size: 2–4 players.** This sets the bandwidth and performance budgets. |
 | 2026-09-26 | **No TURN relay for now**: STUN only. Players whose networks block direct connections can't join; adding the two TURN secrets later (`docs/WORKFLOW.md` section 4) needs no code change. |
+| 2026-09-26 | **Tools wear out and come in tiers.** A better pickaxe keeps slightly more ore by hand, but nowhere near what machines recover (step P5). |
 
 ### Proposed, not yet confirmed by the user
 
@@ -183,7 +189,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 8. In co-op every action applies about 70 ms plus the round trip after it's made; your own block edits
    aren't shown early (section 4, "instant feedback"). A name change applies the next time you host or
    join. Hosting can't be stopped without leaving the page.
-9. Co-op has only been tested between tabs of one machine so far (section 4 lists the live tests).
+9. Co-op over the internet has been tested by the user on two machines (STUN only); the relay is untested.
 
 ---
 
@@ -325,7 +331,65 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Milestone 4: Reasons to explore (NEXT)
+## 4. Now: play-test notes (P1–P5), then Milestone 4
+
+The user played co-op across two machines (2026-09-26, "it worked fine") and asked for these first, in
+this order. Each is one session, green and committed. P3 builds what P4 reuses.
+
+- [ ] **P1. Escape closes a panel first.** Now Escape in the inventory, a box or machine panel, or research
+  closes the panel *and* shows the pause menu (`closed(false)` in `main.ts`; the panels' keydown handlers in
+  `ui/inventory.ts`, `machine.ts`, `research.ts`). The browser won't re-lock the mouse from an Escape key
+  press (Escape is not a user gesture), so: Escape closes the panel and leaves the game on screen with a
+  small "Click to keep playing" hint over the canvas (the existing canvas click already re-locks); a
+  second Escape opens the pause menu. E and a click outside still resume at once. **Done when:** from each
+  panel, Escape → game view with the hint → click plays on; Escape again → pause menu; no double menus
+  in co-op (the menu's co-op section still works).
+- [ ] **P2. Minimap, on by default.** Presentation only (never core state). Engine: new `minimap.rs`
+  writes an RGBA image (about 128 × 128, one pixel per column, north up, centred on the local player) from
+  *loaded* chunks: the top block's average texture colour (computed once from `textures::generate`)
+  shaded by the height step to its north-west neighbour, water tinted. Redraw only when the player crosses
+  a block or chunks mesh, at most 4 times a second; zero-copy view to TS. Web: `ui/minimap.ts` + `.css`
+  draws it in a top-right round frame with arrows for the local player (facing) and co-op players; M
+  toggles it (saved in localStorage). This takes "Minimap" out of Milestone 4, which then adds deposit and
+  machine markers. **Done when:** the map matches the terrain in a screenshot, follows the player and
+  turns with them, costs under 0.2 ms per redraw, and the wasm grows under 3 KB gzipped.
+- [ ] **P3. Block timers + leaf decay.** New core state `sim/timers.rs`: `BlockTimers`, pending
+  (due tick, position, kind) entries, run in `Sim::step` after the tick's actions in (tick, position)
+  order, saved and hashed (`write_state` / `read_state`, bump `SAVE_VERSION` to 11; older saves load with
+  none pending), capped (for example 4096; beyond that new entries are dropped, deterministically).
+  Timers edit through `set_block_anywhere`, so they work in unloaded chunks. Leaf decay: when an action
+  removes a `LOG`, look at leaves within 6 blocks; each that has no log within 4 steps through leaves gets
+  a decay timer drawn from `Sim.rng` with a half-life (start at 8 s: exponential, `-ln(u) · 8 s / ln 2`).
+  When it fires, check again (a log placed meanwhile saves it) and remove the leaf; a leaf that decays
+  drops nothing for now (saplings come later). Report it with a `SimEvent` so a soft sound and a few
+  particles can play. **Done when:** scenario tests: a felled tree's leaves are gone within a minute
+  with the same hash on two cores; leaves still connected to another tree stay; a save mid-decay resumes;
+  `results_do_not_depend_on_frame_rate` and the loaded-chunks test still pass.
+- [ ] **P4. Grass spreads onto dirt.** Uses P3's timers. When a block changes (any action or timer), each
+  `DIRT` within 1 block (the 3 × 3 × 3 around the change) with air above and a `GRASS` among its 8
+  horizontal or ±1-height neighbours gets a grow timer (half-life about 30 s); when it fires, grow if
+  still true, then schedule the dirt around the new grass the same way, so it keeps spreading. Also: a
+  solid block placed on grass turns it to dirt after a timer. No random block ticks, no scanning
+  chunks: only changes start timers, so it stays cheap and independent of loaded chunks. **Done when:**
+  scenario test: dig a 5 × 5 dirt patch beside grass and it greens edge-inwards within a few minutes;
+  covered grass turns to dirt; two cores match.
+- [ ] **P5. Tools: pickaxe, axe, shovel, in tiers, that wear out** (the user's answers, section 1).
+  Tools are items (`item.rs`, stack 1; a new `tools.rs` holds the tool table) in two tiers now: stone
+  (stone and logs, craftable by hand from the start) and iron (iron plates and rods); steel is the third
+  tier once steel exists (Milestone 5), so keep the tier table open. Each speeds breaking of one material
+  class (from `BlockDef.sound`: stone and ore → pickaxe, wood → axe, dirt, grass, sand → shovel) while
+  selected in the hotbar: stone about 2×, iron about 4×; hands still break everything, slowly. Wear: each
+  block broken with the right tool costs one use (start: stone 150, iron 600); the slot shows a wear bar,
+  and a worn-out tool breaks with a sound and a toast. Pickaxe yield: ore by hand keeps `HAND_YIELD` (3)
+  bare-handed or with stone, 4 with iron, 5 with steel later: slightly more, never near a miner's 60%+.
+  Break speed lives in the hands (`interaction.rs`, not core); the tool, its wear and the yield are core
+  (the `Break` action reads the selected slot; wear is item state, so saves and the hash carry it:
+  bump `SAVE_VERSION`). Looks: placeholder `tex` layers and icons; the graphics agent refines them
+  (request list in `docs/ART_HANDOVER.md`). **Done when:** scenario tests: stone breaks faster with a
+  pickaxe, wear counts down and the tool breaks at zero, an iron pickaxe keeps 4 ore; the hotbar shows
+  wear; two cores match.
+
+### Milestone 4: Reasons to explore (after P1–P5)
 
 **Before detailing it, ask the user the M4 questions in section 6** (ores and rock types, how rare veins
 and lodes should be, and whether factories run on while the game is closed). Then detail it here to the
@@ -334,9 +398,6 @@ step. Record the answers in section 1.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
-- **Cross-machine play on the live site:** needs a push to `main`. Then host from the menu ("Host this
-  world"), send the link to a second machine, play a while, and look for "the cores differ" warnings in
-  the console.
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
   secrets (`docs/WORKFLOW.md` section 4); then test with `&relay` on both ends.
 - **Instant feedback for your own edits** (was step 3.9): measured, not built. On one machine a client's
@@ -354,8 +415,7 @@ The scope, from `docs/ROADMAP.md` (to be split into steps):
 - **Biomes that matter for resources and building,** not just colour.
 - **Prospecting:** a scanner reveals deposits within a radius with size estimates; a core drill gives exact
   figures. Makes veins and lodes findable (limitation 3).
-- **Minimap,** top-down from chunk heights and colours, with markers for deposits, machines and later
-  rails.
+- **Minimap markers** (the map itself is P2): deposits once prospected, machines, later rails.
 - **Day/night cycle and voxel lighting:** sky light plus block light propagated in the mesher and stored per
   chunk; lamps. Makes caves and deep lodes atmospheric, and later gives solar power a reason to vary.
 - Generation changes bump `WORLDGEN_VERSION` (`worldgen/mod.rs`), which stops older worlds from loading;
@@ -422,3 +482,7 @@ and the balance numbers. Read the section you need.
   work off stalled frames, not `document.hidden`; Windows PowerShell's `Get-Content` reads UTF-8 as ANSI,
   so edit files with the file tools or Node. Tests 113 → 127; wasm 120.3 → 131.5 KB, JS 32.1 → 39.1 KB
   gzipped.
+- **2026-09-26:** The user tested co-op across two machines (works) and added play-test notes P1–P5
+  (Escape closes panels first, minimap by default, leaf decay, grass spread, tools) ahead of Milestone 4.
+  A graphics agent now works in parallel on branch `art` (`docs/ART_HANDOVER.md`). The user answered
+  the tool questions: tools wear out, come in tiers, and a better pickaxe keeps slightly more ore.

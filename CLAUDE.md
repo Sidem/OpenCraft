@@ -23,7 +23,8 @@ matters as much as any feature.** The full rules are in plan section 3.1 and are
 - **Boring, explicit code.** No speculative abstractions; add a registry when the second instance arrives.
 - **Docs are maps.** Update `docs/CODEMAP.md` in the same commit as any structural change. The plan details
   only the current milestone. Future milestones live in `docs/ROADMAP.md` (read only when planning).
-  Operational how-tos live in `docs/WORKFLOW.md` (read the section you need).
+  Operational how-tos live in `docs/WORKFLOW.md` (read the section you need). Textures and models are
+  improved in parallel on the `art` branch: `docs/ART_HANDOVER.md` says who owns which files.
 - **Fast, quiet feedback.** Use `npm run check` before commits. Prefer headless Rust scenario tests over the
   browser pane. Keep tool output short.
 - **One scoped step per session.** Finish green and committed.
