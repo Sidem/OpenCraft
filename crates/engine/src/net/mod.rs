@@ -92,7 +92,7 @@ impl Role {
             Role::Host(h) => &mut h.checksums,
             Role::Client(c) => &mut c.checksums,
         };
-        if sim.tick % CHECKSUM_TICKS == 0 {
+        if sim.tick.is_multiple_of(CHECKSUM_TICKS) {
             checksums.extend([sim.tick, sim.state_hash()]);
         }
         let Role::Host(h) = self else { return };

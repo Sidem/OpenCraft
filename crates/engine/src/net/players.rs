@@ -70,7 +70,7 @@ impl Game {
         };
         relay.clock = relay.clock.wrapping_add(1);
         let clock = relay.clock;
-        if clock % STATE_TICKS == 0 {
+        if clock.is_multiple_of(STATE_TICKS) {
             let mut w = ByteWriter::default();
             if host {
                 w.count(self.bodies.iter().flatten().count());
@@ -85,7 +85,7 @@ impl Game {
             }
             relay.states = w.bytes;
         }
-        if host && clock % ITEM_TICKS == 0 {
+        if host && clock.is_multiple_of(ITEM_TICKS) {
             self.write_item_views();
         }
     }

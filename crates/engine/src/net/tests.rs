@@ -53,7 +53,7 @@ fn host_and_client_stay_in_step_through_bytes() {
                 client.act(action);
             }
         }
-        if late(t) && t % 10 == 0 {
+        if late(t) && t.is_multiple_of(10) {
             client.act(Action::ScrollSlot { delta: 1 });
         }
         assert!(host.host_stamp(1, &client.take_outbox()));
