@@ -1,0 +1,34 @@
+<!doctype html>
+<!-- Art review-only entry; excluded from the production Vite entry. No saves or network sessions. -->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCraft · Alpine art review</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #172124; color: #edf0e7; font: 15px system-ui, sans-serif; }
+  header { padding: 22px 28px 16px; display: flex; gap: 24px; align-items: center; justify-content: space-between; }
+  h1 { font-size: 24px; margin: 4px 0; letter-spacing: -.5px; }
+  small { color: #a7bab9; letter-spacing: 2px; font-size: 10px; }
+  nav { display: flex; gap: 7px; }
+  a { color: #d3ddda; text-decoration: none; border: 1px solid #52605d; border-radius: 5px; padding: 9px 13px; }
+  a[aria-current] { background: #e4cc95; color: #1b2928; border-color: #e4cc95; }
+  #world { display: block; width: 100%; height: 65vh; min-height: 440px; }
+  footer { padding: 20px 28px; display: flex; gap: 26px; align-items: center; }
+  #swatches { display: flex; gap: 12px; }
+  #swatches canvas { width: 96px; height: 96px; image-rendering: pixelated; border-radius: 3px; }
+  figure { margin: 0; }
+  figcaption { font-size: 11px; color: #a7bab9; margin-top: 5px; }
+  p { max-width: 650px; line-height: 1.6; margin: 4px 0; }
+  #status { font-size: 11px; color: #a7bab9; }
+  .materials #world { display: none; }
+  .materials footer { display: block; }
+  .materials #swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin-bottom: 24px; }
+  .materials #swatches canvas { width: 100%; height: auto; background: #889397; }
+</style>
+<header><div><small>OPENCRAFT / ALPINE / NATURAL MATERIALS / A1</small><h1 id="title">Building review scene…</h1></div>
+<nav aria-label="View"><a href="/art-preview.html">Factory scene</a><a href="?view=materials">Tiled materials</a></nav></header>
+<canvas id="world" aria-label="Repeatable terrain and factory art scene"></canvas>
+<footer><div id="swatches"></div><div><p id="description"></p><p id="status">Generating seed 2024…</p></div></footer>
+<script type="module" src="/art/scene.js"></script>
+</html>

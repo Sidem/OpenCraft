@@ -1,7 +1,7 @@
 //! Procedural 16×16 block and item textures, generated at startup so the MVP ships with zero art assets.
 //! Every pattern tiles seamlessly (noise lattices wrap at the texture edge). `generate` writes one
 //! RGBA layer per `block::tex` constant; to add a texture, add the constant there and its pattern
-//! arm in `pixel`. Machine and item patterns live in `textures/machines.rs`.
+//! arm in `pixel`. Natural patterns live in `textures/nature.rs`; machines/items in `textures/machines.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -9,7 +9,10 @@ use crate::math::{hash3, unit};
 mod geology;
 mod machines;
 mod plants;
+mod nature;
 mod tools;
+
+use nature::stone;
 
 use machines::{
     belt_side, belt_top, constructor, crate_wood, drill, flask, generator, ingot, lab, lamp, miner_side, miner_top,
@@ -54,22 +57,6 @@ fn rgb(c: [f64; 3], k: f64) -> [u8; 4] {
     [ch(c[0]), ch(c[1]), ch(c[2]), 255]
 }
 
-fn stone(x: i32, y: i32) -> [u8; 4] {
-    let k = 0.78 + 0.16 * n(1, x, y) + 0.14 * smooth(2, x, y, 4);
-    rgb([122.0, 122.0, 126.0], k)
-}
-
-fn dirt(x: i32, y: i32) -> [u8; 4] {
-    let speck = if n(4, x, y) < 0.12 { 0.72 } else { 1.0 };
-    let k = (0.8 + 0.2 * n(3, x, y) + 0.1 * smooth(5, x, y, 4)) * speck;
-    rgb([124.0, 88.0, 60.0], k)
-}
-
-fn grass(x: i32, y: i32) -> [u8; 4] {
-    let k = 0.76 + 0.2 * n(6, x, y) + 0.14 * smooth(7, x, y, 4);
-    rgb([96.0, 156.0, 56.0], k)
-}
-
 /// Stone with 5 tileable mineral clusters.
 fn ore(x: i32, y: i32, seed: u32, main: [f64; 3], accent: [f64; 3]) -> [u8; 4] {
     for i in 0..5 {
@@ -84,18 +71,6 @@ fn ore(x: i32, y: i32, seed: u32, main: [f64; 3], accent: [f64; 3]) -> [u8; 4] {
         }
     }
     stone(x, y)
-}
-
-/// Worked-out rock: paler than stone, pitted, with rust stains left by the ore.
-fn spent_rock(x: i32, y: i32) -> [u8; 4] {
-    let k = 0.8 + 0.14 * n(40, x, y) + 0.12 * smooth(41, x, y, 4);
-    if n(42, x, y) < 0.1 {
-        rgb([96.0, 88.0, 82.0], k)
-    } else if smooth(43, x, y, 8) > 0.72 && n(44, x, y) < 0.5 {
-        rgb([158.0, 108.0, 76.0], k)
-    } else {
-        rgb([146.0, 138.0, 128.0], k)
-    }
 }
 
 /// Brushed steel with a dark rim and corner rivets.
@@ -128,52 +103,10 @@ fn avatar(x: i32, y: i32, part: u16) -> [u8; 4] {
 
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
-        tex::STONE => stone(x, y),
-        tex::DIRT => dirt(x, y),
-        tex::GRASS_TOP => grass(x, y),
-        tex::GRASS_SIDE => {
-            let depth = 3 + (hash3(8, x, 0, 0) % 3) as i32;
-            if y < depth || (y == depth && n(9, x, y) < 0.4) {
-                let [r, g, b, a] = grass(x, y);
-                let k = if y + 1 >= depth { 0.85 } else { 1.0 };
-                [(r as f64 * k) as u8, (g as f64 * k) as u8, (b as f64 * k) as u8, a]
-            } else {
-                dirt(x, y)
-            }
-        }
-        tex::SAND => rgb([222.0, 206.0, 152.0], 0.9 + 0.08 * n(10, x, y) + 0.06 * smooth(11, x, y, 4)),
-        tex::LOG_SIDE => {
-            let groove = hash3(12, x, 0, 0).is_multiple_of(4);
-            let k = 0.74 + 0.18 * n(13, x, 0) + 0.1 * n(14, x, y / 3) - if groove { 0.18 } else { 0.0 };
-            rgb([112.0, 84.0, 52.0], k)
-        }
-        tex::LOG_TOP => {
-            let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
-            let d = (dx * dx + dy * dy).sqrt();
-            if d > 7.0 {
-                rgb([112.0, 84.0, 52.0], 0.8 + 0.15 * n(15, x, y))
-            } else {
-                let ring = ((d * 1.15 + 0.35 * n(16, x, y)) as i32) % 2 == 0;
-                rgb(if ring { [186.0, 150.0, 96.0] } else { [160.0, 124.0, 76.0] }, 0.94 + 0.08 * n(17, x, y))
-            }
-        }
-        tex::LEAVES => {
-            let base = [64.0, 124.0, 44.0];
-            let mut c = rgb(base, 0.62 + 0.42 * n(18, x, y) + 0.12 * smooth(19, x, y, 4));
-            if n(20, x, y) < 0.2 {
-                // Transparent, but keep a leaf colour so mipmaps don't bleed dark fringes.
-                c[3] = 0;
-            }
-            c
-        }
+        tex::STONE..=tex::LEAVES | tex::BEDROCK | tex::SPENT_ROCK => nature::pixel(layer, x, y),
         tex::COAL_ORE => ore(x, y, 21, [40.0, 40.0, 44.0], [74.0, 74.0, 82.0]),
         tex::IRON_ORE => ore(x, y, 24, [218.0, 180.0, 152.0], [168.0, 112.0, 86.0]),
         tex::COPPER_ORE => ore(x, y, 27, [226.0, 134.0, 72.0], [88.0, 172.0, 140.0]),
-        tex::BEDROCK => {
-            let k = 0.3 + 0.6 * n(30, x, y) * (0.6 + 0.4 * smooth(31, x, y, 4));
-            rgb([130.0, 130.0, 136.0], k)
-        }
-        tex::SPENT_ROCK => spent_rock(x, y),
         tex::BELT_TOP => belt_top(x, y, [176.0, 150.0, 92.0]),
         tex::FAST_BELT_TOP => belt_top(x, y, [96.0, 170.0, 236.0]),
         tex::FRAME => frame(x, y),

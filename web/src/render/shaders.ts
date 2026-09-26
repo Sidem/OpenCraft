@@ -1,5 +1,8 @@
 // GLSL ES 3.00 sources. `CUTOUT` is defined for the alpha-tested (leaves) variant only, so the
-// opaque pass never contains `discard` and keeps early-z.
+// opaque pass never contains `discard` and keeps early-z. `TERRAIN` adds world-anchored Alpine tint
+// only to chunk meshes; instance materials retain their authored colours.
+
+export const TERRAIN_TINT_PERIOD = 256;
 
 const FOG = /* glsl */ `
 uniform vec3 u_fogColor;
@@ -18,10 +21,12 @@ layout(location = 0) in uint a_vert;
 
 uniform mat4 u_viewProj;
 uniform vec3 u_offset; // chunk origin minus camera position
+uniform vec3 u_worldOrigin; // chunk origin modulo the tint's 256-block period
 
 out vec3 v_uvl;
 out float v_light;
 out vec3 v_rel;
+out vec2 v_ground;
 
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads.
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
@@ -47,6 +52,7 @@ void main() {
   v_uvl = vec3(uv, layer);
   v_light = FACE_SHADE[face] * AO_CURVE[ao];
   v_rel = u_offset + p;
+  v_ground = (u_worldOrigin + p).xz;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }
 `;
@@ -62,10 +68,36 @@ in float v_light;
 in vec3 v_rel;
 out vec4 o_color;
 
+#ifdef TERRAIN
+in vec2 v_ground;
+float terrainHash(vec2 p) {
+  p = mod(p, ${TERRAIN_TINT_PERIOD / 16}.0);
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float terrainField(vec2 p) {
+  vec2 cell = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(terrainHash(cell), terrainHash(cell + vec2(1, 0)), f.x),
+             mix(terrainHash(cell + vec2(0, 1)), terrainHash(cell + vec2(1, 1)), f.x), f.y);
+}
+#endif
+
 void main() {
+#ifdef TERRAIN
+  // A continuous UV drift moves fine features between adjacent blocks without tile-edge cuts.
+  float drift = terrainField(v_ground / 8.0) - 0.5;
+  vec2 uv = v_uvl.xy + (v_uvl.z < 13.0 && abs(v_uvl.z - 7.0) > 0.5 ? vec2(drift, -drift) * 0.35 : vec2(0.0));
+  vec4 c = texture(u_tex, vec3(uv, v_uvl.z));
+#else
   vec4 c = texture(u_tex, v_uvl);
+#endif
 #ifdef CUTOUT
   if (c.a < 0.5) discard;
+#endif
+#ifdef TERRAIN
+  // World-anchored 16-block patches survive greedy merging and camera/chunk transitions.
+  float field = terrainField(v_ground / 16.0);
+  c.rgb *= mix(vec3(0.91, 0.96, 1.01), vec3(1.06, 1.03, 0.96), field);
 #endif
   o_color = vec4(applyFog(c.rgb * v_light, v_rel), 1.0);
 }

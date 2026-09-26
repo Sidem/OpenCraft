@@ -58,6 +58,22 @@ roadmap agent's.
 
 ## 2b. Art direction: its own look, not a cheap Minecraft clone
 
+**Chosen: B · Alpine (2026-09-26).** Blue slate, fern greens and cool earth; ivory machinery with
+burnt-orange accents when A4 lands. Natural textures use small palettes, angular mineral plates,
+quiet grass tufts, bark/end grain and clustered leaf cutouts. Low-frequency, world-anchored terrain
+tint softens repetition without changing lighting or gameplay. The A0 alternatives are retired;
+`/art-preview.html` now uses the production textures and renderer. `?view=materials` tiles every
+natural texture 3×3 for inspection. Original screenshots remain under `artifacts/a0/`.
+
+**A4 silhouette brief from user feedback:** recognition must come from geometry at a glance, before
+the viewer reads a label or colour. Miner/extractor: low tracked base and a large ground-facing
+drill. Generator: broad turbine/flywheel, fuel hopper and a high exhaust. Smelter: tall furnace
+body, chimney, dark ore inlet and glowing crucible. Storage container: broad stackable chest with
+a hinged lid/seam and reinforced corners. Constructor (composer): open workbench with a moving
+press or arm over the input tray. Lab: glass chamber and a short antenna. Keep family colour
+consistent, but give each a distinct outline; stay near 12 boxes per machine and stop work
+animation when idle or blocked. Implement in A4 after A2–A3, per the agreed step order.
+
 The user's brief: make the existing textures and models **more beautiful and less like a cheap
 Minecraft clone**. The game is a frontier-industry sandbox (voxel world + Satisfactory-style factories),
 peaceful and open-ended. Ideas to start from; settle the direction with the user in step A0:
@@ -141,12 +157,12 @@ you touched the game.** Undo that part. Looks never need to change it.
 
 Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5, A7, A8) come after.
 
-- [ ] **A0. Direction and a test scene.** Take screenshots of the current look (terrain, a small
+- [x] **A0. Direction and a test scene.** Take screenshots of the current look (terrain, a small
   factory, an avatar if you can host two tabs). Propose 2–3 short style options to the user (palette,
   texture treatment, machine colour language) with one quick sample each, for example a restyled stone
   and grass and a shader tint. Record the chosen direction in section 2b. Keep a way to rebuild the
   same test scene for later before/after screenshots (a `javascript_tool` snippet in the log is enough).
-- [ ] **A1. Natural blocks.** Richer stone, dirt, grass (top and side lip), sand, logs (bark sides,
+- [x] **A1. Natural blocks.** Richer stone, dirt, grass (top and side lip), sand, logs (bark sides,
   rings on the ends), leaves (cutout holes), spent rock; the rest of `DEFS` in `block.rs` to match.
   Seamless tiling.
 - [ ] **A2. Ores.** Every ore readable at 20 blocks and distinct without colour (shape of flecks,
@@ -201,3 +217,26 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - **2026-09-26 (roadmap agent):** `main` gained saplings: `tex::SAPLING` = 57 (`tex::COUNT` = 58) in the new
   `textures/plants.rs`, and plant quads in the chunk shader (`shaders.ts` faces 6 and 7). Renumber your
   appended layers after 57. Then 4.2 added layers 58–63 (`textures/geology.rs`; `tex::COUNT` = 64), and 4.5 layers 64–67 (`tex::COUNT` = 68), and 4.6 layers 68–69 (`tex::COUNT` = 70).
+- **2026-09-26, A0 review:** Read all required rules; `git rebase main` was already up to date.
+  Added `web/art-preview.html` and `web/art/{scene,palettes}.js` for comparison only (Vite's production
+  entry does not import them). Rebuild with `npm run dev`, visit `/art-preview.html?style=0..3`.
+  The fixture creates a fresh seed-2024 Game, finds the same clearing, places an 8×6 grass station,
+  stone sample wall, miner/belt/box, smelter, constructor, generator and pole through public actions.
+  Fixed camera: eye `(30,75.62,19)`, yaw `-0.65`, pitch `-0.55`; 25 model boxes. No saved world used.
+  Browser screenshots: `artifacts/a0/{before,a-fieldworks,b-alpine,c-claylands}.png` (review evidence,
+  not game texture assets). Avatar comparison not captured. `preview_start` was unavailable; ran the
+  configured `npm run dev` directly in the art worktree and used the Codex browser pane on port 5173.
+  `npm run check`: green, 127 tests; golden hash unchanged. `npx vite build`: wasm 358.39 kB raw,
+  **131.49 kB gzip (+0 art)**; `node scripts/wasm-sizes.mjs` inspected. The user subsequently chose B · Alpine; A0 is complete. No commit, merge or push; first commit still requires user permission.
+- **2026-09-26, A1:** Rebased `art` on `main`; replaced all 10 natural texture layers with
+  Alpine palettes, mineral cleavage, fine grain, grass tufts and side lip, pale rippled sand,
+  bark/end rings, cutout foliage, bedrock and spent rock. The chunk shader applies periodic
+  world-position tint and a small continuous UV drift to break repetition. Shader leaves keep
+  their cutouts crisp. User feedback requested more material detail and recognisable machine
+  silhouettes; the latter is recorded as the A4 brief above. Same fixture screenshots:
+  `artifacts/a0/before.png`, `artifacts/a1/after.png` and `artifacts/a1/materials.png`.
+  Tile-edge and foliage tests pass; `npm run check` green (129 tests), release tests pass,
+  golden hash unchanged. Vite wasm **133.39 kB gzip**, up **1.90 kB** from A0 and within the
+  +12 kB art budget. Whole `Game::new` median 0.76 ms (includes texture generation, under
+  20 ms); synthetic 1,600-box browser render 0.10 ms median with or without tint at the
+  available timer resolution, GL error 0. User approved commits on `art`; no merge or push.

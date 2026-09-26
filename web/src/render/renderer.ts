@@ -122,9 +122,9 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog'] as const;
-    const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag);
-    const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT']);
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog'] as const;
+    const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
+    const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
     const crackProg = createProgram(gl, S.crackVert, S.crackFrag);
     this.opaque = { prog: opaqueProg, u: uniforms(gl, opaqueProg, lit) };
@@ -307,6 +307,7 @@ export class Renderer {
         const n = isCutout ? m.cutout : m.opaque;
         if (n === 0) continue;
         gl.uniform3f(pass.u.u_offset, m.x * CHUNK - ex, m.y * CHUNK - ey, m.z * CHUNK - ez);
+        gl.uniform3f(pass.u.u_worldOrigin, (m.x * CHUNK) % S.TERRAIN_TINT_PERIOD, 0, (m.z * CHUNK) % S.TERRAIN_TINT_PERIOD);
         gl.bindVertexArray(m.vao);
         // Cutout quads are stored after the opaque ones; the shared index buffer is offset to match.
         gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, isCutout ? m.opaque * 24 : 0);
