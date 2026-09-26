@@ -270,3 +270,16 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   +1.58 kB from A3, +3.16 kB over the rebuilt A1/P1–P5 baseline; `wasm-sizes.mjs` inspected.
   Synthetic 3,456-box browser scene: 0.10 ms median / 0.30 ms p95 at timer resolution,
   GL error 0. No merge or push.
+- **2026-09-26, material refinement after review:** Replaced large mineral plates, drawn turf marks,
+  regular bark grooves and gridded ore inclusions with finer periodic grain and sparse irregular
+  seams. The terrain shader now mixes differently scaled texture samples, varies ore richness across
+  several blocks and offsets each leaf cluster so cutout marks do not stamp in a grid. The review
+  gallery shows 3×3 block patches through that same production shader; `?view=materials&raw`
+  retains the base tile view. Same fixture: `artifacts/a4/after.png` →
+  `artifacts/material-refinement/after-scene.png`; material detail:
+  `artifacts/a2/materials.png` → `artifacts/material-refinement/after-materials.png`.
+  The main checkout currently has **uncommitted** new sapling, geology and soil texture layers
+  (57–67); reconcile their IDs with art's item layers when the gameplay work lands. Do not copy
+  or modify the main checkout's work in progress. `npm run check` green (145 tests); golden
+  hash unchanged. Vite wasm **143.35 kB gzip**, +0.75 kB from A4 and within the original
+  +12 kB art budget; `wasm-sizes.mjs` inspected. No merge or push.

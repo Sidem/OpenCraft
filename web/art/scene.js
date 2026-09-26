@@ -4,6 +4,7 @@ import init, { Game } from '../src/wasm/engine.js';
 import { Renderer } from '../src/render/renderer.ts';
 import { INSTANCE_FLOATS } from '../src/render/boxes.ts';
 import { Hud } from '../src/ui/hud.ts';
+import { worldMaterialSamples } from './materials.js';
 
 const view = new URLSearchParams(location.search).get('view');
 const materials = view === 'materials';
@@ -14,7 +15,7 @@ document.querySelector('#title').textContent = items ? 'Alpine · manufactured p
 document.querySelector('#description').textContent = items
   ? 'The inventory icons and loose items share the same box assemblies from Rust.'
   : machines ? 'A closer production-renderer view of the extractor, furnace, press, turbine, lab, routes and storage.'
-  : 'Natural materials and readable ore families. Production Rust textures with world-anchored terrain tint.';
+  : 'Three-by-three block patches through the production terrain shader: continuous mineral grain and world-scale variation.';
 const status=document.querySelector('#status');
 try {
   const wasm=await init();
@@ -87,14 +88,22 @@ try {
     ['Coal seam','Coal Ore',0], ['Iron bloom','Iron Ore',0], ['Copper vein','Copper Ore',0],
   ];
   const size = game.texture_size(), layerBytes = size * size * 4;
+  const rawMaterials = new URLSearchParams(location.search).has('raw');
+  const worldSamples = materials && !rawMaterials ? worldMaterialSamples(
+    tex,size,game.texture_layers(),samples.map(([,block,face])=>game.item_icon(ids[block])[face])) : null;
   for(const [name,block,face] of materials ? samples : items ? [] : samples.slice(0,2)) {
     const layer = game.item_icon(ids[block])[face];
     const figure=document.createElement('figure'), swatch=document.createElement('canvas'), caption=document.createElement('figcaption');
     const repeats = materials ? 3 : 1;
-    swatch.width=swatch.height=size*repeats;
-    const tile = new ImageData(new Uint8ClampedArray(tex.slice(layer*layerBytes,(layer+1)*layerBytes)),size,size);
-    for(let y=0;y<repeats;y++) for(let x=0;x<repeats;x++) swatch.getContext('2d').putImageData(tile,x*size,y*size);
-    caption.textContent=`${name} · ${size} × ${size}`; figure.append(swatch,caption); document.querySelector('#swatches').append(figure);
+    const sample = worldSamples?.get(layer);
+    swatch.width=swatch.height=sample?.width ?? size*repeats;
+    if (sample) swatch.getContext('2d').putImageData(sample,0,0);
+    else {
+      const tile = new ImageData(new Uint8ClampedArray(tex.slice(layer*layerBytes,(layer+1)*layerBytes)),size,size);
+      for(let y=0;y<repeats;y++) for(let x=0;x<repeats;x++) swatch.getContext('2d').putImageData(tile,x*size,y*size);
+    }
+    caption.textContent=`${name} · ${sample?'3 × 3 world blocks':`${size} × ${size} base tile`}`;
+    figure.append(swatch,caption); document.querySelector('#swatches').append(figure);
   }
   if (items) {
     const layers = Array.from({length:game.texture_layers()},(_,layer) => {

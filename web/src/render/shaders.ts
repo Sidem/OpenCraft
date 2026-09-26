@@ -85,9 +85,27 @@ float terrainField(vec2 p) {
 void main() {
 #ifdef TERRAIN
   // Independent continuous offsets disturb the repeated tile in both directions without edge cuts.
-  vec2 drift = vec2(terrainField(v_ground / 8.0), terrainField(v_ground / 8.0 + vec2(5.0, 11.0))) - 0.5;
-  vec2 uv = v_uvl.xy + (v_uvl.z < 13.0 && abs(v_uvl.z - 7.0) > 0.5 ? drift * 0.6 : vec2(0.0));
+  vec2 drift = vec2(terrainField(v_ground / 2.5), terrainField(v_ground / 2.5 + vec2(5.0, 11.0))) - 0.5;
+  vec2 uv = v_uvl.xy + (v_uvl.z < 13.0 ? drift * (abs(v_uvl.z - 7.0) < 0.5 ? 0.35 : 1.25) : vec2(0.0));
+  if (abs(v_uvl.z - 7.0) < 0.5) {
+    // Leaf holes are per-cluster, so a canopy does not expose a repeated 16-texel stencil.
+    vec2 leafCell = floor(v_ground);
+    uv += 16.0 * vec2(terrainHash(leafCell), terrainHash(leafCell + vec2(13.0, 7.0)));
+  }
   vec4 c = texture(u_tex, vec3(uv, v_uvl.z));
+  // A second, slower sample gives each run of blocks its own mineral/soil tone. Preserve the
+  // grass lip, log rings and cutout foliage silhouettes from the primary sample.
+  if (v_uvl.z < 13.0 && abs(v_uvl.z - 3.0) > 0.5 && abs(v_uvl.z - 6.0) > 0.5 && abs(v_uvl.z - 7.0) > 0.5) {
+    bool ore = v_uvl.z >= 8.0 && v_uvl.z <= 10.0;
+    vec3 broad = texture(u_tex, vec3(v_uvl.xy * (ore ? 0.73 : 0.19) + vec2(0.17, 0.43), v_uvl.z)).rgb;
+    c.rgb = mix(c.rgb, broad, ore ? 0.45 : 0.38);
+    if (ore) {
+      // Deposits wax and wane across several blocks instead of stamping every ore face equally.
+      float richness = terrainField(v_ground / 3.5 + vec2(17.0, 4.0));
+      vec3 hostRock = texture(u_tex, vec3(uv, 0.0)).rgb;
+      c.rgb = mix(hostRock, c.rgb, clamp((richness - 0.28) * 2.1, 0.13, 1.0));
+    }
+  }
 #else
   vec4 c = texture(u_tex, v_uvl);
 #endif
@@ -97,7 +115,7 @@ void main() {
 #ifdef TERRAIN
   // World-anchored 16-block patches survive greedy merging and camera/chunk transitions.
   float field = terrainField(v_ground / 16.0);
-  c.rgb *= mix(vec3(0.91, 0.96, 1.01), vec3(1.06, 1.03, 0.96), field);
+  c.rgb *= mix(vec3(0.88, 0.95, 1.02), vec3(1.08, 1.04, 0.95), field);
 #endif
   o_color = vec4(applyFog(c.rgb * v_light, v_rel), 1.0);
 }
