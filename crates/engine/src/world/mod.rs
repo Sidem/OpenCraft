@@ -48,6 +48,8 @@ pub struct World {
     mesh_queue_stale: bool,
     center: Option<(i32, i32)>,
     focus: IVec3,
+    /// The chunks other players stand in (`update_streaming`).
+    others: Vec<IVec3>,
     view_radius: i32,
     mesher: Mesher,
     air: Chunk,
@@ -67,6 +69,7 @@ impl World {
             mesh_queue_stale: true,
             center: None,
             focus: IVec3::ZERO,
+            others: Vec::new(),
             view_radius: view_radius.max(2),
             mesher: Mesher::new(),
             air: Chunk::uniform(AIR),
@@ -227,6 +230,44 @@ impl World {
         }
         self.mesh_queue_stale = true;
         true
+    }
+
+    /// Co-op resync: this world, just read from a host's snapshot, takes over `old`'s render cache
+    /// (loaded chunks, queues, pending renderer events), so nothing streams in again. A loaded chunk
+    /// whose blocks differ from this world's is replaced and remeshed with its neighbours; the rest
+    /// keep their meshes.
+    pub fn adopt_loaded(&mut self, old: World) {
+        let World { chunks, dirty, gen_queue, center, focus, others, view_radius, events, .. } = old;
+        (self.dirty, self.gen_queue, self.center, self.focus) = (dirty, gen_queue, center, focus);
+        (self.others, self.view_radius, self.events) = (others, view_radius, events);
+        let mut changed = Vec::new();
+        for (p, mut e) in chunks {
+            let fresh = match self.saved.remove(&p) {
+                Some(chunk) => Some(chunk),
+                None if e.chunk.modified => Some(self.generator.generate(p)),
+                None => None,
+            };
+            if let Some(chunk) = fresh {
+                if !chunk.same_blocks(&e.chunk) {
+                    changed.push(p);
+                }
+                e.chunk = chunk;
+            }
+            self.chunks.insert(p, e);
+        }
+        for p in changed {
+            for dz in -1..=1 {
+                for dy in -1..=1 {
+                    for dx in -1..=1 {
+                        let q = p + IVec3::new(dx, dy, dz);
+                        if self.chunks.contains_key(&q) {
+                            self.dirty.insert(q);
+                        }
+                    }
+                }
+            }
+        }
+        self.mesh_queue_stale = true;
     }
 }
 

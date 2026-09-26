@@ -15,26 +15,26 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   player), applied at the next tick. Only `World`'s render cache (streaming, meshes) is touched
   directly. `Sim.players` and `Game.bodies` are both indexed by `PlayerId`.
 - Header first (`//!`: owns, invariants, how to extend), then public items, then private helpers.
-- Balance numbers are named constants at the top of the module that uses them.
-- Formatting: `rustfmt.toml` (width 120). `npm run check` runs fmt, clippy `-D warnings` and tests.
+- Balance numbers are named constants atop their module. Format: `rustfmt.toml` (width 120).
 
 ## Testing
 
-- `npm run check` before every commit; `cargo test --workspace -q` alone for a quick loop. Filter with
-  `cargo test -q <name>`.
+- `npm run check` before commits; `cargo test --workspace -q` (filter: `cargo test -q <name>`) to iterate.
 - Prefer headless scenario tests over the browser. Patterns to copy:
   - `src/tests.rs`: `run_until_ready(&mut g)` streams the world in; `find_outcrop_block` finds ore;
     `build_mine` places a miner, belt and box directly through `factory`. Actions: `g.act(…)` or the
     API method, then `g.run_ticks(1)`. More players: `g.add_player()`, `g.act_as(id, …)`, `g.bodies`.
   - `action/tests.rs`: a bare `Sim` with `apply` / `queue` + `step`; works without loaded chunks.
+    `net/tests.rs`: `pair()` wires a host and a client `Game` through bytes.
   - `factory/tests.rs`: `run(&mut f, seconds, check)` steps a bare `Factory`; `stocked_box` fills a box.
 - Worldgen is seeded; tests use fixed seeds (2024, 1337, 7). Changing generation can move the features
   such tests look for.
 
-## Wasm size (check `npx vite build` when it could grow)
+## Wasm size (check `npx vite build` when it could grow; what grew: `node scripts/wasm-sizes.mjs`)
 
 - No float formatting (`{:.1}`, `to_string()` on floats): about 25 KB. Round to integers or format in TS.
 - No new instantiations of std sorts (5–9 KB each): use `math::sort_small_by_key` (insertion sort).
+  A sort key that does real work is inlined into every comparison: make it `#[inline(never)]`.
 - No new crates without a reason worth their size. Hand-written serialisation over serde.
 
 ## Determinism (DEV_PLAN section 3.4)

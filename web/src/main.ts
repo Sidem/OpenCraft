@@ -1,21 +1,27 @@
-// Entry point: loads the wasm engine, opens the latest world (save/), builds the renderer, HUD, input,
-// sound and panels, wires the pause menu, and runs the frame loop (input → `game.update` → sounds →
-// streaming work → mesh events → render → HUD). Keeps no game state of its own; everything lives in
-// the engine.
+// Entry point: loads the wasm engine, opens the latest world or joins a co-op game (net/session.ts),
+// builds the renderer, HUD, input, sound and panels, wires the pause menu, and runs the frame loop
+// (input → `game.update` → co-op pump → sounds → streaming work → mesh events → render → name tags →
+// HUD). Keeps no game state of its own; everything lives in the engine.
 
 import './base.css';
 import './ui/menu.css';
 import init from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
+import type { Coop } from './net/coop';
+import { hostWorld, startCoop } from './net/session';
+import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
 import { INSTANCE_FLOATS } from './render/boxes';
 import { Renderer } from './render/renderer';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
+import { CoopPanel } from './ui/coop';
 import { Hints } from './ui/hints';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
+import { NameTags } from './ui/nametags';
+import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
 import { VolumeControl } from './ui/volume-control';
@@ -45,16 +51,17 @@ async function main(): Promise<void> {
   const worlds = document.getElementById('worlds')!;
   const store = await WorldStore.open().catch(() => null);
   let opened: Opened;
+  let coop: Coop | null;
   try {
-    opened = await openWorld(store, seed, viewRadius);
+    ({ opened, coop } = await startCoop(params, viewRadius, () => openWorld(store, seed, viewRadius)));
   } catch (err) {
-    // The latest world can't be loaded: offer the others instead of starting.
+    // The latest world can't be loaded, or joining failed: offer the others instead of starting.
     document.getElementById('loading-text')!.textContent = message(err);
     if (store) worlds.append(new WorldsPanel(store, null).el);
     return;
   }
   const { game, meta } = opened;
-  const session = store && new Session(store, meta, game);
+  const session = store && !game.is_client() ? new Session(store, meta, game) : null;
   if (store) worlds.append(new WorldsPanel(store, session, opened.notice).el);
   else worlds.textContent = opened.notice;
 
@@ -80,6 +87,13 @@ async function main(): Promise<void> {
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const hints = new Hints(game);
+  const nameTags = new NameTags();
+  const playerList = new PlayerList();
+  const coopPanel = new CoopPanel(coop, {
+    host: async () => beginCoop(await hostWorld(game, '')),
+    leave: () => session?.finish() ?? Promise.resolve(),
+  });
+  document.getElementById('coop')!.append(coopPanel.el);
   const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen;
 
   // ---- menu / pointer lock
@@ -134,10 +148,12 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  Object.assign(window, { opencraft: { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, session } });
+  const handles = { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, session, coop };
+  Object.assign(window, { opencraft: handles });
 
   // ---- frame loop
   let last = performance.now();
+  let lastFrame = last;
   let lastSlot = game.selected_slot();
   let fps = 0, frameMs = 0, workMs = 0;
   let wasReady = false;
@@ -157,10 +173,12 @@ async function main(): Promise<void> {
     }
   };
 
-  const frame = (now: number) => {
+  // Everything but drawing: input, the engine, co-op, panels, sounds, streaming work. A co-op tab whose
+  // frames stopped (hidden, minimised) runs just this (net/ticker.ts), so a hidden host doesn't stop
+  // everyone.
+  const advance = (now: number) => {
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    const t0 = performance.now();
 
     if (input.locked) {
       const m = input.movement();
@@ -191,6 +209,7 @@ async function main(): Promise<void> {
       }
     }
     game.update(dt);
+    coop?.pump();
     // A right-clicked machine with a panel: free the mouse and open it (a box opens like a chest).
     const request = game.take_panel_request();
     if (request.length === 3) {
@@ -205,16 +224,26 @@ async function main(): Promise<void> {
       lastSlot = game.selected_slot();
       sound.ui();
     }
-    sound.playEvents(new Float32Array(wasm.memory.buffer, game.sound_ptr(), game.sound_count() * 6), game.sound_count(), game.yaw());
+    if (!document.hidden) {
+      const events = new Float32Array(wasm.memory.buffer, game.sound_ptr(), game.sound_count() * 6);
+      sound.playEvents(events, game.sound_count(), game.yaw());
+    }
     game.clear_sounds();
 
-    const ready = game.ready();
-    const budget = ready ? WORK_BUDGET_MS : LOADING_WORK_BUDGET_MS;
+    const budget = game.ready() ? WORK_BUDGET_MS : LOADING_WORK_BUDGET_MS;
     const w0 = performance.now();
     game.begin_work();
     while (game.work_step() && performance.now() - w0 < budget);
     workMs = workMs * 0.9 + (performance.now() - w0) * 0.1;
     drainEvents();
+    return dt;
+  };
+
+  const frame = (now: number) => {
+    const t0 = performance.now();
+    lastFrame = t0;
+    const dt = advance(now);
+    const ready = game.ready();
 
     if (!wasReady) {
       const loaded = game.chunks_loaded(), pending = game.chunks_pending();
@@ -238,6 +267,8 @@ async function main(): Promise<void> {
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
       boxCount: game.instance_count(),
     });
+    const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
+    nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));
 
     frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
     fps = fps * 0.9 + (dt > 0 ? 1 / dt : 0) * 0.1;
@@ -246,9 +277,28 @@ async function main(): Promise<void> {
     machine.update();
     research.update(now);
     hints.update();
+    playerList.update(coop, input.held('Tab'), now);
+    coopPanel.update(now);
     requestAnimationFrame(frame);
   };
+
+  // A co-op session, from the URL or the menu: notices, its end (back to the menu, the world stopped),
+  // and ticking on while this tab gets no frames (net/ticker.ts), so a hidden host doesn't stop everyone.
+  function beginCoop(c: Coop): Coop {
+    coop = handles.coop = c;
+    c.onNotice = (text) => playerList.notice(text);
+    c.onEnd = (reason) => {
+      play.disabled = true;
+      document.exitPointerLock();
+      menu.classList.remove('hidden');
+      coopPanel.end(reason);
+    };
+    tickWhenStalled(() => lastFrame, () => advance(performance.now()));
+    return c;
+  }
+
   requestAnimationFrame(frame);
+  if (coop) beginCoop(coop);
 }
 
 main().catch((err: unknown) => {

@@ -42,7 +42,7 @@ impl Game {
                 SimEvent::Crafted { player, item, count } if player == local => self.toast(item, count),
                 SimEvent::Gained { .. } | SimEvent::Crafted { .. } => {}
                 SimEvent::Dropped { pos, vel, item, count } => {
-                    self.items.spawn(pos, vel, item, count, DROP_PICKUP_DELAY)
+                    self.spawn_item(pos, vel, item, count, DROP_PICKUP_DELAY)
                 }
                 SimEvent::Thrown { player, item, count } => self.throw(player, item, count),
             }

@@ -1,9 +1,10 @@
 //! Data the host needs to draw and play a frame: streaming work, chunk mesh events, the camera,
-//! box instances, sound events and the texture atlas. Bulk data is exposed as `*_ptr` + length
+//! box instances, name-tag anchors, sound events and the texture atlas. Bulk data is exposed as `*_ptr` + length
 //! so the host reads it zero-copy from wasm memory.
 
 use wasm_bindgen::prelude::*;
 
+use crate::avatars::LABEL_FLOATS;
 use crate::block;
 use crate::factory::INSTANCE_FLOATS;
 use crate::textures;
@@ -104,6 +105,16 @@ impl Game {
 
     pub fn instance_count(&self) -> usize {
         self.instances.len() / INSTANCE_FLOATS
+    }
+
+    /// Byte offset of this frame's name-tag anchors, one per other player in range: `label_count()`
+    /// records of (player id, camera-relative x, y, z) as f32.
+    pub fn label_ptr(&self) -> usize {
+        self.avatars.labels.as_ptr() as usize
+    }
+
+    pub fn label_count(&self) -> usize {
+        self.avatars.labels.len() / LABEL_FLOATS
     }
 
     /// Byte offset of this frame's sound events: `sound_count()` records of

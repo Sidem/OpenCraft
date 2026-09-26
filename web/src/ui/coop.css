@@ -1,0 +1,132 @@
+/* "Play together" in the menu (ui/coop.ts): name, host and join, invite, player rows (also used by the
+   Tab list, ui/players.ts). */
+
+.coop {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.coop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coop-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 15px;
+}
+
+.coop input {
+  min-width: 0;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font: 13px var(--font);
+  user-select: text;
+}
+
+.coop-name {
+  width: 140px;
+}
+
+.coop-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.coop-solo {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+}
+
+.coop-join,
+.coop-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.coop-join input,
+.coop-link {
+  flex: 1;
+}
+
+.coop-line {
+  flex: 1;
+  font-size: 13px;
+}
+
+.coop-code {
+  color: var(--accent);
+  font-size: 16px;
+  letter-spacing: 0.12em;
+}
+
+.coop-ended {
+  margin: 0;
+  color: var(--accent);
+}
+
+.coop-players {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.coop-player {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+}
+
+.coop-player.you {
+  box-shadow: inset 3px 0 var(--accent);
+}
+
+.coop-player-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coop-tag,
+.coop-ping {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.coop-ping {
+  min-width: 4em;
+  text-align: right;
+}
+
+.coop-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.coop-status:empty {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  .coop-solo {
+    grid-template-columns: 1fr;
+  }
+}

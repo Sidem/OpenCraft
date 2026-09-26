@@ -1,11 +1,12 @@
 //! Debug and testing helpers, used from the browser console (`window.opencraft.game`) and tests:
-//! give items, teleport, add and remove players, the state hash, run ticks and fast-forward time,
+//! give items, teleport, add and remove players, the state hash, break a co-op core on purpose, run
+//! ticks and fast-forward time,
 //! find deposits, read blocks and the position.
 
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::block::AIR;
+use crate::block::{AIR, STONE};
 use crate::deposits::Tier;
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -28,10 +29,10 @@ impl Game {
         self.render_eye = self.prev_eye;
     }
 
-    /// Adds a player (a body at spawn; its inventory from the next tick) and returns its id, or
-    /// nothing if 256 players are already here. For tests now, co-op joins later.
+    /// Adds a player without a key (a body at spawn; its inventory from the next tick) and returns its
+    /// id, or nothing if the world is full. For tests; co-op joins go through `host_join`.
     pub fn add_player(&mut self) -> Option<u32> {
-        self.join().map(|id| id.0 as u32)
+        self.join(0).map(|id| id.0 as u32)
     }
 
     /// Removes a player and its inventory (never the local player).
@@ -45,6 +46,14 @@ impl Game {
     /// check that a reloaded world matches the one that was saved.
     pub fn state_hash(&self) -> u64 {
         self.sim.state_hash()
+    }
+
+    /// Co-op testing: flips the block under the player in this core only, bypassing actions, so this
+    /// game's state hash parts from everyone else's, which makes a client resync.
+    pub fn debug_desync(&mut self) {
+        let p = self.body().pos.floor() - IVec3::new(0, 1, 0);
+        let b = self.sim.world.block_anywhere_or_generate(p);
+        self.sim.world.set_block_anywhere(p, if b == AIR { STONE } else { AIR });
     }
 
     /// Runs `n` simulation ticks at once, sounds included (tests and catch-up).

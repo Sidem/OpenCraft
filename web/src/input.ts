@@ -96,6 +96,11 @@ export class Input {
     };
   }
 
+  /** Whether key `code` is held (only while playing), e.g. Tab for the player list. */
+  held(code: string): boolean {
+    return this.keys.has(code);
+  }
+
   takeLook(): [number, number] {
     const d: [number, number] = [this.lookX, this.lookY];
     this.lookX = this.lookY = 0;

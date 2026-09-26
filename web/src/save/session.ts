@@ -1,8 +1,9 @@
 // The world being played: `openWorld` picks and loads it at startup, `Session` autosaves it, and
 // `switchTo` changes worlds. Autosaves run every minute and when the menu opens (gzipped), and when the
-// tab is hidden or closed (raw, since there may be no time to compress). Switching worlds saves, marks
-// the other world as the latest and reloads the page, which is simpler and leaner than swapping engines
-// in place (wasm memory never shrinks).
+// tab is hidden or closed (raw, since there may be no time to compress). A co-op client never saves: the
+// world is the host's. Switching worlds saves, marks the other world as the latest and reloads the page
+// (without co-op parameters: `soloUrl`), which is simpler and leaner than swapping engines in place
+// (wasm memory never shrinks).
 
 import { Game } from '../wasm/engine.js';
 import { newWorld, pack, type WorldMeta, type WorldStore } from './store';
@@ -74,7 +75,7 @@ export class Session {
   /** Saves, gzipped; resolves once stored, rejects if storing failed (after `onError`). */
   async save(): Promise<void> {
     const time = this.game.play_seconds();
-    if (this.stopped || time === this.savedTime) return;
+    if (this.skip(time)) return;
     const seq = ++this.seq;
     const bytes = await pack(this.game.save());
     // A newer save (e.g. the page closing) overtook this one while it compressed.
@@ -84,7 +85,7 @@ export class Session {
   /** Saves raw bytes at once, for when the page may be about to close. */
   saveNow(): void {
     const time = this.game.play_seconds();
-    if (this.stopped || time === this.savedTime) return;
+    if (this.skip(time)) return;
     this.seq++;
     this.write(this.game.save(), time).catch(() => {});
   }
@@ -94,6 +95,11 @@ export class Session {
     await this.save();
     this.stopped = true;
     window.clearInterval(this.timer);
+  }
+
+  /** Nothing to save: stopped, unchanged, or a co-op client's copy of the host's world. */
+  private skip(time: number): boolean {
+    return this.stopped || time === this.savedTime || this.game.is_client();
   }
 
   /** Writes into the slot that isn't newest, keeping the newest as the backup. */
@@ -116,7 +122,14 @@ export class Session {
 export async function switchTo(store: WorldStore, session: Session | null, meta: WorldMeta): Promise<void> {
   await session?.finish();
   await store.put({ ...meta, updated: Date.now() });
-  location.reload();
+  location.assign(soloUrl());
+}
+
+/** This page's address without the co-op parameters, so loading it plays the latest world alone. */
+export function soloUrl(): string {
+  const url = new URL(location.href);
+  for (const name of ['host', 'join', 'relay']) url.searchParams.delete(name);
+  return url.href;
 }
 
 /** The text of anything thrown: an Error, or the plain string the engine throws. */

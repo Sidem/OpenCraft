@@ -93,11 +93,16 @@ pub struct Inventory {
 
 impl Default for Inventory {
     fn default() -> Self {
-        Self { slots: [Stack::default(); INVENTORY_SLOTS], selected: 0, cursor: Stack::default(), version: 0 }
+        Self::EMPTY
     }
 }
 
 impl Inventory {
+    pub const EMPTY: Inventory = {
+        let none = Stack { item: ItemId::NONE, count: 0 };
+        Inventory { slots: [none; INVENTORY_SLOTS], selected: 0, cursor: none, version: 0 }
+    };
+
     /// Core state: slots, cursor and selection (not `version`, which only serves the UI).
     pub fn write_state(&self, w: &mut ByteWriter) {
         for s in &self.slots {

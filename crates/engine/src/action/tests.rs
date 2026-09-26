@@ -1,5 +1,6 @@
 use super::*;
 use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE};
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
 use crate::inventory::INVENTORY_SLOTS;
 use crate::item::{IRON_PLATE, MAX_STACK};
@@ -73,7 +74,7 @@ fn two_players_build_and_craft_with_their_own_inventories() {
     let mut sim = Sim::new(7, 2);
     let b = PlayerId(1);
     let belt = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u16;
-    sim.queue(0, b, Action::Join);
+    sim.queue(0, b, Action::Join { key: 0 });
     sim.queue(0, b, Action::Give { item: IRON_ORE.into(), count: 1 });
     sim.queue(0, b, Action::Give { item: STONE.into(), count: 2 });
     sim.queue(0, b, Action::Craft { recipe: belt, times: 1 });
@@ -109,17 +110,49 @@ fn two_players_build_and_craft_with_their_own_inventories() {
     assert_eq!((sim.factory.count(Kind::Storage), sim.factory.count(Kind::Belt)), (0, 1));
     assert_eq!((inv(&sim).count(STORAGE.into()), sim.player(b).unwrap().inventory.count(BELT.into())), (0, 3));
 
-    // After leaving, B's actions do nothing; joining again starts empty.
-    sim.queue(2, b, Action::Leave);
+    // After leaving (without a key), B's actions do nothing; joining again starts empty.
+    sim.queue(2, b, Action::Leave { pos: Vec3::ZERO });
     sim.queue(2, b, Action::Give { item: STONE.into(), count: 1 });
     sim.step();
     assert!(sim.player(b).is_none());
-    sim.queue(3, b, Action::Join);
+    sim.queue(3, b, Action::Join { key: 0 });
     sim.step();
     assert_eq!(sim.player(b).unwrap().inventory.count(BELT.into()), 0);
     assert_eq!(inv(&sim).selected, 0, "A is untouched");
 }
 
+#[test]
+fn a_player_who_leaves_with_a_key_gets_their_things_back() {
+    let (b, c, key) = (PlayerId(1), PlayerId(2), 0xfeed_beef);
+    let mut sim = Sim::new(7, 2);
+    let fresh = sim.state_hash();
+    sim.apply(b, Action::Join { key });
+    sim.apply(b, Action::Give { item: STONE.into(), count: 9 });
+    sim.apply(b, Action::SelectSlot { slot: 4 });
+    let at = Vec3::new(10.5, 70.0, -3.25);
+    sim.apply(b, Action::Leave { pos: at });
+    assert!(sim.player(b).is_none());
+    assert_eq!((sim.away.len(), sim.away[0].key, sim.away[0].pos), (1, key, at));
+    assert_ne!(sim.state_hash(), fresh, "the away player is core state");
+
+    // Another key starts empty; the same key gets it all back, under any id, once.
+    sim.apply(c, Action::Join { key: 7 });
+    assert_eq!(sim.player(c).unwrap().inventory.count(STONE.into()), 0);
+    sim.apply(c, Action::Leave { pos: at });
+    sim.apply(c, Action::Join { key });
+    let back = &sim.player(c).unwrap().inventory;
+    assert_eq!((back.count(STONE.into()), back.selected), (9, 4));
+    assert_eq!(sim.away.iter().map(|a| a.key).collect::<Vec<_>>(), vec![7], "a returned key is no longer away");
+
+    // Joining while here changes nothing. Two players sharing a key leave one record: the last.
+    sim.apply(c, Action::Join { key: 99 });
+    assert_eq!(sim.player(c).unwrap().key, key);
+    sim.apply(b, Action::Join { key });
+    sim.apply(b, Action::Leave { pos: Vec3::ZERO });
+    sim.apply(c, Action::Leave { pos: at });
+    assert_eq!(sim.away.iter().map(|a| (a.key, a.pos)).collect::<Vec<_>>(), vec![(7, at), (key, at)]);
+    assert_eq!(sim.away[1].inventory.count(STONE.into()), 9);
+}
 #[test]
 fn pickup_that_no_longer_fits_is_thrown_back() {
     let mut sim = Sim::new(7, 2);
@@ -181,7 +214,7 @@ fn a_powered_line_works_where_no_chunk_is_loaded() {
 fn crafting_a_recipe_research_locks_does_nothing() {
     use crate::block::SPLITTER;
     let mut sim = Sim::new(7, 2);
-    sim.apply(P, Action::Join);
+    sim.apply(P, Action::Join { key: 0 });
     sim.apply(P, Action::Give { item: IRON_PLATE, count: 4 });
     sim.apply(P, Action::Give { item: BELT.into(), count: 4 });
     let splitter = RECIPES.iter().position(|r| r.output == SPLITTER.into()).unwrap() as u16;
@@ -192,4 +225,82 @@ fn crafting_a_recipe_research_locks_does_nothing() {
     (0..crate::research::TECHS[0].units).for_each(|_| sim.factory.research.add_unit(0));
     sim.apply(P, Action::Craft { recipe: splitter, times: 1 });
     assert_eq!(inv(&sim).count(SPLITTER.into()), 1);
+}
+
+/// One of every action, with values that show up if a field is dropped or swapped.
+fn samples() -> Vec<Action> {
+    let (pos, against) = (IVec3::new(-3, 70, 123_456), IVec3::new(i32::MIN, -1, i32::MAX));
+    vec![
+        Action::BreakBlock { pos },
+        Action::PlaceBlock { pos, slot: 7, facing: 3, against },
+        Action::TakeContents { pos },
+        Action::SetRecipe { pos, recipe: u16::MAX },
+        Action::SetFilter { pos, item: IRON_PLATE },
+        Action::SetResearch { tech: 2 },
+        Action::Insert { pos, item: STONE.into() },
+        Action::Craft { recipe: 4, times: 70_000 },
+        Action::ClickSlot { slot: 35, shift: true },
+        Action::ClickBox { pos, slot: 23, shift: false },
+        Action::StoreSlot { pos, slot: 9 },
+        Action::CloseInventory,
+        Action::SelectSlot { slot: 8 },
+        Action::ScrollSlot { delta: -1 },
+        Action::DropSelected { count: 64 },
+        Action::PickUp { item: IRON_PLATE, count: 3 },
+        Action::Give { item: ItemId::NONE, count: u32::MAX },
+        Action::Join { key: u64::MAX - 5 },
+        Action::Leave { pos: Vec3::new(-0.5, 1e9, f64::MIN_POSITIVE) },
+    ]
+}
+
+fn encode(a: &Action) -> Vec<u8> {
+    let mut w = ByteWriter::default();
+    a.write(&mut w);
+    w.bytes
+}
+
+#[test]
+fn every_action_round_trips_through_bytes() {
+    let all = samples();
+    let tags: Vec<u8> = all.iter().map(|a| encode(a)[0]).collect();
+    assert_eq!(tags, (0..codec::TAG_COUNT).collect::<Vec<_>>(), "one sample per tag, in tag order");
+
+    let mut w = ByteWriter::default();
+    for a in &all {
+        a.write(&mut w);
+    }
+    let mut r = ByteReader::new(&w.bytes);
+    for a in &all {
+        assert_eq!(Action::read(&mut r), Some(*a));
+    }
+    assert!(r.is_done());
+}
+
+#[test]
+fn damaged_action_bytes_fail_cleanly() {
+    for a in samples() {
+        let bytes = encode(&a);
+        for cut in 0..bytes.len() {
+            assert_eq!(Action::read(&mut ByteReader::new(&bytes[..cut])), None, "{a:?} cut at {cut}");
+        }
+    }
+    for tag in codec::TAG_COUNT..=u8::MAX {
+        assert_eq!(Action::read(&mut ByteReader::new(&[tag, 0, 0, 0, 0, 0, 0, 0, 0])), None);
+    }
+    let mut bad_bool = encode(&Action::ClickSlot { slot: 1, shift: true });
+    bad_bool[2] = 2;
+    assert_eq!(Action::read(&mut ByteReader::new(&bad_bool)), None);
+    let mut bad_item = encode(&Action::Give { item: STONE.into(), count: 1 });
+    bad_item[1..3].copy_from_slice(&60_000u16.to_le_bytes());
+    assert_eq!(Action::read(&mut ByteReader::new(&bad_item)), None);
+
+    // Random bytes: whatever reads must be a real action, and nothing panics.
+    let mut rng = crate::math::Rng::new(99);
+    for _ in 0..2000 {
+        let bytes: Vec<u8> = (0..rng.below(40)).map(|_| rng.next_u32() as u8).collect();
+        let mut r = ByteReader::new(&bytes);
+        while let Some(a) = Action::read(&mut r) {
+            assert_eq!(Action::read(&mut ByteReader::new(&encode(&a))), Some(a));
+        }
+    }
 }

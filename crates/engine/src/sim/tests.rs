@@ -10,20 +10,20 @@ use crate::deposits::{owner_of, DepositKey, Tier};
 use crate::item::{IRON_INGOT, IRON_PLATE, RED_PACK};
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
-const SEED: u32 = 1337;
+pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0x4d5a_535f_278b_30f2;
+const GOLDEN_HASH: u64 = 0x1b42_666d_1c4a_a212;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
-    sim.world.update_streaming(p.as_vec3());
+    sim.world.update_streaming(p.as_vec3(), &[]);
     while sim.world.work_step() {}
 }
 
 /// The outcrop nearest the origin: its top ore block, another of its ore blocks, and its key.
-fn outcrop() -> (IVec3, IVec3, DepositKey) {
+pub(crate) fn outcrop() -> (IVec3, IVec3, DepositKey) {
     let mut sim = Sim::new(SEED, 2);
     let d = sim.world.generator().find_deposit(IVec3::ZERO, Tier::Outcrop, 16).expect("an outcrop");
     load_around(&mut sim, d.center);
@@ -48,7 +48,7 @@ fn outcrop() -> (IVec3, IVec3, DepositKey) {
 /// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
 /// ingots it puts in by hand, a filter set to plates, a ramp the box feeds, and a pole and a
 /// generator (fuelled by hand) that power the constructor, the filter and a lab researching the first tech.
-fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
+pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let cell = |dx| top + IVec3::new(dx, 1, 0);
     let above_box = cell(3) + IVec3::new(0, 1, 0);
     let above_miner = cell(0) + IVec3::new(0, 1, 0);
@@ -69,7 +69,7 @@ fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (0, A, give(IRON_ORE.into(), 1)),
         (0, A, give(STONE.into(), 2)),
         (0, A, Action::Craft { recipe: belts, times: 1 }),
-        (0, B, Action::Join),
+        (0, B, Action::Join { key: 0 }),
         (0, B, give(STONE.into(), 3)),
         (0, B, give(SMELTER.into(), 1)),
         (0, B, give(CONSTRUCTOR.into(), 1)),
@@ -143,8 +143,8 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded after step 2.9 (belts save their speed; power balances before miners run). Only a deliberate change to the rules or the state bytes may
-    // update it.
+    // Recorded after step 3.2 (players have keys; players away follow the players). Only a deliberate
+    // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 
     // The scenario really ran.
@@ -228,14 +228,14 @@ fn the_hash_covers_inventories_players_and_time() {
     assert_eq!(fresh, Sim::new(SEED, 2).state_hash());
     assert_ne!(hash(&|s| s.apply(A, Action::Give { item: STONE.into(), count: 1 })), fresh);
     assert_ne!(hash(&|s| s.apply(A, Action::SelectSlot { slot: 3 })), fresh);
-    assert_ne!(hash(&|s| s.apply(B, Action::Join)), fresh);
+    assert_ne!(hash(&|s| s.apply(B, Action::Join { key: 0 })), fresh);
     assert_ne!(hash(&|s| s.step()), fresh);
     assert_ne!(Sim::new(SEED + 1, 2).state_hash(), fresh, "the rng follows the seed");
     // A player who left leaves no trace.
     assert_eq!(
         hash(&|s| {
-            s.apply(B, Action::Join);
-            s.apply(B, Action::Leave);
+            s.apply(B, Action::Join { key: 0 });
+            s.apply(B, Action::Leave { pos: Vec3::ZERO });
         }),
         fresh
     );

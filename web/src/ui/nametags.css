@@ -1,0 +1,20 @@
+/* Name tags over other players (nametags.ts): placed by transform, never catching the mouse. */
+
+.nametags {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nametag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(10, 12, 18, 0.55);
+  color: #fff;
+  font-size: 13px;
+  white-space: nowrap;
+}

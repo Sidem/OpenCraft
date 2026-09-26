@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 3)
+# OpenCraft roadmap (after Milestone 4)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -6,21 +6,7 @@ plan and detail it there (steps with where, how and done-when).
 
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) apply to all of it.
-Every milestone ends with a cleanup step like DEV_PLAN step 3.10.
-
-## Milestone 4: Reasons to explore
-
-- **Geology-driven ores:** rock types and biomes decide which ores appear where, for example copper in
-  mountains, coal in lowland swamps, quartz and sand in deserts.
-- **Surface hints:** rust-stained soil above iron, and similar.
-- **Biomes that matter for resources and building,** not just colour.
-- **Prospecting:** a scanner reveals deposits within a radius with size estimates; a core drill gives exact
-  figures. Makes veins and lodes findable.
-- **Minimap,** top-down from chunk heights and colours, with markers for deposits, machines and later
-  rails.
-- **Day/night cycle and voxel lighting:** sky light plus block light propagated in the mesher and stored per
-  chunk; lamps. Makes caves and deep lodes atmospheric, and later gives solar power a reason to vary.
-- Remember to bump `WORLDGEN_VERSION` (`worldgen/mod.rs`).
+Every milestone ends with a cleanup step (DEV_PLAN section 3.1, "Session habits").
 
 ## Milestone 5: Scale and terrain
 
@@ -67,4 +53,4 @@ Every milestone ends with a cleanup step like DEV_PLAN step 3.10.
 - Catch-up on return: factories run forward for the time the game was closed, capped (DEV_PLAN section 6).
 - Weather, mod support.
 - A dedicated server: the engine crate compiles natively (feature-gate wasm-bindgen) and speaks WebSocket,
-  with `libm` on both sides for identical math. Co-op itself is player-hosted (DEV_PLAN Milestone 3).
+  with `libm` on both sides for identical math. Co-op itself is player-hosted (DEV_PLAN section 2).

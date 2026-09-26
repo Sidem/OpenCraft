@@ -57,6 +57,7 @@ the render distance in chunks (2 to 24, default 8).
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |
+| Hold Tab            | Who is playing with you (in a shared game) |
 | M                   | Mute / unmute sound                       |
 | O                   | Open the sound designer                   |
 | F3                  | Debug stats                               |
@@ -84,6 +85,23 @@ The **Worlds** list in the pause menu manages several worlds:
 Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
 latest save can't be read.
+
+## Playing together
+
+Up to four players can build in one world. **Play together** in the pause menu:
+
+- Type your name; others see it above your head.
+- **Host this world** opens the world you're playing to others and shows a code and a link. Send the link
+  (or the code) to your friends. Your browser runs the world and keeps it saved, so it stays open only
+  while your tab does.
+- To join, paste a friend's link or code into the box and press **Join**. Your own world is saved first.
+  Friends who come back later get their things back where they left them.
+- Hold **Tab** in game to see who is playing and their ping. **Leave** (or closing the tab) takes you out;
+  when the host leaves, the game ends for everyone and **Back to my worlds** returns to yours.
+
+Players connect directly (WebRTC). A small Cloudflare Worker (`signal/`) only introduces them; no game data
+passes through it. Some networks (strict company or mobile networks) block direct connections, and the
+game then says it couldn't connect.
 
 ## Resources and extraction
 
@@ -188,8 +206,9 @@ data to the GPU, draws the HUD and stores saves.
 
 Inside the engine, the core only changes when a queued action is applied at a tick, so the same actions
 always produce the same world. Tests compare state hashes tick by tick, and a world reloaded from a save
-carries on identically. This is the groundwork for co-op, where every player's machine will run the core and
-the host will be the authority. The view is local presentation and never feeds back into the core.
+carries on identically. Co-op builds on this (lockstep): every player's machine runs the core, only actions
+travel, the host orders them into per-tick frames, and machines compare state hashes every second, resyncing
+from a snapshot if they ever differ. The view is local presentation and never feeds back into the core.
 
 Each frame:
 
@@ -270,7 +289,7 @@ Sandbox foundation:
 
 - [x] Fixed simulation tick, deterministic core driven by actions (groundwork for co-op)
 - [x] Save and load worlds: autosave, several worlds, export and import
-- [ ] Co-op multiplayer: player-hosted over WebRTC
+- [x] Co-op multiplayer: player-hosted over WebRTC, 2–4 players
 - [ ] Simulation and worldgen in Web Workers
 - [ ] Water and transparent blocks
 - [x] Full inventory screen

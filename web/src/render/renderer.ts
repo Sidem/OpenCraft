@@ -352,4 +352,15 @@ export class Renderer {
     this.stats.drawCalls = drawCalls;
     this.stats.quads = quads;
   }
+
+  /** Where a camera-relative point shows on the canvas in the last frame, in CSS pixels, or null if it
+   * is behind the camera. */
+  project(x: number, y: number, z: number): [number, number] | null {
+    const m = this.viewProj;
+    const w = m[3] * x + m[7] * y + m[11] * z + m[15];
+    if (w < 0.05) return null;
+    const cx = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+    const cy = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+    return [(cx * 0.5 + 0.5) * this.canvas.clientWidth, (0.5 - cy * 0.5) * this.canvas.clientHeight];
+  }
 }

@@ -10,7 +10,8 @@
 //! body, loose items: `authority.rs`) and the local player's view (hands, camera, sounds, instances).
 //! The JS-facing API lives in `api/*.rs` (one `#[wasm_bindgen] impl Game` block per area); every method
 //! there only forwards to a module, and acts for the local player. `Game` never edits the core
-//! directly: it queues `Action`s (`act`), applied at the next tick. The hands (mining, right-click,
+//! directly: it queues `Action`s (`act`), applied at the next tick (in co-op, through the host's
+//! frames: `net/mod.rs`). The hands (mining, right-click,
 //! footsteps) live in `interaction.rs`, reactions to core events in `events.rs`.
 //! To add a wasm method: put it in the matching `api/` file (see docs/CODEMAP.md).
 //!
@@ -22,6 +23,7 @@
 mod action;
 mod api;
 mod authority;
+mod avatars;
 mod block;
 mod bytes;
 mod chunk;
@@ -35,6 +37,7 @@ mod inventory;
 mod item;
 mod math;
 mod mesher;
+mod net;
 mod noise;
 mod physics;
 mod player;
@@ -53,11 +56,13 @@ use std::collections::VecDeque;
 use wasm_bindgen::prelude::*;
 
 use action::Action;
+use avatars::Avatars;
 use deposits::DepositState;
 use entities::Items;
 use inventory::Inventory;
 use item::ItemId;
 use math::{IVec3, Vec3};
+use net::Role;
 use player::Player;
 use raycast::RayHit;
 use sim::{PlayerId, Sim};
@@ -85,9 +90,13 @@ pub struct Game {
     sim: Sim,
     /// The player this game shows and takes input for (0 in single-player).
     local: PlayerId,
+    /// Solo, or host or client of a co-op session: where actions go (net/mod.rs).
+    role: Role,
     /// Every player's body, indexed by `PlayerId` (authority, see authority.rs).
     bodies: Vec<Option<Player>>,
     items: Items,
+    /// Other players as drawn here (avatars.rs).
+    avatars: Avatars,
     spawn: Vec3,
     /// Frame time not yet run as ticks, in seconds.
     accumulator: f64,
@@ -131,8 +140,10 @@ impl Game {
         Game {
             sim,
             local: PlayerId(0),
+            role: Role::Solo,
             bodies: vec![Some(player)],
             items: Items::default(),
+            avatars: Avatars::default(),
             spawn,
             accumulator: 0.0,
             prev_eye: eye,
@@ -161,7 +172,7 @@ impl Game {
     /// Per frame: runs the whole ticks that `dt` seconds of frame time add up to, then prepares this
     /// frame's camera and box instances.
     pub fn update(&mut self, dt: f64) {
-        self.sim.world.update_streaming(self.body().pos);
+        self.stream_around_players();
         self.accumulator += dt.max(0.0);
         let mut ran = 0;
         while self.accumulator >= TICK - TICK_SLACK && ran < MAX_TICKS_PER_FRAME {
@@ -172,20 +183,23 @@ impl Game {
         if self.accumulator >= TICK {
             self.accumulator = 0.0;
         }
+        self.catch_up();
 
         let alpha = (self.accumulator / TICK).clamp(0.0, 1.0);
         self.render_eye = self.prev_eye + (self.body().eye() - self.prev_eye) * alpha;
         self.update_target();
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();
-        self.items.write_instances(&mut self.instances, eye);
+        self.write_item_instances(dt, eye);
+        self.write_avatars(dt, eye);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
     }
 }
 
 impl Game {
     /// Advances the game by one tick of exactly [`TICK`] seconds: every body, the local player's hands,
-    /// loose items, then the core (`Sim::step` applies this tick's actions), then its events.
+    /// loose items, then the core (a co-op client only through the tick the host confirmed), then what
+    /// co-op peers see of the bodies and items (`net_tick`).
     fn run_tick(&mut self) {
         self.prev_eye = self.body().eye();
         let feet = self.body().pos;
@@ -197,7 +211,16 @@ impl Game {
         self.update_placing(TICK as f32);
 
         self.step_items();
+        if self.role.may_step(self.sim.tick) {
+            self.step_core();
+        }
+        self.net_tick();
+    }
+
+    /// One core tick (`Sim::step` applies its actions), the host's frame for it, then its events.
+    fn step_core(&mut self) {
         self.sim.step();
+        self.role.end_tick(&mut self.sim);
         self.handle_sim_events();
     }
 
@@ -206,9 +229,10 @@ impl Game {
         self.act_as(self.local, action);
     }
 
-    /// Queues an action by any player for the coming tick (the authority's pickups, joins, tests).
+    /// Queues an action by any player (the authority's pickups, joins, tests): for the coming tick
+    /// solo; in co-op through the host (net/mod.rs).
     fn act_as(&mut self, player: PlayerId, action: Action) {
-        self.sim.queue(self.sim.tick, player, action);
+        self.role.route(&mut self.sim, self.local, player, action);
     }
 
     /// The local player's body, which always exists.
@@ -220,9 +244,9 @@ impl Game {
         self.bodies[self.local.0 as usize].as_mut().expect("local body")
     }
 
-    /// The local player's inventory; the local player is always in the core.
+    /// The local player's inventory; empty until a co-op client's `Join` applies.
     fn inventory(&self) -> &Inventory {
-        &self.sim.player(self.local).expect("local player").inventory
+        self.sim.player(self.local).map_or(&Inventory::EMPTY, |p| &p.inventory)
     }
 }
 

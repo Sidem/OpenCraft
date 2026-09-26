@@ -109,6 +109,20 @@ fn frame(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
+/// Other players (avatars.rs): 0 a blue work suit with a belt, 1 skin, 2 a yellow hard hat, 3 a dark
+/// visor with a glint.
+fn avatar(x: i32, y: i32, part: u16) -> [u8; 4] {
+    let k = 0.86 + 0.1 * n(60 + part as u32, x, y);
+    match part {
+        0 if y == 9 || y == 10 => rgb([62.0, 52.0, 44.0], k),
+        0 => rgb([58.0, 96.0, 168.0], k),
+        1 => rgb([214.0, 170.0, 132.0], k + 0.06),
+        2 => rgb([236.0, 190.0, 52.0], k + if x + y < 8 { 0.1 } else { 0.0 }),
+        _ if (3..6).contains(&x) && y < 6 => rgb([168.0, 196.0, 220.0], 1.0),
+        _ => rgb([34.0, 40.0, 52.0], k),
+    }
+}
+
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
         tex::STONE => stone(x, y),
@@ -187,6 +201,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::LAB_TOP => lab(x, y, true),
         tex::RED_PACK => flask(x, y, [214.0, 60.0, 56.0]),
         tex::GREEN_PACK => flask(x, y, [72.0, 190.0, 88.0]),
+        tex::AVATAR_SUIT..=tex::AVATAR_VISOR => avatar(x, y, layer - tex::AVATAR_SUIT),
         _ => [255, 0, 255, 255],
     }
 }

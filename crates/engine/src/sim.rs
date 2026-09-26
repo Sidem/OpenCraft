@@ -76,6 +76,17 @@ pub enum SimEvent {
 pub struct PlayerCore {
     /// Slots, cursor stack and selected hotbar slot.
     pub inventory: Inventory,
+    /// Who this is across visits (a random id the player's browser keeps); 0 for nobody in
+    /// particular (the world's owner, test players), whose things aren't kept when they leave.
+    pub key: u64,
+}
+
+/// A player who left, kept under their key until they join again.
+pub struct Away {
+    pub key: u64,
+    /// Where their body was, so they come back there.
+    pub pos: Vec3,
+    pub inventory: Inventory,
 }
 
 pub struct Sim {
@@ -86,6 +97,8 @@ pub struct Sim {
     /// Indexed by `PlayerId`; `None` where no player is (it left, or never joined). Changed only by the
     /// `Join` and `Leave` actions.
     pub players: Vec<Option<PlayerCore>>,
+    /// Players who left with a key, oldest first; `Join` with that key gives their things back.
+    pub away: Vec<Away>,
     pub rng: Rng,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
@@ -102,6 +115,7 @@ impl Sim {
             world: World::new(seed, view_radius),
             factory: Factory::default(),
             players: vec![Some(PlayerCore::default())],
+            away: Vec::new(),
             rng: Rng::new(hash2(seed, 17, 42) as u64),
             events: Vec::new(),
             pending: Vec::new(),
@@ -120,6 +134,26 @@ impl Sim {
         self.next_seq = self.next_seq.wrapping_add(1);
         let at = self.pending.iter().position(|p| p.key() > q.key()).unwrap_or(self.pending.len());
         self.pending.insert(at, q);
+    }
+
+    /// The actions queued for coming ticks, in the order they will apply: (tick, player, action) each.
+    /// A join snapshot carries them, since a save doesn't.
+    pub fn write_pending(&self, w: &mut ByteWriter) {
+        w.count(self.pending.len());
+        for q in &self.pending {
+            w.u64(q.tick);
+            w.u8(q.player.0);
+            q.action.write(w);
+        }
+    }
+
+    /// Queues what `write_pending` wrote, keeping its order.
+    pub fn read_pending(&mut self, r: &mut ByteReader) -> Option<()> {
+        for _ in 0..r.count()? {
+            let (tick, player) = (r.u64()?, PlayerId(r.u8()?));
+            self.queue(tick, player, Action::read(r)?);
+        }
+        Some(())
     }
 
     /// Advances the core by one tick of `TICK` seconds: this tick's actions, then the factory.
@@ -141,9 +175,9 @@ impl Sim {
         fnv1a(&w.bytes)
     }
 
-    /// The canonical core state: tick, rng, players (up to the last one here), world edits, factory
-    /// and deposits. Pending actions and undrained events are not state: peers may hold different
-    /// queues for future ticks.
+    /// The canonical core state: tick, rng, players (up to the last one here), away players, world
+    /// edits, factory and deposits. Pending actions and undrained events are not state: peers may
+    /// hold different queues for future ticks (a join snapshot sends them along: net/snapshot.rs).
     pub fn write_state(&self, w: &mut ByteWriter) {
         w.u64(self.tick);
         w.u64(self.rng.state());
@@ -153,13 +187,21 @@ impl Sim {
             w.bool(p.is_some());
             if let Some(p) = p {
                 p.inventory.write_state(w);
+                w.u64(p.key);
             }
+        }
+        w.count(self.away.len());
+        for a in &self.away {
+            w.u64(a.key);
+            w.vec3(a.pos);
+            a.inventory.write_state(w);
         }
         self.world.write_state(w);
         self.factory.write_state(w);
     }
 
-    /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed.
+    /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
+    /// version 10 have no keys (0) and nobody away.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -167,10 +209,20 @@ impl Sim {
         if players > 256 {
             return None;
         }
+        let keyed = r.version >= 10;
         self.players.clear();
         for _ in 0..players {
             let present = r.bool()?;
-            self.players.push(if present { Some(PlayerCore { inventory: Inventory::read_state(r)? }) } else { None });
+            self.players.push(if present {
+                Some(PlayerCore { inventory: Inventory::read_state(r)?, key: if keyed { r.u64()? } else { 0 } })
+            } else {
+                None
+            });
+        }
+        self.away.clear();
+        for _ in 0..if keyed { r.count()? } else { 0 } {
+            let (key, pos) = (r.u64()?, r.vec3()?);
+            self.away.push(Away { key, pos, inventory: Inventory::read_state(r)? });
         }
         self.world.read_state(r)?;
         self.factory = Factory::read_state(&mut self.world, r)?;
@@ -192,4 +244,4 @@ impl Queued {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

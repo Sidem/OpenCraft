@@ -12,6 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const RULES = [
   { kind: 'source', soft: 400, hard: 600, test: (p) => /^crates\/.+\/src\/.+\.rs$/.test(p) && !p.endsWith('/tests.rs') },
   { kind: 'source', soft: 400, hard: 600, test: (p) => /^web\/src\/.+\.ts$/.test(p) && !p.startsWith('web/src/wasm/') },
+  { kind: 'source', soft: 400, hard: 600, test: (p) => /^signal\/src\/.+\.ts$/.test(p) },
   { kind: 'css', soft: 300, hard: 500, test: (p) => /^web\/src\/.+\.css$/.test(p) },
   { kind: 'CLAUDE.md', soft: 60, hard: 100, test: (p) => path.basename(p) === 'CLAUDE.md' },
   { kind: 'plan', soft: 600, hard: 800, test: (p) => p === 'docs/DEV_PLAN.md' },
@@ -37,7 +38,7 @@ function lineCount(file) {
   return lines.length;
 }
 
-const files = [path.join(root, 'CLAUDE.md'), ...['crates', 'web/src', 'docs'].flatMap((d) => [...walk(path.join(root, d))])];
+const files = [path.join(root, 'CLAUDE.md'), ...['crates', 'web/src', 'signal/src', 'docs'].flatMap((d) => [...walk(path.join(root, d))])];
 let checked = 0;
 let failed = 0;
 const report = [];

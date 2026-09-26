@@ -8,7 +8,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 
 | Command | Purpose |
 |---|---|
-| `npm run check` | Everything before a commit: format, clippy with warnings as errors, tests, typecheck, size budgets. Quiet output: one line per step, details only for failures. Needs `web/src/wasm` (`npm run build:wasm`). |
+| `npm run check` | Everything before a commit: format, clippy with warnings as errors, tests, typecheck (web and `signal/`), size budgets. Quiet output: one line per step, details only for failures. Needs `web/src/wasm` (`npm run build:wasm`). |
 | `npm run dev` | Dev server (Vite) plus a Rust watcher. Any `.rs` change rebuilds the wasm and reloads the page. |
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
@@ -17,6 +17,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
 | `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
+| `node scripts/wasm-sizes.mjs [n] [filter]` | After `npm run build:wasm`: the largest wasm functions by name, to find what grew. Compare with the same list from the last commit (build it in a `git worktree`). |
 
 Line counts: use `(Get-Content <file>).Count`. `Measure-Object -Line` skips blank lines and undercounts.
 
@@ -66,6 +67,30 @@ section 3.1) and use the browser for final visual proof.
 
 Every push to `main` runs `.github/workflows/pages.yml`: engine tests, build, then publish to GitHub Pages.
 **Ask the user before any push to `main`.** The user may ask to push without waiting for the deployment.
+
+### The co-op signalling Worker (`signal/`, Cloudflare)
+
+Deployed at **<https://opencraft-signal.opencraft.workers.dev>** (the user's account, subdomain
+`opencraft`); `SIGNAL_URL` in `web/src/net/signal.ts` points there. Wrangler needs Node 22 or newer
+(the machine has Node 24). Agents write code and run it locally (`cd signal; npm run dev`, then
+`npm run smoke -- http://127.0.0.1:8787`); the user deploys and holds the secrets:
+
+1. **Deploy:** `cd signal`, `npm install`, `npx wrangler login` (opens the browser), `npx wrangler deploy`.
+   Redeploy after changing `signal/src/` or `wrangler.jsonc`. A new `workers.dev` subdomain can refuse
+   TLS for a few minutes until its certificate is issued.
+2. **TURN (optional; relays only when a direct connection fails):** Cloudflare dashboard → Realtime
+   (formerly Calls; `dash.cloudflare.com/?to=/:account/calls`) → TURN → create a key; note its Key ID
+   and API token (shown once). Then `npx wrangler secret put TURN_KEY_ID` and `npx wrangler secret put
+   TURN_KEY_API_TOKEN`. The first 1,000 GB a month are free, then $0.05/GB; without the secrets `/ice`
+   gives free STUN only. `npx wrangler secret delete TURN_KEY_API_TOKEN` turns the relay off.
+3. **Check:** `npm run smoke -- https://opencraft-signal.opencraft.workers.dev` ends with "smoke test
+   passed" (and "TURN included" once step 2 is done).
+4. **Play test:** on the site, "Host this world" in the menu, then open the link it shows on another
+   machine. To force the TURN relay, use `<site>/?host&relay` and `<site>/?join=<code>&relay`.
+
+A site on another domain goes in `ALLOWED_ORIGINS` (`wrangler.jsonc`). Durable Objects on the Free plan
+allow 100,000 requests a day, far beyond signalling for 2–4 players; over it, requests fail until the
+next day (no charge).
 
 ## 5. Working with the user
 

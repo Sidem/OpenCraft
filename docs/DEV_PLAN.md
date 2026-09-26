@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-25 · Milestones 1 and 2 done · **Next up: Milestone 3 (co-op), step 3.1 (actions on
-the wire)**.
+**Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed; the user's cross-machine test is next; no
+TURN for now) · **Next up: Milestone 4, once the user answers its questions (section 6)**.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -23,15 +23,16 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   by actions, several players in the engine, state hashes, and worlds that save in the browser.
 - **Milestone 2 (Make it a game) is done** (section 8): items, smelter, constructor, belt logistics, power,
   research with science packs, Mk2 upgrades and onboarding tips.
-- **The next job is Milestone 3: Co-op** (section 4): 2–4 players in one world over WebRTC, with the host's
-  browser as the authority and a small Cloudflare service to connect them.
+- **Milestone 3 (Co-op) is done** (section 8): 2–4 players in one world over WebRTC, the host's browser as
+  the authority, a Cloudflare Worker to connect them, hosting and joining from the menu.
+- **The next job is Milestone 4: Reasons to explore** (section 4). Ask the user its open questions first.
 
 Before you change code:
 
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (113 engine tests).
+   (127 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -82,6 +83,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-25 | **Approach for co-op** (proposed by Claude, adopted with this plan): player-hosted over WebRTC; a deterministic simulation core driven by tick-stamped actions (Factorio-style); player movement and loose items replicated from the host. Revisit only if Milestone 3 prototyping shows a real problem. |
 | 2026-09-25 | **Co-op hosting on Cloudflare**: a Cloudflare Worker for signalling and Cloudflare TURN as the relay. The user owns the account. |
 | 2026-09-25 | **Co-op size: 2–4 players.** This sets the bandwidth and performance budgets. |
+| 2026-09-26 | **No TURN relay for now**: STUN only. Players whose networks block direct connections can't join; adding the two TURN secrets later (`docs/WORKFLOW.md` section 4) needs no code change. |
 
 ### Proposed, not yet confirmed by the user
 
@@ -91,7 +93,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after Milestone 2)
+## 2. Where the code stands (after Milestone 3)
 
 ### Architecture
 
@@ -116,6 +118,14 @@ Each frame, `web/src/main.ts`:
    sounds and toasts), then interpolates the camera between the last two ticks and writes box instances,
 3. runs `begin_work()` + `work_step()` under a time budget (generate or mesh one chunk per step),
 4. drains mesh and unload events to the renderer, plays sound events, renders, updates the HUD.
+
+**Co-op** is lockstep: only actions travel. The host stamps every action (its own too) for
+`tick + INPUT_DELAY` (4) and sends one frame per tick; clients step their core only through the ticks
+they have frames for, and compare state hashes every 60 ticks (a mismatch resyncs from a snapshot).
+Bodies are each machine's own (states at 20 Hz); loose items run on the host only (views at 10 Hz). The
+core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` runs the session over a
+`Transport` (WebRTC between machines, BroadcastChannel between tabs). Budgets for 4 players: under
+~10 KB/s per client outside snapshots, and the host's frame under 2 ms more than solo.
 
 ### What exists
 
@@ -146,16 +156,22 @@ Each frame, `web/src/main.ts`:
   science packs. Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
-  `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`.
+  `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 9; every version since 1 loads.
-- **Size:** about 158 KB gzipped in total (wasm 120.3 KB, JS 31.8 KB, CSS 4.7 KB).
+  exports and imports them. Save version 10; every version since 1 loads.
+- **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
+  menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
+  or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
+  with name tags, a Tab player list with ping, join and leave notices, readable refusals (full, another
+  version, no such game, no connection), a hidden co-op tab keeps ticking, a silent peer times out after
+  10 s, and a client that differs from the host or falls 5 s behind resyncs in place. URL shortcuts for
+  testing: `?host`, `?host=<room>` / `?join=<room>` (tabs of one browser), `?join=<code>`, `?relay`.
+- **Size:** about 177 KB gzipped in total (wasm 131.5 KB, JS 39.1 KB, CSS 5.0 KB).
 
 ### Known limitations and technical debt
 
-1. Still single-player-shaped: streaming centres on the local player (other bodies wait where the ground
-   isn't loaded), only the local player has hands, nothing draws other players' bodies, and a leaving
-   player's inventory is dropped. Milestone 3 handles these.
+1. Only the local player has hands: another player's mining and placing reach this machine only as
+   their results (by design; co-op sends actions, not hands).
 2. Two tabs on the same world overwrite each other's saves (the later save wins).
 3. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
 4. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
@@ -164,6 +180,10 @@ Each frame, `web/src/main.ts`:
 6. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
 7. Balance is untested by real play: pack costs, research times and Mk2 costs will need tuning
    (`docs/WORKFLOW.md` section 6 lists the numbers).
+8. In co-op every action applies about 70 ms plus the round trip after it's made; your own block edits
+   aren't shown early (section 4, "instant feedback"). A name change applies the next time you host or
+   join. Hosting can't be stopped without leaving the page.
+9. Co-op has only been tested between tabs of one machine so far (section 4 lists the live tests).
 
 ---
 
@@ -260,8 +280,8 @@ Count all lines, blank ones included: `(Get-Content f).Count`, not `Measure-Obje
 - Read line ranges and symbols, not whole files. Use the code map. For a broad search, use a search
   sub-agent so only its conclusion enters the main context.
 - End every session by updating this plan (checkboxes, status, change log) and the code map.
-- **Every milestone ends with a cleanup step** (see step 3.10): size check clean, code map current, plan
-  compressed, dead code gone.
+- **Every milestone ends with a cleanup step:** size check clean, code map current, plan compressed, dead
+  code gone, the next milestone moved in from the roadmap.
 
 ### 3.2 Performance
 
@@ -305,169 +325,50 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Milestone 3: Co-op (NEXT)
+## 4. Milestone 4: Reasons to explore (NEXT)
 
-**Goal:** 2–4 players build in one world together. One player's browser hosts: it runs the world, saves
-it, and orders everyone's actions. Every peer runs the same deterministic core from the same actions
-(lockstep), so only actions travel, not world state. Movement is each player's own (co-op trust), and the
-host alone runs loose items. Peers connect over WebRTC data channels; a Cloudflare Worker introduces them
-and Cloudflare TURN relays when a direct connection fails.
+**Before detailing it, ask the user the M4 questions in section 6** (ores and rock types, how rare veins
+and lodes should be, and whether factories run on while the game is closed). Then detail it here to the
+level Milestone 3 had: numbered steps, each with where, how and a **Done when**, ending with a cleanup
+step. Record the answers in section 1.
 
-How lockstep works here:
+Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
-- Each peer sends its local actions to the host. The host stamps each with a tick,
-  `current_tick + INPUT_DELAY` (4 ticks to start, tuned in play within 3–6), queues it and sends it to
-  every peer. The host's own actions take the same path, so it has no advantage.
-- The host sends one **frame** per tick it runs: the tick number plus the actions it stamped during that
-  tick (usually none). A client steps its core only through the last tick it has a frame for. When frames
-  arrive late it waits, then catches up (at most 8 extra ticks per rendered frame, as today).
-- Every 60 ticks each peer compares `state_hash` with the host's. A mismatch is a bug: log it with the
-  tick, then resync from a fresh host snapshot.
+- **Cross-machine play on the live site:** needs a push to `main`. Then host from the menu ("Host this
+  world"), send the link to a second machine, play a while, and look for "the cores differ" warnings in
+  the console.
+- **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
+  secrets (`docs/WORKFLOW.md` section 4); then test with `&relay` on both ends.
+- **Instant feedback for your own edits** (was step 3.9): measured, not built. On one machine a client's
+  action applies about 90 ms after it is made (the host's own, about 76 ms: `INPUT_DELAY` is 4 ticks);
+  over the internet add the round trip, so roughly 110–170 ms. Build it only if placing and breaking feel
+  laggy in real play: show your own block edits at once in the render cache, undo them if the core
+  disagrees, never touch the core (`interaction.rs`).
+- A client's every resync logs the tick and both hashes; turn any real one into a replayable test.
 
-Rules for every step:
+The scope, from `docs/ROADMAP.md` (to be split into steps):
 
-- The core never learns about the network. Networking moves actions, snapshots and presentation state
-  (bodies, loose items) only. Solo play takes exactly today's path, and its golden hash stays unchanged
-  unless core state changes on purpose.
-- Engine networking lives in `net/` (Rust) with its API in `api/net.rs`; the host side lives in
-  `web/src/net/`, one file per concern. The Worker lives in `signal/`.
-- **The dev loop is two tabs on one machine** over `BroadcastChannel` (step 3.3), and before that two
-  `Game`s wired together in a Rust test. WebRTC comes only once everything works over the channel.
-- Budgets for 4 players: a star through the host (clients talk only to the host), under ~10 KB/s per
-  client outside snapshots, and the host's frame time under 2 ms more than solo.
-- A save format change bumps `SAVE_VERSION` and migrates older saves.
-- Accounts and deploys on Cloudflare are the user's: agents write the code and the steps in
-  `docs/WORKFLOW.md`, and the user runs the login and deploy commands.
-
-### Steps
-
-- [ ] **3.1 Actions on the wire** (`action/codec.rs`, `net/mod.rs`, `lib.rs`, `api/net.rs`)
-  - A submodule `action/codec.rs` (beside `action/tests.rs`): each `Action` writes to and reads from bytes
-    (`ByteWriter` / `ByteReader`), validated like save reads: bad bytes give `None`, never a panic. One
-    exhaustive `match` each way, so a new action can't be forgotten.
-  - `Game` gets a role: `Solo` (today), `Host` or `Client`. Outside `Solo`, `Game::act` puts the local
-    player's actions in an outbox (`take_outbox() -> Vec<u8>`) instead of queuing them.
-  - Host: `host_stamp(player, bytes)` stamps a peer's actions and queues them; after each tick the host
-    produces that tick's frame (`take_frames() -> Vec<u8>`, all ticks run this frame).
-  - Client: `push_frames(bytes)` queues the actions and moves the confirmed tick forward; `run_tick`
-    keeps stepping bodies and hands every tick, but `Sim::step` only through the confirmed tick.
-  - **Done when:** a round-trip test covers every `Action` variant, and garbage bytes fail cleanly. A
-    Rust test wires a host `Game` and a client `Game` (made from the same seed) through byte buffers: both
-    players act (break, place, craft, build a small line), and the hashes match at every 60th tick,
-    including when the client's frames arrive in late bursts.
-
-- [ ] **3.2 Joining and returning players** (`net/snapshot.rs`, `sim.rs`, `authority.rs`, `save.rs`)
-  - A join snapshot is the save bytes (`save_bytes`) plus the actions already queued for future ticks
-    (the codec from 3.1), since those aren't in a save. `Game::from_snapshot(bytes, local)` starts a
-    client; the host queues the joiner's `Join` in the same order as any other action.
-  - Players have a **key**: a random id each browser keeps in `localStorage` and sends when joining.
-    `Leave` keeps the inventory and position under that key (`Sim.away`, saved and hashed), and `Join`
-    with a known key gives them back. This fixes limitation 1's lost inventory.
-  - The host's save stores the away players. Clients never save the host's world (`save/session.ts`
-    skips autosave for a client).
-  - Save version 10 (away players). Version 9 and older still load with none.
-  - Cap: 4 players (`MAX_PLAYERS`, easy to raise). A fifth gets a readable refusal.
-  - **Done when:** a test has the host run a factory for a while, a client join mid-run, and the hashes
-    match 600 ticks later; a player who leaves and rejoins gets their inventory back; a save round trip
-    keeps away players; a version-9 save loads.
-
-- [ ] **3.3 Transport and two tabs** (`web/src/net/transport.ts`, `broadcast.ts`, `protocol.ts`,
-  `session.ts`; `main.ts` one registration)
-  - `Transport`: `send(bytes)`, `onMessage`, `onClose`, `close()`. Implementations: `Loopback` (a pair,
-    for tests and debugging) and `BroadcastChannel` (a room name, for tabs on one machine).
-  - `protocol.ts`: a one-byte message type, then the payload. `Hello` (build id, player key, name),
-    `Welcome` (player id, snapshot) or `Refuse` (a readable reason), `Actions` (client to host),
-    `Frames` (host to clients), `Checksum` (tick, hash), `Bye`. The build id comes from the build (Vite
-    `define` with the git commit); a mismatch is refused with "the host runs a different version".
-  - `session.ts` runs the host or client side each frame: send the outbox, deliver frames, compare
-    checksums, and turn a closed transport into `Leave`.
-  - For now, `?host=<room>` and `?join=<room>` in the URL start a session (the UI is step 3.7).
-  - **Done when:** two tabs play one world: a block placed or a machine built in either tab shows in
-    both, a miner fills a box that both see, and checksums match for 10 minutes (the console shows one
-    line per mismatch, and there should be none). Screenshots of both tabs.
-
-- [ ] **3.4 Seeing each other** (`net/players.rs`, `authority.rs`, `render.rs` or a new
-  `avatars.rs`, `web/src/net/session.ts`)
-  - `PlayerState` at 20 Hz: position, look and flying. The host relays each player's state to the
-    others. Remote bodies take the latest state and are smoothed between updates. Only the local body
-    runs physics.
-  - Avatars: a simple box body and head per remote player, drawn through the instance renderer, with the
-    name shown above it (a DOM label, positioned in TS).
-  - Loose items: only the host runs item physics and pickups, and sends the items near each client at
-    10 Hz (id, item, position). Clients draw that list and don't simulate items.
-  - Host streaming: the host generates chunks around every player (no meshing for remote ones), so item
-    physics works where remote players are. Limitation 1 goes away.
-  - **Done when:** two tabs show each other's avatar moving smoothly; an item thrown in one tab lands in
-    both and is picked up by whoever walks over it; the host's frame time is measured with 4 players
-    (2 extra added with `add_player`) and recorded here.
-
-- [ ] **3.5 A host in a hidden tab keeps ticking** (spike, then build; `web/src/net/` or `main.ts`)
-  - Browsers pause `requestAnimationFrame` in background tabs and throttle timers, so a host that
-    switches tabs would freeze everyone. Measure the options for 10 minutes each in a hidden tab:
-    - (a) a tiny dedicated Worker that posts 60 Hz messages to the main thread, which runs
-      `game.update` without rendering while hidden (cheapest, try first),
-    - (b) the whole engine in a Worker, with meshes and instances sent as transferable buffers (one
-      copy),
-    - (c) the engine in a Worker with `SharedArrayBuffer` (needs COOP/COEP headers; GitHub Pages can't
-      set them, so it needs `coi-serviceworker`).
-  - Pick the cheapest that keeps a steady tick rate, and record the numbers here.
-  - **Done when:** a host tab hidden for 10 minutes keeps a client in step (no growing lag, no checksum
-    mismatch).
-
-- [ ] **3.6 WebRTC and Cloudflare signalling** (`signal/` Worker, `web/src/net/webrtc.ts`)
-  - `signal/`: a Cloudflare Worker with one Durable Object per room. `POST /room` gives a short room
-    code; a WebSocket on `/room/<code>` passes WebRTC offers, answers and ICE candidates between the
-    host and each joiner, then steps aside. `GET /ice` returns public STUN plus short-lived Cloudflare
-    TURN credentials (the Worker keeps the TURN key as a secret). It gets its own `tsconfig.json`, which
-    `npm run check` typechecks. No game logic in the Worker.
-  - `webrtc.ts`: a `Transport` over one reliable, ordered data channel per peer; the host holds one per
-    client.
-  - The user creates the Cloudflare account, runs `npx wrangler login` and `npx wrangler deploy`, and
-    sets the TURN secrets. The steps go in `docs/WORKFLOW.md`, and the Worker's URL goes in one constant
-    in `web/src/net/`.
-  - **Done when:** two browsers on different machines play together through the live site, and a
-    session forced through the relay (`iceTransportPolicy: 'relay'`) works too.
-
-- [ ] **3.7 Co-op UI** (`ui/coop.ts` + `.css`)
-  - Menu: "Host this world" gives a share link (`?join=<code>`) and the code. "Join" takes a link or a
-    code. Each player sets a name, kept in `localStorage`.
-  - In game: a player list (Tab) with names and ping; notices when someone joins or leaves; a readable
-    message when a join is refused or the connection drops. When the host leaves, the session ends for
-    everyone, and clients return to the menu.
-  - **Done when:** a friend can join from a pasted link with no URL editing, and every failure case
-    (wrong version, full world, host gone, no connection) shows a message a player understands.
-
-- [ ] **3.8 Resync and robustness** (`web/src/net/session.ts`, `net/snapshot.rs`)
-  - On a checksum mismatch the client asks for a fresh snapshot and reloads from it, keeping its own
-    body and view. It logs the tick and both hashes, so the bug can become a replayable test.
-  - A client that falls more than about 5 seconds behind resyncs the same way. A silent peer times out
-    and leaves.
-  - **Done when:** a test forces a mismatch (a debug action that changes one client's core) and the
-    client recovers to matching hashes; a tab closed abruptly leaves cleanly on the host.
-
-- [ ] **3.9 Instant feedback for your own edits** (only if play shows it's needed; `interaction.rs`)
-  - A client sees its own actions after the round trip plus `INPUT_DELAY`, about 100–200 ms. If placing
-    and breaking feel laggy, show your own block edits at once in the render cache only, and undo that
-    when the core disagrees once the action applies. The core stays untouched.
-  - **Done when:** measured in play; built only if it helps, otherwise noted here as skipped.
-
-- [ ] **3.10 Milestone cleanup** (every milestone ends with this step)
-  - `npm run check` passes with no size warnings. Split anything that grew past its soft limit.
-  - Remove dead code and leftover old paths.
-  - The code map matches the tree, and the nested `CLAUDE.md` files are current.
-  - Compress this plan: Milestone 3 becomes a few lines in section 8. Move Milestone 4 from
-    `docs/ROADMAP.md` into section 4 and detail it to this level. Ask the user the open questions for
-    M4 (section 6) before detailing it.
-
-**Suggested commits:** one per step, or per clean part of a step. Every commit passes `npm run check`, and
-the game still works.
+- **Geology-driven ores:** rock types and biomes decide which ores appear where, for example copper in
+  mountains, coal in lowland swamps, quartz and sand in deserts.
+- **Surface hints:** rust-stained soil above iron, and similar.
+- **Biomes that matter for resources and building,** not just colour.
+- **Prospecting:** a scanner reveals deposits within a radius with size estimates; a core drill gives exact
+  figures. Makes veins and lodes findable (limitation 3).
+- **Minimap,** top-down from chunk heights and colours, with markers for deposits, machines and later
+  rails.
+- **Day/night cycle and voxel lighting:** sky light plus block light propagated in the mesher and stored per
+  chunk; lamps. Makes caves and deep lodes atmospheric, and later gives solar power a reason to vary.
+- Generation changes bump `WORLDGEN_VERSION` (`worldgen/mod.rs`), which stops older worlds from loading;
+  agree with the user on that (or on a migration) before the first such step.
+- Everything new in the core stays deterministic and co-op-safe (section 3.4): the time of day is core
+  state advanced by ticks; prospecting results are queries that never create core state.
 
 ---
 
-## 5. Roadmap after Milestone 3
+## 5. Roadmap after Milestone 4
 
-Milestones 4–7 (exploration, terrain and scale, fluids and depth, endgame) are in `docs/ROADMAP.md`. Read
-it only when planning the next milestone; step 3.10 moves Milestone 4 from there into this plan.
+Milestones 5–7 (scale and terrain, fluids and depth, endgame) are in `docs/ROADMAP.md`. Read it only when
+planning the next milestone; Milestone 4's cleanup step moves Milestone 5 from there into this plan.
 
 ---
 
@@ -494,49 +395,30 @@ and the balance numbers. Read the section you need.
 
 ## 8. Change log of this plan
 
-- **2026-09-25:** Plan created after the deposits and factory slice (`3239215`). It records the decisions
-  (peaceful, open-ended, co-op), the co-op approach, Milestone 1 in detail, and the roadmap to Milestone 7.
-- **2026-09-25:** The user stated the project is developed entirely by AI agents and that keeping the
-  codebase from growing unwieldy is of utmost importance. Added section 3.1 (mandatory agent rules), the
-  restructure-first step, the milestone cleanup step, and the rule that the plan details only the current
-  milestone (milestones 2–7 moved to `docs/ROADMAP.md`, the operational reference to `docs/WORKFLOW.md`).
-- **2026-09-25: Milestone 1 (Foundation) done**, commits `31bb05b` to `74fb476`.
-  - Built: the restructure for agents (1.0); a fixed 60 Hz tick with at most 8 ticks per frame and an
-    interpolated camera (1.1); the core `Sim` separated from the view (1.2); every core change an
-    `Action` applied at a tick, answered by `SimEvent`s (1.3); several players, with `Join` / `Leave`
-    actions and `authority.rs` (1.4); canonical bytes (`bytes.rs`) and an FNV-1a state hash with
-    determinism tests (1.5); the save format (`save.rs`, 1.6); saving in the browser with a world list
-    (`web/src/save/`, `ui/worlds.ts`, 1.7); the README (1.8); cleanup (1.9).
-  - Deviations worth knowing: the player id sits beside each queued action, not inside it; all tracked
-    deposits are hashed and saved, because tracking changes behaviour; world names and play time live in
-    the browser's record, not the save; switching worlds reloads the page; each world keeps its previous
-    save as a backup slot.
-  - Cost: tests 56 → 74. Wasm 81.5 KB gzipped; JS +2.7 KB gzipped.
-  - Lessons: new generic code shows up in the wasm size, so measure each step. Hash tests catch
-    determinism bugs at the exact tick, and the browser pane can't lock the pointer, so drive
-    `window.opencraft.game`.
-- **2026-09-25: Milestone 2 (Make it a game) done**, commits `b49b766` to the step 2.11 commit.
-  - Built: `ItemId` and the item table (2.1); the machine registry `MACHINES`, the `Machine` trait and
-    `Buffer` (2.2); the smelter with machine recipes and fuels (2.3); the machine panel and the
-    constructor, actions `SetRecipe` / `Insert` (2.4); splitter and filter as one `Router` kind (2.5);
-    ramps, lifts and underpasses as belt shapes (2.6); boxes that open like a chest (user request);
-    power with generators, poles, grids and brownouts (2.7); research with labs, red and green packs and
-    six techs (2.8); Miner Mk2 (75% recovery) and fast belts behind research (2.9); onboarding tips as
-    engine data (2.10); cleanup (2.11).
-  - The user chose Factorio-style research, upgrades that raise recovery, and infinite bulk materials.
-    The burner tier (Mk1 miner and smelter unpowered) was built as the default.
-  - Deviations worth knowing: one kind serves several blocks through extra `MACHINES` rows plus a flag
-    or shape; machines hang on the nearest pole, with no manual wiring; power balances at the start of
-    each tick, before miners; labs count units in progress so they never overshoot; tips are engine data
-    with checks, so TS mirrors no ids.
-  - Saves are version 9, and every version since 1 loads (version 1 tested with the committed
-    `save/v1.ocworld`, the others in the browser). The golden hash in `sim/tests.rs` was re-recorded on
-    purpose at each format change, with the new machine added to the script.
-  - Cost: tests 74 → 113. Wasm 81.5 → 120.3 KB gzipped (panels about 8 KB, power about 8, research
-    about 6); JS 31.8 KB.
-  - Lessons: the golden hash catches every unintended core change; scenario tests with a bare `Factory`
-    replace most browser checks; exported getters cost wasm size, so group them per panel.
-- **2026-09-25:** Step 2.11 (milestone cleanup): no size warnings and no dead code found; code map and
-  `CLAUDE.md` files checked against the tree. The user answered the M3 questions (Cloudflare Worker plus
-  Cloudflare TURN; 2–4 players). Milestone 3 moved in from `docs/ROADMAP.md` and detailed as steps
-  3.1–3.10.
+- **2026-09-25:** Plan created (`3239215`); the user made keeping the codebase small for agents a top
+  priority (section 3.1; later milestones in `docs/ROADMAP.md`, how-tos in `docs/WORKFLOW.md`).
+- **2026-09-25: Milestone 1 (Foundation) done** (`31bb05b` to `74fb476`): fixed 60 Hz tick, core `Sim`,
+  actions and `SimEvent`s, several players, canonical bytes and state hash, saves and the world list.
+  Deviations: the player id sits beside each queued action; all tracked deposits are hashed and saved;
+  world names and play time live in the browser's record. Tests 56 → 74, wasm 81.5 KB gzipped.
+- **2026-09-25: Milestone 2 (Make it a game) done** (`b49b766` to `3bf3f92`): items, machine registry,
+  smelter, constructor and panels, splitter and filter, belt shapes, boxes, power, research, Mk2 and fast
+  belts, onboarding tips. Deviations: one kind serves several blocks through extra `MACHINES` rows;
+  machines hang on the nearest pole; power balances before miners each tick. Saves version 9. Tests
+  74 → 113, wasm 120.3 KB gzipped. Lessons: measure wasm size every step; the golden hash catches every
+  unintended core change; scenario tests with a bare `Factory` replace most browser checks.
+- **2026-09-25:** Step 2.11 cleanup; the user answered the M3 questions (Cloudflare Worker plus TURN; 2–4
+  players), and Milestone 3 was detailed as steps 3.1–3.10.
+- **2026-09-26: Milestone 3 (Co-op) done**, apart from the user's live tests (section 4): lockstep over
+  bytes (`action/codec.rs`, `net/`: roles, frames, checksums every 60 ticks), join snapshots and player
+  keys (save version 10), avatars and name tags, host-owned loose items, a hidden co-op tab that keeps
+  ticking (`net/ticker.ts`), the signalling Worker (`signal/`, deployed by the user; STUN only so far),
+  WebRTC with 16 KB message pieces, the "Play together" menu and the Tab player list, pings, silence
+  timeouts (10 s) and in-place resync (`Game::resync` keeps the body and loaded chunks). Deviations: the
+  build id is the bundle's URL, not the git commit; step 3.9 (instant own edits) measured and deferred.
+  Measured: 10 minutes hidden at 60 ticks/s with 0 mismatches; host `update` + pump 0.015 ms with 4
+  players; a client uses about 8 KB/s down and 4 KB/s up while idle, most of it per-packet overhead.
+  Lessons: keep heavy sort keys `#[inline(never)]` (one inlined key cost 9 KB of wasm); key hidden-tab
+  work off stalled frames, not `document.hidden`; Windows PowerShell's `Get-Content` reads UTF-8 as ANSI,
+  so edit files with the file tools or Node. Tests 113 → 127; wasm 120.3 → 131.5 KB, JS 32.1 → 39.1 KB
+  gzipped.

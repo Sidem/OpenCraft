@@ -90,7 +90,11 @@ pub mod tex {
     pub const GREEN_PACK: u16 = 44;
     pub const MINER_MK2_SIDE: u16 = 45;
     pub const FAST_BELT_TOP: u16 = 46;
-    pub const COUNT: usize = 47;
+    pub const AVATAR_SUIT: u16 = 47;
+    pub const AVATAR_SKIN: u16 = 48;
+    pub const AVATAR_HELMET: u16 = 49;
+    pub const AVATAR_VISOR: u16 = 50;
+    pub const COUNT: usize = 51;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.

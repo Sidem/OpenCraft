@@ -40,6 +40,12 @@ Prefer engine tests; use the browser for visual proof (`docs/WORKFLOW.md` sectio
 - Pointer lock never engages in the automated pane, and `requestAnimationFrame` pauses while the pane is
   hidden: step the engine by calling `game.update(1/60)` yourself.
 - Hide the menu: `document.getElementById('menu').classList.add('hidden')`. A screenshot forces a render.
+- Co-op: open `/?host=t1` and `/?join=t1` in two tabs (BroadcastChannel), or `/?host` (or the menu's
+  "Host this world") and `/?join=<code>` (WebRTC through the deployed Worker). `window.opencraft.coop`
+  is the session (`players()`; a client's `checked` / `mismatches` / `resyncs`); `game.debug_desync()`
+  on a client tests the resync. Tabs share localStorage, so they share a name and player key. Editing
+  any file reloads every tab: host again after an edit. Co-op tabs keep ticking by themselves while their
+  frames are stopped (`net/ticker.ts`), so don't step them by hand; solo tabs still pause.
 - Inventory screen DOM order is backpack first: find hotbar slot `i` by its `.key` label (`i + 1`).
 
 ## Style

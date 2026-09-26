@@ -1,7 +1,8 @@
 // Every check to run before a commit, with quiet output: one line per step, plus the relevant
 // output of any step that fails. Exits 1 if anything failed.
 //   npm run check
-// Steps: rustfmt, clippy (warnings are errors), engine tests, TypeScript, size budgets.
+// Steps: rustfmt, clippy (warnings are errors), engine tests, TypeScript (web and the signal Worker),
+// size budgets.
 // TypeScript needs the generated bindings in web/src/wasm (npm run build:wasm).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -18,6 +19,7 @@ const steps = [
   { name: 'clippy', cmd: 'cargo', args: ['clippy', '--workspace', '--all-targets', '-q', '--', '-D', 'warnings'] },
   { name: 'tests', cmd: 'cargo', args: ['test', '--workspace', '-q'], summary: testSummary },
   { name: 'types', cmd: 'npx', args: ['tsc', '--noEmit'], before: needsBindings },
+  { name: 'signal types', cmd: 'npx', args: ['tsc', '--noEmit', '-p', 'signal'] },
   { name: 'sizes', cmd: 'node', args: ['scripts/check-size.mjs'], summary: (out) => out.trim().split('\n') },
 ];
 

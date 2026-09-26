@@ -64,6 +64,15 @@ impl Chunk {
         }
     }
 
+    /// Whether both hold the same blocks, however each is stored.
+    pub fn same_blocks(&self, other: &Chunk) -> bool {
+        match (&self.data, &other.data) {
+            (Data::Uniform(a), Data::Uniform(b)) => a == b,
+            (Data::Dense(a), Data::Dense(b)) => a == b,
+            (Data::Uniform(u), Data::Dense(d)) | (Data::Dense(d), Data::Uniform(u)) => d.iter().all(|b| b == u),
+        }
+    }
+
     #[inline]
     pub fn as_uniform(&self) -> Option<BlockId> {
         match self.data {

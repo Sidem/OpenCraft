@@ -3,7 +3,9 @@
 //! Items fall and slide only while their position is in a loaded chunk (elsewhere they wait), are
 //! pulled towards the nearest [`Collector`] (a player) in reach once their pickup delay has passed and
 //! that collector has room, and despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through
-//! `factory::push_box`.
+//! `factory::push_box` (`push_item_box`, which a co-op client's view of the host's items uses too).
+//! Every item gets an `id` when spawned, unique while the game runs (not saved), so a client can
+//! follow it between the host's updates.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::push_box;
@@ -19,6 +21,7 @@ const MAGNET_RADIUS: f64 = 2.4;
 const PICKUP_RADIUS: f64 = 0.7;
 
 pub struct ItemEntity {
+    pub id: u32,
     pub pos: Vec3,
     pub vel: Vec3,
     pub item: ItemId,
@@ -31,6 +34,7 @@ pub struct ItemEntity {
 #[derive(Default)]
 pub struct Items {
     pub list: Vec<ItemEntity>,
+    next_id: u32,
 }
 
 /// Something items fly to: a player's body centre and a scratch copy of its inventory, which the
@@ -42,7 +46,9 @@ pub struct Collector {
 
 impl Items {
     pub fn spawn(&mut self, pos: Vec3, vel: Vec3, item: ItemId, count: u32, pickup_delay: f32) {
-        self.list.push(ItemEntity { pos, vel, item, count, age: 0.0, pickup_delay, on_ground: false });
+        self.next_id = self.next_id.wrapping_add(1);
+        let id = self.next_id;
+        self.list.push(ItemEntity { id, pos, vel, item, count, age: 0.0, pickup_delay, on_ground: false });
     }
 
     /// What a save keeps of each item (`on_ground` is recomputed every step).
@@ -148,13 +154,18 @@ impl Items {
     /// Appends camera-relative box instances (see `factory::INSTANCE_FLOATS`) for the renderer.
     pub fn write_instances(&self, out: &mut Vec<f32>, eye: Vec3) {
         for e in &self.list {
-            let Some(def) = item::def(e.item) else { continue };
-            let size = def.size.map(|s| s * (HALF * 2.0) as f32);
-            // Resting on the same floor as a full cube, bobbing a little.
-            let bob = (e.age as f64 * 2.6).sin() * 0.05 + 0.05 - HALF * (1.0 - def.size[1] as f64);
-            push_box(out, e.pos - eye + Vec3::new(0.0, bob, 0.0), e.age * 1.7, size, 0.0, def.tex, false);
+            push_item_box(out, e.item, e.pos - eye, e.age);
         }
     }
+}
+
+/// Pushes one loose item's box at camera-relative `at`, spinning and bobbing with its `age`.
+pub fn push_item_box(out: &mut Vec<f32>, item: ItemId, at: Vec3, age: f32) {
+    let Some(def) = item::def(item) else { return };
+    let size = def.size.map(|s| s * (HALF * 2.0) as f32);
+    // Resting on the same floor as a full cube, bobbing a little.
+    let bob = (age as f64 * 2.6).sin() * 0.05 + 0.05 - HALF * (1.0 - def.size[1] as f64);
+    push_box(out, at + Vec3::new(0.0, bob, 0.0), age * 1.7, size, 0.0, def.tex, false);
 }
 
 #[cfg(test)]

@@ -1,0 +1,42 @@
+/* In-game co-op overlays (ui/players.ts): the Tab player list and join / leave notices. Player rows are
+   styled in coop.css. */
+
+.player-list {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  width: min(340px, calc(100% - 32px));
+  transform: translateX(-50%);
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+}
+
+.player-list-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.coop-notices {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.coop-notice {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--accent);
+  font-size: 14px;
+  transition: opacity 0.4s;
+}
+
+.coop-notice.out {
+  opacity: 0;
+}

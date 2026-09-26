@@ -4,8 +4,9 @@
 //! Actions carry resolved data (positions, slots, facing), never "what the player is looking at", so
 //! any peer can apply them without that player's camera. `apply` validates against the current state
 //! and quietly does nothing when an action no longer fits (the block changed, the slot is empty).
-//! Results leave as `SimEvent`s. To add an action: a variant here and its arm in
-//! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet).
+//! Results leave as `SimEvent`s. To add an action: a variant here, its arm in
+//! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet) and its
+//! bytes in `action/codec.rs` (co-op sends actions to every peer).
 
 use crate::block::{self, AIR};
 use crate::deposits::HAND_YIELD;
@@ -13,7 +14,7 @@ use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
-use crate::sim::{PlayerCore, PlayerId, Sim, SimEvent};
+use crate::sim::{Away, PlayerCore, PlayerId, Sim, SimEvent};
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Action {
@@ -96,25 +97,37 @@ pub enum Action {
         item: ItemId,
         count: u32,
     },
-    /// The player joins with an empty inventory (nothing happens if it is already here).
-    Join,
-    /// The player leaves; its inventory goes with it and its id is free again.
-    Leave,
+    /// The player joins (nothing happens if it is already here): with what it had when it left, if
+    /// `key` is away, else with an empty inventory.
+    Join {
+        key: u64,
+    },
+    /// The player leaves and its id is free again. With a key, its inventory and `pos` (where its
+    /// body stood) wait in `Sim::away`; without one they are gone.
+    Leave {
+        pos: Vec3,
+    },
 }
 
 impl Sim {
     pub fn apply(&mut self, player: PlayerId, action: Action) {
         let slot = player.0 as usize;
         match action {
-            Action::Join => {
+            Action::Join { key } => {
                 if self.players.len() <= slot {
                     self.players.resize_with(slot + 1, || None);
                 }
-                self.players[slot].get_or_insert_with(PlayerCore::default);
+                if self.players[slot].is_none() {
+                    let back = self.away.iter().position(|a| key != 0 && a.key == key);
+                    let inventory = back.map(|i| self.away.remove(i).inventory).unwrap_or_default();
+                    self.players[slot] = Some(PlayerCore { inventory, key });
+                }
             }
-            Action::Leave => {
-                if let Some(core) = self.players.get_mut(slot) {
-                    *core = None;
+            Action::Leave { pos } => {
+                let Some(core) = self.players.get_mut(slot).and_then(Option::take) else { return };
+                if core.key != 0 {
+                    self.away.retain(|a| a.key != core.key);
+                    self.away.push(Away { key: core.key, pos, inventory: core.inventory });
                 }
             }
             _ => self.apply_to_player(player, action),
@@ -126,7 +139,7 @@ impl Sim {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
         let inv = &mut core.inventory;
         match action {
-            Action::Join | Action::Leave => {}
+            Action::Join { .. } | Action::Leave { .. } => {}
             Action::BreakBlock { pos } => self.break_block(player, pos),
             Action::PlaceBlock { pos, slot, facing, against } => self.place_block(player, pos, slot, facing, against),
             Action::TakeContents { pos } => {
@@ -266,5 +279,6 @@ impl Sim {
     }
 }
 
+mod codec;
 #[cfg(test)]
 mod tests;
