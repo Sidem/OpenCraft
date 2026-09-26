@@ -54,6 +54,7 @@ the render distance in chunks (2 to 24, default 8).
 | E                   | Inventory and build menu                  |
 | R                   | Research: choose what labs work on        |
 | H                   | Skip the tip on screen (the menu can show tips again) |
+| N                   | Show or hide the minimap (top right, north up) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |
@@ -61,7 +62,7 @@ the render distance in chunks (2 to 24, default 8).
 | M                   | Mute / unmute sound                       |
 | O                   | Open the sound designer                   |
 | F3                  | Debug stats                               |
-| Esc                 | Release the mouse                         |
+| Esc                 | Release the mouse; in a panel, close it   |
 
 Mined blocks drop as items, which are pulled into your inventory when you get close. In the inventory screen
 (E), click a slot to pick up a stack and click again to put it down. Shift-click moves a stack between the
@@ -115,7 +116,13 @@ size.
 | Vein    | long seams 20–60 blocks below the surface    | 1,000           | 240 per minute    |
 | Lode    | rare, huge bodies deep down (y 12–25)        | 2,000           | 1,200 per minute  |
 
-- **By hand** you keep 3 ore per block. The rest of that block's share of the pool is lost.
+- **By hand** you keep 3 ore per block (4 with an iron pickaxe). The rest of that block's share of the pool
+  is lost.
+- **Tools.** Hold a pickaxe (stone and ore), an axe (wood) or a shovel (dirt, grass, sand) in the hotbar to
+  break those blocks faster: stone tools twice as fast, iron tools four times. Each block broken with the
+  right tool uses it up a little (stone tools last 150 blocks, iron 600); the bar under its slot shows
+  what's left. Stone tools cost 3 stone (1 for a shovel) and 2 logs; iron tools 3 iron plates (1 for a
+  shovel) and 2 iron rods. Bare hands still break everything, only slower.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it
   drills. All miners on one deposit share its draw limit. Output slows over the last 20% of the pool.
   Each time a block's worth is used up, the ore block nearest the miner turns into spent rock, even in
@@ -294,7 +301,10 @@ Sandbox foundation:
 - [ ] Water and transparent blocks
 - [x] Full inventory screen
 - [ ] Day/night cycle, sky and voxel lighting
-- [ ] Biomes that shape resources, and a minimap
+- [x] Minimap
+- [x] A living surface: leaves of felled trees decay, grass grows back over bare dirt
+- [x] Tools that wear out: pickaxe, axe and shovel in stone and iron
+- [ ] Biomes that shape resources
 
 Factory layer (the Satisfactory half):
 

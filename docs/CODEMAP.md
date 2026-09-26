@@ -13,7 +13,8 @@ folder with `mod.rs`.
 | Module | Owns |
 |---|---|
 | `lib.rs` | The `Game` struct (core `sim`, `local` id, co-op `role`, `bodies`, items, `avatars`, the local player's hands and view state), `Game::new`, the per-frame `update` (streaming, ticks, a client's catch-up, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`: bodies, hands, items, `step_core`, `net_tick`), `act` / `act_as` (route an action through the role), `body()` / `inventory()` (the local player's); the module list |
-| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory, key), `away` (players who left with a key), rng, action queue (`queue`, `write_pending` / `read_pending`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory, key), `away` (players who left with a key), rng, block `timers` (`sim/timers.rs`), action queue (`queue`, `write_pending` / `read_pending`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
+| `sim/timers.rs` | Block timers (core state): `BlockTimers` (sorted pending changes, capped), `Sim::block_changed` (starts them after a block changes), `run_timers` (after each tick's actions): leaf decay, grass spreading and dying |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, `WORLDGEN_VERSION`), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` and `v9.ocworld` fixtures) |
 | `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings, set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give |
@@ -32,10 +33,11 @@ folder with `mod.rs`.
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); box screens (`box_slots`, `click_box`, `store_slot`) |
 | `api/crafting.rs` | Recipe queries (`recipe_locked_by`) and `craft` |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
-| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (texture layers and box proportions), `hand_yield`, `miner_recovery` |
+| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (texture layers and box proportions), `tool_uses`, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/net.rs` | `start_host`, `start_client`, `from_snapshot`, `resync`, `is_client`, `host_join` / `host_leave`, `snapshot`, `host_stamp`, `take_frames`, `take_checksums`, `take_outbox`, `push_frames`, `local_player`, `take_states`, `host_state`, `push_states`, `take_item_view`, `push_items`, `core_tick`, `confirmed_tick` |
+| `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `block.rs` | Block ids, `DEFS` table, texture layers `tex` (item textures too), sound materials, lookup tables |
@@ -67,12 +69,15 @@ folder with `mod.rs`.
 | `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
 | `entities.rs` | Dropped items: ids, physics, magnet pickup by the nearest `Collector` with room, instances (`push_item_box`) |
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
+| `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core). A tool's stack count is its uses left |
 | `recipes.rs` | Hand-crafting recipes (`RECIPES`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` burn times |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
 | `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format |
+| `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; nature, ore and avatar patterns |
+| `textures/tools.rs` | Placeholder tool pictures (pickaxe, axe, shovel per tier) |
 | `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
@@ -103,15 +108,16 @@ folder with `mod.rs`.
 | `render/shaders.ts` | GLSL sources |
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |
-| `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts, debug overlay, `itemIcon` (isometric box from `item_icon`) |
+| `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
 | `ui/inventory.ts` + `.css` | Inventory and build screen (E); opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
 | `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor, filter, generator or lab): status, progress, buffers, recipe choice, filter item, put-in and take buttons |
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow` |
 | `ui/players.ts` + `.css` | In game: the player list while Tab is held, join and leave notices |
+| `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
 | `ui/hints.ts` + `.css` | Onboarding tip card in the HUD (the first hint not done or skipped); H skips, skipped tips in localStorage; "Show tips again" in the menu |
 | `ui/research.ts` + `.css` | Research screen (R): a card per tech (state, unlocks, cost, progress, choose); HUD tracker and "research done" notice |
-| `ui/menu.css` | Pause/start menu styles (markup in `web/index.html`) |
+| `ui/menu.css` | Pause/start menu and "click to keep playing" hint styles (markup in `web/index.html`) |
 | `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |
 | `ui/sound-lab-footer.ts` + `.css` | Designer footer: volume, copy/paste/reset settings |
@@ -219,10 +225,11 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
 | `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` |
 | `factory/power.rs` | `GENERATOR_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `WIRE_RANGE`, `POLE_REACH` |
-| `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
+| `sim/timers.rs` | `LEAF_HALF_LIFE`, `GRASS_GROW_HALF_LIFE`, `GRASS_DIE_HALF_LIFE`, `MAX_TIMERS`, leaf check radius and support steps |
 | `research.rs` | `TECHS` (units, seconds, packs per unit) |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes.rs` | `RECIPES` (hand) |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |
+| `tools.rs` | `STONE_TIER`, `IRON_TIER` (uses, break speed, ore kept) |
 | `events.rs` | `MINER_SOUND_RANGE`, drop pickup delay |
 | `player.rs` | Movement speeds, jump, gravity |

@@ -94,7 +94,13 @@ pub mod tex {
     pub const AVATAR_SKIN: u16 = 48;
     pub const AVATAR_HELMET: u16 = 49;
     pub const AVATAR_VISOR: u16 = 50;
-    pub const COUNT: usize = 51;
+    pub const STONE_PICKAXE: u16 = 51;
+    pub const STONE_AXE: u16 = 52;
+    pub const STONE_SHOVEL: u16 = 53;
+    pub const IRON_PICKAXE: u16 = 54;
+    pub const IRON_AXE: u16 = 55;
+    pub const IRON_SHOVEL: u16 = 56;
+    pub const COUNT: usize = 57;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.

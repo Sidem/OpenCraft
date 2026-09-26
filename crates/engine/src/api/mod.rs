@@ -12,6 +12,7 @@ mod hud;
 mod input;
 mod inventory;
 mod machine;
+mod minimap;
 mod net;
 mod render;
 mod research;

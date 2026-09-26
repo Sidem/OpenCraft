@@ -13,6 +13,7 @@ export type Action =
   | { kind: 'inventory' }
   | { kind: 'research' }
   | { kind: 'hint' }
+  | { kind: 'map' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -132,6 +133,7 @@ export class Input {
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
       else if (e.code === 'KeyR') this.actions.push({ kind: 'research' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
+      else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
   }

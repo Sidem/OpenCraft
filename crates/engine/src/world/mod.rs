@@ -188,6 +188,11 @@ impl World {
         })
     }
 
+    /// A loaded chunk (the render cache): for presentation such as the minimap, never core code.
+    pub fn loaded_chunk(&self, c: IVec3) -> Option<&Chunk> {
+        self.chunks.get(&c).map(|e| &e.chunk)
+    }
+
     /// Unloaded space counts as solid so nothing falls through the world while it streams in.
     #[inline]
     pub fn is_solid(&self, x: i32, y: i32, z: i32) -> bool {

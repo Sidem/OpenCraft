@@ -8,18 +8,19 @@
 //! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet) and its
 //! bytes in `action/codec.rs` (co-op sends actions to every peer).
 
-use crate::block::{self, AIR};
-use crate::deposits::HAND_YIELD;
+use crate::block::{self, BlockId, AIR};
 use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
 use crate::sim::{Away, PlayerCore, PlayerId, Sim, SimEvent};
+use crate::tools;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Action {
-    /// Breaks the block at `pos` by hand: ore keeps [`HAND_YIELD`] and costs its deposit a block;
-    /// machines drop their contents.
+    /// Breaks the block at `pos` by hand, with whatever the player holds: ore keeps `HAND_YIELD`
+    /// (more with a good pickaxe: tools.rs) and costs its deposit a block; a tool for the block loses a
+    /// use; machines drop their contents.
     BreakBlock {
         pos: IVec3,
     },
@@ -219,7 +220,9 @@ impl Sim {
             Action::SelectSlot { slot } => inv.select(slot as usize),
             Action::ScrollSlot { delta } => inv.scroll(delta as i32),
             Action::DropSelected { count } => {
-                if let Some((item, count)) = inv.take_slot(inv.selected, count) {
+                // A tool's count is its uses, so it goes whole.
+                let whole = tools::tool(inv.selected_stack().item).is_some();
+                if let Some((item, count)) = inv.take_slot(inv.selected, if whole { u32::MAX } else { count }) {
                     self.events.push(SimEvent::Thrown { player, item, count });
                 }
             }
@@ -254,15 +257,35 @@ impl Sim {
             return;
         }
         self.events.push(SimEvent::BlockBroken { player, pos, block: id });
+        self.block_changed(pos, id);
+        let held = self.wear_tool(player, id);
         let mut drops = self.factory.remove(pos);
         if def.drop != AIR {
-            drops.insert(0, Stack { item: ItemId::block(def.drop), count: if ore { HAND_YIELD } else { 1 } });
+            drops.insert(
+                0,
+                Stack { item: ItemId::block(def.drop), count: if ore { tools::ore_yield(held) } else { 1 } },
+            );
         }
         let center = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
         for s in drops {
             let vel = Vec3::new(self.rng.range(-1.5, 1.5), 4.0, self.rng.range(-1.5, 1.5));
             self.events.push(SimEvent::Dropped { pos: center, vel, item: s.item, count: s.count });
         }
+    }
+
+    /// The item the player breaks `block` with (their selected slot). A tool for it loses a use (its
+    /// stack count); one that wears out reports it.
+    fn wear_tool(&mut self, player: PlayerId, block: BlockId) -> ItemId {
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return ItemId::NONE };
+        let inv = &mut core.inventory;
+        let held = inv.selected_stack().item;
+        if tools::tool_for(held, block).is_some() {
+            inv.take_slot(inv.selected, 1);
+            if inv.selected_stack().is_empty() {
+                self.events.push(SimEvent::ToolWornOut { player, item: held });
+            }
+        }
+        held
     }
 
     fn place_block(&mut self, player: PlayerId, pos: IVec3, slot: u8, facing: u8, against: IVec3) {
@@ -276,6 +299,7 @@ impl Sim {
         inv.take_slot(slot as usize, 1);
         self.factory.place(&mut self.world, placed, pos, facing, against);
         self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
+        self.block_changed(pos, AIR);
     }
 }
 

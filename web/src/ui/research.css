@@ -93,7 +93,7 @@
 
 .rs-tracker {
   position: absolute;
-  top: 44px;
+  top: calc(44px + var(--map-space, 0px));
   right: 12px;
   display: grid;
   gap: 5px;

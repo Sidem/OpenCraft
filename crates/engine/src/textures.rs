@@ -7,6 +7,7 @@ use crate::block::tex;
 use crate::math::{hash3, unit};
 
 mod machines;
+mod tools;
 
 use machines::{
     belt_side, belt_top, constructor, crate_wood, drill, flask, generator, ingot, lab, lamp, miner_side, miner_top,
@@ -202,6 +203,10 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::RED_PACK => flask(x, y, [214.0, 60.0, 56.0]),
         tex::GREEN_PACK => flask(x, y, [72.0, 190.0, 88.0]),
         tex::AVATAR_SUIT..=tex::AVATAR_VISOR => avatar(x, y, layer - tex::AVATAR_SUIT),
+        tex::STONE_PICKAXE..=tex::IRON_SHOVEL => {
+            let i = layer - tex::STONE_PICKAXE;
+            tools::tool(x, y, i % 3, i >= 3)
+        }
         _ => [255, 0, 255, 255],
     }
 }

@@ -14,7 +14,7 @@ pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0x1b42_666d_1c4a_a212;
+const GOLDEN_HASH: u64 = 0x8ab9_3b09_6f05_0432;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -143,7 +143,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded after step 3.2 (players have keys; players away follow the players). Only a deliberate
+    // Recorded after steps P3 and P4 (block timers: leaf decay, grass spreading). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

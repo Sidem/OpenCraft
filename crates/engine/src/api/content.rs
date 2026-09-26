@@ -1,5 +1,5 @@
 //! Content tables and balance numbers the UI shows: block names and sound materials, item names and
-//! looks, hand yield, miner recovery. Exposed as getters so TypeScript never mirrors engine constants.
+//! looks, tool uses, hand yield, miner recovery. Exposed as getters so TypeScript never mirrors engine constants.
 
 use wasm_bindgen::prelude::*;
 
@@ -7,6 +7,7 @@ use crate::block::{self, BLOCK_COUNT};
 use crate::deposits::HAND_YIELD;
 use crate::factory::MINER_RECOVERY;
 use crate::item::{self, ItemId};
+use crate::tools;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -35,6 +36,12 @@ impl Game {
         item::def(ItemId(id)).map_or_else(Vec::new, |d| {
             vec![d.tex[0] as f32, d.tex[1] as f32, d.tex[2] as f32, d.size[0], d.size[1], d.size[2]]
         })
+    }
+
+    /// A tool's uses when new, which is also its stack size (its count is the uses left); 0 for
+    /// anything that isn't a tool.
+    pub fn tool_uses(&self, id: u16) -> u32 {
+        tools::tool(ItemId(id)).map_or(0, |t| t.tier.uses)
     }
 
     /// Ore kept per block mined by hand.

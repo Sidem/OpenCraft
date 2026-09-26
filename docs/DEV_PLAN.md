@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
-TURN for now) · **Next up: the play-test notes P1–P5 (section 4), then Milestone 4** · A graphics agent
+TURN for now) · play-test notes P1–P5 done · **Next up: Milestone 4 (ask its questions first, section 6)** · A graphics agent
 works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -26,8 +26,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   research with science packs, Mk2 upgrades and onboarding tips.
 - **Milestone 3 (Co-op) is done** (section 8): 2–4 players in one world over WebRTC, the host's browser as
   the authority, a Cloudflare Worker to connect them, hosting and joining from the menu.
-- **The next job is the user's play-test notes, steps P1–P5** (section 4), then **Milestone 4: Reasons to
-  explore**. Ask the user its open questions first.
+- **The user's play-test notes P1–P5 are done** (section 4). **Next: Milestone 4: Reasons to explore.**
+  Ask the user its open questions first (section 6), then detail it in section 4.
 - **A second agent improves textures and models in parallel** (`docs/ART_HANDOVER.md`, branch `art` in its
   own worktree). Don't restyle the files it owns (listed there); when gameplay needs a new look, append a
   `tex` layer with a plain placeholder pattern and add a line to that file's request list.
@@ -37,7 +37,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (127 engine tests).
+   (141 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -157,6 +157,11 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Inventory** (`inventory.rs`): 36 slots (hotbar 0–8), a cursor stack, click, shift-click and
   quick-move. **Crafting** (`recipes.rs`): hand recipes in the build menu (key E), greyed while locked.
 - **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): seven tips from finding ore to research.
+- **Minimap** (`minimap.rs`, `ui/minimap.ts`, key N): loaded terrain around the player, north up, arrows
+  for every player; presentation only.
+- **Block timers** (`sim/timers.rs`, core state): leaves of a felled tree decay (half-life 5 s, no drops),
+  grass spreads onto bare dirt beside it (30 s) and turns to dirt under a solid block (15 s). Timers start
+  only from block changes, never from scanning chunks.
 - **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–28, see
   `block.rs`); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
   science packs. Every item is drawn as a textured box.
@@ -164,7 +169,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 10; every version since 1 loads.
+  exports and imports them. Save version 11; every version since 1 loads.
 - **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
   menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
   or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
@@ -172,7 +177,10 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   version, no such game, no connection), a hidden co-op tab keeps ticking, a silent peer times out after
   10 s, and a client that differs from the host or falls 5 s behind resyncs in place. URL shortcuts for
   testing: `?host`, `?host=<room>` / `?join=<room>` (tabs of one browser), `?join=<code>`, `?relay`.
-- **Size:** about 177 KB gzipped in total (wasm 131.5 KB, JS 39.1 KB, CSS 5.0 KB).
+- **Tools** (`tools.rs`, recipes at the end of `RECIPES`): pickaxe, axe and shovel in stone (150 uses, 2×)
+  and iron (600, 4×, an iron pickaxe keeps 4 ore); a tool's stack count is its uses left, shown as a wear
+  bar (`showAmount` in `ui/hud.ts`). Placeholder looks in `textures/tools.rs`.
+- **Size:** about 185 KB gzipped in total (wasm 138.0 KB, JS 40.0 KB, CSS 5.3 KB).
 
 ### Known limitations and technical debt
 
@@ -190,6 +198,9 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
    aren't shown early (section 4, "instant feedback"). A name change applies the next time you host or
    join. Hosting can't be stopped without leaving the page.
 9. Co-op over the internet has been tested by the user on two machines (STUN only); the relay is untested.
+10. A block timer that fires or checks next to a chunk nobody loaded or edited generates that chunk for
+    each read (`block_anywhere_or_generate`); rare (the player walked off right after felling a tree),
+    but slow if it happens. A small cache of generated chunks would fix it.
 
 ---
 
@@ -336,7 +347,7 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 The user played co-op across two machines (2026-09-26, "it worked fine") and asked for these first, in
 this order. Each is one session, green and committed. P3 builds what P4 reuses.
 
-- [ ] **P1. Escape closes a panel first.** Now Escape in the inventory, a box or machine panel, or research
+- [x] **P1. Escape closes a panel first.** Now Escape in the inventory, a box or machine panel, or research
   closes the panel *and* shows the pause menu (`closed(false)` in `main.ts`; the panels' keydown handlers in
   `ui/inventory.ts`, `machine.ts`, `research.ts`). The browser won't re-lock the mouse from an Escape key
   press (Escape is not a user gesture), so: Escape closes the panel and leaves the game on screen with a
@@ -344,7 +355,7 @@ this order. Each is one session, green and committed. P3 builds what P4 reuses.
   second Escape opens the pause menu. E and a click outside still resume at once. **Done when:** from each
   panel, Escape → game view with the hint → click plays on; Escape again → pause menu; no double menus
   in co-op (the menu's co-op section still works).
-- [ ] **P2. Minimap, on by default.** Presentation only (never core state). Engine: new `minimap.rs`
+- [x] **P2. Minimap, on by default.** Presentation only (never core state). Engine: new `minimap.rs`
   writes an RGBA image (about 128 × 128, one pixel per column, north up, centred on the local player) from
   *loaded* chunks: the top block's average texture colour (computed once from `textures::generate`)
   shaded by the height step to its north-west neighbour, water tinted. Redraw only when the player crosses
@@ -353,7 +364,7 @@ this order. Each is one session, green and committed. P3 builds what P4 reuses.
   toggles it (saved in localStorage). This takes "Minimap" out of Milestone 4, which then adds deposit and
   machine markers. **Done when:** the map matches the terrain in a screenshot, follows the player and
   turns with them, costs under 0.2 ms per redraw, and the wasm grows under 3 KB gzipped.
-- [ ] **P3. Block timers + leaf decay.** New core state `sim/timers.rs`: `BlockTimers`, pending
+- [x] **P3. Block timers + leaf decay.** New core state `sim/timers.rs`: `BlockTimers`, pending
   (due tick, position, kind) entries, run in `Sim::step` after the tick's actions in (tick, position)
   order, saved and hashed (`write_state` / `read_state`, bump `SAVE_VERSION` to 11; older saves load with
   none pending), capped (for example 4096; beyond that new entries are dropped, deterministically).
@@ -365,7 +376,7 @@ this order. Each is one session, green and committed. P3 builds what P4 reuses.
   particles can play. **Done when:** scenario tests: a felled tree's leaves are gone within a minute
   with the same hash on two cores; leaves still connected to another tree stay; a save mid-decay resumes;
   `results_do_not_depend_on_frame_rate` and the loaded-chunks test still pass.
-- [ ] **P4. Grass spreads onto dirt.** Uses P3's timers. When a block changes (any action or timer), each
+- [x] **P4. Grass spreads onto dirt.** Uses P3's timers. When a block changes (any action or timer), each
   `DIRT` within 1 block (the 3 × 3 × 3 around the change) with air above and a `GRASS` among its 8
   horizontal or ±1-height neighbours gets a grow timer (half-life about 30 s); when it fires, grow if
   still true, then schedule the dirt around the new grass the same way, so it keeps spreading. Also: a
@@ -373,7 +384,7 @@ this order. Each is one session, green and committed. P3 builds what P4 reuses.
   chunks: only changes start timers, so it stays cheap and independent of loaded chunks. **Done when:**
   scenario test: dig a 5 × 5 dirt patch beside grass and it greens edge-inwards within a few minutes;
   covered grass turns to dirt; two cores match.
-- [ ] **P5. Tools: pickaxe, axe, shovel, in tiers, that wear out** (the user's answers, section 1).
+- [x] **P5. Tools: pickaxe, axe, shovel, in tiers, that wear out** (the user's answers, section 1).
   Tools are items (`item.rs`, stack 1; a new `tools.rs` holds the tool table) in two tiers now: stone
   (stone and logs, craftable by hand from the start) and iron (iron plates and rods); steel is the third
   tier once steel exists (Milestone 5), so keep the tier table open. Each speeds breaking of one material
@@ -486,3 +497,22 @@ and the balance numbers. Read the section you need.
   (Escape closes panels first, minimap by default, leaf decay, grass spread, tools) ahead of Milestone 4.
   A graphics agent now works in parallel on branch `art` (`docs/ART_HANDOVER.md`). The user answered
   the tool questions: tools wear out, come in tiers, and a better pickaxe keeps slightly more ore.
+- **2026-09-26:** P1 done: Escape in a panel leaves the game on screen with a "Click to keep playing"
+  hint (`#resume-hint`, `main.ts`); a second Escape pauses (and saves). Web only; tests stay 127.
+- **2026-09-26:** P2 done: minimap (`minimap.rs`, `api/minimap.rs`, `ui/minimap.ts`): top blocks cached
+  per chunk column and dropped when a chunk meshes or unloads, a redraw 0.07 ms (new tiles about 0.3 ms
+  after a long jump). Deviations: N toggles it (M stays mute); no water tint, as there is no water yet.
+  Tests 127 → 130; wasm 131.5 → 134.2 KB gzipped (+2.7 KB).
+- **2026-09-26:** P3 and P4 done: block timers (`sim/timers.rs`: sorted, one per position and kind,
+  capped at 4096, saved and hashed; save version 11), started by `Sim::block_changed` from breaking and
+  placing and from the timers themselves. Leaf decay (a `LeafDecayed` event plays a soft rustle), grass
+  spreading and covered grass dying. Deviations: leaf half-life 5 s, not 8, so a felled tree is bare
+  within a minute; grass needs "nothing solid above" rather than air (a belt doesn't kill it); no
+  particles (the game has none yet). The golden hash was re-recorded. Tests 130 → 136; wasm 134.2 →
+  136.8 KB gzipped.
+- **2026-09-26:** P5 done: tools (`tools.rs`: kinds, tiers, `break_speed`, `ore_yield`; six items and hand
+  recipes). Deviation: wear is the stack count (a tool's stack size is its uses), not new item state, so
+  every path that moves items keeps wear, no save format change was needed (still version 11), and two
+  worn tools of a kind pool their uses; dropping a tool drops it whole. A box feeding a belt would split
+  a tool into one-use pieces (harmless, and they pool again). A `ToolWornOut` event plays a sound and a
+  "wore out" toast (a pickup notice with count 0). Tests 136 → 141; wasm 136.8 → 138.0 KB gzipped.

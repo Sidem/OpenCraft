@@ -37,6 +37,7 @@ mod inventory;
 mod item;
 mod math;
 mod mesher;
+mod minimap;
 mod net;
 mod noise;
 mod physics;
@@ -48,6 +49,7 @@ mod save;
 mod sim;
 mod sound;
 mod textures;
+mod tools;
 mod world;
 mod worldgen;
 
@@ -62,6 +64,7 @@ use entities::Items;
 use inventory::Inventory;
 use item::ItemId;
 use math::{IVec3, Vec3};
+use minimap::Minimap;
 use net::Role;
 use player::Player;
 use raycast::RayHit;
@@ -118,6 +121,7 @@ pub struct Game {
     step_distance: f64,
     sounds: Sounds,
     textures: Vec<u8>,
+    minimap: Minimap,
     /// Box instances (dropped items, belt items, machine parts) for the current frame.
     instances: Vec<f32>,
     pickups: VecDeque<(ItemId, u32)>,
@@ -137,6 +141,7 @@ impl Game {
         let spawn = Vec3::new(0.5, sim.world.generator().height_at(0, 0) as f64 + 1.0, 0.5);
         let player = Player::new(spawn);
         let eye = player.eye();
+        let textures = textures::generate();
         Game {
             sim,
             local: PlayerId(0),
@@ -159,7 +164,8 @@ impl Game {
             dig_timer: 0.0,
             step_distance: 0.0,
             sounds: Sounds::default(),
-            textures: textures::generate(),
+            minimap: Minimap::new(&textures),
+            textures,
             instances: Vec::new(),
             pickups: VecDeque::new(),
             cur_pickup: (ItemId::NONE, 0),

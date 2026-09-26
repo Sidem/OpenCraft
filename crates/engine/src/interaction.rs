@@ -13,6 +13,7 @@ use crate::physics::Aabb;
 use crate::player;
 use crate::raycast::raycast;
 use crate::sound;
+use crate::tools;
 use crate::Game;
 
 const REACH: f64 = 5.0;
@@ -93,7 +94,8 @@ impl Game {
         if def.break_time < 0.0 {
             return;
         }
-        self.mine_progress += if def.break_time == 0.0 { 1.0 } else { dt / def.break_time };
+        let speed = tools::break_speed(self.inventory().selected_stack().item, hit.id);
+        self.mine_progress += if def.break_time == 0.0 { 1.0 } else { dt * speed / def.break_time };
         if self.mine_progress < 1.0 {
             return;
         }

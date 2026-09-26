@@ -173,10 +173,16 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 The roadmap agent adds a line here when gameplay needs a look. It will already have appended a `tex`
 layer with a plain placeholder pattern, so nothing is blocked. Tick the line when you replace it.
 
-- [ ] (P5, upcoming) Pickaxe, axe and shovel in stone and iron tiers (steel later), each tier readable
-  at a glance: icons, loose-item models and held models. The hotbar gets a wear bar.
-- [ ] (P3, upcoming) A leaf-decay particle or puff, if cheap; otherwise none.
+- [ ] (P5, landed) Pickaxe, axe and shovel in stone and iron tiers (steel later), each tier readable
+  at a glance: icons, loose-item models and held models. Placeholders: layers `tex::STONE_PICKAXE`..`IRON_SHOVEL`
+  (51–56) drawn by `textures/tools.rs` on flat plates (`item.rs` `tool()` size). The hotbar wear bar is
+  `.slot.tool::after` in `hud.css`.
+- [ ] (P3, landed) A leaf-decay particle or puff, if cheap; otherwise none. There is no particle system;
+  the `LeafDecayed` event (`events.rs`) only plays a sound today.
 
 ## 8. Log
 
 - **2026-09-26:** Handover written; no art work yet.
+- **2026-09-26 (roadmap agent):** `main` gained P1–P5: new `tex` layers 51–56 (tools) with `tex::COUNT` = 57,
+  an arm in `textures.rs` `pixel` and `textures/tools.rs`. Rebase `art` onto `main`; renumber your appended
+  layers after 56 if you added any.

@@ -32,8 +32,8 @@ impl Game {
     /// The position of either event is available through `event_x/y/z`.
     pub fn next_event(&mut self) -> u32 {
         self.cur_mesh = None;
-        match self.sim.world.events.pop_front() {
-            None => 0,
+        let kind = match self.sim.world.events.pop_front() {
+            None => return 0,
             Some(Event::Mesh(m)) => {
                 self.cur_event_pos = m.pos;
                 self.cur_mesh = Some(m);
@@ -43,7 +43,9 @@ impl Game {
                 self.cur_event_pos = p;
                 2
             }
-        }
+        };
+        self.minimap.touch(self.cur_event_pos);
+        kind
     }
 
     pub fn event_x(&self) -> i32 {

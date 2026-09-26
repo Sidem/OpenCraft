@@ -1,4 +1,18 @@
-/* Pause / start menu (index.html #menu, driven by main.ts): panel, loading bar, controls list. */
+/* Pause / start menu (index.html #menu, driven by main.ts): panel, loading bar, controls list; the
+   "click to keep playing" hint shown after Escape closes a panel. */
+
+#resume-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 40px);
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 14px;
+  white-space: nowrap;
+}
 
 #menu {
   position: fixed;

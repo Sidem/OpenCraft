@@ -1,6 +1,7 @@
 // In-game HUD: crosshair, target name with detail text and mining bar, hotbar, pickup toasts,
 // the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
-// when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse.
+// when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse, `showAmount` a
+// slot's count or, for a tool (whose count is its uses left), its wear bar.
 
 import './hud.css';
 import type { Game } from '../wasm/engine.js';
@@ -36,6 +37,14 @@ export interface DebugInfo {
 }
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+/** Shows a slot's amount: the count, or a wear bar for a tool (its count is the uses left; hud.css). */
+export function showAmount(game: Game, root: HTMLElement, count: HTMLElement, item: number, n: number): void {
+  const uses = n > 0 ? game.tool_uses(item) : 0;
+  root.classList.toggle('tool', uses > 0);
+  if (uses > 0) root.style.setProperty('--wear', String(n / uses));
+  count.textContent = uses === 0 && n > 1 ? String(n) : '';
+}
 
 /** DOM overlay: hotbar, target readout, mining progress, pickup toasts and the F3 debug panel. */
 export class Hud {
@@ -111,7 +120,7 @@ export class Hud {
           const ctx = s.icon.getContext('2d')!;
           ctx.clearRect(0, 0, ICON_PX, ICON_PX);
           if (n > 0) ctx.drawImage(this.itemIcon(item), 0, 0);
-          s.count.textContent = n > 1 ? String(n) : '';
+          showAmount(g, s.root, s.count, item, n);
           s.item = item;
           s.n = n;
         }
@@ -165,11 +174,15 @@ export class Hud {
     }
   }
 
+  /** A toast per item, adding up; a tool shows no amount, and a count of 0 means it wore out. */
   private pushToast(item: number, count: number, now: number): void {
-    const existing = this.toasts.get(item);
+    const tool = this.game.tool_uses(item) > 0;
+    const key = count === 0 ? -1 - item : item;
+    const text = (n: number) => (!tool ? `+${n}` : n === 0 ? 'wore out' : '');
+    const existing = this.toasts.get(key);
     if (existing) {
       existing.count += count;
-      existing.label.textContent = `+${existing.count}`;
+      existing.label.textContent = text(existing.count);
       existing.until = now + TOAST_MS;
       existing.el.classList.remove('bump');
       void existing.el.offsetWidth;
@@ -183,12 +196,12 @@ export class Hud {
     icon.getContext('2d')!.drawImage(this.itemIcon(item), 0, 0);
     const label = document.createElement('span');
     label.className = 'amount';
-    label.textContent = `+${count}`;
+    label.textContent = text(count);
     const name = document.createElement('span');
     name.textContent = this.game.item_name(item);
     el.append(icon, label, name);
     this.toastBox.append(el);
-    this.toasts.set(item, { el, label, count, until: now + TOAST_MS });
+    this.toasts.set(key, { el, label, count, until: now + TOAST_MS });
   }
 
   /**

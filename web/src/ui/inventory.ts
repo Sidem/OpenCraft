@@ -6,6 +6,7 @@
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
+import { showAmount } from './hud';
 
 const ICON_PX = 64;
 /** Shift-clicking Craft makes up to this many at once. */
@@ -241,7 +242,7 @@ export class InventoryPanel {
     const text = h('div', 'recipe-text');
     const title = h('h4', '', g.item_name(out));
     const n = g.recipe_output_count(r);
-    if (n > 1) title.append(h('span', 'recipe-yield', ` ×${n}`));
+    if (n > 1 && g.tool_uses(out) === 0) title.append(h('span', 'recipe-yield', ` ×${n}`));
     const inputs = h('div', 'recipe-inputs');
     const chips: Chip[] = [];
     const flat = g.recipe_inputs(r);
@@ -276,12 +277,14 @@ export class InventoryPanel {
   }
 
   private drawSlot(s: SlotView, item: number, n: number): void {
-    s.root.title = n > 0 ? `${this.game.item_name(item)}${n > 1 ? ` ×${n}` : ''}` : '';
+    const uses = this.game.tool_uses(item);
+    const amount = uses > 0 ? ` (${n} of ${uses} uses left)` : n > 1 ? ` ×${n}` : '';
+    s.root.title = n > 0 ? `${this.game.item_name(item)}${amount}` : '';
     if (item === s.item && n === s.n) return;
     const ctx = s.icon.getContext('2d')!;
     ctx.clearRect(0, 0, ICON_PX, ICON_PX);
     if (n > 0) ctx.drawImage(this.icon(item), 0, 0);
-    s.count.textContent = n > 1 ? String(n) : '';
+    showAmount(this.game, s.root, s.count, item, n);
     s.item = item;
     s.n = n;
   }

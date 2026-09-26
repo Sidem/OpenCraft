@@ -14,6 +14,8 @@ use crate::Game;
 
 /// Working miners are heard within this many blocks of the camera.
 const MINER_SOUND_RANGE: f64 = 24.0;
+/// Decaying leaves rustle softly within this many blocks.
+const LEAF_SOUND_RANGE: f64 = 20.0;
 /// Seconds before a broken block's drops can be picked up.
 const DROP_PICKUP_DELAY: f32 = 0.25;
 
@@ -34,6 +36,20 @@ impl Game {
                 }
                 SimEvent::BlockPlaced { pos, block, .. } => {
                     self.play(sound::PLACE, block::def(block).sound, pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
+                }
+                SimEvent::LeafDecayed { pos } => {
+                    let at = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
+                    if (at - self.body().eye()).length() < LEAF_SOUND_RANGE {
+                        self.play(sound::BREAK, block::sound::LEAVES, at, 0.2);
+                    }
+                }
+                SimEvent::ToolWornOut { player, item } => {
+                    if let Some(body) = self.bodies.get(player.0 as usize).and_then(Option::as_ref) {
+                        self.play(sound::BREAK, block::sound::WOOD, body.eye(), 0.8);
+                    }
+                    if player == local {
+                        self.pickups.push_back((item, 0)); // a count of 0 tells the HUD it wore out
+                    }
                 }
                 SimEvent::Gained { player, item, count } if player == local => {
                     self.toast(item, count);

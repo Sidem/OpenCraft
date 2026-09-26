@@ -10,6 +10,7 @@
 //! texture layer in `block::tex` with its pattern in `textures::pixel` if it needs a new look.
 
 use crate::block::{self, tex, BlockId, AIR, BLOCK_COUNT, FACE_BOTTOM, FACE_SIDE, FACE_TOP};
+use crate::tools::{Tier, IRON_TIER, STONE_TIER};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct ItemId(pub u16);
@@ -47,8 +48,14 @@ pub const SCREW: ItemId = ItemId(260);
 pub const COPPER_WIRE: ItemId = ItemId(261);
 pub const RED_PACK: ItemId = ItemId(262);
 pub const GREEN_PACK: ItemId = ItemId(263);
+pub const STONE_PICKAXE: ItemId = ItemId(264);
+pub const STONE_AXE: ItemId = ItemId(265);
+pub const STONE_SHOVEL: ItemId = ItemId(266);
+pub const IRON_PICKAXE: ItemId = ItemId(267);
+pub const IRON_AXE: ItemId = ItemId(268);
+pub const IRON_SHOVEL: ItemId = ItemId(269);
 
-/// Stack size of every item so far.
+/// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
 
 pub struct ItemDef {
@@ -94,7 +101,12 @@ const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> ItemDef {
     ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
 }
 
-const EXTRA: [ItemDef; 8] = [
+/// A tool: a flat plate showing it, whose stack size is its uses.
+const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
+    ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.8, 0.1, 0.8], places: AIR }
+}
+
+const EXTRA: [ItemDef; 14] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -103,6 +115,12 @@ const EXTRA: [ItemDef; 8] = [
     part("Copper Wire", tex::COPPER_WIRE, [0.6, 0.4, 0.6]),
     part("Red Science Pack", tex::RED_PACK, [0.4, 0.6, 0.4]),
     part("Green Science Pack", tex::GREEN_PACK, [0.4, 0.6, 0.4]),
+    tool("Stone Pickaxe", tex::STONE_PICKAXE, &STONE_TIER),
+    tool("Stone Axe", tex::STONE_AXE, &STONE_TIER),
+    tool("Stone Shovel", tex::STONE_SHOVEL, &STONE_TIER),
+    tool("Iron Pickaxe", tex::IRON_PICKAXE, &IRON_TIER),
+    tool("Iron Axe", tex::IRON_AXE, &IRON_TIER),
+    tool("Iron Shovel", tex::IRON_SHOVEL, &IRON_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

@@ -11,7 +11,8 @@
 //! `Game::handle_sim_events` (events.rs) drains them every tick.
 //!
 //! To add core state: a field here (or on the type that owns it) and its bytes in that type's
-//! `write_state`, which `state_hash` and saves use. To change it: an `Action`.
+//! `write_state`, which `state_hash` and saves use. To change it: an `Action`. Core code that changes a
+//! block calls `block_changed` (sim/timers.rs), so timed rules (leaf decay, grass) react.
 //! To tell the game about something: a `SimEvent` variant and its arm in `handle_sim_events`.
 
 use crate::action::Action;
@@ -22,6 +23,10 @@ use crate::inventory::Inventory;
 use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::world::World;
+
+mod timers;
+
+pub use timers::BlockTimers;
 
 /// Index of a player in `Sim::players`. Ids are reused after a player leaves.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -63,6 +68,15 @@ pub enum SimEvent {
         item: ItemId,
         count: u32,
     },
+    /// A player's tool broke a block with its last use and is gone.
+    ToolWornOut {
+        player: PlayerId,
+        item: ItemId,
+    },
+    /// A leaf decayed (block timers): it is gone and drops nothing.
+    LeafDecayed {
+        pos: IVec3,
+    },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
     Thrown {
         player: PlayerId,
@@ -100,6 +114,8 @@ pub struct Sim {
     /// Players who left with a key, oldest first; `Join` with that key gives their things back.
     pub away: Vec<Away>,
     pub rng: Rng,
+    /// Pending block changes: leaf decay, grass spreading (timers.rs).
+    pub timers: BlockTimers,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -117,6 +133,7 @@ impl Sim {
             players: vec![Some(PlayerCore::default())],
             away: Vec::new(),
             rng: Rng::new(hash2(seed, 17, 42) as u64),
+            timers: BlockTimers::default(),
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -156,13 +173,15 @@ impl Sim {
         Some(())
     }
 
-    /// Advances the core by one tick of `TICK` seconds: this tick's actions, then the factory.
+    /// Advances the core by one tick of `TICK` seconds: this tick's actions, the block timers due, then
+    /// the factory.
     pub fn step(&mut self) {
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
         let later = self.pending.split_off(due);
         for q in std::mem::replace(&mut self.pending, later) {
             self.apply(q.player, q.action);
         }
+        self.run_timers();
         self.factory.update(&mut self.world, self.tick, &mut self.events);
         self.tick += 1;
     }
@@ -176,8 +195,8 @@ impl Sim {
     }
 
     /// The canonical core state: tick, rng, players (up to the last one here), away players, world
-    /// edits, factory and deposits. Pending actions and undrained events are not state: peers may
-    /// hold different queues for future ticks (a join snapshot sends them along: net/snapshot.rs).
+    /// edits, factory and deposits, block timers. Pending actions and undrained events are not state:
+    /// peers may hold different queues for future ticks (a join snapshot sends them along: net/snapshot.rs).
     pub fn write_state(&self, w: &mut ByteWriter) {
         w.u64(self.tick);
         w.u64(self.rng.state());
@@ -198,10 +217,11 @@ impl Sim {
         }
         self.world.write_state(w);
         self.factory.write_state(w);
+        self.timers.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
-    /// version 10 have no keys (0) and nobody away.
+    /// version 10 have no keys (0) and nobody away; before 11, no block timers.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -226,6 +246,7 @@ impl Sim {
         }
         self.world.read_state(r)?;
         self.factory = Factory::read_state(&mut self.world, r)?;
+        self.timers = if r.version >= 11 { BlockTimers::read_state(r)? } else { BlockTimers::default() };
         Some(())
     }
 }

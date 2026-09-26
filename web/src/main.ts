@@ -20,6 +20,7 @@ import { Hints } from './ui/hints';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
+import { Minimap } from './ui/minimap';
 import { NameTags } from './ui/nametags';
 import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
@@ -87,6 +88,7 @@ async function main(): Promise<void> {
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const hints = new Hints(game);
+  const minimap = new Minimap(game, wasm.memory);
   const nameTags = new NameTags();
   const playerList = new PlayerList();
   const coopPanel = new CoopPanel(coop, {
@@ -118,12 +120,23 @@ async function main(): Promise<void> {
   canvas.addEventListener('click', () => {
     if (!input.locked && !play.disabled && !soundLab.isOpen && !panelOpen()) start();
   });
-  // E or a click outside goes straight back to play (both are gestures that allow re-locking);
-  // Escape lands on the pause menu, like it does from the game.
+  const resumeHint = document.getElementById('resume-hint')!;
+  const pause = () => {
+    resumeHint.classList.add('hidden');
+    menu.classList.remove('hidden');
+  };
+  // E or a click outside goes straight back to play (both are gestures that allow re-locking). Escape
+  // isn't one, so it leaves the game on screen with a hint: a click plays on, a second Escape pauses.
   const closed = (resume: boolean) => {
     if (resume) start();
-    else menu.classList.remove('hidden');
+    else resumeHint.classList.remove('hidden');
   };
+  window.addEventListener('keydown', (e) => {
+    // A panel's own Escape handler already ran (and prevented the default) when it closed.
+    if (e.key !== 'Escape' || e.repeat || e.defaultPrevented || resumeHint.classList.contains('hidden')) return;
+    pause();
+    session?.save().catch(() => {}); // pausing saves
+  });
   inventory.onClose = (resume) => {
     game.close_inventory();
     closed(resume);
@@ -132,6 +145,7 @@ async function main(): Promise<void> {
   research.onClose = closed;
   input.onLockChange = (locked) => {
     menu.classList.toggle('hidden', locked || panelOpen());
+    resumeHint.classList.add('hidden');
     if (!locked) {
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
@@ -144,11 +158,11 @@ async function main(): Promise<void> {
     e.preventDefault();
     session?.saveNow();
     loadingText.textContent = 'Graphics context lost. Reload the page to continue.';
-    menu.classList.remove('hidden');
+    pause();
   });
 
   // Handy for poking at the engine from the devtools console.
-  const handles = { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, session, coop };
+  const handles = { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, minimap, session, coop };
   Object.assign(window, { opencraft: handles });
 
   // ---- frame loop
@@ -191,6 +205,7 @@ async function main(): Promise<void> {
     for (const a of input.takeActions()) {
       if (a.kind === 'debug') hud.toggleDebug();
       else if (a.kind === 'hint') hints.skip();
+      else if (a.kind === 'map') minimap.toggle();
       else if (a.kind === 'slot') game.select_slot(a.slot);
       else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();
@@ -277,6 +292,7 @@ async function main(): Promise<void> {
     machine.update();
     research.update(now);
     hints.update();
+    minimap.update(now);
     playerList.update(coop, input.held('Tab'), now);
     coopPanel.update(now);
     requestAnimationFrame(frame);
@@ -290,7 +306,7 @@ async function main(): Promise<void> {
     c.onEnd = (reason) => {
       play.disabled = true;
       document.exitPointerLock();
-      menu.classList.remove('hidden');
+      pause();
       coopPanel.end(reason);
     };
     tickWhenStalled(() => lastFrame, () => advance(performance.now()));

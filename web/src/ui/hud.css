@@ -137,6 +137,21 @@
   text-shadow: 0 1px 2px #000;
 }
 
+/* A tool's wear bar (showAmount in hud.ts): --wear is the share of uses left, green when fresh, red at the end. */
+.slot.tool::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: hsl(calc(var(--wear, 1) * 120), 75%, 50%);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  transform: scaleX(var(--wear, 1));
+  transform-origin: left;
+}
+
 #toasts {
   position: absolute;
   right: 18px;
@@ -208,7 +223,7 @@
 
 #muted {
   position: absolute;
-  top: 12px;
+  top: calc(12px + var(--map-space, 0px));
   right: 12px;
   padding: 4px 10px;
   border-radius: 6px;

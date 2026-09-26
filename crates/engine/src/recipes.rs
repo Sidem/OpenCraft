@@ -4,7 +4,11 @@
 
 use crate::block::*;
 use crate::inventory::Inventory;
-use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, RED_PACK, SCREW};
+use crate::item::{
+    ItemId, COPPER_INGOT, COPPER_WIRE, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE, IRON_ROD,
+    IRON_SHOVEL, RED_PACK, SCREW, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+};
+use crate::tools::{IRON_TIER, STONE_TIER};
 
 pub struct Recipe {
     pub output: ItemId,
@@ -150,6 +154,43 @@ pub const RECIPES: &[Recipe] = &[
         count: 2,
         inputs: &[(b(BELT), 2), (IRON_PLATE, 1), (SCREW, 4)],
         blurb: "Carries items twice as fast as a belt. Mixes freely with ordinary belts.",
+    },
+    // Tools: the count is the uses (tools.rs), so a craft makes one fresh tool.
+    Recipe {
+        output: STONE_PICKAXE,
+        count: STONE_TIER.uses,
+        inputs: &[(b(STONE), 3), (b(LOG), 2)],
+        blurb: "Hold it to break stone and ore twice as fast. Wears out after 150 blocks.",
+    },
+    Recipe {
+        output: STONE_AXE,
+        count: STONE_TIER.uses,
+        inputs: &[(b(STONE), 3), (b(LOG), 2)],
+        blurb: "Hold it to chop wood twice as fast. Wears out after 150 blocks.",
+    },
+    Recipe {
+        output: STONE_SHOVEL,
+        count: STONE_TIER.uses,
+        inputs: &[(b(STONE), 1), (b(LOG), 2)],
+        blurb: "Hold it to dig dirt, grass and sand twice as fast. Wears out after 150 blocks.",
+    },
+    Recipe {
+        output: IRON_PICKAXE,
+        count: IRON_TIER.uses,
+        inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
+        blurb: "Breaks stone and ore four times as fast and keeps 4 ore per block instead of 3. Lasts 600 blocks.",
+    },
+    Recipe {
+        output: IRON_AXE,
+        count: IRON_TIER.uses,
+        inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
+        blurb: "Chops wood four times as fast. Lasts 600 blocks.",
+    },
+    Recipe {
+        output: IRON_SHOVEL,
+        count: IRON_TIER.uses,
+        inputs: &[(IRON_PLATE, 1), (IRON_ROD, 2)],
+        blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
     },
 ];
 
