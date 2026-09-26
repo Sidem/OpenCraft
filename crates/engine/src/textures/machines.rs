@@ -22,22 +22,22 @@ pub(super) fn belt_top(x: i32, y: i32, chevron_color: [f64; 3]) -> [u8; 4] {
     }
 }
 
-/// Dark machine housing with a band of `stripe`-coloured hazard stripes.
+/// Ivory extractor housing with a narrow burnt-orange warning band.
 pub(super) fn miner_side(x: i32, y: i32, stripe: [f64; 3]) -> [u8; 4] {
     let edge = x == 0 || y == 0 || x == 15 || y == 15;
     let k = 0.88 + 0.12 * n(47, x, y);
     if edge {
-        rgb([38.0, 40.0, 46.0], k)
+        rgb([63.0, 70.0, 72.0], k)
     } else if (10..=12).contains(&y) {
         if (x + y).rem_euclid(4) < 2 {
             rgb(stripe, k)
         } else {
-            rgb([40.0, 38.0, 36.0], k)
+            rgb([74.0, 72.0, 67.0], k)
         }
     } else if (x == 2 || x == 13) && (y == 2 || y == 7) {
-        rgb([150.0, 156.0, 166.0], 1.0)
+        rgb([112.0, 121.0, 123.0], 1.0)
     } else {
-        rgb([70.0, 76.0, 86.0], k)
+        rgb([196.0, 201.0, 190.0], k)
     }
 }
 
@@ -47,11 +47,11 @@ pub(super) fn miner_top(x: i32, y: i32) -> [u8; 4] {
     let slot = (3..=12).contains(&x) && (3..=12).contains(&y) && y % 3 == 1;
     let k = 0.88 + 0.12 * n(48, x, y);
     if edge {
-        rgb([38.0, 40.0, 46.0], k)
+        rgb([63.0, 70.0, 72.0], k)
     } else if slot {
         rgb([20.0, 22.0, 26.0], 1.0)
     } else {
-        rgb([74.0, 80.0, 90.0], k)
+        rgb([190.0, 196.0, 186.0], k)
     }
 }
 
@@ -65,20 +65,21 @@ pub(super) fn drill(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Wooden crate: planks inside a darker frame with iron corner brackets.
-pub(super) fn crate_wood(x: i32, y: i32, vertical: bool) -> [u8; 4] {
-    let (along, across) = if vertical { (y, x) } else { (x, y) };
+/// Stackable chest: inset timber panels, a hinged lid seam, latch and steel corners.
+pub(super) fn crate_wood(x: i32, y: i32, top: bool) -> [u8; 4] {
     let bracket = (x <= 2 || x >= 13) && (y <= 2 || y >= 13);
     let frame = x <= 1 || y <= 1 || x >= 14 || y >= 14;
-    let k = 0.85 + 0.12 * n(50, x, y) + 0.06 * n(51, along / 5, across);
-    if bracket {
-        rgb([104.0, 108.0, 116.0], 0.9 + 0.1 * n(52, x, y))
-    } else if frame {
-        rgb([112.0, 80.0, 48.0], k)
-    } else if across % 4 == 1 {
-        rgb([92.0, 64.0, 38.0], k)
+    let seam = if top { y == 4 || y == 11 } else { y == 5 || y == 6 };
+    let latch = (6..=9).contains(&x) && (6..=8).contains(&y);
+    let grain = 0.87 + 0.1 * n(50, x / 3, y) + 0.05 * smooth(51, x, y, 4);
+    if bracket || latch {
+        rgb([130.0, 139.0, 143.0], 0.9 + 0.07 * n(52, x, y))
+    } else if frame || seam {
+        rgb([76.0, 59.0, 47.0], 0.9 + 0.08 * n(53, x, y))
+    } else if x == 11 || (!top && x == 5) || (top && x == 4) {
+        rgb([100.0, 79.0, 61.0], grain)
     } else {
-        rgb([168.0, 128.0, 80.0], k)
+        rgb([165.0, 133.0, 98.0], grain)
     }
 }
 
@@ -114,7 +115,7 @@ pub(super) fn smelter(x: i32, y: i32, side: bool) -> [u8; 4] {
     if mortar {
         rgb([96.0, 90.0, 84.0], 0.9 + 0.1 * n(58, x, y))
     } else {
-        rgb([150.0, 82.0, 62.0], k)
+        rgb([151.0, 106.0, 82.0], k)
     }
 }
 
@@ -142,19 +143,19 @@ pub(super) fn wire(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Teal machine panel with a dark inspection window (sides) or a press plate (top).
+/// Ivory press housing with a dark inspection window (sides) or a steel press plate (top).
 pub(super) fn constructor(x: i32, y: i32, side: bool) -> [u8; 4] {
     let edge = x == 0 || y == 0 || x == 15 || y == 15;
     let k = 0.88 + 0.12 * n(62, x, y);
     if edge {
-        rgb([34.0, 52.0, 56.0], k)
+        rgb([62.0, 72.0, 73.0], k)
     } else if side && (4..=11).contains(&x) && (3..=8).contains(&y) {
         let glint = x - y == 1 || x - y == 2;
         rgb(if glint { [120.0, 150.0, 156.0] } else { [26.0, 34.0, 38.0] }, 1.0)
     } else if !side && (3..=12).contains(&x) && (3..=12).contains(&y) {
         rgb([150.0, 156.0, 166.0], 0.85 + 0.15 * n(63, x, y / 3))
     } else {
-        rgb([58.0, 132.0, 138.0], k)
+        rgb([200.0, 207.0, 196.0], k)
     }
 }
 

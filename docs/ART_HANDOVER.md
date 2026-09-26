@@ -170,7 +170,7 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 - [x] **A3. Item icons and loose items.** Ingots, plates, rods, screws, wire, science packs. If single
   boxes aren't enough, add multi-box item models (`item_models.rs`, keyed by item id, used by
   `push_item_box` and a new icon getter). One getter in `api/content.rs`.
-- [ ] **A4. Machine models.** Clearer silhouettes, so each machine is recognisable from its outline;
+- [x] **A4. Machine models.** Clearer silhouettes, so each machine is recognisable from its outline;
   animation that shows work (and stops when idle, no power or blocked; the lamps already carry state).
   Miners, smelter, constructor, lab, generator, pole, belts and belt shapes, splitter and filter; the
   storage box is a plain textured cube (texture only).
@@ -256,3 +256,17 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   `artifacts/a3/after.png`; focused icon evidence: `artifacts/a3/items.png`. `npm run check`
   green (145 tests), golden hash unchanged. Vite wasm **141.02 kB gzip**, +0.93 kB from A2;
   `wasm-sizes.mjs` inspected. No merge or push.
+- **2026-09-26, A4:** Rebased on `main`; replaced cube-like factory silhouettes with a
+  tracked extractor and exposed bit, furnace with ore mouth/crucible/chimney, open constructor
+  press, turbine generator with hopper/exhaust, glass lab with antenna, sturdier pole, guarded
+  conveyor routes, a forked splitter and tall filter bridge. Storage remains a cube but now has
+  a hinged chest texture with latch and reinforced corners. Ivory housings and burnt-orange
+  accents tie the machinery to Alpine materials; independent continuous UV drift reduces
+  terrain repetition. Miner/press/generator/lab movement occurs only in their working state;
+  the smelter fire darkens when idle. Same fixture screenshots:
+  `artifacts/a3/after.png` → `artifacts/a4/after.png`; additional close-up:
+  `artifacts/a4/machines.png` (`?view=machines`, power wires hidden solely for silhouette review).
+  `npm run check` green (145 tests), golden hash unchanged. Vite wasm **142.60 kB gzip**,
+  +1.58 kB from A3, +3.16 kB over the rebuilt A1/P1–P5 baseline; `wasm-sizes.mjs` inspected.
+  Synthetic 3,456-box browser scene: 0.10 ms median / 0.30 ms p95 at timer resolution,
+  GL error 0. No merge or push.

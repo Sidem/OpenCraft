@@ -225,16 +225,22 @@ impl Machine for Lab {
     /// A white cabinet with a glass dome that glows while it works, and a status lamp.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let body = [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME];
-        push_box(out, rel + Vec3::new(0.0, -0.12, 0.0), 0.0, [0.92, 0.76, 0.92], 0.0, body, false);
+        push_box(out, rel + Vec3::new(0.0, -0.4, 0.0), 0.0, [0.94, 0.18, 0.94], 0.0, body, false);
+        push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.67, 0.43, 0.67], 0.0, [tex::GLASS; 3], false);
+        for x in [-0.37, 0.37] {
+            push_box(out, rel + Vec3::new(x, -0.02, 0.0), 0.0, [0.08, 0.61, 0.75], 0.0, [tex::FRAME; 3], false);
+        }
+        push_box(out, rel + Vec3::new(0.0, 0.26, 0.0), 0.0, [0.78, 0.11, 0.78], 0.0, body, false);
         let working = self.status == LabStatus::Working;
-        let spin = if working { (time * 1.5) as f32 } else { 0.0 };
-        let dome = [tex::LAB_TOP; 3];
-        push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), spin, [0.5, 0.16, 0.5], 0.0, dome, false);
+        let pulse = if working { 0.03 * (time * 3.0).sin().abs() } else { 0.0 };
+        push_box(out, rel + Vec3::new(0.0, -0.22 + pulse, 0.0), 0.0, [0.35, 0.13, 0.35], 0.0, [tex::LAB_TOP; 3], false);
+        push_box(out, rel + Vec3::new(-0.28, 0.46, -0.28), 0.0, [0.06, 0.37, 0.06], 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + Vec3::new(-0.28, 0.68, -0.28), 0.0, [0.14, 0.12, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
         let lamp = match self.status {
             LabStatus::Working => tex::LAMP_GREEN,
             LabStatus::NoPacks | LabStatus::AllTaken => tex::LAMP_YELLOW,
             LabStatus::NoResearch | LabStatus::NoPower => tex::LAMP_RED,
         };
-        push_box(out, rel + Vec3::new(0.32, 0.34, 0.32), 0.0, [0.14, 0.1, 0.14], 0.0, [lamp; 3], false);
+        push_box(out, rel + Vec3::new(0.31, 0.35, 0.31), 0.0, [0.13, 0.08, 0.13], 0.0, [lamp; 3], false);
     }
 }

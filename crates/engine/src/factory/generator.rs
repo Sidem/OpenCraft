@@ -116,14 +116,30 @@ impl Machine for Generator {
     /// A steel housing with a spinning-looking fan cap and a status lamp.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let body = [tex::GENERATOR_TOP, tex::GENERATOR_SIDE, tex::FRAME];
-        push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.92, 0.8, 0.92], 0.0, body, false);
+        push_box(out, rel + Vec3::new(0.0, -0.41, 0.0), 0.0, [0.94, 0.17, 0.94], 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + Vec3::new(0.0, -0.16, 0.0), 0.0, [0.76, 0.39, 0.74], 0.0, body, false);
+        // Broad flywheel and two crossing blades on top, plus a separate fuel hopper and exhaust.
+        push_box(out, rel + Vec3::new(0.0, 0.08, 0.0), 0.0, [0.63, 0.1, 0.63], 0.0, [tex::GENERATOR_TOP; 3], false);
         let spin = if self.running { (time * 8.0) as f32 } else { 0.0 };
-        push_box(out, rel + Vec3::new(0.0, 0.33, 0.0), spin, [0.5, 0.06, 0.12], 0.0, [tex::FRAME; 3], true);
+        push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), spin, [0.57, 0.06, 0.1], 0.0, [tex::IRON_PLATE; 3], false);
+        push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), spin, [0.1, 0.06, 0.57], 0.0, [tex::IRON_PLATE; 3], false);
+        push_box(out, rel + Vec3::new(0.0, 0.2, 0.0), 0.0, [0.14, 0.08, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
+        push_box(
+            out,
+            rel + Vec3::new(-0.32, 0.12, 0.3),
+            0.0,
+            [0.26, 0.39, 0.29],
+            0.0,
+            [tex::BOX_TOP, tex::GENERATOR_SIDE, tex::FRAME],
+            false,
+        );
+        push_box(out, rel + Vec3::new(0.32, 0.31, -0.3), 0.0, [0.2, 0.63, 0.2], 0.0, body, false);
+        push_box(out, rel + Vec3::new(0.32, 0.66, -0.3), 0.0, [0.25, 0.07, 0.25], 0.0, [tex::GENERATOR_SIDE; 3], false);
         let lamp = match (self.running, self.fuel.total() > 0 || self.burn > 0) {
             (true, _) => tex::LAMP_GREEN,
             (false, true) => tex::FRAME,
             (false, false) => tex::LAMP_RED,
         };
-        push_box(out, rel + Vec3::new(0.32, 0.34, 0.32), 0.0, [0.14, 0.1, 0.14], 0.0, [lamp; 3], false);
+        push_box(out, rel + Vec3::new(0.3, 0.1, 0.36), 0.0, [0.12, 0.08, 0.12], 0.0, [lamp; 3], false);
     }
 }

@@ -156,15 +156,21 @@ impl Machine for Router {
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
         let top = if self.is_filter { tex::FILTER_TOP } else { tex::SPLITTER_TOP };
         let yaw = self.dir as f32 * std::f32::consts::FRAC_PI_2;
-        push_box(
-            out,
-            rel + Vec3::new(0.0, -0.36, 0.0),
-            yaw,
-            [0.96, 0.28, 0.96],
-            0.0,
-            [top, tex::FRAME, tex::FRAME],
-            false,
-        );
+        let (s, c) = yaw.sin_cos();
+        let at = |x: f32, y: f32, z: f32| rel + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
+        push_box(out, at(0.0, -0.36, 0.0), yaw, [0.96, 0.28, 0.96], 0.0, [top, tex::FRAME, tex::FRAME], false);
+        // Fork guards guide a splitter; the filter instead has a taller inspection bridge.
+        for x in [-0.39, 0.39] {
+            push_box(out, at(x, -0.16, 0.0), yaw, [0.08, 0.19, 0.85], 0.0, [tex::FRAME; 3], false);
+        }
+        if self.is_filter {
+            for x in [-0.35, 0.35] {
+                push_box(out, at(x, 0.1, 0.02), yaw, [0.1, 0.38, 0.12], 0.0, [tex::FRAME; 3], false);
+            }
+            push_box(out, at(0.0, 0.31, 0.02), yaw, [0.8, 0.09, 0.18], 0.0, [tex::COPPER_INGOT; 3], false);
+        } else {
+            push_box(out, at(0.0, -0.16, -0.26), yaw, [0.5, 0.1, 0.36], 0.0, [tex::IRON_PLATE; 3], false);
+        }
         if let Some(def) = item::def(self.held).filter(|_| self.held != ItemId::NONE) {
             let size = def.size.map(|s| s * ITEM_SIZE);
             push_box(out, rel + Vec3::new(0.0, -0.22 + size[1] as f64 * 0.5, 0.0), yaw, size, 0.0, def.tex, false);

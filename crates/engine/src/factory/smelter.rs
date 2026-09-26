@@ -257,16 +257,33 @@ impl Machine for Smelter {
 
     /// A brick furnace with a chimney whose cap is the status lamp.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
-        let body = [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP];
-        push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.9, 0.8, 0.9], 0.0, body, false);
-        push_box(out, rel + Vec3::new(0.0, 0.36, 0.0), 0.0, [0.28, 0.12, 0.28], 0.0, [tex::FRAME; 3], true);
+        let brick = [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::FRAME];
+        push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.94, 0.16, 0.94], 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + Vec3::new(0.0, -0.06, -0.1), 0.0, [0.82, 0.67, 0.72], 0.0, brick, false);
+        push_box(out, rel + Vec3::new(0.0, 0.31, -0.1), 0.0, [0.9, 0.1, 0.8], 0.0, [tex::FRAME; 3], false);
+        // A dark upper ore mouth and lower crucible separate feeding from smelting.
+        push_box(out, rel + Vec3::new(0.0, 0.14, 0.32), 0.0, [0.46, 0.23, 0.13], 0.0, [tex::GENERATOR_SIDE; 3], false);
+        let fire = if self.status == SmelterStatus::Working { tex::LAMP_YELLOW } else { tex::GENERATOR_SIDE };
+        push_box(out, rel + Vec3::new(0.0, -0.24, 0.34), 0.0, [0.55, 0.2, 0.15], 0.0, [fire; 3], false);
+        push_box(out, rel + Vec3::new(0.0, -0.36, 0.46), 0.0, [0.65, 0.07, 0.08], 0.0, [tex::FRAME; 3], false);
+        // Chimney rises well above the furnace roof and carries a dark open rim.
+        push_box(out, rel + Vec3::new(-0.23, 0.48, -0.23), 0.0, [0.27, 0.48, 0.27], 0.0, brick, false);
+        push_box(
+            out,
+            rel + Vec3::new(-0.23, 0.75, -0.23),
+            0.0,
+            [0.33, 0.07, 0.33],
+            0.0,
+            [tex::GENERATOR_SIDE; 3],
+            false,
+        );
         let lamp = match self.status {
             SmelterStatus::Working => tex::LAMP_GREEN,
             SmelterStatus::OutputFull => tex::LAMP_YELLOW,
             SmelterStatus::NoFuel => tex::LAMP_RED,
             SmelterStatus::NoOre => tex::FRAME,
         };
-        push_box(out, rel + Vec3::new(0.0, 0.46, 0.0), 0.0, [0.3, 0.08, 0.3], 0.0, [lamp; 3], false);
+        push_box(out, rel + Vec3::new(0.33, 0.34, 0.32), 0.0, [0.12, 0.08, 0.12], 0.0, [lamp; 3], false);
     }
 }
 

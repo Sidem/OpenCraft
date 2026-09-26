@@ -294,17 +294,24 @@ impl Machine for Miner {
             s
         };
         let running = self.status == MinerStatus::Running && self.draw_rate > 0.01;
-        let pump = if running { 0.05 * (0.5 + 0.5 * (time * 10.0).sin()) } else { 0.0 };
+        let pump = if running { 0.08 * (0.5 + 0.5 * (time * 10.0).sin()) } else { 0.0 };
         let side = if self.mk2 { tex::MINER_MK2_SIDE } else { tex::MINER_SIDE };
         let housing = [tex::MINER_TOP, side, tex::FRAME];
-        push_box(out, rel + f * -0.13, 0.0, size(0.7, 0.86), 0.0, housing, true);
-        push_box(out, rel + f * 0.27, 0.0, size(0.1, 0.6), 0.0, [tex::FRAME; 3], true);
-        push_box(out, rel + f * (0.44 + pump), 0.0, size(0.36, 0.22), 0.0, [tex::DRILL; 3], true);
+        // Track shoes and an exposed motor make this read as an extractor even with a downward bit.
+        push_box(out, rel + Vec3::new(0.0, -0.37, 0.0), 0.0, [0.82, 0.18, 0.86], 0.0, housing, false);
+        for x in [-0.42, 0.42] {
+            push_box(out, rel + Vec3::new(x, -0.37, 0.0), 0.0, [0.13, 0.21, 0.97], 0.0, [tex::DRILL; 3], true);
+        }
+        push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.62, 0.48, 0.62], 0.0, housing, false);
+        push_box(out, rel + Vec3::new(0.0, 0.28, 0.0), 0.0, [0.48, 0.15, 0.48], 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + f * 0.31, 0.0, size(0.12, 0.5), 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + f * (0.43 + pump), 0.0, size(0.3, 0.28), 0.0, [tex::DRILL; 3], true);
+        push_box(out, rel + f * (0.57 + pump), 0.0, size(0.18, 0.16), 0.0, [tex::DRILL; 3], true);
         let lamp = match self.status {
             MinerStatus::Running => tex::LAMP_GREEN,
             MinerStatus::OutputFull => tex::LAMP_YELLOW,
             MinerStatus::NoDeposit | MinerStatus::Exhausted | MinerStatus::NoPower => tex::LAMP_RED,
         };
-        push_box(out, rel + f * -0.5, 0.0, size(0.04, 0.2), 0.0, [lamp; 3], false);
+        push_box(out, rel + Vec3::new(0.28, 0.38, 0.28), 0.0, [0.13, 0.08, 0.13], 0.0, [lamp; 3], false);
     }
 }

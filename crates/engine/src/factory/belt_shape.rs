@@ -124,6 +124,9 @@ impl Belt {
                     let h = (rise + 0.5) / 3.0 + BELT_HEIGHT;
                     let z = (1.0 - i as f32) / 3.0;
                     push_box(out, at(0.0, h * 0.5, z), yaw, [0.9, h, 1.0 / 3.0], scroll, belt, true);
+                    for x in [-0.46, 0.46] {
+                        push_box(out, at(x, h - 0.06, z), yaw, [0.07, 0.14, 1.0 / 3.0], 0.0, [tex::FRAME; 3], false);
+                    }
                 }
             }
             Shape::Lift => {
@@ -133,10 +136,15 @@ impl Belt {
                 if !self.lift_below {
                     push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, belt, true);
                 }
+                push_box(out, at(0.0, 0.5, -0.4), yaw, [0.66, 0.86, 0.08], scroll, [tex::BELT_TOP; 3], true);
+                push_box(out, at(0.0, 0.95, 0.0), yaw, [0.92, 0.09, 0.92], 0.0, [tex::FRAME; 3], false);
             }
             Shape::Entry | Shape::Exit => {
                 let z = if self.shape == Shape::Entry { -0.25 } else { 0.25 };
-                push_box(out, at(0.0, 0.32, z), yaw, [1.0, 0.64, 0.5], 0.0, [tex::FRAME; 3], true);
+                for x in [-0.42, 0.42] {
+                    push_box(out, at(x, 0.32, z), yaw, [0.14, 0.64, 0.5], 0.0, [tex::FRAME; 3], false);
+                }
+                push_box(out, at(0.0, 0.62, z), yaw, [0.96, 0.1, 0.5], 0.0, [tex::COPPER_INGOT; 3], false);
             }
         }
     }

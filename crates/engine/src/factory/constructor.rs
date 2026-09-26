@@ -254,16 +254,40 @@ impl Machine for Constructor {
 
     /// A teal press: body, a press head that pumps while working, and a status lamp on top.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
-        let body = [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME];
-        push_box(out, rel + Vec3::new(0.0, -0.15, 0.0), 0.0, [0.92, 0.7, 0.92], 0.0, body, false);
-        let stroke = if self.status == ConstructorStatus::Working { (time * 6.0).sin().abs() * 0.08 } else { 0.0 };
-        push_box(out, rel + Vec3::new(0.0, 0.28 - stroke, 0.0), 0.0, [0.5, 0.16, 0.5], 0.0, [tex::FRAME; 3], true);
+        let ivory = [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME];
+        let stroke = if self.status == ConstructorStatus::Working { (time * 6.0).sin().abs() * 0.12 } else { 0.0 };
+        // Open tray, rear gantry and descending press: the work surface is visible from above.
+        push_box(out, rel + Vec3::new(0.0, -0.4, 0.0), 0.0, [0.94, 0.18, 0.94], 0.0, ivory, false);
+        push_box(out, rel + Vec3::new(0.0, -0.25, 0.14), 0.0, [0.67, 0.08, 0.57], 0.0, [tex::FRAME; 3], false);
+        for x in [-0.35, 0.35] {
+            push_box(out, rel + Vec3::new(x, 0.0, -0.32), 0.0, [0.13, 0.67, 0.16], 0.0, ivory, false);
+        }
+        push_box(out, rel + Vec3::new(0.0, 0.35, -0.32), 0.0, [0.85, 0.13, 0.22], 0.0, ivory, false);
+        push_box(
+            out,
+            rel + Vec3::new(0.0, 0.23 - stroke * 0.5, -0.1),
+            0.0,
+            [0.18, 0.34, 0.18],
+            0.0,
+            [tex::DRILL; 3],
+            false,
+        );
+        push_box(
+            out,
+            rel + Vec3::new(0.0, 0.04 - stroke, -0.1),
+            0.0,
+            [0.48, 0.08, 0.48],
+            0.0,
+            [tex::IRON_PLATE; 3],
+            false,
+        );
+        push_box(out, rel + Vec3::new(0.0, -0.36, 0.49), 0.0, [0.64, 0.09, 0.06], 0.0, [tex::COPPER_INGOT; 3], false);
         let lamp = match self.status {
             ConstructorStatus::Working => tex::LAMP_GREEN,
             ConstructorStatus::OutputFull => tex::LAMP_YELLOW,
             ConstructorStatus::NoRecipe | ConstructorStatus::NoPower => tex::LAMP_RED,
             ConstructorStatus::NoInput => tex::FRAME,
         };
-        push_box(out, rel + Vec3::new(0.3, 0.42, 0.3), 0.0, [0.14, 0.1, 0.14], 0.0, [lamp; 3], false);
+        push_box(out, rel + Vec3::new(0.39, 0.37, -0.31), 0.0, [0.12, 0.08, 0.12], 0.0, [lamp; 3], false);
     }
 }

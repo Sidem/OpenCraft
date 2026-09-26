@@ -225,6 +225,9 @@ impl Machine for Belt {
             for side in [-0.46, 0.46] {
                 push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, [tex::FRAME; 3], true);
             }
+            for z in [-0.45, 0.45] {
+                push_box(out, at(0.0, 0.2, z), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
+            }
         }
         self.shape_model(out, &at, yaw, scroll);
         for it in self.items.iter().filter(|it| self.shows(it.p)) {

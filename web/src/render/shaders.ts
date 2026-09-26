@@ -84,9 +84,9 @@ float terrainField(vec2 p) {
 
 void main() {
 #ifdef TERRAIN
-  // A continuous UV drift moves fine features between adjacent blocks without tile-edge cuts.
-  float drift = terrainField(v_ground / 8.0) - 0.5;
-  vec2 uv = v_uvl.xy + (v_uvl.z < 13.0 && abs(v_uvl.z - 7.0) > 0.5 ? vec2(drift, -drift) * 0.35 : vec2(0.0));
+  // Independent continuous offsets disturb the repeated tile in both directions without edge cuts.
+  vec2 drift = vec2(terrainField(v_ground / 8.0), terrainField(v_ground / 8.0 + vec2(5.0, 11.0))) - 0.5;
+  vec2 uv = v_uvl.xy + (v_uvl.z < 13.0 && abs(v_uvl.z - 7.0) > 0.5 ? drift * 0.6 : vec2(0.0));
   vec4 c = texture(u_tex, vec3(uv, v_uvl.z));
 #else
   vec4 c = texture(u_tex, v_uvl);

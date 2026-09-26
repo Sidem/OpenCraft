@@ -8,10 +8,12 @@ import { Hud } from '../src/ui/hud.ts';
 const view = new URLSearchParams(location.search).get('view');
 const materials = view === 'materials';
 const items = view === 'items';
+const machines = view === 'machines';
 document.body.classList.toggle('materials', materials || items);
-document.querySelector('#title').textContent = items ? 'Alpine · manufactured parts' : 'Alpine · material study';
+document.querySelector('#title').textContent = items ? 'Alpine · manufactured parts' : machines ? 'Alpine · machine yard' : 'Alpine · material study';
 document.querySelector('#description').textContent = items
   ? 'The inventory icons and loose items share the same box assemblies from Rust.'
+  : machines ? 'A closer production-renderer view of the extractor, furnace, press, turbine, lab, routes and storage.'
   : 'Natural materials and readable ore families. Production Rust textures with world-anchored terrain tint.';
 const status=document.querySelector('#status');
 try {
@@ -27,17 +29,20 @@ try {
   let base=0;
   for(let x=x0;x<x0+8;x++) for(let z=z0;z<z0+6;z++) base=Math.max(base,ground(x,z));
   const ids=Object.fromEntries(Array.from({length:game.block_count()},(_,id)=>[game.block_name(id),id]));
+  let equipped=0;
   const equip=(name)=>{
-    const id=ids[name]; game.give(id,200); tick();
+    const id=ids[name]; game.give(id,name==='Stone'?200:name==='Grass'?64:2); tick();
     let slot=Array.from({length:game.inventory_size()},(_,i)=>i).find(i=>game.slot_item(i)===id);
+    if(slot===undefined) throw new Error(`Fixture inventory cannot equip ${name}`);
     if(slot>=game.hotbar_size()) { game.click_slot(slot,false); tick(); game.click_slot(0,false); tick(); game.close_inventory(); tick(); slot=0; }
     game.select_slot(slot); tick();
+    equipped=id;
   };
   const place=(x,y,z)=>{
     if(!game.slot_count(game.selected_slot())) throw new Error('Fixture inventory exhausted');
     game.teleport(x+.5,y+2,z+.5); game.set_look(0,-1.55); tick();
     game.set_using(true); tick(); game.set_using(false); tick();
-    if(game.block_at(x,y,z)===0) throw new Error(`Placement failed at ${x},${y},${z}; base ${base}; slot ${game.selected_slot()} item ${game.slot_item(game.selected_slot())} count ${game.slot_count(game.selected_slot())}; target ${game.target_x()},${game.target_y()},${game.target_z()}`);
+    if(game.block_at(x,y,z)!==equipped) throw new Error(`Placement failed at ${x},${y},${z}; expected ${equipped}, got ${game.block_at(x,y,z)}; slot ${game.selected_slot()} item ${game.slot_item(game.selected_slot())} count ${game.slot_count(game.selected_slot())}`);
   };
   equip('Stone');
   for(let x=x0;x<x0+8;x++) for(let z=z0;z<z0+6;z++) {
@@ -50,7 +55,14 @@ try {
   for(const [name,x,z] of [['Miner Mk1',4,2],['Conveyor Belt',4,1],['Storage Box',4,0],['Smelter',6,2],['Constructor',6,4],['Coal Generator',2,4],['Power Pole',1,2]]) {
     equip(name); place(x0+x,base+2,z0+z);
   }
-  game.teleport(x0+10,base+7,z0+11); game.set_look(-.65,-.55); tick(); stream(); tick();
+  if (machines) {
+    for(const [name,x,z] of [['Research Lab',3,4],['Filter',5,4],['Splitter',5,3],
+      ['Belt Ramp Up',4,4],['Belt Lift',7,4],['Underpass Entry',7,1]]) {
+      equip(name); place(x0+x,base+2,z0+z);
+    }
+  }
+  game.teleport(x0+(machines?8:10),base+(machines?5:7),z0+(machines?8:11));
+  game.set_look(-.65,-.55); tick(); stream(); tick();
   const eye=[game.eye_x(),game.eye_y(),game.eye_z()];
   const canvas=document.querySelector('#world');
   const params = new URLSearchParams(location.search);
@@ -99,10 +111,19 @@ try {
       caption.textContent=name; figure.append(caption); document.querySelector('#swatches').append(figure);
     }
   }
-  const boxes=new Float32Array(wasm.memory.buffer,game.instance_ptr(),game.instance_count()*INSTANCE_FLOATS).slice();
-  const frame={eye,yaw:game.yaw(),pitch:game.pitch(),target:null,mineProgress:0,boxes,boxCount:game.instance_count()};
+  let boxes=new Float32Array(wasm.memory.buffer,game.instance_ptr(),game.instance_count()*INSTANCE_FLOATS).slice();
+  if (machines) {
+    // A pure presentation toggle for silhouette review: omit the many thin power-wire segments.
+    const solids=[];
+    for(let i=0;i<boxes.length;i+=INSTANCE_FLOATS) {
+      if(boxes[i+4]<0.04 && boxes[i+5]<0.04) continue;
+      for(let j=0;j<INSTANCE_FLOATS;j++) solids.push(boxes[i+j]);
+    }
+    boxes=new Float32Array(solids);
+  }
+  const frame={eye,yaw:game.yaw(),pitch:game.pitch(),target:null,mineProgress:0,boxes,boxCount:boxes.length/INSTANCE_FLOATS};
   const render=()=>{ renderer.render(frame); requestAnimationFrame(render); }; render();
-  status.textContent=`Seed 2024 · fixed camera ${eye.map(n=>n.toFixed(1)).join(', ')} · ${game.miners()} miner · ${game.belts()} belt · ${game.instance_count()} boxes · production materials`;
+  status.textContent=`Seed 2024 · fixed camera ${eye.map(n=>n.toFixed(1)).join(', ')} · ${game.miners()} miner · ${game.belts()} belt · ${frame.boxCount} boxes · production materials`;
   if (params.has('benchmark')) {
     // Synthetic factory stress: 64 copies of the scene's machine instances, GPU-completed frames.
     const stress = new Float32Array(boxes.length * 64);

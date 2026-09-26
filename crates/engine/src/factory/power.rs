@@ -228,11 +228,13 @@ impl Machine for Pole {
 
     /// A steel post with a crossarm and two copper insulators.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
-        push_box(out, rel + Vec3::new(0.0, -0.05, 0.0), 0.0, [0.12, 0.9, 0.12], 0.0, [tex::FRAME; 3], true);
-        push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), 0.0, [0.6, 0.06, 0.08], 0.0, [tex::FRAME; 3], true);
-        for x in [-0.25, 0.25] {
+        push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.13, 0.85, 0.13], 0.0, [tex::FRAME; 3], true);
+        push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
+        for x in [-0.28, 0.28] {
             let c = [tex::COPPER_WIRE; 3];
-            push_box(out, rel + Vec3::new(x, 0.42, 0.0), 0.0, [0.07, 0.1, 0.07], 0.0, c, false);
+            push_box(out, rel + Vec3::new(x, 0.45, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, [tex::GLASS; 3], false);
+            push_box(out, rel + Vec3::new(x, 0.55, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
         }
     }
 }
