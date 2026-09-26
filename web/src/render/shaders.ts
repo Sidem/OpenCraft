@@ -1,6 +1,7 @@
 // GLSL ES 3.00 sources. `CUTOUT` is defined for the alpha-tested (leaves) variant only, so the
-// opaque pass never contains `discard` and keeps early-z. `TERRAIN` adds world-anchored Alpine tint
-// only to chunk meshes; instance materials retain their authored colours.
+// opaque pass never contains `discard` and keeps early-z. `TERRAIN` (chunk meshes only) adds a
+// gentle world-anchored shift in tone across blocks; texels are always sampled exactly as drawn, so
+// the pixel art stays crisp. Repetition is broken in the textures instead (alternates per block).
 
 export const TERRAIN_TINT_PERIOD = 256;
 
@@ -71,53 +72,28 @@ out vec4 o_color;
 #ifdef TERRAIN
 in vec2 v_ground;
 float terrainHash(vec2 p) {
-  p = mod(p, ${TERRAIN_TINT_PERIOD / 16}.0);
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
-float terrainField(vec2 p) {
+// Smooth value noise with 'cells' lattice cells per period, so it wraps with u_worldOrigin.
+float terrainField(vec2 p, float cells) {
   vec2 cell = floor(p), f = fract(p);
   f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(terrainHash(cell), terrainHash(cell + vec2(1, 0)), f.x),
-             mix(terrainHash(cell + vec2(0, 1)), terrainHash(cell + vec2(1, 1)), f.x), f.y);
+  float a = terrainHash(mod(cell, cells)), b = terrainHash(mod(cell + vec2(1, 0), cells));
+  float c = terrainHash(mod(cell + vec2(0, 1), cells)), d = terrainHash(mod(cell + vec2(1, 1), cells));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 #endif
 
 void main() {
-#ifdef TERRAIN
-  // Independent continuous offsets disturb the repeated tile in both directions without edge cuts.
-  bool natural = v_uvl.z < 13.0 || (v_uvl.z >= 58.0 && v_uvl.z <= 62.0)
-                 || (v_uvl.z >= 64.0 && v_uvl.z <= 67.0);
-  vec2 drift = vec2(terrainField(v_ground / 2.5), terrainField(v_ground / 2.5 + vec2(5.0, 11.0))) - 0.5;
-  vec2 uv = v_uvl.xy + (natural ? drift * (abs(v_uvl.z - 7.0) < 0.5 ? 0.35 : 1.25) : vec2(0.0));
-  if (abs(v_uvl.z - 7.0) < 0.5) {
-    // Leaf holes are per-cluster, so a canopy does not expose a repeated 16-texel stencil.
-    vec2 leafCell = floor(v_ground);
-    uv += 16.0 * vec2(terrainHash(leafCell), terrainHash(leafCell + vec2(13.0, 7.0)));
-  }
-  vec4 c = texture(u_tex, vec3(uv, v_uvl.z));
-  // A second, slower sample gives each run of blocks its own mineral/soil tone. Preserve the
-  // grass lip, log rings and cutout foliage silhouettes from the primary sample.
-  if (natural && abs(v_uvl.z - 3.0) > 0.5 && abs(v_uvl.z - 6.0) > 0.5 && abs(v_uvl.z - 7.0) > 0.5) {
-    bool ore = (v_uvl.z >= 8.0 && v_uvl.z <= 10.0) || abs(v_uvl.z - 62.0) < 0.5;
-    vec3 broad = texture(u_tex, vec3(v_uvl.xy * (ore ? 0.73 : 0.19) + vec2(0.17, 0.43), v_uvl.z)).rgb;
-    c.rgb = mix(c.rgb, broad, ore ? 0.45 : 0.38);
-    if (ore) {
-      // Deposits wax and wane across several blocks instead of stamping every ore face equally.
-      float richness = terrainField(v_ground / 3.5 + vec2(17.0, 4.0));
-      vec3 hostRock = texture(u_tex, vec3(uv, 0.0)).rgb;
-      c.rgb = mix(hostRock, c.rgb, clamp((richness - 0.28) * 2.1, 0.13, 1.0));
-    }
-  }
-#else
   vec4 c = texture(u_tex, v_uvl);
-#endif
 #ifdef CUTOUT
   if (c.a < 0.5) discard;
 #endif
 #ifdef TERRAIN
-  // World-anchored 16-block patches survive greedy merging and camera/chunk transitions.
-  float field = terrainField(v_ground / 16.0);
-  if (natural) c.rgb *= mix(vec3(0.88, 0.95, 1.02), vec3(1.08, 1.04, 0.95), field);
+  // Patches of about 16 and 64 blocks, a few percent brighter and warmer or darker and cooler.
+  float field = terrainField(v_ground / 16.0, ${TERRAIN_TINT_PERIOD / 16}.0) * 0.65
+              + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;
+  c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
 #endif
   o_color = vec4(applyFog(c.rgb * v_light, v_rel), 1.0);
 }

@@ -189,7 +189,7 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 The roadmap agent adds a line here when gameplay needs a look. It will already have appended a `tex`
 layer with a plain placeholder pattern, so nothing is blocked. Tick the line when you replace it.
 
-- [ ] (P5, landed) Pickaxe, axe and shovel in stone and iron tiers (steel later), each tier readable
+- [x] (P5, landed; models done, held models open) Pickaxe, axe and shovel in stone and iron tiers (steel later), each tier readable
   at a glance: icons, loose-item models and held models. Placeholders: layers `tex::STONE_PICKAXE`..`IRON_SHOVEL`
   (51–56) drawn by `textures/tools.rs` on flat plates (`item.rs` `tool()` size). The hotbar wear bar is
   `.slot.tool::after` in `hud.css`.
@@ -199,7 +199,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   rocks that fill whole regions underground, so they must tile well and read apart from stone),
   limestone and quartz ore (deposit ores), glass (cutout: keep most texels transparent). Layers
   `tex::GRANITE`..`tex::GLASS` (58–63) in `textures/geology.rs`; quartz uses `quartz_ore()` there.
-- [ ] (4.6, landed) Prospecting devices, drawn like the tools (flat item plates): a handheld scanner
+- [x] (4.6, landed; models done) Prospecting devices, drawn like the tools (flat item plates): a handheld scanner
   (`tex::SCANNER`, 68) and a core drill (`tex::CORE_DRILL`, 69); `scanner()` and `core_drill()` in
   `textures/tools.rs`.
 - [x] (4.5, landed) Stained soils that hint at ore below: rusty (iron), dark (coal), verdigris
@@ -295,3 +295,33 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   factory view after rebase is `artifacts/geology-rework/after-scene.png`. `npm run check` green
   (166 tests), golden hash unchanged. Vite wasm **152.22 kB gzip**, +0.68 kB over the
   rebase baseline (151.54 kB); `wasm-sizes.mjs` inspected. No merge or push.
+- **2026-09-26, salvage (roadmap agent, on the user's request; merged to `main`):** The user was unhappy
+  with the art branch's terrain, so a new pass replaced it. Kept: the machine models, the item assemblies
+  and the preview tooling. Changed:
+  - The terrain shader's UV drift and multi-sample blending are gone (they smeared the pixel art and
+    faded the ores). Only a gentle world-anchored tint remains.
+  - Repetition is broken by **alternates** instead: coal, iron, copper, limestone, quartz and leaves have
+    three more looks each (layers 73–90, `tex::WITH_ALTERNATES`). The mesher picks one of four per
+    block by position.
+  - Textures are pixel art from 5-tone ramps (`textures/paint.rs`):
+    - slate plates with fractures, pebbled dirt, turf with blade shadows, a ragged grass edge;
+    - rippled sand and clustered leaves;
+    - ores as drawn inclusions: coal lumps, iron nodules with a halo, malachite crusts with copper
+      glints, quartz crystals, shell fossils.
+  - Surface hints are now grass (blocks 36–39: top 91–94, edge 95–98, soil 64–67) and sand (blocks 40–43,
+    layers 99–102) a shade off, with mineral specks (`HINTS` in `nature.rs`). Worldgen stains only grass
+    and sand, no longer dirt.
+  - Tool, scanner and core-drill box models; handle and steel layers 103–104. The wire is a spool.
+  - Preview: `?view=materials` shows the alternates (via `game.texture_alternates`).
+
+  `npm run check` green (167 tests), golden hash unchanged. Vite wasm **154.6 kB gzip**. The `art`
+  branch is superseded: start any further art work from `main`.
+
+  **Left for the next art session:**
+  - Quartz crystals read a bit square: add facets or points.
+  - Grass blades could be more legible up close.
+  - Granite, sandstone and basalt are still the art branch's plain grain.
+  - Held (first-person) tool models.
+  - The leaf-decay puff request.
+  - The `?view=materials` preview change is untested in the browser.
+  - Tools on belts still show the flat pictures.

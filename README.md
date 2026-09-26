@@ -295,7 +295,7 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
   23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
-  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils; items: 256 iron ingot, 257 copper ingot,
+  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
   264–269 stone and iron tools, 270 scanner, 271 core drill.
 - `opencraft.game.teleport(0, 120, 0)` moves you.

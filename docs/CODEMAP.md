@@ -42,9 +42,10 @@ folder with `mod.rs`.
 | `api/prospect.rs` | The latest prospecting reading (`prospect_seq`, `prospect_kind`, `prospect_records`, `prospect_fields`, `prospect_origin`), `held_device`, `scan_range`, `deposit_label` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
-| `block.rs` | Block ids, `DEFS` table, texture layers `tex` (item textures too), sound materials, lookup tables |
+| `block/mod.rs` | Block ids, `DEFS` table, sound materials, lookup tables (`FACE_TEX`, `ALT_TEX` alternates) |
+| `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
-| `item_models.rs` | Shared small box assemblies for manufactured loose items and their HUD icons; data only, no item rules |
+| `item_models.rs` | Shared small box assemblies (parts, tools, scanner, core drill) for loose items and HUD icons; data only |
 | `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
 | `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, unlocked recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `add_unit`) |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
@@ -80,15 +81,16 @@ folder with `mod.rs`.
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
-| `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format; plants as crossed quads (faces 6 and 7) |
+| `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format; plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
-| `textures/nature.rs` | Alpine palettes and periodic natural block patterns: slate, earth, turf, sand, bark/end grain, leaf cutouts, bedrock and spent rock |
-| `textures/ores.rs` | Tileable coal fractures, iron blooms and copper veins on the shared slate base |
-| `textures/items.rs` | Rod threads, screws, glass and science-liquid surfaces for the item assemblies |
-| `textures/tools.rs` | Placeholder tool pictures (pickaxe, axe, shovel per tier; scanner, core drill) |
+| `textures/nature.rs` | Alpine natural blocks: slate, pebbled earth, turf with blades, ragged grass edge, rippled sand, leaf clusters (4 looks), bark, bedrock; the four surface hints (`HINTS`) |
+| `textures/paint.rs` | Painting helpers: palette ramps, wrapping cells, blobs kept inside the tile |
+| `textures/ores.rs` | Coal lumps, iron nodules, copper crusts, quartz crystals, limestone fossils; four looks each on the slate host |
+| `textures/items.rs` | Rod threads, screws, glass, science liquid, tool handle and steel for the item assemblies |
+| `textures/tools.rs` | Flat tool pictures (shown on belts); the scanner screen and device casing materials |
 | `textures/plants.rs` | Alpine sapling needles and stems on transparent crossed quads |
-| `textures/geology.rs` | Province rock grains, quartz pockets, subtle ore-hint dirt and cutout glass |
+| `textures/geology.rs` | Granite, sandstone and basalt grains, and cutout glass |
 | `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |

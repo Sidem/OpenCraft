@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
-TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.6 done) · **Next up: step 4.7** · A graphics agent
+TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.6 done; art salvaged and merged) · **Next up: step 4.7** · A graphics agent
 works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -173,7 +173,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   grass, it grows after 60 s plus a 90 s half-life into a tree shaped like generated ones
   (`worldgen::tree_blocks`); drawn as crossed quads (`Render::Plant`, mesher faces 6 and 7).
 - **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–39, see
-  `block.rs`; 29 is the sapling, 30–39 Milestone 4's rocks, ores, glass and stained soils); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
+  `block.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
   science packs, the six tools (264–269), scanner (270) and core drill (271). Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
@@ -595,3 +595,5 @@ and the balance numbers. Read the section you need.
   `prospect.rs`: `scan` (size band estimated from the shape's radii, not surveyed, so scans generate no
   chunks) and `core_sample` (exact figures, tracked or a throwaway survey). Panel at the top left (the
   right is taken), a `scan` ping. wasm 140.3 → 146.2 KB over 4.3–4.6. Tests 156 → 161.
+- **2026-09-26:** Art salvage merged (ART_HANDOVER log): alternates, hint grass/sand 40–43, tool models;
+  hints no longer stain dirt. wasm 146.2 → 154.6 KB (art branch + salvage). Tests 161 → 167.

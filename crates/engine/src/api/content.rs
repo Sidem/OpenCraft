@@ -26,6 +26,11 @@ impl Game {
         block::def(id).sound
     }
 
+    /// The first of a texture layer's three alternate looks, or 0 when it has none (`block::tex`).
+    pub fn texture_alternates(&self, layer: u16) -> u16 {
+        block::tex::alternates(layer)
+    }
+
     /// An item's name ("" for unknown ids).
     pub fn item_name(&self, id: u16) -> String {
         item::name(ItemId(id)).to_string()

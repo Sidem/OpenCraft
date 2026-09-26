@@ -1,7 +1,8 @@
-//! Small manufactured-part surfaces and science liquid, shaped by `item_models` geometry.
-//! Keep these restrained so the model silhouette remains readable at hotbar size.
+//! Small manufactured-part surfaces, science liquid and tool materials (a wooden handle, forged
+//! steel), shaped by `item_models` geometry. Keep these restrained so the model silhouette remains
+//! readable at hotbar size.
 
-use super::{n, rgb};
+use super::{n, rgb, smooth};
 use crate::block::tex;
 
 pub(super) fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
@@ -36,6 +37,25 @@ pub(super) fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
                 [62.0, 179.0, 105.0]
             };
             rgb(c, 0.94 + 0.1 * n(if red { 234 } else { 235 }, x, y))
+        }
+        tex::HANDLE => {
+            // Planed ash: long grain lines that wander a little, lengthwise (along y).
+            let grain = smooth(236, x, y, 2) * 3.0 + x as f64;
+            let line = (grain as i32).rem_euclid(4) == 0;
+            rgb(if line { [118.0, 84.0, 54.0] } else { [158.0, 118.0, 78.0] }, 0.95 + 0.08 * n(237, x, y))
+        }
+        tex::STEEL => {
+            // Forged steel: blue-grey with hammer marks and a bright brushed streak.
+            let mark = n(238, x, y) > 0.9;
+            let streak = (y + (smooth(239, x, 0, 4) * 2.0) as i32).rem_euclid(8) == 2;
+            let c = if streak {
+                [196.0, 204.0, 212.0]
+            } else if mark {
+                [104.0, 112.0, 122.0]
+            } else {
+                [148.0, 156.0, 166.0]
+            };
+            rgb(c, 0.95 + 0.07 * n(240, x, y))
         }
         _ => [255, 0, 255, 255],
     }

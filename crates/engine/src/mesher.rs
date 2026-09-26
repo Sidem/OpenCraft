@@ -15,10 +15,11 @@
 //! simply tiles its texture five by three times (texture wrap = REPEAT).
 //!
 //! Quads are merged only where AO is constant along the merge direction, so greedy merging never
-//! changes how the AO gradient looks. Plants (`block::PLANT`) are two crossed quads, each emitted in
+//! changes how the AO gradient looks. Layers with alternates (ores, leaves: `block::tex::alternates`)
+//! get one of four looks per block (`pick_layer`), so those faces merge less. Plants (`block::PLANT`) are two crossed quads, each emitted in
 //! both windings, into the cutout list and never merged.
 
-use crate::block::{BlockId, AIR, CUTOUT, FACE_TEX, MESHED, OPAQUE, PLANT};
+use crate::block::{BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
 
 const N: usize = 32;
@@ -157,7 +158,7 @@ impl Mesher {
                             let a10 = ao(up, vm, o(su - sv));
                             let a11 = ao(up, vp, o(su + sv));
                             let a01 = ao(um, vp, o(-su + sv));
-                            let layer = FACE_TEX[b as usize][face] as u32;
+                            let layer = pick_layer(b, face, c) as u32;
                             key = (1 << 31)
                                 | (u32::from(CUTOUT[b as usize]) << 17)
                                 | (layer << 8)
@@ -215,6 +216,25 @@ impl Mesher {
                 }
             }
         }
+    }
+}
+
+/// The texture layer for face `face` of block `b` at padded position `c`: its own layer, or for a
+/// layer with alternates one of the four, the same for every face of the block. Chosen from the
+/// chunk-local position, so the pattern repeats only every chunk.
+#[inline]
+fn pick_layer(b: BlockId, face: usize, c: [usize; 3]) -> u16 {
+    let base = FACE_TEX[b as usize][face];
+    let alt = ALT_TEX[b as usize][face];
+    if alt == 0 {
+        return base;
+    }
+    let h = (c[0] as u32).wrapping_mul(0x9E37_79B1)
+        ^ (c[1] as u32).wrapping_mul(0x85EB_CA77)
+        ^ (c[2] as u32).wrapping_mul(0xC2B2_AE3D);
+    match ((h ^ (h >> 15)).wrapping_mul(0x2C1B_3C6D) >> 30) as u16 {
+        0 => base,
+        k => alt + k - 1,
     }
 }
 

@@ -1,7 +1,9 @@
-//! Procedural 16×16 block and item textures, generated at startup so the MVP ships with zero art assets.
+//! Procedural 16×16 block and item textures, generated at startup so the game ships with zero art assets.
 //! Every pattern tiles seamlessly (noise lattices wrap at the texture edge). `generate` writes one
 //! RGBA layer per `block::tex` constant; to add a texture, add the constant there and its pattern
-//! arm in `pixel`. Natural patterns live in `textures/nature.rs`; machines/items in `textures/machines.rs`.
+//! arm in `pixel`. An alternate layer draws its base's pattern with another `alt` (`tex::look`).
+//! Terrain lives in `nature.rs` (with the surface hints) and `ores.rs`, province rocks in
+//! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -11,6 +13,7 @@ mod items;
 mod machines;
 mod nature;
 mod ores;
+mod paint;
 mod plants;
 mod tools;
 
@@ -86,9 +89,19 @@ fn avatar(x: i32, y: i32, part: u16) -> [u8; 4] {
 }
 
 fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
+    let (layer, alt) = tex::look(layer);
+    let alt = u32::from(alt);
     match layer {
-        tex::STONE..=tex::LEAVES | tex::BEDROCK | tex::SPENT_ROCK => nature::pixel(layer, x, y),
-        tex::COAL_ORE..=tex::COPPER_ORE => ores::pixel(layer, x, y),
+        tex::STONE..=tex::LEAVES
+        | tex::BEDROCK
+        | tex::SPENT_ROCK
+        | tex::RUSTY_SOIL..=tex::PALE_SOIL
+        | tex::RUSTY_GRASS_TOP..=tex::PALE_SAND => nature::pixel(layer, alt, x, y),
+        tex::COAL_ORE => ores::coal(x, y, alt),
+        tex::IRON_ORE => ores::iron(x, y, alt),
+        tex::COPPER_ORE => ores::copper(x, y, alt),
+        tex::LIMESTONE => ores::limestone(x, y, alt),
+        tex::QUARTZ_ORE => ores::quartz(x, y, alt),
         tex::BELT_TOP => belt_top(x, y, [192.0, 119.0, 70.0]),
         tex::FAST_BELT_TOP => belt_top(x, y, [106.0, 164.0, 176.0]),
         tex::FRAME => frame(x, y),
@@ -117,7 +130,9 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::POLE_SIDE => pole(x, y),
         tex::LAB_SIDE => lab(x, y, false),
         tex::LAB_TOP => lab(x, y, true),
-        tex::RED_PACK | tex::GREEN_PACK | tex::IRON_ROD..=tex::FLASK_GLASS => items::pixel(layer, x, y),
+        tex::RED_PACK | tex::GREEN_PACK | tex::IRON_ROD..=tex::FLASK_GLASS | tex::HANDLE | tex::STEEL => {
+            items::pixel(layer, x, y)
+        }
         tex::AVATAR_SUIT..=tex::AVATAR_VISOR => avatar(x, y, layer - tex::AVATAR_SUIT),
         tex::STONE_PICKAXE..=tex::IRON_SHOVEL => {
             let i = layer - tex::STONE_PICKAXE;
@@ -127,13 +142,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::GRANITE => geology::granite(x, y),
         tex::SANDSTONE => geology::sandstone(x, y),
         tex::BASALT => geology::basalt(x, y),
-        tex::LIMESTONE => geology::limestone(x, y),
-        tex::QUARTZ_ORE => geology::quartz_ore(x, y),
         tex::GLASS => geology::glass(x, y),
-        tex::RUSTY_SOIL => geology::soil(x, y, [176.0, 84.0, 40.0]),
-        tex::DARK_SOIL => geology::soil(x, y, [40.0, 34.0, 30.0]),
-        tex::GREEN_SOIL => geology::soil(x, y, [80.0, 150.0, 120.0]),
-        tex::PALE_SOIL => geology::soil(x, y, [226.0, 218.0, 196.0]),
         tex::SCANNER => tools::scanner(x, y),
         tex::CORE_DRILL => tools::core_drill(x, y),
         _ => [255, 0, 255, 255],

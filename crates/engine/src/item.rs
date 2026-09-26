@@ -105,7 +105,7 @@ const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> ItemDef {
 
 /// A tool: a flat plate showing it, whose stack size is its uses.
 const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
-    ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.8, 0.1, 0.8], places: AIR }
+    ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
 const EXTRA: [ItemDef; 16] = [

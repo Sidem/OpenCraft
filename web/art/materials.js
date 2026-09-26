@@ -1,8 +1,10 @@
 // Preview-only 3×3 world-material samples rendered through the production terrain fragment shader.
-// This shows the continuous world variation that a raw repeated atlas tile cannot represent.
+// This shows the continuous world variation that a raw repeated atlas tile cannot represent, and a
+// layer's alternate looks (one per block, as the mesher picks them) when it has any.
 import { litFrag } from '../src/render/shaders.ts';
 
-export function worldMaterialSamples(pixels, size, layers, sampleLayers) {
+// `sampleLooks`: per sample, its layer followed by its alternates; results are keyed by the layer.
+export function worldMaterialSamples(pixels, size, layers, sampleLooks) {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 144;
   const gl = canvas.getContext('webgl2', { antialias: false, preserveDrawingBuffer: true });
@@ -11,12 +13,13 @@ export function worldMaterialSamples(pixels, size, layers, sampleLayers) {
 precision highp float;
 layout(location=0) in vec2 a_pos;
 uniform float u_layer;
+uniform vec2 u_cell;
 out vec3 v_uvl;
 out float v_light;
 out vec3 v_rel;
 out vec2 v_ground;
 void main() {
-  vec2 world = vec2(20.0, 8.0) + (a_pos * 0.5 + 0.5) * 3.0;
+  vec2 world = vec2(20.0, 8.0) + u_cell + (a_pos * 0.5 + 0.5);
   v_uvl = vec3(world, u_layer);
   v_ground = world;
   v_light = 1.0;
@@ -49,19 +52,23 @@ void main() {
   gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.REPEAT);
   gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.REPEAT);
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  const result = new Map();
-  for (const layer of sampleLayers) {
-    gl.uniform1f(gl.getUniformLocation(program, 'u_layer'), layer);
+  const result = new Map(), cell = canvas.width / 3;
+  for (const looks of sampleLooks) {
     gl.clearColor(0.53, 0.58, 0.59, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    for (let i = 0; i < 9; i++) {
+      const [cx, cy] = [i % 3, Math.floor(i / 3)];
+      gl.viewport(cx * cell, cy * cell, cell, cell);
+      gl.uniform2f(gl.getUniformLocation(program, 'u_cell'), cx, cy);
+      gl.uniform1f(gl.getUniformLocation(program, 'u_layer'), looks[(i * 7 + 3) % 9 % looks.length]);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    }
     const raw = new Uint8Array(canvas.width * canvas.height * 4);
     gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
     const flipped = new Uint8ClampedArray(raw.length), stride = canvas.width * 4;
     for (let y = 0; y < canvas.height; y++) {
       flipped.set(raw.subarray((canvas.height - 1 - y) * stride, (canvas.height - y) * stride), y * stride);
     }
-    result.set(layer, new ImageData(flipped, canvas.width, canvas.height));
+    result.set(looks[0], new ImageData(flipped, canvas.width, canvas.height));
   }
   gl.deleteTexture(texture); gl.deleteBuffer(buffer); gl.deleteProgram(program);
   return result;

@@ -85,17 +85,24 @@ try {
     ['Stone','Stone',0], ['Grass','Grass',0], ['Dirt','Dirt',0], ['Grass edge','Grass',1],
     ['Sand','Sand',0], ['Bark','Log',1], ['End grain','Log',0], ['Leaves','Leaves',0],
     ['Bedrock','Bedrock',0], ['Spent rock','Spent Rock',0],
-    ['Coal seam','Coal Ore',0], ['Iron bloom','Iron Ore',0], ['Copper vein','Copper Ore',0],
+    ['Coal lumps','Coal Ore',0], ['Iron nodules','Iron Ore',0], ['Copper crusts','Copper Ore',0],
     ['Granite','Granite',0], ['Sandstone','Sandstone',0], ['Basalt','Basalt',0],
     ['Limestone','Limestone',0], ['Quartz','Quartz Ore',0], ['Glass','Glass',0],
     ['Rusty hint · iron','Rusty Soil',0], ['Dark hint · coal','Dark Soil',0],
     ['Verdigris hint · copper','Verdigris Soil',0], ['Pale hint · limestone/quartz','Pale Soil',0],
+    ['Rusty edge','Rusty Soil',1], ['Dark edge','Dark Soil',1], ['Verdigris edge','Verdigris Soil',1],
+    ['Pale edge','Pale Soil',1], ['Rusty soil','Rusty Soil',2], ['Dark soil','Dark Soil',2],
+    ['Verdigris soil','Verdigris Soil',2], ['Pale soil','Pale Soil',2], ['Rusty sand','Rusty Sand',0],
+    ['Dark sand','Dark Sand',0], ['Verdigris sand','Verdigris Sand',0], ['Pale sand','Pale Sand',0],
     ['Sapling','Sapling',0],
   ];
   const size = game.texture_size(), layerBytes = size * size * 4;
   const rawMaterials = new URLSearchParams(location.search).has('raw');
   const worldSamples = materials && !rawMaterials ? worldMaterialSamples(
-    tex,size,game.texture_layers(),samples.map(([,block,face])=>game.item_icon(ids[block])[face])) : null;
+    tex,size,game.texture_layers(),samples.map(([,block,face]) => {
+      const layer = game.item_icon(ids[block])[face], alt = game.texture_alternates(layer);
+      return alt ? [layer, alt, alt + 1, alt + 2] : [layer];
+    })) : null;
   for(const [name,block,face] of materials ? samples : items ? [] : samples.slice(0,2)) {
     const layer = game.item_icon(ids[block])[face];
     const figure=document.createElement('figure'), swatch=document.createElement('canvas'), caption=document.createElement('figcaption');

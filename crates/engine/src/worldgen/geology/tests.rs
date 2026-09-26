@@ -58,7 +58,7 @@ fn hints_near(g: &mut WorldGen, x: i32, z: i32, r: i32) -> usize {
             let (px, pz) = (x + dx, z + dz);
             let col = g.column(px >> 5, pz >> 5);
             let top = col.surface[((pz & 31) * 32 + (px & 31)) as usize].0;
-            if matches!(top, RUSTY_SOIL | DARK_SOIL | GREEN_SOIL | PALE_SOIL) {
+            if matches!(top, RUSTY_SOIL..=PALE_SAND) {
                 n += 1;
             }
         }

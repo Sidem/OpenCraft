@@ -50,90 +50,21 @@ pub const LIMESTONE: BlockId = 33;
 pub const QUARTZ_ORE: BlockId = 34;
 /// Smelted from quartz; see-through (cutout).
 pub const GLASS: BlockId = 35;
-/// Stained soil above version 2's veins and lodes (`worldgen/geology.rs`); behaves like dirt.
+/// Surface hints above version 2's veins and lodes (`worldgen/geology.rs`): grass a shade off, over
+/// stained soil; they drop dirt.
 pub const RUSTY_SOIL: BlockId = 36;
 pub const DARK_SOIL: BlockId = 37;
 pub const GREEN_SOIL: BlockId = 38;
 pub const PALE_SOIL: BlockId = 39;
-pub const BLOCK_COUNT: usize = 40;
+/// The same hints where the surface is sand; they drop sand.
+pub const RUSTY_SAND: BlockId = 40;
+pub const DARK_SAND: BlockId = 41;
+pub const GREEN_SAND: BlockId = 42;
+pub const PALE_SAND: BlockId = 43;
+pub const BLOCK_COUNT: usize = 44;
 
-/// Texture array layers. Order must match `textures::pixel`.
-pub mod tex {
-    pub const STONE: u16 = 0;
-    pub const DIRT: u16 = 1;
-    pub const GRASS_TOP: u16 = 2;
-    pub const GRASS_SIDE: u16 = 3;
-    pub const SAND: u16 = 4;
-    pub const LOG_SIDE: u16 = 5;
-    pub const LOG_TOP: u16 = 6;
-    pub const LEAVES: u16 = 7;
-    pub const COAL_ORE: u16 = 8;
-    pub const IRON_ORE: u16 = 9;
-    pub const COPPER_ORE: u16 = 10;
-    pub const BEDROCK: u16 = 11;
-    pub const SPENT_ROCK: u16 = 12;
-    pub const BELT_TOP: u16 = 13;
-    pub const FRAME: u16 = 14;
-    pub const MINER_SIDE: u16 = 15;
-    pub const MINER_TOP: u16 = 16;
-    pub const DRILL: u16 = 17;
-    pub const BOX_SIDE: u16 = 18;
-    pub const BOX_TOP: u16 = 19;
-    pub const LAMP_GREEN: u16 = 20;
-    pub const LAMP_YELLOW: u16 = 21;
-    pub const LAMP_RED: u16 = 22;
-    pub const IRON_INGOT: u16 = 23;
-    pub const COPPER_INGOT: u16 = 24;
-    pub const SMELTER_SIDE: u16 = 25;
-    pub const SMELTER_TOP: u16 = 26;
-    pub const IRON_PLATE: u16 = 27;
-    pub const COPPER_WIRE: u16 = 28;
-    pub const CONSTRUCTOR_SIDE: u16 = 29;
-    pub const CONSTRUCTOR_TOP: u16 = 30;
-    pub const SPLITTER_TOP: u16 = 31;
-    pub const FILTER_TOP: u16 = 32;
-    pub const RAMP_UP_SIDE: u16 = 33;
-    pub const RAMP_DOWN_SIDE: u16 = 34;
-    pub const LIFT_SIDE: u16 = 35;
-    pub const UNDERPASS_IN_SIDE: u16 = 36;
-    pub const UNDERPASS_OUT_SIDE: u16 = 37;
-    pub const GENERATOR_SIDE: u16 = 38;
-    pub const GENERATOR_TOP: u16 = 39;
-    pub const POLE_SIDE: u16 = 40;
-    pub const LAB_SIDE: u16 = 41;
-    pub const LAB_TOP: u16 = 42;
-    pub const RED_PACK: u16 = 43;
-    pub const GREEN_PACK: u16 = 44;
-    pub const MINER_MK2_SIDE: u16 = 45;
-    pub const FAST_BELT_TOP: u16 = 46;
-    pub const AVATAR_SUIT: u16 = 47;
-    pub const AVATAR_SKIN: u16 = 48;
-    pub const AVATAR_HELMET: u16 = 49;
-    pub const AVATAR_VISOR: u16 = 50;
-    pub const STONE_PICKAXE: u16 = 51;
-    pub const STONE_AXE: u16 = 52;
-    pub const STONE_SHOVEL: u16 = 53;
-    pub const IRON_PICKAXE: u16 = 54;
-    pub const IRON_AXE: u16 = 55;
-    pub const IRON_SHOVEL: u16 = 56;
-    pub const SAPLING: u16 = 57;
-    pub const GRANITE: u16 = 58;
-    pub const SANDSTONE: u16 = 59;
-    pub const BASALT: u16 = 60;
-    pub const LIMESTONE: u16 = 61;
-    pub const QUARTZ_ORE: u16 = 62;
-    pub const GLASS: u16 = 63;
-    pub const RUSTY_SOIL: u16 = 64;
-    pub const DARK_SOIL: u16 = 65;
-    pub const GREEN_SOIL: u16 = 66;
-    pub const PALE_SOIL: u16 = 67;
-    pub const SCANNER: u16 = 68;
-    pub const CORE_DRILL: u16 = 69;
-    pub const IRON_ROD: u16 = 70;
-    pub const SCREW: u16 = 71;
-    pub const FLASK_GLASS: u16 = 72;
-    pub const COUNT: usize = 73;
-}
+/// Texture array layers (`block/tex.rs`).
+pub mod tex;
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
 pub const FACE_TOP: usize = 2;
@@ -268,10 +199,20 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     ore("Limestone", all(tex::LIMESTONE), LIMESTONE),
     ore("Quartz Ore", all(tex::QUARTZ_ORE), QUARTZ_ORE),
     BlockDef { render: Render::Cutout, ..cube("Glass", 0.3, all(tex::GLASS), GLASS, sound::STONE) },
-    cube("Rusty Soil", 0.45, all(tex::RUSTY_SOIL), DIRT, sound::DIRT),
-    cube("Dark Soil", 0.45, all(tex::DARK_SOIL), DIRT, sound::DIRT),
-    cube("Verdigris Soil", 0.45, all(tex::GREEN_SOIL), DIRT, sound::DIRT),
-    cube("Pale Soil", 0.45, all(tex::PALE_SOIL), DIRT, sound::DIRT),
+    cube("Rusty Soil", 0.5, pillar(tex::RUSTY_GRASS_SIDE, tex::RUSTY_GRASS_TOP, tex::RUSTY_SOIL), DIRT, sound::GRASS),
+    cube("Dark Soil", 0.5, pillar(tex::DARK_GRASS_SIDE, tex::DARK_GRASS_TOP, tex::DARK_SOIL), DIRT, sound::GRASS),
+    cube(
+        "Verdigris Soil",
+        0.5,
+        pillar(tex::GREEN_GRASS_SIDE, tex::GREEN_GRASS_TOP, tex::GREEN_SOIL),
+        DIRT,
+        sound::GRASS,
+    ),
+    cube("Pale Soil", 0.5, pillar(tex::PALE_GRASS_SIDE, tex::PALE_GRASS_TOP, tex::PALE_SOIL), DIRT, sound::GRASS),
+    cube("Rusty Sand", 0.45, all(tex::RUSTY_SAND), SAND, sound::SAND),
+    cube("Dark Sand", 0.45, all(tex::DARK_SAND), SAND, sound::SAND),
+    cube("Verdigris Sand", 0.45, all(tex::GREEN_SAND), SAND, sound::SAND),
+    cube("Pale Sand", 0.45, all(tex::PALE_SAND), SAND, sound::SAND),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -334,6 +275,21 @@ pub const FACE_TEX: [[u16; 6]; 256] = {
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = DEFS[i].faces;
+        i += 1;
+    }
+    t
+};
+
+/// Per block and face, the first of the layer's alternates (`tex::alternates`), or 0.
+pub const ALT_TEX: [[u16; 6]; 256] = {
+    let mut t = [[0u16; 6]; 256];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        let mut f = 0;
+        while f < 6 {
+            t[i][f] = tex::alternates(DEFS[i].faces[f]);
+            f += 1;
+        }
         i += 1;
     }
     t

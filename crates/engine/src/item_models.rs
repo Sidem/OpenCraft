@@ -1,8 +1,13 @@
 //! Presentation-only box assemblies shared by loose items and inventory icons.
-//! Coordinates and dimensions are fractions of a full item cube; add a static slice for a new part.
+//! Coordinates and dimensions are fractions of a full item cube (y up); parts are drawn in order, so
+//! list them back to front (the icon looks from +x, +z, above). Add a static slice for a new model.
+//! Tools stand upright in the x-y plane, head up; their heads use their tier's material.
 
 use crate::block::tex;
-use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, RED_PACK, SCREW};
+use crate::item::{
+    ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE,
+    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+};
 
 pub struct Part {
     pub center: [f32; 3],
@@ -36,16 +41,12 @@ const SCREWS: [Part; 3] = [
     part([-0.36, -0.06, -0.1], [0.13, 0.24, 0.24], tex::IRON_PLATE),
     part([0.11, 0.09, 0.17], [0.43, 0.09, 0.09], tex::SCREW),
 ];
-const WIRE: [Part; 9] = [
-    part([0.0, -0.06, -0.28], [0.58, 0.08, 0.08], tex::COPPER_WIRE),
-    part([0.0, -0.06, 0.28], [0.58, 0.08, 0.08], tex::COPPER_WIRE),
-    part([-0.28, -0.06, 0.0], [0.08, 0.08, 0.58], tex::COPPER_WIRE),
-    part([0.28, -0.06, 0.0], [0.08, 0.08, 0.58], tex::COPPER_WIRE),
-    part([0.35, -0.06, 0.27], [0.28, 0.08, 0.08], tex::COPPER_WIRE),
-    part([0.0, 0.055, -0.22], [0.48, 0.07, 0.07], tex::COPPER_WIRE),
-    part([0.0, 0.055, 0.22], [0.48, 0.07, 0.07], tex::COPPER_WIRE),
-    part([-0.22, 0.055, 0.0], [0.07, 0.07, 0.48], tex::COPPER_WIRE),
-    part([0.22, 0.055, 0.0], [0.07, 0.07, 0.48], tex::COPPER_WIRE),
+/// A spool on its side: copper windings between two wooden flanges, a loose end on the ground.
+const WIRE: [Part; 4] = [
+    part([-0.22, 0.0, 0.0], [0.06, 0.5, 0.5], tex::HANDLE),
+    part([0.0, 0.0, 0.0], [0.38, 0.4, 0.4], tex::COPPER_WIRE),
+    part([0.22, 0.0, 0.0], [0.06, 0.5, 0.5], tex::HANDLE),
+    part([0.05, -0.22, 0.33], [0.3, 0.04, 0.05], tex::COPPER_WIRE),
 ];
 const RED_FLASK: [Part; 4] = [
     part([0.0, -0.12, 0.0], [0.42, 0.42, 0.42], tex::RED_PACK),
@@ -60,6 +61,59 @@ const GREEN_FLASK: [Part; 4] = [
     part([0.0, 0.35, 0.0], [0.22, 0.08, 0.22], tex::BOX_TOP),
 ];
 
+const fn pickaxe(head: u16) -> [Part; 6] {
+    [
+        part([0.0, -0.08, 0.0], [0.08, 0.8, 0.08], tex::HANDLE),
+        part([0.0, 0.3, 0.0], [0.14, 0.16, 0.14], head),
+        part([0.0, 0.3, 0.0], [0.5, 0.1, 0.1], head),
+        part([-0.3, 0.25, 0.0], [0.12, 0.1, 0.09], head),
+        part([0.3, 0.25, 0.0], [0.12, 0.1, 0.09], head),
+        part([0.39, 0.18, 0.0], [0.07, 0.08, 0.07], head),
+    ]
+}
+
+const fn axe(head: u16) -> [Part; 4] {
+    [
+        part([0.0, -0.05, 0.0], [0.08, 0.84, 0.08], tex::HANDLE),
+        part([-0.04, 0.27, 0.0], [0.14, 0.18, 0.12], head),
+        part([0.14, 0.27, 0.0], [0.22, 0.2, 0.06], head),
+        part([0.28, 0.27, 0.0], [0.08, 0.32, 0.05], head),
+    ]
+}
+
+const fn shovel(head: u16) -> [Part; 5] {
+    [
+        part([0.0, 0.1, 0.0], [0.08, 0.66, 0.08], tex::HANDLE),
+        part([0.0, 0.43, 0.0], [0.22, 0.06, 0.08], tex::HANDLE),
+        part([0.0, -0.24, 0.0], [0.1, 0.08, 0.08], head),
+        part([0.0, -0.36, 0.0], [0.3, 0.18, 0.05], head),
+        part([0.0, -0.47, 0.0], [0.2, 0.05, 0.05], head),
+    ]
+}
+
+const STONE_PICK: [Part; 6] = pickaxe(tex::STONE);
+const IRON_PICK: [Part; 6] = pickaxe(tex::STEEL);
+const STONE_HATCHET: [Part; 4] = axe(tex::STONE);
+const IRON_HATCHET: [Part; 4] = axe(tex::STEEL);
+const STONE_SPADE: [Part; 5] = shovel(tex::STONE);
+const IRON_SPADE: [Part; 5] = shovel(tex::STEEL);
+
+/// A handset: casing, a wooden grip, a steel antenna, and the screen on its front (+z).
+const SCANNER_SET: [Part; 4] = [
+    part([0.0, 0.0, 0.0], [0.44, 0.56, 0.16], tex::CORE_DRILL),
+    part([0.0, -0.36, 0.0], [0.16, 0.18, 0.12], tex::HANDLE),
+    part([0.14, 0.36, 0.0], [0.04, 0.18, 0.04], tex::STEEL),
+    part([0.0, 0.07, 0.09], [0.34, 0.3, 0.02], tex::SCANNER),
+];
+
+/// A motor housing with a carrying bar, over a fluted bit with a steel point.
+const DRILL_SET: [Part; 4] = [
+    part([0.0, -0.16, 0.0], [0.09, 0.46, 0.09], tex::DRILL),
+    part([0.0, -0.43, 0.0], [0.05, 0.08, 0.05], tex::STEEL),
+    part([0.0, 0.2, 0.0], [0.4, 0.28, 0.3], tex::CORE_DRILL),
+    part([0.0, 0.4, 0.0], [0.3, 0.06, 0.08], tex::HANDLE),
+];
+
 pub fn parts(item: ItemId) -> &'static [Part] {
     match item {
         IRON_INGOT => &IRON_BAR,
@@ -70,6 +124,14 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         COPPER_WIRE => &WIRE,
         RED_PACK => &RED_FLASK,
         GREEN_PACK => &GREEN_FLASK,
+        STONE_PICKAXE => &STONE_PICK,
+        IRON_PICKAXE => &IRON_PICK,
+        STONE_AXE => &STONE_HATCHET,
+        IRON_AXE => &IRON_HATCHET,
+        STONE_SHOVEL => &STONE_SPADE,
+        IRON_SHOVEL => &IRON_SPADE,
+        SCANNER => &SCANNER_SET,
+        CORE_DRILL => &DRILL_SET,
         _ => &[],
     }
 }

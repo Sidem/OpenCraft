@@ -1,17 +1,17 @@
 //! Geology-driven ores (generator version 2 only): the same numbers of outcrops, veins and lodes as
 //! version 1 (the user kept today's rates), but each deposit's ore is drawn from the weights of the
 //! biome it lies in (`biome.rs`), so copper gathers in the highlands, coal and limestone in the
-//! lowlands, quartz in the deserts and iron in the basalt. Veins and lodes stain the soil above them
-//! (`stain_surface`: rusty over iron, dark over coal, green over copper, pale over limestone and
-//! quartz); outcrops show themselves.
+//! lowlands, quartz in the deserts and iron in the basalt. Veins and lodes stain the grass and sand
+//! above them (`stain_surface`: rusty over iron, dark over coal, green over copper, pale over limestone
+//! and quartz); outcrops show themselves.
 //!
 //! Invariants: a pure function of the seed and the column, like version 1's seeding, and keys stay
 //! unique per (column, tier, slot), so `deposit_by_key` finds a saved deposit again. Shapes come from
 //! the same helpers as version 1 (`ore.rs`). To tune: `ORES_BY_BIOME` (weights, not rates).
 
 use crate::block::{
-    BlockId, COAL_ORE, COPPER_ORE, DARK_SOIL, DIRT, GRASS, GREEN_SOIL, IRON_ORE, LIMESTONE, PALE_SOIL, QUARTZ_ORE,
-    RUSTY_SOIL, SAND,
+    BlockId, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GRASS, GREEN_SAND, GREEN_SOIL, IRON_ORE, LIMESTONE, PALE_SAND,
+    PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND,
 };
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
@@ -66,7 +66,7 @@ impl WorldGen {
         }
     }
 
-    /// Surface hints: stains about one in `HINT_ONE_IN` grass, sand or dirt tops over each vein and
+    /// Surface hints: stains about one in `HINT_ONE_IN` grass or sand tops over each vein and
     /// lode of `near` (and `HINT_MARGIN` blocks around it) in the column starting at (x0, z0).
     pub(super) fn stain_surface(&self, x0: i32, z0: i32, near: &[Deposit], surface: &mut [(BlockId, BlockId)]) {
         for d in near.iter().filter(|d| d.tier() != Tier::Outcrop) {
@@ -79,8 +79,8 @@ impl WorldGen {
                         continue;
                     }
                     let top = &mut surface[((z - z0) * CHUNK_SIZE + x - x0) as usize].0;
-                    if matches!(*top, GRASS | SAND | DIRT) {
-                        *top = hint_for(d.ore());
+                    if let Some(hint) = hint_for(d.ore(), *top) {
+                        *top = hint;
                     }
                 }
             }
@@ -102,13 +102,19 @@ impl WorldGen {
     }
 }
 
-/// The stained soil that hints at `ore` underground.
-pub fn hint_for(ore: BlockId) -> BlockId {
-    match ore {
-        IRON_ORE => RUSTY_SOIL,
-        COAL_ORE => DARK_SOIL,
-        COPPER_ORE => GREEN_SOIL,
-        _ => PALE_SOIL,
+/// The stained surface block that replaces `top` over `ore` underground, if `top` (grass or sand)
+/// takes stains.
+pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
+    let (grass, sand) = match ore {
+        IRON_ORE => (RUSTY_SOIL, RUSTY_SAND),
+        COAL_ORE => (DARK_SOIL, DARK_SAND),
+        COPPER_ORE => (GREEN_SOIL, GREEN_SAND),
+        _ => (PALE_SOIL, PALE_SAND),
+    };
+    match top {
+        GRASS => Some(grass),
+        SAND => Some(sand),
+        _ => None,
     }
 }
 
