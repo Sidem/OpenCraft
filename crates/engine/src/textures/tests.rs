@@ -27,6 +27,15 @@ fn natural_surfaces_have_no_tile_border() {
         tex::COAL_ORE,
         tex::IRON_ORE,
         tex::COPPER_ORE,
+        tex::GRANITE,
+        tex::SANDSTONE,
+        tex::BASALT,
+        tex::LIMESTONE,
+        tex::QUARTZ_ORE,
+        tex::RUSTY_SOIL,
+        tex::DARK_SOIL,
+        tex::GREEN_SOIL,
+        tex::PALE_SOIL,
     ] {
         let mut interior = 0u32;
         let mut seam = 0u32;
@@ -45,6 +54,18 @@ fn natural_surfaces_have_no_tile_border() {
             }
         }
         assert!(seam * 15 <= interior * 2 + 480, "layer {layer} has a visible wrap border");
+    }
+}
+
+#[test]
+fn ore_hint_soils_stay_close_to_regular_dirt() {
+    for layer in [tex::RUSTY_SOIL, tex::DARK_SOIL, tex::GREEN_SOIL, tex::PALE_SOIL] {
+        let delta: u32 = (0..16)
+            .flat_map(|y| (0..16).map(move |x| (pixel(tex::DIRT, x, y), pixel(layer, x, y))))
+            .map(|(dirt, hint)| (0..3).map(|i| dirt[i].abs_diff(hint[i]) as u32).sum::<u32>())
+            .sum();
+        let average = delta / (16 * 16 * 3);
+        assert!((4..30).contains(&average), "hint layer {layer} diverges from dirt by {average} levels");
     }
 }
 

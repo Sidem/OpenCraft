@@ -50,7 +50,7 @@ void main() {
   else uv = vec2(p.z, -p.y);
 
   v_uvl = vec3(uv, layer);
-  v_light = FACE_SHADE[face] * AO_CURVE[ao];
+  v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
@@ -85,8 +85,10 @@ float terrainField(vec2 p) {
 void main() {
 #ifdef TERRAIN
   // Independent continuous offsets disturb the repeated tile in both directions without edge cuts.
+  bool natural = v_uvl.z < 13.0 || (v_uvl.z >= 58.0 && v_uvl.z <= 62.0)
+                 || (v_uvl.z >= 64.0 && v_uvl.z <= 67.0);
   vec2 drift = vec2(terrainField(v_ground / 2.5), terrainField(v_ground / 2.5 + vec2(5.0, 11.0))) - 0.5;
-  vec2 uv = v_uvl.xy + (v_uvl.z < 13.0 ? drift * (abs(v_uvl.z - 7.0) < 0.5 ? 0.35 : 1.25) : vec2(0.0));
+  vec2 uv = v_uvl.xy + (natural ? drift * (abs(v_uvl.z - 7.0) < 0.5 ? 0.35 : 1.25) : vec2(0.0));
   if (abs(v_uvl.z - 7.0) < 0.5) {
     // Leaf holes are per-cluster, so a canopy does not expose a repeated 16-texel stencil.
     vec2 leafCell = floor(v_ground);
@@ -95,8 +97,8 @@ void main() {
   vec4 c = texture(u_tex, vec3(uv, v_uvl.z));
   // A second, slower sample gives each run of blocks its own mineral/soil tone. Preserve the
   // grass lip, log rings and cutout foliage silhouettes from the primary sample.
-  if (v_uvl.z < 13.0 && abs(v_uvl.z - 3.0) > 0.5 && abs(v_uvl.z - 6.0) > 0.5 && abs(v_uvl.z - 7.0) > 0.5) {
-    bool ore = v_uvl.z >= 8.0 && v_uvl.z <= 10.0;
+  if (natural && abs(v_uvl.z - 3.0) > 0.5 && abs(v_uvl.z - 6.0) > 0.5 && abs(v_uvl.z - 7.0) > 0.5) {
+    bool ore = (v_uvl.z >= 8.0 && v_uvl.z <= 10.0) || abs(v_uvl.z - 62.0) < 0.5;
     vec3 broad = texture(u_tex, vec3(v_uvl.xy * (ore ? 0.73 : 0.19) + vec2(0.17, 0.43), v_uvl.z)).rgb;
     c.rgb = mix(c.rgb, broad, ore ? 0.45 : 0.38);
     if (ore) {
@@ -115,7 +117,7 @@ void main() {
 #ifdef TERRAIN
   // World-anchored 16-block patches survive greedy merging and camera/chunk transitions.
   float field = terrainField(v_ground / 16.0);
-  c.rgb *= mix(vec3(0.88, 0.95, 1.02), vec3(1.08, 1.04, 0.95), field);
+  if (natural) c.rgb *= mix(vec3(0.88, 0.95, 1.02), vec3(1.08, 1.04, 0.95), field);
 #endif
   o_color = vec4(applyFog(c.rgb * v_light, v_rel), 1.0);
 }

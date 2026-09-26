@@ -193,16 +193,16 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   at a glance: icons, loose-item models and held models. Placeholders: layers `tex::STONE_PICKAXE`..`IRON_SHOVEL`
   (51–56) drawn by `textures/tools.rs` on flat plates (`item.rs` `tool()` size). The hotbar wear bar is
   `.slot.tool::after` in `hud.css`.
-- [ ] (Saplings, landed) A sapling: layer `tex::SAPLING` (57) by `textures/plants.rs`, drawn on two
+- [x] (Saplings, landed) A sapling: layer `tex::SAPLING` (57) by `textures/plants.rs`, drawn on two
   crossed quads (`Render::Plant`), so keep the background transparent. Also its icon and loose item.
-- [ ] (4.2, landed) Rocks and minerals for Milestone 4's biomes: granite, sandstone, basalt (building
+- [x] (4.2, landed) Rocks and minerals for Milestone 4's biomes: granite, sandstone, basalt (building
   rocks that fill whole regions underground, so they must tile well and read apart from stone),
   limestone and quartz ore (deposit ores), glass (cutout: keep most texels transparent). Layers
-  `tex::GRANITE`..`tex::GLASS` (58–63) in `textures/geology.rs`; quartz uses `ore()` in `textures.rs`.
+  `tex::GRANITE`..`tex::GLASS` (58–63) in `textures/geology.rs`; quartz uses `quartz_ore()` there.
 - [ ] (4.6, landed) Prospecting devices, drawn like the tools (flat item plates): a handheld scanner
   (`tex::SCANNER`, 68) and a core drill (`tex::CORE_DRILL`, 69); `scanner()` and `core_drill()` in
   `textures/tools.rs`.
-- [ ] (4.5, landed) Stained soils that hint at ore below: rusty (iron), dark (coal), verdigris
+- [x] (4.5, landed) Stained soils that hint at ore below: rusty (iron), dark (coal), verdigris
   (copper), pale (limestone, quartz). Readable from a distance and on the minimap, but still soil.
   Layers `tex::RUSTY_SOIL`..`tex::PALE_SOIL` (64–67), `soil()` in `textures/geology.rs`.
 - [ ] (P3, landed) A leaf-decay particle or puff, if cheap; otherwise none. There is no particle system;
@@ -278,8 +278,20 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   retains the base tile view. Same fixture: `artifacts/a4/after.png` →
   `artifacts/material-refinement/after-scene.png`; material detail:
   `artifacts/a2/materials.png` → `artifacts/material-refinement/after-materials.png`.
-  The main checkout currently has **uncommitted** new sapling, geology and soil texture layers
+  At that checkpoint, the main checkout had **uncommitted** new sapling, geology and soil texture layers
   (57–67); reconcile their IDs with art's item layers when the gameplay work lands. Do not copy
   or modify the main checkout's work in progress. `npm run check` green (145 tests); golden
   hash unchanged. Vite wasm **143.35 kB gzip**, +0.75 kB from A4 and within the original
   +12 kB art budget; `wasm-sizes.mjs` inspected. No merge or push.
+- **2026-09-26, Milestone 4 material integration:** Rebasing `art` on `main` kept all new layers
+  57–69 and moved the art-only rod, screw and flask-glass layers to 70–72. `tex::GLASS` (63)
+  remains the cutout block; lab and generator model accents use `tex::FLASK_GLASS` (72).
+  Replaced the granite, sandstone, basalt, limestone, quartz, glass and sapling placeholders.
+  Rusty, dark, verdigris and pale hint soils all derive from the regular dirt pixels with a
+  13–23% local tint, so the mineral cue stays quiet. New opaque geology and soils receive the
+  same world-scale terrain variation as the older materials. The preview gallery includes all
+  new layers; `artifacts/geology-rework/before-materials.png` →
+  `artifacts/geology-rework/after-materials.png` is the same 3×3 material fixture; the fixed
+  factory view after rebase is `artifacts/geology-rework/after-scene.png`. `npm run check` green
+  (166 tests), golden hash unchanged. Vite wasm **152.22 kB gzip**, +0.68 kB over the
+  rebase baseline (151.54 kB); `wasm-sizes.mjs` inspected. No merge or push.

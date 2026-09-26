@@ -9,9 +9,9 @@ use crate::math::{hash3, unit};
 mod geology;
 mod items;
 mod machines;
-mod plants;
 mod nature;
 mod ores;
+mod plants;
 mod tools;
 
 use machines::{
@@ -128,7 +128,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SANDSTONE => geology::sandstone(x, y),
         tex::BASALT => geology::basalt(x, y),
         tex::LIMESTONE => geology::limestone(x, y),
-        tex::QUARTZ_ORE => ore(x, y, 80, [236.0, 232.0, 240.0], [196.0, 190.0, 214.0]),
+        tex::QUARTZ_ORE => geology::quartz_ore(x, y),
         tex::GLASS => geology::glass(x, y),
         tex::RUSTY_SOIL => geology::soil(x, y, [176.0, 84.0, 40.0]),
         tex::DARK_SOIL => geology::soil(x, y, [40.0, 34.0, 30.0]),

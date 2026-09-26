@@ -87,8 +87,8 @@ folder with `mod.rs`.
 | `textures/ores.rs` | Tileable coal fractures, iron blooms and copper veins on the shared slate base |
 | `textures/items.rs` | Rod threads, screws, glass and science-liquid surfaces for the item assemblies |
 | `textures/tools.rs` | Placeholder tool pictures (pickaxe, axe, shovel per tier; scanner, core drill) |
-| `textures/plants.rs` | Placeholder plant pictures on transparent ground (sapling) |
-| `textures/geology.rs` | Placeholder rocks and minerals (granite, sandstone, basalt, limestone, glass) |
+| `textures/plants.rs` | Alpine sapling needles and stems on transparent crossed quads |
+| `textures/geology.rs` | Province rock grains, quartz pockets, subtle ore-hint dirt and cutout glass |
 | `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |

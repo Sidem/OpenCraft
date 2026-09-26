@@ -86,6 +86,11 @@ try {
     ['Sand','Sand',0], ['Bark','Log',1], ['End grain','Log',0], ['Leaves','Leaves',0],
     ['Bedrock','Bedrock',0], ['Spent rock','Spent Rock',0],
     ['Coal seam','Coal Ore',0], ['Iron bloom','Iron Ore',0], ['Copper vein','Copper Ore',0],
+    ['Granite','Granite',0], ['Sandstone','Sandstone',0], ['Basalt','Basalt',0],
+    ['Limestone','Limestone',0], ['Quartz','Quartz Ore',0], ['Glass','Glass',0],
+    ['Rusty hint · iron','Rusty Soil',0], ['Dark hint · coal','Dark Soil',0],
+    ['Verdigris hint · copper','Verdigris Soil',0], ['Pale hint · limestone/quartz','Pale Soil',0],
+    ['Sapling','Sapling',0],
   ];
   const size = game.texture_size(), layerBytes = size * size * 4;
   const rawMaterials = new URLSearchParams(location.search).has('raw');
@@ -94,8 +99,8 @@ try {
   for(const [name,block,face] of materials ? samples : items ? [] : samples.slice(0,2)) {
     const layer = game.item_icon(ids[block])[face];
     const figure=document.createElement('figure'), swatch=document.createElement('canvas'), caption=document.createElement('figcaption');
-    const repeats = materials ? 3 : 1;
-    const sample = worldSamples?.get(layer);
+    const repeats = materials && block !== 'Sapling' ? 3 : 1;
+    const sample = block === 'Sapling' ? null : worldSamples?.get(layer);
     swatch.width=swatch.height=sample?.width ?? size*repeats;
     if (sample) swatch.getContext('2d').putImageData(sample,0,0);
     else {

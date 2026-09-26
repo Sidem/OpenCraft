@@ -1,20 +1,23 @@
-//! Plant patterns (placeholders for the art agent): drawn on a transparent background for the
-//! mesher's crossed quads (`Render::Plant`).
+//! Young Alpine sapling on crossed transparent quads; narrow stem and uneven needle sprays.
+//! Transparent texels retain green RGB to avoid dark fringes in the mip chain.
 
 use super::{n, rgb};
 
-/// A young tree: a thin stem and a small round crown.
 pub fn sapling(x: i32, y: i32) -> [u8; 4] {
-    let leaf = [70.0, 136.0, 48.0];
-    let (dx, dy) = (x as f64 - 7.5, y as f64 - 6.0);
-    if dx * dx + dy * dy * 1.3 < 22.0 && n(60, x, y) > 0.15 {
-        rgb(leaf, 0.7 + 0.4 * n(61, x, y))
-    } else if (7..=8).contains(&x) && y >= 8 {
-        rgb([112.0, 82.0, 50.0], 0.85 + 0.2 * n(62, x, y))
-    } else {
-        // Transparent, but keep a leaf colour so mipmaps don't bleed dark fringes.
-        let mut c = rgb(leaf, 0.8);
-        c[3] = 0;
-        c
+    let needles = [62.0, 105.0, 79.0];
+    let stem = x == 7 && y >= 4 || x == 8 && y >= 9;
+    let twig = y == 7 && (4..=7).contains(&x) || y == 9 && (8..=11).contains(&x) || y == 11 && (5..=7).contains(&x);
+    if stem || twig {
+        return rgb([83.0, 71.0, 54.0], 0.88 + 0.16 * n(280, x, y));
     }
+    let sprays = [(6, 4, 3, 2), (10, 5, 3, 2), (4, 8, 3, 2), (11, 9, 3, 2), (5, 11, 2, 1)];
+    for (cx, cy, rx, ry) in sprays {
+        let (dx, dy) = ((x - cx).abs(), (y - cy).abs());
+        if dx * ry + dy * rx <= rx * ry && n(281, x, y) > 0.28 {
+            return rgb(needles, 0.82 + 0.26 * n(282, x, y));
+        }
+    }
+    let mut c = rgb(needles, 0.82);
+    c[3] = 0;
+    c
 }

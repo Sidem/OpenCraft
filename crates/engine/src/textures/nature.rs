@@ -56,7 +56,7 @@ fn shade(c: [u8; 4], delta: i8) -> [u8; 4] {
 }
 
 /// Shared tileable grain: broad material variation, smaller flecks and a very quiet texel grit.
-fn grain(base: [u8; 3], seed: u32, x: i32, y: i32) -> [u8; 4] {
+pub(super) fn grain(base: [u8; 3], seed: u32, x: i32, y: i32) -> [u8; 4] {
     let broad = smooth(seed, x, y, 2) * 0.55 + smooth(seed + 1, x, y, 4) * 0.3 + smooth(seed + 2, x, y, 8) * 0.15;
     let grit = n(seed + 3, x, y);
     let delta = ((broad - 0.5) * 33.0 + (grit - 0.5) * 10.0) as i8;
