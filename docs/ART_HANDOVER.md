@@ -167,7 +167,7 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
   Seamless tiling.
 - [x] **A2. Ores.** Every ore readable at 20 blocks and distinct without colour (shape of flecks,
   brightness). Keep each ore's family look in sync with its ingot and plate icons.
-- [ ] **A3. Item icons and loose items.** Ingots, plates, rods, screws, wire, science packs. If single
+- [x] **A3. Item icons and loose items.** Ingots, plates, rods, screws, wire, science packs. If single
   boxes aren't enough, add multi-box item models (`item_models.rs`, keyed by item id, used by
   `push_item_box` and a new icon getter). One getter in `api/content.rs`.
 - [ ] **A4. Machine models.** Clearer silhouettes, so each machine is recognisable from its outline;
@@ -248,3 +248,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   detail: `artifacts/a1/materials.png` → `artifacts/a2/materials.png`. `npm run check` green
   (144 tests), golden hash unchanged. Vite wasm **140.09 kB gzip**, +0.65 kB over the
   rebuilt A1/P1–P5 baseline of 139.44 kB. No merge or push.
+- **2026-09-26, A3:** Rebased on `main`; added shared small box assemblies for ingots, plates,
+  a collared rod, headed screws, coiled wire and stoppered science flasks. Loose items draw those
+  assemblies; a single `item_model` getter feeds the same shapes to the HUD. Added rod, screw and
+  glass texture layers after P5's tool layers, and a development item-icon gallery at
+  `/art-preview.html?view=items`. Same fixture screenshots: `artifacts/a2/after.png` →
+  `artifacts/a3/after.png`; focused icon evidence: `artifacts/a3/items.png`. `npm run check`
+  green (145 tests), golden hash unchanged. Vite wasm **141.02 kB gzip**, +0.93 kB from A2;
+  `wasm-sizes.mjs` inspected. No merge or push.

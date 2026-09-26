@@ -11,6 +11,7 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::push_box;
 use crate::inventory::Inventory;
 use crate::item::{self, ItemId};
+use crate::item_models;
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
 
@@ -159,13 +160,31 @@ impl Items {
     }
 }
 
-/// Pushes one loose item's box at camera-relative `at`, spinning and bobbing with its `age`.
+/// Pushes a loose item's box assembly at camera-relative `at`, spinning and bobbing with its `age`.
 pub fn push_item_box(out: &mut Vec<f32>, item: ItemId, at: Vec3, age: f32) {
     let Some(def) = item::def(item) else { return };
     let size = def.size.map(|s| s * (HALF * 2.0) as f32);
     // Resting on the same floor as a full cube, bobbing a little.
     let bob = (age as f64 * 2.6).sin() * 0.05 + 0.05 - HALF * (1.0 - def.size[1] as f64);
-    push_box(out, at + Vec3::new(0.0, bob, 0.0), age * 1.7, size, 0.0, def.tex, false);
+    let at = at + Vec3::new(0.0, bob, 0.0);
+    let yaw = age * 1.7;
+    let (sin, cos) = yaw.sin_cos();
+    let parts = item_models::parts(item);
+    if parts.is_empty() {
+        push_box(out, at, yaw, size, 0.0, def.tex, false);
+    } else {
+        for p in parts {
+            let x = p.center[0] as f64 * (HALF * 2.0);
+            let z = p.center[2] as f64 * (HALF * 2.0);
+            let center = at
+                + Vec3::new(
+                    x * cos as f64 - z * sin as f64,
+                    p.center[1] as f64 * (HALF * 2.0),
+                    x * sin as f64 + z * cos as f64,
+                );
+            push_box(out, center, yaw, p.size.map(|s| s * (HALF * 2.0) as f32), 0.0, p.tex, false);
+        }
+    }
 }
 
 #[cfg(test)]

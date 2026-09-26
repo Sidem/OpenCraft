@@ -34,7 +34,7 @@ folder with `mod.rs`.
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); box screens (`box_slots`, `click_box`, `store_slot`) |
 | `api/crafting.rs` | Recipe queries (`recipe_locked_by`) and `craft` |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
-| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (texture layers and box proportions), `tool_uses`, `hand_yield`, `miner_recovery` |
+| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/net.rs` | `start_host`, `start_client`, `from_snapshot`, `resync`, `is_client`, `host_join` / `host_leave`, `snapshot`, `host_stamp`, `take_frames`, `take_checksums`, `take_outbox`, `push_frames`, `local_player`, `take_states`, `host_state`, `push_states`, `take_item_view`, `push_items`, `core_tick`, `confirmed_tick` |
@@ -44,6 +44,7 @@ folder with `mod.rs`.
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `block.rs` | Block ids, `DEFS` table, texture layers `tex` (item textures too), sound materials, lookup tables |
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
+| `item_models.rs` | Shared small box assemblies for manufactured loose items and their HUD icons; data only, no item rules |
 | `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
 | `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, unlocked recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `add_unit`) |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
@@ -84,6 +85,7 @@ folder with `mod.rs`.
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
 | `textures/nature.rs` | Alpine palettes and periodic natural block patterns: slate, earth, turf, sand, bark/end grain, leaf cutouts, bedrock and spent rock |
 | `textures/ores.rs` | Tileable coal fractures, iron blooms and copper veins on the shared slate base |
+| `textures/items.rs` | Rod threads, screws, glass and science-liquid surfaces for the item assemblies |
 | `textures/tools.rs` | Placeholder tool pictures (pickaxe, axe, shovel per tier; scanner, core drill) |
 | `textures/plants.rs` | Placeholder plant pictures on transparent ground (sapling) |
 | `textures/geology.rs` | Placeholder rocks and minerals (granite, sandstone, basalt, limestone, glass) |

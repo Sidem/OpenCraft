@@ -204,10 +204,7 @@ export class Hud {
     this.toasts.set(key, { el, label, count, until: now + TOAST_MS });
   }
 
-  /**
-   * Isometric icon of an item's box model (`item_icon`: top, side and bottom texture layers, then the
-   * box's x, y, z proportions, 1 = a full cube), centred in the canvas. Blocks are full cubes.
-   */
+  /** Isometric icon using the same box assembly as the loose item; blocks keep their single box. */
   itemIcon(item: number): HTMLCanvasElement {
     let c = this.icons.get(item);
     if (c) return c;
@@ -218,13 +215,10 @@ export class Hud {
     const info = this.game.item_icon(item);
     this.icons.set(item, c);
     if (info.length < 6) return c;
-    const [topLayer, sideLayer, , a, h, b] = info;
-    // A unit cube spans S pixels; +x runs right-down, +z left-down, +y up.
-    const S = ICON_PX * 0.9, k = S / 16;
-    const cx = ICON_PX / 2 - ((a - b) * S) / 4;
-    const cy = ICON_PX / 2 - (((a + b) * S) / 4 - (h * S) / 2) / 2;
-    const top = this.layers[topLayer];
-    const side = this.layers[sideLayer];
+    // +x runs right-down, +z left-down, +y up. Part coordinates are fractions of one cube.
+    const S = ICON_PX * 0.86, k = S / 16;
+    const project = (x: number, y: number, z: number): [number, number] =>
+      [ICON_PX / 2 + (x - z) * S / 2, ICON_PX * 0.54 + (x + z) * S / 4 - y * S / 2];
     const face = (img: HTMLCanvasElement, m: [number, number, number, number, number, number], shade: number) => {
       ctx.setTransform(...m);
       ctx.drawImage(img, 0, 0);
@@ -235,12 +229,25 @@ export class Hud {
         ctx.globalCompositeOperation = 'source-over';
       }
     };
-    // Each face is shaded with `source-atop` inside its own parallelogram, so it only darkens itself.
-    // Each face maps the whole 16×16 layer onto its parallelogram: the z = b side, the x = a side, the top.
-    const topY = cy - (h * S) / 2;
-    face(side, [(a * k) / 2, (a * k) / 4, 0, (h * k) / 2, cx - (b * S) / 2, topY + (b * S) / 4], 0.22);
-    face(side, [(b * k) / 2, (-b * k) / 4, 0, (h * k) / 2, cx + ((a - b) * S) / 2, topY + ((a + b) * S) / 4], 0.4);
-    face(top, [(a * k) / 2, (a * k) / 4, (-b * k) / 2, (b * k) / 4, cx, topY], 0);
+    const draw = (x: number, y: number, z: number, a: number, h: number, b: number,
+      topLayer: number, sideLayer: number) => {
+      const top = this.layers[topLayer], side = this.layers[sideLayer];
+      const left = project(x - a / 2, y + h / 2, z + b / 2);
+      const right = project(x + a / 2, y + h / 2, z + b / 2);
+      const peak = project(x, y + h / 2, z);
+      face(side, [(a * k) / 2, (a * k) / 4, 0, (h * k) / 2, left[0], left[1]], 0.22);
+      face(side, [(b * k) / 2, (-b * k) / 4, 0, (h * k) / 2, right[0], right[1]], 0.4);
+      face(top, [(a * k) / 2, (a * k) / 4, (-b * k) / 2, (b * k) / 4, peak[0], peak[1]], 0);
+    };
+    const model = this.game.item_model(item);
+    if (model.length) {
+      for (let i = 0; i < model.length; i += 9) {
+        draw(model[i], model[i + 1], model[i + 2], model[i + 3], model[i + 4], model[i + 5],
+          model[i + 6], model[i + 7]);
+      }
+    } else {
+      draw(0, 0, 0, info[3], info[4], info[5], info[0], info[1]);
+    }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     return c;
   }

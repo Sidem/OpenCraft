@@ -3,8 +3,8 @@
 //! Invariants: ids below 256 are the blocks with the same number, and their rows are derived from
 //! `block::BLOCK_DEFS`, so block ids and old saves stay valid items. Non-block items start at 256
 //! (`EXTRA`, in id order). `ItemId::NONE` (air) is "no item". Every item is drawn as a box with three
-//! texture layers (top, side, bottom) and proportions `size`: blocks are full cubes; the HUD icon and
-//! the loose and belt models all use the same two fields.
+//! texture layers (top, side, bottom) and proportions `size`: blocks are full cubes. Manufactured
+//! loose items and HUD icons additionally use the presentation-only assemblies in `item_models`.
 //!
 //! To add an item: an id constant (append, never renumber; ids are saved) and its `EXTRA` row, plus a
 //! texture layer in `block::tex` with its pattern in `textures::pixel` if it needs a new look.
@@ -112,8 +112,8 @@ const EXTRA: [ItemDef; 16] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
-    part("Iron Rod", tex::IRON_INGOT, [1.0, 0.2, 0.2]),
-    part("Screws", tex::DRILL, [0.35, 0.35, 0.35]),
+    part("Iron Rod", tex::IRON_ROD, [1.0, 0.2, 0.2]),
+    part("Screws", tex::SCREW, [0.35, 0.35, 0.35]),
     part("Copper Wire", tex::COPPER_WIRE, [0.6, 0.4, 0.6]),
     part("Red Science Pack", tex::RED_PACK, [0.4, 0.6, 0.4]),
     part("Green Science Pack", tex::GREEN_PACK, [0.4, 0.6, 0.4]),

@@ -129,7 +129,10 @@ pub mod tex {
     pub const PALE_SOIL: u16 = 67;
     pub const SCANNER: u16 = 68;
     pub const CORE_DRILL: u16 = 69;
-    pub const COUNT: usize = 70;
+    pub const IRON_ROD: u16 = 70;
+    pub const SCREW: u16 = 71;
+    pub const FLASK_GLASS: u16 = 72;
+    pub const COUNT: usize = 73;
 }
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.

@@ -3,11 +3,16 @@
 import init, { Game } from '../src/wasm/engine.js';
 import { Renderer } from '../src/render/renderer.ts';
 import { INSTANCE_FLOATS } from '../src/render/boxes.ts';
+import { Hud } from '../src/ui/hud.ts';
 
-const materials = new URLSearchParams(location.search).get('view') === 'materials';
-document.body.classList.toggle('materials', materials);
-document.querySelector('#title').textContent = 'Alpine · material study';
-document.querySelector('#description').textContent = 'Natural materials and readable ore families. Production Rust textures with world-anchored terrain tint.';
+const view = new URLSearchParams(location.search).get('view');
+const materials = view === 'materials';
+const items = view === 'items';
+document.body.classList.toggle('materials', materials || items);
+document.querySelector('#title').textContent = items ? 'Alpine · manufactured parts' : 'Alpine · material study';
+document.querySelector('#description').textContent = items
+  ? 'The inventory icons and loose items share the same box assemblies from Rust.'
+  : 'Natural materials and readable ore families. Production Rust textures with world-anchored terrain tint.';
 const status=document.querySelector('#status');
 try {
   const wasm=await init();
@@ -70,7 +75,7 @@ try {
     ['Coal seam','Coal Ore',0], ['Iron bloom','Iron Ore',0], ['Copper vein','Copper Ore',0],
   ];
   const size = game.texture_size(), layerBytes = size * size * 4;
-  for(const [name,block,face] of materials ? samples : samples.slice(0,2)) {
+  for(const [name,block,face] of materials ? samples : items ? [] : samples.slice(0,2)) {
     const layer = game.item_icon(ids[block])[face];
     const figure=document.createElement('figure'), swatch=document.createElement('canvas'), caption=document.createElement('figcaption');
     const repeats = materials ? 3 : 1;
@@ -78,6 +83,21 @@ try {
     const tile = new ImageData(new Uint8ClampedArray(tex.slice(layer*layerBytes,(layer+1)*layerBytes)),size,size);
     for(let y=0;y<repeats;y++) for(let x=0;x<repeats;x++) swatch.getContext('2d').putImageData(tile,x*size,y*size);
     caption.textContent=`${name} · ${size} × ${size}`; figure.append(swatch,caption); document.querySelector('#swatches').append(figure);
+  }
+  if (items) {
+    const layers = Array.from({length:game.texture_layers()},(_,layer) => {
+      const canvas=document.createElement('canvas'); canvas.width=canvas.height=size;
+      canvas.getContext('2d').putImageData(new ImageData(
+        new Uint8ClampedArray(tex.slice(layer*layerBytes,(layer+1)*layerBytes)),size,size),0,0);
+      return canvas;
+    });
+    const iconHud = {game,icons:new Map(),layers};
+    for(let id=256;id<270;id++) {
+      const name=game.item_name(id); if(!name || name.includes('Pickaxe') || name.includes('Axe') || name.includes('Shovel')) continue;
+      const figure=document.createElement('figure'),caption=document.createElement('figcaption');
+      figure.append(Hud.prototype.itemIcon.call(iconHud,id));
+      caption.textContent=name; figure.append(caption); document.querySelector('#swatches').append(figure);
+    }
   }
   const boxes=new Float32Array(wasm.memory.buffer,game.instance_ptr(),game.instance_count()*INSTANCE_FLOATS).slice();
   const frame={eye,yaw:game.yaw(),pitch:game.pitch(),target:null,mineProgress:0,boxes,boxCount:game.instance_count()};

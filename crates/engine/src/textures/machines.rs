@@ -272,18 +272,3 @@ pub(super) fn lab(x: i32, y: i32, top: bool) -> [u8; 4] {
         rgb([214.0, 220.0, 228.0], k)
     }
 }
-
-/// Science pack: a glass flask of coloured liquid with a cork, on a clear background.
-pub(super) fn flask(x: i32, y: i32, c: [f64; 3]) -> [u8; 4] {
-    let k = 0.9 + 0.12 * n(70, x, y);
-    let (dx, dy) = (x as f64 - 7.5, y as f64 - 10.0);
-    if (1..=2).contains(&y) && (6..=9).contains(&x) {
-        rgb([150.0, 106.0, 70.0], k)
-    } else if (3..=5).contains(&y) && (6..=9).contains(&x) {
-        rgb([200.0, 216.0, 226.0], k)
-    } else if dx * dx + dy * dy < 26.0 {
-        rgb(c, if dx + dy < -3.0 { 1.3 } else { k })
-    } else {
-        [0, 0, 0, 0]
-    }
-}

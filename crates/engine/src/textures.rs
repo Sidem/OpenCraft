@@ -7,6 +7,7 @@ use crate::block::tex;
 use crate::math::{hash3, unit};
 
 mod geology;
+mod items;
 mod machines;
 mod plants;
 mod nature;
@@ -14,8 +15,8 @@ mod ores;
 mod tools;
 
 use machines::{
-    belt_side, belt_top, constructor, crate_wood, drill, flask, generator, ingot, lab, lamp, miner_side, miner_top,
-    plate, pole, router_top, smelter, wire,
+    belt_side, belt_top, constructor, crate_wood, drill, generator, ingot, lab, lamp, miner_side, miner_top, plate,
+    pole, router_top, smelter, wire,
 };
 
 pub const TEX_SIZE: usize = 16;
@@ -116,8 +117,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::POLE_SIDE => pole(x, y),
         tex::LAB_SIDE => lab(x, y, false),
         tex::LAB_TOP => lab(x, y, true),
-        tex::RED_PACK => flask(x, y, [214.0, 60.0, 56.0]),
-        tex::GREEN_PACK => flask(x, y, [72.0, 190.0, 88.0]),
+        tex::RED_PACK | tex::GREEN_PACK | tex::IRON_ROD..=tex::FLASK_GLASS => items::pixel(layer, x, y),
         tex::AVATAR_SUIT..=tex::AVATAR_VISOR => avatar(x, y, layer - tex::AVATAR_SUIT),
         tex::STONE_PICKAXE..=tex::IRON_SHOVEL => {
             let i = layer - tex::STONE_PICKAXE;
