@@ -1,5 +1,5 @@
-//! Subdued province rocks (granite, sandstone, basalt), cutout glass and the lamp (glass in an iron
-//! frame), in the shared Alpine grain.
+//! Subdued province rocks (granite, sandstone, basalt), cutout glass, the lamp (glass in an iron
+//! frame) and water (a placeholder: see-through blue with soft ripples), in the shared Alpine grain.
 //! Ore-bearing rock (limestone, quartz) lives in `ores.rs`, surface hints in `nature.rs`.
 
 use super::{n, nature, rgb, smooth};
@@ -64,6 +64,13 @@ pub fn lamp(x: i32, y: i32) -> [u8; 4] {
     rgb([255.0, 214.0, 140.0], 0.82 + 0.18 * glow + 0.04 * n(272, x, y))
 }
 
+/// Placeholder water: deep blue-green, lighter ripple bands, mostly see-through.
+pub fn water(x: i32, y: i32) -> [u8; 4] {
+    let ripple = smooth(265, x, y, 4);
+    let mut c = rgb([46.0, 104.0, 150.0], 0.9 + 0.25 * ripple);
+    c[3] = 170 + (40.0 * ripple) as u8;
+    c
+}
 fn tint(c: [u8; 4], delta: [i8; 3]) -> [u8; 4] {
     [
         c[0].saturating_add_signed(delta[0]),

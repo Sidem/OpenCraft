@@ -36,7 +36,7 @@ const STARTER_ORES: [BlockId; 3] = [COAL_ORE, IRON_ORE, COPPER_ORE];
 const STARTER_RING: (i32, i32) = (40, 80);
 pub(super) const STARTER_INDEX: u16 = 100;
 /// Directions the starter search tries, as (x, z) in thousandths: 16 around the circle.
-const DIRS16: [(i32, i32); 16] = [
+pub(super) const DIRS16: [(i32, i32); 16] = [
     (1000, 0),
     (924, 383),
     (707, 707),

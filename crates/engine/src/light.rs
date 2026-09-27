@@ -6,7 +6,7 @@
 //! and borders match. Sky light is 15 in every cell open to the sky straight above (the columns above
 //! the field come from the chunks higher up); both kinds then flood outward, losing 1 per block,
 //! through everything that isn't an opaque cube. Leaves let flooded light through but stop the
-//! straight sky column, so forests are shady. Block light starts at emitting blocks (`BlockDef::light`).
+//! straight sky column, so forests are shady; water does too and dims light by 2 per block. Block light starts at emitting blocks (`BlockDef::light`).
 //!
 //! The result (`pad`) uses the mesher's padded layout (`mesher::pidx`): sky in the low nibble, block
 //! light in the high one. To change how a block treats light: `CLASS` below.
@@ -23,8 +23,8 @@ const W: usize = R + 2;
 const WW: usize = W * W;
 const FULL: u8 = 15;
 
-/// Per block: bit 0 lets light through, bit 1 also lets the straight sky column through; the block
-/// light it gives off in the high nibble.
+/// Per block: bit 0 lets light through, bit 1 also lets the straight sky column through, bit 2 dims it
+/// twice as fast; the block light it gives off in the high nibble.
 const CLASS: [u8; 256] = {
     let mut t = [0u8; 256];
     let mut i = 0;
@@ -32,6 +32,7 @@ const CLASS: [u8; 256] = {
         let passes = match DEFS[i].render {
             Render::Opaque => 0,
             Render::Cutout if i != GLASS as usize => PASSES,
+            Render::Liquid => PASSES | DIMS,
             _ => PASSES | SKY_PASSES,
         };
         t[i] = passes | (DEFS[i].light << 4);
@@ -41,6 +42,8 @@ const CLASS: [u8; 256] = {
 };
 const PASSES: u8 = 1;
 const SKY_PASSES: u8 = 2;
+/// Light loses 2 per block through it instead of 1 (water).
+const DIMS: u8 = 4;
 
 /// Scratch buffers, reused for every chunk.
 pub struct Lighting {
@@ -226,8 +229,9 @@ fn flood(class: &[u8], light: &mut [u8], queue: &mut Vec<u32>) {
             continue;
         }
         for j in [i - 1, i + 1, i - W, i + W, i - WW, i + WW] {
-            if class[j] & PASSES != 0 && light[j] + 1 < l {
-                light[j] = l - 1;
+            let to = l.saturating_sub(1 + (class[j] & DIMS) / DIMS);
+            if class[j] & PASSES != 0 && light[j] < to {
+                light[j] = to;
                 queue.push(j as u32);
             }
         }

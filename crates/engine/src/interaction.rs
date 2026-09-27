@@ -6,7 +6,7 @@
 //! panel, set `panel_request` for the host to open it; the core applies actions (`action.rs`). What a placed block does is decided there, in `Sim::place_block`.
 
 use crate::action::Action;
-use crate::block::{self, AIR};
+use crate::block;
 use crate::factory;
 use crate::math::{IVec3, Vec3};
 use crate::physics::Aabb;
@@ -64,7 +64,7 @@ impl Game {
     pub(crate) fn update_target(&mut self) {
         let (eye, dir) = (self.body().eye(), self.body().look_dir());
         let world = &self.sim.world;
-        self.target = raycast(eye, dir, REACH, |p| world.get_block(p).filter(|&b| b != AIR));
+        self.target = raycast(eye, dir, REACH, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
     }
 
     pub(crate) fn update_mining(&mut self, dt: f32) {
@@ -146,7 +146,7 @@ impl Game {
         let stack = inv.selected_stack();
         let placed = stack.item.places().filter(|_| !stack.is_empty())?;
         let pos = hit.block + hit.normal;
-        if self.sim.world.get_block(pos) != Some(AIR) {
+        if !self.sim.world.get_block(pos).is_some_and(block::replaceable) {
             return None;
         }
         // The body is the authority's to check: don't place a solid block where the player stands.

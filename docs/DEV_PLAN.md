@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.3** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.4** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (197 engine tests).
+   (202 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -401,24 +401,15 @@ need a version 4.
   40–80 blocks out on dry, gentle ground (key index 100+). Version 3 ore also replaces the hint soils.
   Deviations: limestone's band starts at 8 (so no pocket breaks the surface); buried pockets grow in
   number instead of staying as they were. Measured: 0.24–0.5 exposed per column (was 3.3), the nearest
-  about 110–125 blocks from a random spot (was 9). Tests in `worldgen/strata/tests.rs`.- [ ] **5.3 Still water in generation (version 3).**
-  - **The water block:** `WATER` (block 45) is not solid and not targetable (raycasts pass through it).
-    Placing into water replaces it. In `light.rs`, water dims light by 2 per block.
-  - **Sea:** `SEA_LEVEL` = 62. Every column whose ground lies below it fills with water up to it. Sand
-    covers ground at or below `SEA_LEVEL` + 1, and trees skip those columns.
-  - **Ponds** (lakes above sea level): rare hash-picked spots on flat plains and lowlands.
-    - A bowl is carved into `height_at`, so heights stay consistent.
-    - The water level is the lowest of 16 samples around the rim, minus 1. No pond is placed where that
-      would leave the bowl dry.
-  - **Watertight:** caves are not carved within 2 blocks of a water column.
-  - **The minimap** shows water blue.
-  - **Done when:** these tests pass:
-    - No generated water block has air beside or below it in a 16 × 16-column area (seeds 2024, 1337, 7).
-    - The water share is 25–35 %.
-    - Ponds appear within 1,500 blocks of spawn.
-    - Spawn is dry land.
-    - Generation stays within 10 % of version 2's cost (measure and note).
-- [ ] **5.4 Rendering water.**
+  about 110–125 blocks from a random spot (was 9). Tests in `worldgen/strata/tests.rs`.- [x] **5.3 Still water in generation (version 3).** `WATER` (block 45, `Render::Liquid`, placeholder
+  texture) is not solid, never targeted, and anything placed into it replaces it (`block::replaceable`).
+  In `light.rs` it passes flooded light but not the straight sky column, and dims light by 2 per block.
+  `worldgen/water.rs`: the sea fills every column below `SEA_LEVEL` (62); ponds sit in 96-block cells on
+  flat plains and lowlands (a bowl, and a bank raised to the level, both shaped into `height_at`); sand
+  under water and on shores; trees stay out of water; `WaterGuard` keeps caves 2 blocks from water. The
+  cave noise moved to `worldgen/caves.rs`. Deviation: sea level 62 floods about 20 % of the land, not
+  30 % (spawn stays dry for all test seeds). Generation cost equals version 2's within noise. Water is
+  not drawn until 5.4. Tests in `worldgen/water/tests.rs` and `light/tests.rs`.- [ ] **5.4 Rendering water.**
   - **Meshing:** the mesher emits water faces only against air and non-opaque blocks, as a third mesh
     range (after opaque and cutout). The top face sits 0.1 lower when air is above.
   - **Drawing:** `renderer.ts` draws that range after the cutout pass, blended, with depth writes off,
@@ -586,5 +577,5 @@ and the balance numbers. Read the section you need.
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
   3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
-- **2026-09-27:** 5.1 done: version 2 pinned (a chunk per biome). 5.2 done (see the step); the golden hash
-  was re-recorded (new worlds have new deposits). Tests 193 → 197.
+- **2026-09-27:** 5.1–5.3 done (see the steps): version 2 pinned, rare ore and a starter set (golden hash
+  re-recorded), sea and ponds. Tests 193 → 202. Version 3 is unreleased: push nothing before 5.4.

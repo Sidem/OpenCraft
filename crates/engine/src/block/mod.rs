@@ -63,7 +63,10 @@ pub const GREEN_SAND: BlockId = 42;
 pub const PALE_SAND: BlockId = 43;
 /// Gives off block light 15 (`light.rs`); unpowered for now.
 pub const LAMP: BlockId = 44;
-pub const BLOCK_COUNT: usize = 45;
+/// Generator version 3's seas and ponds (`worldgen/water.rs`); not solid, not targetable, and blocks
+/// placed into it replace it.
+pub const WATER: BlockId = 45;
+pub const BLOCK_COUNT: usize = 46;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -83,6 +86,8 @@ pub enum Render {
     Cutout,
     /// Two crossed, alpha-tested quads (saplings), drawn with the cutout pass; hides no neighbour faces.
     Plant,
+    /// Water: see-through, never targeted, replaced by whatever is placed into it.
+    Liquid,
 }
 
 pub struct BlockDef {
@@ -228,6 +233,17 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     cube("Verdigris Sand", 0.45, all(tex::GREEN_SAND), SAND, sound::SAND),
     cube("Pale Sand", 0.45, all(tex::PALE_SAND), SAND, sound::SAND),
     BlockDef { light: 15, ..cube("Lamp", 0.4, all(tex::LAMP), LAMP, sound::METAL) },
+    BlockDef {
+        name: "Water",
+        render: Render::Liquid,
+        solid: false,
+        break_time: -1.0,
+        faces: all(tex::WATER),
+        drop: AIR,
+        sound: sound::SAND,
+        placeable: false,
+        light: 0,
+    },
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -309,6 +325,12 @@ pub const ALT_TEX: [[u16; 6]; 256] = {
     }
     t
 };
+
+/// Whether placing a block may take this cell (air or water), and so whether aiming passes through it.
+#[inline]
+pub fn replaceable(id: BlockId) -> bool {
+    id == AIR || matches!(def(id).render, Render::Liquid)
+}
 
 #[inline]
 pub fn def(id: BlockId) -> &'static BlockDef {

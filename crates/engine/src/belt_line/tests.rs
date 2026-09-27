@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{STONE, STORAGE};
+use crate::block::{AIR, STONE, STORAGE};
 
 const EAST: u8 = 1;
 const NORTH: u8 = 0;

@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BlockId, AIR, LAMP, LEAVES, STONE};
+use crate::block::{BlockId, AIR, LAMP, LEAVES, STONE, WATER};
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
 /// Lights chunk (`cx`, `cy`, `cz`) of a world given by `block` at world coordinates; returns the pad.
@@ -145,4 +145,27 @@ fn a_lamp_lights_a_cave_room_and_removing_it_darkens_it() {
     assert_eq!(at(&lit, 12, 12, 12), (0, 0), "no light inside the rock");
     let dark = light_chunk(&cave(false), 0, 0, 0);
     assert_eq!(at(&dark, 15, 5, 12), (0, 0), "dark again without it");
+}
+
+#[test]
+fn water_dims_light_by_two_per_block() {
+    // A lake with its surface at y 20 over ground at y 8, wide enough to reach past the lit field.
+    let pad = light_chunk(
+        &|_, y, _| {
+            if y < 8 {
+                STONE
+            } else if y <= 20 {
+                WATER
+            } else {
+                AIR
+            }
+        },
+        0,
+        0,
+        0,
+    );
+    assert_eq!(at(&pad, 5, 21, 5).0, 15, "open sky above the water");
+    let sky: Vec<u8> = (15..=20).rev().map(|y| at(&pad, 5, y, 5).0).collect();
+    assert_eq!(sky, [13, 11, 9, 7, 5, 3], "each block of water takes 2");
+    assert_eq!(at(&pad, 5, 8, 5).0, 0, "the deep bottom is dark");
 }

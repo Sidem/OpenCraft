@@ -308,7 +308,9 @@ impl Sim {
         }
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
         let inv = &mut core.inventory;
-        if self.world.block_anywhere_or_generate(pos) != AIR || !self.world.set_block_anywhere(pos, placed) {
+        if !crate::block::replaceable(self.world.block_anywhere_or_generate(pos))
+            || !self.world.set_block_anywhere(pos, placed)
+        {
             return;
         }
         inv.take_slot(slot as usize, 1);

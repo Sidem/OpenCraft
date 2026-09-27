@@ -12,15 +12,21 @@
 //! version generates for a seed never changes** (`worldgen/tests.rs` pins each one); new rules go in a
 //! new version, branched from the same code at a few named points (`self.version >= n`). 1 = the first
 //! terrain (Milestones 1 to 3); 2 = Milestone 4's biomes, rock provinces and geology-driven ores
-//! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (`strata.rs`: rare surface ore, depth bands, a starter set).
+//! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (`strata.rs`: rare surface ore, depth bands, a starter set;
+//! `water.rs`: sea and ponds, branching in `height_at`, `build_column`, `trees_near` and `generate`).
 
 mod biome;
+mod caves;
 mod geology;
 mod ore;
 mod strata;
+mod water;
 
 pub use biome::Biome;
+use caves::CaveField;
+use water::WaterGuard;
 
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use rustc_hash::FxHashMap;
@@ -44,6 +50,9 @@ const TREE_CELL: i32 = 7;
 const TREE_REACH: i32 = 2;
 const SPAWN_CLEARING: i32 = 6;
 
+/// A pond cell and its pond, if it has one.
+type PondCell = ((i32, i32), Option<water::Pond>);
+
 pub struct WorldGen {
     seed: u32,
     version: u32,
@@ -58,6 +67,10 @@ pub struct WorldGen {
     moisture: Perlin,
     basalt: Perlin,
     columns: FxHashMap<(i32, i32), Rc<Column>>,
+    /// Version 3's ponds per cell (`water.rs`), a cache.
+    ponds: RefCell<FxHashMap<(i32, i32), Option<water::Pond>>>,
+    /// The last cell asked about, which neighbouring columns nearly always share.
+    last_pond: Cell<Option<PondCell>>,
 }
 
 impl WorldGen {
@@ -83,6 +96,8 @@ impl WorldGen {
             moisture: Perlin::new(s ^ 0x08),
             basalt: Perlin::new(s ^ 0x09),
             columns: FxHashMap::default(),
+            ponds: RefCell::default(),
+            last_pond: Cell::new(None),
         }
     }
 
@@ -96,6 +111,16 @@ impl WorldGen {
 
     /// Terrain surface height (y of the top solid block) at a world column.
     pub fn height_at(&self, x: i32, z: i32) -> i32 {
+        let h = self.base_height(x, z);
+        if self.version >= 3 {
+            self.shape_ponds(x, z, h)
+        } else {
+            h
+        }
+    }
+
+    /// The height from the terrain noise alone, before version 3's ponds.
+    fn base_height(&self, x: i32, z: i32) -> i32 {
         let (fx, fz) = (x as f64, z as f64);
         let c = self.continent.fbm2(fx / 900.0, fz / 900.0, 4);
         let hills = self.hills.fbm2(fx / 170.0, fz / 170.0, 5);
@@ -137,29 +162,34 @@ impl WorldGen {
     }
 
     fn build_column(&self, cx: i32, cz: i32) -> Column {
-        const P: usize = 34;
+        const P: usize = 36;
         let (x0, z0) = (cx * CHUNK_SIZE, cz * CHUNK_SIZE);
         let mut hm = vec![0i32; P * P];
         for z in 0..P {
             for x in 0..P {
-                hm[z * P + x] = self.height_at(x0 + x as i32 - 1, z0 + z as i32 - 1);
+                hm[z * P + x] = self.height_at(x0 + x as i32 - 2, z0 + z as i32 - 2);
             }
         }
         let mut heights = vec![0i32; 1024];
         let mut surface = vec![(AIR, AIR); 1024];
         let mut rock = vec![STONE; 1024];
+        let mut water = vec![i32::MIN; 1024];
         let mut max_ground = 0;
         for z in 0..32 {
             for x in 0..32 {
-                let h = hm[(z + 1) * P + x + 1];
-                let slope = (hm[(z + 1) * P + x + 2] - hm[(z + 1) * P + x])
+                let h = hm[(z + 2) * P + x + 2];
+                let slope = (hm[(z + 2) * P + x + 3] - hm[(z + 2) * P + x + 1])
                     .abs()
-                    .max((hm[(z + 2) * P + x + 1] - hm[z * P + x + 1]).abs());
+                    .max((hm[(z + 3) * P + x + 2] - hm[(z + 1) * P + x + 2]).abs());
                 let i = z * 32 + x;
                 heights[i] = h;
                 if self.version >= 2 {
                     let biome = self.biome_at(x0 + x as i32, z0 + z as i32, h);
                     (surface[i], rock[i]) = Self::surface_v2(biome, h, slope);
+                    if self.version >= 3 {
+                        water[i] = self.water_top(x0 + x as i32, z0 + z as i32, h);
+                        surface[i] = Self::surface_v3(surface[i], h, water[i] > h);
+                    }
                 } else {
                     surface[i] = Self::surface_for(h, slope);
                 }
@@ -168,12 +198,24 @@ impl WorldGen {
         }
         let trees = self.trees_near(x0, z0);
         let max_y = trees.iter().map(|t| t.ground + t.trunk + 2).fold(max_ground, i32::max);
+        let max_y = water.iter().copied().fold(max_y, i32::max);
+        let guard = (self.version >= 3)
+            .then(|| {
+                let (sx, sz) = (x0 - 2, z0 - 2);
+                WaterGuard::new(
+                    hm.iter()
+                        .enumerate()
+                        .map(|(i, &h)| (h, self.water_top(sx + (i % P) as i32, sz + (i / P) as i32, h)))
+                        .collect(),
+                )
+            })
+            .flatten();
         let near = self.deposits_near(cx, cz);
         if self.version >= 2 {
             self.stain_surface(x0, z0, &near, &mut surface);
         }
         let deposits = ore::in_column(near, cx, cz);
-        Column { heights, surface, rock, trees, deposits, max_y, max_ground }
+        Column { heights, surface, rock, water, guard, trees, deposits, max_y, max_ground }
     }
 
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
@@ -205,7 +247,7 @@ impl WorldGen {
                     Some(b) => Self::surface_v2(b, ground, slope).0 .0,
                     None => Self::surface_for(ground, slope).0,
                 };
-                if top != GRASS {
+                if top != GRASS || (self.version >= 3 && self.water_top(x, z, ground) > ground) {
                     continue;
                 }
                 out.push(Tree { x, z, ground, trunk: 4 + ((h >> 16) % 3) as i32 });
@@ -241,6 +283,7 @@ impl WorldGen {
                     } else if depth > 5
                         && wy > 4
                         && caves.as_ref().is_some_and(|c| c.is_cave(x, (wy - base.y) as usize, z))
+                        && !col.guard.as_ref().is_some_and(|g| g.near(x, z, wy))
                     {
                         AIR
                     } else if depth == 0 {
@@ -251,6 +294,10 @@ impl WorldGen {
                         col.rock[z * 32 + x]
                     };
                     b[index(x, (wy - base.y) as usize, z)] = id;
+                }
+                let top = col.water[z * 32 + x].min(base.y + CHUNK_SIZE - 1);
+                for wy in (h + 1).max(base.y)..=top {
+                    b[index(x, (wy - base.y) as usize, z)] = WATER;
                 }
             }
         }
@@ -281,6 +328,9 @@ struct Column {
     surface: Vec<(BlockId, BlockId)>,
     /// The rock below the soil (stone everywhere in version 1).
     rock: Vec<BlockId>,
+    /// Version 3: each column's top water block, `i32::MIN` when dry (`water.rs`).
+    water: Vec<i32>,
+    guard: Option<WaterGuard>,
     trees: Vec<Tree>,
     /// Deposits (seeded here or in a neighbouring column) whose shape reaches into this column,
     /// sorted by key: stamping and ownership lookups both walk them in this order.
@@ -326,49 +376,6 @@ pub fn tree_blocks(ground: IVec3, trunk: i32, seed: u32, mut put: impl FnMut(IVe
         put(IVec3::new(x, y, z), LOG, true);
     }
     put(ground, DIRT, true);
-}
-
-/// Spaghetti caves: tunnels where two independent noise fields are both near zero.
-/// Noise is sampled on a 4-block lattice and trilinearly interpolated (~45x fewer noise calls).
-struct CaveField {
-    a: [f32; 729],
-    b: [f32; 729],
-}
-
-impl CaveField {
-    fn new(g: &WorldGen, base: IVec3) -> Self {
-        let mut f = CaveField { a: [0.0; 729], b: [0.0; 729] };
-        for iy in 0..9 {
-            for iz in 0..9 {
-                for ix in 0..9 {
-                    let x = (base.x + ix * 4) as f64;
-                    let y = (base.y + iy * 4) as f64;
-                    let z = (base.z + iz * 4) as f64;
-                    let i = ((iy * 9 + iz) * 9 + ix) as usize;
-                    f.a[i] = g.cave_a.noise3(x / 52.0, y / 30.0, z / 52.0) as f32;
-                    f.b[i] = g.cave_b.noise3(x / 52.0, y / 30.0, z / 52.0) as f32;
-                }
-            }
-        }
-        f
-    }
-
-    #[inline]
-    fn is_cave(&self, x: usize, y: usize, z: usize) -> bool {
-        let (ix, iy, iz) = (x >> 2, y >> 2, z >> 2);
-        let (tx, ty, tz) = ((x & 3) as f32 * 0.25, (y & 3) as f32 * 0.25, (z & 3) as f32 * 0.25);
-        let s = |f: &[f32; 729]| {
-            let at = |dx: usize, dy: usize, dz: usize| f[((iy + dy) * 9 + iz + dz) * 9 + ix + dx];
-            let l = |a: f32, b: f32, t: f32| a + (b - a) * t;
-            let c00 = l(at(0, 0, 0), at(1, 0, 0), tx);
-            let c10 = l(at(0, 1, 0), at(1, 1, 0), tx);
-            let c01 = l(at(0, 0, 1), at(1, 0, 1), tx);
-            let c11 = l(at(0, 1, 1), at(1, 1, 1), tx);
-            l(l(c00, c10, ty), l(c01, c11, ty), tz)
-        };
-        let (a, b) = (s(&self.a), s(&self.b));
-        a * a + b * b < 0.0045
-    }
 }
 
 #[cfg(test)]

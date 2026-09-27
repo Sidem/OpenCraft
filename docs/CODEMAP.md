@@ -56,6 +56,8 @@ folder with `mod.rs`.
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; generator versions (`WORLDGEN_VERSION` is the newest; a world keeps its own `WorldGen::version`; each released version is pinned by `released_versions_never_change`) |
 | `worldgen/biome.rs` | Version 2: `Biome` per column (`biome_at`), its rock, surface (`surface_v2`) and tree density |
 | `worldgen/geology.rs` | Version 2 deposit seeding: version 1's counts, each ore drawn from its biome's weights (`ORES_BY_BIOME`); surface hints (`stain_surface`, `hint_for`) |
+| `worldgen/water.rs` | Version 3 water: sea below `SEA_LEVEL` (62), ponds (`Pond`, one per 96-block cell, a bowl and a bank shaped into `height_at`), `water_top` per column, `surface_v3` (sand under water and on shores), `WaterGuard` (no caves within 2 blocks of water) |
+| `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version |
 | `worldgen/strata.rs` | Version 3 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ORE_DEPTH`), the starter set near spawn (`starter_outcrops`) |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
@@ -84,7 +86,7 @@ folder with `mod.rs`.
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
-| `light.rs` | Sky and block light (0–15) for a chunk being meshed: a field of the chunk plus a 15-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
+| `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 15-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
 | `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `minimap/marks.rs` | Deposit and machine marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` (flat records with colours; dry deposits left out) |
@@ -253,6 +255,8 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `research.rs` | `TECHS` (units, seconds, packs per unit) |
 | `worldgen/biome.rs` | `HIGHLAND_LEVEL`, `LOWLAND_LEVEL`, `SPAWN_CALM`, `DITHER`, thresholds in `biome_at`, `tree_factor` |
 | `worldgen/geology.rs` | `ORES_BY_BIOME`, `OUTCROPS`, `VEIN_CHANCES`, `HINT_MARGIN`, `HINT_ONE_IN` (version 2) |
+| `worldgen/water.rs` | Version 3 water: sea below `SEA_LEVEL` (62), ponds (`Pond`, one per 96-block cell, a bowl and a bank shaped into `height_at`), `water_top` per column, `surface_v3` (sand under water and on shores), `WaterGuard` (no caves within 2 blocks of water) |
+| `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version |
 | `worldgen/strata.rs` | Version 3 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ORE_DEPTH`), the starter set near spawn (`starter_outcrops`) |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes.rs` | `RECIPES` (hand) |

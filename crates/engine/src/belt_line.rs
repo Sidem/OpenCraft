@@ -12,7 +12,7 @@
 //! boxes and label (`api/hud.rs` `line_cells`, `line_label`).
 
 use crate::action::Action;
-use crate::block::{BlockId, AIR, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
+use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
 use crate::factory::{self, Shape};
 use crate::math::{IVec3, Vec3};
 use crate::raycast::raycast;
@@ -54,7 +54,7 @@ pub fn is_belt(b: BlockId) -> bool {
 /// The cells of a line from `start` towards the column of `end`, reading blocks through `block`
 /// (`None`: not loaded). A line of one cell runs `facing`. Empty when `start` isn't free.
 pub fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8) -> Vec<LineCell> {
-    let free = |p: IVec3| block(p) == Some(AIR);
+    let free = |p: IVec3| block(p).is_some_and(block::replaceable);
     let solid = |p: IVec3| block(p).is_some_and(|b| SOLID[b as usize] && factory::machine(b).is_none());
     // The columns, each with the way it runs; the cell where the path turns runs the new way.
     let (dx, dz) = (end.x - start.x, end.z - start.z);
@@ -163,7 +163,7 @@ impl Game {
             return false;
         }
         let start = hit.block + hit.normal;
-        if self.sim.world.get_block(start) == Some(AIR) {
+        if self.sim.world.get_block(start).is_some_and(block::replaceable) {
             let facing = factory::dir_from_yaw(self.body().yaw);
             self.line.start = Some((start, facing));
             self.line.cells = vec![LineCell { pos: start, dir: facing, shape: Shape::Flat }];
@@ -176,7 +176,7 @@ impl Game {
     fn line_end(&self, start: IVec3) -> Option<IVec3> {
         let (eye, dir) = (self.body().eye(), self.body().look_dir());
         let world = &self.sim.world;
-        if let Some(hit) = raycast(eye, dir, LINE_REACH, |p| world.get_block(p).filter(|&b| b != AIR)) {
+        if let Some(hit) = raycast(eye, dir, LINE_REACH, |p| world.get_block(p).filter(|&b| !block::replaceable(b))) {
             return (hit.normal != IVec3::ZERO).then_some(hit.block + hit.normal);
         }
         let t = (start.y as f64 + 0.5 - eye.y) / dir.y;
