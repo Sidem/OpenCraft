@@ -9,8 +9,13 @@
 //!   blocks from spawn on dry, gentle ground, seeded in the column it falls in with key index
 //!   `STARTER_INDEX + i`, so `deposit_by_key` finds it again.
 //!
+//! Version 4 (a play-test found starter ore too hard to find) makes the same draws with other numbers:
+//! shallower bands (`ORE_DEPTH_V4`, so a stain's vein is in reach of a hand-dug shaft), coal, iron and
+//! copper exposed more often (`EXPOSED_CHANCE_METALS`), and two starter patches of each (`STARTERS_V4`).
+//!
 //! Invariants: a pure function of the seed and the column, like versions 1 and 2; keys stay unique per
-//! (column, tier, slot). Lodes use version 2's draws exactly. To tune: the constants below.
+//! (column, tier, slot). Lodes use version 2's draws exactly. To tune: the constants below (version 4's
+//! only: version 3 is released).
 
 use crate::block::{BlockId, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
 use crate::chunk::CHUNK_SIZE;
@@ -29,11 +34,25 @@ const EXPOSED_CHANCE: f64 = 0.28;
 /// Per ore: the band (blocks below the local surface) its buried pockets and veins sit in.
 pub(super) const ORE_DEPTH: [(BlockId, i32, i32); 5] =
     [(LIMESTONE, 8, 25), (COAL_ORE, 10, 35), (IRON_ORE, 20, 50), (COPPER_ORE, 35, 70), (QUARTZ_ORE, 35, 70)];
+pub(super) const ORE_DEPTH_V4: [(BlockId, i32, i32); 5] =
+    [(LIMESTONE, 6, 20), (COAL_ORE, 6, 22), (IRON_ORE, 8, 28), (COPPER_ORE, 12, 34), (QUARTZ_ORE, 25, 50)];
+/// Version 4: the chance for a coal, iron or copper outcrop slot on bare rock to show.
+const EXPOSED_CHANCE_METALS: f64 = 0.42;
 /// Nothing buried is placed below this height (bedrock lies under it).
 const DEEPEST: i32 = 8;
-/// The starter set: its ores and how far from spawn (blocks) it lies.
-const STARTER_ORES: [BlockId; 3] = [COAL_ORE, IRON_ORE, COPPER_ORE];
-const STARTER_RING: (i32, i32) = (40, 80);
+/// The starter set: its ores, how far from spawn (blocks) each lies, and its radii.
+type Starter = (BlockId, (i32, i32));
+const STARTERS: [Starter; 3] = [(COAL_ORE, (40, 80)), (IRON_ORE, (40, 80)), (COPPER_ORE, (40, 80))];
+const STARTER_RADII: [f32; 3] = [2.2, 1.8, 2.2];
+const STARTERS_V4: [Starter; 6] = [
+    (COAL_ORE, (28, 60)),
+    (IRON_ORE, (28, 60)),
+    (COPPER_ORE, (28, 60)),
+    (IRON_ORE, (60, 110)),
+    (COPPER_ORE, (60, 110)),
+    (COAL_ORE, (60, 110)),
+];
+const STARTER_RADII_V4: [f32; 3] = [2.6, 2.0, 2.6];
 pub(super) const STARTER_INDEX: u16 = 100;
 /// Directions the starter search tries, as (x, z) in thousandths: 16 around the circle.
 pub(super) const DIRS16: [(i32, i32); 16] = [
@@ -65,10 +84,10 @@ impl WorldGen {
             let (x, z) = (x0 + rng.below(32) as i32, z0 + rng.below(32) as i32);
             let h = self.height_at(x, z);
             let ore = self.ore_at(&mut rng, IVec3::new(x, h, z));
-            let exposed = rng.next_f64() < EXPOSED_CHANCE && self.bare_rock(x, z);
+            let exposed = rng.next_f64() < self.exposed_chance(ore) && self.bare_rock(x, z);
             let r = rng.range(1.3, 2.3) as f32;
             let squash = rng.range(0.7, 1.0) as f32;
-            let depth = band_depth(&mut rng, ore);
+            let depth = band_depth(&mut rng, self.ore_band(ore));
             let seed = rng.next_u32();
             if x.abs() < ORE_SPAWN_CLEARING && z.abs() < ORE_SPAWN_CLEARING {
                 continue;
@@ -83,7 +102,7 @@ impl WorldGen {
                 let (x, z) = (x0 + rng.below(32) as i32, z0 + rng.below(32) as i32);
                 let h = self.height_at(x, z);
                 let ore = self.ore_at(&mut rng, IVec3::new(x, h, z));
-                let y = buried(h, band_depth(&mut rng, ore)).max(12);
+                let y = buried(h, band_depth(&mut rng, self.ore_band(ore))).max(12);
                 let major = rng.range(4.5, 7.0) as f32;
                 let minor = rng.range(2.0, 3.0) as f32;
                 let tall = rng.range(1.8, 2.6) as f32;
@@ -100,7 +119,7 @@ impl WorldGen {
             out.push(Deposit { key: key(Tier::Lode, ore, 0), center, radii, seed });
         }
         // The starter set only ever lies in the few columns around spawn.
-        if cx.abs() <= 3 && cz.abs() <= 3 {
+        if cx.abs() <= 4 && cz.abs() <= 4 {
             out.extend(self.starter_outcrops().into_iter().filter(|d| d.key.cx == cx && d.key.cz == cz));
         }
     }
@@ -115,13 +134,42 @@ impl WorldGen {
                 || matches!(self.biome_at(x, z, h), Biome::Desert | Biome::BasaltFields))
     }
 
-    /// The starter outcrops: for each of `STARTER_ORES`, the first dry, gentle column found walking
-    /// out from `STARTER_RING.0` to `.1` blocks, each ore starting a third of a turn from the last.
+    /// The band (blocks below the local surface) buried pockets and veins of `ore` sit in. Versions 1
+    /// and 2 have no bands: their veins lie 20 to 60 blocks down whatever the ore.
+    pub(crate) fn ore_band(&self, ore: BlockId) -> (i32, i32) {
+        let table = match self.version {
+            ..=2 => return (20, 60),
+            3 => &ORE_DEPTH,
+            _ => &ORE_DEPTH_V4,
+        };
+        table.iter().find(|b| b.0 == ore).map_or((10, 40), |b| (b.1, b.2))
+    }
+
+    /// How far from spawn (blocks) the starter set lies, nearest and farthest.
+    pub(crate) fn starter_reach(&self) -> (i32, i32) {
+        let starters = if self.version >= 4 { &STARTERS_V4[..] } else { &STARTERS[..] };
+        starters.iter().fold((i32::MAX, 0), |(lo, hi), s| (lo.min(s.1 .0), hi.max(s.1 .1)))
+    }
+
+    /// The chance that an outcrop slot of `ore` on bare rock shows at the surface.
+    fn exposed_chance(&self, ore: BlockId) -> f64 {
+        let metal = matches!(ore, COAL_ORE | IRON_ORE | COPPER_ORE);
+        if self.version >= 4 && metal {
+            EXPOSED_CHANCE_METALS
+        } else {
+            EXPOSED_CHANCE
+        }
+    }
+
+    /// The starter outcrops: for each row of `STARTERS` (`STARTERS_V4`), the first dry, gentle column
+    /// found walking out through its ring, each starting a third of a turn on from the last.
     pub(super) fn starter_outcrops(&self) -> Vec<Deposit> {
+        let (starters, radii) =
+            if self.version >= 4 { (&STARTERS_V4[..], STARTER_RADII_V4) } else { (&STARTERS[..], STARTER_RADII) };
         let turn = (hash2(self.seed ^ 0x57A7, 0, 0) % 16) as usize;
         let mut out: Vec<Deposit> = Vec::new();
-        for (i, &ore) in STARTER_ORES.iter().enumerate() {
-            'search: for dist in (STARTER_RING.0..=STARTER_RING.1).step_by(4) {
+        for (i, &(ore, ring)) in starters.iter().enumerate() {
+            'search: for dist in (ring.0..=ring.1).step_by(4) {
                 for step in 0..16 {
                     let (dx, dz) = DIRS16[(turn + i * 5 + step) % 16];
                     let (x, z) = (dx * dist / 1000, dz * dist / 1000);
@@ -136,7 +184,7 @@ impl WorldGen {
                             index: STARTER_INDEX + i as u16,
                         };
                         let seed = hash2(self.seed ^ 0x57A8, x, z);
-                        out.push(Deposit { key, center: IVec3::new(x, h - 1, z), radii: [2.2, 1.8, 2.2], seed });
+                        out.push(Deposit { key, center: IVec3::new(x, h - 1, z), radii, seed });
                         break 'search;
                     }
                 }
@@ -146,9 +194,8 @@ impl WorldGen {
     }
 }
 
-/// A depth in `ore`'s band (drawn even for ores without one, so the draws stay in step).
-fn band_depth(rng: &mut Rng, ore: BlockId) -> i32 {
-    let (lo, hi) = ORE_DEPTH.iter().find(|b| b.0 == ore).map_or((10, 40), |b| (b.1, b.2));
+/// A depth in a band (`WorldGen::ore_band`).
+fn band_depth(rng: &mut Rng, (lo, hi): (i32, i32)) -> i32 {
     lo + rng.below((hi - lo + 1) as u32) as i32
 }
 

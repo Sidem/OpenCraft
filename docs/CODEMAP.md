@@ -17,6 +17,7 @@ folder with `mod.rs`.
 | `sim/timers.rs` | Block timers (core state): `BlockTimers` (sorted pending changes, capped), `Sim::block_changed` (starts them after a block changes, then the water checks), `run_timers` (after each tick's actions): leaf decay, grass spreading and dying, sapling growth |
 | `sim/water.rs` | Flowing water (core state): `WaterQueue` (checks in order, one per cell, capped), `water_changed` (schedules checks near a change), `run_water` (at most `MAX_WATER_UPDATES` a tick), the rules (`water_rule`: the sea refills at or below `SEA_LEVEL`, falling water, levels 7 to 1) |
 | `sim/saplings.rs` | Saplings: the leaf drop chance, where they can be planted, growth into a tree (`worldgen::tree_blocks`) |
+| `sim/torches.rs` | Torches: where one can stand (`torch_fits`: an empty cell on a solid block), dropping when its block goes (from `block_changed`) |
 | `daytime.rs` | Time of day from the core tick (`DAY_TICKS`: a 20-minute day, a new world starts at 7:00): `time_of_day`, `day_number`; no state of its own |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, the world's generator version), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` and `v9.ocworld` fixtures) |
@@ -40,13 +41,14 @@ folder with `mod.rs`.
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters, belt line outlines and label (`line_cells`, `line_label`, which also describes a quarry about to be placed), `placement_box` |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/net.rs` | `start_host`, `start_client`, `from_snapshot`, `resync`, `is_client`, `host_join` / `host_leave`, `snapshot`, `host_stamp`, `take_frames`, `take_checksums`, `take_outbox`, `push_frames`, `local_player`, `take_states`, `host_state`, `push_states`, `take_item_view`, `push_items`, `core_tick`, `confirmed_tick` |
-| `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players`, `minimap_marks` / `minimap_mark_fields`, `known_deposits` / `set_known_deposits` |
+| `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players`, `minimap_marks` / `minimap_mark_fields`, `known_deposits` / `set_known_deposits`; the world map: `world_map_draw` / `world_map_ptr` / `world_map_version` / `world_map_marks`, `explored_map` / `set_explored_map`; `ore_guide` / `ore_guide_notes` |
 | `api/prospect.rs` | The latest prospecting reading (`prospect_seq`, `prospect_kind`, `prospect_records`, `prospect_fields`, `prospect_origin`), `held_device`, `scan_range`, `deposit_label` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `quarry_preview.rs` | Placing a quarry: the box a held quarry would dig (`quarry_preview`), its HUD label, R turns it (`quarry_turn`, used by `right_click_action`) |
 | `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick |
-| `block/mod.rs` | Block ids, `DEFS` table, sound materials, lookup tables (`FACE_TEX`, `ALT_TEX` alternates), flowing water ids (`flow`, `flow_level`) |
+| `block/mod.rs` | Block ids, `DEFS` table, sound materials, flowing water ids (`flow`, `flow_level`) |
+| `block/tables.rs` | Flat lookup tables over `DEFS` for hot loops (`OPAQUE`, `SOLID`, `FACE_TEX`, `ALT_TEX` alternates…) |
 | `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
 | `item_models.rs` | Shared small box assemblies (parts, tools, scanner, core drill) for loose items and HUD icons; data only |
@@ -60,7 +62,7 @@ folder with `mod.rs`.
 | `worldgen/geology.rs` | Version 2 deposit seeding: version 1's counts, each ore drawn from its biome's weights (`ORES_BY_BIOME`); surface hints (`stain_surface`, `hint_for`) |
 | `worldgen/water.rs` | Version 3 water: sea below `SEA_LEVEL` (62), ponds (`Pond`, one per 96-block cell, a bowl and a bank shaped into `height_at`), `water_top` per column, `surface_v3` (sand under water and on shores), `WaterGuard` (no caves within 2 blocks of water) |
 | `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version |
-| `worldgen/strata.rs` | Version 3 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ORE_DEPTH`), the starter set near spawn (`starter_outcrops`) |
+| `worldgen/strata.rs` | Versions 3 and 4 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ore_band`), the starter set near spawn (`starter_outcrops`, `starter_reach`) |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
 | `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `count(kind)`, the world's `research`, `place` / add / remove, `update` (one tick: miners, quarries, boxes, smelters, power balance, powered machines and labs, belts; emits `SimEvent`s) |
@@ -89,22 +91,24 @@ folder with `mod.rs`.
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
+| `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
 | `recipes.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` (smelter seconds and generator kJ) |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
-| `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 15-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
+| `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 20-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
 | `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); ranges opaque, cutout, liquid (liquid AO bits mark the water line and how low it sits: `water_line`); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `mesher/quad.rs` | Per-corner AO and light, the merge key, `emit_quad` |
-| `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
-| `minimap/marks.rs` | Deposit and machine marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` (flat records with colours; dry deposits left out) |
+| `minimap.rs` | The maps' pictures (presentation only): `draw` (any window of the explored map at any scale, shaded by the height step; ore in its mark colour), `redraw` (the minimap around the player), other players' marks |
+| `minimap/atlas.rs` | The explored map: top block and height of every column seen, per chunk column (`Tile`, with its ore `spots`), kept after unloading; `touch` on mesh events, `refresh_some` per frame, `refresh_in` for the minimap; `export` / `import` bytes the host stores; `MAX_TILES` |
+| `minimap/marks.rs` | Map marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` / `marks_in` (flat records with colours: ore seen at the surface, deposits (dry ones left out), machines), `ore_color` |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
 | `textures/nature.rs` | Alpine natural blocks: slate, pebbled earth, turf with blades, ragged grass edge, rippled sand, leaf clusters (4 looks), bark, bedrock; the four surface hints (`HINTS`) |
 | `textures/paint.rs` | Painting helpers: palette ramps, wrapping cells, blobs kept inside the tile |
 | `textures/ores.rs` | Coal lumps, iron nodules, copper crusts, quartz crystals, limestone fossils; four looks each on the slate host |
 | `textures/items.rs` | Rod threads, screws, glass, science liquid, tool handle and steel for the item assemblies |
 | `textures/tools.rs` | Flat tool pictures (shown on belts); the scanner screen and device casing materials |
-| `textures/plants.rs` | Alpine sapling needles and stems on transparent crossed quads |
+| `textures/plants.rs` | Crossed-quad pictures: the Alpine sapling and the torch |
 | `textures/geology.rs` | Granite, sandstone and basalt grains, and cutout glass |
 | `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |
 | `noise.rs` | Seeded Perlin noise + fBm |
@@ -127,8 +131,8 @@ folder with `mod.rs`.
 | `net/ticker.ts` | `tickWhenStalled`: a tiny worker timer that runs frames without drawing while the frame loop is stopped (hidden tab, minimised window), so a co-op host keeps ticking |
 | `net/signal.ts` | The deployed signalling Worker: `SIGNAL_URL`, `newRoom`, `fetchIce`, `openRoom` (WebSocket), `closeReason`, `isRoomCode` |
 | `net/webrtc.ts` | Machines over WebRTC: `hostWebRtc` (room code, one data channel per joiner), `joinWebRtc`; the channel `Transport` splits messages into 16 KB pieces |
-| `save/store.ts` | IndexedDB: `worlds` records (`WorldMeta`, with the prospected deposits as `marks`) and `saves` bytes in two slots per world (newest + backup); gzip `pack` / `unpack` |
-| `save/session.ts` | `openWorld` (latest world, backup fallback, `?seed=`), `Session` (autosave: every minute, on pause, hide and close; never for a co-op client), `switchTo` (save, then reload into another world), `soloUrl` (this page without co-op parameters) |
+| `save/store.ts` | IndexedDB: `worlds` records (`WorldMeta`, with the prospected deposits as `marks` and the map `pins`) and `saves` bytes in two slots per world (newest + backup) plus the explored map (`MAP_SLOT`, `readMap`); gzip `pack` / `unpack` |
+| `save/session.ts` | `openWorld` (latest world, backup fallback, `?seed=`), `Session` (autosave: every minute, on pause, hide and close; never for a co-op client; with the player's notes: `keepPins`, the explored map), `switchTo` (save, then reload into another world), `soloUrl` (this page without co-op parameters) |
 | `base.css` | Theme variables, reset, focus rings, shared `.hidden`, `.secondary-btn`, `.close-btn` |
 | `input.ts` | Keyboard/mouse, pointer lock, held state and one-shot `Action`s |
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
@@ -147,7 +151,10 @@ folder with `mod.rs`.
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow` |
 | `ui/players.ts` + `.css` | In game: the player list while Tab is held, join and leave notices |
-| `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), deposit and machine marks on an overlay canvas, player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
+| `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), marks and pins (far ones on the rim) on an overlay canvas, player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
+| `ui/worldmap.ts` + `.css` | The world map (M): the explored map at 7 zoom steps (drag, wheel), marks, pins, players; the pin editor and list; the ore guide beside it |
+| `ui/pins.ts` | `Pins` (the player's map pins, kinds from the engine's ore guide), `drawMark` / `drawPin` shared by both maps |
+| `ui/ore-guide.ts` + `.css` | "Finding ore": a depth chart of each ore's band, where it is common, how to spot it, general notes (`ore_guide`, `ore_guide_notes`) |
 | `ui/hints.ts` + `.css` | Onboarding tip card in the HUD (the first hint not done or skipped); H skips, skipped tips in localStorage; "Show tips again" in the menu |
 | `ui/prospect.ts` + `.css` | Prospecting card at the top left while a device is held: scan rows (arrows and distances follow the player) or a core sample's figures; calls `onReading` for the ping |
 | `ui/research.ts` + `.css` | Research screen (T): a card per tech (state, unlocks, cost, progress, choose); HUD tracker and "research done" notice |
@@ -270,7 +277,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `worldgen/geology.rs` | `ORES_BY_BIOME`, `OUTCROPS`, `VEIN_CHANCES`, `HINT_MARGIN`, `HINT_ONE_IN` (version 2) |
 | `worldgen/water.rs` | Version 3 water: sea below `SEA_LEVEL` (62), ponds (`Pond`, one per 96-block cell, a bowl and a bank shaped into `height_at`), `water_top` per column, `surface_v3` (sand under water and on shores), `WaterGuard` (no caves within 2 blocks of water) |
 | `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version |
-| `worldgen/strata.rs` | Version 3 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ORE_DEPTH`), the starter set near spawn (`starter_outcrops`) |
+| `worldgen/strata.rs` | `EXPOSED_CHANCE`, `ORE_DEPTH`, `STARTERS` (version 3, released); version 4: `EXPOSED_CHANCE_METALS`, `ORE_DEPTH_V4`, `STARTERS_V4`, `STARTER_RADII_V4` |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes.rs` | `RECIPES` (hand) |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |

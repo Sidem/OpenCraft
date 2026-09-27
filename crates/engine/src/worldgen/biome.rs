@@ -45,6 +45,17 @@ impl Biome {
         }
     }
 
+    /// Its name for players, with how to tell it (the ore guide).
+    pub fn name(self) -> &'static str {
+        match self {
+            Biome::Plains => "plains (grassland)",
+            Biome::Desert => "deserts (sand over sandstone)",
+            Biome::Highlands => "highlands (granite hills and mountains)",
+            Biome::Lowlands => "lowlands (low, wet forest)",
+            Biome::BasaltFields => "basalt fields (black rock)",
+        }
+    }
+
     /// Tree density as a multiple of plains'.
     pub fn tree_factor(self) -> f64 {
         match self {

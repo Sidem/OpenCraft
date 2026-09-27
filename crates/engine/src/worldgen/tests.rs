@@ -43,6 +43,10 @@ fn digest(version: u32) -> u64 {
         }
         assert_eq!(seen.len(), Biome::ALL.len(), "every biome is sampled");
     }
+    if version >= 3 {
+        chunks
+            .extend(g.starter_outcrops().iter().map(|d| IVec3::new(d.center.x >> 5, d.center.y >> 5, d.center.z >> 5)));
+    }
     for c in chunks {
         let chunk = g.generate(c);
         for i in 0..CHUNK_VOLUME {
@@ -60,12 +64,13 @@ fn digest(version: u32) -> u64 {
 }
 
 /// Worlds regenerate their untouched terrain from their own version, so released output is frozen.
-/// Version 1 was recorded before Milestone 4, version 2 before Milestone 5; if one fails, a change leaked
-/// into a released version.
+/// Version 1 was recorded before Milestone 4, version 2 before Milestone 5, version 3 before version 4;
+/// if one fails, a change leaked into a released version.
 #[test]
 fn released_versions_never_change() {
     assert_eq!(digest(1), 0xefee_9cc6_179e_584f, "version 1");
     assert_eq!(digest(2), 0x24f4_7dcb_aceb_e0c5, "version 2");
+    assert_eq!(digest(3), 0x25cd_1e52_1d22_b1f1, "version 3");
 }
 
 #[test]

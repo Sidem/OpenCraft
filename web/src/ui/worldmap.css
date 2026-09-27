@@ -1,0 +1,197 @@
+/* World map (ui/worldmap.ts): a wide dialog (the machine panel's frame, machine.css) with the map view
+   and its tools on the left, the pin list and the ore guide on the right; the pin editor floats over
+   the view. */
+
+.mp.wm {
+  width: min(1280px, 100%);
+  height: min(860px, 100%);
+}
+
+.wm-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.wm-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.wm-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 12px;
+}
+
+.wm-tools .secondary-btn {
+  padding: 4px 10px;
+  min-width: 30px;
+}
+
+.wm-scale,
+.wm-coords {
+  color: var(--muted);
+}
+
+.wm-coords {
+  margin-left: auto;
+  font-family: var(--mono);
+}
+
+.wm-view {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  cursor: crosshair;
+  background-color: #0d0f13;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.wm-image {
+  position: absolute;
+  image-rendering: pixelated;
+}
+
+.wm-marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.wm-side {
+  width: 340px;
+  flex: none;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+  border-left: 1px solid var(--panel-border);
+}
+
+.wm-side > h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.wm-pins {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+.wm-pin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: 13px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wm-pin:hover {
+  background: var(--accent-soft);
+}
+
+.wm-pin-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wm-pin-far,
+.wm-empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.wm-empty {
+  margin: 0;
+}
+
+.wm-editor {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  width: min(330px, calc(100% - 24px));
+  padding: 10px 12px 12px;
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.95);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  cursor: default;
+}
+
+.wm-editor h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.wm-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.wm-kind {
+  padding: 3px 8px 3px 6px;
+  border: 1px solid var(--panel-border);
+  border-left: 8px solid var(--kind);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: 12px var(--font);
+  cursor: pointer;
+}
+
+.wm-kind.on {
+  border-color: var(--accent);
+  border-left-color: var(--kind);
+  background: var(--accent-soft);
+}
+
+.wm-note {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font: 13px var(--font);
+}
+
+.wm-editor-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+@media (max-width: 800px) {
+  .wm-body {
+    flex-direction: column;
+  }
+
+  .wm-side {
+    width: auto;
+    max-height: 40%;
+    border-left: 0;
+    border-top: 1px solid var(--panel-border);
+  }
+}

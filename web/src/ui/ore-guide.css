@@ -1,0 +1,97 @@
+/* Ore guide (ui/ore-guide.ts): a depth chart of each ore's band, per-ore notes, general advice. */
+
+.og h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.og-chart {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: 5px 10px;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.og-caption {
+  grid-column: 1 / -1;
+  color: var(--muted);
+}
+
+.og-axis {
+  grid-column: 2;
+  position: relative;
+  height: 14px;
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.og-tick {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.og-tick:first-child {
+  transform: none;
+}
+
+.og-name {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.og-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  flex: none;
+}
+
+.og-track {
+  position: relative;
+  height: 14px;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 10%);
+  border-radius: 3px;
+}
+
+.og-band {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+.og-range {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.og-notes {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.og-ore h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 2px;
+  font-size: 13px;
+}
+
+.og-ore p {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}

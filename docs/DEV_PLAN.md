@@ -40,7 +40,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (226 engine tests).
+   (234 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -103,6 +103,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-27 | **Surface ore is rare and meaningful:** about 10× fewer exposed outcrops, only on bare rock; a starter set near spawn; ores in depth bands. Vein and lode counts stay. |
 | 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
 | 2026-09-27 | **Order after Milestone 5: terraforming, then blueprints and construction drones, then transport** (personal flight first: jetpacks or hovering, and building from further away). The player should feel a steady, intuitive and fun growth of capability: building by hand → planning → automatic assembly. |
+| 2026-09-27 | **Finding starter ore made easier** (play-test: iron under rusty soil was too deep to find by hand). Generator version 4 for new worlds: shallower bands, coal, iron and copper exposed 1.5× as often on bare rock, two starter patches of each; a world map (M) of explored ground with pins; an ore guide with depth bands; stained soil tells what lies how deep. Mute moved to K. |
 | 2026-09-27 | **Miners need power; generators burn only what is used.** The first loop is a miner on coal feeding the generator that powers it. Energy is stored per generator (kJ); one coal (270 kJ) runs a Mk1 (5 kW) long enough to mine about 32 coal. The smelter stays a burner. |
 
 ### Proposed, not yet confirmed by the user
@@ -156,15 +157,17 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   keeps its own (`WorldGen::version`); version 2 adds biomes (`worldgen/biome.rs`: plains, desert over
   sandstone, highlands over granite, lowlands, basalt fields; spawn always plains) and ores by biome
   (`worldgen/geology.rs`, including limestone and quartz) with stained soil hints above veins and lodes.
-  Version 3 (current, frozen) makes surface ore rare (only on bare rock, a starter set 40–80 blocks out),
+  Version 3 (frozen) makes surface ore rare (only on bare rock, a starter set 40–80 blocks out),
   puts ores in depth bands (`worldgen/strata.rs`), and adds the sea (level 62) and ponds
-  (`worldgen/water.rs`).
+  (`worldgen/water.rs`). Version 4 (current) only retunes that: shallower bands, more exposed metal, two
+  starter patches each 28–110 blocks out. `worldgen/tests.rs` pins versions 1–3.
 - **Water** (block 45 still, 46–52 flowing): drawn blended with underwater fog (`render/water.ts`);
   flow is core state, event-driven and capped per tick (`sim/water.rs`); the sea is the only endless
   water. Bodies swim and items float (`player`, `entities`).
 - **Day and light:** a 20-minute day from the core tick (`daytime.rs`), sky, sun, moon and stars
   (`render/sky.ts`); sky and block light 0–15 computed while a chunk meshes (`light.rs`: the chunk plus a
-  15-block margin), smoothed per vertex (a byte after the vertices); lamps (block 44) give light 15.
+  20-block margin), smoothed per vertex (a byte after the vertices); light sources (`light::SOURCES`): lamps
+  (block 44, reach 20) and torches (block 57, bright but reach 5).
 - **Deposits** (`deposits.rs`, placed by `worldgen/ore.rs`): outcrops, veins and lodes of coal, iron and
   copper (100 / 1,000 / 2,000 units per block, shared draw caps 60 / 240 / 1,200 per minute). A pool is
   shared per deposit, output tapers over the last 20%, and blocks turn to `SPENT_ROCK` as it drains, even
@@ -188,18 +191,23 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   - Models are instanced boxes; status readouts come from `describe`.
 - **Inventory** (`inventory.rs`): 36 slots (hotbar 0–8), a cursor stack, click, shift-click and
   quick-move. **Crafting** (`recipes.rs`): hand recipes in the build menu (key E, `ui/crafting.ts`): a grid by `recipes::Group` with search, filters (can craft, missing, locked) and a hover card.
-- **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): ten tips from finding ore to the quarry.
-- **Minimap** (`minimap.rs`, `ui/minimap.ts`, key N): loaded terrain around the player, north up, arrows
-  for every player; rings for prospected veins and lodes (kept in the browser's world record, dropped
-  when dry) and squares for machines (`minimap/marks.rs`); presentation only.
+- **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): ten tips from finding ore (pointing at the
+  map) to the quarry.
+- **Maps** (presentation only): the explored map (`minimap/atlas.rs`: every column seen, kept after
+  unloading, stored in the browser beside the save) feeds the minimap (key N) and the world map (key M,
+  `ui/worldmap.ts`: pan, zoom, pins). Marks (`minimap/marks.rs`): diamonds for ore seen at the surface,
+  rings for prospected veins and lodes, squares for machines; pins are the player's notes (`ui/pins.ts`,
+  in the world's record). Beside the map, the ore guide (`ore_guide.rs`, `ui/ore-guide.ts`) charts each
+  ore's depth band from the world's own generator; pointing at stained soil tells the ore below and its
+  depth.
 - **Block timers** (`sim/timers.rs`, core state): leaves of a felled tree decay (half-life 5 s), grass
   spreads onto bare dirt beside it (30 s) and turns to dirt under a solid block (15 s), saplings grow.
   Timers start only from block changes, never from scanning chunks.
 - **Saplings** (`sim/saplings.rs`): leaves drop one 1 time in 25 (broken or decayed); planted on dirt or
   grass, it grows after 60 s plus a 90 s half-life into a tree shaped like generated ones
   (`worldgen::tree_blocks`); drawn as crossed quads (`Render::Plant`, mesher faces 6 and 7).
-- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–56, see
-  `block/mod.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand, 44 the lamp, 45–52 water, 53–55 pump, pipe and outlet, 56 the quarry); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
+- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–57, see
+  `block/mod.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand, 44 the lamp, 45–52 water, 53–55 pump, pipe and outlet, 56 the quarry, 57 the torch); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
   science packs, the six tools (264–269), scanner (270) and core drill (271). Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
@@ -219,7 +227,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Prospecting** (`prospect.rs`, `ui/prospect.ts`): the scanner lists deposits within 48 blocks (ore,
   tier, live bearing and distance, depth, size band); the core drill (3 s hold) gives a column's exact
   figures. Queries only: no actions, the state hash never moves. Devices are tools that never wear.
-- **Size:** about 247 KB gzipped in total (wasm 192.5 KB, JS 47.2 KB, CSS 5.8 KB; `vite build`).
+- **Size:** about 261 KB gzipped in total (wasm 201.6 KB, JS 51.1 KB, CSS 6.4 KB; `vite build`).
 
 ### Known limitations and technical debt
 
@@ -239,9 +247,11 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 9. Co-op over the internet has been tested by the user on two machines (STUN only); the relay is untested.
 10. ~~A block timer next to an unloaded chunk generates it for each read~~: fixed in 5.6 (`World` keeps the
     last 8 generated chunks).
-11. Light is recomputed per meshed chunk (0.49 ms per chunk against 0.36 without); an edit relights up to
-    about 30 chunks (within 15 blocks, and all below) over the following frames. A working smelter
+11. Light is recomputed per meshed chunk (0.43 ms per chunk in `bench_meshing` after the torch change); an
+    edit relights the chunks within 20 blocks, and all below, over the following frames. A working smelter
     doesn't glow (its light would depend on factory state).
+12. The explored map and pins live in one browser, per world: a co-op client keeps neither (it never
+    saves), and pins aren't shared with other players. World export doesn't carry them.
 
 ---
 
@@ -425,7 +435,7 @@ so remeshing stays within the streaming budget. Measure the worst tick for a 64 
   remove). Overlays: sites outlined in `render/outlines.ts` (cut red, fill blue, the pending one amber),
   squares on the minimap. A tip: "Plan the ground". **Done when:** a Game-level test marks and removes
   a site through the API; screenshots of marking, the panel and two sites.
-- [ ] **6.3 The excavator digs.** Block 57 `EXCAVATOR`, `factory/excavator/` (its own folder: machine,
+- [ ] **6.3 The excavator digs.** Block 58 `EXCAVATOR`, `factory/excavator/` (its own folder: machine,
   drones model, tests), unlocked by an **Earthworks** tech (red and green packs). It works the nearest
   site whose closest cell lies within `EXCAVATOR_RANGE` (32) and draws 30 kW. Four drones (presentation
   only, derived from each cell's progress like the quarry's head) fly out, cut a block and fly back with
@@ -539,3 +549,14 @@ and the balance numbers. Read the section you need.
 - **2026-09-27: Milestone 6 (Terraforming) detailed** after the user set the order (terraforming, then
   blueprints and drones, then transport with personal flight first). The roadmap is renumbered: 7
   Blueprints and drones, 8 Transport and flight, 9 Fluids and depth, 10 Endgame.
+- **2026-09-27: Torches and stronger lamps** (user request, before 6.1): block 57, 8 from a log and a coal
+  ore, on any solid block, dropping when it goes (`sim/torches.rs`). Light sources are rows of
+  `light::SOURCES` (strength, loss per block): a lamp 20 losing 1 (full within 5, reaches 19; was 14), a
+  torch 12 losing 2 (reaches 5) in a second short field. The light margin grew to 20; `bench_meshing`
+  measured 0.54 → 0.43 ms per chunk. `block/tables.rs` split out. Tests 226 → 229.
+- **2026-09-27: Finding ore** (play-test request, before 6.1): generator version 4 (new worlds; version 3
+  now pinned in `released_versions_never_change`): bands coal 6–22, iron 8–28, copper 12–34, metal
+  exposure 0.42 (was 0.28), two starter patches each. The explored map (`minimap/atlas.rs`, the
+  minimap now draws from it), the world map on M with pins (mute moved to K), ore diamonds, the ore
+  guide, the stained-soil readout. Golden hash re-recorded. Tests 229 → 234; wasm 192.5 → 201.6 KB
+  gzipped with the torches (`to_lowercase` alone cost 14 KB, avoided).

@@ -87,6 +87,21 @@ impl WorldGen {
         }
     }
 
+    /// The vein or lode whose surface hint may have left `stain` (a stained soil or sand) on column
+    /// (x, z): of the ore that stain marks, the nearest whose hint area covers the column. A query.
+    pub fn hint_source(&self, x: i32, z: i32, stain: BlockId) -> Option<Deposit> {
+        let marks = |d: &Deposit| [GRASS, SAND].iter().any(|&top| hint_for(d.ore(), top) == Some(stain));
+        let mut best: Option<(f32, Deposit)> = None;
+        for d in self.deposits_near(x >> 5, z >> 5).into_iter().filter(|d| d.tier() != Tier::Outcrop && marks(d)) {
+            let (dx, dz) = ((x - d.center.x) as f32, (z - d.center.z) as f32);
+            let (dist, r) = (dx * dx + dz * dz, d.radii[0].max(d.radii[2]) + HINT_MARGIN);
+            if dist <= r * r && best.as_ref().is_none_or(|b| dist < b.0) {
+                best = Some((dist, d));
+            }
+        }
+        best.map(|b| b.1)
+    }
+
     /// An ore drawn from the weights of the biome above `at`.
     pub(super) fn ore_at(&self, rng: &mut Rng, at: IVec3) -> BlockId {
         let biome = self.biome_at(at.x, at.z, self.height_at(at.x, at.z));
@@ -116,6 +131,20 @@ pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
         SAND => Some(sand),
         _ => None,
     }
+}
+
+/// Per biome where `ore` occurs, the percentage of that biome's deposits that are `ore`, highest first
+/// (version 2 on; the ore guide shows it).
+pub fn ore_shares(ore: BlockId) -> Vec<(Biome, u32)> {
+    let mut out: Vec<(Biome, u32)> = Vec::new();
+    for (biome, weights) in ORES_BY_BIOME {
+        let total: u32 = weights.iter().map(|w| w.1).sum();
+        if let Some(w) = weights.iter().find(|w| w.0 == ore) {
+            out.push((biome, (w.1 * 100 + total / 2) / total));
+        }
+    }
+    crate::math::sort_small_by_key(&mut out, |s| u32::MAX - s.1);
+    out
 }
 
 /// The ore weights of `biome`.

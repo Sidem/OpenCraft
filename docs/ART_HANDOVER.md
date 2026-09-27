@@ -217,6 +217,9 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   a shore over sand and from below. Placeholder: `tex::WATER` (106), `water()` in `textures/geology.rs`.
   The shader (`WATER` in `render/shaders.ts`) mixes two drifting copies of it, one mirrored and half a
   block off, so keep it low in contrast: a strong feature repeats every block and reads as a grid.
+- [ ] (torch, landed) The torch (block 57): a wooden stick with a coal head and a flame on crossed quads
+  (`Render::Plant`, like the sapling); it should read as a light source at night. Placeholder:
+  `tex::TORCH` (108), `torch()` in `textures/plants.rs`.
 - [ ] (5.8, landed) The quarry (block 56): its block reuses the Mk2 miner's side, steel and frame
   layers; the machine model (housing, corner posts, rails, beam, trolley, shaft, spinning drill) is in
   `factory/quarry/model.rs`. A blue status lamp (flooded) was added: `tex::LAMP_BLUE` (107), `lamp()` in

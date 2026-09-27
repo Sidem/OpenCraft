@@ -312,7 +312,7 @@ impl Sim {
         let inv = &mut core.inventory;
         let Some(stack) = inv.slots.get(slot as usize).copied() else { return };
         let Some(placed) = stack.item.places().filter(|_| !stack.is_empty()) else { return };
-        if placed == SAPLING && !self.can_plant(pos) {
+        if placed == SAPLING && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
             return;
         }
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };

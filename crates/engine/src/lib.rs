@@ -44,6 +44,7 @@ mod mesher;
 mod minimap;
 mod net;
 mod noise;
+mod ore_guide;
 mod physics;
 mod player;
 mod prospect;
@@ -227,6 +228,7 @@ impl Game {
         self.write_avatars(dt, eye);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
         self.write_line_preview(eye, time);
+        self.minimap.atlas.refresh_some(&self.sim.world);
     }
 }
 

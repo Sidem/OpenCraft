@@ -1,29 +1,34 @@
-//! The minimap: a `MAP_SIZE`² RGBA image, one pixel per block column, north (-Z) up, centred on the
-//! local player. Presentation only: it reads the loaded chunks (the render cache) and never core state.
+//! The maps' pictures: the minimap (a `MAP_SIZE`² RGBA image, one pixel per block column, north (-Z)
+//! up, centred on the local player) and the world map (key M: any window of the explored world at 1 to
+//! 16 blocks per pixel, `draw`). Presentation only: both read the explored map (`atlas.rs`), which is
+//! built from loaded chunks (the render cache), never core state.
 //!
-//! Each column's top block and height are cached per chunk column (`Tile`), built when first needed
-//! and dropped when a chunk in that column meshes or unloads (`touch`), so a redraw only copies tiles
-//! and shades them. A pixel is its top block's average top-face colour (from the texture atlas),
-//! lighter or darker by the height step to its north-west neighbour; unknown columns stay transparent.
-//! `redraw` does nothing unless the centre moved or a tile in range changed; the host limits how often
-//! it asks. To colour a block differently, change its texture, not this file. Deposit and machine
-//! marks over the image are in `minimap/marks.rs`.
+//! A pixel is its column's top block colour (from the texture atlas; ore in its mark colour so exposed
+//! ore stands out), lighter or darker by the height step to the column one pixel north-west; unseen
+//! columns stay transparent. `redraw` does nothing unless the centre moved or the atlas changed; the host
+//! limits how often it asks. To colour a block differently, change its texture, not this file.
+//! Deposit, ore and machine marks over the images are in `minimap/marks.rs`.
 
+mod atlas;
 mod marks;
 
-pub use marks::{Known, MARK_FIELDS};
+pub use atlas::Atlas;
+pub use marks::{ore_color, Known, MARK_FIELDS};
 
-use crate::block::{AIR, BLOCK_COUNT, FACE_TEX};
-use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
+use atlas::{column_index, Tile};
+
+use crate::block::{is_ore, BlockId, AIR, BLOCK_COUNT, FACE_TEX};
+use crate::chunk::CHUNK_SHIFT;
 use crate::math::{IVec3, Vec3};
 use crate::player::Player;
 use crate::sim::PlayerId;
 use crate::textures::TEX_SIZE;
 use crate::world::World;
-use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
-/// Width and height of the map in pixels (= blocks).
+/// Width and height of the minimap in pixels (= blocks).
 pub const MAP_SIZE: usize = 128;
+/// The world map's largest image side, in pixels.
+pub const WORLD_MAP_MAX: usize = 1024;
 /// Brightness change per block of height step, in 1/256ths, and the step that saturates it.
 const SHADE_PER_BLOCK: i32 = 32;
 const SHADE_MAX_STEP: i32 = 4;
@@ -31,14 +36,14 @@ const SHADE_MAX_STEP: i32 = 4;
 pub struct Minimap {
     /// Average top-face colour per block id.
     colors: [[u8; 3]; BLOCK_COUNT],
-    /// Cached chunk columns near the centre; few enough (about 25) for a linear search.
-    tiles: Vec<Tile>,
+    /// Everywhere the local player has been.
+    pub atlas: Atlas,
     centre: Option<(i32, i32)>,
-    /// A tile in range changed since the last redraw.
-    stale: bool,
-    /// Packed columns of the map plus a border row and column on the north-west (scratch).
-    grid: Vec<u16>,
+    /// `atlas.changes` when the minimap was last drawn.
+    drawn: u32,
     pub pixels: Vec<u8>,
+    /// The world map's last image (`draw`).
+    pub world_pixels: Vec<u8>,
     /// Deposits the local player has prospected (marks.rs).
     pub known: Known,
 }
@@ -47,39 +52,69 @@ impl Minimap {
     pub fn new(textures: &[u8]) -> Self {
         let mut colors = [[0u8; 3]; BLOCK_COUNT];
         for (b, color) in colors.iter_mut().enumerate() {
-            *color = average_color(textures, FACE_TEX[b][2] as usize);
+            *color = if is_ore(b as BlockId) {
+                ore_color(b as BlockId).to_be_bytes()[1..].try_into().unwrap()
+            } else {
+                average_color(textures, FACE_TEX[b][2] as usize)
+            };
         }
         Self {
             colors,
-            tiles: Vec::new(),
+            atlas: Atlas::default(),
             centre: None,
-            stale: true,
-            grid: vec![0; (MAP_SIZE + 1) * (MAP_SIZE + 1)],
+            drawn: 0,
             pixels: vec![0; MAP_SIZE * MAP_SIZE * 4],
+            world_pixels: Vec::new(),
             known: Known::default(),
         }
     }
 
-    /// A chunk meshed or unloaded: its column's tile is rebuilt when next needed.
+    /// A chunk meshed: the explored map picks up its column.
     pub fn touch(&mut self, chunk: IVec3) {
-        self.tiles.retain(|t| (t.cx, t.cz) != (chunk.x, chunk.z));
-        if self.centre.is_some_and(|c| in_range(c, chunk.x, chunk.z)) {
-            self.stale = true;
-        }
+        self.atlas.touch(chunk.x, chunk.z);
     }
 
-    /// Redraws the map around column `centre` if it moved or a tile in range changed. Returns whether
-    /// the pixels changed.
+    /// Redraws the map around column `centre` if it moved or the explored map changed (rebuilding the
+    /// changed tiles in range first). Returns whether the pixels changed.
     pub fn redraw(&mut self, world: &World, centre: (i32, i32)) -> bool {
-        if !self.stale && self.centre == Some(centre) {
+        let (x0, z0) = (centre.0 - HALF, centre.1 - HALF);
+        let last = MAP_SIZE as i32 - 1;
+        let lo = ((x0 - 1) >> CHUNK_SHIFT, (z0 - 1) >> CHUNK_SHIFT);
+        let hi = ((x0 + last) >> CHUNK_SHIFT, (z0 + last) >> CHUNK_SHIFT);
+        self.atlas.refresh_in(world, lo, hi);
+        if self.drawn == self.atlas.changes && self.centre == Some(centre) {
             return false;
         }
         self.centre = Some(centre);
-        self.stale = false;
-        self.tiles.retain(|t| in_range(centre, t.cx, t.cz));
-        self.fill_grid(world, centre);
-        self.shade();
+        self.drawn = self.atlas.changes;
+        let mut pixels = std::mem::take(&mut self.pixels);
+        self.draw(x0, z0, 1, MAP_SIZE, MAP_SIZE, &mut pixels);
+        self.pixels = pixels;
         true
+    }
+
+    /// Draws `w`×`h` pixels of the explored map into `out` (RGBA, resized to fit): pixel (i, j) shows
+    /// column (x0 + i·scale, z0 + j·scale).
+    pub fn draw(&self, x0: i32, z0: i32, scale: i32, w: usize, h: usize, out: &mut Vec<u8>) {
+        out.resize(w * h * 4, 0);
+        let (mut here, mut nw) = (Lookup::new(&self.atlas), Lookup::new(&self.atlas));
+        for j in 0..h {
+            let z = z0 + j as i32 * scale;
+            for i in 0..w {
+                let x = x0 + i as i32 * scale;
+                let (v, n) = (here.get(x, z), nw.get(x - scale, z - scale));
+                let p = (j * w + i) * 4;
+                let block = (v & 0xff) as usize;
+                if block == AIR as usize {
+                    out[p..p + 4].fill(0);
+                    continue;
+                }
+                let step = if n == 0 { 0 } else { (v >> 8) as i32 - (n >> 8) as i32 };
+                let k = 256 + step.clamp(-SHADE_MAX_STEP, SHADE_MAX_STEP) * SHADE_PER_BLOCK;
+                let [r, g, b] = self.colors[block].map(|c| ((c as i32 * k) >> 8).min(255) as u8);
+                out[p..p + 4].copy_from_slice(&[r, g, b, 255]);
+            }
+        }
     }
 
     /// Other players' marks relative to the local player's position: (x, z offset in blocks, yaw) each.
@@ -93,115 +128,28 @@ impl Minimap {
     }
 }
 
-/// One chunk column's top blocks: `height << 8 | block` per column (index `z << 5 | x`), 0 = unknown.
-struct Tile {
-    cx: i32,
-    cz: i32,
-    columns: Box<[u16]>,
-}
-
 const HALF: i32 = MAP_SIZE as i32 / 2;
-const GRID: usize = MAP_SIZE + 1;
 
-/// The chunk columns the map (and its north-west border) covers around `centre`.
-fn tile_span(centre: (i32, i32)) -> (i32, i32, i32, i32) {
-    let (x0, z0) = (centre.0 - HALF - 1, centre.1 - HALF - 1);
-    let (x1, z1) = (centre.0 + HALF - 1, centre.1 + HALF - 1);
-    (x0 >> CHUNK_SHIFT, z0 >> CHUNK_SHIFT, x1 >> CHUNK_SHIFT, z1 >> CHUNK_SHIFT)
+/// Reads columns from the atlas, remembering the last tile (neighbouring pixels nearly always share it).
+struct Lookup<'a> {
+    atlas: &'a Atlas,
+    key: (i32, i32),
+    tile: Option<&'a Tile>,
 }
 
-fn in_range(centre: (i32, i32), cx: i32, cz: i32) -> bool {
-    let (tx0, tz0, tx1, tz1) = tile_span(centre);
-    (tx0..=tx1).contains(&cx) && (tz0..=tz1).contains(&cz)
-}
-
-impl Minimap {
-    /// Copies every tile's columns inside the window into `grid` (0 where nothing is loaded).
-    fn fill_grid(&mut self, world: &World, centre: (i32, i32)) {
-        self.grid.fill(0);
-        let (gx0, gz0) = (centre.0 - HALF - 1, centre.1 - HALF - 1);
-        let (tx0, tz0, tx1, tz1) = tile_span(centre);
-        for cz in tz0..=tz1 {
-            for cx in tx0..=tx1 {
-                let i = match self.tiles.iter().position(|t| (t.cx, t.cz) == (cx, cz)) {
-                    Some(i) => i,
-                    None => {
-                        let Some(columns) = build_tile(world, cx, cz) else { continue };
-                        self.tiles.push(Tile { cx, cz, columns });
-                        self.tiles.len() - 1
-                    }
-                };
-                let tile = &self.tiles[i];
-                let (bx, bz) = (cx * CHUNK_SIZE, cz * CHUNK_SIZE);
-                for lz in 0..CHUNK_SIZE {
-                    let gz = bz + lz - gz0;
-                    if !(0..GRID as i32).contains(&gz) {
-                        continue;
-                    }
-                    let lx0 = (gx0 - bx).max(0);
-                    let lx1 = (gx0 + GRID as i32 - bx).min(CHUNK_SIZE);
-                    for lx in lx0..lx1 {
-                        let g = gz as usize * GRID + (bx + lx - gx0) as usize;
-                        self.grid[g] = tile.columns[(lz << CHUNK_SHIFT | lx) as usize];
-                    }
-                }
-            }
-        }
+impl<'a> Lookup<'a> {
+    fn new(atlas: &'a Atlas) -> Self {
+        Self { atlas, key: (i32::MIN, i32::MIN), tile: None }
     }
 
-    /// Turns `grid` into pixels: block colour, shaded by the height step to the north-west.
-    fn shade(&mut self) {
-        for z in 0..MAP_SIZE {
-            for x in 0..MAP_SIZE {
-                let (v, nw) = (self.grid[(z + 1) * GRID + x + 1], self.grid[z * GRID + x]);
-                let p = (z * MAP_SIZE + x) * 4;
-                let block = (v & 0xff) as usize;
-                if block == AIR as usize {
-                    self.pixels[p..p + 4].fill(0);
-                    continue;
-                }
-                let step = if nw == 0 { 0 } else { (v >> 8) as i32 - (nw >> 8) as i32 };
-                let k = 256 + step.clamp(-SHADE_MAX_STEP, SHADE_MAX_STEP) * SHADE_PER_BLOCK;
-                let [r, g, b] = self.colors[block].map(|c| ((c as i32 * k) >> 8).min(255) as u8);
-                self.pixels[p..p + 4].copy_from_slice(&[r, g, b, 255]);
-            }
+    fn get(&mut self, x: i32, z: i32) -> u16 {
+        let key = (x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
+        if key != self.key {
+            self.key = key;
+            self.tile = self.atlas.tile(key.0, key.1);
         }
+        self.tile.map_or(0, |t| t.columns[column_index(x, z)])
     }
-}
-
-/// The top non-air block of each column in chunk column (`cx`, `cz`), from its loaded chunks (an
-/// unloaded chunk counts as air). `None` if none of them is loaded.
-fn build_tile(world: &World, cx: i32, cz: i32) -> Option<Box<[u16]>> {
-    const COLUMNS: usize = (CHUNK_SIZE * CHUNK_SIZE) as usize;
-    let mut columns = vec![0u16; COLUMNS];
-    let (mut any, mut left) = (false, COLUMNS);
-    for cy in (0..WORLD_HEIGHT_CHUNKS).rev() {
-        let Some(chunk) = world.loaded_chunk(IVec3::new(cx, cy, cz)) else { continue };
-        any = true;
-        let base = (cy * CHUNK_SIZE) as u16;
-        match (chunk.as_uniform(), chunk.dense()) {
-            (Some(AIR), _) => continue,
-            (Some(b), _) => {
-                let top = (base + CHUNK_SIZE as u16 - 1) << 8 | b as u16;
-                columns.iter_mut().filter(|c| **c == 0).for_each(|c| *c = top);
-                left = 0;
-            }
-            (None, Some(blocks)) => {
-                for (i, c) in columns.iter_mut().enumerate().filter(|(_, c)| **c == 0) {
-                    let top = (0..CHUNK_SIZE as usize).rev().find(|&y| blocks[y << 10 | i] != AIR);
-                    if let Some(y) = top {
-                        *c = (base + y as u16) << 8 | blocks[y << 10 | i] as u16;
-                        left -= 1;
-                    }
-                }
-            }
-            (None, None) => unreachable!("a chunk is uniform or dense"),
-        }
-        if left == 0 {
-            break;
-        }
-    }
-    any.then(|| columns.into_boxed_slice())
 }
 
 /// Average colour of a texture layer's visible pixels.

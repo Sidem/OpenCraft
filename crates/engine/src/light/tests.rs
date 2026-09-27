@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BlockId, AIR, LAMP, LEAVES, STONE, WATER};
+use crate::block::{BlockId, AIR, LAMP, LEAVES, STONE, TORCH, WATER};
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
 /// Lights chunk (`cx`, `cy`, `cz`) of a world given by `block` at world coordinates; returns the pad.
@@ -114,7 +114,7 @@ fn light_matches_across_chunk_borders() {
     let east = light_chunk(&world, 1, 0, 0);
     let up = light_chunk(&world, 0, 1, 0);
     let idx = |x: usize, y: usize, z: usize| (y * PAD + z) * PAD + x;
-    assert_eq!(east[idx(3, 21, 17)] >> 4, 11, "the lamp at x = 30 lights x = 34, four blocks away");
+    assert_eq!(east[idx(9, 21, 17)] >> 4, 10, "the lamp at x = 30 lights x = 40, ten blocks away: 20 − 10");
     for a in 0..PAD {
         for b in 0..PAD {
             assert_eq!(here[idx(33, a, b)], east[idx(1, a, b)]);
@@ -124,27 +124,39 @@ fn light_matches_across_chunk_borders() {
     }
 }
 
+/// A sealed cave room (x and z 8..17, y 5..9) with `light` at (12, 5, 12) if given.
+fn cave_room(light: Option<BlockId>) -> impl Fn(i32, i32, i32) -> BlockId {
+    let room = |x: i32, y: i32, z: i32| (8..17).contains(&x) && (5..9).contains(&y) && (8..17).contains(&z);
+    move |x, y, z| match light {
+        Some(b) if (x, y, z) == (12, 5, 12) => b,
+        _ if room(x, y, z) => AIR,
+        _ => STONE,
+    }
+}
+
 #[test]
 fn a_lamp_lights_a_cave_room_and_removing_it_darkens_it() {
-    let room = |x: i32, y: i32, z: i32| (8..17).contains(&x) && (5..9).contains(&y) && (8..17).contains(&z);
-    let cave = |lamp: bool| {
-        move |x: i32, y: i32, z: i32| {
-            if lamp && (x, y, z) == (12, 5, 12) {
-                LAMP
-            } else if room(x, y, z) {
-                AIR
-            } else {
-                STONE
-            }
-        }
-    };
-    let lit = light_chunk(&cave(true), 0, 0, 0);
-    assert_eq!(at(&lit, 12, 6, 12), (0, 14), "right above the lamp");
-    assert_eq!(at(&lit, 15, 5, 12), (0, 12), "three blocks away");
-    assert_eq!(at(&lit, 14, 7, 13), (0, 10), "five steps away, around a corner");
+    let lit = light_chunk(&cave_room(Some(LAMP)), 0, 0, 0);
+    assert_eq!(at(&lit, 12, 6, 12), (0, 15), "right above the lamp");
+    assert_eq!(at(&lit, 14, 7, 13), (0, 15), "five steps away, around a corner: still full");
+    assert_eq!(at(&lit, 16, 8, 16), (0, 9), "eleven steps away: 20 − 11");
     assert_eq!(at(&lit, 12, 12, 12), (0, 0), "no light inside the rock");
-    let dark = light_chunk(&cave(false), 0, 0, 0);
+    let dark = light_chunk(&cave_room(None), 0, 0, 0);
     assert_eq!(at(&dark, 15, 5, 12), (0, 0), "dark again without it");
+}
+
+#[test]
+fn a_torch_is_bright_up_close_and_gone_six_blocks_out() {
+    let lit = light_chunk(&cave_room(Some(TORCH)), 0, 0, 0);
+    let row: Vec<u8> = (12..17).map(|x| at(&lit, x, 5, 12).1).collect();
+    assert_eq!(row, [12, 10, 8, 6, 4], "2 less per block");
+    assert_eq!(at(&lit, 16, 5, 13).1, 2, "five steps");
+    assert_eq!(at(&lit, 16, 6, 13).1, 0, "six steps: dark");
+    // Beside a lamp, a cell shows the brighter of the two.
+    let both = |x, y, z| if (x, y, z) == (16, 5, 16) { LAMP } else { cave_room(Some(TORCH))(x, y, z) };
+    let pad = light_chunk(&both, 0, 0, 0);
+    assert_eq!(at(&pad, 12, 5, 12).1, 12, "the torch outshines the lamp 8 steps away there");
+    assert_eq!(at(&pad, 14, 5, 14).1, 15, "the lamp is full four steps from it");
 }
 
 #[test]

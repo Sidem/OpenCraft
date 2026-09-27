@@ -90,7 +90,8 @@ impl BlockTimers {
 impl Sim {
     /// Starts the timers a block change at `pos` (from `old` to what is there now) calls for: leaves
     /// near a removed log, dirt that can grow grass and grass that is now covered, around `pos`, and a
-    /// sapling planted at `pos`; then the water checks (water.rs).
+    /// sapling planted at `pos`; a torch on `pos` losing its support (torches.rs); then the water checks
+    /// (water.rs).
     pub(crate) fn block_changed(&mut self, pos: IVec3, old: BlockId) {
         if self.block(pos) == SAPLING {
             self.schedule_growth(pos);
@@ -110,6 +111,7 @@ impl Sim {
                 _ => {}
             }
         }
+        self.torch_support_changed(pos);
         self.water_changed(pos, old);
     }
 

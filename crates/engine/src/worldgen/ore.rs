@@ -175,11 +175,14 @@ pub(super) fn in_column(mut near: Vec<Deposit>, cx: i32, cz: i32) -> Vec<Deposit
     near
 }
 
-/// A lode near bedrock (y 12 to 25). (Version 1 depends on the draws.)
+/// The heights a lode's centre lies between, in every version.
+pub const LODE_HEIGHTS: (i32, i32) = (12, 25);
+
+/// A lode near bedrock (`LODE_HEIGHTS`). (Version 1 depends on the draws.)
 pub(super) fn lode_shape(rng: &mut Rng, x0: i32, z0: i32) -> (IVec3, [f32; 3], u32) {
     let x = x0 + rng.below(32) as i32;
     let z = z0 + rng.below(32) as i32;
-    let y = 12 + rng.below(14) as i32;
+    let y = LODE_HEIGHTS.0 + rng.below((LODE_HEIGHTS.1 - LODE_HEIGHTS.0 + 1) as u32) as i32;
     let r = rng.range(7.0, 8.5) as f32;
     (IVec3::new(x, y, z), [r, r * 0.75, r], rng.next_u32())
 }

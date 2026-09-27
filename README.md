@@ -56,12 +56,13 @@ the render distance in chunks (2 to 24, default 8).
 | E                   | Inventory and build menu                  |
 | T                   | Research: choose what labs work on        |
 | H                   | Skip the tip on screen (the menu can show tips again) |
-| N                   | Show or hide the minimap (top right, north up; rings mark veins and lodes you've prospected, squares your machines) |
+| M                   | The map: everywhere you've been, your pins, and the ore guide (drag to move, wheel to zoom, click to pin) |
+| N                   | Show or hide the minimap (top right, north up; diamonds mark ore you've seen, rings veins and lodes you've prospected, squares your machines, pins your pins) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |
 | Hold Tab            | Who is playing with you (in a shared game) |
-| M                   | Mute / unmute sound                       |
+| K                   | Mute / unmute sound                       |
 | O                   | Open the sound designer                   |
 | F3                  | Debug stats                               |
 | Esc                 | Release the mouse; in a panel, close it   |
@@ -95,17 +96,26 @@ highlands over granite, wet lowlands thick with trees, and bare black basalt fie
 each biome decides which ores lie in it: coal and limestone in the lowlands, copper and quartz in the
 highlands, quartz and limestone in the deserts, rich iron in the basalt, a bit of everything on the plains.
 Deep veins and lodes give themselves away at the surface: rusty soil above iron, dark soil above coal,
-blue-green soil above copper and pale soil above limestone and quartz. Ore rarely reaches the surface:
+blue-green soil above copper and pale soil above limestone and quartz. Point at a stained block and it
+tells you what lies below and how many blocks down. Ore rarely reaches the surface:
 look for it where the rock is bare, on cliffs, bare mountain tops, deserts and basalt fields. Each ore keeps to
-its own depth: limestone and coal lie shallow, iron deeper, copper and quartz deepest. Every new world has
-a small patch of coal, iron and copper showing 40 to 80 blocks from where you start. Worlds made before
-this keep the terrain and ore they were made with (the oldest ones, before biomes, are "classic terrain"),
-so nothing you built there changes.
+its own depth below the ground: limestone and coal lie shallow, iron a little deeper, copper deeper still,
+quartz deepest. Every new world has two small patches each of coal, iron and copper showing 28 to 110
+blocks from where you start. Worlds made before this keep the terrain and ore they were made with (the
+oldest ones, before biomes, are "classic terrain"), so nothing you built there changes.
+
+**The map** (M) shows everywhere you have been, north up; the browser remembers it with the world.
+Ore you have seen at the surface is marked with a diamond, so a patch spotted in passing is easy to find
+again. Click the map to drop a **pin** (an ore, home or a note, with a few words); pins show on the
+minimap too, at its edge when they are far away. Beside the map, **Finding ore** charts how deep each ore
+lies, which biomes hold it and how to spot it, with this world's own numbers.
 
 A day lasts 20 minutes, from sunrise through a golden dusk to a dark blue night with stars; the pause menu
 shows the day and the time. Light is simulated per block: forest floors lie in shade, caves are dark even
-at noon, and a shaft you dig lets the sky in. **Lamps** (glass, an iron plate and 2 copper wire make two)
-light about 14 blocks around them in a warm glow, day and night.
+at noon, and a shaft you dig lets the sky in. **Torches** (a log and a coal ore make 8)
+stand on top of any block and light about 5 blocks around them, bright up close; they drop when the block
+under them goes. **Lamps** (glass, an iron plate and 2 copper wire make two) are far stronger: full light within
+5 blocks, fading out about 20 blocks away, in a warm glow, day and night.
 
 Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
@@ -225,7 +235,7 @@ wire and 2 belts. Two lifts cost 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 6 iron ore, 4
 copper ore and 12 stone; two power poles an iron ore, a copper ore and a log; a research lab 6 iron plates,
 8 copper wire and 4 belts; a Miner Mk2 a Mk1, 8 iron plates, 16 screws and 12 copper wire; two fast belts 2
-belts, an iron plate and 4 screws; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
+belts, an iron plate and 4 screws; eight torches a log and a coal ore; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
 plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates,
 8 iron rods, 16 screws and 8 copper wire. Hand-mining an outcrop or two covers
 your first miner, generator and poles. After that, let them do the work.
@@ -292,7 +302,7 @@ Each frame:
 - **32³ chunks, 256 blocks tall.** Uniform chunks (all air, all stone) take no heap memory.
 - **Greedy meshing with per-vertex AO and smooth light.** Faces merge only where AO and light are constant along
   the merge axis, so merging never changes the shading. Quads are split along the brighter diagonal to avoid seams.
-- **Light in the mesher.** Sky and block light (0–15) are flooded over the chunk plus a 15-block margin while it
+- **Light in the mesher.** Sky and block light (0–15) are flooded over the chunk plus a 20-block margin while it
   meshes, so they are never stored and chunk borders always match; an edit relights the chunks it can reach.
 - **5 bytes per vertex.** Position, face, AO and texture layer are packed into one `u32`, plus a light byte. UVs are derived in
   the shader from position, and texture wrapping tiles merged quads. One shared index buffer serves every chunk.
@@ -336,7 +346,7 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
   23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
-  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry; items: 256 iron ingot, 257 copper ingot,
+  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
   264–269 stone and iron tools, 270 scanner, 271 core drill.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
@@ -359,8 +369,8 @@ Sandbox foundation:
 - [ ] Simulation and worldgen in Web Workers
 - [x] Water: a sea and ponds, flowing water, swimming
 - [x] Full inventory screen
-- [x] Day/night cycle, sky and voxel lighting (sky light, lamps)
-- [x] Minimap
+- [x] Day/night cycle, sky and voxel lighting (sky light, torches, lamps)
+- [x] Minimap, and a world map (M) of everywhere you've been with pins and an ore guide
 - [x] A living surface: leaves of felled trees decay, grass grows back over bare dirt, saplings grow into trees
 - [x] Tools that wear out: pickaxe, axe and shovel in stone and iron
 - [x] Biomes: plains, desert, highlands, lowlands, basalt fields, each with its own rock

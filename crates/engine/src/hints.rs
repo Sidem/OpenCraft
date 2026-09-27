@@ -18,9 +18,10 @@ pub struct Hint {
 
 pub const HINTS: &[Hint] = &[
     Hint {
-        text: "Find ore: rock speckled with colour (dark coal, rusty iron, orange and green copper). A patch of \
-               coal, iron and copper shows a short walk (40 to 80 blocks) from where you start. Point at \
-               it to see the deposit, then hold the left mouse button to mine it.",
+        text: "Find ore: rock speckled with colour (dark coal, rusty iron, orange and green copper). Patches of \
+               coal, iron and copper show a short walk from where you start; press M for the map, which marks \
+               ore you have seen with a diamond and has a guide to every ore. Hold the left mouse button to \
+               mine it.",
         done: |inv, _| [COAL_ORE, IRON_ORE, COPPER_ORE].iter().any(|&o| inv.count(o.into()) > 0),
     },
     Hint {

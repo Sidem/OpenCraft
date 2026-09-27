@@ -105,7 +105,9 @@ pub const LAMP: u16 = 105;
 pub const WATER: u16 = 106;
 /// The quarry's status light while it waits for its pit to be pumped dry.
 pub const LAMP_BLUE: u16 = 107;
-pub const COUNT: usize = 108;
+/// The torch (`block::TORCH`), drawn on crossed quads like the sapling.
+pub const TORCH: u16 = 108;
+pub const COUNT: usize = 109;
 
 /// How many alternates a layer with any has.
 pub const ALTERNATES: u16 = 3;

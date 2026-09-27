@@ -284,8 +284,16 @@ pub const RECIPES: &[Recipe] = &[
         group: Group::Building,
         count: 2,
         inputs: &[(b(GLASS), 1), (IRON_PLATE, 1), (COPPER_WIRE, 2)],
-        blurb: "A block that lights up everything within about 14 blocks, day and night: caves, tunnels \
+        blurb: "A block that lights up everything within about 20 blocks, day and night: caves, tunnels \
                 and your factory after dark.",
+    },
+    Recipe {
+        output: b(TORCH),
+        group: Group::Building,
+        count: 8,
+        inputs: &[(b(LOG), 1), (b(COAL_ORE), 1)],
+        blurb: "A small light for the first nights and caves: bright up close, about 5 blocks around. Stands \
+                on top of any solid block.",
     },
 ];
 

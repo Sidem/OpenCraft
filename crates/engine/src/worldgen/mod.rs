@@ -13,7 +13,8 @@
 //! new version, branched from the same code at a few named points (`self.version >= n`). 1 = the first
 //! terrain (Milestones 1 to 3); 2 = Milestone 4's biomes, rock provinces and geology-driven ores
 //! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (`strata.rs`: rare surface ore, depth bands, a starter set;
-//! `water.rs`: sea and ponds, branching in `height_at`, `build_column`, `trees_near` and `generate`).
+//! `water.rs`: sea and ponds, branching in `height_at`, `build_column`, `trees_near` and `generate`);
+//! 4 = easier starter ore (`strata.rs`: shallower bands, more exposed metal, two starter patches each).
 
 mod biome;
 mod caves;
@@ -24,6 +25,8 @@ mod water;
 
 pub use biome::Biome;
 use caves::CaveField;
+pub use geology::ore_shares;
+pub use ore::LODE_HEIGHTS;
 use water::WaterGuard;
 
 use std::cell::{Cell, RefCell};
@@ -38,7 +41,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 3;
+pub const WORLDGEN_VERSION: u32 = 4;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;

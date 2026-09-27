@@ -27,6 +27,7 @@ use crate::worldgen::WorldGen;
 
 mod saplings;
 mod timers;
+mod torches;
 mod water;
 
 pub use timers::BlockTimers;

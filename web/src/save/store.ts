@@ -3,10 +3,14 @@
 // engine's save bytes keyed `[world id, slot]`. Each world alternates between two slots, so the
 // previous save stays as a backup; bytes and record are written in one transaction, so a crash
 // mid-write leaves the old pair intact. Bytes are gzipped when there's time (`pack`); saves made while
-// the page closes go in raw, and `unpack` accepts both. To store more per world: a field on `WorldMeta`.
+// the page closes go in raw, and `unpack` accepts both. The explored map (the engine's `explored_map`,
+// up to a few MB) sits in `saves` too, under slot `MAP_SLOT`, so listing worlds never reads it. To store
+// more per world: a field on `WorldMeta` if it is small, else another slot.
 
 const DB_NAME = 'opencraft';
 const DB_VERSION = 1;
+/** The `saves` slot holding a world's explored map. */
+const MAP_SLOT = 2;
 
 export interface WorldMeta {
   id: string;
@@ -22,6 +26,8 @@ export interface WorldMeta {
    * here, not in the save, since they are the player's notes rather than the world. Missing in older
    * records. */
   marks?: number[];
+  /** The player's map pins (ui/pins.ts), their notes too. Missing in older records. */
+  pins?: { x: number; z: number; kind: string; note: string }[];
 }
 
 /** A new, never-saved world. */
@@ -57,6 +63,12 @@ export class WorldStore {
     return data ? unpack(data) : null;
   }
 
+  /** A world's explored map, unpacked, or null if it has none. */
+  async readMap(id: string): Promise<Uint8Array | null> {
+    const data: Uint8Array | undefined = await done(this.db.transaction('saves').objectStore('saves').get([id, MAP_SLOT]));
+    return data ? unpack(data) : null;
+  }
+
   /** Stores a world's record (new, or opened) without touching its saves. */
   put(meta: WorldMeta): Promise<void> {
     const tx = this.db.transaction('worlds', 'readwrite');
@@ -64,11 +76,13 @@ export class WorldStore {
     return finished(tx);
   }
 
-  /** Stores `bytes` in slot `meta.slot` together with the record. Starts synchronously and commits at
-   * once, so it has the best chance of finishing while the page closes. */
-  write(meta: WorldMeta, bytes: Uint8Array): Promise<void> {
+  /** Stores `bytes` in slot `meta.slot` together with the record (and the explored map, when given).
+   * Starts synchronously and commits at once, so it has the best chance of finishing while the page
+   * closes. */
+  write(meta: WorldMeta, bytes: Uint8Array, map?: Uint8Array): Promise<void> {
     const tx = this.db.transaction(['worlds', 'saves'], 'readwrite');
     tx.objectStore('saves').put(bytes, [meta.id, meta.slot ?? 0]);
+    if (map) tx.objectStore('saves').put(map, [meta.id, MAP_SLOT]);
     tx.objectStore('worlds').put(meta);
     tx.commit?.();
     return finished(tx);
@@ -77,7 +91,7 @@ export class WorldStore {
   delete(id: string): Promise<void> {
     const tx = this.db.transaction(['worlds', 'saves'], 'readwrite');
     tx.objectStore('worlds').delete(id);
-    tx.objectStore('saves').delete(IDBKeyRange.bound([id, 0], [id, 1]));
+    tx.objectStore('saves').delete(IDBKeyRange.bound([id, 0], [id, MAP_SLOT]));
     return finished(tx);
   }
 }

@@ -140,6 +140,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             tools::tool(x, y, i % 3, i >= 3)
         }
         tex::SAPLING => plants::sapling(x, y),
+        tex::TORCH => plants::torch(x, y),
         tex::GRANITE => geology::granite(x, y),
         tex::SANDSTONE => geology::sandstone(x, y),
         tex::BASALT => geology::basalt(x, y),

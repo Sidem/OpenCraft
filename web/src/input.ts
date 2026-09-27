@@ -15,6 +15,7 @@ export type Action =
   | { kind: 'rotate' }
   | { kind: 'hint' }
   | { kind: 'map' }
+  | { kind: 'world-map' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -129,7 +130,8 @@ export class Input {
       if (digit) this.actions.push({ kind: 'slot', slot: Number(digit[1]) - 1 });
       else if (e.code === 'KeyF') this.actions.push({ kind: 'fly' });
       else if (e.code === 'KeyQ') this.actions.push({ kind: 'drop' });
-      else if (e.code === 'KeyM') this.actions.push({ kind: 'mute' });
+      else if (e.code === 'KeyK') this.actions.push({ kind: 'mute' });
+      else if (e.code === 'KeyM') this.actions.push({ kind: 'world-map' });
       else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
       else if (e.code === 'KeyR') this.actions.push({ kind: 'rotate' });

@@ -7,6 +7,7 @@ use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
 use crate::factory::{self, Kind, MINER_RECOVERY, MK2_RECOVERY};
 use crate::hints::{self, HINTS};
+use crate::ore_guide;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -84,12 +85,16 @@ impl Game {
         }
     }
 
-    /// Extra lines for the target readout: deposit details for ore, status for machines.
+    /// Extra lines for the target readout: deposit details for ore, status for machines, what lies
+    /// under stained soil.
     /// Lines are separated by `\n`; empty when there is nothing to add. Leaves the core unchanged:
     /// a deposit nobody has touched is surveyed into `self.surveyed`, not tracked.
     pub fn target_detail(&mut self) -> String {
         let Some(hit) = self.target else { return String::new() };
         if let Some(text) = self.sim.factory.describe(hit.block) {
+            return text;
+        }
+        if let Some(text) = ore_guide::stain_reading(self.sim.world.generator(), hit.block, hit.id) {
             return text;
         }
         if !block::is_ore(hit.id) && hit.id != SPENT_ROCK {

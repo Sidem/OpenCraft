@@ -1,22 +1,33 @@
 //! Light for the chunk mesher: sky light and block light, 0..=15 each, computed when a chunk meshes.
 //! Part of the render cache, derived from blocks only, never core state (DEV_PLAN 3.4).
 //!
-//! The field covers the chunk plus a [`MARGIN`] of 15 blocks on every side, read from the 3×3×3
+//! The field covers the chunk plus a [`MARGIN`] of 20 blocks on every side, read from the 3×3×3
 //! neighbours the mesher already has, so light from anything that can reach the chunk is included
 //! and borders match. Sky light is 15 in every cell open to the sky straight above (the columns above
-//! the field come from the chunks higher up); both kinds then flood outward, losing 1 per block,
-//! through everything that isn't an opaque cube. Leaves let flooded light through but stop the
-//! straight sky column, so forests are shady; water does too and dims light by 2 per block. Block light starts at emitting blocks (`BlockDef::light`).
+//! the field come from the chunks higher up); it floods outward, losing 1 per block, through
+//! everything that isn't an opaque cube. Leaves let flooded light through but stop the straight sky
+//! column, so forests are shady; water does too and takes twice as much per block.
+//!
+//! Block light starts at emitting blocks (`BlockDef::light` names a row of [`SOURCES`]: strength and
+//! loss per block). Sources losing 1 per block flood one field, those losing 2 (torches: bright but
+//! short) another; a cell shows the larger, at most 15. A lamp (20) is at full brightness within 5
+//! blocks and reaches 19; a torch (12) reaches 5.
 //!
 //! The result (`pad`) uses the mesher's padded layout (`mesher::pidx`): sky in the low nibble, block
-//! light in the high one. To change how a block treats light: `CLASS` below.
+//! light in the high one. To change how a block treats light: `CLASS` below; to add a kind of light:
+//! a row in `SOURCES` (a loss of 1 or 2).
 
 use crate::block::{Render, BLOCK_COUNT, DEFS, GLASS};
 use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
-/// How far past the chunk the field reaches: light fades out within 15 steps.
-pub const MARGIN: usize = 15;
+/// Kinds of block light (`BlockDef::light` indexes this): strength at the block, loss per block.
+pub const SOURCES: [(u8, u8); 3] = [(0, 0), (20, 1), (12, 2)];
+pub const LAMP_LIGHT: u8 = 1;
+pub const TORCH_LIGHT: u8 = 2;
+
+/// How far past the chunk the field reaches: the farthest any light travels (a lamp's 20).
+pub const MARGIN: usize = 20;
 /// The field's size per axis (the chunk plus both margins), and with a wall of one cell around it.
 const R: usize = 32 + 2 * MARGIN;
 const W: usize = R + 2;
@@ -24,7 +35,7 @@ const WW: usize = W * W;
 const FULL: u8 = 15;
 
 /// Per block: bit 0 lets light through, bit 1 also lets the straight sky column through, bit 2 dims it
-/// twice as fast; the block light it gives off in the high nibble.
+/// twice as fast; its `SOURCES` row in the high nibble.
 const CLASS: [u8; 256] = {
     let mut t = [0u8; 256];
     let mut i = 0;
@@ -50,8 +61,11 @@ pub struct Lighting {
     class: Vec<u8>,
     sky: Vec<u8>,
     block: Vec<u8>,
+    /// Light from sources that lose 2 per block; all zero between chunks (reset cell by cell).
+    short: Vec<u8>,
     queue: Vec<u32>,
     block_seeds: Vec<u32>,
+    short_seeds: Vec<u32>,
     /// Per field column, the lowest field y open to the sky (`R + 1` when none is; 0 for the walls).
     floor: Vec<u16>,
     /// Per field column, whether something above the field shades it.
@@ -66,8 +80,10 @@ impl Default for Lighting {
             class: vec![0; W * WW],
             sky: vec![0; W * WW],
             block: vec![0; W * WW],
+            short: vec![0; W * WW],
             queue: Vec::new(),
             block_seeds: Vec::new(),
+            short_seeds: Vec::new(),
             floor: vec![0; WW],
             shaded: vec![false; WW],
             pad: vec![0; PAD_VOLUME],
@@ -80,19 +96,26 @@ impl Lighting {
     /// (dz + 1) * 3]` lists the chunks above the neighbourhood in that chunk column.
     pub fn light(&mut self, n: &[&Chunk; 27], above: &[&[&Chunk]; 9]) {
         self.fill(n);
+        self.seed_sources();
         self.shade_from_above(n, above);
         self.sky_columns();
         self.seed_sky();
-        flood(&self.class, &mut self.sky, &mut self.queue);
-        flood(&self.class, &mut self.block, &mut self.block_seeds);
+        flood(&self.class, &mut self.sky, &mut self.queue, 1);
+        flood(&self.class, &mut self.block, &mut self.block_seeds, 1);
+        flood(&self.class, &mut self.short, &mut self.short_seeds, 2);
         self.write_pad();
+        for &i in &self.short_seeds {
+            self.short[i as usize] = 0;
+        }
+        self.queue.clear();
+        self.block_seeds.clear();
+        self.short_seeds.clear();
     }
 
     /// Copies block classes into the field (the walls around it stay 0) and seeds block light at
     /// emitting blocks.
     fn fill(&mut self, n: &[&Chunk; 27]) {
         self.block.fill(0);
-        self.block_seeds.clear();
         for wy in 1..=R {
             let (cy, ly) = split(wy);
             for wz in 1..=R {
@@ -111,7 +134,6 @@ impl Lighting {
                                 let c = CLASS[b as usize];
                                 *o = c;
                                 if c >= 16 {
-                                    self.block[start + k] = c >> 4;
                                     self.block_seeds.push((start + k) as u32);
                                 }
                             }
@@ -120,16 +142,28 @@ impl Lighting {
                             let c = CLASS[chunk.get(0, 0, 0) as usize];
                             out.fill(c);
                             if c >= 16 {
-                                for k in start..start + len {
-                                    self.block[k] = c >> 4;
-                                    self.block_seeds.push(k as u32);
-                                }
+                                self.block_seeds.extend(start as u32..(start + len) as u32);
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    /// Gives each emitter found by `fill` its strength, in the field its loss per block floods.
+    fn seed_sources(&mut self) {
+        let (class, block, short, short_seeds) = (&self.class, &mut self.block, &mut self.short, &mut self.short_seeds);
+        self.block_seeds.retain(|&i| {
+            let (strength, loss) = SOURCES[(class[i as usize] >> 4) as usize % SOURCES.len()];
+            if loss == 1 {
+                block[i as usize] = strength;
+                return true;
+            }
+            short[i as usize] = strength;
+            short_seeds.push(i);
+            false
+        });
     }
 
     /// Marks the field columns that something above the field shades: the chunks above the
@@ -211,32 +245,33 @@ impl Lighting {
                 let from = ((py + MARGIN) * W + pz + MARGIN) * W + MARGIN;
                 let to = (py * PAD + pz) * PAD;
                 for px in 0..PAD {
-                    self.pad[to + px] = self.sky[from + px] | (self.block[from + px] << 4);
+                    let block = self.block[from + px].max(self.short[from + px]).min(FULL);
+                    self.pad[to + px] = self.sky[from + px] | (block << 4);
                 }
             }
         }
     }
 }
 
-/// Floods light outward from the queued cells, 1 less per step, through cells that let light pass.
-fn flood(class: &[u8], light: &mut [u8], queue: &mut Vec<u32>) {
+/// Floods light outward from the queued cells, `loss` less per step (twice that into cells that dim),
+/// through cells that let light pass. Leaves every cell it lit in `queue`.
+fn flood(class: &[u8], light: &mut [u8], queue: &mut Vec<u32>, loss: u8) {
     let mut head = 0;
     while head < queue.len() {
         let i = queue[head] as usize;
         head += 1;
         let l = light[i];
-        if l <= 1 {
+        if l <= loss {
             continue;
         }
         for j in [i - 1, i + 1, i - W, i + W, i - WW, i + WW] {
-            let to = l.saturating_sub(1 + (class[j] & DIMS) / DIMS);
+            let to = l.saturating_sub(loss << ((class[j] & DIMS) / DIMS));
             if class[j] & PASSES != 0 && light[j] < to {
                 light[j] = to;
                 queue.push(j as u32);
             }
         }
     }
-    queue.clear();
 }
 
 /// A field coordinate (1..=R) as (neighbour 0..3, chunk-local coordinate).

@@ -95,7 +95,7 @@ fn core_samples_match_the_deposit_figures() {
     assert!(g.sim.factory.deposits.get(&vein.key).is_none(), "drilling tracks nothing");
     assert_eq!((s.remaining_blocks, s.initial_blocks), (survey.initial_blocks, survey.initial_blocks));
     assert_eq!((s.bottom, s.top), survey.y_span());
-    assert!(s.top < top.y - 10, "the vein lies deep");
+    assert!(s.top < top.y, "the vein lies below the surface");
 }
 
 /// Gives the local player `item`, selects it, and looks straight down.

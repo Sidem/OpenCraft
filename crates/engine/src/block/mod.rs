@@ -61,7 +61,7 @@ pub const RUSTY_SAND: BlockId = 40;
 pub const DARK_SAND: BlockId = 41;
 pub const GREEN_SAND: BlockId = 42;
 pub const PALE_SAND: BlockId = 43;
-/// Gives off block light 15 (`light.rs`); unpowered for now.
+/// Lights a wide area (`light::LAMP_LIGHT`); unpowered for now.
 pub const LAMP: BlockId = 44;
 /// Generator version 3's seas and ponds (`worldgen/water.rs`); not solid, not targetable, and blocks
 /// placed into it replace it.
@@ -77,7 +77,10 @@ pub const PIPE: BlockId = 54;
 pub const OUTLET: BlockId = 55;
 /// Digs the ground in a box in front of it, leaving a pit (`factory/quarry.rs`).
 pub const QUARRY: BlockId = 56;
-pub const BLOCK_COUNT: usize = 57;
+/// A small light on the block below it (`light::TORCH_LIGHT`: bright but short); drops when that block goes
+/// (`sim/torches.rs`).
+pub const TORCH: BlockId = 57;
+pub const BLOCK_COUNT: usize = 58;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -115,7 +118,7 @@ pub struct BlockDef {
     pub sound: u8,
     /// Whether the item can be put back into the world.
     pub placeable: bool,
-    /// Block light it gives off, 0..=15 (`light.rs`).
+    /// The kind of block light it gives off: a row of `light::SOURCES` (0 for none).
     pub light: u8,
 }
 
@@ -249,7 +252,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     cube("Dark Sand", 0.45, all(tex::DARK_SAND), SAND, sound::SAND),
     cube("Verdigris Sand", 0.45, all(tex::GREEN_SAND), SAND, sound::SAND),
     cube("Pale Sand", 0.45, all(tex::PALE_SAND), SAND, sound::SAND),
-    BlockDef { light: 15, ..cube("Lamp", 0.4, all(tex::LAMP), LAMP, sound::METAL) },
+    BlockDef { light: crate::light::LAMP_LIGHT, ..cube("Lamp", 0.4, all(tex::LAMP), LAMP, sound::METAL) },
     liquid("Water"),
     liquid("Flowing Water"),
     liquid("Flowing Water"),
@@ -262,98 +265,24 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Pipe", true, 0.3, all(tex::STEEL), PIPE),
     machine("Outlet", true, 0.5, pillar(tex::STEEL, tex::FRAME, tex::FRAME), OUTLET),
     machine("Quarry", true, 1.0, pillar(tex::MINER_MK2_SIDE, tex::STEEL, tex::FRAME), QUARRY),
+    BlockDef {
+        name: "Torch",
+        render: Render::Plant,
+        solid: false,
+        break_time: 0.05,
+        faces: all(tex::TORCH),
+        drop: TORCH,
+        sound: sound::WOOD,
+        placeable: true,
+        light: crate::light::TORCH_LIGHT,
+    },
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
 
-/// Flat lookup tables indexed by raw block id, so hot loops never bounds-check or branch on the registry.
-pub const OPAQUE: [bool; 256] = {
-    let mut t = [false; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Opaque);
-        i += 1;
-    }
-    t
-};
-
-pub const CUTOUT: [bool; 256] = {
-    let mut t = [false; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Cutout);
-        i += 1;
-    }
-    t
-};
-
-/// Blocks the chunk mesher draws as cubes (opaque, cutout or liquid).
-pub const MESHED: [bool; 256] = {
-    let mut t = [false; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout | Render::Liquid);
-        i += 1;
-    }
-    t
-};
-
-/// Liquids: drawn translucent in their own mesh range, never against each other.
-pub const LIQUID: [bool; 256] = {
-    let mut t = [false; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Liquid);
-        i += 1;
-    }
-    t
-};
-
-/// Blocks the chunk mesher draws as crossed quads.
-pub const PLANT: [bool; 256] = {
-    let mut t = [false; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Plant);
-        i += 1;
-    }
-    t
-};
-
-pub const SOLID: [bool; 256] = {
-    let mut t = [false; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = DEFS[i].solid;
-        i += 1;
-    }
-    t
-};
-
-pub const FACE_TEX: [[u16; 6]; 256] = {
-    let mut t = [[0u16; 6]; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        t[i] = DEFS[i].faces;
-        i += 1;
-    }
-    t
-};
-
-/// Per block and face, the first of the layer's alternates (`tex::alternates`), or 0.
-pub const ALT_TEX: [[u16; 6]; 256] = {
-    let mut t = [[0u16; 6]; 256];
-    let mut i = 0;
-    while i < BLOCK_COUNT {
-        let mut f = 0;
-        while f < 6 {
-            t[i][f] = tex::alternates(DEFS[i].faces[f]);
-            f += 1;
-        }
-        i += 1;
-    }
-    t
-};
+/// Flat lookup tables for hot loops (`tables.rs`).
+mod tables;
+pub use tables::{ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, SOLID};
 
 /// Whether placing a block may take this cell (air or water), and so whether aiming passes through it.
 #[inline]

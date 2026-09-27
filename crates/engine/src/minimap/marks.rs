@@ -1,15 +1,18 @@
-//! Minimap marks: deposits the local player has prospected and the factory's machines, as flat records
-//! for the host to draw over the map image (`web/src/ui/minimap.ts`).
+//! Map marks: deposits the local player has prospected, ore seen at the surface (the explored map's
+//! spots, `atlas.rs`) and the factory's machines, as flat records for the host to draw over the map
+//! images (`web/src/ui/minimap.ts`, `web/src/ui/worldmap.ts`).
 //!
 //! Presentation only. The prospected deposits (`Known`) are the local player's memory, not core state:
 //! the scanner and core drill add veins and lodes (`remember`; outcrops show on the map by themselves),
 //! and the host keeps the list with the world's record in the browser (`export` / `import`), not in the
-//! save file. A deposit that runs dry loses its mark and is left out of the next export. Records are
-//! relative to the column the image was last drawn around, so marks line up with its pixels.
+//! save file. A deposit that runs dry loses its mark and is left out of the next export. Minimap records
+//! are relative to the column the image was last drawn around, so marks line up with its pixels; world
+//! map records are in world columns.
 //!
 //! To mark another machine kind: a line in `Factory::map_machines` and a colour in `machine_color`.
 
 use crate::block::{self, BlockId};
+use crate::chunk::CHUNK_SHIFT;
 use crate::deposits::{Deposit, DepositKey, Tier};
 use crate::factory::{Factory, Kind};
 use crate::math::IVec3;
@@ -19,9 +22,10 @@ use super::{Minimap, HALF};
 
 /// Numbers per mark: dx, dz (blocks from the image's centre column), colour (0xRRGGBB), shape.
 pub const MARK_FIELDS: usize = 4;
-/// Mark shapes: a deposit (round) and a machine (square).
+/// Mark shapes: a deposit (round), a machine (square), ore seen at the surface (a diamond).
 pub const MARK_DEPOSIT: i32 = 0;
 pub const MARK_MACHINE: i32 = 1;
+pub const MARK_ORE: i32 = 2;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -70,18 +74,33 @@ impl Known {
 }
 
 impl Minimap {
-    /// Marks inside the image (`MARK_FIELDS` numbers each): remembered deposits that still hold ore,
-    /// then machines. Empty before the first redraw.
+    /// Marks inside the minimap image (`MARK_FIELDS` numbers each), relative to its centre column.
+    /// Empty before the first redraw.
     pub fn marks(&self, factory: &Factory) -> Vec<i32> {
         let Some((cx, cz)) = self.centre else { return Vec::new() };
-        let (lo, hi) = ((cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1));
+        self.marks_in(factory, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz))
+    }
+
+    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: ore seen at the surface, then
+    /// remembered deposits that still hold ore, then machines.
+    pub fn marks_in(&self, factory: &Factory, lo: (i32, i32), hi: (i32, i32), origin: (i32, i32)) -> Vec<i32> {
         let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
+        let (ox, oz) = origin;
         let mut out = Vec::new();
+        let tiles = ((lo.0 >> CHUNK_SHIFT, lo.1 >> CHUNK_SHIFT), (hi.0 >> CHUNK_SHIFT, hi.1 >> CHUNK_SHIFT));
+        self.atlas.each_tile_in(tiles.0, tiles.1, |cx, cz, tile| {
+            for &(x, z, ore) in &tile.spots {
+                let p = IVec3::new((cx << CHUNK_SHIFT) + x as i32, 0, (cz << CHUNK_SHIFT) + z as i32);
+                if inside(p) {
+                    out.extend_from_slice(&[p.x - ox, p.z - oz, ore_color(ore), MARK_ORE]);
+                }
+            }
+        });
         for d in self.known.deposits.iter().filter(|d| inside(d.center) && !dry(factory, d)) {
-            out.extend_from_slice(&[d.center.x - cx, d.center.z - cz, ore_color(d.ore()), MARK_DEPOSIT]);
+            out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
         }
         factory.map_machines(lo, hi, &mut |kind, p| {
-            out.extend_from_slice(&[p.x - cx, p.z - cz, machine_color(kind), MARK_MACHINE]);
+            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(kind), MARK_MACHINE]);
         });
         out
     }
@@ -92,8 +111,9 @@ fn dry(factory: &Factory, d: &Deposit) -> bool {
     factory.deposits.get(&d.key).is_some_and(|st| st.exhausted())
 }
 
-/// Mark colours, in the spirit of the surface hints (`worldgen/geology.rs`).
-fn ore_color(ore: BlockId) -> i32 {
+/// Mark colours, in the spirit of the surface hints (`worldgen/geology.rs`); also the map's colour for
+/// ore seen at the surface, and the ore guide's.
+pub fn ore_color(ore: BlockId) -> i32 {
     match ore {
         block::COAL_ORE => 0x2a2a2e,
         block::IRON_ORE => 0xd0703a,

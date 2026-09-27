@@ -24,10 +24,12 @@ import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
 import { Minimap } from './ui/minimap';
 import { NameTags } from './ui/nametags';
+import { Pins } from './ui/pins';
 import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
 import { VolumeControl } from './ui/volume-control';
+import { WorldMap } from './ui/worldmap';
 import { WorldsPanel } from './ui/worlds';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel
@@ -92,7 +94,10 @@ async function main(): Promise<void> {
   const hints = new Hints(game);
   const prospect = new ProspectPanel(game);
   prospect.onReading = () => sound.scan();
-  const minimap = new Minimap(game, wasm.memory);
+  const pins = new Pins(game, meta.pins);
+  session?.keepPins(pins);
+  const minimap = new Minimap(game, wasm.memory, pins);
+  const worldMap = new WorldMap(game, wasm.memory, pins);
   const nameTags = new NameTags();
   const playerList = new PlayerList();
   const coopPanel = new CoopPanel(coop, {
@@ -100,7 +105,7 @@ async function main(): Promise<void> {
     leave: () => session?.finish() ?? Promise.resolve(),
   });
   document.getElementById('coop')!.append(coopPanel.el);
-  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen;
+  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen || worldMap.isOpen;
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -154,6 +159,7 @@ async function main(): Promise<void> {
   };
   machine.onClose = closed;
   research.onClose = closed;
+  worldMap.onClose = closed;
   input.onLockChange = (locked) => {
     menu.classList.toggle('hidden', locked || panelOpen());
     resumeHint.classList.add('hidden');
@@ -175,7 +181,9 @@ async function main(): Promise<void> {
   });
 
   // Handy for poking at the engine from the devtools console.
-  const handles = { game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, session, coop };
+  const handles = {
+    game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, worldMap, pins, session, coop,
+  };
   Object.assign(window, { opencraft: handles });
 
   // ---- frame loop
@@ -235,6 +243,9 @@ async function main(): Promise<void> {
       } else if (a.kind === 'research') {
         document.exitPointerLock();
         research.open();
+      } else if (a.kind === 'world-map') {
+        document.exitPointerLock();
+        worldMap.open();
       }
     }
     game.update(dt);
@@ -313,6 +324,7 @@ async function main(): Promise<void> {
     hints.update();
     prospect.update();
     minimap.update(now);
+    worldMap.update(now);
     playerList.update(coop, input.held('Tab'), now);
     coopPanel.update(now);
     requestAnimationFrame(frame);
