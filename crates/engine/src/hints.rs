@@ -58,6 +58,11 @@ pub const HINTS: &[Hint] = &[
                pipe it to an outlet facing where the water should go. Nothing lowers the sea.",
         done: |_, f| f.count(Kind::Pipe) > 0,
     },
+    Hint {
+        text: "Dig for real: a quarry digs the ground in front of it into a pit and fills a belt or box with the \
+               stone and dirt. Hold one to see its box (R turns it); right-click it to choose size and depth.",
+        done: |_, f| f.count(Kind::Quarry) > 0,
+    },
 ];
 
 /// How far the player got: the index after the last hint that is done (0 when none is).

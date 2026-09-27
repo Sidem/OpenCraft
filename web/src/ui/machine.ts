@@ -1,13 +1,15 @@
-// Machine panel: opens when the player right-clicks a smelter, constructor or filter (the engine asks
-// with `take_panel_request`). Shows what the machine is doing, its buffers, the recipe choice for
+// Machine panel: opens when the player right-clicks a smelter, constructor, filter or quarry (the engine
+// asks with `take_panel_request`). Shows what the machine is doing, its buffers, the recipe choice for
 // machines where the player picks it, a filter's item choice, buttons to put items in from the
-// inventory, and a take-output button. Sections a machine doesn't use are hidden.
+// inventory, a take-output button, and a quarry's choices (ui/quarry.ts; `quarryBox` for its outline).
+// Sections a machine doesn't use are hidden.
 // Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions.
 // A new machine with a panel needs no change here unless it adds a buffer role (`ROLE_LABELS`).
 
 import './machine.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
+import { QuarrySection } from './quarry';
 
 const ICON_PX = 64;
 
@@ -35,6 +37,7 @@ export class MachinePanel {
   private readonly filterSection = h('section', 'mp-filter');
   private readonly filterList = h('div', 'mp-inserts');
   private readonly take: HTMLButtonElement;
+  private readonly quarry: QuarrySection;
   private readonly roleLabels: Map<number, string>;
   private recipes: RecipeButton[] = [];
   private pos: [number, number, number] = [0, 0, 0];
@@ -68,8 +71,9 @@ export class MachinePanel {
 
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
+    this.quarry = new QuarrySection(game);
     const body = h('div', 'mp-body');
-    body.append(state, this.filterSection, this.recipeHead, this.recipeList, this.put);
+    body.append(state, this.quarry.el, this.filterSection, this.recipeHead, this.recipeList, this.put);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -107,6 +111,11 @@ export class MachinePanel {
     this.dialog.focus();
   }
 
+  /** The open quarry's box, as lowest and highest cells, or null when no quarry panel is open. */
+  quarryBox(): Int32Array | null {
+    return this.isOpen && this.quarry.visible ? this.game.quarry_box(...this.pos) : null;
+  }
+
   close(resume: boolean): void {
     if (!this.isOpen) return;
     this.backdrop.classList.add('hidden');
@@ -124,6 +133,7 @@ export class MachinePanel {
     }
     const [, recipe, progress, fire, choosable, count] = data;
     this.bar.style.transform = `scaleX(${progress / 1000})`;
+    const quarry = this.quarry.update(this.pos);
     // Everything else changes rarely: redraw it only when the rest of the data or the inventory does.
     data[2] = 0;
     const key = `${data.join(',')}|${g.inventory_version()}`;
@@ -147,7 +157,7 @@ export class MachinePanel {
     const filter = g.machine_filter(...this.pos);
     const filtering = filter !== 0xffffffff;
     this.filterSection.classList.toggle('hidden', !filtering);
-    this.put.classList.toggle('hidden', filtering);
+    this.put.classList.toggle('hidden', filtering || quarry);
     this.progress.classList.toggle('hidden', filtering);
     if (filtering) this.drawFilter(filter, held);
     this.recipeHead.classList.toggle('hidden', this.recipes.length === 0);
@@ -157,7 +167,7 @@ export class MachinePanel {
       r.el.disabled = !choosable;
     }
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from the ore it gets)';
-    if (!filtering) this.drawInserts();
+    if (!filtering && !quarry) this.drawInserts();
   }
 
   /** The filter's choice: nothing, or any item in the inventory, the current choice or the held item. */

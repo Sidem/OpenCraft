@@ -129,10 +129,12 @@ export class Hud {
 
     const line = g.line_label();
     if (line !== '') {
-      // Dragging out a belt line: the plan replaces the target readout.
+      // Dragging out a belt line or placing a quarry: its plan (a title line, then the rest) replaces
+      // the target readout.
+      const cut = line.indexOf('\n');
       this.target.classList.remove('hidden', 'mining');
-      this.targetName.textContent = 'Belt line';
-      this.targetDetail.textContent = line;
+      this.targetName.textContent = line.slice(0, cut);
+      this.targetDetail.textContent = line.slice(cut + 1);
       this.targetDetail.classList.remove('hidden');
       this.detailKey = '';
     } else if (g.has_target()) {

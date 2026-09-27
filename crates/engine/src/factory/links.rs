@@ -47,6 +47,7 @@ pub(crate) enum Slot {
     Pole(u32),
     Lab(u32),
     Pipe(u32),
+    Quarry(u32),
 }
 
 impl Slot {
@@ -59,7 +60,7 @@ impl Slot {
             | Slot::Router(_)
             | Slot::Generator(_)
             | Slot::Lab(_) => true,
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) => false,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
         }
     }
 
@@ -75,6 +76,7 @@ impl Slot {
             Slot::Pole(_) => Kind::Pole,
             Slot::Lab(_) => Kind::Lab,
             Slot::Pipe(_) => Kind::Pipe,
+            Slot::Quarry(_) => Kind::Quarry,
         }
     }
 }
@@ -99,7 +101,7 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
             Slot::Lab(i) => self.labs[i as usize].room_for(item) > 0,
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) => false,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
         }
     }
 
@@ -112,7 +114,7 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].accept(item),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) => false,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
         }
     }
 }
@@ -233,22 +235,19 @@ impl Factory {
             o.filter(|&j| belts[j as usize].dir == s && belts[j as usize].shape.fed_from_back())
         };
         let feeds = |pos: IVec3| -> Vec<u32> { (0..4u8).filter_map(|s| lead_away(pos, s)).collect() };
-        let miner_outs: Vec<Vec<Link>> = self
-            .miners
-            .iter()
-            .map(|m| {
-                let mut v: Vec<Link> = feeds(m.pos).into_iter().map(|belt| Link::Belt { belt, mid: false }).collect();
-                for (f, &n) in FACES.iter().enumerate() {
-                    if f as u8 == m.drill {
-                        continue;
-                    }
-                    if let Some(&s) = at.get(&(m.pos + n)).filter(|s| s.is_sink()) {
-                        v.push(Link::Machine(s));
-                    }
+        // Miners and quarries: belts leading away, then machines on every face but `skip` (a miner's drill).
+        let extractor_outs = |pos: IVec3, skip: usize| -> Vec<Link> {
+            let mut v: Vec<Link> = feeds(pos).into_iter().map(|belt| Link::Belt { belt, mid: false }).collect();
+            for (f, &n) in FACES.iter().enumerate() {
+                if let Some(&s) = at.get(&(pos + n)).filter(|s| f != skip && s.is_sink()) {
+                    v.push(Link::Machine(s));
                 }
-                v
-            })
-            .collect();
+            }
+            v
+        };
+        let miner_outs: Vec<Vec<Link>> = self.miners.iter().map(|m| extractor_outs(m.pos, m.drill as usize)).collect();
+        // A quarry's box starts a cell away, so it delivers on every side.
+        let quarry_outs: Vec<Vec<Link>> = self.quarries.iter().map(|q| extractor_outs(q.pos, FACES.len())).collect();
         let storage_outs: Vec<Vec<u32>> = self.storages.iter().map(|s| feeds(s.pos)).collect();
         let smelter_outs: Vec<Vec<u32>> = self.smelters.iter().map(|s| feeds(s.pos)).collect();
         let constructor_outs: Vec<Vec<u32>> = self.constructors.iter().map(|c| feeds(c.pos)).collect();
@@ -263,6 +262,10 @@ impl Factory {
         for (m, o) in self.miners.iter_mut().zip(miner_outs) {
             m.outs = o;
             m.next_out %= m.outs.len().max(1);
+        }
+        for (q, o) in self.quarries.iter_mut().zip(quarry_outs) {
+            q.outs = o;
+            q.next_out %= q.outs.len().max(1);
         }
         for (s, o) in self.storages.iter_mut().zip(storage_outs) {
             s.outs = o;
@@ -281,7 +284,8 @@ impl Factory {
         }
 
         let (poles, gens, miners, labs) = (&self.poles, &self.generators, &self.miners, &self.labs);
-        self.power = Power::rebuild(poles, gens, miners, &self.constructors, &self.routers, labs, &self.pipework);
+        let (constructors, routers, pipework) = (&self.constructors, &self.routers, &self.pipework);
+        self.power = Power::rebuild(poles, gens, miners, constructors, routers, labs, pipework, &self.quarries);
         self.link_pipework();
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt

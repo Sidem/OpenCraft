@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.8** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.9** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (220 engine tests).
+   (225 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -463,7 +463,7 @@ need a version 4.
   holds. Browser (seed 2024): a pond of 167 sources drained in about 90 s to one block in a separate
   hole; screenshots taken. Found there: an outlet within 7 blocks of the pond it drains feeds it back
   (flows join them), which is right but worth a tip later. Wasm +5.8 KB gzipped (174.8 KB).
-- [ ] **5.8 Quarry.** A powered machine (10 kW, no research) that digs rock and soil for real, leaving a
+- [x] **5.8 Quarry.** A powered machine (10 kW, no research) that digs rock and soil for real, leaving a
   pit. It is the first version of Milestone 6's excavator. Keep it obvious, visible and satisfying.
   - **The dig box:** a square in front of its face (5, 7 by default, 9 or 11 wide), from the quarry's own
     level down to a depth chosen in its panel ("8 layers", "16", "to sea level", "to bedrock").
@@ -498,6 +498,21 @@ need a version 4.
       - Two cores agree on the hash, and a save mid-dig reloads and continues.
     - Screenshots show the placement preview and a half-dug pit with the gantry.
     - The README and a tip are updated.
+
+  Done 2026-09-27. `factory/quarry.rs` (the machine), `quarry/dig_box.rs` (box order, the choices,
+  `QUARRIABLE`, `survey`), `quarry/model.rs` (gantry, trolley, spinning drill, lamp; blue lamp texture
+  added), `quarry_preview.rs` (holding one: box, label, R turns it). Decisions made in passing: the box
+  is the quarry's own layer plus N below; "to sea level" stops at `SEA_LEVEL + 1`; spent rock (part of
+  a deposit) stays like ore; the panel notes each uncovered deposit once ("Iron vein exposed at y 41").
+  `line_label` is now "title\ndetails" so the quarry's HUD label reuses the belt-line one.
+  `Action::SetQuarry` (codec tag 20), save version 15, golden hash re-recorded (only the new list).
+  Recipe: 12 iron plates, 8 rods, 16 screws, 8 copper wire; tip 9 of 9. Tests in
+  `factory/quarry/tests.rs` (5): the box order, a 5 × 5 × 8 pit dug in order onto a belt (25 dirt, 175
+  stone; a save mid-dig carries on with the same hash), skipping ore, bedrock and non-ground, waiting
+  while paused, full or unpowered, and a pit breaking into a pond that floods until a pump drains it.
+  Browser (seed 2024): preview "7×7, 16 deep · about 820 blocks: stone, dirt"; 202 blocks in 100 s;
+  resizing restarts from the new box's top; screenshots taken. Wasm +10.8 KB gzipped (level 9: 179.7 →
+  190.5 KB; mostly the model, the panel readouts and `update`).
 - [ ] **5.9 Milestone 5 cleanup.** Section 3.1 checklist, README (water, swimming, pumps, the quarry,
   the rarer ore), measured numbers updated here and in the change log, `docs/CODEMAP.md` current. Then
   ask the user the Milestone 6 questions (section 6) and move Milestone 6 in from the roadmap.
@@ -580,3 +595,5 @@ and the balance numbers. Read the section you need.
   save version 13, golden hash re-recorded. Tests 209 → 217; wasm 169.0 KB gzipped. Deployed (`ceb9bec`).
 - **2026-09-27:** 5.7 done: pumps, pipes and outlets (one machine kind), Fluid Handling, save version 14.
   Tests 217 → 220; wasm 174.8 KB gzipped.
+- **2026-09-27:** 5.8 done: the quarry (placing preview, gantry model, panel), save version 15.
+  Tests 220 → 225; wasm +10.8 KB gzipped.

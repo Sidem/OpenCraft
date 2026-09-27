@@ -9,7 +9,7 @@
 //!   until supply covers demand. A grid short of power runs its machines at `speed` = supply / demand.
 //!   Generators burn only while their grid needs power.
 //!
-//! Consumers: the Miner Mk2, constructor, splitter, filter, lab and pump. The Mk1 miner and smelter are the unpowered burner
+//! Consumers: the Miner Mk2, constructor, splitter, filter, lab, pump and quarry. The Mk1 miner and smelter are the unpowered burner
 //! tier. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
 //! `balance`, and a speed argument to its `step`.
 
@@ -25,6 +25,7 @@ use super::generator::Generator;
 use super::lab::Lab;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
+use super::quarry::Quarry;
 use super::render::push_box;
 use super::router::Router;
 use super::{ticks, Factory, Machine};
@@ -41,6 +42,8 @@ pub const ROUTER_POWER: u32 = 1;
 pub const LAB_POWER: u32 = 10;
 /// What a pump draws while it has room for water, in kW.
 pub const PUMP_POWER: u32 = 5;
+/// What a digging quarry draws, in kW.
+pub const QUARRY_POWER: u32 = 10;
 /// Poles closer than this (between cell centres, in blocks) are wired together.
 pub const WIRE_RANGE: i32 = 10;
 /// Machines this close to a pole (between cell centres) join its grid.
@@ -68,6 +71,7 @@ pub(crate) struct Power {
     pub lab_pole: Vec<Option<u32>>,
     /// Per piece of pipework: the pole of each pump (other pieces: `None`).
     pub pipe_pole: Vec<Option<u32>>,
+    pub quarry_pole: Vec<Option<u32>>,
     /// Per grid, last tick: kW supplied and kW wanted.
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
@@ -75,6 +79,7 @@ pub(crate) struct Power {
 
 impl Power {
     /// Recomputes grids and hookups from the machines' positions.
+    #[allow(clippy::too_many_arguments)]
     pub fn rebuild(
         poles: &[Pole],
         gens: &[Generator],
@@ -83,6 +88,7 @@ impl Power {
         routers: &[Router],
         labs: &[Lab],
         pipework: &[Pipework],
+        quarries: &[Quarry],
     ) -> Power {
         let n = poles.len();
         let mut parent: Vec<u32> = (0..n as u32).collect();
@@ -118,6 +124,7 @@ impl Power {
             router_pole: routers.iter().map(|r| hang(r.pos)).collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
             pipe_pole: pipework.iter().map(|p| if p.part == Part::Pump { hang(p.pos) } else { None }).collect(),
+            quarry_pole: quarries.iter().map(|q| hang(q.pos)).collect(),
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],
         }
@@ -133,6 +140,7 @@ impl Power {
         routers: &[Router],
         labs: &[Lab],
         pipework: &[Pipework],
+        quarries: &[Quarry],
         research: &Research,
     ) {
         self.supply.iter_mut().for_each(|s| *s = 0);
@@ -160,6 +168,11 @@ impl Power {
         for (m, p) in pipework.iter().zip(&self.pipe_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
                 self.demand[self.pole_grid[p as usize] as usize] += PUMP_POWER;
+            }
+        }
+        for (q, p) in quarries.iter().zip(&self.quarry_pole) {
+            if let Some(&p) = p.as_ref().filter(|_| q.wants_power()) {
+                self.demand[self.pole_grid[p as usize] as usize] += QUARRY_POWER;
             }
         }
         for (g, p) in gens.iter_mut().zip(&self.gen_pole) {
@@ -231,7 +244,7 @@ impl Machine for Pole {
         let poles = f.power.pole_grid.iter().filter(|&&g| Some(g) == grid).count();
         let gens = f.power.gen_pole.iter().filter(|p| on(p)).count();
         let machines = f.power.miner_pole.iter().chain(&f.power.constructor_pole).chain(&f.power.router_pole);
-        let machines = machines.chain(&f.power.lab_pole).chain(&f.power.pipe_pole);
+        let machines = machines.chain(&f.power.lab_pole).chain(&f.power.pipe_pole).chain(&f.power.quarry_pole);
         let machines = machines.filter(|p| on(p)).count();
         format!(
             "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\nLinks to poles within \
@@ -274,6 +287,7 @@ impl Factory {
             (&self.power.router_pole, self.routers.iter().map(|r| r.pos).collect()),
             (&self.power.lab_pole, self.labs.iter().map(|l| l.pos).collect()),
             (&self.power.pipe_pole, self.pipework.iter().map(|p| p.pos).collect()),
+            (&self.power.quarry_pole, self.quarries.iter().map(|q| q.pos).collect()),
         ];
         for (poles, positions) in hookups {
             for (p, pos) in poles.iter().zip(positions) {

@@ -1,6 +1,6 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
 //! a smelter, constructor, filter, generator or lab), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
-//! `rotate` (belts and routers, the R key), `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
+//! `rotate` (belts and routers, the R key), `set_quarry`, `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
 //!
@@ -13,6 +13,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 
 use super::links::Slot;
+use super::quarry::{Quarry, DEPTHS, WIDTHS};
 use super::Factory;
 
 /// Buffer roles in `Panel::slots`.
@@ -51,6 +52,7 @@ impl Factory {
                 Some(g.panel(g.status_text(self)))
             }
             Slot::Lab(i) => Some(self.labs[i as usize].panel(&self.research)),
+            Slot::Quarry(i) => Some(self.quarries[i as usize].panel(self)),
             Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) | Slot::Pipe(_) => None,
         }
     }
@@ -89,6 +91,23 @@ impl Factory {
             let r = &mut self.routers[i as usize];
             if r.is_filter && (item == ItemId::NONE || item.is_valid()) {
                 r.filter = item;
+            }
+        }
+    }
+
+    /// The quarry at `pos`, if there is one (its panel's box and choices).
+    pub fn quarry(&self, pos: IVec3) -> Option<&Quarry> {
+        match self.at.get(&pos) {
+            Some(Slot::Quarry(i)) => Some(&self.quarries[*i as usize]),
+            _ => None,
+        }
+    }
+
+    /// Sets the quarry at `pos`'s box (`WIDTHS` and `DEPTHS` indices; a new box starts over) and pause.
+    pub fn set_quarry(&mut self, pos: IVec3, width: u8, depth: u8, paused: bool) {
+        if let Some(&Slot::Quarry(i)) = self.at.get(&pos) {
+            if (width as usize) < WIDTHS.len() && (depth as usize) < DEPTHS.len() {
+                self.quarries[i as usize].set(width, depth, paused);
             }
         }
     }
@@ -146,6 +165,7 @@ impl Factory {
             Some(Slot::Storage(i)) => &mut self.storages[*i as usize].buf,
             Some(Slot::Smelter(i)) => &mut self.smelters[*i as usize].out,
             Some(Slot::Constructor(i)) => &mut self.constructors[*i as usize].out,
+            Some(Slot::Quarry(i)) => &mut self.quarries[*i as usize].out,
             Some(
                 Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) | Slot::Pipe(_),
             )

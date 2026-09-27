@@ -25,15 +25,25 @@ impl Game {
         self.planned_cells()
     }
 
-    /// What the HUD says while a belt line is dragged out ("" otherwise).
+    /// The box a held quarry would dig, as `[x0, y0, z0, x1, y1, z1]` (lowest and highest cells; empty
+    /// when not placing one).
+    pub fn placement_box(&self) -> Vec<i32> {
+        self.quarry_preview().map_or_else(Vec::new, |d| {
+            let (lo, hi) = d.bounds();
+            vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z]
+        })
+    }
+
+    /// What the HUD says while a belt line is dragged out or a quarry is about to be placed: a title
+    /// line, then the details ("" otherwise).
     pub fn line_label(&self) -> String {
         let n = self.line.cells.len();
         if n == 0 {
-            return String::new();
+            return self.quarry_label();
         }
         let have = self.inventory().selected_stack().count as usize;
         let sloped = self.line.cells.iter().filter(|c| c.shape != factory::Shape::Flat).count();
-        let mut s = format!("{n} belt{}", if n == 1 { "" } else { "s" });
+        let mut s = format!("Belt line\n{n} belt{}", if n == 1 { "" } else { "s" });
         if sloped > 0 {
             s += &format!(", {sloped} on slopes");
         }

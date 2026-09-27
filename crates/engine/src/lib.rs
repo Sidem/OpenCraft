@@ -47,6 +47,7 @@ mod noise;
 mod physics;
 mod player;
 mod prospect;
+mod quarry_preview;
 mod raycast;
 mod recipes;
 mod research;
@@ -143,6 +144,8 @@ pub struct Game {
     prospect: Prospect,
     /// A belt line being dragged out or built (belt_line.rs).
     line: BeltLine,
+    /// Quarter turns R added to a held quarry's facing (quarry_preview.rs).
+    quarry_turn: u8,
 }
 
 #[wasm_bindgen]
@@ -192,6 +195,7 @@ impl Game {
             surveyed: None,
             prospect: Prospect::default(),
             line: BeltLine::default(),
+            quarry_turn: 0,
         }
     }
 }

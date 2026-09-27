@@ -26,9 +26,14 @@ impl Game {
         body.pitch = (body.pitch - d_pitch).clamp(-1.55, 1.55);
     }
 
-    /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick. False
-    /// when the target doesn't turn.
+    /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick, or the
+    /// box of a quarry in hand at once. False when nothing turns.
     pub fn rotate_target(&mut self) -> bool {
+        if self.holds_quarry() {
+            self.turn_quarry();
+            self.play(sound::PLACE, block::sound::METAL, self.body().eye(), 0.4);
+            return true;
+        }
         let Some(hit) = self.target else { return false };
         if !factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router)) {
             return false;

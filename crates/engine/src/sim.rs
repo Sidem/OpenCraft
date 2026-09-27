@@ -85,6 +85,11 @@ pub enum SimEvent {
     TreeGrew {
         pos: IVec3,
     },
+    /// A quarry dug the `block` at `pos` (its drop went into the quarry).
+    QuarryDug {
+        pos: IVec3,
+        block: BlockId,
+    },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
     Thrown {
         player: PlayerId,

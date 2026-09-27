@@ -205,6 +205,15 @@ pub const RECIPES: &[Recipe] = &[
                 more ore. Needs power.",
     },
     Recipe {
+        output: b(QUARRY),
+        group: Group::Production,
+        count: 1,
+        inputs: &[(IRON_PLATE, 12), (IRON_ROD, 8), (SCREW, 16), (COPPER_WIRE, 8)],
+        blurb: "Digs the ground in front of it for real, about 2 blocks a second, into a belt or box beside it. \
+                Leaves ore standing for miners. Hold it to see its box, R turns it; right-click it to choose the \
+                size and depth. Needs 10 kW.",
+    },
+    Recipe {
         output: b(FAST_BELT),
         group: Group::Logistics,
         count: 2,

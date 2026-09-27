@@ -13,7 +13,7 @@ use crate::bytes::{ByteReader, ByteWriter};
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 20;
+pub const TAG_COUNT: u8 = 21;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -108,6 +108,13 @@ impl Action {
                 w.u8(19);
                 w.ivec3(pos);
             }
+            Action::SetQuarry { pos, width, depth, paused } => {
+                w.u8(20);
+                w.ivec3(pos);
+                w.u8(width);
+                w.u8(depth);
+                w.bool(paused);
+            }
         }
     }
 
@@ -133,6 +140,7 @@ impl Action {
             17 => Action::Join { key: r.u64()? },
             18 => Action::Leave { pos: r.vec3()? },
             19 => Action::Rotate { pos: r.ivec3()? },
+            20 => Action::SetQuarry { pos: r.ivec3()?, width: r.u8()?, depth: r.u8()?, paused: r.bool()? },
             _ => return None,
         })
     }

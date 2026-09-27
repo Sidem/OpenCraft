@@ -51,6 +51,14 @@ pub enum Action {
         pos: IVec3,
         item: ItemId,
     },
+    /// Sets the quarry at `pos`'s box (`factory::WIDTHS` and `DEPTHS` indices; a new box starts over)
+    /// and whether it is paused.
+    SetQuarry {
+        pos: IVec3,
+        width: u8,
+        depth: u8,
+        paused: bool,
+    },
     /// Chooses what every lab in the world researches (`u8::MAX` to stop); only an available tech.
     SetResearch {
         tech: u8,
@@ -167,6 +175,7 @@ impl Sim {
                 }
             }
             Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
+            Action::SetQuarry { pos, width, depth, paused } => self.factory.set_quarry(pos, width, depth, paused),
             Action::Rotate { pos } => {
                 self.factory.rotate(pos);
             }

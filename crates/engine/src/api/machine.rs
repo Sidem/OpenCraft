@@ -1,10 +1,11 @@
-//! Machine panels (`web/src/ui/machine.ts`) and box screens (`ui/inventory.ts`): which panel to open,
-//! what it shows (`factory/panel.rs`), the machine recipe table, and the buttons and slot clicks, which
-//! queue actions for the local player.
+//! Machine panels (`web/src/ui/machine.ts`, the quarry's part in `ui/quarry.ts`) and box screens
+//! (`ui/inventory.ts`): which panel to open, what it shows (`factory/panel.rs`), the machine recipe
+//! table, and the buttons and slot clicks, which queue actions for the local player.
 
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
+use crate::factory;
 use crate::item::ItemId;
 use crate::math::IVec3;
 use crate::recipes::MACHINE_RECIPES;
@@ -109,6 +110,48 @@ impl Game {
     /// Box-screen shift-click on inventory slot `slot`: moves its stack into the box.
     pub fn store_slot(&mut self, x: i32, y: i32, z: i32, slot: u8) {
         self.act(Action::StoreSlot { pos: IVec3::new(x, y, z), slot });
+    }
+
+    /// The quarry panel's figures: `[width choice, depth choice, 1 if paused, layer, layers, blocks dug,
+    /// blocks left (in loaded ground)]`; empty if there is no quarry there. Choices index
+    /// `quarry_widths` and `quarry_depth_label`.
+    pub fn quarry_panel(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        let Some(q) = self.sim.factory.quarry(IVec3::new(x, y, z)) else { return Vec::new() };
+        let (left, _) = factory::survey(&q.dig_box(), q.next, &self.sim.world);
+        let (layer, layers) = q.layer();
+        vec![q.width as u32, q.depth as u32, q.paused as u32, layer, layers, q.dug, left]
+    }
+
+    /// What the quarry uncovered, a line per deposit.
+    pub fn quarry_found(&self, x: i32, y: i32, z: i32) -> String {
+        self.sim.factory.quarry(IVec3::new(x, y, z)).map_or_else(String::new, |q| q.found_lines().join("\n"))
+    }
+
+    /// The quarry's box as `[x0, y0, z0, x1, y1, z1]` (lowest and highest cells); empty if none there.
+    pub fn quarry_box(&self, x: i32, y: i32, z: i32) -> Vec<i32> {
+        self.sim.factory.quarry(IVec3::new(x, y, z)).map_or_else(Vec::new, |q| {
+            let (lo, hi) = q.dig_box().bounds();
+            vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z]
+        })
+    }
+
+    /// The box widths a quarry offers, in choice order.
+    pub fn quarry_widths(&self) -> Vec<u32> {
+        factory::WIDTHS.iter().map(|&w| w as u32).collect()
+    }
+
+    pub fn quarry_depth_count(&self) -> u32 {
+        factory::DEPTHS.len() as u32
+    }
+
+    /// A depth choice as the panel shows it ("16 deep", "to bedrock").
+    pub fn quarry_depth_label(&self, i: u32) -> String {
+        factory::DEPTHS.get(i as usize).map_or_else(String::new, |d| d.label())
+    }
+
+    /// Sets the quarry's box and pause (next tick; a new box starts over from its top).
+    pub fn set_quarry(&mut self, x: i32, y: i32, z: i32, width: u8, depth: u8, paused: bool) {
+        self.act(Action::SetQuarry { pos: IVec3::new(x, y, z), width, depth, paused });
     }
 
     /// Takes the machine's output into the inventory (next tick).

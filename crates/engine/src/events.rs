@@ -43,6 +43,12 @@ impl Game {
                         self.play(sound::BREAK, block::sound::LEAVES, at, 0.2);
                     }
                 }
+                SimEvent::QuarryDug { pos, block } => {
+                    let at = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
+                    if (at - self.body().eye()).length() < MINER_SOUND_RANGE {
+                        self.play(sound::BREAK, block::def(block).sound, at, 0.7);
+                    }
+                }
                 SimEvent::TreeGrew { pos } => {
                     let at = pos.as_vec3() + Vec3::new(0.5, 1.5, 0.5);
                     if (at - self.body().eye()).length() < LEAF_SOUND_RANGE {

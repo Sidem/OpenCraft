@@ -75,7 +75,9 @@ pub const FLOW_7: BlockId = 52;
 pub const PUMP: BlockId = 53;
 pub const PIPE: BlockId = 54;
 pub const OUTLET: BlockId = 55;
-pub const BLOCK_COUNT: usize = 56;
+/// Digs the ground in a box in front of it, leaving a pit (`factory/quarry.rs`).
+pub const QUARRY: BlockId = 56;
+pub const BLOCK_COUNT: usize = 57;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -259,6 +261,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Pump", true, 0.8, pillar(tex::GENERATOR_SIDE, tex::STEEL, tex::FRAME), PUMP),
     machine("Pipe", true, 0.3, all(tex::STEEL), PIPE),
     machine("Outlet", true, 0.5, pillar(tex::STEEL, tex::FRAME, tex::FRAME), OUTLET),
+    machine("Quarry", true, 1.0, pillar(tex::MINER_MK2_SIDE, tex::STEEL, tex::FRAME), QUARRY),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

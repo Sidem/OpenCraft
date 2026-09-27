@@ -1,6 +1,6 @@
 //! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors,
 //! splitters, filters, power (generators, poles), research labs (with the world's `Research`) and
-//! pipework (pumps, pipes, outlets: `pipes.rs`, `pumping.rs`).
+//! pipework (pumps, pipes, outlets: `pipes.rs`, `pumping.rs`) and quarries (`quarry.rs`).
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
 //! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
@@ -32,6 +32,7 @@ mod panel;
 mod pipes;
 mod power;
 mod pumping;
+mod quarry;
 mod render;
 mod router;
 mod smelter;
@@ -42,7 +43,7 @@ use rustc_hash::FxHashMap;
 
 use crate::block::{
     BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE,
-    POLE, PUMP, RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
+    POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
@@ -63,6 +64,7 @@ use links::{Sinks, Slot};
 use miner::Miner;
 use pipes::Pipework;
 use power::{Pole, Power};
+use quarry::Quarry;
 use router::Router;
 use smelter::Smelter;
 use storage::Storage;
@@ -76,6 +78,7 @@ pub use describe::fmt_int;
 pub use miner::MinerStatus;
 pub use miner::{MINER_RECOVERY, MK2_RECOVERY};
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
+pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{push_box, INSTANCE_FLOATS};
 #[cfg(test)]
 pub use smelter::SmelterStatus;
@@ -114,6 +117,7 @@ pub enum Kind {
     Pole,
     Lab,
     Pipe,
+    Quarry,
 }
 
 pub struct MachineDef {
@@ -129,7 +133,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 20] = [
+pub const MACHINES: [MachineDef; 21] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -140,6 +144,7 @@ pub const MACHINES: [MachineDef; 20] = [
     MachineDef { block: POLE, kind: Kind::Pole, slots: 0, panel: false },
     MachineDef { block: LAB, kind: Kind::Lab, slots: PACKS.len(), panel: true },
     MachineDef { block: PIPE, kind: Kind::Pipe, slots: 0, panel: false },
+    MachineDef { block: QUARRY, kind: Kind::Quarry, slots: 4, panel: true },
     MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
     MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
@@ -190,6 +195,7 @@ pub struct Factory {
     poles: Vec<Pole>,
     labs: Vec<Lab>,
     pipework: Vec<Pipework>,
+    quarries: Vec<Quarry>,
     /// Grids and last tick's supply and demand (derived, see `power.rs`).
     power: Power,
     at: FxHashMap<IVec3, Slot>,
@@ -218,6 +224,7 @@ impl Factory {
             Kind::Pole => self.poles.len(),
             Kind::Lab => self.labs.len(),
             Kind::Pipe => self.pipework.len(),
+            Kind::Quarry => self.quarries.len(),
         }
     }
 
@@ -226,6 +233,8 @@ impl Factory {
     /// miner drills if it is adjacent.
     pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3) {
         let Some(def) = machine(block) else { return };
+        self.remove(pos);
+        let at = &mut self.at;
         match def.kind {
             Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block), block == FAST_BELT),
             Kind::Miner => {
@@ -234,34 +243,14 @@ impl Factory {
                 self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit, block == MINER_MK2);
             }
             Kind::Storage => self.add_storage(pos),
-            Kind::Smelter => {
-                self.remove(pos);
-                add_to(&mut self.smelters, Smelter::new(pos), &mut self.at, Slot::Smelter);
-            }
-            Kind::Constructor => {
-                self.remove(pos);
-                add_to(&mut self.constructors, Constructor::new(pos), &mut self.at, Slot::Constructor);
-            }
-            Kind::Router => {
-                self.remove(pos);
-                add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), &mut self.at, Slot::Router);
-            }
-            Kind::Generator => {
-                self.remove(pos);
-                add_to(&mut self.generators, Generator::new(pos), &mut self.at, Slot::Generator);
-            }
-            Kind::Pole => {
-                self.remove(pos);
-                add_to(&mut self.poles, Pole { pos }, &mut self.at, Slot::Pole);
-            }
-            Kind::Lab => {
-                self.remove(pos);
-                add_to(&mut self.labs, Lab::new(pos), &mut self.at, Slot::Lab);
-            }
-            Kind::Pipe => {
-                self.remove(pos);
-                add_to(&mut self.pipework, Pipework::new(pos, block, facing), &mut self.at, Slot::Pipe);
-            }
+            Kind::Smelter => add_to(&mut self.smelters, Smelter::new(pos), at, Slot::Smelter),
+            Kind::Constructor => add_to(&mut self.constructors, Constructor::new(pos), at, Slot::Constructor),
+            Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
+            Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
+            Kind::Pole => add_to(&mut self.poles, Pole { pos }, at, Slot::Pole),
+            Kind::Lab => add_to(&mut self.labs, Lab::new(pos), at, Slot::Lab),
+            Kind::Pipe => add_to(&mut self.pipework, Pipework::new(pos, block, facing), at, Slot::Pipe),
+            Kind::Quarry => add_to(&mut self.quarries, Quarry::new(pos, facing), at, Slot::Quarry),
         }
         self.dirty = true;
     }
@@ -305,6 +294,7 @@ impl Factory {
             Slot::Pole(i) => swap_out(&mut self.poles, i, at, Slot::Pole),
             Slot::Lab(i) => swap_out(&mut self.labs, i, at, Slot::Lab),
             Slot::Pipe(i) => swap_out(&mut self.pipework, i, at, Slot::Pipe),
+            Slot::Quarry(i) => swap_out(&mut self.quarries, i, at, Slot::Quarry),
         }
     }
 
@@ -324,6 +314,7 @@ impl Factory {
             generators,
             labs,
             pipework,
+            quarries,
             power,
             deposits,
             research,
@@ -331,11 +322,15 @@ impl Factory {
             changed,
             ..
         } = self;
-        power.balance(generators, miners, constructors, routers, labs, pipework, research);
+        power.balance(generators, miners, constructors, routers, labs, pipework, quarries, research);
         let mut sinks = Sinks { storages, smelters, constructors, routers, generators, labs };
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
             m.speed = power.speed(p);
             m.step(deposits, world, tick, belts, &mut sinks, events);
+        }
+        for (q, &p) in quarries.iter_mut().zip(&power.quarry_pole) {
+            q.speed = power.speed(p);
+            q.step(world, belts, &mut sinks, changed, events);
         }
         for s in sinks.storages.iter_mut() {
             s.step(belts);

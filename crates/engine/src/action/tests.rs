@@ -267,6 +267,7 @@ fn samples() -> Vec<Action> {
         Action::Join { key: u64::MAX - 5 },
         Action::Leave { pos: Vec3::new(-0.5, 1e9, f64::MIN_POSITIVE) },
         Action::Rotate { pos: IVec3::new(-7, 255, 1 << 20) },
+        Action::SetQuarry { pos, width: 3, depth: 2, paused: true },
     ]
 }
 

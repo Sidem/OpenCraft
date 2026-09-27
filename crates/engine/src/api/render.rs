@@ -98,6 +98,12 @@ impl Game {
         self.render_eye.z
     }
 
+    /// Blocks quarries near the camera are digging, 4 numbers each: x, y, z and progress in thousandths
+    /// (the host draws the mining crack on them).
+    pub fn quarry_cracks(&self) -> Vec<i32> {
+        self.sim.factory.quarry_cracks(self.render_eye, 48.0)
+    }
+
     /// Whether the camera is below a water surface (drawn a tenth of a block below the top of its block),
     /// so the host draws the underwater fog.
     pub fn eye_in_water(&self) -> bool {

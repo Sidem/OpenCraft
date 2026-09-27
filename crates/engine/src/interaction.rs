@@ -162,7 +162,7 @@ impl Game {
         if block::SOLID[placed as usize] && cell.intersects(&body.aabb()) {
             return None;
         }
-        let facing = factory::dir_from_yaw(body.yaw);
+        let facing = if placed == block::QUARRY { self.quarry_facing() } else { factory::dir_from_yaw(body.yaw) };
         Some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block })
     }
 

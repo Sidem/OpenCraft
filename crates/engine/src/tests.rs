@@ -664,7 +664,7 @@ fn dragging_with_belts_lays_a_line_that_climbs_a_step() {
     }
     let planned = g.line.cells.len();
     assert!(planned >= 8, "the line reaches past the step: {:?}", g.line.cells);
-    assert!(g.line_label().starts_with(&format!("{planned} belts, 1 on slopes")), "{}", g.line_label());
+    assert!(g.line_label().starts_with(&format!("Belt line\n{planned} belts, 1 on slopes")), "{}", g.line_label());
     assert_eq!(g.line_cells().len(), planned * 4);
     g.set_using(false);
     for _ in 0..30 {

@@ -297,6 +297,8 @@ async function main(): Promise<void> {
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
       boxCount: game.instance_count(),
       lineCells: game.line_cells(),
+      quarryBoxes: machine.quarryBox() ?? game.placement_box(),
+      cracks: game.quarry_cracks(),
       underwater: game.eye_in_water(),
     });
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);

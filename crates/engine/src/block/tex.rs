@@ -103,7 +103,9 @@ pub const STEEL: u16 = 104;
 pub const LAMP: u16 = 105;
 /// Water (`block::WATER`).
 pub const WATER: u16 = 106;
-pub const COUNT: usize = 107;
+/// The quarry's status light while it waits for its pit to be pumped dry.
+pub const LAMP_BLUE: u16 = 107;
+pub const COUNT: usize = 108;
 
 /// How many alternates a layer with any has.
 pub const ALTERNATES: u16 = 3;

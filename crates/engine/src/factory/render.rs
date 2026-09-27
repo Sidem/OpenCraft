@@ -51,6 +51,7 @@ impl Factory {
         models(&self.poles, out, eye, time, range);
         models(&self.labs, out, eye, time, range);
         models(&self.pipework, out, eye, time, range);
+        models(&self.quarries, out, eye, time, range);
         self.write_wires(out, eye, range);
     }
 
@@ -68,6 +69,7 @@ impl Factory {
         self.constructors.iter().for_each(|m| each(Kind::Constructor, m.pos()));
         self.generators.iter().for_each(|m| each(Kind::Generator, m.pos()));
         self.labs.iter().for_each(|m| each(Kind::Lab, m.pos()));
+        self.quarries.iter().for_each(|m| each(Kind::Quarry, m.pos()));
     }
 }
 

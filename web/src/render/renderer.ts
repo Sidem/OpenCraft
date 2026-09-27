@@ -1,13 +1,13 @@
 // WebGL2 world renderer: the sky (sky.ts: day and night), chunk meshes (opaque then cutout pass,
 // frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), water (water.ts:
 // blended, last, and the underwater fog), and the target
-// outline plus mining-crack overlay, and a dragged belt line's outlines (outlines.ts).
+// outline; overlays from outlines.ts: mining cracks (the player's and quarries'), a dragged belt line, quarry boxes.
 // Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
 
 import { BoxPipeline } from './boxes';
 import { createProgram, uniforms } from './gl';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
-import { drawLineCells } from './outlines';
+import { drawBoxes, drawCracks, drawLineCells } from './outlines';
 import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
 import { fogFor, WaterPass } from './water';
@@ -41,6 +41,10 @@ export interface FrameInfo {
   boxCount: number;
   /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
   lineCells: Int32Array;
+  /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */
+  quarryBoxes: Int32Array;
+  /** Blocks quarries are digging: x, y, z and progress in thousandths each. */
+  cracks: Int32Array;
   underwater: boolean; // the engine's `eye_in_water`
 }
 
@@ -349,24 +353,18 @@ export class Renderer {
     drawCalls += waterCalls;
     quads += waterQuads;
 
+    const eye: [number, number, number] = [ex, ey, ez];
+    drawCalls += drawCracks(gl, this.crack, this.cubeVao, this.viewProj, f.cracks, eye);
     if (f.target) {
       const [tx, ty, tz] = f.target;
       const ox = tx - ex, oy = ty - ey, oz = tz - ez;
+      if (f.mineProgress > 0) {
+        const own = new Int32Array([tx, ty, tz, Math.round(f.mineProgress * 1000)]);
+        drawCalls += drawCracks(gl, this.crack, this.cubeVao, this.viewProj, own, eye);
+      }
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
       gl.depthMask(false);
-      if (f.mineProgress > 0) {
-        gl.enable(gl.POLYGON_OFFSET_FILL);
-        gl.polygonOffset(-1, -1);
-        gl.useProgram(this.crack.prog);
-        gl.uniformMatrix4fv(this.crack.u.u_viewProj, false, this.viewProj);
-        gl.uniform3f(this.crack.u.u_offset, ox, oy, oz);
-        gl.uniform1f(this.crack.u.u_progress, f.mineProgress);
-        gl.bindVertexArray(this.cubeVao);
-        gl.drawArrays(gl.TRIANGLES, 0, 36);
-        gl.disable(gl.POLYGON_OFFSET_FILL);
-        drawCalls++;
-      }
       gl.useProgram(this.line.prog);
       gl.uniformMatrix4fv(this.line.u.u_viewProj, false, this.viewProj);
       gl.uniform3f(this.line.u.u_offset, ox, oy, oz);
@@ -378,7 +376,8 @@ export class Renderer {
       gl.disable(gl.BLEND);
       drawCalls++;
     }
-    drawCalls += drawLineCells(gl, this.line, this.lineVao, this.viewProj, f.lineCells, [ex, ey, ez]);
+    drawCalls += drawLineCells(gl, this.line, this.lineVao, this.viewProj, f.lineCells, eye);
+    drawCalls += drawBoxes(gl, this.line, this.lineVao, this.viewProj, f.quarryBoxes, eye);
     gl.bindVertexArray(null);
 
     this.stats.meshes = this.meshes.size;

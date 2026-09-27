@@ -20,7 +20,7 @@ folder with `mod.rs`.
 | `daytime.rs` | Time of day from the core tick (`DAY_TICKS`: a 20-minute day, a new world starts at 7:00): `time_of_day`, `day_number`; no state of its own |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, the world's generator version), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` and `v9.ocworld` fixtures) |
-| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings, set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give, rotate (R) |
+| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings (recipe, filter, quarry), set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give, rotate (R) |
 | `action/codec.rs` | `Action::write` / `read` (a tag byte, then the fields; damaged bytes give `None`), `is_peer_input` |
 | `net/mod.rs` | Co-op lockstep: `Role` (`Solo`, `Host`, `Client`), `route` (where an action goes), host frames (`end_tick`, `host_stamp`, `take_frames`), client outbox and confirmed tick (`take_outbox`, `push_frames`, `catch_up`), `become_client`, checksums every `CHECKSUM_TICKS`, `INPUT_DELAY`. Tests wire a host and a client `Game` through bytes (joining mid-run, leaving and returning, a full world) |
 | `net/snapshot.rs` | Join snapshots: the save bytes plus the queued actions (`snapshot_bytes`, `read_snapshot`); `resync_from` (a client replaces its core in place, keeping its body and loaded chunks: `World::adopt_loaded`) |
@@ -31,19 +31,20 @@ folder with `mod.rs`.
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
 | `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop, `rotate_target`, `cancel_line` |
-| `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, `time_of_day` / `day_number`, box instances, name-tag anchors (`label_ptr`, `label_count`), sound events, textures |
+| `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, `time_of_day` / `day_number`, box instances, name-tag anchors (`label_ptr`, `label_count`), `quarry_cracks`, sound events, textures |
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, `close_inventory`, pickup notifications |
-| `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); box screens (`box_slots`, `click_box`, `store_slot`) |
+| `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); the quarry's part (`quarry_panel`, `quarry_found`, `quarry_box`, size and depth choices, `set_quarry`); box screens (`box_slots`, `click_box`, `store_slot`) |
 | `api/crafting.rs` | Recipe queries (`recipe_locked_by`, `craftable_times`, `recipe_group` and group names) and `craft` |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
 | `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery` |
-| `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters, belt line outlines and label (`line_cells`, `line_label`) |
+| `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters, belt line outlines and label (`line_cells`, `line_label`, which also describes a quarry about to be placed), `placement_box` |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/net.rs` | `start_host`, `start_client`, `from_snapshot`, `resync`, `is_client`, `host_join` / `host_leave`, `snapshot`, `host_stamp`, `take_frames`, `take_checksums`, `take_outbox`, `push_frames`, `local_player`, `take_states`, `host_state`, `push_states`, `take_item_view`, `push_items`, `core_tick`, `confirmed_tick` |
 | `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players`, `minimap_marks` / `minimap_mark_fields`, `known_deposits` / `set_known_deposits` |
 | `api/prospect.rs` | The latest prospecting reading (`prospect_seq`, `prospect_kind`, `prospect_records`, `prospect_fields`, `prospect_origin`), `held_device`, `scan_range`, `deposit_label` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
+| `quarry_preview.rs` | Placing a quarry: the box a held quarry would dig (`quarry_preview`), its HUD label, R turns it (`quarry_turn`, used by `right_click_action`) |
 | `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick |
 | `block/mod.rs` | Block ids, `DEFS` table, sound materials, lookup tables (`FACE_TEX`, `ALT_TEX` alternates), flowing water ids (`flow`, `flow_level`) |
 | `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
@@ -62,7 +63,7 @@ folder with `mod.rs`.
 | `worldgen/strata.rs` | Version 3 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ORE_DEPTH`), the starter set near spawn (`starter_outcrops`) |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
-| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `count(kind)`, the world's `research`, `place` / add / remove, `update` (one tick: miners, boxes, smelters, power balance, powered machines and labs, belts; emits `SimEvent`s) |
+| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `count(kind)`, the world's `research`, `place` / add / remove, `update` (one tick: miners, quarries, boxes, smelters, power balance, powered machines and labs, belts; emits `SimEvent`s) |
 | `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds), then the deposits and the research |
 | `factory/lab.rs` | Research lab: one buffer slot per science pack, `step_labs` (units for the current tech, never more than it has left, at its grid's speed); bytes, readout, panel, model |
 | `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators burn in order until supply meets it, speed per grid), wire drawing; power constants |
@@ -80,6 +81,9 @@ folder with `mod.rs`.
 | `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models; `map_machines` (positions for the minimap's marks) |
 | `factory/pipes.rs` | Pipework (one kind, `Kind::Pipe`: `Part` pump, pipe, outlet): networks and arms (`link_pipework`, from `relink`), bytes, readouts, models |
 | `factory/pumping.rs` | Moving water each tick (`step_pipework`): pumps lift the highest, farthest source in reach; outlets pour where the water lands; block edits go to `Factory.changed` for the water rules |
+| `factory/quarry.rs` | Quarry (`Kind::Quarry`): digs its box one block at a time (`step`: `seek` past air and non-ground, noting ore in `found`; waits when flooded, full, unpowered or paused), output buffer fed like a miner's, `set` (panel choices), bytes, readout, panel, `quarry_cracks` |
+| `factory/quarry/dig_box.rs` | `DigBox` (which cells, in what order), `WIDTHS` / `DEPTHS` choices, `QUARRIABLE`, `survey` (what is left, for the panel and the preview) |
+| `factory/quarry/model.rs` | The quarry's model: housing and lamp, corner posts, rails, a gantry that travels row to row, a spinning drill on the block being dug |
 | `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
 | `entities.rs` | Dropped items: ids, physics (floating up through water, drifting), magnet pickup by the nearest `Collector` with room, instances (`push_item_box`) |
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
@@ -129,7 +133,7 @@ folder with `mod.rs`.
 | `input.ts` | Keyboard/mouse, pointer lock, held state and one-shot `Action`s |
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
 | `render/water.ts` | The liquid range drawn last (blended, back to front, both sides) and the underwater fog (`fogFor`, from `eye_in_water`) |
-| `render/outlines.ts` | Outlines of a belt line being dragged out (`line_cells`), drawn with the renderer's line program |
+| `render/outlines.ts` | Overlays: mining cracks (the player's and quarries'), a dragged belt line's cells (`line_cells`), amber quarry boxes; the renderer's line and crack programs |
 | `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts); `INSTANCE_FLOATS` |
 | `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |
 | `render/shaders.ts` | GLSL sources; the light curve (sky light × daylight, warm block light, `CAVE_FLOOR`); periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`) |
@@ -138,7 +142,8 @@ folder with `mod.rs`.
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
 | `ui/inventory.ts` + `.css` | Inventory screen (E) with the build menu; opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
 | `ui/crafting.ts` + `.css` | Build menu: recipe tiles grouped by `recipe_group`, text search (output and material names), state filters (all, can craft, missing, locked), one hover info card; click crafts, Shift-click 5 |
-| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor, filter, generator or lab): status, progress, buffers, recipe choice, filter item, put-in and take buttons |
+| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor, filter, generator, lab or quarry): status, progress, buffers, recipe choice, filter item, put-in and take buttons; `quarryBox` for the open quarry's outline |
+| `ui/quarry.ts` | The quarry's part of the machine panel: size and depth choices, pause, layer and blocks dug and left, deposits uncovered |
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow` |
 | `ui/players.ts` + `.css` | In game: the player list while Tab is held, join and leave notices |
@@ -254,8 +259,9 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MK2_RATE`, `MK2_RECOVERY` |
 | `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
 | `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` |
-| `factory/power.rs` | `GENERATOR_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `factory/power.rs` | `GENERATOR_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
 | `factory/pumping.rs` | `PUMP_RATE`, `PUMP_HOLD`, `OUTLET_RATE`, `PUMP_RANGE` |
+| `factory/quarry.rs` | `DIG_SECONDS`, `SCAN_PER_TICK`; `quarry/dig_box.rs`: `WIDTHS`, `DEPTHS`, defaults, `QUARRIABLE` |
 | `sim/water.rs` | `WATER_DELAY`, `MAX_WATER_UPDATES`; `SEA_LEVEL` is in `worldgen/mod.rs` |
 | `sim/timers.rs` | `LEAF_HALF_LIFE`, `GRASS_GROW_HALF_LIFE`, `GRASS_DIE_HALF_LIFE`, `MAX_TIMERS`, leaf check radius and support steps |
 | `sim/saplings.rs` | `SAPLING_CHANCE`, `GROW_MIN`, `GROW_HALF_LIFE`, trunk heights |

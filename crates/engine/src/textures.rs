@@ -114,6 +114,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::LAMP_GREEN => lamp(x, y, [96.0, 214.0, 112.0]),
         tex::LAMP_YELLOW => lamp(x, y, [236.0, 190.0, 64.0]),
         tex::LAMP_RED => lamp(x, y, [226.0, 72.0, 60.0]),
+        tex::LAMP_BLUE => lamp(x, y, [74.0, 150.0, 236.0]),
         tex::IRON_INGOT => ingot(x, y, [176.0, 180.0, 188.0]),
         tex::COPPER_INGOT => ingot(x, y, [206.0, 118.0, 70.0]),
         tex::SMELTER_SIDE => smelter(x, y, true),
