@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
-TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.7 done; art salvaged and merged) · **Next up: step 4.8** · A graphics agent
+TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.9 done; art salvaged and merged) · **Next up: step 4.10** · A graphics agent
 works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -438,13 +438,13 @@ queries and presentation; they never create core state. Each step is one session
   the factory lists). TS draws small coloured marks over the image, clipped to the round frame; a
   prospected deposit that runs dry drops its mark. **Done when:** a screenshot with deposit and machine
   marks; marks survive a reload; building them costs under 0.05 ms per redraw.
-- [ ] **4.8 Day and night.** The time of day is derived from the tick (`(tick + start) % DAY_TICKS`, a
+- [x] **4.8 Day and night.** The time of day is derived from the tick (`(tick + start) % DAY_TICKS`, a
   20-minute day starting in the morning), so it is core state already, saved and identical in co-op, with
   no format change. The engine exposes `time_of_day()`; the renderer takes a sun direction, a sky and fog
   colour and a daylight level from it (dawn and dusk tints; night dark blue, never black: a moonlight
   floor). The pause menu shows the time. **Done when:** screenshots at noon, dusk and midnight; two
   players see the same time; the golden hash is unchanged; the shader change costs nothing measurable.
-- [ ] **4.9 Sky light.** Light becomes part of the render cache (derived from blocks, never core): when a
+- [x] **4.9 Sky light.** Light becomes part of the render cache (derived from blocks, never core): when a
   chunk meshes, sky light 0–15 fills columns from the top down to the first opaque block and floods
   sideways (−1 per step) through air and cutout blocks, reading a margin from the neighbour chunks the
   mesher already touches. Each vertex gets a smoothed sky light like its ambient occlusion (the packed
@@ -597,3 +597,10 @@ and the balance numbers. Read the section you need.
   in `ui/minimap.ts`; colours from the engine), 0.0014 ms to build. Deviations: only veins and lodes are
   remembered (outcrops show by themselves), at most 1024; no marks for belts, routers, poles; a co-op
   client's marks aren't kept. Tests 167 → 172; wasm 154.6 → 156.1 KB gzipped.
+- **2026-09-27:** The build menu became a compact recipe grid (`ui/crafting.ts`: search, filters, groups
+  from `recipes::Group`, a hover card) and half-height block icons were fixed (the user's request).
+  4.8 done: `daytime.rs`, `render/sky.ts` (sky pass, sun, moon, stars, `u_skyLight`). 4.9 done:
+  `light.rs` (a 64³ field per meshed chunk; leaves stop the sky column but pass flooded light), smoothed
+  light per vertex corner keyed into the greedy merge (u64 mask), a byte per vertex (+25 % mesh memory),
+  edits relight within 15 blocks and everything below. Meshing 0.357 → 0.488 ms per chunk
+  (`bench_meshing`). Tests 172 → 182; wasm 156.1 → 161.0 KB gzipped.

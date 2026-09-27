@@ -1,13 +1,16 @@
 use super::*;
 use crate::block::{LEAVES, STONE};
 
+/// Full sky light everywhere.
+static DAYLIGHT: [u8; PAD_VOLUME] = [15; PAD_VOLUME];
+
 fn mesh_single(setup: impl FnOnce(&mut Chunk)) -> MeshOutput {
     let air = Chunk::uniform(AIR);
     let mut c = Chunk::uniform(AIR);
     setup(&mut c);
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
-    Mesher::new().mesh(&refs)
+    Mesher::new().mesh(&refs, &DAYLIGHT)
 }
 
 fn decode(v: u32) -> (u32, u32, u32, u32, u32) {
@@ -19,7 +22,7 @@ fn single_block_has_six_unoccluded_faces() {
     let m = mesh_single(|c| c.set(5, 5, 5, STONE));
     assert_eq!(m.opaque_quads, 6);
     assert_eq!(m.cutout_quads, 0);
-    for &v in &m.verts {
+    for &v in &m.verts[..m.vertex_count()] {
         let (x, y, z, _, ao) = decode(v);
         assert!((5..=6).contains(&x) && (5..=6).contains(&y) && (5..=6).contains(&z));
         assert_eq!(ao, 3);
@@ -63,7 +66,7 @@ fn leaves_go_to_cutout_pass() {
     let m = mesh_single(|c| c.set(0, 0, 0, LEAVES));
     assert_eq!(m.opaque_quads, 0);
     assert_eq!(m.cutout_quads, 6);
-    assert_eq!(m.verts.len(), 24);
+    assert_eq!(m.vertex_count(), 24);
 }
 
 #[test]
@@ -102,7 +105,7 @@ fn machines_are_left_to_the_host_and_do_not_hide_faces() {
 fn uniform_solid_neighbourhood_is_empty() {
     let stone = Chunk::uniform(STONE);
     let refs = [&stone; 27];
-    let m = Mesher::new().mesh(&refs);
+    let m = Mesher::new().mesh(&refs, &DAYLIGHT);
     assert_eq!(m.verts.len(), 0);
 }
 
@@ -115,8 +118,33 @@ fn faces_on_chunk_border_respect_neighbours() {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     refs[neighbor_index(1, 0, 0)] = &stone;
-    let m = Mesher::new().mesh(&refs);
+    let m = Mesher::new().mesh(&refs, &DAYLIGHT);
     // +X face is hidden by the solid neighbour chunk.
-    assert!(m.verts.iter().all(|&v| decode(v).3 != 0));
+    assert!(m.verts[..m.vertex_count()].iter().all(|&v| decode(v).3 != 0));
     assert_eq!(m.opaque_quads, 5);
+}
+
+#[test]
+fn every_vertex_carries_its_light() {
+    let m = mesh_single(|c| c.set(5, 5, 5, STONE));
+    assert!((0..m.vertex_count()).all(|i| m.light(i) == 15));
+}
+
+#[test]
+fn a_change_in_light_stops_merging_and_is_smoothed() {
+    let air = Chunk::uniform(AIR);
+    let mut c = Chunk::uniform(AIR);
+    for z in 0..32 {
+        for x in 0..32 {
+            c.set(x, 0, z, STONE);
+        }
+    }
+    let mut refs = [&air; 27];
+    refs[neighbor_index(0, 0, 0)] = &c;
+    // Bright sky over the west half (padded x below 17), dim over the east half.
+    let light: Vec<u8> = (0..PAD_VOLUME).map(|i| if i % PAD < 17 { 15 } else { 5 }).collect();
+    let m = Mesher::new().mesh(&refs, &light);
+    assert!(m.opaque_quads > 6, "the top can't be one quad any more");
+    let top: Vec<u8> = (0..m.vertex_count()).filter(|&i| decode(m.verts[i]).3 == 2).map(|i| m.light(i)).collect();
+    assert!(top.contains(&15) && top.contains(&5) && top.contains(&10), "the corners on the step average: {top:?}");
 }

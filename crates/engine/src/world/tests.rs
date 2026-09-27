@@ -61,3 +61,25 @@ fn rewriting_a_block_is_not_an_edit_anywhere() {
     assert!(!w.set_block_anywhere(p, STONE));
     assert_eq!(w.block_anywhere(p), Some(STONE));
 }
+
+/// Remeshes every loaded chunk of a seed-1337 world around spawn and prints the time per chunk
+/// (`cargo test --release -q bench_meshing -- --ignored --nocapture`).
+#[test]
+#[ignore]
+fn bench_meshing() {
+    let mut w = World::new(1337, 4);
+    let spawn = Vec3::new(0.5, w.generator().height_at(0, 0) as f64 + 1.0, 0.5);
+    w.update_streaming(spawn, &[]);
+    drain(&mut w);
+    let all: Vec<IVec3> = w.chunks.keys().copied().collect();
+    let start = std::time::Instant::now();
+    let mut meshed = 0;
+    for _ in 0..3 {
+        for &p in &all {
+            meshed += usize::from(w.remesh(p));
+        }
+    }
+    let per = start.elapsed().as_secs_f64() * 1000.0 / meshed as f64;
+    let with_faces = w.events.iter().filter(|e| matches!(e, Event::Mesh(m) if !m.verts.is_empty())).count() / 3;
+    println!("{meshed} remeshes of {} chunks ({with_faces} with faces): {per:.3} ms per chunk", all.len());
+}

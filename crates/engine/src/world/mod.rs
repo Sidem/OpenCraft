@@ -16,6 +16,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::block::{BlockId, AIR, BEDROCK, SOLID, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT, CHUNK_SIZE};
+use crate::light::{Lighting, MARGIN};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::mesher::Mesher;
 use crate::worldgen::{WorldGen, WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
@@ -52,6 +53,7 @@ pub struct World {
     others: Vec<IVec3>,
     view_radius: i32,
     mesher: Mesher,
+    lighting: Lighting,
     air: Chunk,
     floor: Chunk,
     pub events: VecDeque<Event>,
@@ -78,6 +80,7 @@ impl World {
             others: Vec::new(),
             view_radius: view_radius.max(2),
             mesher: Mesher::new(),
+            lighting: Lighting::default(),
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
             events: VecDeque::new(),
@@ -210,8 +213,9 @@ impl World {
         c.y < 0 || c.y >= WORLD_HEIGHT_CHUNKS || self.chunks.contains_key(&c)
     }
 
-    /// Changes a block and immediately remeshes every chunk whose mesh can see it
-    /// (up to 8, because AO samples across chunk borders).
+    /// Changes a block and immediately remeshes every chunk whose mesh can see it (up to 8, because
+    /// AO samples across chunk borders). Chunks whose light it can change (within `MARGIN` blocks,
+    /// and everything below, which its shadow reaches) remesh later.
     pub fn set_block(&mut self, p: IVec3, b: BlockId) -> bool {
         if p.y < 0 || p.y >= WORLD_HEIGHT {
             return false;
@@ -238,6 +242,18 @@ impl World {
         for c in affected {
             self.dirty.insert(c);
             self.remesh(c);
+        }
+        let m = MARGIN as i32;
+        let (lo, hi) = (chunk_of(p - IVec3::new(m, 0, m)), chunk_of(p + IVec3::new(m, m, m)));
+        for cz in lo.z..=hi.z {
+            for cx in lo.x..=hi.x {
+                for cy in 0..=hi.y.min(WORLD_HEIGHT_CHUNKS - 1) {
+                    let c = IVec3::new(cx, cy, cz);
+                    if self.chunks.contains_key(&c) {
+                        self.dirty.insert(c);
+                    }
+                }
+            }
         }
         self.mesh_queue_stale = true;
         true
@@ -268,9 +284,9 @@ impl World {
         }
         for p in changed {
             for dz in -1..=1 {
-                for dy in -1..=1 {
+                for y in 0..=p.y + 1 {
                     for dx in -1..=1 {
-                        let q = p + IVec3::new(dx, dy, dz);
+                        let q = IVec3::new(p.x + dx, y, p.z + dz);
                         if self.chunks.contains_key(&q) {
                             self.dirty.insert(q);
                         }

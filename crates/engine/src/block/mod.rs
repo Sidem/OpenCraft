@@ -97,6 +97,8 @@ pub struct BlockDef {
     pub sound: u8,
     /// Whether the item can be put back into the world.
     pub placeable: bool,
+    /// Block light it gives off, 0..=15 (`light.rs`).
+    pub light: u8,
 }
 
 /// Sound materials. Must match `MATERIALS` in `web/src/audio/settings.ts`.
@@ -119,7 +121,7 @@ const fn pillar(side: u16, top: u16, bottom: u16) -> [u16; 6] {
 }
 
 const fn cube(name: &'static str, break_time: f32, faces: [u16; 6], drop: BlockId, sound: u8) -> BlockDef {
-    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop, sound, placeable: true }
+    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop, sound, placeable: true, light: 0 }
 }
 
 /// Ore stays in the ground: mining it by hand yields a handful of ore items that can't be placed.
@@ -142,6 +144,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         drop: AIR,
         sound: sound::STONE,
         placeable: false,
+        light: 0,
     },
     cube("Stone", 1.1, all(tex::STONE), STONE, sound::STONE),
     cube("Dirt", 0.45, all(tex::DIRT), DIRT, sound::DIRT),
@@ -157,6 +160,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         drop: LEAVES,
         sound: sound::LEAVES,
         placeable: true,
+        light: 0,
     },
     ore("Coal Ore", all(tex::COAL_ORE), COAL_ORE),
     ore("Iron Ore", all(tex::IRON_ORE), IRON_ORE),
@@ -192,6 +196,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         drop: SAPLING,
         sound: sound::LEAVES,
         placeable: true,
+        light: 0,
     },
     cube("Granite", 1.5, all(tex::GRANITE), GRANITE, sound::STONE),
     cube("Sandstone", 0.8, all(tex::SANDSTONE), SANDSTONE, sound::STONE),

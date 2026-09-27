@@ -19,6 +19,7 @@ precision highp float;
 precision highp int;
 
 layout(location = 0) in uint a_vert;
+layout(location = 1) in uint a_light; // sky light | block light << 4, each 0..15 (light.rs)
 
 uniform mat4 u_viewProj;
 uniform vec3 u_offset; // chunk origin minus camera position
@@ -34,6 +35,9 @@ out vec2 v_ground;
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads.
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
 const float AO_CURVE[4] = float[4](0.40, 0.60, 0.80, 1.0);
+// Block light (lamps) is warm; each light level below 15 dims by a fifth; caves keep a faint floor.
+const vec3 BLOCK_LIGHT = vec3(1.0, 0.82, 0.58);
+const float CAVE_FLOOR = 0.05;
 
 void main() {
   vec3 p = vec3(float(a_vert & 63u), float((a_vert >> 6u) & 63u), float((a_vert >> 12u) & 63u));
@@ -54,7 +58,9 @@ void main() {
 
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
-  v_tint = u_skyLight;
+  float sky = pow(0.8, 15.0 - float(a_light & 15u));
+  float lamp = pow(0.8, 15.0 - float(a_light >> 4u)) * step(1.0, float(a_light >> 4u));
+  v_tint = max(sky * u_skyLight, lamp * BLOCK_LIGHT) + CAVE_FLOOR;
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);

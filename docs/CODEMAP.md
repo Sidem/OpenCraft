@@ -82,7 +82,8 @@ folder with `mod.rs`.
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
-| `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format; plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
+| `light.rs` | Sky and block light (0–15) for a chunk being meshed: a field of the chunk plus a 15-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
+| `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `minimap/marks.rs` | Deposit and machine marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` (flat records with colours; dry deposits left out) |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
@@ -121,7 +122,7 @@ folder with `mod.rs`.
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
 | `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts); `INSTANCE_FLOATS` |
 | `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |
-| `render/shaders.ts` | GLSL sources; periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`) |
+| `render/shaders.ts` | GLSL sources; the light curve (sky light × daylight, warm block light, `CAVE_FLOOR`); periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`) |
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |

@@ -4,12 +4,12 @@
 //! Chunks load within the view radius of the local player and within `OTHERS_RADIUS` of every other
 //! player the authority moves (their bodies and the items near them need ground); only the local
 //! player's are meshed. Nearest chunks first (`priority`, to the nearest player). A chunk is meshed
-//! only once all 26 neighbours are loaded, because AO and face culling read across borders. None of
-//! this is core state (DEV_PLAN 3.4).
+//! only once all 26 neighbours and every chunk above them are loaded, because AO, face culling and
+//! light (`light.rs`) read across borders. None of this is core state (DEV_PLAN 3.4).
 
 use crate::chunk::{Chunk, CHUNK_SHIFT};
 use crate::math::{IVec3, Vec3};
-use crate::mesher::neighbor_index;
+use crate::mesher::{neighbor_index, Mesher};
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
 use super::{Entry, Event, MeshData, World};
@@ -153,10 +153,9 @@ impl World {
 
     fn neighbors_loaded(&self, p: IVec3) -> bool {
         for dz in -1..=1 {
-            for dy in -1..=1 {
+            for y in (p.y - 1).max(0)..WORLD_HEIGHT_CHUNKS {
                 for dx in -1..=1 {
-                    let q = p + IVec3::new(dx, dy, dz);
-                    if q.y >= 0 && q.y < WORLD_HEIGHT_CHUNKS && !self.chunks.contains_key(&q) {
+                    if !self.chunks.contains_key(&IVec3::new(p.x + dx, y, p.z + dz)) {
                         return false;
                     }
                 }
@@ -185,7 +184,26 @@ impl World {
                 }
             }
         }
-        let out = self.mesher.mesh(&refs);
+        let out = if Mesher::is_trivially_empty(&refs) {
+            self.mesher.mesh(&refs, &[])
+        } else {
+            // The chunks above the neighbourhood, per column, for the sky light.
+            let mut above: [[&Chunk; WORLD_HEIGHT_CHUNKS as usize]; 9] = [[&self.air; WORLD_HEIGHT_CHUNKS as usize]; 9];
+            let first = (p.y + 2).max(0);
+            let count = (WORLD_HEIGHT_CHUNKS - first).max(0) as usize;
+            for (i, column) in above.iter_mut().enumerate() {
+                let (dx, dz) = (i as i32 % 3 - 1, i as i32 / 3 - 1);
+                for (k, slot) in column[..count].iter_mut().enumerate() {
+                    let q = IVec3::new(p.x + dx, first + k as i32, p.z + dz);
+                    *slot = match self.chunks.get(&q) {
+                        Some(e) => &e.chunk,
+                        None => return false,
+                    };
+                }
+            }
+            self.lighting.light(&refs, &std::array::from_fn(|i| &above[i][..count]));
+            self.mesher.mesh(&refs, &self.lighting.pad)
+        };
         self.dirty.remove(&p);
         let entry = self.chunks.get_mut(&p).expect("centre chunk is loaded");
         let quads = out.opaque_quads + out.cutout_quads;

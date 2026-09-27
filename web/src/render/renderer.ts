@@ -188,7 +188,8 @@ export class Renderer {
 
   /**
    * Creates or replaces a chunk mesh. `verts` may be a view into wasm memory; it is consumed
-   * immediately and never retained.
+   * immediately and never retained. It holds the packed vertices, then one light byte per vertex
+   * (`mesher.rs`), read as attribute 1.
    */
   upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number): void {
     const key = chunkKey(x, y, z);
@@ -206,12 +207,16 @@ export class Renderer {
       gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
       gl.enableVertexAttribArray(0);
       gl.vertexAttribIPointer(0, 1, gl.UNSIGNED_INT, 4, 0);
+      gl.enableVertexAttribArray(1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.quadIndex);
       gl.bindVertexArray(null);
       mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, dist: 0 };
       this.meshes.set(key, mesh);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
+    gl.bindVertexArray(mesh.vao);
+    gl.vertexAttribIPointer(1, 1, gl.UNSIGNED_BYTE, 1, (opaque + cutout) * 16); // the light bytes follow the vertices
+    gl.bindVertexArray(null);
     if (verts.byteLength > mesh.capacity) {
       gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
       mesh.capacity = verts.byteLength;
