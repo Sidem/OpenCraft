@@ -206,7 +206,7 @@ impl World {
         };
         self.dirty.remove(&p);
         let entry = self.chunks.get_mut(&p).expect("centre chunk is loaded");
-        let quads = out.opaque_quads + out.cutout_quads;
+        let quads = out.opaque_quads + out.cutout_quads + out.liquid_quads;
         if quads == 0 && !entry.has_mesh {
             return true;
         }
@@ -216,6 +216,7 @@ impl World {
             verts: out.verts,
             opaque_quads: out.opaque_quads,
             cutout_quads: out.cutout_quads,
+            liquid_quads: out.liquid_quads,
         }));
         true
     }

@@ -87,7 +87,8 @@ folder with `mod.rs`.
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
 | `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 15-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
-| `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
+| `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); ranges opaque, cutout, liquid (liquid AO bits mark the water line); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
+| `mesher/quad.rs` | Per-corner AO and light, the merge key, `emit_quad` |
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `minimap/marks.rs` | Deposit and machine marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` (flat records with colours; dry deposits left out) |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
@@ -124,6 +125,7 @@ folder with `mod.rs`.
 | `base.css` | Theme variables, reset, focus rings, shared `.hidden`, `.secondary-btn`, `.close-btn` |
 | `input.ts` | Keyboard/mouse, pointer lock, held state and one-shot `Action`s |
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
+| `render/water.ts` | The liquid range drawn last (blended, back to front, both sides) and the underwater fog (`fogFor`, from `eye_in_water`) |
 | `render/outlines.ts` | Outlines of a belt line being dragged out (`line_cells`), drawn with the renderer's line program |
 | `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts); `INSTANCE_FLOATS` |
 | `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |

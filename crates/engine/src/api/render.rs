@@ -8,6 +8,7 @@ use crate::avatars::LABEL_FLOATS;
 use crate::block;
 use crate::daytime;
 use crate::factory::INSTANCE_FLOATS;
+use crate::math::IVec3;
 use crate::textures;
 use crate::world::Event;
 use crate::Game;
@@ -79,6 +80,11 @@ impl Game {
         self.cur_mesh.as_ref().map_or(0, |m| m.cutout_quads)
     }
 
+    /// Liquid quads, stored after the cutout ones; the host draws them blended, last.
+    pub fn mesh_liquid_quads(&self) -> u32 {
+        self.cur_mesh.as_ref().map_or(0, |m| m.liquid_quads)
+    }
+
     /// Camera position for this frame, interpolated between the last two ticks.
     pub fn eye_x(&self) -> f64 {
         self.render_eye.x
@@ -90,6 +96,15 @@ impl Game {
 
     pub fn eye_z(&self) -> f64 {
         self.render_eye.z
+    }
+
+    /// Whether the camera is below a water surface (drawn a tenth of a block below the top of its block),
+    /// so the host draws the underwater fog.
+    pub fn eye_in_water(&self) -> bool {
+        let e = self.render_eye;
+        let p = IVec3::new(e.x.floor() as i32, e.y.floor() as i32, e.z.floor() as i32);
+        let liquid = |p| self.sim.world.get_block(p).is_some_and(|b| block::LIQUID[b as usize]);
+        liquid(p) && (e.y - f64::from(p.y) < 0.9 || liquid(p + IVec3::new(0, 1, 0)))
     }
 
     pub fn yaw(&self) -> f64 {

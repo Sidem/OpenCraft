@@ -1,5 +1,6 @@
 // WebGL2 world renderer: the sky (sky.ts: day and night), chunk meshes (opaque then cutout pass,
-// frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), and the target
+// frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), water (water.ts:
+// blended, last, and the underwater fog), and the target
 // outline plus mining-crack overlay, and a dragged belt line's outlines (outlines.ts).
 // Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
 
@@ -9,6 +10,7 @@ import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from
 import { drawLineCells } from './outlines';
 import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
+import { fogFor, WaterPass } from './water';
 
 const CHUNK = 32;
 const FOV_Y = (72 * Math.PI) / 180;
@@ -22,6 +24,7 @@ interface ChunkMesh {
   capacity: number;
   opaque: number;
   cutout: number;
+  liquid: number;
   dist: number;
 }
 
@@ -38,6 +41,7 @@ export interface FrameInfo {
   boxCount: number;
   /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
   lineCells: Int32Array;
+  underwater: boolean; // the engine's `eye_in_water`
 }
 
 export interface RenderStats {
@@ -111,6 +115,7 @@ export class Renderer {
   private readonly cubeVao: WebGLVertexArrayObject;
   private readonly boxes: BoxPipeline;
   private readonly sky: SkyPass;
+  private readonly water: WaterPass;
   private readonly lineVao: WebGLVertexArrayObject;
 
   private readonly proj = new Float32Array(16);
@@ -155,6 +160,7 @@ export class Renderer {
 
     this.boxes = new BoxPipeline(gl);
     this.sky = new SkyPass(gl);
+    this.water = new WaterPass(gl);
 
     this.lineVao = gl.createVertexArray()!;
     gl.bindVertexArray(this.lineVao);
@@ -192,17 +198,18 @@ export class Renderer {
   /**
    * Creates or replaces a chunk mesh. `verts` may be a view into wasm memory; it is consumed
    * immediately and never retained. It holds the packed vertices, then one light byte per vertex
-   * (`mesher.rs`), read as attribute 1.
+   * (`mesher.rs`), read as attribute 1. Quads come opaque, then cutout, then liquid.
    */
-  upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number): void {
+  upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number, liquid: number): void {
     const key = chunkKey(x, y, z);
     let mesh = this.meshes.get(key);
-    if (opaque + cutout === 0) {
+    const total = opaque + cutout + liquid;
+    if (total === 0) {
       if (mesh) this.deleteMesh(key, mesh);
       return;
     }
     const gl = this.gl;
-    this.ensureQuadCapacity(opaque + cutout);
+    this.ensureQuadCapacity(total);
     if (!mesh) {
       const vao = gl.createVertexArray()!;
       const vbo = gl.createBuffer()!;
@@ -213,12 +220,12 @@ export class Renderer {
       gl.enableVertexAttribArray(1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.quadIndex);
       gl.bindVertexArray(null);
-      mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, dist: 0 };
+      mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, liquid: 0, dist: 0 };
       this.meshes.set(key, mesh);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
     gl.bindVertexArray(mesh.vao);
-    gl.vertexAttribIPointer(1, 1, gl.UNSIGNED_BYTE, 1, (opaque + cutout) * 16); // the light bytes follow the vertices
+    gl.vertexAttribIPointer(1, 1, gl.UNSIGNED_BYTE, 1, total * 16); // the light bytes follow the vertices
     gl.bindVertexArray(null);
     if (verts.byteLength > mesh.capacity) {
       gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
@@ -228,6 +235,7 @@ export class Renderer {
     }
     mesh.opaque = opaque;
     mesh.cutout = cutout;
+    mesh.liquid = liquid;
   }
 
   removeChunk(x: number, y: number, z: number): void {
@@ -276,8 +284,14 @@ export class Renderer {
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     const sky = skyAt(f.time);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
-    this.sky.draw(sky, f.yaw, f.pitch, FOV_Y, this.canvas.width / this.canvas.height);
+    const fog = fogFor(sky, f.underwater, [this.viewRadius * CHUNK * 0.95 * 0.55, this.viewRadius * CHUNK * 0.95]);
+    if (f.underwater) {
+      gl.clearColor(...fog.color, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    } else {
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+      this.sky.draw(sky, f.yaw, f.pitch, FOV_Y, this.canvas.width / this.canvas.height);
+    }
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(true);
@@ -304,8 +318,7 @@ export class Renderer {
     }
     vis.sort((a, b) => a.dist - b.dist);
 
-    const fogEnd = this.viewRadius * CHUNK * 0.95;
-    const fogStart = fogEnd * 0.55;
+    const [fogStart, fogEnd] = fog.range;
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texture);
 
@@ -315,7 +328,7 @@ export class Renderer {
       gl.useProgram(pass.prog);
       gl.uniformMatrix4fv(pass.u.u_viewProj, false, this.viewProj);
       gl.uniform1i(pass.u.u_tex, 0);
-      gl.uniform3f(pass.u.u_fogColor, ...sky.horizon);
+      gl.uniform3f(pass.u.u_fogColor, ...fog.color);
       gl.uniform3f(pass.u.u_skyLight, ...sky.light);
       gl.uniform2f(pass.u.u_fog, fogStart, fogEnd);
       for (const m of vis) {
@@ -331,7 +344,10 @@ export class Renderer {
       }
     }
 
-    drawCalls += this.boxes.draw(this.viewProj, sky, [fogStart, fogEnd], f.boxes, f.boxCount);
+    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount);
+    const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
+    drawCalls += waterCalls;
+    quads += waterQuads;
 
     if (f.target) {
       const [tx, ty, tz] = f.target;

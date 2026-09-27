@@ -269,12 +269,23 @@ pub const CUTOUT: [bool; 256] = {
     t
 };
 
-/// Blocks the chunk mesher draws as cubes (opaque or cutout).
+/// Blocks the chunk mesher draws as cubes (opaque, cutout or liquid).
 pub const MESHED: [bool; 256] = {
     let mut t = [false; 256];
     let mut i = 0;
     while i < BLOCK_COUNT {
-        t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout);
+        t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout | Render::Liquid);
+        i += 1;
+    }
+    t
+};
+
+/// Liquids: drawn translucent in their own mesh range, never against each other.
+pub const LIQUID: [bool; 256] = {
+    let mut t = [false; 256];
+    let mut i = 0;
+    while i < BLOCK_COUNT {
+        t[i] = matches!(DEFS[i].render, Render::Liquid);
         i += 1;
     }
     t
@@ -329,7 +340,7 @@ pub const ALT_TEX: [[u16; 6]; 256] = {
 /// Whether placing a block may take this cell (air or water), and so whether aiming passes through it.
 #[inline]
 pub fn replaceable(id: BlockId) -> bool {
-    id == AIR || matches!(def(id).render, Render::Liquid)
+    id == AIR || LIQUID[id as usize]
 }
 
 #[inline]

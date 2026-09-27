@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{LEAVES, STONE};
+use crate::block::{LEAVES, STONE, WATER};
 
 /// Full sky light everywhere.
 static DAYLIGHT: [u8; PAD_VOLUME] = [15; PAD_VOLUME];
@@ -147,4 +147,43 @@ fn a_change_in_light_stops_merging_and_is_smoothed() {
     assert!(m.opaque_quads > 6, "the top can't be one quad any more");
     let top: Vec<u8> = (0..m.vertex_count()).filter(|&i| decode(m.verts[i]).3 == 2).map(|i| m.light(i)).collect();
     assert!(top.contains(&15) && top.contains(&5) && top.contains(&10), "the corners on the step average: {top:?}");
+}
+
+#[test]
+fn water_shows_only_towards_open_cells_with_a_lowered_surface() {
+    // A 3 × 2 × 3 pool standing on a stone floor, open to the air on every other side.
+    let m = mesh_single(|c| {
+        for z in 3..8 {
+            for x in 3..8 {
+                c.set(x, 3, z, STONE);
+            }
+        }
+        for y in 4..6 {
+            for z in 4..7 {
+                for x in 4..7 {
+                    c.set(x, y, z, WATER);
+                }
+            }
+        }
+    });
+    // One top quad, and per side a lower and a surface row (they differ in surface corners); none below.
+    assert_eq!(m.liquid_quads, 9);
+    let start = ((m.opaque_quads + m.cutout_quads) * 4) as usize;
+    for &v in &m.verts[start..m.vertex_count()] {
+        let (_, y, _, face, surface) = decode(v);
+        assert_ne!(face, 3, "no face towards the floor");
+        assert_eq!(surface, u32::from(y == 6), "only the top edge is the water line");
+    }
+    // The floor still shows through the water: its top face is meshed where water covers it.
+    assert!(m.opaque_quads >= 6);
+}
+
+#[test]
+fn water_inside_water_is_trivially_empty() {
+    let water = Chunk::uniform(WATER);
+    let air = Chunk::uniform(AIR);
+    let mut refs = [&water; 27];
+    assert!(Mesher::is_trivially_empty(&refs));
+    refs[neighbor_index(0, 1, 0)] = &air;
+    assert!(!Mesher::is_trivially_empty(&refs));
 }

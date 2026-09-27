@@ -67,8 +67,8 @@ pub fn lamp(x: i32, y: i32) -> [u8; 4] {
 /// Placeholder water: deep blue-green, lighter ripple bands, mostly see-through.
 pub fn water(x: i32, y: i32) -> [u8; 4] {
     let ripple = smooth(265, x, y, 4);
-    let mut c = rgb([46.0, 104.0, 150.0], 0.9 + 0.25 * ripple);
-    c[3] = 170 + (40.0 * ripple) as u8;
+    let mut c = rgb([46.0, 104.0, 150.0], 0.92 + 0.16 * ripple);
+    c[3] = 180 + (24.0 * ripple) as u8;
     c
 }
 fn tint(c: [u8; 4], delta: [i8; 3]) -> [u8; 4] {

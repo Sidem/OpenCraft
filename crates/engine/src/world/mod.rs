@@ -26,6 +26,7 @@ pub struct MeshData {
     pub verts: Vec<u32>,
     pub opaque_quads: u32,
     pub cutout_quads: u32,
+    pub liquid_quads: u32,
 }
 
 pub enum Event {

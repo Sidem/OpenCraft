@@ -7,7 +7,8 @@
 //! bits  6..12  y
 //! bits 12..18  z
 //! bits 18..21  face  (+X, -X, +Y, -Y, +Z, -Z; 6 and 7 are a plant's two diagonal quads)
-//! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded)
+//! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded); for a liquid quad, 1 marks a surface
+//!              corner, which the shader lowers by a tenth of a block (the water line)
 //! bits 23..32  texture array layer
 //! ```
 //!
@@ -22,10 +23,14 @@
 //! merging never changes how their gradients look. Layers with alternates (ores, leaves:
 //! `block::tex::alternates`) get one of four looks per block (`pick_layer`), so those faces merge
 //! less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
-//! cutout list and never merged.
+//! cutout list and never merged. Liquids (`block::LIQUID`) get faces only against cells that are neither
+//! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others.
 
-use crate::block::{BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, MESHED, OPAQUE, PLANT};
+use crate::block::{BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
+
+mod quad;
+use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
 
 const N: usize = 32;
 const P: usize = N + 2;
@@ -54,17 +59,18 @@ pub const fn neighbor_index(dx: i32, dy: i32, dz: i32) -> usize {
 }
 
 pub struct MeshOutput {
-    /// The vertices, opaque quads first, then cutout quads; then their light bytes in the same
-    /// order, packed four per `u32` (little-endian, so the bytes read in order).
+    /// The vertices, opaque quads first, then cutout quads, then liquid quads; then their light bytes in
+    /// the same order, packed four per `u32` (little-endian, so the bytes read in order).
     pub verts: Vec<u32>,
     pub opaque_quads: u32,
     pub cutout_quads: u32,
+    pub liquid_quads: u32,
 }
 
 #[cfg(test)]
 impl MeshOutput {
     pub fn vertex_count(&self) -> usize {
-        (self.opaque_quads + self.cutout_quads) as usize * 4
+        (self.opaque_quads + self.cutout_quads + self.liquid_quads) as usize * 4
     }
 
     /// The light byte of vertex `i`.
@@ -78,8 +84,10 @@ pub struct Mesher {
     mask: Vec<u64>,
     opaque: Vec<u32>,
     cutout: Vec<u32>,
+    liquid: Vec<u32>,
     opaque_light: Vec<u8>,
     cutout_light: Vec<u8>,
+    liquid_light: Vec<u8>,
 }
 
 impl Default for Mesher {
@@ -105,8 +113,10 @@ impl Mesher {
             mask: vec![0; N * N],
             opaque: Vec::new(),
             cutout: Vec::new(),
+            liquid: Vec::new(),
             opaque_light: Vec::new(),
             cutout_light: Vec::new(),
+            liquid_light: Vec::new(),
         }
     }
 
@@ -115,8 +125,10 @@ impl Mesher {
     pub fn mesh(&mut self, n: &[&Chunk; 27], light: &[u8]) -> MeshOutput {
         self.opaque.clear();
         self.cutout.clear();
+        self.liquid.clear();
         self.opaque_light.clear();
         self.cutout_light.clear();
+        self.liquid_light.clear();
         if !Self::is_trivially_empty(n) {
             self.fill_padded(n);
             for face in 0..6 {
@@ -124,22 +136,34 @@ impl Mesher {
             }
             self.mesh_plants(light);
         }
-        let count = self.opaque.len() + self.cutout.len();
+        let count = self.opaque.len() + self.cutout.len() + self.liquid.len();
         let mut verts = Vec::with_capacity(count + count.div_ceil(4));
         verts.extend_from_slice(&self.opaque);
         verts.extend_from_slice(&self.cutout);
-        let bytes = self.opaque_light.iter().chain(&self.cutout_light).copied().collect::<Vec<u8>>();
+        verts.extend_from_slice(&self.liquid);
+        let bytes =
+            self.opaque_light.iter().chain(&self.cutout_light).chain(&self.liquid_light).copied().collect::<Vec<u8>>();
         verts.extend(bytes.chunks(4).map(|c| c.iter().rev().fold(0u32, |w, &b| (w << 8) | u32::from(b))));
-        MeshOutput { verts, opaque_quads: (self.opaque.len() / 4) as u32, cutout_quads: (self.cutout.len() / 4) as u32 }
+        let quads = |v: &Vec<u32>| (v.len() / 4) as u32;
+        MeshOutput {
+            verts,
+            opaque_quads: quads(&self.opaque),
+            cutout_quads: quads(&self.cutout),
+            liquid_quads: quads(&self.liquid),
+        }
     }
 
-    /// Air chunks and solid chunks buried in solid chunks produce no faces; skip the scan.
+    /// Air chunks, and solid or liquid chunks enclosed by solid chunks (or liquid ones, for liquid), produce
+    /// no faces; skip the scan.
     pub fn is_trivially_empty(n: &[&Chunk; 27]) -> bool {
         match n[neighbor_index(0, 0, 0)].as_uniform() {
             Some(b) if !MESHED[b as usize] => true,
-            Some(b) if OPAQUE[b as usize] => [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
-                .iter()
-                .all(|&(x, y, z)| n[neighbor_index(x, y, z)].as_uniform().is_some_and(|u| OPAQUE[u as usize])),
+            Some(b) if OPAQUE[b as usize] || LIQUID[b as usize] => {
+                let hides = |u: BlockId| OPAQUE[u as usize] || (LIQUID[b as usize] && LIQUID[u as usize]);
+                [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+                    .iter()
+                    .all(|&(x, y, z)| n[neighbor_index(x, y, z)].as_uniform().is_some_and(hides))
+            }
             _ => false,
         }
     }
@@ -187,16 +211,25 @@ impl Mesher {
                     let mut key = 0u64;
                     if MESHED[b as usize] {
                         let q = (p as isize + sn) as usize;
-                        if !OPAQUE[pad[q] as usize] {
+                        let liquid = LIQUID[b as usize];
+                        if !(OPAQUE[pad[q] as usize] || liquid && LIQUID[pad[q] as usize]) {
+                            // A liquid under an open cell: its top face and the top edges of its sides sit lower.
+                            let above = pad[p + P2] as usize;
+                            let surface = liquid && !LIQUID[above] && !OPAQUE[above];
                             // Corners (0,0) (1,0) (1,1) (0,1) of the face, each AO | light << 2.
                             let mut corners = 0u64;
                             for (i, (du, dv)) in [(-su, -sv), (su, -sv), (su, sv), (-su, sv)].into_iter().enumerate() {
-                                let k = corner(pad, light, q, du, dv);
+                                let mut k = corner(pad, light, q, du, dv);
+                                if liquid {
+                                    let top = face == 2 || du == P2 as isize || dv == P2 as isize;
+                                    k = (k & !3) | u32::from(surface && top);
+                                }
                                 corners |= u64::from(k) << (i * CORNER_BITS);
                             }
                             let layer = u64::from(pick_layer(b, face, c));
                             key = KEY_FLAG
                                 | (u64::from(CUTOUT[b as usize]) << KEY_CUTOUT)
+                                | (u64::from(liquid) << KEY_LIQUID)
                                 | (layer << KEY_LAYER)
                                 | corners;
                             any = true;
@@ -243,7 +276,9 @@ impl Mesher {
                         mask[bu + (bv + dv) * N..bu + w + (bv + dv) * N].fill(0);
                     }
 
-                    let out = if key & (1 << KEY_CUTOUT) != 0 {
+                    let out = if key & (1 << KEY_LIQUID) != 0 {
+                        (&mut self.liquid, &mut self.liquid_light)
+                    } else if key & (1 << KEY_CUTOUT) != 0 {
                         (&mut self.cutout, &mut self.cutout_light)
                     } else {
                         (&mut self.opaque, &mut self.opaque_light)
@@ -301,81 +336,6 @@ impl Mesher {
                 }
             }
         }
-    }
-}
-
-/// Classic voxel AO: two occluding sides fully darken the corner regardless of the diagonal.
-#[inline]
-fn ao(side1: bool, side2: bool, corner: bool) -> u32 {
-    if side1 && side2 {
-        0
-    } else {
-        3 - (side1 as u32 + side2 as u32 + corner as u32)
-    }
-}
-
-/// The merge key: 4 corners of `CORNER_BITS` (AO 2 bits, light 8 bits), then layer, cutout, flag.
-const CORNER_BITS: usize = 10;
-const KEY_LAYER: usize = 4 * CORNER_BITS;
-const KEY_CUTOUT: usize = KEY_LAYER + 9;
-const KEY_FLAG: u64 = 1 << 63;
-
-fn corners_of(key: u64) -> [u32; 4] {
-    std::array::from_fn(|i| (key >> (i * CORNER_BITS)) as u32 & ((1 << CORNER_BITS) - 1))
-}
-
-/// AO | light << 2 for the face corner towards (`du`, `dv`) of air cell `q`. The light is the
-/// average of the non-opaque cells among `q`, its two sides and the diagonal between them (the
-/// diagonal only when a side is open), sky and block light each rounded to a nibble.
-#[inline]
-fn corner(pad: &[BlockId], light: &[u8], q: usize, du: isize, dv: isize) -> u32 {
-    let at = |off: isize| (q as isize + off) as usize;
-    let (side1, side2, diag) = (at(du), at(dv), at(du + dv));
-    let (o1, o2, od) = (OPAQUE[pad[side1] as usize], OPAQUE[pad[side2] as usize], OPAQUE[pad[diag] as usize]);
-    let (mut sky, mut block, mut n) = (0u32, 0u32, 0u32);
-    for (cell, open) in [(q, true), (side1, !o1), (side2, !o2), (diag, !(od || (o1 && o2)))] {
-        if open {
-            sky += u32::from(light[cell] & 15);
-            block += u32::from(light[cell] >> 4);
-            n += 1;
-        }
-    }
-    let l = ((sky + n / 2) / n) | (((block + n / 2) / n) << 4);
-    ao(o1, o2, od) | (l << 2)
-}
-
-fn emit_quad(
-    (out, lights): (&mut Vec<u32>, &mut Vec<u8>),
-    face: usize,
-    (d, u, v): (usize, usize, usize),
-    plane: u32,
-    (bu, bv): (u32, u32),
-    (w, h): (u32, u32),
-    key: u64,
-) {
-    let layer = (key >> KEY_LAYER) as u32 & 0x1FF;
-    let corner = corners_of(key);
-    let corners = [(bu, bv), (bu + w, bv), (bu + w, bv + h), (bu, bv + h)];
-    let mut vs = [0u32; 4];
-    let mut ls = [0u8; 4];
-    let mut bright = [0u32; 4];
-    for i in 0..4 {
-        let mut c = [0u32; 3];
-        c[d] = plane;
-        c[u] = corners[i].0;
-        c[v] = corners[i].1;
-        let (a, l) = (corner[i] & 3, (corner[i] >> 2) as u8);
-        vs[i] = c[0] | (c[1] << 6) | (c[2] << 12) | ((face as u32) << 18) | (a << 21) | (layer << 23);
-        ls[i] = l;
-        bright[i] = a * 16 + u32::from((l & 15).max(l >> 4));
-    }
-    // Split the quad along the brighter diagonal to avoid the anisotropic AO and light seam.
-    if bright[0] + bright[2] < bright[1] + bright[3] {
-        out.extend_from_slice(&[vs[1], vs[2], vs[3], vs[0]]);
-        lights.extend_from_slice(&[ls[1], ls[2], ls[3], ls[0]]);
-    } else {
-        out.extend_from_slice(&vs);
-        lights.extend_from_slice(&ls);
     }
 }
 

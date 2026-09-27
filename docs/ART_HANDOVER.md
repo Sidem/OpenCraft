@@ -210,6 +210,10 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (4.10, landed) The lamp block: glass in an iron frame that reads as a light source (warm pane,
   bright centre); opaque, all six faces alike. Placeholder: `tex::LAMP` (105), `lamp()` in
   `textures/geology.rs`. Its faces are lit by its own light, so they need no glow trick.
+- [ ] (5.4, landed) Water: a translucent layer (alpha about 180–205) that reads as water from above, at
+  a shore over sand and from below. Placeholder: `tex::WATER` (106), `water()` in `textures/geology.rs`.
+  The shader (`WATER` in `render/shaders.ts`) mixes two drifting copies of it, one mirrored and half a
+  block off, so keep it low in contrast: a strong feature repeats every block and reads as a grid.
 
 ## 8. Log
 

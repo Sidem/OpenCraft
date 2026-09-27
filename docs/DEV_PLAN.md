@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.4** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.5** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -401,7 +401,8 @@ need a version 4.
   40–80 blocks out on dry, gentle ground (key index 100+). Version 3 ore also replaces the hint soils.
   Deviations: limestone's band starts at 8 (so no pocket breaks the surface); buried pockets grow in
   number instead of staying as they were. Measured: 0.24–0.5 exposed per column (was 3.3), the nearest
-  about 110–125 blocks from a random spot (was 9). Tests in `worldgen/strata/tests.rs`.- [x] **5.3 Still water in generation (version 3).** `WATER` (block 45, `Render::Liquid`, placeholder
+  about 110–125 blocks from a random spot (was 9). Tests in `worldgen/strata/tests.rs`.
+- [x] **5.3 Still water in generation (version 3).** `WATER` (block 45, `Render::Liquid`, placeholder
   texture) is not solid, never targeted, and anything placed into it replaces it (`block::replaceable`).
   In `light.rs` it passes flooded light but not the straight sky column, and dims light by 2 per block.
   `worldgen/water.rs`: the sea fills every column below `SEA_LEVEL` (62); ponds sit in 96-block cells on
@@ -409,18 +410,16 @@ need a version 4.
   under water and on shores; trees stay out of water; `WaterGuard` keeps caves 2 blocks from water. The
   cave noise moved to `worldgen/caves.rs`. Deviation: sea level 62 floods about 20 % of the land, not
   30 % (spawn stays dry for all test seeds). Generation cost equals version 2's within noise. Water is
-  not drawn until 5.4. Tests in `worldgen/water/tests.rs` and `light/tests.rs`.- [ ] **5.4 Rendering water.**
-  - **Meshing:** the mesher emits water faces only against air and non-opaque blocks, as a third mesh
-    range (after opaque and cutout). The top face sits 0.1 lower when air is above.
-  - **Drawing:** `renderer.ts` draws that range after the cutout pass, blended, with depth writes off,
-    chunks back to front. The shader animates a scrolling surface with a light-dependent tint.
-  - **Underwater:** with the eye in water (an engine getter), fog turns blue-green and short, plus a tint.
-  - **The look:** a placeholder texture plus an art request (`docs/ART_HANDOVER.md`).
-  - **Done when:**
-    - Screenshots show a coast by day and by night, and the view underwater.
-    - Frame time and mesh memory are measured before and after (a noticeable increase is noted in the
-      change log).
-    - There is no z-fighting at the shoreline.
+  not drawn until 5.4. Tests in `worldgen/water/tests.rs` and `light/tests.rs`.
+- [x] **5.4 Rendering water.** The mesher (`block::LIQUID`) puts liquid faces, only against cells that are
+  neither opaque nor liquid, in a third range after opaque and cutout; the AO bits of a liquid vertex mark
+  the water line instead, which the `WATER` shader variant lowers by 0.1 (top faces and the top edges of
+  sides, unless a solid block is above). Per-quad helpers moved to `mesher/quad.rs`. `render/water.ts`
+  draws the range last, blended, depth writes off, chunks back to front, from both sides, with two
+  drifting texture copies. `eye_in_water` switches to a short blue-green fog (no sky). Placeholder
+  texture softened (a strong feature read as a grid); art request filed. Measured on seed 2024's coast:
+  water is 0.06 % of quads (about 15 KB), frame time equal within noise; no z-fighting at the shore.
+  Tests in `mesher/tests.rs`.
 - [ ] **5.5 Moving in water.**
   - **Swimming** (`player.rs`): half speed, gravity at a tenth, jump held rises, sinks slowly otherwise. A
     jump at the edge climbs out. Flying ignores water.
@@ -577,5 +576,5 @@ and the balance numbers. Read the section you need.
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
   3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
-- **2026-09-27:** 5.1–5.3 done (see the steps): version 2 pinned, rare ore and a starter set (golden hash
-  re-recorded), sea and ponds. Tests 193 → 202. Version 3 is unreleased: push nothing before 5.4.
+- **2026-09-27:** 5.1–5.4 done (see the steps): version 2 pinned, rare ore and a starter set (golden hash
+  re-recorded), sea and ponds, water drawn. Tests 193 → 204. Version 3 is unreleased until the first push.

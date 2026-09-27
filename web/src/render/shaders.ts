@@ -2,6 +2,8 @@
 // opaque pass never contains `discard` and keeps early-z. `TERRAIN` (chunk meshes only) adds a
 // gentle world-anchored shift in tone across blocks; texels are always sampled exactly as drawn, so
 // the pixel art stays crisp. Repetition is broken in the textures instead (alternates per block).
+// `WATER` is the translucent liquid variant (render/water.ts): no AO (those bits mark the water line,
+// lowered a tenth of a block), a surface that drifts over time, and the texture's alpha kept.
 
 export const TERRAIN_TINT_PERIOD = 256;
 
@@ -57,8 +59,14 @@ void main() {
   else if (face == 6u) uv = vec2(p.x, -p.y);
   else uv = vec2(p.z, -p.y);
 
+#ifdef WATER
+  p.y -= 0.1 * float(ao);
+  v_uvl = vec3(uv, layer);
+  v_light = FACE_SHADE[face];
+#else
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
+#endif
   float sky = pow(0.8, 15.0 - float(a_light & 15u));
   float lamp = pow(0.84, 15.0 - float(a_light >> 4u)) * step(1.0, float(a_light >> 4u));
   v_tint = max(sky * u_skyLight, lamp * BLOCK_LIGHT) + CAVE_FLOOR;
@@ -94,8 +102,17 @@ float terrainField(vec2 p, float cells) {
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 #endif
+#ifdef WATER
+uniform float u_time; // seconds
+#endif
 
 void main() {
+#ifdef WATER
+  // Two copies of the texture drifting apart (one mirrored, half a block off) make the surface shimmer.
+  vec4 c = mix(texture(u_tex, v_uvl + vec3(u_time * 0.21, u_time * 0.13, 0.0)),
+               texture(u_tex, vec3(0.5 - v_uvl.x + u_time * 0.11, v_uvl.y + 0.37 - u_time * 0.17, v_uvl.z)), 0.5);
+  o_color = vec4(applyFog(c.rgb * v_light * v_tint, v_rel), c.a);
+#else
   vec4 c = texture(u_tex, v_uvl);
 #ifdef CUTOUT
   if (c.a < 0.5) discard;
@@ -107,6 +124,7 @@ void main() {
   c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
 #endif
   o_color = vec4(applyFog(c.rgb * v_light * v_tint, v_rel), 1.0);
+#endif
 }
 `;
 

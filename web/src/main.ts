@@ -193,7 +193,7 @@ async function main(): Promise<void> {
       if (kind === 1) {
         // Zero-copy: a view straight into wasm memory, uploaded to the GPU and dropped.
         const verts = new Uint32Array(wasm.memory.buffer, game.mesh_ptr(), game.mesh_len());
-        renderer.upsertChunk(x, y, z, verts, game.mesh_opaque_quads(), game.mesh_cutout_quads());
+        renderer.upsertChunk(x, y, z, verts, game.mesh_opaque_quads(), game.mesh_cutout_quads(), game.mesh_liquid_quads());
       } else {
         renderer.removeChunk(x, y, z);
       }
@@ -297,6 +297,7 @@ async function main(): Promise<void> {
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
       boxCount: game.instance_count(),
       lineCells: game.line_cells(),
+      underwater: game.eye_in_water(),
     });
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));

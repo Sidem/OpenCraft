@@ -44,15 +44,21 @@ export class BoxPipeline {
    * Draws `count` instances from `boxes` (which may be a view into wasm memory). Expects the block
    * texture array bound to unit 0. Returns the number of draw calls made.
    */
-  draw(viewProj: Float32Array, sky: Sky, fog: [number, number], boxes: Float32Array, count: number): number {
+  draw(
+    viewProj: Float32Array,
+    sky: Sky,
+    fog: { color: [number, number, number]; range: [number, number] },
+    boxes: Float32Array,
+    count: number,
+  ): number {
     if (count === 0) return 0;
     const gl = this.gl;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.u_viewProj, false, viewProj);
     gl.uniform1i(this.u.u_tex, 0);
-    gl.uniform3f(this.u.u_fogColor, ...sky.horizon);
+    gl.uniform3f(this.u.u_fogColor, ...fog.color);
     gl.uniform3f(this.u.u_skyLight, ...sky.light);
-    gl.uniform2f(this.u.u_fog, fog[0], fog[1]);
+    gl.uniform2f(this.u.u_fog, ...fog.range);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
     const bytes = count * INSTANCE_FLOATS * 4;
     if (bytes > this.capacity) {
