@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 6 (Scale and terrain): ask the user its questions (section 6), then detail it** · The `art` branch is superseded;
+now) · **Next up: Milestone 6 (Terraforming), step 6.1** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -28,8 +28,10 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   the authority, a Cloudflare Worker to connect them, hosting and joining from the menu.
 - **Milestone 4 (Reasons to explore) is done** (section 8): biomes and rock provinces, ores that follow
   geology, surface hints, prospecting, map marks, day and night, sky light and lamps, a new build menu.
-- **Now: Milestone 5: Water and world shape** (section 4): sea and lakes, swimming, flowing water,
-  pumps, and rarer surface ore with depth bands, as generator version 3.
+- **Milestone 5 (Water and world shape) is done** (section 8): sea and ponds, swimming, flowing water,
+  pumps, a quarry, rarer surface ore (generator version 3), and powered miners.
+- **Now: Milestone 6: Terraforming** (section 4): a planner tool marks sites, excavators with work drones
+  dig, fill, flatten and tunnel.
 - **Art** (`docs/ART_HANDOVER.md`) says who owns which looks. When gameplay needs a new look, append a
   `tex` layer with a plain placeholder pattern and add a line to that file's request list.
 
@@ -38,7 +40,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (225 engine tests).
+   (226 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -96,16 +98,20 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-26 | **The world pauses while the game is closed.** No simulating missed time. |
 | 2026-09-26 | **New generation rules for new worlds only.** Worlds made before Milestone 4 keep generator version 1 and play as before. |
 | 2026-09-27 | **Belts:** ramps come from placement (no research), lines are dragged out, R rotates, research moved to T. |
-| 2026-09-27 | **Water and world shape before terraforming** (Milestone 5): sea level, lakes, swimming, pumps and pipes. Rivers later (Milestone 7). |
+| 2026-09-27 | **Water and world shape before terraforming** (Milestone 5): sea level, lakes, swimming, pumps and pipes. Rivers later (now Milestone 9). |
 | 2026-09-27 | **Water flow is limited and deterministic:** a Minecraft-like spread, event-driven and capped per tick; no volume simulation. |
 | 2026-09-27 | **Surface ore is rare and meaningful:** about 10× fewer exposed outcrops, only on bare rock; a starter set near spawn; ores in depth bands. Vein and lode counts stay. |
 | 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
+| 2026-09-27 | **Order after Milestone 5: terraforming, then blueprints and construction drones, then transport** (personal flight first: jetpacks or hovering, and building from further away). The player should feel a steady, intuitive and fun growth of capability: building by hand → planning → automatic assembly. |
 | 2026-09-27 | **Miners need power; generators burn only what is used.** The first loop is a miner on coal feeding the generator that powers it. Energy is stored per generator (kJ); one coal (270 kJ) runs a Mk1 (5 kW) long enough to mine about 32 coal. The smelter stays a burner. |
 
 ### Proposed, not yet confirmed by the user
 
 - Old saves keep loading across format changes where a migration is cheap. Every save since version 1
   still loads.
+- Terraforming (Milestone 6): one excavator machine with work drones rather than separate grader, filler
+  and borer machines; dug ground is material that fills other sites first and goes onto belts after (a
+  dump is a fill site); ore in a site is cut like hand mining (lossy), with a warning when planning.
 
 ---
 
@@ -377,24 +383,74 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 6: Scale and terrain (not detailed yet)
+## 4. Now: Milestone 6: Terraforming
 
-Milestone 5 (Water and world shape) is done; its summary is in section 8. Milestone 6 is outlined in
-`docs/ROADMAP.md` and gets detailed here, with steps, once the user answers its questions (section 6).
-Until then there is no next step: ask them.
+The user decided on 2026-09-27 (section 1): terraforming first, then blueprints and drones (Milestone 7),
+then transport and personal flight (Milestone 8). Across all three the player's reach should grow
+steadily and intuitively: building by hand → planning an area → machines doing the work.
 
-**Facts from Milestone 5 that Milestone 6 builds on:**
-- The sea is the only endless water: sources form only at or below `SEA_LEVEL` (62). A pump can't lower
-  the sea or anything open to it; above sea level, pumped water never comes back. A pit below sea level
-  floods only when it opens to the sea, and stays flooded until dammed off (`sim/water.rs`).
-- Water flow is capped per tick (`MAX_WATER_UPDATES`) and event-driven; a 2,964-cell flood takes about
-  5 s. Big terraforming edits near water will queue many checks.
-- The quarry (`factory/quarry/`) is the first excavator: a box in front of it (`DigBox`), dug top down in
-  order with the `*_anywhere` accessors, ground only (`QUARRIABLE`), each block to its drop in a
-  buffer that feeds belts. It waits while flooded. About 2 blocks a second, 10 kW.
-- Power: generators store fuel energy and give only what is drawn (section 1, 2026-09-27); every miner
-  needs power, so the first loop is a coal miner feeding its own generator.
-- Generator version 3 is frozen (released): any change to generation needs version 4.
+**Goal:** the player marks an area with a planner tool, picks a job (dig down to, fill up to, flatten to
+a height) and excavators do it with small work drones, visibly and block by block. Dug ground is material:
+it fills other sites first, and the rest goes onto belts and into boxes. A "dump" is just a fill site.
+Tunnels come last. The quarry (5.8) stays as the simple early machine; the excavator is its big brother.
+
+**Facts from Milestone 5 this builds on:**
+- The sea is the only endless water: sources form only at or below `SEA_LEVEL` (62). Pumps can't lower
+  the sea or anything open to it. A cut below sea level floods when it opens to the sea; a fill placed
+  into water is solid ground and the sea doesn't come back (land can be reclaimed).
+- Water checks are capped per tick (`MAX_WATER_UPDATES`); mass edits next to water queue many.
+- The quarry (`factory/quarry/`): cells in a fixed order, `*_anywhere` edits, `QUARRIABLE`, an output
+  buffer that feeds belts, waiting while flooded, `Factory.changed` for water and timers, cracks and
+  sounds. Reuse its patterns (and `survey`), don't generalise it.
+- Power: generators give only what is drawn; every miner needs power. Generator version 3 is frozen.
+
+**Rules for all steps:** sites and their progress are core state (saved, hashed, changed only by actions
+and ticks). Cell order never depends on loaded chunks. Big edits go through `set_block_anywhere_later`
+so remeshing stays within the streaming budget. Measure the worst tick for a 64 × 64 site.
+
+- [ ] **6.1 Sites in the core.** `factory/sites.rs`: `Sites` (held by `Factory` like `research`, saved
+  after the quarries; save version 17) with `Site { id, lo, hi (columns x, z), level, job }`, `Job::Dig |
+  Fill | Flatten`, ids from a counter (never an index), at most `MAX_SITE` (64) on a side and `MAX_SITES`
+  per world. When a site is made the core finds its highest and lowest ground once (`*_anywhere`) and
+  keeps them as the cut and fill ranges. Cell order: cut layers from the top down, fill layers from the
+  bottom up, rows back and forth; a fill cell counts only from its column's ground up (never into caves).
+  `Action::MarkSite { lo, hi, level, job }` and `Action::RemoveSite { id }` (codec tags 21, 22). A
+  `survey` query (loaded chunks only) counts cut and fill blocks, ore, water and the net spoil. Nothing
+  works a site yet. **Done when:** tests for the order, limits, save and hash, and the codec pass.
+- [ ] **6.2 The planner.** A hand item `PLANNER` (272; recipe of plates, wire and glass; no research).
+  While held it aims up to `PLANNER_REACH` (64, like `belt_line.rs`'s far raycast): right-click sets the
+  first corner, the second opens a small panel (`web/src/ui/site.ts`): job buttons, height −/+ (default:
+  the first corner's surface), and the survey ("cut 1,240 · fill 310 · 930 to carry away · 12 ore ·
+  water"). Mark queues the action; right-click inside a site with the planner opens it (progress,
+  remove). Overlays: sites outlined in `render/outlines.ts` (cut red, fill blue, the pending one amber),
+  squares on the minimap. A tip: "Plan the ground". **Done when:** a Game-level test marks and removes
+  a site through the API; screenshots of marking, the panel and two sites.
+- [ ] **6.3 The excavator digs.** Block 57 `EXCAVATOR`, `factory/excavator/` (its own folder: machine,
+  drones model, tests), unlocked by an **Earthworks** tech (red and green packs). It works the nearest
+  site whose closest cell lies within `EXCAVATOR_RANGE` (32) and draws 30 kW. Four drones (presentation
+  only, derived from each cell's progress like the quarry's head) fly out, cut a block and fly back with
+  it; about 4 blocks a second at full power. It digs ground, logs and leaves (leaves drop nothing, logs
+  become logs); ore and spent rock go like hand mining (`HAND_YIELD`, costing the deposit), and the
+  planner warns about them first. Bedrock, machines, belts and pipes stay. It waits while a cell is
+  water ("flooded"). Output: a buffer feeding belts and boxes like the quarry's. Several excavators on
+  one site share its cells. **Done when:** a 16 × 16 hill is cut to a level and a belt carries exactly its
+  blocks; ore handling, sharing and a save mid-dig pass; screenshots of the drones at work.
+- [ ] **6.4 Fill and flatten.** An excavator fills cells from its buffer: dirt for the top layer when it
+  has some (grass spreads by itself through the block timers), else stone or rock. It takes fill from
+  belts and boxes beside it (a sink for `QUARRIABLE` drops). Dug blocks go to fill sites in range first,
+  then out, so a flatten site balances itself and a fill site anywhere in range is a dump. Filling into
+  water replaces it. **Done when:** a flatten site ends level with the surplus boxed; a fill site in the
+  sea makes dry land that stays dry; a hill carried into a hollow; screenshots before and after.
+- [ ] **6.5 Tunnels.** A planner mode: two points make a straight tunnel (1 × 2, 3 × 3 or 5 × 5; slopes
+  up to 1 in 2), dug from the first point by an excavator in range of it. The excavator moves its work
+  point along the tunnel (range from the tunnel face, not the machine), so a long tunnel needs one
+  excavator at its mouth. Breaking into water waits like a cut. **Done when:** a 64-block tunnel through
+  a hill, a sloped one down to a vein, and a flooded breach that waits pass as tests; a screenshot.
+- [ ] **6.6 Scale and feel.** Earthworks 2 (research): excavator Mk2 with 8 drones, range 48, twice the
+  speed. Measure the worst tick and remeshing with 4 excavators on a 64 × 64 flatten next to the sea;
+  fix what shows. Sounds and cracks for drones near the camera only. README, tips, balance numbers.
+- [ ] **6.7 Milestone 6 cleanup.** Section 3.1 checklist, measured numbers, `docs/CODEMAP.md` current.
+  Then ask the Milestone 7 questions (section 6) and move Milestone 7 in from the roadmap.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -409,10 +465,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 5
+## 5. Roadmap after Milestone 6
 
-Milestones 6–8 are in `docs/ROADMAP.md`; read it only when planning (Milestone 6 moves in once its
-questions are answered).
+Milestones 7–10 are in `docs/ROADMAP.md`; read it only when planning.
 
 ---
 
@@ -423,10 +478,9 @@ and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M6 | Which part first: terraforming machines, blueprints and drones, transport (trains, trucks, personal), or simple logic? (Recommended: terraforming, the signature feature.) |
-| M6 | Terraforming: is "mark an area with a tool, pick a job" right, and where does dug material go: items into boxes and belts (a lot of stone), or straight to a dump site? |
-| M6 | Transport: trains first, or personal movement (hoverpack, ziplines) first? |
-| M8 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
+| M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes in range of a drone port, or anywhere on a network? |
+| M8 | Personal flight: a jetpack that burns fuel, a powered hover pack, or both as tiers? And trains or trucks after it? |
+| M10 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
 
 ---
 
@@ -464,7 +518,7 @@ and the balance numbers. Read the section you need.
   `Action::Rotate` on R, research on T, tech 1 is Belt Lifts. Golden hash re-recorded. Tests 183 → 193.
 - **2026-09-27: Milestone 5 redefined** at the user's request: Water and world shape (sea, ponds,
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
-  3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
+  3) comes before terraforming, which moved to Milestone 6.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
 - **2026-09-27: Milestone 5 (Water and world shape) done** (`becc673` to `c1c61f9`): generator version 3
   (version 2 pinned; rare surface ore on bare rock, depth bands, a starter set 40–80 blocks out; measured
@@ -480,5 +534,8 @@ and the balance numbers. Read the section you need.
   so the first loop (a coal miner feeding its own generator) comes right after the first miner; a new
   tip (10 of 10). Save version 16 (old fire ticks convert to energy); golden hash re-recorded. Old
   worlds' Mk1 miners stop until a pole and generator reach them. Tests 225 → 226.
-- **2026-09-27: 5.9 done** (Milestone 5 cleanup): plan compressed, section 2 and the README brought up
-  to date, sizes measured. Milestone 6 waits for the user's answers (section 6).
+- **2026-09-27: 5.9 done** (Milestone 5 cleanup, `a682a28`): plan compressed, section 2 and the README
+  brought up to date, sizes measured.
+- **2026-09-27: Milestone 6 (Terraforming) detailed** after the user set the order (terraforming, then
+  blueprints and drones, then transport with personal flight first). The roadmap is renumbered: 7
+  Blueprints and drones, 8 Transport and flight, 9 Fluids and depth, 10 Endgame.

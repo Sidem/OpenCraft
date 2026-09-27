@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 5)
+# OpenCraft roadmap (after Milestone 6)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -8,36 +8,43 @@ The order can change with the user's priorities. The determinism rules (DEV_PLAN
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) apply to all of it.
 Every milestone ends with a cleanup step (DEV_PLAN section 3.1, "Session habits").
 
-## Milestone 6: Scale and terrain
+**The arc the user asked for (2026-09-27):** a steady, intuitive and fun growth of the player's reach:
+building by hand → planning an area → machines and drones doing the work → building from afar and from
+the air. Milestone 6 (terraforming, in the plan) starts it; its planner tool and work drones are what
+Milestone 7 builds on.
 
-Its questions are in DEV_PLAN section 6; ask them before detailing it. Milestone 5 (water) is done.
+## Milestone 7: Blueprints and construction drones
 
-- **Terraforming machines** (the signature feature), grown from Milestone 5's quarry. Start with "mark an area, pick a job"; no
-  programming language needed: an excavator digs a marked area and hauls the spoil to a box or dump
-  site, a grader flattens to a height, a filler places fill, a borer cuts tunnels and shafts. Digging
-  below sea level floods unless dammed and pumped (Milestone 5).
-- **Byproducts as fill:** slag from smelting and tailings from washing become fill material, so waste
-  feeds the terrain system.
-- **Blueprints and construction drones:** copy a region of machines, place a ghost, and drones build it
-  from storage (or tear it down).
-- **Transport:** personal (hoverpack, ziplines along power lines), trucks on recorded routes, trains
-  (rails on the grid, stations, signals), which create demand for rail beds, cuttings, tunnels and bridges.
-- **Simple logic:** sensors (belt full, box full) and on/off conditions on machines.
+Its questions are in DEV_PLAN section 6; ask them before detailing it.
 
-Everything stays deterministic (DEV_PLAN section 3.4): machines change the world only through the core,
-never through loaded chunks.
+- **Blueprints:** select an area of machines and belts to copy it; place it as a ghost (rotate, see what
+  is missing); ghosts can also be placed by hand from the build menu, one by one or dragged out.
+- **Construction drones** (grown from Milestone 6's work drones): a drone port sends drones to build
+  ghosts from materials in boxes, and to tear down what you mark. Range and drone count are research tiers.
+- **Planning at scale:** a planner view that shows sites, ghosts and what they still need; a longer
+  reach for placing ghosts than for building by hand.
+- **Simple logic** where it helps construction: machines with an on/off condition (box full, belt full).
 
-## Milestone 7: Fluids and depth
+## Milestone 8: Transport and personal flight
+
+- **Personal flight first** (the user's wish): a jetpack or hover pack so the player reaches and builds
+  from above and further away; tiers could add range, speed and time aloft. Ziplines along power lines
+  as a cheap early option.
+- **Trains** (rails on the grid, stations, signals) or **trucks** on recorded routes, which create demand
+  for rail beds, cuttings, tunnels and bridges (Milestone 6's jobs).
+
+## Milestone 9: Fluids and depth
 
 - **Rivers** carved into the height map, flowing downhill to the sea (still water, pumps, pipes and
-  limited flow arrive in Milestone 5).
+  limited flow arrived in Milestone 5).
 - **Steam generators** (water plus fuel) and **hydro** power with dams.
-- **Ore washing:** a recovery bonus, producing tailings.
+- **Ore washing:** a recovery bonus, producing tailings. **Byproducts as fill:** slag from smelting and
+  tailings from washing become fill material for terraforming sites.
 - **Mine shafts and hoists:** lodes sit 40+ blocks down, so lifting ore is a voxel-native logistics
   puzzle.
 - **Oil:** reservoirs, pumpjacks, a refinery; plastics and rubber.
 
-## Milestone 8: Endgame (optional, non-ending)
+## Milestone 10: Endgame (optional, non-ending)
 
 - Advanced research tiers: electronics, computers, aluminium, nuclear.
 - **The megaproject** (theme to be decided, e.g. a rocket). It's built in phases, physically in the world,
