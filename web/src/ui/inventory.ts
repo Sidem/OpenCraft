@@ -1,16 +1,15 @@
-// Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the
-// hand-crafting recipes (greyed out, naming the tech, while research locks them). Opened on a storage box (right-click), it shows
-// the box's slots above the inventory instead of the recipes, like a chest: clicks move stacks with the
-// cursor, shift-clicks move whole stacks between the box and the inventory.
+// Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the build menu
+// (`crafting.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
+// instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
+// stacks between the box and the inventory.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
+import { BuildMenu } from './crafting';
 import { h } from './dom';
 import { showAmount } from './hud';
 
 const ICON_PX = 64;
-/** Shift-clicking Craft makes up to this many at once. */
-const BULK_CRAFT = 5;
 
 interface SlotView {
   root: HTMLDivElement;
@@ -18,22 +17,6 @@ interface SlotView {
   count: HTMLSpanElement;
   item: number;
   n: number;
-}
-
-interface Chip {
-  item: number;
-  need: number;
-  el: HTMLSpanElement;
-  have: HTMLSpanElement;
-}
-
-interface RecipeView {
-  id: number;
-  root: HTMLDivElement;
-  craft: HTMLButtonElement;
-  chips: Chip[];
-  /** Which research unlocks it, while it's locked. */
-  lock: HTMLParagraphElement;
 }
 
 export class InventoryPanel {
@@ -45,11 +28,10 @@ export class InventoryPanel {
   private readonly backdrop = h('div', 'inv-backdrop hidden');
   private readonly dialog = h('div', 'inv');
   private readonly slots: SlotView[] = [];
-  private readonly recipes: RecipeView[] = [];
   private readonly cursor: SlotView;
   private version = -1;
   private readonly title = h('h2', '', 'Inventory & build');
-  private readonly build = h('section', 'inv-build');
+  private readonly menu: BuildMenu;
   private readonly boxSection = h('section', 'inv-box hidden');
   private readonly boxGrid = h('div', 'inv-grid inv-box-grid');
   private readonly boxSlots: SlotView[] = [];
@@ -106,17 +88,11 @@ export class InventoryPanel {
     this.boxSection.append(boxHead, this.boxGrid);
     items.append(this.boxSection, h('h3', '', 'Backpack'), pack, h('h3', '', 'Hotbar'), bar, note);
 
-    const build = this.build;
-    const list = h('div', 'recipe-list');
-    for (let r = 0; r < game.recipe_count(); r++) {
-      const view = this.makeRecipe(r);
-      this.recipes.push(view);
-      list.append(view.root);
-    }
-    build.append(h('h3', '', 'Build'), list, h('p', 'inv-note', 'Shift-click Craft to make up to 5 at once.'));
+    this.menu = new BuildMenu(game, icon);
+    this.menu.onCraft = () => this.onCraft();
 
     const body = h('div', 'inv-body');
-    body.append(items, build);
+    body.append(items, this.menu.el);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -135,7 +111,7 @@ export class InventoryPanel {
     this.backdrop.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
       if (!this.isOpen || e.repeat) return;
-      if (e.code === 'KeyE') {
+      if (e.code === 'KeyE' && !(e.target instanceof HTMLInputElement)) {
         e.preventDefault();
         this.close(true);
       } else if (e.key === 'Escape') {
@@ -161,7 +137,7 @@ export class InventoryPanel {
       this.boxGrid.append(slot.root);
     }
     this.boxSection.classList.toggle('hidden', !box);
-    this.build.classList.toggle('hidden', !!box);
+    this.menu.el.classList.toggle('hidden', !!box);
     this.dialog.classList.toggle('inv-with-box', !!box);
     this.title.textContent = box ? 'Storage box' : 'Inventory & build';
     this.backdrop.classList.remove('hidden');
@@ -174,6 +150,7 @@ export class InventoryPanel {
   close(resume: boolean): void {
     if (!this.isOpen) return;
     this.backdrop.classList.add('hidden');
+    this.menu.hideInfo();
     this.onClose(resume);
   }
 
@@ -201,20 +178,7 @@ export class InventoryPanel {
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);
 
-    for (const r of this.recipes) {
-      for (const c of r.chips) {
-        const have = g.item_total(c.item);
-        c.have.textContent = `${have}/${c.need}`;
-        c.el.classList.toggle('short', have < c.need);
-      }
-      const ok = g.can_craft(r.id);
-      r.craft.disabled = !ok;
-      r.root.classList.toggle('ready', ok);
-      const tech = g.recipe_locked_by(r.id);
-      r.root.classList.toggle('locked', tech >= 0);
-      r.craft.textContent = tech >= 0 ? 'Locked' : 'Craft';
-      r.lock.textContent = tech >= 0 ? `Research ${g.tech_name(tech)} to unlock it (R).` : '';
-    }
+    if (!this.box) this.menu.update();
   }
 
   /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held). */
@@ -233,47 +197,6 @@ export class InventoryPanel {
       this.update();
     });
     return { root, icon, count, item: -1, n: -1 };
-  }
-
-  private makeRecipe(r: number): RecipeView {
-    const g = this.game;
-    const out = g.recipe_output(r);
-    const root = h('div', 'recipe');
-    const text = h('div', 'recipe-text');
-    const title = h('h4', '', g.item_name(out));
-    const n = g.recipe_output_count(r);
-    if (n > 1 && g.tool_uses(out) === 0) title.append(h('span', 'recipe-yield', ` ×${n}`));
-    const inputs = h('div', 'recipe-inputs');
-    const chips: Chip[] = [];
-    const flat = g.recipe_inputs(r);
-    for (let k = 0; k + 1 < flat.length; k += 2) {
-      const item = flat[k], need = flat[k + 1];
-      const el = h('span', 'chip');
-      el.title = this.game.item_name(item);
-      const have = h('span', 'chip-have');
-      el.append(this.iconCanvas(item, 'chip-icon'), this.game.item_name(item), have);
-      inputs.append(el);
-      chips.push({ item, need, el, have });
-    }
-    const lock = h('p', 'recipe-lock');
-    text.append(title, h('p', '', g.recipe_blurb(r)), inputs, lock);
-
-    const craft = h('button', 'secondary-btn craft-btn', 'Craft');
-    craft.type = 'button';
-    craft.title = `Shift-click to craft up to ${BULK_CRAFT}`;
-    craft.addEventListener('click', (e) => {
-      if (g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
-      this.update();
-    });
-    root.append(this.iconCanvas(out, 'recipe-icon'), text, craft);
-    return { id: r, root, craft, chips, lock };
-  }
-
-  private iconCanvas(item: number, className: string): HTMLCanvasElement {
-    const c = h('canvas', className);
-    c.width = c.height = ICON_PX;
-    c.getContext('2d')!.drawImage(this.icon(item), 0, 0);
-    return c;
   }
 
   private drawSlot(s: SlotView, item: number, n: number): void {

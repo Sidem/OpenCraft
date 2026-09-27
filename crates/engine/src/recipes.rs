@@ -1,6 +1,7 @@
 //! Recipes as data tables: hand crafting for buildings ([`RECIPES`], listed in order by the build
 //! menu), what machines make ([`MACHINE_RECIPES`]) and what burns as fuel ([`FUELS`]).
-//! To add a recipe: add a row. Machine recipes are saved by index, so append those, never reorder.
+//! To add a recipe: add a row (its `group` is its build-menu section). Machine recipes are saved by
+//! index, so append those, never reorder.
 
 use crate::block::*;
 use crate::inventory::Inventory;
@@ -10,8 +11,37 @@ use crate::item::{
 };
 use crate::tools::{IRON_TIER, STONE_TIER};
 
+/// The build menu's sections, in the order it shows them.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Group {
+    Production,
+    Logistics,
+    Power,
+    Science,
+    Tools,
+    Building,
+}
+
+pub const GROUPS: [Group; 6] =
+    [Group::Production, Group::Logistics, Group::Power, Group::Science, Group::Tools, Group::Building];
+
+impl Group {
+    pub fn name(self) -> &'static str {
+        match self {
+            Group::Production => "Production",
+            Group::Logistics => "Logistics",
+            Group::Power => "Power",
+            Group::Science => "Science",
+            Group::Tools => "Tools",
+            Group::Building => "Building",
+        }
+    }
+}
+
 pub struct Recipe {
     pub output: ItemId,
+    /// Its section in the build menu.
+    pub group: Group,
     pub count: u32,
     pub inputs: &'static [(ItemId, u32)],
     /// One line for the build menu.
@@ -28,6 +58,7 @@ impl Recipe {
 pub const RECIPES: &[Recipe] = &[
     Recipe {
         output: b(MINER),
+        group: Group::Production,
         count: 1,
         inputs: &[(b(IRON_ORE), 10), (b(COPPER_ORE), 6), (b(STONE), 12)],
         blurb: "Place it against an ore block. It drills the whole deposit, recovers 60% of what it draws, \
@@ -35,6 +66,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(BELT),
+        group: Group::Logistics,
         count: 4,
         inputs: &[(b(IRON_ORE), 1), (b(STONE), 2)],
         blurb: "Carries items the way you are facing when you place it. Belts feed into belts, machines, \
@@ -42,6 +74,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(STORAGE),
+        group: Group::Logistics,
         count: 1,
         inputs: &[(b(LOG), 6), (b(IRON_ORE), 2)],
         blurb: "Holds 24 stacks. Belts deliver into it; a belt leading away from it is fed from it. \
@@ -49,6 +82,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(SMELTER),
+        group: Group::Production,
         count: 1,
         inputs: &[(b(STONE), 16), (b(IRON_ORE), 4)],
         blurb: "Melts iron or copper ore into ingots while it has fuel: coal ore or logs. Belts bring \
@@ -56,6 +90,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(CONSTRUCTOR),
+        group: Group::Production,
         count: 1,
         inputs: &[(IRON_INGOT, 10), (COPPER_INGOT, 4), (b(STONE), 8)],
         blurb: "Shapes ingots into parts: plates, rods, screws and wire. Right-click to choose what it makes; \
@@ -63,6 +98,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(SPLITTER),
+        group: Group::Logistics,
         count: 1,
         inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
         blurb: "Takes items from belts leading into it and shares them between the belts leading away in \
@@ -70,6 +106,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(FILTER),
+        group: Group::Logistics,
         count: 1,
         inputs: &[(IRON_PLATE, 2), (COPPER_WIRE, 2), (b(BELT), 2)],
         blurb: "Sends the item you choose straight on and everything else to the left and right. \
@@ -77,6 +114,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(RAMP_UP),
+        group: Group::Logistics,
         count: 2,
         inputs: &[(IRON_PLATE, 1), (b(BELT), 2)],
         blurb: "A belt that climbs one level: it hands items on one block ahead and one up. Place it \
@@ -84,6 +122,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(RAMP_DOWN),
+        group: Group::Logistics,
         count: 2,
         inputs: &[(IRON_PLATE, 1), (b(BELT), 2)],
         blurb: "A belt that goes down one level: a belt one block up behind it feeds its high end. Place \
@@ -91,6 +130,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(LIFT),
+        group: Group::Logistics,
         count: 2,
         inputs: &[(IRON_ROD, 2), (b(BELT), 2)],
         blurb: "Carries items straight up. Stack lifts facing the same way to climb higher; the top one \
@@ -98,6 +138,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(UNDERPASS_IN),
+        group: Group::Logistics,
         count: 1,
         inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
         blurb: "Takes items under whatever is in front of it to an underpass exit facing the same way, \
@@ -105,12 +146,14 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(UNDERPASS_OUT),
+        group: Group::Logistics,
         count: 1,
         inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
         blurb: "Where items come back up from an underpass entry behind it, then carry on like a belt.",
     },
     Recipe {
         output: b(GENERATOR),
+        group: Group::Power,
         count: 1,
         inputs: &[(IRON_INGOT, 12), (COPPER_INGOT, 8), (b(STONE), 10)],
         blurb: "Burns coal ore or logs into 60 kW of power, only while its grid needs it. Place a power pole \
@@ -118,6 +161,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(POLE),
+        group: Group::Power,
         count: 2,
         inputs: &[(IRON_INGOT, 1), (COPPER_INGOT, 1), (b(LOG), 1)],
         blurb: "Links to every pole within 10 blocks and powers generators and machines within 5. \
@@ -125,6 +169,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(LAB),
+        group: Group::Science,
         count: 1,
         inputs: &[(IRON_PLATE, 6), (COPPER_WIRE, 8), (b(BELT), 4)],
         blurb: "Uses science packs to research new machines (press R to choose what). Belts bring packs in; \
@@ -132,18 +177,21 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: RED_PACK,
+        group: Group::Science,
         count: 1,
         inputs: &[(IRON_PLATE, 1), (COPPER_WIRE, 2)],
         blurb: "A lab uses these to research the first techs.",
     },
     Recipe {
         output: GREEN_PACK,
+        group: Group::Science,
         count: 1,
         inputs: &[(b(BELT), 2), (SCREW, 4)],
         blurb: "A lab uses these, with red packs, for later techs.",
     },
     Recipe {
         output: b(MINER_MK2),
+        group: Group::Production,
         count: 1,
         inputs: &[(b(MINER), 1), (IRON_PLATE, 8), (SCREW, 16), (COPPER_WIRE, 12)],
         blurb: "Drills twice as fast as a Mk1 and recovers 75% of what it draws, so the same deposit gives \
@@ -151,6 +199,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: b(FAST_BELT),
+        group: Group::Logistics,
         count: 2,
         inputs: &[(b(BELT), 2), (IRON_PLATE, 1), (SCREW, 4)],
         blurb: "Carries items twice as fast as a belt. Mixes freely with ordinary belts.",
@@ -158,42 +207,49 @@ pub const RECIPES: &[Recipe] = &[
     // Tools: the count is the uses (tools.rs), so a craft makes one fresh tool.
     Recipe {
         output: STONE_PICKAXE,
+        group: Group::Tools,
         count: STONE_TIER.uses,
         inputs: &[(b(STONE), 3), (b(LOG), 2)],
         blurb: "Hold it to break stone and ore twice as fast. Wears out after 150 blocks.",
     },
     Recipe {
         output: STONE_AXE,
+        group: Group::Tools,
         count: STONE_TIER.uses,
         inputs: &[(b(STONE), 3), (b(LOG), 2)],
         blurb: "Hold it to chop wood twice as fast. Wears out after 150 blocks.",
     },
     Recipe {
         output: STONE_SHOVEL,
+        group: Group::Tools,
         count: STONE_TIER.uses,
         inputs: &[(b(STONE), 1), (b(LOG), 2)],
         blurb: "Hold it to dig dirt, grass and sand twice as fast. Wears out after 150 blocks.",
     },
     Recipe {
         output: IRON_PICKAXE,
+        group: Group::Tools,
         count: IRON_TIER.uses,
         inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
         blurb: "Breaks stone and ore four times as fast and keeps 4 ore per block instead of 3. Lasts 600 blocks.",
     },
     Recipe {
         output: IRON_AXE,
+        group: Group::Tools,
         count: IRON_TIER.uses,
         inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
         blurb: "Chops wood four times as fast. Lasts 600 blocks.",
     },
     Recipe {
         output: IRON_SHOVEL,
+        group: Group::Tools,
         count: IRON_TIER.uses,
         inputs: &[(IRON_PLATE, 1), (IRON_ROD, 2)],
         blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
     },
     Recipe {
         output: SCANNER,
+        group: Group::Tools,
         count: 1,
         inputs: &[(IRON_PLATE, 4), (COPPER_WIRE, 6), (SCREW, 4)],
         blurb: "Hold it and right-click to list the ore deposits within 48 blocks: what, how deep, which way \
@@ -201,6 +257,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: CORE_DRILL,
+        group: Group::Tools,
         count: 1,
         inputs: &[(IRON_PLATE, 6), (COPPER_WIRE, 2), (SCREW, 8)],
         blurb: "Hold right-click on the ground for 3 seconds to learn exactly how much ore lies beneath it, \

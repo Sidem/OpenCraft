@@ -181,7 +181,10 @@ size.
 - **Machine panels.** Right-click a smelter, constructor, filter, generator or lab to see what it's doing, put items in
   straight from your inventory (ore, fuel, ingots, packs), and take what it made.
 
-Craft machines in the build menu (E): a Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
+Craft machines in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
+or everything made from a material, and filter by what you can craft now, what misses materials and what
+research still locks. Hover a recipe for its description and materials; click it to craft one, Shift-click
+for up to five. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
 wire and 2 belts. Two ramps (up or down) cost an iron plate and 2 belts, two lifts 2 iron rods and 2

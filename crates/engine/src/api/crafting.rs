@@ -4,7 +4,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::recipes::RECIPES;
+use crate::recipes::{GROUPS, RECIPES};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -28,6 +28,24 @@ impl Game {
 
     pub fn recipe_blurb(&self, r: u32) -> String {
         RECIPES.get(r as usize).map_or_else(String::new, |x| x.blurb.to_string())
+    }
+
+    /// The build-menu section of recipe `r`, an index into the groups (`recipe_group_name`).
+    pub fn recipe_group(&self, r: u32) -> u32 {
+        RECIPES.get(r as usize).map_or(0, |x| GROUPS.iter().position(|&g| g == x.group).unwrap_or(0) as u32)
+    }
+
+    pub fn recipe_group_count(&self) -> u32 {
+        GROUPS.len() as u32
+    }
+
+    pub fn recipe_group_name(&self, g: u32) -> String {
+        GROUPS.get(g as usize).map_or("", |g| g.name()).to_string()
+    }
+
+    /// How many times the local player can craft recipe `r` right now (0 while research locks it).
+    pub fn craftable_times(&self, r: u32) -> u32 {
+        self.affordable(r)
     }
 
     /// The tech (`tech_*`) that must be researched before recipe `r` can be crafted, or -1.

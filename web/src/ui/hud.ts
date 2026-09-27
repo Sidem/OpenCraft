@@ -234,7 +234,8 @@ export class Hud {
       const top = this.layers[topLayer], side = this.layers[sideLayer];
       const left = project(x - a / 2, y + h / 2, z + b / 2);
       const right = project(x + a / 2, y + h / 2, z + b / 2);
-      const peak = project(x, y + h / 2, z);
+      // The top face's texture starts at its back (topmost) corner, then runs along +x and +z.
+      const peak = project(x - a / 2, y + h / 2, z - b / 2);
       face(side, [(a * k) / 2, (a * k) / 4, 0, (h * k) / 2, left[0], left[1]], 0.22);
       face(side, [(b * k) / 2, (-b * k) / 4, 0, (h * k) / 2, right[0], right[1]], 0.4);
       face(top, [(a * k) / 2, (a * k) / 4, (-b * k) / 2, (b * k) / 4, peak[0], peak[1]], 0);

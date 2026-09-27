@@ -1,4 +1,4 @@
-/* Inventory and build screen (inventory.ts): slot grids, cursor stack, recipe cards, box screen. */
+/* Inventory screen (inventory.ts): slot grids, cursor stack, box screen; the build menu is crafting.css. */
 
 .inv-backdrop {
   position: fixed;
@@ -146,111 +146,6 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--muted);
-}
-
-.recipe-list {
-  display: grid;
-  gap: 8px;
-}
-
-.recipe {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.recipe.ready {
-  border-color: rgba(250, 149, 73, 0.35);
-}
-
-.recipe.locked > :not(.recipe-text),
-.recipe.locked .recipe-text > :not(.recipe-lock) {
-  opacity: 0.45;
-}
-
-.recipe-text .recipe-lock {
-  margin: 6px 0 0;
-  color: var(--accent);
-}
-
-.recipe-text .recipe-lock:empty {
-  display: none;
-}
-
-.recipe-icon {
-  width: 44px;
-  height: 44px;
-}
-
-.recipe-text h4 {
-  margin: 0;
-  font-size: 14px;
-}
-
-.recipe-yield {
-  color: var(--accent);
-}
-
-.recipe-text p {
-  margin: 2px 0 6px;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--muted);
-}
-
-.recipe-inputs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 8px 2px 3px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 12px;
-}
-
-.chip-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.chip-have {
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.chip.short {
-  border-color: rgba(224, 101, 79, 0.45);
-}
-
-.chip.short .chip-have {
-  color: #ff9a86;
-}
-
-.craft-btn:not(:disabled) {
-  border-color: rgba(250, 149, 73, 0.6);
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.craft-btn:not(:disabled):hover {
-  background: rgba(250, 149, 73, 0.3);
-}
-
-.craft-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

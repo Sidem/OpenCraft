@@ -32,7 +32,7 @@ folder with `mod.rs`.
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, box instances, name-tag anchors (`label_ptr`, `label_count`), sound events, textures |
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, `close_inventory`, pickup notifications |
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); box screens (`box_slots`, `click_box`, `store_slot`) |
-| `api/crafting.rs` | Recipe queries (`recipe_locked_by`) and `craft` |
+| `api/crafting.rs` | Recipe queries (`recipe_locked_by`, `craftable_times`, `recipe_group` and group names) and `craft` |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
 | `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery` |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters |
@@ -77,7 +77,7 @@ folder with `mod.rs`.
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
-| `recipes.rs` | Hand-crafting recipes (`RECIPES`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` burn times |
+| `recipes.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` burn times |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, fly) |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
@@ -123,7 +123,8 @@ folder with `mod.rs`.
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
-| `ui/inventory.ts` + `.css` | Inventory and build screen (E); opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
+| `ui/inventory.ts` + `.css` | Inventory screen (E) with the build menu; opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
+| `ui/crafting.ts` + `.css` | Build menu: recipe tiles grouped by `recipe_group`, text search (output and material names), state filters (all, can craft, missing, locked), one hover info card; click crafts, Shift-click 5 |
 | `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor, filter, generator or lab): status, progress, buffers, recipe choice, filter item, put-in and take buttons |
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow` |
@@ -173,7 +174,7 @@ Placeable blocks work at once; worldgen use goes in `worldgen/`.
 **An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
 and a row in `item.rs` `EXTRA`, with a texture layer in `block::tex` and its pattern in `textures::pixel`
 if it needs a new look; the HUD icon and the loose and belt models follow from the row. A recipe is a row
-in `recipes.rs`; the build menu shows every row. To lock it behind research, list its output in a tech's
+in `recipes.rs` (its `group` picks the build-menu section); the build menu shows every row. To lock it behind research, list its output in a tech's
 `unlocks` (`research.rs`).
 
 **A tech.** A row appended to `TECHS` in `research.rs` (saves store progress by index): name, blurb,
