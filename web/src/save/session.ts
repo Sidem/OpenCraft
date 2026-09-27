@@ -1,7 +1,8 @@
 // The world being played: `openWorld` picks and loads it at startup, `Session` autosaves it, and
 // `switchTo` changes worlds. Autosaves run every minute and when the menu opens (gzipped), and when the
 // tab is hidden or closed (raw, since there may be no time to compress). A co-op client never saves: the
-// world is the host's. Switching worlds saves, marks the other world as the latest and reloads the page
+// world is the host's. Each save also stores the prospected deposits in the world's record, and a
+// session restores them (the minimap's marks). Switching worlds saves, marks the other world as the latest and reloads the page
 // (without co-op parameters: `soloUrl`), which is simpler and leaner than swapping engines in place
 // (wasm memory never shrinks).
 
@@ -65,6 +66,7 @@ export class Session {
     private readonly game: Game,
   ) {
     this.savedTime = game.play_seconds();
+    game.set_known_deposits(new Int32Array(meta.marks ?? []));
     this.timer = window.setInterval(() => this.save().catch(() => {}), AUTOSAVE_MS);
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) this.saveNow();
@@ -105,7 +107,8 @@ export class Session {
   /** Writes into the slot that isn't newest, keeping the newest as the backup. */
   private async write(bytes: Uint8Array, time: number): Promise<void> {
     const slot = this.meta.slot === 0 ? 1 : 0;
-    this.meta = { ...this.meta, updated: Date.now(), playTime: time, slot };
+    const marks = Array.from(this.game.known_deposits());
+    this.meta = { ...this.meta, updated: Date.now(), playTime: time, slot, marks };
     this.savedTime = time;
     try {
       await this.store.write(this.meta, bytes);

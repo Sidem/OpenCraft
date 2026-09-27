@@ -38,7 +38,7 @@ folder with `mod.rs`.
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/net.rs` | `start_host`, `start_client`, `from_snapshot`, `resync`, `is_client`, `host_join` / `host_leave`, `snapshot`, `host_stamp`, `take_frames`, `take_checksums`, `take_outbox`, `push_frames`, `local_player`, `take_states`, `host_state`, `push_states`, `take_item_view`, `push_items`, `core_tick`, `confirmed_tick` |
-| `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players` |
+| `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players`, `minimap_marks` / `minimap_mark_fields`, `known_deposits` / `set_known_deposits` |
 | `api/prospect.rs` | The latest prospecting reading (`prospect_seq`, `prospect_kind`, `prospect_records`, `prospect_fields`, `prospect_origin`), `held_device`, `scan_range`, `deposit_label` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
@@ -71,7 +71,7 @@ folder with `mod.rs`.
 | `factory/constructor.rs` | Constructor: one input into parts with the recipe chosen in its panel; `set_recipe` hands inputs back; bytes, readout, panel, model |
 | `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role, filter item), `box_slots`, `set_recipe`, `set_filter`, `insert`, `wants`, `take_contents` |
 | `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs for every shape, corners, lift stacks, machine outputs, downstream-first belt order (derived data) |
-| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models |
+| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models; `map_machines` (positions for the minimap's marks) |
 | `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
 | `entities.rs` | Dropped items: ids, physics, magnet pickup by the nearest `Collector` with room, instances (`push_item_box`) |
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
@@ -83,6 +83,7 @@ folder with `mod.rs`.
 | `raycast.rs` | Voxel traversal for targeting |
 | `mesher.rs` | Greedy mesher with AO; packed `u32` vertex format; plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
+| `minimap/marks.rs` | Deposit and machine marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` (flat records with colours; dry deposits left out) |
 | `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
 | `textures/nature.rs` | Alpine natural blocks: slate, pebbled earth, turf with blades, ragged grass edge, rippled sand, leaf clusters (4 looks), bark, bedrock; the four surface hints (`HINTS`) |
 | `textures/paint.rs` | Painting helpers: palette ramps, wrapping cells, blobs kept inside the tile |
@@ -112,7 +113,7 @@ folder with `mod.rs`.
 | `net/ticker.ts` | `tickWhenStalled`: a tiny worker timer that runs frames without drawing while the frame loop is stopped (hidden tab, minimised window), so a co-op host keeps ticking |
 | `net/signal.ts` | The deployed signalling Worker: `SIGNAL_URL`, `newRoom`, `fetchIce`, `openRoom` (WebSocket), `closeReason`, `isRoomCode` |
 | `net/webrtc.ts` | Machines over WebRTC: `hostWebRtc` (room code, one data channel per joiner), `joinWebRtc`; the channel `Transport` splits messages into 16 KB pieces |
-| `save/store.ts` | IndexedDB: `worlds` records (`WorldMeta`) and `saves` bytes in two slots per world (newest + backup); gzip `pack` / `unpack` |
+| `save/store.ts` | IndexedDB: `worlds` records (`WorldMeta`, with the prospected deposits as `marks`) and `saves` bytes in two slots per world (newest + backup); gzip `pack` / `unpack` |
 | `save/session.ts` | `openWorld` (latest world, backup fallback, `?seed=`), `Session` (autosave: every minute, on pause, hide and close; never for a co-op client), `switchTo` (save, then reload into another world), `soloUrl` (this page without co-op parameters) |
 | `base.css` | Theme variables, reset, focus rings, shared `.hidden`, `.secondary-btn`, `.close-btn` |
 | `input.ts` | Keyboard/mouse, pointer lock, held state and one-shot `Action`s |
@@ -127,7 +128,7 @@ folder with `mod.rs`.
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow` |
 | `ui/players.ts` + `.css` | In game: the player list while Tab is held, join and leave notices |
-| `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
+| `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), deposit and machine marks on an overlay canvas, player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
 | `ui/hints.ts` + `.css` | Onboarding tip card in the HUD (the first hint not done or skipped); H skips, skipped tips in localStorage; "Show tips again" in the menu |
 | `ui/prospect.ts` + `.css` | Prospecting card at the top left while a device is held: scan rows (arrows and distances follow the player) or a core sample's figures; calls `onReading` for the ping |
 | `ui/research.ts` + `.css` | Research screen (R): a card per tech (state, unlocks, cost, progress, choose); HUD tracker and "research done" notice |

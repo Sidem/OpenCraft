@@ -6,7 +6,12 @@
 //! and shades them. A pixel is its top block's average top-face colour (from the texture atlas),
 //! lighter or darker by the height step to its north-west neighbour; unknown columns stay transparent.
 //! `redraw` does nothing unless the centre moved or a tile in range changed; the host limits how often
-//! it asks. To colour a block differently, change its texture, not this file.
+//! it asks. To colour a block differently, change its texture, not this file. Deposit and machine
+//! marks over the image are in `minimap/marks.rs`.
+
+mod marks;
+
+pub use marks::{Known, MARK_FIELDS};
 
 use crate::block::{AIR, BLOCK_COUNT, FACE_TEX};
 use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
@@ -34,6 +39,8 @@ pub struct Minimap {
     /// Packed columns of the map plus a border row and column on the north-west (scratch).
     grid: Vec<u16>,
     pub pixels: Vec<u8>,
+    /// Deposits the local player has prospected (marks.rs).
+    pub known: Known,
 }
 
 impl Minimap {
@@ -49,6 +56,7 @@ impl Minimap {
             stale: true,
             grid: vec![0; (MAP_SIZE + 1) * (MAP_SIZE + 1)],
             pixels: vec![0; MAP_SIZE * MAP_SIZE * 4],
+            known: Known::default(),
         }
     }
 

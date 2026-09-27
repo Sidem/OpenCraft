@@ -54,7 +54,7 @@ the render distance in chunks (2 to 24, default 8).
 | E                   | Inventory and build menu                  |
 | R                   | Research: choose what labs work on        |
 | H                   | Skip the tip on screen (the menu can show tips again) |
-| N                   | Show or hide the minimap (top right, north up) |
+| N                   | Show or hide the minimap (top right, north up; rings mark veins and lodes you've prospected, squares your machines) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode (Space / C: up / down)    |

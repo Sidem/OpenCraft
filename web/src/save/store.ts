@@ -18,6 +18,10 @@ export interface WorldMeta {
   playTime: number;
   /** Slot (0 or 1) of the newest save, or null for a world never saved (it starts from its seed). */
   slot: number | null;
+  /** Deposits the player has prospected (the engine's `known_deposits`), for the minimap's marks. Kept
+   * here, not in the save, since they are the player's notes rather than the world. Missing in older
+   * records. */
+  marks?: number[];
 }
 
 /** A new, never-saved world. */

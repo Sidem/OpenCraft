@@ -1,5 +1,5 @@
-/* Minimap (ui/minimap.ts): round frame at the HUD's top right, the pixelated map image, player arrows
-   and the north marker. The frame size is mirrored as FRAME_PX in minimap.ts. */
+/* Minimap (ui/minimap.ts): round frame at the HUD's top right, the pixelated map image, the marks
+   overlay, player arrows and the north marker. The frame size is mirrored as FRAME_PX in minimap.ts. */
 
 .minimap {
   position: absolute;
@@ -18,6 +18,13 @@
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+}
+
+.mm-marks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .mm-arrow {

@@ -5,6 +5,7 @@
 //! throwaway copies (`DepositState::survey`), so the state hash never moves and co-op peers hear of
 //! nothing. Scans leave out deposits that are worked out. Readings are flat `i32` records for the host
 //! (`api/prospect.rs`, then `web/src/ui/prospect.ts`), and `seq` changes whenever a new one arrives.
+//! Every deposit read goes to the minimap's marks (`minimap/marks.rs`, presentation too).
 //!
 //! Driven by the hands (`interaction.rs`): with a device selected (`tools::device`), the use button
 //! prospects instead of placing. To add a figure: append it to its record, bump `*_FIELDS`, and read
@@ -99,6 +100,7 @@ impl Game {
                 let r = &mut self.prospect.records;
                 r.clear();
                 for Found { deposit: d, band } in found {
+                    self.minimap.known.remember(&d);
                     let (dx, dz, depth) = (d.center.x - at.x, d.center.z - at.z, at.y - d.center.y);
                     r.extend_from_slice(&[d.ore() as i32, d.tier() as i32, dx, dz, depth, band as i32]);
                 }
@@ -194,6 +196,7 @@ impl Game {
         r.clear();
         for s in samples {
             let d = &s.deposit;
+            self.minimap.known.remember(d);
             let figures = [s.remaining_blocks as i32, s.initial_blocks as i32, s.remaining_units as i32];
             r.extend_from_slice(&[d.ore() as i32, d.tier() as i32]);
             r.extend_from_slice(&figures);

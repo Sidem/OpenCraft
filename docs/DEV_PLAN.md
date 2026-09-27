@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
-TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.6 done; art salvaged and merged) · **Next up: step 4.7** · A graphics agent
+TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.7 done; art salvaged and merged) · **Next up: step 4.8** · A graphics agent
 works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -37,7 +37,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (161 engine tests).
+   (172 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -165,7 +165,8 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   quick-move. **Crafting** (`recipes.rs`): hand recipes in the build menu (key E), greyed while locked.
 - **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): seven tips from finding ore to research.
 - **Minimap** (`minimap.rs`, `ui/minimap.ts`, key N): loaded terrain around the player, north up, arrows
-  for every player; presentation only.
+  for every player; rings for prospected veins and lodes (kept in the browser's world record, dropped
+  when dry) and squares for machines (`minimap/marks.rs`); presentation only.
 - **Block timers** (`sim/timers.rs`, core state): leaves of a felled tree decay (half-life 5 s), grass
   spreads onto bare dirt beside it (30 s) and turns to dirt under a solid block (15 s), saplings grow.
   Timers start only from block changes, never from scanning chunks.
@@ -193,14 +194,14 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Prospecting** (`prospect.rs`, `ui/prospect.ts`): the scanner lists deposits within 48 blocks (ore,
   tier, live bearing and distance, depth, size band); the core drill (3 s hold) gives a column's exact
   figures. Queries only: no actions, the state hash never moves. Devices are tools that never wear.
-- **Size:** about 194 KB gzipped in total (wasm 146.2 KB, JS 41.5 KB, CSS 5.4 KB).
+- **Size:** about 204 KB gzipped in total (wasm 156.1 KB, JS 42.4 KB, CSS 5.4 KB).
 
 ### Known limitations and technical debt
 
 1. Only the local player has hands: another player's mining and placing reach this machine only as
    their results (by design; co-op sends actions, not hands).
 2. Two tabs on the same world overwrite each other's saves (the later save wins).
-3. Veins and lodes can only be found by digging; there's no prospecting (Milestone 4).
+3. ~~Veins and lodes can only be found by digging~~: fixed by prospecting (4.6) and map marks (4.7).
 4. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
 5. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
    order of sound materials and event kinds. Replace them with getters when touching that code.
@@ -431,7 +432,7 @@ queries and presentation; they never create core state. Each step is one session
   findable (limitation 3). **Done when:** tests: `scan` lists exactly the deposits a brute-force search
   finds in range, exhausted ones excluded; core-drill figures equal the deposit's remaining count; the
   state hash is unchanged by scanning and drilling (and in a co-op pair); a screenshot of the panel.
-- [ ] **4.7 Minimap markers.** Deposits once prospected (scan or drill results, kept per world in the
+- [x] **4.7 Minimap markers.** Deposits once prospected (scan or drill results, kept per world in the
   browser's world record in IndexedDB, so they survive reloads; presentation, not the save file) and
   machines (engine `minimap_marks`: kind and position of factory machines within the map's range, from
   the factory lists). TS draws small coloured marks over the image, clipped to the round frame; a
@@ -516,8 +517,6 @@ and the balance numbers. Read the section you need.
   machines hang on the nearest pole; power balances before miners each tick. Saves version 9. Tests
   74 → 113, wasm 120.3 KB gzipped. Lessons: measure wasm size every step; the golden hash catches every
   unintended core change; scenario tests with a bare `Factory` replace most browser checks.
-- **2026-09-25:** Step 2.11 cleanup; the user answered the M3 questions (Cloudflare Worker plus TURN; 2–4
-  players), and Milestone 3 was detailed as steps 3.1–3.10.
 - **2026-09-26: Milestone 3 (Co-op) done**, apart from the user's live tests (section 4): lockstep over
   bytes (`action/codec.rs`, `net/`: roles, frames, checksums every 60 ticks), join snapshots and player
   keys (save version 10), avatars and name tags, host-owned loose items, a hidden co-op tab that keeps
@@ -535,12 +534,9 @@ and the balance numbers. Read the section you need.
   (Escape closes panels first, minimap by default, leaf decay, grass spread, tools) ahead of Milestone 4.
   A graphics agent now works in parallel on branch `art` (`docs/ART_HANDOVER.md`). The user answered
   the tool questions: tools wear out, come in tiers, and a better pickaxe keeps slightly more ore.
-- **2026-09-26:** P1 done: Escape in a panel leaves the game on screen with a "Click to keep playing"
-  hint (`#resume-hint`, `main.ts`); a second Escape pauses (and saves). Web only; tests stay 127.
-- **2026-09-26:** P2 done: minimap (`minimap.rs`, `api/minimap.rs`, `ui/minimap.ts`): top blocks cached
-  per chunk column and dropped when a chunk meshes or unloads, a redraw 0.07 ms (new tiles about 0.3 ms
-  after a long jump). Deviations: N toggles it (M stays mute); no water tint, as there is no water yet.
-  Tests 127 → 130; wasm 131.5 → 134.2 KB gzipped (+2.7 KB).
+- **2026-09-26:** P1 and P2 done: Escape in a panel shows a "Click to keep playing" hint, a second one
+  pauses; the minimap (`minimap.rs`: top blocks cached per chunk column, a redraw 0.07 ms; N toggles it,
+  no water tint yet). Tests 127 → 130; wasm 131.5 → 134.2 KB gzipped.
 - **2026-09-26:** P3 and P4 done: block timers (`sim/timers.rs`: sorted, one per position and kind,
   capped at 4096, saved and hashed; save version 11), started by `Sim::block_changed` from breaking and
   placing and from the timers themselves. Leaf decay (a `LeafDecayed` event plays a soft rustle), grass
@@ -597,3 +593,7 @@ and the balance numbers. Read the section you need.
   right is taken), a `scan` ping. wasm 140.3 → 146.2 KB over 4.3–4.6. Tests 156 → 161.
 - **2026-09-26:** Art salvage merged (ART_HANDOVER log): alternates, hint grass/sand 40–43, tool models;
   hints no longer stain dirt. wasm 146.2 → 154.6 KB (art branch + salvage). Tests 161 → 167.
+- **2026-09-27:** 4.7 done: minimap marks (`minimap/marks.rs`, `Factory::map_machines`, an overlay canvas
+  in `ui/minimap.ts`; colours from the engine), 0.0014 ms to build. Deviations: only veins and lodes are
+  remembered (outcrops show by themselves), at most 1024; no marks for belts, routers, poles; a co-op
+  client's marks aren't kept. Tests 167 → 172; wasm 154.6 → 156.1 KB gzipped.

@@ -1,9 +1,10 @@
 // Minimap in the HUD's top-right corner: the engine's top-down image of the loaded world (minimap.rs,
 // one pixel per block column, north up, centred on the local player) in a round frame, an arrow for the
 // local player's facing and one per co-op player (pinned to the rim when out of range). The image is
-// redrawn at most 4 times a second and only when the engine says it changed. N toggles it; whether it
-// shows is UI state kept in localStorage. While shown it sets `--map-space` on #hud so the other
-// top-right HUD items move below it.
+// redrawn at most 4 times a second and only when the engine says it changed; the deposit and machine
+// marks (`minimap_marks`, colours from the engine) go on an overlay canvas at the same rate, clipped by
+// the round frame. N toggles it; whether it shows is UI state kept in localStorage. While shown it sets
+// `--map-space` on #hud so the other top-right HUD items move below it.
 
 import './minimap.css';
 import type { Game } from '../wasm/engine.js';
@@ -13,11 +14,16 @@ const STORAGE_KEY = 'opencraft.minimap.hidden';
 const REDRAW_MS = 250;
 const FRAME_PX = 150; // must match .minimap in minimap.css
 const MAP_SPACE_PX = FRAME_PX + 12;
+/** `minimap_marks` shape of a deposit (a machine is 1). */
+const DEPOSIT = 0;
 
 export class Minimap {
   private readonly el = h('div', 'minimap');
   private readonly canvas = h('canvas', 'mm-image');
   private readonly ctx: CanvasRenderingContext2D;
+  /** Deposit and machine marks, drawn at the screen's resolution over the image. */
+  private readonly overlay = h('canvas', 'mm-marks');
+  private readonly marks: CanvasRenderingContext2D;
   private readonly me = h('div', 'mm-arrow mm-me');
   private readonly others: HTMLDivElement[] = [];
   private readonly size: number;
@@ -28,7 +34,9 @@ export class Minimap {
     this.size = game.minimap_size();
     this.canvas.width = this.canvas.height = this.size;
     this.ctx = this.canvas.getContext('2d')!;
-    this.el.append(this.canvas, this.me, h('span', 'mm-north', 'N'));
+    this.overlay.width = this.overlay.height = Math.round(FRAME_PX * (window.devicePixelRatio || 1));
+    this.marks = this.overlay.getContext('2d')!;
+    this.el.append(this.canvas, this.overlay, this.me, h('span', 'mm-north', 'N'));
     document.getElementById('hud')!.append(this.el);
     this.shown = !loadHidden();
     this.show(this.shown);
@@ -52,6 +60,7 @@ export class Minimap {
       const view = new Uint8ClampedArray(this.memory.buffer, g.minimap_ptr(), bytes);
       this.ctx.putImageData(new ImageData(view, this.size, this.size), 0, 0);
     }
+    this.drawMarks(g.minimap_marks());
     this.placeOthers(g.minimap_players());
   }
 
@@ -59,6 +68,28 @@ export class Minimap {
     this.el.classList.toggle('hidden', !on);
     this.lastDraw = -Infinity;
     document.getElementById('hud')!.style.setProperty('--map-space', on ? `${MAP_SPACE_PX}px` : '0px');
+  }
+
+  /** Deposits as rings, machines as squares, each at its column's centre on the image. */
+  private drawMarks(marks: Int32Array): void {
+    const c = this.marks, n = this.game.minimap_mark_fields();
+    const px = this.overlay.width / this.size;
+    c.clearRect(0, 0, this.overlay.width, this.overlay.height);
+    c.lineWidth = Math.max(1, px);
+    for (let i = 0; i < marks.length; i += n) {
+      const x = (marks[i] + this.size / 2 + 0.5) * px, y = (marks[i + 1] + this.size / 2 + 0.5) * px;
+      c.fillStyle = `#${marks[i + 2].toString(16).padStart(6, '0')}`;
+      c.beginPath();
+      if (marks[i + 3] === DEPOSIT) {
+        c.arc(x, y, 3.5 * px, 0, 2 * Math.PI);
+        c.strokeStyle = '#fff';
+      } else {
+        c.rect(x - 2 * px, y - 2 * px, 4 * px, 4 * px);
+        c.strokeStyle = 'rgba(0, 0, 0, 0.7)';
+      }
+      c.fill();
+      c.stroke();
+    }
   }
 
   /** One arrow per other player: (x offset, z offset, yaw) triples in blocks. */
