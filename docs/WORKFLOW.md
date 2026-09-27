@@ -100,7 +100,7 @@ next day (no charge).
 - Balance numbers are expected to change; keep them as named constants near the top of their module.
 - Offer recommendations, not surveys of options.
 
-## 6. Tuning knobs (values after Milestone 1)
+## 6. Tuning knobs (values after Milestone 4)
 
 `docs/CODEMAP.md` lists where every tuning constant lives; this is the current balance at a glance.
 
@@ -115,6 +115,12 @@ next day (no charge).
 | `research.rs` | `TECHS` (units × seconds, packs per unit) | Belt Routing 10 × 5 s red · Belt Climbing 20 × 5 s red · Green Science 30 × 5 s red · Underpasses 15 × 10 s red + green · Miner Mk2 30 × 10 s red + green · Fast Belts 20 × 10 s red + green |
 | `factory/power.rs` | `WIRE_RANGE`, `POLE_REACH` | poles link within 10 blocks, machines hang on the nearest pole within 5 |
 | `factory/mod.rs` | `MACHINES` slots | miner 1 stack (64 ore), box 24, smelter and constructor 1 per buffer, generator 1 fuel stack, lab 1 stack per pack kind |
-| `recipes.rs` | `MACHINE_RECIPES`, `FUELS` | smelter: 1 ore → 1 ingot in 1.5 s · coal ore 8 s, log 4 s of fire · constructor: 2 iron ingots → plate 2 s, 1 → rod 2 s, rod → 4 screws 3 s, copper ingot → 2 wire 2 s |
+| `recipes.rs` | `MACHINE_RECIPES`, `FUELS` | smelter: 1 ore → 1 ingot in 1.5 s · coal ore 8 s, log 4 s of fire · constructor: 2 iron ingots → plate 2 s, 1 → rod 2 s, rod → 4 screws 3 s, copper ingot → 2 wire 2 s · smelter: 2 quartz ore → glass 2 s |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` | per ore (outcrops per column, vein chance, lode weight); 1/40; 10 |
-| `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone · Splitter 2 plates, 2 belts · Filter 2 plates, 2 wire, 2 belts · 2 ramps (up or down) 1 plate, 2 belts · 2 lifts 2 rods, 2 belts · underpass entry or exit 2 plates, 2 belts · Generator 12 iron ingots, 8 copper ingots, 10 stone · 2 poles 1 iron ingot, 1 copper ingot, 1 log · Lab 6 plates, 8 wire, 4 belts · red pack 1 plate, 2 wire · green pack 2 belts, 4 screws · Miner Mk2 a Mk1, 8 plates, 16 screws, 12 wire · 2 fast belts 2 belts, 1 plate, 4 screws |
+| `recipes.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone · Splitter 2 plates, 2 belts · Filter 2 plates, 2 wire, 2 belts · 2 ramps (up or down) 1 plate, 2 belts · 2 lifts 2 rods, 2 belts · underpass entry or exit 2 plates, 2 belts · Generator 12 iron ingots, 8 copper ingots, 10 stone · 2 poles 1 iron ingot, 1 copper ingot, 1 log · Lab 6 plates, 8 wire, 4 belts · red pack 1 plate, 2 wire · green pack 2 belts, 4 screws · Miner Mk2 a Mk1, 8 plates, 16 screws, 12 wire · 2 fast belts 2 belts, 1 plate, 4 screws · scanner 4 plates, 6 wire, 4 screws · core drill 6 plates, 2 wire, 8 screws · 2 lamps 1 glass, 1 plate, 2 wire |
+| `worldgen/geology.rs` | `OUTCROPS`, `VEIN_CHANCES`, `ORES_BY_BIOME`, `HINT_MARGIN` | version 2: 11 outcrops per column, veins 1.0 and 0.3, ore weights per biome, hints 3 blocks past a deposit |
+| `worldgen/biome.rs` | `HIGHLAND_LEVEL`, `LOWLAND_LEVEL`, `SPAWN_CALM` | highlands above 112, lowlands below 74; plains within 64–320 blocks of spawn |
+| `tools.rs` | `STONE_TIER`, `IRON_TIER` | stone 150 uses, 2× speed · iron 600 uses, 4× speed, 1 more ore per hand-mined block |
+| `prospect.rs` | `SCAN_RANGE`, `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH` | 48 blocks, 2 s · 3 s, 2 blocks around the column |
+| `sim/timers.rs`, `sim/saplings.rs` | half-lives, `SAPLING_CHANCE`, `GROW_MIN` | leaves 5 s, grass grows 30 s, dies 15 s · a sapling from 1 in 25 leaves, grows after 60 s + 90 s half-life |
+| `daytime.rs`, `light.rs`, `block/mod.rs` | `DAY_TICKS`, `START`, `MARGIN`, `BlockDef::light` | a 20-minute day, new worlds start at 7:00 · light reaches 15 blocks · lamp 15 |

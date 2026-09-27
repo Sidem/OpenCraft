@@ -35,7 +35,7 @@ roadmap agent's.
   (`generate()`, the noise helpers `n` / `smooth` / `rgb`, and natural patterns) and
   `textures/machines.rs` (machine and item patterns). `pixel(layer, x, y)` maps each layer to a pattern.
   They are 16 × 16 (`TEX_SIZE`), RGBA, one layer of a WebGL2 texture array per `block::tex` constant
-  (`tex::COUNT` = 51 today). The magenta placeholder test (`textures/tests.rs`) fails if a layer has no
+  (`tex::COUNT` is 106 today). The magenta placeholder test (`textures/tests.rs`) fails if a layer has no
   pattern.
 - **Blocks** (`block.rs`): each `BlockDef` names 6 face layers (+X, -X, +Y, -Y, +Z, -Z). `Render::Opaque`
   and `Cutout` (leaves: alpha below 0.5 is cut) go through the greedy chunk mesher. Merged quads *tile*
@@ -52,8 +52,8 @@ roadmap agent's.
   - Avatars (co-op players): `avatars.rs` (body, head, visor; `tex::AVATAR_*` layers).
 - **Item icons** (hotbar, inventory, panels): `web/src/ui/hud.ts` `itemIcon` draws an isometric box from
   `game.item_icon(id)` (`api/content.rs`: the item's 3 layers and proportions).
-- **Lighting** is simple: fixed face shading plus ambient occlusion in the mesher, and fog. No day/night
-  yet (the roadmap agent adds that in Milestone 4).
+- **Lighting:** fixed face shading, ambient occlusion and smoothed sky and block light (0–15) per vertex
+  from the mesher (`light.rs`), scaled in `shaders.ts` by the daylight of `render/sky.ts`; fog.
 - **No held item** in first person yet, and avatars hold nothing.
 
 ## 2b. Art direction: its own look, not a cheap Minecraft clone
@@ -207,121 +207,29 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Layers `tex::RUSTY_SOIL`..`tex::PALE_SOIL` (64–67), `soil()` in `textures/geology.rs`.
 - [ ] (P3, landed) A leaf-decay particle or puff, if cheap; otherwise none. There is no particle system;
   the `LeafDecayed` event (`events.rs`) only plays a sound today.
+- [ ] (4.10, landed) The lamp block: glass in an iron frame that reads as a light source (warm pane,
+  bright centre); opaque, all six faces alike. Placeholder: `tex::LAMP` (105), `lamp()` in
+  `textures/geology.rs`. Its faces are lit by its own light, so they need no glow trick.
 
 ## 8. Log
 
-- **2026-09-26:** Handover written; no art work yet.
-- **2026-09-26 (roadmap agent):** `main` gained P1–P5: new `tex` layers 51–56 (tools) with `tex::COUNT` = 57,
-  an arm in `textures.rs` `pixel` and `textures/tools.rs`. Rebase `art` onto `main`; renumber your appended
-  layers after 56 if you added any.
-- **2026-09-26 (roadmap agent):** `main` gained saplings: `tex::SAPLING` = 57 (`tex::COUNT` = 58) in the new
-  `textures/plants.rs`, and plant quads in the chunk shader (`shaders.ts` faces 6 and 7). Renumber your
-  appended layers after 57. Then 4.2 added layers 58–63 (`textures/geology.rs`; `tex::COUNT` = 64), and 4.5 layers 64–67 (`tex::COUNT` = 68), and 4.6 layers 68–69 (`tex::COUNT` = 70).
-- **2026-09-26, A0 review:** Read all required rules; `git rebase main` was already up to date.
-  Added `web/art-preview.html` and `web/art/{scene,palettes}.js` for comparison only (Vite's production
-  entry does not import them). Rebuild with `npm run dev`, visit `/art-preview.html?style=0..3`.
-  The fixture creates a fresh seed-2024 Game, finds the same clearing, places an 8×6 grass station,
-  stone sample wall, miner/belt/box, smelter, constructor, generator and pole through public actions.
-  Fixed camera: eye `(30,75.62,19)`, yaw `-0.65`, pitch `-0.55`; 25 model boxes. No saved world used.
-  Browser screenshots: `artifacts/a0/{before,a-fieldworks,b-alpine,c-claylands}.png` (review evidence,
-  not game texture assets). Avatar comparison not captured. `preview_start` was unavailable; ran the
-  configured `npm run dev` directly in the art worktree and used the Codex browser pane on port 5173.
-  `npm run check`: green, 127 tests; golden hash unchanged. `npx vite build`: wasm 358.39 kB raw,
-  **131.49 kB gzip (+0 art)**; `node scripts/wasm-sizes.mjs` inspected. The user subsequently chose B · Alpine; A0 is complete. No commit, merge or push; first commit still requires user permission.
-- **2026-09-26, A1:** Rebased `art` on `main`; replaced all 10 natural texture layers with
-  Alpine palettes, mineral cleavage, fine grain, grass tufts and side lip, pale rippled sand,
-  bark/end rings, cutout foliage, bedrock and spent rock. The chunk shader applies periodic
-  world-position tint and a small continuous UV drift to break repetition. Shader leaves keep
-  their cutouts crisp. User feedback requested more material detail and recognisable machine
-  silhouettes; the latter is recorded as the A4 brief above. Same fixture screenshots:
-  `artifacts/a0/before.png`, `artifacts/a1/after.png` and `artifacts/a1/materials.png`.
-  Tile-edge and foliage tests pass; `npm run check` green (129 tests), release tests pass,
-  golden hash unchanged. Vite wasm **133.39 kB gzip**, up **1.90 kB** from A0 and within the
-  +12 kB art budget. Whole `Game::new` median 0.76 ms (includes texture generation, under
-  20 ms); synthetic 1,600-box browser render 0.10 ms median with or without tint at the
-  available timer resolution, GL error 0. User approved commits on `art`; no merge or push.
-- **2026-09-26, A2:** Rebased on `main`; coal now has dark fractures, iron has broad pale
-  blooms, and copper has fine angular veins with oxidised edges. All three use the Alpine slate
-  base and differ in grayscale as well as hue; cast iron/copper icons retain the same metal
-  families. Added ore swatches to the fixed preview and tests for wrapping and value contrast.
-  Same-scene screenshots: `artifacts/a1/after.png` → `artifacts/a2/after.png`; tiled material
-  detail: `artifacts/a1/materials.png` → `artifacts/a2/materials.png`. `npm run check` green
-  (144 tests), golden hash unchanged. Vite wasm **140.09 kB gzip**, +0.65 kB over the
-  rebuilt A1/P1–P5 baseline of 139.44 kB. No merge or push.
-- **2026-09-26, A3:** Rebased on `main`; added shared small box assemblies for ingots, plates,
-  a collared rod, headed screws, coiled wire and stoppered science flasks. Loose items draw those
-  assemblies; a single `item_model` getter feeds the same shapes to the HUD. Added rod, screw and
-  glass texture layers after P5's tool layers, and a development item-icon gallery at
-  `/art-preview.html?view=items`. Same fixture screenshots: `artifacts/a2/after.png` →
-  `artifacts/a3/after.png`; focused icon evidence: `artifacts/a3/items.png`. `npm run check`
-  green (145 tests), golden hash unchanged. Vite wasm **141.02 kB gzip**, +0.93 kB from A2;
-  `wasm-sizes.mjs` inspected. No merge or push.
-- **2026-09-26, A4:** Rebased on `main`; replaced cube-like factory silhouettes with a
-  tracked extractor and exposed bit, furnace with ore mouth/crucible/chimney, open constructor
-  press, turbine generator with hopper/exhaust, glass lab with antenna, sturdier pole, guarded
-  conveyor routes, a forked splitter and tall filter bridge. Storage remains a cube but now has
-  a hinged chest texture with latch and reinforced corners. Ivory housings and burnt-orange
-  accents tie the machinery to Alpine materials; independent continuous UV drift reduces
-  terrain repetition. Miner/press/generator/lab movement occurs only in their working state;
-  the smelter fire darkens when idle. Same fixture screenshots:
-  `artifacts/a3/after.png` → `artifacts/a4/after.png`; additional close-up:
-  `artifacts/a4/machines.png` (`?view=machines`, power wires hidden solely for silhouette review).
-  `npm run check` green (145 tests), golden hash unchanged. Vite wasm **142.60 kB gzip**,
-  +1.58 kB from A3, +3.16 kB over the rebuilt A1/P1–P5 baseline; `wasm-sizes.mjs` inspected.
-  Synthetic 3,456-box browser scene: 0.10 ms median / 0.30 ms p95 at timer resolution,
-  GL error 0. No merge or push.
-- **2026-09-26, material refinement after review:** Replaced large mineral plates, drawn turf marks,
-  regular bark grooves and gridded ore inclusions with finer periodic grain and sparse irregular
-  seams. The terrain shader now mixes differently scaled texture samples, varies ore richness across
-  several blocks and offsets each leaf cluster so cutout marks do not stamp in a grid. The review
-  gallery shows 3×3 block patches through that same production shader; `?view=materials&raw`
-  retains the base tile view. Same fixture: `artifacts/a4/after.png` →
-  `artifacts/material-refinement/after-scene.png`; material detail:
-  `artifacts/a2/materials.png` → `artifacts/material-refinement/after-materials.png`.
-  At that checkpoint, the main checkout had **uncommitted** new sapling, geology and soil texture layers
-  (57–67); reconcile their IDs with art's item layers when the gameplay work lands. Do not copy
-  or modify the main checkout's work in progress. `npm run check` green (145 tests); golden
-  hash unchanged. Vite wasm **143.35 kB gzip**, +0.75 kB from A4 and within the original
-  +12 kB art budget; `wasm-sizes.mjs` inspected. No merge or push.
-- **2026-09-26, Milestone 4 material integration:** Rebasing `art` on `main` kept all new layers
-  57–69 and moved the art-only rod, screw and flask-glass layers to 70–72. `tex::GLASS` (63)
-  remains the cutout block; lab and generator model accents use `tex::FLASK_GLASS` (72).
-  Replaced the granite, sandstone, basalt, limestone, quartz, glass and sapling placeholders.
-  Rusty, dark, verdigris and pale hint soils all derive from the regular dirt pixels with a
-  13–23% local tint, so the mineral cue stays quiet. New opaque geology and soils receive the
-  same world-scale terrain variation as the older materials. The preview gallery includes all
-  new layers; `artifacts/geology-rework/before-materials.png` →
-  `artifacts/geology-rework/after-materials.png` is the same 3×3 material fixture; the fixed
-  factory view after rebase is `artifacts/geology-rework/after-scene.png`. `npm run check` green
-  (166 tests), golden hash unchanged. Vite wasm **152.22 kB gzip**, +0.68 kB over the
-  rebase baseline (151.54 kB); `wasm-sizes.mjs` inspected. No merge or push.
-- **2026-09-26, salvage (roadmap agent, on the user's request; merged to `main`):** The user was unhappy
-  with the art branch's terrain, so a new pass replaced it. Kept: the machine models, the item assemblies
-  and the preview tooling. Changed:
-  - The terrain shader's UV drift and multi-sample blending are gone (they smeared the pixel art and
-    faded the ores). Only a gentle world-anchored tint remains.
-  - Repetition is broken by **alternates** instead: coal, iron, copper, limestone, quartz and leaves have
-    three more looks each (layers 73–90, `tex::WITH_ALTERNATES`). The mesher picks one of four per
-    block by position.
-  - Textures are pixel art from 5-tone ramps (`textures/paint.rs`):
-    - slate plates with fractures, pebbled dirt, turf with blade shadows, a ragged grass edge;
-    - rippled sand and clustered leaves;
-    - ores as drawn inclusions: coal lumps, iron nodules with a halo, malachite crusts with copper
-      glints, quartz crystals, shell fossils.
-  - Surface hints are now grass (blocks 36–39: top 91–94, edge 95–98, soil 64–67) and sand (blocks 40–43,
-    layers 99–102) a shade off, with mineral specks (`HINTS` in `nature.rs`). Worldgen stains only grass
-    and sand, no longer dirt.
-  - Tool, scanner and core-drill box models; handle and steel layers 103–104. The wire is a spool.
-  - Preview: `?view=materials` shows the alternates (via `game.texture_alternates`).
+Detailed entries for A0–A4 live in git history (`git log -- docs/ART_HANDOVER.md`); in short:
 
-  `npm run check` green (167 tests), golden hash unchanged. Vite wasm **154.6 kB gzip**. The `art`
-  branch is superseded: start any further art work from `main`.
-
-  **Left for the next art session:**
-  - Quartz crystals read a bit square: add facets or points.
-  - Grass blades could be more legible up close.
-  - Granite, sandstone and basalt are still the art branch's plain grain.
-  - Held (first-person) tool models.
-  - The leaf-decay puff request.
-  - The `?view=materials` preview change is untested in the browser.
-  - Tools on belts still show the flat pictures.
+- **2026-09-26, A0–A4 (art branch):** Alpine direction chosen (section 2b); the fixed review scene is
+  `web/art-preview.html` with `web/art/scene.js` (eye `(30,75.62,19)`, yaw `-0.65`, pitch `-0.55`;
+  `?view=materials`, `?view=items`, `?view=machines`); screenshots under `artifacts/`. Natural blocks,
+  ores, item assemblies (`item_models.rs`) and machine silhouettes (about 12 boxes each, animated only
+  while working) landed. Wasm grew 131.5 → 143.4 KB gzipped over those steps.
+- **2026-09-26, salvage (roadmap agent, on the user's request; merged to `main`):** the art branch's
+  terrain was replaced; the machine models, item assemblies and preview tooling stayed. The UV drift and
+  multi-sample blending are gone (only a gentle world-anchored tint remains). Repetition is broken by
+  **alternates** (layers 73–90, `tex::WITH_ALTERNATES`, one of four looks per block). Textures are pixel
+  art from 5-tone ramps (`textures/paint.rs`). Surface hints are grass (blocks 36–39) and sand (40–43) a
+  shade off. Tool, scanner and core-drill box models; handle and steel layers 103–104. Wasm 154.6 KB
+  gzipped. The `art` branch is superseded: start any further art work from `main`.
+  **Left for the next art session:** quartz crystals read a bit square; grass blades could be more
+  legible up close; granite, sandstone and basalt are still plain grain; held tool models; the
+  leaf-decay puff; the `?view=materials` change is untested in the browser; tools on belts show flat
+  pictures.
+- **2026-09-27 (roadmap agent):** Milestone 4 added day and night (`render/sky.ts`) and per-vertex sky
+  and block light (`light.rs`, the light curve in `shaders.ts`), and the lamp (block 44, layer 105).

@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 4)
+# OpenCraft roadmap (after Milestone 5)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -7,25 +7,6 @@ plan and detail it there (steps with where, how and done-when).
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) apply to all of it.
 Every milestone ends with a cleanup step (DEV_PLAN section 3.1, "Session habits").
-
-## Milestone 5: Scale and terrain
-
-- **Terraforming machines** (the signature feature). Start with "mark an area, pick a job"; no
-  programming language needed:
-  - an excavator digs a marked area and hauls the spoil to a box or dump site,
-  - a grader flattens to a height,
-  - a filler places fill,
-  - a borer cuts tunnels and shafts.
-- **Byproducts as fill:** slag from smelting and tailings from washing become fill material for
-  terraforming, so waste feeds the terrain system.
-- **Blueprints and construction drones:** copy a region of machines, place a ghost, and drones build it
-  from storage (or tear it down).
-- **Transport:**
-  - personal: hoverpack, ziplines along power lines,
-  - trucks on recorded routes,
-  - trains: rails on the grid, stations, signals. They create demand for rail beds, cuttings, tunnels and
-    bridges.
-- **Simple logic:** sensors (belt full, box full) and on/off conditions on machines.
 
 ## Milestone 6: Fluids and depth
 
