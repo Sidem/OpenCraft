@@ -70,6 +70,11 @@ Mined blocks drop as items, which are pulled into your inventory when you get cl
 (E), click a slot to pick up a stack and click again to put it down. Shift-click moves a stack between the
 hotbar and the backpack.
 
+New worlds have a sea and ponds. Water flows: dig beside the sea and it pours in and refills any hole or
+trench at or below its level, however far. Elsewhere water runs up to 7 blocks from its source, getting
+shallower, and falls over edges; wall it off and the flow dries up. Blocks and machines can be placed
+straight into water. In water you swim (Space rises), and dropped items float.
+
 ## Saving and worlds
 
 Your world saves itself: every minute, whenever you pause (Esc), and when you switch tabs or close the page.

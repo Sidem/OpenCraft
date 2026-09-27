@@ -12,7 +12,7 @@
 //!
 //! To add core state: a field here (or on the type that owns it) and its bytes in that type's
 //! `write_state`, which `state_hash` and saves use. To change it: an `Action`. Core code that changes a
-//! block calls `block_changed` (sim/timers.rs), so timed rules (leaf decay, grass) react.
+//! block calls `block_changed` (sim/timers.rs), so timed rules (leaf decay, grass) and water react.
 //! To tell the game about something: a `SimEvent` variant and its arm in `handle_sim_events`.
 
 use crate::action::Action;
@@ -27,8 +27,10 @@ use crate::worldgen::WorldGen;
 
 mod saplings;
 mod timers;
+mod water;
 
 pub use timers::BlockTimers;
+pub use water::WaterQueue;
 
 /// Index of a player in `Sim::players`. Ids are reused after a player leaves.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -122,6 +124,8 @@ pub struct Sim {
     pub rng: Rng,
     /// Pending block changes: leaf decay, grass spreading (timers.rs).
     pub timers: BlockTimers,
+    /// Pending flowing-water checks (water.rs).
+    pub water: WaterQueue,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -146,6 +150,7 @@ impl Sim {
             away: Vec::new(),
             rng: Rng::new(hash2(seed, 17, 42) as u64),
             timers: BlockTimers::default(),
+            water: WaterQueue::default(),
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -185,8 +190,8 @@ impl Sim {
         Some(())
     }
 
-    /// Advances the core by one tick of `TICK` seconds: this tick's actions, the block timers due, then
-    /// the factory.
+    /// Advances the core by one tick of `TICK` seconds: this tick's actions, the block timers due, the
+    /// water checks due, then the factory.
     pub fn step(&mut self) {
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
         let later = self.pending.split_off(due);
@@ -194,6 +199,7 @@ impl Sim {
             self.apply(q.player, q.action);
         }
         self.run_timers();
+        self.run_water();
         self.factory.update(&mut self.world, self.tick, &mut self.events);
         self.tick += 1;
     }
@@ -207,7 +213,7 @@ impl Sim {
     }
 
     /// The canonical core state: tick, rng, players (up to the last one here), away players, world
-    /// edits, factory and deposits, block timers. Pending actions and undrained events are not state:
+    /// edits, factory and deposits, block timers, water checks. Pending actions and undrained events are not state:
     /// peers may hold different queues for future ticks (a join snapshot sends them along: net/snapshot.rs).
     pub fn write_state(&self, w: &mut ByteWriter) {
         w.u64(self.tick);
@@ -230,10 +236,11 @@ impl Sim {
         self.world.write_state(w);
         self.factory.write_state(w);
         self.timers.write_state(w);
+        self.water.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
-    /// version 10 have no keys (0) and nobody away; before 11, no block timers.
+    /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -259,6 +266,7 @@ impl Sim {
         self.world.read_state(r)?;
         self.factory = Factory::read_state(&mut self.world, r)?;
         self.timers = if r.version >= 11 { BlockTimers::read_state(r)? } else { BlockTimers::default() };
+        self.water = if r.version >= 13 { WaterQueue::read_state(r)? } else { WaterQueue::default() };
         Some(())
     }
 }

@@ -24,9 +24,11 @@
 //! `block::tex::alternates`) get one of four looks per block (`pick_layer`), so those faces merge
 //! less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
 //! cutout list and never merged. Liquids (`block::LIQUID`) get faces only against cells that are neither
-//! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others.
+//! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their
+//! AO bits mark the water line instead, with how far it sits below the block's top (`water_line`):
+//! 1 for sources and falling water, 2 and 3 for thinner flows.
 
-use crate::block::{BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
+use crate::block::{flow_level, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
 
 mod quad;
@@ -222,7 +224,7 @@ impl Mesher {
                                 let mut k = corner(pad, light, q, du, dv);
                                 if liquid {
                                     let top = face == 2 || du == P2 as isize || dv == P2 as isize;
-                                    k = (k & !3) | u32::from(surface && top);
+                                    k = (k & !3) | if surface && top { water_line(b) } else { 0 };
                                 }
                                 corners |= u64::from(k) << (i * CORNER_BITS);
                             }
@@ -336,6 +338,16 @@ impl Mesher {
                 }
             }
         }
+    }
+}
+
+/// How far a liquid's surface sits below its block's top, as the shader's water-line class: 1 (a tenth)
+/// for sources and falling water, 2 for flows of level 4–6, 3 for the thinnest.
+fn water_line(b: BlockId) -> u32 {
+    match flow_level(b) {
+        None | Some(7) => 1,
+        Some(4..=6) => 2,
+        Some(_) => 3,
     }
 }
 

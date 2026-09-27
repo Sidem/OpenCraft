@@ -2,8 +2,9 @@
 // opaque pass never contains `discard` and keeps early-z. `TERRAIN` (chunk meshes only) adds a
 // gentle world-anchored shift in tone across blocks; texels are always sampled exactly as drawn, so
 // the pixel art stays crisp. Repetition is broken in the textures instead (alternates per block).
-// `WATER` is the translucent liquid variant (render/water.ts): no AO (those bits mark the water line,
-// lowered a tenth of a block), a surface that drifts over time, and the texture's alpha kept.
+// `WATER` is the translucent liquid variant (render/water.ts): no AO (those bits mark the water line:
+// 1 lowers it a tenth of a block, 2 and 3 more for thinner flowing water), a surface that drifts over
+// time, and the texture's alpha kept.
 
 export const TERRAIN_TINT_PERIOD = 256;
 
@@ -60,7 +61,7 @@ void main() {
   else uv = vec2(p.z, -p.y);
 
 #ifdef WATER
-  p.y -= 0.1 * float(ao);
+  p.y -= ao > 0u ? 0.3 * float(ao) - 0.2 : 0.0;
   v_uvl = vec3(uv, layer);
   v_light = FACE_SHADE[face];
 #else

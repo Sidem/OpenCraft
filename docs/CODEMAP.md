@@ -13,8 +13,9 @@ folder with `mod.rs`.
 | Module | Owns |
 |---|---|
 | `lib.rs` | The `Game` struct (core `sim`, `local` id, co-op `role`, `bodies`, items, `avatars`, the local player's hands and view state), `Game::new`, the per-frame `update` (streaming, ticks, a client's catch-up, interpolated camera, instances), the fixed tick `run_tick` (`TICK_RATE`: bodies, hands, items, `step_core`, `net_tick`), `act` / `act_as` (route an action through the role), `body()` / `inventory()` (the local player's); the module list |
-| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory, key), `away` (players who left with a key), rng, block `timers` (`sim/timers.rs`), action queue (`queue`, `write_pending` / `read_pending`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
-| `sim/timers.rs` | Block timers (core state): `BlockTimers` (sorted pending changes, capped), `Sim::block_changed` (starts them after a block changes), `run_timers` (after each tick's actions): leaf decay, grass spreading and dying, sapling growth |
+| `sim.rs` | The deterministic core `Sim`: tick, world, factory, `players` (`Option<PlayerCore>` per `PlayerId`: inventory, key), `away` (players who left with a key), rng, block `timers` (`sim/timers.rs`), flowing `water` checks (`sim/water.rs`), action queue (`queue`, `write_pending` / `read_pending`); `step`; `state_hash` / `write_state` / `read_state`; `PlayerId`, `SimEvent`. Determinism tests in `sim/tests.rs` |
+| `sim/timers.rs` | Block timers (core state): `BlockTimers` (sorted pending changes, capped), `Sim::block_changed` (starts them after a block changes, then the water checks), `run_timers` (after each tick's actions): leaf decay, grass spreading and dying, sapling growth |
+| `sim/water.rs` | Flowing water (core state): `WaterQueue` (checks in order, one per cell, capped), `water_changed` (schedules checks near a change), `run_water` (at most `MAX_WATER_UPDATES` a tick), the rules (`water_rule`: the sea refills at or below `SEA_LEVEL`, falling water, levels 7 to 1) |
 | `sim/saplings.rs` | Saplings: the leaf drop chance, where they can be planted, growth into a tree (`worldgen::tree_blocks`) |
 | `daytime.rs` | Time of day from the core tick (`DAY_TICKS`: a 20-minute day, a new world starts at 7:00): `time_of_day`, `day_number`; no state of its own |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
@@ -44,14 +45,14 @@ folder with `mod.rs`.
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick |
-| `block/mod.rs` | Block ids, `DEFS` table, sound materials, lookup tables (`FACE_TEX`, `ALT_TEX` alternates) |
+| `block/mod.rs` | Block ids, `DEFS` table, sound materials, lookup tables (`FACE_TEX`, `ALT_TEX` alternates), flowing water ids (`flow`, `flow_level`) |
 | `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
 | `item_models.rs` | Shared small box assemblies (parts, tools, scanner, core drill) for loose items and HUD icons; data only |
 | `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
 | `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, unlocked recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `add_unit`) |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
-| `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code), render events, `adopt_loaded` (a resync keeps the render cache) |
+| `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code, with a small cache of generated chunks; `set_block_anywhere_later` remeshes in the streaming budget), render events, `adopt_loaded` (a resync keeps the render cache) |
 | `world/streaming.rs` | Streaming and meshing: re-centring on the local player and within `OTHERS_RADIUS` of the others (meshing only the local player's), generation and mesh queues, `work_step`, `remesh`, `area_ready` |
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; generator versions (`WORLDGEN_VERSION` is the newest; a world keeps its own `WorldGen::version`; each released version is pinned by `released_versions_never_change`) |
 | `worldgen/biome.rs` | Version 2: `Biome` per column (`biome_at`), its rock, surface (`surface_v2`) and tree density |
@@ -87,7 +88,7 @@ folder with `mod.rs`.
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
 | `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 15-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
-| `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); ranges opaque, cutout, liquid (liquid AO bits mark the water line); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
+| `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); ranges opaque, cutout, liquid (liquid AO bits mark the water line and how low it sits: `water_line`); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `mesher/quad.rs` | Per-corner AO and light, the merge key, `emit_quad` |
 | `minimap.rs` | Minimap image (presentation only): top block and height per column cached per chunk column from loaded chunks (`touch` on mesh and unload events), shaded by the height step; other players' marks |
 | `minimap/marks.rs` | Deposit and machine marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` (flat records with colours; dry deposits left out) |
@@ -252,6 +253,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
 | `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` |
 | `factory/power.rs` | `GENERATOR_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `sim/water.rs` | `WATER_DELAY`, `MAX_WATER_UPDATES`; `SEA_LEVEL` is in `worldgen/mod.rs` |
 | `sim/timers.rs` | `LEAF_HALF_LIFE`, `GRASS_GROW_HALF_LIFE`, `GRASS_DIE_HALF_LIFE`, `MAX_TIMERS`, leaf check radius and support steps |
 | `sim/saplings.rs` | `SAPLING_CHANCE`, `GROW_MIN`, `GROW_HALF_LIFE`, trunk heights |
 | `research.rs` | `TECHS` (units, seconds, packs per unit) |

@@ -5,7 +5,9 @@
 //! Invariants: player-edited chunks are never lost; when they stream out they move to `saved` and
 //! come back instead of being regenerated. `get_block` / `set_block` only see loaded chunks (the
 //! render cache); `block_anywhere_or_generate` / `set_block_anywhere` work everywhere, which is what
-//! deterministic core code must use (DEV_PLAN section 3.4).
+//! deterministic core code must use (DEV_PLAN section 3.4). Those keep the last `GENERATED_CACHE`
+//! chunks they generated (`generated`), exactly as generation made them, so core rules reading
+//! around unloaded ground don't generate the same chunk over and over.
 
 mod streaming;
 
@@ -20,6 +22,9 @@ use crate::light::{Lighting, MARGIN};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::mesher::Mesher;
 use crate::worldgen::{WorldGen, WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
+
+/// Generated chunks kept for reads outside loaded and edited chunks.
+const GENERATED_CACHE: usize = 8;
 
 pub struct MeshData {
     pub pos: IVec3,
@@ -57,6 +62,9 @@ pub struct World {
     lighting: Lighting,
     air: Chunk,
     floor: Chunk,
+    /// Recently generated, unedited chunks, oldest first (never shadows an edit: `chunks` and
+    /// `saved` are asked first).
+    generated: Vec<(IVec3, Chunk)>,
     pub events: VecDeque<Event>,
 }
 
@@ -84,6 +92,7 @@ impl World {
             lighting: Lighting::default(),
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
+            generated: Vec::new(),
             events: VecDeque::new(),
         }
     }
@@ -122,19 +131,39 @@ impl World {
             return b;
         }
         let (x, y, z) = local_of(p);
-        self.generator.generate(chunk_of(p)).get(x, y, z)
+        let c = chunk_of(p);
+        if let Some((_, chunk)) = self.generated.iter().find(|g| g.0 == c) {
+            return chunk.get(x, y, z);
+        }
+        let chunk = self.generator.generate(c);
+        let b = chunk.get(x, y, z);
+        if self.generated.len() >= GENERATED_CACHE {
+            self.generated.remove(0);
+        }
+        self.generated.push((c, chunk));
+        b
     }
 
     /// Like [`World::set_block`], but also works where no chunk is loaded (machines keep running
     /// while the player is away): the edit goes into the stored copy of that chunk. As with
     /// `set_block`, writing the block that is already there changes nothing and returns false.
     pub fn set_block_anywhere(&mut self, p: IVec3, b: BlockId) -> bool {
+        self.edit_anywhere(p, b, true)
+    }
+
+    /// Like [`World::set_block_anywhere`], but a loaded chunk is remeshed later, within the streaming
+    /// budget, instead of at once: for rules that change many blocks a tick (flowing water).
+    pub fn set_block_anywhere_later(&mut self, p: IVec3, b: BlockId) -> bool {
+        self.edit_anywhere(p, b, false)
+    }
+
+    fn edit_anywhere(&mut self, p: IVec3, b: BlockId, remesh_now: bool) -> bool {
         if p.y < 0 || p.y >= WORLD_HEIGHT {
             return false;
         }
         let c = chunk_of(p);
         if self.chunks.contains_key(&c) {
-            return self.set_block(p, b);
+            return self.edit_loaded(p, b, remesh_now);
         }
         let (x, y, z) = local_of(p);
         if let Some(chunk) = self.saved.get_mut(&c) {
@@ -144,7 +173,12 @@ impl World {
             chunk.set(x, y, z, b);
             return true;
         }
-        let mut chunk = self.generator.generate(c);
+        let cached = self.generated.iter().position(|g| g.0 == c);
+        let mut chunk = match cached {
+            Some(i) if self.generated[i].1.get(x, y, z) == b => return false,
+            Some(i) => self.generated.remove(i).1,
+            None => self.generator.generate(c),
+        };
         if chunk.get(x, y, z) == b {
             return false;
         }
@@ -222,8 +256,13 @@ impl World {
 
     /// Changes a block and immediately remeshes every chunk whose mesh can see it (up to 8, because
     /// AO samples across chunk borders). Chunks whose light it can change (within `MARGIN` blocks,
-    /// and everything below, which its shadow reaches) remesh later.
+    /// and everything below, which its shadow reaches) remesh later. Core code uses `set_block_anywhere`.
+    #[cfg(test)]
     pub fn set_block(&mut self, p: IVec3, b: BlockId) -> bool {
+        self.edit_loaded(p, b, true)
+    }
+
+    fn edit_loaded(&mut self, p: IVec3, b: BlockId, remesh_now: bool) -> bool {
         if p.y < 0 || p.y >= WORLD_HEIGHT {
             return false;
         }
@@ -248,7 +287,9 @@ impl World {
         }
         for c in affected {
             self.dirty.insert(c);
-            self.remesh(c);
+            if remesh_now {
+                self.remesh(c);
+            }
         }
         let m = MARGIN as i32;
         let (lo, hi) = (chunk_of(p - IVec3::new(m, 0, m)), chunk_of(p + IVec3::new(m, m, m)));

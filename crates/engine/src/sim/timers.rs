@@ -90,7 +90,7 @@ impl BlockTimers {
 impl Sim {
     /// Starts the timers a block change at `pos` (from `old` to what is there now) calls for: leaves
     /// near a removed log, dirt that can grow grass and grass that is now covered, around `pos`, and a
-    /// sapling planted at `pos`.
+    /// sapling planted at `pos`; then the water checks (water.rs).
     pub(crate) fn block_changed(&mut self, pos: IVec3, old: BlockId) {
         if self.block(pos) == SAPLING {
             self.schedule_growth(pos);
@@ -110,6 +110,7 @@ impl Sim {
                 _ => {}
             }
         }
+        self.water_changed(pos, old);
     }
 
     /// Runs the timers due by this tick, in order. Called by `step` after the tick's actions.
@@ -231,7 +232,8 @@ impl Sim {
     }
 }
 
-const FACES: [IVec3; 6] = [
+/// The six face neighbours' offsets.
+pub(super) const FACES: [IVec3; 6] = [
     IVec3::new(1, 0, 0),
     IVec3::new(-1, 0, 0),
     IVec3::new(0, 1, 0),

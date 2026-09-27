@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{LEAVES, STONE, WATER};
+use crate::block::{flow, LEAVES, STONE, WATER};
 
 /// Full sky light everywhere.
 static DAYLIGHT: [u8; PAD_VOLUME] = [15; PAD_VOLUME];
@@ -176,6 +176,24 @@ fn water_shows_only_towards_open_cells_with_a_lowered_surface() {
     }
     // The floor still shows through the water: its top face is meshed where water covers it.
     assert!(m.opaque_quads >= 6);
+}
+
+#[test]
+fn thinner_flows_sit_lower() {
+    let m = mesh_single(|c| {
+        c.set(4, 4, 4, flow(7));
+        c.set(6, 4, 4, flow(5));
+        c.set(8, 4, 4, flow(2));
+    });
+    let start = ((m.opaque_quads + m.cutout_quads) * 4) as usize;
+    let mut lines = [0; 3];
+    for &v in &m.verts[start..m.vertex_count()] {
+        let (x, y, _, _, line) = decode(v);
+        if y == 5 {
+            lines[(x as usize - 4) / 2] = line;
+        }
+    }
+    assert_eq!(lines, [1, 2, 3]);
 }
 
 #[test]

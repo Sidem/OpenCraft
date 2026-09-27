@@ -66,7 +66,11 @@ pub const LAMP: BlockId = 44;
 /// Generator version 3's seas and ponds (`worldgen/water.rs`); not solid, not targetable, and blocks
 /// placed into it replace it.
 pub const WATER: BlockId = 45;
-pub const BLOCK_COUNT: usize = 46;
+/// Flowing water (`sim/water.rs`), level 1 (thinnest) to 7; falling water is `FLOW_7`. Like `WATER`
+/// otherwise. `flow(level)` and `flow_level` convert.
+pub const FLOW_1: BlockId = 46;
+pub const FLOW_7: BlockId = 52;
+pub const BLOCK_COUNT: usize = 53;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -139,6 +143,12 @@ const fn ore(name: &'static str, faces: [u16; 6], drop: BlockId) -> BlockDef {
 /// A machine drawn by the host as an instanced model rather than by the chunk mesher.
 const fn machine(name: &'static str, solid: bool, break_time: f32, faces: [u16; 6], id: BlockId) -> BlockDef {
     BlockDef { render: Render::None, solid, ..cube(name, break_time, faces, id, sound::METAL) }
+}
+
+/// Water, still or flowing: not solid, never targeted, dropping nothing.
+const fn liquid(name: &'static str) -> BlockDef {
+    let base = cube(name, -1.0, all(tex::WATER), AIR, sound::SAND);
+    BlockDef { render: Render::Liquid, solid: false, placeable: false, ..base }
 }
 
 pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
@@ -233,17 +243,14 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     cube("Verdigris Sand", 0.45, all(tex::GREEN_SAND), SAND, sound::SAND),
     cube("Pale Sand", 0.45, all(tex::PALE_SAND), SAND, sound::SAND),
     BlockDef { light: 15, ..cube("Lamp", 0.4, all(tex::LAMP), LAMP, sound::METAL) },
-    BlockDef {
-        name: "Water",
-        render: Render::Liquid,
-        solid: false,
-        break_time: -1.0,
-        faces: all(tex::WATER),
-        drop: AIR,
-        sound: sound::SAND,
-        placeable: false,
-        light: 0,
-    },
+    liquid("Water"),
+    liquid("Flowing Water"),
+    liquid("Flowing Water"),
+    liquid("Flowing Water"),
+    liquid("Flowing Water"),
+    liquid("Flowing Water"),
+    liquid("Flowing Water"),
+    liquid("Flowing Water"),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -341,6 +348,18 @@ pub const ALT_TEX: [[u16; 6]; 256] = {
 #[inline]
 pub fn replaceable(id: BlockId) -> bool {
     id == AIR || LIQUID[id as usize]
+}
+
+/// The flowing water block of `level` (1..=7).
+#[inline]
+pub fn flow(level: u8) -> BlockId {
+    FLOW_1 + level.clamp(1, 7) - 1
+}
+
+/// The level of a flowing water block (1..=7), or `None` for any other block (sources included).
+#[inline]
+pub fn flow_level(id: BlockId) -> Option<u8> {
+    (FLOW_1..=FLOW_7).contains(&id).then(|| id - FLOW_1 + 1)
 }
 
 #[inline]

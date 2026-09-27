@@ -6,10 +6,10 @@ use super::items::ITEM_TICKS;
 use super::players::STATE_TICKS;
 use super::*;
 use crate::authority::MAX_PLAYERS;
-use crate::block::{MINER, STONE};
+use crate::block::{self, MINER, STONE};
 use crate::item::SCANNER;
 use crate::math::{IVec3, Vec3};
-use crate::sim::tests::{outcrop, script, SEED};
+use crate::sim::tests::{build_pond_above_a_pit, outcrop, script, DAM, SEED};
 use crate::tests::run_until_ready;
 
 const A: PlayerId = PlayerId(0);
@@ -83,6 +83,26 @@ fn host_and_client_stay_in_step_through_bytes() {
         assert_eq!(g.sim.player(B).unwrap().inventory.count(STONE.into()), 2, "B placed one");
     }
     assert_eq!(client.inventory().count(STONE.into()), 2, "the client shows B's inventory");
+}
+
+#[test]
+fn flowing_water_stays_in_step() {
+    let (mut host, mut client) = pair();
+    build_pond_above_a_pit(&mut host.sim);
+    build_pond_above_a_pit(&mut client.sim);
+    host.act(Action::BreakBlock { pos: DAM });
+    let mut hashes = vec![host.sim.state_hash()];
+    for _ in 0..400 {
+        assert!(host.host_stamp(1, &client.take_outbox()));
+        let frames = frames_of(&mut host, 1);
+        hashes.push(host.sim.state_hash());
+        assert!(client.push_frames(&frames));
+        client.update(1.0 / 60.0);
+        assert_eq!(client.sim.state_hash(), hashes[client.sim.tick as usize], "tick {}", client.sim.tick);
+    }
+    let below = DAM + IVec3::new(1, -10, 0);
+    assert!(block::LIQUID[client.sim.world.block_anywhere_or_generate(below) as usize], "water fell on both");
+    assert_eq!(client.sim.water.pending_count(), 0, "and settled");
 }
 
 #[test]

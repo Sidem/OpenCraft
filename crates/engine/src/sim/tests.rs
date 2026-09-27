@@ -10,11 +10,13 @@ use crate::deposits::{owner_of, Deposit, DepositKey, Tier};
 use crate::item::{IRON_INGOT, IRON_PLATE, RED_PACK};
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
+pub(crate) use super::water::tests::{build_pond_above_a_pit, DAM};
+
 pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0xaa8a_1378_c60c_7a1e;
+const GOLDEN_HASH: u64 = 0x0ec6_e364_b2f5_32fe;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

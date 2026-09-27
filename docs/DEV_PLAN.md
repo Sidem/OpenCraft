@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.6** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.7** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (209 engine tests).
+   (217 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -189,7 +189,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 12; every version since 1 loads.
+  exports and imports them. Save version 13; every version since 1 loads.
 - **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
   menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
   or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
@@ -221,9 +221,8 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
    aren't shown early (section 4, "instant feedback"). A name change applies the next time you host or
    join. Hosting can't be stopped without leaving the page.
 9. Co-op over the internet has been tested by the user on two machines (STUN only); the relay is untested.
-10. A block timer that fires or checks next to a chunk nobody loaded or edited generates that chunk for
-    each read (`block_anywhere_or_generate`); rare (the player walked off right after felling a tree),
-    but slow if it happens. A small cache of generated chunks would fix it.
+10. ~~A block timer next to an unloaded chunk generates it for each read~~: fixed in 5.6 (`World` keeps the
+    last 8 generated chunks).
 11. Light is recomputed per meshed chunk (0.49 ms per chunk against 0.36 without); an edit relights up to
     about 30 chunks (within 15 blocks, and all below) over the following frames. A working smelter
     doesn't glow (its light would depend on factory state).
@@ -429,30 +428,25 @@ need a version 4.
   silent in water; entering it plays `sound::SPLASH` (a new synthesised sound with a designer tab).
   Placing into water already worked (5.3); `place_block` now reports the replaced block to the timers.
   Wasm +0.4 KB gzipped. Tests in `player/tests.rs`, `entities/tests.rs`, `action/tests.rs`, `tests.rs`.
-- [ ] **5.6 Flowing water (core).**
-  - **Blocks:** `WATER` is a source. `FLOW_1`..`FLOW_7` are flowing water, 7 appended ids whose number
-    gives their height.
-  - **Rules:** they live in `sim/water.rs`, event-driven like block timers (`sim/timers.rs`): a changed
-    block schedules its neighbours 5 ticks later, sorted by (due tick, position), with at most
-    `MAX_WATER_UPDATES` (about 256) per tick and the rest waiting.
-    - A cell under water becomes falling water.
-    - Otherwise its level is the highest horizontal neighbour's level minus 1 (a source counts as 8),
-      reaching up to 7 cells.
-    - An air cell becomes a source when at least two horizontal neighbours are sources and it stands on
-      something solid or on a source (so the sea refills a trench).
-    - Flowing cells without a feed dry up.
-    - Only air is filled. Machines, belts and every other block are walls.
-  - **Reads and edits** go through the `*_anywhere` accessors. This needs the generated-chunk cache from
-    limitation 10, so build that here.
-  - **Saving:** the queue is saved (bump `SAVE_VERSION`) and hashed.
-  - **Done when:** these tests pass:
-    - A hole dug beside the sea fills with sources.
-    - A 20-block trench from the sea fills completely.
-    - Breaking a dam above a pit makes water fall and spread at most 7 cells.
-    - Removing the feed dries the flow.
-    - Two cores (and a host and client pair) agree on the hash.
-    - A 1,000-cell break never passes the per-tick cap and costs under 1 ms per tick (measured).
-    - A save reloads mid-flow.
+- [x] **5.6 Flowing water (core).** `FLOW_1`..`FLOW_7` (blocks 46–52; `block::flow`, `flow_level`).
+  `sim/water.rs`: a change near water (`water_changed`, from `block_changed`) schedules its cell, its six
+  neighbours and the sideways neighbours of the cells above and below, `WATER_DELAY` (5) ticks later;
+  `run_water` runs at most `MAX_WATER_UPDATES` (256) a tick. Rules for air and flowing cells: at or below
+  `SEA_LEVEL` a cell next to a source (sideways or above) becomes a source; under water, falling water
+  (`FLOW_7`); else its best feed minus 1, where a source feeds 8, a flow its level (8 where falling water
+  lands), and only water resting on a block that holds it feeds sideways (so water over air falls, and
+  water landing on water joins it). The queue is saved (save version 13) and hashed (golden hash
+  re-recorded; only the format changed). `World` keeps 8 generated chunks for `*_anywhere` reads
+  (limitation 10) and `set_block_anywhere_later` remeshes in the streaming budget. The mesher lowers
+  thinner flows (water-line classes 2 and 3 in the AO bits). **Deviation:** the plan's source rule (two
+  source neighbours, standing on something) can't fill a 1-wide trench or let a pump drain a pond, so the
+  sea is the only endless water: sources form only at or below its level (a deep pond's cells that low
+  refill too). For 5.7: a pump can't lower the sea or anything open to it; above sea level, sources never
+  come back. For 5.8: a pit below sea level floods only when it opens to the sea, and then stays flooded
+  until dammed off. Measured: a 2,964-cell flood takes 291 ticks, worst tick 0.12 ms (loaded or not;
+  `bench_water`). Browser check (seed 2024): a pond channel shows levels 7 to 1 stepping down; a sea
+  trench fills. Wasm +2.2 KB gzipped. Tests in `sim/water/tests.rs`, `mesher/tests.rs`, `net/tests.rs`.
+  Known look: where two flows of different levels meet, the step between them isn't drawn.
 - [ ] **5.7 Pumps and pipes.**
   - **The pump** (a machine, 5 kW): its intake takes water sources from the body of water it touches.
     - It searches from the intake through water within 16 blocks, highest first, then nearest, in a
@@ -498,7 +492,8 @@ need a version 4.
         a box.
       - It skips ore, bedrock and non-ground blocks, and stops at its depth.
       - It pauses when the output is full or the power is off, then resumes.
-      - A pit below sea level floods and the quarry waits until a pump drains it.
+      - A pit that breaks into a pond floods and the quarry waits until a pump drains it (a pit open to
+        the sea can't be drained: 5.6).
       - Two cores agree on the hash, and a save mid-dig reloads and continues.
     - Screenshots show the placement preview and a half-dug pit with the gantry.
     - The README and a tip are updated.
@@ -579,3 +574,6 @@ and the balance numbers. Read the section you need.
 - **2026-09-27:** 5.1–5.4 done (see the steps): version 2 pinned, rare ore and a starter set (golden hash
   re-recorded), sea and ponds, water drawn. Tests 193 → 204. Version 3 is unreleased until the first push.
 - **2026-09-27:** 5.5 done: swimming, floating items, splash sound. Golden hash unchanged. Tests 204 → 209.
+  Deployed (`4646ae0`).
+- **2026-09-27:** 5.6 done: flowing water, the sea as the only endless water (a deviation, see the step),
+  save version 13, golden hash re-recorded. Tests 209 → 217; wasm 169.0 KB gzipped.

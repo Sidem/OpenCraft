@@ -43,7 +43,7 @@ pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
 /// Version 3: the sea's surface (the top water block); land at or below it lies under water.
-const SEA_LEVEL: i32 = 62;
+pub const SEA_LEVEL: i32 = 62;
 const ROCK_LEVEL: i32 = 170;
 const CLIFF_SLOPE: i32 = 5;
 const TREE_CELL: i32 = 7;
