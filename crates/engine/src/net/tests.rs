@@ -110,6 +110,17 @@ fn everyone_waits_the_input_delay_even_the_host() {
 }
 
 #[test]
+fn host_and_client_share_the_time_of_day() {
+    let (mut host, mut client) = pair();
+    let frames = frames_of(&mut host, 900);
+    assert!(client.push_frames(&frames));
+    client.run_ticks(900);
+    assert_eq!(client.sim.tick, 900);
+    assert_eq!((client.time_of_day(), client.day_number()), (host.time_of_day(), host.day_number()));
+    assert!(host.time_of_day() > 7.0 / 24.0, "the sun moved");
+}
+
+#[test]
 fn prospecting_in_co_op_sends_nothing_and_stays_in_step() {
     let (mut host, mut client) = pair();
     client.act(Action::Give { item: SCANNER, count: 1 });

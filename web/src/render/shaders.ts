@@ -23,9 +23,11 @@ layout(location = 0) in uint a_vert;
 uniform mat4 u_viewProj;
 uniform vec3 u_offset; // chunk origin minus camera position
 uniform vec3 u_worldOrigin; // chunk origin modulo the tint's 256-block period
+uniform vec3 u_skyLight; // daylight colour (render/sky.ts)
 
 out vec3 v_uvl;
 out float v_light;
+out vec3 v_tint;
 out vec3 v_rel;
 out vec2 v_ground;
 
@@ -52,6 +54,7 @@ void main() {
 
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
+  v_tint = u_skyLight;
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
@@ -66,6 +69,7 @@ uniform sampler2DArray u_tex;
 ${FOG}
 in vec3 v_uvl;
 in float v_light;
+in vec3 v_tint;
 in vec3 v_rel;
 out vec4 o_color;
 
@@ -95,7 +99,7 @@ void main() {
               + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;
   c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
 #endif
-  o_color = vec4(applyFog(c.rgb * v_light, v_rel), 1.0);
+  o_color = vec4(applyFog(c.rgb * v_light * v_tint, v_rel), 1.0);
 }
 `;
 
@@ -110,9 +114,11 @@ layout(location = 2) in vec4 a_i1;     // size, uv scroll (top face)
 layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; uv mode (0 whole texture, 1 world-scaled)
 
 uniform mat4 u_viewProj;
+uniform vec3 u_skyLight;
 
 out vec3 v_uvl;
 out float v_light;
+out vec3 v_tint;
 out vec3 v_rel;
 
 const vec3 NORMALS[6] = vec3[6](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0, 0, -1));
@@ -137,6 +143,7 @@ void main() {
   vec3 n = rot * NORMALS[face];
   v_light = n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86));
   v_uvl = vec3(uv, layer);
+  v_tint = u_skyLight;
   v_rel = a_i0.xyz + rot * local;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }

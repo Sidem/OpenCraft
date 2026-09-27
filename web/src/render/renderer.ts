@@ -1,14 +1,15 @@
-// WebGL2 world renderer: chunk meshes (opaque then cutout pass, frustum-culled, front to back with
-// fog), instanced boxes (boxes.ts), and the target outline plus mining-crack overlay.
+// WebGL2 world renderer: the sky (sky.ts: day and night), chunk meshes (opaque then cutout pass,
+// frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), and the target
+// outline plus mining-crack overlay.
 // Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
 
 import { BoxPipeline } from './boxes';
 import { createProgram, uniforms } from './gl';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
 import * as S from './shaders';
+import { skyAt, SkyPass } from './sky';
 
 const CHUNK = 32;
-export const SKY_COLOR: [number, number, number] = [0.62, 0.79, 0.96];
 const FOV_Y = (72 * Math.PI) / 180;
 
 interface ChunkMesh {
@@ -29,6 +30,8 @@ export interface FrameInfo {
   pitch: number;
   target: [number, number, number] | null;
   mineProgress: number;
+  /** The engine's time of day (0 midnight, 0.5 noon). */
+  time: number;
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;
@@ -104,6 +107,7 @@ export class Renderer {
 
   private readonly cubeVao: WebGLVertexArrayObject;
   private readonly boxes: BoxPipeline;
+  private readonly sky: SkyPass;
   private readonly lineVao: WebGLVertexArrayObject;
 
   private readonly proj = new Float32Array(16);
@@ -122,7 +126,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
@@ -147,6 +151,7 @@ export class Renderer {
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
 
     this.boxes = new BoxPipeline(gl);
+    this.sky = new SkyPass(gl);
 
     this.lineVao = gl.createVertexArray()!;
     gl.bindVertexArray(this.lineVao);
@@ -262,8 +267,9 @@ export class Renderer {
     const gl = this.gl;
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    gl.clearColor(SKY_COLOR[0], SKY_COLOR[1], SKY_COLOR[2], 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    const sky = skyAt(f.time);
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    this.sky.draw(sky, f.yaw, f.pitch, FOV_Y, this.canvas.width / this.canvas.height);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
     gl.depthMask(true);
@@ -301,7 +307,8 @@ export class Renderer {
       gl.useProgram(pass.prog);
       gl.uniformMatrix4fv(pass.u.u_viewProj, false, this.viewProj);
       gl.uniform1i(pass.u.u_tex, 0);
-      gl.uniform3f(pass.u.u_fogColor, SKY_COLOR[0], SKY_COLOR[1], SKY_COLOR[2]);
+      gl.uniform3f(pass.u.u_fogColor, ...sky.horizon);
+      gl.uniform3f(pass.u.u_skyLight, ...sky.light);
       gl.uniform2f(pass.u.u_fog, fogStart, fogEnd);
       for (const m of vis) {
         const n = isCutout ? m.cutout : m.opaque;
@@ -316,7 +323,7 @@ export class Renderer {
       }
     }
 
-    drawCalls += this.boxes.draw(this.viewProj, SKY_COLOR, [fogStart, fogEnd], f.boxes, f.boxCount);
+    drawCalls += this.boxes.draw(this.viewProj, sky, [fogStart, fogEnd], f.boxes, f.boxCount);
 
     if (f.target) {
       const [tx, ty, tz] = f.target;

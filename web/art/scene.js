@@ -142,7 +142,7 @@ try {
     }
     boxes=new Float32Array(solids);
   }
-  const frame={eye,yaw:game.yaw(),pitch:game.pitch(),target:null,mineProgress:0,boxes,boxCount:boxes.length/INSTANCE_FLOATS};
+  const frame={eye,yaw:game.yaw(),pitch:game.pitch(),target:null,mineProgress:0,time:0.5,boxes,boxCount:boxes.length/INSTANCE_FLOATS};
   const render=()=>{ renderer.render(frame); requestAnimationFrame(render); }; render();
   status.textContent=`Seed 2024 · fixed camera ${eye.map(n=>n.toFixed(1)).join(', ')} · ${game.miners()} miner · ${game.belts()} belt · ${frame.boxCount} boxes · production materials`;
   if (params.has('benchmark')) {

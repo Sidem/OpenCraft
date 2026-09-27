@@ -27,6 +27,7 @@ mod avatars;
 mod block;
 mod bytes;
 mod chunk;
+mod daytime;
 mod deposits;
 mod entities;
 mod events;

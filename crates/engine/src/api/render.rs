@@ -1,4 +1,4 @@
-//! Data the host needs to draw and play a frame: streaming work, chunk mesh events, the camera,
+//! Data the host needs to draw and play a frame: streaming work, chunk mesh events, the camera, the time of day,
 //! box instances, name-tag anchors, sound events and the texture atlas. Bulk data is exposed as `*_ptr` + length
 //! so the host reads it zero-copy from wasm memory.
 
@@ -6,6 +6,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::avatars::LABEL_FLOATS;
 use crate::block;
+use crate::daytime;
 use crate::factory::INSTANCE_FLOATS;
 use crate::textures;
 use crate::world::Event;
@@ -97,6 +98,16 @@ impl Game {
 
     pub fn pitch(&self) -> f64 {
         self.body().pitch
+    }
+
+    /// The time of day (daytime.rs): 0 midnight, 0.25 sunrise, 0.5 noon, 0.75 sunset.
+    pub fn time_of_day(&self) -> f64 {
+        daytime::time_of_day(self.sim.tick)
+    }
+
+    /// The day the world is on, counting from 1.
+    pub fn day_number(&self) -> u32 {
+        daytime::day_number(self.sim.tick) as u32
     }
 
     /// Byte offset of this frame's box instances (dropped items, belt items, machine parts):

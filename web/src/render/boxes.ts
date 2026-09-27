@@ -1,11 +1,12 @@
 // Instanced boxes: dropped items, belt items and machine parts, drawn as one instanced draw call of
 // a unit cube. The engine writes the instance records each frame (`factory/render.rs`); this uploads
-// them into a growing GPU buffer and draws them with the lit cutout shader.
+// them into a growing GPU buffer and draws them with the lit cutout shader, dimmed by the daylight.
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
 // top/side/bottom, uv mode. Attribute locations 1–3 read it as three vec4s (see `S.boxVert`).
 
 import { createProgram, uniforms } from './gl';
 import * as S from './shaders';
+import type { Sky } from './sky';
 
 /** Floats per box instance; must match `factory::INSTANCE_FLOATS` in the engine. */
 export const INSTANCE_FLOATS = 12;
@@ -19,7 +20,7 @@ export class BoxPipeline {
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT']);
-    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog'] as const);
+    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight'] as const);
 
     // One unit cube, per-instance centre/size/rotation/textures.
     this.vao = gl.createVertexArray()!;
@@ -43,13 +44,14 @@ export class BoxPipeline {
    * Draws `count` instances from `boxes` (which may be a view into wasm memory). Expects the block
    * texture array bound to unit 0. Returns the number of draw calls made.
    */
-  draw(viewProj: Float32Array, sky: readonly number[], fog: [number, number], boxes: Float32Array, count: number): number {
+  draw(viewProj: Float32Array, sky: Sky, fog: [number, number], boxes: Float32Array, count: number): number {
     if (count === 0) return 0;
     const gl = this.gl;
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.u_viewProj, false, viewProj);
     gl.uniform1i(this.u.u_tex, 0);
-    gl.uniform3f(this.u.u_fogColor, sky[0], sky[1], sky[2]);
+    gl.uniform3f(this.u.u_fogColor, ...sky.horizon);
+    gl.uniform3f(this.u.u_skyLight, ...sky.light);
     gl.uniform2f(this.u.u_fog, fog[0], fog[1]);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
     const bytes = count * INSTANCE_FLOATS * 4;

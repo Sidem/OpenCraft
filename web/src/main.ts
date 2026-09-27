@@ -13,6 +13,7 @@ import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
 import { INSTANCE_FLOATS } from './render/boxes';
 import { Renderer } from './render/renderer';
+import { clock } from './render/sky';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
 import { CoopPanel } from './ui/coop';
@@ -108,8 +109,12 @@ async function main(): Promise<void> {
   const loadingText = document.getElementById('loading-text')!;
   // Worlds made before Milestone 4 keep their first terrain (generator version 1).
   const terrain = game.worldgen_version() === 1 ? ' · classic terrain' : '';
-  document.getElementById('world-info')!.textContent =
-    `${meta.name} · seed ${meta.seed}${terrain} · render distance ${viewRadius} chunks`;
+  const worldInfo = document.getElementById('world-info')!;
+  const showWorldInfo = () => {
+    const time = `day ${game.day_number()}, ${clock(game.time_of_day())}`;
+    worldInfo.textContent = `${meta.name} · ${time} · seed ${meta.seed}${terrain} · render distance ${viewRadius} chunks`;
+  };
+  showWorldInfo();
   if (opened.restored) play.textContent = 'Continue';
   document.getElementById('menu-volume')!.append(new VolumeControl(sound).el);
   document.getElementById('open-sound-lab')!.addEventListener('click', () => {
@@ -127,6 +132,7 @@ async function main(): Promise<void> {
   });
   const resumeHint = document.getElementById('resume-hint')!;
   const pause = () => {
+    showWorldInfo();
     resumeHint.classList.add('hidden');
     menu.classList.remove('hidden');
   };
@@ -152,6 +158,7 @@ async function main(): Promise<void> {
     menu.classList.toggle('hidden', locked || panelOpen());
     resumeHint.classList.add('hidden');
     if (!locked) {
+      showWorldInfo();
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
       game.set_mining(false);
@@ -284,6 +291,7 @@ async function main(): Promise<void> {
       pitch: game.pitch(),
       target: hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
       mineProgress: game.mine_progress(),
+      time: game.time_of_day(),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
       boxCount: game.instance_count(),
     });
