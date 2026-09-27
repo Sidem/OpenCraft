@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BELT, CONSTRUCTOR, GENERATOR, SMELTER, STORAGE};
+use crate::block::{BELT, CONSTRUCTOR, GENERATOR, PUMP, SMELTER, STORAGE};
 use crate::math::IVec3;
 use crate::world::World;
 
@@ -28,6 +28,8 @@ fn hints_follow_what_the_player_has_done() {
     place(&mut f, GENERATOR, 5);
     assert_eq!(progress(&inv, &f), 6);
     f.research.add_unit(0);
+    assert_eq!(progress(&inv, &f), 7, "researching");
+    place(&mut f, PUMP, 6);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
 }

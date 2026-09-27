@@ -189,6 +189,9 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 The roadmap agent adds a line here when gameplay needs a look. It will already have appended a `tex`
 layer with a plain placeholder pattern, so nothing is blocked. Tick the line when you replace it.
 
+- [ ] (5.7, landed) Pump, pipe and outlet models (`factory/pipes.rs` `model`): placeholders built from
+  `STEEL`, `FRAME` and `GENERATOR_SIDE` boxes; pipes join on every face (`arms`); the outlet shows a short
+  `WATER` stream while pouring. Their item icons are plain cubes of the block faces (`block/mod.rs`).
 - [x] (P5, landed; models done, held models open) Pickaxe, axe and shovel in stone and iron tiers (steel later), each tier readable
   at a glance: icons, loose-item models and held models. Placeholders: layers `tex::STONE_PICKAXE`..`IRON_SHOVEL`
   (51–56) drawn by `textures/tools.rs` on flat plates (`item.rs` `tool()` size). The hotbar wear bar is

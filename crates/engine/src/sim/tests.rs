@@ -16,7 +16,7 @@ pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0x0ec6_e364_b2f5_32fe;
+const GOLDEN_HASH: u64 = 0xf8ed_0c2e_3c56_5d9f;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

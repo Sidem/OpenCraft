@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.7** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.8** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (217 engine tests).
+   (220 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -189,7 +189,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 13; every version since 1 loads.
+  exports and imports them. Save version 14; every version since 1 loads.
 - **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
   menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
   or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
@@ -447,21 +447,22 @@ need a version 4.
   `bench_water`). Browser check (seed 2024): a pond channel shows levels 7 to 1 stepping down; a sea
   trench fills. Wasm +2.2 KB gzipped. Tests in `sim/water/tests.rs`, `mesher/tests.rs`, `net/tests.rs`.
   Known look: where two flows of different levels meet, the step between them isn't drawn.
-- [ ] **5.7 Pumps and pipes.**
-  - **The pump** (a machine, 5 kW): its intake takes water sources from the body of water it touches.
-    - It searches from the intake through water within 16 blocks, highest first, then nearest, in a
-      deterministic order.
-    - It removes about 2 sources per second and pushes the water units into pipes.
-    - Against the sea the level never drops (the source rule refills it), so draining works only on a
-      closed pit, pond or dammed area.
-  - **Pipes** form networks derived in `relink`, the way power grids are.
-  - **The outlet** puts the network's water back as sources in the free cells in front of it.
-  - **A network** balances pump supply against outlet demand each tick, like `power.rs` (no pressure). If
-    nothing takes the water, the pumps stop.
-  - Recipes and a research tech (Fluid Handling, red packs); README and tips.
-  - **Done when:** scenario tests: a pump drains a walled, flooded 5 × 5 × 3 pit into an outlet over a
-    cliff; against the open sea the pump keeps running but the water level never drops; an unpowered pump
-    stops. A screenshot of a pit being drained.
+- [x] **5.7 Pumps and pipes.** Blocks 53–55 (`PUMP`, `PIPE`, `OUTLET`) are one machine kind
+  (`Kind::Pipe`, `factory/pipes.rs`: `Part`), joined face to face into networks in `relink`
+  (`link_pipework`). `factory/pumping.rs`: a pump (5 kW) lifts 2 sources a second from the water it
+  touches (search 16 steps through water, highest first, then **farthest**, so a pool drains from its
+  edges and what is left stays joined to the intake: nearest-first stranded a pond's far rim) and holds 2;
+  an outlet (unpowered) takes from its network's pumps up to 4 a second and puts each unit where it lands:
+  straight down from its front cell, or into the lowest, nearest free cell of the water it lands in,
+  resting on a block or a source. Nothing takes the water: the pumps fill up and stop. Block edits go
+  to `Factory.changed`, which `Sim::step` hands to `block_changed` (so the sea refills and flows react).
+  Fluid Handling (15 red, after Belt Routing) unlocks them; recipes, README, a tip (8 of 8). Save
+  version 14; golden hash re-recorded (only the new tech and list bytes). Tests in
+  `factory/pipes/tests.rs`: a 5 × 5 × 3 pit drains over a cliff (all 72 blocks land at the foot, and a
+  save mid-drain carries on identically), an unpowered pump stops, a pump in the sea runs and the level
+  holds. Browser (seed 2024): a pond of 167 sources drained in about 90 s to one block in a separate
+  hole; screenshots taken. Found there: an outlet within 7 blocks of the pond it drains feeds it back
+  (flows join them), which is right but worth a tip later. Wasm +5.8 KB gzipped (174.8 KB).
 - [ ] **5.8 Quarry.** A powered machine (10 kW, no research) that digs rock and soil for real, leaving a
   pit. It is the first version of Milestone 6's excavator. Keep it obvious, visible and satisfying.
   - **The dig box:** a square in front of its face (5, 7 by default, 9 or 11 wide), from the quarry's own
@@ -576,4 +577,6 @@ and the balance numbers. Read the section you need.
 - **2026-09-27:** 5.5 done: swimming, floating items, splash sound. Golden hash unchanged. Tests 204 → 209.
   Deployed (`4646ae0`).
 - **2026-09-27:** 5.6 done: flowing water, the sea as the only endless water (a deviation, see the step),
-  save version 13, golden hash re-recorded. Tests 209 → 217; wasm 169.0 KB gzipped.
+  save version 13, golden hash re-recorded. Tests 209 → 217; wasm 169.0 KB gzipped. Deployed (`ceb9bec`).
+- **2026-09-27:** 5.7 done: pumps, pipes and outlets (one machine kind), Fluid Handling, save version 14.
+  Tests 217 → 220; wasm 174.8 KB gzipped.

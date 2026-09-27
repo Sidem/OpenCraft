@@ -10,7 +10,9 @@
 //! To add a tech: append a row to `TECHS` (saves store progress by index, so never reorder), naming
 //! its prerequisites by index. A new science pack: an item, a hand recipe, and an entry in `PACKS`.
 
-use crate::block::{BlockId, FAST_BELT, FILTER, LIFT, MINER_MK2, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT};
+use crate::block::{
+    BlockId, FAST_BELT, FILTER, LIFT, MINER_MK2, OUTLET, PIPE, PUMP, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT,
+};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{ItemId, GREEN_PACK, RED_PACK};
 
@@ -86,6 +88,15 @@ pub const TECHS: &[Tech] = &[
         units: 20,
         seconds: 10.0,
         unlocks: &[b(FAST_BELT)],
+    },
+    Tech {
+        name: "Fluid Handling",
+        blurb: "Pumps lift water out of ponds and pits; pipes carry it to outlets that pour it out elsewhere.",
+        needs: &[0],
+        packs: &[RED_PACK],
+        units: 15,
+        seconds: 5.0,
+        unlocks: &[b(PUMP), b(PIPE), b(OUTLET)],
     },
 ];
 

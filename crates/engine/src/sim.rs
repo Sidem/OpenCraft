@@ -191,7 +191,8 @@ impl Sim {
     }
 
     /// Advances the core by one tick of `TICK` seconds: this tick's actions, the block timers due, the
-    /// water checks due, then the factory.
+    /// water checks due, then the factory (whose block changes, from pumps and outlets, then start
+    /// timers and water checks).
     pub fn step(&mut self) {
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
         let later = self.pending.split_off(due);
@@ -201,6 +202,9 @@ impl Sim {
         self.run_timers();
         self.run_water();
         self.factory.update(&mut self.world, self.tick, &mut self.events);
+        for (pos, old) in std::mem::take(&mut self.factory.changed) {
+            self.block_changed(pos, old);
+        }
         self.tick += 1;
     }
 

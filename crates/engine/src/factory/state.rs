@@ -24,13 +24,14 @@ impl Factory {
         write_list(w, &self.generators);
         write_list(w, &self.poles);
         write_list(w, &self.labs);
+        write_list(w, &self.pipework);
         self.deposits.write_state(w);
         self.research.write_state(w);
     }
 
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
-    /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power, before 8 no labs or research.
+    /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power, before 8 no labs or research, before 14 no pipework.
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
         read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
@@ -51,6 +52,9 @@ impl Factory {
         }
         if r.version >= 8 {
             read_list(r, &mut f.labs, &mut f.at, Slot::Lab)?;
+        }
+        if r.version >= 14 {
+            read_list(r, &mut f.pipework, &mut f.at, Slot::Pipe)?;
         }
         f.deposits.read_state(world, r)?;
         if r.version >= 8 {

@@ -44,6 +44,7 @@ impl Factory {
             Slot::Generator(i) => self.generators[i as usize].describe(self),
             Slot::Pole(i) => self.poles[i as usize].describe(self),
             Slot::Lab(i) => self.labs[i as usize].describe(self),
+            Slot::Pipe(i) => self.pipework[i as usize].describe(self),
         };
         Some(text).filter(|t| !t.is_empty())
     }

@@ -51,7 +51,7 @@ impl Factory {
                 Some(g.panel(g.status_text(self)))
             }
             Slot::Lab(i) => Some(self.labs[i as usize].panel(&self.research)),
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) => None,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) | Slot::Pipe(_) => None,
         }
     }
 
@@ -146,9 +146,10 @@ impl Factory {
             Some(Slot::Storage(i)) => &mut self.storages[*i as usize].buf,
             Some(Slot::Smelter(i)) => &mut self.smelters[*i as usize].out,
             Some(Slot::Constructor(i)) => &mut self.constructors[*i as usize].out,
-            Some(Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_)) | None => {
-                return false
-            }
+            Some(
+                Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) | Slot::Pipe(_),
+            )
+            | None => return false,
         };
         buf.drain(take);
         true

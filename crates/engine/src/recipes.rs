@@ -136,6 +136,29 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "Where items come back up from an underpass entry behind it, then carry on like a belt.",
     },
     Recipe {
+        output: b(PUMP),
+        group: Group::Logistics,
+        count: 1,
+        inputs: &[(IRON_PLATE, 6), (IRON_ROD, 4), (COPPER_WIRE, 6)],
+        blurb: "Lifts 2 blocks of still water a second out of the water it touches, highest first. Pipe it to \
+                an outlet; needs 5 kW. It can't lower the sea.",
+    },
+    Recipe {
+        output: b(PIPE),
+        group: Group::Logistics,
+        count: 4,
+        inputs: &[(IRON_PLATE, 2)],
+        blurb: "Joins pumps to outlets. Pipes connect on every side.",
+    },
+    Recipe {
+        output: b(OUTLET),
+        group: Group::Logistics,
+        count: 1,
+        inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
+        blurb: "Pours the water its pipes bring out in front of it (it faces the way you do), filling from the \
+                bottom up.",
+    },
+    Recipe {
         output: b(GENERATOR),
         group: Group::Power,
         count: 1,

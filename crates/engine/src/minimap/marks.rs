@@ -112,7 +112,7 @@ fn machine_color(kind: Kind) -> i32 {
         Kind::Constructor => 0x4a90e2,
         Kind::Generator => 0xa070e0,
         Kind::Lab => 0x5ad1e0,
-        Kind::Belt | Kind::Router | Kind::Pole => 0xcccccc,
+        Kind::Belt | Kind::Router | Kind::Pole | Kind::Pipe => 0xcccccc,
     }
 }
 

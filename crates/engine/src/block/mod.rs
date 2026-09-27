@@ -70,7 +70,12 @@ pub const WATER: BlockId = 45;
 /// otherwise. `flow(level)` and `flow_level` convert.
 pub const FLOW_1: BlockId = 46;
 pub const FLOW_7: BlockId = 52;
-pub const BLOCK_COUNT: usize = 53;
+/// Water handling (`factory/pipes.rs`): a pump lifts sources out of the water it touches, pipes join
+/// pumps to outlets, an outlet pours the water back out in front of it.
+pub const PUMP: BlockId = 53;
+pub const PIPE: BlockId = 54;
+pub const OUTLET: BlockId = 55;
+pub const BLOCK_COUNT: usize = 56;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -251,6 +256,9 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     liquid("Flowing Water"),
     liquid("Flowing Water"),
     liquid("Flowing Water"),
+    machine("Pump", true, 0.8, pillar(tex::GENERATOR_SIDE, tex::STEEL, tex::FRAME), PUMP),
+    machine("Pipe", true, 0.3, all(tex::STEEL), PIPE),
+    machine("Outlet", true, 0.5, pillar(tex::STEEL, tex::FRAME, tex::FRAME), OUTLET),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

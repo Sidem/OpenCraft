@@ -53,6 +53,11 @@ pub const HINTS: &[Hint] = &[
                what to research. New machines unlock as you go.",
         done: |_, f| (0..TECHS.len()).any(|t| f.research.progress(t as u8) > 0),
     },
+    Hint {
+        text: "Move water: research Fluid Handling, put a pump in a pond or a flooded pit and power it, and \
+               pipe it to an outlet facing where the water should go. Nothing lowers the sea.",
+        done: |_, f| f.count(Kind::Pipe) > 0,
+    },
 ];
 
 /// How far the player got: the index after the last hint that is done (0 when none is).
