@@ -68,12 +68,6 @@ fn released_versions_never_change() {
     assert_eq!(digest(2), 0x24f4_7dcb_aceb_e0c5, "version 2");
 }
 
-/// Until step 5.2 branches it, version 3 generates exactly what version 2 does.
-#[test]
-fn version_3_starts_as_version_2() {
-    assert_eq!(digest(3), digest(2));
-}
-
 #[test]
 fn bottom_is_bedrock_and_sky_is_empty() {
     let mut g = WorldGen::new(1);

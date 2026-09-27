@@ -90,8 +90,12 @@ highlands over granite, wet lowlands thick with trees, and bare black basalt fie
 each biome decides which ores lie in it: coal and limestone in the lowlands, copper and quartz in the
 highlands, quartz and limestone in the deserts, rich iron in the basalt, a bit of everything on the plains.
 Deep veins and lodes give themselves away at the surface: rusty soil above iron, dark soil above coal,
-blue-green soil above copper and pale soil above limestone and quartz. Outcrops simply show. Worlds made before biomes existed keep their original terrain
-(the menu calls it "classic terrain"), so nothing you built there changes.
+blue-green soil above copper and pale soil above limestone and quartz. Ore rarely reaches the surface:
+look for it where the rock is bare, on cliffs, bare mountain tops, deserts and basalt fields. Each ore keeps to
+its own depth: limestone and coal lie shallow, iron deeper, copper and quartz deepest. Every new world has
+a small patch of coal, iron and copper showing 40 to 80 blocks from where you start. Worlds made before
+this keep the terrain and ore they were made with (the oldest ones, before biomes, are "classic terrain"),
+so nothing you built there changes.
 
 A day lasts 20 minutes, from sunrise through a golden dusk to a dark blue night with stars; the pause menu
 shows the day and the time. Light is simulated per block: forest floors lie in shade, caves are dark even
@@ -127,8 +131,8 @@ size.
 
 | Tier    | Where                                        | Units per block | Shared draw limit |
 | ------- | -------------------------------------------- | --------------- | ----------------- |
-| Outcrop | small clusters, half of them at the surface  | 100             | 60 per minute     |
-| Vein    | long seams 20–60 blocks below the surface    | 1,000           | 240 per minute    |
+| Outcrop | small clusters; few show, most are buried    | 100             | 60 per minute     |
+| Vein    | long seams 8–70 blocks down, by ore          | 1,000           | 240 per minute    |
 | Lode    | rare, huge bodies deep down (y 12–25)        | 2,000           | 1,200 per minute  |
 
 - **By hand** you keep 3 ore per block (4 with an iron pickaxe). The rest of that block's share of the pool

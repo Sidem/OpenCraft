@@ -88,7 +88,7 @@ impl WorldGen {
     }
 
     /// An ore drawn from the weights of the biome above `at`.
-    fn ore_at(&self, rng: &mut Rng, at: IVec3) -> BlockId {
+    pub(super) fn ore_at(&self, rng: &mut Rng, at: IVec3) -> BlockId {
         let biome = self.biome_at(at.x, at.z, self.height_at(at.x, at.z));
         let ores = ores_in(biome);
         let mut pick = rng.below(ores.iter().map(|o| o.1).sum());

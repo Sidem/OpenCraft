@@ -6,10 +6,14 @@
 //! order) and never overwrite ore, so where shapes overlap the smallest key owns the block, both
 //! when stamping and in [`WorldGen::deposit_at`]. Runtime deposit state lives in `crate::deposits`.
 //! Version 1's seeding lives here and never changes ([`ORE_GEN`]); version 2 draws each deposit's ore
-//! by biome (`geology.rs`) and shares the shape helpers. To add an ore: its block in `block.rs`
+//! by biome (`geology.rs`) and shares the shape helpers; version 3 adds depth bands and rare surface ore
+//! (`strata.rs`). To add an ore: its block in `block.rs`
 //! (`is_ore`, `ore_label`) and its weights in `geology.rs`.
 
-use crate::block::{BlockId, BASALT, COAL_ORE, COPPER_ORE, DIRT, GRANITE, GRASS, IRON_ORE, SAND, SANDSTONE, STONE};
+use crate::block::{
+    BlockId, BASALT, COAL_ORE, COPPER_ORE, DIRT, GRANITE, GRASS, IRON_ORE, PALE_SAND, RUSTY_SOIL, SAND, SANDSTONE,
+    STONE,
+};
 use crate::chunk::{index, CHUNK_SIZE};
 use crate::deposits::{Deposit, DepositKey, Tier};
 use crate::math::{hash2, hash3, sort_small_by_key, IVec3, Rng};
@@ -93,6 +97,9 @@ impl WorldGen {
 
     /// Every deposit seeded in one chunk column.
     pub(crate) fn seed_deposits(&self, cx: i32, cz: i32, out: &mut Vec<Deposit>) {
+        if self.version >= 3 {
+            return self.seed_deposits_v3(cx, cz, out);
+        }
         if self.version >= 2 {
             return self.seed_deposits_v2(cx, cz, out);
         }
@@ -179,8 +186,9 @@ pub(super) fn lode_shape(rng: &mut Rng, x0: i32, z0: i32) -> (IVec3, [f32; 3], u
 
 /// Writes a deposit's ore into the chunk at `base`. Deposits are stamped in ownership order and never
 /// overwrite ore, so where shapes overlap the first (smallest key) wins, matching [`WorldGen::deposit_at`].
-/// `sand`: whether it may replace sand too (version 2, so desert outcrops show).
-pub(super) fn stamp_deposit(d: &Deposit, base: IVec3, b: &mut [BlockId], sand: bool) {
+/// From version 2 it may replace sand too (so desert outcrops show), from version 3 the stained soils
+/// and sands (so an outcrop under a hint still shows).
+pub(super) fn stamp_deposit(d: &Deposit, base: IVec3, b: &mut [BlockId], version: u32) {
     let (lo, hi) = d.bounds();
     let from = |v: i32, o: i32| (v - o).max(0);
     let to = |v: i32, o: i32| (v - o).min(CHUNK_SIZE - 1);
@@ -188,7 +196,8 @@ pub(super) fn stamp_deposit(d: &Deposit, base: IVec3, b: &mut [BlockId], sand: b
         for z in from(lo.z, base.z)..=to(hi.z, base.z) {
             for x in from(lo.x, base.x)..=to(hi.x, base.x) {
                 let i = index(x as usize, y as usize, z as usize);
-                if (ore_replaceable(b[i]) || (sand && b[i] == SAND)) && d.contains(base + IVec3::new(x, y, z)) {
+                let extra = (version >= 2 && b[i] == SAND) || (version >= 3 && is_hint(b[i]));
+                if (ore_replaceable(b[i]) || extra) && d.contains(base + IVec3::new(x, y, z)) {
                     b[i] = d.ore();
                 }
             }
@@ -202,4 +211,10 @@ pub(super) fn stamp_deposit(d: &Deposit, base: IVec3, b: &mut [BlockId], sand: b
 #[inline]
 fn ore_replaceable(b: BlockId) -> bool {
     matches!(b, STONE | DIRT | GRASS | GRANITE | SANDSTONE | BASALT)
+}
+
+/// The stained soils and sands of the surface hints (`geology.rs`).
+#[inline]
+fn is_hint(b: BlockId) -> bool {
+    (RUSTY_SOIL..=PALE_SAND).contains(&b)
 }

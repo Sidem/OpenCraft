@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.2** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.3** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (194 engine tests).
+   (197 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -211,7 +211,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
    their results (by design; co-op sends actions, not hands).
 2. Two tabs on the same world overwrite each other's saves (the later save wins).
 3. ~~Veins and lodes can only be found by digging~~: fixed by prospecting (4.6) and map marks (4.7).
-4. The outcrop nearest spawn (about 11, 62, 2 with seed 1337) is buried under 1–2 blocks.
+4. In version 1 and 2 worlds the outcrop nearest spawn may be buried (version 3 has a starter set).
 5. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
    order of sound materials and event kinds. Replace them with getters when touching that code.
 6. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
@@ -394,25 +394,14 @@ need a version 4.
   becomes 3, and version 3 branches from version 2 at named points only. In this step it generates exactly
   what version 2 does. **Done when:** both pins hold, a new game saves and reloads as version 3, a co-op
   join gets the host's version, the golden hash is unchanged.
-- [ ] **5.2 Rare surface ore, depth bands, starter set (version 3).** In `worldgen/geology.rs` (split out
-  `worldgen/strata.rs` if it would pass 400 lines). Vein and lode counts stay as they are.
-  - **Surface outcrops, about 10× fewer:** about 0.3 exposed per column. They only sit where rock is bare:
-    cliffs (slope ≥ `CLIFF_SLOPE`), above `ROCK_LEVEL`, desert and basalt. Ore still follows the biome.
-  - **Buried pockets** keep today's count.
-  - **Depth bands per ore** (data, `ORE_DEPTH`, below the local surface): limestone 5–25, coal 10–35,
-    iron 20–50, copper and quartz 35–70. Lodes stay at y 12–25. Pick the ore first, then its band.
-  - **A starter set:** one exposed coal, iron and copper outcrop each, 40–80 blocks from spawn, on dry land.
-    They are found by a deterministic ring search and seeded in their own chunk column with reserved key
-    indices, so `deposit_by_key` finds them.
-  - **Surface hints** stay as they are.
-  - **Done when:** these tests pass:
-    - Over a 64 × 64-column area: 0.2–0.5 exposed outcrops per column, every one on bare rock, and each
-      tier's total within 5 % of version 2 (outcrops count buried and exposed together).
-    - Vein depths fall inside their ore's band.
-    - The starter set exists for seeds 2024, 1337 and 7.
-    - Both pins hold.
-    - Screenshots show a cliff outcrop and the starter coal.
-- [ ] **5.3 Still water in generation (version 3).**
+- [x] **5.2 Rare surface ore, depth bands, starter set (version 3).** `worldgen/strata.rs`: an outcrop slot
+  shows only with `EXPOSED_CHANCE` (0.28) on bare rock (`bare_rock`: cliffs, above `ROCK_LEVEL`, desert,
+  basalt; dry land); every other slot is buried in its ore's band (`ORE_DEPTH`), so the tier totals match
+  version 2. Veins use the bands too; lodes are version 2's. A starter coal, iron and copper outcrop lies
+  40–80 blocks out on dry, gentle ground (key index 100+). Version 3 ore also replaces the hint soils.
+  Deviations: limestone's band starts at 8 (so no pocket breaks the surface); buried pockets grow in
+  number instead of staying as they were. Measured: 0.24–0.5 exposed per column (was 3.3), the nearest
+  about 110–125 blocks from a random spot (was 9). Tests in `worldgen/strata/tests.rs`.- [ ] **5.3 Still water in generation (version 3).**
   - **The water block:** `WATER` (block 45) is not solid and not targetable (raycasts pass through it).
     Placing into water replaces it. In `light.rs`, water dims light by 2 per block.
   - **Sea:** `SEA_LEVEL` = 62. Every column whose ground lies below it fills with water up to it. Sand
@@ -597,4 +586,5 @@ and the balance numbers. Read the section you need.
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
   3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
-- **2026-09-27:** 5.1 done: version 2 pinned (a chunk per biome); version 3 matches it. Tests 193 → 194.
+- **2026-09-27:** 5.1 done: version 2 pinned (a chunk per biome). 5.2 done (see the step); the golden hash
+  was re-recorded (new worlds have new deposits). Tests 193 → 197.

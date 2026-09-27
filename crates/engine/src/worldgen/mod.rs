@@ -12,11 +12,12 @@
 //! version generates for a seed never changes** (`worldgen/tests.rs` pins each one); new rules go in a
 //! new version, branched from the same code at a few named points (`self.version >= n`). 1 = the first
 //! terrain (Milestones 1 to 3); 2 = Milestone 4's biomes, rock provinces and geology-driven ores
-//! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (so far identical to 2).
+//! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (`strata.rs`: rare surface ore, depth bands, a starter set).
 
 mod biome;
 mod geology;
 mod ore;
+mod strata;
 
 pub use biome::Biome;
 
@@ -35,6 +36,8 @@ pub const WORLDGEN_VERSION: u32 = 3;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
+/// Version 3: the sea's surface (the top water block); land at or below it lies under water.
+const SEA_LEVEL: i32 = 62;
 const ROCK_LEVEL: i32 = 170;
 const CLIFF_SLOPE: i32 = 5;
 const TREE_CELL: i32 = 7;
@@ -255,7 +258,7 @@ impl WorldGen {
         if base.y < col.max_ground {
             let top = base + IVec3::new(CHUNK_SIZE - 1, CHUNK_SIZE - 1, CHUNK_SIZE - 1);
             for d in col.deposits.iter().filter(|d| d.intersects(base, top)) {
-                ore::stamp_deposit(d, base, &mut b, self.version >= 2);
+                ore::stamp_deposit(d, base, &mut b, self.version);
             }
         }
         for t in &col.trees {
