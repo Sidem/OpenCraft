@@ -99,6 +99,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-27 | **Water and world shape before terraforming** (Milestone 5): sea level, lakes, swimming, pumps and pipes. Rivers later (Milestone 7). |
 | 2026-09-27 | **Water flow is limited and deterministic:** a Minecraft-like spread, event-driven and capped per tick; no volume simulation. |
 | 2026-09-27 | **Surface ore is rare and meaningful:** about 10× fewer exposed outcrops, only on bare rock; a starter set near spawn; ores in depth bands. Vein and lode counts stay. |
+| 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
 
 ### Proposed, not yet confirmed by the user
 
@@ -382,7 +383,7 @@ follows; its questions are still open (section 6).
   and 3.5 of the 5 ores show within 32 blocks. Veins sit 20–60 below the local surface (median 40); ore
   kind never depends on depth.
 
-**Goal:** seas and lakes with water that behaves, and ore that is rare at the surface, so geology and
+**Goal:** seas and lakes with water that behaves, a quarry that automates rock, and ore that is rare at the surface, so geology and
 prospecting matter. It becomes generator **version 3** (versions 1 and 2 stay frozen; new worlds only).
 Water flow is core state and deterministic (section 3.4). Each step is one session, green and committed.
 **Push nothing between 5.1 and 5.3:** version 3 is frozen from its first push, and later changes to it
@@ -488,9 +489,43 @@ need a version 4.
   - **Done when:** scenario tests: a pump drains a walled, flooded 5 × 5 × 3 pit into an outlet over a
     cliff; against the open sea the pump keeps running but the water level never drops; an unpowered pump
     stops. A screenshot of a pit being drained.
-- [ ] **5.8 Milestone 5 cleanup.** Section 3.1 checklist, README (water, swimming, pumps, the rarer
-  ore), measured numbers updated here and in the change log, `docs/CODEMAP.md` current. Then ask the user
-  the Milestone 6 questions (section 6) and move Milestone 6 in from the roadmap.
+- [ ] **5.8 Quarry.** A powered machine (10 kW, no research) that digs rock and soil for real, leaving a
+  pit. It is the first version of Milestone 6's excavator. Keep it obvious, visible and satisfying.
+  - **The dig box:** a square in front of its face (5, 7 by default, 9 or 11 wide), from the quarry's own
+    level down to a depth chosen in its panel ("8 layers", "16", "to sea level", "to bedrock").
+  - **Preview before placing:** holding a quarry outlines its box (`render/outlines.ts`, amber), with a
+    HUD label such as "Quarry 7×7, 16 deep · about 600 blocks: stone, dirt". R turns the preview.
+  - **Visible work** (`factory/quarry.rs`):
+    - Corner posts and a gantry with a drill head (instanced boxes) travel to each block in turn, top
+      layer first, row by row back and forth.
+    - The block being dug shows the mining crack, and a break sound plays for each one.
+    - About 2 blocks a second at full power (a 7 × 7 × 16 pit takes about 7 minutes).
+    - A status lamp like the smelter's: green digging, yellow output full, red no power, blue flooded.
+  - **Output:** each block becomes its normal drop (stone, local rock, dirt, sand). It goes
+    into a buffer that feeds belts, boxes and smelters like a miner's.
+  - **What it leaves standing:**
+    - Ore: the pit reveals it for miners, and the panel lists what it uncovered, such as "iron vein
+      exposed at y 41".
+    - It digs only ground (stone, the rocks, dirt, grass, sand, stained soil; a `QUARRIABLE` table).
+      Bedrock, logs, lamps, glass, machines and belts stay.
+    - Water: the quarry waits ("flooded, pump it out", step 5.7).
+  - **The panel:** layer N of M, blocks dug and left, the size and depth choices (changing them shows the
+    new box at once), and pause and resume.
+  - **Core rules:** digging runs in the core with the `*_anywhere` accessors. The dig cursor is saved and
+    hashed, and a picked-up quarry keeps nothing (a new one skips air, so it continues).
+  - **Done when:**
+    - Scenario tests pass:
+      - A quarry on flat ground digs its whole box in order and a belt carries exactly those blocks into
+        a box.
+      - It skips ore, bedrock and non-ground blocks, and stops at its depth.
+      - It pauses when the output is full or the power is off, then resumes.
+      - A pit below sea level floods and the quarry waits until a pump drains it.
+      - Two cores agree on the hash, and a save mid-dig reloads and continues.
+    - Screenshots show the placement preview and a half-dug pit with the gantry.
+    - The README and a tip are updated.
+- [ ] **5.9 Milestone 5 cleanup.** Section 3.1 checklist, README (water, swimming, pumps, the quarry,
+  the rarer ore), measured numbers updated here and in the change log, `docs/CODEMAP.md` current. Then
+  ask the user the Milestone 6 questions (section 6) and move Milestone 6 in from the roadmap.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -536,56 +571,30 @@ and the balance numbers. Read the section you need.
 
 ## 8. Change log of this plan
 
-- **2026-09-25:** Plan created (`3239215`); the user made keeping the codebase small for agents a top
-  priority (section 3.1; later milestones in `docs/ROADMAP.md`, how-tos in `docs/WORKFLOW.md`).
-- **2026-09-25: Milestone 1 (Foundation) done** (`31bb05b` to `74fb476`): fixed 60 Hz tick, core `Sim`,
-  actions and `SimEvent`s, several players, canonical bytes and state hash, saves and the world list.
-  Deviations: the player id sits beside each queued action; all tracked deposits are hashed and saved;
-  world names and play time live in the browser's record. Tests 56 → 74, wasm 81.5 KB gzipped.
-- **2026-09-25: Milestone 2 (Make it a game) done** (`b49b766` to `3bf3f92`): items, machine registry,
-  smelter, constructor and panels, splitter and filter, belt shapes, boxes, power, research, Mk2 and fast
-  belts, onboarding tips. Deviations: one kind serves several blocks through extra `MACHINES` rows;
-  machines hang on the nearest pole; power balances before miners each tick. Saves version 9. Tests
-  74 → 113, wasm 120.3 KB gzipped. Lessons: measure wasm size every step; the golden hash catches every
-  unintended core change; scenario tests with a bare `Factory` replace most browser checks.
-- **2026-09-26: Milestone 3 (Co-op) done**, apart from the user's live tests (section 4): lockstep over
-  bytes (`action/codec.rs`, `net/`: roles, frames, checksums every 60 ticks), join snapshots and player
-  keys (save version 10), avatars and name tags, host-owned loose items, a hidden co-op tab that keeps
-  ticking (`net/ticker.ts`), the signalling Worker (`signal/`, deployed by the user; STUN only so far),
-  WebRTC with 16 KB message pieces, the "Play together" menu and the Tab player list, pings, silence
-  timeouts (10 s) and in-place resync (`Game::resync` keeps the body and loaded chunks). Deviations: the
-  build id is the bundle's URL, not the git commit; step 3.9 (instant own edits) measured and deferred.
-  Measured: 10 minutes hidden at 60 ticks/s with 0 mismatches; host `update` + pump 0.015 ms with 4
-  players; a client uses about 8 KB/s down and 4 KB/s up while idle, most of it per-packet overhead.
-  Lessons: keep heavy sort keys `#[inline(never)]` (one inlined key cost 9 KB of wasm); key hidden-tab
-  work off stalled frames, not `document.hidden`; Windows PowerShell's `Get-Content` reads UTF-8 as ANSI,
-  so edit files with the file tools or Node. Tests 113 → 127; wasm 120.3 → 131.5 KB, JS 32.1 → 39.1 KB
-  gzipped.
-- **2026-09-26: Play-test notes P1–P5 done** (after the user's cross-machine co-op test; pushed as
-  `233371b`): Escape in a panel hints first and pauses second; the minimap (`minimap.rs`, N); block
-  timers (`sim/timers.rs`: sorted, capped at 4096, saved and hashed, save version 11) for leaf decay
-  (half-life 5 s), grass spreading and dying; tools (`tools.rs`, wear is the stack count, so no format
-  change). A graphics agent started on branch `art` (`docs/ART_HANDOVER.md`). The user then answered the
-  Milestone 4 questions and it was detailed as 4.1–4.11. Tests 127 → 141; wasm 131.5 → 138.0 KB gzipped.
-- **2026-09-27: Milestone 4 (Reasons to explore) done** (`8d8ee22` to the cleanup commit): generator
-  versions (version 1 pinned by a digest test), saplings, rocks, limestone, quartz and glass (blocks
-  30–35), biomes and rock provinces (`worldgen/biome.rs`, version 2 about 10 % slower to generate), ores
-  by biome (`worldgen/geology.rs`) with stained soil and sand hints (36–43), scanner and core drill
-  (`prospect.rs`, queries only), minimap marks, day and night (`daytime.rs`, `render/sky.ts`), sky and
-  block light (`light.rs`; meshing 0.357 → 0.488 ms per chunk, +25 % mesh memory) and the lamp (44). On
-  the user's requests: the art salvage (pixel art, alternates), a build menu grid with search and
-  filters (`ui/crafting.ts`, `recipes::Group`), full-height block icons. Deviations: limestone and
-  quartz ore are deposit ores that drop themselves; only veins and lodes get map marks; no smelter glow.
+- **2026-09-25:** Plan created (`3239215`); keeping the codebase small for agents is a top priority.
+- **2026-09-25: Milestone 1 (Foundation) done** (`31bb05b` to `74fb476`): fixed tick, core `Sim`, actions,
+  events, several players, canonical bytes, state hash, saves. Tests 56 → 74, wasm 81.5 KB gzipped.
+- **2026-09-25: Milestone 2 (Make it a game) done** (`b49b766` to `3bf3f92`): items, machines and panels,
+  belts, boxes, power, research, Mk2, tips; save version 9. Tests 74 → 113, wasm 120.3 KB. Lessons:
+  measure wasm every step; the golden hash catches unintended core changes; prefer bare-`Factory` tests.
+- **2026-09-26: Milestone 3 (Co-op) done** (pushed `c845691`): lockstep over bytes (`action/codec.rs`,
+  `net/`), join snapshots and player keys (save version 10), avatars, host-owned loose items, a hidden tab
+  that keeps ticking, the signalling Worker (STUN only), WebRTC, the "Play together" menu, pings, 10 s
+  timeouts and in-place resync; 3.9 deferred. A client uses about 8 KB/s down, 4 KB/s up while idle.
+  Lessons: keep heavy sort keys `#[inline(never)]`; key hidden-tab work off stalled frames; edit files
+  with the file tools (PowerShell reads UTF-8 as ANSI). Tests 113 → 127; wasm 131.5 KB gzipped.
+- **2026-09-26: Play-test notes P1–P5 done** (`233371b`): Escape hints before pausing, the minimap, block
+  timers (`sim/timers.rs`, save version 11: leaf decay, grass), tools (wear is the stack count). The `art`
+  branch started (`docs/ART_HANDOVER.md`). Tests 127 → 141; wasm 138.0 KB gzipped.
+- **2026-09-27: Milestone 4 (Reasons to explore) done** (`8d8ee22` to `a4fc499`): generator versions
+  (version 1 pinned), saplings, rocks, limestone, quartz, glass, biomes (version 2 about 10 % slower),
+  ores by biome with soil hints, scanner and core drill, map marks, day and night, sky and block light
+  (meshing 0.36 → 0.49 ms per chunk, +25 % mesh memory), lamps; the art salvage and the build menu grid.
   Save version 12. Tests 141 → 183; wasm 138.0 → 161.4 KB gzipped.
-- **2026-09-27: Belt placement upgrade** (user request, between milestones): ramps are no longer items
-  or research. `factory::belt_shape::derive_slopes` (run in `relink`) makes a flat belt an up ramp when
-  a belt one ahead and one up continues its way, and a down ramp below a belt one up behind it; old
-  ramp blocks act as belts and drop belts. `belt_line.rs`: hold right-click with belts and drag to lay
-  a line (longer axis first, one turn, follows one-block steps, stops at walls and machines), with
-  ghost belts, host outlines and a HUD label; it builds through ordinary `PlaceBlock`s, 3 per tick.
-  `Action::Rotate` (codec tag 19) turns belts and routers: R; research moved to T. Tech 1 is now
-  Belt Lifts (lifts only). The golden hash was re-recorded (the scripted lone ramp now lies flat).
-  Tests 183 → 193.
+- **2026-09-27: Belt placement upgrade** (`0bc0e47`, user request): ramps derived from placement
+  (`belt_shape::derive_slopes`), drag-to-build lines (`belt_line.rs`, plain `PlaceBlock`s, 3 per tick),
+  `Action::Rotate` on R, research on T, tech 1 is Belt Lifts. Golden hash re-recorded. Tests 183 → 193.
 - **2026-09-27: Milestone 5 redefined** at the user's request: Water and world shape (sea, ponds,
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
   3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
+  The user then added a quarry (step 5.8) so rock and soil get automated extraction.

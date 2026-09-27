@@ -12,7 +12,7 @@ Every milestone ends with a cleanup step (DEV_PLAN section 3.1, "Session habits"
 
 Its questions are in DEV_PLAN section 6; ask them before detailing it. Water (Milestone 5) comes first.
 
-- **Terraforming machines** (the signature feature). Start with "mark an area, pick a job"; no
+- **Terraforming machines** (the signature feature), grown from Milestone 5's quarry. Start with "mark an area, pick a job"; no
   programming language needed: an excavator digs a marked area and hauls the spoil to a box or dump
   site, a grader flattens to a height, a filler places fill, a borer cuts tunnels and shafts. Digging
   below sea level floods unless dammed and pumped (Milestone 5).
