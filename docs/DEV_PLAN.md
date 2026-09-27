@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.1** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.2** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (193 engine tests).
+   (194 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -389,7 +389,7 @@ Water flow is core state and deterministic (section 3.4). Each step is one sessi
 **Push nothing between 5.1 and 5.3:** version 3 is frozen from its first push, and later changes to it
 need a version 4.
 
-- [ ] **5.1 Generator version 3.** Pin version 2 like 4.1 pinned version 1: a test hashes a few version-2
+- [x] **5.1 Generator version 3.** Pin version 2 like 4.1 pinned version 1: a test hashes a few version-2
   chunks (seed 1337: surface, cave, lode, one per biome), recorded before any change. `WORLDGEN_VERSION`
   becomes 3, and version 3 branches from version 2 at named points only. In this step it generates exactly
   what version 2 does. **Done when:** both pins hold, a new game saves and reloads as version 3, a co-op
@@ -542,8 +542,7 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ## 5. Roadmap after Milestone 5
 
-Milestones 6–8 (scale and terrain, fluids and depth, endgame) are in `docs/ROADMAP.md`. Read it only when planning the next
-milestone; Milestone 5's cleanup step moves Milestone 6 from there into this plan.
+Milestones 6–8 are in `docs/ROADMAP.md`; read it only when planning (step 5.9 moves Milestone 6 in).
 
 ---
 
@@ -598,3 +597,4 @@ and the balance numbers. Read the section you need.
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
   3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
+- **2026-09-27:** 5.1 done: version 2 pinned (a chunk per biome); version 3 matches it. Tests 193 → 194.

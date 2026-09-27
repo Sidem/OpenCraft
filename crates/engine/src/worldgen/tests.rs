@@ -14,9 +14,10 @@ fn generation_is_deterministic() {
     }
 }
 
-/// Blocks, heights and deposits that version 1 generates for seed 1337 around spawn, a cave and a lode.
-fn version_1_digest() -> u64 {
-    let mut g = WorldGen::with_version(1337, 1);
+/// Blocks, heights and deposits that `version` generates for seed 1337 around spawn, a cave and a lode,
+/// and from version 2 on a surface chunk of the first column found in each biome.
+fn digest(version: u32) -> u64 {
+    let mut g = WorldGen::with_version(1337, version);
     let mut bytes = Vec::new();
     for z in (-600..600).step_by(97) {
         for x in (-600..600).step_by(89) {
@@ -26,7 +27,23 @@ fn version_1_digest() -> u64 {
     let lode = g.find_deposit(IVec3::new(0, 64, 0), Tier::Lode, 16).expect("a lode").center;
     let lode_chunk = IVec3::new(lode.x >> 5, lode.y >> 5, lode.z >> 5);
     let spawn_y = g.height_at(0, 0) >> 5;
-    for c in [IVec3::new(0, spawn_y, 0), IVec3::new(0, spawn_y - 1, 0), IVec3::new(-3, 2, 5), lode_chunk] {
+    let mut chunks = vec![IVec3::new(0, spawn_y, 0), IVec3::new(0, spawn_y - 1, 0), IVec3::new(-3, 2, 5), lode_chunk];
+    if version >= 2 {
+        let mut seen = Vec::new();
+        for z in (-1500..1500).step_by(64) {
+            for x in (-1500..1500).step_by(64) {
+                let h = g.height_at(x, z);
+                let biome = g.biome_at(x, z, h);
+                if !seen.contains(&biome) {
+                    seen.push(biome);
+                    bytes.push(biome as u8);
+                    chunks.push(IVec3::new(x >> 5, h >> 5, z >> 5));
+                }
+            }
+        }
+        assert_eq!(seen.len(), Biome::ALL.len(), "every biome is sampled");
+    }
+    for c in chunks {
         let chunk = g.generate(c);
         for i in 0..CHUNK_VOLUME {
             bytes.push(chunk.get(i & 31, i >> 10, (i >> 5) & 31));
@@ -42,11 +59,19 @@ fn version_1_digest() -> u64 {
     crate::bytes::fnv1a(&bytes)
 }
 
-/// Worlds made with version 1 regenerate their untouched terrain from it, so its output is frozen.
-/// Recorded before Milestone 4 changed anything; if this fails, a change leaked into version 1.
+/// Worlds regenerate their untouched terrain from their own version, so released output is frozen.
+/// Version 1 was recorded before Milestone 4, version 2 before Milestone 5; if one fails, a change leaked
+/// into a released version.
 #[test]
-fn version_1_output_never_changes() {
-    assert_eq!(version_1_digest(), 0xefee_9cc6_179e_584f);
+fn released_versions_never_change() {
+    assert_eq!(digest(1), 0xefee_9cc6_179e_584f, "version 1");
+    assert_eq!(digest(2), 0x24f4_7dcb_aceb_e0c5, "version 2");
+}
+
+/// Until step 5.2 branches it, version 3 generates exactly what version 2 does.
+#[test]
+fn version_3_starts_as_version_2() {
+    assert_eq!(digest(3), digest(2));
 }
 
 #[test]

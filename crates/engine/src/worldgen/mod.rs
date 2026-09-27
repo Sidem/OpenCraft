@@ -9,10 +9,10 @@
 //!
 //! Versions: saves store only edited chunks and regenerate the rest, so a world keeps the generator
 //! version it was made with (`WorldGen::version`, written in the save header). **What a released
-//! version generates for a seed never changes** (`worldgen/tests.rs` pins version 1); new rules go in a
-//! new version, branched from the same code at a few named points. 1 = the first terrain (Milestones 1
-//! to 3); 2 = Milestone 4's biomes and rock provinces (`biome.rs`: branches in `build_column` and
-//! `trees_near`; the column's `rock` replaces stone), geology-driven ores to come.
+//! version generates for a seed never changes** (`worldgen/tests.rs` pins each one); new rules go in a
+//! new version, branched from the same code at a few named points (`self.version >= n`). 1 = the first
+//! terrain (Milestones 1 to 3); 2 = Milestone 4's biomes, rock provinces and geology-driven ores
+//! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (so far identical to 2).
 
 mod biome;
 mod geology;
@@ -31,7 +31,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 2;
+pub const WORLDGEN_VERSION: u32 = 3;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
