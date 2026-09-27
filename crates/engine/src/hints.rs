@@ -34,8 +34,8 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Miner) > 0,
     },
     Hint {
-        text: "Carry the ore away: place belts leading away from the miner (they run the way you face) and a \
-               storage box at the end.",
+        text: "Carry the ore away: hold right-click on the ground next to the miner and drag to lay a \
+               line of belts, and put a storage box at its end.",
         done: |_, f| f.count(Kind::Belt) > 0 && f.count(Kind::Storage) > 0,
     },
     Hint {
@@ -49,7 +49,7 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Constructor) > 0 && f.count(Kind::Generator) > 0,
     },
     Hint {
-        text: "Research: build a research lab near a pole, give it red science packs, and press R to choose \
+        text: "Research: build a research lab near a pole, give it red science packs, and press T to choose \
                what to research. New machines unlock as you go.",
         done: |_, f| (0..TECHS.len()).any(|t| f.research.progress(t as u8) > 0),
     },

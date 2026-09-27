@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (183 engine tests).
+   (193 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -486,3 +486,12 @@ and the balance numbers. Read the section you need.
   filters (`ui/crafting.ts`, `recipes::Group`), full-height block icons. Deviations: limestone and
   quartz ore are deposit ores that drop themselves; only veins and lodes get map marks; no smelter glow.
   Save version 12. Tests 141 → 183; wasm 138.0 → 161.4 KB gzipped.
+- **2026-09-27: Belt placement upgrade** (user request, between milestones): ramps are no longer items
+  or research. `factory::belt_shape::derive_slopes` (run in `relink`) makes a flat belt an up ramp when
+  a belt one ahead and one up continues its way, and a down ramp below a belt one up behind it; old
+  ramp blocks act as belts and drop belts. `belt_line.rs`: hold right-click with belts and drag to lay
+  a line (longer axis first, one turn, follows one-block steps, stops at walls and machines), with
+  ghost belts, host outlines and a HUD label; it builds through ordinary `PlaceBlock`s, 3 per tick.
+  `Action::Rotate` (codec tag 19) turns belts and routers: R; research moved to T. Tech 1 is now
+  Belt Lifts (lifts only). The golden hash was re-recorded (the scripted lone ramp now lies flat).
+  Tests 183 → 193.

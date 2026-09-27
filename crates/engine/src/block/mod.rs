@@ -179,8 +179,15 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Constructor", true, 0.8, pillar(tex::CONSTRUCTOR_SIDE, tex::CONSTRUCTOR_TOP, tex::FRAME), CONSTRUCTOR),
     machine("Splitter", false, 0.4, pillar(tex::FRAME, tex::SPLITTER_TOP, tex::FRAME), SPLITTER),
     machine("Filter", false, 0.4, pillar(tex::FRAME, tex::FILTER_TOP, tex::FRAME), FILTER),
-    machine("Belt Ramp Up", false, 0.3, pillar(tex::RAMP_UP_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_UP),
-    machine("Belt Ramp Down", false, 0.3, pillar(tex::RAMP_DOWN_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_DOWN),
+    // Ramps from older worlds: plain belts now (slopes come from placement), so they drop a belt.
+    BlockDef {
+        drop: BELT,
+        ..machine("Belt Ramp Up", false, 0.3, pillar(tex::RAMP_UP_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_UP)
+    },
+    BlockDef {
+        drop: BELT,
+        ..machine("Belt Ramp Down", false, 0.3, pillar(tex::RAMP_DOWN_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_DOWN)
+    },
     machine("Belt Lift", false, 0.4, pillar(tex::LIFT_SIDE, tex::FRAME, tex::FRAME), LIFT),
     machine("Underpass Entry", false, 0.4, pillar(tex::UNDERPASS_IN_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_IN),
     machine("Underpass Exit", false, 0.4, pillar(tex::UNDERPASS_OUT_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_OUT),

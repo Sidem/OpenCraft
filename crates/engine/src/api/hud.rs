@@ -1,5 +1,5 @@
-//! HUD readouts: player state, the targeted block with its mining progress and detail text, the
-//! onboarding hints, and the stats overlay counters.
+//! HUD readouts: player state, the targeted block with its mining progress and detail text, a belt
+//! line being dragged, the onboarding hints, and the stats overlay counters.
 
 use wasm_bindgen::prelude::*;
 
@@ -17,6 +17,30 @@ impl Game {
 
     pub fn on_ground(&self) -> bool {
         self.body().on_ground
+    }
+
+    /// The belt line being dragged out (belt_line.rs): 4 numbers per cell (x, y, z, 1 if it will be
+    /// built, 0 past the belts in hand); empty when there is none.
+    pub fn line_cells(&self) -> Vec<i32> {
+        self.planned_cells()
+    }
+
+    /// What the HUD says while a belt line is dragged out ("" otherwise).
+    pub fn line_label(&self) -> String {
+        let n = self.line.cells.len();
+        if n == 0 {
+            return String::new();
+        }
+        let have = self.inventory().selected_stack().count as usize;
+        let sloped = self.line.cells.iter().filter(|c| c.shape != factory::Shape::Flat).count();
+        let mut s = format!("{n} belt{}", if n == 1 { "" } else { "s" });
+        if sloped > 0 {
+            s += &format!(", {sloped} on slopes");
+        }
+        if have < n {
+            s += &format!(" · you have {have}");
+        }
+        s + " · release to build, left-click to cancel"
     }
 
     pub fn has_target(&self) -> bool {

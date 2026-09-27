@@ -19,7 +19,7 @@ folder with `mod.rs`.
 | `daytime.rs` | Time of day from the core tick (`DAY_TICKS`: a 20-minute day, a new world starts at 7:00): `time_of_day`, `day_number`; no state of its own |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, the world's generator version), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` and `v9.ocworld` fixtures) |
-| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings, set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give |
+| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings, set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give, rotate (R) |
 | `action/codec.rs` | `Action::write` / `read` (a tag byte, then the fields; damaged bytes give `None`), `is_peer_input` |
 | `net/mod.rs` | Co-op lockstep: `Role` (`Solo`, `Host`, `Client`), `route` (where an action goes), host frames (`end_tick`, `host_stamp`, `take_frames`), client outbox and confirmed tick (`take_outbox`, `push_frames`, `catch_up`), `become_client`, checksums every `CHECKSUM_TICKS`, `INPUT_DELAY`. Tests wire a host and a client `Game` through bytes (joining mid-run, leaving and returning, a full world) |
 | `net/snapshot.rs` | Join snapshots: the save bytes plus the queued actions (`snapshot_bytes`, `read_snapshot`); `resync_from` (a client replaces its core in place, keeping its body and loaded chunks: `World::adopt_loaded`) |
@@ -29,20 +29,21 @@ folder with `mod.rs`.
 | `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world, only for bodies this machine moves), `stream_around_players`, loose items and pickups for the nearest player (`step_items`), `throw`, `spawn_item` (never on a client), `join` (by key, up to `MAX_PLAYERS`; a returning key comes back where it left) / `leave` |
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
-| `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop |
+| `api/input.rs` | Movement, look, mining/using, hotbar selection, fly toggle, drop, `rotate_target`, `cancel_line` |
 | `api/render.rs` | Streaming work (`begin_work`, `work_step`), mesh/unload events, camera, `time_of_day` / `day_number`, box instances, name-tag anchors (`label_ptr`, `label_count`), sound events, textures |
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, `close_inventory`, pickup notifications |
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); box screens (`box_slots`, `click_box`, `store_slot`) |
 | `api/crafting.rs` | Recipe queries (`recipe_locked_by`, `craftable_times`, `recipe_group` and group names) and `craft` |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
 | `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery` |
-| `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters |
+| `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters, belt line outlines and label (`line_cells`, `line_label`) |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
 | `api/net.rs` | `start_host`, `start_client`, `from_snapshot`, `resync`, `is_client`, `host_join` / `host_leave`, `snapshot`, `host_stamp`, `take_frames`, `take_checksums`, `take_outbox`, `push_frames`, `local_player`, `take_states`, `host_state`, `push_states`, `take_item_view`, `push_items`, `core_tick`, `confirmed_tick` |
 | `api/minimap.rs` | `minimap_redraw` (only when needed), `minimap_ptr` / `minimap_size` (the RGBA image), `minimap_players`, `minimap_marks` / `minimap_mark_fields`, `known_deposits` / `set_known_deposits` |
 | `api/prospect.rs` | The latest prospecting reading (`prospect_seq`, `prospect_kind`, `prospect_records`, `prospect_fields`, `prospect_origin`), `held_device`, `scan_range`, `deposit_label` |
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
+| `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick |
 | `block/mod.rs` | Block ids, `DEFS` table, sound materials, lookup tables (`FACE_TEX`, `ALT_TEX` alternates) |
 | `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
@@ -62,7 +63,7 @@ folder with `mod.rs`.
 | `factory/lab.rs` | Research lab: one buffer slot per science pack, `step_labs` (units for the current tech, never more than it has left, at its grid's speed); bytes, readout, panel, model |
 | `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators burn in order until supply meets it, speed per grid), wire drawing; power constants |
 | `factory/generator.rs` | Coal generator: fuel buffer, burns `FUELS` only while its grid needs power; bytes, readout, panel, model |
-| `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE` |
+| `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE`; `derive_slopes` makes flat belts ramps from their neighbours (in `relink`) |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step` (each belt at its own `speed`: fast belts double); its bytes, readout and model; belt constants |
 | `factory/miner.rs` | Miners Mk1 and Mk2 (one kind; `mk2` sets rate, recovery and power): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
@@ -120,6 +121,7 @@ folder with `mod.rs`.
 | `base.css` | Theme variables, reset, focus rings, shared `.hidden`, `.secondary-btn`, `.close-btn` |
 | `input.ts` | Keyboard/mouse, pointer lock, held state and one-shot `Action`s |
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
+| `render/outlines.ts` | Outlines of a belt line being dragged out (`line_cells`), drawn with the renderer's line program |
 | `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts); `INSTANCE_FLOATS` |
 | `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |
 | `render/shaders.ts` | GLSL sources; the light curve (sky light × daylight, warm block light, `CAVE_FLOOR`); periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`) |
@@ -135,7 +137,7 @@ folder with `mod.rs`.
 | `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), deposit and machine marks on an overlay canvas, player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
 | `ui/hints.ts` + `.css` | Onboarding tip card in the HUD (the first hint not done or skipped); H skips, skipped tips in localStorage; "Show tips again" in the menu |
 | `ui/prospect.ts` + `.css` | Prospecting card at the top left while a device is held: scan rows (arrows and distances follow the player) or a core sample's figures; calls `onReading` for the ping |
-| `ui/research.ts` + `.css` | Research screen (R): a card per tech (state, unlocks, cost, progress, choose); HUD tracker and "research done" notice |
+| `ui/research.ts` + `.css` | Research screen (T): a card per tech (state, unlocks, cost, progress, choose); HUD tracker and "research done" notice |
 | `ui/menu.css` | Pause/start menu and "click to keep playing" hint styles (markup in `web/index.html`) |
 | `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |

@@ -161,8 +161,9 @@ precision highp float;
 layout(location = 0) in vec3 a_pos;
 uniform mat4 u_viewProj;
 uniform vec3 u_offset;
+uniform vec3 u_scale;
 void main() {
-  gl_Position = u_viewProj * vec4(u_offset + a_pos * 1.004 - 0.002, 1.0);
+  gl_Position = u_viewProj * vec4(u_offset + a_pos * u_scale * 1.004 - 0.002, 1.0);
 }
 `;
 

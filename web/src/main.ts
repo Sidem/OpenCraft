@@ -162,6 +162,7 @@ async function main(): Promise<void> {
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
       game.set_mining(false);
+      game.cancel_line();
       game.set_using(false);
       if (!panelOpen()) session?.save().catch(() => {}); // pausing saves
     }
@@ -222,6 +223,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
+      else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'mute') sound.toggleMute();
       else if (a.kind === 'sound-lab') {
         // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
@@ -294,6 +296,7 @@ async function main(): Promise<void> {
       time: game.time_of_day(),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
       boxCount: game.instance_count(),
+      lineCells: game.line_cells(),
     });
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));

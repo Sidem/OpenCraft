@@ -53,7 +53,6 @@ use crate::world::World;
 use crate::{TICK, TICK_RATE};
 
 use belt::{belt_step, Belt};
-use belt_shape::Shape;
 use constructor::Constructor;
 use generator::Generator;
 use lab::{step_labs, Lab};
@@ -64,6 +63,8 @@ use router::Router;
 use smelter::Smelter;
 use storage::Storage;
 
+pub use belt::belt_preview;
+pub use belt_shape::Shape;
 #[cfg(test)]
 pub use constructor::ConstructorStatus;
 pub use describe::fmt_int;

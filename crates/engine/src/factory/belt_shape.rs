@@ -2,22 +2,29 @@
 //! their models. Every shape is a `Belt` (same items, spacing and `belt_step`); only where it hands
 //! items on differs, which `relink` (`links.rs`) works out:
 //! - Up ramp: takes items at its back at floor level and hands them on one cell ahead and one up.
-//!   Down ramp: the reverse; a belt one level up behind it feeds its high end.
+//!   Down ramp: the reverse; a belt one level up behind it feeds its high end. Ramps aren't placed as
+//!   such: [`derive_slopes`] turns a plain belt into one from its neighbours (a belt one step up
+//!   ahead, or one step up behind), so a line laid over a terrain step slopes by itself.
 //! - Lift: items rise through the cell. A lift above facing the same way takes them on straight up;
 //!   the top lift hands them on one ahead and one up, like an up ramp.
 //! - Underpass entry: hands items to the nearest exit facing the same way up to `UNDERPASS_RANGE`
 //!   cells ahead, under whatever lies between. The exit carries on like a flat belt.
 //!
-//! Invariants: the shape is core state (saved from version 6); `lift_below` / `lift_above` are
-//! derived. To add a shape: a variant (append, it is saved by index), its block in `Shape::of`, its
+//! Invariants: the shape is core state (saved from version 6), but flat and ramp shapes are rederived
+//! at every relink; `lift_below` / `lift_above` are derived. To add a shape: a variant (append, it is saved by index), its block in `Shape::of`, its
 //! path in `item_at`, its model, and its output in `relink`.
 
+use rustc_hash::FxHashMap;
+
 use crate::block::{tex, BlockId, LIFT, RAMP_DOWN, RAMP_UP, UNDERPASS_IN, UNDERPASS_OUT};
-use crate::math::Vec3;
+use crate::math::{IVec3, Vec3};
 
 use super::belt::{Belt, BELT_HEIGHT};
+use super::links::Slot;
 use super::render::push_box;
 use super::DIRS;
+
+const UP: IVec3 = IVec3::new(0, 1, 0);
 
 /// How far ahead an underpass entry looks for its exit, in cells.
 pub const UNDERPASS_RANGE: i32 = 5;
@@ -63,6 +70,11 @@ impl Shape {
         !matches!(self, Shape::Down | Shape::Exit)
     }
 
+    /// Flat belts and ramps: placement decides which (`derive_slopes`), not the block.
+    pub fn sloped_by_placement(self) -> bool {
+        matches!(self, Shape::Flat | Shape::Up | Shape::Down)
+    }
+
     /// Readout words after the heading.
     pub fn words(self) -> &'static str {
         match self {
@@ -73,6 +85,40 @@ impl Shape {
             Shape::Entry => ", taking items under to an exit ahead",
             Shape::Exit => ", bringing items back up",
         }
+    }
+}
+
+/// Gives every flat belt or ramp the shape its neighbours call for: an up ramp when a belt facing the
+/// same way waits one cell ahead and one up (and nothing is straight ahead), a down ramp when one
+/// facing the same way stands one cell behind and one up (with nothing in front of it or behind this
+/// one), otherwise flat. Depends only on positions and directions, so the order doesn't matter.
+pub(super) fn derive_slopes(belts: &mut [Belt], at: &FxHashMap<IVec3, Slot>) {
+    let shapes: Vec<Shape> = belts
+        .iter()
+        .map(|b| {
+            if !b.shape.sloped_by_placement() {
+                return b.shape;
+            }
+            let d = DIRS[b.dir as usize];
+            let belt = |q: IVec3, fits: fn(Shape) -> bool| match at.get(&q) {
+                Some(Slot::Belt(j)) => belts[*j as usize].dir == b.dir && fits(belts[*j as usize].shape),
+                _ => false,
+            };
+            let free = |q: IVec3| !at.contains_key(&q);
+            if free(b.pos + d) && belt(b.pos + d + UP, |s| s.sloped_by_placement() || s.fed_from_back()) {
+                Shape::Up
+            } else if free(b.pos + UP)
+                && free(b.pos - d)
+                && belt(b.pos - d + UP, |s| s.sloped_by_placement() || s.flat_out())
+            {
+                Shape::Down
+            } else {
+                Shape::Flat
+            }
+        })
+        .collect();
+    for (b, s) in belts.iter_mut().zip(shapes) {
+        b.shape = s;
     }
 }
 

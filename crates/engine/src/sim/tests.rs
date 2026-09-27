@@ -14,7 +14,7 @@ pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0xbd1e_92ed_3405_632c;
+const GOLDEN_HASH: u64 = 0x47b9_b194_e883_ed61;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -49,7 +49,7 @@ pub(crate) fn outcrop() -> (IVec3, IVec3, DepositKey) {
 /// The action log: A builds a miner on the outcrop's top block feeding two belts into a box, crafts
 /// belts and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
 /// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
-/// ingots it puts in by hand, a filter set to plates, a ramp the box feeds, and a pole and a
+/// ingots it puts in by hand, a filter set to plates, an old ramp block the box feeds (flat now: no belt one up ahead), and a pole and a
 /// generator (fuelled by hand) that power the constructor, the filter and a lab researching the first tech.
 pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let cell = |dx| top + IVec3::new(dx, 1, 0);
@@ -164,7 +164,7 @@ fn same_actions_give_the_same_state_every_tick() {
     assert_eq!(a.player(B).unwrap().inventory.count(IRON_INGOT), 0);
     assert_eq!(a.factory.panel(top + IVec3::new(1, 2, 0)).and_then(|p| p.filter), Some(IRON_PLATE));
     let ramp = a.factory.belt_at(top + IVec3::new(4, 1, 0));
-    assert!(ramp.item_at(1.0).1 == 1.0 && !ramp.items.is_empty(), "the box feeds the ramp");
+    assert!(ramp.item_at(1.0).1 == 0.0 && !ramp.items.is_empty(), "the box feeds the old ramp, which lies flat");
     let fuel = a.factory.panel(top + IVec3::new(3, 3, 0)).unwrap().slots[0].1.count;
     assert_eq!(fuel, 0, "the lab keeps the generator burning");
     let research = &a.factory.research;

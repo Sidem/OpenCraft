@@ -9,7 +9,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 
 use super::belt::Belt;
-use super::belt_shape::{Shape, UNDERPASS_RANGE};
+use super::belt_shape::{derive_slopes, Shape, UNDERPASS_RANGE};
 use super::constructor::Constructor;
 use super::generator::Generator;
 use super::lab::Lab;
@@ -128,6 +128,7 @@ impl Factory {
     /// Recomputes belt links, curves, machine outputs and the belt update order.
     pub(super) fn relink(&mut self) {
         self.dirty = false;
+        derive_slopes(&mut self.belts, &self.at);
         let at = &self.at;
         let belts = &self.belts;
         let belt_at = |q: IVec3| match at.get(&q) {

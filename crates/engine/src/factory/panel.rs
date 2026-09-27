@@ -1,6 +1,6 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
 //! a smelter, constructor, filter, generator or lab), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
-//! `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
+//! `rotate` (belts and routers, the R key), `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
 //!
@@ -68,6 +68,19 @@ impl Factory {
             Some(Slot::Storage(i)) => Some(&mut self.storages[*i as usize].buf.slots),
             _ => None,
         }
+    }
+
+    /// Turns the belt or router at `pos` a quarter turn clockwise, carrying its items along. False
+    /// when nothing there turns.
+    pub fn rotate(&mut self, pos: IVec3) -> bool {
+        let dir = match self.at.get(&pos) {
+            Some(&Slot::Belt(i)) => &mut self.belts[i as usize].dir,
+            Some(&Slot::Router(i)) => &mut self.routers[i as usize].dir,
+            _ => return false,
+        };
+        *dir = (*dir + 1) % 4;
+        self.dirty = true;
+        true
     }
 
     /// Sets what the filter at `pos` sends straight on (`NONE` for nothing).

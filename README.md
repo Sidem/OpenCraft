@@ -47,12 +47,14 @@ the render distance in chunks (2 to 24, default 8).
 | Shift               | Sprint                                    |
 | C                   | Crouch (you won't walk off edges)         |
 | Hold left mouse     | Mine the targeted block                   |
-| Right mouse (hold)  | Place the selected block. Belts run the way you face |
+| Right mouse (hold)  | Place the selected block                  |
+| Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
+| R                   | Turn the belt or splitter/filter you point at |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
 | Right mouse on a smelter, constructor, filter, generator or lab | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
-| R                   | Research: choose what labs work on        |
+| T                   | Research: choose what labs work on        |
 | H                   | Skip the tip on screen (the menu can show tips again) |
 | N                   | Show or hide the minimap (top right, north up; rings mark veins and lodes you've prospected, squares your machines) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
@@ -148,10 +150,12 @@ size.
   drills. All miners on one deposit share its draw limit. Output slows over the last 20% of the pool.
   Each time a block's worth is used up, the ore block nearest the miner turns into spent rock, even in
   chunks that aren't loaded. A worked-out deposit is gone for good.
-- **Conveyor belts** carry items one block per second and run the way you were facing when you placed
-  them. A belt ending in another belt's side merges into it. A belt fed only from one side turns the corner.
-- **Climbing and crossing.** A ramp up hands items on one block ahead and one up; a ramp down takes them
-  from a belt one block up behind it. Stacked lifts carry items straight up, and the top one hands them on
+- **Conveyor belts** carry items one block per second. Hold right-click on the ground and drag to lay a
+  whole line: outlines show where the belts go (red past the belts you have) and releasing builds it.
+  A single belt runs the way you face; press R on a belt to turn it. A belt ending in another belt's side
+  merges into it. A belt fed only from one side turns the corner.
+- **Climbing and crossing.** Belts climb and drop one-block steps by themselves: a belt with a belt one
+  block ahead and one up becomes a ramp up, and one below a belt one up behind it a ramp down. Stacked lifts carry items straight up, and the top one hands them on
   one ahead and one up. An underpass entry sends items under whatever is in front of it to the nearest
   exit facing the same way, up to 5 blocks ahead, so two lines can cross.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
@@ -173,11 +177,11 @@ size.
   pole within 10 blocks, and each generator and machine hangs on the nearest pole within 5 (you see the
   wires). A working constructor draws 15 kW, a splitter or filter 1 kW. Short of power, every machine on the
   grid slows down to match; with none, it stops.
-- **Research.** Splitters, filters, ramps, lifts, underpasses and green science packs start locked (greyed
-  out in the build menu). A research lab uses science packs to unlock them: press R, choose a tech, and
+- **Research.** Splitters, filters, lifts, underpasses and green science packs start locked (greyed
+  out in the build menu). A research lab uses science packs to unlock them: press T, choose a tech, and
   every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
   the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
-  2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Climbing (20 red),
+  2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Lifts (20 red),
   Green Science (30 red), and with red and green packs Underpasses (15), Miner Mk2 (30) and Fast Belts
   (20). A lab draws 10 kW while it works.
 - **Upgrades.** The Miner Mk2 draws twice as fast as a Mk1 (where the deposit allows) and keeps 75% of
@@ -192,7 +196,7 @@ research still locks. Hover a recipe for its description and materials; click it
 for up to five. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
-wire and 2 belts. Two ramps (up or down) cost an iron plate and 2 belts, two lifts 2 iron rods and 2
+wire and 2 belts. Two lifts cost 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 12 iron ingots, 8
 copper ingots and 10 stone; two power poles an iron ingot, a copper ingot and a log; a research lab 6 iron plates,
 8 copper wire and 4 belts; a Miner Mk2 a Mk1, 8 iron plates, 16 screws and 12 copper wire; two fast belts 2
@@ -346,7 +350,8 @@ Factory layer (the Satisfactory half):
 - [x] Constructor and parts (plates, rods, screws, wire), with a machine panel
 - [ ] Machines: assembler
 - [x] Splitters and filters
-- [x] Belts that climb (ramps, lifts) and cross (underpasses)
+- [x] Belts that climb (ramps by placement, lifts) and cross (underpasses)
+- [x] Drag-to-build belt lines, R to rotate
 - [x] Miner and belt tiers (Miner Mk2, fast belts)
 - [x] Prospecting: find veins and lodes without digging blind
 - [x] Power grid: coal generators, poles, consumption and brownouts

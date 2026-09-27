@@ -1,11 +1,16 @@
-//! Player input from the host: movement, look, mining and using, hotbar selection, fly toggle.
+//! Player input from the host: movement, look, mining and using, hotbar selection, fly toggle,
+//! turning a belt (R) and dropping a belt line being dragged.
 //! Movement, look and the mining/using buttons drive the body and hands directly; hotbar changes and
 //! drops are actions, applied at the next tick.
 
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
+use crate::block;
+use crate::factory::{self, Kind};
+use crate::math::Vec3;
 use crate::player::PlayerInput;
+use crate::sound;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -19,6 +24,23 @@ impl Game {
         let body = self.body_mut();
         body.yaw = (body.yaw + d_yaw).rem_euclid(std::f64::consts::TAU);
         body.pitch = (body.pitch - d_pitch).clamp(-1.55, 1.55);
+    }
+
+    /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick. False
+    /// when the target doesn't turn.
+    pub fn rotate_target(&mut self) -> bool {
+        let Some(hit) = self.target else { return false };
+        if !factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router)) {
+            return false;
+        }
+        self.act(Action::Rotate { pos: hit.block });
+        self.play(sound::PLACE, block::sound::METAL, hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 0.6);
+        true
+    }
+
+    /// Drops a belt line being dragged out (the host calls this when it frees the pointer).
+    pub fn cancel_line(&mut self) {
+        self.cancel_belt_line();
     }
 
     pub fn set_look(&mut self, yaw: f64, pitch: f64) {

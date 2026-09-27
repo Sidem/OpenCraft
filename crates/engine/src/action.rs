@@ -32,6 +32,10 @@ pub enum Action {
         facing: u8,
         against: IVec3,
     },
+    /// Turns the belt or router at `pos` a quarter turn clockwise (the R key).
+    Rotate {
+        pos: IVec3,
+    },
     /// Empties the box or miner at `pos` into the inventory, or takes a machine's output.
     TakeContents {
         pos: IVec3,
@@ -163,6 +167,9 @@ impl Sim {
                 }
             }
             Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
+            Action::Rotate { pos } => {
+                self.factory.rotate(pos);
+            }
             Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
             Action::Insert { pos, item } => {
                 let put = self.factory.insert(pos, item, inv.count(item));

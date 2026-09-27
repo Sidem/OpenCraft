@@ -54,6 +54,11 @@ pub struct Belt {
     pub fast: bool,
 }
 
+/// A belt's model where none stands yet (the line tool's preview, `belt_line.rs`), without items.
+pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, dir: u8, shape: Shape, fast: bool, rel: Vec3, time: f64) {
+    Belt::new(pos, dir, shape, fast).model(out, rel, time);
+}
+
 impl Belt {
     pub fn new(pos: IVec3, dir: u8, shape: Shape, fast: bool) -> Belt {
         let (items, out, curve_from) = (Vec::new(), Link::None, None);

@@ -127,7 +127,15 @@ export class Hud {
       });
     }
 
-    if (g.has_target()) {
+    const line = g.line_label();
+    if (line !== '') {
+      // Dragging out a belt line: the plan replaces the target readout.
+      this.target.classList.remove('hidden', 'mining');
+      this.targetName.textContent = 'Belt line';
+      this.targetDetail.textContent = line;
+      this.targetDetail.classList.remove('hidden');
+      this.detailKey = '';
+    } else if (g.has_target()) {
       this.target.classList.remove('hidden');
       this.targetName.textContent = this.names[g.target_block()] ?? '';
       const p = g.mine_progress();

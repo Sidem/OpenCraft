@@ -180,7 +180,7 @@ export class BuildMenu {
     const tech = g.recipe_locked_by(t.id);
     const status =
       t.state === 'locked'
-        ? `Research ${g.tech_name(tech)} to unlock it (R).`
+        ? `Research ${g.tech_name(tech)} to unlock it (T).`
         : t.state === 'ready'
           ? `Click to craft · Shift-click for up to ${BULK_CRAFT}`
           : 'Gather the missing materials to craft it.';

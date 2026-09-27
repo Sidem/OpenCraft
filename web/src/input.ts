@@ -12,6 +12,7 @@ export type Action =
   | { kind: 'sound-lab' }
   | { kind: 'inventory' }
   | { kind: 'research' }
+  | { kind: 'rotate' }
   | { kind: 'hint' }
   | { kind: 'map' }
   | { kind: 'debug' };
@@ -131,7 +132,8 @@ export class Input {
       else if (e.code === 'KeyM') this.actions.push({ kind: 'mute' });
       else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
-      else if (e.code === 'KeyR') this.actions.push({ kind: 'research' });
+      else if (e.code === 'KeyR') this.actions.push({ kind: 'rotate' });
+      else if (e.code === 'KeyT') this.actions.push({ kind: 'research' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
       else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });
     }

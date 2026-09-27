@@ -1,11 +1,12 @@
 // WebGL2 world renderer: the sky (sky.ts: day and night), chunk meshes (opaque then cutout pass,
 // frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), and the target
-// outline plus mining-crack overlay.
+// outline plus mining-crack overlay, and a dragged belt line's outlines (outlines.ts).
 // Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
 
 import { BoxPipeline } from './boxes';
 import { createProgram, uniforms } from './gl';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
+import { drawLineCells } from './outlines';
 import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
 
@@ -35,6 +36,8 @@ export interface FrameInfo {
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;
+  /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
+  lineCells: Int32Array;
 }
 
 export interface RenderStats {
@@ -133,7 +136,7 @@ export class Renderer {
     const crackProg = createProgram(gl, S.crackVert, S.crackFrag);
     this.opaque = { prog: opaqueProg, u: uniforms(gl, opaqueProg, lit) };
     this.cutout = { prog: cutoutProg, u: uniforms(gl, cutoutProg, lit) };
-    this.line = { prog: lineProg, u: uniforms(gl, lineProg, ['u_viewProj', 'u_offset', 'u_color'] as const) };
+    this.line = { prog: lineProg, u: uniforms(gl, lineProg, ['u_viewProj', 'u_offset', 'u_scale', 'u_color'] as const) };
     this.crack = { prog: crackProg, u: uniforms(gl, crackProg, ['u_viewProj', 'u_offset', 'u_progress'] as const) };
 
     this.quadIndex = gl.createBuffer()!;
@@ -351,6 +354,7 @@ export class Renderer {
       gl.useProgram(this.line.prog);
       gl.uniformMatrix4fv(this.line.u.u_viewProj, false, this.viewProj);
       gl.uniform3f(this.line.u.u_offset, ox, oy, oz);
+      gl.uniform3f(this.line.u.u_scale, 1, 1, 1);
       gl.uniform4f(this.line.u.u_color, 0.05, 0.05, 0.08, 0.6);
       gl.bindVertexArray(this.lineVao);
       gl.drawArrays(gl.LINES, 0, 24);
@@ -358,6 +362,7 @@ export class Renderer {
       gl.disable(gl.BLEND);
       drawCalls++;
     }
+    drawCalls += drawLineCells(gl, this.line, this.lineVao, this.viewProj, f.lineCells, [ex, ey, ez]);
     gl.bindVertexArray(null);
 
     this.stats.meshes = this.meshes.size;

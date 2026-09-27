@@ -1,4 +1,4 @@
-// Research screen (R): the tech tree as one card per tech, in table order, each showing its state,
+// Research screen (T): the tech tree as one card per tech, in table order, each showing its state,
 // what it unlocks, what one unit costs and how far it got. Clicking Research on an available tech sets
 // what every lab in the world works on. Also the HUD tracker (the tech being researched and its
 // progress) and a short notice when a tech is done. Everything is read from the engine (`tech_*`,
@@ -73,7 +73,7 @@ export class ResearchPanel {
     this.backdrop.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
       if (!this.isOpen || e.repeat) return;
-      if (e.code === 'KeyR' || e.code === 'KeyE') {
+      if (e.code === 'KeyT' || e.code === 'KeyE') {
         e.preventDefault();
         this.close(true);
       } else if (e.key === 'Escape') {

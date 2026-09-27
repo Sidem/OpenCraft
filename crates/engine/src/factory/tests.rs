@@ -737,3 +737,37 @@ fn fast_belts_carry_twice_as_much_and_mix_with_slow_ones() {
     let mixed = carried(&[1, 2, 4]);
     assert!(mixed > slow && mixed + 10 < fast, "mixed {mixed}");
 }
+
+#[test]
+fn plain_belts_over_a_step_become_ramps_and_carry_items() {
+    // The ramp layout above, laid with plain belts only: the slopes come from placement.
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 8);
+    for p in [IVec3::new(1, 0, 0), IVec3::new(2, 0, 0), IVec3::new(3, 1, 0), IVec3::new(4, 0, 0)] {
+        f.add_belt(p, EAST);
+    }
+    f.add_storage(IVec3::new(5, 0, 0));
+    run(&mut f, 4.0, spacing_ok);
+    let shapes: Vec<Shape> = (1..5).map(|x| f.belt_at(IVec3::new(x, (x == 3) as i32, 0)).shape).collect();
+    assert_eq!(shapes, [Shape::Flat, Shape::Up, Shape::Flat, Shape::Down]);
+    run(&mut f, 11.0, spacing_ok);
+    assert_eq!(f.storage_count_at(IVec3::new(5, 0, 0), IRON_ORE.into()), 8, "up, over and down into the far box");
+    // Take the high belt away and both ramps lie flat again.
+    f.remove(IVec3::new(3, 1, 0));
+    run(&mut f, 0.1, |_| {});
+    assert_eq!(
+        (f.belt_at(IVec3::new(2, 0, 0)).shape, f.belt_at(IVec3::new(4, 0, 0)).shape),
+        (Shape::Flat, Shape::Flat)
+    );
+}
+
+#[test]
+fn rotating_turns_belts_and_routers_clockwise() {
+    let mut f = Factory::default();
+    f.add_belt(IVec3::new(0, 0, 0), EAST);
+    router(&mut f, IVec3::new(2, 0, 0), EAST, false);
+    f.add_storage(IVec3::new(4, 0, 0));
+    assert!(f.rotate(IVec3::new(0, 0, 0)) && f.rotate(IVec3::new(2, 0, 0)));
+    assert!(!f.rotate(IVec3::new(4, 0, 0)), "a box has no front");
+    assert_eq!((f.belt_at(IVec3::new(0, 0, 0)).dir, f.routers[0].dir), ((EAST + 1) % 4, (EAST + 1) % 4));
+}

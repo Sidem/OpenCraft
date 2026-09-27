@@ -577,3 +577,88 @@ fn a_mk2_gets_more_ore_from_the_same_deposit() {
     assert!(ore2.abs_diff((drawn2 as f64 * crate::factory::MK2_RECOVERY) as u32) <= 3, "Mk2 kept {ore2}");
     assert!(ore2 > ore1 * 5 / 4 - 3, "{ore2} vs {ore1}");
 }
+
+/// A stone slab at height 200 above spawn, 16 long in x, with a one-block step up from x = 6.
+fn belt_test_slab(g: &mut Game) {
+    for x in -2..16 {
+        for z in -2..3 {
+            g.sim.world.set_block(IVec3::new(x, 200, z), STONE);
+            if x >= 6 {
+                g.sim.world.set_block(IVec3::new(x, 201, z), STONE);
+            }
+        }
+    }
+    g.toggle_fly();
+    g.teleport(0.5, 202.0, 0.5);
+}
+
+#[test]
+fn dragging_with_belts_lays_a_line_that_climbs_a_step() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    belt_test_slab(&mut g);
+    g.give(BELT.into(), 20);
+    g.run_ticks(2);
+    let slot = (0..INVENTORY_SLOTS).find(|&s| g.slot_item(s as u32) == BELT as u16).unwrap();
+    g.select_slot(slot as u32);
+    g.run_ticks(2);
+
+    // Press on the slab just ahead (east), drag the pointer far along it, release.
+    let east = std::f64::consts::FRAC_PI_2;
+    g.set_look(east, -1.3);
+    g.update(1.0 / 60.0);
+    g.set_using(true);
+    g.update(1.0 / 60.0);
+    g.set_look(east, -0.15);
+    for _ in 0..3 {
+        g.update(1.0 / 60.0);
+    }
+    let planned = g.line.cells.len();
+    assert!(planned >= 8, "the line reaches past the step: {:?}", g.line.cells);
+    assert!(g.line_label().starts_with(&format!("{planned} belts, 1 on slopes")), "{}", g.line_label());
+    assert_eq!(g.line_cells().len(), planned * 4);
+    g.set_using(false);
+    for _ in 0..30 {
+        g.update(1.0 / 60.0);
+    }
+    assert!(g.line.cells.is_empty() && g.line_label().is_empty());
+    assert_eq!(g.slot_count(slot as u32), 20 - planned as u32, "one belt per cell");
+    assert_eq!(g.sim.factory.count(factory::Kind::Belt), planned);
+    // The belt before the step became an up ramp; the rest run east on top.
+    assert_eq!(g.sim.factory.belt_at(IVec3::new(5, 201, 0)).shape, factory::Shape::Up);
+    assert_eq!(g.sim.factory.belt_at(IVec3::new(6, 202, 0)).dir, 1);
+
+    // R turns the belt you point at.
+    g.teleport(3.5, 203.5, 0.5);
+    g.set_look(east, -1.5);
+    g.update(1.0 / 60.0);
+    assert!(g.rotate_target());
+    g.run_ticks(1);
+    assert_eq!(g.sim.factory.belt_at(IVec3::new(3, 201, 0)).dir, 2);
+}
+
+#[test]
+fn a_left_click_cancels_a_belt_line() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    belt_test_slab(&mut g);
+    g.give(BELT.into(), 20);
+    g.run_ticks(2);
+    let slot = (0..INVENTORY_SLOTS).find(|&s| g.slot_item(s as u32) == BELT as u16).unwrap();
+    g.select_slot(slot as u32);
+    g.run_ticks(2);
+    g.set_look(std::f64::consts::FRAC_PI_2, -1.3);
+    g.update(1.0 / 60.0);
+    g.set_using(true);
+    g.update(1.0 / 60.0);
+    assert!(!g.line.cells.is_empty());
+    g.set_mining(true);
+    g.update(1.0 / 60.0);
+    g.set_mining(false);
+    g.set_using(false);
+    for _ in 0..10 {
+        g.update(1.0 / 60.0);
+    }
+    assert_eq!(g.sim.factory.count(factory::Kind::Belt), 0, "nothing was built");
+    assert_eq!(g.slot_count(slot as u32), 20);
+}

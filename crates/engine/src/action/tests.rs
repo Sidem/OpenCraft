@@ -250,6 +250,7 @@ fn samples() -> Vec<Action> {
         Action::Give { item: ItemId::NONE, count: u32::MAX },
         Action::Join { key: u64::MAX - 5 },
         Action::Leave { pos: Vec3::new(-0.5, 1e9, f64::MIN_POSITIVE) },
+        Action::Rotate { pos: IVec3::new(-7, 255, 1 << 20) },
     ]
 }
 

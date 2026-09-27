@@ -24,6 +24,7 @@ mod action;
 mod api;
 mod authority;
 mod avatars;
+mod belt_line;
 mod block;
 mod bytes;
 mod chunk;
@@ -63,6 +64,7 @@ use wasm_bindgen::prelude::*;
 
 use action::Action;
 use avatars::Avatars;
+use belt_line::BeltLine;
 use deposits::DepositState;
 use entities::Items;
 use inventory::Inventory;
@@ -139,6 +141,8 @@ pub struct Game {
     surveyed: Option<DepositState>,
     /// The scanner's and core drill's latest reading (prospect.rs).
     prospect: Prospect,
+    /// A belt line being dragged out or built (belt_line.rs).
+    line: BeltLine,
 }
 
 #[wasm_bindgen]
@@ -187,6 +191,7 @@ impl Game {
             cur_event_pos: IVec3::ZERO,
             surveyed: None,
             prospect: Prospect::default(),
+            line: BeltLine::default(),
         }
     }
 }
@@ -217,6 +222,7 @@ impl Game {
         self.write_item_instances(dt, eye);
         self.write_avatars(dt, eye);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
+        self.write_line_preview(eye, time);
     }
 }
 

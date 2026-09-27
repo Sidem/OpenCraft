@@ -69,8 +69,8 @@ pub const RECIPES: &[Recipe] = &[
         group: Group::Logistics,
         count: 4,
         inputs: &[(b(IRON_ORE), 1), (b(STONE), 2)],
-        blurb: "Carries items the way you are facing when you place it. Belts feed into belts, machines, \
-                and other belts from the side.",
+        blurb: "Carries items. Hold right-click and drag to lay a line; it climbs and drops one-block steps \
+                by itself. Belts feed belts, machines, and belts from the side. Press R on a belt to turn it.",
     },
     Recipe {
         output: b(STORAGE),
@@ -111,22 +111,6 @@ pub const RECIPES: &[Recipe] = &[
         inputs: &[(IRON_PLATE, 2), (COPPER_WIRE, 2), (b(BELT), 2)],
         blurb: "Sends the item you choose straight on and everything else to the left and right. \
                 Right-click to choose the item.",
-    },
-    Recipe {
-        output: b(RAMP_UP),
-        group: Group::Logistics,
-        count: 2,
-        inputs: &[(IRON_PLATE, 1), (b(BELT), 2)],
-        blurb: "A belt that climbs one level: it hands items on one block ahead and one up. Place it \
-                facing uphill.",
-    },
-    Recipe {
-        output: b(RAMP_DOWN),
-        group: Group::Logistics,
-        count: 2,
-        inputs: &[(IRON_PLATE, 1), (b(BELT), 2)],
-        blurb: "A belt that goes down one level: a belt one block up behind it feeds its high end. Place \
-                it facing downhill.",
     },
     Recipe {
         output: b(LIFT),
@@ -172,7 +156,7 @@ pub const RECIPES: &[Recipe] = &[
         group: Group::Science,
         count: 1,
         inputs: &[(IRON_PLATE, 6), (COPPER_WIRE, 8), (b(BELT), 4)],
-        blurb: "Uses science packs to research new machines (press R to choose what). Belts bring packs in; \
+        blurb: "Uses science packs to research new machines (press T to choose what). Belts bring packs in; \
                 needs power.",
     },
     Recipe {
