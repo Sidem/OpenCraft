@@ -62,7 +62,7 @@ pub const RECIPES: &[Recipe] = &[
         count: 1,
         inputs: &[(b(IRON_ORE), 10), (b(COPPER_ORE), 6), (b(STONE), 12)],
         blurb: "Place it against an ore block. It drills the whole deposit, recovers 60% of what it draws, \
-                and pushes ore into a belt, box or smelter beside it.",
+                and pushes ore into a belt, box, smelter or generator beside it. Needs power (5 kW).",
     },
     Recipe {
         output: b(BELT),
@@ -162,17 +162,17 @@ pub const RECIPES: &[Recipe] = &[
         output: b(GENERATOR),
         group: Group::Power,
         count: 1,
-        inputs: &[(IRON_INGOT, 12), (COPPER_INGOT, 8), (b(STONE), 10)],
-        blurb: "Burns coal ore or logs into 60 kW of power, only while its grid needs it. Place a power pole \
-                within 5 blocks; belts bring fuel in. Right-click to open it.",
+        inputs: &[(b(IRON_ORE), 6), (b(COPPER_ORE), 4), (b(STONE), 12)],
+        blurb: "Burns coal ore (270 kJ) or logs (135 kJ) into up to 60 kW, and only as much as its grid uses. \
+                Place a power pole within 5 blocks; a belt or a miner beside it brings fuel. Right-click to open it.",
     },
     Recipe {
         output: b(POLE),
         group: Group::Power,
         count: 2,
-        inputs: &[(IRON_INGOT, 1), (COPPER_INGOT, 1), (b(LOG), 1)],
+        inputs: &[(b(IRON_ORE), 1), (b(COPPER_ORE), 1), (b(LOG), 1)],
         blurb: "Links to every pole within 10 blocks and powers generators and machines within 5. \
-                Constructors, splitters, filters and labs need power.",
+                Miners, constructors, splitters, filters, labs, pumps and quarries need power.",
     },
     Recipe {
         output: b(LAB),
@@ -315,12 +315,18 @@ pub fn machine_recipe(machine: BlockId, i: u16) -> Option<&'static MachineRecipe
     MACHINE_RECIPES.get(i as usize).filter(|r| r.machine == machine)
 }
 
-/// Fuel and the seconds of machine work one item keeps a fire going.
-pub const FUELS: &[(ItemId, f64)] = &[(b(COAL_ORE), 8.0), (b(LOG), 4.0)];
+/// Fuel: the seconds of smelting one item keeps a fire going, and the energy it gives a generator in
+/// kJ (a coal runs a Mk1 miner long enough to mine about 32 coal).
+pub const FUELS: &[(ItemId, f64, u32)] = &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135)];
 
 /// Seconds of work one `item` fuels, if it burns.
 pub fn burn_time(item: ItemId) -> Option<f64> {
     FUELS.iter().find(|f| f.0 == item).map(|f| f.1)
+}
+
+/// The energy one `item` gives a generator, in kJ, if it burns.
+pub fn fuel_energy(item: ItemId) -> Option<u32> {
+    FUELS.iter().find(|f| f.0 == item).map(|f| f.2)
 }
 
 /// Index of `machine`'s recipe that uses `item`, if any.

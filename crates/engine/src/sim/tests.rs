@@ -16,7 +16,7 @@ pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends.
-const GOLDEN_HASH: u64 = 0x45ec_266d_0678_d0bf;
+const GOLDEN_HASH: u64 = 0x2e68_8e82_33e7_532f;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -52,7 +52,8 @@ pub(crate) fn outcrop() -> (IVec3, IVec3, DepositKey) {
 /// belts and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
 /// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
 /// ingots it puts in by hand, a filter set to plates, an old ramp block the box feeds (flat now: no belt one up ahead), and a pole and a
-/// generator (fuelled by hand) that power the constructor, the filter and a lab researching the first tech.
+/// generator (fuelled by hand) that power the miner, the constructor, the filter and a lab researching the
+/// first tech.
 pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let cell = |dx| top + IVec3::new(dx, 1, 0);
     let above_box = cell(3) + IVec3::new(0, 1, 0);
@@ -83,7 +84,7 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (0, B, give(RAMP_UP.into(), 1)),
         (0, B, give(GENERATOR.into(), 1)),
         (0, B, give(POLE.into(), 1)),
-        (0, B, give(COAL_ORE.into(), 3)),
+        (0, B, give(COAL_ORE.into(), 8)),
         (0, B, give(LAB.into(), 1)),
         (0, B, give(RED_PACK, 6)),
         (1, B, Action::BreakBlock { pos: above_box }),
@@ -148,7 +149,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded after step 4.4 (new worlds get generator version 2's geology). Only a deliberate
+    // Recorded after the power rework (powered Mk1 miners, stored energy; save version 16). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 
@@ -168,9 +169,11 @@ fn same_actions_give_the_same_state_every_tick() {
     let ramp = a.factory.belt_at(top + IVec3::new(4, 1, 0));
     assert!(ramp.item_at(1.0).1 == 0.0 && !ramp.items.is_empty(), "the box feeds the old ramp, which lies flat");
     let fuel = a.factory.panel(top + IVec3::new(3, 3, 0)).unwrap().slots[0].1.count;
-    assert_eq!(fuel, 0, "the lab keeps the generator burning");
     let research = &a.factory.research;
-    assert_eq!((research.current, research.progress(0)), (Some(0), 4), "24 s of coal: four 5 s units");
+    // The miner (5 kW for about 105 s), the lab (10 kW for 30 s) and the constructor use about 900 kJ:
+    // four coal of eight, since generators give only what is drawn.
+    assert_eq!(fuel, 4);
+    assert_eq!((research.current, research.progress(0)), (Some(0), 6), "six packs: six 5 s units");
 }
 
 #[test]

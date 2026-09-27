@@ -7,7 +7,7 @@ growing towards resource extraction, automation and factories.
 
 The simulation core is **Rust compiled to WebAssembly** (with SIMD). Rendering is **raw WebGL2**. There is no
 game engine and no runtime dependencies. Every texture and sound effect is generated procedurally at startup,
-so there are no asset files, and the whole production build is about 115 KB gzipped.
+so there are no asset files, and the whole production build is about 250 KB gzipped.
 
 ## Quick start
 
@@ -156,7 +156,7 @@ size.
   held on the ground for 3 seconds tells you exactly what lies beneath: how many blocks and units are
   left, and between which heights. Neither wears out.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it
-  drills. All miners on one deposit share its draw limit. Output slows over the last 20% of the pool.
+  drills, while it has power (see Power). All miners on one deposit share its draw limit. Output slows over the last 20% of the pool.
   Each time a block's worth is used up, the ore block nearest the miner turns into spent rock, even in
   chunks that aren't loaded. A worked-out deposit is gone for good.
 - **Conveyor belts** carry items one block per second. Hold right-click on the ground and drag to lay a
@@ -181,11 +181,15 @@ size.
 - **Splitters and filters** sit in a belt line. A splitter shares items between the belts leading away in
   front, to the left and to the right, skipping any that are full. A filter sends the item you choose in
   its panel straight on and everything else to the sides.
-- **Power.** Constructors, splitters and filters need power; miners and smelters don't. A coal generator burns
-  coal ore or logs (by belt or by hand) into 60 kW, only while its grid needs it. Power poles link to every
-  pole within 10 blocks, and each generator and machine hangs on the nearest pole within 5 (you see the
-  wires). A working constructor draws 15 kW, a splitter or filter 1 kW. Short of power, every machine on the
-  grid slows down to match; with none, it stops.
+- **Power.** Miners, constructors, splitters, filters, labs, pumps and quarries need power; the smelter
+  burns its own fuel. A coal generator turns coal ore (270 kJ) or logs (135 kJ), brought by belt, by a
+  miner beside it or by hand, into stored energy and gives up to 60 kW, only as much as its grid draws,
+  so fuel lasts longer under a light load. Power poles link to every pole within 10 blocks, and each
+  generator and machine hangs on the nearest pole within 5 (you see the wires). A drilling Miner Mk1
+  draws 5 kW (one coal runs it long enough to mine about 32), a Mk2 20 kW, a working constructor 15 kW, a
+  splitter or filter 1 kW. Short of power, every machine on the grid slows down to match; with none, it
+  stops. The first loop: a miner on coal next to a generator, a pole within reach of both, and a log to
+  start the fire; from then on the miner fuels its own power.
 - **Research.** Splitters, filters, lifts, underpasses and green science packs start locked (greyed
   out in the build menu). A research lab uses science packs to unlock them: press T, choose a tech, and
   every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
@@ -218,13 +222,13 @@ for up to five. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four b
 cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
 wire and 2 belts. Two lifts cost 2 iron rods and 2
-belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 12 iron ingots, 8
-copper ingots and 10 stone; two power poles an iron ingot, a copper ingot and a log; a research lab 6 iron plates,
+belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 6 iron ore, 4
+copper ore and 12 stone; two power poles an iron ore, a copper ore and a log; a research lab 6 iron plates,
 8 copper wire and 4 belts; a Miner Mk2 a Mk1, 8 iron plates, 16 screws and 12 copper wire; two fast belts 2
 belts, an iron plate and 4 screws; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
 plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates,
 8 iron rods, 16 screws and 8 copper wire. Hand-mining an outcrop or two covers
-your first miner. After that, let it do the work.
+your first miner, generator and poles. After that, let them do the work.
 
 ## Sound designer
 
@@ -353,7 +357,7 @@ Sandbox foundation:
 - [x] Save and load worlds: autosave, several worlds, export and import
 - [x] Co-op multiplayer: player-hosted over WebRTC, 2–4 players
 - [ ] Simulation and worldgen in Web Workers
-- [ ] Water and transparent blocks
+- [x] Water: a sea and ponds, flowing water, swimming
 - [x] Full inventory screen
 - [x] Day/night cycle, sky and voxel lighting (sky light, lamps)
 - [x] Minimap
@@ -377,7 +381,9 @@ Factory layer (the Satisfactory half):
 - [x] Drag-to-build belt lines, R to rotate
 - [x] Miner and belt tiers (Miner Mk2, fast belts)
 - [x] Prospecting: find veins and lodes without digging blind
-- [x] Power grid: coal generators, poles, consumption and brownouts
+- [x] Power grid: coal generators that burn only what is used, poles, brownouts; every miner runs on it
+- [x] Pumps, pipes and outlets: drain ponds and flooded pits
+- [x] Quarry: automated digging that leaves a real pit
 - [x] Research: labs, science packs and a small tech tree
 - [ ] An optional endgame megaproject that doesn't end the game
 - [ ] Terraforming machines: excavators, graders, tunnel borers

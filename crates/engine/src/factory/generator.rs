@@ -1,16 +1,16 @@
-//! Coal generator: burns fuel (`recipes::FUELS`) to supply its grid with `GENERATOR_POWER`. Belts,
-//! miners and the panel bring fuel into its one buffer; `Power::balance` lights and burns it, and only
-//! while the grid needs power. Right-click opens its panel.
+//! Coal generator: turns fuel (`recipes::fuel_energy`) into stored energy and gives its grid up to
+//! `GENERATOR_POWER`, only as much as the grid draws. Belts, miners and the panel bring fuel into its
+//! one buffer; `Power::balance` lights the next item and draws the energy. Right-click opens its panel.
 //!
-//! Invariants: the fire is counted in whole ticks; `running` is last tick's result (for the view,
-//! not saved).
+//! Invariants: energy is counted in kW·ticks (1 kJ = `TICK_RATE`); `output` is last tick's supply
+//! (for the view, not saved).
 
 use crate::block::{tex, GENERATOR};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
-use crate::recipes::burn_time;
+use crate::recipes::fuel_energy;
 use crate::TICK_RATE;
 
 use super::buffer::Buffer;
@@ -22,20 +22,20 @@ use super::{Factory, Kind, Machine};
 pub struct Generator {
     pub pos: IVec3,
     pub fuel: Buffer,
-    /// Ticks left in the fire.
-    pub burn: u32,
-    /// Whether it supplied power last tick (derived).
-    pub running: bool,
+    /// Energy left from the fuel it lit, in kW·ticks.
+    pub energy: u32,
+    /// kW it supplied last tick (derived).
+    pub output: u32,
 }
 
 impl Generator {
     pub fn new(pos: IVec3) -> Generator {
-        Generator { pos, fuel: Buffer::new(Kind::Generator.def().slots), burn: 0, running: false }
+        Generator { pos, fuel: Buffer::new(Kind::Generator.def().slots), energy: 0, output: 0 }
     }
 
     /// How many of `item` it would take now: fuel only, up to the buffer's room.
     pub fn room_for(&self, item: ItemId) -> u32 {
-        if burn_time(item).is_some() {
+        if fuel_energy(item).is_some() {
             self.fuel.space_for(item)
         } else {
             0
@@ -46,26 +46,37 @@ impl Generator {
         self.room_for(item) > 0 && self.fuel.add(item, 1) == 0
     }
 
+    /// Whether it gave power last tick.
+    pub fn running(&self) -> bool {
+        self.output > 0
+    }
+
+    /// Whole kJ it holds.
+    pub fn stored_kj(&self) -> u32 {
+        self.energy / TICK_RATE
+    }
+
     /// What it is doing (needs the factory for its grid).
     pub fn status_text(&self, f: &Factory) -> String {
         let pole = f.generators.iter().position(|g| g.pos == self.pos).and_then(|i| f.power.gen_pole.get(i).copied());
         match pole.flatten() {
             _ if f.dirty => String::new(),
             None => f.power.grid_line(None),
-            Some(_) if self.running => format!("Supplying {GENERATOR_POWER} kW"),
-            Some(_) if self.fuel.total() == 0 && self.burn == 0 => "Out of fuel: bring coal ore or logs".to_string(),
+            Some(_) if self.running() => format!("Supplying {} of {GENERATOR_POWER} kW", self.output),
+            Some(_) if self.fuel.total() == 0 && self.energy == 0 => "Out of fuel: bring coal ore or logs".to_string(),
             Some(_) => "Idle: nothing on its grid needs power".to_string(),
         }
     }
 
-    /// The panel: its fuel and fire (the status line needs the factory, so the caller adds it).
+    /// The panel: its fuel, and how long what it holds lasts at this load (the status line needs the
+    /// factory, so the caller adds it).
     pub fn panel(&self, status: String) -> Panel {
         Panel {
             block: GENERATOR,
             recipe: None,
             choosable: false,
             progress: 0,
-            fire: self.burn.div_ceil(TICK_RATE),
+            fire: if self.running() { (self.energy / self.output).div_ceil(TICK_RATE) } else { 0 },
             slots: vec![(ROLE_FUEL, self.fuel.slots[0])],
             status,
             filter: None,
@@ -78,17 +89,19 @@ impl Machine for Generator {
         self.pos
     }
 
-    /// Core state: fuel and fire.
+    /// Core state: fuel and stored energy.
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         self.fuel.write_state(w);
-        w.u32(self.burn);
+        w.u32(self.energy);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Generator> {
         let mut g = Generator::new(r.ivec3()?);
         g.fuel = Buffer::read_state(r, g.fuel.slots.len())?;
-        g.burn = r.u32()?;
+        // Before version 16 this was ticks of fire at full output.
+        let n = r.u32()?;
+        g.energy = if r.version >= 16 { n } else { n.saturating_mul(GENERATOR_POWER) };
         Some(g)
     }
 
@@ -103,8 +116,8 @@ impl Machine for Generator {
         if !s.is_empty() {
             parts.push(format!("Fuel: {} {}", s.count, item::name(s.item)));
         }
-        if self.burn > 0 {
-            parts.push(format!("fire for {} s", self.burn.div_ceil(TICK_RATE)));
+        if self.energy > 0 {
+            parts.push(format!("{} kJ stored", self.stored_kj()));
         }
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
@@ -120,7 +133,7 @@ impl Machine for Generator {
         push_box(out, rel + Vec3::new(0.0, -0.16, 0.0), 0.0, [0.76, 0.39, 0.74], 0.0, body, false);
         // Broad flywheel and two crossing blades on top, plus a separate fuel hopper and exhaust.
         push_box(out, rel + Vec3::new(0.0, 0.08, 0.0), 0.0, [0.63, 0.1, 0.63], 0.0, [tex::GENERATOR_TOP; 3], false);
-        let spin = if self.running { (time * 8.0) as f32 } else { 0.0 };
+        let spin = if self.running() { (time * 8.0) as f32 } else { 0.0 };
         push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), spin, [0.57, 0.06, 0.1], 0.0, [tex::IRON_PLATE; 3], false);
         push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), spin, [0.1, 0.06, 0.57], 0.0, [tex::IRON_PLATE; 3], false);
         push_box(out, rel + Vec3::new(0.0, 0.2, 0.0), 0.0, [0.14, 0.08, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
@@ -135,7 +148,7 @@ impl Machine for Generator {
         );
         push_box(out, rel + Vec3::new(0.32, 0.31, -0.3), 0.0, [0.2, 0.63, 0.2], 0.0, body, false);
         push_box(out, rel + Vec3::new(0.32, 0.66, -0.3), 0.0, [0.25, 0.07, 0.25], 0.0, [tex::GENERATOR_SIDE; 3], false);
-        let lamp = match (self.running, self.fuel.total() > 0 || self.burn > 0) {
+        let lamp = match (self.running(), self.fuel.total() > 0 || self.energy > 0) {
             (true, _) => tex::LAMP_GREEN,
             (false, true) => tex::FRAME,
             (false, false) => tex::LAMP_RED,

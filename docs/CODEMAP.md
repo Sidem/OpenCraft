@@ -66,12 +66,12 @@ folder with `mod.rs`.
 | `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `count(kind)`, the world's `research`, `place` / add / remove, `update` (one tick: miners, quarries, boxes, smelters, power balance, powered machines and labs, belts; emits `SimEvent`s) |
 | `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds), then the deposits and the research |
 | `factory/lab.rs` | Research lab: one buffer slot per science pack, `step_labs` (units for the current tech, never more than it has left, at its grid's speed); bytes, readout, panel, model |
-| `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators burn in order until supply meets it, speed per grid), wire drawing; power constants |
-| `factory/generator.rs` | Coal generator: fuel buffer, burns `FUELS` only while its grid needs power; bytes, readout, panel, model |
+| `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators give stored energy in order until supply meets it, lighting fuel as needed, speed per grid), wire drawing; power constants |
+| `factory/generator.rs` | Coal generator: fuel buffer and stored energy (kW·ticks, lit from `recipes::fuel_energy`), gives only what its grid draws; bytes, readout, panel, model |
 | `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE`; `derive_slopes` makes flat belts ramps from their neighbours (in `relink`) |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step` (each belt at its own `speed`: fast belts double); its bytes, readout and model; belt constants |
-| `factory/miner.rs` | Miners Mk1 and Mk2 (one kind; `mk2` sets rate, recovery and power): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
+| `factory/miner.rs` | Miners Mk1 and Mk2 (one kind, both powered; `mk2` sets rate, recovery and power): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
 | `factory/storage.rs` | Storage box: `step` (feeds belts leading away); its bytes and readout |
 | `factory/router.rs` | Splitter and filter (one `Router` kind): holds one item, passes it front/left/right (round robin; a filter sends its item front, others aside); bytes, readout, filter panel, model |
 | `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
@@ -89,7 +89,7 @@ folder with `mod.rs`.
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
-| `recipes.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` burn times |
+| `recipes.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` (smelter seconds and generator kJ) |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
@@ -257,9 +257,9 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/mod.rs` | `MACHINES` (buffer slots per machine) |
 | `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MK2_RATE`, `MK2_RECOVERY` |
-| `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (burn seconds) |
+| `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (smelter seconds, generator kJ) |
 | `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` |
-| `factory/power.rs` | `GENERATOR_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `factory/power.rs` | `GENERATOR_POWER`, `MINER_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
 | `factory/pumping.rs` | `PUMP_RATE`, `PUMP_HOLD`, `OUTLET_RATE`, `PUMP_RANGE` |
 | `factory/quarry.rs` | `DIG_SECONDS`, `SCAN_PER_TICK`; `quarry/dig_box.rs`: `WIDTHS`, `DEPTHS`, defaults, `QUARRIABLE` |
 | `sim/water.rs` | `WATER_DELAY`, `MAX_WATER_UPDATES`; `SEA_LEVEL` is in `worldgen/mod.rs` |

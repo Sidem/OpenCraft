@@ -630,15 +630,23 @@ fn generators_burn_only_what_their_grid_needs() {
     run(&mut f, 5.0, |_| {});
     let fuel = |f: &Factory, x| f.generators.iter().find(|g| g.pos.x == x).unwrap().fuel.total();
     assert_eq!((fuel(&f, 0), fuel(&f, 1)), (2, 2), "no demand, no burning");
-    // One constructor needs 15 kW: the first generator covers it; the second stays cold.
+    // One constructor needs 15 kW: the first generator covers it and gives only that, so a coal
+    // (270 kJ) lasts 18 s; the second stays cold until the first runs dry.
     rod_maker(&mut f, IVec3::new(0, 0, 0), 30);
     let mut f = round_trip(&f);
-    run(&mut f, 17.0, |_| {});
-    assert_eq!((fuel(&f, 0), fuel(&f, 1)), (0, 1), "two coal burned in 16 s, then the second lit");
-    assert!(f.generators[1].running && !f.generators[0].running);
-    run(&mut f, 16.0, |_| {});
+    run(&mut f, 10.0, |_| {});
+    assert_eq!((fuel(&f, 0), fuel(&f, 1), f.generators[0].output), (1, 2, 15));
+    assert_eq!(f.power.grid_line(Some(0)), "Grid: 15 kW used of 120 kW");
+    run(&mut f, 30.0, |_| {});
+    assert_eq!((fuel(&f, 0), fuel(&f, 1)), (0, 1), "two coal in 36 s, then the second lit");
+    assert!(f.generators[1].running() && !f.generators[0].running());
+    // 30 rods take 60 s at 15 kW: 900 kJ, so of the fourth coal 180 kJ stay stored, and keep.
+    run(&mut f, 30.0, |_| {});
     let c = f.constructor_at(IVec3::ZERO);
-    assert_eq!((c.status, c.out.count(crate::item::IRON_ROD)), (ConstructorStatus::NoPower, 16), "32 s of fuel");
+    assert_eq!((c.status, c.out.count(crate::item::IRON_ROD)), (ConstructorStatus::NoInput, 30));
+    let g = &f.generators[1];
+    assert_eq!((fuel(&f, 1), g.output), (0, 0));
+    assert!((179..=181).contains(&g.stored_kj()), "{} kJ left", g.stored_kj());
 }
 
 /// Test-only lab accessor.

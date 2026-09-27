@@ -2,8 +2,8 @@
 //! of what they draw as ore items in the output buffer (slots in `MACHINES`), stop drilling when that
 //! is full, and push ore round-robin into belts leading away or adjacent boxes and smelters (never
 //! through the drill face). The deposit's shared draw cap and taper decide how much it actually gets
-//! (`deposits.rs`). The Mk1 is unpowered; the Mk2 draws faster, recovers more and runs at its grid's
-//! `speed` (set before each step from `power.rs`).
+//! (`deposits.rs`). Both need power and run at their grid's `speed` (set before each step from
+//! `power.rs`); the Mk2 draws faster, recovers more and uses more power.
 
 use crate::block::{tex, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
@@ -69,7 +69,7 @@ pub struct Miner {
     /// Ticks until the next `MinerWorking` report.
     pub pulse: u32,
     pub mk2: bool,
-    /// This tick's speed from its grid, in thousandths (Mk2 only; derived).
+    /// This tick's speed from its grid, in thousandths (derived).
     pub speed: u32,
 }
 
@@ -110,9 +110,9 @@ impl Miner {
         }
     }
 
-    /// Whether it would draw this tick if powered (a Mk2's grid counts it as demand).
+    /// Whether it would draw this tick if powered (its grid counts it as demand).
     pub fn wants_power(&self) -> bool {
-        self.mk2 && self.deposit.is_some() && self.out.can_accept(self.ore) && self.status != MinerStatus::Exhausted
+        self.deposit.is_some() && self.out.can_accept(self.ore) && self.status != MinerStatus::Exhausted
     }
 
     /// One tick: draw from the deposit, push one item on, report the drilling.
@@ -138,7 +138,7 @@ impl Miner {
         match self.deposit {
             None => self.status = MinerStatus::NoDeposit,
             Some(key) => {
-                let speed = if self.mk2 { self.speed } else { FULL_SPEED };
+                let speed = self.speed;
                 let room = self.out.can_accept(self.ore);
                 if room && speed > 0 {
                     let face = self.pos + FACES[self.drill as usize];

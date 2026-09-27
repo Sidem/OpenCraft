@@ -34,6 +34,12 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Miner) > 0,
     },
     Hint {
+        text: "Power it: a miner runs on electricity. Build a coal generator and a power pole within 5 blocks \
+               of both, and start the generator with coal ore or logs (right-click it). A miner on coal next \
+               to the generator keeps it fuelled: one coal runs a miner long enough to dig about 32.",
+        done: |_, f| f.count(Kind::Generator) > 0 && f.count(Kind::Pole) > 0,
+    },
+    Hint {
         text: "Carry the ore away: hold right-click on the ground next to the miner and drag to lay a \
                line of belts, and put a storage box at its end.",
         done: |_, f| f.count(Kind::Belt) > 0 && f.count(Kind::Storage) > 0,
@@ -44,9 +50,9 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Smelter) > 0,
     },
     Hint {
-        text: "Make parts: a constructor shapes ingots into plates, rods, screws and wire. It needs power: a \
-               coal generator and a power pole within 5 blocks of both.",
-        done: |_, f| f.count(Kind::Constructor) > 0 && f.count(Kind::Generator) > 0,
+        text: "Make parts: a constructor shapes ingots into plates, rods, screws and wire. It needs power \
+               like the miner: a pole within 5 blocks.",
+        done: |_, f| f.count(Kind::Constructor) > 0,
     },
     Hint {
         text: "Research: build a research lab near a pole, give it red science packs, and press T to choose \

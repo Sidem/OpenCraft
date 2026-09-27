@@ -3,22 +3,26 @@
 //! - A pole links to every pole within `WIRE_RANGE`; each connected group is a grid. A generator or a
 //!   powered machine joins the grid of the nearest pole within `POLE_REACH` (ties: the lower pole
 //!   index). All of this is derived from positions (`rebuild`, run by `relink`), never saved.
-//! - Each tick `balance` adds up what each grid's machines need (`MINER_MK2_POWER` while a Mk2 drills,
-//!   `CONSTRUCTOR_POWER` while one works,
-//!   `ROUTER_POWER` while a splitter or filter holds an item, `LAB_POWER` while a lab researches), then burns generators in list order
-//!   until supply covers demand. A grid short of power runs its machines at `speed` = supply / demand.
-//!   Generators burn only while their grid needs power.
+//! - Each tick `balance` adds up what each grid's machines need in kW (a miner while it drills, a
+//!   constructor while it works, a splitter or filter while it holds an item, a lab while it researches,
+//!   a pump while it has room, a quarry while it digs), then takes it from the generators in list
+//!   order, each up to `GENERATOR_POWER`. A grid short of power runs its machines at `speed` =
+//!   supply / demand.
+//! - Energy: a generator holds the energy of the fuel it lit, in kW·ticks (1 kJ = `TICK_RATE`
+//!   kW·ticks), and gives only what is drawn, so fuel lasts exactly as long as the load allows. It
+//!   lights the next item (`recipes::fuel_energy`) when what it holds can't cover this tick.
 //!
-//! Consumers: the Miner Mk2, constructor, splitter, filter, lab, pump and quarry. The Mk1 miner and smelter are the unpowered burner
-//! tier. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
+//! Consumers: miners, constructors, splitters, filters, labs, pumps and quarries. The smelter burns
+//! its own fuel. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
 //! `balance`, and a speed argument to its `step`.
 
 use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
-use crate::recipes::burn_time;
+use crate::recipes::fuel_energy;
 use crate::research::Research;
+use crate::TICK_RATE;
 
 use super::constructor::Constructor;
 use super::generator::Generator;
@@ -28,10 +32,12 @@ use super::pipes::{Part, Pipework};
 use super::quarry::Quarry;
 use super::render::push_box;
 use super::router::Router;
-use super::{ticks, Factory, Machine};
+use super::{Factory, Machine};
 
-/// What one burning generator supplies, in kW.
+/// The most one generator supplies, in kW.
 pub const GENERATOR_POWER: u32 = 60;
+/// What a drilling Miner Mk1 draws, in kW.
+pub const MINER_POWER: u32 = 5;
 /// What a drilling Miner Mk2 draws, in kW.
 pub const MINER_MK2_POWER: u32 = 20;
 /// What a working constructor draws, in kW.
@@ -63,7 +69,7 @@ pub(crate) struct Power {
     pub pole_grid: Vec<u32>,
     /// Pole pairs that are wired together (lower index first).
     pub wires: Vec<(u32, u32)>,
-    /// The pole each generator, miner (Mk2 only), constructor, router and lab hangs on, if any is in reach.
+    /// The pole each generator, miner, constructor, router and lab hangs on, if any is in reach.
     pub gen_pole: Vec<Option<u32>>,
     pub miner_pole: Vec<Option<u32>>,
     pub constructor_pole: Vec<Option<u32>>,
@@ -72,9 +78,10 @@ pub(crate) struct Power {
     /// Per piece of pipework: the pole of each pump (other pieces: `None`).
     pub pipe_pole: Vec<Option<u32>>,
     pub quarry_pole: Vec<Option<u32>>,
-    /// Per grid, last tick: kW supplied and kW wanted.
+    /// Per grid, last tick: kW supplied, kW wanted, and kW its fuelled generators could give.
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
+    pub capacity: Vec<u32>,
 }
 
 impl Power {
@@ -119,7 +126,7 @@ impl Power {
             pole_grid,
             wires,
             gen_pole: gens.iter().map(|g| hang(g.pos)).collect(),
-            miner_pole: miners.iter().map(|m| if m.mk2 { hang(m.pos) } else { None }).collect(),
+            miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
             constructor_pole: constructors.iter().map(|c| hang(c.pos)).collect(),
             router_pole: routers.iter().map(|r| hang(r.pos)).collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
@@ -127,10 +134,11 @@ impl Power {
             quarry_pole: quarries.iter().map(|q| hang(q.pos)).collect(),
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],
+            capacity: vec![0; grids as usize],
         }
     }
 
-    /// One tick of supply and demand: burns generators as needed and records each grid's totals.
+    /// One tick of supply and demand: draws on generators as needed and records each grid's totals.
     #[allow(clippy::too_many_arguments)]
     pub fn balance(
         &mut self,
@@ -145,9 +153,10 @@ impl Power {
     ) {
         self.supply.iter_mut().for_each(|s| *s = 0);
         self.demand.iter_mut().for_each(|d| *d = 0);
+        self.capacity.iter_mut().for_each(|c| *c = 0);
         for (m, p) in miners.iter().zip(&self.miner_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += MINER_MK2_POWER;
+                self.demand[self.pole_grid[p as usize] as usize] += if m.mk2 { MINER_MK2_POWER } else { MINER_POWER };
             }
         }
         for (c, p) in constructors.iter().zip(&self.constructor_pole) {
@@ -176,24 +185,23 @@ impl Power {
             }
         }
         for (g, p) in gens.iter_mut().zip(&self.gen_pole) {
-            g.running = false;
+            g.output = 0;
             let Some(p) = *p else { continue };
             let grid = self.pole_grid[p as usize] as usize;
-            if self.supply[grid] >= self.demand[grid] {
-                continue;
-            }
-            if g.burn == 0 {
+            let want = (self.demand[grid] - self.supply[grid].min(self.demand[grid])).min(GENERATOR_POWER);
+            if want > g.energy {
                 let s = g.fuel.slots[0];
-                if let Some(secs) = burn_time(s.item).filter(|_| !s.is_empty()) {
+                if let Some(kj) = fuel_energy(s.item).filter(|_| !s.is_empty()) {
                     g.fuel.take(0, 1);
-                    g.burn = ticks(secs);
+                    g.energy += kj * TICK_RATE;
                 }
             }
-            if g.burn > 0 {
-                g.burn -= 1;
-                g.running = true;
-                self.supply[grid] += GENERATOR_POWER;
+            if g.energy > 0 || g.fuel.total() > 0 {
+                self.capacity[grid] += GENERATOR_POWER;
             }
+            g.output = want.min(g.energy);
+            g.energy -= g.output;
+            self.supply[grid] += g.output;
         }
     }
 
@@ -211,9 +219,12 @@ impl Power {
         let Some(grid) = pole.map(|p| self.pole_grid[p as usize] as usize) else {
             return format!("Not connected: place a power pole within {POLE_REACH} blocks");
         };
-        let (s, d) = (self.supply[grid], self.demand[grid]);
-        let speed = self.speed(pole) / 10;
-        format!("Grid: {s} kW supplied, {d} kW needed · machines at {speed}%")
+        let (s, d, c) = (self.supply[grid], self.demand[grid], self.capacity[grid]);
+        if s < d {
+            format!("Grid short: {s} of {d} kW needed · machines at {}%", self.speed(pole) / 10)
+        } else {
+            format!("Grid: {d} kW used of {c} kW")
+        }
     }
 }
 

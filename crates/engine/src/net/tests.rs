@@ -217,6 +217,7 @@ fn a_client_joins_a_running_factory_and_stays_in_step() {
     let log = script(top, other);
     let mut host = Game::new(SEED, 2);
     host.start_host();
+    crate::tests::power_up(&mut host, top + IVec3::new(0, 1, 0));
     // A builds the line and runs it alone for 25 s, with nobody listening to the frames.
     for t in 0..1500 {
         for q in log.iter().filter(|q| q.0 == t && q.1 == A) {

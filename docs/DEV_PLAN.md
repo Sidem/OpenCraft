@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.9** · The `art` branch is superseded;
+**Status:** 2026-09-27 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
+now) · **Next up: Milestone 6 (Scale and terrain): ask the user its questions (section 6), then detail it** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -100,16 +100,16 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-27 | **Water flow is limited and deterministic:** a Minecraft-like spread, event-driven and capped per tick; no volume simulation. |
 | 2026-09-27 | **Surface ore is rare and meaningful:** about 10× fewer exposed outcrops, only on bare rock; a starter set near spawn; ores in depth bands. Vein and lode counts stay. |
 | 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
+| 2026-09-27 | **Miners need power; generators burn only what is used.** The first loop is a miner on coal feeding the generator that powers it. Energy is stored per generator (kJ); one coal (270 kJ) runs a Mk1 (5 kW) long enough to mine about 32 coal. The smelter stays a burner. |
 
 ### Proposed, not yet confirmed by the user
 
-- The Miner Mk1 and the smelter stay unpowered (a burner tier); newer machines need power. Built this way.
 - Old saves keep loading across format changes where a migration is cheap. Every save since version 1
   still loads.
 
 ---
 
-## 2. Where the code stands (after Milestone 4)
+## 2. Where the code stands (after Milestone 5)
 
 ### Architecture
 
@@ -150,6 +150,12 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   keeps its own (`WorldGen::version`); version 2 adds biomes (`worldgen/biome.rs`: plains, desert over
   sandstone, highlands over granite, lowlands, basalt fields; spawn always plains) and ores by biome
   (`worldgen/geology.rs`, including limestone and quartz) with stained soil hints above veins and lodes.
+  Version 3 (current, frozen) makes surface ore rare (only on bare rock, a starter set 40–80 blocks out),
+  puts ores in depth bands (`worldgen/strata.rs`), and adds the sea (level 62) and ponds
+  (`worldgen/water.rs`).
+- **Water** (block 45 still, 46–52 flowing): drawn blended with underwater fog (`render/water.ts`);
+  flow is core state, event-driven and capped per tick (`sim/water.rs`); the sea is the only endless
+  water. Bodies swim and items float (`player`, `entities`).
 - **Day and light:** a 20-minute day from the core tick (`daytime.rs`), sky, sun, moon and stars
   (`render/sky.ts`); sky and block light 0–15 computed while a chunk meshes (`light.rs`: the chunk plus a
   15-block margin), smoothed per vertex (a byte after the vertices); lamps (block 44) give light 15.
@@ -159,20 +165,24 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   in unloaded chunks. Hand mining keeps `HAND_YIELD` = 3 per block and costs the deposit one block.
 - **Factory** (`factory/`, one file per machine kind, the `MACHINES` table and a `Machine` trait; one kind
   can serve several blocks through extra table rows):
-  - Miners: Mk1 (1 unit/s, 60% recovery, unpowered) and Mk2 (2 units/s, 75%, 20 kW).
+  - Miners: Mk1 (1 unit/s, 60% recovery, 5 kW) and Mk2 (2 units/s, 75%, 20 kW). The quarry
+    (`factory/quarry/`, 10 kW) digs a box of ground into a real pit; pumps, pipes and outlets
+    (`factory/pipes.rs`, `pumping.rs`) move water.
   - Belts (1 block/s; fast belts 2) with side-joins, corners, back-pressure, ramps, lifts and underpasses
     (`belt_shape.rs`); splitter and filter (`router.rs`); storage boxes (24 slots, open like a chest).
   - Smelter (ore plus coal or logs → ingots) and constructor (ingots → plates, rods, screws, wire), with
     machine recipes and fuels as data (`recipes.rs`). Right-click opens a machine panel (`panel.rs`,
     `ui/machine.ts`): status, buffers, recipe or filter choice, put-in and take buttons.
-  - Power (`power.rs`): coal generators, poles that link within 10 blocks into grids, machines on the
-    nearest pole within 5, brownouts as a speed factor.
-  - Research labs (`lab.rs`) working through the tech tree (`research.rs`, key R) with red and green
-    science packs; six techs unlock routing, climbing, underpasses, green packs, Mk2 and fast belts.
+  - Power (`power.rs`): coal generators that store fuel energy and give only what is drawn (up to 60 kW),
+    poles that link within 10 blocks into grids, machines on the nearest pole within 5, brownouts as a
+    speed factor.
+  - Research labs (`lab.rs`) working through the tech tree (`research.rs`, key T) with red and green
+    science packs; seven techs unlock routing, lifts, underpasses, green packs, Mk2, fast belts and fluid
+    handling.
   - Models are instanced boxes; status readouts come from `describe`.
 - **Inventory** (`inventory.rs`): 36 slots (hotbar 0–8), a cursor stack, click, shift-click and
   quick-move. **Crafting** (`recipes.rs`): hand recipes in the build menu (key E, `ui/crafting.ts`): a grid by `recipes::Group` with search, filters (can craft, missing, locked) and a hover card.
-- **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): seven tips from finding ore to research.
+- **Onboarding tips** (`hints.rs`, `ui/hints.ts`, key H skips): ten tips from finding ore to the quarry.
 - **Minimap** (`minimap.rs`, `ui/minimap.ts`, key N): loaded terrain around the player, north up, arrows
   for every player; rings for prospected veins and lodes (kept in the browser's world record, dropped
   when dry) and squares for machines (`minimap/marks.rs`); presentation only.
@@ -182,14 +192,14 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Saplings** (`sim/saplings.rs`): leaves drop one 1 time in 25 (broken or decayed); planted on dirt or
   grass, it grows after 60 s plus a 90 s half-life into a tree shaped like generated ones
   (`worldgen::tree_blocks`); drawn as crossed quads (`Render::Plant`, mesher faces 6 and 7).
-- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–44, see
-  `block/mod.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand, 44 the lamp); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
+- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–56, see
+  `block/mod.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand, 44 the lamp, 45–52 water, 53–55 pump, pipe and outlet, 56 the quarry); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
   science packs, the six tools (264–269), scanner (270) and core drill (271). Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 14; every version since 1 loads.
+  exports and imports them. Save version 16; every version since 1 loads.
 - **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
   menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
   or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
@@ -203,7 +213,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Prospecting** (`prospect.rs`, `ui/prospect.ts`): the scanner lists deposits within 48 blocks (ore,
   tier, live bearing and distance, depth, size band); the core drill (3 s hold) gives a column's exact
   figures. Queries only: no actions, the state hash never moves. Devices are tools that never wear.
-- **Size:** about 212 KB gzipped in total (wasm 161.4 KB, JS 44.9 KB, CSS 5.8 KB).
+- **Size:** about 247 KB gzipped in total (wasm 192.5 KB, JS 47.2 KB, CSS 5.8 KB; `vite build`).
 
 ### Known limitations and technical debt
 
@@ -367,155 +377,24 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 5: Water and world shape
+## 4. Now: Milestone 6: Scale and terrain (not detailed yet)
 
-The user decided on 2026-09-27 (section 1) to reshape the world before terraforming, because digging,
-dams, bridges and rail cuttings all depend on water. Milestone 6 (Scale and terrain, `docs/ROADMAP.md`)
-follows; its questions are still open (section 6).
+Milestone 5 (Water and world shape) is done; its summary is in section 8. Milestone 6 is outlined in
+`docs/ROADMAP.md` and gets detailed here, with steps, once the user answers its questions (section 6).
+Until then there is no next step: ask them.
 
-**Measured before this milestone** (version 2, seeds 2024, 1337 and 7, a 4,000-block square):
-- Ground: median height 70, p95 about 137. About 20 % is at or below y 60 and 35–40 % at or below y 66,
-  so sea level 62 floods about 30 %.
-- Biomes: plains 52–60 %, lowlands 15–22 %, desert 9–15 %, highlands 11–15 %, basalt 4 %. A straight
-  walk crosses one in 80–260 blocks.
-- Ore: 3.3 surface-exposed outcrops per 32 × 32 column. The nearest one is about 9 blocks from any spot,
-  and 3.5 of the 5 ores show within 32 blocks. Veins sit 20–60 below the local surface (median 40); ore
-  kind never depends on depth.
-
-**Goal:** seas and lakes with water that behaves, a quarry that automates rock, and ore that is rare at the surface, so geology and
-prospecting matter. It becomes generator **version 3** (versions 1 and 2 stay frozen; new worlds only).
-Water flow is core state and deterministic (section 3.4). Each step is one session, green and committed.
-**Push nothing between 5.1 and 5.3:** version 3 is frozen from its first push, and later changes to it
-need a version 4.
-
-- [x] **5.1 Generator version 3.** Pin version 2 like 4.1 pinned version 1: a test hashes a few version-2
-  chunks (seed 1337: surface, cave, lode, one per biome), recorded before any change. `WORLDGEN_VERSION`
-  becomes 3, and version 3 branches from version 2 at named points only. In this step it generates exactly
-  what version 2 does. **Done when:** both pins hold, a new game saves and reloads as version 3, a co-op
-  join gets the host's version, the golden hash is unchanged.
-- [x] **5.2 Rare surface ore, depth bands, starter set (version 3).** `worldgen/strata.rs`: an outcrop slot
-  shows only with `EXPOSED_CHANCE` (0.28) on bare rock (`bare_rock`: cliffs, above `ROCK_LEVEL`, desert,
-  basalt; dry land); every other slot is buried in its ore's band (`ORE_DEPTH`), so the tier totals match
-  version 2. Veins use the bands too; lodes are version 2's. A starter coal, iron and copper outcrop lies
-  40–80 blocks out on dry, gentle ground (key index 100+). Version 3 ore also replaces the hint soils.
-  Deviations: limestone's band starts at 8 (so no pocket breaks the surface); buried pockets grow in
-  number instead of staying as they were. Measured: 0.24–0.5 exposed per column (was 3.3), the nearest
-  about 110–125 blocks from a random spot (was 9). Tests in `worldgen/strata/tests.rs`.
-- [x] **5.3 Still water in generation (version 3).** `WATER` (block 45, `Render::Liquid`, placeholder
-  texture) is not solid, never targeted, and anything placed into it replaces it (`block::replaceable`).
-  In `light.rs` it passes flooded light but not the straight sky column, and dims light by 2 per block.
-  `worldgen/water.rs`: the sea fills every column below `SEA_LEVEL` (62); ponds sit in 96-block cells on
-  flat plains and lowlands (a bowl, and a bank raised to the level, both shaped into `height_at`); sand
-  under water and on shores; trees stay out of water; `WaterGuard` keeps caves 2 blocks from water. The
-  cave noise moved to `worldgen/caves.rs`. Deviation: sea level 62 floods about 20 % of the land, not
-  30 % (spawn stays dry for all test seeds). Generation cost equals version 2's within noise. Water is
-  not drawn until 5.4. Tests in `worldgen/water/tests.rs` and `light/tests.rs`.
-- [x] **5.4 Rendering water.** The mesher (`block::LIQUID`) puts liquid faces, only against cells that are
-  neither opaque nor liquid, in a third range after opaque and cutout; the AO bits of a liquid vertex mark
-  the water line instead, which the `WATER` shader variant lowers by 0.1 (top faces and the top edges of
-  sides, unless a solid block is above). Per-quad helpers moved to `mesher/quad.rs`. `render/water.ts`
-  draws the range last, blended, depth writes off, chunks back to front, from both sides, with two
-  drifting texture copies. `eye_in_water` switches to a short blue-green fog (no sky). Placeholder
-  texture softened (a strong feature read as a grid); art request filed. Measured on seed 2024's coast:
-  water is 0.06 % of quads (about 15 KB), frame time equal within noise; no z-fighting at the shore.
-  Tests in `mesher/tests.rs`.
-- [x] **5.5 Moving in water.** `Player::step` takes a `water` query (`World::is_water`): with the feet
-  in water a body moves at half speed, sinks at a tenth of gravity against drag (about 0.7 blocks/s) and
-  rises at 2.5 with jump held until its chest (1.2 above the feet) is out, where it bobs with the eye just
-  above the water. Jump with the chest out against a wall or on the bottom leaps like a land jump, which
-  climbs a bank one block above the water. Avatars and other players' bodies use the same step. Loose
-  items rise at 1 block/s, bob at the surface and drift 0.15 blocks/s each its own way. Footsteps are
-  silent in water; entering it plays `sound::SPLASH` (a new synthesised sound with a designer tab).
-  Placing into water already worked (5.3); `place_block` now reports the replaced block to the timers.
-  Wasm +0.4 KB gzipped. Tests in `player/tests.rs`, `entities/tests.rs`, `action/tests.rs`, `tests.rs`.
-- [x] **5.6 Flowing water (core).** `FLOW_1`..`FLOW_7` (blocks 46–52; `block::flow`, `flow_level`).
-  `sim/water.rs`: a change near water (`water_changed`, from `block_changed`) schedules its cell, its six
-  neighbours and the sideways neighbours of the cells above and below, `WATER_DELAY` (5) ticks later;
-  `run_water` runs at most `MAX_WATER_UPDATES` (256) a tick. Rules for air and flowing cells: at or below
-  `SEA_LEVEL` a cell next to a source (sideways or above) becomes a source; under water, falling water
-  (`FLOW_7`); else its best feed minus 1, where a source feeds 8, a flow its level (8 where falling water
-  lands), and only water resting on a block that holds it feeds sideways (so water over air falls, and
-  water landing on water joins it). The queue is saved (save version 13) and hashed (golden hash
-  re-recorded; only the format changed). `World` keeps 8 generated chunks for `*_anywhere` reads
-  (limitation 10) and `set_block_anywhere_later` remeshes in the streaming budget. The mesher lowers
-  thinner flows (water-line classes 2 and 3 in the AO bits). **Deviation:** the plan's source rule (two
-  source neighbours, standing on something) can't fill a 1-wide trench or let a pump drain a pond, so the
-  sea is the only endless water: sources form only at or below its level (a deep pond's cells that low
-  refill too). For 5.7: a pump can't lower the sea or anything open to it; above sea level, sources never
-  come back. For 5.8: a pit below sea level floods only when it opens to the sea, and then stays flooded
-  until dammed off. Measured: a 2,964-cell flood takes 291 ticks, worst tick 0.12 ms (loaded or not;
-  `bench_water`). Browser check (seed 2024): a pond channel shows levels 7 to 1 stepping down; a sea
-  trench fills. Wasm +2.2 KB gzipped. Tests in `sim/water/tests.rs`, `mesher/tests.rs`, `net/tests.rs`.
-  Known look: where two flows of different levels meet, the step between them isn't drawn.
-- [x] **5.7 Pumps and pipes.** Blocks 53–55 (`PUMP`, `PIPE`, `OUTLET`) are one machine kind
-  (`Kind::Pipe`, `factory/pipes.rs`: `Part`), joined face to face into networks in `relink`
-  (`link_pipework`). `factory/pumping.rs`: a pump (5 kW) lifts 2 sources a second from the water it
-  touches (search 16 steps through water, highest first, then **farthest**, so a pool drains from its
-  edges and what is left stays joined to the intake: nearest-first stranded a pond's far rim) and holds 2;
-  an outlet (unpowered) takes from its network's pumps up to 4 a second and puts each unit where it lands:
-  straight down from its front cell, or into the lowest, nearest free cell of the water it lands in,
-  resting on a block or a source. Nothing takes the water: the pumps fill up and stop. Block edits go
-  to `Factory.changed`, which `Sim::step` hands to `block_changed` (so the sea refills and flows react).
-  Fluid Handling (15 red, after Belt Routing) unlocks them; recipes, README, a tip (8 of 8). Save
-  version 14; golden hash re-recorded (only the new tech and list bytes). Tests in
-  `factory/pipes/tests.rs`: a 5 × 5 × 3 pit drains over a cliff (all 72 blocks land at the foot, and a
-  save mid-drain carries on identically), an unpowered pump stops, a pump in the sea runs and the level
-  holds. Browser (seed 2024): a pond of 167 sources drained in about 90 s to one block in a separate
-  hole; screenshots taken. Found there: an outlet within 7 blocks of the pond it drains feeds it back
-  (flows join them), which is right but worth a tip later. Wasm +5.8 KB gzipped (174.8 KB).
-- [x] **5.8 Quarry.** A powered machine (10 kW, no research) that digs rock and soil for real, leaving a
-  pit. It is the first version of Milestone 6's excavator. Keep it obvious, visible and satisfying.
-  - **The dig box:** a square in front of its face (5, 7 by default, 9 or 11 wide), from the quarry's own
-    level down to a depth chosen in its panel ("8 layers", "16", "to sea level", "to bedrock").
-  - **Preview before placing:** holding a quarry outlines its box (`render/outlines.ts`, amber), with a
-    HUD label such as "Quarry 7×7, 16 deep · about 600 blocks: stone, dirt". R turns the preview.
-  - **Visible work** (`factory/quarry.rs`):
-    - Corner posts and a gantry with a drill head (instanced boxes) travel to each block in turn, top
-      layer first, row by row back and forth.
-    - The block being dug shows the mining crack, and a break sound plays for each one.
-    - About 2 blocks a second at full power (a 7 × 7 × 16 pit takes about 7 minutes).
-    - A status lamp like the smelter's: green digging, yellow output full, red no power, blue flooded.
-  - **Output:** each block becomes its normal drop (stone, local rock, dirt, sand). It goes
-    into a buffer that feeds belts, boxes and smelters like a miner's.
-  - **What it leaves standing:**
-    - Ore: the pit reveals it for miners, and the panel lists what it uncovered, such as "iron vein
-      exposed at y 41".
-    - It digs only ground (stone, the rocks, dirt, grass, sand, stained soil; a `QUARRIABLE` table).
-      Bedrock, logs, lamps, glass, machines and belts stay.
-    - Water: the quarry waits ("flooded, pump it out", step 5.7).
-  - **The panel:** layer N of M, blocks dug and left, the size and depth choices (changing them shows the
-    new box at once), and pause and resume.
-  - **Core rules:** digging runs in the core with the `*_anywhere` accessors. The dig cursor is saved and
-    hashed, and a picked-up quarry keeps nothing (a new one skips air, so it continues).
-  - **Done when:**
-    - Scenario tests pass:
-      - A quarry on flat ground digs its whole box in order and a belt carries exactly those blocks into
-        a box.
-      - It skips ore, bedrock and non-ground blocks, and stops at its depth.
-      - It pauses when the output is full or the power is off, then resumes.
-      - A pit that breaks into a pond floods and the quarry waits until a pump drains it (a pit open to
-        the sea can't be drained: 5.6).
-      - Two cores agree on the hash, and a save mid-dig reloads and continues.
-    - Screenshots show the placement preview and a half-dug pit with the gantry.
-    - The README and a tip are updated.
-
-  Done 2026-09-27. `factory/quarry.rs` (the machine), `quarry/dig_box.rs` (box order, the choices,
-  `QUARRIABLE`, `survey`), `quarry/model.rs` (gantry, trolley, spinning drill, lamp; blue lamp texture
-  added), `quarry_preview.rs` (holding one: box, label, R turns it). Decisions made in passing: the box
-  is the quarry's own layer plus N below; "to sea level" stops at `SEA_LEVEL + 1`; spent rock (part of
-  a deposit) stays like ore; the panel notes each uncovered deposit once ("Iron vein exposed at y 41").
-  `line_label` is now "title\ndetails" so the quarry's HUD label reuses the belt-line one.
-  `Action::SetQuarry` (codec tag 20), save version 15, golden hash re-recorded (only the new list).
-  Recipe: 12 iron plates, 8 rods, 16 screws, 8 copper wire; tip 9 of 9. Tests in
-  `factory/quarry/tests.rs` (5): the box order, a 5 × 5 × 8 pit dug in order onto a belt (25 dirt, 175
-  stone; a save mid-dig carries on with the same hash), skipping ore, bedrock and non-ground, waiting
-  while paused, full or unpowered, and a pit breaking into a pond that floods until a pump drains it.
-  Browser (seed 2024): preview "7×7, 16 deep · about 820 blocks: stone, dirt"; 202 blocks in 100 s;
-  resizing restarts from the new box's top; screenshots taken. Wasm +10.8 KB gzipped (level 9: 179.7 →
-  190.5 KB; mostly the model, the panel readouts and `update`).
-- [ ] **5.9 Milestone 5 cleanup.** Section 3.1 checklist, README (water, swimming, pumps, the quarry,
-  the rarer ore), measured numbers updated here and in the change log, `docs/CODEMAP.md` current. Then
-  ask the user the Milestone 6 questions (section 6) and move Milestone 6 in from the roadmap.
+**Facts from Milestone 5 that Milestone 6 builds on:**
+- The sea is the only endless water: sources form only at or below `SEA_LEVEL` (62). A pump can't lower
+  the sea or anything open to it; above sea level, pumped water never comes back. A pit below sea level
+  floods only when it opens to the sea, and stays flooded until dammed off (`sim/water.rs`).
+- Water flow is capped per tick (`MAX_WATER_UPDATES`) and event-driven; a 2,964-cell flood takes about
+  5 s. Big terraforming edits near water will queue many checks.
+- The quarry (`factory/quarry/`) is the first excavator: a box in front of it (`DigBox`), dug top down in
+  order with the `*_anywhere` accessors, ground only (`QUARRIABLE`), each block to its drop in a
+  buffer that feeds belts. It waits while flooded. About 2 blocks a second, 10 kW.
+- Power: generators store fuel energy and give only what is drawn (section 1, 2026-09-27); every miner
+  needs power, so the first loop is a coal miner feeding its own generator.
+- Generator version 3 is frozen (released): any change to generation needs version 4.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -532,7 +411,8 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ## 5. Roadmap after Milestone 5
 
-Milestones 6–8 are in `docs/ROADMAP.md`; read it only when planning (step 5.9 moves Milestone 6 in).
+Milestones 6–8 are in `docs/ROADMAP.md`; read it only when planning (Milestone 6 moves in once its
+questions are answered).
 
 ---
 
@@ -546,7 +426,6 @@ and adjust the steps.
 | M6 | Which part first: terraforming machines, blueprints and drones, transport (trains, trucks, personal), or simple logic? (Recommended: terraforming, the signature feature.) |
 | M6 | Terraforming: is "mark an area with a tool, pick a job" right, and where does dug material go: items into boxes and belts (a lot of stone), or straight to a dump site? |
 | M6 | Transport: trains first, or personal movement (hoverpack, ziplines) first? |
-| Any time | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Built that way; easy to change.) |
 | M8 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
 
 ---
@@ -587,13 +466,19 @@ and the balance numbers. Read the section you need.
   swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
   3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
-- **2026-09-27:** 5.1–5.4 done (see the steps): version 2 pinned, rare ore and a starter set (golden hash
-  re-recorded), sea and ponds, water drawn. Tests 193 → 204. Version 3 is unreleased until the first push.
-- **2026-09-27:** 5.5 done: swimming, floating items, splash sound. Golden hash unchanged. Tests 204 → 209.
-  Deployed (`4646ae0`).
-- **2026-09-27:** 5.6 done: flowing water, the sea as the only endless water (a deviation, see the step),
-  save version 13, golden hash re-recorded. Tests 209 → 217; wasm 169.0 KB gzipped. Deployed (`ceb9bec`).
-- **2026-09-27:** 5.7 done: pumps, pipes and outlets (one machine kind), Fluid Handling, save version 14.
-  Tests 217 → 220; wasm 174.8 KB gzipped.
-- **2026-09-27:** 5.8 done: the quarry (placing preview, gantry model, panel), save version 15.
-  Tests 220 → 225; wasm +10.8 KB gzipped.
+- **2026-09-27: Milestone 5 (Water and world shape) done** (`becc673` to `c1c61f9`): generator version 3
+  (version 2 pinned; rare surface ore on bare rock, depth bands, a starter set 40–80 blocks out; measured
+  0.24–0.5 exposed outcrops per column, was 3.3), the sea (level 62) and ponds, water drawn blended with
+  underwater fog, swimming and floating items, flowing water as core state (deviation: the sea is the
+  only endless water), pumps, pipes and outlets (Fluid Handling), and the quarry (preview box, gantry,
+  panel). Save versions 13–15. Tests 193 → 225; wasm 161.4 → 192.5 KB gzipped (`vite build`; the quarry
+  about 11 KB of it). Lessons: a rule that looks right in the plan (two-source water) can block a later
+  step, so test the next step's scenario early; PowerShell array patches misfire on a single pair.
+- **2026-09-27: Power rework** (user request, before 5.9): every miner needs power (Mk1 5 kW);
+  generators store fuel energy (kW·ticks; coal 270 kJ, log 135 kJ) and give only what is drawn, up to
+  60 kW, so one coal runs a Mk1 long enough to mine about 32 coal. Generator and poles are made from ore
+  so the first loop (a coal miner feeding its own generator) comes right after the first miner; a new
+  tip (10 of 10). Save version 16 (old fire ticks convert to energy); golden hash re-recorded. Old
+  worlds' Mk1 miners stop until a pole and generator reach them. Tests 225 → 226.
+- **2026-09-27: 5.9 done** (Milestone 5 cleanup): plan compressed, section 2 and the README brought up
+  to date, sizes measured. Milestone 6 waits for the user's answers (section 6).

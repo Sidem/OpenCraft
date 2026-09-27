@@ -16,7 +16,9 @@
 //! 7 = adds the generator and pole lists, constructor progress in thousandths of a tick; 8 = adds the lab
 //! list and the research after the deposits; 9 = miners and belts say whether they are the upgraded kind;
 //! 10 = players have keys, and players away (left with a key) follow the players; 11 = block timers
-//! (leaf decay, grass) follow the factory; 12 = saplings (block 29 and sapling timers, kind 3).
+//! (leaf decay, grass) follow the factory; 12 = saplings (block 29 and sapling timers, kind 3);
+//! 13 = the flow queue; 14 = pipework and Fluid Handling; 15 = the quarry list; 16 = generators store
+//! energy (kW·ticks) instead of ticks of fire.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
@@ -26,7 +28,7 @@ use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 15;
+pub const SAVE_VERSION: u32 = 16;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";

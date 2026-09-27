@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BELT, CONSTRUCTOR, GENERATOR, PUMP, QUARRY, SMELTER, STORAGE};
+use crate::block::{BELT, CONSTRUCTOR, GENERATOR, POLE, PUMP, QUARRY, SMELTER, STORAGE};
 use crate::math::IVec3;
 use crate::world::World;
 
@@ -18,19 +18,22 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), 2, "crafted a miner");
     place(&mut f, MINER, 0);
     assert_eq!(progress(&inv, &f), 3, "placed it");
-    place(&mut f, BELT, 1);
-    assert_eq!(progress(&inv, &f), 3, "a belt but no box yet");
-    place(&mut f, STORAGE, 2);
-    assert_eq!(progress(&inv, &f), 4);
-    place(&mut f, SMELTER, 3);
-    assert_eq!(progress(&inv, &f), 5);
-    place(&mut f, CONSTRUCTOR, 4);
     place(&mut f, GENERATOR, 5);
+    assert_eq!(progress(&inv, &f), 3, "a generator but no pole yet");
+    place(&mut f, POLE, 8);
+    assert_eq!(progress(&inv, &f), 4, "powered");
+    place(&mut f, BELT, 1);
+    assert_eq!(progress(&inv, &f), 4, "a belt but no box yet");
+    place(&mut f, STORAGE, 2);
+    assert_eq!(progress(&inv, &f), 5);
+    place(&mut f, SMELTER, 3);
     assert_eq!(progress(&inv, &f), 6);
+    place(&mut f, CONSTRUCTOR, 4);
+    assert_eq!(progress(&inv, &f), 7);
     f.research.add_unit(0);
-    assert_eq!(progress(&inv, &f), 7, "researching");
+    assert_eq!(progress(&inv, &f), 8, "researching");
     place(&mut f, PUMP, 6);
-    assert_eq!(progress(&inv, &f), 8, "moved water");
+    assert_eq!(progress(&inv, &f), 9, "moved water");
     place(&mut f, QUARRY, 7);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
@@ -40,5 +43,5 @@ fn hints_follow_what_the_player_has_done() {
 fn a_later_step_skips_the_earlier_hints() {
     let (inv, mut f) = (Inventory::default(), Factory::default());
     place(&mut f, SMELTER, 0);
-    assert_eq!(progress(&inv, &f), 5);
+    assert_eq!(progress(&inv, &f), 6);
 }

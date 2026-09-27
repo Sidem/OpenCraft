@@ -10,7 +10,7 @@ Every milestone ends with a cleanup step (DEV_PLAN section 3.1, "Session habits"
 
 ## Milestone 6: Scale and terrain
 
-Its questions are in DEV_PLAN section 6; ask them before detailing it. Water (Milestone 5) comes first.
+Its questions are in DEV_PLAN section 6; ask them before detailing it. Milestone 5 (water) is done.
 
 - **Terraforming machines** (the signature feature), grown from Milestone 5's quarry. Start with "mark an area, pick a job"; no
   programming language needed: an excavator digs a marked area and hauls the spoil to a box or dump
