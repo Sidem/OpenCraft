@@ -74,6 +74,7 @@ impl Game {
     pub(crate) fn step_bodies(&mut self) {
         let world = &self.sim.world;
         let mut solid = |x, y, z| world.is_solid(x, y, z);
+        let mut water = |x, y, z| world.is_water(x, y, z);
         let respawn = self.spawn + Vec3::new(0.0, 2.0, 0.0);
         let mut local_fell = false;
         for (slot, body) in self.bodies.iter_mut().enumerate() {
@@ -84,7 +85,7 @@ impl Game {
             // Wait while the ground isn't loaded rather than fall through it.
             if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
                 for _ in 0..PHYSICS_SUBSTEPS {
-                    body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid);
+                    body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid, &mut water);
                 }
             }
             if body.pos.y < FALL_LIMIT {
@@ -114,10 +115,11 @@ impl Game {
         }
         let world = &self.sim.world;
         let mut solid = |x, y, z| world.is_solid(x, y, z);
+        let water = |p: Vec3| world.is_water(p.floor().x, p.floor().y, p.floor().z);
         let loaded = |p: Vec3| world.is_loaded(p);
         let mut picked = Vec::new();
-        self.items
-            .update(TICK, &mut collectors, &mut solid, &loaded, |c, item, count| picked.push((ids[c], item, count)));
+        let collected = |c: usize, item, count| picked.push((ids[c], item, count));
+        self.items.update(TICK, &mut collectors, &mut solid, &water, &loaded, collected);
         for (id, item, count) in picked {
             self.act_as(id, Action::PickUp { item, count });
         }

@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -166,6 +166,12 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     material: false,
     dials: ['volume', 'pitch', 'length'],
   },
+  splash: {
+    label: 'Splash',
+    help: 'Falling or jumping into water. Faster falls are louder. The same for every material.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
 };
 
 // prettier-ignore
@@ -211,6 +217,7 @@ export const DEFAULT_DESIGN: SoundDesign = {
     drop: neutral(),
     click: neutral(),
     scan: neutral(),
+    splash: neutral(),
   },
 };
 

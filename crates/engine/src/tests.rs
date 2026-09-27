@@ -188,6 +188,55 @@ fn footsteps_and_landing_make_sounds() {
 }
 
 #[test]
+fn a_player_splashes_into_a_pool_where_items_float_and_steps_are_silent() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    for _ in 0..60 {
+        g.update(1.0 / 60.0);
+    }
+    // A 5 × 5 pool, 5 deep, dug where the player stands (only the render cache: bodies aren't core).
+    let feet = Vec3::new(g.player_x(), g.player_y(), g.player_z()).floor();
+    for dx in -2..=2 {
+        for dz in -2..=2 {
+            for dy in -6..4 {
+                let b = match dy {
+                    -6 => block::STONE,
+                    -5..0 => block::WATER,
+                    _ => AIR,
+                };
+                g.sim.world.set_block(feet + IVec3::new(dx, dy, dz), b);
+            }
+        }
+    }
+    let (x, z) = (feet.x as f64 + 0.5, feet.z as f64 + 0.5);
+    g.spawn_item(Vec3::new(x, feet.y as f64 - 4.5, z), Vec3::ZERO, STONE.into(), 1, 0.0);
+    g.toggle_fly();
+    g.teleport(x, feet.y as f64 + 20.0, z);
+    for _ in 0..300 {
+        g.update(1.0 / 60.0);
+    }
+    let item = g.items.list[0].pos;
+    assert!((item.y - feet.y as f64).abs() < 0.2, "the item floats at the surface: {item:?}");
+
+    g.toggle_fly();
+    g.teleport(x, feet.y as f64 + 3.0, z);
+    g.clear_sounds();
+    for _ in 0..240 {
+        g.update(1.0 / 60.0);
+    }
+    assert!(g.body().in_water && g.body().on_ground, "sank to the bottom");
+    let mut heard = g.sounds.kinds();
+    heard.sort_unstable();
+    assert_eq!(heard, vec![sound::PICKUP, sound::SPLASH], "picked the item up on the way down");
+    g.clear_sounds();
+    g.set_move(1.0, 0.0, false, false, false);
+    for _ in 0..90 {
+        g.update(1.0 / 60.0);
+    }
+    assert!(g.sounds.kinds().is_empty(), "no footsteps in water: {:?}", g.sounds.kinds());
+}
+
+#[test]
 fn hand_mining_ore_keeps_a_handful_and_costs_a_block() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);

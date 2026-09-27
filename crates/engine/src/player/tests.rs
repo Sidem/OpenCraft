@@ -4,10 +4,14 @@ fn flat(_x: i32, y: i32, _z: i32) -> bool {
     y < 10
 }
 
+fn dry(_x: i32, _y: i32, _z: i32) -> bool {
+    false
+}
+
 fn settle(p: &mut Player, seconds: f64) {
     let steps = (seconds * 120.0) as usize;
     for _ in 0..steps {
-        p.step(1.0 / 120.0, &mut flat);
+        p.step(1.0 / 120.0, &mut flat, &mut dry);
     }
 }
 
@@ -29,8 +33,70 @@ fn jump_clears_one_block() {
     p.input.jump = true;
     let mut apex: f64 = 0.0;
     for _ in 0..120 {
-        p.step(1.0 / 120.0, &mut flat);
+        p.step(1.0 / 120.0, &mut flat, &mut dry);
         apex = apex.max(p.pos.y - 10.0);
     }
     assert!(apex > 1.05 && apex < 1.6, "apex {apex}");
+}
+
+/// A sea (water from y 50 up to the surface at 62) west of x = 0, and a beach whose top is at y 63,
+/// a block above the water, east of it.
+fn seaside(x: i32, y: i32, _z: i32) -> bool {
+    y < if x < 0 { 50 } else { 63 }
+}
+
+fn sea(x: i32, y: i32, _z: i32) -> bool {
+    x < 0 && (50..62).contains(&y)
+}
+
+fn swim(p: &mut Player, seconds: f64) {
+    for _ in 0..(seconds * 120.0) as usize {
+        p.step(1.0 / 120.0, &mut seaside, &mut sea);
+    }
+}
+
+#[test]
+fn a_swimmer_sinks_slowly_rises_with_jump_and_climbs_out() {
+    let mut p = Player::new(Vec3::new(-6.5, 70.0, 0.5));
+    swim(&mut p, 2.5);
+    assert!(p.in_water && p.splash_speed > 10.0, "fell in with a splash: {}", p.splash_speed);
+    assert!(p.pos.y > 52.0 && p.pos.y < 60.0, "water slowed the dive: y = {}", p.pos.y);
+    assert!(p.vel.y < 0.0 && p.vel.y > -1.0, "sinks slowly: {}", p.vel.y);
+
+    p.input.jump = true;
+    swim(&mut p, 8.0);
+    let (mut low, mut high) = (f64::MAX, f64::MIN);
+    for _ in 0..240 {
+        swim(&mut p, 1.0 / 120.0);
+        (low, high) = (low.min(p.pos.y), high.max(p.pos.y));
+    }
+    assert!(low > 60.5 && high < 61.3, "bobs with its chest at the surface: {low}..{high}");
+    assert!(low + EYE_HEIGHT > 62.0, "head above the water");
+
+    // Face east (+X) and swim at the beach: a leap at the edge lands on it.
+    p.yaw = std::f64::consts::FRAC_PI_2;
+    p.input.forward = 1.0;
+    swim(&mut p, 4.0);
+    p.input = PlayerInput::default();
+    swim(&mut p, 1.0);
+    assert!(p.on_ground && !p.in_water, "out of the water");
+    assert!((p.pos.y - 63.0).abs() < 1e-6 && p.pos.x > 0.3, "on the beach: {:?}", (p.pos.x, p.pos.y));
+}
+
+#[test]
+fn swimming_is_half_speed_and_flying_ignores_water() {
+    let mut p = Player::new(Vec3::new(-40.5, 55.0, 0.5));
+    p.input.forward = 1.0;
+    swim(&mut p, 2.0);
+    let before = p.pos.z;
+    swim(&mut p, 1.0);
+    let speed = before - p.pos.z;
+    assert!((speed - WALK_SPEED * SWIM_SPEED_FACTOR).abs() < 0.1, "swims at {speed}");
+
+    p.flying = true;
+    p.input.forward = 0.0;
+    swim(&mut p, 1.0);
+    let y = p.pos.y;
+    swim(&mut p, 1.0);
+    assert!(!p.in_water && (p.pos.y - y).abs() < 1e-3, "hovers in the water");
 }

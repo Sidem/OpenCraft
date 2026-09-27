@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE};
+use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
 use crate::inventory::INVENTORY_SLOTS;
@@ -67,6 +67,22 @@ fn place_and_break_work_where_no_chunk_is_loaded() {
         sim.events[..],
         [SimEvent::BlockBroken { block: STORAGE, .. }, SimEvent::Dropped { item: BOX_ITEM, count: 1, .. }]
     ));
+}
+
+#[test]
+fn blocks_and_machines_placed_in_water_replace_it() {
+    let mut sim = Sim::new(7, 3);
+    let (a, b) = (IVec3::new(500, 200, -500), IVec3::new(501, 200, -500));
+    for p in [a, b] {
+        sim.world.set_block_anywhere(p, WATER);
+    }
+    sim.apply(P, Action::Give { item: STONE.into(), count: 1 });
+    sim.apply(P, Action::PlaceBlock { pos: a, slot: 0, facing: 0, against: a - IVec3::new(0, 1, 0) });
+    sim.apply(P, Action::Give { item: STORAGE.into(), count: 1 });
+    sim.apply(P, Action::PlaceBlock { pos: b, slot: 0, facing: 0, against: b - IVec3::new(0, 1, 0) });
+    assert_eq!((sim.world.block_anywhere(a), sim.world.block_anywhere(b)), (Some(STONE), Some(STORAGE)));
+    assert_eq!(sim.factory.count(Kind::Storage), 1);
+    assert!(inv(&sim).slots.iter().all(|s| s.is_empty()));
 }
 
 #[test]

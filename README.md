@@ -43,7 +43,7 @@ the render distance in chunks (2 to 24, default 8).
 | Input               | Action                                    |
 | ------------------- | ----------------------------------------- |
 | WASD                | Move                                      |
-| Space               | Jump                                      |
+| Space               | Jump; in water, hold to swim up (at a bank, it climbs you out) |
 | Shift               | Sprint                                    |
 | C                   | Crouch (you won't walk off edges)         |
 | Hold left mouse     | Mine the targeted block                   |

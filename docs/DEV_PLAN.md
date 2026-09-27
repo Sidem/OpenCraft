@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5 (Water and world shape), step 5.5** · The `art` branch is superseded;
+now) · **Next up: Milestone 5 (Water and world shape), step 5.6** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -38,7 +38,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (202 engine tests).
+   (209 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -420,15 +420,15 @@ need a version 4.
   texture softened (a strong feature read as a grid); art request filed. Measured on seed 2024's coast:
   water is 0.06 % of quads (about 15 KB), frame time equal within noise; no z-fighting at the shore.
   Tests in `mesher/tests.rs`.
-- [ ] **5.5 Moving in water.**
-  - **Swimming** (`player.rs`): half speed, gravity at a tenth, jump held rises, sinks slowly otherwise. A
-    jump at the edge climbs out. Flying ignores water.
-  - **Other bodies:** loose items (`entities.rs`) float up to the surface and drift slowly. Footsteps are
-    silent in water, with a splash sound on entering. Avatars swim too.
-  - **Placing:** blocks and machines can go into water, which replaces it.
-  - **Done when:** scenario tests: a player dropped into the sea sinks slowly, rises with jump held and
-    climbs out onto a beach; an item floats up to the surface; a block placed in water replaces it. The
-    golden hash is unchanged (bodies and items are not core).
+- [x] **5.5 Moving in water.** `Player::step` takes a `water` query (`World::is_water`): with the feet
+  in water a body moves at half speed, sinks at a tenth of gravity against drag (about 0.7 blocks/s) and
+  rises at 2.5 with jump held until its chest (1.2 above the feet) is out, where it bobs with the eye just
+  above the water. Jump with the chest out against a wall or on the bottom leaps like a land jump, which
+  climbs a bank one block above the water. Avatars and other players' bodies use the same step. Loose
+  items rise at 1 block/s, bob at the surface and drift 0.15 blocks/s each its own way. Footsteps are
+  silent in water; entering it plays `sound::SPLASH` (a new synthesised sound with a designer tab).
+  Placing into water already worked (5.3); `place_block` now reports the replaced block to the timers.
+  Wasm +0.4 KB gzipped. Tests in `player/tests.rs`, `entities/tests.rs`, `action/tests.rs`, `tests.rs`.
 - [ ] **5.6 Flowing water (core).**
   - **Blocks:** `WATER` is a source. `FLOW_1`..`FLOW_7` are flowing water, 7 appended ids whose number
     gives their height.
@@ -578,3 +578,4 @@ and the balance numbers. Read the section you need.
   The user then added a quarry (step 5.8) so rock and soil get automated extraction.
 - **2026-09-27:** 5.1–5.4 done (see the steps): version 2 pinned, rare ore and a starter set (golden hash
   re-recorded), sea and ponds, water drawn. Tests 193 → 204. Version 3 is unreleased until the first push.
+- **2026-09-27:** 5.5 done: swimming, floating items, splash sound. Golden hash unchanged. Tests 204 → 209.

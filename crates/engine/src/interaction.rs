@@ -1,5 +1,5 @@
-//! The local player's hands and feet: targeting, mining progress, right-click, and footstep / landing
-//! sounds. Only the local player has hands here; in co-op every peer runs its own and sends actions.
+//! The local player's hands and feet: targeting, mining progress, right-click, and footstep, landing
+//! and splash sounds. Only the local player has hands here; in co-op every peer runs its own and sends actions.
 //!
 //! Called from `Game::run_tick` (lib.rs), which advances the timers by one `TICK`. The hands only
 //! decide *what* to do and queue an `Action` (break, place, take contents), or, for a machine with a
@@ -24,6 +24,8 @@ const DIG_SOUND_INTERVAL: f32 = 0.24;
 const STEP_STRIDE: f64 = 1.7;
 /// Touchdowns slower than this (e.g. walking down a slab edge) make no landing sound.
 const LAND_SOUND_MIN_SPEED: f64 = 5.0;
+/// Entering water slower than this (wading in) makes no splash.
+const SPLASH_MIN_SPEED: f64 = 1.5;
 
 impl Game {
     /// Queues a sound at a world position (stored relative to the local player's eye for the host).
@@ -34,7 +36,13 @@ impl Game {
 
     pub(crate) fn update_movement_sounds(&mut self, feet_before: Vec3) {
         let landing = std::mem::take(&mut self.body_mut().landing_speed);
-        if self.body().flying || !self.body().on_ground {
+        let splash = std::mem::take(&mut self.body_mut().splash_speed);
+        if splash > SPLASH_MIN_SPEED {
+            let volume = (splash / 15.0).clamp(0.3, 1.0);
+            self.play(sound::SPLASH, 0, self.body().pos, volume);
+        }
+        // Footsteps are silent in water.
+        if self.body().flying || !self.body().on_ground || self.body().in_water {
             return;
         }
         let Some(material) = self.ground_material() else { return };

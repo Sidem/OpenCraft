@@ -278,6 +278,35 @@ export function whoosh(sr: number, rand: Rand, mods: HitMods): Float32Array {
   return normalize(out);
 }
 
+/** Falling into water: a noise burst sweeping down, then a few rising bubble chirps. */
+export function splash(sr: number, rand: Rand, mods: HitMods): Float32Array {
+  const len = 0.45 * mods.length;
+  const n = Math.ceil(sr * len);
+  const out = new Float32Array(n);
+  const block = 64;
+  for (let start = 0; start < n; start += block) {
+    const t = start / sr;
+    const seg = new Float32Array(Math.min(block, n - start));
+    for (let i = 0; i < seg.length; i++) seg[i] = rand() * 2 - 1;
+    // Piecewise filtering is fine for noise, as in `whoosh`.
+    biquad(seg, sr, 'bp', (1800 - 1300 * Math.min(1, t / len)) * mods.pitch, 0.8);
+    const env = Math.min(1, t / 0.008) * Math.exp(-t / (0.1 * mods.length));
+    for (let i = 0; i < seg.length; i++) out[start + i] = seg[i] * env;
+  }
+  for (let b = 0; b < 4; b++) {
+    const at = Math.floor((0.06 + rand() * 0.25) * mods.length * sr);
+    const f0 = (450 + rand() * 650) * mods.pitch;
+    const end = Math.min(n, at + Math.floor(0.05 * sr));
+    let phase = 0;
+    for (let i = at; i < end; i++) {
+      const t = (i - at) / sr;
+      phase += (2 * Math.PI * f0 * (1 + 20 * t)) / sr;
+      out[i] += 0.4 * Math.sin(phase) * Math.min(1, t / 0.002) * Math.exp(-t / 0.012);
+    }
+  }
+  return normalize(out);
+}
+
 /** A scanner reading: a sonar-like ping gliding down, with one fainter echo. */
 export function ping(sr: number, mods: HitMods): Float32Array {
   const echo = 0.2 * mods.length;

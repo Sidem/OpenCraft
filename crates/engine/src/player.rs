@@ -1,6 +1,12 @@
 //! First-person character controller: walking, sprinting, crouching (no falling off edges),
-//! jumping, flying, and collision through `physics`. `step` advances one physics substep; the
-//! caller decides the substep size. Tuning constants sit at the top of the file.
+//! jumping, swimming, flying, and collision through `physics`. `step` advances one physics substep;
+//! the caller decides the substep size and answers which cells are solid and which are water.
+//! Tuning constants sit at the top of the file.
+//!
+//! Swimming: a body whose feet are in water moves at half speed, sinks slowly (a tenth of gravity
+//! against strong drag) and rises while jump is held until its chest is out, where it floats. Jump
+//! with the chest out, pushing against a wall or standing on the bottom, leaps like a jump on land:
+//! that is how a swimmer climbs out onto a bank. Flying ignores water.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::Vec3;
@@ -18,6 +24,14 @@ const SPRINT_SPEED: f64 = 6.6;
 const CROUCH_SPEED: f64 = 1.9;
 const FLY_SPEED: f64 = 11.0;
 const FLY_SPRINT_SPEED: f64 = 24.0;
+/// Horizontal speed in water, as a share of the speed on land.
+const SWIM_SPEED_FACTOR: f64 = 0.5;
+/// Vertical drag in water (per second): slows a dive and caps sinking at `GRAVITY / 10 / WATER_DRAG`.
+const WATER_DRAG: f64 = 4.0;
+/// Rising speed with jump held under water.
+const SWIM_UP_SPEED: f64 = 2.5;
+/// Height above the feet that must be out of water to float, and to leap out.
+const CHEST_HEIGHT: f64 = 1.2;
 
 #[derive(Clone, Copy, Default)]
 pub struct PlayerInput {
@@ -37,10 +51,16 @@ pub struct Player {
     pub yaw: f64,
     pub pitch: f64,
     pub on_ground: bool,
+    /// The feet are in water (swimming), as of the last step.
+    pub in_water: bool,
     pub flying: bool,
     pub input: PlayerInput,
     /// Downward speed at the most recent touchdown; the game consumes and resets it (landing sound).
     pub landing_speed: f64,
+    /// Downward speed when the body last entered water; the game consumes and resets it (splash).
+    pub splash_speed: f64,
+    /// A sideways move was blocked in the last step (for climbing out of water).
+    against_wall: bool,
 }
 
 impl Player {
@@ -51,9 +71,12 @@ impl Player {
             yaw: 0.0,
             pitch: 0.0,
             on_ground: false,
+            in_water: false,
             flying: false,
             input: PlayerInput::default(),
             landing_speed: 0.0,
+            splash_speed: 0.0,
+            against_wall: false,
         }
     }
 
@@ -92,7 +115,12 @@ impl Player {
         Vec3::new(sy * cp, sp, -cy * cp)
     }
 
-    pub fn step(&mut self, dt: f64, solid: &mut impl FnMut(i32, i32, i32) -> bool) {
+    pub fn step(
+        &mut self,
+        dt: f64,
+        solid: &mut impl FnMut(i32, i32, i32) -> bool,
+        water: &mut impl FnMut(i32, i32, i32) -> bool,
+    ) {
         let inp = self.input;
         let (sy, cy) = self.yaw.sin_cos();
         let (fwd, right) = (Vec3::new(sy, 0.0, -cy), Vec3::new(cy, 0.0, sy));
@@ -102,16 +130,34 @@ impl Player {
             wish = wish * (1.0 / len);
         }
 
-        let speed = match (self.flying, inp.sprint, inp.crouch) {
+        let feet = self.pos;
+        let mut water_at = |height: f64| {
+            let p = (feet + Vec3::new(0.0, height, 0.0)).floor();
+            water(p.x, p.y, p.z)
+        };
+        let was_in_water = self.in_water;
+        self.in_water = !self.flying && water_at(0.1);
+        if self.in_water && !was_in_water {
+            self.splash_speed = self.splash_speed.max(-self.vel.y);
+        }
+        let swimming = self.in_water;
+        let chest_out = swimming && !water_at(CHEST_HEIGHT);
+
+        let mut speed = match (self.flying, inp.sprint, inp.crouch) {
             (true, true, _) => FLY_SPRINT_SPEED,
             (true, false, _) => FLY_SPEED,
             (false, _, true) => CROUCH_SPEED,
             (false, true, false) => SPRINT_SPEED,
             (false, false, false) => WALK_SPEED,
         };
+        if swimming {
+            speed *= SWIM_SPEED_FACTOR;
+        }
         // Exponential approach to the wished velocity: snappy on the ground, floaty in the air.
         let rate = if self.flying {
             10.0
+        } else if swimming {
+            6.0
         } else if self.on_ground {
             16.0
         } else {
@@ -124,6 +170,8 @@ impl Player {
         if self.flying {
             let vy = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * speed * 0.8;
             self.vel.y += (vy - self.vel.y) * k;
+        } else if swimming {
+            self.swim_vertical(dt, chest_out);
         } else {
             self.vel.y = (self.vel.y - GRAVITY * dt).max(-TERMINAL_VELOCITY);
             if inp.jump && self.on_ground {
@@ -148,6 +196,7 @@ impl Player {
 
         // Crouching on the ground never walks off an edge.
         let edge_guard = inp.crouch && self.on_ground && !self.flying;
+        self.against_wall = false;
         for axis in [0, 2] {
             let want = self.vel.get(axis) * dt;
             let before = bb;
@@ -157,10 +206,27 @@ impl Player {
                 self.vel.set(axis, 0.0);
             } else if (moved - want).abs() > 1e-9 {
                 self.vel.set(axis, 0.0);
+                self.against_wall = true;
             }
         }
 
         self.pos = Vec3::new((bb.min.x + bb.max.x) * 0.5, bb.min.y, (bb.min.z + bb.max.z) * 0.5);
+    }
+
+    /// Vertical speed for one substep in water: a leap out, rising with jump held, or sinking.
+    fn swim_vertical(&mut self, dt: f64, chest_out: bool) {
+        let jump = self.input.jump;
+        if jump && chest_out && (self.on_ground || self.against_wall) {
+            self.vel.y = JUMP_VELOCITY;
+        } else if self.vel.y > SWIM_UP_SPEED {
+            // A leap carries on through the water's surface.
+            self.vel.y -= GRAVITY * 0.1 * dt;
+        } else if jump && !chest_out {
+            self.vel.y += (SWIM_UP_SPEED - self.vel.y) * (1.0 - (-WATER_DRAG * dt).exp());
+        } else {
+            // Sinking; with jump held the chest bobs at the surface.
+            self.vel.y = (self.vel.y - GRAVITY * 0.1 * dt) * (-WATER_DRAG * dt).exp();
+        }
     }
 }
 

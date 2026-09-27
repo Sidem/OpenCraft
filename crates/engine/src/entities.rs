@@ -1,6 +1,7 @@
 //! Dropped item entities: physics, magnet pickup and GPU instance data.
 //!
-//! Items fall and slide only while their position is in a loaded chunk (elsewhere they wait), are
+//! Items fall and slide only while their position is in a loaded chunk (elsewhere they wait), float up
+//! through water and bob at its surface, drifting slowly each its own way, are
 //! pulled towards the nearest [`Collector`] (a player) in reach once their pickup delay has passed and
 //! that collector has room, and despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through
 //! `factory::push_box` (`push_item_box`, which a co-op client's view of the host's items uses too).
@@ -20,6 +21,11 @@ const GRAVITY: f64 = 22.0;
 const DESPAWN_SECONDS: f32 = 300.0;
 const MAGNET_RADIUS: f64 = 2.4;
 const PICKUP_RADIUS: f64 = 0.7;
+/// Rising speed in water, and how quickly water brings an item to it (per second).
+const FLOAT_SPEED: f64 = 1.0;
+const WATER_DRAG: f64 = 3.0;
+/// Speed of the slow drift of a floating item.
+const DRIFT_SPEED: f64 = 0.15;
 
 pub struct ItemEntity {
     pub id: u32,
@@ -85,6 +91,7 @@ impl Items {
         dt: f64,
         collectors: &mut [Collector],
         solid: &mut impl FnMut(i32, i32, i32) -> bool,
+        water: &impl Fn(Vec3) -> bool,
         loaded: &impl Fn(Vec3) -> bool,
         mut collected: impl FnMut(usize, ItemId, u32),
     ) {
@@ -127,7 +134,15 @@ impl Items {
                 e.pos += e.vel * dt;
                 e.on_ground = false;
             } else if loaded(e.pos) {
-                e.vel.y = (e.vel.y - GRAVITY * dt).max(-40.0);
+                if water(e.pos) {
+                    // Buoyancy and a current of its own; above the surface gravity pulls it back.
+                    let k = 1.0 - (-WATER_DRAG * dt).exp();
+                    let angle = f64::from(e.id) * 2.4;
+                    let drift = Vec3::new(angle.cos(), FLOAT_SPEED / DRIFT_SPEED, angle.sin()) * DRIFT_SPEED;
+                    e.vel += (drift - e.vel) * k;
+                } else {
+                    e.vel.y = (e.vel.y - GRAVITY * dt).max(-40.0);
+                }
                 let mut bb = Aabb::centered(e.pos, HALF);
                 let want_y = e.vel.y * dt;
                 let dy = move_axis(&mut bb, 1, want_y, solid);

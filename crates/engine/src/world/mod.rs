@@ -13,7 +13,7 @@ use std::collections::VecDeque;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::block::{BlockId, AIR, BEDROCK, SOLID, STONE};
+use crate::block::{BlockId, AIR, BEDROCK, LIQUID, SOLID, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT, CHUNK_SIZE};
 use crate::light::{Lighting, MARGIN};
@@ -207,6 +207,12 @@ impl World {
     #[inline]
     pub fn is_solid(&self, x: i32, y: i32, z: i32) -> bool {
         self.get_block(IVec3::new(x, y, z)).is_none_or(|b| SOLID[b as usize])
+    }
+
+    /// Whether a loaded cell holds a liquid (bodies swim and items float in it).
+    #[inline]
+    pub fn is_water(&self, x: i32, y: i32, z: i32) -> bool {
+        self.get_block(IVec3::new(x, y, z)).is_some_and(|b| LIQUID[b as usize])
     }
 
     pub fn is_loaded(&self, p: Vec3) -> bool {
