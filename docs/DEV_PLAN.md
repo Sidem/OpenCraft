@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-26 · Milestones 1–3 done (co-op pushed and tested across machines by the user; no
-TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.9 done; art salvaged and merged) · **Next up: step 4.10** · A graphics agent
+TURN for now) · play-test notes P1–P5 done · Milestone 4 in progress (4.1, saplings, 4.2–4.10 done; art salvaged and merged) · **Next up: step 4.11** · A graphics agent
 works in parallel on the `art` branch (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -453,7 +453,7 @@ queries and presentation; they never create core state. Each step is one session
   when:** caves and overhangs are dark at noon while open ground looks as today; digging a shaft lets
   light in (a test on the light field); meshing a chunk costs at most 1.5 × today (measured and noted);
   wasm and mesh memory growth noted.
-- [ ] **4.10 Block light and lamps.** Emitting blocks (`BlockDef` gets a light level) flood block light
+- [x] **4.10 Block light and lamps.** Emitting blocks (`BlockDef` gets a light level) flood block light
   0–15 the same way, stored beside sky light; the shader adds it, warm-tinted, unaffected by daylight. A
   `LAMP` block (hand recipe: glass, iron plate, copper wire; unpowered for now, electric lamps can come
   with a later power pass) emits 15; a working smelter glows a little. **Done when:** a lamp lights a
@@ -604,3 +604,7 @@ and the balance numbers. Read the section you need.
   light per vertex corner keyed into the greedy merge (u64 mask), a byte per vertex (+25 % mesh memory),
   edits relight within 15 blocks and everything below. Meshing 0.357 → 0.488 ms per chunk
   (`bench_meshing`). Tests 172 → 182; wasm 156.1 → 161.0 KB gzipped.
+- **2026-09-27:** 4.10 done: `LAMP` (block 44, light 15, layer 105; hand recipe glass, iron plate and 2
+  copper wire, `Group::Building`); block light floods from `BlockDef::light` seeds, warm and daylight-free
+  in the shader. Deviation: no smelter glow (its light would depend on factory state, not blocks).
+  Tests 182 → 183.

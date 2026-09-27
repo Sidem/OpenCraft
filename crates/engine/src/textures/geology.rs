@@ -1,4 +1,5 @@
-//! Subdued province rocks (granite, sandstone, basalt) and cutout glass, in the shared Alpine grain.
+//! Subdued province rocks (granite, sandstone, basalt), cutout glass and the lamp (glass in an iron
+//! frame), in the shared Alpine grain.
 //! Ore-bearing rock (limestone, quartz) lives in `ores.rs`, surface hints in `nature.rs`.
 
 use super::{n, nature, rgb, smooth};
@@ -49,6 +50,18 @@ pub fn glass(x: i32, y: i32) -> [u8; 4] {
         c[3] = 0;
     }
     c
+}
+
+/// A warm glowing pane behind an iron frame and a cross of glazing bars, brightest in the middle.
+pub fn lamp(x: i32, y: i32) -> [u8; 4] {
+    let frame = x <= 1 || x >= 14 || y <= 1 || y >= 14;
+    if frame || x == 7 || x == 8 || y == 7 || y == 8 {
+        let rivet = frame && (x == 1 || x == 14) && (y == 1 || y == 14);
+        return rgb(if rivet { [120.0, 124.0, 130.0] } else { [74.0, 76.0, 82.0] }, 0.9 + 0.1 * n(271, x, y));
+    }
+    let (dx, dy) = (f64::from(x) - 7.5, f64::from(y) - 7.5);
+    let glow = 1.0 - (dx * dx + dy * dy).sqrt() / 12.0;
+    rgb([255.0, 214.0, 140.0], 0.82 + 0.18 * glow + 0.04 * n(272, x, y))
 }
 
 fn tint(c: [u8; 4], delta: [i8; 3]) -> [u8; 4] {

@@ -35,8 +35,9 @@ out vec2 v_ground;
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads.
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
 const float AO_CURVE[4] = float[4](0.40, 0.60, 0.80, 1.0);
-// Block light (lamps) is warm; each light level below 15 dims by a fifth; caves keep a faint floor.
-const vec3 BLOCK_LIGHT = vec3(1.0, 0.82, 0.58);
+// Each sky light level below 15 dims by a fifth; block light (lamps) is warm and fades a little more
+// gently; caves keep a faint floor.
+const vec3 BLOCK_LIGHT = vec3(1.1, 0.88, 0.6);
 const float CAVE_FLOOR = 0.05;
 
 void main() {
@@ -59,7 +60,7 @@ void main() {
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
   float sky = pow(0.8, 15.0 - float(a_light & 15u));
-  float lamp = pow(0.8, 15.0 - float(a_light >> 4u)) * step(1.0, float(a_light >> 4u));
+  float lamp = pow(0.84, 15.0 - float(a_light >> 4u)) * step(1.0, float(a_light >> 4u));
   v_tint = max(sky * u_skyLight, lamp * BLOCK_LIGHT) + CAVE_FLOOR;
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;

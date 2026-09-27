@@ -61,7 +61,9 @@ pub const RUSTY_SAND: BlockId = 40;
 pub const DARK_SAND: BlockId = 41;
 pub const GREEN_SAND: BlockId = 42;
 pub const PALE_SAND: BlockId = 43;
-pub const BLOCK_COUNT: usize = 44;
+/// Gives off block light 15 (`light.rs`); unpowered for now.
+pub const LAMP: BlockId = 44;
+pub const BLOCK_COUNT: usize = 45;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -218,6 +220,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     cube("Dark Sand", 0.45, all(tex::DARK_SAND), SAND, sound::SAND),
     cube("Verdigris Sand", 0.45, all(tex::GREEN_SAND), SAND, sound::SAND),
     cube("Pale Sand", 0.45, all(tex::PALE_SAND), SAND, sound::SAND),
+    BlockDef { light: 15, ..cube("Lamp", 0.4, all(tex::LAMP), LAMP, sound::METAL) },
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

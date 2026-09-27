@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BlockId, AIR, LEAVES, STONE};
+use crate::block::{BlockId, AIR, LAMP, LEAVES, STONE};
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
 /// Lights chunk (`cx`, `cy`, `cz`) of a world given by `block` at world coordinates; returns the pad.
@@ -102,7 +102,9 @@ fn leaves_shade_the_column_but_let_light_through() {
 #[test]
 fn light_matches_across_chunk_borders() {
     let world = |x: i32, y: i32, z: i32| {
-        if sheet(x, y, z, 24) && (x + z) % 7 != 0 {
+        if (x, y, z) == (30, 20, 16) {
+            LAMP
+        } else if sheet(x, y, z, 24) && (x + z) % 7 != 0 {
             STONE
         } else {
             ground(y, 16 + (x * 3 + z * 5).rem_euclid(9) / 4)
@@ -112,6 +114,7 @@ fn light_matches_across_chunk_borders() {
     let east = light_chunk(&world, 1, 0, 0);
     let up = light_chunk(&world, 0, 1, 0);
     let idx = |x: usize, y: usize, z: usize| (y * PAD + z) * PAD + x;
+    assert_eq!(east[idx(3, 21, 17)] >> 4, 11, "the lamp at x = 30 lights x = 34, four blocks away");
     for a in 0..PAD {
         for b in 0..PAD {
             assert_eq!(here[idx(33, a, b)], east[idx(1, a, b)]);
@@ -119,4 +122,27 @@ fn light_matches_across_chunk_borders() {
             assert_eq!(here[idx(a, 33, b)], up[idx(a, 1, b)]);
         }
     }
+}
+
+#[test]
+fn a_lamp_lights_a_cave_room_and_removing_it_darkens_it() {
+    let room = |x: i32, y: i32, z: i32| (8..17).contains(&x) && (5..9).contains(&y) && (8..17).contains(&z);
+    let cave = |lamp: bool| {
+        move |x: i32, y: i32, z: i32| {
+            if lamp && (x, y, z) == (12, 5, 12) {
+                LAMP
+            } else if room(x, y, z) {
+                AIR
+            } else {
+                STONE
+            }
+        }
+    };
+    let lit = light_chunk(&cave(true), 0, 0, 0);
+    assert_eq!(at(&lit, 12, 6, 12), (0, 14), "right above the lamp");
+    assert_eq!(at(&lit, 15, 5, 12), (0, 12), "three blocks away");
+    assert_eq!(at(&lit, 14, 7, 13), (0, 10), "five steps away, around a corner");
+    assert_eq!(at(&lit, 12, 12, 12), (0, 0), "no light inside the rock");
+    let dark = light_chunk(&cave(false), 0, 0, 0);
+    assert_eq!(at(&dark, 15, 5, 12), (0, 0), "dark again without it");
 }

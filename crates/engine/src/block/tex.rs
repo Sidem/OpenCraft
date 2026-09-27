@@ -99,7 +99,9 @@ pub const PALE_SAND: u16 = 102;
 /// Tool and device model materials: a planed wooden handle and forged steel.
 pub const HANDLE: u16 = 103;
 pub const STEEL: u16 = 104;
-pub const COUNT: usize = 105;
+/// The lamp block (the `LAMP_*` layers above are machine status lights).
+pub const LAMP: u16 = 105;
+pub const COUNT: usize = 106;
 
 /// How many alternates a layer with any has.
 pub const ALTERNATES: u16 = 3;

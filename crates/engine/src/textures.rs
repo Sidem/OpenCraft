@@ -143,6 +143,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SANDSTONE => geology::sandstone(x, y),
         tex::BASALT => geology::basalt(x, y),
         tex::GLASS => geology::glass(x, y),
+        tex::LAMP => geology::lamp(x, y),
         tex::SCANNER => tools::scanner(x, y),
         tex::CORE_DRILL => tools::core_drill(x, y),
         _ => [255, 0, 255, 255],

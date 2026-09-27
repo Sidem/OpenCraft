@@ -263,6 +263,14 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "Hold right-click on the ground for 3 seconds to learn exactly how much ore lies beneath it, \
                 and at what depth. Never wears out.",
     },
+    Recipe {
+        output: b(LAMP),
+        group: Group::Building,
+        count: 2,
+        inputs: &[(b(GLASS), 1), (IRON_PLATE, 1), (COPPER_WIRE, 2)],
+        blurb: "A block that lights up everything within about 14 blocks, day and night: caves, tunnels \
+                and your factory after dark.",
+    },
 ];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after
