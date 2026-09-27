@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-27 · Milestones 1–4 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 5, once the user answers its questions (section 6)** · The `art` branch is
-superseded; art work continues from `main` (`docs/ART_HANDOVER.md`).
+now) · **Next up: Milestone 5 (Water and world shape), step 5.1** · The `art` branch is superseded;
+art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -28,8 +28,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   the authority, a Cloudflare Worker to connect them, hosting and joining from the menu.
 - **Milestone 4 (Reasons to explore) is done** (section 8): biomes and rock provinces, ores that follow
   geology, surface hints, prospecting, map marks, day and night, sky light and lamps, a new build menu.
-- **Now: Milestone 5: Scale and terrain** (section 4). It is outlined, not detailed: ask the user the
-  questions in section 6 first, then write its steps.
+- **Now: Milestone 5: Water and world shape** (section 4): sea and lakes, swimming, flowing water,
+  pumps, and rarer surface ore with depth bands, as generator version 3.
 - **Art** (`docs/ART_HANDOVER.md`) says who owns which looks. When gameplay needs a new look, append a
   `tex` layer with a plain placeholder pattern and add a line to that file's request list.
 
@@ -92,9 +92,13 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-26 | **No TURN relay for now**: STUN only. Players whose networks block direct connections can't join; adding the two TURN secrets later (`docs/WORKFLOW.md` section 4) needs no code change. |
 | 2026-09-26 | **Tools wear out and come in tiers.** A better pickaxe keeps slightly more ore by hand, but nowhere near what machines recover (step P5). |
 | 2026-09-26 | **Ores follow geology.** Coal, iron and copper are placed by rock type and biome (for example copper in mountains, coal in lowlands); limestone and quartz are added; visible rock types (granite, sandstone, basalt) say what lies beneath. |
-| 2026-09-26 | **Deposit rates stay as today** (how many outcrops, veins and lodes); tune after play. |
+| 2026-09-26 | **Deposit rates stay as today** (how many outcrops, veins and lodes); tune after play. Surface outcrops superseded on 2026-09-27. |
 | 2026-09-26 | **The world pauses while the game is closed.** No simulating missed time. |
 | 2026-09-26 | **New generation rules for new worlds only.** Worlds made before Milestone 4 keep generator version 1 and play as before. |
+| 2026-09-27 | **Belts:** ramps come from placement (no research), lines are dragged out, R rotates, research moved to T. |
+| 2026-09-27 | **Water and world shape before terraforming** (Milestone 5): sea level, lakes, swimming, pumps and pipes. Rivers later (Milestone 7). |
+| 2026-09-27 | **Water flow is limited and deterministic:** a Minecraft-like spread, event-driven and capped per tick; no volume simulation. |
+| 2026-09-27 | **Surface ore is rare and meaningful:** about 10× fewer exposed outcrops, only on bare rock; a starter set near spawn; ores in depth bands. Vein and lode counts stay. |
 
 ### Proposed, not yet confirmed by the user
 
@@ -363,27 +367,131 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 5: Scale and terrain
+## 4. Now: Milestone 5: Water and world shape
 
-Milestone 4 is done (summary in section 8). Milestone 5 moved here from `docs/ROADMAP.md` and is **not yet
-detailed**: ask the user the questions in section 6, record the answers in section 1, then write its steps
-here (where, how, done when), in the style of Milestone 4's (git history of this file).
+The user decided on 2026-09-27 (section 1) to reshape the world before terraforming, because digging,
+dams, bridges and rail cuttings all depend on water. Milestone 6 (Scale and terrain, `docs/ROADMAP.md`)
+follows; its questions are still open (section 6).
 
-The outline:
+**Measured before this milestone** (version 2, seeds 2024, 1337 and 7, a 4,000-block square):
+- Ground: median height 70, p95 about 137. About 20 % is at or below y 60 and 35–40 % at or below y 66,
+  so sea level 62 floods about 30 %.
+- Biomes: plains 52–60 %, lowlands 15–22 %, desert 9–15 %, highlands 11–15 %, basalt 4 %. A straight
+  walk crosses one in 80–260 blocks.
+- Ore: 3.3 surface-exposed outcrops per 32 × 32 column. The nearest one is about 9 blocks from any spot,
+  and 3.5 of the 5 ores show within 32 blocks. Veins sit 20–60 below the local surface (median 40); ore
+  kind never depends on depth.
 
-- **Terraforming machines** (the signature feature). Start with "mark an area, pick a job"; no
-  programming language needed: an excavator digs a marked area and hauls the spoil to a box or dump
-  site, a grader flattens to a height, a filler places fill, a borer cuts tunnels and shafts.
-- **Byproducts as fill:** slag from smelting and tailings from washing become fill material, so waste
-  feeds the terrain system.
-- **Blueprints and construction drones:** copy a region of machines, place a ghost, and drones build it
-  from storage (or tear it down).
-- **Transport:** personal (hoverpack, ziplines along power lines), trucks on recorded routes, trains
-  (rails on the grid, stations, signals), which create demand for rail beds, cuttings, tunnels and bridges.
-- **Simple logic:** sensors (belt full, box full) and on/off conditions on machines.
+**Goal:** seas and lakes with water that behaves, and ore that is rare at the surface, so geology and
+prospecting matter. It becomes generator **version 3** (versions 1 and 2 stay frozen; new worlds only).
+Water flow is core state and deterministic (section 3.4). Each step is one session, green and committed.
+**Push nothing between 5.1 and 5.3:** version 3 is frozen from its first push, and later changes to it
+need a version 4.
 
-Everything stays deterministic (section 3.4): machines change the world only through the core, never
-through loaded chunks.
+- [ ] **5.1 Generator version 3.** Pin version 2 like 4.1 pinned version 1: a test hashes a few version-2
+  chunks (seed 1337: surface, cave, lode, one per biome), recorded before any change. `WORLDGEN_VERSION`
+  becomes 3, and version 3 branches from version 2 at named points only. In this step it generates exactly
+  what version 2 does. **Done when:** both pins hold, a new game saves and reloads as version 3, a co-op
+  join gets the host's version, the golden hash is unchanged.
+- [ ] **5.2 Rare surface ore, depth bands, starter set (version 3).** In `worldgen/geology.rs` (split out
+  `worldgen/strata.rs` if it would pass 400 lines). Vein and lode counts stay as they are.
+  - **Surface outcrops, about 10× fewer:** about 0.3 exposed per column. They only sit where rock is bare:
+    cliffs (slope ≥ `CLIFF_SLOPE`), above `ROCK_LEVEL`, desert and basalt. Ore still follows the biome.
+  - **Buried pockets** keep today's count.
+  - **Depth bands per ore** (data, `ORE_DEPTH`, below the local surface): limestone 5–25, coal 10–35,
+    iron 20–50, copper and quartz 35–70. Lodes stay at y 12–25. Pick the ore first, then its band.
+  - **A starter set:** one exposed coal, iron and copper outcrop each, 40–80 blocks from spawn, on dry land.
+    They are found by a deterministic ring search and seeded in their own chunk column with reserved key
+    indices, so `deposit_by_key` finds them.
+  - **Surface hints** stay as they are.
+  - **Done when:** these tests pass:
+    - Over a 64 × 64-column area: 0.2–0.5 exposed outcrops per column, every one on bare rock, and each
+      tier's total within 5 % of version 2 (outcrops count buried and exposed together).
+    - Vein depths fall inside their ore's band.
+    - The starter set exists for seeds 2024, 1337 and 7.
+    - Both pins hold.
+    - Screenshots show a cliff outcrop and the starter coal.
+- [ ] **5.3 Still water in generation (version 3).**
+  - **The water block:** `WATER` (block 45) is not solid and not targetable (raycasts pass through it).
+    Placing into water replaces it. In `light.rs`, water dims light by 2 per block.
+  - **Sea:** `SEA_LEVEL` = 62. Every column whose ground lies below it fills with water up to it. Sand
+    covers ground at or below `SEA_LEVEL` + 1, and trees skip those columns.
+  - **Ponds** (lakes above sea level): rare hash-picked spots on flat plains and lowlands.
+    - A bowl is carved into `height_at`, so heights stay consistent.
+    - The water level is the lowest of 16 samples around the rim, minus 1. No pond is placed where that
+      would leave the bowl dry.
+  - **Watertight:** caves are not carved within 2 blocks of a water column.
+  - **The minimap** shows water blue.
+  - **Done when:** these tests pass:
+    - No generated water block has air beside or below it in a 16 × 16-column area (seeds 2024, 1337, 7).
+    - The water share is 25–35 %.
+    - Ponds appear within 1,500 blocks of spawn.
+    - Spawn is dry land.
+    - Generation stays within 10 % of version 2's cost (measure and note).
+- [ ] **5.4 Rendering water.**
+  - **Meshing:** the mesher emits water faces only against air and non-opaque blocks, as a third mesh
+    range (after opaque and cutout). The top face sits 0.1 lower when air is above.
+  - **Drawing:** `renderer.ts` draws that range after the cutout pass, blended, with depth writes off,
+    chunks back to front. The shader animates a scrolling surface with a light-dependent tint.
+  - **Underwater:** with the eye in water (an engine getter), fog turns blue-green and short, plus a tint.
+  - **The look:** a placeholder texture plus an art request (`docs/ART_HANDOVER.md`).
+  - **Done when:**
+    - Screenshots show a coast by day and by night, and the view underwater.
+    - Frame time and mesh memory are measured before and after (a noticeable increase is noted in the
+      change log).
+    - There is no z-fighting at the shoreline.
+- [ ] **5.5 Moving in water.**
+  - **Swimming** (`player.rs`): half speed, gravity at a tenth, jump held rises, sinks slowly otherwise. A
+    jump at the edge climbs out. Flying ignores water.
+  - **Other bodies:** loose items (`entities.rs`) float up to the surface and drift slowly. Footsteps are
+    silent in water, with a splash sound on entering. Avatars swim too.
+  - **Placing:** blocks and machines can go into water, which replaces it.
+  - **Done when:** scenario tests: a player dropped into the sea sinks slowly, rises with jump held and
+    climbs out onto a beach; an item floats up to the surface; a block placed in water replaces it. The
+    golden hash is unchanged (bodies and items are not core).
+- [ ] **5.6 Flowing water (core).**
+  - **Blocks:** `WATER` is a source. `FLOW_1`..`FLOW_7` are flowing water, 7 appended ids whose number
+    gives their height.
+  - **Rules:** they live in `sim/water.rs`, event-driven like block timers (`sim/timers.rs`): a changed
+    block schedules its neighbours 5 ticks later, sorted by (due tick, position), with at most
+    `MAX_WATER_UPDATES` (about 256) per tick and the rest waiting.
+    - A cell under water becomes falling water.
+    - Otherwise its level is the highest horizontal neighbour's level minus 1 (a source counts as 8),
+      reaching up to 7 cells.
+    - An air cell becomes a source when at least two horizontal neighbours are sources and it stands on
+      something solid or on a source (so the sea refills a trench).
+    - Flowing cells without a feed dry up.
+    - Only air is filled. Machines, belts and every other block are walls.
+  - **Reads and edits** go through the `*_anywhere` accessors. This needs the generated-chunk cache from
+    limitation 10, so build that here.
+  - **Saving:** the queue is saved (bump `SAVE_VERSION`) and hashed.
+  - **Done when:** these tests pass:
+    - A hole dug beside the sea fills with sources.
+    - A 20-block trench from the sea fills completely.
+    - Breaking a dam above a pit makes water fall and spread at most 7 cells.
+    - Removing the feed dries the flow.
+    - Two cores (and a host and client pair) agree on the hash.
+    - A 1,000-cell break never passes the per-tick cap and costs under 1 ms per tick (measured).
+    - A save reloads mid-flow.
+- [ ] **5.7 Pumps and pipes.**
+  - **The pump** (a machine, 5 kW): its intake takes water sources from the body of water it touches.
+    - It searches from the intake through water within 16 blocks, highest first, then nearest, in a
+      deterministic order.
+    - It removes about 2 sources per second and pushes the water units into pipes.
+    - Against the sea the level never drops (the source rule refills it), so draining works only on a
+      closed pit, pond or dammed area.
+  - **Pipes** form networks derived in `relink`, the way power grids are.
+  - **The outlet** puts the network's water back as sources in the free cells in front of it.
+  - **A network** balances pump supply against outlet demand each tick, like `power.rs` (no pressure). If
+    nothing takes the water, the pumps stop.
+  - Recipes and a research tech (Fluid Handling, red packs); README and tips.
+  - **Done when:** scenario tests: a pump drains a walled, flooded 5 × 5 × 3 pit into an outlet over a
+    cliff; against the open sea the pump keeps running but the water level never drops; an unpowered pump
+    stops. A screenshot of a pit being drained.
+- [ ] **5.8 Milestone 5 cleanup.** Section 3.1 checklist, README (water, swimming, pumps, the rarer
+  ore), measured numbers updated here and in the change log, `docs/CODEMAP.md` current. Then ask the user
+  the Milestone 6 questions (section 6) and move Milestone 6 in from the roadmap.
+
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -399,7 +507,7 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ## 5. Roadmap after Milestone 5
 
-Milestones 6–7 (fluids and depth, endgame) are in `docs/ROADMAP.md`. Read it only when planning the next
+Milestones 6–8 (scale and terrain, fluids and depth, endgame) are in `docs/ROADMAP.md`. Read it only when planning the next
 milestone; Milestone 5's cleanup step moves Milestone 6 from there into this plan.
 
 ---
@@ -411,11 +519,11 @@ and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M5 | Which part first: terraforming machines, blueprints and drones, transport (trains, trucks, personal), or simple logic? (Recommended: terraforming, the signature feature.) |
-| M5 | Terraforming: is "mark an area with a tool, pick a job" right, and where does dug material go: items into boxes and belts (a lot of stone), or straight to a dump site? |
-| M5 | Transport: trains first, or personal movement (hoverpack, ziplines) first? |
+| M6 | Which part first: terraforming machines, blueprints and drones, transport (trains, trucks, personal), or simple logic? (Recommended: terraforming, the signature feature.) |
+| M6 | Terraforming: is "mark an area with a tool, pick a job" right, and where does dug material go: items into boxes and belts (a lot of stone), or straight to a dump site? |
+| M6 | Transport: trains first, or personal movement (hoverpack, ziplines) first? |
 | Any time | Should the Miner Mk1 and the smelter stay unpowered (a burner tier) while newer machines need power? (Built that way; easy to change.) |
-| M7 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
+| M8 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
 
 ---
 
@@ -453,29 +561,12 @@ and the balance numbers. Read the section you need.
   work off stalled frames, not `document.hidden`; Windows PowerShell's `Get-Content` reads UTF-8 as ANSI,
   so edit files with the file tools or Node. Tests 113 → 127; wasm 120.3 → 131.5 KB, JS 32.1 → 39.1 KB
   gzipped.
-- **2026-09-26:** The user tested co-op across two machines (works) and added play-test notes P1–P5
-  (Escape closes panels first, minimap by default, leaf decay, grass spread, tools) ahead of Milestone 4.
-  A graphics agent now works in parallel on branch `art` (`docs/ART_HANDOVER.md`). The user answered
-  the tool questions: tools wear out, come in tiers, and a better pickaxe keeps slightly more ore.
-- **2026-09-26:** P1 and P2 done: Escape in a panel shows a "Click to keep playing" hint, a second one
-  pauses; the minimap (`minimap.rs`: top blocks cached per chunk column, a redraw 0.07 ms; N toggles it,
-  no water tint yet). Tests 127 → 130; wasm 131.5 → 134.2 KB gzipped.
-- **2026-09-26:** P3 and P4 done: block timers (`sim/timers.rs`: sorted, one per position and kind,
-  capped at 4096, saved and hashed; save version 11), started by `Sim::block_changed` from breaking and
-  placing and from the timers themselves. Leaf decay (a `LeafDecayed` event plays a soft rustle), grass
-  spreading and covered grass dying. Deviations: leaf half-life 5 s, not 8, so a felled tree is bare
-  within a minute; grass needs "nothing solid above" rather than air (a belt doesn't kill it); no
-  particles (the game has none yet). The golden hash was re-recorded. Tests 130 → 136; wasm 134.2 →
-  136.8 KB gzipped.
-- **2026-09-26:** P5 done: tools (`tools.rs`: kinds, tiers, `break_speed`, `ore_yield`; six items and hand
-  recipes). Deviation: wear is the stack count (a tool's stack size is its uses), not new item state, so
-  every path that moves items keeps wear, no save format change was needed (still version 11), and two
-  worn tools of a kind pool their uses; dropping a tool drops it whole. A box feeding a belt would split
-  a tool into one-use pieces (harmless, and they pool again). A `ToolWornOut` event plays a sound and a
-  "wore out" toast (a pickup notice with count 0). Tests 136 → 141; wasm 136.8 → 138.0 KB gzipped.
-- **2026-09-26:** P1–P5 pushed (`233371b`). The user answered the Milestone 4 questions (section 1: ores
-  follow geology with limestone and quartz added, today's rates, the world pauses while closed, new
-  rules for new worlds only), and Milestone 4 was detailed as steps 4.1–4.11.
+- **2026-09-26: Play-test notes P1–P5 done** (after the user's cross-machine co-op test; pushed as
+  `233371b`): Escape in a panel hints first and pauses second; the minimap (`minimap.rs`, N); block
+  timers (`sim/timers.rs`: sorted, capped at 4096, saved and hashed, save version 11) for leaf decay
+  (half-life 5 s), grass spreading and dying; tools (`tools.rs`, wear is the stack count, so no format
+  change). A graphics agent started on branch `art` (`docs/ART_HANDOVER.md`). The user then answered the
+  Milestone 4 questions and it was detailed as 4.1–4.11. Tests 127 → 141; wasm 131.5 → 138.0 KB gzipped.
 - **2026-09-27: Milestone 4 (Reasons to explore) done** (`8d8ee22` to the cleanup commit): generator
   versions (version 1 pinned by a digest test), saplings, rocks, limestone, quartz and glass (blocks
   30–35), biomes and rock provinces (`worldgen/biome.rs`, version 2 about 10 % slower to generate), ores
@@ -495,3 +586,6 @@ and the balance numbers. Read the section you need.
   `Action::Rotate` (codec tag 19) turns belts and routers: R; research moved to T. Tech 1 is now
   Belt Lifts (lifts only). The golden hash was re-recorded (the scripted lone ramp now lies flat).
   Tests 183 → 193.
+- **2026-09-27: Milestone 5 redefined** at the user's request: Water and world shape (sea, ponds,
+  swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
+  3) comes before terraforming, which moved to Milestone 6 in `docs/ROADMAP.md`. Survey numbers in section 4.
