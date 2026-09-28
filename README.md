@@ -113,9 +113,9 @@ lies, which biomes hold it and how to spot it, with this world's own numbers.
 A day lasts 20 minutes, from sunrise through a golden dusk to a dark blue night with stars; the pause menu
 shows the day and the time. Light is simulated per block: forest floors lie in shade, caves are dark even
 at noon, and a shaft you dig lets the sky in. **Torches** (a stick and a coal ore make 4)
-stand on top of any block and light about 5 blocks around them, bright up close; they drop when the block
+stand on top of any block and light about 11 blocks around them, full light within 4; they drop when the block
 under them goes. **Lamps** (glass, an iron plate and 2 copper wire make two) are far stronger: full light within
-5 blocks, fading out about 20 blocks away, in a warm glow, day and night.
+17 blocks, fading out about 31 blocks away, in a warm glow, day and night.
 
 Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
@@ -179,8 +179,8 @@ size.
   exit facing the same way, up to 5 blocks ahead, so two lines can cross.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
-- **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and two
-  quartz ore into a block of glass every 2 seconds). Feed it ore
+- **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and sand into
+  glass, one block every 2 seconds, or a quartz ore into two). Feed it ore
   and fuel (coal ore burns 8 seconds, a log 4) by belt or from a miner next to it; it sorts them itself.
   It burns fuel only while smelting, and pushes ingots into a belt leading away. Its lamp shows green when
   working, red when out of fuel and yellow when its output is full.

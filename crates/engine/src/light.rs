@@ -1,7 +1,7 @@
 //! Light for the chunk mesher: sky light and block light, 0..=15 each, computed when a chunk meshes.
 //! Part of the render cache, derived from blocks only, never core state (DEV_PLAN 3.4).
 //!
-//! The field covers the chunk plus a [`MARGIN`] of 20 blocks on every side, read from the 3×3×3
+//! The field covers the chunk plus a [`MARGIN`] of 32 blocks on every side, read from the 3×3×3
 //! neighbours the mesher already has, so light from anything that can reach the chunk is included
 //! and borders match. Sky light is 15 in every cell open to the sky straight above (the columns above
 //! the field come from the chunks higher up); it floods outward, losing 1 per block, through
@@ -10,8 +10,9 @@
 //!
 //! Block light starts at emitting blocks (`BlockDef::light` names a row of [`SOURCES`]: strength and
 //! loss per block). Sources losing 1 per block flood one field, those losing 2 (torches: bright but
-//! short) another; a cell shows the larger, at most 15. A lamp (20) is at full brightness within 5
-//! blocks and reaches 19; a torch (12) reaches 5.
+//! short) another; a cell shows the larger, at most 15. A lamp (32) is at full brightness within 17
+//! blocks and reaches 31; a torch (24) is within 4 and reaches 11. `MARGIN` can't exceed 32: the field is
+//! read from the 3×3×3 neighbours.
 //!
 //! The result (`pad`) uses the mesher's padded layout (`mesher::pidx`): sky in the low nibble, block
 //! light in the high one. To change how a block treats light: `CLASS` below; to add a kind of light:
@@ -22,12 +23,12 @@ use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
 /// Kinds of block light (`BlockDef::light` indexes this): strength at the block, loss per block.
-pub const SOURCES: [(u8, u8); 3] = [(0, 0), (20, 1), (12, 2)];
+pub const SOURCES: [(u8, u8); 3] = [(0, 0), (32, 1), (24, 2)];
 pub const LAMP_LIGHT: u8 = 1;
 pub const TORCH_LIGHT: u8 = 2;
 
-/// How far past the chunk the field reaches: the farthest any light travels (a lamp's 20).
-pub const MARGIN: usize = 20;
+/// How far past the chunk the field reaches: the farthest any light travels (a lamp's 32).
+pub const MARGIN: usize = 32;
 /// The field's size per axis (the chunk plus both margins), and with a wall of one cell around it.
 const R: usize = 32 + 2 * MARGIN;
 const W: usize = R + 2;

@@ -449,13 +449,18 @@ fn a_client_that_went_apart_resyncs_from_a_fresh_snapshot() {
     assert_eq!(client.sim.tick, host.sim.tick);
     assert_ne!(client.sim.state_hash(), host.sim.state_hash(), "the cores went apart");
 
+    // Mesh what the flipped block dirtied, so only the resync's own remeshing counts below.
+    client.begin_work();
+    while client.work_step() {}
+    while client.next_event() != 0 {}
     let (loaded, edge) = (client.sim.world.loaded_count(), client.sim.world.dirty_count());
     let feet = client.body().pos;
     assert!(client.resync(&host.snapshot()).is_ok());
     assert_eq!(client.sim.state_hash(), host.sim.state_hash());
     assert_eq!(client.sim.world.loaded_count(), loaded, "nothing streams in again");
     let dirty = client.sim.world.dirty_count() - edge; // edge chunks never mesh
-    assert!((1..=27).contains(&dirty), "only around the flipped block: {dirty}");
+                                                       // The chunks the flipped block can light: 3 × 3 chunk columns, from its chunk and the one above down.
+    assert!((1..=9 * 8).contains(&dirty) && dirty < loaded, "only around the flipped block: {dirty} of {loaded}");
     assert_eq!(client.body().pos, feet, "the body stays");
     client.begin_work();
     while client.work_step() {}

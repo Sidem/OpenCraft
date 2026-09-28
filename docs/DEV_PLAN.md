@@ -104,6 +104,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
 | 2026-09-27 | **Order after Milestone 5: terraforming, then blueprints and construction drones, then transport** (personal flight first: jetpacks or hovering, and building from further away). The player should feel a steady, intuitive and fun growth of capability: building by hand → planning → automatic assembly. |
 | 2026-09-27 | **Finding starter ore made easier** (play-test: iron under rusty soil was too deep to find by hand). Generator version 4 for new worlds: shallower bands, coal, iron and copper exposed 1.5× as often on bare rock, two starter patches of each; a world map (M) of explored ground with pins; an ore guide with depth bands; stained soil tells what lies how deep. Mute moved to K. |
+| 2026-09-28 | **Glass from sand; brighter lights.** The smelter makes glass from sand (1 → 1); quartz gives 2. Torches reach 11 (full within 4), lamps 31 (full within 17): the light margin is 32, the most the 3×3×3 field allows. |
 | 2026-09-28 | **Processed wood and ladders.** Logs saw into planks, planks into sticks; sticks make tools, torches, poles and ladders (a see-through frame: jump climbs, crouch descends, idle holds). |
 | 2026-09-27 | **Miners need power; generators burn only what is used.** The first loop is a miner on coal feeding the generator that powers it. Energy is stored per generator (kJ); one coal (270 kJ) runs a Mk1 (5 kW) long enough to mine about 32 coal. The smelter stays a burner. |
 
@@ -167,8 +168,8 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
   water. Bodies swim and items float (`player`, `entities`).
 - **Day and light:** a 20-minute day from the core tick (`daytime.rs`), sky, sun, moon and stars
   (`render/sky.ts`); sky and block light 0–15 computed while a chunk meshes (`light.rs`: the chunk plus a
-  20-block margin), smoothed per vertex (a byte after the vertices); light sources (`light::SOURCES`): lamps
-  (block 44, reach 20) and torches (block 57, bright but reach 5).
+  32-block margin), smoothed per vertex (a byte after the vertices); light sources (`light::SOURCES`): lamps
+  (block 44, full within 17, reach 31) and torches (block 57, full within 4, reach 11).
 - **Deposits** (`deposits.rs`, placed by `worldgen/ore.rs`): outcrops, veins and lodes of coal, iron and
   copper (100 / 1,000 / 2,000 units per block, shared draw caps 60 / 240 / 1,200 per minute). A pool is
   shared per deposit, output tapers over the last 20%, and blocks turn to `SPENT_ROCK` as it drains, even
@@ -573,3 +574,6 @@ and the balance numbers. Read the section you need.
   body step asks which block is in a cell). Tools, torches (now 4 from a stick and a coal), poles and the
   box use processed wood; a Materials build-menu section. The excavator moves to block 60, the planner to
   item 273. Tests 238 → 239.
+- **2026-09-28: Glass from sand, brighter lights** (user request): the smelter turns sand into glass (quartz
+  now 1 → 2); `light::SOURCES` torch 24 (reaches 11), lamp 32 (full within 17, reaches 31), `MARGIN` 20 → 32.
+  `bench_meshing` 0.43 → 0.56 ms per chunk. The research panel's header named R; research is on T.

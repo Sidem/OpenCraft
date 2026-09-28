@@ -114,7 +114,7 @@ fn light_matches_across_chunk_borders() {
     let east = light_chunk(&world, 1, 0, 0);
     let up = light_chunk(&world, 0, 1, 0);
     let idx = |x: usize, y: usize, z: usize| (y * PAD + z) * PAD + x;
-    assert_eq!(east[idx(9, 21, 17)] >> 4, 10, "the lamp at x = 30 lights x = 40, ten blocks away: 20 − 10");
+    assert_eq!(east[idx(9, 21, 17)] >> 4, 15, "the lamp at x = 30 lights x = 40, ten blocks away, fully");
     for a in 0..PAD {
         for b in 0..PAD {
             assert_eq!(here[idx(33, a, b)], east[idx(1, a, b)]);
@@ -139,24 +139,25 @@ fn a_lamp_lights_a_cave_room_and_removing_it_darkens_it() {
     let lit = light_chunk(&cave_room(Some(LAMP)), 0, 0, 0);
     assert_eq!(at(&lit, 12, 6, 12), (0, 15), "right above the lamp");
     assert_eq!(at(&lit, 14, 7, 13), (0, 15), "five steps away, around a corner: still full");
-    assert_eq!(at(&lit, 16, 8, 16), (0, 9), "eleven steps away: 20 − 11");
+    assert_eq!(at(&lit, 16, 8, 16), (0, 15), "eleven steps away: 32 − 11 is still full");
     assert_eq!(at(&lit, 12, 12, 12), (0, 0), "no light inside the rock");
     let dark = light_chunk(&cave_room(None), 0, 0, 0);
     assert_eq!(at(&dark, 15, 5, 12), (0, 0), "dark again without it");
 }
 
 #[test]
-fn a_torch_is_bright_up_close_and_gone_six_blocks_out() {
+fn a_torch_is_full_up_close_and_fades_out_by_eleven_blocks() {
     let lit = light_chunk(&cave_room(Some(TORCH)), 0, 0, 0);
     let row: Vec<u8> = (12..17).map(|x| at(&lit, x, 5, 12).1).collect();
-    assert_eq!(row, [12, 10, 8, 6, 4], "2 less per block");
-    assert_eq!(at(&lit, 16, 5, 13).1, 2, "five steps");
-    assert_eq!(at(&lit, 16, 6, 13).1, 0, "six steps: dark");
+    assert_eq!(row, [15; 5], "full within four blocks");
+    assert_eq!(at(&lit, 16, 5, 13).1, 14, "five steps: 24 − 10");
+    assert_eq!(at(&lit, 16, 7, 16).1, 4, "ten steps");
+    assert_eq!(at(&lit, 16, 8, 16).1, 2, "eleven steps: the last lit");
     // Beside a lamp, a cell shows the brighter of the two.
     let both = |x, y, z| if (x, y, z) == (16, 5, 16) { LAMP } else { cave_room(Some(TORCH))(x, y, z) };
     let pad = light_chunk(&both, 0, 0, 0);
-    assert_eq!(at(&pad, 12, 5, 12).1, 12, "the torch outshines the lamp 8 steps away there");
-    assert_eq!(at(&pad, 14, 5, 14).1, 15, "the lamp is full four steps from it");
+    assert_eq!(at(&pad, 8, 8, 8).1, 13, "the lamp 19 steps away (13) outshines the torch 11 steps away (2)");
+    assert_eq!(at(&pad, 12, 6, 12).1, 15, "full beside the torch");
 }
 
 #[test]

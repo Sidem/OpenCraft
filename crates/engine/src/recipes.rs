@@ -346,7 +346,8 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { machine: CONSTRUCTOR, inputs: &[(IRON_ROD, 1)], output: (SCREW, 4), seconds: 3.0 },
     MachineRecipe { machine: CONSTRUCTOR, inputs: &[(COPPER_INGOT, 1)], output: (COPPER_WIRE, 2), seconds: 2.0 },
     // Appended: machines save the index of their recipe.
-    MachineRecipe { machine: SMELTER, inputs: &[(b(QUARTZ_ORE), 2)], output: (b(GLASS), 1), seconds: 2.0 },
+    MachineRecipe { machine: SMELTER, inputs: &[(b(QUARTZ_ORE), 1)], output: (b(GLASS), 2), seconds: 2.0 },
+    MachineRecipe { machine: SMELTER, inputs: &[(b(SAND), 1)], output: (b(GLASS), 1), seconds: 2.0 },
 ];
 
 /// The recipe `i` if `machine` makes it.

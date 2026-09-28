@@ -50,7 +50,7 @@ export class ResearchPanel {
     const head = h('div', 'mp-head');
     const close = button('close-btn', '×', () => this.close(true));
     close.setAttribute('aria-label', 'Close');
-    head.append(h('h2', '', 'Research'), h('span', 'mp-keys', 'R, E or click outside to return'), close);
+    head.append(h('h2', '', 'Research'), h('span', 'mp-keys', 'T, E or click outside to return'), close);
 
     const count = game.tech_count();
     this.views = Array.from({ length: count }, (_, t) => this.makeTech(t));

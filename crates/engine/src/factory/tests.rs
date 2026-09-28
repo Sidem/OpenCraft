@@ -251,8 +251,8 @@ fn one_coal_smelts_five_and_a_third_ingots() {
 }
 
 #[test]
-fn the_smelter_makes_glass_from_quartz() {
-    use crate::block::{COAL_ORE, GLASS, QUARTZ_ORE};
+fn the_smelter_makes_glass_from_quartz_or_sand() {
+    use crate::block::{COAL_ORE, GLASS, QUARTZ_ORE, SAND};
     let mut f = Factory::default();
     smelter(&mut f, IVec3::ZERO);
     let s = smelter_mut(&mut f, IVec3::ZERO);
@@ -261,7 +261,17 @@ fn the_smelter_makes_glass_from_quartz() {
     s.accept(COAL_ORE.into());
     run(&mut f, 6.0, |_| {});
     let s = f.smelter_at(IVec3::ZERO);
-    assert_eq!((s.out.count(GLASS.into()), s.input.total()), (2, 0), "two quartz make one glass");
+    assert_eq!((s.out.count(GLASS.into()), s.input.total()), (6, 1), "one quartz makes two glass");
+
+    let mut f = Factory::default();
+    smelter(&mut f, IVec3::ZERO);
+    let s = smelter_mut(&mut f, IVec3::ZERO);
+    assert!(s.accept(SAND.into()));
+    s.input.add(SAND.into(), 3);
+    s.accept(COAL_ORE.into());
+    run(&mut f, 6.0, |_| {});
+    let s = f.smelter_at(IVec3::ZERO);
+    assert_eq!((s.out.count(GLASS.into()), s.input.total()), (3, 1), "one sand makes one glass");
 }
 
 #[test]

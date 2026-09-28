@@ -98,7 +98,7 @@ folder with `mod.rs`.
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
-| `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 20-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
+| `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 32-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |
 | `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); ranges opaque, cutout, liquid (liquid AO bits mark the water line and how low it sits: `water_line`); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `mesher/quad.rs` | Per-corner AO and light, the merge key, `emit_quad` |
 | `minimap.rs` | The maps' pictures (presentation only): `draw` (any window of the explored map at any scale, shaded by the height step; ore in its mark colour), `redraw` (the minimap around the player), other players' marks |
