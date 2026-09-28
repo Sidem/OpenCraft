@@ -160,10 +160,17 @@ async function main(): Promise<void> {
   machine.onClose = closed;
   research.onClose = closed;
   worldMap.onClose = closed;
+  // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
+  // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
+  let leftGame = -Infinity;
+  window.addEventListener('beforeunload', (e) => {
+    if (menu.classList.contains('hidden') || performance.now() - leftGame < 1000) e.preventDefault();
+  });
   input.onLockChange = (locked) => {
     menu.classList.toggle('hidden', locked || panelOpen());
     resumeHint.classList.add('hidden');
     if (!locked) {
+      leftGame = performance.now();
       showWorldInfo();
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);

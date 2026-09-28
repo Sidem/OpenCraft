@@ -95,7 +95,7 @@ export class Input {
       strafe: Math.max(k('KeyD'), k('ArrowRight')) - Math.max(k('KeyA'), k('ArrowLeft')),
       jump: this.keys.has('Space'),
       sprint: this.keys.has('ShiftLeft') || this.keys.has('ShiftRight'),
-      crouch: this.keys.has('KeyC'),
+      crouch: this.keys.has('KeyC') || this.keys.has('ControlLeft') || this.keys.has('ControlRight'),
     };
   }
 
@@ -123,6 +123,8 @@ export class Input {
       return;
     }
     if (!this.locked) return;
+    // Ctrl is crouch, so browser shortcuts stay off while playing (Ctrl+W can't be blocked: main.ts asks).
+    if (e.ctrlKey || e.metaKey) e.preventDefault();
     if (down) this.keys.add(e.code);
     else this.keys.delete(e.code);
     if (down && !e.repeat) {
