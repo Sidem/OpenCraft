@@ -1,11 +1,12 @@
 use super::*;
+use crate::block::{AIR, WATER};
 
 fn flat(_x: i32, y: i32, _z: i32) -> bool {
     y < 10
 }
 
-fn dry(_x: i32, _y: i32, _z: i32) -> bool {
-    false
+fn dry(_x: i32, _y: i32, _z: i32) -> BlockId {
+    AIR
 }
 
 fn settle(p: &mut Player, seconds: f64) {
@@ -45,8 +46,12 @@ fn seaside(x: i32, y: i32, _z: i32) -> bool {
     y < if x < 0 { 50 } else { 63 }
 }
 
-fn sea(x: i32, y: i32, _z: i32) -> bool {
-    x < 0 && (50..62).contains(&y)
+fn sea(x: i32, y: i32, _z: i32) -> BlockId {
+    if x < 0 && (50..62).contains(&y) {
+        WATER
+    } else {
+        AIR
+    }
 }
 
 fn swim(p: &mut Player, seconds: f64) {
@@ -99,4 +104,46 @@ fn swimming_is_half_speed_and_flying_ignores_water() {
     let y = p.pos.y;
     swim(&mut p, 1.0);
     assert!(!p.in_water && (p.pos.y - y).abs() < 1e-3, "hovers in the water");
+}
+
+/// Ground at y 10 with a cliff east of x = 1 whose top is at y 15, and ladders at x = 0 from y 10 to 14.
+fn cliff(x: i32, y: i32, _z: i32) -> bool {
+    y < if x >= 1 { 15 } else { 10 }
+}
+
+fn ladders(x: i32, y: i32, _z: i32) -> BlockId {
+    if x == 0 && (10..15).contains(&y) {
+        LADDER
+    } else {
+        AIR
+    }
+}
+
+fn climb(p: &mut Player, seconds: f64) {
+    for _ in 0..(seconds * 120.0) as usize {
+        p.step(1.0 / 120.0, &mut cliff, &mut ladders);
+    }
+}
+
+#[test]
+fn a_ladder_holds_a_climber_and_leads_onto_the_ledge() {
+    let mut p = Player::new(Vec3::new(0.5, 10.0, 0.5));
+    p.yaw = std::f64::consts::FRAC_PI_2;
+    p.input.jump = true;
+    climb(&mut p, 0.8);
+    let y = p.pos.y;
+    assert!(y > 12.0 && y < 13.0 && !p.on_ground, "climbs at 3 blocks a second: y = {y}");
+    p.input.jump = false;
+    climb(&mut p, 1.0);
+    assert!((p.pos.y - y).abs() < 1e-9, "holds on");
+    p.input.crouch = true;
+    climb(&mut p, 0.4);
+    assert!(p.pos.y < y - 1.0, "goes down");
+    p.input.crouch = false;
+    p.input.jump = true;
+    p.input.forward = 1.0;
+    climb(&mut p, 1.5);
+    p.input.jump = false;
+    climb(&mut p, 1.0);
+    assert!(p.on_ground && (p.pos.y - 15.0).abs() < 1e-6 && p.pos.x > 1.2, "on the ledge: {:?}", p.pos);
 }

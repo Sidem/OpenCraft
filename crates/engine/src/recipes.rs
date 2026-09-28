@@ -7,13 +7,14 @@ use crate::block::*;
 use crate::inventory::Inventory;
 use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE,
-    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 use crate::tools::{IRON_TIER, STONE_TIER};
 
 /// The build menu's sections, in the order it shows them.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Group {
+    Materials,
     Production,
     Logistics,
     Power,
@@ -22,12 +23,20 @@ pub enum Group {
     Building,
 }
 
-pub const GROUPS: [Group; 6] =
-    [Group::Production, Group::Logistics, Group::Power, Group::Science, Group::Tools, Group::Building];
+pub const GROUPS: [Group; 7] = [
+    Group::Materials,
+    Group::Production,
+    Group::Logistics,
+    Group::Power,
+    Group::Science,
+    Group::Tools,
+    Group::Building,
+];
 
 impl Group {
     pub fn name(self) -> &'static str {
         match self {
+            Group::Materials => "Materials",
             Group::Production => "Production",
             Group::Logistics => "Logistics",
             Group::Power => "Power",
@@ -76,7 +85,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(STORAGE),
         group: Group::Logistics,
         count: 1,
-        inputs: &[(b(LOG), 6), (b(IRON_ORE), 2)],
+        inputs: &[(b(PLANKS), 8), (b(IRON_ORE), 2)],
         blurb: "Holds 24 stacks. Belts deliver into it; a belt leading away from it is fed from it. \
                 Right-click to empty it into your inventory.",
     },
@@ -170,7 +179,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(POLE),
         group: Group::Power,
         count: 2,
-        inputs: &[(b(IRON_ORE), 1), (b(COPPER_ORE), 1), (b(LOG), 1)],
+        inputs: &[(b(IRON_ORE), 1), (b(COPPER_ORE), 1), (STICK, 2)],
         blurb: "Links to every pole within 10 blocks and powers generators and machines within 5. \
                 Miners, constructors, splitters, filters, labs, pumps and quarries need power.",
     },
@@ -225,21 +234,21 @@ pub const RECIPES: &[Recipe] = &[
         output: STONE_PICKAXE,
         group: Group::Tools,
         count: STONE_TIER.uses,
-        inputs: &[(b(STONE), 3), (b(LOG), 2)],
+        inputs: &[(b(STONE), 3), (STICK, 2)],
         blurb: "Hold it to break stone and ore twice as fast. Wears out after 150 blocks.",
     },
     Recipe {
         output: STONE_AXE,
         group: Group::Tools,
         count: STONE_TIER.uses,
-        inputs: &[(b(STONE), 3), (b(LOG), 2)],
+        inputs: &[(b(STONE), 3), (STICK, 2)],
         blurb: "Hold it to chop wood twice as fast. Wears out after 150 blocks.",
     },
     Recipe {
         output: STONE_SHOVEL,
         group: Group::Tools,
         count: STONE_TIER.uses,
-        inputs: &[(b(STONE), 1), (b(LOG), 2)],
+        inputs: &[(b(STONE), 1), (STICK, 2)],
         blurb: "Hold it to dig dirt, grass and sand twice as fast. Wears out after 150 blocks.",
     },
     Recipe {
@@ -290,10 +299,32 @@ pub const RECIPES: &[Recipe] = &[
     Recipe {
         output: b(TORCH),
         group: Group::Building,
-        count: 8,
-        inputs: &[(b(LOG), 1), (b(COAL_ORE), 1)],
+        count: 4,
+        inputs: &[(STICK, 1), (b(COAL_ORE), 1)],
         blurb: "A small light for the first nights and caves: bright up close, about 5 blocks around. Stands \
                 on top of any solid block.",
+    },
+    Recipe {
+        output: b(PLANKS),
+        group: Group::Materials,
+        count: 4,
+        inputs: &[(b(LOG), 1)],
+        blurb: "Sawn from a log. Build with them, or make sticks, boxes and more from them. They burn, briefly.",
+    },
+    Recipe {
+        output: STICK,
+        group: Group::Materials,
+        count: 4,
+        inputs: &[(b(PLANKS), 2)],
+        blurb: "Handles for tools, torches and ladders, and posts for power poles.",
+    },
+    Recipe {
+        output: b(LADDER),
+        group: Group::Building,
+        count: 3,
+        inputs: &[(STICK, 4)],
+        blurb: "A frame you climb: stand in it and hold jump to go up, crouch to go down; let go and you stay \
+                put. Stack them up a cliff or down a shaft; at the top, walk off onto the ledge.",
     },
 ];
 
@@ -325,7 +356,7 @@ pub fn machine_recipe(machine: BlockId, i: u16) -> Option<&'static MachineRecipe
 
 /// Fuel: the seconds of smelting one item keeps a fire going, and the energy it gives a generator in
 /// kJ (a coal runs a Mk1 miner long enough to mine about 32 coal).
-pub const FUELS: &[(ItemId, f64, u32)] = &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135)];
+pub const FUELS: &[(ItemId, f64, u32)] = &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135), (b(PLANKS), 1.0, 34)];
 
 /// Seconds of work one `item` fuels, if it burns.
 pub fn burn_time(item: ItemId) -> Option<f64> {

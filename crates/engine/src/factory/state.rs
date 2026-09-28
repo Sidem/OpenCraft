@@ -1,11 +1,11 @@
-//! The factory's core state bytes: every machine list in `Vec` order, kind by kind, then the deposits
-//! and the research.
+//! The factory's core state bytes: every machine list in `Vec` order, kind by kind, the terraforming
+//! sites, then the deposits and the research.
 //! Derived data (`at` is rebuilt while reading; links, order and power at the first `update`) is not
 //! saved. To add a kind: append its list to both functions, read behind a `r.version` check.
 
 use rustc_hash::FxHashMap;
 
-use super::{add_to, Factory, Machine, Slot};
+use super::{add_to, Factory, Machine, Sites, Slot};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 use crate::research::Research;
@@ -26,13 +26,15 @@ impl Factory {
         write_list(w, &self.labs);
         write_list(w, &self.pipework);
         write_list(w, &self.quarries);
+        self.sites.write_state(w);
         self.deposits.write_state(w);
         self.research.write_state(w);
     }
 
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
-    /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power, before 8 no labs or research, before 14 no pipework, before 15 no quarries.
+    /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power,
+    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites.
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
         read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
@@ -59,6 +61,9 @@ impl Factory {
         }
         if r.version >= 15 {
             read_list(r, &mut f.quarries, &mut f.at, Slot::Quarry)?;
+        }
+        if r.version >= 17 {
+            f.sites = Sites::read_state(r)?;
         }
         f.deposits.read_state(world, r)?;
         if r.version >= 8 {

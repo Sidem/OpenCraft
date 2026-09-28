@@ -112,7 +112,7 @@ lies, which biomes hold it and how to spot it, with this world's own numbers.
 
 A day lasts 20 minutes, from sunrise through a golden dusk to a dark blue night with stars; the pause menu
 shows the day and the time. Light is simulated per block: forest floors lie in shade, caves are dark even
-at noon, and a shaft you dig lets the sky in. **Torches** (a log and a coal ore make 8)
+at noon, and a shaft you dig lets the sky in. **Torches** (a stick and a coal ore make 4)
 stand on top of any block and light about 5 blocks around them, bright up close; they drop when the block
 under them goes. **Lamps** (glass, an iron plate and 2 copper wire make two) are far stronger: full light within
 5 blocks, fading out about 20 blocks away, in a warm glow, day and night.
@@ -155,7 +155,7 @@ size.
 - **Tools.** Hold a pickaxe (stone and ore), an axe (wood) or a shovel (dirt, grass, sand) in the hotbar to
   break those blocks faster: stone tools twice as fast, iron tools four times. Each block broken with the
   right tool uses it up a little (stone tools last 150 blocks, iron 600); the bar under its slot shows
-  what's left. Stone tools cost 3 stone (1 for a shovel) and 2 logs; iron tools 3 iron plates (1 for a
+  what's left. Stone tools cost 3 stone (1 for a shovel) and 2 sticks; iron tools 3 iron plates (1 for a
   shovel) and 2 iron rods. Bare hands still break everything, only slower.
 - **Saplings.** Leaves now and then leave a sapling behind, whether you break them or they fall off a
   felled tree. Plant it on dirt or grass and it grows into a tree after a few minutes, as long as
@@ -228,14 +228,14 @@ size.
 Craft machines in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
 or everything made from a material, and filter by what you can craft now, what misses materials and what
 research still locks. Hover a recipe for its description and materials; click it to craft one, Shift-click
-for up to five. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
-cost 1 iron ore and 2 stone, a box costs 6 logs and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
+for up to five. Wood comes first (Materials): a log saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up, crouch to go down, let go to stay put; stack them up a cliff or down a shaft and walk off onto the ledge at the top. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
+cost 1 iron ore and 2 stone, a box costs 8 planks and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
 wire and 2 belts. Two lifts cost 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 6 iron ore, 4
-copper ore and 12 stone; two power poles an iron ore, a copper ore and a log; a research lab 6 iron plates,
+copper ore and 12 stone; two power poles an iron ore, a copper ore and 2 sticks; a research lab 6 iron plates,
 8 copper wire and 4 belts; a Miner Mk2 a Mk1, 8 iron plates, 16 screws and 12 copper wire; two fast belts 2
-belts, an iron plate and 4 screws; eight torches a log and a coal ore; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
+belts, an iron plate and 4 screws; four torches a stick and a coal ore; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
 plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates,
 8 iron rods, 16 screws and 8 copper wire. Hand-mining an outcrop or two covers
 your first miner, generator and poles. After that, let them do the work.
@@ -346,9 +346,9 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
   23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
-  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch; items: 256 iron ingot, 257 copper ingot,
+  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
-  264–269 stone and iron tools, 270 scanner, 271 core drill.
+  264–269 stone and iron tools, 270 scanner, 271 core drill, 272 stick.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).

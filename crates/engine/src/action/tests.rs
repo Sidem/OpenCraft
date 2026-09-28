@@ -268,6 +268,8 @@ fn samples() -> Vec<Action> {
         Action::Leave { pos: Vec3::new(-0.5, 1e9, f64::MIN_POSITIVE) },
         Action::Rotate { pos: IVec3::new(-7, 255, 1 << 20) },
         Action::SetQuarry { pos, width: 3, depth: 2, paused: true },
+        Action::MarkSite { a: (i32::MIN, 5), b: (-9, i32::MAX), level: 70, job: Job::Flatten },
+        Action::RemoveSite { id: u32::MAX - 1 },
     ]
 }
 
@@ -311,6 +313,9 @@ fn damaged_action_bytes_fail_cleanly() {
     let mut bad_item = encode(&Action::Give { item: STONE.into(), count: 1 });
     bad_item[1..3].copy_from_slice(&60_000u16.to_le_bytes());
     assert_eq!(Action::read(&mut ByteReader::new(&bad_item)), None);
+    let mut bad_job = encode(&Action::MarkSite { a: (0, 0), b: (1, 1), level: 70, job: Job::Dig });
+    bad_job[21] = 3;
+    assert_eq!(Action::read(&mut ByteReader::new(&bad_job)), None);
 
     // Random bytes: whatever reads must be a real action, and nothing panics.
     let mut rng = crate::math::Rng::new(99);

@@ -1,6 +1,7 @@
 //! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors,
 //! splitters, filters, power (generators, poles), research labs (with the world's `Research`) and
-//! pipework (pumps, pipes, outlets: `pipes.rs`, `pumping.rs`) and quarries (`quarry.rs`).
+//! pipework (pumps, pipes, outlets: `pipes.rs`, `pumping.rs`), quarries (`quarry.rs`) and the world's
+//! terraforming sites (`sites.rs`).
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
 //! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
@@ -35,6 +36,7 @@ mod pumping;
 mod quarry;
 mod render;
 mod router;
+mod sites;
 mod smelter;
 mod state;
 mod storage;
@@ -80,6 +82,7 @@ pub use miner::{MINER_RECOVERY, MK2_RECOVERY};
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{push_box, INSTANCE_FLOATS};
+pub use sites::{survey_site, Job, Sites};
 #[cfg(test)]
 pub use smelter::SmelterStatus;
 
@@ -205,6 +208,8 @@ pub struct Factory {
     pub deposits: Deposits,
     /// The world's research, which labs advance.
     pub research: Research,
+    /// The world's terraforming sites (`sites.rs`).
+    pub sites: Sites,
     /// Blocks the machines changed this tick, with the block each replaced (pumps and outlets); not
     /// state: `Sim::step` drains it into `block_changed`.
     pub changed: Vec<(IVec3, BlockId)>,

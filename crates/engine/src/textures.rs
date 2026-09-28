@@ -3,7 +3,8 @@
 //! RGBA layer per `block::tex` constant; to add a texture, add the constant there and its pattern
 //! arm in `pixel`. An alternate layer draws its base's pattern with another `alt` (`tex::look`).
 //! Terrain lives in `nature.rs` (with the surface hints) and `ores.rs`, province rocks in
-//! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`.
+//! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
+//! planks, ladders and sticks in `wood.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -16,6 +17,7 @@ mod ores;
 mod paint;
 mod plants;
 mod tools;
+mod wood;
 
 use machines::{
     belt_side, belt_top, constructor, crate_wood, drill, generator, ingot, lab, lamp, miner_side, miner_top, plate,
@@ -149,6 +151,10 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::WATER => geology::water(x, y),
         tex::SCANNER => tools::scanner(x, y),
         tex::CORE_DRILL => tools::core_drill(x, y),
+        tex::PLANKS => wood::planks(x, y),
+        tex::LADDER => wood::ladder(x, y),
+        tex::LADDER_TOP => wood::ladder_top(x, y),
+        tex::STICK => wood::stick(x, y),
         _ => [255, 0, 255, 255],
     }
 }

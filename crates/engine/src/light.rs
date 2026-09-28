@@ -17,7 +17,7 @@
 //! light in the high one. To change how a block treats light: `CLASS` below; to add a kind of light:
 //! a row in `SOURCES` (a loss of 1 or 2).
 
-use crate::block::{Render, BLOCK_COUNT, DEFS, GLASS};
+use crate::block::{Render, BLOCK_COUNT, DEFS, GLASS, LADDER};
 use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
@@ -42,7 +42,7 @@ const CLASS: [u8; 256] = {
     while i < BLOCK_COUNT {
         let passes = match DEFS[i].render {
             Render::Opaque => 0,
-            Render::Cutout if i != GLASS as usize => PASSES,
+            Render::Cutout if i != GLASS as usize && i != LADDER as usize => PASSES,
             Render::Liquid => PASSES | DIMS,
             _ => PASSES | SKY_PASSES,
         };

@@ -80,7 +80,11 @@ pub const QUARRY: BlockId = 56;
 /// A small light on the block below it (`light::TORCH_LIGHT`: bright but short); drops when that block goes
 /// (`sim/torches.rs`).
 pub const TORCH: BlockId = 57;
-pub const BLOCK_COUNT: usize = 58;
+/// Sawn from logs; a building block.
+pub const PLANKS: BlockId = 58;
+/// A see-through frame of rails and rungs: not solid; a body inside it climbs (`player.rs`).
+pub const LADDER: BlockId = 59;
+pub const BLOCK_COUNT: usize = 60;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -275,6 +279,12 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         sound: sound::WOOD,
         placeable: true,
         light: crate::light::TORCH_LIGHT,
+    },
+    cube("Planks", 0.7, all(tex::PLANKS), PLANKS, sound::WOOD),
+    BlockDef {
+        render: Render::Cutout,
+        solid: false,
+        ..cube("Ladder", 0.4, pillar(tex::LADDER, tex::LADDER_TOP, tex::LADDER_TOP), LADDER, sound::WOOD)
     },
 ];
 

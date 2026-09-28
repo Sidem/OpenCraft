@@ -11,9 +11,10 @@
 //! The authority never edits the core: pickups become `PickUp` actions.
 
 use crate::action::Action;
+use crate::block::AIR;
 use crate::entities::Collector;
 use crate::item::ItemId;
-use crate::math::Vec3;
+use crate::math::{IVec3, Vec3};
 use crate::net::Role;
 use crate::player::{self, Player};
 use crate::sim::PlayerId;
@@ -74,7 +75,7 @@ impl Game {
     pub(crate) fn step_bodies(&mut self) {
         let world = &self.sim.world;
         let mut solid = |x, y, z| world.is_solid(x, y, z);
-        let mut water = |x, y, z| world.is_water(x, y, z);
+        let mut block = |x, y, z| world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR);
         let respawn = self.spawn + Vec3::new(0.0, 2.0, 0.0);
         let mut local_fell = false;
         for (slot, body) in self.bodies.iter_mut().enumerate() {
@@ -85,7 +86,7 @@ impl Game {
             // Wait while the ground isn't loaded rather than fall through it.
             if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
                 for _ in 0..PHYSICS_SUBSTEPS {
-                    body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid, &mut water);
+                    body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid, &mut block);
                 }
             }
             if body.pos.y < FALL_LIMIT {

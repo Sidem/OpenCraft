@@ -107,7 +107,12 @@ pub const WATER: u16 = 106;
 pub const LAMP_BLUE: u16 = 107;
 /// The torch (`block::TORCH`), drawn on crossed quads like the sapling.
 pub const TORCH: u16 = 108;
-pub const COUNT: usize = 109;
+/// Processed wood (`textures/wood.rs`): planks, the ladder's sides and top, the stick item.
+pub const PLANKS: u16 = 109;
+pub const LADDER: u16 = 110;
+pub const LADDER_TOP: u16 = 111;
+pub const STICK: u16 = 112;
+pub const COUNT: usize = 113;
 
 /// How many alternates a layer with any has.
 pub const ALTERNATES: u16 = 3;

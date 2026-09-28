@@ -9,6 +9,7 @@
 //! bytes in `action/codec.rs` (co-op sends actions to every peer).
 
 use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
+use crate::factory::Job;
 use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -58,6 +59,18 @@ pub enum Action {
         width: u8,
         depth: u8,
         paused: bool,
+    },
+    /// Marks a terraforming site over the columns (x, z) between corners `a` and `b`: `job` to
+    /// `level` (`factory::Sites::mark`, which refuses a site that doesn't fit).
+    MarkSite {
+        a: (i32, i32),
+        b: (i32, i32),
+        level: i32,
+        job: Job,
+    },
+    /// Removes the terraforming site with this id.
+    RemoveSite {
+        id: u32,
     },
     /// Chooses what every lab in the world researches (`u8::MAX` to stop); only an available tech.
     SetResearch {
@@ -178,6 +191,12 @@ impl Sim {
             Action::SetQuarry { pos, width, depth, paused } => self.factory.set_quarry(pos, width, depth, paused),
             Action::Rotate { pos } => {
                 self.factory.rotate(pos);
+            }
+            Action::MarkSite { a, b, level, job } => {
+                self.factory.sites.mark(&mut self.world, a, b, level, job);
+            }
+            Action::RemoveSite { id } => {
+                self.factory.sites.remove(id);
             }
             Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
             Action::Insert { pos, item } => {

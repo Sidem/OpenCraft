@@ -56,6 +56,7 @@ pub const IRON_AXE: ItemId = ItemId(268);
 pub const IRON_SHOVEL: ItemId = ItemId(269);
 pub const SCANNER: ItemId = ItemId(270);
 pub const CORE_DRILL: ItemId = ItemId(271);
+pub const STICK: ItemId = ItemId(272);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -108,7 +109,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 16] = [
+const EXTRA: [ItemDef; 17] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -125,6 +126,7 @@ const EXTRA: [ItemDef; 16] = [
     tool("Iron Shovel", tex::IRON_SHOVEL, &IRON_TIER),
     tool("Scanner", tex::SCANNER, &DEVICE_TIER),
     tool("Core Drill", tex::CORE_DRILL, &DEVICE_TIER),
+    part("Stick", tex::STICK, [1.0, 0.14, 0.14]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

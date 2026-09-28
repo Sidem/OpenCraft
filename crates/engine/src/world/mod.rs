@@ -144,6 +144,25 @@ impl World {
         b
     }
 
+    /// Whether chunk `c` holds only air, loaded or not (generating it, like
+    /// `block_anywhere_or_generate`, where no copy exists): column scans skip the sky with it.
+    pub fn is_air_anywhere(&mut self, c: IVec3) -> bool {
+        let air = |chunk: &Chunk| chunk.as_uniform() == Some(AIR);
+        if let Some(e) = self.chunks.get(&c) {
+            return air(&e.chunk);
+        }
+        if let Some(chunk) = self.saved.get(&c).or_else(|| self.generated.iter().find(|g| g.0 == c).map(|g| &g.1)) {
+            return air(chunk);
+        }
+        let chunk = self.generator.generate(c);
+        let is_air = air(&chunk);
+        if self.generated.len() >= GENERATED_CACHE {
+            self.generated.remove(0);
+        }
+        self.generated.push((c, chunk));
+        is_air
+    }
+
     /// Like [`World::set_block`], but also works where no chunk is loaded (machines keep running
     /// while the player is away): the edit goes into the stored copy of that chunk. As with
     /// `set_block`, writing the block that is already there changes nothing and returns false.

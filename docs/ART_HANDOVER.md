@@ -220,6 +220,10 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (torch, landed) The torch (block 57): a wooden stick with a coal head and a flame on crossed quads
   (`Render::Plant`, like the sapling); it should read as a light source at night. Placeholder:
   `tex::TORCH` (108), `torch()` in `textures/plants.rs`.
+- [ ] (wood, landed) Planks (block 58, a building block), the ladder (block 59: a see-through `Cutout`
+  cube, rails on the side faces' edges with three rungs, rail ends on top and bottom; it lets sky light
+  through) and the stick item (272). Placeholders: `tex::PLANKS`..`tex::STICK` (109–112) in
+  `textures/wood.rs`.
 - [ ] (5.8, landed) The quarry (block 56): its block reuses the Mk2 miner's side, steel and frame
   layers; the machine model (housing, corner posts, rails, beam, trolley, shaft, spinning drill) is in
   `factory/quarry/model.rs`. A blue status lamp (flooded) was added: `tex::LAMP_BLUE` (107), `lamp()` in

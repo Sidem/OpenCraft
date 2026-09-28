@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-27 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Next up: Milestone 6 (Terraforming), step 6.1** · The `art` branch is superseded;
+**Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
+now) · Milestone 6 (Terraforming): 6.1 done · **Next up: step 6.2 (the planner)** · The `art` branch is superseded;
 art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -40,7 +40,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (234 engine tests).
+   (238 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -104,6 +104,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
 | 2026-09-27 | **Order after Milestone 5: terraforming, then blueprints and construction drones, then transport** (personal flight first: jetpacks or hovering, and building from further away). The player should feel a steady, intuitive and fun growth of capability: building by hand → planning → automatic assembly. |
 | 2026-09-27 | **Finding starter ore made easier** (play-test: iron under rusty soil was too deep to find by hand). Generator version 4 for new worlds: shallower bands, coal, iron and copper exposed 1.5× as often on bare rock, two starter patches of each; a world map (M) of explored ground with pins; an ore guide with depth bands; stained soil tells what lies how deep. Mute moved to K. |
+| 2026-09-28 | **Processed wood and ladders.** Logs saw into planks, planks into sticks; sticks make tools, torches, poles and ladders (a see-through frame: jump climbs, crouch descends, idle holds). |
 | 2026-09-27 | **Miners need power; generators burn only what is used.** The first loop is a miner on coal feeding the generator that powers it. Energy is stored per generator (kJ); one coal (270 kJ) runs a Mk1 (5 kW) long enough to mine about 32 coal. The smelter stays a burner. |
 
 ### Proposed, not yet confirmed by the user
@@ -206,14 +207,14 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Saplings** (`sim/saplings.rs`): leaves drop one 1 time in 25 (broken or decayed); planted on dirt or
   grass, it grows after 60 s plus a 90 s half-life into a tree shaped like generated ones
   (`worldgen::tree_blocks`); drawn as crossed quads (`Render::Plant`, mesher faces 6 and 7).
-- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–57, see
-  `block/mod.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand, 44 the lamp, 45–52 water, 53–55 pump, pipe and outlet, 56 the quarry, 57 the torch); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
-  science packs, the six tools (264–269), scanner (270) and core drill (271). Every item is drawn as a textured box.
+- **Items** (`item.rs`): `ItemId(u16)`. Ids below 256 are the blocks with the same number (0–59, see
+  `block/mod.rs`; 29 is the sapling, 30–43 Milestone 4's rocks, ores, glass, stained soils and sand, 44 the lamp, 45–52 water, 53–55 pump, pipe and outlet, 56 the quarry, 57 the torch, 58 planks, 59 the ladder); from 256: iron and copper ingots, iron plate, iron rod, screws, copper wire, red and green
+  science packs, the six tools (264–269), scanner (270), core drill (271) and stick (272). Every item is drawn as a textured box.
 - **Sound:** procedural foley, 7 materials including metal, and a sound designer (key O).
 - **Debug API** on `window.opencraft.game`: `give`, `teleport`, `run_ticks`, `skip_time`, `find_deposit`,
   `block_at`, `toggle_fly`, `set_look`, `add_player`, `remove_player`, `state_hash`, `debug_desync`.
 - **Saving** (`save.rs`, `web/src/save/`): worlds autosave to IndexedDB; the menu lists, creates,
-  exports and imports them. Save version 16; every version since 1 loads.
+  exports and imports them. Save version 17; every version since 1 loads.
 - **Co-op** (`net/`, `web/src/net/`, `signal/`, `ui/coop.ts`, `ui/players.ts`): "Play together" in the
   menu hosts the open world (a room code and link from the signalling Worker) or joins from a pasted link
   or code; up to 4 players; a returning player gets their things back (player keys, `Sim.away`). Avatars
@@ -418,7 +419,7 @@ Tunnels come last. The quarry (5.8) stays as the simple early machine; the excav
 and ticks). Cell order never depends on loaded chunks. Big edits go through `set_block_anywhere_later`
 so remeshing stays within the streaming budget. Measure the worst tick for a 64 × 64 site.
 
-- [ ] **6.1 Sites in the core.** `factory/sites.rs`: `Sites` (held by `Factory` like `research`, saved
+- [x] **6.1 Sites in the core.** `factory/sites.rs`: `Sites` (held by `Factory` like `research`, saved
   after the quarries; save version 17) with `Site { id, lo, hi (columns x, z), level, job }`, `Job::Dig |
   Fill | Flatten`, ids from a counter (never an index), at most `MAX_SITE` (64) on a side and `MAX_SITES`
   per world. When a site is made the core finds its highest and lowest ground once (`*_anywhere`) and
@@ -427,7 +428,11 @@ so remeshing stays within the streaming budget. Measure the worst tick for a 64 
   `Action::MarkSite { lo, hi, level, job }` and `Action::RemoveSite { id }` (codec tags 21, 22). A
   `survey` query (loaded chunks only) counts cut and fill blocks, ore, water and the net spoil. Nothing
   works a site yet. **Done when:** tests for the order, limits, save and hash, and the codec pass.
-- [ ] **6.2 The planner.** A hand item `PLANNER` (272; recipe of plates, wire and glass; no research).
+  *Done 2026-09-28:* `MAX_SITES` 32; sites never overlap; `MarkSite { a, b, level, job }` takes the
+  corners in any order; `level` is the ground's top when done; `high` / `low` are the highest block and
+  the lowest column ground; `survey_site` also counts trees and unloaded columns; `api/sites.rs` has
+  `mark_site`, `remove_site`, `sites`, `site_survey`. Marking 64 × 64 on fresh ground: 6–11 ms native.
+- [ ] **6.2 The planner.** A hand item `PLANNER` (273; recipe of plates, wire and glass; no research).
   While held it aims up to `PLANNER_REACH` (64, like `belt_line.rs`'s far raycast): right-click sets the
   first corner, the second opens a small panel (`web/src/ui/site.ts`): job buttons, height −/+ (default:
   the first corner's surface), and the survey ("cut 1,240 · fill 310 · 930 to carry away · 12 ore ·
@@ -435,7 +440,7 @@ so remeshing stays within the streaming budget. Measure the worst tick for a 64 
   remove). Overlays: sites outlined in `render/outlines.ts` (cut red, fill blue, the pending one amber),
   squares on the minimap. A tip: "Plan the ground". **Done when:** a Game-level test marks and removes
   a site through the API; screenshots of marking, the panel and two sites.
-- [ ] **6.3 The excavator digs.** Block 58 `EXCAVATOR`, `factory/excavator/` (its own folder: machine,
+- [ ] **6.3 The excavator digs.** Block 60 `EXCAVATOR`, `factory/excavator/` (its own folder: machine,
   drones model, tests), unlocked by an **Earthworks** tech (red and green packs). It works the nearest
   site whose closest cell lies within `EXCAVATOR_RANGE` (32) and draws 30 kW. Four drones (presentation
   only, derived from each cell's progress like the quarry's head) fly out, cut a block and fly back with
@@ -560,3 +565,11 @@ and the balance numbers. Read the section you need.
   minimap now draws from it), the world map on M with pins (mute moved to K), ore diamonds, the ore
   guide, the stained-soil readout. Golden hash re-recorded. Tests 229 → 234; wasm 192.5 → 201.6 KB
   gzipped with the torches (`to_lowercase` alone cost 14 KB, avoided).
+- **2026-09-28: 6.1 done** (sites in the core): `factory/sites.rs` (`Sites` on `Factory`, save version 17),
+  `Action::MarkSite` / `RemoveSite` (tags 21, 22), `survey_site`, `World::is_air_anywhere` (scans skip the
+  sky), `api/sites.rs`. Golden hash re-recorded. Tests 234 → 238; wasm 201.6 → 204.5 KB gzipped.
+- **2026-09-28: Wood and ladders** (user request, before 6.2): planks (block 58, 4 from a log, a weak fuel),
+  sticks (item 272, 4 from 2 planks), ladders (block 59, 3 from 4 sticks; `player.rs` climbs them, the
+  body step asks which block is in a cell). Tools, torches (now 4 from a stick and a coal), poles and the
+  box use processed wood; a Materials build-menu section. The excavator moves to block 60, the planner to
+  item 273. Tests 238 → 239.

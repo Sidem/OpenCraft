@@ -10,10 +10,11 @@
 
 use super::Action;
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::factory::Job;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 21;
+pub const TAG_COUNT: u8 = 23;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -115,6 +116,17 @@ impl Action {
                 w.u8(depth);
                 w.bool(paused);
             }
+            Action::MarkSite { a, b, level, job } => {
+                w.u8(21);
+                for v in [a.0, a.1, b.0, b.1, level] {
+                    w.i32(v);
+                }
+                w.u8(job as u8);
+            }
+            Action::RemoveSite { id } => {
+                w.u8(22);
+                w.u32(id);
+            }
         }
     }
 
@@ -141,6 +153,13 @@ impl Action {
             18 => Action::Leave { pos: r.vec3()? },
             19 => Action::Rotate { pos: r.ivec3()? },
             20 => Action::SetQuarry { pos: r.ivec3()?, width: r.u8()?, depth: r.u8()?, paused: r.bool()? },
+            21 => Action::MarkSite {
+                a: (r.i32()?, r.i32()?),
+                b: (r.i32()?, r.i32()?),
+                level: r.i32()?,
+                job: Job::from_byte(r.u8()?)?,
+            },
+            22 => Action::RemoveSite { id: r.u32()? },
             _ => return None,
         })
     }
