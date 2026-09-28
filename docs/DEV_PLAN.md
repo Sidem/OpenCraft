@@ -1,8 +1,9 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · Milestone 6 (Terraforming): 6.1 done · **Next up: step 6.2 (the planner)** · The `art` branch is superseded;
-art work continues from `main` (`docs/ART_HANDOVER.md`).
+now) · **Now: Milestone 6 (Industry). Next up: step 6.1 (tiers as data)** · Terraforming moved to
+Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -30,8 +31,12 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   geology, surface hints, prospecting, map marks, day and night, sky light and lamps, a new build menu.
 - **Milestone 5 (Water and world shape) is done** (section 8): sea and ponds, swimming, flowing water,
   pumps, a quarry, rarer surface ore (generator version 3), and powered miners.
-- **Now: Milestone 6: Terraforming** (section 4): a planner tool marks sites, excavators with work drones
-  dig, fill, flatten and tunnel.
+- **Now: Milestone 6: Industry** (section 4): content architecture first (tiers as data, one generic
+  processing machine, multi-block footprints), then upgrade kits, the assembler, steel, blue science,
+  steam power and the crusher.
+- **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
+  architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
+  machines and techs. Read the concept once and the era you build.
 - **Art** (`docs/ART_HANDOVER.md`) says who owns which looks. When gameplay needs a new look, append a
   `tex` layer with a plain placeholder pattern and add a line to that file's request list.
 
@@ -98,23 +103,27 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-26 | **The world pauses while the game is closed.** No simulating missed time. |
 | 2026-09-26 | **New generation rules for new worlds only.** Worlds made before Milestone 4 keep generator version 1 and play as before. |
 | 2026-09-27 | **Belts:** ramps come from placement (no research), lines are dragged out, R rotates, research moved to T. |
-| 2026-09-27 | **Water and world shape before terraforming** (Milestone 5): sea level, lakes, swimming, pumps and pipes. Rivers later (now Milestone 9). |
+| 2026-09-27 | **Water and world shape before terraforming** (Milestone 5): sea level, lakes, swimming, pumps and pipes. Rivers later (now Milestone 10). |
 | 2026-09-27 | **Water flow is limited and deterministic:** a Minecraft-like spread, event-driven and capped per tick; no volume simulation. |
 | 2026-09-27 | **Surface ore is rare and meaningful:** about 10× fewer exposed outcrops, only on bare rock; a starter set near spawn; ores in depth bands. Vein and lode counts stay. |
 | 2026-09-27 | **A quarry in Milestone 5:** rock and soil get automated extraction that really digs a pit (the first excavator); it must be intuitive and satisfying to watch. |
-| 2026-09-27 | **Order after Milestone 5: terraforming, then blueprints and construction drones, then transport** (personal flight first: jetpacks or hovering, and building from further away). The player should feel a steady, intuitive and fun growth of capability: building by hand → planning → automatic assembly. |
+| 2026-09-27 | **Order after Milestone 5: terraforming, then blueprints and construction drones, then transport** (personal flight first: jetpacks or hovering, and building from further away). The player should feel a steady, intuitive and fun growth of capability: building by hand → planning → automatic assembly. *Order superseded on 2026-09-28 (Industry first).* |
 | 2026-09-27 | **Finding starter ore made easier** (play-test: iron under rusty soil was too deep to find by hand). Generator version 4 for new worlds: shallower bands, coal, iron and copper exposed 1.5× as often on bare rock, two starter patches of each; a world map (M) of explored ground with pins; an ore guide with depth bands; stained soil tells what lies how deep. Mute moved to K. |
 | 2026-09-28 | **Glass from sand; brighter lights.** The smelter makes glass from sand (1 → 1); quartz gives 2. Torches reach 11 (full within 4), lamps 31 (full within 17): the light margin is 32, the most the 3×3×3 field allows. |
 | 2026-09-28 | **Processed wood and ladders.** Logs saw into planks, planks into sticks; sticks make tools, torches, poles and ladders (a see-through frame: jump climbs, crouch descends, idle holds). |
 | 2026-09-27 | **Miners need power; generators burn only what is used.** The first loop is a miner on coal feeding the generator that powers it. Energy is stored per generator (kJ); one coal (270 kJ) runs a Mk1 (5 kW) long enough to mine about 32 coal. The smelter stays a burner. |
+| 2026-09-28 | **A deeper tech tree** (user request): each tier is built from the one before and makes every aspect more efficient (extraction, yield, logistics, power, processing, research, reach); machines several blocks big with ports for more inputs and outputs; an easy upgrade system: tier stripes coloured like the science packs (red, green, blue, violet, gold), upgrade kits applied in place, belt lines upgraded by dragging. Design: `docs/TECH_TREE.md`. |
+| 2026-09-28 | **Industry is the next milestone (6); terraforming moves later** "where it makes more sense" (supersedes the 2026-09-27 order). Every technology opens a possibility, improves efficiency or helps the player. Targets include AI datacenters, building with drones, satellite constellations, and energy and data sent by laser; the only limit is the stack (Rust, wasm, WebGL2 in a browser). |
+| 2026-09-28 | **Modular, open content architecture** (`docs/TECH_TREE.md` section 8): variants such as tiers are data (`tier: u8` into a table), never a `bool` like today's `fast` belt or `mk2` miner, nor a block per variant; processing machines are rows of one generic machine; recipes belong to categories. |
+| 2026-09-28 | **The order after Industry** (proposed by Claude, confirmed): 7 Electronics, blueprints and drones (with the jetpack) · 8 Terraforming (its excavator flies Milestone 7's drones) · 9 Distance (aluminium, trains) · 10 Fluids and chemistry · 11 Compute and photonics · 12 Orbit · 13 The megaproject. **Blue packs and upgrade kits from blue on are machine-made only.** |
 
 ### Proposed, not yet confirmed by the user
 
 - Old saves keep loading across format changes where a migration is cheap. Every save since version 1
   still loads.
-- Terraforming (Milestone 6): one excavator machine with work drones rather than separate grader, filler
-  and borer machines; dug ground is material that fills other sites first and goes onto belts after (a
-  dump is a fill site); ore in a site is cut like hand mining (lossy), with a warning when planning.
+- Terraforming: one excavator machine with work drones rather than separate grader, filler and borer
+  machines; dug ground fills other sites first and goes onto belts after (a dump is a fill site); ore in
+  a site is cut like hand mining (lossy), with a warning when planning.
 
 ---
 
@@ -288,6 +297,9 @@ you measure and defend.** If a change would break these rules, restructure first
   Plain data-oriented modules: typed storage in `Vec`s plus one function per system. Don't build
   abstractions ahead of need. Introduce a registry when the second instance of a kind arrives (e.g. the
   machine registry arrived with the smelter).
+- **Variants are data, never booleans.** A tier, material or mode is a field indexing a table; a new
+  tier or machine that only differs in numbers is a row. Content lint tests keep the tables consistent.
+  The full rules: `docs/TECH_TREE.md` section 8.
 
 **Size budgets** (enforced by `scripts/check-size.mjs`, part of `npm run check`)
 
@@ -395,78 +407,94 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 6: Terraforming
+## 4. Now: Milestone 6: Industry
 
-The user decided on 2026-09-27 (section 1): terraforming first, then blueprints and drones (Milestone 7),
-then transport and personal flight (Milestone 8). Across all three the player's reach should grow
-steadily and intuitively: building by hand → planning an area → machines doing the work.
+The user decided on 2026-09-28 (section 1): Industry comes now, terraforming later (Milestone 8, whose
+sites step is built: `docs/ROADMAP.md`). Design: `docs/TECH_TREE.md` (read sections 1, 6, 7 and 8) and
+`docs/TECH_ERAS.md` sections 1 and 2 (every number, recipe and tech of this era).
 
-**Goal:** the player marks an area with a planner tool, picks a job (dig down to, fill up to, flatten to
-a height) and excavators do it with small work drones, visibly and block by block. Dug ground is material:
-it fills other sites first, and the rest goes onto belts and into boxes. A "dump" is just a fill site.
-Tunnels come last. The quarry (5.8) stays as the simple early machine; the excavator is its big brother.
+**Goal:** the factory gets a real second act. Belts and machines upgrade in place with colour-coded kits;
+machines several blocks big take several inputs and give byproducts; steel, concrete and motors lead to
+blue science, Mk3 everything, steam power and ore crushing. First, the content architecture is made
+modular so that everything after costs rows, not rewrites.
 
-**Facts from Milestone 5 this builds on:**
-- The sea is the only endless water: sources form only at or below `SEA_LEVEL` (62). Pumps can't lower
-  the sea or anything open to it. A cut below sea level floods when it opens to the sea; a fill placed
-  into water is solid ground and the sea doesn't come back (land can be reclaimed).
-- Water checks are capped per tick (`MAX_WATER_UPDATES`); mass edits next to water queue many.
-- The quarry (`factory/quarry/`): cells in a fixed order, `*_anywhere` edits, `QUARRIABLE`, an output
-  buffer that feeds belts, waiting while flooded, `Factory.changed` for water and timers, cracks and
-  sounds. Reuse its patterns (and `survey`), don't generalise it.
-- Power: generators give only what is drawn; every miner needs power. Generator version 3 is frozen.
+**Rules for all steps:**
+- `docs/TECH_TREE.md` section 8 is binding: tiers are data, processing machines are spec rows, recipes
+  belong to categories, unlocks are one enum. No new `bool` per variant, no block per tier.
+- Old saves keep loading: each format change bumps `SAVE_VERSION` with a migration and a fixture test
+  (keep a version-17 fixture from before 6.1). Golden hashes are re-recorded only on purpose, noted in
+  the step.
+- New blocks and items append (the next free block is 60, item 273; they were reserved for terraforming,
+  no longer). Each new look gets a placeholder layer and an `docs/ART_HANDOVER.md` request line.
+- Refactor steps (6.1, 6.2, 6.4) change no behaviour: every existing test passes unchanged, and the net
+  line count and wasm size should not grow.
 
-**Rules for all steps:** sites and their progress are core state (saved, hashed, changed only by actions
-and ticks). Cell order never depends on loaded chunks. Big edits go through `set_block_anywhere_later`
-so remeshing stays within the streaming budget. Measure the worst tick for a 64 × 64 site.
-
-- [x] **6.1 Sites in the core.** `factory/sites.rs`: `Sites` (held by `Factory` like `research`, saved
-  after the quarries; save version 17) with `Site { id, lo, hi (columns x, z), level, job }`, `Job::Dig |
-  Fill | Flatten`, ids from a counter (never an index), at most `MAX_SITE` (64) on a side and `MAX_SITES`
-  per world. When a site is made the core finds its highest and lowest ground once (`*_anywhere`) and
-  keeps them as the cut and fill ranges. Cell order: cut layers from the top down, fill layers from the
-  bottom up, rows back and forth; a fill cell counts only from its column's ground up (never into caves).
-  `Action::MarkSite { lo, hi, level, job }` and `Action::RemoveSite { id }` (codec tags 21, 22). A
-  `survey` query (loaded chunks only) counts cut and fill blocks, ore, water and the net spoil. Nothing
-  works a site yet. **Done when:** tests for the order, limits, save and hash, and the codec pass.
-  *Done 2026-09-28:* `MAX_SITES` 32; sites never overlap; `MarkSite { a, b, level, job }` takes the
-  corners in any order; `level` is the ground's top when done; `high` / `low` are the highest block and
-  the lowest column ground; `survey_site` also counts trees and unloaded columns; `api/sites.rs` has
-  `mark_site`, `remove_site`, `sites`, `site_survey`. Marking 64 × 64 on fresh ground: 6–11 ms native.
-- [ ] **6.2 The planner.** A hand item `PLANNER` (273; recipe of plates, wire and glass; no research).
-  While held it aims up to `PLANNER_REACH` (64, like `belt_line.rs`'s far raycast): right-click sets the
-  first corner, the second opens a small panel (`web/src/ui/site.ts`): job buttons, height −/+ (default:
-  the first corner's surface), and the survey ("cut 1,240 · fill 310 · 930 to carry away · 12 ore ·
-  water"). Mark queues the action; right-click inside a site with the planner opens it (progress,
-  remove). Overlays: sites outlined in `render/outlines.ts` (cut red, fill blue, the pending one amber),
-  squares on the minimap. A tip: "Plan the ground". **Done when:** a Game-level test marks and removes
-  a site through the API; screenshots of marking, the panel and two sites.
-- [ ] **6.3 The excavator digs.** Block 60 `EXCAVATOR`, `factory/excavator/` (its own folder: machine,
-  drones model, tests), unlocked by an **Earthworks** tech (red and green packs). It works the nearest
-  site whose closest cell lies within `EXCAVATOR_RANGE` (32) and draws 30 kW. Four drones (presentation
-  only, derived from each cell's progress like the quarry's head) fly out, cut a block and fly back with
-  it; about 4 blocks a second at full power. It digs ground, logs and leaves (leaves drop nothing, logs
-  become logs); ore and spent rock go like hand mining (`HAND_YIELD`, costing the deposit), and the
-  planner warns about them first. Bedrock, machines, belts and pipes stay. It waits while a cell is
-  water ("flooded"). Output: a buffer feeding belts and boxes like the quarry's. Several excavators on
-  one site share its cells. **Done when:** a 16 × 16 hill is cut to a level and a belt carries exactly its
-  blocks; ore handling, sharing and a save mid-dig pass; screenshots of the drones at work.
-- [ ] **6.4 Fill and flatten.** An excavator fills cells from its buffer: dirt for the top layer when it
-  has some (grass spreads by itself through the block timers), else stone or rock. It takes fill from
-  belts and boxes beside it (a sink for `QUARRIABLE` drops). Dug blocks go to fill sites in range first,
-  then out, so a flatten site balances itself and a fill site anywhere in range is a dump. Filling into
-  water replaces it. **Done when:** a flatten site ends level with the surplus boxed; a fill site in the
-  sea makes dry land that stays dry; a hill carried into a hollow; screenshots before and after.
-- [ ] **6.5 Tunnels.** A planner mode: two points make a straight tunnel (1 × 2, 3 × 3 or 5 × 5; slopes
-  up to 1 in 2), dug from the first point by an excavator in range of it. The excavator moves its work
-  point along the tunnel (range from the tunnel face, not the machine), so a long tunnel needs one
-  excavator at its mouth. Breaking into water waits like a cut. **Done when:** a 64-block tunnel through
-  a hill, a sloped one down to a vein, and a flooded breach that waits pass as tests; a screenshot.
-- [ ] **6.6 Scale and feel.** Earthworks 2 (research): excavator Mk2 with 8 drones, range 48, twice the
-  speed. Measure the worst tick and remeshing with 4 excavators on a 64 × 64 flatten next to the sea;
-  fix what shows. Sounds and cracks for drones near the camera only. README, tips, balance numbers.
-- [ ] **6.7 Milestone 6 cleanup.** Section 3.1 checklist, measured numbers, `docs/CODEMAP.md` current.
-  Then ask the Milestone 7 questions (section 6) and move Milestone 7 in from the roadmap.
+- [ ] **6.1 Tiers as data.** `factory/tiers.rs`: `FAMILIES` (the block, name and highest tier of each
+  tiered family; belts and miners first) and `tier_name`. `Belt::fast` and `Miner::mk2` become `tier: u8`
+  (1-based); each family's numbers become arrays indexed by tier atop its module (`BELT_SPEEDS`,
+  `MINER_TIERS { rate, recovery, power }`), read in one place each (`power.rs` asks the miner its power).
+  Items: `ItemDef.tier`; placing an item puts its family block with that tier. `FAST_BELT` and
+  `MINER_MK2` become legacy aliases (extra `MACHINES` rows that load and place as tier 2 of their family;
+  their items stay valid). Textures: the Mk2 side looks come from the tier, not a separate layer choice.
+  Save version 18 (tier bytes instead of bools). **Done when:** no `fast` or `mk2` field is left; the v17
+  fixture loads with the same belt speeds and miner rates; the hash of an old save is unchanged after
+  load-and-save or the change is explained; tests per tier.
+- [ ] **6.2 Unlocks, categories and content lint.** `research.rs`: `Unlock` enum (`Recipe(item)`,
+  `MachineRecipe(index)`, `Upgrade(family, tier)`, `Feature(Feature)`) replacing `unlocks: &[ItemId]`;
+  `research.has(…)`. `recipes.rs`: `MachineRecipe` gets a `Category` (smelting, pressing; more later)
+  instead of a machine block, and `outputs: &[(ItemId, u32)]` (several, for byproducts); indices stay
+  (saved). Machine panels grey locked recipes with the tech's name. Lint tests (`recipes/tests.rs`,
+  `research/tests.rs`): every item has a source and a use or is an end product, every category has a
+  machine, techs reachable without cycles, every unlock exists, family tiers contiguous. **Done when:**
+  the lint passes on today's content and fails on a planted mistake of each kind.
+- [ ] **6.3 Upgrade kits and stripes.** `factory/upgrades.rs`: kits per tier (green now), kits per step
+  by class (belt-like 1, machine 4, multi-block 8), `TIER_COLOURS` with a getter in `api/content.rs`,
+  five flat stripe layers; belts show the colour on their rails, miners as a band, with pips. Items:
+  gear (pressing recipe), green kit (hand, makes 4). `Action::Upgrade { pos }` (codec tag 23):
+  right-click with kits (`interaction.rs`); dragging along belts with kits plans an upgrade line
+  (`belt_line.rs`: cells in the kit colour, "12 belts · 12 kits (you have 9)", queued a few per tick).
+  The build menu derives "Belt Mk2 = Belt + 1 green kit" rows; the old fast belt and Mk2 miner recipes
+  go. Mechanics tech (Mk2 for belts and miners; the other families follow in 6.4 and 6.7). **Done
+  when:** an upgraded belt keeps its riding items and doubles speed; 9 kits upgrade 9 of 12 dragged
+  belts; a miner keeps its buffer and deposit; screenshots of Mk1 and Mk2 stripes and a dragged upgrade.
+- [ ] **6.4 One processing machine.** `factory/process/`: `Processor` (one struct and `step` for every
+  inputs-to-outputs machine), `specs.rs` (`ProcessSpec` rows: block, categories, energy burner or
+  electric kW, buffer sizes, tier speeds, model parts), `model.rs` (parts plus the tier band). The
+  smelter and constructor become spec rows and their modules are deleted; the panel works from the spec.
+  Tiers for both (smelter Mk2 burns a quarter less fuel an ingot). Masonry: stone bricks and quicklime
+  (smelting rows, locked). Save version 19 reads old smelter and constructor bytes into processors.
+  **Done when:** every existing smelter and constructor test passes against the processor; the net line
+  count drops; screenshots of both machines unchanged apart from stripes.
+- [ ] **6.5 Footprints and the assembler.** `factory/footprint.rs`: footprints turned by facing, the
+  `MACHINE_PART` block, every cell in `Factory.at`, ports `(cell, face, role)` for links, placement check,
+  breaking any cell returns the machine with its buffers, power through any cell, targeting any cell
+  names the machine. The ghost (amber, red where blocked, R turns it) is a presentation module like
+  `quarry_preview.rs`. The assembler is a spec row (2×2×2, 3 in, 1 out, 20 kW, assembly); motor,
+  concrete (block); red and green packs and green kits also as assembly recipes. Assembly tech.
+  **Done when:** a scenario test feeds an assembler from three belts and takes motors from its output;
+  placing into a blocked cell refuses; breaking a part cell returns the assembler; screenshot.
+- [ ] **6.6 Steel.** The blast furnace as a spec row (2×2×3, 3 in, steel out front, slag out the side,
+  burns the recipe's coal); slag (block), steel ingot, plate, beam; steel tools (a `tools.rs` tier row);
+  a machine whose byproduct port is blocked stops and says so. Steelmaking tech. **Done when:** ore,
+  coal and quicklime on three belts give steel and slag on two; a blocked slag port stops it; screenshot.
+- [ ] **6.7 Blue science and Mk3.** The blue pack (assembly only) and blue kit; `PACKS` gains blue (labs
+  get a slot; saves read the old slot count). Tiers for every family so far up to Mk3 (TECH_ERAS
+  section 1): belts 4 blocks/s, miners 85 %, electric smelter, processors ×3, labs (every fifth unit
+  free, a counter), poles as pylons (32 · 9), boxes 48, pumps 8, quarry, generator Mk2. Techs: Blue
+  Science, Mk3 Logistics, Mk3 Machines, Steel Tools. **Done when:** a test per family at each tier; a
+  Mk3 belt carries 11.4 items/s; a Mk3 lab uses 4 packs for 5 units.
+- [ ] **6.8 Steam power.** Boiler (2×2×2, fuel by belt, water as a pipework sink) and steam turbine
+  (3×2×2) that draws steam from a touching boiler. `power.rs`: supply becomes a list of sources
+  (generators, turbines) with one balance. 540 kJ a coal, 1 water source per 2,000 kJ, up to two turbines
+  a boiler. Steam Power tech. **Done when:** a sea pump feeds a boiler and two turbines through a
+  night at 400 kW; a pond-fed plant runs dry and says so; screenshot.
+- [ ] **6.9 Crushing and bulk storage.** The crusher (a spec row, 1×1: 2 ore → 3 crushed, slag → sand)
+  and the silo (2×2×3, 144 slots, storage with a footprint). Ore Crushing and Bulk Storage techs.
+  **Done when:** a test measures 1.5 ingots per ore through a crusher line; a silo fed from three sides.
+- [ ] **6.10 Feel, balance, cleanup.** Tips for kits, the assembler, steel and steam; research times
+  played through; worst tick and wasm measured; README; `docs/CODEMAP.md` "How to add a machine"
+  rewritten for spec rows; `docs/TECH_ERAS.md` era 3 cut to a few lines. Then ask the Milestone 7
+  questions (section 6) and move Milestone 7 in from the roadmap.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -483,7 +511,8 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ## 5. Roadmap after Milestone 6
 
-Milestones 7–10 are in `docs/ROADMAP.md`; read it only when planning.
+Milestones 7–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
+and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
 
@@ -494,9 +523,10 @@ and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes in range of a drone port, or anywhere on a network? |
-| M8 | Personal flight: a jetpack that burns fuel, a powered hover pack, or both as tiers? And trains or trucks after it? |
-| M10 | Megaproject theme (rocket ship or something else) and what launching unlocks. |
+| M6 (before 6.3) | Kits one step at a time, never refunded? A colour-blind palette option for tier colours (pips and "Mk3" text are there regardless)? |
+| M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes beside a drone port, or anywhere on a network? Flight: a coal jetpack now, an aluminium hover pack in M9: agreed? |
+| M9 | Trains, trucks, or both? |
+| M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
 
 ---
 
@@ -509,17 +539,12 @@ and the balance numbers. Read the section you need.
 
 ## 8. Change log of this plan
 
-- **2026-09-25:** Plan created (`3239215`); keeping the codebase small for agents is a top priority.
-- **2026-09-25: Milestone 1 (Foundation) done** (`31bb05b` to `74fb476`): fixed tick, core `Sim`, actions,
-  events, several players, canonical bytes, state hash, saves. Tests 56 → 74, wasm 81.5 KB gzipped.
-- **2026-09-25: Milestone 2 (Make it a game) done** (`b49b766` to `3bf3f92`): items, machines and panels,
-  belts, boxes, power, research, Mk2, tips; save version 9. Tests 74 → 113, wasm 120.3 KB. Lessons:
-  measure wasm every step; the golden hash catches unintended core changes; prefer bare-`Factory` tests.
-- **2026-09-26: Milestone 3 (Co-op) done** (pushed `c845691`): lockstep over bytes (`action/codec.rs`,
-  `net/`), join snapshots and player keys (save version 10), avatars, host-owned loose items, a hidden tab
-  that keeps ticking, the signalling Worker (STUN only), WebRTC, the "Play together" menu, pings, 10 s
-  timeouts and in-place resync; 3.9 deferred. A client uses about 8 KB/s down, 4 KB/s up while idle.
-  Lessons: keep heavy sort keys `#[inline(never)]`; key hidden-tab work off stalled frames; edit files
+- **2026-09-25: Plan created; Milestones 1 and 2 done** (`3239215` to `3bf3f92`): fixed tick, core `Sim`,
+  actions, state hash, saves; items, machines, belts, power, research, Mk2, tips. Tests 56 → 113, wasm
+  120.3 KB. Lessons: measure wasm every step; the golden hash catches unintended core changes.
+- **2026-09-26: Milestone 3 (Co-op) done** (pushed `c845691`): lockstep over bytes, join snapshots, player
+  keys, avatars, the signalling Worker (STUN only), WebRTC, pings, timeouts, in-place resync; 3.9
+  deferred. About 8 KB/s down, 4 up while idle. Lessons: heavy sort keys `#[inline(never)]`; edit files
   with the file tools (PowerShell reads UTF-8 as ANSI). Tests 113 → 127; wasm 131.5 KB gzipped.
 - **2026-09-26: Play-test notes P1–P5 done** (`233371b`): Escape hints before pausing, the minimap, block
   timers (`sim/timers.rs`, save version 11: leaf decay, grass), tools (wear is the stack count). The `art`
@@ -529,53 +554,28 @@ and the balance numbers. Read the section you need.
   ores by biome with soil hints, scanner and core drill, map marks, day and night, sky and block light
   (meshing 0.36 → 0.49 ms per chunk, +25 % mesh memory), lamps; the art salvage and the build menu grid.
   Save version 12. Tests 141 → 183; wasm 138.0 → 161.4 KB gzipped.
-- **2026-09-27: Belt placement upgrade** (`0bc0e47`, user request): ramps derived from placement
-  (`belt_shape::derive_slopes`), drag-to-build lines (`belt_line.rs`, plain `PlaceBlock`s, 3 per tick),
-  `Action::Rotate` on R, research on T, tech 1 is Belt Lifts. Golden hash re-recorded. Tests 183 → 193.
-- **2026-09-27: Milestone 5 redefined** at the user's request: Water and world shape (sea, ponds,
-  swimming, limited flowing water, pumps and pipes, rare surface ore with depth bands; generator version
-  3) comes before terraforming, which moved to Milestone 6.
-  The user then added a quarry (step 5.8) so rock and soil get automated extraction.
+- **2026-09-27: Belt placement upgrade** (`0bc0e47`): ramps derived from placement, drag-to-build lines
+  (`belt_line.rs`), R rotates, research on T. Tests 183 → 193.
 - **2026-09-27: Milestone 5 (Water and world shape) done** (`becc673` to `c1c61f9`): generator version 3
-  (version 2 pinned; rare surface ore on bare rock, depth bands, a starter set 40–80 blocks out; measured
-  0.24–0.5 exposed outcrops per column, was 3.3), the sea (level 62) and ponds, water drawn blended with
-  underwater fog, swimming and floating items, flowing water as core state (deviation: the sea is the
-  only endless water), pumps, pipes and outlets (Fluid Handling), and the quarry (preview box, gantry,
-  panel). Save versions 13–15. Tests 193 → 225; wasm 161.4 → 192.5 KB gzipped (`vite build`; the quarry
-  about 11 KB of it). Lessons: a rule that looks right in the plan (two-source water) can block a later
-  step, so test the next step's scenario early; PowerShell array patches misfire on a single pair.
-- **2026-09-27: Power rework** (user request, before 5.9): every miner needs power (Mk1 5 kW);
-  generators store fuel energy (kW·ticks; coal 270 kJ, log 135 kJ) and give only what is drawn, up to
-  60 kW, so one coal runs a Mk1 long enough to mine about 32 coal. Generator and poles are made from ore
-  so the first loop (a coal miner feeding its own generator) comes right after the first miner; a new
-  tip (10 of 10). Save version 16 (old fire ticks convert to energy); golden hash re-recorded. Old
-  worlds' Mk1 miners stop until a pole and generator reach them. Tests 225 → 226.
-- **2026-09-27: 5.9 done** (Milestone 5 cleanup, `a682a28`): plan compressed, section 2 and the README
-  brought up to date, sizes measured.
-- **2026-09-27: Milestone 6 (Terraforming) detailed** after the user set the order (terraforming, then
-  blueprints and drones, then transport with personal flight first). The roadmap is renumbered: 7
-  Blueprints and drones, 8 Transport and flight, 9 Fluids and depth, 10 Endgame.
-- **2026-09-27: Torches and stronger lamps** (user request, before 6.1): block 57, 8 from a log and a coal
-  ore, on any solid block, dropping when it goes (`sim/torches.rs`). Light sources are rows of
-  `light::SOURCES` (strength, loss per block): a lamp 20 losing 1 (full within 5, reaches 19; was 14), a
-  torch 12 losing 2 (reaches 5) in a second short field. The light margin grew to 20; `bench_meshing`
-  measured 0.54 → 0.43 ms per chunk. `block/tables.rs` split out. Tests 226 → 229.
-- **2026-09-27: Finding ore** (play-test request, before 6.1): generator version 4 (new worlds; version 3
-  now pinned in `released_versions_never_change`): bands coal 6–22, iron 8–28, copper 12–34, metal
-  exposure 0.42 (was 0.28), two starter patches each. The explored map (`minimap/atlas.rs`, the
-  minimap now draws from it), the world map on M with pins (mute moved to K), ore diamonds, the ore
-  guide, the stained-soil readout. Golden hash re-recorded. Tests 229 → 234; wasm 192.5 → 201.6 KB
-  gzipped with the torches (`to_lowercase` alone cost 14 KB, avoided).
-- **2026-09-28: 6.1 done** (sites in the core): `factory/sites.rs` (`Sites` on `Factory`, save version 17),
-  `Action::MarkSite` / `RemoveSite` (tags 21, 22), `survey_site`, `World::is_air_anywhere` (scans skip the
-  sky), `api/sites.rs`. Golden hash re-recorded. Tests 234 → 238; wasm 201.6 → 204.5 KB gzipped.
-- **2026-09-28: Wood and ladders** (user request, before 6.2): planks (block 58, 4 from a log, a weak fuel),
-  sticks (item 272, 4 from 2 planks), ladders (block 59, 3 from 4 sticks; `player.rs` climbs them, the
-  body step asks which block is in a cell). Tools, torches (now 4 from a stick and a coal), poles and the
-  box use processed wood; a Materials build-menu section. The excavator moves to block 60, the planner to
-  item 273. Tests 238 → 239.
-- **2026-09-28: Glass from sand, brighter lights** (user request): the smelter turns sand into glass (quartz
-  now 1 → 2); `light::SOURCES` torch 24 (reaches 11), lamp 32 (full within 17, reaches 31), `MARGIN` 20 → 32.
-  `bench_meshing` 0.43 → 0.56 ms per chunk. The research panel's header named R; research is on T.
-- **2026-09-28: Climbable lifts** (user request): belt lifts climb like ladders (`player::climbable`), so lift
-  stacks are easy to build. Tests 239 → 240.
+  (rare surface ore, depth bands, starter set), the sea and ponds, swimming, flowing water as core state
+  (only the sea is endless), pumps, pipes, outlets, the quarry. Save versions 13–15. Tests 193 → 225;
+  wasm 161.4 → 192.5 KB. Lessons: test the next step's scenario early (two-source water blocked one);
+  PowerShell array patches misfire on a single pair.
+- **2026-09-27: Power rework and 5.9** (`a682a28`): every miner needs power; generators store fuel energy
+  and give only what is drawn (coal 270 kJ); the coal-miner-feeds-its-generator loop. Save version 16.
+  Tests 225 → 226. Then Milestone 6 (Terraforming) was detailed.
+- **2026-09-27: Torches and finding ore** (`11eee3b`): torches (`sim/torches.rs`), light sources as rows
+  of `light::SOURCES`; generator version 4 (shallower bands, more exposed metal, two starter patches),
+  the explored map and world map (M) with pins, ore guide, stained-soil readout. Tests 226 → 234; wasm
+  192.5 → 201.6 KB (`to_lowercase` alone cost 14 KB, avoided).
+- **2026-09-28: Sites in the core** (then step 6.1, `b33f98c`; now part of Milestone 8): `factory/sites.rs`
+  (save version 17), `MarkSite` / `RemoveSite` (tags 21, 22), `survey_site`, `api/sites.rs`. Tests
+  234 → 238; wasm 204.5 KB. With it: planks, sticks, ladders (blocks 58, 59; item 272).
+- **2026-09-28: Glass from sand, brighter lights, climbable lifts** (`1dfaa53`, `2d89533`): sand → glass,
+  torch reach 11, lamp 31, light `MARGIN` 32 (`bench_meshing` 0.56 ms per chunk); lifts climb like
+  ladders. Tests 238 → 240.
+- **2026-09-28: Tech tree and Industry** (user request, a review before 6.2): `docs/TECH_TREE.md` (the
+  concept: eleven lines, their links, the far end up to datacenters, lasers and satellites, upgrades,
+  the content architecture) and `docs/TECH_ERAS.md` (per era). The user made Industry Milestone 6 and
+  moved terraforming later (now 8; its sites step, built as 6.1, stays in the core and its design is in
+  the roadmap). Roadmap now 7–13. No code changed.

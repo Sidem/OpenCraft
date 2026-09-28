@@ -395,7 +395,11 @@ Factory layer (the Satisfactory half):
 - [x] Pumps, pipes and outlets: drain ponds and flooded pits
 - [x] Quarry: automated digging that leaves a real pit
 - [x] Research: labs, science packs and a small tech tree
+- [ ] Industry: colour-coded upgrade kits, multi-block machines, steel, blue science, steam power
+- [ ] Electronics, blueprints and construction drones, the jetpack
+- [ ] Terraforming: a planner and excavators with work drones
+- [ ] Aluminium from far away, trains
+- [ ] Oil, plastics and nuclear power
+- [ ] AI datacenters and laser links for power and data
+- [ ] Rockets and satellite constellations
 - [ ] An optional endgame megaproject that doesn't end the game
-- [ ] Terraforming machines: excavators, graders, tunnel borers
-- [ ] Blueprints and construction drones
-- [ ] Trucks and trains
