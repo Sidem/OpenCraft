@@ -127,7 +127,7 @@ pub const RECIPES: &[Recipe] = &[
         count: 2,
         inputs: &[(IRON_ROD, 2), (b(BELT), 2)],
         blurb: "Carries items straight up. Stack lifts facing the same way to climb higher; the top one \
-                hands items on one block ahead and one up.",
+                hands items on one block ahead and one up. You can climb a lift stack like a ladder.",
     },
     Recipe {
         output: b(UNDERPASS_IN),

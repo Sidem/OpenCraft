@@ -577,3 +577,5 @@ and the balance numbers. Read the section you need.
 - **2026-09-28: Glass from sand, brighter lights** (user request): the smelter turns sand into glass (quartz
   now 1 → 2); `light::SOURCES` torch 24 (reaches 11), lamp 32 (full within 17, reaches 31), `MARGIN` 20 → 32.
   `bench_meshing` 0.43 → 0.56 ms per chunk. The research panel's header named R; research is on T.
+- **2026-09-28: Climbable lifts** (user request): belt lifts climb like ladders (`player::climbable`), so lift
+  stacks are easy to build. Tests 239 → 240.

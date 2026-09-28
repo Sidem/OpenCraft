@@ -228,7 +228,7 @@ size.
 Craft machines in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
 or everything made from a material, and filter by what you can craft now, what misses materials and what
 research still locks. Hover a recipe for its description and materials; click it to craft one, Shift-click
-for up to five. Wood comes first (Materials): a log saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up, crouch to go down, let go to stay put; stack them up a cliff or down a shaft and walk off onto the ledge at the top. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
+for up to five. Wood comes first (Materials): a log saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up, crouch to go down, let go to stay put; stack them up a cliff or down a shaft and walk off onto the ledge at the top. Belt lifts climb the same way, so building a tall lift stack is easy. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 8 planks and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
 wire and 2 belts. Two lifts cost 2 iron rods and 2

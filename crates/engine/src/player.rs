@@ -8,11 +8,11 @@
 //! with the chest out, pushing against a wall or standing on the bottom, leaps like a jump on land:
 //! that is how a swimmer climbs out onto a bank. Flying ignores water.
 //!
-//! Climbing: a body with a ladder at its feet or waist doesn't fall; it rises at `CLIMB_SPEED` with jump
+//! Climbing: a body with a ladder or a belt lift (`climbable`) at its feet or waist doesn't fall; it rises at `CLIMB_SPEED` with jump
 //! held and sinks with crouch held. Climbing past the top ladder carries the feet just over it, so walking
 //! on steps onto a ledge level with it.
 
-use crate::block::{BlockId, LADDER, LIQUID};
+use crate::block::{BlockId, LADDER, LIFT, LIQUID};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
@@ -39,7 +39,7 @@ const SWIM_UP_SPEED: f64 = 2.5;
 const CHEST_HEIGHT: f64 = 1.2;
 /// Speed up and down a ladder.
 const CLIMB_SPEED: f64 = 3.0;
-/// Heights above the feet that hold on to a ladder.
+/// Heights above the feet that hold on to a ladder or lift.
 const GRIP_HEIGHTS: [f64; 2] = [0.1, 0.9];
 
 #[derive(Clone, Copy, Default)]
@@ -152,7 +152,7 @@ impl Player {
         }
         let swimming = self.in_water;
         let chest_out = swimming && !water_at(CHEST_HEIGHT);
-        let climbing = !self.flying && !swimming && GRIP_HEIGHTS.iter().any(|&h| block_at(h) == LADDER);
+        let climbing = !self.flying && !swimming && GRIP_HEIGHTS.iter().any(|&h| climbable(block_at(h)));
 
         let mut speed = match (self.flying, inp.sprint, inp.crouch) {
             (true, true, _) => FLY_SPRINT_SPEED,
@@ -241,6 +241,11 @@ impl Player {
             self.vel.y = (self.vel.y - GRAVITY * 0.1 * dt) * (-WATER_DRAG * dt).exp();
         }
     }
+}
+
+/// Blocks a body climbs by standing in them: ladders, and belt lifts so a lift stack is easy to build.
+fn climbable(b: BlockId) -> bool {
+    b == LADDER || b == LIFT
 }
 
 #[cfg(test)]

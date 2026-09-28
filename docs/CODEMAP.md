@@ -95,7 +95,7 @@ folder with `mod.rs`.
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
 | `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
 | `recipes.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` (smelter seconds and generator kJ) |
-| `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders, fly); `in_water`, `splash_speed` for sounds |
+| `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders and belt lifts, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
 | `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 32-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light. Render cache only |

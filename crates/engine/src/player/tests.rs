@@ -147,3 +147,20 @@ fn a_ladder_holds_a_climber_and_leads_onto_the_ledge() {
     climb(&mut p, 1.0);
     assert!(p.on_ground && (p.pos.y - 15.0).abs() < 1e-6 && p.pos.x > 1.2, "on the ledge: {:?}", p.pos);
 }
+
+#[test]
+fn a_belt_lift_stack_climbs_like_a_ladder() {
+    let mut lifts = |x: i32, y: i32, _z: i32| if x == 0 && (10..15).contains(&y) { LIFT } else { AIR };
+    let mut p = Player::new(Vec3::new(0.5, 10.0, 0.5));
+    p.yaw = std::f64::consts::FRAC_PI_2;
+    p.input.jump = true;
+    p.input.forward = 1.0;
+    for _ in 0..240 {
+        p.step(1.0 / 120.0, &mut cliff, &mut lifts);
+    }
+    p.input.jump = false;
+    for _ in 0..120 {
+        p.step(1.0 / 120.0, &mut cliff, &mut lifts);
+    }
+    assert!(p.on_ground && (p.pos.y - 15.0).abs() < 1e-6 && p.pos.x > 1.2, "up the lifts onto the ledge: {:?}", p.pos);
+}
