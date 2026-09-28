@@ -8,7 +8,8 @@ use crate::action::Action;
 use crate::factory;
 use crate::item::ItemId;
 use crate::math::IVec3;
-use crate::recipes::MACHINE_RECIPES;
+use crate::recipes::{makes, MACHINE_RECIPES};
+use crate::research::Unlock;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -50,7 +51,13 @@ impl Game {
 
     /// Indices of the machine recipes the machine block `block` makes.
     pub fn machine_recipes(&self, block: u8) -> Vec<u32> {
-        (0..MACHINE_RECIPES.len() as u32).filter(|&i| MACHINE_RECIPES[i as usize].machine == block).collect()
+        (0..MACHINE_RECIPES.len() as u32).filter(|&i| makes(block, MACHINE_RECIPES[i as usize].category)).collect()
+    }
+
+    /// The tech whose research unlocks machine recipe `i`, or -1 if it isn't locked.
+    pub fn machine_recipe_locked_by(&self, i: u32) -> i32 {
+        let unlock = Unlock::MachineRecipe(i.min(u16::MAX as u32) as u16);
+        self.sim.factory.research.locked_by(unlock).map_or(-1, i32::from)
     }
 
     /// A machine recipe's inputs as flat (item, count) pairs.
@@ -60,9 +67,11 @@ impl Game {
             .map_or_else(Vec::new, |r| r.inputs.iter().flat_map(|&(it, n)| [it.0 as u32, n]).collect())
     }
 
-    /// A machine recipe's output as `[item, count]`.
+    /// A machine recipe's outputs as flat (item, count) pairs, the main product first.
     pub fn machine_recipe_output(&self, i: u32) -> Vec<u32> {
-        MACHINE_RECIPES.get(i as usize).map_or_else(Vec::new, |r| vec![r.output.0 .0 as u32, r.output.1])
+        MACHINE_RECIPES
+            .get(i as usize)
+            .map_or_else(Vec::new, |r| r.outputs.iter().flat_map(|&(it, n)| [it.0 as u32, n]).collect())
     }
 
     pub fn machine_recipe_seconds(&self, i: u32) -> f64 {

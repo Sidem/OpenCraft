@@ -313,7 +313,7 @@ fn ore_and_coal_lines_feed_a_smelter_that_fills_a_box() {
 
 /// The index of the machine recipe that makes `item`.
 fn recipe_for(item: ItemId) -> u16 {
-    crate::recipes::MACHINE_RECIPES.iter().position(|r| r.output.0 == item).unwrap() as u16
+    crate::recipes::MACHINE_RECIPES.iter().position(|r| r.main().0 == item).unwrap() as u16
 }
 
 /// Power for machines near the origin: a pole at (2, 3, 0) and a generator beside it with a stack of
@@ -697,7 +697,7 @@ fn labs_research_the_chosen_tech_and_never_overshoot() {
     assert_eq!(f.research.state(0), TechState::Done);
     assert_eq!((f.research.current, packs(&f)), (None, 20), "exactly one pack per unit");
     assert!(labs.iter().all(|&p| f.lab_at(p).status == LabStatus::NoResearch && f.lab_at(p).unit.is_none()));
-    assert_eq!(f.research.locked_by(crate::block::SPLITTER.into()), None);
+    assert_eq!(f.research.locked_by(crate::research::Unlock::Recipe(crate::block::SPLITTER.into())), None);
 }
 
 #[test]

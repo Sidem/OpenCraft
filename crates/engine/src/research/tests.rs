@@ -1,21 +1,74 @@
 use super::*;
 use crate::block::{BELT, SPLITTER};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::recipes::RECIPES;
+use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
 fn finish(r: &mut Research, tech: u8) {
     (0..TECHS[tech as usize].units).for_each(|_| r.add_unit(tech));
 }
 
-#[test]
-fn the_tech_table_is_consistent() {
-    for (i, t) in TECHS.iter().enumerate() {
-        assert!(t.needs.iter().all(|&n| (n as usize) < i), "{}: prerequisites come earlier (no cycles)", t.name);
-        assert!(t.packs.iter().all(|&p| pack_slot(p).is_some()), "{}: packs are in PACKS", t.name);
-        assert!(t.unlocks.iter().all(|&u| RECIPES.iter().any(|r| r.output == u)), "{}: unlocks a recipe", t.name);
-        assert!(t.units > 0 && t.seconds > 0.0);
+/// Content lint for a tech table: prerequisites come earlier (so every tech is reachable and there
+/// are no cycles), packs are in `PACKS`, every unlock exists and is listed once, and there is work to do.
+fn lint_techs(techs: &[Tech]) -> Vec<String> {
+    let mut errors = Vec::new();
+    for (i, t) in techs.iter().enumerate() {
+        if !t.needs.iter().all(|&n| (n as usize) < i) {
+            errors.push(format!("{} needs a later tech", t.name));
+        }
+        if !t.packs.iter().all(|&p| pack_slot(p).is_some()) {
+            errors.push(format!("{} uses a pack labs don't hold", t.name));
+        }
+        for &u in t.unlocks {
+            let exists = match u {
+                Unlock::Recipe(item) => RECIPES.iter().any(|r| r.output == item),
+                Unlock::MachineRecipe(r) => (r as usize) < MACHINE_RECIPES.len(),
+            };
+            if !exists {
+                errors.push(format!("{} unlocks {u:?}, which doesn't exist", t.name));
+            }
+            let earlier = techs[..i].iter().any(|o| o.unlocks.contains(&u));
+            if earlier || t.unlocks.iter().filter(|&&x| x == u).count() > 1 {
+                errors.push(format!("{} unlocks {u:?} again", t.name));
+            }
+        }
+        if t.units == 0 || t.seconds <= 0.0 {
+            errors.push(format!("{} has no work", t.name));
+        }
     }
-    assert!(TECHS.len() < u8::MAX as usize);
+    if techs.len() >= u8::MAX as usize {
+        errors.push("too many techs for a u8 index".to_string());
+    }
+    errors
+}
+
+#[test]
+fn the_tech_table_passes_the_lint() {
+    assert_eq!(lint_techs(TECHS), Vec::<String>::new());
+}
+
+#[test]
+fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
+    const fn tech(name: &'static str, needs: &'static [u8], unlocks: &'static [Unlock]) -> Tech {
+        Tech { name, blurb: "", needs, packs: &[RED_PACK], units: 1, seconds: 1.0, unlocks }
+    }
+    const SPLITTERS: Unlock = Unlock::Recipe(ItemId::block(SPLITTER));
+    const BAD: [Tech; 4] = [
+        tech("Loop", &[1], &[]),
+        tech("Twice", &[], &[SPLITTERS, SPLITTERS]),
+        tech("Ghost", &[], &[Unlock::Recipe(crate::item::IRON_INGOT), Unlock::MachineRecipe(999)]),
+        Tech { packs: &[crate::item::IRON_PLATE], units: 0, ..tech("Idle", &[], &[]) },
+    ];
+    let errors = lint_techs(&BAD);
+    for e in [
+        "Loop needs a later tech",
+        "Twice unlocks Recipe(ItemId(17)) again",
+        "Ghost unlocks Recipe(ItemId(256)), which doesn't exist",
+        "Ghost unlocks MachineRecipe(999), which doesn't exist",
+        "Idle uses a pack labs don't hold",
+        "Idle has no work",
+    ] {
+        assert!(errors.iter().any(|x| x == e), "{e} not in {errors:#?}");
+    }
 }
 
 #[test]
@@ -38,11 +91,11 @@ fn prerequisites_gate_what_can_be_chosen() {
 #[test]
 fn techs_lock_the_recipes_they_unlock() {
     let mut r = Research::default();
-    assert_eq!(r.locked_by(SPLITTER.into()), Some(0));
-    assert_eq!(r.locked_by(GREEN_PACK), Some(2));
-    assert_eq!(r.locked_by(BELT.into()), None, "not in the tree: available from the start");
+    assert_eq!(r.locked_by(Unlock::Recipe(SPLITTER.into())), Some(0));
+    assert_eq!(r.locked_by(Unlock::Recipe(GREEN_PACK)), Some(2));
+    assert_eq!(r.locked_by(Unlock::Recipe(BELT.into())), None, "not in the tree: available from the start");
     finish(&mut r, 0);
-    assert_eq!(r.locked_by(SPLITTER.into()), None);
+    assert_eq!(r.locked_by(Unlock::Recipe(SPLITTER.into())), None);
 }
 
 #[test]

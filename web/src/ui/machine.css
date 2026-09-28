@@ -157,6 +157,14 @@
   color: var(--muted);
 }
 
+.mp-recipe.locked {
+  opacity: 0.5;
+}
+
+.mp-lock:empty {
+  display: none;
+}
+
 .mp-inserts {
   display: flex;
   flex-wrap: wrap;

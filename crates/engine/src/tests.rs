@@ -541,7 +541,7 @@ fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
     // The miner (0.6 ore/s) is slower than the smelter (1 ingot per 1.5 s), so it sets the rate.
     g.skip_time(120.0);
     let ingot = crate::recipes::machine_recipe_using(SMELTER, key.ore.into())
-        .map(|i| crate::recipes::MACHINE_RECIPES[i as usize].output.0);
+        .map(|i| crate::recipes::MACHINE_RECIPES[i as usize].main().0);
     let ingots = g.sim.factory.storage_count_at(chest, ingot.unwrap());
     let mined = (120.0 * MINER_RECOVERY) as u32;
     assert!(ingots + 6 >= mined && ingots <= mined, "{ingots} ingots of ~{mined} ore");

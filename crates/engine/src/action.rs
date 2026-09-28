@@ -14,6 +14,7 @@ use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
+use crate::research::Unlock;
 use crate::sim::{Away, PlayerCore, PlayerId, Sim, SimEvent};
 use crate::tools;
 
@@ -180,6 +181,9 @@ impl Sim {
             }
             Action::SetRecipe { pos, recipe } => {
                 let recipe = (recipe != u16::MAX).then_some(recipe);
+                if recipe.is_some_and(|i| !self.factory.research.has(Unlock::MachineRecipe(i))) {
+                    return;
+                }
                 for s in self.factory.set_recipe(pos, recipe).unwrap_or_default() {
                     let left = inv.add(s.item, s.count);
                     if left > 0 {
@@ -207,7 +211,7 @@ impl Sim {
             }
             Action::Craft { recipe, times } => {
                 let Some(r) = RECIPES.get(recipe as usize) else { return };
-                if self.factory.research.locked_by(r.output).is_some() {
+                if !self.factory.research.has(Unlock::Recipe(r.output)) {
                     return;
                 }
                 let mut done = 0;

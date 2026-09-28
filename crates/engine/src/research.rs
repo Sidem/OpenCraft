@@ -1,20 +1,42 @@
 //! Research: the tech tree ([`TECHS`], data) and the world's progress through it ([`Research`], core
 //! state shared by every player; the factory owns it, saves and hashes it). Labs (`factory/lab.rs`)
 //! do the work: each unit of a tech uses one of each of its science packs and `seconds` of lab time
-//! at full power. A finished tech unlocks the hand recipes whose outputs it lists; recipes no tech
-//! lists are available from the start.
+//! at full power. A finished tech unlocks what it lists ([`Unlock`]: hand recipes, machine recipes);
+//! anything no tech lists is available from the start.
 //!
 //! Invariants: progress never exceeds a tech's units; `current` is `None` or a tech that is available
 //! (every prerequisite done) and not done.
 //!
 //! To add a tech: append a row to `TECHS` (saves store progress by index, so never reorder), naming
 //! its prerequisites by index. A new science pack: an item, a hand recipe, and an entry in `PACKS`.
+//! A new kind of unlock: an `Unlock` variant (upgrades and features arrive with their first use), its
+//! arm in `Unlock::item` and in the lint (`tests.rs`).
 
 use crate::block::{
     BlockId, FAST_BELT, FILTER, LIFT, MINER_MK2, OUTLET, PIPE, PUMP, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{ItemId, GREEN_PACK, RED_PACK};
+use crate::recipes::MACHINE_RECIPES;
+
+/// Something a finished tech makes possible.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Unlock {
+    /// Crafting this item by hand.
+    Recipe(ItemId),
+    /// A machine recipe, by `MACHINE_RECIPES` index.
+    MachineRecipe(u16),
+}
+
+impl Unlock {
+    /// The item the research screen shows for it.
+    pub fn item(self) -> ItemId {
+        match self {
+            Unlock::Recipe(item) => item,
+            Unlock::MachineRecipe(i) => MACHINE_RECIPES.get(i as usize).map_or(ItemId::NONE, |r| r.main().0),
+        }
+    }
+}
 
 pub struct Tech {
     pub name: &'static str,
@@ -27,8 +49,7 @@ pub struct Tech {
     pub units: u32,
     /// Lab time per unit at full power.
     pub seconds: f64,
-    /// Items whose hand recipes it unlocks.
-    pub unlocks: &'static [ItemId],
+    pub unlocks: &'static [Unlock],
 }
 
 /// Every science pack, in the order labs hold them (one buffer slot each).
@@ -42,7 +63,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK],
         units: 10,
         seconds: 5.0,
-        unlocks: &[b(SPLITTER), b(FILTER)],
+        unlocks: &[r(SPLITTER), r(FILTER)],
     },
     Tech {
         name: "Belt Lifts",
@@ -51,7 +72,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK],
         units: 20,
         seconds: 5.0,
-        unlocks: &[b(LIFT)],
+        unlocks: &[r(LIFT)],
     },
     Tech {
         name: "Green Science",
@@ -60,7 +81,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK],
         units: 30,
         seconds: 5.0,
-        unlocks: &[GREEN_PACK],
+        unlocks: &[Unlock::Recipe(GREEN_PACK)],
     },
     Tech {
         name: "Underpasses",
@@ -69,7 +90,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK, GREEN_PACK],
         units: 15,
         seconds: 10.0,
-        unlocks: &[b(UNDERPASS_IN), b(UNDERPASS_OUT)],
+        unlocks: &[r(UNDERPASS_IN), r(UNDERPASS_OUT)],
     },
     Tech {
         name: "Miner Mk2",
@@ -78,7 +99,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK, GREEN_PACK],
         units: 30,
         seconds: 10.0,
-        unlocks: &[b(MINER_MK2)],
+        unlocks: &[r(MINER_MK2)],
     },
     Tech {
         name: "Fast Belts",
@@ -87,7 +108,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK, GREEN_PACK],
         units: 20,
         seconds: 10.0,
-        unlocks: &[b(FAST_BELT)],
+        unlocks: &[r(FAST_BELT)],
     },
     Tech {
         name: "Fluid Handling",
@@ -96,7 +117,7 @@ pub const TECHS: &[Tech] = &[
         packs: &[RED_PACK],
         units: 15,
         seconds: 5.0,
-        unlocks: &[b(PUMP), b(PIPE), b(OUTLET)],
+        unlocks: &[r(PUMP), r(PIPE), r(OUTLET)],
     },
 ];
 
@@ -140,10 +161,15 @@ impl Research {
         }
     }
 
-    /// The tech whose research unlocks crafting `item`, while it isn't done.
-    pub fn locked_by(&self, item: ItemId) -> Option<u8> {
-        let i = TECHS.iter().position(|t| t.unlocks.contains(&item))? as u8;
+    /// The tech whose research unlocks `unlock`, while it isn't done.
+    pub fn locked_by(&self, unlock: Unlock) -> Option<u8> {
+        let i = TECHS.iter().position(|t| t.unlocks.contains(&unlock))? as u8;
         (self.state(i) != TechState::Done).then_some(i)
+    }
+
+    /// Whether `unlock` is available: no tech lists it, or its tech is done.
+    pub fn has(&self, unlock: Unlock) -> bool {
+        self.locked_by(unlock).is_none()
     }
 
     /// Records a finished unit of `tech`; when that finishes the tech, labs stop working on it.
@@ -184,8 +210,9 @@ pub fn pack_slot(item: ItemId) -> Option<usize> {
     PACKS.iter().position(|&p| p == item)
 }
 
-const fn b(block: BlockId) -> ItemId {
-    ItemId::block(block)
+/// The hand recipe of the item that is `block`, to keep the table short.
+const fn r(block: BlockId) -> Unlock {
+    Unlock::Recipe(ItemId::block(block))
 }
 
 #[cfg(test)]

@@ -54,7 +54,7 @@ folder with `mod.rs`.
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
 | `item_models.rs` | Shared small box assemblies (parts, tools, scanner, core drill) for loose items and HUD icons; data only |
 | `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
-| `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, unlocked recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `add_unit`) |
+| `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, `Unlock`s: hand or machine recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `has`, `add_unit`); lint in `research/tests.rs` |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code, with a small cache of generated chunks; `set_block_anywhere_later` remeshes in the streaming budget; `is_air_anywhere` lets column scans skip the sky), render events, `adopt_loaded` (a resync keeps the render cache) |
 | `world/streaming.rs` | Streaming and meshing: re-centring on the local player and within `OTHERS_RADIUS` of the others (meshing only the local player's), generation and mesh queues, `work_step`, `remesh`, `area_ready` |
@@ -95,7 +95,9 @@ folder with `mod.rs`.
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
 | `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
-| `recipes.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`), machine recipes (`MACHINE_RECIPES`, saved by index: append only), `FUELS` (smelter seconds and generator kJ) |
+| `recipes/mod.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`) |
+| `recipes/machine.rs` | Machine recipes (`MACHINE_RECIPES`: a `Category`, inputs, outputs main first; saved by index: append only), `MACHINE_CATEGORIES` (which machine takes which), `FUELS` (smelter seconds and generator kJ) |
+| `recipes/tests.rs` | Content lint: every item has a source and a use, categories have machines, outputs fit, tiers can be made |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders and belt lifts, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
@@ -203,11 +205,13 @@ Placeable blocks work at once; worldgen use goes in `worldgen/`.
 **An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
 and a row in `item.rs` `EXTRA`, with a texture layer in `block::tex` and its pattern in `textures::pixel`
 if it needs a new look; the HUD icon and the loose and belt models follow from the row. A recipe is a row
-in `recipes.rs` (its `group` picks the build-menu section); the build menu shows every row. To lock it behind research, list its output in a tech's
-`unlocks` (`research.rs`).
+in `recipes/mod.rs` (its `group` picks the build-menu section); the build menu shows every row. To lock it
+behind research, list `Unlock::Recipe(item)` in a tech's `unlocks` (`research.rs`). A machine recipe is a
+row in `recipes/machine.rs` with its category (lock: `Unlock::MachineRecipe(index)`). The content lint
+(`recipes/tests.rs`, `research/tests.rs`) says what is missing: a source, a use, a machine.
 
 **A tech.** A row appended to `TECHS` in `research.rs` (saves store progress by index): name, blurb,
-prerequisites by index, packs per unit, units, seconds, unlocked items. The research screen and the build
+prerequisites by index, packs per unit, units, seconds, what it unlocks. The research screen and the build
 menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` (labs get a slot for it).
 
 **A machine.**
@@ -219,10 +223,10 @@ menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` 
    `take_contents`, `describe`) and add its list to `write_state` / `read_state` (`state.rs`), `update`,
    `write_instances`, and its outputs to `links.rs`. If it uses power: a demand in `Power::balance`
    and its pole in `Power::rebuild` (`power.rs`), and a `speed` argument to its `step`. If belts and miners deliver into it, an arm in
-   `Slot::is_sink` and a field in `Sinks` (`links.rs`); what it makes is a `MACHINE_RECIPES` row. A panel:
+   `Slot::is_sink` and a field in `Sinks` (`links.rs`); what it makes is `MACHINE_RECIPES` rows of a category it takes (`MACHINE_CATEGORIES`). A panel:
    `panel: true` in its row, a `panel()` method and its arms in `panel.rs`; the host panel needs nothing.
 3. Its block in `block.rs` (`machine(...)` if drawn as a model, `cube(...)` if meshed); a hand recipe
-   in `recipes.rs`. Tests in `factory/tests.rs` (see `run` and `stocked_box`; test-only accessors such as `stock` live
+   in `recipes/mod.rs`. Tests in `factory/tests.rs` (see `run` and `stocked_box`; test-only accessors such as `stock` live
    there too). A second block with the same behaviour (splitter/filter) is an extra `MACHINES` row after
    the Kind-ordered ones, not a new kind.
 
@@ -268,7 +272,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/mod.rs` | `MACHINES` (buffer slots per machine) |
 | `factory/miner.rs` | `MINER_TIERS` (rate, recovery, power per tier) |
-| `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (smelter seconds, generator kJ) |
+| `recipes/machine.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (smelter seconds, generator kJ) |
 | `factory/belt.rs` | `BELT_TIERS` (speed per tier), `ITEM_SPACING` |
 | `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
 | `factory/pumping.rs` | `PUMP_RATE`, `PUMP_HOLD`, `OUTLET_RATE`, `PUMP_RANGE` |
@@ -284,7 +288,7 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version |
 | `worldgen/strata.rs` | `EXPOSED_CHANCE`, `ORE_DEPTH`, `STARTERS` (version 3, released); version 4: `EXPOSED_CHANCE_METALS`, `ORE_DEPTH_V4`, `STARTERS_V4`, `STARTER_RADII_V4` |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
-| `recipes.rs` | `RECIPES` (hand) |
+| `recipes/mod.rs` | `RECIPES` (hand) |
 | `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |
 | `tools.rs` | `STONE_TIER`, `IRON_TIER` (uses, break speed, ore kept), `DEVICE_TIER` |
 | `prospect.rs` | `SCAN_RANGE`, `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH`, size bands |

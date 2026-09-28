@@ -1,7 +1,8 @@
-//! Recipes as data tables: hand crafting for buildings ([`RECIPES`], listed in order by the build
-//! menu), what machines make ([`MACHINE_RECIPES`]) and what burns as fuel ([`FUELS`]).
-//! To add a recipe: add a row (its `group` is its build-menu section). Machine recipes are saved by
-//! index, so append those, never reorder.
+//! Recipes as data tables: hand crafting ([`RECIPES`], listed in order by the build menu) here; what
+//! machines make, by category, and fuels in `machine.rs`. Research locks recipes (`research.rs`).
+//! Content lint for every table: `tests.rs`.
+//!
+//! To add a hand recipe: add a row (its `group` is its build-menu section).
 
 use crate::block::*;
 use crate::inventory::Inventory;
@@ -10,6 +11,10 @@ use crate::item::{
     IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 use crate::tools::{IRON_TIER, STONE_TIER};
+
+mod machine;
+
+pub use machine::*;
 
 /// The build menu's sections, in the order it shows them.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -328,54 +333,10 @@ pub const RECIPES: &[Recipe] = &[
     },
 ];
 
-/// Something a machine makes: `inputs` are used up when a batch starts, `output` appears after
-/// `seconds` of work.
-pub struct MachineRecipe {
-    /// The machine's block.
-    pub machine: BlockId,
-    pub inputs: &'static [(ItemId, u32)],
-    pub output: (ItemId, u32),
-    pub seconds: f64,
-}
-
-pub const MACHINE_RECIPES: &[MachineRecipe] = &[
-    MachineRecipe { machine: SMELTER, inputs: &[(b(IRON_ORE), 1)], output: (IRON_INGOT, 1), seconds: 1.5 },
-    MachineRecipe { machine: SMELTER, inputs: &[(b(COPPER_ORE), 1)], output: (COPPER_INGOT, 1), seconds: 1.5 },
-    MachineRecipe { machine: CONSTRUCTOR, inputs: &[(IRON_INGOT, 2)], output: (IRON_PLATE, 1), seconds: 2.0 },
-    MachineRecipe { machine: CONSTRUCTOR, inputs: &[(IRON_INGOT, 1)], output: (IRON_ROD, 1), seconds: 2.0 },
-    MachineRecipe { machine: CONSTRUCTOR, inputs: &[(IRON_ROD, 1)], output: (SCREW, 4), seconds: 3.0 },
-    MachineRecipe { machine: CONSTRUCTOR, inputs: &[(COPPER_INGOT, 1)], output: (COPPER_WIRE, 2), seconds: 2.0 },
-    // Appended: machines save the index of their recipe.
-    MachineRecipe { machine: SMELTER, inputs: &[(b(QUARTZ_ORE), 1)], output: (b(GLASS), 2), seconds: 2.0 },
-    MachineRecipe { machine: SMELTER, inputs: &[(b(SAND), 1)], output: (b(GLASS), 1), seconds: 2.0 },
-];
-
-/// The recipe `i` if `machine` makes it.
-pub fn machine_recipe(machine: BlockId, i: u16) -> Option<&'static MachineRecipe> {
-    MACHINE_RECIPES.get(i as usize).filter(|r| r.machine == machine)
-}
-
-/// Fuel: the seconds of smelting one item keeps a fire going, and the energy it gives a generator in
-/// kJ (a coal runs a Mk1 miner long enough to mine about 32 coal).
-pub const FUELS: &[(ItemId, f64, u32)] = &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135), (b(PLANKS), 1.0, 34)];
-
-/// Seconds of work one `item` fuels, if it burns.
-pub fn burn_time(item: ItemId) -> Option<f64> {
-    FUELS.iter().find(|f| f.0 == item).map(|f| f.1)
-}
-
-/// The energy one `item` gives a generator, in kJ, if it burns.
-pub fn fuel_energy(item: ItemId) -> Option<u32> {
-    FUELS.iter().find(|f| f.0 == item).map(|f| f.2)
-}
-
-/// Index of `machine`'s recipe that uses `item`, if any.
-pub fn machine_recipe_using(machine: BlockId, item: ItemId) -> Option<u16> {
-    let using = |r: &MachineRecipe| r.machine == machine && r.inputs.iter().any(|i| i.0 == item);
-    MACHINE_RECIPES.iter().position(using).map(|i| i as u16)
-}
-
 /// The item that is block `id`, to keep the tables short.
 const fn b(id: BlockId) -> ItemId {
     ItemId::block(id)
 }
+
+#[cfg(test)]
+mod tests;

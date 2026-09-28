@@ -232,7 +232,7 @@ fn a_powered_line_works_where_no_chunk_is_loaded() {
         let pos = at(i as i32 * 4);
         sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos });
     }
-    let rods = crate::recipes::MACHINE_RECIPES.iter().position(|r| r.output.0 == IRON_ROD).unwrap() as u16;
+    let rods = crate::recipes::MACHINE_RECIPES.iter().position(|r| r.main().0 == IRON_ROD).unwrap() as u16;
     sim.apply(P, Action::SetRecipe { pos: at(8), recipe: rods });
     sim.apply(P, Action::Give { item: COAL_ORE.into(), count: 1 });
     sim.apply(P, Action::Give { item: IRON_INGOT, count: 3 });

@@ -63,7 +63,7 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     let post = press + IVec3::new(0, 1, 0);
     let dynamo = above_box + IVec3::new(0, 1, 0);
     let lab = sieve + IVec3::new(0, 1, 0);
-    let plates = MACHINE_RECIPES.iter().position(|r| r.output.0 == IRON_PLATE).unwrap() as u16;
+    let plates = MACHINE_RECIPES.iter().position(|r| r.main().0 == IRON_PLATE).unwrap() as u16;
     let belts = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u16;
     let give = |item, count| Action::Give { item, count };
     let place = |pos, slot, facing, against| Action::PlaceBlock { pos, slot, facing, against };

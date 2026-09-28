@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 6 (Industry). Next up: step 6.2 (unlocks, categories, content lint)** · Terraforming moved to
+now) · **Now: Milestone 6 (Industry). Next up: step 6.3 (upgrade kits and stripes)** · Terraforming moved to
 Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -444,7 +444,7 @@ modular so that everything after costs rows, not rewrites.
   Tables are `BELT_TIERS { speed, top }` and `MINER_TIERS { rate, recovery, power, side }`; `FAMILIES`
   lists each tier's item (no `ItemDef.tier`, no `tier_name` yet: 6.3 adds names when kits need them).
   Breaking drops the tier's item (`Factory::tier_at`). Item 28 is named "Belt Mk2".
-- [ ] **6.2 Unlocks, categories and content lint.** `research.rs`: `Unlock` enum (`Recipe(item)`,
+- [x] **6.2 Unlocks, categories and content lint.** `research.rs`: `Unlock` enum (`Recipe(item)`,
   `MachineRecipe(index)`, `Upgrade(family, tier)`, `Feature(Feature)`) replacing `unlocks: &[ItemId]`;
   `research.has(…)`. `recipes.rs`: `MachineRecipe` gets a `Category` (smelting, pressing; more later)
   instead of a machine block, and `outputs: &[(ItemId, u32)]` (several, for byproducts); indices stay
@@ -452,6 +452,12 @@ modular so that everything after costs rows, not rewrites.
   `research/tests.rs`): every item has a source and a use or is an end product, every category has a
   machine, techs reachable without cycles, every unlock exists, family tiers contiguous. **Done when:**
   the lint passes on today's content and fails on a planted mistake of each kind.
+  *Built (2026-09-28):* `Unlock` has `Recipe` and `MachineRecipe` only; `Upgrade` comes with kits (6.3)
+  and `Feature` with its first feature (dead variants fail clippy). `recipes/machine.rs` holds machine
+  recipes, `MACHINE_CATEGORIES` (moves into spec rows in 6.4) and fuels. A locked machine recipe can't be
+  chosen (`SetRecipe`); the smelter picks by ore and gets the check with the processor (6.4). The lint
+  found two exceptions, kept in `recipes/tests.rs`: limestone has no use until quicklime (6.4), and old
+  worlds' ramp blocks still drop ramp items nothing makes (6.3 can make them drop belts).
 - [ ] **6.3 Upgrade kits and stripes.** `factory/upgrades.rs`: kits per tier (green now), kits per step
   by class (belt-like 1, machine 4, multi-block 8), `TIER_COLOURS` with a getter in `api/content.rs`,
   five flat stripe layers; belts show the colour on their rails, miners as a band, with pips. Items:
@@ -586,3 +592,6 @@ and the balance numbers. Read the section you need.
   the roadmap). Roadmap now 7–13. No code changed.
 - **2026-09-28: 6.1 Tiers as data:** `factory/tiers.rs`, belts and miners hold `tier: u8`, numbers in
   per-module tables, Mk2 items place the family block. Save bytes unchanged. Tests 240 → 244.
+- **2026-09-28: 6.2 Unlocks, categories, lint:** `research::Unlock`, recipe categories and several
+  outputs (`recipes/machine.rs`), content lint with planted-mistake tests, locked recipes greyed in
+  machine panels. No save or behaviour change. Tests 244 → 247.

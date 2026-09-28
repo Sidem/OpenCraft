@@ -5,6 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::recipes::{GROUPS, RECIPES};
+use crate::research::Unlock;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -50,7 +51,8 @@ impl Game {
 
     /// The tech (`tech_*`) that must be researched before recipe `r` can be crafted, or -1.
     pub fn recipe_locked_by(&self, r: u32) -> i32 {
-        let locked = RECIPES.get(r as usize).and_then(|x| self.sim.factory.research.locked_by(x.output));
+        let locked =
+            RECIPES.get(r as usize).and_then(|x| self.sim.factory.research.locked_by(Unlock::Recipe(x.output)));
         locked.map_or(-1, i32::from)
     }
 
@@ -73,7 +75,7 @@ impl Game {
     /// How many times the local player can craft recipe `r` now (0 while research locks it).
     fn affordable(&self, r: u32) -> u32 {
         let Some(x) = RECIPES.get(r as usize) else { return 0 };
-        if self.sim.factory.research.locked_by(x.output).is_some() {
+        if !self.sim.factory.research.has(Unlock::Recipe(x.output)) {
             return 0;
         }
         x.affordable(self.inventory())

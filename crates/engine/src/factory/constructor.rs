@@ -120,7 +120,7 @@ impl Constructor {
         let s = self.input.slots[0];
         if s.is_empty() || s.item != item || s.count < need {
             Some(ConstructorStatus::NoInput)
-        } else if self.out.space_for(r.output.0) < r.output.1 {
+        } else if r.outputs.iter().any(|&(item, n)| self.out.space_for(item) < n) {
             Some(ConstructorStatus::OutputFull)
         } else {
             None
@@ -151,7 +151,9 @@ impl Constructor {
         self.status = ConstructorStatus::Working;
         self.progress += speed;
         if self.progress >= ticks(r.seconds) * FULL_SPEED {
-            self.out.add(r.output.0, r.output.1);
+            for &(item, n) in r.outputs {
+                self.out.add(item, n);
+            }
             (self.busy, self.progress) = (false, 0);
         }
     }
@@ -165,10 +167,10 @@ impl Constructor {
         match (self.status, self.recipe_def()) {
             (_, None) => "No recipe: choose what it makes".to_string(),
             (ConstructorStatus::Working, Some(r)) => {
-                let rate = (r.output.1 as f64 * 60.0 / r.seconds * self.speed as f64 / FULL_SPEED as f64).round();
+                let rate = (r.main().1 as f64 * 60.0 / r.seconds * self.speed as f64 / FULL_SPEED as f64).round();
                 let slow =
                     if self.speed < FULL_SPEED { format!(" (low power: {}%)", self.speed / 10) } else { String::new() };
-                format!("Making {} · {} a minute{slow}", item::name(r.output.0), rate as u32)
+                format!("Making {} · {} a minute{slow}", item::name(r.main().0), rate as u32)
             }
             (ConstructorStatus::NoPower, _) => {
                 format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator")

@@ -16,6 +16,8 @@ const ICON_PX = 64;
 interface RecipeButton {
   id: number;
   el: HTMLButtonElement;
+  /** "Research … first" while a tech locks it. */
+  lock: HTMLElement;
 }
 
 export class MachinePanel {
@@ -163,8 +165,11 @@ export class MachinePanel {
     this.recipeHead.classList.toggle('hidden', this.recipes.length === 0);
 
     for (const r of this.recipes) {
+      const tech = this.game.machine_recipe_locked_by(r.id);
       r.el.classList.toggle('active', r.id === recipe);
-      r.el.disabled = !choosable;
+      r.el.classList.toggle('locked', tech >= 0);
+      r.el.disabled = !choosable || tech >= 0;
+      r.lock.textContent = tech >= 0 ? `Research ${this.game.tech_name(tech)} first` : '';
     }
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from the ore it gets)';
     if (!filtering && !quarry) this.drawInserts();
@@ -215,8 +220,10 @@ export class MachinePanel {
         this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
       });
       el.title = 'Click again to clear. Items it holds come back to you.';
+      const lock = h('small', 'mp-lock');
+      text.append(lock);
       el.append(this.iconCanvas(out, 'mp-recipe-icon'), text);
-      return { id, el };
+      return { id, el, lock };
     });
     this.recipeList.replaceChildren(...this.recipes.map((r) => r.el));
   }

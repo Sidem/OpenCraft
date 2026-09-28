@@ -14,7 +14,7 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
-use crate::recipes::{burn_time, machine_recipe_using, MachineRecipe, MACHINE_RECIPES};
+use crate::recipes::{burn_time, machine_recipe_using, makes, MachineRecipe, MACHINE_RECIPES};
 use crate::TICK_RATE;
 
 use super::belt::Belt;
@@ -121,7 +121,9 @@ impl Smelter {
         self.burn -= 1;
         self.progress += 1;
         if self.progress >= ticks(r.seconds) {
-            self.out.add(r.output.0, r.output.1);
+            for &(item, n) in r.outputs {
+                self.out.add(item, n);
+            }
             self.batch = None;
             self.progress = 0;
         }
@@ -140,7 +142,7 @@ impl Smelter {
             self.status = SmelterStatus::NoOre;
             return false;
         }
-        if self.out.space_for(r.output.0) < r.output.1 {
+        if r.outputs.iter().any(|&(item, n)| self.out.space_for(item) < n) {
             self.status = SmelterStatus::OutputFull;
             return false;
         }
@@ -159,8 +161,8 @@ impl Smelter {
         match (self.status, self.recipe()) {
             (SmelterStatus::Working, Some(r)) => format!(
                 "Smelting {} · {} a minute",
-                item::name(r.output.0),
-                (r.output.1 as f64 * 60.0 / r.seconds).round() as u32
+                item::name(r.main().0),
+                (r.main().1 as f64 * 60.0 / r.seconds).round() as u32
             ),
             (SmelterStatus::NoFuel, _) => "Out of fuel: bring coal ore or logs".to_string(),
             (SmelterStatus::OutputFull, _) => "Output full: put a belt leading away, or take the ingots".to_string(),
@@ -218,7 +220,7 @@ impl Machine for Smelter {
         s.burn = r.u32()?;
         s.next_out = r.u32()? as usize;
         s.status = *STATUSES.get(r.u8()? as usize)?;
-        let valid = s.batch.is_none_or(|b| MACHINE_RECIPES.get(b as usize).is_some_and(|r| r.machine == SMELTER));
+        let valid = s.batch.is_none_or(|b| MACHINE_RECIPES.get(b as usize).is_some_and(|r| makes(SMELTER, r.category)));
         valid.then_some(s)
     }
 

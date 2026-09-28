@@ -40,9 +40,9 @@ impl Game {
         TECHS.get(t as usize).map_or(0.0, |x| x.seconds)
     }
 
-    /// Items whose recipes it unlocks.
+    /// The items of what it unlocks (hand recipes' and machine recipes' products).
     pub fn tech_unlocks(&self, t: u32) -> Vec<u16> {
-        TECHS.get(t as usize).map_or_else(Vec::new, |x| x.unlocks.iter().map(|i| i.0).collect())
+        TECHS.get(t as usize).map_or_else(Vec::new, |x| x.unlocks.iter().map(|u| u.item().0).collect())
     }
 
     /// Units done.
