@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::block::{self, BLOCK_COUNT};
 use crate::deposits::HAND_YIELD;
-use crate::factory::MINER_RECOVERY;
+use crate::factory::MINER_TIERS;
 use crate::item::{self, ItemId};
 use crate::item_models;
 use crate::tools;
@@ -77,6 +77,6 @@ impl Game {
 
     /// Fraction of drilled ore a miner delivers.
     pub fn miner_recovery(&self) -> f64 {
-        MINER_RECOVERY
+        MINER_TIERS[0].recovery
     }
 }

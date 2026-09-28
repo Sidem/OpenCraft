@@ -1,9 +1,9 @@
-//! Miners (Mk1 and Mk2, one kind): drill the deposit behind the drill face, keep their recovery share
+//! Miners (one kind in the tiers of [`MINER_TIERS`]): drill the deposit behind the drill face, keep their recovery share
 //! of what they draw as ore items in the output buffer (slots in `MACHINES`), stop drilling when that
 //! is full, and push ore round-robin into belts leading away or adjacent boxes and smelters (never
 //! through the drill face). The deposit's shared draw cap and taper decide how much it actually gets
 //! (`deposits.rs`). Both need power and run at their grid's `speed` (set before each step from
-//! `power.rs`); the Mk2 draws faster, recovers more and uses more power.
+//! `power.rs`); a higher tier draws faster, recovers more and uses more power.
 
 use crate::block::{tex, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
@@ -23,13 +23,23 @@ use super::power::{FULL_SPEED, POLE_REACH};
 use super::render::push_box;
 use super::{Factory, Kind, Machine, FACES};
 
-/// Ore units a Mk1 miner draws per second (before the deposit's taper and draw cap).
-pub const MINER_RATE: f64 = 1.0;
-/// Share of drawn units a Mk1 miner turns into ore items.
-pub const MINER_RECOVERY: f64 = 0.6;
-/// The Mk2's draw at full power and its recovery: upgrading gets more ore out of the same deposit.
-pub const MK2_RATE: f64 = 2.0;
-pub const MK2_RECOVERY: f64 = 0.75;
+/// A miner tier's numbers: upgrading gets more ore out of the same deposit, for more power.
+pub struct MinerTier {
+    /// Ore units drawn per second at full power (before the deposit's taper and draw cap).
+    pub rate: f64,
+    /// Share of drawn units turned into ore items.
+    pub recovery: f64,
+    /// What it draws while drilling, in kW.
+    pub power: u32,
+    /// Texture of the housing's sides.
+    pub side: u16,
+}
+
+/// Mk1 first. Numbers: TECH_ERAS section 1.
+pub const MINER_TIERS: [MinerTier; 2] = [
+    MinerTier { rate: 1.0, recovery: 0.6, power: 5, side: tex::MINER_SIDE },
+    MinerTier { rate: 2.0, recovery: 0.75, power: 20, side: tex::MINER_MK2_SIDE },
+];
 /// Ticks between `SimEvent::MinerWorking` reports while drawing (0.9 s; the view plays a drill sound).
 const MINER_PULSE_TICKS: u32 = TICK_RATE * 9 / 10;
 
@@ -68,13 +78,14 @@ pub struct Miner {
     pub draw_rate: f64,
     /// Ticks until the next `MinerWorking` report.
     pub pulse: u32,
-    pub mk2: bool,
+    /// Index into [`MINER_TIERS`] (0 is Mk1).
+    pub tier: u8,
     /// This tick's speed from its grid, in thousandths (derived).
     pub speed: u32,
 }
 
 impl Miner {
-    pub fn new(pos: IVec3, drill: u8, deposit: Option<DepositKey>, mk2: bool) -> Miner {
+    pub fn new(pos: IVec3, drill: u8, deposit: Option<DepositKey>, tier: u8) -> Miner {
         Miner {
             pos,
             drill: drill.min(5),
@@ -87,27 +98,23 @@ impl Miner {
             status: if deposit.is_some() { MinerStatus::Running } else { MinerStatus::NoDeposit },
             draw_rate: 0.0,
             pulse: 0,
-            mk2,
+            tier,
             speed: 0,
         }
     }
 
+    pub fn stats(&self) -> &'static MinerTier {
+        &MINER_TIERS[self.tier as usize]
+    }
+
     /// Units a second it draws at full power.
     pub fn rate(&self) -> f64 {
-        if self.mk2 {
-            MK2_RATE
-        } else {
-            MINER_RATE
-        }
+        self.stats().rate
     }
 
     /// Share of what it draws that becomes ore items.
     pub fn recovery(&self) -> f64 {
-        if self.mk2 {
-            MK2_RECOVERY
-        } else {
-            MINER_RECOVERY
-        }
+        self.stats().recovery
     }
 
     /// Whether it would draw this tick if powered (its grid counts it as demand).
@@ -206,7 +213,7 @@ impl Machine for Miner {
     }
 
     /// Core state (`ore` follows from the deposit, `out` is written as its count; `outs` is rebuilt
-    /// by `relink`).
+    /// by `relink`). The tier byte was a `mk2` bool before tiers, so tiers 0 and 1 are byte-identical.
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.drill);
@@ -220,13 +227,13 @@ impl Machine for Miner {
         w.u8(self.status as u8);
         w.f64(self.draw_rate);
         w.u32(self.pulse);
-        w.bool(self.mk2);
+        w.u8(self.tier);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Miner> {
         let (pos, drill) = (r.ivec3()?, r.u8()?);
         let deposit = if r.bool()? { Some(DepositKey::read_state(r)?) } else { None };
-        let mut m = Miner::new(pos, drill, deposit, false);
+        let mut m = Miner::new(pos, drill, deposit, 0);
         let held = r.u32()?;
         m.carry = r.f64()?;
         m.next_out = r.u32()? as usize;
@@ -234,9 +241,9 @@ impl Machine for Miner {
         m.draw_rate = r.f64()?;
         m.pulse = r.u32()?;
         if r.version >= 9 {
-            m.mk2 = r.bool()?;
+            m.tier = r.u8()?;
         }
-        (drill < 6 && m.out.add(m.ore, held) == 0).then_some(m)
+        (drill < 6 && (m.tier as usize) < MINER_TIERS.len() && m.out.add(m.ore, held) == 0).then_some(m)
     }
 
     fn contents(&self) -> Vec<Stack> {
@@ -295,8 +302,7 @@ impl Machine for Miner {
         };
         let running = self.status == MinerStatus::Running && self.draw_rate > 0.01;
         let pump = if running { 0.08 * (0.5 + 0.5 * (time * 10.0).sin()) } else { 0.0 };
-        let side = if self.mk2 { tex::MINER_MK2_SIDE } else { tex::MINER_SIDE };
-        let housing = [tex::MINER_TOP, side, tex::FRAME];
+        let housing = [tex::MINER_TOP, self.stats().side, tex::FRAME];
         // Track shoes and an exposed motor make this read as an extractor even with a downward bit.
         push_box(out, rel + Vec3::new(0.0, -0.37, 0.0), 0.0, [0.82, 0.18, 0.86], 0.0, housing, false);
         for x in [-0.42, 0.42] {

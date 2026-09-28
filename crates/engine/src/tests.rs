@@ -3,7 +3,8 @@
 use super::*;
 use crate::block::{AIR, BELT, MINER, SPENT_ROCK, STONE, STORAGE};
 use crate::deposits::{DepositKey, Tier, HAND_YIELD};
-use crate::factory::{MinerStatus, MINER_RECOVERY};
+use crate::factory::{MinerStatus, MINER_TIERS};
+const MINER_RECOVERY: f64 = MINER_TIERS[0].recovery;
 use crate::inventory::INVENTORY_SLOTS;
 use crate::math::Rng;
 use crate::recipes::RECIPES;
@@ -262,7 +263,7 @@ pub(crate) fn build_mine(g: &mut Game, p: IVec3) -> (IVec3, IVec3) {
     g.sim.world.set_block(chest, STORAGE);
     let key = g.sim.factory.deposits.lookup(&mut g.sim.world, p);
     assert!(key.is_some());
-    g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, key, false);
+    g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, key, 0);
     g.sim.factory.add_belt(belt, 1);
     g.sim.factory.add_storage(chest);
     power_up(g, m);
@@ -272,8 +273,8 @@ pub(crate) fn build_mine(g: &mut Game, p: IVec3) -> (IVec3, IVec3) {
 /// A pole two above `m` and a generator above that with a stack of coal (factory only, no blocks).
 pub(crate) fn power_up(g: &mut Game, m: IVec3) {
     let (pole, gen) = (m + IVec3::new(0, 2, 0), m + IVec3::new(0, 3, 0));
-    g.sim.factory.place(&mut g.sim.world, block::POLE, pole, 0, pole);
-    g.sim.factory.place(&mut g.sim.world, block::GENERATOR, gen, 0, gen);
+    g.sim.factory.place(&mut g.sim.world, block::POLE, pole, 0, pole, 0);
+    g.sim.factory.place(&mut g.sim.world, block::GENERATOR, gen, 0, gen, 0);
     assert_eq!(g.sim.factory.insert(gen, block::COAL_ORE.into(), 64), 64);
 }
 
@@ -336,7 +337,7 @@ fn miner_without_output_fills_up_and_stops() {
     let m = p + IVec3::new(0, 1, 0);
     g.sim.world.set_block(m, MINER);
     let k = g.sim.factory.deposits.lookup(&mut g.sim.world, p);
-    g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, k, false);
+    g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, k, 0);
     power_up(&mut g, m);
     let units = g.sim.factory.deposits.get(&key).unwrap().remaining_units();
     g.skip_time(300.0);
@@ -527,9 +528,9 @@ fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
         g.sim.world.set_block(pos, b);
     }
     let f = &mut g.sim.factory;
-    f.add_miner(m, block::FACE_BOTTOM as u8, Some(key), false);
+    f.add_miner(m, block::FACE_BOTTOM as u8, Some(key), 0);
     f.add_belt(at(1, 0), 1);
-    f.place(&mut g.sim.world, SMELTER, smelter, 0, m);
+    f.place(&mut g.sim.world, SMELTER, smelter, 0, m, 0);
     f.add_belt(at(3, 0), 1);
     f.add_storage(chest);
     f.add_storage(coal);
@@ -561,7 +562,7 @@ fn right_click_opens_a_panel_whose_buttons_drive_the_machine() {
     let feet = g.body().pos.floor();
     let c = feet + IVec3::new(0, 0, -2);
     g.sim.world.set_block(c, CONSTRUCTOR);
-    g.sim.factory.place(&mut g.sim.world, CONSTRUCTOR, c, 0, c);
+    g.sim.factory.place(&mut g.sim.world, CONSTRUCTOR, c, 0, c, 0);
     g.act(Action::Give { item: IRON_INGOT, count: 7 });
     g.run_ticks(1);
 
@@ -588,7 +589,7 @@ fn right_click_opens_a_panel_whose_buttons_drive_the_machine() {
     let (pole, gen) = (c + IVec3::new(2, 0, 0), c + IVec3::new(3, 0, 0));
     for (pos, block) in [(pole, block::POLE), (gen, block::GENERATOR)] {
         g.sim.world.set_block(pos, block);
-        g.sim.factory.place(&mut g.sim.world, block, pos, 0, pos);
+        g.sim.factory.place(&mut g.sim.world, block, pos, 0, pos, 0);
     }
     g.act(Action::Give { item: block::COAL_ORE.into(), count: 2 });
     g.run_ticks(1);
@@ -616,7 +617,7 @@ fn a_mk2_gets_more_ore_from_the_same_deposit() {
         let (p, key) = find_outcrop_block(&mut g, 6);
         let (m, chest) = build_mine(&mut g, p);
         if mk2 {
-            g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, Some(key), true);
+            g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, Some(key), 1);
         }
         let before = g.sim.factory.deposits.get(&key).unwrap().remaining_units();
         g.skip_time(200.0);
@@ -627,7 +628,7 @@ fn a_mk2_gets_more_ore_from_the_same_deposit() {
     // An outcrop's draw cap (1 unit/s) holds both to the same draw, so the Mk2's extra is all recovery.
     assert_eq!(drawn1, drawn2);
     assert!(ore1.abs_diff((drawn1 as f64 * MINER_RECOVERY) as u32) <= 3, "Mk1 kept {ore1} of {drawn1}");
-    assert!(ore2.abs_diff((drawn2 as f64 * crate::factory::MK2_RECOVERY) as u32) <= 3, "Mk2 kept {ore2}");
+    assert!(ore2.abs_diff((drawn2 as f64 * MINER_TIERS[1].recovery) as u32) <= 3, "Mk2 kept {ore2}");
     assert!(ore2 > ore1 * 5 / 4 - 3, "{ore2} vs {ore1}");
 }
 
@@ -646,9 +647,9 @@ fn a_coal_miner_fuels_the_generator_that_powers_it() {
     // A miner on the coal pushes straight into the generator beside it, which powers it.
     let m = p + IVec3::new(0, 1, 0);
     let (gen, pole) = (m + IVec3::new(1, 0, 0), m + IVec3::new(0, 2, 0));
-    g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, Some(key), false);
+    g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, Some(key), 0);
     for (pos, b) in [(gen, GENERATOR), (pole, POLE)] {
-        g.sim.factory.place(&mut g.sim.world, b, pos, 0, pos);
+        g.sim.factory.place(&mut g.sim.world, b, pos, 0, pos, 0);
     }
     g.skip_time(1.0);
     assert_eq!(g.sim.factory.miner_at(m).status, MinerStatus::NoPower, "a cold generator");

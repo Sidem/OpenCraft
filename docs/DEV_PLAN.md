@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 6 (Industry). Next up: step 6.1 (tiers as data)** · Terraforming moved to
+now) · **Now: Milestone 6 (Industry). Next up: step 6.2 (unlocks, categories, content lint)** · Terraforming moved to
 Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -429,7 +429,7 @@ modular so that everything after costs rows, not rewrites.
 - Refactor steps (6.1, 6.2, 6.4) change no behaviour: every existing test passes unchanged, and the net
   line count and wasm size should not grow.
 
-- [ ] **6.1 Tiers as data.** `factory/tiers.rs`: `FAMILIES` (the block, name and highest tier of each
+- [x] **6.1 Tiers as data.** `factory/tiers.rs`: `FAMILIES` (the block, name and highest tier of each
   tiered family; belts and miners first) and `tier_name`. `Belt::fast` and `Miner::mk2` become `tier: u8`
   (1-based); each family's numbers become arrays indexed by tier atop its module (`BELT_SPEEDS`,
   `MINER_TIERS { rate, recovery, power }`), read in one place each (`power.rs` asks the miner its power).
@@ -439,6 +439,11 @@ modular so that everything after costs rows, not rewrites.
   Save version 18 (tier bytes instead of bools). **Done when:** no `fast` or `mk2` field is left; the v17
   fixture loads with the same belt speeds and miner rates; the hash of an old save is unchanged after
   load-and-save or the change is explained; tests per tier.
+  *Built (2026-09-28):* `tier` is 0-based (0 = Mk1) and written where the bool was, so the format is
+  byte-identical: no save bump, golden hash unchanged, a v17 factory fixture in `factory/tiers/tests.rs`.
+  Tables are `BELT_TIERS { speed, top }` and `MINER_TIERS { rate, recovery, power, side }`; `FAMILIES`
+  lists each tier's item (no `ItemDef.tier`, no `tier_name` yet: 6.3 adds names when kits need them).
+  Breaking drops the tier's item (`Factory::tier_at`). Item 28 is named "Belt Mk2".
 - [ ] **6.2 Unlocks, categories and content lint.** `research.rs`: `Unlock` enum (`Recipe(item)`,
   `MachineRecipe(index)`, `Upgrade(family, tier)`, `Feature(Feature)`) replacing `unlocks: &[ItemId]`;
   `research.has(…)`. `recipes.rs`: `MachineRecipe` gets a `Category` (smelting, pressing; more later)
@@ -579,3 +584,5 @@ and the balance numbers. Read the section you need.
   the content architecture) and `docs/TECH_ERAS.md` (per era). The user made Industry Milestone 6 and
   moved terraforming later (now 8; its sites step, built as 6.1, stays in the core and its design is in
   the roadmap). Roadmap now 7–13. No code changed.
+- **2026-09-28: 6.1 Tiers as data:** `factory/tiers.rs`, belts and miners hold `tier: u8`, numbers in
+  per-module tables, Mk2 items place the family block. Save bytes unchanged. Tests 240 → 244.

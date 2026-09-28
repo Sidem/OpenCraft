@@ -5,7 +5,7 @@ use crate::world::World;
 
 fn place(f: &mut Factory, block: crate::block::BlockId, x: i32) {
     let pos = IVec3::new(x, 0, 0);
-    f.place(&mut World::new(1, 2), block, pos, 0, pos);
+    f.place(&mut World::new(1, 2), block, pos, 0, pos, 0);
 }
 
 #[test]

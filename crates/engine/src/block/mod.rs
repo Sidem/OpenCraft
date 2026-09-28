@@ -224,7 +224,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Power Pole", false, 0.3, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), POLE),
     machine("Research Lab", true, 0.8, pillar(tex::LAB_SIDE, tex::LAB_TOP, tex::FRAME), LAB),
     machine("Miner Mk2", true, 0.8, pillar(tex::MINER_MK2_SIDE, tex::MINER_TOP, tex::FRAME), MINER_MK2),
-    machine("Fast Belt", false, 0.3, pillar(tex::FRAME, tex::FAST_BELT_TOP, tex::FRAME), FAST_BELT),
+    machine("Belt Mk2", false, 0.3, pillar(tex::FRAME, tex::FAST_BELT_TOP, tex::FRAME), FAST_BELT),
     BlockDef {
         name: "Sapling",
         render: Render::Plant,

@@ -73,8 +73,9 @@ folder with `mod.rs`.
 | `factory/generator.rs` | Coal generator: fuel buffer and stored energy (kW·ticks, lit from `recipes::fuel_energy`), gives only what its grid draws; bytes, readout, panel, model |
 | `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE`; `derive_slopes` makes flat belts ramps from their neighbours (in `relink`) |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
-| `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step` (each belt at its own `speed`: fast belts double); its bytes, readout and model; belt constants |
-| `factory/miner.rs` | Miners Mk1 and Mk2 (one kind, both powered; `mk2` sets rate, recovery and power): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
+| `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step` (each belt at its own `speed`, from `BELT_TIERS`); its bytes, readout and model; belt constants |
+| `factory/miner.rs` | Miners (one kind, powered; `tier` indexes `MINER_TIERS`: rate, recovery, power, look): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
+| `factory/tiers.rs` | Tiered families (belts, miners): `FAMILIES` (the block and each tier's item), `placed_by` (item → block and tier), `item_of` (what a tier drops) |
 | `factory/storage.rs` | Storage box: `step` (feeds belts leading away); its bytes and readout |
 | `factory/router.rs` | Splitter and filter (one `Router` kind): holds one item, passes it front/left/right (round robin; a filter sends its item front, others aside); bytes, readout, filter panel, model |
 | `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
@@ -266,10 +267,10 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `authority.rs` | `PHYSICS_SUBSTEPS` (per tick), `FALL_LIMIT`, `MAX_PLAYERS` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
 | `factory/mod.rs` | `MACHINES` (buffer slots per machine) |
-| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MK2_RATE`, `MK2_RECOVERY` |
+| `factory/miner.rs` | `MINER_TIERS` (rate, recovery, power per tier) |
 | `recipes.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (smelter seconds, generator kJ) |
-| `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` |
-| `factory/power.rs` | `GENERATOR_POWER`, `MINER_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `factory/belt.rs` | `BELT_TIERS` (speed per tier), `ITEM_SPACING` |
+| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
 | `factory/pumping.rs` | `PUMP_RATE`, `PUMP_HOLD`, `OUTLET_RATE`, `PUMP_RANGE` |
 | `factory/sites.rs` | `MAX_SITE` (columns on a side), `MAX_SITES` (per world) |
 | `factory/quarry.rs` | `DIG_SECONDS`, `SCAN_PER_TICK`; `quarry/dig_box.rs`: `WIDTHS`, `DEPTHS`, defaults, `QUARRIABLE` |

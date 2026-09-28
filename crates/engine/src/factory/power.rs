@@ -36,10 +36,6 @@ use super::{Factory, Machine};
 
 /// The most one generator supplies, in kW.
 pub const GENERATOR_POWER: u32 = 60;
-/// What a drilling Miner Mk1 draws, in kW.
-pub const MINER_POWER: u32 = 5;
-/// What a drilling Miner Mk2 draws, in kW.
-pub const MINER_MK2_POWER: u32 = 20;
 /// What a working constructor draws, in kW.
 pub const CONSTRUCTOR_POWER: u32 = 15;
 /// What a splitter or filter draws while it holds an item, in kW.
@@ -156,7 +152,7 @@ impl Power {
         self.capacity.iter_mut().for_each(|c| *c = 0);
         for (m, p) in miners.iter().zip(&self.miner_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += if m.mk2 { MINER_MK2_POWER } else { MINER_POWER };
+                self.demand[self.pole_grid[p as usize] as usize] += m.stats().power;
             }
         }
         for (c, p) in constructors.iter().zip(&self.constructor_pole) {

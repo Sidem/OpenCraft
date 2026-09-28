@@ -70,6 +70,26 @@ fn place_and_break_work_where_no_chunk_is_loaded() {
 }
 
 #[test]
+fn a_mk2_places_its_family_block_and_breaks_back_into_a_mk2() {
+    use crate::block::{FAST_BELT, MINER, MINER_MK2};
+    for (item, block) in [(FAST_BELT, BELT), (MINER_MK2, MINER), (BELT, BELT)] {
+        let mut sim = Sim::new(7, 2);
+        let pos = IVec3::new(500, 200, -500);
+        sim.apply(P, Action::Give { item: item.into(), count: 1 });
+        sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos - IVec3::new(0, 1, 0) });
+        assert_eq!(sim.world.block_anywhere(pos), Some(block));
+        assert_eq!(sim.factory.tier_at(pos), Some((item != BELT) as u8));
+        sim.events.clear();
+        sim.apply(P, Action::BreakBlock { pos });
+        let dropped = sim.events.iter().find_map(|e| match e {
+            SimEvent::Dropped { item, .. } => Some(*item),
+            _ => None,
+        });
+        assert_eq!(dropped, Some(ItemId::block(item)));
+    }
+}
+
+#[test]
 fn blocks_and_machines_placed_in_water_replace_it() {
     let mut sim = Sim::new(7, 3);
     let (a, b) = (IVec3::new(500, 200, -500), IVec3::new(501, 200, -500));

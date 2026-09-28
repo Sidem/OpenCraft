@@ -4,8 +4,8 @@
 //! `belt_step` walks belts downstream first (the `order` from `links.rs`), so a moving line never
 //! stalls for a tick at cell borders. A belt hands its front item to whatever is in front of it:
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
-//! Ramps, lifts and underpasses are belts with a `shape` (`belt_shape.rs`); a fast belt is a flat belt
-//! with `fast` set, moving at [`FAST_BELT_SPEED`].
+//! Ramps, lifts and underpasses are belts with a `shape` (`belt_shape.rs`); every shape comes in the
+//! tiers of [`BELT_TIERS`] (`tier` indexes it; `tiers.rs` names the item of each).
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -22,9 +22,15 @@ use super::{Factory, Machine, DIRS};
 
 const DIR_NAMES: [&str; 4] = ["north", "east", "south", "west"];
 
-/// Belt speed in blocks per second.
-pub const BELT_SPEED: f32 = 1.0;
-pub const FAST_BELT_SPEED: f32 = 2.0;
+/// A belt tier's numbers: speed in blocks per second and the texture of its moving top.
+pub struct BeltTier {
+    pub speed: f32,
+    pub top: u16,
+}
+
+/// Mk1 first. Speeds: TECH_ERAS section 1.
+pub const BELT_TIERS: [BeltTier; 2] =
+    [BeltTier { speed: 1.0, top: tex::BELT_TOP }, BeltTier { speed: 2.0, top: tex::FAST_BELT_TOP }];
 /// Minimum distance between item centres on a belt, in blocks.
 pub const ITEM_SPACING: f32 = 0.35;
 pub const ITEM_SIZE: f32 = 0.25;
@@ -51,27 +57,24 @@ pub struct Belt {
     /// A lift that takes items from the lift below / hands them to the lift above (derived).
     pub lift_below: bool,
     pub lift_above: bool,
-    pub fast: bool,
+    /// Index into [`BELT_TIERS`] (0 is Mk1).
+    pub tier: u8,
 }
 
 /// A belt's model where none stands yet (the line tool's preview, `belt_line.rs`), without items.
-pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, dir: u8, shape: Shape, fast: bool, rel: Vec3, time: f64) {
-    Belt::new(pos, dir, shape, fast).model(out, rel, time);
+pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, dir: u8, shape: Shape, tier: u8, rel: Vec3, time: f64) {
+    Belt::new(pos, dir, shape, tier).model(out, rel, time);
 }
 
 impl Belt {
-    pub fn new(pos: IVec3, dir: u8, shape: Shape, fast: bool) -> Belt {
+    pub fn new(pos: IVec3, dir: u8, shape: Shape, tier: u8) -> Belt {
         let (items, out, curve_from) = (Vec::new(), Link::None, None);
-        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below: false, lift_above: false, fast }
+        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below: false, lift_above: false, tier }
     }
 
     /// Blocks per second.
     pub fn speed(&self) -> f32 {
-        if self.fast {
-            FAST_BELT_SPEED
-        } else {
-            BELT_SPEED
-        }
+        BELT_TIERS[self.tier as usize].speed
     }
 
     /// Item offset from the cell centre (horizontal) at progress `p`.
@@ -158,12 +161,13 @@ impl Machine for Belt {
     }
 
     /// Core state: position, direction, shape, speed and items (`out`, `curve_from` and the lift flags
-    /// are rebuilt by `relink`). Saves before version 6 have only flat belts, before 9 only slow ones.
+    /// are rebuilt by `relink`). Saves before version 6 have only flat belts, before 9 only Mk1 ones (the
+    /// tier byte was a `fast` bool then, so tiers 0 and 1 are byte-identical to it).
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.dir);
         w.u8(self.shape as u8);
-        w.bool(self.fast);
+        w.u8(self.tier);
         w.count(self.items.len());
         for it in &self.items {
             w.item(it.item);
@@ -174,12 +178,12 @@ impl Machine for Belt {
     fn read_state(r: &mut ByteReader) -> Option<Belt> {
         let (pos, dir) = (r.ivec3()?, r.u8()?);
         let shape = if r.version >= 6 { Shape::from_u8(r.u8()?)? } else { Shape::Flat };
-        let fast = r.version >= 9 && r.bool()?;
-        let mut belt = Belt::new(pos, dir, shape, fast);
+        let tier = if r.version >= 9 { r.u8()? } else { 0 };
+        let mut belt = Belt::new(pos, dir, shape, tier);
         for _ in 0..r.count()? {
             belt.items.push(BeltItem { item: r.item()?, p: r.f32()? });
         }
-        (dir < 4).then_some(belt)
+        (dir < 4 && (tier as usize) < BELT_TIERS.len()).then_some(belt)
     }
 
     /// The carried items, merged into stacks.
@@ -225,7 +229,7 @@ impl Machine for Belt {
         let (s, c) = yaw.sin_cos();
         let at = |x: f32, y: f32, z: f32| base + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
         if matches!(self.shape, Shape::Flat | Shape::Entry | Shape::Exit) {
-            let top = [if self.fast { tex::FAST_BELT_TOP } else { tex::BELT_TOP }, tex::FRAME, tex::FRAME];
+            let top = [BELT_TIERS[self.tier as usize].top, tex::FRAME, tex::FRAME];
             push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, top, true);
             for side in [-0.46, 0.46] {
                 push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, [tex::FRAME; 3], true);

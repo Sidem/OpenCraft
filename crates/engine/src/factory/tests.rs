@@ -210,7 +210,7 @@ fn box_readout_lists_the_largest_stock_first() {
 }
 
 fn smelter(f: &mut Factory, pos: IVec3) {
-    f.place(&mut World::new(1, 2), crate::block::SMELTER, pos, 0, pos - IVec3::new(0, 1, 0));
+    f.place(&mut World::new(1, 2), crate::block::SMELTER, pos, 0, pos - IVec3::new(0, 1, 0), 0);
 }
 
 fn smelter_mut(f: &mut Factory, pos: IVec3) -> &mut smelter::Smelter {
@@ -321,15 +321,15 @@ fn recipe_for(item: ItemId) -> u16 {
 fn powered(f: &mut Factory) {
     let (pole, gen) = (IVec3::new(2, 3, 0), IVec3::new(3, 3, 0));
     if !f.at.contains_key(&pole) {
-        f.place(&mut World::new(1, 2), crate::block::POLE, pole, 0, pole);
-        f.place(&mut World::new(1, 2), crate::block::GENERATOR, gen, 0, gen);
+        f.place(&mut World::new(1, 2), crate::block::POLE, pole, 0, pole, 0);
+        f.place(&mut World::new(1, 2), crate::block::GENERATOR, gen, 0, gen, 0);
         assert_eq!(f.insert(gen, crate::block::COAL_ORE.into(), 64), 64);
     }
 }
 
 fn constructor(f: &mut Factory, pos: IVec3, makes: ItemId) {
     powered(f);
-    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos - IVec3::new(0, 1, 0));
+    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos - IVec3::new(0, 1, 0), 0);
     assert!(f.set_recipe(pos, Some(recipe_for(makes))).is_some_and(|back| back.is_empty()));
 }
 
@@ -355,7 +355,7 @@ fn a_constructor_takes_only_its_recipe_input() {
     let mut f = Factory::default();
     let p = IVec3::ZERO;
     powered(&mut f);
-    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, p, 0, p);
+    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, p, 0, p, 0);
     assert_eq!(f.insert(p, IRON_INGOT, 5), 0, "no recipe, nothing goes in");
     assert_eq!(f.set_recipe(p, Some(0)), None, "a smelter recipe is refused");
     assert!(f.set_recipe(p, Some(recipe_for(IRON_ROD))).is_some());
@@ -421,7 +421,7 @@ fn constructors_survive_a_save_round_trip() {
 fn router(f: &mut Factory, pos: IVec3, dir: u8, filter: bool) {
     powered(f);
     let block = if filter { crate::block::FILTER } else { crate::block::SPLITTER };
-    f.place(&mut World::new(1, 2), block, pos, dir, pos);
+    f.place(&mut World::new(1, 2), block, pos, dir, pos, 0);
 }
 
 /// A belt from `from` running `dir` for one cell into a box beyond it.
@@ -497,7 +497,7 @@ fn a_filter_with_no_item_sends_everything_aside() {
 
 /// Places belt block `block` (any shape) at `pos` facing `dir`.
 fn shaped(f: &mut Factory, block: BlockId, pos: IVec3, dir: u8) {
-    f.place(&mut World::new(1, 2), block, pos, dir, pos);
+    f.place(&mut World::new(1, 2), block, pos, dir, pos, 0);
 }
 
 /// The factory after its bytes are written and read back, checking they read back unchanged.
@@ -576,13 +576,13 @@ fn an_underpass_carries_items_under_a_crossing_belt() {
 
 /// A constructor at `pos` making rods, with `ingots` iron ingots put in.
 fn rod_maker(f: &mut Factory, pos: IVec3, ingots: u32) {
-    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos);
+    f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos, 0);
     f.set_recipe(pos, Some(recipe_for(crate::item::IRON_ROD)));
     assert_eq!(f.insert(pos, crate::item::IRON_INGOT, ingots), ingots);
 }
 
 fn place_block(f: &mut Factory, block: BlockId, pos: IVec3) {
-    f.place(&mut World::new(1, 2), block, pos, 0, pos);
+    f.place(&mut World::new(1, 2), block, pos, 0, pos, 0);
 }
 
 #[test]
@@ -730,13 +730,13 @@ fn a_lab_needs_one_of_each_pack_and_power() {
 
 #[test]
 fn fast_belts_carry_twice_as_much_and_mix_with_slow_ones() {
-    use crate::block::FAST_BELT;
     let carried = |fast_cells: &[i32]| {
         let mut f = Factory::default();
         stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 64);
         for x in 1..=4 {
             if fast_cells.contains(&x) {
-                shaped(&mut f, FAST_BELT, IVec3::new(x, 0, 0), EAST);
+                let p = IVec3::new(x, 0, 0);
+                f.place(&mut World::new(1, 2), crate::block::BELT, p, EAST, p, 1);
             } else {
                 f.add_belt(IVec3::new(x, 0, 0), EAST);
             }
@@ -745,7 +745,7 @@ fn fast_belts_carry_twice_as_much_and_mix_with_slow_ones() {
         run(&mut f, 5.0, spacing_ok);
         let mut g = round_trip(&f);
         run(&mut g, 5.0, spacing_ok);
-        assert_eq!(g.belt_at(IVec3::new(1, 0, 0)).fast, fast_cells.contains(&1), "saved");
+        assert_eq!(g.belt_at(IVec3::new(1, 0, 0)).tier == 1, fast_cells.contains(&1), "saved");
         g.storage_count_at(IVec3::new(5, 0, 0), IRON_ORE.into())
     };
     let (slow, fast) = (carried(&[]), carried(&[1, 2, 3, 4]));

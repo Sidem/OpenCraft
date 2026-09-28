@@ -1,24 +1,23 @@
-//! Factory machines: conveyor belts (with ramps, lifts and underpasses), miners, storage boxes, smelters, constructors,
-//! splitters, filters, power (generators, poles), research labs (with the world's `Research`) and
-//! pipework (pumps, pipes, outlets: `pipes.rs`, `pumping.rs`), quarries (`quarry.rs`) and the world's
-//! terraforming sites (`sites.rs`).
+//! Factory machines: belts (with ramps, lifts and underpasses), miners, storage boxes, smelters,
+//! constructors, splitters, filters, power (generators, poles), research labs (with the world's
+//! `Research`), pipework (`pipes.rs`, `pumping.rs`), quarries and the world's terraforming sites
+//! (`sites.rs`). Belts and miners come in tiers (`tiers.rs`).
 //!
-//! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and
-//! breaking work unchanged) while their state lives here, keyed by position in `at`. The machine
-//! table `MACHINES` maps a block to its kind and buffer size (several blocks may share a kind). Each kind is a struct in its own file
-//! implementing [`Machine`] (state bytes, contents, readout, model), stored in its own `Vec`; code
-//! that acts on one machine finds it through one `match` on `Slot`. Removal is `swap_remove` plus
-//! fixing the moved entry's `at` slot. Machines keep running when their chunk is streamed out.
+//! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and breaking
+//! work unchanged) while their state lives here, keyed by position in `at`, and keep running when their
+//! chunk is streamed out. `MACHINES` maps a block to its kind and buffer size (several blocks may share
+//! a kind). Each kind is a struct in its own file implementing [`Machine`], in its own `Vec`; code acting
+//! on one machine matches on its `Slot`. Removal is `swap_remove` plus fixing the moved entry's `at` slot.
 //!
-//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick: power (`power.rs`: this tick's
-//! supply and demand), miners, boxes and processing machines, the powered machines, then belts (downstream first, see `links.rs`),
-//! and reports to the view only
-//! through `SimEvent`s. Links and the belt order are derived data, rebuilt by `relink` whenever `dirty` is set.
+//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick: power (`power.rs`: supply and
+//! demand), miners, boxes and processing machines, the powered machines, then belts (downstream first,
+//! see `links.rs`), and reports to the view only through `SimEvent`s. Links and the belt order are
+//! derived data, rebuilt by `relink` whenever `dirty` is set.
 //!
 //! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a
 //! `MACHINES` row and a `Vec` field (saved in `state.rs`), then follow the compiler through the `match`es
-//! (`place`, `remove`, `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in `block.rs`, its
-//! recipe in `recipes.rs`.
+//! (`place`, `remove`, `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in
+//! `block.rs`, its recipe in `recipes.rs`.
 
 mod belt;
 mod belt_shape;
@@ -40,6 +39,7 @@ mod sites;
 mod smelter;
 mod state;
 mod storage;
+pub mod tiers;
 
 use rustc_hash::FxHashMap;
 
@@ -78,7 +78,7 @@ pub use constructor::ConstructorStatus;
 pub use describe::fmt_int;
 #[cfg(test)]
 pub use miner::MinerStatus;
-pub use miner::{MINER_RECOVERY, MK2_RECOVERY};
+pub use miner::MINER_TIERS;
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{push_box, INSTANCE_FLOATS};
@@ -154,6 +154,7 @@ pub const MACHINES: [MachineDef; 21] = [
     MachineDef { block: LIFT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: UNDERPASS_IN, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: UNDERPASS_OUT, kind: Kind::Belt, slots: 0, panel: false },
+    // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: PUMP, kind: Kind::Pipe, slots: 0, panel: false },
@@ -235,17 +236,17 @@ impl Factory {
 
     /// Adds the machine that `block` is at `pos` (nothing for other blocks). `facing` is the placing
     /// player's horizontal direction (belts run that way); `against` is the clicked block, which a
-    /// miner drills if it is adjacent.
-    pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3) {
+    /// miner drills if it is adjacent. `tier` is the machine's tier for tiered kinds (`tiers.rs`).
+    pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3, tier: u8) {
         let Some(def) = machine(block) else { return };
         self.remove(pos);
         let at = &mut self.at;
         match def.kind {
-            Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block), block == FAST_BELT),
+            Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block), tier.max((block == FAST_BELT) as u8)),
             Kind::Miner => {
                 let drill = face_of(against - pos);
                 let deposit = drill.and_then(|_| self.deposits.lookup(world, against));
-                self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit, block == MINER_MK2);
+                self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit, tier.max((block == MINER_MK2) as u8));
             }
             Kind::Storage => self.add_storage(pos),
             Kind::Smelter => add_to(&mut self.smelters, Smelter::new(pos), at, Slot::Smelter),
@@ -262,18 +263,18 @@ impl Factory {
 
     #[cfg(test)]
     pub fn add_belt(&mut self, pos: IVec3, dir: u8) {
-        self.add_shaped_belt(pos, dir, Shape::Flat, false);
+        self.add_shaped_belt(pos, dir, Shape::Flat, 0);
     }
 
-    fn add_shaped_belt(&mut self, pos: IVec3, dir: u8, shape: Shape, fast: bool) {
+    fn add_shaped_belt(&mut self, pos: IVec3, dir: u8, shape: Shape, tier: u8) {
         self.remove(pos);
-        add_to(&mut self.belts, Belt::new(pos, dir, shape, fast), &mut self.at, Slot::Belt);
+        add_to(&mut self.belts, Belt::new(pos, dir, shape, tier), &mut self.at, Slot::Belt);
         self.dirty = true;
     }
 
-    pub fn add_miner(&mut self, pos: IVec3, drill: u8, deposit: Option<DepositKey>, mk2: bool) {
+    pub fn add_miner(&mut self, pos: IVec3, drill: u8, deposit: Option<DepositKey>, tier: u8) {
         self.remove(pos);
-        add_to(&mut self.miners, Miner::new(pos, drill, deposit, mk2), &mut self.at, Slot::Miner);
+        add_to(&mut self.miners, Miner::new(pos, drill, deposit, tier), &mut self.at, Slot::Miner);
         self.dirty = true;
     }
 
@@ -281,6 +282,15 @@ impl Factory {
         self.remove(pos);
         add_to(&mut self.storages, Storage::new(pos), &mut self.at, Slot::Storage);
         self.dirty = true;
+    }
+
+    /// The tier of the tiered machine at `pos` (a belt or miner), for what breaking it drops.
+    pub fn tier_at(&self, pos: IVec3) -> Option<u8> {
+        match *self.at.get(&pos)? {
+            Slot::Belt(i) => Some(self.belts[i as usize].tier),
+            Slot::Miner(i) => Some(self.miners[i as usize].tier),
+            _ => None,
+        }
     }
 
     /// Removes the machine at `pos`, returning whatever it was holding or carrying.

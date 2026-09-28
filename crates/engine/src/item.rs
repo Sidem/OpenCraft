@@ -23,8 +23,12 @@ impl ItemId {
         ItemId(b as u16)
     }
 
-    /// The block this item puts into the world, if it can be placed.
+    /// The block this item puts into the world, if it can be placed. Every tier of a tiered machine
+    /// places its family's block (`factory/tiers.rs`).
     pub fn places(self) -> Option<BlockId> {
+        if let Some((block, _)) = crate::factory::tiers::placed_by(self) {
+            return Some(block);
+        }
         def(self).map(|d| d.places).filter(|&b| b != AIR)
     }
 

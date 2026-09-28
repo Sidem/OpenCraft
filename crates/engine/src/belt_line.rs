@@ -46,7 +46,7 @@ pub struct BeltLine {
     build_from: (u8, u16),
 }
 
-/// Whether block `b` is laid in lines.
+/// Whether block `b` is laid in lines (`FAST_BELT` is a legacy block of old worlds).
 pub fn is_belt(b: BlockId) -> bool {
     matches!(b, BELT | FAST_BELT | RAMP_UP | RAMP_DOWN)
 }
@@ -203,10 +203,10 @@ impl Game {
 
     /// Ghost belts along the planned line, drawn with the machines.
     pub(crate) fn write_line_preview(&mut self, eye: Vec3, time: f64) {
-        let fast = self.inventory().selected_stack().item.places() == Some(FAST_BELT);
+        let tier = factory::tiers::placed_by(self.inventory().selected_stack().item).map_or(0, |(_, t)| t);
         for c in &self.line.cells {
             let rel = c.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
-            factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, fast, rel, time);
+            factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, tier, rel, time);
         }
     }
 

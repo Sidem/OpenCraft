@@ -122,7 +122,7 @@ fn machines_are_marked_but_belts_are_not() {
     let c = g.body().pos.floor();
     let (near, far) = (c + IVec3::new(10, 0, -20), c + IVec3::new(70, 0, 0));
     for (block, p) in [(SMELTER, near), (SMELTER, far), (BELT, c + IVec3::new(3, 0, 3))] {
-        g.sim.factory.place(&mut g.sim.world, block, p, 0, p);
+        g.sim.factory.place(&mut g.sim.world, block, p, 0, p, 0);
     }
     assert!(g.minimap_marks().is_empty(), "nothing before the first redraw");
     g.minimap_redraw();

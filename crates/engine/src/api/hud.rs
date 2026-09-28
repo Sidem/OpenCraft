@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
-use crate::factory::{self, Kind, MINER_RECOVERY, MK2_RECOVERY};
+use crate::factory::{self, Kind, MINER_TIERS};
 use crate::hints::{self, HINTS};
 use crate::ore_guide;
 use crate::Game;
@@ -122,8 +122,8 @@ impl Game {
             st.deposit.name(),
             int(grade as u64),
             int(grade.saturating_sub(HAND_YIELD) as u64),
-            (MINER_RECOVERY * 100.0).round() as u32,
-            (MK2_RECOVERY * 100.0).round() as u32
+            (MINER_TIERS[0].recovery * 100.0).round() as u32,
+            (MINER_TIERS[1].recovery * 100.0).round() as u32
         )
     }
 

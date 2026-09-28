@@ -108,11 +108,11 @@ next day (no charge).
 |---|---|---|
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR` | 3, 0.2, 0.25 |
 | `deposits.rs` | `Tier::grade` / `draw_cap` (units per s) | lode 2000 / 20, vein 1000 / 4, outcrop 100 / 1 |
-| `factory/miner.rs` | `MINER_RATE`, `MINER_RECOVERY`, `MK2_RATE`, `MK2_RECOVERY` | Mk1 1.0 units/s, 0.6 · Mk2 2.0 units/s (at full power), 0.75 |
-| `factory/belt.rs` | `BELT_SPEED`, `FAST_BELT_SPEED`, `ITEM_SPACING` | 1.0 and 2.0 blocks/s (about 2.9 and 5.7 items/s), 0.35 |
+| `factory/miner.rs` | `MINER_TIERS` (rate, recovery, power) | Mk1 1.0 units/s, 0.6 · Mk2 2.0 units/s (at full power), 0.75 · power: Mk1 5 kW, Mk2 20 kW while drilling |
+| `factory/belt.rs` | `BELT_TIERS`, `ITEM_SPACING` | 1.0 and 2.0 blocks/s (about 2.9 and 5.7 items/s), 0.35 |
 | `factory/belt_shape.rs` | `UNDERPASS_RANGE` | 5 cells |
 | `belt_line.rs` | `MAX_LINE`, `LINE_REACH`, `BUILD_PER_TICK` | 64 cells, 48 blocks, 3 placements per tick |
-| `factory/power.rs` | `GENERATOR_POWER`, `MINER_POWER`, `MINER_MK2_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER` | a generator gives up to 60 kW, only what is drawn · Mk1 5 kW and Mk2 20 kW while drilling, constructor 15 kW while working, 1 kW while holding an item, 10 kW while researching, pump 5 kW while it has room, quarry 10 kW while digging |
+| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER` | a generator gives up to 60 kW, only what is drawn · constructor 15 kW while working, 1 kW while holding an item, 10 kW while researching, pump 5 kW while it has room, quarry 10 kW while digging |
 | `factory/pumping.rs` | `PUMP_RATE`, `PUMP_HOLD`, `OUTLET_RATE`, `PUMP_RANGE` | a pump lifts 2 sources a second and holds 2; an outlet pours up to 4 a second; both search 16 steps through water |
 | `sim/water.rs` | `WATER_DELAY`, `MAX_WATER_UPDATES` | a change reaches its neighbours 5 ticks later; at most 256 water checks a tick |
 | `research.rs` | `TECHS` (units × seconds, packs per unit) | Belt Routing 10 × 5 s red · Belt Lifts 20 × 5 s red · Green Science 30 × 5 s red · Underpasses 15 × 10 s red + green · Miner Mk2 30 × 10 s red + green · Fast Belts 20 × 10 s red + green · Fluid Handling 15 × 5 s red |

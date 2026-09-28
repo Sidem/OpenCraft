@@ -9,7 +9,7 @@
 //! bytes in `action/codec.rs` (co-op sends actions to every peer).
 
 use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
-use crate::factory::Job;
+use crate::factory::{self, Job};
 use crate::inventory::{add_to_slots, click_stack, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -294,12 +294,12 @@ impl Sim {
         self.events.push(SimEvent::BlockBroken { player, pos, block: id });
         self.block_changed(pos, id);
         let held = self.wear_tool(player, id);
+        // A tiered machine drops its tier's item (`factory/tiers.rs`).
+        let tiered = self.factory.tier_at(pos).and_then(|t| factory::tiers::item_of(def.drop, t));
         let mut drops = self.factory.remove(pos);
         if def.drop != AIR {
-            drops.insert(
-                0,
-                Stack { item: ItemId::block(def.drop), count: if ore { tools::ore_yield(held) } else { 1 } },
-            );
+            let item = tiered.unwrap_or(ItemId::block(def.drop));
+            drops.insert(0, Stack { item, count: if ore { tools::ore_yield(held) } else { 1 } });
         }
         if id == LEAVES && self.leaf_drops_sapling() {
             drops.push(Stack { item: SAPLING.into(), count: 1 });
@@ -341,7 +341,8 @@ impl Sim {
             return;
         }
         inv.take_slot(slot as usize, 1);
-        self.factory.place(&mut self.world, placed, pos, facing, against);
+        let tier = factory::tiers::placed_by(stack.item).map_or(0, |(_, t)| t);
+        self.factory.place(&mut self.world, placed, pos, facing, against, tier);
         self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
         self.block_changed(pos, old);
     }
