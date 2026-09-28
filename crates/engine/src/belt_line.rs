@@ -8,14 +8,21 @@
 //! (`factory::belt_shape::derive_slopes`). It stops before anything in the way, so a line ending at a
 //! machine feeds it. Planning reads the loaded world (the render cache), never core state.
 //!
-//! To change the path: `plan`. The preview: ghost belts (`write_line_preview`) and the host's outline
-//! boxes and label (`api/hud.rs` `line_cells`, `line_label`).
+//! With upgrade kits selected the same drag upgrades belts instead (`factory/upgrades.rs`): the path
+//! ([`plan_upgrade`]) follows existing belts, the cells are the belts one tier below the kit, and
+//! releasing sends `Upgrade` actions as far as the kits last. Clicking another tiered machine (a miner)
+//! with kits upgrades it at once.
+//!
+//! To change the path: `plan` / `plan_upgrade`. The preview: ghost belts (`write_line_preview`) and the
+//! host's outline boxes and label (`api/hud.rs` `line_cells`, `line_label`), in the kit's colour when
+//! upgrading.
 
 use crate::action::Action;
 use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
-use crate::factory::{self, Shape};
+use crate::factory::{self, tiers, upgrades, Shape};
 use crate::math::{IVec3, Vec3};
 use crate::raycast::raycast;
+use crate::research::Unlock;
 use crate::Game;
 
 /// The longest line one drag builds, in cells.
@@ -44,6 +51,8 @@ pub struct BeltLine {
     building: Vec<IVec3>,
     build_dir: Vec<u8>,
     build_from: (u8, u16),
+    /// The cells being built are upgrades (kits), not placements.
+    upgrading: bool,
 }
 
 /// Whether block `b` is laid in lines (`FAST_BELT` is a legacy block of old worlds).
@@ -51,12 +60,9 @@ pub fn is_belt(b: BlockId) -> bool {
     matches!(b, BELT | FAST_BELT | RAMP_UP | RAMP_DOWN)
 }
 
-/// The cells of a line from `start` towards the column of `end`, reading blocks through `block`
-/// (`None`: not loaded). A line of one cell runs `facing`. Empty when `start` isn't free.
-pub fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8) -> Vec<LineCell> {
-    let free = |p: IVec3| block(p).is_some_and(block::replaceable);
-    let solid = |p: IVec3| block(p).is_some_and(|b| SOLID[b as usize] && factory::machine(b).is_none());
-    // The columns, each with the way it runs; the cell where the path turns runs the new way.
+/// The columns (x, z) of a path from `start` towards the column of `end`, each with the way it runs:
+/// along the longer axis first, turning once (the turning cell runs the new way); one column runs `facing`.
+fn columns(start: IVec3, end: IVec3, facing: u8) -> Vec<((i32, i32), u8)> {
     let (dx, dz) = (end.x - start.x, end.z - start.z);
     let legs = if dx.abs() >= dz.abs() { [(dx, 0), (0, dz)] } else { [(0, dz), (dx, 0)] };
     let mut cols = vec![((start.x, start.z), facing)];
@@ -76,7 +82,15 @@ pub fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, 
         }
     }
     cols.truncate(MAX_LINE);
+    cols
+}
 
+/// The cells of a line from `start` towards the column of `end`, reading blocks through `block`
+/// (`None`: not loaded). A line of one cell runs `facing`. Empty when `start` isn't free.
+pub fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8) -> Vec<LineCell> {
+    let free = |p: IVec3| block(p).is_some_and(block::replaceable);
+    let solid = |p: IVec3| block(p).is_some_and(|b| SOLID[b as usize] && factory::machine(b).is_none());
+    let cols = columns(start, end, facing);
     let mut cells: Vec<LineCell> = Vec::with_capacity(cols.len());
     let mut y = start.y;
     for (i, &((x, z), dir)) in cols.iter().enumerate() {
@@ -110,6 +124,25 @@ pub fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, 
     cells
 }
 
+/// The belts to upgrade from the belt at `start` towards the column of `end`: the path follows belts
+/// (`tier_at`: the tier of the belt at a cell) one block up or down at a time and stops where none is;
+/// the cells are those at tier `from`.
+pub fn plan_upgrade(tier_at: impl Fn(IVec3) -> Option<u8>, start: IVec3, end: IVec3, from: u8) -> Vec<LineCell> {
+    let mut cells = Vec::new();
+    let mut y = start.y;
+    for ((x, z), dir) in columns(start, end, 0) {
+        let Some(pos) = [y, y + 1, y - 1].map(|y| IVec3::new(x, y, z)).into_iter().find(|&p| tier_at(p).is_some())
+        else {
+            break;
+        };
+        y = pos.y;
+        if tier_at(pos) == Some(from) {
+            cells.push(LineCell { pos, dir, shape: Shape::Flat });
+        }
+    }
+    cells
+}
+
 impl Game {
     /// Runs the line tool for one tick. True while it owns the use button (a belt is selected and the
     /// button went down on a surface, or a line is being built).
@@ -118,27 +151,37 @@ impl Game {
             return true;
         }
         let stack = self.inventory().selected_stack();
-        if !stack.item.places().is_some_and(is_belt) || stack.is_empty() {
+        let kit = upgrades::kit_tier(stack.item).filter(|_| !stack.is_empty());
+        if kit.is_none() && (!stack.item.places().is_some_and(is_belt) || stack.is_empty()) {
             self.line.start = None;
             self.line.cells.clear();
             return false;
         }
         match (self.line.start, self.using) {
             (None, false) => false,
-            (None, true) => self.start_line(),
+            (None, true) => match kit {
+                Some(tier) => self.start_upgrade(tier),
+                None => self.start_line(),
+            },
             (Some(_), _) if self.mining => {
                 self.cancel_belt_line();
                 true
             }
             (Some((start, facing)), true) => {
                 let end = self.line_end(start).unwrap_or_else(|| self.line.cells.last().map_or(start, |c| c.pos));
-                let world = &self.sim.world;
-                self.line.cells = plan(|p| world.get_block(p), start, end, facing);
+                self.line.cells = match kit {
+                    Some(tier) => {
+                        let belt_tier = |p| self.sim.factory.tiered_at(p).filter(|t| t.0 == BELT).map(|t| t.1);
+                        plan_upgrade(belt_tier, start, end, tier - 1)
+                    }
+                    None => plan(|p| self.sim.world.get_block(p), start, end, facing),
+                };
                 true
             }
             (Some(_), false) => {
                 self.line.start = None;
-                let n = self.line.cells.len().min(stack.count as usize);
+                self.line.upgrading = kit.is_some();
+                let n = self.line.cells.len().min(self.line_budget());
                 let cells = std::mem::take(&mut self.line.cells);
                 self.line.building = cells[..n].iter().rev().map(|c| c.pos).collect();
                 self.line.build_dir = cells[..n].iter().rev().map(|c| c.dir).collect();
@@ -152,6 +195,37 @@ impl Game {
     pub(crate) fn cancel_belt_line(&mut self) {
         self.line.start = None;
         self.line.cells.clear();
+    }
+
+    /// Cells the held stack pays for (none while research locks the kit's upgrade): belts in hand, or belt upgrades the held kit's kind covers.
+    pub(crate) fn line_budget(&self) -> usize {
+        let held = self.inventory().selected_stack().item;
+        match upgrades::kit_tier(held) {
+            Some(tier) if !self.sim.factory.research.has(Unlock::Upgrade(BELT, tier)) => 0,
+            Some(_) => {
+                let per = tiers::family(BELT).map_or(1, |f| f.kits);
+                (self.inventory().count(held) / per) as usize
+            }
+            None => self.inventory().selected_stack().count as usize,
+        }
+    }
+
+    /// With kits: start an upgrade line at the targeted belt, or upgrade another tiered machine at once.
+    fn start_upgrade(&mut self, tier: u8) -> bool {
+        let Some(hit) = self.target else { return false };
+        match self.sim.factory.tiered_at(hit.block) {
+            Some((BELT, t)) => {
+                self.line.start = Some((hit.block, 0));
+                let cell = LineCell { pos: hit.block, dir: 0, shape: Shape::Flat };
+                self.line.cells = if t + 1 == tier { vec![cell] } else { Vec::new() };
+            }
+            Some(_) => {
+                self.act(Action::Upgrade { pos: hit.block });
+                self.using = false;
+            }
+            None => return false,
+        }
+        true
     }
 
     /// The use button went down: start a line at the cell in front of the targeted face. Boxes and
@@ -196,25 +270,35 @@ impl Game {
         }
         for _ in 0..BUILD_PER_TICK {
             let (Some(pos), Some(facing)) = (self.line.building.pop(), self.line.build_dir.pop()) else { break };
-            self.act(Action::PlaceBlock { pos, slot, facing, against: pos - UP });
+            if self.line.upgrading {
+                self.act(Action::Upgrade { pos });
+            } else {
+                self.act(Action::PlaceBlock { pos, slot, facing, against: pos - UP });
+            }
         }
         true
     }
 
     /// Ghost belts along the planned line, drawn with the machines.
     pub(crate) fn write_line_preview(&mut self, eye: Vec3, time: f64) {
-        let tier = factory::tiers::placed_by(self.inventory().selected_stack().item).map_or(0, |(_, t)| t);
+        let held = self.inventory().selected_stack().item;
+        if upgrades::kit_tier(held).is_some() {
+            return; // upgrades show as coloured outlines only; the belts are already there
+        }
+        let tier = tiers::placed_by(held).map_or(0, |(_, t)| t);
         for c in &self.line.cells {
             let rel = c.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
             factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, tier, rel, time);
         }
     }
 
-    /// Cells of the planned line for the host's outlines: x, y, z and 1 if it will be built (0 past
-    /// the belts in hand).
+    /// Cells of the planned line for the host's outlines: x, y, z and 1 if it will be built, or the kit's
+    /// tier colour (0xRRGGBB) if it will be upgraded; 0 past what the held stack pays for.
     pub(crate) fn planned_cells(&self) -> Vec<i32> {
-        let have = self.inventory().selected_stack().count as usize;
-        let cell = |(i, c): (usize, &LineCell)| [c.pos.x, c.pos.y, c.pos.z, i32::from(i < have)];
+        let have = self.line_budget();
+        let kit = upgrades::kit_tier(self.inventory().selected_stack().item);
+        let ok = kit.map_or(1, |t| upgrades::TIER_COLOURS[t as usize] as i32);
+        let cell = |(i, c): (usize, &LineCell)| [c.pos.x, c.pos.y, c.pos.z, if i < have { ok } else { 0 }];
         self.line.cells.iter().enumerate().flat_map(cell).collect()
     }
 }

@@ -40,6 +40,7 @@ mod smelter;
 mod state;
 mod storage;
 pub mod tiers;
+pub mod upgrades;
 
 use rustc_hash::FxHashMap;
 
@@ -282,15 +283,6 @@ impl Factory {
         self.remove(pos);
         add_to(&mut self.storages, Storage::new(pos), &mut self.at, Slot::Storage);
         self.dirty = true;
-    }
-
-    /// The tier of the tiered machine at `pos` (a belt or miner), for what breaking it drops.
-    pub fn tier_at(&self, pos: IVec3) -> Option<u8> {
-        match *self.at.get(&pos)? {
-            Slot::Belt(i) => Some(self.belts[i as usize].tier),
-            Slot::Miner(i) => Some(self.miners[i as usize].tier),
-            _ => None,
-        }
     }
 
     /// Removes the machine at `pos`, returning whatever it was holding or carrying.

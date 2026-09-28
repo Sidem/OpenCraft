@@ -309,7 +309,9 @@ impl Machine for Miner {
             push_box(out, rel + Vec3::new(x, -0.37, 0.0), 0.0, [0.13, 0.21, 0.97], 0.0, [tex::DRILL; 3], true);
         }
         push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.62, 0.48, 0.62], 0.0, housing, false);
-        push_box(out, rel + Vec3::new(0.0, 0.28, 0.0), 0.0, [0.48, 0.15, 0.48], 0.0, [tex::FRAME; 3], false);
+        // The collar is the tier band.
+        let band = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
+        push_box(out, rel + Vec3::new(0.0, 0.28, 0.0), 0.0, [0.5, 0.15, 0.5], 0.0, band, false);
         push_box(out, rel + f * 0.31, 0.0, size(0.12, 0.5), 0.0, [tex::FRAME; 3], false);
         push_box(out, rel + f * (0.43 + pump), 0.0, size(0.3, 0.28), 0.0, [tex::DRILL; 3], true);
         push_box(out, rel + f * (0.57 + pump), 0.0, size(0.18, 0.16), 0.0, [tex::DRILL; 3], true);

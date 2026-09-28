@@ -73,6 +73,11 @@ pub enum Action {
     RemoveSite {
         id: u32,
     },
+    /// Raises the tiered machine at `pos` one tier with kits from the inventory (`factory/upgrades.rs`),
+    /// if research allows it and there are enough.
+    Upgrade {
+        pos: IVec3,
+    },
     /// Chooses what every lab in the world researches (`u8::MAX` to stop); only an available tech.
     SetResearch {
         tech: u8,
@@ -202,6 +207,16 @@ impl Sim {
             Action::RemoveSite { id } => {
                 self.factory.sites.remove(id);
             }
+            Action::Upgrade { pos } => {
+                let Some(step) = self.factory.next_upgrade(pos) else { return };
+                if !self.factory.research.has(Unlock::Upgrade(step.block, step.tier)) || inv.count(step.kit) < step.kits
+                {
+                    return;
+                }
+                inv.remove(step.kit, step.kits);
+                self.factory.upgrade(pos);
+                self.events.push(SimEvent::BlockPlaced { player, pos, block: step.block });
+            }
             Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
             Action::Insert { pos, item } => {
                 let put = self.factory.insert(pos, item, inv.count(item));
@@ -299,7 +314,7 @@ impl Sim {
         self.block_changed(pos, id);
         let held = self.wear_tool(player, id);
         // A tiered machine drops its tier's item (`factory/tiers.rs`).
-        let tiered = self.factory.tier_at(pos).and_then(|t| factory::tiers::item_of(def.drop, t));
+        let tiered = self.factory.tiered_at(pos).and_then(|t| factory::tiers::item_of(def.drop, t.1));
         let mut drops = self.factory.remove(pos);
         if def.drop != AIR {
             let item = tiered.unwrap_or(ItemId::block(def.drop));

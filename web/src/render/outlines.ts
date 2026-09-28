@@ -1,6 +1,6 @@
 // Overlays drawn after the world: mining cracks (the player's own and the blocks quarries are digging),
 // the outlines of a belt line being dragged out (the engine's `line_cells`: a flat box under each cell,
-// cyan where a belt will go and red past the belts in hand), and quarry boxes (amber: the one a held
+// cyan where a belt will go, the kit's tier colour where one will be upgraded, red past what the hand holds), and quarry boxes (amber: the one a held
 // quarry would dig, or the one whose panel is open), drawn through terrain so they show whole.
 // Uses the renderer's line program (shaders.ts `lineVert`, scaled by `u_scale`) with its box-edge VAO,
 // and its crack program with the cube VAO.
@@ -11,7 +11,7 @@ type LineProgram = { prog: WebGLProgram; u: Uniforms<'u_viewProj' | 'u_offset' |
 type CrackProgram = { prog: WebGLProgram; u: Uniforms<'u_viewProj' | 'u_offset' | 'u_progress'> };
 type Eye = [number, number, number];
 
-/** Draws the outlines of `cells` (x, y, z, will-be-built per cell) relative to `eye`; returns the draw calls. */
+/** Draws the outlines of `cells` (x, y, z, then 0 short, 1 built or 0xRRGGBB upgraded) relative to `eye`; returns the draw calls. */
 export function drawLineCells(
   gl: WebGL2RenderingContext,
   line: LineProgram,
@@ -24,8 +24,9 @@ export function drawLineCells(
   beginOverlay(gl, line, edges, viewProj);
   gl.uniform3f(line.u.u_scale, 1, 0.25, 1);
   for (let i = 0; i < cells.length; i += 4) {
-    const ok = cells[i + 3] === 1;
-    gl.uniform4f(line.u.u_color, ok ? 0.3 : 1, ok ? 0.9 : 0.3, ok ? 1 : 0.25, 0.9);
+    const v = cells[i + 3];
+    if (v > 1) gl.uniform4f(line.u.u_color, (v >> 16) / 255, ((v >> 8) & 255) / 255, (v & 255) / 255, 0.95);
+    else gl.uniform4f(line.u.u_color, v ? 0.3 : 1, v ? 0.9 : 0.3, v ? 1 : 0.25, 0.9);
     gl.uniform3f(line.u.u_offset, cells[i] - eye[0], cells[i + 1] - eye[1], cells[i + 2] - eye[2]);
     gl.drawArrays(gl.LINES, 0, 24);
   }

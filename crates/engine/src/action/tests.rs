@@ -78,7 +78,7 @@ fn a_mk2_places_its_family_block_and_breaks_back_into_a_mk2() {
         sim.apply(P, Action::Give { item: item.into(), count: 1 });
         sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos - IVec3::new(0, 1, 0) });
         assert_eq!(sim.world.block_anywhere(pos), Some(block));
-        assert_eq!(sim.factory.tier_at(pos), Some((item != BELT) as u8));
+        assert_eq!(sim.factory.tiered_at(pos), Some((block, (item != BELT) as u8)));
         sim.events.clear();
         sim.apply(P, Action::BreakBlock { pos });
         let dropped = sim.events.iter().find_map(|e| match e {
@@ -87,6 +87,29 @@ fn a_mk2_places_its_family_block_and_breaks_back_into_a_mk2() {
         });
         assert_eq!(dropped, Some(ItemId::block(item)));
     }
+}
+
+#[test]
+fn kits_upgrade_belts_until_they_run_out_once_research_allows() {
+    use crate::item::GREEN_KIT;
+    let mut sim = Sim::new(7, 2);
+    let at = |x: i32| IVec3::new(500 + x, 200, -500);
+    (0..12).for_each(|x| sim.factory.add_belt(at(x), 1));
+    sim.apply(P, Action::Give { item: GREEN_KIT, count: 9 });
+    let upgrade_all = |sim: &mut Sim| (0..12).for_each(|x| sim.apply(P, Action::Upgrade { pos: at(x) }));
+    upgrade_all(&mut sim);
+    assert_eq!(inv(&sim).count(GREEN_KIT), 9, "Belt Mk2 isn't researched yet");
+    for tech in [0, 2, 4, 5] {
+        (0..crate::research::TECHS[tech as usize].units).for_each(|_| sim.factory.research.add_unit(tech));
+    }
+    upgrade_all(&mut sim);
+    let tiers: Vec<u8> = (0..12).map(|x| sim.factory.tiered_at(at(x)).unwrap().1).collect();
+    assert_eq!(tiers, [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0], "9 kits upgrade 9 of 12");
+    assert_eq!(inv(&sim).count(GREEN_KIT), 0);
+    // Breaking an upgraded belt gives the Mk2 item back, never the kit.
+    sim.events.clear();
+    sim.apply(P, Action::BreakBlock { pos: at(0) });
+    assert!(!sim.events.iter().any(|e| matches!(e, SimEvent::Dropped { item: GREEN_KIT, .. })));
 }
 
 #[test]
@@ -290,6 +313,7 @@ fn samples() -> Vec<Action> {
         Action::SetQuarry { pos, width: 3, depth: 2, paused: true },
         Action::MarkSite { a: (i32::MIN, 5), b: (-9, i32::MAX), level: 70, job: Job::Flatten },
         Action::RemoveSite { id: u32::MAX - 1 },
+        Action::Upgrade { pos },
     ]
 }
 

@@ -9,15 +9,14 @@
 //!
 //! To add a tech: append a row to `TECHS` (saves store progress by index, so never reorder), naming
 //! its prerequisites by index. A new science pack: an item, a hand recipe, and an entry in `PACKS`.
-//! A new kind of unlock: an `Unlock` variant (upgrades and features arrive with their first use), its
-//! arm in `Unlock::item` and in the lint (`tests.rs`).
+//! A new kind of unlock: an `Unlock` variant (features arrive with their first use), its arm in
+//! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
-use crate::block::{
-    BlockId, FAST_BELT, FILTER, LIFT, MINER_MK2, OUTLET, PIPE, PUMP, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT,
-};
+use crate::block::{BlockId, BELT, FILTER, LIFT, MINER, OUTLET, PIPE, PUMP, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::item::{ItemId, GREEN_PACK, RED_PACK};
-use crate::recipes::MACHINE_RECIPES;
+use crate::factory::tiers;
+use crate::item::{ItemId, GREEN_KIT, GREEN_PACK, RED_PACK};
+use crate::recipes::{GEAR_RECIPE, MACHINE_RECIPES};
 
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -26,6 +25,8 @@ pub enum Unlock {
     Recipe(ItemId),
     /// A machine recipe, by `MACHINE_RECIPES` index.
     MachineRecipe(u16),
+    /// Upgrading a tiered family (its block) to a tier with kits, and crafting that tier's item.
+    Upgrade(BlockId, u8),
 }
 
 impl Unlock {
@@ -34,6 +35,7 @@ impl Unlock {
         match self {
             Unlock::Recipe(item) => item,
             Unlock::MachineRecipe(i) => MACHINE_RECIPES.get(i as usize).map_or(ItemId::NONE, |r| r.main().0),
+            Unlock::Upgrade(block, tier) => tiers::item_of(block, tier).unwrap_or(ItemId::NONE),
         }
     }
 }
@@ -92,23 +94,26 @@ pub const TECHS: &[Tech] = &[
         seconds: 10.0,
         unlocks: &[r(UNDERPASS_IN), r(UNDERPASS_OUT)],
     },
+    // Was "Miner Mk2" (saves keep progress by index): kits replaced the separate Mk2 recipes.
     Tech {
-        name: "Miner Mk2",
-        blurb: "A powered miner that drills twice as fast and keeps 75% of the ore instead of 60%.",
+        name: "Mechanics",
+        blurb: "Gears and green kits. Hold 4 kits and right-click a miner to make it Mk2: twice the draw, \
+                75% recovery instead of 60%.",
         needs: &[2],
         packs: &[RED_PACK, GREEN_PACK],
         units: 30,
         seconds: 10.0,
-        unlocks: &[r(MINER_MK2)],
+        unlocks: &[Unlock::MachineRecipe(GEAR_RECIPE), Unlock::Recipe(GREEN_KIT), Unlock::Upgrade(MINER, 1)],
     },
+    // Was "Fast Belts".
     Tech {
-        name: "Fast Belts",
-        blurb: "Belts that carry items twice as fast.",
-        needs: &[2],
+        name: "Belt Mk2",
+        blurb: "Green kits upgrade belts to Mk2, twice as fast: hold kits and drag along a belt line.",
+        needs: &[4],
         packs: &[RED_PACK, GREEN_PACK],
         units: 20,
         seconds: 10.0,
-        unlocks: &[r(FAST_BELT)],
+        unlocks: &[Unlock::Upgrade(BELT, 1)],
     },
     Tech {
         name: "Fluid Handling",
@@ -163,6 +168,12 @@ impl Research {
 
     /// The tech whose research unlocks `unlock`, while it isn't done.
     pub fn locked_by(&self, unlock: Unlock) -> Option<u8> {
+        let unlock = match unlock {
+            Unlock::Recipe(item) => {
+                tiers::placed_by(item).filter(|t| t.1 > 0).map_or(unlock, |(b, t)| Unlock::Upgrade(b, t))
+            }
+            other => other,
+        };
         let i = TECHS.iter().position(|t| t.unlocks.contains(&unlock))? as u8;
         (self.state(i) != TechState::Done).then_some(i)
     }

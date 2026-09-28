@@ -617,7 +617,7 @@ fn a_mk2_gets_more_ore_from_the_same_deposit() {
         let (p, key) = find_outcrop_block(&mut g, 6);
         let (m, chest) = build_mine(&mut g, p);
         if mk2 {
-            g.sim.factory.add_miner(m, block::FACE_BOTTOM as u8, Some(key), 1);
+            assert!(g.sim.factory.upgrade(m), "upgraded in place, on the same deposit");
         }
         let before = g.sim.factory.deposits.get(&key).unwrap().remaining_units();
         g.skip_time(200.0);

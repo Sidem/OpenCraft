@@ -24,9 +24,7 @@ const WORLD_BLOCKS: &[BlockId] = &[
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
-/// Known exceptions. Ramps are blocks of worlds from before ramps were derived from placement; breaking
-/// one still gives a ramp item, which nothing makes. Limestone waits for quicklime (step 6.4).
-const NO_SOURCE: &[ItemId] = &[ItemId::block(RAMP_UP), ItemId::block(RAMP_DOWN)];
+/// Known exception: limestone waits for quicklime (step 6.4).
 const NO_USE_YET: &[ItemId] = &[ItemId::block(LIMESTONE)];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
@@ -43,7 +41,7 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
     for it in items() {
         let made = hand.iter().any(|r| r.output == it) || machine.iter().any(|r| r.outputs.iter().any(|o| o.0 == it));
         let gathered = GATHERED.contains(&it) || WORLD_BLOCKS.iter().any(|&w| ItemId::block(block::def(w).drop) == it);
-        if !made && !gathered && !NO_SOURCE.contains(&it) {
+        if !made && !gathered {
             errors.push(format!("{} has no source", item::name(it)));
         }
         let input = |ins: &[(ItemId, u32)]| ins.iter().any(|i| i.0 == it);
@@ -89,13 +87,27 @@ fn lint_outputs(machine: &[MachineRecipe]) -> Vec<String> {
     errors
 }
 
-/// Every tier of a family can be made.
+/// Every tier of a family can be made: Mk1 has a recipe, and each higher tier has a kit and the recipe
+/// "the tier below plus the family's kits" (the same step an upgrade in place takes).
 fn lint_tiers(families: &[Family], hand: &[Recipe]) -> Vec<String> {
-    let items = families.iter().flat_map(|f| f.items.iter().copied());
-    items
-        .filter(|&it| !hand.iter().any(|r| r.output == it))
-        .map(|it| format!("tier item {} has no recipe", it.0))
-        .collect()
+    let mut errors = Vec::new();
+    for f in families {
+        for (t, &it) in f.items.iter().enumerate() {
+            let want = match (t, crate::factory::upgrades::kit(t as u8)) {
+                (0, _) => None,
+                (_, Some(kit)) => Some([(f.items[t - 1], 1), (kit, f.kits)]),
+                (_, None) => {
+                    errors.push(format!("tier {t} of block {} has no kit", f.block));
+                    continue;
+                }
+            };
+            let fits = |r: &Recipe| r.output == it && want.is_none_or(|w| r.inputs == w && r.count == 1);
+            if !hand.iter().any(fits) {
+                errors.push(format!("tier item {} has no recipe", it.0));
+            }
+        }
+    }
+    errors
 }
 
 #[test]
@@ -128,8 +140,14 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     }];
     assert!(has(lint_outputs(&TWO), "machine recipe 0 has 2 outputs; Smelter holds 1"));
     // A tier nobody can make.
-    const FAMILY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(BEDROCK)] }];
+    const FAMILY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(BEDROCK)], kits: 1 }];
     assert!(has(lint_tiers(&FAMILY, RECIPES), "tier item 10 has no recipe"));
+    // A tier recipe that doesn't match the kit step (the belt family takes 1 kit, not 4).
+    const COSTLY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT)], kits: 4 }];
+    assert!(has(lint_tiers(&COSTLY, RECIPES), "tier item 28 has no recipe"));
+    // A tier with no kit yet.
+    const HIGH: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT), b(STONE)], kits: 1 }];
+    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 2 of block 12 has no kit"));
 }
 
 fn copy(r: &Recipe) -> Recipe {

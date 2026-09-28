@@ -79,3 +79,18 @@ fn a_line_is_at_most_max_line_long_and_needs_a_free_start() {
     assert_eq!(cells.len(), MAX_LINE);
     assert!(plan(terrain(flat, &[]), IVec3::new(0, 9, 0), IVec3::new(5, 9, 0), NORTH).is_empty());
 }
+
+#[test]
+fn an_upgrade_line_follows_belts_and_picks_the_tier_below_the_kit() {
+    // Belts along x = 0..=6 at y 10, stepping up to y 11 from x 4; x 2 is already Mk2; x 7 has none.
+    let tier_at = |p: IVec3| match (p.x, p.y, p.z) {
+        (2, 10, 0) => Some(1),
+        (0..=3, 10, 0) | (4..=6, 11, 0) | (9, 11, 0) => Some(0),
+        _ => None,
+    };
+    let cells = plan_upgrade(tier_at, IVec3::new(0, 10, 0), IVec3::new(9, 11, 0), 0);
+    assert_eq!(positions(&cells), [(0, 10, 0), (1, 10, 0), (3, 10, 0), (4, 11, 0), (5, 11, 0), (6, 11, 0)]);
+    assert!(cells.iter().all(|c| c.dir == EAST));
+    // Nothing to upgrade from a Mk2 kit's point of view but the Mk2 belt (tier 1 to 2).
+    assert_eq!(positions(&plan_upgrade(tier_at, IVec3::new(0, 10, 0), IVec3::new(9, 11, 0), 1)), [(2, 10, 0)]);
+}

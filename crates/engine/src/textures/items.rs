@@ -57,6 +57,23 @@ pub(super) fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             };
             rgb(c, 0.95 + 0.07 * n(240, x, y))
         }
+        tex::GEAR => {
+            // A cog seen face on: eight teeth round a ring, a hub and a bore, on dark oiled steel.
+            let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+            let r = (dx * dx + dy * dy).sqrt();
+            let tooth = (dy.atan2(dx) / std::f64::consts::TAU * 8.0).rem_euclid(1.0) < 0.5;
+            let c = if r < 1.6 {
+                [52.0, 56.0, 62.0]
+            } else if r < 3.2 {
+                [150.0, 158.0, 166.0]
+            } else if r < 5.6 || (r < 7.6 && tooth) {
+                [186.0, 194.0, 202.0]
+            } else {
+                [72.0, 78.0, 86.0]
+            };
+            let rim = (r - 5.6).abs() < 0.5 || (r - 3.2).abs() < 0.5;
+            rgb(c, if rim { 0.72 } else { 0.95 + 0.07 * n(241, x, y) })
+        }
         _ => [255, 0, 255, 255],
     }
 }

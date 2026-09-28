@@ -112,7 +112,17 @@ pub const PLANKS: u16 = 109;
 pub const LADDER: u16 = 110;
 pub const LADDER_TOP: u16 = 111;
 pub const STICK: u16 = 112;
-pub const COUNT: usize = 113;
+/// A gear (`textures/items.rs`).
+pub const GEAR: u16 = 113;
+/// Tier stripes, Mk1 to Mk5 (`textures/stripes.rs`): the tier colour with 1 to 5 pips. Kits wear them too.
+pub const STRIPE_1: u16 = 114;
+pub const STRIPE_5: u16 = 118;
+pub const COUNT: usize = 119;
+
+/// The stripe layer of tier `tier` (0 is Mk1).
+pub const fn stripe(tier: u8) -> u16 {
+    STRIPE_1 + tier as u16
+}
 
 /// How many alternates a layer with any has.
 pub const ALTERNATES: u16 = 3;

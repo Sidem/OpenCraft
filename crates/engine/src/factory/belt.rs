@@ -232,7 +232,8 @@ impl Machine for Belt {
             let top = [BELT_TIERS[self.tier as usize].top, tex::FRAME, tex::FRAME];
             push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, top, true);
             for side in [-0.46, 0.46] {
-                push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, [tex::FRAME; 3], true);
+                let rail = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
+                push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, rail, true);
             }
             for z in [-0.45, 0.45] {
                 push_box(out, at(0.0, 0.2, z), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);

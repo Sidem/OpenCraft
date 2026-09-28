@@ -7,8 +7,8 @@
 use crate::block::*;
 use crate::inventory::Inventory;
 use crate::item::{
-    ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE,
-    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE,
+    IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 use crate::tools::{IRON_TIER, STONE_TIER};
 
@@ -211,12 +211,21 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "A lab uses these, with red packs, for later techs.",
     },
     Recipe {
+        output: GREEN_KIT,
+        group: Group::Production,
+        count: 4,
+        inputs: &[(GEAR, 2), (SCREW, 4), (COPPER_WIRE, 2)],
+        blurb: "Upgrades machines to Mk2 (green stripe) in place. Hold kits and right-click a miner (4 kits), or \
+                hold the button and drag along belts (1 kit each).",
+    },
+    // A tier's item is the tier below plus its kits (the lint checks these match `factory/tiers.rs`).
+    Recipe {
         output: b(MINER_MK2),
         group: Group::Production,
         count: 1,
-        inputs: &[(b(MINER), 1), (IRON_PLATE, 8), (SCREW, 16), (COPPER_WIRE, 12)],
+        inputs: &[(b(MINER), 1), (GREEN_KIT, 4)],
         blurb: "Drills twice as fast as a Mk1 and recovers 75% of what it draws, so the same deposit gives \
-                more ore. Needs power.",
+                more ore. Needs 20 kW. Or upgrade a placed miner with 4 green kits.",
     },
     Recipe {
         output: b(QUARRY),
@@ -230,9 +239,10 @@ pub const RECIPES: &[Recipe] = &[
     Recipe {
         output: b(FAST_BELT),
         group: Group::Logistics,
-        count: 2,
-        inputs: &[(b(BELT), 2), (IRON_PLATE, 1), (SCREW, 4)],
-        blurb: "Carries items twice as fast as a belt. Mixes freely with ordinary belts.",
+        count: 1,
+        inputs: &[(b(BELT), 1), (GREEN_KIT, 1)],
+        blurb: "Carries items twice as fast as a Mk1 belt and mixes freely with them. Or drag along placed \
+                belts with green kits to upgrade them.",
     },
     // Tools: the count is the uses (tools.rs), so a craft makes one fresh tool.
     Recipe {

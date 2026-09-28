@@ -19,7 +19,7 @@ use rustc_hash::FxHashMap;
 use crate::block::{tex, BlockId, LIFT, RAMP_DOWN, RAMP_UP, UNDERPASS_IN, UNDERPASS_OUT};
 use crate::math::{IVec3, Vec3};
 
-use super::belt::{Belt, BELT_HEIGHT};
+use super::belt::{Belt, BELT_HEIGHT, BELT_TIERS};
 use super::links::Slot;
 use super::render::push_box;
 use super::DIRS;
@@ -160,7 +160,10 @@ impl Belt {
     /// The parts of the model that differ from a flat belt. `at` maps local coordinates (forward is
     /// -z, y up from the cell bottom) to camera-relative ones.
     pub(super) fn shape_model(&self, out: &mut Vec<f32>, at: &dyn Fn(f32, f32, f32) -> Vec3, yaw: f32, scroll: f32) {
-        let belt = [tex::BELT_TOP, tex::FRAME, tex::FRAME];
+        let top = BELT_TIERS[self.tier as usize].top;
+        let belt = [top, tex::FRAME, tex::FRAME];
+        // Rails and frames wear the tier stripe on their sides.
+        let rail = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
         match self.shape {
             Shape::Flat => {}
             Shape::Up | Shape::Down => {
@@ -171,7 +174,7 @@ impl Belt {
                     let z = (1.0 - i as f32) / 3.0;
                     push_box(out, at(0.0, h * 0.5, z), yaw, [0.9, h, 1.0 / 3.0], scroll, belt, true);
                     for x in [-0.46, 0.46] {
-                        push_box(out, at(x, h - 0.06, z), yaw, [0.07, 0.14, 1.0 / 3.0], 0.0, [tex::FRAME; 3], false);
+                        push_box(out, at(x, h - 0.06, z), yaw, [0.07, 0.14, 1.0 / 3.0], 0.0, rail, false);
                     }
                 }
             }
@@ -182,13 +185,13 @@ impl Belt {
                 if !self.lift_below {
                     push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, belt, true);
                 }
-                push_box(out, at(0.0, 0.5, -0.4), yaw, [0.66, 0.86, 0.08], scroll, [tex::BELT_TOP; 3], true);
-                push_box(out, at(0.0, 0.95, 0.0), yaw, [0.92, 0.09, 0.92], 0.0, [tex::FRAME; 3], false);
+                push_box(out, at(0.0, 0.5, -0.4), yaw, [0.66, 0.86, 0.08], scroll, [top; 3], true);
+                push_box(out, at(0.0, 0.95, 0.0), yaw, [0.92, 0.09, 0.92], 0.0, rail, false);
             }
             Shape::Entry | Shape::Exit => {
                 let z = if self.shape == Shape::Entry { -0.25 } else { 0.25 };
                 for x in [-0.42, 0.42] {
-                    push_box(out, at(x, 0.32, z), yaw, [0.14, 0.64, 0.5], 0.0, [tex::FRAME; 3], false);
+                    push_box(out, at(x, 0.32, z), yaw, [0.14, 0.64, 0.5], 0.0, rail, false);
                 }
                 push_box(out, at(0.0, 0.62, z), yaw, [0.96, 0.1, 0.5], 0.0, [tex::COPPER_INGOT; 3], false);
             }

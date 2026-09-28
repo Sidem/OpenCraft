@@ -2,6 +2,7 @@
 //! integer formatting helpers the HUD shares. Read-only queries.
 //! Integers only: formatting floats pulls ~25 KB of float printing into the wasm.
 
+use crate::item;
 use crate::math::IVec3;
 
 use super::links::Slot;
@@ -46,6 +47,12 @@ impl Factory {
             Slot::Lab(i) => self.labs[i as usize].describe(self),
             Slot::Pipe(i) => self.pipework[i as usize].describe(self),
             Slot::Quarry(i) => self.quarries[i as usize].describe(self),
+        };
+        // A tiered machine says its Mk and what raises it: "Mk1 · next: Green Kit ×4".
+        let text = match (self.tiered_at(pos), self.next_upgrade(pos)) {
+            (Some((_, t)), Some(s)) => format!("Mk{} · next: {} ×{}\n{text}", t + 1, item::name(s.kit), s.kits),
+            (Some((_, t)), None) => format!("Mk{}\n{text}", t + 1),
+            _ => text,
         };
         Some(text).filter(|t| !t.is_empty())
     }

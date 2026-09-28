@@ -37,7 +37,7 @@ folder with `mod.rs`.
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); the quarry's part (`quarry_panel`, `quarry_found`, `quarry_box`, size and depth choices, `set_quarry`); box screens (`box_slots`, `click_box`, `store_slot`) |
 | `api/crafting.rs` | Recipe queries (`recipe_locked_by`, `craftable_times`, `recipe_group` and group names) and `craft` |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
-| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery` |
+| `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery`, `item_tier` and `tier_colour` (tier chips) |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters, belt line outlines and label (`line_cells`, `line_label`, which also describes a quarry about to be placed), `placement_box` |
 | `api/sites.rs` | Terraforming sites: `mark_site`, `remove_site` (queued actions), `sites` / `site_fields` (flat list), `site_survey` |
 | `api/save.rs` | `save`, `load` (static), `seed`, `play_seconds` |
@@ -47,7 +47,7 @@ folder with `mod.rs`.
 | `api/debug.rs` | `give`, `teleport`, `add_player` / `remove_player`, `state_hash`, `debug_desync` (breaks this core, for resync tests), `run_ticks`, `skip_time`, `find_deposit`, `block_at`, `player_x/y/z` |
 | `interaction.rs` | Local player's hands and feet: targeting, mining timer (queues `BreakBlock`), `right_click_action`, `play`, footsteps |
 | `quarry_preview.rs` | Placing a quarry: the box a held quarry would dig (`quarry_preview`), its HUD label, R turns it (`quarry_turn`, used by `right_click_action`) |
-| `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick |
+| `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick; with kits held, `plan_upgrade` follows belts and queues `Upgrade`s (a click on a miner upgrades it) |
 | `block/mod.rs` | Block ids, `DEFS` table, sound materials, flowing water ids (`flow`, `flow_level`) |
 | `block/tables.rs` | Flat lookup tables over `DEFS` for hot loops (`OPAQUE`, `SOLID`, `FACE_TEX`, `ALT_TEX` alternates…) |
 | `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
@@ -75,7 +75,7 @@ folder with `mod.rs`.
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step` (each belt at its own `speed`, from `BELT_TIERS`); its bytes, readout and model; belt constants |
 | `factory/miner.rs` | Miners (one kind, powered; `tier` indexes `MINER_TIERS`: rate, recovery, power, look): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
-| `factory/tiers.rs` | Tiered families (belts, miners): `FAMILIES` (the block and each tier's item), `placed_by` (item → block and tier), `item_of` (what a tier drops) |
+| `factory/tiers.rs` | Tiered families (belts, miners): `FAMILIES` (the block and each tier's item), `placed_by` (item → block and tier), `item_of` (what a tier drops), `family` (kits per step) |
 | `factory/storage.rs` | Storage box: `step` (feeds belts leading away); its bytes and readout |
 | `factory/router.rs` | Splitter and filter (one `Router` kind): holds one item, passes it front/left/right (round robin; a filter sends its item front, others aside); bytes, readout, filter panel, model |
 | `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
@@ -89,7 +89,8 @@ folder with `mod.rs`.
 | `factory/quarry/dig_box.rs` | `DigBox` (which cells, in what order), `WIDTHS` / `DEPTHS` choices, `QUARRIABLE`, `survey` (what is left, for the panel and the preview) |
 | `factory/quarry/model.rs` | The quarry's model: housing and lamp, corner posts, rails, a gantry that travels row to row, a spinning drill on the block being dug |
 | `factory/sites.rs` | Terraforming sites (core state on `Factory`): `Site` (corner columns, `level`, `Job` dig, fill or flatten, the cut and fill ranges found once when marked), the cell order (`Site::cell`), `Sites::mark` / `remove` (ids from a counter, no overlaps, `MAX_SITE`, `MAX_SITES`), bytes; `survey_site` (a query over loaded chunks: cut, fill, ore, trees, water, spoil) |
-| `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`), `fmt_int`, `fmt_duration` |
+| `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`, then "Mk2 · next: …" for tiered machines), `fmt_int`, `fmt_duration` |
+| `factory/upgrades.rs` | Upgrade kits: `TIER_COLOURS`, `KITS` (the kit per tier), `kit_tier`, `Factory::tiered_at`, `next_upgrade` (`Step`: family, tier, kit, kits), `upgrade` (tier + 1 in place) |
 | `entities.rs` | Dropped items: ids, physics (floating up through water, drifting), magnet pickup by the nearest `Collector` with room, instances (`push_item_box`) |
 | `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
@@ -114,6 +115,7 @@ folder with `mod.rs`.
 | `textures/items.rs` | Rod threads, screws, glass, science liquid, tool handle and steel for the item assemblies |
 | `textures/tools.rs` | Flat tool pictures (shown on belts); the scanner screen and device casing materials |
 | `textures/plants.rs` | Crossed-quad pictures: the Alpine sapling and the torch |
+| `textures/stripes.rs` | Tier stripes (`tex::stripe`): a band of the tier colour on metal with a pip per Mk |
 | `textures/wood.rs` | Processed wood: planks, the ladder's sides and top, the stick |
 | `textures/geology.rs` | Granite, sandstone and basalt grains, and cutout glass |
 | `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |

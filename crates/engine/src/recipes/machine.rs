@@ -10,7 +10,7 @@
 //! the machines that take it in `MACHINE_CATEGORIES`.
 
 use crate::block::*;
-use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD, SCREW};
+use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, IRON_INGOT, IRON_PLATE, IRON_ROD, SCREW};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -46,7 +46,11 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Pressing, inputs: &[(COPPER_INGOT, 1)], outputs: &[(COPPER_WIRE, 2)], seconds: 2.0 },
     MachineRecipe { category: Smelting, inputs: &[(b(QUARTZ_ORE), 1)], outputs: &[(b(GLASS), 2)], seconds: 2.0 },
     MachineRecipe { category: Smelting, inputs: &[(b(SAND), 1)], outputs: &[(b(GLASS), 1)], seconds: 2.0 },
+    MachineRecipe { category: Pressing, inputs: &[(IRON_PLATE, 1)], outputs: &[(GEAR, 1)], seconds: 2.0 },
 ];
+
+/// The gear's row, which research locks.
+pub const GEAR_RECIPE: u16 = 8;
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

@@ -22,6 +22,7 @@ fn lint_techs(techs: &[Tech]) -> Vec<String> {
             let exists = match u {
                 Unlock::Recipe(item) => RECIPES.iter().any(|r| r.output == item),
                 Unlock::MachineRecipe(r) => (r as usize) < MACHINE_RECIPES.len(),
+                Unlock::Upgrade(block, tier) => tier > 0 && crate::factory::tiers::item_of(block, tier).is_some(),
             };
             if !exists {
                 errors.push(format!("{} unlocks {u:?}, which doesn't exist", t.name));
@@ -55,7 +56,11 @@ fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
     const BAD: [Tech; 4] = [
         tech("Loop", &[1], &[]),
         tech("Twice", &[], &[SPLITTERS, SPLITTERS]),
-        tech("Ghost", &[], &[Unlock::Recipe(crate::item::IRON_INGOT), Unlock::MachineRecipe(999)]),
+        tech(
+            "Ghost",
+            &[],
+            &[Unlock::Recipe(crate::item::IRON_INGOT), Unlock::MachineRecipe(999), Unlock::Upgrade(BELT, 7)],
+        ),
         Tech { packs: &[crate::item::IRON_PLATE], units: 0, ..tech("Idle", &[], &[]) },
     ];
     let errors = lint_techs(&BAD);
@@ -64,6 +69,7 @@ fn the_tech_lint_catches_a_planted_mistake_of_each_kind() {
         "Twice unlocks Recipe(ItemId(17)) again",
         "Ghost unlocks Recipe(ItemId(256)), which doesn't exist",
         "Ghost unlocks MachineRecipe(999), which doesn't exist",
+        "Ghost unlocks Upgrade(12, 7), which doesn't exist",
         "Idle uses a pack labs don't hold",
         "Idle has no work",
     ] {

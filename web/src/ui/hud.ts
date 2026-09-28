@@ -260,6 +260,16 @@ export class Hud {
       draw(0, 0, 0, info[3], info[4], info[5], info[0], info[1]);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // Tiered machines get a corner chip in their Mk colour with a pip per Mk.
+    const tier = this.game.item_tier(item);
+    if (tier >= 0) {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(2, 2, 8 + tier * 5, 12);
+      ctx.fillStyle = `#${this.game.tier_colour(tier).toString(16).padStart(6, '0')}`;
+      ctx.fillRect(3, 3, 6 + tier * 5, 10);
+      ctx.fillStyle = '#f5f5f0';
+      for (let p = 0; p <= tier; p++) ctx.fillRect(4 + p * 5, 6, 3, 4);
+    }
     return c;
   }
 }

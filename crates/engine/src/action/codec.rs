@@ -14,7 +14,7 @@ use crate::factory::Job;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 23;
+pub const TAG_COUNT: u8 = 24;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -127,6 +127,10 @@ impl Action {
                 w.u8(22);
                 w.u32(id);
             }
+            Action::Upgrade { pos } => {
+                w.u8(23);
+                w.ivec3(pos);
+            }
         }
     }
 
@@ -160,6 +164,7 @@ impl Action {
                 job: Job::from_byte(r.u8()?)?,
             },
             22 => Action::RemoveSite { id: r.u32()? },
+            23 => Action::Upgrade { pos: r.ivec3()? },
             _ => return None,
         })
     }

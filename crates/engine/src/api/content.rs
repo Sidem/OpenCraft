@@ -5,6 +5,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::block::{self, BLOCK_COUNT};
 use crate::deposits::HAND_YIELD;
+use crate::factory::tiers;
+use crate::factory::upgrades::TIER_COLOURS;
 use crate::factory::MINER_TIERS;
 use crate::item::{self, ItemId};
 use crate::item_models;
@@ -78,5 +80,15 @@ impl Game {
     /// Fraction of drilled ore a miner delivers.
     pub fn miner_recovery(&self) -> f64 {
         MINER_TIERS[0].recovery
+    }
+
+    /// The tier (0 is Mk1) of a tiered machine's item, or -1 for other items.
+    pub fn item_tier(&self, item: u16) -> i32 {
+        tiers::placed_by(ItemId(item)).map_or(-1, |(_, t)| i32::from(t))
+    }
+
+    /// A tier's colour as 0xRRGGBB: Mk1 red, green, blue, violet, Mk5 gold.
+    pub fn tier_colour(&self, tier: u32) -> u32 {
+        TIER_COLOURS.get(tier as usize).copied().unwrap_or(0)
     }
 }

@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 6 (Industry). Next up: step 6.3 (upgrade kits and stripes)** · Terraforming moved to
+now) · **Now: Milestone 6 (Industry). Next up: step 6.4 (one processing machine)** · Terraforming moved to
 Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -455,10 +455,10 @@ modular so that everything after costs rows, not rewrites.
   *Built (2026-09-28):* `Unlock` has `Recipe` and `MachineRecipe` only; `Upgrade` comes with kits (6.3)
   and `Feature` with its first feature (dead variants fail clippy). `recipes/machine.rs` holds machine
   recipes, `MACHINE_CATEGORIES` (moves into spec rows in 6.4) and fuels. A locked machine recipe can't be
-  chosen (`SetRecipe`); the smelter picks by ore and gets the check with the processor (6.4). The lint
-  found two exceptions, kept in `recipes/tests.rs`: limestone has no use until quicklime (6.4), and old
-  worlds' ramp blocks still drop ramp items nothing makes (6.3 can make them drop belts).
-- [ ] **6.3 Upgrade kits and stripes.** `factory/upgrades.rs`: kits per tier (green now), kits per step
+  chosen (`SetRecipe`); the smelter picks by ore and gets the check with the processor (6.4). The lint's
+  one exception (`recipes/tests.rs`): limestone has no use until quicklime (6.4). (A ramp exception
+  noted here at first was a lint mistake; old ramp blocks already drop belts.)
+- [x] **6.3 Upgrade kits and stripes.** `factory/upgrades.rs`: kits per tier (green now), kits per step
   by class (belt-like 1, machine 4, multi-block 8), `TIER_COLOURS` with a getter in `api/content.rs`,
   five flat stripe layers; belts show the colour on their rails, miners as a band, with pips. Items:
   gear (pressing recipe), green kit (hand, makes 4). `Action::Upgrade { pos }` (codec tag 23):
@@ -468,6 +468,12 @@ modular so that everything after costs rows, not rewrites.
   go. Mechanics tech (Mk2 for belts and miners; the other families follow in 6.4 and 6.7). **Done
   when:** an upgraded belt keeps its riding items and doubles speed; 9 kits upgrade 9 of 12 dragged
   belts; a miner keeps its buffer and deposit; screenshots of Mk1 and Mk2 stripes and a dragged upgrade.
+  *Built (2026-09-28):* kits go one step at a time and are never refunded (the TECH_TREE defaults; the
+  palette question stays open). Tech 4 became Mechanics (gear, green kit, miner Mk2) and tech 5 Belt Mk2
+  (needs Mechanics), keeping saved progress. The tier rows ("Belt Mk2 = Belt + 1 green kit") are written
+  out in `RECIPES` and the lint checks they match the kit step, rather than generated. Stripes: whole
+  rail sides on belts, the collar band on miners, a chip with pips on icons. Upgrade lines show kit-coloured
+  outlines (red while research locks them); upgrades reuse `BlockPlaced` for their sound.
 - [ ] **6.4 One processing machine.** `factory/process/`: `Processor` (one struct and `step` for every
   inputs-to-outputs machine), `specs.rs` (`ProcessSpec` rows: block, categories, energy burner or
   electric kW, buffer sizes, tier speeds, model parts), `model.rs` (parts plus the tier band). The
@@ -534,7 +540,7 @@ and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M6 (before 6.3) | Kits one step at a time, never refunded? A colour-blind palette option for tier colours (pips and "Mk3" text are there regardless)? |
+| M6 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits went in as one step at a time, never refunded: change? |
 | M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes beside a drone port, or anywhere on a network? Flight: a coal jetpack now, an aluminium hover pack in M9: agreed? |
 | M9 | Trains, trucks, or both? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
@@ -579,19 +585,14 @@ and the balance numbers. Read the section you need.
   of `light::SOURCES`; generator version 4 (shallower bands, more exposed metal, two starter patches),
   the explored map and world map (M) with pins, ore guide, stained-soil readout. Tests 226 → 234; wasm
   192.5 → 201.6 KB (`to_lowercase` alone cost 14 KB, avoided).
-- **2026-09-28: Sites in the core** (then step 6.1, `b33f98c`; now part of Milestone 8): `factory/sites.rs`
-  (save version 17), `MarkSite` / `RemoveSite` (tags 21, 22), `survey_site`, `api/sites.rs`. Tests
-  234 → 238; wasm 204.5 KB. With it: planks, sticks, ladders (blocks 58, 59; item 272).
-- **2026-09-28: Glass from sand, brighter lights, climbable lifts** (`1dfaa53`, `2d89533`): sand → glass,
-  torch reach 11, lamp 31, light `MARGIN` 32 (`bench_meshing` 0.56 ms per chunk); lifts climb like
-  ladders. Tests 238 → 240.
+- **2026-09-28: Sites in the core, wood, glass, lights, lifts** (`b33f98c` to `2d89533`): `factory/sites.rs`
+  (save version 17; tags 21, 22), planks, sticks, ladders, sand → glass, torch reach 11, lamp 31
+  (`bench_meshing` 0.56 ms per chunk), climbable lifts. Tests 234 → 240; wasm 204.5 KB.
 - **2026-09-28: Tech tree and Industry** (user request, a review before 6.2): `docs/TECH_TREE.md` (the
   concept: eleven lines, their links, the far end up to datacenters, lasers and satellites, upgrades,
   the content architecture) and `docs/TECH_ERAS.md` (per era). The user made Industry Milestone 6 and
   moved terraforming later (now 8; its sites step, built as 6.1, stays in the core and its design is in
   the roadmap). Roadmap now 7–13. No code changed.
-- **2026-09-28: 6.1 Tiers as data:** `factory/tiers.rs`, belts and miners hold `tier: u8`, numbers in
-  per-module tables, Mk2 items place the family block. Save bytes unchanged. Tests 240 → 244.
-- **2026-09-28: 6.2 Unlocks, categories, lint:** `research::Unlock`, recipe categories and several
-  outputs (`recipes/machine.rs`), content lint with planted-mistake tests, locked recipes greyed in
-  machine panels. No save or behaviour change. Tests 244 → 247.
+- **2026-09-28: 6.1–6.3** (`8c22a45`, `57aae29`, then 6.3): tiers as data (`factory/tiers.rs`, save bytes
+  unchanged), `research::Unlock`, recipe categories (`recipes/machine.rs`), the content lint, upgrade
+  kits (`factory/upgrades.rs`, items 273–274, `Action::Upgrade` tag 23, kit lines, stripes). Tests 240 → 253.
