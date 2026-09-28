@@ -1,8 +1,8 @@
 //! Electric power: poles, the grids they form, and how supply meets demand each tick.
 //!
 //! - A pole links to every pole within `WIRE_RANGE`; each connected group is a grid. A generator or a
-//!   powered machine joins the grid of the nearest pole within `POLE_REACH` (ties: the lower pole
-//!   index). All of this is derived from positions (`rebuild`, run by `relink`), never saved.
+//!   powered machine joins the grid of the nearest pole within `POLE_REACH` of any of its cells (ties:
+//!   the lower pole index). All of this is derived from positions (`rebuild`, run by `relink`), never saved.
 //! - Each tick `balance` adds up what each grid's machines need in kW (a miner while it drills, a
 //!   electric processor (a constructor) while it works, a splitter or filter while it holds an item, a lab while it researches,
 //!   a pump while it has room, a quarry while it digs), then takes it from the generators in list
@@ -123,7 +123,7 @@ impl Power {
             miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
             process_pole: processors
                 .iter()
-                .map(|p| if p.spec.energy == Energy::Electric { hang(p.pos) } else { None })
+                .map(|p| if p.spec.energy == Energy::Electric { hang_any(poles, &p.cells()) } else { None })
                 .collect(),
             router_pole: routers.iter().map(|r| hang(r.pos)).collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
@@ -289,10 +289,15 @@ impl Factory {
         for &(i, j) in &self.power.wires {
             span(pole(i), pole(j));
         }
+        // A multi-block processor's wire goes to its cell nearest the pole.
+        let hook = |(p, pole): (&Processor, &Option<u32>)| {
+            let d = |c: &IVec3| pole.map_or(0, |i| dist2(self.poles[i as usize].pos, *c));
+            p.cells().into_iter().min_by_key(d).unwrap_or(p.pos)
+        };
         let hookups = [
             (&self.power.gen_pole, self.generators.iter().map(|g| g.pos).collect::<Vec<_>>()),
             (&self.power.miner_pole, self.miners.iter().map(|m| m.pos).collect()),
-            (&self.power.process_pole, self.processors.iter().map(|p| p.pos).collect()),
+            (&self.power.process_pole, self.processors.iter().zip(&self.power.process_pole).map(hook).collect()),
             (&self.power.router_pole, self.routers.iter().map(|r| r.pos).collect()),
             (&self.power.lab_pole, self.labs.iter().map(|l| l.pos).collect()),
             (&self.power.pipe_pole, self.pipework.iter().map(|p| p.pos).collect()),
@@ -324,6 +329,12 @@ fn nearest_pole(poles: &[Pole], pos: IVec3) -> Option<u32> {
         }
     }
     best.map(|b| b.1)
+}
+
+/// The pole nearest any of `cells` within `POLE_REACH` (a machine several cells big hangs on it).
+fn hang_any(poles: &[Pole], cells: &[IVec3]) -> Option<u32> {
+    let near = |&c: &IVec3| nearest_pole(poles, c).map(|i| (dist2(poles[i as usize].pos, c), i));
+    cells.iter().filter_map(near).min().map(|best| best.1)
 }
 
 /// Union-find root with path halving.

@@ -4,8 +4,8 @@
 //! terraforming sites (`sites.rs`). Belts, miners and processors come in tiers (`tiers.rs`).
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and breaking
-//! work unchanged) while their state lives here, keyed by position in `at`, and keep running when their
-//! chunk is streamed out. `MACHINES` maps a block to its kind and buffer size (several blocks may share
+//! work unchanged), multi-block processors several (`footprint/`), while their state lives here, keyed
+//! by every cell in `at`, and keep running when their chunk is streamed out. `MACHINES` (`table.rs`) maps a block to its kind and buffer size (several blocks may share
 //! a kind). Each kind is a struct in its own file implementing [`Machine`], in its own `Vec`; code acting
 //! on one machine matches on its `Slot`. Removal is `swap_remove` plus fixing the moved entry's `at` slot.
 //!
@@ -24,6 +24,7 @@ mod belt;
 mod belt_shape;
 mod buffer;
 mod describe;
+pub mod footprint;
 mod generator;
 mod lab;
 mod links;
@@ -39,22 +40,20 @@ mod router;
 mod sites;
 mod state;
 mod storage;
+mod table;
 pub mod tiers;
 pub mod upgrades;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{
-    BlockId, BELT, CONSTRUCTOR, FACE_BOTTOM, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE,
-    POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
-};
+use crate::block::{BlockId, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
-use crate::research::{Research, PACKS};
+use crate::research::Research;
 use crate::sim::SimEvent;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
@@ -106,74 +105,18 @@ pub fn face_of(v: IVec3) -> Option<u8> {
     FACES.iter().position(|&f| f == v).map(|i| i as u8)
 }
 
-/// Machine kinds, in `MACHINES` order.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Kind {
-    Belt,
-    Miner,
-    Storage,
-    Process,
-    Router,
-    Generator,
-    Pole,
-    Lab,
-    Pipe,
-    Quarry,
-}
-
-pub struct MachineDef {
-    /// The block that is this machine (its name, textures and breaking come from `block.rs`).
-    pub block: BlockId,
-    pub kind: Kind,
-    /// Item stacks per buffer: a box's slots, a miner's output. Belts carry items instead, and
-    /// processors take theirs from their spec (0).
-    pub slots: usize,
-    /// Right-click opens its panel (`panel.rs`) instead of taking what it holds.
-    pub panel: bool,
-}
-
-/// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
-/// an existing kind.
-pub const MACHINES: [MachineDef; 21] = [
-    MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
-    MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
-    MachineDef { block: SMELTER, kind: Kind::Process, slots: 0, panel: true },
-    MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
-    MachineDef { block: GENERATOR, kind: Kind::Generator, slots: 1, panel: true },
-    MachineDef { block: POLE, kind: Kind::Pole, slots: 0, panel: false },
-    MachineDef { block: LAB, kind: Kind::Lab, slots: PACKS.len(), panel: true },
-    MachineDef { block: PIPE, kind: Kind::Pipe, slots: 0, panel: false },
-    MachineDef { block: QUARRY, kind: Kind::Quarry, slots: 4, panel: true },
-    MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
-    MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: LIFT, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: UNDERPASS_IN, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: UNDERPASS_OUT, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: CONSTRUCTOR, kind: Kind::Process, slots: 0, panel: true },
-    // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
-    MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
-    MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: PUMP, kind: Kind::Pipe, slots: 0, panel: false },
-    MachineDef { block: OUTLET, kind: Kind::Pipe, slots: 0, panel: false },
-];
-
-impl Kind {
-    pub fn def(self) -> &'static MachineDef {
-        &MACHINES[self as usize]
-    }
-}
-
-/// The machine `block` is, if it is one.
-pub fn machine(block: BlockId) -> Option<&'static MachineDef> {
-    MACHINES.iter().find(|m| m.block == block)
-}
+#[cfg(test)]
+use table::MACHINES;
+pub use table::{machine, Kind};
 
 /// What every machine kind provides. Static dispatch only: callers `match` on `Slot` or loop over
 /// one kind's `Vec`.
 trait Machine: Sized {
     fn pos(&self) -> IVec3;
+    /// Every cell it occupies, `pos` first: one, except for multi-block processors (`footprint/`).
+    fn cells(&self) -> Vec<IVec3> {
+        vec![self.pos()]
+    }
     /// Its core state (derived data such as links is left out).
     fn write_state(&self, w: &mut ByteWriter);
     fn read_state(r: &mut ByteReader) -> Option<Self>;
@@ -252,7 +195,8 @@ impl Factory {
             Kind::Storage => self.add_storage(pos),
             Kind::Process => {
                 if let Some(spec) = process::spec(block) {
-                    add_to(&mut self.processors, Processor::new(pos, spec, tier), at, Slot::Process);
+                    let p = Processor { dir: facing % 4, ..Processor::new(pos, spec, tier) };
+                    add_to(&mut self.processors, p, at, Slot::Process);
                 }
             }
             Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
@@ -345,7 +289,7 @@ impl Factory {
             s.step(belts);
         }
         for (m, &p) in sinks.processors.iter_mut().zip(&power.process_pole) {
-            let share = if m.spec.energy == Energy::Burner { power::FULL_SPEED } else { power.speed(p) };
+            let share = if m.spec.energy == Energy::Electric { power.speed(p) } else { power::FULL_SPEED };
             m.step(belts, share, &unlocked);
         }
         for (r, &p) in sinks.routers.iter_mut().zip(&power.router_pole) {
@@ -367,14 +311,16 @@ fn ticks(seconds: f64) -> u32 {
     (seconds * TICK_RATE as f64).round() as u32
 }
 
-/// Appends `m` to its kind's list and indexes its position.
+/// Appends `m` to its kind's list and indexes its cells.
 fn add_to<T: Machine>(list: &mut Vec<T>, m: T, at: &mut FxHashMap<IVec3, Slot>, slot: fn(u32) -> Slot) {
-    at.insert(m.pos(), slot(list.len() as u32));
+    for c in m.cells() {
+        at.insert(c, slot(list.len() as u32));
+    }
     list.push(m);
 }
 
-/// Removes entry `i` (already gone from `at`), re-indexes the entry moved into its place, and
-/// returns the removed machine's contents.
+/// Removes entry `i` (its cells leave `at`), re-indexes the entry moved into its place, and returns
+/// the removed machine's contents.
 fn swap_out<T: Machine>(
     list: &mut Vec<T>,
     i: u32,
@@ -382,8 +328,13 @@ fn swap_out<T: Machine>(
     slot: fn(u32) -> Slot,
 ) -> Vec<Stack> {
     let m = list.swap_remove(i as usize);
+    for c in m.cells() {
+        at.remove(&c);
+    }
     if let Some(moved) = list.get(i as usize) {
-        at.insert(moved.pos(), slot(i));
+        for c in moved.cells() {
+            at.insert(c, slot(i));
+        }
     }
     m.contents()
 }

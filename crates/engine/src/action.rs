@@ -26,8 +26,9 @@ pub enum Action {
     BreakBlock {
         pos: IVec3,
     },
-    /// Places one item from `slot` at `pos`. `facing` is the belt direction (`factory::dir_from_yaw`);
-    /// `against` is the clicked block, which gives a miner its drill face and deposit.
+    /// Places one item from `slot` at `pos`. `facing` is the belt direction (`factory::dir_from_yaw`;
+    /// a multi-block machine's turn); `against` is the clicked block, which gives a miner its drill face
+    /// and deposit. A multi-block machine takes `pos` as its anchor and needs every cell free.
     PlaceBlock {
         pos: IVec3,
         slot: u8,
@@ -298,6 +299,8 @@ impl Sim {
     }
 
     fn break_block(&mut self, player: PlayerId, pos: IVec3) {
+        // A multi-block machine breaks whole, from any of its cells, as its anchor (`multiblock.rs`).
+        let pos = self.factory.footprint_at(pos).map_or(pos, |f| f.0);
         let id = self.world.block_anywhere_or_generate(pos);
         let def = block::def(id);
         if id == AIR || def.break_time < 0.0 {
@@ -312,6 +315,7 @@ impl Sim {
         }
         self.events.push(SimEvent::BlockBroken { player, pos, block: id });
         self.block_changed(pos, id);
+        self.clear_parts(pos);
         let held = self.wear_tool(player, id);
         // A tiered machine drops its tier's item (`factory/tiers.rs`).
         let tiered = self.factory.tiered_at(pos).and_then(|t| factory::tiers::item_of(def.drop, t.1));
@@ -350,6 +354,9 @@ impl Sim {
         let inv = &mut core.inventory;
         let Some(stack) = inv.slots.get(slot as usize).copied() else { return };
         let Some(placed) = stack.item.places().filter(|_| !stack.is_empty()) else { return };
+        if let Some(fp) = factory::footprint::of(placed) {
+            return self.place_footprint(player, pos, slot, (placed, fp), facing);
+        }
         if placed == SAPLING && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
             return;
         }
@@ -368,5 +375,6 @@ impl Sim {
 }
 
 mod codec;
+mod multiblock;
 #[cfg(test)]
 mod tests;

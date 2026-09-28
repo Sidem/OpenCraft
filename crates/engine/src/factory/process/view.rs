@@ -27,7 +27,15 @@ impl Processor {
             (Status::NoPower, _) => {
                 format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator")
             }
-            (Status::OutputFull, _) => format!("Output full: put a belt leading away, or take the {}", s.products),
+            (Status::OutputFull, r) => match r.and_then(|r| self.full_output(r)) {
+                Some((item, true)) => {
+                    format!(
+                        "{} has nowhere to go: put a belt leading away from the side port, or take it",
+                        item::name(item)
+                    )
+                }
+                _ => format!("Output full: put a belt leading away, or take the {}", s.products),
+            },
             (Status::NoRecipe, _) => "No recipe: choose what it makes".to_string(),
             (_, Some(r)) if s.pick == Pick::Chosen => {
                 let each: Vec<String> = r.inputs.iter().map(|&(i, n)| format!("{n} {}", item::name(i))).collect();
@@ -42,7 +50,7 @@ impl Processor {
         let progress = self.batch_recipe().map_or(0, |r| self.progress / ticks(r.seconds));
         let mut slots: Vec<(u8, Stack)> = self.input.slots.iter().map(|&s| (ROLE_INPUT, s)).collect();
         slots.extend(self.fuel.slots.iter().map(|&s| (ROLE_FUEL, s)));
-        slots.extend(self.out.slots.iter().map(|&s| (ROLE_OUTPUT, s)));
+        slots.extend(self.out.slots.iter().chain(&self.side.slots).map(|&s| (ROLE_OUTPUT, s)));
         Panel {
             block: self.spec.block,
             recipe: if chosen { self.recipe } else { self.batch },
@@ -69,6 +77,7 @@ impl Processor {
             parts.push(format!("fire for {} s", self.fire_seconds()));
         }
         parts.extend(held("Out:", &self.out));
+        parts.extend(held("Side:", &self.side));
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
         }

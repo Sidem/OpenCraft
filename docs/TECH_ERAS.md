@@ -73,7 +73,7 @@ multi-input line; blue science pulls three separate lines (parts, steel, concret
 | Steam Power | r g b | Blue Science, Fluid Handling | 60 × 20 | boiler, steam turbine |
 | Ore Crushing | r g b | Blue Science | 60 × 20 | crusher |
 | Bulk Storage | r g b | Blue Science | 40 × 20 | silo |
-| Steel Tools | r g b | Steelmaking | 30 × 15 | steel tools |
+| Steel Tools | r g b | Steelmaking | 30 × 15 | steel tools (until 6.7 they come with Steelmaking) |
 
 - **Steam:** 540 kJ a coal (twice a generator), 1 water source per 2,000 kJ through pipes, up to two
   touching turbines (480 kW). One pump serves about eight boilers; a sea pump never runs dry.

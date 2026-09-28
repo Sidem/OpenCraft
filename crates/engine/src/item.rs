@@ -10,7 +10,7 @@
 //! texture layer in `block::tex` with its pattern in `textures::pixel` if it needs a new look.
 
 use crate::block::{self, tex, BlockId, AIR, BLOCK_COUNT, FACE_BOTTOM, FACE_SIDE, FACE_TOP};
-use crate::tools::{Tier, DEVICE_TIER, IRON_TIER, STONE_TIER};
+use crate::tools::{Tier, DEVICE_TIER, IRON_TIER, STEEL_TIER, STONE_TIER};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct ItemId(pub u16);
@@ -68,6 +68,15 @@ pub const QUICKLIME: ItemId = ItemId(275);
 /// Mk2 of the processors (`factory/tiers.rs`): they place the Mk1 block at tier 1.
 pub const SMELTER_MK2: ItemId = ItemId(276);
 pub const CONSTRUCTOR_MK2: ItemId = ItemId(277);
+/// Assembled from a rod, gears and wire (Assembly); blue packs, kits and later machines use it.
+pub const MOTOR: ItemId = ItemId(278);
+/// Steelmaking: a blast furnace's product, pressed into plates and beams by a constructor.
+pub const STEEL_INGOT: ItemId = ItemId(279);
+pub const STEEL_PLATE: ItemId = ItemId(280);
+pub const STEEL_BEAM: ItemId = ItemId(281);
+pub const STEEL_PICKAXE: ItemId = ItemId(282);
+pub const STEEL_AXE: ItemId = ItemId(283);
+pub const STEEL_SHOVEL: ItemId = ItemId(284);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -125,7 +134,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 22] = [
+const EXTRA: [ItemDef; 29] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -148,6 +157,13 @@ const EXTRA: [ItemDef; 22] = [
     part("Quicklime", tex::QUICKLIME, [0.6, 0.4, 0.6]),
     machine("Smelter Mk2", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
     machine("Constructor Mk2", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
+    part("Motor", tex::MOTOR, [0.55, 0.55, 0.8]),
+    ingot("Steel Ingot", tex::STEEL_INGOT),
+    part("Steel Plate", tex::STEEL_PLATE, [0.85, 0.14, 0.85]),
+    part("Steel Beam", tex::STEEL_BEAM, [1.0, 0.3, 0.3]),
+    tool("Steel Pickaxe", tex::STEEL_PICKAXE, &STEEL_TIER),
+    tool("Steel Axe", tex::STEEL_AXE, &STEEL_TIER),
+    tool("Steel Shovel", tex::STEEL_SHOVEL, &STEEL_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

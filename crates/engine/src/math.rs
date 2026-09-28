@@ -41,6 +41,14 @@ impl Sub for IVec3 {
     }
 }
 
+impl Mul<i32> for IVec3 {
+    type Output = IVec3;
+    #[inline]
+    fn mul(self, k: i32) -> IVec3 {
+        IVec3::new(self.x * k, self.y * k, self.z * k)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Vec3 {
     pub x: f64,

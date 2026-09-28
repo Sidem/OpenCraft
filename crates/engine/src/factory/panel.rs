@@ -154,10 +154,15 @@ impl Factory {
     /// Takes a machine's output (everything, for a box): offers it to `take(item, count)`, which
     /// returns how many it accepted. Returns false if there is no such machine at `pos`.
     pub fn take_contents(&mut self, pos: IVec3, take: impl FnMut(ItemId, u32) -> u32) -> bool {
+        let mut take = take;
         let buf = match self.at.get(&pos) {
             Some(Slot::Miner(i)) => &mut self.miners[*i as usize].out,
             Some(Slot::Storage(i)) => &mut self.storages[*i as usize].buf,
-            Some(Slot::Process(i)) => &mut self.processors[*i as usize].out,
+            Some(Slot::Process(i)) => {
+                let p = &mut self.processors[*i as usize];
+                p.side.drain(&mut take);
+                &mut p.out
+            }
             Some(Slot::Quarry(i)) => &mut self.quarries[*i as usize].out,
             Some(
                 Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) | Slot::Pipe(_),

@@ -15,9 +15,9 @@ pub(crate) use super::water::tests::{build_pond_above_a_pit, DAM};
 pub(crate) const SEED: u32 = 1337;
 const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
-/// Where the scripted 6,300-tick run below ends. Re-recorded in step 6.4: one processor list replaced the
-/// smelter and constructor lists, and research lists the Masonry tech.
-const GOLDEN_HASH: u64 = 0x9d75_ebdb_7e08_29e0;
+/// Where the scripted 6,300-tick run below ends. Re-recorded in step 6.5: processors save their facing,
+/// and research lists the Assembly tech; in step 6.6 for the Steelmaking tech.
+const GOLDEN_HASH: u64 = 0x60db_0093_2a46_084e;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

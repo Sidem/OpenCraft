@@ -1,10 +1,10 @@
 use super::*;
-use crate::block::{COAL_ORE, CONSTRUCTOR, IRON_ORE, LIMESTONE, SMELTER, STONE, STONE_BRICKS};
+use crate::block::{BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, IRON_ORE, LIMESTONE, SLAG, SMELTER, STONE, STONE_BRICKS};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tests::{powered, recipe_for, run};
 use crate::factory::tiers::FAMILIES;
 use crate::factory::upgrades::Step;
-use crate::item::{GREEN_KIT, IRON_INGOT, IRON_PLATE, QUICKLIME};
+use crate::item::{GREEN_KIT, IRON_INGOT, IRON_PLATE, QUICKLIME, STEEL_INGOT};
 use crate::research::{Research, TECHS};
 use crate::world::World;
 
@@ -98,6 +98,23 @@ fn a_smelter_upgrades_in_place_with_four_kits() {
     assert!(text.starts_with("Mk2\nWaiting for"), "{text}");
 }
 
+#[test]
+fn version_18_processors_had_no_facing_and_load_facing_north() {
+    let mut p = Processor::new(IVec3::new(1, 2, 3), spec(CONSTRUCTOR).unwrap(), 1);
+    p.dir = 2;
+    p.recipe = Some(recipe_for(IRON_PLATE));
+    let mut w = ByteWriter::default();
+    p.write_state(&mut w);
+    // Version 18 wrote the same record without the facing byte after position (12), block and tier.
+    let mut old = w.bytes.clone();
+    assert_eq!(old.remove(14), 2);
+    let mut r = ByteReader::new(&old);
+    r.version = 18;
+    let back = Processor::read_state(&mut r).unwrap();
+    assert_eq!((back.pos, back.tier, back.dir, back.recipe), (p.pos, 1, 0, p.recipe));
+    assert_eq!(r.u8(), None, "every byte read");
+}
+
 /// A factory saved by version 17: a smelter at the origin a third into a batch (2 ore, 2 coal, 2 ingots,
 /// 270 ticks of fire) and a constructor at (2, 0, 0) pressing plates, 1.5 s into a batch (5 ingots, 1
 /// plate), with the pole and generator that power it.
@@ -129,4 +146,79 @@ fn version_17_smelters_and_constructors_load_as_processors_mid_batch() {
     run(&mut f, 1.0, |_| {});
     assert_eq!(f.smelter_at(IVec3::ZERO).out.count(IRON_INGOT), 3, "the batch finished 1 s later");
     assert_eq!(f.constructor_at(IVec3::new(2, 0, 0)).out.count(IRON_PLATE), 2, "and the plate 0.5 s later");
+}
+
+const NORTH: u8 = 0;
+const EAST: u8 = 1;
+const SOUTH: u8 = 2;
+
+fn v(x: i32, y: i32, z: i32) -> IVec3 {
+    IVec3::new(x, y, z)
+}
+
+/// A box of `n` `item` at `from` and a belt from it into the cell ahead, facing `dir`.
+fn feed(f: &mut Factory, from: IVec3, dir: u8, item: ItemId, n: u32) {
+    f.add_storage(from);
+    f.stock(from, item, n);
+    f.add_belt(from + crate::factory::DIRS[dir as usize], dir);
+}
+
+/// A blast furnace at the origin facing north, ore from behind, coal and quicklime from its left, and a
+/// belt and box at its front (steel).
+fn blast_furnace(ore: u32, coal: u32, lime: u32) -> Factory {
+    let mut f = Factory::default();
+    f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(STEEL_INGOT))).is_some());
+    feed(&mut f, v(0, 0, -3), SOUTH, IRON_ORE.into(), ore);
+    feed(&mut f, v(-2, 0, 0), EAST, COAL_ORE.into(), coal);
+    feed(&mut f, v(-2, 0, -1), EAST, QUICKLIME, lime);
+    f.add_belt(v(0, 0, 1), SOUTH);
+    f.add_storage(v(0, 0, 2));
+    f
+}
+
+#[test]
+fn a_blast_furnace_makes_steel_at_its_front_and_slag_at_its_side() {
+    let mut f = blast_furnace(4, 2, 2);
+    f.add_belt(v(2, 0, 0), EAST);
+    f.add_storage(v(3, 0, 0));
+    run(&mut f, 11.0, |_| {});
+    assert_eq!(f.storage_count_at(v(0, 0, 2), STEEL_INGOT), 2, "4 s a batch, no power needed");
+    assert_eq!(f.storage_count_at(v(3, 0, 0), SLAG.into()), 2);
+    assert_eq!(f.processors[0].status, Status::NoInput);
+}
+
+#[test]
+fn a_blast_furnace_with_nowhere_for_slag_stops_and_says_so() {
+    let mut f = blast_furnace(40, 20, 20);
+    run(&mut f, 90.0, |_| {});
+    assert_eq!(f.storage_count_at(v(0, 0, 2), STEEL_INGOT), 16, "the side buffer holds 16 slag");
+    let p = &f.processors[0];
+    assert_eq!((p.status, p.side.count(SLAG.into())), (Status::OutputFull, 16));
+    let text = f.describe(IVec3::ZERO).unwrap();
+    assert!(text.contains("Slag has nowhere to go"), "{text}");
+    // Taking the slag by hand starts it again.
+    let mut slag = 0;
+    f.take_contents(IVec3::ZERO, |item, n| {
+        slag += n * u32::from(item == SLAG.into());
+        n
+    });
+    assert_eq!(slag, 16);
+    run(&mut f, 5.0, |_| {});
+    assert_eq!(f.storage_count_at(v(0, 0, 2), STEEL_INGOT), 17);
+}
+
+#[test]
+fn a_blast_furnace_saves_its_byproduct_buffer() {
+    let mut f = Factory::default();
+    f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, EAST, IVec3::ZERO, 0);
+    f.processors[0].side.add(SLAG.into(), 5);
+    let mut w = ByteWriter::default();
+    f.write_state(&mut w);
+    let back = Factory::read_state(&mut World::new(1, 2), &mut ByteReader::new(&w.bytes)).unwrap();
+    assert_eq!(back.processors[0].side.count(SLAG.into()), 5);
+    assert!(back.processors[0].contents().contains(&Stack { item: SLAG.into(), count: 5 }));
+    let mut again = ByteWriter::default();
+    back.write_state(&mut again);
+    assert!(again.bytes == w.bytes);
 }

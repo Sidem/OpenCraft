@@ -5,8 +5,10 @@
 //! constructors in lists of their own (`legacy.rs`).
 //!
 //! Belts, miners and the panel deliver into it; it sorts fuel into its fuel buffer and takes only
-//! what a recipe it may make uses (`Pick`; a recipe research still locks counts as unknown). Like a
-//! box, it pushes one item a tick into the next belt leading away.
+//! what a recipe it may make uses (`Pick`; a recipe research still locks counts as unknown), at most a
+//! stack of each input when it has a chosen recipe, so one input can't crowd out the others. Like a
+//! box, it pushes one item a tick into the next belt leading away. A spec with a footprint
+//! (`footprint/`) is several cells big, turned by `dir`, and takes and gives only at its ports.
 //!
 //! Invariants: a batch uses up its inputs when it starts and only starts when its outputs fit (and,
 //! electric, while powered). Work is counted in thousandths of a Mk1 tick: a tier's `speed` times the
@@ -14,7 +16,11 @@
 //! item only while a batch runs and burns `fuel` thousandths per unit of work. Changing the recipe hands
 //! back the inputs, an unfinished batch's included.
 //!
-//! To add a processor: a spec row (`specs.rs`). New behaviour (a byproduct port, flows) goes here.
+//! A recipe's byproducts (its outputs after the first) go to a separate buffer if the spec has one
+//! (`side`), which belts take from at the footprint's `Role::Side` ports; once it holds `SIDE_ROOM` it
+//! blocks the next batch and the status names the byproduct. Saved only for specs that have one.
+//!
+//! To add a processor: a spec row (`specs.rs`). New behaviour (flows) goes here.
 
 mod legacy;
 mod model;
@@ -29,14 +35,19 @@ pub use specs::{makes, spec, Energy, Pick, ProcessSpec, ProcessTier};
 use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
-use crate::item::ItemId;
+use crate::item::{stack_size, ItemId};
 use crate::math::{IVec3, Vec3};
 use crate::recipes::{burn_time, MachineRecipe, MACHINE_RECIPES};
 
 use super::belt::Belt;
 use super::buffer::Buffer;
+use super::footprint::Role;
 use super::power::FULL_SPEED;
 use super::{ticks, Factory, Machine};
+
+/// Byproducts a machine holds before it stops for want of a belt to take them (a stack is more than
+/// a player would notice filling).
+const SIDE_ROOM: u32 = 16;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Status {
@@ -55,6 +66,8 @@ const STATUSES: [Status; 6] =
 pub struct Processor {
     pub pos: IVec3,
     pub spec: &'static ProcessSpec,
+    /// The way its placer faced (`footprint/`); its front faces back the other way.
+    pub dir: u8,
     /// Index into `spec.tiers` (0 is Mk1).
     pub tier: u8,
     /// The chosen recipe (`Pick::Chosen`), a `MACHINE_RECIPES` index.
@@ -67,11 +80,15 @@ pub struct Processor {
     pub input: Buffer,
     pub fuel: Buffer,
     pub out: Buffer,
+    /// Byproducts (`spec.side` slots; none for most machines).
+    pub side: Buffer,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
-    /// Belt indices leading away from it.
+    /// Belt indices leading away from its output ports, and from its byproduct ports.
     pub outs: Vec<u32>,
+    pub side_outs: Vec<u32>,
     pub next_out: usize,
+    pub next_side: usize,
     pub status: Status,
 }
 
@@ -83,6 +100,7 @@ impl Processor {
         Processor {
             pos,
             spec,
+            dir: 0,
             tier,
             recipe: None,
             batch: None,
@@ -91,9 +109,12 @@ impl Processor {
             input,
             fuel,
             out,
+            side: Buffer::new(spec.side),
             speed: 0,
             outs: Vec::new(),
+            side_outs: Vec::new(),
             next_out: 0,
+            next_side: 0,
             status,
         }
     }
@@ -113,8 +134,13 @@ impl Processor {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
         };
+        let cap = if self.spec.pick == Pick::Chosen {
+            stack_size(item).saturating_sub(self.input.count(item))
+        } else {
+            u32::MAX
+        };
         if wanted {
-            self.input.space_for(item)
+            self.input.space_for(item).min(cap)
         } else {
             0
         }
@@ -150,6 +176,7 @@ impl Processor {
         self.speed = power;
         self.work(power, unlocked);
         self.out.feed(&self.outs, &mut self.next_out, belts);
+        self.side.feed(&self.side_outs, &mut self.next_side, belts);
     }
 
     /// Whether it would work this tick if powered (its grid counts it as demand).
@@ -157,7 +184,27 @@ impl Processor {
         self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none())
     }
 
-    /// kW it draws while it works (0 for burners).
+    /// Every cell it occupies, its anchor `pos` first.
+    pub fn cells(&self) -> Vec<IVec3> {
+        self.spec.footprint.cells(self.pos, self.dir)
+    }
+
+    /// Whether items arriving into `cell` from the cell `from` beside it go in (through a port).
+    pub fn takes_from(&self, cell: IVec3, from: IVec3) -> bool {
+        self.spec.footprint.takes(self.pos, self.dir, cell, from)
+    }
+
+    /// The faces it gives items out of: a cell and the `DIRS` index it faces.
+    pub fn out_faces(&self) -> Vec<(IVec3, u8)> {
+        self.spec.footprint.faces(self.pos, self.dir, Role::Out)
+    }
+
+    /// The faces it gives byproducts out of.
+    pub fn side_faces(&self) -> Vec<(IVec3, u8)> {
+        self.spec.footprint.faces(self.pos, self.dir, Role::Side)
+    }
+
+    /// kW it draws while it works (0 unless electric).
     pub fn power(&self) -> u32 {
         self.stats().power
     }
@@ -191,15 +238,19 @@ impl Processor {
                 return;
             }
             self.burn = self.burn.saturating_sub(work * self.stats().fuel / 1000);
-        } else if power == 0 {
+        } else if self.spec.energy == Energy::Electric && power == 0 {
             self.status = Status::NoPower;
             return;
         }
         self.status = Status::Working;
         self.progress += work;
         if self.progress >= ticks(r.seconds) * FULL_SPEED {
-            for &(item, n) in r.outputs {
-                self.out.add(item, n);
+            for (k, &(item, n)) in r.outputs.iter().enumerate() {
+                if self.to_side(k) {
+                    self.side.add(item, n);
+                } else {
+                    self.out.add(item, n);
+                }
             }
             (self.batch, self.progress) = (None, 0);
         }
@@ -221,11 +272,29 @@ impl Processor {
         let r = &MACHINE_RECIPES[i as usize];
         if r.inputs.iter().any(|&(item, n)| self.input.count(item) < n) {
             Some(Status::NoInput)
-        } else if r.outputs.iter().any(|&(item, n)| self.out.space_for(item) < n) {
+        } else if self.full_output(r).is_some() {
             Some(Status::OutputFull)
         } else {
             None
         }
+    }
+
+    /// Whether output `k` of a recipe (0 is the main product) goes to the byproduct buffer.
+    fn to_side(&self, k: usize) -> bool {
+        k > 0 && !self.side.slots.is_empty()
+    }
+
+    /// The first output of `r` with no room left in its buffer, and whether it is a byproduct.
+    fn full_output(&self, r: &MachineRecipe) -> Option<(ItemId, bool)> {
+        let full = |&(k, &(item, n)): &(usize, &(ItemId, u32))| {
+            if self.to_side(k) {
+                self.side.total() + n > SIDE_ROOM || self.side.space_for(item) < n
+            } else {
+                self.out.space_for(item) < n
+            }
+        };
+        let (k, &(item, _)) = r.outputs.iter().enumerate().find(full)?;
+        Some((item, self.to_side(k)))
     }
 
     /// Lights the first fuel item it holds.
@@ -266,12 +335,17 @@ impl Machine for Processor {
         self.pos
     }
 
-    /// Core state: block and tier, recipe, batch, buffers, work, fire, round-robin position and status
-    /// (`outs` comes from `relink`).
+    fn cells(&self) -> Vec<IVec3> {
+        Processor::cells(self)
+    }
+
+    /// Core state: block, tier and facing, recipe, batch, buffers, work, fire, round-robin position and status,
+    /// then the byproduct buffer and its round-robin position if its spec has one (`outs` come from `relink`).
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.spec.block);
         w.u8(self.tier);
+        w.u8(self.dir);
         for i in [self.recipe, self.batch] {
             w.bool(i.is_some());
             w.u16(i.unwrap_or(0));
@@ -283,6 +357,10 @@ impl Machine for Processor {
         w.u32(self.burn);
         w.u32(self.next_out as u32);
         w.u8(self.status as u8);
+        if self.spec.side > 0 {
+            self.side.write_state(w);
+            w.u32(self.next_side as u32);
+        }
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Processor> {
@@ -293,6 +371,8 @@ impl Machine for Processor {
             return None;
         }
         let mut p = Processor::new(pos, spec, tier);
+        // Saves before version 19 had no facing: every processor then was one cell facing north.
+        p.dir = if r.version >= 19 { r.u8()? % 4 } else { 0 };
         p.recipe = read_opt(r)?;
         p.batch = read_opt(r)?;
         let [input, fuel, out] = spec.buffers;
@@ -303,6 +383,10 @@ impl Machine for Processor {
         p.burn = r.u32()?;
         p.next_out = r.u32()? as usize;
         p.status = *STATUSES.get(r.u8()? as usize)?;
+        if spec.side > 0 {
+            p.side = Buffer::read_state(r, spec.side)?;
+            p.next_side = r.u32()? as usize;
+        }
         p.valid()
     }
 
@@ -311,6 +395,7 @@ impl Machine for Processor {
         let mut all = self.input.contents();
         all.extend(self.fuel.contents());
         all.extend(self.out.contents());
+        all.extend(self.side.contents());
         all.extend(self.batch_inputs());
         all
     }

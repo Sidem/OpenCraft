@@ -2,8 +2,8 @@
 //! the machines that take items and `deliver` hands one over. `relink` rebuilds the derived data after
 //! any machine is added or removed: belt outputs (for every belt shape) and corner curves, the outputs of every other machine,
 //! and the downstream-first belt update order, and the power grids (`power.rs`). Nothing here is saved; links are a pure function of the
-//! machines and their positions. A new machine that takes items: an arm in `Slot::is_sink` and in
-//! `Sinks`.
+//! machines and their positions. A multi-block machine takes and gives only at its ports (`footprint/`).
+//! A new machine that takes items: an arm in `Slot::is_sink` and in `Sinks`.
 
 use crate::item::ItemId;
 use crate::math::IVec3;
@@ -126,6 +126,12 @@ impl Factory {
         derive_slopes(&mut self.belts, &self.at);
         let at = &self.at;
         let belts = &self.belts;
+        let processors = &self.processors;
+        // Whether the sink `s` takes items into its cell `cell` from `from` (multi-block machines: at a port).
+        let takes = |s: Slot, cell: IVec3, from: IVec3| match s {
+            Slot::Process(i) => processors[i as usize].takes_from(cell, from),
+            _ => true,
+        };
         let belt_at = |q: IVec3| match at.get(&q) {
             Some(Slot::Belt(j)) => Some(*j),
             _ => None,
@@ -192,7 +198,7 @@ impl Factory {
                     Link::Belt { belt: *j, mid: !from_back }
                 }
             }
-            Some(&s) if s.is_sink() => Link::Machine(s),
+            Some(&s) if s.is_sink() && takes(s, t, t - DIRS[dir as usize]) => Link::Machine(s),
             Some(_) => Link::None,
             None => shaped(t - UP, Shape::Down, dir).map_or(Link::None, start),
         };
@@ -230,7 +236,7 @@ impl Factory {
         let extractor_outs = |pos: IVec3, skip: usize| -> Vec<Link> {
             let mut v: Vec<Link> = feeds(pos).into_iter().map(|belt| Link::Belt { belt, mid: false }).collect();
             for (f, &n) in FACES.iter().enumerate() {
-                if let Some(&s) = at.get(&(pos + n)).filter(|s| f != skip && s.is_sink()) {
+                if let Some(&s) = at.get(&(pos + n)).filter(|&&s| f != skip && s.is_sink() && takes(s, pos + n, pos)) {
                     v.push(Link::Machine(s));
                 }
             }
@@ -240,7 +246,14 @@ impl Factory {
         // A quarry's box starts a cell away, so it delivers on every side.
         let quarry_outs: Vec<Vec<Link>> = self.quarries.iter().map(|q| extractor_outs(q.pos, FACES.len())).collect();
         let storage_outs: Vec<Vec<u32>> = self.storages.iter().map(|s| feeds(s.pos)).collect();
-        let process_outs: Vec<Vec<u32>> = self.processors.iter().map(|p| feeds(p.pos)).collect();
+        let process_outs: Vec<Vec<u32>> = processors
+            .iter()
+            .map(|p| p.out_faces().into_iter().filter_map(|(c, s)| lead_away(c, s)).collect())
+            .collect();
+        let process_side_outs: Vec<Vec<u32>> = processors
+            .iter()
+            .map(|p| p.side_faces().into_iter().filter_map(|(c, s)| lead_away(c, s)).collect())
+            .collect();
         let router_outs: Vec<[Option<u32>; 3]> =
             self.routers.iter().map(|r| r.out_dirs().map(|s| lead_away(r.pos, s))).collect();
 
@@ -261,9 +274,11 @@ impl Factory {
             s.outs = o;
             s.next_out %= s.outs.len().max(1);
         }
-        for (p, o) in self.processors.iter_mut().zip(process_outs) {
+        for ((p, o), side) in self.processors.iter_mut().zip(process_outs).zip(process_side_outs) {
             p.outs = o;
             p.next_out %= p.outs.len().max(1);
+            p.side_outs = side;
+            p.next_side %= p.side_outs.len().max(1);
         }
         for (r, o) in self.routers.iter_mut().zip(router_outs) {
             r.outs = o;

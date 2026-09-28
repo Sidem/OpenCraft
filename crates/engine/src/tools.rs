@@ -1,4 +1,4 @@
-//! Hand tools: pickaxe, axe and shovel in tiers (stone, iron; steel comes with steel). A tool held in the
+//! Hand tools: pickaxe, axe and shovel in tiers (stone, iron, steel). A tool held in the
 //! selected hotbar slot breaks its class of blocks faster, and a pickaxe of a good tier keeps a little
 //! more ore by hand (still far below a miner's recovery).
 //!
@@ -17,7 +17,8 @@
 use crate::block::{self, sound, BlockId};
 use crate::deposits::HAND_YIELD;
 use crate::item::{
-    ItemId, CORE_DRILL, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, SCANNER, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    ItemId, CORE_DRILL, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, SCANNER, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL,
+    STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -40,6 +41,8 @@ pub struct Tier {
 
 pub const STONE_TIER: Tier = Tier { uses: 150, speed: 2.0, ore_yield: HAND_YIELD };
 pub const IRON_TIER: Tier = Tier { uses: 600, speed: 4.0, ore_yield: HAND_YIELD + 1 };
+/// Keeps 5 ore a block, still far below a machine (docs/TECH_ERAS.md).
+pub const STEEL_TIER: Tier = Tier { uses: 1500, speed: 6.0, ore_yield: HAND_YIELD + 2 };
 /// Prospecting devices: a stack of one that no block wears down.
 pub const DEVICE_TIER: Tier = Tier { uses: 1, speed: 1.0, ore_yield: HAND_YIELD };
 
@@ -49,13 +52,16 @@ pub struct ToolDef {
     pub tier: &'static Tier,
 }
 
-pub const TOOLS: [ToolDef; 8] = [
+pub const TOOLS: [ToolDef; 11] = [
     ToolDef { item: STONE_PICKAXE, kind: ToolKind::Pickaxe, tier: &STONE_TIER },
     ToolDef { item: STONE_AXE, kind: ToolKind::Axe, tier: &STONE_TIER },
     ToolDef { item: STONE_SHOVEL, kind: ToolKind::Shovel, tier: &STONE_TIER },
     ToolDef { item: IRON_PICKAXE, kind: ToolKind::Pickaxe, tier: &IRON_TIER },
     ToolDef { item: IRON_AXE, kind: ToolKind::Axe, tier: &IRON_TIER },
     ToolDef { item: IRON_SHOVEL, kind: ToolKind::Shovel, tier: &IRON_TIER },
+    ToolDef { item: STEEL_PICKAXE, kind: ToolKind::Pickaxe, tier: &STEEL_TIER },
+    ToolDef { item: STEEL_AXE, kind: ToolKind::Axe, tier: &STEEL_TIER },
+    ToolDef { item: STEEL_SHOVEL, kind: ToolKind::Shovel, tier: &STEEL_TIER },
     ToolDef { item: SCANNER, kind: ToolKind::Scanner, tier: &DEVICE_TIER },
     ToolDef { item: CORE_DRILL, kind: ToolKind::CoreDrill, tier: &DEVICE_TIER },
 ];

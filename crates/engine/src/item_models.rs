@@ -6,7 +6,8 @@
 use crate::block::tex;
 use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE, IRON_PLATE,
-    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STEEL_AXE, STEEL_BEAM, STEEL_INGOT, STEEL_PICKAXE, STEEL_PLATE,
+    STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 
 pub struct Part {
@@ -91,12 +92,31 @@ const fn shovel(head: u16) -> [Part; 5] {
     ]
 }
 
+/// A bar over a plate, in steel.
+const STEEL_BAR: [Part; 2] = [
+    part([0.0, -0.07, 0.0], [0.88, 0.29, 0.53], tex::STEEL_INGOT),
+    part([0.0, 0.105, 0.0], [0.69, 0.07, 0.4], tex::STEEL_PLATE),
+];
+const STEEL_SHEET: [Part; 2] = [
+    part([0.0, -0.07, 0.0], [0.84, 0.1, 0.84], tex::STEEL_PLATE),
+    part([0.0, 0.005, 0.0], [0.66, 0.05, 0.66], tex::STEEL_PLATE),
+];
+/// An I-beam on its side: a web between two flanges.
+const STEEL_GIRDER: [Part; 3] = [
+    part([0.0, 0.0, 0.0], [0.9, 0.12, 0.12], tex::STEEL_BEAM),
+    part([0.0, -0.09, 0.0], [0.9, 0.06, 0.34], tex::STEEL_BEAM),
+    part([0.0, 0.09, 0.0], [0.9, 0.06, 0.34], tex::STEEL_BEAM),
+];
+
 const STONE_PICK: [Part; 6] = pickaxe(tex::STONE);
 const IRON_PICK: [Part; 6] = pickaxe(tex::STEEL);
 const STONE_HATCHET: [Part; 4] = axe(tex::STONE);
 const IRON_HATCHET: [Part; 4] = axe(tex::STEEL);
 const STONE_SPADE: [Part; 5] = shovel(tex::STONE);
 const IRON_SPADE: [Part; 5] = shovel(tex::STEEL);
+const STEEL_PICK: [Part; 6] = pickaxe(tex::STEEL_HEAD);
+const STEEL_HATCHET: [Part; 4] = axe(tex::STEEL_HEAD);
+const STEEL_SPADE: [Part; 5] = shovel(tex::STEEL_HEAD);
 
 /// A handset: casing, a wooden grip, a steel antenna, and the screen on its front (+z).
 const SCANNER_SET: [Part; 4] = [
@@ -130,6 +150,12 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         IRON_AXE => &IRON_HATCHET,
         STONE_SHOVEL => &STONE_SPADE,
         IRON_SHOVEL => &IRON_SPADE,
+        STEEL_INGOT => &STEEL_BAR,
+        STEEL_PLATE => &STEEL_SHEET,
+        STEEL_BEAM => &STEEL_GIRDER,
+        STEEL_PICKAXE => &STEEL_PICK,
+        STEEL_AXE => &STEEL_HATCHET,
+        STEEL_SHOVEL => &STEEL_SPADE,
         SCANNER => &SCANNER_SET,
         CORE_DRILL => &DRILL_SET,
         _ => &[],

@@ -8,10 +8,10 @@ use crate::block::*;
 use crate::inventory::Inventory;
 use crate::item::{
     ItemId, CONSTRUCTOR_MK2, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_AXE, IRON_INGOT,
-    IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, SMELTER_MK2, STICK, STONE_AXE,
-    STONE_PICKAXE, STONE_SHOVEL,
+    IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, MOTOR, RED_PACK, SCANNER, SCREW, SMELTER_MK2, STEEL_AXE,
+    STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
-use crate::tools::{IRON_TIER, STONE_TIER};
+use crate::tools::{IRON_TIER, STEEL_TIER, STONE_TIER};
 
 mod machine;
 
@@ -245,6 +245,23 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "Works twice as fast as a Mk1 and draws 30 kW. Or upgrade a placed constructor with 4 green kits.",
     },
     Recipe {
+        output: b(ASSEMBLER),
+        group: Group::Production,
+        count: 1,
+        inputs: &[(IRON_PLATE, 12), (GEAR, 6), (COPPER_WIRE, 12), (IRON_ROD, 4)],
+        blurb: "Puts parts together: motors, concrete, packs and kits. It is 2×2×2 (R turns it before you place \
+                it). Belts bring parts in at the hatches on its back and sides; the front hatch gives. 20 kW.",
+    },
+    Recipe {
+        output: b(BLAST_FURNACE),
+        group: Group::Production,
+        count: 1,
+        inputs: &[(b(STONE_BRICKS), 32), (b(CONCRETE), 8), (IRON_PLATE, 12), (MOTOR, 2)],
+        blurb: "Makes steel from 2 iron ore, a coal and a quicklime, and slag on the side. It is 2×2×3 (R turns it \
+                before you place it). Belts bring the three in at the hatches on its back and left; steel leaves \
+                by the front, slag by the right hatch: if slag has nowhere to go it stops. No power.",
+    },
+    Recipe {
         output: b(QUARRY),
         group: Group::Production,
         count: 1,
@@ -303,6 +320,27 @@ pub const RECIPES: &[Recipe] = &[
         count: IRON_TIER.uses,
         inputs: &[(IRON_PLATE, 1), (IRON_ROD, 2)],
         blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
+    },
+    Recipe {
+        output: STEEL_PICKAXE,
+        group: Group::Tools,
+        count: STEEL_TIER.uses,
+        inputs: &[(STEEL_PLATE, 3), (IRON_ROD, 2)],
+        blurb: "Breaks stone and ore six times as fast and keeps 5 ore per block instead of 3. Lasts 1,500 blocks.",
+    },
+    Recipe {
+        output: STEEL_AXE,
+        group: Group::Tools,
+        count: STEEL_TIER.uses,
+        inputs: &[(STEEL_PLATE, 3), (IRON_ROD, 2)],
+        blurb: "Chops wood six times as fast. Lasts 1,500 blocks.",
+    },
+    Recipe {
+        output: STEEL_SHOVEL,
+        group: Group::Tools,
+        count: STEEL_TIER.uses,
+        inputs: &[(STEEL_PLATE, 1), (IRON_ROD, 2)],
+        blurb: "Digs dirt, grass and sand six times as fast. Lasts 1,500 blocks.",
     },
     Recipe {
         output: SCANNER,

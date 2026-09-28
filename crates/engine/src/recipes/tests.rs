@@ -9,12 +9,12 @@ use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
-use Category::{Pressing, Smelting};
+use Category::{Assembly, Blasting, Pressing, Smelting};
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 2] = [Smelting, Pressing];
+const CATEGORIES: [Category; 4] = [Smelting, Pressing, Assembly, Blasting];
 const _: fn(Category) = |c| match c {
-    Smelting | Pressing => {}
+    Smelting | Pressing | Assembly | Blasting => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -25,8 +25,8 @@ const WORLD_BLOCKS: &[BlockId] = &[
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
-/// Known exception: quicklime waits for concrete and steel (steps 6.5 and 6.6).
-const NO_USE_YET: &[ItemId] = &[item::QUICKLIME];
+/// Known exception: the steel beam waits for blue science and pylons (steps 6.7 and 6.8).
+const NO_USE_YET: &[ItemId] = &[item::STEEL_BEAM];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {
@@ -77,6 +77,7 @@ fn lint_outputs(machine: &[MachineRecipe], specs: &[ProcessSpec]) -> Vec<String>
     for (i, r) in machine.iter().enumerate() {
         for s in specs.iter().filter(|s| s.categories.contains(&r.category)) {
             let [ins, _, outs] = s.buffers;
+            let outs = if s.side > 0 { outs + s.side } else { outs };
             if r.outputs.is_empty() || r.outputs.len() > outs || r.inputs.len() > ins {
                 let name = block::def(s.block).name;
                 errors.push(format!("machine recipe {i} has {} outputs; {name} holds {outs}", r.outputs.len()));
@@ -124,9 +125,9 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     // An item nothing makes, and one nothing uses.
     let no_sticks: Vec<Recipe> = RECIPES.iter().filter(|r| r.output != item::STICK).map(copy).collect();
     assert!(has(lint_items(&no_sticks, MACHINE_RECIPES), "Stick has no source"));
-    let no_screws: Vec<Recipe> =
-        RECIPES.iter().filter(|r| !r.inputs.iter().any(|i| i.0 == item::SCREW)).map(copy).collect();
-    assert!(has(lint_items(&no_screws, MACHINE_RECIPES), "Screws has no use"));
+    let no_sticks_used: Vec<Recipe> =
+        RECIPES.iter().filter(|r| !r.inputs.iter().any(|i| i.0 == item::STICK)).map(copy).collect();
+    assert!(has(lint_items(&no_sticks_used, MACHINE_RECIPES), "Stick has no use"));
     // A category no machine takes, and a spec for a block that isn't a processor.
     assert!(has(lint_categories(&SPECS[..1]), "Pressing has no machine"));
     const STONY: [ProcessSpec; 1] = [ProcessSpec { block: STONE, ..SPECS[0] }];

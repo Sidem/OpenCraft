@@ -5,11 +5,12 @@
 //! Terrain lives in `nature.rs` (with the surface hints) and `ores.rs`, province rocks in
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
-//! `masonry.rs`.
+//! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
 
+mod assembly;
 mod geology;
 mod items;
 mod machines;
@@ -18,6 +19,7 @@ mod nature;
 mod ores;
 mod paint;
 mod plants;
+mod steel;
 mod stripes;
 mod tools;
 mod wood;
@@ -142,7 +144,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::AVATAR_SUIT..=tex::AVATAR_VISOR => avatar(x, y, layer - tex::AVATAR_SUIT),
         tex::STONE_PICKAXE..=tex::IRON_SHOVEL => {
             let i = layer - tex::STONE_PICKAXE;
-            tools::tool(x, y, i % 3, i >= 3)
+            tools::tool(x, y, i % 3, if i >= 3 { tools::IRON_HEAD } else { tools::STONE_HEAD })
         }
         tex::SAPLING => plants::sapling(x, y),
         tex::TORCH => plants::torch(x, y),
@@ -161,6 +163,9 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STRIPE_1..=tex::STRIPE_5 => stripes::stripe(x, y, (layer - tex::STRIPE_1) as u8),
         tex::STONE_BRICKS => masonry::stone_bricks(x, y),
         tex::QUICKLIME => masonry::quicklime(x, y),
+        tex::ASSEMBLER_SIDE..=tex::MOTOR => assembly::pixel(layer, x, y),
+        tex::BLAST_SIDE..=tex::SLAG | tex::STEEL_INGOT..=tex::STEEL_BEAM | tex::STEEL_HEAD => steel::pixel(layer, x, y),
+        tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }
 }

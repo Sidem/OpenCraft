@@ -7,9 +7,13 @@ use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
 use crate::factory::{self, Kind, MINER_TIERS};
 use crate::hints::{self, HINTS};
+use crate::math::IVec3;
 use crate::ore_guide;
 use crate::research::{self, Unlock};
 use crate::Game;
+
+/// The outline of a cell in the way of a machine being placed.
+const BLOCKED_RED: i32 = 0xff4a3d;
 
 #[wasm_bindgen]
 impl Game {
@@ -27,21 +31,31 @@ impl Game {
         self.planned_cells()
     }
 
-    /// The box a held quarry would dig, as `[x0, y0, z0, x1, y1, z1]` (lowest and highest cells; empty
-    /// when not placing one).
+    /// Boxes to outline while placing, 7 numbers each: lowest and highest cells, then a colour (0xRRGGBB;
+    /// 0 for amber). The box a held quarry would dig, or a held multi-block machine's footprint with a
+    /// red box on each cell in the way; empty otherwise.
     pub fn placement_box(&self) -> Vec<i32> {
-        self.quarry_preview().map_or_else(Vec::new, |d| {
+        if let Some(d) = self.quarry_preview() {
             let (lo, hi) = d.bounds();
-            vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z]
-        })
+            return vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0];
+        }
+        let Some((_, _, _, cells)) = self.footprint_ghost() else { return Vec::new() };
+        let lo = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.min(c.0.x), m.y.min(c.0.y), m.z.min(c.0.z)));
+        let hi = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.max(c.0.x), m.y.max(c.0.y), m.z.max(c.0.z)));
+        let mut out = vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0];
+        for &(c, _) in cells.iter().filter(|c| c.1) {
+            out.extend([c.x, c.y, c.z, c.x, c.y, c.z, BLOCKED_RED]);
+        }
+        out
     }
 
-    /// What the HUD says while a belt line is dragged out or a quarry is about to be placed: a title
-    /// line, then the details ("" otherwise).
+    /// What the HUD says while a belt line is dragged out or a quarry or multi-block machine is about to
+    /// be placed: a title line, then the details ("" otherwise).
     pub fn line_label(&self) -> String {
         let n = self.line.cells.len();
         if n == 0 {
-            return self.quarry_label();
+            let quarry = self.quarry_label();
+            return if quarry.is_empty() { self.footprint_label() } else { quarry };
         }
         let held = self.inventory().selected_stack().item;
         if let Some(tier) = factory::upgrades::kit_tier(held) {

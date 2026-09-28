@@ -5,7 +5,12 @@
 
 use super::{n, rgb};
 
-pub fn tool(x: i32, y: i32, kind: u16, iron: bool) -> [u8; 4] {
+/// Head colours by tier.
+pub const STONE_HEAD: [f64; 3] = [124.0, 124.0, 130.0];
+pub const IRON_HEAD: [f64; 3] = [204.0, 208.0, 216.0];
+pub const STEEL_HEAD: [f64; 3] = [104.0, 124.0, 158.0];
+
+pub fn tool(x: i32, y: i32, kind: u16, head_colour: [f64; 3]) -> [u8; 4] {
     // Along and across the handle, which runs from the bottom left to the head at the top right.
     let (rx, ry) = (x as f64 - 11.5, y as f64 - 3.5);
     let along = (rx - ry) * std::f64::consts::FRAC_1_SQRT_2;
@@ -17,7 +22,7 @@ pub fn tool(x: i32, y: i32, kind: u16, iron: bool) -> [u8; 4] {
     };
     let k = 0.88 + 0.12 * n(70 + kind as u32, x, y);
     if head {
-        rgb(if iron { [204.0, 208.0, 216.0] } else { [124.0, 124.0, 130.0] }, k)
+        rgb(head_colour, k)
     } else if across.abs() < 0.8 && (-12.0..0.0).contains(&along) {
         rgb([140.0, 98.0, 58.0], k)
     } else {

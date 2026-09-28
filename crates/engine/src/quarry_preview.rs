@@ -1,8 +1,8 @@
 //! Placing a quarry (the local player's, presentation only): while one is held and aimed at a free
 //! cell, `quarry_preview` is the box it would dig there (outlined by the host), `quarry_label` says
-//! how big it is and what it would yield, and R turns it a quarter (`turn_quarry`, from
-//! `rotate_target`). The turn goes into the placing action's facing (`interaction.rs`). Reads loaded
-//! chunks only; never touches the core.
+//! how big it is and what it would yield, and R turns it a quarter (`turn_placement`, from
+//! `rotate_target`; multi-block machines share the turn: `footprint_preview.rs`). The turn goes into the
+//! placing action's facing (`interaction.rs`). Reads loaded chunks only; never touches the core.
 
 use crate::block::{self, QUARRY};
 use crate::factory::{self, survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS};
@@ -17,13 +17,13 @@ impl Game {
         !stack.is_empty() && stack.item.places() == Some(QUARRY)
     }
 
-    /// The way a quarry placed now would face: the player's facing, turned by R.
-    pub(crate) fn quarry_facing(&self) -> u8 {
-        (factory::dir_from_yaw(self.body().yaw) + self.quarry_turn) % 4
+    /// The way a quarry or multi-block machine placed now would face: the player's facing, turned by R.
+    pub(crate) fn placing_facing(&self) -> u8 {
+        (factory::dir_from_yaw(self.body().yaw) + self.place_turn) % 4
     }
 
-    pub(crate) fn turn_quarry(&mut self) {
-        self.quarry_turn = (self.quarry_turn + 1) % 4;
+    pub(crate) fn turn_placement(&mut self) {
+        self.place_turn = (self.place_turn + 1) % 4;
     }
 
     /// The box a held quarry would dig if placed now, if it can be placed.
@@ -31,7 +31,7 @@ impl Game {
         let hit = self.target.filter(|h| h.normal != IVec3::ZERO && self.holds_quarry())?;
         let pos = hit.block + hit.normal;
         self.sim.world.get_block(pos).filter(|&b| block::replaceable(b))?;
-        Some(DigBox::new(pos, self.quarry_facing(), DEFAULT_WIDTH, DEFAULT_DEPTH))
+        Some(DigBox::new(pos, self.placing_facing(), DEFAULT_WIDTH, DEFAULT_DEPTH))
     }
 
     /// "Quarry" and "7×7, 16 deep · about 600 blocks: stone, dirt · R turns it" on two lines ("" when

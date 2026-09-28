@@ -11,7 +11,7 @@ use crate::factory;
 use crate::math::{IVec3, Vec3};
 use crate::physics::Aabb;
 use crate::player;
-use crate::raycast::raycast;
+use crate::raycast::{raycast, RayHit};
 use crate::sound;
 use crate::tools;
 use crate::Game;
@@ -72,7 +72,10 @@ impl Game {
     pub(crate) fn update_target(&mut self) {
         let (eye, dir) = (self.body().eye(), self.body().look_dir());
         let world = &self.sim.world;
-        self.target = raycast(eye, dir, REACH, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
+        let hit = raycast(eye, dir, REACH, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
+        // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
+        let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| self.sim.factory.block_at(h.block)).flatten();
+        self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
     }
 
     pub(crate) fn update_mining(&mut self, dt: f32) {
@@ -151,6 +154,11 @@ impl Game {
             return None;
         }
         let inv = self.inventory();
+        if self.held_footprint().is_some() {
+            let (_, pos, facing, cells) = self.footprint_ghost()?;
+            let free = cells.iter().all(|c| !c.1);
+            return free.then_some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block });
+        }
         let stack = inv.selected_stack();
         let placed = stack.item.places().filter(|_| !stack.is_empty())?;
         let pos = hit.block + hit.normal;
@@ -162,7 +170,7 @@ impl Game {
         if block::SOLID[placed as usize] && cell.intersects(&body.aabb()) {
             return None;
         }
-        let facing = if placed == block::QUARRY { self.quarry_facing() } else { factory::dir_from_yaw(body.yaw) };
+        let facing = if placed == block::QUARRY { self.placing_facing() } else { factory::dir_from_yaw(body.yaw) };
         Some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block })
     }
 

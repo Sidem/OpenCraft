@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 6 (Industry). Next up: step 6.5 (footprints and the assembler)** · Terraforming moved to
+now) · **Now: Milestone 6 (Industry). Next up: step 6.7 (blue science and Mk3)** · Terraforming moved to
 Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -424,11 +424,11 @@ modular so that everything after costs rows, not rewrites.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` with a migration and a fixture test
   (keep a version-17 fixture from before 6.1). Golden hashes are re-recorded only on purpose, noted in
   the step.
-- New blocks and items append (the next free block is 61, item 278). Each new look gets a placeholder layer and an `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 66, item 285). Each new look gets a placeholder layer and an `docs/ART_HANDOVER.md` request line.
 - Refactor steps (6.1, 6.2, 6.4) change no behaviour: every existing test passes unchanged, and the net
   line count and wasm size should not grow.
 
-Steps 6.1–6.4 are built; their full specs are in git history (`git log -- docs/DEV_PLAN.md`).
+Steps 6.1–6.6 are built; their full specs are in git history (`git log -- docs/DEV_PLAN.md`).
 
 - [x] **6.1 Tiers as data** (`factory/tiers.rs`): `tier: u8` (0 = Mk1) written where the `fast` / `mk2`
   bools were, so saves stayed byte-identical (v17 fixture in `factory/tiers/tests.rs`); numbers in
@@ -447,18 +447,24 @@ Steps 6.1–6.4 are built; their full specs are in git history (`git log -- docs
   hash re-recorded for the format and the new tech). The line count did not drop: the processor is 634
   lines against 599 for the two modules, and with the old-save reader and new content the source grew by
   168.
-- [ ] **6.5 Footprints and the assembler.** `factory/footprint.rs`: footprints turned by facing, the
-  `MACHINE_PART` block, every cell in `Factory.at`, ports `(cell, face, role)` for links, placement check,
-  breaking any cell returns the machine with its buffers, power through any cell, targeting any cell
-  names the machine. The ghost (amber, red where blocked, R turns it) is a presentation module like
-  `quarry_preview.rs`. The assembler is a spec row (2×2×2, 3 in, 1 out, 20 kW, assembly); motor,
-  concrete (block); red and green packs and green kits also as assembly recipes. Assembly tech.
-  **Done when:** a scenario test feeds an assembler from three belts and takes motors from its output;
-  placing into a blocked cell refuses; breaking a part cell returns the assembler; screenshot.
-- [ ] **6.6 Steel.** The blast furnace as a spec row (2×2×3, 3 in, steel out front, slag out the side,
-  burns the recipe's coal); slag (block), steel ingot, plate, beam; steel tools (a `tools.rs` tier row);
-  a machine whose byproduct port is blocked stops and says so. Steelmaking tech. **Done when:** ore,
-  coal and quicklime on three belts give steel and slag on two; a blocked slag port stops it; screenshot.
+- [x] **6.5 Footprints and the assembler** (`factory/footprint/`, `action/multiblock.rs`,
+  `footprint_preview.rs`): a spec's `footprint` (size, ports by side) turned by the processor's `dir`;
+  every cell in `Factory.at`; the anchor holds the block, the rest `MACHINE_PART` (block 62); belts link
+  only at ports; power through any cell; targeting, panels and breaking from any cell. The ghost is amber
+  with red cells in the way; R turns it (the quarry's turn, now `place_turn`). The assembler (block 61:
+  2×2×2, 3 inlets, 1 outlet, 20 kW, a stack of each input at most), motor (item 278), concrete (block
+  63), red and green packs and green kits as assembly recipes; Assembly tech (8). Save version 19
+  (processor facing; a v18 migration test); golden hash re-recorded for it and the tech. The machine
+  table moved to `factory/table.rs` to keep `factory/mod.rs` under 400 lines.
+- [x] **6.6 Steel.** The blast furnace (block 64, 2×2×3, no power: `Energy::Recipe`) is a spec row: inlets
+  at its back and left, steel out the front, slag out the right (`Role::Side`, hatch drawn violet with a
+  down chevron). A spec's `side` slots hold a recipe's byproducts apart (saved only when a spec has
+  them, so the save format stayed at 19); once 16 wait it stops with "Slag has nowhere to go". Slag
+  (block 65), steel ingot, plate and beam (items 279–281; the constructor presses plates and beams),
+  steel tools (items 282–284, `STEEL_TIER`: 1,500 uses, 6× speed, 5 ore a block). Steelmaking tech (9:
+  Assembly and Masonry, 50 × 15 s) unlocks all of it: the tools are gated here for now, and the blue
+  Steel Tools tech of TECH_ERAS takes them over in 6.7. Golden hash re-recorded for the tech. Tests
+  267 → 270; screenshots in the browser pane (furnace, hatches, items).
 - [ ] **6.7 Blue science and Mk3.** The blue pack (assembly only) and blue kit; `PACKS` gains blue (labs
   get a slot; saves read the old slot count). Tiers for every family so far up to Mk3 (TECH_ERAS
   section 1): belts 4 blocks/s, miners 85 %, electric smelter, processors ×3, labs (every fifth unit
@@ -565,3 +571,7 @@ and the balance numbers. Read the section you need.
   modules; tiers for both, Masonry (stone bricks, quicklime), save version 18. Tests 253 → 259.
 - **2026-09-28: Ctrl while playing:** Ctrl crouches too (like C) and browser Ctrl shortcuts are off while
   the pointer is locked; Ctrl+W can't be blocked, so closing the tab mid-game asks first (`main.ts`).
+- **2026-09-28: 6.5 Footprints and the assembler:** multi-block machines (`factory/footprint/`), the
+  assembler, motor and concrete, Assembly tech, save version 19. Tests 259 → 267.
+- **2026-09-28: 6.6 Steel:** the blast furnace with a byproduct port and buffer, slag, steel and steel tools,
+  Steelmaking tech. Tests 267 → 270.

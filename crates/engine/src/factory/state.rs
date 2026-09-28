@@ -83,7 +83,7 @@ fn write_list<T: Machine>(w: &mut ByteWriter, list: &[T]) {
     list.iter().for_each(|m| m.write_state(w));
 }
 
-/// Reads one kind's list; a position already taken is damage.
+/// Reads one kind's list; a cell already taken is damage.
 fn read_list<T: Machine>(
     r: &mut ByteReader,
     list: &mut Vec<T>,
@@ -103,7 +103,7 @@ fn read_with<T: Machine>(
 ) -> Option<()> {
     for _ in 0..r.count()? {
         let m = read(r)?;
-        if at.contains_key(&m.pos()) {
+        if m.cells().iter().any(|c| at.contains_key(c)) {
             return None;
         }
         add_to(list, m, at, slot);

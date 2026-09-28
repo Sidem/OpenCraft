@@ -120,7 +120,27 @@ pub const STRIPE_5: u16 = 118;
 /// Masonry (`textures/masonry.rs`): stone bricks, the quicklime item.
 pub const STONE_BRICKS: u16 = 119;
 pub const QUICKLIME: u16 = 120;
-pub const COUNT: usize = 121;
+/// Assembly (`textures/assembly.rs`): the assembler's housing, port hatches (in, out), concrete, the motor.
+pub const ASSEMBLER_SIDE: u16 = 121;
+pub const ASSEMBLER_TOP: u16 = 122;
+pub const PORT_IN: u16 = 123;
+pub const PORT_OUT: u16 = 124;
+pub const CONCRETE: u16 = 125;
+pub const MOTOR: u16 = 126;
+/// Steelmaking (`textures/steel.rs`): the blast furnace's housing, the byproduct hatch, slag, the steel
+/// ingot, plate and beam, the steel tools and the forged head material they wear.
+pub const BLAST_SIDE: u16 = 127;
+pub const BLAST_TOP: u16 = 128;
+pub const PORT_SIDE: u16 = 129;
+pub const SLAG: u16 = 130;
+pub const STEEL_INGOT: u16 = 131;
+pub const STEEL_PLATE: u16 = 132;
+pub const STEEL_BEAM: u16 = 133;
+pub const STEEL_PICKAXE: u16 = 134;
+pub const STEEL_AXE: u16 = 135;
+pub const STEEL_SHOVEL: u16 = 136;
+pub const STEEL_HEAD: u16 = 137;
+pub const COUNT: usize = 138;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

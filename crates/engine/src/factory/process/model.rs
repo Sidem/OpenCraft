@@ -1,11 +1,14 @@
-//! Processor models as data: a spec's `parts` are boxes in its cell (centre and size in block units,
-//! relative to the cell centre), each with a `Look`. The tier band, the status lamp, a fire that glows
-//! while working and a press that pumps are looks, so a new processor is rows, not drawing code.
+//! Processor models as data: a spec's `parts` are boxes (centre and size in block units, relative to
+//! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band,
+//! the status lamp, a fire that glows while working and a press that pumps are looks, so a new processor
+//! is rows, not drawing code. A multi-block machine's port hatches are drawn from its footprint.
 
 use crate::block::tex;
 use crate::math::Vec3;
 
+use super::super::footprint::Role;
 use super::super::render::push_box;
+use super::super::DIRS;
 use super::{Processor, Status};
 
 /// How a part is textured, and whether it moves.
@@ -36,13 +39,20 @@ pub const fn part(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
 
 /// Deepest press stroke, in blocks.
 const STROKE: f64 = 0.12;
+/// A port hatch: how far its centre sits from its cell's centre, and its size (across, up, thick).
+const HATCH_OUT: f64 = 0.45;
+const HATCH: [f32; 3] = [0.66, 0.5, 0.1];
 
-/// Draws `p`'s parts at `rel` (its cell centre relative to the camera).
+/// Draws `p`'s parts at `rel` (its anchor cell's centre relative to the camera).
 pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     let working = p.status == Status::Working;
     let stroke = if working { (time * 6.0).sin().abs() * STROKE } else { 0.0 };
+    let yaw = p.dir as f32 * std::f32::consts::FRAC_PI_2;
+    let (s, c) = (yaw.sin() as f64, yaw.cos() as f64);
+    let centre = rel + p.spec.footprint.centre(p.dir);
     for part in p.spec.parts {
-        let mut at = rel + Vec3::new(part.at[0] as f64, part.at[1] as f64, part.at[2] as f64);
+        let [x, y, z] = part.at.map(f64::from);
+        let mut at = centre + Vec3::new(c * x - s * z, y, s * x + c * z);
         let texture = match part.look {
             Look::Tex(t) => t,
             Look::Band(top) => [top, tex::stripe(p.tier), tex::FRAME],
@@ -53,7 +63,19 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 t
             }
         };
-        push_box(out, at, 0.0, part.size, 0.0, texture, false);
+        push_box(out, at, yaw, part.size, 0.0, texture, false);
+    }
+    if p.spec.footprint.is_single() {
+        return;
+    }
+    for (role, layer) in [(Role::In, tex::PORT_IN), (Role::Out, tex::PORT_OUT), (Role::Side, tex::PORT_SIDE)] {
+        for (cell, side) in p.spec.footprint.faces(p.pos, p.dir, role) {
+            let at =
+                rel + (cell - p.pos).as_vec3() + DIRS[side as usize].as_vec3() * HATCH_OUT - Vec3::new(0.0, 0.12, 0.0);
+            // Turned so its +z face (the hatch) looks out of `side`.
+            let yaw = ((side + 2) % 4) as f32 * std::f32::consts::FRAC_PI_2;
+            push_box(out, at, yaw, HATCH, 0.0, [tex::FRAME, layer, tex::FRAME], false);
+        }
     }
 }
 

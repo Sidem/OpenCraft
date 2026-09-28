@@ -49,10 +49,10 @@ the render distance in chunks (2 to 24, default 8).
 | Hold left mouse     | Mine the targeted block                   |
 | Right mouse (hold)  | Place the selected block                  |
 | Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
-| R                   | Turn the belt or splitter/filter you point at; while holding a quarry, turn its dig box |
+| R                   | Turn the belt or splitter/filter you point at; while holding a quarry or an assembler, turn it before placing |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
-| Right mouse on a smelter, constructor, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
+| Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
 | T                   | Research: choose what labs work on        |
 | H                   | Skip the tip on screen (the menu can show tips again) |
@@ -189,6 +189,17 @@ size.
   and copper wire (2 from a copper ingot). Right-click it to choose what it makes; changing the choice
   gives back the ingots it held. Belts bring the input and a belt leading away takes the parts. Parts build
   splitters and filters, and the machines still to come (better miners).
+- **The assembler** (Assembly research) is 2×2×2: the ghost shows where it goes (red where something is in
+  the way) and R turns it. Belts bring parts in at the cyan hatches on its back and sides, and a belt leading
+  away from the amber hatch at its front takes what it makes: motors (a rod, 2 gears, 4 wire), concrete (4
+  from quicklime, 2 sand and 2 stone), red and green packs and green kits. It holds a stack of each input at
+  most and draws 20 kW. Break any part of it to pick it up with what it held.
+- **The blast furnace** (Steelmaking research) is 2×2×3 and needs no power. Belts bring iron ore, coal and
+  quicklime in at the hatches on its back and left (2 ore, a coal and a quicklime make a steel ingot in 4 s);
+  steel leaves by the amber hatch at its front and slag by the violet hatch on its right. Slag has to be
+  taken away (or piled: 16 wait inside) or the furnace stops and says so. Constructors press steel ingots
+  into plates and beams; steel pickaxes, axes and shovels last 1,500 blocks, dig six times as fast as bare
+  hands and keep 5 ore per block by hand.
 - **Splitters and filters** sit in a belt line. A splitter shares items between the belts leading away in
   front, to the left and to the right, skipping any that are full. A filter sends the item you choose in
   its panel straight on and everything else to the sides.
@@ -207,7 +218,7 @@ size.
   the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
   2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Lifts (20 red),
   Green Science (30 red), and with red and green packs Underpasses (15), Mechanics (30: gears, green kits
-  and Mk2 miners, smelters and constructors) and Belt Mk2 (20). Fluid Handling (15 red, after Belt
+  and Mk2 miners, smelters and constructors), Belt Mk2 (20) Assembly (40: the assembler, motors, concrete) and Steelmaking (50, after Assembly and Masonry: the blast furnace, steel, steel tools). Fluid Handling (15 red, after Belt
   Routing) unlocks pumps, pipes and outlets; Masonry (15 red) stone bricks and quicklime. A lab draws 10 kW
   while it works.
 - **Pumps and pipes.** A pump lifts 2 blocks of still water a second out of the water it touches, the
@@ -237,7 +248,7 @@ research still locks. Hover a recipe for its description and materials; click it
 for up to five. Wood comes first (Materials): a log saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up, crouch to go down, let go to stay put; stack them up a cliff or down a shaft and walk off onto the ledge at the top. Belt lifts climb the same way, so building a tall lift stack is easy. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 8 planks and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
-wire and 2 belts. Two lifts cost 2 iron rods and 2
+wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and 4 iron rods. Two lifts cost 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 6 iron ore, 4
 copper ore and 12 stone; two power poles an iron ore, a copper ore and 2 sticks; a research lab 6 iron plates,
 8 copper wire and 4 belts; Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
@@ -351,10 +362,10 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
   23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
-  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder, 60 stone bricks; items: 256 iron ingot, 257 copper ingot,
+  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder, 60 stone bricks, 61 assembler, 62 machine part (a multi-block machine's other cells), 63 concrete, 64 blast furnace, 65 slag; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
   264–269 stone and iron tools, 270 scanner, 271 core drill, 272 stick, 273 gear, 274 green kit, 275 quicklime,
-  276 smelter Mk2, 277 constructor Mk2.
+  276 smelter Mk2, 277 constructor Mk2, 278 motor, 279–281 steel ingot, plate and beam, 282–284 steel tools.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).
@@ -391,7 +402,7 @@ Factory layer (the Satisfactory half):
 - [x] Item registry separate from blocks (ingots so far) and machine recipes
 - [x] Smelter: ore and fuel into ingots
 - [x] Constructor and parts (plates, rods, screws, wire), with a machine panel
-- [ ] Machines: assembler
+- [x] Machines: assembler (the first multi-block machine), blast furnace (steel and slag)
 - [x] Splitters and filters
 - [x] Belts that climb (ramps by placement, lifts) and cross (underpasses)
 - [x] Drag-to-build belt lines, R to rotate

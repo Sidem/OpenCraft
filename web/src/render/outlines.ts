@@ -1,7 +1,8 @@
 // Overlays drawn after the world: mining cracks (the player's own and the blocks quarries are digging),
 // the outlines of a belt line being dragged out (the engine's `line_cells`: a flat box under each cell,
-// cyan where a belt will go, the kit's tier colour where one will be upgraded, red past what the hand holds), and quarry boxes (amber: the one a held
-// quarry would dig, or the one whose panel is open), drawn through terrain so they show whole.
+// cyan where a belt will go, the kit's tier colour where one will be upgraded, red past what the hand holds), and placement boxes (amber: the one a held
+// quarry would dig or the one whose panel is open, a held multi-block machine's footprint with red cells in the
+// way), drawn through terrain so they show whole.
 // Uses the renderer's line program (shaders.ts `lineVert`, scaled by `u_scale`) with its box-edge VAO,
 // and its crack program with the cube VAO.
 
@@ -34,7 +35,8 @@ export function drawLineCells(
   return cells.length / 4;
 }
 
-/** Draws amber outlines of boxes given as lowest and highest cells (x0, y0, z0, x1, y1, z1 each). */
+/** Draws outlines of boxes given as lowest and highest cells and a colour (x0, y0, z0, x1, y1, z1, 0xRRGGBB
+ * each; 0 is amber). */
 export function drawBoxes(
   gl: WebGL2RenderingContext,
   line: LineProgram,
@@ -45,15 +47,16 @@ export function drawBoxes(
 ): number {
   if (boxes.length === 0) return 0;
   beginOverlay(gl, line, edges, viewProj);
-  gl.uniform4f(line.u.u_color, 1, 0.68, 0.18, 0.95);
-  for (let i = 0; i + 5 < boxes.length; i += 6) {
-    const [x0, y0, z0, x1, y1, z1] = boxes.subarray(i, i + 6);
+  for (let i = 0; i + 6 < boxes.length; i += 7) {
+    const [x0, y0, z0, x1, y1, z1, c] = boxes.subarray(i, i + 7);
+    if (c > 0) gl.uniform4f(line.u.u_color, (c >> 16) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255, 0.95);
+    else gl.uniform4f(line.u.u_color, 1, 0.68, 0.18, 0.95);
     gl.uniform3f(line.u.u_offset, x0 - eye[0], y0 - eye[1], z0 - eye[2]);
     gl.uniform3f(line.u.u_scale, x1 - x0 + 1, y1 - y0 + 1, z1 - z0 + 1);
     gl.drawArrays(gl.LINES, 0, 24);
   }
   endOverlay(gl);
-  return boxes.length / 6;
+  return boxes.length / 7;
 }
 
 /** Draws the mining crack on blocks given as x, y, z and progress in thousandths each. */

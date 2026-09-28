@@ -137,11 +137,12 @@ impl Game {
         self.sim.factory.quarry(IVec3::new(x, y, z)).map_or_else(String::new, |q| q.found_lines().join("\n"))
     }
 
-    /// The quarry's box as `[x0, y0, z0, x1, y1, z1]` (lowest and highest cells); empty if none there.
+    /// The quarry's box as `[x0, y0, z0, x1, y1, z1, 0]` (lowest and highest cells, amber: `placement_box`);
+    /// empty if none there.
     pub fn quarry_box(&self, x: i32, y: i32, z: i32) -> Vec<i32> {
         self.sim.factory.quarry(IVec3::new(x, y, z)).map_or_else(Vec::new, |q| {
             let (lo, hi) = q.dig_box().bounds();
-            vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z]
+            vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0]
         })
     }
 

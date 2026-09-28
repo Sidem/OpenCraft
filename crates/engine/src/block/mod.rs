@@ -86,7 +86,18 @@ pub const PLANKS: BlockId = 58;
 pub const LADDER: BlockId = 59;
 /// Fired from stone in a smelter (Masonry); a building block and later furnaces' lining.
 pub const STONE_BRICKS: BlockId = 60;
-pub const BLOCK_COUNT: usize = 61;
+/// The assembler's anchor cell (a 2×2×2 processor: `factory/process/specs.rs`).
+pub const ASSEMBLER: BlockId = 61;
+/// Every cell of a multi-block machine but its anchor (`factory/footprint/`): solid, drawn by the
+/// machine's model; breaking it breaks the machine.
+pub const MACHINE_PART: BlockId = 62;
+/// Cast in an assembler from quicklime, sand and stone; a building block.
+pub const CONCRETE: BlockId = 63;
+/// The blast furnace's anchor cell (a 2×2×3 processor: steel from ore, coal and quicklime).
+pub const BLAST_FURNACE: BlockId = 64;
+/// The blast furnace's byproduct; a building block and fill for sites.
+pub const SLAG: BlockId = 65;
+pub const BLOCK_COUNT: usize = 66;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -289,6 +300,11 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         ..cube("Ladder", 0.4, pillar(tex::LADDER, tex::LADDER_TOP, tex::LADDER_TOP), LADDER, sound::WOOD)
     },
     cube("Stone Bricks", 1.3, all(tex::STONE_BRICKS), STONE_BRICKS, sound::STONE),
+    machine("Assembler", true, 1.2, pillar(tex::ASSEMBLER_SIDE, tex::ASSEMBLER_TOP, tex::FRAME), ASSEMBLER),
+    BlockDef { drop: AIR, placeable: false, ..machine("Machine Part", true, 1.2, all(tex::FRAME), MACHINE_PART) },
+    cube("Concrete", 1.4, all(tex::CONCRETE), CONCRETE, sound::STONE),
+    machine("Blast Furnace", true, 1.4, pillar(tex::BLAST_SIDE, tex::BLAST_TOP, tex::FRAME), BLAST_FURNACE),
+    cube("Slag", 1.1, all(tex::SLAG), SLAG, sound::STONE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

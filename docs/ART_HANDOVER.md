@@ -236,6 +236,12 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   kits; stone bricks (block 60, `tex::STONE_BRICKS`, 119) and quicklime (item 275, `tex::QUICKLIME`, 120)
   in `textures/masonry.rs`. The Smelter and Constructor Mk2 items (276, 277) reuse their block faces; the
   hotbar adds the tier chip (`web/src/ui/hud.ts` `itemIcon`).
+- [ ] (6.5, landed) Assembly: the assembler (block 61, 2×2×2; its model is spec parts in
+  `factory/process/specs.rs` `ASSEMBLER_PARTS`, drawn by `process/model.rs`), its housing layers
+  (`tex::ASSEMBLER_SIDE`/`TOP`, 121–122), the port hatches every multi-block machine gets (`tex::PORT_IN`,
+  `PORT_OUT`, 123–124: in and out must read apart without colour too), concrete (block 63, `tex::CONCRETE`,
+  125) and the motor item (278, `tex::MOTOR`, 126), all placeholders in `textures/assembly.rs`.
+- [ ] (6.6, landed) Steel: the blast furnace (block 64, 2×2×3; model parts `BLAST_PARTS` in `factory/process/specs.rs`; `tex::BLAST_SIDE`/`TOP`, 127–128), its byproduct hatch (`tex::PORT_SIDE`, 129: three hatches now, told apart by chevron shape as well as colour), slag (block 65, `tex::SLAG`, 130), the steel ingot, plate and beam (items 279–281, 131–133; models in `item_models.rs`) and the steel tools (282–284, 134–136, plus the head material `tex::STEEL_HEAD`, 137), all in `textures/steel.rs`.
 
 ## 8. Log
 

@@ -13,12 +13,13 @@
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
 use crate::block::{
-    BlockId, BELT, CONSTRUCTOR, FILTER, LIFT, MINER, OUTLET, PIPE, PUMP, SMELTER, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, FILTER, LIFT, MINER, OUTLET, PIPE, PUMP, SMELTER, SPLITTER,
+    UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tiers;
-use crate::item::{ItemId, GREEN_KIT, GREEN_PACK, RED_PACK};
-use crate::recipes::{BRICK_RECIPE, GEAR_RECIPE, MACHINE_RECIPES, QUICKLIME_RECIPE};
+use crate::item::{ItemId, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
+use crate::recipes::{ASSEMBLY_RECIPES, BRICK_RECIPE, GEAR_RECIPE, MACHINE_RECIPES, QUICKLIME_RECIPE, STEEL_RECIPES};
 
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -140,6 +141,41 @@ pub const TECHS: &[Tech] = &[
         units: 15,
         seconds: 5.0,
         unlocks: &[Unlock::MachineRecipe(BRICK_RECIPE), Unlock::MachineRecipe(QUICKLIME_RECIPE)],
+    },
+    Tech {
+        name: "Assembly",
+        blurb: "The assembler, a 2×2×2 machine that puts parts together: motors, concrete, and packs and kits \
+                by the beltful.",
+        needs: &[4],
+        packs: &[RED_PACK, GREEN_PACK],
+        units: 40,
+        seconds: 10.0,
+        unlocks: &[
+            r(ASSEMBLER),
+            Unlock::MachineRecipe(ASSEMBLY_RECIPES[0]),
+            Unlock::MachineRecipe(ASSEMBLY_RECIPES[1]),
+            Unlock::MachineRecipe(ASSEMBLY_RECIPES[2]),
+            Unlock::MachineRecipe(ASSEMBLY_RECIPES[3]),
+            Unlock::MachineRecipe(ASSEMBLY_RECIPES[4]),
+        ],
+    },
+    Tech {
+        name: "Steelmaking",
+        blurb: "The blast furnace, a 2×2×3 furnace: iron ore, coal and quicklime in, steel out the front and slag \
+                out the side. Constructors press steel into plates and beams; steel tools last and dig better.",
+        needs: &[7, 8],
+        packs: &[RED_PACK, GREEN_PACK],
+        units: 50,
+        seconds: 15.0,
+        unlocks: &[
+            r(BLAST_FURNACE),
+            Unlock::MachineRecipe(STEEL_RECIPES[0]),
+            Unlock::MachineRecipe(STEEL_RECIPES[1]),
+            Unlock::MachineRecipe(STEEL_RECIPES[2]),
+            Unlock::Recipe(STEEL_PICKAXE),
+            Unlock::Recipe(STEEL_AXE),
+            Unlock::Recipe(STEEL_SHOVEL),
+        ],
     },
 ];
 
