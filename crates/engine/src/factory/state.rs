@@ -5,6 +5,7 @@
 
 use rustc_hash::FxHashMap;
 
+use super::process::{read_constructor, read_smelter};
 use super::{add_to, Factory, Machine, Sites, Slot};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
@@ -18,8 +19,7 @@ impl Factory {
         write_list(w, &self.belts);
         write_list(w, &self.miners);
         write_list(w, &self.storages);
-        write_list(w, &self.smelters);
-        write_list(w, &self.constructors);
+        write_list(w, &self.processors);
         write_list(w, &self.routers);
         write_list(w, &self.generators);
         write_list(w, &self.poles);
@@ -34,17 +34,22 @@ impl Factory {
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
     /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power,
-    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites.
+    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites;
+    /// before 18 smelters and constructors had lists of their own (`process/legacy.rs`).
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
         read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
         read_list(r, &mut f.miners, &mut f.at, Slot::Miner)?;
         read_list(r, &mut f.storages, &mut f.at, Slot::Storage)?;
-        if r.version >= 3 {
-            read_list(r, &mut f.smelters, &mut f.at, Slot::Smelter)?;
-        }
-        if r.version >= 4 {
-            read_list(r, &mut f.constructors, &mut f.at, Slot::Constructor)?;
+        if r.version >= 18 {
+            read_list(r, &mut f.processors, &mut f.at, Slot::Process)?;
+        } else {
+            if r.version >= 3 {
+                read_with(r, &mut f.processors, &mut f.at, Slot::Process, read_smelter)?;
+            }
+            if r.version >= 4 {
+                read_with(r, &mut f.processors, &mut f.at, Slot::Process, read_constructor)?;
+            }
         }
         if r.version >= 5 {
             read_list(r, &mut f.routers, &mut f.at, Slot::Router)?;
@@ -85,8 +90,19 @@ fn read_list<T: Machine>(
     at: &mut FxHashMap<IVec3, Slot>,
     slot: fn(u32) -> Slot,
 ) -> Option<()> {
+    read_with(r, list, at, slot, T::read_state)
+}
+
+/// Reads a list written in an older layout with `read`.
+fn read_with<T: Machine>(
+    r: &mut ByteReader,
+    list: &mut Vec<T>,
+    at: &mut FxHashMap<IVec3, Slot>,
+    slot: fn(u32) -> Slot,
+    read: fn(&mut ByteReader) -> Option<T>,
+) -> Option<()> {
     for _ in 0..r.count()? {
-        let m = T::read_state(r)?;
+        let m = read(r)?;
         if at.contains_key(&m.pos()) {
             return None;
         }

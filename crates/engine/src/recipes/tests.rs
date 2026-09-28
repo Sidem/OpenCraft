@@ -5,6 +5,7 @@
 use super::*;
 use crate::block::{self, BLOCK_COUNT};
 use crate::factory::tiers::{Family, FAMILIES};
+use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
@@ -24,8 +25,8 @@ const WORLD_BLOCKS: &[BlockId] = &[
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
-/// Known exception: limestone waits for quicklime (step 6.4).
-const NO_USE_YET: &[ItemId] = &[ItemId::block(LIMESTONE)];
+/// Known exception: quicklime waits for concrete and steel (steps 6.5 and 6.6).
+const NO_USE_YET: &[ItemId] = &[item::QUICKLIME];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {
@@ -57,30 +58,28 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
     errors
 }
 
-fn lint_categories(machines: &[(BlockId, &[Category])]) -> Vec<String> {
+fn lint_categories(specs: &[ProcessSpec]) -> Vec<String> {
     let mut errors: Vec<String> = CATEGORIES
         .iter()
-        .filter(|&&c| !machines.iter().any(|m| m.1.contains(&c)))
+        .filter(|&&c| !specs.iter().any(|s| s.categories.contains(&c)))
         .map(|c| format!("{c:?} has no machine"))
         .collect();
-    for &(m, _) in machines.iter().filter(|m| crate::factory::machine(m.0).is_none()) {
-        errors.push(format!("{} takes recipes but is no machine", block::def(m).name));
+    let processor = |b: BlockId| crate::factory::machine(b).is_some_and(|m| m.kind == Kind::Process);
+    for s in specs.iter().filter(|s| !processor(s.block)) {
+        errors.push(format!("{} takes recipes but is no processor", block::def(s.block).name));
     }
     errors
 }
 
-/// A recipe's outputs fit the output buffer of every machine that makes it.
-fn lint_outputs(machine: &[MachineRecipe]) -> Vec<String> {
+/// A recipe's inputs and outputs fit the buffers of every machine that makes it.
+fn lint_outputs(machine: &[MachineRecipe], specs: &[ProcessSpec]) -> Vec<String> {
     let mut errors = Vec::new();
     for (i, r) in machine.iter().enumerate() {
-        for &(m, _) in MACHINE_CATEGORIES.iter().filter(|m| m.1.contains(&r.category)) {
-            let slots = crate::factory::machine(m).map_or(0, |d| d.slots);
-            if r.outputs.is_empty() || r.outputs.len() > slots {
-                errors.push(format!(
-                    "machine recipe {i} has {} outputs; {} holds {slots}",
-                    r.outputs.len(),
-                    block::def(m).name
-                ));
+        for s in specs.iter().filter(|s| s.categories.contains(&r.category)) {
+            let [ins, _, outs] = s.buffers;
+            if r.outputs.is_empty() || r.outputs.len() > outs || r.inputs.len() > ins {
+                let name = block::def(s.block).name;
+                errors.push(format!("machine recipe {i} has {} outputs; {name} holds {outs}", r.outputs.len()));
             }
         }
     }
@@ -113,8 +112,8 @@ fn lint_tiers(families: &[Family], hand: &[Recipe]) -> Vec<String> {
 #[test]
 fn todays_content_passes_the_lint() {
     let mut errors = lint_items(RECIPES, MACHINE_RECIPES);
-    errors.extend(lint_categories(MACHINE_CATEGORIES));
-    errors.extend(lint_outputs(MACHINE_RECIPES));
+    errors.extend(lint_categories(SPECS));
+    errors.extend(lint_outputs(MACHINE_RECIPES, SPECS));
     errors.extend(lint_tiers(FAMILIES, RECIPES));
     assert!(errors.is_empty(), "{errors:#?}");
 }
@@ -128,9 +127,10 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     let no_screws: Vec<Recipe> =
         RECIPES.iter().filter(|r| !r.inputs.iter().any(|i| i.0 == item::SCREW)).map(copy).collect();
     assert!(has(lint_items(&no_screws, MACHINE_RECIPES), "Screws has no use"));
-    // A category no machine takes, and a machine row for a block that isn't one.
-    assert!(has(lint_categories(&[(SMELTER, &[Smelting])]), "Pressing has no machine"));
-    assert!(has(lint_categories(&[(STONE, &CATEGORIES)]), "Stone takes recipes but is no machine"));
+    // A category no machine takes, and a spec for a block that isn't a processor.
+    assert!(has(lint_categories(&SPECS[..1]), "Pressing has no machine"));
+    const STONY: [ProcessSpec; 1] = [ProcessSpec { block: STONE, ..SPECS[0] }];
+    assert!(has(lint_categories(&STONY), "Stone takes recipes but is no processor"));
     // More outputs than the smelter holds.
     const TWO: [MachineRecipe; 1] = [MachineRecipe {
         category: Smelting,
@@ -138,7 +138,7 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
         outputs: &[(item::IRON_INGOT, 1), (b(GLASS), 1)],
         seconds: 1.0,
     }];
-    assert!(has(lint_outputs(&TWO), "machine recipe 0 has 2 outputs; Smelter holds 1"));
+    assert!(has(lint_outputs(&TWO, SPECS), "machine recipe 0 has 2 outputs; Smelter holds 1"));
     // A tier nobody can make.
     const FAMILY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(BEDROCK)], kits: 1 }];
     assert!(has(lint_tiers(&FAMILY, RECIPES), "tier item 10 has no recipe"));

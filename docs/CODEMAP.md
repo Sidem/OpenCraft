@@ -66,8 +66,8 @@ folder with `mod.rs`.
 | `worldgen/strata.rs` | Versions 3 and 4 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ore_band`), the starter set near spawn (`starter_outcrops`, `starter_reach`) |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
-| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `count(kind)`, the world's `research`, `place` / add / remove, `update` (one tick: miners, quarries, boxes, smelters, power balance, powered machines and labs, belts; emits `SimEvent`s) |
-| `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds), the sites, then the deposits and the research |
+| `factory/mod.rs` | Machine table (`Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements, `Factory`: a `Vec` per kind, position index `at`, `count(kind)`, the world's `research`, `place` / add / remove, `processors_of(block)`, `update` (one tick: power balance, miners, quarries, boxes, processors (with the machine recipes research allows), powered machines and labs, belts; emits `SimEvent`s) |
+| `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds; before 18 smelters and constructors were two lists, read by `process/legacy.rs`), the sites, then the deposits and the research |
 | `factory/lab.rs` | Research lab: one buffer slot per science pack, `step_labs` (units for the current tech, never more than it has left, at its grid's speed); bytes, readout, panel, model |
 | `factory/power.rs` | Power: `Pole` (a machine), `Power` (derived in `relink`: pole grids by wire range, the pole each generator and machine hangs on; `balance` each tick: demand, generators give stored energy in order until supply meets it, lighting fuel as needed, speed per grid), wire drawing; power constants |
 | `factory/generator.rs` | Coal generator: fuel buffer and stored energy (kW·ticks, lit from `recipes::fuel_energy`), gives only what its grid draws; bytes, readout, panel, model |
@@ -75,14 +75,15 @@ folder with `mod.rs`.
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
 | `factory/belt.rs` | Belt items, spacing, `accept`, `belt_step` (each belt at its own `speed`, from `BELT_TIERS`); its bytes, readout and model; belt constants |
 | `factory/miner.rs` | Miners (one kind, powered; `tier` indexes `MINER_TIERS`: rate, recovery, power, look): `step` (draw, push out, `MinerWorking` events); its bytes, readout and model; miner constants |
-| `factory/tiers.rs` | Tiered families (belts, miners): `FAMILIES` (the block and each tier's item), `placed_by` (item → block and tier), `item_of` (what a tier drops), `family` (kits per step) |
+| `factory/tiers.rs` | Tiered families (belts, miners, smelters, constructors): `FAMILIES` (the block and each tier's item), `placed_by` (item → block and tier), `item_of` (what a tier drops), `family` (kits per step) |
 | `factory/storage.rs` | Storage box: `step` (feeds belts leading away); its bytes and readout |
 | `factory/router.rs` | Splitter and filter (one `Router` kind): holds one item, passes it front/left/right (round robin; a filter sends its item front, others aside); bytes, readout, filter panel, model |
-| `factory/smelter.rs` | Smelter: sorts arriving ore and fuel, batches from `MACHINE_RECIPES`, burns `FUELS`, feeds belts leading away; bytes, readout, panel, model with status lamp |
-| `factory/constructor.rs` | Constructor: one input into parts with the recipe chosen in its panel; `set_recipe` hands inputs back; bytes, readout, panel, model |
+| `factory/process/mod.rs` | `Processor`: every inputs-to-outputs machine (smelter, constructor) in one struct driven by its spec: `room_for` / `accept` / `insert` (fuel to the fuel buffer, only what an unlocked recipe uses), `set_recipe`, `step` (batches in thousandths of a Mk1 tick at tier speed × power share; burners light fuel while a batch runs), `wants_power`, `Status`, bytes (block, tier, recipe, batch, buffers) |
+| `factory/process/specs.rs` | `ProcessSpec` rows (`SPECS`): block, recipe categories, `Energy` (burner or electric), `Pick` (chosen in the panel or by what it holds), buffer sizes, `ProcessTier` per tier (speed, fuel, kW), status words, map colour, model parts; `spec(block)`, `makes(block, category)`, `recipe`, `recipe_using` |
+| `factory/process/` others | `model.rs`: models as data (`Part` boxes with a `Look`: textures, tier band, fire, status lamp, press stroke); `view.rs`: status line, readout, panel; `legacy.rs`: smelters and constructors from saves before version 18, as Mk1 processors |
 | `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role, filter item), `box_slots`, `set_recipe`, `set_filter`, `insert`, `wants`, `take_contents` |
 | `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs for every shape, corners, lift stacks, machine outputs, downstream-first belt order (derived data) |
-| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models; `map_machines` (positions for the minimap's marks) |
+| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models; `map_machines` (block and position for the minimap's marks) |
 | `factory/pipes.rs` | Pipework (one kind, `Kind::Pipe`: `Part` pump, pipe, outlet): networks and arms (`link_pipework`, from `relink`), bytes, readouts, models |
 | `factory/pumping.rs` | Moving water each tick (`step_pipework`): pumps lift the highest, farthest source in reach; outlets pour where the water lands; block edits go to `Factory.changed` for the water rules |
 | `factory/quarry.rs` | Quarry (`Kind::Quarry`): digs its box one block at a time (`step`: `seek` past air and non-ground, noting ore in `found`; waits when flooded, full, unpowered or paused), output buffer fed like a miner's, `set` (panel choices), bytes, readout, panel, `quarry_cracks` |
@@ -97,7 +98,7 @@ folder with `mod.rs`.
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
 | `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
 | `recipes/mod.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`) |
-| `recipes/machine.rs` | Machine recipes (`MACHINE_RECIPES`: a `Category`, inputs, outputs main first; saved by index: append only), `MACHINE_CATEGORIES` (which machine takes which), `FUELS` (smelter seconds and generator kJ) |
+| `recipes/machine.rs` | Machine recipes (`MACHINE_RECIPES`: a `Category`, inputs, outputs main first; saved by index: append only; the rows research locks: `GEAR_RECIPE`, `BRICK_RECIPE`, `QUICKLIME_RECIPE`), `FUELS` (smelter seconds and generator kJ). Which machine takes which category: its spec (`factory/process/specs.rs`) |
 | `recipes/tests.rs` | Content lint: every item has a source and a use, categories have machines, outputs fit, tiers can be made |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders and belt lifts, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
@@ -117,7 +118,7 @@ folder with `mod.rs`.
 | `textures/plants.rs` | Crossed-quad pictures: the Alpine sapling and the torch |
 | `textures/stripes.rs` | Tier stripes (`tex::stripe`): a band of the tier colour on metal with a pip per Mk |
 | `textures/wood.rs` | Processed wood: planks, the ladder's sides and top, the stick |
-| `textures/geology.rs` | Granite, sandstone and basalt grains, and cutout glass |
+| `textures/geology.rs`, `masonry.rs` | Granite, sandstone and basalt grains, cutout glass; stone bricks (block 60) and quicklime |
 | `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts) |
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
@@ -154,7 +155,7 @@ folder with `mod.rs`.
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
 | `ui/inventory.ts` + `.css` | Inventory screen (E) with the build menu; opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
 | `ui/crafting.ts` + `.css` | Build menu: recipe tiles grouped by `recipe_group`, text search (output and material names), state filters (all, can craft, missing, locked), one hover info card; click crafts, Shift-click 5 |
-| `ui/machine.ts` + `.css` | Machine panel (right-click a smelter, constructor, filter, generator, lab or quarry): status, progress, buffers, recipe choice, filter item, put-in and take buttons; `quarryBox` for the open quarry's outline |
+| `ui/machine.ts` + `.css` | Machine panel (right-click a processor such as a smelter or constructor, a filter, generator, lab or quarry): status, progress, buffers, recipe choice, filter item, put-in and take buttons; `quarryBox` for the open quarry's outline |
 | `ui/quarry.ts` | The quarry's part of the machine panel: size and depth choices, pause, layer and blocks dug and left, deposits uncovered |
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow` |
@@ -216,22 +217,22 @@ row in `recipes/machine.rs` with its category (lock: `Unlock::MachineRecipe(inde
 prerequisites by index, packs per unit, units, seconds, what it unlocks. The research screen and the build
 menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` (labs get a slot for it).
 
-**A machine.**
+**A processor** (anything that turns inputs into outputs: assembler, furnace, crusher): a `ProcessSpec` row
+in `factory/process/specs.rs` (categories, energy, pick, buffers, tiers, model parts), a `MACHINES` row of
+`Kind::Process` for its block, the block (`machine(...)` in `block/mod.rs`), a hand recipe, and its family
+in `factory/tiers.rs` if it has tiers. No new code unless it needs new behaviour (then in `process/`).
 
-1. Its file `factory/<machine>.rs`: the struct (holding a `Buffer` if it holds items), `new`, `step`,
-   `impl Machine` (bytes, contents, readout, model) and its tuning constants.
-2. `factory/mod.rs`: a `Kind` and a `Slot` variant, a `MACHINES` row (block, kind, slots), a `Vec` field.
-   Then follow the compiler through the `match`es on `Kind` and `Slot` (`place`, `remove`,
-   `take_contents`, `describe`) and add its list to `write_state` / `read_state` (`state.rs`), `update`,
-   `write_instances`, and its outputs to `links.rs`. If it uses power: a demand in `Power::balance`
-   and its pole in `Power::rebuild` (`power.rs`), and a `speed` argument to its `step`. If belts and miners deliver into it, an arm in
-   `Slot::is_sink` and a field in `Sinks` (`links.rs`); what it makes is `MACHINE_RECIPES` rows of a category it takes (`MACHINE_CATEGORIES`). A panel:
-   `panel: true` in its row, a `panel()` method and its arms in `panel.rs`; the host panel needs nothing.
-3. Its block in `block.rs` (`machine(...)` if drawn as a model, `cube(...)` if meshed); a hand recipe
-   in `recipes/mod.rs`. Tests in `factory/tests.rs` (see `run` and `stocked_box`; test-only accessors such as `stock` live
-   there too). A second block with the same behaviour (splitter/filter) is an extra `MACHINES` row after
-   the Kind-ordered ones, not a new kind.
-
+**A machine** with behaviour of its own. (1) `factory/<machine>.rs`: the struct (a `Buffer` if it holds
+items), `new`, `step`, `impl Machine` (bytes, contents, readout, model), its tuning constants. (2)
+`factory/mod.rs`: a `Kind` and a `Slot` variant, a `MACHINES` row (block, kind, slots), a `Vec` field; then
+follow the compiler through the `match`es on `Kind` and `Slot` (`place`, `remove`, `take_contents`,
+`describe`), and add its list to `write_state` / `read_state` (`state.rs`), `update`, `write_instances`, and
+its outputs to `links.rs`. Power: a demand in `Power::balance`, its pole in `Power::rebuild`, a `speed`
+argument to `step`. Fed by belts: an arm in `Slot::is_sink` and a field in `Sinks`. A panel: `panel: true`
+in its row, a `panel()` method and its arms in `panel.rs` (the host needs nothing). (3) Its block
+(`machine(...)` for a model, `cube(...)` if meshed) and a hand recipe. Tests in `factory/tests.rs` (`run`,
+`stocked_box`; test-only accessors live there). A second block with the same behaviour (splitter/filter) is
+an extra `MACHINES` row after the Kind-ordered ones, not a new kind.
 **A wasm API method.** Put it in the `api/*.rs` file for its area and keep it a thin forwarder; logic goes
 in a module. Run `npm run build:wasm`, then call it from TS (types come from `web/src/wasm/engine.d.ts`).
 Never mirror an engine constant in TS; expose a getter as `api/content.rs` does.
@@ -272,11 +273,11 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `avatars.rs` | Avatar sizes, `LABEL_RANGE`, `GLIDE_RATE`; `world/streaming.rs`: `OTHERS_RADIUS` |
 | `authority.rs` | `PHYSICS_SUBSTEPS` (per tick), `FALL_LIMIT`, `MAX_PLAYERS` |
 | `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR`; `Tier::grade`, `Tier::draw_cap` |
-| `factory/mod.rs` | `MACHINES` (buffer slots per machine) |
+| `factory/mod.rs` | `MACHINES` (buffer slots per machine); processors: `tiers` (speed, fuel per work, kW) and `buffers` in `factory/process/specs.rs` |
 | `factory/miner.rs` | `MINER_TIERS` (rate, recovery, power per tier) |
 | `recipes/machine.rs` | `MACHINE_RECIPES` (seconds per batch), `FUELS` (smelter seconds, generator kJ) |
 | `factory/belt.rs` | `BELT_TIERS` (speed per tier), `ITEM_SPACING` |
-| `factory/power.rs` | `GENERATOR_POWER`, `CONSTRUCTOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
+| `factory/power.rs` | `GENERATOR_POWER`, `ROUTER_POWER`, `LAB_POWER`, `PUMP_POWER`, `QUARRY_POWER`, `WIRE_RANGE`, `POLE_REACH` |
 | `factory/pumping.rs` | `PUMP_RATE`, `PUMP_HOLD`, `OUTLET_RATE`, `PUMP_RANGE` |
 | `factory/sites.rs` | `MAX_SITE` (columns on a side), `MAX_SITES` (per world) |
 | `factory/quarry.rs` | `DIG_SECONDS`, `SCAN_PER_TICK`; `quarry/dig_box.rs`: `WIDTHS`, `DEPTHS`, defaults, `QUARRIABLE` |

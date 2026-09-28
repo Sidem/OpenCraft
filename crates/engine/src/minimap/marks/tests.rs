@@ -126,5 +126,5 @@ fn machines_are_marked_but_belts_are_not() {
     }
     assert!(g.minimap_marks().is_empty(), "nothing before the first redraw");
     g.minimap_redraw();
-    assert_eq!(marks_of(&g, MARK_MACHINE), vec![(10, -20, machine_color(Kind::Smelter))]);
+    assert_eq!(marks_of(&g, MARK_MACHINE), vec![(10, -20, machine_color(SMELTER))]);
 }

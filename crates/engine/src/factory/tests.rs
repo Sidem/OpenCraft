@@ -19,17 +19,18 @@ impl Factory {
         self.storages[*i as usize].buf.add(item, n);
     }
 
-    pub(crate) fn smelter_at(&self, pos: IVec3) -> &Smelter {
-        match self.at.get(&pos) {
-            Some(Slot::Smelter(i)) => &self.smelters[*i as usize],
-            _ => panic!("no smelter at {pos:?}"),
-        }
+    pub(crate) fn smelter_at(&self, pos: IVec3) -> &Processor {
+        self.processor_at(pos, crate::block::SMELTER)
     }
 
-    pub(crate) fn constructor_at(&self, pos: IVec3) -> &Constructor {
+    pub(crate) fn constructor_at(&self, pos: IVec3) -> &Processor {
+        self.processor_at(pos, crate::block::CONSTRUCTOR)
+    }
+
+    pub(crate) fn processor_at(&self, pos: IVec3, block: BlockId) -> &Processor {
         match self.at.get(&pos) {
-            Some(Slot::Constructor(i)) => &self.constructors[*i as usize],
-            _ => panic!("no constructor at {pos:?}"),
+            Some(Slot::Process(i)) if self.processors[*i as usize].spec.block == block => &self.processors[*i as usize],
+            _ => panic!("no block {block} processor at {pos:?}"),
         }
     }
 
@@ -51,7 +52,7 @@ impl Factory {
 const EAST: u8 = 1;
 const SOUTH: u8 = 2;
 
-fn run(f: &mut Factory, seconds: f64, mut check: impl FnMut(&Factory)) {
+pub(super) fn run(f: &mut Factory, seconds: f64, mut check: impl FnMut(&Factory)) {
     let mut world = World::new(1, 2);
     let mut events = Vec::new();
     let ticks = (seconds * crate::TICK_RATE as f64) as u64;
@@ -213,9 +214,9 @@ fn smelter(f: &mut Factory, pos: IVec3) {
     f.place(&mut World::new(1, 2), crate::block::SMELTER, pos, 0, pos - IVec3::new(0, 1, 0), 0);
 }
 
-fn smelter_mut(f: &mut Factory, pos: IVec3) -> &mut smelter::Smelter {
-    let Some(Slot::Smelter(i)) = f.at.get(&pos) else { unreachable!() };
-    &mut f.smelters[*i as usize]
+fn smelter_mut(f: &mut Factory, pos: IVec3) -> &mut Processor {
+    let Some(Slot::Process(i)) = f.at.get(&pos) else { unreachable!() };
+    &mut f.processors[*i as usize]
 }
 
 #[test]
@@ -224,12 +225,12 @@ fn smelter_sorts_what_arrives() {
     let mut f = Factory::default();
     smelter(&mut f, IVec3::ZERO);
     let s = smelter_mut(&mut f, IVec3::ZERO);
-    assert!(s.accept(COAL_ORE.into()) && s.accept(COAL_ORE.into()) && s.accept(IRON_ORE.into()));
-    assert!(!s.can_accept(STONE.into()) && !s.accept(STONE.into()));
-    assert!(!s.can_accept(crate::item::IRON_INGOT), "ingots are not ore");
+    assert!(s.accept_fresh(COAL_ORE.into()) && s.accept_fresh(COAL_ORE.into()) && s.accept_fresh(IRON_ORE.into()));
+    assert!(!s.can_accept_fresh(STONE.into()) && !s.accept_fresh(STONE.into()));
+    assert!(!s.can_accept_fresh(crate::item::IRON_INGOT), "ingots are not ore");
     assert_eq!((s.input.total(), s.fuel.total()), (1, 2));
     // One slot each: a log waits until the coal has burned.
-    assert!(!s.can_accept(LOG.into()));
+    assert!(!s.can_accept_fresh(LOG.into()));
 }
 
 #[test]
@@ -238,12 +239,12 @@ fn one_coal_smelts_five_and_a_third_ingots() {
     smelter(&mut f, IVec3::ZERO);
     let s = smelter_mut(&mut f, IVec3::ZERO);
     s.input.add(IRON_ORE.into(), 10);
-    s.accept(crate::block::COAL_ORE.into());
+    s.accept_fresh(crate::block::COAL_ORE.into());
     run(&mut f, 20.0, |_| {});
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!(s.out.count(crate::item::IRON_INGOT), 5);
-    assert_eq!(s.status, SmelterStatus::NoFuel);
-    assert_eq!((s.input.total(), s.batch.is_some(), s.progress), (4, true, 30), "a third of the sixth batch");
+    assert_eq!(s.status, ProcessStatus::NoFuel);
+    assert_eq!((s.input.total(), s.batch.is_some(), s.progress), (4, true, 30_000), "a third of the sixth batch");
     // Taking it apart gives back the half-smelted ore.
     let back = f.remove(IVec3::ZERO);
     let ore: u32 = back.iter().filter(|s| s.item == IRON_ORE.into()).map(|s| s.count).sum();
@@ -256,9 +257,9 @@ fn the_smelter_makes_glass_from_quartz_or_sand() {
     let mut f = Factory::default();
     smelter(&mut f, IVec3::ZERO);
     let s = smelter_mut(&mut f, IVec3::ZERO);
-    assert!(s.accept(QUARTZ_ORE.into()));
+    assert!(s.accept_fresh(QUARTZ_ORE.into()));
     s.input.add(QUARTZ_ORE.into(), 3);
-    s.accept(COAL_ORE.into());
+    s.accept_fresh(COAL_ORE.into());
     run(&mut f, 6.0, |_| {});
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!((s.out.count(GLASS.into()), s.input.total()), (6, 1), "one quartz makes two glass");
@@ -266,9 +267,9 @@ fn the_smelter_makes_glass_from_quartz_or_sand() {
     let mut f = Factory::default();
     smelter(&mut f, IVec3::ZERO);
     let s = smelter_mut(&mut f, IVec3::ZERO);
-    assert!(s.accept(SAND.into()));
+    assert!(s.accept_fresh(SAND.into()));
     s.input.add(SAND.into(), 3);
-    s.accept(COAL_ORE.into());
+    s.accept_fresh(COAL_ORE.into());
     run(&mut f, 6.0, |_| {});
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!((s.out.count(GLASS.into()), s.input.total()), (3, 1), "one sand makes one glass");
@@ -281,10 +282,10 @@ fn smelter_waits_while_its_output_is_full() {
     let s = smelter_mut(&mut f, IVec3::ZERO);
     s.out.add(crate::item::IRON_INGOT, crate::item::MAX_STACK);
     s.input.add(IRON_ORE.into(), 3);
-    s.accept(crate::block::COAL_ORE.into());
+    s.accept_fresh(crate::block::COAL_ORE.into());
     run(&mut f, 2.0, |_| {});
     let s = f.smelter_at(IVec3::ZERO);
-    assert_eq!((s.status, s.input.total(), s.fuel.total()), (SmelterStatus::OutputFull, 3, 1), "nothing used");
+    assert_eq!((s.status, s.input.total(), s.fuel.total()), (ProcessStatus::OutputFull, 3, 1), "nothing used");
     let mut taken = 0;
     assert!(f.take_contents(IVec3::ZERO, |_, n| {
         taken += n;
@@ -308,17 +309,17 @@ fn ore_and_coal_lines_feed_a_smelter_that_fills_a_box() {
     f.add_storage(IVec3::new(5, 0, 0));
     run(&mut f, 25.0, spacing_ok);
     assert_eq!(f.storage_count_at(IVec3::new(5, 0, 0), crate::item::IRON_INGOT), 10);
-    assert_eq!(f.smelter_at(IVec3::new(3, 0, 0)).status, SmelterStatus::NoOre);
+    assert_eq!(f.smelter_at(IVec3::new(3, 0, 0)).status, ProcessStatus::NoInput);
 }
 
 /// The index of the machine recipe that makes `item`.
-fn recipe_for(item: ItemId) -> u16 {
+pub(super) fn recipe_for(item: ItemId) -> u16 {
     crate::recipes::MACHINE_RECIPES.iter().position(|r| r.main().0 == item).unwrap() as u16
 }
 
 /// Power for machines near the origin: a pole at (2, 3, 0) and a generator beside it with a stack of
 /// coal (once per factory).
-fn powered(f: &mut Factory) {
+pub(super) fn powered(f: &mut Factory) {
     let (pole, gen) = (IVec3::new(2, 3, 0), IVec3::new(3, 3, 0));
     if !f.at.contains_key(&pole) {
         f.place(&mut World::new(1, 2), crate::block::POLE, pole, 0, pole, 0);
@@ -346,7 +347,7 @@ fn ingots_through_a_constructor_become_plates_in_a_box() {
     run(&mut f, 14.0, spacing_ok);
     assert_eq!(f.storage_count_at(IVec3::new(4, 0, 0), IRON_PLATE), 5);
     let c = f.constructor_at(IVec3::new(2, 0, 0));
-    assert_eq!((c.input.total(), c.status), (1, ConstructorStatus::NoInput), "the odd ingot waits");
+    assert_eq!((c.input.total(), c.status), (1, ProcessStatus::NoInput), "the odd ingot waits");
 }
 
 #[test]
@@ -369,7 +370,7 @@ fn a_constructor_takes_only_its_recipe_input() {
     let ingots: u32 = back.iter().filter(|s| s.item == IRON_INGOT).map(|s| s.count).sum();
     assert_eq!(ingots, 63);
     let c = f.constructor_at(p);
-    assert_eq!((c.out.count(IRON_ROD), c.input.total(), c.busy), (1, 0, false));
+    assert_eq!((c.out.count(IRON_ROD), c.input.total(), c.batch), (1, 0, None));
 }
 
 #[test]
@@ -413,7 +414,8 @@ fn constructors_survive_a_save_round_trip() {
     g.write_state(&mut again);
     assert!(again.bytes == w.bytes);
     let c = g.constructor_at(IVec3::new(2, 0, 0));
-    assert_eq!((c.recipe, c.busy, c.out.count(IRON_PLATE)), (Some(recipe_for(IRON_PLATE)), true, 1));
+    let plates = Some(recipe_for(IRON_PLATE));
+    assert_eq!((c.recipe, c.batch, c.out.count(IRON_PLATE)), (plates, plates, 1));
     run(&mut g, 10.0, |_| {});
     assert_eq!(g.constructor_at(IVec3::new(2, 0, 0)).out.count(IRON_PLATE), 4);
 }
@@ -598,7 +600,7 @@ fn poles_in_range_form_one_grid_and_machines_hang_on_the_nearest() {
     let p = &f.power;
     assert_eq!(p.pole_grid, [0, 0, 0, 1], "10 blocks apart link; 11 don't");
     assert_eq!(p.wires, [(0, 1), (1, 2)]);
-    assert_eq!(p.constructor_pole, [Some(3), None], "nearest pole within reach, or none");
+    assert_eq!(p.process_pole, [Some(3), None], "nearest pole within reach, or none");
     // Removing the middle pole splits the grid.
     f.remove(IVec3::new(10, 0, 0));
     run(&mut f, 0.1, |_| {});
@@ -619,7 +621,7 @@ fn a_brownout_slows_every_machine_on_the_grid() {
             rod_maker(&mut f, IVec3::new(x - 3, 0, 0), 20);
         }
         run(&mut f, seconds, |_| {});
-        let speed = f.power.speed(f.power.constructor_pole[0]);
+        let speed = f.power.speed(f.power.process_pole[0]);
         (f.constructor_at(IVec3::new(-3, 0, 0)).out.count(IRON_ROD), speed, f.power.demand[0])
     };
     // One generator (60 kW) runs four constructors (15 kW each) at full speed: a rod per 2 s.
@@ -653,7 +655,7 @@ fn generators_burn_only_what_their_grid_needs() {
     // 30 rods take 60 s at 15 kW: 900 kJ, so of the fourth coal 180 kJ stay stored, and keep.
     run(&mut f, 30.0, |_| {});
     let c = f.constructor_at(IVec3::ZERO);
-    assert_eq!((c.status, c.out.count(crate::item::IRON_ROD)), (ConstructorStatus::NoInput, 30));
+    assert_eq!((c.status, c.out.count(crate::item::IRON_ROD)), (ProcessStatus::NoInput, 30));
     let g = &f.generators[1];
     assert_eq!((fuel(&f, 1), g.output), (0, 0));
     assert!((179..=181).contains(&g.stored_kj()), "{} kJ left", g.stored_kj());

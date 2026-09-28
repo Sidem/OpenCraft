@@ -1,8 +1,9 @@
 //! Tiered families (Mk1, Mk2, …): which machines come in tiers and which item is each tier.
 //!
 //! A tier is machine state: `tier: u8`, an index (0 is Mk1) into the family's numbers, which live atop
-//! the machine's own module as one array (`BELT_TIERS`, `MINER_TIERS`). Every tier of a family puts the
-//! same block into the world; only the machine's `tier` and the item that places it differ.
+//! the machine's own module as one array (`BELT_TIERS`, `MINER_TIERS`, a processor spec's `tiers`).
+//! Every tier of a family puts the same block into the world; only the machine's `tier` and the item
+//! that places it differ.
 //!
 //! Invariants: a family has one item per tier, and as many as its numbers array has rows (tested); an
 //! item is at most one family's tier. `FAST_BELT` and `MINER_MK2` are legacy blocks: worlds from before
@@ -12,8 +13,8 @@
 //! its hand recipe (the previous tier plus kits; the lint checks it). To add a family: a `FAMILIES` row,
 //! a saved `tier` field on the machine, its numbers array, and its arm in `Factory::tiered_at`.
 
-use crate::block::{BlockId, BELT, FAST_BELT, MINER, MINER_MK2};
-use crate::item::ItemId;
+use crate::block::{BlockId, BELT, CONSTRUCTOR, FAST_BELT, MINER, MINER_MK2, SMELTER};
+use crate::item::{ItemId, CONSTRUCTOR_MK2, SMELTER_MK2};
 
 pub struct Family {
     /// The block every tier puts into the world.
@@ -27,6 +28,8 @@ pub struct Family {
 pub const FAMILIES: &[Family] = &[
     Family { block: BELT, items: &[ItemId::block(BELT), ItemId::block(FAST_BELT)], kits: 1 },
     Family { block: MINER, items: &[ItemId::block(MINER), ItemId::block(MINER_MK2)], kits: 4 },
+    Family { block: SMELTER, items: &[ItemId::block(SMELTER), SMELTER_MK2], kits: 4 },
+    Family { block: CONSTRUCTOR, items: &[ItemId::block(CONSTRUCTOR), CONSTRUCTOR_MK2], kits: 4 },
 ];
 
 /// The family block and tier that `item` places, if it is a tiered machine.

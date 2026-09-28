@@ -7,8 +7,9 @@
 use crate::block::*;
 use crate::inventory::Inventory;
 use crate::item::{
-    ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE,
-    IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    ItemId, CONSTRUCTOR_MK2, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_AXE, IRON_INGOT,
+    IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, SMELTER_MK2, STICK, STONE_AXE,
+    STONE_PICKAXE, STONE_SHOVEL,
 };
 use crate::tools::{IRON_TIER, STONE_TIER};
 
@@ -99,8 +100,9 @@ pub const RECIPES: &[Recipe] = &[
         group: Group::Production,
         count: 1,
         inputs: &[(b(STONE), 16), (b(IRON_ORE), 4)],
-        blurb: "Melts iron or copper ore into ingots while it has fuel: coal ore or logs. Belts bring \
-                both in; a belt leading away takes the ingots. Right-click to open it.",
+        blurb: "Melts iron or copper ore into ingots, sand into glass (and, with Masonry, stone into bricks) while \
+                it has fuel: coal ore or logs. Belts bring both in; a belt leading away takes the ingots. \
+                Right-click to open it.",
     },
     Recipe {
         output: b(CONSTRUCTOR),
@@ -215,8 +217,8 @@ pub const RECIPES: &[Recipe] = &[
         group: Group::Production,
         count: 4,
         inputs: &[(GEAR, 2), (SCREW, 4), (COPPER_WIRE, 2)],
-        blurb: "Upgrades machines to Mk2 (green stripe) in place. Hold kits and right-click a miner (4 kits), or \
-                hold the button and drag along belts (1 kit each).",
+        blurb: "Upgrades machines to Mk2 (green stripe) in place. Hold kits and right-click a miner, smelter or \
+                constructor (4 kits), or hold the button and drag along belts (1 kit each).",
     },
     // A tier's item is the tier below plus its kits (the lint checks these match `factory/tiers.rs`).
     Recipe {
@@ -226,6 +228,21 @@ pub const RECIPES: &[Recipe] = &[
         inputs: &[(b(MINER), 1), (GREEN_KIT, 4)],
         blurb: "Drills twice as fast as a Mk1 and recovers 75% of what it draws, so the same deposit gives \
                 more ore. Needs 20 kW. Or upgrade a placed miner with 4 green kits.",
+    },
+    Recipe {
+        output: SMELTER_MK2,
+        group: Group::Production,
+        count: 1,
+        inputs: &[(b(SMELTER), 1), (GREEN_KIT, 4)],
+        blurb: "Smelts twice as fast as a Mk1 and burns a quarter less fuel an ingot. Or upgrade a placed \
+                smelter with 4 green kits.",
+    },
+    Recipe {
+        output: CONSTRUCTOR_MK2,
+        group: Group::Production,
+        count: 1,
+        inputs: &[(b(CONSTRUCTOR), 1), (GREEN_KIT, 4)],
+        blurb: "Works twice as fast as a Mk1 and draws 30 kW. Or upgrade a placed constructor with 4 green kits.",
     },
     Recipe {
         output: b(QUARRY),

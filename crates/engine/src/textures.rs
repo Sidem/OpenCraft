@@ -4,7 +4,8 @@
 //! arm in `pixel`. An alternate layer draws its base's pattern with another `alt` (`tex::look`).
 //! Terrain lives in `nature.rs` (with the surface hints) and `ores.rs`, province rocks in
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
-//! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`.
+//! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
+//! `masonry.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -12,6 +13,7 @@ use crate::math::{hash3, unit};
 mod geology;
 mod items;
 mod machines;
+mod masonry;
 mod nature;
 mod ores;
 mod paint;
@@ -157,6 +159,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::LADDER_TOP => wood::ladder_top(x, y),
         tex::STICK => wood::stick(x, y),
         tex::STRIPE_1..=tex::STRIPE_5 => stripes::stripe(x, y, (layer - tex::STRIPE_1) as u8),
+        tex::STONE_BRICKS => masonry::stone_bricks(x, y),
+        tex::QUICKLIME => masonry::quicklime(x, y),
         _ => [255, 0, 255, 255],
     }
 }

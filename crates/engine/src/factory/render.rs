@@ -5,7 +5,9 @@
 
 use crate::math::{IVec3, Vec3};
 
-use super::{Factory, Kind, Machine};
+use crate::block::{BlockId, GENERATOR, LAB, MINER, QUARRY, STORAGE};
+
+use super::{Factory, Machine};
 
 /// Floats per box instance: centre xyz (camera-relative), yaw, size xyz, uv scroll,
 /// texture layers top/side/bottom, uv mode (0 = whole texture per face, 1 = world-scaled).
@@ -44,8 +46,7 @@ impl Factory {
         models(&self.belts, out, eye, time, range);
         models(&self.miners, out, eye, time, range);
         models(&self.storages, out, eye, time, range);
-        models(&self.smelters, out, eye, time, range);
-        models(&self.constructors, out, eye, time, range);
+        models(&self.processors, out, eye, time, range);
         models(&self.routers, out, eye, time, range);
         models(&self.generators, out, eye, time, range);
         models(&self.poles, out, eye, time, range);
@@ -55,21 +56,20 @@ impl Factory {
         self.write_wires(out, eye, range);
     }
 
-    /// Calls `f` with the kind and position of every machine a map marks (not belts, routers or poles,
+    /// Calls `f` with the block and position of every machine a map marks (not belts, routers or poles,
     /// which are many and show as terrain) whose column lies in `lo..=hi` (x, z).
-    pub fn map_machines(&self, lo: (i32, i32), hi: (i32, i32), f: &mut impl FnMut(Kind, IVec3)) {
-        let mut each = |kind: Kind, p: IVec3| {
+    pub fn map_machines(&self, lo: (i32, i32), hi: (i32, i32), f: &mut impl FnMut(BlockId, IVec3)) {
+        let mut each = |block: BlockId, p: IVec3| {
             if (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z) {
-                f(kind, p);
+                f(block, p);
             }
         };
-        self.miners.iter().for_each(|m| each(Kind::Miner, m.pos()));
-        self.storages.iter().for_each(|m| each(Kind::Storage, m.pos()));
-        self.smelters.iter().for_each(|m| each(Kind::Smelter, m.pos()));
-        self.constructors.iter().for_each(|m| each(Kind::Constructor, m.pos()));
-        self.generators.iter().for_each(|m| each(Kind::Generator, m.pos()));
-        self.labs.iter().for_each(|m| each(Kind::Lab, m.pos()));
-        self.quarries.iter().for_each(|m| each(Kind::Quarry, m.pos()));
+        self.miners.iter().for_each(|m| each(MINER, m.pos()));
+        self.storages.iter().for_each(|m| each(STORAGE, m.pos()));
+        self.processors.iter().for_each(|m| each(m.spec.block, m.pos()));
+        self.generators.iter().for_each(|m| each(GENERATOR, m.pos()));
+        self.labs.iter().for_each(|m| each(LAB, m.pos()));
+        self.quarries.iter().for_each(|m| each(QUARRY, m.pos()));
     }
 }
 

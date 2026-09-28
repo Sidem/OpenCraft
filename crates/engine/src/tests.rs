@@ -508,7 +508,7 @@ fn every_hand_recipe_gives_its_output() {
 #[test]
 fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
     use crate::block::{COAL_ORE, SMELTER};
-    use crate::factory::SmelterStatus;
+    use crate::factory::{process_spec, ProcessStatus};
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
     // An iron or copper outcrop (coal would be burned, not smelted).
@@ -540,7 +540,9 @@ fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
 
     // The miner (0.6 ore/s) is slower than the smelter (1 ingot per 1.5 s), so it sets the rate.
     g.skip_time(120.0);
-    let ingot = crate::recipes::machine_recipe_using(SMELTER, key.ore.into())
+    let all = [true; crate::recipes::MACHINE_RECIPES.len()];
+    let ingot = process_spec(SMELTER)
+        .and_then(|s| s.recipe_using(key.ore.into(), &all))
         .map(|i| crate::recipes::MACHINE_RECIPES[i as usize].main().0);
     let ingots = g.sim.factory.storage_count_at(chest, ingot.unwrap());
     let mined = (120.0 * MINER_RECOVERY) as u32;
@@ -550,7 +552,7 @@ fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
         40 - g.sim.factory.storage_count_at(coal, COAL_ORE.into()) - g.sim.factory.smelter_at(smelter).fuel.total();
     let needed = (ingots as f64 * 1.5 / 8.0).ceil() as u32;
     assert!((needed..=needed + 1).contains(&burned), "{burned} coal for {ingots} ingots (and one in the works)");
-    assert_ne!(g.sim.factory.smelter_at(smelter).status, SmelterStatus::NoFuel);
+    assert_ne!(g.sim.factory.smelter_at(smelter).status, ProcessStatus::NoFuel);
 }
 
 #[test]

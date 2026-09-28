@@ -64,6 +64,10 @@ pub const STICK: ItemId = ItemId(272);
 pub const GEAR: ItemId = ItemId(273);
 /// Upgrade kits (`factory/upgrades.rs`), one per tier from Mk2.
 pub const GREEN_KIT: ItemId = ItemId(274);
+pub const QUICKLIME: ItemId = ItemId(275);
+/// Mk2 of the processors (`factory/tiers.rs`): they place the Mk1 block at tier 1.
+pub const SMELTER_MK2: ItemId = ItemId(276);
+pub const CONSTRUCTOR_MK2: ItemId = ItemId(277);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -111,12 +115,17 @@ const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> ItemDef {
     ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
 }
 
+/// A tier of a machine block: that block's look (the icon adds the tier chip).
+const fn machine(name: &'static str, tex: [u16; 3]) -> ItemDef {
+    ItemDef { name, stack: MAX_STACK, tex, size: [1.0; 3], places: AIR }
+}
+
 /// A tool: a flat plate showing it, whose stack size is its uses.
 const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 19] = [
+const EXTRA: [ItemDef; 22] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -136,6 +145,9 @@ const EXTRA: [ItemDef; 19] = [
     part("Stick", tex::STICK, [1.0, 0.14, 0.14]),
     part("Gear", tex::GEAR, [0.8, 0.2, 0.8]),
     part("Green Kit", tex::stripe(1), [0.6, 0.45, 0.6]),
+    part("Quicklime", tex::QUICKLIME, [0.6, 0.4, 0.6]),
+    machine("Smelter Mk2", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
+    machine("Constructor Mk2", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

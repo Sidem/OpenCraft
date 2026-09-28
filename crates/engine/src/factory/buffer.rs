@@ -28,7 +28,6 @@ impl Buffer {
     }
 
     /// How many of `item` it holds.
-    #[cfg(test)]
     pub fn count(&self, item: ItemId) -> u32 {
         self.slots.iter().filter(|s| !s.is_empty() && s.item == item).map(|s| s.count).sum()
     }
@@ -59,6 +58,18 @@ impl Buffer {
         s.count -= n;
         if s.count == 0 {
             *s = Stack::default();
+        }
+    }
+
+    /// Removes `n` of `item` (it must hold that many), from the first matching slots.
+    pub fn remove(&mut self, item: ItemId, mut n: u32) {
+        for i in 0..self.slots.len() {
+            let s = self.slots[i];
+            if n > 0 && !s.is_empty() && s.item == item {
+                let k = n.min(s.count);
+                self.take(i, k);
+                n -= k;
+            }
         }
     }
 

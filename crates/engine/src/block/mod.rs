@@ -84,7 +84,9 @@ pub const TORCH: BlockId = 57;
 pub const PLANKS: BlockId = 58;
 /// A see-through frame of rails and rungs: not solid; a body inside it climbs (`player.rs`).
 pub const LADDER: BlockId = 59;
-pub const BLOCK_COUNT: usize = 60;
+/// Fired from stone in a smelter (Masonry); a building block and later furnaces' lining.
+pub const STONE_BRICKS: BlockId = 60;
+pub const BLOCK_COUNT: usize = 61;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -286,6 +288,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         solid: false,
         ..cube("Ladder", 0.4, pillar(tex::LADDER, tex::LADDER_TOP, tex::LADDER_TOP), LADDER, sound::WOOD)
     },
+    cube("Stone Bricks", 1.3, all(tex::STONE_BRICKS), STONE_BRICKS, sound::STONE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

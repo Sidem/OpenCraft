@@ -6,9 +6,10 @@ use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::factory;
+use crate::factory::makes;
 use crate::item::ItemId;
 use crate::math::IVec3;
-use crate::recipes::{makes, MACHINE_RECIPES};
+use crate::recipes::MACHINE_RECIPES;
 use crate::research::Unlock;
 use crate::Game;
 

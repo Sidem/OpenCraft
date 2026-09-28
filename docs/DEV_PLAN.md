@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 6 (Industry). Next up: step 6.4 (one processing machine)** · Terraforming moved to
+now) · **Now: Milestone 6 (Industry). Next up: step 6.5 (footprints and the assembler)** · Terraforming moved to
 Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -424,64 +424,29 @@ modular so that everything after costs rows, not rewrites.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` with a migration and a fixture test
   (keep a version-17 fixture from before 6.1). Golden hashes are re-recorded only on purpose, noted in
   the step.
-- New blocks and items append (the next free block is 60, item 273; they were reserved for terraforming,
-  no longer). Each new look gets a placeholder layer and an `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 61, item 278). Each new look gets a placeholder layer and an `docs/ART_HANDOVER.md` request line.
 - Refactor steps (6.1, 6.2, 6.4) change no behaviour: every existing test passes unchanged, and the net
   line count and wasm size should not grow.
 
-- [x] **6.1 Tiers as data.** `factory/tiers.rs`: `FAMILIES` (the block, name and highest tier of each
-  tiered family; belts and miners first) and `tier_name`. `Belt::fast` and `Miner::mk2` become `tier: u8`
-  (1-based); each family's numbers become arrays indexed by tier atop its module (`BELT_SPEEDS`,
-  `MINER_TIERS { rate, recovery, power }`), read in one place each (`power.rs` asks the miner its power).
-  Items: `ItemDef.tier`; placing an item puts its family block with that tier. `FAST_BELT` and
-  `MINER_MK2` become legacy aliases (extra `MACHINES` rows that load and place as tier 2 of their family;
-  their items stay valid). Textures: the Mk2 side looks come from the tier, not a separate layer choice.
-  Save version 18 (tier bytes instead of bools). **Done when:** no `fast` or `mk2` field is left; the v17
-  fixture loads with the same belt speeds and miner rates; the hash of an old save is unchanged after
-  load-and-save or the change is explained; tests per tier.
-  *Built (2026-09-28):* `tier` is 0-based (0 = Mk1) and written where the bool was, so the format is
-  byte-identical: no save bump, golden hash unchanged, a v17 factory fixture in `factory/tiers/tests.rs`.
-  Tables are `BELT_TIERS { speed, top }` and `MINER_TIERS { rate, recovery, power, side }`; `FAMILIES`
-  lists each tier's item (no `ItemDef.tier`, no `tier_name` yet: 6.3 adds names when kits need them).
-  Breaking drops the tier's item (`Factory::tier_at`). Item 28 is named "Belt Mk2".
-- [x] **6.2 Unlocks, categories and content lint.** `research.rs`: `Unlock` enum (`Recipe(item)`,
-  `MachineRecipe(index)`, `Upgrade(family, tier)`, `Feature(Feature)`) replacing `unlocks: &[ItemId]`;
-  `research.has(…)`. `recipes.rs`: `MachineRecipe` gets a `Category` (smelting, pressing; more later)
-  instead of a machine block, and `outputs: &[(ItemId, u32)]` (several, for byproducts); indices stay
-  (saved). Machine panels grey locked recipes with the tech's name. Lint tests (`recipes/tests.rs`,
-  `research/tests.rs`): every item has a source and a use or is an end product, every category has a
-  machine, techs reachable without cycles, every unlock exists, family tiers contiguous. **Done when:**
-  the lint passes on today's content and fails on a planted mistake of each kind.
-  *Built (2026-09-28):* `Unlock` has `Recipe` and `MachineRecipe` only; `Upgrade` comes with kits (6.3)
-  and `Feature` with its first feature (dead variants fail clippy). `recipes/machine.rs` holds machine
-  recipes, `MACHINE_CATEGORIES` (moves into spec rows in 6.4) and fuels. A locked machine recipe can't be
-  chosen (`SetRecipe`); the smelter picks by ore and gets the check with the processor (6.4). The lint's
-  one exception (`recipes/tests.rs`): limestone has no use until quicklime (6.4). (A ramp exception
-  noted here at first was a lint mistake; old ramp blocks already drop belts.)
-- [x] **6.3 Upgrade kits and stripes.** `factory/upgrades.rs`: kits per tier (green now), kits per step
-  by class (belt-like 1, machine 4, multi-block 8), `TIER_COLOURS` with a getter in `api/content.rs`,
-  five flat stripe layers; belts show the colour on their rails, miners as a band, with pips. Items:
-  gear (pressing recipe), green kit (hand, makes 4). `Action::Upgrade { pos }` (codec tag 23):
-  right-click with kits (`interaction.rs`); dragging along belts with kits plans an upgrade line
-  (`belt_line.rs`: cells in the kit colour, "12 belts · 12 kits (you have 9)", queued a few per tick).
-  The build menu derives "Belt Mk2 = Belt + 1 green kit" rows; the old fast belt and Mk2 miner recipes
-  go. Mechanics tech (Mk2 for belts and miners; the other families follow in 6.4 and 6.7). **Done
-  when:** an upgraded belt keeps its riding items and doubles speed; 9 kits upgrade 9 of 12 dragged
-  belts; a miner keeps its buffer and deposit; screenshots of Mk1 and Mk2 stripes and a dragged upgrade.
-  *Built (2026-09-28):* kits go one step at a time and are never refunded (the TECH_TREE defaults; the
-  palette question stays open). Tech 4 became Mechanics (gear, green kit, miner Mk2) and tech 5 Belt Mk2
-  (needs Mechanics), keeping saved progress. The tier rows ("Belt Mk2 = Belt + 1 green kit") are written
-  out in `RECIPES` and the lint checks they match the kit step, rather than generated. Stripes: whole
-  rail sides on belts, the collar band on miners, a chip with pips on icons. Upgrade lines show kit-coloured
-  outlines (red while research locks them); upgrades reuse `BlockPlaced` for their sound.
-- [ ] **6.4 One processing machine.** `factory/process/`: `Processor` (one struct and `step` for every
-  inputs-to-outputs machine), `specs.rs` (`ProcessSpec` rows: block, categories, energy burner or
-  electric kW, buffer sizes, tier speeds, model parts), `model.rs` (parts plus the tier band). The
-  smelter and constructor become spec rows and their modules are deleted; the panel works from the spec.
-  Tiers for both (smelter Mk2 burns a quarter less fuel an ingot). Masonry: stone bricks and quicklime
-  (smelting rows, locked). Save version 19 reads old smelter and constructor bytes into processors.
-  **Done when:** every existing smelter and constructor test passes against the processor; the net line
-  count drops; screenshots of both machines unchanged apart from stripes.
+Steps 6.1–6.4 are built; their full specs are in git history (`git log -- docs/DEV_PLAN.md`).
+
+- [x] **6.1 Tiers as data** (`factory/tiers.rs`): `tier: u8` (0 = Mk1) written where the `fast` / `mk2`
+  bools were, so saves stayed byte-identical (v17 fixture in `factory/tiers/tests.rs`); numbers in
+  `BELT_TIERS` and `MINER_TIERS`; `FAMILIES` lists each tier's item; breaking drops the tier's item.
+- [x] **6.2 Unlocks, categories and content lint**: `research::Unlock`, recipe `Category` and several
+  outputs (`recipes/machine.rs`), lint tests that each catch a planted mistake, locked recipes greyed in
+  panels and refused by `SetRecipe`.
+- [x] **6.3 Upgrade kits and stripes** (`factory/upgrades.rs`): gear and green kit, `Action::Upgrade`
+  (tag 23), kit drag lines on belts, tier stripes with pips, icon chips. Kits go one step at a time and are
+  never refunded (the TECH_TREE defaults). Techs 4 and 5 became Mechanics and Belt Mk2 (saved progress
+  kept by index); tier recipes ("Belt Mk2 = Belt + 1 green kit") are written out and linted.
+- [x] **6.4 One processing machine** (`factory/process/`: the processor, `specs.rs` rows, `model.rs`
+  parts with looks, `view.rs`, `legacy.rs`): smelter and constructor are spec rows with Mk2 tiers
+  (Mechanics, 4 kits); smelters pick by input and take only unlocked recipes' inputs; Masonry (tech 7:
+  stone bricks, block 60; quicklime, item 275); save version 18 (a v17 fixture of both mid-batch; golden
+  hash re-recorded for the format and the new tech). The line count did not drop: the processor is 634
+  lines against 599 for the two modules, and with the old-save reader and new content the source grew by
+  168.
 - [ ] **6.5 Footprints and the assembler.** `factory/footprint.rs`: footprints turned by facing, the
   `MACHINE_PART` block, every cell in `Factory.at`, ports `(cell, face, role)` for links, placement check,
   breaking any cell returns the machine with its buffers, power through any cell, targeting any cell
@@ -596,3 +561,7 @@ and the balance numbers. Read the section you need.
 - **2026-09-28: 6.1–6.3** (`8c22a45`, `57aae29`, then 6.3): tiers as data (`factory/tiers.rs`, save bytes
   unchanged), `research::Unlock`, recipe categories (`recipes/machine.rs`), the content lint, upgrade
   kits (`factory/upgrades.rs`, items 273–274, `Action::Upgrade` tag 23, kit lines, stripes). Tests 240 → 253.
+- **2026-09-28: 6.4 One processing machine:** `factory/process/` replaces the smelter and constructor
+  modules; tiers for both, Masonry (stone bricks, quicklime), save version 18. Tests 253 → 259.
+- **2026-09-28: Ctrl while playing:** Ctrl crouches too (like C) and browser Ctrl shortcuts are off while
+  the pointer is locked; Ctrl+W can't be blocked, so closing the tab mid-game asks first (`main.ts`).

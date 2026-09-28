@@ -9,12 +9,13 @@
 //! are relative to the column the image was last drawn around, so marks line up with its pixels; world
 //! map records are in world columns.
 //!
-//! To mark another machine kind: a line in `Factory::map_machines` and a colour in `machine_color`.
+//! To mark another machine kind: a line in `Factory::map_machines` and a colour in `machine_color`
+//! (processors: `map_colour` in their spec).
 
 use crate::block::{self, BlockId};
 use crate::chunk::CHUNK_SHIFT;
 use crate::deposits::{Deposit, DepositKey, Tier};
-use crate::factory::{Factory, Kind};
+use crate::factory::{self, Factory};
 use crate::math::IVec3;
 use crate::worldgen::WorldGen;
 
@@ -99,8 +100,8 @@ impl Minimap {
         for d in self.known.deposits.iter().filter(|d| inside(d.center) && !dry(factory, d)) {
             out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
         }
-        factory.map_machines(lo, hi, &mut |kind, p| {
-            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(kind), MARK_MACHINE]);
+        factory.map_machines(lo, hi, &mut |block, p| {
+            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), MARK_MACHINE]);
         });
         out
     }
@@ -124,16 +125,15 @@ pub fn ore_color(ore: BlockId) -> i32 {
     }
 }
 
-fn machine_color(kind: Kind) -> i32 {
-    match kind {
-        Kind::Miner => 0xf2c230,
-        Kind::Storage => 0xb07a44,
-        Kind::Smelter => 0xe5533d,
-        Kind::Constructor => 0x4a90e2,
-        Kind::Generator => 0xa070e0,
-        Kind::Lab => 0x5ad1e0,
-        Kind::Quarry => 0xe08a3c,
-        Kind::Belt | Kind::Router | Kind::Pole | Kind::Pipe => 0xcccccc,
+/// A machine's mark colour (a processor's comes from its spec).
+fn machine_color(block: BlockId) -> i32 {
+    match block {
+        block::MINER => 0xf2c230,
+        block::STORAGE => 0xb07a44,
+        block::GENERATOR => 0xa070e0,
+        block::LAB => 0x5ad1e0,
+        block::QUARRY => 0xe08a3c,
+        _ => factory::process_spec(block).map_or(0xcccccc, |s| s.map_colour),
     }
 }
 

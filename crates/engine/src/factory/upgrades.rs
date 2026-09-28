@@ -42,11 +42,13 @@ pub fn kit_tier(item: ItemId) -> Option<u8> {
 }
 
 impl Factory {
-    /// The family block and tier of the tiered machine at `pos` (a belt of any shape, or a miner).
+    /// The family block and tier of the tiered machine at `pos` (a belt of any shape, a miner or a
+    /// processor).
     pub fn tiered_at(&self, pos: IVec3) -> Option<(BlockId, u8)> {
         match *self.at.get(&pos)? {
             Slot::Belt(i) => Some((BELT, self.belts[i as usize].tier)),
             Slot::Miner(i) => Some((MINER, self.miners[i as usize].tier)),
+            Slot::Process(i) => Some((self.processors[i as usize].spec.block, self.processors[i as usize].tier)),
             _ => None,
         }
     }
@@ -70,6 +72,7 @@ impl Factory {
         match self.at[&pos] {
             Slot::Belt(i) => self.belts[i as usize].tier += 1,
             Slot::Miner(i) => self.miners[i as usize].tier += 1,
+            Slot::Process(i) => self.processors[i as usize].tier += 1,
             _ => return false,
         }
         true

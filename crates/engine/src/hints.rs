@@ -48,12 +48,12 @@ pub const HINTS: &[Hint] = &[
     Hint {
         text: "Make ingots: build a smelter next to the ore line and give it fuel too (coal ore or logs), by \
                belt or from its panel (right-click it).",
-        done: |_, f| f.count(Kind::Smelter) > 0,
+        done: |_, f| f.processors_of(crate::block::SMELTER) > 0,
     },
     Hint {
         text: "Make parts: a constructor shapes ingots into plates, rods, screws and wire. It needs power \
                like the miner: a pole within 5 blocks.",
-        done: |_, f| f.count(Kind::Constructor) > 0,
+        done: |_, f| f.processors_of(crate::block::CONSTRUCTOR) > 0,
     },
     Hint {
         text: "Research: build a research lab near a pole, give it red science packs, and press T to choose \

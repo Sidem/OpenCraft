@@ -10,12 +10,11 @@ use crate::math::IVec3;
 
 use super::belt::Belt;
 use super::belt_shape::{derive_slopes, Shape, UNDERPASS_RANGE};
-use super::constructor::Constructor;
 use super::generator::Generator;
 use super::lab::Lab;
 use super::power::Power;
+use super::process::Processor;
 use super::router::Router;
-use super::smelter::Smelter;
 use super::storage::Storage;
 use super::{opposite, Factory, Kind, DIRS, FACES};
 
@@ -40,8 +39,7 @@ pub(crate) enum Slot {
     Belt(u32),
     Miner(u32),
     Storage(u32),
-    Smelter(u32),
-    Constructor(u32),
+    Process(u32),
     Router(u32),
     Generator(u32),
     Pole(u32),
@@ -54,12 +52,7 @@ impl Slot {
     /// Whether belts and miners can deliver into it (belts are linked separately).
     pub(super) fn is_sink(self) -> bool {
         match self {
-            Slot::Storage(_)
-            | Slot::Smelter(_)
-            | Slot::Constructor(_)
-            | Slot::Router(_)
-            | Slot::Generator(_)
-            | Slot::Lab(_) => true,
+            Slot::Storage(_) | Slot::Process(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Lab(_) => true,
             Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
         }
     }
@@ -69,8 +62,7 @@ impl Slot {
             Slot::Belt(_) => Kind::Belt,
             Slot::Miner(_) => Kind::Miner,
             Slot::Storage(_) => Kind::Storage,
-            Slot::Smelter(_) => Kind::Smelter,
-            Slot::Constructor(_) => Kind::Constructor,
+            Slot::Process(_) => Kind::Process,
             Slot::Router(_) => Kind::Router,
             Slot::Generator(_) => Kind::Generator,
             Slot::Pole(_) => Kind::Pole,
@@ -84,11 +76,12 @@ impl Slot {
 /// The machines items can be delivered into, borrowed apart from the belts and miners.
 pub(crate) struct Sinks<'a> {
     pub(super) storages: &'a mut [Storage],
-    pub(super) smelters: &'a mut [Smelter],
-    pub(super) constructors: &'a mut [Constructor],
+    pub(super) processors: &'a mut [Processor],
     pub(super) routers: &'a mut [Router],
     pub(super) generators: &'a mut [Generator],
     pub(super) labs: &'a mut [Lab],
+    /// Which machine recipes research allows, by index (processors take only what these use).
+    pub(super) unlocked: &'a [bool],
 }
 
 impl Sinks<'_> {
@@ -96,8 +89,7 @@ impl Sinks<'_> {
     pub(super) fn can_accept(&self, slot: Slot, item: ItemId) -> bool {
         match slot {
             Slot::Storage(i) => self.storages[i as usize].buf.can_accept(item),
-            Slot::Smelter(i) => self.smelters[i as usize].can_accept(item),
-            Slot::Constructor(i) => self.constructors[i as usize].room_for(item) > 0,
+            Slot::Process(i) => self.processors[i as usize].room_for(item, self.unlocked) > 0,
             Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
             Slot::Lab(i) => self.labs[i as usize].room_for(item) > 0,
@@ -109,8 +101,7 @@ impl Sinks<'_> {
     pub(super) fn accept(&mut self, slot: Slot, item: ItemId) -> bool {
         match slot {
             Slot::Storage(i) => self.storages[i as usize].buf.add(item, 1) == 0,
-            Slot::Smelter(i) => self.smelters[i as usize].accept(item),
-            Slot::Constructor(i) => self.constructors[i as usize].accept(item),
+            Slot::Process(i) => self.processors[i as usize].accept(item, self.unlocked),
             Slot::Router(i) => self.routers[i as usize].accept(item),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
@@ -249,8 +240,7 @@ impl Factory {
         // A quarry's box starts a cell away, so it delivers on every side.
         let quarry_outs: Vec<Vec<Link>> = self.quarries.iter().map(|q| extractor_outs(q.pos, FACES.len())).collect();
         let storage_outs: Vec<Vec<u32>> = self.storages.iter().map(|s| feeds(s.pos)).collect();
-        let smelter_outs: Vec<Vec<u32>> = self.smelters.iter().map(|s| feeds(s.pos)).collect();
-        let constructor_outs: Vec<Vec<u32>> = self.constructors.iter().map(|c| feeds(c.pos)).collect();
+        let process_outs: Vec<Vec<u32>> = self.processors.iter().map(|p| feeds(p.pos)).collect();
         let router_outs: Vec<[Option<u32>; 3]> =
             self.routers.iter().map(|r| r.out_dirs().map(|s| lead_away(r.pos, s))).collect();
 
@@ -271,21 +261,17 @@ impl Factory {
             s.outs = o;
             s.next_out %= s.outs.len().max(1);
         }
-        for (s, o) in self.smelters.iter_mut().zip(smelter_outs) {
-            s.outs = o;
-            s.next_out %= s.outs.len().max(1);
-        }
-        for (c, o) in self.constructors.iter_mut().zip(constructor_outs) {
-            c.outs = o;
-            c.next_out %= c.outs.len().max(1);
+        for (p, o) in self.processors.iter_mut().zip(process_outs) {
+            p.outs = o;
+            p.next_out %= p.outs.len().max(1);
         }
         for (r, o) in self.routers.iter_mut().zip(router_outs) {
             r.outs = o;
         }
 
         let (poles, gens, miners, labs) = (&self.poles, &self.generators, &self.miners, &self.labs);
-        let (constructors, routers, pipework) = (&self.constructors, &self.routers, &self.pipework);
-        self.power = Power::rebuild(poles, gens, miners, constructors, routers, labs, pipework, &self.quarries);
+        let (processors, routers, pipework) = (&self.processors, &self.routers, &self.pipework);
+        self.power = Power::rebuild(poles, gens, miners, processors, routers, labs, pipework, &self.quarries);
         self.link_pipework();
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt

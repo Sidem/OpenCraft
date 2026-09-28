@@ -1,29 +1,25 @@
-//! What machines make ([`MACHINE_RECIPES`]), grouped into categories that machines take whole
-//! ([`MACHINE_CATEGORIES`]), and what burns as fuel ([`FUELS`]). A better machine of a category reuses
-//! the same recipes (docs/TECH_TREE.md section 8).
+//! What machines make ([`MACHINE_RECIPES`]), grouped into categories that processors take whole
+//! (their spec rows: `factory/process/specs.rs`), and what burns as fuel ([`FUELS`]). A better machine
+//! of a category reuses the same recipes (docs/TECH_TREE.md section 8).
 //!
 //! Invariants: machines save the index of their recipe, so rows are appended, never reordered. A
 //! recipe's first output is its main product (readouts name it); the rest are byproducts, and all
 //! must fit the machine's output buffer (`recipes/tests.rs` checks this and more).
 //!
 //! To add a recipe: append a row. A category: a `Category` variant (and its entry in the lint's list) and
-//! the machines that take it in `MACHINE_CATEGORIES`.
+//! the processor specs that take it.
 
 use crate::block::*;
-use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, IRON_INGOT, IRON_PLATE, IRON_ROD, SCREW};
+use crate::item::{ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, IRON_INGOT, IRON_PLATE, IRON_ROD, QUICKLIME, SCREW};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Category {
-    /// Ore and sand into ingots and glass, with fuel.
+    /// Ore, sand and stone into ingots, glass, bricks and quicklime, with fuel.
     Smelting,
     /// Ingots into plates, rods, screws and wire.
     Pressing,
 }
-
-/// The categories each machine block makes.
-pub const MACHINE_CATEGORIES: &[(BlockId, &[Category])] =
-    &[(SMELTER, &[Category::Smelting]), (CONSTRUCTOR, &[Category::Pressing])];
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
 /// `seconds` of work.
@@ -47,32 +43,20 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(QUARTZ_ORE), 1)], outputs: &[(b(GLASS), 2)], seconds: 2.0 },
     MachineRecipe { category: Smelting, inputs: &[(b(SAND), 1)], outputs: &[(b(GLASS), 1)], seconds: 2.0 },
     MachineRecipe { category: Pressing, inputs: &[(IRON_PLATE, 1)], outputs: &[(GEAR, 1)], seconds: 2.0 },
+    MachineRecipe { category: Smelting, inputs: &[(b(STONE), 2)], outputs: &[(b(STONE_BRICKS), 1)], seconds: 3.0 },
+    MachineRecipe { category: Smelting, inputs: &[(b(LIMESTONE), 1)], outputs: &[(QUICKLIME, 1)], seconds: 2.0 },
 ];
 
-/// The gear's row, which research locks.
+/// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry).
 pub const GEAR_RECIPE: u16 = 8;
+pub const BRICK_RECIPE: u16 = 9;
+pub const QUICKLIME_RECIPE: u16 = 10;
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.
     pub fn main(&self) -> (ItemId, u32) {
         self.outputs[0]
     }
-}
-
-/// Whether the machine `machine` makes recipes of `category`.
-pub fn makes(machine: BlockId, category: Category) -> bool {
-    MACHINE_CATEGORIES.iter().any(|&(m, cats)| m == machine && cats.contains(&category))
-}
-
-/// The recipe `i` if `machine` makes it.
-pub fn machine_recipe(machine: BlockId, i: u16) -> Option<&'static MachineRecipe> {
-    MACHINE_RECIPES.get(i as usize).filter(|r| makes(machine, r.category))
-}
-
-/// Index of `machine`'s recipe that uses `item`, if any.
-pub fn machine_recipe_using(machine: BlockId, item: ItemId) -> Option<u16> {
-    let using = |r: &MachineRecipe| makes(machine, r.category) && r.inputs.iter().any(|i| i.0 == item);
-    MACHINE_RECIPES.iter().position(using).map(|i| i as u16)
 }
 
 /// Fuel: the seconds of smelting one item keeps a fire going, and the energy it gives a generator in

@@ -46,7 +46,9 @@ roadmap agent's.
   uv_scroll, [top, side, bottom layers], world_uv)` (`factory/render.rs`). `world_uv` true = texels at
   world scale like terrain; false = the whole texture on each face (items).
   - Machines: the `fn model(&self, out, rel, time)` of each kind in `crates/engine/src/factory/*.rs`
-    (miner, belt, belt_shape, smelter, constructor, lab, generator, power: poles and wires, router).
+    (miner, belt, belt_shape, lab, generator, power: poles and wires, router). Processors (smelter,
+    constructor, later the assembler and furnaces) are data: `Part` rows in `factory/process/specs.rs`
+    with a `Look` (`process/model.rs`: textures, the tier band, fire, status lamp, press stroke).
     `time` animates (drills pump, fans spin); lamps show state.
   - Loose items: `entities::push_item_box` (one box from the item's `ItemDef.tex` and `size`, bobbing).
   - Avatars (co-op players): `avatars.rs` (body, head, visor; `tex::AVATAR_*` layers).
@@ -228,6 +230,12 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   layers; the machine model (housing, corner posts, rails, beam, trolley, shaft, spinning drill) is in
   `factory/quarry/model.rs`. A blue status lamp (flooded) was added: `tex::LAMP_BLUE` (107), `lamp()` in
   `textures.rs`.
+- [ ] (6.3–6.4, landed) Tiers and masonry: the gear item (`tex::GEAR`, 113, in `textures/items.rs`), the
+  tier stripes (`tex::STRIPE_1`..`STRIPE_5`, 114–118, `textures/stripes.rs`: the tier colour with one
+  pip per Mk; colour must never be the only cue) worn by belt rails, miner collars, processor bands and
+  kits; stone bricks (block 60, `tex::STONE_BRICKS`, 119) and quicklime (item 275, `tex::QUICKLIME`, 120)
+  in `textures/masonry.rs`. The Smelter and Constructor Mk2 items (276, 277) reuse their block faces; the
+  hotbar adds the tier chip (`web/src/ui/hud.ts` `itemIcon`).
 
 ## 8. Log
 

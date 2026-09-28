@@ -117,7 +117,10 @@ pub const GEAR: u16 = 113;
 /// Tier stripes, Mk1 to Mk5 (`textures/stripes.rs`): the tier colour with 1 to 5 pips. Kits wear them too.
 pub const STRIPE_1: u16 = 114;
 pub const STRIPE_5: u16 = 118;
-pub const COUNT: usize = 119;
+/// Masonry (`textures/masonry.rs`): stone bricks, the quicklime item.
+pub const STONE_BRICKS: u16 = 119;
+pub const QUICKLIME: u16 = 120;
+pub const COUNT: usize = 121;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

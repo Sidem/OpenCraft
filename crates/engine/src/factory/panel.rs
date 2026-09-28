@@ -1,5 +1,5 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
-//! a smelter, constructor, filter, generator or lab), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
+//! a processor, filter, generator or lab), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
 //! `rotate` (belts and routers, the R key), `set_quarry`, `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
@@ -13,6 +13,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 
 use super::links::Slot;
+use super::process::Pick;
 use super::quarry::{Quarry, DEPTHS, WIDTHS};
 use super::Factory;
 
@@ -24,7 +25,7 @@ pub const ROLE_OUTPUT: u8 = 2;
 /// A machine's panel, as the host shows it.
 pub struct Panel {
     pub block: BlockId,
-    /// The chosen recipe (constructor) or the batch in progress (smelter), as a `MACHINE_RECIPES` index.
+    /// The chosen recipe (a constructor) or the batch in progress (a smelter), as a `MACHINE_RECIPES` index.
     pub recipe: Option<u16>,
     /// Whether the player chooses the recipe (constructor) or what it's given does (smelter).
     pub choosable: bool,
@@ -44,8 +45,7 @@ impl Factory {
     /// The panel of the machine at `pos`, if it has one.
     pub fn panel(&self, pos: IVec3) -> Option<Panel> {
         match *self.at.get(&pos)? {
-            Slot::Smelter(i) => Some(self.smelters[i as usize].panel()),
-            Slot::Constructor(i) => Some(self.constructors[i as usize].panel()),
+            Slot::Process(i) => Some(self.processors[i as usize].panel()),
             Slot::Router(i) => Some(&self.routers[i as usize]).filter(|r| r.is_filter).map(|r| r.panel()),
             Slot::Generator(i) => {
                 let g = &self.generators[i as usize];
@@ -115,42 +115,36 @@ impl Factory {
     /// Sets the recipe of the machine at `pos` if `recipe` is one it makes (or `None`), returning the
     /// inputs it held. `None` when nothing changed.
     pub fn set_recipe(&mut self, pos: IVec3, recipe: Option<u16>) -> Option<Vec<Stack>> {
-        let Some(&Slot::Constructor(i)) = self.at.get(&pos) else { return None };
-        let c = &mut self.constructors[i as usize];
-        let valid = recipe.is_none_or(|r| crate::recipes::machine_recipe(crate::block::CONSTRUCTOR, r).is_some());
-        (valid && c.recipe != recipe).then(|| c.set_recipe(recipe))
+        let Some(&Slot::Process(i)) = self.at.get(&pos) else { return None };
+        let p = &mut self.processors[i as usize];
+        let valid = p.spec.pick == Pick::Chosen && recipe.is_none_or(|r| p.spec.recipe(r).is_some());
+        (valid && p.recipe != recipe).then(|| p.set_recipe(recipe))
     }
 
     /// Puts up to `n` of `item` into the machine at `pos`, where it belongs (ore or fuel, a recipe's
     /// input). Returns how many went in.
     pub fn insert(&mut self, pos: IVec3, item: ItemId, n: u32) -> u32 {
-        let (room, buf) = match self.at.get(&pos) {
-            Some(Slot::Smelter(i)) => {
-                let s = &mut self.smelters[*i as usize];
-                (s.room_for(item), s.buffer_for(item))
-            }
-            Some(Slot::Constructor(i)) => {
-                let c = &mut self.constructors[*i as usize];
-                (c.room_for(item), Some(&mut c.input))
+        match self.at.get(&pos) {
+            Some(Slot::Process(i)) => {
+                self.processors[*i as usize].insert(item, n, &self.research.machine_recipes_unlocked())
             }
             Some(Slot::Generator(i)) => {
                 let g = &mut self.generators[*i as usize];
-                (g.room_for(item), Some(&mut g.fuel))
+                let put = n.min(g.room_for(item));
+                g.fuel.add(item, put);
+                put
             }
-            Some(Slot::Lab(i)) => return n - self.labs[*i as usize].add(item, n),
-            _ => return 0,
-        };
-        let Some(buf) = buf else { return 0 };
-        let put = n.min(room);
-        buf.add(item, put);
-        put
+            Some(Slot::Lab(i)) => n - self.labs[*i as usize].add(item, n),
+            _ => 0,
+        }
     }
 
     /// Whether `insert` would take any `item` at `pos` now.
     pub fn wants(&self, pos: IVec3, item: ItemId) -> bool {
         match self.at.get(&pos) {
-            Some(Slot::Smelter(i)) => self.smelters[*i as usize].room_for(item) > 0,
-            Some(Slot::Constructor(i)) => self.constructors[*i as usize].room_for(item) > 0,
+            Some(Slot::Process(i)) => {
+                self.processors[*i as usize].room_for(item, &self.research.machine_recipes_unlocked()) > 0
+            }
             Some(Slot::Generator(i)) => self.generators[*i as usize].room_for(item) > 0,
             Some(Slot::Lab(i)) => self.labs[*i as usize].room_for(item) > 0,
             _ => false,
@@ -163,8 +157,7 @@ impl Factory {
         let buf = match self.at.get(&pos) {
             Some(Slot::Miner(i)) => &mut self.miners[*i as usize].out,
             Some(Slot::Storage(i)) => &mut self.storages[*i as usize].buf,
-            Some(Slot::Smelter(i)) => &mut self.smelters[*i as usize].out,
-            Some(Slot::Constructor(i)) => &mut self.constructors[*i as usize].out,
+            Some(Slot::Process(i)) => &mut self.processors[*i as usize].out,
             Some(Slot::Quarry(i)) => &mut self.quarries[*i as usize].out,
             Some(
                 Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) | Slot::Pipe(_),

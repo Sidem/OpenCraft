@@ -1,7 +1,7 @@
-//! Factory machines: belts (with ramps, lifts and underpasses), miners, storage boxes, smelters,
-//! constructors, splitters, filters, power (generators, poles), research labs (with the world's
-//! `Research`), pipework (`pipes.rs`, `pumping.rs`), quarries and the world's terraforming sites
-//! (`sites.rs`). Belts and miners come in tiers (`tiers.rs`).
+//! Factory machines: belts (with ramps, lifts and underpasses), miners, storage boxes, processors
+//! (smelters, constructors: `process/`), splitters, filters, power (generators, poles), research labs
+//! (with the world's `Research`), pipework (`pipes.rs`, `pumping.rs`), quarries and the world's
+//! terraforming sites (`sites.rs`). Belts, miners and processors come in tiers (`tiers.rs`).
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and breaking
 //! work unchanged) while their state lives here, keyed by position in `at`, and keep running when their
@@ -14,6 +14,7 @@
 //! see `links.rs`), and reports to the view only through `SimEvent`s. Links and the belt order are
 //! derived data, rebuilt by `relink` whenever `dirty` is set.
 //!
+//! A machine that turns inputs into outputs is a processor spec row (`process/specs.rs`), not a kind.
 //! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a
 //! `MACHINES` row and a `Vec` field (saved in `state.rs`), then follow the compiler through the `match`es
 //! (`place`, `remove`, `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in
@@ -22,7 +23,6 @@
 mod belt;
 mod belt_shape;
 mod buffer;
-mod constructor;
 mod describe;
 mod generator;
 mod lab;
@@ -31,12 +31,12 @@ mod miner;
 mod panel;
 mod pipes;
 mod power;
+mod process;
 mod pumping;
 mod quarry;
 mod render;
 mod router;
 mod sites;
-mod smelter;
 mod state;
 mod storage;
 pub mod tiers;
@@ -60,32 +60,30 @@ use crate::world::World;
 use crate::{TICK, TICK_RATE};
 
 use belt::{belt_step, Belt};
-use constructor::Constructor;
 use generator::Generator;
 use lab::{step_labs, Lab};
 use links::{Sinks, Slot};
 use miner::Miner;
 use pipes::Pipework;
 use power::{Pole, Power};
+use process::Processor;
 use quarry::Quarry;
 use router::Router;
-use smelter::Smelter;
 use storage::Storage;
 
 pub use belt::belt_preview;
 pub use belt_shape::Shape;
-#[cfg(test)]
-pub use constructor::ConstructorStatus;
 pub use describe::fmt_int;
 #[cfg(test)]
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
+pub use process::{makes, spec as process_spec, Energy};
+#[cfg(test)]
+pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{push_box, INSTANCE_FLOATS};
 pub use sites::{survey_site, Job, Sites};
-#[cfg(test)]
-pub use smelter::SmelterStatus;
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
 pub const DIRS: [IVec3; 4] = [IVec3::new(0, 0, -1), IVec3::new(1, 0, 0), IVec3::new(0, 0, 1), IVec3::new(-1, 0, 0)];
@@ -114,8 +112,7 @@ pub enum Kind {
     Belt,
     Miner,
     Storage,
-    Smelter,
-    Constructor,
+    Process,
     Router,
     Generator,
     Pole,
@@ -128,8 +125,8 @@ pub struct MachineDef {
     /// The block that is this machine (its name, textures and breaking come from `block.rs`).
     pub block: BlockId,
     pub kind: Kind,
-    /// Item stacks per buffer: a box's slots, a miner's output, each of a smelter's ore, fuel and
-    /// output buffers. Belts carry items instead (0).
+    /// Item stacks per buffer: a box's slots, a miner's output. Belts carry items instead, and
+    /// processors take theirs from their spec (0).
     pub slots: usize,
     /// Right-click opens its panel (`panel.rs`) instead of taking what it holds.
     pub panel: bool,
@@ -141,8 +138,7 @@ pub const MACHINES: [MachineDef; 21] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
-    MachineDef { block: SMELTER, kind: Kind::Smelter, slots: 1, panel: true },
-    MachineDef { block: CONSTRUCTOR, kind: Kind::Constructor, slots: 1, panel: true },
+    MachineDef { block: SMELTER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
     MachineDef { block: GENERATOR, kind: Kind::Generator, slots: 1, panel: true },
     MachineDef { block: POLE, kind: Kind::Pole, slots: 0, panel: false },
@@ -155,6 +151,7 @@ pub const MACHINES: [MachineDef; 21] = [
     MachineDef { block: LIFT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: UNDERPASS_IN, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: UNDERPASS_OUT, kind: Kind::Belt, slots: 0, panel: false },
+    MachineDef { block: CONSTRUCTOR, kind: Kind::Process, slots: 0, panel: true },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },
@@ -193,8 +190,7 @@ pub struct Factory {
     belts: Vec<Belt>,
     miners: Vec<Miner>,
     storages: Vec<Storage>,
-    smelters: Vec<Smelter>,
-    constructors: Vec<Constructor>,
+    processors: Vec<Processor>,
     routers: Vec<Router>,
     generators: Vec<Generator>,
     poles: Vec<Pole>,
@@ -224,8 +220,7 @@ impl Factory {
             Kind::Belt => self.belts.len(),
             Kind::Miner => self.miners.len(),
             Kind::Storage => self.storages.len(),
-            Kind::Smelter => self.smelters.len(),
-            Kind::Constructor => self.constructors.len(),
+            Kind::Process => self.processors.len(),
             Kind::Router => self.routers.len(),
             Kind::Generator => self.generators.len(),
             Kind::Pole => self.poles.len(),
@@ -233,6 +228,11 @@ impl Factory {
             Kind::Pipe => self.pipework.len(),
             Kind::Quarry => self.quarries.len(),
         }
+    }
+
+    /// How many processors of `block` there are (smelters, constructors).
+    pub fn processors_of(&self, block: BlockId) -> usize {
+        self.processors.iter().filter(|p| p.spec.block == block).count()
     }
 
     /// Adds the machine that `block` is at `pos` (nothing for other blocks). `facing` is the placing
@@ -250,8 +250,11 @@ impl Factory {
                 self.add_miner(pos, drill.unwrap_or(FACE_BOTTOM as u8), deposit, tier.max((block == MINER_MK2) as u8));
             }
             Kind::Storage => self.add_storage(pos),
-            Kind::Smelter => add_to(&mut self.smelters, Smelter::new(pos), at, Slot::Smelter),
-            Kind::Constructor => add_to(&mut self.constructors, Constructor::new(pos), at, Slot::Constructor),
+            Kind::Process => {
+                if let Some(spec) = process::spec(block) {
+                    add_to(&mut self.processors, Processor::new(pos, spec, tier), at, Slot::Process);
+                }
+            }
             Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
             Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
             Kind::Pole => add_to(&mut self.poles, Pole { pos }, at, Slot::Pole),
@@ -294,8 +297,7 @@ impl Factory {
             Slot::Belt(i) => swap_out(&mut self.belts, i, at, Slot::Belt),
             Slot::Miner(i) => swap_out(&mut self.miners, i, at, Slot::Miner),
             Slot::Storage(i) => swap_out(&mut self.storages, i, at, Slot::Storage),
-            Slot::Smelter(i) => swap_out(&mut self.smelters, i, at, Slot::Smelter),
-            Slot::Constructor(i) => swap_out(&mut self.constructors, i, at, Slot::Constructor),
+            Slot::Process(i) => swap_out(&mut self.processors, i, at, Slot::Process),
             Slot::Router(i) => swap_out(&mut self.routers, i, at, Slot::Router),
             Slot::Generator(i) => swap_out(&mut self.generators, i, at, Slot::Generator),
             Slot::Pole(i) => swap_out(&mut self.poles, i, at, Slot::Pole),
@@ -315,8 +317,7 @@ impl Factory {
             belts,
             miners,
             storages,
-            smelters,
-            constructors,
+            processors,
             routers,
             generators,
             labs,
@@ -329,8 +330,9 @@ impl Factory {
             changed,
             ..
         } = self;
-        power.balance(generators, miners, constructors, routers, labs, pipework, quarries, research);
-        let mut sinks = Sinks { storages, smelters, constructors, routers, generators, labs };
+        let unlocked = research.machine_recipes_unlocked();
+        power.balance(generators, miners, processors, routers, labs, pipework, quarries, research, &unlocked);
+        let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
             m.speed = power.speed(p);
             m.step(deposits, world, tick, belts, &mut sinks, events);
@@ -342,11 +344,9 @@ impl Factory {
         for s in sinks.storages.iter_mut() {
             s.step(belts);
         }
-        for s in sinks.smelters.iter_mut() {
-            s.step(belts);
-        }
-        for (c, &p) in sinks.constructors.iter_mut().zip(&power.constructor_pole) {
-            c.step(belts, power.speed(p));
+        for (m, &p) in sinks.processors.iter_mut().zip(&power.process_pole) {
+            let share = if m.spec.energy == Energy::Burner { power::FULL_SPEED } else { power.speed(p) };
+            m.step(belts, share, &unlocked);
         }
         for (r, &p) in sinks.routers.iter_mut().zip(&power.router_pole) {
             r.step(belts, power.speed(p));

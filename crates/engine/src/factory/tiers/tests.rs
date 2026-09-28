@@ -24,7 +24,7 @@ fn a_mk2_item_places_the_family_block() {
 }
 
 /// A factory saved by version 17 (before tiers): a Mk1 belt, a fast belt and a Mk2 miner. Tier bytes
-/// replaced the `fast` and `mk2` bools byte for byte.
+/// replaced the `fast` and `mk2` bools byte for byte (processors: `process/tests.rs`).
 const V17_FACTORY: &str =
     "020000000000000000000000000000000100000000000001000000000000000000000001000100000000010000000000\
     000001000000000000000300000000000000000000000000000000000200000000000000000000000001000000000000000000000000\
@@ -45,7 +45,9 @@ fn a_version_17_factory_loads_with_the_same_speeds_and_rates() {
     assert_eq!(f.belt_at(IVec3::new(1, 0, 0)).speed(), 2.0);
     let miner = f.miner_at(IVec3::new(0, 1, 0));
     assert_eq!((miner.rate(), miner.recovery(), miner.stats().power), (2.0, 0.75, 20));
+    // Today's format (a processor list since version 18) keeps the tiers.
     let mut w = ByteWriter::default();
     f.write_state(&mut w);
-    assert!(w.bytes == bytes, "saves the same bytes again");
+    let g = Factory::read_state(&mut crate::world::World::new(1, 2), &mut ByteReader::new(&w.bytes)).unwrap();
+    assert_eq!((g.belt_at(IVec3::new(1, 0, 0)).speed(), g.miner_at(IVec3::new(0, 1, 0)).rate()), (2.0, 2.0));
 }

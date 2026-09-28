@@ -12,11 +12,13 @@
 //! A new kind of unlock: an `Unlock` variant (features arrive with their first use), its arm in
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
-use crate::block::{BlockId, BELT, FILTER, LIFT, MINER, OUTLET, PIPE, PUMP, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT};
+use crate::block::{
+    BlockId, BELT, CONSTRUCTOR, FILTER, LIFT, MINER, OUTLET, PIPE, PUMP, SMELTER, SPLITTER, UNDERPASS_IN, UNDERPASS_OUT,
+};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tiers;
 use crate::item::{ItemId, GREEN_KIT, GREEN_PACK, RED_PACK};
-use crate::recipes::{GEAR_RECIPE, MACHINE_RECIPES};
+use crate::recipes::{BRICK_RECIPE, GEAR_RECIPE, MACHINE_RECIPES, QUICKLIME_RECIPE};
 
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -97,13 +99,19 @@ pub const TECHS: &[Tech] = &[
     // Was "Miner Mk2" (saves keep progress by index): kits replaced the separate Mk2 recipes.
     Tech {
         name: "Mechanics",
-        blurb: "Gears and green kits. Hold 4 kits and right-click a miner to make it Mk2: twice the draw, \
-                75% recovery instead of 60%.",
+        blurb: "Gears and green kits. Hold 4 kits and right-click a miner, smelter or constructor to make it \
+                Mk2: miners draw twice as fast and keep 75% instead of 60%, the others work twice as fast.",
         needs: &[2],
         packs: &[RED_PACK, GREEN_PACK],
         units: 30,
         seconds: 10.0,
-        unlocks: &[Unlock::MachineRecipe(GEAR_RECIPE), Unlock::Recipe(GREEN_KIT), Unlock::Upgrade(MINER, 1)],
+        unlocks: &[
+            Unlock::MachineRecipe(GEAR_RECIPE),
+            Unlock::Recipe(GREEN_KIT),
+            Unlock::Upgrade(MINER, 1),
+            Unlock::Upgrade(SMELTER, 1),
+            Unlock::Upgrade(CONSTRUCTOR, 1),
+        ],
     },
     // Was "Fast Belts".
     Tech {
@@ -123,6 +131,15 @@ pub const TECHS: &[Tech] = &[
         units: 15,
         seconds: 5.0,
         unlocks: &[r(PUMP), r(PIPE), r(OUTLET)],
+    },
+    Tech {
+        name: "Masonry",
+        blurb: "Smelters fire stone into bricks and limestone into quicklime.",
+        needs: &[],
+        packs: &[RED_PACK],
+        units: 15,
+        seconds: 5.0,
+        unlocks: &[Unlock::MachineRecipe(BRICK_RECIPE), Unlock::MachineRecipe(QUICKLIME_RECIPE)],
     },
 ];
 
@@ -181,6 +198,11 @@ impl Research {
     /// Whether `unlock` is available: no tech lists it, or its tech is done.
     pub fn has(&self, unlock: Unlock) -> bool {
         self.locked_by(unlock).is_none()
+    }
+
+    /// Which machine recipes are unlocked, by `MACHINE_RECIPES` index (processors ask per item).
+    pub fn machine_recipes_unlocked(&self) -> Vec<bool> {
+        (0..MACHINE_RECIPES.len() as u16).map(|i| self.has(Unlock::MachineRecipe(i))).collect()
     }
 
     /// Records a finished unit of `tech`; when that finishes the tech, labs stop working on it.
