@@ -200,6 +200,16 @@ size.
   taken away (or piled: 16 wait inside) or the furnace stops and says so. Constructors press steel ingots
   into plates and beams; steel pickaxes, axes and shovels last 1,500 blocks, dig six times as fast as bare
   hands and keep 5 ore per block by hand.
+- **Steam power** (Steam Power research, with blue packs) is a boiler (2×2×2) and steam turbines (3×2×2)
+  set against its side. Belts or a miner feed the boiler coal ore or logs (a coal makes 540 kJ of steam,
+  twice a generator's 270), and a pipe touching it brings water from a pump: a boiler takes a unit
+  (2,000 kJ) when its water runs low, and says "Out of water" when the pump has none (a pond dries; the sea
+  never does). A turbine hangs on a power pole like a generator and gives up to 240 kW, only what its grid
+  draws; a boiler feeds two turbines, so 480 kW. Start the first pump with a coal generator on the same grid.
+- **The crusher** (Ore Crushing research, 1×1, 30 kW) turns 2 iron or copper ore into 3 crushed ore in 2 s,
+  so a smelter gets 1.5 ingots an ore (crushed ore smelts 1 to 1 in 1.5 s). It also grinds slag into sand.
+- **The silo** (Bulk Storage research, 2×2×3) is a big box of 144 stacks: belts bring anything in on its
+  back and sides, and a belt leading away from its front takes items out. Its panel lists what it holds.
 - **Splitters and filters** sit in a belt line. A splitter shares items between the belts leading away in
   front, to the left and to the right, skipping any that are full. A filter sends the item you choose in
   its panel straight on and everything else to the sides.
@@ -218,7 +228,7 @@ size.
   the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
   2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Lifts (20 red),
   Green Science (30 red), and with red and green packs Underpasses (15), Mechanics (30: gears, green kits
-  and Mk2 miners, smelters and constructors), Belt Mk2 (20) Assembly (40: the assembler, motors, concrete) and Steelmaking (50, after Assembly and Masonry: the blast furnace, steel, steel tools). Fluid Handling (15 red, after Belt
+  and Mk2 miners, smelters and constructors), Belt Mk2 (20) Assembly (40: the assembler, motors, concrete) Steelmaking (50, after Assembly and Masonry: the blast furnace, steel) and Blue Science (50: blue packs, from a motor, a steel plate and concrete in an assembler). With blue packs too: Mk3 Logistics (60: blue kits, Mk3 belts), Mk3 Machines (80) and Steel Tools (30), and after Blue Science Steam Power (60, also after Fluid Handling), Ore Crushing (60) and Bulk Storage (40). Fluid Handling (15 red, after Belt
   Routing) unlocks pumps, pipes and outlets; Masonry (15 red) stone bricks and quicklime. A lab draws 10 kW
   while it works.
 - **Pumps and pipes.** A pump lifts 2 blocks of still water a second out of the water it touches, the
@@ -239,7 +249,15 @@ size.
   allows) and keeps 75% of what it draws instead of 60% (20 kW); a Smelter Mk2 works twice as fast on a
   quarter less fuel an ingot; a Constructor Mk2 twice as fast at 30 kW; a Belt Mk2 carries items at 2
   blocks a second and mixes freely with Mk1 belts. The Mk2 items are also crafted: the Mk1 plus its kits.
-- **Machine panels.** Right-click a smelter, constructor, filter, generator, lab or quarry to see what it's doing, put items in
+  Assemblers and blast furnaces upgrade too, at 8 kits a step. Blue kits (a motor, 2 steel plates and 4 screws
+  make 4, in an assembler) take Mk2 to Mk3 once Mk3 Logistics (belts) or Mk3 Machines is done: a Belt Mk3
+  moves 4 blocks a second (about 10 items), a Miner Mk3 draws four times as fast and keeps 85% (45 kW), and
+  smelters, constructors, assemblers and blast furnaces work three times as fast; the Smelter Mk3 is
+  electric (40 kW) and burns no fuel. Power poles, storage boxes, pumps, quarries, labs and the coal generator
+  upgrade too: a Mk3 pole (a pylon) links 32 blocks and reaches 9, boxes hold 24, 36 and 48 stacks, pumps and
+  quarries do 2, 4 and 6 a second, a Mk3 lab works three times as fast and skips the packs of every fifth unit,
+  and a Mk2 generator gives 100 kW and a quarter more from the same fuel.
+- **Machine panels.** Right-click a smelter, constructor, assembler, boiler, crusher, silo, filter, generator, lab or quarry to see what it's doing, put items in
   straight from your inventory (ore, fuel, ingots, packs), and take what it made.
 
 Craft machines in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
@@ -248,7 +266,7 @@ research still locks. Hover a recipe for its description and materials; click it
 for up to five. Wood comes first (Materials): a log saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up, crouch to go down, let go to stay put; stack them up a cliff or down a shaft and walk off onto the ledge at the top. Belt lifts climb the same way, so building a tall lift stack is easy. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
 cost 1 iron ore and 2 stone, a box costs 8 planks and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
 4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
-wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and 4 iron rods. Two lifts cost 2 iron rods and 2
+wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and 4 iron rods; a boiler 24 stone bricks, 8 steel plates and 6 pipes, a steam turbine 12 steel plates, 4 motors and 16 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams. Two lifts cost 2 iron rods and 2
 belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 6 iron ore, 4
 copper ore and 12 stone; two power poles an iron ore, a copper ore and 2 sticks; a research lab 6 iron plates,
 8 copper wire and 4 belts; Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
@@ -362,10 +380,10 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
   12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
   23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
-  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder, 60 stone bricks, 61 assembler, 62 machine part (a multi-block machine's other cells), 63 concrete, 64 blast furnace, 65 slag; items: 256 iron ingot, 257 copper ingot,
+  28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder, 60 stone bricks, 61 assembler, 62 machine part (a multi-block machine's other cells), 63 concrete, 64 blast furnace, 65 slag, 66 boiler, 67 steam turbine, 68 crusher, 69 silo; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
   264–269 stone and iron tools, 270 scanner, 271 core drill, 272 stick, 273 gear, 274 green kit, 275 quicklime,
-  276 smelter Mk2, 277 constructor Mk2, 278 motor, 279–281 steel ingot, plate and beam, 282–284 steel tools.
+  276 smelter Mk2, 277 constructor Mk2, 278 motor, 279–281 steel ingot, plate and beam, 282–284 steel tools, 285 blue science pack, 286 blue kit, 287–294 Mk3 belt, miner, smelter and constructor, Mk2 and Mk3 assembler and blast furnace, 295–305 Mk2 and Mk3 pole, box, pump, quarry and lab, and the Mk2 generator, 306 crushed iron, 307 crushed copper.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).
@@ -402,7 +420,7 @@ Factory layer (the Satisfactory half):
 - [x] Item registry separate from blocks (ingots so far) and machine recipes
 - [x] Smelter: ore and fuel into ingots
 - [x] Constructor and parts (plates, rods, screws, wire), with a machine panel
-- [x] Machines: assembler (the first multi-block machine), blast furnace (steel and slag)
+- [x] Machines: assembler (the first multi-block machine), blast furnace (steel and slag), Mk3 tiers of the main machines
 - [x] Splitters and filters
 - [x] Belts that climb (ramps by placement, lifts) and cross (underpasses)
 - [x] Drag-to-build belt lines, R to rotate
@@ -412,7 +430,7 @@ Factory layer (the Satisfactory half):
 - [x] Pumps, pipes and outlets: drain ponds and flooded pits
 - [x] Quarry: automated digging that leaves a real pit
 - [x] Research: labs, science packs and a small tech tree
-- [ ] Industry: colour-coded upgrade kits, multi-block machines, steel, blue science, steam power
+- [x] Industry: colour-coded upgrade kits, multi-block machines, steel, blue science, steam power, crushing, silos
 - [ ] Electronics, blueprints and construction drones, the jetpack
 - [ ] Terraforming: a planner and excavators with work drones
 - [ ] Aluminium from far away, trains

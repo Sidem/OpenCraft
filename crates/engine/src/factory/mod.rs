@@ -31,6 +31,7 @@ mod links;
 mod miner;
 mod panel;
 mod pipes;
+mod pole;
 mod power;
 mod process;
 mod pumping;
@@ -64,7 +65,8 @@ use lab::{step_labs, Lab};
 use links::{Sinks, Slot};
 use miner::Miner;
 use pipes::Pipework;
-use power::{Pole, Power};
+use pole::Pole;
+use power::Power;
 use process::Processor;
 use quarry::Quarry;
 use router::Router;
@@ -201,10 +203,13 @@ impl Factory {
             }
             Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
             Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
-            Kind::Pole => add_to(&mut self.poles, Pole { pos }, at, Slot::Pole),
+            Kind::Pole => add_to(&mut self.poles, Pole { pos, tier: 0 }, at, Slot::Pole),
             Kind::Lab => add_to(&mut self.labs, Lab::new(pos), at, Slot::Lab),
             Kind::Pipe => add_to(&mut self.pipework, Pipework::new(pos, block, facing), at, Slot::Pipe),
             Kind::Quarry => add_to(&mut self.quarries, Quarry::new(pos, facing), at, Slot::Quarry),
+        }
+        if tier > 0 {
+            self.set_tier(pos, tier);
         }
         self.dirty = true;
     }
@@ -289,7 +294,7 @@ impl Factory {
             s.step(belts);
         }
         for (m, &p) in sinks.processors.iter_mut().zip(&power.process_pole) {
-            let share = if m.spec.energy == Energy::Electric { power.speed(p) } else { power::FULL_SPEED };
+            let share = if m.energy() == Energy::Electric { power.speed(p) } else { power::FULL_SPEED };
             m.step(belts, share, &unlocked);
         }
         for (r, &p) in sinks.routers.iter_mut().zip(&power.router_pole) {
@@ -297,6 +302,7 @@ impl Factory {
         }
         step_labs(sinks.labs, &power.lab_pole, power, research);
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);
+        process::draw_water(sinks.processors, pipework);
         belt_step(belts, &mut sinks, order, TICK);
     }
 }

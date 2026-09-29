@@ -36,9 +36,10 @@ pub struct MinerTier {
 }
 
 /// Mk1 first. Numbers: TECH_ERAS section 1.
-pub const MINER_TIERS: [MinerTier; 2] = [
+pub const MINER_TIERS: [MinerTier; 3] = [
     MinerTier { rate: 1.0, recovery: 0.6, power: 5, side: tex::MINER_SIDE },
     MinerTier { rate: 2.0, recovery: 0.75, power: 20, side: tex::MINER_MK2_SIDE },
+    MinerTier { rate: 4.0, recovery: 0.85, power: 45, side: tex::MINER_MK3_SIDE },
 ];
 /// Ticks between `SimEvent::MinerWorking` reports while drawing (0.9 s; the view plays a drill sound).
 const MINER_PULSE_TICKS: u32 = TICK_RATE * 9 / 10;

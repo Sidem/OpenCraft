@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 6)
+# OpenCraft roadmap (after Milestone 7)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -13,21 +13,6 @@ building by hand → planning an area → machines and drones doing the work →
 the air), carried by a tech tree where every technology opens something, improves efficiency or helps the
 player, up to AI datacenters, drone swarms, laser links and satellite constellations (2026-09-28). Each
 milestone brings one era of `docs/TECH_TREE.md` (the concept) and `docs/TECH_ERAS.md` (the detail).
-
-## Milestone 7: Electronics, blueprints and drones (era 4, violet)
-
-Its questions are in DEV_PLAN section 6; ask them before detailing it.
-
-- **Electronics:** the arc furnace (silicon from deep quartz: the first reason for mine shafts),
-  circuits, processors, violet science, Mk4 for belts and machines, solar panels and accumulators,
-  scanner Mk2.
-- **Logic:** sensors (box or belt fullness), switches, machines on or off by condition.
-- **Blueprints:** select an area to copy it; place it as a ghost (rotate, see what is missing); ghosts
-  can also be placed from the build menu, one by one or dragged out. A longer reach for ghosts.
-- **Construction drones:** a drone port (3×3 pad) builds ghosts from materials in boxes beside it and
-  tears down what you mark. Drones are items (motors, circuits): the factory builds its builders.
-- **Flight and helpers:** the coal jetpack (the user's wish for flight early); a personal drone that
-  fetches items from boxes.
 
 ## Milestone 8: Terraforming (era 5)
 

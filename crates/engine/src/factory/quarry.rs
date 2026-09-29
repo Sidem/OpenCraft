@@ -1,7 +1,7 @@
-//! Quarry: a powered machine (`QUARRY_POWER`) that digs the ground in a box in front of it for real,
-//! leaving a pit. The box (`DigBox`) is `width` × `width` cells from one cell in front of its face,
+//! Quarry: a powered machine (its tier's kW, `QUARRY_TIERS`) that digs the ground in a box in front of it for real,
+//! leaving a pit. The box (`DigBox`) is `width` Ã— `width` cells from one cell in front of its face,
 //! from the quarry's own level down to its depth choice (`DEPTHS`). It works through the box top
-//! layer first, row by row back and forth (`DigBox::cell`), one block every `DIG_SECONDS` at full
+//! layer first, row by row back and forth (`DigBox::cell`), one block every `dig_ticks` at full
 //! power. Each ground block (`QUARRIABLE`) becomes its normal drop in the output buffer, which feeds
 //! belts leading away and machines beside it like a miner's. Everything else stays: ore (listed in
 //! `found` as it is uncovered), bedrock, logs, machines. Water in the next cell stops it (flooded)
@@ -32,11 +32,23 @@ use super::buffer::Buffer;
 use super::describe::fmt_int;
 use super::links::{deliver, Link, Sinks};
 use super::panel::{Panel, ROLE_OUTPUT};
-use super::power::{FULL_SPEED, POLE_REACH, QUARRY_POWER};
-use super::{ticks, Factory, Kind, Machine};
+use super::power::{FULL_SPEED, POLE_REACH};
+use super::{Factory, Kind, Machine};
 
-/// Seconds per block at full power (about 2 a second: a 7 × 7 × 16 pit takes about 7 minutes).
-pub const DIG_SECONDS: f64 = 0.5;
+/// What a quarry tier does, Mk1 first.
+pub struct QuarryTier {
+    /// Ticks per block at full power: 30, 15 and 10 make 2, 4 and 6 blocks a second (a 7 Ã— 7 Ã— 16 pit takes
+    /// about 7 minutes at Mk1).
+    pub dig_ticks: u32,
+    /// kW while it digs.
+    pub power: u32,
+}
+
+pub const QUARRY_TIERS: [QuarryTier; 3] = [
+    QuarryTier { dig_ticks: 30, power: 10 },
+    QuarryTier { dig_ticks: 15, power: 20 },
+    QuarryTier { dig_ticks: 10, power: 30 },
+];
 /// Cells with nothing to dig it looks past in one tick.
 const SCAN_PER_TICK: u32 = 64;
 /// Deposits it remembers uncovering.
@@ -65,6 +77,7 @@ const STATUSES: [QuarryStatus; 6] = [
 
 pub struct Quarry {
     pub pos: IVec3,
+    pub tier: u8,
     /// Where the box lies, as a `DIRS` index (the placing player's facing, turned with R).
     pub facing: u8,
     /// Indices into `WIDTHS` and `DEPTHS`.
@@ -93,6 +106,7 @@ impl Quarry {
     pub fn new(pos: IVec3, facing: u8) -> Quarry {
         let mut q = Quarry {
             pos,
+            tier: 0,
             facing: facing % 4,
             width: DEFAULT_WIDTH,
             depth: DEFAULT_DEPTH,
@@ -111,6 +125,15 @@ impl Quarry {
         };
         q.park();
         q
+    }
+
+    pub fn stats(&self) -> &'static QuarryTier {
+        &QUARRY_TIERS[self.tier as usize]
+    }
+
+    /// Work one block takes, in thousandths of a tick at full speed.
+    pub fn full_work(&self) -> u32 {
+        self.stats().dig_ticks * FULL_SPEED
     }
 
     pub fn dig_box(&self) -> DigBox {
@@ -165,7 +188,7 @@ impl Quarry {
             return;
         }
         self.progress += self.speed;
-        if self.progress < ticks(DIG_SECONDS) * FULL_SPEED {
+        if self.progress < self.full_work() {
             return;
         }
         world.set_block_anywhere(cell, AIR);
@@ -257,7 +280,7 @@ impl Quarry {
             block: QUARRY,
             recipe: None,
             choosable: false,
-            progress: self.progress / ticks(DIG_SECONDS).max(1),
+            progress: self.progress / self.stats().dig_ticks,
             fire: 0,
             slots: self.out.slots.iter().map(|&s| (ROLE_OUTPUT, s)).collect(),
             status: self.status_text(f),
@@ -269,10 +292,9 @@ impl Quarry {
 impl Factory {
     /// Blocks quarries within `range` of `eye` are digging: x, y, z and progress in thousandths each.
     pub fn quarry_cracks(&self, eye: Vec3, range: f64) -> Vec<i32> {
-        let full = ticks(DIG_SECONDS) * FULL_SPEED;
         let digging = self.quarries.iter().filter(|q| q.status == QuarryStatus::Digging && q.progress > 0);
         let near = digging.filter(|q| (q.head.as_vec3() - eye).length() <= range);
-        near.flat_map(|q| [q.head.x, q.head.y, q.head.z, (q.progress * 1000 / full) as i32]).collect()
+        near.flat_map(|q| [q.head.x, q.head.y, q.head.z, (q.progress * 1000 / q.full_work()) as i32]).collect()
     }
 }
 
@@ -294,6 +316,7 @@ impl Machine for Quarry {
         self.out.write_state(w);
         w.u32(self.next_out as u32);
         w.u8(self.status as u8);
+        w.u8(self.tier);
         w.count(self.found.len());
         for (key, y) in &self.found {
             key.write_state(w);
@@ -312,6 +335,12 @@ impl Machine for Quarry {
         q.out = Buffer::read_state(r, q.out.slots.len())?;
         q.next_out = r.u32()? as usize;
         q.status = *STATUSES.get(r.u8()? as usize)?;
+        if r.version >= 21 {
+            q.tier = r.u8()?;
+        }
+        if q.tier as usize >= QUARRY_TIERS.len() {
+            return None;
+        }
         for _ in 0..r.count()?.min(MAX_FOUND) {
             q.found.push((DepositKey::read_state(r)?, r.i32()?));
         }
@@ -330,9 +359,10 @@ impl Machine for Quarry {
         let mut lines = vec![
             self.status_text(f),
             format!(
-                "{w}×{w}, {} · layer {layer} of {layers} · {} dug · needs {QUARRY_POWER} kW",
+                "{w}Ã—{w}, {} Â· layer {layer} of {layers} Â· {} dug Â· needs {} kW",
                 DEPTHS[self.depth as usize].label(),
                 fmt_int(self.dug as u64),
+                self.stats().power,
                 w = dig.width
             ),
         ];
@@ -340,7 +370,7 @@ impl Machine for Quarry {
         let held = self.out.contents();
         if !held.is_empty() {
             let names: Vec<String> = held.iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
-            lines.push(format!("Holding {} · right-click for its panel", names.join(", ")));
+            lines.push(format!("Holding {} Â· right-click for its panel", names.join(", ")));
         }
         lines.join("\n")
     }

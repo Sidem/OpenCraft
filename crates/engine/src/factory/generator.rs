@@ -1,5 +1,5 @@
-//! Coal generator: turns fuel (`recipes::fuel_energy`) into stored energy and gives its grid up to
-//! `GENERATOR_POWER`, only as much as the grid draws. Belts, miners and the panel bring fuel into its
+//! Coal generator: turns fuel (`recipes::fuel_energy`) into stored energy and gives its grid up to its
+//! tier's power (`GENERATOR_TIERS`), only as much as the grid draws. Belts, miners and the panel bring fuel into its
 //! one buffer; `Power::balance` lights the next item and draws the energy. Right-click opens its panel.
 //!
 //! Invariants: energy is counted in kW·ticks (1 kJ = `TICK_RATE`); `output` is last tick's supply
@@ -15,12 +15,26 @@ use crate::TICK_RATE;
 
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_FUEL};
-use super::power::GENERATOR_POWER;
 use super::render::push_box;
 use super::{Factory, Kind, Machine};
 
+/// What a generator tier gives, Mk1 first.
+pub struct GeneratorTier {
+    /// kW at most.
+    pub power: u32,
+    /// How much energy a fuel item gives, in percent of its `fuel_energy`.
+    pub yield_percent: u32,
+}
+
+/// The Mk1 generator's power, which saves from before version 16 counted in.
+pub const GENERATOR_POWER: u32 = 60;
+
+pub const GENERATOR_TIERS: [GeneratorTier; 2] =
+    [GeneratorTier { power: GENERATOR_POWER, yield_percent: 100 }, GeneratorTier { power: 100, yield_percent: 125 }];
+
 pub struct Generator {
     pub pos: IVec3,
+    pub tier: u8,
     pub fuel: Buffer,
     /// Energy left from the fuel it lit, in kW·ticks.
     pub energy: u32,
@@ -30,7 +44,11 @@ pub struct Generator {
 
 impl Generator {
     pub fn new(pos: IVec3) -> Generator {
-        Generator { pos, fuel: Buffer::new(Kind::Generator.def().slots), energy: 0, output: 0 }
+        Generator { pos, tier: 0, fuel: Buffer::new(Kind::Generator.def().slots), energy: 0, output: 0 }
+    }
+
+    pub fn stats(&self) -> &'static GeneratorTier {
+        &GENERATOR_TIERS[self.tier as usize]
     }
 
     /// How many of `item` it would take now: fuel only, up to the buffer's room.
@@ -62,7 +80,7 @@ impl Generator {
         match pole.flatten() {
             _ if f.dirty => String::new(),
             None => f.power.grid_line(None),
-            Some(_) if self.running() => format!("Supplying {} of {GENERATOR_POWER} kW", self.output),
+            Some(_) if self.running() => format!("Supplying {} of {} kW", self.output, self.stats().power),
             Some(_) if self.fuel.total() == 0 && self.energy == 0 => "Out of fuel: bring coal ore or logs".to_string(),
             Some(_) => "Idle: nothing on its grid needs power".to_string(),
         }
@@ -94,6 +112,7 @@ impl Machine for Generator {
         w.ivec3(self.pos);
         self.fuel.write_state(w);
         w.u32(self.energy);
+        w.u8(self.tier);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Generator> {
@@ -102,7 +121,10 @@ impl Machine for Generator {
         // Before version 16 this was ticks of fire at full output.
         let n = r.u32()?;
         g.energy = if r.version >= 16 { n } else { n.saturating_mul(GENERATOR_POWER) };
-        Some(g)
+        if r.version >= 21 {
+            g.tier = r.u8()?;
+        }
+        ((g.tier as usize) < GENERATOR_TIERS.len()).then_some(g)
     }
 
     fn contents(&self) -> Vec<Stack> {
@@ -154,5 +176,9 @@ impl Machine for Generator {
             (false, false) => tex::LAMP_RED,
         };
         push_box(out, rel + Vec3::new(0.3, 0.1, 0.36), 0.0, [0.12, 0.08, 0.12], 0.0, [lamp; 3], false);
+        if self.tier > 0 {
+            let band = [tex::stripe(self.tier); 3];
+            push_box(out, rel + Vec3::new(0.0, -0.3, 0.0), 0.0, [0.79, 0.08, 0.77], 0.0, band, false);
+        }
     }
 }

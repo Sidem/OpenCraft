@@ -7,9 +7,8 @@ use crate::block::tex;
 use crate::math::Vec3;
 
 use super::super::render::push_box;
-use super::super::{ticks, DIRS};
-use super::{Quarry, QuarryStatus, DIG_SECONDS};
-use crate::factory::power::FULL_SPEED;
+use super::super::DIRS;
+use super::{Quarry, QuarryStatus};
 
 /// How high the gantry runs above the quarry's floor.
 const GANTRY: f64 = 2.6;
@@ -25,6 +24,10 @@ pub(super) fn draw(q: &Quarry, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     push_box(out, rel + Vec3::new(0.0, -0.2, 0.0), 0.0, [0.9, 0.6, 0.9], 0.0, housing, false);
     push_box(out, rel + Vec3::new(0.0, 0.2, 0.0), 0.0, [0.55, 0.22, 0.55], 0.0, frame, false);
     push_box(out, rel + Vec3::new(0.3, 0.36, 0.3), 0.0, [0.14, 0.1, 0.14], 0.0, [lamp(q.status); 3], false);
+    if q.tier > 0 {
+        let band = [tex::stripe(q.tier); 3];
+        push_box(out, rel + Vec3::new(0.0, -0.4, 0.0), 0.0, [0.94, 0.1, 0.94], 0.0, band, false);
+    }
 
     let dig = q.dig_box();
     let (lo, hi) = dig.bounds();
@@ -46,7 +49,7 @@ pub(super) fn draw(q: &Quarry, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         push_box(out, at(c), 0.0, size, 0.0, frame, true);
     }
 
-    let t = (q.progress as f64 / (ticks(DIG_SECONDS) as f64 * FULL_SPEED as f64 * TRAVEL)).min(1.0);
+    let t = (q.progress as f64 / (q.full_work() as f64 * TRAVEL)).min(1.0);
     let (a, b) = (q.from.as_vec3(), q.head.as_vec3());
     let h = a + (b - a) * t + Vec3::new(0.5, 0.0, 0.5);
     let (c, size) = if along_z {

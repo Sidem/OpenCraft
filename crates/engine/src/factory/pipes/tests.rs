@@ -135,3 +135,30 @@ fn a_pump_in_the_sea_runs_but_the_level_never_drops() {
     assert!(land >= 35, "the pump kept going: {land} blocks poured on land");
     assert!(count(&mut sim, sea.0, sea.1, WATER) + 1 >= full, "at most the block just taken is missing");
 }
+
+#[test]
+fn pumps_lift_two_four_and_six_blocks_a_second_and_hold_as_many_for_more_power() {
+    // A walled pit of water and a pump in its corner, but no outlet: the pump fills and stops.
+    let held_after = |tier: u8, ticks: u32| {
+        let mut sim = Sim::new(1337, 2);
+        fill(&mut sim, at(0, 80, 0), at(30, 105, 20), STONE);
+        fill(&mut sim, at(0, 101, 0), at(30, 105, 20), AIR);
+        fill(&mut sim, PIT.0, PIT.1, WATER);
+        put(&mut sim, PUMP, at(2, 98, 2), 0);
+        put(&mut sim, POLE, at(0, 101, 3), 0);
+        put(&mut sim, GENERATOR, at(0, 101, 2), 0);
+        assert_eq!(sim.factory.insert(at(0, 101, 2), COAL_ORE.into(), 64), 64);
+        (0..tier).for_each(|_| assert!(sim.factory.upgrade(at(2, 98, 2))));
+        (0..ticks).for_each(|_| sim.step());
+        let pump = &sim.factory.pipework[0];
+        (pump.held, pump.pump_stats().hold, sim.factory.power.demand[0], pump.flow)
+    };
+    // Every 30, 15 or 10 ticks one more; 33 ticks in, that is 1, 2 or 3.
+    assert_eq!(held_after(0, 33), (1, 2, 5, Flow::Working));
+    assert_eq!(held_after(1, 33), (2, 4, 10, Flow::Working));
+    assert_eq!(held_after(2, 33), (3, 6, 20, Flow::Working));
+    // A second later they are all full.
+    assert_eq!(held_after(0, 66), (2, 2, 0, Flow::Full));
+    assert_eq!(held_after(1, 66), (4, 4, 0, Flow::Full));
+    assert_eq!(held_after(2, 66), (6, 6, 0, Flow::Full));
+}

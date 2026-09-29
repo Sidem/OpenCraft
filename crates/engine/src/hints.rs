@@ -6,10 +6,10 @@
 //! the earlier ones (a player who already has a smelter skips the mining tips).
 //! To add a hint: a row in `HINTS`, where it belongs in the order.
 
-use crate::block::{COAL_ORE, COPPER_ORE, IRON_ORE, MINER};
+use crate::block::{ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, IRON_ORE, MINER, TURBINE};
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
-use crate::research::TECHS;
+use crate::research::{TechState, TECHS};
 
 pub struct Hint {
     pub text: &'static str,
@@ -70,7 +70,35 @@ pub const HINTS: &[Hint] = &[
                stone and dirt. Hold one to see its box (R turns it); right-click it to choose size and depth.",
         done: |_, f| f.count(Kind::Quarry) > 0,
     },
+    Hint {
+        text: "Upgrade in place: Mechanics unlocks green kits (by hand, or by the beltful in an assembler). Hold \
+               kits and right-click a machine to make it Mk2, twice as fast; drag along a belt line to upgrade \
+               the belts. Blue kits make Mk3.",
+        done: |_, f| tech_done(f, "Mechanics"),
+    },
+    Hint {
+        text: "Assemble: research Assembly and build an assembler, a 2×2×2 machine. Belts feed its back and \
+               sides, you choose its recipe in its panel, and parts come out of its front. Motors, concrete and \
+               science packs are made here.",
+        done: |_, f| f.processors_of(ASSEMBLER) > 0,
+    },
+    Hint {
+        text: "Make steel: research Steelmaking and build a blast furnace (2×2×3). Iron ore, coal and quicklime \
+               in, steel out of the front, slag out of the side: put a belt at each, or it stops. Blue science \
+               needs steel.",
+        done: |_, f| f.processors_of(BLAST_FURNACE) > 0,
+    },
+    Hint {
+        text: "Steam: research Steam Power. Pipe water from a pump to a boiler, belt the boiler coal, and set \
+               steam turbines (two to a boiler, 240 kW each) against it, hung on a pole. A generator on the same \
+               grid starts the pump. A pond runs dry; the sea doesn't.",
+        done: |_, f| f.processors_of(TURBINE) > 0,
+    },
 ];
+
+fn tech_done(f: &Factory, name: &str) -> bool {
+    TECHS.iter().position(|t| t.name == name).is_some_and(|i| f.research.state(i as u8) == TechState::Done)
+}
 
 /// How far the player got: the index after the last hint that is done (0 when none is).
 pub fn progress(inv: &Inventory, f: &Factory) -> usize {

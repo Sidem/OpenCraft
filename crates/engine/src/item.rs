@@ -77,6 +77,35 @@ pub const STEEL_BEAM: ItemId = ItemId(281);
 pub const STEEL_PICKAXE: ItemId = ItemId(282);
 pub const STEEL_AXE: ItemId = ItemId(283);
 pub const STEEL_SHOVEL: ItemId = ItemId(284);
+/// Blue science (Blue Science): made by assemblers only; labs hold a slot for it.
+pub const BLUE_PACK: ItemId = ItemId(285);
+/// The kit that raises machines to Mk3 (blue stripe).
+pub const BLUE_KIT: ItemId = ItemId(286);
+/// Mk3 of belts, miners, smelters and constructors, and Mk2 and Mk3 of the multi-block machines
+/// (`factory/tiers.rs`): each places its family's block at that tier.
+pub const BELT_MK3: ItemId = ItemId(287);
+pub const MINER_MK3: ItemId = ItemId(288);
+pub const SMELTER_MK3: ItemId = ItemId(289);
+pub const CONSTRUCTOR_MK3: ItemId = ItemId(290);
+pub const ASSEMBLER_MK2: ItemId = ItemId(291);
+pub const ASSEMBLER_MK3: ItemId = ItemId(292);
+pub const BLAST_FURNACE_MK2: ItemId = ItemId(293);
+pub const BLAST_FURNACE_MK3: ItemId = ItemId(294);
+/// Mk2 and Mk3 of poles, boxes, pumps, quarries and labs, and Mk2 of the generator (same rule).
+pub const POLE_MK2: ItemId = ItemId(295);
+pub const POLE_MK3: ItemId = ItemId(296);
+pub const BOX_MK2: ItemId = ItemId(297);
+pub const BOX_MK3: ItemId = ItemId(298);
+pub const PUMP_MK2: ItemId = ItemId(299);
+pub const PUMP_MK3: ItemId = ItemId(300);
+pub const QUARRY_MK2: ItemId = ItemId(301);
+pub const QUARRY_MK3: ItemId = ItemId(302);
+pub const LAB_MK2: ItemId = ItemId(303);
+pub const LAB_MK3: ItemId = ItemId(304);
+pub const GENERATOR_MK2: ItemId = ItemId(305);
+/// Ore a crusher makes (Ore Crushing): it smelts to an ingot a piece, so an ore gives one and a half.
+pub const CRUSHED_IRON: ItemId = ItemId(306);
+pub const CRUSHED_COPPER: ItemId = ItemId(307);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -134,7 +163,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 29] = [
+const EXTRA: [ItemDef; 52] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -164,6 +193,29 @@ const EXTRA: [ItemDef; 29] = [
     tool("Steel Pickaxe", tex::STEEL_PICKAXE, &STEEL_TIER),
     tool("Steel Axe", tex::STEEL_AXE, &STEEL_TIER),
     tool("Steel Shovel", tex::STEEL_SHOVEL, &STEEL_TIER),
+    part("Blue Science Pack", tex::BLUE_PACK, [0.4, 0.6, 0.4]),
+    part("Blue Kit", tex::stripe(2), [0.6, 0.45, 0.6]),
+    machine("Belt Mk3", [tex::FRAME, tex::BELT_MK3_TOP, tex::FRAME]),
+    machine("Miner Mk3", [tex::MINER_TOP, tex::MINER_MK3_SIDE, tex::FRAME]),
+    machine("Smelter Mk3", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
+    machine("Constructor Mk3", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
+    machine("Assembler Mk2", [tex::ASSEMBLER_TOP, tex::ASSEMBLER_SIDE, tex::FRAME]),
+    machine("Assembler Mk3", [tex::ASSEMBLER_TOP, tex::ASSEMBLER_SIDE, tex::FRAME]),
+    machine("Blast Furnace Mk2", [tex::BLAST_TOP, tex::BLAST_SIDE, tex::FRAME]),
+    machine("Blast Furnace Mk3", [tex::BLAST_TOP, tex::BLAST_SIDE, tex::FRAME]),
+    machine("Power Pole Mk2", [tex::FRAME, tex::POLE_SIDE, tex::FRAME]),
+    machine("Power Pole Mk3", [tex::FRAME, tex::POLE_SIDE, tex::FRAME]),
+    machine("Storage Box Mk2", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
+    machine("Storage Box Mk3", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
+    machine("Pump Mk2", [tex::STEEL, tex::GENERATOR_SIDE, tex::FRAME]),
+    machine("Pump Mk3", [tex::STEEL, tex::GENERATOR_SIDE, tex::FRAME]),
+    machine("Quarry Mk2", [tex::STEEL, tex::MINER_MK2_SIDE, tex::FRAME]),
+    machine("Quarry Mk3", [tex::STEEL, tex::MINER_MK2_SIDE, tex::FRAME]),
+    machine("Research Lab Mk2", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
+    machine("Research Lab Mk3", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
+    machine("Coal Generator Mk2", [tex::GENERATOR_TOP, tex::GENERATOR_SIDE, tex::FRAME]),
+    part("Crushed Iron", tex::CRUSHED_IRON, [0.6, 0.4, 0.6]),
+    part("Crushed Copper", tex::CRUSHED_COPPER, [0.6, 0.4, 0.6]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

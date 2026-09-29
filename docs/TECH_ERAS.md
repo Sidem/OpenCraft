@@ -1,7 +1,7 @@
 # OpenCraft tech eras: items, recipes, machines, techs
 
-The detail behind `docs/TECH_TREE.md` (read that first). **Read only the era you plan or build.** Era 3
-is detailed for building now; later eras are sketches to detail when their milestone comes up. Recipes
+The detail behind `docs/TECH_TREE.md` (read that first). **Read only the era you plan or build.** Era 4
+is detailed for building now (era 3 is built); later eras are sketches to detail when their milestone comes up. Recipes
 are `inputs → outputs (machine, seconds)`; techs append to `TECHS` in the order listed ("r g b v y" are
 the red, green, blue, violet and gold packs). All numbers are first guesses.
 
@@ -12,17 +12,18 @@ Each family's numbers are one array indexed by tier, atop its module.
 | Family | Mk1 | Mk2 | Mk3 | Mk4 | Mk5 |
 |---|---|---|---|---|---|
 | Belts, ramps, lifts (blocks/s; items/s) | 1; 2.9 | 2; 5.7 | 4; 11.4 | 8; 22.9 | — |
+| (measured at 60 ticks/s: a belt takes the next item on the first tick past the 0.35 gap) | 2.9 | 5.5 | 10 | | |
 | Underpass range | 5 | 7 | 9 | 12 | — |
 | Splitter, filter | pass as fast as a belt of their tier | | | | |
 | Miner (units/s · recovery · kW) | 1 · 60 % · 5 | 2 · 75 % · 20 | 4 · 85 % · 45 | 6 · 92 % · 90 | 8 · 97 % · 150 |
 | Smelter | burner ×1 | burner ×2, a quarter less fuel an ingot | electric ×3, 40 kW, no fuel | ×5, 80 kW | — |
 | Other processors (speed; power grows alike) | ×1 | ×2 | ×3 | ×5 | ×8 |
-| Coal generator (kW · kJ a coal) | 60 · 270 | 100 · 340 | — | — | — |
+| Coal generator (kW · kJ a coal) | 60 · 270 | 100 · 337 | — | — | — |
 | Pole (link · reach) | 10 · 5 | 16 · 7 | 32 · 9 (pylon) | 32 · 16 (substation) | — |
 | Storage box (slots) | 24 | 36 | 48 | — | — |
-| Pump (sources/s) | 2 | 4 | 8 | — | — |
+| Pump (sources/s · kW) | 2 · 5 | 4 · 10 | 6 · 20 | — | — |
 | Lab (speed · free units) | ×1 | ×2 | ×3 · every 5th | ×4 · every 3rd | — |
-| Quarry (blocks/s · largest box) | 2 · today's | 4 · 1.5× | 8 · 2× | — | — |
+| Quarry (blocks/s · kW; the box is the panel's choice) | 2 · 10 | 4 · 20 | 6 · 30 | — | — |
 | Drone port (range · drones) | 32 · 4 | 48 · 8 | 64 · 12 | 96 · 16 | 128 · 24 |
 | Excavator (drones · range) | 4 · 32 | 8 · 48 | 12 · 64 | 16 · 96 | — |
 | Laser link (range · efficiency) | 64 · 80 % | 128 · 88 % | 256 · 94 % | 512 · 98 % | — |
@@ -32,55 +33,25 @@ Kits (a craft makes 4): **green** 2 gears, 4 screws, 2 copper wire (hand or asse
 2 steel plates, 4 screws · **violet** 2 circuits, 1 motor, 2 steel plates · **gold** 1 processor, 2
 aluminium plates, 1 plastic (blue and up: assembler only).
 
-## 2. Era 3: Industry (blue, Milestone 6, now)
+## 2. Era 3: Industry (blue, Milestone 6, built)
 
-The problem it adds: heat and flux. Steel takes three inputs and gives a byproduct, the first real
-multi-input line; blue science pulls three separate lines (parts, steel, concrete) together.
+Steel takes three inputs and gives a byproduct; blue science pulls parts, steel and concrete together.
+What was built is in the code (`recipes/machine.rs`, `factory/process/specs.rs`, `research.rs`), DEV_PLAN
+section 4 and git history. The numbers worth keeping:
 
-| Item | Recipe | Other uses |
-|---|---|---|
-| Gear | 1 iron plate → 1 (constructor, 2 s) | green kit, motor, assembler |
-| Stone brick | 2 stone → 1 (smelter, 3 s) | blast furnace, boiler, arc furnace, building |
-| Quicklime | 1 limestone → 1 (smelter, 2 s) | steel and aluminium flux, concrete |
-| Motor | 1 iron rod, 2 gears, 4 copper wire → 1 (assembler, 5 s) | blue pack and kit, turbine, crusher, drones |
-| Concrete (block) | 1 quicklime, 2 sand, 2 stone → 4 (assembler, 4 s) | blue pack, blast furnace, silo, building |
-| Steel ingot | 2 iron ore (or crushed iron), 1 coal, 1 quicklime → 1 + 1 slag (blast furnace, 4 s) | plates, beams |
-| Steel plate | 1 steel ingot → 1 (constructor, 3 s) | kits, packs, most era 3–4 machines |
-| Steel beam | 2 steel ingots → 1 (constructor, 4 s) | pylons, silo, violet pack, rails |
-| Slag (block) | the blast furnace's byproduct | fill for sites; crusher: 1 slag → 1 sand |
-| Crushed iron, copper | 2 ore → 3 (crusher, 2 s) | smelt 1 → 1 ingot; the blast furnace takes crushed iron |
-| Blue pack | 1 motor, 1 steel plate, 1 concrete → 2 (assembler, 12 s) | labs |
-| Steel pickaxe, axe, shovel | 3 steel plates, 2 iron rods (hand) | 1,500 uses, 6× speed, keeps 5 ore a block |
-
-| Machine | Footprint, ports | Power | Hand recipe |
-|---|---|---|---|
-| Assembler | 2×2×2; 3 in (back, left, right), 1 out (front) | 20 kW | 12 iron plates, 6 gears, 12 copper wire, 4 iron rods |
-| Blast furnace | 2×2×3; 3 in, out front (steel), out side (slag) | burns the recipe's coal | 32 stone bricks, 8 concrete, 12 iron plates, 2 motors |
-| Crusher | 1×1; in back, out front | 30 kW | 6 steel plates, 2 motors, 4 gears |
-| Boiler | 2×2×2; fuel in, water by pipe; steam to touching turbines | — | 24 stone bricks, 8 steel plates, 6 pipes |
-| Steam turbine | 3×2×2; steam from a touching boiler | gives up to 240 kW | 12 steel plates, 4 motors, 16 copper wire |
-| Silo | 2×2×3; in on every side, out to belts leading away (144 slots) | — | 24 steel plates, 8 concrete, 4 steel beams |
-
-| Tech | Packs | Needs | Units × s | Unlocks |
-|---|---|---|---|---|
-| Mechanics | r g | Green Science | 30 × 10 | gear, green kit, Mk2 of every family so far |
-| Masonry | r | — | 15 × 5 | stone brick, quicklime |
-| Assembly | r g | Mechanics | 40 × 10 | assembler, motor, concrete |
-| Steelmaking | r g | Assembly, Masonry | 50 × 15 | blast furnace, steel plate, steel beam |
-| Blue Science | r g | Steelmaking | 50 × 15 | blue pack |
-| Mk3 Logistics | r g b | Blue Science | 60 × 20 | blue kit; Mk3 belts, routers, poles, boxes |
-| Mk3 Machines | r g b | Mk3 Logistics | 80 × 20 | Mk3 miners, smelters (electric), processors, labs, pumps, quarries |
-| Steam Power | r g b | Blue Science, Fluid Handling | 60 × 20 | boiler, steam turbine |
-| Ore Crushing | r g b | Blue Science | 60 × 20 | crusher |
-| Bulk Storage | r g b | Blue Science | 40 × 20 | silo |
-| Steel Tools | r g b | Steelmaking | 30 × 15 | steel tools (until 6.7 they come with Steelmaking) |
-
+- **Chain:** gear, stone brick, quicklime, motor (assembler), concrete (assembler), steel ingot (blast
+  furnace: 2 iron ore + coal + quicklime, slag on the side; crushed ore only goes to smelters), steel plate and beam, blue
+  pack (motor, steel plate, concrete), blue kit.
+- **Machines:** assembler 2×2×2 (20 kW), blast furnace 2×2×3 (burns the recipe's coal), boiler 2×2×2,
+  steam turbine 3×2×2 (up to 240 kW), silo 2×2×3 (144 slots, in on three sides, out the front), crusher
+  1×1 (30 kW, a plain processor with no port rules, like the smelter).
 - **Steam:** 540 kJ a coal (twice a generator), 1 water source per 2,000 kJ through pipes, up to two
-  touching turbines (480 kW). One pump serves about eight boilers; a sea pump never runs dry.
-- **Size check:** a first blue-science line fits in about 40 × 40 blocks: three assemblers, a blast
-  furnace, a quarry for stone and sand, a limestone miner.
+  touching turbines (480 kW) a boiler; a sea pump never runs dry, a pond dries.
+- **Crushing:** 2 ore → 3 crushed (2 s), so a crusher line gives 1.5 ingots an ore; 1 slag → 1 sand.
+- **Techs** (append order): Mechanics, Masonry, Assembly, Steelmaking, Blue Science, Mk3 Logistics, Mk3
+  Machines, Steel Tools, Steam Power (r g b, 60 × 20), Ore Crushing (60 × 20), Bulk Storage (40 × 20).
 
-## 3. Era 4: Electronics (violet, Milestone 7)
+## 3. Era 4: Electronics (violet, Milestone 7, now)
 
 Precision and depth: quartz lies 25–50 down. Blueprints and drones need circuits: the factory builds its
 own builders. Flight arrives: the jetpack.

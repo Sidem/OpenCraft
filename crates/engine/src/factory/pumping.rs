@@ -1,10 +1,10 @@
 //! Moving water through pipework (core state, one tick at a time, from `Factory::update`).
 //!
-//! - A pump (powered, `PUMP_POWER`) lifts `PUMP_RATE` source blocks a second out of the water it
-//!   touches: it searches from its six faces through water (sources and flows) up to `PUMP_RANGE`
+//! - A pump (powered) lifts source blocks out of the water it touches, as fast as its tier says
+//!   (`PUMP_TIERS`: rate, hold and kW): it searches from its six faces through water (sources and flows) up to `PUMP_RANGE`
 //!   steps and takes the highest source, then the farthest (so a pool drains from its edges inward
 //!   and what is left stays joined to the intake), then the lowest position. It holds up to
-//!   `PUMP_HOLD` units and stops while full, so a network whose water nothing takes stands still. The
+//!   its `hold` units and stops while full, so a network whose water nothing takes stands still. The
 //!   sea refills what it takes (sim/water.rs), so its level never drops.
 //! - An outlet pours up to `OUTLET_RATE` units a second, taking them from the pumps of its network in
 //!   list order. Each unit becomes a source where it lands: straight down from the cell in front, or,
@@ -27,10 +27,21 @@ use super::pipes::{Flow, Part, Pipework, UNIT};
 use super::power::Power;
 use super::{DIRS, FACES};
 
-/// Source blocks a pump lifts a second at full power.
-pub const PUMP_RATE: u32 = 2;
-/// Units of water a pump holds for its outlets.
-pub const PUMP_HOLD: u32 = 2;
+/// What a pump tier does, Mk1 first.
+pub struct PumpTier {
+    /// Source blocks lifted a second at full power (a divisor of 60, so the ticks are whole).
+    pub rate: u32,
+    /// Units of water it holds for its outlets.
+    pub hold: u32,
+    /// kW while it has room for water.
+    pub power: u32,
+}
+
+pub const PUMP_TIERS: [PumpTier; 3] = [
+    PumpTier { rate: 2, hold: 2, power: 5 },
+    PumpTier { rate: 4, hold: 4, power: 10 },
+    PumpTier { rate: 6, hold: 6, power: 20 },
+];
 /// Source blocks an outlet can pour a second.
 pub const OUTLET_RATE: u32 = 4;
 /// How far (in steps through water) pumps and outlets search.
@@ -55,14 +66,14 @@ pub(super) fn step_pipework(
         }
         let speed = power.speed(pole);
         p.flow = match () {
-            _ if p.held >= PUMP_HOLD => Flow::Full,
+            _ if p.held >= p.pump_stats().hold => Flow::Full,
             _ if speed == 0 => Flow::NoPower,
             _ => Flow::Working,
         };
         if p.flow != Flow::Working {
             continue;
         }
-        p.progress = (p.progress + PUMP_RATE * speed).min(UNIT);
+        p.progress = (p.progress + p.pump_stats().rate * speed).min(UNIT);
         if p.progress < UNIT {
             continue;
         }

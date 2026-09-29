@@ -1,12 +1,14 @@
 //! Research lab: uses science packs to research the world's chosen tech (`research.rs`). Buffer slot
 //! `i` holds `PACKS[i]` only, so one pack can't crowd out another; belts, miners and the panel bring
 //! packs in. A unit takes one of each of the tech's packs when it starts, then `seconds` of work at
-//! full power; the finished unit counts towards the tech. Powered, like the constructor.
+//! full power; the finished unit counts towards the tech. Powered, like the constructor. A tier
+//! (`LAB_TIERS`) works faster and draws more; the top one gets every `free_every`th unit without packs.
 //!
 //! Invariants: labs never start more units than a tech has left (`step_labs` counts the units
 //! already in progress in any lab); a unit in progress finishes for the tech it started on, even if
-//! the chosen tech changes. Work is counted in thousandths of a tick at full power. `status` is
-//! last tick's (for the view, not saved).
+//! the chosen tech changes. Work is counted in thousandths of a tick at full power, times the tier's
+//! speed. `since_free` counts the paid units since the last free one; `free` says the unit in progress
+//! is free (nothing to give back). `status` is last tick's (for the view, not saved).
 
 use crate::block::{tex, LAB};
 use crate::bytes::{ByteReader, ByteWriter};
@@ -31,8 +33,28 @@ pub enum LabStatus {
     NoPower,
 }
 
+/// What a lab tier does, Mk1 first.
+pub struct LabTier {
+    /// Work per tick relative to Mk1.
+    pub speed: u32,
+    /// kW while researching.
+    pub power: u32,
+    /// Every this many units the last one takes no packs (0: never).
+    pub free_every: u8,
+}
+
+pub const LAB_TIERS: [LabTier; 3] = [
+    LabTier { speed: 1, power: 10, free_every: 0 },
+    LabTier { speed: 2, power: 20, free_every: 0 },
+    LabTier { speed: 3, power: 30, free_every: 5 },
+];
+
 pub struct Lab {
     pub pos: IVec3,
+    pub tier: u8,
+    /// Paid units since the last free one, and whether the unit in progress is free.
+    pub since_free: u8,
+    pub free: bool,
     /// Slot `i` holds `PACKS[i]`.
     pub packs: Buffer,
     /// The tech of the unit in progress, and the work it has had (thousandths of a full-power tick).
@@ -57,7 +79,33 @@ pub fn step_labs(labs: &mut [Lab], lab_pole: &[Option<u32>], power: &Power, rese
 impl Lab {
     pub fn new(pos: IVec3) -> Lab {
         let packs = Buffer::new(Kind::Lab.def().slots);
-        Lab { pos, packs, unit: None, progress: 0, speed: 0, status: LabStatus::NoResearch }
+        Lab {
+            pos,
+            tier: 0,
+            since_free: 0,
+            free: false,
+            packs,
+            unit: None,
+            progress: 0,
+            speed: 0,
+            status: LabStatus::NoResearch,
+        }
+    }
+
+    pub fn stats(&self) -> &'static LabTier {
+        &LAB_TIERS[self.tier as usize]
+    }
+
+    /// Makes it tier `tier`; a unit in progress keeps the way it was paid for.
+    pub fn set_tier(&mut self, tier: u8) {
+        self.tier = tier;
+        self.since_free = 0;
+    }
+
+    /// Whether the next unit it starts is the free one.
+    fn free_next(&self) -> bool {
+        let every = self.stats().free_every;
+        every > 0 && self.since_free + 1 >= every
     }
 
     /// How many of `item` it would take now: science packs, up to their slot's room.
@@ -100,7 +148,9 @@ impl Lab {
                         return;
                     }
                 };
-                for &p in TECHS[t as usize].packs {
+                self.free = self.free_next();
+                self.since_free = if self.free { 0 } else { self.since_free.saturating_add(1) };
+                for &p in TECHS[t as usize].packs.iter().filter(|_| !self.free) {
                     self.packs.take(pack_slot(p).unwrap_or(0), 1);
                 }
                 taken[t as usize] += 1;
@@ -113,11 +163,11 @@ impl Lab {
             return;
         }
         self.status = LabStatus::Working;
-        self.progress += speed;
+        self.progress += speed * self.stats().speed;
         if self.progress >= ticks(TECHS[tech as usize].seconds) * FULL_SPEED {
             research.add_unit(tech);
             taken[tech as usize] -= 1;
-            (self.unit, self.progress) = (None, 0);
+            (self.unit, self.progress, self.free) = (None, 0, false);
         }
     }
 
@@ -126,7 +176,7 @@ impl Lab {
         let t = research.current.ok_or(LabStatus::NoResearch)?;
         if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
             Err(LabStatus::AllTaken)
-        } else if !self.has_packs(t) {
+        } else if !self.free_next() && !self.has_packs(t) {
             Err(LabStatus::NoPacks)
         } else {
             Ok(t)
@@ -185,22 +235,32 @@ impl Machine for Lab {
         self.packs.write_state(w);
         w.u8(self.unit.unwrap_or(u8::MAX));
         w.u32(self.progress);
+        w.u8(self.tier);
+        w.u8(self.since_free);
+        w.bool(self.free);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Lab> {
         let mut l = Lab::new(r.ivec3()?);
-        l.packs = Buffer::read_state(r, PACKS.len())?;
+        // Saves before version 20 had no blue pack slot.
+        let held = if r.version >= 20 { PACKS.len() } else { PACKS.len() - 1 };
+        l.packs = Buffer::read_state(r, held)?;
+        l.packs.slots.resize(PACKS.len(), Stack::default());
         let slots_ok = l.packs.slots.iter().zip(PACKS).all(|(s, p)| s.is_empty() || s.item == p);
         let unit = r.u8()?;
         l.unit = (unit != u8::MAX).then_some(unit);
         l.progress = r.u32()?;
-        (slots_ok && l.unit.is_none_or(|t| (t as usize) < TECHS.len())).then_some(l)
+        if r.version >= 21 {
+            (l.tier, l.since_free, l.free) = (r.u8()?, r.u8()?, r.bool()?);
+        }
+        let ok = slots_ok && l.unit.is_none_or(|t| (t as usize) < TECHS.len()) && (l.tier as usize) < LAB_TIERS.len();
+        ok.then_some(l)
     }
 
     /// Its packs, plus those of an unfinished unit (given back rather than lost).
     fn contents(&self) -> Vec<Stack> {
         let mut all = self.packs.contents();
-        if let Some(t) = self.unit {
+        if let Some(t) = self.unit.filter(|_| !self.free) {
             all.extend(TECHS[t as usize].packs.iter().map(|&item| Stack { item, count: 1 }));
         }
         all
@@ -218,6 +278,9 @@ impl Machine for Lab {
         if !held.is_empty() {
             lines.push(held.join(" · "));
         }
+        let LabTier { speed, power, free_every } = *self.stats();
+        let free = if free_every > 0 { format!(" · every {free_every}th unit is free") } else { String::new() };
+        lines.push(format!("×{speed} speed · needs {power} kW{free}"));
         lines.push("Right-click to open".to_string());
         lines.join("\n")
     }

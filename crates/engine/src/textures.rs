@@ -5,13 +5,14 @@
 //! Terrain lives in `nature.rs` (with the surface hints) and `ores.rs`, province rocks in
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
-//! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`.
+//! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
 
 mod assembly;
 mod geology;
+mod heavy;
 mod items;
 mod machines;
 mod masonry;
@@ -114,6 +115,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::FRAME => frame(x, y),
         tex::MINER_SIDE => miner_side(x, y, [196.0, 117.0, 69.0]),
         tex::MINER_MK2_SIDE => miner_side(x, y, [106.0, 164.0, 176.0]),
+        tex::BELT_MK3_TOP => belt_top(x, y, [86.0, 140.0, 222.0]),
+        tex::MINER_MK3_SIDE => miner_side(x, y, [86.0, 140.0, 222.0]),
         tex::MINER_TOP => miner_top(x, y),
         tex::DRILL => drill(x, y),
         tex::BOX_SIDE => crate_wood(x, y, false),
@@ -164,7 +167,10 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STONE_BRICKS => masonry::stone_bricks(x, y),
         tex::QUICKLIME => masonry::quicklime(x, y),
         tex::ASSEMBLER_SIDE..=tex::MOTOR => assembly::pixel(layer, x, y),
-        tex::BLAST_SIDE..=tex::SLAG | tex::STEEL_INGOT..=tex::STEEL_BEAM | tex::STEEL_HEAD => steel::pixel(layer, x, y),
+        tex::BLAST_SIDE..=tex::SLAG | tex::STEEL_INGOT..=tex::STEEL_BEAM | tex::STEEL_HEAD | tex::BLUE_PACK => {
+            steel::pixel(layer, x, y)
+        }
+        tex::BOILER_SIDE..=tex::CRUSHED_COPPER => heavy::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

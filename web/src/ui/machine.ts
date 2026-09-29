@@ -147,10 +147,13 @@ export class MachinePanel {
     this.slots.replaceChildren();
     let output = -1;
     let held = 0;
+    // A silo has 144 slots: show only the ones that hold something.
+    const many = count > 12;
     for (let i = 0; i < count; i++) {
       const role = data[6 + i * 3], item = data[7 + i * 3], n = data[8 + i * 3];
       if (role === g.panel_role_output()) output = Math.max(output, 0) + n;
       else if (n > 0) held = item;
+      if (many && n === 0) continue;
       this.slots.append(this.slotView(this.roleLabels.get(role) ?? '', item, n));
     }
     this.take.disabled = output <= 0;

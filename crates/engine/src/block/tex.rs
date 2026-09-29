@@ -140,7 +140,22 @@ pub const STEEL_PICKAXE: u16 = 134;
 pub const STEEL_AXE: u16 = 135;
 pub const STEEL_SHOVEL: u16 = 136;
 pub const STEEL_HEAD: u16 = 137;
-pub const COUNT: usize = 138;
+/// Blue tier (Blue Science, `textures/steel.rs`): the pack, and the Mk3 belt top and miner housing.
+pub const BLUE_PACK: u16 = 138;
+pub const BELT_MK3_TOP: u16 = 139;
+pub const MINER_MK3_SIDE: u16 = 140;
+/// Heavy industry (`textures/heavy.rs`): the boiler, steam turbine, crusher and silo, and crushed ore.
+pub const BOILER_SIDE: u16 = 141;
+pub const BOILER_TOP: u16 = 142;
+pub const TURBINE_SIDE: u16 = 143;
+pub const TURBINE_TOP: u16 = 144;
+pub const CRUSHER_SIDE: u16 = 145;
+pub const CRUSHER_TOP: u16 = 146;
+pub const SILO_SIDE: u16 = 147;
+pub const SILO_TOP: u16 = 148;
+pub const CRUSHED_IRON: u16 = 149;
+pub const CRUSHED_COPPER: u16 = 150;
+pub const COUNT: usize = 151;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

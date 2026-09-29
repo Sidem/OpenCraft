@@ -1,7 +1,9 @@
 //! Tiered families (Mk1, Mk2, …): which machines come in tiers and which item is each tier.
 //!
 //! A tier is machine state: `tier: u8`, an index (0 is Mk1) into the family's numbers, which live atop
-//! the machine's own module as one array (`BELT_TIERS`, `MINER_TIERS`, a processor spec's `tiers`).
+//! the machine's own module as one array (`BELT_TIERS`, `MINER_TIERS`, `LAB_TIERS`, `POLE_TIERS`,
+//! `BOX_SLOTS`, `PUMP_TIERS`, `QUARRY_TIERS`, `GENERATOR_TIERS`, a processor spec's `tiers`). Splitters and
+//! filters have none: they pass an item a tick, faster than any belt.
 //! Every tier of a family puts the same block into the world; only the machine's `tier` and the item
 //! that places it differ.
 //!
@@ -11,10 +13,18 @@
 //!
 //! To add a tier: a row in the family's numbers array, its item appended to `items` (a new item id) and
 //! its hand recipe (the previous tier plus kits; the lint checks it). To add a family: a `FAMILIES` row,
-//! a saved `tier` field on the machine, its numbers array, and its arm in `Factory::tiered_at`.
+//! a saved `tier` field on the machine (read only from `SAVE_VERSION` 21 on, so old saves load at Mk1), its numbers
+//! array, and its arms in `Factory::tiered_at` and `Factory::set_tier` (`upgrades.rs`).
 
-use crate::block::{BlockId, BELT, CONSTRUCTOR, FAST_BELT, MINER, MINER_MK2, SMELTER};
-use crate::item::{ItemId, CONSTRUCTOR_MK2, SMELTER_MK2};
+use crate::block::{
+    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, FAST_BELT, GENERATOR, LAB, MINER, MINER_MK2, POLE, PUMP,
+    QUARRY, SMELTER, STORAGE,
+};
+use crate::item::{
+    ItemId, ASSEMBLER_MK2, ASSEMBLER_MK3, BELT_MK3, BLAST_FURNACE_MK2, BLAST_FURNACE_MK3, BOX_MK2, BOX_MK3,
+    CONSTRUCTOR_MK2, CONSTRUCTOR_MK3, GENERATOR_MK2, LAB_MK2, LAB_MK3, MINER_MK3, POLE_MK2, POLE_MK3, PUMP_MK2,
+    PUMP_MK3, QUARRY_MK2, QUARRY_MK3, SMELTER_MK2, SMELTER_MK3,
+};
 
 pub struct Family {
     /// The block every tier puts into the world.
@@ -26,10 +36,22 @@ pub struct Family {
 }
 
 pub const FAMILIES: &[Family] = &[
-    Family { block: BELT, items: &[ItemId::block(BELT), ItemId::block(FAST_BELT)], kits: 1 },
-    Family { block: MINER, items: &[ItemId::block(MINER), ItemId::block(MINER_MK2)], kits: 4 },
-    Family { block: SMELTER, items: &[ItemId::block(SMELTER), SMELTER_MK2], kits: 4 },
-    Family { block: CONSTRUCTOR, items: &[ItemId::block(CONSTRUCTOR), CONSTRUCTOR_MK2], kits: 4 },
+    Family { block: BELT, items: &[ItemId::block(BELT), ItemId::block(FAST_BELT), BELT_MK3], kits: 1 },
+    Family { block: MINER, items: &[ItemId::block(MINER), ItemId::block(MINER_MK2), MINER_MK3], kits: 4 },
+    Family { block: SMELTER, items: &[ItemId::block(SMELTER), SMELTER_MK2, SMELTER_MK3], kits: 4 },
+    Family { block: CONSTRUCTOR, items: &[ItemId::block(CONSTRUCTOR), CONSTRUCTOR_MK2, CONSTRUCTOR_MK3], kits: 4 },
+    Family { block: ASSEMBLER, items: &[ItemId::block(ASSEMBLER), ASSEMBLER_MK2, ASSEMBLER_MK3], kits: 8 },
+    Family {
+        block: BLAST_FURNACE,
+        items: &[ItemId::block(BLAST_FURNACE), BLAST_FURNACE_MK2, BLAST_FURNACE_MK3],
+        kits: 8,
+    },
+    Family { block: POLE, items: &[ItemId::block(POLE), POLE_MK2, POLE_MK3], kits: 1 },
+    Family { block: STORAGE, items: &[ItemId::block(STORAGE), BOX_MK2, BOX_MK3], kits: 4 },
+    Family { block: PUMP, items: &[ItemId::block(PUMP), PUMP_MK2, PUMP_MK3], kits: 4 },
+    Family { block: QUARRY, items: &[ItemId::block(QUARRY), QUARRY_MK2, QUARRY_MK3], kits: 4 },
+    Family { block: LAB, items: &[ItemId::block(LAB), LAB_MK2, LAB_MK3], kits: 4 },
+    Family { block: GENERATOR, items: &[ItemId::block(GENERATOR), GENERATOR_MK2], kits: 4 },
 ];
 
 /// The family block and tier that `item` places, if it is a tiered machine.

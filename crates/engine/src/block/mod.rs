@@ -97,7 +97,13 @@ pub const CONCRETE: BlockId = 63;
 pub const BLAST_FURNACE: BlockId = 64;
 /// The blast furnace's byproduct; a building block and fill for sites.
 pub const SLAG: BlockId = 65;
-pub const BLOCK_COUNT: usize = 66;
+/// Heavy industry (Steam Power, Ore Crushing, Bulk Storage), all processor rows (`factory/process/`):
+/// the boiler (2×2×2), the steam turbine (3×2×2), the crusher (1×1×1) and the silo (2×2×3).
+pub const BOILER: BlockId = 66;
+pub const TURBINE: BlockId = 67;
+pub const CRUSHER: BlockId = 68;
+pub const SILO: BlockId = 69;
+pub const BLOCK_COUNT: usize = 70;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -305,6 +311,10 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     cube("Concrete", 1.4, all(tex::CONCRETE), CONCRETE, sound::STONE),
     machine("Blast Furnace", true, 1.4, pillar(tex::BLAST_SIDE, tex::BLAST_TOP, tex::FRAME), BLAST_FURNACE),
     cube("Slag", 1.1, all(tex::SLAG), SLAG, sound::STONE),
+    machine("Boiler", true, 1.4, pillar(tex::BOILER_SIDE, tex::BOILER_TOP, tex::FRAME), BOILER),
+    machine("Steam Turbine", true, 1.4, pillar(tex::TURBINE_SIDE, tex::TURBINE_TOP, tex::FRAME), TURBINE),
+    machine("Crusher", true, 1.3, pillar(tex::CRUSHER_SIDE, tex::CRUSHER_TOP, tex::FRAME), CRUSHER),
+    machine("Silo", true, 1.4, pillar(tex::SILO_SIDE, tex::SILO_TOP, tex::FRAME), SILO),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

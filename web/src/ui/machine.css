@@ -91,6 +91,7 @@
 
 .mp-slots {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   margin: 8px 0 12px;
 }

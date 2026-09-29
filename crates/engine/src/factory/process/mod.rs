@@ -25,25 +25,28 @@
 mod legacy;
 mod model;
 mod specs;
+mod steam;
 mod view;
+mod work;
 
 pub use legacy::{read_constructor, read_smelter};
 #[cfg(test)]
 pub use specs::SPECS;
 pub use specs::{makes, spec, Energy, Pick, ProcessSpec, ProcessTier};
+use steam::Steam;
+pub(super) use steam::{draw_water, link as link_steam, run_turbine};
 
 use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::{stack_size, ItemId};
 use crate::math::{IVec3, Vec3};
-use crate::recipes::{burn_time, MachineRecipe, MACHINE_RECIPES};
+use crate::recipes::{burn_time, MachineRecipe};
 
 use super::belt::Belt;
 use super::buffer::Buffer;
 use super::footprint::Role;
-use super::power::FULL_SPEED;
-use super::{ticks, Factory, Machine};
+use super::{Factory, Machine};
 
 /// Byproducts a machine holds before it stops for want of a belt to take them (a stack is more than
 /// a player would notice filling).
@@ -57,11 +60,20 @@ pub enum Status {
     OutputFull,
     NoPower,
     NoFuel,
+    /// A boiler with fuel but no water.
+    NoWater,
 }
 
 /// Every status, in declaration order: saves store `status as u8`.
-const STATUSES: [Status; 6] =
-    [Status::NoRecipe, Status::Working, Status::NoInput, Status::OutputFull, Status::NoPower, Status::NoFuel];
+const STATUSES: [Status; 7] = [
+    Status::NoRecipe,
+    Status::Working,
+    Status::NoInput,
+    Status::OutputFull,
+    Status::NoPower,
+    Status::NoFuel,
+    Status::NoWater,
+];
 
 pub struct Processor {
     pub pos: IVec3,
@@ -82,6 +94,8 @@ pub struct Processor {
     pub out: Buffer,
     /// Byproducts (`spec.side` slots; none for most machines).
     pub side: Buffer,
+    /// A boiler's or turbine's steam and water (steam.rs).
+    pub steam: Steam,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
@@ -110,6 +124,7 @@ impl Processor {
             fuel,
             out,
             side: Buffer::new(spec.side),
+            steam: Steam::default(),
             speed: 0,
             outs: Vec::new(),
             side_outs: Vec::new(),
@@ -130,9 +145,13 @@ impl Processor {
         if self.is_fuel(item) {
             return self.fuel.space_for(item);
         }
+        if self.spec.pick == Pick::Store {
+            return self.out.space_for(item);
+        }
         let wanted = match self.spec.pick {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
+            Pick::Store => false,
         };
         let cap = if self.spec.pick == Pick::Chosen {
             stack_size(item).saturating_sub(self.input.count(item))
@@ -154,7 +173,11 @@ impl Processor {
     /// Puts up to `n` of `item` where it belongs; returns how many went in.
     pub fn insert(&mut self, item: ItemId, n: u32, unlocked: &[bool]) -> u32 {
         let put = n.min(self.room_for(item, unlocked));
-        let buf = if self.is_fuel(item) { &mut self.fuel } else { &mut self.input };
+        let buf = match () {
+            _ if self.is_fuel(item) => &mut self.fuel,
+            _ if self.spec.pick == Pick::Store => &mut self.out,
+            _ => &mut self.input,
+        };
         buf.add(item, put);
         put
     }
@@ -174,14 +197,19 @@ impl Processor {
     /// (starting one if it can), then push an item out.
     pub fn step(&mut self, belts: &mut [Belt], power: u32, unlocked: &[bool]) {
         self.speed = power;
-        self.work(power, unlocked);
+        match (self.energy(), self.spec.pick) {
+            (Energy::Boiler, _) => self.boil(),
+            (Energy::Turbine, _) | (_, Pick::Store) => {}
+            _ => self.work(power, unlocked),
+        }
         self.out.feed(&self.outs, &mut self.next_out, belts);
         self.side.feed(&self.side_outs, &mut self.next_side, belts);
     }
 
     /// Whether it would work this tick if powered (its grid counts it as demand).
     pub fn wants_power(&self, unlocked: &[bool]) -> bool {
-        self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none())
+        self.energy() == Energy::Electric
+            && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
     }
 
     /// Every cell it occupies, its anchor `pos` first.
@@ -204,110 +232,18 @@ impl Processor {
         self.spec.footprint.faces(self.pos, self.dir, Role::Side)
     }
 
+    /// How its tier is driven.
+    pub fn energy(&self) -> Energy {
+        self.stats().energy
+    }
+
     /// kW it draws while it works (0 unless electric).
     pub fn power(&self) -> u32 {
         self.stats().power
     }
 
-    fn work(&mut self, power: u32, unlocked: &[bool]) {
-        if self.batch.is_none() {
-            let i = match self.next(unlocked) {
-                Ok(i) => i,
-                Err(why) => {
-                    self.status = why;
-                    return;
-                }
-            };
-            if let Some(why) = self.blocked(i).or((power == 0).then_some(Status::NoPower)) {
-                self.status = why;
-                return;
-            }
-            for &(item, n) in MACHINE_RECIPES[i as usize].inputs {
-                self.input.remove(item, n);
-            }
-            (self.batch, self.progress) = (Some(i), 0);
-        }
-        let Some(r) = self.batch_recipe() else { return };
-        let work = self.stats().speed * power / FULL_SPEED;
-        if self.spec.energy == Energy::Burner {
-            if self.burn == 0 {
-                self.light();
-            }
-            if self.burn == 0 {
-                self.status = Status::NoFuel;
-                return;
-            }
-            self.burn = self.burn.saturating_sub(work * self.stats().fuel / 1000);
-        } else if self.spec.energy == Energy::Electric && power == 0 {
-            self.status = Status::NoPower;
-            return;
-        }
-        self.status = Status::Working;
-        self.progress += work;
-        if self.progress >= ticks(r.seconds) * FULL_SPEED {
-            for (k, &(item, n)) in r.outputs.iter().enumerate() {
-                if self.to_side(k) {
-                    self.side.add(item, n);
-                } else {
-                    self.out.add(item, n);
-                }
-            }
-            (self.batch, self.progress) = (None, 0);
-        }
-    }
-
-    /// The recipe the next batch would be (a `MACHINE_RECIPES` index), or why there is none.
-    fn next(&self, unlocked: &[bool]) -> Result<u16, Status> {
-        match self.spec.pick {
-            Pick::Chosen => self.recipe.filter(|&i| self.spec.recipe(i).is_some()).ok_or(Status::NoRecipe),
-            Pick::ByInput => {
-                let held = self.input.slots.iter().find(|s| !s.is_empty()).ok_or(Status::NoInput)?;
-                self.spec.recipe_using(held.item, unlocked).ok_or(Status::NoInput)
-            }
-        }
-    }
-
-    /// Why a new batch of recipe `i` can't start, if it can't.
-    fn blocked(&self, i: u16) -> Option<Status> {
-        let r = &MACHINE_RECIPES[i as usize];
-        if r.inputs.iter().any(|&(item, n)| self.input.count(item) < n) {
-            Some(Status::NoInput)
-        } else if self.full_output(r).is_some() {
-            Some(Status::OutputFull)
-        } else {
-            None
-        }
-    }
-
-    /// Whether output `k` of a recipe (0 is the main product) goes to the byproduct buffer.
-    fn to_side(&self, k: usize) -> bool {
-        k > 0 && !self.side.slots.is_empty()
-    }
-
-    /// The first output of `r` with no room left in its buffer, and whether it is a byproduct.
-    fn full_output(&self, r: &MachineRecipe) -> Option<(ItemId, bool)> {
-        let full = |&(k, &(item, n)): &(usize, &(ItemId, u32))| {
-            if self.to_side(k) {
-                self.side.total() + n > SIDE_ROOM || self.side.space_for(item) < n
-            } else {
-                self.out.space_for(item) < n
-            }
-        };
-        let (k, &(item, _)) = r.outputs.iter().enumerate().find(full)?;
-        Some((item, self.to_side(k)))
-    }
-
-    /// Lights the first fuel item it holds.
-    fn light(&mut self) {
-        let Some(i) = self.fuel.slots.iter().position(|s| !s.is_empty()) else { return };
-        if let Some(secs) = burn_time(self.fuel.slots[i].item) {
-            self.fuel.take(i, 1);
-            self.burn = ticks(secs) * FULL_SPEED;
-        }
-    }
-
     fn is_fuel(&self, item: ItemId) -> bool {
-        self.spec.energy == Energy::Burner && burn_time(item).is_some()
+        matches!(self.energy(), Energy::Burner | Energy::Boiler) && burn_time(item).is_some()
     }
 
     fn chosen(&self) -> Option<&'static MachineRecipe> {
@@ -361,6 +297,10 @@ impl Machine for Processor {
             self.side.write_state(w);
             w.u32(self.next_side as u32);
         }
+        if self.energy() == Energy::Boiler {
+            w.u32(self.steam.steam);
+            w.u32(self.steam.water);
+        }
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Processor> {
@@ -387,6 +327,10 @@ impl Machine for Processor {
             p.side = Buffer::read_state(r, spec.side)?;
             p.next_side = r.u32()? as usize;
         }
+        if p.energy() == Energy::Boiler {
+            p.steam.steam = r.u32()?.min(steam::STEAM_CAP);
+            p.steam.water = r.u32()?;
+        }
         p.valid()
     }
 
@@ -400,8 +344,12 @@ impl Machine for Processor {
         all
     }
 
-    fn describe(&self, _: &Factory) -> String {
-        self.readout()
+    fn describe(&self, f: &Factory) -> String {
+        let text = self.readout();
+        match steam::grid_line(self, f).filter(|_| self.energy() == Energy::Turbine && !f.dirty) {
+            Some(grid) => format!("{text}\n{grid}"),
+            None => text,
+        }
     }
 
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {

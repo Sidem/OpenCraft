@@ -210,3 +210,15 @@ fn a_pit_that_breaks_into_a_pond_floods_until_a_pump_drains_it() {
     assert_eq!(wet(&mut sim), 0, "the pond and the pit are dry");
     assert!(quarry(&sim).dug > dug + 20, "digging again: {}", quarry(&sim).dug);
 }
+
+#[test]
+fn quarries_dig_two_four_and_six_blocks_a_second_for_more_power() {
+    for (tier, blocks, kw) in [(0, 60, 10), (1, 120, 20), (2, 180, 30)] {
+        let mut sim = quarry_on_flat_ground(true);
+        (0..tier).for_each(|_| assert!(sim.factory.upgrade(Q)));
+        run(&mut sim, 30);
+        let q = quarry(&sim);
+        assert!(q.dug.abs_diff(blocks) <= 3, "Mk{} dug {} in 30 s", tier + 1, q.dug);
+        assert_eq!(sim.factory.power.demand[0], kw, "Mk{}", tier + 1);
+    }
+}

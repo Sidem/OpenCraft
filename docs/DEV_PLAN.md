@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-28 · Milestones 1–5 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 6 (Industry). Next up: step 6.7 (blue science and Mk3)** · Terraforming moved to
-Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+**Status:** 2026-09-29 · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
+now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.1 (arc furnace and
+silicon)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -31,9 +31,11 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   geology, surface hints, prospecting, map marks, day and night, sky light and lamps, a new build menu.
 - **Milestone 5 (Water and world shape) is done** (section 8): sea and ponds, swimming, flowing water,
   pumps, a quarry, rarer surface ore (generator version 3), and powered miners.
-- **Now: Milestone 6: Industry** (section 4): content architecture first (tiers as data, one generic
-  processing machine, multi-block footprints), then upgrade kits, the assembler, steel, blue science,
-  steam power and the crusher.
+- **Milestone 6 (Industry) is done** (section 8): tiers as data, one processing machine, multi-block
+  footprints, upgrade kits, the assembler, steel, blue science, Mk3 everything, steam power, the crusher
+  and the silo.
+- **Now: Milestone 7: Electronics, blueprints and drones** (section 4): the arc furnace, circuits, violet
+  science and Mk4, solar power, logic, then blueprints, construction drones and the jetpack.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -45,7 +47,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (238 engine tests).
+   (296 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -127,7 +129,13 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 
 ---
 
-## 2. Where the code stands (after Milestone 5)
+## 2. Where the code stands (after Milestone 6)
+
+**Milestone 6 added** (the bullets below still describe Milestones 1–5; `docs/CODEMAP.md` is current):
+tiers as data up to Mk3 for every family, upgrade kits, one processing machine driven by `ProcessSpec`
+rows (smelter, constructor, assembler, blast furnace, boiler, steam turbine, crusher, silo), multi-block
+footprints, steel and blue science, steam power as a second kind of power source, 16 techs, 14 tips,
+save version 21.
 
 ### Architecture
 
@@ -407,82 +415,83 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 6: Industry
+## 4. Now: Milestone 7: Electronics, blueprints and drones
 
-The user decided on 2026-09-28 (section 1): Industry comes now, terraforming later (Milestone 8, whose
-sites step is built: `docs/ROADMAP.md`). Design: `docs/TECH_TREE.md` (read sections 1, 6, 7 and 8) and
-`docs/TECH_ERAS.md` sections 1 and 2 (every number, recipe and tech of this era).
+Milestone 6 (Industry) is done: the steps below are its summary; the full specs are in git history
+(`git log -- docs/DEV_PLAN.md`). Milestone 7 is moved in from `docs/ROADMAP.md`. Design: `docs/TECH_TREE.md`
+(sections 1, 6, 7 and 8) and `docs/TECH_ERAS.md` section 3 (era 4: every number, recipe and tech).
 
-**Goal:** the factory gets a real second act. Belts and machines upgrade in place with colour-coded kits;
-machines several blocks big take several inputs and give byproducts; steel, concrete and motors lead to
-blue science, Mk3 everything, steam power and ore crushing. First, the content architecture is made
-modular so that everything after costs rows, not rewrites.
+**Rules that still bind every step:**
+- `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
+  categories, unlocks are one enum. No new `bool` per variant, no block per tier.
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 21) with a migration and a fixture
+  test. Golden hashes are re-recorded only on purpose, noted in the step.
+- New blocks and items append (the next free block is 70, item 308). Each new look gets a placeholder
+  layer (`tex::COUNT` is 151) and a `docs/ART_HANDOVER.md` request line.
 
-**Rules for all steps:**
-- `docs/TECH_TREE.md` section 8 is binding: tiers are data, processing machines are spec rows, recipes
-  belong to categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` with a migration and a fixture test
-  (keep a version-17 fixture from before 6.1). Golden hashes are re-recorded only on purpose, noted in
-  the step.
-- New blocks and items append (the next free block is 66, item 285). Each new look gets a placeholder layer and an `docs/ART_HANDOVER.md` request line.
-- Refactor steps (6.1, 6.2, 6.4) change no behaviour: every existing test passes unchanged, and the net
-  line count and wasm size should not grow.
+### Milestone 6 (Industry), built
 
-Steps 6.1–6.6 are built; their full specs are in git history (`git log -- docs/DEV_PLAN.md`).
+- [x] **6.1 Tiers as data** (`factory/tiers.rs`): `tier: u8`, numbers in `*_TIERS` arrays, `FAMILIES` names each
+  tier's item. **6.2 Unlocks, categories, content lint** (`research::Unlock`, `recipes/machine.rs`
+  `Category`, `recipes/tests.rs`). **6.3 Upgrade kits** (`factory/upgrades.rs`, `Action::Upgrade` tag 23,
+  tier stripes; one step at a time, never refunded).
+- [x] **6.4 One processing machine** (`factory/process/`: a `ProcessSpec` row per machine; smelter and
+  constructor with tiers; save 18). **6.5 Footprints and the assembler** (`factory/footprint/`,
+  `action/multiblock.rs`; the anchor holds the block, other cells `MACHINE_PART` 62; ports by side; save
+  19). **6.6 Steel** (blast furnace with a byproduct port, slag, steel items and tools).
+- [x] **6.7 Blue science and Mk3** (blue pack and kit, three-slot labs, save 20, Mk3 belts, miners,
+  smelters (electric), processors) and **6.7b Mk3 for the rest** (poles `factory/pole.rs`, boxes, pumps,
+  quarries, labs; generator Mk2; save 21; tier recipes in `recipes/tiers.rs`).
+- [x] **6.8 Steam power** (`factory/process/steam.rs`): boiler (block 66, 2×2×2) and steam turbine (67,
+  3×2×2) are spec rows with `Energy::Boiler` / `Energy::Turbine`. A boiler burns 540 kJ a coal into
+  steam (cap two coal), takes a unit of water (2,000 kJ) from a pump on its pipe net when low, and says
+  "Out of water" when a pond dries. A turbine touching a boiler is a power source `power.rs` asks for what
+  its grid lacks (up to 240 kW, two turbines a boiler). Boiler steam and water are saved only for boilers
+  (no version bump; saves without the newer techs load). Tests: a sea-pump plant holds a 405 kW load for a
+  full 43 s research unit; a pond plant runs dry; the two-turbine limit; a save round trip. A night is
+  approximated by sustained load, not ten minutes played.
+- [x] **6.9 Crushing and bulk storage:** the crusher (block 68, 1×1, 30 kW, `Category::Crushing`,
+  machine recipes 21–25, items 306–307: 2 ore → 3 crushed, slag → sand; a test measures 1.5 ingots an
+  ore) and the silo (block 69, `Pick::Store`, 144 slots, in on three sides, out the front; the panel
+  shows only occupied slots). Techs 14–16: Steam Power, Ore Crushing, Bulk Storage. Textures 141–150
+  (`textures/heavy.rs`), recipes in `recipes/heavy.rs`; tool recipes moved to `recipes/tooling.rs`.
+- [x] **6.10 Feel, balance, cleanup:** tips for kits, the assembler, steel and steam (`hints.rs`); the
+  golden hash re-recorded for the three techs; README, CODEMAP and TECH_ERAS updated. Measured: tests
+  286 → 296, wasm 232.7 KB gzipped (649.4 KB raw), `bench_plant` (a sea plant with about 20 machines,
+  release, 3,000 ticks): 1.3 µs a tick on average, worst 2.15 ms (tick 156).
 
-- [x] **6.1 Tiers as data** (`factory/tiers.rs`): `tier: u8` (0 = Mk1) written where the `fast` / `mk2`
-  bools were, so saves stayed byte-identical (v17 fixture in `factory/tiers/tests.rs`); numbers in
-  `BELT_TIERS` and `MINER_TIERS`; `FAMILIES` lists each tier's item; breaking drops the tier's item.
-- [x] **6.2 Unlocks, categories and content lint**: `research::Unlock`, recipe `Category` and several
-  outputs (`recipes/machine.rs`), lint tests that each catch a planted mistake, locked recipes greyed in
-  panels and refused by `SetRecipe`.
-- [x] **6.3 Upgrade kits and stripes** (`factory/upgrades.rs`): gear and green kit, `Action::Upgrade`
-  (tag 23), kit drag lines on belts, tier stripes with pips, icon chips. Kits go one step at a time and are
-  never refunded (the TECH_TREE defaults). Techs 4 and 5 became Mechanics and Belt Mk2 (saved progress
-  kept by index); tier recipes ("Belt Mk2 = Belt + 1 green kit") are written out and linted.
-- [x] **6.4 One processing machine** (`factory/process/`: the processor, `specs.rs` rows, `model.rs`
-  parts with looks, `view.rs`, `legacy.rs`): smelter and constructor are spec rows with Mk2 tiers
-  (Mechanics, 4 kits); smelters pick by input and take only unlocked recipes' inputs; Masonry (tech 7:
-  stone bricks, block 60; quicklime, item 275); save version 18 (a v17 fixture of both mid-batch; golden
-  hash re-recorded for the format and the new tech). The line count did not drop: the processor is 634
-  lines against 599 for the two modules, and with the old-save reader and new content the source grew by
-  168.
-- [x] **6.5 Footprints and the assembler** (`factory/footprint/`, `action/multiblock.rs`,
-  `footprint_preview.rs`): a spec's `footprint` (size, ports by side) turned by the processor's `dir`;
-  every cell in `Factory.at`; the anchor holds the block, the rest `MACHINE_PART` (block 62); belts link
-  only at ports; power through any cell; targeting, panels and breaking from any cell. The ghost is amber
-  with red cells in the way; R turns it (the quarry's turn, now `place_turn`). The assembler (block 61:
-  2×2×2, 3 inlets, 1 outlet, 20 kW, a stack of each input at most), motor (item 278), concrete (block
-  63), red and green packs and green kits as assembly recipes; Assembly tech (8). Save version 19
-  (processor facing; a v18 migration test); golden hash re-recorded for it and the tech. The machine
-  table moved to `factory/table.rs` to keep `factory/mod.rs` under 400 lines.
-- [x] **6.6 Steel.** The blast furnace (block 64, 2×2×3, no power: `Energy::Recipe`) is a spec row: inlets
-  at its back and left, steel out the front, slag out the right (`Role::Side`, hatch drawn violet with a
-  down chevron). A spec's `side` slots hold a recipe's byproducts apart (saved only when a spec has
-  them, so the save format stayed at 19); once 16 wait it stops with "Slag has nowhere to go". Slag
-  (block 65), steel ingot, plate and beam (items 279–281; the constructor presses plates and beams),
-  steel tools (items 282–284, `STEEL_TIER`: 1,500 uses, 6× speed, 5 ore a block). Steelmaking tech (9:
-  Assembly and Masonry, 50 × 15 s) unlocks all of it: the tools are gated here for now, and the blue
-  Steel Tools tech of TECH_ERAS takes them over in 6.7. Golden hash re-recorded for the tech. Tests
-  267 → 270; screenshots in the browser pane (furnace, hatches, items).
-- [ ] **6.7 Blue science and Mk3.** The blue pack (assembly only) and blue kit; `PACKS` gains blue (labs
-  get a slot; saves read the old slot count). Tiers for every family so far up to Mk3 (TECH_ERAS
-  section 1): belts 4 blocks/s, miners 85 %, electric smelter, processors ×3, labs (every fifth unit
-  free, a counter), poles as pylons (32 · 9), boxes 48, pumps 8, quarry, generator Mk2. Techs: Blue
-  Science, Mk3 Logistics, Mk3 Machines, Steel Tools. **Done when:** a test per family at each tier; a
-  Mk3 belt carries 11.4 items/s; a Mk3 lab uses 4 packs for 5 units.
-- [ ] **6.8 Steam power.** Boiler (2×2×2, fuel by belt, water as a pipework sink) and steam turbine
-  (3×2×2) that draws steam from a touching boiler. `power.rs`: supply becomes a list of sources
-  (generators, turbines) with one balance. 540 kJ a coal, 1 water source per 2,000 kJ, up to two turbines
-  a boiler. Steam Power tech. **Done when:** a sea pump feeds a boiler and two turbines through a
-  night at 400 kW; a pond-fed plant runs dry and says so; screenshot.
-- [ ] **6.9 Crushing and bulk storage.** The crusher (a spec row, 1×1: 2 ore → 3 crushed, slag → sand)
-  and the silo (2×2×3, 144 slots, storage with a footprint). Ore Crushing and Bulk Storage techs.
-  **Done when:** a test measures 1.5 ingots per ore through a crusher line; a silo fed from three sides.
-- [ ] **6.10 Feel, balance, cleanup.** Tips for kits, the assembler, steel and steam; research times
-  played through; worst tick and wasm measured; README; `docs/CODEMAP.md` "How to add a machine"
-  rewritten for spec rows; `docs/TECH_ERAS.md` era 3 cut to a few lines. Then ask the Milestone 7
-  questions (section 6) and move Milestone 7 in from the roadmap.
+### Milestone 7 steps
+
+Goal: the player's reach grows from building by hand to machines doing it. Circuits and violet science
+first, then logic, then the builders (blueprints, drones, flight). Steps 7.6–7.8 wait for the user's
+answers to the section 6 questions (blueprints, drone materials, jetpack); do 7.1–7.5 first.
+
+- [ ] **7.1 Arc furnace and silicon.** The arc furnace (a spec row, 2×2×2, electric 120 kW: 1 quartz
+  ore + 1 coal → 1 silicon, 4 s), silicon, the circuit (assembler: 1 silicon, 3 copper wire, 1 iron plate
+  → 2, 4 s). Electronics tech (r g b). Deep quartz is the first reason for a mine shaft: check that
+  quartz is reachable 25–50 blocks down (`ore_guide`, the scanner) and tune if not. **Done when:** a test
+  runs quartz and coal to circuits through an arc furnace and an assembler; screenshot.
+- [ ] **7.2 Violet science and Mk4.** The violet pack and kit (assembly recipes), `PACKS` gains violet
+  (labs hold a fourth slot, save 22, a v21 lab loads with it empty), Mk4 tiers for belts (8 blocks/s),
+  miners, processors, poles (substation), labs (×4, every third unit free) with numbers from TECH_ERAS
+  section 1; techs Violet Science, Mk4 Logistics, Mk4 Machines. **Done when:** every family's Mk4 numbers
+  are pinned by tests like Mk3's; a v21 fixture loads.
+- [ ] **7.3 Solar power and accumulators.** Solar panel (block, 10 kW by day: `daytime.rs`, no state of its
+  own) and accumulator (2×2×2, stores 10 MJ) as power sources and sinks in `power.rs`'s one balance.
+  **Done when:** a test keeps a load running through a night on solar plus accumulators (sized).
+- [ ] **7.4 Scanner Mk2.** Range 96, shows quartz (`prospect.rs`); Advanced Scanning tech.
+- [ ] **7.5 Logic.** A sensor (box or belt fullness), a switch and a lamp signal (1 circuit, 1 plate each);
+  a machine turns on or off by condition. New core state, so a save version and a design note first:
+  keep it to "a sensor beside a machine's box or belt turns the pole's link on or off", data-driven.
+- [ ] **7.6 Blueprints** (waits for the answer): select an area, copy it; place it as a ghost (rotate, see
+  what is missing); ghosts from the build menu; a longer reach for ghosts.
+- [ ] **7.7 Construction drones** (waits for the answer): a drone port (3×3 pad) builds ghosts from
+  materials in boxes beside it (or on a network) and tears down what you mark; the drone item (1 motor,
+  2 circuits, 2 steel plates). The machines that work sites are Milestone 8's.
+- [ ] **7.8 Flight and helpers** (waits for the answer): the coal jetpack (4 steel plates, 2 motors,
+  2 circuits; 10 s of thrust a coal) and the personal drone.
+- [ ] **7.9 Feel, balance, cleanup.** Tips, research times played through, worst tick and wasm measured,
+  README, CODEMAP; then move Milestone 8 in from the roadmap and ask its questions.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -497,9 +506,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 6
+## 5. Roadmap after Milestone 7
 
-Milestones 7–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
+Milestones 8–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
 and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
@@ -511,8 +520,8 @@ and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M6 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits went in as one step at a time, never refunded: change? |
-| M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes beside a drone port, or anywhere on a network? Flight: a coal jetpack now, an aluminium hover pack in M9: agreed? |
+| M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes beside a drone port, or anywhere on a network? Flight: a coal jetpack now, an aluminium hover pack in M9: agreed? (Steps 7.6–7.8 wait.) |
+| M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M9 | Trains, trucks, or both? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
 
@@ -575,3 +584,13 @@ and the balance numbers. Read the section you need.
   assembler, motor and concrete, Assembly tech, save version 19. Tests 259 → 267.
 - **2026-09-28: 6.6 Steel:** the blast furnace with a byproduct port and buffer, slag, steel and steel tools,
   Steelmaking tech. Tests 267 → 270.
+- **2026-09-29: 6.7 Blue science and Mk3 machines:** blue pack and kit, three-slot labs (save version 20),
+  Mk3 belts, miners, smelters (electric), constructors, assemblers and blast furnaces, four techs. Tests 270 → 278.
+- **2026-09-29: 6.7b Mk3 for the rest:** tiers for poles (`factory/pole.rs`), boxes, pumps, quarries, labs and
+  the generator (save version 21), tier recipes in `recipes/tiers.rs`. Tests 278 → 286.
+- **2026-09-29: Milestone 6 (Industry) done** (6.8–6.10; pushed with 6.7 and 6.7b): steam (boiler, turbines
+  as power sources in `power.rs`, `factory/process/steam.rs`), the crusher, the silo, techs 14–16, four
+  tips, the golden hash re-recorded. Tests 286 → 296; wasm 232.7 KB gzipped. Lessons: write doc comments
+  with the file tools or single-quoted here-strings (double-quoted PowerShell here-strings eat backticks);
+  a plant test with a 405 kW load caught two turbine status bugs a unit test would not. Milestone 7 moved
+  in from the roadmap.

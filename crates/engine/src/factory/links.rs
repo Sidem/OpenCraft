@@ -13,7 +13,7 @@ use super::belt_shape::{derive_slopes, Shape, UNDERPASS_RANGE};
 use super::generator::Generator;
 use super::lab::Lab;
 use super::power::Power;
-use super::process::Processor;
+use super::process::{self, Processor};
 use super::router::Router;
 use super::storage::Storage;
 use super::{opposite, Factory, Kind, DIRS, FACES};
@@ -288,6 +288,7 @@ impl Factory {
         let (processors, routers, pipework) = (&self.processors, &self.routers, &self.pipework);
         self.power = Power::rebuild(poles, gens, miners, processors, routers, labs, pipework, &self.quarries);
         self.link_pipework();
+        process::link_steam(&mut self.processors, &self.at, &self.pipework);
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt
         // and appending it reversed puts every belt after the one it feeds.

@@ -6,8 +6,9 @@
 //! To add a machine block: a row here (a new kind also needs its `Kind` variant, in row order).
 
 use crate::block::{
-    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2,
-    OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SMELTER, SPLITTER, STORAGE, UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FAST_BELT, FILTER, GENERATOR, LAB, LIFT,
+    MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SILO, SMELTER, SPLITTER, STORAGE, TURBINE,
+    UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::research::PACKS;
 /// Machine kinds, in `MACHINES` order.
@@ -38,7 +39,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 23] = [
+pub const MACHINES: [MachineDef; 27] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -58,6 +59,10 @@ pub const MACHINES: [MachineDef; 23] = [
     MachineDef { block: CONSTRUCTOR, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: ASSEMBLER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: BLAST_FURNACE, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: BOILER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: TURBINE, kind: Kind::Process, slots: 0, panel: false },
+    MachineDef { block: CRUSHER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: SILO, kind: Kind::Process, slots: 0, panel: true },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },

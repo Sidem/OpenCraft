@@ -2,13 +2,13 @@
 //! (docs/TECH_TREE.md section 8): the recipe categories it takes, how it is driven, how it picks a
 //! recipe, its buffers, its numbers per tier, its footprint and ports (`footprint/`) and its model parts.
 //!
-//! Invariants: a spec has a tier row for every tier of its family (`tiers.rs`; tested); an electric
-//! spec has no fuel buffer; its block is a `Kind::Process` row in `MACHINES`.
+//! Invariants: a spec has a tier row for every tier of its family (`tiers.rs`; tested); a spec with no
+//! burner tier has no fuel buffer; its block is a `Kind::Process` row in `MACHINES`.
 //!
 //! To add a processor: its block (`block/`), a `MACHINES` row of `Kind::Process`, a row here with its
 //! parts, and its recipes' category (`recipes/machine.rs`).
 
-use crate::block::{tex, BlockId, ASSEMBLER, BLAST_FURNACE, CONSTRUCTOR, SMELTER};
+use crate::block::{tex, BlockId, ASSEMBLER, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, SILO, SMELTER, TURBINE};
 use crate::item::ItemId;
 use crate::recipes::{Category, MachineRecipe, MACHINE_RECIPES};
 
@@ -24,6 +24,10 @@ pub enum Energy {
     Electric,
     /// Needs nothing beyond its recipe (a blast furnace's coal is an input): always at full speed.
     Recipe,
+    /// A boiler: burns fuel from its fuel buffer into steam for the turbines against it (steam.rs).
+    Boiler,
+    /// A steam turbine: a power source fed by the boilers it touches (steam.rs).
+    Turbine,
 }
 
 /// How a processor picks its recipe.
@@ -33,10 +37,14 @@ pub enum Pick {
     Chosen,
     /// What it holds decides: it takes anything an unlocked recipe of its categories uses.
     ByInput,
+    /// Takes anything into its output buffer, which belts empty (a silo: steam.rs).
+    Store,
 }
 
 /// One tier's numbers.
 pub struct ProcessTier {
+    /// How this tier is driven: a smelter is a burner at Mk1 and Mk2 and electric from Mk3.
+    pub energy: Energy,
     /// Work per tick at full power, in thousandths of a Mk1 tick.
     pub speed: u32,
     /// Fuel per unit of work, in thousandths (burners: 750 burns a quarter less a batch).
@@ -48,7 +56,6 @@ pub struct ProcessTier {
 pub struct ProcessSpec {
     pub block: BlockId,
     pub categories: &'static [Category],
-    pub energy: Energy,
     pub pick: Pick,
     /// Slots of the input, fuel and output buffers.
     pub buffers: [usize; 3],
@@ -74,11 +81,14 @@ pub const SPECS: &[ProcessSpec] = &[
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],
-        energy: Energy::Burner,
         pick: Pick::ByInput,
         buffers: [1, 1, 1],
         side: 0,
-        tiers: &[ProcessTier { speed: 1000, fuel: 1000, power: 0 }, ProcessTier { speed: 2000, fuel: 750, power: 0 }],
+        tiers: &[
+            ProcessTier { energy: Energy::Burner, speed: 1000, fuel: 1000, power: 0 },
+            ProcessTier { energy: Energy::Burner, speed: 2000, fuel: 750, power: 0 },
+            ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 40 },
+        ],
         footprint: SINGLE,
         verb: "Smelting",
         products: "ingots",
@@ -89,11 +99,14 @@ pub const SPECS: &[ProcessSpec] = &[
     ProcessSpec {
         block: CONSTRUCTOR,
         categories: &[Category::Pressing],
-        energy: Energy::Electric,
         pick: Pick::Chosen,
         buffers: [1, 0, 1],
         side: 0,
-        tiers: &[ProcessTier { speed: 1000, fuel: 0, power: 15 }, ProcessTier { speed: 2000, fuel: 0, power: 30 }],
+        tiers: &[
+            ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 15 },
+            ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 30 },
+            ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 45 },
+        ],
         footprint: SINGLE,
         verb: "Making",
         products: "parts",
@@ -104,11 +117,14 @@ pub const SPECS: &[ProcessSpec] = &[
     ProcessSpec {
         block: ASSEMBLER,
         categories: &[Category::Assembly],
-        energy: Energy::Electric,
         pick: Pick::Chosen,
         buffers: [3, 0, 1],
         side: 0,
-        tiers: &[ProcessTier { speed: 1000, fuel: 0, power: 20 }],
+        tiers: &[
+            ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 20 },
+            ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 40 },
+            ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 60 },
+        ],
         footprint: Footprint {
             size: [2, 2, 2],
             ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right), OUT_FRONT],
@@ -122,11 +138,14 @@ pub const SPECS: &[ProcessSpec] = &[
     ProcessSpec {
         block: BLAST_FURNACE,
         categories: &[Category::Blasting],
-        energy: Energy::Recipe,
         pick: Pick::Chosen,
         buffers: [3, 0, 1],
         side: 1,
-        tiers: &[ProcessTier { speed: 1000, fuel: 0, power: 0 }],
+        tiers: &[
+            ProcessTier { energy: Energy::Recipe, speed: 1000, fuel: 0, power: 0 },
+            ProcessTier { energy: Energy::Recipe, speed: 2000, fuel: 0, power: 0 },
+            ProcessTier { energy: Energy::Recipe, speed: 3000, fuel: 0, power: 0 },
+        ],
         footprint: Footprint {
             size: [2, 2, 3],
             ports: &[inlet(Side::Back), inlet(Side::Left), OUT_FRONT, Port { side: Side::Right, role: Role::Side }],
@@ -136,6 +155,65 @@ pub const SPECS: &[ProcessSpec] = &[
         waiting: "",
         map_colour: 0xb84a30,
         parts: &BLAST_PARTS,
+    },
+    ProcessSpec {
+        block: BOILER,
+        categories: &[],
+        pick: Pick::ByInput,
+        buffers: [0, 2, 0],
+        side: 0,
+        tiers: &[ProcessTier { energy: Energy::Boiler, speed: 1000, fuel: 0, power: 0 }],
+        footprint: Footprint { size: [2, 2, 2], ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right)] },
+        verb: "Boiling",
+        products: "steam",
+        waiting: "Idle",
+        map_colour: 0x3a5f9a,
+        parts: &BOILER_PARTS,
+    },
+    ProcessSpec {
+        block: TURBINE,
+        categories: &[],
+        pick: Pick::ByInput,
+        buffers: [0, 0, 0],
+        side: 0,
+        tiers: &[ProcessTier { energy: Energy::Turbine, speed: 1000, fuel: 0, power: 0 }],
+        footprint: Footprint { size: [3, 2, 2], ports: &[] },
+        verb: "Turning",
+        products: "power",
+        waiting: "Idle",
+        map_colour: 0xc8ced8,
+        parts: &TURBINE_PARTS,
+    },
+    ProcessSpec {
+        block: CRUSHER,
+        categories: &[Category::Crushing],
+        pick: Pick::ByInput,
+        buffers: [1, 0, 1],
+        side: 0,
+        tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 30 }],
+        footprint: SINGLE,
+        verb: "Crushing",
+        products: "crushed ore",
+        waiting: "Waiting for iron or copper ore, or slag",
+        map_colour: 0xd6a930,
+        parts: &CRUSHER_PARTS,
+    },
+    ProcessSpec {
+        block: SILO,
+        categories: &[],
+        pick: Pick::Store,
+        buffers: [0, 0, 144],
+        side: 0,
+        tiers: &[ProcessTier { energy: Energy::Recipe, speed: 1000, fuel: 0, power: 0 }],
+        footprint: Footprint {
+            size: [2, 2, 3],
+            ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right), OUT_FRONT],
+        },
+        verb: "Storing",
+        products: "items",
+        waiting: "",
+        map_colour: 0x9a9a92,
+        parts: &SILO_PARTS,
     },
 ];
 
@@ -234,4 +312,51 @@ const BLAST_PARTS: [Part; 9] = [
     part([0.0, -0.4, 0.92], [0.7, 0.5, 0.12], Look::Fire(tex::GENERATOR_SIDE)),
     part([-0.98, 0.0, -0.5], [0.16, 2.0, 0.16], STEEL),
     part([0.78, 0.36, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
+];
+
+const BLUE_TANK: [u16; 3] = [tex::BOILER_TOP, tex::BOILER_SIDE, tex::FRAME];
+
+/// A riveted tank on a banded plinth with a glowing firebox door on the front, a roof plate, a steam
+/// stack and a status lamp.
+const BOILER_PARTS: [Part; 6] = [
+    part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, 0.0, 0.0], [1.8, 1.6, 1.8], Look::Tex(BLUE_TANK)),
+    part([0.0, 0.86, 0.0], [1.9, 0.1, 1.9], FRAME),
+    part([0.0, -0.45, 0.92], [0.8, 0.55, 0.12], Look::Fire(tex::GENERATOR_SIDE)),
+    part([-0.5, 1.15, -0.5], [0.3, 0.5, 0.3], STEEL),
+    part([0.78, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
+];
+
+const CASING: [u16; 3] = [tex::TURBINE_TOP, tex::TURBINE_SIDE, tex::FRAME];
+
+/// A steel casing on a banded plinth, a rotor drum on top, a generator block at one end and a status lamp.
+const TURBINE_PARTS: [Part; 5] = [
+    part([0.0, -0.9, 0.0], [2.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, -0.1, 0.0], [2.8, 1.4, 1.8], Look::Tex(CASING)),
+    part([0.4, 0.75, 0.0], [1.5, 0.5, 1.5], Look::Tex(CASING)),
+    part([-1.15, 0.75, 0.0], [0.7, 0.6, 0.9], Look::Tex([tex::FRAME, tex::MOTOR, tex::FRAME])),
+    part([1.3, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
+];
+
+const HAZARD: [u16; 3] = [tex::CRUSHER_TOP, tex::CRUSHER_SIDE, tex::FRAME];
+
+/// A hazard-striped body on a base, a wide hopper on top whose steel jaw works while crushing, a lamp.
+const CRUSHER_PARTS: [Part; 5] = [
+    part([0.0, -0.4, 0.0], [0.94, 0.18, 0.94], Look::Band(tex::FRAME)),
+    part([0.0, -0.05, 0.0], [0.86, 0.6, 0.86], Look::Tex(HAZARD)),
+    part([0.0, 0.36, 0.0], [0.96, 0.26, 0.96], Look::Tex(HAZARD)),
+    part([0.0, 0.22, 0.0], [0.5, 0.16, 0.5], Look::Press(1.0, [tex::STEEL; 3])),
+    part([0.36, 0.32, 0.36], [0.12, 0.08, 0.12], Look::Lamp),
+];
+
+const CONCRETE_RINGS: [u16; 3] = [tex::SILO_TOP, tex::SILO_SIDE, tex::FRAME];
+
+/// A tall concrete drum on a banded plinth with two steel rings, a roof and hatch, a status lamp.
+const SILO_PARTS: [Part; 6] = [
+    part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, -0.05, 0.0], [1.8, 2.7, 1.8], Look::Tex(CONCRETE_RINGS)),
+    part([0.0, 0.5, 0.0], [1.9, 0.1, 1.9], FRAME),
+    part([0.0, -0.6, 0.0], [1.9, 0.1, 1.9], FRAME),
+    part([0.0, 1.45, 0.0], [1.9, 0.12, 1.9], Look::Tex([tex::SILO_TOP, tex::FRAME, tex::FRAME])),
+    part([0.78, 1.36, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
 ];

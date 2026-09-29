@@ -20,7 +20,8 @@
 //! 13 = the flow queue; 14 = pipework and Fluid Handling; 15 = the quarry list; 16 = generators store
 //! energy (kW·ticks) instead of ticks of fire; 17 = terraforming sites follow the quarries; 18 = one
 //! processor list (with tiers) replaces the smelter and constructor lists; 19 = processors have a facing
-//! (multi-block machines).
+//! (multi-block machines); 20 = labs hold a slot for blue packs; 21 = boxes, generators, poles, labs,
+//! pumps and quarries have a tier.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
@@ -30,7 +31,7 @@ use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 19;
+pub const SAVE_VERSION: u32 = 21;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";

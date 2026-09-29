@@ -2,20 +2,23 @@
 //! machines make, by category, and fuels in `machine.rs`. Research locks recipes (`research.rs`).
 //! Content lint for every table: `tests.rs`.
 //!
-//! To add a hand recipe: add a row (its `group` is its build-menu section).
+//! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the heavy machines' in `heavy.rs`.
 
 use crate::block::*;
 use crate::inventory::Inventory;
 use crate::item::{
-    ItemId, CONSTRUCTOR_MK2, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_AXE, IRON_INGOT,
-    IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, MOTOR, RED_PACK, SCANNER, SCREW, SMELTER_MK2, STEEL_AXE,
-    STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STICK, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD,
+    MOTOR, RED_PACK, SCANNER, SCREW, STICK,
 };
-use crate::tools::{IRON_TIER, STEEL_TIER, STONE_TIER};
 
+mod heavy;
 mod machine;
-
+mod tiers;
+mod tooling;
+use heavy::*;
 pub use machine::*;
+use tiers::*;
+use tooling::*;
 
 /// The build menu's sections, in the order it shows them.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -221,29 +224,9 @@ pub const RECIPES: &[Recipe] = &[
                 constructor (4 kits), or hold the button and drag along belts (1 kit each).",
     },
     // A tier's item is the tier below plus its kits (the lint checks these match `factory/tiers.rs`).
-    Recipe {
-        output: b(MINER_MK2),
-        group: Group::Production,
-        count: 1,
-        inputs: &[(b(MINER), 1), (GREEN_KIT, 4)],
-        blurb: "Drills twice as fast as a Mk1 and recovers 75% of what it draws, so the same deposit gives \
-                more ore. Needs 20 kW. Or upgrade a placed miner with 4 green kits.",
-    },
-    Recipe {
-        output: SMELTER_MK2,
-        group: Group::Production,
-        count: 1,
-        inputs: &[(b(SMELTER), 1), (GREEN_KIT, 4)],
-        blurb: "Smelts twice as fast as a Mk1 and burns a quarter less fuel an ingot. Or upgrade a placed \
-                smelter with 4 green kits.",
-    },
-    Recipe {
-        output: CONSTRUCTOR_MK2,
-        group: Group::Production,
-        count: 1,
-        inputs: &[(b(CONSTRUCTOR), 1), (GREEN_KIT, 4)],
-        blurb: "Works twice as fast as a Mk1 and draws 30 kW. Or upgrade a placed constructor with 4 green kits.",
-    },
+    MINER_MK2_RECIPE,
+    SMELTER_MK2_RECIPE,
+    CONSTRUCTOR_MK2_RECIPE,
     Recipe {
         output: b(ASSEMBLER),
         group: Group::Production,
@@ -261,6 +244,13 @@ pub const RECIPES: &[Recipe] = &[
                 before you place it). Belts bring the three in at the hatches on its back and left; steel leaves \
                 by the front, slag by the right hatch: if slag has nowhere to go it stops. No power.",
     },
+    MINER_MK3_RECIPE,
+    SMELTER_MK3_RECIPE,
+    CONSTRUCTOR_MK3_RECIPE,
+    ASSEMBLER_MK2_RECIPE,
+    ASSEMBLER_MK3_RECIPE,
+    BLAST_FURNACE_MK2_RECIPE,
+    BLAST_FURNACE_MK3_RECIPE,
     Recipe {
         output: b(QUARRY),
         group: Group::Production,
@@ -270,78 +260,32 @@ pub const RECIPES: &[Recipe] = &[
                 Leaves ore standing for miners. Hold it to see its box, R turns it; right-click it to choose the \
                 size and depth. Needs 10 kW.",
     },
-    Recipe {
-        output: b(FAST_BELT),
-        group: Group::Logistics,
-        count: 1,
-        inputs: &[(b(BELT), 1), (GREEN_KIT, 1)],
-        blurb: "Carries items twice as fast as a Mk1 belt and mixes freely with them. Or drag along placed \
-                belts with green kits to upgrade them.",
-    },
-    // Tools: the count is the uses (tools.rs), so a craft makes one fresh tool.
-    Recipe {
-        output: STONE_PICKAXE,
-        group: Group::Tools,
-        count: STONE_TIER.uses,
-        inputs: &[(b(STONE), 3), (STICK, 2)],
-        blurb: "Hold it to break stone and ore twice as fast. Wears out after 150 blocks.",
-    },
-    Recipe {
-        output: STONE_AXE,
-        group: Group::Tools,
-        count: STONE_TIER.uses,
-        inputs: &[(b(STONE), 3), (STICK, 2)],
-        blurb: "Hold it to chop wood twice as fast. Wears out after 150 blocks.",
-    },
-    Recipe {
-        output: STONE_SHOVEL,
-        group: Group::Tools,
-        count: STONE_TIER.uses,
-        inputs: &[(b(STONE), 1), (STICK, 2)],
-        blurb: "Hold it to dig dirt, grass and sand twice as fast. Wears out after 150 blocks.",
-    },
-    Recipe {
-        output: IRON_PICKAXE,
-        group: Group::Tools,
-        count: IRON_TIER.uses,
-        inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
-        blurb: "Breaks stone and ore four times as fast and keeps 4 ore per block instead of 3. Lasts 600 blocks.",
-    },
-    Recipe {
-        output: IRON_AXE,
-        group: Group::Tools,
-        count: IRON_TIER.uses,
-        inputs: &[(IRON_PLATE, 3), (IRON_ROD, 2)],
-        blurb: "Chops wood four times as fast. Lasts 600 blocks.",
-    },
-    Recipe {
-        output: IRON_SHOVEL,
-        group: Group::Tools,
-        count: IRON_TIER.uses,
-        inputs: &[(IRON_PLATE, 1), (IRON_ROD, 2)],
-        blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
-    },
-    Recipe {
-        output: STEEL_PICKAXE,
-        group: Group::Tools,
-        count: STEEL_TIER.uses,
-        inputs: &[(STEEL_PLATE, 3), (IRON_ROD, 2)],
-        blurb: "Breaks stone and ore six times as fast and keeps 5 ore per block instead of 3. Lasts 1,500 blocks.",
-    },
-    Recipe {
-        output: STEEL_AXE,
-        group: Group::Tools,
-        count: STEEL_TIER.uses,
-        inputs: &[(STEEL_PLATE, 3), (IRON_ROD, 2)],
-        blurb: "Chops wood six times as fast. Lasts 1,500 blocks.",
-    },
-    Recipe {
-        output: STEEL_SHOVEL,
-        group: Group::Tools,
-        count: STEEL_TIER.uses,
-        inputs: &[(STEEL_PLATE, 1), (IRON_ROD, 2)],
-        blurb: "Digs dirt, grass and sand six times as fast. Lasts 1,500 blocks.",
-    },
+    BELT_MK2_RECIPE,
+    BELT_MK3_RECIPE,
+    POLE_MK2_RECIPE,
+    POLE_MK3_RECIPE,
+    BOX_MK2_RECIPE,
+    BOX_MK3_RECIPE,
+    PUMP_MK2_RECIPE,
+    PUMP_MK3_RECIPE,
+    QUARRY_MK2_RECIPE,
+    QUARRY_MK3_RECIPE,
+    LAB_MK2_RECIPE,
+    LAB_MK3_RECIPE,
+    GENERATOR_MK2_RECIPE,
+    BOILER_RECIPE,
+    TURBINE_RECIPE,
+    CRUSHER_RECIPE,
+    SILO_RECIPE,
+    STONE_PICKAXE_RECIPE,
+    STONE_AXE_RECIPE,
+    STONE_SHOVEL_RECIPE,
+    IRON_PICKAXE_RECIPE,
+    IRON_AXE_RECIPE,
+    IRON_SHOVEL_RECIPE,
+    STEEL_PICKAXE_RECIPE,
+    STEEL_AXE_RECIPE,
+    STEEL_SHOVEL_RECIPE,
     Recipe {
         output: SCANNER,
         group: Group::Tools,

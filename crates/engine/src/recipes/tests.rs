@@ -9,12 +9,12 @@ use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
-use Category::{Assembly, Blasting, Pressing, Smelting};
+use Category::{Assembly, Blasting, Crushing, Pressing, Smelting};
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 4] = [Smelting, Pressing, Assembly, Blasting];
+const CATEGORIES: [Category; 5] = [Smelting, Pressing, Assembly, Blasting, Crushing];
 const _: fn(Category) = |c| match c {
-    Smelting | Pressing | Assembly | Blasting => {}
+    Smelting | Pressing | Assembly | Blasting | Crushing => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -25,8 +25,8 @@ const WORLD_BLOCKS: &[BlockId] = &[
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
-/// Known exception: the steel beam waits for blue science and pylons (steps 6.7 and 6.8).
-const NO_USE_YET: &[ItemId] = &[item::STEEL_BEAM];
+/// Known exceptions: items whose use waits for a later step (none now).
+const NO_USE_YET: &[ItemId] = &[];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {
@@ -147,8 +147,9 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     const COSTLY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT)], kits: 4 }];
     assert!(has(lint_tiers(&COSTLY, RECIPES), "tier item 28 has no recipe"));
     // A tier with no kit yet.
-    const HIGH: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT), b(STONE)], kits: 1 }];
-    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 2 of block 12 has no kit"));
+    const HIGH: [Family; 1] =
+        [Family { block: BELT, items: &[b(BELT), b(FAST_BELT), item::BELT_MK3, b(STONE)], kits: 1 }];
+    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 3 of block 12 has no kit"));
 }
 
 fn copy(r: &Recipe) -> Recipe {

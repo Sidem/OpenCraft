@@ -9,11 +9,14 @@ use super::super::buffer::Buffer;
 use super::super::panel::{Panel, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 use super::super::power::{FULL_SPEED, POLE_REACH};
 use super::super::ticks;
-use super::{Pick, Processor, Status};
+use super::{Energy, Pick, Processor, Status};
 
 impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
+        if let Some(text) = self.steam_text() {
+            return text;
+        }
         let s = self.spec;
         match (self.status, self.batch_recipe().or(self.chosen())) {
             (Status::Working, Some(r)) => {
@@ -81,7 +84,9 @@ impl Processor {
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
         }
-        lines.push("Right-click to open".to_string());
+        if self.energy() != Energy::Turbine {
+            lines.push("Right-click to open".to_string());
+        }
         lines.join("\n")
     }
 

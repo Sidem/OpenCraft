@@ -15,6 +15,7 @@ use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME,
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
+use crate::item::{BLUE_KIT, BLUE_PACK, CRUSHED_COPPER, CRUSHED_IRON};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -27,6 +28,8 @@ pub enum Category {
     Assembly,
     /// Ore, coal and flux into steel and slag (the blast furnace).
     Blasting,
+    /// Ore into crushed ore, slag into sand (the crusher).
+    Crushing,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -39,7 +42,7 @@ pub struct MachineRecipe {
     pub seconds: f64,
 }
 
-use Category::{Assembly, Blasting, Pressing, Smelting};
+use Category::{Assembly, Blasting, Crushing, Pressing, Smelting};
 
 pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -91,6 +94,23 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     },
     MachineRecipe { category: Pressing, inputs: &[(STEEL_INGOT, 1)], outputs: &[(STEEL_PLATE, 1)], seconds: 3.0 },
     MachineRecipe { category: Pressing, inputs: &[(STEEL_INGOT, 2)], outputs: &[(STEEL_BEAM, 1)], seconds: 4.0 },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(MOTOR, 1), (STEEL_PLATE, 1), (b(CONCRETE), 1)],
+        outputs: &[(BLUE_PACK, 2)],
+        seconds: 12.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(MOTOR, 1), (STEEL_PLATE, 2), (SCREW, 4)],
+        outputs: &[(BLUE_KIT, 4)],
+        seconds: 5.0,
+    },
+    MachineRecipe { category: Crushing, inputs: &[(b(IRON_ORE), 2)], outputs: &[(CRUSHED_IRON, 3)], seconds: 2.0 },
+    MachineRecipe { category: Crushing, inputs: &[(b(COPPER_ORE), 2)], outputs: &[(CRUSHED_COPPER, 3)], seconds: 2.0 },
+    MachineRecipe { category: Crushing, inputs: &[(b(SLAG), 1)], outputs: &[(b(SAND), 1)], seconds: 1.0 },
+    MachineRecipe { category: Smelting, inputs: &[(CRUSHED_IRON, 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
+    MachineRecipe { category: Smelting, inputs: &[(CRUSHED_COPPER, 1)], outputs: &[(COPPER_INGOT, 1)], seconds: 1.5 },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -101,6 +121,10 @@ pub const QUICKLIME_RECIPE: u16 = 10;
 pub const ASSEMBLY_RECIPES: [u16; 5] = [11, 12, 13, 14, 15];
 /// The blast furnace's row and the constructor's steel plate and beam (Steelmaking).
 pub const STEEL_RECIPES: [u16; 3] = [16, 17, 18];
+/// Blue science pack and blue kit, made by assemblers only.
+pub const BLUE_RECIPES: [u16; 2] = [19, 20];
+/// The crusher's two ore rows and slag row, and the smelter's rows for the crushed ore (Ore Crushing).
+pub const CRUSH_RECIPES: [u16; 5] = [21, 22, 23, 24, 25];
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

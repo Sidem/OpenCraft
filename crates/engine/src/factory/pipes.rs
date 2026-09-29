@@ -2,7 +2,7 @@
 //! `Router`). Every piece joins the pieces on its six faces; each connected group is a network
 //! (derived in `relink` by `link_pipework`, never saved). What moves water lives in `pumping.rs`.
 //!
-//! Invariants: a pump holds at most `PUMP_HOLD` units of water, and a unit is always one source block
+//! Invariants: a pump holds at most its tier's `hold` units of water, and a unit is always one source block
 //! taken out of the world or put back into it (water is never made or lost in the pipes). `progress`
 //! counts toward the next unit in 1/`UNIT`ths. `net` and `arms` are derived; `status` is last tick's.
 //!
@@ -15,8 +15,7 @@ use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
-use super::power::PUMP_POWER;
-use super::pumping::{OUTLET_RATE, PUMP_HOLD, PUMP_RANGE, PUMP_RATE};
+use super::pumping::{PumpTier, OUTLET_RATE, PUMP_RANGE, PUMP_TIERS};
 use super::render::push_box;
 use super::{Factory, Machine, DIRS, FACES};
 
@@ -49,6 +48,8 @@ pub enum Flow {
 pub struct Pipework {
     pub pos: IVec3,
     pub part: Part,
+    /// A pump's tier (`PUMP_TIERS`); 0 for the other parts.
+    pub tier: u8,
     /// An outlet's spout, as a `DIRS` index (the placing player's facing).
     pub facing: u8,
     pub progress: u32,
@@ -68,12 +69,17 @@ impl Pipework {
             OUTLET => Part::Outlet,
             _ => Part::Pipe,
         };
-        Pipework { pos, part, facing: facing % 4, progress: 0, held: 0, net: 0, arms: 0, flow: Flow::Idle }
+        Pipework { pos, part, tier: 0, facing: facing % 4, progress: 0, held: 0, net: 0, arms: 0, flow: Flow::Idle }
     }
 
     /// Whether a pump wants power this tick: it has room for more water.
     pub fn wants_power(&self) -> bool {
-        self.part == Part::Pump && self.held < PUMP_HOLD
+        self.part == Part::Pump && self.held < self.pump_stats().hold
+    }
+
+    /// What its tier lets it do (a pump's numbers; the other parts are Mk1).
+    pub fn pump_stats(&self) -> &'static PumpTier {
+        &PUMP_TIERS[self.tier as usize]
     }
 }
 
@@ -125,6 +131,7 @@ impl Machine for Pipework {
         w.u8(self.facing);
         w.u32(self.progress);
         w.u32(self.held);
+        w.u8(self.tier);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Pipework> {
@@ -136,11 +143,18 @@ impl Machine for Pipework {
             _ => return None,
         };
         let mut p = Pipework::new(pos, block, r.u8()?);
-        (p.progress, p.held) = (r.u32()?.min(UNIT), r.u32()?.min(PUMP_HOLD));
+        (p.progress, p.held) = (r.u32()?.min(UNIT), r.u32()?);
+        if r.version >= 21 {
+            p.tier = r.u8()?;
+        }
+        if p.tier as usize >= PUMP_TIERS.len() {
+            return None;
+        }
+        p.held = p.held.min(p.pump_stats().hold);
         Some(p)
     }
 
-    /// Water isn't an item: a picked-up pump loses what it held (at most `PUMP_HOLD` blocks).
+    /// Water isn't an item: a picked-up pump loses what it held (at most its `hold` blocks).
     fn contents(&self) -> Vec<Stack> {
         Vec::new()
     }
@@ -156,15 +170,16 @@ impl Machine for Pipework {
         match self.part {
             Part::Pipe => format!("{network}\nPipes join pumps to outlets"),
             Part::Pump => {
+                let tier = self.pump_stats();
                 let me = f.pipework.iter().position(|p| p.pos == self.pos);
                 let pole = me.and_then(|i| f.power.pipe_pole.get(i).copied()).flatten();
                 let status = match self.flow {
-                    Flow::Working | Flow::Idle => format!("Pumping {PUMP_RATE} blocks of water a second"),
+                    Flow::Working | Flow::Idle => format!("Pumping {} blocks of water a second", tier.rate),
                     Flow::NoPower => f.power.grid_line(pole),
                     Flow::NoWater => format!("No water: it takes still water within {PUMP_RANGE} blocks of it"),
                     Flow::Full | Flow::Blocked => "Full: pipe it to an outlet that can pour".to_string(),
                 };
-                format!("{status}\nHolding {} of {PUMP_HOLD} · needs {PUMP_POWER} kW\n{network}", self.held)
+                format!("{status}\nHolding {} of {} · needs {} kW\n{network}", self.held, tier.hold, tier.power)
             }
             Part::Outlet => {
                 let status = match self.flow {
@@ -193,6 +208,10 @@ impl Machine for Pipework {
             Part::Pump => {
                 let body = [tex::STEEL, tex::GENERATOR_SIDE, tex::FRAME];
                 push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.8, 0.8, 0.8], 0.0, body, false);
+                if self.tier > 0 {
+                    let band = [tex::stripe(self.tier); 3];
+                    push_box(out, rel + Vec3::new(0.0, -0.36, 0.0), 0.0, [0.84, 0.1, 0.84], 0.0, band, false);
+                }
                 let bob = if self.flow == Flow::Working { (time * 6.0).sin() * 0.05 } else { 0.0 };
                 push_box(out, rel + Vec3::new(0.0, 0.36 + bob, 0.0), 0.0, [0.3, 0.12, 0.3], 0.0, steel, false);
                 push_box(

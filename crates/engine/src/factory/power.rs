@@ -1,24 +1,23 @@
 //! Electric power: poles, the grids they form, and how supply meets demand each tick.
 //!
-//! - A pole links to every pole within `WIRE_RANGE`; each connected group is a grid. A generator or a
-//!   powered machine joins the grid of the nearest pole within `POLE_REACH` of any of its cells (ties:
-//!   the lower pole index). All of this is derived from positions (`rebuild`, run by `relink`), never saved.
+//! - A pole links to every pole within its `link` range (`pole.rs`); each connected group is a grid. A
+//!   generator or a powered machine joins the grid of the nearest pole with any of its cells in its
+//!   `reach` (ties: the lower pole index). All of this is derived from positions (`rebuild`, run by
+//!   `relink`), never saved.
 //! - Each tick `balance` adds up what each grid's machines need in kW (a miner while it drills, a
 //!   electric processor (a constructor) while it works, a splitter or filter while it holds an item, a lab while it researches,
 //!   a pump while it has room, a quarry while it digs), then takes it from the generators in list
-//!   order, each up to `GENERATOR_POWER`. A grid short of power runs its machines at `speed` =
-//!   supply / demand.
+//!   order, each up to its tier's power (`GENERATOR_TIERS`). A grid short of power runs its machines at
+//!   `speed` = supply / demand.
 //! - Energy: a generator holds the energy of the fuel it lit, in kW·ticks (1 kJ = `TICK_RATE`
 //!   kW·ticks), and gives only what is drawn, so fuel lasts exactly as long as the load allows. It
 //!   lights the next item (`recipes::fuel_energy`) when what it holds can't cover this tick.
 //!
-//! Consumers: miners, electric processors, splitters, filters, labs, pumps and quarries. Burner
-//! processors (the smelter) burn their own fuel. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
+//! Sources: generators, then steam turbines (`process/steam.rs`). Consumers: miners, electric processors,
+//! splitters, filters, labs, pumps and quarries. Burner processors (the smelter) burn their own fuel. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
 //! `balance`, and a speed argument to its `step`.
 
 use crate::block::tex;
-use crate::bytes::{ByteReader, ByteWriter};
-use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::fuel_energy;
 use crate::research::Research;
@@ -28,33 +27,19 @@ use super::generator::Generator;
 use super::lab::Lab;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
-use super::process::{Energy, Processor};
+use super::pole::{dist2, hang_any, linked, nearest_pole, Pole, POLE_TIERS};
+use super::process::{run_turbine, Energy, Processor};
 use super::quarry::Quarry;
 use super::render::push_box;
 use super::router::Router;
-use super::{Factory, Machine};
+use super::Factory;
 
-/// The most one generator supplies, in kW.
-pub const GENERATOR_POWER: u32 = 60;
 /// What a splitter or filter draws while it holds an item, in kW.
 pub const ROUTER_POWER: u32 = 1;
-/// What a researching lab draws, in kW.
-pub const LAB_POWER: u32 = 10;
-/// What a pump draws while it has room for water, in kW.
-pub const PUMP_POWER: u32 = 5;
-/// What a digging quarry draws, in kW.
-pub const QUARRY_POWER: u32 = 10;
-/// Poles closer than this (between cell centres, in blocks) are wired together.
-pub const WIRE_RANGE: i32 = 10;
-/// Machines this close to a pole (between cell centres) join its grid.
-pub const POLE_REACH: i32 = 5;
+/// A Mk1 pole's reach, which the status texts quote (taller tiers reach further: `pole.rs`).
+pub const POLE_REACH: i32 = POLE_TIERS[0].reach;
 /// Full speed, in thousandths.
 pub const FULL_SPEED: u32 = 1000;
-
-/// A power pole: nothing but a position; its links are derived.
-pub struct Pole {
-    pub pos: IVec3,
-}
 
 /// The grids, derived from positions by `rebuild`, plus last tick's supply and demand per grid.
 #[derive(Default)]
@@ -96,7 +81,7 @@ impl Power {
         let mut wires = Vec::new();
         for i in 0..n {
             for j in i + 1..n {
-                if dist2(poles[i].pos, poles[j].pos) <= WIRE_RANGE * WIRE_RANGE {
+                if linked(&poles[i], &poles[j]) {
                     wires.push((i as u32, j as u32));
                     let (a, b) = (root(&mut parent, i as u32), root(&mut parent, j as u32));
                     parent[a.max(b) as usize] = a.min(b);
@@ -123,7 +108,13 @@ impl Power {
             miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
             process_pole: processors
                 .iter()
-                .map(|p| if p.spec.energy == Energy::Electric { hang_any(poles, &p.cells()) } else { None })
+                .map(|p| {
+                    if matches!(p.energy(), Energy::Electric | Energy::Turbine) {
+                        hang_any(poles, &p.cells())
+                    } else {
+                        None
+                    }
+                })
                 .collect(),
             router_pole: routers.iter().map(|r| hang(r.pos)).collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
@@ -141,7 +132,7 @@ impl Power {
         &mut self,
         gens: &mut [Generator],
         miners: &[Miner],
-        processors: &[Processor],
+        processors: &mut [Processor],
         routers: &[Router],
         labs: &[Lab],
         pipework: &[Pipework],
@@ -169,37 +160,50 @@ impl Power {
         }
         for (l, p) in labs.iter().zip(&self.lab_pole) {
             if let Some(&p) = p.as_ref().filter(|_| l.wants_power(research)) {
-                self.demand[self.pole_grid[p as usize] as usize] += LAB_POWER;
+                self.demand[self.pole_grid[p as usize] as usize] += l.stats().power;
             }
         }
         for (m, p) in pipework.iter().zip(&self.pipe_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += PUMP_POWER;
+                self.demand[self.pole_grid[p as usize] as usize] += m.pump_stats().power;
             }
         }
         for (q, p) in quarries.iter().zip(&self.quarry_pole) {
             if let Some(&p) = p.as_ref().filter(|_| q.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += QUARRY_POWER;
+                self.demand[self.pole_grid[p as usize] as usize] += q.stats().power;
             }
         }
         for (g, p) in gens.iter_mut().zip(&self.gen_pole) {
             g.output = 0;
             let Some(p) = *p else { continue };
             let grid = self.pole_grid[p as usize] as usize;
-            let want = (self.demand[grid] - self.supply[grid].min(self.demand[grid])).min(GENERATOR_POWER);
+            let tier = g.stats();
+            let want = (self.demand[grid] - self.supply[grid].min(self.demand[grid])).min(tier.power);
             if want > g.energy {
                 let s = g.fuel.slots[0];
                 if let Some(kj) = fuel_energy(s.item).filter(|_| !s.is_empty()) {
                     g.fuel.take(0, 1);
-                    g.energy += kj * TICK_RATE;
+                    g.energy += kj * tier.yield_percent / 100 * TICK_RATE;
                 }
             }
             if g.energy > 0 || g.fuel.total() > 0 {
-                self.capacity[grid] += GENERATOR_POWER;
+                self.capacity[grid] += tier.power;
             }
             g.output = want.min(g.energy);
             g.energy -= g.output;
             self.supply[grid] += g.output;
+        }
+        // Steam turbines fill what the generators left.
+        for t in 0..processors.len() {
+            if processors[t].energy() != Energy::Turbine {
+                continue;
+            }
+            let Some(p) = self.process_pole[t] else { continue };
+            let grid = self.pole_grid[p as usize] as usize;
+            let want = self.demand[grid] - self.supply[grid].min(self.demand[grid]);
+            let (given, could) = run_turbine(processors, t, want);
+            self.supply[grid] += given;
+            self.capacity[grid] += could;
         }
     }
 
@@ -222,55 +226,6 @@ impl Power {
             format!("Grid short: {s} of {d} kW needed · machines at {}%", self.speed(pole) / 10)
         } else {
             format!("Grid: {d} kW used of {c} kW")
-        }
-    }
-}
-
-impl Machine for Pole {
-    fn pos(&self) -> IVec3 {
-        self.pos
-    }
-
-    fn write_state(&self, w: &mut ByteWriter) {
-        w.ivec3(self.pos);
-    }
-
-    fn read_state(r: &mut ByteReader) -> Option<Pole> {
-        Some(Pole { pos: r.ivec3()? })
-    }
-
-    fn contents(&self) -> Vec<Stack> {
-        Vec::new()
-    }
-
-    fn describe(&self, f: &Factory) -> String {
-        if f.dirty {
-            return "Power pole".to_string();
-        }
-        let me = f.poles.iter().position(|p| p.pos == self.pos).map(|i| i as u32);
-        let grid = me.map(|i| f.power.pole_grid[i as usize]);
-        let on = |p: &Option<u32>| p.is_some_and(|p| Some(f.power.pole_grid[p as usize]) == grid);
-        let poles = f.power.pole_grid.iter().filter(|&&g| Some(g) == grid).count();
-        let gens = f.power.gen_pole.iter().filter(|p| on(p)).count();
-        let machines = f.power.miner_pole.iter().chain(&f.power.process_pole).chain(&f.power.router_pole);
-        let machines = machines.chain(&f.power.lab_pole).chain(&f.power.pipe_pole).chain(&f.power.quarry_pole);
-        let machines = machines.filter(|p| on(p)).count();
-        format!(
-            "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\nLinks to poles within \
-             {WIRE_RANGE} blocks and powers machines within {POLE_REACH}",
-            f.power.grid_line(me)
-        )
-    }
-
-    /// A steel post with a crossarm and two copper insulators.
-    fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
-        push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
-        push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.13, 0.85, 0.13], 0.0, [tex::FRAME; 3], true);
-        push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
-        for x in [-0.28, 0.28] {
-            let c = [tex::COPPER_WIRE; 3];
-            push_box(out, rel + Vec3::new(x, 0.45, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, [tex::FLASK_GLASS; 3], false);
-            push_box(out, rel + Vec3::new(x, 0.55, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
         }
     }
 }
@@ -311,30 +266,6 @@ impl Factory {
             }
         }
     }
-}
-
-/// Squared distance between two cell centres.
-fn dist2(a: IVec3, b: IVec3) -> i32 {
-    let d = a - b;
-    d.x * d.x + d.y * d.y + d.z * d.z
-}
-
-/// The nearest pole within `POLE_REACH` of `pos` (the lower index on ties).
-fn nearest_pole(poles: &[Pole], pos: IVec3) -> Option<u32> {
-    let mut best: Option<(i32, u32)> = None;
-    for (i, p) in poles.iter().enumerate() {
-        let d = dist2(p.pos, pos);
-        if d <= POLE_REACH * POLE_REACH && best.is_none_or(|(bd, _)| d < bd) {
-            best = Some((d, i as u32));
-        }
-    }
-    best.map(|b| b.1)
-}
-
-/// The pole nearest any of `cells` within `POLE_REACH` (a machine several cells big hangs on it).
-fn hang_any(poles: &[Pole], cells: &[IVec3]) -> Option<u32> {
-    let near = |&c: &IVec3| nearest_pole(poles, c).map(|i| (dist2(poles[i as usize].pos, c), i));
-    cells.iter().filter_map(near).min().map(|best| best.1)
 }
 
 /// Union-find root with path halving.

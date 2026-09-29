@@ -83,7 +83,7 @@ fn lamp(status: Status) -> u16 {
     match status {
         Status::Working => tex::LAMP_GREEN,
         Status::OutputFull => tex::LAMP_YELLOW,
-        Status::NoRecipe | Status::NoPower | Status::NoFuel => tex::LAMP_RED,
+        Status::NoRecipe | Status::NoPower | Status::NoFuel | Status::NoWater => tex::LAMP_RED,
         Status::NoInput => tex::FRAME,
     }
 }

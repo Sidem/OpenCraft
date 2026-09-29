@@ -1,7 +1,8 @@
 //! Steelmaking (Steelmaking tech): the blast furnace's housing (firebrick bound in steel bands, a top
 //! with a charging hole), the byproduct hatch (a violet framed square with a chevron pointing down, so
 //! it reads apart from the in and out hatches by shape as well as colour), slag (dark glassy rock with
-//! bright flecks), the steel ingot, plate and beam and the blue-grey forged head steel tools wear.
+//! bright flecks), the steel ingot, plate and beam, the blue-grey forged head steel tools wear and the blue
+//! science pack (a flask like the red and green ones in `items.rs`).
 //! Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
@@ -17,6 +18,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STEEL_INGOT => bar(x, y),
         tex::STEEL_PLATE => plate(x, y),
         tex::STEEL_BEAM => beam(x, y),
+        tex::BLUE_PACK => blue_pack(x, y),
         _ => head(x, y),
     }
 }
@@ -104,4 +106,16 @@ fn beam(x: i32, y: i32) -> [u8; 4] {
 /// Forged blue-grey steel for tool heads.
 fn head(x: i32, y: i32) -> [u8; 4] {
     rgb([98.0, 116.0, 146.0], 0.88 + 0.12 * n(371, x, y) + if x < 3 { 0.1 } else { 0.0 })
+}
+
+/// The pack's flask fill: blue liquid under a pale meniscus, in a darker rim (`items.rs` has the others).
+fn blue_pack(x: i32, y: i32) -> [u8; 4] {
+    let c = if y < 3 {
+        [188.0, 215.0, 218.0]
+    } else if x <= 1 || x >= 14 {
+        [34.0, 70.0, 138.0]
+    } else {
+        [64.0, 116.0, 214.0]
+    };
+    rgb(c, 0.94 + 0.1 * n(372, x, y))
 }

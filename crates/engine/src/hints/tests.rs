@@ -1,5 +1,7 @@
 use super::*;
-use crate::block::{BELT, CONSTRUCTOR, GENERATOR, POLE, PUMP, QUARRY, SMELTER, STORAGE};
+use crate::block::{
+    ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, GENERATOR, POLE, PUMP, QUARRY, SMELTER, STORAGE, TURBINE,
+};
 use crate::math::IVec3;
 use crate::world::World;
 
@@ -35,6 +37,15 @@ fn hints_follow_what_the_player_has_done() {
     place(&mut f, PUMP, 6);
     assert_eq!(progress(&inv, &f), 9, "moved water");
     place(&mut f, QUARRY, 7);
+    assert_eq!(progress(&inv, &f), 10, "dug");
+    let mechanics = TECHS.iter().position(|t| t.name == "Mechanics").unwrap() as u8;
+    (0..TECHS[mechanics as usize].units).for_each(|_| f.research.add_unit(mechanics));
+    assert_eq!(progress(&inv, &f), 11, "kits");
+    place(&mut f, ASSEMBLER, 20);
+    assert_eq!(progress(&inv, &f), 12);
+    place(&mut f, BLAST_FURNACE, 30);
+    assert_eq!(progress(&inv, &f), 13);
+    place(&mut f, TURBINE, 40);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
 }

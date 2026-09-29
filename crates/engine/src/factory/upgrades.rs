@@ -8,19 +8,20 @@
 //! To add a tier's kit: its item (`item.rs`, wearing `tex::stripe(tier)`), a `KITS` entry and its hand
 //! or assembler recipe.
 
-use crate::block::{BlockId, BELT, MINER};
-use crate::item::{ItemId, GREEN_KIT};
+use crate::block::{BlockId, BELT, GENERATOR, LAB, MINER, POLE, PUMP, QUARRY, STORAGE};
+use crate::item::{ItemId, BLUE_KIT, GREEN_KIT};
 use crate::math::IVec3;
 
 use super::links::Slot;
+use super::pipes::Part;
 use super::tiers;
 use super::Factory;
 
 /// Tier colours as 0xRRGGBB, Mk1 first: red, green, blue, violet, gold (the science packs' colours).
 pub const TIER_COLOURS: [u32; 5] = [0xd94a3d, 0x4caf50, 0x3f7fd9, 0x9a5bd6, 0xe0b02f];
 
-/// The kit that raises a machine to each tier (Mk1 needs none). Blue, violet and gold come with their eras.
-pub const KITS: [ItemId; 2] = [ItemId::NONE, GREEN_KIT];
+/// The kit that raises a machine to each tier (Mk1 needs none). Violet and gold come with their eras.
+pub const KITS: [ItemId; 3] = [ItemId::NONE, GREEN_KIT, BLUE_KIT];
 
 /// One upgrade step: the family's block, the tier it reaches, and the kits it takes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -42,14 +43,25 @@ pub fn kit_tier(item: ItemId) -> Option<u8> {
 }
 
 impl Factory {
-    /// The family block and tier of the tiered machine at `pos` (a belt of any shape, a miner or a
-    /// processor).
+    /// The family block and tier of the tiered machine at `pos` (a belt of any shape, a miner, a
+    /// processor, a box, a generator, a pole, a lab, a pump or a quarry).
     pub fn tiered_at(&self, pos: IVec3) -> Option<(BlockId, u8)> {
         match *self.at.get(&pos)? {
             Slot::Belt(i) => Some((BELT, self.belts[i as usize].tier)),
             Slot::Miner(i) => Some((MINER, self.miners[i as usize].tier)),
-            Slot::Process(i) => Some((self.processors[i as usize].spec.block, self.processors[i as usize].tier)),
-            _ => None,
+            Slot::Process(i) => {
+                let p = &self.processors[i as usize];
+                tiers::family(p.spec.block).map(|_| (p.spec.block, p.tier))
+            }
+            Slot::Storage(i) => Some((STORAGE, self.storages[i as usize].tier)),
+            Slot::Generator(i) => Some((GENERATOR, self.generators[i as usize].tier)),
+            Slot::Pole(i) => Some((POLE, self.poles[i as usize].tier)),
+            Slot::Lab(i) => Some((LAB, self.labs[i as usize].tier)),
+            Slot::Pipe(i) => {
+                Some((PUMP, self.pipework[i as usize].tier)).filter(|_| self.pipework[i as usize].part == Part::Pump)
+            }
+            Slot::Quarry(i) => Some((QUARRY, self.quarries[i as usize].tier)),
+            Slot::Router(_) => None,
         }
     }
 
@@ -66,18 +78,29 @@ impl Factory {
 
     /// Raises the machine at `pos` one tier (the caller has taken the kits). False if it can't go higher.
     pub fn upgrade(&mut self, pos: IVec3) -> bool {
-        if self.next_upgrade(pos).is_none() {
-            return false;
-        }
-        match self.at[&pos] {
-            Slot::Belt(i) => self.belts[i as usize].tier += 1,
-            Slot::Miner(i) => self.miners[i as usize].tier += 1,
-            Slot::Process(i) => self.processors[i as usize].tier += 1,
-            _ => return false,
-        }
+        let Some((_, tier)) = self.tiered_at(pos).filter(|_| self.next_upgrade(pos).is_some()) else { return false };
+        self.set_tier(pos, tier + 1);
         true
     }
-}
 
+    /// Makes the machine at `pos` tier `tier` (an upgrade, or a placed tier item), resizing what depends on it.
+    pub(super) fn set_tier(&mut self, pos: IVec3, tier: u8) {
+        match self.at[&pos] {
+            Slot::Belt(i) => self.belts[i as usize].tier = tier,
+            Slot::Miner(i) => self.miners[i as usize].tier = tier,
+            Slot::Process(i) => self.processors[i as usize].tier = tier,
+            Slot::Storage(i) => self.storages[i as usize].set_tier(tier),
+            Slot::Generator(i) => self.generators[i as usize].tier = tier,
+            Slot::Pole(i) => self.poles[i as usize].tier = tier,
+            Slot::Lab(i) => self.labs[i as usize].set_tier(tier),
+            Slot::Pipe(i) => self.pipework[i as usize].tier = tier,
+            Slot::Quarry(i) => self.quarries[i as usize].tier = tier,
+            Slot::Router(_) => {}
+        }
+        // A tier can change how a machine is powered or wired (the Mk3 smelter is electric, a pylon
+        // reaches further): link it again.
+        self.dirty = true;
+    }
+}
 #[cfg(test)]
 mod tests;

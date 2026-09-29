@@ -29,8 +29,11 @@ pub struct BeltTier {
 }
 
 /// Mk1 first. Speeds: TECH_ERAS section 1.
-pub const BELT_TIERS: [BeltTier; 2] =
-    [BeltTier { speed: 1.0, top: tex::BELT_TOP }, BeltTier { speed: 2.0, top: tex::FAST_BELT_TOP }];
+pub const BELT_TIERS: [BeltTier; 3] = [
+    BeltTier { speed: 1.0, top: tex::BELT_TOP },
+    BeltTier { speed: 2.0, top: tex::FAST_BELT_TOP },
+    BeltTier { speed: 4.0, top: tex::BELT_MK3_TOP },
+];
 /// Minimum distance between item centres on a belt, in blocks.
 pub const ITEM_SPACING: f32 = 0.35;
 pub const ITEM_SIZE: f32 = 0.25;

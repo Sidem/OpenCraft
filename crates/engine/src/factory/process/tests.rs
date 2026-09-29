@@ -1,10 +1,13 @@
 use super::*;
-use crate::block::{BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, IRON_ORE, LIMESTONE, SLAG, SMELTER, STONE, STONE_BRICKS};
+use crate::block::{
+    ASSEMBLER, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, IRON_ORE, LIMESTONE, SAND, SLAG, SMELTER, STONE,
+    STONE_BRICKS,
+};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tests::{powered, recipe_for, run};
 use crate::factory::tiers::FAMILIES;
 use crate::factory::upgrades::Step;
-use crate::item::{GREEN_KIT, IRON_INGOT, IRON_PLATE, QUICKLIME, STEEL_INGOT};
+use crate::item::{COPPER_WIRE, GEAR, GREEN_KIT, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, STEEL_INGOT};
 use crate::research::{Research, TECHS};
 use crate::world::World;
 
@@ -29,8 +32,14 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
         let family = FAMILIES.iter().find(|f| f.block == s.block).map_or(1, |f| f.items.len());
         assert!(s.tiers.len() >= family, "block {} has fewer tier rows than items", s.block);
         let [input, fuel, out] = s.buffers;
-        assert!(input > 0 && out > 0, "block {}", s.block);
-        assert_eq!(fuel > 0, s.energy == Energy::Burner, "only burners hold fuel (block {})", s.block);
+        let steam = s.tiers.iter().any(|t| matches!(t.energy, Energy::Boiler | Energy::Turbine));
+        assert!(steam || (input > 0 || s.pick == Pick::Store) && out > 0, "block {}", s.block);
+        assert_eq!(
+            fuel > 0,
+            s.tiers.iter().any(|t| matches!(t.energy, Energy::Burner | Energy::Boiler)),
+            "only burners hold fuel (block {})",
+            s.block
+        );
         assert_eq!(crate::factory::machine(s.block).map(|m| m.kind), Some(crate::factory::Kind::Process));
     }
 }
@@ -95,7 +104,7 @@ fn a_smelter_upgrades_in_place_with_four_kits() {
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!((s.tier, s.stats().speed, s.input.total()), (1, 2000, 5));
     let text = f.describe(IVec3::ZERO).unwrap();
-    assert!(text.starts_with("Mk2\nWaiting for"), "{text}");
+    assert!(text.starts_with("Mk2 · next: Blue Kit ×4\nWaiting for"), "{text}");
 }
 
 #[test]
@@ -221,4 +230,111 @@ fn a_blast_furnace_saves_its_byproduct_buffer() {
     let mut again = ByteWriter::default();
     back.write_state(&mut again);
     assert!(again.bytes == w.bytes);
+}
+
+#[test]
+fn a_mk3_smelter_is_electric_and_burns_nothing() {
+    let ingots = |tier: u8| {
+        let mut f = Factory::default();
+        powered(&mut f);
+        place(&mut f, SMELTER, IVec3::ZERO, tier);
+        assert_eq!(f.insert(IVec3::ZERO, IRON_ORE.into(), 20), 20);
+        let fuel = f.insert(IVec3::ZERO, COAL_ORE.into(), 1);
+        run(&mut f, 3.05, |_| {});
+        (f.smelter_at(IVec3::ZERO).out.count(IRON_INGOT), fuel, f.power.demand[0])
+    };
+    // A Mk3 makes 3 ingots a 1.5 s: 6 in 3 s at 40 kW, and takes no coal (the Mk1 fires up on the one).
+    assert_eq!(ingots(2), (6, 0, 40));
+    assert_eq!(ingots(0).1, 1);
+}
+
+#[test]
+fn upgrading_a_burning_smelter_to_mk3_hands_it_to_the_grid() {
+    let mut f = Factory::default();
+    powered(&mut f);
+    place(&mut f, SMELTER, IVec3::ZERO, 1);
+    f.insert(IVec3::ZERO, IRON_ORE.into(), 20);
+    assert!(f.upgrade(IVec3::ZERO) && f.next_upgrade(IVec3::ZERO).is_none());
+    run(&mut f, 3.05, |_| {});
+    let s = f.smelter_at(IVec3::ZERO);
+    assert_eq!((s.tier, s.energy(), s.out.count(IRON_INGOT), s.status), (2, Energy::Electric, 6, Status::Working));
+}
+
+#[test]
+fn a_mk3_constructor_presses_three_times_as_fast_and_draws_45_kw() {
+    let mut f = Factory::default();
+    powered(&mut f);
+    place(&mut f, CONSTRUCTOR, IVec3::ZERO, 2);
+    assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(IRON_PLATE))).is_some());
+    f.insert(IVec3::ZERO, IRON_INGOT, 20);
+    run(&mut f, 4.05, |_| {});
+    assert_eq!((f.constructor_at(IVec3::ZERO).out.count(IRON_PLATE), f.power.demand[0]), (6, 45));
+}
+
+#[test]
+fn assemblers_and_blast_furnaces_work_faster_at_each_tier() {
+    let motors = |tier: u8| {
+        let mut f = Factory::default();
+        powered(&mut f);
+        f.place(&mut World::new(1, 2), ASSEMBLER, IVec3::ZERO, NORTH, IVec3::ZERO, tier);
+        f.set_recipe(IVec3::ZERO, Some(recipe_for(MOTOR)));
+        for (item, n) in [(IRON_ROD, 6), (GEAR, 12), (COPPER_WIRE, 24)] {
+            f.insert(IVec3::ZERO, item, n);
+        }
+        run(&mut f, 5.05, |_| {});
+        (f.processors[0].out.count(MOTOR), f.power.demand[0])
+    };
+    // A motor takes 5 s at Mk1, 2.5 s at Mk2 and 5/3 s at Mk3; the assembler draws 20, 40 and 60 kW.
+    assert_eq!([motors(0), motors(1), motors(2)], [(1, 20), (2, 40), (3, 60)]);
+    let steel = |tier: u8| {
+        let mut f = Factory::default();
+        f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, tier);
+        f.set_recipe(IVec3::ZERO, Some(recipe_for(STEEL_INGOT)));
+        for (item, n) in [(IRON_ORE.into(), 8), (COAL_ORE.into(), 4), (QUICKLIME, 4)] {
+            f.insert(IVec3::ZERO, item, n);
+        }
+        run(&mut f, 4.05, |_| {});
+        f.processors[0].out.count(STEEL_INGOT)
+    };
+    assert_eq!([steel(0), steel(1), steel(2)], [1, 2, 3]);
+}
+
+/// Research done, as if a lab had finished the tech named `name`.
+fn research_done(f: &mut Factory, name: &str) {
+    let tech = TECHS.iter().position(|t| t.name == name).unwrap() as u8;
+    (0..TECHS[tech as usize].units).for_each(|_| f.research.add_unit(tech));
+}
+
+#[test]
+fn a_crusher_line_gives_one_and_a_half_ingots_an_ore() {
+    // Box of ore, crusher, smelter (with coal), box: 40 ore make 20 batches of 3 crushed, 60 ingots.
+    let mut f = Factory::default();
+    powered(&mut f);
+    research_done(&mut f, "Ore Crushing");
+    feed(&mut f, v(0, 0, 0), EAST, IRON_ORE.into(), 40);
+    place(&mut f, CRUSHER, v(2, 0, 0), 0);
+    f.add_belt(v(3, 0, 0), EAST);
+    place(&mut f, SMELTER, v(4, 0, 0), 0);
+    feed(&mut f, v(4, 0, -2), SOUTH, COAL_ORE.into(), 20);
+    f.add_belt(v(5, 0, 0), EAST);
+    f.add_storage(v(6, 0, 0));
+    run(&mut f, 200.0, |_| {});
+    assert_eq!(f.storage_count_at(v(6, 0, 0), IRON_INGOT), 60, "1.5 ingots an ore");
+    assert_eq!(f.processors[0].power(), 30);
+}
+
+#[test]
+fn a_crusher_needs_its_research_and_grinds_slag_to_sand() {
+    let mut f = Factory::default();
+    powered(&mut f);
+    place(&mut f, CRUSHER, IVec3::ZERO, 0);
+    assert_eq!(f.insert(IVec3::ZERO, IRON_ORE.into(), 4), 0, "locked until Ore Crushing");
+    research_done(&mut f, "Ore Crushing");
+    assert_eq!(f.insert(IVec3::ZERO, SLAG.into(), 2), 2);
+    run(&mut f, 1.0, |_| {});
+    assert_eq!(f.power.demand[0], 30);
+    run(&mut f, 1.05, |_| {});
+    assert_eq!(f.processors[0].out.count(SAND.into()), 2, "a second a slag");
+    let text = f.describe(IVec3::ZERO).unwrap();
+    assert!(!text.starts_with("Mk"), "one-tier machines say no Mk: {text}");
 }

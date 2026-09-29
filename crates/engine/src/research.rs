@@ -13,13 +13,16 @@
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
 use crate::block::{
-    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, FILTER, LIFT, MINER, OUTLET, PIPE, PUMP, SMELTER, SPLITTER,
-    UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB, LIFT, MINER, OUTLET,
+    PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tiers;
-use crate::item::{ItemId, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
-use crate::recipes::{ASSEMBLY_RECIPES, BRICK_RECIPE, GEAR_RECIPE, MACHINE_RECIPES, QUICKLIME_RECIPE, STEEL_RECIPES};
+use crate::item::{ItemId, BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
+use crate::recipes::{
+    ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, GEAR_RECIPE, MACHINE_RECIPES, QUICKLIME_RECIPE,
+    STEEL_RECIPES,
+};
 
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -58,7 +61,7 @@ pub struct Tech {
 }
 
 /// Every science pack, in the order labs hold them (one buffer slot each).
-pub const PACKS: [ItemId; 2] = [RED_PACK, GREEN_PACK];
+pub const PACKS: [ItemId; 3] = [RED_PACK, GREEN_PACK, BLUE_PACK];
 
 pub const TECHS: &[Tech] = &[
     Tech {
@@ -100,8 +103,9 @@ pub const TECHS: &[Tech] = &[
     // Was "Miner Mk2" (saves keep progress by index): kits replaced the separate Mk2 recipes.
     Tech {
         name: "Mechanics",
-        blurb: "Gears and green kits. Hold 4 kits and right-click a miner, smelter or constructor to make it \
-                Mk2: miners draw twice as fast and keep 75% instead of 60%, the others work twice as fast.",
+        blurb: "Gears and green kits. Hold kits and right-click a machine to make it Mk2: miners draw twice as fast \
+                and keep 75% instead of 60%, smelters, constructors and labs work twice as fast, boxes hold 36 stacks, \
+                pumps and quarries double up, generators give 100 kW, poles reach further.",
         needs: &[2],
         packs: &[RED_PACK, GREEN_PACK],
         units: 30,
@@ -112,6 +116,12 @@ pub const TECHS: &[Tech] = &[
             Unlock::Upgrade(MINER, 1),
             Unlock::Upgrade(SMELTER, 1),
             Unlock::Upgrade(CONSTRUCTOR, 1),
+            Unlock::Upgrade(POLE, 1),
+            Unlock::Upgrade(STORAGE, 1),
+            Unlock::Upgrade(PUMP, 1),
+            Unlock::Upgrade(QUARRY, 1),
+            Unlock::Upgrade(LAB, 1),
+            Unlock::Upgrade(GENERATOR, 1),
         ],
     },
     // Was "Fast Belts".
@@ -157,12 +167,13 @@ pub const TECHS: &[Tech] = &[
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[2]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[3]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[4]),
+            Unlock::Upgrade(ASSEMBLER, 1),
         ],
     },
     Tech {
         name: "Steelmaking",
         blurb: "The blast furnace, a 2×2×3 furnace: iron ore, coal and quicklime in, steel out the front and slag \
-                out the side. Constructors press steel into plates and beams; steel tools last and dig better.",
+                out the side. Constructors press steel into plates and beams.",
         needs: &[7, 8],
         packs: &[RED_PACK, GREEN_PACK],
         units: 50,
@@ -172,10 +183,98 @@ pub const TECHS: &[Tech] = &[
             Unlock::MachineRecipe(STEEL_RECIPES[0]),
             Unlock::MachineRecipe(STEEL_RECIPES[1]),
             Unlock::MachineRecipe(STEEL_RECIPES[2]),
-            Unlock::Recipe(STEEL_PICKAXE),
-            Unlock::Recipe(STEEL_AXE),
-            Unlock::Recipe(STEEL_SHOVEL),
+            Unlock::Upgrade(BLAST_FURNACE, 1),
         ],
+    },
+    Tech {
+        name: "Blue Science",
+        blurb: "Blue science packs, assembled from a motor, a steel plate and concrete: the packs of the next era.",
+        needs: &[9],
+        packs: &[RED_PACK, GREEN_PACK],
+        units: 50,
+        seconds: 15.0,
+        unlocks: &[Unlock::MachineRecipe(BLUE_RECIPES[0])],
+    },
+    Tech {
+        name: "Mk3 Logistics",
+        blurb: "Blue kits, made in an assembler, and Mk3 belts (four times a Mk1), pylons that link 32 blocks and \
+                boxes of 48 stacks.",
+        needs: &[10],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 60,
+        seconds: 20.0,
+        unlocks: &[
+            Unlock::MachineRecipe(BLUE_RECIPES[1]),
+            Unlock::Upgrade(BELT, 2),
+            Unlock::Upgrade(POLE, 2),
+            Unlock::Upgrade(STORAGE, 2),
+        ],
+    },
+    Tech {
+        name: "Mk3 Machines",
+        blurb: "Blue kits make miners, smelters, constructors, assemblers, blast furnaces, labs, pumps and quarries \
+                Mk3: three times as fast, miners recover 85%, labs skip the packs of every fifth unit, and the \
+                smelter goes electric.",
+        needs: &[11],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 80,
+        seconds: 20.0,
+        unlocks: &[
+            Unlock::Upgrade(MINER, 2),
+            Unlock::Upgrade(SMELTER, 2),
+            Unlock::Upgrade(CONSTRUCTOR, 2),
+            Unlock::Upgrade(ASSEMBLER, 2),
+            Unlock::Upgrade(BLAST_FURNACE, 2),
+            Unlock::Upgrade(LAB, 2),
+            Unlock::Upgrade(PUMP, 2),
+            Unlock::Upgrade(QUARRY, 2),
+        ],
+    },
+    Tech {
+        name: "Steel Tools",
+        blurb: "Steel pickaxes, axes and shovels: they last 1,500 blocks, dig six times as fast as bare hands and \
+                keep 5 ore a block.",
+        needs: &[9],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 30,
+        seconds: 15.0,
+        unlocks: &[Unlock::Recipe(STEEL_PICKAXE), Unlock::Recipe(STEEL_AXE), Unlock::Recipe(STEEL_SHOVEL)],
+    },
+    Tech {
+        name: "Steam Power",
+        blurb: "Boilers turn water and coal into steam, twice the energy of a generator's fire; steam turbines \
+                turn it into up to 240 kW each. Pipe water to a boiler, belt it fuel, and set turbines against it.",
+        needs: &[7, 10],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 60,
+        seconds: 20.0,
+        unlocks: &[r(BOILER), r(TURBINE)],
+    },
+    Tech {
+        name: "Ore Crushing",
+        blurb: "Crushers turn 2 iron or copper ore into 3 crushed ore, which smelt one for one: an ore gives one \
+                and a half ingots. They also grind slag to sand.",
+        needs: &[10],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 60,
+        seconds: 20.0,
+        unlocks: &[
+            r(CRUSHER),
+            Unlock::MachineRecipe(CRUSH_RECIPES[0]),
+            Unlock::MachineRecipe(CRUSH_RECIPES[1]),
+            Unlock::MachineRecipe(CRUSH_RECIPES[2]),
+            Unlock::MachineRecipe(CRUSH_RECIPES[3]),
+            Unlock::MachineRecipe(CRUSH_RECIPES[4]),
+        ],
+    },
+    Tech {
+        name: "Bulk Storage",
+        blurb: "Silos: 2×2×3 stores of 144 stacks that take belts on every side and give to belts leading away.",
+        needs: &[10],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 40,
+        seconds: 20.0,
+        unlocks: &[r(SILO)],
     },
 ];
 
