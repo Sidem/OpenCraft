@@ -1,6 +1,6 @@
 //! Electronics (Milestone 7): the arc furnace (a graphite housing with a violet-white arc slit and
 //! copper terminals, a roof with two electrode caps), silicon (a blue-grey crystalline ingot) and the
-//! circuit (a green board with copper traces and a black chip). Placeholder looks until the art pass
+//! circuit (a green board with copper traces and a black chip) and the violet science pack (its flask fill). Placeholder looks until the art pass
 //! (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
@@ -12,7 +12,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::ARC_SIDE => arc_side(x, y),
         tex::ARC_TOP => arc_top(x, y),
         tex::SILICON => silicon(x, y),
-        _ => circuit(x, y),
+        tex::CIRCUIT => circuit(x, y),
+        _ => violet_pack(x, y),
     }
 }
 
@@ -63,4 +64,16 @@ fn circuit(x: i32, y: i32) -> [u8; 4] {
         return rgb([220.0, 220.0, 224.0], 1.0);
     }
     rgb([34.0, 118.0, 66.0], 0.9 + 0.1 * n(398, x, y))
+}
+
+/// The pack's flask fill: violet liquid under a pale meniscus, in a darker rim (like the blue one in `steel.rs`).
+fn violet_pack(x: i32, y: i32) -> [u8; 4] {
+    let c = if y < 3 {
+        [216.0, 204.0, 232.0]
+    } else if x <= 1 || x >= 14 {
+        [88.0, 44.0, 140.0]
+    } else {
+        [148.0, 96.0, 214.0]
+    };
+    rgb(c, 0.94 + 0.1 * n(399, x, y))
 }

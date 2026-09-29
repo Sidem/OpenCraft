@@ -7,8 +7,10 @@ const P: IVec3 = IVec3::new(0, 0, 0);
 
 #[test]
 fn kits_name_their_tier() {
-    assert_eq!((kit(0), kit(1), kit(2), kit(3)), (None, Some(GREEN_KIT), Some(BLUE_KIT), None));
-    assert_eq!((kit_tier(GREEN_KIT), kit_tier(BLUE_KIT), kit_tier(ItemId::NONE)), (Some(1), Some(2), None));
+    assert_eq!((kit(0), kit(1), kit(2), kit(3)), (None, Some(GREEN_KIT), Some(BLUE_KIT), Some(VIOLET_KIT)));
+    assert_eq!(kit(4), None, "gold comes with its era");
+    assert_eq!((kit_tier(GREEN_KIT), kit_tier(BLUE_KIT), kit_tier(VIOLET_KIT)), (Some(1), Some(2), Some(3)));
+    assert_eq!(kit_tier(ItemId::NONE), None);
     assert_eq!(kit_tier(ItemId::block(BELT)), None);
 }
 
@@ -25,7 +27,10 @@ fn an_upgraded_belt_keeps_its_items_and_each_tier_doubles_its_speed() {
     assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 2, kit: BLUE_KIT, kits: 1 }));
     assert!(f.upgrade(P));
     assert_eq!((f.belt_at(P).tier, f.belt_at(P).speed(), f.belt_at(P).items.len()), (2, speed * 4.0, 1));
-    assert_eq!(f.next_upgrade(P), None, "Mk3 is the top tier for now");
+    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 3, kit: VIOLET_KIT, kits: 1 }));
+    assert!(f.upgrade(P));
+    assert_eq!(f.belt_at(P).speed(), speed * 8.0);
+    assert_eq!(f.next_upgrade(P), None, "Mk4 is the top tier for now");
     assert!(!f.upgrade(P));
 }
 

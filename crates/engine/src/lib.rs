@@ -28,6 +28,7 @@ mod belt_line;
 mod block;
 mod bytes;
 mod chunk;
+mod crafting;
 mod daytime;
 mod deposits;
 mod entities;

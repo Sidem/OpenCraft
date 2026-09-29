@@ -19,7 +19,7 @@ pub use techs::TECHS;
 use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tiers;
-use crate::item::{ItemId, BLUE_PACK, GREEN_PACK, RED_PACK};
+use crate::item::{ItemId, BLUE_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::MACHINE_RECIPES;
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -58,7 +58,7 @@ pub struct Tech {
 }
 
 /// Every science pack, in the order labs hold them (one buffer slot each).
-pub const PACKS: [ItemId; 3] = [RED_PACK, GREEN_PACK, BLUE_PACK];
+pub const PACKS: [ItemId; 4] = [RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK];
 
 /// Where a tech stands, as the research screen shows it.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

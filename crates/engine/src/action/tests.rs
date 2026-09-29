@@ -1,9 +1,10 @@
 use super::*;
-use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE, WATER};
+use crate::block::{BEDROCK, BELT, DIRT, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
 use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
-use crate::item::{IRON_PLATE, MAX_STACK};
+use crate::item::{IRON_PLATE, IRON_ROD, MAX_STACK};
+use crate::recipes::RECIPES;
 
 const P: PlayerId = PlayerId(0);
 /// The box as an item, for matching events.
@@ -134,15 +135,19 @@ fn two_players_build_and_craft_with_their_own_inventories() {
     let b = PlayerId(1);
     let belt = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u16;
     sim.queue(0, b, Action::Join { key: 0 });
-    sim.queue(0, b, Action::Give { item: IRON_ORE.into(), count: 1 });
-    sim.queue(0, b, Action::Give { item: STONE.into(), count: 2 });
+    sim.queue(0, b, Action::Give { item: IRON_PLATE, count: 1 });
+    sim.queue(0, b, Action::Give { item: IRON_ROD, count: 1 });
     sim.queue(0, b, Action::Craft { recipe: belt, times: 1 });
     sim.queue(0, P, Action::Give { item: STORAGE.into(), count: 1 });
     sim.queue(0, P, Action::Craft { recipe: belt, times: 1 });
     sim.step();
+    assert!(sim.events.is_empty(), "a belt takes a moment by hand");
+    for _ in 0..RECIPES[belt as usize].hand_ticks() {
+        sim.step();
+    }
     assert_eq!(sim.events, vec![SimEvent::Crafted { player: b, item: BELT.into(), count: 4 }], "only B can pay");
     let inv_b = &sim.player(b).unwrap().inventory;
-    assert_eq!((inv_b.count(BELT.into()), inv_b.count(IRON_ORE.into()), inv_b.count(STONE.into())), (4, 0, 0));
+    assert_eq!((inv_b.count(BELT.into()), inv_b.count(IRON_PLATE), inv_b.count(IRON_ROD)), (4, 0, 0));
     assert_eq!((inv(&sim).count(BELT.into()), inv(&sim).count(STORAGE.into())), (0, 1));
 
     // Same tick: A places a box, B places a belt and breaks A's box. The player order decides.
@@ -315,6 +320,9 @@ fn crafting_a_recipe_research_locks_does_nothing() {
     assert_eq!(sim.factory.research.current, Some(0));
     (0..crate::research::TECHS[0].units).for_each(|_| sim.factory.research.add_unit(0));
     sim.apply(P, Action::Craft { recipe: splitter, times: 1 });
+    for _ in 0..RECIPES[splitter as usize].hand_ticks() {
+        sim.step();
+    }
     assert_eq!(inv(&sim).count(SPLITTER.into()), 1);
 }
 
@@ -348,6 +356,7 @@ fn samples() -> Vec<Action> {
         Action::Upgrade { pos },
         Action::SortInventory,
         Action::SortBox { pos },
+        Action::CancelCraft { order: 513 },
     ]
 }
 

@@ -6,7 +6,6 @@
 //! Electronics' in `electronics.rs`, cables' in `wiring.rs`.
 
 use crate::block::*;
-use crate::inventory::Inventory;
 use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD,
     MOTOR, RED_PACK, SCANNER, SCREW, STICK,
@@ -71,10 +70,16 @@ pub struct Recipe {
     pub blurb: &'static str,
 }
 
+/// Hand crafting time in ticks: a base plus some per material, capped (`crafting.rs`).
+const HAND_BASE_TICKS: u32 = 90;
+const HAND_TICKS_PER_ITEM: u32 = 30;
+const HAND_MAX_TICKS: u32 = 1200;
+
 impl Recipe {
-    /// How many times `inv` can pay for this recipe (inputs are distinct items).
-    pub fn affordable(&self, inv: &Inventory) -> u32 {
-        self.inputs.iter().map(|&(item, n)| inv.count(item) / n).min().unwrap_or(0)
+    /// How long one craft takes by hand, in ticks.
+    pub fn hand_ticks(&self) -> u32 {
+        let items: u32 = self.inputs.iter().map(|i| i.1).sum();
+        (HAND_BASE_TICKS + HAND_TICKS_PER_ITEM * items).min(HAND_MAX_TICKS)
     }
 }
 
@@ -83,7 +88,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(MINER),
         group: Group::Production,
         count: 1,
-        inputs: &[(b(IRON_ORE), 10), (b(COPPER_ORE), 6), (b(STONE), 12)],
+        inputs: &[(IRON_PLATE, 5), (IRON_ROD, 4), (COPPER_WIRE, 6)],
         blurb: "Place it against an ore block. It drills the whole deposit, recovers 60% of what it draws, \
                 and pushes ore into a belt, box, smelter or generator beside it. Needs power (5 kW).",
     },
@@ -91,7 +96,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(BELT),
         group: Group::Logistics,
         count: 4,
-        inputs: &[(b(IRON_ORE), 1), (b(STONE), 2)],
+        inputs: &[(IRON_PLATE, 1), (IRON_ROD, 1)],
         blurb: "Carries items. Hold right-click and drag to lay a line; it climbs and drops one-block steps \
                 by itself. Belts feed belts, machines, and belts from the side. Press R on a belt to turn it.",
     },
@@ -99,7 +104,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(STORAGE),
         group: Group::Logistics,
         count: 1,
-        inputs: &[(b(PLANKS), 8), (b(IRON_ORE), 2)],
+        inputs: &[(b(PLANKS), 8), (IRON_PLATE, 2)],
         blurb: "Holds 24 stacks. Belts deliver into it; a belt leading away from it is fed from it. \
                 Right-click to empty it into your inventory.",
     },
@@ -107,8 +112,8 @@ pub const RECIPES: &[Recipe] = &[
         output: b(SMELTER),
         group: Group::Production,
         count: 1,
-        inputs: &[(b(STONE), 16), (b(IRON_ORE), 4)],
-        blurb: "Melts iron or copper ore into ingots, sand into glass (and, with Masonry, stone into bricks) while \
+        inputs: &[(b(STONE), 16)],
+        blurb: "A stone furnace. Melts iron or copper ore into ingots, sand into glass (and, with Masonry, stone into bricks) while \
                 it has fuel: coal ore or logs. Belts bring both in; a belt leading away takes the ingots. \
                 Right-click to open it.",
     },
@@ -186,7 +191,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(GENERATOR),
         group: Group::Power,
         count: 1,
-        inputs: &[(b(IRON_ORE), 6), (b(COPPER_ORE), 4), (b(STONE), 12)],
+        inputs: &[(IRON_PLATE, 4), (COPPER_WIRE, 8), (b(STONE), 12)],
         blurb: "Burns coal ore (270 kJ) or logs (135 kJ) into up to 60 kW, and only as much as its grid uses. \
                 Place a power pole within 5 blocks; a belt or a miner beside it brings fuel. Right-click to open it.",
     },
@@ -194,7 +199,7 @@ pub const RECIPES: &[Recipe] = &[
         output: b(POLE),
         group: Group::Power,
         count: 2,
-        inputs: &[(b(IRON_ORE), 1), (b(COPPER_ORE), 1), (STICK, 2)],
+        inputs: &[(STICK, 2), (COPPER_WIRE, 2)],
         blurb: "Links to every pole within 10 blocks and powers generators and machines within 5. \
                 Miners, constructors, splitters, filters, labs, pumps and quarries need power.",
     },
@@ -256,6 +261,11 @@ pub const RECIPES: &[Recipe] = &[
     ASSEMBLER_MK3_RECIPE,
     BLAST_FURNACE_MK2_RECIPE,
     BLAST_FURNACE_MK3_RECIPE,
+    MINER_MK4_RECIPE,
+    SMELTER_MK4_RECIPE,
+    CONSTRUCTOR_MK4_RECIPE,
+    ASSEMBLER_MK4_RECIPE,
+    BLAST_FURNACE_MK4_RECIPE,
     Recipe {
         output: b(QUARRY),
         group: Group::Production,
@@ -267,8 +277,10 @@ pub const RECIPES: &[Recipe] = &[
     },
     BELT_MK2_RECIPE,
     BELT_MK3_RECIPE,
+    BELT_MK4_RECIPE,
     POLE_MK2_RECIPE,
     POLE_MK3_RECIPE,
+    POLE_MK4_RECIPE,
     CABLE_RECIPE,
     BOX_MK2_RECIPE,
     BOX_MK3_RECIPE,
@@ -278,6 +290,7 @@ pub const RECIPES: &[Recipe] = &[
     QUARRY_MK3_RECIPE,
     LAB_MK2_RECIPE,
     LAB_MK3_RECIPE,
+    LAB_MK4_RECIPE,
     GENERATOR_MK2_RECIPE,
     BOILER_RECIPE,
     TURBINE_RECIPE,
@@ -346,6 +359,35 @@ pub const RECIPES: &[Recipe] = &[
         inputs: &[(STICK, 4)],
         blurb: "A frame you climb: stand in it and hold jump to go up, crouch to go down; let go and you stay \
                 put. Stack them up a cliff or down a shaft; at the top, walk off onto the ledge.",
+    },
+    Recipe {
+        output: IRON_PLATE,
+        group: Group::Materials,
+        count: 1,
+        inputs: &[(IRON_INGOT, 2)],
+        blurb: "Hammered flat by hand, slowly: a constructor does it for you. Machines, belts and packs use plates.",
+    },
+    Recipe {
+        output: IRON_ROD,
+        group: Group::Materials,
+        count: 1,
+        inputs: &[(IRON_INGOT, 1)],
+        blurb: "Drawn out by hand, slowly: a constructor does it for you. Miners, lifts and screws use rods.",
+    },
+    Recipe {
+        output: SCREW,
+        group: Group::Materials,
+        count: 4,
+        inputs: &[(IRON_ROD, 1)],
+        blurb: "Cut from a rod by hand, slowly: a constructor does it for you.",
+    },
+    Recipe {
+        output: COPPER_WIRE,
+        group: Group::Materials,
+        count: 2,
+        inputs: &[(COPPER_INGOT, 1)],
+        blurb: "Drawn from a copper ingot by hand, slowly: a constructor does it for you. Coils, poles and packs use \
+                wire.",
     },
 ];
 

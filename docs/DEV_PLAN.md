@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-29 · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.2 (violet science and
-Mk4)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.3 (solar power and
+accumulators)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -424,10 +424,10 @@ Milestone 6 (Industry) is done: the steps below are its summary; the full specs 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 21) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 22) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 72, item 310). Each new look gets a placeholder
-  layer (`tex::COUNT` is 155) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 72, item 320). Each new look gets a placeholder
+  layer (`tex::COUNT` is 158) and a `docs/ART_HANDOVER.md` request line.
 
 ### Milestone 6 (Industry), built
 
@@ -442,24 +442,16 @@ Milestone 6 (Industry) is done: the steps below are its summary; the full specs 
 - [x] **6.7 Blue science and Mk3** (blue pack and kit, three-slot labs, save 20, Mk3 belts, miners,
   smelters (electric), processors) and **6.7b Mk3 for the rest** (poles `factory/pole.rs`, boxes, pumps,
   quarries, labs; generator Mk2; save 21; tier recipes in `recipes/tiers.rs`).
-- [x] **6.8 Steam power** (`factory/process/steam.rs`): boiler (block 66, 2×2×2) and steam turbine (67,
-  3×2×2) are spec rows with `Energy::Boiler` / `Energy::Turbine`. A boiler burns 540 kJ a coal into
-  steam (cap two coal), takes a unit of water (2,000 kJ) from a pump on its pipe net when low, and says
-  "Out of water" when a pond dries. A turbine touching a boiler is a power source `power.rs` asks for what
-  its grid lacks (up to 240 kW, two turbines a boiler). Boiler steam and water are saved only for boilers
-  (no version bump; saves without the newer techs load). Tests: a sea-pump plant holds a 405 kW load for a
-  full 43 s research unit; a pond plant runs dry; the two-turbine limit; a save round trip. A night is
-  approximated by sustained load, not ten minutes played.
-- [x] **6.9 Crushing and bulk storage:** the crusher (block 68, 1×1, 30 kW, `Category::Crushing`,
-  machine recipes 21–25, items 306–307: 2 ore → 3 crushed, slag → sand; a test measures 1.5 ingots an
-  ore) and the silo (block 69, `Pick::Store`, 144 slots, in on three sides, out the front; the panel
-  shows only occupied slots). Techs 14–16: Steam Power, Ore Crushing, Bulk Storage. Textures 141–150
-  (`textures/heavy.rs`), recipes in `recipes/heavy.rs`; tool recipes moved to `recipes/tooling.rs`.
-- [x] **6.10 Feel, balance, cleanup:** tips for kits, the assembler, steel and steam (`hints.rs`); the
-  golden hash re-recorded for the three techs; README, CODEMAP and TECH_ERAS updated. Measured: tests
-  286 → 296, wasm 232.7 KB gzipped (649.4 KB raw), `bench_plant` (a sea plant with about 20 machines,
-  release, 3,000 ticks): 1.3 µs a tick on average, worst 2.15 ms (tick 156).
-
+- [x] **6.8 Steam power** (`factory/process/steam.rs`): boiler (block 66, 2×2×2) and steam turbine (67, 3×2×2) are
+  spec rows (`Energy::Boiler` / `Turbine`). A boiler burns 540 kJ a coal into steam and takes water (2,000 kJ a
+  unit) from a pump on its pipe net; a turbine touching a boiler is a power source `power.rs` asks for what its
+  grid lacks (up to 240 kW, two a boiler). Tests: a sea-pump plant holds a 405 kW load for a full research unit;
+  a pond plant runs dry; the two-turbine limit; a save round trip.
+- [x] **6.9 Crushing and bulk storage:** the crusher (block 68, 30 kW, machine recipes 21–25, items 306–307: 2 ore
+  → 3 crushed, slag → sand) and the silo (69, `Pick::Store`, 144 slots, in on three sides, out the front). Techs
+  14–16; textures 141–150 (`textures/heavy.rs`), recipes in `recipes/heavy.rs` and `tooling.rs`.
+- [x] **6.10 Feel, balance, cleanup:** tips for kits, the assembler, steel and steam (`hints.rs`); golden hash
+  re-recorded. Tests 286 → 296, wasm 232.7 KB gzipped, `bench_plant` (20 machines): 1.3 µs a tick, worst 2.15 ms.
 ### Milestone 7 steps
 
 Goal: the player's reach grows from building by hand to machines doing it. Circuits and violet science
@@ -479,12 +471,18 @@ answers to the section 6 questions (blueprints, drone materials, jetpack); do 7.
   along the horizontal view, following the ground (`plan_pole`), and a click places it; holding places the next
   whenever the player has walked within `HOLD_REACH` of its spot; R (or crouch) frees it to go where aimed.
   With cables, a click hangs up to 64 down the aimed cell's column to the ground (crouch: one). Tests in
-  `power_tools/tests.rs`, `factory/pole/tests.rs`. The cable uses the copper wire texture (ART_HANDOVER).- [ ] **7.2 Violet science and Mk4.** The violet pack and kit (assembly recipes), `PACKS` gains violet
-  (labs hold a fourth slot, save 22, a v21 lab loads with it empty), Mk4 tiers for belts (8 blocks/s),
-  miners, processors, poles (substation), labs (×4, every third unit free) with numbers from TECH_ERAS
-  section 1; techs Violet Science, Mk4 Logistics, Mk4 Machines. **Done when:** every family's Mk4 numbers
-  are pinned by tests like Mk3's; a v21 fixture loads.
-- [ ] **7.3 Solar power and accumulators.** Solar panel (block, 10 kW by day: `daytime.rs`, no state of its
+  `power_tools/tests.rs`, `factory/pole/tests.rs`. The cable wears the copper wire texture.
+- [x] **7.2 Violet science and Mk4** (built): violet pack (310) and kit (311), assembler recipes 28–29; `PACKS` has four
+  entries, labs a fourth slot (save 22); the cable's stored tier moved to 15 so tier 3 is the Mk4 pole. Mk4 items
+  312–319 (hand recipe: Mk3 plus violet kits): belts 8/s, miners 6/s · 92 % · 90 kW, processors ×5, substation 32 · 16,
+  lab ×4 · every 3rd unit free; boxes, pumps, quarries stop at Mk3. Techs 18–20; numbers pinned in `factory/tiers/tests.rs`.
+- [x] **7.2b Bootstrap without raw ore, and timed hand crafting** (built): no hand recipe uses metal ore. Stone makes the
+  furnace (Smelter); ore and fuel go in by hand for ingots; hand recipes (Materials) turn ingots into plates, rods, screws
+  and wire; the first miner, belts, box, generator and poles are made of those. `crafting.rs`: `Action::Craft` queues an
+  order (`CraftQueue` per player, max 12, save 23); its `plan` adds the part crafts the inventory can't cover, in
+  order, and the materials are paid at once; a craft takes `hand_ticks` (90 + 30 per material, max 20 s); cancelling or
+  leaving refunds it all (`Action::CancelCraft`, tag 26). UI: `ui/craftqueue.ts` chips, times in the build menu card.
+  Tests: `crafting/tests.rs`, `recipes/tests.rs` (no raw ore), `tests.rs` scenarios.- [ ] **7.3 Solar power and accumulators.** Solar panel (block, 10 kW by day: `daytime.rs`, no state of its
   own) and accumulator (2×2×2, stores 10 MJ) as power sources and sinks in `power.rs`'s one balance.
   **Done when:** a test keeps a load running through a night on solar plus accumulators (sized).
 - [ ] **7.4 Scanner Mk2.** Range 96, shows quartz (`prospect.rs`); Advanced Scanning tech.
@@ -576,25 +574,24 @@ and the balance numbers. Read the section you need.
 - **2026-09-28: Sites in the core, wood, glass, lights, lifts** (`b33f98c` to `2d89533`): `factory/sites.rs`
   (save version 17; tags 21, 22), planks, sticks, ladders, sand → glass, torch reach 11, lamp 31
   (`bench_meshing` 0.56 ms per chunk), climbable lifts. Tests 234 → 240; wasm 204.5 KB.
-- **2026-09-28: Tech tree and Industry** (user request, a review before 6.2): `docs/TECH_TREE.md` (the
-  concept: eleven lines, their links, the far end, upgrades, the content architecture) and `docs/TECH_ERAS.md` (per era). The user made Industry Milestone 6 and
-  moved terraforming later (now 8; its sites step, built as 6.1, stays in the core and its design is in
-  the roadmap). Roadmap now 7–13. No code changed.
+- **2026-09-28: Tech tree and Industry** (user request): `docs/TECH_TREE.md` (the concept, upgrades, the content
+  architecture) and `docs/TECH_ERAS.md` (per era). Industry became Milestone 6, terraforming moved to 8 (its
+  sites step, built as 6.1, stays in the core); roadmap 7–13. No code changed.
 - **2026-09-28: 6.1–6.6** (`8c22a45` on): tiers as data (`factory/tiers.rs`), `research::Unlock`, recipe
   categories, the content lint, upgrade kits (`Action::Upgrade` tag 23); one processing machine
   (`factory/process/`, save 18) with Masonry; multi-block footprints and the assembler (save 19); steel (the
   blast furnace with a byproduct port). Tests 240 → 270. Ctrl also crouches, and closing the tab mid-game asks.
-- **2026-09-29: 6.7–6.7b:** blue science and Mk3 everything (labs with three pack slots, save 20; tiers for
-  poles, boxes, pumps, quarries, labs and the generator, save 21; `recipes/tiers.rs`). Tests 270 → 286.
-- **2026-09-29: Milestone 6 (Industry) done** (6.8–6.10; pushed with 6.7 and 6.7b): steam (boiler, turbines
-  as power sources in `power.rs`, `factory/process/steam.rs`), the crusher, the silo, techs 14–16, four
-  tips, the golden hash re-recorded. Tests 286 → 296; wasm 232.7 KB gzipped. Lessons: write doc comments
-  with the file tools or single-quoted here-strings (double-quoted PowerShell here-strings eat backticks);
-  a plant test with a 405 kW load caught two turbine status bugs a unit test would not. Milestone 7 moved
-  in from the roadmap.
+- **2026-09-29: 6.7–6.7b:** blue science and Mk3 everything (labs with three pack slots, save 20; tiers for the rest, save 21). Tests 270 → 286.
+- **2026-09-29: Milestone 6 (Industry) done** (6.8–6.10): steam (boiler, turbines as power sources in `power.rs`), the
+  crusher, the silo, techs 14–16, four tips. Tests 286 → 296; wasm 232.7 KB gzipped. Lessons: write doc comments
+  with the file tools or single-quoted here-strings (double-quoted PowerShell here-strings eat backticks); a plant
+  test with a 405 kW load caught two turbine bugs a unit test would not. Milestone 7 moved in from the roadmap.
 - **2026-09-29: Play-test notes after Milestone 6** (`Testing 5.ocworld`; pushed 28e1bf9): sort buttons for
   the backpack and boxes (`Action::SortInventory` tag 24, `SortBox` tag 25); boxes are lit by their cell
   (`world/boxlight.rs`); saved worlds open without their old guests (`Game::release_guests`), and a returning
-  key replaces its old connection at once. Tests 296 → 303; wasm 235.2 KB gzipped.- **2026-09-29: Box screen bug, step 7.1 and 7.1b:** a small box opened after a larger one showed the larger box's
+  key replaces its old connection at once. Tests 296 → 303; wasm 235.2 KB gzipped.
+- **2026-09-29: Box screen bug, step 7.1 and 7.1b:** a small box opened after a larger one showed the larger box's
   extra empty slots (`ui/inventory.ts` hides them). Step 7.1 built (arc furnace, silicon, circuits, Electronics tech).
-  7.1b: the power cable block and a pole tool (ghost at full reach, hold to chain, R to place freely). Tests 303 → 320.
+  7.1b: the power cable block and a pole tool (ghost at full reach, hold to chain, R to place freely). Tests 305 → 316.
+- **2026-09-29: Step 7.2** (violet science, Mk4 for eight families; save 22). Tests 316 → 323; wasm 235.5 KB gzipped.
+- **2026-09-29: Step 7.2b** (bootstrap without raw ore; the hand-craft queue with timed crafts and automatic part crafts; save 23). Tests 323 → 336; wasm 239.3 KB gzipped.

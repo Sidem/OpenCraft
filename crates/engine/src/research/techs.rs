@@ -6,10 +6,10 @@ use crate::block::{
     ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB, LIFT, MINER,
     OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
-use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
+use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK};
 use crate::recipes::{
     ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, ELECTRONICS_RECIPES, GEAR_RECIPE, QUICKLIME_RECIPE,
-    STEEL_RECIPES,
+    STEEL_RECIPES, VIOLET_RECIPES,
 };
 
 use super::{r, Tech, Unlock};
@@ -238,6 +238,43 @@ pub const TECHS: &[Tech] = &[
             r(ARC_FURNACE),
             Unlock::MachineRecipe(ELECTRONICS_RECIPES[0]),
             Unlock::MachineRecipe(ELECTRONICS_RECIPES[1]),
+        ],
+    },
+    Tech {
+        name: "Violet Science",
+        blurb: "Violet science packs, assembled from two circuits, a steel beam and a motor: the packs of the \
+                electronic era. Labs get a fourth slot for them.",
+        needs: &[17],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 100,
+        seconds: 25.0,
+        unlocks: &[Unlock::MachineRecipe(VIOLET_RECIPES[0])],
+    },
+    Tech {
+        name: "Mk4 Logistics",
+        blurb: "Violet kits, made in an assembler, and Mk4 belts (eight times a Mk1) and substations that link 32 \
+                blocks and power machines within 16.",
+        needs: &[18],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 100,
+        seconds: 30.0,
+        unlocks: &[Unlock::MachineRecipe(VIOLET_RECIPES[1]), Unlock::Upgrade(BELT, 3), Unlock::Upgrade(POLE, 3)],
+    },
+    Tech {
+        name: "Mk4 Machines",
+        blurb: "Violet kits make miners, smelters, constructors, assemblers, blast furnaces and labs Mk4: five \
+                times as fast (a lab four), miners recover 92%, and labs skip the packs of every third unit.",
+        needs: &[19],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 120,
+        seconds: 30.0,
+        unlocks: &[
+            Unlock::Upgrade(MINER, 3),
+            Unlock::Upgrade(SMELTER, 3),
+            Unlock::Upgrade(CONSTRUCTOR, 3),
+            Unlock::Upgrade(ASSEMBLER, 3),
+            Unlock::Upgrade(BLAST_FURNACE, 3),
+            Unlock::Upgrade(LAB, 3),
         ],
     },
 ];

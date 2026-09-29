@@ -109,6 +109,19 @@ pub const CRUSHED_COPPER: ItemId = ItemId(307);
 /// Electronics: silicon from an arc furnace, and the circuit an assembler makes from it.
 pub const SILICON: ItemId = ItemId(308);
 pub const CIRCUIT: ItemId = ItemId(309);
+/// Violet science (Violet Science): made by assemblers only; labs hold a fourth slot for it. The violet kit raises
+/// machines to Mk4 (`factory/upgrades.rs`).
+pub const VIOLET_PACK: ItemId = ItemId(310);
+pub const VIOLET_KIT: ItemId = ItemId(311);
+/// Mk4 of belts, miners, processors, poles and labs (`factory/tiers.rs`): each places its family's block at tier 3.
+pub const BELT_MK4: ItemId = ItemId(312);
+pub const MINER_MK4: ItemId = ItemId(313);
+pub const SMELTER_MK4: ItemId = ItemId(314);
+pub const CONSTRUCTOR_MK4: ItemId = ItemId(315);
+pub const ASSEMBLER_MK4: ItemId = ItemId(316);
+pub const BLAST_FURNACE_MK4: ItemId = ItemId(317);
+pub const POLE_MK4: ItemId = ItemId(318);
+pub const LAB_MK4: ItemId = ItemId(319);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -166,7 +179,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 54] = [
+const EXTRA: [ItemDef; 64] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -221,6 +234,16 @@ const EXTRA: [ItemDef; 54] = [
     part("Crushed Copper", tex::CRUSHED_COPPER, [0.6, 0.4, 0.6]),
     ingot("Silicon", tex::SILICON),
     part("Circuit", tex::CIRCUIT, [0.7, 0.1, 0.7]),
+    part("Violet Science Pack", tex::VIOLET_PACK, [0.4, 0.6, 0.4]),
+    part("Violet Kit", tex::stripe(3), [0.6, 0.45, 0.6]),
+    machine("Belt Mk4", [tex::FRAME, tex::BELT_MK4_TOP, tex::FRAME]),
+    machine("Miner Mk4", [tex::MINER_TOP, tex::MINER_MK4_SIDE, tex::FRAME]),
+    machine("Smelter Mk4", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
+    machine("Constructor Mk4", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
+    machine("Assembler Mk4", [tex::ASSEMBLER_TOP, tex::ASSEMBLER_SIDE, tex::FRAME]),
+    machine("Blast Furnace Mk4", [tex::BLAST_TOP, tex::BLAST_SIDE, tex::FRAME]),
+    machine("Power Pole Mk4", [tex::FRAME, tex::POLE_SIDE, tex::FRAME]),
+    machine("Research Lab Mk4", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

@@ -6,7 +6,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon and circuits in `electronics.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -119,6 +119,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::MINER_MK2_SIDE => miner_side(x, y, [106.0, 164.0, 176.0]),
         tex::BELT_MK3_TOP => belt_top(x, y, [86.0, 140.0, 222.0]),
         tex::MINER_MK3_SIDE => miner_side(x, y, [86.0, 140.0, 222.0]),
+        tex::BELT_MK4_TOP => belt_top(x, y, [154.0, 91.0, 214.0]),
+        tex::MINER_MK4_SIDE => miner_side(x, y, [154.0, 91.0, 214.0]),
         tex::MINER_TOP => miner_top(x, y),
         tex::DRILL => drill(x, y),
         tex::BOX_SIDE => crate_wood(x, y, false),
@@ -173,7 +175,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             steel::pixel(layer, x, y)
         }
         tex::BOILER_SIDE..=tex::CRUSHED_COPPER => heavy::pixel(layer, x, y),
-        tex::ARC_SIDE..=tex::CIRCUIT => electronics::pixel(layer, x, y),
+        tex::ARC_SIDE..=tex::VIOLET_PACK => electronics::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

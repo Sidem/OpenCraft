@@ -69,7 +69,7 @@ own builders. Flight arrives: the jetpack.
 | Jetpack (tool) | 4 steel plates, 2 motors, 2 circuits (hand) | burns coal from a fuel slot: 10 s of thrust a coal |
 | Personal drone | 1 drone, 2 circuits (hand) | follows you; fetches a chosen item from boxes in range |
 
-Built (7.1): the arc furnace, silicon and circuit; Electronics costs 80 units × 20 s (r g b), after Blue Science.
+Built (7.1): the arc furnace, silicon and circuit; Electronics costs 80 units × 20 s (r g b), after Blue Science. Built (7.2): violet pack and kit, Mk4 for belts, miners, smelters, constructors, assemblers, blast furnaces, poles and labs (boxes, pumps and quarries stay at Mk3), techs Violet Science (100 × 25 s), Mk4 Logistics (100 × 30 s), Mk4 Machines (120 × 30 s).
 
 Techs: Electronics (r g b: arc furnace, silicon, circuit) · Violet Science · then r g b v: Logic ·
 Blueprints · Construction Drones · Jetpack · Personal Drone · Solar Power · Accumulators · Mk4 Logistics

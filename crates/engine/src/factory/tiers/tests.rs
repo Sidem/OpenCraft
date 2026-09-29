@@ -248,3 +248,67 @@ fn labs_work_at_one_two_and_three_times_the_speed_and_a_mk3_skips_every_fifth_pa
     place_at(&mut f, LAB, IVec3::ZERO, 2);
     assert!(f.describe(IVec3::ZERO).unwrap().contains("×3 speed · needs 30 kW · every 5th unit is free"));
 }
+
+#[test]
+fn mk4_pins_its_numbers_for_every_family() {
+    use crate::factory::lab::LAB_TIERS;
+    use crate::factory::pole::POLE_TIERS;
+    assert_eq!(BELT_TIERS[3].speed, 8.0);
+    let m = &MINER_TIERS[3];
+    assert_eq!((m.rate, m.recovery, m.power), (6.0, 0.92, 90));
+    assert_eq!((POLE_TIERS[3].link, POLE_TIERS[3].reach), (32, 16));
+    let l = &LAB_TIERS[3];
+    assert_eq!((l.speed, l.power, l.free_every), (4, 40, 3));
+    // Processors: five times a Mk1, and their power grows alike.
+    let tier4 = |block| {
+        let t = &crate::factory::process::spec(block).unwrap().tiers[3];
+        (t.speed, t.power)
+    };
+    assert_eq!(tier4(SMELTER), (5000, 80));
+    assert_eq!(tier4(CONSTRUCTOR), (5000, 75));
+    assert_eq!(tier4(ASSEMBLER), (5000, 100));
+    assert_eq!(tier4(BLAST_FURNACE), (5000, 0));
+}
+
+#[test]
+fn a_mk4_belt_carries_about_twenty_items_a_second() {
+    let mut f = Factory::default();
+    f.add_storage(IVec3::ZERO);
+    f.stock(IVec3::ZERO, IRON_ORE.into(), 1000);
+    for x in 1..=4 {
+        let p = IVec3::new(x, 0, 0);
+        f.place(&mut World::new(1, 2), BELT, p, 1, p, 3);
+    }
+    f.add_storage(IVec3::new(5, 0, 0));
+    run(&mut f, 5.0, |_| {});
+    let before = f.storage_count_at(IVec3::new(5, 0, 0), IRON_ORE.into());
+    run(&mut f, 5.0, |_| {});
+    let n = f.storage_count_at(IVec3::new(5, 0, 0), IRON_ORE.into()) - before;
+    // A gap of 0.35 blocks at 8 blocks a second is 2.6 ticks, so 20 a second at 60 ticks a second.
+    assert!((97..=103).contains(&n), "Mk4 {n}");
+}
+
+#[test]
+fn a_mk4_lab_works_four_times_as_fast_and_every_third_unit_is_free() {
+    use crate::item::RED_PACK;
+    let mut f = Factory::default();
+    powered(&mut f, 0);
+    place_at(&mut f, LAB, IVec3::ZERO, 3);
+    assert_eq!(f.insert(IVec3::ZERO, RED_PACK, 20), 20);
+    f.research.set_current(Some(0));
+    // 5 s a unit at full power is 1.25 s at Mk4: eight units in 10 s, two of them free (6 packs), and the ninth,\n    // a free one too, is under way.
+    run(&mut f, 603.5 / crate::TICK_RATE as f64, |_| {});
+    assert_eq!((f.research.progress(0), f.lab_at(IVec3::ZERO).packs.total(), f.power.demand[0]), (8, 14, 40));
+    assert!(f.describe(IVec3::ZERO).unwrap().contains("×4 speed · needs 40 kW · every 3rd unit is free"));
+}
+
+#[test]
+fn a_substation_reaches_sixteen_blocks_and_links_like_a_pylon() {
+    let mut f = Factory::default();
+    place_at(&mut f, POLE, IVec3::ZERO, 3);
+    place_at(&mut f, POLE, IVec3::new(32, 0, 0), 2);
+    place_at(&mut f, MINER, IVec3::new(-16, 0, 0), 0);
+    run(&mut f, 0.1, |_| {});
+    assert_eq!(f.power.pole_grid, [0, 0], "32 blocks link");
+    assert_eq!(f.power.miner_pole, [Some(0)], "a machine 16 blocks away hangs on it");
+}

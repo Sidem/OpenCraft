@@ -15,7 +15,7 @@ use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME,
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
-use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON};
+use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -125,6 +125,18 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(CIRCUIT, 2)],
         seconds: 4.0,
     },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(CIRCUIT, 2), (STEEL_BEAM, 1), (MOTOR, 1)],
+        outputs: &[(VIOLET_PACK, 2)],
+        seconds: 15.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(CIRCUIT, 2), (MOTOR, 1), (STEEL_PLATE, 2)],
+        outputs: &[(VIOLET_KIT, 4)],
+        seconds: 5.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -141,6 +153,8 @@ pub const BLUE_RECIPES: [u16; 2] = [19, 20];
 pub const CRUSH_RECIPES: [u16; 5] = [21, 22, 23, 24, 25];
 /// The arc furnace's silicon and the assembler's circuit (Electronics).
 pub const ELECTRONICS_RECIPES: [u16; 2] = [26, 27];
+/// Violet science pack and violet kit, made by assemblers only.
+pub const VIOLET_RECIPES: [u16; 2] = [28, 29];
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

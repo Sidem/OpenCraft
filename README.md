@@ -266,23 +266,46 @@ size.
   electric (40 kW) and burns no fuel. Power poles, storage boxes, pumps, quarries, labs and the coal generator
   upgrade too: a Mk3 pole (a pylon) links 32 blocks and reaches 9, boxes hold 24, 36 and 48 stacks, pumps and
   quarries do 2, 4 and 6 a second, a Mk3 lab works three times as fast and skips the packs of every fifth unit,
-  and a Mk2 generator gives 100 kW and a quarter more from the same fuel.
+  and a Mk2 generator gives 100 kW and a quarter more from the same fuel. Violet kits (2 circuits, a motor and
+  2 steel plates make 4, in an assembler; violet science packs need circuits too) take Mk3 to Mk4 once Mk4
+  Logistics or Mk4 Machines is done: a Belt Mk4 moves 8 blocks a second (about 20 items), a Miner Mk4 draws six
+  times as fast and keeps 92% (90 kW), smelters, constructors, assemblers and blast furnaces work five times as
+  fast (a smelter 80 kW), a Mk4 pole (a substation) links 32 blocks and reaches 16, and a Mk4 lab works four
+  times as fast and skips the packs of every third unit. Boxes, pumps and quarries stop at Mk3.
 - **Machine panels.** Right-click a smelter, constructor, assembler, arc furnace, boiler, crusher, silo, filter, generator, lab or quarry to see what it's doing, put items in
   straight from your inventory (ore, fuel, ingots, packs), and take what it made.
 
-Craft machines in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
+Craft in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
 or everything made from a material, and filter by what you can craft now, what misses materials and what
-research still locks. Hover a recipe for its description and materials; click it to craft one, Shift-click
-for up to five. Wood comes first (Materials): a log saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up, crouch to go down, let go to stay put; stack them up a cliff or down a shaft and walk off onto the ledge at the top. Belt lifts climb the same way, so building a tall lift stack is easy. A Miner Mk1 costs 10 iron ore, 6 copper ore and 12 stone. Four belts
-cost 1 iron ore and 2 stone, a box costs 8 planks and 2 iron ore, a smelter 16 stone and 4 iron ore, a constructor 10 iron ingots,
-4 copper ingots and 8 stone, a splitter 2 iron plates and 2 belts, a filter 2 iron plates, 2 copper
-wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and 4 iron rods; a boiler 24 stone bricks, 8 steel plates and 6 pipes, a steam turbine 12 steel plates, 4 motors and 16 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an arc furnace 10 steel plates, 16 stone bricks and 24 copper wire. Two lifts cost 2 iron rods and 2
-belts, and an underpass entry or exit 2 iron plates and 2 belts. A coal generator costs 6 iron ore, 4
-copper ore and 12 stone; two power poles an iron ore, a copper ore and 2 sticks; a research lab 6 iron plates,
-8 copper wire and 4 belts; Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block, an iron plate and 2 copper wire; a pump 6 iron
-plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates,
-8 iron rods, 16 screws and 8 copper wire. Hand-mining an outcrop or two covers
-your first miner, generator and poles. After that, let them do the work.
+research still locks. Hover a recipe for its description, materials and how long it takes; click it to queue one,
+Shift-click for up to five.
+
+**Crafting takes time and queues.** Each hand craft runs for a few seconds (90 ticks plus 30 per material, at most
+20 s; a plate 2.5 s, a miner 9 s), one after another, shown as chips above the hotbar; click a chip to cancel that
+order and get everything back, including the parts it had already made. The materials are paid when you queue.
+If you hold the raw materials for something that needs parts, asking for it queues the parts too, in the right
+order: a Miner Mk1 from 14 iron ingots and 3 copper ingots queues 5 plates, 4 rods and 3 wire crafts and then the
+miner. Only what the inventory can pay for is queued. Leaving a co-op world returns the queue to your inventory.
+
+**Bootstrapping, without raw ore in a recipe.** Nothing is built from raw ore. Wood comes first (Materials): a log
+saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles
+and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up,
+crouch to go down, let go to stay put. Belt lifts climb the same way. Then: 16 stone make a **stone furnace** (the
+Smelter), which you feed by hand (right-click it) with iron or copper ore and coal ore or logs; it melts ingots and you
+take them from its panel. From ingots you craft, by hand and slowly, iron plates (2 ingots), iron rods (1),
+screws (a rod makes 4) and copper wire (an ingot makes 2). Those make the first machines: a Miner Mk1 costs 5 plates,
+4 rods and 6 wire, four belts a plate and a rod, a box 8 planks and 2 plates, a generator 4 plates, 8 wire and 12
+stone, two poles 2 sticks and 2 wire. Once a constructor (10 iron ingots, 4 copper ingots, 8 stone) makes the
+parts for you, hand crafting is for one-offs. Also by recipe: a constructor is as above; a splitter 2 iron plates and
+2 belts, a filter 2 iron plates, 2 copper wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and
+4 iron rods; a boiler 24 stone bricks, 8 steel plates and 6 pipes, a steam turbine 12 steel plates, 4 motors and 16
+copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an
+arc furnace 10 steel plates, 16 stone bricks and 24 copper wire. Two lifts cost 2 iron rods and 2 belts, and an
+underpass entry or exit 2 iron plates and 2 belts. A research lab costs 6 iron plates, 8 copper wire and 4 belts;
+Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
+an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an
+outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. Hand-mining
+an outcrop or two and a furnace cover your first miner, generator and poles. After that, let them do the work.
 
 ## Sound designer
 
@@ -393,7 +416,7 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
   28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder, 60 stone bricks, 61 assembler, 62 machine part (a multi-block machine's other cells), 63 concrete, 64 blast furnace, 65 slag, 66 boiler, 67 steam turbine, 68 crusher, 69 silo, 70 arc furnace; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
   264–269 stone and iron tools, 270 scanner, 271 core drill, 272 stick, 273 gear, 274 green kit, 275 quicklime,
-  276 smelter Mk2, 277 constructor Mk2, 278 motor, 279–281 steel ingot, plate and beam, 282–284 steel tools, 285 blue science pack, 286 blue kit, 287–294 Mk3 belt, miner, smelter and constructor, Mk2 and Mk3 assembler and blast furnace, 295–305 Mk2 and Mk3 pole, box, pump, quarry and lab, and the Mk2 generator, 306 crushed iron, 307 crushed copper, 308 silicon, 309 circuit.
+  276 smelter Mk2, 277 constructor Mk2, 278 motor, 279–281 steel ingot, plate and beam, 282–284 steel tools, 285 blue science pack, 286 blue kit, 287–294 Mk3 belt, miner, smelter and constructor, Mk2 and Mk3 assembler and blast furnace, 295–305 Mk2 and Mk3 pole, box, pump, quarry and lab, and the Mk2 generator, 306 crushed iron, 307 crushed copper, 308 silicon, 309 circuit, 310 violet science pack, 311 violet kit, 312–319 Mk4 belt, miner, smelter, constructor, assembler, blast furnace, pole and lab.
 - `opencraft.game.teleport(0, 120, 0)` moves you.
 - `opencraft.game.find_deposit(1)` returns `[x, y, z, ore]` for the nearest deposit of a tier
   (0 lode, 1 vein, 2 outcrop).

@@ -18,6 +18,7 @@
 use crate::action::Action;
 use crate::block::BlockId;
 use crate::bytes::{fnv1a, ByteReader, ByteWriter};
+use crate::crafting::CraftQueue;
 use crate::factory::Factory;
 use crate::inventory::Inventory;
 use crate::item::ItemId;
@@ -108,6 +109,8 @@ pub struct PlayerCore {
     /// Who this is across visits (a random id the player's browser keeps); 0 for nobody in
     /// particular (the world's owner, test players), whose things aren't kept when they leave.
     pub key: u64,
+    /// Hand crafts waiting or in progress (`crafting.rs`).
+    pub crafts: CraftQueue,
 }
 
 /// A player who left, kept under their key until they join again.
@@ -206,6 +209,7 @@ impl Sim {
         for q in std::mem::replace(&mut self.pending, later) {
             self.apply(q.player, q.action);
         }
+        self.run_crafting();
         self.run_timers();
         self.run_water();
         self.factory.update(&mut self.world, self.tick, &mut self.events);
@@ -236,6 +240,7 @@ impl Sim {
             if let Some(p) = p {
                 p.inventory.write_state(w);
                 w.u64(p.key);
+                p.crafts.write_state(w);
             }
         }
         w.count(self.away.len());
@@ -264,7 +269,9 @@ impl Sim {
         for _ in 0..players {
             let present = r.bool()?;
             self.players.push(if present {
-                Some(PlayerCore { inventory: Inventory::read_state(r)?, key: if keyed { r.u64()? } else { 0 } })
+                let (inventory, key) = (Inventory::read_state(r)?, if keyed { r.u64()? } else { 0 });
+                let crafts = if r.version >= 23 { CraftQueue::read_state(r)? } else { CraftQueue::default() };
+                Some(PlayerCore { inventory, key, crafts })
             } else {
                 None
             });

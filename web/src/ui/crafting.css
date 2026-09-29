@@ -232,6 +232,11 @@
   color: #ff9a86;
 }
 
+.craft-time {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
 .craft-status {
   margin: 8px 0 0;
   font-size: 12px;

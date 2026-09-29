@@ -244,7 +244,7 @@ fn a_client_joins_a_running_factory_and_stays_in_step() {
     }
     assert!(boxed(&client) > before, "the miner kept filling the box");
     assert_eq!(client.inventory().count(STONE.into()), 12);
-    assert_eq!(host.sim.player(A).unwrap().inventory.count(STONE.into()), 1, "the queued action applied");
+    assert_eq!(host.sim.player(A).unwrap().inventory.count(STONE.into()), 3, "the queued action applied");
 }
 
 #[test]

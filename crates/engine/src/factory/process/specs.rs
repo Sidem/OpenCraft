@@ -90,6 +90,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Burner, speed: 1000, fuel: 1000, power: 0 },
             ProcessTier { energy: Energy::Burner, speed: 2000, fuel: 750, power: 0 },
             ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 40 },
+            ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 80 },
         ],
         footprint: SINGLE,
         verb: "Smelting",
@@ -108,6 +109,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 15 },
             ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 30 },
             ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 45 },
+            ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 75 },
         ],
         footprint: SINGLE,
         verb: "Making",
@@ -126,6 +128,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 20 },
             ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 40 },
             ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 60 },
+            ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 100 },
         ],
         footprint: Footprint {
             size: [2, 2, 2],
@@ -147,6 +150,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Recipe, speed: 1000, fuel: 0, power: 0 },
             ProcessTier { energy: Energy::Recipe, speed: 2000, fuel: 0, power: 0 },
             ProcessTier { energy: Energy::Recipe, speed: 3000, fuel: 0, power: 0 },
+            ProcessTier { energy: Energy::Recipe, speed: 5000, fuel: 0, power: 0 },
         ],
         footprint: Footprint {
             size: [2, 2, 3],

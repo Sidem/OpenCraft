@@ -256,7 +256,7 @@ fn upgrading_a_burning_smelter_to_mk3_hands_it_to_the_grid() {
     powered(&mut f);
     place(&mut f, SMELTER, IVec3::ZERO, 1);
     f.insert(IVec3::ZERO, IRON_ORE.into(), 20);
-    assert!(f.upgrade(IVec3::ZERO) && f.next_upgrade(IVec3::ZERO).is_none());
+    assert!(f.upgrade(IVec3::ZERO) && f.next_upgrade(IVec3::ZERO).is_some_and(|s| s.tier == 3));
     run(&mut f, 3.05, |_| {});
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!((s.tier, s.energy(), s.out.count(IRON_INGOT), s.status), (2, Energy::Electric, 6, Status::Working));

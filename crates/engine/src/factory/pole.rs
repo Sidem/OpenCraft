@@ -24,12 +24,17 @@ pub struct PoleTier {
     pub reach: i32,
 }
 
-/// Mk1, Mk2 and Mk3.
-pub const POLE_TIERS: [PoleTier; 3] =
-    [PoleTier { link: 10, reach: 5 }, PoleTier { link: 16, reach: 7 }, PoleTier { link: 32, reach: 9 }];
+/// Mk1 to Mk4 (the substation: as far as the pylon, but reaching 16).
+pub const POLE_TIERS: [PoleTier; 4] = [
+    PoleTier { link: 10, reach: 5 },
+    PoleTier { link: 16, reach: 7 },
+    PoleTier { link: 32, reach: 9 },
+    PoleTier { link: 32, reach: 16 },
+];
 
-/// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it).
-pub const CABLE_TIER: u8 = 3;
+/// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it). It was 3 in the few saves of
+/// version 21 that hold cables, before the Mk4 pole took that number.
+pub const CABLE_TIER: u8 = 15;
 /// A cable's numbers: `link` is unused (cables link by touching), `reach` is how far machines hang on it.
 pub const CABLE_STATS: PoleTier = PoleTier { link: 1, reach: 2 };
 /// Cables this close (squared: touching, diagonals too) are one wire.
@@ -103,6 +108,7 @@ impl Machine for Pole {
     fn read_state(r: &mut ByteReader) -> Option<Pole> {
         let pos = r.ivec3()?;
         let tier = if r.version >= 21 { r.u8()? } else { 0 };
+        let tier = if r.version == 21 && tier == 3 { CABLE_TIER } else { tier };
         (((tier as usize) < POLE_TIERS.len()) || tier == CABLE_TIER).then_some(Pole { pos, tier })
     }
 

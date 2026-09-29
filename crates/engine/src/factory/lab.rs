@@ -43,10 +43,11 @@ pub struct LabTier {
     pub free_every: u8,
 }
 
-pub const LAB_TIERS: [LabTier; 3] = [
+pub const LAB_TIERS: [LabTier; 4] = [
     LabTier { speed: 1, power: 10, free_every: 0 },
     LabTier { speed: 2, power: 20, free_every: 0 },
     LabTier { speed: 3, power: 30, free_every: 5 },
+    LabTier { speed: 4, power: 40, free_every: 3 },
 ];
 
 pub struct Lab {
@@ -243,7 +244,11 @@ impl Machine for Lab {
     fn read_state(r: &mut ByteReader) -> Option<Lab> {
         let mut l = Lab::new(r.ivec3()?);
         // Saves before version 20 had no blue pack slot.
-        let held = if r.version >= 20 { PACKS.len() } else { PACKS.len() - 1 };
+        let held = match r.version {
+            22.. => PACKS.len(),
+            20..=21 => PACKS.len() - 1,
+            _ => PACKS.len() - 2,
+        };
         l.packs = Buffer::read_state(r, held)?;
         l.packs.slots.resize(PACKS.len(), Stack::default());
         let slots_ok = l.packs.slots.iter().zip(PACKS).all(|(s, p)| s.is_empty() || s.item == p);
@@ -279,7 +284,13 @@ impl Machine for Lab {
             lines.push(held.join(" · "));
         }
         let LabTier { speed, power, free_every } = *self.stats();
-        let free = if free_every > 0 { format!(" · every {free_every}th unit is free") } else { String::new() };
+        let nth = match free_every {
+            1 => "st",
+            2 => "nd",
+            3 => "rd",
+            _ => "th",
+        };
+        let free = if free_every > 0 { format!(" · every {free_every}{nth} unit is free") } else { String::new() };
         lines.push(format!("×{speed} speed · needs {power} kW{free}"));
         lines.push("Right-click to open".to_string());
         lines.join("\n")

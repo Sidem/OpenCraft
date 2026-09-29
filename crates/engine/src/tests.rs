@@ -468,20 +468,52 @@ fn a_second_player_has_its_own_body_pickups_and_throws() {
 }
 
 #[test]
-fn crafting_consumes_inputs() {
+fn crafting_is_queued_takes_time_and_consumes_inputs() {
+    use crate::item::{IRON_PLATE, IRON_ROD};
     let mut g = Game::new(7, 2);
-    g.give(block::IRON_ORE.into(), 3);
-    g.give(block::STONE.into(), 5);
+    g.give(IRON_PLATE.0, 3);
+    g.give(IRON_ROD.0, 5);
     g.run_ticks(1);
     let belt = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u32;
-    assert_eq!(g.craft(belt, 5), 2, "what the inventory can pay for");
+    assert_eq!(g.craft(belt, 5), 3, "what the inventory can pay for");
     assert_eq!(g.item_total(BELT.into()), 0, "applied at the next tick");
     g.run_ticks(1);
-    assert_eq!(g.item_total(BELT.into()), 8);
-    assert!(g.next_pickup() && g.pickup_item() == BELT as u16 && g.pickup_count() == 8);
-    assert_eq!(g.item_total(block::IRON_ORE.into()), 1);
-    assert_eq!(g.item_total(block::STONE.into()), 1);
+    assert_eq!((g.item_total(IRON_PLATE.0), g.item_total(IRON_ROD.0)), (0, 2), "paid for when queued");
+    assert_eq!(g.craft_queue()[..2], [BELT as u32, 12]);
+    // Each craft takes 2.5 s by hand; the belts arrive one craft at a time.
+    g.run_ticks(150);
+    assert_eq!(g.item_total(BELT.into()), 4);
+    g.run_ticks(300);
+    assert_eq!(g.item_total(BELT.into()), 12);
+    assert!(g.craft_queue().is_empty());
+    let mut notices = Vec::new();
+    while g.next_pickup() {
+        if g.pickup_item() == BELT as u16 {
+            notices.push(g.pickup_count());
+        }
+    }
+    assert_eq!(notices, [12], "the toasts merge into one");
     assert!(!g.can_craft(belt));
+}
+
+#[test]
+fn a_machine_crafted_from_ingots_queues_its_parts_and_can_be_cancelled() {
+    use crate::item::{COPPER_INGOT, IRON_INGOT};
+    let mut g = Game::new(7, 2);
+    g.give(IRON_INGOT.0, 14);
+    g.give(COPPER_INGOT.0, 3);
+    g.run_ticks(1);
+    let miner = RECIPES.iter().position(|r| r.output == MINER.into()).unwrap() as u32;
+    assert_eq!((g.craftable_times(miner), g.recipe_part_crafts(miner)), (1, 12));
+    assert_eq!(g.craft(miner, 1), 1);
+    g.run_ticks(400);
+    assert_eq!(g.craft_queue()[..2], [MINER as u32, 1]);
+    g.cancel_craft(0);
+    g.run_ticks(1);
+    assert!(g.craft_queue().is_empty());
+    assert_eq!(g.item_total(MINER.into()), 0);
+    // Everything is back, as parts or ingots: the same again can be made.
+    assert_eq!(g.craftable_times(miner), 1);
 }
 
 #[test]
@@ -499,12 +531,11 @@ fn every_hand_recipe_gives_its_output() {
             }
         }
         assert_eq!(g.craft(i as u32, 1), 1, "recipe {i}");
-        g.run_ticks(1);
+        g.run_ticks(r.hand_ticks() + 2);
         assert_eq!(g.item_total(r.output.0), r.count, "recipe {i} made its output");
         assert!(r.inputs.iter().all(|&(item, _)| g.item_total(item.0) == 0), "recipe {i} used its inputs");
     }
 }
-
 #[test]
 fn a_miner_line_through_a_smelter_fills_a_box_with_ingots() {
     use crate::block::{COAL_ORE, SMELTER};

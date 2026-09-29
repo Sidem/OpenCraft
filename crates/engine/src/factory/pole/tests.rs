@@ -73,3 +73,16 @@ fn cables_survive_a_save_round_trip_and_stay_out_of_the_pole_upgrades() {
     assert_eq!(g.poles().count(), 1, "poles() lists no cables");
     assert!(g.cable_joins(v(0, 2, 0)) && !g.cable_joins(v(0, 8, 0)));
 }
+
+#[test]
+fn a_version_21_cable_kept_its_tier_3_and_is_still_a_cable_while_tier_3_is_now_the_substation() {
+    use crate::bytes::{ByteReader, ByteWriter};
+    let mut w = ByteWriter::default();
+    Pole { pos: v(1, 2, 3), tier: 3 }.write_state(&mut w);
+    let read = |version: u32| {
+        let mut r = ByteReader::new(&w.bytes);
+        r.version = version;
+        Pole::read_state(&mut r).map(|p| p.is_cable())
+    };
+    assert_eq!((read(21), read(22)), (Some(true), Some(false)));
+}

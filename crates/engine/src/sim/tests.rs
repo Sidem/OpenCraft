@@ -7,7 +7,7 @@ use crate::block::{
     SPENT_ROCK, STONE, STORAGE,
 };
 use crate::deposits::{owner_of, Deposit, DepositKey, Tier};
-use crate::item::{IRON_INGOT, IRON_PLATE, RED_PACK};
+use crate::item::{IRON_INGOT, IRON_PLATE, IRON_ROD, RED_PACK};
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
 pub(crate) use super::water::tests::{build_pond_above_a_pit, DAM};
@@ -19,7 +19,7 @@ const B: PlayerId = PlayerId(1);
 /// and research lists the Assembly tech; in step 6.6 for the Steelmaking tech, in 6.7 for the blue techs and the labs' third pack slot,
 /// in 6.7b for the machine tiers every list now saves, in 6.8 and 6.9 for the steam, crushing and silo techs,
 /// in 7.1 for the Electronics tech.
-const GOLDEN_HASH: u64 = 0x55eb_9cd8_986f_2b38;
+const GOLDEN_HASH: u64 = 0x105a_e633_abbb_f23e;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -51,8 +51,8 @@ pub(crate) fn outcrop() -> (IVec3, IVec3, DepositKey) {
     (ore[0], ore[ore.len() - 1], d.key)
 }
 
-/// The action log: A builds a miner on the outcrop's top block feeding two belts into a box, crafts
-/// belts and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
+/// The action log: A builds a miner on the outcrop's top block feeding two belts into a box, queues a
+/// craft of belts (done 150 ticks in) and hand-mines another ore block; B joins, puts stone on the box and a smelter on the miner
 /// (it buffers its share of the ore, as fuel or to smelt), then a constructor making plates from five
 /// ingots it puts in by hand, a filter set to plates, an old ramp block the box feeds (flat now: no belt one up ahead), and a pole and a
 /// generator (fuelled by hand) that power the miner, the constructor, the filter and a lab researching the
@@ -73,10 +73,12 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
     // A's slots: 0 miner, 1 belts, 2 box.
     let mut log = vec![
         (0, A, give(MINER.into(), 1)),
-        (0, A, give(BELT.into(), 1)),
+        (0, A, give(BELT.into(), 2)),
         (0, A, give(STORAGE.into(), 1)),
         (0, A, give(IRON_ORE.into(), 1)),
         (0, A, give(STONE.into(), 2)),
+        (0, A, give(IRON_PLATE, 1)),
+        (0, A, give(IRON_ROD, 1)),
         (0, A, Action::Craft { recipe: belts, times: 1 }),
         (0, B, Action::Join { key: 0 }),
         (0, B, give(STONE.into(), 3)),

@@ -6,9 +6,10 @@
 //! the earlier ones (a player who already has a smelter skips the mining tips).
 //! To add a hint: a row in `HINTS`, where it belongs in the order.
 
-use crate::block::{ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, IRON_ORE, MINER, TURBINE};
+use crate::block::{ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, IRON_ORE, MINER, TURBINE};
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
+use crate::item::IRON_INGOT;
 use crate::research::{TechState, TECHS};
 
 pub struct Hint {
@@ -25,8 +26,15 @@ pub const HINTS: &[Hint] = &[
         done: |inv, _| [COAL_ORE, IRON_ORE, COPPER_ORE].iter().any(|&o| inv.count(o.into()) > 0),
     },
     Hint {
-        text: "Build a miner: press E for the build menu. A Miner Mk1 needs iron ore, copper ore and stone. \
-               Mining by hand wastes most of the ore, so build one early.",
+        text: "Make ingots: press E and craft a Stone Furnace from 16 stone, place it, and right-click it to \
+               give it coal ore or logs as fuel and iron or copper ore to melt. Ingots come out after a few \
+               seconds; take them from its panel.",
+        done: |inv, f| f.processors_of(crate::block::SMELTER) > 0 || inv.count(IRON_INGOT) > 0,
+    },
+    Hint {
+        text: "Build a miner: in the build menu craft iron plates, iron rods and copper wire from ingots (a \
+               craft takes a few seconds and queues up), then a Miner Mk1. Asking for the miner queues the \
+               parts itself when you hold the ingots. Mining by hand wastes most of the ore, so build one early.",
         done: |inv, _| inv.count(MINER.into()) > 0,
     },
     Hint {
@@ -46,9 +54,9 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Belt) > 0 && f.count(Kind::Storage) > 0,
     },
     Hint {
-        text: "Make ingots: build a smelter next to the ore line and give it fuel too (coal ore or logs), by \
-               belt or from its panel (right-click it).",
-        done: |_, f| f.processors_of(crate::block::SMELTER) > 0,
+        text: "Ingots by belt: put a smelter at the end of the ore line and fuel it (coal ore or logs) by belt \
+               too; a belt leading away takes the ingots.",
+        done: |_, f| f.processors_of(crate::block::SMELTER) > 0 && f.count(Kind::Belt) > 0,
     },
     Hint {
         text: "Make parts: a constructor shapes ingots into plates, rods, screws and wire. It needs power \
@@ -93,6 +101,17 @@ pub const HINTS: &[Hint] = &[
                steam turbines (two to a boiler, 240 kW each) against it, hung on a pole. A generator on the same \
                grid starts the pump. A pond runs dry; the sea doesn't.",
         done: |_, f| f.processors_of(TURBINE) > 0,
+    },
+    Hint {
+        text: "Electronics: research it, then quartz (25 to 50 blocks down; scan for pale soil) and coal make \
+               silicon in an arc furnace (120 kW), and an assembler turns silicon, copper wire and iron plates \
+               into circuits.",
+        done: |_, f| f.processors_of(ARC_FURNACE) > 0,
+    },
+    Hint {
+        text: "Violet science: research it, then assemble violet packs from circuits, a steel beam and a motor. \
+               Labs take them in a fourth slot; violet kits make Mk4.",
+        done: |_, f| tech_done(f, "Violet Science"),
     },
 ];
 

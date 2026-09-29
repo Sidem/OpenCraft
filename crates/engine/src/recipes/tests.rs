@@ -148,10 +148,31 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     assert!(has(lint_tiers(&COSTLY, RECIPES), "tier item 28 has no recipe"));
     // A tier with no kit yet.
     const HIGH: [Family; 1] =
-        [Family { block: BELT, items: &[b(BELT), b(FAST_BELT), item::BELT_MK3, b(STONE)], kits: 1 }];
-    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 3 of block 12 has no kit"));
+        [Family { block: BELT, items: &[b(BELT), b(FAST_BELT), item::BELT_MK3, item::BELT_MK4, b(STONE)], kits: 1 }];
+    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 4 of block 12 has no kit"));
 }
 
 fn copy(r: &Recipe) -> Recipe {
     Recipe { output: r.output, group: r.group, count: r.count, inputs: r.inputs, blurb: r.blurb }
+}
+
+/// Metal ores and quartz become ingots in a furnace first: nothing built by hand is made of raw ore.
+#[test]
+fn no_hand_recipe_is_made_of_raw_ore() {
+    let raw = [b(IRON_ORE), b(COPPER_ORE), b(QUARTZ_ORE)];
+    for r in RECIPES {
+        assert!(r.inputs.iter().all(|i| !raw.contains(&i.0)), "{} is made of raw ore", item::name(r.output));
+    }
+}
+
+/// The way in: stone makes a furnace, the furnace makes ingots, ingots make plates, rods and wire, and those a miner.
+#[test]
+fn the_first_machines_come_from_stone_by_way_of_ingots() {
+    let made = |o: ItemId| RECIPES.iter().find(|r| r.output == o).unwrap();
+    assert!(made(b(SMELTER)).inputs.iter().all(|i| i.0 == b(STONE)));
+    for part in [IRON_PLATE, IRON_ROD, COPPER_WIRE] {
+        assert!(made(part).inputs.iter().all(|i| i.0 == IRON_INGOT || i.0 == COPPER_INGOT), "{}", item::name(part));
+    }
+    assert!(made(b(MINER)).inputs.iter().all(|i| [IRON_PLATE, IRON_ROD, COPPER_WIRE].contains(&i.0)));
+    assert!(RECIPES.iter().all(|r| r.hand_ticks() >= HAND_BASE_TICKS && r.hand_ticks() <= HAND_MAX_TICKS));
 }

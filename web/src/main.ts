@@ -17,6 +17,7 @@ import { clock } from './render/sky';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
 import { CoopPanel } from './ui/coop';
+import { CraftQueueView } from './ui/craftqueue';
 import { Hints } from './ui/hints';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
@@ -92,6 +93,7 @@ async function main(): Promise<void> {
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const hints = new Hints(game);
+  const craftQueue = new CraftQueueView(game, (id) => hud.itemIcon(id));
   const prospect = new ProspectPanel(game);
   prospect.onReading = () => sound.scan();
   const pins = new Pins(game, meta.pins);
@@ -329,6 +331,7 @@ async function main(): Promise<void> {
     machine.update();
     research.update(now);
     hints.update();
+    craftQueue.update();
     prospect.update();
     minimap.update(now);
     worldMap.update(now);

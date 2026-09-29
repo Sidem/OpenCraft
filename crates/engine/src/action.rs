@@ -13,7 +13,6 @@ use crate::factory::{self, Job};
 use crate::inventory::{add_to_slots, click_stack, sort_stacks, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
-use crate::recipes::RECIPES;
 use crate::research::Unlock;
 use crate::sim::{Away, PlayerCore, PlayerId, Sim, SimEvent};
 use crate::tools;
@@ -88,9 +87,15 @@ pub enum Action {
         pos: IVec3,
         item: ItemId,
     },
+    /// Queues `times` crafts of a hand recipe (`crafting.rs`), with the crafts of any missing parts; what
+    /// the inventory can't pay for is left out.
     Craft {
         recipe: u16,
         times: u32,
+    },
+    /// Cancels the player's `order`th queued craft, giving back what it took.
+    CancelCraft {
+        order: u16,
     },
     /// Inventory-screen click; `shift` moves the stack between hotbar and backpack.
     ClickSlot {
@@ -159,11 +164,12 @@ impl Sim {
                 if self.players[slot].is_none() {
                     let back = self.away.iter().position(|a| key != 0 && a.key == key);
                     let inventory = back.map(|i| self.away.remove(i).inventory).unwrap_or_default();
-                    self.players[slot] = Some(PlayerCore { inventory, key });
+                    self.players[slot] = Some(PlayerCore { inventory, key, crafts: Default::default() });
                 }
             }
             Action::Leave { pos } => {
-                let Some(core) = self.players.get_mut(slot).and_then(Option::take) else { return };
+                let Some(mut core) = self.players.get_mut(slot).and_then(Option::take) else { return };
+                core.crafts.cancel_all(&mut core.inventory, player, &mut self.events);
                 if core.key != 0 {
                     self.away.retain(|a| a.key != core.key);
                     self.away.push(Away { key: core.key, pos, inventory: core.inventory });
@@ -232,25 +238,9 @@ impl Sim {
                 }
             }
             Action::Craft { recipe, times } => {
-                let Some(r) = RECIPES.get(recipe as usize) else { return };
-                if !self.factory.research.has(Unlock::Recipe(r.output)) {
-                    return;
-                }
-                let mut done = 0;
-                while done < times && r.affordable(inv) > 0 {
-                    for &(item, n) in r.inputs {
-                        inv.remove(item, n);
-                    }
-                    let left = inv.add(r.output, r.count);
-                    if left > 0 {
-                        self.events.push(SimEvent::Thrown { player, item: r.output, count: left });
-                    }
-                    done += 1;
-                }
-                if done > 0 {
-                    self.events.push(SimEvent::Crafted { player, item: r.output, count: r.count * done });
-                }
+                core.crafts.enqueue(inv, &self.factory.research, recipe, times);
             }
+            Action::CancelCraft { order } => core.crafts.cancel(order as usize, inv, player, &mut self.events),
             Action::ClickSlot { slot, shift: true } => inv.quick_move(slot as usize),
             Action::ClickSlot { slot, shift: false } => inv.click(slot as usize),
             Action::ClickBox { pos, slot, shift } => {

@@ -199,3 +199,72 @@ pub const BELT_MK3_RECIPE: Recipe = Recipe {
     blurb: "Carries items four times as fast as a Mk1 belt (10 a second) and mixes freely with the others. Or \
             drag along placed belts with blue kits to upgrade them.",
 };
+
+pub const BELT_MK4_RECIPE: Recipe = Recipe {
+    output: BELT_MK4,
+    group: Group::Logistics,
+    count: 1,
+    inputs: &[(BELT_MK3, 1), (VIOLET_KIT, 1)],
+    blurb: "Carries items eight times as fast as a Mk1 belt (23 a second) and mixes freely with the others. Or drag \
+            along placed belts with violet kits to upgrade them.",
+};
+
+pub const POLE_MK4_RECIPE: Recipe = Recipe {
+    output: POLE_MK4,
+    group: Group::Power,
+    count: 1,
+    inputs: &[(POLE_MK3, 1), (VIOLET_KIT, 1)],
+    blurb: "A substation: links to poles within 32 blocks like a pylon and powers machines within 16. Or upgrade \
+            a placed pole with a violet kit.",
+};
+
+pub const LAB_MK4_RECIPE: Recipe = Recipe {
+    output: LAB_MK4,
+    group: Group::Science,
+    count: 1,
+    inputs: &[(LAB_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "Researches four times as fast, needs 40 kW, and every third unit takes no packs: 2 packs do the work \
+            of 3. Or upgrade a placed lab with 4 violet kits.",
+};
+
+pub const MINER_MK4_RECIPE: Recipe = Recipe {
+    output: MINER_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(MINER_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "Drills six times as fast as a Mk1 and recovers 92% of what it draws. Needs 90 kW. Or upgrade a \
+            placed miner with 4 violet kits.",
+};
+
+pub const SMELTER_MK4_RECIPE: Recipe = Recipe {
+    output: SMELTER_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(SMELTER_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "Smelts five times as fast as a Mk1, electric: 80 kW and no fuel. Or upgrade a placed smelter with 4 \
+            violet kits.",
+};
+
+pub const CONSTRUCTOR_MK4_RECIPE: Recipe = Recipe {
+    output: CONSTRUCTOR_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(CONSTRUCTOR_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "Works five times as fast as a Mk1 and draws 75 kW. Or upgrade a placed constructor with 4 violet kits.",
+};
+
+pub const ASSEMBLER_MK4_RECIPE: Recipe = Recipe {
+    output: ASSEMBLER_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(ASSEMBLER_MK3, 1), (VIOLET_KIT, 8)],
+    blurb: "Assembles five times as fast as a Mk1 and draws 100 kW. Or upgrade a placed assembler with 8 violet kits.",
+};
+
+pub const BLAST_FURNACE_MK4_RECIPE: Recipe = Recipe {
+    output: BLAST_FURNACE_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(BLAST_FURNACE_MK3, 1), (VIOLET_KIT, 8)],
+    blurb: "Makes steel five times as fast as a Mk1. Or upgrade a placed blast furnace with 8 violet kits.",
+};

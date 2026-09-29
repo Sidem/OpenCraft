@@ -825,7 +825,7 @@ fn labs_take_blue_packs_and_a_blue_tech_uses_one_of_each_of_three() {
 }
 
 #[test]
-fn a_version_19_lab_had_two_pack_slots_and_loads_with_an_empty_blue_one() {
+fn a_version_19_lab_had_two_pack_slots_and_loads_with_empty_blue_and_violet_ones() {
     use crate::bytes::{ByteReader, ByteWriter};
     use crate::item::{GREEN_PACK, RED_PACK};
     let mut f = Factory::default();
@@ -835,14 +835,67 @@ fn a_version_19_lab_had_two_pack_slots_and_loads_with_an_empty_blue_one() {
     f.lab_at(IVec3::ZERO).write_state(&mut w);
     let mut slot = ByteWriter::default();
     crate::factory::buffer::Buffer::new(1).write_state(&mut slot);
-    // Position (12 bytes), then the pack slots: version 19 wrote two, so the third (empty) goes.
+    // Position (12 bytes), then the pack slots: version 19 wrote two, so the blue and violet (empty) go.
     let mut old = w.bytes.clone();
-    old.drain(12 + 2 * slot.bytes.len()..12 + 3 * slot.bytes.len());
+    old.drain(12 + 2 * slot.bytes.len()..12 + 4 * slot.bytes.len());
     // Version 21 added the tier, the paid units since a free one and whether the unit in progress is free.
     old.truncate(old.len() - 3);
     let mut r = ByteReader::new(&old);
     r.version = 19;
     let lab = lab::Lab::read_state(&mut r).unwrap();
-    assert_eq!((lab.packs.slots.len(), lab.packs.count(RED_PACK), lab.packs.count(GREEN_PACK)), (3, 5, 3));
+    assert_eq!((lab.packs.slots.len(), lab.packs.count(RED_PACK), lab.packs.count(GREEN_PACK)), (4, 5, 3));
     assert_eq!(r.u8(), None, "every byte read");
+}
+
+#[test]
+fn a_version_21_lab_had_three_pack_slots_and_loads_with_an_empty_violet_one() {
+    use crate::bytes::{ByteReader, ByteWriter};
+    use crate::item::{GREEN_PACK, RED_PACK};
+    let mut f = Factory::default();
+    lab_with(&mut f, IVec3::ZERO, 5);
+    f.insert(IVec3::ZERO, GREEN_PACK, 3);
+    let mut w = ByteWriter::default();
+    f.lab_at(IVec3::ZERO).write_state(&mut w);
+    let mut slot = ByteWriter::default();
+    crate::factory::buffer::Buffer::new(1).write_state(&mut slot);
+    // Version 21 wrote three slots after the position: the fourth (empty) goes; the tier fields stay.
+    let mut old = w.bytes.clone();
+    old.drain(12 + 3 * slot.bytes.len()..12 + 4 * slot.bytes.len());
+    let mut r = ByteReader::new(&old);
+    r.version = 21;
+    let lab = lab::Lab::read_state(&mut r).unwrap();
+    assert_eq!((lab.packs.slots.len(), lab.packs.count(RED_PACK), lab.packs.count(GREEN_PACK)), (4, 5, 3));
+    assert_eq!(r.u8(), None, "every byte read");
+}
+
+#[test]
+fn labs_take_violet_packs_and_a_violet_tech_uses_one_of_each_of_four() {
+    use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
+    use crate::research::{TechState, TECHS};
+    let mut f = Factory::default();
+    // Everything before Mk4 Logistics (r g b v, 30 s a unit) is done.
+    let mk4 = TECHS.iter().position(|t| t.name == "Mk4 Logistics").unwrap() as u8;
+    let mut before = vec![mk4];
+    while let Some(t) = before.pop() {
+        before.extend(TECHS[t as usize].needs.iter().copied());
+        if t != mk4 {
+            (0..TECHS[t as usize].units).for_each(|_| f.research.add_unit(t));
+        }
+    }
+    assert_eq!(f.research.state(mk4), TechState::Available);
+    f.research.set_current(Some(mk4));
+    powered(&mut f);
+    place_block(&mut f, crate::block::LAB, IVec3::ZERO);
+    assert!(f.wants(IVec3::ZERO, VIOLET_PACK));
+    for pack in [RED_PACK, GREEN_PACK, BLUE_PACK] {
+        assert_eq!(f.insert(IVec3::ZERO, pack, 2), 2);
+    }
+    run(&mut f, 1.0, |_| {});
+    assert_eq!(f.lab_at(IVec3::ZERO).status, lab::LabStatus::NoPacks, "no violet yet");
+    assert_eq!(f.insert(IVec3::ZERO, VIOLET_PACK, 2), 2);
+    run(&mut f, 30.05, |_| {});
+    let lab = f.lab_at(IVec3::ZERO);
+    assert_eq!(f.research.progress(mk4), 1);
+    assert_eq!([RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK].map(|p| lab.packs.count(p)), [0; 4], "one of each");
+    assert!(lab.unit.is_some(), "the second unit started");
 }

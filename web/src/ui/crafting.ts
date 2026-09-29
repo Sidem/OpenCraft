@@ -1,8 +1,9 @@
 // Build menu in the inventory screen: every hand recipe as a compact tile (icon, name, how many it
 // makes), grouped by the engine's recipe groups, with a text search (names of outputs and materials)
 // and a state filter (all, can craft, missing items, locked). A tile's details (description,
-// materials with have/need, what locks it) show in one info card on hover or keyboard focus. Clicking a
-// tile crafts one, Shift-click up to 5. The inventory panel calls `update` when the inventory changes.
+// materials with have/need, the time it takes, what locks it) show in one info card on hover or keyboard
+// focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5. The inventory
+// panel calls `update` when the inventory changes.
 // To show another fact about a recipe: add it to `showInfo`.
 
 import './crafting.css';
@@ -177,15 +178,19 @@ export class BuildMenu {
       row.append(icon, h('span', '', g.item_name(item)), h('span', 'craft-have', `${have}/${need}`));
       inputs.append(row);
     }
+    const secs = g.recipe_tenths(t.id) / 10;
+    const parts = g.recipe_part_crafts(t.id);
+    const time = h('p', 'craft-time', `Takes ${secs} s by hand`);
+    if (parts > 0) time.append(` (${parts} part crafts first, queued for you)`);
     const tech = g.recipe_locked_by(t.id);
     const status =
       t.state === 'locked'
         ? `Research ${g.tech_name(tech)} to unlock it (T).`
         : t.state === 'ready'
-          ? `Click to craft · Shift-click for up to ${BULK_CRAFT}`
+          ? `Click to queue it · Shift-click for up to ${BULK_CRAFT}`
           : 'Gather the missing materials to craft it.';
     const note = h('p', `craft-status ${t.state}`, status);
-    this.info.replaceChildren(title, h('p', 'craft-blurb', g.recipe_blurb(t.id)), inputs, note);
+    this.info.replaceChildren(title, h('p', 'craft-blurb', g.recipe_blurb(t.id)), inputs, time, note);
     this.info.classList.remove('hidden');
     const r = t.root.getBoundingClientRect(), box = this.info.getBoundingClientRect();
     const right = r.right + 8 + box.width <= window.innerWidth;
