@@ -58,7 +58,7 @@ impl Factory {
             Slot::Pole(i) => Some((POLE, self.poles[i as usize].tier)),
             Slot::Lab(i) => Some((LAB, self.labs[i as usize].tier)),
             Slot::Pipe(i) => {
-                Some((PUMP, self.pipework[i as usize].tier)).filter(|_| self.pipework[i as usize].part == Part::Pump)
+                (self.pipework[i as usize].part == Part::Pump).then_some((PUMP, self.pipework[i as usize].tier))
             }
             Slot::Quarry(i) => Some((QUARRY, self.quarries[i as usize].tier)),
             Slot::Router(_) => None,
