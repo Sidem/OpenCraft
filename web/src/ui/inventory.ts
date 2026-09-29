@@ -84,9 +84,19 @@ export class InventoryPanel {
     const takeAll = h('button', 'secondary-btn', 'Take all');
     takeAll.type = 'button';
     takeAll.addEventListener('click', () => this.box && game.take_machine_output(...this.box));
-    boxHead.append(h('h3', '', 'Storage box'), takeAll);
+    const sortBox = h('button', 'secondary-btn', 'Sort');
+    sortBox.type = 'button';
+    sortBox.title = 'Merge stacks and order them by item';
+    sortBox.addEventListener('click', () => this.box && game.sort_box(...this.box));
+    boxHead.append(h('h3', '', 'Storage box'), sortBox, takeAll);
     this.boxSection.append(boxHead, this.boxGrid);
-    items.append(this.boxSection, h('h3', '', 'Backpack'), pack, h('h3', '', 'Hotbar'), bar, note);
+    const sortPack = h('button', 'secondary-btn', 'Sort');
+    sortPack.type = 'button';
+    sortPack.title = 'Merge stacks and order the backpack by item (the hotbar stays as you set it)';
+    sortPack.addEventListener('click', () => game.sort_inventory());
+    const packHead = h('div', 'inv-box-head');
+    packHead.append(h('h3', '', 'Backpack'), sortPack);
+    items.append(this.boxSection, packHead, pack, h('h3', '', 'Hotbar'), bar, note);
 
     this.menu = new BuildMenu(game, icon);
     this.menu.onCraft = () => this.onCraft();

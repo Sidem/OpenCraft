@@ -10,7 +10,7 @@
 
 use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
 use crate::factory::{self, Job};
-use crate::inventory::{add_to_slots, click_stack, Stack};
+use crate::inventory::{add_to_slots, click_stack, sort_stacks, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::RECIPES;
@@ -108,6 +108,12 @@ pub enum Action {
     StoreSlot {
         pos: IVec3,
         slot: u8,
+    },
+    /// Sorts the backpack (the hotbar keeps its layout): stacks merged, then ordered by item.
+    SortInventory,
+    /// Sorts the slots of the box at `pos` the same way.
+    SortBox {
+        pos: IVec3,
     },
     /// The inventory screen closed: the cursor stack goes back, or is thrown if there is no room.
     CloseInventory,
@@ -264,6 +270,12 @@ impl Sim {
                 let left = add_to_slots(b, item, n);
                 if left > 0 {
                     inv.slots[slot as usize] = Stack { item, count: left };
+                }
+            }
+            Action::SortInventory => inv.sort(),
+            Action::SortBox { pos } => {
+                if let Some(b) = self.factory.box_slots_mut(pos) {
+                    sort_stacks(b);
                 }
             }
             Action::CloseInventory => {

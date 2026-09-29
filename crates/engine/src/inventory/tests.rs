@@ -78,6 +78,20 @@ fn cursor_pick_place_merge_swap() {
 }
 
 #[test]
+fn sorting_never_merges_tools_and_puts_empty_slots_last() {
+    let pick = crate::item::STONE_PICKAXE;
+    let mut slots = [Stack::default(); 6];
+    slots[1] = Stack { item: pick, count: 40 };
+    slots[2] = Stack { item: pick, count: 100 };
+    slots[4] = Stack { item: ItemId(3), count: 1 };
+    sort_stacks(&mut slots);
+    assert_eq!(slots[0], Stack { item: ItemId(3), count: 1 });
+    assert_eq!(slots[1], Stack { item: pick, count: 100 }, "the tool with more uses first");
+    assert_eq!(slots[2], Stack { item: pick, count: 40 }, "each tool keeps its own wear");
+    assert!(slots[3..].iter().all(Stack::is_empty));
+}
+
+#[test]
 fn quick_move_between_sections() {
     let mut inv = Inventory::default();
     inv.slots[3] = Stack { item: ItemId(7), count: 12 };

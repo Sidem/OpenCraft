@@ -117,6 +117,11 @@ impl Game {
         self.act(Action::ClickBox { pos: IVec3::new(x, y, z), slot, shift });
     }
 
+    /// Box-screen Sort button: merges and orders the box's stacks (next tick).
+    pub fn sort_box(&mut self, x: i32, y: i32, z: i32) {
+        self.act(Action::SortBox { pos: IVec3::new(x, y, z) });
+    }
+
     /// Box-screen shift-click on inventory slot `slot`: moves its stack into the box.
     pub fn store_slot(&mut self, x: i32, y: i32, z: i32, slot: u8) {
         self.act(Action::StoreSlot { pos: IVec3::new(x, y, z), slot });

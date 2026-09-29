@@ -1,9 +1,12 @@
 //! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack, and the stack held by
 //! the mouse cursor while the inventory screen is open. `version` increments on every change so
-//! the UI redraws only when needed. `add_to_slots` and `click_stack` are shared with storage boxes.
+//! the UI redraws only when needed. `add_to_slots`, `click_stack` and `sort_stacks` are shared with
+//! storage boxes.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{stack_size, ItemId};
+use crate::math::sort_small_by_key;
+use crate::tools;
 
 pub const HOTBAR_SLOTS: usize = 9;
 pub const INVENTORY_SLOTS: usize = 36;
@@ -56,6 +59,29 @@ pub fn add_to_slots(slots: &mut [Stack], item: ItemId, mut count: u32) -> u32 {
         count -= n;
     }
     count
+}
+
+/// Sorts `slots` in place: like items merged into full stacks (a tool's count is its wear, so tools
+/// never merge), ordered by item id (blocks first) with the fullest stack first, empty slots last.
+pub fn sort_stacks(slots: &mut [Stack]) {
+    let mut sorted: Vec<Stack> = Vec::with_capacity(slots.len());
+    for s in slots.iter().filter(|s| !s.is_empty()) {
+        let mut left = s.count;
+        if tools::tool(s.item).is_none() {
+            for t in sorted.iter_mut().filter(|t| t.item == s.item) {
+                let n = left.min(stack_size(s.item).saturating_sub(t.count));
+                t.count += n;
+                left -= n;
+            }
+        }
+        if left > 0 {
+            sorted.push(Stack { item: s.item, count: left });
+        }
+    }
+    sort_small_by_key(&mut sorted, |s| (s.item.0, std::cmp::Reverse(s.count)));
+    for (i, slot) in slots.iter_mut().enumerate() {
+        *slot = sorted.get(i).copied().unwrap_or_default();
+    }
 }
 
 /// A click on slot `s` holding the cursor stack `c` (inventory or box screen): pick up, put down,
@@ -225,6 +251,15 @@ impl Inventory {
             self.slots[slot] = Stack { item: s.item, count: left };
         }
         self.version += 1;
+    }
+
+    /// Sorts the backpack (the hotbar keeps the layout the player made).
+    pub fn sort(&mut self) {
+        let before = self.slots;
+        sort_stacks(&mut self.slots[HOTBAR_SLOTS..]);
+        if self.slots != before {
+            self.version += 1;
+        }
     }
 
     /// Puts the cursor stack back into the inventory. Returns whatever didn't fit.

@@ -58,6 +58,22 @@ impl Game {
         }
     }
 
+    /// After loading a saved world: every player but the local one is gone (a host's save is written
+    /// while co-op peers are connected, and nobody drives those bodies now). Their things wait under
+    /// their keys, like any player who left.
+    pub(crate) fn release_guests(&mut self) {
+        let slots = self.bodies.len().max(self.sim.players.len());
+        let local = self.local.0 as usize;
+        for slot in (0..slots).filter(|&s| s != local) {
+            let id = PlayerId(slot as u8);
+            if self.bodies.get(slot).is_some_and(Option::is_some) {
+                self.leave(id);
+            } else if self.sim.player(id).is_some() {
+                self.act_as(id, Action::Leave { pos: self.spawn });
+            }
+        }
+    }
+
     /// Streams the world around the local player and, where this game is the authority, around every
     /// other body too (without meshing: world/streaming.rs).
     pub(crate) fn stream_around_players(&mut self) {

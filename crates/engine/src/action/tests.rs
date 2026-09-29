@@ -2,7 +2,7 @@ use super::*;
 use crate::block::{BEDROCK, BELT, DIRT, IRON_ORE, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
-use crate::inventory::INVENTORY_SLOTS;
+use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
 use crate::item::{IRON_PLATE, MAX_STACK};
 
 const P: PlayerId = PlayerId(0);
@@ -244,6 +244,38 @@ fn a_box_screen_moves_stacks_both_ways() {
 }
 
 #[test]
+fn sorting_merges_and_orders_a_box_and_the_backpack() {
+    let mut sim = Sim::new(7, 2);
+    let pos = IVec3::new(0, 200, 0);
+    sim.factory.add_storage(pos);
+    let box_slots = sim.factory.box_slots_mut(pos).unwrap();
+    box_slots[2] = Stack { item: STONE.into(), count: 20 };
+    box_slots[5] = Stack { item: DIRT.into(), count: 3 };
+    box_slots[9] = Stack { item: STONE.into(), count: 60 };
+    sim.apply(P, Action::SortBox { pos });
+    let slots = sim.factory.box_slots(pos).unwrap().to_vec();
+    let want = [(STONE, 64), (STONE, 16), (DIRT, 3)].map(|(b, count)| Stack { item: b.into(), count });
+    assert_eq!(&slots[..3], &want, "a stack of 64, its rest, then the next item");
+    assert!(slots[3..].iter().all(Stack::is_empty));
+    sim.apply(P, Action::SortBox { pos: pos + IVec3::new(1, 0, 0) }); // no box: nothing happens
+
+    // The backpack sorts; the hotbar keeps its layout.
+    sim.apply(P, Action::Give { item: STONE.into(), count: 9 });
+    sim.apply(P, Action::Give { item: IRON_PLATE, count: 2 });
+    sim.apply(P, Action::Give { item: DIRT.into(), count: 3 });
+    for (from, to) in [(1, 20), (2, 30)] {
+        sim.apply(P, Action::ClickSlot { slot: from, shift: false });
+        sim.apply(P, Action::ClickSlot { slot: to, shift: false });
+    }
+    sim.apply(P, Action::SortInventory);
+    let stacks = &inv(&sim).slots;
+    assert_eq!(stacks[0], Stack { item: STONE.into(), count: 9 }, "the hotbar stays");
+    assert_eq!(stacks[HOTBAR_SLOTS], Stack { item: DIRT.into(), count: 3 }, "blocks come before items");
+    assert_eq!(stacks[HOTBAR_SLOTS + 1], Stack { item: IRON_PLATE, count: 2 });
+    assert!(stacks[HOTBAR_SLOTS + 2..].iter().all(Stack::is_empty));
+}
+
+#[test]
 fn a_powered_line_works_where_no_chunk_is_loaded() {
     use crate::block::{COAL_ORE, CONSTRUCTOR, GENERATOR, POLE};
     use crate::item::{IRON_INGOT, IRON_ROD};
@@ -314,6 +346,8 @@ fn samples() -> Vec<Action> {
         Action::MarkSite { a: (i32::MIN, 5), b: (-9, i32::MAX), level: 70, job: Job::Flatten },
         Action::RemoveSite { id: u32::MAX - 1 },
         Action::Upgrade { pos },
+        Action::SortInventory,
+        Action::SortBox { pos },
     ]
 }
 

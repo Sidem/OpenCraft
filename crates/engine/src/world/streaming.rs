@@ -7,6 +7,8 @@
 //! only once all 26 neighbours and every chunk above them are loaded, because AO, face culling and
 //! light (`light.rs`) read across borders. None of this is core state (DEV_PLAN 3.4).
 
+use rustc_hash::FxHashMap;
+
 use crate::chunk::{Chunk, CHUNK_SHIFT};
 use crate::math::{IVec3, Vec3};
 use crate::mesher::{neighbor_index, Mesher};
@@ -117,6 +119,7 @@ impl World {
             let p = self.gen_queue.pop().expect("checked above");
             let chunk = self.saved.remove(&p).unwrap_or_else(|| self.generator.generate(p));
             self.chunks.insert(p, Entry { chunk, has_mesh: false });
+            self.light_cache.retain(|(_, lit)| lit.is_some()); // what couldn't be lit may be now
             self.dirty.insert(p);
             self.mesh_queue_stale = true;
         }
@@ -166,41 +169,11 @@ impl World {
 
     /// Meshes `p` if all neighbours are present; emits a mesh event when the visible result changes.
     pub(super) fn remesh(&mut self, p: IVec3) -> bool {
-        let mut refs: [&Chunk; 27] = [&self.air; 27];
-        for dz in -1..=1 {
-            for dy in -1..=1 {
-                for dx in -1..=1 {
-                    let q = p + IVec3::new(dx, dy, dz);
-                    refs[neighbor_index(dx, dy, dz)] = if q.y < 0 {
-                        &self.floor
-                    } else if q.y >= WORLD_HEIGHT_CHUNKS {
-                        &self.air
-                    } else {
-                        match self.chunks.get(&q) {
-                            Some(e) => &e.chunk,
-                            None => return false,
-                        }
-                    };
-                }
-            }
-        }
+        let Some(refs) = neighbourhood(&self.chunks, &self.air, &self.floor, p) else { return false };
         let out = if Mesher::is_trivially_empty(&refs) {
             self.mesher.mesh(&refs, &[])
         } else {
-            // The chunks above the neighbourhood, per column, for the sky light.
-            let mut above: [[&Chunk; WORLD_HEIGHT_CHUNKS as usize]; 9] = [[&self.air; WORLD_HEIGHT_CHUNKS as usize]; 9];
-            let first = (p.y + 2).max(0);
-            let count = (WORLD_HEIGHT_CHUNKS - first).max(0) as usize;
-            for (i, column) in above.iter_mut().enumerate() {
-                let (dx, dz) = (i as i32 % 3 - 1, i as i32 / 3 - 1);
-                for (k, slot) in column[..count].iter_mut().enumerate() {
-                    let q = IVec3::new(p.x + dx, first + k as i32, p.z + dz);
-                    *slot = match self.chunks.get(&q) {
-                        Some(e) => &e.chunk,
-                        None => return false,
-                    };
-                }
-            }
+            let Some((above, count)) = chunks_above(&self.chunks, &self.air, p) else { return false };
             self.lighting.light(&refs, &std::array::from_fn(|i| &above[i][..count]));
             self.mesher.mesh(&refs, &self.lighting.pad)
         };
@@ -220,6 +193,50 @@ impl World {
         }));
         true
     }
+}
+
+/// The 27 chunks around `p` (`neighbor_index`), or `None` while one of them isn't loaded.
+pub(super) fn neighbourhood<'a>(
+    chunks: &'a FxHashMap<IVec3, Entry>,
+    air: &'a Chunk,
+    floor: &'a Chunk,
+    p: IVec3,
+) -> Option<[&'a Chunk; 27]> {
+    let mut refs: [&Chunk; 27] = [air; 27];
+    for dz in -1..=1 {
+        for dy in -1..=1 {
+            for dx in -1..=1 {
+                let q = p + IVec3::new(dx, dy, dz);
+                refs[neighbor_index(dx, dy, dz)] = if q.y < 0 {
+                    floor
+                } else if q.y >= WORLD_HEIGHT_CHUNKS {
+                    air
+                } else {
+                    &chunks.get(&q)?.chunk
+                };
+            }
+        }
+    }
+    Some(refs)
+}
+
+/// The chunks above `p`'s neighbourhood, per column of it (for the sky light), and how many each column
+/// holds; `None` while one of them isn't loaded.
+pub(super) fn chunks_above<'a>(
+    chunks: &'a FxHashMap<IVec3, Entry>,
+    air: &'a Chunk,
+    p: IVec3,
+) -> Option<([[&'a Chunk; WORLD_HEIGHT_CHUNKS as usize]; 9], usize)> {
+    let mut above = [[air; WORLD_HEIGHT_CHUNKS as usize]; 9];
+    let first = (p.y + 2).max(0);
+    let count = (WORLD_HEIGHT_CHUNKS - first).max(0) as usize;
+    for (i, column) in above.iter_mut().enumerate() {
+        let (dx, dz) = (i as i32 % 3 - 1, i as i32 / 3 - 1);
+        for (k, slot) in column[..count].iter_mut().enumerate() {
+            *slot = &chunks.get(&IVec3::new(p.x + dx, first + k as i32, p.z + dz))?.chunk;
+        }
+    }
+    Some((above, count))
 }
 
 /// The chunk a player at `p` stands in, its height clamped into the world.

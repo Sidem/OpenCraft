@@ -9,8 +9,10 @@
 //! chunks they generated (`generated`), exactly as generation made them, so core rules reading
 //! around unloaded ground don't generate the same chunk over and over.
 
+mod boxlight;
 mod streaming;
 
+pub use boxlight::DAYLIGHT;
 use std::collections::VecDeque;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -60,6 +62,8 @@ pub struct World {
     view_radius: i32,
     mesher: Mesher,
     lighting: Lighting,
+    /// Lit chunks for `light_at` (boxlight.rs), oldest first.
+    light_cache: Vec<(IVec3, boxlight::Lit)>,
     air: Chunk,
     floor: Chunk,
     /// Recently generated, unedited chunks, oldest first (never shadows an edit: `chunks` and
@@ -90,6 +94,7 @@ impl World {
             view_radius: view_radius.max(2),
             mesher: Mesher::new(),
             lighting: Lighting::default(),
+            light_cache: Vec::new(),
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
             generated: Vec::new(),
@@ -323,6 +328,7 @@ impl World {
             }
         }
         self.mesh_queue_stale = true;
+        self.light_cache.retain(|(c, _)| !self.dirty.contains(c));
         true
     }
 
@@ -334,6 +340,7 @@ impl World {
         let World { chunks, dirty, gen_queue, center, focus, others, view_radius, events, .. } = old;
         (self.dirty, self.gen_queue, self.center, self.focus) = (dirty, gen_queue, center, focus);
         (self.others, self.view_radius, self.events) = (others, view_radius, events);
+        self.light_cache.clear();
         let mut changed = Vec::new();
         for (p, mut e) in chunks {
             let fresh = match self.saved.remove(&p) {

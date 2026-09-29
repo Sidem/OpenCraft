@@ -594,3 +594,5 @@ and the balance numbers. Read the section you need.
   with the file tools or single-quoted here-strings (double-quoted PowerShell here-strings eat backticks);
   a plant test with a 405 kW load caught two turbine status bugs a unit test would not. Milestone 7 moved
   in from the roadmap.
+- **2026-09-29: Play-test notes after Milestone 6** (Testing 5.ocworld from the user): Sort buttons for the backpack and boxes (Action::SortInventory tag 24, SortBox tag 25, inventory::sort_stacks); boxes are lit by the cell they stand in (world/boxlight.rs, actory::light_boxes, one shared GLSL light function), so lamps and torches light machines, belts and items and roofs shade them; a host's save no longer brings back the guests who were connected (Game::release_guests on Game::load; the reference save had two stuck bodies), and a returning key replaces its old connection at once (
+et/host.ts). Tests 296 -> 302.

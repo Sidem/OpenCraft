@@ -21,7 +21,7 @@ folder with `mod.rs`.
 | `daytime.rs` | Time of day from the core tick (`DAY_TICKS`: a 20-minute day, a new world starts at 7:00): `time_of_day`, `day_number`; no state of its own |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, the world's generator version), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` and `v9.ocworld` fixtures) |
-| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings (recipe, filter, quarry), set research, craft (refused while research locks the recipe), inventory clicks, select, drop, pick up, give, rotate (R), mark and remove terraforming sites |
+| `action.rs` | `Action` enum and `Sim::apply`: join, leave, break, place, take contents, machine settings (recipe, filter, quarry), set research, craft (refused while research locks the recipe), inventory clicks, sort (backpack or box), select, drop, pick up, give, rotate (R), mark and remove terraforming sites |
 | `action/codec.rs`, `multiblock.rs` | `Action::write` / `read` (a tag byte, then the fields; damaged bytes give `None`), `is_peer_input`; `place_footprint` (a multi-block machine: every cell free, the rest `MACHINE_PART`) and `clear_parts` (breaking any cell breaks it, from `break_block`) |
 | `net/mod.rs` | Co-op lockstep: `Role` (`Solo`, `Host`, `Client`), `route` (where an action goes), host frames (`end_tick`, `host_stamp`, `take_frames`), client outbox and confirmed tick (`take_outbox`, `push_frames`, `catch_up`), `become_client`, checksums every `CHECKSUM_TICKS`, `INPUT_DELAY`. Tests wire a host and a client `Game` through bytes (joining mid-run, leaving and returning, a full world) |
 | `net/snapshot.rs` | Join snapshots: the save bytes plus the queued actions (`snapshot_bytes`, `read_snapshot`); `resync_from` (a client replaces its core in place, keeping its body and loaded chunks: `World::adopt_loaded`) |
@@ -57,7 +57,8 @@ folder with `mod.rs`.
 | `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, `Unlock`s: hand or machine recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `has`, `add_unit`); lint in `research/tests.rs` |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code, with a small cache of generated chunks; `set_block_anywhere_later` remeshes in the streaming budget; `is_air_anywhere` lets column scans skip the sky), render events, `adopt_loaded` (a resync keeps the render cache) |
-| `world/streaming.rs` | Streaming and meshing: re-centring on the local player and within `OTHERS_RADIUS` of the others (meshing only the local player's), generation and mesh queues, `work_step`, `remesh`, `area_ready` |
+| `world/streaming.rs` | Streaming and meshing: re-centring on the local player and within `OTHERS_RADIUS` of the others (meshing only the local player's), generation and mesh queues, `work_step`, `remesh`, `area_ready`; `neighbourhood` and `chunks_above` (what lighting a chunk reads) |
+| `world/boxlight.rs` | `World::light_at`: the light byte of any cell for things drawn as boxes, by lighting a cell's chunk on demand (a small cache dropped when a block changes nearby); render cache only |
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; generator versions (`WORLDGEN_VERSION` is the newest; a world keeps its own `WorldGen::version`; each released version is pinned by `released_versions_never_change`) |
 | `worldgen/biome.rs` | Version 2: `Biome` per column (`biome_at`), its rock, surface (`surface_v2`) and tree density |
 | `worldgen/geology.rs` | Version 2 deposit seeding: version 1's counts, each ore drawn from its biome's weights (`ORES_BY_BIOME`); surface hints (`stain_surface`, `hint_for`) |
@@ -85,7 +86,7 @@ folder with `mod.rs`.
 | `factory/process/` others | `model.rs`: models as data (`Part` boxes with a `Look`: textures, tier band, fire, status lamp, press stroke), turned with the machine, and port hatches (in, out, byproduct); `view.rs`: status line, readout, panel; `legacy.rs`: smelters and constructors from saves before version 18, as Mk1 processors; `work.rs`: the work loop (`work`, `next` by `Pick`, `blocked`, `full_output`, a burner lighting fuel) |
 | `factory/panel.rs` | What a player does to a machine by hand: `panel` (view: status, progress, buffers by role, filter item), `box_slots`, `set_recipe`, `set_filter`, `insert`, `wants`, `take_contents` |
 | `factory/links.rs` | Where items go: `Slot`, `Link`, `Sinks` (machines that take items), `deliver`; `relink`: belt outputs for every shape, corners, lift stacks, machine outputs (multi-blocks only at their ports), downstream-first belt order (derived data) |
-| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`, `push_box`); `write_instances` asks nearby machines for models; `map_machines` (block and position for the minimap's marks) |
+| `factory/render.rs` | Box instance format (`INSTANCE_FLOATS`; the last float is the uv mode plus twice the cell's light byte), `push_box`, `light_boxes` (lights every instance from `World::light_at`, called from `Game::update`); `write_instances` asks nearby machines for models; `map_machines` (block and position for the minimap's marks) |
 | `factory/pipes.rs` | Pipework (one kind, `Kind::Pipe`: `Part` pump, pipe, outlet): networks and arms (`link_pipework`, from `relink`), bytes, readouts, models |
 | `factory/pumping.rs` | Moving water each tick (`step_pipework`; `PUMP_TIERS`: rate, hold, kW): pumps lift the highest, farthest source in reach; outlets pour where the water lands; block edits go to `Factory.changed` for the water rules |
 | `factory/quarry.rs` | Quarry (`Kind::Quarry`; `QUARRY_TIERS`: ticks a block, kW): digs its box one block at a time (`step`: `seek` past air and non-ground, noting ore in `found`; waits when flooded, full, unpowered or paused), output buffer fed like a miner's, `set` (panel choices), bytes, readout, panel, `quarry_cracks` |
@@ -95,7 +96,7 @@ folder with `mod.rs`.
 | `factory/describe.rs` | `Factory::describe` (one `match` on `Slot`, then "Mk2 · next: …" for tiered machines), `fmt_int`, `fmt_duration` |
 | `factory/upgrades.rs` | Upgrade kits: `TIER_COLOURS`, `KITS` (the kit per tier: green, blue), `kit_tier`, `Factory::tiered_at`, `next_upgrade` (`Step`: family, tier, kit, kits), `upgrade` (tier + 1 in place) |
 | `entities.rs` | Dropped items: ids, physics (floating up through water, drifting), magnet pickup by the nearest `Collector` with room, instances (`push_item_box`) |
-| `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` (shared with boxes) |
+| `inventory.rs` | 36 slots, cursor stack, click / quick-move, `add_to_slots` and `sort_stacks` (shared with boxes; the backpack sorts, the hotbar keeps its layout) |
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept: stone, iron, steel), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
 | `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
@@ -136,7 +137,7 @@ folder with `mod.rs`.
 | `net/protocol.ts` | Co-op messages (hello, welcome, refuse, actions, frames, checksum, bye, state, states, items, names, ping, pong, resync, snapshot): `encode` / `decode`; `BUILD_ID` |
 | `net/coop.ts` | The `Coop` interface the page sees (`pump` after every `update`, `close`, `name`, `players`, `onNotice`, `onEnd`), `PlayerInfo`, `PING_MS`, `SILENT_MS` |
 | `net/session.ts` | Starting sessions: `startCoop` (URL: `?host`, `?join=`, `?relay`; a room code goes over WebRTC, a room name over BroadcastChannel), `hostWorld` (the menu), `inviteLink`, `roomOf`; player key and name in localStorage |
-| `net/host.ts` | `CoopHost`: welcomes or refuses, stamps actions, takes body states; sends frames, checksums, states, each peer's items, names and pings; answers resyncs; drops silent peers |
+| `net/host.ts` | `CoopHost`: welcomes or refuses, stamps actions, takes body states; sends frames, checksums, states, each peer's items, names and pings; answers resyncs; drops silent peers (and an old connection of a key that joins again) |
 | `net/client.ts` | `CoopClient`: join, outbox, own state, pongs, checksum compare; resyncs on a mismatch or 5 s of lag; ends on bye, close or silence |
 | `net/ticker.ts` | `tickWhenStalled`: a tiny worker timer that runs frames without drawing while the frame loop is stopped (hidden tab, minimised window), so a co-op host keeps ticking |
 | `net/signal.ts` | The deployed signalling Worker: `SIGNAL_URL`, `newRoom`, `fetchIce`, `openRoom` (WebSocket), `closeReason`, `isRoomCode` |
@@ -148,13 +149,13 @@ folder with `mod.rs`.
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
 | `render/water.ts` | The liquid range drawn last (blended, back to front, both sides) and the underwater fog (`fogFor`, from `eye_in_water`) |
 | `render/outlines.ts` | Overlays: mining cracks (the player's and quarries'), a dragged belt line's cells (`line_cells`), placement boxes (amber; red cells in a machine's way); the renderer's line and crack programs |
-| `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts); `INSTANCE_FLOATS` |
+| `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts, lit by the cell each stands in); `INSTANCE_FLOATS` |
 | `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |
 | `render/shaders.ts` | GLSL sources; the light curve (sky light × daylight, warm block light, `CAVE_FLOOR`); periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`) |
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |
 | `ui/hud.ts` + `.css` | Crosshair, target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
-| `ui/inventory.ts` + `.css` | Inventory screen (E) with the build menu; opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Take all |
+| `ui/inventory.ts` + `.css` | Inventory screen (E) with the build menu; opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Sort, Take all; Sort on the backpack |
 | `ui/crafting.ts` + `.css` | Build menu: recipe tiles grouped by `recipe_group`, text search (output and material names), state filters (all, can craft, missing, locked), one hover info card; click crafts, Shift-click 5 |
 | `ui/machine.ts` + `.css` | Machine panel (right-click a processor such as a smelter or constructor, a filter, generator, lab or quarry): status, progress, buffers, recipe choice, filter item, put-in and take buttons; `quarryBox` for the open quarry's outline |
 | `ui/quarry.ts` | The quarry's part of the machine panel: size and depth choices, pause, layer and blocks dug and left, deposits uncovered |

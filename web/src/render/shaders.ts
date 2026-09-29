@@ -17,6 +17,20 @@ vec3 applyFog(vec3 col, vec3 rel) {
 }
 `;
 
+// The colour of a cell's light (sky light | block light << 4, each 0..15, from light.rs), shared by the
+// terrain and the instanced boxes so machines and items are lit like the ground beside them. Each sky
+// light level below 15 dims by a fifth; block light (lamps) is warm and fades a little more gently;
+// caves keep a faint floor.
+const LIGHT = /* glsl */ `
+const vec3 BLOCK_LIGHT = vec3(1.1, 0.88, 0.6);
+const float CAVE_FLOOR = 0.05;
+vec3 lightTint(uint light, vec3 skyLight) {
+  float sky = pow(0.8, 15.0 - float(light & 15u));
+  float lamp = pow(0.84, 15.0 - float(light >> 4u)) * step(1.0, float(light >> 4u));
+  return max(sky * skyLight, lamp * BLOCK_LIGHT) + CAVE_FLOOR;
+}
+`;
+
 export const chunkVert = /* glsl */ `#version 300 es
 precision highp float;
 precision highp int;
@@ -38,11 +52,7 @@ out vec2 v_ground;
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads.
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
 const float AO_CURVE[4] = float[4](0.40, 0.60, 0.80, 1.0);
-// Each sky light level below 15 dims by a fifth; block light (lamps) is warm and fades a little more
-// gently; caves keep a faint floor.
-const vec3 BLOCK_LIGHT = vec3(1.1, 0.88, 0.6);
-const float CAVE_FLOOR = 0.05;
-
+${LIGHT}
 void main() {
   vec3 p = vec3(float(a_vert & 63u), float((a_vert >> 6u) & 63u), float((a_vert >> 12u) & 63u));
   uint face = (a_vert >> 18u) & 7u;
@@ -68,9 +78,7 @@ void main() {
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
 #endif
-  float sky = pow(0.8, 15.0 - float(a_light & 15u));
-  float lamp = pow(0.84, 15.0 - float(a_light >> 4u)) * step(1.0, float(a_light >> 4u));
-  v_tint = max(sky * u_skyLight, lamp * BLOCK_LIGHT) + CAVE_FLOOR;
+  v_tint = lightTint(a_light, u_skyLight);
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
@@ -137,7 +145,7 @@ precision highp float;
 layout(location = 0) in vec4 a_corner; // unit cube corner (±0.5) and face index (+X, -X, +Y, -Y, +Z, -Z)
 layout(location = 1) in vec4 a_i0;     // camera-relative centre, yaw
 layout(location = 2) in vec4 a_i1;     // size, uv scroll (top face)
-layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; uv mode (0 whole texture, 1 world-scaled)
+layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; uv mode (0 whole texture, 1 world-scaled) + 2 * light
 
 uniform mat4 u_viewProj;
 uniform vec3 u_skyLight;
@@ -146,14 +154,15 @@ out vec3 v_uvl;
 out float v_light;
 out vec3 v_tint;
 out vec3 v_rel;
-
+${LIGHT}
 const vec3 NORMALS[6] = vec3[6](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0, 0, -1));
 
 void main() {
   int face = int(a_corner.w + 0.5);
   vec3 local = a_corner.xyz * a_i1.xyz;
   // Whole texture on every face (items), or texels at world scale like terrain (machine parts).
-  vec3 q = mix(a_corner.xyz, local, a_i2.w) + 0.5;
+  float worldUv = mod(a_i2.w, 2.0);
+  vec3 q = mix(a_corner.xyz, local, worldUv) + 0.5;
   vec2 uv;
   if (face == 0) uv = vec2(-q.z, -q.y);
   else if (face == 1) uv = vec2(q.z, -q.y);
@@ -169,7 +178,7 @@ void main() {
   vec3 n = rot * NORMALS[face];
   v_light = n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86));
   v_uvl = vec3(uv, layer);
-  v_tint = u_skyLight;
+  v_tint = lightTint(uint(a_i2.w * 0.5), u_skyLight);
   v_rel = a_i0.xyz + rot * local;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }

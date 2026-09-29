@@ -40,6 +40,11 @@ impl Game {
         self.act(Action::ClickSlot { slot: slot.min(u8::MAX as u32) as u8, shift });
     }
 
+    /// Sorts the backpack (next tick; the hotbar keeps its layout).
+    pub fn sort_inventory(&mut self) {
+        self.act(Action::SortInventory);
+    }
+
     pub fn cursor_item(&self) -> u16 {
         self.inventory().cursor.item.0
     }

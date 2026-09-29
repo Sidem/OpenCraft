@@ -83,7 +83,7 @@ pub use process::{makes, spec as process_spec, Energy};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
-pub use render::{push_box, INSTANCE_FLOATS};
+pub use render::{light_boxes, push_box, INSTANCE_FLOATS};
 pub use sites::{survey_site, Job, Sites};
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.

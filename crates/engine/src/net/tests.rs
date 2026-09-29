@@ -282,6 +282,28 @@ fn a_player_who_leaves_and_rejoins_gets_their_things_back() {
 }
 
 #[test]
+fn a_saved_hosts_guests_are_released_when_the_world_loads() {
+    let mut host = Game::new(SEED, 2);
+    host.start_host();
+    let id = host.host_join(77).unwrap();
+    host.run_ticks(INPUT_DELAY as u32 + 1);
+    let guest = PlayerId(id as u8);
+    host.sim.apply(guest, Action::Give { item: STONE.into(), count: 5 });
+
+    // The host's browser closes with the guest still connected; nobody will drive that body again.
+    let mut loaded = Game::load(&host.save(), 2).unwrap();
+    assert_eq!(loaded.bodies.iter().flatten().count(), 1, "only the local body is left");
+    loaded.run_ticks(2);
+    assert!(loaded.sim.player(guest).is_none());
+    assert_eq!((loaded.sim.away.len(), loaded.sim.away[0].inventory.count(STONE.into())), (1, 5));
+    assert_eq!(loaded.sim.player(A).map(|_| ()), Some(()), "the host stays");
+
+    // A snapshot for a joiner keeps everyone: they are all really here.
+    let snap = Game::from_snapshot(&host.snapshot(), id, 2).unwrap();
+    assert!(snap.sim.player(A).is_some() && snap.sim.player(guest).is_some());
+}
+
+#[test]
 fn a_joiner_gets_the_hosts_generator_version() {
     let mut host = Game::with_generator(crate::worldgen::WorldGen::with_version(SEED, 1), 2);
     host.start_host();

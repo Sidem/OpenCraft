@@ -4,7 +4,8 @@
 // and each one the items near it. Everyone's names go out whenever someone joins or leaves; a ping
 // every second measures each round trip and tells everyone the results. A client that asks to resync
 // gets a fresh snapshot. A peer that says bye, closes, or stays silent for `SILENT_MS` leaves:
-// `host_leave` keeps their things under their key.
+// `host_leave` keeps their things under their key, and a joiner with the key of a peer still on the
+// books replaces it at once. (Worlds loaded from a save start without their guests: `Game.load`.)
 // Invariant: `pump` runs right after every `update`, so a message (handled between frames) always
 // sees every frame taken, and a snapshot's joiner gets frames from exactly its tick.
 
@@ -49,7 +50,7 @@ export class CoopHost implements Coop {
 
   /** A new connection; it becomes a player once its hello is accepted. */
   addPeer(t: Transport): void {
-    const peer: HostPeer = { t, id: null, name: '', ping: null, heard: performance.now() };
+    const peer: HostPeer = { t, id: null, key: null, name: '', ping: null, heard: performance.now() };
     this.peers.add(peer);
     t.onMessage = (bytes) => this.receive(peer, decode(bytes));
     t.onClose = () => this.drop(peer);
@@ -115,8 +116,18 @@ export class CoopHost implements Coop {
     if (hello.build !== BUILD_ID) {
       return this.refuse(peer, 'The host runs a different version of OpenCraft. Both of you: reload the page to update.');
     }
+    // The same browser coming back while its old connection lingers (a crash or a dropped network):
+    // that old connection is over, so free its place and give the returning player their things.
+    for (const old of [...this.peers]) {
+      if (old !== peer && old.id !== null && old.key === hello.key && hello.key !== 0n) {
+        console.info(`co-op: ${old.name} came back; dropping the old connection`);
+        old.t.close();
+        this.drop(old);
+      }
+    }
     try {
       peer.id = this.game.host_join(hello.key);
+      peer.key = hello.key;
     } catch (err) {
       return this.refuse(peer, message(err));
     }
@@ -159,6 +170,8 @@ interface HostPeer {
   t: Transport;
   /** The player id, once welcomed. */
   id: number | null;
+  /** The player key their browser sent, once welcomed. */
+  key: bigint | null;
   name: string;
   /** The latest round trip in ms, once a ping came back. */
   ping: number | null;

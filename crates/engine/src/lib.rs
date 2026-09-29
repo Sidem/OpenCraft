@@ -228,6 +228,8 @@ impl Game {
         self.write_item_instances(dt, eye);
         self.write_avatars(dt, eye);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
+        let world = &mut self.sim.world;
+        factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
         self.write_line_preview(eye, time);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }

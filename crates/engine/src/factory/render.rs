@@ -6,12 +6,16 @@
 use crate::math::{IVec3, Vec3};
 
 use crate::block::{BlockId, GENERATOR, LAB, MINER, QUARRY, STORAGE};
+use crate::world::DAYLIGHT;
 
 use super::{Factory, Machine};
 
 /// Floats per box instance: centre xyz (camera-relative), yaw, size xyz, uv scroll,
-/// texture layers top/side/bottom, uv mode (0 = whole texture per face, 1 = world-scaled).
+/// texture layers top/side/bottom, and the last float: uv mode (0 = whole texture per face, 1 =
+/// world-scaled) plus twice the light byte (sky in the low nibble, block light in the high one, as
+/// `light.rs` writes it). `push_box` starts every box at [`DAYLIGHT`]; `light_boxes` sets the real light.
 pub const INSTANCE_FLOATS: usize = 12;
+const MODE_LIGHT: usize = 11;
 
 /// Pushes one box instance (see [`INSTANCE_FLOATS`]).
 #[allow(clippy::too_many_arguments)]
@@ -36,8 +40,39 @@ pub fn push_box(
         tex[0] as f32,
         tex[1] as f32,
         tex[2] as f32,
-        if world_uv { 1.0 } else { 0.0 },
+        packed(world_uv, DAYLIGHT),
     ]);
+}
+
+/// The instance's last float: the uv mode plus twice the light byte.
+fn packed(world_uv: bool, light: u8) -> f32 {
+    f32::from(world_uv) + 2.0 * f32::from(light)
+}
+
+/// Lights every box in `boxes` (records of [`INSTANCE_FLOATS`], centres relative to `eye`) with the light
+/// of the cell its centre is in, from `light` (`World::light_at`). A cell with no light at all (a wire
+/// or an item sunk into the ground, whose centre is inside solid rock) borrows the best of its
+/// neighbours, so only a box really in the dark is dark.
+pub fn light_boxes(boxes: &mut [f32], eye: Vec3, mut light: impl FnMut(IVec3) -> u8) {
+    const AROUND: [(i32, i32, i32); 6] = [(0, 1, 0), (1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1), (0, -1, 0)];
+    let mut last: Option<(IVec3, u8)> = None;
+    for rec in boxes.chunks_exact_mut(INSTANCE_FLOATS) {
+        let cell = (eye + Vec3::new(rec[0] as f64, rec[1] as f64, rec[2] as f64)).floor();
+        let lit = match last {
+            Some((c, l)) if c == cell => l,
+            _ => match light(cell) {
+                0 => AROUND.iter().map(|&(x, y, z)| light(cell + IVec3::new(x, y, z))).fold(0, brighter),
+                l => l,
+            },
+        };
+        last = Some((cell, lit));
+        rec[MODE_LIGHT] = packed(rec[MODE_LIGHT] as u32 & 1 == 1, lit);
+    }
+}
+
+/// The brighter of two light bytes, sky and block light each.
+fn brighter(a: u8, b: u8) -> u8 {
+    (a & 15).max(b & 15) | (a >> 4).max(b >> 4) << 4
 }
 
 impl Factory {
@@ -82,3 +117,6 @@ fn models<T: Machine>(list: &[T], out: &mut Vec<f32>, eye: Vec3, time: f64, rang
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

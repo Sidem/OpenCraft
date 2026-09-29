@@ -69,7 +69,9 @@ the render distance in chunks (2 to 24, default 8).
 
 Mined blocks drop as items, which are pulled into your inventory when you get close. In the inventory screen
 (E), click a slot to pick up a stack and click again to put it down. Shift-click moves a stack between the
-hotbar and the backpack.
+hotbar and the backpack. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
+merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
+merge, so each keeps its own wear.
 
 New worlds have a sea and ponds. Water flows: dig beside the sea and it pours in and refills any hole or
 trench at or below its level, however far. Elsewhere water runs up to 7 blocks from its source, getting
@@ -115,7 +117,9 @@ shows the day and the time. Light is simulated per block: forest floors lie in s
 at noon, and a shaft you dig lets the sky in. **Torches** (a stick and a coal ore make 4)
 stand on top of any block and light about 11 blocks around them, full light within 4; they drop when the block
 under them goes. **Lamps** (glass, an iron plate and 2 copper wire make two) are far stronger: full light within
-17 blocks, fading out about 31 blocks away, in a warm glow, day and night.
+17 blocks, fading out about 31 blocks away, in a warm glow, day and night. Machines, belts, the items on
+them and dropped items are lit by the same light as the ground they stand on: a lamp lights a factory at
+night, and a machine under a roof or in a cave is dark.
 
 Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
@@ -132,7 +136,9 @@ Up to four players can build in one world. **Play together** in the pause menu:
 - To join, paste a friend's link or code into the box and press **Join**. Your own world is saved first.
   Friends who come back later get their things back where they left them.
 - Hold **Tab** in game to see who is playing and their ping. **Leave** (or closing the tab) takes you out;
-  when the host leaves, the game ends for everyone and **Back to my worlds** returns to yours.
+  when the host leaves, the game ends for everyone and **Back to my worlds** returns to yours. A player
+  whose connection drops is removed after 10 seconds of silence (their things wait for them), and a saved
+  world opens without the players who were connected when it was saved.
 
 Players connect directly (WebRTC). A small Cloudflare Worker (`signal/`) only introduces them; no game data
 passes through it. Some networks (strict company or mobile networks) block direct connections, and the

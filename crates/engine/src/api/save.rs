@@ -12,9 +12,12 @@ impl Game {
         self.save_bytes()
     }
 
-    /// A game from `save()` bytes. Throws a message a player can read if the bytes can't be loaded.
+    /// A game from `save()` bytes, without the co-op guests the host had when it saved. Throws a
+    /// message a player can read if the bytes can't be loaded.
     pub fn load(bytes: &[u8], view_radius: u32) -> Result<Game, String> {
-        Game::from_save(bytes, view_radius)
+        let mut game = Game::from_save(bytes, view_radius)?;
+        game.release_guests();
+        Ok(game)
     }
 
     pub fn seed(&self) -> u32 {

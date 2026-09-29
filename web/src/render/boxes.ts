@@ -1,8 +1,9 @@
 // Instanced boxes: dropped items, belt items and machine parts, drawn as one instanced draw call of
 // a unit cube. The engine writes the instance records each frame (`factory/render.rs`); this uploads
-// them into a growing GPU buffer and draws them with the lit cutout shader, dimmed by the daylight.
+// them into a growing GPU buffer and draws them with the lit cutout shader: the daylight, lamps and
+// shade of the cell each box stands in (the engine packs that light into the last float).
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
-// top/side/bottom, uv mode. Attribute locations 1–3 read it as three vec4s (see `S.boxVert`).
+// top/side/bottom, uv mode + 2 × light. Attribute locations 1–3 read it as three vec4s (see `S.boxVert`).
 
 import { createProgram, uniforms } from './gl';
 import * as S from './shaders';

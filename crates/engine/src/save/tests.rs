@@ -26,7 +26,7 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     g.run_ticks(300);
 
     let saved = g.save();
-    let loaded = Game::load(&saved, 3).expect("loads");
+    let loaded = Game::from_save(&saved, 3).expect("loads");
     assert!(loaded.save() == saved, "the same bytes after a round trip");
     assert_eq!(loaded.worldgen_version(), WORLDGEN_VERSION, "new worlds get the newest generator");
     assert_eq!(loaded.sim.state_hash(), g.sim.state_hash());
@@ -37,6 +37,12 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     assert_eq!(loaded.item_total(BELT.into()), 3);
     let away = &loaded.sim.away[0];
     assert_eq!((loaded.sim.away.len(), away.key, away.inventory.count(LOG.into())), (1, 5, 4));
+
+    // Opening the world for play sends the other player home: nobody is connected to drive them.
+    let mut opened = Game::load(&saved, 3).expect("loads");
+    assert_eq!(opened.bodies.iter().flatten().count(), 1);
+    opened.run_ticks(1);
+    assert!(opened.sim.player(b).is_none());
 }
 
 /// A small world with a bit of everything and no chunks loaded, so the file is a few hundred bytes.
