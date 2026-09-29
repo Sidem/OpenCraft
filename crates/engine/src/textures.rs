@@ -5,12 +5,14 @@
 //! Terrain lives in `nature.rs` (with the surface hints) and `ores.rs`, province rocks in
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
-//! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`.
+//! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
+//! the arc furnace, silicon and circuits in `electronics.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
 
 mod assembly;
+mod electronics;
 mod geology;
 mod heavy;
 mod items;
@@ -171,6 +173,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             steel::pixel(layer, x, y)
         }
         tex::BOILER_SIDE..=tex::CRUSHED_COPPER => heavy::pixel(layer, x, y),
+        tex::ARC_SIDE..=tex::CIRCUIT => electronics::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

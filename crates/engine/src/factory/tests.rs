@@ -503,7 +503,7 @@ fn shaped(f: &mut Factory, block: BlockId, pos: IVec3, dir: u8) {
 }
 
 /// The factory after its bytes are written and read back, checking they read back unchanged.
-fn round_trip(f: &Factory) -> Factory {
+pub(super) fn round_trip(f: &Factory) -> Factory {
     let mut w = crate::bytes::ByteWriter::default();
     f.write_state(&mut w);
     let g = Factory::read_state(&mut World::new(1, 2), &mut crate::bytes::ByteReader::new(&w.bytes)).unwrap();
@@ -577,13 +577,13 @@ fn an_underpass_carries_items_under_a_crossing_belt() {
 }
 
 /// A constructor at `pos` making rods, with `ingots` iron ingots put in.
-fn rod_maker(f: &mut Factory, pos: IVec3, ingots: u32) {
+pub(super) fn rod_maker(f: &mut Factory, pos: IVec3, ingots: u32) {
     f.place(&mut World::new(1, 2), crate::block::CONSTRUCTOR, pos, 0, pos, 0);
     f.set_recipe(pos, Some(recipe_for(crate::item::IRON_ROD)));
     assert_eq!(f.insert(pos, crate::item::IRON_INGOT, ingots), ingots);
 }
 
-fn place_block(f: &mut Factory, block: BlockId, pos: IVec3) {
+pub(super) fn place_block(f: &mut Factory, block: BlockId, pos: IVec3) {
     f.place(&mut World::new(1, 2), block, pos, 0, pos, 0);
 }
 

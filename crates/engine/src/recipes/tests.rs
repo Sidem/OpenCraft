@@ -9,12 +9,12 @@ use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
-use Category::{Assembly, Blasting, Crushing, Pressing, Smelting};
+use Category::{Arc, Assembly, Blasting, Crushing, Pressing, Smelting};
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 5] = [Smelting, Pressing, Assembly, Blasting, Crushing];
+const CATEGORIES: [Category; 6] = [Smelting, Pressing, Assembly, Blasting, Crushing, Arc];
 const _: fn(Category) = |c| match c {
-    Smelting | Pressing | Assembly | Blasting | Crushing => {}
+    Smelting | Pressing | Assembly | Blasting | Crushing | Arc => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -25,8 +25,8 @@ const WORLD_BLOCKS: &[BlockId] = &[
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
-/// Known exceptions: items whose use waits for a later step (none now).
-const NO_USE_YET: &[ItemId] = &[];
+/// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones).
+const NO_USE_YET: &[ItemId] = &[item::CIRCUIT];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

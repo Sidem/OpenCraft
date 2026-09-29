@@ -54,7 +54,7 @@ folder with `mod.rs`.
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
 | `item_models.rs` | Shared small box assemblies (parts, tools, scanner, core drill) for loose items and HUD icons; data only |
 | `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
-| `research.rs` | Tech tree `TECHS` (data: prerequisites, packs per unit, units, seconds, `Unlock`s: hand or machine recipes), `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `has`, `add_unit`); lint in `research/tests.rs` |
+| `research.rs` | `Unlock`, `Tech`, `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `has`, `add_unit`); the tech table `TECHS` lives in `research/techs.rs` (data: prerequisites, packs per unit, units, seconds, unlocks); lint in `research/tests.rs` |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
 | `world/mod.rs` | Loaded chunks, edits (`saved` keeps edited chunks), block accessors (`*_anywhere` for core code, with a small cache of generated chunks; `set_block_anywhere_later` remeshes in the streaming budget; `is_air_anywhere` lets column scans skip the sky), render events, `adopt_loaded` (a resync keeps the render cache) |
 | `world/streaming.rs` | Streaming and meshing: re-centring on the local player and within `OTHERS_RADIUS` of the others (meshing only the local player's), generation and mesh queues, `work_step`, `remesh`, `area_ready`; `neighbourhood` and `chunks_above` (what lighting a chunk reads) |
@@ -70,7 +70,8 @@ folder with `mod.rs`.
 | `factory/mod.rs`, `table.rs` | Machine table (`table.rs`: `Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements (`cells`: one, or a footprint's), `Factory`: a `Vec` per kind, index `at` (every cell), `count(kind)`, the world's `research`, `place` / add / remove, `processors_of(block)`, `update` (one tick: power balance, miners, quarries, boxes, processors (with the machine recipes research allows), powered machines and labs, belts; emits `SimEvent`s) |
 | `factory/state.rs` | `Factory::write_state` / `read_state`: every machine list, kind by kind (older save versions skip later kinds; before 18 smelters and constructors were two lists, read by `process/legacy.rs`), the sites, then the deposits and the research |
 | `factory/lab.rs` | Research lab: one buffer slot per science pack (three since save 20), `LAB_TIERS` (speed, kW, every nth unit free), `step_labs` (units for the current tech, never more than it has left, at its grid's speed); bytes, readout, panel, model |
-| `factory/power.rs` | Power: `Power` (derived in `relink`: pole grids by link range, the pole each generator and machine hangs on, a multi-block's through any cell; `balance` each tick: demand, generators give stored energy in order until supply meets it, lighting fuel as needed, speed per grid), wire drawing; power constants. `factory/pole.rs`: `Pole` (with a tier), `POLE_TIERS` (link range, reach), which poles link and which pole a machine hangs on |
+| `factory/power.rs` | Power: `Power` (derived in `relink`: pole grids by link range, the pole each generator and machine hangs on, a multi-block's through any cell; `balance` each tick: demand, generators give stored energy in order until supply meets it, lighting fuel as needed, speed per grid), wire drawing; power constants. `factory/pole.rs`: `Pole` (with a tier; tier 3 is the power cable, `CABLE_TIER`), `POLE_TIERS` (link range, reach), which poles and cables link and which pole a machine hangs on (a pole before a cable); `factory/cable.rs`: how cables look |
+| `power_tools.rs` | The pole tool and cable drop (presentation plus ordinary `PlaceBlock` actions): `plan_pole` (ghost at full reach along the view, on the ground), `Game::pole_ghost`, hold-to-chain in `update_power_tools`, `cable_drop`, ghost boxes, wire and HUD label, R toggles free placement |
 | `factory/generator.rs` | Coal generator: `GENERATOR_TIERS` (kW, fuel yield), fuel buffer and stored energy (kW·ticks, lit from `recipes::fuel_energy`), gives only what its grid draws; bytes, readout, panel, model |
 | `factory/belt_shape.rs` | Belt `Shape`s (flat, ramp up/down, lift, underpass entry/exit): where items ride (`item_at`, `shows`), shape models, `UNDERPASS_RANGE`; `derive_slopes` makes flat belts ramps from their neighbours (in `relink`) |
 | `factory/buffer.rs` | `Buffer`: the item stacks a machine holds (box slots, miner output, processing buffers); `feed` pushes into belts leading away |
@@ -100,8 +101,8 @@ folder with `mod.rs`.
 | `tools.rs` | Hand tools: `ToolKind`, `Tier` (uses, speed, ore kept: stone, iron, steel), `TOOLS`; `tool_for` (by the block's sound material), `break_speed` (the hands), `ore_yield` (the core), `device` (scanner, core drill). A tool's stack count is its uses left |
 | `prospect.rs` | Scanner and core drill (queries, never actions): `scan`, `core_sample`, `update_prospecting` (called from `update_placing`), `Prospect` (the latest reading as flat records, timers) |
 | `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
-| `recipes/mod.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`; every tier item's recipe, the previous tier plus kits, is a `pub const` in `recipes/tiers.rs`); the boiler, turbine, crusher and silo recipes are in `recipes/heavy.rs` and the tool recipes in `recipes/tooling.rs` |
-| `recipes/machine.rs` | Machine recipes (`MACHINE_RECIPES`: a `Category` (smelting, casting, assembly, steel, crushing), inputs, outputs main first; saved by index: append only; the rows research locks: `GEAR_RECIPE`, `BRICK_RECIPE`, `QUICKLIME_RECIPE`, `ASSEMBLY_RECIPES`, `STEEL_RECIPES`, `CRUSH_RECIPES`), `FUELS` (smelter seconds and generator kJ). Which machine takes which category: its spec (`factory/process/specs.rs`) |
+| `recipes/mod.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`; every tier item's recipe, the previous tier plus kits, is a `pub const` in `recipes/tiers.rs`); the boiler, turbine, crusher and silo recipes are in `recipes/heavy.rs`, the arc furnace's in `recipes/electronics.rs`, the cable's in `recipes/wiring.rs` and the tool recipes in `recipes/tooling.rs` |
+| `recipes/machine.rs` | Machine recipes (`MACHINE_RECIPES`: a `Category` (smelting, pressing, assembly, blasting, crushing, arc), inputs, outputs main first; saved by index: append only; the rows research locks: `GEAR_RECIPE`, `BRICK_RECIPE`, `QUICKLIME_RECIPE`, `ASSEMBLY_RECIPES`, `STEEL_RECIPES`, `CRUSH_RECIPES`, `ELECTRONICS_RECIPES`), `FUELS` (smelter seconds and generator kJ). Which machine takes which category: its spec (`factory/process/specs.rs`) |
 | `recipes/tests.rs` | Content lint: every item has a source and a use, categories have machines, outputs fit, tiers can be made |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders and belt lifts, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
@@ -121,7 +122,7 @@ folder with `mod.rs`.
 | `textures/stripes.rs` | Tier stripes (`tex::stripe`): a band of the tier colour on metal with a pip per Mk |
 | `textures/wood.rs` | Processed wood: planks, the ladder's sides and top, the stick |
 | `textures/geology.rs`, `masonry.rs`, `assembly.rs`, `steel.rs` | Granite, sandstone and basalt grains, cutout glass; stone bricks and quicklime; the assembler's housing, port hatches, concrete, the motor; the blast furnace, byproduct hatch, slag, steel items, the steel tool head and the blue pack |
-| `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts); `textures/heavy.rs`: boiler, turbine, crusher, silo and crushed ore (layers 141–150) |
+| `textures/machines.rs` | Machine and item texture patterns (belts, miner, smelter, constructor, routers, generator, pole, ingots, parts); `textures/heavy.rs`: boiler, turbine, crusher, silo and crushed ore (layers 141–150); `textures/electronics.rs`: arc furnace, silicon, circuit (151–154) |
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
 | `sound.rs` | Sound event buffer read by the host |
@@ -209,11 +210,11 @@ Placeable blocks work at once; worldgen use goes in `worldgen/`.
 and a row in `item.rs` `EXTRA`, with a texture layer in `block::tex` and its pattern in `textures::pixel`
 if it needs a new look; the HUD icon and the loose and belt models follow from the row. A recipe is a row
 in `recipes/mod.rs` (its `group` picks the build-menu section); the build menu shows every row. To lock it
-behind research, list `Unlock::Recipe(item)` in a tech's `unlocks` (`research.rs`). A machine recipe is a
+behind research, list `Unlock::Recipe(item)` in a tech's `unlocks` (`research/techs.rs`). A machine recipe is a
 row in `recipes/machine.rs` with its category (lock: `Unlock::MachineRecipe(index)`). The content lint
 (`recipes/tests.rs`, `research/tests.rs`) says what is missing: a source, a use, a machine.
 
-**A tech.** A row appended to `TECHS` in `research.rs` (saves store progress by index): name, blurb,
+**A tech.** A row appended to `TECHS` in `research/techs.rs` (saves store progress by index): name, blurb,
 prerequisites by index, packs per unit, units, seconds, what it unlocks. The research screen and the build
 menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` (labs get a slot for it).
 
@@ -281,19 +282,18 @@ action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions
 | `factory/belt.rs` | `BELT_TIERS` (speed per tier), `ITEM_SPACING` |
 | `factory/power.rs` | `ROUTER_POWER`, `POLE_REACH` (Mk1, for the readouts) |
 | `factory/{pole,generator,lab,storage,quarry}.rs` | `POLE_TIERS`, `GENERATOR_TIERS`, `LAB_TIERS`, `BOX_SLOTS`, `QUARRY_TIERS` (one array each, indexed by tier) |
-| `factory/pumping.rs` | `PUMP_TIERS`, `OUTLET_RATE`, `PUMP_RANGE` |
-| `factory/sites.rs` | `MAX_SITE` (columns on a side), `MAX_SITES` (per world) |
+| `factory/pumping.rs`, `sites.rs` | `PUMP_TIERS`, `OUTLET_RATE`, `PUMP_RANGE`; `MAX_SITE` (columns on a side), `MAX_SITES` (per world) |
 | `factory/quarry.rs` | `SCAN_PER_TICK`; `quarry/dig_box.rs`: `WIDTHS`, `DEPTHS`, defaults, `QUARRIABLE` |
 | `sim/water.rs` | `WATER_DELAY`, `MAX_WATER_UPDATES`; `SEA_LEVEL` is in `worldgen/mod.rs` |
 | `sim/timers.rs` | `LEAF_HALF_LIFE`, `GRASS_GROW_HALF_LIFE`, `GRASS_DIE_HALF_LIFE`, `MAX_TIMERS`, leaf check radius and support steps |
 | `sim/saplings.rs` | `SAPLING_CHANCE`, `GROW_MIN`, `GROW_HALF_LIFE`, trunk heights |
-| `research.rs` | `TECHS` (units, seconds, packs per unit) |
+| `research/techs.rs` | `TECHS` (units, seconds, packs per unit) |
 | `worldgen/biome.rs` | `HIGHLAND_LEVEL`, `LOWLAND_LEVEL`, `SPAWN_CALM`, `DITHER`, thresholds in `biome_at`, `tree_factor` |
 | `worldgen/geology.rs` | `ORES_BY_BIOME`, `OUTCROPS`, `VEIN_CHANCES`, `HINT_MARGIN`, `HINT_ONE_IN` (version 2) |
 | `worldgen/strata.rs` | `EXPOSED_CHANCE`, `ORE_DEPTH`, `STARTERS` (version 3, released); version 4: `EXPOSED_CHANCE_METALS`, `ORE_DEPTH_V4`, `STARTERS_V4`, `STARTER_RADII_V4` |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes/mod.rs` | `RECIPES` (hand) |
-| `interaction.rs` | `REACH`, place repeat, break cooldown, footstep stride |
+| `interaction.rs`, `power_tools.rs` | `REACH`, place repeat, break cooldown, footstep stride; `HOLD_REACH`, `MAX_DROP` (cables) |
 | `tools.rs` | `STONE_TIER`, `IRON_TIER`, `STEEL_TIER` (uses, break speed, ore kept), `DEVICE_TIER` |
 | `prospect.rs` | `SCAN_RANGE`, `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH`, size bands |
 | `events.rs` | `MINER_SOUND_RANGE`, drop pickup delay |

@@ -148,6 +148,19 @@
   color: var(--muted);
 }
 
+/* Side by side (inventory left, build menu right), each column scrolls on its own. */
+@media (min-width: 901px) {
+  .inv:not(.inv-with-box) .inv-body {
+    overflow: hidden;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .inv:not(.inv-with-box) .inv-body > * {
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 900px) {
   .inv-body {
     grid-template-columns: minmax(0, 1fr);

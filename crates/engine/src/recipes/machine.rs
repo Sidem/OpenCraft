@@ -15,7 +15,7 @@ use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME,
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
-use crate::item::{BLUE_KIT, BLUE_PACK, CRUSHED_COPPER, CRUSHED_IRON};
+use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -30,6 +30,8 @@ pub enum Category {
     Blasting,
     /// Ore into crushed ore, slag into sand (the crusher).
     Crushing,
+    /// Quartz and coal into silicon (the arc furnace).
+    Arc,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -42,7 +44,7 @@ pub struct MachineRecipe {
     pub seconds: f64,
 }
 
-use Category::{Assembly, Blasting, Crushing, Pressing, Smelting};
+use Category::{Arc, Assembly, Blasting, Crushing, Pressing, Smelting};
 
 pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -111,6 +113,18 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Crushing, inputs: &[(b(SLAG), 1)], outputs: &[(b(SAND), 1)], seconds: 1.0 },
     MachineRecipe { category: Smelting, inputs: &[(CRUSHED_IRON, 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
     MachineRecipe { category: Smelting, inputs: &[(CRUSHED_COPPER, 1)], outputs: &[(COPPER_INGOT, 1)], seconds: 1.5 },
+    MachineRecipe {
+        category: Arc,
+        inputs: &[(b(QUARTZ_ORE), 1), (b(COAL_ORE), 1)],
+        outputs: &[(SILICON, 1)],
+        seconds: 4.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(SILICON, 1), (COPPER_WIRE, 3), (IRON_PLATE, 1)],
+        outputs: &[(CIRCUIT, 2)],
+        seconds: 4.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -125,6 +139,8 @@ pub const STEEL_RECIPES: [u16; 3] = [16, 17, 18];
 pub const BLUE_RECIPES: [u16; 2] = [19, 20];
 /// The crusher's two ore rows and slag row, and the smelter's rows for the crushed ore (Ore Crushing).
 pub const CRUSH_RECIPES: [u16; 5] = [21, 22, 23, 24, 25];
+/// The arc furnace's silicon and the assembler's circuit (Electronics).
+pub const ELECTRONICS_RECIPES: [u16; 2] = [26, 27];
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

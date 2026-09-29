@@ -16,8 +16,8 @@ use crate::sound;
 use crate::tools;
 use crate::Game;
 
-const REACH: f64 = 5.0;
-const PLACE_REPEAT_SECONDS: f32 = 0.22;
+pub(crate) const REACH: f64 = 5.0;
+pub(crate) const PLACE_REPEAT_SECONDS: f32 = 0.22;
 const BREAK_COOLDOWN_SECONDS: f32 = 0.12;
 const DIG_SOUND_INTERVAL: f32 = 0.24;
 /// Horizontal distance walked between footstep sounds.
@@ -119,8 +119,8 @@ impl Game {
 
     pub(crate) fn update_placing(&mut self, dt: f32) {
         // A scanner or core drill in hand makes the use button prospect instead (prospect.rs); with
-        // belts it lays lines (belt_line.rs).
-        if self.update_prospecting(dt) || self.update_belt_line() || !self.using {
+        // belts it lays lines (belt_line.rs); poles and cables have their own tools (power_tools.rs).
+        if self.update_prospecting(dt) || self.update_belt_line() || self.update_power_tools(dt) || !self.using {
             return;
         }
         self.use_cooldown -= dt;

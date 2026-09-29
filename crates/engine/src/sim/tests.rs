@@ -17,8 +17,9 @@ const A: PlayerId = PlayerId(0);
 const B: PlayerId = PlayerId(1);
 /// Where the scripted 6,300-tick run below ends. Re-recorded in step 6.5: processors save their facing,
 /// and research lists the Assembly tech; in step 6.6 for the Steelmaking tech, in 6.7 for the blue techs and the labs' third pack slot,
-/// in 6.7b for the machine tiers every list now saves, in 6.8 and 6.9 for the steam, crushing and silo techs.
-const GOLDEN_HASH: u64 = 0x408f_6ecc_da07_813b;
+/// in 6.7b for the machine tiers every list now saves, in 6.8 and 6.9 for the steam, crushing and silo techs,
+/// in 7.1 for the Electronics tech.
+const GOLDEN_HASH: u64 = 0x55eb_9cd8_986f_2b38;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

@@ -48,6 +48,7 @@ mod noise;
 mod ore_guide;
 mod physics;
 mod player;
+mod power_tools;
 mod prospect;
 mod quarry_preview;
 mod raycast;
@@ -76,6 +77,7 @@ use math::{IVec3, Vec3};
 use minimap::Minimap;
 use net::Role;
 use player::Player;
+use power_tools::PowerTools;
 use prospect::Prospect;
 use raycast::RayHit;
 use sim::{PlayerId, Sim};
@@ -148,6 +150,8 @@ pub struct Game {
     line: BeltLine,
     /// Quarter turns R added to a held quarry's or multi-block machine's facing (quarry_preview.rs).
     place_turn: u8,
+    /// Pole and cable placing (`power_tools.rs`).
+    tools: PowerTools,
 }
 
 #[wasm_bindgen]
@@ -197,6 +201,7 @@ impl Game {
             surveyed: None,
             prospect: Prospect::default(),
             line: BeltLine::default(),
+            tools: PowerTools::default(),
             place_turn: 0,
         }
     }
@@ -231,6 +236,7 @@ impl Game {
         let world = &mut self.sim.world;
         factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
         self.write_line_preview(eye, time);
+        self.write_power_preview(eye);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }
 }

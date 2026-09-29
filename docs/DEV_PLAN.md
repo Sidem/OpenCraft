@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-29 · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.1 (arc furnace and
-silicon)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.2 (violet science and
+Mk4)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -47,7 +47,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (296 engine tests).
+   (305 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -426,8 +426,8 @@ Milestone 6 (Industry) is done: the steps below are its summary; the full specs 
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 21) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 70, item 308). Each new look gets a placeholder
-  layer (`tex::COUNT` is 151) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 72, item 310). Each new look gets a placeholder
+  layer (`tex::COUNT` is 155) and a `docs/ART_HANDOVER.md` request line.
 
 ### Milestone 6 (Industry), built
 
@@ -466,12 +466,20 @@ Goal: the player's reach grows from building by hand to machines doing it. Circu
 first, then logic, then the builders (blueprints, drones, flight). Steps 7.6–7.8 wait for the user's
 answers to the section 6 questions (blueprints, drone materials, jetpack); do 7.1–7.5 first.
 
-- [ ] **7.1 Arc furnace and silicon.** The arc furnace (a spec row, 2×2×2, electric 120 kW: 1 quartz
-  ore + 1 coal → 1 silicon, 4 s), silicon, the circuit (assembler: 1 silicon, 3 copper wire, 1 iron plate
-  → 2, 4 s). Electronics tech (r g b). Deep quartz is the first reason for a mine shaft: check that
-  quartz is reachable 25–50 blocks down (`ore_guide`, the scanner) and tune if not. **Done when:** a test
-  runs quartz and coal to circuits through an arc furnace and an assembler; screenshot.
-- [ ] **7.2 Violet science and Mk4.** The violet pack and kit (assembly recipes), `PACKS` gains violet
+- [x] **7.1 Arc furnace and silicon** (built): the arc furnace (block 70, 2×2×2, `Category::Arc`, 120 kW: 1 quartz
+  ore + 1 coal → 1 silicon, 4 s; hatches like the assembler) is a spec row; silicon (item 308) and the circuit
+  (309: assembler, 1 silicon + 3 copper wire + 1 iron plate → 2) are machine recipes 26–27; the Electronics tech
+  (r g b, 80 × 20 s) unlocks all three; textures 151–154. The tech table moved to `research/techs.rs`. Golden
+  hash re-recorded (no save bump). Quartz checked: v4 band 25–50 blocks down; a geology test mines it.
+- [x] **7.1b Power cable and the pole tool** (built, user request): the cable (block 71, hand recipe ×4 from 1
+  iron plate + 2 copper wire, `recipes/wiring.rs`) is a `Kind::Pole` of stored tier 3 (`CABLE_TIER`, no save
+  bump): cables link by touching (diagonals too) and to a pole within that pole's machine reach; machines hang
+  on a pole first, else a cable within 2. `power_tools.rs` (ghost, wire, outlines, label, all presentation plus
+  ordinary `PlaceBlock` actions): with a pole in hand and one near, a ghost pole stands at full link reach
+  along the horizontal view, following the ground (`plan_pole`), and a click places it; holding places the next
+  whenever the player has walked within `HOLD_REACH` of its spot; R (or crouch) frees it to go where aimed.
+  With cables, a click hangs up to 64 down the aimed cell's column to the ground (crouch: one). Tests in
+  `power_tools/tests.rs`, `factory/pole/tests.rs`. The cable uses the copper wire texture (ART_HANDOVER).- [ ] **7.2 Violet science and Mk4.** The violet pack and kit (assembly recipes), `PACKS` gains violet
   (labs hold a fourth slot, save 22, a v21 lab loads with it empty), Mk4 tiers for belts (8 blocks/s),
   miners, processors, poles (substation), labs (×4, every third unit free) with numbers from TECH_ERAS
   section 1; techs Violet Science, Mk4 Logistics, Mk4 Machines. **Done when:** every family's Mk4 numbers
@@ -569,30 +577,24 @@ and the balance numbers. Read the section you need.
   (save version 17; tags 21, 22), planks, sticks, ladders, sand → glass, torch reach 11, lamp 31
   (`bench_meshing` 0.56 ms per chunk), climbable lifts. Tests 234 → 240; wasm 204.5 KB.
 - **2026-09-28: Tech tree and Industry** (user request, a review before 6.2): `docs/TECH_TREE.md` (the
-  concept: eleven lines, their links, the far end up to datacenters, lasers and satellites, upgrades,
-  the content architecture) and `docs/TECH_ERAS.md` (per era). The user made Industry Milestone 6 and
+  concept: eleven lines, their links, the far end, upgrades, the content architecture) and `docs/TECH_ERAS.md` (per era). The user made Industry Milestone 6 and
   moved terraforming later (now 8; its sites step, built as 6.1, stays in the core and its design is in
   the roadmap). Roadmap now 7–13. No code changed.
-- **2026-09-28: 6.1–6.3** (`8c22a45`, `57aae29`, then 6.3): tiers as data (`factory/tiers.rs`, save bytes
-  unchanged), `research::Unlock`, recipe categories (`recipes/machine.rs`), the content lint, upgrade
-  kits (`factory/upgrades.rs`, items 273–274, `Action::Upgrade` tag 23, kit lines, stripes). Tests 240 → 253.
-- **2026-09-28: 6.4 One processing machine:** `factory/process/` replaces the smelter and constructor
-  modules; tiers for both, Masonry (stone bricks, quicklime), save version 18. Tests 253 → 259.
-- **2026-09-28: Ctrl while playing:** Ctrl crouches too (like C) and browser Ctrl shortcuts are off while
-  the pointer is locked; Ctrl+W can't be blocked, so closing the tab mid-game asks first (`main.ts`).
-- **2026-09-28: 6.5 Footprints and the assembler:** multi-block machines (`factory/footprint/`), the
-  assembler, motor and concrete, Assembly tech, save version 19. Tests 259 → 267.
-- **2026-09-28: 6.6 Steel:** the blast furnace with a byproduct port and buffer, slag, steel and steel tools,
-  Steelmaking tech. Tests 267 → 270.
-- **2026-09-29: 6.7 Blue science and Mk3 machines:** blue pack and kit, three-slot labs (save version 20),
-  Mk3 belts, miners, smelters (electric), constructors, assemblers and blast furnaces, four techs. Tests 270 → 278.
-- **2026-09-29: 6.7b Mk3 for the rest:** tiers for poles (`factory/pole.rs`), boxes, pumps, quarries, labs and
-  the generator (save version 21), tier recipes in `recipes/tiers.rs`. Tests 278 → 286.
+- **2026-09-28: 6.1–6.6** (`8c22a45` on): tiers as data (`factory/tiers.rs`), `research::Unlock`, recipe
+  categories, the content lint, upgrade kits (`Action::Upgrade` tag 23); one processing machine
+  (`factory/process/`, save 18) with Masonry; multi-block footprints and the assembler (save 19); steel (the
+  blast furnace with a byproduct port). Tests 240 → 270. Ctrl also crouches, and closing the tab mid-game asks.
+- **2026-09-29: 6.7–6.7b:** blue science and Mk3 everything (labs with three pack slots, save 20; tiers for
+  poles, boxes, pumps, quarries, labs and the generator, save 21; `recipes/tiers.rs`). Tests 270 → 286.
 - **2026-09-29: Milestone 6 (Industry) done** (6.8–6.10; pushed with 6.7 and 6.7b): steam (boiler, turbines
   as power sources in `power.rs`, `factory/process/steam.rs`), the crusher, the silo, techs 14–16, four
   tips, the golden hash re-recorded. Tests 286 → 296; wasm 232.7 KB gzipped. Lessons: write doc comments
   with the file tools or single-quoted here-strings (double-quoted PowerShell here-strings eat backticks);
   a plant test with a 405 kW load caught two turbine status bugs a unit test would not. Milestone 7 moved
   in from the roadmap.
-- **2026-09-29: Play-test notes after Milestone 6** (Testing 5.ocworld from the user): Sort buttons for the backpack and boxes (Action::SortInventory tag 24, SortBox tag 25, inventory::sort_stacks); boxes are lit by the cell they stand in (world/boxlight.rs, actory::light_boxes, one shared GLSL light function), so lamps and torches light machines, belts and items and roofs shade them; a host's save no longer brings back the guests who were connected (Game::release_guests on Game::load; the reference save had two stuck bodies), and a returning key replaces its old connection at once (
-et/host.ts). Tests 296 -> 302.
+- **2026-09-29: Play-test notes after Milestone 6** (`Testing 5.ocworld`; pushed 28e1bf9): sort buttons for
+  the backpack and boxes (`Action::SortInventory` tag 24, `SortBox` tag 25); boxes are lit by their cell
+  (`world/boxlight.rs`); saved worlds open without their old guests (`Game::release_guests`), and a returning
+  key replaces its old connection at once. Tests 296 → 303; wasm 235.2 KB gzipped.- **2026-09-29: Box screen bug, step 7.1 and 7.1b:** a small box opened after a larger one showed the larger box's
+  extra empty slots (`ui/inventory.ts` hides them). Step 7.1 built (arc furnace, silicon, circuits, Electronics tech).
+  7.1b: the power cable block and a pole tool (ghost at full reach, hold to chain, R to place freely). Tests 303 → 320.

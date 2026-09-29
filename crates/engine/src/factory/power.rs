@@ -219,7 +219,7 @@ impl Power {
     /// One line about the grid `pole` is on, for readouts.
     pub fn grid_line(&self, pole: Option<u32>) -> String {
         let Some(grid) = pole.map(|p| self.pole_grid[p as usize] as usize) else {
-            return format!("Not connected: place a power pole within {POLE_REACH} blocks");
+            return format!("Not connected: place a power pole within {POLE_REACH} blocks, or hang a cable from one");
         };
         let (s, d, c) = (self.supply[grid], self.demand[grid], self.capacity[grid]);
         if s < d {
@@ -234,14 +234,20 @@ impl Factory {
     /// Wires between linked poles and from each powered machine to its pole, as thin sagging segments.
     pub(super) fn write_wires(&self, out: &mut Vec<f32>, eye: Vec3, range: f64) {
         let top = |pos: IVec3, h: f64| pos.as_vec3() + Vec3::new(0.5, h, 0.5);
-        let pole = |i: u32| top(self.poles[i as usize].pos, 0.92);
+        // A pole's wire leaves its crossarm, a cable's its centre.
+        let pole = |i: u32| {
+            let p = &self.poles[i as usize];
+            top(p.pos, if p.is_cable() { 0.5 } else { 0.92 })
+        };
         let mut span = |a: Vec3, b: Vec3| {
             let mid = (a + b) * 0.5 - eye;
             if mid.x * mid.x + mid.y * mid.y + mid.z * mid.z <= range * range {
                 wire(out, a - eye, b - eye);
             }
         };
-        for &(i, j) in &self.power.wires {
+        // Cables touching each other need no wire: their models meet.
+        let bare = |i: u32| self.poles[i as usize].is_cable();
+        for &(i, j) in self.power.wires.iter().filter(|&&(i, j)| !(bare(i) && bare(j))) {
             span(pole(i), pole(j));
         }
         // A multi-block processor's wire goes to its cell nearest the pole.
@@ -278,7 +284,7 @@ fn root(parent: &mut [u32], mut i: u32) -> u32 {
 }
 
 /// A wire from `a` to `b` (camera-relative) as short flat segments that sag in the middle.
-fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
+pub(super) fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
     let d = b - a;
     let len = (d.x * d.x + d.y * d.y + d.z * d.z).sqrt();
     let n = ((len * 2.0).ceil() as usize).max(1);

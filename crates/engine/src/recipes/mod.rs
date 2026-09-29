@@ -2,7 +2,8 @@
 //! machines make, by category, and fuels in `machine.rs`. Research locks recipes (`research.rs`).
 //! Content lint for every table: `tests.rs`.
 //!
-//! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the heavy machines' in `heavy.rs`.
+//! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the heavy machines' in `heavy.rs`,
+//! Electronics' in `electronics.rs`, cables' in `wiring.rs`.
 
 use crate::block::*;
 use crate::inventory::Inventory;
@@ -11,14 +12,18 @@ use crate::item::{
     MOTOR, RED_PACK, SCANNER, SCREW, STICK,
 };
 
+mod electronics;
 mod heavy;
 mod machine;
 mod tiers;
 mod tooling;
+mod wiring;
+use electronics::*;
 use heavy::*;
 pub use machine::*;
 use tiers::*;
 use tooling::*;
+use wiring::*;
 
 /// The build menu's sections, in the order it shows them.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -264,6 +269,7 @@ pub const RECIPES: &[Recipe] = &[
     BELT_MK3_RECIPE,
     POLE_MK2_RECIPE,
     POLE_MK3_RECIPE,
+    CABLE_RECIPE,
     BOX_MK2_RECIPE,
     BOX_MK3_RECIPE,
     PUMP_MK2_RECIPE,
@@ -277,6 +283,7 @@ pub const RECIPES: &[Recipe] = &[
     TURBINE_RECIPE,
     CRUSHER_RECIPE,
     SILO_RECIPE,
+    ARC_FURNACE_RECIPE,
     STONE_PICKAXE_RECIPE,
     STONE_AXE_RECIPE,
     STONE_SHOVEL_RECIPE,

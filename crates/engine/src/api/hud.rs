@@ -39,6 +39,10 @@ impl Game {
             let (lo, hi) = d.bounds();
             return vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0];
         }
+        let power = self.power_boxes();
+        if !power.is_empty() {
+            return power;
+        }
         let Some((_, _, _, cells)) = self.footprint_ghost() else { return Vec::new() };
         let lo = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.min(c.0.x), m.y.min(c.0.y), m.z.min(c.0.z)));
         let hi = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.max(c.0.x), m.y.max(c.0.y), m.z.max(c.0.z)));
@@ -55,7 +59,8 @@ impl Game {
         let n = self.line.cells.len();
         if n == 0 {
             let quarry = self.quarry_label();
-            return if quarry.is_empty() { self.footprint_label() } else { quarry };
+            let footprint = if quarry.is_empty() { self.footprint_label() } else { quarry };
+            return if footprint.is_empty() { self.power_label() } else { footprint };
         }
         let held = self.inventory().selected_stack().item;
         if let Some(tier) = factory::upgrades::kit_tier(held) {

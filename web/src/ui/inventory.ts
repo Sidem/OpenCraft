@@ -146,6 +146,8 @@ export class InventoryPanel {
       this.boxSlots.push(slot);
       this.boxGrid.append(slot.root);
     }
+    // Slots are kept between boxes; a smaller box hides the extras (an upgraded box has more).
+    this.boxSlots.forEach((s, i) => s.root.classList.toggle('hidden', i >= n));
     this.boxSection.classList.toggle('hidden', !box);
     this.menu.el.classList.toggle('hidden', !!box);
     this.dialog.classList.toggle('inv-with-box', !!box);
@@ -178,7 +180,9 @@ export class InventoryPanel {
     if (v === this.version && boxKey === this.boxKey) return;
     this.version = v;
     this.boxKey = boxKey;
-    if (boxData) this.boxSlots.forEach((s, i) => this.drawSlot(s, boxData[i * 2], boxData[i * 2 + 1]));
+    if (boxData) {
+      for (let i = 0; i < boxData.length / 2; i++) this.drawSlot(this.boxSlots[i], boxData[i * 2], boxData[i * 2 + 1]);
+    }
 
     const selected = g.selected_slot();
     this.slots.forEach((s, i) => {

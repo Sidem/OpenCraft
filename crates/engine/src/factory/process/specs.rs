@@ -8,7 +8,9 @@
 //! To add a processor: its block (`block/`), a `MACHINES` row of `Kind::Process`, a row here with its
 //! parts, and its recipes' category (`recipes/machine.rs`).
 
-use crate::block::{tex, BlockId, ASSEMBLER, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, SILO, SMELTER, TURBINE};
+use crate::block::{
+    tex, BlockId, ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, SILO, SMELTER, TURBINE,
+};
 use crate::item::ItemId;
 use crate::recipes::{Category, MachineRecipe, MACHINE_RECIPES};
 
@@ -215,6 +217,23 @@ pub const SPECS: &[ProcessSpec] = &[
         map_colour: 0x9a9a92,
         parts: &SILO_PARTS,
     },
+    ProcessSpec {
+        block: ARC_FURNACE,
+        categories: &[Category::Arc],
+        pick: Pick::Chosen,
+        buffers: [2, 0, 1],
+        side: 0,
+        tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 120 }],
+        footprint: Footprint {
+            size: [2, 2, 2],
+            ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right), OUT_FRONT],
+        },
+        verb: "Arcing",
+        products: "silicon",
+        waiting: "",
+        map_colour: 0x9a7ad8,
+        parts: &ARC_PARTS,
+    },
 ];
 
 const fn inlet(side: Side) -> Port {
@@ -347,6 +366,20 @@ const CRUSHER_PARTS: [Part; 5] = [
     part([0.0, 0.36, 0.0], [0.96, 0.26, 0.96], Look::Tex(HAZARD)),
     part([0.0, 0.22, 0.0], [0.5, 0.16, 0.5], Look::Press(1.0, [tex::STEEL; 3])),
     part([0.36, 0.32, 0.36], [0.12, 0.08, 0.12], Look::Lamp),
+];
+
+const GRAPHITE: [u16; 3] = [tex::ARC_TOP, tex::ARC_SIDE, tex::FRAME];
+
+/// A graphite housing on a banded plinth with a glowing arc slit on the front, two electrode rods that
+/// pump on the roof while working, a roof plate and a status lamp.
+const ARC_PARTS: [Part; 7] = [
+    part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, -0.05, 0.0], [1.8, 1.5, 1.8], Look::Tex(GRAPHITE)),
+    part([0.0, 0.74, 0.0], [1.9, 0.1, 1.9], FRAME),
+    part([0.0, -0.1, 0.92], [1.1, 0.3, 0.12], Look::Fire(tex::ARC_SIDE)),
+    part([-0.45, 1.0, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::STEEL; 3])),
+    part([0.45, 1.0, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::STEEL; 3])),
+    part([0.78, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
 ];
 
 const CONCRETE_RINGS: [u16; 3] = [tex::SILO_TOP, tex::SILO_SIDE, tex::FRAME];

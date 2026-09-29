@@ -106,6 +106,9 @@ pub const GENERATOR_MK2: ItemId = ItemId(305);
 /// Ore a crusher makes (Ore Crushing): it smelts to an ingot a piece, so an ore gives one and a half.
 pub const CRUSHED_IRON: ItemId = ItemId(306);
 pub const CRUSHED_COPPER: ItemId = ItemId(307);
+/// Electronics: silicon from an arc furnace, and the circuit an assembler makes from it.
+pub const SILICON: ItemId = ItemId(308);
+pub const CIRCUIT: ItemId = ItemId(309);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -163,7 +166,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 52] = [
+const EXTRA: [ItemDef; 54] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -216,6 +219,8 @@ const EXTRA: [ItemDef; 52] = [
     machine("Coal Generator Mk2", [tex::GENERATOR_TOP, tex::GENERATOR_SIDE, tex::FRAME]),
     part("Crushed Iron", tex::CRUSHED_IRON, [0.6, 0.4, 0.6]),
     part("Crushed Copper", tex::CRUSHED_COPPER, [0.6, 0.4, 0.6]),
+    ingot("Silicon", tex::SILICON),
+    part("Circuit", tex::CIRCUIT, [0.7, 0.1, 0.7]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

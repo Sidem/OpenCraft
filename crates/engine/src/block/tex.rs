@@ -155,7 +155,12 @@ pub const SILO_SIDE: u16 = 147;
 pub const SILO_TOP: u16 = 148;
 pub const CRUSHED_IRON: u16 = 149;
 pub const CRUSHED_COPPER: u16 = 150;
-pub const COUNT: usize = 151;
+/// Electronics (`textures/electronics.rs`): the arc furnace, silicon and the circuit.
+pub const ARC_SIDE: u16 = 151;
+pub const ARC_TOP: u16 = 152;
+pub const SILICON: u16 = 153;
+pub const CIRCUIT: u16 = 154;
+pub const COUNT: usize = 155;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

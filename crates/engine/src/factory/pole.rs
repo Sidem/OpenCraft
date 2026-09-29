@@ -2,6 +2,11 @@
 //! every pole within the longer `link` of the two, and a machine hangs on the nearest pole within that
 //! pole's `reach` of any of its cells (ties: the lower pole index). Higher tiers are pylons: longer
 //! spans and a wider reach.
+//!
+//! A cable (block `CABLE`, stored as a pole of tier [`CABLE_TIER`]) is a short node for shafts and
+//! tunnels: cables touching each other (even diagonally) are one wire, a cable within a pole's reach
+//! joins that pole's grid, and a machine within [`CABLE_STATS`]`.reach` of a cable hangs on it, unless a
+//! real pole is in reach of it too (poles win). Hang a cable from a pole at the rim and lower it.
 
 use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
@@ -23,6 +28,13 @@ pub struct PoleTier {
 pub const POLE_TIERS: [PoleTier; 3] =
     [PoleTier { link: 10, reach: 5 }, PoleTier { link: 16, reach: 7 }, PoleTier { link: 32, reach: 9 }];
 
+/// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it).
+pub const CABLE_TIER: u8 = 3;
+/// A cable's numbers: `link` is unused (cables link by touching), `reach` is how far machines hang on it.
+pub const CABLE_STATS: PoleTier = PoleTier { link: 1, reach: 2 };
+/// Cables this close (squared: touching, diagonals too) are one wire.
+const CABLE_TOUCH2: i32 = 2;
+
 pub struct Pole {
     pub pos: IVec3,
     pub tier: u8,
@@ -30,14 +42,27 @@ pub struct Pole {
 
 impl Pole {
     pub fn stats(&self) -> &'static PoleTier {
-        &POLE_TIERS[self.tier as usize]
+        if self.is_cable() {
+            &CABLE_STATS
+        } else {
+            &POLE_TIERS[self.tier as usize]
+        }
+    }
+
+    pub fn is_cable(&self) -> bool {
+        self.tier == CABLE_TIER
     }
 }
 
-/// Whether poles `a` and `b` are wired together.
+/// Whether poles `a` and `b` are wired together (a cable to a pole: when the cable is in the pole's reach).
 pub(super) fn linked(a: &Pole, b: &Pole) -> bool {
-    let link = a.stats().link.max(b.stats().link);
-    dist2(a.pos, b.pos) <= link * link
+    let d = dist2(a.pos, b.pos);
+    match (a.is_cable(), b.is_cable()) {
+        (true, true) => d <= CABLE_TOUCH2,
+        (true, false) => d <= b.stats().reach * b.stats().reach,
+        (false, true) => d <= a.stats().reach * a.stats().reach,
+        (false, false) => d <= a.stats().link.max(b.stats().link).pow(2),
+    }
 }
 
 /// Squared distance between two cell centres.
@@ -46,16 +71,17 @@ pub(super) fn dist2(a: IVec3, b: IVec3) -> i32 {
     d.x * d.x + d.y * d.y + d.z * d.z
 }
 
-/// The nearest pole with `pos` in its reach (the lower index on ties).
+/// The nearest pole with `pos` in its reach (the lower index on ties); a cable only when no pole reaches.
 pub(super) fn nearest_pole(poles: &[Pole], pos: IVec3) -> Option<u32> {
-    let mut best: Option<(i32, u32)> = None;
+    let mut best: [Option<(i32, u32)>; 2] = [None, None];
     for (i, p) in poles.iter().enumerate() {
         let d = dist2(p.pos, pos);
-        if d <= p.stats().reach * p.stats().reach && best.is_none_or(|(bd, _)| d < bd) {
-            best = Some((d, i as u32));
+        let slot = &mut best[p.is_cable() as usize];
+        if d <= p.stats().reach * p.stats().reach && slot.is_none_or(|(bd, _)| d < bd) {
+            *slot = Some((d, i as u32));
         }
     }
-    best.map(|b| b.1)
+    best[0].or(best[1]).map(|b| b.1)
 }
 
 /// The pole nearest any of `cells` within its reach (a machine several cells big hangs on it).
@@ -77,7 +103,7 @@ impl Machine for Pole {
     fn read_state(r: &mut ByteReader) -> Option<Pole> {
         let pos = r.ivec3()?;
         let tier = if r.version >= 21 { r.u8()? } else { 0 };
-        ((tier as usize) < POLE_TIERS.len()).then_some(Pole { pos, tier })
+        (((tier as usize) < POLE_TIERS.len()) || tier == CABLE_TIER).then_some(Pole { pos, tier })
     }
 
     fn contents(&self) -> Vec<Stack> {
@@ -97,6 +123,9 @@ impl Machine for Pole {
         let machines = machines.chain(&f.power.lab_pole).chain(&f.power.pipe_pole).chain(&f.power.quarry_pole);
         let machines = machines.filter(|p| on(p)).count();
         let PoleTier { link, reach } = *self.stats();
+        if self.is_cable() {
+            return format!("{}\nPower cable: joins the grid of a pole in reach", f.power.grid_line(me));
+        }
         format!(
             "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\nLinks to poles within \
              {link} blocks and powers machines within {reach}",
@@ -104,8 +133,12 @@ impl Machine for Pole {
         )
     }
 
-    /// A steel post with a crossarm and two copper insulators; a tier wears its stripe on the post.
+    /// A steel post with a crossarm and two copper insulators; a tier wears its stripe on the post. A cable
+    /// is drawn by `cable.rs`, which knows what it touches.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
+        if self.is_cable() {
+            return;
+        }
         push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
         push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.13, 0.85, 0.13], 0.0, [tex::FRAME; 3], true);
         if self.tier > 0 {
@@ -120,3 +153,31 @@ impl Machine for Pole {
         }
     }
 }
+
+impl Factory {
+    /// Every real pole (cables left out) as its cell and tier: what the pole tool chains from
+    /// (`power_tools.rs`).
+    pub fn poles(&self) -> impl Iterator<Item = (IVec3, u8)> + '_ {
+        self.poles.iter().filter(|p| !p.is_cable()).map(|p| (p.pos, p.tier))
+    }
+
+    /// Whether a cable put at `pos` would join a grid: a pole reaches it or a cable touches it.
+    pub fn cable_joins(&self, pos: IVec3) -> bool {
+        let probe = Pole { pos, tier: CABLE_TIER };
+        self.poles.iter().any(|p| p.pos != pos && linked(&probe, p))
+    }
+}
+
+/// A pole's model where none stands yet (the pole tool's preview, `power_tools.rs`); `rel` is its cell
+/// centre relative to the camera.
+pub fn preview_pole(out: &mut Vec<f32>, tier: u8, rel: Vec3) {
+    Pole { pos: IVec3::ZERO, tier }.model(out, rel, 0.0);
+}
+
+/// A wire between two camera-relative points, drawn like the placed ones (the pole tool's preview).
+pub fn preview_wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
+    super::power::wire(out, a, b);
+}
+
+#[cfg(test)]
+mod tests;

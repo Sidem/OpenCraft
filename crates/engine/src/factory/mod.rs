@@ -23,6 +23,7 @@
 mod belt;
 mod belt_shape;
 mod buffer;
+mod cable;
 mod describe;
 pub mod footprint;
 mod generator;
@@ -47,7 +48,7 @@ pub mod upgrades;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2};
+use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
@@ -74,11 +75,13 @@ use storage::Storage;
 
 pub use belt::belt_preview;
 pub use belt_shape::Shape;
+pub use cable::preview_cable;
 pub use describe::fmt_int;
 #[cfg(test)]
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
+pub use pole::{preview_pole, preview_wire, POLE_TIERS};
 pub use process::{makes, spec as process_spec, Energy};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
@@ -203,7 +206,10 @@ impl Factory {
             }
             Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
             Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
-            Kind::Pole => add_to(&mut self.poles, Pole { pos, tier: 0 }, at, Slot::Pole),
+            Kind::Pole => {
+                let tier = if block == CABLE { pole::CABLE_TIER } else { 0 };
+                add_to(&mut self.poles, Pole { pos, tier }, at, Slot::Pole)
+            }
             Kind::Lab => add_to(&mut self.labs, Lab::new(pos), at, Slot::Lab),
             Kind::Pipe => add_to(&mut self.pipework, Pipework::new(pos, block, facing), at, Slot::Pipe),
             Kind::Quarry => add_to(&mut self.quarries, Quarry::new(pos, facing), at, Slot::Quarry),

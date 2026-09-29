@@ -1,13 +1,15 @@
 use super::*;
 use crate::block::{
-    ASSEMBLER, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, IRON_ORE, LIMESTONE, SAND, SLAG, SMELTER, STONE,
-    STONE_BRICKS,
+    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, GENERATOR, IRON_ORE, LIMESTONE, QUARTZ_ORE,
+    SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tests::{powered, recipe_for, run};
 use crate::factory::tiers::FAMILIES;
 use crate::factory::upgrades::Step;
-use crate::item::{COPPER_WIRE, GEAR, GREEN_KIT, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, STEEL_INGOT};
+use crate::item::{
+    CIRCUIT, COPPER_WIRE, GEAR, GREEN_KIT, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT,
+};
 use crate::research::{Research, TECHS};
 use crate::world::World;
 
@@ -337,4 +339,45 @@ fn a_crusher_needs_its_research_and_grinds_slag_to_sand() {
     assert_eq!(f.processors[0].out.count(SAND.into()), 2, "a second a slag");
     let text = f.describe(IVec3::ZERO).unwrap();
     assert!(!text.starts_with("Mk"), "one-tier machines say no Mk: {text}");
+}
+
+#[test]
+fn quartz_and_coal_become_circuits_through_an_arc_furnace_and_an_assembler() {
+    let mut f = Factory::default();
+    powered(&mut f);
+    // The arc furnace (120 kW) and assembler (20 kW) need more than one small generator gives.
+    for z in [-1, 1] {
+        let gen = v(3, 3, z);
+        f.place(&mut World::new(1, 2), GENERATOR, gen, 0, gen, 1);
+        f.insert(gen, COAL_ORE.into(), 64);
+    }
+    research_done(&mut f, "Electronics");
+    // Quartz from behind and coal from the left into the arc furnace; its silicon runs straight into an
+    // assembler behind it, which also takes wire from its left and plates from its right.
+    f.place(&mut World::new(1, 2), ARC_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(SILICON))).is_some());
+    feed(&mut f, v(0, 0, -3), SOUTH, QUARTZ_ORE.into(), 8);
+    feed(&mut f, v(-2, 0, 0), EAST, COAL_ORE.into(), 8);
+    f.add_belt(v(0, 0, 1), SOUTH);
+    f.place(&mut World::new(1, 2), ASSEMBLER, v(0, 0, 3), NORTH, v(0, 0, 3), 0);
+    assert!(f.set_recipe(v(0, 0, 3), Some(recipe_for(CIRCUIT))).is_some());
+    feed(&mut f, v(-2, 0, 3), EAST, COPPER_WIRE, 24);
+    feed(&mut f, v(3, 0, 3), 3, IRON_PLATE, 8);
+    f.add_belt(v(0, 0, 4), SOUTH);
+    f.add_storage(v(0, 0, 5));
+    run(&mut f, 60.0, |_| {});
+    // 8 quartz and 8 coal make 8 silicon (4 s each); every 3 wire, plate and silicon make 2 circuits.
+    assert_eq!(f.storage_count_at(v(0, 0, 5), CIRCUIT), 16);
+    assert_eq!(f.processors[0].power(), 120);
+}
+
+#[test]
+fn an_arc_furnace_takes_only_its_recipes_inputs_a_stack_of_each() {
+    let mut f = Factory::default();
+    powered(&mut f);
+    f.place(&mut World::new(1, 2), ARC_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(SILICON))).is_some());
+    assert_eq!(f.insert(IVec3::ZERO, QUARTZ_ORE.into(), 200), 64, "one stack, so coal still fits");
+    assert_eq!(f.insert(IVec3::ZERO, COAL_ORE.into(), 5), 5);
+    assert_eq!(f.insert(IVec3::ZERO, IRON_ORE.into(), 5), 0);
 }

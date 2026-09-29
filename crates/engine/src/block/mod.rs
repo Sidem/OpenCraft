@@ -103,7 +103,11 @@ pub const BOILER: BlockId = 66;
 pub const TURBINE: BlockId = 67;
 pub const CRUSHER: BlockId = 68;
 pub const SILO: BlockId = 69;
-pub const BLOCK_COUNT: usize = 70;
+/// Electronics (Milestone 7): the arc furnace (2×2×2 processor: silicon from quartz and coal).
+pub const ARC_FURNACE: BlockId = 70;
+/// A cable hung down shafts and along tunnels (`factory/pole.rs`, `power_tools.rs`): a pole-kind machine.
+pub const CABLE: BlockId = 71;
+pub const BLOCK_COUNT: usize = 72;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -315,6 +319,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Steam Turbine", true, 1.4, pillar(tex::TURBINE_SIDE, tex::TURBINE_TOP, tex::FRAME), TURBINE),
     machine("Crusher", true, 1.3, pillar(tex::CRUSHER_SIDE, tex::CRUSHER_TOP, tex::FRAME), CRUSHER),
     machine("Silo", true, 1.4, pillar(tex::SILO_SIDE, tex::SILO_TOP, tex::FRAME), SILO),
+    machine("Arc Furnace", true, 1.4, pillar(tex::ARC_SIDE, tex::ARC_TOP, tex::FRAME), ARC_FURNACE),
+    machine("Power Cable", false, 0.1, all(tex::COPPER_WIRE), CABLE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

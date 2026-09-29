@@ -89,6 +89,7 @@ impl Factory {
         models(&self.pipework, out, eye, time, range);
         models(&self.quarries, out, eye, time, range);
         self.write_wires(out, eye, range);
+        self.write_cables(out, eye, range);
     }
 
     /// Calls `f` with the block and position of every machine a map marks (not belts, routers or poles,
