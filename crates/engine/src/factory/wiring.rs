@@ -295,11 +295,13 @@ impl Factory {
             Slot::Generator(i) => Some(vec![self.generators[i as usize].pos]),
             Slot::Miner(i) => Some(vec![self.miners[i as usize].pos]),
             Slot::Process(i) => {
-                Some(self.processors[i as usize].cells()).filter(|_| takes_pole(&self.processors[i as usize]))
+                let p = &self.processors[i as usize];
+                takes_pole(p).then(|| p.cells())
             }
             Slot::Lab(i) => Some(vec![self.labs[i as usize].pos]),
             Slot::Pipe(i) => {
-                Some(vec![self.pipework[i as usize].pos]).filter(|_| self.pipework[i as usize].part == Part::Pump)
+                let p = &self.pipework[i as usize];
+                (p.part == Part::Pump).then(|| vec![p.pos])
             }
             Slot::Quarry(i) => Some(vec![self.quarries[i as usize].pos]),
             _ => None,
