@@ -210,7 +210,7 @@ size.
   set against its side. Belts or a miner feed the boiler coal ore or logs (a coal makes 540 kJ of steam,
   twice a generator's 270), and a pipe touching it brings water from a pump: a boiler takes a unit
   (2,000 kJ) when its water runs low, and says "Out of water" when the pump has none (a pond dries; the sea
-  never does). A turbine hangs on a power pole like a generator and gives up to 240 kW, only what its grid
+  never does). A turbine is wired to a power pole like a generator and gives up to 240 kW, only what its grid
   draws; a boiler feeds two turbines, so 480 kW. Start the first pump with a coal generator on the same grid.
 - **The crusher** (Ore Crushing research, 1×1, 30 kW) turns 2 iron or copper ore into 3 crushed ore in 2 s,
   so a smelter gets 1.5 ingots an ore (crushed ore smelts 1 to 1 in 1.5 s). It also grinds slag into sand.
@@ -220,21 +220,39 @@ size.
   4 s: choose its recipe in its panel, belt quartz and coal in at the hatches on its back and sides, and
   silicon leaves by the front. An assembler then makes 2 circuits from 1 silicon, 3 copper wire and an iron
   plate in 4 s. Quartz lies deep (25–50 blocks down) or shows on desert and highland rock as pale, pink-white crystals.
+- **Solar power** (Solar Power research, after Electronics) is a solar panel (2×2×1) that gives up to 10 kW at
+  noon, less towards dawn and dusk and nothing at night, and the accumulator (2×2×2) that stores 10 MJ of spare
+  sun and gives it back (up to 60 kW) when the sun falls short, before any generator or turbine burns fuel.
+  Wire both to a power pole like any machine. Six panels and one accumulator carry a steady 15 kW round the
+  clock; the world's day is 20 minutes.
 - **Splitters and filters** sit in a belt line. A splitter shares items between the belts leading away in
   front, to the left and to the right, skipping any that are full. A filter sends the item you choose in
   its panel straight on and everything else to the sides.
-- **Power.** Miners, constructors, splitters, filters, labs, pumps and quarries need power; the smelter
-  burns its own fuel. A coal generator turns coal ore (270 kJ) or logs (135 kJ), brought by belt, by a
-  miner beside it or by hand, into stored energy and gives up to 60 kW, only as much as its grid draws,
-  so fuel lasts longer under a light load. Power poles link to every pole within 10 blocks, and each
-  generator and machine hangs on the nearest pole within 5 (you see the wires). With a pole in hand and another nearby, a ghost pole shows the farthest spot that still links (blue box: the pole it hangs from); right-click places it, hold right-click and walk to chain poles at full reach, R (or crouch) places freely where you aim. A power cable (4 from an iron plate and 2 copper wire) joins the grid of a pole within 5 blocks and links to touching cables: right-click drops a column of cables to the ground, down a shaft to a miner (crouch places one), and a machine within 2 blocks of a cable is powered. A drilling Miner Mk1
-  draws 5 kW (one coal runs it long enough to mine about 32), a Mk2 20 kW, a working constructor 15 kW, a
-  splitter or filter 1 kW. Short of power, every machine on the grid slows down to match; with none, it
-  stops. The first loop: a miner on coal next to a generator, a pole within reach of both, and a log to
-  start the fire; from then on the miner fuels its own power.
+- **Power.** Miners, constructors, labs, pumps and quarries need power; the smelter burns its own fuel, and
+  belts, splitters and filters need none. A coal generator turns coal ore (270 kJ) or logs (135 kJ), brought
+  by belt, by a miner beside it or by hand, into stored energy and gives up to 60 kW, only as much as its
+  grid draws, so fuel lasts longer under a light load. Power poles connect only what you wire to them, and
+  each wire takes one of a pole's slots (Mk1 4, Mk2 8, Mk3 12, Mk4 16): a pole wires to poles within 10
+  blocks and to generators and machines within 5 (taller poles reach further; you see the wires).
+  **Placing:** with a pole in hand, right-click puts it where you aim, if that is within reach of the last
+  pole (further off, at the widest spacing towards the aim); hold Shift to snap to the widest spacing along
+  your view, and hold Shift and right-click while walking to lay a line. A new pole wires itself to the
+  nearest powered pole in range (one with a generator on its grid), so it is live at once, and it is selected.
+  **Wiring:** right-click a pole to select it (blue box; right-click again to deselect). Aim at a machine
+  with no power and it shows a green outline and a wire: click to connect. Crouch-click moves a machine to
+  the selected pole, cuts a wire, or links two poles (the label says which). A power cable (4 from an iron
+  plate and 2 copper wire) needs no wiring: it joins the grid of a pole within 5 blocks and links to touching
+  cables: right-click drops a column of cables to the ground, down a shaft to a miner (crouch places one), and
+  a machine within 2 blocks of a cable is powered. A drilling Miner Mk1
+  draws 5 kW (one coal runs it long enough to mine about 32), a Mk2 20 kW, a working constructor 15 kW.
+  Short of power, every machine on the grid slows down to match; with none, it stops. The first loop: a
+  miner on coal next to a generator, a pole within reach of both, wired to each, and a log to start the
+  fire; from then on the miner fuels its own power. Worlds saved before wiring by hand are wired once the
+  old way, by range.
 - **Research.** Splitters, filters, lifts, underpasses and green science packs start locked (greyed
-  out in the build menu). A research lab uses science packs to unlock them: press T, choose a tech, and
-  every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
+  out in the build menu). A research lab uses science packs to unlock them: press T for the tech
+  tree (done techs are green, the ones you can start glow blue, the one being researched is orange; hover any
+  tech for its details), click one to choose it, and every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
   the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
   2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Lifts (20 red),
   Green Science (30 red), and with red and green packs Underpasses (15), Mechanics (30: gears, green kits
@@ -281,11 +299,11 @@ research still locks. Hover a recipe for its description, materials and how long
 Shift-click for up to five.
 
 **Crafting takes time and queues.** Each hand craft runs for a few seconds (90 ticks plus 30 per material, at most
-20 s; a plate 2.5 s, a miner 9 s), one after another, shown as chips above the hotbar; click a chip to cancel that
+20 s; a plate 2.5 s, a miner 9 s), one after another, shown above the hotbar; click ✕ to cancel that
 order and get everything back, including the parts it had already made. The materials are paid when you queue.
 If you hold the raw materials for something that needs parts, asking for it queues the parts too, in the right
 order: a Miner Mk1 from 14 iron ingots and 3 copper ingots queues 5 plates, 4 rods and 3 wire crafts and then the
-miner. Only what the inventory can pay for is queued. Leaving a co-op world returns the queue to your inventory.
+miner. The queue shows each step in that order, parts first and what you asked for last (a storage box from 2 logs and 4 iron ingots: planks, plates, then the box); a part you already hold is used, not made again. Only what the inventory can pay for is queued. The time each craft takes is in `crates/engine/src/recipes/timing.rs`. Leaving a co-op world returns the queue to your inventory.
 
 **Bootstrapping, without raw ore in a recipe.** Nothing is built from raw ore. Wood comes first (Materials): a log
 saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles

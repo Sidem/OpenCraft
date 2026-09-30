@@ -69,10 +69,10 @@ own builders. Flight arrives: the jetpack.
 | Jetpack (tool) | 4 steel plates, 2 motors, 2 circuits (hand) | burns coal from a fuel slot: 10 s of thrust a coal |
 | Personal drone | 1 drone, 2 circuits (hand) | follows you; fetches a chosen item from boxes in range |
 
-Built (7.1): the arc furnace, silicon and circuit; Electronics costs 80 units × 20 s (r g b), after Blue Science. Built (7.2): violet pack and kit, Mk4 for belts, miners, smelters, constructors, assemblers, blast furnaces, poles and labs (boxes, pumps and quarries stay at Mk3), techs Violet Science (100 × 25 s), Mk4 Logistics (100 × 30 s), Mk4 Machines (120 × 30 s).
+Built (7.1): the arc furnace, silicon and circuit; Electronics costs 80 units × 20 s (r g b), after Blue Science. Built (7.2): violet pack and kit, Mk4 for belts, miners, smelters, constructors, assemblers, blast furnaces, poles and labs (boxes, pumps and quarries stay at Mk3), techs Violet Science (100 × 25 s), Mk4 Logistics (100 × 30 s), Mk4 Machines (120 × 30 s). Built (7.3): one tech, Solar Power (r g b, 80 × 20 s, after Electronics), unlocks the solar panel (6 silicon, 2 glass, 4 copper wire, 2 iron plates: 10 kW peak) and the accumulator (6 steel plates, 2 circuits, 12 copper wire: 10 MJ, 60 kW).
 
 Techs: Electronics (r g b: arc furnace, silicon, circuit) · Violet Science · then r g b v: Logic ·
-Blueprints · Construction Drones · Jetpack · Personal Drone · Solar Power · Accumulators · Mk4 Logistics
+Blueprints · Construction Drones · Jetpack · Personal Drone · Mk4 Logistics
 · Mk4 Machines · Processors · Advanced Scanning (scanner Mk2: range 96, shows quartz).
 
 ## 4. Era 5: Earthworks (Milestone 8)

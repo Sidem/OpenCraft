@@ -164,7 +164,7 @@ fn a_boiler_drives_two_turbines_and_no_more() {
     let boilers: Vec<Vec<u32>> = f.processors.iter().map(|p| p.steam.boilers.clone()).collect();
     assert_eq!(boilers, [vec![], vec![0], vec![0], vec![]], "the third turbine finds every seat taken");
     let text = f.describe(IVec3::new(0, 0, 2)).unwrap();
-    assert!(text.starts_with("No boiler: set it against a boiler's side\nNot connected"), "{text}");
+    assert!(text.starts_with("No boiler: set it against a boiler's side\nNo power"), "{text}");
 }
 
 #[test]

@@ -19,7 +19,7 @@ use super::belt::Belt;
 use super::buffer::Buffer;
 use super::describe::{fmt_duration, fmt_int};
 use super::links::{deliver, Link, Sinks};
-use super::power::{FULL_SPEED, POLE_REACH};
+use super::power::{FULL_SPEED, NOT_WIRED};
 use super::render::push_box;
 use super::{Factory, Kind, Machine, FACES};
 
@@ -273,9 +273,7 @@ impl Machine for Miner {
             MinerStatus::Running => "Waiting: other miners are using this deposit's full draw".to_string(),
             MinerStatus::OutputFull => "Output full: put a belt leading away, or a box, next to it".to_string(),
             MinerStatus::Exhausted => "Deposit worked out".to_string(),
-            MinerStatus::NoPower => {
-                format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator")
-            }
+            MinerStatus::NoPower => NOT_WIRED.to_string(),
             MinerStatus::NoDeposit => String::new(),
         });
         let held = self.out.total();

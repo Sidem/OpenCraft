@@ -6,9 +6,9 @@
 //! To add a machine block: a row here (a new kind also needs its `Kind` variant, in row order).
 
 use crate::block::{
-    BlockId, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CONSTRUCTOR, CRUSHER, FAST_BELT, FILTER,
-    GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SILO, SMELTER,
-    SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CONSTRUCTOR, CRUSHER, FAST_BELT,
+    FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SILO,
+    SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::research::PACKS;
 /// Machine kinds, in `MACHINES` order.
@@ -39,7 +39,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 29] = [
+pub const MACHINES: [MachineDef; 31] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -65,6 +65,8 @@ pub const MACHINES: [MachineDef; 29] = [
     MachineDef { block: SILO, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: ARC_FURNACE, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: CABLE, kind: Kind::Pole, slots: 0, panel: false },
+    MachineDef { block: SOLAR_PANEL, kind: Kind::Process, slots: 0, panel: false },
+    MachineDef { block: ACCUMULATOR, kind: Kind::Process, slots: 0, panel: false },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },

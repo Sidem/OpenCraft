@@ -19,7 +19,7 @@ use crate::research::{pack_slot, Research, PACKS, TECHS};
 
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_INPUT};
-use super::power::{Power, FULL_SPEED, POLE_REACH};
+use super::power::{Power, FULL_SPEED, NOT_WIRED};
 use super::render::push_box;
 use super::{ticks, Factory, Kind, Machine};
 
@@ -192,7 +192,7 @@ impl Lab {
     pub fn status_text(&self, research: &Research) -> String {
         let name = |t: Option<u8>| t.map_or("", |t| TECHS[t as usize].name);
         match self.status {
-            LabStatus::NoResearch => "No research chosen: pick one on the research screen (R)".to_string(),
+            LabStatus::NoResearch => "No research chosen: pick one on the research screen (T)".to_string(),
             LabStatus::Working => {
                 let slow =
                     if self.speed < FULL_SPEED { format!(" (low power: {}%)", self.speed / 10) } else { String::new() };
@@ -204,9 +204,7 @@ impl Lab {
                 format!("Waiting for {}", names.join(" and "))
             }
             LabStatus::AllTaken => format!("Other labs are finishing {}", name(research.current)),
-            LabStatus::NoPower => {
-                format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator")
-            }
+            LabStatus::NoPower => NOT_WIRED.to_string(),
         }
     }
 

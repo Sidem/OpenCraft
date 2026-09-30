@@ -1,0 +1,137 @@
+/* Research screen, hover card and HUD tracker (research.ts); the tree itself is research.css. Chips are .chip. */
+
+/* The hover card: the tech's full details, beside its node. */
+
+.rs-tip {
+  position: fixed;
+  z-index: 11;
+  width: min(420px, calc(100vw - 16px));
+  pointer-events: none;
+  border-radius: 12px;
+  background: rgba(20, 22, 29, 0.99);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6);
+}
+
+.rs-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.rs-card.done {
+  border-left: 3px solid var(--rs-done);
+}
+
+.rs-card.available {
+  border-left: 3px solid var(--rs-horizon);
+}
+
+.rs-card.chosen {
+  border-left: 3px solid var(--accent);
+}
+
+.rs-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rs-title h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.rs-state {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rs-card.done .rs-state {
+  color: var(--rs-done);
+}
+
+.rs-card.available .rs-state {
+  color: var(--rs-horizon);
+}
+
+.rs-card.chosen .rs-state {
+  color: var(--accent);
+}
+
+.rs-blurb {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.rs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.rs-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rs-card .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 3px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.rs-card .chip-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.rs-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.rs-count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.rs-action {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.rs-tracker {
+  position: absolute;
+  top: calc(44px + var(--map-space, 0px));
+  right: 12px;
+  display: grid;
+  gap: 5px;
+  width: 260px;
+  padding: 8px 12px 10px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.rs-tracker.rs-notice {
+  border-color: rgba(143, 220, 156, 0.6);
+}
+
+.rs-tracker.rs-notice .mp-bar-fill {
+  background: #8fdc9c;
+}

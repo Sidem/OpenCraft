@@ -73,6 +73,17 @@ pub enum Action {
     RemoveSite {
         id: u32,
     },
+    /// Wires the power pole at `pole` to the machine or pole standing at `to` (`factory::Factory::connect`:
+    /// only if it is in range and both have a free slot). A machine on another pole moves to this one.
+    Connect {
+        pole: IVec3,
+        to: IVec3,
+    },
+    /// Cuts the wire between the pole at `pole` and what stands at `to`.
+    Disconnect {
+        pole: IVec3,
+        to: IVec3,
+    },
     /// Raises the tiered machine at `pos` one tier with kits from the inventory (`factory/upgrades.rs`),
     /// if research allows it and there are enough.
     Upgrade {
@@ -214,6 +225,8 @@ impl Sim {
             Action::Rotate { pos } => {
                 self.factory.rotate(pos);
             }
+            Action::Connect { pole, to } => self.factory.connect(pole, to),
+            Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),
             Action::MarkSite { a, b, level, job } => {
                 self.factory.sites.mark(&mut self.world, a, b, level, job);
             }

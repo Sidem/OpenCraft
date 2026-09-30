@@ -1,8 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-09-29 · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.3 (solar power and
-accumulators)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.4 (Scanner Mk2)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -465,26 +464,29 @@ answers to the section 6 questions (blueprints, drone materials, jetpack); do 7.
   hash re-recorded (no save bump). Quartz checked: v4 band 25–50 blocks down; a geology test mines it.
 - [x] **7.1b Power cable and the pole tool** (built, user request): the cable (block 71, hand recipe ×4 from 1
   iron plate + 2 copper wire, `recipes/wiring.rs`) is a `Kind::Pole` of stored tier 3 (`CABLE_TIER`, no save
-  bump): cables link by touching (diagonals too) and to a pole within that pole's machine reach; machines hang
-  on a pole first, else a cable within 2. `power_tools.rs` (ghost, wire, outlines, label, all presentation plus
-  ordinary `PlaceBlock` actions): with a pole in hand and one near, a ghost pole stands at full link reach
-  along the horizontal view, following the ground (`plan_pole`), and a click places it; holding places the next
-  whenever the player has walked within `HOLD_REACH` of its spot; R (or crouch) frees it to go where aimed.
-  With cables, a click hangs up to 64 down the aimed cell's column to the ground (crouch: one). Tests in
-  `power_tools/tests.rs`, `factory/pole/tests.rs`. The cable wears the copper wire texture.
+  bump): cables link by touching (diagonals too) and to a pole within that pole's machine reach; machines with no
+  wire hang on a cable within 2. `power_tools.rs` (presentation plus ordinary actions): the pole ghost and its
+  rules moved on in 7.3b; with cables, a click hangs up to 64 down the aimed cell's column to the ground
+  (crouch: one). Tests in `power_tools/tests.rs`, `factory/pole/tests.rs`. The cable wears the copper wire texture.
 - [x] **7.2 Violet science and Mk4** (built): violet pack (310) and kit (311), assembler recipes 28–29; `PACKS` has four
   entries, labs a fourth slot (save 22); the cable's stored tier moved to 15 so tier 3 is the Mk4 pole. Mk4 items
   312–319 (hand recipe: Mk3 plus violet kits): belts 8/s, miners 6/s · 92 % · 90 kW, processors ×5, substation 32 · 16,
   lab ×4 · every 3rd unit free; boxes, pumps, quarries stop at Mk3. Techs 18–20; numbers pinned in `factory/tiers/tests.rs`.
-- [x] **7.2b Bootstrap without raw ore, and timed hand crafting** (built): no hand recipe uses metal ore. Stone makes the
-  furnace (Smelter); ore and fuel go in by hand for ingots; hand recipes (Materials) turn ingots into plates, rods, screws
-  and wire; the first miner, belts, box, generator and poles are made of those. `crafting.rs`: `Action::Craft` queues an
-  order (`CraftQueue` per player, max 12, save 23); its `plan` adds the part crafts the inventory can't cover, in
-  order, and the materials are paid at once; a craft takes `hand_ticks` (90 + 30 per material, max 20 s); cancelling or
-  leaving refunds it all (`Action::CancelCraft`, tag 26). UI: `ui/craftqueue.ts` chips, times in the build menu card.
-  Tests: `crafting/tests.rs`, `recipes/tests.rs` (no raw ore), `tests.rs` scenarios.- [ ] **7.3 Solar power and accumulators.** Solar panel (block, 10 kW by day: `daytime.rs`, no state of its
-  own) and accumulator (2×2×2, stores 10 MJ) as power sources and sinks in `power.rs`'s one balance.
-  **Done when:** a test keeps a load running through a night on solar plus accumulators (sized).
+- [x] **7.2b Bootstrap without raw ore, and timed hand crafting** (built): no hand recipe uses metal ore: stone makes the
+  furnace, ore and fuel go in by hand, hand recipes (`recipes/materials.rs`) turn ingots into plates, rods, screws and
+  wire, and the first machines are made of those. `crafting.rs`: `Action::Craft` queues an order (`CraftQueue` per
+  player, max 12, save 23); `plan` adds the part crafts the inventory can't cover, materials are paid at once, a craft
+  takes `hand_ticks` (90 + 30 per material, max 20 s); cancel or leave refunds (`Action::CancelCraft`, tag 26).- [x] **7.3 Solar power and accumulators** (built): the solar panel (block 72, 2×2×1, 10 kW at noon by
+  `daytime::sunlight`, an integer parabola 6:00–18:00) and accumulator (73, 2×2×2, 10 MJ, 60 kW) are processor rows
+  (`process/solar.rs`, `Energy::Solar` / `Accumulator`); `Power::balance` runs panels, then accumulators, before
+  generators and turbines, and spare sun charges accumulators; charge saved for accumulators only. One tech, Solar
+  Power (r g b after Electronics). Sized test: six panels and one accumulator carry 15 kW through a night.
+- [x] **7.3b Power wiring by hand** (built, user request; save 24): wires are core state (`factory/wiring.rs`,
+  `Action::Connect` / `Disconnect`, tags 27–28), each taking a slot of every pole it touches (`POLE_TIERS.slots`
+  4/8/12/16); a new pole wires itself only to the nearest powered pole (`auto_hook`); cables still join by range;
+  splitters and filters need no power. Hands (`power_tools/wire.rs`): poles place where aimed (Shift: full reach),
+  right-click selects a pole, a click wires the machine aimed at, crouch-click moves, cuts, links. Old saves are wired
+  by range once (`hook_by_reach`; tests too, unless `Factory::by_hand`).
 - [ ] **7.4 Scanner Mk2.** Range 96, shows quartz (`prospect.rs`); Advanced Scanning tech.
 - [ ] **7.5 Logic.** A sensor (box or belt fullness), a switch and a lamp signal (1 circuit, 1 plate each);
   a machine turns on or off by condition. New core state, so a save version and a design note first:
@@ -595,3 +597,6 @@ and the balance numbers. Read the section you need.
   7.1b: the power cable block and a pole tool (ghost at full reach, hold to chain, R to place freely). Tests 305 → 316.
 - **2026-09-29: Step 7.2** (violet science, Mk4 for eight families; save 22). Tests 316 → 323; wasm 235.5 KB gzipped.
 - **2026-09-29: Step 7.2b** (bootstrap without raw ore; the hand-craft queue with timed crafts and automatic part crafts; save 23). Tests 323 → 336; wasm 239.3 KB gzipped.
+- **2026-09-29: Step 7.3** (solar panel and accumulator; one tech). Tests 336 → 341; wasm 241.2 KB gzipped.
+- **2026-09-30: Step 7.3b, power wiring by hand** (slots per pole, manual wires, auto-wire only to the nearest powered pole, free pole placement with Shift for full reach, routers need no power; save 24). The golden hash in `sim/tests.rs` was re-recorded. The research screen is now a tech tree with hover cards (`ui/research.ts`, `ui/tech-tree.ts`).
+- **2026-09-29: Craft queue by step, timing in one file:** each order shows its steps (parts, then the item) in `ui/craftqueue.ts` (`craft_steps`); hand craft times are tuned in `recipes/timing.rs` (formula constants plus a per-recipe `OVERRIDES` table). Tests 341 → 344.

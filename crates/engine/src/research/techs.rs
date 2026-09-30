@@ -3,8 +3,9 @@
 //! progress state).
 
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB, LIFT, MINER,
-    OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
+    ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB,
+    LIFT, MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE,
+    UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK};
 use crate::recipes::{
@@ -276,5 +277,15 @@ pub const TECHS: &[Tech] = &[
             Unlock::Upgrade(BLAST_FURNACE, 3),
             Unlock::Upgrade(LAB, 3),
         ],
+    },
+    Tech {
+        name: "Solar Power",
+        blurb: "Solar panels give up to 10 kW by day and nothing at night; accumulators store 10 MJ of spare sun and \
+                give it back after dark, before any generator burns fuel. Silicon and steel make them.",
+        needs: &[17],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 80,
+        seconds: 20.0,
+        unlocks: &[r(SOLAR_PANEL), r(ACCUMULATOR)],
     },
 ];

@@ -29,10 +29,6 @@ impl Game {
     /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick, or the
     /// box of a quarry or the footprint of a multi-block machine in hand at once. False when nothing turns.
     pub fn rotate_target(&mut self) -> bool {
-        if self.toggle_pole_snap() {
-            self.play(sound::PLACE, block::sound::METAL, self.body().eye(), 0.4);
-            return true;
-        }
         if self.holds_quarry() || self.held_footprint().is_some() {
             self.turn_placement();
             self.play(sound::PLACE, block::sound::METAL, self.body().eye(), 0.4);

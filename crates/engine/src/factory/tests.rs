@@ -420,8 +420,8 @@ fn constructors_survive_a_save_round_trip() {
     assert_eq!(g.constructor_at(IVec3::new(2, 0, 0)).out.count(IRON_PLATE), 4);
 }
 
+/// A splitter or filter with no power anywhere: routers need none.
 fn router(f: &mut Factory, pos: IVec3, dir: u8, filter: bool) {
-    powered(f);
     let block = if filter { crate::block::FILTER } else { crate::block::SPLITTER };
     f.place(&mut World::new(1, 2), block, pos, dir, pos, 0);
 }

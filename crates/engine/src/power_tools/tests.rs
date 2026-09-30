@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{STONE, STORAGE};
+use crate::block::{GENERATOR, MINER, STONE, STORAGE};
 use crate::factory::Kind;
 use crate::item::ItemId;
 use crate::raycast::RayHit;
@@ -72,6 +72,7 @@ fn on_a_platform(item: ItemId, count: u32) -> (Game, i32) {
             }
         }
     }
+    g.sim.factory.by_hand = true;
     g.give(item.0, count);
     g.run_ticks(3);
     let slot = g.inventory().slots.iter().position(|s| s.item == item).expect("given") as u32;
@@ -102,38 +103,119 @@ fn poles(g: &Game) -> Vec<IVec3> {
     all
 }
 
+/// Puts a machine or pole straight into the core and the world, as a placed block.
+fn put(g: &mut Game, block: BlockId, pos: IVec3) {
+    g.sim.world.set_block(pos, block);
+    g.sim.factory.place(&mut g.sim.world, block, pos, 0, pos - UP, 0);
+}
+
 #[test]
-fn the_ghost_pole_snaps_to_full_reach_and_r_frees_it() {
+fn the_ghost_pole_goes_where_aimed_and_shift_snaps_it_to_full_reach() {
     let (mut g, y) = on_a_platform(POLE.into(), 8);
-    // No pole to chain from yet: the first one goes where you point, with no ghost.
+    // No pole to place from yet: the first one goes where you point, with no ghost.
     aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
     assert_eq!(g.pole_ghost(), None);
     assert_eq!(g.power_label(), "");
 
     let anchor = v(0, y + 1, 0);
-    g.sim.factory.place(&mut g.sim.world, POLE, anchor, 0, anchor, 0);
-    g.sim.world.set_block(anchor, POLE);
+    put(&mut g, POLE, anchor);
+    // By default it stands where aimed, when that is within reach of the last pole.
     let ghost = g.pole_ghost().expect("a pole is near");
-    assert_eq!(
-        (ghost.pos, ghost.anchor, ghost.full, ghost.free, ghost.link),
-        (v(10, y + 1, 0), anchor, true, true, 10)
-    );
-    assert!(g.power_label().contains("10 of 10 blocks"), "{}", g.power_label());
-    assert_eq!(g.power_boxes(), [0, y + 1, 0, 0, y + 1, 0, ANCHOR_BLUE, 10, y + 1, 0, 10, y + 1, 0, GHOST_GREEN]);
+    assert_eq!((ghost.pos, ghost.anchor, ghost.full, ghost.free), (v(4, y + 1, 0), anchor, false, true));
+    assert!(g.power_label().contains("4 of 10 blocks"), "{}", g.power_label());
+    assert!(g.power_label().contains("no powered pole in range"), "{}", g.power_label());
+    assert_eq!(g.power_boxes(), [4, y + 1, 0, 4, y + 1, 0, GHOST_GREEN]);
+    // Aimed beyond its reach, it is clamped to the widest spacing.
+    aim_at(&mut g, v(25, y, 0), v(0, 1, 0));
+    assert_eq!(g.pole_ghost().map(|p| (p.pos, p.full)), Some((v(10, y + 1, 0), true)));
 
-    // R: free placement puts it where aimed.
-    assert!(g.toggle_pole_snap());
-    let ghost = g.pole_ghost().unwrap();
-    assert_eq!((ghost.pos, ghost.full), (v(4, y + 1, 0), false));
-    assert!(g.power_label().contains("4 of 10 blocks"));
+    // Holding Shift snaps to the full reach along the view even when aimed nearer.
+    aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
+    g.body_mut().input.sprint = true;
+    assert_eq!(g.pole_ghost().map(|p| (p.pos, p.full)), Some((v(10, y + 1, 0), true)));
+    g.body_mut().input.sprint = false;
+
     // A pole in the way is shown red.
     g.sim.world.set_block(v(4, y + 1, 0), STORAGE);
     assert!(!g.pole_ghost().unwrap().free);
     assert!(g.power_label().contains("in the way"));
-    // Something else in hand: no ghost, and R does nothing.
+    // Something else in hand: no ghost.
     g.select_slot(8);
     g.run_ticks(2);
-    assert_eq!((g.pole_ghost(), g.toggle_pole_snap()), (None, false));
+    assert_eq!(g.pole_ghost(), None);
+}
+
+#[test]
+fn the_ghost_pole_shows_the_powered_pole_it_will_wire_itself_to() {
+    let (mut g, y) = on_a_platform(POLE.into(), 8);
+    let (pole, gen) = (v(0, y + 1, 0), v(0, y + 1, 1));
+    put(&mut g, POLE, pole);
+    put(&mut g, GENERATOR, gen);
+    g.sim.factory.connect(pole, gen);
+    g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
+    aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
+    assert_eq!(g.power_boxes(), [0, y + 1, 0, 0, y + 1, 0, ANCHOR_BLUE, 4, y + 1, 0, 4, y + 1, 0, GHOST_GREEN]);
+    assert!(g.power_label().contains("wires itself to the powered pole 4 blocks away"), "{}", g.power_label());
+}
+
+#[test]
+fn a_placed_pole_is_selected_and_a_click_wires_the_machine_aimed_at() {
+    let (mut g, y) = on_a_platform(POLE.into(), 8);
+    // The first pole goes where pointed and is selected at once.
+    aim_at(&mut g, v(2, y, 0), v(0, 1, 0));
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    let pole = v(2, y + 1, 0);
+    assert_eq!(poles(&g), [pole]);
+    assert_eq!(g.selected_pole(), Some(pole));
+
+    let miner = v(4, y + 1, 0);
+    put(&mut g, MINER, miner);
+    aim_at(&mut g, miner, v(0, 1, 0));
+    assert!(g.power_label().contains("click to connect"), "{}", g.power_label());
+    assert_eq!(g.power_boxes(), [2, y + 1, 0, 2, y + 1, 0, ANCHOR_BLUE, 4, y + 1, 0, 4, y + 1, 0, GHOST_GREEN]);
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(g.sim.factory.wired_pole(miner), Some(pole));
+    assert_eq!(g.sim.factory.slots_used(pole), 1);
+    assert!(g.power_label().contains("disconnect"), "{}", g.power_label());
+
+    // A plain click now leaves a wired machine alone; crouch-click cuts the wire.
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(g.sim.factory.slots_used(pole), 1);
+    g.body_mut().input.crouch = true;
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(g.sim.factory.slots_used(pole), 0);
+}
+
+#[test]
+fn right_clicking_a_pole_selects_it_and_again_deselects() {
+    let (mut g, y) = on_a_platform(POLE.into(), 8);
+    let (a, b) = (v(2, y + 1, 0), v(8, y + 1, 0));
+    put(&mut g, POLE, a);
+    put(&mut g, POLE, b);
+    aim_at(&mut g, a, v(0, 1, 0));
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(g.selected_pole(), Some(a));
+    aim_at(&mut g, b, v(0, 1, 0));
+    assert!(g.power_label().contains("crouch-click to link"), "{}", g.power_label());
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(g.selected_pole(), Some(b), "a plain click selects the other pole");
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(g.selected_pole(), None);
+    // Crouch-click links two poles.
+    aim_at(&mut g, a, v(0, 1, 0));
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    aim_at(&mut g, b, v(0, 1, 0));
+    g.body_mut().input.crouch = true;
+    tick_using(&mut g, true);
+    assert_eq!(g.sim.factory.slots_used(a), 1);
 }
 
 #[test]
@@ -144,7 +226,8 @@ fn holding_places_one_pole_then_a_line_as_the_player_walks() {
     g.sim.world.set_block(first, POLE);
     g.sim.factory.place(&mut g.sim.world, POLE, first, 0, first, 0);
 
-    // Press: the next pole goes ten blocks on, at once.
+    // Shift held: the next pole goes ten blocks on, at once.
+    g.body_mut().input.sprint = true;
     aim_at(&mut g, v(5, y, 0), v(0, 1, 0));
     tick_using(&mut g, true);
     assert_eq!(poles(&g), [first, v(11, y + 1, 0)]);
@@ -161,7 +244,6 @@ fn holding_places_one_pole_then_a_line_as_the_player_walks() {
     tick_using(&mut g, true);
     assert_eq!(poles(&g), [first, v(11, y + 1, 0), v(21, y + 1, 0)]);
     tick_using(&mut g, false);
-    // Every pole is wired to the one before: one grid.
     g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
     assert_eq!(g.sim.factory.count(Kind::Pole), 3);
     let held = g.inventory().slots.iter().map(|s| if s.item == ItemId::block(POLE) { s.count } else { 0 }).sum::<u32>();

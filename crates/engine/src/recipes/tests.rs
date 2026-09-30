@@ -174,5 +174,14 @@ fn the_first_machines_come_from_stone_by_way_of_ingots() {
         assert!(made(part).inputs.iter().all(|i| i.0 == IRON_INGOT || i.0 == COPPER_INGOT), "{}", item::name(part));
     }
     assert!(made(b(MINER)).inputs.iter().all(|i| [IRON_PLATE, IRON_ROD, COPPER_WIRE].contains(&i.0)));
-    assert!(RECIPES.iter().all(|r| r.hand_ticks() >= HAND_BASE_TICKS && r.hand_ticks() <= HAND_MAX_TICKS));
+    assert!(RECIPES.iter().all(|r| r.hand_ticks() >= BASE_TICKS && r.hand_ticks() <= MAX_TICKS));
+}
+
+/// Time by hand follows the formula, and a row in the override table (`timing.rs`) replaces it for one recipe.
+#[test]
+fn a_recipes_hand_time_is_the_formula_unless_overridden() {
+    let plate = RECIPES.iter().find(|r| r.output == IRON_PLATE).unwrap();
+    assert_eq!(plate.hand_ticks(), BASE_TICKS + 2 * timing::TICKS_PER_ITEM);
+    assert_eq!(plate.ticks_with(&[(IRON_PLATE, 15)]), 90, "1.5 s");
+    assert_eq!(plate.ticks_with(&[(IRON_ROD, 15)]), plate.hand_ticks(), "another recipe's row");
 }

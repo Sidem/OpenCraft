@@ -2,8 +2,9 @@
 //! machines make, by category, and fuels in `machine.rs`. Research locks recipes (`research.rs`).
 //! Content lint for every table: `tests.rs`.
 //!
-//! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the heavy machines' in `heavy.rs`,
-//! Electronics' in `electronics.rs`, cables' in `wiring.rs`.
+//! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the
+//! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
+//! `solar.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::{
@@ -14,13 +15,20 @@ use crate::item::{
 mod electronics;
 mod heavy;
 mod machine;
+mod materials;
+mod solar;
 mod tiers;
+mod timing;
 mod tooling;
 mod wiring;
 use electronics::*;
 use heavy::*;
 pub use machine::*;
+use materials::*;
+use solar::*;
 use tiers::*;
+#[cfg(test)]
+use timing::{BASE_TICKS, MAX_TICKS};
 use tooling::*;
 use wiring::*;
 
@@ -68,19 +76,6 @@ pub struct Recipe {
     pub inputs: &'static [(ItemId, u32)],
     /// One line for the build menu.
     pub blurb: &'static str,
-}
-
-/// Hand crafting time in ticks: a base plus some per material, capped (`crafting.rs`).
-const HAND_BASE_TICKS: u32 = 90;
-const HAND_TICKS_PER_ITEM: u32 = 30;
-const HAND_MAX_TICKS: u32 = 1200;
-
-impl Recipe {
-    /// How long one craft takes by hand, in ticks.
-    pub fn hand_ticks(&self) -> u32 {
-        let items: u32 = self.inputs.iter().map(|i| i.1).sum();
-        (HAND_BASE_TICKS + HAND_TICKS_PER_ITEM * items).min(HAND_MAX_TICKS)
-    }
 }
 
 pub const RECIPES: &[Recipe] = &[
@@ -360,35 +355,12 @@ pub const RECIPES: &[Recipe] = &[
         blurb: "A frame you climb: stand in it and hold jump to go up, crouch to go down; let go and you stay \
                 put. Stack them up a cliff or down a shaft; at the top, walk off onto the ledge.",
     },
-    Recipe {
-        output: IRON_PLATE,
-        group: Group::Materials,
-        count: 1,
-        inputs: &[(IRON_INGOT, 2)],
-        blurb: "Hammered flat by hand, slowly: a constructor does it for you. Machines, belts and packs use plates.",
-    },
-    Recipe {
-        output: IRON_ROD,
-        group: Group::Materials,
-        count: 1,
-        inputs: &[(IRON_INGOT, 1)],
-        blurb: "Drawn out by hand, slowly: a constructor does it for you. Miners, lifts and screws use rods.",
-    },
-    Recipe {
-        output: SCREW,
-        group: Group::Materials,
-        count: 4,
-        inputs: &[(IRON_ROD, 1)],
-        blurb: "Cut from a rod by hand, slowly: a constructor does it for you.",
-    },
-    Recipe {
-        output: COPPER_WIRE,
-        group: Group::Materials,
-        count: 2,
-        inputs: &[(COPPER_INGOT, 1)],
-        blurb: "Drawn from a copper ingot by hand, slowly: a constructor does it for you. Coils, poles and packs use \
-                wire.",
-    },
+    IRON_PLATE_RECIPE,
+    IRON_ROD_RECIPE,
+    SCREW_RECIPE,
+    COPPER_WIRE_RECIPE,
+    SOLAR_PANEL_RECIPE,
+    ACCUMULATOR_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

@@ -1,23 +1,20 @@
-// Hand-craft queue strip: one chip per queued craft above the hotbar (icon, amount still to come, a
-// progress bar), also over the inventory screen. Click a chip to cancel that order and get its materials
-// back. The engine owns the queue (`craft_queue`: item, amount left and permille done per order); this
-// only draws it. Call `update` every frame: it rebuilds the chips when the queue changes and otherwise
-// moves the bars.
+// Hand-craft queue strip, above the hotbar (also over the inventory screen): one group per queued order, and
+// in it one chip per step still to run, in running order: the parts first (planks, plates), what was asked
+// for last (the box), each with the amount still to come and, on the step being worked on, a progress bar.
+// Finished steps drop off the front. The ✕ on a group cancels the order and returns its materials and the
+// parts already made. The engine owns the queue (`craft_queue`, `craft_steps`); this only draws it. Call
+// `update` every frame: it rebuilds the groups when the queue changes and otherwise moves the bar.
 
 import './craftqueue.css';
 import type { Game } from '../wasm/engine.js';
-import { h } from './dom';
+import { button, h } from './dom';
 
 const ICON_PX = 64;
 
-interface Chip {
-  root: HTMLButtonElement;
-  bar: HTMLElement;
-}
-
 export class CraftQueueView {
   private readonly el = h('div', 'craftq hidden');
-  private readonly chips: Chip[] = [];
+  /** The progress bar of the step being worked on in each order (only the first order's moves). */
+  private bars: HTMLElement[] = [];
   private shape = '';
 
   constructor(
@@ -29,36 +26,49 @@ export class CraftQueueView {
   }
 
   update(): void {
-    const q = this.game.craft_queue();
-    const orders = q.length / 3;
+    const g = this.game;
+    const orders = g.craft_queue().length / 3;
+    const steps: Uint32Array[] = [];
     let shape = '';
-    for (let i = 0; i < q.length; i += 3) shape += `${q[i]}:${q[i + 1]},`;
-    if (shape !== this.shape) this.rebuild(q, orders, shape);
-    for (let i = 0; i < orders; i++) this.chips[i].bar.style.width = `${q[i * 3 + 2] / 10}%`;
+    for (let o = 0; o < orders; o++) {
+      const s = g.craft_steps(o);
+      steps.push(s);
+      for (let i = 0; i < s.length; i += 3) shape += `${s[i]}:${s[i + 1]},`;
+      shape += '|';
+    }
+    if (shape !== this.shape) this.rebuild(steps, shape);
+    this.bars.forEach((bar, o) => (bar.style.width = `${steps[o][2] / 10}%`));
   }
 
-  private rebuild(q: Uint32Array, orders: number, shape: string): void {
+  private rebuild(steps: Uint32Array[], shape: string): void {
     this.shape = shape;
-    this.chips.length = 0;
-    this.el.classList.toggle('hidden', orders === 0);
+    this.bars = [];
+    this.el.classList.toggle('hidden', steps.length === 0);
     const g = this.game;
-    const chips: HTMLElement[] = [];
-    for (let i = 0; i < orders; i++) {
-      const item = q[i * 3];
-      const root = h('button', 'craftq-chip');
-      root.type = 'button';
-      root.title = `${g.item_name(item)}: click to cancel and get the materials back`;
-      const canvas = h('canvas');
-      canvas.width = canvas.height = ICON_PX;
-      canvas.getContext('2d')!.drawImage(this.icon(item), 0, 0);
-      const bar = h('span', 'craftq-fill');
-      const track = h('span', 'craftq-bar');
-      track.append(bar);
-      root.append(canvas, h('span', 'craftq-n', `×${q[i * 3 + 1]}`), track);
-      root.addEventListener('click', () => g.cancel_craft(i));
-      this.chips.push({ root, bar });
-      chips.push(root);
-    }
-    this.el.replaceChildren(...chips);
+    const groups = steps.map((s, order) => {
+      const group = h('div', 'craftq-order');
+      const last = s.length / 3 - 1;
+      for (let i = 0; i <= last; i++) {
+        const item = s[i * 3];
+        const chip = h('div', i === last ? 'craftq-chip' : 'craftq-chip part');
+        chip.title = `${g.item_name(item)}${i === last ? '' : ' (a part, made first)'}`;
+        const canvas = h('canvas');
+        canvas.width = canvas.height = ICON_PX;
+        canvas.getContext('2d')!.drawImage(this.icon(item), 0, 0);
+        const track = h('span', 'craftq-bar');
+        const fill = h('span', 'craftq-fill');
+        track.append(fill);
+        if (i === 0) this.bars.push(fill);
+        chip.append(canvas, h('span', 'craftq-n', `×${s[i * 3 + 1]}`), track);
+        if (i > 0) group.append(h('span', 'craftq-next', '›'));
+        group.append(chip);
+      }
+      const cancel = button('craftq-cancel', '✕', () => g.cancel_craft(order));
+      cancel.title = 'Cancel this craft and get the materials back';
+      cancel.setAttribute('aria-label', 'Cancel this craft');
+      group.append(cancel);
+      return group;
+    });
+    this.el.replaceChildren(...groups);
   }
 }

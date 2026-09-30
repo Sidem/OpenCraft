@@ -24,12 +24,16 @@
 
 mod legacy;
 mod model;
+mod parts;
+mod solar;
 mod specs;
 mod steam;
 mod view;
 mod work;
 
 pub use legacy::{read_constructor, read_smelter};
+pub(super) use solar::run as run_renewables;
+use solar::Store;
 #[cfg(test)]
 pub use specs::SPECS;
 pub use specs::{makes, spec, Energy, Pick, ProcessSpec, ProcessTier};
@@ -96,6 +100,8 @@ pub struct Processor {
     pub side: Buffer,
     /// A boiler's or turbine's steam and water (steam.rs).
     pub steam: Steam,
+    /// A panel's or accumulator's charge and flow (solar.rs).
+    pub store: Store,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
@@ -125,6 +131,7 @@ impl Processor {
             out,
             side: Buffer::new(spec.side),
             steam: Steam::default(),
+            store: Store::default(),
             speed: 0,
             outs: Vec::new(),
             side_outs: Vec::new(),
@@ -199,7 +206,7 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
-            (Energy::Turbine, _) | (_, Pick::Store) => {}
+            (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) | (_, Pick::Store) => {}
             _ => self.work(power, unlocked),
         }
         self.out.feed(&self.outs, &mut self.next_out, belts);
@@ -301,6 +308,9 @@ impl Machine for Processor {
             w.u32(self.steam.steam);
             w.u32(self.steam.water);
         }
+        if self.energy() == Energy::Accumulator {
+            w.u32(self.store.charge);
+        }
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Processor> {
@@ -331,6 +341,9 @@ impl Machine for Processor {
             p.steam.steam = r.u32()?.min(steam::STEAM_CAP);
             p.steam.water = r.u32()?;
         }
+        if p.energy() == Energy::Accumulator {
+            p.store.charge = r.u32()?.min(solar::CHARGE_CAP);
+        }
         p.valid()
     }
 
@@ -346,7 +359,8 @@ impl Machine for Processor {
 
     fn describe(&self, f: &Factory) -> String {
         let text = self.readout();
-        match steam::grid_line(self, f).filter(|_| self.energy() == Energy::Turbine && !f.dirty) {
+        let source = matches!(self.energy(), Energy::Turbine | Energy::Solar | Energy::Accumulator);
+        match steam::grid_line(self, f).filter(|_| source && !f.dirty) {
             Some(grid) => format!("{text}\n{grid}"),
             None => text,
         }

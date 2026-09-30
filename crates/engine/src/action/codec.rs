@@ -135,6 +135,16 @@ impl Action {
                 w.u8(23);
                 w.ivec3(pos);
             }
+            Action::Connect { pole, to } => {
+                w.u8(27);
+                w.ivec3(pole);
+                w.ivec3(to);
+            }
+            Action::Disconnect { pole, to } => {
+                w.u8(28);
+                w.ivec3(pole);
+                w.ivec3(to);
+            }
             Action::SortInventory => w.u8(24),
             Action::SortBox { pos } => {
                 w.u8(25);
@@ -177,6 +187,8 @@ impl Action {
             24 => Action::SortInventory,
             25 => Action::SortBox { pos: r.ivec3()? },
             26 => Action::CancelCraft { order: r.u16()? },
+            27 => Action::Connect { pole: r.ivec3()?, to: r.ivec3()? },
+            28 => Action::Disconnect { pole: r.ivec3()?, to: r.ivec3()? },
             _ => return None,
         })
     }

@@ -6,7 +6,9 @@
 //! the earlier ones (a player who already has a smelter skips the mining tips).
 //! To add a hint: a row in `HINTS`, where it belongs in the order.
 
-use crate::block::{ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, IRON_ORE, MINER, TURBINE};
+use crate::block::{
+    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, IRON_ORE, MINER, SOLAR_PANEL, TURBINE,
+};
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
 use crate::item::IRON_INGOT;
@@ -44,8 +46,9 @@ pub const HINTS: &[Hint] = &[
     },
     Hint {
         text: "Power it: a miner runs on electricity. Build a coal generator and a power pole within 5 blocks \
-               of both, and start the generator with coal ore or logs (right-click it). A miner on coal next \
-               to the generator keeps it fuelled: one coal runs a miner long enough to dig about 32.",
+               of both. A new pole is selected: click the generator and the miner to wire them to it (a Mk1 \
+               pole holds 4 wires). Start the generator with coal ore or logs (right-click it). A miner on coal \
+               next to the generator keeps it fuelled: one coal runs a miner long enough to dig about 32.",
         done: |_, f| f.count(Kind::Generator) > 0 && f.count(Kind::Pole) > 0,
     },
     Hint {
@@ -60,11 +63,11 @@ pub const HINTS: &[Hint] = &[
     },
     Hint {
         text: "Make parts: a constructor shapes ingots into plates, rods, screws and wire. It needs power \
-               like the miner: a pole within 5 blocks.",
+               like the miner: right-click a pole to select it, then click the constructor to wire it.",
         done: |_, f| f.processors_of(crate::block::CONSTRUCTOR) > 0,
     },
     Hint {
-        text: "Research: build a research lab near a pole, give it red science packs, and press T to choose \
+        text: "Research: build a research lab, wire it to a pole, give it red science packs, and press T to choose \
                what to research. New machines unlock as you go.",
         done: |_, f| (0..TECHS.len()).any(|t| f.research.progress(t as u8) > 0),
     },
@@ -98,7 +101,7 @@ pub const HINTS: &[Hint] = &[
     },
     Hint {
         text: "Steam: research Steam Power. Pipe water from a pump to a boiler, belt the boiler coal, and set \
-               steam turbines (two to a boiler, 240 kW each) against it, hung on a pole. A generator on the same \
+               steam turbines (two to a boiler, 240 kW each) against it, wired to a pole. A generator on the same \
                grid starts the pump. A pond runs dry; the sea doesn't.",
         done: |_, f| f.processors_of(TURBINE) > 0,
     },
@@ -112,6 +115,12 @@ pub const HINTS: &[Hint] = &[
         text: "Violet science: research it, then assemble violet packs from circuits, a steel beam and a motor. \
                Labs take them in a fourth slot; violet kits make Mk4.",
         done: |_, f| tech_done(f, "Violet Science"),
+    },
+    Hint {
+        text: "Solar power: research Solar Power. A panel gives up to 10 kW by day and nothing at night; wire it to a \
+               pole. An accumulator stores 10 MJ of spare sun and gives it back after dark, before a generator \
+               burns fuel. About six panels and one accumulator carry 15 kW round the clock.",
+        done: |_, f| f.processors_of(SOLAR_PANEL) > 0,
     },
 ];
 

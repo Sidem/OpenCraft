@@ -1,6 +1,6 @@
 use super::*;
 use crate::action::Action;
-use crate::block::{BELT, MINER, SPLITTER};
+use crate::block::{BELT, LOG, MINER, PLANKS, SPLITTER, STORAGE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD};
 
@@ -209,4 +209,50 @@ fn a_queue_survives_a_save_and_finishes_the_same() {
     assert!(CraftQueue::read_state(&mut ByteReader::new(&junk)).is_none());
     ticks(&mut sim, 20_000);
     assert_eq!(count(&sim, MINER.into()), 1);
+}
+
+/// The steps of an order, as (output, crafts, delivered) in running order.
+fn steps_of(p: &Plan) -> Vec<(ItemId, u32, bool)> {
+    p.steps.iter().map(|s| (RECIPES[s.recipe as usize].output, s.times, s.deliver)).collect()
+}
+
+#[test]
+fn a_storage_box_from_logs_and_ingots_queues_planks_then_plates_then_the_box() {
+    let mut sim = Sim::new(7, 2);
+    give(&mut sim, LOG.into(), 2);
+    give(&mut sim, IRON_INGOT, 4);
+    let p = plan_for(&sim, STORAGE.into(), 1).unwrap();
+    // 8 planks are two crafts of 4 (2 logs), 2 plates two crafts (4 ingots), then the box.
+    assert_eq!(steps_of(&p), [(PLANKS.into(), 2, false), (IRON_PLATE, 2, false), (STORAGE.into(), 1, true)]);
+    assert_eq!(p.part_crafts(), 4);
+    // Planks already held: only the plates are made first.
+    give(&mut sim, PLANKS.into(), 8);
+    let p = plan_for(&sim, STORAGE.into(), 1).unwrap();
+    assert_eq!(steps_of(&p), [(IRON_PLATE, 2, false), (STORAGE.into(), 1, true)]);
+    // Plates held instead: only the planks.
+    let mut sim = Sim::new(7, 2);
+    give(&mut sim, LOG.into(), 2);
+    give(&mut sim, IRON_PLATE, 2);
+    let p = plan_for(&sim, STORAGE.into(), 1).unwrap();
+    assert_eq!(steps_of(&p), [(PLANKS.into(), 2, false), (STORAGE.into(), 1, true)]);
+    // Everything held: just the box.
+    give(&mut sim, PLANKS.into(), 8);
+    assert_eq!(steps_of(&plan_for(&sim, STORAGE.into(), 1).unwrap()), [(STORAGE.into(), 1, true)]);
+}
+
+#[test]
+fn the_queue_runs_the_parts_in_order_and_the_box_last() {
+    let mut sim = Sim::new(7, 2);
+    give(&mut sim, LOG.into(), 2);
+    give(&mut sim, IRON_INGOT, 4);
+    sim.apply(P, Action::Craft { recipe: recipe(STORAGE.into()), times: 1 });
+    let order = &queue(&sim).orders[0];
+    assert_eq!(order.steps.len(), 3);
+    let crafts = |item: ItemId| RECIPES[recipe(item) as usize].hand_ticks();
+    ticks(&mut sim, 2 * crafts(PLANKS.into()));
+    assert_eq!((count(&sim, PLANKS.into()), count(&sim, STORAGE.into())), (0, 0), "planks wait in the order");
+    assert_eq!(queue(&sim).orders[0].steps[0].recipe, recipe(IRON_PLATE));
+    ticks(&mut sim, 2 * crafts(IRON_PLATE) + crafts(STORAGE.into()));
+    assert_eq!(count(&sim, STORAGE.into()), 1);
+    assert!(queue(&sim).orders.is_empty());
 }

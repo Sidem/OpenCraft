@@ -90,6 +90,19 @@ impl Game {
         orders.iter().flat_map(|o| [o.output().0 as u32, o.amount(), o.permille()]).collect()
     }
 
+    /// The steps still to run of the local player's `order`th order, in running order, as flat (item, items
+    /// still to come, progress of the craft in progress in thousandths) triples: the parts first, what was
+    /// asked for last. Only the first step has progress.
+    pub fn craft_steps(&self, order: u32) -> Vec<u32> {
+        let Some(o) = self.local_crafts().and_then(|q| q.orders.get(order as usize)) else { return Vec::new() };
+        let first = o.step_permille();
+        let step = |(i, s): (usize, &crate::crafting::Step)| {
+            let r = &RECIPES[s.recipe as usize];
+            [r.output.0 as u32, s.times * r.count, if i == 0 { first } else { 0 }]
+        };
+        o.steps.iter().enumerate().flat_map(step).collect()
+    }
+
     /// Cancels the local player's `order`th queued craft.
     pub fn cancel_craft(&mut self, order: u32) {
         self.act(Action::CancelCraft { order: order.min(u16::MAX as u32) as u16 });

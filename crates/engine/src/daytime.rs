@@ -15,6 +15,18 @@ pub fn time_of_day(tick: u64) -> f64 {
     ((tick + START) % DAY_TICKS) as f64 / DAY_TICKS as f64
 }
 
+/// Sunlight at `tick` in thousandths: 0 at night, 1000 at noon, a parabola between sunrise (6:00) and sunset
+/// (18:00). Integer maths only, so every platform agrees (solar panels: `factory/process/solar.rs`).
+pub fn sunlight(tick: u64) -> u32 {
+    let (rise, len) = (DAY_TICKS / 4, DAY_TICKS / 2);
+    let x = (tick + START) % DAY_TICKS;
+    if x < rise || x >= rise + len {
+        return 0;
+    }
+    let x = x - rise;
+    (4000 * x * (len - x) / (len * len)) as u32
+}
+
 /// Which day `tick` falls on, counting from 1.
 pub fn day_number(tick: u64) -> u64 {
     (tick + START) / DAY_TICKS + 1

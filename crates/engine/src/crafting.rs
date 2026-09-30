@@ -11,7 +11,7 @@
 //! progress to the inventory, nothing is lost; what doesn't fit is thrown (`SimEvent::Thrown`). Nothing
 //! here reads the clock: a craft's progress is counted in ticks, so the state hashes and saves.
 //!
-//! To change how long crafts take: the constants in `recipes/mod.rs` (`hand_ticks`). To add a recipe a
+//! To change how long crafts take: `recipes/timing.rs` (a per-recipe table and the formula). To add a recipe a
 //! plan can use for a part: a hand recipe with that output; the plan finds it by output item.
 
 use crate::bytes::{ByteReader, ByteWriter};
@@ -74,6 +74,16 @@ impl Order {
     /// How many of it are still to come.
     pub fn amount(&self) -> u32 {
         self.steps.last().map_or(0, |s| s.times * RECIPES[s.recipe as usize].count)
+    }
+
+    /// How far the craft in progress is, in thousandths (0 before it starts).
+    pub fn step_permille(&self) -> u32 {
+        let each = self.steps.first().map_or(1, |s| RECIPES[s.recipe as usize].hand_ticks());
+        if self.busy {
+            self.ticks * 1000 / each.max(1)
+        } else {
+            0
+        }
     }
 
     /// Ticks left, counting the craft in progress.

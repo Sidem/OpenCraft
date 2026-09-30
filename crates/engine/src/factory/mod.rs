@@ -45,10 +45,11 @@ mod storage;
 mod table;
 pub mod tiers;
 pub mod upgrades;
+mod wiring;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2};
+use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2, POLE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
@@ -72,6 +73,7 @@ use process::Processor;
 use quarry::Quarry;
 use router::Router;
 use storage::Storage;
+use wiring::Hook;
 
 pub use belt::belt_preview;
 pub use belt_shape::Shape;
@@ -88,6 +90,7 @@ pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{light_boxes, push_box, INSTANCE_FLOATS};
 pub use sites::{survey_site, Job, Sites};
+pub use wiring::Hookup;
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
 pub const DIRS: [IVec3; 4] = [IVec3::new(0, 0, -1), IVec3::new(1, 0, 0), IVec3::new(0, 0, 1), IVec3::new(-1, 0, 0)];
@@ -145,6 +148,11 @@ pub struct Factory {
     labs: Vec<Lab>,
     pipework: Vec<Pipework>,
     quarries: Vec<Quarry>,
+    /// The player's power wires, saved (`wiring.rs`).
+    hooks: Vec<Hook>,
+    /// Tests only: leave wires to `connect` (else every relink wires by range, `hook_by_reach`).
+    #[cfg(test)]
+    pub(crate) by_hand: bool,
     /// Grids and last tick's supply and demand (derived, see `power.rs`).
     power: Power,
     at: FxHashMap<IVec3, Slot>,
@@ -218,6 +226,9 @@ impl Factory {
             self.set_tier(pos, tier);
         }
         self.dirty = true;
+        if block == POLE {
+            self.hook_new_pole(pos, tier);
+        }
     }
 
     #[cfg(test)]
@@ -248,7 +259,7 @@ impl Factory {
         let Some(slot) = self.at.remove(&pos) else { return Vec::new() };
         self.dirty = true;
         let at = &mut self.at;
-        match slot {
+        let contents = match slot {
             Slot::Belt(i) => swap_out(&mut self.belts, i, at, Slot::Belt),
             Slot::Miner(i) => swap_out(&mut self.miners, i, at, Slot::Miner),
             Slot::Storage(i) => swap_out(&mut self.storages, i, at, Slot::Storage),
@@ -259,7 +270,9 @@ impl Factory {
             Slot::Lab(i) => swap_out(&mut self.labs, i, at, Slot::Lab),
             Slot::Pipe(i) => swap_out(&mut self.pipework, i, at, Slot::Pipe),
             Slot::Quarry(i) => swap_out(&mut self.quarries, i, at, Slot::Quarry),
-        }
+        };
+        self.prune_hooks();
+        contents
     }
 
     /// Runs every machine for one tick (`TICK` seconds). `tick` must differ between calls: the
@@ -286,7 +299,7 @@ impl Factory {
             ..
         } = self;
         let unlocked = research.machine_recipes_unlocked();
-        power.balance(generators, miners, processors, routers, labs, pipework, quarries, research, &unlocked);
+        power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
             m.speed = power.speed(p);
@@ -303,8 +316,8 @@ impl Factory {
             let share = if m.energy() == Energy::Electric { power.speed(p) } else { power::FULL_SPEED };
             m.step(belts, share, &unlocked);
         }
-        for (r, &p) in sinks.routers.iter_mut().zip(&power.router_pole) {
-            r.step(belts, power.speed(p));
+        for r in sinks.routers.iter_mut() {
+            r.step(belts);
         }
         step_labs(sinks.labs, &power.lab_pole, power, research);
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);

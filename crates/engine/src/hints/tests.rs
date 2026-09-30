@@ -1,6 +1,7 @@
 use super::*;
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, GENERATOR, POLE, PUMP, QUARRY, SMELTER, STORAGE, TURBINE,
+    ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, GENERATOR, POLE, PUMP, QUARRY, SMELTER, SOLAR_PANEL,
+    STORAGE, TURBINE,
 };
 use crate::math::IVec3;
 use crate::world::World;
@@ -53,6 +54,8 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), 16, "silicon");
     let violet = TECHS.iter().position(|t| t.name == "Violet Science").unwrap() as u8;
     (0..TECHS[violet as usize].units).for_each(|_| f.research.add_unit(violet));
+    assert_eq!(progress(&inv, &f), HINTS.len() - 1, "violet science");
+    place(&mut f, SOLAR_PANEL, 60);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
 }

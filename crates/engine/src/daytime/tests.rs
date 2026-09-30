@@ -15,6 +15,17 @@ fn a_day_starts_in_the_morning_and_wraps() {
 }
 
 #[test]
+fn sunlight_is_a_symmetric_daytime_parabola() {
+    let at = |hour: u64| sunlight(DAY_TICKS * hour / 24 + DAY_TICKS - START);
+    assert_eq!((at(0), at(6), at(18), at(23)), (0, 0, 0, 0), "night, sunrise and sunset");
+    assert_eq!(at(12), 1000, "noon");
+    assert_eq!(at(9), at(15));
+    assert_eq!(at(9), 750);
+    assert!((0..DAY_TICKS).step_by(37).all(|t| sunlight(t) <= 1000));
+    assert_eq!(sunlight(0), sunlight(DAY_TICKS), "the same every day");
+}
+
+#[test]
 fn the_time_is_the_cores_and_leaves_the_state_hash_alone() {
     let mut g = Game::new(2024, 2);
     run_until_ready(&mut g);

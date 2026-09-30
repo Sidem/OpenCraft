@@ -1,115 +1,235 @@
-/* Research screen (research.ts): one card per tech, and the HUD tracker. The dialog frame is .mp
-   (machine.css); chips are .chip (inventory.css). */
+/* Research screen (research.ts): the tech tree, its nodes and edges. The hover card and HUD tracker are in
+   research-card.css. Node size and gaps are set in research.ts. */
 
 .rs {
-  width: min(640px, 100%);
+  width: min(1180px, 100%);
+  --rs-done: #8fdc9c;
+  --rs-horizon: #7dd3fc;
 }
 
-.rs-intro {
-  margin: 0 0 6px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: var(--muted);
-}
-
-.rs-tech {
-  display: grid;
-  gap: 6px;
-  margin-top: 10px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.rs-tech.locked {
-  opacity: 0.55;
-}
-
-.rs-tech.chosen {
-  border-color: rgba(250, 149, 73, 0.6);
-  background: var(--accent-soft);
-}
-
-.rs-title {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.rs-title h4 {
-  margin: 0;
-  font-size: 15px;
-}
-
-.rs-state {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.rs-tech.done .rs-state {
-  color: #8fdc9c;
-}
-
-.rs-tech.chosen .rs-state {
-  color: var(--accent);
-}
-
-.rs-blurb {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.rs-chips {
+.rs-legend {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 6px;
-}
-
-.rs-label {
+  gap: 6px 18px;
+  margin: 0 0 12px;
   font-size: 12px;
   color: var(--muted);
 }
 
-.rs-progress {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
+.rs-key::before {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border-radius: 4px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
-.rs-count {
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
+.rs-key.done::before {
+  background: rgba(143, 220, 156, 0.35);
+  border-color: var(--rs-done);
 }
 
-.rs-choose {
-  justify-self: start;
+.rs-key.chosen::before {
+  background: var(--accent-soft);
+  border-color: var(--accent);
 }
 
-.rs-tracker {
+.rs-key.available::before {
+  border-color: var(--rs-horizon);
+  box-shadow: 0 0 6px var(--rs-horizon);
+}
+
+.rs-tree {
+  overflow: auto;
+  max-height: calc(100vh - 210px);
+  padding: 4px 4px 10px;
+}
+
+.rs-stage {
+  position: relative;
+}
+
+.rs-tree {
+  cursor: grab;
+}
+
+.rs-tree.panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.rs-edges {
   position: absolute;
-  top: calc(44px + var(--map-space, 0px));
-  right: 12px;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.rs-edges path {
+  fill: none;
+  stroke-width: 2;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-dasharray: 5 5;
+  transition: stroke 0.15s, opacity 0.15s;
+}
+
+.rs-edges path.built {
+  stroke: var(--rs-done);
+  stroke-dasharray: none;
+  opacity: 0.8;
+}
+
+.rs-edges path.open {
+  stroke: var(--rs-horizon);
+  stroke-dasharray: none;
+}
+
+.rs-edges path.hot {
+  stroke-width: 3.5;
+  opacity: 1;
+}
+
+.rs-edges path.closed.hot {
+  stroke: rgba(255, 255, 255, 0.55);
+}
+
+.rs-focus .rs-edges path:not(.hot) {
+  opacity: 0.12;
+}
+
+.rs-node {
+  position: absolute;
+  width: 176px;
+  height: 58px;
+  box-sizing: border-box;
   display: grid;
-  gap: 5px;
-  width: 260px;
-  padding: 8px 12px 10px;
-  border-radius: 8px;
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  font-size: 12px;
-  line-height: 1.4;
+  grid-template-rows: auto 1fr;
+  gap: 2px;
+  padding: 7px 10px 9px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 33, 42, 0.96);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  overflow: hidden;
+  transition: opacity 0.15s, border-color 0.15s;
 }
 
-.rs-tracker.rs-notice {
-  border-color: rgba(143, 220, 156, 0.6);
+.rs-node-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.rs-tracker.rs-notice .mp-bar-fill {
-  background: #8fdc9c;
+.rs-node-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.rs-packs {
+  display: flex;
+  gap: 3px;
+}
+
+.rs-pack {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.rs-node-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.rs-node-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.rs-node.locked {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.rs-node.done {
+  border-color: var(--rs-done);
+  background: rgba(38, 66, 46, 0.96);
+}
+
+.rs-node.done .rs-node-state {
+  color: var(--rs-done);
+  font-weight: 600;
+}
+
+.rs-node.done .rs-node-state::before {
+  content: '✓ ';
+}
+
+.rs-node.done .rs-node-track i {
+  background: var(--rs-done);
+  transform: scaleX(1);
+}
+
+.rs-node.available {
+  cursor: pointer;
+  border-color: var(--rs-horizon);
+  animation: rs-glow 2.2s ease-in-out infinite;
+}
+
+.rs-node.available .rs-node-state {
+  color: var(--rs-horizon);
+  font-weight: 600;
+}
+
+.rs-node.chosen {
+  border-color: var(--accent);
+  background: rgba(70, 48, 30, 0.96);
+  animation: none;
+  box-shadow: 0 0 10px rgba(250, 149, 73, 0.45);
+}
+
+.rs-node.chosen .rs-node-state {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rs-node:hover,
+.rs-node:focus-visible {
+  outline: none;
+  border-color: #fff;
+}
+
+.rs-focus .rs-node:not(.rel) {
+  opacity: 0.3;
+}
+
+@keyframes rs-glow {
+  0%, 100% { box-shadow: 0 0 3px rgba(125, 211, 252, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(125, 211, 252, 0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-node.available {
+    animation: none;
+    box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+  }
 }

@@ -32,7 +32,7 @@ use super::buffer::Buffer;
 use super::describe::fmt_int;
 use super::links::{deliver, Link, Sinks};
 use super::panel::{Panel, ROLE_OUTPUT};
-use super::power::{FULL_SPEED, POLE_REACH};
+use super::power::{FULL_SPEED, NOT_WIRED};
 use super::{Factory, Kind, Machine};
 
 /// What a quarry tier does, Mk1 first.
@@ -259,7 +259,7 @@ impl Quarry {
                 let pole = me.and_then(|i| f.power.quarry_pole.get(i).copied()).flatten();
                 match pole {
                     Some(_) => f.power.grid_line(pole),
-                    None => format!("No power: needs a power pole within {POLE_REACH} blocks"),
+                    None => NOT_WIRED.to_string(),
                 }
             }
             QuarryStatus::Flooded => "Flooded: pump the water out of the pit".to_string(),

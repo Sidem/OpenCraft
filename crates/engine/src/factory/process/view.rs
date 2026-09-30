@@ -7,14 +7,14 @@ use crate::TICK_RATE;
 
 use super::super::buffer::Buffer;
 use super::super::panel::{Panel, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
-use super::super::power::{FULL_SPEED, POLE_REACH};
+use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
 use super::{Energy, Pick, Processor, Status};
 
 impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
-        if let Some(text) = self.steam_text() {
+        if let Some(text) = self.steam_text().or_else(|| self.solar_text()) {
             return text;
         }
         let s = self.spec;
@@ -27,9 +27,7 @@ impl Processor {
                 format!("{} {} · {rate} a minute{slow}", s.verb, item::name(r.main().0))
             }
             (Status::NoFuel, _) => "Out of fuel: bring coal ore or logs".to_string(),
-            (Status::NoPower, _) => {
-                format!("No power: needs a power pole within {POLE_REACH} blocks, linked to a generator")
-            }
+            (Status::NoPower, _) => NOT_WIRED.to_string(),
             (Status::OutputFull, r) => match r.and_then(|r| self.full_output(r)) {
                 Some((item, true)) => {
                     format!(
@@ -84,7 +82,7 @@ impl Processor {
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
         }
-        if self.energy() != Energy::Turbine {
+        if !matches!(self.energy(), Energy::Turbine | Energy::Solar | Energy::Accumulator) {
             lines.push("Right-click to open".to_string());
         }
         lines.join("\n")

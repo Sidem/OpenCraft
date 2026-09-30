@@ -284,9 +284,14 @@ impl Factory {
             r.outs = o;
         }
 
+        #[cfg(test)]
+        if !self.by_hand {
+            self.hook_by_reach();
+        }
+        let hooked = self.resolve_hooks();
         let (poles, gens, miners, labs) = (&self.poles, &self.generators, &self.miners, &self.labs);
-        let (processors, routers, pipework) = (&self.processors, &self.routers, &self.pipework);
-        self.power = Power::rebuild(poles, gens, miners, processors, routers, labs, pipework, &self.quarries);
+        let (processors, pipework) = (&self.processors, &self.pipework);
+        self.power = Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries);
         self.link_pipework();
         process::link_steam(&mut self.processors, &self.at, &self.pipework);
 

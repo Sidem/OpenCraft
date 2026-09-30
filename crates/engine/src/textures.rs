@@ -6,7 +6,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -22,6 +22,7 @@ mod nature;
 mod ores;
 mod paint;
 mod plants;
+mod solar;
 mod steel;
 mod stripes;
 mod tools;
@@ -176,6 +177,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         }
         tex::BOILER_SIDE..=tex::CRUSHED_COPPER => heavy::pixel(layer, x, y),
         tex::ARC_SIDE..=tex::VIOLET_PACK => electronics::pixel(layer, x, y),
+        tex::SOLAR_TOP..=tex::ACCUMULATOR_SIDE => solar::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

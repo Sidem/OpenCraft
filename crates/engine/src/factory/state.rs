@@ -6,6 +6,7 @@
 use rustc_hash::FxHashMap;
 
 use super::process::{read_constructor, read_smelter};
+use super::wiring::Hook;
 use super::{add_to, Factory, Machine, Sites, Slot};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
@@ -26,6 +27,11 @@ impl Factory {
         write_list(w, &self.labs);
         write_list(w, &self.pipework);
         write_list(w, &self.quarries);
+        w.count(self.hooks.len());
+        for h in &self.hooks {
+            w.ivec3(h.pole);
+            w.ivec3(h.to);
+        }
         self.sites.write_state(w);
         self.deposits.write_state(w);
         self.research.write_state(w);
@@ -35,7 +41,8 @@ impl Factory {
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
     /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power,
     /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites;
-    /// before 18 smelters and constructors had lists of their own (`process/legacy.rs`).
+    /// before 18 smelters and constructors had lists of their own (`process/legacy.rs`); before 24 poles
+    /// linked and machines hung on poles by range, so those saves are wired that way once (`hook_by_reach`).
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
         read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
@@ -66,6 +73,14 @@ impl Factory {
         }
         if r.version >= 15 {
             read_list(r, &mut f.quarries, &mut f.at, Slot::Quarry)?;
+        }
+        if r.version >= 24 {
+            for _ in 0..r.count()? {
+                f.hooks.push(Hook { pole: r.ivec3()?, to: r.ivec3()? });
+            }
+            f.prune_hooks();
+        } else {
+            f.hook_by_reach();
         }
         if r.version >= 17 {
             f.sites = Sites::read_state(r)?;

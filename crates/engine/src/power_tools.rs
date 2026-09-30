@@ -1,15 +1,17 @@
-//! Placing power poles and cables, part of the local player's hands (`interaction.rs`). Presentation
-//! and input only: everything it builds is an ordinary `PlaceBlock` action, so the core, co-op and saves
-//! see plain placements.
+//! Placing and wiring power poles and cables, part of the local player's hands (`interaction.rs`).
+//! Presentation and input only: everything it builds is an ordinary action (`PlaceBlock`, `Connect`,
+//! `Disconnect`), so the core, co-op and saves see plain placements and wires.
 //!
-//! **Poles.** With a pole in hand the game finds the pole to chain from (the one pointed at, else the last
-//! one placed, else the nearest to the aim, all near the player) and shows the next pole as a ghost with its
-//! wire: at the *full reach* of the two (`POLE_TIERS`) in the direction the player faces, standing on the
-//! ground (`plan_pole`), so a line of poles is one click each at the widest spacing. R (or crouching)
-//! switches to free placement: the aimed cell, when it is in range. Holding the use button places the first
-//! pole and then keeps placing at full reach whenever that spot comes within `HOLD_REACH` of the player, so
-//! walking along lays a line. Poles may go beyond arm's reach (like belt lines, the far end is up to the
-//! pointer).
+//! **Poles.** With a pole in hand a click places it where you aim, if that is within the pole's `link` of the
+//! pole to chain from (the selected one, else the last placed, else the nearest to the aim, all near the
+//! player); further off, at the widest spacing towards the aim, standing on the ground (`plan_pole`).
+//! Holding Shift snaps to the *full reach* in the direction the player faces instead, and holding the use
+//! button with Shift down keeps placing at full reach whenever that spot comes within `HOLD_REACH` of the
+//! player, so walking along lays a line. A new pole wires itself to the nearest powered pole in range
+//! (`Factory::auto_hook`) and is selected; nothing else is wired for you.
+//!
+//! **Wiring** (`wire.rs`): right-click a pole to select it; then aiming at an unpowered machine offers
+//! to wire it, and a click does. Crouch-click moves, cuts and links poles.
 //!
 //! **Cables.** With cables in hand a click hangs them: the aimed cell and every free cell below it, down
 //! to the ground or the stack's size (`MAX_DROP`), built a few per tick. Crouching places one.
@@ -17,6 +19,8 @@
 //! To change the spacing rule: [`plan_pole`]. The preview: a ghost pole, wire and cables
 //! (`write_power_preview`), the outline boxes (`power_boxes`) and the label (`power_label`), which
 //! `api/hud.rs` forwards.
+
+mod wire;
 
 use crate::action::Action;
 use crate::block::{self, BlockId, AIR, CABLE, POLE, SOLID};
@@ -38,10 +42,11 @@ const PENDING_TICKS: u32 = 90;
 /// Pointing this close to a pole (squared blocks) picks it as the one to chain from.
 const POINT_AT2: i32 = 4;
 const UP: IVec3 = IVec3::new(0, 1, 0);
-/// Outline colours: the next pole or cable, the pole it hangs from, something in the way.
+/// Outline colours: the next pole or cable, the selected pole, something in the way, a wire to cut.
 const GHOST_GREEN: i32 = 0x4ade80;
 const ANCHOR_BLUE: i32 = 0x7dd3fc;
 const BLOCKED_RED: i32 = 0xff4a3d;
+const CUT_AMBER: i32 = 0xfbbf24;
 
 /// The player's power tools: input state only, never saved.
 #[derive(Default)]
@@ -50,8 +55,8 @@ pub struct PowerTools {
     down: bool,
     /// The press that began a hold with cables was a single placement (nothing to drop).
     single: bool,
-    /// Free placement of poles instead of snapping to full reach (R).
-    free: bool,
+    /// The pole that machines and poles are wired to (`wire.rs`).
+    selected: Option<IVec3>,
     /// The last pole this tool sent, its tier and the ticks since (it counts before the core has it).
     last: Option<(IVec3, u8, u32)>,
     /// Cables of a drop still to send (last first), and the hotbar slot and item they come from.
@@ -59,7 +64,7 @@ pub struct PowerTools {
     drop_from: (u8, u16),
 }
 
-/// The next pole: where, the pole it hangs from, its tier, and how it stands.
+/// The next pole: where, the pole it is placed from, its tier, and how it stands.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PoleGhost {
     pub pos: IVec3,
@@ -141,8 +146,8 @@ impl Game {
         }
     }
 
-    /// The pole the next one hangs from, near enough to the player to matter: the one pointed at, else the
-    /// last one placed, else the one nearest the aim.
+    /// The pole the next one is placed from, near enough to the player to matter: the one pointed at, else the
+    /// selected one, else the last one placed, else the one nearest the aim.
     fn pole_anchor(&self, aim: IVec3, held_link: i32) -> Option<(IVec3, u8)> {
         let eye = self.body().eye();
         let last = self.tools.last.map(|p| (p.0, p.1));
@@ -156,21 +161,27 @@ impl Game {
         };
         let poles = || self.sim.factory.poles().chain(last).filter(near);
         let pointed = poles().filter(|&(pos, _)| dist2(pos, aim) <= POINT_AT2).min_by_key(|&(pos, _)| dist2(pos, aim));
-        pointed.or(last.filter(standing).filter(near)).or_else(|| poles().min_by_key(|&(pos, _)| dist2(pos, aim)))
+        let chosen = self.selected_pole().and_then(|s| poles().find(|p| p.0 == s));
+        pointed
+            .or(chosen)
+            .or(last.filter(standing).filter(near))
+            .or_else(|| poles().min_by_key(|&(pos, _)| dist2(pos, aim)))
     }
 
-    /// Where the held pole would go now: `None` when none is held, crouching is placing plainly against a
-    /// face, or no pole is near enough to hang it from (the first pole goes where you point).
+    /// Where the held pole would go now: `None` when none is held, a machine or pole is aimed at (wiring), or
+    /// no pole is near enough to place it from (the first pole goes where you point).
     pub(crate) fn pole_ghost(&self) -> Option<PoleGhost> {
         let tier = self.held_pole_tier()?;
+        if self.wire_aim().is_some() {
+            return None;
+        }
         let held_link = POLE_TIERS[tier as usize].link;
         let aim = self.aim_cell();
         let (anchor, anchor_tier) = self.pole_anchor(aim, held_link)?;
         let link = POLE_TIERS[anchor_tier as usize].link.max(held_link);
-        let snap = !(self.tools.free || self.body().input.crouch);
         let look = self.body().look_dir();
         let world = &self.sim.world;
-        let (pos, full) = plan_pole(|p| world.get_block(p), anchor, aim, look, link, snap)?;
+        let (pos, full) = plan_pole(|p| world.get_block(p), anchor, aim, look, link, self.body().input.sprint)?;
         let free = world.get_block(pos).is_some_and(block::replaceable);
         Some(PoleGhost { pos, anchor, tier, link, full, free })
     }
@@ -190,8 +201,8 @@ impl Game {
         cells
     }
 
-    /// Runs the power tools for one tick. True while they own the use button (poles with a pole near, or a
-    /// cable drop); false leaves plain placement to `interaction.rs`.
+    /// Runs the power tools for one tick. True while they own the use button (wiring, poles, or a cable
+    /// drop); false leaves plain placement and machine panels to `interaction.rs`.
     pub(crate) fn update_power_tools(&mut self, dt: f32) -> bool {
         if let Some(last) = self.tools.last.as_mut() {
             last.2 = last.2.saturating_add(1);
@@ -202,11 +213,22 @@ impl Game {
             return sending;
         }
         let crouch = self.body().input.crouch;
-        let panel = |id| factory::machine(id).is_some_and(|m| m.panel || m.slots > 0);
-        if sending || self.target.is_some_and(|h| !crouch && panel(h.id)) {
-            return sending;
+        if sending {
+            return true;
         }
         let edge = !self.tools.down;
+        if self.wire_aim().is_some() {
+            // One wiring click per press; a held button must not go on to cut what it just wired.
+            let done = edge && self.wire_click(crouch);
+            self.tools.down |= done;
+            if done || !edge {
+                return true;
+            }
+        }
+        let panel = |id| factory::machine(id).is_some_and(|m| m.panel || m.slots > 0);
+        if self.target.is_some_and(|h| !crouch && panel(h.id)) {
+            return false;
+        }
         self.tools.down = true;
         if self.holds_cable() {
             if edge {
@@ -221,20 +243,36 @@ impl Game {
             }
             return !self.tools.single;
         }
-        let Some(ghost) = self.pole_ghost() else { return false };
+        let Some(tier) = self.held_pole_tier() else { return false };
         self.use_cooldown -= dt;
         if self.use_cooldown > 0.0 {
             return true;
         }
+        let Some(ghost) = self.pole_ghost() else {
+            // No pole near: the first one goes where you point.
+            let hit = self.target.filter(|h| h.normal != IVec3::ZERO);
+            let pos = hit.map(|h| h.block + h.normal);
+            if let Some(pos) = pos.filter(|&p| edge && self.sim.world.get_block(p).is_some_and(block::replaceable)) {
+                self.place_pole(pos, tier);
+            }
+            return true;
+        };
         let centre = ghost.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
         let close = (centre - self.body().eye()).length() <= HOLD_REACH;
-        if ghost.free && (edge || ghost.full && close) {
-            let slot = self.inventory().selected as u8;
-            self.act(Action::PlaceBlock { pos: ghost.pos, slot, facing: 0, against: ghost.pos - UP });
-            self.tools.last = Some((ghost.pos, ghost.tier, 0));
-            self.use_cooldown = PLACE_REPEAT_SECONDS;
+        let line = self.body().input.sprint && ghost.full && close;
+        if ghost.free && (edge || line) {
+            self.place_pole(ghost.pos, ghost.tier);
         }
         true
+    }
+
+    /// Sends a pole from the selected slot to `pos` and selects it, so it can be wired at once.
+    fn place_pole(&mut self, pos: IVec3, tier: u8) {
+        let slot = self.inventory().selected as u8;
+        self.act(Action::PlaceBlock { pos, slot, facing: 0, against: pos - UP });
+        self.tools.last = Some((pos, tier, 0));
+        self.tools.selected = Some(pos);
+        self.use_cooldown = PLACE_REPEAT_SECONDS;
     }
 
     /// Sends the next few cables of a drop. False when there are none; stops if the slot changed.
@@ -254,22 +292,16 @@ impl Game {
         true
     }
 
-    /// R with a pole in hand switches between full reach and free placement. False when none is held.
-    pub(crate) fn toggle_pole_snap(&mut self) -> bool {
-        let held = self.held_pole_tier().is_some();
-        if held {
-            self.tools.free = !self.tools.free;
-        }
-        held
-    }
-
-    /// Outline boxes (7 numbers each: lowest and highest cells, colour) for the pole or cables about to be
-    /// placed; empty when neither is held.
+    /// Outline boxes (7 numbers each: lowest and highest cells, colour) for the wiring, pole or cables about
+    /// to be placed; empty when none applies.
     pub(crate) fn power_boxes(&self) -> Vec<i32> {
-        let mut out = Vec::new();
+        let mut out = self.wire_boxes();
         let mut boxed = |lo: IVec3, hi: IVec3, colour: i32| out.extend([lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, colour]);
         if let Some(g) = self.pole_ghost() {
-            boxed(g.anchor, g.anchor, ANCHOR_BLUE);
+            let hook = self.sim.factory.auto_hook(g.pos, g.tier).filter(|&h| g.free && self.selected_pole() != Some(h));
+            if let Some(hook) = hook {
+                boxed(hook, hook, ANCHOR_BLUE);
+            }
             boxed(g.pos, g.pos, if g.free { GHOST_GREEN } else { BLOCKED_RED });
         } else if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
@@ -280,20 +312,30 @@ impl Game {
         out
     }
 
-    /// The HUD lines while a pole or cables are in hand and aimed: a title, then the details ("" otherwise).
+    /// The HUD lines while poles, wiring or cables are in hand and aimed: a title, then the details
+    /// ("" otherwise).
     pub(crate) fn power_label(&self) -> String {
+        if let Some(text) = self.wire_label() {
+            return text;
+        }
         if let Some(g) = self.pole_ghost() {
-            let far = f64::from(dist2(g.pos, g.anchor)).sqrt().round() as i32;
             let name = if g.tier == 0 { "Power pole".to_string() } else { format!("Power pole Mk{}", g.tier + 1) };
             if !g.free {
                 return format!("{name}\nSomething is in the way");
             }
-            let how = if self.tools.free || self.body().input.crouch {
-                "R: full reach"
-            } else {
-                "hold to keep going · R: free placement"
+            let far = f64::from(dist2(g.pos, g.anchor)).sqrt().round() as i32;
+            let hook = match self.sim.factory.auto_hook(g.pos, g.tier) {
+                Some(p) => format!(
+                    "wires itself to the powered pole {} blocks away",
+                    f64::from(dist2(g.pos, p)).sqrt().round()
+                ),
+                None => "no powered pole in range: wire it by hand".to_string(),
             };
-            return format!("{name}\n{far} of {} blocks from the pole · right-click to place · {how}", g.link);
+            let how = if self.body().input.sprint { "release Shift: free placement" } else { "hold Shift: full reach" };
+            return format!(
+                "{name}\n{hook} · {far} of {} blocks from the last pole · right-click to place · {how}",
+                g.link
+            );
         }
         if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
@@ -312,10 +354,12 @@ impl Game {
     /// Ghost pole and wire, or ghost cables, drawn with the machines.
     pub(crate) fn write_power_preview(&mut self, eye: Vec3) {
         let half = Vec3::new(0.5, 0.5, 0.5);
+        let top = |p: IVec3| p.as_vec3() + Vec3::new(0.5, 0.92, 0.5) - eye;
         if let Some(g) = self.pole_ghost().filter(|g| g.free) {
             factory::preview_pole(&mut self.instances, g.tier, g.pos.as_vec3() + half - eye);
-            let top = |p: IVec3| p.as_vec3() + Vec3::new(0.5, 0.92, 0.5) - eye;
-            factory::preview_wire(&mut self.instances, top(g.anchor), top(g.pos));
+            if let Some(hook) = self.sim.factory.auto_hook(g.pos, g.tier) {
+                factory::preview_wire(&mut self.instances, top(hook), top(g.pos));
+            }
         } else if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
             for (i, &c) in cells.iter().enumerate() {
@@ -324,6 +368,8 @@ impl Game {
                 arms[3] = i + 1 < cells.len();
                 factory::preview_cable(&mut self.instances, c.as_vec3() + half - eye, arms);
             }
+        } else if let Some((from, to)) = self.wire_preview() {
+            factory::preview_wire(&mut self.instances, from - eye, to - eye);
         }
     }
 }

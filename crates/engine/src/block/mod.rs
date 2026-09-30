@@ -107,7 +107,10 @@ pub const SILO: BlockId = 69;
 pub const ARC_FURNACE: BlockId = 70;
 /// A cable hung down shafts and along tunnels (`factory/pole.rs`, `power_tools.rs`): a pole-kind machine.
 pub const CABLE: BlockId = 71;
-pub const BLOCK_COUNT: usize = 72;
+/// Solar power (Milestone 7): the solar panel (2×2×1) and the accumulator (2×2×2), processor rows (`factory/process/solar.rs`).
+pub const SOLAR_PANEL: BlockId = 72;
+pub const ACCUMULATOR: BlockId = 73;
+pub const BLOCK_COUNT: usize = 74;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -321,6 +324,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Silo", true, 1.4, pillar(tex::SILO_SIDE, tex::SILO_TOP, tex::FRAME), SILO),
     machine("Arc Furnace", true, 1.4, pillar(tex::ARC_SIDE, tex::ARC_TOP, tex::FRAME), ARC_FURNACE),
     machine("Power Cable", false, 0.1, all(tex::COPPER_WIRE), CABLE),
+    machine("Solar Panel", true, 1.0, pillar(tex::SOLAR_SIDE, tex::SOLAR_TOP, tex::FRAME), SOLAR_PANEL),
+    machine("Accumulator", true, 1.4, pillar(tex::ACCUMULATOR_SIDE, tex::ACCUMULATOR_TOP, tex::FRAME), ACCUMULATOR),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

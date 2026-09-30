@@ -1,12 +1,13 @@
-//! Power poles: a position and a tier (`POLE_TIERS`); its links are derived by `power.rs`. A pole links to
-//! every pole within the longer `link` of the two, and a machine hangs on the nearest pole within that
-//! pole's `reach` of any of its cells (ties: the lower pole index). Higher tiers are pylons: longer
+//! Power poles: a position and a tier (`POLE_TIERS`). A pole has a few `slots`; the player fills them by
+//! hand (`wiring.rs`) with poles within the longer `link` of the two and machines within its `reach` of
+//! any of their cells. Nothing hangs on a pole by itself. Higher tiers are pylons: more slots, longer
 //! spans and a wider reach.
 //!
 //! A cable (block `CABLE`, stored as a pole of tier [`CABLE_TIER`]) is a short node for shafts and
-//! tunnels: cables touching each other (even diagonally) are one wire, a cable within a pole's reach
-//! joins that pole's grid, and a machine within [`CABLE_STATS`]`.reach` of a cable hangs on it, unless a
-//! real pole is in reach of it too (poles win). Hang a cable from a pole at the rim and lower it.
+//! tunnels that needs no wiring: cables touching each other (even diagonally) are one wire, a cable
+//! within a pole's reach joins that pole's grid, and a machine within [`CABLE_STATS`]`.reach` of a cable
+//! hangs on it, unless it is wired to a pole by hand (poles win). Hang a cable from a pole at the rim
+//! and lower it.
 
 use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
@@ -18,25 +19,28 @@ use super::{Factory, Machine};
 
 /// What a pole tier reaches, in blocks between cell centres.
 pub struct PoleTier {
-    /// Poles this close are wired together.
+    /// Poles this close can be wired together.
     pub link: i32,
-    /// Machines this close join its grid.
+    /// Machines this close can be wired to it.
     pub reach: i32,
+    /// How many things (poles and machines) it can be wired to.
+    pub slots: u8,
 }
 
 /// Mk1 to Mk4 (the substation: as far as the pylon, but reaching 16).
 pub const POLE_TIERS: [PoleTier; 4] = [
-    PoleTier { link: 10, reach: 5 },
-    PoleTier { link: 16, reach: 7 },
-    PoleTier { link: 32, reach: 9 },
-    PoleTier { link: 32, reach: 16 },
+    PoleTier { link: 10, reach: 5, slots: 4 },
+    PoleTier { link: 16, reach: 7, slots: 8 },
+    PoleTier { link: 32, reach: 9, slots: 12 },
+    PoleTier { link: 32, reach: 16, slots: 16 },
 ];
 
 /// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it). It was 3 in the few saves of
 /// version 21 that hold cables, before the Mk4 pole took that number.
 pub const CABLE_TIER: u8 = 15;
-/// A cable's numbers: `link` is unused (cables link by touching), `reach` is how far machines hang on it.
-pub const CABLE_STATS: PoleTier = PoleTier { link: 1, reach: 2 };
+/// A cable's numbers: `link` and `slots` are unused (cables join by touching and by a pole's reach), `reach`
+/// is how far machines hang on it.
+pub const CABLE_STATS: PoleTier = PoleTier { link: 1, reach: 2, slots: 0 };
 /// Cables this close (squared: touching, diagonals too) are one wire.
 const CABLE_TOUCH2: i32 = 2;
 
@@ -59,7 +63,9 @@ impl Pole {
     }
 }
 
-/// Whether poles `a` and `b` are wired together (a cable to a pole: when the cable is in the pole's reach).
+/// Whether poles `a` and `b` are within range of each other: cables touching, a cable in a pole's reach, or
+/// two real poles within their link. Cables join by range alone; real poles only by hand (`wiring.rs`),
+/// and saves before version 24 are converted with this rule (`Factory::hook_by_reach`).
 pub(super) fn linked(a: &Pole, b: &Pole) -> bool {
     let d = dist2(a.pos, b.pos);
     match (a.is_cable(), b.is_cable()) {
@@ -76,22 +82,21 @@ pub(super) fn dist2(a: IVec3, b: IVec3) -> i32 {
     d.x * d.x + d.y * d.y + d.z * d.z
 }
 
-/// The nearest pole with `pos` in its reach (the lower index on ties); a cable only when no pole reaches.
-pub(super) fn nearest_pole(poles: &[Pole], pos: IVec3) -> Option<u32> {
-    let mut best: [Option<(i32, u32)>; 2] = [None, None];
-    for (i, p) in poles.iter().enumerate() {
+/// The nearest cable (with `cable` off: real pole) with `pos` in its reach; the lower index on ties.
+pub(super) fn nearest_of(poles: &[Pole], pos: IVec3, cable: bool) -> Option<u32> {
+    let mut best: Option<(i32, u32)> = None;
+    for (i, p) in poles.iter().enumerate().filter(|(_, p)| p.is_cable() == cable) {
         let d = dist2(p.pos, pos);
-        let slot = &mut best[p.is_cable() as usize];
-        if d <= p.stats().reach * p.stats().reach && slot.is_none_or(|(bd, _)| d < bd) {
-            *slot = Some((d, i as u32));
+        if d <= p.stats().reach * p.stats().reach && best.is_none_or(|(bd, _)| d < bd) {
+            best = Some((d, i as u32));
         }
     }
-    best[0].or(best[1]).map(|b| b.1)
+    best.map(|b| b.1)
 }
 
-/// The pole nearest any of `cells` within its reach (a machine several cells big hangs on it).
-pub(super) fn hang_any(poles: &[Pole], cells: &[IVec3]) -> Option<u32> {
-    let near = |&c: &IVec3| nearest_pole(poles, c).map(|i| (dist2(poles[i as usize].pos, c), i));
+/// The cable nearest any of `cells` within its reach (a machine several cells big hangs on it).
+pub(super) fn hang_cable(poles: &[Pole], cells: &[IVec3]) -> Option<u32> {
+    let near = |&c: &IVec3| nearest_of(poles, c, true).map(|i| (dist2(poles[i as usize].pos, c), i));
     cells.iter().filter_map(near).min().map(|best| best.1)
 }
 
@@ -121,21 +126,21 @@ impl Machine for Pole {
             return "Power pole".to_string();
         }
         let me = f.poles.iter().position(|p| p.pos == self.pos).map(|i| i as u32);
+        if self.is_cable() {
+            return format!("{}\nPower cable: joins the grid of a pole in reach", f.power.grid_line(me));
+        }
         let grid = me.map(|i| f.power.pole_grid[i as usize]);
         let on = |p: &Option<u32>| p.is_some_and(|p| Some(f.power.pole_grid[p as usize]) == grid);
         let poles = f.power.pole_grid.iter().filter(|&&g| Some(g) == grid).count();
         let gens = f.power.gen_pole.iter().filter(|p| on(p)).count();
-        let machines = f.power.miner_pole.iter().chain(&f.power.process_pole).chain(&f.power.router_pole);
-        let machines = machines.chain(&f.power.lab_pole).chain(&f.power.pipe_pole).chain(&f.power.quarry_pole);
-        let machines = machines.filter(|p| on(p)).count();
-        let PoleTier { link, reach } = *self.stats();
-        if self.is_cable() {
-            return format!("{}\nPower cable: joins the grid of a pole in reach", f.power.grid_line(me));
-        }
+        let machines = f.power.miner_pole.iter().chain(&f.power.process_pole).chain(&f.power.lab_pole);
+        let machines = machines.chain(&f.power.pipe_pole).chain(&f.power.quarry_pole).filter(|p| on(p)).count();
+        let PoleTier { link, reach, slots } = *self.stats();
         format!(
-            "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\nLinks to poles within \
-             {link} blocks and powers machines within {reach}",
-            f.power.grid_line(me)
+            "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} connections used: \
+             poles within {link} blocks, machines within {reach}",
+            f.power.grid_line(me),
+            f.slots_used(self.pos)
         )
     }
 

@@ -163,7 +163,12 @@ pub const CIRCUIT: u16 = 154;
 pub const VIOLET_PACK: u16 = 155;
 pub const BELT_MK4_TOP: u16 = 156;
 pub const MINER_MK4_SIDE: u16 = 157;
-pub const COUNT: usize = 158;
+/// Solar power (`textures/solar.rs`): the panel's cells and back, the accumulator's roof and casing.
+pub const SOLAR_TOP: u16 = 158;
+pub const SOLAR_SIDE: u16 = 159;
+pub const ACCUMULATOR_TOP: u16 = 160;
+pub const ACCUMULATOR_SIDE: u16 = 161;
+pub const COUNT: usize = 162;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

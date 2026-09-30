@@ -1,11 +1,11 @@
 //! Electric power: poles, the grids they form, and how supply meets demand each tick.
 //!
-//! - A pole links to every pole within its `link` range (`pole.rs`); each connected group is a grid. A
-//!   generator or a powered machine joins the grid of the nearest pole with any of its cells in its
-//!   `reach` (ties: the lower pole index). All of this is derived from positions (`rebuild`, run by
-//!   `relink`), never saved.
+//! - Poles are wired by hand to poles and machines (`wiring.rs`); each connected group of poles is a grid,
+//!   and a machine is on the grid of the pole it is wired to. Cables are the exception (`pole.rs`): they
+//!   join poles and machines in reach by themselves, and a machine with no wire hangs on the nearest one.
+//!   The grids are derived from the stored wires (`rebuild`, run by `relink`), never saved.
 //! - Each tick `balance` adds up what each grid's machines need in kW (a miner while it drills, a
-//!   electric processor (a constructor) while it works, a splitter or filter while it holds an item, a lab while it researches,
+//!   electric processor (a constructor) while it works, a lab while it researches,
 //!   a pump while it has room, a quarry while it digs), then takes it from the generators in list
 //!   order, each up to its tier's power (`GENERATOR_TIERS`). A grid short of power runs its machines at
 //!   `speed` = supply / demand.
@@ -14,8 +14,9 @@
 //!   lights the next item (`recipes::fuel_energy`) when what it holds can't cover this tick.
 //!
 //! Sources: generators, then steam turbines (`process/steam.rs`). Consumers: miners, electric processors,
-//! splitters, filters, labs, pumps and quarries. Burner processors (the smelter) burn their own fuel. To power a new machine: its `*_pole` list here (filled in `rebuild`), its demand in
-//! `balance`, and a speed argument to its `step`.
+//! labs, pumps and quarries. Burner processors (the smelter) burn their own fuel, and belts, splitters and
+//! filters need no power. To power a new machine: its `*_pole` list here (filled in `rebuild`), its
+//! demand in `balance`, a speed argument to its `step`, and its arm in `wiring.rs` (`powered_cells`).
 
 use crate::block::tex;
 use crate::math::{IVec3, Vec3};
@@ -27,17 +28,15 @@ use super::generator::Generator;
 use super::lab::Lab;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
-use super::pole::{dist2, hang_any, linked, nearest_pole, Pole, POLE_TIERS};
-use super::process::{run_turbine, Energy, Processor};
+use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
+use super::process::{run_renewables, run_turbine, Energy, Processor};
 use super::quarry::Quarry;
 use super::render::push_box;
-use super::router::Router;
+use super::wiring::{takes_pole, Hooked};
 use super::Factory;
 
-/// What a splitter or filter draws while it holds an item, in kW.
-pub const ROUTER_POWER: u32 = 1;
-/// A Mk1 pole's reach, which the status texts quote (taller tiers reach further: `pole.rs`).
-pub const POLE_REACH: i32 = POLE_TIERS[0].reach;
+/// What a machine with no pole says (the readouts).
+pub const NOT_WIRED: &str = "No power: select a power pole in reach, then click this machine to wire it";
 /// Full speed, in thousandths.
 pub const FULL_SPEED: u32 = 1000;
 
@@ -48,11 +47,10 @@ pub(crate) struct Power {
     pub pole_grid: Vec<u32>,
     /// Pole pairs that are wired together (lower index first).
     pub wires: Vec<(u32, u32)>,
-    /// The pole each generator, miner, electric processor, router and lab hangs on, if any is in reach.
+    /// The pole (or cable) each generator, miner, electric processor and lab is on, if it is wired.
     pub gen_pole: Vec<Option<u32>>,
     pub miner_pole: Vec<Option<u32>>,
     pub process_pole: Vec<Option<u32>>,
-    pub router_pole: Vec<Option<u32>>,
     pub lab_pole: Vec<Option<u32>>,
     /// Per piece of pipework: the pole of each pump (other pieces: `None`).
     pub pipe_pole: Vec<Option<u32>>,
@@ -64,29 +62,31 @@ pub(crate) struct Power {
 }
 
 impl Power {
-    /// Recomputes grids and hookups from the machines' positions.
+    /// Recomputes grids and hookups from the stored wires (`hooked`) and the cables' positions.
     #[allow(clippy::too_many_arguments)]
-    pub fn rebuild(
+    pub(super) fn rebuild(
         poles: &[Pole],
+        hooked: &Hooked,
         gens: &[Generator],
         miners: &[Miner],
         processors: &[Processor],
-        routers: &[Router],
         labs: &[Lab],
         pipework: &[Pipework],
         quarries: &[Quarry],
     ) -> Power {
         let n = poles.len();
         let mut parent: Vec<u32> = (0..n as u32).collect();
-        let mut wires = Vec::new();
+        let mut wires = hooked.pairs.clone();
         for i in 0..n {
             for j in i + 1..n {
-                if linked(&poles[i], &poles[j]) {
+                if (poles[i].is_cable() || poles[j].is_cable()) && linked(&poles[i], &poles[j]) {
                     wires.push((i as u32, j as u32));
-                    let (a, b) = (root(&mut parent, i as u32), root(&mut parent, j as u32));
-                    parent[a.max(b) as usize] = a.min(b);
                 }
             }
+        }
+        for &(i, j) in &wires {
+            let (a, b) = (root(&mut parent, i), root(&mut parent, j));
+            parent[a.max(b) as usize] = a.min(b);
         }
         // Number the grids in order of their lowest pole.
         let mut grid_of_root = vec![u32::MAX; n];
@@ -100,7 +100,9 @@ impl Power {
             }
             pole_grid.push(grid_of_root[r]);
         }
-        let hang = |pos: IVec3| nearest_pole(poles, pos);
+        // A wired machine is on its pole; one with no wire hangs on the nearest cable in reach.
+        let wired = |pos: IVec3| hooked.by_target.get(&pos).copied();
+        let hang = |pos: IVec3| wired(pos).or_else(|| nearest_of(poles, pos, true));
         Power {
             pole_grid,
             wires,
@@ -108,15 +110,8 @@ impl Power {
             miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
             process_pole: processors
                 .iter()
-                .map(|p| {
-                    if matches!(p.energy(), Energy::Electric | Energy::Turbine) {
-                        hang_any(poles, &p.cells())
-                    } else {
-                        None
-                    }
-                })
+                .map(|p| if takes_pole(p) { wired(p.pos).or_else(|| hang_cable(poles, &p.cells())) } else { None })
                 .collect(),
-            router_pole: routers.iter().map(|r| hang(r.pos)).collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
             pipe_pole: pipework.iter().map(|p| if p.part == Part::Pump { hang(p.pos) } else { None }).collect(),
             quarry_pole: quarries.iter().map(|q| hang(q.pos)).collect(),
@@ -133,12 +128,12 @@ impl Power {
         gens: &mut [Generator],
         miners: &[Miner],
         processors: &mut [Processor],
-        routers: &[Router],
         labs: &[Lab],
         pipework: &[Pipework],
         quarries: &[Quarry],
         research: &Research,
         unlocked: &[bool],
+        tick: u64,
     ) {
         self.supply.iter_mut().for_each(|s| *s = 0);
         self.demand.iter_mut().for_each(|d| *d = 0);
@@ -151,11 +146,6 @@ impl Power {
         for (m, p) in processors.iter().zip(&self.process_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power(unlocked)) {
                 self.demand[self.pole_grid[p as usize] as usize] += m.power();
-            }
-        }
-        for (r, p) in routers.iter().zip(&self.router_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| r.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += ROUTER_POWER;
             }
         }
         for (l, p) in labs.iter().zip(&self.lab_pole) {
@@ -173,6 +163,8 @@ impl Power {
                 self.demand[self.pole_grid[p as usize] as usize] += q.stats().power;
             }
         }
+        // The sun and the accumulators come before any fuel is burned.
+        run_renewables(self, processors, tick);
         for (g, p) in gens.iter_mut().zip(&self.gen_pole) {
             g.output = 0;
             let Some(p) = *p else { continue };
@@ -219,7 +211,7 @@ impl Power {
     /// One line about the grid `pole` is on, for readouts.
     pub fn grid_line(&self, pole: Option<u32>) -> String {
         let Some(grid) = pole.map(|p| self.pole_grid[p as usize] as usize) else {
-            return format!("Not connected: place a power pole within {POLE_REACH} blocks, or hang a cable from one");
+            return NOT_WIRED.to_string();
         };
         let (s, d, c) = (self.supply[grid], self.demand[grid], self.capacity[grid]);
         if s < d {
@@ -259,7 +251,6 @@ impl Factory {
             (&self.power.gen_pole, self.generators.iter().map(|g| g.pos).collect::<Vec<_>>()),
             (&self.power.miner_pole, self.miners.iter().map(|m| m.pos).collect()),
             (&self.power.process_pole, self.processors.iter().zip(&self.power.process_pole).map(hook).collect()),
-            (&self.power.router_pole, self.routers.iter().map(|r| r.pos).collect()),
             (&self.power.lab_pole, self.labs.iter().map(|l| l.pos).collect()),
             (&self.power.pipe_pole, self.pipework.iter().map(|p| p.pos).collect()),
             (&self.power.quarry_pole, self.quarries.iter().map(|q| q.pos).collect()),

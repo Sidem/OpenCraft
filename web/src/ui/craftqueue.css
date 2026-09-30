@@ -1,4 +1,4 @@
-/* Hand-craft queue strip (craftqueue.ts): chips above the hotbar, over the inventory screen too. */
+/* Hand-craft queue strip (craftqueue.ts): a group per order, a chip per step, above the hotbar and over the inventory screen. */
 
 .craftq {
   position: fixed;
@@ -7,39 +7,52 @@
   transform: translateX(-50%);
   z-index: 12;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
-  max-width: calc(100vw - 24px);
+  max-width: min(720px, calc(100vw - 24px));
   padding: 6px;
   border-radius: 10px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
 }
 
-.craftq-chip {
-  position: relative;
-  display: grid;
-  grid-template-columns: 32px auto;
+.craftq-order {
+  display: flex;
   align-items: center;
-  gap: 2px 6px;
-  padding: 4px 8px 6px 4px;
-  border-radius: 6px;
+  gap: 4px;
+  padding: 3px 4px 3px 6px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  color: inherit;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.craftq-chip:hover,
-.craftq-chip:focus-visible {
-  border-color: #e05a4f;
-  background: rgba(224, 90, 79, 0.16);
+.craftq-next {
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.craftq-chip {
+  display: grid;
+  grid-template-columns: 28px auto;
+  align-items: center;
+  gap: 2px 5px;
+  padding: 3px 6px 4px 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 13px;
+}
+
+/* A part made on the way: dimmer than what was asked for. */
+.craftq-chip.part {
+  opacity: 0.72;
+  border-style: dashed;
 }
 
 .craftq-chip canvas {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   image-rendering: pixelated;
 }
 
@@ -53,6 +66,26 @@
 
 .craftq-fill {
   display: block;
+  width: 0;
   height: 100%;
   background: var(--accent);
+}
+
+.craftq-cancel {
+  align-self: stretch;
+  padding: 0 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.craftq-cancel:hover,
+.craftq-cancel:focus-visible {
+  color: #fff;
+  border-color: #e05a4f;
+  background: rgba(224, 90, 79, 0.25);
 }
