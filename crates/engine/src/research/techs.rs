@@ -118,6 +118,7 @@ pub const TECHS: &[Tech] = &[
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[2]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[3]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[4]),
+            Unlock::MachineRecipe(ASSEMBLY_RECIPES[5]),
             Unlock::Upgrade(ASSEMBLER, 1),
         ],
     },

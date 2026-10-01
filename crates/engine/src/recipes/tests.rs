@@ -177,6 +177,16 @@ fn the_first_machines_come_from_stone_by_way_of_ingots() {
     assert!(RECIPES.iter().all(|r| r.hand_ticks() >= BASE_TICKS && r.hand_ticks() <= MAX_TICKS));
 }
 
+/// Green packs need belts, so an assembler must be able to make them from parts a constructor makes.
+#[test]
+fn belts_are_machine_made_for_green_packs() {
+    let belts = MACHINE_RECIPES.iter().position(|m| m.main() == (b(BELT), 4)).unwrap();
+    assert_eq!(MACHINE_RECIPES[belts].category, Assembly);
+    assert!(ASSEMBLY_RECIPES.contains(&(belts as u16)));
+    let hand = RECIPES.iter().find(|r| r.output == b(BELT)).unwrap();
+    assert_eq!(MACHINE_RECIPES[belts].inputs, hand.inputs);
+}
+
 /// Time by hand follows the formula, and a row in the override table (`timing.rs`) replaces it for one recipe.
 #[test]
 fn a_recipes_hand_time_is_the_formula_unless_overridden() {

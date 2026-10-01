@@ -137,14 +137,20 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(VIOLET_KIT, 4)],
         seconds: 5.0,
     },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(IRON_PLATE, 1), (IRON_ROD, 1)],
+        outputs: &[(b(BELT), 4)],
+        seconds: 3.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
 pub const GEAR_RECIPE: u16 = 8;
 pub const BRICK_RECIPE: u16 = 9;
 pub const QUICKLIME_RECIPE: u16 = 10;
-/// The assembler's rows (Assembly): motor, concrete, red and green packs, green kits.
-pub const ASSEMBLY_RECIPES: [u16; 5] = [11, 12, 13, 14, 15];
+/// The assembler's rows (Assembly): motor, concrete, red and green packs, green kits, belts.
+pub const ASSEMBLY_RECIPES: [u16; 6] = [11, 12, 13, 14, 15, 30];
 /// The blast furnace's row and the constructor's steel plate and beam (Steelmaking).
 pub const STEEL_RECIPES: [u16; 3] = [16, 17, 18];
 /// Blue science pack and blue kit, made by assemblers only.

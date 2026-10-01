@@ -600,3 +600,5 @@ and the balance numbers. Read the section you need.
 - **2026-09-29: Step 7.3** (solar panel and accumulator; one tech). Tests 336 → 341; wasm 241.2 KB gzipped.
 - **2026-09-30: Step 7.3b, power wiring by hand** (slots per pole, manual wires, auto-wire only to the nearest powered pole, free pole placement with Shift for full reach, routers need no power; save 24). The golden hash in `sim/tests.rs` was re-recorded. The research screen is now a tech tree with hover cards (`ui/research.ts`, `ui/tech-tree.ts`).
 - **2026-09-29: Craft queue by step, timing in one file:** each order shows its steps (parts, then the item) in `ui/craftqueue.ts` (`craft_steps`); hand craft times are tuned in `recipes/timing.rs` (formula constants plus a per-recipe `OVERRIDES` table). Tests 341 → 344.
+
+- **2026-10-01: Belts are assembler-made** (user request: everything must be automatable; green packs need belts). Row 30 in `MACHINE_RECIPES` (1 plate + 1 rod -> 4 belts, assembler), unlocked by Assembly; existing saves get it. Test `belts_are_machine_made_for_green_packs`.
