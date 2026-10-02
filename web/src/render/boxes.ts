@@ -3,14 +3,11 @@
 // them into a growing GPU buffer and draws them with the lit cutout shader: the daylight, lamps and
 // shade of the cell each box stands in (the engine packs that light into the last float).
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
-// top/side/bottom, uv mode + 2 × light. Attribute locations 1–3 read it as three vec4s (see `S.boxVert`).
+// top/side/bottom, uv mode + 2 × light, pitch, roll, taper, reserved. Four vec4s (see `S.boxVert`).
 
 import { createProgram, uniforms } from './gl';
 import * as S from './shaders';
 import type { Sky } from './sky';
-
-/** Floats per box instance; must match `factory::INSTANCE_FLOATS` in the engine. */
-export const INSTANCE_FLOATS = 12;
 
 export class BoxPipeline {
   private readonly prog: WebGLProgram;
@@ -19,7 +16,7 @@ export class BoxPipeline {
   private readonly instances: WebGLBuffer;
   private capacity = 0;
 
-  constructor(private readonly gl: WebGL2RenderingContext) {
+  constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number) {
     this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT']);
     this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight'] as const);
 
@@ -33,9 +30,9 @@ export class BoxPipeline {
     gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 16, 0);
     this.instances = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
-    for (const [loc, offset] of [[1, 0], [2, 16], [3, 32]]) {
+    for (const [loc, offset] of [[1, 0], [2, 16], [3, 32], [4, 48]]) {
       gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, INSTANCE_FLOATS * 4, offset);
+      gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, instanceFloats * 4, offset);
       gl.vertexAttribDivisor(loc, 1);
     }
     gl.bindVertexArray(null);
@@ -61,12 +58,12 @@ export class BoxPipeline {
     gl.uniform3f(this.u.u_skyLight, ...sky.light);
     gl.uniform2f(this.u.u_fog, ...fog.range);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
-    const bytes = count * INSTANCE_FLOATS * 4;
+    const bytes = count * this.instanceFloats * 4;
     if (bytes > this.capacity) {
       this.capacity = Math.max(bytes, this.capacity * 2);
       gl.bufferData(gl.ARRAY_BUFFER, this.capacity, gl.DYNAMIC_DRAW);
     }
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, boxes, 0, count * INSTANCE_FLOATS);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, boxes, 0, count * this.instanceFloats);
     gl.bindVertexArray(this.vao);
     gl.drawArraysInstanced(gl.TRIANGLES, 0, 36, count);
     return 1;

@@ -1,101 +1,89 @@
-//! Other players as the local player sees them: a body, a head with a helmet and a visor that shows
-//! where they look, drawn with the box instances, and a name-tag anchor above each head (`labels`,
-//! positioned by the host page). What is drawn glides towards each body's latest position and view
-//! (bodies moved by another machine update 20 times a second: net/players.rs) and jumps when more than
-//! `SNAP` blocks away. Presentation only: nothing here touches the core or the bodies.
-//! To change the look: the sizes below and the `AVATAR_*` textures (`textures.rs`).
+//! Kestrel survey robots: presentation-only poses, interpolated co-op bodies and name anchors.
+//! `motion` blends locomotion and hand gestures; `model` draws the articulated procedural rig.
+//! No animation changes physics, saves or the deterministic core. Tune the rig in `model.rs`.
 
 use std::f64::consts::{PI, TAU};
 
-use crate::block::tex;
-use crate::factory::push_box;
+use crate::item::ItemId;
 use crate::math::Vec3;
 use crate::Game;
+use motion::Motion;
 
-/// Floats per name-tag anchor: player id, camera-relative x, y, z.
+mod model;
+mod motion;
+
 pub const LABEL_FLOATS: usize = 4;
-const BODY: [f32; 3] = [0.6, 1.3, 0.34];
-const HEAD: [f32; 3] = [0.46, 0.46, 0.46];
-const VISOR: [f32; 3] = [0.36, 0.13, 0.06];
-/// Height of a name tag's anchor above the feet.
-const LABEL_HEIGHT: f64 = 2.05;
-/// Name tags show within this many blocks.
 const LABEL_RANGE: f64 = 64.0;
-/// An avatar whose head is closer than this to the camera isn't drawn (players who share a spot,
-/// such as two who just joined at spawn, would otherwise fill each other's view).
-const NEAR: f64 = 0.9;
-/// How fast what is drawn closes the gap to the body (per second).
 const GLIDE_RATE: f64 = 14.0;
 const SNAP: f64 = 8.0;
 
 #[derive(Default)]
 pub struct Avatars {
-    /// What is drawn of each body, indexed by `PlayerId` (none for the local player).
     shown: Vec<Option<Shown>>,
-    /// This frame's name-tag anchors, `LABEL_FLOATS` each.
+    local_motion: Motion,
     pub labels: Vec<f32>,
 }
 
-#[derive(Clone, Copy)]
 struct Shown {
     pos: Vec3,
     yaw: f64,
     pitch: f64,
+    motion: Motion,
 }
 
 impl Game {
-    /// Glides every other player's avatar on by `dt` seconds and pushes its boxes and name tag.
     pub(crate) fn write_avatars(&mut self, dt: f64, eye: Vec3) {
+        let dt = dt.clamp(0.0, 0.1);
         let k = 1.0 - (-GLIDE_RATE * dt).exp();
-        let (a, local) = (&mut self.avatars, self.local.0 as usize);
+        let local = self.local.0 as usize;
+        let held = self.inventory().selected_stack().item;
+        let focus = self.avatar_focus() - eye;
+        let a = &mut self.avatars;
         a.labels.clear();
-        a.shown.resize(self.bodies.len(), None);
+        a.shown.resize_with(self.bodies.len(), || None);
         for (slot, body) in self.bodies.iter().enumerate() {
-            let Some(body) = body.as_ref().filter(|_| slot != local) else {
+            let Some(body) = body.as_ref() else {
                 a.shown[slot] = None;
                 continue;
             };
-            let s = match &mut a.shown[slot] {
-                Some(s) if (body.pos - s.pos).length() < SNAP => {
-                    s.pos += (body.pos - s.pos) * k;
-                    s.yaw += ((body.yaw - s.yaw + PI).rem_euclid(TAU) - PI) * k;
-                    s.pitch += (body.pitch - s.pitch) * k;
-                    *s
+            if slot == local {
+                a.local_motion.advance(body, dt);
+                a.local_motion.focus = Some(focus);
+                if let Some(feet) = self.third_person.feet {
+                    model::push_avatar(&mut self.instances, feet - eye, body.yaw, body.pitch, &a.local_motion, held);
                 }
-                shown => *shown.insert(Shown { pos: body.pos, yaw: body.yaw, pitch: body.pitch }),
-            };
+                continue;
+            }
+            let s = a.shown[slot].get_or_insert_with(|| Shown {
+                pos: body.pos,
+                yaw: body.yaw,
+                pitch: body.pitch,
+                motion: Motion::default(),
+            });
+            if (body.pos - s.pos).length() >= SNAP {
+                s.pos = body.pos;
+                s.motion = Motion::default();
+            } else {
+                s.pos += (body.pos - s.pos) * k;
+            }
+            s.yaw += ((body.yaw - s.yaw + PI).rem_euclid(TAU) - PI) * k;
+            s.pitch += (body.pitch - s.pitch) * k;
+            s.motion.advance(body, dt);
             let at = s.pos - eye;
-            if push_avatar(&mut self.instances, at, s.yaw, s.pitch) && at.length() < LABEL_RANGE {
-                let tag = at + up(LABEL_HEIGHT);
+            let held = self
+                .sim
+                .players
+                .get(slot)
+                .and_then(Option::as_ref)
+                .map_or(ItemId::NONE, |p| p.inventory.selected_stack().item);
+            if model::push_avatar(&mut self.instances, at, s.yaw, s.pitch, &s.motion, held) && at.length() < LABEL_RANGE
+            {
+                let tag = at + Vec3::new(0.0, 2.05 - s.motion.crouch * 0.3, 0.0);
                 a.labels.extend_from_slice(&[slot as f32, tag.x as f32, tag.y as f32, tag.z as f32]);
             }
         }
-        // The local player, when the camera is out of the head (camera.rs).
-        if let Some(feet) = self.third_person.feet {
-            let (yaw, pitch) = (self.body().yaw, self.body().pitch);
-            push_avatar(&mut self.instances, feet - eye, yaw, pitch);
-        }
     }
 }
 
-/// Pushes one avatar standing at `at` (feet, relative to the camera) turned to `yaw`, its visor tilted
-/// by `pitch`. False when it isn't drawn because the camera is in its head.
-fn push_avatar(instances: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64) -> bool {
-    let head = at + up((BODY[1] + HEAD[1] * 0.5) as f64);
-    if head.length() < NEAR {
-        return false;
-    }
-    let turn = yaw as f32;
-    push_box(instances, at + up(BODY[1] as f64 * 0.5), turn, BODY, 0.0, [tex::AVATAR_SUIT; 3], false);
-    let skin = [tex::AVATAR_HELMET, tex::AVATAR_SKIN, tex::AVATAR_SKIN];
-    push_box(instances, head, turn, HEAD, 0.0, skin, false);
-    let ahead = ((HEAD[2] + VISOR[2]) * 0.5) as f64 - 0.01;
-    let (sin, cos) = yaw.sin_cos();
-    let visor = head + Vec3::new(sin * ahead, 0.03 + pitch.sin() * 0.1, -cos * ahead);
-    push_box(instances, visor, turn, VISOR, 0.0, [tex::AVATAR_VISOR; 3], false);
-    true
-}
-
-fn up(y: f64) -> Vec3 {
-    Vec3::new(0.0, y, 0.0)
-}
+#[cfg(test)]
+mod tests;

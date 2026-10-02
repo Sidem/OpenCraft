@@ -168,7 +168,11 @@ pub const SOLAR_TOP: u16 = 158;
 pub const SOLAR_SIDE: u16 = 159;
 pub const ACCUMULATOR_TOP: u16 = 160;
 pub const ACCUMULATOR_SIDE: u16 = 161;
-pub const COUNT: usize = 162;
+/// Kestrel robot materials (`textures/avatar.rs`).
+pub const AVATAR_JOINT: u16 = 162;
+pub const AVATAR_TRIM: u16 = 163;
+pub const AVATAR_PACK: u16 = 164;
+pub const COUNT: usize = 165;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

@@ -48,17 +48,29 @@ fn first_person_stays_in_the_head_and_draws_no_avatar() {
 }
 
 #[test]
-fn third_person_backs_away_gradually_along_the_line_of_sight() {
+fn third_person_backs_away_gradually_over_the_right_shoulder() {
     let mut view = ThirdPerson { distance: 4.0, ..Default::default() };
     let eye = Vec3::new(3.0, 70.0, 3.0);
     let look = Vec3::new(0.0, 0.0, -1.0);
     // One frame in, the camera has hardly left the head (no sudden jump of the view).
     let first = view.camera(eye, eye, look, 1.0 / 60.0, |_| false);
     assert!((first - eye).length() < 0.5);
-    // Then it settles four blocks behind: opposite to where the player looks, on the same line.
+    // Then it settles four blocks behind and slightly right, leaving the player left of the aim.
     let cam = settle(&mut view, eye, look, 4.0, |_| false);
-    assert!((cam - Vec3::new(3.0, 70.0, 7.0)).length() < 0.05, "camera at {cam:?}");
+    assert!((cam - Vec3::new(3.96, 70.0, 7.0)).length() < 0.05, "camera at {cam:?}");
     assert!(view.feet.is_some());
+}
+
+#[test]
+fn shoulder_path_and_new_obstructions_keep_the_camera_out_of_terrain() {
+    let eye = Vec3::new(3.5, 70.5, 3.5);
+    let look = Vec3::new(0.0, 0.0, -1.0);
+    let mut view = ThirdPerson { distance: 6.0, ..Default::default() };
+    settle(&mut view, eye, look, 4.0, |_| false);
+    // Introduce a wall along the shoulder path after the camera has already backed out.
+    let cam = view.camera(eye, eye, look, 1.0 / 60.0, |p| p.x >= 4 && p.z >= 5);
+    assert!(cam.x < 4.0 || cam.z < 5.0, "camera is immediately outside the new wall: {cam:?}");
+    assert!((view.aim_eye(eye, look) - cam).length() < 0.001);
 }
 
 #[test]

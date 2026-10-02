@@ -66,6 +66,8 @@ pub struct Player {
     pub in_water: bool,
     pub flying: bool,
     pub input: PlayerInput,
+    /// Presentation-only hands: bit 0 mining, bit 1 using. Relayed to co-op peers, never saved.
+    pub gesture: u8,
     /// Downward speed at the most recent touchdown; the game consumes and resets it (landing sound).
     pub landing_speed: f64,
     /// Downward speed when the body last entered water; the game consumes and resets it (splash).
@@ -85,6 +87,7 @@ impl Player {
             in_water: false,
             flying: false,
             input: PlayerInput::default(),
+            gesture: 0,
             landing_speed: 0.0,
             splash_speed: 0.0,
             against_wall: false,

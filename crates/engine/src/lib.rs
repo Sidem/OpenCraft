@@ -242,7 +242,11 @@ impl Game {
         let (look, solid) = (self.body().look_dir(), &self.sim.world);
         let solid = |p| solid.get_block(p).is_some_and(|b| block::SOLID[b as usize]);
         self.render_eye = self.third_person.camera(eye, feet, look, dt, solid);
-        self.update_target();
+        if self.third_person.active() {
+            self.update_target_at(self.render_eye);
+        } else {
+            self.update_target();
+        }
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();
         self.write_item_instances(dt, eye);
@@ -269,6 +273,7 @@ impl Game {
         self.update_target();
         self.update_mining(TICK as f32);
         self.update_placing(TICK as f32);
+        self.body_mut().gesture = u8::from(self.mining) | (u8::from(self.using) << 1);
 
         self.step_items();
         if self.role.may_step(self.sim.tick) {

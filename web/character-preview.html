@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kestrel · OpenCraft character preview</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; background: #101f28; color: #e3eadf; font: 15px/1.5 system-ui, sans-serif; }
+      canvas { width: 100vw; height: 100vh; display: block; }
+      header { position: absolute; top: 28px; left: 32px; max-width: 350px; padding: 18px 22px; border-radius: 14px; background: #122a35e8; pointer-events: none; }
+      .eyebrow { color: #efaf67; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; }
+      h1 { margin: 4px 0 8px; font-size: 42px; letter-spacing: -.04em; }
+      p { margin: 0; color: #b5c9c7; }
+      footer { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); width: min(900px, 94vw); text-align: center; }
+      nav { display: flex; justify-content: center; gap: 7px; flex-wrap: wrap; margin: 10px 0; }
+      button, a, select { border: 1px solid #52656a; border-radius: 8px; background: #142c35ed; color: #e3eadf; padding: 9px 14px; font: inherit; cursor: pointer; text-decoration: none; }
+      button[aria-pressed="true"] { border-color: #e7a960; background: #dc9850; color: #12242a; }
+      button:hover, a:hover { border-color: #efc18b; }
+      #status { font-size: 12px; color: #aec4c5; }
+      #crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 28px; display: none; }
+      .link { position: absolute; top: 32px; right: 32px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="scene" aria-label="Animated Kestrel survey robot"></canvas>
+    <header><span class="eyebrow">OpenCraft · Field survey unit</span><h1>Kestrel</h1><p>A small explorer built for a big frontier.<br />Ivory shell. Teal joints. Amber optics.</p></header>
+    <a class="link" href="/">Play the game ↗</a>
+    <span id="crosshair" aria-hidden="true">+</span>
+    <footer>
+      <nav aria-label="Animation">
+        <button data-pose="idle" aria-pressed="true">Idle</button><button data-pose="walk">Walk</button>
+        <button data-pose="sprint">Sprint</button><button data-pose="crouch">Crouch</button>
+        <button data-pose="sneak">Crouch walk</button><button data-pose="mine">Mine</button>
+        <button data-pose="place">Place</button><button data-pose="jump">Jump</button>
+      </nav>
+      <nav aria-label="View"><button data-view="front" aria-pressed="true">Front</button><button data-view="back">Back</button><button data-view="shoulder">In-game shoulder view</button><select aria-label="Aim direction" id="aim"><option value="0">Look level</option><option value="0.55">Look up</option><option value="-0.55">Look down</option></select></nav>
+      <p id="status">Preparing character…</p>
+    </footer>
+    <script type="module" src="/art/character.js"></script>
+  </body>
+</html>

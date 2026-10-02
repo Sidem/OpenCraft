@@ -12,7 +12,6 @@ import type { Coop } from './net/coop';
 import { hostWorld, startCoop } from './net/session';
 import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
-import { INSTANCE_FLOATS } from './render/boxes';
 import { Renderer } from './render/renderer';
 import { clock } from './render/sky';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
@@ -75,7 +74,8 @@ async function main(): Promise<void> {
   else worlds.textContent = opened.notice;
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
-  const renderer = new Renderer(canvas, viewRadius);
+  const instanceFloats = game.instance_floats();
+  const renderer = new Renderer(canvas, viewRadius, instanceFloats);
   const texPixels = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
   renderer.setTextures(texPixels, game.texture_size(), game.texture_layers());
   const hud = new Hud(game, texPixels, game.texture_size());
@@ -329,7 +329,7 @@ async function main(): Promise<void> {
       target: hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
-      boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * INSTANCE_FLOATS),
+      boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),
       boxCount: game.instance_count(),
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),

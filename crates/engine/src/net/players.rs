@@ -7,7 +7,8 @@
 //! removing the ones no longer listed. `avatars.rs` glides and draws them; `items.rs` rides on the
 //! same clock.
 //!
-//! Bytes: a state is the position (`vec3`), yaw and pitch (`f32`) and flying (`bool`). A client sends
+//! Bytes: position (`vec3`), yaw/pitch and velocity (`f32`), then flags for flying, crouching,
+//! ground contact, water and the two hand gestures. A client sends
 //! one; the host sends a count, then (`u8` player, state) per body. A damaged buffer is refused whole.
 //! Invariant: none of this touches the core; bodies are the authority's (authority.rs).
 //! To send more about a body: add it to `write_state`, `read_state` and `BodyState::apply`.
@@ -135,16 +136,21 @@ struct BodyState {
     pos: Vec3,
     yaw: f32,
     pitch: f32,
-    flying: bool,
+    vel: Vec3,
+    flags: u8,
 }
 
 impl BodyState {
     fn apply(self, body: &mut Player) {
         body.pos = self.pos;
-        body.vel = Vec3::ZERO;
+        body.vel = self.vel;
         body.yaw = self.yaw as f64;
         body.pitch = self.pitch as f64;
-        body.flying = self.flying;
+        body.flying = self.flags & 1 != 0;
+        body.input.crouch = self.flags & 2 != 0;
+        body.on_ground = self.flags & 4 != 0;
+        body.in_water = self.flags & 8 != 0;
+        body.gesture = self.flags >> 4;
     }
 }
 
@@ -152,14 +158,29 @@ fn write_state(body: &Player, w: &mut ByteWriter) {
     w.vec3(body.pos);
     w.f32(body.yaw as f32);
     w.f32(body.pitch as f32);
-    w.bool(body.flying);
+    w.f32(body.vel.x as f32);
+    w.f32(body.vel.y as f32);
+    w.f32(body.vel.z as f32);
+    w.u8(u8::from(body.flying)
+        | (u8::from(body.crouched()) << 1)
+        | (u8::from(body.on_ground) << 2)
+        | (u8::from(body.in_water) << 3)
+        | (body.gesture << 4));
 }
 
 /// A state, or `None` if damaged (including numbers that aren't finite).
 fn read_state(r: &mut ByteReader) -> Option<BodyState> {
-    let s = BodyState { pos: r.vec3()?, yaw: r.f32()?, pitch: r.f32()?, flying: r.bool()? };
-    let finite = [s.pos.x, s.pos.y, s.pos.z, s.yaw as f64, s.pitch as f64].iter().all(|v| v.is_finite());
-    finite.then_some(s)
+    let s = BodyState {
+        pos: r.vec3()?,
+        yaw: r.f32()?,
+        pitch: r.f32()?,
+        vel: Vec3::new(r.f32()? as f64, r.f32()? as f64, r.f32()? as f64),
+        flags: r.u8()?,
+    };
+    let finite = [s.pos.x, s.pos.y, s.pos.z, s.yaw as f64, s.pitch as f64, s.vel.x, s.vel.y, s.vel.z]
+        .iter()
+        .all(|v| v.is_finite());
+    (finite && s.flags & 0xc0 == 0).then_some(s)
 }
 
 fn read_list(r: &mut ByteReader) -> Option<Vec<(PlayerId, BodyState)>> {

@@ -349,6 +349,27 @@ fn send_state(client: &mut Game, host: &mut Game) {
 }
 
 #[test]
+fn co_op_body_states_preserve_the_visual_pose_without_touching_core_state() {
+    let (mut host, mut client) = pair();
+    let before = host.state_hash();
+    let body = client.body_mut();
+    body.vel = Vec3::new(2.0, 0.0, -3.0);
+    body.input.crouch = true;
+    body.on_ground = true;
+    body.in_water = true;
+    body.gesture = 3;
+    for _ in 0..STATE_TICKS {
+        client.net_tick();
+    }
+    assert!(host.host_state(1, &client.take_states()));
+    let shown = host.bodies[1].as_ref().unwrap();
+    assert_eq!(shown.vel, Vec3::new(2.0, 0.0, -3.0));
+    assert!(shown.crouched() && shown.on_ground && shown.in_water);
+    assert_eq!(shown.gesture, 3);
+    assert_eq!(host.state_hash(), before);
+}
+
+#[test]
 fn players_see_each_other_through_state_bytes() {
     let (mut host, mut client) = ready_pair();
     // B hovers above spawn on its own machine: the host shows it there and runs no physics for it,
@@ -374,7 +395,8 @@ fn players_see_each_other_through_state_bytes() {
     assert_eq!(client.bodies[0].as_ref().unwrap().pos, host.bodies[0].as_ref().unwrap().pos);
     assert!(client.bodies[c].is_some() && client.body().pos == spot);
     client.update(0.0);
-    assert_eq!((client.instance_count(), client.label_count()), (6, 2), "two avatars of three boxes each");
+    assert_eq!(client.label_count(), 2);
+    assert!(client.instance_count() > 60, "both articulated avatars are visible");
     host.remove_player(c as u32);
     host.run_ticks(STATE_TICKS);
     assert!(client.push_states(&host.take_states()));

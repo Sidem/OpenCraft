@@ -2,7 +2,6 @@
 // Visit /art-preview.html or ?view=materials. All layout edits use public engine actions.
 import init, { Game } from '../src/wasm/engine.js';
 import { Renderer } from '../src/render/renderer.ts';
-import { INSTANCE_FLOATS } from '../src/render/boxes.ts';
 import { Hud } from '../src/ui/hud.ts';
 import { worldMaterialSamples } from './materials.js';
 
@@ -20,6 +19,7 @@ const status=document.querySelector('#status');
 try {
   const wasm=await init();
   const game=new Game(2024,3);
+  const INSTANCE_FLOATS=game.instance_floats();
   game.toggle_fly();
   const tick=(n=2)=>{ for(let i=0;i<n;i++) game.update(1/60); };
   const stream=()=>{ game.begin_work(); while(game.work_step()); };
@@ -73,7 +73,7 @@ try {
     const source = gl.shaderSource.bind(gl);
     gl.shaderSource = (shader, code) => source(shader, code.replace('#define TERRAIN', '// tint disabled for measurement'));
   }
-  const renderer=new Renderer(canvas,3);
+  const renderer=new Renderer(canvas,3,INSTANCE_FLOATS);
   const tex=new Uint8Array(wasm.memory.buffer,game.texture_ptr(),game.texture_byte_len()).slice();
   renderer.setTextures(tex,game.texture_size(),game.texture_layers());
   for(let kind;(kind=game.next_event())!==0;) {

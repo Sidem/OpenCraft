@@ -25,9 +25,9 @@ folder with `mod.rs`.
 | `action/blocks.rs`, `codec.rs`, `multiblock.rs` | `blocks.rs`: what `BreakBlock` and `PlaceBlock` do (`break_block`, `place_block`, tool wear); `Action::write` / `read` (a tag byte, then the fields; damaged bytes give `None`), `is_peer_input`; `place_footprint` (a multi-block machine: every cell free, the rest `MACHINE_PART`) and `clear_parts` (breaking any cell breaks it, from `break_block`) |
 | `net/mod.rs` | Co-op lockstep: `Role` (`Solo`, `Host`, `Client`), `route` (where an action goes), host frames (`end_tick`, `host_stamp`, `take_frames`), client outbox and confirmed tick (`take_outbox`, `push_frames`, `catch_up`), `become_client`, checksums every `CHECKSUM_TICKS`, `INPUT_DELAY`. Tests wire a host and a client `Game` through bytes (joining mid-run, leaving and returning, a full world) |
 | `net/snapshot.rs` | Join snapshots: the save bytes plus the queued actions (`snapshot_bytes`, `read_snapshot`); `resync_from` (a client replaces its core in place, keeping its body and loaded chunks: `World::adopt_loaded`) |
-| `net/players.rs` | What players see of each other: `Role::drives` (which machine moves a body), `set_peer`, `net_tick` (states 20 a second, the host's item views 10), `take_states`, `host_state_of`, `push_body_states` (clients add and drop bodies to match) |
+| `net/players.rs` | Co-op bodies at 20 Hz: position, look, velocity, crouch/ground/water and hand gestures; `Role::drives`, `set_peer`, `net_tick`, `take_states`, `host_state_of`, `push_body_states`; clients add/drop bodies to match |
 | `net/items.rs` | Host-owned loose items: `write_item_views` / `item_view_for` (items near each peer), a client's `ItemView` (`push_item_view`, glided by id), `write_item_instances` |
-| `avatars.rs` | Other players (and the local one in third person) drawn as body, head and visor boxes, glided towards their bodies; name-tag anchors (`labels`); hidden at the camera |
+| `avatars.rs`, `avatars/motion.rs`, `avatars/model.rs` | Kestrel robot rig for local third person and co-op; eased distance-paced gait, crouch, airborne/water and hand gestures; articulated knees/elbows, held item models; interpolated remote bodies and name anchors |
 | `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world, only for bodies this machine moves), `stream_around_players`, loose items and pickups for the nearest player (`step_items`), `throw`, `spawn_item` (never on a client), `join` (by key, up to `MAX_PLAYERS`; a returning key comes back where it left) / `leave` |
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
@@ -105,7 +105,7 @@ folder with `mod.rs`.
 | `ore_guide.rs` | Helping find ore (queries): `guide_rows` / `guide_notes` (the ore guide from the world's own generator numbers), `stain_reading` (what lies under stained soil, how deep) |
 | `recipes/mod.rs` | Hand-crafting recipes (`RECIPES`, each in a build-menu `Group`; every tier item's recipe, the previous tier plus kits, is a `pub const` in `recipes/tiers.rs`); the boiler, turbine, crusher and silo recipes are in `recipes/heavy.rs`, the arc furnace's in `recipes/electronics.rs`, the cable's in `recipes/wiring.rs` and the tool recipes in `recipes/tooling.rs`; the hand-made parts (plate, rod, screw, wire) are in `recipes/materials.rs`, solar panel and accumulator in `recipes/solar.rs`. How long a hand craft takes: `recipes/timing.rs` (the formula constants and the per-recipe `OVERRIDES` table) |
 | `recipes/machine.rs` | Machine recipes (`MACHINE_RECIPES`: a `Category` (smelting, pressing, assembly, blasting, crushing, arc), inputs, outputs main first; saved by index: append only; the rows research locks: `GEAR_RECIPE`, `BRICK_RECIPE`, `QUICKLIME_RECIPE`, `ASSEMBLY_RECIPES`, `STEEL_RECIPES`, `CRUSH_RECIPES`, `ELECTRONICS_RECIPES`), `FUELS` (smelter seconds and generator kJ). Which machine takes which category: its spec (`factory/process/specs.rs`). `recipes/tests.rs`: content lint (every item has a source and a use, categories have machines, outputs fit, tiers can be made, no hand recipe uses raw ore) |
-| `camera.rs` | Presentation-only camera: `CrouchGlide` eases the eye between standing and crouching height; `ThirdPerson` (comfort option, `set_third_person`): the camera behind the eye on the line of sight, pulled in by solid blocks and eased, the local avatar's `feet` (drawn by `avatars.rs`); both called from `Game::update` |
+| `camera.rs`, `interaction/aim.rs` | Eased crouch and collision-tested right-shoulder camera; avatar left of the crosshair; camera-ray targeting with reach and visibility checked from the real eye; local avatar's interpolated feet |
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders and belt lifts, fly); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
@@ -115,7 +115,7 @@ folder with `mod.rs`.
 | `minimap.rs` | The maps' pictures (presentation only): `draw` (any window of the explored map at any scale, shaded by the height step; ore in its mark colour), `redraw` (the minimap around the player), other players' marks |
 | `minimap/atlas.rs` | The explored map: top block and height of every column seen, per chunk column (`Tile`, with its ore `spots`), kept after unloading; `touch` on mesh events, `refresh_some` per frame, `refresh_in` for the minimap; `export` / `import` bytes the host stores; `MAX_TILES` |
 | `minimap/marks.rs` | Map marks (presentation): `Known` (prospected veins and lodes, `remember` from `prospect.rs`, `export` / `import` for the browser's world record), `Minimap::marks` / `marks_in` (flat records with colours: ore seen at the surface, deposits (dry ones left out), machines), `ore_color` |
-| `textures.rs` | Procedural 16×16 textures, one layer per `block::tex` constant; shared noise helpers and avatar patterns |
+| `textures.rs`, `textures/avatar.rs` | Procedural 16×16 texture dispatch and shared helpers; Kestrel's ivory, teal, graphite and amber materials |
 | `textures/nature.rs` | Alpine natural blocks: slate, pebbled earth, turf with blades, ragged grass edge, rippled sand, leaf clusters (4 looks), bark, bedrock; the four surface hints (`HINTS`) |
 | `textures/paint.rs` | Painting helpers: palette ramps, wrapping cells, blobs kept inside the tile |
 | `textures/ores.rs` | Coal lumps, iron nodules, copper crusts, quartz crystals, limestone fossils; four looks each on the slate host |
@@ -152,7 +152,7 @@ folder with `mod.rs`.
 | `render/renderer.ts` | Chunk meshes (culling, opaque + cutout passes, fog), target outline, mining crack, `project` (camera-relative point to CSS pixels) |
 | `render/water.ts` | The liquid range drawn last (blended, back to front, both sides) and the underwater fog (`fogFor`, from `eye_in_water`) |
 | `render/outlines.ts` | Overlays: mining cracks (the player's and quarries'), a dragged belt line's cells (`line_cells`), placement boxes (amber; red cells in a machine's way); the renderer's line and crack programs |
-| `render/boxes.ts` | Instanced box pipeline (items, belt items, machine parts, lit by the cell each stands in); `INSTANCE_FLOATS` |
+| `render/boxes.ts` | Instanced box pipeline (items, machines, articulated avatars); yaw/pitch/roll and tapered parts; record size from `game.instance_floats()` |
 | `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |
 | `render/shaders.ts` | GLSL sources; the light curve (sky light × daylight, warm block light, `CAVE_FLOOR`); periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`) |
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
@@ -185,7 +185,7 @@ folder with `mod.rs`.
 | `audio/synth.ts` | Procedural foley synthesis (dials → samples) |
 | `audio/sound.ts` | Engine sound events → Web Audio voices, buffer cache, previews |
 | `wasm/` | Generated by `npm run build:wasm` (gitignored); `engine.d.ts` is the API reference |
-| `../art-preview.html`, `../art/scene.js`, `../art/materials.js` | Development-only art review page; fixed seed-2024 factory fixture using public actions and the production renderer, 3×3 material samples rendered through the terrain shader, optional raw tiles and synthetic render benchmark; excluded from the production entry |
+| `../art-preview.html`, `../art/scene.js`, `../art/materials.js`; `../character-preview.html`, `../art/character.js` | Development-only, save-free art fixtures through the production renderer; material/factory review and benchmarks; interactive Kestrel poses, aim directions and front/back/shoulder views |
 
 ## Signalling Worker: `signal/` (Cloudflare, co-op)
 

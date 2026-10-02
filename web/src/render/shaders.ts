@@ -146,6 +146,7 @@ layout(location = 0) in vec4 a_corner; // unit cube corner (±0.5) and face inde
 layout(location = 1) in vec4 a_i0;     // camera-relative centre, yaw
 layout(location = 2) in vec4 a_i1;     // size, uv scroll (top face)
 layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; uv mode (0 whole texture, 1 world-scaled) + 2 * light
+layout(location = 4) in vec4 a_i3;     // pitch, roll, top-width taper, reserved
 
 uniform mat4 u_viewProj;
 uniform vec3 u_skyLight;
@@ -160,6 +161,7 @@ const vec3 NORMALS[6] = vec3[6](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), ve
 void main() {
   int face = int(a_corner.w + 0.5);
   vec3 local = a_corner.xyz * a_i1.xyz;
+  local.x *= mix(1.0, a_i3.z, a_corner.y + 0.5);
   // Whole texture on every face (items), or texels at world scale like terrain (machine parts).
   float worldUv = mod(a_i2.w, 2.0);
   vec3 q = mix(a_corner.xyz, local, worldUv) + 0.5;
@@ -174,7 +176,10 @@ void main() {
 
   // Yaw turns local -Z towards (sin, 0, -cos), matching the player's look direction.
   float s = sin(a_i0.w), c = cos(a_i0.w);
-  mat3 rot = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c);
+  float sp = sin(a_i3.x), cp = cos(a_i3.x), sr = sin(a_i3.y), cr = cos(a_i3.y);
+  mat3 tilt = mat3(1.0, 0.0, 0.0, 0.0, cp, sp, 0.0, -sp, cp);
+  mat3 roll = mat3(cr, sr, 0.0, -sr, cr, 0.0, 0.0, 0.0, 1.0);
+  mat3 rot = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c) * roll * tilt;
   vec3 n = rot * NORMALS[face];
   v_light = n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86));
   v_uvl = vec3(uv, layer);

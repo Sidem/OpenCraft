@@ -146,6 +146,11 @@ impl Game {
         self.instances.len() / INSTANCE_FLOATS
     }
 
+    /// Record size for the renderer; kept here so hosts never mirror the instance format.
+    pub fn instance_floats(&self) -> usize {
+        INSTANCE_FLOATS
+    }
+
     /// Byte offset of this frame's name-tag anchors, one per other player in range: `label_count()`
     /// records of (player id, camera-relative x, y, z) as f32.
     pub fn label_ptr(&self) -> usize {

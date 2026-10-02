@@ -13,8 +13,9 @@ use super::{Factory, Machine};
 /// Floats per box instance: centre xyz (camera-relative), yaw, size xyz, uv scroll,
 /// texture layers top/side/bottom, and the last float: uv mode (0 = whole texture per face, 1 =
 /// world-scaled) plus twice the light byte (sky in the low nibble, block light in the high one, as
-/// `light.rs` writes it). `push_box` starts every box at [`DAYLIGHT`]; `light_boxes` sets the real light.
-pub const INSTANCE_FLOATS: usize = 12;
+/// `light.rs` writes it), then pitch, roll, top-width taper and a reserved float. `push_box` starts
+/// every box at [`DAYLIGHT`]; `light_boxes` sets the real light. Ordinary boxes have no tilt or taper.
+pub const INSTANCE_FLOATS: usize = 16;
 const MODE_LIGHT: usize = 11;
 
 /// Pushes one box instance (see [`INSTANCE_FLOATS`]).
@@ -41,6 +42,10 @@ pub fn push_box(
         tex[1] as f32,
         tex[2] as f32,
         packed(world_uv, DAYLIGHT),
+        0.0,
+        0.0,
+        1.0,
+        0.0,
     ]);
 }
 

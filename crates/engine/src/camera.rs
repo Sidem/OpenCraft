@@ -2,8 +2,8 @@
 //! `CrouchGlide`: the eye glides between standing and crouching height instead of snapping, because a
 //! sudden vertical jump of the whole view is a common trigger of motion sickness.
 //! `ThirdPerson`: a comfort option (the host sets the distance, 0 is first person). The camera sits
-//! behind the eye on the line of sight, so the crosshair still marks exactly what the hands aim at
-//! (targeting always uses the real eye), and it is pulled in by solid blocks and eased so it never pops.
+//! behind the right shoulder, leaving the avatar left of the crosshair. Interaction traces this
+//! camera ray, then checks reach and visibility from the hands (interaction/aim.rs).
 //! The local player's avatar is drawn from `feet` (avatars.rs). To ease another view change, add it here
 //! and apply it in `Game::update`.
 
@@ -21,6 +21,9 @@ const PROBE_STEP: f64 = 0.1;
 /// How fast the camera backs away from the eye (per second) and how fast it closes in on a wall.
 const ZOOM_OUT_RATE: f64 = 3.0;
 const ZOOM_IN_RATE: f64 = 25.0;
+/// Shoulder offset grows with distance, then caps so a distant camera keeps aiming near the body.
+const SHOULDER_RATIO: f64 = 0.24;
+const MAX_SHOULDER: f64 = 1.15;
 
 #[derive(Default)]
 pub struct CrouchGlide {
@@ -49,6 +52,14 @@ pub struct ThirdPerson {
 }
 
 impl ThirdPerson {
+    pub fn active(&self) -> bool {
+        self.current > 0.01
+    }
+
+    pub fn aim_eye(&self, eye: Vec3, look: Vec3) -> Vec3 {
+        eye + offset(look, self.current)
+    }
+
     /// The camera position for a body with its `eye` and `feet` this frame, looking along `look`.
     /// `solid` says whether a cell stops the camera.
     pub fn camera(&mut self, eye: Vec3, feet: Vec3, look: Vec3, dt: f64, solid: impl Fn(IVec3) -> bool) -> Vec3 {
@@ -56,7 +67,20 @@ impl ThirdPerson {
         let mut free = wanted;
         let mut t = PROBE_STEP;
         while t <= wanted + CLEARANCE {
-            if solid((eye - look * t).floor()) {
+            let at = eye + offset(look, t);
+            // A small swept volume protects the near plane beside walls, ceilings and corners too.
+            if [
+                Vec3::ZERO,
+                Vec3::new(0.15, 0.0, 0.0),
+                Vec3::new(-0.15, 0.0, 0.0),
+                Vec3::new(0.0, 0.15, 0.0),
+                Vec3::new(0.0, -0.15, 0.0),
+                Vec3::new(0.0, 0.0, 0.15),
+                Vec3::new(0.0, 0.0, -0.15),
+            ]
+            .iter()
+            .any(|p| solid((at + *p).floor()))
+            {
                 free = (t - CLEARANCE).clamp(0.0, wanted);
                 break;
             }
@@ -64,9 +88,19 @@ impl ThirdPerson {
         }
         let rate = if free < self.current { ZOOM_IN_RATE } else { ZOOM_OUT_RATE };
         self.current += (free - self.current) * (1.0 - (-rate * dt.max(0.0)).exp());
+        // Obstructions are a hard bound: easing must never leave the camera inside newly met terrain.
+        if wanted > 0.0 {
+            self.current = self.current.min(free);
+        }
         self.feet = (self.current > 0.01).then_some(feet);
-        eye - look * self.current
+        self.aim_eye(eye, look)
     }
+}
+
+fn offset(look: Vec3, distance: f64) -> Vec3 {
+    let horizontal = (look.x * look.x + look.z * look.z).sqrt().max(0.001);
+    let right = Vec3::new(-look.z / horizontal, 0.0, look.x / horizontal);
+    look * -distance + right * (distance * SHOULDER_RATIO).min(MAX_SHOULDER)
 }
 
 #[cfg(test)]

@@ -127,7 +127,7 @@ export class Renderer {
   private readonly planes = new Float32Array(24);
 
   fovY = (72 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
-  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number) {
+  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number) {
     const gl = canvas.getContext('webgl2', {
       antialias: true,
       alpha: false,
@@ -162,7 +162,7 @@ export class Renderer {
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
 
-    this.boxes = new BoxPipeline(gl);
+    this.boxes = new BoxPipeline(gl, instanceFloats);
     this.sky = new SkyPass(gl);
     this.water = new WaterPass(gl);
 

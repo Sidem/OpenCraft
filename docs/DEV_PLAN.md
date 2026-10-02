@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-09-29 · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
+**Status:** 2026-10-02 · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
 now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.4 (Scanner Mk2)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -249,12 +249,12 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 
 ### Known limitations and technical debt
 
-1. Only the local player has hands: another player's mining and placing reach this machine only as
-   their results (by design; co-op sends actions, not hands).
+1. Only the local player runs hand interaction; co-op relays mining/using gestures for avatar animation
+   alongside body states, and applies the resulting actions through lockstep.
 2. Two tabs on the same world overwrite each other's saves (the later save wins).
 3. ~~Veins and lodes can only be found by digging~~: fixed by prospecting (4.6) and map marks (4.7).
 4. In version 1 and 2 worlds the outcrop nearest spawn may be buried (version 3 has a starter set).
-5. TypeScript mirrors a few engine constants: `INSTANCE_FLOATS`, the 6 floats per sound event, and the
+5. TypeScript mirrors a few engine constants: the 6 floats per sound event, and the
    order of sound materials and event kinds. Replace them with getters when touching that code.
 6. Item and belt instances aren't interpolated between ticks (only the camera is); optional polish.
 7. Balance is untested by real play: pack costs, research times and Mk2 costs will need tuning
@@ -604,4 +604,4 @@ and the balance numbers. Read the section you need.
 - **2026-10-01: Belts are assembler-made** (user request: everything must be automatable; green packs need belts). Row 30 in `MACHINE_RECIPES` (1 plate + 1 rod -> 4 belts, assembler), unlocked by Assembly; existing saves get it. Test `belts_are_machine_made_for_green_packs`.
 - **2026-10-02: Kit and inventory UX** (user suggestions): a held upgrade kit outlines the aimed machine or belt and says the kits needed (`upgrade_aim.rs`); Shift-click on a belt upgrades its whole line (`Factory::belt_chain`); belt lines and kit upgrades draw on every stack, not just the held one; Shift-right-click moves every stack of an item between box and inventory (`Action` tags 29–31). `action.rs` split (`action/blocks.rs`). Tests 344 → 364.
 - **2026-10-02: Comfort settings** (user felt nauseous): a "Comfort settings" section in the pause menu (`ui/comfort.ts`, `comfort/settings.ts`, localStorage): field of view, mouse sensitivity, a movement vignette (`ui/vignette.ts`), a bolder crosshair with style, size, thickness and opacity; the eye eases between standing and crouching (`camera.rs`). Presentation only. Tests 364 → 366.
-- **2026-10-02: Third-person view** (comfort option, V toggles; `camera.rs` `ThirdPerson`): camera behind the eye on the line of sight (so the crosshair still marks the aim; targeting keeps using the real eye), pulled in by blocks and eased; the local avatar is drawn by `avatars.rs`. Tests 366 → 369.
+- **2026-10-02: Third-person view and Kestrel avatar** (comfort option, V toggles): eased, collision-tested right-shoulder camera; camera-ray targeting still checks hand reach and visibility. Procedural ivory/teal survey robot with articulated walking, crouching, airborne/water and working poses, held items and correct crosshair-facing head; pickaxe points and axe edges lead the mining stroke. Co-op relays pose flags and velocity; box stride comes from the engine. Save-free `/character-preview.html` for review. Tests 366 → 378; saves and core hashes unchanged.

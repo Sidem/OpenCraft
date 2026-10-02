@@ -11,7 +11,7 @@ use crate::factory;
 use crate::math::{IVec3, Vec3};
 use crate::physics::Aabb;
 use crate::player;
-use crate::raycast::{raycast, RayHit};
+use crate::raycast::RayHit;
 use crate::sound;
 use crate::tools;
 use crate::Game;
@@ -27,7 +27,15 @@ const LAND_SOUND_MIN_SPEED: f64 = 5.0;
 /// Entering water slower than this (wading in) makes no splash.
 const SPLASH_MIN_SPEED: f64 = 1.5;
 
+mod aim;
+
 impl Game {
+    /// Exact crosshair surface for the avatar's head; sky aim follows the distant camera ray.
+    pub(crate) fn avatar_focus(&self) -> Vec3 {
+        let dir = self.body().look_dir();
+        self.target.map_or(self.render_eye + dir * 24.0, |hit| aim::surface(self.render_eye, dir, hit))
+    }
+
     /// Queues a sound at a world position (stored relative to the local player's eye for the host).
     pub(crate) fn play(&mut self, kind: u8, material: u8, at: Vec3, volume: f64) {
         let eye = self.body().eye();
@@ -71,8 +79,13 @@ impl Game {
 
     pub(crate) fn update_target(&mut self) {
         let (eye, dir) = (self.body().eye(), self.body().look_dir());
+        self.update_target_at(self.third_person.aim_eye(eye, dir));
+    }
+
+    pub(crate) fn update_target_at(&mut self, origin: Vec3) {
+        let (eye, dir) = (self.body().eye(), self.body().look_dir());
         let world = &self.sim.world;
-        let hit = raycast(eye, dir, REACH, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
+        let hit = aim::target(eye, origin, dir, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
         let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| self.sim.factory.block_at(h.block)).flatten();
         self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
