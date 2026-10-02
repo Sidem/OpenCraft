@@ -8,6 +8,7 @@ import './ui/menu.css';
 import init from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
 import { ComfortStore } from './comfort/settings';
+import { ViewControls } from './controls/view';
 import type { Coop } from './net/coop';
 import { hostWorld, startCoop } from './net/session';
 import { tickWhenStalled } from './net/ticker';
@@ -57,7 +58,9 @@ async function main(): Promise<void> {
 
   // ---- world: the latest one, kept saved (save/) and managed from the menu (ui/worlds.ts)
   const worlds = document.getElementById('worlds')!;
-  const store = await WorldStore.open().catch(() => null);
+  // A development review world uses the real controls without reading or overwriting saved worlds.
+  const preview = import.meta.env.DEV && params.has('preview');
+  const store = preview ? null : await WorldStore.open().catch(() => null);
   let opened: Opened;
   let coop: Coop | null;
   try {
@@ -71,7 +74,7 @@ async function main(): Promise<void> {
   const { game, meta } = opened;
   const session = store && !game.is_client() ? new Session(store, meta, game) : null;
   if (store) worlds.append(new WorldsPanel(store, session, opened.notice).el);
-  else worlds.textContent = opened.notice;
+  else worlds.textContent = preview ? 'Controls preview · this world is not saved' : opened.notice;
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();
@@ -80,14 +83,11 @@ async function main(): Promise<void> {
   renderer.setTextures(texPixels, game.texture_size(), game.texture_layers());
   const hud = new Hud(game, texPixels, game.texture_size());
   const comfort = new ComfortStore();
-  comfort.subscribe(() => {
-    const s = comfort.settings;
-    renderer.fovY = (s.fov * Math.PI) / 180;
-    game.set_third_person(s.thirdPerson ? s.thirdDistance : 0);
-  });
   const vignette = new Vignette(comfort);
   document.getElementById('comfort')!.append(new ComfortPanel(comfort, vignette, document.getElementById('menu')!).el);
   const input = new Input(canvas);
+  const views = new ViewControls(game, input, renderer, canvas, comfort);
+  document.getElementById('comfort')!.prepend(views.menu);
   const sound = new SoundSystem();
   hud.setMuted(sound.muted);
   sound.subscribe(() => hud.setMuted(sound.muted));
@@ -187,6 +187,8 @@ async function main(): Promise<void> {
       showWorldInfo();
       play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
+      game.pan_camera(0, 0, false);
+      game.cancel_move_order();
       game.set_mining(false);
       game.cancel_line();
       game.set_using(false);
@@ -202,7 +204,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette,
+    game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -236,40 +238,31 @@ async function main(): Promise<void> {
     last = now;
 
     if (input.locked) {
-      const m = input.movement();
-      game.set_move(m.forward, m.strafe, m.jump, m.sprint, m.crouch);
-      const [dx, dy] = input.takeLook();
-      if (dx !== 0 || dy !== 0) {
-        const turn = (MOUSE_SENSITIVITY * comfort.settings.sensitivity) / 100;
-        game.look(dx * turn, dy * turn);
-      }
-      game.set_mining(input.mining);
-      game.set_using(input.using);
+      views.advance((MOUSE_SENSITIVITY * comfort.settings.sensitivity) / 100);
     }
     for (const a of input.takeActions()) {
+      if (views.action(a)) continue;
       if (a.kind === 'debug') hud.toggleDebug();
       else if (a.kind === 'hint') hints.skip();
       else if (a.kind === 'map') minimap.toggle();
-      else if (a.kind === 'view') comfort.set('thirdPerson', !comfort.settings.thirdPerson);
       else if (a.kind === 'slot') game.select_slot(a.slot);
-      else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'mute') sound.toggleMute();
       else if (a.kind === 'sound-lab') {
         // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
-        document.exitPointerLock();
+        input.unlock();
         soundLab.open(game.has_target() ? game.block_sound(game.target_block()) : sound.lastMaterial);
       } else if (a.kind === 'inventory') {
-        document.exitPointerLock();
         inventory.open();
+        input.unlock();
       } else if (a.kind === 'research') {
-        document.exitPointerLock();
         research.open();
+        input.unlock();
       } else if (a.kind === 'world-map') {
-        document.exitPointerLock();
         worldMap.open();
+        input.unlock();
       }
     }
     game.update(dt);
@@ -278,9 +271,9 @@ async function main(): Promise<void> {
     const request = game.take_panel_request();
     if (request.length === 3) {
       const [x, y, z] = request;
-      document.exitPointerLock();
       if (game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
       else machine.open(x, y, z);
+      input.unlock();
       sound.ui();
     }
     // Hotbar changes are engine actions that land on the next tick, so compare across frames.
@@ -290,7 +283,7 @@ async function main(): Promise<void> {
     }
     if (!document.hidden) {
       const events = new Float32Array(wasm.memory.buffer, game.sound_ptr(), game.sound_count() * 6);
-      sound.playEvents(events, game.sound_count(), game.yaw());
+      sound.playEvents(events, game.sound_count(), game.camera_yaw());
     }
     game.clear_sounds();
 
@@ -322,11 +315,13 @@ async function main(): Promise<void> {
     }
 
     const hasTarget = game.has_target();
+    const cursorBlock = game.view_mode() >= 2 ? game.strategy_hover() : [];
     renderer.render({
       eye: [game.eye_x(), game.eye_y(), game.eye_z()],
-      yaw: game.yaw(),
-      pitch: game.pitch(),
-      target: hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
+      yaw: game.camera_yaw(),
+      pitch: game.camera_pitch(),
+      target: cursorBlock.length === 3 ? [cursorBlock[0], cursorBlock[1], cursorBlock[2]]
+        : hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),
@@ -336,7 +331,8 @@ async function main(): Promise<void> {
       cracks: game.quarry_cracks(),
       underwater: game.eye_in_water(),
     });
-    vignette.update(dt, game.yaw(), game.pitch(), game.eye_x(), game.eye_y(), game.eye_z());
+    vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
+    views.sync();
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));
 
@@ -363,7 +359,7 @@ async function main(): Promise<void> {
     c.onNotice = (text) => playerList.notice(text);
     c.onEnd = (reason) => {
       play.disabled = true;
-      document.exitPointerLock();
+      input.unlock();
       pause();
       coopPanel.end(reason);
     };

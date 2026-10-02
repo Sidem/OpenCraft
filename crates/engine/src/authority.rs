@@ -77,6 +77,7 @@ impl Game {
     /// Streams the world around the local player and, where this game is the authority, around every
     /// other body too (without meshing: world/streaming.rs).
     pub(crate) fn stream_around_players(&mut self) {
+        self.sim.world.set_observer_columns(self.observer_columns());
         let mut others = Vec::new();
         if !matches!(self.role, Role::Client(_)) {
             let local = self.local.0 as usize;

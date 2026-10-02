@@ -41,9 +41,6 @@ export class ComfortPanel {
     const [view, third, aim] = [SLIDERS.slice(0, 2), SLIDERS[2], SLIDERS.slice(3)];
     this.el.append(
       ...view.map((s) => this.slider(s)),
-      this.choices('View (V)', ['First person', 'Third person'], () => Number(comfort.settings.thirdPerson), (i) =>
-        comfort.set('thirdPerson', i === 1),
-      ),
       this.slider(third),
       h('p', 'comfort-help', 'Third person shows your character, a fixed shape on screen to anchor your eyes. The crosshair still marks where you aim.'),
       this.choices('Movement vignette', VIGNETTE_LABELS, () => comfort.settings.vignette, (i) => comfort.set('vignette', i)),

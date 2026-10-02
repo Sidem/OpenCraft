@@ -1,0 +1,22 @@
+/* Perspective feedback sits above the hotbar; strategy offers visible buttons with a free cursor. */
+.view-controls {
+  position: fixed; bottom: 100px; left: 20px; z-index: 15;
+  max-width: min(620px, calc(100vw - 40px));
+  padding: 10px 14px; border: 1px solid #ffffff24; border-radius: 12px;
+  color: #e6f1ec; background: #12272bdd; backdrop-filter: blur(8px);
+  font: 12px/1.5 system-ui, sans-serif; pointer-events: auto;
+}
+.view-controls:not(.playing) { display: none; }
+.view-modes { display: flex; flex-wrap: wrap; gap: 5px; }
+.view-menu { margin: 14px 0; padding: 12px; border: 1px solid #ffffff24; border-radius: 10px; }
+.view-menu p { margin: 0 0 8px; color: #aabfbc; font-size: 12px; }
+.view-mode { border: 0; padding: 5px 8px; border-radius: 6px; background: transparent; color: #c2d4d1; cursor: pointer; font: inherit; }
+.view-mode[aria-pressed=true] { background: #e4ad57; color: #192b2c; }
+.view-mode:hover { background: #ffffff25; }
+.view-hint { margin: 7px 0 0; color: #aabfbc; }
+.view-status { margin: 4px 0 0; color: #ffd48c; }
+.view-status:empty { display: none; }
+.strategy-view #crosshair { display: none; }
+.strategy-view #game { cursor: crosshair; }
+body .hint { bottom: 210px; }
+@media (max-width: 700px) { .view-controls { bottom: 95px; left: 10px; max-width: calc(100vw - 20px); } }

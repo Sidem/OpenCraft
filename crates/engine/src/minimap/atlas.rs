@@ -69,7 +69,9 @@ impl Atlas {
         let before = self.changes;
         for cz in lo.1..=hi.1 {
             for cx in lo.0..=hi.0 {
-                if due.contains(&(cx, cz)) || !self.tiles.contains_key(&(cx, cz)) {
+                if (due.contains(&(cx, cz)) || !self.tiles.contains_key(&(cx, cz)))
+                    && (self.tiles.contains_key(&(cx, cz)) || world.player_sees_column(cx, cz))
+                {
                     self.rebuild(world, cx, cz);
                 }
             }

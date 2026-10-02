@@ -32,7 +32,7 @@ mod aim;
 impl Game {
     /// Exact crosshair surface for the avatar's head; sky aim follows the distant camera ray.
     pub(crate) fn avatar_focus(&self) -> Vec3 {
-        let dir = self.body().look_dir();
+        let dir = if self.strategy.active() { self.strategy.cursor_ray() } else { self.body().look_dir() };
         self.target.map_or(self.render_eye + dir * 24.0, |hit| aim::surface(self.render_eye, dir, hit))
     }
 
@@ -78,12 +78,20 @@ impl Game {
     }
 
     pub(crate) fn update_target(&mut self) {
+        if self.strategy.active() {
+            self.strategy_target();
+            return;
+        }
         let (eye, dir) = (self.body().eye(), self.body().look_dir());
         self.update_target_at(self.third_person.aim_eye(eye, dir));
     }
 
     pub(crate) fn update_target_at(&mut self, origin: Vec3) {
-        let (eye, dir) = (self.body().eye(), self.body().look_dir());
+        self.update_target_ray(origin, self.body().look_dir());
+    }
+
+    pub(crate) fn update_target_ray(&mut self, origin: Vec3, dir: Vec3) {
+        let eye = self.body().eye();
         let world = &self.sim.world;
         let hit = aim::target(eye, origin, dir, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).

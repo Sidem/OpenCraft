@@ -137,6 +137,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             items::pixel(layer, x, y)
         }
         tex::AVATAR_SUIT..=tex::AVATAR_VISOR | tex::AVATAR_JOINT..=tex::AVATAR_PACK => avatar::pixel(layer, x, y),
+        tex::STRATEGY_FOG => [56, 68, 79, 255],
         tex::STONE_PICKAXE..=tex::IRON_SHOVEL => {
             let i = layer - tex::STONE_PICKAXE;
             tools::tool(x, y, i % 3, if i >= 3 { tools::IRON_HEAD } else { tools::STONE_HEAD })

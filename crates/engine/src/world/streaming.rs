@@ -7,7 +7,7 @@
 //! only once all 26 neighbours and every chunk above them are loaded, because AO, face culling and
 //! light (`light.rs`) read across borders. None of this is core state (DEV_PLAN 3.4).
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::chunk::{Chunk, CHUNK_SHIFT};
 use crate::math::{IVec3, Vec3};
@@ -20,6 +20,21 @@ use super::{Entry, Event, MeshData, World};
 pub const OTHERS_RADIUS: i32 = 1;
 
 impl World {
+    pub fn set_observer_columns(&mut self, columns: Vec<IVec3>) {
+        if self.observer != columns {
+            self.observer = columns;
+            self.center = None;
+        }
+    }
+
+    pub fn player_sees_column(&self, cx: i32, cz: i32) -> bool {
+        ring_dist2(cx - self.focus.x, cz - self.focus.z, 0) <= self.view_radius * self.view_radius
+    }
+
+    pub fn visible_column(&self, cx: i32, cz: i32) -> bool {
+        self.player_sees_column(cx, cz) || self.observer.contains(&IVec3::new(cx, 0, cz))
+    }
+
     /// Re-centres streaming on the local player and the `others`: unloads distant chunks and
     /// rebuilds the generation queue.
     pub fn update_streaming(&mut self, player: Vec3, others: &[Vec3]) {
@@ -33,9 +48,11 @@ impl World {
         self.others = foci;
         let r2 = self.view_radius * self.view_radius;
         let others = &self.others;
+        let observer = &self.observer;
         let keep = |cx: i32, cz: i32| {
             ring_dist2(cx - px, cz - pz, 2) <= r2
                 || others.iter().any(|o| ring_dist2(cx - o.x, cz - o.z, 2) <= OTHERS_RADIUS * OTHERS_RADIUS)
+                || observer.iter().any(|o| (cx - o.x).abs() <= 1 && (cz - o.z).abs() <= 1)
         };
 
         let far: Vec<IVec3> = self.chunks.keys().filter(|p| !keep(p.x, p.z)).copied().collect();
@@ -55,7 +72,12 @@ impl World {
         // every visible chunk has all the neighbour data it needs for meshing). Rings of several
         // players may overlap; `work_step` skips a chunk that is already loaded.
         self.gen_queue.clear();
-        let rings = self.others.iter().map(|o| (o.x, o.z, OTHERS_RADIUS)).chain([(px, pz, self.view_radius)]);
+        let rings = self
+            .others
+            .iter()
+            .map(|o| (o.x, o.z, OTHERS_RADIUS))
+            .chain([(px, pz, self.view_radius)])
+            .chain(self.observer.iter().map(|o| (o.x, o.z, 0)));
         for (cx, cz, radius) in rings {
             let r = radius + 1;
             for dz in -r..=r {
@@ -72,6 +94,8 @@ impl World {
                 }
             }
         }
+        let mut queued = FxHashSet::default();
+        self.gen_queue.retain(|p| queued.insert(*p));
         sort_nearest_last(&mut self.gen_queue, self.focus, &self.others);
         self.mesh_queue_stale = true;
     }
@@ -89,7 +113,10 @@ impl World {
         q.extend(
             self.dirty
                 .iter()
-                .filter(|p| ring_dist2(p.x - cx, p.z - cz, 0) <= r2 && self.neighbors_loaded(**p))
+                .filter(|p| {
+                    (ring_dist2(p.x - cx, p.z - cz, 0) <= r2 || self.observer.contains(&IVec3::new(p.x, 0, p.z)))
+                        && self.neighbors_loaded(**p)
+                })
                 .copied(),
         );
         sort_nearest_last(&mut q, self.focus, &[]);

@@ -19,3 +19,4 @@ mod render;
 mod research;
 mod save;
 mod sites;
+mod view;

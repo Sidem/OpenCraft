@@ -59,6 +59,8 @@ pub struct World {
     focus: IVec3,
     /// The chunks other players stand in (`update_streaming`).
     others: Vec<IVec3>,
+    /// Already explored columns requested by the overhead camera; never an exploration source.
+    observer: Vec<IVec3>,
     view_radius: i32,
     mesher: Mesher,
     lighting: Lighting,
@@ -91,6 +93,7 @@ impl World {
             center: None,
             focus: IVec3::ZERO,
             others: Vec::new(),
+            observer: Vec::new(),
             view_radius: view_radius.max(2),
             mesher: Mesher::new(),
             lighting: Lighting::default(),
@@ -337,9 +340,10 @@ impl World {
     /// whose blocks differ from this world's is replaced and remeshed with its neighbours; the rest
     /// keep their meshes.
     pub fn adopt_loaded(&mut self, old: World) {
-        let World { chunks, dirty, gen_queue, center, focus, others, view_radius, events, .. } = old;
+        let World { chunks, dirty, gen_queue, center, focus, others, observer, view_radius, events, .. } = old;
         (self.dirty, self.gen_queue, self.center, self.focus) = (dirty, gen_queue, center, focus);
         (self.others, self.view_radius, self.events) = (others, view_radius, events);
+        self.observer = observer;
         self.light_cache.clear();
         let mut changed = Vec::new();
         for (p, mut e) in chunks {

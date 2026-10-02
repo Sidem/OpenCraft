@@ -38,7 +38,11 @@ impl Game {
             None => 0,
             Some(Event::Mesh(m)) => {
                 self.cur_event_pos = m.pos;
-                self.minimap.touch(m.pos);
+                if self.sim.world.player_sees_column(m.pos.x, m.pos.z)
+                    || self.minimap.atlas.tile(m.pos.x, m.pos.z).is_some()
+                {
+                    self.minimap.touch(m.pos);
+                }
                 self.cur_mesh = Some(m);
                 1
             }
@@ -100,7 +104,13 @@ impl Game {
     /// Third-person view: how many blocks behind the head the camera sits, 0 for first person
     /// (camera.rs). The camera position above is then behind the eye and the player's avatar is drawn.
     pub fn set_third_person(&mut self, distance: f64) {
-        self.third_person.distance = distance;
+        self.third_person.distance = distance.clamp(0.0, crate::camera::MAX_DISTANCE);
+        if distance > 0.0 {
+            self.strategy.shoulder_distance = self.third_person.distance;
+        }
+        if !self.strategy.active() {
+            self.switch_view(u32::from(distance > 0.0));
+        }
     }
 
     /// Blocks quarries near the camera are digging, 4 numbers each: x, y, z and progress in thousandths

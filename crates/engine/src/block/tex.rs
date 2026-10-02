@@ -172,7 +172,9 @@ pub const ACCUMULATOR_SIDE: u16 = 161;
 pub const AVATAR_JOINT: u16 = 162;
 pub const AVATAR_TRIM: u16 = 163;
 pub const AVATAR_PACK: u16 = 164;
-pub const COUNT: usize = 165;
+/// Neutral, featureless cover for unexplored strategy-map columns.
+pub const STRATEGY_FOG: u16 = 165;
+pub const COUNT: usize = 166;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

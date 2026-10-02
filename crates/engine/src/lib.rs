@@ -59,6 +59,7 @@ mod research;
 mod save;
 mod sim;
 mod sound;
+mod strategy;
 mod textures;
 mod tools;
 mod upgrade_aim;
@@ -128,6 +129,7 @@ pub struct Game {
     crouch_glide: CrouchGlide,
     /// The optional third-person camera and the avatar it shows (camera.rs).
     third_person: ThirdPerson,
+    strategy: strategy::Strategy,
     /// The local player's hands (interaction.rs). Other players run their own on their machines.
     target: Option<RayHit>,
     mining: bool,
@@ -190,6 +192,7 @@ impl Game {
             render_eye: eye,
             crouch_glide: CrouchGlide::default(),
             third_person: ThirdPerson::default(),
+            strategy: strategy::Strategy::default(),
             target: None,
             mining: false,
             mine_block: None,
@@ -241,21 +244,34 @@ impl Game {
         let eye = self.crouch_glide.apply(eye, self.body().crouched(), dt);
         let (look, solid) = (self.body().look_dir(), &self.sim.world);
         let solid = |p| solid.get_block(p).is_some_and(|b| block::SOLID[b as usize]);
-        self.render_eye = self.third_person.camera(eye, feet, look, dt, solid);
-        if self.third_person.active() {
-            self.update_target_at(self.render_eye);
+        let before = self.render_eye;
+        if self.strategy.active() {
+            self.advance_strategy(feet, dt);
+            self.render_eye = self.strategy.eye();
         } else {
+            self.render_eye = self.third_person.camera(eye, feet, look, dt, solid);
+        }
+        self.settle_view(before, self.render_eye, dt);
+        if self.strategy.active() {
+            self.strategy_target();
+        }
+        if !self.strategy.active() && self.third_person.active() {
+            self.update_target_at(self.render_eye);
+        } else if !self.strategy.active() {
             self.update_target();
         }
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();
         self.write_item_instances(dt, eye);
         self.write_avatars(dt, eye);
+        self.write_move_marker(eye);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
         let world = &mut self.sim.world;
         factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
         self.write_line_preview(eye, time);
         self.write_power_preview(eye);
+        self.hide_unexplored_instances(eye);
+        self.write_strategy_fog(eye);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }
 }
@@ -267,6 +283,7 @@ impl Game {
     fn run_tick(&mut self) {
         self.prev_eye = self.body().eye();
         let feet = self.body().pos;
+        self.step_navigation();
         self.step_bodies();
         self.update_movement_sounds(feet);
 
