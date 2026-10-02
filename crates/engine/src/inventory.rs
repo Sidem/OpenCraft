@@ -61,6 +61,21 @@ pub fn add_to_slots(slots: &mut [Stack], item: ItemId, mut count: u32) -> u32 {
     count
 }
 
+/// Moves every stack of `item` from `from` into `to` until `to` has no room for more; what doesn't fit
+/// stays in `from`. Returns whether anything moved.
+pub fn move_all_of(from: &mut [Stack], to: &mut [Stack], item: ItemId) -> bool {
+    let mut moved = false;
+    for s in from.iter_mut().filter(|s| s.item == item && !s.is_empty()) {
+        let left = add_to_slots(to, item, s.count);
+        moved |= left != s.count;
+        *s = if left == 0 { Stack::default() } else { Stack { item, count: left } };
+        if left > 0 {
+            break; // the target is full of this item
+        }
+    }
+    moved
+}
+
 /// Sorts `slots` in place: like items merged into full stacks (a tool's count is its wear, so tools
 /// never merge), ordered by item id (blocks first) with the fullest stack first, empty slots last.
 pub fn sort_stacks(slots: &mut [Stack]) {
@@ -251,6 +266,17 @@ impl Inventory {
             self.slots[slot] = Stack { item: s.item, count: left };
         }
         self.version += 1;
+    }
+
+    /// Shift-right-click: moves every stack of the item in `slot` between the hotbar and the backpack.
+    pub fn quick_move_all(&mut self, slot: usize) {
+        let Some(item) = self.slots.get(slot).map(|s| s.item) else { return };
+        let (hotbar, backpack) = self.slots.split_at_mut(HOTBAR_SLOTS);
+        let moved =
+            if slot < HOTBAR_SLOTS { move_all_of(hotbar, backpack, item) } else { move_all_of(backpack, hotbar, item) };
+        if moved {
+            self.version += 1;
+        }
     }
 
     /// Sorts the backpack (the hotbar keeps the layout the player made).

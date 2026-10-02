@@ -1,5 +1,9 @@
 use super::*;
 use crate::block::{AIR, STONE, STORAGE};
+use crate::inventory::Stack;
+use crate::item::GREEN_KIT;
+use crate::raycast::RayHit;
+use crate::tests::{belt_test_slab, run_until_ready};
 
 const EAST: u8 = 1;
 const NORTH: u8 = 0;
@@ -93,4 +97,85 @@ fn an_upgrade_line_follows_belts_and_picks_the_tier_below_the_kit() {
     assert!(cells.iter().all(|c| c.dir == EAST));
     // Nothing to upgrade from a Mk2 kit's point of view but the Mk2 belt (tier 1 to 2).
     assert_eq!(positions(&plan_upgrade(tier_at, IVec3::new(0, 10, 0), IVec3::new(9, 11, 0), 1)), [(2, 10, 0)]);
+}
+
+/// Replaces the local player's slots with these stacks (slot, item, count) and selects `selected`.
+fn stock(g: &mut Game, stacks: &[(usize, ItemId, u32)], selected: usize) {
+    let inv = &mut g.sim.players[0].as_mut().unwrap().inventory;
+    inv.slots = crate::inventory::Inventory::EMPTY.slots;
+    for &(slot, item, count) in stacks {
+        inv.slots[slot] = Stack { item, count };
+    }
+    inv.selected = selected;
+}
+
+#[test]
+fn a_line_longer_than_the_held_stack_takes_belts_from_the_other_stacks() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    belt_test_slab(&mut g);
+    stock(&mut g, &[(2, BELT.into(), 3), (0, BELT.into(), 4), (20, BELT.into(), 7)], 2);
+    let east = std::f64::consts::FRAC_PI_2;
+    g.set_look(east, -1.3);
+    g.update(1.0 / 60.0);
+    g.set_using(true);
+    g.update(1.0 / 60.0);
+    g.set_look(east, -0.15);
+    for _ in 0..3 {
+        g.update(1.0 / 60.0);
+    }
+    let planned = g.line.cells.len();
+    assert!(planned > 7, "the line is longer than the held stack and the next: {planned}");
+    assert!(g.line_label().contains(&format!("{planned} belts")) && !g.line_label().contains("you have"));
+    g.set_using(false);
+    for _ in 0..60 {
+        g.update(1.0 / 60.0);
+    }
+    let built = planned.min(14);
+    assert_eq!(g.sim.factory.count(factory::Kind::Belt), built, "every cell the stacks pay for");
+    assert_eq!(g.item_total(BELT.into()), 14 - built as u32);
+    assert_eq!(g.slot_count(2), 0, "the held stack went first");
+}
+
+/// Belts `0..n` along x at y 70, a lone Mk2 at the far end, all registered in the factory.
+fn kit_line(g: &mut Game, n: i32) {
+    for (t, tech) in crate::research::TECHS.iter().enumerate() {
+        (0..tech.units).for_each(|_| g.sim.factory.research.add_unit(t as u8));
+    }
+    for x in 0..n {
+        g.sim.factory.add_belt(IVec3::new(x, 70, 0), 1);
+    }
+    g.run_ticks(1);
+}
+
+#[test]
+fn shift_clicking_a_belt_upgrades_its_whole_line_with_kits_from_every_stack() {
+    let mut g = Game::new(7, 2);
+    kit_line(&mut g, 6);
+    // The held stack is in the higher slot, which the core empties first.
+    stock(&mut g, &[(5, GREEN_KIT, 3), (0, GREEN_KIT, 2)], 5);
+    g.target = Some(RayHit { block: IVec3::new(0, 70, 0), normal: IVec3::ZERO, id: BELT });
+    g.body_mut().input.sprint = true;
+    g.using = true;
+    assert!(g.update_belt_line());
+    assert!(!g.using, "one click, one line");
+    g.run_ticks(60);
+    let tiers: Vec<u8> = (0..6).map(|x| g.sim.factory.belt_at(IVec3::new(x, 70, 0)).tier).collect();
+    assert_eq!(tiers, [1, 1, 1, 1, 1, 0], "five kits upgrade the five belts nearest the click");
+    assert_eq!(g.item_total(GREEN_KIT.0), 0);
+}
+
+#[test]
+fn without_shift_a_click_upgrades_only_the_dragged_belts() {
+    let mut g = Game::new(7, 2);
+    kit_line(&mut g, 4);
+    stock(&mut g, &[(0, GREEN_KIT, 9)], 0);
+    g.target = Some(RayHit { block: IVec3::new(1, 70, 0), normal: IVec3::ZERO, id: BELT });
+    g.using = true;
+    g.update_belt_line();
+    g.using = false;
+    g.update_belt_line();
+    g.run_ticks(30);
+    let tiers: Vec<u8> = (0..4).map(|x| g.sim.factory.belt_at(IVec3::new(x, 70, 0)).tier).collect();
+    assert_eq!(tiers, [0, 1, 0, 0]);
 }

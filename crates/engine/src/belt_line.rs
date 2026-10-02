@@ -10,8 +10,12 @@
 //!
 //! With upgrade kits selected the same drag upgrades belts instead (`factory/upgrades.rs`): the path
 //! ([`plan_upgrade`]) follows existing belts, the cells are the belts one tier below the kit, and
-//! releasing sends `Upgrade` actions as far as the kits last. Clicking another tiered machine (a miner)
-//! with kits upgrades it at once.
+//! releasing sends `Upgrade` actions as far as the kits last. Shift-clicking a belt upgrades every belt
+//! joined to it of the same tier (`Factory::belt_chain`). Clicking another tiered machine (a miner) with
+//! kits upgrades it at once. Before the click, `upgrade_aim.rs` outlines what the kit would upgrade.
+//!
+//! Belts and kits are paid for from the whole inventory, not just the held stack: a line takes belts from
+//! the held stack first, then from the other stacks (each placement names the slot it comes from).
 //!
 //! To change the path: `plan` / `plan_upgrade`. The preview: ghost belts (`write_line_preview`) and the
 //! host's outline boxes and label (`api/hud.rs` `line_cells`, `line_label`), in the kit's colour when
@@ -20,9 +24,12 @@
 use crate::action::Action;
 use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
 use crate::factory::{self, tiers, upgrades, Shape};
+use crate::inventory::INVENTORY_SLOTS;
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::raycast::raycast;
 use crate::research::Unlock;
+use crate::upgrade_aim::{Aim, MAX_CHAIN};
 use crate::Game;
 
 /// The longest line one drag builds, in cells.
@@ -41,18 +48,28 @@ pub struct LineCell {
     pub shape: Shape,
 }
 
+/// One placement (or upgrade) of a line being built: the cell, the way it runs and the inventory slot
+/// the belt comes from.
+#[derive(Clone, Copy)]
+struct Build {
+    pos: IVec3,
+    dir: u8,
+    slot: u8,
+}
+
 /// A line being dragged out, or being built.
 #[derive(Default)]
 pub struct BeltLine {
     /// The cell the drag started in, and the direction a single click lays a belt.
     start: Option<(IVec3, u8)>,
     pub cells: Vec<LineCell>,
-    /// Placements still to send, and the hotbar slot and item they come from.
-    building: Vec<IVec3>,
-    build_dir: Vec<u8>,
-    build_from: (u8, u16),
+    /// Placements still to send (the next one last), and the item their slots must hold.
+    building: Vec<Build>,
+    build_item: ItemId,
     /// The cells being built are upgrades (kits), not placements.
     upgrading: bool,
+    /// What a held kit would upgrade at the crosshair (`upgrade_aim.rs`); empty while dragging.
+    pub aim: Aim,
 }
 
 /// Whether block `b` is laid in lines (`FAST_BELT` is a legacy block of old worlds).
@@ -147,6 +164,7 @@ impl Game {
     /// Runs the line tool for one tick. True while it owns the use button (a belt is selected and the
     /// button went down on a surface, or a line is being built).
     pub(crate) fn update_belt_line(&mut self) -> bool {
+        self.line.aim = Aim::default();
         if self.send_line_placements() {
             return true;
         }
@@ -156,6 +174,9 @@ impl Game {
             self.line.start = None;
             self.line.cells.clear();
             return false;
+        }
+        if kit.is_some() && self.line.start.is_none() {
+            self.line.aim = self.upgrade_aim(stack.item);
         }
         match (self.line.start, self.using) {
             (None, false) => false,
@@ -180,15 +201,38 @@ impl Game {
             }
             (Some(_), false) => {
                 self.line.start = None;
-                self.line.upgrading = kit.is_some();
-                let n = self.line.cells.len().min(self.line_budget());
                 let cells = std::mem::take(&mut self.line.cells);
-                self.line.building = cells[..n].iter().rev().map(|c| c.pos).collect();
-                self.line.build_dir = cells[..n].iter().rev().map(|c| c.dir).collect();
-                self.line.build_from = (self.inventory().selected as u8, stack.item.0);
+                self.queue_build(&cells, kit.is_some());
                 true
             }
         }
+    }
+
+    /// Queues `cells` to be built, as far as the inventory pays for (`line_budget`): belts placed from the
+    /// held stack and then the other stacks, or, with `upgrading`, upgrades paid with kits.
+    fn queue_build(&mut self, cells: &[LineCell], upgrading: bool) {
+        let item = self.inventory().selected_stack().item;
+        let n = cells.len().min(self.line_budget());
+        let slots = if upgrading { vec![self.inventory().selected as u8; n] } else { self.belt_slots(item, n) };
+        let mut queue: Vec<Build> =
+            cells.iter().zip(slots).map(|(c, slot)| Build { pos: c.pos, dir: c.dir, slot }).collect();
+        queue.reverse();
+        self.line.upgrading = upgrading;
+        self.line.build_item = item;
+        self.line.building = queue;
+    }
+
+    /// The slots `n` belts of `item` come from: the selected stack first, then the others in slot order.
+    fn belt_slots(&self, item: ItemId, n: usize) -> Vec<u8> {
+        let inv = self.inventory();
+        let mut slots = Vec::with_capacity(n);
+        for s in std::iter::once(inv.selected).chain((0..INVENTORY_SLOTS).filter(|&s| s != inv.selected)) {
+            if inv.slots[s].item == item {
+                let take = (inv.slots[s].count as usize).min(n - slots.len());
+                slots.resize(slots.len() + take, s as u8);
+            }
+        }
+        slots
     }
 
     /// Drops the line being dragged (the pointer was freed, or a left click).
@@ -197,7 +241,8 @@ impl Game {
         self.line.cells.clear();
     }
 
-    /// Cells the held stack pays for (none while research locks the kit's upgrade): belts in hand, or belt upgrades the held kit's kind covers.
+    /// Cells the inventory pays for (none while research locks the kit's upgrade): all the belts of the
+    /// held kind it holds, or the belt upgrades all the held kits cover.
     pub(crate) fn line_budget(&self) -> usize {
         let held = self.inventory().selected_stack().item;
         match upgrades::kit_tier(held) {
@@ -206,7 +251,7 @@ impl Game {
                 let per = tiers::family(BELT).map_or(1, |f| f.kits);
                 (self.inventory().count(held) / per) as usize
             }
-            None => self.inventory().selected_stack().count as usize,
+            None => self.inventory().count(held) as usize,
         }
     }
 
@@ -214,6 +259,13 @@ impl Game {
     fn start_upgrade(&mut self, tier: u8) -> bool {
         let Some(hit) = self.target else { return false };
         match self.sim.factory.tiered_at(hit.block) {
+            Some((BELT, t)) if t + 1 == tier && self.body().input.sprint => {
+                // Shift: the whole line of belts joined to this one.
+                let chain = self.sim.factory.belt_chain(hit.block, MAX_CHAIN);
+                let cells: Vec<_> = chain.iter().map(|&pos| LineCell { pos, dir: 0, shape: Shape::Flat }).collect();
+                self.queue_build(&cells, true);
+                self.using = false;
+            }
             Some((BELT, t)) => {
                 self.line.start = Some((hit.block, 0));
                 let cell = LineCell { pos: hit.block, dir: 0, shape: Shape::Flat };
@@ -257,23 +309,29 @@ impl Game {
         (dir.y < -1e-3 && t < LINE_REACH).then(|| (eye + dir * t).floor())
     }
 
-    /// Sends the next few placements of a line being built. False when there are none. Stops if the
-    /// slot no longer holds the belts it started with.
+    /// Sends the next few placements of a line being built. False when there are none. Stops if a slot
+    /// no longer holds the belts it was to give (or the kits ran out).
     fn send_line_placements(&mut self) -> bool {
         if self.line.building.is_empty() {
             return false;
         }
-        let (slot, item) = self.line.build_from;
-        if self.inventory().slots[slot as usize].item.0 != item {
-            self.line.building.clear();
-            return false;
-        }
+        let item = self.line.build_item;
         for _ in 0..BUILD_PER_TICK {
-            let (Some(pos), Some(facing)) = (self.line.building.pop(), self.line.build_dir.pop()) else { break };
+            let Some(Build { pos, dir, slot }) = self.line.building.last().copied() else { break };
+            let holds = if self.line.upgrading {
+                self.inventory().count(item) > 0
+            } else {
+                self.inventory().slots[slot as usize].item == item
+            };
+            if !holds {
+                self.line.building.clear();
+                return false;
+            }
+            self.line.building.pop();
             if self.line.upgrading {
                 self.act(Action::Upgrade { pos });
             } else {
-                self.act(Action::PlaceBlock { pos, slot, facing, against: pos - UP });
+                self.act(Action::PlaceBlock { pos, slot, facing: dir, against: pos - UP });
             }
         }
         true
@@ -298,8 +356,9 @@ impl Game {
         let have = self.line_budget();
         let kit = upgrades::kit_tier(self.inventory().selected_stack().item);
         let ok = kit.map_or(1, |t| upgrades::TIER_COLOURS[t as usize] as i32);
-        let cell = |(i, c): (usize, &LineCell)| [c.pos.x, c.pos.y, c.pos.z, if i < have { ok } else { 0 }];
-        self.line.cells.iter().enumerate().flat_map(cell).collect()
+        let cell = |(i, pos): (usize, IVec3)| [pos.x, pos.y, pos.z, if i < have { ok } else { 0 }];
+        let aimed = self.line.aim.belts.iter().copied();
+        self.line.cells.iter().map(|c| c.pos).chain(aimed).enumerate().flat_map(cell).collect()
     }
 }
 

@@ -10,10 +10,8 @@ use crate::hints::{self, HINTS};
 use crate::math::IVec3;
 use crate::ore_guide;
 use crate::research::{self, Unlock};
+use crate::upgrade_aim::BLOCKED_RED;
 use crate::Game;
-
-/// The outline of a cell in the way of a machine being placed.
-const BLOCKED_RED: i32 = 0xff4a3d;
 
 #[wasm_bindgen]
 impl Game {
@@ -33,8 +31,12 @@ impl Game {
 
     /// Boxes to outline while placing, 7 numbers each: lowest and highest cells, then a colour (0xRRGGBB;
     /// 0 for amber). The box a held quarry would dig, or a held multi-block machine's footprint with a
-    /// red box on each cell in the way; empty otherwise.
+    /// red box on each cell in the way, or the machine a held upgrade kit would upgrade; empty otherwise.
     pub fn placement_box(&self) -> Vec<i32> {
+        let upgrade = self.aim_box();
+        if !upgrade.is_empty() {
+            return upgrade;
+        }
         if let Some(d) = self.quarry_preview() {
             let (lo, hi) = d.bounds();
             return vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0];
@@ -58,6 +60,9 @@ impl Game {
     pub fn line_label(&self) -> String {
         let n = self.line.cells.len();
         if n == 0 {
+            if !self.line.aim.label.is_empty() {
+                return self.line.aim.label.clone();
+            }
             let quarry = self.quarry_label();
             let footprint = if quarry.is_empty() { self.footprint_label() } else { quarry };
             return if footprint.is_empty() { self.power_label() } else { footprint };
@@ -76,7 +81,7 @@ impl Game {
                 tier + 1
             );
         }
-        let have = self.inventory().selected_stack().count as usize;
+        let have = self.inventory().count(held) as usize;
         let sloped = self.line.cells.iter().filter(|c| c.shape != factory::Shape::Flat).count();
         let mut s = format!("Belt line\n{n} belt{}", if n == 1 { "" } else { "s" });
         if sloped > 0 {

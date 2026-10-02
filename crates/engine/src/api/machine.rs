@@ -127,6 +127,16 @@ impl Game {
         self.act(Action::StoreSlot { pos: IVec3::new(x, y, z), slot });
     }
 
+    /// Box-screen shift-right-click on inventory slot `slot`: moves every stack of its item into the box.
+    pub fn store_all(&mut self, x: i32, y: i32, z: i32, slot: u8) {
+        self.act(Action::StoreAll { pos: IVec3::new(x, y, z), slot });
+    }
+
+    /// Box-screen shift-right-click on box slot `slot`: moves every stack of its item into the inventory.
+    pub fn take_all(&mut self, x: i32, y: i32, z: i32, slot: u8) {
+        self.act(Action::TakeAll { pos: IVec3::new(x, y, z), slot });
+    }
+
     /// The quarry panel's figures: `[width choice, depth choice, 1 if paused, layer, layers, blocks dug,
     /// blocks left (in loaded ground)]`; empty if there is no quarry there. Choices index
     /// `quarry_widths` and `quarry_depth_label`.

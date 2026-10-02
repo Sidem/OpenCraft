@@ -21,6 +21,7 @@
 //! `block.rs`, its recipe in `recipes.rs`.
 
 mod belt;
+mod belt_chain;
 mod belt_shape;
 mod buffer;
 mod cable;

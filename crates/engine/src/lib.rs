@@ -60,6 +60,7 @@ mod sim;
 mod sound;
 mod textures;
 mod tools;
+mod upgrade_aim;
 mod world;
 mod worldgen;
 

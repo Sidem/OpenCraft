@@ -1,7 +1,7 @@
 // Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the build menu
 // (`crafting.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
-// stacks between the box and the inventory.
+// stacks between the box and the inventory, shift-right-clicks move every stack of that item.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
@@ -57,13 +57,18 @@ export class InventoryPanel {
     close.type = 'button';
     close.setAttribute('aria-label', 'Close inventory');
     close.addEventListener('click', () => this.close(true));
-    head.append(title, h('span', 'inv-keys', 'E or click outside to return · Shift-click moves a stack'), close);
+    head.append(
+      title,
+      h('span', 'inv-keys', 'E or click outside to return · Shift-click moves a stack · Shift-right-click moves all of that item'),
+      close,
+    );
 
     // Backpack (slots 9..35) above the hotbar (0..8), as in the HUD.
     const size = game.inventory_size(), hotbar = game.hotbar_size();
     for (let i = 0; i < size; i++) {
-      const slot = this.makeSlot(() =>
-        this.box && this.shift ? game.store_slot(...this.box, i) : game.click_slot(i, this.shift),
+      const slot = this.makeSlot(
+        () => (this.box && this.shift ? game.store_slot(...this.box, i) : game.click_slot(i, this.shift)),
+        () => (this.box ? game.store_all(...this.box, i) : game.quick_move_all(i)),
       );
       if (i < hotbar) slot.root.append(h('span', 'key', String(i + 1)));
       this.slots.push(slot);
@@ -142,7 +147,10 @@ export class InventoryPanel {
     const n = box ? this.game.box_slots(...box).length / 2 : 0;
     while (this.boxSlots.length < n) {
       const i = this.boxSlots.length;
-      const slot = this.makeSlot(() => this.box && this.game.click_box(...this.box, i, this.shift));
+      const slot = this.makeSlot(
+        () => this.box && this.game.click_box(...this.box, i, this.shift),
+        () => this.box && this.game.take_all(...this.box, i),
+      );
       this.boxSlots.push(slot);
       this.boxGrid.append(slot.root);
     }
@@ -195,18 +203,21 @@ export class InventoryPanel {
     if (!this.box) this.menu.update();
   }
 
-  /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held). */
-  private makeSlot(click: () => void): SlotView {
+  /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held) and `moveAll`
+   * on a Shift-right-click. */
+  private makeSlot(click: () => void, moveAll: () => void): SlotView {
     const root = h('div', 'slot inv-slot');
     const icon = h('canvas');
     icon.width = icon.height = ICON_PX;
     const count = h('span', 'count');
     root.append(icon, count);
     root.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
+      const all = e.button === 2 && e.shiftKey;
+      if (e.button !== 0 && !all) return;
       e.preventDefault();
       this.shift = e.shiftKey;
-      click();
+      if (all) moveAll();
+      else click();
       this.moveCursor(e.clientX, e.clientY);
       this.update();
     });

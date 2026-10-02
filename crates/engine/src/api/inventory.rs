@@ -40,6 +40,11 @@ impl Game {
         self.act(Action::ClickSlot { slot: slot.min(u8::MAX as u32) as u8, shift });
     }
 
+    /// Shift-right-click on an inventory slot: moves every stack of its item between hotbar and backpack.
+    pub fn quick_move_all(&mut self, slot: u32) {
+        self.act(Action::QuickMoveAll { slot: slot.min(u8::MAX as u32) as u8 });
+    }
+
     /// Sorts the backpack (next tick; the hotbar keeps its layout).
     pub fn sort_inventory(&mut self) {
         self.act(Action::SortInventory);

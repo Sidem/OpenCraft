@@ -697,7 +697,7 @@ fn a_coal_miner_fuels_the_generator_that_powers_it() {
 }
 
 /// A stone slab at height 200 above spawn, 16 long in x, with a one-block step up from x = 6.
-fn belt_test_slab(g: &mut Game) {
+pub(crate) fn belt_test_slab(g: &mut Game) {
     for x in -2..16 {
         for z in -2..3 {
             g.sim.world.set_block(IVec3::new(x, 200, z), STONE);

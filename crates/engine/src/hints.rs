@@ -84,7 +84,7 @@ pub const HINTS: &[Hint] = &[
     Hint {
         text: "Upgrade in place: Mechanics unlocks green kits (by hand, or by the beltful in an assembler). Hold \
                kits and right-click a machine to make it Mk2, twice as fast; drag along a belt line to upgrade \
-               the belts. Blue kits make Mk3.",
+               the belts, or Shift-click a belt for its whole line. Blue kits make Mk3.",
         done: |_, f| tech_done(f, "Mechanics"),
     },
     Hint {

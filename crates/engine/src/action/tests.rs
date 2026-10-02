@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{BEDROCK, BELT, DIRT, STONE, STORAGE, WATER};
+use crate::block::{AIR, BEDROCK, BELT, DIRT, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
 use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
@@ -249,6 +249,44 @@ fn a_box_screen_moves_stacks_both_ways() {
 }
 
 #[test]
+fn shift_right_click_moves_every_stack_of_an_item_until_the_target_is_full() {
+    let mut sim = Sim::new(7, 2);
+    let pos = IVec3::new(0, 200, 0);
+    sim.factory.add_storage(pos);
+    let box_count = |sim: &Sim, item: ItemId| {
+        sim.factory.box_slots(pos).unwrap().iter().filter(|s| s.item == item).map(|s| s.count).sum::<u32>()
+    };
+    let stone = ItemId::from(STONE);
+    sim.apply(P, Action::Give { item: stone, count: 3 * MAX_STACK });
+    sim.apply(P, Action::Give { item: DIRT.into(), count: 5 });
+
+    // All three stacks move to the backpack, and the dirt stays where it was.
+    sim.apply(P, Action::QuickMoveAll { slot: 1 });
+    assert_eq!(inv(&sim).slots[..4].iter().map(|s| s.count).collect::<Vec<_>>(), [0, 0, 0, 5]);
+    assert_eq!(inv(&sim).slots[HOTBAR_SLOTS..HOTBAR_SLOTS + 3].iter().map(|s| s.count).sum::<u32>(), 3 * MAX_STACK);
+    sim.apply(P, Action::QuickMoveAll { slot: HOTBAR_SLOTS as u8 + 2 });
+    assert_eq!(inv(&sim).slots[..3].iter().map(|s| s.count).sum::<u32>(), 3 * MAX_STACK, "and back again");
+
+    // Into the box and out again, all stacks at once.
+    sim.apply(P, Action::StoreAll { pos, slot: 0 });
+    assert_eq!((inv(&sim).count(stone), box_count(&sim, stone), inv(&sim).count(DIRT.into())), (0, 3 * MAX_STACK, 5));
+    sim.apply(P, Action::TakeAll { pos, slot: 0 });
+    assert_eq!((inv(&sim).count(stone), box_count(&sim, stone)), (3 * MAX_STACK, 0));
+
+    // A box with room for two stacks takes two; the third stays.
+    for s in sim.factory.box_slots_mut(pos).unwrap().iter_mut().skip(2) {
+        *s = Stack { item: IRON_PLATE, count: 1 };
+    }
+    sim.apply(P, Action::StoreAll { pos, slot: 0 });
+    assert_eq!((inv(&sim).count(stone), box_count(&sim, stone)), (MAX_STACK, 2 * MAX_STACK));
+    // No box, no stack: nothing happens.
+    sim.apply(P, Action::StoreAll { pos: pos + IVec3::new(1, 0, 0), slot: 0 });
+    sim.apply(P, Action::TakeAll { pos, slot: 30 });
+    sim.apply(P, Action::QuickMoveAll { slot: 200 });
+    assert_eq!((inv(&sim).count(stone), box_count(&sim, stone)), (MAX_STACK, 2 * MAX_STACK));
+}
+
+#[test]
 fn sorting_merges_and_orders_a_box_and_the_backpack() {
     let mut sim = Sim::new(7, 2);
     let pos = IVec3::new(0, 200, 0);
@@ -357,6 +395,11 @@ fn samples() -> Vec<Action> {
         Action::SortInventory,
         Action::SortBox { pos },
         Action::CancelCraft { order: 513 },
+        Action::Connect { pole: pos, to: against },
+        Action::Disconnect { pole: against, to: pos },
+        Action::QuickMoveAll { slot: 20 },
+        Action::StoreAll { pos, slot: 3 },
+        Action::TakeAll { pos, slot: 11 },
     ]
 }
 
