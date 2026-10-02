@@ -65,24 +65,35 @@ impl Game {
                 shown => *shown.insert(Shown { pos: body.pos, yaw: body.yaw, pitch: body.pitch }),
             };
             let at = s.pos - eye;
-            let head = at + up((BODY[1] + HEAD[1] * 0.5) as f64);
-            if head.length() < NEAR {
-                continue;
-            }
-            let yaw = s.yaw as f32;
-            push_box(&mut self.instances, at + up(BODY[1] as f64 * 0.5), yaw, BODY, 0.0, [tex::AVATAR_SUIT; 3], false);
-            let skin = [tex::AVATAR_HELMET, tex::AVATAR_SKIN, tex::AVATAR_SKIN];
-            push_box(&mut self.instances, head, yaw, HEAD, 0.0, skin, false);
-            let ahead = ((HEAD[2] + VISOR[2]) * 0.5) as f64 - 0.01;
-            let (sin, cos) = s.yaw.sin_cos();
-            let visor = head + Vec3::new(sin * ahead, 0.03 + s.pitch.sin() * 0.1, -cos * ahead);
-            push_box(&mut self.instances, visor, yaw, VISOR, 0.0, [tex::AVATAR_VISOR; 3], false);
-            if at.length() < LABEL_RANGE {
+            if push_avatar(&mut self.instances, at, s.yaw, s.pitch) && at.length() < LABEL_RANGE {
                 let tag = at + up(LABEL_HEIGHT);
                 a.labels.extend_from_slice(&[slot as f32, tag.x as f32, tag.y as f32, tag.z as f32]);
             }
         }
+        // The local player, when the camera is out of the head (camera.rs).
+        if let Some(feet) = self.third_person.feet {
+            let (yaw, pitch) = (self.body().yaw, self.body().pitch);
+            push_avatar(&mut self.instances, feet - eye, yaw, pitch);
+        }
     }
+}
+
+/// Pushes one avatar standing at `at` (feet, relative to the camera) turned to `yaw`, its visor tilted
+/// by `pitch`. False when it isn't drawn because the camera is in its head.
+fn push_avatar(instances: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64) -> bool {
+    let head = at + up((BODY[1] + HEAD[1] * 0.5) as f64);
+    if head.length() < NEAR {
+        return false;
+    }
+    let turn = yaw as f32;
+    push_box(instances, at + up(BODY[1] as f64 * 0.5), turn, BODY, 0.0, [tex::AVATAR_SUIT; 3], false);
+    let skin = [tex::AVATAR_HELMET, tex::AVATAR_SKIN, tex::AVATAR_SKIN];
+    push_box(instances, head, turn, HEAD, 0.0, skin, false);
+    let ahead = ((HEAD[2] + VISOR[2]) * 0.5) as f64 - 0.01;
+    let (sin, cos) = yaw.sin_cos();
+    let visor = head + Vec3::new(sin * ahead, 0.03 + pitch.sin() * 0.1, -cos * ahead);
+    push_box(instances, visor, turn, VISOR, 0.0, [tex::AVATAR_VISOR; 3], false);
+    true
 }
 
 fn up(y: f64) -> Vec3 {

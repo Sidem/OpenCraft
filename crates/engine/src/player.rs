@@ -115,7 +115,16 @@ impl Player {
     }
 
     pub fn eye(&self) -> Vec3 {
-        self.pos + Vec3::new(0.0, if self.crouched() { CROUCH_EYE_HEIGHT } else { EYE_HEIGHT }, 0.0)
+        self.pos + Vec3::new(0.0, self.eye_height(), 0.0)
+    }
+
+    /// How far the eye is above the feet.
+    pub fn eye_height(&self) -> f64 {
+        if self.crouched() {
+            CROUCH_EYE_HEIGHT
+        } else {
+            EYE_HEIGHT
+        }
     }
 
     /// Whether the eye is at crouching height (`eye`), which the camera eases (camera.rs).

@@ -72,7 +72,7 @@ use wasm_bindgen::prelude::*;
 use action::Action;
 use avatars::Avatars;
 use belt_line::BeltLine;
-use camera::CrouchGlide;
+use camera::{CrouchGlide, ThirdPerson};
 use deposits::DepositState;
 use entities::Items;
 use inventory::Inventory;
@@ -126,6 +126,8 @@ pub struct Game {
     render_eye: Vec3,
     /// Eases the eye between standing and crouching height (camera.rs).
     crouch_glide: CrouchGlide,
+    /// The optional third-person camera and the avatar it shows (camera.rs).
+    third_person: ThirdPerson,
     /// The local player's hands (interaction.rs). Other players run their own on their machines.
     target: Option<RayHit>,
     mining: bool,
@@ -187,6 +189,7 @@ impl Game {
             prev_eye: eye,
             render_eye: eye,
             crouch_glide: CrouchGlide::default(),
+            third_person: ThirdPerson::default(),
             target: None,
             mining: false,
             mine_block: None,
@@ -234,7 +237,11 @@ impl Game {
 
         let alpha = (self.accumulator / TICK).clamp(0.0, 1.0);
         let eye = self.prev_eye + (self.body().eye() - self.prev_eye) * alpha;
-        self.render_eye = self.crouch_glide.apply(eye, self.body().crouched(), dt);
+        let feet = eye - Vec3::new(0.0, self.body().eye_height(), 0.0);
+        let eye = self.crouch_glide.apply(eye, self.body().crouched(), dt);
+        let (look, solid) = (self.body().look_dir(), &self.sim.world);
+        let solid = |p| solid.get_block(p).is_some_and(|b| block::SOLID[b as usize]);
+        self.render_eye = self.third_person.camera(eye, feet, look, dt, solid);
         self.update_target();
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();

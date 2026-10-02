@@ -97,6 +97,12 @@ impl Game {
         self.render_eye.z
     }
 
+    /// Third-person view: how many blocks behind the head the camera sits, 0 for first person
+    /// (camera.rs). The camera position above is then behind the eye and the player's avatar is drawn.
+    pub fn set_third_person(&mut self, distance: f64) {
+        self.third_person.distance = distance;
+    }
+
     /// Blocks quarries near the camera are digging, 4 numbers each: x, y, z and progress in thousandths
     /// (the host draws the mining crack on them).
     pub fn quarry_cracks(&self) -> Vec<i32> {

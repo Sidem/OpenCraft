@@ -80,7 +80,11 @@ async function main(): Promise<void> {
   renderer.setTextures(texPixels, game.texture_size(), game.texture_layers());
   const hud = new Hud(game, texPixels, game.texture_size());
   const comfort = new ComfortStore();
-  comfort.subscribe(() => (renderer.fovY = (comfort.settings.fov * Math.PI) / 180));
+  comfort.subscribe(() => {
+    const s = comfort.settings;
+    renderer.fovY = (s.fov * Math.PI) / 180;
+    game.set_third_person(s.thirdPerson ? s.thirdDistance : 0);
+  });
   const vignette = new Vignette(comfort);
   document.getElementById('comfort')!.append(new ComfortPanel(comfort, vignette, document.getElementById('menu')!).el);
   const input = new Input(canvas);
@@ -246,6 +250,7 @@ async function main(): Promise<void> {
       if (a.kind === 'debug') hud.toggleDebug();
       else if (a.kind === 'hint') hints.skip();
       else if (a.kind === 'map') minimap.toggle();
+      else if (a.kind === 'view') comfort.set('thirdPerson', !comfort.settings.thirdPerson);
       else if (a.kind === 'slot') game.select_slot(a.slot);
       else if (a.kind === 'scroll') game.scroll_slot(a.delta);
       else if (a.kind === 'fly') game.toggle_fly();

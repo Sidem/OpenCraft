@@ -16,6 +16,7 @@ export type Action =
   | { kind: 'hint' }
   | { kind: 'map' }
   | { kind: 'world-map' }
+  | { kind: 'view' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -140,6 +141,7 @@ export class Input {
       else if (e.code === 'KeyT') this.actions.push({ kind: 'research' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
       else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });
+      else if (e.code === 'KeyV') this.actions.push({ kind: 'view' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
   }
