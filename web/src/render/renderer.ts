@@ -13,7 +13,6 @@ import { skyAt, SkyPass } from './sky';
 import { fogFor, WaterPass } from './water';
 
 const CHUNK = 32;
-const FOV_Y = (72 * Math.PI) / 180;
 
 interface ChunkMesh {
   x: number;
@@ -127,6 +126,7 @@ export class Renderer {
   private readonly viewProj = new Float32Array(16);
   private readonly planes = new Float32Array(24);
 
+  fovY = (72 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
   constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number) {
     const gl = canvas.getContext('webgl2', {
       antialias: true,
@@ -294,7 +294,7 @@ export class Renderer {
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     } else {
       gl.clear(gl.DEPTH_BUFFER_BIT);
-      this.sky.draw(sky, f.yaw, f.pitch, FOV_Y, this.canvas.width / this.canvas.height);
+      this.sky.draw(sky, f.yaw, f.pitch, this.fovY, this.canvas.width / this.canvas.height);
     }
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -304,7 +304,7 @@ export class Renderer {
     gl.disable(gl.BLEND);
 
     const far = (this.viewRadius + 3) * CHUNK * 1.8;
-    perspective(this.proj, FOV_Y, this.canvas.width / this.canvas.height, 0.05, far);
+    perspective(this.proj, this.fovY, this.canvas.width / this.canvas.height, 0.05, far);
     viewRotation(this.view, f.yaw, f.pitch);
     multiply(this.viewProj, this.proj, this.view);
     frustumPlanes(this.planes, this.viewProj);

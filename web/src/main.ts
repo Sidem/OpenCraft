@@ -7,6 +7,7 @@ import './base.css';
 import './ui/menu.css';
 import init from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
+import { ComfortStore } from './comfort/settings';
 import type { Coop } from './net/coop';
 import { hostWorld, startCoop } from './net/session';
 import { tickWhenStalled } from './net/ticker';
@@ -16,6 +17,7 @@ import { Renderer } from './render/renderer';
 import { clock } from './render/sky';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
+import { ComfortPanel } from './ui/comfort';
 import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
 import { Hints } from './ui/hints';
@@ -29,11 +31,12 @@ import { Pins } from './ui/pins';
 import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
+import { Vignette } from './ui/vignette';
 import { VolumeControl } from './ui/volume-control';
 import { WorldMap } from './ui/worldmap';
 import { WorldsPanel } from './ui/worlds';
 
-const MOUSE_SENSITIVITY = 0.0022; // radians per pixel
+const MOUSE_SENSITIVITY = 0.0022; // radians per pixel at 100% (the comfort setting scales it)
 const WORK_BUDGET_MS = 6; // per frame, for streaming world generation and meshing
 const LOADING_WORK_BUDGET_MS = 28;
 
@@ -76,6 +79,10 @@ async function main(): Promise<void> {
   const texPixels = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
   renderer.setTextures(texPixels, game.texture_size(), game.texture_layers());
   const hud = new Hud(game, texPixels, game.texture_size());
+  const comfort = new ComfortStore();
+  comfort.subscribe(() => (renderer.fovY = (comfort.settings.fov * Math.PI) / 180));
+  const vignette = new Vignette(comfort);
+  document.getElementById('comfort')!.append(new ComfortPanel(comfort, vignette, document.getElementById('menu')!).el);
   const input = new Input(canvas);
   const sound = new SoundSystem();
   hud.setMuted(sound.muted);
@@ -191,7 +198,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, worldMap, pins, session, coop,
+    game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -228,7 +235,10 @@ async function main(): Promise<void> {
       const m = input.movement();
       game.set_move(m.forward, m.strafe, m.jump, m.sprint, m.crouch);
       const [dx, dy] = input.takeLook();
-      if (dx !== 0 || dy !== 0) game.look(dx * MOUSE_SENSITIVITY, dy * MOUSE_SENSITIVITY);
+      if (dx !== 0 || dy !== 0) {
+        const turn = (MOUSE_SENSITIVITY * comfort.settings.sensitivity) / 100;
+        game.look(dx * turn, dy * turn);
+      }
       game.set_mining(input.mining);
       game.set_using(input.using);
     }
@@ -321,6 +331,7 @@ async function main(): Promise<void> {
       cracks: game.quarry_cracks(),
       underwater: game.eye_in_water(),
     });
+    vignette.update(dt, game.yaw(), game.pitch(), game.eye_x(), game.eye_y(), game.eye_z());
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));
 

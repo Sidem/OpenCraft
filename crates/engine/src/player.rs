@@ -21,6 +21,8 @@ pub const HALF_WIDTH: f64 = 0.3;
 pub const HEIGHT: f64 = 1.8;
 const EYE_HEIGHT: f64 = 1.62;
 const CROUCH_EYE_HEIGHT: f64 = 1.32;
+/// How much lower the eye sits when crouched.
+pub const CROUCH_DIP: f64 = EYE_HEIGHT - CROUCH_EYE_HEIGHT;
 const GRAVITY: f64 = 28.0;
 const TERMINAL_VELOCITY: f64 = 60.0;
 const JUMP_VELOCITY: f64 = 8.6;
@@ -113,8 +115,12 @@ impl Player {
     }
 
     pub fn eye(&self) -> Vec3 {
-        let crouched = self.input.crouch && !self.flying;
-        self.pos + Vec3::new(0.0, if crouched { CROUCH_EYE_HEIGHT } else { EYE_HEIGHT }, 0.0)
+        self.pos + Vec3::new(0.0, if self.crouched() { CROUCH_EYE_HEIGHT } else { EYE_HEIGHT }, 0.0)
+    }
+
+    /// Whether the eye is at crouching height (`eye`), which the camera eases (camera.rs).
+    pub fn crouched(&self) -> bool {
+        self.input.crouch && !self.flying
     }
 
     /// Unit view direction. yaw = 0 looks towards -Z, positive yaw turns right.

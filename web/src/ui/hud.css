@@ -6,35 +6,54 @@
   pointer-events: none;
 }
 
+/* A fixed point to rest the eyes on, which eases motion sickness. Its size, thickness, opacity and
+   style come from the comfort settings (ui/comfort.ts sets the variables and the ch-* class); the dark
+   outline keeps it visible on snow and sky alike. */
 #crosshair {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 22px;
-  height: 22px;
+  width: var(--ch-size, 28px);
+  height: var(--ch-size, 28px);
   transform: translate(-50%, -50%);
-  mix-blend-mode: difference;
+  opacity: var(--ch-opacity, 1);
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.9));
 }
 
 #crosshair::before,
-#crosshair::after {
+#crosshair::after,
+#crosshair i {
   content: '';
   position: absolute;
   background: #fff;
 }
 
 #crosshair::before {
-  left: 10px;
+  left: calc(50% - var(--ch-thick, 3px) / 2);
   top: 0;
-  width: 2px;
-  height: 22px;
+  width: var(--ch-thick, 3px);
+  height: 100%;
 }
 
 #crosshair::after {
-  top: 10px;
+  top: calc(50% - var(--ch-thick, 3px) / 2);
   left: 0;
-  width: 22px;
-  height: 2px;
+  width: 100%;
+  height: var(--ch-thick, 3px);
+}
+
+#crosshair i {
+  left: calc(50% - var(--ch-thick, 3px));
+  top: calc(50% - var(--ch-thick, 3px));
+  width: calc(var(--ch-thick, 3px) * 2);
+  height: calc(var(--ch-thick, 3px) * 2);
+  border-radius: 50%;
+}
+
+#crosshair.ch-cross i,
+#crosshair.ch-dot::before,
+#crosshair.ch-dot::after {
+  display: none;
 }
 
 #target {

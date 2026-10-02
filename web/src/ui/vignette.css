@@ -1,0 +1,12 @@
+/* Movement vignette (vignette.ts): dark edges whose clear centre shrinks as the camera moves. */
+
+#vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse farthest-corner at 50% 50%,
+    transparent var(--vignette-clear, 100%),
+    rgba(0, 0, 0, 0.92) calc(var(--vignette-clear, 100%) + 32%)
+  );
+}

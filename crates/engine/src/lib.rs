@@ -27,6 +27,7 @@ mod avatars;
 mod belt_line;
 mod block;
 mod bytes;
+mod camera;
 mod chunk;
 mod crafting;
 mod daytime;
@@ -71,6 +72,7 @@ use wasm_bindgen::prelude::*;
 use action::Action;
 use avatars::Avatars;
 use belt_line::BeltLine;
+use camera::CrouchGlide;
 use deposits::DepositState;
 use entities::Items;
 use inventory::Inventory;
@@ -122,6 +124,8 @@ pub struct Game {
     /// and the current eye (presentation only).
     prev_eye: Vec3,
     render_eye: Vec3,
+    /// Eases the eye between standing and crouching height (camera.rs).
+    crouch_glide: CrouchGlide,
     /// The local player's hands (interaction.rs). Other players run their own on their machines.
     target: Option<RayHit>,
     mining: bool,
@@ -182,6 +186,7 @@ impl Game {
             accumulator: 0.0,
             prev_eye: eye,
             render_eye: eye,
+            crouch_glide: CrouchGlide::default(),
             target: None,
             mining: false,
             mine_block: None,
@@ -228,7 +233,8 @@ impl Game {
         self.catch_up();
 
         let alpha = (self.accumulator / TICK).clamp(0.0, 1.0);
-        self.render_eye = self.prev_eye + (self.body().eye() - self.prev_eye) * alpha;
+        let eye = self.prev_eye + (self.body().eye() - self.prev_eye) * alpha;
+        self.render_eye = self.crouch_glide.apply(eye, self.body().crouched(), dt);
         self.update_target();
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();

@@ -1,0 +1,60 @@
+/* Comfort settings in the pause menu (comfort.ts). */
+
+.comfort {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 13px;
+}
+
+.comfort summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.comfort-note,
+.comfort-help {
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.comfort-row {
+  display: grid;
+  grid-template-columns: 9.5em 1fr 3.6em;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.comfort-row input[type='range'] {
+  min-width: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.comfort-value {
+  text-align: right;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.comfort-choices {
+  grid-column: 2 / 4;
+  display: flex;
+  gap: 6px;
+}
+
+.comfort-choices .secondary-btn {
+  flex: 1;
+  padding: 5px 4px;
+}
+
+/* While the section is open the menu steps aside so the game shows through. */
+#menu.previewing {
+  background: none;
+  backdrop-filter: none;
+  place-items: center end;
+}
