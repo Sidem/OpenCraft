@@ -178,7 +178,8 @@ size.
 - **Conveyor belts** carry items one block per second. Hold right-click on the ground and drag to lay a
   whole line: outlines show where the belts go (red past the belts you have) and releasing builds it.
   A single belt runs the way you face; press R on a belt to turn it. A belt ending in another belt's side
-  merges into it. A belt fed only from one side turns the corner.
+  merges into it. A belt fed only from one side turns the corner. Stand on a belt and it carries you
+  along at its speed (you can still walk on it; crouch to stop at its end).
 - **Climbing and crossing.** Belts climb and drop one-block steps by themselves: a belt with a belt one
   block ahead and one up becomes a ramp up, and one below a belt one up behind it a ramp down. Stacked lifts carry items straight up, and the top one hands them on
   one ahead and one up. An underpass entry sends items under whatever is in front of it to the nearest

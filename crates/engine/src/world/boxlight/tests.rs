@@ -38,6 +38,37 @@ fn open_air_is_daylit_and_a_lamp_lights_it_at_once() {
 }
 
 #[test]
+fn a_big_spread_of_boxes_is_lit_once_not_every_frame() {
+    // A factory in view spans dozens of chunks; reading them all again must not light any chunk again
+    // (a cache smaller than the spread was lighting every chunk each frame: 45 ms a frame).
+    let (mut w, _) = streamed_world();
+    let cells: Vec<IVec3> = (-1..=1)
+        .flat_map(|x| (-1..=1).flat_map(move |z| (0..6).map(move |y| IVec3::new(x * 32 + 5, y * 32 + 5, z * 32 + 5))))
+        .collect();
+    let lit = |w: &World| w.light_cache.iter().filter_map(|e| e.lit.as_ref().map(|b| b.as_ptr())).collect::<Vec<_>>();
+    cells.iter().for_each(|&c| _ = w.light_at(c));
+    let first = lit(&w);
+    assert!(first.len() > 24, "only {} chunks lit", first.len());
+    cells.iter().for_each(|&c| _ = w.light_at(c));
+    assert!(lit(&w) == first, "the same lit chunks, none lit again");
+}
+
+#[test]
+fn the_cache_evicts_the_chunk_read_longest_ago() {
+    let (mut w, _) = streamed_world();
+    let (keep, spare) = (IVec3::new(5, 69, 5), IVec3::new(37, 69, 5));
+    w.light_at(keep);
+    w.light_at(spare);
+    for i in 0..LIGHT_CHUNKS as i32 {
+        w.light_at(keep); // read again and again: never the stalest
+        w.light_at(IVec3::new(5, 69, 5 + 32 * (i + 1)));
+    }
+    let has = |c: IVec3| w.light_cache.iter().any(|e| e.chunk == chunk_of(c));
+    assert!(has(keep) && !has(spare));
+    assert!(w.light_cache.len() <= LIGHT_CHUNKS);
+}
+
+#[test]
 fn an_unlit_place_reads_as_plain_daylight() {
     let (mut w, air) = streamed_world();
     let unloaded = air + IVec3::new(4000, 0, 0);

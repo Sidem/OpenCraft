@@ -64,8 +64,9 @@ pub struct World {
     view_radius: i32,
     mesher: Mesher,
     lighting: Lighting,
-    /// Lit chunks for `light_at` (boxlight.rs), oldest first.
-    light_cache: Vec<(IVec3, boxlight::Lit)>,
+    /// Lit chunks for `light_at` (boxlight.rs), the least recently read evicted first.
+    light_cache: Vec<boxlight::Entry>,
+    light_clock: u64,
     air: Chunk,
     floor: Chunk,
     /// Recently generated, unedited chunks, oldest first (never shadows an edit: `chunks` and
@@ -98,6 +99,7 @@ impl World {
             mesher: Mesher::new(),
             lighting: Lighting::default(),
             light_cache: Vec::new(),
+            light_clock: 0,
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
             generated: Vec::new(),
@@ -331,7 +333,7 @@ impl World {
             }
         }
         self.mesh_queue_stale = true;
-        self.light_cache.retain(|(c, _)| !self.dirty.contains(c));
+        self.light_cache.retain(|e| !self.dirty.contains(&e.chunk));
         true
     }
 

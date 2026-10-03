@@ -8,6 +8,9 @@
 //! with the chest out, pushing against a wall or standing on the bottom, leaps like a jump on land:
 //! that is how a swimmer climbs out onto a bank. Flying ignores water.
 //!
+//! Belts: a body on the ground whose `conveyor` is set (the belt under its feet) is carried along at the
+//! belt's speed, through the same collision as walking; it keeps its own velocity.
+//!
 //! Climbing: a body with a ladder or a belt lift (`climbable`) at its feet or waist doesn't fall; it rises at `CLIMB_SPEED` with jump
 //! held and sinks with crouch held. Climbing past the top ladder carries the feet just over it, so walking
 //! on steps onto a ledge level with it.
@@ -74,6 +77,11 @@ pub struct Player {
     pub splash_speed: f64,
     /// A sideways move was blocked in the last step (for climbing out of water).
     against_wall: bool,
+    /// How fast the ground under the feet moves (a belt), in blocks per second; set before each tick's
+    /// steps by `authority.rs`, never saved.
+    pub conveyor: Vec3,
+    /// How far belts carried the body since the game last took it (for footsteps).
+    pub carried: Vec3,
 }
 
 impl Player {
@@ -91,6 +99,8 @@ impl Player {
             landing_speed: 0.0,
             splash_speed: 0.0,
             against_wall: false,
+            conveyor: Vec3::ZERO,
+            carried: Vec3::ZERO,
         }
     }
 
@@ -238,6 +248,19 @@ impl Player {
             } else if (moved - want).abs() > 1e-9 {
                 self.vel.set(axis, 0.0);
                 self.against_wall = true;
+            }
+        }
+
+        // A belt under the feet carries the body on top of its own walking (collision still applies).
+        if self.on_ground && !self.flying && !swimming && !climbing {
+            for axis in [0, 2] {
+                let before = bb;
+                let moved = move_axis(&mut bb, axis, self.conveyor.get(axis) * dt, solid);
+                if edge_guard && !bb.has_support(solid) {
+                    bb = before;
+                } else {
+                    self.carried.set(axis, self.carried.get(axis) + moved);
+                }
             }
         }
 

@@ -5,7 +5,8 @@
 //! stalls for a tick at cell borders. A belt hands its front item to whatever is in front of it:
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
 //! Ramps, lifts and underpasses are belts with a `shape` (`belt_shape.rs`); every shape comes in the
-//! tiers of [`BELT_TIERS`] (`tier` indexes it; `tiers.rs` names the item of each).
+//! tiers of [`BELT_TIERS`] (`tier` indexes it; `tiers.rs` names the item of each). A body standing on
+//! a belt is carried along at its speed (`Factory::conveyor_at`, used by `authority.rs`).
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -16,7 +17,7 @@ use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
 
 use super::belt_shape::Shape;
-use super::links::{deliver, Link, Sinks};
+use super::links::{deliver, Link, Sinks, Slot};
 use super::render::push_box;
 use super::{Factory, Machine, DIRS};
 
@@ -111,6 +112,27 @@ impl Belt {
         };
         self.items.push(BeltItem { item, p: p.max(0.0) });
         true
+    }
+}
+
+impl Factory {
+    /// How fast the belt under a body's feet carries it, in blocks per second (zero off belts, in the
+    /// air and on lifts, which are climbed). Belts aren't solid: a body stands on the ground in the
+    /// belt's cell, so the feet must be within the belt's own height of the cell's floor.
+    pub fn conveyor_at(&self, feet: Vec3) -> Vec3 {
+        let cell = Vec3::new(feet.x, feet.y + 1e-3, feet.z).floor();
+        if feet.y - cell.y as f64 > f64::from(BELT_HEIGHT) + 0.05 {
+            return Vec3::ZERO;
+        }
+        match self.at.get(&cell) {
+            Some(&Slot::Belt(i)) => {
+                let belt = &self.belts[i as usize];
+                let d = DIRS[belt.dir as usize];
+                let speed = if belt.shape == Shape::Lift { 0.0 } else { f64::from(belt.speed()) };
+                Vec3::new(d.x as f64 * speed, 0.0, d.z as f64 * speed)
+            }
+            _ => Vec3::ZERO,
+        }
     }
 }
 

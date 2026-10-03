@@ -146,7 +146,7 @@ impl World {
             let p = self.gen_queue.pop().expect("checked above");
             let chunk = self.saved.remove(&p).unwrap_or_else(|| self.generator.generate(p));
             self.chunks.insert(p, Entry { chunk, has_mesh: false });
-            self.light_cache.retain(|(_, lit)| lit.is_some()); // what couldn't be lit may be now
+            self.light_cache.retain(|e| e.lit.is_some()); // what couldn't be lit may be now
             self.dirty.insert(p);
             self.mesh_queue_stale = true;
         }

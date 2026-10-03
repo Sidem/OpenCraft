@@ -45,6 +45,7 @@ impl Game {
     pub(crate) fn update_movement_sounds(&mut self, feet_before: Vec3) {
         let landing = std::mem::take(&mut self.body_mut().landing_speed);
         let splash = std::mem::take(&mut self.body_mut().splash_speed);
+        let carried = std::mem::take(&mut self.body_mut().carried);
         if splash > SPLASH_MIN_SPEED {
             let volume = (splash / 15.0).clamp(0.3, 1.0);
             self.play(sound::SPLASH, 0, self.body().pos, volume);
@@ -61,7 +62,8 @@ impl Game {
             self.step_distance = 0.0;
             return;
         }
-        let (dx, dz) = (feet.x - feet_before.x, feet.z - feet_before.z);
+        // Steps count what the legs walked, not what a belt carried.
+        let (dx, dz) = (feet.x - feet_before.x - carried.x, feet.z - feet_before.z - carried.z);
         self.step_distance += (dx * dx + dz * dz).sqrt();
         if self.step_distance >= STEP_STRIDE {
             self.step_distance = 0.0;

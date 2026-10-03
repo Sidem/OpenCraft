@@ -189,6 +189,43 @@ fn footsteps_and_landing_make_sounds() {
 }
 
 #[test]
+fn standing_on_a_belt_carries_the_player_without_footsteps() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    for _ in 0..60 {
+        g.update(1.0 / 60.0);
+    }
+    // A flat stone floor with an east-bound belt line laid on it (direction 1), a few cells wide.
+    let feet = Vec3::new(g.player_x(), g.player_y(), g.player_z()).floor();
+    for (dx, dz) in (-2..=14).flat_map(|dx| (-2..=2).map(move |dz| (dx, dz))) {
+        let p = feet + IVec3::new(dx, 0, dz);
+        g.sim.world.set_block(p - IVec3::new(0, 1, 0), STONE);
+        for up in 0..3 {
+            g.sim.world.set_block(p + IVec3::new(0, up, 0), AIR);
+        }
+    }
+    for dx in 0..=12 {
+        let belt = feet + IVec3::new(dx, 0, 0);
+        g.sim.world.set_block(belt, BELT);
+        g.sim.factory.add_belt(belt, 1);
+    }
+    g.teleport(feet.x as f64 + 0.5, feet.y as f64, feet.z as f64 + 0.5);
+    g.run_ticks(30);
+    let (start, sounds) = (g.player_x(), g.sounds.kinds().len());
+    g.run_ticks(60);
+    let carried = g.player_x() - start;
+    assert!((carried - 1.0).abs() < 0.1, "a Mk1 belt carries a body one block a second, moved {carried}");
+    assert!((g.player_z() - (feet.z as f64 + 0.5)).abs() < 1e-6, "and only along its heading");
+    assert_eq!(g.sounds.kinds().len(), sounds, "being carried makes no footsteps");
+
+    // Flying is never carried.
+    g.toggle_fly();
+    let up = g.player_x();
+    g.run_ticks(30);
+    assert!((g.player_x() - up).abs() < 1e-6, "a flying player stays where it is");
+}
+
+#[test]
 fn a_player_splashes_into_a_pool_where_items_float_and_steps_are_silent() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);

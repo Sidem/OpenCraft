@@ -17,13 +17,21 @@ use crate::worldgen::WORLD_HEIGHT;
 use super::streaming::{chunks_above, neighbourhood};
 use super::{chunk_of, local_of, World};
 
-/// Chunks kept lit: the machines within view span a handful.
-const LIGHT_CHUNKS: usize = 24;
+/// Chunks kept lit (32 KB each). Every chunk holding a box in view must fit, or each frame lights them all
+/// again (about 1.6 ms a chunk): a big factory in view spans dozens.
+const LIGHT_CHUNKS: usize = 128;
 /// Full sky light and no block light, in `light.rs`'s byte (sky low nibble, block high nibble).
 pub const DAYLIGHT: u8 = 15;
 
 /// The lit cells of a chunk (`chunk::index` order), or `None` if it can't be lit yet.
 pub(super) type Lit = Option<Box<[u8]>>;
+
+/// One cached chunk and when `light_at` last read it (`World::light_clock`).
+pub(super) struct Entry {
+    pub(super) chunk: IVec3,
+    pub(super) lit: Lit,
+    used: u64,
+}
 
 impl World {
     /// The light byte (sky in the low nibble, block light in the high one, each 0..=15) of the cell at `p`.
@@ -32,19 +40,23 @@ impl World {
             return DAYLIGHT;
         }
         let c = chunk_of(p);
-        let at = match self.light_cache.iter().position(|(k, _)| *k == c) {
+        self.light_clock += 1;
+        let at = match self.light_cache.iter().position(|e| e.chunk == c) {
             Some(i) => i,
             None => {
                 let lit = self.light_chunk(c);
                 if self.light_cache.len() >= LIGHT_CHUNKS {
-                    self.light_cache.remove(0);
+                    let stalest = (0..self.light_cache.len()).min_by_key(|&i| self.light_cache[i].used);
+                    self.light_cache.swap_remove(stalest.unwrap_or(0));
                 }
-                self.light_cache.push((c, lit));
+                self.light_cache.push(Entry { chunk: c, lit, used: 0 });
                 self.light_cache.len() - 1
             }
         };
+        let entry = &mut self.light_cache[at];
+        entry.used = self.light_clock;
         let (x, y, z) = local_of(p);
-        self.light_cache[at].1.as_ref().map_or(DAYLIGHT, |cells| cells[index(x, y, z)])
+        entry.lit.as_ref().map_or(DAYLIGHT, |cells| cells[index(x, y, z)])
     }
 
     /// Lights chunk `c` with the mesher's light code and copies out its interior.

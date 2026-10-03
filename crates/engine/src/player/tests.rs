@@ -28,6 +28,51 @@ fn lands_and_walks() {
 }
 
 #[test]
+fn a_belt_carries_a_body_on_the_ground_but_not_in_the_air() {
+    let mut p = Player::new(Vec3::new(0.5, 10.0, 0.5));
+    settle(&mut p, 0.2);
+    p.conveyor = Vec3::new(2.0, 0.0, 0.0);
+    settle(&mut p, 1.0);
+    assert!((p.pos.x - 2.5).abs() < 0.05, "two blocks a second, x = {}", p.pos.x);
+    assert!((p.carried.x - 2.0).abs() < 0.05 && p.carried.z == 0.0);
+
+    // Walking against it goes by the sum: walking speed minus the belt's.
+    let mut q = Player::new(Vec3::new(0.5, 10.0, 0.5));
+    settle(&mut q, 0.2);
+    q.conveyor = Vec3::new(0.0, 0.0, -1.0);
+    q.yaw = std::f64::consts::PI; // facing +Z
+    q.input.forward = 1.0;
+    settle(&mut q, 1.0);
+    assert!(q.pos.z - 0.5 > 3.0 && q.pos.z - 0.5 < 3.6, "4.3 walking against 1.0, z = {}", q.pos.z);
+
+    // Not on the ground (falling, flying): nothing carries it.
+    let mut a = Player::new(Vec3::new(0.5, 14.0, 0.5));
+    a.conveyor = Vec3::new(2.0, 0.0, 0.0);
+    a.step(1.0 / 120.0, &mut flat, &mut dry);
+    assert!(!a.on_ground && a.pos.x == 0.5);
+    let mut f = Player::new(Vec3::new(0.5, 20.0, 0.5));
+    (f.flying, f.conveyor) = (true, Vec3::new(2.0, 0.0, 0.0));
+    settle(&mut f, 0.5);
+    assert!((f.pos.x - 0.5).abs() < 1e-6 && f.carried.x == 0.0);
+}
+
+#[test]
+fn a_crouching_body_is_not_carried_off_the_edge() {
+    // Ground only west of x = 3.
+    let edge = |x: i32, y: i32, _z: i32| x < 3 && y < 10;
+    let mut p = Player::new(Vec3::new(0.5, 10.0, 0.5));
+    p.input.crouch = true;
+    for _ in 0..30 {
+        p.step(1.0 / 120.0, &mut |x, y, z| edge(x, y, z), &mut dry);
+    }
+    p.conveyor = Vec3::new(4.0, 0.0, 0.0);
+    for _ in 0..240 {
+        p.step(1.0 / 120.0, &mut |x, y, z| edge(x, y, z), &mut dry);
+    }
+    assert!(p.on_ground && p.pos.x < 3.3, "stopped at the edge, x = {}", p.pos.x);
+}
+
+#[test]
 fn jump_clears_one_block() {
     let mut p = Player::new(Vec3::new(0.5, 10.0, 0.5));
     settle(&mut p, 0.2);

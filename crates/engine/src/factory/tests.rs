@@ -52,6 +52,24 @@ impl Factory {
 const EAST: u8 = 1;
 const SOUTH: u8 = 2;
 
+#[test]
+fn belts_carry_bodies_standing_in_their_cell_at_their_own_speed() {
+    let mut f = Factory::default();
+    let at = |x, y, z| Vec3::new(x as f64 + 0.5, y as f64, z as f64 + 0.5);
+    f.add_belt(IVec3::new(0, 5, 0), EAST);
+    f.add_belt(IVec3::new(1, 5, 0), SOUTH);
+    f.belts[1].tier = 3;
+    f.add_belt(IVec3::new(2, 5, 0), EAST);
+    f.belts[2].shape = Shape::Lift;
+    assert_eq!(f.conveyor_at(at(0, 5, 0)), Vec3::new(1.0, 0.0, 0.0));
+    assert_eq!(f.conveyor_at(at(1, 5, 0)), Vec3::new(0.0, 0.0, 8.0), "a Mk4 belt, heading south");
+    assert_eq!(f.conveyor_at(at(2, 5, 0)), Vec3::ZERO, "lifts are climbed, not ridden");
+    assert_eq!(f.conveyor_at(at(0, 4, 0)), Vec3::ZERO, "not the cell below");
+    assert_eq!(f.conveyor_at(at(0, 5, 3)), Vec3::ZERO, "not off the belt");
+    let above = f.conveyor_at(at(0, 5, 0) + Vec3::new(0.0, 0.6, 0.0));
+    assert_eq!(above, Vec3::ZERO, "not high above its floor");
+}
+
 pub(super) fn run(f: &mut Factory, seconds: f64, mut check: impl FnMut(&Factory)) {
     let mut world = World::new(1, 2);
     let mut events = Vec::new();
