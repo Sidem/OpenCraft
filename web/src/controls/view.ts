@@ -7,7 +7,9 @@ import type { Renderer } from '../render/renderer';
 import type { ComfortStore } from '../comfort/settings';
 import { button, h } from '../ui/dom';
 
-const NAMES = ['First person', 'Third person', 'Strategy follow', 'Free camera'];
+/** Side-to-side orbit turns this many times faster than up and down. */
+const ORBIT_SIDEWAYS = 2.5;
+const NAMES =['First person', 'Third person', 'Strategy follow', 'Free camera'];
 const ORDER_STATUS = ['', 'Walking to destination · X to stop', 'Destination reached', 'No safe route here · choose nearby dry ground', 'Route blocked · choose a new destination'];
 
 export class ViewControls {
@@ -53,6 +55,8 @@ export class ViewControls {
     const m = this.input.movement();
     if (this.game.view_mode() >= 2) {
       this.game.pan_camera(m.forward, m.strafe, m.sprint);
+      const [dx, dy] = this.input.takeLook();
+      if (dx !== 0 || dy !== 0) this.game.orbit_camera(dx * turn * ORBIT_SIDEWAYS, dy * turn);
       const [x, y] = this.input.cursor;
       this.game.strategy_cursor(x, y, this.renderer.fovY, this.canvas.clientWidth / Math.max(1, this.canvas.clientHeight));
     } else {
@@ -87,7 +91,7 @@ export class ViewControls {
       document.body.classList.toggle('strategy-view', mode >= 2);
       this.buttons.forEach((b, i) => b.setAttribute('aria-pressed', String(i % 4 === mode)));
       this.hint.textContent = mode >= 2
-        ? 'WASD pan · Wheel zoom · Right-click walk · Ctrl + right-click use/place · G follow/free · Home follow · V view'
+        ? 'WASD pan · Wheel zoom · Middle-drag rotate · Right-click walk · Ctrl + right-click use/place · G follow/free · Home follow · V view'
         : 'V change view · G free camera';
     }
     this.status.textContent = mode >= 2

@@ -40,6 +40,7 @@ export class Input {
   strategy = false;
   cursor: [number, number] = [0, 0];
   private freeActive = false;
+  private orbiting = false;
 
   private readonly keys = new Set<string>();
   private lookX = 0;
@@ -59,6 +60,10 @@ export class Input {
       if (!this.locked) return;
       if (this.strategy) {
         this.setCursor(e);
+        if (this.orbiting) {
+          this.lookX += e.movementX;
+          this.lookY += e.movementY;
+        }
         return;
       }
       this.lookX += e.movementX;
@@ -68,6 +73,7 @@ export class Input {
       if (!this.locked) return;
       if (this.strategy) this.setCursor(e);
       if (e.button === 0) this.mining = true;
+      else if (e.button === 1) this.orbiting = this.strategy;
       else if (e.button === 2) {
         if (this.strategy && !e.ctrlKey) this.actions.push({ kind: 'move-order' });
         else this.using = true;
@@ -76,6 +82,7 @@ export class Input {
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.mining = false;
+      else if (e.button === 1) this.orbiting = false;
       else if (e.button === 2) this.using = false;
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -197,6 +204,7 @@ export class Input {
     this.keys.clear();
     this.mining = false;
     this.using = false;
+    this.orbiting = false;
     this.lookX = this.lookY = 0;
   }
 

@@ -80,9 +80,32 @@ fn cursor_rays_match_camera_projection_and_zoom_bounds() {
     assert!(ray.x > 0.0 && ray.z > direction(YAW, PITCH).z);
     assert!((ray.length() - 1.0).abs() < 1e-8);
     g.zoom_strategy(-1000.0);
-    assert_eq!(g.strategy.height, 12.0);
+    assert_eq!(g.strategy.height, 3.0);
     g.zoom_strategy(1000.0);
-    assert_eq!(g.strategy.height, 64.0);
+    assert_eq!(g.strategy.height, 80.0);
+}
+
+#[test]
+fn orbiting_turns_on_a_sphere_around_the_focus_and_keeps_pitch_in_range() {
+    let mut g = flat();
+    g.strategy.advance(g.body().pos, Some(201.0), TICK);
+    let centre = Vec3::new(g.strategy.focus.x, g.strategy.ground, g.strategy.focus.z);
+    let radius = (g.strategy.eye() - centre).length();
+    assert!((radius - g.strategy.zoom).abs() < 1e-9);
+    g.orbit_camera(-1.0, 0.0);
+    assert!((g.strategy.yaw - (YAW + 1.0)).abs() < 1e-9);
+    assert!(((g.strategy.eye() - centre).length() - radius).abs() < 1e-9);
+    g.orbit_camera(0.0, 100.0);
+    assert_eq!(g.strategy.pitch, PITCH_RANGE.0);
+    assert!(((g.strategy.eye() - centre).length() - radius).abs() < 1e-9, "tilting keeps the distance");
+    g.orbit_camera(0.0, -100.0);
+    assert_eq!(g.strategy.pitch, PITCH_RANGE.1);
+    assert!(((g.strategy.eye() - centre).length() - radius).abs() < 1e-9);
+    g.pan_camera(1.0, 0.0, false);
+    assert!((g.strategy.pan - Vec3::new(g.strategy.yaw.sin(), 0.0, -g.strategy.yaw.cos())).length() < 1e-9);
+    g.switch_view(0);
+    g.orbit_camera(1.0, 0.0);
+    assert!((g.strategy.yaw - (YAW + 1.0)).abs() < 1e-9, "no orbit outside the overhead views");
 }
 
 #[test]
@@ -228,10 +251,10 @@ fn terrain_height_ignores_trees_and_factory_roofs_and_zoom_is_eased() {
     }
     assert_eq!(navigation::camera_ground(&g.sim.world, g.body().pos), Some(201.0));
     let before = g.strategy.eye();
-    g.zoom_strategy(4.0);
+    g.zoom_strategy(1.0);
     assert_eq!(g.strategy.eye(), before, "wheel input does not snap the camera");
     g.strategy.advance(g.body().pos, Some(201.0), TICK);
-    assert!(g.strategy.zoom > 24.0 && g.strategy.zoom < 26.0);
+    assert!(g.strategy.zoom > 30.0 && g.strategy.zoom < 32.0);
 }
 
 #[test]

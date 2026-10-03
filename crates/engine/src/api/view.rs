@@ -45,12 +45,19 @@ impl Game {
         if forward != 0.0 || right != 0.0 {
             self.strategy.mode = 3;
         }
-        let yaw = crate::strategy::camera_angles().0;
+        let yaw = self.strategy.yaw;
         let v = Vec3::new(yaw.sin(), 0.0, -yaw.cos()) * forward + Vec3::new(yaw.cos(), 0.0, yaw.sin()) * right;
         self.strategy.pan = v * (if fast { 2.0 } else { 1.0 } / v.length().max(1.0));
     }
+    /// Middle-drag: turn the overhead camera around the point it looks at (radians, as for `look`).
+    pub fn orbit_camera(&mut self, dx: f64, dy: f64) {
+        if self.strategy.active() {
+            self.strategy.orbit(-dx, -dy);
+        }
+    }
     pub fn zoom_strategy(&mut self, delta: f64) {
-        self.strategy.height = (self.strategy.height + delta * 3.0).clamp(12.0, 64.0);
+        // Each wheel step changes the distance by a tenth, so close views stay fine to adjust.
+        self.strategy.height = (self.strategy.height * (1.0 + delta * 0.1)).clamp(3.0, 80.0);
     }
     pub fn order_move(&mut self) {
         self.order_strategy_move();

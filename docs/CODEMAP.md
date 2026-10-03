@@ -28,7 +28,7 @@ folder with `mod.rs`.
 | `net/players.rs` | Co-op bodies at 20 Hz: position, look, velocity, crouch/ground/water and hand gestures; `Role::drives`, `set_peer`, `net_tick`, `take_states`, `host_state_of`, `push_body_states`; clients add/drop bodies to match |
 | `net/items.rs` | Host-owned loose items: `write_item_views` / `item_view_for` (items near each peer), a client's `ItemView` (`push_item_view`, glided by id), `write_item_instances` |
 | `avatars.rs`, `avatars/motion.rs`, `avatars/model.rs` | Kestrel robot rig for local third person and co-op; eased distance-paced gait, crouch, airborne/water and hand gestures; articulated knees/elbows, held item models; interpolated remote bodies and name anchors |
-| `strategy.rs`, `strategy/navigation.rs` | Overhead follow/free camera, eased height and zoom, cursor rays, fog over unknown ground; bounded A* walking orders through normal physics; view-only reload of known columns |
+| `strategy.rs`, `strategy/navigation.rs` | Overhead follow/free camera (middle-drag orbits it around its focus: `orbit_camera`), eased height and zoom, cursor rays, fog over unknown ground; bounded A* walking orders through normal physics; view-only reload of known columns |
 | `authority.rs` | Every player's body (`step_bodies`: physics, falling out of the world, only for bodies this machine moves), `stream_around_players`, loose items and pickups for the nearest player (`step_items`), `throw`, `spawn_item` (never on a client), `join` (by key, up to `MAX_PLAYERS`; a returning key comes back where it left) / `leave` |
 | `events.rs` | `Game::handle_sim_events`: SimEvents → item spawns (drops, throws), sounds, the local player's toasts |
 | `api/mod.rs` | The JS-facing API, one `#[wasm_bindgen] impl Game` block per file; methods only forward |
@@ -135,7 +135,7 @@ folder with `mod.rs`.
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
 `controls/view.ts` routes perspective input and owns `ui/view.css` feedback; V cycles views, G detaches,
-Home follows, right-click orders walking, Ctrl-right-click uses/places. Development `/?preview` is save-free.
+Home follows, middle-drag rotates the overhead views, right-click orders walking, Ctrl-right-click uses/places. Development `/?preview` is save-free.
 
 | Module | Owns |
 |---|---|

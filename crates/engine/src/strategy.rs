@@ -14,6 +14,8 @@ mod tests;
 
 const PITCH: f64 = -0.9;
 const YAW: f64 = std::f64::consts::FRAC_PI_4;
+/// Orbiting keeps the camera between straight down and level with the ground (radians below the horizon).
+const PITCH_RANGE: (f64, f64) = (-1.5, -0.03);
 const PAN_SPEED: f64 = 24.0;
 const HEIGHT_RATE: f64 = 2.0;
 const HEIGHT_SPEED: f64 = 6.0;
@@ -25,6 +27,9 @@ pub(crate) struct Strategy {
     pub focus: Vec3,
     ground: f64,
     pub height: f64,
+    /// Where the orbiting camera wants to look; `render_yaw` / `render_pitch` ease towards it.
+    pub yaw: f64,
+    pub pitch: f64,
     zoom: f64,
     pub shoulder_distance: f64,
     pub pan: Vec3,
@@ -43,8 +48,10 @@ impl Default for Strategy {
             mode: 0,
             focus: Vec3::ZERO,
             ground: 0.0,
-            height: 24.0,
-            zoom: 24.0,
+            height: 30.0,
+            zoom: 30.0,
+            yaw: YAW,
+            pitch: PITCH,
             pan: Vec3::ZERO,
             cursor: [0.0; 2],
             projection: [1.25, 1.0],
@@ -64,8 +71,13 @@ impl Strategy {
     }
 
     pub fn eye(&self) -> Vec3 {
-        self.focus + Vec3::new(0.0, self.ground - self.focus.y, 0.0)
-            - direction(YAW, PITCH) * (self.zoom / -PITCH.sin())
+        self.focus + Vec3::new(0.0, self.ground - self.focus.y, 0.0) - direction(self.yaw, self.pitch) * self.zoom
+    }
+
+    /// Turns the view around the point it looks at (`focus`) on a sphere whose radius is the zoom distance.
+    pub fn orbit(&mut self, yaw: f64, pitch: f64) {
+        self.yaw = (self.yaw + yaw).rem_euclid(std::f64::consts::TAU);
+        self.pitch = (self.pitch + pitch).clamp(PITCH_RANGE.0, PITCH_RANGE.1);
     }
 
     pub fn cursor_ray(&self) -> Vec3 {
@@ -126,7 +138,11 @@ impl Game {
     }
 
     pub(crate) fn settle_view(&mut self, before: Vec3, wanted: Vec3, dt: f64) {
-        let (yaw, pitch) = if self.strategy.active() { camera_angles() } else { (self.body().yaw, self.body().pitch) };
+        let (yaw, pitch) = if self.strategy.active() {
+            (self.strategy.yaw, self.strategy.pitch)
+        } else {
+            (self.body().yaw, self.body().pitch)
+        };
         let s = &mut self.strategy;
         let k = if s.transition > 0.001 { 1.0 - (-6.0 * dt.clamp(0.0, 0.1)).exp() } else { 1.0 };
         self.render_eye = before + (wanted - before) * k;
@@ -266,8 +282,4 @@ impl Game {
 
 pub(crate) fn direction(yaw: f64, pitch: f64) -> Vec3 {
     Vec3::new(yaw.sin() * pitch.cos(), pitch.sin(), -yaw.cos() * pitch.cos())
-}
-
-pub(crate) fn camera_angles() -> (f64, f64) {
-    (YAW, PITCH)
 }
