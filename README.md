@@ -181,8 +181,10 @@ size.
   Scanner Mk2 (a scanner, 3 circuits and 2 steel plates), which reaches 96 blocks (the way to find
   quartz in distant highlands, deserts and basalt fields) and reads more: each deposit shows about how many
   ore units are left and how long a full-speed mine takes to work it out, **R** limits the list to one ore
-  (coal, iron, copper, limestone, quartz, then all), and a pointer at the top of the screen keeps leading to
-  the nearest match after you put the scanner away. A core drill (6 iron plates, 2 copper wire, 8 screws)
+  (coal, iron, copper, limestone, quartz, bauxite, then all), and a pointer at the top of the screen keeps leading to
+  the nearest match after you put the scanner away. When the ore you filtered on is not within range, it tells you
+  which way to travel (a compass point and a 200-block distance band) to the nearest ground whose biome holds it,
+  even over land you have never seen, and the pointer leads there; scan again as you go. A core drill (6 iron plates, 2 copper wire, 8 screws)
   held on the ground for 3 seconds tells you exactly what lies beneath: how many blocks and units are
   left, and between which heights. Neither wears out.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it

@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; next 9.3** · The `art` branch is superseded; art work
+now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.3 done, next 9.4** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -456,13 +456,15 @@ haul it home. Order: the ore, aluminium, finding far ground, rails, then flight 
   + 4 wire → battery, 6 s). Items 339–342, layers 187–192. The battery waits for 9.5 (`NO_USE_YET`). The scenario test runs
   bauxite → crushed → aluminium → plate → battery. The tech count grew, so the golden hash was re-recorded (research bytes
   list every tech); no save version bump (older saves read fewer techs). Tests 459 → 460.
-- [ ] **9.3 Finding far ground** (user request, 2026-10-04: the player must roughly know which way to travel to reach the
-  right biome). Proposed: the Scanner Mk2 (and a new survey tech's tool) answers "nothing in range" with a **bearing**: the
-  nearest ground of a biome that holds the chosen ore, as one of eight compass points and a distance band (for example
-  "north-east, 600 to 800 blocks"), found by sampling the generator's biome map on a coarse grid (`biome_at`, a query: no
-  state, deterministic, never touches unexplored chunks). The HUD keeps an arrow while it is held; the world map (M) can
-  drop a pin there. The ore guide already says which biome holds what; this says where. Done when: tests give the right
-  bearing in a fixed seed and the state hash never moves.
+- [x] **9.3 Finding far ground** (user request, 2026-10-04: the player must roughly know which way to travel to reach the
+  right biome). Built on the plan's proposal while the two open questions (section 6) stay open: the **Scanner Mk2 gives it
+  free** and it is a **bearing only**. `WorldGen::bearing_to(ore, x, z)` (`worldgen/bearing.rs`) samples the height and biome
+  fields on a 48-block grid in square rings (to 3,072 blocks) and returns the nearest column whose biome holds the ore (a
+  query: no state, never touches chunks, so the hash cannot move; `None` before version 2, bauxite before 5). With an ore
+  filter on and none of it in range, the scan panel says "south-west, 600 to 800 blocks" and the top pointer leads to that
+  ground (`ui/prospect.ts` `farGround`); scanning again on the way re-aims it. Tests: nearest-sampled, here, old worlds,
+  order-independent, and that a Mk2 scan round the target finds bauxite on three seeds. Verified in the browser on a
+  version 5 world. No map pin yet (add if the user wants one). Tests 460 → 467.
 - [ ] **9.4 Rails and trains** (the user wants trains for hauling far resources): **9.4a** rails (steel beam + concrete)
   placed by dragging like belts, rail beds and cuttings by the Planner; **9.4b** locomotive, wagon, a station block that
   loads and unloads through belt ports, one train between two stations (core state in fixed-point positions along a track
@@ -513,6 +515,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-04: Bearings to far ground (step 9.3).** The Mk2 scanner, filtered on an ore with none in range, names the way and distance band to the nearest biome that holds it (`worldgen/bearing.rs`, a pure query) and the pointer leads there. Tests 460 → 467.
 - **2026-10-04: Aluminium (step 9.2).** Bauxite Processing: crushed bauxite, the electrolytic cell (block 77, 300 kW, slag byproduct hatch), aluminium ingot and plate, battery; a third tech table `research/distance.rs`. Golden hash re-recorded (one more tech). Tests 459 → 460.
 - **2026-10-04: Bauxite (step 9.1).** Generator version 5 for new worlds: bauxite (block 76) in far deserts and basalt fields only, at least 600 blocks from spawn, shallow and exposed on bare rock, no stain; guide, scanner filter, map colour, a placeholder texture. Tests 458 → 459.
 

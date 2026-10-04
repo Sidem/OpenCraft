@@ -14,7 +14,8 @@
 //! An advanced scanner (the Mk2: `SCANNERS`' flag) adds to the readout: the rotate key (R, `api/input.rs`)
 //! cycles an ore filter over `FILTER_ORES` (the list shows only that ore; `api/prospect.rs` filters the
 //! records), each deposit shows its reserve and how long a full-speed mine takes to work it out, and the
-//! panel keeps a pointer to the nearest match on the screen after the scanner is put away.
+//! panel keeps a pointer to the nearest match on the screen after the scanner is put away. With a filter on and
+//! nothing of that ore in range, the panel asks for a bearing to the nearest ground that holds it (`ore_bearing_of`, `api/prospect.rs`).
 
 use crate::block::{self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
 use crate::deposits::{Deposit, DepositState};
@@ -22,7 +23,7 @@ use crate::item::{ItemId, SCANNER, SCANNER_MK2};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::sound;
 use crate::tools::{self, ToolKind};
-use crate::worldgen::WORLD_HEIGHT;
+use crate::worldgen::{Bearing, WORLD_HEIGHT};
 use crate::Game;
 
 /// Each scanner, how far it finds deposits (whose centre must lie within this many blocks horizontally) and
@@ -271,6 +272,15 @@ impl Game {
         };
         self.prospect.filter = next;
         true
+    }
+}
+
+impl Game {
+    /// The nearest ground that can hold `ore`, from where the latest scan was taken (a query on the generator's
+    /// biome fields: `worldgen/bearing.rs`). An advanced scanner shows it when its filtered list comes up empty.
+    pub(crate) fn ore_bearing_of(&self, ore: BlockId) -> Option<Bearing> {
+        let at = self.prospect.origin;
+        self.sim.world.generator().bearing_to(ore, at.x, at.z)
     }
 }
 

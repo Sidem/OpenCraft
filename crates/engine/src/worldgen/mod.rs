@@ -17,6 +17,7 @@
 //! 4 = easier starter ore (`strata.rs`: shallower bands, more exposed metal, two starter patches each);
 //! 5 = Milestone 9's bauxite (`geology.rs`: in far deserts and basalt fields only).
 
+mod bearing;
 mod biome;
 mod caves;
 mod geology;
@@ -24,6 +25,7 @@ mod ore;
 mod strata;
 mod water;
 
+pub use bearing::Bearing;
 pub use biome::Biome;
 use caves::CaveField;
 pub use geology::{ore_shares, BAUXITE_FROM};

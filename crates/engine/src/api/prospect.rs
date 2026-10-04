@@ -68,6 +68,12 @@ impl Game {
         (if self.prospect.kind == READING_SCAN { self.prospect.range } else { held.unwrap_or(SCANNERS[0].1) }) as u32
     }
 
+    /// The nearest ground that can hold `ore`, as seen from where the latest scan was taken: `[x, z, blocks away]`
+    /// (0 blocks: the scan itself stood on it), or empty when this world has none (or no biome ores).
+    pub fn ore_bearing(&self, ore: u8) -> Vec<i32> {
+        self.ore_bearing_of(ore).map(|b| vec![b.x, b.z, b.distance]).unwrap_or_default()
+    }
+
     /// An ore's name, e.g. "Iron".
     pub fn ore_name(&self, ore: u8) -> String {
         block::ore_label(ore).to_string()

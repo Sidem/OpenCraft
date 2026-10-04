@@ -115,6 +115,23 @@ fn the_mk2_filters_by_ore_and_reports_reserves() {
     assert!((estimate / blocks - 1.0).abs() < 0.2, "estimated {estimate} blocks, found {blocks}");
 }
 
+#[test]
+fn the_bearing_leads_to_ground_where_a_mk2_scan_finds_the_ore() {
+    for seed in [1337, 2024, 7] {
+        let mut g = Game::with_generator(WorldGen::new(seed), 2);
+        g.prospect.origin = IVec3::new(0, 70, 0);
+        let near = g.scan(IVec3::new(0, 70, 0), 96);
+        assert!(!near.iter().any(|f| f.deposit.ore() == BAUXITE_ORE), "seed {seed}: none near spawn");
+        let b = g.ore_bearing_of(BAUXITE_ORE).expect("bauxite ground");
+        assert!(b.distance > 0, "seed {seed}: spawn is no bauxite ground");
+        // Walking there and scanning a ring of spots round the target finds some.
+        let found = (-1..=1)
+            .flat_map(|i| (-1..=1).map(move |j| IVec3::new(b.x + i * 96, 70, b.z + j * 96)))
+            .any(|at| g.scan(at, 96).iter().any(|f| f.deposit.ore() == BAUXITE_ORE));
+        assert!(found, "seed {seed}: no bauxite round {b:?}");
+    }
+}
+
 /// Breaks every block of the deposit `key` by hand (actions, like a player would).
 fn work_out(g: &mut Game, key: DepositKey) {
     let d = g.sim.world.generator().deposit_by_key(key).unwrap();

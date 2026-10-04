@@ -124,6 +124,14 @@ impl WorldGen {
         ores[0].0
     }
 
+    /// Whether deposits of `ore` can lie in `biome` around `at` (version 2 on: before it ore had no biome).
+    pub(super) fn holds_ore(&self, ore: BlockId, biome: Biome, at: IVec3) -> bool {
+        if ore == BAUXITE_ORE {
+            return self.bauxite_weight(biome, at) > 0;
+        }
+        ores_in(biome).iter().any(|o| o.0 == ore)
+    }
+
     /// The weight of bauxite among the ores of `biome` at `at`: none before version 5 or within `BAUXITE_FROM`
     /// blocks of spawn, else `BAUXITE_WEIGHTS`.
     fn bauxite_weight(&self, biome: Biome, at: IVec3) -> u32 {

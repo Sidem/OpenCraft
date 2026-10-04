@@ -23,6 +23,9 @@ const OUTCROP_TIER = 2;
 const ARRIVED = 4;
 const SIZES = ['small', 'medium', 'large'];
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const COMPASS_LONG = ['north', 'north-east', 'east', 'south-east', 'south', 'south-west', 'west', 'north-west'];
+/** Within this many blocks of far ground (a bearing, not a deposit) the pointer says to scan again. */
+const ARRIVED_FAR = 48;
 
 /** A listed deposit, redrawn every frame relative to the player. */
 interface Mark {
@@ -33,11 +36,11 @@ interface Mark {
   where: HTMLElement;
 }
 
-/** The deposit an advanced scanner's pointer leads to. */
+/** The deposit an advanced scanner's pointer leads to, or (`y` null) far ground that can hold the filtered ore. */
 interface Tracked {
   name: string;
   x: number;
-  y: number;
+  y: number | null;
   z: number;
 }
 
@@ -143,18 +146,39 @@ export class ProspectPanel {
       this.marks.push({ x: deposit.x, y: deposit.y, z: deposit.z, arrow, where });
     }
     if (advanced) this.tracked = nearest?.deposit ?? null;
+    const far = advanced && filter !== 0 && !nearest ? this.farGround(filter, ox, oz) : null;
     const more = [
       deep > maxDeep ? `${deep - maxDeep} veins or lodes` : '',
       outcrops > maxOutcrops ? `${outcrops - maxOutcrops} outcrops` : '',
     ].filter(Boolean);
     if (more.length) rows.push(h('p', 'prospect-note', `and ${more.join(' and ')} further off`));
-    if (rows.length === 0) rows.push(h('p', 'prospect-note', 'No ore anywhere near. Try further on.'));
+    if (rows.length === 0) rows.push(h('p', 'prospect-note', far ?? 'No ore anywhere near. Try further on.'));
     if (advanced) {
       const note = 'Right column: ore units left, and the time a full-speed mine takes to work it out. R: next ore.';
       rows.push(h('p', 'prospect-note', note));
     }
     this.el.classList.toggle('prospect-wide', advanced);
     this.list.replaceChildren(...rows);
+  }
+
+  /**
+   * With one ore filtered and none of it in range: the way to the nearest ground that can hold it (the engine reads
+   * the world's biome map, so this works for unexplored ground). Aims the pointer there and returns the note.
+   */
+  private farGround(ore: number, ox: number, oz: number): string {
+    const g = this.game;
+    const name = g.ore_name(ore).toLowerCase();
+    const [x, z, dist] = g.ore_bearing(ore);
+    if (x === undefined) return `No ${name} anywhere near, and none known within about 3,000 blocks.`;
+    this.tracked = { name: `${g.ore_name(ore)} ground`, x: x + 0.5, y: null, z: z + 0.5 };
+    if (dist === 0) return `This ground can hold ${name}, but none lies within ${g.scan_range()} blocks. Move on a little and scan again.`;
+    const lo = Math.floor(dist / 200) * 200;
+    const bearing = Math.atan2(x - ox, -(z - oz));
+    const way = COMPASS_LONG[((Math.round(bearing / (Math.PI / 4)) % 8) + 8) % 8];
+    return (
+      `No ${name} within ${g.scan_range()} blocks. The nearest ground that holds it lies ${way}, ` +
+      `${lo} to ${lo + 200} blocks away: follow the pointer, and scan again on the way.`
+    );
   }
 
   private showDrill(): void {
@@ -188,14 +212,20 @@ export class ProspectPanel {
     if (!t) return;
     const g = this.game;
     const dx = t.x - g.player_x(), dz = t.z - g.player_z();
-    const near = Math.hypot(dx, dz) < ARRIVED;
+    const dist = Math.hypot(dx, dz);
+    const near = dist < (t.y === null ? ARRIVED_FAR : ARRIVED);
     const bearing = Math.atan2(dx, -dz);
     this.trackArrow.style.visibility = near ? 'hidden' : 'visible';
     this.trackArrow.style.transform = `rotate(${bearing - g.yaw()}rad)`;
-    const depth = Math.round(g.player_y() - t.y);
-    const vertical = depth >= 0 ? `${depth} down` : `${-depth} up`;
     const compass = COMPASS[((Math.round(bearing / (Math.PI / 4)) % 8) + 8) % 8];
-    const text = near ? `${t.name} · right below you, ${vertical}` : `${t.name} · ${Math.round(Math.hypot(dx, dz))} m ${compass} · ${vertical}`;
+    let text: string;
+    if (t.y === null) {
+      text = near ? `${t.name} · you are there: scan again` : `${t.name} · about ${Math.round(dist / 10) * 10} m ${compass}`;
+    } else {
+      const depth = Math.round(g.player_y() - t.y);
+      const vertical = depth >= 0 ? `${depth} down` : `${-depth} up`;
+      text = near ? `${t.name} · right below you, ${vertical}` : `${t.name} · ${Math.round(dist)} m ${compass} · ${vertical}`;
+    }
     if (this.trackText.textContent !== text) this.trackText.textContent = text;
   }
 
