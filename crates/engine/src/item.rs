@@ -138,6 +138,8 @@ pub const DRONE_PORT_MK4: ItemId = ItemId(329);
 /// Personal helpers (`helpers/`): a jetpack that burns coal from the pack, and a drone that fetches from boxes.
 pub const JETPACK: ItemId = ItemId(330);
 pub const PERSONAL_DRONE: ItemId = ItemId(331);
+/// Earthworks (Milestone 8): marks terraforming sites for drone ports to work (`site_hands.rs`).
+pub const PLANNER: ItemId = ItemId(332);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -195,7 +197,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 76] = [
+const EXTRA: [ItemDef; 77] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -272,6 +274,7 @@ const EXTRA: [ItemDef; 76] = [
     machine("Drone Port Mk4", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
     tool("Coal Jetpack", tex::JETPACK, &DEVICE_TIER),
     tool("Personal Drone", tex::PERSONAL_DRONE, &DEVICE_TIER),
+    tool("Planner", tex::PLANNER, &DEVICE_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

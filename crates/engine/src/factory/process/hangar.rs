@@ -12,7 +12,7 @@
 use crate::block::tex;
 use crate::item::DRONE;
 
-use super::super::footprint::{Footprint, Port, Role, Side};
+use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::model::{part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor};
 
@@ -39,7 +39,7 @@ pub struct Hangar {
 }
 
 const fn inlet(side: Side) -> Port {
-    Port { side, role: Role::In }
+    Port { side, role: Role::In, cell: Which::All }
 }
 
 pub const HANGAR_SPEC: ProcessSpec = ProcessSpec {

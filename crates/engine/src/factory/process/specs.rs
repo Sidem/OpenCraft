@@ -14,7 +14,7 @@ use crate::block::{
 use crate::item::ItemId;
 use crate::recipes::{Category, MachineRecipe, MACHINE_RECIPES};
 
-use super::super::footprint::{Footprint, Port, Role, Side, SINGLE};
+use super::super::footprint::{Footprint, Port, Role, Side, Which, SINGLE};
 use super::model::Part;
 use super::parts::*;
 
@@ -27,9 +27,9 @@ pub enum Energy {
     Electric,
     /// Needs nothing beyond its recipe (a blast furnace's coal is an input): always at full speed.
     Recipe,
-    /// A boiler: burns fuel from its fuel buffer into steam for the turbines against it (steam.rs).
+    /// A boiler: burns fuel from its fuel buffer into steam for the turbines piped to its outlets (steam.rs).
     Boiler,
-    /// A steam turbine: a power source fed by the boilers it touches (steam.rs).
+    /// A steam turbine: a power source fed by the boilers piped to its steam inlet (steam.rs).
     Turbine,
     /// A solar panel: a power source that follows the sun (solar.rs).
     Solar,
@@ -164,7 +164,12 @@ pub const SPECS: &[ProcessSpec] = &[
         ],
         footprint: Footprint {
             size: [2, 2, 3],
-            ports: &[inlet(Side::Back), inlet(Side::Left), OUT_FRONT, Port { side: Side::Right, role: Role::Side }],
+            ports: &[
+                inlet(Side::Back),
+                inlet(Side::Left),
+                OUT_FRONT,
+                Port { side: Side::Right, role: Role::Side, cell: Which::All },
+            ],
         },
         verb: "Blasting",
         products: "steel",
@@ -179,7 +184,7 @@ pub const SPECS: &[ProcessSpec] = &[
         buffers: [0, 2, 0],
         side: 0,
         tiers: &[ProcessTier { energy: Energy::Boiler, speed: 1000, fuel: 0, power: 0 }],
-        footprint: Footprint { size: [2, 2, 2], ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right)] },
+        footprint: Footprint { size: [2, 2, 2], ports: &BOILER_PORTS },
         verb: "Boiling",
         products: "steam",
         waiting: "Idle",
@@ -193,7 +198,7 @@ pub const SPECS: &[ProcessSpec] = &[
         buffers: [0, 0, 0],
         side: 0,
         tiers: &[ProcessTier { energy: Energy::Turbine, speed: 1000, fuel: 0, power: 0 }],
-        footprint: Footprint { size: [3, 2, 2], ports: &[] },
+        footprint: Footprint { size: [3, 2, 2], ports: &TURBINE_PORTS },
         verb: "Turning",
         products: "power",
         waiting: "Idle",
@@ -251,10 +256,25 @@ pub const SPECS: &[ProcessSpec] = &[
 ];
 
 const fn inlet(side: Side) -> Port {
-    Port { side, role: Role::In }
+    Port { side, role: Role::In, cell: Which::All }
 }
 
-const OUT_FRONT: Port = Port { side: Side::Front, role: Role::Out };
+const OUT_FRONT: Port = Port { side: Side::Front, role: Role::Out, cell: Which::All };
+
+/// A boiler's ports: on each of the back, left and right a belt inlet for fuel and, on the other cell of the
+/// side, a pipe inlet for water (alternating round the corners); two steam outlets on the front.
+const BOILER_PORTS: [Port; 7] = [
+    Port { side: Side::Back, role: Role::In, cell: Which::Nth(0) },
+    Port { side: Side::Back, role: Role::Water, cell: Which::Nth(1) },
+    Port { side: Side::Left, role: Role::In, cell: Which::Nth(0) },
+    Port { side: Side::Left, role: Role::Water, cell: Which::Nth(1) },
+    Port { side: Side::Right, role: Role::In, cell: Which::Nth(1) },
+    Port { side: Side::Right, role: Role::Water, cell: Which::Nth(0) },
+    Port { side: Side::Front, role: Role::Steam, cell: Which::All },
+];
+
+/// A turbine's steam inlets: both cells of its right end (the end opposite the generator).
+const TURBINE_PORTS: [Port; 1] = [Port { side: Side::Right, role: Role::Steam, cell: Which::All }];
 
 /// The spec of the processor `block` is, if it is one.
 pub fn spec(block: BlockId) -> Option<&'static ProcessSpec> {

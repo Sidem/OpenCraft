@@ -106,3 +106,14 @@ pub const PERSONAL_DRONE_RECIPE: Recipe = Recipe {
     blurb: "Keep it in your pack. With an item in your hand, press Y: the drone flies to the nearest storage box \
             within 32 blocks that holds it and brings back a stack. One errand at a time. Never wears out.",
 };
+
+pub const PLANNER_RECIPE: Recipe = Recipe {
+    output: PLANNER,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(IRON_PLATE, 3), (COPPER_WIRE, 4), (b(GLASS), 2), (CIRCUIT, 1)],
+    blurb: "Marks ground for drones to level. Hold it, right-click two corners (up to 64 blocks away), choose to dig, \
+            fill or flatten to a height and see what it would move. A drone port within reach does the work: it \
+            digs into the storage boxes beside the pad and fills from them. Right-click a marked site to remove it. \
+            Never wears out.",
+};

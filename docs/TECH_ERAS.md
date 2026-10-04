@@ -45,8 +45,9 @@ section 4 and git history. The numbers worth keeping:
 - **Machines:** assembler 2×2×2 (20 kW), blast furnace 2×2×3 (burns the recipe's coal), boiler 2×2×2,
   steam turbine 3×2×2 (up to 240 kW), silo 2×2×3 (144 slots, in on three sides, out the front), crusher
   1×1 (30 kW, a plain processor with no port rules, like the smelter).
-- **Steam:** 540 kJ a coal (twice a generator), 1 water source per 2,000 kJ through pipes, up to two
-  touching turbines (480 kW) a boiler; a sea pump never runs dry, a pond dries.
+- **Steam:** 540 kJ a coal (twice a generator), 1 water source per 2,000 kJ through pipes into the boiler's
+  water inlets, steam piped from its two front outlets to the turbines' inlets, up to two turbines (480 kW) a
+  boiler; a Mk1 pump (2 a second) covers eight boilers; a sea pump never runs dry, a pond dries.
 - **Crushing:** 2 ore → 3 crushed (2 s), so a crusher line gives 1.5 ingots an ore; 1 slag → 1 sand.
 - **Techs** (append order): Mechanics, Masonry, Assembly, Steelmaking, Blue Science, Mk3 Logistics, Mk3
   Machines, Steel Tools, Steam Power (r g b, 60 × 20), Ore Crushing (60 × 20), Bulk Storage (40 × 20).
@@ -81,8 +82,8 @@ Blueprints · Construction Drones · Jetpack · Personal Drone · Mk4 Logistics
 
 ## 4. Era 5: Earthworks (Milestone 8)
 
-The terraforming design (`docs/ROADMAP.md`, Milestone 8): planner, excavator (work drones are this era's
-construction drones), tunnels. Techs (r g b v): Earthworks (planner, excavator), Tunnelling, Earthworks
+The terraforming design (`docs/ROADMAP.md`, Milestone 8): planner, earthworks by drone ports (decided 2026-10-04: no
+separate excavator), tunnels. Techs (r g b v): Earthworks (planner, excavator), Tunnelling, Earthworks
 Mk2–3 via kits. Fill materials: dirt, stone, slag, later tailings. Concrete foundations: a fill job
 that places concrete as the top layer.
 

@@ -8,8 +8,8 @@ use crate::block::{
     STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::item::{
-    BLUE_PACK, GREEN_KIT, GREEN_PACK, JETPACK, PERSONAL_DRONE, RED_PACK, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE,
-    STEEL_SHOVEL, VIOLET_PACK,
+    BLUE_PACK, GREEN_KIT, GREEN_PACK, JETPACK, PERSONAL_DRONE, PLANNER, RED_PACK, SCANNER_MK2, STEEL_AXE,
+    STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK,
 };
 use crate::recipes::{
     ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES, ELECTRONICS_RECIPES, GEAR_RECIPE,
@@ -392,5 +392,15 @@ pub const TECHS: &[Tech] = &[
         units: 160,
         seconds: 35.0,
         unlocks: &[Unlock::Recipe(PERSONAL_DRONE)],
+    },
+    Tech {
+        name: "Earthworks",
+        blurb: "The planner marks an area to dig, fill or flatten and shows what that would move. Drone ports do the \
+                work: they dig into the storage boxes beside the pad and fill from them.",
+        needs: &[28],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 140,
+        seconds: 35.0,
+        unlocks: &[Unlock::Recipe(PLANNER)],
     },
 ];

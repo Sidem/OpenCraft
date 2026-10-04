@@ -295,7 +295,7 @@ impl Factory {
         let (processors, pipework) = (&self.processors, &self.pipework);
         self.power = Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries);
         self.link_pipework();
-        process::link_steam(&mut self.processors, &self.at, &self.pipework);
+        process::link_steam(&mut self.processors, &self.at, &mut self.pipework);
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt
         // and appending it reversed puts every belt after the one it feeds.

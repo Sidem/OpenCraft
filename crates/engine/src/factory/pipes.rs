@@ -29,6 +29,16 @@ pub enum Part {
     Outlet,
 }
 
+/// What a pipe network carries (derived by `process::steam::link`): water, steam when a boiler's outlet or a
+/// turbine's inlet is on it, or both (`Mixed`: it works for neither).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Fluid {
+    #[default]
+    Water,
+    Steam,
+    Mixed,
+}
+
 /// What a pump or outlet did last tick (for readouts and the lamp).
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Flow {
@@ -57,7 +67,10 @@ pub struct Pipework {
     pub held: u32,
     /// Network index (derived).
     pub net: u32,
-    /// Faces joined to another piece, as bits in `FACES` order (derived).
+    /// What its network carries (derived).
+    pub fluid: Fluid,
+    /// Faces joined to another piece or to a boiler's or turbine's pipe port, as bits in `FACES` order
+    /// (derived).
     pub arms: u8,
     pub flow: Flow,
 }
@@ -69,7 +82,18 @@ impl Pipework {
             OUTLET => Part::Outlet,
             _ => Part::Pipe,
         };
-        Pipework { pos, part, tier: 0, facing: facing % 4, progress: 0, held: 0, net: 0, arms: 0, flow: Flow::Idle }
+        Pipework {
+            pos,
+            part,
+            tier: 0,
+            facing: facing % 4,
+            progress: 0,
+            held: 0,
+            net: 0,
+            fluid: Fluid::Water,
+            arms: 0,
+            flow: Flow::Idle,
+        }
     }
 
     /// Whether a pump wants power this tick: it has room for more water.
@@ -91,10 +115,20 @@ impl Factory {
             Some(Slot::Pipe(j)) => Some(*j as usize),
             _ => None,
         };
+        // A piece on a boiler's or turbine's pipe port reaches into it too (arms are drawing only).
+        let port_at = |q: IVec3, from: IVec3| match at.get(&q) {
+            Some(&Slot::Process(j)) => {
+                self.processors[j as usize].pipe_ports().iter().any(|&(c, s, _)| c == q && c + DIRS[s as usize] == from)
+            }
+            _ => false,
+        };
         let arms: Vec<u8> = self
             .pipework
             .iter()
-            .map(|p| (0..6).filter(|&f| pipe_at(p.pos + FACES[f]).is_some()).fold(0, |a, f| a | 1 << f))
+            .map(|p| {
+                let joined = |f: usize| pipe_at(p.pos + FACES[f]).is_some() || port_at(p.pos + FACES[f], p.pos);
+                (0..6).filter(|&f| joined(f)).fold(0, |a, f| a | 1 << f)
+            })
             .collect();
         let mut net = vec![u32::MAX; self.pipework.len()];
         let mut nets = 0;
@@ -166,9 +200,16 @@ impl Machine for Pipework {
         let net = f.pipework.iter().filter(|p| p.net == self.net);
         let (pumps, outlets) =
             net.fold((0, 0), |(a, b), p| (a + u32::from(p.part == Part::Pump), b + u32::from(p.part == Part::Outlet)));
-        let network = format!("Network: {pumps} pumps, {outlets} outlets");
+        let network = match self.fluid {
+            Fluid::Water => format!("Network: {pumps} pumps, {outlets} outlets"),
+            Fluid::Steam => "Steam network".to_string(),
+            Fluid::Mixed => "Water and steam share this network: keep them apart".to_string(),
+        };
         match self.part {
-            Part::Pipe => format!("{network}\nPipes join pumps to outlets"),
+            Part::Pipe if self.fluid == Fluid::Steam => {
+                "Steam pipe\nCarries steam from a boiler's outlet to a turbine's inlet".to_string()
+            }
+            Part::Pipe => format!("{network}\nPipes join pumps to outlets and water inlets"),
             Part::Pump => {
                 let tier = self.pump_stats();
                 let me = f.pipework.iter().position(|p| p.pos == self.pos);
@@ -192,19 +233,25 @@ impl Machine for Pipework {
         }
     }
 
-    /// Steel pipes along every joined face; a pump housing or an outlet spout around them.
+    /// Pipes along every joined face (blue banded for water, pale and red banded for steam); a pump housing or
+    /// an outlet spout around them.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let steel = [tex::STEEL; 3];
+        let pipe = [match self.fluid {
+            Fluid::Water => tex::PIPE_WATER,
+            Fluid::Steam => tex::PIPE_STEAM,
+            Fluid::Mixed => tex::LAMP_RED,
+        }; 3];
         for (f, &n) in FACES.iter().enumerate() {
             if self.arms & (1 << f) != 0 {
                 let arm = n.as_vec3() * 0.3;
                 let size =
                     [0.24 + 0.36 * n.x.abs() as f32, 0.24 + 0.36 * n.y.abs() as f32, 0.24 + 0.36 * n.z.abs() as f32];
-                push_box(out, rel + arm, 0.0, size, 0.0, steel, false);
+                push_box(out, rel + arm, 0.0, size, 0.0, pipe, false);
             }
         }
         match self.part {
-            Part::Pipe => push_box(out, rel, 0.0, [0.3; 3], 0.0, steel, false),
+            Part::Pipe => push_box(out, rel, 0.0, [0.3; 3], 0.0, pipe, false),
             Part::Pump => {
                 let body = [tex::STEEL, tex::GENERATOR_SIDE, tex::FRAME];
                 push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.8, 0.8, 0.8], 0.0, body, false);

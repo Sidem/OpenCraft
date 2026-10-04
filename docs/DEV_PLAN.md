@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-02 · Strategy controls built · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 7 (Electronics, blueprints and drones). Milestone 7 is built (steps 7.1–7.9); next: Milestone 8 (terraforming), pending the user's answers** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+**Status:** 2026-10-04 · Strategy controls built · Milestones 1–7 done (M7 committed locally, not pushed; co-op tested across machines by the user; no TURN for
+now) · **Now: Milestone 8 (terraforming): planner, drone earthworks and tests built (steps 8.1–8.3, uncommitted); next 8.4 tunnels (to decide) and 8.5 cleanup** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -502,24 +502,29 @@ of 2026-10-03 (section 1).
   textures, blueprints, strategy camera and avatars; the drones add icons and about 10 KB of code), 431 tests (4 ignored benchmarks).
   Research times follow `docs/TECH_ERAS.md` section 3. Milestone 8 questions are open (see the status line).
 
-### Milestone 8 (Terraforming, era 5): moved in from the roadmap, awaiting the user's answers
+### Milestone 8 (Terraforming, era 5): in progress
 
-Design from `docs/TECH_ERAS.md` section 5 and the roadmap text (now here). **Already built:** sites in the core
-(`factory/sites.rs`: `Site`, `Job` dig, fill or flatten, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`;
-saved); nothing works a site yet. Drones exist now (Milestone 7: `drones/`, ghosts, tear-down marks), so the work
-drones of this era can reuse their flight and `dismantle`.
+Design from `docs/TECH_ERAS.md` section 4. **The user's answers (2026-10-04):** the earthworks are done by the
+**drone ports** of Milestone 7 (no separate excavator machine); spoil goes into **belts and boxes**, and fill sites in
+range are served from the same boxes first. **Built:** sites in the core (`factory/sites.rs`: `Site`, `Job` dig, fill or
+flatten, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`; saved); the drone ports work them
+(`drones/earthworks.rs`).
 
-- [ ] **8.1 The planner:** a hand item (plates, wire, glass; tech Earthworks); right-click two corners (reach 64), a
-  panel (`web/src/ui/site.ts`) picks job and height and shows the survey ("cut 1,240 · fill 310 · 930 to carry
-  away · 12 ore · water"); sites outlined (cut red, fill blue, pending amber), squares on the minimap, a tip.
-- [ ] **8.2 The excavator** (`factory/excavator/`): works the nearest site within 32 blocks, 30 kW, about 4 blocks a
-  second; ground, logs and leaves; ore and spent rock warn first; bedrock, machines, belts and pipes stay; waits
-  while flooded; output to belts and boxes. Mk1 plus Mk2/Mk3 by kits.
-- [ ] **8.3 Fill and flatten:** fill from its buffer, belts and boxes beside it (dirt on top, else stone, rock, slag);
-  dug blocks fill sites in range first, so a flatten balances itself; filling water makes dry land.
-- [ ] **8.4 Tunnels:** two points, 1×2, 3×3 or 5×5, slopes up to 1 in 2; the excavator's range counts from the
-  tunnel face; breaking into water waits.
-- [ ] **8.5 Cleanup:** worst tick with four excavators on a 64 × 64 flatten by the sea, tips, README, CODEMAP.
+- [x] **8.1 The planner** (`site_hands.rs`, `ui/site.ts`): item 332 (3 iron plates, 4 copper wire, 2 glass, a circuit),
+  tech Earthworks (needs Construction Drones, 140 × 35 s, all four packs). Right-click a corner block, then the opposite
+  one (reach 64); the site panel picks the job and the level and shows the survey (blocks to dig and fill, ore, trees,
+  water, unseen columns, spoil); right-click a marked site to look at it or remove it. Outlines (job colour for the
+  extent, white for the level, cyan for the box being marked) go into `placement_box`.
+- [x] **8.2 Drones work sites:** a port picks the first cell in its reach that needs work (cut layers top down, then fill
+  layers bottom up) after ghosts of equal distance; a cut breaks the block by hand and puts the drops into the pad's
+  boxes (it waits while they are full); a fill brings dirt (top layer) or stone, dirt, sand, grass from the boxes and
+  places it where the cell is free, the cells above are free and the ground below is solid; so dug ground fills other
+  sites from the same boxes. A finished site removes itself.
+- [x] **8.3 Fill and flatten:** the same cell scheme (a flatten is a dig and a fill in one site).
+- [ ] **8.4 Tunnels:** two points, 1×2, 3×3 or 5×5, slopes up to 1 in 2, worked by drones from the tunnel face; breaking
+  into water waits. Open: whether to build it (reuses the cell scheme).
+- [ ] **8.5 Cleanup:** worst tick with many drones on a 64 × 64 flatten by the sea, minimap squares for sites, a tip,
+  README (planner keys done), colour-blind check of the outline colours.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -562,6 +567,12 @@ and the balance numbers. Read the section you need.
 ---
 
 ## 8. Recent changes
+
+- **2026-10-04: Steam through pipes.** A boiler's faces now have named ports (`BOILER_PORTS` in `process/specs.rs`; `Port::cell` / `Which` picks one cell of a side, `Role::Water` and `Role::Steam` are pipe roles): on each of back, left and right one cell is a coal inlet (belt) and the other a water inlet (pipe), and the two front cells are steam outlets; a turbine has a steam inlet on both cells of its right end (the end away from its generator). A pipe joins a port only on that face (`Processor::pipe_ports`); steam no longer passes between touching machines. Turbines take steam from the boilers on the same pipe network (`steam::link`, still two per boiler, lower index first). A network is `Fluid::Water`, `Steam` or `Mixed` (both: works for neither, pipes turn red, machines say so). Water pipes are blue banded and steam pipes pale and red banded (`textures/piping.rs`, `tex::PIPE_WATER/PIPE_STEAM`, `COUNT` 180). `process/boiler_view.rs` became `steam_view.rs` (coal chutes, water and steam nipples on flanges, gauge; the turbine's inlets); the boiler's firebox door moved up the front. No save or hash change, but saves with a turbine standing against a boiler lose that link and need pipes. Tests 438 → 441.
+
+- **2026-10-04: Boiler connections drawn.** The boiler lost its generic belt hatches: coal chutes (dark funnel, coal on top) mark free belt inlets, a steel flange marks every pipe touching the tank (`process/boiler_view.rs`, from `Steam::taps`), and a water gauge on the front fills with the water held. Pipes and pumps beside a boiler now draw an arm into it (`Pipework::arms`). A boiler now draws water from every network touching it (`Steam::nets`; it used to listen to the first one only, so a second pump on its own network did nothing). Presentation plus a derived-state fix: no save or hash change. Tests 435 → 438.
+
+- **2026-10-04: Terraforming by drone (steps 8.1–8.3).** The Planner (item 332, tech Earthworks, 140 × 35 s) marks two corners (reach 64) and opens the site panel (`ui/site.ts`: job, level, survey, remove). Drone ports now work sites (`drones/earthworks.rs`): cuts break by hand into the pad's boxes (they wait while full), fills bring dirt or stone from the boxes; a finished site removes itself. `Site::done` is an unsaved cursor cache. `Research` got a manual `Default` (33 techs). Tests 431 → 435, golden hash re-recorded (a tech was added), no save bump. Wasm size not re-measured.
 
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).
 

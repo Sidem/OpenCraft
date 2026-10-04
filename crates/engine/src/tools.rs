@@ -17,8 +17,8 @@
 use crate::block::{self, sound, BlockId};
 use crate::deposits::HAND_YIELD;
 use crate::item::{
-    ItemId, CORE_DRILL, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, PERSONAL_DRONE, SCANNER, SCANNER_MK2, STEEL_AXE,
-    STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
+    ItemId, CORE_DRILL, IRON_AXE, IRON_PICKAXE, IRON_SHOVEL, JETPACK, PERSONAL_DRONE, PLANNER, SCANNER, SCANNER_MK2,
+    STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -31,6 +31,8 @@ pub enum ToolKind {
     /// Worn in the pack, no wear: see `helpers/`.
     Jetpack,
     PersonalDrone,
+    /// Marks terraforming sites (`site_hands.rs`).
+    Planner,
 }
 
 pub struct Tier {
@@ -55,7 +57,7 @@ pub struct ToolDef {
     pub tier: &'static Tier,
 }
 
-pub const TOOLS: [ToolDef; 14] = [
+pub const TOOLS: [ToolDef; 15] = [
     ToolDef { item: STONE_PICKAXE, kind: ToolKind::Pickaxe, tier: &STONE_TIER },
     ToolDef { item: STONE_AXE, kind: ToolKind::Axe, tier: &STONE_TIER },
     ToolDef { item: STONE_SHOVEL, kind: ToolKind::Shovel, tier: &STONE_TIER },
@@ -70,6 +72,7 @@ pub const TOOLS: [ToolDef; 14] = [
     ToolDef { item: SCANNER_MK2, kind: ToolKind::Scanner, tier: &DEVICE_TIER },
     ToolDef { item: JETPACK, kind: ToolKind::Jetpack, tier: &DEVICE_TIER },
     ToolDef { item: PERSONAL_DRONE, kind: ToolKind::PersonalDrone, tier: &DEVICE_TIER },
+    ToolDef { item: PLANNER, kind: ToolKind::Planner, tier: &DEVICE_TIER },
 ];
 
 /// Which prospecting device `item` is, if any.

@@ -29,6 +29,7 @@ mod parts;
 mod solar;
 mod specs;
 mod steam;
+mod steam_view;
 mod view;
 mod work;
 

@@ -50,7 +50,7 @@ fn mark(sim: &mut Sim, a: Column, b: Column, level: i32, job: Job) {
 }
 
 fn site(lo: Column, hi: Column, level: i32, job: Job, high: i32, low: i32) -> Site {
-    Site { id: 0, lo, hi, level, job, high, low }
+    Site { id: 0, lo, hi, level, job, high, low, done: 0 }
 }
 
 #[test]

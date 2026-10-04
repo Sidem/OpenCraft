@@ -369,6 +369,7 @@ pub const RECIPES: &[Recipe] = &[
     DRONE_PORT_MK4_RECIPE,
     JETPACK_RECIPE,
     PERSONAL_DRONE_RECIPE,
+    PLANNER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

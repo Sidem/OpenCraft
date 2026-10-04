@@ -37,6 +37,7 @@ impl Game {
         boxes.extend(self.ghost_cell_box());
         boxes.extend(self.ghost_boxes());
         boxes.extend(self.blueprint_boxes());
+        boxes.extend(self.site_boxes());
         boxes
     }
 
@@ -70,6 +71,9 @@ impl Game {
         if n == 0 {
             if self.ghost_mode {
                 return self.ghost_label();
+            }
+            if let Some(label) = self.planner_label() {
+                return label;
             }
             if !self.line.aim.label.is_empty() {
                 return self.line.aim.label.clone();

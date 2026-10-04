@@ -21,6 +21,7 @@ import { ComfortPanel } from './ui/comfort';
 import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
 import { BlueprintPanel } from './ui/blueprints';
+import { SitePanel } from './ui/site';
 import { Hints } from './ui/hints';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
@@ -105,7 +106,8 @@ async function main(): Promise<void> {
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const hints = new Hints(game);
-const blueprints = new BlueprintPanel(game);
+  const blueprints = new BlueprintPanel(game);
+  const sites = new SitePanel(game);
   const craftQueue = new CraftQueueView(game, (id) => hud.itemIcon(id));
   const prospect = new ProspectPanel(game);
   prospect.onReading = () => sound.scan();
@@ -120,7 +122,7 @@ const blueprints = new BlueprintPanel(game);
     leave: () => session?.finish() ?? Promise.resolve(),
   });
   document.getElementById('coop')!.append(coopPanel.el);
-  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen || worldMap.isOpen || blueprints.isOpen;
+  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen || worldMap.isOpen || blueprints.isOpen || sites.isOpen;
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -175,6 +177,7 @@ const blueprints = new BlueprintPanel(game);
   machine.onClose = closed;
   research.onClose = closed;
   blueprints.onClose = closed;
+  sites.onClose = closed;
   worldMap.onClose = closed;
   // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
@@ -207,7 +210,7 @@ const blueprints = new BlueprintPanel(game);
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, renderer, wasm, sound, soundLab, inventory, machine, research, blueprints, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, renderer, wasm, sound, soundLab, inventory, machine, research, blueprints, sites, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -283,6 +286,13 @@ const blueprints = new BlueprintPanel(game);
       const [x, y, z] = request;
       if (game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
       else machine.open(x, y, z);
+      input.unlock();
+      sound.ui();
+    }
+    // A planner request: free the mouse and show the site panel.
+    const site = game.take_site_request();
+    if (site.length > 0) {
+      sites.open(Array.from(site));
       input.unlock();
       sound.ui();
     }

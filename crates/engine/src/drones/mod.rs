@@ -22,15 +22,15 @@
 //! or on a pad (never both), so the fleet is conserved (`tests.rs`).
 //! To change a number: the constants below, and a port tier's reach and fleet in `hangar.rs`.
 
+mod earthworks;
 #[cfg(test)]
 mod tests;
 
 use crate::block::{self, AIR};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::PortInfo;
-use crate::ghosts::Ghost;
 use crate::inventory::Stack;
-use crate::item::DRONE;
+use crate::item::{ItemId, DRONE};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{PlayerId, Sim};
 use crate::{TICK, TICK_RATE};
@@ -121,8 +121,10 @@ impl Drones {
 
 /// What a port found to do.
 struct Job {
-    ghost: Ghost,
-    /// The box the item comes from, for a build.
+    /// The cell to work on: a ghost's anchor, or a site's cell.
+    pos: IVec3,
+    /// What it builds with (`ItemId::NONE`: it breaks) and the box that item comes from.
+    item: ItemId,
     from: Option<IVec3>,
 }
 
@@ -200,10 +202,10 @@ impl Sim {
         }
     }
 
-    /// How long it takes to work on the ghost at `target`: placing takes [`WORK_TICKS`], breaking as long as
+    /// How long it takes to work on the cell at `target`: placing takes [`WORK_TICKS`], breaking as long as
     /// bare hands would, up to [`MAX_BREAK_TICKS`].
     fn work_ticks(&mut self, target: IVec3) -> u32 {
-        if self.ghosts.covering(target).is_some_and(|g| g.block == AIR) {
+        if self.breaks(target) {
             let at = self.factory.footprint_at(target).map_or(target, |f| f.0);
             let time = block::def(self.world.block_anywhere_or_generate(at)).break_time.max(0.0);
             return ((time * TICK_RATE as f32) as u32).clamp(WORK_TICKS, MAX_BREAK_TICKS);
@@ -213,21 +215,28 @@ impl Sim {
 
     /// The end of a drone's work on its target: place the block or break it.
     fn finish_work(&mut self, d: &mut Drone) {
-        let Some(g) = self.ghosts.covering(d.target).copied().filter(|g| g.pos == d.target) else { return };
+        let Some(g) = self.ghosts.covering(d.target).copied().filter(|g| g.pos == d.target) else {
+            return self.finish_site_cell(d);
+        };
         if g.block == AIR {
-            if let Some((pos, drops)) = self.dismantle(CREDIT, g.pos, false) {
-                let boxes = self.factory.port_boxes(d.port);
-                for s in drops {
-                    let left = self.factory.store_in_boxes(&boxes, s);
-                    if left.count > 0 {
-                        self.drop_stacks(pos, vec![left]);
-                    }
-                }
-            }
+            self.break_into_boxes(d.port, g.pos);
             self.ghosts.remove_at(g.pos);
         } else if self.put_block(CREDIT, g.pos, g.item(), g.facing, g.pos - IVec3::new(0, 1, 0)) {
             self.ghosts.built(g.pos, g.block);
             d.load = Stack::default();
+        }
+    }
+
+    /// Breaks the block at `pos` by hand; what it leaves goes into the boxes at `port`, and spills when they are full.
+    fn break_into_boxes(&mut self, port: IVec3, pos: IVec3) {
+        if let Some((pos, drops)) = self.dismantle(CREDIT, pos, false) {
+            let boxes = self.factory.port_boxes(port);
+            for s in drops {
+                let left = self.factory.store_in_boxes(&boxes, s);
+                if left.count > 0 {
+                    self.drop_stacks(pos, vec![left]);
+                }
+            }
         }
     }
 
@@ -257,7 +266,7 @@ impl Sim {
         let Some(job) = self.pick_job(port) else { return };
         let mut load = Stack::default();
         if let Some(from) = job.from {
-            let item = job.ghost.item();
+            let item = job.item;
             if !self.factory.box_take(from, item) {
                 return;
             }
@@ -274,7 +283,7 @@ impl Sim {
             port: port.anchor,
             pos,
             prev: pos,
-            target: job.ghost.pos,
+            target: job.pos,
             phase: Phase::Out,
             timer: 0,
             load,
@@ -316,12 +325,14 @@ impl Sim {
                 };
                 Some(from)
             };
-            best = Some((dist2, Job { ghost: *g, from }));
+            let item = if from.is_some() { g.item() } else { ItemId::NONE };
+            best = Some((dist2, Job { pos: g.pos, item, from }));
         }
         for pos in stale {
             self.ghosts.remove_at(pos);
         }
-        best.map(|b| b.1)
+        let near = best.as_ref().map(|b| b.0);
+        self.site_job(port, &boxes, near).or(best.map(|b| b.1))
     }
 }
 

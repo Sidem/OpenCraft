@@ -65,6 +65,7 @@ mod recipes;
 mod research;
 mod save;
 mod sim;
+mod site_hands;
 mod sound;
 mod strategy;
 mod textures;
@@ -153,6 +154,8 @@ pub struct Game {
     jet_sent: bool,
     /// The player's blueprints and what the hands are doing with them (`blueprint/`).
     library: blueprint::Library,
+    /// The planner's corner and the request for the site panel (`site_hands.rs`).
+    planner: site_hands::Planner,
     dig_timer: f32,
     step_distance: f64,
     sounds: Sounds,
@@ -217,6 +220,7 @@ impl Game {
             ghost_mode: false,
             jet_sent: false,
             library: blueprint::Library::default(),
+            planner: site_hands::Planner::default(),
             dig_timer: 0.0,
             step_distance: 0.0,
             sounds: Sounds::default(),

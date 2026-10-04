@@ -31,6 +31,8 @@ impl Game {
     pub(crate) fn reach(&self) -> f64 {
         if self.ghost_mode {
             GHOST_REACH
+        } else if self.planner_held() {
+            crate::site_hands::PLANNER_REACH
         } else {
             crate::interaction::REACH
         }

@@ -11,8 +11,9 @@ pub const BOILER_RECIPE: Recipe = Recipe {
     group: Group::Power,
     count: 1,
     inputs: &[(b(STONE_BRICKS), 24), (STEEL_PLATE, 8), (b(PIPE), 6)],
-    blurb: "A 2×2×2 boiler: belt it coal or logs, pipe it water from a pump and it makes steam with twice the \
-            energy of a generator's fire. Set steam turbines against it.",
+    blurb: "A 2×2×2 boiler: each of its back and side faces has a coal inlet (dark chute) for a belt and a water inlet \
+            (blue pipe) for a pump's pipe. It makes steam with twice the energy of a generator's fire and sends it out of \
+            its two front outlets (red banded pipes) to the turbines.",
 };
 
 pub const TURBINE_RECIPE: Recipe = Recipe {
@@ -20,8 +21,8 @@ pub const TURBINE_RECIPE: Recipe = Recipe {
     group: Group::Power,
     count: 1,
     inputs: &[(STEEL_PLATE, 12), (MOTOR, 4), (COPPER_WIRE, 16)],
-    blurb: "A 3×2×2 steam turbine: set it against a boiler (a boiler drives two) and hang it on a power pole; \
-            it gives up to 240 kW.",
+    blurb: "A 3×2×2 steam turbine: pipe its steam inlet (the end away from the generator) to a boiler's steam outlet \
+            (a boiler drives two) and hang it on a power pole; it gives up to 240 kW.",
 };
 
 pub const CRUSHER_RECIPE: Recipe = Recipe {

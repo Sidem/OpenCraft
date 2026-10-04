@@ -6,7 +6,8 @@
 //!
 //! Geometry: from the anchor the footprint runs `w` cells to the placer's right, `d` cells away from the
 //! placer (along `dir`) and `h` up; its front faces the placer. Sides are named as the placer sees
-//! them. A port is every bottom-layer face on its side, marked by a hatch (`process/model.rs`).
+//! them. A port is every bottom-layer face on its side (or one cell's: `Which`), marked by a hatch
+//! (`process/model.rs`; the boiler and turbine draw their own fittings).
 //!
 //! Invariants: a 1×1×1 footprint has no ports and takes and gives on every side like any machine;
 //! `cells` lists the anchor first.
@@ -31,18 +32,30 @@ pub enum Side {
 }
 
 /// What a port does: belts pointing into an inlet deliver; belts leading away from an outlet take the
-/// main product, and from a side outlet the byproduct (`process/`).
+/// main product, and from a side outlet the byproduct (`process/`). `Water` and `Steam` are for pipes
+/// (`steam.rs`): a pipe piece touching one is joined to the machine there.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Role {
     In,
     Out,
     Side,
+    Water,
+    Steam,
+}
+
+/// Which of the cells along a side a port is on, counted from the placer's left (front and back) or from the
+/// front (left and right).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Which {
+    All,
+    Nth(usize),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Port {
     pub side: Side,
     pub role: Role,
+    pub cell: Which,
 }
 
 #[derive(Clone, Copy)]
@@ -107,11 +120,15 @@ impl Footprint {
         let mut faces = Vec::new();
         for p in self.ports.iter().filter(|p| p.role == role) {
             let s = p.side.facing(dir);
-            match p.side {
-                Side::Front => faces.extend((0..w).map(|i| (at(i, 0), s))),
-                Side::Back => faces.extend((0..w).map(|i| (at(i, d - 1), s))),
-                Side::Left => faces.extend((0..d).map(|k| (at(0, k), s))),
-                Side::Right => faces.extend((0..d).map(|k| (at(w - 1, k), s))),
+            let along: Vec<IVec3> = match p.side {
+                Side::Front => (0..w).map(|i| at(i, 0)).collect(),
+                Side::Back => (0..w).map(|i| at(i, d - 1)).collect(),
+                Side::Left => (0..d).map(|k| at(0, k)).collect(),
+                Side::Right => (0..d).map(|k| at(w - 1, k)).collect(),
+            };
+            match p.cell {
+                Which::All => faces.extend(along.into_iter().map(|c| (c, s))),
+                Which::Nth(n) => faces.extend(along.get(n).map(|&c| (c, s))),
             }
         }
         faces

@@ -20,7 +20,7 @@ const B: PlayerId = PlayerId(1);
 /// in 6.7b for the machine tiers every list now saves, in 6.8 and 6.9 for the steam, crushing and silo techs,
 /// in 7.1 for the Electronics tech, and for the power wires the factory saves (save version 24; tests wire
 /// by range unless `Factory::by_hand`).
-const GOLDEN_HASH: u64 = 0x61f2_9179_901e_3d32;
+const GOLDEN_HASH: u64 = 0xf4eb_7133_4b74_8db3;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

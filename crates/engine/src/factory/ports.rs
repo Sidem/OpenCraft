@@ -124,6 +124,22 @@ impl Factory {
         took
     }
 
+    /// How many items the box at `pos` holds.
+    #[cfg(test)]
+    pub(crate) fn box_total(&self, pos: IVec3) -> u32 {
+        match self.at.get(&pos) {
+            Some(&Slot::Storage(i)) => self.storages[i as usize].buf.total(),
+            _ => 0,
+        }
+    }
+
+    /// Whether any of `boxes` has room for at least one `item`.
+    pub fn boxes_have_room(&self, boxes: &[IVec3], item: ItemId) -> bool {
+        boxes.iter().any(
+            |b| matches!(self.at.get(b), Some(&Slot::Storage(i)) if self.storages[i as usize].buf.space_for(item) > 0),
+        )
+    }
+
     /// Takes one `item` from the box at `pos`; false if it holds none.
     pub fn box_take(&mut self, pos: IVec3, item: ItemId) -> bool {
         let Some(&Slot::Storage(i)) = self.at.get(&pos) else { return false };

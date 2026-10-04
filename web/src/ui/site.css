@@ -1,0 +1,40 @@
+/* Site panel (site.ts): the frame is the machine panel's (machine.css). */
+
+.site {
+  width: min(520px, 100%);
+}
+
+.site-help {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.site-jobs,
+.site-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.site-level {
+  width: 80px;
+  padding: 6px 8px;
+  font: inherit;
+  color: inherit;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+}
+
+.site-fact {
+  margin: 0 0 6px;
+}
+
+.site-warn {
+  margin: 0 0 10px;
+  color: var(--bad, #ff6b6b);
+}

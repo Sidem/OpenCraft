@@ -1,12 +1,12 @@
 use super::*;
 use crate::action::Action;
-use crate::block::{BELT, COAL_ORE, DRONE_PORT, GENERATOR, POLE, STORAGE};
+use crate::block::{AIR, BELT, COAL_ORE, DIRT, DRONE_PORT, GENERATOR, POLE, STORAGE};
 use crate::item::{ItemId, DRONE};
 
 const P: PlayerId = PlayerId(0);
 
-fn at(dx: i32, dz: i32) -> IVec3 {
-    IVec3::new(900 + dx, 200, -900 + dz)
+fn at(y: i32, dx: i32, dz: i32) -> IVec3 {
+    IVec3::new(900 + dx, y, -900 + dz)
 }
 
 fn put(sim: &mut Sim, item: ItemId, pos: IVec3) {
@@ -20,9 +20,25 @@ fn run(sim: &mut Sim, seconds: u32) {
     }
 }
 
-/// A powered port with `drones` at home and a supply box beside it; returns (port anchor, box cell).
+/// A powered port with `drones` at home and a supply box beside it, in the air; returns (port anchor, box cell).
 fn base(sim: &mut Sim, drones: u32) -> (IVec3, IVec3) {
-    let (gen, pole, port) = (at(0, 0), at(4, 0), at(9, 0));
+    base_at(sim, drones, 200)
+}
+
+/// The same on the ground: the first free cell above the highest block near the spot.
+fn base_on_ground(sim: &mut Sim, drones: u32) -> (IVec3, IVec3) {
+    let top = (895..925)
+        .flat_map(|x| (-905..-885).map(move |z| (x, z)))
+        .map(|(x, z)| {
+            (0..255).rev().find(|&y| sim.world.block_anywhere_or_generate(IVec3::new(x, y, z)) != AIR).unwrap_or(0)
+        })
+        .max()
+        .unwrap();
+    base_at(sim, drones, top + 1)
+}
+
+fn base_at(sim: &mut Sim, drones: u32, y: i32) -> (IVec3, IVec3) {
+    let (gen, pole, port) = (at(y, 0, 0), at(y, 4, 0), at(y, 9, 0));
     put(sim, GENERATOR.into(), gen);
     put(sim, POLE.into(), pole);
     put(sim, DRONE_PORT.into(), port);
@@ -105,7 +121,7 @@ fn a_tear_down_mark_breaks_the_block_into_the_box() {
 #[test]
 fn a_mark_on_nothing_is_not_made() {
     let mut sim = Sim::new(7, 2);
-    sim.apply(P, Action::MarkRemoval { pos: at(3, 3) });
+    sim.apply(P, Action::MarkRemoval { pos: at(200, 3, 3) });
     assert_eq!(sim.ghosts.len(), 0);
 }
 
@@ -230,4 +246,62 @@ fn bench_drones() {
         worst = worst.max(d);
     }
     println!("{} ghosts: {:?} a tick, worst {worst:?}", sim.ghosts.len(), total / ticks);
+}
+
+fn sites_gone(sim: &Sim) -> bool {
+    sim.factory.sites.list.is_empty()
+}
+
+fn top(sim: &mut Sim, x: i32, z: i32) -> i32 {
+    (0..255).rev().find(|&y| sim.world.block_anywhere_or_generate(IVec3::new(x, y, z)) != AIR).unwrap_or(0)
+}
+
+/// How many of the site's cells hold something solid.
+fn solid_cells(sim: &mut Sim) -> usize {
+    let s = sim.factory.sites.list[0];
+    (0..s.cells()).filter(|&k| !block::replaceable(sim.world.block_anywhere_or_generate(s.cell(k)))).count()
+}
+
+#[test]
+fn drones_dig_a_site_into_the_boxes_and_then_it_is_done() {
+    let mut sim = Sim::new(7, 2);
+    let (port, supply) = base_on_ground(&mut sim, 4);
+    let (a, b) = ((port.x + 6, port.z + 6), (port.x + 8, port.z + 8));
+    let low =
+        (a.0..=b.0).flat_map(|x| (a.1..=b.1).map(move |z| (x, z))).map(|(x, z)| top(&mut sim, x, z)).min().unwrap();
+    let level = low - 1;
+    sim.apply(P, Action::MarkSite { a, b, level, job: crate::factory::Job::Dig });
+    assert_eq!(sim.factory.sites.list.len(), 1);
+    assert!(sim.factory.sites.list[0].cells() >= 18, "at least two layers to cut");
+    for _ in 0..TICK_RATE * 300 {
+        sim.step();
+        assert_eq!(fleet(&sim), 4);
+        if sites_gone(&sim) {
+            break;
+        }
+    }
+    assert!(sites_gone(&sim), "finished");
+    for x in a.0..=b.0 {
+        for z in a.1..=b.1 {
+            let above = sim.world.block_anywhere_or_generate(IVec3::new(x, level + 1, z));
+            assert!(top(&mut sim, x, z) <= level || !crate::factory::cut_takes(above));
+        }
+    }
+    assert!(sim.factory.box_total(supply) > 0, "the spoil is in the box");
+}
+
+#[test]
+fn drones_fill_a_site_from_the_boxes_and_stop_when_they_run_out() {
+    let mut sim = Sim::new(7, 2);
+    let (port, supply) = base_on_ground(&mut sim, 4);
+    let (a, b) = ((port.x + 6, port.z + 6), (port.x + 7, port.z + 7));
+    let level = port.y + 1;
+    sim.apply(P, Action::MarkSite { a, b, level, job: crate::factory::Job::Fill });
+    sim.factory.stock(supply, DIRT.into(), 8);
+    let before = solid_cells(&mut sim);
+    run(&mut sim, 120);
+    assert_eq!(sim.factory.box_count(supply, DIRT.into()), 0, "all the dirt was used");
+    assert_eq!(sim.factory.sites.list.len(), 1, "the site waits for more");
+    assert_eq!(fleet(&sim), 4);
+    assert_eq!(solid_cells(&mut sim), before + 8, "eight blocks went on the ground");
 }

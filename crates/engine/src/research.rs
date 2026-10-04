@@ -70,11 +70,17 @@ pub enum TechState {
 }
 
 /// The world's research: the chosen tech and units done per tech.
-#[derive(Default, Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Research {
     pub current: Option<u8>,
     /// Units done, by tech index.
     progress: [u32; TECHS.len()],
+}
+
+impl Default for Research {
+    fn default() -> Self {
+        Research { current: None, progress: [0; TECHS.len()] }
+    }
 }
 
 impl Research {

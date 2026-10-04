@@ -70,13 +70,13 @@ pub(super) const BLAST_PARTS: [Part; 9] = [
 
 const BLUE_TANK: [u16; 3] = [tex::BOILER_TOP, tex::BOILER_SIDE, tex::FRAME];
 
-/// A riveted tank on a banded plinth with a glowing firebox door on the front, a roof plate, a steam
-/// stack and a status lamp.
+/// A riveted tank on a banded plinth with a glowing firebox door high on the front (the steam outlets are
+/// below it, drawn by `steam_view.rs`), a roof plate, a steam stack and a status lamp.
 pub(super) const BOILER_PARTS: [Part; 6] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, 0.0, 0.0], [1.8, 1.6, 1.8], Look::Tex(BLUE_TANK)),
     part([0.0, 0.86, 0.0], [1.9, 0.1, 1.9], FRAME),
-    part([0.0, -0.45, 0.92], [0.8, 0.55, 0.12], Look::Fire(tex::GENERATOR_SIDE)),
+    part([0.0, 0.3, 0.92], [0.8, 0.5, 0.12], Look::Fire(tex::GENERATOR_SIDE)),
     part([-0.5, 1.15, -0.5], [0.3, 0.5, 0.3], STEEL),
     part([0.78, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
 ];

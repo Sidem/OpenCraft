@@ -150,7 +150,12 @@ impl Game {
         }
         // A scanner or core drill in hand makes the use button prospect instead (prospect.rs); with
         // belts it lays lines (belt_line.rs); poles and cables have their own tools (power_tools.rs).
-        if self.update_prospecting(dt) || self.update_belt_line() || self.update_power_tools(dt) || !self.using {
+        if self.update_planner()
+            || self.update_prospecting(dt)
+            || self.update_belt_line()
+            || self.update_power_tools(dt)
+            || !self.using
+        {
             return;
         }
         self.use_cooldown -= dt;

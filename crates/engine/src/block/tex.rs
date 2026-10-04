@@ -187,7 +187,10 @@ pub const DRONE_PORT_TOP: u16 = 173;
 pub const DRONE_PORT_SIDE: u16 = 174;
 pub const JETPACK: u16 = 175;
 pub const PERSONAL_DRONE: u16 = 176;
-pub const COUNT: usize = 177;
+pub const PLANNER: u16 = 177;
+pub const PIPE_WATER: u16 = 178;
+pub const PIPE_STEAM: u16 = 179;
+pub const COUNT: usize = 180;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

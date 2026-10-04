@@ -1,7 +1,7 @@
 //! Robotics parts (Milestone 7, the drone chain): the processor (a black package on gold pins), the servo (a
 //! steel can with a copper winding and a shaft), the actuator (a piston: cylinder and orange rod), the drone cell
 //! (a violet power cell with a teal gauge), the guidance module (a board with a cyan lens) and the drone itself
-//! (seen from above: four rotors on a pale body), the jetpack (two tanks over a flame) and the personal drone. Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
+//! (seen from above: four rotors on a pale body), the jetpack (two tanks over a flame) the personal drone and the terrain planner. Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
 
@@ -18,6 +18,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::DRONE_PORT_SIDE => port_side(x, y),
         tex::JETPACK => jetpack(x, y),
         tex::PERSONAL_DRONE => personal_drone(x, y),
+        tex::PLANNER => planner(x, y),
         _ => drone(x, y),
     }
 }
@@ -172,4 +173,21 @@ fn personal_drone(x: i32, y: i32) -> [u8; 4] {
         return rgb([188.0, 192.0, 202.0], 0.9);
     }
     rgb([22.0, 24.0, 30.0], 0.9)
+}
+
+/// A dark tablet with a pale survey grid, an orange site rectangle and a cyan corner marker.
+fn planner(x: i32, y: i32) -> [u8; 4] {
+    if !(1..15).contains(&x) || !(1..15).contains(&y) {
+        return rgb([22.0, 24.0, 30.0], 0.9);
+    }
+    if (4..12).contains(&x) && (5..11).contains(&y) && (x == 4 || x == 11 || y == 5 || y == 10) {
+        return rgb([255.0, 140.0, 40.0], 1.1);
+    }
+    if (x - 4 == 0 || x - 11 == 0) && (y - 5 == 0 || y - 10 == 0) {
+        return rgb([90.0, 226.0, 255.0], 1.2);
+    }
+    if x % 4 == 1 || y % 4 == 1 {
+        return rgb([70.0, 92.0, 120.0], 1.0);
+    }
+    rgb([34.0, 46.0, 66.0], 0.9 + 0.1 * n(412, x, y))
 }

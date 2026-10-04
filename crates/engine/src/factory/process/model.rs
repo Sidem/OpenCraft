@@ -9,7 +9,7 @@ use crate::math::Vec3;
 use super::super::footprint::Role;
 use super::super::render::push_box;
 use super::super::DIRS;
-use super::{Processor, Status};
+use super::{steam_view, Energy, Processor, Status};
 
 /// How a part is textured, and whether it moves.
 #[derive(Clone, Copy)]
@@ -48,11 +48,9 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     let working = p.status == Status::Working;
     let stroke = if working { (time * 6.0).sin().abs() * STROKE } else { 0.0 };
     let yaw = p.dir as f32 * std::f32::consts::FRAC_PI_2;
-    let (s, c) = (yaw.sin() as f64, yaw.cos() as f64);
     let centre = rel + p.spec.footprint.centre(p.dir);
     for part in p.spec.parts {
-        let [x, y, z] = part.at.map(f64::from);
-        let mut at = centre + Vec3::new(c * x - s * z, y, s * x + c * z);
+        let mut at = local(centre, yaw, part.at.map(f64::from));
         let texture = match part.look {
             Look::Tex(t) => t,
             Look::Band(top) => [top, tex::stripe(p.tier), tex::FRAME],
@@ -64,6 +62,12 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             }
         };
         push_box(out, at, yaw, part.size, 0.0, texture, false);
+    }
+    match p.energy() {
+        // Chutes, pipe fittings and a gauge instead of the generic hatches.
+        Energy::Boiler => return steam_view::draw_boiler(p, out, rel, centre, yaw),
+        Energy::Turbine => return steam_view::draw_turbine(p, out, rel),
+        _ => {}
     }
     if p.spec.footprint.is_single() {
         return;
@@ -77,6 +81,13 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             push_box(out, at, yaw, HATCH, 0.0, [tex::FRAME, layer, tex::FRAME], false);
         }
     }
+}
+
+/// A point `at` of a part, in the machine's own frame (front towards +z), turned by `yaw` about `centre`.
+pub(super) fn local(centre: Vec3, yaw: f32, at: [f64; 3]) -> Vec3 {
+    let (s, c) = (yaw.sin() as f64, yaw.cos() as f64);
+    let [x, y, z] = at;
+    centre + Vec3::new(c * x - s * z, y, s * x + c * z)
 }
 
 fn lamp(status: Status) -> u16 {

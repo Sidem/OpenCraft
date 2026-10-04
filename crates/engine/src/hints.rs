@@ -100,9 +100,10 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(BLAST_FURNACE) > 0,
     },
     Hint {
-        text: "Steam: research Steam Power. Pipe water from a pump to a boiler, belt the boiler coal, and set \
-               steam turbines (two to a boiler, 240 kW each) against it, wired to a pole. A generator on the same \
-               grid starts the pump. A pond runs dry; the sea doesn't.",
+        text: "Steam: research Steam Power. Pipe water from a pump to a boiler's blue water inlet, belt coal into a \
+               dark coal inlet, and pipe its two front steam outlets to the steam inlets of turbines (two to a \
+               boiler, 240 kW each), wired to a pole. A generator on the same grid starts the pump. A pond runs \
+               dry; the sea doesn't.",
         done: |_, f| f.processors_of(TURBINE) > 0,
     },
     Hint {

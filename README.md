@@ -53,6 +53,7 @@ the render distance in chunks (2 to 24, default 8).
 | B                   | Ghost mode: right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
 | Z, Enter (ghost mode) | Z marks the two corners of a box (a third press clears it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
 | L | Blueprint library: rename, hold or delete your blueprints (kept per world in this browser) |
+| Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill or flatten and the level. Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |
 | Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
@@ -215,11 +216,16 @@ size.
   into plates and beams; steel pickaxes, axes and shovels last 1,500 blocks, dig six times as fast as bare
   hands and keep 5 ore per block by hand.
 - **Steam power** (Steam Power research, with blue packs) is a boiler (2×2×2) and steam turbines (3×2×2)
-  set against its side. Belts or a miner feed the boiler coal ore or logs (a coal makes 540 kJ of steam,
-  twice a generator's 270), and a pipe touching it brings water from a pump: a boiler takes a unit
-  (2,000 kJ) when its water runs low, and says "Out of water" when the pump has none (a pond dries; the sea
-  never does). A turbine is wired to a power pole like a generator and gives up to 240 kW, only what its grid
-  draws; a boiler feeds two turbines, so 480 kW. Start the first pump with a coal generator on the same grid.
+  joined by pipes. Each of the boiler's back, left and right faces has two inlets, one per cell: a dark **coal
+  chute** for a belt (a coal makes 540 kJ of steam, twice a generator's 270) and a **blue banded pipe** for water.
+  Its **two steam outlets** (red banded nozzles) are on the front, below the firebox door; pipe them to the
+  **steam inlet** on the right-hand end of each turbine (the end away from the generator block). Water pipes are
+  blue banded and steam pipes pale with a red band; a network that carries both (turns red) works for neither.
+  A boiler takes a water unit (2,000 kJ) when its water runs low (a gauge on its front shows the water held)
+  and says "Out of water" when the pump has none (a pond dries; the sea never does). One Mk1 pump (2 blocks a
+  second) feeds eight boilers at full burn, so several boilers can share a pump's pipe. A turbine is wired to a
+  power pole like a generator and gives up to 240 kW, only what its grid draws; a boiler feeds two turbines,
+  so 480 kW. Start the first pump with a coal generator on the same grid.
 - **The crusher** (Ore Crushing research, 1×1, 30 kW) turns 2 iron or copper ore into 3 crushed ore in 2 s,
   so a smelter gets 1.5 ingots an ore (crushed ore smelts 1 to 1 in 1.5 s). It also grinds slag into sand.
 - **The silo** (Bulk Storage research, 2×2×3) is a big box of 144 stacks: belts bring anything in on its
@@ -265,7 +271,10 @@ size.
   blocks, takes the item from a box, builds it and comes home, or breaks a block you marked (B, left-click) and
   puts what it leaves into the boxes. Swarm Logistics unlocks kits for Mk2 to Mk4 ports (8, 12, 16 drones; reach 48, 64, 96).
   Breaking a port gives its drones back. The Jetpack tech (4 steel plates, 2 motors, 2 circuits) and the Personal Drone
-  tech (a drone and 2 circuits) make the two helpers for your pack: see the keys above.
+  tech (a drone and 2 circuits) make the two helpers for your pack: see the keys above. The Earthworks tech (needs
+  Construction Drones) unlocks the **Planner** (3 iron plates, 4 copper wire, 2 glass, a circuit): mark an area to
+  dig, fill or flatten and drone ports in reach do the work, digging into the storage boxes beside their pad and
+  filling from them (dirt on top, else stone, dirt, sand or grass), so ground dug in one site fills another.
   A drilling Miner Mk1
   draws 5 kW (one coal runs it long enough to mine about 32), a Mk2 20 kW, a working constructor 15 kW.
   Short of power, every machine on the grid slows down to match; with none, it stops. The first loop: a

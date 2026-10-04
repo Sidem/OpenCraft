@@ -2,12 +2,16 @@
 //! `Energy::Turbine`, `Pick::Store`).
 //!
 //! - A boiler burns fuel from its fuel buffer into steam (`FUEL_GAIN` times a generator's energy from
-//!   the same item), and each item it burns needs water: a pipe piece touching it puts it on a pipe
-//!   network, and `draw_water` takes a pumped unit from a pump of that network (`UNIT_ENERGY` of steam
-//!   a unit) when its water runs low. It stops burning while it holds `STEAM_CAP`.
-//! - A steam turbine touching boilers (at most `TURBINES_PER_BOILER` turbines to a boiler, the lower
-//!   processor indices first) is a power source on the grid of the pole it hangs on: `power.rs`
-//!   asks it for what the grid lacks, up to `TURBINE_KW`, and it takes that much steam from its boilers.
+//!   the same item), and each item it burns needs water: a pipe piece touching one of its water inlets puts
+//!   it on a pipe network (each touch is a tap, drawn by `steam_view.rs`), and `draw_water` takes a pumped
+//!   unit from a pump of one of them (`UNIT_ENERGY` of steam a unit) when its water runs low. It stops
+//!   burning while it holds `STEAM_CAP`. Its steam leaves through its two outlets into pipes.
+//! - A steam turbine with its steam inlet on a pipe network that also holds a boiler's outlet (at most
+//!   `TURBINES_PER_BOILER` turbines to a boiler, the lower processor indices first) is a power source on the
+//!   grid of the pole it hangs on: `power.rs` asks it for what the grid lacks, up to `TURBINE_KW`, and it
+//!   takes that much steam from its boilers.
+//! - A pipe network is water or steam by what is on it: a network holding a pump, an outlet or a water inlet
+//!   and a steam port too is `Fluid::Mixed` and works for neither (`link`).
 //! - A silo (`Pick::Store`) is a big box with ports on every side: everything goes into its output buffer.
 //!
 //! Units are those of `power.rs`: steam and water are kW·ticks (1 kJ = `TICK_RATE`). What is derived
@@ -21,10 +25,10 @@ use crate::math::IVec3;
 use crate::recipes::fuel_energy;
 use crate::TICK_RATE;
 
+use super::super::footprint::Role;
 use super::super::links::Slot;
-use super::super::pipes::{Part, Pipework};
-use super::super::Factory;
-use super::super::FACES;
+use super::super::pipes::{Fluid, Part, Pipework};
+use super::super::{Factory, DIRS};
 use super::{Energy, Pick, Processor, Status};
 
 /// Steam a fuel item makes, as a multiple of the energy a generator gets from it.
@@ -34,10 +38,13 @@ pub const STEAM_CAP: u32 = 270 * FUEL_GAIN * 2 * TICK_RATE;
 /// What a pumped unit of water is worth as steam: 2,000 kJ.
 pub const UNIT_ENERGY: u32 = 2_000 * TICK_RATE;
 /// A boiler asks for a unit of water when it holds less than one coal's worth.
-const WATER_LOW: u32 = 270 * FUEL_GAIN * TICK_RATE;
+pub(super) const WATER_LOW: u32 = 270 * FUEL_GAIN * TICK_RATE;
 /// The most a steam turbine gives, in kW.
 pub const TURBINE_KW: u32 = 240;
 pub const TURBINES_PER_BOILER: u32 = 2;
+
+/// Where a pipe piece touches a machine: the machine's cell and the direction of the piece.
+pub type Tap = (IVec3, IVec3);
 
 /// A boiler's or turbine's state; other processors keep the default.
 #[derive(Default)]
@@ -45,8 +52,15 @@ pub struct Steam {
     /// A boiler's steam and water, in kW·ticks.
     pub steam: u32,
     pub water: u32,
-    /// A boiler's pipe network, if a pipe piece touches it (derived).
-    pub net: Option<u32>,
+    /// The water networks a boiler's water inlets are piped to, and where (derived; `steam_view.rs` draws
+    /// the fittings).
+    pub nets: Vec<u32>,
+    pub taps: Vec<Tap>,
+    /// The same for the steam a boiler's outlets or a turbine's inlets are piped to.
+    pub vent_nets: Vec<u32>,
+    pub vents: Vec<Tap>,
+    /// A tap is on a pipe network that carries both water and steam (derived).
+    pub crossed: bool,
     /// A turbine's boilers, as processor indices (derived).
     pub boilers: Vec<u32>,
     /// kW a turbine gave last tick (derived).
@@ -54,6 +68,16 @@ pub struct Steam {
 }
 
 impl Processor {
+    /// A boiler's or turbine's pipe connections: the cell, the `DIRS` index it faces out of and `Role::Water`
+    /// or `Role::Steam` (none for other processors).
+    pub(in crate::factory) fn pipe_ports(&self) -> Vec<(IVec3, u8, Role)> {
+        if !matches!(self.energy(), Energy::Boiler | Energy::Turbine) {
+            return Vec::new();
+        }
+        let faces = |role| self.spec.footprint.faces(self.pos, self.dir, role);
+        [Role::Water, Role::Steam].into_iter().flat_map(|r| faces(r).into_iter().map(move |(c, s)| (c, s, r))).collect()
+    }
+
     /// One tick of a boiler: burns the first fuel item it holds if its steam has room and its water covers it.
     pub(super) fn boil(&mut self) {
         let mut why = None;
@@ -80,8 +104,11 @@ impl Processor {
     pub(super) fn steam_text(&self) -> Option<String> {
         let kj = |v: u32| v / TICK_RATE;
         match (self.energy(), self.spec.pick) {
+            (Energy::Boiler | Energy::Turbine, _) if self.steam.crossed => {
+                Some("Water and steam share a pipe network: keep them apart".to_string())
+            }
             (Energy::Boiler, _) => Some(match self.status {
-                Status::NoWater => "Out of water: pipe it to a pump with water in reach".to_string(),
+                Status::NoWater => "Out of water: pipe a water inlet to a pump with water in reach".to_string(),
                 Status::NoFuel => "Out of fuel: bring coal ore or logs".to_string(),
                 Status::Working => {
                     format!("Steam: {} kJ held · water for {} kJ more", kj(self.steam.steam), kj(self.steam.water))
@@ -89,7 +116,7 @@ impl Processor {
                 _ => "Idle".to_string(),
             }),
             (Energy::Turbine, _) => Some(if self.steam.boilers.is_empty() {
-                "No boiler: set it against a boiler's side".to_string()
+                "No boiler: pipe its steam inlet to a boiler's steam outlet".to_string()
             } else if self.steam.output > 0 {
                 format!("Giving {} of {TURBINE_KW} kW", self.steam.output)
             } else if self.status == Status::NoFuel {
@@ -143,50 +170,79 @@ pub(in crate::factory) fn run_turbine(processors: &mut [Processor], t: usize, wa
 /// Every boiler whose water is low takes a unit from a pump of its network that holds one.
 pub(in crate::factory) fn draw_water(processors: &mut [Processor], pipework: &mut [Pipework]) {
     for b in processors.iter_mut().filter(|p| p.energy() == Energy::Boiler) {
-        let Some(net) = b.steam.net.filter(|_| b.steam.water < WATER_LOW) else { continue };
-        if let Some(pump) = pipework.iter_mut().find(|p| p.net == net && p.part == Part::Pump && p.held > 0) {
+        if b.steam.water >= WATER_LOW {
+            continue;
+        }
+        let nets = &b.steam.nets;
+        if let Some(pump) = pipework.iter_mut().find(|p| p.part == Part::Pump && p.held > 0 && nets.contains(&p.net)) {
             pump.held -= 1;
             b.steam.water += UNIT_ENERGY;
         }
     }
 }
 
-/// Derives each boiler's pipe network and each turbine's boilers from what touches them (`relink`, after
-/// `link_pipework`).
-pub(in crate::factory) fn link(processors: &mut [Processor], at: &FxHashMap<IVec3, Slot>, pipework: &[Pipework]) {
+/// Derives what each boiler's and turbine's pipe ports are piped to, each pipe network's fluid and each turbine's
+/// boilers (`relink`, after `link_pipework`).
+pub(in crate::factory) fn link(processors: &mut [Processor], at: &FxHashMap<IVec3, Slot>, pipework: &mut [Pipework]) {
+    // A tap is a pipe piece on a port's face: (net, tap) by role.
+    let taps_of = |p: &Processor, role: Role| -> Vec<(u32, Tap)> {
+        let found = p.pipe_ports().into_iter().filter(|&(_, _, r)| r == role);
+        let found = found.filter_map(|(c, s, _)| match at.get(&(c + DIRS[s as usize])) {
+            Some(&Slot::Pipe(j)) => Some((pipework[j as usize].net, (c, DIRS[s as usize]))),
+            _ => None,
+        });
+        found.collect()
+    };
+    let found: Vec<[Vec<(u32, Tap)>; 2]> =
+        processors.iter().map(|p| [taps_of(p, Role::Water), taps_of(p, Role::Steam)]).collect();
+
+    // A network is water when a pump, an outlet or a water inlet is on it, steam when a steam port is.
+    let nets = pipework.iter().map(|p| p.net as usize + 1).max().unwrap_or(0);
+    let (mut water, mut steam) = (vec![false; nets], vec![false; nets]);
+    for p in pipework.iter().filter(|p| p.part != Part::Pipe) {
+        water[p.net as usize] = true;
+    }
+    for [w, s] in &found {
+        w.iter().for_each(|&(n, _)| water[n as usize] = true);
+        s.iter().for_each(|&(n, _)| steam[n as usize] = true);
+    }
+    for p in pipework.iter_mut() {
+        let n = p.net as usize;
+        p.fluid = match (water[n], steam[n]) {
+            (true, true) => Fluid::Mixed,
+            (false, true) => Fluid::Steam,
+            _ => Fluid::Water,
+        };
+    }
+    let clean = |n: u32| !(water[n as usize] && steam[n as usize]);
+
+    let boilers: Vec<usize> = (0..processors.len()).filter(|&i| processors[i].energy() == Energy::Boiler).collect();
     let mut taken = vec![0u32; processors.len()];
-    let mut links = Vec::with_capacity(processors.len());
-    for p in processors.iter() {
-        let touching: Vec<Slot> =
-            p.cells().iter().flat_map(|&c| FACES.iter().filter_map(move |&f| at.get(&(c + f)).copied())).collect();
-        let mut boilers = Vec::new();
-        let mut net = None;
-        match p.energy() {
-            Energy::Boiler => {
-                net = touching.iter().find_map(|s| {
-                    if let Slot::Pipe(j) = s {
-                        Some(pipework[*j as usize].net)
-                    } else {
-                        None
-                    }
-                });
+    let mut seats: Vec<Vec<u32>> = vec![Vec::new(); processors.len()];
+    for (t, [_, vents]) in found.iter().enumerate().filter(|&(t, _)| processors[t].energy() == Energy::Turbine) {
+        for &b in &boilers {
+            let shared = found[b][1].iter().any(|&(n, _)| clean(n) && vents.iter().any(|&(m, _)| m == n));
+            if shared && taken[b] < TURBINES_PER_BOILER {
+                taken[b] += 1;
+                seats[t].push(b as u32);
             }
-            Energy::Turbine => {
-                for s in &touching {
-                    let Slot::Process(j) = *s else { continue };
-                    let is_boiler = processors[j as usize].energy() == Energy::Boiler;
-                    if is_boiler && !boilers.contains(&j) && taken[j as usize] < TURBINES_PER_BOILER {
-                        taken[j as usize] += 1;
-                        boilers.push(j);
-                    }
+        }
+    }
+    for ((p, [w, s]), boilers) in processors.iter_mut().zip(found).zip(seats) {
+        let nets_of = |taps: &[(u32, Tap)]| {
+            let mut nets = Vec::new();
+            for &(n, _) in taps {
+                if clean(n) && !nets.contains(&n) {
+                    nets.push(n);
                 }
             }
-            _ => {}
-        }
-        links.push((net, boilers));
-    }
-    for (p, (net, boilers)) in processors.iter_mut().zip(links) {
-        (p.steam.net, p.steam.boilers) = (net, boilers);
+            nets
+        };
+        p.steam.crossed = w.iter().chain(&s).any(|&(n, _)| !clean(n));
+        (p.steam.nets, p.steam.vent_nets) = (nets_of(&w), nets_of(&s));
+        p.steam.taps = w.into_iter().map(|t| t.1).collect();
+        p.steam.vents = s.into_iter().map(|t| t.1).collect();
+        p.steam.boilers = boilers;
     }
 }
 

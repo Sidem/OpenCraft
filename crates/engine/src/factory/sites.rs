@@ -7,7 +7,7 @@
 //! it is (`*_anywhere`, never from what happens to be loaded). Cell order (`Site::cell`): cut layers
 //! from the top down, then fill layers from the bottom up; in a layer, rows along z, back and forth
 //! along x. A fill cell counts only above its column's ground (`is_ground`), never into a cave.
-//! `survey_site` is a query over loaded chunks, for the planner. Nothing works a site yet (step 6.3).
+//! `survey_site` is a query over loaded chunks, for the planner. Drone ports work sites (`drones/earthworks.rs`).
 //! To add a job: a `Job` variant appended to `JOBS` (its index is saved) and its ranges in
 //! `Job::cuts` / `Job::fills`.
 
@@ -69,6 +69,8 @@ pub struct Site {
     /// Found when the site was made: its highest block (air aside) and its lowest column ground.
     pub high: i32,
     pub low: i32,
+    /// Cells from the start known to need no work (a cache for `drones/earthworks.rs`; never saved).
+    pub done: u32,
 }
 
 impl Site {
@@ -93,14 +95,13 @@ impl Site {
     }
 
     /// Whether cell `i` is filled rather than cut (the cut's cells come first).
-    #[cfg_attr(not(test), expect(dead_code, reason = "excavators work sites from step 6.3"))]
+    #[cfg(test)]
     pub fn is_fill(&self, i: u32) -> bool {
         i >= self.cut_layers() * self.area()
     }
 
     /// Cell `i` (below `cells()`): cut layers from `high` down, then fill layers from above `low` up;
     /// in a layer, row by row along z, each row along x, every other one backwards.
-    #[cfg_attr(not(test), expect(dead_code, reason = "excavators work sites from step 6.3"))]
     pub fn cell(&self, i: u32) -> IVec3 {
         let (area, w) = (self.area(), (self.hi.0 - self.lo.0 + 1) as u32);
         let (layer, k) = (i / area, i % area);
@@ -109,6 +110,11 @@ impl Site {
         let cut = self.cut_layers();
         let y = if layer < cut { self.high - layer as i32 } else { self.low + 1 + (layer - cut) as i32 };
         IVec3::new(self.lo.0 + col as i32, y, self.lo.1 + row as i32)
+    }
+
+    /// Whether the column of `pos` is inside the site.
+    pub fn has_column(&self, pos: IVec3) -> bool {
+        (self.lo.0..=self.hi.0).contains(&pos.x) && (self.lo.1..=self.hi.1).contains(&pos.z)
     }
 
     fn area(&self) -> u32 {
@@ -141,7 +147,7 @@ impl Sites {
         let (high, low) = ground_range(world, lo, hi);
         let id = self.next_id;
         self.next_id = self.next_id.wrapping_add(1);
-        self.list.push(Site { id, lo, hi, level, job, high, low });
+        self.list.push(Site { id, lo, hi, level, job, high, low, done: 0 });
         Some(id)
     }
 
@@ -183,7 +189,7 @@ impl Sites {
             if id >= next_id || shape(lo, hi) != Some((lo, hi)) {
                 return None;
             }
-            list.push(Site { id, lo, hi, level, job, high, low });
+            list.push(Site { id, lo, hi, level, job, high, low, done: 0 });
         }
         Some(Sites { list, next_id })
     }
@@ -240,7 +246,7 @@ fn is_ground(b: BlockId) -> bool {
 }
 
 /// Whether a cut takes `b`: everything but air, water, bedrock and machines (belts and pipes too).
-fn cut_takes(b: BlockId) -> bool {
+pub fn cut_takes(b: BlockId) -> bool {
     b != AIR && !LIQUID[b as usize] && b != BEDROCK && machine(b).is_none()
 }
 
