@@ -54,6 +54,10 @@ impl Game {
         if !power.is_empty() {
             return power;
         }
+        let rails = self.rail_boxes();
+        if !rails.is_empty() {
+            return rails;
+        }
         let Some((_, _, _, cells)) = self.footprint_ghost() else { return Vec::new() };
         let lo = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.min(c.0.x), m.y.min(c.0.y), m.z.min(c.0.z)));
         let hi = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.max(c.0.x), m.y.max(c.0.y), m.z.max(c.0.z)));
@@ -84,6 +88,7 @@ impl Game {
                 return footprint;
             }
             let power = self.power_label();
+            let power = if power.is_empty() { self.rail_label() } else { power };
             return if power.is_empty() { self.helper_label() } else { power };
         }
         let held = self.inventory().selected_stack().item;

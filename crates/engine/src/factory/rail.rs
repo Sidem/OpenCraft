@@ -1,76 +1,152 @@
-//! Rails (Milestone 9): track a train will run on. A rail joins the rails beside it, on its own level and one
-//! block up or down (a track climbs and drops a block a cell, like belt ramps), and has no direction of its own:
-//! a cell of track is a node, its joins are the edges, and the graph is derived (`link_rails`, in `relink`),
-//! never saved. Stateless: a rail only remembers where it is.
+//! Rails (Milestone 9): track a train will run on, built like power poles. A rail is a *node*: a block on a cell
+//! with a heading (a byte, `curve::dir_of`), and the player joins two nodes with a *track* (`Action::Connect`,
+//! quietly nothing unless `track_fit` says the pair fits). A track is a smooth curve between its two nodes
+//! (`curve.rs`), free of the voxel grid; only the nodes sit on cells. A node may hold up to `MAX_LINKS` tracks
+//! (a junction needs three).
 //!
-//! Invariants: joining is symmetric (a rail rising towards `q` is the same join as `q` dropping towards it, see
-//! [`joins`]); `arms` is derived data. The sloped piece of a join lives in its lower cell, like a belt ramp.
+//! Saved: each node's cell and heading, then the tracks as pairs of node cells (`state.rs`). Derived: each
+//! node's `links` count (`relink`). Removing a node drops its tracks.
 //!
-//! To use the track: `joins` and `Factory::rail_joins` give a cell's neighbours (trains, Milestone 9 step 9.4b).
+//! To use the track: `Factory::tracks` and `curve_of` give the graph and its shapes (trains, step 9.4b).
 
-use crate::block::tex;
+mod curve;
+
+pub use curve::{dir_of, fit, write_node, write_track, yaw_of, Curve, Fit, MAX_SPAN};
+
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 
-use super::belt_shape::Shape;
 use super::links::Slot;
-use super::render::push_box;
-use super::{Factory, Machine, DIRS};
+use super::{Factory, Machine};
 
-/// How a join leaves a rail: level, rising a block, or dropping a block.
-const LEVEL: u8 = 0;
-const RISE: u8 = 1;
-const DROP: u8 = 2;
-const HEIGHT_CHANGES: [i32; 3] = [0, 1, -1];
+/// The most tracks one node holds.
+pub const MAX_LINKS: u8 = 4;
 
-/// Rail geometry (block units, from the cell centre): the rails' height, their gap and thickness, a sleeper's size.
-const RAIL_Y: f32 = -0.38;
-const GAUGE: f32 = 0.18;
-const RAIL_THICK: f32 = 0.06;
-const SLEEPER_Y: f32 = -0.45;
-
+/// A rail node: where it is and the way its track runs through it (the heading is an axis: the track may leave
+/// either side).
 pub struct Rail {
     pub pos: IVec3,
-    /// Joins to other rails, bit `dir * 3 + kind` (`LEVEL`, `RISE`, `DROP`; derived).
-    pub arms: u16,
+    pub yaw: u8,
+    /// How many tracks end here (derived by `relink`).
+    pub links: u8,
+}
+
+/// A stretch of track between the nodes at `a` and `b`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct Track {
+    pub a: IVec3,
+    pub b: IVec3,
 }
 
 impl Rail {
-    pub fn new(pos: IVec3) -> Rail {
-        Rail { pos, arms: 0 }
-    }
-
-    /// How many rails this one joins.
-    pub fn joined(&self) -> u32 {
-        self.arms.count_ones()
+    pub fn new(pos: IVec3, yaw: u8) -> Rail {
+        Rail { pos, yaw, links: 0 }
     }
 }
 
-/// The twelve cells a rail at `p` can join, as (direction, kind, cell): each side level, up and down.
-pub fn joins(p: IVec3) -> impl Iterator<Item = (u8, u8, IVec3)> {
-    (0..4u8).flat_map(move |d| {
-        (0..3u8).map(move |k| (d, k, p + DIRS[d as usize] + IVec3::new(0, HEIGHT_CHANGES[k as usize], 0)))
-    })
+impl Track {
+    fn has(&self, p: IVec3) -> bool {
+        self.a == p || self.b == p
+    }
 }
 
 impl Factory {
-    /// Records each rail's joins (called from `relink`).
-    pub(super) fn link_rails(&mut self) {
-        let at = &self.at;
-        for r in &mut self.rails {
-            r.arms = joins(r.pos)
-                .filter(|&(_, _, q)| matches!(at.get(&q), Some(Slot::Rail(_))))
-                .fold(0, |a, (d, k, _)| a | 1 << (d * 3 + k));
+    /// The heading of the rail node at `pos`, if there is one.
+    pub fn rail_yaw(&self, pos: IVec3) -> Option<u8> {
+        match self.at.get(&pos) {
+            Some(&Slot::Rail(i)) => Some(self.rails[i as usize].yaw),
+            _ => None,
         }
     }
 
-    /// The rails the rail at `pos` joins (none for any other cell). Tests for now: trains (9.4b) route along it.
-    #[cfg(test)]
-    pub fn rail_joins(&self, pos: IVec3) -> Vec<IVec3> {
-        let Some(Slot::Rail(_)) = self.at.get(&pos) else { return Vec::new() };
-        joins(pos).filter(|(_, _, q)| matches!(self.at.get(q), Some(Slot::Rail(_)))).map(|j| j.2).collect()
+    /// Whether the nodes at `a` and `b` are joined.
+    pub fn track_between(&self, a: IVec3, b: IVec3) -> bool {
+        self.tracks.iter().any(|t| t.has(a) && t.has(b))
     }
+
+    /// How many tracks end at the node at `p`.
+    pub fn track_count(&self, p: IVec3) -> u8 {
+        self.tracks.iter().filter(|t| t.has(p)).count() as u8
+    }
+
+    /// Whether the nodes at `a` and `b` can be joined, `None` unless both are rail nodes.
+    pub fn track_fit(&self, a: IVec3, b: IVec3) -> Option<Fit> {
+        let (ya, yb) = (self.rail_yaw(a)?, self.rail_yaw(b)?);
+        Some(if self.track_between(a, b) {
+            Fit::Joined
+        } else if self.track_count(a) >= MAX_LINKS || self.track_count(b) >= MAX_LINKS {
+            Fit::Full
+        } else {
+            fit(a, ya, b, yb)
+        })
+    }
+
+    /// Joins the nodes at `a` and `b` (`Action::Connect`); quietly nothing unless they fit.
+    pub fn lay_track(&mut self, a: IVec3, b: IVec3) {
+        if self.track_fit(a, b) == Some(Fit::Ok) {
+            self.tracks.push(Track { a, b });
+            self.dirty = true;
+        }
+    }
+
+    /// Cuts the track between the nodes at `a` and `b` (`Action::Disconnect`).
+    pub fn cut_track(&mut self, a: IVec3, b: IVec3) {
+        let before = self.tracks.len();
+        self.tracks.retain(|t| !(t.has(a) && t.has(b)));
+        self.dirty |= self.tracks.len() != before;
+    }
+
+    /// The curve of `track`, `None` if an end is not a node.
+    pub fn curve_of(&self, track: &Track) -> Option<Curve> {
+        Some(Curve::new(track.a, self.rail_yaw(track.a)?, track.b, self.rail_yaw(track.b)?))
+    }
+
+    /// Every track laid. Tests for now: trains (9.4b) route along it.
+    #[cfg(test)]
+    pub fn tracks(&self) -> &[Track] {
+        &self.tracks
+    }
+
+    /// Counts each node's tracks (called from `relink`).
+    pub(super) fn link_rails(&mut self) {
+        for r in &mut self.rails {
+            r.links = 0;
+        }
+        for t in &self.tracks {
+            for end in [t.a, t.b] {
+                if let Some(&Slot::Rail(i)) = self.at.get(&end) {
+                    self.rails[i as usize].links += 1;
+                }
+            }
+        }
+    }
+
+    /// Drops tracks whose ends are gone.
+    pub(super) fn prune_tracks(&mut self) {
+        if !self.tracks.is_empty() {
+            let at = &self.at;
+            self.tracks.retain(|t| [t.a, t.b].iter().all(|p| matches!(at.get(p), Some(Slot::Rail(_)))));
+        }
+    }
+
+    /// Draws every track near the camera (called by `write_instances`).
+    pub(super) fn write_tracks(&self, out: &mut Vec<f32>, eye: Vec3, range: f64) {
+        for t in &self.tracks {
+            let mid = (t.a.as_vec3() + t.b.as_vec3()) * 0.5 + Vec3::new(0.5, 0.5, 0.5) - eye;
+            if mid.length() <= range + f64::from(MAX_SPAN) {
+                if let Some(curve) = self.curve_of(t) {
+                    write_track(out, &curve, eye, range);
+                }
+            }
+        }
+    }
+}
+
+/// The heading's axis, in words.
+fn axis(yaw: u8) -> &'static str {
+    const AXES: [&str; 4] = ["north-south", "north-east to south-west", "east-west", "south-east to north-west"];
+    AXES[((u32::from(yaw) % 128 + 16) / 32 % 4) as usize]
 }
 
 impl Machine for Rail {
@@ -80,10 +156,12 @@ impl Machine for Rail {
 
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
+        w.u8(self.yaw);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Rail> {
-        Some(Rail::new(r.ivec3()?))
+        let pos = r.ivec3()?;
+        Some(Rail::new(pos, if r.version >= 31 { r.u8()? } else { 0 }))
     }
 
     fn contents(&self) -> Vec<Stack> {
@@ -92,63 +170,19 @@ impl Machine for Rail {
 
     fn describe(&self, f: &Factory) -> String {
         if f.dirty {
-            return String::new();
+            return "Rail node".to_string();
         }
-        match self.joined() {
-            0 => "Rail\nJoins the rails laid beside it, level or a block up or down".to_string(),
-            1 => "Rail\nEnd of the track: joined to 1 rail".to_string(),
-            n => format!("Rail\nJoined to {n} rails"),
+        let axis = axis(self.yaw);
+        match self.links {
+            0 => format!("Rail node\nTrack runs {axis} here: join it to another node"),
+            1 => format!("Rail node\nEnd of the track · runs {axis}"),
+            n => format!("Rail node\n{n} of {MAX_LINKS} tracks · runs {axis}"),
         }
     }
 
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
-        write_rail(out, rel, self.arms);
+        curve::write_node(out, rel, self.yaw, self.links == 0);
     }
-}
-
-/// The joins a planned rail (the line tool's ghost) will have: straight along `dir`, sloping when `shape` says its
-/// neighbour is a block up (`Up`) or it is the foot of a rise from the cell behind (`Down`).
-pub fn ghost_arms(dir: u8, shape: Shape) -> u16 {
-    let (ahead, behind) = (dir % 4, (dir + 2) % 4);
-    let bit = |d: u8, k: u8| 1u16 << (d * 3 + k);
-    match shape {
-        Shape::Up => bit(ahead, RISE) | bit(behind, LEVEL),
-        Shape::Down => bit(ahead, LEVEL) | bit(behind, RISE),
-        _ => bit(ahead, LEVEL) | bit(behind, LEVEL),
-    }
-}
-
-/// A rail's boxes at camera-relative `rel` (its cell's centre) with the joins in `arms`: a sleeper under the
-/// middle and a pair of steel rails towards each join (a bare rail runs north-south).
-pub fn write_rail(out: &mut Vec<f32>, rel: Vec3, arms: u16) {
-    let arms = if arms == 0 { 1 << (LEVEL as u16) | 1 << (2 * 3 + LEVEL as u16) } else { arms };
-    push_box(out, rel + Vec3::new(0.0, SLEEPER_Y as f64, 0.0), 0.0, [0.5, 0.05, 0.14], 0.0, [tex::PLANKS; 3], false);
-    for d in 0..4u8 {
-        for k in [LEVEL, DROP, RISE] {
-            // A drop is drawn by the lower cell's rise, so its half stays level here.
-            if arms & (1 << (d * 3 + k)) != 0 {
-                arm(out, rel, d, k == RISE);
-            }
-        }
-    }
-}
-
-/// One half-cell of track towards direction `d`, tilted up when it `rises`.
-fn arm(out: &mut Vec<f32>, rel: Vec3, d: u8, rises: bool) {
-    let yaw = d as f32 * std::f32::consts::FRAC_PI_2;
-    let (s, c) = yaw.sin_cos();
-    // Local -z points along `DIRS[d]`; (x, y, z) are local offsets.
-    let at = |x: f32, y: f32, z: f32| rel + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
-    let (len, lift, pitch) = if rises { (0.71, 0.25, std::f32::consts::FRAC_PI_4) } else { (0.5, 0.0, 0.0) };
-    let mut rail = |x: f32, y: f32, z: f32, size: [f32; 3], layer: u16| {
-        push_box(out, at(x, y, z), yaw, size, 0.0, [layer; 3], false);
-        let n = out.len();
-        out[n - 4] = pitch;
-    };
-    for x in [-GAUGE, GAUGE] {
-        rail(x, RAIL_Y + lift, -0.25, [RAIL_THICK, 0.08, len], tex::STEEL);
-    }
-    rail(0.0, SLEEPER_Y + lift, -0.3, [0.5, 0.05, 0.14], tex::PLANKS);
 }
 
 #[cfg(test)]

@@ -203,6 +203,9 @@ impl Factory {
     /// unless `hookup` says it fits. A machine on another pole moves to this one. Cutting an existing
     /// wire is `disconnect`.
     pub fn connect(&mut self, pole: IVec3, cell: IVec3) {
+        if matches!(self.at.get(&pole), Some(Slot::Rail(_))) {
+            return self.lay_track(pole, cell); // two rail nodes: track, not wire (`rail.rs`)
+        }
         let (Hookup::Connect | Hookup::Move(_)) = self.hookup(pole, cell) else { return };
         let Some(to) = self.anchor_of(cell) else { return };
         self.hooks.retain(|h| h.to != to || matches!(self.at.get(&to), Some(Slot::Pole(_))));
@@ -212,6 +215,9 @@ impl Factory {
 
     /// Cuts the wire between the pole at `pole` and what stands at `cell`.
     pub fn disconnect(&mut self, pole: IVec3, cell: IVec3) {
+        if matches!(self.at.get(&pole), Some(Slot::Rail(_))) {
+            return self.cut_track(pole, cell);
+        }
         let Some(to) = self.anchor_of(cell) else { return };
         let before = self.hooks.len();
         self.hooks.retain(|h| !((h.pole == pole && h.to == to) || (h.pole == to && h.to == pole)));

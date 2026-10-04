@@ -8,87 +8,162 @@ fn v(x: i32, y: i32, z: i32) -> IVec3 {
     IVec3::new(x, y, z)
 }
 
-fn track(cells: &[IVec3]) -> Factory {
+/// North, east, south, west as heading bytes.
+const N: u8 = 0;
+const E: u8 = 64;
+
+fn nodes(list: &[(IVec3, u8)]) -> Factory {
     let mut f = Factory::default();
-    for &c in cells {
-        f.place(&mut World::new(1, 2), RAIL, c, 0, c, 0);
+    for &(c, yaw) in list {
+        f.place(&mut World::new(1, 2), RAIL, c, yaw, c, 0);
     }
     f.relink();
     f
 }
 
-fn arms_at(f: &Factory, pos: IVec3) -> u16 {
-    let Some(&Slot::Rail(i)) = f.at.get(&pos) else { panic!("no rail at {pos:?}") };
-    f.rails[i as usize].arms
-}
-
-fn bit(d: u8, k: u8) -> u16 {
-    1 << (d * 3 + k)
-}
-
 #[test]
-fn rails_join_level_and_a_block_up_or_down() {
-    // East along y 0, then a rise to y 1 and a drop to y 0 again, with a rail north of the first that isn't beside it.
-    let f = track(&[v(0, 0, 0), v(1, 0, 0), v(2, 1, 0), v(3, 0, 0), v(0, 0, -2)]);
-    assert_eq!(arms_at(&f, v(0, 0, 0)), bit(1, LEVEL), "joins the one beside it, not the one two away");
-    assert_eq!(arms_at(&f, v(1, 0, 0)), bit(3, LEVEL) | bit(1, RISE));
-    assert_eq!(arms_at(&f, v(2, 1, 0)), bit(3, DROP) | bit(1, DROP));
-    assert_eq!(arms_at(&f, v(3, 0, 0)), bit(3, RISE));
-    assert_eq!(arms_at(&f, v(0, 0, -2)), 0, "a lone rail joins nothing");
-}
-
-#[test]
-fn a_rail_two_levels_off_or_diagonal_does_not_join() {
-    let f = track(&[v(0, 0, 0), v(1, 2, 0), v(1, 0, 1), v(-1, 0, -1)]);
-    assert!((0..4).all(|i| arms_at(&f, [v(0, 0, 0), v(1, 2, 0), v(1, 0, 1), v(-1, 0, -1)][i]) == 0));
-}
-
-#[test]
-fn removing_a_rail_cuts_the_joins_and_the_readout_counts_them() {
-    let mut f = track(&[v(0, 0, 0), v(1, 0, 0), v(2, 0, 0)]);
-    assert_eq!(f.describe(v(1, 0, 0)).unwrap(), "Rail\nJoined to 2 rails");
-    assert!(f.describe(v(0, 0, 0)).unwrap().contains("End of the track"));
-    assert_eq!(f.rail_joins(v(1, 0, 0)).len(), 2);
-    f.remove(v(1, 0, 0));
+fn nodes_join_when_the_span_grade_and_bend_fit() {
+    // Straight east along the heading, 12 blocks.
+    let mut f = nodes(&[(v(0, 0, 0), E), (v(12, 0, 0), E), (v(40, 0, 0), E), (v(1, 0, 0), E), (v(12, 6, 0), E)]);
+    assert_eq!(f.track_fit(v(0, 0, 0), v(12, 0, 0)), Some(Fit::Ok));
+    assert_eq!(f.track_fit(v(0, 0, 0), v(40, 0, 0)), Some(Fit::TooFar));
+    assert_eq!(f.track_fit(v(0, 0, 0), v(1, 0, 0)), Some(Fit::TooClose));
+    assert_eq!(f.track_fit(v(12, 0, 0), v(12, 6, 0)), Some(Fit::TooClose), "straight above is no track");
+    assert_eq!(f.track_fit(v(0, 0, 0), v(5, 0, 5)), None, "no node there");
+    f.lay_track(v(0, 0, 0), v(12, 0, 0));
     f.relink();
-    assert_eq!((arms_at(&f, v(0, 0, 0)), arms_at(&f, v(2, 0, 0))), (0, 0));
-    assert!(f.rail_joins(v(1, 0, 0)).is_empty(), "nothing is there");
+    assert_eq!(f.track_fit(v(12, 0, 0), v(0, 0, 0)), Some(Fit::Joined), "either way round");
+    f.lay_track(v(0, 0, 0), v(40, 0, 0));
+    assert_eq!(f.tracks().len(), 1, "a pair that does not fit is quietly refused");
 }
 
 #[test]
-fn a_track_saves_and_loads() {
-    let f = track(&[v(0, 0, 0), v(1, 0, 0), v(1, 0, 1), v(2, 1, 1)]);
+fn grade_and_bend_limits() {
+    // 12 blocks east: a 4-block rise is a third; 5 is too steep.
+    let f = nodes(&[(v(0, 0, 0), E), (v(12, 4, 0), E), (v(12, 5, 0), E), (v(12, 0, 0), N)]);
+    assert_eq!(f.track_fit(v(0, 0, 0), v(12, 4, 0)), Some(Fit::Ok));
+    assert_eq!(f.track_fit(v(0, 0, 0), v(12, 5, 0)), Some(Fit::TooSteep));
+    // A node facing north cannot take a track from the west: its heading is 90 degrees off the chord.
+    assert_eq!(f.track_fit(v(0, 0, 0), v(12, 0, 0)), Some(Fit::TooSharp));
+    assert_eq!(fit(v(0, 0, 0), E, v(12, 0, 5), E), Fit::Ok, "a gentle S bend");
+    assert_eq!(fit(v(0, 0, 0), E, v(6, 0, 6), E), Fit::TooSharp, "45 degrees in 8 blocks is under the radius");
+    assert_eq!(fit(v(0, 0, 0), E, v(16, 0, 16), 128), Fit::Ok, "an arc to a node facing the chord's mirror");
+}
+
+#[test]
+fn a_node_holds_four_tracks() {
+    let mut list = vec![(v(0, 0, 0), E)];
+    list.extend((1..=5).map(|i| (v(10, 0, i * 3 - 9), E)));
+    let mut f = nodes(&list);
+    for i in 1..=5 {
+        f.lay_track(v(0, 0, 0), v(10, 0, i * 3 - 9));
+    }
+    f.relink();
+    assert_eq!(f.tracks().len(), MAX_LINKS as usize);
+    assert!(f.describe(v(0, 0, 0)).unwrap().contains("4 of 4 tracks"));
+    assert_eq!(f.track_fit(v(0, 0, 0), v(10, 0, 6)), Some(Fit::Full));
+}
+
+#[test]
+fn removing_a_node_drops_its_tracks() {
+    let mut f = nodes(&[(v(0, 0, 0), E), (v(12, 0, 0), E), (v(24, 0, 0), E)]);
+    f.lay_track(v(0, 0, 0), v(12, 0, 0));
+    f.lay_track(v(12, 0, 0), v(24, 0, 0));
+    f.relink();
+    assert!(f.describe(v(12, 0, 0)).unwrap().contains("2 of 4"));
+    assert!(f.describe(v(0, 0, 0)).unwrap().contains("End of the track"));
+    f.remove(v(12, 0, 0));
+    f.relink();
+    assert!(f.tracks().is_empty());
+    assert!(f.describe(v(0, 0, 0)).unwrap().contains("join it to another node"));
+    // Cutting by hand.
+    let mut f = nodes(&[(v(0, 0, 0), E), (v(12, 0, 0), E)]);
+    f.lay_track(v(0, 0, 0), v(12, 0, 0));
+    f.cut_track(v(12, 0, 0), v(0, 0, 0));
+    assert!(f.tracks().is_empty());
+}
+
+#[test]
+fn connect_and_disconnect_actions_lay_and_cut_track_between_nodes() {
+    let mut f = nodes(&[(v(0, 0, 0), E), (v(12, 0, 0), E)]);
+    f.connect(v(0, 0, 0), v(12, 0, 0));
+    assert!(f.track_between(v(0, 0, 0), v(12, 0, 0)));
+    f.disconnect(v(0, 0, 0), v(12, 0, 0));
+    assert!(!f.track_between(v(0, 0, 0), v(12, 0, 0)));
+}
+
+#[test]
+fn a_straight_track_is_straight_and_a_bend_follows_the_headings() {
+    let straight = Curve::new(v(0, 0, 0), E, v(12, 0, 0), E);
+    assert!((straight.length() - 12.0).abs() < 1e-6);
+    assert!((straight.at(0.5).z - 0.5).abs() < 1e-9 && (straight.at(0.5).x - 6.5).abs() < 1e-9);
+    // Leaves along the heading, flipped to point the way of travel: a node facing west still takes an eastward track.
+    let west = Curve::new(v(0, 0, 0), 192, v(12, 0, 0), 192);
+    assert!((west.length() - 12.0).abs() < 1e-6);
+    // An arc turning a quarter circle of radius 16: north-facing start, east-facing end.
+    let bend = Curve::new(v(0, 0, 0), N, v(16, 0, -16), E);
+    let len = bend.length();
+    assert!((len - 16.0 * std::f64::consts::FRAC_PI_2).abs() < 1.0, "length {len} is about a quarter circle");
+    let (hx, hz) = bend.heading(0.0);
+    assert!(hx.abs() < 1e-9 && hz < -0.99, "leaves heading north");
+    let (hx, hz) = bend.heading(1.0);
+    assert!(hx > 0.99 && hz.abs() < 1e-9, "arrives heading east");
+    // The height rises evenly.
+    let ramp = Curve::new(v(0, 0, 0), E, v(12, 4, 0), E);
+    assert!((ramp.at(0.5).y - 2.5).abs() < 1e-9);
+}
+
+#[test]
+fn headings_round_trip() {
+    for yaw in [0u8, 1, 37, 64, 100, 128, 200, 255] {
+        let (x, z) = dir_of(yaw);
+        assert_eq!(yaw_of(x, z), yaw);
+    }
+    let (x, z) = dir_of(E);
+    assert!((x - 1.0).abs() < 1e-9 && z.abs() < 1e-9, "64 faces east");
+}
+
+#[test]
+fn nodes_and_tracks_save_and_load() {
+    let mut f = nodes(&[(v(0, 0, 0), E), (v(12, 0, 0), E), (v(24, 3, 4), 70)]);
+    f.lay_track(v(0, 0, 0), v(12, 0, 0));
+    f.lay_track(v(12, 0, 0), v(24, 3, 4));
+    f.relink();
     let mut w = ByteWriter::default();
     f.write_state(&mut w);
     let mut back = Factory::read_state(&mut World::new(1, 2), &mut ByteReader::new(&w.bytes)).expect("reads back");
     back.relink();
-    assert_eq!(back.count(crate::factory::Kind::Rail), 4);
-    for c in [v(0, 0, 0), v(1, 0, 0), v(1, 0, 1), v(2, 1, 1)] {
-        assert_eq!(arms_at(&back, c), arms_at(&f, c));
-    }
+    assert_eq!(back.tracks(), f.tracks());
+    assert_eq!(back.rail_yaw(v(24, 3, 4)), Some(70));
+    assert!(back.describe(v(12, 0, 0)).unwrap().contains("2 of 4"));
+    // A track whose end is gone is dropped when the world loads.
+    let mut lone = nodes(&[(v(0, 0, 0), E)]);
+    lone.tracks.push(Track { a: v(0, 0, 0), b: v(12, 0, 0) });
+    lone.prune_tracks();
+    assert!(lone.tracks().is_empty());
 }
 
 #[test]
-fn ghosts_and_models_draw_whole_boxes_and_tilt_the_rises() {
-    assert_eq!(ghost_arms(1, Shape::Flat), bit(1, LEVEL) | bit(3, LEVEL));
-    assert_eq!(ghost_arms(1, Shape::Up), bit(1, RISE) | bit(3, LEVEL));
-    assert_eq!(ghost_arms(0, Shape::Down), bit(0, LEVEL) | bit(2, RISE));
-    let (mut flat, mut sloped) = (Vec::new(), Vec::new());
-    write_rail(&mut flat, Vec3::ZERO, ghost_arms(0, Shape::Flat));
-    write_rail(&mut sloped, Vec3::ZERO, ghost_arms(0, Shape::Up));
+fn tracks_and_nodes_draw_whole_boxes_and_tilt_with_the_grade() {
+    let (mut flat, mut ramp, mut node) = (Vec::new(), Vec::new(), Vec::new());
+    write_track(&mut flat, &Curve::new(v(0, 0, 0), E, v(12, 0, 0), E), Vec3::ZERO, 1.0e9);
+    write_track(&mut ramp, &Curve::new(v(0, 0, 0), E, v(12, 4, 0), E), Vec3::ZERO, 1.0e9);
+    write_node(&mut node, Vec3::ZERO, E, true);
     assert_eq!(flat.len() % INSTANCE_FLOATS, 0);
-    assert_eq!(flat.chunks_exact(INSTANCE_FLOATS).count(), 1 + 2 * 3, "a sleeper, then two rails and a sleeper a side");
+    assert!(ramp.len() >= flat.len(), "a slope is a little longer");
     assert!(flat.chunks_exact(INSTANCE_FLOATS).all(|b| b[12] == 0.0), "level track is not tilted");
-    assert!(sloped.chunks_exact(INSTANCE_FLOATS).any(|b| b[12] > 0.7), "a rise is tilted by 45°");
-    // A bare rail still draws a straight piece.
-    let mut bare = Vec::new();
-    write_rail(&mut bare, Vec3::ZERO, 0);
-    assert_eq!(bare.len(), flat.len());
+    assert!(
+        ramp.chunks_exact(INSTANCE_FLOATS).all(|b| b[12] > 0.2 && b[12] < 0.4),
+        "a third climbs at about 18 degrees"
+    );
+    assert_eq!(node.chunks_exact(INSTANCE_FLOATS).count(), 1 + 3, "a plate, and the stub of a bare node");
+    // Pieces beyond the range are not drawn.
+    let mut far = Vec::new();
+    write_track(&mut far, &Curve::new(v(0, 0, 0), E, v(12, 0, 0), E), Vec3::new(500.0, 0.0, 0.0), 20.0);
+    assert!(far.is_empty());
 }
 
 #[test]
-fn rails_are_laid_in_lines_like_belts() {
-    use crate::belt_line::is_laid_in_lines;
-    assert!(is_laid_in_lines(RAIL) && is_laid_in_lines(crate::block::BELT) && !is_laid_in_lines(crate::block::STORAGE));
-    assert!(crate::block::def(RAIL).placeable && !crate::block::SOLID[RAIL as usize], "a thin block to walk over");
+fn the_rail_block_is_a_thin_walk_through_machine() {
+    assert!(crate::block::def(RAIL).placeable && !crate::block::SOLID[RAIL as usize]);
 }

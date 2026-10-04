@@ -154,6 +154,7 @@ impl Game {
         if self.update_planner()
             || self.update_prospecting(dt)
             || self.update_belt_line()
+            || self.update_rail_tools()
             || self.update_power_tools(dt)
             || !self.using
         {

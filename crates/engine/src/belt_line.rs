@@ -1,4 +1,4 @@
-//! Laying belts and rails in lines, part of the local player's hands (`interaction.rs`). With a belt selected,
+//! Laying belts in lines, part of the local player's hands (`interaction.rs`). With a belt selected,
 //! holding the use button on a surface starts a line at the cell in front of that face; the pointer
 //! (up to `LINE_REACH` away) sets the far end; releasing builds it, a few cells per tick, as ordinary
 //! `PlaceBlock` actions, so the core, co-op and saves see plain placements. A left click cancels.
@@ -22,7 +22,7 @@
 //! upgrading.
 
 use crate::action::Action;
-use crate::block::{self, BlockId, BELT, FAST_BELT, RAIL, RAMP_DOWN, RAMP_UP, SOLID};
+use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
 use crate::factory::{self, tiers, upgrades, Shape};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -71,10 +71,9 @@ pub struct BeltLine {
     pub aim: Aim,
 }
 
-/// Whether block `b` is laid in lines: belts (`FAST_BELT` is a legacy block of old worlds) and rails, which follow
-/// the same path (rails ignore the facing).
-pub fn is_laid_in_lines(b: BlockId) -> bool {
-    matches!(b, BELT | FAST_BELT | RAMP_UP | RAMP_DOWN | RAIL)
+/// Whether block `b` is a belt (`FAST_BELT` is a legacy block of old worlds).
+fn is_belt(b: BlockId) -> bool {
+    matches!(b, BELT | FAST_BELT | RAMP_UP | RAMP_DOWN)
 }
 
 /// The columns (x, z) of a path from `start` towards the column of `end`, each with the way it runs:
@@ -170,7 +169,7 @@ impl Game {
         }
         let stack = self.inventory().selected_stack();
         let kit = upgrades::kit_tier(stack.item).filter(|_| !stack.is_empty());
-        if kit.is_none() && (!stack.item.places().is_some_and(is_laid_in_lines) || stack.is_empty()) {
+        if kit.is_none() && (!stack.item.places().is_some_and(is_belt) || stack.is_empty()) {
             self.line.start = None;
             self.line.cells.clear();
             return false;
@@ -344,14 +343,9 @@ impl Game {
             return; // upgrades show as coloured outlines only; the belts are already there
         }
         let tier = tiers::placed_by(held).map_or(0, |(_, t)| t);
-        let rails = held.places() == Some(RAIL);
         for c in &self.line.cells {
             let rel = c.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
-            if rails {
-                factory::write_rail(&mut self.instances, rel, factory::ghost_arms(c.dir, c.shape));
-            } else {
-                factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, tier, rel, time);
-            }
+            factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, tier, rel, time);
         }
     }
 

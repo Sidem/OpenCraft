@@ -61,6 +61,7 @@ mod player;
 mod power_tools;
 mod prospect;
 mod quarry_preview;
+mod rail_tools;
 mod raycast;
 mod recipes;
 mod research;
@@ -93,6 +94,7 @@ use net::Role;
 use player::Player;
 use power_tools::PowerTools;
 use prospect::Prospect;
+use rail_tools::RailTools;
 use raycast::RayHit;
 use sim::{PlayerId, Sim};
 use sound::Sounds;
@@ -179,6 +181,8 @@ pub struct Game {
     place_turn: u8,
     /// Pole and cable placing (`power_tools.rs`).
     tools: PowerTools,
+    /// Track laying (`rail_tools.rs`).
+    rails: RailTools,
 }
 
 #[wasm_bindgen]
@@ -236,6 +240,7 @@ impl Game {
             prospect: Prospect::default(),
             line: BeltLine::default(),
             tools: PowerTools::default(),
+            rails: RailTools::default(),
             place_turn: 0,
         }
     }
@@ -292,6 +297,7 @@ impl Game {
         factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
         self.write_line_preview(eye, time);
         self.write_power_preview(eye);
+        self.write_rail_preview(eye);
         self.hide_unexplored_instances(eye);
         self.write_strategy_fog(eye);
         self.minimap.atlas.refresh_some(&self.sim.world);

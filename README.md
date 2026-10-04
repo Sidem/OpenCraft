@@ -48,7 +48,7 @@ the render distance in chunks (2 to 24, default 8).
 | C or Ctrl           | Crouch (you won't walk off edges)         |
 | Hold left mouse     | Mine the targeted block                   |
 | Right mouse (hold)  | Place the selected block                  |
-| Right mouse drag with belts or rails | Lay a line of belts (or rails): press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
+| Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
 | R                   | Turn the belt or splitter/filter you point at; while holding a quarry or an assembler, turn it before placing |
 | B                   | Ghost mode: right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
 | Z, Enter (ghost mode) | Z marks the two corners of a box (a third press clears it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
@@ -247,10 +247,15 @@ size.
   aluminium ingot in 6 s: choose its recipe in its panel, belt both in at the hatches on its back and left, the ingot
   leaves by the front and the slag by the violet hatch on the right. A constructor presses an ingot into a plate in 3 s,
   and an assembler makes a battery from a plate, a circuit and 4 copper wire in 6 s.
-- **Rails** (Rails research, after Violet Science and Earthworks): 1 steel beam and 1 concrete make 6. Hold rails
-  and drag along the ground like belts (up to 64 a drag). A rail joins the rails beside it, level or a block up or
-  down, so a track climbs one block a cell; use the planner to level, cut or tunnel the route first. Trains that run
-  on the track come in the next step.
+- **Rails** (Rails research, after Violet Science and Earthworks): 1 steel beam and 1 concrete make 6. Rails are laid
+  like power poles: each one is a node on the grid, and a smooth curve of track joins it to the node before. With
+  rails in hand, click the ground to place the first node (its track runs the way you face), then click on to place
+  the next: the track bends in an arc between them (a node faces so the curve leaves smoothly; hold Shift to place at
+  the full 32-block reach along the way you face, crouch-click the ground to start a separate line). Click a node to
+  select it, click another to join them, crouch-click a joined node to cut the track. A pair joins if it is 3 to 32
+  blocks apart, climbs no more than 1 in 3 and bends no tighter than 8 blocks of radius; a node holds up to 4 tracks
+  (for junctions). The outline turns red and the label says why when it does not fit. Track does not clear the
+  ground: use the planner to level, cut or tunnel the route. Trains that run on it come in the next step.
 - **Solar power** (Solar Power research, after Electronics) is a solar panel (2×2×1) that gives up to 10 kW at
   noon, less towards dawn and dusk and nothing at night, and the accumulator (2×2×2) that stores 10 MJ of spare
   sun and gives it back (up to 60 kW) when the sun falls short, before any generator or turbine burns fuel.

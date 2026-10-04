@@ -28,8 +28,9 @@ pub const DISTANCE: [Tech; 2] = [
     },
     Tech {
         name: "Rails",
-        blurb: "Rails from a steel beam and a concrete, six at a time: drag a line of track like a belt. Rails join \
-                the rails beside them, level or a block up or down. Level and cut the ground with the planner first.",
+        blurb: "Rails from a steel beam and a concrete, six at a time: place rail nodes like power poles and a smooth \
+                curve of track joins each pair, up to 32 blocks apart, climbing one block in three at most. Level and \
+                cut the ground with the planner first.",
         needs: &[18, 32],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 100,

@@ -139,7 +139,7 @@ impl Game {
     }
 
     /// The cell aimed at: in front of the face pointed at, or a point `REACH` along the view.
-    fn aim_cell(&self) -> IVec3 {
+    pub(crate) fn aim_cell(&self) -> IVec3 {
         match self.target {
             Some(hit) => hit.block + hit.normal,
             None => (self.body().eye() + self.body().look_dir() * REACH).floor(),

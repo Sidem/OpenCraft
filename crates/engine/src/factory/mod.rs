@@ -76,7 +76,7 @@ use pole::Pole;
 use power::Power;
 use process::Processor;
 use quarry::Quarry;
-use rail::Rail;
+use rail::{Rail, Track};
 use router::Router;
 use sensor::Sensor;
 use storage::Storage;
@@ -96,7 +96,7 @@ pub use process::{makes, spec as process_spec, Energy};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
-pub use rail::{ghost_arms, write_rail};
+pub use rail::{dir_of, fit as fit_track, write_node, write_track, yaw_of, Curve, Fit, MAX_LINKS, MAX_SPAN};
 pub use render::{light_boxes, push_box, INSTANCE_FLOATS};
 pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
@@ -160,6 +160,8 @@ pub struct Factory {
     quarries: Vec<Quarry>,
     sensors: Vec<Sensor>,
     rails: Vec<Rail>,
+    /// The track between rail nodes, saved (`rail.rs`).
+    tracks: Vec<Track>,
     /// The player's power wires, saved (`wiring.rs`).
     hooks: Vec<Hook>,
     /// Tests only: leave wires to `connect` (else every relink wires by range, `hook_by_reach`).
@@ -236,7 +238,7 @@ impl Factory {
             Kind::Pipe => add_to(&mut self.pipework, Pipework::new(pos, block, facing), at, Slot::Pipe),
             Kind::Quarry => add_to(&mut self.quarries, Quarry::new(pos, facing), at, Slot::Quarry),
             Kind::Sensor => add_to(&mut self.sensors, Sensor::new(pos, facing), at, Slot::Sensor),
-            Kind::Rail => add_to(&mut self.rails, Rail::new(pos), at, Slot::Rail),
+            Kind::Rail => add_to(&mut self.rails, Rail::new(pos, facing), at, Slot::Rail),
         }
         if tier > 0 {
             self.set_tier(pos, tier);
@@ -290,6 +292,7 @@ impl Factory {
             Slot::Rail(i) => swap_out(&mut self.rails, i, at, Slot::Rail),
         };
         self.prune_hooks();
+        self.prune_tracks();
         contents
     }
 

@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.4a done, next 9.4b trains** · The `art` branch is superseded; art work
+now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.4a done (rails as nodes and curves), next 9.4b trains** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -426,7 +426,7 @@ Milestones 6 (Industry), 7 (Electronics, blueprints, drones) and 8 (Terraforming
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 30) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 31) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
 - New blocks and items append (the next free block is 79, item 343). Each new look gets a placeholder
   layer (`tex::COUNT` is 194) and a `docs/ART_HANDOVER.md` request line.
@@ -466,25 +466,38 @@ haul it home. Order: the ore, aluminium, finding far ground, rails, then flight 
   order-independent, and that a Mk2 scan round the target finds bauxite on three seeds. Verified in the browser on a
   version 5 world. No map pin yet (add if the user wants one). Tests 460 → 467.
 - [ ] **9.4 Rails and trains** (the user wants trains for hauling far resources). Trucks are not planned.
-  - [x] **9.4a Rails** (`factory/rail.rs`, `Kind::Rail`, block 78, tech Rails index 37: needs Violet Science and Earthworks;
-    hand recipe 1 steel beam + 1 concrete → 6 rails): a thin non-solid machine, stateless, that joins the rails beside it on
-    its own level and one block up or down (`joins`: 12 candidates; `arms` derived in `relink`, never saved; the slope's
-    piece lives in the lower cell like a belt ramp). Laid by dragging like belts (`belt_line.rs`: `is_laid_in_lines`,
-    same path and 64-cell limit, ghost via `write_rail`). Rail beds and cuttings are the planner's flatten, dig and tunnel
-    jobs. Save version 30 (the rail list after the sensors); golden hash re-recorded. Tests 467 → 473.
-  - [ ] **9.4b Trains** (design, 2026-10-04): `Train` entities in the factory (`factory/trains/`, saved), the head's place
-    as (rail cell, the cell it came from, progress 0..1000 in fixed point) and a trail of the cells its length covers, so
-    wagons sit on the track behind it. **Routing:** a train follows a schedule of stations and finds its way by a
-    breadth-first search over `joins` (deterministic neighbour order); it may reverse only at a stop or a dead end, so a
-    shuttle between two stations needs no turn loop. A **station** is a block (a silo-like processor row with belt ports:
-    `Pick::Store`) whose adjacent rail cell is its stop; its panel sets load or unload and what to take; a stopped train
-    exchanges items with it a stack at a time, then leaves after a dwell. **Locomotive and wagon** are items (a locomotive:
-    motor, circuits, steel; a wagon: steel plates and a box's worth of slots), put on a rail by hand and joined into one
-    train; speed about 12 blocks a second (a 600-block run in under a minute). Needs power? No: the locomotive burns coal
-    from a slot (like the jetpack) or runs on a battery (9.2's item, which gives it its first use). Models via `push_box`
-    from the trail. Done when: a scenario test runs ore from a box through station A, a train and station B into a box.
-  - [ ] **9.4c Signals and junctions:** a signal block reserves the next stretch of track for one train at a time; junctions
-    need no switch block (routing picks the branch). Done when: two trains share one track without meeting.
+  - [x] **9.4a Rails** (`factory/rail.rs`, `rail/curve.rs`, `rail_tools.rs`, `Kind::Rail`, block 78, tech Rails index 37: needs
+    Violet Science and Earthworks; hand recipe 1 steel beam + 1 concrete → 6 rails). **Redesigned 2026-10-04 at the user's
+    request** (the first version laid a block per cell like belts): rails are built like power poles. A rail is a *node* on
+    the grid with a heading byte (the facing of its `PlaceBlock`); `Track {a, b}` joins two nodes (saved; `Action::Connect` /
+    `Disconnect` between nodes, quietly nothing unless `Factory::track_fit` says `Fit::Ok`) and is a smooth curve free of the
+    voxel grid: a cubic Hermite spline in x and z leaving each node along its heading (flipped to the way of travel,
+    tangents as long as the chord), height linear along it (`Curve`). A pair fits when 3 to 32 blocks apart (`MAX_SPAN`),
+    at most 1 in 3 steep, each heading within 60° of the chord and the bend radius `chord / (2 sin a)` at least 8; a node
+    holds up to 4 tracks (junctions). The hand (`rail_tools.rs`): click ground to place a node joined to the selected one
+    (a first node faces the view, a later one the mirror of the previous heading in the chord, so the track is an arc and
+    a straight chord stays straight; Shift = full reach along the view; crouch starts a new line), click a node to select
+    or join, crouch-click to cut. Ghost node and curve, outlines (green fits, red why-not, amber cut, blue selected) and
+    HUD label. Track pieces are boxes (sleeper + two rails per 0.75 block, tilted to the grade), culled by range. Track
+    does not clear terrain (planner jobs). Save version 31 (headings, then the track list after the rails; v30 rails
+    load facing north); golden hash re-recorded. Tests 467 → 481. Not done: warning when a curve passes through solid
+    blocks; rail removal refunds nothing special (a node is an ordinary block).
+  - [ ] **9.4b Trains** (design, revised for curves): `Train` entities in the factory (`factory/trains/`, saved). The track graph
+    is `tracks` (nodes by cell, edges `Track`); each edge's polyline is derived once per `relink` from `Curve` (arc-length
+    table, so a train's place is (edge, direction, distance in 1/1000 block) and wagons sit a fixed gap behind along
+    the path, crossing nodes). Curve math uses only `+ - * / sqrt` and the heading table of `dir_of` (it calls
+    `sin`/`cos`: build the 256-entry table once if cross-platform determinism is wanted). **Routing:** a train follows a
+    schedule of stations; at a node with several tracks on its travel side (a junction) it takes the branch a
+    breadth-first search over edges finds; it reverses only at a stop or a dead end. A **station** is a block (a
+    silo-like processor row with belt ports: `Pick::Store`) next to a node, which is its stop; its panel sets load or
+    unload and what to take; a stopped train exchanges items a stack at a time, then leaves after a dwell. **Locomotive
+    and wagon** are items (a locomotive: motor, circuits, steel; a wagon: steel plates and a box's worth of slots), put on
+    a node by hand and joined into one train; about 12 blocks a second. Fuel: coal from a slot or a battery (9.2's
+    item). Models via `push_box` from the path. Done when: a scenario test runs ore from a box through station A, a
+    train and station B into a box.
+  - [ ] **9.4c Signals and junctions:** a signal block on a node reserves the stretch to the next signal for one train at
+    a time; junction routing needs no switch block (routing picks the branch). Done when: two trains share one track
+    without meeting.
 - [ ] **9.5 Cargo drones and the hover pack** (`docs/TECH_ERAS.md` section 5): port-to-port cargo drones limited by
   battery range; the hover pack as flight's second tier.
 - [ ] **9.6 Cleanup:** tips, balance (how long the trip and the train pay off), worst tick with many trains, README,
@@ -531,14 +544,16 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-04: Rails (step 9.4a).** The Rails tech and the rail block: track laid by dragging like belts, joining level and one block up or down (`factory/rail.rs`); save version 30, golden hash re-recorded. 9.4b (trains, stations, routing by search) is specified in section 4. Tests 467 → 473.
+- **2026-10-04: Rails (step 9.4a).** The Rails tech and the rail block. First built as a block per cell dragged like belts (save version 30), then **redesigned at the user's request as nodes and curves**, laid like power poles: nodes on the grid with a heading, smooth Hermite track between joined nodes (`factory/rail.rs`, `rail/curve.rs`, `rail_tools.rs`); save version 31, golden hash re-recorded. 9.4b (trains, stations, routing by search over the track graph) is specified in section 4. Tests 467 → 481.
 - **2026-10-04: Bearings to far ground (step 9.3).** The Mk2 scanner, filtered on an ore with none in range, names the way and distance band to the nearest biome that holds it (`worldgen/bearing.rs`, a pure query) and the pointer leads there. Tests 460 → 467.
 - **2026-10-04: Aluminium (step 9.2).** Bauxite Processing: crushed bauxite, the electrolytic cell (block 77, 300 kW, slag byproduct hatch), aluminium ingot and plate, battery; a third tech table `research/distance.rs`. Golden hash re-recorded (one more tech). Tests 459 → 460.
 - **2026-10-04: Bauxite (step 9.1).** Generator version 5 for new worlds: bauxite (block 76) in far deserts and basalt fields only, at least 600 blocks from spawn, shallow and exposed on bare rock, no stain; guide, scanner filter, map colour, a placeholder texture. Tests 458 → 459.
 
 - **2026-10-04: Milestone 8 done (steps 8.4–8.5).** Tunnels: the planner panel's Tunnel job bores between two blocks; drone ports cut it into their boxes like a dig, leaving cells next to water (`Site` got `covers` / `cuts_at` / `picks`; `sites.rs` split into `sites/survey.rs` and `sites/tunnel.rs`). Cleanup: `bench_earthworks` (worst tick 0.5 ms), sites on the maps as hollow squares, a planner tip, outline colours from the Okabe-Ito palette. Tests 451 → 458, wasm 329 KB gzipped. Milestone 9 moved in; the user asked for bearings to far biomes and for trains (section 1).
 
-- **2026-10-04: Equipment slots.** Worn gear (equipment.rs): four slots (back, boots, torso, tool belt) in Inventory.worn, so a player who leaves keeps them. Hauler packs (+9 and +18 backpack slots: the inventory array is 54 long, capacity() of it is in use, a pack stays on while its rows hold stacks), spring boots (jump 1.32 → 2 blocks), servo boots (walk and sprint +15%), exo frame (sprint +10%), mining rig (hand-breaking +50%). Movement bonuses are a Boost the authority sets on the body each tick (bodies are not core), the rig is read by interaction.rs. New: Action::ClickGear (tag 39), shift-click on gear in the pack wears it, six items (333–338) with icons (	extures/gear.rs), six hand recipes (ecipes/gear.rs) and three techs (Hauler Gear after Steelmaking, Field Gear after Steel Tools, Exosuit after Robotics and Field Gear: esearch/personal.rs, which also took over Jetpack, Personal Drone and Earthworks; TECHS joins the two tables at compile time). Save 28 → 29 (pack rows and worn gear follow each inventory), golden hash re-recorded. Tests 442 → 451.
+- **2026-10-04: Equipment slots.** Worn gear (equipment.rs): four slots (back, boots, torso, tool belt) in Inventory.worn, so a player who leaves keeps them. Hauler packs (+9 and +18 backpack slots: the inventory array is 54 long, capacity() of it is in use, a pack stays on while its rows hold stacks), spring boots (jump 1.32 → 2 blocks), servo boots (walk and sprint +15%), exo frame (sprint +10%), mining rig (hand-breaking +50%). Movement bonuses are a Boost the authority sets on the body each tick (bodies are not core), the rig is read by interaction.rs. New: Action::ClickGear (tag 39), shift-click on gear in the pack wears it, six items (333–338) with icons (	extures/gear.rs), six hand recipes (
+ecipes/gear.rs) and three techs (Hauler Gear after Steelmaking, Field Gear after Steel Tools, Exosuit after Robotics and Field Gear: 
+esearch/personal.rs, which also took over Jetpack, Personal Drone and Earthworks; TECHS joins the two tables at compile time). Save 28 → 29 (pack rows and worn gear follow each inventory), golden hash re-recorded. Tests 442 → 451.
 
 - **2026-10-04: Scanner Mk2 reads more.** `prospect::SCANNERS` rows gained an "advanced" flag. The Mk2 filters its list by ore (R, `Game::cycle_scan_filter` through `FILTER_ORES`; `prospect_records` filters, so nothing rescans), shows each deposit's ore units (exact when tracked, else estimated from the shape: `estimated_units`, within 20% of a survey) and the minutes a full-speed mine takes (units over the tier's draw cap), and the panel (`ui/prospect.ts`) leaves a pointer to the nearest vein or lode of the match at the top of the screen whatever is in hand. `SCAN_FIELDS` 6 → 8. Queries only: no save or hash change. Tests 441 → 442.
 
