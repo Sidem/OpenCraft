@@ -27,6 +27,7 @@ impl Factory {
         write_list(w, &self.labs);
         write_list(w, &self.pipework);
         write_list(w, &self.quarries);
+        write_list(w, &self.sensors);
         w.count(self.hooks.len());
         for h in &self.hooks {
             w.ivec3(h.pole);
@@ -73,6 +74,9 @@ impl Factory {
         }
         if r.version >= 15 {
             read_list(r, &mut f.quarries, &mut f.at, Slot::Quarry)?;
+        }
+        if r.version >= 25 {
+            read_list(r, &mut f.sensors, &mut f.at, Slot::Sensor)?;
         }
         if r.version >= 24 {
             for _ in 0..r.count()? {

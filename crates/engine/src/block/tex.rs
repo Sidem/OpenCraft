@@ -174,7 +174,20 @@ pub const AVATAR_TRIM: u16 = 163;
 pub const AVATAR_PACK: u16 = 164;
 /// Neutral, featureless cover for unexplored strategy-map columns.
 pub const STRATEGY_FOG: u16 = 165;
-pub const COUNT: usize = 166;
+/// The Scanner Mk2's screen (`textures/tools.rs`).
+pub const SCANNER_MK2: u16 = 166;
+/// Robotics parts (`textures/robotics.rs`):the drone chain's items.
+pub const PROCESSOR: u16 = 167;
+pub const SERVO: u16 = 168;
+pub const ACTUATOR: u16 = 169;
+pub const DRONE_CELL: u16 = 170;
+pub const GUIDANCE: u16 = 171;
+pub const DRONE: u16 = 172;
+pub const DRONE_PORT_TOP: u16 = 173;
+pub const DRONE_PORT_SIDE: u16 = 174;
+pub const JETPACK: u16 = 175;
+pub const PERSONAL_DRONE: u16 = 176;
+pub const COUNT: usize = 177;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

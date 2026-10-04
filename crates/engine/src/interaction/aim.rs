@@ -1,13 +1,18 @@
 //! Shoulder-camera targeting. The crosshair's ray chooses a surface; hands still enforce reach and
 //! line of sight, so the offset cannot mine through walls or increase the interaction range.
 
-use super::REACH;
 use crate::block::BlockId;
 use crate::math::{IVec3, Vec3};
 use crate::raycast::{raycast, RayHit};
 
-pub(super) fn target(eye: Vec3, camera: Vec3, dir: Vec3, probe: impl Fn(IVec3) -> Option<BlockId>) -> Option<RayHit> {
-    let hit = raycast(camera, dir, REACH + (camera - eye).length(), &probe)?;
+pub(super) fn target(
+    eye: Vec3,
+    camera: Vec3,
+    dir: Vec3,
+    reach: f64,
+    probe: impl Fn(IVec3) -> Option<BlockId>,
+) -> Option<RayHit> {
+    let hit = raycast(camera, dir, reach + (camera - eye).length(), &probe)?;
     if (camera - eye).length() < 0.001 {
         return Some(hit);
     }
@@ -15,7 +20,7 @@ pub(super) fn target(eye: Vec3, camera: Vec3, dir: Vec3, probe: impl Fn(IVec3) -
     let surface = surface(camera, dir, hit);
     let to = surface - eye;
     let distance = to.length();
-    if distance > REACH + 0.002 || distance < 0.001 {
+    if distance > reach + 0.002 || distance < 0.001 {
         return None;
     }
     let visible = raycast(eye, to * (1.0 / distance), distance + 0.002, probe)?;

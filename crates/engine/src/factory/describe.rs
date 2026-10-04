@@ -46,6 +46,13 @@ impl Factory {
             Slot::Lab(i) => self.labs[i as usize].describe(self),
             Slot::Pipe(i) => self.pipework[i as usize].describe(self),
             Slot::Quarry(i) => self.quarries[i as usize].describe(self),
+            Slot::Sensor(i) => self.sensors[i as usize].describe(self),
+        };
+        // A machine a sensor switched off is wired; say so instead of 'no power'.
+        let text = if self.anchor_of(pos).is_some_and(|a| self.power.off.contains(&a)) {
+            text.replace(super::power::NOT_WIRED, super::sensor::SWITCHED_OFF)
+        } else {
+            text
         };
         // A tiered machine says its Mk and what raises it: "Mk1 · next: Green Kit ×4".
         let text = match (self.tiered_at(pos), self.next_upgrade(pos)) {

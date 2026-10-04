@@ -50,6 +50,26 @@ pub fn scanner(x: i32, y: i32) -> [u8; 4] {
     )
 }
 
+/// The Scanner Mk2's screen: the same sweep in violet with a second, wider ring pattern and a blip each side.
+pub fn scanner_mk2(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || y == 0 || x == 15 || y == 15 {
+        return rgb([58.0, 60.0, 66.0], 1.0);
+    }
+    let r = ((x as f64 - 7.5).powi(2) + (y as f64 - 15.0).powi(2)).sqrt();
+    let ring = r % 3.0 < 1.0;
+    let blip = ((x == 4 || x == 5) && y == 8) || ((x == 10 || x == 11) && y == 5);
+    rgb(
+        if blip {
+            [244.0, 226.0, 252.0]
+        } else if ring {
+            [168.0, 120.0, 232.0]
+        } else {
+            [34.0, 24.0, 58.0]
+        },
+        1.0,
+    )
+}
+
 /// Device casing: burnt-orange shell with ivory seams and corner screws.
 pub fn core_drill(x: i32, y: i32) -> [u8; 4] {
     let k = 0.92 + 0.08 * n(81, x, y);

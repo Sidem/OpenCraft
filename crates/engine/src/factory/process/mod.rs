@@ -22,6 +22,7 @@
 //!
 //! To add a processor: a spec row (`specs.rs`). New behaviour (flows) goes here.
 
+mod hangar;
 mod legacy;
 mod model;
 mod parts;
@@ -31,6 +32,7 @@ mod steam;
 mod view;
 mod work;
 
+use hangar::Hangar;
 pub use legacy::{read_constructor, read_smelter};
 pub(super) use solar::run as run_renewables;
 use solar::Store;
@@ -102,6 +104,8 @@ pub struct Processor {
     pub steam: Steam,
     /// A panel's or accumulator's charge and flow (solar.rs).
     pub store: Store,
+    /// A drone port's fleet out and whether it is busy (hangar.rs; derived).
+    pub hangar: Hangar,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
@@ -132,6 +136,7 @@ impl Processor {
             side: Buffer::new(spec.side),
             steam: Steam::default(),
             store: Store::default(),
+            hangar: Hangar::default(),
             speed: 0,
             outs: Vec::new(),
             side_outs: Vec::new(),
@@ -155,10 +160,13 @@ impl Processor {
         if self.spec.pick == Pick::Store {
             return self.out.space_for(item);
         }
+        if self.spec.pick == Pick::Hangar {
+            return self.hangar_room(item).min(self.input.space_for(item));
+        }
         let wanted = match self.spec.pick {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
-            Pick::Store => false,
+            Pick::Store | Pick::Hangar => false,
         };
         let cap = if self.spec.pick == Pick::Chosen {
             stack_size(item).saturating_sub(self.input.count(item))
@@ -206,7 +214,7 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
-            (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) | (_, Pick::Store) => {}
+            (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) | (_, Pick::Store | Pick::Hangar) => {}
             _ => self.work(power, unlocked),
         }
         self.out.feed(&self.outs, &mut self.next_out, belts);
@@ -215,6 +223,9 @@ impl Processor {
 
     /// Whether it would work this tick if powered (its grid counts it as demand).
     pub fn wants_power(&self, unlocked: &[bool]) -> bool {
+        if self.spec.pick == Pick::Hangar {
+            return self.hangar.busy;
+        }
         self.energy() == Energy::Electric
             && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
     }

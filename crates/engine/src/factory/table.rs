@@ -6,9 +6,9 @@
 //! To add a machine block: a row here (a new kind also needs its `Kind` variant, in row order).
 
 use crate::block::{
-    BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CONSTRUCTOR, CRUSHER, FAST_BELT,
-    FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP, SILO,
-    SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
+    BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CONSTRUCTOR, CRUSHER, DRONE_PORT,
+    FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP,
+    SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::research::PACKS;
 /// Machine kinds, in `MACHINES` order.
@@ -24,6 +24,7 @@ pub enum Kind {
     Lab,
     Pipe,
     Quarry,
+    Sensor,
 }
 
 pub struct MachineDef {
@@ -39,7 +40,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 31] = [
+pub const MACHINES: [MachineDef; 33] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -50,6 +51,7 @@ pub const MACHINES: [MachineDef; 31] = [
     MachineDef { block: LAB, kind: Kind::Lab, slots: PACKS.len(), panel: true },
     MachineDef { block: PIPE, kind: Kind::Pipe, slots: 0, panel: false },
     MachineDef { block: QUARRY, kind: Kind::Quarry, slots: 4, panel: true },
+    MachineDef { block: SENSOR, kind: Kind::Sensor, slots: 0, panel: true },
     MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
     MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
@@ -64,6 +66,7 @@ pub const MACHINES: [MachineDef; 31] = [
     MachineDef { block: CRUSHER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: SILO, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: ARC_FURNACE, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: DRONE_PORT, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: CABLE, kind: Kind::Pole, slots: 0, panel: false },
     MachineDef { block: SOLAR_PANEL, kind: Kind::Process, slots: 0, panel: false },
     MachineDef { block: ACCUMULATOR, kind: Kind::Process, slots: 0, panel: false },

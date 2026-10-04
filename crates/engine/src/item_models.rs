@@ -6,8 +6,8 @@
 use crate::block::tex;
 use crate::item::{
     ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE,
-    IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCREW, STEEL_AXE, STEEL_BEAM, STEEL_INGOT, STEEL_PICKAXE,
-    STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
+    IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCANNER_MK2, SCREW, STEEL_AXE, STEEL_BEAM, STEEL_INGOT,
+    STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
 };
 
 pub struct Part {
@@ -140,6 +140,15 @@ const SCANNER_SET: [Part; 4] = [
     part([0.0, 0.07, 0.09], [0.34, 0.3, 0.02], tex::SCANNER),
 ];
 
+/// The Mk2 handset: the same shape with a violet tier stripe across the casing and the Mk2 screen.
+const SCANNER_MK2_SET: [Part; 5] = [
+    part([0.0, 0.0, 0.0], [0.44, 0.56, 0.16], tex::CORE_DRILL),
+    part([0.0, -0.36, 0.0], [0.16, 0.18, 0.12], tex::HANDLE),
+    part([0.14, 0.36, 0.0], [0.04, 0.18, 0.04], tex::STEEL),
+    part([0.0, 0.07, 0.09], [0.34, 0.3, 0.02], tex::SCANNER_MK2),
+    part([0.0, -0.2, 0.0], [0.46, 0.06, 0.18], tex::stripe(3)),
+];
+
 /// A motor housing with a carrying bar, over a fluted bit with a steel point.
 const DRILL_SET: [Part; 4] = [
     part([0.0, -0.16, 0.0], [0.09, 0.46, 0.09], tex::DRILL),
@@ -173,6 +182,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         STEEL_AXE => &STEEL_HATCHET,
         STEEL_SHOVEL => &STEEL_SPADE,
         SCANNER => &SCANNER_SET,
+        SCANNER_MK2 => &SCANNER_MK2_SET,
         CORE_DRILL => &DRILL_SET,
         _ => &[],
     }

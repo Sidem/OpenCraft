@@ -3,22 +3,24 @@
 
 use super::*;
 use crate::action::Action;
+use crate::block;
 use crate::deposits::{owner_of, DepositKey, Tier};
-use crate::item::{ItemId, CORE_DRILL, SCANNER};
+use crate::item::{ItemId, CORE_DRILL, SCANNER, SCANNER_MK2};
 use crate::tests::{find_outcrop_block, run_until_ready};
 use crate::worldgen::WorldGen;
 
-/// Every deposit seeded anywhere near `at` whose centre is within scan range, the slow way.
-fn brute_force(seed: u32, version: u32, at: IVec3) -> Vec<DepositKey> {
+/// Every deposit seeded anywhere near `at` whose centre is within `range`, the slow way.
+fn brute_force(seed: u32, version: u32, at: IVec3, range: i32) -> Vec<DepositKey> {
     let g = WorldGen::with_version(seed, version);
     let mut all = Vec::new();
-    for cz in (at.z >> 5) - 3..=(at.z >> 5) + 3 {
-        for cx in (at.x >> 5) - 3..=(at.x >> 5) + 3 {
+    let reach = range / 32 + 2;
+    for cz in (at.z >> 5) - reach..=(at.z >> 5) + reach {
+        for cx in (at.x >> 5) - reach..=(at.x >> 5) + reach {
             g.seed_deposits(cx, cz, &mut all);
         }
     }
     let mut keys: Vec<DepositKey> =
-        all.iter().filter(|d| flat_dist2(d.center, at) <= SCAN_RANGE * SCAN_RANGE).map(|d| d.key).collect();
+        all.iter().filter(|d| flat_dist2(d.center, at) <= range * range).map(|d| d.key).collect();
     sort_small_by_key(&mut keys, |k| *k);
     keys
 }
@@ -28,17 +30,42 @@ fn scans_list_exactly_the_deposits_in_range() {
     for (seed, version) in [(2024, 2), (1337, 2), (7, 1)] {
         let mut g = Game::with_generator(WorldGen::with_version(seed, version), 2);
         for at in [IVec3::new(0, 70, 0), IVec3::new(130, 80, -70), IVec3::new(-400, 60, 333)] {
-            let found = g.scan(at);
-            let mut keys: Vec<DepositKey> = found.iter().map(|f| f.deposit.key).collect();
-            sort_small_by_key(&mut keys, |k| *k);
-            assert_eq!(keys, brute_force(seed, version, at), "seed {seed} at {at:?}");
-            assert!(keys.len() > 20, "a scan finds plenty");
-            // Lodes first, then veins, then outcrops, each nearest first.
-            let order: Vec<(Tier, i32)> =
-                found.iter().map(|f| (f.deposit.tier(), flat_dist2(f.deposit.center, at))).collect();
-            assert!(order.windows(2).all(|w| w[0] <= w[1]), "sorted");
+            for (_, range) in SCANNERS {
+                let found = g.scan(at, range);
+                let mut keys: Vec<DepositKey> = found.iter().map(|f| f.deposit.key).collect();
+                sort_small_by_key(&mut keys, |k| *k);
+                assert_eq!(keys, brute_force(seed, version, at, range), "seed {seed} at {at:?} range {range}");
+                assert!(keys.len() > 20, "a scan finds plenty");
+                // Lodes first, then veins, then outcrops, each nearest first.
+                let order: Vec<(Tier, i32)> =
+                    found.iter().map(|f| (f.deposit.tier(), flat_dist2(f.deposit.center, at))).collect();
+                assert!(order.windows(2).all(|w| w[0] <= w[1]), "sorted");
+            }
         }
     }
+}
+
+#[test]
+fn the_mk2_scanner_reaches_further_and_shows_quartz() {
+    assert_eq!(scan_range_of(SCANNER), Some(48));
+    assert_eq!(scan_range_of(SCANNER_MK2), Some(96));
+    assert_eq!(scan_range_of(CORE_DRILL), None);
+    assert_eq!(tools::device(SCANNER_MK2), Some(ToolKind::Scanner));
+    let mut g = Game::with_generator(WorldGen::with_version(2024, 4), 2);
+    let at = IVec3::new(0, 70, 0);
+    let (near, far) = (g.scan(at, 48), g.scan(at, 96));
+    assert!(far.len() > near.len() * 2, "four times the area finds many more: {} vs {}", far.len(), near.len());
+    assert!(near.iter().all(|n| far.iter().any(|f| f.deposit.key == n.deposit.key)), "Mk2 finds all Mk1 does");
+    // Quartz lies in highlands, deserts and basalt fields, not around the plains spawn: look further out.
+    let quartz_seen = |g: &mut Game, range: i32| {
+        (-6..=6)
+            .flat_map(|i| (-6..=6).map(move |j| IVec3::new(i * 140, 70, j * 140)))
+            .filter(|&at| g.scan(at, range).iter().any(|f| f.deposit.ore() == block::QUARTZ_ORE))
+            .count()
+    };
+    let (mk1, mk2) = (quartz_seen(&mut g, 48), quartz_seen(&mut g, 96));
+    assert!(mk1 > 0, "quartz deposits are listed by every scanner");
+    assert!(mk2 > mk1, "the Mk2 finds quartz from more places: {mk2} vs {mk1}");
 }
 
 /// Breaks every block of the deposit `key` by hand (actions, like a player would).
@@ -64,10 +91,10 @@ fn worked_out_deposits_drop_out_of_scans() {
     run_until_ready(&mut g);
     let (_, key) = find_outcrop_block(&mut g, 3);
     let at = g.body().pos.floor();
-    assert!(g.scan(at).iter().any(|f| f.deposit.key == key));
+    assert!(g.scan(at, 48).iter().any(|f| f.deposit.key == key));
     work_out(&mut g, key);
     assert!(g.sim.factory.deposits.get(&key).unwrap().exhausted());
-    assert!(!g.scan(at).iter().any(|f| f.deposit.key == key), "a worked-out deposit is left out");
+    assert!(!g.scan(at, 48).iter().any(|f| f.deposit.key == key), "a worked-out deposit is left out");
 }
 
 #[test]
@@ -110,7 +137,7 @@ fn hold(g: &mut Game, item: ItemId) {
 
 #[test]
 fn prospecting_leaves_the_core_alone() {
-    for device in [SCANNER, CORE_DRILL] {
+    for device in [SCANNER, SCANNER_MK2, CORE_DRILL] {
         let (mut a, mut b) = (Game::new(2024, 2), Game::new(2024, 2));
         for g in [&mut a, &mut b] {
             run_until_ready(g);
@@ -124,9 +151,10 @@ fn prospecting_leaves_the_core_alone() {
         }
         assert_eq!(a.sim.factory.deposits.tracked(), b.sim.factory.deposits.tracked());
         assert_eq!(b.prospect.seq, 0);
-        if device == SCANNER {
+        if device != CORE_DRILL {
             // Once at once, then every two seconds while held.
             assert_eq!((a.prospect.kind, a.prospect.seq), (READING_SCAN, 2));
+            assert_eq!(Some(a.prospect.range), scan_range_of(device));
             assert!(!a.prospect.records.is_empty());
         } else {
             // One sample after three seconds, which releases the button.

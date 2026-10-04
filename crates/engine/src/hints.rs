@@ -7,11 +7,11 @@
 //! To add a hint: a row in `HINTS`, where it belongs in the order.
 
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, IRON_ORE, MINER, SOLAR_PANEL, TURBINE,
+    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DRONE_PORT, IRON_ORE, MINER, SOLAR_PANEL, TURBINE,
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
-use crate::item::IRON_INGOT;
+use crate::item::{IRON_INGOT, JETPACK, PERSONAL_DRONE};
 use crate::research::{TechState, TECHS};
 
 pub struct Hint {
@@ -121,6 +121,25 @@ pub const HINTS: &[Hint] = &[
                pole. An accumulator stores 10 MJ of spare sun and gives it back after dark, before a generator \
                burns fuel. About six panels and one accumulator carry 15 kW round the clock.",
         done: |_, f| f.processors_of(SOLAR_PANEL) > 0,
+    },
+    Hint {
+        text: "Ghosts: press B for ghost mode, hold a block or machine and right-click to plant a see-through plan \
+               instead of building it; left-click marks a block to tear down. Z marks two corners and Enter copies \
+               a build as a blueprint (L lists them) you can stamp elsewhere.",
+        done: |_, f| tech_done(f, "Processors"),
+    },
+    Hint {
+        text: "Drones: a long road. Research Processors, Robotics, Drone Power and Navigation, then Construction \
+               Drones: an assembler builds the drone from actuators, a drone cell and a guidance module. Build a \
+               drone port (a 3×3 pad, 40 kW while drones fly), put drones in it, and set storage boxes touching \
+               the pad with what your ghosts need. They build ghosts and clear your marks within 32 blocks.",
+        done: |_, f| f.processors_of(DRONE_PORT) > 0,
+    },
+    Hint {
+        text: "Fly and fetch: research Jetpack, then keep the jetpack in your pack and hold jump in the air: it \
+               burns a coal per 10 seconds from your pack. A Personal Drone in your pack fetches the item in your \
+               hand from the nearest box within 32 blocks when you press Y.",
+        done: |inv, _| inv.count(JETPACK) > 0 || inv.count(PERSONAL_DRONE) > 0,
     },
 ];
 

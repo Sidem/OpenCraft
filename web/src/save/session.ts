@@ -64,6 +64,8 @@ export class Session {
   private pins: Pins | null = null;
   /** The pins changed since the last save (they may change while no game time passes). */
   private notesChanged = false;
+  /** blueprint_version at the last save: the blueprints changed when it moves. */
+  private blueprintsSeen = 0;
   /** `world_map_version` of the explored map last stored; null until the stored one is back in. */
   private mapVersion: number | null = null;
 
@@ -74,6 +76,8 @@ export class Session {
   ) {
     this.savedTime = game.play_seconds();
     game.set_known_deposits(new Int32Array(meta.marks ?? []));
+    if (meta.blueprints) game.blueprint_import(meta.blueprints);
+    this.blueprintsSeen = game.blueprint_version();
     store
       .readMap(meta.id)
       .then((map) => map && game.set_explored_map(map))
@@ -123,7 +127,7 @@ export class Session {
 
   /** Nothing to save: stopped, unchanged, or a co-op client's copy of the host's world. */
   private skip(time: number): boolean {
-    return this.stopped || (time === this.savedTime && !this.notesChanged) || this.game.is_client();
+    return this.stopped || (time === this.savedTime && !this.notesChanged && this.game.blueprint_version() === this.blueprintsSeen) || this.game.is_client();
   }
 
   /** Writes into the slot that isn't newest, keeping the newest as the backup. */
@@ -131,7 +135,9 @@ export class Session {
     const slot = this.meta.slot === 0 ? 1 : 0;
     const marks = Array.from(this.game.known_deposits());
     const pins = this.pins ? this.pins.list.map((p) => ({ ...p })) : this.meta.pins;
-    this.meta = { ...this.meta, updated: Date.now(), playTime: time, slot, marks, pins };
+    this.blueprintsSeen = this.game.blueprint_version();
+    const blueprints = this.game.blueprint_export();
+    this.meta = { ...this.meta, updated: Date.now(), playTime: time, slot, marks, pins, blueprints };
     this.savedTime = time;
     this.notesChanged = false;
     try {

@@ -400,6 +400,13 @@ fn samples() -> Vec<Action> {
         Action::QuickMoveAll { slot: 20 },
         Action::StoreAll { pos, slot: 3 },
         Action::TakeAll { pos, slot: 11 },
+        Action::SetSensor { pos, rule: 3 },
+        Action::PlaceGhost { pos, slot: 4, facing: 2 },
+        Action::RemoveGhost { pos },
+        Action::PlantGhost { pos, block: STORAGE, facing: 1, tier: 2 },
+        Action::MarkRemoval { pos },
+        Action::Jetpack { on: true },
+        Action::Fetch { item: IRON_PLATE, at: pos },
     ]
 }
 

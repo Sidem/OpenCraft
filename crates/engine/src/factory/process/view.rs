@@ -14,7 +14,7 @@ use super::{Energy, Pick, Processor, Status};
 impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
-        if let Some(text) = self.steam_text().or_else(|| self.solar_text()) {
+        if let Some(text) = self.steam_text().or_else(|| self.solar_text()).or_else(|| self.hangar_text()) {
             return text;
         }
         let s = self.spec;

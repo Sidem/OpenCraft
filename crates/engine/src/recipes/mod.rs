@@ -361,6 +361,14 @@ pub const RECIPES: &[Recipe] = &[
     COPPER_WIRE_RECIPE,
     SOLAR_PANEL_RECIPE,
     ACCUMULATOR_RECIPE,
+    SCANNER_MK2_RECIPE,
+    SENSOR_RECIPE,
+    DRONE_PORT_RECIPE,
+    DRONE_PORT_MK2_RECIPE,
+    DRONE_PORT_MK3_RECIPE,
+    DRONE_PORT_MK4_RECIPE,
+    JETPACK_RECIPE,
+    PERSONAL_DRONE_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

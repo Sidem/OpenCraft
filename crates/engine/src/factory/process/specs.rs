@@ -46,6 +46,8 @@ pub enum Pick {
     ByInput,
     /// Takes anything into its output buffer, which belts empty (a silo: steam.rs).
     Store,
+    /// Takes only drones, up to its fleet, and keeps them for `drones/` to fly (hangar.rs).
+    Hangar,
 }
 
 /// One tier's numbers.
@@ -87,6 +89,7 @@ pub struct ProcessSpec {
 pub const SPECS: &[ProcessSpec] = &[
     super::solar::SOLAR_SPEC,
     super::solar::ACCUMULATOR_SPEC,
+    super::hangar::HANGAR_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

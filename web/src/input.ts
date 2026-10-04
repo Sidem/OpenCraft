@@ -13,6 +13,11 @@ export type Action =
   | { kind: 'inventory' }
   | { kind: 'research' }
   | { kind: 'rotate' }
+  | { kind: 'ghost' }
+  | { kind: 'fetch' }
+  | { kind: 'blueprint-mark' }
+  | { kind: 'blueprint-copy' }
+  | { kind: 'blueprints' }
   | { kind: 'hint' }
   | { kind: 'map' }
   | { kind: 'world-map' }
@@ -189,6 +194,11 @@ export class Input {
       else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
       else if (e.code === 'KeyR') this.actions.push({ kind: 'rotate' });
+      else if (e.code === 'KeyB') this.actions.push({ kind: 'ghost' });
+      else if (e.code === 'KeyY') this.actions.push({ kind: 'fetch' });
+      else if (e.code === 'KeyZ') this.actions.push({ kind: 'blueprint-mark' });
+      else if (e.code === 'Enter') this.actions.push({ kind: 'blueprint-copy' });
+      else if (e.code === 'KeyL') this.actions.push({ kind: 'blueprints' });
       else if (e.code === 'KeyT') this.actions.push({ kind: 'research' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
       else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });

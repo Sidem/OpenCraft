@@ -33,6 +33,14 @@ impl Game {
     /// 0 for amber). The box a held quarry would dig, or a held multi-block machine's footprint with a
     /// red box on each cell in the way, or the machine a held upgrade kit would upgrade; empty otherwise.
     pub fn placement_box(&self) -> Vec<i32> {
+        let mut boxes = self.held_boxes();
+        boxes.extend(self.ghost_cell_box());
+        boxes.extend(self.ghost_boxes());
+        boxes.extend(self.blueprint_boxes());
+        boxes
+    }
+
+    fn held_boxes(&self) -> Vec<i32> {
         let upgrade = self.aim_box();
         if !upgrade.is_empty() {
             return upgrade;
@@ -60,12 +68,19 @@ impl Game {
     pub fn line_label(&self) -> String {
         let n = self.line.cells.len();
         if n == 0 {
+            if self.ghost_mode {
+                return self.ghost_label();
+            }
             if !self.line.aim.label.is_empty() {
                 return self.line.aim.label.clone();
             }
             let quarry = self.quarry_label();
             let footprint = if quarry.is_empty() { self.footprint_label() } else { quarry };
-            return if footprint.is_empty() { self.power_label() } else { footprint };
+            if !footprint.is_empty() {
+                return footprint;
+            }
+            let power = self.power_label();
+            return if power.is_empty() { self.helper_label() } else { power };
         }
         let held = self.inventory().selected_stack().item;
         if let Some(tier) = factory::upgrades::kit_tier(held) {

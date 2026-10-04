@@ -1,0 +1,49 @@
+/* Blueprint library (blueprints.ts): the frame is the machine panel's (machine.css). */
+
+.bp {
+  width: min(620px, 100%);
+}
+
+.bp-help {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.bp-empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.bp-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.bp-name {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.bp-name:hover,
+.bp-name:focus {
+  border-color: var(--panel-border);
+  background: rgba(255, 255, 255, 0.05);
+  outline: none;
+}
+
+.bp-count {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}

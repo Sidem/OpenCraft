@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-02 · Strategy controls built · Milestones 1–6 done (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 7 (Electronics, blueprints and drones). Next up: step 7.4 (Scanner Mk2)** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
+now) · **Now: Milestone 7 (Electronics, blueprints and drones). Milestone 7 is built (steps 7.1–7.9); next: Milestone 8 (terraforming), pending the user's answers** · Terraforming is Milestone 8 (its sites step is built and stays in the core) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -117,6 +117,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-28 | **Industry is the next milestone (6); terraforming moves later** "where it makes more sense" (supersedes the 2026-09-27 order). Every technology opens a possibility, improves efficiency or helps the player. Targets include AI datacenters, building with drones, satellite constellations, and energy and data sent by laser; the only limit is the stack (Rust, wasm, WebGL2 in a browser). |
 | 2026-09-28 | **Modular, open content architecture** (`docs/TECH_TREE.md` section 8): variants such as tiers are data (`tier: u8` into a table), never a `bool` like today's `fast` belt or `mk2` miner, nor a block per variant; processing machines are rows of one generic machine; recipes belong to categories. |
 | 2026-09-28 | **The order after Industry** (proposed by Claude, confirmed): 7 Electronics, blueprints and drones (with the jetpack) · 8 Terraforming (its excavator flies Milestone 7's drones) · 9 Distance (aluminium, trains) · 10 Fluids and chemistry · 11 Compute and photonics · 12 Orbit · 13 The megaproject. **Blue packs and upgrade kits from blue on are machine-made only.** |
+| 2026-10-03 | **Blueprints are both** copied from built areas and planned as ghosts; ghosts are core state. **Drones take materials from boxes beside their port.** **Drones must be hard and rewarding:** a long research ladder on violet packs and several new parts, not three cheap techs. **Coal jetpack in M7**, hover pack in M9. |
 
 ### Proposed, not yet confirmed by the user
 
@@ -242,7 +243,7 @@ core never learns about the network: `net/` (Rust) moves bytes, `web/src/net/` r
 - **Tools** (`tools.rs`, recipes at the end of `RECIPES`): pickaxe, axe and shovel in stone (150 uses, 2×)
   and iron (600, 4×, an iron pickaxe keeps 4 ore); a tool's stack count is its uses left, shown as a wear
   bar (`showAmount` in `ui/hud.ts`). Placeholder looks in `textures/tools.rs`.
-- **Prospecting** (`prospect.rs`, `ui/prospect.ts`): the scanner lists deposits within 48 blocks (ore,
+- **Prospecting** (`prospect.rs`, `ui/prospect.ts`): the scanner lists deposits within 48 blocks (Mk2: 96) (ore,
   tier, live bearing and distance, depth, size band); the core drill (3 s hold) gives a column's exact
   figures. Queries only: no actions, the state hash never moves. Devices are tools that never wear.
 - **Size:** about 261 KB gzipped in total (wasm 201.6 KB, JS 51.1 KB, CSS 6.4 KB; `vite build`).
@@ -423,10 +424,10 @@ Milestone 6 (Industry) is done: the steps below are its summary; the full specs 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 22) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 28) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 72, item 320). Each new look gets a placeholder
-  layer (`tex::COUNT` is 158) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 76, item 332). Each new look gets a placeholder
+  layer (`tex::COUNT` is 177) and a `docs/ART_HANDOVER.md` request line.
 
 ### Milestone 6 (Industry), built
 
@@ -454,52 +455,71 @@ Milestone 6 (Industry) is done: the steps below are its summary; the full specs 
 ### Milestone 7 steps
 
 Goal: the player's reach grows from building by hand to machines doing it. Circuits and violet science
-first, then logic, then the builders (blueprints, drones, flight). Steps 7.6–7.8 wait for the user's
-answers to the section 6 questions (blueprints, drone materials, jetpack); do 7.1–7.5 first.
+first, then logic, then the builders (blueprints, drones, flight). Steps 7.6–7.8 follow the user's answers
+of 2026-10-03 (section 1).
 
-- [x] **7.1 Arc furnace and silicon** (built): the arc furnace (block 70, 2×2×2, `Category::Arc`, 120 kW: 1 quartz
-  ore + 1 coal → 1 silicon, 4 s; hatches like the assembler) is a spec row; silicon (item 308) and the circuit
-  (309: assembler, 1 silicon + 3 copper wire + 1 iron plate → 2) are machine recipes 26–27; the Electronics tech
-  (r g b, 80 × 20 s) unlocks all three; textures 151–154. The tech table moved to `research/techs.rs`. Golden
-  hash re-recorded (no save bump). Quartz checked: v4 band 25–50 blocks down; a geology test mines it.
-- [x] **7.1b Power cable and the pole tool** (built, user request): the cable (block 71, hand recipe ×4 from 1
-  iron plate + 2 copper wire, `recipes/wiring.rs`) is a `Kind::Pole` of stored tier 3 (`CABLE_TIER`, no save
-  bump): cables link by touching (diagonals too) and to a pole within that pole's machine reach; machines with no
-  wire hang on a cable within 2. `power_tools.rs` (presentation plus ordinary actions): the pole ghost and its
-  rules moved on in 7.3b; with cables, a click hangs up to 64 down the aimed cell's column to the ground
-  (crouch: one). Tests in `power_tools/tests.rs`, `factory/pole/tests.rs`. The cable wears the copper wire texture.
-- [x] **7.2 Violet science and Mk4** (built): violet pack (310) and kit (311), assembler recipes 28–29; `PACKS` has four
-  entries, labs a fourth slot (save 22); the cable's stored tier moved to 15 so tier 3 is the Mk4 pole. Mk4 items
-  312–319 (hand recipe: Mk3 plus violet kits): belts 8/s, miners 6/s · 92 % · 90 kW, processors ×5, substation 32 · 16,
-  lab ×4 · every 3rd unit free; boxes, pumps, quarries stop at Mk3. Techs 18–20; numbers pinned in `factory/tiers/tests.rs`.
-- [x] **7.2b Bootstrap without raw ore, and timed hand crafting** (built): no hand recipe uses metal ore: stone makes the
-  furnace, ore and fuel go in by hand, hand recipes (`recipes/materials.rs`) turn ingots into plates, rods, screws and
-  wire, and the first machines are made of those. `crafting.rs`: `Action::Craft` queues an order (`CraftQueue` per
-  player, max 12, save 23); `plan` adds the part crafts the inventory can't cover, materials are paid at once, a craft
-  takes `hand_ticks` (90 + 30 per material, max 20 s); cancel or leave refunds (`Action::CancelCraft`, tag 26).- [x] **7.3 Solar power and accumulators** (built): the solar panel (block 72, 2×2×1, 10 kW at noon by
-  `daytime::sunlight`, an integer parabola 6:00–18:00) and accumulator (73, 2×2×2, 10 MJ, 60 kW) are processor rows
-  (`process/solar.rs`, `Energy::Solar` / `Accumulator`); `Power::balance` runs panels, then accumulators, before
-  generators and turbines, and spare sun charges accumulators; charge saved for accumulators only. One tech, Solar
-  Power (r g b after Electronics). Sized test: six panels and one accumulator carry 15 kW through a night.
-- [x] **7.3b Power wiring by hand** (built, user request; save 24): wires are core state (`factory/wiring.rs`,
-  `Action::Connect` / `Disconnect`, tags 27–28), each taking a slot of every pole it touches (`POLE_TIERS.slots`
-  4/8/12/16); a new pole wires itself only to the nearest powered pole (`auto_hook`); cables still join by range;
-  splitters and filters need no power. Hands (`power_tools/wire.rs`): poles place where aimed (Shift: full reach),
-  right-click selects a pole, a click wires the machine aimed at, crouch-click moves, cuts, links. Old saves are wired
-  by range once (`hook_by_reach`; tests too, unless `Factory::by_hand`).
-- [ ] **7.4 Scanner Mk2.** Range 96, shows quartz (`prospect.rs`); Advanced Scanning tech.
-- [ ] **7.5 Logic.** A sensor (box or belt fullness), a switch and a lamp signal (1 circuit, 1 plate each);
-  a machine turns on or off by condition. New core state, so a save version and a design note first:
-  keep it to "a sensor beside a machine's box or belt turns the pole's link on or off", data-driven.
-- [ ] **7.6 Blueprints** (waits for the answer): select an area, copy it; place it as a ghost (rotate, see
-  what is missing); ghosts from the build menu; a longer reach for ghosts.
-- [ ] **7.7 Construction drones** (waits for the answer): a drone port (3×3 pad) builds ghosts from
-  materials in boxes beside it (or on a network) and tears down what you mark; the drone item (1 motor,
-  2 circuits, 2 steel plates). The machines that work sites are Milestone 8's.
-- [ ] **7.8 Flight and helpers** (waits for the answer): the coal jetpack (4 steel plates, 2 motors,
-  2 circuits; 10 s of thrust a coal) and the personal drone.
-- [ ] **7.9 Feel, balance, cleanup.** Tips, research times played through, worst tick and wasm measured,
+- [x] **7.1–7.6 built** (full specs moved to `docs/CHANGELOG.md`, "Milestone 7 steps 7.1 to 7.6"): 7.1 arc furnace, silicon,
+  circuit; 7.1b power cable; 7.2 violet science and Mk4; 7.2b bootstrap without raw ore and the timed hand-craft queue
+  (save 23); 7.3 solar panel and accumulator; 7.3b wiring by hand (save 24); 7.4 Scanner Mk2; 7.5 the sensor (save 25);
+  7.6a ghosts (save 26) and 7.6b blueprints.- [x] **7.7 Construction drones: the long way** (user, 2026-10-03: drones must be hard to reach and very rewarding; more
+  research and parts). Gate: a ladder of techs on violet packs, none cheap: Robotics (actuators and servo parts) →
+  Drone Power (a drone cell, made of a battery-like part from circuits, copper, steel and a motor) → Navigation (a
+  processor-based guidance module, so after Processors) → Construction Drones → Swarm Logistics (more drones per port,
+  a longer range). The drone is built in an assembler from several intermediates, none raw ore; the drone port is a big
+  multi-block (3×3 pad) on power. Drones take materials from boxes beside the port (a later tech may extend this to a
+  network). Steps: **7.7a** the part chain and techs, **7.7b** the drone port and its supply boxes, **7.7c** drones
+  flying out and building ghosts (one at a time, visible), **7.7d** tear-down marks, **7.7e** swarm upgrades. Numbers
+  go in `docs/TECH_ERAS.md` when 7.7a starts.
+  **7.7a built (no save bump; golden hash re-recorded):** five techs on all four packs after Violet Science: Processors
+  (100 units × 30 s) → Robotics (140 × 30, also needs Mk4 Machines, so Mk4 Logistics first) → Drone Power (160 × 35) and
+  Navigation (180 × 35, needs Processors and Robotics) → Construction Drones (240 × 40): twelve techs in front of the
+  drone. Six assembler-only parts (`item.rs` 321–326, `MACHINE_RECIPES` 31–36, `DRONE_RECIPES`): processor, servo,
+  actuator, drone cell, guidance module, drone. Numbers in `docs/TECH_ERAS.md` section 3; icons `textures/robotics.rs`.
+  **7.7b–e built (save 27, merged into 28):** the drone port (block 75, `factory/process/hangar.rs`: a 3×3×1 processor spec,
+  `Pick::Hangar`, 40/60/90/140 kW only while drones are out) keeps drones as its input buffer, so belts, panel, saves and
+  breaking needed nothing new; tiers Mk1–Mk4 by kits (`Swarm Logistics`, tech 29): reach 32/48/64/96 blocks, fleet 4/8/12/16.
+  The core `drones/` (`Drones` in `Sim`, saved) launches a drone every 30 ticks per powered port at the nearest ghost in
+  reach that no drone is on: a build takes its item from a storage box touching the pad (`factory/ports.rs`), flies at
+  8 blocks a second (f64, `+ - * / sqrt` only), works 1 s and places it through `put_block` (the same code a player runs);
+  a tear-down mark (`Action::MarkRemoval`, tag 36: a ghost of air) works as long as bare hands take (1–4 s) and breaks it
+  through `dismantle`, the drops going into the boxes. Breaking a port brings its drones back as items; a drone whose port
+  is gone drops as an item. `break_block`/`place_block` were split into `dismantle`/`put_block` for this. Presentation:
+  `drone_view.rs` (drones as boxes), ghost mode left-click marks or unmarks (`update_marking`, red outlines, label).
+  Port recipe: 24 steel plates, 12 circuits, 2 processors, 4 motors.
+- [x] **7.8 Flight and helpers** (answer: coal jetpack now, hover pack in M9): the jetpack (4 steel plates, 2 motors,
+  2 circuits; 10 s of thrust a coal) and the personal drone (which, like the construction drone, needs the long ladder).
+  **Built (save 28):** `helpers/` (core, per player in `PlayerCore.helpers`, saved): `Action::Jetpack { on }` (tag 37)
+  burns a coal from the pack per 600 ticks of thrust (the pack stands in for a fuel slot) and the body lifts at 12 m/s²
+  net up to 6 m/s while `Player::thrust` (set from the core by `authority.rs`); the hands send it when jump is held in the
+  air (`helper_hands.rs`). `Action::Fetch { item, at }` (tag 38): with the personal drone in the pack, Y sends it to the
+  nearest box within 32 blocks holding the held item; a round trip at 12 blocks a second (at least 1 s) brings a stack.
+  Items 330/331 (tools of `DEVICE_TIER`), techs Jetpack (needs Robotics, 120 × 30 s) and Personal Drone (needs Construction
+  Drones, 160 × 35 s); recipes: jetpack 4 steel plates, 2 motors, 2 circuits; personal drone 1 drone and 2 circuits.
+- [x] **7.9 Feel, balance, cleanup.** Tips, research times played through, worst tick and wasm measured,
   README, CODEMAP; then move Milestone 8 in from the roadmap and ask its questions.
+  **Done:** three new tips (ghosts, drones, fly and fetch), `bench_drones` (2,000 ghosts and a port: 3.6 µs a tick, worst
+  61 µs), wasm 312.6 KB gzipped (`vite build`: wasm 832.6 KB raw; 241 KB at step 7.3: most of the growth came with the
+  textures, blueprints, strategy camera and avatars; the drones add icons and about 10 KB of code), 431 tests (4 ignored benchmarks).
+  Research times follow `docs/TECH_ERAS.md` section 3. Milestone 8 questions are open (see the status line).
+
+### Milestone 8 (Terraforming, era 5): moved in from the roadmap, awaiting the user's answers
+
+Design from `docs/TECH_ERAS.md` section 5 and the roadmap text (now here). **Already built:** sites in the core
+(`factory/sites.rs`: `Site`, `Job` dig, fill or flatten, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`;
+saved); nothing works a site yet. Drones exist now (Milestone 7: `drones/`, ghosts, tear-down marks), so the work
+drones of this era can reuse their flight and `dismantle`.
+
+- [ ] **8.1 The planner:** a hand item (plates, wire, glass; tech Earthworks); right-click two corners (reach 64), a
+  panel (`web/src/ui/site.ts`) picks job and height and shows the survey ("cut 1,240 · fill 310 · 930 to carry
+  away · 12 ore · water"); sites outlined (cut red, fill blue, pending amber), squares on the minimap, a tip.
+- [ ] **8.2 The excavator** (`factory/excavator/`): works the nearest site within 32 blocks, 30 kW, about 4 blocks a
+  second; ground, logs and leaves; ore and spent rock warn first; bedrock, machines, belts and pipes stay; waits
+  while flooded; output to belts and boxes. Mk1 plus Mk2/Mk3 by kits.
+- [ ] **8.3 Fill and flatten:** fill from its buffer, belts and boxes beside it (dirt on top, else stone, rock, slag);
+  dug blocks fill sites in range first, so a flatten balances itself; filling water makes dry land.
+- [ ] **8.4 Tunnels:** two points, 1×2, 3×3 or 5×5, slopes up to 1 in 2; the excavator's range counts from the
+  tunnel face; breaking into water waits.
+- [ ] **8.5 Cleanup:** worst tick with four excavators on a 64 × 64 flatten by the sea, tips, README, CODEMAP.
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -528,7 +548,6 @@ and adjust the steps.
 
 | Needed by | Question |
 |---|---|
-| M7 | Blueprints: copied from what you built (select an area), drawn from scratch as ghosts, or both? Where do drones take materials from: boxes beside a drone port, or anywhere on a network? Flight: a coal jetpack now, an aluminium hover pack in M9: agreed? (Steps 7.6–7.8 wait.) |
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M9 | Trains, trucks, or both? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
@@ -545,6 +564,15 @@ and the balance numbers. Read the section you need.
 ## 8. Recent changes
 
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).
+
+- **2026-10-03: Drones, jetpack, personal drone (steps 7.7b–7.9, save 28).** The drone port (a 3×3 pad on power, tiers by kits) keeps drones; they fly out one at a time from powered ports to build your ghosts from the storage boxes touching the pad and to tear down blocks you mark (left-click in ghost mode), putting the drops in the boxes. A coal jetpack (hold jump in the air) and a personal drone (Y fetches the held item from a box within 32 blocks). Milestone 7 is done.
+- **2026-10-03: The drone ladder (step 7.7a).** Five violet techs (Processors, Robotics, Drone Power, Navigation, Construction Drones; twelve techs deep from the start of Violet Science, 920 units of all four packs for the last five) and six assembler-only parts that make a drone: processor, servo, actuator, drone cell, guidance module, drone (about 14 motors' worth of circuits and steel each). No save bump; golden hash re-recorded. The port and the flying come next.
+- **2026-10-03: Blueprints (step 7.6b).** Ghost mode gains area copy: Z marks two corners, Enter copies the machines in the box (`blueprint/`: block, facing, tier, offset; turned in quarter turns, multi-block machines keep their shape), the use button stamps them as ghosts through the new `PlantGhost` action, and the L panel (`ui/blueprints.ts`) lists, renames, holds and deletes blueprints. They live in the browser per world like pins, not in the save. Settings and plain blocks are not copied yet.
+- **2026-10-03: Ghosts (step 7.6a, save 26).** Planned blocks and machines are core state (`ghosts.rs`: a cell, block, facing, tier; `PlaceGhost` / `RemoveGhost`, tags 33/34), so co-op peers and later drones share them. B toggles ghost mode (`ghost_mode.rs`, presentation): right-click plants the held block's ghost for free or removes the aimed one, R turns it, reach 16, no mining, cyan outlines and a needs list. Placing the real block on a ghost uses its facing and clears it. Golden hash re-recorded.
+
+- **2026-10-03: Logic (step 7.5, save 25).** The sensor block (Logic tech, violet science): reads the box, silo or belt behind it and cuts the power wire of the machine in front by a rule (switch, or fullness thresholds with hysteresis); right-click steps rules, R turns, a lamp shows the state. New `Kind::Sensor` with its list saved after the quarries, `Action::SetSensor`, `Hooked::off` / `Power::off` (readouts say "Switched off by a sensor"). Tests: 405 pass (5 new), golden hash re-recorded. Not tried in the browser yet.
+
+- **2026-10-03: Scanner Mk2 (step 7.4).** Advanced Scanning (r g b v) unlocks the Scanner Mk2 (item 320: a scanner, 3 circuits and 2 steel plates by hand): it lists deposits within 96 blocks instead of 48. Range is data (`prospect::SCANNERS`); the panel shows the range of the scan taken. Tests: 400 pass (one new), golden hash re-recorded (a tech was added), no save bump.
 
 - **2026-10-03: Belts carry bodies; frame-rate fix** (user report: 60 fps in some places, about 16 in others, with a save). Cause, found by loading the save in a headless release test: the light cache for boxes (`world/boxlight.rs`) held 24 chunks, evicted oldest first, and the save's machines and belt items in view span 27, so every frame lit all 27 chunks again (about 1.6 ms each, 45 ms a frame; places with 24 or fewer chunks ran fine). The cache now holds 128 chunks (4 MB at most) and evicts the least recently read; that frame costs 0.3 ms. A body on the ground in a belt's cell is carried along at the belt's speed (`Factory::conveyor_at`, `Player::conveyor`, set by `authority.rs`; collision still applies, a crouched body stops at an edge, footsteps ignore the carry, lifts are still climbed). Presentation/authority only: no save or core change. Tests 393 → 399.
 

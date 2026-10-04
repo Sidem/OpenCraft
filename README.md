@@ -50,6 +50,11 @@ the render distance in chunks (2 to 24, default 8).
 | Right mouse (hold)  | Place the selected block                  |
 | Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
 | R                   | Turn the belt or splitter/filter you point at; while holding a quarry or an assembler, turn it before placing |
+| B                   | Ghost mode: right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
+| Z, Enter (ghost mode) | Z marks the two corners of a box (a third press clears it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
+| L | Blueprint library: rename, hold or delete your blueprints (kept per world in this browser) |
+| Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |
+| Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
 | Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
@@ -168,7 +173,9 @@ size.
   nothing blocks its trunk.
 - **Prospecting.** A scanner (4 iron plates, 6 copper wire, 4 screws) lists the deposits within 48
   blocks when you right-click with it: which ore, vein or outcrop, how far, which way, how deep and
-  roughly how big; the arrows turn as you walk. A core drill (6 iron plates, 2 copper wire, 8 screws)
+  roughly how big; the arrows turn as you walk. The Advanced Scanning tech (violet science) adds the
+  Scanner Mk2 (a scanner, 3 circuits and 2 steel plates), which reaches 96 blocks: the way to find
+  quartz in distant highlands, deserts and basalt fields. A core drill (6 iron plates, 2 copper wire, 8 screws)
   held on the ground for 3 seconds tells you exactly what lies beneath: how many blocks and units are
   left, and between which heights. Neither wears out.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it
@@ -244,7 +251,22 @@ size.
   the selected pole, cuts a wire, or links two poles (the label says which). A power cable (4 from an iron
   plate and 2 copper wire) needs no wiring: it joins the grid of a pole within 5 blocks and links to touching
   cables: right-click drops a column of cables to the ground, down a shaft to a miner (crouch places one), and
-  a machine within 2 blocks of a cable is powered. A drilling Miner Mk1
+  a machine within 2 blocks of a cable is powered. The Logic tech (violet science) adds the **sensor** (a
+  circuit and an iron plate): place it between a storage box, silo or belt and a machine that takes a power
+  wire, facing the machine (R turns it). It reads how full the thing behind it is and cuts the machine's
+  wire by a rule; right-click steps through the rules (always on, always off, run while under half full, run
+  until nearly full, run while over half full, run while it holds anything). Its lamp shows green when on.
+  Drones are the long road of violet science: Processors, Robotics (after Mk4 Machines), Drone Power and Navigation,
+  then Construction Drones, each costing all four packs. They unlock assembler recipes for the parts (processor, servo,
+  actuator, drone cell, guidance module) and the drone itself (2 actuators, a cell and a guidance module, 30 s), and
+  Construction Drones also unlocks the **drone port** (24 steel plates, 12 circuits, 2 processors, 4 motors): a 3×3
+  pad on power (40 kW while drones fly) that keeps 4 drones. Put drones in by hand or belt and set storage boxes
+  touching the pad with what your ghosts need: every half second a drone flies out to the nearest ghost within 32
+  blocks, takes the item from a box, builds it and comes home, or breaks a block you marked (B, left-click) and
+  puts what it leaves into the boxes. Swarm Logistics unlocks kits for Mk2 to Mk4 ports (8, 12, 16 drones; reach 48, 64, 96).
+  Breaking a port gives its drones back. The Jetpack tech (4 steel plates, 2 motors, 2 circuits) and the Personal Drone
+  tech (a drone and 2 circuits) make the two helpers for your pack: see the keys above.
+  A drilling Miner Mk1
   draws 5 kW (one coal runs it long enough to mine about 32), a Mk2 20 kW, a working constructor 15 kW.
   Short of power, every machine on the grid slows down to match; with none, it stops. The first loop: a
   miner on coal next to a generator, a pole within reach of both, wired to each, and a log to start the

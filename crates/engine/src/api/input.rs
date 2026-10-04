@@ -26,16 +26,30 @@ impl Game {
         body.pitch = (body.pitch - d_pitch).clamp(-1.55, 1.55);
     }
 
+    /// B: ghost mode on or off (`ghost_mode.rs`).
+    pub fn toggle_ghost_mode(&mut self) {
+        self.ghost_mode = !self.ghost_mode;
+        self.using = false;
+        self.mine_block = None;
+        self.mine_progress = 0.0;
+    }
+
+    pub fn ghost_mode(&self) -> bool {
+        self.ghost_mode
+    }
+
     /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick, or the
     /// box of a quarry or the footprint of a multi-block machine in hand at once. False when nothing turns.
     pub fn rotate_target(&mut self) -> bool {
-        if self.holds_quarry() || self.held_footprint().is_some() {
-            self.turn_placement();
+        if self.ghost_mode || self.holds_quarry() || self.held_footprint().is_some() {
+            if !(self.ghost_mode && self.turn_held_blueprint()) {
+                self.turn_placement();
+            }
             self.play(sound::PLACE, block::sound::METAL, self.body().eye(), 0.4);
             return true;
         }
         let Some(hit) = self.target else { return false };
-        if !factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router)) {
+        if !factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router | Kind::Sensor)) {
             return false;
         }
         self.act(Action::Rotate { pos: hit.block });

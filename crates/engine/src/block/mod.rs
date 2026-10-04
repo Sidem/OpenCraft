@@ -110,7 +110,11 @@ pub const CABLE: BlockId = 71;
 /// Solar power (Milestone 7): the solar panel (2×2×1) and the accumulator (2×2×2), processor rows (`factory/process/solar.rs`).
 pub const SOLAR_PANEL: BlockId = 72;
 pub const ACCUMULATOR: BlockId = 73;
-pub const BLOCK_COUNT: usize = 74;
+/// Logic (`factory/sensor.rs`): watches the box or belt behind it, switches the machine in front.
+pub const SENSOR: BlockId = 74;
+/// A landing pad that keeps and launches construction drones (`factory/process/hangar.rs`, `drones/`).
+pub const DRONE_PORT: BlockId = 75;
+pub const BLOCK_COUNT: usize = 76;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -326,6 +330,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Power Cable", false, 0.1, all(tex::COPPER_WIRE), CABLE),
     machine("Solar Panel", true, 1.0, pillar(tex::SOLAR_SIDE, tex::SOLAR_TOP, tex::FRAME), SOLAR_PANEL),
     machine("Accumulator", true, 1.4, pillar(tex::ACCUMULATOR_SIDE, tex::ACCUMULATOR_TOP, tex::FRAME), ACCUMULATOR),
+    machine("Sensor", true, 0.8, pillar(tex::FRAME, tex::CIRCUIT, tex::FRAME), SENSOR),
+    machine("Drone Port", true, 1.4, pillar(tex::DRONE_PORT_SIDE, tex::DRONE_PORT_TOP, tex::FRAME), DRONE_PORT),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

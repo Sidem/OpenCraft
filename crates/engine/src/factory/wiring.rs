@@ -10,7 +10,7 @@
 //! [`Factory::hookup`] tells the hands (`power_tools.rs`) what a click would do; `Factory::hook_by_reach`
 //! wires saves from before version 24 the way the old rule did.
 
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::math::IVec3;
 
@@ -33,6 +33,8 @@ pub struct Hook {
 pub(super) struct Hooked {
     pub by_target: FxHashMap<IVec3, u32>,
     pub pairs: Vec<(u32, u32)>,
+    /// Anchors of machines a sensor has switched off (sensor.rs): they hang on nothing.
+    pub off: FxHashSet<IVec3>,
 }
 
 /// What a click on a cell would do with a pole selected.
@@ -244,7 +246,7 @@ impl Factory {
 
     /// The hooks as pole indices (see [`Hooked`]).
     pub(super) fn resolve_hooks(&self) -> Hooked {
-        let mut out = Hooked::default();
+        let mut out = Hooked { off: self.switched_off(), ..Hooked::default() };
         for h in &self.hooks {
             let (Some(&Slot::Pole(p)), Some(target)) = (self.at.get(&h.pole), self.at.get(&h.to)) else { continue };
             match *target {
@@ -290,7 +292,7 @@ impl Factory {
     }
 
     /// The cells of the machine in `slot` if it takes a wire, its anchor first.
-    fn powered_cells(&self, slot: Slot) -> Option<Vec<IVec3>> {
+    pub(super) fn powered_cells(&self, slot: Slot) -> Option<Vec<IVec3>> {
         match slot {
             Slot::Generator(i) => Some(vec![self.generators[i as usize].pos]),
             Slot::Miner(i) => Some(vec![self.miners[i as usize].pos]),

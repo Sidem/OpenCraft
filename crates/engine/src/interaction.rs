@@ -95,7 +95,8 @@ impl Game {
     pub(crate) fn update_target_ray(&mut self, origin: Vec3, dir: Vec3) {
         let eye = self.body().eye();
         let world = &self.sim.world;
-        let hit = aim::target(eye, origin, dir, |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
+        let hit =
+            aim::target(eye, origin, dir, self.reach(), |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
         let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| self.sim.factory.block_at(h.block)).flatten();
         self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
@@ -103,6 +104,9 @@ impl Game {
 
     pub(crate) fn update_mining(&mut self, dt: f32) {
         self.mine_cooldown = (self.mine_cooldown - dt).max(0.0);
+        if self.ghost_mode {
+            return self.update_marking();
+        }
         let Some(hit) = self.target.filter(|_| self.mining) else {
             self.mine_block = None;
             self.mine_progress = 0.0;
@@ -141,6 +145,9 @@ impl Game {
     }
 
     pub(crate) fn update_placing(&mut self, dt: f32) {
+        if self.ghost_mode {
+            return self.update_ghosts();
+        }
         // A scanner or core drill in hand makes the use button prospect instead (prospect.rs); with
         // belts it lays lines (belt_line.rs); poles and cables have their own tools (power_tools.rs).
         if self.update_prospecting(dt) || self.update_belt_line() || self.update_power_tools(dt) || !self.using {
@@ -148,6 +155,15 @@ impl Game {
         }
         self.use_cooldown -= dt;
         if self.use_cooldown > 0.0 {
+            return;
+        }
+        // A sensor has no panel: a click steps to its next rule (crouching places against it, as everywhere).
+        if let Some(hit) = self.target.filter(|h| !self.body().input.crouch && h.id == block::SENSOR) {
+            if let Some(rule) = self.sim.factory.sensor(hit.block).map(|s| s.rule) {
+                let next = (rule as usize + 1) % factory::SENSOR_RULES.len();
+                self.act(Action::SetSensor { pos: hit.block, rule: next as u8 });
+            }
+            self.using = false;
             return;
         }
         // A machine with a panel: ask the host to open it (unless crouching, which places against it).

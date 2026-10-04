@@ -17,8 +17,8 @@
 //! array, and its arms in `Factory::tiered_at` and `Factory::set_tier` (`upgrades.rs`).
 
 use crate::block::{
-    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, FAST_BELT, GENERATOR, LAB, MINER, MINER_MK2, POLE, PUMP,
-    QUARRY, SMELTER, STORAGE,
+    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, FAST_BELT, GENERATOR, LAB, MINER, MINER_MK2,
+    POLE, PUMP, QUARRY, SMELTER, STORAGE,
 };
 use crate::item::{
     ItemId, ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4, BELT_MK3, BELT_MK4, BLAST_FURNACE_MK2, BLAST_FURNACE_MK3,
@@ -26,6 +26,7 @@ use crate::item::{
     LAB_MK3, LAB_MK4, MINER_MK3, MINER_MK4, POLE_MK2, POLE_MK3, POLE_MK4, PUMP_MK2, PUMP_MK3, QUARRY_MK2, QUARRY_MK3,
     SMELTER_MK2, SMELTER_MK3, SMELTER_MK4,
 };
+use crate::item::{DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4};
 
 pub struct Family {
     /// The block every tier puts into the world.
@@ -61,6 +62,11 @@ pub const FAMILIES: &[Family] = &[
     Family { block: QUARRY, items: &[ItemId::block(QUARRY), QUARRY_MK2, QUARRY_MK3], kits: 4 },
     Family { block: LAB, items: &[ItemId::block(LAB), LAB_MK2, LAB_MK3, LAB_MK4], kits: 4 },
     Family { block: GENERATOR, items: &[ItemId::block(GENERATOR), GENERATOR_MK2], kits: 4 },
+    Family {
+        block: DRONE_PORT,
+        items: &[ItemId::block(DRONE_PORT), DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4],
+        kits: 8,
+    },
 ];
 
 /// The family block and tier that `item` places, if it is a tiered machine.

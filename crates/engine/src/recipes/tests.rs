@@ -26,7 +26,7 @@ const WORLD_BLOCKS: &[BlockId] = &[
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones).
-const NO_USE_YET: &[ItemId] = &[item::CIRCUIT];
+const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

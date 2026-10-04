@@ -5,6 +5,7 @@
 //! To add a wasm method: put it in the file for its area, keep it a one- or few-liner, and run
 //! `npm run build:wasm` so `web/src/wasm/engine.d.ts` picks it up.
 
+mod blueprint;
 mod content;
 mod crafting;
 mod debug;

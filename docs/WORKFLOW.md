@@ -130,6 +130,6 @@ next day (no charge).
 | `worldgen/strata.rs` | `EXPOSED_CHANCE_METALS`, `ORE_DEPTH_V4`, `STARTERS_V4` (version 4, new worlds) | coal, iron and copper slots show 0.42 (0.30–0.58 exposed per column); bands limestone 6–20, coal 6–22, iron 8–28, copper 12–34, quartz 25–50; two starters each, 28–60 and 60–110 blocks out, radii 2.6 × 2.0 |
 | `worldgen/biome.rs` | `HIGHLAND_LEVEL`, `LOWLAND_LEVEL`, `SPAWN_CALM` | highlands above 112, lowlands below 74; plains within 64–320 blocks of spawn |
 | `tools.rs` | `STONE_TIER`, `IRON_TIER` | stone 150 uses, 2× speed · iron 600 uses, 4× speed, 1 more ore per hand-mined block |
-| `prospect.rs` | `SCAN_RANGE`, `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH` | 48 blocks, 2 s · 3 s, 2 blocks around the column |
+| `prospect.rs` | `SCANNERS` (range per scanner), `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH` | 48 / 96 blocks, 2 s · 3 s, 2 blocks around the column |
 | `sim/timers.rs`, `sim/saplings.rs` | half-lives, `SAPLING_CHANCE`, `GROW_MIN` | leaves 5 s, grass grows 30 s, dies 15 s · a sapling from 1 in 25 leaves, grows after 60 s + 90 s half-life |
 | `daytime.rs`, `light.rs`, `block/mod.rs` | `DAY_TICKS`, `START`, `MARGIN`, `SOURCES`, `BlockDef::light` | a 20-minute day, new worlds start at 7:00 · the lit field reaches 20 blocks · lamp 20 losing 1 per block (full within 5, gone at 20), torch 12 losing 2 (gone at 6); a cell shows at most 15 |

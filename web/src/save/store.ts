@@ -28,6 +28,8 @@ export interface WorldMeta {
   marks?: number[];
   /** The player's map pins (ui/pins.ts), their notes too. Missing in older records. */
   pins?: { x: number; z: number; kind: string; note: string }[];
+  /** The player's blueprints (the engine's blueprint_export bytes), notes like the pins. Missing in older records. */
+  blueprints?: Uint8Array;
 }
 
 /** A new, never-saved world. */

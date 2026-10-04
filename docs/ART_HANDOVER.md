@@ -249,6 +249,9 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (7.2, landed) Violet science: `tex::VIOLET_PACK` (layer 155, the flask fill, `textures/electronics.rs`), and the Mk4 looks `tex::BELT_MK4_TOP` and `MINER_MK4_SIDE` (156, 157: the Mk3 patterns in violet). The violet kit and the other Mk4 items wear `tex::stripe(3)` and their family's Mk1 textures.
 - [ ] (7.3, landed) Solar power, placeholders in `textures/solar.rs` (layers 158–161): the solar panel (block 72, 2×2×1: `tex::SOLAR_TOP` cells and `SOLAR_SIDE` back, `SOLAR_PARTS` in `factory/process/solar.rs`) and the accumulator (block 73, 2×2×2: `ACCUMULATOR_TOP` roof with terminals, `ACCUMULATOR_SIDE` casing with charge cells; its front cells glow while it charges or gives).
 
+- [ ] (7.4, landed) Scanner Mk2 (item 320): `tex::SCANNER_MK2` (layer 166, `scanner_mk2()` in `textures/tools.rs`: a violet screen with tighter rings), drawn by `SCANNER_MK2_SET` in `item_models.rs` (the Mk1 handset plus a violet `tex::stripe(3)` band). Placeholder look; it should read as the Mk1's better sibling.
+- [ ] (7.5, landed) The sensor (block 74, `Kind::Sensor`): placeholder model in `factory/sensor.rs` (a low circuit-topped housing, a hatch nose each way, a green/red lamp box from `tex::LAMP_GREEN` / `LAMP_RED`); block faces are `tex::FRAME` and `tex::CIRCUIT`. It wants a clearer "eye" on its reading side and an arrow on its switching side.
+
 ## 8. Log
 
 Detailed entries for A0–A4 live in git history (`git log -- docs/ART_HANDOVER.md`); in short:

@@ -33,6 +33,9 @@ const WALK_SPEED: f64 = 4.3;
 const SPRINT_SPEED: f64 = 6.6;
 const CROUCH_SPEED: f64 = 1.9;
 const FLY_SPEED: f64 = 11.0;
+/// Jetpack: upward acceleration against gravity, and the climb rate it settles at.
+const JET_ACCEL: f64 = 40.0;
+const JET_CLIMB: f64 = 6.0;
 const FLY_SPRINT_SPEED: f64 = 24.0;
 /// Horizontal speed in water, as a share of the speed on land.
 const SWIM_SPEED_FACTOR: f64 = 0.5;
@@ -68,6 +71,8 @@ pub struct Player {
     /// The feet are in water (swimming), as of the last step.
     pub in_water: bool,
     pub flying: bool,
+    /// The jetpack is burning (set from the core each tick: `helpers/`); never saved.
+    pub thrust: bool,
     pub input: PlayerInput,
     /// Presentation-only hands: bit 0 mining, bit 1 using. Relayed to co-op peers, never saved.
     pub gesture: u8,
@@ -94,6 +99,7 @@ impl Player {
             on_ground: false,
             in_water: false,
             flying: false,
+            thrust: false,
             input: PlayerInput::default(),
             gesture: 0,
             landing_speed: 0.0,
@@ -215,6 +221,9 @@ impl Player {
             self.vel.y = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * CLIMB_SPEED;
         } else {
             self.vel.y = (self.vel.y - GRAVITY * dt).max(-TERMINAL_VELOCITY);
+            if self.thrust {
+                self.vel.y = (self.vel.y + JET_ACCEL * dt).min(self.vel.y.max(JET_CLIMB));
+            }
             if inp.jump && self.on_ground {
                 self.vel.y = JUMP_VELOCITY;
             }

@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::block;
 use crate::deposits::Tier;
-use crate::prospect::{DRILL_FIELDS, READING_DRILL, READING_SCAN, SCAN_FIELDS, SCAN_RANGE};
+use crate::prospect::{scan_range_of, DRILL_FIELDS, READING_DRILL, READING_SCAN, SCANNERS, SCAN_FIELDS};
 use crate::tools::{self, ToolKind};
 use crate::Game;
 
@@ -45,8 +45,10 @@ impl Game {
         }
     }
 
+    /// The range shown for scanning: the latest scan's, or else the held scanner's.
     pub fn scan_range(&self) -> u32 {
-        SCAN_RANGE as u32
+        let held = scan_range_of(self.inventory().selected_stack().item);
+        (if self.prospect.kind == READING_SCAN { self.prospect.range } else { held.unwrap_or(SCANNERS[0].1) }) as u32
     }
 
     /// A deposit's name from its ore and tier, e.g. "Iron vein".

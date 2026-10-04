@@ -13,14 +13,16 @@
 
 use crate::block;
 use crate::deposits::{Deposit, DepositState};
+use crate::item::{ItemId, SCANNER, SCANNER_MK2};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::sound;
 use crate::tools::{self, ToolKind};
 use crate::worldgen::WORLD_HEIGHT;
 use crate::Game;
 
-/// The scanner finds deposits whose centre lies within this many blocks horizontally.
-pub const SCAN_RANGE: i32 = 48;
+/// Each scanner and how far it finds deposits (whose centre must lie within this many blocks horizontally).
+/// To add a scanner: an item, a `ToolKind::Scanner` row in `tools.rs` and a row here.
+pub const SCANNERS: [(ItemId, i32); 2] = [(SCANNER, 48), (SCANNER_MK2, 96)];
 /// Seconds between scans while the use button is held.
 const SCAN_COOLDOWN: f32 = 2.0;
 /// Seconds of holding use on a block for a core sample.
@@ -51,6 +53,8 @@ pub struct Prospect {
     pub records: Vec<i32>,
     /// Where the reading was taken: the player's feet (scan) or the drilled block.
     pub origin: IVec3,
+    /// The range of the scanner that took the latest scan.
+    pub range: i32,
     /// Bumped with every new reading.
     pub seq: u32,
     cooldown: f32,
@@ -64,6 +68,11 @@ impl Prospect {
     pub fn drill_progress(&self) -> Option<f32> {
         self.drill.map(|(_, t)| t / DRILL_SECONDS)
     }
+}
+
+/// How far `item`, if it is a scanner, finds deposits.
+pub fn scan_range_of(item: ItemId) -> Option<i32> {
+    SCANNERS.iter().find(|s| s.0 == item).map(|s| s.1)
 }
 
 /// A deposit the scanner found.
@@ -88,7 +97,8 @@ impl Game {
     /// selected (the use button is then the device's, not placing's).
     pub(crate) fn update_prospecting(&mut self, dt: f32) -> bool {
         self.prospect.cooldown = (self.prospect.cooldown - dt).max(0.0);
-        let device = tools::device(self.inventory().selected_stack().item);
+        let held = self.inventory().selected_stack().item;
+        let device = tools::device(held);
         if device != Some(ToolKind::CoreDrill) {
             self.prospect.drill = None;
         }
@@ -96,7 +106,9 @@ impl Game {
             Some(ToolKind::Scanner) if self.using && self.prospect.cooldown == 0.0 => {
                 self.prospect.cooldown = SCAN_COOLDOWN;
                 let at = self.body().pos.floor();
-                let found = self.scan(at);
+                let range = scan_range_of(held).unwrap_or(SCANNERS[0].1);
+                self.prospect.range = range;
+                let found = self.scan(at, range);
                 let r = &mut self.prospect.records;
                 r.clear();
                 for Found { deposit: d, band } in found {
@@ -112,14 +124,14 @@ impl Game {
         device.is_some()
     }
 
-    /// Every deposit, not worked out, whose centre lies within [`SCAN_RANGE`] blocks horizontally of
-    /// `at`: lodes first, then veins, then outcrops, each nearest first.
-    pub(crate) fn scan(&mut self, at: IVec3) -> Vec<Found> {
-        let lo = IVec3::new(at.x - SCAN_RANGE, 0, at.z - SCAN_RANGE);
-        let hi = IVec3::new(at.x + SCAN_RANGE, WORLD_HEIGHT - 1, at.z + SCAN_RANGE);
+    /// Every deposit, not worked out, whose centre lies within `range` blocks horizontally of `at`:
+    /// lodes first, then veins, then outcrops, each nearest first.
+    pub(crate) fn scan(&mut self, at: IVec3, range: i32) -> Vec<Found> {
+        let lo = IVec3::new(at.x - range, 0, at.z - range);
+        let hi = IVec3::new(at.x + range, WORLD_HEIGHT - 1, at.z + range);
         let mut found = Vec::new();
         for d in self.sim.world.generator_mut().deposits_touching(lo, hi) {
-            if flat_dist2(d.center, at) > SCAN_RANGE * SCAN_RANGE {
+            if flat_dist2(d.center, at) > range * range {
                 continue;
             }
             let left = match self.sim.factory.deposits.get(&d.key) {

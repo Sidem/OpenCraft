@@ -53,7 +53,7 @@ impl Factory {
             }
             Slot::Lab(i) => Some(self.labs[i as usize].panel(&self.research)),
             Slot::Quarry(i) => Some(self.quarries[i as usize].panel(self)),
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) | Slot::Pipe(_) => None,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Sensor(_) => None,
         }
     }
 
@@ -78,6 +78,7 @@ impl Factory {
         let dir = match self.at.get(&pos) {
             Some(&Slot::Belt(i)) => &mut self.belts[i as usize].dir,
             Some(&Slot::Router(i)) => &mut self.routers[i as usize].dir,
+            Some(&Slot::Sensor(i)) => &mut self.sensors[i as usize].dir,
             _ => return false,
         };
         *dir = (*dir + 1) % 4;
@@ -165,7 +166,13 @@ impl Factory {
             }
             Some(Slot::Quarry(i)) => &mut self.quarries[*i as usize].out,
             Some(
-                Slot::Belt(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) | Slot::Pipe(_),
+                Slot::Belt(_)
+                | Slot::Router(_)
+                | Slot::Generator(_)
+                | Slot::Pole(_)
+                | Slot::Lab(_)
+                | Slot::Pipe(_)
+                | Slot::Sensor(_),
             )
             | None => return false,
         };

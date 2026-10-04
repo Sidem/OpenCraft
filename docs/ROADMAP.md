@@ -1,4 +1,4 @@
-# OpenCraft roadmap (after Milestone 7)
+# OpenCraft roadmap (after Milestone 8 is planned)
 
 Read this only when a milestone ends and the next one is being planned. `docs/DEV_PLAN.md` details the
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
@@ -16,31 +16,7 @@ milestone brings one era of `docs/TECH_TREE.md` (the concept) and `docs/TECH_ERA
 
 ## Milestone 8: Terraforming (era 5)
 
-Moved here on 2026-09-28: its work drones are Milestone 7's drones, and big multi-block factories and
-rail beds are what need flat land. **Already built:** sites in the core (`factory/sites.rs`: `Site`,
-`Job` dig, fill or flatten, cell order, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`; save
-version 17); nothing works a site yet. Block 60 and item 273 are no longer reserved: take the next free
-ids. Design carried over (was steps 6.2–6.6):
-
-- **The planner** (hand item; plates, wire, glass): aims up to 64 blocks; right-click two corners, a
-  panel (`web/src/ui/site.ts`) picks the job and height and shows the survey ("cut 1,240 · fill 310 ·
-  930 to carry away · 12 ore · water"). Sites outlined (cut red, fill blue, pending amber), squares on the
-  minimap, a tip "Plan the ground". Right-click inside a site opens it (progress, remove).
-- **The excavator** (`factory/excavator/`, Earthworks tech): works the nearest site within 32, 30 kW,
-  four drones cutting about 4 blocks a second (drones derived from each cell's progress, like the
-  quarry's head). Ground, logs and leaves; ore and spent rock like hand mining with a warning first;
-  bedrock, machines, belts and pipes stay; waits while flooded; output buffer to belts and boxes; several
-  excavators share a site. A red Mk1 stripe; Mk2 and Mk3 by kits (TECH_ERAS section 1).
-- **Fill and flatten:** fill from its buffer (dirt on top, else stone, rock, slag, later tailings: a list
-  of fill materials), and from belts and boxes beside it. Dug blocks fill sites in range first, so a
-  flatten balances itself and any fill site is a dump. Filling water makes dry land that stays dry.
-  Concrete foundations as a finish.
-- **Tunnels:** two points, 1 × 2, 3 × 3 or 5 × 5, slopes up to 1 in 2; the excavator's range counts from
-  the tunnel face, so one at the mouth digs a long tunnel. Breaking into water waits.
-- **Scale:** measure the worst tick with four excavators on a 64 × 64 flatten by the sea; big edits go
-  through `set_block_anywhere_later`; drone sounds near the camera only.
-- Facts from Milestone 5: only the sea is endless water (pumps can't lower it); water checks are capped
-  per tick; reuse the quarry's patterns (`survey`, output buffer, flooded wait), don't generalise it.
+Moved into `docs/DEV_PLAN.md` at the end of Milestone 7 (2026-10-03).
 
 ## Milestone 9: Distance (era 6)
 

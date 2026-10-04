@@ -33,13 +33,16 @@ mod links;
 mod miner;
 mod panel;
 mod pipes;
+mod placed;
 mod pole;
+mod ports;
 mod power;
 mod process;
 mod pumping;
 mod quarry;
 mod render;
 mod router;
+mod sensor;
 mod sites;
 mod state;
 mod storage;
@@ -73,6 +76,7 @@ use power::Power;
 use process::Processor;
 use quarry::Quarry;
 use router::Router;
+use sensor::Sensor;
 use storage::Storage;
 use wiring::Hook;
 
@@ -85,11 +89,13 @@ pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use pole::{preview_pole, preview_wire, POLE_TIERS};
+pub use ports::PortInfo;
 pub use process::{makes, spec as process_spec, Energy};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{light_boxes, push_box, INSTANCE_FLOATS};
+pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{survey_site, Job, Sites};
 pub use wiring::Hookup;
 
@@ -149,6 +155,7 @@ pub struct Factory {
     labs: Vec<Lab>,
     pipework: Vec<Pipework>,
     quarries: Vec<Quarry>,
+    sensors: Vec<Sensor>,
     /// The player's power wires, saved (`wiring.rs`).
     hooks: Vec<Hook>,
     /// Tests only: leave wires to `connect` (else every relink wires by range, `hook_by_reach`).
@@ -184,6 +191,7 @@ impl Factory {
             Kind::Lab => self.labs.len(),
             Kind::Pipe => self.pipework.len(),
             Kind::Quarry => self.quarries.len(),
+            Kind::Sensor => self.sensors.len(),
         }
     }
 
@@ -222,6 +230,7 @@ impl Factory {
             Kind::Lab => add_to(&mut self.labs, Lab::new(pos), at, Slot::Lab),
             Kind::Pipe => add_to(&mut self.pipework, Pipework::new(pos, block, facing), at, Slot::Pipe),
             Kind::Quarry => add_to(&mut self.quarries, Quarry::new(pos, facing), at, Slot::Quarry),
+            Kind::Sensor => add_to(&mut self.sensors, Sensor::new(pos, facing), at, Slot::Sensor),
         }
         if tier > 0 {
             self.set_tier(pos, tier);
@@ -271,6 +280,7 @@ impl Factory {
             Slot::Lab(i) => swap_out(&mut self.labs, i, at, Slot::Lab),
             Slot::Pipe(i) => swap_out(&mut self.pipework, i, at, Slot::Pipe),
             Slot::Quarry(i) => swap_out(&mut self.quarries, i, at, Slot::Quarry),
+            Slot::Sensor(i) => swap_out(&mut self.sensors, i, at, Slot::Sensor),
         };
         self.prune_hooks();
         contents
@@ -279,6 +289,7 @@ impl Factory {
     /// Runs every machine for one tick (`TICK` seconds). `tick` must differ between calls: the
     /// deposits' shared draw budgets refill once per tick.
     pub fn update(&mut self, world: &mut World, tick: u64, events: &mut Vec<SimEvent>) {
+        self.step_sensors();
         if self.dirty {
             self.relink();
         }

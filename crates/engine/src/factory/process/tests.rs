@@ -38,7 +38,11 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
             .tiers
             .iter()
             .any(|t| matches!(t.energy, Energy::Boiler | Energy::Turbine | Energy::Solar | Energy::Accumulator));
-        assert!(steam || (input > 0 || s.pick == Pick::Store) && out > 0, "block {}", s.block);
+        assert!(
+            steam || s.pick == Pick::Hangar || (input > 0 || s.pick == Pick::Store) && out > 0,
+            "block {}",
+            s.block
+        );
         assert_eq!(
             fuel > 0,
             s.tiers.iter().any(|t| matches!(t.energy, Energy::Burner | Energy::Boiler)),

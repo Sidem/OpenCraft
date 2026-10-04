@@ -114,3 +114,33 @@ fn research_reads_back_what_it_wrote() {
     r.write_state(&mut w);
     assert_eq!(Research::read_state(&mut ByteReader::new(&w.bytes)), Some(r));
 }
+
+#[test]
+fn the_drone_is_the_end_of_a_long_violet_ladder() {
+    let by_name = |name: &str| TECHS.iter().position(|t| t.name == name).unwrap() as u8;
+    let (processors, robotics, power, nav, drones) = (
+        by_name("Processors"),
+        by_name("Robotics"),
+        by_name("Drone Power"),
+        by_name("Navigation"),
+        by_name("Construction Drones"),
+    );
+    let mut r = Research::default();
+    let mut steps = 0;
+    // Finish prerequisites one at a time until the drones tech is available: every step is a tech to do.
+    while r.state(drones) != TechState::Available {
+        let next = (0..TECHS.len() as u8).find(|&t| r.state(t) == TechState::Available && t != drones).unwrap();
+        finish(&mut r, next);
+        steps += 1;
+    }
+    assert!(steps >= 12, "only {steps} techs stand in front of the drone");
+    for t in [processors, robotics, power, nav, drones] {
+        assert_eq!(r.state(t), if t == drones { TechState::Available } else { TechState::Done });
+        assert!(TECHS[t as usize].packs.contains(&VIOLET_PACK), "{} needs violet packs", TECHS[t as usize].name);
+    }
+    assert!(TECHS[drones as usize].units >= 200, "the last rung is the dearest");
+    assert!(
+        r.locked_by(Unlock::MachineRecipe(crate::recipes::DRONE_RECIPES[5])).is_some()
+            == (r.state(drones) != TechState::Done)
+    );
+}

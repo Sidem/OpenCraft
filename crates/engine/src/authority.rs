@@ -91,6 +91,8 @@ impl Game {
     /// Moves every body this game runs by one tick, and puts any that fell out of the world back at spawn.
     pub(crate) fn step_bodies(&mut self) {
         let (world, factory) = (&self.sim.world, &self.sim.factory);
+        let players = &self.sim.players;
+        let thrusting = |slot: usize| players.get(slot).and_then(Option::as_ref).is_some_and(|p| p.helpers.thrusting);
         let mut solid = |x, y, z| world.is_solid(x, y, z);
         let mut block = |x, y, z| world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR);
         let respawn = self.spawn + Vec3::new(0.0, 2.0, 0.0);
@@ -103,6 +105,7 @@ impl Game {
             // Wait while the ground isn't loaded rather than fall through it.
             if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
                 body.conveyor = factory.conveyor_at(body.pos);
+                body.thrust = thrusting(slot);
                 for _ in 0..PHYSICS_SUBSTEPS {
                     body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid, &mut block);
                 }

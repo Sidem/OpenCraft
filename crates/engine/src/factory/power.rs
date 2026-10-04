@@ -18,6 +18,8 @@
 //! filters need no power. To power a new machine: its `*_pole` list here (filled in `rebuild`), its
 //! demand in `balance`, a speed argument to its `step`, and its arm in `wiring.rs` (`powered_cells`).
 
+use rustc_hash::FxHashSet;
+
 use crate::block::tex;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::fuel_energy;
@@ -55,6 +57,8 @@ pub(crate) struct Power {
     /// Per piece of pipework: the pole of each pump (other pieces: `None`).
     pub pipe_pole: Vec<Option<u32>>,
     pub quarry_pole: Vec<Option<u32>>,
+    /// Machines (by anchor) a sensor has switched off: left out of the lists above.
+    pub off: FxHashSet<IVec3>,
     /// Per grid, last tick: kW supplied, kW wanted, and kW its fuelled generators could give.
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
@@ -101,8 +105,9 @@ impl Power {
             pole_grid.push(grid_of_root[r]);
         }
         // A wired machine is on its pole; one with no wire hangs on the nearest cable in reach.
-        let wired = |pos: IVec3| hooked.by_target.get(&pos).copied();
-        let hang = |pos: IVec3| wired(pos).or_else(|| nearest_of(poles, pos, true));
+        let live = |pos: &IVec3| !hooked.off.contains(pos);
+        let wired = |pos: IVec3| hooked.by_target.get(&pos).copied().filter(|_| live(&pos));
+        let hang = |pos: IVec3| wired(pos).or_else(|| nearest_of(poles, pos, true).filter(|_| live(&pos)));
         Power {
             pole_grid,
             wires,
@@ -110,11 +115,15 @@ impl Power {
             miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
             process_pole: processors
                 .iter()
-                .map(|p| if takes_pole(p) { wired(p.pos).or_else(|| hang_cable(poles, &p.cells())) } else { None })
+                .map(|p| match takes_pole(p) && live(&p.pos) {
+                    true => wired(p.pos).or_else(|| hang_cable(poles, &p.cells())),
+                    false => None,
+                })
                 .collect(),
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
             pipe_pole: pipework.iter().map(|p| if p.part == Part::Pump { hang(p.pos) } else { None }).collect(),
             quarry_pole: quarries.iter().map(|q| hang(q.pos)).collect(),
+            off: hooked.off.clone(),
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],
             capacity: vec![0; grids as usize],

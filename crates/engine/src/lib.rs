@@ -26,16 +26,23 @@ mod authority;
 mod avatars;
 mod belt_line;
 mod block;
+mod blueprint;
 mod bytes;
 mod camera;
 mod chunk;
 mod crafting;
 mod daytime;
 mod deposits;
+mod drone_view;
+mod drones;
 mod entities;
 mod events;
 mod factory;
 mod footprint_preview;
+mod ghost_mode;
+mod ghosts;
+mod helper_hands;
+mod helpers;
 mod hints;
 mod interaction;
 mod inventory;
@@ -140,6 +147,12 @@ pub struct Game {
     use_cooldown: f32,
     /// A machine the player right-clicked whose panel the host should open (`take_panel_request`).
     panel_request: Option<IVec3>,
+    /// Ghost mode (B): the use button plants ghosts instead of building (`ghost_mode.rs`).
+    ghost_mode: bool,
+    /// Whether the jetpack thrust was last sent on (`helper_hands.rs`).
+    jet_sent: bool,
+    /// The player's blueprints and what the hands are doing with them (`blueprint/`).
+    library: blueprint::Library,
     dig_timer: f32,
     step_distance: f64,
     sounds: Sounds,
@@ -201,6 +214,9 @@ impl Game {
             using: false,
             use_cooldown: 0.0,
             panel_request: None,
+            ghost_mode: false,
+            jet_sent: false,
+            library: blueprint::Library::default(),
             dig_timer: 0.0,
             step_distance: 0.0,
             sounds: Sounds::default(),
@@ -265,6 +281,7 @@ impl Game {
         self.write_item_instances(dt, eye);
         self.write_avatars(dt, eye);
         self.write_move_marker(eye);
+        self.write_drone_instances(eye, alpha);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
         let world = &mut self.sim.world;
         factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
@@ -284,6 +301,7 @@ impl Game {
         self.prev_eye = self.body().eye();
         let feet = self.body().pos;
         self.step_navigation();
+        self.update_jetpack();
         self.step_bodies();
         self.update_movement_sounds(feet);
 

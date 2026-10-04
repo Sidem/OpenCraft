@@ -55,6 +55,16 @@ pub const IRON_SHOVEL_RECIPE: Recipe = Recipe {
     blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
 };
 
+/// Built on a Mk1 scanner (which it uses up), so scanning stays a ladder.
+pub const SCANNER_MK2_RECIPE: Recipe = Recipe {
+    output: SCANNER_MK2,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(SCANNER, 1), (CIRCUIT, 3), (STEEL_PLATE, 2)],
+    blurb: "A scanner with a violet screen: lists the ore deposits within 96 blocks, twice as far. Made from a \
+            Mk1 scanner. Never wears out.",
+};
+
 pub const STEEL_PICKAXE_RECIPE: Recipe = Recipe {
     output: STEEL_PICKAXE,
     group: Group::Tools,
@@ -77,4 +87,22 @@ pub const STEEL_SHOVEL_RECIPE: Recipe = Recipe {
     count: STEEL_TIER.uses,
     inputs: &[(STEEL_PLATE, 1), (IRON_ROD, 2)],
     blurb: "Digs dirt, grass and sand six times as fast. Lasts 1,500 blocks.",
+};
+
+pub const JETPACK_RECIPE: Recipe = Recipe {
+    output: JETPACK,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 4), (MOTOR, 2), (CIRCUIT, 2)],
+    blurb: "Keep it in your pack and hold jump in the air to climb on a plume of fire. Burns one coal from your \
+            pack for every 10 seconds of thrust. Never wears out.",
+};
+
+pub const PERSONAL_DRONE_RECIPE: Recipe = Recipe {
+    output: PERSONAL_DRONE,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(DRONE, 1), (CIRCUIT, 2)],
+    blurb: "Keep it in your pack. With an item in your hand, press Y: the drone flies to the nearest storage box \
+            within 32 blocks that holds it and brings back a stack. One errand at a time. Never wears out.",
 };

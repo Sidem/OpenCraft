@@ -14,7 +14,7 @@ use crate::factory::Job;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 32;
+pub const TAG_COUNT: u8 = 39;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -159,6 +159,41 @@ impl Action {
                 w.ivec3(pos);
                 w.u8(slot);
             }
+            Action::SetSensor { pos, rule } => {
+                w.u8(32);
+                w.ivec3(pos);
+                w.u8(rule);
+            }
+            Action::PlaceGhost { pos, slot, facing } => {
+                w.u8(33);
+                w.ivec3(pos);
+                w.u8(slot);
+                w.u8(facing);
+            }
+            Action::RemoveGhost { pos } => {
+                w.u8(34);
+                w.ivec3(pos);
+            }
+            Action::PlantGhost { pos, block, facing, tier } => {
+                w.u8(35);
+                w.ivec3(pos);
+                w.u8(block);
+                w.u8(facing);
+                w.u8(tier);
+            }
+            Action::MarkRemoval { pos } => {
+                w.u8(36);
+                w.ivec3(pos);
+            }
+            Action::Jetpack { on } => {
+                w.u8(37);
+                w.bool(on);
+            }
+            Action::Fetch { item, at } => {
+                w.u8(38);
+                w.item(item);
+                w.ivec3(at);
+            }
             Action::SortInventory => w.u8(24),
             Action::SortBox { pos } => {
                 w.u8(25);
@@ -206,6 +241,13 @@ impl Action {
             29 => Action::QuickMoveAll { slot: r.u8()? },
             30 => Action::StoreAll { pos: r.ivec3()?, slot: r.u8()? },
             31 => Action::TakeAll { pos: r.ivec3()?, slot: r.u8()? },
+            32 => Action::SetSensor { pos: r.ivec3()?, rule: r.u8()? },
+            33 => Action::PlaceGhost { pos: r.ivec3()?, slot: r.u8()?, facing: r.u8()? },
+            34 => Action::RemoveGhost { pos: r.ivec3()? },
+            36 => Action::MarkRemoval { pos: r.ivec3()? },
+            37 => Action::Jetpack { on: r.bool()? },
+            38 => Action::Fetch { item: r.item()?, at: r.ivec3()? },
+            35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })
     }

@@ -268,3 +268,30 @@ pub const BLAST_FURNACE_MK4_RECIPE: Recipe = Recipe {
     inputs: &[(BLAST_FURNACE_MK3, 1), (VIOLET_KIT, 8)],
     blurb: "Makes steel five times as fast as a Mk1. Or upgrade a placed blast furnace with 8 violet kits.",
 };
+
+pub const DRONE_PORT_MK2_RECIPE: Recipe = Recipe {
+    output: DRONE_PORT_MK2,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(b(DRONE_PORT), 1), (GREEN_KIT, 8)],
+    blurb: "Keeps 8 drones and sends them up to 48 blocks out; draws 60 kW while they fly. Or upgrade a placed \
+            port with 8 green kits.",
+};
+
+pub const DRONE_PORT_MK3_RECIPE: Recipe = Recipe {
+    output: DRONE_PORT_MK3,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(DRONE_PORT_MK2, 1), (BLUE_KIT, 8)],
+    blurb: "Keeps 12 drones and sends them up to 64 blocks out; draws 90 kW while they fly. Or upgrade a placed \
+            port with 8 blue kits.",
+};
+
+pub const DRONE_PORT_MK4_RECIPE: Recipe = Recipe {
+    output: DRONE_PORT_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(DRONE_PORT_MK3, 1), (VIOLET_KIT, 8)],
+    blurb: "Keeps 16 drones and sends them up to 96 blocks out; draws 140 kW while they fly. Or upgrade a placed \
+            port with 8 violet kits.",
+};

@@ -9,6 +9,7 @@ use crate::block::{self, BlockId, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUA
 use crate::deposits::Tier;
 use crate::math::IVec3;
 use crate::minimap::ore_color;
+use crate::prospect::SCANNERS;
 use crate::worldgen::{ore_shares, WorldGen, LODE_HEIGHTS};
 
 /// Per ore: its block, the stain it leaves on grass (on sand it is the same colour), how it looks.
@@ -61,7 +62,10 @@ pub fn guide_notes(gen: &WorldGen) -> String {
     }
     let (lo, hi) = LODE_HEIGHTS;
     lines.push(format!("Lodes, the biggest deposits, lie near bedrock (height {lo} to {hi}) under any ground."));
-    lines.push("A scanner lists every deposit within 48 blocks; a core drill measures the ground under it.".into());
+    let [(_, near), (_, far)] = SCANNERS;
+    lines.push(format!(
+        "A scanner lists every deposit within {near} blocks ({far} for the Mk2); a core drill measures the ground under it."
+    ));
     lines.join("\n")
 }
 

@@ -46,6 +46,7 @@ pub(crate) enum Slot {
     Lab(u32),
     Pipe(u32),
     Quarry(u32),
+    Sensor(u32),
 }
 
 impl Slot {
@@ -53,7 +54,7 @@ impl Slot {
     pub(super) fn is_sink(self) -> bool {
         match self {
             Slot::Storage(_) | Slot::Process(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Lab(_) => true,
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) | Slot::Sensor(_) => false,
         }
     }
 
@@ -69,6 +70,7 @@ impl Slot {
             Slot::Lab(_) => Kind::Lab,
             Slot::Pipe(_) => Kind::Pipe,
             Slot::Quarry(_) => Kind::Quarry,
+            Slot::Sensor(_) => Kind::Sensor,
         }
     }
 }
@@ -93,7 +95,7 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
             Slot::Lab(i) => self.labs[i as usize].room_for(item) > 0,
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) | Slot::Sensor(_) => false,
         }
     }
 
@@ -105,7 +107,7 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].accept(item),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) => false,
+            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) | Slot::Sensor(_) => false,
         }
     }
 }

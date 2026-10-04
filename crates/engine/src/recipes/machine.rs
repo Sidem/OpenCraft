@@ -15,6 +15,7 @@ use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME,
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
+use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 
 /// A kind of machine work.
@@ -143,6 +144,42 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(b(BELT), 4)],
         seconds: 3.0,
     },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(CIRCUIT, 4), (SILICON, 1), (STEEL_PLATE, 1)],
+        outputs: &[(PROCESSOR, 1)],
+        seconds: 10.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(MOTOR, 1), (CIRCUIT, 2), (GEAR, 2)],
+        outputs: &[(SERVO, 1)],
+        seconds: 8.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(SERVO, 2), (STEEL_BEAM, 2), (SCREW, 4)],
+        outputs: &[(ACTUATOR, 1)],
+        seconds: 12.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(MOTOR, 1), (CIRCUIT, 3), (STEEL_PLATE, 2)],
+        outputs: &[(DRONE_CELL, 1)],
+        seconds: 14.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(PROCESSOR, 1), (CIRCUIT, 2), (COPPER_WIRE, 4)],
+        outputs: &[(GUIDANCE_MODULE, 1)],
+        seconds: 16.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(ACTUATOR, 2), (DRONE_CELL, 1), (GUIDANCE_MODULE, 1)],
+        outputs: &[(DRONE, 1)],
+        seconds: 30.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -161,6 +198,9 @@ pub const CRUSH_RECIPES: [u16; 5] = [21, 22, 23, 24, 25];
 pub const ELECTRONICS_RECIPES: [u16; 2] = [26, 27];
 /// Violet science pack and violet kit, made by assemblers only.
 pub const VIOLET_RECIPES: [u16; 2] = [28, 29];
+/// The drone chain, made by assemblers only: processor (Processors), servo and actuator (Robotics), drone cell
+/// (Drone Power), guidance module (Navigation), drone (Construction Drones).
+pub const DRONE_RECIPES: [u16; 6] = [31, 32, 33, 34, 35, 36];
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

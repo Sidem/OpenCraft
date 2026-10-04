@@ -20,6 +20,7 @@ import { WorldStore } from './save/store';
 import { ComfortPanel } from './ui/comfort';
 import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
+import { BlueprintPanel } from './ui/blueprints';
 import { Hints } from './ui/hints';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
@@ -104,6 +105,7 @@ async function main(): Promise<void> {
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const hints = new Hints(game);
+const blueprints = new BlueprintPanel(game);
   const craftQueue = new CraftQueueView(game, (id) => hud.itemIcon(id));
   const prospect = new ProspectPanel(game);
   prospect.onReading = () => sound.scan();
@@ -118,7 +120,7 @@ async function main(): Promise<void> {
     leave: () => session?.finish() ?? Promise.resolve(),
   });
   document.getElementById('coop')!.append(coopPanel.el);
-  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen || worldMap.isOpen;
+  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen || worldMap.isOpen || blueprints.isOpen;
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -172,6 +174,7 @@ async function main(): Promise<void> {
   };
   machine.onClose = closed;
   research.onClose = closed;
+  blueprints.onClose = closed;
   worldMap.onClose = closed;
   // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
@@ -204,7 +207,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, renderer, wasm, sound, soundLab, inventory, machine, research, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, renderer, wasm, sound, soundLab, inventory, machine, research, blueprints, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -249,6 +252,10 @@ async function main(): Promise<void> {
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
       else if (a.kind === 'rotate') game.rotate_target();
+      else if (a.kind === 'ghost') game.toggle_ghost_mode();
+      else if (a.kind === 'fetch') game.fetch_held();
+      else if (a.kind === 'blueprint-mark') game.blueprint_mark();
+      else if (a.kind === 'blueprint-copy') game.blueprint_copy_selection();
       else if (a.kind === 'mute') sound.toggleMute();
       else if (a.kind === 'sound-lab') {
         // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
@@ -256,6 +263,9 @@ async function main(): Promise<void> {
         soundLab.open(game.has_target() ? game.block_sound(game.target_block()) : sound.lastMaterial);
       } else if (a.kind === 'inventory') {
         inventory.open();
+        input.unlock();
+      } else if (a.kind === 'blueprints') {
+        blueprints.open();
         input.unlock();
       } else if (a.kind === 'research') {
         research.open();

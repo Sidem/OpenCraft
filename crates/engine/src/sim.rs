@@ -19,7 +19,10 @@ use crate::action::Action;
 use crate::block::BlockId;
 use crate::bytes::{fnv1a, ByteReader, ByteWriter};
 use crate::crafting::CraftQueue;
+use crate::drones::Drones;
 use crate::factory::Factory;
+use crate::ghosts::Ghosts;
+use crate::helpers::Helpers;
 use crate::inventory::Inventory;
 use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
@@ -111,6 +114,8 @@ pub struct PlayerCore {
     pub key: u64,
     /// Hand crafts waiting or in progress (`crafting.rs`).
     pub crafts: CraftQueue,
+    /// Jetpack and personal drone (`helpers/`).
+    pub helpers: Helpers,
 }
 
 /// A player who left, kept under their key until they join again.
@@ -136,6 +141,10 @@ pub struct Sim {
     pub timers: BlockTimers,
     /// Pending flowing-water checks (water.rs).
     pub water: WaterQueue,
+    /// Planned blocks and machines (ghosts.rs).
+    pub ghosts: Ghosts,
+    /// Construction drones in flight (drones/).
+    pub drones: Drones,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -161,6 +170,8 @@ impl Sim {
             rng: Rng::new(hash2(seed, 17, 42) as u64),
             timers: BlockTimers::default(),
             water: WaterQueue::default(),
+            ghosts: Ghosts::default(),
+            drones: Drones::default(),
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -210,12 +221,14 @@ impl Sim {
             self.apply(q.player, q.action);
         }
         self.run_crafting();
+        self.run_helpers();
         self.run_timers();
         self.run_water();
         self.factory.update(&mut self.world, self.tick, &mut self.events);
         for (pos, old) in std::mem::take(&mut self.factory.changed) {
             self.block_changed(pos, old);
         }
+        self.step_drones();
         self.tick += 1;
     }
 
@@ -241,6 +254,7 @@ impl Sim {
                 p.inventory.write_state(w);
                 w.u64(p.key);
                 p.crafts.write_state(w);
+                p.helpers.write_state(w);
             }
         }
         w.count(self.away.len());
@@ -253,6 +267,8 @@ impl Sim {
         self.factory.write_state(w);
         self.timers.write_state(w);
         self.water.write_state(w);
+        self.ghosts.write_state(w);
+        self.drones.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
@@ -271,7 +287,8 @@ impl Sim {
             self.players.push(if present {
                 let (inventory, key) = (Inventory::read_state(r)?, if keyed { r.u64()? } else { 0 });
                 let crafts = if r.version >= 23 { CraftQueue::read_state(r)? } else { CraftQueue::default() };
-                Some(PlayerCore { inventory, key, crafts })
+                let helpers = if r.version >= 28 { Helpers::read_state(r)? } else { Helpers::default() };
+                Some(PlayerCore { inventory, key, crafts, helpers })
             } else {
                 None
             });
@@ -285,6 +302,8 @@ impl Sim {
         self.factory = Factory::read_state(&mut self.world, r)?;
         self.timers = if r.version >= 11 { BlockTimers::read_state(r)? } else { BlockTimers::default() };
         self.water = if r.version >= 13 { WaterQueue::read_state(r)? } else { WaterQueue::default() };
+        self.ghosts = if r.version >= 26 { Ghosts::read_state(r)? } else { Ghosts::default() };
+        self.drones = if r.version >= 27 { Drones::read_state(r)? } else { Drones::default() };
         Some(())
     }
 }

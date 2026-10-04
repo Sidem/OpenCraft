@@ -3,14 +3,17 @@
 //! progress state).
 
 use crate::block::{
-    ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB,
-    LIFT, MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE,
-    UNDERPASS_IN, UNDERPASS_OUT,
+    ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
+    GENERATOR, LAB, LIFT, MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER,
+    STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
-use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK};
+use crate::item::{
+    BLUE_PACK, GREEN_KIT, GREEN_PACK, JETPACK, PERSONAL_DRONE, RED_PACK, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE,
+    STEEL_SHOVEL, VIOLET_PACK,
+};
 use crate::recipes::{
-    ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, ELECTRONICS_RECIPES, GEAR_RECIPE, QUICKLIME_RECIPE,
-    STEEL_RECIPES, VIOLET_RECIPES,
+    ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES, ELECTRONICS_RECIPES, GEAR_RECIPE,
+    QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
 };
 
 use super::{r, Tech, Unlock};
@@ -288,5 +291,106 @@ pub const TECHS: &[Tech] = &[
         units: 80,
         seconds: 20.0,
         unlocks: &[r(SOLAR_PANEL), r(ACCUMULATOR)],
+    },
+    Tech {
+        name: "Advanced Scanning",
+        blurb: "The Scanner Mk2, built from a scanner, circuits and steel: it lists every ore deposit within 96 \
+                blocks, twice as far as the first.",
+        needs: &[18],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 60,
+        seconds: 25.0,
+        unlocks: &[Unlock::Recipe(SCANNER_MK2)],
+    },
+    Tech {
+        name: "Logic",
+        blurb: "Sensors read the box, silo or belt behind them and switch the machine in front on or off: stop a \
+                generator when the accumulators are full, feed a smelter only while its box has room.",
+        needs: &[18],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 80,
+        seconds: 25.0,
+        unlocks: &[r(SENSOR)],
+    },
+    Tech {
+        name: "Processors",
+        blurb: "Assemblers solder processors from circuits, silicon and steel: the brains of everything that thinks \
+                for itself.",
+        needs: &[18],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 100,
+        seconds: 30.0,
+        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[0])],
+    },
+    Tech {
+        name: "Robotics",
+        blurb: "Servos (a motor, circuits and gears) and the actuators built from them: the muscles of a machine \
+                that moves. Assemblers only.",
+        needs: &[20, 24],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 140,
+        seconds: 30.0,
+        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[1]), Unlock::MachineRecipe(DRONE_RECIPES[2])],
+    },
+    Tech {
+        name: "Drone Power",
+        blurb: "The drone cell: a motor, circuits and steel plates packed into a flight-ready \
+                power pack. Slow to assemble.",
+        needs: &[25],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 160,
+        seconds: 35.0,
+        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[3])],
+    },
+    Tech {
+        name: "Navigation",
+        blurb: "The guidance module: a processor, circuits and copper wire that let a machine find a spot in the \
+                air and hold it.",
+        needs: &[24, 25],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 180,
+        seconds: 35.0,
+        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[4])],
+    },
+    Tech {
+        name: "Construction Drones",
+        blurb: "The drone: two actuators, a drone cell and a guidance module, 30 seconds in an assembler, and the \
+                drone port, a 3×3 pad that keeps four and sends them out to build your ghosts and tear down what \
+                you mark, working from storage boxes beside it.",
+        needs: &[26, 27],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 240,
+        seconds: 40.0,
+        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[5]), r(DRONE_PORT)],
+    },
+    Tech {
+        name: "Swarm Logistics",
+        blurb: "Kits upgrade drone ports in place: Mk2 keeps 8 drones and reaches 48 blocks, Mk3 12 and 64, Mk4 16 \
+                and 96.",
+        needs: &[28],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 200,
+        seconds: 40.0,
+        unlocks: &[Unlock::Upgrade(DRONE_PORT, 1), Unlock::Upgrade(DRONE_PORT, 2), Unlock::Upgrade(DRONE_PORT, 3)],
+    },
+    Tech {
+        name: "Jetpack",
+        blurb: "Four steel plates, two motors and two circuits: a coal-burning pack that lifts you while you hold \
+                jump. Ten seconds of thrust a coal.",
+        needs: &[25],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 120,
+        seconds: 30.0,
+        unlocks: &[Unlock::Recipe(JETPACK)],
+    },
+    Tech {
+        name: "Personal Drone",
+        blurb: "A drone and two circuits make a companion that fetches what you ask for from the storage boxes \
+                near you.",
+        needs: &[28],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 160,
+        seconds: 35.0,
+        unlocks: &[Unlock::Recipe(PERSONAL_DRONE)],
     },
 ];

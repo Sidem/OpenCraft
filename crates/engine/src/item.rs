@@ -122,6 +122,22 @@ pub const ASSEMBLER_MK4: ItemId = ItemId(316);
 pub const BLAST_FURNACE_MK4: ItemId = ItemId(317);
 pub const POLE_MK4: ItemId = ItemId(318);
 pub const LAB_MK4: ItemId = ItemId(319);
+/// Advanced Scanning: a scanner that lists deposits twice as far (`prospect.rs`).
+pub const SCANNER_MK2: ItemId = ItemId(320);
+/// The drone chain (Processors to Construction Drones; assembler recipes only): each part feeds the next, the drone last.
+pub const PROCESSOR: ItemId = ItemId(321);
+pub const SERVO: ItemId = ItemId(322);
+pub const ACTUATOR: ItemId = ItemId(323);
+pub const DRONE_CELL: ItemId = ItemId(324);
+pub const GUIDANCE_MODULE: ItemId = ItemId(325);
+pub const DRONE: ItemId = ItemId(326);
+/// Drone port tiers 2 to 4 (`factory/tiers.rs`): each places the port block at its tier.
+pub const DRONE_PORT_MK2: ItemId = ItemId(327);
+pub const DRONE_PORT_MK3: ItemId = ItemId(328);
+pub const DRONE_PORT_MK4: ItemId = ItemId(329);
+/// Personal helpers (`helpers/`): a jetpack that burns coal from the pack, and a drone that fetches from boxes.
+pub const JETPACK: ItemId = ItemId(330);
+pub const PERSONAL_DRONE: ItemId = ItemId(331);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -179,7 +195,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 64] = [
+const EXTRA: [ItemDef; 76] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -244,6 +260,18 @@ const EXTRA: [ItemDef; 64] = [
     machine("Blast Furnace Mk4", [tex::BLAST_TOP, tex::BLAST_SIDE, tex::FRAME]),
     machine("Power Pole Mk4", [tex::FRAME, tex::POLE_SIDE, tex::FRAME]),
     machine("Research Lab Mk4", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
+    tool("Scanner Mk2", tex::SCANNER_MK2, &DEVICE_TIER),
+    part("Processor", tex::PROCESSOR, [0.6, 0.12, 0.6]),
+    part("Servo", tex::SERVO, [0.55, 0.4, 0.4]),
+    part("Actuator", tex::ACTUATOR, [0.8, 0.4, 0.4]),
+    part("Drone Cell", tex::DRONE_CELL, [0.5, 0.6, 0.35]),
+    part("Guidance Module", tex::GUIDANCE, [0.55, 0.1, 0.55]),
+    part("Drone", tex::DRONE, [0.8, 0.3, 0.8]),
+    machine("Drone Port Mk2", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
+    machine("Drone Port Mk3", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
+    machine("Drone Port Mk4", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
+    tool("Coal Jetpack", tex::JETPACK, &DEVICE_TIER),
+    tool("Personal Drone", tex::PERSONAL_DRONE, &DEVICE_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

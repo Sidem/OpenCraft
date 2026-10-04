@@ -8,6 +8,7 @@
 //! `Sim::apply_to_player` (or in `Sim::apply` if it doesn't need the player to be here yet) and its
 //! bytes in `action/codec.rs` (co-op sends actions to every peer).
 
+use crate::block::BlockId;
 use crate::factory::Job;
 use crate::inventory::{add_to_slots, click_stack, move_all_of, sort_stacks, Stack};
 use crate::item::ItemId;
@@ -51,6 +52,41 @@ pub enum Action {
     SetFilter {
         pos: IVec3,
         item: ItemId,
+    },
+    /// Chooses the rule of the sensor at `pos` (`factory::sensor::RULES` index).
+    SetSensor {
+        pos: IVec3,
+        rule: u8,
+    },
+    /// Plants a ghost (`ghosts.rs`) of what the item in `slot` places, at `pos` and `facing`; nothing is used.
+    PlaceGhost {
+        pos: IVec3,
+        slot: u8,
+        facing: u8,
+    },
+    /// Plants a ghost of `block` at `pos` outright (a stamped blueprint: `blueprint/`); nothing is used.
+    PlantGhost {
+        pos: IVec3,
+        block: BlockId,
+        facing: u8,
+        tier: u8,
+    },
+    /// Marks the block (or machine) at `pos` for tear-down: a ghost of air that drones break (`drones/`).
+    MarkRemoval {
+        pos: IVec3,
+    },
+    /// Starts or stops the jetpack's thrust (`helpers/`): the player holds jump in the air with one in the pack.
+    Jetpack {
+        on: bool,
+    },
+    /// Sends the personal drone to fetch `item` from the nearest box to `at`, the player's cell (`helpers/`).
+    Fetch {
+        item: ItemId,
+        at: IVec3,
+    },
+    /// Removes the ghost covering `pos`.
+    RemoveGhost {
+        pos: IVec3,
     },
     /// Sets the quarry at `pos`'s box (`factory::WIDTHS` and `DEPTHS` indices; a new box starts over)
     /// and whether it is paused.
@@ -189,7 +225,8 @@ impl Sim {
                 if self.players[slot].is_none() {
                     let back = self.away.iter().position(|a| key != 0 && a.key == key);
                     let inventory = back.map(|i| self.away.remove(i).inventory).unwrap_or_default();
-                    self.players[slot] = Some(PlayerCore { inventory, key, crafts: Default::default() });
+                    self.players[slot] =
+                        Some(PlayerCore { inventory, key, crafts: Default::default(), helpers: Default::default() });
                 }
             }
             Action::Leave { pos } => {
@@ -235,6 +272,15 @@ impl Sim {
                 }
             }
             Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
+            Action::SetSensor { pos, rule } => self.factory.set_sensor(pos, rule),
+            Action::PlaceGhost { pos, slot, facing } => self.place_ghost(player, pos, slot, facing),
+            Action::PlantGhost { pos, block, facing, tier } => self.plant_ghost(pos, block, facing, tier),
+            Action::MarkRemoval { pos } => self.mark_removal(pos),
+            Action::Jetpack { on } => self.set_thrust(player, on),
+            Action::Fetch { item, at } => self.start_fetch(player, item, at),
+            Action::RemoveGhost { pos } => {
+                self.ghosts.remove_at(pos);
+            }
             Action::SetQuarry { pos, width, depth, paused } => self.factory.set_quarry(pos, width, depth, paused),
             Action::Rotate { pos } => {
                 self.factory.rotate(pos);

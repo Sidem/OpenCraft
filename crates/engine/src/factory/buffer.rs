@@ -37,6 +37,17 @@ impl Buffer {
         self.slots.iter().map(|s| s.count).sum()
     }
 
+    /// How full it is, 0..=100: each slot counts by its share of a full stack, an empty one as nothing.
+    pub fn fullness(&self) -> u8 {
+        let held: u64 = self
+            .slots
+            .iter()
+            .filter(|s| !s.is_empty())
+            .map(|s| s.count as u64 * 10_000 / stack_size(s.item) as u64)
+            .sum();
+        (held / (self.slots.len().max(1) as u64 * 100)).min(100) as u8
+    }
+
     /// Room left for `item` across all slots.
     pub fn space_for(&self, item: ItemId) -> u32 {
         let max = stack_size(item);
