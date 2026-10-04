@@ -191,6 +191,13 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 The roadmap agent adds a line here when gameplay needs a look. It will already have appended a `tex`
 layer with a plain placeholder pattern, so nothing is blocked. Tick the line when you replace it.
 
+- [ ] (9.2, landed) Aluminium: `tex::CRUSHED_BAUXITE`..`CELL_TOP` (187–192, `textures/aluminium.rs`): crushed bauxite,
+  ingot, plate, battery and the electrolytic cell's tiled side and roof, all placeholders. The cell's model is
+  `CELL_PARTS` (`factory/process/parts.rs`): a long tank with a glowing bath slot and two electrodes that pump. Aluminium
+  should read as pale and light next to steel's blue-grey; the battery should read as stored power at icon size.
+- [ ] (9.1, landed) Bauxite ore, `tex::BAUXITE_ORE` (186, `textures/ores.rs` `bauxite`): a placeholder of brick-red
+  pisolites in red clay, one look only (the alternate layers are full). It should read as clearly different from
+  iron (rust-brown) and copper at a distance: a desert or basalt field far out is where players first meet it.
 - [ ] (5.7, landed) Pump, pipe and outlet models (`factory/pipes.rs` `model`): placeholders built from
   `STEEL`, `FRAME` and `GENERATOR_SIDE` boxes; pipes join on every face (`arms`); the outlet shows a short
   `WATER` stream while pouring. Their item icons are plain cubes of the block faces (`block/mod.rs`).

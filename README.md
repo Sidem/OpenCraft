@@ -110,7 +110,9 @@ tells you what lies below and how many blocks down. Ore rarely reaches the surfa
 look for it where the rock is bare, on cliffs, bare mountain tops, deserts and basalt fields. Each ore keeps to
 its own depth below the ground: limestone and coal lie shallow, iron a little deeper, copper deeper still,
 quartz deepest. Every new world has two small patches each of coal, iron and copper showing 28 to 110
-blocks from where you start. Worlds made before this keep the terrain and ore they were made with (the
+blocks from where you start. **Bauxite**, the ore of aluminium, lies only in deserts and basalt fields at least 600
+blocks from where you start, shallow and showing on bare rock as brick-red balls in red clay: it takes a long trip
+(the ore guide, key M, says so). It leaves no stain. Worlds made before this keep the terrain and ore they were made with (the
 oldest ones, before biomes, are "classic terrain"), so nothing you built there changes.
 
 **The map** (M) shows everywhere you have been, north up; the browser remembers it with the world.
@@ -238,6 +240,11 @@ size.
   4 s: choose its recipe in its panel, belt quartz and coal in at the hatches on its back and sides, and
   silicon leaves by the front. An assembler then makes 2 circuits from 1 silicon, 3 copper wire and an iron
   plate in 4 s. Quartz lies deep (25–50 blocks down) or shows on desert and highland rock as pale, pink-white crystals.
+- **Aluminium** (Bauxite Processing research, after Ore Crushing and Violet Science): a crusher grinds 2 bauxite ore
+  into 3 crushed bauxite in 2 s. The electrolytic cell (3×2×2, 300 kW) turns 2 crushed bauxite and a quicklime into an
+  aluminium ingot in 6 s: choose its recipe in its panel, belt both in at the hatches on its back and left, the ingot
+  leaves by the front and the slag by the violet hatch on the right. A constructor presses an ingot into a plate in 3 s,
+  and an assembler makes a battery from a plate, a circuit and 4 copper wire in 6 s.
 - **Solar power** (Solar Power research, after Electronics) is a solar panel (2×2×1) that gives up to 10 kW at
   noon, less towards dawn and dusk and nothing at night, and the accumulator (2×2×2) that stores 10 MJ of spare
   sun and gives it back (up to 60 kW) when the sun falls short, before any generator or turbine burns fuel.
@@ -357,7 +364,8 @@ parts for you, hand crafting is for one-offs. Also by recipe: a constructor is a
 2 belts, a filter 2 iron plates, 2 copper wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and
 4 iron rods; a boiler 24 stone bricks, 8 steel plates and 6 pipes, a steam turbine 12 steel plates, 4 motors and 16
 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an
-arc furnace 10 steel plates, 16 stone bricks and 24 copper wire. Two lifts cost 2 iron rods and 2 belts, and an
+arc furnace 10 steel plates, 16 stone bricks and 24 copper wire, an electrolytic cell 12 steel plates, 16 stone bricks,
+24 copper wire and 4 circuits. Two lifts cost 2 iron rods and 2 belts, and an
 underpass entry or exit 2 iron plates and 2 belts. A research lab costs 6 iron plates, 8 copper wire and 4 belts;
 Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
 an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an

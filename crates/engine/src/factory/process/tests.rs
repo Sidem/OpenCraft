@@ -1,14 +1,15 @@
 use super::*;
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, GENERATOR, IRON_ORE, LIMESTONE, QUARTZ_ORE,
-    SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
+    ARC_FURNACE, ASSEMBLER, BAUXITE_ORE, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, ELECTROLYTIC_CELL, GENERATOR,
+    IRON_ORE, LIMESTONE, POLE, QUARTZ_ORE, SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tests::{powered, recipe_for, run};
 use crate::factory::tiers::FAMILIES;
 use crate::factory::upgrades::Step;
 use crate::item::{
-    CIRCUIT, COPPER_WIRE, GEAR, GREEN_KIT, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT,
+    ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CIRCUIT, COPPER_WIRE, CRUSHED_BAUXITE, GEAR, GREEN_KIT, IRON_INGOT,
+    IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT,
 };
 use crate::research::{Research, TECHS};
 use crate::world::World;
@@ -376,6 +377,61 @@ fn quartz_and_coal_become_circuits_through_an_arc_furnace_and_an_assembler() {
     // 8 quartz and 8 coal make 8 silicon (4 s each); every 3 wire, plate and silicon make 2 circuits.
     assert_eq!(f.storage_count_at(v(0, 0, 5), CIRCUIT), 16);
     assert_eq!(f.processors[0].power(), 120);
+}
+
+/// Moves everything `from` holds into `to` (what a belt between them would do), returning what moved.
+fn carry(f: &mut Factory, from: IVec3, to: IVec3) -> u32 {
+    let mut taken = Vec::new();
+    f.take_contents(from, |item, n| {
+        taken.push((item, n));
+        n
+    });
+    taken.into_iter().map(|(item, n)| f.insert(to, item, n)).sum()
+}
+
+#[test]
+fn bauxite_becomes_batteries_through_a_crusher_a_cell_a_constructor_and_an_assembler() {
+    let mut f = Factory::default();
+    powered(&mut f);
+    // The cell draws 300 kW: four Mk2 generators and a second pole cover it.
+    f.place(&mut World::new(1, 2), POLE, v(4, 3, 2), 0, v(4, 3, 2), 0);
+    for (x, z) in [(3, -1), (3, 1), (4, -1), (4, 1)] {
+        f.place(&mut World::new(1, 2), GENERATOR, v(x, 3, z), 0, v(x, 3, z), 1);
+        f.insert(v(x, 3, z), COAL_ORE.into(), 64);
+    }
+    let (crusher, cell, constructor, assembler) = (v(0, 0, 0), v(0, 0, 4), v(6, 0, 0), v(6, 0, 4));
+    assert_eq!(f.insert(crusher, BAUXITE_ORE.into(), 4), 0, "locked until Bauxite Processing");
+    research_done(&mut f, "Bauxite Processing");
+    place(&mut f, CRUSHER, crusher, 0);
+    f.place(&mut World::new(1, 2), ELECTROLYTIC_CELL, cell, NORTH, cell, 0);
+    place(&mut f, CONSTRUCTOR, constructor, 0);
+    f.place(&mut World::new(1, 2), ASSEMBLER, assembler, NORTH, assembler, 0);
+    assert!(f.set_recipe(cell, Some(recipe_for(ALUMINIUM_INGOT))).is_some());
+    assert!(f.set_recipe(constructor, Some(recipe_for(ALUMINIUM_PLATE))).is_some());
+    assert!(f.set_recipe(assembler, Some(recipe_for(BATTERY))).is_some());
+
+    // 4 ore make 6 crushed bauxite (2 s a batch of 2 ore).
+    assert_eq!(f.insert(crusher, BAUXITE_ORE.into(), 4), 4);
+    run(&mut f, 4.1, |_| {});
+    assert_eq!(f.processors[0].out.count(CRUSHED_BAUXITE), 6);
+    // 6 crushed and 3 quicklime make 3 ingots (6 s each) and 3 slag, which waits at the byproduct hatch.
+    assert_eq!(carry(&mut f, crusher, cell), 6);
+    assert_eq!(f.insert(cell, QUICKLIME, 3), 3);
+    run(&mut f, 18.5, |_| {});
+    let cell_at = f.processors.iter().position(|p| p.pos == cell).unwrap();
+    assert_eq!(
+        (f.processors[cell_at].out.count(ALUMINIUM_INGOT), f.processors[cell_at].side.count(SLAG.into())),
+        (3, 3)
+    );
+    // The ingots press to plates (3 s each), which an assembler turns into batteries with circuits and wire.
+    assert_eq!(carry(&mut f, cell, constructor), 3);
+    run(&mut f, 9.5, |_| {});
+    assert_eq!(carry(&mut f, constructor, assembler), 3);
+    f.insert(assembler, CIRCUIT, 3);
+    f.insert(assembler, COPPER_WIRE, 12);
+    run(&mut f, 18.5, |_| {});
+    let assembler_at = f.processors.iter().position(|p| p.pos == assembler).unwrap();
+    assert_eq!(f.processors[assembler_at].out.count(BATTERY), 3);
 }
 
 #[test]

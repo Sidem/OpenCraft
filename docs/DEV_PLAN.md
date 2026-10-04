@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; next 9.1** · The `art` branch is superseded; art work
+now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; next 9.3** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -428,8 +428,8 @@ Milestones 6 (Industry), 7 (Electronics, blueprints, drones) and 8 (Terraforming
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 29) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 76, item 339). Each new look gets a placeholder
-  layer (`tex::COUNT` is 180) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 78, item 343). Each new look gets a placeholder
+  layer (`tex::COUNT` is 193) and a `docs/ART_HANDOVER.md` request line.
 
 ### Milestone 8 (Terraforming), built
 
@@ -443,13 +443,19 @@ Sites show on the maps as hollow squares. `bench_earthworks`: worst tick 0.5 ms.
 Goal: the world is bigger than the factory. A new ore sits only in far biomes, so the player must find it, reach it and
 haul it home. Order: the ore, aluminium, finding far ground, rails, then flight and cargo.
 
-- [ ] **9.1 Bauxite and generator version 5** (`worldgen/`, new world only; older versions stay pinned by
-  `released_versions_never_change`): bauxite ore appended to the blocks, in deposits only in deserts and basalt fields at
-  least ~600 blocks from spawn. Ore guide row, scanner filter, map colour, a surface hint. Done when: a test finds bauxite
-  only in those biomes and never within 600 blocks; `ore_guide` lists it.
-- [ ] **9.2 Aluminium:** techs Bauxite Processing (crusher recipe for crushed bauxite, the electrolytic cell 3×2×2, 300 kW,
-  a `ProcessSpec` row), aluminium ingot and plate, battery (`docs/TECH_ERAS.md` section 5). Done when: a scenario test runs
-  bauxite → crushed → aluminium → plate → battery through machines.
+- [x] **9.1 Bauxite and generator version 5** (`worldgen/geology.rs`, new worlds only; versions 1–4 never make it): block
+  76 `BAUXITE_ORE`, in deposits only in deserts and basalt fields at least 600 blocks from spawn (weights 4 and 3 on top of
+  those biomes' ores: 27% and 23% of their deposits), a shallow band of 4–16 blocks, exposed on bare rock like the metals.
+  No stain (it shows itself). Ore guide row and note (version 5 worlds only), scanner filter, map colour, texture layer 186.
+  Used by nothing until 9.2 (`NO_USE_YET`). Tests 458 → 459; v5 is not pinned in `released_versions_never_change` yet.
+- [x] **9.2 Aluminium** (`research/distance.rs`, `recipes/aluminium.rs`, `textures/aluminium.rs`): tech Bauxite Processing
+  (index 36, after Ore Crushing and Violet Science; 120 units of all four packs) unlocks the electrolytic cell (block 77, a
+  `ProcessSpec` row of 3×2×2 with a slag `Role::Side` hatch on the right, 300 kW, new `Category::Electrolysis`; hand recipe 12 steel
+  plates, 16 stone bricks, 24 copper wire, 4 circuits) and machine recipes 37–40 (`BAUXITE_RECIPES`: crusher 2 ore → 3
+  crushed bauxite; cell 2 crushed + 1 quicklime → ingot + slag, 6 s; constructor ingot → plate, 3 s; assembler plate + circuit
+  + 4 wire → battery, 6 s). Items 339–342, layers 187–192. The battery waits for 9.5 (`NO_USE_YET`). The scenario test runs
+  bauxite → crushed → aluminium → plate → battery. The tech count grew, so the golden hash was re-recorded (research bytes
+  list every tech); no save version bump (older saves read fewer techs). Tests 459 → 460.
 - [ ] **9.3 Finding far ground** (user request, 2026-10-04: the player must roughly know which way to travel to reach the
   right biome). Proposed: the Scanner Mk2 (and a new survey tech's tool) answers "nothing in range" with a **bearing**: the
   nearest ground of a biome that holds the chosen ore, as one of eight compass points and a distance band (for example
@@ -506,6 +512,9 @@ and the balance numbers. Read the section you need.
 ---
 
 ## 8. Recent changes
+
+- **2026-10-04: Aluminium (step 9.2).** Bauxite Processing: crushed bauxite, the electrolytic cell (block 77, 300 kW, slag byproduct hatch), aluminium ingot and plate, battery; a third tech table `research/distance.rs`. Golden hash re-recorded (one more tech). Tests 459 → 460.
+- **2026-10-04: Bauxite (step 9.1).** Generator version 5 for new worlds: bauxite (block 76) in far deserts and basalt fields only, at least 600 blocks from spawn, shallow and exposed on bare rock, no stain; guide, scanner filter, map colour, a placeholder texture. Tests 458 → 459.
 
 - **2026-10-04: Milestone 8 done (steps 8.4–8.5).** Tunnels: the planner panel's Tunnel job bores between two blocks; drone ports cut it into their boxes like a dig, leaving cells next to water (`Site` got `covers` / `cuts_at` / `picks`; `sites.rs` split into `sites/survey.rs` and `sites/tunnel.rs`). Cleanup: `bench_earthworks` (worst tick 0.5 ms), sites on the maps as hollow squares, a planner tip, outline colours from the Okabe-Ito palette. Tests 451 → 458, wasm 329 KB gzipped. Milestone 9 moved in; the user asked for bearings to far biomes and for trains (section 1).
 

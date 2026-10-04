@@ -5,20 +5,22 @@
 //!
 //! To add an ore: a row in `GUIDE`.
 
-use crate::block::{self, BlockId, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
+use crate::block::{self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
 use crate::deposits::Tier;
 use crate::math::IVec3;
 use crate::minimap::ore_color;
 use crate::prospect::SCANNERS;
-use crate::worldgen::{ore_shares, WorldGen, LODE_HEIGHTS};
+use crate::worldgen::{ore_shares, WorldGen, BAUXITE_FROM, LODE_HEIGHTS};
 
-/// Per ore: its block, the stain it leaves on grass (on sand it is the same colour), how it looks.
-const GUIDE: [(BlockId, &str, &str); 5] = [
+/// Per ore: its block, the stain it leaves on grass (on sand it is the same colour; none for bauxite), how it
+/// looks. Bauxite is listed only for worlds of generator version 5 and up.
+const GUIDE: [(BlockId, &str, &str); 6] = [
     (COAL_ORE, "dark soil", "black lumps in the rock"),
     (IRON_ORE, "rusty soil", "rust-brown nodules in the rock"),
     (COPPER_ORE, "green soil", "orange and green crusts"),
     (LIMESTONE, "pale soil", "pale rock with fossils"),
     (QUARTZ_ORE, "pale soil", "pink-white crystals"),
+    (BAUXITE_ORE, "", "brick-red balls packed in red clay"),
 ];
 
 /// One line per ore, fields split by tabs: block id, colour (0xRRGGBB), name, the band it lies in
@@ -26,6 +28,9 @@ const GUIDE: [(BlockId, &str, &str); 5] = [
 pub fn guide_rows(gen: &WorldGen) -> String {
     let mut out = String::new();
     for (ore, stain, looks) in GUIDE {
+        if ore == BAUXITE_ORE && gen.version() < 5 {
+            continue;
+        }
         let (lo, hi) = gen.ore_band(ore);
         let shares = ore_shares(ore);
         let common = if gen.version() < 2 || shares.is_empty() {
@@ -35,7 +40,9 @@ pub fn guide_rows(gen: &WorldGen) -> String {
             format!("Share of deposits: {}", parts.join(", "))
         };
         let mut signs = format!("Exposed: {looks}.");
-        if gen.version() >= 2 {
+        if stain.is_empty() {
+            signs += " It leaves no stain: find the right biome far from the start, then scan.";
+        } else if gen.version() >= 2 {
             signs += &format!(" Buried: {stain} or sand above a vein or lode.");
         }
         let label = block::ore_label(ore);
@@ -56,6 +63,11 @@ pub fn guide_notes(gen: &WorldGen) -> String {
         lines.push("Exposed ore shows only on bare rock: cliffs, mountain tops, deserts and basalt fields.".into());
         lines
             .push("Depth counts down from the ground above, not from sea level: under a hill, ore lies higher.".into());
+    }
+    if gen.version() >= 5 {
+        lines.push(format!(
+            "Bauxite, the aluminium ore, lies only in deserts and basalt fields at least {BAUXITE_FROM} blocks from where the world starts."
+        ));
     }
     if gen.version() >= 2 {
         lines.push("Stained soil lies over veins and lodes. Point at it to see how far down the ore is.".into());

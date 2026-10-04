@@ -147,6 +147,11 @@ pub const SPRING_BOOTS: ItemId = ItemId(335);
 pub const SERVO_BOOTS: ItemId = ItemId(336);
 pub const EXO_FRAME: ItemId = ItemId(337);
 pub const MINING_RIG: ItemId = ItemId(338);
+/// Aluminium (Bauxite Processing): crushed bauxite, the cell's ingot, the plate pressed from it and the battery.
+pub const CRUSHED_BAUXITE: ItemId = ItemId(339);
+pub const ALUMINIUM_INGOT: ItemId = ItemId(340);
+pub const ALUMINIUM_PLATE: ItemId = ItemId(341);
+pub const BATTERY: ItemId = ItemId(342);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -204,7 +209,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 83] = [
+const EXTRA: [ItemDef; 87] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -288,6 +293,10 @@ const EXTRA: [ItemDef; 83] = [
     tool("Servo Boots", tex::SERVO_BOOTS, &DEVICE_TIER),
     tool("Exo Frame", tex::EXO_FRAME, &DEVICE_TIER),
     tool("Mining Rig", tex::MINING_RIG, &DEVICE_TIER),
+    part("Crushed Bauxite", tex::CRUSHED_BAUXITE, [0.6, 0.4, 0.6]),
+    ingot("Aluminium Ingot", tex::ALUMINIUM_INGOT),
+    part("Aluminium Plate", tex::ALUMINIUM_PLATE, [0.85, 0.14, 0.85]),
+    part("Battery", tex::BATTERY, [0.4, 0.6, 0.4]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

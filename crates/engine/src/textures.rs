@@ -6,11 +6,12 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
 
+mod aluminium;
 mod assembly;
 mod avatar;
 mod electronics;
@@ -103,6 +104,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::COPPER_ORE => ores::copper(x, y, alt),
         tex::LIMESTONE => ores::limestone(x, y, alt),
         tex::QUARTZ_ORE => ores::quartz(x, y, alt),
+        tex::BAUXITE_ORE => ores::bauxite(x, y, alt),
         tex::BELT_TOP => belt_top(x, y, [192.0, 119.0, 70.0]),
         tex::FAST_BELT_TOP => belt_top(x, y, [106.0, 164.0, 176.0]),
         tex::FRAME => frame(x, y),
@@ -173,6 +175,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::PROCESSOR..=tex::PLANNER => robotics::pixel(layer, x, y),
         tex::PIPE_WATER..=tex::PIPE_STEAM => piping::pixel(layer, x, y),
         tex::HAULER_PACK..=tex::MINING_RIG => gear::pixel(layer, x, y),
+        tex::CRUSHED_BAUXITE..=tex::CELL_TOP => aluminium::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

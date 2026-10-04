@@ -4,7 +4,7 @@
 //!
 //! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the
 //! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
-//! `solar.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
+//! `solar.rs`, the electrolytic cell's in `aluminium.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::{
@@ -12,6 +12,7 @@ use crate::item::{
     MOTOR, RED_PACK, SCANNER, SCREW, STICK,
 };
 
+mod aluminium;
 mod electronics;
 mod gear;
 mod heavy;
@@ -22,6 +23,7 @@ mod tiers;
 mod timing;
 mod tooling;
 mod wiring;
+use aluminium::*;
 use electronics::*;
 use gear::*;
 use heavy::*;
@@ -294,6 +296,7 @@ pub const RECIPES: &[Recipe] = &[
     CRUSHER_RECIPE,
     SILO_RECIPE,
     ARC_FURNACE_RECIPE,
+    ELECTROLYTIC_CELL_RECIPE,
     STONE_PICKAXE_RECIPE,
     STONE_AXE_RECIPE,
     STONE_SHOVEL_RECIPE,

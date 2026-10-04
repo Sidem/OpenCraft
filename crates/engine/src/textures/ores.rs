@@ -14,6 +14,7 @@ const COAL: Ramp = [[20, 22, 26], [30, 33, 38], [42, 46, 52], [60, 65, 72], [98,
 const IRON: Ramp = [[72, 38, 30], [98, 52, 38], [124, 70, 48], [150, 92, 62], [180, 126, 92]];
 const MALACHITE: Ramp = [[28, 78, 60], [40, 104, 76], [56, 130, 92], [84, 158, 112], [130, 190, 146]];
 const QUARTZ: Ramp = [[146, 152, 160], [182, 187, 194], [207, 211, 217], [227, 229, 233], [246, 247, 250]];
+const BAUXITE: Ramp = [[96, 38, 28], [128, 52, 36], [158, 74, 48], [186, 102, 66], [214, 142, 100]];
 const LIME: Ramp = [[160, 156, 140], [180, 176, 160], [197, 194, 178], [211, 208, 193], [226, 224, 211]];
 
 /// Black angular lumps made of flat facets (one catching the light, with a sheen texel), a sooty
@@ -89,6 +90,18 @@ pub fn quartz(x: i32, y: i32, alt: u32) -> [u8; 4] {
             tone(&QUARTZ, lit + (n(331, x, y) - 0.5) * 0.15)
         }
         None => stone(x, y),
+    }
+}
+
+/// Brick-red laterite: rounded pisolites (pea-sized balls, lit from the upper left) packed in a clay-red matrix,
+/// with pale flecks. One look only (the alternate layers are full).
+pub fn bauxite(x: i32, y: i32, _alt: u32) -> [u8; 4] {
+    let matrix = tone(&BAUXITE, 0.3 + mottle(340, x, y, 0.25) * 0.3);
+    match blob(341, 0, 9, (0.9, 1.7), 1.0, x, y) {
+        Some(s) if s.d > 0.85 => tone(&BAUXITE, 0.12),
+        Some(s) => tone(&BAUXITE, 0.62 - (s.dx + s.dy) * 0.28),
+        None if n(342, x, y) > 0.93 => tone(&BAUXITE, 0.9),
+        None => matrix,
     }
 }
 

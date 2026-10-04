@@ -117,6 +117,20 @@ pub(super) const ARC_PARTS: [Part; 7] = [
     part([0.78, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
 ];
 
+const TILES: [u16; 3] = [tex::CELL_TOP, tex::CELL_SIDE, tex::FRAME];
+
+/// A long white-tiled tank on a banded plinth with a glowing bath slot on the front, two electrodes that pump on
+/// the roof while working, a roof plate and a status lamp.
+pub(super) const CELL_PARTS: [Part; 7] = [
+    part([0.0, -0.9, 0.0], [2.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, -0.1, 0.0], [2.8, 1.4, 1.8], Look::Tex(TILES)),
+    part([0.0, 0.66, 0.0], [2.9, 0.1, 1.9], FRAME),
+    part([0.0, -0.1, 0.92], [2.0, 0.3, 0.12], Look::Fire(tex::CELL_SIDE)),
+    part([-0.8, 0.95, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::COPPER_INGOT; 3])),
+    part([0.8, 0.95, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::COPPER_INGOT; 3])),
+    part([1.3, 0.76, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
+];
+
 const CONCRETE_RINGS: [u16; 3] = [tex::SILO_TOP, tex::SILO_SIDE, tex::FRAME];
 
 /// A tall concrete drum on a banded plinth with two steel rings, a roof and hatch, a status lamp.

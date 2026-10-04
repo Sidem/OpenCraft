@@ -114,7 +114,11 @@ pub const ACCUMULATOR: BlockId = 73;
 pub const SENSOR: BlockId = 74;
 /// A landing pad that keeps and launches construction drones (`factory/process/hangar.rs`, `drones/`).
 pub const DRONE_PORT: BlockId = 75;
-pub const BLOCK_COUNT: usize = 76;
+/// Bauxite (Milestone 9): the aluminium ore, found only in far deserts and basalt fields (generator version 5).
+pub const BAUXITE_ORE: BlockId = 76;
+/// The electrolytic cell (3×2×2 processor, `factory/process/specs.rs`): aluminium from crushed bauxite and quicklime.
+pub const ELECTROLYTIC_CELL: BlockId = 77;
+pub const BLOCK_COUNT: usize = 78;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -332,6 +336,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Accumulator", true, 1.4, pillar(tex::ACCUMULATOR_SIDE, tex::ACCUMULATOR_TOP, tex::FRAME), ACCUMULATOR),
     machine("Sensor", true, 0.8, pillar(tex::FRAME, tex::CIRCUIT, tex::FRAME), SENSOR),
     machine("Drone Port", true, 1.4, pillar(tex::DRONE_PORT_SIDE, tex::DRONE_PORT_TOP, tex::FRAME), DRONE_PORT),
+    ore("Bauxite Ore", all(tex::BAUXITE_ORE), BAUXITE_ORE),
+    machine("Electrolytic Cell", true, 1.4, pillar(tex::CELL_SIDE, tex::CELL_TOP, tex::FRAME), ELECTROLYTIC_CELL),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -365,7 +371,7 @@ pub fn def(id: BlockId) -> &'static BlockDef {
 
 #[inline]
 pub fn is_ore(id: BlockId) -> bool {
-    matches!(id, COAL_ORE | IRON_ORE | COPPER_ORE | LIMESTONE | QUARTZ_ORE)
+    matches!(id, COAL_ORE | IRON_ORE | COPPER_ORE | LIMESTONE | QUARTZ_ORE | BAUXITE_ORE)
 }
 
 /// Short resource name used in deposit names ("Iron vein").
@@ -376,6 +382,7 @@ pub fn ore_label(id: BlockId) -> &'static str {
         COPPER_ORE => "Copper",
         LIMESTONE => "Limestone",
         QUARTZ_ORE => "Quartz",
+        BAUXITE_ORE => "Bauxite",
         _ => "Ore",
     }
 }

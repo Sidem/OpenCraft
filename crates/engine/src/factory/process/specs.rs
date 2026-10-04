@@ -9,7 +9,8 @@
 //! parts, and its recipes' category (`recipes/machine.rs`).
 
 use crate::block::{
-    BlockId, ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, SILO, SMELTER, TURBINE,
+    BlockId, ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, ELECTROLYTIC_CELL, SILO, SMELTER,
+    TURBINE,
 };
 use crate::item::ItemId;
 use crate::recipes::{Category, MachineRecipe, MACHINE_RECIPES};
@@ -215,7 +216,7 @@ pub const SPECS: &[ProcessSpec] = &[
         footprint: SINGLE,
         verb: "Crushing",
         products: "crushed ore",
-        waiting: "Waiting for iron or copper ore, or slag",
+        waiting: "Waiting for iron, copper or bauxite ore, or slag",
         map_colour: 0xd6a930,
         parts: &CRUSHER_PARTS,
     },
@@ -252,6 +253,28 @@ pub const SPECS: &[ProcessSpec] = &[
         waiting: "",
         map_colour: 0x9a7ad8,
         parts: &ARC_PARTS,
+    },
+    ProcessSpec {
+        block: ELECTROLYTIC_CELL,
+        categories: &[Category::Electrolysis],
+        pick: Pick::Chosen,
+        buffers: [2, 0, 1],
+        side: 1,
+        tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 300 }],
+        footprint: Footprint {
+            size: [3, 2, 2],
+            ports: &[
+                inlet(Side::Back),
+                inlet(Side::Left),
+                OUT_FRONT,
+                Port { side: Side::Right, role: Role::Side, cell: Which::All },
+            ],
+        },
+        verb: "Electrolysing",
+        products: "aluminium",
+        waiting: "",
+        map_colour: 0xcfd8e3,
+        parts: &CELL_PARTS,
     },
 ];
 

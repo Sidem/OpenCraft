@@ -17,7 +17,7 @@
 //! (column, tier, slot). Lodes use version 2's draws exactly. To tune: the constants below (version 4's
 //! only: version 3 is released).
 
-use crate::block::{BlockId, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
+use crate::block::{BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
 use crate::math::{hash2, IVec3, Rng};
@@ -34,8 +34,15 @@ const EXPOSED_CHANCE: f64 = 0.28;
 /// Per ore: the band (blocks below the local surface) its buried pockets and veins sit in.
 pub(super) const ORE_DEPTH: [(BlockId, i32, i32); 5] =
     [(LIMESTONE, 8, 25), (COAL_ORE, 10, 35), (IRON_ORE, 20, 50), (COPPER_ORE, 35, 70), (QUARTZ_ORE, 35, 70)];
-pub(super) const ORE_DEPTH_V4: [(BlockId, i32, i32); 5] =
-    [(LIMESTONE, 6, 20), (COAL_ORE, 6, 22), (IRON_ORE, 8, 28), (COPPER_ORE, 12, 34), (QUARTZ_ORE, 25, 50)];
+/// Bauxite (version 5) lies shallow, in the laterite just under a far desert or basalt field.
+pub(super) const ORE_DEPTH_V4: [(BlockId, i32, i32); 6] = [
+    (LIMESTONE, 6, 20),
+    (COAL_ORE, 6, 22),
+    (IRON_ORE, 8, 28),
+    (COPPER_ORE, 12, 34),
+    (QUARTZ_ORE, 25, 50),
+    (BAUXITE_ORE, 4, 16),
+];
 /// Version 4: the chance for a coal, iron or copper outcrop slot on bare rock to show.
 const EXPOSED_CHANCE_METALS: f64 = 0.42;
 /// Nothing buried is placed below this height (bedrock lies under it).
@@ -139,8 +146,8 @@ impl WorldGen {
     pub(crate) fn ore_band(&self, ore: BlockId) -> (i32, i32) {
         let table = match self.version {
             ..=2 => return (20, 60),
-            3 => &ORE_DEPTH,
-            _ => &ORE_DEPTH_V4,
+            3 => &ORE_DEPTH[..],
+            _ => &ORE_DEPTH_V4[..],
         };
         table.iter().find(|b| b.0 == ore).map_or((10, 40), |b| (b.1, b.2))
     }
@@ -153,7 +160,7 @@ impl WorldGen {
 
     /// The chance that an outcrop slot of `ore` on bare rock shows at the surface.
     fn exposed_chance(&self, ore: BlockId) -> f64 {
-        let metal = matches!(ore, COAL_ORE | IRON_ORE | COPPER_ORE);
+        let metal = matches!(ore, COAL_ORE | IRON_ORE | COPPER_ORE | BAUXITE_ORE);
         if self.version >= 4 && metal {
             EXPOSED_CHANCE_METALS
         } else {

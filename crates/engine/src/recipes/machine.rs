@@ -16,6 +16,7 @@ use crate::item::{
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
 use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
+use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CRUSHED_BAUXITE};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 
 /// A kind of machine work.
@@ -33,6 +34,8 @@ pub enum Category {
     Crushing,
     /// Quartz and coal into silicon (the arc furnace).
     Arc,
+    /// Crushed bauxite and quicklime into aluminium and slag (the electrolytic cell).
+    Electrolysis,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -45,7 +48,7 @@ pub struct MachineRecipe {
     pub seconds: f64,
 }
 
-use Category::{Arc, Assembly, Blasting, Crushing, Pressing, Smelting};
+use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelting};
 
 pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -180,6 +183,30 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(DRONE, 1)],
         seconds: 30.0,
     },
+    MachineRecipe {
+        category: Crushing,
+        inputs: &[(b(BAUXITE_ORE), 2)],
+        outputs: &[(CRUSHED_BAUXITE, 3)],
+        seconds: 2.0,
+    },
+    MachineRecipe {
+        category: Electrolysis,
+        inputs: &[(CRUSHED_BAUXITE, 2), (QUICKLIME, 1)],
+        outputs: &[(ALUMINIUM_INGOT, 1), (b(SLAG), 1)],
+        seconds: 6.0,
+    },
+    MachineRecipe {
+        category: Pressing,
+        inputs: &[(ALUMINIUM_INGOT, 1)],
+        outputs: &[(ALUMINIUM_PLATE, 1)],
+        seconds: 3.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(ALUMINIUM_PLATE, 1), (CIRCUIT, 1), (COPPER_WIRE, 4)],
+        outputs: &[(BATTERY, 1)],
+        seconds: 6.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -201,6 +228,9 @@ pub const VIOLET_RECIPES: [u16; 2] = [28, 29];
 /// The drone chain, made by assemblers only: processor (Processors), servo and actuator (Robotics), drone cell
 /// (Drone Power), guidance module (Navigation), drone (Construction Drones).
 pub const DRONE_RECIPES: [u16; 6] = [31, 32, 33, 34, 35, 36];
+/// Aluminium (Bauxite Processing): the crusher's bauxite row, the electrolytic cell's ingot, the constructor's plate
+/// and the assembler's battery.
+pub const BAUXITE_RECIPES: [u16; 4] = [37, 38, 39, 40];
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

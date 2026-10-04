@@ -18,7 +18,7 @@ fn deposits(g: &WorldGen) -> Vec<Deposit> {
 
 #[test]
 fn ores_follow_the_biome_weights() {
-    let g = WorldGen::new(1337);
+    let g = WorldGen::with_version(1337, 4); // version 5 adds bauxite far out (below)
     let all = deposits(&g);
     for &(biome, weights) in &ORES_BY_BIOME {
         let here: Vec<&Deposit> = all
@@ -140,4 +140,28 @@ fn a_miner_on_limestone_or_quartz_fills_a_box() {
         g.skip_time(300.0);
         assert!(g.sim.factory.storage_count_at(chest, ore.into()) > 0, "{} reached the box", def(ore).name);
     }
+}
+
+#[test]
+fn bauxite_lies_only_in_far_deserts_and_basalt_fields_of_new_worlds() {
+    let g = WorldGen::new(1337);
+    let bauxite: Vec<Deposit> = deposits(&g).into_iter().filter(|d| d.ore() == BAUXITE_ORE).collect();
+    println!("{} bauxite deposits within 1,000 blocks", bauxite.len());
+    assert!(bauxite.len() > 20, "some lie within reach of a long trip");
+    for d in &bauxite {
+        let (x, z) = (d.center.x as i64, d.center.z as i64);
+        assert!(x * x + z * z >= (BAUXITE_FROM as i64).pow(2), "{d:?} is too near spawn");
+        let biome = g.biome_at(d.center.x, d.center.z, g.height_at(d.center.x, d.center.z));
+        assert!(matches!(biome, Biome::Desert | Biome::BasaltFields), "{biome:?}");
+        let (lo, hi) = g.ore_band(BAUXITE_ORE);
+        assert!((4..=16).contains(&lo) && hi == 16, "a shallow band");
+    }
+    for version in 1..=4 {
+        let old = deposits(&WorldGen::with_version(1337, version));
+        assert!(old.iter().all(|d| d.ore() != BAUXITE_ORE), "version {version} never makes bauxite");
+    }
+    let shares = ore_shares(BAUXITE_ORE);
+    assert_eq!(shares.iter().map(|s| s.0).collect::<Vec<_>>().len(), 2);
+    assert!(shares.iter().all(|s| matches!(s.0, Biome::Desert | Biome::BasaltFields)));
+    assert!(hint_for(BAUXITE_ORE, GRASS).is_none() && hint_for(BAUXITE_ORE, SAND).is_none(), "no stain");
 }

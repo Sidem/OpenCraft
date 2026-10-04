@@ -13,10 +13,10 @@ fn rows(gen: &WorldGen) -> Vec<Vec<String>> {
 
 #[test]
 fn the_guide_gives_each_ores_band_for_the_worlds_generator() {
-    for version in [1, 2, 3, 4] {
+    for version in [1, 2, 3, 4, 5] {
         let gen = WorldGen::with_version(7, version);
         let rows = rows(&gen);
-        assert_eq!(rows.len(), GUIDE.len());
+        assert_eq!(rows.len(), GUIDE.len() - (version < 5) as usize, "bauxite only from version 5");
         for (row, (ore, ..)) in rows.iter().zip(GUIDE) {
             assert_eq!(row.len(), 7, "{row:?}");
             assert_eq!(row[0], ore.to_string());

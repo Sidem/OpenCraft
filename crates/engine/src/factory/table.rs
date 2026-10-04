@@ -7,8 +7,8 @@
 
 use crate::block::{
     BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CONSTRUCTOR, CRUSHER, DRONE_PORT,
-    FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, RAMP_DOWN, RAMP_UP,
-    SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
+    ELECTROLYTIC_CELL, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY,
+    RAMP_DOWN, RAMP_UP, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::research::PACKS;
 /// Machine kinds, in `MACHINES` order.
@@ -40,7 +40,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 33] = [
+pub const MACHINES: [MachineDef; 34] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -70,6 +70,7 @@ pub const MACHINES: [MachineDef; 33] = [
     MachineDef { block: CABLE, kind: Kind::Pole, slots: 0, panel: false },
     MachineDef { block: SOLAR_PANEL, kind: Kind::Process, slots: 0, panel: false },
     MachineDef { block: ACCUMULATOR, kind: Kind::Process, slots: 0, panel: false },
+    MachineDef { block: ELECTROLYTIC_CELL, kind: Kind::Process, slots: 0, panel: true },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },

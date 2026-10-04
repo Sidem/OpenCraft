@@ -197,7 +197,16 @@ pub const SPRING_BOOTS: u16 = 182;
 pub const SERVO_BOOTS: u16 = 183;
 pub const EXO_FRAME: u16 = 184;
 pub const MINING_RIG: u16 = 185;
-pub const COUNT: usize = 186;
+/// Bauxite ore (`textures/ores.rs`): one look, the alternates are full.
+pub const BAUXITE_ORE: u16 = 186;
+/// Aluminium (`textures/aluminium.rs`): crushed bauxite, the ingot, plate and battery, the electrolytic cell.
+pub const CRUSHED_BAUXITE: u16 = 187;
+pub const ALUMINIUM_INGOT: u16 = 188;
+pub const ALUMINIUM_PLATE: u16 = 189;
+pub const BATTERY: u16 = 190;
+pub const CELL_SIDE: u16 = 191;
+pub const CELL_TOP: u16 = 192;
+pub const COUNT: usize = 193;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

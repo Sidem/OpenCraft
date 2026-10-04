@@ -130,6 +130,7 @@ pub fn ore_color(ore: BlockId) -> i32 {
         block::COPPER_ORE => 0x3cc8a0,
         block::LIMESTONE => 0xefe6c8,
         block::QUARTZ_ORE => 0xf4c6e8,
+        block::BAUXITE_ORE => 0xc2553a,
         _ => 0xffffff,
     }
 }

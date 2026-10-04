@@ -15,21 +15,27 @@ use crate::recipes::{
     QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
 };
 
+use super::distance::DISTANCE;
 use super::personal::PERSONAL;
 use super::{r, Tech, Unlock};
 
-/// Every tech: the main tree, then the personal gear's.
-pub const TECHS: &[Tech] = &join::<{ MAIN.len() + PERSONAL.len() }>(&MAIN, &PERSONAL);
+/// Every tech: the main tree, then the personal gear's, then Milestone 9's.
+pub const TECHS: &[Tech] = &join::<{ MAIN.len() + PERSONAL.len() + DISTANCE.len() }>(&[&MAIN, &PERSONAL, &DISTANCE]);
 
-/// `a` then `b` as one array of `N` = their lengths added.
-const fn join<const N: usize>(a: &[Tech], b: &[Tech]) -> [Tech; N] {
-    assert!(a.len() + b.len() == N);
-    let mut out = [a[0]; N];
-    let mut i = 0;
-    while i < N {
-        out[i] = if i < a.len() { a[i] } else { b[i - a.len()] };
-        i += 1;
+/// The `parts` one after another as one array of `N` = their lengths added.
+const fn join<const N: usize>(parts: &[&[Tech]]) -> [Tech; N] {
+    let mut out = [parts[0][0]; N];
+    let (mut at, mut p) = (0, 0);
+    while p < parts.len() {
+        let mut i = 0;
+        while i < parts[p].len() {
+            out[at] = parts[p][i];
+            at += 1;
+            i += 1;
+        }
+        p += 1;
     }
+    assert!(at == N);
     out
 }
 

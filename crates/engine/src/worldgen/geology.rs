@@ -10,8 +10,8 @@
 //! the same helpers as version 1 (`ore.rs`). To tune: `ORES_BY_BIOME` (weights, not rates).
 
 use crate::block::{
-    BlockId, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GRASS, GREEN_SAND, GREEN_SOIL, IRON_ORE, LIMESTONE, PALE_SAND,
-    PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND,
+    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GRASS, GREEN_SAND, GREEN_SOIL, IRON_ORE,
+    LIMESTONE, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND,
 };
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
@@ -36,6 +36,10 @@ const ORES_BY_BIOME: [(Biome, &[(BlockId, u32)]); 5] = [
     (Biome::Desert, &[(QUARTZ_ORE, 4), (LIMESTONE, 3), (IRON_ORE, 3), (COPPER_ORE, 1)]),
     (Biome::BasaltFields, &[(IRON_ORE, 6), (COPPER_ORE, 3), (QUARTZ_ORE, 1)]),
 ];
+
+/// Version 5: far from spawn, bauxite joins these biomes' ore weights (`WorldGen::bauxite_weight`).
+pub const BAUXITE_FROM: i32 = 600;
+const BAUXITE_WEIGHTS: [(Biome, u32); 2] = [(Biome::Desert, 4), (Biome::BasaltFields, 3)];
 
 impl WorldGen {
     /// Version 2's deposits seeded in one chunk column.
@@ -106,14 +110,28 @@ impl WorldGen {
     pub(super) fn ore_at(&self, rng: &mut Rng, at: IVec3) -> BlockId {
         let biome = self.biome_at(at.x, at.z, self.height_at(at.x, at.z));
         let ores = ores_in(biome);
-        let mut pick = rng.below(ores.iter().map(|o| o.1).sum());
+        let bauxite = self.bauxite_weight(biome, at);
+        let mut pick = rng.below(ores.iter().map(|o| o.1).sum::<u32>() + bauxite);
         for &(ore, weight) in ores {
             if pick < weight {
                 return ore;
             }
             pick -= weight;
         }
+        if pick < bauxite {
+            return BAUXITE_ORE;
+        }
         ores[0].0
+    }
+
+    /// The weight of bauxite among the ores of `biome` at `at`: none before version 5 or within `BAUXITE_FROM`
+    /// blocks of spawn, else `BAUXITE_WEIGHTS`.
+    fn bauxite_weight(&self, biome: Biome, at: IVec3) -> u32 {
+        let far = (at.x as i64).pow(2) + (at.z as i64).pow(2) >= (BAUXITE_FROM as i64).pow(2);
+        if self.version < 5 || !far {
+            return 0;
+        }
+        BAUXITE_WEIGHTS.iter().find(|w| w.0 == biome).map_or(0, |w| w.1)
     }
 }
 
@@ -121,6 +139,8 @@ impl WorldGen {
 /// takes stains.
 pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
     let (grass, sand) = match ore {
+        // Bauxite shows itself (exposed on bare rock) and leaves no stain.
+        BAUXITE_ORE => return None,
         IRON_ORE => (RUSTY_SOIL, RUSTY_SAND),
         COAL_ORE => (DARK_SOIL, DARK_SAND),
         COPPER_ORE => (GREEN_SOIL, GREEN_SAND),
@@ -138,9 +158,14 @@ pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
 pub fn ore_shares(ore: BlockId) -> Vec<(Biome, u32)> {
     let mut out: Vec<(Biome, u32)> = Vec::new();
     for (biome, weights) in ORES_BY_BIOME {
-        let total: u32 = weights.iter().map(|w| w.1).sum();
-        if let Some(w) = weights.iter().find(|w| w.0 == ore) {
-            out.push((biome, (w.1 * 100 + total / 2) / total));
+        let mut total: u32 = weights.iter().map(|w| w.1).sum();
+        let mut mine = weights.iter().find(|w| w.0 == ore).map(|w| w.1);
+        if ore == BAUXITE_ORE {
+            mine = BAUXITE_WEIGHTS.iter().find(|w| w.0 == biome).map(|w| w.1);
+            total += mine.unwrap_or(0);
+        }
+        if let Some(w) = mine {
+            out.push((biome, (w * 100 + total / 2) / total));
         }
     }
     crate::math::sort_small_by_key(&mut out, |s| u32::MAX - s.1);

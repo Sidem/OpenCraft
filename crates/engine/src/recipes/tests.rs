@@ -9,24 +9,47 @@ use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
-use Category::{Arc, Assembly, Blasting, Crushing, Pressing, Smelting};
+use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelting};
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 6] = [Smelting, Pressing, Assembly, Blasting, Crushing, Arc];
+const CATEGORIES: [Category; 7] = [Smelting, Pressing, Assembly, Blasting, Crushing, Arc, Electrolysis];
 const _: fn(Category) = |c| match c {
-    Smelting | Pressing | Assembly | Blasting | Crushing | Arc => {}
+    Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
 /// are first had.
 const WORLD_BLOCKS: &[BlockId] = &[
-    SPENT_ROCK, STONE, DIRT, GRASS, SAND, LOG, LEAVES, COAL_ORE, IRON_ORE, COPPER_ORE, GRANITE, SANDSTONE, BASALT,
-    LIMESTONE, QUARTZ_ORE, RUSTY_SOIL, DARK_SOIL, GREEN_SOIL, PALE_SOIL, RUSTY_SAND, DARK_SAND, GREEN_SAND, PALE_SAND,
+    SPENT_ROCK,
+    STONE,
+    DIRT,
+    GRASS,
+    SAND,
+    LOG,
+    LEAVES,
+    COAL_ORE,
+    IRON_ORE,
+    COPPER_ORE,
+    GRANITE,
+    SANDSTONE,
+    BASALT,
+    LIMESTONE,
+    QUARTZ_ORE,
+    BAUXITE_ORE,
+    RUSTY_SOIL,
+    DARK_SOIL,
+    GREEN_SOIL,
+    PALE_SOIL,
+    RUSTY_SAND,
+    DARK_SAND,
+    GREEN_SAND,
+    PALE_SAND,
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
-/// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones).
-const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE];
+/// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
+/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5).
+const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE, item::BATTERY];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

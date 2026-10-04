@@ -1,0 +1,28 @@
+//! The techs of Milestone 9 (distance), as data (appended after `personal.rs`'s in `techs::TECHS`, so the order here
+//! is the saved index order: add rows at the bottom, never reorder). Needs name main-tree indices (Ore Crushing 15,
+//! Violet Science 18) and personal ones from 30.
+
+use crate::block::ELECTROLYTIC_CELL;
+use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
+use crate::recipes::BAUXITE_RECIPES;
+
+use super::{r, Tech, Unlock};
+
+pub const DISTANCE: [Tech; 1] = [Tech {
+    name: "Bauxite Processing",
+    blurb:
+        "Crushers grind bauxite ore, and electrolytic cells (300 kW) turn 2 crushed bauxite and a quicklime into an \
+            aluminium ingot and a slag. Constructors press plates; assemblers build batteries from a plate, a \
+            circuit and copper wire.",
+    needs: &[15, 18],
+    packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+    units: 120,
+    seconds: 30.0,
+    unlocks: &[
+        r(ELECTROLYTIC_CELL),
+        Unlock::MachineRecipe(BAUXITE_RECIPES[0]),
+        Unlock::MachineRecipe(BAUXITE_RECIPES[1]),
+        Unlock::MachineRecipe(BAUXITE_RECIPES[2]),
+        Unlock::MachineRecipe(BAUXITE_RECIPES[3]),
+    ],
+}];
