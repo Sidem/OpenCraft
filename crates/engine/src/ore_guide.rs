@@ -62,7 +62,7 @@ pub fn guide_notes(gen: &WorldGen) -> String {
     }
     let (lo, hi) = LODE_HEIGHTS;
     lines.push(format!("Lodes, the biggest deposits, lie near bedrock (height {lo} to {hi}) under any ground."));
-    let [(_, near), (_, far)] = SCANNERS;
+    let [(_, near, _), (_, far, _)] = SCANNERS;
     lines.push(format!(
         "A scanner lists every deposit within {near} blocks ({far} for the Mk2); a core drill measures the ground under it."
     ));

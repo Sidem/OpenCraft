@@ -1,9 +1,10 @@
-//! The inventory screen and hotbar readouts: slots, the cursor stack, and pickup notifications.
+//! The inventory screen and hotbar readouts: slots, the cursor stack, worn gear, and pickup notifications.
 
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
+use crate::equipment::{self, SLOTS, SLOT_NAMES};
+use crate::inventory::{HOTBAR_SLOTS, MAX_SLOTS};
 use crate::item::ItemId;
 use crate::Game;
 
@@ -17,9 +18,41 @@ impl Game {
         HOTBAR_SLOTS as u32
     }
 
-    /// All slots: the hotbar (0..9) followed by the backpack.
+    /// All slots in use: the hotbar (0..9) followed by the backpack (more with a hauler pack on).
     pub fn inventory_size(&self) -> u32 {
-        INVENTORY_SLOTS as u32
+        self.inventory().capacity() as u32
+    }
+
+    /// The most slots there can be (the screen makes this many and hides those a pack has not opened).
+    pub fn inventory_max_size(&self) -> u32 {
+        MAX_SLOTS as u32
+    }
+
+    /// Equipment slots (back, boots, torso, tool belt), and the item worn in each (0 for nothing).
+    pub fn gear_slots(&self) -> u32 {
+        SLOTS as u32
+    }
+
+    pub fn gear_slot_name(&self, slot: u32) -> String {
+        SLOT_NAMES.get(slot as usize).copied().unwrap_or_default().to_string()
+    }
+
+    pub fn worn_item(&self, slot: u32) -> u16 {
+        self.inventory().worn.get(slot as usize).map_or(0, |i| i.0)
+    }
+
+    /// What an item does when worn (empty for anything that is not gear), and the slot it goes in (-1 for none).
+    pub fn gear_blurb(&self, item: u16) -> String {
+        equipment::gear(ItemId(item)).map_or_else(String::new, |g| g.blurb.to_string())
+    }
+
+    pub fn gear_slot_of(&self, item: u16) -> i32 {
+        equipment::gear(ItemId(item)).map_or(-1, |g| g.slot as i32)
+    }
+
+    /// Equipment-panel click (next tick): swaps the cursor stack with the gear in `slot`; `shift` takes it off.
+    pub fn click_gear(&mut self, slot: u32, shift: bool) {
+        self.act(Action::ClickGear { slot: slot.min(u8::MAX as u32) as u8, shift });
     }
 
     pub fn slot_item(&self, slot: u32) -> u16 {

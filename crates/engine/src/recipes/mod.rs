@@ -13,6 +13,7 @@ use crate::item::{
 };
 
 mod electronics;
+mod gear;
 mod heavy;
 mod machine;
 mod materials;
@@ -22,6 +23,7 @@ mod timing;
 mod tooling;
 mod wiring;
 use electronics::*;
+use gear::*;
 use heavy::*;
 pub use machine::*;
 use materials::*;
@@ -370,6 +372,12 @@ pub const RECIPES: &[Recipe] = &[
     JETPACK_RECIPE,
     PERSONAL_DRONE_RECIPE,
     PLANNER_RECIPE,
+    HAULER_PACK_RECIPE,
+    HAULER_PACK_MK2_RECIPE,
+    SPRING_BOOTS_RECIPE,
+    SERVO_BOOTS_RECIPE,
+    EXO_FRAME_RECIPE,
+    MINING_RIG_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

@@ -56,6 +56,7 @@ the render distance in chunks (2 to 24, default 8).
 | Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill or flatten and the level. Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |
 | Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds |
+| Shift-click gear (inventory) | Wears it: back (hauler pack, 9 or 18 more backpack slots), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), tool belt (mining rig: break blocks by hand 50% faster). Researched under Hauler Gear, Field Gear and Exosuit |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
 | Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
@@ -175,8 +176,11 @@ size.
 - **Prospecting.** A scanner (4 iron plates, 6 copper wire, 4 screws) lists the deposits within 48
   blocks when you right-click with it: which ore, vein or outcrop, how far, which way, how deep and
   roughly how big; the arrows turn as you walk. The Advanced Scanning tech (violet science) adds the
-  Scanner Mk2 (a scanner, 3 circuits and 2 steel plates), which reaches 96 blocks: the way to find
-  quartz in distant highlands, deserts and basalt fields. A core drill (6 iron plates, 2 copper wire, 8 screws)
+  Scanner Mk2 (a scanner, 3 circuits and 2 steel plates), which reaches 96 blocks (the way to find
+  quartz in distant highlands, deserts and basalt fields) and reads more: each deposit shows about how many
+  ore units are left and how long a full-speed mine takes to work it out, **R** limits the list to one ore
+  (coal, iron, copper, limestone, quartz, then all), and a pointer at the top of the screen keeps leading to
+  the nearest match after you put the scanner away. A core drill (6 iron plates, 2 copper wire, 8 screws)
   held on the ground for 3 seconds tells you exactly what lies beneath: how many blocks and units are
   left, and between which heights. Neither wears out.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it

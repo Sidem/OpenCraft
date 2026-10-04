@@ -140,6 +140,13 @@ pub const JETPACK: ItemId = ItemId(330);
 pub const PERSONAL_DRONE: ItemId = ItemId(331);
 /// Earthworks (Milestone 8): marks terraforming sites for drone ports to work (`site_hands.rs`).
 pub const PLANNER: ItemId = ItemId(332);
+/// Worn gear (`equipment.rs`): one item fits one equipment slot, and none stacks.
+pub const HAULER_PACK: ItemId = ItemId(333);
+pub const HAULER_PACK_MK2: ItemId = ItemId(334);
+pub const SPRING_BOOTS: ItemId = ItemId(335);
+pub const SERVO_BOOTS: ItemId = ItemId(336);
+pub const EXO_FRAME: ItemId = ItemId(337);
+pub const MINING_RIG: ItemId = ItemId(338);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -197,7 +204,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 77] = [
+const EXTRA: [ItemDef; 83] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -275,6 +282,12 @@ const EXTRA: [ItemDef; 77] = [
     tool("Coal Jetpack", tex::JETPACK, &DEVICE_TIER),
     tool("Personal Drone", tex::PERSONAL_DRONE, &DEVICE_TIER),
     tool("Planner", tex::PLANNER, &DEVICE_TIER),
+    tool("Hauler Pack", tex::HAULER_PACK, &DEVICE_TIER),
+    tool("Hauler Pack Mk2", tex::HAULER_PACK_MK2, &DEVICE_TIER),
+    tool("Spring Boots", tex::SPRING_BOOTS, &DEVICE_TIER),
+    tool("Servo Boots", tex::SERVO_BOOTS, &DEVICE_TIER),
+    tool("Exo Frame", tex::EXO_FRAME, &DEVICE_TIER),
+    tool("Mining Rig", tex::MINING_RIG, &DEVICE_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

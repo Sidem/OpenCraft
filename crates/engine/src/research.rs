@@ -12,6 +12,7 @@
 //! A new kind of unlock: an `Unlock` variant (features arrive with their first use), its arm in
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
+mod personal;
 mod techs;
 
 pub use techs::TECHS;
@@ -43,6 +44,7 @@ impl Unlock {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Tech {
     pub name: &'static str,
     /// One line for the research screen.

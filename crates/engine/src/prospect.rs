@@ -10,8 +10,13 @@
 //! Driven by the hands (`interaction.rs`): with a device selected (`tools::device`), the use button
 //! prospects instead of placing. To add a figure: append it to its record, bump `*_FIELDS`, and read
 //! it in `ui/prospect.ts`.
+//!
+//! An advanced scanner (the Mk2: `SCANNERS`' flag) adds to the readout: the rotate key (R, `api/input.rs`)
+//! cycles an ore filter over `FILTER_ORES` (the list shows only that ore; `api/prospect.rs` filters the
+//! records), each deposit shows its reserve and how long a full-speed mine takes to work it out, and the
+//! panel keeps a pointer to the nearest match on the screen after the scanner is put away.
 
-use crate::block;
+use crate::block::{self, BlockId, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
 use crate::deposits::{Deposit, DepositState};
 use crate::item::{ItemId, SCANNER, SCANNER_MK2};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
@@ -20,9 +25,12 @@ use crate::tools::{self, ToolKind};
 use crate::worldgen::WORLD_HEIGHT;
 use crate::Game;
 
-/// Each scanner and how far it finds deposits (whose centre must lie within this many blocks horizontally).
-/// To add a scanner: an item, a `ToolKind::Scanner` row in `tools.rs` and a row here.
-pub const SCANNERS: [(ItemId, i32); 2] = [(SCANNER, 48), (SCANNER_MK2, 96)];
+/// Each scanner, how far it finds deposits (whose centre must lie within this many blocks horizontally) and
+/// whether it has the advanced readout. To add a scanner: an item, a `ToolKind::Scanner` row in `tools.rs`
+/// and a row here.
+pub const SCANNERS: [(ItemId, i32, bool); 2] = [(SCANNER, 48, false), (SCANNER_MK2, 96, true)];
+/// The ores an advanced scanner's filter steps through (after "all"). To add an ore: a line here.
+pub const FILTER_ORES: [BlockId; 5] = [COAL_ORE, IRON_ORE, COPPER_ORE, LIMESTONE, QUARTZ_ORE];
 /// Seconds between scans while the use button is held.
 const SCAN_COOLDOWN: f32 = 2.0;
 /// Seconds of holding use on a block for a core sample.
@@ -37,8 +45,9 @@ const BAND_LARGE: f32 = 0.65;
 const LARGEST: [f32; 3] = [460.0, 54.6, 12.2];
 
 /// Scan record: ore, tier, dx, dz (from the player's feet), depth below the feet, size band (0 small,
-/// 1 medium, 2 large).
-pub const SCAN_FIELDS: usize = 6;
+/// 1 medium, 2 large), ore units left (about, rounded to whole units; exact once the deposit is worked),
+/// minutes a full-speed mine (the tier's draw cap) takes to work it out.
+pub const SCAN_FIELDS: usize = 8;
 /// Core-sample record: ore, tier, blocks left, blocks at first, units left, top y, bottom y.
 pub const DRILL_FIELDS: usize = 7;
 pub const READING_SCAN: u8 = 1;
@@ -57,6 +66,8 @@ pub struct Prospect {
     pub range: i32,
     /// Bumped with every new reading.
     pub seq: u32,
+    /// The ore an advanced scanner's list is limited to (`None`: every ore).
+    pub filter: Option<BlockId>,
     cooldown: f32,
     /// The block being drilled and the seconds spent on it.
     drill: Option<(IVec3, f32)>,
@@ -75,11 +86,18 @@ pub fn scan_range_of(item: ItemId) -> Option<i32> {
     SCANNERS.iter().find(|s| s.0 == item).map(|s| s.1)
 }
 
+/// Whether `item` is a scanner with the advanced readout.
+pub fn is_advanced(item: ItemId) -> bool {
+    SCANNERS.iter().any(|s| s.0 == item && s.2)
+}
+
 /// A deposit the scanner found.
 pub struct Found {
     pub deposit: Deposit,
     /// 0 small, 1 medium, 2 large.
     pub band: u8,
+    /// Ore units left (an estimate from the shape unless the deposit is tracked).
+    pub units: u32,
 }
 
 /// Exact figures for one deposit under a drilled column.
@@ -111,10 +129,12 @@ impl Game {
                 let found = self.scan(at, range);
                 let r = &mut self.prospect.records;
                 r.clear();
-                for Found { deposit: d, band } in found {
+                for Found { deposit: d, band, units } in found {
                     self.minimap.known.remember(&d);
                     let (dx, dz, depth) = (d.center.x - at.x, d.center.z - at.z, at.y - d.center.y);
+                    let minutes = (units as f64 / (d.tier().draw_cap() * 60.0)).round() as i32;
                     r.extend_from_slice(&[d.ore() as i32, d.tier() as i32, dx, dz, depth, band as i32]);
+                    r.extend_from_slice(&[units as i32, minutes]);
                 }
                 self.new_reading(READING_SCAN, at);
             }
@@ -134,12 +154,12 @@ impl Game {
             if flat_dist2(d.center, at) > range * range {
                 continue;
             }
-            let left = match self.sim.factory.deposits.get(&d.key) {
+            let (left, units) = match self.sim.factory.deposits.get(&d.key) {
                 Some(st) if st.exhausted() => continue,
-                Some(st) => st.remaining_blocks as f32 / st.initial_blocks.max(1) as f32,
-                None => 1.0,
+                Some(st) => (st.remaining_blocks as f32 / st.initial_blocks.max(1) as f32, st.remaining_units() as u32),
+                None => (1.0, estimated_units(&d)),
             };
-            found.push(Found { band: band(&d, left), deposit: d });
+            found.push(Found { band: band(&d, left), deposit: d, units });
         }
         sort_small_by_key(&mut found, |f| (f.deposit.tier(), flat_dist2(f.deposit.center, at)));
         found
@@ -229,6 +249,29 @@ impl Game {
 fn band(d: &Deposit, left: f32) -> u8 {
     let share = d.radii[0] * d.radii[1] * d.radii[2] * left / LARGEST[d.tier() as usize];
     (share >= BAND_MEDIUM) as u8 + (share >= BAND_LARGE) as u8
+}
+
+/// The ore units an untouched deposit holds, estimated from its shape without generating it: the volume of
+/// its ellipsoid (the ragged edge adds about 2%, the average block count measured over a few thousand
+/// deposits) times its tier's grade.
+fn estimated_units(d: &Deposit) -> u32 {
+    let volume = 4.19 * 1.02 * d.radii[0] * d.radii[1] * d.radii[2];
+    (volume * d.tier().grade() as f32) as u32
+}
+
+impl Game {
+    /// Steps an advanced scanner's ore filter on to the next ore, or back to all. Returns whether one is in hand.
+    pub(crate) fn cycle_scan_filter(&mut self) -> bool {
+        if !is_advanced(self.inventory().selected_stack().item) {
+            return false;
+        }
+        let next = match self.prospect.filter {
+            None => FILTER_ORES.first().copied(),
+            Some(ore) => FILTER_ORES.iter().position(|&o| o == ore).and_then(|i| FILTER_ORES.get(i + 1)).copied(),
+        };
+        self.prospect.filter = next;
+        true
+    }
 }
 
 /// Whether `d`'s shape takes in any block of the box `lo..=hi`.

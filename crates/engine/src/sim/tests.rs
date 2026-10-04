@@ -20,7 +20,7 @@ const B: PlayerId = PlayerId(1);
 /// in 6.7b for the machine tiers every list now saves, in 6.8 and 6.9 for the steam, crushing and silo techs,
 /// in 7.1 for the Electronics tech, and for the power wires the factory saves (save version 24; tests wire
 /// by range unless `Factory::by_hand`).
-const GOLDEN_HASH: u64 = 0xf4eb_7133_4b74_8db3;
+const GOLDEN_HASH: u64 = 0x0d5f_e5b0_31eb_1bd6;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -155,7 +155,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with generator version 4 and save version 17 (the sites follow the quarries). Only a deliberate
+    // Recorded with generator version 4 and save version 29 (the inventory writes its pack rows and worn gear). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

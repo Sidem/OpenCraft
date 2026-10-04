@@ -61,8 +61,9 @@ pub const SCANNER_MK2_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(SCANNER, 1), (CIRCUIT, 3), (STEEL_PLATE, 2)],
-    blurb: "A scanner with a violet screen: lists the ore deposits within 96 blocks, twice as far. Made from a \
-            Mk1 scanner. Never wears out.",
+    blurb: "A scanner with a violet screen: lists the ore deposits within 96 blocks, twice as far, shows each one's \
+            ore units and mining time, filters by ore (R) and points to the nearest match. Made from a Mk1 \
+            scanner. Never wears out.",
 };
 
 pub const STEEL_PICKAXE_RECIPE: Recipe = Recipe {

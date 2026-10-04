@@ -57,3 +57,27 @@
   margin: 2px 0 0;
   color: var(--muted);
 }
+
+/* An advanced scanner's card is wider: its rows carry a reserve and a time. */
+.prospect-wide {
+  width: min(440px, calc(100vw - 24px));
+}
+
+/* The pointer an advanced scan leaves at the top centre, whatever is in hand. */
+.prospect-track {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  max-width: calc(100vw - 24px);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(120, 230, 140, 0.4);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}

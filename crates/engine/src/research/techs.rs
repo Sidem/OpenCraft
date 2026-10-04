@@ -1,6 +1,6 @@
 //! The tech tree as data ([`TECHS`]): every tech's packs, cost, prerequisites (by index) and unlocks.
 //! Saves store progress by index, so append rows, never reorder (`research.rs` has the rules and the
-//! progress state).
+//! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s techs; add to the latter.
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
@@ -8,16 +8,32 @@ use crate::block::{
     STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
 };
 use crate::item::{
-    BLUE_PACK, GREEN_KIT, GREEN_PACK, JETPACK, PERSONAL_DRONE, PLANNER, RED_PACK, SCANNER_MK2, STEEL_AXE,
-    STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK,
+    BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK,
 };
 use crate::recipes::{
     ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES, ELECTRONICS_RECIPES, GEAR_RECIPE,
     QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
 };
 
+use super::personal::PERSONAL;
 use super::{r, Tech, Unlock};
-pub const TECHS: &[Tech] = &[
+
+/// Every tech: the main tree, then the personal gear's.
+pub const TECHS: &[Tech] = &join::<{ MAIN.len() + PERSONAL.len() }>(&MAIN, &PERSONAL);
+
+/// `a` then `b` as one array of `N` = their lengths added.
+const fn join<const N: usize>(a: &[Tech], b: &[Tech]) -> [Tech; N] {
+    assert!(a.len() + b.len() == N);
+    let mut out = [a[0]; N];
+    let mut i = 0;
+    while i < N {
+        out[i] = if i < a.len() { a[i] } else { b[i - a.len()] };
+        i += 1;
+    }
+    out
+}
+
+const MAIN: [Tech; 30] = [
     Tech {
         name: "Belt Routing",
         blurb: "Splitters share items between belts; filters sort them.",
@@ -294,8 +310,8 @@ pub const TECHS: &[Tech] = &[
     },
     Tech {
         name: "Advanced Scanning",
-        blurb: "The Scanner Mk2, built from a scanner, circuits and steel: it lists every ore deposit within 96 \
-                blocks, twice as far as the first.",
+        blurb: "The Scanner Mk2, built from a scanner, circuits and steel: 96 blocks of range, an ore filter, ore \
+                units and mining time per deposit, and a pointer to the nearest match.",
         needs: &[18],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 60,
@@ -372,35 +388,5 @@ pub const TECHS: &[Tech] = &[
         units: 200,
         seconds: 40.0,
         unlocks: &[Unlock::Upgrade(DRONE_PORT, 1), Unlock::Upgrade(DRONE_PORT, 2), Unlock::Upgrade(DRONE_PORT, 3)],
-    },
-    Tech {
-        name: "Jetpack",
-        blurb: "Four steel plates, two motors and two circuits: a coal-burning pack that lifts you while you hold \
-                jump. Ten seconds of thrust a coal.",
-        needs: &[25],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
-        units: 120,
-        seconds: 30.0,
-        unlocks: &[Unlock::Recipe(JETPACK)],
-    },
-    Tech {
-        name: "Personal Drone",
-        blurb: "A drone and two circuits make a companion that fetches what you ask for from the storage boxes \
-                near you.",
-        needs: &[28],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
-        units: 160,
-        seconds: 35.0,
-        unlocks: &[Unlock::Recipe(PERSONAL_DRONE)],
-    },
-    Tech {
-        name: "Earthworks",
-        blurb: "The planner marks an area to dig, fill or flatten and shows what that would move. Drone ports do the \
-                work: they dig into the storage boxes beside the pad and fill from them.",
-        needs: &[28],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
-        units: 140,
-        seconds: 35.0,
-        unlocks: &[Unlock::Recipe(PLANNER)],
     },
 ];

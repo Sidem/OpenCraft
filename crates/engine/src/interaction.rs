@@ -132,7 +132,8 @@ impl Game {
         if def.break_time < 0.0 {
             return;
         }
-        let speed = tools::break_speed(self.inventory().selected_stack().item, hit.id);
+        let speed =
+            tools::break_speed(self.inventory().selected_stack().item, hit.id) * self.inventory().mining_speed();
         self.mine_progress += if def.break_time == 0.0 { 1.0 } else { dt * speed / def.break_time };
         if self.mine_progress < 1.0 {
             return;

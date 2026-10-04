@@ -1,4 +1,5 @@
-// Inventory and build screen (E): all 36 slots with a held stack on the cursor, and the build menu
+// Inventory and build screen (E): every slot (36, up to 54 with a hauler pack) with a held stack on the cursor, the
+// equipment slots (Shift-click gear in the pack to wear it), and the build menu
 // (`crafting.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
 // stacks between the box and the inventory, shift-right-clicks move every stack of that item.
@@ -28,6 +29,7 @@ export class InventoryPanel {
   private readonly backdrop = h('div', 'inv-backdrop hidden');
   private readonly dialog = h('div', 'inv');
   private readonly slots: SlotView[] = [];
+  private readonly gear: SlotView[] = [];
   private readonly cursor: SlotView;
   private version = -1;
   private readonly title = h('h2', '', 'Inventory & build');
@@ -64,7 +66,7 @@ export class InventoryPanel {
     );
 
     // Backpack (slots 9..35) above the hotbar (0..8), as in the HUD.
-    const size = game.inventory_size(), hotbar = game.hotbar_size();
+    const size = game.inventory_max_size(), hotbar = game.hotbar_size();
     for (let i = 0; i < size; i++) {
       const slot = this.makeSlot(
         () => (this.box && this.shift ? game.store_slot(...this.box, i) : game.click_slot(i, this.shift)),
@@ -77,6 +79,17 @@ export class InventoryPanel {
     pack.append(...this.slots.slice(hotbar).map((s) => s.root));
     const bar = h('div', 'inv-grid inv-hotbar');
     bar.append(...this.slots.slice(0, hotbar).map((s) => s.root));
+    const gearRow = h('div', 'inv-gear');
+    for (let i = 0; i < game.gear_slots(); i++) {
+      const slot = this.makeSlot(
+        () => game.click_gear(i, this.shift),
+        () => game.click_gear(i, true),
+      );
+      this.gear.push(slot);
+      const cell = h('div', 'inv-gear-cell');
+      cell.append(slot.root, h('span', 'inv-gear-name', game.gear_slot_name(i)));
+      gearRow.append(cell);
+    }
     const note = h(
       'p',
       'inv-note',
@@ -101,7 +114,7 @@ export class InventoryPanel {
     sortPack.addEventListener('click', () => game.sort_inventory());
     const packHead = h('div', 'inv-box-head');
     packHead.append(h('h3', '', 'Backpack'), sortPack);
-    items.append(this.boxSection, packHead, pack, h('h3', '', 'Hotbar'), bar, note);
+    items.append(this.boxSection, h('h3', '', 'Equipment'), gearRow, packHead, pack, h('h3', '', 'Hotbar'), bar, note);
 
     this.menu = new BuildMenu(game, icon);
     this.menu.onCraft = () => this.onCraft();
@@ -192,10 +205,16 @@ export class InventoryPanel {
       for (let i = 0; i < boxData.length / 2; i++) this.drawSlot(this.boxSlots[i], boxData[i * 2], boxData[i * 2 + 1]);
     }
 
-    const selected = g.selected_slot();
+    const selected = g.selected_slot(), open = g.inventory_size();
     this.slots.forEach((s, i) => {
       this.drawSlot(s, g.slot_item(i), g.slot_count(i));
       s.root.classList.toggle('selected', i === selected);
+      s.root.classList.toggle('hidden', i >= open);
+    });
+    this.gear.forEach((s, i) => {
+      const item = g.worn_item(i);
+      this.drawSlot(s, item, item ? 1 : 0);
+      if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn`;
     });
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);
@@ -227,7 +246,8 @@ export class InventoryPanel {
   private drawSlot(s: SlotView, item: number, n: number): void {
     const uses = this.game.tool_uses(item);
     const amount = uses > 0 ? ` (${n} of ${uses} uses left)` : n > 1 ? ` ×${n}` : '';
-    s.root.title = n > 0 ? `${this.game.item_name(item)}${amount}` : '';
+    const effect = n > 0 ? this.game.gear_blurb(item) : '';
+    s.root.title = n > 0 ? `${this.game.item_name(item)}${amount}${effect ? `: ${effect}` : ''}` : '';
     if (item === s.item && n === s.n) return;
     const ctx = s.icon.getContext('2d')!;
     ctx.clearRect(0, 0, ICON_PX, ICON_PX);

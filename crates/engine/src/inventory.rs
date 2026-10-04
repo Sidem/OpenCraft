@@ -1,15 +1,19 @@
-//! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack, and the stack held by
+//! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack (more with a worn hauler pack:
+//! `capacity`, `equipment.rs`, which also owns the `worn` gear), and the stack held by
 //! the mouse cursor while the inventory screen is open. `version` increments on every change so
 //! the UI redraws only when needed. `add_to_slots`, `click_stack` and `sort_stacks` are shared with
 //! storage boxes.
 
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::equipment::{self, SLOTS};
 use crate::item::{stack_size, ItemId};
 use crate::math::sort_small_by_key;
 use crate::tools;
 
 pub const HOTBAR_SLOTS: usize = 9;
+/// Slots without gear; a hauler pack opens up to `MAX_SLOTS - INVENTORY_SLOTS` more.
 pub const INVENTORY_SLOTS: usize = 36;
+pub const MAX_SLOTS: usize = 54;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Stack {
@@ -124,7 +128,10 @@ pub fn click_stack(s: &mut Stack, c: &mut Stack) -> bool {
 
 #[derive(Clone)]
 pub struct Inventory {
-    pub slots: [Stack; INVENTORY_SLOTS],
+    /// Only the first `capacity()` are in use; the rest are always empty.
+    pub slots: [Stack; MAX_SLOTS],
+    /// Worn gear, one item per equipment slot (`equipment.rs`); `ItemId::NONE` for nothing.
+    pub worn: [ItemId; SLOTS],
     pub selected: usize,
     /// Held by the mouse in the inventory screen.
     pub cursor: Stack,
@@ -141,32 +148,60 @@ impl Default for Inventory {
 impl Inventory {
     pub const EMPTY: Inventory = {
         let none = Stack { item: ItemId::NONE, count: 0 };
-        Inventory { slots: [none; INVENTORY_SLOTS], selected: 0, cursor: none, version: 0 }
+        Inventory { slots: [none; MAX_SLOTS], worn: [ItemId::NONE; SLOTS], selected: 0, cursor: none, version: 0 }
     };
 
-    /// Core state: slots, cursor and selection (not `version`, which only serves the UI).
+    /// Core state: slots, cursor and selection (not `version`, which only serves the UI), then the pack rows and
+    /// the worn gear (version 29 on).
     pub fn write_state(&self, w: &mut ByteWriter) {
-        for s in &self.slots {
+        for s in &self.slots[..INVENTORY_SLOTS] {
             s.write_state(w);
         }
         self.cursor.write_state(w);
         w.u8(self.selected as u8);
+        for s in &self.slots[INVENTORY_SLOTS..] {
+            s.write_state(w);
+        }
+        for &item in &self.worn {
+            w.item(item);
+        }
     }
 
     pub fn read_state(r: &mut ByteReader) -> Option<Inventory> {
         let mut inv = Inventory::default();
-        for s in &mut inv.slots {
+        for s in &mut inv.slots[..INVENTORY_SLOTS] {
             *s = Stack::read_state(r)?;
         }
         inv.cursor = Stack::read_state(r)?;
         inv.selected = r.u8()? as usize;
-        (inv.selected < HOTBAR_SLOTS).then_some(inv)
+        if r.version >= 29 {
+            for s in &mut inv.slots[INVENTORY_SLOTS..] {
+                *s = Stack::read_state(r)?;
+            }
+            for (slot, item) in inv.worn.iter_mut().enumerate() {
+                *item = r.item()?;
+                if *item != ItemId::NONE && !equipment::gear(*item).is_some_and(|g| g.slot == slot) {
+                    return None;
+                }
+            }
+        }
+        (inv.selected < HOTBAR_SLOTS && !inv.stranded()).then_some(inv)
+    }
+
+    /// The slots in use.
+    pub fn open(&self) -> &[Stack] {
+        &self.slots[..self.capacity()]
+    }
+
+    pub fn open_mut(&mut self) -> &mut [Stack] {
+        let n = self.capacity();
+        &mut self.slots[..n]
     }
 
     /// Room left for `item` across all slots.
     pub fn space_for(&self, item: ItemId) -> u32 {
         let max = stack_size(item);
-        self.slots
+        self.open()
             .iter()
             .map(|s| match s {
                 s if s.is_empty() => max,
@@ -182,7 +217,7 @@ impl Inventory {
         if item == ItemId::NONE || count == 0 {
             return count;
         }
-        let left = add_to_slots(&mut self.slots, item, count);
+        let left = add_to_slots(self.open_mut(), item, count);
         if left != count {
             self.version += 1;
         }
@@ -191,7 +226,7 @@ impl Inventory {
 
     /// Total number of `item` held.
     pub fn count(&self, item: ItemId) -> u32 {
-        self.slots.iter().filter(|s| s.item == item).map(|s| s.count).sum()
+        self.open().iter().filter(|s| s.item == item).map(|s| s.count).sum()
     }
 
     /// Removes `n` of `item`, backpack first so the hotbar keeps its layout. All or nothing.
@@ -199,7 +234,7 @@ impl Inventory {
         if self.count(item) < n {
             return false;
         }
-        for s in self.slots.iter_mut().rev().filter(|s| s.item == item && !s.is_empty()) {
+        for s in self.open_mut().iter_mut().rev().filter(|s| s.item == item && !s.is_empty()) {
             let k = n.min(s.count);
             s.count -= k;
             n -= k;
@@ -220,7 +255,7 @@ impl Inventory {
 
     /// Removes up to `n` items from `slot`, returning the item id and amount taken.
     pub fn take_slot(&mut self, slot: usize, n: u32) -> Option<(ItemId, u32)> {
-        let s = self.slots.get_mut(slot)?;
+        let s = self.open_mut().get_mut(slot)?;
         if s.is_empty() || n == 0 {
             return None;
         }
@@ -248,7 +283,8 @@ impl Inventory {
 
     /// Inventory-screen click: pick up, put down, merge or swap with the cursor stack.
     pub fn click(&mut self, slot: usize) {
-        let Some(s) = self.slots.get_mut(slot) else { return };
+        let capacity = self.capacity();
+        let Some(s) = self.slots[..capacity].get_mut(slot) else { return };
         if click_stack(s, &mut self.cursor) {
             self.version += 1;
         }
@@ -256,11 +292,12 @@ impl Inventory {
 
     /// Shift-click: moves a stack between the hotbar and the backpack.
     pub fn quick_move(&mut self, slot: usize) {
-        if slot >= INVENTORY_SLOTS || self.slots[slot].is_empty() {
+        let capacity = self.capacity();
+        if slot >= capacity || self.slots[slot].is_empty() {
             return;
         }
         let s = std::mem::take(&mut self.slots[slot]);
-        let target = if slot < HOTBAR_SLOTS { HOTBAR_SLOTS..INVENTORY_SLOTS } else { 0..HOTBAR_SLOTS };
+        let target = if slot < HOTBAR_SLOTS { HOTBAR_SLOTS..capacity } else { 0..HOTBAR_SLOTS };
         let left = add_to_slots(&mut self.slots[target], s.item, s.count);
         if left > 0 {
             self.slots[slot] = Stack { item: s.item, count: left };
@@ -270,8 +307,8 @@ impl Inventory {
 
     /// Shift-right-click: moves every stack of the item in `slot` between the hotbar and the backpack.
     pub fn quick_move_all(&mut self, slot: usize) {
-        let Some(item) = self.slots.get(slot).map(|s| s.item) else { return };
-        let (hotbar, backpack) = self.slots.split_at_mut(HOTBAR_SLOTS);
+        let Some(item) = self.open().get(slot).map(|s| s.item) else { return };
+        let (hotbar, backpack) = self.open_mut().split_at_mut(HOTBAR_SLOTS);
         let moved =
             if slot < HOTBAR_SLOTS { move_all_of(hotbar, backpack, item) } else { move_all_of(backpack, hotbar, item) };
         if moved {
@@ -282,7 +319,8 @@ impl Inventory {
     /// Sorts the backpack (the hotbar keeps the layout the player made).
     pub fn sort(&mut self) {
         let before = self.slots;
-        sort_stacks(&mut self.slots[HOTBAR_SLOTS..]);
+        let capacity = self.capacity();
+        sort_stacks(&mut self.slots[HOTBAR_SLOTS..capacity]);
         if self.slots != before {
             self.version += 1;
         }
@@ -295,7 +333,7 @@ impl Inventory {
             return c;
         }
         self.version += 1;
-        let left = add_to_slots(&mut self.slots, c.item, c.count);
+        let left = add_to_slots(self.open_mut(), c.item, c.count);
         Stack { item: if left > 0 { c.item } else { ItemId::NONE }, count: left }
     }
 }

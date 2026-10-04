@@ -190,7 +190,14 @@ pub const PERSONAL_DRONE: u16 = 176;
 pub const PLANNER: u16 = 177;
 pub const PIPE_WATER: u16 = 178;
 pub const PIPE_STEAM: u16 = 179;
-pub const COUNT: usize = 180;
+/// Worn gear icons (`textures/gear.rs`).
+pub const HAULER_PACK: u16 = 180;
+pub const HAULER_PACK_MK2: u16 = 181;
+pub const SPRING_BOOTS: u16 = 182;
+pub const SERVO_BOOTS: u16 = 183;
+pub const EXO_FRAME: u16 = 184;
+pub const MINING_RIG: u16 = 185;
+pub const COUNT: usize = 186;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

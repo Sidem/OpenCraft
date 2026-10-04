@@ -39,8 +39,12 @@ impl Game {
     }
 
     /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick, or the
-    /// box of a quarry or the footprint of a multi-block machine in hand at once. False when nothing turns.
+    /// box of a quarry or the footprint of a multi-block machine in hand at once; with an advanced scanner in
+    /// hand it steps the scanner's ore filter instead. False when nothing turns.
     pub fn rotate_target(&mut self) -> bool {
+        if self.cycle_scan_filter() {
+            return true;
+        }
         if self.ghost_mode || self.holds_quarry() || self.held_footprint().is_some() {
             if !(self.ghost_mode && self.turn_held_blueprint()) {
                 self.turn_placement();

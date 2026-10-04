@@ -2,7 +2,7 @@ use super::*;
 use crate::block::{AIR, BEDROCK, BELT, DIRT, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
-use crate::inventory::{HOTBAR_SLOTS, INVENTORY_SLOTS};
+use crate::inventory::{Stack, HOTBAR_SLOTS, INVENTORY_SLOTS};
 use crate::item::{IRON_PLATE, IRON_ROD, MAX_STACK};
 use crate::recipes::RECIPES;
 
@@ -407,6 +407,7 @@ fn samples() -> Vec<Action> {
         Action::MarkRemoval { pos },
         Action::Jetpack { on: true },
         Action::Fetch { item: IRON_PLATE, at: pos },
+        Action::ClickGear { slot: 1, shift: true },
     ]
 }
 

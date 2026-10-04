@@ -50,6 +50,21 @@ const CLIMB_SPEED: f64 = 3.0;
 /// Heights above the feet that hold on to a ladder or lift.
 const GRIP_HEIGHTS: [f64; 2] = [0.1, 0.9];
 
+/// What worn gear does to a body (`equipment.rs`): multipliers on walking, sprinting (already including walking) and
+/// the jump. Set from the core each tick like `thrust`; never saved.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct Boost {
+    pub walk: f64,
+    pub sprint: f64,
+    pub jump: f64,
+}
+
+impl Default for Boost {
+    fn default() -> Boost {
+        Boost { walk: 1.0, sprint: 1.0, jump: 1.0 }
+    }
+}
+
 #[derive(Clone, Copy, Default)]
 pub struct PlayerInput {
     /// -1..1, positive = forward.
@@ -73,6 +88,8 @@ pub struct Player {
     pub flying: bool,
     /// The jetpack is burning (set from the core each tick: `helpers/`); never saved.
     pub thrust: bool,
+    /// Worn gear's effect on walking and jumping (`equipment.rs`).
+    pub boost: Boost,
     pub input: PlayerInput,
     /// Presentation-only hands: bit 0 mining, bit 1 using. Relayed to co-op peers, never saved.
     pub gesture: u8,
@@ -100,6 +117,7 @@ impl Player {
             in_water: false,
             flying: false,
             thrust: false,
+            boost: Boost::default(),
             input: PlayerInput::default(),
             gesture: 0,
             landing_speed: 0.0,
@@ -192,8 +210,8 @@ impl Player {
             (true, true, _) => FLY_SPRINT_SPEED,
             (true, false, _) => FLY_SPEED,
             (false, _, true) => CROUCH_SPEED,
-            (false, true, false) => SPRINT_SPEED,
-            (false, false, false) => WALK_SPEED,
+            (false, true, false) => SPRINT_SPEED * self.boost.sprint,
+            (false, false, false) => WALK_SPEED * self.boost.walk,
         };
         if swimming {
             speed *= SWIM_SPEED_FACTOR;
@@ -225,7 +243,7 @@ impl Player {
                 self.vel.y = (self.vel.y + JET_ACCEL * dt).min(self.vel.y.max(JET_CLIMB));
             }
             if inp.jump && self.on_ground {
-                self.vel.y = JUMP_VELOCITY;
+                self.vel.y = JUMP_VELOCITY * self.boost.jump;
             }
         }
 

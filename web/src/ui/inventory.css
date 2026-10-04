@@ -110,6 +110,25 @@
   margin-top: 14px;
 }
 
+/* Equipment: one slot per place on the body, named underneath. */
+.inv-gear {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.inv-gear-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.inv-gear-name {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .inv-slot {
   width: 48px;
   height: 48px;

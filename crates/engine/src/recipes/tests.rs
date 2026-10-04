@@ -50,7 +50,10 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || machine.iter().any(|r| input(r.inputs))
             || burn_time(it).is_some()
             || pack_slot(it).is_some();
-        let end = it.places().is_some() || tools::tool(it).is_some() || tools::device(it).is_some();
+        let end = it.places().is_some()
+            || tools::tool(it).is_some()
+            || tools::device(it).is_some()
+            || crate::equipment::gear(it).is_some();
         if !used && !end && !NO_USE_YET.contains(&it) {
             errors.push(format!("{} has no use", item::name(it)));
         }

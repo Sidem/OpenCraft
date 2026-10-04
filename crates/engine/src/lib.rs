@@ -36,6 +36,7 @@ mod deposits;
 mod drone_view;
 mod drones;
 mod entities;
+mod equipment;
 mod events;
 mod factory;
 mod footprint_preview;

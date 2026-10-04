@@ -30,7 +30,7 @@ fn scans_list_exactly_the_deposits_in_range() {
     for (seed, version) in [(2024, 2), (1337, 2), (7, 1)] {
         let mut g = Game::with_generator(WorldGen::with_version(seed, version), 2);
         for at in [IVec3::new(0, 70, 0), IVec3::new(130, 80, -70), IVec3::new(-400, 60, 333)] {
-            for (_, range) in SCANNERS {
+            for (_, range, _) in SCANNERS {
                 let found = g.scan(at, range);
                 let mut keys: Vec<DepositKey> = found.iter().map(|f| f.deposit.key).collect();
                 sort_small_by_key(&mut keys, |k| *k);
@@ -66,6 +66,53 @@ fn the_mk2_scanner_reaches_further_and_shows_quartz() {
     let (mk1, mk2) = (quartz_seen(&mut g, 48), quartz_seen(&mut g, 96));
     assert!(mk1 > 0, "quartz deposits are listed by every scanner");
     assert!(mk2 > mk1, "the Mk2 finds quartz from more places: {mk2} vs {mk1}");
+}
+
+#[test]
+fn the_mk2_filters_by_ore_and_reports_reserves() {
+    assert!(is_advanced(SCANNER_MK2) && !is_advanced(SCANNER) && !is_advanced(CORE_DRILL));
+    let mut g = Game::with_generator(WorldGen::with_version(2024, 4), 2);
+    run_until_ready(&mut g);
+    // The Mk1 has no filter: R does nothing for it.
+    hold(&mut g, SCANNER);
+    assert!(!g.rotate_target() && g.prospect.filter.is_none());
+    hold(&mut g, SCANNER_MK2);
+    g.using = true;
+    g.run_tick();
+    g.using = false;
+    let all = g.prospect_records();
+    assert_eq!(all.len() % SCAN_FIELDS, 0);
+    assert!(!all.is_empty());
+    // R steps through coal, iron, copper, limestone, quartz and back to every ore.
+    let mut seen = vec![g.scan_filter()];
+    for _ in 0..FILTER_ORES.len() + 1 {
+        assert!(g.rotate_target());
+        seen.push(g.scan_filter());
+        let kept = g.prospect_records();
+        let ore = g.prospect.filter;
+        assert!(kept.chunks_exact(SCAN_FIELDS).all(|r| ore.is_none_or(|o| r[0] == o as i32)));
+        assert!(ore.is_some() || kept == all, "no filter keeps everything");
+    }
+    assert_eq!(seen, [0, 7, 8, 9, 33, 34, 0]);
+    // Reserves: a tracked deposit's exact units, an untouched one's estimate, and the minutes a full-speed mine
+    // takes (units over the tier's draw cap).
+    for r in all.chunks_exact(SCAN_FIELDS) {
+        let tier = Tier::from_u8(r[1] as u8).unwrap();
+        assert!(r[6] > 0, "a deposit that is listed holds ore");
+        let minutes = r[6] as f64 / (tier.draw_cap() * 60.0);
+        assert!(
+            (r[7] as f64 - minutes).abs() <= 0.5,
+            "{} units, {} minutes at {} a second",
+            r[6],
+            r[7],
+            tier.draw_cap()
+        );
+    }
+    // The estimate matches an actual survey of a vein to within a fifth.
+    let vein = g.sim.world.generator().find_deposit(g.body().pos.floor(), Tier::Vein, 4).expect("a vein");
+    let blocks = DepositState::survey(&mut g.sim.world, vein).initial_blocks as f64;
+    let estimate = estimated_units(&vein) as f64 / vein.tier().grade() as f64;
+    assert!((estimate / blocks - 1.0).abs() < 0.2, "estimated {estimate} blocks, found {blocks}");
 }
 
 /// Breaks every block of the deposit `key` by hand (actions, like a player would).

@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::block;
 use crate::deposits::Tier;
-use crate::prospect::{scan_range_of, DRILL_FIELDS, READING_DRILL, READING_SCAN, SCANNERS, SCAN_FIELDS};
+use crate::prospect::{is_advanced, scan_range_of, DRILL_FIELDS, READING_DRILL, READING_SCAN, SCANNERS, SCAN_FIELDS};
 use crate::tools::{self, ToolKind};
 use crate::Game;
 
@@ -21,9 +21,26 @@ impl Game {
         self.prospect.kind
     }
 
-    /// The latest reading's records, `prospect_fields` numbers each.
+    /// The latest reading's records, `prospect_fields` numbers each. A scan taken with the ore filter on
+    /// keeps only that ore's deposits.
     pub fn prospect_records(&self) -> Vec<i32> {
-        self.prospect.records.clone()
+        let p = &self.prospect;
+        match p.filter.filter(|_| p.kind == READING_SCAN && self.scanner_advanced()) {
+            Some(ore) => {
+                p.records.chunks_exact(SCAN_FIELDS).filter(|r| r[0] == ore as i32).flatten().copied().collect()
+            }
+            None => p.records.clone(),
+        }
+    }
+
+    /// Whether the scanner in hand has the advanced readout (the ore filter on the R key, reserves, tracking).
+    pub fn scanner_advanced(&self) -> bool {
+        is_advanced(self.inventory().selected_stack().item)
+    }
+
+    /// The ore the advanced scanner's list is limited to (0 for every ore).
+    pub fn scan_filter(&self) -> u8 {
+        self.prospect.filter.filter(|_| self.scanner_advanced()).unwrap_or(0)
     }
 
     pub fn prospect_fields(&self) -> u32 {
@@ -49,6 +66,11 @@ impl Game {
     pub fn scan_range(&self) -> u32 {
         let held = scan_range_of(self.inventory().selected_stack().item);
         (if self.prospect.kind == READING_SCAN { self.prospect.range } else { held.unwrap_or(SCANNERS[0].1) }) as u32
+    }
+
+    /// An ore's name, e.g. "Iron".
+    pub fn ore_name(&self, ore: u8) -> String {
+        block::ore_label(ore).to_string()
     }
 
     /// A deposit's name from its ore and tier, e.g. "Iron vein".

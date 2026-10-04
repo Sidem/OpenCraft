@@ -24,7 +24,6 @@
 use crate::action::Action;
 use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
 use crate::factory::{self, tiers, upgrades, Shape};
-use crate::inventory::INVENTORY_SLOTS;
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::raycast::raycast;
@@ -226,7 +225,7 @@ impl Game {
     fn belt_slots(&self, item: ItemId, n: usize) -> Vec<u8> {
         let inv = self.inventory();
         let mut slots = Vec::with_capacity(n);
-        for s in std::iter::once(inv.selected).chain((0..INVENTORY_SLOTS).filter(|&s| s != inv.selected)) {
+        for s in std::iter::once(inv.selected).chain((0..inv.capacity()).filter(|&s| s != inv.selected)) {
             if inv.slots[s].item == item {
                 let take = (inv.slots[s].count as usize).min(n - slots.len());
                 slots.resize(slots.len() + take, s as u8);

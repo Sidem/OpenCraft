@@ -10,7 +10,6 @@
 
 use crate::block::BlockId;
 use crate::factory::Job;
-use crate::inventory::{add_to_slots, click_stack, move_all_of, sort_stacks, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::research::Unlock;
@@ -143,7 +142,13 @@ pub enum Action {
     CancelCraft {
         order: u16,
     },
-    /// Inventory-screen click; `shift` moves the stack between hotbar and backpack.
+    /// Equipment-panel click on worn-gear `slot` (`equipment.rs`): the cursor stack swaps with the gear (only gear for
+    /// that slot goes on); `shift` takes it off into the inventory.
+    ClickGear {
+        slot: u8,
+        shift: bool,
+    },
+    /// Inventory-screen click; `shift` moves the stack between hotbar and backpack (gear goes on instead).
     ClickSlot {
         slot: u8,
         shift: bool,
@@ -314,47 +319,15 @@ impl Sim {
                 core.crafts.enqueue(inv, &self.factory.research, recipe, times);
             }
             Action::CancelCraft { order } => core.crafts.cancel(order as usize, inv, player, &mut self.events),
-            Action::ClickSlot { slot, shift: true } => inv.quick_move(slot as usize),
-            Action::ClickSlot { slot, shift: false } => inv.click(slot as usize),
-            Action::ClickBox { pos, slot, shift } => {
-                let Some(s) = self.factory.box_slots_mut(pos).and_then(|b| b.get_mut(slot as usize)) else { return };
-                if shift && !s.is_empty() {
-                    s.count = inv.add(s.item, s.count);
-                    if s.is_empty() {
-                        *s = Stack::default();
-                    }
-                } else if !shift && click_stack(s, &mut inv.cursor) {
-                    inv.version += 1;
-                }
-            }
-            Action::StoreSlot { pos, slot } => {
-                let Some(b) = self.factory.box_slots_mut(pos) else { return };
-                let Some((item, n)) = inv.take_slot(slot as usize, u32::MAX) else { return };
-                let left = add_to_slots(b, item, n);
-                if left > 0 {
-                    inv.slots[slot as usize] = Stack { item, count: left };
-                }
-            }
-            Action::QuickMoveAll { slot } => inv.quick_move_all(slot as usize),
-            Action::StoreAll { pos, slot } => {
-                let item = inv.slots.get(slot as usize).map_or(ItemId::NONE, |s| s.item);
-                if self.factory.box_slots_mut(pos).is_some_and(|b| move_all_of(&mut inv.slots, b, item)) {
-                    inv.version += 1;
-                }
-            }
-            Action::TakeAll { pos, slot } => {
-                let Some(b) = self.factory.box_slots_mut(pos) else { return };
-                let item = b.get(slot as usize).map_or(ItemId::NONE, |s| s.item);
-                if move_all_of(b, &mut inv.slots, item) {
-                    inv.version += 1;
-                }
-            }
-            Action::SortInventory => inv.sort(),
-            Action::SortBox { pos } => {
-                if let Some(b) = self.factory.box_slots_mut(pos) {
-                    sort_stacks(b);
-                }
-            }
+            Action::ClickGear { .. }
+            | Action::ClickSlot { .. }
+            | Action::ClickBox { .. }
+            | Action::StoreSlot { .. }
+            | Action::QuickMoveAll { .. }
+            | Action::StoreAll { .. }
+            | Action::TakeAll { .. }
+            | Action::SortInventory
+            | Action::SortBox { .. } => self.apply_click(player, action),
             Action::CloseInventory => {
                 let left = inv.return_cursor();
                 if !left.is_empty() {
@@ -389,6 +362,7 @@ impl Sim {
 }
 
 mod blocks;
+mod clicks;
 mod codec;
 mod multiblock;
 #[cfg(test)]
