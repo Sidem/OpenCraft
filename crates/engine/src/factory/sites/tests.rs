@@ -50,7 +50,7 @@ fn mark(sim: &mut Sim, a: Column, b: Column, level: i32, job: Job) {
 }
 
 fn site(lo: Column, hi: Column, level: i32, job: Job, high: i32, low: i32) -> Site {
-    Site { id: 0, lo, hi, level, job, high, low, done: 0 }
+    Site { id: 0, lo, hi, level, job, high, low, done: 0, tunnel: None }
 }
 
 #[test]
@@ -144,7 +144,7 @@ fn sites_are_saved_and_hashed() {
     let good = bytes(&sim.factory.sites);
     assert!(Sites::read_state(&mut ByteReader::new(&good)).is_some());
     let mut bad_job = good.clone();
-    bad_job[4 + 4 + 4 + 20] = 3;
+    bad_job[4 + 4 + 4 + 20] = 4;
     assert!(Sites::read_state(&mut ByteReader::new(&bad_job)).is_none(), "unknown job");
     let mut bad_id = good.clone();
     bad_id[0] = 1;
@@ -176,5 +176,119 @@ fn the_survey_counts_what_a_job_would_move_among_loaded_chunks() {
     let far = survey_site(&sim.world, (5000, 5000), (5003, 5001), 100, Job::Dig).unwrap();
     assert_eq!(far, SiteSurvey { unseen: 8, ..SiteSurvey::default() });
     assert!(survey_site(&sim.world, (0, 0), (MAX_SITE, 0), 100, Job::Dig).is_none(), "too big");
+    assert_eq!(sim.state_hash(), hash, "a query");
+}
+
+fn tunnel(a: IVec3, b: IVec3, size: u8) -> Tunnel {
+    Tunnel::new(a, b, size).expect("a tunnel")
+}
+
+#[test]
+fn a_tunnel_runs_along_the_longer_axis_and_keeps_to_its_limits() {
+    let a = IVec3::new(10, 50, 20);
+    let t = tunnel(a, IVec3::new(14, 50, 22), 0);
+    assert_eq!((t.to, t.steps(), t.cells()), (IVec3::new(14, 50, 20), 5, 10), "snapped onto x");
+    assert_eq!(tunnel(a, IVec3::new(8, 50, 21), 1).to, IVec3::new(8, 50, 20), "backwards");
+    assert_eq!(tunnel(a, IVec3::new(10, 50, 26), 2).cells(), 7 * 25, "along z, 5 × 5");
+    let up = |dx: i32, dy: i32| Tunnel::new(a, a + IVec3::new(dx, dy, 0), 1);
+    assert!(up(4, 2).is_some() && up(4, 3).is_none(), "1 block in 2 at most");
+    assert!(up(5, -2).is_some() && up(2, 2).is_none() && up(0, 1).is_none(), "down too; no shafts");
+    assert!(up(tunnel::MAX_TUNNEL as i32 - 1, 0).is_some() && up(tunnel::MAX_TUNNEL as i32, 0).is_none(), "length");
+    assert!(Tunnel::new(a, a + IVec3::new(4, 0, 0), 3).is_none(), "no such section");
+    assert!(Tunnel::new(IVec3::new(0, 253, 0), IVec3::new(4, 253, 0), 1).is_none(), "the roof is out of the world");
+    assert!(Tunnel::new(IVec3::new(0, 0, 0), IVec3::new(4, 0, 0), 0).is_none(), "the floor is bedrock");
+    assert!(Tunnel::new(IVec3::new(i32::MIN, 50, 0), IVec3::new(i32::MAX, 50, 0), 0).is_none(), "no overflow");
+}
+
+#[test]
+fn tunnel_cells_stand_on_the_path_and_rise_with_it() {
+    let a = IVec3::new(0, 50, 0);
+    let t = tunnel(a, IVec3::new(4, 52, 0), 0);
+    let cells: Vec<IVec3> = (0..t.cells()).map(|i| t.cell(i)).collect();
+    let ys: Vec<i32> = cells.iter().map(|c| c.y).collect();
+    assert_eq!(ys, [50, 51, 51, 52, 51, 52, 52, 53, 52, 53], "the path rises 1 in 2, a floor block and one above");
+    assert_eq!(cells[0], a, "the first cell is the path's start");
+    let big = tunnel(a, IVec3::new(0, 52, -6), 1);
+    assert_eq!(
+        (big.cell(0), big.cell(1), big.cell(3), big.cell(9)),
+        (IVec3::new(-1, 50, 0), IVec3::new(0, 50, 0), IVec3::new(-1, 51, 0), IVec3::new(-1, 50, -1),)
+    );
+    for t in [t, big, tunnel(a, IVec3::new(-10, 45, 0), 2)] {
+        let (lo, hi, bottom, top) = t.bounds();
+        let all: Vec<IVec3> = (0..t.cells()).map(|i| t.cell(i)).collect();
+        for x in lo.0 - 1..=hi.0 + 1 {
+            for z in lo.1 - 1..=hi.1 + 1 {
+                for y in bottom - 1..=top + 1 {
+                    let p = IVec3::new(x, y, z);
+                    assert_eq!(t.has_cell(p), all.contains(&p), "{p:?}");
+                }
+            }
+        }
+        assert_eq!((bottom, top), (all.iter().map(|c| c.y).min().unwrap(), all.iter().map(|c| c.y).max().unwrap()));
+    }
+}
+
+#[test]
+fn tunnels_clash_with_sites_only_where_they_share_heights() {
+    let mut sim = Sim::new(1337, 2);
+    ground(&mut sim);
+    mark(&mut sim, col(0, 0), col(7, 7), 100, Job::Dig);
+    let count = |sim: &Sim| sim.factory.sites.list.len();
+    let tunnel_at = |sim: &mut Sim, from: IVec3, to: IVec3| {
+        sim.apply(P, Action::MarkTunnel { from, to, size: 1 });
+    };
+    tunnel_at(&mut sim, at(-3, 101, 3), at(5, 101, 3));
+    assert_eq!(count(&sim), 1, "through the dug air");
+    tunnel_at(&mut sim, at(-3, 80, 3), at(5, 80, 3));
+    assert_eq!(count(&sim), 2, "well below it");
+    let s = sim.factory.sites.list[1];
+    assert_eq!((s.job, s.id, s.cells(), s.tunnel.is_some()), (Job::Tunnel, 1, 9 * 9, true));
+    assert!(s.covers(at(0, 80, 3)) && !s.covers(at(0, 85, 3)) && s.picks(at(0, 85 - 4, 3)));
+    assert!(sim.factory.sites.list[0].covers(at(3, 101, 3)) && !sim.factory.sites.list[0].covers(at(3, 80, 3)));
+    tunnel_at(&mut sim, at(1, 80, -2), at(1, 80, 5));
+    assert_eq!(count(&sim), 2, "crossing the first tunnel");
+    tunnel_at(&mut sim, at(1, 70, -2), at(1, 70, 5));
+    assert_eq!(count(&sim), 3, "another below");
+    mark(&mut sim, col(0, 0), col(1, 1), 70, Job::Tunnel);
+    assert_eq!(count(&sim), 3, "a tunnel is not marked as an area");
+}
+
+#[test]
+fn tunnels_are_saved_and_checked_on_loading() {
+    let mut sim = Sim::new(1337, 2);
+    ground(&mut sim);
+    let before = sim.state_hash();
+    sim.apply(P, Action::MarkTunnel { from: at(0, 80, 0), to: at(-8, 84, 0), size: 2 });
+    mark(&mut sim, col(10, 10), col(12, 12), 100, Job::Dig);
+    assert_ne!(sim.state_hash(), before);
+    let bytes = |sites: &Sites| {
+        let mut w = ByteWriter::default();
+        sites.write_state(&mut w);
+        w.bytes
+    };
+    let good = bytes(&sim.factory.sites);
+    let back = Sites::read_state(&mut ByteReader::new(&good)).expect("reads back");
+    assert_eq!(back.list, sim.factory.sites.list);
+    assert_eq!(bytes(&back), good);
+    let mut moved = good.clone();
+    moved[4 + 4 + 4] ^= 1;
+    assert!(Sites::read_state(&mut ByteReader::new(&moved)).is_none(), "columns that don't match the bore");
+    assert!(Sites::read_state(&mut ByteReader::new(&good[..good.len() - 1])).is_none(), "cut short");
+}
+
+#[test]
+fn the_tunnel_survey_counts_cells_and_those_beside_water() {
+    let mut sim = Sim::new(1337, 2);
+    ground(&mut sim);
+    sim.world.update_streaming(at(4, 100, 4).as_vec3(), &[]);
+    while sim.world.work_step() {}
+    let hash = sim.state_hash();
+    // 1 × 2 through stone at y 97..=98, passing the pool at (2, 6) (water 98..=100) one block away.
+    let t = tunnel(at(0, 97, 5), at(5, 97, 5), 0);
+    let s = survey_tunnel(&sim.world, &t);
+    assert_eq!((s.cut, s.ore, s.trees, s.unseen), (12, 0, 0, 0));
+    assert_eq!(s.water, 1, "the cell below the pool's corner at (2, 98, 5) touches it");
+    let far = survey_tunnel(&sim.world, &tunnel(IVec3::new(5000, 97, 5000), IVec3::new(5004, 97, 5000), 0));
+    assert_eq!((far.unseen, far.cut), (10, 0));
     assert_eq!(sim.state_hash(), hash, "a query");
 }

@@ -408,6 +408,7 @@ fn samples() -> Vec<Action> {
         Action::Jetpack { on: true },
         Action::Fetch { item: IRON_PLATE, at: pos },
         Action::ClickGear { slot: 1, shift: true },
+        Action::MarkTunnel { from: pos, to: against, size: 2 },
     ]
 }
 
@@ -452,7 +453,7 @@ fn damaged_action_bytes_fail_cleanly() {
     bad_item[1..3].copy_from_slice(&60_000u16.to_le_bytes());
     assert_eq!(Action::read(&mut ByteReader::new(&bad_item)), None);
     let mut bad_job = encode(&Action::MarkSite { a: (0, 0), b: (1, 1), level: 70, job: Job::Dig });
-    bad_job[21] = 3;
+    bad_job[21] = 4;
     assert_eq!(Action::read(&mut ByteReader::new(&bad_job)), None);
 
     // Random bytes: whatever reads must be a real action, and nothing panics.

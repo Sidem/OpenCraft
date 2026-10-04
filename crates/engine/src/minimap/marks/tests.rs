@@ -128,3 +128,20 @@ fn machines_are_marked_but_belts_are_not() {
     g.minimap_redraw();
     assert_eq!(marks_of(&g, MARK_MACHINE), vec![(10, -20, machine_color(SMELTER))]);
 }
+
+#[test]
+fn a_site_shows_as_one_mark_at_its_centre_in_its_job_colour() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    g.minimap_redraw();
+    let at = g.body().pos.floor();
+    let (x, z) = (at.x + 10, at.z + 6);
+    g.mark_site(x, z, x + 4, z + 2, 60, 1);
+    g.mark_tunnel(&[x - 30, 50, z, x - 20, 50, z], 0);
+    g.run_ticks(2);
+    g.minimap_redraw();
+    let sites = marks_of(&g, MARK_SITE);
+    assert_eq!(sites.len(), 2);
+    assert!(sites.contains(&(10 + 2, 6 + 1, crate::site_hands::SITE_COLOURS[1])), "the fill, at its middle: {sites:?}");
+    assert!(sites.contains(&(-15, 6, crate::site_hands::SITE_COLOURS[3])), "the tunnel, at its middle: {sites:?}");
+}

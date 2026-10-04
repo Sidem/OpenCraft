@@ -2,8 +2,9 @@
 //! site is a list of cells in a fixed order (`Site::cell`): cut layers from the top down, then fill layers from
 //! the bottom up. A port picks the first cell in its reach that needs work and that no drone is on:
 //!
-//! - a **cut** cell (above the site's level) holds a block the cut takes (`cut_takes`): the drone breaks it by hand
-//!   and the drops go into the boxes touching the pad, which must have room (no spilling mountains);
+//! - a **cut** cell (above the site's level, or any cell of a tunnel) holds a block the cut takes (`cut_takes`): the
+//!   drone breaks it by hand and the drops go into the boxes touching the pad, which must have room (no spilling
+//!   mountains). A tunnel cell next to water waits (`Need::Later`), so the bore never lets water in;
 //! - a **fill** cell (at or below the level) is free (air or water), has a free cell above it up to the level and
 //!   solid ground or an earlier fill below it: the drone brings one block from a box (dirt on top, else stone,
 //!   dirt, sand, grass) and places it. So dug ground fills other sites from the same boxes.
@@ -13,7 +14,7 @@
 //! To change the fill materials: [`FILL_TOP`] and [`FILL_BELOW`].
 
 use crate::block::{self, AIR, DIRT, GRASS, SAND, STONE};
-use crate::factory::{cut_takes, Site};
+use crate::factory::{cut_takes, touches_water, Site};
 use crate::item::ItemId;
 use crate::math::IVec3;
 use crate::sim::Sim;
@@ -39,14 +40,14 @@ impl Sim {
     pub(super) fn breaks(&self, target: IVec3) -> bool {
         match self.ghosts.covering(target) {
             Some(g) => g.block == AIR,
-            None => self.factory.sites.list.iter().any(|s| s.has_column(target) && target.y > s.level),
+            None => self.factory.sites.list.iter().any(|s| s.covers(target) && s.cuts_at(target)),
         }
     }
 
     /// The end of a drone's work on a site cell: break it, or place the block it brought.
     pub(super) fn finish_site_cell(&mut self, d: &mut Drone) {
-        let Some(s) = self.factory.sites.list.iter().find(|s| s.has_column(d.target)).copied() else { return };
-        if d.target.y > s.level {
+        let Some(s) = self.factory.sites.list.iter().find(|s| s.covers(d.target)).copied() else { return };
+        if s.cuts_at(d.target) {
             self.break_into_boxes(d.port, d.target);
         } else if d.load.count > 0 && self.put_block(super::CREDIT, d.target, d.load.item, 0, d.target) {
             d.load = Default::default();
@@ -108,6 +109,15 @@ impl Sim {
     /// What is to be done in the site's cell at `pos`.
     fn need(&mut self, s: &Site, pos: IVec3) -> Need {
         let id = self.world.block_anywhere_or_generate(pos);
+        if s.tunnel.is_some() {
+            // Breaking into water waits until the water is gone.
+            let world = &mut self.world;
+            return match (cut_takes(id), touches_water(|p| Some(world.block_anywhere_or_generate(p)), pos)) {
+                (false, _) => Need::Nothing,
+                (true, true) => Need::Later,
+                (true, false) => Need::Cut,
+            };
+        }
         if pos.y > s.level {
             return if cut_takes(id) { Need::Cut } else { Need::Nothing };
         }

@@ -305,3 +305,84 @@ fn drones_fill_a_site_from_the_boxes_and_stop_when_they_run_out() {
     assert_eq!(fleet(&sim), 4);
     assert_eq!(solid_cells(&mut sim), before + 8, "eight blocks went on the ground");
 }
+
+/// A block of stone under the air the port stands in (heights 190..=199 beside it).
+fn stone_below(sim: &mut Sim) {
+    for y in 190..=199 {
+        for z in -2..=10 {
+            for x in -2..=16 {
+                sim.world.set_block_anywhere(at(y, x, z), crate::block::STONE);
+            }
+        }
+    }
+}
+
+fn is_open(sim: &mut Sim, pos: IVec3) -> bool {
+    block::replaceable(sim.world.block_anywhere_or_generate(pos))
+}
+
+#[test]
+fn drones_bore_a_tunnel_into_the_boxes_and_wait_while_water_is_beside_it() {
+    let mut sim = Sim::new(7, 2);
+    stone_below(&mut sim);
+    let (_, supply) = base(&mut sim, 4);
+    let (from, to) = (at(196, 14, 4), at(196, 6, 4));
+    sim.apply(P, Action::MarkTunnel { from, to, size: 0 });
+    assert_eq!(sim.factory.sites.list.len(), 1);
+    let cells = sim.factory.sites.list[0].cells();
+    assert_eq!(cells, 18, "nine blocks long, one wide, two tall");
+    // Water beside the path's last block: the cells touching it are left alone.
+    let wet = at(196, 6, 5);
+    sim.world.set_block_anywhere(wet, crate::block::WATER);
+    for _ in 0..TICK_RATE * 200 {
+        sim.step();
+        assert_eq!(fleet(&sim), 4);
+    }
+    let site = sim.factory.sites.list[0];
+    let open = (0..cells).filter(|&k| is_open(&mut sim, site.cell(k))).count();
+    assert_eq!(open, 17, "all but the cell beside the water");
+    assert!(is_open(&mut sim, at(196, 7, 4)) && !is_open(&mut sim, at(196, 6, 4)), "the face stands");
+    assert_eq!(sim.factory.sites.list.len(), 1, "the site waits");
+    assert!(sim.factory.box_total(supply) > 0, "the rock is in the box");
+    assert_eq!(sim.world.block_anywhere(wet), Some(crate::block::WATER), "the water stayed put");
+
+    sim.world.set_block_anywhere(wet, AIR);
+    for _ in 0..TICK_RATE * 40 {
+        sim.step();
+        if sites_gone(&sim) {
+            break;
+        }
+    }
+    assert!(sites_gone(&sim), "finished when the water is gone");
+    assert!(is_open(&mut sim, at(196, 6, 4)) && is_open(&mut sim, at(197, 6, 4)));
+}
+
+/// `cargo test --release bench_earthworks -- --ignored --nocapture`: a 64 × 64 flatten nine layers deep whose boxes are
+/// full, so no cell can be worked and every launch scans them all: the worst case for choosing site jobs.
+#[test]
+#[ignore]
+fn bench_earthworks() {
+    let mut sim = Sim::new(7, 2);
+    for y in 150..=199 {
+        for z in 2..66 {
+            for x in 0..64 {
+                sim.world.set_block_anywhere(at(y, x, z), crate::block::STONE);
+            }
+        }
+    }
+    let (_, supply) = base(&mut sim, 4);
+    let (a, b) = (at(0, 0, 2), at(0, 63, 65));
+    sim.apply(P, Action::MarkSite { a: (a.x, a.z), b: (b.x, b.z), level: 190, job: crate::factory::Job::Flatten });
+    sim.factory.stock(supply, crate::block::STONE.into(), 24 * 64);
+    let cells = sim.factory.sites.list[0].cells();
+    let (mut total, mut worst) = (std::time::Duration::ZERO, std::time::Duration::ZERO);
+    let ticks = TICK_RATE * 20;
+    for _ in 0..ticks {
+        let t = std::time::Instant::now();
+        sim.step();
+        let d = t.elapsed();
+        total += d;
+        worst = worst.max(d);
+    }
+    println!("{cells} cells: {:?} a tick, worst {worst:?}", total / ticks);
+}

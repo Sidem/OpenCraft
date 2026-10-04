@@ -53,7 +53,7 @@ the render distance in chunks (2 to 24, default 8).
 | B                   | Ghost mode: right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
 | Z, Enter (ghost mode) | Z marks the two corners of a box (a third press clears it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
 | L | Blueprint library: rename, hold or delete your blueprints (kept per world in this browser) |
-| Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill or flatten and the level. Right-click a marked site to look at it or remove it |
+| Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill, flatten (with the level) or a tunnel (with its section). Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |
 | Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds |
 | Shift-click gear (inventory) | Wears it: back (hauler pack, 9 or 18 more backpack slots), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), tool belt (mining rig: break blocks by hand 50% faster). Researched under Hauler Gear, Field Gear and Exosuit |
@@ -279,6 +279,9 @@ size.
   Construction Drones) unlocks the **Planner** (3 iron plates, 4 copper wire, 2 glass, a circuit): mark an area to
   dig, fill or flatten and drone ports in reach do the work, digging into the storage boxes beside their pad and
   filling from them (dirt on top, else stone, dirt, sand or grass), so ground dug in one site fills another.
+  The same planner bores **tunnels**: pick Tunnel in the panel, a section (1 × 2, 3 × 3 or 5 × 5) and the two blocks
+  (the first is the middle of the floor; the tunnel runs along the longer side, up to 96 blocks, rising or falling
+  1 block in 2 at most). Drones leave any block next to water until the water is gone, so a tunnel never floods.
   A drilling Miner Mk1
   draws 5 kW (one coal runs it long enough to mine about 32), a Mk2 20 kW, a working constructor 15 kW.
   Short of power, every machine on the grid slows down to match; with none, it stops. The first loop: a

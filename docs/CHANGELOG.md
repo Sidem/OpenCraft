@@ -4,6 +4,10 @@ Earlier development entries, retained from DEV_PLAN.md so the active plan stays 
 
 ## 8. Change log of this plan
 
+- **2026-10-04: Steam through pipes.** A boiler's faces now have named ports (`BOILER_PORTS` in `process/specs.rs`; `Port::cell` / `Which` picks one cell of a side, `Role::Water` and `Role::Steam` are pipe roles): on each of back, left and right one cell is a coal inlet (belt) and the other a water inlet (pipe), and the two front cells are steam outlets; a turbine has a steam inlet on both cells of its right end (the end away from its generator). A pipe joins a port only on that face (`Processor::pipe_ports`); steam no longer passes between touching machines. Turbines take steam from the boilers on the same pipe network (`steam::link`, still two per boiler, lower index first). A network is `Fluid::Water`, `Steam` or `Mixed` (both: works for neither, pipes turn red, machines say so). Water pipes are blue banded and steam pipes pale and red banded (`textures/piping.rs`, `tex::PIPE_WATER/PIPE_STEAM`, `COUNT` 180). `process/boiler_view.rs` became `steam_view.rs` (coal chutes, water and steam nipples on flanges, gauge; the turbine's inlets); the boiler's firebox door moved up the front. No save or hash change, but saves with a turbine standing against a boiler lose that link and need pipes. Tests 438 → 441.
+
+- **2026-10-04: Boiler connections drawn.** The boiler lost its generic belt hatches: coal chutes (dark funnel, coal on top) mark free belt inlets, a steel flange marks every pipe touching the tank (`process/boiler_view.rs`, from `Steam::taps`), and a water gauge on the front fills with the water held. Pipes and pumps beside a boiler now draw an arm into it (`Pipework::arms`). A boiler now draws water from every network touching it (`Steam::nets`; it used to listen to the first one only, so a second pump on its own network did nothing). Presentation plus a derived-state fix: no save or hash change. Tests 435 → 438.
+
 - **2026-09-25: Plan created; Milestones 1 and 2 done** (`3239215` to `3bf3f92`): fixed tick, core `Sim`,
   actions, state hash, saves; items, machines, belts, power, research, Mk2, tips. Tests 56 → 113, wasm
   120.3 KB. Lessons: measure wasm every step; the golden hash catches unintended core changes.
@@ -127,3 +131,103 @@ Earlier development entries, retained from DEV_PLAN.md so the active plan stays 
   only machines are copied (plain building blocks cannot be told from terrain) and machine settings (recipe, filter,
   rule) are not, since a ghost carries none: a later step can add a setting byte to `Ghost` (save bump) and
   `Entry`. The label lists what is missing; the HUD ghost outlines are unchanged.
+
+## Milestones 6 to 8: the step lists (moved from DEV_PLAN section 4 at the end of Milestone 8)
+
+#### Milestone 6 (Industry), built
+
+- [x] **6.1 Tiers as data** (`factory/tiers.rs`): `tier: u8`, numbers in `*_TIERS` arrays, `FAMILIES` names each
+  tier's item. **6.2 Unlocks, categories, content lint** (`research::Unlock`, `recipes/machine.rs`
+  `Category`, `recipes/tests.rs`). **6.3 Upgrade kits** (`factory/upgrades.rs`, `Action::Upgrade` tag 23,
+  tier stripes; one step at a time, never refunded).
+- [x] **6.4 One processing machine** (`factory/process/`: a `ProcessSpec` row per machine; smelter and
+  constructor with tiers; save 18). **6.5 Footprints and the assembler** (`factory/footprint/`,
+  `action/multiblock.rs`; the anchor holds the block, other cells `MACHINE_PART` 62; ports by side; save
+  19). **6.6 Steel** (blast furnace with a byproduct port, slag, steel items and tools).
+- [x] **6.7 Blue science and Mk3** (blue pack and kit, three-slot labs, save 20, Mk3 belts, miners,
+  smelters (electric), processors) and **6.7b Mk3 for the rest** (poles `factory/pole.rs`, boxes, pumps,
+  quarries, labs; generator Mk2; save 21; tier recipes in `recipes/tiers.rs`).
+- [x] **6.8 Steam power** (`factory/process/steam.rs`): boiler (block 66, 2×2×2) and steam turbine (67, 3×2×2) are
+  spec rows (`Energy::Boiler` / `Turbine`). A boiler burns 540 kJ a coal into steam and takes water (2,000 kJ a
+  unit) from a pump on its pipe net; a turbine touching a boiler is a power source `power.rs` asks for what its
+  grid lacks (up to 240 kW, two a boiler). Tests: a sea-pump plant holds a 405 kW load for a full research unit;
+  a pond plant runs dry; the two-turbine limit; a save round trip.
+- [x] **6.9 Crushing and bulk storage:** the crusher (block 68, 30 kW, machine recipes 21–25, items 306–307: 2 ore
+  → 3 crushed, slag → sand) and the silo (69, `Pick::Store`, 144 slots, in on three sides, out the front). Techs
+  14–16; textures 141–150 (`textures/heavy.rs`), recipes in `recipes/heavy.rs` and `tooling.rs`.
+- [x] **6.10 Feel, balance, cleanup:** tips for kits, the assembler, steel and steam (`hints.rs`); golden hash
+  re-recorded. Tests 286 → 296, wasm 232.7 KB gzipped, `bench_plant` (20 machines): 1.3 µs a tick, worst 2.15 ms.
+#### Milestone 7 steps
+
+Goal: the player's reach grows from building by hand to machines doing it. Circuits and violet science
+first, then logic, then the builders (blueprints, drones, flight). Steps 7.6–7.8 follow the user's answers
+of 2026-10-03 (section 1).
+
+- [x] **7.1–7.6 built** (full specs moved to `docs/CHANGELOG.md`, "Milestone 7 steps 7.1 to 7.6"): 7.1 arc furnace, silicon,
+  circuit; 7.1b power cable; 7.2 violet science and Mk4; 7.2b bootstrap without raw ore and the timed hand-craft queue
+  (save 23); 7.3 solar panel and accumulator; 7.3b wiring by hand (save 24); 7.4 Scanner Mk2; 7.5 the sensor (save 25);
+  7.6a ghosts (save 26) and 7.6b blueprints.- [x] **7.7 Construction drones: the long way** (user, 2026-10-03: drones must be hard to reach and very rewarding; more
+  research and parts). Gate: a ladder of techs on violet packs, none cheap: Robotics (actuators and servo parts) →
+  Drone Power (a drone cell, made of a battery-like part from circuits, copper, steel and a motor) → Navigation (a
+  processor-based guidance module, so after Processors) → Construction Drones → Swarm Logistics (more drones per port,
+  a longer range). The drone is built in an assembler from several intermediates, none raw ore; the drone port is a big
+  multi-block (3×3 pad) on power. Drones take materials from boxes beside the port (a later tech may extend this to a
+  network). Steps: **7.7a** the part chain and techs, **7.7b** the drone port and its supply boxes, **7.7c** drones
+  flying out and building ghosts (one at a time, visible), **7.7d** tear-down marks, **7.7e** swarm upgrades. Numbers
+  go in `docs/TECH_ERAS.md` when 7.7a starts.
+  **7.7a built (no save bump; golden hash re-recorded):** five techs on all four packs after Violet Science: Processors
+  (100 units × 30 s) → Robotics (140 × 30, also needs Mk4 Machines, so Mk4 Logistics first) → Drone Power (160 × 35) and
+  Navigation (180 × 35, needs Processors and Robotics) → Construction Drones (240 × 40): twelve techs in front of the
+  drone. Six assembler-only parts (`item.rs` 321–326, `MACHINE_RECIPES` 31–36, `DRONE_RECIPES`): processor, servo,
+  actuator, drone cell, guidance module, drone. Numbers in `docs/TECH_ERAS.md` section 3; icons `textures/robotics.rs`.
+  **7.7b–e built (save 27, merged into 28):** the drone port (block 75, `factory/process/hangar.rs`: a 3×3×1 processor spec,
+  `Pick::Hangar`, 40/60/90/140 kW only while drones are out) keeps drones as its input buffer, so belts, panel, saves and
+  breaking needed nothing new; tiers Mk1–Mk4 by kits (`Swarm Logistics`, tech 29): reach 32/48/64/96 blocks, fleet 4/8/12/16.
+  The core `drones/` (`Drones` in `Sim`, saved) launches a drone every 30 ticks per powered port at the nearest ghost in
+  reach that no drone is on: a build takes its item from a storage box touching the pad (`factory/ports.rs`), flies at
+  8 blocks a second (f64, `+ - * / sqrt` only), works 1 s and places it through `put_block` (the same code a player runs);
+  a tear-down mark (`Action::MarkRemoval`, tag 36: a ghost of air) works as long as bare hands take (1–4 s) and breaks it
+  through `dismantle`, the drops going into the boxes. Breaking a port brings its drones back as items; a drone whose port
+  is gone drops as an item. `break_block`/`place_block` were split into `dismantle`/`put_block` for this. Presentation:
+  `drone_view.rs` (drones as boxes), ghost mode left-click marks or unmarks (`update_marking`, red outlines, label).
+  Port recipe: 24 steel plates, 12 circuits, 2 processors, 4 motors.
+- [x] **7.8 Flight and helpers** (answer: coal jetpack now, hover pack in M9): the jetpack (4 steel plates, 2 motors,
+  2 circuits; 10 s of thrust a coal) and the personal drone (which, like the construction drone, needs the long ladder).
+  **Built (save 28):** `helpers/` (core, per player in `PlayerCore.helpers`, saved): `Action::Jetpack { on }` (tag 37)
+  burns a coal from the pack per 600 ticks of thrust (the pack stands in for a fuel slot) and the body lifts at 12 m/s²
+  net up to 6 m/s while `Player::thrust` (set from the core by `authority.rs`); the hands send it when jump is held in the
+  air (`helper_hands.rs`). `Action::Fetch { item, at }` (tag 38): with the personal drone in the pack, Y sends it to the
+  nearest box within 32 blocks holding the held item; a round trip at 12 blocks a second (at least 1 s) brings a stack.
+  Items 330/331 (tools of `DEVICE_TIER`), techs Jetpack (needs Robotics, 120 × 30 s) and Personal Drone (needs Construction
+  Drones, 160 × 35 s); recipes: jetpack 4 steel plates, 2 motors, 2 circuits; personal drone 1 drone and 2 circuits.
+- [x] **7.9 Feel, balance, cleanup.** Tips, research times played through, worst tick and wasm measured,
+  README, CODEMAP; then move Milestone 8 in from the roadmap and ask its questions.
+  **Done:** three new tips (ghosts, drones, fly and fetch), `bench_drones` (2,000 ghosts and a port: 3.6 µs a tick, worst
+  61 µs), wasm 312.6 KB gzipped (`vite build`: wasm 832.6 KB raw; 241 KB at step 7.3: most of the growth came with the
+  textures, blueprints, strategy camera and avatars; the drones add icons and about 10 KB of code), 431 tests (4 ignored benchmarks).
+  Research times follow `docs/TECH_ERAS.md` section 3. Milestone 8 questions are open (see the status line).
+
+#### Milestone 8 (Terraforming, era 5): in progress
+
+Design from `docs/TECH_ERAS.md` section 4. **The user's answers (2026-10-04):** the earthworks are done by the
+**drone ports** of Milestone 7 (no separate excavator machine); spoil goes into **belts and boxes**, and fill sites in
+range are served from the same boxes first. **Built:** sites in the core (`factory/sites.rs`: `Site`, `Job` dig, fill or
+flatten, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`; saved); the drone ports work them
+(`drones/earthworks.rs`).
+
+- [x] **8.1 The planner** (`site_hands.rs`, `ui/site.ts`): item 332 (3 iron plates, 4 copper wire, 2 glass, a circuit),
+  tech Earthworks (needs Construction Drones, 140 × 35 s, all four packs). Right-click a corner block, then the opposite
+  one (reach 64); the site panel picks the job and the level and shows the survey (blocks to dig and fill, ore, trees,
+  water, unseen columns, spoil); right-click a marked site to look at it or remove it. Outlines (job colour for the
+  extent, white for the level, cyan for the box being marked) go into `placement_box`.
+- [x] **8.2 Drones work sites:** a port picks the first cell in its reach that needs work (cut layers top down, then fill
+  layers bottom up) after ghosts of equal distance; a cut breaks the block by hand and puts the drops into the pad's
+  boxes (it waits while they are full); a fill brings dirt (top layer) or stone, dirt, sand, grass from the boxes and
+  places it where the cell is free, the cells above are free and the ground below is solid; so dug ground fills other
+  sites from the same boxes. A finished site removes itself.
+- [x] **8.3 Fill and flatten:** the same cell scheme (a flatten is a dig and a fill in one site).
+- [x] **8.4 Tunnels** (`factory/sites/tunnel.rs`; `Job::Tunnel`, `Action::MarkTunnel` tag 40): two blocks, a path along the
+  longer horizontal axis (96 blocks, 1 in 2 slope), section 1×2, 3×3 or 5×5 standing on it. Drones cut it like a dig but
+  leave cells touching water. A tunnel clashes with a site only where they share heights. No new tech (Earthworks gates
+  it), no save bump (job byte 3), golden hash unchanged.
+- [x] **8.5 Cleanup:** `bench_earthworks` (a 64 × 64 flatten, nine layers, boxes full, so every launch scans all 36,864 cells: 19 µs a tick, worst 0.5 ms); sites show on both maps as hollow squares (`MARK_SITE`); a planner tip; outline colours from the Okabe-Ito palette (dig vermillion, fill sky blue, flatten yellow, tunnel reddish purple, corner bluish green); README. Tests 457 → 458, wasm 329 KB gzipped (`vite build`: wasm 881 KB raw, JS 61 KB, CSS 8 KB).

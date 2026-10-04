@@ -14,10 +14,11 @@ use crate::Game;
 
 /// How far the hands reach with a planner in hand.
 pub(crate) const PLANNER_REACH: f64 = 64.0;
-/// Outline colours: a corner being marked (cyan), a dig site (orange), a fill site (green), a flatten site (gold)
-/// and the level of every site (white).
-const CORNER_CYAN: i32 = 0x4cc9f0;
-const SITE_COLOURS: [i32; 3] = [0xff9f1c, 0x80ed99, 0xffd166];
+/// Outline colours, from the Okabe-Ito palette (told apart under the common kinds of colour blindness; the panel
+/// names the job too): a corner being marked (bluish green), a dig site (vermillion), a fill site (sky blue), a
+/// flatten site (yellow), a tunnel (reddish purple) and the level of every area site (white).
+const CORNER_GREEN: i32 = 0x009e73;
+pub(crate) const SITE_COLOURS: [i32; 4] = [0xd55e00, 0x56b4e9, 0xf0e442, 0xcc79a7];
 const LEVEL_WHITE: i32 = 0xf1f5f9;
 
 /// The planner's state: the first corner while one is set, and the request waiting for the host.
@@ -47,7 +48,15 @@ impl Game {
         match self.planner.corner.take() {
             Some(a) if (a.x, a.z) == (b.x, b.z) => {}
             Some(a) => self.planner.request = Some(vec![0, a.x, a.z, b.x, b.z, a.y, b.y]),
-            None => match self.sim.factory.sites.list.iter().find(|s| s.has_column(b)) {
+            None => match self
+                .sim
+                .factory
+                .sites
+                .list
+                .iter()
+                .find(|s| s.picks(b) && s.tunnel.is_some())
+                .or_else(|| self.sim.factory.sites.list.iter().find(|s| s.picks(b)))
+            {
                 Some(s) => self.planner.request = Some(vec![1, s.id as i32]),
                 None => self.planner.corner = Some(b),
             },
@@ -63,8 +72,12 @@ impl Game {
             return out;
         }
         for s in &self.sim.factory.sites.list {
-            let (bottom, top) = (s.low.min(s.level), s.high.max(s.level));
             let colour = SITE_COLOURS[s.job as usize];
+            if s.tunnel.is_some() {
+                out.extend([s.lo.0, s.low + 1, s.lo.1, s.hi.0, s.high, s.hi.1, colour]);
+                continue;
+            }
+            let (bottom, top) = (s.low.min(s.level), s.high.max(s.level));
             out.extend([s.lo.0, bottom, s.lo.1, s.hi.0, top, s.hi.1, colour]);
             out.extend([s.lo.0, s.level, s.lo.1, s.hi.0, s.level, s.hi.1, LEVEL_WHITE]);
         }
@@ -77,7 +90,7 @@ impl Game {
                 a.x.max(b.x),
                 a.y.max(b.y),
                 a.z.max(b.z),
-                CORNER_CYAN,
+                CORNER_GREEN,
             ]);
         }
         out

@@ -11,7 +11,7 @@ use crate::block::{
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
-use crate::item::{IRON_INGOT, JETPACK, PERSONAL_DRONE};
+use crate::item::{IRON_INGOT, JETPACK, PERSONAL_DRONE, PLANNER};
 use crate::research::{TechState, TECHS};
 
 pub struct Hint {
@@ -141,6 +141,13 @@ pub const HINTS: &[Hint] = &[
                burns a coal per 10 seconds from your pack. A Personal Drone in your pack fetches the item in your \
                hand from the nearest box within 32 blocks when you press Y.",
         done: |inv, _| inv.count(JETPACK) > 0 || inv.count(PERSONAL_DRONE) > 0,
+    },
+    Hint {
+        text: "Move the ground: research Earthworks and craft the Planner. Right-click one corner block and then the \
+               opposite one to mark an area to dig, fill or flatten (or a tunnel) and pick the level in its panel. \
+               Drone ports within reach do the work, digging into the storage boxes touching their pad and filling \
+               from them. Sites show on the map as hollow squares.",
+        done: |inv, f| inv.count(PLANNER) > 0 || !f.sites.list.is_empty(),
     },
 ];
 

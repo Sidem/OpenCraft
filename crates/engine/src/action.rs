@@ -103,6 +103,13 @@ pub enum Action {
         level: i32,
         job: Job,
     },
+    /// Marks a tunnel site from the block `from` towards `to` with section `size` (`factory::Tunnel::new`,
+    /// `Sites::mark_tunnel`, which refuse what doesn't fit).
+    MarkTunnel {
+        from: IVec3,
+        to: IVec3,
+        size: u8,
+    },
     /// Removes the terraforming site with this id.
     RemoveSite {
         id: u32,
@@ -294,6 +301,9 @@ impl Sim {
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),
             Action::MarkSite { a, b, level, job } => {
                 self.factory.sites.mark(&mut self.world, a, b, level, job);
+            }
+            Action::MarkTunnel { from, to, size } => {
+                self.factory.sites.mark_tunnel(from, to, size);
             }
             Action::RemoveSite { id } => {
                 self.factory.sites.remove(id);

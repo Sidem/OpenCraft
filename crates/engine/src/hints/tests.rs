@@ -54,15 +54,17 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), 16, "silicon");
     let violet = TECHS.iter().position(|t| t.name == "Violet Science").unwrap() as u8;
     (0..TECHS[violet as usize].units).for_each(|_| f.research.add_unit(violet));
-    assert_eq!(progress(&inv, &f), HINTS.len() - 4, "violet science");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 5, "violet science");
     place(&mut f, SOLAR_PANEL, 60);
-    assert_eq!(progress(&inv, &f), HINTS.len() - 3, "solar");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 4, "solar");
     let processors = TECHS.iter().position(|t| t.name == "Processors").unwrap() as u8;
     (0..TECHS[processors as usize].units).for_each(|_| f.research.add_unit(processors));
-    assert_eq!(progress(&inv, &f), HINTS.len() - 2, "ghosts: processors done");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 3, "ghosts: processors done");
     place(&mut f, DRONE_PORT, 70);
-    assert_eq!(progress(&inv, &f), HINTS.len() - 1, "a drone port");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 2, "a drone port");
     inv.add(crate::item::JETPACK, 1);
+    assert_eq!(progress(&inv, &f), HINTS.len() - 1, "flying");
+    inv.add(crate::item::PLANNER, 1);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
 }

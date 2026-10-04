@@ -20,6 +20,8 @@ Moved into `docs/DEV_PLAN.md` at the end of Milestone 7 (2026-10-03).
 
 ## Milestone 9: Distance (era 6)
 
+Moved into `docs/DEV_PLAN.md` at the end of Milestone 8 (2026-10-04); this is the original sketch.
+
 - **Bauxite** (generator version 5, bundling every later resource: bauxite, oil reservoirs, uranium):
   only in deserts and basalt fields, far from spawn. The electrolytic cell makes aluminium.
 - **Trains** (rails of steel beams and concrete, stations, signals) or **trucks** on recorded routes;

@@ -8,16 +8,24 @@
 //! from the top down, then fill layers from the bottom up; in a layer, rows along z, back and forth
 //! along x. A fill cell counts only above its column's ground (`is_ground`), never into a cave.
 //! `survey_site` is a query over loaded chunks, for the planner. Drone ports work sites (`drones/earthworks.rs`).
+//! A tunnel (`sites/tunnel.rs`) is a site too, with `Job::Tunnel` and a `Tunnel` instead of an area: its cells are
+//! the bore, `lo` / `hi` its columns and `low` / `high` the heights just below and at its top cell; sites clash
+//! when their columns overlap, but a tunnel only when it also shares heights.
 //! To add a job: a `Job` variant appended to `JOBS` (its index is saved) and its ranges in
 //! `Job::cuts` / `Job::fills`.
 
 use super::machine;
-use crate::block::{is_ore, BlockId, AIR, BEDROCK, LEAVES, LIQUID, LOG, SOLID};
+use crate::block::{BlockId, AIR, BEDROCK, LEAVES, LIQUID, LOG, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
 use crate::math::IVec3;
 use crate::world::World;
-use crate::worldgen::{WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
+use crate::worldgen::WORLD_HEIGHT;
+
+mod survey;
+mod tunnel;
+use survey::ground_range;
+pub use survey::{survey_site, SiteSurvey};
+pub use tunnel::{survey_tunnel, touches_water, Tunnel, SECTIONS};
 
 /// Most columns a site may have on a side.
 pub const MAX_SITE: i32 = 64;
@@ -36,10 +44,12 @@ pub enum Job {
     Fill,
     /// Both: the ground ends level.
     Flatten,
+    /// A bore from one block to another (`Site::tunnel`).
+    Tunnel,
 }
 
 /// Jobs by their saved byte (append only).
-const JOBS: [Job; 3] = [Job::Dig, Job::Fill, Job::Flatten];
+const JOBS: [Job; 4] = [Job::Dig, Job::Fill, Job::Flatten, Job::Tunnel];
 
 impl Job {
     /// The job whose byte (`job as u8`) this is.
@@ -47,12 +57,13 @@ impl Job {
         JOBS.get(byte as usize).copied()
     }
 
+    /// Whether the job cuts and fills the area between `level` and the ground (a tunnel does neither: its own cells).
     fn cuts(self) -> bool {
-        self != Job::Fill
+        matches!(self, Job::Dig | Job::Flatten)
     }
 
     fn fills(self) -> bool {
-        self != Job::Dig
+        matches!(self, Job::Fill | Job::Flatten)
     }
 }
 
@@ -71,9 +82,17 @@ pub struct Site {
     pub low: i32,
     /// Cells from the start known to need no work (a cache for `drones/earthworks.rs`; never saved).
     pub done: u32,
+    /// The bore, for `Job::Tunnel` sites (whose other fields it decides: see `Site::bore`).
+    pub tunnel: Option<Tunnel>,
 }
 
 impl Site {
+    /// The site that cuts `t`.
+    fn bore(id: u32, t: Tunnel) -> Site {
+        let (lo, hi, bottom, top) = t.bounds();
+        Site { id, lo, hi, level: t.from.y, job: Job::Tunnel, high: top, low: bottom - 1, done: 0, tunnel: Some(t) }
+    }
+
     pub fn cut_layers(&self) -> u32 {
         if self.job.cuts() {
             (self.high - self.level).max(0) as u32
@@ -91,7 +110,10 @@ impl Site {
     }
 
     pub fn cells(&self) -> u32 {
-        (self.cut_layers() + self.fill_layers()) * self.area()
+        match &self.tunnel {
+            Some(t) => t.cells(),
+            None => (self.cut_layers() + self.fill_layers()) * self.area(),
+        }
     }
 
     /// Whether cell `i` is filled rather than cut (the cut's cells come first).
@@ -103,6 +125,9 @@ impl Site {
     /// Cell `i` (below `cells()`): cut layers from `high` down, then fill layers from above `low` up;
     /// in a layer, row by row along z, each row along x, every other one backwards.
     pub fn cell(&self, i: u32) -> IVec3 {
+        if let Some(t) = &self.tunnel {
+            return t.cell(i);
+        }
         let (area, w) = (self.area(), (self.hi.0 - self.lo.0 + 1) as u32);
         let (layer, k) = (i / area, i % area);
         let (row, c) = (k / w, k % w);
@@ -117,12 +142,44 @@ impl Site {
         (self.lo.0..=self.hi.0).contains(&pos.x) && (self.lo.1..=self.hi.1).contains(&pos.z)
     }
 
+    /// Whether `pos` is one of the site's cells (drones work only these).
+    pub fn covers(&self, pos: IVec3) -> bool {
+        match &self.tunnel {
+            Some(t) => t.has_cell(pos),
+            None => self.has_column(pos) && (self.span().0..=self.span().1).contains(&pos.y),
+        }
+    }
+
+    /// Whether the cell at `pos` is cut away, not built.
+    pub fn cuts_at(&self, pos: IVec3) -> bool {
+        self.tunnel.is_some() || pos.y > self.level
+    }
+
+    /// Whether the planner's aim at block `pos` means this site: any block in an area's columns, or in a tunnel's
+    /// box (a tunnel is then preferred, as it may run under an area).
+    pub fn picks(&self, pos: IVec3) -> bool {
+        self.has_column(pos) && (self.tunnel.is_none() || (self.low + 1..=self.high).contains(&pos.y))
+    }
+
     fn area(&self) -> u32 {
         ((self.hi.0 - self.lo.0 + 1) * (self.hi.1 - self.lo.1 + 1)) as u32
     }
 
-    fn overlaps(&self, lo: Column, hi: Column) -> bool {
-        self.lo.0 <= hi.0 && lo.0 <= self.hi.0 && self.lo.1 <= hi.1 && lo.1 <= self.hi.1
+    /// The lowest and highest height of the site's cells (empty when the first is above the second).
+    fn span(&self) -> (i32, i32) {
+        match self.job {
+            Job::Dig => (self.level + 1, self.high),
+            Job::Fill => (self.low + 1, self.level),
+            Job::Flatten => (self.low.min(self.level) + 1, self.high.max(self.level)),
+            Job::Tunnel => (self.low + 1, self.high),
+        }
+    }
+
+    /// Whether the two can't both stand: their columns overlap, and for a tunnel their heights too.
+    fn clashes(&self, o: &Site) -> bool {
+        let columns = self.lo.0 <= o.hi.0 && o.lo.0 <= self.hi.0 && self.lo.1 <= o.hi.1 && o.lo.1 <= self.hi.1;
+        let heights = self.span().0 <= o.span().1 && o.span().0 <= self.span().1;
+        columns && (heights || (self.tunnel.is_none() && o.tunnel.is_none()))
     }
 }
 
@@ -140,15 +197,28 @@ impl Sites {
     /// or the level leaves no room above or below it. Finds the cut and fill ranges now.
     pub fn mark(&mut self, world: &mut World, a: Column, b: Column, level: i32, job: Job) -> Option<u32> {
         let (lo, hi) = shape(a, b)?;
-        let full = self.list.len() >= MAX_SITES || self.list.iter().any(|s| s.overlaps(lo, hi));
-        if full || !(1..WORLD_HEIGHT - 1).contains(&level) {
+        if self.list.len() >= MAX_SITES || !(1..WORLD_HEIGHT - 1).contains(&level) || job == Job::Tunnel {
             return None;
         }
         let (high, low) = ground_range(world, lo, hi);
-        let id = self.next_id;
+        self.add(Site { id: 0, lo, hi, level, job, high, low, done: 0, tunnel: None })
+    }
+
+    /// Marks the tunnel `Tunnel::new(from, to, size)` and returns its id, or `None` (nothing changes) when that
+    /// is refused, it clashes with a site, or the world has `MAX_SITES`.
+    pub fn mark_tunnel(&mut self, from: IVec3, to: IVec3, size: u8) -> Option<u32> {
+        self.add(Site::bore(0, Tunnel::new(from, to, size)?))
+    }
+
+    /// Adds `site` under the next id unless it is too many or clashes with one.
+    fn add(&mut self, mut site: Site) -> Option<u32> {
+        if self.list.len() >= MAX_SITES || self.list.iter().any(|s| s.clashes(&site)) {
+            return None;
+        }
+        site.id = self.next_id;
         self.next_id = self.next_id.wrapping_add(1);
-        self.list.push(Site { id, lo, hi, level, job, high, low, done: 0 });
-        Some(id)
+        self.list.push(site);
+        Some(site.id)
     }
 
     /// Removes site `id`; false if there is none.
@@ -169,6 +239,12 @@ impl Sites {
             w.u8(s.job as u8);
             w.i32(s.high);
             w.i32(s.low);
+            if let Some(t) = &s.tunnel {
+                for v in [t.from, t.to] {
+                    w.ivec3(v);
+                }
+                w.u8(t.size);
+            }
         }
     }
 
@@ -186,62 +262,31 @@ impl Sites {
             let (lo, hi) = ((r.i32()?, r.i32()?), (r.i32()?, r.i32()?));
             let (level, job) = (r.i32()?, Job::from_byte(r.u8()?)?);
             let (high, low) = (r.i32()?, r.i32()?);
-            if id >= next_id || shape(lo, hi) != Some((lo, hi)) {
+            let tunnel = if job == Job::Tunnel {
+                // Everything but the bore is derived from it; saved fields that disagree are damage.
+                let (from, to) = (r.ivec3()?, r.ivec3()?);
+                let t = Tunnel::new(from, to, r.u8()?).filter(|t| t.to == to)?;
+                let b = Site::bore(id, t);
+                if (b.lo, b.hi, b.level, b.high, b.low) != (lo, hi, level, high, low) {
+                    return None;
+                }
+                Some(t)
+            } else if shape(lo, hi) == Some((lo, hi)) {
+                None
+            } else {
+                return None;
+            };
+            if id >= next_id {
                 return None;
             }
-            list.push(Site { id, lo, hi, level, job, high, low, done: 0 });
+            list.push(Site { id, lo, hi, level, job, high, low, done: 0, tunnel });
         }
         Some(Sites { list, next_id })
     }
 }
 
-/// What a job over some columns would move, among loaded chunks (a query, for the planner).
-#[derive(Clone, Copy, Default, PartialEq, Eq, Debug)]
-pub struct SiteSurvey {
-    /// Blocks the cut takes (ground, trees, ore and loose things; bedrock and machines stay).
-    pub cut: u32,
-    /// Cells the fill builds.
-    pub fill: u32,
-    /// Of the cut: ore blocks (cut like hand mining) and tree blocks (logs, leaves).
-    pub ore: u32,
-    pub trees: u32,
-    /// Water cells in the cut or the fill.
-    pub water: u32,
-    /// Columns not loaded here, left out of the counts.
-    pub unseen: u32,
-}
-
-impl SiteSurvey {
-    /// Ground left over after the fill, to carry away (negative: ground to bring in).
-    pub fn spoil(&self) -> i32 {
-        (self.cut - self.ore - self.trees) as i32 - self.fill as i32
-    }
-}
-
-/// What `job` to `level` over the columns between `a` and `b` would move, among loaded chunks (a
-/// query: never creates core state). `None` for an area too big to be a site.
-pub fn survey_site(world: &World, a: Column, b: Column, level: i32, job: Job) -> Option<SiteSurvey> {
-    let (lo, hi) = shape(a, b)?;
-    let mut s = SiteSurvey::default();
-    for z in lo.1..=hi.1 {
-        for x in lo.0..=hi.0 {
-            match survey_column(world, x, z, level, job) {
-                Some(c) => {
-                    s.cut += c.cut;
-                    s.fill += c.fill;
-                    s.ore += c.ore;
-                    s.trees += c.trees;
-                    s.water += c.water;
-                }
-                None => s.unseen += 1,
-            }
-        }
-    }
-    Some(s)
-}
-
 /// Ground a column is built on: solid, and not part of a tree.
-fn is_ground(b: BlockId) -> bool {
+pub(super) fn is_ground(b: BlockId) -> bool {
     SOLID[b as usize] && b != LOG && b != LEAVES
 }
 
@@ -251,85 +296,10 @@ pub fn cut_takes(b: BlockId) -> bool {
 }
 
 /// The corners of a site between `a` and `b`, lowest first, if it is small enough.
-fn shape(a: Column, b: Column) -> Option<(Column, Column)> {
+pub(super) fn shape(a: Column, b: Column) -> Option<(Column, Column)> {
     let (lo, hi) = ((a.0.min(b.0), a.1.min(b.1)), (a.0.max(b.0), a.1.max(b.1)));
     let side = |l: i32, h: i32| h as i64 - l as i64 + 1;
     (side(lo.0, hi.0) <= MAX_SITE as i64 && side(lo.1, hi.1) <= MAX_SITE as i64).then_some((lo, hi))
-}
-
-/// The top block of the highest chunk in chunk column (cx, cz) that isn't all air (`air` says whether
-/// a chunk is; `None`: unknown), or -1 if they all are.
-fn sky_floor(cx: i32, cz: i32, mut air: impl FnMut(IVec3) -> Option<bool>) -> Option<i32> {
-    for cy in (0..WORLD_HEIGHT_CHUNKS).rev() {
-        if !air(IVec3::new(cx, cy, cz))? {
-            return Some(cy * CHUNK_SIZE + CHUNK_SIZE - 1);
-        }
-    }
-    Some(-1)
-}
-
-/// The highest block (air aside) and the lowest column ground in the site, from the world as it is.
-/// Chunk column by chunk column, skipping the sky, so the few chunks it reads stay in the world's small
-/// cache of generated ones.
-fn ground_range(world: &mut World, lo: Column, hi: Column) -> (i32, i32) {
-    let (mut high, mut low) = (0, WORLD_HEIGHT);
-    for cz in (lo.1 >> CHUNK_SHIFT)..=(hi.1 >> CHUNK_SHIFT) {
-        for cx in (lo.0 >> CHUNK_SHIFT)..=(hi.0 >> CHUNK_SHIFT) {
-            let from = sky_floor(cx, cz, |c| Some(world.is_air_anywhere(c))).unwrap_or(-1);
-            let (z0, x0) = ((cz << CHUNK_SHIFT).max(lo.1), (cx << CHUNK_SHIFT).max(lo.0));
-            let (z1, x1) =
-                ((cz << CHUNK_SHIFT | (CHUNK_SIZE - 1)).min(hi.1), (cx << CHUNK_SHIFT | (CHUNK_SIZE - 1)).min(hi.0));
-            for z in z0..=z1 {
-                for x in x0..=x1 {
-                    let mut top = None;
-                    let mut ground = 0;
-                    for y in (0..=from).rev() {
-                        let b = world.block_anywhere_or_generate(IVec3::new(x, y, z));
-                        if b != AIR {
-                            top.get_or_insert(y);
-                        }
-                        if is_ground(b) {
-                            ground = y;
-                            break;
-                        }
-                    }
-                    high = high.max(top.unwrap_or(0));
-                    low = low.min(ground);
-                }
-            }
-        }
-    }
-    (high, low)
-}
-
-/// One loaded column's share of a survey; `None` if part of it isn't loaded.
-fn survey_column(world: &World, x: i32, z: i32, level: i32, job: Job) -> Option<SiteSurvey> {
-    let air = |c| world.loaded_chunk(c).map(|chunk| chunk.as_uniform() == Some(AIR));
-    let mut y = sky_floor(x >> CHUNK_SHIFT, z >> CHUNK_SHIFT, air)?;
-    let mut s = SiteSurvey::default();
-    let mut ground = None;
-    while y >= 0 && (y > level || ground.is_none()) {
-        let b = world.get_block(IVec3::new(x, y, z))?;
-        let water = LIQUID[b as usize];
-        if y > level && job.cuts() {
-            if cut_takes(b) {
-                s.cut += 1;
-                s.ore += is_ore(b) as u32;
-                s.trees += (b == LOG || b == LEAVES) as u32;
-            }
-            s.water += water as u32;
-        } else if y <= level && ground.is_none() && job.fills() {
-            s.water += water as u32;
-        }
-        if ground.is_none() && is_ground(b) {
-            ground = Some(y);
-        }
-        y -= 1;
-    }
-    if job.fills() {
-        s.fill = (level - ground.unwrap_or(0)).max(0) as u32;
-    }
-    Some(s)
 }
 
 #[cfg(test)]

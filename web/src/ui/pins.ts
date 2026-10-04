@@ -23,10 +23,11 @@ export interface PinKind {
 
 /** Most pins kept per world. */
 const MAX_PINS = 200;
-/** Engine mark shapes (`minimap_marks`): a prospected deposit, a machine, ore seen at the surface. */
+/** Engine mark shapes (`minimap_marks`): a prospected deposit, a machine, ore seen at the surface, a site. */
 export const MARK_DEPOSIT = 0;
 export const MARK_MACHINE = 1;
 export const MARK_ORE = 2;
+export const MARK_SITE = 3;
 const EXTRA_KINDS: PinKind[] = [
   { id: 'home', label: 'Home', color: '#ffffff' },
   { id: 'note', label: 'Note', color: '#fa9549' },
@@ -88,10 +89,18 @@ export function hex(color: number): string {
   return `#${color.toString(16).padStart(6, '0')}`;
 }
 
-/** One engine mark at canvas point (x, y): a ringed dot, a square or a diamond; `px` is one map pixel. */
+/** One engine mark at canvas point (x, y): a ringed dot, a square, a diamond or a hollow square; `px` is one map pixel. */
 export function drawMark(c: CanvasRenderingContext2D, x: number, y: number, color: number, shape: number, px: number): void {
   c.fillStyle = hex(color);
   c.beginPath();
+  if (shape === MARK_SITE) {
+    // A hollow square: the area, not a thing standing in it.
+    c.rect(x - 3 * px, y - 3 * px, 6 * px, 6 * px);
+    c.strokeStyle = hex(color);
+    c.lineWidth = Math.max(2, 1.5 * px);
+    c.stroke();
+    return;
+  }
   if (shape === MARK_DEPOSIT) {
     c.arc(x, y, 3.5 * px, 0, 2 * Math.PI);
     c.strokeStyle = '#fff';

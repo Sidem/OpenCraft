@@ -96,7 +96,7 @@ pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use render::{light_boxes, push_box, INSTANCE_FLOATS};
 pub use sensor::RULES as SENSOR_RULES;
-pub use sites::{cut_takes, survey_site, Job, Site, Sites};
+pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
 pub use wiring::Hookup;
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.

@@ -20,13 +20,16 @@ use crate::math::IVec3;
 use crate::worldgen::WorldGen;
 
 use super::{Minimap, HALF};
+use crate::site_hands::SITE_COLOURS;
 
 /// Numbers per mark: dx, dz (blocks from the image's centre column), colour (0xRRGGBB), shape.
 pub const MARK_FIELDS: usize = 4;
-/// Mark shapes: a deposit (round), a machine (square), ore seen at the surface (a diamond).
+/// Mark shapes: a deposit (round), a machine (square), ore seen at the surface (a diamond), a terraforming site
+/// (a hollow square at its centre, in its job colour).
 pub const MARK_DEPOSIT: i32 = 0;
 pub const MARK_MACHINE: i32 = 1;
 pub const MARK_ORE: i32 = 2;
+pub const MARK_SITE: i32 = 3;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -83,7 +86,7 @@ impl Minimap {
     }
 
     /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: ore seen at the surface, then
-    /// remembered deposits that still hold ore, then machines.
+    /// remembered deposits that still hold ore, then terraforming sites, then machines.
     pub fn marks_in(&self, factory: &Factory, lo: (i32, i32), hi: (i32, i32), origin: (i32, i32)) -> Vec<i32> {
         let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
         let (ox, oz) = origin;
@@ -99,6 +102,12 @@ impl Minimap {
         });
         for d in self.known.deposits.iter().filter(|d| inside(d.center) && !dry(factory, d)) {
             out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
+        }
+        for s in &factory.sites.list {
+            let (x, z) = ((s.lo.0 + s.hi.0) / 2, (s.lo.1 + s.hi.1) / 2);
+            if (lo.0..=hi.0).contains(&x) && (lo.1..=hi.1).contains(&z) {
+                out.extend_from_slice(&[x - ox, z - oz, SITE_COLOURS[s.job as usize], MARK_SITE]);
+            }
         }
         factory.map_machines(lo, hi, &mut |block, p| {
             out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), MARK_MACHINE]);

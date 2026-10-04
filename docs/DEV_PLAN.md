@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-04 · Strategy controls built · Milestones 1–7 done (M7 committed locally, not pushed; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 8 (terraforming): planner, drone earthworks and tests built (steps 8.1–8.3, uncommitted); next 8.4 tunnels (to decide) and 8.5 cleanup** · The `art` branch is superseded; art work
+**Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
+now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; next 9.1** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -33,8 +33,10 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
 - **Milestone 6 (Industry) is done** (section 8): tiers as data, one processing machine, multi-block
   footprints, upgrade kits, the assembler, steel, blue science, Mk3 everything, steam power, the crusher
   and the silo.
-- **Now: Milestone 7: Electronics, blueprints and drones** (section 4): the arc furnace, circuits, violet
-  science and Mk4, solar power, logic, then blueprints, construction drones and the jetpack.
+- **Milestones 7 and 8 are done** (`docs/CHANGELOG.md`): circuits, violet science, solar, logic, blueprints,
+  construction drones, jetpack and gear; then terraforming by drone (dig, fill, flatten, tunnels).
+- **Now: Milestone 9: Distance** (section 4): bauxite in far biomes, aluminium, a way to find which way to go,
+  trains, cargo drones and the hover pack.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -118,6 +120,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-28 | **Modular, open content architecture** (`docs/TECH_TREE.md` section 8): variants such as tiers are data (`tier: u8` into a table), never a `bool` like today's `fast` belt or `mk2` miner, nor a block per variant; processing machines are rows of one generic machine; recipes belong to categories. |
 | 2026-09-28 | **The order after Industry** (proposed by Claude, confirmed): 7 Electronics, blueprints and drones (with the jetpack) · 8 Terraforming (its excavator flies Milestone 7's drones) · 9 Distance (aluminium, trains) · 10 Fluids and chemistry · 11 Compute and photonics · 12 Orbit · 13 The megaproject. **Blue packs and upgrade kits from blue on are machine-made only.** |
 | 2026-10-03 | **Blueprints are both** copied from built areas and planned as ghosts; ghosts are core state. **Drones take materials from boxes beside their port.** **Drones must be hard and rewarding:** a long research ladder on violet packs and several new parts, not three cheap techs. **Coal jetpack in M7**, hover pack in M9. |
+| 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
 
@@ -415,117 +418,53 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 7: Electronics, blueprints and drones
+## 4. Now: Milestone 9: Distance
 
-Milestone 6 (Industry) is done: the steps below are its summary; the full specs are in git history
-(`git log -- docs/DEV_PLAN.md`). Milestone 7 is moved in from `docs/ROADMAP.md`. Design: `docs/TECH_TREE.md`
-(sections 1, 6, 7 and 8) and `docs/TECH_ERAS.md` section 3 (era 4: every number, recipe and tech).
+Milestones 6 (Industry), 7 (Electronics, blueprints, drones) and 8 (Terraforming) are done; their step lists are in
+`docs/CHANGELOG.md` ("Milestones 6 to 8"). Design: `docs/TECH_TREE.md` and `docs/TECH_ERAS.md` section 5.
 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 28) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 29) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 76, item 332). Each new look gets a placeholder
-  layer (`tex::COUNT` is 177) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 76, item 339). Each new look gets a placeholder
+  layer (`tex::COUNT` is 180) and a `docs/ART_HANDOVER.md` request line.
 
-### Milestone 6 (Industry), built
+### Milestone 8 (Terraforming), built
 
-- [x] **6.1 Tiers as data** (`factory/tiers.rs`): `tier: u8`, numbers in `*_TIERS` arrays, `FAMILIES` names each
-  tier's item. **6.2 Unlocks, categories, content lint** (`research::Unlock`, `recipes/machine.rs`
-  `Category`, `recipes/tests.rs`). **6.3 Upgrade kits** (`factory/upgrades.rs`, `Action::Upgrade` tag 23,
-  tier stripes; one step at a time, never refunded).
-- [x] **6.4 One processing machine** (`factory/process/`: a `ProcessSpec` row per machine; smelter and
-  constructor with tiers; save 18). **6.5 Footprints and the assembler** (`factory/footprint/`,
-  `action/multiblock.rs`; the anchor holds the block, other cells `MACHINE_PART` 62; ports by side; save
-  19). **6.6 Steel** (blast furnace with a byproduct port, slag, steel items and tools).
-- [x] **6.7 Blue science and Mk3** (blue pack and kit, three-slot labs, save 20, Mk3 belts, miners,
-  smelters (electric), processors) and **6.7b Mk3 for the rest** (poles `factory/pole.rs`, boxes, pumps,
-  quarries, labs; generator Mk2; save 21; tier recipes in `recipes/tiers.rs`).
-- [x] **6.8 Steam power** (`factory/process/steam.rs`): boiler (block 66, 2×2×2) and steam turbine (67, 3×2×2) are
-  spec rows (`Energy::Boiler` / `Turbine`). A boiler burns 540 kJ a coal into steam and takes water (2,000 kJ a
-  unit) from a pump on its pipe net; a turbine touching a boiler is a power source `power.rs` asks for what its
-  grid lacks (up to 240 kW, two a boiler). Tests: a sea-pump plant holds a 405 kW load for a full research unit;
-  a pond plant runs dry; the two-turbine limit; a save round trip.
-- [x] **6.9 Crushing and bulk storage:** the crusher (block 68, 30 kW, machine recipes 21–25, items 306–307: 2 ore
-  → 3 crushed, slag → sand) and the silo (69, `Pick::Store`, 144 slots, in on three sides, out the front). Techs
-  14–16; textures 141–150 (`textures/heavy.rs`), recipes in `recipes/heavy.rs` and `tooling.rs`.
-- [x] **6.10 Feel, balance, cleanup:** tips for kits, the assembler, steel and steam (`hints.rs`); golden hash
-  re-recorded. Tests 286 → 296, wasm 232.7 KB gzipped, `bench_plant` (20 machines): 1.3 µs a tick, worst 2.15 ms.
-### Milestone 7 steps
+Sites in the core (`factory/sites.rs`, `sites/tunnel.rs`, `sites/survey.rs`): dig, fill, flatten and tunnels, marked
+with the Planner (item 332, tech Earthworks; `site_hands.rs`, `ui/site.ts`) and worked by the drone ports of Milestone 7
+(`drones/earthworks.rs`: cuts go into the pad's boxes, fills come out of them). Drones leave tunnel cells touching water.
+Sites show on the maps as hollow squares. `bench_earthworks`: worst tick 0.5 ms. Full specs: `docs/CHANGELOG.md`.
 
-Goal: the player's reach grows from building by hand to machines doing it. Circuits and violet science
-first, then logic, then the builders (blueprints, drones, flight). Steps 7.6–7.8 follow the user's answers
-of 2026-10-03 (section 1).
+### Milestone 9 steps
 
-- [x] **7.1–7.6 built** (full specs moved to `docs/CHANGELOG.md`, "Milestone 7 steps 7.1 to 7.6"): 7.1 arc furnace, silicon,
-  circuit; 7.1b power cable; 7.2 violet science and Mk4; 7.2b bootstrap without raw ore and the timed hand-craft queue
-  (save 23); 7.3 solar panel and accumulator; 7.3b wiring by hand (save 24); 7.4 Scanner Mk2; 7.5 the sensor (save 25);
-  7.6a ghosts (save 26) and 7.6b blueprints.- [x] **7.7 Construction drones: the long way** (user, 2026-10-03: drones must be hard to reach and very rewarding; more
-  research and parts). Gate: a ladder of techs on violet packs, none cheap: Robotics (actuators and servo parts) →
-  Drone Power (a drone cell, made of a battery-like part from circuits, copper, steel and a motor) → Navigation (a
-  processor-based guidance module, so after Processors) → Construction Drones → Swarm Logistics (more drones per port,
-  a longer range). The drone is built in an assembler from several intermediates, none raw ore; the drone port is a big
-  multi-block (3×3 pad) on power. Drones take materials from boxes beside the port (a later tech may extend this to a
-  network). Steps: **7.7a** the part chain and techs, **7.7b** the drone port and its supply boxes, **7.7c** drones
-  flying out and building ghosts (one at a time, visible), **7.7d** tear-down marks, **7.7e** swarm upgrades. Numbers
-  go in `docs/TECH_ERAS.md` when 7.7a starts.
-  **7.7a built (no save bump; golden hash re-recorded):** five techs on all four packs after Violet Science: Processors
-  (100 units × 30 s) → Robotics (140 × 30, also needs Mk4 Machines, so Mk4 Logistics first) → Drone Power (160 × 35) and
-  Navigation (180 × 35, needs Processors and Robotics) → Construction Drones (240 × 40): twelve techs in front of the
-  drone. Six assembler-only parts (`item.rs` 321–326, `MACHINE_RECIPES` 31–36, `DRONE_RECIPES`): processor, servo,
-  actuator, drone cell, guidance module, drone. Numbers in `docs/TECH_ERAS.md` section 3; icons `textures/robotics.rs`.
-  **7.7b–e built (save 27, merged into 28):** the drone port (block 75, `factory/process/hangar.rs`: a 3×3×1 processor spec,
-  `Pick::Hangar`, 40/60/90/140 kW only while drones are out) keeps drones as its input buffer, so belts, panel, saves and
-  breaking needed nothing new; tiers Mk1–Mk4 by kits (`Swarm Logistics`, tech 29): reach 32/48/64/96 blocks, fleet 4/8/12/16.
-  The core `drones/` (`Drones` in `Sim`, saved) launches a drone every 30 ticks per powered port at the nearest ghost in
-  reach that no drone is on: a build takes its item from a storage box touching the pad (`factory/ports.rs`), flies at
-  8 blocks a second (f64, `+ - * / sqrt` only), works 1 s and places it through `put_block` (the same code a player runs);
-  a tear-down mark (`Action::MarkRemoval`, tag 36: a ghost of air) works as long as bare hands take (1–4 s) and breaks it
-  through `dismantle`, the drops going into the boxes. Breaking a port brings its drones back as items; a drone whose port
-  is gone drops as an item. `break_block`/`place_block` were split into `dismantle`/`put_block` for this. Presentation:
-  `drone_view.rs` (drones as boxes), ghost mode left-click marks or unmarks (`update_marking`, red outlines, label).
-  Port recipe: 24 steel plates, 12 circuits, 2 processors, 4 motors.
-- [x] **7.8 Flight and helpers** (answer: coal jetpack now, hover pack in M9): the jetpack (4 steel plates, 2 motors,
-  2 circuits; 10 s of thrust a coal) and the personal drone (which, like the construction drone, needs the long ladder).
-  **Built (save 28):** `helpers/` (core, per player in `PlayerCore.helpers`, saved): `Action::Jetpack { on }` (tag 37)
-  burns a coal from the pack per 600 ticks of thrust (the pack stands in for a fuel slot) and the body lifts at 12 m/s²
-  net up to 6 m/s while `Player::thrust` (set from the core by `authority.rs`); the hands send it when jump is held in the
-  air (`helper_hands.rs`). `Action::Fetch { item, at }` (tag 38): with the personal drone in the pack, Y sends it to the
-  nearest box within 32 blocks holding the held item; a round trip at 12 blocks a second (at least 1 s) brings a stack.
-  Items 330/331 (tools of `DEVICE_TIER`), techs Jetpack (needs Robotics, 120 × 30 s) and Personal Drone (needs Construction
-  Drones, 160 × 35 s); recipes: jetpack 4 steel plates, 2 motors, 2 circuits; personal drone 1 drone and 2 circuits.
-- [x] **7.9 Feel, balance, cleanup.** Tips, research times played through, worst tick and wasm measured,
-  README, CODEMAP; then move Milestone 8 in from the roadmap and ask its questions.
-  **Done:** three new tips (ghosts, drones, fly and fetch), `bench_drones` (2,000 ghosts and a port: 3.6 µs a tick, worst
-  61 µs), wasm 312.6 KB gzipped (`vite build`: wasm 832.6 KB raw; 241 KB at step 7.3: most of the growth came with the
-  textures, blueprints, strategy camera and avatars; the drones add icons and about 10 KB of code), 431 tests (4 ignored benchmarks).
-  Research times follow `docs/TECH_ERAS.md` section 3. Milestone 8 questions are open (see the status line).
+Goal: the world is bigger than the factory. A new ore sits only in far biomes, so the player must find it, reach it and
+haul it home. Order: the ore, aluminium, finding far ground, rails, then flight and cargo.
 
-### Milestone 8 (Terraforming, era 5): in progress
-
-Design from `docs/TECH_ERAS.md` section 4. **The user's answers (2026-10-04):** the earthworks are done by the
-**drone ports** of Milestone 7 (no separate excavator machine); spoil goes into **belts and boxes**, and fill sites in
-range are served from the same boxes first. **Built:** sites in the core (`factory/sites.rs`: `Site`, `Job` dig, fill or
-flatten, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`; saved); the drone ports work them
-(`drones/earthworks.rs`).
-
-- [x] **8.1 The planner** (`site_hands.rs`, `ui/site.ts`): item 332 (3 iron plates, 4 copper wire, 2 glass, a circuit),
-  tech Earthworks (needs Construction Drones, 140 × 35 s, all four packs). Right-click a corner block, then the opposite
-  one (reach 64); the site panel picks the job and the level and shows the survey (blocks to dig and fill, ore, trees,
-  water, unseen columns, spoil); right-click a marked site to look at it or remove it. Outlines (job colour for the
-  extent, white for the level, cyan for the box being marked) go into `placement_box`.
-- [x] **8.2 Drones work sites:** a port picks the first cell in its reach that needs work (cut layers top down, then fill
-  layers bottom up) after ghosts of equal distance; a cut breaks the block by hand and puts the drops into the pad's
-  boxes (it waits while they are full); a fill brings dirt (top layer) or stone, dirt, sand, grass from the boxes and
-  places it where the cell is free, the cells above are free and the ground below is solid; so dug ground fills other
-  sites from the same boxes. A finished site removes itself.
-- [x] **8.3 Fill and flatten:** the same cell scheme (a flatten is a dig and a fill in one site).
-- [ ] **8.4 Tunnels:** two points, 1×2, 3×3 or 5×5, slopes up to 1 in 2, worked by drones from the tunnel face; breaking
-  into water waits. Open: whether to build it (reuses the cell scheme).
-- [ ] **8.5 Cleanup:** worst tick with many drones on a 64 × 64 flatten by the sea, minimap squares for sites, a tip,
-  README (planner keys done), colour-blind check of the outline colours.
-
+- [ ] **9.1 Bauxite and generator version 5** (`worldgen/`, new world only; older versions stay pinned by
+  `released_versions_never_change`): bauxite ore appended to the blocks, in deposits only in deserts and basalt fields at
+  least ~600 blocks from spawn. Ore guide row, scanner filter, map colour, a surface hint. Done when: a test finds bauxite
+  only in those biomes and never within 600 blocks; `ore_guide` lists it.
+- [ ] **9.2 Aluminium:** techs Bauxite Processing (crusher recipe for crushed bauxite, the electrolytic cell 3×2×2, 300 kW,
+  a `ProcessSpec` row), aluminium ingot and plate, battery (`docs/TECH_ERAS.md` section 5). Done when: a scenario test runs
+  bauxite → crushed → aluminium → plate → battery through machines.
+- [ ] **9.3 Finding far ground** (user request, 2026-10-04: the player must roughly know which way to travel to reach the
+  right biome). Proposed: the Scanner Mk2 (and a new survey tech's tool) answers "nothing in range" with a **bearing**: the
+  nearest ground of a biome that holds the chosen ore, as one of eight compass points and a distance band (for example
+  "north-east, 600 to 800 blocks"), found by sampling the generator's biome map on a coarse grid (`biome_at`, a query: no
+  state, deterministic, never touches unexplored chunks). The HUD keeps an arrow while it is held; the world map (M) can
+  drop a pin there. The ore guide already says which biome holds what; this says where. Done when: tests give the right
+  bearing in a fixed seed and the state hash never moves.
+- [ ] **9.4 Rails and trains** (the user wants trains for hauling far resources): **9.4a** rails (steel beam + concrete)
+  placed by dragging like belts, rail beds and cuttings by the Planner; **9.4b** locomotive, wagon, a station block that
+  loads and unloads through belt ports, one train between two stations (core state in fixed-point positions along a track
+  graph, saved); **9.4c** signals and junctions. Trucks are not planned. Spec when 9.4 starts.
+- [ ] **9.5 Cargo drones and the hover pack** (`docs/TECH_ERAS.md` section 5): port-to-port cargo drones limited by
+  battery range; the hover pack as flight's second tier.
+- [ ] **9.6 Cleanup:** tips, balance (how long the trip and the train pay off), worst tick with many trains, README,
+  CODEMAP; then move Milestone 10 in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -539,9 +478,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 7
+## 5. Roadmap after Milestone 9
 
-Milestones 8–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
+Milestones 10–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
 and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
@@ -554,7 +493,7 @@ and adjust the steps.
 | Needed by | Question |
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
-| M9 | Trains, trucks, or both? |
+| M9 | Is the bearing to far ground (9.3) free from the Scanner Mk2, or does it need its own survey tech and tool? Is a bearing to the biome enough, or should deposits far away be pinned once seen? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
 
 ---
@@ -568,13 +507,11 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-04: Milestone 8 done (steps 8.4–8.5).** Tunnels: the planner panel's Tunnel job bores between two blocks; drone ports cut it into their boxes like a dig, leaving cells next to water (`Site` got `covers` / `cuts_at` / `picks`; `sites.rs` split into `sites/survey.rs` and `sites/tunnel.rs`). Cleanup: `bench_earthworks` (worst tick 0.5 ms), sites on the maps as hollow squares, a planner tip, outline colours from the Okabe-Ito palette. Tests 451 → 458, wasm 329 KB gzipped. Milestone 9 moved in; the user asked for bearings to far biomes and for trains (section 1).
+
 - **2026-10-04: Equipment slots.** Worn gear (equipment.rs): four slots (back, boots, torso, tool belt) in Inventory.worn, so a player who leaves keeps them. Hauler packs (+9 and +18 backpack slots: the inventory array is 54 long, capacity() of it is in use, a pack stays on while its rows hold stacks), spring boots (jump 1.32 → 2 blocks), servo boots (walk and sprint +15%), exo frame (sprint +10%), mining rig (hand-breaking +50%). Movement bonuses are a Boost the authority sets on the body each tick (bodies are not core), the rig is read by interaction.rs. New: Action::ClickGear (tag 39), shift-click on gear in the pack wears it, six items (333–338) with icons (	extures/gear.rs), six hand recipes (ecipes/gear.rs) and three techs (Hauler Gear after Steelmaking, Field Gear after Steel Tools, Exosuit after Robotics and Field Gear: esearch/personal.rs, which also took over Jetpack, Personal Drone and Earthworks; TECHS joins the two tables at compile time). Save 28 → 29 (pack rows and worn gear follow each inventory), golden hash re-recorded. Tests 442 → 451.
 
 - **2026-10-04: Scanner Mk2 reads more.** `prospect::SCANNERS` rows gained an "advanced" flag. The Mk2 filters its list by ore (R, `Game::cycle_scan_filter` through `FILTER_ORES`; `prospect_records` filters, so nothing rescans), shows each deposit's ore units (exact when tracked, else estimated from the shape: `estimated_units`, within 20% of a survey) and the minutes a full-speed mine takes (units over the tier's draw cap), and the panel (`ui/prospect.ts`) leaves a pointer to the nearest vein or lode of the match at the top of the screen whatever is in hand. `SCAN_FIELDS` 6 → 8. Queries only: no save or hash change. Tests 441 → 442.
-
-- **2026-10-04: Steam through pipes.** A boiler's faces now have named ports (`BOILER_PORTS` in `process/specs.rs`; `Port::cell` / `Which` picks one cell of a side, `Role::Water` and `Role::Steam` are pipe roles): on each of back, left and right one cell is a coal inlet (belt) and the other a water inlet (pipe), and the two front cells are steam outlets; a turbine has a steam inlet on both cells of its right end (the end away from its generator). A pipe joins a port only on that face (`Processor::pipe_ports`); steam no longer passes between touching machines. Turbines take steam from the boilers on the same pipe network (`steam::link`, still two per boiler, lower index first). A network is `Fluid::Water`, `Steam` or `Mixed` (both: works for neither, pipes turn red, machines say so). Water pipes are blue banded and steam pipes pale and red banded (`textures/piping.rs`, `tex::PIPE_WATER/PIPE_STEAM`, `COUNT` 180). `process/boiler_view.rs` became `steam_view.rs` (coal chutes, water and steam nipples on flanges, gauge; the turbine's inlets); the boiler's firebox door moved up the front. No save or hash change, but saves with a turbine standing against a boiler lose that link and need pipes. Tests 438 → 441.
-
-- **2026-10-04: Boiler connections drawn.** The boiler lost its generic belt hatches: coal chutes (dark funnel, coal on top) mark free belt inlets, a steel flange marks every pipe touching the tank (`process/boiler_view.rs`, from `Steam::taps`), and a water gauge on the front fills with the water held. Pipes and pumps beside a boiler now draw an arm into it (`Pipework::arms`). A boiler now draws water from every network touching it (`Steam::nets`; it used to listen to the first one only, so a second pump on its own network did nothing). Presentation plus a derived-state fix: no save or hash change. Tests 435 → 438.
 
 - **2026-10-04: Terraforming by drone (steps 8.1–8.3).** The Planner (item 332, tech Earthworks, 140 × 35 s) marks two corners (reach 64) and opens the site panel (`ui/site.ts`: job, level, survey, remove). Drone ports now work sites (`drones/earthworks.rs`): cuts break by hand into the pad's boxes (they wait while full), fills bring dirt or stone from the boxes; a finished site removes itself. `Site::done` is an unsaved cursor cache. `Research` got a manual `Default` (33 techs). Tests 431 → 435, golden hash re-recorded (a tech was added), no save bump. Wasm size not re-measured.
 
