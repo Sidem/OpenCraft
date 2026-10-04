@@ -24,7 +24,7 @@ impl Factory {
             Slot::Sensor(i) => self.sensors[i as usize].dir,
             Slot::Pipe(i) => self.pipework[i as usize].facing,
             Slot::Quarry(i) => self.quarries[i as usize].facing,
-            Slot::Miner(_) | Slot::Storage(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) => 0,
+            Slot::Miner(_) | Slot::Storage(_) | Slot::Generator(_) | Slot::Pole(_) | Slot::Lab(_) | Slot::Rail(_) => 0,
         };
         Some((facing % 4, self.tiered_at(pos).map_or(0, |(_, tier)| tier)))
     }

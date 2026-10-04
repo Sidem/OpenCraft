@@ -191,6 +191,10 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
 The roadmap agent adds a line here when gameplay needs a look. It will already have appended a `tex`
 layer with a plain placeholder pattern, so nothing is blocked. Tick the line when you replace it.
 
+- [ ] (9.4a, landed) Rails: `tex::RAIL` (193, `textures/transport.rs`) is the block's icon only; the track itself is boxes
+  from `factory/rail.rs` `write_rail` (a plank sleeper and two steel rails a side, a rise tilted 45°; the `STEEL` and
+  `PLANKS` layers). It should read as track at a glance from the overhead strategy camera too. Locomotive, wagon and
+  station looks come with 9.4b.
 - [ ] (9.2, landed) Aluminium: `tex::CRUSHED_BAUXITE`..`CELL_TOP` (187–192, `textures/aluminium.rs`): crushed bauxite,
   ingot, plate, battery and the electrolytic cell's tiled side and roof, all placeholders. The cell's model is
   `CELL_PARTS` (`factory/process/parts.rs`): a long tank with a glowing bath slot and two electrodes that pump. Aluminium

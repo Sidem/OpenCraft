@@ -165,6 +165,7 @@ impl Factory {
             },
             Slot::Quarry(_) => block::QUARRY,
             Slot::Sensor(_) => block::SENSOR,
+            Slot::Rail(_) => block::RAIL,
         }
     }
 

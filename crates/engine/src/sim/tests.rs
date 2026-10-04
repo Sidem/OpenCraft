@@ -19,8 +19,9 @@ const B: PlayerId = PlayerId(1);
 /// and research lists the Assembly tech; in step 6.6 for the Steelmaking tech, in 6.7 for the blue techs and the labs' third pack slot,
 /// in 6.7b for the machine tiers every list now saves, in 6.8 and 6.9 for the steam, crushing and silo techs,
 /// in 7.1 for the Electronics tech, and for the power wires the factory saves (save version 24; tests wire
-/// by range unless `Factory::by_hand`), and in 9.2 for the Bauxite Processing tech.
-const GOLDEN_HASH: u64 = 0x76e8_4030_c95c_48d7;
+/// by range unless `Factory::by_hand`), in 9.2 for the Bauxite Processing tech, and in 9.4a for the Rails tech and
+/// the rail list the factory saves (save version 30).
+const GOLDEN_HASH: u64 = 0xb431_edf9_9cae_9fc4;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -155,7 +156,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with generator version 4 and save version 29 (the inventory writes its pack rows and worn gear). Only a deliberate
+    // Recorded with generator version 4 and save version 30 (the inventory writes its pack rows and worn gear). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

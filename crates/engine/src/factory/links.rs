@@ -47,6 +47,7 @@ pub(crate) enum Slot {
     Pipe(u32),
     Quarry(u32),
     Sensor(u32),
+    Rail(u32),
 }
 
 impl Slot {
@@ -54,7 +55,13 @@ impl Slot {
     pub(super) fn is_sink(self) -> bool {
         match self {
             Slot::Storage(_) | Slot::Process(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Lab(_) => true,
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) | Slot::Sensor(_) => false,
+            Slot::Belt(_)
+            | Slot::Miner(_)
+            | Slot::Pole(_)
+            | Slot::Pipe(_)
+            | Slot::Quarry(_)
+            | Slot::Sensor(_)
+            | Slot::Rail(_) => false,
         }
     }
 
@@ -71,6 +78,7 @@ impl Slot {
             Slot::Pipe(_) => Kind::Pipe,
             Slot::Quarry(_) => Kind::Quarry,
             Slot::Sensor(_) => Kind::Sensor,
+            Slot::Rail(_) => Kind::Rail,
         }
     }
 }
@@ -95,7 +103,13 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
             Slot::Lab(i) => self.labs[i as usize].room_for(item) > 0,
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) | Slot::Sensor(_) => false,
+            Slot::Belt(_)
+            | Slot::Miner(_)
+            | Slot::Pole(_)
+            | Slot::Pipe(_)
+            | Slot::Quarry(_)
+            | Slot::Sensor(_)
+            | Slot::Rail(_) => false,
         }
     }
 
@@ -107,7 +121,13 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].accept(item),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Quarry(_) | Slot::Sensor(_) => false,
+            Slot::Belt(_)
+            | Slot::Miner(_)
+            | Slot::Pole(_)
+            | Slot::Pipe(_)
+            | Slot::Quarry(_)
+            | Slot::Sensor(_)
+            | Slot::Rail(_) => false,
         }
     }
 }
@@ -295,6 +315,7 @@ impl Factory {
         let (processors, pipework) = (&self.processors, &self.pipework);
         self.power = Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries);
         self.link_pipework();
+        self.link_rails();
         process::link_steam(&mut self.processors, &self.at, &mut self.pipework);
 
         // Each belt has at most one belt downstream, so walking the chain from every unvisited belt

@@ -6,7 +6,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -31,6 +31,7 @@ mod solar;
 mod steel;
 mod stripes;
 mod tools;
+mod transport;
 mod wood;
 
 use machines::{
@@ -176,6 +177,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::PIPE_WATER..=tex::PIPE_STEAM => piping::pixel(layer, x, y),
         tex::HAULER_PACK..=tex::MINING_RIG => gear::pixel(layer, x, y),
         tex::CRUSHED_BAUXITE..=tex::CELL_TOP => aluminium::pixel(layer, x, y),
+        tex::RAIL => transport::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

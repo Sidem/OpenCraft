@@ -47,6 +47,7 @@ impl Factory {
             Slot::Pipe(i) => self.pipework[i as usize].describe(self),
             Slot::Quarry(i) => self.quarries[i as usize].describe(self),
             Slot::Sensor(i) => self.sensors[i as usize].describe(self),
+            Slot::Rail(i) => self.rails[i as usize].describe(self),
         };
         // A machine a sensor switched off is wired; say so instead of 'no power'.
         let text = if self.anchor_of(pos).is_some_and(|a| self.power.off.contains(&a)) {

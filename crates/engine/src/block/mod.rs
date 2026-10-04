@@ -118,7 +118,9 @@ pub const DRONE_PORT: BlockId = 75;
 pub const BAUXITE_ORE: BlockId = 76;
 /// The electrolytic cell (3×2×2 processor, `factory/process/specs.rs`): aluminium from crushed bauxite and quicklime.
 pub const ELECTROLYTIC_CELL: BlockId = 77;
-pub const BLOCK_COUNT: usize = 78;
+/// Track for trains (`factory/rail.rs`): a thin, non-solid machine that joins the rails beside it.
+pub const RAIL: BlockId = 78;
+pub const BLOCK_COUNT: usize = 79;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -338,6 +340,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Drone Port", true, 1.4, pillar(tex::DRONE_PORT_SIDE, tex::DRONE_PORT_TOP, tex::FRAME), DRONE_PORT),
     ore("Bauxite Ore", all(tex::BAUXITE_ORE), BAUXITE_ORE),
     machine("Electrolytic Cell", true, 1.4, pillar(tex::CELL_SIDE, tex::CELL_TOP, tex::FRAME), ELECTROLYTIC_CELL),
+    machine("Rail", false, 0.3, all(tex::RAIL), RAIL),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

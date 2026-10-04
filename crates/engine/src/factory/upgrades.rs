@@ -61,7 +61,7 @@ impl Factory {
                 (self.pipework[i as usize].part == Part::Pump).then_some((PUMP, self.pipework[i as usize].tier))
             }
             Slot::Quarry(i) => Some((QUARRY, self.quarries[i as usize].tier)),
-            Slot::Router(_) | Slot::Sensor(_) => None,
+            Slot::Router(_) | Slot::Sensor(_) | Slot::Rail(_) => None,
         }
     }
 
@@ -95,7 +95,7 @@ impl Factory {
             Slot::Lab(i) => self.labs[i as usize].set_tier(tier),
             Slot::Pipe(i) => self.pipework[i as usize].tier = tier,
             Slot::Quarry(i) => self.quarries[i as usize].tier = tier,
-            Slot::Router(_) | Slot::Sensor(_) => {}
+            Slot::Router(_) | Slot::Sensor(_) | Slot::Rail(_) => {}
         }
         // A tier can change how a machine is powered or wired (the Mk3 smelter is electric, a pylon
         // reaches further): link it again.

@@ -206,7 +206,9 @@ pub const ALUMINIUM_PLATE: u16 = 189;
 pub const BATTERY: u16 = 190;
 pub const CELL_SIDE: u16 = 191;
 pub const CELL_TOP: u16 = 192;
-pub const COUNT: usize = 193;
+/// Trains (`textures/transport.rs`): the rail block's icon.
+pub const RAIL: u16 = 193;
+pub const COUNT: usize = 194;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

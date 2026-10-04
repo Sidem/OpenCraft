@@ -53,7 +53,13 @@ impl Factory {
             }
             Slot::Lab(i) => Some(self.labs[i as usize].panel(&self.research)),
             Slot::Quarry(i) => Some(self.quarries[i as usize].panel(self)),
-            Slot::Belt(_) | Slot::Miner(_) | Slot::Storage(_) | Slot::Pole(_) | Slot::Pipe(_) | Slot::Sensor(_) => None,
+            Slot::Belt(_)
+            | Slot::Miner(_)
+            | Slot::Storage(_)
+            | Slot::Pole(_)
+            | Slot::Pipe(_)
+            | Slot::Sensor(_)
+            | Slot::Rail(_) => None,
         }
     }
 
@@ -172,7 +178,8 @@ impl Factory {
                 | Slot::Pole(_)
                 | Slot::Lab(_)
                 | Slot::Pipe(_)
-                | Slot::Sensor(_),
+                | Slot::Sensor(_)
+                | Slot::Rail(_),
             )
             | None => return false,
         };

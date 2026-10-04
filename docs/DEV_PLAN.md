@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.3 done, next 9.4** · The `art` branch is superseded; art work
+now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.4a done, next 9.4b trains** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -426,10 +426,10 @@ Milestones 6 (Industry), 7 (Electronics, blueprints, drones) and 8 (Terraforming
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 29) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 30) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 78, item 343). Each new look gets a placeholder
-  layer (`tex::COUNT` is 193) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 79, item 343). Each new look gets a placeholder
+  layer (`tex::COUNT` is 194) and a `docs/ART_HANDOVER.md` request line.
 
 ### Milestone 8 (Terraforming), built
 
@@ -465,10 +465,26 @@ haul it home. Order: the ore, aluminium, finding far ground, rails, then flight 
   ground (`ui/prospect.ts` `farGround`); scanning again on the way re-aims it. Tests: nearest-sampled, here, old worlds,
   order-independent, and that a Mk2 scan round the target finds bauxite on three seeds. Verified in the browser on a
   version 5 world. No map pin yet (add if the user wants one). Tests 460 → 467.
-- [ ] **9.4 Rails and trains** (the user wants trains for hauling far resources): **9.4a** rails (steel beam + concrete)
-  placed by dragging like belts, rail beds and cuttings by the Planner; **9.4b** locomotive, wagon, a station block that
-  loads and unloads through belt ports, one train between two stations (core state in fixed-point positions along a track
-  graph, saved); **9.4c** signals and junctions. Trucks are not planned. Spec when 9.4 starts.
+- [ ] **9.4 Rails and trains** (the user wants trains for hauling far resources). Trucks are not planned.
+  - [x] **9.4a Rails** (`factory/rail.rs`, `Kind::Rail`, block 78, tech Rails index 37: needs Violet Science and Earthworks;
+    hand recipe 1 steel beam + 1 concrete → 6 rails): a thin non-solid machine, stateless, that joins the rails beside it on
+    its own level and one block up or down (`joins`: 12 candidates; `arms` derived in `relink`, never saved; the slope's
+    piece lives in the lower cell like a belt ramp). Laid by dragging like belts (`belt_line.rs`: `is_laid_in_lines`,
+    same path and 64-cell limit, ghost via `write_rail`). Rail beds and cuttings are the planner's flatten, dig and tunnel
+    jobs. Save version 30 (the rail list after the sensors); golden hash re-recorded. Tests 467 → 473.
+  - [ ] **9.4b Trains** (design, 2026-10-04): `Train` entities in the factory (`factory/trains/`, saved), the head's place
+    as (rail cell, the cell it came from, progress 0..1000 in fixed point) and a trail of the cells its length covers, so
+    wagons sit on the track behind it. **Routing:** a train follows a schedule of stations and finds its way by a
+    breadth-first search over `joins` (deterministic neighbour order); it may reverse only at a stop or a dead end, so a
+    shuttle between two stations needs no turn loop. A **station** is a block (a silo-like processor row with belt ports:
+    `Pick::Store`) whose adjacent rail cell is its stop; its panel sets load or unload and what to take; a stopped train
+    exchanges items with it a stack at a time, then leaves after a dwell. **Locomotive and wagon** are items (a locomotive:
+    motor, circuits, steel; a wagon: steel plates and a box's worth of slots), put on a rail by hand and joined into one
+    train; speed about 12 blocks a second (a 600-block run in under a minute). Needs power? No: the locomotive burns coal
+    from a slot (like the jetpack) or runs on a battery (9.2's item, which gives it its first use). Models via `push_box`
+    from the trail. Done when: a scenario test runs ore from a box through station A, a train and station B into a box.
+  - [ ] **9.4c Signals and junctions:** a signal block reserves the next stretch of track for one train at a time; junctions
+    need no switch block (routing picks the branch). Done when: two trains share one track without meeting.
 - [ ] **9.5 Cargo drones and the hover pack** (`docs/TECH_ERAS.md` section 5): port-to-port cargo drones limited by
   battery range; the hover pack as flight's second tier.
 - [ ] **9.6 Cleanup:** tips, balance (how long the trip and the train pay off), worst tick with many trains, README,
@@ -515,6 +531,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-04: Rails (step 9.4a).** The Rails tech and the rail block: track laid by dragging like belts, joining level and one block up or down (`factory/rail.rs`); save version 30, golden hash re-recorded. 9.4b (trains, stations, routing by search) is specified in section 4. Tests 467 → 473.
 - **2026-10-04: Bearings to far ground (step 9.3).** The Mk2 scanner, filtered on an ore with none in range, names the way and distance band to the nearest biome that holds it (`worldgen/bearing.rs`, a pure query) and the pointer leads there. Tests 460 → 467.
 - **2026-10-04: Aluminium (step 9.2).** Bauxite Processing: crushed bauxite, the electrolytic cell (block 77, 300 kW, slag byproduct hatch), aluminium ingot and plate, battery; a third tech table `research/distance.rs`. Golden hash re-recorded (one more tech). Tests 459 → 460.
 - **2026-10-04: Bauxite (step 9.1).** Generator version 5 for new worlds: bauxite (block 76) in far deserts and basalt fields only, at least 600 blocks from spawn, shallow and exposed on bare rock, no stain; guide, scanner filter, map colour, a placeholder texture. Tests 458 → 459.

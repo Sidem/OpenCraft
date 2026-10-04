@@ -23,7 +23,7 @@
 //! (multi-block machines); 20 = labs hold a slot for blue packs; 21 = boxes, generators, poles, labs,
 //! pumps and quarries have a tier; 22 = labs hold a slot for violet packs (a cable's tier is 15, was 3);
 //! 23 = each player's queue of hand crafts follows their key; 24 = the player's power wires follow the
-//! quarries (older saves are wired by range once).
+//! quarries (older saves are wired by range once); 30 = the rail list follows the sensors.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
@@ -33,7 +33,7 @@ use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 29;
+pub const SAVE_VERSION: u32 = 30;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";
