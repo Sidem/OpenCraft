@@ -357,6 +357,22 @@ size.
   of it (it faces the way you did when you placed it): down to where it lands, then filling that pool from
   the bottom up. With nowhere to pour, the pumps stop. Drain a pond or a flooded pit this way; the sea
   refills whatever you take, so it can't be lowered.
+- **Fluids and chemistry** (Milestone 10). Pipes carry only water; every other fluid rides belts in **canisters**
+  (an empty one is 1 steel plate for 2, and empties come back). Oil Processing unlocks the **pumpjack** (90 kW):
+  placed over oil sand it drills straight down its own column and fills a canister about every 2 s from the deposit's
+  shared pool. Refining unlocks the **refinery** (3 crude canisters and water give naphtha, diesel and heavy oil
+  canisters and sulfur: the first leaves the front, the rest the right-hand hatches, so sort the belt with filters) and the
+  **cracker** (heavy oil and water into naphtha and diesel). Plastics, then Acids and Lubricants, unlock the
+  **chemical plant** (plastic from naphtha and coal, acid from sulfur and water, lubricant from heavy oil). A
+  **diesel generator** burns a canister for 100 s of 400 kW and gives only what the grid lacks; the
+  **electrolyser** splits water into hydrogen and oxygen for later. **Ore washing** (the washer takes *crushed* ore
+  only, water from a pipe) turns a raw ore's 1.0 ingots into 2.0 and leaves tailings you must belt away. A **research
+  center** (2×2×2, eight pack slots, twice a lab's speed and power) takes the gold pack that a lab has no slot for.
+  The **water wheel** (rivers and lakes exist in worlds made from this version on) gives 2 kW per still water block
+  and 4 per flowing one it touches, up to 48. A **hoist** (a steel shaft with a powered winch on top) lifts riders at
+  9 blocks a second. **Nuclear power**: the centrifuge makes fuel cells from uranium ore and a steel plate; the
+  **reactor** (3×3×3, fuel cells at the back, up to 2 MW) heats as it gives, a water pipe to its blue inlet keeps it
+  cool, and it shuts down when overheated until it has cooled. Gold science and Mk5 Machines close the milestone.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the
@@ -576,10 +592,10 @@ Factory layer (the Satisfactory half):
 - [x] Quarry: automated digging that leaves a real pit
 - [x] Research: labs, science packs and a small tech tree
 - [x] Industry: colour-coded upgrade kits, multi-block machines, steel, blue science, steam power, crushing, silos
-- [ ] Electronics, blueprints and construction drones, the jetpack
-- [ ] Terraforming: a planner and excavators with work drones
-- [ ] Aluminium from far away, trains
-- [ ] Oil, plastics and nuclear power
+- [x] Electronics, blueprints and construction drones, the jetpack
+- [x] Terraforming: a planner and excavators with work drones
+- [x] Aluminium from far away, trains, cargo drones
+- [x] Oil, plastics, ore washing, hydro, hoists, nuclear power, gold science and Mk5 (Milestone 10, built; being tested)
 - [ ] AI datacenters and laser links for power and data
 - [ ] Rockets and satellite constellations
 - [ ] An optional endgame megaproject that doesn't end the game

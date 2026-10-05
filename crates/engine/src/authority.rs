@@ -105,6 +105,7 @@ impl Game {
             // Wait while the ground isn't loaded rather than fall through it.
             if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
                 body.conveyor = factory.conveyor_at(body.pos);
+                body.hoist = factory.hoist_rate(body.pos, &mut block);
                 body.thrust = core(slot).is_some_and(|p| p.helpers.thrusting);
                 body.hover = core(slot).is_some_and(|p| p.helpers.hover);
                 body.boost = core(slot).map(|p| p.inventory.boost()).unwrap_or_default();

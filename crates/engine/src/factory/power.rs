@@ -13,7 +13,7 @@
 //!   kW·ticks), and gives only what is drawn, so fuel lasts exactly as long as the load allows. It
 //!   lights the next item (`recipes::fuel_energy`) when what it holds can't cover this tick.
 //!
-//! Sources: generators, then steam turbines (`process/steam.rs`). Consumers: miners, electric processors,
+//! Sources: generators, then steam turbines (`process/steam.rs`), then diesel generators (`process/diesel.rs`). Consumers: miners, electric processors,
 //! labs, pumps and quarries. Burner processors (the smelter) burn their own fuel, and belts, splitters and
 //! filters need no power. To power a new machine: its `*_pole` list here (filled in `rebuild`), its
 //! demand in `balance`, a speed argument to its `step`, and its arm in `wiring.rs` (`powered_cells`).
@@ -31,7 +31,7 @@ use super::lab::Lab;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
-use super::process::{run_renewables, run_turbine, Energy, Processor};
+use super::process::{run_diesel, run_hydro, run_reactor, run_renewables, run_turbine, Energy, Processor};
 use super::quarry::Quarry;
 use super::render::push_box;
 use super::wiring::{takes_pole, Hooked};
@@ -153,7 +153,7 @@ impl Power {
             }
         }
         for (m, p) in processors.iter().zip(&self.process_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| m.wants_power(unlocked)) {
+            if let Some(&p) = p.as_ref().filter(|_| m.wants_power(unlocked, research)) {
                 self.demand[self.pole_grid[p as usize] as usize] += m.power();
             }
         }
@@ -174,6 +174,8 @@ impl Power {
         }
         // The sun and the accumulators come before any fuel is burned.
         run_renewables(self, processors, tick);
+        run_hydro(self, processors);
+        run_reactor(self, processors);
         for (g, p) in gens.iter_mut().zip(&self.gen_pole) {
             g.output = 0;
             let Some(p) = *p else { continue };
@@ -206,6 +208,7 @@ impl Power {
             self.supply[grid] += given;
             self.capacity[grid] += could;
         }
+        run_diesel(self, processors);
     }
 
     /// Speed in thousandths for a machine hanging on `pole` (0 with no pole or no power).

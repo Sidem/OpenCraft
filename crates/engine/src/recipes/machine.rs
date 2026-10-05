@@ -10,15 +10,18 @@
 //! To add a recipe: append a row. A category: a `Category` variant (and its entry in the lint's list) and
 //! the processor specs that take it.
 
+use super::rows::*;
 use crate::block::*;
 use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME,
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
+use crate::item::{ACID_CANISTER, HYDROGEN_CANISTER, LUBRICANT_CANISTER, OXYGEN_CANISTER, PLASTIC};
 use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
 use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE, EMPTY_CANISTER};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 use crate::item::{CRUDE_CANISTER, DIESEL_CANISTER, HEAVY_OIL_CANISTER, NAPHTHA_CANISTER, SULFUR};
+use crate::item::{FUEL_CELL, GOLD_KIT, GOLD_PACK, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -41,6 +44,14 @@ pub enum Category {
     Distilling,
     /// Heavy oil and water into naphtha and diesel (the cracker).
     Cracking,
+    /// Plastic, acid and lubricant (the chemical plant).
+    Chemistry,
+    /// Empty canisters and water into hydrogen and oxygen canisters (the electrolyser).
+    Splitting,
+    /// Crushed ore and water into washed ore and tailings (the washer).
+    Washing,
+    /// Uranium ore and a steel casing into a fuel cell (the centrifuge).
+    Enrichment,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -53,7 +64,10 @@ pub struct MachineRecipe {
     pub seconds: f64,
 }
 
-use Category::{Arc, Assembly, Blasting, Cracking, Crushing, Distilling, Electrolysis, Pressing, Smelting};
+use Category::{
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Pressing, Smelting,
+    Splitting, Washing,
+};
 
 pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -232,41 +246,93 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1)],
         seconds: 4.0,
     },
+    // The chemical plant: plastic gives its two naphtha canisters' shells back (byproduct), acid and lubricant fill one.
+    MachineRecipe {
+        category: Chemistry,
+        inputs: &[(NAPHTHA_CANISTER, 2), (b(COAL_ORE), 1)],
+        outputs: &[(PLASTIC, 4), (EMPTY_CANISTER, 2)],
+        seconds: 4.0,
+    },
+    MachineRecipe {
+        category: Chemistry,
+        inputs: &[(SULFUR, 1), (EMPTY_CANISTER, 1)],
+        outputs: &[(ACID_CANISTER, 1)],
+        seconds: 3.0,
+    },
+    MachineRecipe {
+        category: Chemistry,
+        inputs: &[(HEAVY_OIL_CANISTER, 1), (EMPTY_CANISTER, 1)],
+        outputs: &[(LUBRICANT_CANISTER, 2)],
+        seconds: 3.0,
+    },
+    // The electrolyser splits two units of water into three canisters of gas (three empties in, three out).
+    MachineRecipe {
+        category: Splitting,
+        inputs: &[(EMPTY_CANISTER, 3)],
+        outputs: &[(HYDROGEN_CANISTER, 2), (OXYGEN_CANISTER, 1)],
+        seconds: 6.0,
+    },
+    // The washer takes only crushed ore: 3 crushed + 1 water → 4 washed + 1 tailings (the crusher stays the first step).
+    MachineRecipe {
+        category: Washing,
+        inputs: &[(CRUSHED_IRON, 3)],
+        outputs: &[(WASHED_IRON, 4), (b(TAILINGS), 1)],
+        seconds: 3.0,
+    },
+    MachineRecipe {
+        category: Washing,
+        inputs: &[(CRUSHED_COPPER, 3)],
+        outputs: &[(WASHED_COPPER, 4), (b(TAILINGS), 1)],
+        seconds: 3.0,
+    },
+    MachineRecipe {
+        category: Washing,
+        inputs: &[(CRUSHED_BAUXITE, 3)],
+        outputs: &[(WASHED_BAUXITE, 4), (b(TAILINGS), 1)],
+        seconds: 3.0,
+    },
+    MachineRecipe { category: Smelting, inputs: &[(WASHED_IRON, 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
+    MachineRecipe { category: Smelting, inputs: &[(WASHED_COPPER, 1)], outputs: &[(COPPER_INGOT, 1)], seconds: 1.5 },
+    MachineRecipe {
+        category: Electrolysis,
+        inputs: &[(WASHED_BAUXITE, 2), (QUICKLIME, 1)],
+        outputs: &[(ALUMINIUM_INGOT, 1), (b(SLAG), 1)],
+        seconds: 6.0,
+    },
+    MachineRecipe { category: Crushing, inputs: &[(b(TAILINGS), 1)], outputs: &[(b(SAND), 1)], seconds: 1.0 },
+    // The centrifuge: four uranium ore and a steel casing make a fuel cell (2 MW for 150 s in a reactor).
+    MachineRecipe {
+        category: Enrichment,
+        inputs: &[(b(URANIUM_ORE), 4), (STEEL_PLATE, 1)],
+        outputs: &[(FUEL_CELL, 1)],
+        seconds: 10.0,
+    },
+    // Gold science (assembler only): the pack of the chemical era, and the kit that makes Mk5.
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(PLASTIC, 1), (BATTERY, 1), (PROCESSOR, 1)],
+        outputs: &[(GOLD_PACK, 2)],
+        seconds: 20.0,
+    },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(PROCESSOR, 1), (ALUMINIUM_PLATE, 2), (PLASTIC, 1)],
+        outputs: &[(GOLD_KIT, 4)],
+        seconds: 5.0,
+    },
 ];
-
-/// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
-pub const GEAR_RECIPE: u16 = 8;
-pub const BRICK_RECIPE: u16 = 9;
-pub const QUICKLIME_RECIPE: u16 = 10;
-/// The assembler's rows (Assembly): motor, concrete, red and green packs, green kits, belts.
-pub const ASSEMBLY_RECIPES: [u16; 6] = [11, 12, 13, 14, 15, 30];
-/// The blast furnace's row and the constructor's steel plate and beam (Steelmaking).
-pub const STEEL_RECIPES: [u16; 3] = [16, 17, 18];
-/// Blue science pack and blue kit, made by assemblers only.
-pub const BLUE_RECIPES: [u16; 2] = [19, 20];
-/// The crusher's two ore rows and slag row, and the smelter's rows for the crushed ore (Ore Crushing).
-pub const CRUSH_RECIPES: [u16; 5] = [21, 22, 23, 24, 25];
-/// The arc furnace's silicon and the assembler's circuit (Electronics).
-pub const ELECTRONICS_RECIPES: [u16; 2] = [26, 27];
-/// Violet science pack and violet kit, made by assemblers only.
-pub const VIOLET_RECIPES: [u16; 2] = [28, 29];
-/// The drone chain, made by assemblers only: processor (Processors), servo and actuator (Robotics), drone cell
-/// (Drone Power), guidance module (Navigation), drone (Construction Drones).
-pub const DRONE_RECIPES: [u16; 6] = [31, 32, 33, 34, 35, 36];
-/// Aluminium (Bauxite Processing): the crusher's bauxite row, the electrolytic cell's ingot, the constructor's plate
-/// and the assembler's battery.
-pub const BAUXITE_RECIPES: [u16; 4] = [37, 38, 39, 40];
-/// The assembler's cargo drone (Cargo Drones).
-pub const CARGO_RECIPE: u16 = 41;
-/// The constructor's empty canister (Oil Processing).
-pub const CANISTER_MACHINE_RECIPE: u16 = 42;
-/// The refinery's Distil and the cracker's Crack (Refining).
-pub const DISTIL_RECIPE: u16 = 43;
-pub const CRACK_RECIPE: u16 = 44;
 
 /// Units of water a batch of a recipe takes from the machine's water inlet, by recipe index (machines that take
 /// water have a `Role::Water` port, `process/steam.rs`); recipes not listed use none.
-const WATER_USE: &[(u16, u32)] = &[(DISTIL_RECIPE, 1), (CRACK_RECIPE, 1)];
+const WATER_USE: &[(u16, u32)] = &[
+    (DISTIL_RECIPE, 1),
+    (CRACK_RECIPE, 1),
+    (ACID_RECIPE, 1),
+    (ELECTROLYSE_RECIPE, 2),
+    (WASH_RECIPES[0], 1),
+    (WASH_RECIPES[1], 1),
+    (WASH_RECIPES[2], 1),
+];
 
 /// Water units one batch of machine recipe `i` uses.
 pub fn water_use(i: u16) -> u32 {

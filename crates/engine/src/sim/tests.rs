@@ -24,8 +24,9 @@ const B: PlayerId = PlayerId(1);
 /// (save version 31), and in 9.4b for the Trains tech and the train list (save version 32), and in 9.5a for the
 /// Hover Pack tech and the hover, charge and pole each player's helpers save (save version 36), and in 9.5b for the
 /// Cargo Drones tech and the cargo routes and drones saved after the construction drones (save version 37), in 10.1
-/// for generator version 6, in 10.2 for the Oil Processing tech, and in 10.3 for the Refining tech.
-const GOLDEN_HASH: u64 = 0x8b7d_e44b_f0ff_d972;
+/// for generator version 6, in 10.2 for the Oil Processing tech, in 10.3 for the Refining tech, and in 10.4
+/// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, and in 10.7 for the Research Center tech.
+const GOLDEN_HASH: u64 = 0xe8c2_2b86_7d36_24d2;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

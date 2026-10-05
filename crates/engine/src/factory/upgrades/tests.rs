@@ -8,8 +8,11 @@ const P: IVec3 = IVec3::new(0, 0, 0);
 #[test]
 fn kits_name_their_tier() {
     assert_eq!((kit(0), kit(1), kit(2), kit(3)), (None, Some(GREEN_KIT), Some(BLUE_KIT), Some(VIOLET_KIT)));
-    assert_eq!(kit(4), None, "gold comes with its era");
-    assert_eq!((kit_tier(GREEN_KIT), kit_tier(BLUE_KIT), kit_tier(VIOLET_KIT)), (Some(1), Some(2), Some(3)));
+    assert_eq!((kit(4), kit(5)), (Some(GOLD_KIT), None));
+    assert_eq!(
+        (kit_tier(GREEN_KIT), kit_tier(BLUE_KIT), kit_tier(VIOLET_KIT), kit_tier(GOLD_KIT)),
+        (Some(1), Some(2), Some(3), Some(4))
+    );
     assert_eq!(kit_tier(ItemId::NONE), None);
     assert_eq!(kit_tier(ItemId::block(BELT)), None);
 }

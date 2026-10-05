@@ -89,6 +89,11 @@ impl WorldGen {
 
     /// The top water block of the column at (x, z), whose ground is at `h`, or `i32::MIN` when dry.
     pub(super) fn water_top(&self, x: i32, z: i32, h: i32) -> i32 {
+        if self.version >= 7 {
+            if let Some(level) = self.river_water(x, z, h) {
+                return level;
+            }
+        }
         if let Some(p) = self.pond_near(x, z) {
             if (x - p.x).pow(2) + (z - p.z).pow(2) < p.r * p.r && h < p.level {
                 return p.level;
@@ -150,6 +155,9 @@ impl WorldGen {
         }
         let h0 = self.base_height(x, z);
         if !matches!(self.biome_at(x, z, h0), Biome::Plains | Biome::Lowlands) {
+            return None;
+        }
+        if self.version >= 7 && self.river_near(x, z) {
             return None;
         }
         let rim = DIRS16.map(|(dx, dz)| self.base_height(x + dx * (r + 1) / 1000, z + dz * (r + 1) / 1000));

@@ -5,9 +5,9 @@
 
 use crate::block::tex;
 use crate::item::{
-    ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GREEN_PACK, IRON_AXE, IRON_INGOT, IRON_PICKAXE,
-    IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCANNER_MK2, SCREW, STEEL_AXE, STEEL_BEAM, STEEL_INGOT,
-    STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
+    ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GOLD_PACK, GREEN_PACK, IRON_AXE, IRON_INGOT,
+    IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCANNER_MK2, SCREW, STEEL_AXE, STEEL_BEAM,
+    STEEL_INGOT, STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
 };
 
 pub struct Part {
@@ -71,6 +71,13 @@ const BLUE_FLASK: [Part; 4] = [
 
 const VIOLET_FLASK: [Part; 4] = [
     part([0.0, -0.12, 0.0], [0.42, 0.42, 0.42], tex::VIOLET_PACK),
+    part([0.0, 0.11, 0.0], [0.32, 0.06, 0.32], tex::FLASK_GLASS),
+    part([0.0, 0.23, 0.0], [0.17, 0.2, 0.17], tex::FLASK_GLASS),
+    part([0.0, 0.35, 0.0], [0.22, 0.08, 0.22], tex::BOX_TOP),
+];
+
+const GOLD_FLASK: [Part; 4] = [
+    part([0.0, -0.12, 0.0], [0.42, 0.42, 0.42], tex::GOLD_PACK),
     part([0.0, 0.11, 0.0], [0.32, 0.06, 0.32], tex::FLASK_GLASS),
     part([0.0, 0.23, 0.0], [0.17, 0.2, 0.17], tex::FLASK_GLASS),
     part([0.0, 0.35, 0.0], [0.22, 0.08, 0.22], tex::BOX_TOP),
@@ -169,6 +176,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         GREEN_PACK => &GREEN_FLASK,
         BLUE_PACK => &BLUE_FLASK,
         VIOLET_PACK => &VIOLET_FLASK,
+        GOLD_PACK => &GOLD_FLASK,
         STONE_PICKAXE => &STONE_PICK,
         IRON_PICKAXE => &IRON_PICK,
         STONE_AXE => &STONE_HATCHET,

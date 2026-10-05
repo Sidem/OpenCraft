@@ -36,6 +36,24 @@ pub enum Energy {
     Solar,
     /// An accumulator: stores spare solar power and gives it back before any fuel burns (solar.rs).
     Accumulator,
+    /// A diesel generator: a power source burning diesel canisters (diesel.rs).
+    Diesel,
+    /// A water wheel: a power source driven by the water that touches it (hydro.rs).
+    Hydro,
+    /// A hoist winch: a power sink that makes the shaft beside it fast (hoist.rs).
+    Hoist,
+    /// A nuclear reactor: a water-cooled power source burning fuel cells (nuclear.rs).
+    Reactor,
+}
+
+impl Energy {
+    /// Whether it is a power source or store with a step of its own in `Power::balance` (nothing to do in `step`).
+    pub fn is_source(self) -> bool {
+        matches!(
+            self,
+            Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Diesel | Energy::Hydro | Energy::Reactor
+        )
+    }
 }
 
 /// How a processor picks its recipe.
@@ -55,6 +73,8 @@ pub enum Pick {
     Load,
     /// An unloading dock: stores like a silo, a train stopped beside it gives it its cargo (docks.rs).
     Unload,
+    /// A research center: takes science packs and researches the chosen tech (center.rs).
+    Research,
 }
 
 impl Pick {
@@ -114,6 +134,15 @@ pub const SPECS: &[ProcessSpec] = &[
     super::pump::PUMPJACK_SPEC,
     super::refinery::REFINERY_SPEC,
     super::refinery::CRACKER_SPEC,
+    super::refinery::PLANT_SPEC,
+    super::refinery::ELECTROLYSER_SPEC,
+    super::diesel::DIESEL_SPEC,
+    super::washer::WASHER_SPEC,
+    super::center::CENTER_SPEC,
+    super::hydro::WHEEL_SPEC,
+    super::hoist::WINCH_SPEC,
+    super::nuclear::CENTRIFUGE_SPEC,
+    super::nuclear::REACTOR_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],
@@ -125,6 +154,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Burner, speed: 2000, fuel: 750, power: 0 },
             ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 40 },
             ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 80 },
+            ProcessTier { energy: Energy::Electric, speed: 8000, fuel: 0, power: 130 },
         ],
         footprint: SINGLE,
         verb: "Smelting",
@@ -144,6 +174,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 30 },
             ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 45 },
             ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 75 },
+            ProcessTier { energy: Energy::Electric, speed: 8000, fuel: 0, power: 120 },
         ],
         footprint: SINGLE,
         verb: "Making",
@@ -163,6 +194,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 40 },
             ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 60 },
             ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 100 },
+            ProcessTier { energy: Energy::Electric, speed: 8000, fuel: 0, power: 160 },
         ],
         footprint: Footprint {
             size: [2, 2, 2],
@@ -185,6 +217,7 @@ pub const SPECS: &[ProcessSpec] = &[
             ProcessTier { energy: Energy::Recipe, speed: 2000, fuel: 0, power: 0 },
             ProcessTier { energy: Energy::Recipe, speed: 3000, fuel: 0, power: 0 },
             ProcessTier { energy: Energy::Recipe, speed: 5000, fuel: 0, power: 0 },
+            ProcessTier { energy: Energy::Recipe, speed: 8000, fuel: 0, power: 0 },
         ],
         footprint: Footprint {
             size: [2, 2, 3],

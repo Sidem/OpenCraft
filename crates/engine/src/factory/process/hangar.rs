@@ -6,7 +6,7 @@
 //! - Stored drones are the `input` buffer's (so saves, breaking and belts need nothing new); `Hangar::away`
 //!   counts the fleet that is flying, derived each tick by `drones/` so a port never holds more than its fleet.
 //!   The buffer is one slot, so a port keeps construction drones or cargo drones (`drones/cargo.rs`), not both.
-//! - Reach (blocks, from the pad's centre), cargo range and fleet size come from [`TIERS`], by tier: Mk1 to Mk4.
+//! - Reach (blocks, from the pad's centre), cargo range and fleet size come from [`TIERS`], by tier: Mk1 to Mk5.
 //!
 //! To change a tier: its row in [`TIERS`] (and the power in the spec's tier row).
 
@@ -25,11 +25,12 @@ pub struct HangarTier {
     pub cargo_range: u32,
 }
 
-pub const TIERS: [HangarTier; 4] = [
+pub const TIERS: [HangarTier; 5] = [
     HangarTier { reach: 32, fleet: 4, cargo_range: 200 },
     HangarTier { reach: 48, fleet: 8, cargo_range: 400 },
     HangarTier { reach: 64, fleet: 12, cargo_range: 800 },
     HangarTier { reach: 96, fleet: 16, cargo_range: 1600 },
+    HangarTier { reach: 128, fleet: 24, cargo_range: 3200 },
 ];
 
 /// Derived each tick by `drones/` (never saved).
@@ -58,6 +59,7 @@ pub const HANGAR_SPEC: ProcessSpec = ProcessSpec {
         ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 60 },
         ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 90 },
         ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 140 },
+        ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 200 },
     ],
     footprint: Footprint { size: [3, 3, 1], ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right)] },
     verb: "Launching",

@@ -18,7 +18,7 @@
 
 use crate::block::{
     BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, FAST_BELT, GENERATOR, LAB, MINER, MINER_MK2,
-    POLE, PUMP, QUARRY, SMELTER, STORAGE,
+    POLE, PUMP, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE,
 };
 use crate::item::{
     ItemId, ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4, BELT_MK3, BELT_MK4, BLAST_FURNACE_MK2, BLAST_FURNACE_MK3,
@@ -26,7 +26,11 @@ use crate::item::{
     LAB_MK3, LAB_MK4, MINER_MK3, MINER_MK4, POLE_MK2, POLE_MK3, POLE_MK4, PUMP_MK2, PUMP_MK3, QUARRY_MK2, QUARRY_MK3,
     SMELTER_MK2, SMELTER_MK3, SMELTER_MK4,
 };
+use crate::item::{
+    ASSEMBLER_MK5, BLAST_FURNACE_MK5, CONSTRUCTOR_MK5, DRONE_PORT_MK5, MINER_MK5, RESEARCH_CENTER_MK5, SMELTER_MK5,
+};
 use crate::item::{DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4};
+use crate::item::{RESEARCH_CENTER_MK2, RESEARCH_CENTER_MK3, RESEARCH_CENTER_MK4};
 
 pub struct Family {
     /// The block every tier puts into the world.
@@ -39,21 +43,35 @@ pub struct Family {
 
 pub const FAMILIES: &[Family] = &[
     Family { block: BELT, items: &[ItemId::block(BELT), ItemId::block(FAST_BELT), BELT_MK3, BELT_MK4], kits: 1 },
-    Family { block: MINER, items: &[ItemId::block(MINER), ItemId::block(MINER_MK2), MINER_MK3, MINER_MK4], kits: 4 },
-    Family { block: SMELTER, items: &[ItemId::block(SMELTER), SMELTER_MK2, SMELTER_MK3, SMELTER_MK4], kits: 4 },
+    Family {
+        block: MINER,
+        items: &[ItemId::block(MINER), ItemId::block(MINER_MK2), MINER_MK3, MINER_MK4, MINER_MK5],
+        kits: 4,
+    },
+    Family {
+        block: SMELTER,
+        items: &[ItemId::block(SMELTER), SMELTER_MK2, SMELTER_MK3, SMELTER_MK4, SMELTER_MK5],
+        kits: 4,
+    },
     Family {
         block: CONSTRUCTOR,
-        items: &[ItemId::block(CONSTRUCTOR), CONSTRUCTOR_MK2, CONSTRUCTOR_MK3, CONSTRUCTOR_MK4],
+        items: &[ItemId::block(CONSTRUCTOR), CONSTRUCTOR_MK2, CONSTRUCTOR_MK3, CONSTRUCTOR_MK4, CONSTRUCTOR_MK5],
         kits: 4,
     },
     Family {
         block: ASSEMBLER,
-        items: &[ItemId::block(ASSEMBLER), ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4],
+        items: &[ItemId::block(ASSEMBLER), ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4, ASSEMBLER_MK5],
         kits: 8,
     },
     Family {
         block: BLAST_FURNACE,
-        items: &[ItemId::block(BLAST_FURNACE), BLAST_FURNACE_MK2, BLAST_FURNACE_MK3, BLAST_FURNACE_MK4],
+        items: &[
+            ItemId::block(BLAST_FURNACE),
+            BLAST_FURNACE_MK2,
+            BLAST_FURNACE_MK3,
+            BLAST_FURNACE_MK4,
+            BLAST_FURNACE_MK5,
+        ],
         kits: 8,
     },
     Family { block: POLE, items: &[ItemId::block(POLE), POLE_MK2, POLE_MK3, POLE_MK4], kits: 1 },
@@ -64,7 +82,18 @@ pub const FAMILIES: &[Family] = &[
     Family { block: GENERATOR, items: &[ItemId::block(GENERATOR), GENERATOR_MK2], kits: 4 },
     Family {
         block: DRONE_PORT,
-        items: &[ItemId::block(DRONE_PORT), DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4],
+        items: &[ItemId::block(DRONE_PORT), DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4, DRONE_PORT_MK5],
+        kits: 8,
+    },
+    Family {
+        block: RESEARCH_CENTER,
+        items: &[
+            ItemId::block(RESEARCH_CENTER),
+            RESEARCH_CENTER_MK2,
+            RESEARCH_CENTER_MK3,
+            RESEARCH_CENTER_MK4,
+            RESEARCH_CENTER_MK5,
+        ],
         kits: 8,
     },
 ];

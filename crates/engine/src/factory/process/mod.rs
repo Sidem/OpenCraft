@@ -1,10 +1,7 @@
-//! Processors: every machine that turns inputs into outputs (the smelter, the constructor, and the
-//! assembler, furnaces and crushers to come) is one `Processor` driven by its spec row (`specs.rs`):
-//! which recipe categories it takes, burner or electric, how it picks a recipe, its buffers, its
-//! numbers per tier, its model (`model.rs`) and what it says (`view.rs`). Saves from before version 18 held smelters and
-//! constructors in lists of their own (`legacy.rs`).
-//!
-//! Belts, miners and the panel deliver into it; it sorts fuel into its fuel buffer and takes only
+//! Processors: every machine that turns inputs into outputs is one `Processor` driven by its spec row
+//! (`specs.rs`): which recipe categories it takes, burner or electric, how it picks a recipe, its buffers, its
+//! numbers per tier, its model (`model.rs`) and what it says (`view.rs`). Saves before version 18 held smelters and
+//! constructors in lists of their own (`legacy.rs`). Belts, miners and the panel deliver into it; it sorts fuel into its fuel buffer and takes only
 //! what a recipe it may make uses (`Pick`; a recipe research still locks counts as unknown), at most a
 //! stack of each input when it has a chosen recipe, so one input can't crowd out the others. Like a
 //! box, it pushes one item a tick into the next belt leading away. A spec with a footprint
@@ -22,23 +19,35 @@
 //!
 //! To add a processor: a spec row (`specs.rs`). New behaviour (flows) goes here.
 
+mod center;
+mod diesel;
 mod docks;
 mod hangar;
+mod hoist;
+mod hydro;
 mod legacy;
 mod model;
+mod nuclear;
 mod parts;
 mod pump;
 mod refinery;
+mod shape;
 mod solar;
 mod specs;
 mod status;
 mod steam;
 mod steam_view;
 mod view;
+mod washer;
 mod work;
 
+use center::Study;
+pub(super) use center::{needs_center, step_centers};
+pub(super) use diesel::run as run_diesel;
 use hangar::Hangar;
+pub(super) use hydro::{run as run_hydro, sense as sense_hydro};
 pub use legacy::{read_constructor, read_smelter};
+pub(super) use nuclear::run as run_reactor;
 use pump::Pump;
 pub(super) use solar::run as run_renewables;
 use solar::Store;
@@ -56,10 +65,10 @@ use crate::inventory::Stack;
 use crate::item::{stack_size, ItemId, EMPTY_CANISTER};
 use crate::math::{IVec3, Vec3};
 use crate::recipes::{burn_time, MachineRecipe};
+use crate::research::Research;
 
 use super::belt::Belt;
 use super::buffer::Buffer;
-use super::footprint::Role;
 use super::{Factory, Machine};
 
 /// Byproducts a machine holds before it stops for want of a belt to take them (a stack is more than
@@ -87,12 +96,14 @@ pub struct Processor {
     pub side: Buffer,
     /// A boiler's or turbine's steam and water (steam.rs).
     pub steam: Steam,
-    /// A panel's or accumulator's charge and flow (solar.rs).
+    /// A panel's, accumulator's or water wheel's charge and flow (solar.rs, hydro.rs).
     pub store: Store,
     /// A drone port's fleet out and whether it is busy (hangar.rs; derived).
     pub hangar: Hangar,
     /// A pumpjack's well and the oil kept towards a canister (pump.rs).
     pub pump: Pump,
+    /// A research center's unit in progress (center.rs).
+    pub study: Study,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
@@ -125,6 +136,7 @@ impl Processor {
             store: Store::default(),
             hangar: Hangar::default(),
             pump: Pump::default(),
+            study: Study::default(),
             speed: 0,
             outs: Vec::new(),
             side_outs: Vec::new(),
@@ -145,6 +157,12 @@ impl Processor {
         if self.is_fuel(item) {
             return self.fuel.space_for(item);
         }
+        if self.is_center() {
+            return self.center_room(item);
+        }
+        if matches!(self.energy(), Energy::Diesel | Energy::Reactor) {
+            return if item == self.generator_fuel() { self.input.space_for(item) } else { 0 };
+        }
         if self.spec.pick.stores() {
             return self.out.space_for(item);
         }
@@ -155,7 +173,7 @@ impl Processor {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
             Pick::Pump => item == EMPTY_CANISTER,
-            Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload => false,
+            Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload | Pick::Research => false,
         };
         let cap = if self.spec.pick == Pick::Chosen {
             stack_size(item).saturating_sub(self.input.count(item))
@@ -203,8 +221,9 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
-            (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) => {}
-            (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump) => {}
+            (Energy::Hoist, _) => self.status = if power > 0 { Status::Working } else { Status::NoPower },
+            (e, _) if e.is_source() => {}
+            (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research) => {}
             _ => self.work(power, unlocked),
         }
         self.out.feed(&self.outs, &mut self.next_out, belts);
@@ -212,39 +231,26 @@ impl Processor {
     }
 
     /// Whether it would work this tick if powered (its grid counts it as demand).
-    pub fn wants_power(&self, unlocked: &[bool]) -> bool {
+    pub fn wants_power(&self, unlocked: &[bool], research: &Research) -> bool {
         match self.spec.pick {
+            Pick::Research => return self.center_wants_power(research),
             Pick::Hangar => return self.hangar.busy,
             Pick::Pump => return self.pump_wants_power(),
             _ => {}
         }
-        self.energy() == Energy::Electric
-            && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
-    }
-
-    /// Every cell it occupies, its anchor `pos` first.
-    pub fn cells(&self) -> Vec<IVec3> {
-        self.spec.footprint.cells(self.pos, self.dir)
-    }
-
-    /// Whether items arriving into `cell` from the cell `from` beside it go in (through a port).
-    pub fn takes_from(&self, cell: IVec3, from: IVec3) -> bool {
-        self.spec.footprint.takes(self.pos, self.dir, cell, from)
-    }
-
-    /// The faces it gives items out of: a cell and the `DIRS` index it faces.
-    pub fn out_faces(&self) -> Vec<(IVec3, u8)> {
-        self.spec.footprint.faces(self.pos, self.dir, Role::Out)
-    }
-
-    /// The faces it gives byproducts out of.
-    pub fn side_faces(&self) -> Vec<(IVec3, u8)> {
-        self.spec.footprint.faces(self.pos, self.dir, Role::Side)
+        self.energy() == Energy::Hoist
+            || self.energy() == Energy::Electric
+                && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
     }
 
     /// How its tier is driven.
     pub fn energy(&self) -> Energy {
         self.stats().energy
+    }
+
+    /// Whether it runs at its grid's power share (electric machines and winches).
+    pub fn draws_power(&self) -> bool {
+        matches!(self.energy(), Energy::Electric | Energy::Hoist)
     }
 
     /// kW it draws while it works (0 unless electric).
@@ -308,11 +314,12 @@ impl Machine for Processor {
             w.u32(self.next_side as u32);
         }
         self.write_tanks(w);
-        if self.energy() == Energy::Accumulator {
-            w.u32(self.store.charge);
-        }
+        self.write_store(w);
         if self.spec.pick == Pick::Pump {
             self.pump.write_state(w);
+        }
+        if self.is_center() {
+            self.write_study(w);
         }
     }
 
@@ -341,11 +348,12 @@ impl Machine for Processor {
             p.next_side = r.u32()? as usize;
         }
         p.read_tanks(r)?;
-        if p.energy() == Energy::Accumulator {
-            p.store.charge = r.u32()?.min(solar::CHARGE_CAP);
-        }
+        p.read_store(r)?;
         if spec.pick == Pick::Pump {
             p.pump = Pump::read_state(r)?;
+        }
+        if spec.pick == Pick::Research {
+            p.read_study(r)?;
         }
         p.valid()
     }
@@ -357,12 +365,17 @@ impl Machine for Processor {
         all.extend(self.out.contents());
         all.extend(self.side.contents());
         all.extend(self.batch_inputs());
+        all.extend(self.study_contents());
         all
     }
 
     fn describe(&self, f: &Factory) -> String {
-        let text = self.readout() + &self.reservoir_line(f);
-        let source = matches!(self.energy(), Energy::Turbine | Energy::Solar | Energy::Accumulator);
+        let mut text = self.readout();
+        if self.is_center() {
+            text.insert_str(text.rfind('\n').unwrap_or(text.len()), &self.center_line(&f.research));
+        }
+        text += &self.reservoir_line(f);
+        let source = !matches!(self.energy(), Energy::Burner | Energy::Electric | Energy::Recipe | Energy::Boiler);
         match steam::grid_line(self, f).filter(|_| source && !f.dirty) {
             Some(grid) => format!("{text}\n{grid}"),
             None => text,

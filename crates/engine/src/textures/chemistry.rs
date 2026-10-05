@@ -12,6 +12,17 @@ const CRUDE_BAND: [f64; 3] = [34.0, 28.0, 22.0];
 const NAPHTHA_BAND: [f64; 3] = [236.0, 226.0, 120.0];
 const DIESEL_BAND: [f64; 3] = [222.0, 130.0, 34.0];
 const HEAVY_BAND: [f64; 3] = [110.0, 44.0, 34.0];
+const ACID_BAND: [f64; 3] = [150.0, 220.0, 60.0];
+const LUBRICANT_BAND: [f64; 3] = [226.0, 188.0, 70.0];
+const HYDROGEN_BAND: [f64; 3] = [120.0, 190.0, 240.0];
+const OXYGEN_BAND: [f64; 3] = [236.0, 240.0, 246.0];
+
+/// A glossy white-blue sheet with a bright edge and a faint grain.
+fn plastic(x: i32, y: i32) -> [u8; 4] {
+    let edge = x == 0 || y == 0 || x == 15 || y == 15;
+    let k = 0.94 + 0.06 * n(497, x, y) + if edge { 0.08 } else { 0.0 };
+    rgb([226.0, 236.0, 246.0], k)
+}
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
@@ -21,6 +32,17 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::DIESEL_CANISTER => canister(x, y, DIESEL_BAND),
         tex::HEAVY_OIL_CANISTER => canister(x, y, HEAVY_BAND),
         tex::SULFUR => sulfur(x, y),
+        tex::PLASTIC => plastic(x, y),
+        tex::ACID_CANISTER => canister(x, y, ACID_BAND),
+        tex::LUBRICANT_CANISTER => canister(x, y, LUBRICANT_BAND),
+        tex::CHEM_SIDE => plant_side(x, y, [96.0, 138.0, 124.0]),
+        tex::CHEM_TOP => plant_top(x, y, 2),
+        tex::HYDROGEN_CANISTER => canister(x, y, HYDROGEN_BAND),
+        tex::OXYGEN_CANISTER => canister(x, y, OXYGEN_BAND),
+        tex::DIESEL_SIDE => plant_side(x, y, [176.0, 108.0, 40.0]),
+        tex::DIESEL_TOP => plant_top(x, y, 5),
+        tex::ELECTROLYSER_SIDE => plant_side(x, y, [70.0, 120.0, 150.0]),
+        tex::ELECTROLYSER_TOP => plant_top(x, y, 1),
         tex::PUMPJACK_SIDE => pumpjack_side(x, y),
         tex::PUMPJACK_TOP => pumpjack_top(x, y),
         tex::REFINERY_SIDE => plant_side(x, y, [118.0, 128.0, 142.0]),

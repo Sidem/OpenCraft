@@ -20,6 +20,7 @@ use crate::research::{pack_slot, Research, PACKS, TECHS};
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_INPUT};
 use super::power::{Power, FULL_SPEED, NOT_WIRED};
+use super::process::{needs_center, step_centers, Processor};
 use super::render::push_box;
 use super::{ticks, Factory, Kind, Machine};
 
@@ -30,6 +31,8 @@ pub enum LabStatus {
     NoPacks,
     /// Other labs are already doing the tech's last units.
     AllTaken,
+    /// The chosen tech uses a pack a small lab has no slot for.
+    NeedsCenter,
     NoPower,
 }
 
@@ -42,6 +45,9 @@ pub struct LabTier {
     /// Every this many units the last one takes no packs (0: never).
     pub free_every: u8,
 }
+
+/// Pack kinds a small lab holds (the first of `PACKS`); a research center holds more (`process/center.rs`).
+pub const LAB_PACK_SLOTS: usize = 4;
 
 pub const LAB_TIERS: [LabTier; 4] = [
     LabTier { speed: 1, power: 10, free_every: 0 },
@@ -66,15 +72,22 @@ pub struct Lab {
     pub status: LabStatus,
 }
 
-/// One tick of every lab, each at its grid's speed.
-pub fn step_labs(labs: &mut [Lab], lab_pole: &[Option<u32>], power: &Power, research: &mut Research) {
+/// One tick of every lab and research center, each at its grid's speed.
+pub fn step_labs(
+    labs: &mut [Lab],
+    processors: &mut [Processor],
+    poles: (&[Option<u32>], &[Option<u32>]),
+    power: &Power,
+    research: &mut Research,
+) {
     let mut taken = [0u32; TECHS.len()];
-    for t in labs.iter().filter_map(|l| l.unit) {
+    for t in labs.iter().filter_map(|l| l.unit).chain(processors.iter().filter_map(|p| p.study.unit)) {
         taken[t as usize] += 1;
     }
-    for (l, &p) in labs.iter_mut().zip(lab_pole) {
+    for (l, &p) in labs.iter_mut().zip(poles.0) {
         l.step(research, &mut taken, power.speed(p));
     }
+    step_centers(processors, poles.1, power, research, &mut taken);
 }
 
 impl Lab {
@@ -111,7 +124,7 @@ impl Lab {
 
     /// How many of `item` it would take now: science packs, up to their slot's room.
     pub fn room_for(&self, item: ItemId) -> u32 {
-        let Some(s) = pack_slot(item).map(|i| self.packs.slots[i]) else { return 0 };
+        let Some(s) = pack_slot(item).and_then(|i| self.packs.slots.get(i)) else { return 0 };
         stack_size(item) - if s.is_empty() { 0 } else { s.count }
     }
 
@@ -122,7 +135,7 @@ impl Lab {
     /// Puts up to `n` of `item` in its slot; returns what didn't fit.
     pub fn add(&mut self, item: ItemId, n: u32) -> u32 {
         let put = n.min(self.room_for(item));
-        if let Some(i) = pack_slot(item).filter(|_| put > 0) {
+        if let Some(i) = pack_slot(item).filter(|&i| put > 0 && i < self.packs.slots.len()) {
             self.packs.slots[i] = Stack { item, count: self.packs.slots[i].count + put };
         }
         n - put
@@ -175,7 +188,9 @@ impl Lab {
     /// The tech a new unit would be for, or why none can start.
     fn can_start(&self, research: &Research, taken: &[u32]) -> Result<u8, LabStatus> {
         let t = research.current.ok_or(LabStatus::NoResearch)?;
-        if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
+        if needs_center(t) {
+            Err(LabStatus::NeedsCenter)
+        } else if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
             Err(LabStatus::AllTaken)
         } else if !self.free_next() && !self.has_packs(t) {
             Err(LabStatus::NoPacks)
@@ -185,7 +200,10 @@ impl Lab {
     }
 
     fn has_packs(&self, tech: u8) -> bool {
-        TECHS[tech as usize].packs.iter().all(|&p| pack_slot(p).is_some_and(|i| !self.packs.slots[i].is_empty()))
+        TECHS[tech as usize]
+            .packs
+            .iter()
+            .all(|&p| pack_slot(p).is_some_and(|i| self.packs.slots.get(i).is_some_and(|s| !s.is_empty())))
     }
 
     /// The first readout line, also the panel's status.
@@ -204,6 +222,7 @@ impl Lab {
                 format!("Waiting for {}", names.join(" and "))
             }
             LabStatus::AllTaken => format!("Other labs are finishing {}", name(research.current)),
+            LabStatus::NeedsCenter => format!("{} needs a research center", name(research.current)),
             LabStatus::NoPower => NOT_WIRED.to_string(),
         }
     }
@@ -243,12 +262,12 @@ impl Machine for Lab {
         let mut l = Lab::new(r.ivec3()?);
         // Saves before version 20 had no blue pack slot.
         let held = match r.version {
-            22.. => PACKS.len(),
-            20..=21 => PACKS.len() - 1,
-            _ => PACKS.len() - 2,
+            22.. => LAB_PACK_SLOTS,
+            20..=21 => LAB_PACK_SLOTS - 1,
+            _ => LAB_PACK_SLOTS - 2,
         };
         l.packs = Buffer::read_state(r, held)?;
-        l.packs.slots.resize(PACKS.len(), Stack::default());
+        l.packs.slots.resize(LAB_PACK_SLOTS, Stack::default());
         let slots_ok = l.packs.slots.iter().zip(PACKS).all(|(s, p)| s.is_empty() || s.item == p);
         let unit = r.u8()?;
         l.unit = (unit != u8::MAX).then_some(unit);
@@ -310,7 +329,7 @@ impl Machine for Lab {
         push_box(out, rel + Vec3::new(-0.28, 0.68, -0.28), 0.0, [0.14, 0.12, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
         let lamp = match self.status {
             LabStatus::Working => tex::LAMP_GREEN,
-            LabStatus::NoPacks | LabStatus::AllTaken => tex::LAMP_YELLOW,
+            LabStatus::NoPacks | LabStatus::AllTaken | LabStatus::NeedsCenter => tex::LAMP_YELLOW,
             LabStatus::NoResearch | LabStatus::NoPower => tex::LAMP_RED,
         };
         push_box(out, rel + Vec3::new(0.31, 0.35, 0.31), 0.0, [0.13, 0.08, 0.13], 0.0, [lamp; 3], false);

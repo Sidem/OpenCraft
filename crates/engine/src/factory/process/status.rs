@@ -14,10 +14,12 @@ pub enum Status {
     /// A pumpjack with no oil below it, or one whose reservoir ran dry.
     NoDeposit,
     Exhausted,
+    /// A reactor that has shut down until its heat has fallen.
+    Overheated,
 }
 
 /// Every status, in declaration order.
-pub(super) const STATUSES: [Status; 9] = [
+pub(super) const STATUSES: [Status; 10] = [
     Status::NoRecipe,
     Status::Working,
     Status::NoInput,
@@ -27,4 +29,5 @@ pub(super) const STATUSES: [Status; 9] = [
     Status::NoWater,
     Status::NoDeposit,
     Status::Exhausted,
+    Status::Overheated,
 ];

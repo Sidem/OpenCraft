@@ -66,6 +66,18 @@ fn circuit(x: i32, y: i32) -> [u8; 4] {
     rgb([34.0, 118.0, 66.0], 0.9 + 0.1 * n(398, x, y))
 }
 
+/// The gold pack's flask fill: golden liquid under a pale meniscus, in a darker rim.
+pub(super) fn gold_pack(x: i32, y: i32) -> [u8; 4] {
+    let c = if y < 3 {
+        [244.0, 232.0, 188.0]
+    } else if x <= 1 || x >= 14 {
+        [150.0, 108.0, 20.0]
+    } else {
+        [236.0, 184.0, 52.0]
+    };
+    rgb(c, 0.94 + 0.1 * n(399, x, y))
+}
+
 /// The pack's flask fill: violet liquid under a pale meniscus, in a darker rim (like the blue one in `steel.rs`).
 fn violet_pack(x: i32, y: i32) -> [u8; 4] {
     let c = if y < 3 {

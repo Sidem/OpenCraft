@@ -1,17 +1,19 @@
-//! The refinery and the cracker (Milestone 10): chemistry processors, ordinary recipe machines (`Pick::ByInput`,
-//! categories `Distilling` and `Cracking`) that also take **water** from a pipe: a blue inlet on the left side
-//! (`Role::Water`; `steam.rs` links it and `draw_water` fills the machine's small tank, a few units) and a recipe's
-//! `water_use` units are spent when a batch starts. With the tank empty a machine reports `NoWater` and waits.
+//! The refinery, the cracker, the chemical plant and the electrolyser (Milestone 10): chemistry processors, ordinary recipe machines
+//! (`Pick::ByInput`, categories `Distilling` and `Cracking`; the plant is `Pick::Chosen`, `Chemistry`) that also take
+//! **water** from a pipe: a blue inlet on the left side (`Role::Water`; `steam.rs` links it and `draw_water` fills
+//! the machine's small tank, a few units) and a recipe's `water_use` units are spent when a batch starts. With the
+//! tank empty a machine reports `NoWater` and waits.
 //!
 //! - **Shells go through:** Distil turns 3 crude oil canisters into a naphtha, a diesel and a heavy oil canister
 //!   and a sulfur; Crack turns 2 heavy oil canisters into a naphtha and a diesel canister. The first output leaves
 //!   the front, the others the side hatches on the right (a mixed belt: the player sorts it with filters). A full
 //!   stream stops the machine (`Status::OutputFull`, with the stream named), so using or storing every one is the
-//!   game. Numbers: docs/TECH_ERAS.md section 6.
+//!   game. Numbers: docs/TECH_ERAS.md section 6. The plant (plastic, acid, lubricant) hands the empty canisters
+//!   back through its side hatch.
 //!
 //! To add a chemistry machine: a spec row here, a `Category`, a block and a `MACHINES` row.
 
-use crate::block::{tex, CRACKER, REFINERY};
+use crate::block::{tex, CHEMICAL_PLANT, CRACKER, ELECTROLYSER, REFINERY};
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::model::{part, Look, Part};
@@ -61,6 +63,72 @@ pub const CRACKER_SPEC: ProcessSpec = ProcessSpec {
     parts: &CRACKER_PARTS,
 };
 
+/// The chemical plant: the player chooses plastic, acid or lubricant in its panel (`Pick::Chosen`). Belts bring the
+/// inputs in at the back, the product leaves the front, and plastic's two spare shells the side hatches.
+pub const PLANT_SPEC: ProcessSpec = ProcessSpec {
+    block: CHEMICAL_PLANT,
+    categories: &[Category::Chemistry],
+    pick: Pick::Chosen,
+    buffers: [3, 0, 1],
+    side: 1,
+    tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 120 }],
+    footprint: Footprint {
+        size: [3, 2, 3],
+        ports: &[IN_BACK, OUT_FRONT, SIDE_RIGHT, Port { side: Side::Left, role: Role::Water, cell: Which::Nth(0) }],
+    },
+    verb: "Making",
+    products: "plastic, acid or lubricant",
+    waiting: "",
+    map_colour: 0x5fa88f,
+    parts: &PLANT_PARTS,
+};
+
+/// The electrolyser splits water into hydrogen and oxygen canisters (`Splitting`): empties in at the back, hydrogen out
+/// of the front and oxygen from the right-hand hatch.
+pub const ELECTROLYSER_SPEC: ProcessSpec = ProcessSpec {
+    block: ELECTROLYSER,
+    categories: &[Category::Splitting],
+    pick: Pick::ByInput,
+    buffers: [1, 0, 1],
+    side: 1,
+    tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 500 }],
+    footprint: Footprint {
+        size: [2, 2, 2],
+        ports: &[IN_BACK, OUT_FRONT, SIDE_RIGHT, Port { side: Side::Left, role: Role::Water, cell: Which::Nth(0) }],
+    },
+    verb: "Splitting",
+    products: "hydrogen",
+    waiting: "Waiting for empty canisters",
+    map_colour: 0x4f86a8,
+    parts: &ELECTROLYSER_PARTS,
+};
+const PLANT_BODY: [u16; 3] = [tex::CHEM_TOP, tex::CHEM_SIDE, tex::FRAME];
+
+/// Across 3, deep 2, 3 high (±1.5, ±1, ±1.5): a banded plinth, a low house across the front, a tall and a short
+/// storage tank behind it with a pipe bridge between their tops, and a status lamp.
+const PLANT_PARTS: [Part; 8] = [
+    part([0.0, -1.4, 0.0], [2.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, -0.8, 0.35], [2.8, 1.1, 1.2], Look::Tex(PLANT_BODY)),
+    part([-0.8, 0.3, -0.4], [1.0, 2.0, 1.0], Look::Tex(PLANT_BODY)),
+    part([-0.8, 1.35, -0.4], [1.1, 0.1, 1.1], FRAME),
+    part([0.7, -0.1, -0.4], [1.0, 1.4, 1.0], Look::Tex(PLANT_BODY)),
+    part([0.7, 0.65, -0.4], [1.1, 0.1, 1.1], FRAME),
+    part([0.0, 1.1, -0.4], [1.6, 0.12, 0.12], STEEL),
+    part([1.2, -0.25, 0.98], [0.14, 0.1, 0.14], Look::Lamp),
+];
+
+const CELL_BODY: [u16; 3] = [tex::ELECTROLYSER_TOP, tex::ELECTROLYSER_SIDE, tex::FRAME];
+
+/// Across and deep 2, 2 high (±1): a banded plinth, a low house across the front, two tall cell stacks behind it
+/// joined by a copper bus bar, and a status lamp.
+const ELECTROLYSER_PARTS: [Part; 6] = [
+    part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
+    part([0.0, -0.4, 0.45], [1.8, 0.8, 1.0], Look::Tex(CELL_BODY)),
+    part([-0.5, 0.2, -0.4], [0.7, 1.6, 0.8], Look::Tex(CELL_BODY)),
+    part([0.5, 0.2, -0.4], [0.7, 1.6, 0.8], Look::Tex(CELL_BODY)),
+    part([0.0, 0.95, -0.4], [1.4, 0.12, 0.2], Look::Tex([tex::COPPER_INGOT; 3])),
+    part([0.78, 0.0, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
+];
 const REFINERY_BODY: [u16; 3] = [tex::REFINERY_TOP, tex::REFINERY_SIDE, tex::FRAME];
 const CRACKER_BODY: [u16; 3] = [tex::CRACKER_TOP, tex::CRACKER_SIDE, tex::FRAME];
 const STEEL: Look = Look::Tex([tex::STEEL; 3]);

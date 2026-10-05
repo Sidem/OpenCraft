@@ -154,6 +154,8 @@ fn the_hands_mark_copy_and_stamp_through_the_game() {
     assert!(g.sim.ghosts.covering(base + IVec3::new(10, 1, 10)).is_some());
     let label = g.blueprint_label().unwrap();
     assert!(label.contains("Missing 3 Conveyor Belt"), "{label}");
+    // The tick re-aims at whatever the eye sees (open sky, on this terrain): aim again for the preview boxes.
+    aim(&mut g, base + IVec3::new(10, 0, 10));
     assert!(!g.blueprint_boxes().is_empty());
 
     g.mark_blueprint_corner();

@@ -42,6 +42,8 @@ Moved into `docs/DEV_PLAN.md` at the end of Milestone 9 (2026-10-05); this is th
 
 ## Milestone 11: Compute and photonics (era 8)
 
+Moved into `docs/DEV_PLAN.md` at the end of Milestone 10 (2026-10-05); this is the original sketch.
+
 - **Chip fab** (a clean room taking acid and ultra-pure water) making AI accelerators.
 - **AI datacenters:** megawatts and coolant in, compute out onto a **data network** (the grid module's
   second channel); cooling towers close the loop.

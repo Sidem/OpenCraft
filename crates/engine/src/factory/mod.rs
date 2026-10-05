@@ -5,14 +5,13 @@
 //!
 //! Machines occupy one voxel each (the chunk holds their block id, so collision, targeting and breaking
 //! work unchanged), multi-block processors several (`footprint/`), while their state lives here, keyed
-//! by every cell in `at`, and keep running when their chunk is streamed out. `MACHINES` (`table.rs`) maps a block to its kind and buffer size (several blocks may share
-//! a kind). Each kind is a struct in its own file implementing [`Machine`], in its own `Vec`; code acting
-//! on one machine matches on its `Slot`. Removal is `swap_remove` plus fixing the moved entry's `at` slot.
+//! by every cell in `at`, and keep running when their chunk is streamed out. `MACHINES` (`table.rs`) maps a block to
+//! its kind and buffer size (several blocks may share a kind). Each kind is a struct in its own file implementing
+//! [`Machine`], in its own `Vec`; code acting on one machine matches on its `Slot`. Removal: `swap_remove`, fix `at`.
 //!
-//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick: power (`power.rs`: supply and
-//! demand), miners, boxes and processing machines, the powered machines, then belts (downstream first,
-//! see `links.rs`), and reports to the view only through `SimEvent`s. Links and the belt order are
-//! derived data, rebuilt by `relink` whenever `dirty` is set.
+//! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick: power (`power.rs`: supply and demand), miners,
+//! boxes and processing machines, the powered machines, then belts (downstream first, see `links.rs`), and reports
+//! to the view only through `SimEvent`s. Links and the belt order are derived, rebuilt by `relink` when `dirty`.
 //!
 //! A machine that turns inputs into outputs is a processor spec row (`process/specs.rs`), not a kind.
 //! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a
@@ -94,7 +93,7 @@ pub use miner::MINER_TIERS;
 pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use pole::{preview_pole, preview_wire, POLE_TIERS};
 pub use ports::PortInfo;
-pub use process::{makes, spec as process_spec, Energy};
+pub use process::{makes, spec as process_spec};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
@@ -330,6 +329,7 @@ impl Factory {
             ..
         } = self;
         let unlocked = research.machine_recipes_unlocked();
+        process::sense_hydro(processors, world);
         power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
@@ -344,14 +344,14 @@ impl Factory {
             s.step(belts);
         }
         for (m, &p) in sinks.processors.iter_mut().zip(&power.process_pole) {
-            let share = if m.energy() == Energy::Electric { power.speed(p) } else { power::FULL_SPEED };
+            let share = if m.draws_power() { power.speed(p) } else { power::FULL_SPEED };
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
         }
         for r in sinks.routers.iter_mut() {
             r.step(belts);
         }
-        step_labs(sinks.labs, &power.lab_pole, power, research);
+        step_labs(sinks.labs, sinks.processors, (&power.lab_pole, &power.process_pole), power, research);
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);
         process::draw_water(sinks.processors, pipework);
         belt_step(belts, &mut sinks, order, TICK);

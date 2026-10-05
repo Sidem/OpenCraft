@@ -126,12 +126,13 @@ pub const UNLOADING_DOCK: BlockId = 80;
 /// Chemistry's ground (Milestone 10, generator version 6): oil sand (a deposit a pumpjack draws crude from) and uranium ore.
 pub const OIL_SAND: BlockId = 81;
 pub const URANIUM_ORE: BlockId = 82;
-/// The pumpjack (the Oil Processing tech): drills down to an oil reservoir and fills canisters.
-pub const PUMPJACK: BlockId = 83;
-/// The refinery and the cracker (the Refining tech): fractional distillation of crude oil canisters.
-pub const REFINERY: BlockId = 84;
-pub const CRACKER: BlockId = 85;
-pub const BLOCK_COUNT: usize = 86;
+/// The chemistry machines, the washer, the research center, the water wheel the hoist, the centrifuge and the reactor, ids 83–96 (`chemistry.rs`).
+mod chemistry;
+pub use chemistry::*;
+pub const BLOCK_COUNT: usize = 97;
+
+mod make;
+use make::{all, cube, frame, liquid, machine, ore, pillar};
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -182,34 +183,6 @@ pub mod sound {
     pub const WOOD: u8 = 4;
     pub const LEAVES: u8 = 5;
     pub const METAL: u8 = 6;
-}
-
-const fn all(t: u16) -> [u16; 6] {
-    [t; 6]
-}
-
-const fn pillar(side: u16, top: u16, bottom: u16) -> [u16; 6] {
-    [side, side, top, bottom, side, side]
-}
-
-const fn cube(name: &'static str, break_time: f32, faces: [u16; 6], drop: BlockId, sound: u8) -> BlockDef {
-    BlockDef { name, render: Render::Opaque, solid: true, break_time, faces, drop, sound, placeable: true, light: 0 }
-}
-
-/// Ore stays in the ground: mining it by hand yields a handful of ore items that can't be placed.
-const fn ore(name: &'static str, faces: [u16; 6], drop: BlockId) -> BlockDef {
-    BlockDef { placeable: false, ..cube(name, 1.6, faces, drop, sound::STONE) }
-}
-
-/// A machine drawn by the host as an instanced model rather than by the chunk mesher.
-const fn machine(name: &'static str, solid: bool, break_time: f32, faces: [u16; 6], id: BlockId) -> BlockDef {
-    BlockDef { render: Render::None, solid, ..cube(name, break_time, faces, id, sound::METAL) }
-}
-
-/// Water, still or flowing: not solid, never targeted, dropping nothing.
-const fn liquid(name: &'static str) -> BlockDef {
-    let base = cube(name, -1.0, all(tex::WATER), AIR, sound::SAND);
-    BlockDef { render: Render::Liquid, solid: false, placeable: false, ..base }
 }
 
 pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
@@ -328,11 +301,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         light: crate::light::TORCH_LIGHT,
     },
     cube("Planks", 0.7, all(tex::PLANKS), PLANKS, sound::WOOD),
-    BlockDef {
-        render: Render::Cutout,
-        solid: false,
-        ..cube("Ladder", 0.4, pillar(tex::LADDER, tex::LADDER_TOP, tex::LADDER_TOP), LADDER, sound::WOOD)
-    },
+    frame("Ladder", 0.4, pillar(tex::LADDER, tex::LADDER_TOP, tex::LADDER_TOP), LADDER, sound::WOOD),
     cube("Stone Bricks", 1.3, all(tex::STONE_BRICKS), STONE_BRICKS, sound::STONE),
     machine("Assembler", true, 1.2, pillar(tex::ASSEMBLER_SIDE, tex::ASSEMBLER_TOP, tex::FRAME), ASSEMBLER),
     BlockDef { drop: AIR, placeable: false, ..machine("Machine Part", true, 1.2, all(tex::FRAME), MACHINE_PART) },
@@ -359,6 +328,17 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Pumpjack", true, 1.6, pillar(tex::PUMPJACK_SIDE, tex::PUMPJACK_TOP, tex::FRAME), PUMPJACK),
     machine("Refinery", true, 2.0, pillar(tex::REFINERY_SIDE, tex::REFINERY_TOP, tex::FRAME), REFINERY),
     machine("Cracker", true, 1.8, pillar(tex::CRACKER_SIDE, tex::CRACKER_TOP, tex::FRAME), CRACKER),
+    machine("Chemical Plant", true, 1.8, pillar(tex::CHEM_SIDE, tex::CHEM_TOP, tex::FRAME), CHEMICAL_PLANT),
+    machine("Diesel Generator", true, 1.8, pillar(tex::DIESEL_SIDE, tex::DIESEL_TOP, tex::FRAME), DIESEL_GENERATOR),
+    machine("Electrolyser", true, 1.8, pillar(tex::ELECTROLYSER_SIDE, tex::ELECTROLYSER_TOP, tex::FRAME), ELECTROLYSER),
+    machine("Ore Washer", true, 1.4, pillar(tex::WASHER_SIDE, tex::WASHER_TOP, tex::FRAME), WASHER),
+    cube("Tailings", 0.9, all(tex::TAILINGS), TAILINGS, sound::STONE),
+    machine("Research Center", true, 1.4, pillar(tex::LAB_SIDE, tex::LAB_TOP, tex::FRAME), RESEARCH_CENTER),
+    machine("Water Wheel", true, 1.2, pillar(tex::PLANKS, tex::LOG_TOP, tex::FRAME), WATER_WHEEL),
+    frame("Hoist Shaft", 0.6, pillar(tex::HOIST, tex::HOIST_TOP, tex::HOIST_TOP), HOIST, sound::METAL),
+    machine("Hoist Winch", true, 1.4, pillar(tex::WINCH_SIDE, tex::FRAME, tex::FRAME), WINCH),
+    machine("Centrifuge", true, 1.6, pillar(tex::CENTRIFUGE_SIDE, tex::CENTRIFUGE_TOP, tex::FRAME), CENTRIFUGE),
+    machine("Nuclear Reactor", true, 2.4, pillar(tex::REACTOR_SIDE, tex::REACTOR_TOP, tex::FRAME), REACTOR),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

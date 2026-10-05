@@ -9,7 +9,7 @@
 //! or assembler recipe.
 
 use crate::block::{BlockId, BELT, GENERATOR, LAB, MINER, POLE, PUMP, QUARRY, STORAGE};
-use crate::item::{ItemId, BLUE_KIT, GREEN_KIT, VIOLET_KIT};
+use crate::item::{ItemId, BLUE_KIT, GOLD_KIT, GREEN_KIT, VIOLET_KIT};
 use crate::math::IVec3;
 
 use super::links::Slot;
@@ -20,8 +20,8 @@ use super::Factory;
 /// Tier colours as 0xRRGGBB, Mk1 first: red, green, blue, violet, gold (the science packs' colours).
 pub const TIER_COLOURS: [u32; 5] = [0xd94a3d, 0x4caf50, 0x3f7fd9, 0x9a5bd6, 0xe0b02f];
 
-/// The kit that raises a machine to each tier (Mk1 needs none). Gold comes with its era.
-pub const KITS: [ItemId; 4] = [ItemId::NONE, GREEN_KIT, BLUE_KIT, VIOLET_KIT];
+/// The kit that raises a machine to each tier (Mk1 needs none).
+pub const KITS: [ItemId; 5] = [ItemId::NONE, GREEN_KIT, BLUE_KIT, VIOLET_KIT, GOLD_KIT];
 
 /// One upgrade step: the family's block, the tier it reaches, and the kits it takes.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

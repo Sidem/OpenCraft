@@ -15,7 +15,15 @@ use super::{Energy, Pick, Processor, Status};
 impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
-        let special = self.steam_text().or_else(|| self.solar_text()).or_else(|| self.hangar_text());
+        let special = self
+            .steam_text()
+            .or_else(|| self.solar_text())
+            .or_else(|| self.hangar_text())
+            .or_else(|| self.diesel_text())
+            .or_else(|| self.hydro_text())
+            .or_else(|| self.hoist_text())
+            .or_else(|| self.reactor_text())
+            .or_else(|| self.center_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;
         }
@@ -85,7 +93,10 @@ impl Processor {
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
         }
-        if !matches!(self.energy(), Energy::Turbine | Energy::Solar | Energy::Accumulator) {
+        if !matches!(
+            self.energy(),
+            Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Hoist
+        ) {
             lines.push("Right-click to open".to_string());
         }
         lines.join("\n")

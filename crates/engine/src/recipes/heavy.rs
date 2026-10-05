@@ -30,8 +30,19 @@ pub const CRUSHER_RECIPE: Recipe = Recipe {
     group: Group::Production,
     count: 1,
     inputs: &[(STEEL_PLATE, 6), (MOTOR, 2), (GEAR, 4)],
-    blurb: "Crushes 2 iron or copper ore into 3 crushed ore, which smelt one for one, and grinds slag to sand. \
-            Needs 30 kW.",
+    blurb: "Crushes 2 iron, copper or bauxite ore into 3 crushed ore, which smelt one for one, and grinds slag and \
+            tailings to sand. The first step of the ore chain: the washer takes only what it crushes. Needs 30 kW.",
+};
+
+pub const WASHER_RECIPE: Recipe = Recipe {
+    output: b(WASHER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 8), (STEEL_BEAM, 4), (MOTOR, 2), (b(GLASS), 4)],
+    blurb: "Washes crushed ore, 2×2×2 (R turns it before you place it): 3 crushed iron, copper or bauxite and a unit \
+            of water (a pipe from a pump to the blue inlet on its left) make 4 washed ore out of the front in 3 \
+            seconds, which smelt one for one: 2 ingots from every ore instead of 1.5. Tailings leave by the violet \
+            hatch on the right and must be taken away; the crusher grinds them to sand. Raw ore does not fit. Needs 60 kW.",
 };
 
 pub const SILO_RECIPE: Recipe = Recipe {

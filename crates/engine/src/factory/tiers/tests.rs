@@ -312,3 +312,32 @@ fn a_substation_reaches_sixteen_blocks_and_links_like_a_pylon() {
     assert_eq!(f.power.pole_grid, [0, 0], "32 blocks link");
     assert_eq!(f.power.miner_pole, [Some(0)], "a machine 16 blocks away hangs on it");
 }
+
+#[test]
+fn mk5_pins_its_numbers_and_a_gold_kit_takes_a_machine_there() {
+    use crate::factory::process::spec;
+    let m = &MINER_TIERS[4];
+    assert_eq!((m.rate, m.recovery, m.power), (8.0, 0.97, 150));
+    let tier5 = |block| {
+        let t = &spec(block).unwrap().tiers[4];
+        (t.speed, t.power)
+    };
+    assert_eq!(tier5(SMELTER), (8000, 130));
+    assert_eq!(tier5(CONSTRUCTOR), (8000, 120));
+    assert_eq!(tier5(ASSEMBLER), (8000, 160));
+    assert_eq!(tier5(BLAST_FURNACE), (8000, 0));
+    assert_eq!(tier5(crate::block::RESEARCH_CENTER), (10_000, 100));
+    let mut port = Factory::default();
+    place_at(&mut port, crate::block::DRONE_PORT, IVec3::ZERO, 4);
+    let t = port.processors[0].hangar_tier().unwrap();
+    assert_eq!((t.reach, t.fleet, t.cargo_range), (128, 24, 3200));
+    // Belts, poles and labs stop at Mk4.
+    let mut f = Factory::default();
+    place_at(&mut f, BELT, IVec3::ZERO, 3);
+    assert_eq!(f.next_upgrade(IVec3::ZERO), None);
+    place_at(&mut f, SMELTER, IVec3::new(4, 0, 0), 3);
+    let step = f.next_upgrade(IVec3::new(4, 0, 0)).unwrap();
+    assert_eq!((step.tier, step.kit, step.kits), (4, crate::item::GOLD_KIT, 4));
+    assert!(f.upgrade(IVec3::new(4, 0, 0)) && f.tiered_at(IVec3::new(4, 0, 0)) == Some((SMELTER, 4)));
+    assert_eq!(f.next_upgrade(IVec3::new(4, 0, 0)), None);
+}

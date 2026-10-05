@@ -5,13 +5,14 @@
 //!
 //! To add a machine block: a row here (a new kind also needs its `Kind` variant, in row order).
 
+use super::lab::LAB_PACK_SLOTS;
 use crate::block::{
-    BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CONSTRUCTOR, CRACKER, CRUSHER,
-    DRONE_PORT, ELECTROLYTIC_CELL, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LOADING_DOCK, MINER, MINER_MK2, OUTLET,
-    PIPE, POLE, PUMP, PUMPJACK, QUARRY, RAIL, RAMP_DOWN, RAMP_UP, REFINERY, SENSOR, SILO, SMELTER, SOLAR_PANEL,
-    SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK,
+    BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CENTRIFUGE, CHEMICAL_PLANT,
+    CONSTRUCTOR, CRACKER, CRUSHER, DIESEL_GENERATOR, DRONE_PORT, ELECTROLYSER, ELECTROLYTIC_CELL, FAST_BELT, FILTER,
+    GENERATOR, LAB, LIFT, LOADING_DOCK, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, PUMPJACK, QUARRY, RAIL, RAMP_DOWN,
+    RAMP_UP, REACTOR, REFINERY, RESEARCH_CENTER, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER, STORAGE, TURBINE,
+    UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK, WASHER, WATER_WHEEL, WINCH,
 };
-use crate::research::PACKS;
 /// Machine kinds, in `MACHINES` order.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Kind {
@@ -42,7 +43,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 40] = [
+pub const MACHINES: [MachineDef; 49] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -50,7 +51,7 @@ pub const MACHINES: [MachineDef; 40] = [
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
     MachineDef { block: GENERATOR, kind: Kind::Generator, slots: 1, panel: true },
     MachineDef { block: POLE, kind: Kind::Pole, slots: 0, panel: false },
-    MachineDef { block: LAB, kind: Kind::Lab, slots: PACKS.len(), panel: true },
+    MachineDef { block: LAB, kind: Kind::Lab, slots: LAB_PACK_SLOTS, panel: true },
     MachineDef { block: PIPE, kind: Kind::Pipe, slots: 0, panel: false },
     MachineDef { block: QUARRY, kind: Kind::Quarry, slots: 4, panel: true },
     MachineDef { block: SENSOR, kind: Kind::Sensor, slots: 0, panel: true },
@@ -79,6 +80,15 @@ pub const MACHINES: [MachineDef; 40] = [
     MachineDef { block: PUMPJACK, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: REFINERY, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: CRACKER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: CHEMICAL_PLANT, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: DIESEL_GENERATOR, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: ELECTROLYSER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: WASHER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: CENTRIFUGE, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: REACTOR, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: RESEARCH_CENTER, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: WATER_WHEEL, kind: Kind::Process, slots: 0, panel: false },
+    MachineDef { block: WINCH, kind: Kind::Process, slots: 0, panel: false },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },

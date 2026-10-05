@@ -12,6 +12,7 @@
 //! To add another source or store: an `Energy` variant, a spec here and its arm in `run`.
 
 use crate::block::tex;
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::daytime::sunlight;
 use crate::TICK_RATE;
 
@@ -36,6 +37,8 @@ pub struct Store {
     pub sun: u32,
     pub given: u32,
     pub taken: u32,
+    /// kW the water around a water wheel gives (derived; `hydro.rs`).
+    pub flow: u32,
 }
 
 const TIER: [ProcessTier; 1] = [ProcessTier { energy: Energy::Solar, speed: 1000, fuel: 0, power: 0 }];
@@ -94,6 +97,21 @@ const ACCUMULATOR_PARTS: [Part; 6] = [
 ];
 
 impl Processor {
+    /// Writes the energy an accumulator, a diesel generator or a reactor holds (nothing for other processors).
+    pub(super) fn write_store(&self, w: &mut ByteWriter) {
+        if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Reactor) {
+            w.u32(self.store.charge);
+        }
+    }
+
+    pub(super) fn read_store(&mut self, r: &mut ByteReader) -> Option<()> {
+        if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Reactor) {
+            let cap = CHARGE_CAP.max(super::diesel::CANISTER_KJ * TICK_RATE).max(super::nuclear::CELL_CHARGE);
+            self.store.charge = r.u32()?.min(cap);
+        }
+        Some(())
+    }
+
     /// The status line of a panel or an accumulator (`None`: another processor).
     pub(super) fn solar_text(&self) -> Option<String> {
         let (s, kj) = (&self.store, |v: u32| v / TICK_RATE);

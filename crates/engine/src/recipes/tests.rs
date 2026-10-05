@@ -9,13 +9,30 @@ use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
-use Category::{Arc, Assembly, Blasting, Cracking, Crushing, Distilling, Electrolysis, Pressing, Smelting};
+use Category::{
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Pressing, Smelting,
+    Splitting, Washing,
+};
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 9] =
-    [Smelting, Pressing, Assembly, Blasting, Crushing, Arc, Electrolysis, Distilling, Cracking];
+const CATEGORIES: [Category; 13] = [
+    Smelting,
+    Pressing,
+    Assembly,
+    Blasting,
+    Crushing,
+    Arc,
+    Electrolysis,
+    Distilling,
+    Cracking,
+    Chemistry,
+    Splitting,
+    Washing,
+    Enrichment,
+];
 const _: fn(Category) = |c| match c {
-    Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking => {}
+    Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
+    | Splitting | Washing | Enrichment => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -51,16 +68,16 @@ const WORLD_BLOCKS: &[BlockId] = &[
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING), item::CRUDE_CANISTER];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
-/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; uranium ore waits for the reactor and the
-/// canisters for the refinery, Milestone 10).
+/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; hydrogen
+/// and oxygen for fuel cells and rockets, plastic and acid for gold science and the chip fab, lubricant for Mk5).
 const NO_USE_YET: &[ItemId] = &[
     item::CIRCUIT,
     item::DRONE,
-    ItemId::block(URANIUM_ORE),
-    item::EMPTY_CANISTER,
-    item::NAPHTHA_CANISTER,
-    item::DIESEL_CANISTER,
-    item::SULFUR,
+    item::HYDROGEN_CANISTER,
+    item::OXYGEN_CANISTER,
+    item::PLASTIC,
+    item::ACID_CANISTER,
+    item::LUBRICANT_CANISTER,
 ];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
@@ -90,6 +107,8 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || it == item::LOCOMOTIVE
             || it == item::WAGON
             || it == item::RAIL_SIGNAL
+            || it == item::DIESEL_CANISTER // burned by the diesel generator
+            || it == item::FUEL_CELL // burned by the reactor
             || tools::tool(it).is_some()
             || tools::device(it).is_some()
             || crate::equipment::gear(it).is_some();
@@ -189,9 +208,12 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     const COSTLY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT)], kits: 4 }];
     assert!(has(lint_tiers(&COSTLY, RECIPES), "tier item 28 has no recipe"));
     // A tier with no kit yet.
-    const HIGH: [Family; 1] =
-        [Family { block: BELT, items: &[b(BELT), b(FAST_BELT), item::BELT_MK3, item::BELT_MK4, b(STONE)], kits: 1 }];
-    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 4 of block 12 has no kit"));
+    const HIGH: [Family; 1] = [Family {
+        block: BELT,
+        items: &[b(BELT), b(FAST_BELT), item::BELT_MK3, item::BELT_MK4, b(STONE), b(BEDROCK)],
+        kits: 1,
+    }];
+    assert!(has(lint_tiers(&HIGH, RECIPES), "tier 5 of block 12 has no kit"));
 }
 
 fn copy(r: &Recipe) -> Recipe {

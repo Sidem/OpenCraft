@@ -12,6 +12,9 @@
 use crate::block::{self, tex, BlockId, AIR, BLOCK_COUNT, FACE_BOTTOM, FACE_SIDE, FACE_TOP};
 use crate::tools::{Tier, DEVICE_TIER, IRON_TIER, STEEL_TIER, STONE_TIER};
 
+mod later;
+pub use later::*;
+
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct ItemId(pub u16);
 
@@ -162,17 +165,6 @@ pub const RAIL_SIGNAL: ItemId = ItemId(345);
 pub const HOVER_PACK: ItemId = ItemId(346);
 /// A cargo drone (the Cargo Drones tech): kept in a drone port, it flies loads to another port (`drones/cargo.rs`).
 pub const CARGO_DRONE: ItemId = ItemId(347);
-/// An empty canister (the Oil Processing tech): pressed from steel, it comes back from every fluid it carried.
-pub const EMPTY_CANISTER: ItemId = ItemId(348);
-/// A canister of crude oil, filled by a pumpjack (`factory/process/pump.rs`).
-pub const CRUDE_CANISTER: ItemId = ItemId(349);
-/// The refinery's streams (the Refining tech; `factory/process/refinery.rs`): canisters of naphtha (light), diesel
-/// (middle) and heavy oil, and the sulfur it leaves.
-pub const NAPHTHA_CANISTER: ItemId = ItemId(350);
-pub const DIESEL_CANISTER: ItemId = ItemId(351);
-pub const HEAVY_OIL_CANISTER: ItemId = ItemId(352);
-pub const SULFUR: ItemId = ItemId(353);
-
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
 
@@ -234,7 +226,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 98] = [
+const EXTRA: [ItemDef; 119] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -333,6 +325,27 @@ const EXTRA: [ItemDef; 98] = [
     canister("Diesel Canister", tex::DIESEL_CANISTER),
     canister("Heavy Oil Canister", tex::HEAVY_OIL_CANISTER),
     part("Sulfur", tex::SULFUR, [0.6, 0.4, 0.6]),
+    part("Plastic", tex::PLASTIC, [0.85, 0.12, 0.6]),
+    canister("Acid Canister", tex::ACID_CANISTER),
+    canister("Lubricant Canister", tex::LUBRICANT_CANISTER),
+    canister("Hydrogen Canister", tex::HYDROGEN_CANISTER),
+    canister("Oxygen Canister", tex::OXYGEN_CANISTER),
+    part("Washed Iron", tex::WASHED_IRON, [0.6, 0.4, 0.6]),
+    part("Washed Copper", tex::WASHED_COPPER, [0.6, 0.4, 0.6]),
+    part("Washed Bauxite", tex::WASHED_BAUXITE, [0.6, 0.4, 0.6]),
+    machine("Research Center Mk2", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
+    machine("Research Center Mk3", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
+    machine("Research Center Mk4", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
+    part("Fuel Cell", tex::FUEL_CELL, [0.35, 0.8, 0.35]),
+    part("Gold Science Pack", tex::GOLD_PACK, [0.4, 0.6, 0.4]),
+    part("Gold Kit", tex::stripe(4), [0.6, 0.45, 0.6]),
+    machine("Miner Mk5", [tex::MINER_TOP, tex::MINER_MK5_SIDE, tex::FRAME]),
+    machine("Smelter Mk5", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
+    machine("Constructor Mk5", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
+    machine("Assembler Mk5", [tex::ASSEMBLER_TOP, tex::ASSEMBLER_SIDE, tex::FRAME]),
+    machine("Blast Furnace Mk5", [tex::BLAST_TOP, tex::BLAST_SIDE, tex::FRAME]),
+    machine("Drone Port Mk5", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
+    machine("Research Center Mk5", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

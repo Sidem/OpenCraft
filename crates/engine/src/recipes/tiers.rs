@@ -295,3 +295,40 @@ pub const DRONE_PORT_MK4_RECIPE: Recipe = Recipe {
     blurb: "Keeps 16 drones and sends them up to 96 blocks out; draws 140 kW while they fly. Or upgrade a placed \
             port with 8 violet kits.",
 };
+
+pub const RESEARCH_CENTER_RECIPE: Recipe = Recipe {
+    output: b(RESEARCH_CENTER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(b(LAB), 1), (STEEL_PLATE, 8), (CIRCUIT, 6), (b(GLASS), 6)],
+    blurb: "A 2×2×2 lab with room for eight kinds of science pack, twice a lab's speed and belts on every side. Packs \
+            beyond the four of a small lab (the later ones) are researched only here. Draws 20 kW while it researches; \
+            upgrade it like any machine.",
+};
+
+pub const RESEARCH_CENTER_MK2_RECIPE: Recipe = Recipe {
+    output: RESEARCH_CENTER_MK2,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(b(RESEARCH_CENTER), 1), (GREEN_KIT, 8)],
+    blurb: "Four times a lab's speed; draws 40 kW. Or upgrade a placed center with 8 green kits.",
+};
+
+pub const RESEARCH_CENTER_MK3_RECIPE: Recipe = Recipe {
+    output: RESEARCH_CENTER_MK3,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(RESEARCH_CENTER_MK2, 1), (BLUE_KIT, 8)],
+    blurb: "Six times a lab's speed, and every 5th unit takes no packs; draws 60 kW. Or upgrade a placed center with \
+            8 blue kits.",
+};
+
+pub const RESEARCH_CENTER_MK4_RECIPE: Recipe = Recipe {
+    output: RESEARCH_CENTER_MK4,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(RESEARCH_CENTER_MK3, 1), (VIOLET_KIT, 8)],
+    blurb:
+        "Eight times a lab's speed, and every 3rd unit takes no packs; draws 80 kW. Or upgrade a placed center with \
+            8 violet kits.",
+};

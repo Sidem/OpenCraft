@@ -235,7 +235,40 @@ pub const REFINERY_SIDE: u16 = 212;
 pub const REFINERY_TOP: u16 = 213;
 pub const CRACKER_SIDE: u16 = 214;
 pub const CRACKER_TOP: u16 = 215;
-pub const COUNT: usize = 216;
+/// The chemical plant's products (plastic, acid and lubricant canisters) and its faces.
+pub const PLASTIC: u16 = 216;
+pub const ACID_CANISTER: u16 = 217;
+pub const LUBRICANT_CANISTER: u16 = 218;
+pub const CHEM_SIDE: u16 = 219;
+pub const CHEM_TOP: u16 = 220;
+/// Hydrogen and oxygen canisters, the diesel generator's and the electrolyser's faces.
+pub const HYDROGEN_CANISTER: u16 = 221;
+pub const OXYGEN_CANISTER: u16 = 222;
+pub const DIESEL_SIDE: u16 = 223;
+pub const DIESEL_TOP: u16 = 224;
+pub const ELECTROLYSER_SIDE: u16 = 225;
+pub const ELECTROLYSER_TOP: u16 = 226;
+/// Washed ores, tailings and the washer's faces.
+pub const WASHED_IRON: u16 = 227;
+pub const WASHED_COPPER: u16 = 228;
+pub const WASHED_BAUXITE: u16 = 229;
+pub const TAILINGS: u16 = 230;
+pub const WASHER_SIDE: u16 = 231;
+pub const WASHER_TOP: u16 = 232;
+/// The hoist shaft's frame (cutout, like the ladder's), its ends, and the winch's side.
+pub const HOIST: u16 = 233;
+pub const HOIST_TOP: u16 = 234;
+pub const WINCH_SIDE: u16 = 235;
+/// The fuel cell icon, and the centrifuge's and the reactor's faces.
+pub const FUEL_CELL: u16 = 236;
+pub const CENTRIFUGE_SIDE: u16 = 237;
+pub const CENTRIFUGE_TOP: u16 = 238;
+pub const REACTOR_SIDE: u16 = 239;
+pub const REACTOR_TOP: u16 = 240;
+/// The gold science pack's flask fill and the Mk5 miner's housing.
+pub const GOLD_PACK: u16 = 241;
+pub const MINER_MK5_SIDE: u16 = 242;
+pub const COUNT: usize = 243;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

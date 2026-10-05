@@ -11,11 +11,12 @@
 //! Belts: a body on the ground whose `conveyor` is set (the belt under its feet) is carried along at the
 //! belt's speed, through the same collision as walking; it keeps its own velocity.
 //!
-//! Climbing: a body with a ladder or a belt lift (`climbable`) at its feet or waist doesn't fall; it rises at `CLIMB_SPEED` with jump
-//! held and sinks with crouch held. Climbing past the top ladder carries the feet just over it, so walking
+//! Climbing: a body with a ladder, hoist shaft or belt lift (`climbable`) at its feet or waist doesn't fall; it rises
+//! at `CLIMB_SPEED` (in a powered hoist shaft at `hoist`, `factory/process/hoist.rs`) with jump held and sinks with
+//! crouch held. Climbing past the top ladder carries the feet just over it, so walking
 //! on steps onto a ledge level with it.
 
-use crate::block::{BlockId, LADDER, LIFT, LIQUID};
+use crate::block::{BlockId, HOIST, LADDER, LIFT, LIQUID};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
@@ -109,6 +110,9 @@ pub struct Player {
     /// How fast the ground under the feet moves (a belt), in blocks per second; set before each tick's
     /// steps by `authority.rs`, never saved.
     pub conveyor: Vec3,
+    /// How fast a powered hoist shaft at the body carries it, in blocks per second (0 elsewhere); set each tick like
+    /// `conveyor`, never saved.
+    pub hoist: f64,
     /// How far belts carried the body since the game last took it (for footsteps).
     pub carried: Vec3,
 }
@@ -132,6 +136,7 @@ impl Player {
             splash_speed: 0.0,
             against_wall: false,
             conveyor: Vec3::ZERO,
+            hoist: 0.0,
             carried: Vec3::ZERO,
         }
     }
@@ -251,7 +256,12 @@ impl Player {
         } else if swimming {
             self.swim_vertical(dt, chest_out);
         } else if climbing {
-            self.vel.y = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * CLIMB_SPEED;
+            let rate = if GRIP_HEIGHTS.iter().any(|&h| block_at(h) == HOIST) {
+                CLIMB_SPEED.max(self.hoist)
+            } else {
+                CLIMB_SPEED
+            };
+            self.vel.y = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * rate;
         } else {
             self.vel.y = (self.vel.y - GRAVITY * dt).max(-TERMINAL_VELOCITY);
             if self.thrust {
@@ -326,9 +336,9 @@ impl Player {
     }
 }
 
-/// Blocks a body climbs by standing in them: ladders, and belt lifts so a lift stack is easy to build.
+/// Blocks a body climbs by standing in them: ladders, hoist shafts, and belt lifts so a lift stack is easy to build.
 pub(crate) fn climbable(b: BlockId) -> bool {
-    b == LADDER || b == LIFT
+    b == LADDER || b == LIFT || b == HOIST
 }
 
 #[cfg(test)]

@@ -30,6 +30,7 @@ use super::super::footprint::Role;
 use super::super::links::Slot;
 use super::super::pipes::{Fluid, Part, Pipework};
 use super::super::{Factory, DIRS};
+use super::nuclear::{COOLANT_LOW, COOLANT_UNIT};
 use super::{Energy, Pick, Processor, Status};
 
 /// Steam a fuel item makes, as a multiple of the energy a generator gets from it.
@@ -209,7 +210,11 @@ pub(in crate::factory) fn run_turbine(processors: &mut [Processor], t: usize, wa
 /// Every boiler or machine whose water is low takes a unit from a pump of its network that holds one.
 pub(in crate::factory) fn draw_water(processors: &mut [Processor], pipework: &mut [Pipework]) {
     for b in processors.iter_mut().filter(|p| p.takes_water()) {
-        let (low, unit) = if b.energy() == Energy::Boiler { (WATER_LOW, UNIT_ENERGY) } else { (MACHINE_WATER, 1) };
+        let (low, unit) = match b.energy() {
+            Energy::Boiler => (WATER_LOW, UNIT_ENERGY),
+            Energy::Reactor => (COOLANT_LOW, COOLANT_UNIT),
+            _ => (MACHINE_WATER, 1),
+        };
         if b.steam.water >= low {
             continue;
         }

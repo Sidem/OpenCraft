@@ -7,7 +7,8 @@
 //! To add a hint: a row in `HINTS`, where it belongs in the order.
 
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DRONE_PORT, IRON_ORE, MINER, SOLAR_PANEL, TURBINE,
+    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DRONE_PORT, IRON_ORE, MINER, PUMPJACK, REACTOR,
+    SOLAR_PANEL, TURBINE,
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
@@ -169,6 +170,26 @@ pub const HINTS: &[Hint] = &[
                plates and batteries) live in a drone port: hold one, click a port and then another to set a \
                route, and keep batteries in the first port's boxes, one for every 150 blocks flown there and back.",
         done: |inv, _| inv.count(HOVER_PACK) > 0 || inv.count(CARGO_DRONE) > 0,
+    },
+    Hint {
+        text:
+            "Oil: research Oil Processing, find oil sand with the Scanner Mk2 (200 or more blocks out, deep down) and \
+               stand a pumpjack right above it. It fills empty canisters, pressed from steel plates, with crude oil; \
+               the refinery splits that into naphtha, diesel, heavy oil and sulfur, and every stream must be used or \
+               stored. Diesel generators burn the diesel; the chemical plant makes plastic.",
+        done: |_, f| f.processors_of(PUMPJACK) > 0,
+    },
+    Hint {
+        text: "Nuclear: research Nuclear Power, scan for uranium (400 or more blocks out, 45 to 85 down), and make \
+               fuel cells in a centrifuge. A reactor gives up to 2 MW from them, but it must be cooled: pipe water \
+               from a pump to its blue inlet, or it overheats and shuts down until it has cooled.",
+        done: |_, f| f.processors_of(REACTOR) > 0,
+    },
+    Hint {
+        text: "Gold science: research Gold Science and a research center, which alone has slots for gold packs. \
+               Assemble packs from a plastic, a battery and a processor; Mk5 Machines, researched with them, makes \
+               gold kits for Mk5.",
+        done: |_, f| tech_done(f, "Gold Science"),
     },
 ];
 

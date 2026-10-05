@@ -98,7 +98,7 @@ impl Factory {
     }
 
     /// The pole a new pole of `tier` at `pos` wires itself to: the nearest in link range with a free slot
-    /// whose grid has a power source (a generator, turbine or solar panel), so it is powered at once. `None`
+    /// whose grid has a power source (a generator, turbine, diesel generator or solar panel), so it is powered at once. `None`
     /// while the grids are stale (a change waits for the next tick).
     pub fn auto_hook(&self, pos: IVec3, tier: u8) -> Option<IVec3> {
         if self.dirty {
@@ -130,7 +130,9 @@ impl Factory {
 
     fn grid_has_source(&self, grid: u32) -> bool {
         let on = |p: &Option<u32>| p.is_some_and(|p| self.power.pole_grid[p as usize] == grid);
-        let sun_or_steam = |m: &Processor| matches!(m.energy(), Energy::Turbine | Energy::Solar);
+        let sun_or_steam = |m: &Processor| {
+            matches!(m.energy(), Energy::Turbine | Energy::Solar | Energy::Diesel | Energy::Hydro | Energy::Reactor)
+        };
         self.power.gen_pole.iter().any(on)
             || self.processors.iter().zip(&self.power.process_pole).any(|(m, p)| sun_or_steam(m) && on(p))
     }

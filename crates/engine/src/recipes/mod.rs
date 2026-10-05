@@ -16,10 +16,12 @@ mod aluminium;
 mod chemistry;
 mod electronics;
 mod gear;
+mod gold;
 mod group;
 mod heavy;
 mod machine;
 mod materials;
+mod rows;
 mod solar;
 mod tiers;
 mod timing;
@@ -30,10 +32,12 @@ use aluminium::*;
 use chemistry::*;
 use electronics::*;
 use gear::*;
+use gold::*;
 pub use group::{Group, GROUPS};
 use heavy::*;
 pub use machine::*;
 use materials::*;
+pub use rows::*;
 use solar::*;
 use tiers::*;
 #[cfg(test)]
@@ -362,6 +366,26 @@ pub const RECIPES: &[Recipe] = &[
     CANISTER_RECIPE,
     REFINERY_RECIPE,
     CRACKER_RECIPE,
+    CHEMICAL_PLANT_RECIPE,
+    DIESEL_GENERATOR_RECIPE,
+    ELECTROLYSER_RECIPE,
+    WASHER_RECIPE,
+    RESEARCH_CENTER_RECIPE,
+    RESEARCH_CENTER_MK2_RECIPE,
+    RESEARCH_CENTER_MK3_RECIPE,
+    RESEARCH_CENTER_MK4_RECIPE,
+    WATER_WHEEL_RECIPE,
+    HOIST_RECIPE,
+    WINCH_RECIPE,
+    CENTRIFUGE_RECIPE,
+    REACTOR_RECIPE,
+    MINER_MK5_RECIPE,
+    SMELTER_MK5_RECIPE,
+    CONSTRUCTOR_MK5_RECIPE,
+    ASSEMBLER_MK5_RECIPE,
+    BLAST_FURNACE_MK5_RECIPE,
+    DRONE_PORT_MK5_RECIPE,
+    RESEARCH_CENTER_MK5_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

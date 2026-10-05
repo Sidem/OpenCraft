@@ -26,6 +26,11 @@ fn base(sim: &mut Sim, drones: u32) -> (IVec3, IVec3) {
 }
 
 /// The same on the ground: the first free cell above the highest block near the spot.
+/// A world whose ground at `base_on_ground` has relief to dig and fill (version 6's terrain; version 7's lies under the sea there).
+fn hilly_sim() -> Sim {
+    Sim::with_generator(crate::worldgen::WorldGen::with_version(7, 6), 2)
+}
+
 fn base_on_ground(sim: &mut Sim, drones: u32) -> (IVec3, IVec3) {
     let top = (895..925)
         .flat_map(|x| (-905..-885).map(move |z| (x, z)))
@@ -264,7 +269,7 @@ fn solid_cells(sim: &mut Sim) -> usize {
 
 #[test]
 fn drones_dig_a_site_into_the_boxes_and_then_it_is_done() {
-    let mut sim = Sim::new(7, 2);
+    let mut sim = hilly_sim();
     let (port, supply) = base_on_ground(&mut sim, 4);
     let (a, b) = ((port.x + 6, port.z + 6), (port.x + 8, port.z + 8));
     let low =
@@ -292,7 +297,7 @@ fn drones_dig_a_site_into_the_boxes_and_then_it_is_done() {
 
 #[test]
 fn drones_fill_a_site_from_the_boxes_and_stop_when_they_run_out() {
-    let mut sim = Sim::new(7, 2);
+    let mut sim = hilly_sim();
     let (port, supply) = base_on_ground(&mut sim, 4);
     let (a, b) = ((port.x + 6, port.z + 6), (port.x + 7, port.z + 7));
     let level = port.y + 1;

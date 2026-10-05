@@ -17,14 +17,19 @@
 //! 4 = easier starter ore (`strata.rs`: shallower bands, more exposed metal, two starter patches each);
 //! 5 = Milestone 9's bauxite (`geology.rs`: in far deserts and basalt fields only);
 //! 6 = Milestone 10's new ground: bauxite from 300 blocks out instead of 600, oil sand and uranium (`geology.rs`
-//! `EXTRAS`, deep bands in `strata.rs`, found by scanning), and far fewer caves (`caves.rs`: cave zones).
+//! `EXTRAS`, deep bands in `strata.rs`, found by scanning), and far fewer caves (`caves.rs`: cave zones);
+//! 7 = Milestone 10's terrain overhaul: bigger continents, taller ranges, mesas (`landform.rs`), rivers and lakes
+//! (`rivers.rs`, branching in `height_at` and `water_top`).
 
 mod bearing;
 mod biome;
 mod caves;
 mod geology;
+mod landform;
 mod ore;
+mod rivers;
 mod strata;
+mod trees;
 mod water;
 
 pub use bearing::Bearing;
@@ -32,6 +37,8 @@ pub use biome::Biome;
 use caves::CaveField;
 pub use geology::ore_shares;
 pub use ore::LODE_HEIGHTS;
+pub use trees::tree_blocks;
+use trees::{stamp_tree, Tree};
 use water::WaterGuard;
 
 use std::cell::{Cell, RefCell};
@@ -46,7 +53,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 6;
+pub const WORLDGEN_VERSION: u32 = 7;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -77,6 +84,8 @@ pub struct WorldGen {
     moisture: Perlin,
     basalt: Perlin,
     columns: FxHashMap<(i32, i32), Rc<Column>>,
+    /// Version 7's river nodes and reaches (`rivers.rs`), caches.
+    rivers: rivers::RiverCache,
     /// Version 3's ponds per cell (`water.rs`), a cache.
     ponds: RefCell<FxHashMap<(i32, i32), Option<water::Pond>>>,
     /// The last cell asked about, which neighbouring columns nearly always share.
@@ -107,6 +116,7 @@ impl WorldGen {
             moisture: Perlin::new(s ^ 0x08),
             basalt: Perlin::new(s ^ 0x09),
             columns: FxHashMap::default(),
+            rivers: Default::default(),
             ponds: RefCell::default(),
             last_pond: Cell::new(None),
         }
@@ -122,7 +132,10 @@ impl WorldGen {
 
     /// Terrain surface height (y of the top solid block) at a world column.
     pub fn height_at(&self, x: i32, z: i32) -> i32 {
-        let h = self.base_height(x, z);
+        let mut h = self.base_height(x, z);
+        if self.version >= 7 {
+            h = self.shape_rivers(x, z, h);
+        }
         if self.version >= 3 {
             self.shape_ponds(x, z, h)
         } else {
@@ -130,8 +143,11 @@ impl WorldGen {
         }
     }
 
-    /// The height from the terrain noise alone, before version 3's ponds.
+    /// The height from the terrain noise alone, before rivers (7) and ponds (3).
     fn base_height(&self, x: i32, z: i32) -> i32 {
+        if self.version >= 7 {
+            return self.land_height(x, z);
+        }
         let (fx, fz) = (x as f64, z as f64);
         let c = self.continent.fbm2(fx / 900.0, fz / 900.0, 4);
         let hills = self.hills.fbm2(fx / 170.0, fz / 170.0, 5);
@@ -326,13 +342,6 @@ impl WorldGen {
     }
 }
 
-struct Tree {
-    x: i32,
-    z: i32,
-    ground: i32,
-    trunk: i32,
-}
-
 /// Per chunk-column data shared by all 8 vertical chunks of that column.
 struct Column {
     heights: Vec<i32>,
@@ -349,44 +358,6 @@ struct Column {
     /// Highest non-air voxel in the column, including tree canopies.
     max_y: i32,
     max_ground: i32,
-}
-
-fn stamp_tree(t: &Tree, base: IVec3, seed: u32, b: &mut [BlockId]) {
-    tree_blocks(IVec3::new(t.x, t.ground, t.z), t.trunk, seed, |p, id, replace_solid| {
-        let l = p - base;
-        if !(0..CHUNK_SIZE).contains(&l.x) || !(0..CHUNK_SIZE).contains(&l.y) || !(0..CHUNK_SIZE).contains(&l.z) {
-            return;
-        }
-        let i = index(l.x as usize, l.y as usize, l.z as usize);
-        if replace_solid || b[i] == AIR {
-            b[i] = id;
-        }
-    });
-}
-
-/// A tree standing on the block at `ground` with a trunk `trunk` blocks tall, block by block: leaves
-/// (which only go into air), then the logs and the dirt under them (which replace anything). Shared
-/// by generation and grown saplings (`sim/saplings.rs`), so they look alike. Version 1 depends on it.
-pub fn tree_blocks(ground: IVec3, trunk: i32, seed: u32, mut put: impl FnMut(IVec3, BlockId, bool)) {
-    let (x, z) = (ground.x, ground.z);
-    let top = ground.y + trunk;
-    // Canopy: two wide layers, then two narrow ones; corners are randomly trimmed.
-    for y in (top - 2)..=(top + 1) {
-        let r: i32 = if y < top { 2 } else { 1 };
-        for dz in -r..=r {
-            for dx in -r..=r {
-                let corner = dx.abs() == r && dz.abs() == r;
-                if corner && (y == top + 1 || hash3(seed ^ 0x1EAF, x + dx, y, z + dz) & 1 == 0) {
-                    continue;
-                }
-                put(IVec3::new(x + dx, y, z + dz), LEAVES, false);
-            }
-        }
-    }
-    for y in (ground.y + 1)..=top {
-        put(IVec3::new(x, y, z), LOG, true);
-    }
-    put(ground, DIRT, true);
 }
 
 #[cfg(test)]

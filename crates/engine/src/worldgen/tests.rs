@@ -73,6 +73,7 @@ fn released_versions_never_change() {
     assert_eq!(digest(3), 0x25cd_1e52_1d22_b1f1, "version 3");
     assert_eq!(digest(4), 0xeabc_f56c_e953_ede9, "version 4");
     assert_eq!(digest(5), 0x742c_d9cc_c3ab_3f75, "version 5");
+    assert_eq!(digest(6), 0x08cc_c363_a4e3_5bee, "version 6");
 }
 
 #[test]

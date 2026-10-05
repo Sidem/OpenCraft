@@ -35,11 +35,16 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
         let family = FAMILIES.iter().find(|f| f.block == s.block).map_or(1, |f| f.items.len());
         assert!(s.tiers.len() >= family, "block {} has fewer tier rows than items", s.block);
         let [input, fuel, out] = s.buffers;
-        let steam = s
-            .tiers
-            .iter()
-            .any(|t| matches!(t.energy, Energy::Boiler | Energy::Turbine | Energy::Solar | Energy::Accumulator));
-        assert!(steam || s.pick == Pick::Hangar || (input > 0 || s.pick.stores()) && out > 0, "block {}", s.block);
+        let steam = s.tiers.iter().any(|t| {
+            let sources =
+                [Energy::Boiler, Energy::Turbine, Energy::Solar, Energy::Accumulator, Energy::Hydro, Energy::Reactor];
+            sources.contains(&t.energy) || t.energy == Energy::Hoist
+        });
+        assert!(
+            steam || matches!(s.pick, Pick::Hangar | Pick::Research) || (input > 0 || s.pick.stores()) && out > 0,
+            "block {}",
+            s.block
+        );
         assert_eq!(
             fuel > 0,
             s.tiers.iter().any(|t| matches!(t.energy, Energy::Burner | Energy::Boiler)),
@@ -439,4 +444,44 @@ fn an_arc_furnace_takes_only_its_recipes_inputs_a_stack_of_each() {
     assert_eq!(f.insert(IVec3::ZERO, QUARTZ_ORE.into(), 200), 64, "one stack, so coal still fits");
     assert_eq!(f.insert(IVec3::ZERO, COAL_ORE.into(), 5), 5);
     assert_eq!(f.insert(IVec3::ZERO, IRON_ORE.into(), 5), 0);
+}
+
+/// `cargo test --release bench_chemistry -- --ignored --nocapture`: one tick of a Milestone 10 plant on one grid, 20
+/// dry water wheels (each reads 30 cells of world a tick), 8 working reactors, 8 refineries, 8 diesel generators,
+/// 4 winches and four riders asking the hoist rate every tick.
+#[test]
+#[ignore]
+fn bench_chemistry() {
+    use crate::block::{DIESEL_GENERATOR, HOIST, REACTOR, REFINERY, WATER_WHEEL, WINCH};
+    let (mut world, mut f) = (World::new(1, 2), Factory::default());
+    let mut put = |f: &mut Factory, block, x: i32, z: i32| {
+        let pos = IVec3::new(x, 100, z);
+        f.place(&mut world, block, pos, 0, pos - IVec3::new(0, 1, 0), if block == POLE { 3 } else { 0 });
+    };
+    for (row, block) in [WATER_WHEEL, REACTOR, REFINERY, DIESEL_GENERATOR, WINCH].into_iter().enumerate() {
+        for i in 0..if block == WATER_WHEEL { 20 } else { 8 } {
+            put(&mut f, block, i * 8, row as i32 * 8);
+        }
+    }
+    for x in (0..160).step_by(8) {
+        for z in (0..48).step_by(8) {
+            put(&mut f, POLE, x + 4, z + 4);
+        }
+    }
+    for p in f.processors.iter_mut().filter(|p| p.spec.block == REACTOR) {
+        p.input.add(crate::item::FUEL_CELL, 4);
+    }
+    let mut events = Vec::new();
+    let (mut worst, mut at, start) = (std::time::Duration::ZERO, 0, std::time::Instant::now());
+    for tick in 0..3000u64 {
+        let t = std::time::Instant::now();
+        f.update(&mut world, tick, &mut events);
+        for i in 0..4 {
+            f.hoist_rate(Vec3::new(i as f64 * 8.0, 100.0, 0.0), &mut |_, _, _| HOIST);
+        }
+        if tick > 0 && t.elapsed() > worst {
+            (worst, at) = (t.elapsed(), tick); // tick 0 generates the chunks the wheels read: the game has them loaded
+        }
+    }
+    println!("chemistry: {:?} a tick on average, {worst:?} worst (tick {at})", start.elapsed() / 3000);
 }

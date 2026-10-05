@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-05 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 10 (fluids and chemistry): 10.1 the new ground (generator version 6) committed; 10.2 canisters and the pumpjack and 10.3 refinery and cracker built, uncommitted; next 10.4 chemical plant** · The `art` branch is superseded; art work
+now) · **Milestone 10 (fluids and chemistry) is built (10.1–10.3 committed locally, 10.4–10.12 uncommitted, nothing pushed): the user reviews and tests it, then asks for the commit. Next: Milestone 11 (compute and photonics), step 11.1 (section 4)** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -37,8 +37,10 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   construction drones, jetpack and gear; then terraforming by drone (dig, fill, flatten, tunnels).
 - **Milestone 9 is done** (`docs/CHANGELOG_M9.md`): bauxite in far biomes, aluminium, bearings to far ground, trains,
   cargo drones and the hover pack.
-- **Now: Milestone 10: Fluids and chemistry** (section 4): oil and canisters, plastics, diesel, electrolysis, ore
-  washing, rivers and hydro, hoists, nuclear power, gold science.
+- **Milestone 10 is built** (`docs/CHANGELOG_M10.md`; awaiting the user's review and commit): oil and canisters, plastics,
+  diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
+- **Next: Milestone 11: Compute and photonics** (section 4): chip fab, the data grid, AI datacenters and cooling, AI research
+  and endless bonus techs, the optimizer, laser links, swarms, auto-routing, AI survey.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -420,100 +422,96 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 10: Fluids and chemistry
+## 4. Now: Milestone 11: Compute and photonics
 
-Milestones 6 (Industry), 7 (Electronics, blueprints, drones), 8 (Terraforming) and 9 (Distance) are done; their step lists
-are in `docs/CHANGELOG.md` ("Milestones 6 to 8") and `docs/CHANGELOG_M9.md`. Design: `docs/TECH_TREE.md` and `docs/TECH_ERAS.md` section 6.
+Milestones 6 (Industry), 7 (Electronics, blueprints, drones), 8 (Terraforming), 9 (Distance) and 10 (Fluids and chemistry)
+are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `docs/CHANGELOG_M9.md` and
+`docs/CHANGELOG_M10.md`. Design: `docs/TECH_TREE.md` (sections 4 and 5) and `docs/TECH_ERAS.md` section 7.
 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 37) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 86, item 354). Each new look gets a placeholder
-  layer (`tex::COUNT` is 216) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 97, item 375, tech 55, machine recipe 59). Each new look gets a
+  placeholder layer (`tex::COUNT` is 243) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
-### Milestone 9 (Distance), built
+### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
 
-Bauxite in far deserts and basalt fields (generator version 5), aluminium and batteries, a Scanner Mk2 bearing to far
-ground, rails as nodes and curves with locomotives, wagons, docks, schedules and signals, the hover pack, and cargo
-drones between drone ports. Specs: `docs/CHANGELOG_M9.md`. **Measured:** 14 trains with wagons on a 60-node line cost
-4.0 µs a tick (worst 31 µs), 6.4 µs with a signal on every node (worst 11 µs): trains are cheap (`bench_trains`, ignored).
-**Balance:** a train is the bulk hauler (6 wagons × 24 slots, 9 blocks a second, needs track and docks, no fuel); a cargo
-drone moves one stack of 64 with no track but pays batteries by distance (a 600-block trip burns 8, the aluminium of about
-21 ore plus circuits and wire), so drones suit small valuable loads and short or awkward hops, trains suit ore by the beltful.
+Oil and canisters, the pumpjack, refinery, cracker, chemical plant, diesel power, electrolysis, ore washing, the research
+center, a terrain overhaul with rivers and water wheels (generator versions 6 and 7), hoists, nuclear power, gold science
+and Mk5. Specs: `docs/CHANGELOG_M10.md`. **Measured:** 20 dry water wheels, 8 reactors, 8 refineries, 8 diesel generators,
+4 winches and 4 riders asking the hoist rate each tick cost 19 µs a tick (worst 36 µs) on one grid (`bench_chemistry`,
+ignored); water's worst tick is 0.09 ms. **Balance (to tune in play):** power per source: coal generator 60 kW, steam turbine
+240 kW, water wheel up to 48 kW (free, but needs a river), diesel generator 400 kW, reactor 2 MW. Oil pays: a vein's pumpjack
+(90 kW) fills about 22 canisters a minute and 3 of them refine into one diesel canister (40 MJ, the energy of 148 coal) plus
+naphtha and heavy oil, so one pumpjack and one refinery (150 kW) feed several diesel generators. A fuel cell (4 uranium ore
+and a steel plate, 300 MJ) runs a 100 kW load for 50 minutes; the reactor needs coolant, and a centrifuge draws 200 kW.
+Washing turns a raw ore's 1.0 ingots into 2.0 for 60 kW and a pipe of water per washer. Mk5 costs 4 to 8 gold kits a
+machine on top of the Mk4, so it stays a late-game spend.
 
-### Milestone 10 steps
+### Milestone 11 steps
 
-Goal: the factory learns fluids and chemistry. **The user's requests of 2026-10-05, which every step honours:** the world
-generator changes drastically (this milestone ships two new versions); bauxite is nearer; caves are much rarer; water
-and oil must behave sensibly and never lag; the research building grows to take a fifth pack; ore washing must not
-conflict with the crusher; oil must make economic sense (surveying, wells, hauling) and refining must give several
-distillates with different uses. The numbers and the reasoning are in `docs/TECH_ERAS.md` section 6. Each step is
-detailed at its start; the lines below fix scope and order.
+Goal: the factory learns compute. Chips come from chemistry (acid and pure water), datacenters turn megawatts and coolant
+into **compute**, a second grid carries compute like power, and compute buys things: AI research, endless bonus techs, the
+optimizer, drone swarms, auto-routing and AI survey. Laser links join far plants and datacenters by line of sight. Numbers
+below are first guesses; tune in play (`docs/WORKFLOW.md` section 6). Order: chips, the data grid, datacenters and cooling,
+what compute buys, laser links, helpers, cleanup.
+- [ ] **11.1 Pure water, the chip fab and AI accelerators** (`factory/process/fab.rs`, `recipes/compute.rs`, `research/compute.rs`,
+  `textures/compute.rs`; `Category::Fabrication`; techs Wafers, then Accelerators). **Pure water canister** = a chemical plant
+  recipe (1 empty + 2 water + 1 sand → 1 pure water; pipes stay water-only). **Chip fab:** 4×4×3 clean room, 1 MW,
+  `Pick::ByInput`, water inlet; **Wafer** 2 silicon + 1 acid canister + 1 pure water canister → 1 wafer + 2 empties back, 8 s;
+  **AI accelerator** 2 wafers + 2 processors + 1 plastic → 1, 20 s. Hand recipe for the fab: 60 steel plates, 24 beams, 24 glass,
+  16 processors, 24 circuits. Done when: a fab on power, fed by belt, makes accelerators; its status names what it waits for.
+- [ ] **11.2 The data grid** (`factory/data.rs`; `wiring.rs` and `power.rs` are the model; fibre node block, tech Data Network). A
+  second channel with the same node, link and balance code: fibre nodes link within 12 blocks, a consumer or producer
+  attaches to the nearest node within 5, and each grid's compute (TF) is supply against demand with a satisfaction factor.
+  Generalise the power grid by a `Channel` parameter rather than copying it; `Machine::describe` gets a compute line. Bumps
+  `SAVE_VERSION` (node records; none in older saves). Done when: a fibre line between two test machines carries a supply
+  to a demand and a shortage slows the consumer (tests); the model draws thin cable boxes.
+- [ ] **11.3 AI datacenter** (`process/datacenter.rs`, `Energy::Compute`; block, textures, tech Datacenters after Wafers, Data
+  Network and Nuclear Power or Diesel Power). 4×4×3 hall, 3 MW electric, 100 TF at full power, supplying the data grid. **Heat**
+  uses the reactor's model (coolant in `steam.water`, heat in `progress`, `Status::Overheated` with hysteresis), so no new
+  concept: without coolant it heats up and stops. Hand recipe 40 beams, 20 concrete, 16 accelerators, 32 copper wire. Mk tiers
+  add racks (+50% compute for +50% power and heat). Done when: a datacenter on a grid with enough power and water gives
+  compute, shuts down when overheated, and survives a save.
+- [ ] **11.4 Cooling tower and the coolant loop** (`process/tower.rs`; 3×3×5, block, tech Cooling). Water in and out by pipes:
+  a datacenter piped to a tower sends its hot water there and the tower returns it cool, losing only a trickle (open-loop
+  datacenters keep spending water as in 11.3, so a river or pump is the other choice). Hand recipe: concrete, pipes, motors.
+  Done when: a looped datacenter runs an hour of ticks without draining the pump's pool (test), and its status says
+  "loop closed".
+- [ ] **11.5 AI lab and compute research** (`process/ailab.rs` as a `Pick::Research` variant, `research.rs` compute cost). Techs
+  gain an optional compute cost beside packs; an AI lab (2×2×2, on the data grid) spends compute per unit and the packs go
+  further (every 2nd unit free, as at center Mk3). Late techs (Auto-Routing, AI Survey) need compute. Done when: a tech with
+  a compute cost finishes only on a grid with a datacenter, and the tech tree says what is missing (as `needs_center` does).
+- [ ] **11.6 Endless bonus techs** (`research/bonus.rs`, `Unlock::Bonus(kind)`; techs AI Research, then Mining, Machine Speed and
+  Drone Speed). A bonus tech has levels, costs compute only, the cost grows 25% a level and each level adds 3% (mining draw,
+  processor speed or drone speed) through the one place that computes rates (TECH_TREE rule 5). The level is research state
+  (a save bump). Done when: levels repeat without end and rates in tests rise by the stated percentage.
+- [ ] **11.7 Optimizer node** (`process/optimizer.rs`; tech Optimizer). A consumer on the data grid (20 TF): machines of the grid
+  within 16 blocks run 25% faster while it gets its compute. Not stacking (the best node in range counts). Done when: a smelter
+  in range shows ×1.25 and loses it in a compute shortage.
+- [ ] **11.8 Laser power links** (`factory/laser.rs`; emitter and receiver blocks, tech Photonics). An emitter and a receiver
+  within 128 blocks (Mk tiers to 512) with a clear line become one edge of the power grid at 90% efficiency; the edge is
+  rechecked only when a block in its path changes (`block_anywhere`; glass lets the beam through) and the path is cached.
+  Draw: an additive beam quad that flickers when blocked. Done when: two islands of power join through a beam, a block in the
+  path cuts it and breaking that block restores it (tests), with no per-tick ray cost.
+- [ ] **11.9 Mirrors and data beams** (`laser.rs`, mirror block). A mirror turns a beam 90° so lines can go round corners; a beam
+  can carry the data channel instead of power (the receiver's mode is chosen in its panel). Done when: a beam through two
+  mirrors carries compute between two datacenter sites.
+- [ ] **11.10 Swarm hub and drone swarms** (`process/hub.rs`; tech Drone Swarms). A hub on the data grid beside a port adds 50% to
+  its fleet and costs compute. Done when: a hub raises a Mk3 port's fleet from 16 to 24 and it drops back without compute.
+- [ ] **11.11 Auto-routing** (`route.rs`, `Feature::AutoRoute`; tech Auto-Routing). Drag from a machine's output to another's
+  input: an A* over voxels (a query, never core state) finds a belt route with lifts and underpasses and shows it as ghosts for
+  drones or hands (`belt_line.rs` draws them). Done when: a route across a gap places ghosts in tests, never edits the world,
+  and a blocked target says so.
+- [ ] **11.12 AI survey** (`survey.rs`, a prospecting query; tech AI Survey). Predicts deposits within 256 blocks from the surface
+  hints and the scanner's records (likely ore by stain and bearing, not the full truth), drawn as faint marks on the map.
+  Queries only: the state hash never moves. Done when: it lists a known deposit's stain in a test and the map shows it.
+- [ ] **11.13 Cleanup:** tips, balance, worst tick (a datacenter plant bench), README, CODEMAP; then move Milestone 12 (Orbit)
+  in from the roadmap. The user reviews and tests the milestone before it is committed.
 
-- [x] **10.1 The new ground (generator version 6)** (`worldgen/geology.rs` `EXTRAS`, `strata.rs`, `caves.rs`; blocks 81 Oil
-  Sand and 82 Uranium Ore, texture layers 202–203, `block/ores.rs` split out of `block/mod.rs`). New worlds only; versions
-  1–5 are pinned by `released_versions_never_change` (4 and 5 newly). (a) **Bauxite from 300 blocks out** (was 600; `Extra`
-  rows carry a distance per version). (b) **About 13 times fewer caves:** *cave zones* (a slow noise on a 192-block scale,
-  `ZONE_MIN`, about a quarter of the ground) and thinner tunnels (`TUNNEL_V6` 0.0018, was 0.0045); a chunk wholly outside
-  a zone skips both tunnel fields, so generation is faster too (`caves/tests.rs`: 545k cave cells in version 5, 41k in
-  version 6 over the same 400 columns). (c) **Oil sand** (plains and lowlands, 200+ blocks out, 30–65 down) and **uranium**
-  (highlands and basalt fields, 400+ out, 45–85 down): only veins and lodes (never an outcrop pocket), thinned by `RARITY`
-  (oil keeps 0.35 of its draws, uranium 0.4), no surface hint, never exposed: found with the scanner (filter and bearing
-  cover both; `FILTER_ORES` has 8). About 120 oil and 26 uranium deposits in 2,048 × 2,048 blocks. Ore guide rows and notes
-  follow the world's version (`has_ore`, `ore_from`, `ore_shares(ore, version)`). The golden hash was re-recorded (the
-  scripted outcrop moved with the new draws). Both ores wait for their machines (`NO_USE_YET`). **Measured:** water's
-  worst tick 0.09 ms (`bench_water`); oil is never a world block, so it cannot add to it. Tests 527 → 532.
-- [x] **10.2 Canisters and the pumpjack** (`factory/process/pump.rs`, `recipes/chemistry.rs`, `research/chemistry.rs`,
-  `textures/chemistry.rs`; block 83 Pumpjack, items 348 Empty Canister and 349 Crude Oil Canister, texture layers 204–207,
-  tech Oil Processing = index 42, machine recipe 42). **The well:** a pumpjack is a one-block processor (`Pick::Pump`,
-  90 kW; the plan's 2×2×3 would have needed multi-block deposit contact) with a tall model. Stood on the ground, it
-  **drills straight down its own column** (up to 100 blocks) to the first oil sand, or spent rock of an oil deposit, and
-  tracks that deposit like a miner would: `sink_well` at placing, saved as deposit key, drill bit and the oil kept. Oil is
-  never a world block, so water has nothing to do with it. **The pace:** 5 units/s at full power, 0.9 of it kept, 10 units
-  to a canister, through the deposit's shared draw cap and taper: a vein gives about 22 canisters a minute for hours (a
-  vein of ~130 blocks is ~9 h), a lode far more. It fills one empty canister from its input slot per 10 units, stops
-  drawing while a canister's worth waits (no empties, or a full output), and shows "No oil below", "reservoir is dry" and
-  "canisters left" (`describe`). **Power:** 90 kW is more than a coal generator's 60 kW: oil wants a steam turbine (240 kW)
-  or solar bank, which is the intended step up. Empty canisters: 1 steel plate → 2 by hand or in a constructor (1.5 s).
-  Oil sand burns as a weak fuel (2.5 s of smelting, 90 kJ; coal is 8 s, 270 kJ), so hand-mined oil sand is not useless.
-  Split for the size budget: `process/status.rs` (NoDeposit, Exhausted appended), `research/join.rs`, `recipes/group.rs`.
-  No save bump (the record exists only for the new block); golden hash re-recorded. Tests 532 → 537 (`pump/tests.rs`).
-- [x] **10.3 Refinery and cracker** (`factory/process/refinery.rs`; blocks 84 Refinery and 85 Cracker, items 350 naphtha, 351
-  diesel and 352 heavy oil canisters and 353 sulfur, texture layers 208–215, `Category::Distilling` / `Cracking`, machine
-  recipes 43 Distil and 44 Crack, tech Refining = index 43). **Refinery** 3×3×4, 150 kW: **Distil** 3 crude canisters + 1
-  water → naphtha, diesel, heavy oil canisters + 1 sulfur, 6 s. **Cracker** 2×2×3, 90 kW: **Crack** 2 heavy oil canisters
-  + 1 water → naphtha + diesel, 4 s. Both are `Pick::ByInput` spec rows. **Shells go through** (3 canisters in, 3 out), so
-  neither needs empties. The first output leaves the front, the rest the right-hand side hatches (one mixed belt: sort it
-  with filters); a full stream stops the machine and the status names it ("Diesel Canister has nowhere to go…", also for
-  machines that pick by input, `held_recipe`). **Water** is generalised from the boiler: any footprint with a `Role::Water`
-  port (left side) is linked by `steam.rs`, `draw_water` fills a tank of 4 units from a pump on its network, a recipe's
-  `recipes::water_use` is spent when a batch starts, and `Status::NoWater` waits; the tank is saved (boilers' bytes
-  unchanged). Hand recipes: refinery 16 plates, 8 beams, 12 bricks, 2 motors, 6 circuits; cracker 10 plates, 4 beams, 1
-  motor, 4 circuits. Naphtha, diesel and sulfur wait for 10.4–10.5 (`NO_USE_YET`). No save bump; golden hash re-recorded.
-  Tests 537 → 542 (`refinery/tests.rs`).
-- [ ] **10.4 Chemical plant:** plastic (2 naphtha + 1 coal → 4), acid canister (1 sulfur + 1 water), lubricant (1 heavy
-  oil → 2); techs Plastics, Sulfur and Acid. Heavy oil also burns in boilers (nothing is wasted).
-- [ ] **10.5 Diesel power and electrolysis:** a diesel generator (a processor row like the boiler: canister in, empty out,
-  400 kW for 100 s a canister), the electrolyser (500 kW; hydrogen and oxygen canisters); techs Diesel Power, Electrolysis.
-- [ ] **10.6 Ore washing:** the washer (2×2×2, 60 kW, a water pipe; **only crushed ore**: 3 crushed + 1 water → 4 washed
-  + 1 tailings), so raw 1.0, crushed 1.5, washed 2.0 ingots an ore; tailings leave by belt and become a Planner fill block
-  (ground in the crusher: sand). Never replaces the crusher. Tech Ore Washing.
-- [ ] **10.7 The research center:** a 2×2×2 lab (belts on every face) with eight pack slots (red, green, blue, violet,
-  gold, three spare), base speed twice a lab's, the Mk1–Mk4 tiers; the small lab stays for the four older packs and a tech
-  decides which labs can work it (a tech with a pack the lab has no slot for shows "needs a research center").
-  Lab buffers read old saves (slots grow). Save bump with a fixture test.
-- [ ] **10.8 Terrain overhaul and hydro (generator version 7):** rivers carved into the height map and flowing to the sea,
-  lakes, wetter and drier regions and more dramatic landforms (the user wants the generator to change a lot): checks that
-  bearings, deposits, the starter set and cave guards still agree; water wheels and dams for power. New worlds only.
-- [ ] **10.9 Hoists:** mine shafts and hoists for deep lodes (lifts that carry boxes and the player between levels).
-- [ ] **10.10 Nuclear power:** uranium ore → centrifuge (2×2×3) → fuel cell → reactor (3×3×3, up to 2 MW; overheating
-  stops it, peaceful).
-- [ ] **10.11 Gold science and Mk5:** gold packs (1 plastic + 1 battery + 1 processor → 2, assembler 20 s; research
-  centers only), gold kits (Mk5), balance and tips.
-- [ ] **10.12 Cleanup:** tips, balance, worst tick, README, CODEMAP; then move Milestone 11 in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -527,9 +525,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 10
+## 5. Roadmap after Milestone 11
 
-Milestones 11–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
+Milestones 12–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
 and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
@@ -542,7 +540,7 @@ and adjust the steps.
 | Needed by | Question |
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
-| M10 | Rivers (10.5) change terrain only on new worlds (generator version 7); existing worlds keep their ground. Acceptable, or should rivers wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
+| M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
 
 ---
@@ -556,45 +554,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-05: Refinery and cracker (step 10.3).** Blocks 84–85, items 350–353 (naphtha, diesel, heavy oil canisters, sulfur), the Refining tech (index 43), machine recipes 43–44. Distil and Crack pass canister shells through; water inlets now work on any machine with a `Role::Water` port (`process/steam.rs`, `recipes::water_use`). Golden hash re-recorded. Tests 537 → 542.
-- **2026-10-05: Canisters and the pumpjack (step 10.2).** Block 83 Pumpjack, items 348–349 (empty and crude oil canisters, 16 to a slot), the Oil Processing tech (index 42), constructor row 42 (steel plate → 2 empty canisters), oil sand as a weak fuel. The pumpjack drills down its own column to an oil deposit and fills canisters at the deposit's pace (`factory/process/pump.rs`); `Status`, tech `join` and `Group` moved to their own files. Golden hash re-recorded. Tests 532 → 537.
-- **2026-10-05: The new ground (step 10.1, generator version 6).** At the user's request: bauxite from 300 blocks out (was 600), about 13 times fewer caves (cave zones and thinner tunnels, `worldgen/caves.rs`), and two new deep ores, oil sand and uranium (blocks 81–82, veins and lodes only, found by scanning). Versions 4 and 5 are now pinned. Milestone 10's steps rewritten around the user's asks (research center, washing next to the crusher, refinery streams, oil economics): `docs/TECH_ERAS.md` section 6. Golden hash re-recorded. Tests 527 → 532.
-- **2026-10-05: Milestone 9 cleanup (step 9.6).** Onboarding tips for far ground, trains and hover/cargo (`hints.rs`); `bench_trains`: 14 trains cost 4.0 µs a tick, worst 31 µs (6.4 / 11 µs with signals); balance note in section 4; the Milestone 9 step list moved to `docs/CHANGELOG_M9.md`; Milestone 10 moved in from the roadmap.
-- **2026-10-05: Cargo drones (step 9.5b).** The Cargo Drones tech and item 347: drone ports become stations; a route between two ports (set by clicking them with a cargo drone in hand) sends drones with a stack from the first port's boxes to the second's, burning batteries by distance (`drones/cargo/`, `cargo_tools.rs`, `Action::SetRoute`); save version 37, golden hash re-recorded. Fixed a duplication bug in `store_in_boxes` / `port_land` (drone deposits and landings also dropped loose copies). Tests 518 → 527.
-- **2026-10-05: Hover pack (step 9.5a).** The Hover Pack tech (index 40, after Jetpack and Bauxite Processing) and item 346: a pack that hovers while jump is held in the air (height held, jump rises, crouch sinks, 8 blocks a second, 13 sprinting; `Player::hover`), running on `charge` (90 s at most) that refills at twice the drain while the player stands within 6 blocks of a power pole (`Action::Hover`, `Action::Charge`; `helpers/`, `helper_hands.rs`). It spends the first use of the battery. Save version 36, golden hash re-recorded. The pack draws nothing on the grid. Tests 513 → 518.
-- **2026-10-05: Signals (step 9.4c).** Rail signals on nodes cut the track into sections that hold one train at a time; trains wait at a signal or take a free branch (`factory/trains/signals.rs`); `Action::ToggleSignal`; save version 35. Tests 505 → 511.
-- **2026-10-05: Schedules (step 9.4b3).** A train follows a list of up to 8 docks, routed by a breadth-first search at junctions (`factory/trains/schedule.rs`), edited with the locomotive in hand (`Action::TrainStop`); save version 34. Fuel and dock filters deferred to a train panel. Tests 500 → 505.
-- **2026-10-05: Wagons and docks (step 9.4b2).** The Freight tech: wagons coupled behind a locomotive (24 cargo slots each, up to 6), a loading dock and an unloading dock (spec rows, belts on every side); a train with wagons stops at a node beside a dock, trades 8 items a tick and drives on after 5 idle seconds. Save version 33, golden hash re-recorded. Schedules and fuel are 9.4b3. Tests 490 → 500.
-- **2026-10-04: Locomotives (step 9.4b1).** The Trains tech and the locomotive item: a train is a stretch of the track graph moving at 9 blocks a second along the curves, turning round at dead ends and taking the straightest track at junctions (`factory/trains.rs`); `PlaceTrain` / `TakeTrain` actions; save version 32, golden hash re-recorded. Wagons, stations and schedules are 9.4b2. Tests 481 → 490.
-- **2026-10-04: Rails (step 9.4a).** The Rails tech and the rail block. First built as a block per cell dragged like belts (save version 30), then **redesigned at the user's request as nodes and curves**, laid like power poles: nodes on the grid with a heading, smooth Hermite track between joined nodes (`factory/rail.rs`, `rail/curve.rs`, `rail_tools.rs`); save version 31, golden hash re-recorded. 9.4b (trains, stations, routing by search over the track graph) is specified in section 4. Tests 467 → 481.
-- **2026-10-04: Bearings to far ground (step 9.3).** The Mk2 scanner, filtered on an ore with none in range, names the way and distance band to the nearest biome that holds it (`worldgen/bearing.rs`, a pure query) and the pointer leads there. Tests 460 → 467.
-- **2026-10-04: Aluminium (step 9.2).** Bauxite Processing: crushed bauxite, the electrolytic cell (block 77, 300 kW, slag byproduct hatch), aluminium ingot and plate, battery; a third tech table `research/distance.rs`. Golden hash re-recorded (one more tech). Tests 459 → 460.
-- **2026-10-04: Bauxite (step 9.1).** Generator version 5 for new worlds: bauxite (block 76) in far deserts and basalt fields only, at least 600 blocks from spawn, shallow and exposed on bare rock, no stain; guide, scanner filter, map colour, a placeholder texture. Tests 458 → 459.
-
-- **2026-10-04: Milestone 8 done (steps 8.4–8.5).** Tunnels: the planner panel's Tunnel job bores between two blocks; drone ports cut it into their boxes like a dig, leaving cells next to water (`Site` got `covers` / `cuts_at` / `picks`; `sites.rs` split into `sites/survey.rs` and `sites/tunnel.rs`). Cleanup: `bench_earthworks` (worst tick 0.5 ms), sites on the maps as hollow squares, a planner tip, outline colours from the Okabe-Ito palette. Tests 451 → 458, wasm 329 KB gzipped. Milestone 9 moved in; the user asked for bearings to far biomes and for trains (section 1).
-
-- **2026-10-04: Equipment slots.** Worn gear (equipment.rs): four slots (back, boots, torso, tool belt) in Inventory.worn, so a player who leaves keeps them. Hauler packs (+9 and +18 backpack slots: the inventory array is 54 long, capacity() of it is in use, a pack stays on while its rows hold stacks), spring boots (jump 1.32 → 2 blocks), servo boots (walk and sprint +15%), exo frame (sprint +10%), mining rig (hand-breaking +50%). Movement bonuses are a Boost the authority sets on the body each tick (bodies are not core), the rig is read by interaction.rs. New: Action::ClickGear (tag 39), shift-click on gear in the pack wears it, six items (333–338) with icons (	extures/gear.rs), six hand recipes (
-ecipes/gear.rs) and three techs (Hauler Gear after Steelmaking, Field Gear after Steel Tools, Exosuit after Robotics and Field Gear: 
-esearch/personal.rs, which also took over Jetpack, Personal Drone and Earthworks; TECHS joins the two tables at compile time). Save 28 → 29 (pack rows and worn gear follow each inventory), golden hash re-recorded. Tests 442 → 451.
-
-- **2026-10-04: Scanner Mk2 reads more.** `prospect::SCANNERS` rows gained an "advanced" flag. The Mk2 filters its list by ore (R, `Game::cycle_scan_filter` through `FILTER_ORES`; `prospect_records` filters, so nothing rescans), shows each deposit's ore units (exact when tracked, else estimated from the shape: `estimated_units`, within 20% of a survey) and the minutes a full-speed mine takes (units over the tier's draw cap), and the panel (`ui/prospect.ts`) leaves a pointer to the nearest vein or lode of the match at the top of the screen whatever is in hand. `SCAN_FIELDS` 6 → 8. Queries only: no save or hash change. Tests 441 → 442.
-
-- **2026-10-04: Terraforming by drone (steps 8.1–8.3).** The Planner (item 332, tech Earthworks, 140 × 35 s) marks two corners (reach 64) and opens the site panel (`ui/site.ts`: job, level, survey, remove). Drone ports now work sites (`drones/earthworks.rs`): cuts break by hand into the pad's boxes (they wait while full), fills bring dirt or stone from the boxes; a finished site removes itself. `Site::done` is an unsaved cursor cache. `Research` got a manual `Default` (33 techs). Tests 431 → 435, golden hash re-recorded (a tech was added), no save bump. Wasm size not re-measured.
-
+- **2026-10-05: Milestone 10 cleanup (step 10.12).** `bench_chemistry` (19 µs a tick, worst 36 µs), the balance note, README section on fluids and chemistry, the Milestone 10 step list moved to `docs/CHANGELOG_M10.md`, Milestone 11 moved in from the roadmap with a step list. No code change besides the ignored bench. Milestone 10 awaits the user's review and commit.
+- **2026-10-05: Gold science and Mk5 (step 10.11).** Gold pack and kit (366–367), Mk5 items (368–374), techs Gold Science (53) and Mk5 Machines (54), a fifth pack in `PACKS`, three hints. No save bump. Tests 581 → 583. Next free block 97, item 375, texture 243, machine recipe 59, tech 55.
+- **2026-10-05: Nuclear power (step 10.10).** Blocks 95–96, item 365, the Nuclear Power tech (52): centrifuge and a water-cooled reactor that shuts down when it overheats. No save bump. Tests 574 → 581. Next free block 97, item 366, texture 241, machine recipe 57.
+- **2026-10-05: Hoists (step 10.9).** Blocks 93–94, the Hoists tech (51): shafts that a powered winch turns into a 9 blocks/s lift. No save bump. Tests 570 → 574. Next free block 95.
+- **2026-10-05: Terrain overhaul and hydro (step 10.8).** Generator version 7 (rivers, lakes, mesas, bigger ranges: `worldgen/rivers.rs`, `landform.rs`), block 92 and the Hydropower tech (50): the water wheel. Golden hash re-recorded, no save bump. Tests 558 → 570.
+- **2026-10-05: Steps 10.1–10.7** (new ground, canisters and pumpjack, refinery, chemical plant, diesel and electrolysis, ore washing, research center): see section 4, tests 527 → 558.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).
-
-- **2026-10-03: Drones, jetpack, personal drone (steps 7.7b–7.9, save 28).** The drone port (a 3×3 pad on power, tiers by kits) keeps drones; they fly out one at a time from powered ports to build your ghosts from the storage boxes touching the pad and to tear down blocks you mark (left-click in ghost mode), putting the drops in the boxes. A coal jetpack (hold jump in the air) and a personal drone (Y fetches the held item from a box within 32 blocks). Milestone 7 is done.
-- **2026-10-03: The drone ladder (step 7.7a).** Five violet techs (Processors, Robotics, Drone Power, Navigation, Construction Drones; twelve techs deep from the start of Violet Science, 920 units of all four packs for the last five) and six assembler-only parts that make a drone: processor, servo, actuator, drone cell, guidance module, drone (about 14 motors' worth of circuits and steel each). No save bump; golden hash re-recorded. The port and the flying come next.
-- **2026-10-03: Blueprints (step 7.6b).** Ghost mode gains area copy: Z marks two corners, Enter copies the machines in the box (`blueprint/`: block, facing, tier, offset; turned in quarter turns, multi-block machines keep their shape), the use button stamps them as ghosts through the new `PlantGhost` action, and the L panel (`ui/blueprints.ts`) lists, renames, holds and deletes blueprints. They live in the browser per world like pins, not in the save. Settings and plain blocks are not copied yet.
-- **2026-10-03: Ghosts (step 7.6a, save 26).** Planned blocks and machines are core state (`ghosts.rs`: a cell, block, facing, tier; `PlaceGhost` / `RemoveGhost`, tags 33/34), so co-op peers and later drones share them. B toggles ghost mode (`ghost_mode.rs`, presentation): right-click plants the held block's ghost for free or removes the aimed one, R turns it, reach 16, no mining, cyan outlines and a needs list. Placing the real block on a ghost uses its facing and clears it. Golden hash re-recorded.
-
-- **2026-10-03: Logic (step 7.5, save 25).** The sensor block (Logic tech, violet science): reads the box, silo or belt behind it and cuts the power wire of the machine in front by a rule (switch, or fullness thresholds with hysteresis); right-click steps rules, R turns, a lamp shows the state. New `Kind::Sensor` with its list saved after the quarries, `Action::SetSensor`, `Hooked::off` / `Power::off` (readouts say "Switched off by a sensor"). Tests: 405 pass (5 new), golden hash re-recorded. Not tried in the browser yet.
-
-- **2026-10-03: Scanner Mk2 (step 7.4).** Advanced Scanning (r g b v) unlocks the Scanner Mk2 (item 320: a scanner, 3 circuits and 2 steel plates by hand): it lists deposits within 96 blocks instead of 48. Range is data (`prospect::SCANNERS`); the panel shows the range of the scan taken. Tests: 400 pass (one new), golden hash re-recorded (a tech was added), no save bump.
-
-- **2026-10-03: Belts carry bodies; frame-rate fix** (user report: 60 fps in some places, about 16 in others, with a save). Cause, found by loading the save in a headless release test: the light cache for boxes (`world/boxlight.rs`) held 24 chunks, evicted oldest first, and the save's machines and belt items in view span 27, so every frame lit all 27 chunks again (about 1.6 ms each, 45 ms a frame; places with 24 or fewer chunks ran fine). The cache now holds 128 chunks (4 MB at most) and evicts the least recently read; that frame costs 0.3 ms. A body on the ground in a belt's cell is carried along at the belt's speed (`Factory::conveyor_at`, `Player::conveyor`, set by `authority.rs`; collision still applies, a crouched body stops at an edge, footsteps ignore the carry, lifts are still climbed). Presentation/authority only: no save or core change. Tests 393 → 399.
-
-- **2026-10-02: Strategy controls** (user request, approved after local review): V cycles first/third/overhead follow; G frees or follows, Home follows; WASD pans, wheel zooms, right-click walks, X stops, Ctrl-right-click uses/places within body reach. Smoothed ground height, zoom and view transitions; bounded routes around obstacles with one-block jumps and safe refusal. Only bodies discover columns; the camera reloads known 3D terrain and covers unknown ground with fog. Save-free development `/?preview`; no save/core format changes. Tests 378 → 392.
-
-- **2026-10-02: Comfort settings** (user felt nauseous): a "Comfort settings" section in the pause menu (`ui/comfort.ts`, `comfort/settings.ts`, localStorage): field of view, mouse sensitivity, a movement vignette (`ui/vignette.ts`), a bolder crosshair with style, size, thickness and opacity; the eye eases between standing and crouching (`camera.rs`). Presentation only. Tests 364 → 366.
-- **2026-10-02: Third-person view and Kestrel avatar** (comfort option, V toggles): eased, collision-tested right-shoulder camera; camera-ray targeting still checks hand reach and visibility. Procedural ivory/teal survey robot with articulated walking, crouching, airborne/water and working poses, held items and correct crosshair-facing head; pickaxe points and axe edges lead the mining stroke. Co-op relays pose flags and velocity; box stride comes from the engine. Save-free `/character-preview.html` for review. Tests 366 → 378; saves and core hashes unchanged.

@@ -115,8 +115,9 @@ out, and the player routes both. Rivers and hydro, hoists and nuclear power (for
 **The new ground (generator version 6, `worldgen/geology.rs` `EXTRAS`):** oil sand (plains and lowlands, 200+ blocks
 out) and uranium (highlands and basalt fields, 400+ out) lie deep (oil 30–65 blocks down, uranium 45–85), only as
 veins and lodes, never at the surface and with no stain: they are found by scanning (the Mk2 filter and its bearing
-cover them). Bauxite moved nearer (300 blocks, was 600) and caves became about 13 times rarer (cave zones). Version 7
-(10.5) is the terrain overhaul: rivers, lakes, drier and wetter regions.
+cover them). Bauxite moved nearer (300 blocks, was 600) and caves became about 13 times rarer (cave zones). **Version 7
+(built, 10.8)** is the terrain overhaul: rivers flowing downhill to the sea or a lake (a staircase of pools with weirs),
+lakes, drier and wetter regions (a dry region has a third of the rivers), larger continents, taller ranges and mesas.
 
 **Oil economics** (numbers are the plan; tune in the step):
 - **Reserves:** a deposit holds `blocks × grade` units (vein 1,000 a block and about 130 blocks; lode 2,000 and about
@@ -138,8 +139,8 @@ right-hand hatches on one belt, to sort with filters; the water inlet is on the 
 | Stream | Used for |
 |---|---|
 | Naphtha | plastic (chemical plant: 2 naphtha + 1 coal → 4 plastic); cracked from heavy oil |
-| Diesel | diesel generator (a canister is 40 MJ: 400 kW for 100 s); fuel for the later drill rig and vehicles |
-| Heavy oil | boiler fuel (nothing is wasted), **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil → 2 lubricant: Mk5 kits and gears) |
+| Diesel | diesel generator (built, 10.5: 2×2×2, a canister is 40 MJ: 400 kW for 100 s, the empty comes back); fuel for the later drill rig and vehicles |
+| Heavy oil | **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil + 1 empty → 2 lubricant: Mk5 kits and gears; boilers cannot burn it, their steam cap is under a canister's energy) |
 | Sulfur | acid (1 sulfur + 1 water → 1 acid canister; ore leaching, etched circuits, the chip fab) |
 
 **Ore washing and the crusher do not conflict:** the crusher (steel, 30 kW) stays the first step for iron, copper and
@@ -152,7 +153,8 @@ water and a haul. It is a yield step, not a replacement.
 **The research center (10.7):** the lab is one cell with four pack slots and cannot take a fifth pack, so a bigger
 building joins it: the **Research Center**, 2×2×2, eight pack slots (red, green, blue, violet and gold now; three spare
 for later eras), belts on every face, base speed twice a lab's, the same Mk1–Mk4 tiers. A tech that needs a pack a small lab has
-no slot for is researched only in a center; the small lab stays valid for the four older packs.
+no slot for is researched only in a center; the small lab stays valid for the four older packs. (Built, 10.7: a processor,
+`Pick::Research`; 20/40/60/80 kW for ×2/×4/×6/×8; the small lab says "needs a research center" via `needs_center`.)
 
 | Item | Recipe | Uses |
 |---|---|---|
@@ -160,15 +162,19 @@ no slot for is researched only in a center; the small lab stays valid for the fo
 | Empty canister | 1 steel plate → 2 (constructor, 1 s) | every fluid |
 | Crude canister | pumpjack (1×1×1 with a tall model, 90 kW) over oil sand, an empty canister in per 10 units drawn | refinery |
 | Naphtha, diesel, heavy oil canisters; sulfur | Distil (above) | plastic, power, lubricant, acid |
-| Plastic | 2 naphtha + 1 coal → 4 (chemical plant 3×2×3, 4 s) | gold pack and kit, chips, frames |
+| Plastic | 2 naphtha + 1 coal → 4 (chemical plant 3×2×3, 4 s; the empties come back) | gold pack and kit, chips, frames |
 | Acid canister | 1 sulfur + 1 water → 1 (chemical plant, 3 s) | etched circuits (4 per batch), chip fab |
-| Hydrogen, oxygen canisters | 2 water → 2 H + 1 O (electrolyser, 500 kW) | rocket fuel, fuel cells |
-| Washed ore | 3 crushed + 1 water → 4 + 1 tailings (washer 2×2×2, 3 s) | smelting |
-| Uranium fuel cell | uranium ore → centrifuge (2×2×3) → fuel cell | reactor (3×3×3, up to 2 MW; overheating stops it) |
-| Gold pack | 1 plastic, 1 battery, 1 processor → 2 (assembler, 20 s) | centers only |
+| Hydrogen, oxygen canisters | 3 empties + 2 water → 2 H + 1 O canisters (electrolyser 2×2×2, 500 kW, 6 s; built, 10.5) | rocket fuel, fuel cells |
+| Washed ore | 3 crushed + 1 water → 4 + 1 tailings (washer 2×2×2, 60 kW, 3 s; built, 10.6: crushed ore only, tailings are a fill block the crusher grinds to sand) | smelting |
+| Uranium fuel cell | 4 uranium ore + a steel plate → centrifuge (2×2×3, 200 kW, 10 s; built, 10.10: Nuclear Power, after Steam Power and Refining) → fuel cell | reactor (3×3×3, up to 2 MW, a cell lasts 150 s at full load; water-cooled, overheating stops it until cooled; built, 10.10) |
+| Gold pack, gold kit | pack: 1 plastic, 1 battery, 1 processor → 2 (assembler, 20 s); kit: 1 processor, 2 aluminium plates, 1 plastic → 4 (assembler, 5 s); built, 10.11: Gold Science (after Processors, Bauxite Processing, Plastics, Research Center) | packs: centers only; kits make Mk5 (Mk5 Machines, all five packs: miner, smelter, constructor, assembler, blast furnace, drone port, research center; belts, poles and labs stop at Mk4) |
 
-Techs: Oil Processing · Plastics · Sulfur and Acid · Ore Washing · Diesel Power · Electrolysis · Hydro
-Power (water wheels, dams) · Hoists · Research Center · Gold Science · Mk5 Machines · Nuclear Power.
+| Hoist shaft ×2, Hoist winch | shaft: 2 steel beams + 4 rods → 2; winch: 10 steel plates, 4 beams, 4 gears, 2 motors, 2 circuits (hand; built, 10.9: Hoists, after Electronics, red + green + blue) | a shaft is a 3 blocks/s climbing frame; a powered winch (20 kW) above or beside its top cell makes it carry riders at 9 blocks/s; belt lifts still carry ore |
+| Water wheel | 12 planks, 8 rods, 4 gears, 6 wire (hand; built, 10.8: Hydropower, after Steam Power, red + green) | 3×3×1; 2 kW per touching water block (flowing 4), up to 48 kW, no fuel; weirs and piped pools are the dams |
+
+Techs: Oil Processing · Plastics · Sulfur and Acid · Ore Washing · Diesel Power · Electrolysis · Hydropower · Hoists ·
+Research Center · Nuclear Power · Gold Science · Mk5 Machines (all built).
+
 ## 7. Era 8: Compute (Milestone 11)
 
 | Item or machine | Recipe | Does |

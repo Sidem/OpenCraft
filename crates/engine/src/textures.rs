@@ -6,7 +6,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -19,10 +19,12 @@ mod electronics;
 mod gear;
 mod geology;
 mod heavy;
+mod hoist;
 mod items;
 mod machines;
 mod masonry;
 mod nature;
+mod nuclear;
 mod ores;
 mod paint;
 mod piping;
@@ -33,6 +35,7 @@ mod steel;
 mod stripes;
 mod tools;
 mod transport;
+mod washing;
 mod wood;
 
 use machines::{
@@ -118,6 +121,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::MINER_MK3_SIDE => miner_side(x, y, [86.0, 140.0, 222.0]),
         tex::BELT_MK4_TOP => belt_top(x, y, [154.0, 91.0, 214.0]),
         tex::MINER_MK4_SIDE => miner_side(x, y, [154.0, 91.0, 214.0]),
+        tex::MINER_MK5_SIDE => miner_side(x, y, [224.0, 176.0, 47.0]),
+        tex::GOLD_PACK => electronics::gold_pack(x, y),
         tex::MINER_TOP => miner_top(x, y),
         tex::DRILL => drill(x, y),
         tex::BOX_SIDE => crate_wood(x, y, false),
@@ -181,7 +186,10 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::HAULER_PACK..=tex::MINING_RIG => gear::pixel(layer, x, y),
         tex::CRUSHED_BAUXITE..=tex::CELL_TOP | tex::HOVER_PACK | tex::CARGO_DRONE => aluminium::pixel(layer, x, y),
         tex::RAIL..=tex::SIGNAL => transport::pixel(layer, x, y),
-        tex::EMPTY_CANISTER..=tex::CRACKER_TOP => chemistry::pixel(layer, x, y),
+        tex::EMPTY_CANISTER..=tex::ELECTROLYSER_TOP => chemistry::pixel(layer, x, y),
+        tex::WASHED_IRON..=tex::WASHER_TOP => washing::pixel(layer, x, y),
+        tex::HOIST..=tex::WINCH_SIDE => hoist::pixel(layer, x, y),
+        tex::FUEL_CELL..=tex::REACTOR_TOP => nuclear::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }
