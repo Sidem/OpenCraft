@@ -110,9 +110,13 @@ tells you what lies below and how many blocks down. Ore rarely reaches the surfa
 look for it where the rock is bare, on cliffs, bare mountain tops, deserts and basalt fields. Each ore keeps to
 its own depth below the ground: limestone and coal lie shallow, iron a little deeper, copper deeper still,
 quartz deepest. Every new world has two small patches each of coal, iron and copper showing 28 to 110
-blocks from where you start. **Bauxite**, the ore of aluminium, lies only in deserts and basalt fields at least 600
-blocks from where you start, shallow and showing on bare rock as brick-red balls in red clay: it takes a long trip
-(the ore guide, key M, says so). It leaves no stain. Worlds made before this keep the terrain and ore they were made with (the
+blocks from where you start. **Bauxite**, the ore of aluminium, lies only in deserts and basalt fields at least 300
+blocks from where you start (600 in worlds made before the newest generator), shallow and showing on bare rock as
+brick-red balls in red clay: it takes a trip (the ore guide, key M, says so). It leaves no stain. In new worlds
+**oil sand** (plains and lowlands, 200 or more blocks out) and **uranium** (highlands and basalt fields, 400 or more
+out) lie deep underground, never at the surface and without a stain: find them with the scanner (its filter and
+bearing cover them), and note they have no use yet. Caves are rare in new worlds: they gather in a few zones.
+Worlds made before this keep the terrain and ore they were made with (the
 oldest ones, before biomes, are "classic terrain"), so nothing you built there changes.
 
 **The map** (M) shows everywhere you have been, north up; the browser remembers it with the world.
@@ -181,7 +185,7 @@ size.
   Scanner Mk2 (a scanner, 3 circuits and 2 steel plates), which reaches 96 blocks (the way to find
   quartz in distant highlands, deserts and basalt fields) and reads more: each deposit shows about how many
   ore units are left and how long a full-speed mine takes to work it out, **R** limits the list to one ore
-  (coal, iron, copper, limestone, quartz, bauxite, then all), and a pointer at the top of the screen keeps leading to
+  (coal, iron, copper, limestone, quartz, bauxite, oil sand, uranium, then all), and a pointer at the top of the screen keeps leading to
   the nearest match after you put the scanner away. When the ore you filtered on is not within range, it tells you
   which way to travel (a compass point and a 200-block distance band) to the nearest ground whose biome holds it,
   even over land you have never seen, and the pointer leads there; scan again as you go. A core drill (6 iron plates, 2 copper wire, 8 screws)

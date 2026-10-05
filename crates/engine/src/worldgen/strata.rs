@@ -17,11 +17,14 @@
 //! (column, tier, slot). Lodes use version 2's draws exactly. To tune: the constants below (version 4's
 //! only: version 3 is released).
 
-use crate::block::{BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
+use crate::block::{
+    BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
+};
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
 use crate::math::{hash2, IVec3, Rng};
 
+use super::geology::RARITY;
 use super::ore::{lode_shape, LODE_CHANCE, ORE_SPAWN_CLEARING};
 use super::{Biome, WorldGen, CLIFF_SLOPE, ROCK_LEVEL, SEA_LEVEL};
 
@@ -42,6 +45,17 @@ pub(super) const ORE_DEPTH_V4: [(BlockId, i32, i32); 6] = [
     (COPPER_ORE, 12, 34),
     (QUARTZ_ORE, 25, 50),
     (BAUXITE_ORE, 4, 16),
+];
+/// Version 6 adds the deep ores: oil sand (a field under the lowlands) and uranium (far down).
+pub(super) const ORE_DEPTH_V6: [(BlockId, i32, i32); 8] = [
+    (LIMESTONE, 6, 20),
+    (COAL_ORE, 6, 22),
+    (IRON_ORE, 8, 28),
+    (COPPER_ORE, 12, 34),
+    (QUARTZ_ORE, 25, 50),
+    (BAUXITE_ORE, 4, 16),
+    (OIL_SAND, 30, 65),
+    (URANIUM_ORE, 45, 85),
 ];
 /// Version 4: the chance for a coal, iron or copper outcrop slot on bare rock to show.
 const EXPOSED_CHANCE_METALS: f64 = 0.42;
@@ -91,6 +105,10 @@ impl WorldGen {
             let (x, z) = (x0 + rng.below(32) as i32, z0 + rng.below(32) as i32);
             let h = self.height_at(x, z);
             let ore = self.ore_at(&mut rng, IVec3::new(x, h, z));
+            // Oil and uranium are never small surface pockets: only veins and lodes (below).
+            if self.version >= 6 && is_deep(ore) {
+                continue;
+            }
             let exposed = rng.next_f64() < self.exposed_chance(ore) && self.bare_rock(x, z);
             let r = rng.range(1.3, 2.3) as f32;
             let squash = rng.range(0.7, 1.0) as f32;
@@ -109,6 +127,9 @@ impl WorldGen {
                 let (x, z) = (x0 + rng.below(32) as i32, z0 + rng.below(32) as i32);
                 let h = self.height_at(x, z);
                 let ore = self.ore_at(&mut rng, IVec3::new(x, h, z));
+                if self.version >= 6 && self.thinned(&mut rng, ore) {
+                    continue;
+                }
                 let y = buried(h, band_depth(&mut rng, self.ore_band(ore))).max(12);
                 let major = rng.range(4.5, 7.0) as f32;
                 let minor = rng.range(2.0, 3.0) as f32;
@@ -123,12 +144,19 @@ impl WorldGen {
         if rng.next_f64() < LODE_CHANCE {
             let (center, radii, seed) = lode_shape(&mut rng, x0, z0);
             let ore = self.ore_at(&mut rng, center);
-            out.push(Deposit { key: key(Tier::Lode, ore, 0), center, radii, seed });
+            if !(self.version >= 6 && self.thinned(&mut rng, ore)) {
+                out.push(Deposit { key: key(Tier::Lode, ore, 0), center, radii, seed });
+            }
         }
         // The starter set only ever lies in the few columns around spawn.
         if cx.abs() <= 4 && cz.abs() <= 4 {
             out.extend(self.starter_outcrops().into_iter().filter(|d| d.key.cx == cx && d.key.cz == cz));
         }
+    }
+
+    /// Version 6: draws whether a vein or lode of `ore` is dropped for being rare (`RARITY`).
+    fn thinned(&self, rng: &mut Rng, ore: BlockId) -> bool {
+        RARITY.iter().find(|r| r.0 == ore).is_some_and(|r| rng.next_f64() >= r.1)
     }
 
     /// Whether the column at (x, z) shows bare rock (or desert sand over it) on dry land, where an
@@ -147,7 +175,8 @@ impl WorldGen {
         let table = match self.version {
             ..=2 => return (20, 60),
             3 => &ORE_DEPTH[..],
-            _ => &ORE_DEPTH_V4[..],
+            4..=5 => &ORE_DEPTH_V4[..],
+            _ => &ORE_DEPTH_V6[..],
         };
         table.iter().find(|b| b.0 == ore).map_or((10, 40), |b| (b.1, b.2))
     }
@@ -161,7 +190,9 @@ impl WorldGen {
     /// The chance that an outcrop slot of `ore` on bare rock shows at the surface.
     fn exposed_chance(&self, ore: BlockId) -> f64 {
         let metal = matches!(ore, COAL_ORE | IRON_ORE | COPPER_ORE | BAUXITE_ORE);
-        if self.version >= 4 && metal {
+        if self.version >= 6 && is_deep(ore) {
+            0.0
+        } else if self.version >= 4 && metal {
             EXPOSED_CHANCE_METALS
         } else {
             EXPOSED_CHANCE
@@ -199,6 +230,11 @@ impl WorldGen {
         }
         out
     }
+}
+
+/// The ores that lie too deep for outcrops (version 6).
+fn is_deep(ore: BlockId) -> bool {
+    matches!(ore, OIL_SAND | URANIUM_ORE)
 }
 
 /// A depth in a band (`WorldGen::ore_band`).

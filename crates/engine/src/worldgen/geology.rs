@@ -11,7 +11,7 @@
 
 use crate::block::{
     BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GRASS, GREEN_SAND, GREEN_SOIL, IRON_ORE,
-    LIMESTONE, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND,
+    LIMESTONE, OIL_SAND, PALE_SAND, PALE_SOIL, QUARTZ_ORE, RUSTY_SAND, RUSTY_SOIL, SAND, URANIUM_ORE,
 };
 use crate::chunk::CHUNK_SIZE;
 use crate::deposits::{Deposit, DepositKey, Tier};
@@ -37,9 +37,41 @@ const ORES_BY_BIOME: [(Biome, &[(BlockId, u32)]); 5] = [
     (Biome::BasaltFields, &[(IRON_ORE, 6), (COPPER_ORE, 3), (QUARTZ_ORE, 1)]),
 ];
 
-/// Version 5: far from spawn, bauxite joins these biomes' ore weights (`WorldGen::bauxite_weight`).
-pub const BAUXITE_FROM: i32 = 600;
-const BAUXITE_WEIGHTS: [(Biome, u32); 2] = [(Biome::Desert, 4), (Biome::BasaltFields, 3)];
+/// An ore that joins some biomes' weights from a generator version on, but only far enough from spawn
+/// (`WorldGen::extra_weight`). `from` is how far (blocks) in the version it first appears in; `from_v6` the
+/// distance version 6 and later use. To add one: a row, its depth band in `strata.rs`, a `RARITY` row if it
+/// should be thinned.
+struct Extra {
+    ore: BlockId,
+    since: u32,
+    from: i32,
+    from_v6: i32,
+    weights: &'static [(Biome, u32)],
+}
+
+/// Version 5: bauxite in far deserts and basalt fields (600 blocks out; 300 from version 6, a play-test found
+/// that too far). Version 6: oil sand in the lowlands and plains (200 out) and uranium in the highlands and
+/// basalt fields (400 out), both only as veins and lodes (`strata.rs`), and thinned by `RARITY`.
+const EXTRAS: [Extra; 3] = [
+    Extra {
+        ore: BAUXITE_ORE,
+        since: 5,
+        from: 600,
+        from_v6: 300,
+        weights: &[(Biome::Desert, 4), (Biome::BasaltFields, 3)],
+    },
+    Extra { ore: OIL_SAND, since: 6, from: 200, from_v6: 200, weights: &[(Biome::Plains, 1), (Biome::Lowlands, 1)] },
+    Extra {
+        ore: URANIUM_ORE,
+        since: 6,
+        from: 400,
+        from_v6: 400,
+        weights: &[(Biome::Highlands, 1), (Biome::BasaltFields, 1)],
+    },
+];
+/// Version 6: the chance that a vein or lode drawn as this ore is kept (else the slot stays empty), which makes
+/// it rarer than its weight alone.
+pub(super) const RARITY: [(BlockId, f64); 2] = [(OIL_SAND, 0.35), (URANIUM_ORE, 0.4)];
 
 impl WorldGen {
     /// Version 2's deposits seeded in one chunk column.
@@ -110,36 +142,60 @@ impl WorldGen {
     pub(super) fn ore_at(&self, rng: &mut Rng, at: IVec3) -> BlockId {
         let biome = self.biome_at(at.x, at.z, self.height_at(at.x, at.z));
         let ores = ores_in(biome);
-        let bauxite = self.bauxite_weight(biome, at);
-        let mut pick = rng.below(ores.iter().map(|o| o.1).sum::<u32>() + bauxite);
+        let extra: u32 = EXTRAS.iter().map(|e| self.extra_weight(e, biome, at)).sum();
+        let mut pick = rng.below(ores.iter().map(|o| o.1).sum::<u32>() + extra);
         for &(ore, weight) in ores {
             if pick < weight {
                 return ore;
             }
             pick -= weight;
         }
-        if pick < bauxite {
-            return BAUXITE_ORE;
+        for e in &EXTRAS {
+            let weight = self.extra_weight(e, biome, at);
+            if pick < weight {
+                return e.ore;
+            }
+            pick -= weight;
         }
         ores[0].0
     }
 
     /// Whether deposits of `ore` can lie in `biome` around `at` (version 2 on: before it ore had no biome).
     pub(super) fn holds_ore(&self, ore: BlockId, biome: Biome, at: IVec3) -> bool {
-        if ore == BAUXITE_ORE {
-            return self.bauxite_weight(biome, at) > 0;
+        match EXTRAS.iter().find(|e| e.ore == ore) {
+            Some(e) => self.extra_weight(e, biome, at) > 0,
+            None => ores_in(biome).iter().any(|o| o.0 == ore),
         }
-        ores_in(biome).iter().any(|o| o.0 == ore)
     }
 
-    /// The weight of bauxite among the ores of `biome` at `at`: none before version 5 or within `BAUXITE_FROM`
-    /// blocks of spawn, else `BAUXITE_WEIGHTS`.
-    fn bauxite_weight(&self, biome: Biome, at: IVec3) -> u32 {
-        let far = (at.x as i64).pow(2) + (at.z as i64).pow(2) >= (BAUXITE_FROM as i64).pow(2);
-        if self.version < 5 || !far {
+    /// Whether this world's generator makes `ore` at all (the extra ores came with later versions).
+    pub fn has_ore(&self, ore: BlockId) -> bool {
+        EXTRAS.iter().find(|e| e.ore == ore).is_none_or(|e| self.version >= e.since)
+    }
+
+    /// How far from the start (blocks) `ore` first appears in this world; 0 for the ores found everywhere.
+    pub fn ore_from(&self, ore: BlockId) -> i32 {
+        EXTRAS.iter().find(|e| e.ore == ore).map_or(0, |e| e.distance(self.version))
+    }
+
+    /// The weight of an extra ore among the ores of `biome` at `at`: none before its version or nearer spawn
+    /// than its distance, else its row for the biome.
+    fn extra_weight(&self, e: &Extra, biome: Biome, at: IVec3) -> u32 {
+        let far = (at.x as i64).pow(2) + (at.z as i64).pow(2) >= (e.distance(self.version) as i64).pow(2);
+        if self.version < e.since || !far {
             return 0;
         }
-        BAUXITE_WEIGHTS.iter().find(|w| w.0 == biome).map_or(0, |w| w.1)
+        e.weights.iter().find(|w| w.0 == biome).map_or(0, |w| w.1)
+    }
+}
+
+impl Extra {
+    fn distance(&self, version: u32) -> i32 {
+        if version >= 6 {
+            self.from_v6
+        } else {
+            self.from
+        }
     }
 }
 
@@ -147,8 +203,9 @@ impl WorldGen {
 /// takes stains.
 pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
     let (grass, sand) = match ore {
-        // Bauxite shows itself (exposed on bare rock) and leaves no stain.
-        BAUXITE_ORE => return None,
+        // Bauxite shows itself (exposed on bare rock) and leaves no stain; neither do oil sand and uranium, which
+        // lie too deep and are found by scanning.
+        BAUXITE_ORE | OIL_SAND | URANIUM_ORE => return None,
         IRON_ORE => (RUSTY_SOIL, RUSTY_SAND),
         COAL_ORE => (DARK_SOIL, DARK_SAND),
         COPPER_ORE => (GREEN_SOIL, GREEN_SAND),
@@ -161,17 +218,21 @@ pub fn hint_for(ore: BlockId, top: BlockId) -> Option<BlockId> {
     }
 }
 
-/// Per biome where `ore` occurs, the percentage of that biome's deposits that are `ore`, highest first
-/// (version 2 on; the ore guide shows it).
-pub fn ore_shares(ore: BlockId) -> Vec<(Biome, u32)> {
+/// Per biome where `ore` occurs in a world of `version`, the percentage of that biome's deposits (far enough out)
+/// that are `ore`, highest first (version 2 on; the ore guide shows it). The weight of every ore that has
+/// joined by `version` counts, so the shares of the old ores shrink when a version adds new ones.
+pub fn ore_shares(ore: BlockId, version: u32) -> Vec<(Biome, u32)> {
+    let extras = |biome: Biome| {
+        EXTRAS.iter().filter(move |e| version >= e.since).map(move |e| (e, e.weights.iter().find(|w| w.0 == biome)))
+    };
     let mut out: Vec<(Biome, u32)> = Vec::new();
     for (biome, weights) in ORES_BY_BIOME {
-        let mut total: u32 = weights.iter().map(|w| w.1).sum();
-        let mut mine = weights.iter().find(|w| w.0 == ore).map(|w| w.1);
-        if ore == BAUXITE_ORE {
-            mine = BAUXITE_WEIGHTS.iter().find(|w| w.0 == biome).map(|w| w.1);
-            total += mine.unwrap_or(0);
-        }
+        let total: u32 =
+            weights.iter().map(|w| w.1).sum::<u32>() + extras(biome).filter_map(|(_, w)| w.map(|w| w.1)).sum::<u32>();
+        let mine = match EXTRAS.iter().find(|e| e.ore == ore) {
+            Some(e) => (version >= e.since).then(|| e.weights.iter().find(|w| w.0 == biome).map(|w| w.1)).flatten(),
+            None => weights.iter().find(|w| w.0 == ore).map(|w| w.1),
+        };
         if let Some(w) = mine {
             out.push((biome, (w * 100 + total / 2) / total));
         }

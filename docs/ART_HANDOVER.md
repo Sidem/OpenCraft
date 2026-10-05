@@ -35,8 +35,7 @@ roadmap agent's.
   (`generate()`, the noise helpers `n` / `smooth` / `rgb`, and natural patterns) and
   `textures/machines.rs` (machine and item patterns). `pixel(layer, x, y)` maps each layer to a pattern.
   They are 16 × 16 (`TEX_SIZE`), RGBA, one layer of a WebGL2 texture array per `block::tex` constant
-  (`tex::COUNT` is 106 today). The magenta placeholder test (`textures/tests.rs`) fails if a layer has no
-  pattern.
+  (see `tex::COUNT`). The magenta placeholder test (`textures/tests.rs`) fails if a layer has no pattern.
 - **Blocks** (`block.rs`): each `BlockDef` names 6 face layers (+X, -X, +Y, -Y, +Z, -Z). `Render::Opaque`
   and `Cutout` (leaves: alpha below 0.5 is cut) go through the greedy chunk mesher. Merged quads *tile*
   their texture (UVs from world position), so textures must tile seamlessly. `Render::None` blocks
@@ -208,13 +207,14 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the item's icon; in flight it is the construction drone's boxes with
   a crate slung under it (`drone_view.rs`, the crate's lid takes the icon's amber while it carries a load). Cargo drones
   should read as heavier haulers than the builders at a glance, and a route has no line drawn between its ports yet.
+- [ ] (10.1, landed) Oil sand and uranium ore, `tex::OIL_SAND` (202) and `tex::URANIUM_ORE` (203, `textures/ores.rs`): placeholders, one look
+  each. Oil sand (tar pools and amber sheens in brown sand) must not read as coal; uranium is dark rock with bright green crystals.
 - [ ] (9.2, landed) Aluminium: `tex::CRUSHED_BAUXITE`..`CELL_TOP` (187–192, `textures/aluminium.rs`): crushed bauxite,
   ingot, plate, battery and the electrolytic cell's tiled side and roof, all placeholders. The cell's model is
   `CELL_PARTS` (`factory/process/parts.rs`): a long tank with a glowing bath slot and two electrodes that pump. Aluminium
   should read as pale and light next to steel's blue-grey; the battery should read as stored power at icon size.
-- [ ] (9.1, landed) Bauxite ore, `tex::BAUXITE_ORE` (186, `textures/ores.rs` `bauxite`): a placeholder of brick-red
-  pisolites in red clay, one look only (the alternate layers are full). It should read as clearly different from
-  iron (rust-brown) and copper at a distance: a desert or basalt field far out is where players first meet it.
+- [ ] (9.1, landed) Bauxite ore, `tex::BAUXITE_ORE` (186, `textures/ores.rs`): brick-red pisolites in red clay, one look. It must read
+  as different from iron (rust-brown) and copper at a distance: a far desert or basalt field is where players first meet it.
 - [ ] (5.7, landed) Pump, pipe and outlet models (`factory/pipes.rs` `model`): placeholders built from
   `STEEL`, `FRAME` and `GENERATOR_SIDE` boxes; pipes join on every face (`arms`); the outlet shows a short
   `WATER` stream while pouring. Their item icons are plain cubes of the block faces (`block/mod.rs`).

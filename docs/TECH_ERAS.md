@@ -106,23 +106,66 @@ Cargo Drones (port to port, battery-limited range) · Hover Pack.
 
 ## 6. Era 7: Chemistry (gold, Milestone 10)
 
-Fluids other than water travel as **canister items** on belts (pipes stay water-only; canisters come
-back empty). Rivers and hydro, hoists, and nuclear power (for what compute will need) land here.
+Fluids other than water travel as **canister items** on belts: pipes stay water-only, so oil never exists as a
+flowing block and costs the world simulation nothing (only water flows: `sim/water.rs`, capped at 256 checks a tick,
+measured worst tick 0.09 ms). A canister is a steel shell: **Empty canister** (1 steel plate → 2, constructor). Every
+machine that empties one gives the empty back through its output, so a plant is a loop: empties in, full canisters
+out, and the player routes both. Rivers and hydro, hoists and nuclear power (for what compute will need) land here.
+
+**The new ground (generator version 6, `worldgen/geology.rs` `EXTRAS`):** oil sand (plains and lowlands, 200+ blocks
+out) and uranium (highlands and basalt fields, 400+ out) lie deep (oil 30–65 blocks down, uranium 45–85), only as
+veins and lodes, never at the surface and with no stain: they are found by scanning (the Mk2 filter and its bearing
+cover them). Bauxite moved nearer (300 blocks, was 600) and caves became about 13 times rarer (cave zones). Version 7
+(10.5) is the terrain overhaul: rivers, lakes, drier and wetter regions.
+
+**Oil economics** (numbers are the plan; tune in the step):
+- **Reserves:** a deposit holds `blocks × grade` units (vein 1,000 a block and about 130 blocks; lode 2,000 and about
+  1,500). One **crude canister is 10 units**. A pumpjack draws up to 5 units/s (Mk1, recovery 0.9: 0.45 canisters/s,
+  27 a minute) but a deposit's draw cap is shared (vein 4 units/s, lode 20): a vein feeds one pumpjack and lasts about 9
+  hours, a lode feeds four for days. The Mk2 scanner shows units and minutes to exhaustion; a core drill gives exact figures.
+- **Cost of a well:** pumpjack (steel, motors, pipes, circuits; 90 kW), empties by belt, a power line, and a way
+  home (belt, train dock or cargo drone: crude is a bulky haul, so a refinery near the field and products shipped is
+  usually cheaper than crude shipped). Oil beyond the nearest 500 blocks is what makes trains and cargo drones pay.
+- **Return:** a refinery cycle turns 3 crude canisters into 4 useful things (below), and a diesel generator returns
+  many times the energy a pumpjack and refinery use, so oil is a net energy source, never a trap.
+
+**Refining (fractional distillation):** one recipe, **Distil** (refinery 3×3×4, 150 kW, 6 s): 3 crude canisters +
+1 water → 1 **naphtha** canister (light), 1 **diesel** canister (middle), 1 **heavy oil** canister and 1 sulfur. All four
+come out together, so the player must use or store each stream or the refinery stops: balancing is the game.
+| Stream | Used for |
+|---|---|
+| Naphtha | plastic (chemical plant: 2 naphtha + 1 coal → 4 plastic); cracked from heavy oil |
+| Diesel | diesel generator (a canister is 40 MJ: 400 kW for 100 s); fuel for the later drill rig and vehicles |
+| Heavy oil | boiler fuel (nothing is wasted), **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil → 2 lubricant: Mk5 kits and gears) |
+| Sulfur | acid (1 sulfur + 1 water → 1 acid canister; ore leaching, etched circuits, the chip fab) |
+
+**Ore washing and the crusher do not conflict:** the crusher (steel, 30 kW) stays the first step for iron, copper and
+bauxite (2 ore → 3 crushed, and it grinds slag to sand); the **washer** (2×2×2, 60 kW, needs a water pipe) takes only
+*crushed* ore: 3 crushed + 1 water → 4 washed ore + 1 tailings. Washed ore smelts one for one, so the chain gives raw 1.0,
+crushed 1.5, washed 2.0 ingots an ore. The washer refuses raw ore, the crusher is never skipped, and **tailings must
+leave by belt** (they are a new fill block for the Planner and, ground in the crusher, sand), so the step costs space,
+water and a haul. It is a yield step, not a replacement.
+
+**The research center (10.7):** the lab is one cell with four pack slots and cannot take a fifth pack, so a bigger
+building joins it: the **Research Center**, 2×2×2, eight pack slots (red, green, blue, violet and gold now; three spare
+for later eras), belts on every face, base speed twice a lab's, the same Mk1–Mk4 tiers. A tech that needs a pack a small lab has
+no slot for is researched only in a center; the small lab stays valid for the four older packs.
 
 | Item | Recipe | Uses |
 |---|---|---|
-| Crude canister | pumpjack (2×2×3) on an oil reservoir (lowlands, sea floor) | refinery |
-| Diesel, resin, sulfur | 2 crude, 1 water → 1 diesel canister, 1 resin, 1 sulfur (refinery 3×3×4, 6 s) | power, plastic, acid |
-| Plastic | 2 resin, 1 coal → 2 (chemical plant 3×2×3, 4 s) | gold pack and kit, chips, frames |
-| Acid canister | 1 sulfur, 1 water → 1 (chemical plant, 3 s) | etched circuits (4 per batch), chip fab |
+| Oil sand, uranium ore | found by scanning (veins and lodes); hand-mined oil sand burns as a poor fuel (a third of coal) | pumpjack, centrifuge |
+| Empty canister | 1 steel plate → 2 (constructor, 1 s) | every fluid |
+| Crude canister | pumpjack (2×2×3, 90 kW) on oil sand, an empty canister in per 10 units drawn | refinery |
+| Naphtha, diesel, heavy oil canisters; sulfur | Distil (above) | plastic, power, lubricant, acid |
+| Plastic | 2 naphtha + 1 coal → 4 (chemical plant 3×2×3, 4 s) | gold pack and kit, chips, frames |
+| Acid canister | 1 sulfur + 1 water → 1 (chemical plant, 3 s) | etched circuits (4 per batch), chip fab |
 | Hydrogen, oxygen canisters | 2 water → 2 H + 1 O (electrolyser, 500 kW) | rocket fuel, fuel cells |
-| Washed ore | 3 crushed ore, 1 water → 4 + 1 tailings (washer 2×2×2, 3 s) | 2 ingots per ore |
+| Washed ore | 3 crushed + 1 water → 4 + 1 tailings (washer 2×2×2, 3 s) | smelting |
 | Uranium fuel cell | uranium ore → centrifuge (2×2×3) → fuel cell | reactor (3×3×3, up to 2 MW; overheating stops it) |
-| Gold pack | 1 plastic, 1 battery, 1 processor → 2 (assembler, 20 s) | labs |
+| Gold pack | 1 plastic, 1 battery, 1 processor → 2 (assembler, 20 s) | centers only |
 
 Techs: Oil Processing · Plastics · Sulfur and Acid · Ore Washing · Diesel Power · Electrolysis · Hydro
-Power (water wheels, dams) · Hoists · Gold Science · Mk5 Machines · Nuclear Power.
-
+Power (water wheels, dams) · Hoists · Research Center · Gold Science · Mk5 Machines · Nuclear Power.
 ## 7. Era 8: Compute (Milestone 11)
 
 | Item or machine | Recipe | Does |

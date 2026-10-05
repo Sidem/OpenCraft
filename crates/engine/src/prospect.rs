@@ -17,7 +17,9 @@
 //! panel keeps a pointer to the nearest match on the screen after the scanner is put away. With a filter on and
 //! nothing of that ore in range, the panel asks for a bearing to the nearest ground that holds it (`ore_bearing_of`, `api/prospect.rs`).
 
-use crate::block::{self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
+use crate::block::{
+    self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
+};
 use crate::deposits::{Deposit, DepositState};
 use crate::item::{ItemId, SCANNER, SCANNER_MK2};
 use crate::math::{sort_small_by_key, IVec3, Vec3};
@@ -31,7 +33,8 @@ use crate::Game;
 /// and a row here.
 pub const SCANNERS: [(ItemId, i32, bool); 2] = [(SCANNER, 48, false), (SCANNER_MK2, 96, true)];
 /// The ores an advanced scanner's filter steps through (after "all"). To add an ore: a line here.
-pub const FILTER_ORES: [BlockId; 6] = [COAL_ORE, IRON_ORE, COPPER_ORE, LIMESTONE, QUARTZ_ORE, BAUXITE_ORE];
+pub const FILTER_ORES: [BlockId; 8] =
+    [COAL_ORE, IRON_ORE, COPPER_ORE, LIMESTONE, QUARTZ_ORE, BAUXITE_ORE, OIL_SAND, URANIUM_ORE];
 /// Seconds between scans while the use button is held.
 const SCAN_COOLDOWN: f32 = 2.0;
 /// Seconds of holding use on a block for a core sample.

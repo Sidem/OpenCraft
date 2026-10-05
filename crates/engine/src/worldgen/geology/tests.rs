@@ -42,7 +42,7 @@ fn ores_follow_the_biome_weights() {
 
 #[test]
 fn deposit_counts_match_version_1() {
-    let (v1, v2) = (deposits(&WorldGen::with_version(1337, 1)), deposits(&WorldGen::new(1337)));
+    let (v1, v2) = (deposits(&WorldGen::with_version(1337, 1)), deposits(&WorldGen::with_version(1337, 2)));
     for tier in [Tier::Outcrop, Tier::Vein, Tier::Lode] {
         let (a, b) = (v1.iter().filter(|d| d.tier() == tier).count(), v2.iter().filter(|d| d.tier() == tier).count());
         let off = (a as f64 - b as f64).abs() / a as f64;
@@ -150,7 +150,7 @@ fn bauxite_lies_only_in_far_deserts_and_basalt_fields_of_new_worlds() {
     assert!(bauxite.len() > 20, "some lie within reach of a long trip");
     for d in &bauxite {
         let (x, z) = (d.center.x as i64, d.center.z as i64);
-        assert!(x * x + z * z >= (BAUXITE_FROM as i64).pow(2), "{d:?} is too near spawn");
+        assert!(x * x + z * z >= (g.ore_from(BAUXITE_ORE) as i64).pow(2), "{d:?} is too near spawn");
         let biome = g.biome_at(d.center.x, d.center.z, g.height_at(d.center.x, d.center.z));
         assert!(matches!(biome, Biome::Desert | Biome::BasaltFields), "{biome:?}");
         let (lo, hi) = g.ore_band(BAUXITE_ORE);
@@ -160,8 +160,61 @@ fn bauxite_lies_only_in_far_deserts_and_basalt_fields_of_new_worlds() {
         let old = deposits(&WorldGen::with_version(1337, version));
         assert!(old.iter().all(|d| d.ore() != BAUXITE_ORE), "version {version} never makes bauxite");
     }
-    let shares = ore_shares(BAUXITE_ORE);
+    assert_eq!(g.ore_from(BAUXITE_ORE), 300, "version 6 brought it nearer");
+    let shares = ore_shares(BAUXITE_ORE, 6);
     assert_eq!(shares.iter().map(|s| s.0).collect::<Vec<_>>().len(), 2);
     assert!(shares.iter().all(|s| matches!(s.0, Biome::Desert | Biome::BasaltFields)));
     assert!(hint_for(BAUXITE_ORE, GRASS).is_none() && hint_for(BAUXITE_ORE, SAND).is_none(), "no stain");
+}
+
+#[test]
+fn oil_sand_and_uranium_lie_deep_in_their_own_ground_as_veins_and_lodes() {
+    let g = WorldGen::new(1337);
+    let all = deposits(&g);
+    for (ore, from, biomes, band) in [
+        (OIL_SAND, 200, [Biome::Plains, Biome::Lowlands], (30, 65)),
+        (URANIUM_ORE, 400, [Biome::Highlands, Biome::BasaltFields], (45, 85)),
+    ] {
+        let found: Vec<&Deposit> = all.iter().filter(|d| d.ore() == ore).collect();
+        println!("{} deposits of {} in 2,048 × 2,048 blocks", found.len(), def(ore).name);
+        assert!(found.len() >= 6, "{}: some lie within reach of a trip, not {}", def(ore).name, found.len());
+        assert!(found.len() < 400, "{} is rare", def(ore).name);
+        assert_eq!(g.ore_from(ore), from);
+        assert_eq!(g.ore_band(ore), band);
+        for d in found {
+            assert_ne!(d.tier(), Tier::Outcrop, "never a small surface pocket: {d:?}");
+            let (x, z) = (d.center.x as i64, d.center.z as i64);
+            assert!(x * x + z * z >= (from as i64).pow(2), "{d:?} is too near spawn");
+            let biome = g.biome_at(d.center.x, d.center.z, g.height_at(d.center.x, d.center.z));
+            assert!(biomes.contains(&biome), "{d:?} in {biome:?}");
+            if d.tier() == Tier::Vein {
+                let depth = g.height_at(d.center.x, d.center.z) - d.center.y;
+                assert!((band.0..=band.1).contains(&depth) || d.center.y == 12, "{d:?} {depth} down");
+            }
+        }
+        assert!(hint_for(ore, GRASS).is_none() && hint_for(ore, SAND).is_none(), "no stain");
+    }
+    for version in 1..=5 {
+        let old = deposits(&WorldGen::with_version(1337, version));
+        assert!(old.iter().all(|d| d.ore() != OIL_SAND && d.ore() != URANIUM_ORE), "version {version}");
+    }
+    // Neither ore ever shows at the surface: no block of either is bare to the sky near spawn.
+    for d in all.iter().filter(|d| matches!(d.ore(), OIL_SAND | URANIUM_ORE)) {
+        let top = g.height_at(d.center.x, d.center.z);
+        let reach = d.bounds().1.y;
+        assert!(reach < top - 10, "{d:?} reaches up to {reach} under ground at {top}");
+    }
+}
+
+#[test]
+fn the_new_ores_thin_out_but_leave_the_old_shares_alone() {
+    // Version 6 added weight in plains, lowlands, highlands and basalt: coal's share in the lowlands falls, but
+    // only far from spawn (the extras need distance), so the guide's share of oil is small.
+    let oil = ore_shares(OIL_SAND, 6);
+    assert_eq!(oil.iter().map(|s| s.0).collect::<Vec<_>>().len(), 2);
+    assert!(oil.iter().all(|s| s.1 <= 10), "{oil:?}");
+    assert!(ore_shares(OIL_SAND, 5).is_empty() && ore_shares(URANIUM_ORE, 5).is_empty());
+    let coal5 = ore_shares(COAL_ORE, 5).into_iter().find(|s| s.0 == Biome::Lowlands).unwrap().1;
+    let coal6 = ore_shares(COAL_ORE, 6).into_iter().find(|s| s.0 == Biome::Lowlands).unwrap().1;
+    assert!(coal6 < coal5, "the lowlands now hold oil too");
 }

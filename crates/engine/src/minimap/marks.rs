@@ -131,6 +131,8 @@ pub fn ore_color(ore: BlockId) -> i32 {
         block::LIMESTONE => 0xefe6c8,
         block::QUARTZ_ORE => 0xf4c6e8,
         block::BAUXITE_ORE => 0xc2553a,
+        block::OIL_SAND => 0xa87a2c,
+        block::URANIUM_ORE => 0x9bd84a,
         _ => 0xffffff,
     }
 }

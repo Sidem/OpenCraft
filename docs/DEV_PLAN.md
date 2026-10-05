@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-05 · Strategy controls built · Milestones 1–9 done (9.x uncommitted) (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 10 (fluids and chemistry): oil, refinery, plastics, diesel, electrolysis, washing, rivers, hoists, nuclear, gold science; next 10.1 oil and uranium in the ground** · The `art` branch is superseded; art work
+**Status:** 2026-10-05 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
+now) · **Now: Milestone 10 (fluids and chemistry): 10.1 the new ground (generator version 6: nearer bauxite, far fewer caves, oil sand and uranium) built, uncommitted; next 10.2 canisters and the pumpjack** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -430,8 +430,8 @@ are in `docs/CHANGELOG.md` ("Milestones 6 to 8") and `docs/CHANGELOG_M9.md`. Des
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 37) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 81, item 348). Each new look gets a placeholder
-  layer (`tex::COUNT` is 202) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 83, item 348). Each new look gets a placeholder
+  layer (`tex::COUNT` is 204) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 9 (Distance), built
@@ -446,31 +446,54 @@ drone moves one stack of 64 with no track but pays batteries by distance (a 600-
 
 ### Milestone 10 steps
 
-Goal: the factory learns fluids and chemistry. Order: new resources, the oil chain, power from it, washing, rivers, deep
-mines, nuclear, then the gold tier. Each step is detailed at its start from `docs/TECH_ERAS.md` section 6; the lines
-below fix scope and order.
+Goal: the factory learns fluids and chemistry. **The user's requests of 2026-10-05, which every step honours:** the world
+generator changes drastically (this milestone ships two new versions); bauxite is nearer; caves are much rarer; water
+and oil must behave sensibly and never lag; the research building grows to take a fifth pack; ore washing must not
+conflict with the crusher; oil must make economic sense (surveying, wells, hauling) and refining must give several
+distillates with different uses. The numbers and the reasoning are in `docs/TECH_ERAS.md` section 6. Each step is
+detailed at its start; the lines below fix scope and order.
 
-- [ ] **10.1 Oil and uranium in the ground** (generator version 6, new worlds only; `worldgen/geology.rs`): oil reservoirs
-  (lowlands and the sea floor) and uranium (deep, rare), shown in the ore guide, scanner filter and maps. Items: crude
-  and empty canisters. The pumpjack (2×2×3 spec row) fills a canister from a reservoir that is finite but long. Used by
-  nothing until 10.2 (`NO_USE_YET`).
-- [ ] **10.2 Refinery and chemical plant** (`process/` spec rows, new `Category`s): refinery (3×3×4; 2 crude + 1 water →
-  diesel canister, resin, sulfur), chemical plant (3×2×3; plastic, acid canister), techs Oil Processing, Plastics, Sulfur
-  and Acid. Canisters travel and stack on belts like any item.
-- [ ] **10.3 Diesel power and electrolysis:** a diesel generator (fuel is a canister item), the electrolyser (500 kW;
-  hydrogen and oxygen canisters), techs Diesel Power and Electrolysis.
-- [ ] **10.4 Ore washing:** the washer (2×2×2; 3 crushed ore + 1 water → 4 washed + 1 tailings) so one ore gives two
-  ingots; tailings are fill for the Planner. Tech Ore Washing.
-- [ ] **10.5 Rivers and hydro** (generator version 7, new worlds only): rivers carved into the height map flowing to the sea
-  (the first generation change that touches terrain: check the bearing and deposit queries still agree); water wheels and
-  dams for power. Needs the user's say on risk (section 6).
-- [ ] **10.6 Hoists:** mine shafts and hoists for deep lodes (lifts that carry boxes and the player between levels).
-- [ ] **10.7 Nuclear power:** uranium ore → centrifuge (2×2×3) → fuel cell → reactor (3×3×3, up to 2 MW; overheating stops
-  it, peaceful).
-- [ ] **10.8 Gold science and Mk5:** gold packs (1 plastic + 1 battery + 1 processor → 2, assembler 20 s), the fifth lab slot,
-  gold kits (Mk5), balance and tips.
-- [ ] **10.9 Cleanup:** tips, balance, worst tick, README, CODEMAP; then move Milestone 11 in from the roadmap.
-
+- [x] **10.1 The new ground (generator version 6)** (`worldgen/geology.rs` `EXTRAS`, `strata.rs`, `caves.rs`; blocks 81 Oil
+  Sand and 82 Uranium Ore, texture layers 202–203, `block/ores.rs` split out of `block/mod.rs`). New worlds only; versions
+  1–5 are pinned by `released_versions_never_change` (4 and 5 newly). (a) **Bauxite from 300 blocks out** (was 600; `Extra`
+  rows carry a distance per version). (b) **About 13 times fewer caves:** *cave zones* (a slow noise on a 192-block scale,
+  `ZONE_MIN`, about a quarter of the ground) and thinner tunnels (`TUNNEL_V6` 0.0018, was 0.0045); a chunk wholly outside
+  a zone skips both tunnel fields, so generation is faster too (`caves/tests.rs`: 545k cave cells in version 5, 41k in
+  version 6 over the same 400 columns). (c) **Oil sand** (plains and lowlands, 200+ blocks out, 30–65 down) and **uranium**
+  (highlands and basalt fields, 400+ out, 45–85 down): only veins and lodes (never an outcrop pocket), thinned by `RARITY`
+  (oil keeps 0.35 of its draws, uranium 0.4), no surface hint, never exposed: found with the scanner (filter and bearing
+  cover both; `FILTER_ORES` has 8). About 120 oil and 26 uranium deposits in 2,048 × 2,048 blocks. Ore guide rows and notes
+  follow the world's version (`has_ore`, `ore_from`, `ore_shares(ore, version)`). The golden hash was re-recorded (the
+  scripted outcrop moved with the new draws). Both ores wait for their machines (`NO_USE_YET`). **Measured:** water's
+  worst tick 0.09 ms (`bench_water`); oil is never a world block, so it cannot add to it. Tests 527 → 532.
+- [ ] **10.2 Canisters and the pumpjack:** items empty canister (1 steel plate → 2) and crude canister; hand-mined oil
+  sand burns as a poor fuel; the pumpjack (2×2×3, 90 kW; a miner variant: draws units from an oil deposit, one empty
+  canister per 10 units in, a crude canister out; the deposit's shared draw cap and taper apply); tech Oil Processing.
+  Describe text shows canisters a minute and hours to exhaustion. Test: a pumpjack on a vein fills a box and never
+  schedules a water check.
+- [ ] **10.3 Refinery and cracker:** refinery (3×3×4, 150 kW; **Distil**: 3 crude + 1 water → naphtha, diesel and heavy
+  oil canisters + 1 sulfur, stops while any stream is full) and cracker (2×2×3; **Crack**: 2 heavy oil + 1 water → 1 naphtha
+  + 1 diesel). The water inlet is a pipe port like the boiler's. Tech Refining.
+- [ ] **10.4 Chemical plant:** plastic (2 naphtha + 1 coal → 4), acid canister (1 sulfur + 1 water), lubricant (1 heavy
+  oil → 2); techs Plastics, Sulfur and Acid. Heavy oil also burns in boilers (nothing is wasted).
+- [ ] **10.5 Diesel power and electrolysis:** a diesel generator (a processor row like the boiler: canister in, empty out,
+  400 kW for 100 s a canister), the electrolyser (500 kW; hydrogen and oxygen canisters); techs Diesel Power, Electrolysis.
+- [ ] **10.6 Ore washing:** the washer (2×2×2, 60 kW, a water pipe; **only crushed ore**: 3 crushed + 1 water → 4 washed
+  + 1 tailings), so raw 1.0, crushed 1.5, washed 2.0 ingots an ore; tailings leave by belt and become a Planner fill block
+  (ground in the crusher: sand). Never replaces the crusher. Tech Ore Washing.
+- [ ] **10.7 The research center:** a 2×2×2 lab (belts on every face) with eight pack slots (red, green, blue, violet,
+  gold, three spare), base speed twice a lab's, the Mk1–Mk4 tiers; the small lab stays for the four older packs and a tech
+  decides which labs can work it (a tech with a pack the lab has no slot for shows "needs a research center").
+  Lab buffers read old saves (slots grow). Save bump with a fixture test.
+- [ ] **10.8 Terrain overhaul and hydro (generator version 7):** rivers carved into the height map and flowing to the sea,
+  lakes, wetter and drier regions and more dramatic landforms (the user wants the generator to change a lot): checks that
+  bearings, deposits, the starter set and cave guards still agree; water wheels and dams for power. New worlds only.
+- [ ] **10.9 Hoists:** mine shafts and hoists for deep lodes (lifts that carry boxes and the player between levels).
+- [ ] **10.10 Nuclear power:** uranium ore → centrifuge (2×2×3) → fuel cell → reactor (3×3×3, up to 2 MW; overheating
+  stops it, peaceful).
+- [ ] **10.11 Gold science and Mk5:** gold packs (1 plastic + 1 battery + 1 processor → 2, assembler 20 s; research
+  centers only), gold kits (Mk5), balance and tips.
+- [ ] **10.12 Cleanup:** tips, balance, worst tick, README, CODEMAP; then move Milestone 11 in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -513,6 +536,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-05: The new ground (step 10.1, generator version 6).** At the user's request: bauxite from 300 blocks out (was 600), about 13 times fewer caves (cave zones and thinner tunnels, `worldgen/caves.rs`), and two new deep ores, oil sand and uranium (blocks 81–82, veins and lodes only, found by scanning). Versions 4 and 5 are now pinned. Milestone 10's steps rewritten around the user's asks (research center, washing next to the crusher, refinery streams, oil economics): `docs/TECH_ERAS.md` section 6. Golden hash re-recorded. Tests 527 → 532.
 - **2026-10-05: Milestone 9 cleanup (step 9.6).** Onboarding tips for far ground, trains and hover/cargo (`hints.rs`); `bench_trains`: 14 trains cost 4.0 µs a tick, worst 31 µs (6.4 / 11 µs with signals); balance note in section 4; the Milestone 9 step list moved to `docs/CHANGELOG_M9.md`; Milestone 10 moved in from the roadmap.
 - **2026-10-05: Cargo drones (step 9.5b).** The Cargo Drones tech and item 347: drone ports become stations; a route between two ports (set by clicking them with a cargo drone in hand) sends drones with a stack from the first port's boxes to the second's, burning batteries by distance (`drones/cargo/`, `cargo_tools.rs`, `Action::SetRoute`); save version 37, golden hash re-recorded. Fixed a duplication bug in `store_in_boxes` / `port_land` (drone deposits and landings also dropped loose copies). Tests 518 → 527.
 - **2026-10-05: Hover pack (step 9.5a).** The Hover Pack tech (index 40, after Jetpack and Bauxite Processing) and item 346: a pack that hovers while jump is held in the air (height held, jump rises, crouch sinks, 8 blocks a second, 13 sprinting; `Player::hover`), running on `charge` (90 s at most) that refills at twice the drain while the player stands within 6 blocks of a power pole (`Action::Hover`, `Action::Charge`; `helpers/`, `helper_hands.rs`). It spends the first use of the battery. Save version 36, golden hash re-recorded. The pack draws nothing on the grid. Tests 513 → 518.

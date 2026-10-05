@@ -15,7 +15,9 @@
 //! (`biome.rs`, `geology.rs`); 3 = Milestone 5's water and world shape (`strata.rs`: rare surface ore, depth bands, a starter set;
 //! `water.rs`: sea and ponds, branching in `height_at`, `build_column`, `trees_near` and `generate`);
 //! 4 = easier starter ore (`strata.rs`: shallower bands, more exposed metal, two starter patches each);
-//! 5 = Milestone 9's bauxite (`geology.rs`: in far deserts and basalt fields only).
+//! 5 = Milestone 9's bauxite (`geology.rs`: in far deserts and basalt fields only);
+//! 6 = Milestone 10's new ground: bauxite from 300 blocks out instead of 600, oil sand and uranium (`geology.rs`
+//! `EXTRAS`, deep bands in `strata.rs`, found by scanning), and far fewer caves (`caves.rs`: cave zones).
 
 mod bearing;
 mod biome;
@@ -28,7 +30,7 @@ mod water;
 pub use bearing::Bearing;
 pub use biome::Biome;
 use caves::CaveField;
-pub use geology::{ore_shares, BAUXITE_FROM};
+pub use geology::ore_shares;
 pub use ore::LODE_HEIGHTS;
 use water::WaterGuard;
 
@@ -44,7 +46,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 5;
+pub const WORLDGEN_VERSION: u32 = 6;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -68,6 +70,8 @@ pub struct WorldGen {
     forest: Perlin,
     cave_a: Perlin,
     cave_b: Perlin,
+    /// Version 6: where caves may exist at all (`caves.rs`).
+    cave_zone: Perlin,
     /// Version 2's climate and basalt fields (`biome.rs`).
     temperature: Perlin,
     moisture: Perlin,
@@ -98,6 +102,7 @@ impl WorldGen {
             forest: Perlin::new(s ^ 0x04),
             cave_a: Perlin::new(s ^ 0x05),
             cave_b: Perlin::new(s ^ 0x06),
+            cave_zone: Perlin::new(s ^ 0x0A),
             temperature: Perlin::new(s ^ 0x07),
             moisture: Perlin::new(s ^ 0x08),
             basalt: Perlin::new(s ^ 0x09),
@@ -273,7 +278,7 @@ impl WorldGen {
         }
 
         let mut b = vec![AIR; CHUNK_VOLUME];
-        let caves = (base.y < col.max_ground).then(|| CaveField::new(self, base));
+        let caves = (base.y < col.max_ground).then(|| CaveField::new(self, base)).flatten();
 
         for z in 0..32usize {
             for x in 0..32usize {

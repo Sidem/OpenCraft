@@ -123,7 +123,10 @@ pub const RAIL: BlockId = 78;
 /// The railway's docks (2×2×1 processors, `factory/process/docks.rs`): trains stop at them to load and unload.
 pub const LOADING_DOCK: BlockId = 79;
 pub const UNLOADING_DOCK: BlockId = 80;
-pub const BLOCK_COUNT: usize = 81;
+/// Chemistry's ground (Milestone 10, generator version 6): oil sand (a deposit a pumpjack draws crude from) and uranium ore.
+pub const OIL_SAND: BlockId = 81;
+pub const URANIUM_ORE: BlockId = 82;
+pub const BLOCK_COUNT: usize = 83;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -346,6 +349,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Rail", false, 0.3, all(tex::RAIL), RAIL),
     machine("Loading Dock", true, 1.4, pillar(tex::DOCK_SIDE, tex::DOCK_LOAD_TOP, tex::FRAME), LOADING_DOCK),
     machine("Unloading Dock", true, 1.4, pillar(tex::DOCK_SIDE, tex::DOCK_UNLOAD_TOP, tex::FRAME), UNLOADING_DOCK),
+    ore("Oil Sand", all(tex::OIL_SAND), OIL_SAND),
+    ore("Uranium Ore", all(tex::URANIUM_ORE), URANIUM_ORE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
@@ -377,20 +382,6 @@ pub fn def(id: BlockId) -> &'static BlockDef {
     BLOCK_DEFS.get(id as usize).unwrap_or(&BLOCK_DEFS[AIR as usize])
 }
 
-#[inline]
-pub fn is_ore(id: BlockId) -> bool {
-    matches!(id, COAL_ORE | IRON_ORE | COPPER_ORE | LIMESTONE | QUARTZ_ORE | BAUXITE_ORE)
-}
-
-/// Short resource name used in deposit names ("Iron vein").
-pub fn ore_label(id: BlockId) -> &'static str {
-    match id {
-        COAL_ORE => "Coal",
-        IRON_ORE => "Iron",
-        COPPER_ORE => "Copper",
-        LIMESTONE => "Limestone",
-        QUARTZ_ORE => "Quartz",
-        BAUXITE_ORE => "Bauxite",
-        _ => "Ore",
-    }
-}
+/// Which blocks are ores and what their deposits are called (ores.rs).
+mod ores;
+pub use ores::{is_ore, ore_label};

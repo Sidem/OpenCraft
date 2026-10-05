@@ -106,6 +106,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::LIMESTONE => ores::limestone(x, y, alt),
         tex::QUARTZ_ORE => ores::quartz(x, y, alt),
         tex::BAUXITE_ORE => ores::bauxite(x, y, alt),
+        tex::OIL_SAND => ores::oil_sand(x, y, alt),
+        tex::URANIUM_ORE => ores::uranium(x, y, alt),
         tex::BELT_TOP => belt_top(x, y, [192.0, 119.0, 70.0]),
         tex::FAST_BELT_TOP => belt_top(x, y, [106.0, 164.0, 176.0]),
         tex::FRAME => frame(x, y),

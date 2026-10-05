@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{COAL_ORE, IRON_ORE};
+use crate::block::{BAUXITE_ORE, COAL_ORE, IRON_ORE, OIL_SAND, URANIUM_ORE};
 
 const SEED: u32 = 1337;
 
@@ -9,8 +9,23 @@ fn bauxite_ground_lies_far_out_in_a_biome_that_holds_it() {
     let b = g.bearing_to(BAUXITE_ORE, 0, 0).expect("some desert or basalt field within 3,000 blocks");
     let biome = g.biome_at(b.x, b.z, g.height_at(b.x, b.z));
     assert!(g.holds_ore(BAUXITE_ORE, biome, IVec3::new(b.x, 0, b.z)), "{biome:?}");
-    assert!(b.distance >= 600 - STEP && b.distance <= MAX_RING * STEP, "{b:?}");
+    assert!(b.distance >= 300 - STEP && b.distance <= MAX_RING * STEP, "{b:?}");
     assert_eq!(b.distance, ((b.x as f64).hypot(b.z as f64)).round() as i32);
+    // Version 5 worlds keep their farther bauxite.
+    let old = WorldGen::with_version(SEED, 5).bearing_to(BAUXITE_ORE, 0, 0).expect("far ground");
+    assert!(old.distance >= 600 - STEP, "{old:?}");
+}
+
+#[test]
+fn oil_and_uranium_have_ground_of_their_own() {
+    let g = WorldGen::new(SEED);
+    for (ore, from) in [(OIL_SAND, 200), (URANIUM_ORE, 400)] {
+        let b = g.bearing_to(ore, 0, 0).expect("some ground within 3,000 blocks");
+        let biome = g.biome_at(b.x, b.z, g.height_at(b.x, b.z));
+        assert!(g.holds_ore(ore, biome, IVec3::new(b.x, 0, b.z)), "{biome:?}");
+        assert!(b.distance >= from - STEP, "{b:?}");
+        assert_eq!(WorldGen::with_version(SEED, 5).bearing_to(ore, 0, 0), None, "version 5 never makes it");
+    }
 }
 
 #[test]

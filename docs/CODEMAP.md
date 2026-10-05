@@ -53,6 +53,7 @@ folder with `mod.rs`.
 | `belt_line.rs` | Drag-to-build belt lines: `plan` (longer axis first, one turn, follows one-block steps), ghost-belt preview, builds by queuing `PlaceBlock`s a few per tick, each naming its slot (held stack first, then the other stacks: `queue_build`); with kits held, `plan_upgrade` follows belts and queues `Upgrade`s paid from every kit stack (a click on a miner upgrades it; Shift-click on a belt queues its whole line: `factory/belt_chain.rs`, same-tier belts joined by belt links). `upgrade_aim.rs`: what a held kit would upgrade, `Aim` (outline, belts, HUD card with kits needed and held, red when unaffordable or locked), read by `placement_box`, `line_cells`, `line_label` |
 | `block/mod.rs` | Block ids, `DEFS` table, sound materials, flowing water ids (`flow`, `flow_level`) |
 | `block/tables.rs` | Flat lookup tables over `DEFS` for hot loops (`OPAQUE`, `SOLID`, `FACE_TEX`, `ALT_TEX` alternates…) |
+| `block/ores.rs` | `is_ore`, `ore_label` (the ore blocks and the names deposits go by) |
 | `block/tex.rs` | Texture array layers (item textures too); `alternates` / `look`: three extra looks for ores, limestone, leaves |
 | `item.rs` | `ItemId` (ids below 256 are the blocks, others start at 256), the item table (`def`, `name`, `stack_size`, `places`), ingots, parts, science packs |
 | `item_models.rs` | Shared small box assemblies (parts, tools, scanner, core drill) for loose items and HUD icons; data only |
@@ -69,11 +70,11 @@ folder with `mod.rs`.
 | `world/boxlight.rs` | `World::light_at`: the light byte of any cell for things drawn as boxes, by lighting a cell's chunk on demand (a 128-chunk cache, least recently read evicted, dropped when a block changes nearby; it must hold every chunk with a box in view or each frame lights them all again); render cache only |
 | `worldgen/mod.rs` | Terrain heights, surface, caves, trees; per-column cache; `generate(chunk)`; generator versions (`WORLDGEN_VERSION` is the newest; a world keeps its own `WorldGen::version`; each released version is pinned by `released_versions_never_change`) |
 | `worldgen/biome.rs` | Version 2: `Biome` per column (`biome_at`), its rock, surface (`surface_v2`) and tree density |
-| `worldgen/bearing.rs` | `WorldGen::bearing_to(ore, x, z)` → `Bearing { x, z, distance }`: the nearest ground (48-block grid, square rings out to 3,072 blocks) whose biome holds the ore (`holds_ore` in `geology.rs`); a query on the height and biome fields, `None` before version 2 (bauxite: before 5) |
-| `worldgen/geology.rs` | Version 2 deposit seeding: version 1's counts, each ore drawn from its biome's weights (`ORES_BY_BIOME`); version 5 adds bauxite to desert and basalt weights at least `BAUXITE_FROM` (600) blocks from spawn (`bauxite_weight`); surface hints (`stain_surface`, `hint_for`: none for bauxite) |
+| `worldgen/bearing.rs` | `WorldGen::bearing_to(ore, x, z)` → `Bearing { x, z, distance }`: the nearest ground (48-block grid, square rings out to 3,072 blocks) whose biome holds the ore (`holds_ore` in `geology.rs`); a query on the height and biome fields, `None` before version 2 or before an extra ore's version (`has_ore`) |
+| `worldgen/geology.rs` | Version 2 deposit seeding: version 1's counts, each ore drawn from its biome's weights (`ORES_BY_BIOME`); the `EXTRAS` table adds bauxite (version 5; 600 blocks out, 300 from version 6), oil sand and uranium (version 6) to biome weights far enough from spawn (`extra_weight`, `ore_from`, `has_ore`), `RARITY` thins the version 6 ones; surface hints (`stain_surface`, `hint_for`: none for bauxite, oil sand, uranium) |
 | `worldgen/water.rs` | Version 3 water: sea below `SEA_LEVEL` (62), ponds (`Pond`, one per 96-block cell, a bowl and a bank shaped into `height_at`), `water_top` per column, `surface_v3` (sand under water and on shores), `WaterGuard` (no caves within 2 blocks of water) |
-| `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version |
-| `worldgen/strata.rs` | Versions 3 to 5 deposit seeding: rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ore_band`), the starter set near spawn (`starter_outcrops`, `starter_reach`) |
+| `worldgen/caves.rs` | Spaghetti caves (`CaveField`), shared by every version; version 6 adds cave zones (`ZONE_MIN`) and thinner tunnels (`TUNNEL_V6`), and a chunk outside every zone has no field |
+| `worldgen/strata.rs` | Versions 3 to 6 deposit seeding (`ORE_DEPTH_V6`: oil sand and uranium lie deep, as veins and lodes only): rare exposed outcrops on bare rock (`bare_rock`), depth bands (`ore_band`), the starter set near spawn (`starter_outcrops`, `starter_reach`) |
 | `worldgen/ore.rs` | Deposit seeding (outcrops, veins, lodes), stamping, `deposit_at` ownership, `find_deposit`, `deposit_by_key` |
 | `deposits.rs` | Deposit geometry, tiers, pooled reserves, draw caps, taper, spent rock, `HAND_YIELD`; `owner_of` and `DepositState::survey` (read-only queries) |
 | `factory/mod.rs`, `table.rs` | Machine table (`table.rs`: `Kind`, `MACHINES`: one row per block, Kind-ordered rows first, then extra blocks sharing a kind; `machine`), the `Machine` trait every kind implements (`cells`: one, or a footprint's), `Factory`: a `Vec` per kind, index `at` (every cell), `count(kind)`, the world's `research`, `place` / add / remove, `processors_of(block)`, `update` (one tick: power balance, miners, quarries, boxes, processors (with the machine recipes research allows), powered machines and labs, belts; emits `SimEvent`s) |
@@ -270,7 +271,7 @@ See [EXTENDING.md](EXTENDING.md) for adding content, APIs, UI, saved state and s
 | `research/techs.rs` | `TECHS` (units, seconds, packs per unit) |
 | `worldgen/bearing.rs` | `STEP` (grid spacing), `MAX_RING` (search radius) |
 | `worldgen/biome.rs` | `HIGHLAND_LEVEL`, `LOWLAND_LEVEL`, `SPAWN_CALM`, `DITHER`, thresholds in `biome_at`, `tree_factor` |
-| `worldgen/geology.rs` | `ORES_BY_BIOME`, `OUTCROPS`, `VEIN_CHANCES`, `HINT_MARGIN`, `HINT_ONE_IN` (version 2); `BAUXITE_FROM`, `BAUXITE_WEIGHTS` (version 5) |
+| `worldgen/geology.rs` | `ORES_BY_BIOME`, `OUTCROPS`, `VEIN_CHANCES`, `HINT_MARGIN`, `HINT_ONE_IN` (version 2); `EXTRAS`, `RARITY` (versions 5 and 6) |
 | `worldgen/strata.rs` | `EXPOSED_CHANCE`, `ORE_DEPTH`, `STARTERS` (version 3, released); version 4: `EXPOSED_CHANCE_METALS`, `ORE_DEPTH_V4`, `STARTERS_V4`, `STARTER_RADII_V4` |
 | `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` |
 | `recipes/mod.rs` | `RECIPES` (hand) |

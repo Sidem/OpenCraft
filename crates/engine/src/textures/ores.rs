@@ -15,6 +15,8 @@ const IRON: Ramp = [[72, 38, 30], [98, 52, 38], [124, 70, 48], [150, 92, 62], [1
 const MALACHITE: Ramp = [[28, 78, 60], [40, 104, 76], [56, 130, 92], [84, 158, 112], [130, 190, 146]];
 const QUARTZ: Ramp = [[146, 152, 160], [182, 187, 194], [207, 211, 217], [227, 229, 233], [246, 247, 250]];
 const BAUXITE: Ramp = [[96, 38, 28], [128, 52, 36], [158, 74, 48], [186, 102, 66], [214, 142, 100]];
+const TAR: Ramp = [[10, 9, 8], [22, 19, 14], [38, 32, 22], [66, 56, 38], [118, 98, 60]];
+const UREX: Ramp = [[34, 66, 20], [66, 120, 28], [110, 178, 40], [168, 226, 70], [226, 250, 150]];
 const LIME: Ramp = [[160, 156, 140], [180, 176, 160], [197, 194, 178], [211, 208, 193], [226, 224, 211]];
 
 /// Black angular lumps made of flat facets (one catching the light, with a sheen texel), a sooty
@@ -117,5 +119,32 @@ pub fn limestone(x: i32, y: i32, alt: u32) -> [u8; 4] {
         Some(s) if ((s.dx * 3.0).round() as i32).rem_euclid(2) == 0 => tone(&LIME, 0.2),
         Some(_) => tone(&LIME, 0.8),
         None => base,
+    }
+}
+
+/// Tar-soaked sand: a sand-brown matrix streaked with glossy black pools of oil, each with a bright amber sheen
+/// on its upper left. One look only (the alternate layers are full).
+pub fn oil_sand(x: i32, y: i32, _alt: u32) -> [u8; 4] {
+    let matrix = tone(&TAR, 0.45 + mottle(350, x, y, 0.3) * 0.3);
+    match blob(351, 0, 7, (1.1, 2.4), 1.0, x, y) {
+        Some(s) if s.d > 0.85 => tone(&TAR, 0.3),
+        Some(s) if s.dx + s.dy < -0.55 && s.d < 0.6 => [214, 150, 52, 255],
+        Some(_) => tone(&TAR, 0.04 + n(352, x, y) * 0.1),
+        None if n(353, x, y) > 0.94 => tone(&TAR, 0.95),
+        None => matrix,
+    }
+}
+
+/// Dark rock with a few bright yellow-green crystals, each with a pale core and a halo of glow soaking into the rock.
+/// One look only (the alternate layers are full).
+pub fn uranium(x: i32, y: i32, _alt: u32) -> [u8; 4] {
+    match blob(360, 0, 5, (0.9, 1.9), 1.0, x, y) {
+        Some(s) if s.d < 0.35 => tone(&UREX, 0.98),
+        Some(s) if s.d > 0.85 => tone(&UREX, 0.2),
+        Some(s) => tone(&UREX, 0.6 - (s.dx + s.dy) * 0.25),
+        None => {
+            let rock = stone(x, y);
+            mix(rock, [90, 150, 40], 0.12 * n(361, x, y))
+        }
     }
 }

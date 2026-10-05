@@ -218,7 +218,10 @@ pub const SIGNAL: u16 = 199;
 pub const HOVER_PACK: u16 = 200;
 /// The cargo drone's icon (`textures/aluminium.rs`).
 pub const CARGO_DRONE: u16 = 201;
-pub const COUNT: usize = 202;
+/// Oil sand and uranium ore (`textures/ores.rs`): one look each, the alternates are full.
+pub const OIL_SAND: u16 = 202;
+pub const URANIUM_ORE: u16 = 203;
+pub const COUNT: usize = 204;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

@@ -36,6 +36,8 @@ const WORLD_BLOCKS: &[BlockId] = &[
     LIMESTONE,
     QUARTZ_ORE,
     BAUXITE_ORE,
+    OIL_SAND,
+    URANIUM_ORE,
     RUSTY_SOIL,
     DARK_SOIL,
     GREEN_SOIL,
@@ -48,8 +50,9 @@ const WORLD_BLOCKS: &[BlockId] = &[
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
-/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5).
-const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE];
+/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; oil sand and uranium ore wait for the
+/// pumpjack, refinery and reactor, Milestone 10).
+const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE, ItemId::block(OIL_SAND), ItemId::block(URANIUM_ORE)];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

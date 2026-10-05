@@ -24,7 +24,7 @@ const B: PlayerId = PlayerId(1);
 /// (save version 31), and in 9.4b for the Trains tech and the train list (save version 32), and in 9.5a for the
 /// Hover Pack tech and the hover, charge and pole each player's helpers save (save version 36), and in 9.5b for the
 /// Cargo Drones tech and the cargo routes and drones saved after the construction drones (save version 37).
-const GOLDEN_HASH: u64 = 0xa1dd_c47b_b8da_ca78;
+const GOLDEN_HASH: u64 = 0xb81d_4fcc_4fb1_2c14;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -159,7 +159,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with generator version 4 and save version 32 (the inventory writes its pack rows and worn gear). Only a deliberate
+    // Recorded with generator version 6 (version 6 moved the outcrop this script mines) and save version 37; before that 4 and 32 (the inventory writes its pack rows and worn gear). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

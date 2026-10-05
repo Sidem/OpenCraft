@@ -5,22 +5,26 @@
 //!
 //! To add an ore: a row in `GUIDE`.
 
-use crate::block::{self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, QUARTZ_ORE};
+use crate::block::{
+    self, BlockId, BAUXITE_ORE, COAL_ORE, COPPER_ORE, IRON_ORE, LIMESTONE, OIL_SAND, QUARTZ_ORE, URANIUM_ORE,
+};
 use crate::deposits::Tier;
 use crate::math::IVec3;
 use crate::minimap::ore_color;
 use crate::prospect::SCANNERS;
-use crate::worldgen::{ore_shares, WorldGen, BAUXITE_FROM, LODE_HEIGHTS};
+use crate::worldgen::{ore_shares, WorldGen, LODE_HEIGHTS};
 
-/// Per ore: its block, the stain it leaves on grass (on sand it is the same colour; none for bauxite), how it
-/// looks. Bauxite is listed only for worlds of generator version 5 and up.
-const GUIDE: [(BlockId, &str, &str); 6] = [
+/// Per ore: its block, the stain it leaves on grass (on sand it is the same colour; none for bauxite, oil sand and
+/// uranium), how it looks. The extra ores are listed only for worlds whose generator makes them (`WorldGen::has_ore`).
+const GUIDE: [(BlockId, &str, &str); 8] = [
     (COAL_ORE, "dark soil", "black lumps in the rock"),
     (IRON_ORE, "rusty soil", "rust-brown nodules in the rock"),
     (COPPER_ORE, "green soil", "orange and green crusts"),
     (LIMESTONE, "pale soil", "pale rock with fossils"),
     (QUARTZ_ORE, "pale soil", "pink-white crystals"),
     (BAUXITE_ORE, "", "brick-red balls packed in red clay"),
+    (OIL_SAND, "", "black pools of tar in brown sand"),
+    (URANIUM_ORE, "", "bright yellow-green crystals in dark rock"),
 ];
 
 /// One line per ore, fields split by tabs: block id, colour (0xRRGGBB), name, the band it lies in
@@ -28,11 +32,11 @@ const GUIDE: [(BlockId, &str, &str); 6] = [
 pub fn guide_rows(gen: &WorldGen) -> String {
     let mut out = String::new();
     for (ore, stain, looks) in GUIDE {
-        if ore == BAUXITE_ORE && gen.version() < 5 {
+        if !gen.has_ore(ore) {
             continue;
         }
         let (lo, hi) = gen.ore_band(ore);
-        let shares = ore_shares(ore);
+        let shares = ore_shares(ore, gen.version());
         let common = if gen.version() < 2 || shares.is_empty() {
             "Everywhere".to_string()
         } else {
@@ -40,13 +44,17 @@ pub fn guide_rows(gen: &WorldGen) -> String {
             format!("Share of deposits: {}", parts.join(", "))
         };
         let mut signs = format!("Exposed: {looks}.");
-        if stain.is_empty() {
+        if matches!(ore, OIL_SAND | URANIUM_ORE) {
+            signs = format!(
+                "Never at the surface: {looks}. Only veins and lodes. Scan for it (the Mk2's bearing shows the way), then drill down."
+            );
+        } else if stain.is_empty() {
             signs += " It leaves no stain: find the right biome far from the start, then scan.";
         } else if gen.version() >= 2 {
             signs += &format!(" Buried: {stain} or sand above a vein or lode.");
         }
         let label = block::ore_label(ore);
-        let name = if ore == LIMESTONE { label.to_string() } else { format!("{label} ore") };
+        let name = if matches!(ore, LIMESTONE | OIL_SAND) { label.to_string() } else { format!("{label} ore") };
         out += &format!("{ore}\t{}\t{name}\t{lo}\t{hi}\t{common}\t{signs}\n", ore_color(ore));
     }
     out
@@ -64,9 +72,17 @@ pub fn guide_notes(gen: &WorldGen) -> String {
         lines
             .push("Depth counts down from the ground above, not from sea level: under a hill, ore lies higher.".into());
     }
-    if gen.version() >= 5 {
+    if gen.has_ore(BAUXITE_ORE) {
         lines.push(format!(
-            "Bauxite, the aluminium ore, lies only in deserts and basalt fields at least {BAUXITE_FROM} blocks from where the world starts."
+            "Bauxite, the aluminium ore, lies only in deserts and basalt fields at least {} blocks from where the world starts.",
+            gen.ore_from(BAUXITE_ORE)
+        ));
+    }
+    if gen.has_ore(OIL_SAND) {
+        lines.push(format!(
+            "Oil sand lies deep under the plains and lowlands, {} or more blocks out, and uranium under the highlands and basalt fields, {} or more out. Neither stains the soil: scan for them.",
+            gen.ore_from(OIL_SAND),
+            gen.ore_from(URANIUM_ORE)
         ));
     }
     if gen.version() >= 2 {

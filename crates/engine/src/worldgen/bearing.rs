@@ -5,9 +5,9 @@
 //! height and biome fields, never chunks, so unexplored ground answers like explored ground and the state hash
 //! never moves). It samples a coarse grid in square rings round the start, nearest ring first, so the answer is
 //! the nearest sampled column (to within `STEP`) whose biome holds the ore there. Worlds before version 2 had no
-//! biome ores, and bauxite exists from version 5: those answer `None`. To tune: `STEP` and `MAX_RING`.
+//! biome ores, and the extra ores exist from their own versions (`WorldGen::has_ore`): those answer `None`. To tune: `STEP` and `MAX_RING`.
 
-use crate::block::{BlockId, BAUXITE_ORE};
+use crate::block::BlockId;
 use crate::math::IVec3;
 
 use super::WorldGen;
@@ -30,7 +30,7 @@ impl WorldGen {
     /// The nearest sampled ground at or round (x, z) whose biome can hold deposits of `ore`; `None` for a world
     /// that has no such ground or no biome ores, or within `MAX_RING` rings.
     pub fn bearing_to(&self, ore: BlockId, x: i32, z: i32) -> Option<Bearing> {
-        if self.version < 2 || ore == BAUXITE_ORE && self.version < 5 {
+        if self.version < 2 || !self.has_ore(ore) {
             return None;
         }
         let holds = |px: i32, pz: i32| {

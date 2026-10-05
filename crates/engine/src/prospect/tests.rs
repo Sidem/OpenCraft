@@ -83,7 +83,7 @@ fn the_mk2_filters_by_ore_and_reports_reserves() {
     let all = g.prospect_records();
     assert_eq!(all.len() % SCAN_FIELDS, 0);
     assert!(!all.is_empty());
-    // R steps through coal, iron, copper, limestone, quartz, bauxite and back to every ore.
+    // R steps through coal, iron, copper, limestone, quartz, bauxite, oil sand, uranium and back to every ore.
     let mut seen = vec![g.scan_filter()];
     for _ in 0..FILTER_ORES.len() + 1 {
         assert!(g.rotate_target());
@@ -93,7 +93,7 @@ fn the_mk2_filters_by_ore_and_reports_reserves() {
         assert!(kept.chunks_exact(SCAN_FIELDS).all(|r| ore.is_none_or(|o| r[0] == o as i32)));
         assert!(ore.is_some() || kept == all, "no filter keeps everything");
     }
-    assert_eq!(seen, [0, 7, 8, 9, 33, 34, 76, 0]);
+    assert_eq!(seen, [0, 7, 8, 9, 33, 34, 76, 81, 82, 0]);
     // Reserves: a tracked deposit's exact units, an untouched one's estimate, and the minutes a full-speed mine
     // takes (units over the tier's draw cap).
     for r in all.chunks_exact(SCAN_FIELDS) {
