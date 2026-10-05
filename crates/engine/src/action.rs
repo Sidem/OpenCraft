@@ -87,24 +87,21 @@ pub enum Action {
     RemoveGhost {
         pos: IVec3,
     },
-    /// Sets the quarry at `pos`'s box (`factory::WIDTHS` and `DEPTHS` indices; a new box starts over)
-    /// and whether it is paused.
+    /// Sets the quarry at `pos`'s box (`factory::WIDTHS` and `DEPTHS` indices) and whether it is paused.
     SetQuarry {
         pos: IVec3,
         width: u8,
         depth: u8,
         paused: bool,
     },
-    /// Marks a terraforming site over the columns (x, z) between corners `a` and `b`: `job` to
-    /// `level` (`factory::Sites::mark`, which refuses a site that doesn't fit).
+    /// Marks a terraforming site between corners `a` and `b`: `job` to `level` (`Sites::mark` refuses misfits).
     MarkSite {
         a: (i32, i32),
         b: (i32, i32),
         level: i32,
         job: Job,
     },
-    /// Marks a tunnel site from the block `from` towards `to` with section `size` (`factory::Tunnel::new`,
-    /// `Sites::mark_tunnel`, which refuse what doesn't fit).
+    /// Marks a tunnel site from `from` towards `to` with section `size` (`Sites::mark_tunnel` refuses what doesn't fit).
     MarkTunnel {
         from: IVec3,
         to: IVec3,
@@ -114,8 +111,7 @@ pub enum Action {
     RemoveSite {
         id: u32,
     },
-    /// Wires the power pole at `pole` to the machine or pole standing at `to` (`factory::Factory::connect`:
-    /// only if it is in range and both have a free slot). A machine on another pole moves to this one.
+    /// Wires the power pole at `pole` to the machine or pole at `to` (`Factory::connect`: in range, free slots).
     Connect {
         pole: IVec3,
         to: IVec3,
@@ -125,8 +121,7 @@ pub enum Action {
         pole: IVec3,
         to: IVec3,
     },
-    /// Puts the locomotive in `slot` on the rail node at `pos` (`factory::Factory::place_train`), or couples the
-    /// wagon there to the train beside it (`couple`).
+    /// Puts the locomotive in `slot` on the rail node at `pos` (`place_train`), or couples the wagon there (`couple`).
     PlaceTrain {
         pos: IVec3,
         slot: u8,
@@ -141,8 +136,29 @@ pub enum Action {
         dock: IVec3,
         clear: bool,
     },
-    /// Raises the tiered machine at `pos` one tier with kits from the inventory (`factory/upgrades.rs`),
-    /// if research allows it and there are enough.
+    /// Takes the signal off the rail node at `pos` back into the inventory, or puts the one in `slot` on it.
+    ToggleSignal {
+        pos: IVec3,
+        slot: u8,
+    },
+    /// Starts or stops the hover pack's hover (`helpers/`): the player holds jump in the air with one in the pack.
+    Hover {
+        on: bool,
+    },
+    /// Sets the cargo route of the drone port with a cell at `from` to the port with one at `to`, or with `clear`
+    /// removes it (`drones/cargo.rs`).
+    SetRoute {
+        from: IVec3,
+        to: IVec3,
+        clear: bool,
+    },
+    /// The hover pack starts (`on`) or stops charging from the power pole at `pole` (`helpers/`): the hands send it
+    /// as the player walks into or out of the pole's reach.
+    Charge {
+        pole: IVec3,
+        on: bool,
+    },
+    /// Raises the tiered machine at `pos` one tier with kits from the inventory (`factory/upgrades.rs`).
     Upgrade {
         pos: IVec3,
     },
@@ -320,6 +336,10 @@ impl Sim {
             Action::TrainStop { node, dock, clear } => {
                 self.factory.set_stop(node, dock, clear);
             }
+            Action::ToggleSignal { pos, slot } => self.toggle_signal(player, pos, slot),
+            Action::SetRoute { from, to, clear } => self.set_route(from, to, clear),
+            Action::Hover { on } => self.set_hover(player, on),
+            Action::Charge { pole, on } => self.set_charge(player, pole, on),
             Action::MarkSite { a, b, level, job } => {
                 self.factory.sites.mark(&mut self.world, a, b, level, job);
             }

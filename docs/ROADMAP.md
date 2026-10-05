@@ -31,6 +31,8 @@ Moved into `docs/DEV_PLAN.md` at the end of Milestone 8 (2026-10-04); this is th
 
 ## Milestone 10: Fluids and chemistry (era 7, gold)
 
+Moved into `docs/DEV_PLAN.md` at the end of Milestone 9 (2026-10-05); this is the original sketch.
+
 - **Rivers** carved into the height map, flowing to the sea; **hydro** with water wheels and dams.
 - **Oil:** pumpjacks, a refinery with three outputs, a chemical plant; plastics, sulfur, acid. Oil
   products ride belts as canisters, so pipes stay water-only. Diesel generators. **Electrolysis**

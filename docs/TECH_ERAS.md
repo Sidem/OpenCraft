@@ -98,7 +98,8 @@ fields, far from spawn.
 | Aluminium plate | 1 ingot → 1 (constructor, 3 s) | gold kit, batteries, frames, hover pack |
 | Battery | 1 aluminium plate, 1 circuit, 4 copper wire → 1 (assembler, 6 s) | hover pack, cargo drones, gold pack |
 | Rail | 1 steel beam, 1 concrete → 4 (assembler) | trains |
-| Hover pack (tool) | 6 aluminium plates, 2 motors, 4 batteries, 2 processors (hand) | charges near a pole; hovers, faster |
+| Cargo drone | 1 drone, 4 aluminium plates, 2 batteries → 1 (assembler, 30 s) | built (9.5b): kept in a drone port, hauls a stack (64) to a routed port; 1 battery per 150 blocks of round trip |
+| Hover pack (tool) | 6 aluminium plates, 2 motors, 4 batteries, 2 processors (hand) | built (9.5a): 90 s of charge, charges within 6 blocks of a pole; holds height, 8 blocks/s |
 
 Machines and techs: Bauxite Processing · Rails · Trains (locomotive, wagon) · Stations and Signals ·
 Cargo Drones (port to port, battery-limited range) · Hover Pack.

@@ -22,6 +22,7 @@
 //! or on a pad (never both), so the fleet is conserved (`tests.rs`).
 //! To change a number: the constants below, and a port tier's reach and fleet in `hangar.rs`.
 
+pub mod cargo;
 mod earthworks;
 #[cfg(test)]
 mod tests;
@@ -30,7 +31,7 @@ use crate::block::{self, AIR};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::PortInfo;
 use crate::inventory::Stack;
-use crate::item::{ItemId, DRONE};
+use crate::item::{ItemId, CARGO_DRONE, DRONE};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{PlayerId, Sim};
 use crate::{TICK, TICK_RATE};
@@ -133,8 +134,15 @@ impl Sim {
     pub(crate) fn step_drones(&mut self) {
         let ports = self.factory.ports();
         for p in &ports {
-            let away = self.drones.out_of(p.anchor);
-            self.factory.set_port_flight(p.anchor, away);
+            let (builders, couriers) = (self.drones.out_of(p.anchor), self.cargo.out_of(p.anchor));
+            let kind = if couriers > 0 {
+                CARGO_DRONE
+            } else if builders > 0 {
+                DRONE
+            } else {
+                ItemId::NONE
+            };
+            self.factory.set_port_flight(p.anchor, builders + couriers, kind);
         }
         if self.drones.list.is_empty() && ports.iter().all(|p| p.home == 0) {
             return;
@@ -249,7 +257,7 @@ impl Sim {
                 self.drop_stacks(d.pos.floor(), vec![left]);
             }
         }
-        if !self.factory.port_land(d.port) {
+        if !self.factory.port_land(d.port, DRONE) {
             self.lose(d);
         }
     }
@@ -272,7 +280,7 @@ impl Sim {
             }
             load = Stack { item, count: 1 };
         }
-        if !self.factory.port_take_drone(port.anchor) {
+        if !self.factory.port_take(port.anchor, DRONE) {
             if let Some(from) = job.from {
                 self.factory.store_in_boxes(&[from], load);
             }

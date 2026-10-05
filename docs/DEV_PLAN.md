@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.4b3 done (rails as nodes and curves, locomotives, wagons and docks, schedules), next 9.4c signals** · The `art` branch is superseded; art work
+**Status:** 2026-10-05 · Strategy controls built · Milestones 1–9 done (9.x uncommitted) (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
+now) · **Now: Milestone 10 (fluids and chemistry): oil, refinery, plastics, diesel, electrolysis, washing, rivers, hoists, nuclear, gold science; next 10.1 oil and uranium in the ground** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -35,8 +35,10 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   and the silo.
 - **Milestones 7 and 8 are done** (`docs/CHANGELOG.md`): circuits, violet science, solar, logic, blueprints,
   construction drones, jetpack and gear; then terraforming by drone (dig, fill, flatten, tunnels).
-- **Now: Milestone 9: Distance** (section 4): bauxite in far biomes, aluminium, a way to find which way to go,
-  trains, cargo drones and the hover pack.
+- **Milestone 9 is done** (`docs/CHANGELOG_M9.md`): bauxite in far biomes, aluminium, bearings to far ground, trains,
+  cargo drones and the hover pack.
+- **Now: Milestone 10: Fluids and chemistry** (section 4): oil and canisters, plastics, diesel, electrolysis, ore
+  washing, rivers and hydro, hoists, nuclear power, gold science.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -418,108 +420,57 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 9: Distance
+## 4. Now: Milestone 10: Fluids and chemistry
 
-Milestones 6 (Industry), 7 (Electronics, blueprints, drones) and 8 (Terraforming) are done; their step lists are in
-`docs/CHANGELOG.md` ("Milestones 6 to 8"). Design: `docs/TECH_TREE.md` and `docs/TECH_ERAS.md` section 5.
+Milestones 6 (Industry), 7 (Electronics, blueprints, drones), 8 (Terraforming) and 9 (Distance) are done; their step lists
+are in `docs/CHANGELOG.md` ("Milestones 6 to 8") and `docs/CHANGELOG_M9.md`. Design: `docs/TECH_TREE.md` and `docs/TECH_ERAS.md` section 6.
 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 34) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 37) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 81, item 345). Each new look gets a placeholder
-  layer (`tex::COUNT` is 199) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 81, item 348). Each new look gets a placeholder
+  layer (`tex::COUNT` is 202) and a `docs/ART_HANDOVER.md` request line.
+- Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
-### Milestone 8 (Terraforming), built
+### Milestone 9 (Distance), built
 
-Sites in the core (`factory/sites.rs`, `sites/tunnel.rs`, `sites/survey.rs`): dig, fill, flatten and tunnels, marked
-with the Planner (item 332, tech Earthworks; `site_hands.rs`, `ui/site.ts`) and worked by the drone ports of Milestone 7
-(`drones/earthworks.rs`: cuts go into the pad's boxes, fills come out of them). Drones leave tunnel cells touching water.
-Sites show on the maps as hollow squares. `bench_earthworks`: worst tick 0.5 ms. Full specs: `docs/CHANGELOG.md`.
+Bauxite in far deserts and basalt fields (generator version 5), aluminium and batteries, a Scanner Mk2 bearing to far
+ground, rails as nodes and curves with locomotives, wagons, docks, schedules and signals, the hover pack, and cargo
+drones between drone ports. Specs: `docs/CHANGELOG_M9.md`. **Measured:** 14 trains with wagons on a 60-node line cost
+4.0 µs a tick (worst 31 µs), 6.4 µs with a signal on every node (worst 11 µs): trains are cheap (`bench_trains`, ignored).
+**Balance:** a train is the bulk hauler (6 wagons × 24 slots, 9 blocks a second, needs track and docks, no fuel); a cargo
+drone moves one stack of 64 with no track but pays batteries by distance (a 600-block trip burns 8, the aluminium of about
+21 ore plus circuits and wire), so drones suit small valuable loads and short or awkward hops, trains suit ore by the beltful.
 
-### Milestone 9 steps
+### Milestone 10 steps
 
-Goal: the world is bigger than the factory. A new ore sits only in far biomes, so the player must find it, reach it and
-haul it home. Order: the ore, aluminium, finding far ground, rails, then flight and cargo.
+Goal: the factory learns fluids and chemistry. Order: new resources, the oil chain, power from it, washing, rivers, deep
+mines, nuclear, then the gold tier. Each step is detailed at its start from `docs/TECH_ERAS.md` section 6; the lines
+below fix scope and order.
 
-- [x] **9.1 Bauxite and generator version 5** (`worldgen/geology.rs`, new worlds only; versions 1–4 never make it): block
-  76 `BAUXITE_ORE`, in deposits only in deserts and basalt fields at least 600 blocks from spawn (weights 4 and 3 on top of
-  those biomes' ores: 27% and 23% of their deposits), a shallow band of 4–16 blocks, exposed on bare rock like the metals.
-  No stain (it shows itself). Ore guide row and note (version 5 worlds only), scanner filter, map colour, texture layer 186.
-  Used by nothing until 9.2 (`NO_USE_YET`). Tests 458 → 459; v5 is not pinned in `released_versions_never_change` yet.
-- [x] **9.2 Aluminium** (`research/distance.rs`, `recipes/aluminium.rs`, `textures/aluminium.rs`): tech Bauxite Processing
-  (index 36, after Ore Crushing and Violet Science; 120 units of all four packs) unlocks the electrolytic cell (block 77, a
-  `ProcessSpec` row of 3×2×2 with a slag `Role::Side` hatch on the right, 300 kW, new `Category::Electrolysis`; hand recipe 12 steel
-  plates, 16 stone bricks, 24 copper wire, 4 circuits) and machine recipes 37–40 (`BAUXITE_RECIPES`: crusher 2 ore → 3
-  crushed bauxite; cell 2 crushed + 1 quicklime → ingot + slag, 6 s; constructor ingot → plate, 3 s; assembler plate + circuit
-  + 4 wire → battery, 6 s). Items 339–342, layers 187–192. The battery waits for 9.5 (`NO_USE_YET`). The scenario test runs
-  bauxite → crushed → aluminium → plate → battery. The tech count grew, so the golden hash was re-recorded (research bytes
-  list every tech); no save version bump (older saves read fewer techs). Tests 459 → 460.
-- [x] **9.3 Finding far ground** (user request, 2026-10-04: the player must roughly know which way to travel to reach the
-  right biome). Built on the plan's proposal while the two open questions (section 6) stay open: the **Scanner Mk2 gives it
-  free** and it is a **bearing only**. `WorldGen::bearing_to(ore, x, z)` (`worldgen/bearing.rs`) samples the height and biome
-  fields on a 48-block grid in square rings (to 3,072 blocks) and returns the nearest column whose biome holds the ore (a
-  query: no state, never touches chunks, so the hash cannot move; `None` before version 2, bauxite before 5). With an ore
-  filter on and none of it in range, the scan panel says "south-west, 600 to 800 blocks" and the top pointer leads to that
-  ground (`ui/prospect.ts` `farGround`); scanning again on the way re-aims it. Tests: nearest-sampled, here, old worlds,
-  order-independent, and that a Mk2 scan round the target finds bauxite on three seeds. Verified in the browser on a
-  version 5 world. No map pin yet (add if the user wants one). Tests 460 → 467.
-- [ ] **9.4 Rails and trains** (the user wants trains for hauling far resources). Trucks are not planned.
-  - [x] **9.4a Rails** (`factory/rail.rs`, `rail/curve.rs`, `rail_tools.rs`, `Kind::Rail`, block 78, tech Rails index 37: needs
-    Violet Science and Earthworks; hand recipe 1 steel beam + 1 concrete → 6 rails). **Redesigned 2026-10-04 at the user's
-    request** (the first version laid a block per cell like belts): rails are built like power poles. A rail is a *node* on
-    the grid with a heading byte (the facing of its `PlaceBlock`); `Track {a, b}` joins two nodes (saved; `Action::Connect` /
-    `Disconnect` between nodes, quietly nothing unless `Factory::track_fit` says `Fit::Ok`) and is a smooth curve free of the
-    voxel grid: a cubic Hermite spline in x and z leaving each node along its heading (flipped to the way of travel,
-    tangents as long as the chord), height linear along it (`Curve`). A pair fits when 3 to 32 blocks apart (`MAX_SPAN`),
-    at most 1 in 3 steep, each heading within 60° of the chord and the bend radius `chord / (2 sin a)` at least 8; a node
-    holds up to 4 tracks (junctions). The hand (`rail_tools.rs`): click ground to place a node joined to the selected one
-    (a first node faces the view, a later one the mirror of the previous heading in the chord, so the track is an arc and
-    a straight chord stays straight; Shift = full reach along the view; crouch starts a new line), click a node to select
-    or join, crouch-click to cut. Ghost node and curve, outlines (green fits, red why-not, amber cut, blue selected) and
-    HUD label. Track pieces are boxes (sleeper + two rails per 0.75 block, tilted to the grade), culled by range. Track
-    does not clear terrain (planner jobs). Save version 31 (headings, then the track list after the rails; v30 rails
-    load facing north); golden hash re-recorded. Tests 467 → 481. Not done: warning when a curve passes through solid
-    blocks; rail removal refunds nothing special (a node is an ordinary block).
-  - [x] **9.4b1 Locomotives** (`factory/trains.rs`, `trains/model.rs`, `train_tools.rs`; tech Trains, index 38, needs Rails; hand
-    recipe 4 motors + 4 circuits + 10 steel plates + 4 steel beams → 1 locomotive, item 343): a `Train` is a stretch of the
-    track graph, `path` = directed edges `(from, to)` tail first and `head` = mm along the last edge (arc length of the
-    `Curve`, so speed is even on bends: 150 mm a tick, 9 blocks a second); saved (version 32). At a node it takes the track
-    leading on most straight (within 60° of its heading, ties by cell: `next_from`), with none it reverses (tail becomes
-    head), so a plain line shuttles. Placed by clicking a node that has track with the item in hand (`Action::PlaceTrain`),
-    crouch-click picks the nearest up (`TakeTrain`); a node removed under a train drops the locomotive, and a track with
-    a train on it cannot be cut. Drawn from its front and rear poses (it follows a bend). Golden hash re-recorded. Tests
-    481 → 490. No fuel, collisions or cargo yet (a second train on the same track passes through the first).
-  - [x] **9.4b2 Wagons and docks** (`factory/trains/cars.rs`, `trains/docks.rs`, `process/docks.rs`; tech Freight, index 39, needs
-    Trains; hand recipes: wagon 8 steel plates + 2 steel beams + 1 storage box → item 344; docks 10 steel plates + 2 motors
-    + 2 circuits + 1 storage box each → blocks 79 Loading Dock and 80 Unloading Dock). Wagons: `Train` gained `cars` (at most 6),
-    `cargo` (one `Buffer`, 24 slots a wagon) and `idle`; the train is `len_mm` long (a locomotive and a wagon 2.5 m each) and
-    `path` always covers all of it. The held wagon is `Action::PlaceTrain` too: `couple` puts track behind the train under the
-    new wagon, or, with none behind (a locomotive just put on the first node), pulls the train forward along the track ahead
-    (`Spot` gained `NoTrain`, `Full`, `NoRoom`). Crouch-click gives back the locomotive, wagons and cargo. **Docks** are two
-    spec rows (2×2×1 processors holding 48 slots like a silo: `Pick::Load` takes belts on every side, `Pick::Unload` gives
-    to belts on every side; `Pick::stores`) rather than one block with a mode, so no panel change was needed. Instead of
-    schedules, a train with wagons stops when its front reaches a node with a dock cell within 2 blocks, trades 8 items a
-    tick (the loader's store into the wagons, or the wagons into the unloader) and drives on after 5 seconds with no trade, so a
-    line shuttles between its docks. Models: wagon boxes (`WAGON_BOXES`), dock parts, texture layers 195–198 (placeholders,
-    `ART_HANDOVER.md`). Save version 33 (v32 trains load without wagons); golden hash re-recorded (one more tech). Tests
-    490 → 500, including ore from a box through the loading dock, a train and the unloading dock into a box (40 of 40 arrive).
-    Seen in the browser: a locomotive with two wagons stopped at a dock.
-  - [x] **9.4b3 Schedules** (fuel and dock filters deferred): a train has a list of up to 8 dock anchors
-    (`factory/trains/schedule.rs`) and a `next` index. At junctions `steer` runs a breadth-first search toward the next
-    dock (60° turn limit); the train passes other docks, stops at the next, then moves on (round again). A gone dock is
-    skipped; no schedule = stop at every dock. Edited with the locomotive in hand: click a train's node to select it,
-    click docks to append, crouch-click a dock to clear (`Action::TrainStop`, tag 43). Save version 34. Tests 500 → 505
-    (order across a fork, passing docks, edit limits, gone dock and save, the hand). **Deferred** to a train panel
-    (9.4c or later): fuel and dock item filters.
-  - [ ] **9.4c Signals and junctions:** a signal block on a node reserves the stretch to the next signal for one train at
-    a time; junction routing needs no switch block (routing picks the branch). Done when: two trains share one track
-    without meeting.
-- [ ] **9.5 Cargo drones and the hover pack** (`docs/TECH_ERAS.md` section 5): port-to-port cargo drones limited by
-  battery range; the hover pack as flight's second tier.
-- [ ] **9.6 Cleanup:** tips, balance (how long the trip and the train pay off), worst tick with many trains, README,
-  CODEMAP; then move Milestone 10 in from the roadmap.
+- [ ] **10.1 Oil and uranium in the ground** (generator version 6, new worlds only; `worldgen/geology.rs`): oil reservoirs
+  (lowlands and the sea floor) and uranium (deep, rare), shown in the ore guide, scanner filter and maps. Items: crude
+  and empty canisters. The pumpjack (2×2×3 spec row) fills a canister from a reservoir that is finite but long. Used by
+  nothing until 10.2 (`NO_USE_YET`).
+- [ ] **10.2 Refinery and chemical plant** (`process/` spec rows, new `Category`s): refinery (3×3×4; 2 crude + 1 water →
+  diesel canister, resin, sulfur), chemical plant (3×2×3; plastic, acid canister), techs Oil Processing, Plastics, Sulfur
+  and Acid. Canisters travel and stack on belts like any item.
+- [ ] **10.3 Diesel power and electrolysis:** a diesel generator (fuel is a canister item), the electrolyser (500 kW;
+  hydrogen and oxygen canisters), techs Diesel Power and Electrolysis.
+- [ ] **10.4 Ore washing:** the washer (2×2×2; 3 crushed ore + 1 water → 4 washed + 1 tailings) so one ore gives two
+  ingots; tailings are fill for the Planner. Tech Ore Washing.
+- [ ] **10.5 Rivers and hydro** (generator version 7, new worlds only): rivers carved into the height map flowing to the sea
+  (the first generation change that touches terrain: check the bearing and deposit queries still agree); water wheels and
+  dams for power. Needs the user's say on risk (section 6).
+- [ ] **10.6 Hoists:** mine shafts and hoists for deep lodes (lifts that carry boxes and the player between levels).
+- [ ] **10.7 Nuclear power:** uranium ore → centrifuge (2×2×3) → fuel cell → reactor (3×3×3, up to 2 MW; overheating stops
+  it, peaceful).
+- [ ] **10.8 Gold science and Mk5:** gold packs (1 plastic + 1 battery + 1 processor → 2, assembler 20 s), the fifth lab slot,
+  gold kits (Mk5), balance and tips.
+- [ ] **10.9 Cleanup:** tips, balance, worst tick, README, CODEMAP; then move Milestone 11 in from the roadmap.
+
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -533,9 +484,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 9
+## 5. Roadmap after Milestone 10
 
-Milestones 10–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
+Milestones 11–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
 and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
@@ -548,7 +499,7 @@ and adjust the steps.
 | Needed by | Question |
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
-| M9 | Is the bearing to far ground (9.3) free from the Scanner Mk2, or does it need its own survey tech and tool? Is a bearing to the biome enough, or should deposits far away be pinned once seen? |
+| M10 | Rivers (10.5) change terrain only on new worlds (generator version 7); existing worlds keep their ground. Acceptable, or should rivers wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
 
 ---
@@ -562,6 +513,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-05: Milestone 9 cleanup (step 9.6).** Onboarding tips for far ground, trains and hover/cargo (`hints.rs`); `bench_trains`: 14 trains cost 4.0 µs a tick, worst 31 µs (6.4 / 11 µs with signals); balance note in section 4; the Milestone 9 step list moved to `docs/CHANGELOG_M9.md`; Milestone 10 moved in from the roadmap.
+- **2026-10-05: Cargo drones (step 9.5b).** The Cargo Drones tech and item 347: drone ports become stations; a route between two ports (set by clicking them with a cargo drone in hand) sends drones with a stack from the first port's boxes to the second's, burning batteries by distance (`drones/cargo/`, `cargo_tools.rs`, `Action::SetRoute`); save version 37, golden hash re-recorded. Fixed a duplication bug in `store_in_boxes` / `port_land` (drone deposits and landings also dropped loose copies). Tests 518 → 527.
+- **2026-10-05: Hover pack (step 9.5a).** The Hover Pack tech (index 40, after Jetpack and Bauxite Processing) and item 346: a pack that hovers while jump is held in the air (height held, jump rises, crouch sinks, 8 blocks a second, 13 sprinting; `Player::hover`), running on `charge` (90 s at most) that refills at twice the drain while the player stands within 6 blocks of a power pole (`Action::Hover`, `Action::Charge`; `helpers/`, `helper_hands.rs`). It spends the first use of the battery. Save version 36, golden hash re-recorded. The pack draws nothing on the grid. Tests 513 → 518.
+- **2026-10-05: Signals (step 9.4c).** Rail signals on nodes cut the track into sections that hold one train at a time; trains wait at a signal or take a free branch (`factory/trains/signals.rs`); `Action::ToggleSignal`; save version 35. Tests 505 → 511.
 - **2026-10-05: Schedules (step 9.4b3).** A train follows a list of up to 8 docks, routed by a breadth-first search at junctions (`factory/trains/schedule.rs`), edited with the locomotive in hand (`Action::TrainStop`); save version 34. Fuel and dock filters deferred to a train panel. Tests 500 → 505.
 - **2026-10-05: Wagons and docks (step 9.4b2).** The Freight tech: wagons coupled behind a locomotive (24 cargo slots each, up to 6), a loading dock and an unloading dock (spec rows, belts on every side); a train with wagons stops at a node beside a dock, trades 8 items a tick and drives on after 5 idle seconds. Save version 33, golden hash re-recorded. Schedules and fuel are 9.4b3. Tests 490 → 500.
 - **2026-10-04: Locomotives (step 9.4b1).** The Trains tech and the locomotive item: a train is a stretch of the track graph moving at 9 blocks a second along the curves, turning round at dead ends and taking the straightest track at junctions (`factory/trains.rs`); `PlaceTrain` / `TakeTrain` actions; save version 32, golden hash re-recorded. Wagons, stations and schedules are 9.4b2. Tests 481 → 490.

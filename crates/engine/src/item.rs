@@ -156,6 +156,12 @@ pub const BATTERY: ItemId = ItemId(342);
 pub const LOCOMOTIVE: ItemId = ItemId(343);
 /// A wagon (the Freight tech), coupled behind a locomotive: a box's worth of slots, loaded at docks.
 pub const WAGON: ItemId = ItemId(344);
+/// A rail signal (the Freight tech), put on a rail node: one train at a time in the track between signals.
+pub const RAIL_SIGNAL: ItemId = ItemId(345);
+/// The hover pack (the Hover Pack tech): kept in the pack, charged near a power pole (`helpers/`).
+pub const HOVER_PACK: ItemId = ItemId(346);
+/// A cargo drone (the Cargo Drones tech): kept in a drone port, it flies loads to another port (`drones/cargo.rs`).
+pub const CARGO_DRONE: ItemId = ItemId(347);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -213,7 +219,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 89] = [
+const EXTRA: [ItemDef; 92] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -303,6 +309,9 @@ const EXTRA: [ItemDef; 89] = [
     part("Battery", tex::BATTERY, [0.4, 0.6, 0.4]),
     ItemDef { name: "Locomotive", stack: 8, tex: [tex::LOCOMOTIVE; 3], size: [0.9, 0.7, 0.9], places: AIR },
     ItemDef { name: "Wagon", stack: 8, tex: [tex::WAGON; 3], size: [0.9, 0.6, 0.9], places: AIR },
+    ItemDef { name: "Rail Signal", stack: 64, tex: [tex::SIGNAL; 3], size: [0.4, 0.8, 0.4], places: AIR },
+    tool("Hover Pack", tex::HOVER_PACK, &DEVICE_TIER),
+    part("Cargo Drone", tex::CARGO_DRONE, [0.8, 0.4, 0.8]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

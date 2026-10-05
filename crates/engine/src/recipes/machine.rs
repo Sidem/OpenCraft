@@ -16,7 +16,7 @@ use crate::item::{
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
 use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
-use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CRUSHED_BAUXITE};
+use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 
 /// A kind of machine work.
@@ -207,6 +207,12 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(BATTERY, 1)],
         seconds: 6.0,
     },
+    MachineRecipe {
+        category: Assembly,
+        inputs: &[(DRONE, 1), (ALUMINIUM_PLATE, 4), (BATTERY, 2)],
+        outputs: &[(CARGO_DRONE, 1)],
+        seconds: 30.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -231,6 +237,8 @@ pub const DRONE_RECIPES: [u16; 6] = [31, 32, 33, 34, 35, 36];
 /// Aluminium (Bauxite Processing): the crusher's bauxite row, the electrolytic cell's ingot, the constructor's plate
 /// and the assembler's battery.
 pub const BAUXITE_RECIPES: [u16; 4] = [37, 38, 39, 40];
+/// The assembler's cargo drone (Cargo Drones).
+pub const CARGO_RECIPE: u16 = 41;
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.

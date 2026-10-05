@@ -5,28 +5,31 @@
 //!
 //! - Stored drones are the `input` buffer's (so saves, breaking and belts need nothing new); `Hangar::away`
 //!   counts the fleet that is flying, derived each tick by `drones/` so a port never holds more than its fleet.
-//! - Reach (blocks, from the pad's centre) and fleet size come from [`TIERS`], by tier: Mk1 to Mk4.
+//!   The buffer is one slot, so a port keeps construction drones or cargo drones (`drones/cargo.rs`), not both.
+//! - Reach (blocks, from the pad's centre), cargo range and fleet size come from [`TIERS`], by tier: Mk1 to Mk4.
 //!
 //! To change a tier: its row in [`TIERS`] (and the power in the spec's tier row).
 
 use crate::block::tex;
-use crate::item::DRONE;
+use crate::item::{ItemId, CARGO_DRONE, DRONE};
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::model::{part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor};
 
-/// What a port tier gives: how far its drones work from the pad's centre, and how many it keeps.
+/// What a port tier gives: how far its construction drones work from the pad's centre, how far its cargo drones fly
+/// to another port, and how many drones it keeps.
 pub struct HangarTier {
     pub reach: u32,
     pub fleet: u32,
+    pub cargo_range: u32,
 }
 
 pub const TIERS: [HangarTier; 4] = [
-    HangarTier { reach: 32, fleet: 4 },
-    HangarTier { reach: 48, fleet: 8 },
-    HangarTier { reach: 64, fleet: 12 },
-    HangarTier { reach: 96, fleet: 16 },
+    HangarTier { reach: 32, fleet: 4, cargo_range: 200 },
+    HangarTier { reach: 48, fleet: 8, cargo_range: 400 },
+    HangarTier { reach: 64, fleet: 12, cargo_range: 800 },
+    HangarTier { reach: 96, fleet: 16, cargo_range: 1600 },
 ];
 
 /// Derived each tick by `drones/` (never saved).
@@ -36,6 +39,8 @@ pub struct Hangar {
     pub away: u32,
     /// Whether any are: it then draws power.
     pub busy: bool,
+    /// Which kind is out (`DRONE` or `CARGO_DRONE`; `NONE` when none): the port's one slot takes only that kind.
+    pub kind: ItemId,
 }
 
 const fn inlet(side: Side) -> Port {
@@ -84,25 +89,38 @@ impl Processor {
         (self.spec.pick == Pick::Hangar).then(|| &TIERS[(self.tier as usize).min(TIERS.len() - 1)])
     }
 
-    /// Drones at home on the pad.
+    /// Construction drones at home on the pad.
     pub fn drones_home(&self) -> u32 {
         self.input.count(DRONE)
     }
 
-    /// How many more drones it takes: its fleet less those home and those out.
-    pub(super) fn hangar_room(&self, item: crate::item::ItemId) -> u32 {
-        let Some(tier) = self.hangar_tier().filter(|_| item == DRONE) else { return 0 };
-        tier.fleet.saturating_sub(self.drones_home() + self.hangar.away)
+    /// Cargo drones at home on the pad.
+    pub fn couriers_home(&self) -> u32 {
+        self.input.count(CARGO_DRONE)
+    }
+
+    /// How many more of `item` it takes: its fleet less those home and those out. A port keeps one kind of drone at
+    /// a time (its slot, and the kind that is out), construction drones or cargo drones.
+    pub(super) fn hangar_room(&self, item: ItemId) -> u32 {
+        let Some(tier) = self.hangar_tier().filter(|_| item == DRONE || item == CARGO_DRONE) else { return 0 };
+        let other = |kind: ItemId| kind != ItemId::NONE && kind != item;
+        let home = self.input.slots.first().map_or(ItemId::NONE, |s| if s.is_empty() { ItemId::NONE } else { s.item });
+        if other(home) || (self.hangar.away > 0 && other(self.hangar.kind)) {
+            return 0;
+        }
+        tier.fleet.saturating_sub(self.input.total() + self.hangar.away)
     }
 
     /// The status line of a port (`None`: another processor).
     pub(super) fn hangar_text(&self) -> Option<String> {
         let tier = self.hangar_tier()?;
-        let home = self.drones_home();
+        let (home, cargo) = (self.drones_home() + self.couriers_home(), self.couriers_home() > 0);
         let wiring = if self.speed == 0 { " · No power: wire it to a pole" } else { "" };
-        Some(format!(
-            "{home} drones home, {} out · fleet {} · reach {} blocks{wiring}",
-            self.hangar.away, tier.fleet, tier.reach
-        ))
+        let (noun, range) = if cargo || self.hangar.kind == CARGO_DRONE {
+            ("cargo drones", format!("range {} blocks", tier.cargo_range))
+        } else {
+            ("drones", format!("reach {} blocks", tier.reach))
+        };
+        Some(format!("{home} {noun} home, {} out · fleet {} · {range}{wiring}", self.hangar.away, tier.fleet))
     }
 }

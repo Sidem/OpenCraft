@@ -1,5 +1,5 @@
 //! Trains (Milestone 9): the rail icon (two steel rails over wooden sleepers on gravel), the locomotive and wagon
-//! icons, and the docks' faces (a hazard-striped steel side; an amber top with a down arrow to load, a blue one
+//! and signal icons, and the docks' faces (a hazard-striped steel side; an amber top with a down arrow to load, a blue one
 //! with an up arrow to unload). Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
@@ -14,7 +14,21 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::DOCK_SIDE => dock_side(x, y),
         tex::DOCK_LOAD_TOP => dock_top(x, y, [224.0, 160.0, 48.0], true),
         tex::DOCK_UNLOAD_TOP => dock_top(x, y, [48.0, 160.0, 224.0], false),
+        tex::SIGNAL => signal(x, y),
         _ => [255, 0, 255, 255],
+    }
+}
+
+/// A signal: a steel post under an amber lamp, on a dark ground.
+fn signal(x: i32, y: i32) -> [u8; 4] {
+    let lamp = (5..=10).contains(&x) && (1..=6).contains(&y);
+    let post = (7..=8).contains(&x) && y > 6;
+    if lamp {
+        rgb([240.0, 170.0, 40.0], 0.9 + 0.2 * n(460, x, y))
+    } else if post {
+        rgb([150.0, 158.0, 170.0], 0.9 + 0.2 * n(461, x, y))
+    } else {
+        rgb([58.0, 62.0, 70.0], 0.85 + 0.3 * n(462, x, y))
     }
 }
 

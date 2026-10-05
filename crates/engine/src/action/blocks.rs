@@ -7,7 +7,7 @@ use super::Sim;
 use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
 use crate::factory;
 use crate::inventory::Stack;
-use crate::item::{ItemId, LOCOMOTIVE, WAGON};
+use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{PlayerId, SimEvent};
 use crate::tools;
@@ -24,6 +24,23 @@ impl Sim {
             _ => false,
         };
         if done {
+            core.inventory.take_slot(slot as usize, 1);
+        }
+    }
+
+    /// Takes the signal off the rail node at `pos` into the inventory, or puts the one in `slot` on it
+    /// (`Action::ToggleSignal`).
+    pub(super) fn toggle_signal(&mut self, player: PlayerId, pos: IVec3, slot: u8) {
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        if self.factory.signal_at(pos) {
+            self.factory.set_signal(pos, false);
+            let left = core.inventory.add(RAIL_SIGNAL, 1);
+            if left > 0 {
+                self.events.push(SimEvent::Thrown { player, item: RAIL_SIGNAL, count: left });
+            }
+        } else if core.inventory.slots.get(slot as usize).is_some_and(|s| s.count > 0 && s.item == RAIL_SIGNAL)
+            && self.factory.set_signal(pos, true)
+        {
             core.inventory.take_slot(slot as usize, 1);
         }
     }
@@ -72,6 +89,7 @@ impl Sim {
         let mut drops = self.factory.remove(pos);
         // Breaking a port calls its drones home as items.
         drops.extend(self.recall_drones(pos));
+        drops.extend(self.recall_cargo(pos));
         if def.drop != AIR {
             let item = tiered.unwrap_or(ItemId::block(def.drop));
             drops.insert(0, Stack { item, count: if ore { tools::ore_yield(held) } else { 1 } });

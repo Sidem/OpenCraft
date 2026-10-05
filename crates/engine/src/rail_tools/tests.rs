@@ -232,3 +232,29 @@ fn only_rails_in_hand_use_the_track_hand() {
     assert!(g.rail_boxes().is_empty() && g.rail_label().is_empty());
     assert!(!g.update_rail_tools());
 }
+
+#[test]
+fn a_signal_in_hand_goes_on_a_node_and_comes_off_again() {
+    use crate::item::RAIL_SIGNAL;
+    let (mut g, y) = on_a_platform();
+    let a = v(4, y + 1, 0);
+    g.sim.world.set_block_anywhere(a, RAIL);
+    g.sim.factory.place(&mut g.sim.world, RAIL, a, 64, a - IVec3::new(0, 1, 0), 0);
+    g.give(RAIL_SIGNAL.0, 3);
+    g.run_ticks(3);
+    let slot = g.inventory().slots.iter().position(|s| s.item == RAIL_SIGNAL).expect("given") as u32;
+    g.select_slot(slot);
+    g.run_ticks(2);
+    let count = |g: &Game| g.inventory().count(RAIL_SIGNAL);
+    assert!(g.train_label().starts_with("Rail Signal\naim at a rail node"), "{}", g.train_label());
+    aim_at(&mut g, a, IVec3::ZERO);
+    assert!(g.train_label().contains("put a signal"), "{}", g.train_label());
+    assert_eq!(g.train_boxes()[6], GHOST_GREEN);
+    click_train(&mut g);
+    assert!(g.sim.factory.signal_at(a));
+    assert_eq!(count(&g), 2);
+    assert!(g.train_label().contains("take the signal back"), "{}", g.train_label());
+    click_train(&mut g);
+    assert!(!g.sim.factory.signal_at(a));
+    assert_eq!(count(&g), 3);
+}

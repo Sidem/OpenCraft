@@ -302,6 +302,7 @@ pub const RECIPES: &[Recipe] = &[
     RAIL_RECIPE,
     LOCOMOTIVE_RECIPE,
     WAGON_RECIPE,
+    RAIL_SIGNAL_RECIPE,
     LOADING_DOCK_RECIPE,
     UNLOADING_DOCK_RECIPE,
     STONE_PICKAXE_RECIPE,
@@ -388,6 +389,7 @@ pub const RECIPES: &[Recipe] = &[
     SERVO_BOOTS_RECIPE,
     EXO_FRAME_RECIPE,
     MINING_RIG_RECIPE,
+    HOVER_PACK_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

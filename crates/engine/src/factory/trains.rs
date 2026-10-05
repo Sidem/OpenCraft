@@ -17,6 +17,8 @@
 //! A train may carry a schedule of docks (`schedule.rs`): it then stops only at the next one on it and `steer`s
 //! toward it at junctions; without one it takes `next_from` and stops at every dock.
 //!
+//! Signals on rail nodes (`signals.rs`) hold a train back from a stretch of track another train is on.
+//!
 //! Invariants: every edge of a path is a laid track and `path` joins end to end; `head` is within the last edge;
 //! `path` covers the whole train; only `+ - * / sqrt` and the curve's heading table decide where a train goes,
 //! so every peer agrees. To extend: stopping and steering are `advance`; `model.rs` draws the cars.
@@ -25,6 +27,9 @@ mod cars;
 mod docks;
 mod model;
 mod schedule;
+mod signals;
+
+use signals::Way;
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
@@ -171,15 +176,16 @@ impl Factory {
         if self.trains.is_empty() {
             return;
         }
-        let mut trains = std::mem::take(&mut self.trains);
-        for t in &mut trains {
+        // The train being stepped is out of the list (an empty one stands in), so signals see only the others.
+        for i in 0..self.trains.len() {
+            let mut t = std::mem::replace(&mut self.trains[i], Train::new(Vec::new(), 0));
             if t.idle.is_some() {
-                self.trade(t);
+                self.trade(&mut t);
             } else {
-                self.advance(t, STEP_MM);
+                self.advance(&mut t, STEP_MM);
             }
+            self.trains[i] = t;
         }
-        self.trains = trains;
     }
 
     fn advance(&self, t: &mut Train, mm: i64) {
@@ -193,12 +199,13 @@ impl Factory {
             return;
         }
         if t.head > len {
-            match self.steer(t, a, b) {
-                Some(c) => {
+            match self.way(t, a, b) {
+                Way::Go(c) => {
                     t.head -= len;
                     t.path.push((b, c));
                 }
-                None => {
+                Way::Wait => t.head = len,
+                Way::End => {
                     t.head = len;
                     self.reverse(t);
                 }

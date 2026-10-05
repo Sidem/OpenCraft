@@ -15,6 +15,7 @@ pub use curve::{dir_of, fit, write_node, write_track, yaw_of, Curve, Fit, MAX_SP
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
+use crate::item::RAIL_SIGNAL;
 use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
@@ -30,6 +31,8 @@ pub struct Rail {
     pub yaw: u8,
     /// How many tracks end here (derived by `relink`).
     pub links: u8,
+    /// A signal stands here (`trains/signals.rs`); saved since 35.
+    pub signal: bool,
 }
 
 /// A stretch of track between the nodes at `a` and `b`.
@@ -41,7 +44,7 @@ pub struct Track {
 
 impl Rail {
     pub fn new(pos: IVec3, yaw: u8) -> Rail {
-        Rail { pos, yaw, links: 0 }
+        Rail { pos, yaw, links: 0, signal: false }
     }
 }
 
@@ -160,15 +163,23 @@ impl Machine for Rail {
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.yaw);
+        w.bool(self.signal);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Rail> {
         let pos = r.ivec3()?;
-        Some(Rail::new(pos, if r.version >= 31 { r.u8()? } else { 0 }))
+        let mut rail = Rail::new(pos, if r.version >= 31 { r.u8()? } else { 0 });
+        rail.signal = r.version >= 35 && r.bool()?;
+        Some(rail)
     }
 
+    /// A signal comes back as its item when the node is taken.
     fn contents(&self) -> Vec<Stack> {
-        Vec::new()
+        if self.signal {
+            vec![Stack { item: RAIL_SIGNAL, count: 1 }]
+        } else {
+            Vec::new()
+        }
     }
 
     fn describe(&self, f: &Factory) -> String {
@@ -176,15 +187,19 @@ impl Machine for Rail {
             return "Rail node".to_string();
         }
         let axis = axis(self.yaw);
+        let signal = if self.signal { " · signal" } else { "" };
         match self.links {
             0 => format!("Rail node\nTrack runs {axis} here: join it to another node"),
-            1 => format!("Rail node\nEnd of the track · runs {axis}"),
-            n => format!("Rail node\n{n} of {MAX_LINKS} tracks · runs {axis}"),
+            1 => format!("Rail node\nEnd of the track · runs {axis}{signal}"),
+            n => format!("Rail node\n{n} of {MAX_LINKS} tracks · runs {axis}{signal}"),
         }
     }
 
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
         curve::write_node(out, rel, self.yaw, self.links == 0);
+        if self.signal {
+            curve::write_signal(out, rel, self.yaw);
+        }
     }
 }
 

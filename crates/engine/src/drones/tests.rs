@@ -386,3 +386,15 @@ fn bench_earthworks() {
     }
     println!("{cells} cells: {:?} a tick, worst {worst:?}", total / ticks);
 }
+
+#[test]
+fn storing_and_landing_report_what_really_happened() {
+    let mut sim = Sim::new(7, 2);
+    let (port, supply) = base(&mut sim, 1);
+    let left = sim.factory.store_in_boxes(&[supply], Stack { item: BELT.into(), count: 3 });
+    assert_eq!((left.count, sim.factory.box_count(supply, BELT.into())), (0, 3), "all three fit");
+    let big = Stack { item: BELT.into(), count: 24 * 64 };
+    assert_eq!(sim.factory.store_in_boxes(&[supply], big).count, 3, "a full box leaves the rest");
+    assert!(sim.factory.port_take(port, DRONE));
+    assert!(sim.factory.port_land(port, DRONE), "the slot is free again");
+}

@@ -160,6 +160,7 @@ impl Game {
             || self.update_belt_line()
             || self.update_rail_tools()
             || self.update_train_tools()
+            || self.update_cargo_tools()
             || self.update_power_tools(dt)
             || !self.using
         {

@@ -35,6 +35,16 @@ pub const WAGON_RECIPE: Recipe = Recipe {
             behind (up to 6). Trains stop at docks and trade their cargo there. Crouch-click picks the whole train up.",
 };
 
+pub const RAIL_SIGNAL_RECIPE: Recipe = Recipe {
+    output: RAIL_SIGNAL,
+    group: Group::Logistics,
+    count: 2,
+    inputs: &[(STEEL_PLATE, 1), (CIRCUIT, 1)],
+    blurb: "A rail signal. Hold it and click a rail node to put it there (click again to take it back). The track \
+            between signals holds one train at a time: a train that would enter a stretch another train is on \
+            waits at the signal, or takes a free branch at a junction. A passing loop lets trains meet and pass.",
+};
+
 pub const LOADING_DOCK_RECIPE: Recipe = Recipe {
     output: b(LOADING_DOCK),
     group: Group::Logistics,

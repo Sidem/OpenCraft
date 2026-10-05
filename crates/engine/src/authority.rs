@@ -106,6 +106,7 @@ impl Game {
             if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
                 body.conveyor = factory.conveyor_at(body.pos);
                 body.thrust = core(slot).is_some_and(|p| p.helpers.thrusting);
+                body.hover = core(slot).is_some_and(|p| p.helpers.hover);
                 body.boost = core(slot).map(|p| p.inventory.boost()).unwrap_or_default();
                 for _ in 0..PHYSICS_SUBSTEPS {
                     body.step(TICK / PHYSICS_SUBSTEPS as f64, &mut solid, &mut block);

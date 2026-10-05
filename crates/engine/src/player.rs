@@ -36,6 +36,11 @@ const FLY_SPEED: f64 = 11.0;
 /// Jetpack: upward acceleration against gravity, and the climb rate it settles at.
 const JET_ACCEL: f64 = 40.0;
 const JET_CLIMB: f64 = 6.0;
+/// Hover pack: horizontal speed (walking and sprinting), the rate it rises and sinks at, and how fast it eases there.
+const HOVER_SPEED: f64 = 8.0;
+const HOVER_SPRINT_SPEED: f64 = 13.0;
+const HOVER_VERTICAL: f64 = 4.0;
+const HOVER_EASE: f64 = 8.0;
 const FLY_SPRINT_SPEED: f64 = 24.0;
 /// Horizontal speed in water, as a share of the speed on land.
 const SWIM_SPEED_FACTOR: f64 = 0.5;
@@ -88,6 +93,8 @@ pub struct Player {
     pub flying: bool,
     /// The jetpack is burning (set from the core each tick: `helpers/`); never saved.
     pub thrust: bool,
+    /// The hover pack is hovering (set from the core each tick like `thrust`); never saved.
+    pub hover: bool,
     /// Worn gear's effect on walking and jumping (`equipment.rs`).
     pub boost: Boost,
     pub input: PlayerInput,
@@ -117,6 +124,7 @@ impl Player {
             in_water: false,
             flying: false,
             thrust: false,
+            hover: false,
             boost: Boost::default(),
             input: PlayerInput::default(),
             gesture: 0,
@@ -213,13 +221,17 @@ impl Player {
             (false, true, false) => SPRINT_SPEED * self.boost.sprint,
             (false, false, false) => WALK_SPEED * self.boost.walk,
         };
+        let hovering = self.hover && !self.flying && !swimming && !climbing;
+        if hovering {
+            speed = if inp.sprint { HOVER_SPRINT_SPEED } else { HOVER_SPEED };
+        }
         if swimming {
             speed *= SWIM_SPEED_FACTOR;
         }
         // Exponential approach to the wished velocity: snappy on the ground, floaty in the air.
         let rate = if self.flying {
             10.0
-        } else if swimming {
+        } else if hovering || swimming {
             6.0
         } else if self.on_ground {
             16.0
@@ -233,6 +245,9 @@ impl Player {
         if self.flying {
             let vy = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * speed * 0.8;
             self.vel.y += (vy - self.vel.y) * k;
+        } else if hovering {
+            let vy = (f64::from(u8::from(inp.jump)) - f64::from(u8::from(inp.crouch))) * HOVER_VERTICAL;
+            self.vel.y += (vy - self.vel.y) * (1.0 - (-HOVER_EASE * dt).exp());
         } else if swimming {
             self.swim_vertical(dt, chest_out);
         } else if climbing {

@@ -404,3 +404,107 @@ fn a_locomotive_draws_whole_boxes_within_range_only() {
     assert!(near.len() >= 8 * INSTANCE_FLOATS && near.len() % INSTANCE_FLOATS == 0);
     assert!(far.is_empty());
 }
+
+/// A passing loop: a line 0 - 1, the loop 1 - 2 - 4 (upper) and 1 - 3 - 4 (lower), then 4 - 5. A locomotive at each
+/// end. With `signals` the loop's two ends (nodes 1 and 4) carry signals.
+fn loop_line(signals: bool) -> Factory {
+    let nodes =
+        [(v(0, 0, 0), E), (v(12, 0, 0), E), (v(24, 0, -8), E), (v(24, 0, 8), E), (v(36, 0, 0), E), (v(48, 0, 0), E)];
+    let mut f = line(&nodes, &[(0, 1), (1, 2), (1, 3), (2, 4), (3, 4), (4, 5)]);
+    if signals {
+        assert!(f.set_signal(nodes[1].0, true) && f.set_signal(nodes[4].0, true));
+    }
+    assert!(f.place_train(nodes[0].0) && f.place_train(nodes[5].0));
+    f
+}
+
+/// Whether the two trains cover a track in common.
+fn share_track(f: &Factory) -> bool {
+    let (a, b) = (&f.trains[0], &f.trains[1]);
+    a.path.iter().any(|&(p, q)| b.path.iter().any(|&(r, s)| (p, q) == (r, s) || (p, q) == (s, r)))
+}
+
+#[test]
+fn two_trains_on_a_line_with_a_passing_loop_pass_without_meeting_when_it_has_signals() {
+    let mut f = loop_line(true);
+    let (mut passed, mut met) = (false, false);
+    run(&mut f, 400.0, |f| {
+        met |= share_track(f);
+        let (a, b) = (head(f).x, f.head_point(&f.trains[1]).unwrap().x);
+        passed |= a > b + 3.0;
+    });
+    assert!(!met, "the trains never share a track");
+    assert!(passed, "the one from the west gets past the one from the east");
+}
+
+#[test]
+fn the_same_line_without_signals_has_the_trains_meet() {
+    let mut f = loop_line(false);
+    let mut met = false;
+    run(&mut f, 400.0, |f| met |= share_track(f));
+    assert!(met);
+}
+
+#[test]
+fn trains_wait_at_a_signal_for_the_track_ahead_and_drive_on_when_it_clears() {
+    // A line 0 - 1 - 2 with a signal at 1 and a train at each end: each would enter the stretch the other is in, so
+    // both stop at the signal (a layout without a loop can deadlock).
+    let nodes = [(v(0, 0, 0), E), (v(12, 0, 0), E), (v(24, 0, 0), E)];
+    let mut f = line(&nodes, &[(0, 1), (1, 2)]);
+    f.set_signal(nodes[1].0, true);
+    assert!(f.place_train(nodes[0].0) && f.place_train(nodes[2].0));
+    run(&mut f, 30.0, |_| {});
+    for t in &f.trains {
+        let &(a, b) = t.path.last().unwrap();
+        assert!(b == nodes[1].0 && Some(t.head) == f.edge_mm(a, b), "held at the signal: {:?} {}", t.path, t.head);
+    }
+    // One is taken away: the other drives on through the signal.
+    f.trains.remove(0);
+    let mut through = false;
+    run(&mut f, 20.0, |f| through |= f.trains[0].path.contains(&(nodes[1].0, nodes[0].0)));
+    assert!(through);
+}
+
+#[test]
+fn signals_are_put_taken_back_and_saved() {
+    let nodes = [(v(0, 0, 0), E), (v(12, 0, 0), E)];
+    let mut f = line(&nodes, &[(0, 1)]);
+    assert!(!f.set_signal(v(5, 0, 5), true), "only a rail node takes one");
+    assert!(f.set_signal(nodes[0].0, true) && !f.set_signal(nodes[0].0, true));
+    assert!(f.signal_at(nodes[0].0) && !f.signal_at(nodes[1].0));
+    let mut w = ByteWriter::default();
+    f.write_state(&mut w);
+    let back = Factory::read_state(&mut World::new(1, 2), &mut ByteReader::new(&w.bytes)).expect("reads back");
+    assert!(back.signal_at(nodes[0].0) && !back.signal_at(nodes[1].0));
+    // Taking the node gives the signal back.
+    assert_eq!(f.remove(nodes[0].0), vec![Stack { item: crate::item::RAIL_SIGNAL, count: 1 }]);
+}
+
+/// `cargo test --release bench_trains -- --ignored --nocapture`: 14 trains with wagons on one 60-node line (720
+/// blocks), once without signals and once with a signal on every node, the worst case for sections and routing.
+#[test]
+#[ignore]
+fn bench_trains() {
+    let nodes: Vec<(IVec3, u8)> = (0..60).map(|i| (v(i * 12, 0, 0), E)).collect();
+    let pairs: Vec<(usize, usize)> = (0..59).map(|i| (i, i + 1)).collect();
+    for signals in [false, true] {
+        let mut f = line(&nodes, &pairs);
+        for i in (2..58).step_by(4) {
+            assert!(f.place_train(nodes[i].0));
+            while f.couple(nodes[i].0) {}
+        }
+        if signals {
+            nodes.iter().for_each(|n| assert!(f.set_signal(n.0, true)));
+        }
+        let (mut total, mut worst) = (std::time::Duration::ZERO, std::time::Duration::ZERO);
+        let ticks = 60 * 60;
+        for _ in 0..ticks {
+            let t = std::time::Instant::now();
+            f.step_trains();
+            let d = t.elapsed();
+            total += d;
+            worst = worst.max(d);
+        }
+        println!("{} trains, signals {signals}: {:?} a tick, worst {worst:?}", f.trains.len(), total / ticks);
+    }
+}

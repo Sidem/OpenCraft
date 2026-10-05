@@ -99,6 +99,16 @@ pub const JETPACK_RECIPE: Recipe = Recipe {
             pack for every 10 seconds of thrust. Never wears out.",
 };
 
+pub const HOVER_PACK_RECIPE: Recipe = Recipe {
+    output: HOVER_PACK,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 6), (MOTOR, 2), (BATTERY, 4), (PROCESSOR, 2)],
+    blurb: "Keep it in your pack and hold jump in the air to hover: it holds your height (jump rises, crouch sinks) \
+            and carries you at 8 blocks a second, 13 sprinting. It runs on charge, 90 seconds of hover at most, \
+            filled twice as fast as it drains while you stand within 6 blocks of a power pole. Never wears out.",
+};
+
 pub const PERSONAL_DRONE_RECIPE: Recipe = Recipe {
     output: PERSONAL_DRONE,
     group: Group::Tools,

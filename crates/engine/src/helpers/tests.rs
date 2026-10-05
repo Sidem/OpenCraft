@@ -1,6 +1,6 @@
 use super::*;
 use crate::action::Action;
-use crate::block::{AIR, STORAGE};
+use crate::block::{AIR, POLE, STORAGE};
 use crate::item::IRON_PLATE;
 use crate::player::Player;
 
@@ -128,8 +128,104 @@ fn helpers_round_trip_through_bytes() {
         thrusting: true,
         jet: 77,
         fetch: Some(Fetch { item: IRON_PLATE, from: IVec3::new(-4, 70, 9), left: 12, total: 90 }),
+        hover: true,
+        charge: 1234,
+        pole: Some(IVec3::new(5, 64, -3)),
     };
     let mut w = ByteWriter::default();
     h.write_state(&mut w);
     assert_eq!(Helpers::read_state(&mut ByteReader::new(&w.bytes)), Some(h));
+}
+
+#[test]
+fn helpers_saved_before_the_hover_pack_read_with_no_charge() {
+    let old = Helpers { thrusting: true, jet: 5, ..Helpers::default() };
+    let mut w = ByteWriter::default();
+    w.bool(true);
+    w.u32(5);
+    w.bool(false);
+    let mut r = ByteReader::new(&w.bytes);
+    r.version = 35;
+    assert_eq!(Helpers::read_state(&mut r), Some(old));
+}
+
+fn hover_sim() -> Sim {
+    let mut sim = Sim::new(7, 2);
+    sim.apply(P, Action::Give { item: HOVER_PACK, count: 1 });
+    sim
+}
+
+fn charged(sim: &mut Sim, ticks: u32) {
+    sim.players[0].as_mut().unwrap().helpers.charge = ticks;
+}
+
+#[test]
+fn the_hover_pack_hovers_on_charge_and_stops_when_it_runs_out() {
+    let mut sim = Sim::new(7, 2);
+    sim.apply(P, Action::Hover { on: true });
+    assert!(!helpers(&sim).hover, "no pack");
+    sim.apply(P, Action::Give { item: HOVER_PACK, count: 1 });
+    sim.apply(P, Action::Hover { on: true });
+    assert!(!helpers(&sim).hover, "no charge");
+    charged(&mut sim, 100);
+    sim.apply(P, Action::Hover { on: true });
+    assert!(helpers(&sim).hover);
+    run(&mut sim, 99);
+    assert!(helpers(&sim).hover && helpers(&sim).charge == 1);
+    run(&mut sim, 1);
+    assert!(!helpers(&sim).hover && helpers(&sim).charge == 0, "empty");
+}
+
+#[test]
+fn losing_the_hover_pack_stops_the_hover() {
+    let mut sim = hover_sim();
+    charged(&mut sim, 500);
+    sim.apply(P, Action::Hover { on: true });
+    sim.players[0].as_mut().unwrap().inventory.remove(HOVER_PACK, 1);
+    run(&mut sim, 1);
+    assert!(!helpers(&sim).hover);
+}
+
+#[test]
+fn a_pole_charges_the_pack_to_its_cap_and_losing_the_pole_stops_it() {
+    let mut sim = hover_sim();
+    let pole = IVec3::new(900, 200, -900);
+    sim.apply(P, Action::Charge { pole, on: true });
+    assert_eq!(helpers(&sim).pole, None, "no pole stands there");
+    sim.apply(P, Action::Give { item: ItemId::block(POLE), count: 1 });
+    let slot = sim.player(P).unwrap().inventory.slots.iter().position(|s| s.item == ItemId::block(POLE)).unwrap();
+    sim.apply(P, Action::PlaceBlock { pos: pole, slot: slot as u8, facing: 0, against: pole });
+    sim.apply(P, Action::Charge { pole, on: true });
+    assert_eq!(helpers(&sim).pole, Some(pole));
+    run(&mut sim, 10);
+    assert_eq!(helpers(&sim).charge, 10 * CHARGE_RATE);
+    run(&mut sim, HOVER_CAP);
+    assert_eq!(helpers(&sim).charge, HOVER_CAP, "full");
+    sim.apply(P, Action::BreakBlock { pos: pole });
+    run(&mut sim, 1);
+    assert_eq!(helpers(&sim).pole, None, "the pole is gone");
+    sim.apply(P, Action::Charge { pole, on: false });
+    assert_eq!(helpers(&sim).pole, None);
+}
+
+#[test]
+fn a_hovering_body_holds_its_height_and_moves_faster() {
+    let step = |jump: bool, crouch: bool, hover: bool| {
+        let mut p = Player::new(crate::math::Vec3::new(0.5, 100.0, 0.5));
+        p.hover = hover;
+        p.input.forward = 1.0;
+        p.input.jump = jump;
+        p.input.crouch = crouch;
+        let (mut solid, mut block) = (|_, _, _| false, |_, _, _| AIR);
+        for _ in 0..240 {
+            p.step(1.0 / 120.0, &mut solid, &mut block);
+        }
+        (p.pos.y, p.vel.y, p.vel.length())
+    };
+    let (y, vy, speed) = step(false, false, true);
+    assert!((y - 100.0).abs() < 0.01 && vy.abs() < 0.01, "holds its height: {y}");
+    assert!(speed > 7.0, "faster than walking: {speed}");
+    assert!(step(true, false, true).0 > 105.0, "jump rises");
+    assert!(step(false, true, true).0 < 95.0, "crouch sinks");
+    assert!(step(false, false, false).0 < 90.0, "without it the body falls");
 }

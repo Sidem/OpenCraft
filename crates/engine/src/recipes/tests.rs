@@ -49,7 +49,7 @@ const WORLD_BLOCKS: &[BlockId] = &[
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
 /// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5).
-const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE, item::BATTERY];
+const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {
@@ -74,8 +74,10 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || burn_time(it).is_some()
             || pack_slot(it).is_some();
         let end = it.places().is_some()
+            || it == item::CARGO_DRONE
             || it == item::LOCOMOTIVE
             || it == item::WAGON
+            || it == item::RAIL_SIGNAL
             || tools::tool(it).is_some()
             || tools::device(it).is_some()
             || crate::equipment::gear(it).is_some();

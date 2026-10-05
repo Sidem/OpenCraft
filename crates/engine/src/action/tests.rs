@@ -412,6 +412,10 @@ fn samples() -> Vec<Action> {
         Action::PlaceTrain { pos, slot: 3 },
         Action::TakeTrain { pos },
         Action::TrainStop { node: pos, dock: pos, clear: true },
+        Action::ToggleSignal { pos, slot: 2 },
+        Action::Hover { on: true },
+        Action::Charge { pole: pos, on: true },
+        Action::SetRoute { from: pos, to: against, clear: true },
     ]
 }
 

@@ -5,7 +5,7 @@
 //! also serve the personal drone (`helpers/`).
 
 use crate::inventory::Stack;
-use crate::item::{ItemId, DRONE};
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
@@ -18,8 +18,11 @@ pub struct PortInfo {
     pub centre: Vec3,
     /// How far from the centre its drones work, in blocks.
     pub reach: f64,
-    /// Drones at home on the pad.
+    /// Construction drones at home on the pad.
     pub home: u32,
+    /// Cargo drones at home on the pad, and how far they fly from here, in blocks.
+    pub couriers: u32,
+    pub cargo_range: f64,
     /// Whether it is wired to a grid that is not browned out completely.
     pub powered: bool,
 }
@@ -36,19 +39,41 @@ impl Factory {
                 centre,
                 reach: f64::from(tier.reach),
                 home: p.drones_home(),
+                couriers: p.couriers_home(),
+                cargo_range: f64::from(tier.cargo_range),
                 powered: p.speed > 0,
             });
         }
         ports
     }
 
-    /// Sets how many of the port's drones are out (it draws power while any are).
-    pub fn set_port_flight(&mut self, anchor: IVec3, away: u32) {
+    /// Sets how many of the port's drones are out and of which kind (it draws power while any are).
+    pub fn set_port_flight(&mut self, anchor: IVec3, away: u32, kind: ItemId) {
         if let Some(Slot::Process(i)) = self.at.get(&anchor).copied() {
             let p = &mut self.processors[i as usize];
             p.hangar.away = away;
             p.hangar.busy = away > 0;
+            p.hangar.kind = kind;
         }
+    }
+
+    /// The anchor of the drone port that has a cell at `cell`.
+    pub fn port_at(&self, cell: IVec3) -> Option<IVec3> {
+        match self.at.get(&cell) {
+            Some(&Slot::Process(i)) => {
+                Some(&self.processors[i as usize]).filter(|p| p.hangar_tier().is_some()).map(|p| p.pos)
+            }
+            _ => None,
+        }
+    }
+
+    /// The lowest and highest cell of the port at `anchor`.
+    pub fn port_bounds(&self, anchor: IVec3) -> Option<(IVec3, IVec3)> {
+        let Some(Slot::Process(i)) = self.at.get(&anchor).copied() else { return None };
+        let cells = self.processors[i as usize].cells();
+        let lo = cells.iter().fold(anchor, |m, c| IVec3::new(m.x.min(c.x), m.y.min(c.y), m.z.min(c.z)));
+        let hi = cells.iter().fold(anchor, |m, c| IVec3::new(m.x.max(c.x), m.y.max(c.y), m.z.max(c.z)));
+        Some((lo, hi))
     }
 
     /// The pad's centre of the port at `anchor`, if it is still there.
@@ -56,22 +81,22 @@ impl Factory {
         self.ports().into_iter().find(|p| p.anchor == anchor).map(|p| p.centre)
     }
 
-    /// Takes one drone from the port's pad.
-    pub fn port_take_drone(&mut self, anchor: IVec3) -> bool {
+    /// Takes one drone of kind `drone` (`DRONE` or `CARGO_DRONE`) from the port's pad.
+    pub fn port_take(&mut self, anchor: IVec3, drone: ItemId) -> bool {
         let Some(Slot::Process(i)) = self.at.get(&anchor).copied() else { return false };
         let p = &mut self.processors[i as usize];
-        let home = p.hangar_tier().is_some() && p.input.count(DRONE) > 0;
+        let home = p.hangar_tier().is_some() && p.input.count(drone) > 0;
         if home {
-            p.input.remove(DRONE, 1);
+            p.input.remove(drone, 1);
         }
         home
     }
 
-    /// Puts a drone back on the port's pad; false if there is no such port.
-    pub fn port_land(&mut self, anchor: IVec3) -> bool {
+    /// Puts a drone of kind `drone` back on the port's pad; false if there is no such port or no room for it.
+    pub fn port_land(&mut self, anchor: IVec3, drone: ItemId) -> bool {
         let Some(Slot::Process(i)) = self.at.get(&anchor).copied() else { return false };
         let p = &mut self.processors[i as usize];
-        p.hangar_tier().is_some() && p.input.add(DRONE, 1) == 1
+        p.hangar_tier().is_some() && p.input.add(drone, 1) == 0
     }
 
     /// The storage boxes touching the port's pad (sharing a face with one of its cells), in a fixed order.
@@ -151,11 +176,45 @@ impl Factory {
         any
     }
 
+    /// The first stack in `boxes` (in order, slot by slot) whose item is not in `skip`, with how many of it all the
+    /// boxes hold.
+    pub fn box_first_stack(&self, boxes: &[IVec3], skip: &[ItemId]) -> Option<(ItemId, u32)> {
+        let slots = boxes.iter().filter_map(|b| match self.at.get(b) {
+            Some(&Slot::Storage(i)) => Some(&self.storages[i as usize].buf.slots),
+            _ => None,
+        });
+        let item = slots.flatten().find(|s| !s.is_empty() && !skip.contains(&s.item))?.item;
+        Some((item, self.boxes_count(boxes, item)))
+    }
+
+    /// How many `item` all of `boxes` hold.
+    pub fn boxes_count(&self, boxes: &[IVec3], item: ItemId) -> u32 {
+        boxes.iter().map(|&b| self.box_count(b, item)).sum()
+    }
+
+    /// How many more `item` all of `boxes` have room for.
+    pub fn boxes_room(&self, boxes: &[IVec3], item: ItemId) -> u32 {
+        let room = |b: &IVec3| match self.at.get(b) {
+            Some(&Slot::Storage(i)) => self.storages[i as usize].buf.space_for(item),
+            _ => 0,
+        };
+        boxes.iter().map(room).sum()
+    }
+
+    /// Takes up to `n` of `item` from `boxes`, first box first; how many came out.
+    pub fn boxes_take(&mut self, boxes: &[IVec3], item: ItemId, n: u32) -> u32 {
+        let mut took = 0;
+        for &b in boxes {
+            took += self.box_take_up_to(b, item, n - took);
+        }
+        took
+    }
+
     /// Puts `stack` into the first of `boxes` with room, spilling over into the next; returns what did not fit.
     pub fn store_in_boxes(&mut self, boxes: &[IVec3], mut stack: Stack) -> Stack {
         for &pos in boxes {
             let Some(&Slot::Storage(i)) = self.at.get(&pos) else { continue };
-            stack.count -= self.storages[i as usize].buf.add(stack.item, stack.count);
+            stack.count = self.storages[i as usize].buf.add(stack.item, stack.count);
             if stack.count == 0 {
                 return Stack::default();
             }

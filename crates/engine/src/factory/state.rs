@@ -49,7 +49,7 @@ impl Factory {
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
     /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power,
-    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites, before 30 no rails (31: headings and tracks; 32: trains; 33: their wagons and cargo; 34: schedules);
+    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites, before 30 no rails (31: headings and tracks; 32: trains; 33: their wagons and cargo; 34: schedules; 35: signals);
     /// before 18 smelters and constructors had lists of their own (`process/legacy.rs`); before 24 poles
     /// linked and machines hung on poles by range, so those saves are wired that way once (`hook_by_reach`).
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {

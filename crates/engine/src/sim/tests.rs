@@ -21,8 +21,10 @@ const B: PlayerId = PlayerId(1);
 /// in 7.1 for the Electronics tech, and for the power wires the factory saves (save version 24; tests wire
 /// by range unless `Factory::by_hand`), in 9.2 for the Bauxite Processing tech, and in 9.4a for the Rails tech and
 /// the rail list the factory saves (save version 30), and in 9.4a again for the node headings and the track list
-/// (save version 31), and in 9.4b for the Trains tech and the train list (save version 32).
-const GOLDEN_HASH: u64 = 0x904c_7967_5fe9_de0a;
+/// (save version 31), and in 9.4b for the Trains tech and the train list (save version 32), and in 9.5a for the
+/// Hover Pack tech and the hover, charge and pole each player's helpers save (save version 36), and in 9.5b for the
+/// Cargo Drones tech and the cargo routes and drones saved after the construction drones (save version 37).
+const GOLDEN_HASH: u64 = 0xa1dd_c47b_b8da_ca78;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

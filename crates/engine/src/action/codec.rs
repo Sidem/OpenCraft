@@ -14,7 +14,7 @@ use crate::factory::Job;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 44;
+pub const TAG_COUNT: u8 = 48;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -220,6 +220,26 @@ impl Action {
                 w.ivec3(dock);
                 w.bool(clear);
             }
+            Action::ToggleSignal { pos, slot } => {
+                w.u8(44);
+                w.ivec3(pos);
+                w.u8(slot);
+            }
+            Action::Hover { on } => {
+                w.u8(45);
+                w.bool(on);
+            }
+            Action::Charge { pole, on } => {
+                w.u8(46);
+                w.ivec3(pole);
+                w.bool(on);
+            }
+            Action::SetRoute { from, to, clear } => {
+                w.u8(47);
+                w.ivec3(from);
+                w.ivec3(to);
+                w.bool(clear);
+            }
             Action::SortInventory => w.u8(24),
             Action::SortBox { pos } => {
                 w.u8(25);
@@ -278,6 +298,10 @@ impl Action {
             41 => Action::PlaceTrain { pos: r.ivec3()?, slot: r.u8()? },
             42 => Action::TakeTrain { pos: r.ivec3()? },
             43 => Action::TrainStop { node: r.ivec3()?, dock: r.ivec3()?, clear: r.bool()? },
+            44 => Action::ToggleSignal { pos: r.ivec3()?, slot: r.u8()? },
+            45 => Action::Hover { on: r.bool()? },
+            46 => Action::Charge { pole: r.ivec3()?, on: r.bool()? },
+            47 => Action::SetRoute { from: r.ivec3()?, to: r.ivec3()?, clear: r.bool()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

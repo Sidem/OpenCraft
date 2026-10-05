@@ -200,7 +200,14 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   file (an open steel box with a violet stripe). The docks' faces are `tex::DOCK_SIDE`, `DOCK_LOAD_TOP` (amber, arrow
   down) and `DOCK_UNLOAD_TOP` (blue, arrow up) (196–198, `textures/transport.rs`); their models are `LOADING_PARTS` and
   `UNLOADING_PARTS` in `factory/process/docks.rs` (a low platform; the loader has a hopper, the unloader an apron).
-  Loading and unloading should read as opposites at a glance.
+  Loading and unloading should read as opposites at a glance. Signals (9.4c): `tex::SIGNAL` (199) is the item's icon;
+  the signal itself is a steel post and amber lamp beside the node (`write_signal` in `factory/rail/curve.rs`).
+  The hover pack (9.5a): `tex::HOVER_PACK` (200, `textures/aluminium.rs`) is an icon only (a pale case, a green charge
+  stripe, two cyan thruster discs); the worn pack has no model yet, and hovering draws nothing (a glow under the avatar's
+  feet would help the player and co-op partners read it).
+  The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the item's icon; in flight it is the construction drone's boxes with
+  a crate slung under it (`drone_view.rs`, the crate's lid takes the icon's amber while it carries a load). Cargo drones
+  should read as heavier haulers than the builders at a glance, and a route has no line drawn between its ports yet.
 - [ ] (9.2, landed) Aluminium: `tex::CRUSHED_BAUXITE`..`CELL_TOP` (187–192, `textures/aluminium.rs`): crushed bauxite,
   ingot, plate, battery and the electrolytic cell's tiled side and roof, all placeholders. The cell's model is
   `CELL_PARTS` (`factory/process/parts.rs`): a long tank with a glowing bath slot and two electrodes that pump. Aluminium

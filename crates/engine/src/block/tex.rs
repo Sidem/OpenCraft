@@ -213,7 +213,12 @@ pub const WAGON: u16 = 195;
 pub const DOCK_SIDE: u16 = 196;
 pub const DOCK_LOAD_TOP: u16 = 197;
 pub const DOCK_UNLOAD_TOP: u16 = 198;
-pub const COUNT: usize = 199;
+pub const SIGNAL: u16 = 199;
+/// The hover pack's icon (`textures/aluminium.rs`).
+pub const HOVER_PACK: u16 = 200;
+/// The cargo drone's icon (`textures/aluminium.rs`).
+pub const CARGO_DRONE: u16 = 201;
+pub const COUNT: usize = 202;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

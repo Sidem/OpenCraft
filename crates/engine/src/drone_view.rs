@@ -1,4 +1,4 @@
-//! Drawing the construction drones (presentation only; the flight is core state: `drones/`) and the local
+//! Drawing the construction and cargo drones (presentation only; the flight is core state: `drones/`) and the local
 //! player's personal drone (`helpers/`). Each drone is a few boxes, blended between its last two ticks,
 //! bobbing a little, with a lamp underneath and the block it carries slung below. To change the look:
 //! `push_drone`.
@@ -25,6 +25,19 @@ impl Game {
             let carried = d.load.count > 0;
             let yaw = (time * 0.5) as f32;
             push_drone(&mut self.instances, pos - eye + Vec3::new(0.0, f64::from(bob), 0.0), yaw, carried);
+        }
+        for (i, c) in self.sim.cargo.list.iter().enumerate() {
+            let pos = c.prev + (c.pos - c.prev) * alpha;
+            if (pos - eye).length() > DRAW_RANGE {
+                continue;
+            }
+            let bob = (time * 5.0 + i as f64).sin() as f32 * 0.05;
+            let at = pos - eye + Vec3::new(0.0, f64::from(bob), 0.0);
+            let yaw = (time * 0.4) as f32;
+            push_drone(&mut self.instances, at, yaw, false);
+            // A cargo drone is a drone with a crate slung under it (amber-lidded while it carries a load).
+            let lid = if c.load.count > 0 { tex::CARGO_DRONE } else { tex::FRAME };
+            push_box(&mut self.instances, at + Vec3::new(0.0, -0.32, 0.0), yaw, [0.5, 0.3, 0.5], 0.0, [lid; 3], false);
         }
         self.write_companion(eye, alpha, time);
     }

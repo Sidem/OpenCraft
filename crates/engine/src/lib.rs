@@ -29,6 +29,7 @@ mod block;
 mod blueprint;
 mod bytes;
 mod camera;
+mod cargo_tools;
 mod chunk;
 mod crafting;
 mod daytime;
@@ -156,6 +157,12 @@ pub struct Game {
     ghost_mode: bool,
     /// Whether the jetpack thrust was last sent on (`helper_hands.rs`).
     jet_sent: bool,
+    /// Whether the hover was last sent on, and the pole the pack was last sent to charge from (`helper_hands.rs`).
+    hover_sent: bool,
+    charge_sent: Option<IVec3>,
+    /// The first port of the cargo route being set, and whether the use button was down (`cargo_tools.rs`).
+    cargo_from: Option<IVec3>,
+    cargo_down: bool,
     /// The player's blueprints and what the hands are doing with them (`blueprint/`).
     library: blueprint::Library,
     /// The planner's corner and the request for the site panel (`site_hands.rs`).
@@ -225,6 +232,10 @@ impl Game {
             panel_request: None,
             ghost_mode: false,
             jet_sent: false,
+            hover_sent: false,
+            charge_sent: None,
+            cargo_from: None,
+            cargo_down: false,
             library: blueprint::Library::default(),
             planner: site_hands::Planner::default(),
             dig_timer: 0.0,

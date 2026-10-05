@@ -55,7 +55,7 @@ the render distance in chunks (2 to 24, default 8).
 | L | Blueprint library: rename, hold or delete your blueprints (kept per world in this browser) |
 | Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill, flatten (with the level) or a tunnel (with its section). Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |
-| Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds |
+| Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds; with a charged Hover Pack, hold it to hover until you land (jump rises, crouch sinks) |
 | Shift-click gear (inventory) | Wears it: back (hauler pack, 9 or 18 more backpack slots), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), tool belt (mining rig: break blocks by hand 50% faster). Researched under Hauler Gear, Field Gear and Exosuit |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
@@ -272,6 +272,11 @@ size.
   then click docks to add them to its schedule (up to 8) and crouch-click a dock to clear it. The train drives to its
   docks in order, choosing branches at junctions, passes the docks that are not next and starts over after the last.
   With no schedule it stops at every dock it reaches. No fuel yet.
+- **Signals** (Freight research): a rail signal (1 steel plate and 1 circuit make 2) goes on a rail node when you click it
+  with the signal in hand (click again to take it back). Signals cut the track into stretches that hold one train at a
+  time: a train waits at a signal while the stretch ahead has another train in it, and at a junction takes a free
+  branch. A passing loop between two signals lets two trains meet and pass; a plain line with a signal in the middle
+  can deadlock.
 - **Solar power** (Solar Power research, after Electronics) is a solar panel (2×2×1) that gives up to 10 kW at
   noon, less towards dawn and dusk and nothing at night, and the accumulator (2×2×2) that stores 10 MJ of spare
   sun and gives it back (up to 60 kW) when the sun falls short, before any generator or turbine burns fuel.
@@ -308,8 +313,19 @@ size.
   touching the pad with what your ghosts need: every half second a drone flies out to the nearest ghost within 32
   blocks, takes the item from a box, builds it and comes home, or breaks a block you marked (B, left-click) and
   puts what it leaves into the boxes. Swarm Logistics unlocks kits for Mk2 to Mk4 ports (8, 12, 16 drones; reach 48, 64, 96).
-  Breaking a port gives its drones back. The Jetpack tech (4 steel plates, 2 motors, 2 circuits) and the Personal Drone
-  tech (a drone and 2 circuits) make the two helpers for your pack: see the keys above. The Earthworks tech (needs
+  Breaking a port gives its drones back. The Cargo Drones tech (after Construction Drones and Bauxite Processing)
+  lets assemblers build **cargo drones** (a drone, 4 aluminium plates, 2 batteries): put them into a port (a port keeps
+  construction drones or cargo drones, not both), then hold one and click a port and then another to set a route
+  (crouch-click clears it; the outline is red when the second port is too far for the first one's tier: 200, 400, 800
+  or 1,600 blocks). Powered, a port with a route sends a drone every 2 seconds that finds a stack in the boxes touching
+  its pad (batteries and drones are never cargo), flies it up to 64 items to the other port, unloads into the boxes
+  beside that pad and flies home. Each trip burns batteries from the first port's boxes, one for every 150 blocks flown
+  there and back, so keep a belt of batteries into them. The Jetpack tech (4 steel plates, 2 motors, 2 circuits) and the Personal Drone
+  tech (a drone and 2 circuits) make the two helpers for your pack: see the keys above. The Hover Pack tech (after the
+  Jetpack and Bauxite Processing; 6 aluminium plates, 2 motors, 4 batteries, 2 processors) makes a pack that hovers:
+  hold jump in the air and you stay at your height (jump rises, crouch sinks) and glide at 8 blocks a second, 13 when
+  sprinting. It runs on charge, 90 seconds of hover at most, and refills (twice as fast as it drains) while you stand
+  within 6 blocks of a power pole; the line under the hotbar shows the charge. A hover pack wins over the jetpack. The Earthworks tech (needs
   Construction Drones) unlocks the **Planner** (3 iron plates, 4 copper wire, 2 glass, a circuit): mark an area to
   dig, fill or flatten and drone ports in reach do the work, digging into the storage boxes beside their pad and
   filling from them (dirt on top, else stone, dirt, sand or grass), so ground dug in one site fills another.

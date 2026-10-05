@@ -1,6 +1,6 @@
 //! Aluminium (Milestone 9): crushed bauxite (red-brown chunks), the light silvery ingot and plate, the battery (a
 //! green cell with a copper cap) and the electrolytic cell (a white-tiled tank with a molten bath and bus bars on
-//! its roof). Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
+//! its roof), and the hover pack's icon. Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
 
@@ -13,7 +13,48 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::ALUMINIUM_PLATE => plate(x, y),
         tex::BATTERY => battery(x, y),
         tex::CELL_SIDE => cell_side(x, y),
+        tex::HOVER_PACK => hover_pack(x, y),
+        tex::CARGO_DRONE => cargo_drone(x, y),
         _ => cell_top(x, y),
+    }
+}
+
+/// A cargo drone from above: crossed pale arms with four rotor discs round a dark crate with an amber lid.
+fn cargo_drone(x: i32, y: i32) -> [u8; 4] {
+    let crate_ = (5..=10).contains(&x) && (5..=10).contains(&y);
+    let lid = crate_ && (x == 5 || x == 10 || y == 5 || y == 10);
+    let arm = (x - y).abs() <= 1 || (x + y - 15).abs() <= 1;
+    let rotor = matches!((x, y), (1..=3, 1..=3) | (12..=14, 1..=3) | (1..=3, 12..=14) | (12..=14, 12..=14));
+    if lid {
+        rgb([226.0, 170.0, 50.0], 1.0)
+    } else if crate_ {
+        rgb([70.0, 76.0, 88.0], 0.9 + 0.2 * n(473, x, y))
+    } else if rotor {
+        rgb([130.0, 200.0, 230.0], 0.9 + 0.2 * n(474, x, y))
+    } else if arm {
+        rgb([200.0, 206.0, 216.0], 0.9 + 0.15 * n(475, x, y))
+    } else {
+        rgb([58.0, 62.0, 70.0], 0.85 + 0.3 * n(476, x, y))
+    }
+}
+
+/// The hover pack from the back: a pale aluminium case with a green charge stripe, over two glowing cyan thruster
+/// discs, on a dark ground.
+fn hover_pack(x: i32, y: i32) -> [u8; 4] {
+    let case = (3..=12).contains(&x) && (1..=9).contains(&y);
+    let stripe = case && y == 4;
+    let disc = (y == 11 || y == 12) && matches!(x, 3..=6 | 9..=12);
+    let glow = (y == 13 || y == 14) && matches!(x, 4..=5 | 10..=11);
+    if stripe {
+        rgb([96.0, 200.0, 110.0], 1.0)
+    } else if case {
+        rgb([210.0, 216.0, 226.0], 0.9 + 0.15 * n(470, x, y))
+    } else if disc {
+        rgb([130.0, 138.0, 150.0], 0.9 + 0.2 * n(471, x, y))
+    } else if glow {
+        rgb([90.0, 210.0, 240.0], 1.0)
+    } else {
+        rgb([58.0, 62.0, 70.0], 0.85 + 0.3 * n(472, x, y))
     }
 }
 

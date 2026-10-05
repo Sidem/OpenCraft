@@ -11,7 +11,7 @@ use crate::block::{
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
-use crate::item::{IRON_INGOT, JETPACK, PERSONAL_DRONE, PLANNER};
+use crate::item::{CARGO_DRONE, HOVER_PACK, IRON_INGOT, JETPACK, PERSONAL_DRONE, PLANNER};
 use crate::research::{TechState, TECHS};
 
 pub struct Hint {
@@ -148,6 +148,27 @@ pub const HINTS: &[Hint] = &[
                Drone ports within reach do the work, digging into the storage boxes touching their pad and filling \
                from them. Sites show on the map as hollow squares.",
         done: |inv, f| inv.count(PLANNER) > 0 || !f.sites.list.is_empty(),
+    },
+    Hint {
+        text: "Far ground: bauxite, the ore of aluminium, lies only in deserts and basalt fields 600 or more blocks \
+               from where you started. Research Advanced Scanning for the Scanner Mk2, press R to filter for \
+               bauxite, and with none in range it gives a compass bearing and a distance band to head for. \
+               Research Bauxite Processing for crushers and the electrolytic cell.",
+        done: |_, f| tech_done(f, "Bauxite Processing"),
+    },
+    Hint {
+        text: "Trains: research Rails, Trains and Freight. Place rail nodes like power poles (a curve of track joins \
+               each pair, up to 32 blocks apart), put a locomotive on a node, couple wagons behind it, and build a \
+               loading dock at one end and an unloading dock at the other. Hold the locomotive and click docks to \
+               set its schedule; rail signals keep trains apart.",
+        done: |_, f| f.count(Kind::Rail) > 0,
+    },
+    Hint {
+        text: "Hover and cargo: the Hover Pack (research it; charge it within 6 blocks of a power pole) holds you in \
+               the air while you hold jump. Cargo Drones (research them, assemble them from a drone, aluminium \
+               plates and batteries) live in a drone port: hold one, click a port and then another to set a \
+               route, and keep batteries in the first port's boxes, one for every 150 blocks flown there and back.",
+        done: |inv, _| inv.count(HOVER_PACK) > 0 || inv.count(CARGO_DRONE) > 0,
     },
 ];
 

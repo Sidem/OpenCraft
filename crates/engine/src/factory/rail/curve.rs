@@ -170,6 +170,15 @@ pub fn write_node(out: &mut Vec<f32>, rel: Vec3, yaw: u8, bare: bool) {
     }
 }
 
+/// A signal beside the node at `rel`: a steel post a block to the side of the track with an amber lamp on top.
+pub fn write_signal(out: &mut Vec<f32>, rel: Vec3, yaw: u8) {
+    let a = (f64::from(yaw) * std::f64::consts::TAU / YAW_STEPS) as f32;
+    let (s, c) = a.sin_cos();
+    let side = rel + Vec3::new(f64::from(c), 0.0, f64::from(s));
+    push_box(out, side + Vec3::new(0.0, 0.05, 0.0), a, [0.14, 1.0, 0.14], 0.0, [tex::STEEL; 3], false);
+    push_box(out, side + Vec3::new(0.0, 0.65, 0.0), a, [0.34, 0.3, 0.34], 0.0, [tex::DOCK_LOAD_TOP; 3], false);
+}
+
 /// Draws the track of `curve` as short pieces, each a sleeper and two steel rails, for the pieces within `range` of
 /// the camera at `eye`.
 pub fn write_track(out: &mut Vec<f32>, curve: &Curve, eye: Vec3, range: f64) {

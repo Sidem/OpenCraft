@@ -4,7 +4,8 @@
 //!   train near it to select that train; with one selected, click a dock to add it to the train's schedule and
 //!   crouch-click a dock to clear the schedule (`Action::TrainStop`).
 //! - A wagon in hand: click a node beside a train to couple it on.
-//! - Either: crouch-click a node to pick up the train nearest it with all it carries (`Action::TakeTrain`).
+//! - A signal in hand: click a rail node to put it there, click it again to take it back (`Action::ToggleSignal`).
+//! - A locomotive or wagon: crouch-click a node to pick up the train nearest it with all it carries (`Action::TakeTrain`).
 //!
 //! `Factory::train_spot` and `couple_spot` say what a click on a node would do; the outline is green where it
 //! fits and red where it does not, the selected train's node is blue, and the label says why.
@@ -14,7 +15,7 @@
 use crate::action::Action;
 use crate::block;
 use crate::factory::Spot;
-use crate::item::{ItemId, LOCOMOTIVE, WAGON};
+use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
 use crate::math::{IVec3, Vec3};
 use crate::sound;
 use crate::Game;
@@ -30,13 +31,16 @@ enum Aim {
     Node(IVec3, Spot),
     /// A dock (its anchor cell), with a locomotive in hand.
     Dock(IVec3),
+    /// A rail node, with a signal in hand: a click puts the signal there or takes it back.
+    Signal(IVec3),
 }
 
 impl Game {
-    /// The locomotive or wagon in hand.
+    /// The locomotive, wagon or signal in hand.
     fn rolling_stock(&self) -> Option<ItemId> {
         let stack = self.inventory().selected_stack();
-        (!stack.is_empty() && (stack.item == LOCOMOTIVE || stack.item == WAGON)).then_some(stack.item)
+        (!stack.is_empty() && (stack.item == LOCOMOTIVE || stack.item == WAGON || stack.item == RAIL_SIGNAL))
+            .then_some(stack.item)
     }
 
     fn train_aim(&self) -> Option<Aim> {
@@ -44,12 +48,16 @@ impl Game {
         let item = self.rolling_stock()?;
         let cell = self.target?.block;
         if f.rail_yaw(cell).is_some() {
-            return Some(Aim::Node(cell, if item == WAGON { f.couple_spot(cell) } else { f.train_spot(cell) }));
+            return Some(match item {
+                RAIL_SIGNAL => Aim::Signal(cell),
+                WAGON => Aim::Node(cell, f.couple_spot(cell)),
+                _ => Aim::Node(cell, f.train_spot(cell)),
+            });
         }
         f.dock_anchor(cell).filter(|_| item == LOCOMOTIVE).map(Aim::Dock)
     }
 
-    /// Runs the train hand for one tick. True while a locomotive or wagon is in hand (the press is its own).
+    /// Runs the train hand for one tick. True while rolling stock or a signal is in hand (the press is its own).
     pub(crate) fn update_train_tools(&mut self) -> bool {
         let Some(item) = self.rolling_stock() else { return false };
         let edge = self.using && !self.rails.down;
@@ -57,6 +65,11 @@ impl Game {
         let Some(aim) = self.train_aim().filter(|_| edge) else { return true };
         let crouch = self.body().input.crouch;
         let at = match aim {
+            Aim::Signal(node) => {
+                let slot = self.inventory().selected as u8;
+                self.act(Action::ToggleSignal { pos: node, slot });
+                node
+            }
             Aim::Node(node, _) if crouch => {
                 self.act(Action::TakeTrain { pos: node });
                 node
@@ -89,6 +102,7 @@ impl Game {
         let mut out = Vec::new();
         match self.train_aim() {
             Some(Aim::Node(p, spot)) => out.extend(cell(p, if spot == Spot::Ok { GHOST_GREEN } else { BLOCKED_RED })),
+            Some(Aim::Signal(p)) => out.extend(cell(p, GHOST_GREEN)),
             Some(Aim::Dock(p)) => {
                 out.extend(cell(p, if self.rails.train.is_some() { GHOST_GREEN } else { BLOCKED_RED }))
             }
@@ -104,8 +118,17 @@ impl Game {
     /// train's schedule.
     pub(crate) fn train_label(&self) -> String {
         let Some(item) = self.rolling_stock() else { return String::new() };
+        if item == RAIL_SIGNAL {
+            let text = match self.train_aim() {
+                Some(Aim::Signal(p)) if self.sim.factory.signal_at(p) => "click to take the signal back",
+                Some(_) => "click to put a signal on this node",
+                None => "aim at a rail node to put a signal there: trains wait for the track ahead to be clear",
+            };
+            return format!("Rail Signal\n{text}");
+        }
         let wagon = item == WAGON;
         let text = match (wagon, self.train_aim()) {
+            (_, Some(Aim::Signal(_))) => "",
             (false, None) => {
                 "aim at a rail node to put it on the track, or a dock to add it to the selected train's schedule"
             }

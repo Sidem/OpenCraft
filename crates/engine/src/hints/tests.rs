@@ -1,6 +1,6 @@
 use super::*;
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, GENERATOR, POLE, PUMP, QUARRY, SMELTER,
+    ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, GENERATOR, POLE, PUMP, QUARRY, RAIL, SMELTER,
     SOLAR_PANEL, STORAGE, TURBINE,
 };
 use crate::math::IVec3;
@@ -54,17 +54,24 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), 16, "silicon");
     let violet = TECHS.iter().position(|t| t.name == "Violet Science").unwrap() as u8;
     (0..TECHS[violet as usize].units).for_each(|_| f.research.add_unit(violet));
-    assert_eq!(progress(&inv, &f), HINTS.len() - 5, "violet science");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 8, "violet science");
     place(&mut f, SOLAR_PANEL, 60);
-    assert_eq!(progress(&inv, &f), HINTS.len() - 4, "solar");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 7, "solar");
     let processors = TECHS.iter().position(|t| t.name == "Processors").unwrap() as u8;
     (0..TECHS[processors as usize].units).for_each(|_| f.research.add_unit(processors));
-    assert_eq!(progress(&inv, &f), HINTS.len() - 3, "ghosts: processors done");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 6, "ghosts: processors done");
     place(&mut f, DRONE_PORT, 70);
-    assert_eq!(progress(&inv, &f), HINTS.len() - 2, "a drone port");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 5, "a drone port");
     inv.add(crate::item::JETPACK, 1);
-    assert_eq!(progress(&inv, &f), HINTS.len() - 1, "flying");
+    assert_eq!(progress(&inv, &f), HINTS.len() - 4, "flying");
     inv.add(crate::item::PLANNER, 1);
+    assert_eq!(progress(&inv, &f), HINTS.len() - 3, "terraforming");
+    let bauxite = TECHS.iter().position(|t| t.name == "Bauxite Processing").unwrap() as u8;
+    (0..TECHS[bauxite as usize].units).for_each(|_| f.research.add_unit(bauxite));
+    assert_eq!(progress(&inv, &f), HINTS.len() - 2, "far ground");
+    place(&mut f, RAIL, 80);
+    assert_eq!(progress(&inv, &f), HINTS.len() - 1, "rails");
+    inv.add(crate::item::HOVER_PACK, 1);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
 }

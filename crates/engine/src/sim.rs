@@ -19,7 +19,7 @@ use crate::action::Action;
 use crate::block::BlockId;
 use crate::bytes::{fnv1a, ByteReader, ByteWriter};
 use crate::crafting::CraftQueue;
-use crate::drones::Drones;
+use crate::drones::{cargo::Cargo, Drones};
 use crate::factory::Factory;
 use crate::ghosts::Ghosts;
 use crate::helpers::Helpers;
@@ -145,6 +145,8 @@ pub struct Sim {
     pub ghosts: Ghosts,
     /// Construction drones in flight (drones/).
     pub drones: Drones,
+    /// Cargo drones in flight and the routes between ports (drones/cargo.rs).
+    pub cargo: Cargo,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -172,6 +174,7 @@ impl Sim {
             water: WaterQueue::default(),
             ghosts: Ghosts::default(),
             drones: Drones::default(),
+            cargo: Cargo::default(),
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -229,6 +232,7 @@ impl Sim {
             self.block_changed(pos, old);
         }
         self.step_drones();
+        self.step_cargo();
         self.tick += 1;
     }
 
@@ -269,6 +273,7 @@ impl Sim {
         self.water.write_state(w);
         self.ghosts.write_state(w);
         self.drones.write_state(w);
+        self.cargo.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
@@ -304,6 +309,7 @@ impl Sim {
         self.water = if r.version >= 13 { WaterQueue::read_state(r)? } else { WaterQueue::default() };
         self.ghosts = if r.version >= 26 { Ghosts::read_state(r)? } else { Ghosts::default() };
         self.drones = if r.version >= 27 { Drones::read_state(r)? } else { Drones::default() };
+        self.cargo = if r.version >= 37 { Cargo::read_state(r)? } else { Cargo::default() };
         Some(())
     }
 }
