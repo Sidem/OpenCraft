@@ -21,7 +21,7 @@ use super::steam::{UNIT_ENERGY, WATER_LOW};
 use super::Processor;
 
 /// The nipple's and the flange's width across, and how far from the cell's centre the nipple ends.
-const WATER_WIDE: f32 = 0.3;
+pub(super) const WATER_WIDE: f32 = 0.3;
 const STEAM_WIDE: f32 = 0.36;
 const FLANGE_WIDE: f32 = 0.5;
 const NIPPLE_END: f64 = 0.58;
@@ -75,7 +75,7 @@ pub(super) fn draw_turbine(p: &Processor, out: &mut Vec<f32>, rel: Vec3) {
 }
 
 /// A nipple on a flange at every port of `role`, in `look`.
-fn fittings(p: &Processor, out: &mut Vec<f32>, rel: Vec3, role: Role, look: u16, wide: f32) {
+pub(super) fn fittings(p: &Processor, out: &mut Vec<f32>, rel: Vec3, role: Role, look: u16, wide: f32) {
     for (cell, side, _) in p.pipe_ports().into_iter().filter(|&(_, _, r)| r == role) {
         fitting(out, rel + (cell - p.pos).as_vec3(), DIRS[side as usize], look, wide);
     }

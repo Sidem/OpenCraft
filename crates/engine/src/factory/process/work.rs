@@ -2,7 +2,7 @@
 //! counting work, lighting a burner's fire and delivering outputs (`mod.rs` has the invariants).
 
 use crate::item::ItemId;
-use crate::recipes::{burn_time, MachineRecipe, MACHINE_RECIPES};
+use crate::recipes::{burn_time, water_use, MachineRecipe, MACHINE_RECIPES};
 
 use super::super::power::FULL_SPEED;
 use super::super::ticks;
@@ -25,6 +25,7 @@ impl Processor {
             for &(item, n) in MACHINE_RECIPES[i as usize].inputs {
                 self.input.remove(item, n);
             }
+            self.steam.water -= water_use(i);
             (self.batch, self.progress) = (Some(i), 0);
         }
         let Some(r) = self.batch_recipe() else { return };
@@ -64,7 +65,7 @@ impl Processor {
                 let held = self.input.slots.iter().find(|s| !s.is_empty()).ok_or(Status::NoInput)?;
                 self.spec.recipe_using(held.item, unlocked).ok_or(Status::NoInput)
             }
-            Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload => Err(Status::NoInput),
+            Pick::Store | Pick::Hangar | Pick::Pump | Pick::Load | Pick::Unload => Err(Status::NoInput),
         }
     }
 
@@ -73,6 +74,8 @@ impl Processor {
         let r = &MACHINE_RECIPES[i as usize];
         if r.inputs.iter().any(|&(item, n)| self.input.count(item) < n) {
             Some(Status::NoInput)
+        } else if self.short_of_water(i) {
+            Some(Status::NoWater)
         } else if self.full_output(r).is_some() {
             Some(Status::OutputFull)
         } else {

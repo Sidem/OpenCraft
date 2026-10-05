@@ -16,8 +16,9 @@ use crate::item::{
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
 use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
-use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE};
+use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE, EMPTY_CANISTER};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
+use crate::item::{CRUDE_CANISTER, DIESEL_CANISTER, HEAVY_OIL_CANISTER, NAPHTHA_CANISTER, SULFUR};
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -36,6 +37,10 @@ pub enum Category {
     Arc,
     /// Crushed bauxite and quicklime into aluminium and slag (the electrolytic cell).
     Electrolysis,
+    /// Crude oil canisters and water into naphtha, diesel and heavy oil canisters and sulfur (the refinery).
+    Distilling,
+    /// Heavy oil and water into naphtha and diesel (the cracker).
+    Cracking,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -48,7 +53,7 @@ pub struct MachineRecipe {
     pub seconds: f64,
 }
 
-use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelting};
+use Category::{Arc, Assembly, Blasting, Cracking, Crushing, Distilling, Electrolysis, Pressing, Smelting};
 
 pub const MACHINE_RECIPES: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -213,6 +218,20 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(CARGO_DRONE, 1)],
         seconds: 30.0,
     },
+    MachineRecipe { category: Pressing, inputs: &[(STEEL_PLATE, 1)], outputs: &[(EMPTY_CANISTER, 2)], seconds: 1.5 },
+    // Distil and Crack pour a canister's oil into another, so the shells go through: 3 in, 3 out, and 2 in, 2 out.
+    MachineRecipe {
+        category: Distilling,
+        inputs: &[(CRUDE_CANISTER, 3)],
+        outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1), (HEAVY_OIL_CANISTER, 1), (SULFUR, 1)],
+        seconds: 6.0,
+    },
+    MachineRecipe {
+        category: Cracking,
+        inputs: &[(HEAVY_OIL_CANISTER, 2)],
+        outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1)],
+        seconds: 4.0,
+    },
 ];
 
 /// Rows research locks: the gear (Mechanics), bricks and quicklime (Masonry), the assembler's.
@@ -239,6 +258,20 @@ pub const DRONE_RECIPES: [u16; 6] = [31, 32, 33, 34, 35, 36];
 pub const BAUXITE_RECIPES: [u16; 4] = [37, 38, 39, 40];
 /// The assembler's cargo drone (Cargo Drones).
 pub const CARGO_RECIPE: u16 = 41;
+/// The constructor's empty canister (Oil Processing).
+pub const CANISTER_MACHINE_RECIPE: u16 = 42;
+/// The refinery's Distil and the cracker's Crack (Refining).
+pub const DISTIL_RECIPE: u16 = 43;
+pub const CRACK_RECIPE: u16 = 44;
+
+/// Units of water a batch of a recipe takes from the machine's water inlet, by recipe index (machines that take
+/// water have a `Role::Water` port, `process/steam.rs`); recipes not listed use none.
+const WATER_USE: &[(u16, u32)] = &[(DISTIL_RECIPE, 1), (CRACK_RECIPE, 1)];
+
+/// Water units one batch of machine recipe `i` uses.
+pub fn water_use(i: u16) -> u32 {
+    WATER_USE.iter().find(|w| w.0 == i).map_or(0, |w| w.1)
+}
 
 impl MachineRecipe {
     /// The main product and how many a batch makes.
@@ -249,7 +282,8 @@ impl MachineRecipe {
 
 /// Fuel: the seconds of smelting one item keeps a fire going, and the energy it gives a generator in
 /// kJ (a coal runs a Mk1 miner long enough to mine about 32 coal).
-pub const FUELS: &[(ItemId, f64, u32)] = &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135), (b(PLANKS), 1.0, 34)];
+pub const FUELS: &[(ItemId, f64, u32)] =
+    &[(b(COAL_ORE), 8.0, 270), (b(LOG), 4.0, 135), (b(PLANKS), 1.0, 34), (b(OIL_SAND), 2.5, 90)];
 
 /// Seconds of work one `item` fuels, if it burns.
 pub fn burn_time(item: ItemId) -> Option<f64> {

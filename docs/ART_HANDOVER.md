@@ -198,17 +198,17 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Wagons and docks (9.4b2): `tex::WAGON` (195) is the item's icon only, the wagon itself is `WAGON_BOXES` in the same
   file (an open steel box with a violet stripe). The docks' faces are `tex::DOCK_SIDE`, `DOCK_LOAD_TOP` (amber, arrow
   down) and `DOCK_UNLOAD_TOP` (blue, arrow up) (196–198, `textures/transport.rs`); their models are `LOADING_PARTS` and
-  `UNLOADING_PARTS` in `factory/process/docks.rs` (a low platform; the loader has a hopper, the unloader an apron).
-  Loading and unloading should read as opposites at a glance. Signals (9.4c): `tex::SIGNAL` (199) is the item's icon;
-  the signal itself is a steel post and amber lamp beside the node (`write_signal` in `factory/rail/curve.rs`).
-  The hover pack (9.5a): `tex::HOVER_PACK` (200, `textures/aluminium.rs`) is an icon only (a pale case, a green charge
-  stripe, two cyan thruster discs); the worn pack has no model yet, and hovering draws nothing (a glow under the avatar's
-  feet would help the player and co-op partners read it).
-  The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the item's icon; in flight it is the construction drone's boxes with
-  a crate slung under it (`drone_view.rs`, the crate's lid takes the icon's amber while it carries a load). Cargo drones
-  should read as heavier haulers than the builders at a glance, and a route has no line drawn between its ports yet.
-- [ ] (10.1, landed) Oil sand and uranium ore, `tex::OIL_SAND` (202) and `tex::URANIUM_ORE` (203, `textures/ores.rs`): placeholders, one look
-  each. Oil sand (tar pools and amber sheens in brown sand) must not read as coal; uranium is dark rock with bright green crystals.
+  `UNLOADING_PARTS` in `factory/process/docks.rs` (a low platform; hopper vs apron): they should read as opposites. Signals
+  (9.4c): `tex::SIGNAL` (199) is the icon; the signal is a steel post and amber lamp (`write_signal` in `factory/rail/curve.rs`).
+  The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
+  The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
+  under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.
+- [ ] (10.2, landed) Canisters and the pumpjack (`textures/chemistry.rs`): `tex::EMPTY_CANISTER`, `CRUDE_CANISTER` (204–205) are icons of one
+  steel drum with a coloured band (every later fluid reuses the drum: the band is the colour cue); `PUMPJACK_SIDE`, `PUMPJACK_TOP` (206–207).
+  The model is `PARTS` in `factory/process/pump.rs`. Refining (10.3): canister bands `NAPHTHA`/`DIESEL`/`HEAVY_OIL_CANISTER` (208–210),
+  `SULFUR` (211), `REFINERY_`/`CRACKER_` `SIDE`/`TOP` (212–215), models `REFINERY_PARTS`, `CRACKER_PARTS` (`process/refinery.rs`).
+- [ ] (10.1, landed) Oil sand and uranium ore, `tex::OIL_SAND` (202), `URANIUM_ORE` (203, `textures/ores.rs`): placeholders, one look
+  each. Oil sand (tar pools, amber sheens in brown sand) must not read as coal; uranium is dark rock with bright green crystals.
 - [ ] (9.2, landed) Aluminium: `tex::CRUSHED_BAUXITE`..`CELL_TOP` (187–192, `textures/aluminium.rs`): crushed bauxite,
   ingot, plate, battery and the electrolytic cell's tiled side and roof, all placeholders. The cell's model is
   `CELL_PARTS` (`factory/process/parts.rs`): a long tank with a glowing bath slot and two electrodes that pump. Aluminium

@@ -72,6 +72,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     if p.spec.footprint.is_single() {
         return;
     }
+    steam_view::fittings(p, out, rel, Role::Water, tex::PIPE_WATER, steam_view::WATER_WIDE);
     for (role, layer) in [(Role::In, tex::PORT_IN), (Role::Out, tex::PORT_OUT), (Role::Side, tex::PORT_SIDE)] {
         for (cell, side) in p.spec.footprint.faces(p.pos, p.dir, role) {
             let at =
@@ -95,6 +96,7 @@ fn lamp(status: Status) -> u16 {
         Status::Working => tex::LAMP_GREEN,
         Status::OutputFull => tex::LAMP_YELLOW,
         Status::NoRecipe | Status::NoPower | Status::NoFuel | Status::NoWater => tex::LAMP_RED,
+        Status::NoDeposit | Status::Exhausted => tex::LAMP_RED,
         Status::NoInput => tex::FRAME,
     }
 }

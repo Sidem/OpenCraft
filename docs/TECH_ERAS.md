@@ -120,9 +120,10 @@ cover them). Bauxite moved nearer (300 blocks, was 600) and caves became about 1
 
 **Oil economics** (numbers are the plan; tune in the step):
 - **Reserves:** a deposit holds `blocks × grade` units (vein 1,000 a block and about 130 blocks; lode 2,000 and about
-  1,500). One **crude canister is 10 units**. A pumpjack draws up to 5 units/s (Mk1, recovery 0.9: 0.45 canisters/s,
-  27 a minute) but a deposit's draw cap is shared (vein 4 units/s, lode 20): a vein feeds one pumpjack and lasts about 9
-  hours, a lode feeds four for days. The Mk2 scanner shows units and minutes to exhaustion; a core drill gives exact figures.
+  1,500). One **crude canister is 10 units**. A pumpjack (built, step 10.2) draws up to 5 units/s (recovery 0.9:
+  0.45 canisters/s, 27 a minute) but a deposit's draw cap is shared (vein 4 units/s, so about 22 canisters a minute from
+  one vein; lode 20): a vein feeds one pumpjack and lasts about 9 hours, a lode feeds four for days. It drills straight
+  down its own column from the surface (up to 100 blocks), so the player places it above the deposit the scanner found. The Mk2 scanner shows units and minutes to exhaustion; a core drill gives exact figures.
 - **Cost of a well:** pumpjack (steel, motors, pipes, circuits; 90 kW), empties by belt, a power line, and a way
   home (belt, train dock or cargo drone: crude is a bulky haul, so a refinery near the field and products shipped is
   usually cheaper than crude shipped). Oil beyond the nearest 500 blocks is what makes trains and cargo drones pay.
@@ -132,6 +133,8 @@ cover them). Bauxite moved nearer (300 blocks, was 600) and caves became about 1
 **Refining (fractional distillation):** one recipe, **Distil** (refinery 3×3×4, 150 kW, 6 s): 3 crude canisters +
 1 water → 1 **naphtha** canister (light), 1 **diesel** canister (middle), 1 **heavy oil** canister and 1 sulfur. All four
 come out together, so the player must use or store each stream or the refinery stops: balancing is the game.
+(Built, 10.3: shells go through, so the refinery needs no empties; naphtha leaves the front and the other three the
+right-hand hatches on one belt, to sort with filters; the water inlet is on the left side.)
 | Stream | Used for |
 |---|---|
 | Naphtha | plastic (chemical plant: 2 naphtha + 1 coal → 4 plastic); cracked from heavy oil |
@@ -155,7 +158,7 @@ no slot for is researched only in a center; the small lab stays valid for the fo
 |---|---|---|
 | Oil sand, uranium ore | found by scanning (veins and lodes); hand-mined oil sand burns as a poor fuel (a third of coal) | pumpjack, centrifuge |
 | Empty canister | 1 steel plate → 2 (constructor, 1 s) | every fluid |
-| Crude canister | pumpjack (2×2×3, 90 kW) on oil sand, an empty canister in per 10 units drawn | refinery |
+| Crude canister | pumpjack (1×1×1 with a tall model, 90 kW) over oil sand, an empty canister in per 10 units drawn | refinery |
 | Naphtha, diesel, heavy oil canisters; sulfur | Distil (above) | plastic, power, lubricant, acid |
 | Plastic | 2 naphtha + 1 coal → 4 (chemical plant 3×2×3, 4 s) | gold pack and kit, chips, frames |
 | Acid canister | 1 sulfur + 1 water → 1 (chemical plant, 3 s) | etched circuits (4 per batch), chip fab |

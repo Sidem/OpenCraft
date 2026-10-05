@@ -49,6 +49,8 @@ pub enum Pick {
     Store,
     /// Takes only drones, up to its fleet, and keeps them for `drones/` to fly (hangar.rs).
     Hangar,
+    /// Takes only empty canisters and fills them from the reservoir below (pump.rs).
+    Pump,
     /// A loading dock: stores like a silo, and a train stopped beside it takes what it holds (docks.rs).
     Load,
     /// An unloading dock: stores like a silo, a train stopped beside it gives it its cargo (docks.rs).
@@ -109,6 +111,9 @@ pub const SPECS: &[ProcessSpec] = &[
     super::hangar::HANGAR_SPEC,
     super::docks::LOADING_DOCK_SPEC,
     super::docks::UNLOADING_DOCK_SPEC,
+    super::pump::PUMPJACK_SPEC,
+    super::refinery::REFINERY_SPEC,
+    super::refinery::CRACKER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

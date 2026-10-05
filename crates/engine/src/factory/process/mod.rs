@@ -27,8 +27,11 @@ mod hangar;
 mod legacy;
 mod model;
 mod parts;
+mod pump;
+mod refinery;
 mod solar;
 mod specs;
+mod status;
 mod steam;
 mod steam_view;
 mod view;
@@ -36,18 +39,21 @@ mod work;
 
 use hangar::Hangar;
 pub use legacy::{read_constructor, read_smelter};
+use pump::Pump;
 pub(super) use solar::run as run_renewables;
 use solar::Store;
 #[cfg(test)]
 pub use specs::SPECS;
 pub use specs::{makes, spec, Energy, Pick, ProcessSpec, ProcessTier};
+pub use status::Status;
+use status::STATUSES;
 use steam::Steam;
 pub(super) use steam::{draw_water, link as link_steam, run_turbine};
 
 use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
-use crate::item::{stack_size, ItemId};
+use crate::item::{stack_size, ItemId, EMPTY_CANISTER};
 use crate::math::{IVec3, Vec3};
 use crate::recipes::{burn_time, MachineRecipe};
 
@@ -59,29 +65,6 @@ use super::{Factory, Machine};
 /// Byproducts a machine holds before it stops for want of a belt to take them (a stack is more than
 /// a player would notice filling).
 const SIDE_ROOM: u32 = 16;
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Status {
-    NoRecipe,
-    Working,
-    NoInput,
-    OutputFull,
-    NoPower,
-    NoFuel,
-    /// A boiler with fuel but no water.
-    NoWater,
-}
-
-/// Every status, in declaration order: saves store `status as u8`.
-const STATUSES: [Status; 7] = [
-    Status::NoRecipe,
-    Status::Working,
-    Status::NoInput,
-    Status::OutputFull,
-    Status::NoPower,
-    Status::NoFuel,
-    Status::NoWater,
-];
 
 pub struct Processor {
     pub pos: IVec3,
@@ -108,6 +91,8 @@ pub struct Processor {
     pub store: Store,
     /// A drone port's fleet out and whether it is busy (hangar.rs; derived).
     pub hangar: Hangar,
+    /// A pumpjack's well and the oil kept towards a canister (pump.rs).
+    pub pump: Pump,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
@@ -139,6 +124,7 @@ impl Processor {
             steam: Steam::default(),
             store: Store::default(),
             hangar: Hangar::default(),
+            pump: Pump::default(),
             speed: 0,
             outs: Vec::new(),
             side_outs: Vec::new(),
@@ -168,6 +154,7 @@ impl Processor {
         let wanted = match self.spec.pick {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
+            Pick::Pump => item == EMPTY_CANISTER,
             Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload => false,
         };
         let cap = if self.spec.pick == Pick::Chosen {
@@ -217,7 +204,7 @@ impl Processor {
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
             (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) => {}
-            (_, pick) if pick.stores() || pick == Pick::Hangar => {}
+            (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump) => {}
             _ => self.work(power, unlocked),
         }
         self.out.feed(&self.outs, &mut self.next_out, belts);
@@ -226,8 +213,10 @@ impl Processor {
 
     /// Whether it would work this tick if powered (its grid counts it as demand).
     pub fn wants_power(&self, unlocked: &[bool]) -> bool {
-        if self.spec.pick == Pick::Hangar {
-            return self.hangar.busy;
+        match self.spec.pick {
+            Pick::Hangar => return self.hangar.busy,
+            Pick::Pump => return self.pump_wants_power(),
+            _ => {}
         }
         self.energy() == Energy::Electric
             && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
@@ -318,12 +307,12 @@ impl Machine for Processor {
             self.side.write_state(w);
             w.u32(self.next_side as u32);
         }
-        if self.energy() == Energy::Boiler {
-            w.u32(self.steam.steam);
-            w.u32(self.steam.water);
-        }
+        self.write_tanks(w);
         if self.energy() == Energy::Accumulator {
             w.u32(self.store.charge);
+        }
+        if self.spec.pick == Pick::Pump {
+            self.pump.write_state(w);
         }
     }
 
@@ -351,12 +340,12 @@ impl Machine for Processor {
             p.side = Buffer::read_state(r, spec.side)?;
             p.next_side = r.u32()? as usize;
         }
-        if p.energy() == Energy::Boiler {
-            p.steam.steam = r.u32()?.min(steam::STEAM_CAP);
-            p.steam.water = r.u32()?;
-        }
+        p.read_tanks(r)?;
         if p.energy() == Energy::Accumulator {
             p.store.charge = r.u32()?.min(solar::CHARGE_CAP);
+        }
+        if spec.pick == Pick::Pump {
+            p.pump = Pump::read_state(r)?;
         }
         p.valid()
     }
@@ -372,7 +361,7 @@ impl Machine for Processor {
     }
 
     fn describe(&self, f: &Factory) -> String {
-        let text = self.readout();
+        let text = self.readout() + &self.reservoir_line(f);
         let source = matches!(self.energy(), Energy::Turbine | Energy::Solar | Energy::Accumulator);
         match steam::grid_line(self, f).filter(|_| source && !f.dirty) {
             Some(grid) => format!("{text}\n{grid}"),

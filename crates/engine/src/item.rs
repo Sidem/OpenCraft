@@ -162,6 +162,16 @@ pub const RAIL_SIGNAL: ItemId = ItemId(345);
 pub const HOVER_PACK: ItemId = ItemId(346);
 /// A cargo drone (the Cargo Drones tech): kept in a drone port, it flies loads to another port (`drones/cargo.rs`).
 pub const CARGO_DRONE: ItemId = ItemId(347);
+/// An empty canister (the Oil Processing tech): pressed from steel, it comes back from every fluid it carried.
+pub const EMPTY_CANISTER: ItemId = ItemId(348);
+/// A canister of crude oil, filled by a pumpjack (`factory/process/pump.rs`).
+pub const CRUDE_CANISTER: ItemId = ItemId(349);
+/// The refinery's streams (the Refining tech; `factory/process/refinery.rs`): canisters of naphtha (light), diesel
+/// (middle) and heavy oil, and the sulfur it leaves.
+pub const NAPHTHA_CANISTER: ItemId = ItemId(350);
+pub const DIESEL_CANISTER: ItemId = ItemId(351);
+pub const HEAVY_OIL_CANISTER: ItemId = ItemId(352);
+pub const SULFUR: ItemId = ItemId(353);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -209,6 +219,11 @@ const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> ItemDef {
     ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
 }
 
+/// A canister: a small drum that holds a fluid, 16 to a slot.
+const fn canister(name: &'static str, layer: u16) -> ItemDef {
+    ItemDef { name, stack: 16, tex: [layer; 3], size: [0.5, 0.7, 0.5], places: AIR }
+}
+
 /// A tier of a machine block: that block's look (the icon adds the tier chip).
 const fn machine(name: &'static str, tex: [u16; 3]) -> ItemDef {
     ItemDef { name, stack: MAX_STACK, tex, size: [1.0; 3], places: AIR }
@@ -219,7 +234,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 92] = [
+const EXTRA: [ItemDef; 98] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -312,6 +327,12 @@ const EXTRA: [ItemDef; 92] = [
     ItemDef { name: "Rail Signal", stack: 64, tex: [tex::SIGNAL; 3], size: [0.4, 0.8, 0.4], places: AIR },
     tool("Hover Pack", tex::HOVER_PACK, &DEVICE_TIER),
     part("Cargo Drone", tex::CARGO_DRONE, [0.8, 0.4, 0.8]),
+    canister("Empty Canister", tex::EMPTY_CANISTER),
+    canister("Crude Oil Canister", tex::CRUDE_CANISTER),
+    canister("Naphtha Canister", tex::NAPHTHA_CANISTER),
+    canister("Diesel Canister", tex::DIESEL_CANISTER),
+    canister("Heavy Oil Canister", tex::HEAVY_OIL_CANISTER),
+    part("Sulfur", tex::SULFUR, [0.6, 0.4, 0.6]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

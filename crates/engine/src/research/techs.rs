@@ -1,6 +1,7 @@
 //! The tech tree as data ([`TECHS`]): every tech's packs, cost, prerequisites (by index) and unlocks.
 //! Saves store progress by index, so append rows, never reorder (`research.rs` has the rules and the
-//! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s techs; add to the latter.
+//! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s, `distance.rs`'s and `chemistry.rs`'s
+//! techs (joined by `join.rs`); add to the last.
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
@@ -15,29 +16,16 @@ use crate::recipes::{
     QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
 };
 
+use super::chemistry::CHEMISTRY;
 use super::distance::DISTANCE;
+use super::join::join;
 use super::personal::PERSONAL;
 use super::{r, Tech, Unlock};
 
-/// Every tech: the main tree, then the personal gear's, then Milestone 9's.
-pub const TECHS: &[Tech] = &join::<{ MAIN.len() + PERSONAL.len() + DISTANCE.len() }>(&[&MAIN, &PERSONAL, &DISTANCE]);
-
-/// The `parts` one after another as one array of `N` = their lengths added.
-const fn join<const N: usize>(parts: &[&[Tech]]) -> [Tech; N] {
-    let mut out = [parts[0][0]; N];
-    let (mut at, mut p) = (0, 0);
-    while p < parts.len() {
-        let mut i = 0;
-        while i < parts[p].len() {
-            out[at] = parts[p][i];
-            at += 1;
-            i += 1;
-        }
-        p += 1;
-    }
-    assert!(at == N);
-    out
-}
+/// Every tech: the main tree, then the personal gear's, then Milestone 9's and 10's.
+pub const TECHS: &[Tech] = &join::<{ MAIN.len() + PERSONAL.len() + DISTANCE.len() + CHEMISTRY.len() }>(&[
+    &MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY,
+]);
 
 const MAIN: [Tech; 30] = [
     Tech {

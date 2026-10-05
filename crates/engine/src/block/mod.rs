@@ -126,7 +126,12 @@ pub const UNLOADING_DOCK: BlockId = 80;
 /// Chemistry's ground (Milestone 10, generator version 6): oil sand (a deposit a pumpjack draws crude from) and uranium ore.
 pub const OIL_SAND: BlockId = 81;
 pub const URANIUM_ORE: BlockId = 82;
-pub const BLOCK_COUNT: usize = 83;
+/// The pumpjack (the Oil Processing tech): drills down to an oil reservoir and fills canisters.
+pub const PUMPJACK: BlockId = 83;
+/// The refinery and the cracker (the Refining tech): fractional distillation of crude oil canisters.
+pub const REFINERY: BlockId = 84;
+pub const CRACKER: BlockId = 85;
+pub const BLOCK_COUNT: usize = 86;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -351,6 +356,9 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Unloading Dock", true, 1.4, pillar(tex::DOCK_SIDE, tex::DOCK_UNLOAD_TOP, tex::FRAME), UNLOADING_DOCK),
     ore("Oil Sand", all(tex::OIL_SAND), OIL_SAND),
     ore("Uranium Ore", all(tex::URANIUM_ORE), URANIUM_ORE),
+    machine("Pumpjack", true, 1.6, pillar(tex::PUMPJACK_SIDE, tex::PUMPJACK_TOP, tex::FRAME), PUMPJACK),
+    machine("Refinery", true, 2.0, pillar(tex::REFINERY_SIDE, tex::REFINERY_TOP, tex::FRAME), REFINERY),
+    machine("Cracker", true, 1.8, pillar(tex::CRACKER_SIDE, tex::CRACKER_TOP, tex::FRAME), CRACKER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

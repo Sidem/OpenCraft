@@ -4,7 +4,7 @@
 //!
 //! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the
 //! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
-//! `solar.rs`, the electrolytic cell's in `aluminium.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
+//! `solar.rs`, the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::{
@@ -13,8 +13,10 @@ use crate::item::{
 };
 
 mod aluminium;
+mod chemistry;
 mod electronics;
 mod gear;
+mod group;
 mod heavy;
 mod machine;
 mod materials;
@@ -25,8 +27,10 @@ mod tooling;
 mod transport;
 mod wiring;
 use aluminium::*;
+use chemistry::*;
 use electronics::*;
 use gear::*;
+pub use group::{Group, GROUPS};
 use heavy::*;
 pub use machine::*;
 use materials::*;
@@ -37,42 +41,6 @@ use timing::{BASE_TICKS, MAX_TICKS};
 use tooling::*;
 use transport::*;
 use wiring::*;
-
-/// The build menu's sections, in the order it shows them.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum Group {
-    Materials,
-    Production,
-    Logistics,
-    Power,
-    Science,
-    Tools,
-    Building,
-}
-
-pub const GROUPS: [Group; 7] = [
-    Group::Materials,
-    Group::Production,
-    Group::Logistics,
-    Group::Power,
-    Group::Science,
-    Group::Tools,
-    Group::Building,
-];
-
-impl Group {
-    pub fn name(self) -> &'static str {
-        match self {
-            Group::Materials => "Materials",
-            Group::Production => "Production",
-            Group::Logistics => "Logistics",
-            Group::Power => "Power",
-            Group::Science => "Science",
-            Group::Tools => "Tools",
-            Group::Building => "Building",
-        }
-    }
-}
 
 pub struct Recipe {
     pub output: ItemId,
@@ -390,6 +358,10 @@ pub const RECIPES: &[Recipe] = &[
     EXO_FRAME_RECIPE,
     MINING_RIG_RECIPE,
     HOVER_PACK_RECIPE,
+    PUMPJACK_RECIPE,
+    CANISTER_RECIPE,
+    REFINERY_RECIPE,
+    CRACKER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

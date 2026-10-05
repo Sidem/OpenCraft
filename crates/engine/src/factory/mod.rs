@@ -229,7 +229,8 @@ impl Factory {
             Kind::Storage => self.add_storage(pos),
             Kind::Process => {
                 if let Some(spec) = process::spec(block) {
-                    let p = Processor { dir: facing % 4, ..Processor::new(pos, spec, tier) };
+                    let mut p = Processor { dir: facing % 4, ..Processor::new(pos, spec, tier) };
+                    p.sink_well(&mut self.deposits, world);
                     add_to(&mut self.processors, p, at, Slot::Process);
                 }
             }
@@ -344,6 +345,7 @@ impl Factory {
         }
         for (m, &p) in sinks.processors.iter_mut().zip(&power.process_pole) {
             let share = if m.energy() == Energy::Electric { power.speed(p) } else { power::FULL_SPEED };
+            m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
         }
         for r in sinks.routers.iter_mut() {

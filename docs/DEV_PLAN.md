@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-05 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 10 (fluids and chemistry): 10.1 the new ground (generator version 6: nearer bauxite, far fewer caves, oil sand and uranium) built, uncommitted; next 10.2 canisters and the pumpjack** · The `art` branch is superseded; art work
+now) · **Now: Milestone 10 (fluids and chemistry): 10.1 the new ground (generator version 6) committed; 10.2 canisters and the pumpjack and 10.3 refinery and cracker built, uncommitted; next 10.4 chemical plant** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -430,8 +430,8 @@ are in `docs/CHANGELOG.md` ("Milestones 6 to 8") and `docs/CHANGELOG_M9.md`. Des
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 37) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 83, item 348). Each new look gets a placeholder
-  layer (`tex::COUNT` is 204) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 86, item 354). Each new look gets a placeholder
+  layer (`tex::COUNT` is 216) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 9 (Distance), built
@@ -466,14 +466,34 @@ detailed at its start; the lines below fix scope and order.
   follow the world's version (`has_ore`, `ore_from`, `ore_shares(ore, version)`). The golden hash was re-recorded (the
   scripted outcrop moved with the new draws). Both ores wait for their machines (`NO_USE_YET`). **Measured:** water's
   worst tick 0.09 ms (`bench_water`); oil is never a world block, so it cannot add to it. Tests 527 → 532.
-- [ ] **10.2 Canisters and the pumpjack:** items empty canister (1 steel plate → 2) and crude canister; hand-mined oil
-  sand burns as a poor fuel; the pumpjack (2×2×3, 90 kW; a miner variant: draws units from an oil deposit, one empty
-  canister per 10 units in, a crude canister out; the deposit's shared draw cap and taper apply); tech Oil Processing.
-  Describe text shows canisters a minute and hours to exhaustion. Test: a pumpjack on a vein fills a box and never
-  schedules a water check.
-- [ ] **10.3 Refinery and cracker:** refinery (3×3×4, 150 kW; **Distil**: 3 crude + 1 water → naphtha, diesel and heavy
-  oil canisters + 1 sulfur, stops while any stream is full) and cracker (2×2×3; **Crack**: 2 heavy oil + 1 water → 1 naphtha
-  + 1 diesel). The water inlet is a pipe port like the boiler's. Tech Refining.
+- [x] **10.2 Canisters and the pumpjack** (`factory/process/pump.rs`, `recipes/chemistry.rs`, `research/chemistry.rs`,
+  `textures/chemistry.rs`; block 83 Pumpjack, items 348 Empty Canister and 349 Crude Oil Canister, texture layers 204–207,
+  tech Oil Processing = index 42, machine recipe 42). **The well:** a pumpjack is a one-block processor (`Pick::Pump`,
+  90 kW; the plan's 2×2×3 would have needed multi-block deposit contact) with a tall model. Stood on the ground, it
+  **drills straight down its own column** (up to 100 blocks) to the first oil sand, or spent rock of an oil deposit, and
+  tracks that deposit like a miner would: `sink_well` at placing, saved as deposit key, drill bit and the oil kept. Oil is
+  never a world block, so water has nothing to do with it. **The pace:** 5 units/s at full power, 0.9 of it kept, 10 units
+  to a canister, through the deposit's shared draw cap and taper: a vein gives about 22 canisters a minute for hours (a
+  vein of ~130 blocks is ~9 h), a lode far more. It fills one empty canister from its input slot per 10 units, stops
+  drawing while a canister's worth waits (no empties, or a full output), and shows "No oil below", "reservoir is dry" and
+  "canisters left" (`describe`). **Power:** 90 kW is more than a coal generator's 60 kW: oil wants a steam turbine (240 kW)
+  or solar bank, which is the intended step up. Empty canisters: 1 steel plate → 2 by hand or in a constructor (1.5 s).
+  Oil sand burns as a weak fuel (2.5 s of smelting, 90 kJ; coal is 8 s, 270 kJ), so hand-mined oil sand is not useless.
+  Split for the size budget: `process/status.rs` (NoDeposit, Exhausted appended), `research/join.rs`, `recipes/group.rs`.
+  No save bump (the record exists only for the new block); golden hash re-recorded. Tests 532 → 537 (`pump/tests.rs`).
+- [x] **10.3 Refinery and cracker** (`factory/process/refinery.rs`; blocks 84 Refinery and 85 Cracker, items 350 naphtha, 351
+  diesel and 352 heavy oil canisters and 353 sulfur, texture layers 208–215, `Category::Distilling` / `Cracking`, machine
+  recipes 43 Distil and 44 Crack, tech Refining = index 43). **Refinery** 3×3×4, 150 kW: **Distil** 3 crude canisters + 1
+  water → naphtha, diesel, heavy oil canisters + 1 sulfur, 6 s. **Cracker** 2×2×3, 90 kW: **Crack** 2 heavy oil canisters
+  + 1 water → naphtha + diesel, 4 s. Both are `Pick::ByInput` spec rows. **Shells go through** (3 canisters in, 3 out), so
+  neither needs empties. The first output leaves the front, the rest the right-hand side hatches (one mixed belt: sort it
+  with filters); a full stream stops the machine and the status names it ("Diesel Canister has nowhere to go…", also for
+  machines that pick by input, `held_recipe`). **Water** is generalised from the boiler: any footprint with a `Role::Water`
+  port (left side) is linked by `steam.rs`, `draw_water` fills a tank of 4 units from a pump on its network, a recipe's
+  `recipes::water_use` is spent when a batch starts, and `Status::NoWater` waits; the tank is saved (boilers' bytes
+  unchanged). Hand recipes: refinery 16 plates, 8 beams, 12 bricks, 2 motors, 6 circuits; cracker 10 plates, 4 beams, 1
+  motor, 4 circuits. Naphtha, diesel and sulfur wait for 10.4–10.5 (`NO_USE_YET`). No save bump; golden hash re-recorded.
+  Tests 537 → 542 (`refinery/tests.rs`).
 - [ ] **10.4 Chemical plant:** plastic (2 naphtha + 1 coal → 4), acid canister (1 sulfur + 1 water), lubricant (1 heavy
   oil → 2); techs Plastics, Sulfur and Acid. Heavy oil also burns in boilers (nothing is wasted).
 - [ ] **10.5 Diesel power and electrolysis:** a diesel generator (a processor row like the boiler: canister in, empty out,
@@ -536,6 +556,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-05: Refinery and cracker (step 10.3).** Blocks 84–85, items 350–353 (naphtha, diesel, heavy oil canisters, sulfur), the Refining tech (index 43), machine recipes 43–44. Distil and Crack pass canister shells through; water inlets now work on any machine with a `Role::Water` port (`process/steam.rs`, `recipes::water_use`). Golden hash re-recorded. Tests 537 → 542.
+- **2026-10-05: Canisters and the pumpjack (step 10.2).** Block 83 Pumpjack, items 348–349 (empty and crude oil canisters, 16 to a slot), the Oil Processing tech (index 42), constructor row 42 (steel plate → 2 empty canisters), oil sand as a weak fuel. The pumpjack drills down its own column to an oil deposit and fills canisters at the deposit's pace (`factory/process/pump.rs`); `Status`, tech `join` and `Group` moved to their own files. Golden hash re-recorded. Tests 532 → 537.
 - **2026-10-05: The new ground (step 10.1, generator version 6).** At the user's request: bauxite from 300 blocks out (was 600), about 13 times fewer caves (cave zones and thinner tunnels, `worldgen/caves.rs`), and two new deep ores, oil sand and uranium (blocks 81–82, veins and lodes only, found by scanning). Versions 4 and 5 are now pinned. Milestone 10's steps rewritten around the user's asks (research center, washing next to the crusher, refinery streams, oil economics): `docs/TECH_ERAS.md` section 6. Golden hash re-recorded. Tests 527 → 532.
 - **2026-10-05: Milestone 9 cleanup (step 9.6).** Onboarding tips for far ground, trains and hover/cargo (`hints.rs`); `bench_trains`: 14 trains cost 4.0 µs a tick, worst 31 µs (6.4 / 11 µs with signals); balance note in section 4; the Milestone 9 step list moved to `docs/CHANGELOG_M9.md`; Milestone 10 moved in from the roadmap.
 - **2026-10-05: Cargo drones (step 9.5b).** The Cargo Drones tech and item 347: drone ports become stations; a route between two ports (set by clicking them with a cargo drone in hand) sends drones with a stack from the first port's boxes to the second's, burning batteries by distance (`drones/cargo/`, `cargo_tools.rs`, `Action::SetRoute`); save version 37, golden hash re-recorded. Fixed a duplication bug in `store_in_boxes` / `port_land` (drone deposits and landings also dropped loose copies). Tests 518 → 527.

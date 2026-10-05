@@ -3,6 +3,7 @@
 
 use crate::inventory::Stack;
 use crate::item;
+use crate::recipes::{MachineRecipe, MACHINE_RECIPES};
 use crate::TICK_RATE;
 
 use super::super::buffer::Buffer;
@@ -14,7 +15,8 @@ use super::{Energy, Pick, Processor, Status};
 impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
-        if let Some(text) = self.steam_text().or_else(|| self.solar_text()).or_else(|| self.hangar_text()) {
+        let special = self.steam_text().or_else(|| self.solar_text()).or_else(|| self.hangar_text());
+        if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;
         }
         let s = self.spec;
@@ -27,8 +29,9 @@ impl Processor {
                 format!("{} {} · {rate} a minute{slow}", s.verb, item::name(r.main().0))
             }
             (Status::NoFuel, _) => "Out of fuel: bring coal ore or logs".to_string(),
+            (Status::NoWater, _) => "Out of water: pipe its blue inlet to a pump with water in reach".to_string(),
             (Status::NoPower, _) => NOT_WIRED.to_string(),
-            (Status::OutputFull, r) => match r.and_then(|r| self.full_output(r)) {
+            (Status::OutputFull, r) => match r.or_else(|| self.held_recipe()).and_then(|r| self.full_output(r)) {
                 Some((item, true)) => {
                     format!(
                         "{} has nowhere to go: put a belt leading away from the side port, or take it",
@@ -86,6 +89,12 @@ impl Processor {
             lines.push("Right-click to open".to_string());
         }
         lines.join("\n")
+    }
+
+    /// The recipe the first input it holds would run (a machine that picks by input), whatever research allows.
+    fn held_recipe(&self) -> Option<&'static MachineRecipe> {
+        let held = self.input.slots.iter().find(|s| !s.is_empty())?;
+        self.spec.recipe(self.spec.recipe_using(held.item, &[true; MACHINE_RECIPES.len()])?)
     }
 
     /// Seconds the fire lasts at this tier's full speed.

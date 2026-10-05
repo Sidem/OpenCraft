@@ -1,0 +1,111 @@
+//! Chemistry (Milestone 10): the canister icons and the pumpjack's faces. Every fluid but water travels in a
+//! canister, so one drawing (`canister`) serves them all: a steel drum with a coloured band, the band's colour
+//! telling the fluid; empty is plain. Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
+//! To add a canister: a band colour here and a `tex` layer in the range `pixel` matches.
+
+use crate::block::tex;
+
+use super::{frame, n, rgb, smooth};
+
+const EMPTY_BAND: [f64; 3] = [150.0, 156.0, 166.0];
+const CRUDE_BAND: [f64; 3] = [34.0, 28.0, 22.0];
+const NAPHTHA_BAND: [f64; 3] = [236.0, 226.0, 120.0];
+const DIESEL_BAND: [f64; 3] = [222.0, 130.0, 34.0];
+const HEAVY_BAND: [f64; 3] = [110.0, 44.0, 34.0];
+
+pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
+    match layer {
+        tex::EMPTY_CANISTER => canister(x, y, EMPTY_BAND),
+        tex::CRUDE_CANISTER => canister(x, y, CRUDE_BAND),
+        tex::NAPHTHA_CANISTER => canister(x, y, NAPHTHA_BAND),
+        tex::DIESEL_CANISTER => canister(x, y, DIESEL_BAND),
+        tex::HEAVY_OIL_CANISTER => canister(x, y, HEAVY_BAND),
+        tex::SULFUR => sulfur(x, y),
+        tex::PUMPJACK_SIDE => pumpjack_side(x, y),
+        tex::PUMPJACK_TOP => pumpjack_top(x, y),
+        tex::REFINERY_SIDE => plant_side(x, y, [118.0, 128.0, 142.0]),
+        tex::REFINERY_TOP => plant_top(x, y, 4),
+        tex::CRACKER_SIDE => plant_side(x, y, [150.0, 112.0, 96.0]),
+        _ => plant_top(x, y, 3),
+    }
+}
+
+/// Bright yellow crystals in a dull yellow powder, with dark gaps.
+fn sulfur(x: i32, y: i32) -> [u8; 4] {
+    if n(491, x, y) > 0.88 {
+        return rgb([120.0, 104.0, 30.0], 1.0);
+    }
+    let crystal = smooth(492, x, y, 6) > 0.58;
+    let base = if crystal { [244.0, 222.0, 40.0] } else { [196.0, 176.0, 52.0] };
+    rgb(base, 0.88 + 0.2 * n(493, x, y))
+}
+
+/// Painted steel plating of a chemical plant in `paint`, with a riveted seam every five rows and a dark-banded foot.
+fn plant_side(x: i32, y: i32, paint: [f64; 3]) -> [u8; 4] {
+    if y == 0 || y == 15 || y == 5 || y == 10 {
+        return rgb([54.0, 58.0, 66.0], 0.9 + 0.1 * n(494, x, y));
+    }
+    let rivet = (y == 2 || y == 7 || y == 12) && x % 5 == 2;
+    if rivet {
+        return rgb([196.0, 200.0, 206.0], 1.0);
+    }
+    rgb(paint, 0.88 + 0.14 * n(495, x, y) + 0.08 * smooth(496, x, y, 4))
+}
+
+/// A steel deck with a grille of `bars` dark slots.
+fn plant_top(x: i32, y: i32, bars: i32) -> [u8; 4] {
+    let step = 16 / (bars + 1);
+    let slot = (3..13).contains(&x) && (1..=bars).any(|k| (y - k * step).abs() == 0);
+    if slot {
+        rgb([20.0, 22.0, 26.0], 1.0)
+    } else {
+        frame(x, y)
+    }
+}
+
+/// A drum seen from the front on a dark ground: steel body with rim lines, a cap and a band of `band` across it.
+fn canister(x: i32, y: i32, band: [f64; 3]) -> [u8; 4] {
+    let body = (4..=11).contains(&x) && (3..=14).contains(&y);
+    if (6..=9).contains(&x) && (1..=2).contains(&y) {
+        return rgb([196.0, 200.0, 208.0], 0.9 + 0.1 * n(480, x, y));
+    }
+    if !body {
+        return rgb([58.0, 62.0, 70.0], 0.85 + 0.3 * n(481, x, y));
+    }
+    let rim = y == 3 || y == 14 || x == 4;
+    if rim {
+        rgb([96.0, 102.0, 112.0], 0.9 + 0.1 * n(482, x, y))
+    } else if (7..=10).contains(&y) {
+        rgb(band, 0.9 + 0.2 * n(483, x, y))
+    } else {
+        rgb([176.0, 182.0, 192.0], 0.92 + 0.12 * smooth(484, x, y, 4))
+    }
+}
+
+/// Olive-green plating with riveted seams and a dark oil stain creeping up from the foot.
+fn pumpjack_side(x: i32, y: i32) -> [u8; 4] {
+    if y == 0 || y == 15 || y == 7 {
+        return rgb([60.0, 64.0, 58.0], 0.9 + 0.1 * n(485, x, y));
+    }
+    let stain = (y as f64) > 10.0 + 4.0 * smooth(486, x, 0, 4);
+    let base = if stain { [40.0, 34.0, 28.0] } else { [112.0, 122.0, 82.0] };
+    let rivet = (x == 2 || x == 13) && (y == 3 || y == 11);
+    if rivet {
+        rgb([170.0, 176.0, 150.0], 1.0)
+    } else {
+        rgb(base, 0.88 + 0.16 * n(487, x, y) + 0.1 * smooth(488, x, y, 4))
+    }
+}
+
+/// A steel deck with a round black well-head in the middle.
+fn pumpjack_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let d = dx * dx + dy * dy;
+    if d < 6.0 {
+        rgb([22.0, 20.0, 18.0], 0.9 + 0.2 * n(489, x, y))
+    } else if d < 12.0 {
+        rgb([200.0, 150.0, 44.0], 0.95 + 0.1 * n(490, x, y))
+    } else {
+        frame(x, y)
+    }
+}

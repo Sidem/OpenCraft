@@ -61,7 +61,10 @@ folder with `mod.rs`.
 | `hints.rs` | Onboarding hints `HINTS` (text plus a check on the player's inventory and the factory), `progress` (read-only) |
 | `research/personal.rs` | The last techs as data (Jetpack, Personal Drone, Earthworks, Hauler Gear, Field Gear, Exosuit), joined after `techs.rs`'s `MAIN` into `TECHS` |
 | `research/distance.rs` | Milestone 9's techs as data (Bauxite Processing, Rails, Trains, Freight, Hover Pack, Cargo Drones), joined last into `TECHS` (add new ones at its bottom) |
+| `research/chemistry.rs` | Milestone 10's techs as data (Oil Processing so far, index 42), joined after `distance.rs` (add new ones at its bottom); `research/join.rs` is the compile-time join into `TECHS` |
 | `recipes/gear.rs` | Hand recipes of the worn gear |
+| `recipes/chemistry.rs`, `recipes/group.rs` | Hand recipes of the pumpjack and empty canister; the build menu's `Group` sections and `GROUPS` |
+| `textures/chemistry.rs` | Canister icons (one drawing, a band colour per fluid; `tex::EMPTY_CANISTER..=PUMPJACK_TOP`, 204–207) and the pumpjack's faces |
 | `textures/gear.rs` | Worn gear icons |
 | `research.rs` | `Unlock`, `Tech`, `PACKS`, `Research` (core state the factory owns: current tech, units done; `state`, `locked_by`, `has`, `add_unit`); the tech table `TECHS` lives in `research/techs.rs` (data: prerequisites, packs per unit, units, seconds, unlocks); lint in `research/tests.rs` |
 | `chunk.rs` | 32³ block storage; uniform chunks cost no heap |
@@ -119,6 +122,8 @@ folder with `mod.rs`.
 | `factory/trains/signals.rs` | Signals (`Rail::signal`, saved since 35): `set_signal` / `signal_at` (`Action::ToggleSignal`), `section` (tracks joined through nodes without a signal), `way` (go on, take a free branch, wait at the signal, or turn round) |
 | `factory/trains/docks.rs` | A stopped train trading with its dock: `dock_at` (a dock cell within 2 blocks of the node), `trade` (8 items a tick, drives on after 300 ticks without a trade), `swap` |
 | `factory/trains/model.rs` | Where a train is (`point_back`, arc length to curve parameter) and the boxes of the locomotive and each wagon between their front and rear poses (`LOCOMOTIVE_BOXES`, `WAGON_BOXES`) |
+| `factory/process/pump.rs` + `pump/tests.rs`, `factory/process/status.rs` | The pumpjack spec (block 83, `Pick::Pump`, 1×1×1, 90 kW, tall model): `sink_well` drills down its column to an oil deposit at placing, `pump` draws each tick before `step` (5 units/s, 0.9 kept, 10 units per canister, deposit cap and taper apply), fills an empty canister from its input into its output, `pump_text`, `reservoir_line`; saved only for pumpjacks. `Status` (appended: NoDeposit, Exhausted) and `STATUSES` |
+| `factory/process/refinery.rs` + `refinery/tests.rs` | The refinery (84, 3×3×4, 150 kW, `Distilling`) and cracker (85, 2×2×3, 90 kW, `Cracking`) spec rows and models: `Pick::ByInput`, byproducts to the right-hand side hatches, a `Role::Water` inlet on the left. Water for any such machine: `takes_water`, `draw_water`, tank saved by `write_tanks` / `read_tanks` (`steam.rs`); a recipe's water is `recipes::water_use` (`machine.rs`) |
 | `factory/process/docks.rs` | The loading and unloading dock spec rows (blocks 79, 80; `Pick::Load` / `Pick::Unload`, 2×2×1, 48 slots, belts in on every side or out on every side): store like a silo (`Pick::stores`), the trade with trains is `factory/trains/docks.rs` |
 | `factory/pipes.rs` | Pipework (one kind, `Kind::Pipe`: `Part` pump, pipe, outlet): networks and arms (`link_pipework`, from `relink`), bytes, readouts, models |
 | `factory/pumping.rs` | Moving water each tick (`step_pipework`; `PUMP_TIERS`: rate, hold, kW): pumps lift the highest, farthest source in reach; outlets pour where the water lands (within `POUR_REACH` of their front cell, never above it, and not into dry air at or below sea level); block edits go to `Factory.changed` for the water rules |

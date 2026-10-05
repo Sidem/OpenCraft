@@ -9,12 +9,13 @@ use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
-use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelting};
+use Category::{Arc, Assembly, Blasting, Cracking, Crushing, Distilling, Electrolysis, Pressing, Smelting};
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 7] = [Smelting, Pressing, Assembly, Blasting, Crushing, Arc, Electrolysis];
+const CATEGORIES: [Category; 9] =
+    [Smelting, Pressing, Assembly, Blasting, Crushing, Arc, Electrolysis, Distilling, Cracking];
 const _: fn(Category) = |c| match c {
-    Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis => {}
+    Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -47,12 +48,20 @@ const WORLD_BLOCKS: &[BlockId] = &[
     GREEN_SAND,
     PALE_SAND,
 ];
-/// Items the world gives other than block drops (leaves drop saplings: `action.rs`).
-const GATHERED: &[ItemId] = &[ItemId::block(SAPLING)];
+/// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters).
+const GATHERED: &[ItemId] = &[ItemId::block(SAPLING), item::CRUDE_CANISTER];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
-/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; oil sand and uranium ore wait for the
-/// pumpjack, refinery and reactor, Milestone 10).
-const NO_USE_YET: &[ItemId] = &[item::CIRCUIT, item::DRONE, ItemId::block(OIL_SAND), ItemId::block(URANIUM_ORE)];
+/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; uranium ore waits for the reactor and the
+/// canisters for the refinery, Milestone 10).
+const NO_USE_YET: &[ItemId] = &[
+    item::CIRCUIT,
+    item::DRONE,
+    ItemId::block(URANIUM_ORE),
+    item::EMPTY_CANISTER,
+    item::NAPHTHA_CANISTER,
+    item::DIESEL_CANISTER,
+    item::SULFUR,
+];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

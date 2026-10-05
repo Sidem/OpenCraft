@@ -12,7 +12,9 @@
 //! A new kind of unlock: an `Unlock` variant (features arrive with their first use), its arm in
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
+mod chemistry;
 mod distance;
+mod join;
 mod personal;
 mod techs;
 

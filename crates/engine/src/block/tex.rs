@@ -221,7 +221,21 @@ pub const CARGO_DRONE: u16 = 201;
 /// Oil sand and uranium ore (`textures/ores.rs`): one look each, the alternates are full.
 pub const OIL_SAND: u16 = 202;
 pub const URANIUM_ORE: u16 = 203;
-pub const COUNT: usize = 204;
+/// Canisters and the pumpjack (`textures/chemistry.rs`).
+pub const EMPTY_CANISTER: u16 = 204;
+pub const CRUDE_CANISTER: u16 = 205;
+pub const PUMPJACK_SIDE: u16 = 206;
+pub const PUMPJACK_TOP: u16 = 207;
+/// The refinery's streams (naphtha, diesel, heavy oil canisters; sulfur) and the refinery's and cracker's faces.
+pub const NAPHTHA_CANISTER: u16 = 208;
+pub const DIESEL_CANISTER: u16 = 209;
+pub const HEAVY_OIL_CANISTER: u16 = 210;
+pub const SULFUR: u16 = 211;
+pub const REFINERY_SIDE: u16 = 212;
+pub const REFINERY_TOP: u16 = 213;
+pub const CRACKER_SIDE: u16 = 214;
+pub const CRACKER_TOP: u16 = 215;
+pub const COUNT: usize = 216;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

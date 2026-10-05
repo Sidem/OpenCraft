@@ -21,8 +21,9 @@
 
 use rustc_hash::FxHashMap;
 
+use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
-use crate::recipes::fuel_energy;
+use crate::recipes::{fuel_energy, water_use};
 use crate::TICK_RATE;
 
 use super::super::footprint::Role;
@@ -39,6 +40,8 @@ pub const STEAM_CAP: u32 = 270 * FUEL_GAIN * 2 * TICK_RATE;
 pub const UNIT_ENERGY: u32 = 2_000 * TICK_RATE;
 /// A boiler asks for a unit of water when it holds less than one coal's worth.
 pub(super) const WATER_LOW: u32 = 270 * FUEL_GAIN * TICK_RATE;
+/// A water-using machine asks for a unit when its tank holds fewer: it keeps up to this many.
+pub(super) const MACHINE_WATER: u32 = 4;
 /// The most a steam turbine gives, in kW.
 pub const TURBINE_KW: u32 = 240;
 pub const TURBINES_PER_BOILER: u32 = 2;
@@ -71,11 +74,42 @@ impl Processor {
     /// A boiler's or turbine's pipe connections: the cell, the `DIRS` index it faces out of and `Role::Water`
     /// or `Role::Steam` (none for other processors).
     pub(in crate::factory) fn pipe_ports(&self) -> Vec<(IVec3, u8, Role)> {
-        if !matches!(self.energy(), Energy::Boiler | Energy::Turbine) {
+        if !self.spec.footprint.ports.iter().any(|p| matches!(p.role, Role::Water | Role::Steam)) {
             return Vec::new();
         }
         let faces = |role| self.spec.footprint.faces(self.pos, self.dir, role);
         [Role::Water, Role::Steam].into_iter().flat_map(|r| faces(r).into_iter().map(move |(c, s)| (c, s, r))).collect()
+    }
+
+    /// Whether it has a water inlet: a boiler, or a machine whose recipes use water (`recipes::water_use`).
+    pub fn takes_water(&self) -> bool {
+        self.spec.footprint.ports.iter().any(|p| p.role == Role::Water)
+    }
+
+    /// Whether a batch of recipe `i` is short of water (a machine's tank holds whole units).
+    pub(super) fn short_of_water(&self, i: u16) -> bool {
+        self.steam.water < water_use(i)
+    }
+
+    /// Writes a boiler's steam and water, or a water-using machine's tank (`Boiler`'s are kW·ticks, a machine's
+    /// are units).
+    pub(super) fn write_tanks(&self, w: &mut ByteWriter) {
+        if self.energy() == Energy::Boiler {
+            w.u32(self.steam.steam);
+        }
+        if self.takes_water() {
+            w.u32(self.steam.water);
+        }
+    }
+
+    pub(super) fn read_tanks(&mut self, r: &mut ByteReader) -> Option<()> {
+        if self.energy() == Energy::Boiler {
+            self.steam.steam = r.u32()?.min(STEAM_CAP);
+        }
+        if self.takes_water() {
+            self.steam.water = r.u32()?;
+        }
+        Some(())
     }
 
     /// One tick of a boiler: burns the first fuel item it holds if its steam has room and its water covers it.
@@ -172,16 +206,17 @@ pub(in crate::factory) fn run_turbine(processors: &mut [Processor], t: usize, wa
     (given, if ready { TURBINE_KW } else { 0 })
 }
 
-/// Every boiler whose water is low takes a unit from a pump of its network that holds one.
+/// Every boiler or machine whose water is low takes a unit from a pump of its network that holds one.
 pub(in crate::factory) fn draw_water(processors: &mut [Processor], pipework: &mut [Pipework]) {
-    for b in processors.iter_mut().filter(|p| p.energy() == Energy::Boiler) {
-        if b.steam.water >= WATER_LOW {
+    for b in processors.iter_mut().filter(|p| p.takes_water()) {
+        let (low, unit) = if b.energy() == Energy::Boiler { (WATER_LOW, UNIT_ENERGY) } else { (MACHINE_WATER, 1) };
+        if b.steam.water >= low {
             continue;
         }
         let nets = &b.steam.nets;
         if let Some(pump) = pipework.iter_mut().find(|p| p.part == Part::Pump && p.held > 0 && nets.contains(&p.net)) {
             pump.held -= 1;
-            b.steam.water += UNIT_ENERGY;
+            b.steam.water += unit;
         }
     }
 }
