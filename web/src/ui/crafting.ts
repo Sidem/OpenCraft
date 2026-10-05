@@ -1,6 +1,6 @@
 // Build menu in the inventory screen: every hand recipe as a compact tile (icon, name, how many it
 // makes), grouped by the engine's recipe groups, with a text search (names of outputs and materials)
-// and a state filter (all, can craft, missing items, locked). A tile's details (description,
+// and a state filter (unlocked, the default; all, can craft, missing items, locked). A tile's details (description,
 // materials with have/need, the time it takes, what locks it) show in one info card on hover or keyboard
 // focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5. The inventory
 // panel calls `update` when the inventory changes.
@@ -14,6 +14,7 @@ const ICON_PX = 64;
 /** Shift-clicking a tile makes up to this many at once. */
 const BULK_CRAFT = 5;
 const FILTERS = [
+  { id: 'unlocked', label: 'Unlocked' },
   { id: 'all', label: 'All' },
   { id: 'ready', label: 'Can craft' },
   { id: 'short', label: 'Missing items' },
@@ -41,7 +42,7 @@ export class BuildMenu {
   private readonly tiles: Tile[] = [];
   private readonly empty = h('p', 'craft-empty hidden', 'No recipe matches.');
   private readonly info = h('div', 'craft-info hidden');
-  private filter: Filter = 'all';
+  private filter: Filter = 'unlocked';
   /** The tile whose card is showing. */
   private hovered: Tile | null = null;
 
@@ -134,11 +135,12 @@ export class BuildMenu {
   private applyFilter(): void {
     const words = this.search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const matches = (t: Tile) => words.every((w) => t.words.includes(w));
-    const counts: Record<Filter, number> = { all: 0, ready: 0, short: 0, locked: 0 };
+    const counts: Record<Filter, number> = { unlocked: 0, all: 0, ready: 0, short: 0, locked: 0 };
     for (const t of this.tiles) {
       if (!matches(t)) continue;
       counts.all++;
       counts[t.state]++;
+      if (t.state !== 'locked') counts.unlocked++;
     }
     for (const f of FILTERS) {
       const b = this.filterButtons.get(f.id)!;
@@ -149,7 +151,7 @@ export class BuildMenu {
     for (const s of this.sections) {
       let any = false;
       for (const t of s.tiles) {
-        const show = matches(t) && (this.filter === 'all' || t.state === this.filter);
+        const show = matches(t) && this.passes(t);
         t.root.classList.toggle('hidden', !show);
         any ||= show;
         shown += Number(show);
@@ -157,6 +159,12 @@ export class BuildMenu {
       s.root.classList.toggle('hidden', !any);
     }
     this.empty.classList.toggle('hidden', shown > 0);
+  }
+
+  /** Whether the chosen state filter lets `t` through. */
+  private passes(t: Tile): boolean {
+    if (this.filter === 'all') return true;
+    return this.filter === 'unlocked' ? t.state !== 'locked' : t.state === this.filter;
   }
 
   /** Fills the info card for `t` and places it beside the tile, inside the window. */

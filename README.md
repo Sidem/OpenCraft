@@ -403,7 +403,7 @@ size.
   straight from your inventory (ore, fuel, ingots, packs), and take what it made.
 
 Craft in the build menu (E). It groups recipes by kind; type in its search box to find a recipe
-or everything made from a material, and filter by what you can craft now, what misses materials and what
+or everything made from a material, and filter by what is unlocked (the default), what you can craft now, what misses materials and what
 research still locks. Hover a recipe for its description, materials and how long it takes; click it to queue one,
 Shift-click for up to five.
 
