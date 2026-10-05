@@ -70,7 +70,8 @@ fn run(sim: &mut Sim, seconds: u32) {
 }
 
 const PIT: (IVec3, IVec3) = (IVec3::new(4002, 98, 4002), IVec3::new(4006, 100, 4006));
-const FOOT: (IVec3, IVec3) = (IVec3::new(4012, 85, 4001), IVec3::new(4029, 85, 4019));
+/// The cliff's foot: poured water piles up in the few columns within reach of the outlet's front.
+const FOOT: (IVec3, IVec3) = (IVec3::new(4012, 85, 4001), IVec3::new(4029, 100, 4019));
 
 /// A walled 5 × 5 × 3 pit of water (top at y 100) in stone, a pump in its bottom corner piped up and
 /// east to an outlet at the edge of a cliff whose foot is 16 blocks down.
@@ -134,6 +135,39 @@ fn a_pump_in_the_sea_runs_but_the_level_never_drops() {
     let land = count(&mut sim, at(20, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 1, 30), WATER);
     assert!(land >= 35, "the pump kept going: {land} blocks poured on land");
     assert!(count(&mut sim, sea.0, sea.1, WATER) + 1 >= full, "at most the block just taken is missing");
+}
+
+#[test]
+fn an_outlet_on_open_ground_stops_once_its_hole_is_full() {
+    // The sea-pump setup, run long enough to pour far more than fits: the pool stays within reach of
+    // the outlet's front cell, no source rises above it, and the outlet reports it is blocked.
+    let mut sim = Sim::new(1337, 2);
+    fill(&mut sim, at(0, 50, 0), at(60, SEA_LEVEL, 30), STONE);
+    fill(&mut sim, at(0, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 8, 30), AIR);
+    fill(&mut sim, at(1, 55, 1), at(10, SEA_LEVEL, 11), WATER);
+    pipeline(&mut sim, at(5, 60, 5), at(5, SEA_LEVEL + 1, 5), at(30, SEA_LEVEL + 1, 5), at(5, SEA_LEVEL + 1, 3), true);
+    run(&mut sim, 90);
+    let front = at(31, SEA_LEVEL + 1, 5);
+    let reach = crate::factory::pumping::POUR_REACH;
+    let pool = (front - IVec3::new(reach, 0, reach), front + IVec3::new(reach, 0, reach));
+    // The 7 × 7 patch around the front, less the two pipes and the outlet standing in it.
+    assert_eq!(count(&mut sim, pool.0, pool.1, WATER), 46, "the patch is full");
+    assert_eq!(count(&mut sim, at(12, SEA_LEVEL + 1, 0), at(60, SEA_LEVEL + 8, 30), WATER), 46, "nothing else");
+    let outlet = sim.factory.pipework.iter().find(|p| p.part == Part::Outlet).unwrap();
+    assert_eq!(outlet.flow, Flow::Blocked);
+}
+
+#[test]
+fn an_outlet_will_not_start_a_source_in_dry_air_below_sea_level() {
+    // The cliff of the first test, but its foot is below the sea: a lone source there would flood
+    // everything connected, so the outlet waits instead.
+    let mut sim = pit_over_a_cliff(true);
+    fill(&mut sim, at(0, 50, 0), at(30, 79, 20), STONE);
+    fill(&mut sim, at(12, 57, 1), at(29, 84, 19), AIR);
+    run(&mut sim, 20);
+    assert_eq!(count(&mut sim, at(12, 50, 1), at(29, 100, 19), WATER), 0);
+    let outlet = sim.factory.pipework.iter().find(|p| p.part == Part::Outlet).unwrap();
+    assert_eq!(outlet.flow, Flow::Blocked);
 }
 
 #[test]

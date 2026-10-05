@@ -10,7 +10,9 @@
 //!   list order. Each unit becomes a source where it lands: straight down from the cell in front, or,
 //!   when that lands on water, in the free cell of that water's edge that is lowest, then nearest
 //!   (within `PUMP_RANGE`), then lowest in position, and resting on something (a block or a source).
-//!   With nowhere to pour it waits.
+//!   It never places a source above the cell in front, more than `POUR_REACH` cells from it sideways,
+//!   or at or below `SEA_LEVEL` away from existing water (a lone source there floods all connected air).
+//!   With nowhere to pour it waits (`Flow::Blocked`), so a full hole stops the outlet.
 //!
 //! Every block it changes goes into `changed` (with the block it replaced), so `Sim::step` runs the
 //! water rules on it. Searches read through the `*_anywhere` accessors.
@@ -22,6 +24,7 @@ use rustc_hash::FxHashSet;
 use crate::block::{flow_level, BlockId, AIR, LIQUID, WATER};
 use crate::math::IVec3;
 use crate::world::World;
+use crate::worldgen::SEA_LEVEL;
 
 use super::pipes::{Flow, Part, Pipework, UNIT};
 use super::power::Power;
@@ -46,6 +49,8 @@ pub const PUMP_TIERS: [PumpTier; 3] = [
 pub const OUTLET_RATE: u32 = 4;
 /// How far (in steps through water) pumps and outlets search.
 pub const PUMP_RANGE: u32 = 16;
+/// How far sideways from the cell in front of it an outlet may place a source.
+pub const POUR_REACH: i32 = 3;
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
@@ -127,7 +132,9 @@ fn find_source(world: &mut World, pos: IVec3) -> Option<IVec3> {
     best.map(|k| k.1)
 }
 
-/// Where a unit poured into the cell `front` ends up, if anywhere.
+/// Where a unit poured into the cell `front` ends up, if anywhere: the column below `front`, or the
+/// edge of the water it lands on, but never higher than `front` or more than `POUR_REACH` cells from
+/// it sideways (so a full hole blocks the outlet rather than flooding the land around it).
 fn find_pour(world: &mut World, front: IVec3) -> Option<IVec3> {
     let b = world.block_anywhere_or_generate(front);
     let start = if fillable(b) {
@@ -136,7 +143,7 @@ fn find_pour(world: &mut World, front: IVec3) -> Option<IVec3> {
             c = c - UP;
         }
         if world.block_anywhere_or_generate(c - UP) != WATER {
-            return Some(c);
+            return pourable(world, c).then_some(c);
         }
         c - UP
     } else if b == WATER {
@@ -146,8 +153,15 @@ fn find_pour(world: &mut World, front: IVec3) -> Option<IVec3> {
     };
     let mut best: Pick = None;
     let mut consider = |world: &mut World, c: IVec3, dist: u32| {
+        let near = (c.x - front.x).abs() <= POUR_REACH && (c.z - front.z).abs() <= POUR_REACH;
         let key = (c.y, dist, [c.x, c.y, c.z]);
-        if best.is_none_or(|k| key < k.0) && fillable(world.block_anywhere_or_generate(c)) && rests(world, c) {
+        if best.is_none_or(|k| key < k.0)
+            && near
+            && c.y <= front.y
+            && fillable(world.block_anywhere_or_generate(c))
+            && rests(world, c)
+            && pourable(world, c)
+        {
             best = Some((key, c));
         }
     };
@@ -190,6 +204,12 @@ fn search(world: &mut World, starts: &[IVec3], mut visit: impl FnMut(IVec3, Bloc
 /// Air or flowing water: where a poured unit can go.
 fn fillable(b: BlockId) -> bool {
     b == AIR || flow_level(b).is_some()
+}
+
+/// Whether a source may be placed at `c`. At or below `SEA_LEVEL` a source floods everything connected
+/// (sim/water.rs), so there it must join water that is already there.
+fn pourable(world: &mut World, c: IVec3) -> bool {
+    c.y > SEA_LEVEL || FACES.iter().any(|&f| f.y >= 0 && world.block_anywhere_or_generate(c + f) == WATER)
 }
 
 /// Whether the cell under `c` holds water up: a block or a source, not air or flowing water.
