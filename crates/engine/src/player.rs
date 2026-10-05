@@ -312,7 +312,7 @@ impl Player {
 }
 
 /// Blocks a body climbs by standing in them: ladders, and belt lifts so a lift stack is easy to build.
-fn climbable(b: BlockId) -> bool {
+pub(crate) fn climbable(b: BlockId) -> bool {
     b == LADDER || b == LIFT
 }
 

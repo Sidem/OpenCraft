@@ -95,8 +95,12 @@ impl Game {
     pub(crate) fn update_target_ray(&mut self, origin: Vec3, dir: Vec3) {
         let eye = self.body().eye();
         let world = &self.sim.world;
-        let hit =
-            aim::target(eye, origin, dir, self.reach(), |p| world.get_block(p).filter(|&b| !block::replaceable(b)));
+        // A ladder or lift the body stands in is see-through to the hands, so one can build from inside it.
+        let (feet, head) = (self.body().pos.floor(), eye.floor());
+        let inside = |p: IVec3| p.x == feet.x && p.z == feet.z && p.y >= feet.y && p.y <= head.y;
+        let hit = aim::target(eye, origin, dir, self.reach(), |p| {
+            world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b)))
+        });
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
         let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| self.sim.factory.block_at(h.block)).flatten();
         self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
@@ -155,6 +159,7 @@ impl Game {
             || self.update_prospecting(dt)
             || self.update_belt_line()
             || self.update_rail_tools()
+            || self.update_train_tools()
             || self.update_power_tools(dt)
             || !self.using
         {

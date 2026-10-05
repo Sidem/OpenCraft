@@ -60,6 +60,36 @@ fn aim(g: &mut Game, block: IVec3) {
 }
 
 #[test]
+fn a_ladder_the_player_stands_in_does_not_block_the_hands() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let y = g.sim.world.generator().height_at(0, 0);
+    let at = |x, h, z| IVec3::new(x, h, z);
+    for x in 0..=6 {
+        for h in y - 2..=y + 5 {
+            g.sim.world.set_block_anywhere(at(x, h, 0), if h <= y { STONE } else { AIR });
+        }
+    }
+    let (ladder, wall, beside) = (at(3, y + 1, 0), at(5, y + 2, 0), at(4, y + 2, 0));
+    for h in [y + 1, y + 2] {
+        g.sim.world.set_block_anywhere(at(3, h, 0), block::LADDER);
+    }
+    g.sim.world.set_block_anywhere(wall, STONE);
+    let body = g.body_mut();
+    body.pos = Vec3::new(3.5, (y + 1) as f64, 0.5);
+    body.yaw = std::f64::consts::FRAC_PI_2;
+    body.pitch = 0.0;
+    g.update_target();
+    let hit = g.target.expect("something is aimed at");
+    assert_eq!(hit.block, wall, "the ladder around the player is looked through");
+    // A ladder in front of the player (not the one stood in) is still a target.
+    g.sim.world.set_block_anywhere(beside, block::LADDER);
+    g.update_target();
+    assert_eq!(g.target.map(|h| h.block), Some(beside));
+    assert_ne!(ladder, beside);
+}
+
+#[test]
 fn target_detail_leaves_the_core_unchanged() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
