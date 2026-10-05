@@ -152,6 +152,10 @@ pub const CRUSHED_BAUXITE: ItemId = ItemId(339);
 pub const ALUMINIUM_INGOT: ItemId = ItemId(340);
 pub const ALUMINIUM_PLATE: ItemId = ItemId(341);
 pub const BATTERY: ItemId = ItemId(342);
+/// Trains (the Trains tech): a locomotive, put on a rail node (`factory/trains.rs`).
+pub const LOCOMOTIVE: ItemId = ItemId(343);
+/// A wagon (the Freight tech), coupled behind a locomotive: a box's worth of slots, loaded at docks.
+pub const WAGON: ItemId = ItemId(344);
 
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
@@ -209,7 +213,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
     ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
 }
 
-const EXTRA: [ItemDef; 87] = [
+const EXTRA: [ItemDef; 89] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -297,6 +301,8 @@ const EXTRA: [ItemDef; 87] = [
     ingot("Aluminium Ingot", tex::ALUMINIUM_INGOT),
     part("Aluminium Plate", tex::ALUMINIUM_PLATE, [0.85, 0.14, 0.85]),
     part("Battery", tex::BATTERY, [0.4, 0.6, 0.4]),
+    ItemDef { name: "Locomotive", stack: 8, tex: [tex::LOCOMOTIVE; 3], size: [0.9, 0.7, 0.9], places: AIR },
+    ItemDef { name: "Wagon", stack: 8, tex: [tex::WAGON; 3], size: [0.9, 0.6, 0.9], places: AIR },
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

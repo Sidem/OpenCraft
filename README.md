@@ -255,7 +255,23 @@ size.
   select it, click another to join them, crouch-click a joined node to cut the track. A pair joins if it is 3 to 32
   blocks apart, climbs no more than 1 in 3 and bends no tighter than 8 blocks of radius; a node holds up to 4 tracks
   (for junctions). The outline turns red and the label says why when it does not fit. Track does not clear the
-  ground: use the planner to level, cut or tunnel the route. Trains that run on it come in the next step.
+  ground: use the planner to level, cut or tunnel the route.
+- **Trains** (Trains research, after Rails): a locomotive is 4 motors, 4 circuits, 10 steel plates and 4 steel beams.
+  Hold it and click a rail node that has track to put it on the line; crouch-click near it to pick it up again. It
+  runs at 9 blocks a second along the curves, turns round at the end of the track and takes the straightest track at
+  a junction. A track with a train on it cannot be cut, and removing a node under one gives the locomotive back. No
+  fuel yet, and trains pass through each other.
+- **Freight** (Freight research, after Trains): a wagon (8 steel plates, 2 steel beams and a storage box) holds 24 slots;
+  hold one and click a rail node beside a train to couple it on behind (up to 6; a train on its first node is pulled
+  forward to make room). A loading dock and an unloading dock (2×2×1: 10 steel plates, 2 motors, 2 circuits and a
+  storage box) stand within 2 blocks of a rail node. Belts feed the loading dock from any side; a train with wagons
+  that reaches the node takes the items on board, an unloading dock takes the cargo and belts leading away empty it.
+  A train waits at a dock until nothing has moved for 5 seconds, then drives on. Crouch-click picks up the whole
+  train with its wagons and cargo.
+- **Schedules**: with a locomotive in hand, click a node a train is on to select it (a freshly placed one is selected),
+  then click docks to add them to its schedule (up to 8) and crouch-click a dock to clear it. The train drives to its
+  docks in order, choosing branches at junctions, passes the docks that are not next and starts over after the last.
+  With no schedule it stops at every dock it reaches. No fuel yet.
 - **Solar power** (Solar Power research, after Electronics) is a solar panel (2×2×1) that gives up to 10 kW at
   noon, less towards dawn and dusk and nothing at night, and the accumulator (2×2×2) that stores 10 MJ of spare
   sun and gives it back (up to 60 kW) when the sun falls short, before any generator or turbine burns fuel.

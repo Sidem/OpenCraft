@@ -22,7 +22,6 @@ use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
 use super::pipes::Part;
-use super::process::Pick;
 use super::render::push_box;
 use super::{Factory, Machine, DIRS};
 
@@ -141,7 +140,7 @@ impl Factory {
             Slot::Storage(i) => Some(self.storages[i as usize].buf.fullness()),
             Slot::Process(i) => {
                 let p = &self.processors[i as usize];
-                (p.spec.pick == Pick::Store).then(|| p.out.fullness())
+                p.spec.pick.stores().then(|| p.out.fullness())
             }
             Slot::Belt(i) => Some((self.belts[i as usize].items.len() * 100 / BELT_CELL_ITEMS).min(100) as u8),
             _ => None,

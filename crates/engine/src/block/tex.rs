@@ -206,9 +206,14 @@ pub const ALUMINIUM_PLATE: u16 = 189;
 pub const BATTERY: u16 = 190;
 pub const CELL_SIDE: u16 = 191;
 pub const CELL_TOP: u16 = 192;
-/// Trains (`textures/transport.rs`): the rail block's icon.
+/// Trains (`textures/transport.rs`): the rail block's icon, the locomotive's and the wagon's, the docks' faces.
 pub const RAIL: u16 = 193;
-pub const COUNT: usize = 194;
+pub const LOCOMOTIVE: u16 = 194;
+pub const WAGON: u16 = 195;
+pub const DOCK_SIDE: u16 = 196;
+pub const DOCK_LOAD_TOP: u16 = 197;
+pub const DOCK_UNLOAD_TOP: u16 = 198;
+pub const COUNT: usize = 199;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

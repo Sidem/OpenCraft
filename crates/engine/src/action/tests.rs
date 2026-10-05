@@ -409,6 +409,9 @@ fn samples() -> Vec<Action> {
         Action::Fetch { item: IRON_PLATE, at: pos },
         Action::ClickGear { slot: 1, shift: true },
         Action::MarkTunnel { from: pos, to: against, size: 2 },
+        Action::PlaceTrain { pos, slot: 3 },
+        Action::TakeTrain { pos },
+        Action::TrainStop { node: pos, dock: pos, clear: true },
     ]
 }
 

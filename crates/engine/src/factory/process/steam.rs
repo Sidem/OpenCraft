@@ -124,9 +124,14 @@ impl Processor {
             } else {
                 "Standing by: the grid wants no more power".to_string()
             }),
-            (_, Pick::Store) => {
+            (_, pick) if pick.stores() => {
                 let used = self.out.slots.iter().filter(|s| !s.is_empty()).count();
-                Some(format!("Holding {used} of {} stacks", self.out.slots.len()))
+                let job = match pick {
+                    Pick::Load => " · a train beside it takes them",
+                    Pick::Unload => " · a train beside it unloads into it",
+                    _ => "",
+                };
+                Some(format!("Holding {used} of {} stacks{job}", self.out.slots.len()))
             }
             _ => None,
         }

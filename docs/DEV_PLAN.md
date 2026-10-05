@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-04 · Strategy controls built · Milestones 1–8 done (M7 and 8.1–8.3 committed locally, not pushed; 8.4–8.5 uncommitted; co-op tested across machines by the user; no TURN for
-now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.4a done (rails as nodes and curves), next 9.4b trains** · The `art` branch is superseded; art work
+now) · **Now: Milestone 9 (distance): bauxite, aluminium, finding far ground, trains; 9.1–9.4b3 done (rails as nodes and curves, locomotives, wagons and docks, schedules), next 9.4c signals** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -426,10 +426,10 @@ Milestones 6 (Industry), 7 (Electronics, blueprints, drones) and 8 (Terraforming
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 31) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 34) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 79, item 343). Each new look gets a placeholder
-  layer (`tex::COUNT` is 194) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 81, item 345). Each new look gets a placeholder
+  layer (`tex::COUNT` is 199) and a `docs/ART_HANDOVER.md` request line.
 
 ### Milestone 8 (Terraforming), built
 
@@ -482,19 +482,37 @@ haul it home. Order: the ore, aluminium, finding far ground, rails, then flight 
     does not clear terrain (planner jobs). Save version 31 (headings, then the track list after the rails; v30 rails
     load facing north); golden hash re-recorded. Tests 467 → 481. Not done: warning when a curve passes through solid
     blocks; rail removal refunds nothing special (a node is an ordinary block).
-  - [ ] **9.4b Trains** (design, revised for curves): `Train` entities in the factory (`factory/trains/`, saved). The track graph
-    is `tracks` (nodes by cell, edges `Track`); each edge's polyline is derived once per `relink` from `Curve` (arc-length
-    table, so a train's place is (edge, direction, distance in 1/1000 block) and wagons sit a fixed gap behind along
-    the path, crossing nodes). Curve math uses only `+ - * / sqrt` and the heading table of `dir_of` (it calls
-    `sin`/`cos`: build the 256-entry table once if cross-platform determinism is wanted). **Routing:** a train follows a
-    schedule of stations; at a node with several tracks on its travel side (a junction) it takes the branch a
-    breadth-first search over edges finds; it reverses only at a stop or a dead end. A **station** is a block (a
-    silo-like processor row with belt ports: `Pick::Store`) next to a node, which is its stop; its panel sets load or
-    unload and what to take; a stopped train exchanges items a stack at a time, then leaves after a dwell. **Locomotive
-    and wagon** are items (a locomotive: motor, circuits, steel; a wagon: steel plates and a box's worth of slots), put on
-    a node by hand and joined into one train; about 12 blocks a second. Fuel: coal from a slot or a battery (9.2's
-    item). Models via `push_box` from the path. Done when: a scenario test runs ore from a box through station A, a
-    train and station B into a box.
+  - [x] **9.4b1 Locomotives** (`factory/trains.rs`, `trains/model.rs`, `train_tools.rs`; tech Trains, index 38, needs Rails; hand
+    recipe 4 motors + 4 circuits + 10 steel plates + 4 steel beams → 1 locomotive, item 343): a `Train` is a stretch of the
+    track graph, `path` = directed edges `(from, to)` tail first and `head` = mm along the last edge (arc length of the
+    `Curve`, so speed is even on bends: 150 mm a tick, 9 blocks a second); saved (version 32). At a node it takes the track
+    leading on most straight (within 60° of its heading, ties by cell: `next_from`), with none it reverses (tail becomes
+    head), so a plain line shuttles. Placed by clicking a node that has track with the item in hand (`Action::PlaceTrain`),
+    crouch-click picks the nearest up (`TakeTrain`); a node removed under a train drops the locomotive, and a track with
+    a train on it cannot be cut. Drawn from its front and rear poses (it follows a bend). Golden hash re-recorded. Tests
+    481 → 490. No fuel, collisions or cargo yet (a second train on the same track passes through the first).
+  - [x] **9.4b2 Wagons and docks** (`factory/trains/cars.rs`, `trains/docks.rs`, `process/docks.rs`; tech Freight, index 39, needs
+    Trains; hand recipes: wagon 8 steel plates + 2 steel beams + 1 storage box → item 344; docks 10 steel plates + 2 motors
+    + 2 circuits + 1 storage box each → blocks 79 Loading Dock and 80 Unloading Dock). Wagons: `Train` gained `cars` (at most 6),
+    `cargo` (one `Buffer`, 24 slots a wagon) and `idle`; the train is `len_mm` long (a locomotive and a wagon 2.5 m each) and
+    `path` always covers all of it. The held wagon is `Action::PlaceTrain` too: `couple` puts track behind the train under the
+    new wagon, or, with none behind (a locomotive just put on the first node), pulls the train forward along the track ahead
+    (`Spot` gained `NoTrain`, `Full`, `NoRoom`). Crouch-click gives back the locomotive, wagons and cargo. **Docks** are two
+    spec rows (2×2×1 processors holding 48 slots like a silo: `Pick::Load` takes belts on every side, `Pick::Unload` gives
+    to belts on every side; `Pick::stores`) rather than one block with a mode, so no panel change was needed. Instead of
+    schedules, a train with wagons stops when its front reaches a node with a dock cell within 2 blocks, trades 8 items a
+    tick (the loader's store into the wagons, or the wagons into the unloader) and drives on after 5 seconds with no trade, so a
+    line shuttles between its docks. Models: wagon boxes (`WAGON_BOXES`), dock parts, texture layers 195–198 (placeholders,
+    `ART_HANDOVER.md`). Save version 33 (v32 trains load without wagons); golden hash re-recorded (one more tech). Tests
+    490 → 500, including ore from a box through the loading dock, a train and the unloading dock into a box (40 of 40 arrive).
+    Seen in the browser: a locomotive with two wagons stopped at a dock.
+  - [x] **9.4b3 Schedules** (fuel and dock filters deferred): a train has a list of up to 8 dock anchors
+    (`factory/trains/schedule.rs`) and a `next` index. At junctions `steer` runs a breadth-first search toward the next
+    dock (60° turn limit); the train passes other docks, stops at the next, then moves on (round again). A gone dock is
+    skipped; no schedule = stop at every dock. Edited with the locomotive in hand: click a train's node to select it,
+    click docks to append, crouch-click a dock to clear (`Action::TrainStop`, tag 43). Save version 34. Tests 500 → 505
+    (order across a fork, passing docks, edit limits, gone dock and save, the hand). **Deferred** to a train panel
+    (9.4c or later): fuel and dock item filters.
   - [ ] **9.4c Signals and junctions:** a signal block on a node reserves the stretch to the next signal for one train at
     a time; junction routing needs no switch block (routing picks the branch). Done when: two trains share one track
     without meeting.
@@ -544,6 +562,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-05: Schedules (step 9.4b3).** A train follows a list of up to 8 docks, routed by a breadth-first search at junctions (`factory/trains/schedule.rs`), edited with the locomotive in hand (`Action::TrainStop`); save version 34. Fuel and dock filters deferred to a train panel. Tests 500 → 505.
+- **2026-10-05: Wagons and docks (step 9.4b2).** The Freight tech: wagons coupled behind a locomotive (24 cargo slots each, up to 6), a loading dock and an unloading dock (spec rows, belts on every side); a train with wagons stops at a node beside a dock, trades 8 items a tick and drives on after 5 idle seconds. Save version 33, golden hash re-recorded. Schedules and fuel are 9.4b3. Tests 490 → 500.
+- **2026-10-04: Locomotives (step 9.4b1).** The Trains tech and the locomotive item: a train is a stretch of the track graph moving at 9 blocks a second along the curves, turning round at dead ends and taking the straightest track at junctions (`factory/trains.rs`); `PlaceTrain` / `TakeTrain` actions; save version 32, golden hash re-recorded. Wagons, stations and schedules are 9.4b2. Tests 481 → 490.
 - **2026-10-04: Rails (step 9.4a).** The Rails tech and the rail block. First built as a block per cell dragged like belts (save version 30), then **redesigned at the user's request as nodes and curves**, laid like power poles: nodes on the grid with a heading, smooth Hermite track between joined nodes (`factory/rail.rs`, `rail/curve.rs`, `rail_tools.rs`); save version 31, golden hash re-recorded. 9.4b (trains, stations, routing by search over the track graph) is specified in section 4. Tests 467 → 481.
 - **2026-10-04: Bearings to far ground (step 9.3).** The Mk2 scanner, filtered on an ore with none in range, names the way and distance band to the nearest biome that holds it (`worldgen/bearing.rs`, a pure query) and the pointer leads there. Tests 460 → 467.
 - **2026-10-04: Aluminium (step 9.2).** Bauxite Processing: crushed bauxite, the electrolytic cell (block 77, 300 kW, slag byproduct hatch), aluminium ingot and plate, battery; a third tech table `research/distance.rs`. Golden hash re-recorded (one more tech). Tests 459 → 460.

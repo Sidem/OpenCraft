@@ -72,6 +72,7 @@ mod sound;
 mod strategy;
 mod textures;
 mod tools;
+mod train_tools;
 mod upgrade_aim;
 mod world;
 mod worldgen;

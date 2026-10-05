@@ -125,6 +125,22 @@ pub enum Action {
         pole: IVec3,
         to: IVec3,
     },
+    /// Puts the locomotive in `slot` on the rail node at `pos` (`factory::Factory::place_train`), or couples the
+    /// wagon there to the train beside it (`couple`).
+    PlaceTrain {
+        pos: IVec3,
+        slot: u8,
+    },
+    /// Picks up the train nearest the rail node at `pos`, wagons and cargo too, as items.
+    TakeTrain {
+        pos: IVec3,
+    },
+    /// Adds `dock` to the schedule of the train near `node`, or with `clear` empties it (`Factory::set_stop`).
+    TrainStop {
+        node: IVec3,
+        dock: IVec3,
+        clear: bool,
+    },
     /// Raises the tiered machine at `pos` one tier with kits from the inventory (`factory/upgrades.rs`),
     /// if research allows it and there are enough.
     Upgrade {
@@ -299,6 +315,11 @@ impl Sim {
             }
             Action::Connect { pole, to } => self.factory.connect(pole, to),
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),
+            Action::PlaceTrain { pos, slot } => self.place_train(player, pos, slot),
+            Action::TakeTrain { pos } => self.take_train(player, pos),
+            Action::TrainStop { node, dock, clear } => {
+                self.factory.set_stop(node, dock, clear);
+            }
             Action::MarkSite { a, b, level, job } => {
                 self.factory.sites.mark(&mut self.world, a, b, level, job);
             }

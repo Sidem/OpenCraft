@@ -32,8 +32,10 @@ const CUT_AMBER: i32 = 0xfbbf24;
 /// The track hand's input state: never saved.
 #[derive(Default)]
 pub struct RailTools {
-    /// The use button has been down since the last press was handled.
-    down: bool,
+    /// The use button has been down since the last press was handled (the train hand shares it).
+    pub(crate) down: bool,
+    /// The node of the train the train hand has selected (`train_tools.rs`).
+    pub(crate) train: Option<IVec3>,
     /// The node new nodes join.
     sel: Option<IVec3>,
     /// The last node this tool sent, its heading and the ticks since (it counts before the core has it).

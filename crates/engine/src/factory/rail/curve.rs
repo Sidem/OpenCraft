@@ -96,8 +96,7 @@ impl Curve {
         )
     }
 
-    /// The horizontal direction of travel at `t`, as a unit vector (x, z). Tests for now: trains (9.4b) steer by it.
-    #[cfg(test)]
+    /// The horizontal direction of travel at `t`, as a unit vector (x, z): what a train steers by.
     pub fn heading(&self, t: f64) -> (f64, f64) {
         let t2 = t * t;
         let (d00, d10, d01, d11) =

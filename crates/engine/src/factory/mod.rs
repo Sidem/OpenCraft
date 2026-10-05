@@ -49,6 +49,7 @@ mod state;
 mod storage;
 mod table;
 pub mod tiers;
+mod trains;
 pub mod upgrades;
 mod wiring;
 
@@ -80,6 +81,7 @@ use rail::{Rail, Track};
 use router::Router;
 use sensor::Sensor;
 use storage::Storage;
+use trains::Train;
 use wiring::Hook;
 
 pub use belt::belt_preview;
@@ -100,6 +102,7 @@ pub use rail::{dir_of, fit as fit_track, write_node, write_track, yaw_of, Curve,
 pub use render::{light_boxes, push_box, INSTANCE_FLOATS};
 pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
+pub use trains::Spot;
 pub use wiring::Hookup;
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
@@ -162,6 +165,8 @@ pub struct Factory {
     rails: Vec<Rail>,
     /// The track between rail nodes, saved (`rail.rs`).
     tracks: Vec<Track>,
+    /// The locomotives on the track, saved (`trains.rs`).
+    trains: Vec<Train>,
     /// The player's power wires, saved (`wiring.rs`).
     hooks: Vec<Hook>,
     /// Tests only: leave wires to `connect` (else every relink wires by range, `hook_by_reach`).
@@ -293,6 +298,8 @@ impl Factory {
         };
         self.prune_hooks();
         self.prune_tracks();
+        let mut contents = contents;
+        contents.extend(self.derail_at(pos));
         contents
     }
 
@@ -300,6 +307,7 @@ impl Factory {
     /// deposits' shared draw budgets refill once per tick.
     pub fn update(&mut self, world: &mut World, tick: u64, events: &mut Vec<SimEvent>) {
         self.step_sensors();
+        self.step_trains();
         if self.dirty {
             self.relink();
         }

@@ -14,7 +14,7 @@ use crate::factory::Job;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 41;
+pub const TAG_COUNT: u8 = 44;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -205,6 +205,21 @@ impl Action {
                 w.u8(slot);
                 w.bool(shift);
             }
+            Action::PlaceTrain { pos, slot } => {
+                w.u8(41);
+                w.ivec3(pos);
+                w.u8(slot);
+            }
+            Action::TakeTrain { pos } => {
+                w.u8(42);
+                w.ivec3(pos);
+            }
+            Action::TrainStop { node, dock, clear } => {
+                w.u8(43);
+                w.ivec3(node);
+                w.ivec3(dock);
+                w.bool(clear);
+            }
             Action::SortInventory => w.u8(24),
             Action::SortBox { pos } => {
                 w.u8(25);
@@ -260,6 +275,9 @@ impl Action {
             38 => Action::Fetch { item: r.item()?, at: r.ivec3()? },
             39 => Action::ClickGear { slot: r.u8()?, shift: r.bool()? },
             40 => Action::MarkTunnel { from: r.ivec3()?, to: r.ivec3()?, size: r.u8()? },
+            41 => Action::PlaceTrain { pos: r.ivec3()?, slot: r.u8()? },
+            42 => Action::TakeTrain { pos: r.ivec3()? },
+            43 => Action::TrainStop { node: r.ivec3()?, dock: r.ivec3()?, clear: r.bool()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

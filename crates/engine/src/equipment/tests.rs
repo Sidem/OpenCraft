@@ -105,7 +105,7 @@ fn gear_rides_the_actions_and_the_save() {
     let back = Inventory::read_state(&mut ByteReader::new(&w.bytes)).expect("reads back");
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
-    assert_eq!(SAVE_VERSION, 31, "the layout above is unchanged since version 29 (30, 31: the rail list and tracks)");
+    assert_eq!(SAVE_VERSION, 34, "the layout above is unchanged since version 29 (30 to 34: rails, tracks, trains)");
 
     // A save with a pack's rows full but no pack on is refused.
     let mut bad = inv(&sim).clone();

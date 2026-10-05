@@ -193,8 +193,14 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 
 - [ ] (9.4a, landed) Rails: `tex::RAIL` (193, `textures/transport.rs`) is the block's icon only; the track itself is boxes
   from `factory/rail/curve.rs` `write_track` (a plank sleeper and two steel rails per 0.75-block piece along a smooth
-  curve, tilted to the grade; the `STEEL` and `PLANKS` layers) and `write_node` (a `FRAME` plate under each node). It should read as track at a glance from the overhead strategy camera too. Locomotive, wagon and
-  station looks come with 9.4b.
+  curve, tilted to the grade; the `STEEL` and `PLANKS` layers) and `write_node` (a `FRAME` plate under each node).
+  The locomotive (9.4b1): `tex::LOCOMOTIVE` (194) is the item's icon only; the train itself is boxes from
+  `factory/trains/model.rs` `LOCOMOTIVE_BOXES` (chassis, boiler, cab with a violet roof stripe, wheels). It should read as track at a glance from the overhead strategy camera too.
+  Wagons and docks (9.4b2): `tex::WAGON` (195) is the item's icon only, the wagon itself is `WAGON_BOXES` in the same
+  file (an open steel box with a violet stripe). The docks' faces are `tex::DOCK_SIDE`, `DOCK_LOAD_TOP` (amber, arrow
+  down) and `DOCK_UNLOAD_TOP` (blue, arrow up) (196–198, `textures/transport.rs`); their models are `LOADING_PARTS` and
+  `UNLOADING_PARTS` in `factory/process/docks.rs` (a low platform; the loader has a hopper, the unloader an apron).
+  Loading and unloading should read as opposites at a glance.
 - [ ] (9.2, landed) Aluminium: `tex::CRUSHED_BAUXITE`..`CELL_TOP` (187–192, `textures/aluminium.rs`): crushed bauxite,
   ingot, plate, battery and the electrolytic cell's tiled side and roof, all placeholders. The cell's model is
   `CELL_PARTS` (`factory/process/parts.rs`): a long tank with a glowing bath slot and two electrodes that pump. Aluminium

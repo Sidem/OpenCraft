@@ -74,6 +74,8 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || burn_time(it).is_some()
             || pack_slot(it).is_some();
         let end = it.places().is_some()
+            || it == item::LOCOMOTIVE
+            || it == item::WAGON
             || tools::tool(it).is_some()
             || tools::device(it).is_some()
             || crate::equipment::gear(it).is_some();

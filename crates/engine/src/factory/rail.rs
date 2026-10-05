@@ -92,6 +92,9 @@ impl Factory {
 
     /// Cuts the track between the nodes at `a` and `b` (`Action::Disconnect`).
     pub fn cut_track(&mut self, a: IVec3, b: IVec3) {
+        if self.train_on(a, b) {
+            return; // a train is on it
+        }
         let before = self.tracks.len();
         self.tracks.retain(|t| !(t.has(a) && t.has(b)));
         self.dirty |= self.tracks.len() != before;

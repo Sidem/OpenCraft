@@ -120,7 +120,10 @@ pub const BAUXITE_ORE: BlockId = 76;
 pub const ELECTROLYTIC_CELL: BlockId = 77;
 /// Track for trains (`factory/rail.rs`): a thin, non-solid machine that joins the rails beside it.
 pub const RAIL: BlockId = 78;
-pub const BLOCK_COUNT: usize = 79;
+/// The railway's docks (2×2×1 processors, `factory/process/docks.rs`): trains stop at them to load and unload.
+pub const LOADING_DOCK: BlockId = 79;
+pub const UNLOADING_DOCK: BlockId = 80;
+pub const BLOCK_COUNT: usize = 81;
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
@@ -341,6 +344,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     ore("Bauxite Ore", all(tex::BAUXITE_ORE), BAUXITE_ORE),
     machine("Electrolytic Cell", true, 1.4, pillar(tex::CELL_SIDE, tex::CELL_TOP, tex::FRAME), ELECTROLYTIC_CELL),
     machine("Rail", false, 0.3, all(tex::RAIL), RAIL),
+    machine("Loading Dock", true, 1.4, pillar(tex::DOCK_SIDE, tex::DOCK_LOAD_TOP, tex::FRAME), LOADING_DOCK),
+    machine("Unloading Dock", true, 1.4, pillar(tex::DOCK_SIDE, tex::DOCK_UNLOAD_TOP, tex::FRAME), UNLOADING_DOCK),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

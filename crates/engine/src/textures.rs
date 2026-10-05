@@ -177,7 +177,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::PIPE_WATER..=tex::PIPE_STEAM => piping::pixel(layer, x, y),
         tex::HAULER_PACK..=tex::MINING_RIG => gear::pixel(layer, x, y),
         tex::CRUSHED_BAUXITE..=tex::CELL_TOP => aluminium::pixel(layer, x, y),
-        tex::RAIL => transport::pixel(layer, x, y),
+        tex::RAIL..=tex::DOCK_UNLOAD_TOP => transport::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

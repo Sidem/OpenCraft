@@ -96,6 +96,7 @@ impl Factory {
         models(&self.sensors, out, eye, time, range);
         models(&self.rails, out, eye, time, range);
         self.write_tracks(out, eye, range);
+        self.write_train_models(out, eye, range);
         self.write_wires(out, eye, range);
         self.write_cables(out, eye, range);
     }

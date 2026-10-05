@@ -49,6 +49,22 @@ pub enum Pick {
     Store,
     /// Takes only drones, up to its fleet, and keeps them for `drones/` to fly (hangar.rs).
     Hangar,
+    /// A loading dock: stores like a silo, and a train stopped beside it takes what it holds (docks.rs).
+    Load,
+    /// An unloading dock: stores like a silo, a train stopped beside it gives it its cargo (docks.rs).
+    Unload,
+}
+
+impl Pick {
+    /// Whether it holds anything it is given in its output buffer: silos and docks.
+    pub fn stores(self) -> bool {
+        matches!(self, Pick::Store | Pick::Load | Pick::Unload)
+    }
+
+    /// Whether trains stop at it.
+    pub fn docks(self) -> bool {
+        matches!(self, Pick::Load | Pick::Unload)
+    }
 }
 
 /// One tier's numbers.
@@ -91,6 +107,8 @@ pub const SPECS: &[ProcessSpec] = &[
     super::solar::SOLAR_SPEC,
     super::solar::ACCUMULATOR_SPEC,
     super::hangar::HANGAR_SPEC,
+    super::docks::LOADING_DOCK_SPEC,
+    super::docks::UNLOADING_DOCK_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

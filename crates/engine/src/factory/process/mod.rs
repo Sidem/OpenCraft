@@ -22,6 +22,7 @@
 //!
 //! To add a processor: a spec row (`specs.rs`). New behaviour (flows) goes here.
 
+mod docks;
 mod hangar;
 mod legacy;
 mod model;
@@ -158,7 +159,7 @@ impl Processor {
         if self.is_fuel(item) {
             return self.fuel.space_for(item);
         }
-        if self.spec.pick == Pick::Store {
+        if self.spec.pick.stores() {
             return self.out.space_for(item);
         }
         if self.spec.pick == Pick::Hangar {
@@ -167,7 +168,7 @@ impl Processor {
         let wanted = match self.spec.pick {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
-            Pick::Store | Pick::Hangar => false,
+            Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload => false,
         };
         let cap = if self.spec.pick == Pick::Chosen {
             stack_size(item).saturating_sub(self.input.count(item))
@@ -191,7 +192,7 @@ impl Processor {
         let put = n.min(self.room_for(item, unlocked));
         let buf = match () {
             _ if self.is_fuel(item) => &mut self.fuel,
-            _ if self.spec.pick == Pick::Store => &mut self.out,
+            _ if self.spec.pick.stores() => &mut self.out,
             _ => &mut self.input,
         };
         buf.add(item, put);
@@ -215,7 +216,8 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
-            (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) | (_, Pick::Store | Pick::Hangar) => {}
+            (Energy::Turbine | Energy::Solar | Energy::Accumulator, _) => {}
+            (_, pick) if pick.stores() || pick == Pick::Hangar => {}
             _ => self.work(power, unlocked),
         }
         self.out.feed(&self.outs, &mut self.next_out, belts);

@@ -7,12 +7,38 @@ use super::Sim;
 use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
 use crate::factory;
 use crate::inventory::Stack;
-use crate::item::ItemId;
+use crate::item::{ItemId, LOCOMOTIVE, WAGON};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{PlayerId, SimEvent};
 use crate::tools;
 
 impl Sim {
+    /// Puts the locomotive in `slot` on the rail node at `pos`, or couples the wagon there to the train beside it
+    /// (`Action::PlaceTrain`); nothing if it does not fit.
+    pub(super) fn place_train(&mut self, player: PlayerId, pos: IVec3, slot: u8) {
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        let held = core.inventory.slots.get(slot as usize).filter(|s| s.count > 0).map(|s| s.item);
+        let done = match held {
+            Some(LOCOMOTIVE) => self.factory.place_train(pos),
+            Some(WAGON) => self.factory.couple(pos),
+            _ => false,
+        };
+        if done {
+            core.inventory.take_slot(slot as usize, 1);
+        }
+    }
+
+    /// Picks up the train nearest the node at `pos`, with its wagons and cargo, as items (`Action::TakeTrain`).
+    pub(super) fn take_train(&mut self, player: PlayerId, pos: IVec3) {
+        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
+        for stack in self.factory.take_train(pos).unwrap_or_default() {
+            let left = core.inventory.add(stack.item, stack.count);
+            if left > 0 {
+                self.events.push(SimEvent::Thrown { player, item: stack.item, count: left });
+            }
+        }
+    }
+
     pub(super) fn break_block(&mut self, player: PlayerId, pos: IVec3) {
         if let Some((pos, drops)) = self.dismantle(player, pos, true) {
             self.drop_stacks(pos, drops);

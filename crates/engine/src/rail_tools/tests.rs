@@ -139,6 +139,90 @@ fn clicking_nodes_selects_joins_and_cuts() {
 }
 
 #[test]
+fn a_locomotive_is_put_on_a_node_with_track_and_picked_up_again() {
+    use crate::item::LOCOMOTIVE;
+    let (mut g, y) = on_a_platform();
+    let (a, b, lone) = (v(4, y + 1, 0), v(16, y + 1, 0), v(30, y + 1, 10));
+    for p in [a, b, lone] {
+        g.sim.world.set_block_anywhere(p, RAIL);
+        g.sim.factory.place(&mut g.sim.world, RAIL, p, 64, p - IVec3::new(0, 1, 0), 0);
+    }
+    g.sim.factory.lay_track(a, b);
+    g.give(LOCOMOTIVE.0, 2);
+    g.run_ticks(3);
+    let slot = g.inventory().slots.iter().position(|s| s.item == LOCOMOTIVE).expect("given") as u32;
+    g.select_slot(slot);
+    g.run_ticks(2);
+    let count = |g: &Game| g.inventory().count(LOCOMOTIVE);
+    assert!(g.train_label().starts_with("Locomotive\naim at a rail node"), "{}", g.train_label());
+    // A node with no track refuses, in red.
+    aim_at(&mut g, lone, IVec3::ZERO);
+    assert!(g.train_label().contains("no track"), "{}", g.train_label());
+    assert_eq!(g.train_boxes()[6], BLOCKED_RED);
+    click_train(&mut g);
+    assert_eq!(count(&g), 2);
+    // A node with track takes it.
+    aim_at(&mut g, a, IVec3::ZERO);
+    assert_eq!(g.train_boxes()[6], GHOST_GREEN);
+    click_train(&mut g);
+    assert_eq!(count(&g), 1);
+    assert!(g.sim.factory.train_on(a, b));
+    assert!(g.train_label().contains("select the train"), "{}", g.train_label());
+    assert_eq!(g.rails.train, Some(a), "a placed train is selected for its schedule");
+    // Crouch-click picks it up.
+    g.body_mut().input.crouch = true;
+    click_train(&mut g);
+    g.body_mut().input.crouch = false;
+    assert_eq!(count(&g), 2);
+    assert!(!g.sim.factory.train_on(a, b));
+}
+
+#[test]
+fn clicking_docks_with_a_locomotive_builds_the_selected_trains_schedule() {
+    use crate::block::LOADING_DOCK;
+    use crate::item::LOCOMOTIVE;
+    let (mut g, y) = on_a_platform();
+    let (a, b) = (v(4, y + 1, 0), v(16, y + 1, 0));
+    for p in [a, b] {
+        g.sim.world.set_block_anywhere(p, RAIL);
+        g.sim.factory.place(&mut g.sim.world, RAIL, p, 64, p - IVec3::new(0, 1, 0), 0);
+    }
+    g.sim.factory.lay_track(a, b);
+    let dock = v(14, y + 1, 4);
+    g.sim.factory.place(&mut g.sim.world, LOADING_DOCK, dock, 0, dock, 0);
+    g.give(LOCOMOTIVE.0, 2);
+    g.run_ticks(3);
+    let slot = g.inventory().slots.iter().position(|s| s.item == LOCOMOTIVE).expect("given") as u32;
+    g.select_slot(slot);
+    g.run_ticks(2);
+    // No train is selected yet: a dock click does nothing and says so.
+    aim_at(&mut g, dock, IVec3::ZERO);
+    assert!(g.train_label().contains("select it first"), "{}", g.train_label());
+    assert_eq!(g.train_boxes()[6], BLOCKED_RED);
+    // Put the locomotive on, which selects it; then the dock joins its schedule, and a crouch-click clears it.
+    aim_at(&mut g, a, IVec3::ZERO);
+    click_train(&mut g);
+    assert_eq!(g.rails.train, Some(a));
+    aim_at(&mut g, dock, IVec3::ZERO);
+    assert_eq!(g.train_boxes()[6], GHOST_GREEN);
+    click_train(&mut g);
+    assert_eq!(g.sim.factory.schedule_near(a), vec![dock]);
+    assert!(g.train_label().contains(&format!("dock {}, {}", dock.x, dock.z)), "{}", g.train_label());
+    g.body_mut().input.crouch = true;
+    click_train(&mut g);
+    g.body_mut().input.crouch = false;
+    assert!(g.sim.factory.schedule_near(a).is_empty());
+}
+
+fn click_train(g: &mut Game) {
+    for on in [true, false] {
+        g.using = on;
+        g.update_train_tools();
+        g.sim.step();
+    }
+}
+
+#[test]
 fn only_rails_in_hand_use_the_track_hand() {
     let (mut g, y) = on_a_platform();
     g.select_slot(8);
