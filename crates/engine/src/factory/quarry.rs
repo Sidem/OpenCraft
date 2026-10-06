@@ -194,6 +194,7 @@ impl Quarry {
         world.set_block_anywhere(cell, AIR);
         changed.push((cell, id));
         events.push(SimEvent::QuarryDug { pos: cell, block: id });
+        events.push(SimEvent::Produced { item: drop, count: 1 });
         self.out.add(drop, 1);
         (self.dug, self.next, self.progress, self.from) = (self.dug + 1, self.next + 1, 0, cell);
     }

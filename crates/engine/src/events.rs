@@ -1,7 +1,7 @@
 //! How the game reacts to the core's `SimEvent`s, every tick right after `Sim::step`: the authority
 //! spawns loose items (block drops, throws from the right player's body), and the view plays sounds
 //! (anyone's, heard from the local player's position) and queues toasts for the local player only.
-//! Nothing here changes the core.
+//! Production counts go to the analytics (`analytics/`). Nothing here changes the core.
 //!
 //! To react to a new event: add its arm to `handle_sim_events`.
 
@@ -73,6 +73,7 @@ impl Game {
                     self.spawn_item(pos, vel, item, count, DROP_PICKUP_DELAY)
                 }
                 SimEvent::Thrown { player, item, count } => self.throw(player, item, count),
+                SimEvent::Produced { item, count } => self.analytics.produced(item, count),
             }
         }
         if picked_up {

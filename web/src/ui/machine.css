@@ -67,6 +67,25 @@
   font-size: 14px;
 }
 
+/* How well it has run lately (the engine's words); the colour follows the percentage. */
+.mp-efficiency {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.mp-efficiency[data-level='full'] {
+  color: #8fdc9c;
+}
+
+.mp-efficiency[data-level='ok'] {
+  color: #fbbf24;
+}
+
+.mp-efficiency[data-level='low'] {
+  color: #f87171;
+}
+
 .mp-bar {
   height: 6px;
   border-radius: 3px;

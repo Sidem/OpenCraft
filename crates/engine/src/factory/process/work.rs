@@ -1,8 +1,10 @@
 //! A processor's work loop: picking the next recipe, starting a batch when its inputs and room allow,
 //! counting work, lighting a burner's fire and delivering outputs (`mod.rs` has the invariants).
 
+use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::recipes::{burn_time, water_use, MachineRecipe, MACHINE_RECIPES};
+use crate::sim::SimEvent;
 
 use super::super::power::FULL_SPEED;
 use super::super::ticks;
@@ -47,6 +49,7 @@ impl Processor {
         self.progress += work;
         if self.progress >= ticks(r.seconds) * FULL_SPEED {
             for (k, &(item, n)) in r.outputs.iter().enumerate() {
+                self.made.push(Stack { item, count: n });
                 if self.to_side(k) {
                     self.side.add(item, n);
                 } else {
@@ -55,6 +58,11 @@ impl Processor {
             }
             (self.batch, self.progress) = (None, 0);
         }
+    }
+
+    /// Reports what this tick made (a finished batch, a filled canister) as `Produced` events.
+    pub fn report_made(&mut self, events: &mut Vec<SimEvent>) {
+        events.extend(self.made.drain(..).map(|s| SimEvent::Produced { item: s.item, count: s.count }));
     }
 
     /// The recipe the next batch would be (a `MACHINE_RECIPES` index), or why there is none.

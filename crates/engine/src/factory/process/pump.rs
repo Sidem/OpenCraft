@@ -14,6 +14,7 @@
 use crate::block::{tex, OIL_SAND, PUMPJACK, SPENT_ROCK};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
+use crate::inventory::Stack;
 use crate::item::{CRUDE_CANISTER, EMPTY_CANISTER};
 use crate::math::IVec3;
 use crate::world::World;
@@ -132,6 +133,7 @@ impl Processor {
         {
             self.input.remove(EMPTY_CANISTER, 1);
             self.out.add(CRUDE_CANISTER, 1);
+            self.made.push(Stack { item: CRUDE_CANISTER, count: 1 });
             self.pump.carry -= CANISTER_UNITS;
         }
         let mut drawn = 0.0;

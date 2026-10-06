@@ -10,14 +10,14 @@
 //! [`Machine`], in its own `Vec`; code acting on one machine matches on its `Slot`. Removal: `swap_remove`, fix `at`.
 //!
 //! Core state (DEV_PLAN section 3.4): `update` runs one fixed tick: power (`power.rs`: supply and demand), miners,
-//! boxes and processing machines, the powered machines, then belts (downstream first, see `links.rs`), and reports
+//! boxes and processing machines, the powered machines, then belts (downstream first, see `links.rs`); it reports
 //! to the view only through `SimEvent`s. Links and the belt order are derived, rebuilt by `relink` when `dirty`.
 //!
 //! A machine that turns inputs into outputs is a processor spec row (`process/specs.rs`), not a kind.
-//! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a
-//! `MACHINES` row and a `Vec` field (saved in `state.rs`), then follow the compiler through the `match`es
-//! (`place`, `remove`, `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`). Its block goes in
-//! `block.rs`, its recipe in `recipes.rs`.
+//! To add a machine: its file (struct, `step`, `impl Machine`), a `Kind` and a `Slot` variant with a `MACHINES` row
+//! and a `Vec` field (saved in `state.rs`), then follow the compiler through the `match`es (`place`, `remove`,
+//! `update`, `links.rs`, `describe.rs`, `render.rs`, `panel.rs`, `efficiency.rs`). Its block goes in `block.rs`, its
+//! recipe in `recipes.rs`.
 
 mod belt;
 mod belt_chain;
@@ -25,6 +25,7 @@ mod belt_shape;
 mod buffer;
 mod cable;
 mod describe;
+pub mod efficiency;
 pub mod footprint;
 mod generator;
 mod lab;
@@ -182,8 +183,7 @@ pub struct Factory {
     pub research: Research,
     /// The world's terraforming sites (`sites.rs`).
     pub sites: Sites,
-    /// Blocks the machines changed this tick, with the block each replaced (pumps and outlets); not
-    /// state: `Sim::step` drains it into `block_changed`.
+    /// Blocks the machines changed this tick, with the one each replaced (not state: `Sim::step` drains it).
     pub changed: Vec<(IVec3, BlockId)>,
 }
 
@@ -282,7 +282,7 @@ impl Factory {
         let Some(slot) = self.at.remove(&pos) else { return Vec::new() };
         self.dirty = true;
         let at = &mut self.at;
-        let contents = match slot {
+        let mut contents = match slot {
             Slot::Belt(i) => swap_out(&mut self.belts, i, at, Slot::Belt),
             Slot::Miner(i) => swap_out(&mut self.miners, i, at, Slot::Miner),
             Slot::Storage(i) => swap_out(&mut self.storages, i, at, Slot::Storage),
@@ -298,7 +298,6 @@ impl Factory {
         };
         self.prune_hooks();
         self.prune_tracks();
-        let mut contents = contents;
         contents.extend(self.derail_at(pos));
         contents
     }
@@ -347,6 +346,7 @@ impl Factory {
             let share = if m.draws_power() { power.speed(p) } else { power::FULL_SPEED };
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
+            m.report_made(events);
         }
         for r in sinks.routers.iter_mut() {
             r.step(belts);

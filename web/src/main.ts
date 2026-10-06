@@ -17,6 +17,7 @@ import { Renderer } from './render/renderer';
 import { clock } from './render/sky';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
+import { AnalyticsPanel } from './ui/analytics';
 import { ComfortPanel } from './ui/comfort';
 import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
@@ -105,6 +106,7 @@ async function main(): Promise<void> {
   const machine = new MachinePanel(game, (id) => hud.itemIcon(id));
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
+  const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
   const hints = new Hints(game);
   const blueprints = new BlueprintPanel(game);
   const sites = new SitePanel(game);
@@ -122,7 +124,10 @@ async function main(): Promise<void> {
     leave: () => session?.finish() ?? Promise.resolve(),
   });
   document.getElementById('coop')!.append(coopPanel.el);
-  const panelOpen = () => inventory.isOpen || machine.isOpen || research.isOpen || worldMap.isOpen || blueprints.isOpen || sites.isOpen;
+  // Screens the keys open (the action's kind names them); each frees the mouse while open.
+  const screens = { blueprints, research, analytics, 'world-map': worldMap };
+  const panels = [inventory, machine, research, worldMap, blueprints, sites, analytics];
+  const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock
   const menu = document.getElementById('menu')!;
@@ -174,11 +179,7 @@ async function main(): Promise<void> {
     game.close_inventory();
     closed(resume);
   };
-  machine.onClose = closed;
-  research.onClose = closed;
-  blueprints.onClose = closed;
-  sites.onClose = closed;
-  worldMap.onClose = closed;
+  for (const p of [machine, research, blueprints, sites, worldMap, analytics]) p.onClose = closed;
   // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
   let leftGame = -Infinity;
@@ -210,7 +211,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, renderer, wasm, sound, soundLab, inventory, machine, research, blueprints, sites, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -267,14 +268,8 @@ async function main(): Promise<void> {
       } else if (a.kind === 'inventory') {
         inventory.open();
         input.unlock();
-      } else if (a.kind === 'blueprints') {
-        blueprints.open();
-        input.unlock();
-      } else if (a.kind === 'research') {
-        research.open();
-        input.unlock();
-      } else if (a.kind === 'world-map') {
-        worldMap.open();
+      } else if (a.kind in screens) {
+        screens[a.kind as keyof typeof screens].open();
         input.unlock();
       }
     }
@@ -362,6 +357,7 @@ async function main(): Promise<void> {
     inventory.update();
     machine.update();
     research.update(now);
+    analytics.update(now);
     hints.update();
     craftQueue.update();
     prospect.update();

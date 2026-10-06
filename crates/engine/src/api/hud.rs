@@ -165,7 +165,8 @@ impl Game {
     pub fn target_detail(&mut self) -> String {
         let Some(hit) = self.target else { return String::new() };
         if let Some(text) = self.sim.factory.describe(hit.block) {
-            return text;
+            let efficiency = self.efficiency_line(hit.block);
+            return if efficiency.is_empty() { text } else { format!("{text}\n{efficiency}") };
         }
         if let Some(text) = ore_guide::stain_reading(self.sim.world.generator(), hit.block, hit.id) {
             return text;

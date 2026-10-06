@@ -21,6 +21,7 @@
 //! the one input applied per frame, for responsiveness.
 
 mod action;
+mod analytics;
 mod api;
 mod authority;
 mod avatars;
@@ -192,6 +193,8 @@ pub struct Game {
     tools: PowerTools,
     /// Track laying (`rail_tools.rs`).
     rails: RailTools,
+    /// Power and production history and machine efficiency (`analytics/`; presentation, not saved).
+    analytics: analytics::Analytics,
 }
 
 #[wasm_bindgen]
@@ -255,6 +258,7 @@ impl Game {
             tools: PowerTools::default(),
             rails: RailTools::default(),
             place_turn: 0,
+            analytics: analytics::Analytics::default(),
         }
     }
 }
@@ -341,11 +345,12 @@ impl Game {
         self.net_tick();
     }
 
-    /// One core tick (`Sim::step` applies its actions), the host's frame for it, then its events.
+    /// One core tick (`Sim::step` applies its actions), the host's frame for it, then its events and the analytics.
     fn step_core(&mut self) {
         self.sim.step();
         self.role.end_tick(&mut self.sim);
         self.handle_sim_events();
+        self.analytics.record(&self.sim.factory);
     }
 
     /// Queues an action by the local player for the coming tick.

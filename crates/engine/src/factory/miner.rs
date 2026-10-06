@@ -135,14 +135,14 @@ impl Miner {
         sinks: &mut Sinks,
         events: &mut Vec<SimEvent>,
     ) {
-        let drawn = self.draw(deposits, world, tick);
+        let drawn = self.draw(deposits, world, tick, events);
         self.push_out(belts, sinks);
         self.pulse(drawn, events);
     }
 
     /// Draws from the deposit into `out`, then updates the status and the smoothed draw rate.
-    /// Returns the units drawn.
-    fn draw(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64) -> f64 {
+    /// Returns the units drawn; each whole item made is reported as `Produced`.
+    fn draw(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, events: &mut Vec<SimEvent>) -> f64 {
         let dt = TICK;
         let mut drawn = 0.0;
         match self.deposit {
@@ -157,6 +157,9 @@ impl Miner {
                     self.carry += drawn * self.recovery();
                     let whole = self.carry.floor();
                     self.out.add(self.ore, whole as u32);
+                    if whole >= 1.0 {
+                        events.push(SimEvent::Produced { item: self.ore, count: whole as u32 });
+                    }
                     self.carry -= whole;
                 }
                 let exhausted = deposits.get(&key).is_none_or(|s| s.exhausted());

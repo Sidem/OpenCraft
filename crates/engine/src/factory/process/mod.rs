@@ -112,6 +112,8 @@ pub struct Processor {
     pub next_out: usize,
     pub next_side: usize,
     pub status: Status,
+    /// What it made this tick, until `report_made` (derived, not saved).
+    pub made: Vec<Stack>,
 }
 
 impl Processor {
@@ -143,6 +145,7 @@ impl Processor {
             next_out: 0,
             next_side: 0,
             status,
+            made: Vec::new(),
         }
     }
 

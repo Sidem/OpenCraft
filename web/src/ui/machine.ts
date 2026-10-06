@@ -28,6 +28,7 @@ export class MachinePanel {
   private readonly dialog = h('div', 'mp');
   private readonly title = h('h2', '');
   private readonly status = h('p', 'mp-status');
+  private readonly efficiency = h('p', 'mp-efficiency');
   private readonly bar = h('div', 'mp-bar-fill');
   private readonly fire = h('span', 'mp-fire');
   private readonly slots = h('div', 'mp-slots');
@@ -69,7 +70,7 @@ export class MachinePanel {
       this.game.take_machine_output(...this.pos);
     });
     const state = h('section', 'mp-state');
-    state.append(this.status, this.progress, this.fire, this.slots, this.take);
+    state.append(this.status, this.efficiency, this.progress, this.fire, this.slots, this.take);
 
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
@@ -136,6 +137,11 @@ export class MachinePanel {
     const [, recipe, progress, fire, choosable, count] = data;
     this.bar.style.transform = `scaleX(${progress / 1000})`;
     const quarry = this.quarry.update(this.pos);
+    // The running average moves a little every frame, so it is outside the redraw key below.
+    const efficiency = g.machine_efficiency(...this.pos);
+    if (this.efficiency.textContent !== efficiency) this.efficiency.textContent = efficiency;
+    const percent = g.machine_efficiency_percent(...this.pos);
+    this.efficiency.dataset.level = percent < 0 ? 'idle' : percent >= 98 ? 'full' : percent >= 60 ? 'ok' : 'low';
     // Everything else changes rarely: redraw it only when the rest of the data or the inventory does.
     data[2] = 0;
     const key = `${data.join(',')}|${g.inventory_version()}`;

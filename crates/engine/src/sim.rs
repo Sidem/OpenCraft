@@ -97,6 +97,12 @@ pub enum SimEvent {
         pos: IVec3,
         block: BlockId,
     },
+    /// A machine made `count` of `item` (a miner's ore, a quarry's block, a finished batch, byproducts included),
+    /// for the production graphs (`analytics/`).
+    Produced {
+        item: ItemId,
+        count: u32,
+    },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
     Thrown {
         player: PlayerId,

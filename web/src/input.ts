@@ -12,6 +12,7 @@ export type Action =
   | { kind: 'sound-lab' }
   | { kind: 'inventory' }
   | { kind: 'research' }
+  | { kind: 'analytics' }
   | { kind: 'rotate' }
   | { kind: 'ghost' }
   | { kind: 'fetch' }
@@ -200,6 +201,7 @@ export class Input {
       else if (e.code === 'Enter') this.actions.push({ kind: 'blueprint-copy' });
       else if (e.code === 'KeyL') this.actions.push({ kind: 'blueprints' });
       else if (e.code === 'KeyT') this.actions.push({ kind: 'research' });
+      else if (e.code === 'KeyP') this.actions.push({ kind: 'analytics' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
       else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });
       else if (e.code === 'KeyV') this.actions.push({ kind: 'view' });

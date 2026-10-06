@@ -1,0 +1,139 @@
+/* Analytics screen (analytics.ts) and its line charts (analytics-chart.ts). The dialog frame is machine.css. */
+
+.an {
+  width: min(980px, 100%);
+}
+
+.an-scales {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.an-scales-label {
+  margin-right: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.an-scale {
+  min-width: 44px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.an-scale:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.an-scale[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.an-chart {
+  position: relative;
+}
+
+.an-canvas {
+  display: block;
+  width: 100%;
+  height: 190px;
+}
+
+.an-tip {
+  position: absolute;
+  top: 8px;
+  z-index: 1;
+  padding: 6px 9px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(10, 12, 16, 0.92);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.an-tip-time {
+  color: var(--muted);
+}
+
+.an-tip-row,
+.an-cause {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.an-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.an-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.an-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.an-chip:not(:disabled) {
+  cursor: pointer;
+}
+
+.an-chip:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* A hidden item: its line is off the graph. */
+.an-chip.off {
+  opacity: 0.45;
+}
+
+.an-chip.off .an-chip-name {
+  text-decoration: line-through;
+}
+
+.an-chip-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.an-chip-value {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.an-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.an-machines .mp-status {
+  margin-bottom: 0;
+}

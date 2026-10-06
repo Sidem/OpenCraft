@@ -62,6 +62,7 @@ the render distance in chunks (2 to 24, default 8).
 | Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
 | T                   | Research: choose what labs work on        |
+| P                   | Analytics: power and production graphs, and how well your machines run |
 | H                   | Skip the tip on screen (the menu can show tips again) |
 | M                   | The map: everywhere you've been, your pins, and the ore guide (drag to move, wheel to zoom, click to pin) |
 | N                   | Show or hide the minimap (top right, north up; diamonds mark ore you've seen, rings veins and lodes you've prospected, squares your machines, pins your pins) |
@@ -84,6 +85,16 @@ stack of that item (between hotbar and backpack, or box and inventory). Tools al
 on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
 merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
 merge, so each keeps its own wear.
+
+**Analytics (P)** shows how the factory is doing. The electricity graph has the power your generators could
+make, the power being used and the power your machines asked for (when that is above what is used, the grid is
+short and everything on it slows down). The production graph has a line for each item your machines make, a
+minute at a time, coloured like the item; click an item to hide or show its line. The buttons at the top pick
+the timescale, from the last minute to the last three hours. Below the graphs, a count shows how many machines
+run at full speed and what holds back the rest. Every machine also says how close to full speed it has run
+over the last ten seconds, for example "Efficiency 62%: lost 25% to waiting for input, 13% to low power": it
+is in the machine's panel and on the readout when you look at a miner or any other machine. The graphs start
+when you open the world; they are not saved.
 
 New worlds have a sea and ponds. Water flows: dig beside the sea and it pours in and refills any hole or
 trench at or below its level, however far. Elsewhere water runs up to 7 blocks from its source, getting
