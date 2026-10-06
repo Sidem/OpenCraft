@@ -54,6 +54,7 @@ mod light;
 mod math;
 mod mesher;
 mod minimap;
+mod mode;
 mod net;
 mod noise;
 mod ore_guide;

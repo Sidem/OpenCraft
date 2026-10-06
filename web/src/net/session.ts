@@ -33,7 +33,7 @@ export async function startCoop(
   if (join) {
     const t = isRoomCode(join) ? await joinWebRtc(join, relay) : connectBroadcast(join);
     const client = await CoopClient.join(t, playerKey(), playerName(), viewRadius);
-    const meta = newWorld(`Co-op game ${join.toUpperCase()}`, client.game.seed());
+    const meta = newWorld(`Co-op game ${join.toUpperCase()}`, client.game.seed(), client.game.is_creative());
     return { opened: { game: client.game, meta, restored: false, notice: '' }, coop: leaveOnClose(client) };
   }
   const opened = await openSolo();

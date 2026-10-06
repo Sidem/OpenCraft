@@ -1,0 +1,9 @@
+/* Creative item picker (creative.ts): the tab row sits above the picker; tiles are the build menu's. */
+
+.inv-right > .craft-filters {
+  margin-bottom: 12px;
+}
+
+.inv-creative .craft-head {
+  margin-bottom: 10px;
+}

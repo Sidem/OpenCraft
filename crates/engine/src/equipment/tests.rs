@@ -106,8 +106,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 37,
-        "the layout above is unchanged since version 29 (30 to 37: rails, trains, hover pack, cargo)"
+        SAVE_VERSION, 38,
+        "the layout above is unchanged since version 29 (30 to 38: rails, trains, hover pack, cargo, game mode)"
     );
 
     // A save with a pack's rows full but no pack on is refused.

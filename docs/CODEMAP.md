@@ -18,6 +18,7 @@ folder with `mod.rs`.
 | `sim/water.rs` | Flowing water (core state): `WaterQueue` (checks in order, one per cell, capped), `water_changed` (schedules checks near a change), `run_water` (at most `MAX_WATER_UPDATES` a tick), the rules (`water_rule`: the sea refills at or below `SEA_LEVEL`, falling water, levels 7 to 1) |
 | `sim/saplings.rs` | Saplings: the leaf drop chance, where they can be planted, growth into a tree (`worldgen::tree_blocks`) |
 | `sim/torches.rs` | Torches: where one can stand (`torch_fits`: an empty cell on a solid block), dropping when its block goes (from `block_changed`) |
+| `mode.rs` + `mode/tests.rs` | A world's game mode (`Mode`: normal or creative, `Sim::mode`, saved since version 38, fixed at creation): `Sim::set_mode` (creative completes every tech, again on each load), `creative_items` (every placeable block, then every other item) |
 | `daytime.rs` | Time of day from the core tick (`DAY_TICKS`: a 20-minute day, a new world starts at 7:00): `time_of_day`, `day_number`; no state of its own; `sunlight(tick)` (thousandths, integer parabola between 6:00 and 18:00) for solar panels |
 | `bytes.rs` | `ByteWriter` / `ByteReader` (little-endian canonical encoding of core state; each type has a `write_state` and a `read_state`; `item` reads the layout of the reader's save `version`), `fnv1a` |
 | `save.rs` | Save file: header (magic, `SAVE_VERSION`, the world's generator version), seed, core, bodies, loose items; `save_bytes` / `from_save` with player-readable refusals; older versions back to `OLDEST_VERSION` load through `ByteReader::version`. Tests in `save/tests.rs` (with the committed `v1.ocworld` and `v9.ocworld` fixtures) |
@@ -39,6 +40,7 @@ folder with `mod.rs`.
 | `api/inventory.rs` | Inventory screen: slots, cursor stack, worn gear (`gear_*`, `worn_item`, `click_gear`), `close_inventory`, pickup notifications |
 | `api/machine.rs` | Machine panels: `take_panel_request`, `machine_panel` (flat view), machine recipes, panel buttons (set recipe, set filter, put in, take); the quarry's part (`quarry_panel`, `quarry_found`, `quarry_box`, size and depth choices, `set_quarry`); box screens (`box_slots`, `click_box`, `store_slot`) |
 | `api/crafting.rs` | Recipe queries (`recipe_locked_by`, `craftable_times` counting parts made from ingots, `recipe_tenths`, `recipe_part_crafts`, `recipe_group` and group names), `craft`, the queue (`craft_queue`: item, amount left, permille per order) and `cancel_craft`, `craft_steps(order)` (an order's remaining steps: item, amount, progress) |
+| `api/creative.rs` | `new_creative` (static, like `new`), `is_creative`, `creative_items`, `creative_give` (a stack or one, as a `Give` action, creative worlds only) |
 | `api/research.rs` | Research screen: the tech table (`tech_*`), progress, `current_research`, `set_research` |
 | `api/content.rs` | Block names and sound materials, `item_name`, `item_icon` (single box), `item_model` (manufactured item box parts), `tool_uses`, `hand_yield`, `miner_recovery`, `item_tier` and `tier_colour` (tier chips) |
 | `api/hud.rs` | Player flags, target and `target_detail`, mining progress, onboarding hints (`hint_*`), stats counters, belt line outlines and label (`line_cells`, `line_label`, which also describes a quarry or multi-block machine about to be placed), `placement_box` (7 numbers a box: cells and a colour) |
@@ -217,6 +219,7 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `ui/hud.ts` + `.css` | Crosshair (styled by comfort settings), target readout, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
 | `ui/inventory.ts` + `.css` | Inventory screen (E) with the build menu and the equipment slots (the backpack grows with a hauler pack); opened on a box (`open([x, y, z])`), the box screen: its slots above the inventory, Sort, Take all; Sort on the backpack; Shift-right-click on a slot moves every stack of that item (to the box, from it, or between hotbar and backpack) |
 | `ui/crafting.ts` + `.css` | Build menu: recipe tiles grouped by `recipe_group`, text search (output and material names), state filters (unlocked by default, all, can craft, missing, locked), one hover info card; click queues a craft, Shift-click 5; the card shows the time and the parts crafted first. `ui/craftqueue.ts` + `.css`: the queue above the hotbar (also over the inventory screen): a group per order with a chip per step (parts first, the asked-for item last), a bar on the running step, ✕ to cancel |
+| `ui/creative.ts` + `.css` | Creative worlds only: the "All items" picker (search, a tile per `creative_items`, click a stack, Shift-click one) and `withCreativeTabs`, which joins it with the build menu in `ui/inventory.ts` |
 | `ui/machine.ts` + `.css` | Machine panel (right-click a processor such as a smelter or constructor, a filter, generator, lab or quarry): status, progress, buffers, recipe choice, filter item, put-in and take buttons; `quarryBox` for the open quarry's outline |
 | `ui/quarry.ts` | The quarry's part of the machine panel: size and depth choices, pause, layer and blocks dug and left, deposits uncovered |
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
@@ -231,11 +234,8 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `ui/blueprints.ts` + `.css` | Blueprint library (L): rows to rename, hold and delete; the engine's bytes are stored in `WorldMeta.blueprints` by `save/session.ts` |
 | `ui/research.ts` + `.css` + `-card.css` | Research screen (T): the tech tree, a node per tech coloured by state (done, researching, available = horizon, locked), curves to prerequisites, hover card with the details, click to choose; layout in `ui/tech-tree.ts`; HUD tracker and "research done" notice |
 | `ui/menu.css` | Pause/start menu and "click to keep playing" hint styles (markup in `web/index.html`) |
-| `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed), export / import `.ocworld`, delete |
-| `ui/sound-lab.ts` + `.css` | Sound designer dialog (O): material tabs, Actions tab |
-| `ui/sound-lab-footer.ts` + `.css` | Designer footer: volume, copy/paste/reset settings |
-| `ui/volume-control.ts` + `.css` | Mute button + volume slider (menu and designer) |
-| `ui/knob.ts` + `.css` | Rotary dial widget |
+| `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed, normal or creative), export / import `.ocworld`, delete |
+| `ui/sound-lab.ts`, `sound-lab-footer.ts`, `volume-control.ts`, `knob.ts` (each + `.css`) | Sound designer dialog (O: material tabs, Actions tab), its footer (volume, copy/paste/reset), the mute button + volume slider (menu and designer), the rotary dial widget |
 | `audio/settings.ts` | Sound design data: materials, actions, dials, presets, `DEFAULT_DESIGN`, persistence |
 | `audio/synth.ts` | Procedural foley synthesis (dials → samples) |
 | `audio/sound.ts` | Engine sound events → Web Audio voices, buffer cache, previews |

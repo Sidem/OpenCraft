@@ -1,5 +1,5 @@
-// World management in the pause menu: the saved worlds (play, export, delete), a new-world form (name
-// and an optional seed) and importing `.ocworld` files. Storage and switching live in `save/`; this
+// World management in the pause menu: the saved worlds (play, export, delete), a new-world form (name,
+// an optional seed and normal or creative mode, which can't change later) and importing `.ocworld` files. Storage and switching live in `save/`; this
 // panel draws the list and calls them. main.ts builds it into `#worlds`.
 
 import './worlds.css';
@@ -15,6 +15,8 @@ export class WorldsPanel {
   private readonly form = h('form', 'new-world hidden');
   private readonly nameInput = h('input');
   private readonly seedInput = h('input');
+  /** Normal or creative; fixed for the life of the world. */
+  private readonly modeInput = h('select');
   private readonly file = h('input');
 
   /** `session` is the world being played, or null when none could be opened. */
@@ -35,16 +37,24 @@ export class WorldsPanel {
     this.nameInput.placeholder = 'Name';
     this.nameInput.maxLength = 40;
     this.seedInput.placeholder = 'Seed (optional)';
+    this.modeInput.setAttribute('aria-label', 'Game mode');
+    this.modeInput.title = 'Creative: every tech done and every item on offer, for testing. Chosen now, never changed.';
+    for (const [value, label] of [['normal', 'Normal'], ['creative', 'Creative']]) {
+      this.modeInput.append(h('option', '', label));
+      (this.modeInput.lastElementChild as HTMLOptionElement).value = value;
+    }
     this.form.append(
       this.nameInput,
       this.seedInput,
+      this.modeInput,
       h('button', 'secondary-btn active', 'Create'),
       button('secondary-btn', 'Cancel', () => this.form.classList.add('hidden')),
     );
     this.form.addEventListener('submit', (e) => {
       e.preventDefault();
       const name = this.nameInput.value.trim() || 'New world';
-      this.run(() => this.open(newWorld(name, parseSeed(this.seedInput.value))));
+      const creative = this.modeInput.value === 'creative';
+      this.run(() => this.open(newWorld(name, parseSeed(this.seedInput.value), creative)));
     });
     this.file.type = 'file';
     this.file.accept = '.ocworld';
@@ -120,7 +130,7 @@ export class WorldsPanel {
       throw fail(message(err));
     }
     const name = file.name.replace(/\.ocworld$/i, '') || 'Imported world';
-    const meta = { ...newWorld(name, game.seed()), playTime: game.play_seconds(), slot: 0 };
+    const meta = { ...newWorld(name, game.seed(), game.is_creative()), playTime: game.play_seconds(), slot: 0 };
     game.free();
     await this.store.write(meta, await pack(bytes));
     await this.refresh();
@@ -134,10 +144,11 @@ export class WorldsPanel {
   }
 }
 
-/** "seed 1337 · 12 min played · 25 Sep 2026, 14:03" (the time it was last saved or opened). */
+/** "creative · seed 1337 · 12 min played · 25 Sep 2026, 14:03" (the time it was last saved or opened). */
 function describe(w: WorldMeta): string {
   const when = new Date(w.updated).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-  return `seed ${w.seed} · ${w.slot === null ? 'new' : `${duration(w.playTime)} played`} · ${when}`;
+  const mode = w.creative ? 'creative · ' : '';
+  return `${mode}seed ${w.seed} · ${w.slot === null ? 'new' : `${duration(w.playTime)} played`} · ${when}`;
 }
 
 function duration(seconds: number): string {

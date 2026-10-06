@@ -31,14 +31,14 @@ export async function openWorld(store: WorldStore | null, seed: number | null, v
   if (!store) {
     const notice = "This browser doesn't let the game store data, so this world won't be saved.";
     const meta = newWorld('Unsaved world', seed ?? FIRST_SEED);
-    return { game: new Game(meta.seed, viewRadius), meta, restored: false, notice };
+    return { game: freshGame(meta, viewRadius), meta, restored: false, notice };
   }
   let meta = seed === null ? (await store.list())[0] : undefined;
   if (!meta) {
     meta = newWorld(seed === null ? 'My world' : `Seed ${seed}`, seed ?? FIRST_SEED);
     await store.put(meta);
   }
-  if (meta.slot === null) return { game: new Game(meta.seed, viewRadius), meta, restored: false, notice: '' };
+  if (meta.slot === null) return { game: freshGame(meta, viewRadius), meta, restored: false, notice: '' };
   try {
     return { game: await load(store, meta, meta.slot, viewRadius), meta, restored: true, notice: '' };
   } catch (err) {
@@ -137,7 +137,8 @@ export class Session {
     const pins = this.pins ? this.pins.list.map((p) => ({ ...p })) : this.meta.pins;
     this.blueprintsSeen = this.game.blueprint_version();
     const blueprints = this.game.blueprint_export();
-    this.meta = { ...this.meta, updated: Date.now(), playTime: time, slot, marks, pins, blueprints };
+    const creative = this.game.is_creative();
+    this.meta = { ...this.meta, updated: Date.now(), playTime: time, slot, marks, pins, blueprints, creative };
     this.savedTime = time;
     this.notesChanged = false;
     try {
@@ -168,6 +169,11 @@ export function soloUrl(): string {
 /** The text of anything thrown: an Error, or the plain string the engine throws. */
 export function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+/** A world that was never saved starts from its seed, in the mode it was made with. */
+function freshGame(meta: WorldMeta, viewRadius: number): Game {
+  return meta.creative ? Game.new_creative(meta.seed, viewRadius) : new Game(meta.seed, viewRadius);
 }
 
 async function load(store: WorldStore, meta: WorldMeta, slot: number, viewRadius: number): Promise<Game> {

@@ -8,6 +8,7 @@
 mod blueprint;
 mod content;
 mod crafting;
+mod creative;
 mod debug;
 mod hud;
 mod input;

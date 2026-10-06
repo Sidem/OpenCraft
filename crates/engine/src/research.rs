@@ -128,6 +128,14 @@ impl Research {
         self.locked_by(unlock).is_none()
     }
 
+    /// Marks every tech done (creative worlds), so labs have nothing left to work on.
+    pub fn complete_all(&mut self) {
+        for (p, t) in self.progress.iter_mut().zip(TECHS.iter()) {
+            *p = t.units;
+        }
+        self.current = None;
+    }
+
     /// Which machine recipes are unlocked, by `MACHINE_RECIPES` index (processors ask per item).
     pub fn machine_recipes_unlocked(&self) -> Vec<bool> {
         (0..MACHINE_RECIPES.len() as u16).map(|i| self.has(Unlock::MachineRecipe(i))).collect()

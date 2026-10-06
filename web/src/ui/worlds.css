@@ -20,12 +20,13 @@
 
 .new-world {
   display: grid;
-  grid-template-columns: 1fr 1fr auto auto;
+  grid-template-columns: 1fr 1fr auto auto auto;
   gap: 6px;
   margin-top: 10px;
 }
 
-.new-world input {
+.new-world input,
+.new-world select {
   min-width: 0;
   padding: 7px 9px;
   border-radius: 8px;
@@ -101,5 +102,9 @@
 @media (max-width: 420px) {
   .new-world {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .new-world select {
+    grid-column: 1 / -1;
   }
 }

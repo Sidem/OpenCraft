@@ -93,8 +93,11 @@ you left it, machines still running.
 
 The **Worlds** list in the pause menu manages several worlds:
 
-- **New world** takes a name and an optional seed. A number gives that exact world, any other text works
-  as a seed too, and leaving it blank picks one at random.
+- **New world** takes a name, an optional seed and a mode. A number gives that exact world, any other text
+  works as a seed too, and leaving it blank picks one at random. **Normal** is the game as designed.
+  **Creative** is for testing: every technology is already researched and the inventory (E) gets an
+  **All items** tab (click for a full stack, Shift-click for one). The mode is chosen when the world is made
+  and can't be changed afterwards, and a creative world is marked "creative" in the list.
 - **Play** switches to another world (the current one is saved first).
 - **Export** downloads a world as an `.ocworld` file, and **Import** adds one, so you can keep a backup or
   move a world to another browser.

@@ -26,6 +26,7 @@ use crate::helpers::Helpers;
 use crate::inventory::Inventory;
 use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
+use crate::mode::Mode;
 use crate::world::World;
 use crate::worldgen::WorldGen;
 
@@ -147,6 +148,8 @@ pub struct Sim {
     pub drones: Drones,
     /// Cargo drones in flight and the routes between ports (drones/cargo.rs).
     pub cargo: Cargo,
+    /// Normal or creative, fixed when the world was made (mode.rs).
+    pub mode: Mode,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -175,6 +178,7 @@ impl Sim {
             ghosts: Ghosts::default(),
             drones: Drones::default(),
             cargo: Cargo::default(),
+            mode: Mode::Normal,
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -274,10 +278,12 @@ impl Sim {
         self.ghosts.write_state(w);
         self.drones.write_state(w);
         self.cargo.write_state(w);
+        w.u8(self.mode.byte());
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
-    /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks.
+    /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks;
+    /// before 38, the normal mode.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -310,6 +316,8 @@ impl Sim {
         self.ghosts = if r.version >= 26 { Ghosts::read_state(r)? } else { Ghosts::default() };
         self.drones = if r.version >= 27 { Drones::read_state(r)? } else { Drones::default() };
         self.cargo = if r.version >= 37 { Cargo::read_state(r)? } else { Cargo::default() };
+        let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
+        self.set_mode(mode);
         Some(())
     }
 }

@@ -124,6 +124,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-09-28 | **Modular, open content architecture** (`docs/TECH_TREE.md` section 8): variants such as tiers are data (`tier: u8` into a table), never a `bool` like today's `fast` belt or `mk2` miner, nor a block per variant; processing machines are rows of one generic machine; recipes belong to categories. |
 | 2026-09-28 | **The order after Industry** (proposed by Claude, confirmed): 7 Electronics, blueprints and drones (with the jetpack) · 8 Terraforming (its excavator flies Milestone 7's drones) · 9 Distance (aluminium, trains) · 10 Fluids and chemistry · 11 Compute and photonics · 12 Orbit · 13 The megaproject. **Blue packs and upgrade kits from blue on are machine-made only.** |
 | 2026-10-03 | **Blueprints are both** copied from built areas and planned as ghosts; ghosts are core state. **Drones take materials from boxes beside their port.** **Drones must be hard and rewarding:** a long research ladder on violet packs and several new parts, not three cheap techs. **Coal jetpack in M7**, hover pack in M9. |
+| 2026-10-06 | **Creative mode for new worlds** (user request, for testing everything): a world is normal or creative, chosen in the new-world form and never changed. Creative has every tech done and an "All items" tab in the inventory (click a stack, Shift-click one). Flying (F) already works in every world. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -431,7 +432,7 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 37) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 38) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
 - New blocks and items append (the next free block is 97, item 375, tech 55, machine recipe 59). Each new look gets a
   placeholder layer (`tex::COUNT` is 243) and a `docs/ART_HANDOVER.md` request line.
@@ -554,6 +555,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-06: Creative mode.** `mode.rs` (`Mode`, `Sim::mode`, `creative_items`), `api/creative.rs`, `ui/creative.ts`; a world's mode is saved (save version 38) and hashed, so co-op peers agree; the new-world form picks it. Golden hash re-recorded on purpose (the mode byte). Tests 583 → 588.
 - **2026-10-05: Milestone 10 cleanup (step 10.12).** `bench_chemistry` (19 µs a tick, worst 36 µs), the balance note, README section on fluids and chemistry, the Milestone 10 step list moved to `docs/CHANGELOG_M10.md`, Milestone 11 moved in from the roadmap with a step list. No code change besides the ignored bench. Milestone 10 awaits the user's review and commit.
 - **2026-10-05: Gold science and Mk5 (step 10.11).** Gold pack and kit (366–367), Mk5 items (368–374), techs Gold Science (53) and Mk5 Machines (54), a fifth pack in `PACKS`, three hints. No save bump. Tests 581 → 583. Next free block 97, item 375, texture 243, machine recipe 59, tech 55.
 - **2026-10-05: Nuclear power (step 10.10).** Blocks 95–96, item 365, the Nuclear Power tech (52): centrifuge and a water-cooled reactor that shuts down when it overheats. No save bump. Tests 574 → 581. Next free block 97, item 366, texture 241, machine recipe 57.

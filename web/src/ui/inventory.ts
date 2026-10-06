@@ -1,12 +1,13 @@
 // Inventory and build screen (E): every slot (36, up to 54 with a hauler pack) with a held stack on the cursor, the
 // equipment slots (Shift-click gear in the pack to wear it), and the build menu
-// (`crafting.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
+// (`crafting.ts`; creative worlds add the item picker, `creative.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
 // stacks between the box and the inventory, shift-right-clicks move every stack of that item.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
 import { BuildMenu } from './crafting';
+import { CreativeMenu, withCreativeTabs } from './creative';
 import { h } from './dom';
 import { showAmount } from './hud';
 
@@ -34,6 +35,8 @@ export class InventoryPanel {
   private version = -1;
   private readonly title = h('h2', '', 'Inventory & build');
   private readonly menu: BuildMenu;
+  /** The column beside the backpack: the build menu, with the item picker's tabs in a creative world. */
+  private readonly right: HTMLElement;
   private readonly boxSection = h('section', 'inv-box hidden');
   private readonly boxGrid = h('div', 'inv-grid inv-box-grid');
   private readonly boxSlots: SlotView[] = [];
@@ -118,9 +121,11 @@ export class InventoryPanel {
 
     this.menu = new BuildMenu(game, icon);
     this.menu.onCraft = () => this.onCraft();
+    // A creative world adds an "All items" tab beside the build menu.
+    this.right = game.is_creative() ? withCreativeTabs(this.menu.el, new CreativeMenu(game, icon)) : this.menu.el;
 
     const body = h('div', 'inv-body');
-    body.append(items, this.menu.el);
+    body.append(items, this.right);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -170,7 +175,7 @@ export class InventoryPanel {
     // Slots are kept between boxes; a smaller box hides the extras (an upgraded box has more).
     this.boxSlots.forEach((s, i) => s.root.classList.toggle('hidden', i >= n));
     this.boxSection.classList.toggle('hidden', !box);
-    this.menu.el.classList.toggle('hidden', !!box);
+    this.right.classList.toggle('hidden', !!box);
     this.dialog.classList.toggle('inv-with-box', !!box);
     this.title.textContent = box ? 'Storage box' : 'Inventory & build';
     this.backdrop.classList.remove('hidden');
