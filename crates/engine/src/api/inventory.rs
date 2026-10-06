@@ -73,6 +73,17 @@ impl Game {
         self.act(Action::ClickSlot { slot: slot.min(u8::MAX as u32) as u8, shift });
     }
 
+    /// Right-click on an inventory slot (next tick): takes half of it onto the cursor, or half of what is left onto a
+    /// cursor holding the same item. With `place`, the shift-right-click while holding a stack: puts one item in.
+    pub fn right_click_slot(&mut self, slot: u32, place: bool) {
+        self.act(Action::RightClickSlot { slot: slot.min(u8::MAX as u32) as u8, shift: place });
+    }
+
+    /// Shift-right-click outside the inventory screen while holding a stack: throws one item out.
+    pub fn throw_cursor(&mut self) {
+        self.act(Action::ThrowCursor);
+    }
+
     /// Shift-right-click on an inventory slot: moves every stack of its item between hotbar and backpack.
     pub fn quick_move_all(&mut self, slot: u32) {
         self.act(Action::QuickMoveAll { slot: slot.min(u8::MAX as u32) as u8 });

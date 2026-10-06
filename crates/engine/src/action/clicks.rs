@@ -1,10 +1,10 @@
-//! The inventory-screen and box-screen clicks (`Action::ClickSlot`, `ClickBox`, `ClickGear`, the shift-clicks and
-//! the sorts): what each does to the player's inventory and the box they touch. To add one: its arm below, and a
+//! The inventory-screen and box-screen clicks (`Action::ClickSlot`, `ClickBox`, `ClickGear`, the shift-clicks, the
+//! right-clicks that split a stack or place one item, and the sorts): what each does to the player's inventory and the box they touch. To add one: its arm below, and a
 //! line naming it in `Sim::apply_to_player`.
 
-use crate::inventory::{add_to_slots, click_stack, move_all_of, sort_stacks, Stack};
+use crate::inventory::{add_to_slots, click_stack, move_all_of, place_one, sort_stacks, split_stack, Stack};
 use crate::item::ItemId;
-use crate::sim::{PlayerId, Sim};
+use crate::sim::{PlayerId, Sim, SimEvent};
 
 use super::Action;
 
@@ -30,6 +30,19 @@ impl Sim {
                     }
                 } else if !shift && click_stack(s, &mut inv.cursor) {
                     inv.version += 1;
+                }
+            }
+            Action::RightClickSlot { slot, shift } => inv.right_click(slot as usize, shift),
+            Action::RightClickBox { pos, slot, shift } => {
+                let Some(s) = self.factory.box_slots_mut(pos).and_then(|b| b.get_mut(slot as usize)) else { return };
+                let changed = if shift { place_one(s, &mut inv.cursor) } else { split_stack(s, &mut inv.cursor) };
+                if changed {
+                    inv.version += 1;
+                }
+            }
+            Action::ThrowCursor => {
+                if let Some(Stack { item, count }) = inv.take_cursor_one() {
+                    self.events.push(SimEvent::Thrown { player, item, count });
                 }
             }
             Action::StoreSlot { pos, slot } => {

@@ -2,7 +2,9 @@
 // equipment slots (Shift-click gear in the pack to wear it), and the build menu
 // (`crafting.ts`; creative worlds add the item picker, `creative.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
-// stacks between the box and the inventory, shift-right-clicks move every stack of that item.
+// stacks between the box and the inventory. Right-click takes half of a stack (again: half of what is left, added to
+// the held stack); Shift-right-click with a stack held puts one item down (outside the screen: throws one out), and
+// with an empty hand moves every stack of that item.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
@@ -64,7 +66,12 @@ export class InventoryPanel {
     close.addEventListener('click', () => this.close(true));
     head.append(
       title,
-      h('span', 'inv-keys', 'E or click outside to return · Shift-click moves a stack · Shift-right-click moves all of that item'),
+      h(
+        'span',
+        'inv-keys',
+        'E or click outside to return · Right-click takes half · Shift-right-click puts one down (outside: throws one), ' +
+          'or moves all of that item when your hand is empty · Shift-click moves a stack',
+      ),
       close,
     );
 
@@ -73,7 +80,10 @@ export class InventoryPanel {
     for (let i = 0; i < size; i++) {
       const slot = this.makeSlot(
         () => (this.box && this.shift ? game.store_slot(...this.box, i) : game.click_slot(i, this.shift)),
-        () => (this.box ? game.store_all(...this.box, i) : game.quick_move_all(i)),
+        (shift) => {
+          if (shift && !this.holding()) this.box ? game.store_all(...this.box, i) : game.quick_move_all(i);
+          else game.right_click_slot(i, shift);
+        },
       );
       if (i < hotbar) slot.root.append(h('span', 'key', String(i + 1)));
       this.slots.push(slot);
@@ -86,7 +96,7 @@ export class InventoryPanel {
     for (let i = 0; i < game.gear_slots(); i++) {
       const slot = this.makeSlot(
         () => game.click_gear(i, this.shift),
-        () => game.click_gear(i, true),
+        (shift) => shift && game.click_gear(i, true),
       );
       this.gear.push(slot);
       const cell = h('div', 'inv-gear-cell');
@@ -138,7 +148,10 @@ export class InventoryPanel {
     this.backdrop.append(cur);
 
     this.backdrop.addEventListener('pointerdown', (e) => {
-      if (e.target === this.backdrop) this.close(true);
+      if (e.target !== this.backdrop) return;
+      // Shift-right-click outside, holding a stack: throw one item out and stay.
+      if (e.button === 2 && e.shiftKey && this.holding()) game.throw_cursor();
+      else this.close(true);
     });
     this.backdrop.addEventListener('pointermove', (e) => this.moveCursor(e.clientX, e.clientY));
     this.backdrop.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -167,7 +180,11 @@ export class InventoryPanel {
       const i = this.boxSlots.length;
       const slot = this.makeSlot(
         () => this.box && this.game.click_box(...this.box, i, this.shift),
-        () => this.box && this.game.take_all(...this.box, i),
+        (shift) => {
+          if (!this.box) return;
+          if (shift && !this.holding()) this.game.take_all(...this.box, i);
+          else this.game.right_click_box(...this.box, i, shift);
+        },
       );
       this.boxSlots.push(slot);
       this.boxGrid.append(slot.root);
@@ -227,20 +244,24 @@ export class InventoryPanel {
     if (!this.box) this.menu.update();
   }
 
-  /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held) and `moveAll`
-   * on a Shift-right-click. */
-  private makeSlot(click: () => void, moveAll: () => void): SlotView {
+  /** Whether the cursor holds a stack. */
+  private holding(): boolean {
+    return this.game.cursor_count() > 0;
+  }
+
+  /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held) and `rightClick`
+   * on a right click, with whether Shift was held. */
+  private makeSlot(click: () => void, rightClick: (shift: boolean) => void): SlotView {
     const root = h('div', 'slot inv-slot');
     const icon = h('canvas');
     icon.width = icon.height = ICON_PX;
     const count = h('span', 'count');
     root.append(icon, count);
     root.addEventListener('pointerdown', (e) => {
-      const all = e.button === 2 && e.shiftKey;
-      if (e.button !== 0 && !all) return;
+      if (e.button !== 0 && e.button !== 2) return;
       e.preventDefault();
       this.shift = e.shiftKey;
-      if (all) moveAll();
+      if (e.button === 2) rightClick(e.shiftKey);
       else click();
       this.moveCursor(e.clientX, e.clientY);
       this.update();

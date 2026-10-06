@@ -3,13 +3,12 @@
 //! `action.rs` to keep it small; the arms there just call these. Drones (`drones/`) build and break
 //! through `put_block` and `dismantle`, which take nothing from any inventory.
 
-use super::Sim;
 use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
 use crate::factory;
 use crate::inventory::Stack;
 use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
 use crate::math::{IVec3, Vec3};
-use crate::sim::{PlayerId, SimEvent};
+use crate::sim::{PlayerId, Sim, SimEvent};
 use crate::tools;
 
 impl Sim {

@@ -555,6 +555,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-06: Stack controls** (user request). Right-click takes half a stack (rounded up), again adds half of what is left to the held stack; Shift-right-click with a stack held puts one item down, outside the screen it throws one; with an empty hand it still moves every stack of that item. Works on box slots too; tools move whole. New actions `RightClickSlot`, `RightClickBox`, `ThrowCursor` (tags 48–50, no save bump). `Sim::apply` moved to `action/apply.rs` (`action.rs` was over budget). Tests 588 → 590.
 - **2026-10-06: Creative mode.** `mode.rs` (`Mode`, `Sim::mode`, `creative_items`), `api/creative.rs`, `ui/creative.ts`; a world's mode is saved (save version 38) and hashed, so co-op peers agree; the new-world form picks it. Golden hash re-recorded on purpose (the mode byte). Tests 583 → 588.
 - **2026-10-05: Milestone 10 cleanup (step 10.12).** `bench_chemistry` (19 µs a tick, worst 36 µs), the balance note, README section on fluids and chemistry, the Milestone 10 step list moved to `docs/CHANGELOG_M10.md`, Milestone 11 moved in from the roadmap with a step list. No code change besides the ignored bench. Milestone 10 awaits the user's review and commit.
 - **2026-10-05: Gold science and Mk5 (step 10.11).** Gold pack and kit (366–367), Mk5 items (368–374), techs Gold Science (53) and Mk5 Machines (54), a fifth pack in `PACKS`, three hints. No save bump. Tests 581 → 583. Next free block 97, item 375, texture 243, machine recipe 59, tech 55.

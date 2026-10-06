@@ -76,7 +76,12 @@ the render distance in chunks (2 to 24, default 8).
 
 Mined blocks drop as items, which are pulled into your inventory when you get close. In the inventory screen
 (E), click a slot to pick up a stack and click again to put it down. Shift-click moves a stack between the
-hotbar and the backpack. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
+hotbar and the backpack. **Right-click** a stack to take half of it (an odd stack gives the larger half);
+right-click it again to take half of what is left and add it to the stack in your hand. With a stack in
+hand, **Shift-right-click** puts one item into a slot (an empty one, or the same item with room), and
+Shift-right-click outside the window throws one item out. With an empty hand, Shift-right-click moves every
+stack of that item (between hotbar and backpack, or box and inventory). Tools always move whole. These work
+on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
 merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
 merge, so each keeps its own wear.
 

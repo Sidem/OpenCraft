@@ -1,13 +1,12 @@
 //! Player inventory: a 9-slot hotbar (slots 0..9) plus a 27-slot backpack (more with a worn hauler pack:
 //! `capacity`, `equipment.rs`, which also owns the `worn` gear), and the stack held by
 //! the mouse cursor while the inventory screen is open. `version` increments on every change so
-//! the UI redraws only when needed. `add_to_slots`, `click_stack` and `sort_stacks` are shared with
-//! storage boxes.
+//! the UI redraws only when needed. The stack operations shared with storage boxes (`add_to_slots`,
+//! `click_stack`, `split_stack`, `place_one`, `sort_stacks`) are in `inventory/stacks.rs`.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::equipment::{self, SLOTS};
 use crate::item::{stack_size, ItemId};
-use crate::math::sort_small_by_key;
 use crate::tools;
 
 pub const HOTBAR_SLOTS: usize = 9;
@@ -42,89 +41,8 @@ impl Stack {
     }
 }
 
-/// Adds up to `count` of `item` into `slots`, topping up matching stacks before filling empty
-/// slots (in slice order). Returns what didn't fit.
-pub fn add_to_slots(slots: &mut [Stack], item: ItemId, mut count: u32) -> u32 {
-    if item == ItemId::NONE {
-        return count;
-    }
-    let max = stack_size(item);
-    for s in slots.iter_mut().filter(|s| !s.is_empty() && s.item == item) {
-        let n = count.min(max.saturating_sub(s.count));
-        s.count += n;
-        count -= n;
-    }
-    for s in slots.iter_mut().filter(|s| s.is_empty()) {
-        if count == 0 {
-            break;
-        }
-        let n = count.min(max);
-        *s = Stack { item, count: n };
-        count -= n;
-    }
-    count
-}
-
-/// Moves every stack of `item` from `from` into `to` until `to` has no room for more; what doesn't fit
-/// stays in `from`. Returns whether anything moved.
-pub fn move_all_of(from: &mut [Stack], to: &mut [Stack], item: ItemId) -> bool {
-    let mut moved = false;
-    for s in from.iter_mut().filter(|s| s.item == item && !s.is_empty()) {
-        let left = add_to_slots(to, item, s.count);
-        moved |= left != s.count;
-        *s = if left == 0 { Stack::default() } else { Stack { item, count: left } };
-        if left > 0 {
-            break; // the target is full of this item
-        }
-    }
-    moved
-}
-
-/// Sorts `slots` in place: like items merged into full stacks (a tool's count is its wear, so tools
-/// never merge), ordered by item id (blocks first) with the fullest stack first, empty slots last.
-pub fn sort_stacks(slots: &mut [Stack]) {
-    let mut sorted: Vec<Stack> = Vec::with_capacity(slots.len());
-    for s in slots.iter().filter(|s| !s.is_empty()) {
-        let mut left = s.count;
-        if tools::tool(s.item).is_none() {
-            for t in sorted.iter_mut().filter(|t| t.item == s.item) {
-                let n = left.min(stack_size(s.item).saturating_sub(t.count));
-                t.count += n;
-                left -= n;
-            }
-        }
-        if left > 0 {
-            sorted.push(Stack { item: s.item, count: left });
-        }
-    }
-    sort_small_by_key(&mut sorted, |s| (s.item.0, std::cmp::Reverse(s.count)));
-    for (i, slot) in slots.iter_mut().enumerate() {
-        *slot = sorted.get(i).copied().unwrap_or_default();
-    }
-}
-
-/// A click on slot `s` holding the cursor stack `c` (inventory or box screen): pick up, put down,
-/// merge or swap. Returns whether anything changed.
-pub fn click_stack(s: &mut Stack, c: &mut Stack) -> bool {
-    if c.is_empty() {
-        if s.is_empty() {
-            return false;
-        }
-        *c = std::mem::take(s);
-    } else if s.is_empty() {
-        *s = std::mem::take(c);
-    } else if s.item == c.item {
-        let n = c.count.min(stack_size(s.item).saturating_sub(s.count));
-        s.count += n;
-        c.count -= n;
-        if c.count == 0 {
-            *c = Stack::default();
-        }
-    } else {
-        std::mem::swap(s, c);
-    }
-    true
-}
+mod stacks;
+pub use stacks::{add_to_slots, click_stack, move_all_of, place_one, sort_stacks, split_stack};
 
 #[derive(Clone)]
 pub struct Inventory {
@@ -288,6 +206,32 @@ impl Inventory {
         if click_stack(s, &mut self.cursor) {
             self.version += 1;
         }
+    }
+
+    /// Inventory-screen right-click (`split_stack`), or with `place` the shift-right-click (`place_one`).
+    pub fn right_click(&mut self, slot: usize, place: bool) {
+        let capacity = self.capacity();
+        let Some(s) = self.slots[..capacity].get_mut(slot) else { return };
+        let changed = if place { place_one(s, &mut self.cursor) } else { split_stack(s, &mut self.cursor) };
+        if changed {
+            self.version += 1;
+        }
+    }
+
+    /// Takes what a shift-right-click outside the screen throws from the cursor: one item, or a tool whole.
+    pub fn take_cursor_one(&mut self) -> Option<Stack> {
+        let c = &mut self.cursor;
+        if c.is_empty() {
+            return None;
+        }
+        let n = if tools::tool(c.item).is_some() { c.count } else { 1 };
+        let thrown = Stack { item: c.item, count: n };
+        c.count -= n;
+        if c.is_empty() {
+            *c = Stack::default();
+        }
+        self.version += 1;
+        Some(thrown)
     }
 
     /// Shift-click: moves a stack between the hotbar and the backpack.

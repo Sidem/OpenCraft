@@ -5,6 +5,7 @@ use crate::factory::Kind;
 use crate::inventory::{Stack, HOTBAR_SLOTS, INVENTORY_SLOTS};
 use crate::item::{IRON_PLATE, IRON_ROD, MAX_STACK};
 use crate::recipes::RECIPES;
+use crate::sim::{PlayerId, Sim, SimEvent};
 
 const P: PlayerId = PlayerId(0);
 /// The box as an item, for matching events.
@@ -249,6 +250,46 @@ fn a_box_screen_moves_stacks_both_ways() {
 }
 
 #[test]
+fn right_click_splits_a_stack_and_shift_right_click_places_or_throws_one() {
+    let mut sim = Sim::new(7, 2);
+    let pos = IVec3::new(0, 200, 0);
+    sim.factory.add_storage(pos);
+    let (stone, dirt) = (ItemId::from(STONE), ItemId::from(DIRT));
+    let cursor = |sim: &Sim| (inv(sim).cursor.item, inv(sim).cursor.count);
+    sim.apply(P, Action::Give { item: stone, count: 11 });
+    sim.apply(P, Action::Give { item: dirt, count: 4 });
+
+    // Half, rounded up, onto the cursor; the second right-click adds half of what is left.
+    sim.apply(P, Action::RightClickSlot { slot: 0, shift: false });
+    assert_eq!((cursor(&sim), inv(&sim).slots[0].count), ((stone, 6), 5));
+    sim.apply(P, Action::RightClickSlot { slot: 0, shift: false });
+    assert_eq!((cursor(&sim), inv(&sim).slots[0].count), ((stone, 9), 2));
+    sim.apply(P, Action::RightClickSlot { slot: 1, shift: false });
+    assert_eq!((cursor(&sim), inv(&sim).slots[1].count), ((stone, 9), 4), "another item is left alone");
+
+    // Shift-right-click puts one into an empty slot, then into a matching one; a different item refuses.
+    sim.apply(P, Action::RightClickSlot { slot: 5, shift: true });
+    sim.apply(P, Action::RightClickSlot { slot: 5, shift: true });
+    sim.apply(P, Action::RightClickSlot { slot: 1, shift: true });
+    assert_eq!((cursor(&sim), inv(&sim).slots[5]), ((stone, 7), Stack { item: stone, count: 2 }));
+    // The same into a box, and half of a box slot.
+    sim.apply(P, Action::RightClickBox { pos, slot: 2, shift: true });
+    assert_eq!((cursor(&sim).1, sim.factory.box_slots(pos).unwrap()[2].count), (6, 1));
+    sim.apply(P, Action::ClickBox { pos, slot: 3, shift: false });
+    sim.apply(P, Action::RightClickBox { pos, slot: 2, shift: false });
+    assert_eq!((cursor(&sim), sim.factory.box_slots(pos).unwrap()[2].count), ((stone, 1), 0), "a lone item goes whole");
+
+    // Outside the screen, one item is thrown out; an empty cursor throws nothing.
+    sim.events.clear();
+    sim.apply(P, Action::ThrowCursor);
+    assert!(inv(&sim).cursor.is_empty());
+    assert_eq!(sim.events, vec![SimEvent::Thrown { player: P, item: stone, count: 1 }]);
+    sim.events.clear();
+    sim.apply(P, Action::ThrowCursor);
+    assert!(sim.events.is_empty());
+}
+
+#[test]
 fn shift_right_click_moves_every_stack_of_an_item_until_the_target_is_full() {
     let mut sim = Sim::new(7, 2);
     let pos = IVec3::new(0, 200, 0);
@@ -416,6 +457,9 @@ fn samples() -> Vec<Action> {
         Action::Hover { on: true },
         Action::Charge { pole: pos, on: true },
         Action::SetRoute { from: pos, to: against, clear: true },
+        Action::RightClickSlot { slot: 30, shift: true },
+        Action::RightClickBox { pos, slot: 17, shift: true },
+        Action::ThrowCursor,
     ]
 }
 

@@ -101,3 +101,38 @@ fn quick_move_between_sections() {
     inv.quick_move(HOTBAR_SLOTS);
     assert_eq!(inv.slots[0], Stack { item: ItemId(7), count: 12 });
 }
+
+#[test]
+fn splitting_and_placing_one_respect_stack_limits_and_tools() {
+    let (a, b) = (ItemId(1), ItemId(2));
+    let max = stack_size(a);
+    // One item halves to itself; an odd stack gives the larger half; a full cursor takes nothing more.
+    let (mut s, mut c) = (Stack { item: a, count: 1 }, Stack::default());
+    assert!(split_stack(&mut s, &mut c) && s.is_empty() && c == Stack { item: a, count: 1 });
+    let (mut s, mut c) = (Stack { item: a, count: 9 }, Stack { item: a, count: max });
+    assert!(!split_stack(&mut s, &mut c) && s.count == 9 && c.count == max);
+    let (mut s, mut c) = (Stack { item: a, count: 9 }, Stack { item: a, count: max - 2 });
+    assert!(split_stack(&mut s, &mut c) && (s.count, c.count) == (7, max), "topped up to a full stack only");
+    assert!(!split_stack(&mut Stack::default(), &mut Stack::default()));
+    assert!(!place_one(&mut Stack::default(), &mut Stack::default()), "nothing held, nothing placed");
+
+    // Placing one: a full target refuses, so does another item; the last item empties the cursor.
+    let (mut s, mut c) = (Stack { item: a, count: max }, Stack { item: a, count: 3 });
+    assert!(!place_one(&mut s, &mut c));
+    let (mut s, mut c) = (Stack { item: b, count: 1 }, Stack { item: a, count: 3 });
+    assert!(!place_one(&mut s, &mut c));
+    let (mut s, mut c) = (Stack::default(), Stack { item: a, count: 1 });
+    assert!(place_one(&mut s, &mut c) && c == Stack::default() && s == Stack { item: a, count: 1 });
+
+    // A tool's count is its wear: it is taken, placed and thrown whole, never halved.
+    let tool = crate::item::STONE_PICKAXE;
+    let (mut s, mut c) = (Stack { item: tool, count: 100 }, Stack::default());
+    assert!(split_stack(&mut s, &mut c) && s.is_empty() && c.count == 100);
+    let mut slot = Stack::default();
+    assert!(place_one(&mut slot, &mut c) && slot.count == 100 && c.is_empty());
+    let mut inv = Inventory { cursor: Stack { item: tool, count: 42 }, ..Inventory::default() };
+    assert_eq!(inv.take_cursor_one(), Some(Stack { item: tool, count: 42 }));
+    inv.cursor = Stack { item: a, count: 2 };
+    assert_eq!(inv.take_cursor_one(), Some(Stack { item: a, count: 1 }));
+    assert_eq!(inv.cursor.count, 1);
+}

@@ -14,7 +14,7 @@ use crate::factory::Job;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 48;
+pub const TAG_COUNT: u8 = 51;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -240,6 +240,18 @@ impl Action {
                 w.ivec3(to);
                 w.bool(clear);
             }
+            Action::RightClickSlot { slot, shift } => {
+                w.u8(48);
+                w.u8(slot);
+                w.bool(shift);
+            }
+            Action::RightClickBox { pos, slot, shift } => {
+                w.u8(49);
+                w.ivec3(pos);
+                w.u8(slot);
+                w.bool(shift);
+            }
+            Action::ThrowCursor => w.u8(50),
             Action::SortInventory => w.u8(24),
             Action::SortBox { pos } => {
                 w.u8(25);
@@ -302,6 +314,9 @@ impl Action {
             45 => Action::Hover { on: r.bool()? },
             46 => Action::Charge { pole: r.ivec3()?, on: r.bool()? },
             47 => Action::SetRoute { from: r.ivec3()?, to: r.ivec3()?, clear: r.bool()? },
+            48 => Action::RightClickSlot { slot: r.u8()?, shift: r.bool()? },
+            49 => Action::RightClickBox { pos: r.ivec3()?, slot: r.u8()?, shift: r.bool()? },
+            50 => Action::ThrowCursor,
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })
