@@ -126,16 +126,10 @@ pub const RECIPES: &[Recipe] = &[
         output: b(UNDERPASS_IN),
         group: Group::Logistics,
         count: 1,
-        inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
-        blurb: "Takes items under whatever is in front of it to an underpass exit facing the same way, \
-                up to 5 blocks ahead. Lets belts cross.",
-    },
-    Recipe {
-        output: b(UNDERPASS_OUT),
-        group: Group::Logistics,
-        count: 1,
-        inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
-        blurb: "Where items come back up from an underpass entry behind it, then carry on like a belt.",
+        inputs: &[(b(BELT), 2)],
+        blurb: "Carries items under up to 4 blocks of anything. Place two facing the same way: the first takes \
+                items in, the next one ahead brings them out. Drag a belt line over an obstacle and it places \
+                them for you. It moves items at belt speed.",
     },
     Recipe {
         output: b(PUMP),
@@ -251,6 +245,9 @@ pub const RECIPES: &[Recipe] = &[
     BELT_MK2_RECIPE,
     BELT_MK3_RECIPE,
     BELT_MK4_RECIPE,
+    UNDERPASS_MK2_RECIPE,
+    UNDERPASS_MK3_RECIPE,
+    UNDERPASS_MK4_RECIPE,
     POLE_MK2_RECIPE,
     POLE_MK3_RECIPE,
     POLE_MK4_RECIPE,

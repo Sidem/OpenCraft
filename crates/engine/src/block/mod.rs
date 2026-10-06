@@ -238,8 +238,19 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
         ..machine("Belt Ramp Down", false, 0.3, pillar(tex::RAMP_DOWN_SIDE, tex::BELT_TOP, tex::FRAME), RAMP_DOWN)
     },
     machine("Belt Lift", false, 0.4, pillar(tex::LIFT_SIDE, tex::FRAME, tex::FRAME), LIFT),
-    machine("Underpass Entry", false, 0.4, pillar(tex::UNDERPASS_IN_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_IN),
-    machine("Underpass Exit", false, 0.4, pillar(tex::UNDERPASS_OUT_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_OUT),
+    machine("Underpass", false, 0.4, pillar(tex::UNDERPASS_IN_SIDE, tex::BELT_TOP, tex::FRAME), UNDERPASS_IN),
+    // The old separate exit: worlds from before one underpass piece hold it; it drops the new piece.
+    BlockDef {
+        placeable: false,
+        drop: UNDERPASS_IN,
+        ..machine(
+            "Underpass Exit",
+            false,
+            0.4,
+            pillar(tex::UNDERPASS_OUT_SIDE, tex::BELT_TOP, tex::FRAME),
+            UNDERPASS_OUT,
+        )
+    },
     machine("Coal Generator", true, 0.8, pillar(tex::GENERATOR_SIDE, tex::GENERATOR_TOP, tex::FRAME), GENERATOR),
     machine("Power Pole", false, 0.3, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), POLE),
     machine("Research Lab", true, 0.8, pillar(tex::LAB_SIDE, tex::LAB_TOP, tex::FRAME), LAB),

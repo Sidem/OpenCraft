@@ -50,6 +50,7 @@ mod storage;
 mod table;
 pub mod tiers;
 mod trains;
+pub mod underpass;
 pub mod upgrades;
 mod wiring;
 
@@ -84,8 +85,6 @@ use storage::Storage;
 use trains::Train;
 use wiring::Hook;
 
-pub use belt::belt_preview;
-pub use belt_shape::Shape;
 pub use cable::preview_cable;
 pub use describe::fmt_int;
 #[cfg(test)]
@@ -104,6 +103,7 @@ pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
 pub use trains::Spot;
 pub use wiring::Hookup;
+pub use {belt::belt_preview, belt_shape::Shape};
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
 pub const DIRS: [IVec3; 4] = [IVec3::new(0, 0, -1), IVec3::new(1, 0, 0), IVec3::new(0, 0, 1), IVec3::new(-1, 0, 0)];

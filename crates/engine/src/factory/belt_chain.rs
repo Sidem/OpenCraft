@@ -2,7 +2,7 @@
 //!
 //! A belt is joined to the belt it delivers to and to every belt delivering to it (`Belt::out`, so ramps,
 //! lifts, underpasses and side joins count), but not through splitters, filters or machines. Only belts of
-//! the starting belt's tier are followed. Reads the derived links, so it needs a relinked factory.
+//! the starting belt's tier are followed, and underpass pieces are left out of the answer. Reads the derived links, so it needs a relinked factory.
 
 use crate::math::IVec3;
 
@@ -53,7 +53,12 @@ impl Factory {
             }
         }
         found.truncate(max);
-        found.into_iter().map(|i| self.belts[i as usize].pos).collect()
+        // Underpasses are followed through but are their own family (upgraded one by one).
+        found
+            .into_iter()
+            .filter(|&i| !self.belts[i as usize].shape.is_pass())
+            .map(|i| self.belts[i as usize].pos)
+            .collect()
     }
 }
 

@@ -6,7 +6,7 @@
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
     GENERATOR, LAB, LIFT, MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER,
-    STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT,
+    STORAGE, TURBINE, UNDERPASS_IN,
 };
 use crate::item::{
     BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK,
@@ -57,12 +57,13 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Underpasses",
-        blurb: "Belts that dive under a crossing belt and come back up.",
+        blurb: "Underpasses carry a belt under up to 4 blocks of anything. Drag a belt line over an obstacle and \
+                it dives under by itself, if you carry underpasses.",
         needs: &[2],
         packs: &[RED_PACK, GREEN_PACK],
         units: 15,
         seconds: 10.0,
-        unlocks: &[r(UNDERPASS_IN), r(UNDERPASS_OUT)],
+        unlocks: &[r(UNDERPASS_IN)],
     },
     // Was "Miner Mk2" (saves keep progress by index): kits replaced the separate Mk2 recipes.
     Tech {
@@ -91,12 +92,13 @@ const MAIN: [Tech; 30] = [
     // Was "Fast Belts".
     Tech {
         name: "Belt Mk2",
-        blurb: "Green kits upgrade belts to Mk2, twice as fast: hold kits and drag along a belt line.",
+        blurb: "Green kits upgrade belts to Mk2, twice as fast: hold kits and drag along a belt line. Mk2 underpasses \
+                pass under 6 blocks.",
         needs: &[4],
         packs: &[RED_PACK, GREEN_PACK],
         units: 20,
         seconds: 10.0,
-        unlocks: &[Unlock::Upgrade(BELT, 1)],
+        unlocks: &[Unlock::Upgrade(BELT, 1), Unlock::Upgrade(UNDERPASS_IN, 1)],
     },
     Tech {
         name: "Fluid Handling",
@@ -162,7 +164,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Mk3 Logistics",
-        blurb: "Blue kits, made in an assembler, and Mk3 belts (four times a Mk1), pylons that link 32 blocks and \
+        blurb: "Blue kits, made in an assembler, and Mk3 belts (four times a Mk1) and underpasses, pylons that link 32 blocks and \
                 boxes of 48 stacks.",
         needs: &[10],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
@@ -171,6 +173,7 @@ const MAIN: [Tech; 30] = [
         unlocks: &[
             Unlock::MachineRecipe(BLUE_RECIPES[1]),
             Unlock::Upgrade(BELT, 2),
+            Unlock::Upgrade(UNDERPASS_IN, 2),
             Unlock::Upgrade(POLE, 2),
             Unlock::Upgrade(STORAGE, 2),
         ],
@@ -267,13 +270,18 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Mk4 Logistics",
-        blurb: "Violet kits, made in an assembler, and Mk4 belts (eight times a Mk1) and substations that link 32 \
+        blurb: "Violet kits, made in an assembler, and Mk4 belts (eight times a Mk1) and underpasses, and substations that link 32 \
                 blocks and power machines within 16.",
         needs: &[18],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 100,
         seconds: 30.0,
-        unlocks: &[Unlock::MachineRecipe(VIOLET_RECIPES[1]), Unlock::Upgrade(BELT, 3), Unlock::Upgrade(POLE, 3)],
+        unlocks: &[
+            Unlock::MachineRecipe(VIOLET_RECIPES[1]),
+            Unlock::Upgrade(BELT, 3),
+            Unlock::Upgrade(UNDERPASS_IN, 3),
+            Unlock::Upgrade(POLE, 3),
+        ],
     },
     Tech {
         name: "Mk4 Machines",

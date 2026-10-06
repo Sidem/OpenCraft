@@ -11,6 +11,7 @@ use crate::world::World;
 fn every_tier_has_numbers_and_round_trips() {
     let numbers = |block: BlockId| match block {
         BELT => BELT_TIERS.len(),
+        UNDERPASS_IN => crate::factory::underpass::UNDERPASS_SPAN.len(),
         MINER => MINER_TIERS.len(),
         POLE => crate::factory::pole::POLE_TIERS.len(),
         STORAGE => crate::factory::storage::BOX_SLOTS.len(),

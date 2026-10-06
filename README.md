@@ -221,8 +221,11 @@ size.
   along at its speed (you can still walk on it; crouch to stop at its end).
 - **Climbing and crossing.** Belts climb and drop one-block steps by themselves: a belt with a belt one
   block ahead and one up becomes a ramp up, and one below a belt one up behind it a ramp down. Stacked lifts carry items straight up, and the top one hands them on
-  one ahead and one up. An underpass entry sends items under whatever is in front of it to the nearest
-  exit facing the same way, up to 5 blocks ahead, so two lines can cross.
+  one ahead and one up. Underpasses are one item in Mk1 to Mk4 (the same speed as the belt of that Mk): place two facing the same
+  way and the first sends items under whatever lies between to the next one, up to 4 / 6 / 8 / 10 blocks ahead, so
+  two lines can cross. Drag a belt line over a belt, a machine or a wall and it dives under by itself with the
+  lowest underpass that reaches, is at least as fast as your belt and that you hold a pair of. Pairs you don't have
+  show red and are left out when you build; an obstacle too wide for any underpass is marked red and ends the line.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
 - **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and sand into
@@ -448,7 +451,7 @@ parts for you, hand crafting is for one-offs. Also by recipe: a constructor is a
 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an
 arc furnace 10 steel plates, 16 stone bricks and 24 copper wire, an electrolytic cell 12 steel plates, 16 stone bricks,
 24 copper wire and 4 circuits. Two lifts cost 2 iron rods and 2 belts, and an
-underpass entry or exit 2 iron plates and 2 belts. A research lab costs 6 iron plates, 8 copper wire and 4 belts;
+underpass 2 belts (3 Mk2 belts for a Mk2, 4 Mk3 and 5 Mk4: half the blocks it reaches, so a pair costs 4, 6, 8 or 10). A research lab costs 6 iron plates, 8 copper wire and 4 belts;
 Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
 an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an
 outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. Hand-mining
@@ -558,8 +561,8 @@ works from any sub-path.
 For debugging, the running game is exposed as `window.opencraft.game` in the devtools console. For example:
 
 - `opencraft.game.give(8, 64)` gives a stack of iron ore. Block ids: 7 coal ore, 8 iron ore, 9 copper ore,
-  12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass entry,
-  23 underpass exit, 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
+  12 belt, 13 miner, 14 box, 15 smelter, 16 constructor, 17 splitter, 18 filter, 19 ramp up, 20 ramp down, 21 lift, 22 underpass,
+  23 old underpass exit (now the same piece), 24 generator, 25 power pole, 26 research lab, 27 Miner Mk2,
   28 fast belt, 29 sapling, 30 granite, 31 sandstone, 32 basalt, 33 limestone, 34 quartz ore, 35 glass, 36–39 stained soils (grass a shade off), 40–43 stained sand, 44 lamp, 45 water, 46–52 flowing water, 53 pump, 54 pipe, 55 outlet, 56 quarry, 57 torch, 58 planks, 59 ladder, 60 stone bricks, 61 assembler, 62 machine part (a multi-block machine's other cells), 63 concrete, 64 blast furnace, 65 slag, 66 boiler, 67 steam turbine, 68 crusher, 69 silo, 70 arc furnace; items: 256 iron ingot, 257 copper ingot,
   258 iron plate, 259 iron rod, 260 screws, 261 copper wire, 262 red science pack, 263 green science pack,
   264–269 stone and iron tools, 270 scanner, 271 core drill, 272 stick, 273 gear, 274 green kit, 275 quicklime,

@@ -18,7 +18,7 @@
 
 use crate::block::{
     BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, FAST_BELT, GENERATOR, LAB, MINER, MINER_MK2,
-    POLE, PUMP, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE,
+    POLE, PUMP, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{
     ItemId, ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4, BELT_MK3, BELT_MK4, BLAST_FURNACE_MK2, BLAST_FURNACE_MK3,
@@ -31,6 +31,7 @@ use crate::item::{
 };
 use crate::item::{DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4};
 use crate::item::{RESEARCH_CENTER_MK2, RESEARCH_CENTER_MK3, RESEARCH_CENTER_MK4};
+use crate::item::{UNDERPASS_MK2, UNDERPASS_MK3, UNDERPASS_MK4};
 
 pub struct Family {
     /// The block every tier puts into the world.
@@ -73,6 +74,11 @@ pub const FAMILIES: &[Family] = &[
             BLAST_FURNACE_MK5,
         ],
         kits: 8,
+    },
+    Family {
+        block: UNDERPASS_IN,
+        items: &[ItemId::block(UNDERPASS_IN), UNDERPASS_MK2, UNDERPASS_MK3, UNDERPASS_MK4],
+        kits: 2,
     },
     Family { block: POLE, items: &[ItemId::block(POLE), POLE_MK2, POLE_MK3, POLE_MK4], kits: 1 },
     Family { block: STORAGE, items: &[ItemId::block(STORAGE), BOX_MK2, BOX_MK3], kits: 4 },

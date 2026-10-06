@@ -8,7 +8,7 @@
 //! To add a tier's kit: its item (`item.rs`, wearing `tex::stripe(tier)`), a `KITS` entry and its hand
 //! or assembler recipe.
 
-use crate::block::{BlockId, BELT, GENERATOR, LAB, MINER, POLE, PUMP, QUARRY, STORAGE};
+use crate::block::{BlockId, BELT, GENERATOR, LAB, MINER, POLE, PUMP, QUARRY, STORAGE, UNDERPASS_IN};
 use crate::item::{ItemId, BLUE_KIT, GOLD_KIT, GREEN_KIT, VIOLET_KIT};
 use crate::math::IVec3;
 
@@ -47,7 +47,10 @@ impl Factory {
     /// processor, a box, a generator, a pole, a lab, a pump or a quarry).
     pub fn tiered_at(&self, pos: IVec3) -> Option<(BlockId, u8)> {
         match *self.at.get(&pos)? {
-            Slot::Belt(i) => Some((BELT, self.belts[i as usize].tier)),
+            Slot::Belt(i) => {
+                let b = &self.belts[i as usize];
+                Some((if b.shape.is_pass() { UNDERPASS_IN } else { BELT }, b.tier))
+            }
             Slot::Miner(i) => Some((MINER, self.miners[i as usize].tier)),
             Slot::Process(i) => {
                 let p = &self.processors[i as usize];

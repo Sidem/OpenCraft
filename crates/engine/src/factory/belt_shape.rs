@@ -7,12 +7,12 @@
 //!   ahead, or one step up behind), so a line laid over a terrain step slopes by itself.
 //! - Lift: items rise through the cell. A lift above facing the same way takes them on straight up;
 //!   the top lift hands them on one ahead and one up, like an up ramp.
-//! - Underpass entry: hands items to the nearest exit facing the same way up to `UNDERPASS_RANGE`
-//!   cells ahead, under whatever lies between. The exit carries on like a flat belt.
+//! - Underpass entry: hands items to the exit its pair has (`underpass.rs` pairs the pieces up), under
+//!   whatever lies between. The exit carries on like a flat belt.
 //!
-//! Invariants: the shape is core state (saved from version 6), but flat and ramp shapes are rederived
-//! at every relink; `lift_below` / `lift_above` are derived. To add a shape: a variant (append, it is saved by index), its block in `Shape::of`, its
-//! path in `item_at`, its model, and its output in `relink`.
+//! Invariants: the shape is core state (saved from version 6), but flat, ramp and underpass shapes are
+//! rederived at every relink; `lift_below` / `lift_above` are derived. To add a shape: a variant (append,
+//! it is saved by index), its block in `Shape::of`, its path in `item_at`, its model, and its output in `relink`.
 
 use rustc_hash::FxHashMap;
 
@@ -26,8 +26,6 @@ use super::DIRS;
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
-/// How far ahead an underpass entry looks for its exit, in cells.
-pub const UNDERPASS_RANGE: i32 = 5;
 /// Share of a lift's length spent moving on or off it horizontally.
 const LIFT_EDGE: f32 = 0.2;
 
@@ -50,8 +48,7 @@ impl Shape {
             RAMP_UP => Shape::Up,
             RAMP_DOWN => Shape::Down,
             LIFT => Shape::Lift,
-            UNDERPASS_IN => Shape::Entry,
-            UNDERPASS_OUT => Shape::Exit,
+            UNDERPASS_IN | UNDERPASS_OUT => Shape::Entry,
             _ => Shape::Flat,
         }
     }
@@ -70,6 +67,11 @@ impl Shape {
         !matches!(self, Shape::Down | Shape::Exit)
     }
 
+    /// An underpass piece (an entry or an exit; `underpass.rs` decides which).
+    pub fn is_pass(self) -> bool {
+        matches!(self, Shape::Entry | Shape::Exit)
+    }
+
     /// Flat belts and ramps: placement decides which (`derive_slopes`), not the block.
     pub fn sloped_by_placement(self) -> bool {
         matches!(self, Shape::Flat | Shape::Up | Shape::Down)
@@ -82,7 +84,7 @@ impl Shape {
             Shape::Up => ", climbing one level",
             Shape::Down => ", going down one level",
             Shape::Lift => ", lifting items up",
-            Shape::Entry => ", taking items under to an exit ahead",
+            Shape::Entry => ", taking items under to its exit ahead",
             Shape::Exit => ", bringing items back up",
         }
     }

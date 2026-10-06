@@ -9,13 +9,14 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 
 use super::belt::Belt;
-use super::belt_shape::{derive_slopes, Shape, UNDERPASS_RANGE};
+use super::belt_shape::{derive_slopes, Shape};
 use super::generator::Generator;
 use super::lab::Lab;
 use super::power::Power;
 use super::process::{self, Processor};
 use super::router::Router;
 use super::storage::Storage;
+use super::underpass::derive_passes;
 use super::{opposite, Factory, Kind, DIRS, FACES};
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
@@ -145,6 +146,7 @@ impl Factory {
     /// Recomputes belt links, curves, machine outputs and the belt update order.
     pub(super) fn relink(&mut self) {
         self.dirty = false;
+        let exit_of = derive_passes(&mut self.belts);
         derive_slopes(&mut self.belts, &self.at);
         let at = &self.at;
         let belts = &self.belts;
@@ -234,16 +236,15 @@ impl Factory {
         let outs: Vec<Link> = belts
             .iter()
             .zip(&lifts)
-            .map(|(b, &(_, above))| {
+            .zip(&exit_of)
+            .map(|((b, &(_, above)), exit)| {
                 let d = DIRS[b.dir as usize];
                 match b.shape {
                     Shape::Flat | Shape::Down | Shape::Exit => into(b.pos + d, b.dir),
                     Shape::Up => into(b.pos + d + UP, b.dir),
                     Shape::Lift if above => shaped(b.pos + UP, Shape::Lift, b.dir).map_or(Link::None, start),
                     Shape::Lift => into(b.pos + d + UP, b.dir),
-                    Shape::Entry => (1..=UNDERPASS_RANGE)
-                        .find_map(|k| shaped(b.pos + IVec3::new(d.x * k, 0, d.z * k), Shape::Exit, b.dir))
-                        .map_or(Link::None, start),
+                    Shape::Entry => exit.map_or(Link::None, start),
                 }
             })
             .collect();

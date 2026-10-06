@@ -6,7 +6,9 @@
 //! The path ([`plan`]) runs along the longer horizontal axis first and turns once. It follows the
 //! ground one block up or down at a time; the factory turns those steps into ramps by itself
 //! (`factory::belt_shape::derive_slopes`). It stops before anything in the way, so a line ending at a
-//! machine feeds it. Planning reads the loaded world (the render cache), never core state.
+//! machine feeds it. Planning reads the loaded world (the render cache), never core state. Where something
+//! is in the way (a belt, a machine, a wall) the line dives under it with an underpass pair, if one can
+//! cover the width (`pass.rs`: which underpass, what the inventory pays for, the red marks).
 //!
 //! With upgrade kits selected the same drag upgrades belts instead (`factory/upgrades.rs`): the path
 //! ([`plan_upgrade`]) follows existing belts, the cells are the belts one tier below the kit, and
@@ -17,12 +19,12 @@
 //! Belts and kits are paid for from the whole inventory, not just the held stack: a line takes belts from
 //! the held stack first, then from the other stacks (each placement names the slot it comes from).
 //!
-//! To change the path: `plan` / `plan_upgrade`. The preview: ghost belts (`write_line_preview`) and the
+//! To change the path: `plan` / `plan_upgrade` (`path.rs`). The preview: ghost belts (`write_line_preview`) and the
 //! host's outline boxes and label (`api/hud.rs` `line_cells`, `line_label`), in the kit's colour when
 //! upgrading.
 
 use crate::action::Action;
-use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, SOLID};
+use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP};
 use crate::factory::{self, tiers, upgrades, Shape};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -30,6 +32,8 @@ use crate::raycast::raycast;
 use crate::research::Unlock;
 use crate::upgrade_aim::{Aim, MAX_CHAIN};
 use crate::Game;
+
+pub use path::{plan, plan_upgrade};
 
 /// The longest line one drag builds, in cells.
 pub const MAX_LINE: usize = 64;
@@ -39,20 +43,40 @@ const LINE_REACH: f64 = 48.0;
 const BUILD_PER_TICK: usize = 3;
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
-/// One cell of a planned line: where, which way it runs, and how it will slope.
+/// What a planned cell is: a belt, or one end of a tunnel under an obstacle (`pass.rs`).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Piece {
+    Belt,
+    /// The underpass that dives in, with the blocks it passes under.
+    Entry(u8),
+    Exit,
+}
+
+/// One cell of a planned line: where, which way it runs, and how it will slope. An underpass has its
+/// `tier` (which one of the family) and is `short` when the inventory has no pair of it to place.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct LineCell {
     pub pos: IVec3,
     pub dir: u8,
     pub shape: Shape,
+    pub piece: Piece,
+    pub tier: u8,
+    pub short: bool,
 }
 
-/// One placement (or upgrade) of a line being built: the cell, the way it runs and the inventory slot
-/// the belt comes from.
+impl LineCell {
+    pub fn belt(pos: IVec3, dir: u8, shape: Shape) -> LineCell {
+        LineCell { pos, dir, shape, piece: Piece::Belt, tier: 0, short: false }
+    }
+}
+
+/// One placement (or upgrade) of a line being built: the cell, the way it runs, the item it uses and the
+/// inventory slot that item comes from.
 #[derive(Clone, Copy)]
 struct Build {
     pos: IVec3,
     dir: u8,
+    item: ItemId,
     slot: u8,
 }
 
@@ -64,7 +88,10 @@ pub struct BeltLine {
     pub cells: Vec<LineCell>,
     /// Placements still to send (the next one last), and the item their slots must hold.
     building: Vec<Build>,
+    /// The kit an upgrade line spends.
     build_item: ItemId,
+    /// Where the line was stopped by something too wide to go under (red in the preview).
+    pub blocked: Option<IVec3>,
     /// The cells being built are upgrades (kits), not placements.
     upgrading: bool,
     /// What a held kit would upgrade at the crosshair (`upgrade_aim.rs`); empty while dragging.
@@ -76,94 +103,14 @@ fn is_belt(b: BlockId) -> bool {
     matches!(b, BELT | FAST_BELT | RAMP_UP | RAMP_DOWN)
 }
 
-/// The columns (x, z) of a path from `start` towards the column of `end`, each with the way it runs:
-/// along the longer axis first, turning once (the turning cell runs the new way); one column runs `facing`.
-fn columns(start: IVec3, end: IVec3, facing: u8) -> Vec<((i32, i32), u8)> {
-    let (dx, dz) = (end.x - start.x, end.z - start.z);
-    let legs = if dx.abs() >= dz.abs() { [(dx, 0), (0, dz)] } else { [(0, dz), (dx, 0)] };
-    let mut cols = vec![((start.x, start.z), facing)];
-    for (lx, lz) in legs {
-        let dir = match (lx.signum(), lz.signum()) {
-            (0, 0) => continue,
-            (0, -1) => 0,
-            (1, 0) => 1,
-            (0, 1) => 2,
-            _ => 3,
-        };
-        cols.last_mut().expect("starts with one").1 = dir;
-        let mut c = cols.last().expect("starts with one").0;
-        for _ in 0..lx.abs().max(lz.abs()) {
-            c = (c.0 + lx.signum(), c.1 + lz.signum());
-            cols.push((c, dir));
-        }
-    }
-    cols.truncate(MAX_LINE);
-    cols
-}
-
-/// The cells of a line from `start` towards the column of `end`, reading blocks through `block`
-/// (`None`: not loaded). A line of one cell runs `facing`. Empty when `start` isn't free.
-pub fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8) -> Vec<LineCell> {
-    let free = |p: IVec3| block(p).is_some_and(block::replaceable);
-    let solid = |p: IVec3| block(p).is_some_and(|b| SOLID[b as usize] && factory::machine(b).is_none());
-    let cols = columns(start, end, facing);
-    let mut cells: Vec<LineCell> = Vec::with_capacity(cols.len());
-    let mut y = start.y;
-    for (i, &((x, z), dir)) in cols.iter().enumerate() {
-        let at = |y: i32| IVec3::new(x, y, z);
-        if i > 0 {
-            y = if free(at(y)) && solid(at(y - 1)) {
-                y
-            } else if solid(at(y)) && free(at(y + 1)) {
-                y + 1 // a step up: the belt before it becomes an up ramp
-            } else if free(at(y)) && free(at(y - 1)) && solid(at(y - 2)) {
-                y - 1 // a step down: this belt becomes a down ramp
-            } else if free(at(y)) {
-                y // over a gap, level
-            } else {
-                break;
-            };
-        } else if !free(at(y)) {
-            break;
-        }
-        cells.push(LineCell { pos: at(y), dir, shape: Shape::Flat });
-    }
-    // The slopes the factory will derive, for the preview.
-    for i in 0..cells.len() {
-        let y = cells[i].pos.y;
-        if cells.get(i + 1).is_some_and(|n| n.pos.y == y + 1) {
-            cells[i].shape = Shape::Up;
-        } else if i > 0 && cells[i - 1].pos.y == y + 1 {
-            cells[i].shape = Shape::Down;
-        }
-    }
-    cells
-}
-
-/// The belts to upgrade from the belt at `start` towards the column of `end`: the path follows belts
-/// (`tier_at`: the tier of the belt at a cell) one block up or down at a time and stops where none is;
-/// the cells are those at tier `from`.
-pub fn plan_upgrade(tier_at: impl Fn(IVec3) -> Option<u8>, start: IVec3, end: IVec3, from: u8) -> Vec<LineCell> {
-    let mut cells = Vec::new();
-    let mut y = start.y;
-    for ((x, z), dir) in columns(start, end, 0) {
-        let Some(pos) = [y, y + 1, y - 1].map(|y| IVec3::new(x, y, z)).into_iter().find(|&p| tier_at(p).is_some())
-        else {
-            break;
-        };
-        y = pos.y;
-        if tier_at(pos) == Some(from) {
-            cells.push(LineCell { pos, dir, shape: Shape::Flat });
-        }
-    }
-    cells
-}
-
 impl Game {
     /// Runs the line tool for one tick. True while it owns the use button (a belt is selected and the
     /// button went down on a surface, or a line is being built).
     pub(crate) fn update_belt_line(&mut self) -> bool {
         self.line.aim = Aim::default();
+        if self.line.start.is_none() {
+            self.line.blocked = None;
+        }
         if self.send_line_placements() {
             return true;
         }
@@ -194,8 +141,13 @@ impl Game {
                         let belt_tier = |p| self.sim.factory.tiered_at(p).filter(|t| t.0 == BELT).map(|t| t.1);
                         plan_upgrade(belt_tier, start, end, tier - 1)
                     }
-                    None => plan(|p| self.sim.world.get_block(p), start, end, facing),
+                    None => {
+                        let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing);
+                        self.line.blocked = blocked;
+                        cells
+                    }
                 };
+                self.assign_passes();
                 true
             }
             (Some(_), false) => {
@@ -208,13 +160,28 @@ impl Game {
     }
 
     /// Queues `cells` to be built, as far as the inventory pays for (`line_budget`): belts placed from the
-    /// held stack and then the other stacks, or, with `upgrading`, upgrades paid with kits.
+    /// held stack and then the other stacks (underpasses from their own stacks, left out when there is no
+    /// pair), or, with `upgrading`, upgrades paid with kits.
     fn queue_build(&mut self, cells: &[LineCell], upgrading: bool) {
         let item = self.inventory().selected_stack().item;
-        let n = cells.len().min(self.line_budget());
-        let slots = if upgrading { vec![self.inventory().selected as u8; n] } else { self.belt_slots(item, n) };
-        let mut queue: Vec<Build> =
-            cells.iter().zip(slots).map(|(c, slot)| Build { pos: c.pos, dir: c.dir, slot }).collect();
+        let mut queue = Vec::with_capacity(cells.len());
+        if upgrading {
+            let slot = self.inventory().selected as u8;
+            let n = cells.len().min(self.line_budget());
+            queue.extend(cells.iter().take(n).map(|c| Build { pos: c.pos, dir: c.dir, item, slot }));
+        } else {
+            let mut pools: Vec<(ItemId, std::vec::IntoIter<u8>)> = Vec::new();
+            for (c, _) in cells.iter().zip(pass::affordable(cells, self.line_budget())).filter(|p| p.1) {
+                let it = c.item(item);
+                let at = pools.iter().position(|p| p.0 == it).unwrap_or_else(|| {
+                    pools.push((it, self.belt_slots(it, cells.len()).into_iter()));
+                    pools.len() - 1
+                });
+                if let Some(slot) = pools[at].1.next() {
+                    queue.push(Build { pos: c.pos, dir: c.dir, item: it, slot });
+                }
+            }
+        }
         queue.reverse();
         self.line.upgrading = upgrading;
         self.line.build_item = item;
@@ -261,13 +228,13 @@ impl Game {
             Some((BELT, t)) if t + 1 == tier && self.body().input.sprint => {
                 // Shift: the whole line of belts joined to this one.
                 let chain = self.sim.factory.belt_chain(hit.block, MAX_CHAIN);
-                let cells: Vec<_> = chain.iter().map(|&pos| LineCell { pos, dir: 0, shape: Shape::Flat }).collect();
+                let cells: Vec<_> = chain.iter().map(|&pos| LineCell::belt(pos, 0, Shape::Flat)).collect();
                 self.queue_build(&cells, true);
                 self.using = false;
             }
             Some((BELT, t)) => {
                 self.line.start = Some((hit.block, 0));
-                let cell = LineCell { pos: hit.block, dir: 0, shape: Shape::Flat };
+                let cell = LineCell::belt(hit.block, 0, Shape::Flat);
                 self.line.cells = if t + 1 == tier { vec![cell] } else { Vec::new() };
             }
             Some(_) => {
@@ -291,7 +258,7 @@ impl Game {
         if self.sim.world.get_block(start).is_some_and(block::replaceable) {
             let facing = factory::dir_from_yaw(self.body().yaw);
             self.line.start = Some((start, facing));
-            self.line.cells = vec![LineCell { pos: start, dir: facing, shape: Shape::Flat }];
+            self.line.cells = vec![LineCell::belt(start, facing, Shape::Flat)];
         }
         true
     }
@@ -314,9 +281,8 @@ impl Game {
         if self.line.building.is_empty() {
             return false;
         }
-        let item = self.line.build_item;
         for _ in 0..BUILD_PER_TICK {
-            let Some(Build { pos, dir, slot }) = self.line.building.last().copied() else { break };
+            let Some(Build { pos, dir, item, slot }) = self.line.building.last().copied() else { break };
             let holds = if self.line.upgrading {
                 self.inventory().count(item) > 0
             } else {
@@ -345,21 +311,31 @@ impl Game {
         let tier = tiers::placed_by(held).map_or(0, |(_, t)| t);
         for c in &self.line.cells {
             let rel = c.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
+            let tier = if c.piece == Piece::Belt { tier } else { c.tier };
             factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, tier, rel, time);
         }
     }
 
     /// Cells of the planned line for the host's outlines: x, y, z and 1 if it will be built, or the kit's
-    /// tier colour (0xRRGGBB) if it will be upgraded; 0 past what the held stack pays for.
+    /// tier colour (0xRRGGBB) if it will be upgraded; 0 (red) past what the held stack pays for, for
+    /// underpasses the inventory has no pair of, and for what is too wide to go under.
     pub(crate) fn planned_cells(&self) -> Vec<i32> {
         let have = self.line_budget();
         let kit = upgrades::kit_tier(self.inventory().selected_stack().item);
-        let ok = kit.map_or(1, |t| upgrades::TIER_COLOURS[t as usize] as i32);
-        let cell = |(i, pos): (usize, IVec3)| [pos.x, pos.y, pos.z, if i < have { ok } else { 0 }];
-        let aimed = self.line.aim.belts.iter().copied();
-        self.line.cells.iter().map(|c| c.pos).chain(aimed).enumerate().flat_map(cell).collect()
+        let colour = kit.map_or(1, |t| upgrades::TIER_COLOURS[t as usize] as i32);
+        let paid: Vec<bool> = match kit {
+            Some(_) => (0..self.line.cells.len()).map(|i| i < have).collect(),
+            None => pass::affordable(&self.line.cells, have),
+        };
+        let cell = |p: IVec3, ok: bool| [p.x, p.y, p.z, if ok { colour } else { 0 }];
+        let planned = self.line.cells.iter().zip(paid).map(|(c, ok)| cell(c.pos, ok));
+        let aimed = self.line.aim.belts.iter().enumerate().map(|(i, &p)| cell(p, self.line.cells.len() + i < have));
+        let blocked = self.line.blocked.map(|p| cell(p, false));
+        planned.chain(aimed).chain(blocked).flatten().collect()
     }
 }
 
+mod pass;
+mod path;
 #[cfg(test)]
 mod tests;

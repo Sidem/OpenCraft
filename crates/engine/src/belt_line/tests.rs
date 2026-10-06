@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{AIR, STONE, STORAGE};
+use crate::block::{AIR, STONE, STORAGE, UNDERPASS_IN};
 use crate::inventory::Stack;
 use crate::item::GREEN_KIT;
 use crate::raycast::RayHit;
@@ -26,6 +26,11 @@ fn flat(_: i32, _: i32) -> i32 {
     10
 }
 
+/// The planned cells only (the tests of the underpass behaviour look at where the line was blocked too).
+fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8) -> Vec<LineCell> {
+    super::plan(block, start, end, facing).0
+}
+
 fn positions(cells: &[LineCell]) -> Vec<(i32, i32, i32)> {
     cells.iter().map(|c| (c.pos.x, c.pos.y, c.pos.z)).collect()
 }
@@ -43,7 +48,7 @@ fn a_straight_line_on_flat_ground() {
 #[test]
 fn a_click_without_dragging_lays_one_belt_the_way_you_face() {
     let cells = plan(terrain(flat, &[]), IVec3::new(3, 10, 3), IVec3::new(3, 10, 3), NORTH);
-    assert_eq!(cells, vec![LineCell { pos: IVec3::new(3, 10, 3), dir: NORTH, shape: Shape::Flat }]);
+    assert_eq!(cells, vec![LineCell::belt(IVec3::new(3, 10, 3), NORTH, Shape::Flat)]);
 }
 
 #[test]
@@ -69,12 +74,79 @@ fn a_line_follows_steps_up_and_down() {
 #[test]
 fn a_line_stops_at_a_wall_or_a_machine() {
     let wall = |x: i32, _: i32| if x >= 4 { 12 } else { 10 };
-    let cells = plan(terrain(wall, &[]), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH);
-    assert_eq!(cells.len(), 4, "a two-block wall ends the line");
+    let (cells, blocked) = super::plan(terrain(wall, &[]), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH);
+    assert_eq!(cells.len(), 4, "a two-block wall too wide to go under ends the line");
+    assert_eq!(blocked, Some(IVec3::new(4, 10, 0)), "and is marked");
     let with_box = [(IVec3::new(3, 10, 0), STORAGE)];
-    let cells = plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH);
-    assert_eq!(cells.len(), 3, "the last belt feeds the box instead of climbing over it");
+    let cells = plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(2, 10, 0), NORTH);
+    assert_eq!(cells.len(), 3, "a line ending before the box feeds it");
     assert!(cells.iter().all(|c| c.shape == Shape::Flat));
+}
+
+#[test]
+fn a_line_dives_under_a_box_in_the_way_and_comes_back_up() {
+    let with_box = [(IVec3::new(3, 10, 0), STORAGE)];
+    let (cells, blocked) = super::plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(6, 10, 0), NORTH);
+    assert_eq!(blocked, None);
+    assert_eq!(positions(&cells), (0..=6).filter(|&x| x != 3).map(|x| (x, 10, 0)).collect::<Vec<_>>());
+    let pieces: Vec<Piece> = cells.iter().map(|c| c.piece).collect();
+    use Piece::{Belt, Entry, Exit};
+    assert_eq!(pieces, [Belt, Belt, Entry(1), Exit, Belt, Belt]);
+    assert_eq!((cells[2].shape, cells[3].shape), (Shape::Entry, Shape::Exit));
+}
+
+#[test]
+fn the_width_it_can_go_under_is_the_best_underpass_reach() {
+    // A row of boxes x = 3..=(2 + width) with ground beyond: ten blocks are fine, eleven stop the line.
+    let boxes = |width: i32| (3..3 + width).map(|x| (IVec3::new(x, 10, 0), STORAGE)).collect::<Vec<_>>();
+    for (width, ok) in [(4, true), (10, true), (11, false)] {
+        let extra = boxes(width);
+        let (cells, blocked) = super::plan(terrain(flat, &extra), IVec3::new(0, 10, 0), IVec3::new(20, 10, 0), NORTH);
+        assert_eq!(blocked.is_none(), ok, "{width} wide");
+        assert_eq!(cells.iter().filter(|c| c.piece == Piece::Exit).count(), usize::from(ok));
+        if ok {
+            assert_eq!(cells[2].piece, Piece::Entry(width as u8));
+        }
+    }
+}
+
+#[test]
+fn a_line_that_ends_inside_the_obstacle_is_blocked() {
+    let with_box = [(IVec3::new(3, 10, 0), STORAGE), (IVec3::new(4, 10, 0), STORAGE)];
+    let (cells, blocked) = super::plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(4, 10, 0), NORTH);
+    assert_eq!((cells.len(), blocked), (3, Some(IVec3::new(3, 10, 0))), "no free cell before the path ends");
+}
+
+#[test]
+fn the_cheapest_stocked_underpass_that_covers_the_width_is_chosen() {
+    let with_boxes: Vec<_> = (3..8).map(|x| (IVec3::new(x, 10, 0), STORAGE)).collect(); // five wide: Mk2 or better
+    let plan5 = || super::plan(terrain(flat, &with_boxes), IVec3::new(0, 10, 0), IVec3::new(10, 10, 0), NORTH).0;
+    let pick = |belt_tier: u8, have: [u32; 4]| {
+        let mut cells = plan5();
+        pass::assign(&mut cells, belt_tier, have);
+        let e = cells.iter().find(|c| matches!(c.piece, Piece::Entry(_))).unwrap();
+        let x = cells.iter().find(|c| c.piece == Piece::Exit).unwrap();
+        assert_eq!((e.tier, e.short), (x.tier, x.short));
+        (e.tier, e.short)
+    };
+    assert_eq!(pick(0, [9, 2, 2, 2]), (1, false), "a Mk1 is too short for five blocks");
+    assert_eq!(pick(0, [9, 0, 0, 2]), (3, false), "any longer one will do");
+    assert_eq!(pick(2, [9, 9, 0, 2]), (3, false), "and never one slower than the belt");
+    assert_eq!(pick(0, [9, 1, 1, 1]), (1, true), "one of a pair is none: red, showing the cheapest that would do");
+    assert_eq!(pick(0, [2, 0, 0, 0]), (1, true), "a Mk1 pair doesn't reach");
+}
+
+#[test]
+fn only_the_underpass_pairs_and_belts_in_stock_are_built() {
+    let cells = |short: bool| {
+        let mut c = vec![LineCell::belt(IVec3::ZERO, 1, Shape::Flat); 5];
+        c[1] = LineCell { piece: Piece::Entry(2), shape: Shape::Entry, short, ..c[1] };
+        c[2] = LineCell { piece: Piece::Exit, shape: Shape::Exit, short, ..c[2] };
+        c
+    };
+    assert_eq!(pass::affordable(&cells(false), 9), [true; 5]);
+    assert_eq!(pass::affordable(&cells(true), 9), [true, false, false, true, true], "no pair: left out");
+    assert_eq!(pass::affordable(&cells(false), 2), [true, true, true, true, false], "belts run out");
 }
 
 #[test]
@@ -135,6 +207,58 @@ fn a_line_longer_than_the_held_stack_takes_belts_from_the_other_stacks() {
     assert_eq!(g.sim.factory.count(factory::Kind::Belt), built, "every cell the stacks pay for");
     assert_eq!(g.item_total(BELT.into()), 14 - built as u32);
     assert_eq!(g.slot_count(2), 0, "the held stack went first");
+}
+
+/// Drags a line east along the test slab (y 201) over a box at x = 1, with the inventory as given, builds it
+/// and returns the game after the placements landed.
+fn line_over_a_box(stacks: &[(usize, ItemId, u32)]) -> Game {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    belt_test_slab(&mut g);
+    g.sim.world.set_block(IVec3::new(1, 201, 0), STORAGE);
+    stock(&mut g, stacks, 0);
+    let (start, end) = (IVec3::new(-2, 201, 0), IVec3::new(4, 201, 0));
+    g.line.start = Some((start, EAST));
+    g.line.cells = super::plan(|p| g.sim.world.get_block(p), start, end, EAST).0;
+    g.assign_passes();
+    let planned = g.line.cells.clone();
+    g.queue_build(&planned, false);
+    for _ in 0..60 {
+        g.update(1.0 / 60.0);
+    }
+    g
+}
+
+#[test]
+fn a_line_over_a_box_builds_an_underpass_pair_from_the_inventory() {
+    use crate::factory::Kind;
+    let pass = ItemId::block(UNDERPASS_IN);
+    let g = line_over_a_box(&[(0, BELT.into(), 10), (1, pass, 3)]);
+    let f = &g.sim.factory;
+    assert_eq!(f.count(Kind::Belt), 6, "four belts and the two ends of the tunnel");
+    let at = |x| IVec3::new(x, 201, 0);
+    assert_eq!((f.belt_at(at(0)).shape, f.belt_at(at(2)).shape), (Shape::Entry, Shape::Exit));
+    assert!(!f.describe(at(0)).unwrap().contains("needs another underpass"), "the entry found its exit");
+    assert_eq!((g.item_total(BELT.into()), g.item_total(pass.0)), (6, 1), "belts for belts, underpasses for the pair");
+}
+
+#[test]
+fn without_underpasses_the_line_is_built_but_the_tunnel_is_left_out() {
+    use crate::factory::Kind;
+    let g = line_over_a_box(&[(0, BELT.into(), 10)]);
+    assert_eq!(g.sim.factory.count(Kind::Belt), 4, "the belts either side, no tunnel");
+    assert_eq!(g.item_total(BELT.into()), 6);
+    // The preview marks the pair red (flag 0) and the belts ok (1) before building.
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    belt_test_slab(&mut g);
+    g.sim.world.set_block(IVec3::new(1, 201, 0), STORAGE);
+    stock(&mut g, &[(0, BELT.into(), 10)], 0);
+    g.line.cells = super::plan(|p| g.sim.world.get_block(p), IVec3::new(-2, 201, 0), IVec3::new(4, 201, 0), EAST).0;
+    g.assign_passes();
+    let flags: Vec<i32> = g.planned_cells().chunks(4).map(|c| c[3]).collect();
+    assert_eq!(flags, [1, 1, 0, 0, 1, 1]);
+    assert!(g.belt_line_label().contains("2 underpasses") && g.belt_line_label().contains("2 underpasses missing"));
 }
 
 /// Belts `0..n` along x at y 70, a lone Mk2 at the far end, all registered in the factory.

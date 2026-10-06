@@ -236,7 +236,8 @@ impl Machine for Belt {
         } else {
             match self.out {
                 Link::None if self.shape == Shape::Entry => {
-                    " · no underpass exit facing the same way within 5 cells ahead".to_string()
+                    let blocks = super::underpass::span(self.tier);
+                    format!(" · needs another underpass facing the same way, at most {blocks} blocks ahead")
                 }
                 Link::None => " · nothing in front, items wait at the end".to_string(),
                 Link::Belt { mid: true, .. } => " · joins the next belt from the side".to_string(),

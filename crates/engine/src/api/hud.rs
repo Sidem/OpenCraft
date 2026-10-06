@@ -115,16 +115,7 @@ impl Game {
                 tier + 1
             );
         }
-        let have = self.inventory().count(held) as usize;
-        let sloped = self.line.cells.iter().filter(|c| c.shape != factory::Shape::Flat).count();
-        let mut s = format!("Belt line\n{n} belt{}", if n == 1 { "" } else { "s" });
-        if sloped > 0 {
-            s += &format!(", {sloped} on slopes");
-        }
-        if have < n {
-            s += &format!(" · you have {have}");
-        }
-        s + " · release to build, left-click to cancel"
+        self.belt_line_label()
     }
 
     pub fn has_target(&self) -> bool {

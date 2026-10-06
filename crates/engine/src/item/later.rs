@@ -40,3 +40,7 @@ pub const ASSEMBLER_MK5: ItemId = ItemId(371);
 pub const BLAST_FURNACE_MK5: ItemId = ItemId(372);
 pub const DRONE_PORT_MK5: ItemId = ItemId(373);
 pub const RESEARCH_CENTER_MK5: ItemId = ItemId(374);
+/// The underpass tiers above Mk1 (Mk1 is the block's own item): longer reach, the belt speed of the same Mk.
+pub const UNDERPASS_MK2: ItemId = ItemId(375);
+pub const UNDERPASS_MK3: ItemId = ItemId(376);
+pub const UNDERPASS_MK4: ItemId = ItemId(377);

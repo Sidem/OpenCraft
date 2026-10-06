@@ -155,6 +155,8 @@ fn lint_tiers(families: &[Family], hand: &[Recipe]) -> Vec<String> {
     for f in families {
         for (t, &it) in f.items.iter().enumerate() {
             let want = match (t, crate::factory::upgrades::kit(t as u8)) {
+                // Underpasses are made from belts of their Mk (`underpass_pieces_cost_belts_of_their_mk`).
+                _ if f.block == block::UNDERPASS_IN => None,
                 (0, _) => None,
                 (_, Some(kit)) => Some([(f.items[t - 1], 1), (kit, f.kits)]),
                 (_, None) => {
@@ -169,6 +171,20 @@ fn lint_tiers(families: &[Family], hand: &[Recipe]) -> Vec<String> {
         }
     }
     errors
+}
+
+#[test]
+fn underpass_pieces_cost_belts_of_their_mk_half_their_span() {
+    let family = |block| FAMILIES.iter().find(|f| f.block == block).unwrap();
+    let (underpasses, belts) = (family(block::UNDERPASS_IN), family(block::BELT));
+    assert_eq!(underpasses.items.len(), crate::factory::underpass::UNDERPASS_SPAN.len());
+    for (t, (&piece, &belt)) in underpasses.items.iter().zip(belts.items).enumerate() {
+        let recipe = RECIPES.iter().find(|r| r.output == piece).expect("every underpass is craftable");
+        let cost = crate::factory::underpass::UNDERPASS_SPAN[t] as u32 / 2;
+        assert_eq!((recipe.count, recipe.inputs), (1, &[(belt, cost)][..]), "Mk{}", t + 1);
+    }
+    // A piece reaching 4 blocks costs 2 belts, so an entry and an exit are 4; two blocks more per Mk.
+    assert_eq!(crate::factory::underpass::UNDERPASS_SPAN[0] / 2 * 2, 4);
 }
 
 #[test]
