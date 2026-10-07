@@ -1,7 +1,7 @@
 //! The tech tree as data ([`TECHS`]): every tech's packs, cost, prerequisites (by index) and unlocks.
 //! Saves store progress by index, so append rows, never reorder (`research.rs` has the rules and the
-//! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s, `distance.rs`'s and `chemistry.rs`'s
-//! techs (joined by `join.rs`); add to the last.
+//! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s, `distance.rs`'s, `chemistry.rs`'s
+//! and `recycling.rs`'s techs (joined by `join.rs`); add to the last.
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
@@ -12,20 +12,22 @@ use crate::item::{
     BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK,
 };
 use crate::recipes::{
-    ASSEMBLY_RECIPES, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES, ELECTRONICS_RECIPES, GEAR_RECIPE,
-    QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
+    ASSEMBLY_RECIPES, BLAST_CRUSHED_RECIPE, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES,
+    ELECTRONICS_RECIPES, GEAR_RECIPE, QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
 };
 
 use super::chemistry::CHEMISTRY;
 use super::distance::DISTANCE;
 use super::join::join;
 use super::personal::PERSONAL;
+use super::recycling::RECYCLING;
 use super::{r, Tech, Unlock};
 
-/// Every tech: the main tree, then the personal gear's, then Milestone 9's and 10's.
-pub const TECHS: &[Tech] = &join::<{ MAIN.len() + PERSONAL.len() + DISTANCE.len() + CHEMISTRY.len() }>(&[
-    &MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY,
-]);
+/// Every tech: the main tree, then the personal gear's, then Milestone 9's and 10's, then the recycler's.
+pub const TECHS: &[Tech] =
+    &join::<{ MAIN.len() + PERSONAL.len() + DISTANCE.len() + CHEMISTRY.len() + RECYCLING.len() }>(&[
+        &MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY, &RECYCLING,
+    ]);
 
 const MAIN: [Tech; 30] = [
     Tech {
@@ -221,7 +223,7 @@ const MAIN: [Tech; 30] = [
     Tech {
         name: "Ore Crushing",
         blurb: "Crushers turn 2 iron or copper ore into 3 crushed ore, which smelt one for one: an ore gives one \
-                and a half ingots. They also grind slag to sand.",
+                and a half ingots, and blast furnaces take 2 crushed iron where they took 2 ore. They also grind slag to sand.",
         needs: &[10],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 60,
@@ -233,6 +235,7 @@ const MAIN: [Tech; 30] = [
             Unlock::MachineRecipe(CRUSH_RECIPES[2]),
             Unlock::MachineRecipe(CRUSH_RECIPES[3]),
             Unlock::MachineRecipe(CRUSH_RECIPES[4]),
+            Unlock::MachineRecipe(BLAST_CRUSHED_RECIPE),
         ],
     },
     Tech {

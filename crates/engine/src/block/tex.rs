@@ -268,7 +268,11 @@ pub const REACTOR_TOP: u16 = 240;
 /// The gold science pack's flask fill and the Mk5 miner's housing.
 pub const GOLD_PACK: u16 = 241;
 pub const MINER_MK5_SIDE: u16 = 242;
-pub const COUNT: usize = 243;
+/// The recycling coin and the recycler's faces.
+pub const COIN: u16 = 243;
+pub const RECYCLER_SIDE: u16 = 244;
+pub const RECYCLER_TOP: u16 = 245;
+pub const COUNT: usize = 246;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

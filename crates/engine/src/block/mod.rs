@@ -129,7 +129,9 @@ pub const URANIUM_ORE: BlockId = 82;
 /// The chemistry machines, the washer, the research center, the water wheel the hoist, the centrifuge and the reactor, ids 83–96 (`chemistry.rs`).
 mod chemistry;
 pub use chemistry::*;
-pub const BLOCK_COUNT: usize = 97;
+/// The recycler (the Recycling tech, `factory/process/recycler.rs`): a 2×2×2 machine that destroys items for coins.
+pub const RECYCLER: BlockId = 97;
+pub const BLOCK_COUNT: usize = 98;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -350,6 +352,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Hoist Winch", true, 1.4, pillar(tex::WINCH_SIDE, tex::FRAME, tex::FRAME), WINCH),
     machine("Centrifuge", true, 1.6, pillar(tex::CENTRIFUGE_SIDE, tex::CENTRIFUGE_TOP, tex::FRAME), CENTRIFUGE),
     machine("Nuclear Reactor", true, 2.4, pillar(tex::REACTOR_SIDE, tex::REACTOR_TOP, tex::FRAME), REACTOR),
+    machine("Recycler", true, 1.6, pillar(tex::RECYCLER_SIDE, tex::RECYCLER_TOP, tex::FRAME), RECYCLER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

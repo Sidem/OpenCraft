@@ -7,7 +7,7 @@
 //! one on click (`api/creative.rs`). To make creative do more: branch on `Sim::mode` where the rule lives.
 //! A new mode is a variant here plus its byte; bytes are saved, so never renumber.
 
-use crate::item::{def, ItemId};
+use crate::item::{def, ItemId, COIN};
 use crate::sim::Sim;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -44,10 +44,11 @@ impl Sim {
     }
 }
 
-/// Every item a creative world offers: each block that can be placed, then every other item.
+/// Every item a creative world offers: each block that can be placed, then every other item (not the recycling coin,
+/// which is earned).
 pub fn creative_items() -> Vec<ItemId> {
     let blocks = (1..256u16).map(ItemId).filter(|item| item.places().is_some());
-    let others = (256u16..).map(ItemId).take_while(|&item| def(item).is_some());
+    let others = (256u16..).map(ItemId).take_while(|&item| def(item).is_some()).filter(|&item| item != COIN);
     blocks.chain(others).collect()
 }
 

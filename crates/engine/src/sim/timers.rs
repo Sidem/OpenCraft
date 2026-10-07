@@ -155,7 +155,8 @@ impl Sim {
             TimerKind::GrassDie => self.covered(t.pos),
             TimerKind::SaplingGrow => false, // returned above
         };
-        if !holds || !self.world.set_block_anywhere(t.pos, new) {
+        // The remesh waits for the streaming budget: many timers fire in a burst (a felled tree's leaves).
+        if !holds || !self.world.set_block_anywhere_later(t.pos, new) {
             return;
         }
         if t.kind == TimerKind::LeafDecay {

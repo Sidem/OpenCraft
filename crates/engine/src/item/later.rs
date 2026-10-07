@@ -1,4 +1,6 @@
-//! Ids of the items of Milestone 10 and after (chemistry, washing, research centers, nuclear power, gold science), appended\n//! in id order; their rows are the end of `EXTRA` in `item.rs`. To add one: a constant here and its row there.\n
+//! Ids of the items of Milestone 10 and after (chemistry, washing, research centers, nuclear power, gold science), appended
+//! in id order; their rows are the end of `EXTRA` in `item.rs`. To add one: a constant here and its row there.
+
 use super::ItemId;
 
 /// An empty canister (the Oil Processing tech): pressed from steel, it comes back from every fluid it carried.
@@ -44,3 +46,7 @@ pub const RESEARCH_CENTER_MK5: ItemId = ItemId(374);
 pub const UNDERPASS_MK2: ItemId = ItemId(375);
 pub const UNDERPASS_MK3: ItemId = ItemId(376);
 pub const UNDERPASS_MK4: ItemId = ItemId(377);
+/// A recycling coin (the Recycling tech): what a recycler pays for the items it destroys (`recipes/recycling.rs`). It stacks to
+/// [`COIN_STACK`], is worth nothing itself and is not offered in creative worlds.
+pub const COIN: ItemId = ItemId(378);
+pub const COIN_STACK: u32 = 1024;

@@ -8,8 +8,8 @@ use crate::factory::tests::{powered, recipe_for, run};
 use crate::factory::tiers::FAMILIES;
 use crate::factory::upgrades::Step;
 use crate::item::{
-    ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CIRCUIT, COPPER_WIRE, CRUSHED_BAUXITE, GEAR, GREEN_KIT, IRON_INGOT,
-    IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT,
+    ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CIRCUIT, COPPER_WIRE, CRUSHED_BAUXITE, CRUSHED_IRON, GEAR, GREEN_KIT,
+    IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT,
 };
 use crate::research::{Research, TECHS};
 use crate::world::World;
@@ -206,6 +206,28 @@ fn a_blast_furnace_makes_steel_at_its_front_and_slag_at_its_side() {
     assert_eq!(f.storage_count_at(v(0, 0, 2), STEEL_INGOT), 2, "4 s a batch, no power needed");
     assert_eq!(f.storage_count_at(v(3, 0, 0), SLAG.into()), 2);
     assert_eq!(f.processors[0].status, Status::NoInput);
+}
+
+#[test]
+fn a_blast_furnace_can_take_crushed_iron_two_for_two_ore() {
+    let mut f = Factory::default();
+    research_done(&mut f, "Ore Crushing");
+    f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    assert_eq!(f.insert(IVec3::ZERO, CRUSHED_IRON, 2), 0, "no recipe chosen yet");
+    assert!(f.set_recipe(IVec3::ZERO, Some(crate::recipes::BLAST_CRUSHED_RECIPE)).is_some());
+    assert_eq!(f.insert(IVec3::ZERO, IRON_ORE.into(), 2), 0, "the crushed recipe takes no raw ore");
+    for (item, n) in [(CRUSHED_IRON, 4), (COAL_ORE.into(), 2), (QUICKLIME, 2)] {
+        assert_eq!(f.insert(IVec3::ZERO, item, n), n);
+    }
+    run(&mut f, 8.05, |_| {});
+    let furnace = &f.processors[0];
+    assert_eq!((furnace.out.count(STEEL_INGOT), furnace.side.count(SLAG.into())), (2, 2));
+}
+
+#[test]
+fn crushed_iron_in_a_blast_furnace_waits_for_ore_crushing() {
+    let f = Factory::default();
+    assert!(!f.research.machine_recipes_unlocked()[crate::recipes::BLAST_CRUSHED_RECIPE as usize]);
 }
 
 #[test]

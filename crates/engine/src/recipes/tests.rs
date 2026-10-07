@@ -65,8 +65,9 @@ const WORLD_BLOCKS: &[BlockId] = &[
     GREEN_SAND,
     PALE_SAND,
 ];
-/// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters).
-const GATHERED: &[ItemId] = &[ItemId::block(SAPLING), item::CRUDE_CANISTER];
+/// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters;
+/// recyclers pay coins).
+const GATHERED: &[ItemId] = &[ItemId::block(SAPLING), item::CRUDE_CANISTER, item::COIN];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
 /// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; hydrogen
 /// and oxygen for fuel cells and rockets, plastic and acid for gold science and the chip fab, lubricant for Mk5).
@@ -109,6 +110,7 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || it == item::RAIL_SIGNAL
             || it == item::DIESEL_CANISTER // burned by the diesel generator
             || it == item::FUEL_CELL // burned by the reactor
+            || it == item::COIN // spent on cosmetics, a later step
             || tools::tool(it).is_some()
             || tools::device(it).is_some()
             || crate::equipment::gear(it).is_some();

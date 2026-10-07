@@ -134,7 +134,7 @@ impl World {
         let gen_next = self.gen_queue.last().map(|&p| nearest(self.focus, &self.others, p));
         let mesh_next = self.mesh_queue.last().map(|&p| priority(self.focus, p));
         let mesh = match (gen_next, mesh_next) {
-            (None, None) => return false,
+            (None, None) => return self.relight_one(),
             (Some(g), Some(m)) => m <= g,
             (None, Some(_)) => true,
             (Some(_), None) => false,

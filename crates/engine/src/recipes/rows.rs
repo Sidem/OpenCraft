@@ -41,3 +41,5 @@ pub const WASH_RECIPES: [u16; 7] = [49, 50, 51, 52, 53, 54, 55];
 pub const ENRICH_RECIPE: u16 = 56;
 /// The assembler's gold science pack (Gold Science) and gold kit (Mk5 Machines).
 pub const GOLD_RECIPES: [u16; 2] = [57, 58];
+/// The blast furnace's steel from crushed iron (Ore Crushing).
+pub const BLAST_CRUSHED_RECIPE: u16 = 59;

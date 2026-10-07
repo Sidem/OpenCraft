@@ -19,13 +19,20 @@ fn blocks_of(light: u8) -> (u8, u8) {
     (light & 15, light >> 4)
 }
 
+fn settle(w: &mut World) {
+    w.begin_work();
+    while w.work_step() {}
+}
+
 #[test]
-fn open_air_is_daylit_and_a_lamp_lights_it_at_once() {
+fn open_air_is_daylit_and_a_lamp_lights_it_when_the_work_runs() {
     let (mut w, air) = streamed_world();
     assert_eq!(blocks_of(w.light_at(air)), (15, 0));
 
-    // The lit chunk is cached; the edit drops it, so the lamp shows up on the next look.
+    // The lit chunk is cached; the edit makes it stale: it reads as before until the work step lights it again.
     assert!(w.set_block(air + IVec3::new(2, 0, 0), LAMP));
+    assert_eq!(blocks_of(w.light_at(air)).1, 0, "still the old light");
+    settle(&mut w);
     assert_eq!(blocks_of(w.light_at(air)).1, 15, "two blocks from a lamp is full block light");
     let far = air + IVec3::new(0, 0, 25);
     assert!(blocks_of(w.light_at(far)).1 < 15, "and it fades with distance");
@@ -34,7 +41,35 @@ fn open_air_is_daylit_and_a_lamp_lights_it_at_once() {
     for (dx, dz) in [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)] {
         w.set_block(air + IVec3::new(dx, 1, dz), STONE);
     }
+    settle(&mut w);
     assert!(blocks_of(w.light_at(air)).0 < 15);
+}
+
+#[test]
+fn an_edit_that_changes_no_light_leaves_the_cache_alone() {
+    let (mut w, air) = streamed_world();
+    w.light_at(air);
+    w.set_block(air, STONE);
+    settle(&mut w);
+    w.light_at(air);
+    // Stone to dirt: same light behaviour, so nothing is stale and nothing is dirty.
+    settle(&mut w);
+    w.dirty.clear();
+    w.set_block(air, crate::block::DIRT);
+    assert!(w.light_cache.iter().all(|e| !e.stale));
+    assert_eq!(w.dirty_count(), 0, "the chunk itself is meshed at once, no other waits");
+}
+
+#[test]
+fn a_block_that_only_stops_the_sky_dirties_fewer_chunks_than_a_lamp() {
+    let (mut w, air) = streamed_world();
+    let high = air + IVec3::new(0, 20, 0);
+    w.set_block(high, crate::block::LEAVES);
+    w.dirty.clear();
+    w.set_block(high, crate::block::AIR);
+    let leaf = w.dirty_count();
+    w.set_block(high, LAMP);
+    assert!(leaf < w.dirty_count(), "{leaf} chunks for a leaf, {} for a lamp", w.dirty_count());
 }
 
 #[test]

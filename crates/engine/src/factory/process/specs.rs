@@ -75,6 +75,8 @@ pub enum Pick {
     Unload,
     /// A research center: takes science packs and researches the chosen tech (center.rs).
     Research,
+    /// A recycler: destroys any item it is given and pays coins (recycler.rs).
+    Recycle,
 }
 
 impl Pick {
@@ -143,6 +145,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::hoist::WINCH_SPEC,
     super::nuclear::CENTRIFUGE_SPEC,
     super::nuclear::REACTOR_SPEC,
+    super::recycler::RECYCLER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

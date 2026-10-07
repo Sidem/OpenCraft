@@ -73,7 +73,7 @@ impl Processor {
                 let held = self.input.slots.iter().find(|s| !s.is_empty()).ok_or(Status::NoInput)?;
                 self.spec.recipe_using(held.item, unlocked).ok_or(Status::NoInput)
             }
-            Pick::Store | Pick::Hangar | Pick::Pump | Pick::Load | Pick::Unload | Pick::Research => {
+            Pick::Store | Pick::Hangar | Pick::Pump | Pick::Load | Pick::Unload | Pick::Research | Pick::Recycle => {
                 Err(Status::NoInput)
             }
         }

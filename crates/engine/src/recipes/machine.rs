@@ -320,6 +320,14 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(GOLD_KIT, 4)],
         seconds: 5.0,
     },
+    // The blast furnace on crushed ore (Ore Crushing): one crushed ore for one, like the smelter, so an ore gives steel
+    // at 1.5 times the raw rate.
+    MachineRecipe {
+        category: Blasting,
+        inputs: &[(CRUSHED_IRON, 2), (b(COAL_ORE), 1), (QUICKLIME, 1)],
+        outputs: &[(STEEL_INGOT, 1), (b(SLAG), 1)],
+        seconds: 4.0,
+    },
 ];
 
 /// Units of water a batch of a recipe takes from the machine's water inlet, by recipe index (machines that take

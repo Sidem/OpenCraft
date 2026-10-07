@@ -18,7 +18,7 @@
 //! light in the high one. To change how a block treats light: `CLASS` below; to add a kind of light:
 //! a row in `SOURCES` (a loss of 1 or 2).
 
-use crate::block::{Render, BLOCK_COUNT, DEFS, GLASS, HOIST, LADDER};
+use crate::block::{BlockId, Render, BLOCK_COUNT, DEFS, GLASS, HOIST, LADDER};
 use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
@@ -56,6 +56,26 @@ const PASSES: u8 = 1;
 const SKY_PASSES: u8 = 2;
 /// Light loses 2 per block through it instead of 1 (water).
 const DIMS: u8 = 4;
+
+/// How far from a changed block the light can change when `old` becomes `new`, in blocks, and whether only
+/// the sky light can: 0 when light treats the two alike (stone to dirt); a full sky light's reach, sky only,
+/// when just the straight sky column differs (leaves to air); else the whole field margin (something lets
+/// light through or shines).
+pub fn reach(old: BlockId, new: BlockId) -> (i32, bool) {
+    let (a, b) = (CLASS[old as usize], CLASS[new as usize]);
+    if a == b {
+        (0, false)
+    } else if (a ^ b) & !SKY_PASSES == 0 {
+        (i32::from(FULL), true)
+    } else {
+        (MARGIN as i32, false)
+    }
+}
+
+/// Whether the straight sky column goes through `b`.
+pub fn passes_sky(b: BlockId) -> bool {
+    CLASS[b as usize] & SKY_PASSES != 0
+}
 
 /// Scratch buffers, reused for every chunk.
 pub struct Lighting {

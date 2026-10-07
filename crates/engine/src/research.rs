@@ -16,6 +16,7 @@ mod chemistry;
 mod distance;
 mod join;
 mod personal;
+mod recycling;
 mod techs;
 
 pub use techs::TECHS;

@@ -25,8 +25,8 @@ const B: PlayerId = PlayerId(1);
 /// Hover Pack tech and the hover, charge and pole each player's helpers save (save version 36), and in 9.5b for the
 /// Cargo Drones tech and the cargo routes and drones saved after the construction drones (save version 37), in 10.1
 /// for generator version 6, in 10.2 for the Oil Processing tech, in 10.3 for the Refining tech, and in 10.4
-/// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, in 10.7 for the Research Center tech, and for the game mode byte (save version 38).
-const GOLDEN_HASH: u64 = 0xb814_c786_c300_90d6;
+/// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, in 10.7 for the Research Center tech, for the game mode byte (save version 38), and in 11.0 for the Recycling tech.
+const GOLDEN_HASH: u64 = 0x07f7_6b02_050b_6e97;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

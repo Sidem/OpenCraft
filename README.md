@@ -395,6 +395,11 @@ size.
   9 blocks a second. **Nuclear power**: the centrifuge makes fuel cells from uranium ore and a steel plate; the
   **reactor** (3×3×3, fuel cells at the back, up to 2 MW) heats as it gives, a water pipe to its blue inlet keeps it
   cool, and it shuts down when overheated until it has cooled. Gold science and Mk5 Machines close the milestone.
+- **Recycling.** After Blue Science, the **recycler** (2×2×2, 90 kW, six input hatches, two output hatches) destroys
+  any item belts bring it and pays **recycling coins** (1024 to a stack; one day they buy cosmetics). Raw things
+  (ore, logs, dirt, leaves, saplings) pay 1; every step of processing doubles it, so an ingot pays 2, a rod 4 and a
+  plate (two ingots) 8, and the price follows the recipes (a motor 88, a drone 7,368). Slag and tailings pay 1, and
+  so does what is crushed from them. An item is worth what its cheapest recipe makes it, so no route earns more.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the
@@ -618,6 +623,7 @@ Factory layer (the Satisfactory half):
 - [x] Terraforming: a planner and excavators with work drones
 - [x] Aluminium from far away, trains, cargo drones
 - [x] Oil, plastics, ore washing, hydro, hoists, nuclear power, gold science and Mk5 (Milestone 10, built; being tested)
+- [x] Recycling: a machine that turns any item into coins, priced from the recipes
 - [ ] AI datacenters and laser links for power and data
 - [ ] Rockets and satellite constellations
 - [ ] An optional endgame megaproject that doesn't end the game

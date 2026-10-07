@@ -25,11 +25,13 @@ mod docks;
 mod hangar;
 mod hoist;
 mod hydro;
+mod intake;
 mod legacy;
 mod model;
 mod nuclear;
 mod parts;
 mod pump;
+mod recycler;
 mod refinery;
 mod shape;
 mod solar;
@@ -62,7 +64,7 @@ pub(super) use steam::{draw_water, link as link_steam, run_turbine};
 use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
-use crate::item::{stack_size, ItemId, EMPTY_CANISTER};
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::{burn_time, MachineRecipe};
 use crate::research::Research;
@@ -104,6 +106,8 @@ pub struct Processor {
     pub pump: Pump,
     /// A research center's unit in progress (center.rs).
     pub study: Study,
+    /// Millicoins a recycler has earned and not yet paid out (recycler.rs; saved for recyclers only).
+    pub owed: u32,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
@@ -139,6 +143,7 @@ impl Processor {
             hangar: Hangar::default(),
             pump: Pump::default(),
             study: Study::default(),
+            owed: 0,
             speed: 0,
             outs: Vec::new(),
             side_outs: Vec::new(),
@@ -152,59 +157,6 @@ impl Processor {
     /// This tier's numbers.
     pub fn stats(&self) -> &'static ProcessTier {
         &self.spec.tiers[self.tier as usize]
-    }
-
-    /// How many of `item` it would take now, up to the room in its buffer. `unlocked`: which machine
-    /// recipes research allows, by index.
-    pub fn room_for(&self, item: ItemId, unlocked: &[bool]) -> u32 {
-        if self.is_fuel(item) {
-            return self.fuel.space_for(item);
-        }
-        if self.is_center() {
-            return self.center_room(item);
-        }
-        if matches!(self.energy(), Energy::Diesel | Energy::Reactor) {
-            return if item == self.generator_fuel() { self.input.space_for(item) } else { 0 };
-        }
-        if self.spec.pick.stores() {
-            return self.out.space_for(item);
-        }
-        if self.spec.pick == Pick::Hangar {
-            return self.hangar_room(item).min(self.input.space_for(item));
-        }
-        let wanted = match self.spec.pick {
-            Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
-            Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
-            Pick::Pump => item == EMPTY_CANISTER,
-            Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload | Pick::Research => false,
-        };
-        let cap = if self.spec.pick == Pick::Chosen {
-            stack_size(item).saturating_sub(self.input.count(item))
-        } else {
-            u32::MAX
-        };
-        if wanted {
-            self.input.space_for(item).min(cap)
-        } else {
-            0
-        }
-    }
-
-    /// Takes one `item`; false if it doesn't want it or it doesn't fit.
-    pub fn accept(&mut self, item: ItemId, unlocked: &[bool]) -> bool {
-        self.insert(item, 1, unlocked) == 1
-    }
-
-    /// Puts up to `n` of `item` where it belongs; returns how many went in.
-    pub fn insert(&mut self, item: ItemId, n: u32, unlocked: &[bool]) -> u32 {
-        let put = n.min(self.room_for(item, unlocked));
-        let buf = match () {
-            _ if self.is_fuel(item) => &mut self.fuel,
-            _ if self.spec.pick.stores() => &mut self.out,
-            _ => &mut self.input,
-        };
-        buf.add(item, put);
-        put
     }
 
     /// Switches to `recipe` (one it makes, or `None`) and returns the inputs it held, an unfinished
@@ -226,6 +178,7 @@ impl Processor {
             (Energy::Boiler, _) => self.boil(),
             (Energy::Hoist, _) => self.status = if power > 0 { Status::Working } else { Status::NoPower },
             (e, _) if e.is_source() => {}
+            (_, Pick::Recycle) => self.recycle(power),
             (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research) => {}
             _ => self.work(power, unlocked),
         }
@@ -239,6 +192,7 @@ impl Processor {
             Pick::Research => return self.center_wants_power(research),
             Pick::Hangar => return self.hangar.busy,
             Pick::Pump => return self.pump_wants_power(),
+            Pick::Recycle => return self.recycle_wants_power(),
             _ => {}
         }
         self.energy() == Energy::Hoist
@@ -324,6 +278,9 @@ impl Machine for Processor {
         if self.is_center() {
             self.write_study(w);
         }
+        if self.spec.pick == Pick::Recycle {
+            w.u32(self.owed);
+        }
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Processor> {
@@ -358,6 +315,9 @@ impl Machine for Processor {
         if spec.pick == Pick::Research {
             p.read_study(r)?;
         }
+        if spec.pick == Pick::Recycle {
+            p.owed = r.u32()?;
+        }
         p.valid()
     }
 
@@ -369,6 +329,7 @@ impl Machine for Processor {
         all.extend(self.side.contents());
         all.extend(self.batch_inputs());
         all.extend(self.study_contents());
+        all.extend(self.owed_stacks());
         all
     }
 

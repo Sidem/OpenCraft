@@ -1,4 +1,4 @@
-//! Chunk storage and block access: loaded chunks, edited chunks kept while streamed out (`saved`),
+﻿//! Chunk storage and block access: loaded chunks, edited chunks kept while streamed out (`saved`),
 //! and the accessors. Streaming and meshing live in `streaming.rs`; results reach the renderer
 //! through the ordered `events` queue.
 //!
@@ -20,7 +20,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::block::{BlockId, AIR, BEDROCK, LIQUID, SOLID, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::chunk::{Chunk, CHUNK_MASK, CHUNK_SHIFT, CHUNK_SIZE};
-use crate::light::{Lighting, MARGIN};
+use crate::light::Lighting;
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 use crate::mesher::Mesher;
 use crate::worldgen::{WorldGen, WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
@@ -284,7 +284,7 @@ impl World {
     }
 
     /// Changes a block and immediately remeshes every chunk whose mesh can see it (up to 8, because
-    /// AO samples across chunk borders). Chunks whose light it can change (within `MARGIN` blocks,
+    /// AO samples across chunk borders). Chunks whose light it can change (`light::reach` blocks away,
     /// and everything below, which its shadow reaches) remesh later. Core code uses `set_block_anywhere`.
     #[cfg(test)]
     pub fn set_block(&mut self, p: IVec3, b: BlockId) -> bool {
@@ -297,7 +297,8 @@ impl World {
         }
         let Some(entry) = self.chunks.get_mut(&chunk_of(p)) else { return false };
         let (x, y, z) = local_of(p);
-        if entry.chunk.get(x, y, z) == b {
+        let old = entry.chunk.get(x, y, z);
+        if old == b {
             return false;
         }
         entry.chunk.set(x, y, z, b);
@@ -320,20 +321,8 @@ impl World {
                 self.remesh(c);
             }
         }
-        let m = MARGIN as i32;
-        let (lo, hi) = (chunk_of(p - IVec3::new(m, 0, m)), chunk_of(p + IVec3::new(m, m, m)));
-        for cz in lo.z..=hi.z {
-            for cx in lo.x..=hi.x {
-                for cy in 0..=hi.y.min(WORLD_HEIGHT_CHUNKS - 1) {
-                    let c = IVec3::new(cx, cy, cz);
-                    if self.chunks.contains_key(&c) {
-                        self.dirty.insert(c);
-                    }
-                }
-            }
-        }
+        self.light_changed(p, old, b);
         self.mesh_queue_stale = true;
-        self.light_cache.retain(|e| !self.dirty.contains(&e.chunk));
         true
     }
 
