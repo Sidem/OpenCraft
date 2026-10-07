@@ -33,7 +33,7 @@ use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
 use crate::Game;
 
 /// The format of everything after the header. Bump on any change to what is written.
-pub const SAVE_VERSION: u32 = 38;
+pub const SAVE_VERSION: u32 = 39;
 /// The oldest format that still loads.
 const OLDEST_VERSION: u32 = 1;
 const MAGIC: &[u8] = b"OCW1";

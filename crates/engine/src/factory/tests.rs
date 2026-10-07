@@ -917,3 +917,68 @@ fn labs_take_violet_packs_and_a_violet_tech_uses_one_of_each_of_four() {
     assert_eq!([RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK].map(|p| lab.packs.count(p)), [0; 4], "one of each");
     assert!(lab.unit.is_some(), "the second unit started");
 }
+
+mod tools_on_belts {
+    use super::*;
+    use crate::bytes::{ByteReader, ByteWriter};
+    use crate::item::{IRON_INGOT, STEEL_PICKAXE, STONE_SHOVEL};
+
+    fn v(x: i32, y: i32, z: i32) -> IVec3 {
+        IVec3::new(x, y, z)
+    }
+
+    /// Box at the origin, three belts east, a box at the end.
+    fn line() -> Factory {
+        let mut f = Factory::default();
+        f.add_storage(v(0, 0, 0));
+        (1..=3).for_each(|x| f.add_belt(v(x, 0, 0), 1));
+        f.add_storage(v(4, 0, 0));
+        f
+    }
+
+    #[test]
+    fn a_worn_tool_rides_a_belt_as_one_piece_with_its_uses() {
+        let mut f = line();
+        f.stock(v(0, 0, 0), STONE_SHOVEL, 87);
+        f.stock(v(0, 0, 0), IRON_INGOT, 2);
+        let mut most_shovels = 0;
+        run(&mut f, 20.0, |f| {
+            let shovels = f.belts.iter().flat_map(|b| &b.items).filter(|it| it.item == STONE_SHOVEL);
+            most_shovels = most_shovels.max(shovels.count());
+        });
+        assert_eq!(most_shovels, 1, "one shovel on the belt, not 87");
+        assert_eq!(
+            (f.storage_count_at(v(4, 0, 0), STONE_SHOVEL), f.storage_count_at(v(0, 0, 0), STONE_SHOVEL)),
+            (87, 0)
+        );
+        assert_eq!(f.storage_count_at(v(4, 0, 0), IRON_INGOT), 2, "other items still go one at a time");
+    }
+
+    #[test]
+    fn a_tool_waits_on_the_belt_until_the_box_has_room_for_all_its_uses() {
+        let mut f = line();
+        f.stock(v(0, 0, 0), STEEL_PICKAXE, 1500);
+        // The far box is full of other things.
+        let Some(Slot::Storage(i)) = f.at.get(&v(4, 0, 0)).copied() else { unreachable!() };
+        f.storages[i as usize]
+            .buf
+            .slots
+            .iter_mut()
+            .for_each(|s| *s = crate::inventory::Stack { item: IRON_INGOT, count: 64 });
+        run(&mut f, 20.0, |_| {});
+        assert_eq!(f.storage_count_at(v(4, 0, 0), STEEL_PICKAXE), 0);
+        assert_eq!(f.belts.iter().flat_map(|b| &b.items).map(|it| it.n).sum::<u32>(), 1500, "nothing was lost");
+    }
+
+    #[test]
+    fn uses_on_a_belt_are_saved() {
+        let mut f = line();
+        f.stock(v(0, 0, 0), STONE_SHOVEL, 87);
+        run(&mut f, 1.5, |_| {});
+        let mut w = ByteWriter::default();
+        f.write_state(&mut w);
+        let back = Factory::read_state(&mut crate::world::World::new(1, 2), &mut ByteReader::new(&w.bytes)).unwrap();
+        let carried: u32 = back.belts.iter().flat_map(|b| &b.items).map(|it| it.n).sum();
+        assert_eq!(carried, 87);
+    }
+}

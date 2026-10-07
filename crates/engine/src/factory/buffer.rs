@@ -5,6 +5,7 @@
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::{add_to_slots, Stack};
 use crate::item::{stack_size, ItemId};
+use crate::tools;
 
 use super::belt::Belt;
 
@@ -25,6 +26,11 @@ impl Buffer {
     /// Whether one more `item` fits.
     pub fn can_accept(&self, item: ItemId) -> bool {
         self.slots.iter().any(|s| s.is_empty() || (s.item == item && s.count < stack_size(item)))
+    }
+
+    /// Whether `n` more `item` fit (a tool's uses all at once).
+    pub fn can_hold(&self, item: ItemId, n: u32) -> bool {
+        self.space_for(item) >= n
     }
 
     /// How many of `item` it holds.
@@ -99,16 +105,17 @@ impl Buffer {
         self.slots.iter().filter(|s| !s.is_empty()).copied().collect()
     }
 
-    /// Pushes one item from its last non-empty slot into the next belt in `outs` that accepts it,
-    /// round-robin from `next_out`. How boxes and processing machines feed belts leading away.
+    /// Pushes one item (a tool, with all its uses) from its last non-empty slot into the next belt in `outs` that
+    /// accepts it, round-robin from `next_out`. How boxes and processing machines feed belts leading away.
     pub fn feed(&mut self, outs: &[u32], next_out: &mut usize, belts: &mut [Belt]) {
         let Some(src) = self.slots.iter().rposition(|st| !st.is_empty()) else { return };
         let item = self.slots[src].item;
+        let lot = tools::lot(item, self.slots[src].count);
         let n = outs.len();
         for i in 0..n {
             let slot = (*next_out + i) % n;
-            if belts[outs[slot] as usize].accept(item, false, 0.0) {
-                self.take(src, 1);
+            if belts[outs[slot] as usize].accept(item, lot, false, 0.0) {
+                self.take(src, lot);
                 *next_out = (slot + 1) % n;
                 return;
             }

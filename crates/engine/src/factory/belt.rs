@@ -46,6 +46,8 @@ pub const BELT_HEIGHT: f32 = 0.18;
 #[derive(Clone, Copy, Debug)]
 pub struct BeltItem {
     pub item: ItemId,
+    /// 1, except a tool: its uses left (it rides as one piece, `tools::lot`).
+    pub n: u32,
     pub p: f32,
 }
 
@@ -95,14 +97,15 @@ impl Belt {
         self.items.iter().all(|it| (it.p - 0.5).abs() >= ITEM_SPACING)
     }
 
-    /// Accepts an item at the start (with `overflow` progress already travelled) or in the middle.
-    pub fn accept(&mut self, item: ItemId, mid: bool, overflow: f32) -> bool {
+    /// Accepts an item (`n` of it: 1, or a tool's uses) at the start (with `overflow` progress already travelled)
+    /// or in the middle.
+    pub fn accept(&mut self, item: ItemId, n: u32, mid: bool, overflow: f32) -> bool {
         if mid {
             if !self.mid_free() {
                 return false;
             }
             let i = self.items.iter().position(|it| it.p < 0.5).unwrap_or(self.items.len());
-            self.items.insert(i, BeltItem { item, p: 0.5 });
+            self.items.insert(i, BeltItem { item, n, p: 0.5 });
             return true;
         }
         let p = match self.items.last() {
@@ -110,7 +113,7 @@ impl Belt {
             Some(rear) => overflow.min(rear.p - ITEM_SPACING),
             None => overflow.min(END_STOP),
         };
-        self.items.push(BeltItem { item, p: p.max(0.0) });
+        self.items.push(BeltItem { item, n, p: p.max(0.0) });
         true
     }
 }
@@ -156,7 +159,7 @@ pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) 
                 }
             }
             Link::Machine(slot) => {
-                if sinks.can_accept(slot, front.item) {
+                if sinks.can_accept(slot, front.item, front.n) {
                     f32::INFINITY
                 } else {
                     1.0
@@ -171,7 +174,7 @@ pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) 
             if front.p < 1.0 {
                 break;
             }
-            if deliver(belts, sinks, out, front.item, front.p - 1.0) {
+            if deliver(belts, sinks, out, front.item, front.n, front.p - 1.0) {
                 belts[bi].items.remove(0);
             } else {
                 belts[bi].items[0].p = 1.0;
@@ -197,6 +200,7 @@ impl Machine for Belt {
         w.count(self.items.len());
         for it in &self.items {
             w.item(it.item);
+            w.u32(it.n);
             w.f32(it.p);
         }
     }
@@ -207,7 +211,10 @@ impl Machine for Belt {
         let tier = if r.version >= 9 { r.u8()? } else { 0 };
         let mut belt = Belt::new(pos, dir, shape, tier);
         for _ in 0..r.count()? {
-            belt.items.push(BeltItem { item: r.item()?, p: r.f32()? });
+            let item = r.item()?;
+            // Before version 39 a tool on a belt was one use per item.
+            let n = if r.version >= 39 { r.u32()? } else { 1 };
+            belt.items.push(BeltItem { item, n, p: r.f32()? });
         }
         (dir < 4 && (tier as usize) < BELT_TIERS.len()).then_some(belt)
     }
@@ -216,9 +223,9 @@ impl Machine for Belt {
     fn contents(&self) -> Vec<Stack> {
         let mut out: Vec<Stack> = Vec::new();
         for it in &self.items {
-            match out.iter_mut().find(|s| s.item == it.item && s.count < item::stack_size(it.item)) {
-                Some(s) => s.count += 1,
-                None => out.push(Stack { item: it.item, count: 1 }),
+            match out.iter_mut().find(|s| s.item == it.item && s.count + it.n <= item::stack_size(it.item)) {
+                Some(s) => s.count += it.n,
+                None => out.push(Stack { item: it.item, count: it.n }),
             }
         }
         out

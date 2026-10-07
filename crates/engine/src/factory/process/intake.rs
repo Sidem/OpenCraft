@@ -46,11 +46,6 @@ impl Processor {
         }
     }
 
-    /// Takes one `item`; false if it doesn't want it or it doesn't fit.
-    pub fn accept(&mut self, item: ItemId, unlocked: &[bool]) -> bool {
-        self.insert(item, 1, unlocked) == 1
-    }
-
     /// Puts up to `n` of `item` where it belongs; returns how many went in.
     pub fn insert(&mut self, item: ItemId, n: u32, unlocked: &[bool]) -> u32 {
         let put = n.min(self.room_for(item, unlocked));

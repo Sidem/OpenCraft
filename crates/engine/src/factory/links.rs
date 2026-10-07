@@ -96,14 +96,14 @@ pub(crate) struct Sinks<'a> {
 }
 
 impl Sinks<'_> {
-    /// Whether the sink at `slot` takes one `item` now.
-    pub(super) fn can_accept(&self, slot: Slot, item: ItemId) -> bool {
+    /// Whether the sink at `slot` takes `n` of `item` now (1 of anything, or all the uses of a tool).
+    pub(super) fn can_accept(&self, slot: Slot, item: ItemId, n: u32) -> bool {
         match slot {
-            Slot::Storage(i) => self.storages[i as usize].buf.can_accept(item),
-            Slot::Process(i) => self.processors[i as usize].room_for(item, self.unlocked) > 0,
+            Slot::Storage(i) => self.storages[i as usize].buf.can_hold(item, n),
+            Slot::Process(i) => self.processors[i as usize].room_for(item, self.unlocked) >= n,
             Slot::Router(i) => self.routers[i as usize].can_accept(),
-            Slot::Generator(i) => self.generators[i as usize].room_for(item) > 0,
-            Slot::Lab(i) => self.labs[i as usize].room_for(item) > 0,
+            Slot::Generator(i) => self.generators[i as usize].room_for(item) >= n,
+            Slot::Lab(i) => self.labs[i as usize].room_for(item) >= n,
             Slot::Belt(_)
             | Slot::Miner(_)
             | Slot::Pole(_)
@@ -114,12 +114,15 @@ impl Sinks<'_> {
         }
     }
 
-    /// Hands one `item` to the sink at `slot`; false if it doesn't take it.
-    pub(super) fn accept(&mut self, slot: Slot, item: ItemId) -> bool {
+    /// Hands `n` of `item` (1, or a tool's uses) to the sink at `slot`; false, and nothing taken, if it doesn't.
+    pub(super) fn accept(&mut self, slot: Slot, item: ItemId, n: u32) -> bool {
+        if !self.can_accept(slot, item, n) {
+            return false;
+        }
         match slot {
-            Slot::Storage(i) => self.storages[i as usize].buf.add(item, 1) == 0,
-            Slot::Process(i) => self.processors[i as usize].accept(item, self.unlocked),
-            Slot::Router(i) => self.routers[i as usize].accept(item),
+            Slot::Storage(i) => self.storages[i as usize].buf.add(item, n) == 0,
+            Slot::Process(i) => self.processors[i as usize].insert(item, n, self.unlocked) == n,
+            Slot::Router(i) => self.routers[i as usize].accept(item, n),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
             Slot::Belt(_)
@@ -134,11 +137,11 @@ impl Sinks<'_> {
 }
 
 /// Hands one item to a link. `overflow` is how far past the end of the source belt it already is.
-pub(super) fn deliver(belts: &mut [Belt], sinks: &mut Sinks, link: Link, item: ItemId, overflow: f32) -> bool {
+pub(super) fn deliver(belts: &mut [Belt], sinks: &mut Sinks, link: Link, item: ItemId, n: u32, overflow: f32) -> bool {
     match link {
         Link::None => false,
-        Link::Belt { belt, mid } => belts[belt as usize].accept(item, mid, overflow),
-        Link::Machine(slot) => sinks.accept(slot, item),
+        Link::Belt { belt, mid } => belts[belt as usize].accept(item, n, mid, overflow),
+        Link::Machine(slot) => sinks.accept(slot, item, n),
     }
 }
 

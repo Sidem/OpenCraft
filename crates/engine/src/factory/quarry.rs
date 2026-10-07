@@ -228,7 +228,7 @@ impl Quarry {
         let (item, n) = (self.out.slots[src].item, self.outs.len());
         for i in 0..n {
             let slot = (self.next_out + i) % n;
-            if deliver(belts, sinks, self.outs[slot], item, 0.0) {
+            if deliver(belts, sinks, self.outs[slot], item, 1, 0.0) {
                 self.out.take(src, 1);
                 self.next_out = (slot + 1) % n;
                 return;

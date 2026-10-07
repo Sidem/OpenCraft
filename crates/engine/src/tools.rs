@@ -86,6 +86,16 @@ pub fn tool(item: ItemId) -> Option<&'static ToolDef> {
     TOOLS.iter().find(|t| t.item == item)
 }
 
+/// How many of a `count` stack of `item` move as one piece: a tool's whole count (it is wear, so a worn shovel
+/// is one shovel, not 87), one for anything else. Belts, routers and the recycler move things by this.
+pub fn lot(item: ItemId, count: u32) -> u32 {
+    if tool(item).is_some() {
+        count
+    } else {
+        count.min(1)
+    }
+}
+
 /// The tool `item` if it is the right one for breaking `block`.
 pub fn tool_for(item: ItemId, block: BlockId) -> Option<&'static ToolDef> {
     tool(item).filter(|t| Some(t.kind) == kind_for(block))

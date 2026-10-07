@@ -133,6 +133,27 @@ fn halves_add_up_and_a_tool_goes_in_one_piece() {
 }
 
 #[test]
+fn a_worn_tool_on_a_belt_is_one_piece_and_pays_once() {
+    let mut f = rig(true);
+    let (cell, side) = RECYCLER_SPEC.footprint.faces(IVec3::ZERO, 0, Role::In)[0];
+    let belt = cell + crate::factory::DIRS[side as usize];
+    let from = belt + crate::factory::DIRS[side as usize];
+    f.add_storage(from);
+    f.add_belt(belt, (side + 2) % 4);
+    f.stock(from, STEEL_PICKAXE, 87);
+    let mut most = 0;
+    let mut world = World::new(1, 2);
+    let mut events = Vec::new();
+    for tick in 0..10 * crate::TICK_RATE {
+        f.update(&mut world, tick as u64, &mut events);
+        most = most.max(f.belts[0].items.len());
+    }
+    assert_eq!(most, 1, "87 uses ride the belt as one pickaxe ");
+    let paid = recycler(&f).out.count(COIN) + recycler(&f).owed / crate::recipes::recycling::MILLI;
+    assert_eq!((f.storage_count_at(from, STEEL_PICKAXE), paid), (0, 87 * millicoins(STEEL_PICKAXE) / 1000));
+}
+
+#[test]
 fn it_is_unlocked_after_blue_science() {
     let tech = TECHS.iter().find(|t| t.name == "Recycling").unwrap();
     let blue = TECHS.iter().position(|t| t.name == "Blue Science").unwrap() as u8;

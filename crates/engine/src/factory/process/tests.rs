@@ -17,7 +17,7 @@ use crate::world::World;
 /// Test-only: taking items as a fresh world's research allows.
 impl Processor {
     pub(crate) fn accept_fresh(&mut self, item: ItemId) -> bool {
-        self.accept(item, &Research::default().machine_recipes_unlocked())
+        self.insert(item, 1, &Research::default().machine_recipes_unlocked()) == 1
     }
 
     pub(crate) fn can_accept_fresh(&self, item: ItemId) -> bool {

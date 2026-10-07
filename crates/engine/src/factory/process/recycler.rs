@@ -14,8 +14,9 @@
 
 use crate::block::{tex, RECYCLER};
 use crate::inventory::Stack;
-use crate::item::{stack_size, COIN, COIN_STACK, MAX_STACK};
+use crate::item::{COIN, COIN_STACK};
 use crate::recipes::recycling::{millicoins, MILLI};
+use crate::tools;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
@@ -93,7 +94,7 @@ impl Processor {
                 self.progress = 0;
                 let Stack { item, count } = self.input.slots[slot];
                 // A tool's count is its uses left, not a pile: it goes in one piece.
-                let n = if stack_size(item) > MAX_STACK { count } else { 1 };
+                let n = tools::lot(item, count);
                 self.owed += millicoins(item) * n;
                 self.input.take(slot, n);
             }

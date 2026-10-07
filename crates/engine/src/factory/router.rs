@@ -29,6 +29,8 @@ pub struct Router {
     pub filter: ItemId,
     /// The item passing through (`NONE`: empty).
     pub held: ItemId,
+    /// How many of it: 1, or a tool's uses.
+    pub held_n: u32,
     /// Belts leading away: front, left, right (derived, from `relink`).
     pub outs: [Option<u32>; 3],
     /// The output to try first (round robin).
@@ -39,7 +41,7 @@ impl Router {
     pub fn new(pos: IVec3, dir: u8, is_filter: bool) -> Router {
         let none = ItemId::NONE;
         let outs = [None; 3];
-        Router { pos, dir: dir % 4, is_filter, filter: none, held: none, outs, next_out: 0 }
+        Router { pos, dir: dir % 4, is_filter, filter: none, held: none, held_n: 0, outs, next_out: 0 }
     }
 
     /// The horizontal directions of its outputs: front, left, right.
@@ -51,10 +53,10 @@ impl Router {
         self.held == ItemId::NONE
     }
 
-    pub fn accept(&mut self, item: ItemId) -> bool {
+    pub fn accept(&mut self, item: ItemId, n: u32) -> bool {
         let free = self.can_accept();
         if free {
-            self.held = item;
+            (self.held, self.held_n) = (item, n);
         }
         free
     }
@@ -68,8 +70,8 @@ impl Router {
         for k in 0..3 {
             let slot = (self.next_out as usize + k) % 3;
             let Some(b) = self.outs[slot].filter(|_| allowed(slot)) else { continue };
-            if belts[b as usize].accept(self.held, false, 0.0) {
-                self.held = ItemId::NONE;
+            if belts[b as usize].accept(self.held, self.held_n, false, 0.0) {
+                (self.held, self.held_n) = (ItemId::NONE, 0);
                 self.next_out = ((slot + 1) % 3) as u8;
                 return;
             }
@@ -90,7 +92,7 @@ impl Router {
             choosable: false,
             progress: 0,
             fire: 0,
-            slots: vec![(ROLE_INPUT, Stack { item: self.held, count: (self.held != ItemId::NONE) as u32 })],
+            slots: vec![(ROLE_INPUT, Stack { item: self.held, count: self.held_n })],
             status: self.status_text(),
             filter: Some(self.filter),
         }
@@ -109,13 +111,17 @@ impl Machine for Router {
         w.bool(self.is_filter);
         w.item(self.filter);
         w.item(self.held);
+        w.u32(self.held_n);
         w.u8(self.next_out);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Router> {
         let (pos, dir, is_filter) = (r.ivec3()?, r.u8()?, r.bool()?);
         let mut m = Router::new(pos, dir, is_filter);
-        (m.filter, m.held, m.next_out) = (r.item()?, r.item()?, r.u8()?);
+        (m.filter, m.held) = (r.item()?, r.item()?);
+        // Before version 39 a router held a single item (a tool: one use).
+        m.held_n = if r.version >= 39 { r.u32()? } else { (m.held != ItemId::NONE) as u32 };
+        m.next_out = r.u8()?;
         (dir < 4 && m.next_out < 3).then_some(m)
     }
 
@@ -123,7 +129,7 @@ impl Machine for Router {
         if self.held == ItemId::NONE {
             Vec::new()
         } else {
-            vec![Stack { item: self.held, count: 1 }]
+            vec![Stack { item: self.held, count: self.held_n }]
         }
     }
 

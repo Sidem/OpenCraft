@@ -192,7 +192,7 @@ impl Miner {
         let n = self.outs.len();
         for i in 0..n {
             let slot = (self.next_out + i) % n;
-            if deliver(belts, sinks, self.outs[slot], self.ore, 0.0) {
+            if deliver(belts, sinks, self.outs[slot], self.ore, 1, 0.0) {
                 self.out.take(0, 1);
                 self.next_out = (slot + 1) % n;
                 break;
