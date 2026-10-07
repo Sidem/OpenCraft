@@ -328,6 +328,13 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(STEEL_INGOT, 1), (b(SLAG), 1)],
         seconds: 4.0,
     },
+    // Washed iron, the same two for one (Ore Washing).
+    MachineRecipe {
+        category: Blasting,
+        inputs: &[(WASHED_IRON, 2), (b(COAL_ORE), 1), (QUICKLIME, 1)],
+        outputs: &[(STEEL_INGOT, 1), (b(SLAG), 1)],
+        seconds: 4.0,
+    },
 ];
 
 /// Units of water a batch of a recipe takes from the machine's water inlet, by recipe index (machines that take

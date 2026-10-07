@@ -71,7 +71,13 @@ impl Processor {
             Pick::Chosen => self.recipe.filter(|&i| self.spec.recipe(i).is_some()).ok_or(Status::NoRecipe),
             Pick::ByInput => {
                 let held = self.input.slots.iter().find(|s| !s.is_empty()).ok_or(Status::NoInput)?;
-                self.spec.recipe_using(held.item, unlocked).ok_or(Status::NoInput)
+                // A recipe whose inputs are all here wins, so a furnace holding coal and lime but crushed
+                // (not raw) iron still starts; else the first recipe using what it holds (and says what is missing).
+                let ready = |r: &MachineRecipe| r.inputs.iter().all(|&(item, n)| self.input.count(item) >= n);
+                let startable = (self.input.slots.iter())
+                    .filter(|s| !s.is_empty())
+                    .find_map(|s| self.spec.recipe_using_if(s.item, unlocked, ready));
+                startable.or_else(|| self.spec.recipe_using(held.item, unlocked)).ok_or(Status::NoInput)
             }
             Pick::Store | Pick::Hangar | Pick::Pump | Pick::Load | Pick::Unload | Pick::Research | Pick::Recycle => {
                 Err(Status::NoInput)

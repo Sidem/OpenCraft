@@ -9,7 +9,7 @@ use crate::factory::tiers::FAMILIES;
 use crate::factory::upgrades::Step;
 use crate::item::{
     ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CIRCUIT, COPPER_WIRE, CRUSHED_BAUXITE, CRUSHED_IRON, GEAR, GREEN_KIT,
-    IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT,
+    IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME, SILICON, STEEL_INGOT, WASHED_IRON,
 };
 use crate::research::{Research, TECHS};
 use crate::world::World;
@@ -187,8 +187,8 @@ fn feed(f: &mut Factory, from: IVec3, dir: u8, item: ItemId, n: u32) {
 /// belt and box at its front (steel).
 fn blast_furnace(ore: u32, coal: u32, lime: u32) -> Factory {
     let mut f = Factory::default();
+    research_done(&mut f, "Steelmaking");
     f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
-    assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(STEEL_INGOT))).is_some());
     feed(&mut f, v(0, 0, -3), SOUTH, IRON_ORE.into(), ore);
     feed(&mut f, v(-2, 0, 0), EAST, COAL_ORE.into(), coal);
     feed(&mut f, v(-2, 0, -1), EAST, QUICKLIME, lime);
@@ -209,19 +209,32 @@ fn a_blast_furnace_makes_steel_at_its_front_and_slag_at_its_side() {
 }
 
 #[test]
-fn a_blast_furnace_can_take_crushed_iron_two_for_two_ore() {
+fn a_blast_furnace_takes_crushed_iron_or_ore_without_being_told_which() {
     let mut f = Factory::default();
-    research_done(&mut f, "Ore Crushing");
     f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
-    assert_eq!(f.insert(IVec3::ZERO, CRUSHED_IRON, 2), 0, "no recipe chosen yet");
-    assert!(f.set_recipe(IVec3::ZERO, Some(crate::recipes::BLAST_CRUSHED_RECIPE)).is_some());
-    assert_eq!(f.insert(IVec3::ZERO, IRON_ORE.into(), 2), 0, "the crushed recipe takes no raw ore");
+    research_done(&mut f, "Steelmaking");
+    assert_eq!(f.insert(IVec3::ZERO, CRUSHED_IRON, 2), 0, "not before Ore Crushing");
+    research_done(&mut f, "Ore Crushing");
     for (item, n) in [(CRUSHED_IRON, 4), (COAL_ORE.into(), 2), (QUICKLIME, 2)] {
         assert_eq!(f.insert(IVec3::ZERO, item, n), n);
     }
     run(&mut f, 8.05, |_| {});
     let furnace = &f.processors[0];
     assert_eq!((furnace.out.count(STEEL_INGOT), furnace.side.count(SLAG.into())), (2, 2));
+    // Coal sitting in front of the iron in its slots doesn't make it wait for raw ore, and ore works as before.
+    for (item, n) in [(COAL_ORE.into(), 1), (QUICKLIME, 1), (IRON_ORE.into(), 2)] {
+        f.processors[0].input.add(item, n);
+    }
+    run(&mut f, 4.05, |_| {});
+    assert_eq!(f.processors[0].out.count(STEEL_INGOT), 3);
+    // Washed iron, after Ore Washing.
+    for (item, n) in [(COAL_ORE.into(), 1), (QUICKLIME, 1), (WASHED_IRON, 2)] {
+        assert_eq!(f.insert(IVec3::ZERO, item, n), if item == WASHED_IRON { 0 } else { n }, "not before Ore Washing");
+    }
+    research_done(&mut f, "Ore Washing");
+    assert_eq!(f.insert(IVec3::ZERO, WASHED_IRON, 2), 2);
+    run(&mut f, 4.05, |_| {});
+    assert_eq!(f.processors[0].out.count(STEEL_INGOT), 4);
 }
 
 #[test]
@@ -322,7 +335,7 @@ fn assemblers_and_blast_furnaces_work_faster_at_each_tier() {
     let steel = |tier: u8| {
         let mut f = Factory::default();
         f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, tier);
-        f.set_recipe(IVec3::ZERO, Some(recipe_for(STEEL_INGOT)));
+        research_done(&mut f, "Steelmaking");
         for (item, n) in [(IRON_ORE.into(), 8), (COAL_ORE.into(), 4), (QUICKLIME, 4)] {
             f.insert(IVec3::ZERO, item, n);
         }

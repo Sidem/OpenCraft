@@ -43,3 +43,5 @@ pub const ENRICH_RECIPE: u16 = 56;
 pub const GOLD_RECIPES: [u16; 2] = [57, 58];
 /// The blast furnace's steel from crushed iron (Ore Crushing).
 pub const BLAST_CRUSHED_RECIPE: u16 = 59;
+/// The blast furnace's steel from washed iron (Ore Washing).
+pub const BLAST_WASHED_RECIPE: u16 = 60;

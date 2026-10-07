@@ -212,7 +212,7 @@ pub const SPECS: &[ProcessSpec] = &[
     ProcessSpec {
         block: BLAST_FURNACE,
         categories: &[Category::Blasting],
-        pick: Pick::Chosen,
+        pick: Pick::ByInput,
         buffers: [3, 0, 1],
         side: 1,
         tiers: &[
@@ -376,10 +376,16 @@ impl ProcessSpec {
 
     /// The first recipe it makes that uses `item` and `unlocked` allows (by recipe index).
     pub fn recipe_using(&self, item: ItemId, unlocked: &[bool]) -> Option<u16> {
+        self.recipe_using_if(item, unlocked, |_| true)
+    }
+
+    /// Like `recipe_using`, among only the recipes `ok` accepts.
+    pub fn recipe_using_if(&self, item: ItemId, unlocked: &[bool], ok: impl Fn(&MachineRecipe) -> bool) -> Option<u16> {
         let fits = |(i, r): &(usize, &MachineRecipe)| {
             self.categories.contains(&r.category)
                 && unlocked.get(*i) == Some(&true)
                 && r.inputs.iter().any(|x| x.0 == item)
+                && ok(r)
         };
         MACHINE_RECIPES.iter().enumerate().find(fits).map(|(i, _)| i as u16)
     }

@@ -8,8 +8,8 @@ use crate::block::{
 };
 use crate::item::{BLUE_PACK, EMPTY_CANISTER, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{
-    ACID_RECIPE, CANISTER_MACHINE_RECIPE, CRACK_RECIPE, DISTIL_RECIPE, ELECTROLYSE_RECIPE, ENRICH_RECIPE, GOLD_RECIPES,
-    LUBRICANT_RECIPE, PLASTIC_RECIPE, WASH_RECIPES,
+    ACID_RECIPE, BLAST_WASHED_RECIPE, CANISTER_MACHINE_RECIPE, CRACK_RECIPE, DISTIL_RECIPE, ELECTROLYSE_RECIPE,
+    ENRICH_RECIPE, GOLD_RECIPES, LUBRICANT_RECIPE, PLASTIC_RECIPE, WASH_RECIPES,
 };
 
 use super::{r, Tech, Unlock};
@@ -85,7 +85,7 @@ pub const CHEMISTRY: [Tech; 13] = [
         name: "Ore Washing",
         blurb:
             "The washer (60 kW, a water pipe) cleans crushed iron, copper or bauxite: 3 crushed ore and a unit of \
-                water make 4 washed ore and a tailings block, which smelt one for one. Raw ore does not fit, so the \
+                water make 4 washed ore and a tailings block, which smelt one for one (blast furnaces take 2 washed iron for steel). Raw ore does not fit, so the \
                 crusher stays first: 2.0 ingots an ore washed against 1.5 crushed. The crusher grinds tailings to sand.",
         needs: &[6, 15, 36],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
@@ -100,6 +100,7 @@ pub const CHEMISTRY: [Tech; 13] = [
             Unlock::MachineRecipe(WASH_RECIPES[4]),
             Unlock::MachineRecipe(WASH_RECIPES[5]),
             Unlock::MachineRecipe(WASH_RECIPES[6]),
+            Unlock::MachineRecipe(BLAST_WASHED_RECIPE),
         ],
     },
     Tech {
