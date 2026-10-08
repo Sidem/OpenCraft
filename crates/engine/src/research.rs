@@ -82,11 +82,15 @@ pub struct Research {
     pub current: Option<u8>,
     /// Units done, by tech index.
     progress: [u32; TECHS.len()],
+    /// Which machine recipes are unlocked (derived from `progress` by `refresh`, never saved).
+    unlocked: [bool; MACHINE_RECIPES.len()],
 }
 
 impl Default for Research {
     fn default() -> Self {
-        Research { current: None, progress: [0; TECHS.len()] }
+        let mut res = Research { current: None, progress: [0; TECHS.len()], unlocked: [false; MACHINE_RECIPES.len()] };
+        res.refresh();
+        res
     }
 }
 
@@ -136,19 +140,32 @@ impl Research {
             *p = t.units;
         }
         self.current = None;
+        self.refresh();
     }
 
-    /// Which machine recipes are unlocked, by `MACHINE_RECIPES` index (processors ask per item).
-    pub fn machine_recipes_unlocked(&self) -> Vec<bool> {
-        (0..MACHINE_RECIPES.len() as u16).map(|i| self.has(Unlock::MachineRecipe(i))).collect()
+    /// Which machine recipes are unlocked, by `MACHINE_RECIPES` index (processors ask per item). Cached (it
+    /// changes only when a tech finishes) and returned as a copy, so a tick works from one snapshot even
+    /// while labs finish techs.
+    pub fn machine_recipes_unlocked(&self) -> [bool; MACHINE_RECIPES.len()] {
+        self.unlocked
+    }
+
+    /// Recomputes `unlocked` after `progress` changed.
+    fn refresh(&mut self) {
+        for i in 0..MACHINE_RECIPES.len() {
+            self.unlocked[i] = self.has(Unlock::MachineRecipe(i as u16));
+        }
     }
 
     /// Records a finished unit of `tech`; when that finishes the tech, labs stop working on it.
     pub fn add_unit(&mut self, tech: u8) {
         let i = tech as usize;
         self.progress[i] = (self.progress[i] + 1).min(TECHS[i].units);
-        if self.current == Some(tech) && self.state(tech) == TechState::Done {
-            self.current = None;
+        if self.state(tech) == TechState::Done {
+            self.refresh();
+            if self.current == Some(tech) {
+                self.current = None;
+            }
         }
     }
 
@@ -169,6 +186,7 @@ impl Research {
         for (p, t) in res.progress.iter_mut().zip(&TECHS[..n]) {
             *p = r.u32()?.min(t.units);
         }
+        res.refresh();
         if current != u8::MAX {
             res.set_current(Some(current));
         }

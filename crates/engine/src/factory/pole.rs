@@ -126,8 +126,9 @@ impl Machine for Pole {
             return "Power pole".to_string();
         }
         let me = f.poles.iter().position(|p| p.pos == self.pos).map(|i| i as u32);
+        let label = me.map_or_else(String::new, |i| format!("{}\n", f.power.grid_label(i)));
         if self.is_cable() {
-            return format!("{}\nPower cable: joins the grid of a pole in reach", f.power.grid_line(me));
+            return format!("{label}{}\nPower cable: joins the grid of a pole in reach", f.power.grid_line(me));
         }
         let grid = me.map(|i| f.power.pole_grid[i as usize]);
         let on = |p: &Option<u32>| p.is_some_and(|p| Some(f.power.pole_grid[p as usize]) == grid);
@@ -137,8 +138,8 @@ impl Machine for Pole {
         let machines = machines.chain(&f.power.pipe_pole).chain(&f.power.quarry_pole).filter(|p| on(p)).count();
         let PoleTier { link, reach, slots } = *self.stats();
         format!(
-            "{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} connections used: \
-             poles within {link} blocks, machines within {reach}",
+            "{label}{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} connections \
+             used: poles within {link} blocks, machines within {reach}",
             f.power.grid_line(me),
             f.slots_used(self.pos)
         )
@@ -187,7 +188,7 @@ pub fn preview_pole(out: &mut Vec<f32>, tier: u8, rel: Vec3) {
 
 /// A wire between two camera-relative points, drawn like the placed ones (the pole tool's preview).
 pub fn preview_wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
-    super::power::wire(out, a, b);
+    super::power::wire(out, a, b, tex::GRID_FIRST);
 }
 
 #[cfg(test)]

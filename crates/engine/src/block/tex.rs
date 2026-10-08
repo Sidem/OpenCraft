@@ -278,7 +278,11 @@ pub const WAFER: u16 = 247;
 pub const ACCELERATOR: u16 = 248;
 pub const FAB_SIDE: u16 = 249;
 pub const FAB_TOP: u16 = 250;
-pub const COUNT: usize = 251;
+/// Solid accent tiles of the power grids' colours (`factory/grid_colour.rs`): `GRID_COLOURS` layers from `GRID_FIRST`.
+pub const GRID_FIRST: u16 = 251;
+pub const GRID_COLOURS: usize = 6;
+pub const GRID_LAST: u16 = GRID_FIRST + GRID_COLOURS as u16 - 1;
+pub const COUNT: usize = 257;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

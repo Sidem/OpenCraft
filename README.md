@@ -316,7 +316,7 @@ size.
   by belt, by a miner beside it or by hand, into stored energy and gives up to 60 kW, only as much as its
   grid draws, so fuel lasts longer under a light load. Power poles connect only what you wire to them, and
   each wire takes one of a pole's slots (Mk1 4, Mk2 8, Mk3 12, Mk4 16): a pole wires to poles within 10
-  blocks and to generators and machines within 5 (taller poles reach further; you see the wires).
+  blocks and to generators and machines within 5 (taller poles reach further; you see the wires). **Grid colours:** every grid wears one accent colour on its wires, pole collars and cables. The biggest grid (most poles) is the main grid and is always blue; any other, separate grid is orange, pink, green, yellow or red, so a pole in a different colour is not on the main grid. Wire two grids together and both turn blue; the pole readout names its grid.
   **Placing:** with a pole in hand, right-click puts it where you aim, if that is within reach of the last
   pole (further off, at the widest spacing towards the aim); hold Shift to snap to the widest spacing along
   your view, and hold Shift and right-click while walking to lay a line. A new pole wires itself to the

@@ -20,7 +20,6 @@
 
 use rustc_hash::FxHashSet;
 
-use crate::block::tex;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::fuel_energy;
 use crate::research::Research;
@@ -47,6 +46,8 @@ pub const FULL_SPEED: u32 = 1000;
 pub(crate) struct Power {
     /// The grid of each pole.
     pub pole_grid: Vec<u32>,
+    /// The accent colour (`grid_colour::PALETTE` index) of each grid.
+    pub grid_colour: Vec<u8>,
     /// Pole pairs that are wired together (lower index first).
     pub wires: Vec<(u32, u32)>,
     /// The pole (or cable) each generator, miner, electric processor and lab is on, if it is wired.
@@ -109,6 +110,7 @@ impl Power {
         let wired = |pos: IVec3| hooked.by_target.get(&pos).copied().filter(|_| live(&pos));
         let hang = |pos: IVec3| wired(pos).or_else(|| nearest_of(poles, pos, true).filter(|_| live(&pos)));
         Power {
+            grid_colour: super::grid_colour::assign(&pole_grid),
             pole_grid,
             wires,
             gen_pole: gens.iter().map(|g| hang(g.pos)).collect(),
@@ -243,16 +245,17 @@ impl Factory {
             let p = &self.poles[i as usize];
             top(p.pos, if p.is_cable() { 0.5 } else { 0.92 })
         };
-        let mut span = |a: Vec3, b: Vec3| {
+        // A wire wears the colour of the grid it hangs from.
+        let mut span = |a: Vec3, b: Vec3, from: u32| {
             let mid = (a + b) * 0.5 - eye;
             if mid.x * mid.x + mid.y * mid.y + mid.z * mid.z <= range * range {
-                wire(out, a - eye, b - eye);
+                wire(out, a - eye, b - eye, self.power.pole_layer(from));
             }
         };
         // Cables touching each other need no wire: their models meet.
         let bare = |i: u32| self.poles[i as usize].is_cable();
         for &(i, j) in self.power.wires.iter().filter(|&&(i, j)| !(bare(i) && bare(j))) {
-            span(pole(i), pole(j));
+            span(pole(i), pole(j), i);
         }
         // A multi-block processor's wire goes to its cell nearest the pole.
         let hook = |(p, pole): (&Processor, &Option<u32>)| {
@@ -270,7 +273,7 @@ impl Factory {
         for (poles, positions) in hookups {
             for (p, pos) in poles.iter().zip(positions) {
                 if let Some(p) = *p {
-                    span(pole(p), top(pos, 0.7));
+                    span(pole(p), top(pos, 0.7), p);
                 }
             }
         }
@@ -286,8 +289,8 @@ fn root(parent: &mut [u32], mut i: u32) -> u32 {
     i
 }
 
-/// A wire from `a` to `b` (camera-relative) as short flat segments that sag in the middle.
-pub(super) fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
+/// A wire from `a` to `b` (camera-relative) as short flat segments that sag in the middle, drawn with texture `layer`.
+pub(super) fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3, layer: u16) {
     let d = b - a;
     let len = (d.x * d.x + d.y * d.y + d.z * d.z).sqrt();
     let n = ((len * 2.0).ceil() as usize).max(1);
@@ -296,7 +299,7 @@ pub(super) fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
     for i in 0..n {
         let t = (i as f64 + 0.5) / n as f64;
         let p = a + d * t - Vec3::new(0.0, sag * 4.0 * t * (1.0 - t), 0.0);
-        let c = [tex::BELT_TOP; 3];
+        let c = [layer; 3];
         push_box(out, p, yaw, [0.035, 0.035, (len / n as f64) as f32 + 0.02], 0.0, c, false);
     }
 }

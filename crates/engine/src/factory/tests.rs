@@ -1,3 +1,5 @@
+mod bench;
+
 use super::belt::{END_STOP, ITEM_SPACING};
 use super::describe::fmt_duration;
 use super::links::Link;

@@ -19,6 +19,7 @@ mod compute;
 mod electronics;
 mod gear;
 mod geology;
+mod grid;
 mod heavy;
 mod hoist;
 mod items;
@@ -194,6 +195,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::FUEL_CELL..=tex::REACTOR_TOP => nuclear::pixel(layer, x, y),
         tex::COIN..=tex::RECYCLER_TOP => recycling::pixel(layer, x, y),
         tex::PURE_WATER_CANISTER..=tex::FAB_TOP => compute::pixel(layer, x, y),
+        tex::GRID_FIRST..=tex::GRID_LAST => grid::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }
