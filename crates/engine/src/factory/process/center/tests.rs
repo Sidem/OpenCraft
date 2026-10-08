@@ -97,7 +97,7 @@ fn tiers_are_twice_a_labs_and_the_lab_rule_follows_the_packs() {
     // Only the techs that use a gold pack, past the lab's slots, need a center.
     let centered: Vec<&str> =
         (0..TECHS.len() as u8).filter(|&t| needs_center(t)).map(|t| TECHS[t as usize].name).collect();
-    assert_eq!(centered, ["Mk5 Machines", "Wafers", "Accelerators"]);
+    assert_eq!(centered, ["Mk5 Machines", "Wafers", "Accelerators", "Data Network"]);
 }
 
 #[test]

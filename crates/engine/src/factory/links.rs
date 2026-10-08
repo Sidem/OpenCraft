@@ -10,6 +10,7 @@ use crate::math::IVec3;
 
 use super::belt::Belt;
 use super::belt_shape::{derive_slopes, Shape};
+use super::fibre::Data;
 use super::generator::Generator;
 use super::lab::Lab;
 use super::power::Power;
@@ -49,6 +50,7 @@ pub(crate) enum Slot {
     Quarry(u32),
     Sensor(u32),
     Rail(u32),
+    Node(u32),
 }
 
 impl Slot {
@@ -62,7 +64,8 @@ impl Slot {
             | Slot::Pipe(_)
             | Slot::Quarry(_)
             | Slot::Sensor(_)
-            | Slot::Rail(_) => false,
+            | Slot::Rail(_)
+            | Slot::Node(_) => false,
         }
     }
 
@@ -80,6 +83,7 @@ impl Slot {
             Slot::Quarry(_) => Kind::Quarry,
             Slot::Sensor(_) => Kind::Sensor,
             Slot::Rail(_) => Kind::Rail,
+            Slot::Node(_) => Kind::Node,
         }
     }
 }
@@ -110,7 +114,8 @@ impl Sinks<'_> {
             | Slot::Pipe(_)
             | Slot::Quarry(_)
             | Slot::Sensor(_)
-            | Slot::Rail(_) => false,
+            | Slot::Rail(_)
+            | Slot::Node(_) => false,
         }
     }
 
@@ -131,7 +136,8 @@ impl Sinks<'_> {
             | Slot::Pipe(_)
             | Slot::Quarry(_)
             | Slot::Sensor(_)
-            | Slot::Rail(_) => false,
+            | Slot::Rail(_)
+            | Slot::Node(_) => false,
         }
     }
 }
@@ -318,6 +324,7 @@ impl Factory {
         let (poles, gens, miners, labs) = (&self.poles, &self.generators, &self.miners, &self.labs);
         let (processors, pipework) = (&self.processors, &self.pipework);
         self.power = Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries);
+        self.data = Data::rebuild(&self.nodes, &self.processors);
         self.link_pipework();
         self.link_rails();
         process::link_steam(&mut self.processors, &self.at, &mut self.pipework);

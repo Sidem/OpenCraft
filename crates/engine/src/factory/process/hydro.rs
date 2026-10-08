@@ -45,6 +45,7 @@ pub const WHEEL_SPEC: ProcessSpec = ProcessSpec {
     products: "power",
     waiting: "Idle",
     map_colour: 0x3d78b8,
+    compute: 0,
     parts: &WHEEL_PARTS,
 };
 

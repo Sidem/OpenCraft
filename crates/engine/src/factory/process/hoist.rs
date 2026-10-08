@@ -37,6 +37,7 @@ pub const WINCH_SPEC: ProcessSpec = ProcessSpec {
     products: "riders",
     waiting: "Idle",
     map_colour: 0xe2b428,
+    compute: 0,
     parts: &WINCH_PARTS,
 };
 

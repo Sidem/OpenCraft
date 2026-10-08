@@ -26,11 +26,13 @@ mod buffer;
 mod cable;
 mod describe;
 pub mod efficiency;
+mod fibre;
 pub mod footprint;
 mod generator;
 pub mod grid_colour;
 mod lab;
 mod links;
+mod machine;
 mod miner;
 mod panel;
 mod pipes;
@@ -58,21 +60,24 @@ mod wiring;
 use rustc_hash::FxHashMap;
 
 use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2, POLE};
-use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
 use crate::item::ItemId;
-use crate::math::{IVec3, Vec3};
+use crate::math::IVec3;
+#[cfg(test)]
+use crate::math::Vec3;
 use crate::research::Research;
 use crate::sim::SimEvent;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
 
 use belt::{belt_step, Belt};
+use fibre::{Data, Node};
 use generator::Generator;
 use lab::{step_labs, Lab};
 use links::{Sinks, Slot};
+use machine::{add_to, swap_out, Machine};
 use miner::Miner;
 use pipes::Pipework;
 use pole::Pole;
@@ -130,25 +135,6 @@ pub fn face_of(v: IVec3) -> Option<u8> {
 use table::MACHINES;
 pub use table::{machine, Kind};
 
-/// What every machine kind provides. Static dispatch only: callers `match` on `Slot` or loop over
-/// one kind's `Vec`.
-trait Machine: Sized {
-    fn pos(&self) -> IVec3;
-    /// Every cell it occupies, `pos` first: one, except for multi-block processors (`footprint/`).
-    fn cells(&self) -> Vec<IVec3> {
-        vec![self.pos()]
-    }
-    /// Its core state (derived data such as links is left out).
-    fn write_state(&self, w: &mut ByteWriter);
-    fn read_state(r: &mut ByteReader) -> Option<Self>;
-    /// Everything it holds or carries, dropped when it is removed.
-    fn contents(&self) -> Vec<Stack>;
-    /// Readout lines for the HUD ("" for nothing to say).
-    fn describe(&self, f: &Factory) -> String;
-    /// Box instances for its model; `rel` is its cell centre relative to the camera.
-    fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64);
-}
-
 #[derive(Default)]
 pub struct Factory {
     belts: Vec<Belt>,
@@ -163,6 +149,8 @@ pub struct Factory {
     quarries: Vec<Quarry>,
     sensors: Vec<Sensor>,
     rails: Vec<Rail>,
+    /// The data grid's fibre nodes, saved (`fibre.rs`).
+    nodes: Vec<Node>,
     /// The track between rail nodes, saved (`rail.rs`).
     tracks: Vec<Track>,
     /// The locomotives on the track, saved (`trains.rs`).
@@ -174,6 +162,8 @@ pub struct Factory {
     pub(crate) by_hand: bool,
     /// Grids and last tick's supply and demand (derived, see `power.rs`).
     power: Power,
+    /// The data grids and last tick's compute (derived, see `fibre.rs`).
+    data: Data,
     at: FxHashMap<IVec3, Slot>,
     /// Belt indices, downstream first.
     order: Vec<u32>,
@@ -203,6 +193,7 @@ impl Factory {
             Kind::Quarry => self.quarries.len(),
             Kind::Sensor => self.sensors.len(),
             Kind::Rail => self.rails.len(),
+            Kind::Node => self.nodes.len(),
         }
     }
 
@@ -244,6 +235,7 @@ impl Factory {
             Kind::Quarry => add_to(&mut self.quarries, Quarry::new(pos, facing), at, Slot::Quarry),
             Kind::Sensor => add_to(&mut self.sensors, Sensor::new(pos, facing), at, Slot::Sensor),
             Kind::Rail => add_to(&mut self.rails, Rail::new(pos, facing), at, Slot::Rail),
+            Kind::Node => add_to(&mut self.nodes, Node { pos }, at, Slot::Node),
         }
         if tier > 0 {
             self.set_tier(pos, tier);
@@ -295,6 +287,7 @@ impl Factory {
             Slot::Quarry(i) => swap_out(&mut self.quarries, i, at, Slot::Quarry),
             Slot::Sensor(i) => swap_out(&mut self.sensors, i, at, Slot::Sensor),
             Slot::Rail(i) => swap_out(&mut self.rails, i, at, Slot::Rail),
+            Slot::Node(i) => swap_out(&mut self.nodes, i, at, Slot::Node),
         };
         self.prune_hooks();
         self.prune_tracks();
@@ -321,6 +314,7 @@ impl Factory {
             pipework,
             quarries,
             power,
+            data,
             deposits,
             research,
             order,
@@ -330,6 +324,7 @@ impl Factory {
         let unlocked = research.machine_recipes_unlocked();
         process::sense_hydro(processors, world);
         power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
+        data.balance(processors, power, &unlocked, research);
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
             m.speed = power.speed(p);
@@ -342,8 +337,12 @@ impl Factory {
         for s in sinks.storages.iter_mut() {
             s.step(belts);
         }
-        for (m, &p) in sinks.processors.iter_mut().zip(&power.process_pole) {
-            let share = if m.draws_power() { power.speed(p) } else { power::FULL_SPEED };
+        for (i, (m, &p)) in sinks.processors.iter_mut().zip(&power.process_pole).enumerate() {
+            let mut share = if m.draws_power() { power.speed(p) } else { power::FULL_SPEED };
+            if m.spec.compute < 0 {
+                share = share * data.satisfaction(data.process_node[i]) / power::FULL_SPEED;
+                // a data consumer
+            }
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);
@@ -366,34 +365,6 @@ fn opposite(dir: u8) -> u8 {
 /// Whole ticks in `seconds` (machine work is counted in ticks).
 fn ticks(seconds: f64) -> u32 {
     (seconds * TICK_RATE as f64).round() as u32
-}
-
-/// Appends `m` to its kind's list and indexes its cells.
-fn add_to<T: Machine>(list: &mut Vec<T>, m: T, at: &mut FxHashMap<IVec3, Slot>, slot: fn(u32) -> Slot) {
-    for c in m.cells() {
-        at.insert(c, slot(list.len() as u32));
-    }
-    list.push(m);
-}
-
-/// Removes entry `i` (its cells leave `at`), re-indexes the entry moved into its place, and returns
-/// the removed machine's contents.
-fn swap_out<T: Machine>(
-    list: &mut Vec<T>,
-    i: u32,
-    at: &mut FxHashMap<IVec3, Slot>,
-    slot: fn(u32) -> Slot,
-) -> Vec<Stack> {
-    let m = list.swap_remove(i as usize);
-    for c in m.cells() {
-        at.remove(&c);
-    }
-    if let Some(moved) = list.get(i as usize) {
-        for c in moved.cells() {
-            at.insert(c, slot(i));
-        }
-    }
-    m.contents()
 }
 
 #[cfg(test)]

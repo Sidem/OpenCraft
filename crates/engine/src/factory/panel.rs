@@ -59,7 +59,8 @@ impl Factory {
             | Slot::Pole(_)
             | Slot::Pipe(_)
             | Slot::Sensor(_)
-            | Slot::Rail(_) => None,
+            | Slot::Rail(_)
+            | Slot::Node(_) => None,
         }
     }
 
@@ -179,7 +180,8 @@ impl Factory {
                 | Slot::Lab(_)
                 | Slot::Pipe(_)
                 | Slot::Sensor(_)
-                | Slot::Rail(_),
+                | Slot::Rail(_)
+                | Slot::Node(_),
             )
             | None => return false,
         };

@@ -52,6 +52,7 @@ pub const RECYCLER_SPEC: ProcessSpec = ProcessSpec {
     products: "coins",
     waiting: "Waiting for items to destroy: belts bring anything in",
     map_colour: 0x4a9a6a,
+    compute: 0,
     parts: &PARTS,
 };
 

@@ -42,6 +42,7 @@ pub const REFINERY_SPEC: ProcessSpec = ProcessSpec {
     products: "naphtha",
     waiting: "Waiting for crude oil canisters",
     map_colour: 0x6a7a8e,
+    compute: 0,
     parts: &REFINERY_PARTS,
 };
 
@@ -60,6 +61,7 @@ pub const CRACKER_SPEC: ProcessSpec = ProcessSpec {
     products: "naphtha",
     waiting: "Waiting for heavy oil canisters",
     map_colour: 0x96705f,
+    compute: 0,
     parts: &CRACKER_PARTS,
 };
 
@@ -80,6 +82,7 @@ pub const PLANT_SPEC: ProcessSpec = ProcessSpec {
     products: "plastic, acid or lubricant",
     waiting: "",
     map_colour: 0x5fa88f,
+    compute: 0,
     parts: &PLANT_PARTS,
 };
 
@@ -100,6 +103,7 @@ pub const ELECTROLYSER_SPEC: ProcessSpec = ProcessSpec {
     products: "hydrogen",
     waiting: "Waiting for empty canisters",
     map_colour: 0x4f86a8,
+    compute: 0,
     parts: &ELECTROLYSER_PARTS,
 };
 const PLANT_BODY: [u16; 3] = [tex::CHEM_TOP, tex::CHEM_SIDE, tex::FRAME];

@@ -282,7 +282,11 @@ pub const FAB_TOP: u16 = 250;
 pub const GRID_FIRST: u16 = 251;
 pub const GRID_COLOURS: usize = 6;
 pub const GRID_LAST: u16 = GRID_FIRST + GRID_COLOURS as u16 - 1;
-pub const COUNT: usize = 257;
+/// The fibre node's post and cap, and the light of the fibre lines (textures/compute.rs).
+pub const NODE_SIDE: u16 = 257;
+pub const NODE_TOP: u16 = 258;
+pub const FIBRE: u16 = 259;
+pub const COUNT: usize = 260;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

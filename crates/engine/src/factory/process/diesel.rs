@@ -42,6 +42,7 @@ pub const DIESEL_SPEC: ProcessSpec = ProcessSpec {
     products: "empty canisters",
     waiting: "Waiting for diesel canisters",
     map_colour: 0xc8742a,
+    compute: 0,
     parts: &DIESEL_PARTS,
 };
 

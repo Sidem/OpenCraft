@@ -30,6 +30,7 @@ impl Factory {
         write_list(w, &self.quarries);
         write_list(w, &self.sensors);
         write_list(w, &self.rails);
+        write_list(w, &self.nodes);
         w.count(self.tracks.len());
         for t in &self.tracks {
             w.ivec3(t.a);
@@ -49,7 +50,7 @@ impl Factory {
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
     /// Links are rebuilt at the first `update`. Two machines in one place is damage. Saves before
     /// version 3 have no smelters, before 4 no constructors, before 5 no routers, before 7 no power,
-    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites, before 30 no rails (31: headings and tracks; 32: trains; 33: their wagons and cargo; 34: schedules; 35: signals);
+    /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites, before 30 no rails, before 40 no fibre nodes (31: headings and tracks; 32: trains; 33: their wagons and cargo; 34: schedules; 35: signals);
     /// before 18 smelters and constructors had lists of their own (`process/legacy.rs`); before 24 poles
     /// linked and machines hung on poles by range, so those saves are wired that way once (`hook_by_reach`).
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
@@ -88,6 +89,9 @@ impl Factory {
         }
         if r.version >= 30 {
             read_list(r, &mut f.rails, &mut f.at, Slot::Rail)?;
+        }
+        if r.version >= 40 {
+            read_list(r, &mut f.nodes, &mut f.at, Slot::Node)?;
         }
         if r.version >= 31 {
             for _ in 0..r.count()? {

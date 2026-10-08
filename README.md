@@ -404,7 +404,12 @@ size.
   2 silicon, an acid canister and a pure water canister make a **wafer** in 8 seconds and the two shells come back out of
   the side hatches; belt wafers back in with 2 processors and a plastic and the Accelerators tech lets it build an **AI
   accelerator** (20 s). **Pure water** is a chemical plant recipe (an empty canister, a sand and 2 units of piped
-  water). A half-fed fab says what it still lacks. Datacenters are next.
+  water). A half-fed fab says what it still lacks.
+- **Data grid.** The Data Network tech (after Wafers) gives **fibre nodes** (2 from 2 processors, 4 glass, 2 plastic and 6 copper
+  wire). Nodes within 12 blocks join into one data grid by themselves, and a machine that makes or uses compute (TF) hangs on
+  the nearest node within 5 blocks; thin light lines show what is joined, and a node's readout gives the grid's supply and
+  demand. A grid shares its compute among its consumers, so a shortage slows them all alike, and a consumer with no node in
+  reach does not run. Datacenters, which make the compute, are next.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

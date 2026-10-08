@@ -123,6 +123,8 @@ pub struct ProcessSpec {
     pub waiting: &'static str,
     /// Its mark on the maps, 0xRRGGBB.
     pub map_colour: i32,
+    /// Data grid compute at full power, in TF (fibre.rs): positive makes it, negative uses it, 0 takes no part.
+    pub compute: i32,
     /// Boxes relative to the footprint's centre, front towards +z (turned with the machine).
     pub parts: &'static [Part],
 }
@@ -165,6 +167,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "ingots",
         waiting: "Waiting for ore, sand or stone",
         map_colour: 0xe5533d,
+        compute: 0,
         parts: &SMELTER_PARTS,
     },
     ProcessSpec {
@@ -185,6 +188,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "parts",
         waiting: "",
         map_colour: 0x4a90e2,
+        compute: 0,
         parts: &CONSTRUCTOR_PARTS,
     },
     ProcessSpec {
@@ -208,6 +212,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "parts",
         waiting: "",
         map_colour: 0x34a898,
+        compute: 0,
         parts: &ASSEMBLER_PARTS,
     },
     ProcessSpec {
@@ -236,6 +241,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "steel",
         waiting: "",
         map_colour: 0xb84a30,
+        compute: 0,
         parts: &BLAST_PARTS,
     },
     ProcessSpec {
@@ -250,6 +256,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "steam",
         waiting: "Idle",
         map_colour: 0x3a5f9a,
+        compute: 0,
         parts: &BOILER_PARTS,
     },
     ProcessSpec {
@@ -264,6 +271,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "power",
         waiting: "Idle",
         map_colour: 0xc8ced8,
+        compute: 0,
         parts: &TURBINE_PARTS,
     },
     ProcessSpec {
@@ -278,6 +286,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "crushed ore",
         waiting: "Waiting for iron, copper or bauxite ore, or slag",
         map_colour: 0xd6a930,
+        compute: 0,
         parts: &CRUSHER_PARTS,
     },
     ProcessSpec {
@@ -295,6 +304,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "items",
         waiting: "",
         map_colour: 0x9a9a92,
+        compute: 0,
         parts: &SILO_PARTS,
     },
     ProcessSpec {
@@ -312,6 +322,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "silicon",
         waiting: "",
         map_colour: 0x9a7ad8,
+        compute: 0,
         parts: &ARC_PARTS,
     },
     ProcessSpec {
@@ -334,6 +345,7 @@ pub const SPECS: &[ProcessSpec] = &[
         products: "aluminium",
         waiting: "",
         map_colour: 0xcfd8e3,
+        compute: 0,
         parts: &CELL_PARTS,
     },
 ];

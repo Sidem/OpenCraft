@@ -39,7 +39,10 @@ impl Factory {
             Slot::Belt(i) => self.belts[i as usize].describe(self),
             Slot::Miner(i) => self.miners[i as usize].describe(self),
             Slot::Storage(i) => self.storages[i as usize].describe(self),
-            Slot::Process(i) => self.processors[i as usize].describe(self),
+            Slot::Process(i) => {
+                let text = self.processors[i as usize].describe(self);
+                self.compute_line(i as usize).map_or(text.clone(), |l| format!("{text}\n{l}"))
+            }
             Slot::Router(i) => self.routers[i as usize].describe(self),
             Slot::Generator(i) => self.generators[i as usize].describe(self),
             Slot::Pole(i) => self.poles[i as usize].describe(self),
@@ -48,6 +51,7 @@ impl Factory {
             Slot::Quarry(i) => self.quarries[i as usize].describe(self),
             Slot::Sensor(i) => self.sensors[i as usize].describe(self),
             Slot::Rail(i) => self.rails[i as usize].describe(self),
+            Slot::Node(i) => self.nodes[i as usize].describe(self),
         };
         // A machine a sensor switched off is wired; say so instead of 'no power'.
         let text = if self.anchor_of(pos).is_some_and(|a| self.power.off.contains(&a)) {

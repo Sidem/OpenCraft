@@ -56,6 +56,7 @@ pub const SOLAR_SPEC: ProcessSpec = ProcessSpec {
     products: "power",
     waiting: "Idle",
     map_colour: 0x2f4fa8,
+    compute: 0,
     parts: &SOLAR_PARTS,
 };
 
@@ -71,6 +72,7 @@ pub const ACCUMULATOR_SPEC: ProcessSpec = ProcessSpec {
     products: "power",
     waiting: "Idle",
     map_colour: 0x3fae6a,
+    compute: 0,
     parts: &ACCUMULATOR_PARTS,
 };
 

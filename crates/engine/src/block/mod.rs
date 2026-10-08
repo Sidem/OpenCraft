@@ -133,7 +133,9 @@ pub use chemistry::*;
 pub const RECYCLER: BlockId = 97;
 /// The chip fab (the Wafers tech, `factory/process/fab.rs`): a 4×4×3 clean room that makes wafers and AI accelerators.
 pub const CHIP_FAB: BlockId = 98;
-pub const BLOCK_COUNT: usize = 99;
+/// A fibre node: the data grid's post (factory/fibre.rs, Milestone 11).
+pub const FIBRE_NODE: BlockId = 99;
+pub const BLOCK_COUNT: usize = 100;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -356,6 +358,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Nuclear Reactor", true, 2.4, pillar(tex::REACTOR_SIDE, tex::REACTOR_TOP, tex::FRAME), REACTOR),
     machine("Recycler", true, 1.6, pillar(tex::RECYCLER_SIDE, tex::RECYCLER_TOP, tex::FRAME), RECYCLER),
     machine("Chip Fab", true, 2.4, pillar(tex::FAB_SIDE, tex::FAB_TOP, tex::FRAME), CHIP_FAB),
+    machine("Fibre Node", true, 0.8, pillar(tex::NODE_SIDE, tex::NODE_TOP, tex::FRAME), FIBRE_NODE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

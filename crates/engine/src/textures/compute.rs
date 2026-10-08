@@ -15,6 +15,9 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::WAFER => wafer(x, y),
         tex::ACCELERATOR => accelerator(x, y),
         tex::FAB_SIDE => fab_side(x, y),
+        tex::NODE_SIDE => node_side(x, y),
+        tex::NODE_TOP => node_top(x, y),
+        tex::FIBRE => fibre(x, y),
         _ => fab_top(x, y),
     }
 }
@@ -76,4 +79,26 @@ fn fab_top(x: i32, y: i32) -> [u8; 4] {
         return if (x + y) % 3 == 0 { rgb([150.0, 156.0, 168.0], 1.0) } else { rgb([22.0, 24.0, 30.0], 1.0) };
     }
     frame(x, y)
+}
+
+/// A dark blue-grey post with bright cyan bands.
+fn node_side(x: i32, y: i32) -> [u8; 4] {
+    if y % 5 == 2 {
+        return rgb([90.0, 220.0, 235.0], 0.95 + 0.1 * n(621, x, y));
+    }
+    rgb([44.0, 52.0, 70.0], 0.9 + 0.2 * n(622, x, y) + 0.1 * smooth(623, x, y, 4))
+}
+
+/// A steel cap with a glowing cyan lens.
+fn node_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    if (dx * dx + dy * dy).sqrt() < 4.5 {
+        return rgb([110.0, 235.0, 245.0], 1.0 - 0.015 * (dx * dx + dy * dy));
+    }
+    frame(x, y)
+}
+
+/// The light a fibre line carries: pale cyan with a faint grain.
+fn fibre(x: i32, y: i32) -> [u8; 4] {
+    rgb([150.0, 240.0, 250.0], 0.92 + 0.14 * n(624, x, y))
 }

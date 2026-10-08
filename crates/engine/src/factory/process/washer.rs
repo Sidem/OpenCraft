@@ -37,6 +37,7 @@ pub const WASHER_SPEC: ProcessSpec = ProcessSpec {
     products: "washed ore",
     waiting: "Waiting for crushed iron, copper or bauxite",
     map_colour: 0x4f9a98,
+    compute: 0,
     parts: &WASHER_PARTS,
 };
 

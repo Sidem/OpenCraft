@@ -66,6 +66,7 @@ pub const HANGAR_SPEC: ProcessSpec = ProcessSpec {
     products: "drones",
     waiting: "Idle",
     map_colour: 0xff8c42,
+    compute: 0,
     parts: &PORT_PARTS,
 };
 

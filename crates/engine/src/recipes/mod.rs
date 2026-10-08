@@ -390,6 +390,7 @@ pub const RECIPES: &[Recipe] = &[
     RESEARCH_CENTER_MK5_RECIPE,
     RECYCLER_RECIPE,
     CHIP_FAB_RECIPE,
+    FIBRE_NODE_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) is committed (643 tests). Next: the immediate todo in section 4 (performance P1–P5, colour-coded power grids E1), then step 11.2, the data grid** · The `art` branch is superseded; art work
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are built (653 tests, committed). Next: step 11.3, the AI datacenter** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -435,10 +435,10 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 39) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 40) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 99, item 382, tech 58, machine recipe 64). Each new look gets a
-  placeholder layer (`tex::COUNT` is 257) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 100, item 382, tech 59, machine recipe 64). Each new look gets a
+  placeholder layer (`tex::COUNT` is 260) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -481,14 +481,10 @@ what was done or why it is parked.
 - [ ] **P5 Small items (optional, cheap).** Reuse the per-frame `Float32Array` views onto wasm memory in `web/src/main.ts`
   until `memory.buffer` changes; skip `update()` of closed UI panels; only re-sort visible chunks (`renderer.ts:323`) when the
   camera crosses a chunk.
-- [x] **E1 Colour-coded electric grids** (user request; built 2026-10-08, `factory/grid_colour.rs`). Every grid wears one accent
-  colour: the biggest grid (most poles) is the main grid and is always blue, the others take orange, pink, green, yellow, red by
-  size then lowest pole (Okabe-Ito, so readable with colour blindness; more grids than colours repeat the accents). Wires,
-  machine hookup wires, cable knots and a collar plus crossarm sleeve on every pole (`write_accents`) wear it; the pole readout
-  says "Main grid (blue)" or "Separate grid (orange)". Colours are solid tiles `tex::GRID_FIRST..=GRID_LAST` (251–256,
-  `textures/grid.rs`, art request in `ART_HANDOVER.md`). Derived at every relink, render only: no save bump, golden hash
-  unchanged. A grid that overtakes the main grid in pole count swaps colours with it. Tests 643 → 647.
-
+- [x] **E1 Colour-coded electric grids** (user request; built 2026-10-08, `factory/grid_colour.rs`): the biggest grid (most poles) is
+  the main grid and always blue, the others take orange, pink, green, yellow, red by size (Okabe-Ito); wires, hookup wires, cable
+  knots and a collar and crossarm sleeve on each pole wear it, and the pole readout names the grid. Textures 251–256, render only
+  (no save bump); a grid that overtakes the main grid in poles swaps colours with it.
 ### Milestone 11 steps
 
 Goal: the factory learns compute. Chips come from chemistry (acid and pure water), datacenters turn megawatts and coolant
@@ -504,13 +500,14 @@ what compute buys, laser links, helpers, cleanup.
   inlet, and `fab_text` names what a half-fed batch lacks. Wafers and accelerators share one output slot, so the player filters the
   front belt. `recipes/machine.rs` (406) and `recipes/mod.rs` (401) passed their soft limits: split the machine table before adding
   to it again. No save bump; golden hash re-recorded for the new techs. Tests 634 → 643.)
-- [ ] **11.2 The data grid** (`factory/data.rs`; `wiring.rs` and `power.rs` are the model; fibre node block, tech Data Network). A
-  second channel with the same node, link and balance code: fibre nodes link within 12 blocks, a consumer or producer
-  attaches to the nearest node within 5, and each grid's compute (TF) is supply against demand with a satisfaction factor.
-  Generalise the power grid by a `Channel` parameter rather than copying it; `Machine::describe` gets a compute line. Bumps
-  `SAVE_VERSION` (node records; none in older saves). Done when: a fibre line between two test machines carries a supply
-  to a demand and a shortage slows the consumer (tests); the model draws thin cable boxes.
-- [ ] **11.3 AI datacenter** (`process/datacenter.rs`, `Energy::Compute`; block, textures, tech Datacenters after Wafers, Data
+- [x] **11.2 The data grid** (built 2026-10-08: `factory/fibre.rs`, block 99 Fibre Node, `Kind::Node`, tech Data Network 58 (needs Wafers),
+  recipe 2 nodes from 2 processors, 4 glass, 2 plastic, 6 copper wire, textures 257–259, `SAVE_VERSION` 40, golden hash re-recorded.
+  **Differs from the first idea:** not a generalised power `Channel` but its own small `Data`, derived at every relink and balanced
+  after `Power::balance`. Nodes within 12 blocks join by themselves (no hand wiring); a processor whose spec has `compute` (new
+  `ProcessSpec` field, TF at full power: positive makes, negative uses) hangs on the nearest node within 5. A producer gives its TF
+  times its power speed; a consumer wants its TF while it wants power and runs at power speed × the grid's satisfaction (0 with
+  no node: "No data link"). No real machine uses `compute` yet (11.3's datacenter is the first producer). `factory/machine.rs`
+  split out of `factory/mod.rs`; `process/specs.rs` is at 405 lines: move its inline rows out before adding a spec. Tests 647 → 653.)- [ ] **11.3 AI datacenter** (`process/datacenter.rs`, `Energy::Compute`; block, textures, tech Datacenters after Wafers, Data
   Network and Nuclear Power or Diesel Power). 4×4×3 hall, 3 MW electric, 100 TF at full power, supplying the data grid. **Heat**
   uses the reactor's model (coolant in `steam.water`, heat in `progress`, `Status::Overheated` with hysteresis), so no new
   concept: without coolant it heats up and stops. Hand recipe 40 beams, 20 concrete, 16 accelerators, 32 copper wire. Mk tiers
@@ -596,5 +593,6 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-08: Data grid (step 11.2).** `factory/fibre.rs` (block 99, `Kind::Node`, save version 40, `ProcessSpec::compute`, tech Data Network 58, textures 257–259), `factory/machine.rs` split out of `factory/mod.rs`. Golden hash re-recorded. Tests 647 → 653. Next free block 100, tech 59, texture 260.
 - **2026-10-08: Performance review, grid colours** (user request). Measured a 30 000-belt base (`factory/tests/bench.rs`): ticks 0.14 ms, a relink 2.9 ms, instances 0.7 ms; fixed P1 (cached unlocked recipes), dropped P2, parked P3–P5 (section 4). E1 built: grid accent colours (`factory/grid_colour.rs`, textures 251–256, `COUNT` 257). Tests 643 → 647. Chip fab (11.1) is committed (`d1f01fa`).
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

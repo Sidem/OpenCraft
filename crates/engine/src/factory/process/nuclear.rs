@@ -53,6 +53,7 @@ pub const CENTRIFUGE_SPEC: ProcessSpec = ProcessSpec {
     products: "fuel cells",
     waiting: "Waiting for uranium ore and steel plates",
     map_colour: 0x9ad84a,
+    compute: 0,
     parts: &CENTRIFUGE_PARTS,
 };
 
@@ -71,6 +72,7 @@ pub const REACTOR_SPEC: ProcessSpec = ProcessSpec {
     products: "power",
     waiting: "Idle",
     map_colour: 0x7ad84a,
+    compute: 0,
     parts: &REACTOR_PARTS,
 };
 

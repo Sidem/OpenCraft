@@ -36,6 +36,7 @@ pub const LOADING_DOCK_SPEC: ProcessSpec = ProcessSpec {
     products: "items",
     waiting: "",
     map_colour: 0xe0a030,
+    compute: 0,
     parts: &LOADING_PARTS,
 };
 
@@ -51,6 +52,7 @@ pub const UNLOADING_DOCK_SPEC: ProcessSpec = ProcessSpec {
     products: "items",
     waiting: "",
     map_colour: 0x30a0e0,
+    compute: 0,
     parts: &UNLOADING_PARTS,
 };
 

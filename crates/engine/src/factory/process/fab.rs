@@ -40,6 +40,7 @@ pub const FAB_SPEC: ProcessSpec = ProcessSpec {
     products: "wafers or accelerators",
     waiting: "Waiting for silicon, acid and pure water (wafers), or wafers, processors and plastic (accelerators)",
     map_colour: 0x7a6ad0,
+    compute: 0,
     parts: &FAB_PARTS,
 };
 

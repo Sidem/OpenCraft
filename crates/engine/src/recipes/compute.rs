@@ -1,5 +1,5 @@
-//! The hand recipes of Milestone 11's compute machines, listed in `RECIPES`. Starts with the chip fab (the Wafers tech:
-//! `factory/process/fab.rs`).
+//! The hand recipes of Milestone 11's compute machines, listed in `RECIPES`: the chip fab (the Wafers tech:
+//! `factory/process/fab.rs`) and the fibre node (Data Network: `factory/fibre.rs`).
 
 use crate::block::*;
 use crate::item::*;
@@ -16,4 +16,14 @@ pub const CHIP_FAB_RECIPE: Recipe = Recipe {
             canister make a wafer in 8 seconds and give both canisters back as empties (violet hatches on the right). \
             AI accelerators: 2 wafers, 2 processors and a plastic, 20 seconds. Belts bring everything in at the back \
             hatches and take the product from the front; it takes whatever its recipes use. Needs 1 MW.",
+};
+
+pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
+    output: b(FIBRE_NODE),
+    group: Group::Production,
+    count: 2,
+    inputs: &[(PROCESSOR, 2), (b(GLASS), 4), (PLASTIC, 2), (COPPER_WIRE, 6)],
+    blurb: "A post of the data grid. Nodes within 12 blocks of each other join into one grid by themselves; a machine \
+            that makes or uses compute (TF) hangs on the nearest node within 5 blocks. Thin light lines show what \
+            is joined. A grid shares its compute between its consumers: a shortage slows them all alike.",
 };

@@ -84,6 +84,7 @@ pub const PUMPJACK_SPEC: ProcessSpec = ProcessSpec {
     products: "crude oil canisters",
     waiting: "Idle",
     map_colour: 0x3a2e22,
+    compute: 0,
     parts: &PARTS,
 };
 

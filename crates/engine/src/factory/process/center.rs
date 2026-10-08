@@ -68,6 +68,7 @@ pub const CENTER_SPEC: ProcessSpec = ProcessSpec {
     products: "research",
     waiting: "",
     map_colour: 0xe8e8f0,
+    compute: 0,
     parts: &CENTER_PARTS,
 };
 
