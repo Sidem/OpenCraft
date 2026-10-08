@@ -400,6 +400,11 @@ size.
   (ore, logs, dirt, leaves, saplings) pay 1; every step of processing doubles it, so an ingot pays 2, a rod 4 and a
   plate (two ingots) 8, and the price follows the recipes (a motor 88, a drone 7,368). Slag and tailings pay 1, and
   so does what is crushed from them. An item is worth what its cheapest recipe makes it, so no route earns more.
+- **Chips.** The Wafers tech (gold packs, so in a research center) opens the **chip fab** (4×4×3 clean room, 1 MW):
+  2 silicon, an acid canister and a pure water canister make a **wafer** in 8 seconds and the two shells come back out of
+  the side hatches; belt wafers back in with 2 processors and a plastic and the Accelerators tech lets it build an **AI
+  accelerator** (20 s). **Pure water** is a chemical plant recipe (an empty canister, a sand and 2 units of piped
+  water). A half-fed fab says what it still lacks. Datacenters are next.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

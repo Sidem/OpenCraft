@@ -10,12 +10,12 @@ use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
 use Category::{
-    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Pressing, Smelting,
-    Splitting, Washing,
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
+    Pressing, Smelting, Splitting, Washing,
 };
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 13] = [
+const CATEGORIES: [Category; 14] = [
     Smelting,
     Pressing,
     Assembly,
@@ -29,10 +29,11 @@ const CATEGORIES: [Category; 13] = [
     Splitting,
     Washing,
     Enrichment,
+    Fabrication,
 ];
 const _: fn(Category) = |c| match c {
     Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
-    | Splitting | Washing | Enrichment => {}
+    | Splitting | Washing | Enrichment | Fabrication => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -79,6 +80,7 @@ const NO_USE_YET: &[ItemId] = &[
     item::PLASTIC,
     item::ACID_CANISTER,
     item::LUBRICANT_CANISTER,
+    item::AI_ACCELERATOR, // datacenters, 11.3
 ];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.

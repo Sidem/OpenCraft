@@ -4,7 +4,7 @@
 //!
 //! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the
 //! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
-//! `solar.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
+//! `solar.rs`, the chip fab's in `compute.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::{
@@ -14,6 +14,7 @@ use crate::item::{
 
 mod aluminium;
 mod chemistry;
+mod compute;
 mod electronics;
 mod gear;
 mod gold;
@@ -32,6 +33,7 @@ mod transport;
 mod wiring;
 use aluminium::*;
 use chemistry::*;
+use compute::*;
 use electronics::*;
 use gear::*;
 use gold::*;
@@ -387,6 +389,7 @@ pub const RECIPES: &[Recipe] = &[
     DRONE_PORT_MK5_RECIPE,
     RESEARCH_CENTER_MK5_RECIPE,
     RECYCLER_RECIPE,
+    CHIP_FAB_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

@@ -45,3 +45,7 @@ pub const GOLD_RECIPES: [u16; 2] = [57, 58];
 pub const BLAST_CRUSHED_RECIPE: u16 = 59;
 /// The blast furnace's steel from washed iron (Ore Washing).
 pub const BLAST_WASHED_RECIPE: u16 = 60;
+/// Compute: the chemical plant's pure water (Wafers), the chip fab's wafer (Wafers) and AI accelerator (Accelerators).
+pub const PURE_WATER_RECIPE: u16 = 61;
+pub const WAFER_RECIPE: u16 = 62;
+pub const ACCELERATOR_RECIPE: u16 = 63;

@@ -131,7 +131,9 @@ mod chemistry;
 pub use chemistry::*;
 /// The recycler (the Recycling tech, `factory/process/recycler.rs`): a 2×2×2 machine that destroys items for coins.
 pub const RECYCLER: BlockId = 97;
-pub const BLOCK_COUNT: usize = 98;
+/// The chip fab (the Wafers tech, `factory/process/fab.rs`): a 4×4×3 clean room that makes wafers and AI accelerators.
+pub const CHIP_FAB: BlockId = 98;
+pub const BLOCK_COUNT: usize = 99;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -353,6 +355,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Centrifuge", true, 1.6, pillar(tex::CENTRIFUGE_SIDE, tex::CENTRIFUGE_TOP, tex::FRAME), CENTRIFUGE),
     machine("Nuclear Reactor", true, 2.4, pillar(tex::REACTOR_SIDE, tex::REACTOR_TOP, tex::FRAME), REACTOR),
     machine("Recycler", true, 1.6, pillar(tex::RECYCLER_SIDE, tex::RECYCLER_TOP, tex::FRAME), RECYCLER),
+    machine("Chip Fab", true, 2.4, pillar(tex::FAB_SIDE, tex::FAB_TOP, tex::FRAME), CHIP_FAB),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

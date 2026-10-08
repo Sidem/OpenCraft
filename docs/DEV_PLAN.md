@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-05 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · **Milestone 10 (fluids and chemistry) is built (10.1–10.3 committed locally, 10.4–10.12 uncommitted, nothing pushed): the user reviews and tests it, then asks for the commit. Next: Milestone 11 (compute and photonics), step 11.1 (section 4)** · The `art` branch is superseded; art work
+**Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) is built and uncommitted (643 tests). Next: the immediate todo in section 4 (performance P1–P5, colour-coded power grids E1), then step 11.2, the data grid** · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -37,7 +37,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   construction drones, jetpack and gear; then terraforming by drone (dig, fill, flatten, tunnels).
 - **Milestone 9 is done** (`docs/CHANGELOG_M9.md`): bauxite in far biomes, aluminium, bearings to far ground, trains,
   cargo drones and the hover pack.
-- **Milestone 10 is built** (`docs/CHANGELOG_M10.md`; awaiting the user's review and commit): oil and canisters, plastics,
+- **Milestone 10 is done** (`docs/CHANGELOG_M10.md`): oil and canisters, plastics,
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Next: Milestone 11: Compute and photonics** (section 4): chip fab, the data grid, AI datacenters and cooling, AI research
   and endless bonus techs, the optimizer, laser links, swarms, auto-routing, AI survey.
@@ -127,6 +127,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-06 | **Creative mode for new worlds** (user request, for testing everything): a world is normal or creative, chosen in the new-world form and never changed. Creative has every tech done and an "All items" tab in the inventory (click a stack, Shift-click one). Flying (F) already works in every world. |
 | 2026-10-06 | **Analytics and machine efficiency** (user request): an Electricity and productivity screen (P) graphs the power the grids could give, the power used and asked for, and each item made a minute, over 1m to 3h, with coloured lines; every machine says how close to full speed it runs and what costs it the rest (low power, waiting for input, full output, no fuel...). **Presentation only:** history is not saved and starts when a world is opened. |
 | 2026-10-06 | **One underpass, in tiers** (user request): entry and exit are the same item (pieces in a line facing the same way pair up by themselves, `factory/underpass.rs`); Mk1 to Mk4 reach 4 / 6 / 8 / 10 blocks at the speed of the belt of that Mk; a piece costs half its reach in belts of its Mk (a Mk1 pair is 4 belts). Dragging a belt line over a belt, machine or wall dives under it with the lowest underpass that reaches and is at least the belt's Mk; pairs the inventory lacks show red and are left out. The old exit block (23) still loads and is the same piece. No save-format change. |
+| 2026-10-08 | **Player-experience features** (user's pick from Claude's proposals): a world timelapse, the factory as an instrument, follow one item, seismic prospecting, site bonuses (where you build matters), ruins of the last factory. Placed as two interludes in `docs/ROADMAP.md`; datacenter siting may join steps 11.3–11.4. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -436,8 +437,8 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 39) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 98, item 379, tech 56, machine recipe 60). Each new look gets a
-  placeholder layer (`tex::COUNT` is 246) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 99, item 382, tech 58, machine recipe 64). Each new look gets a
+  placeholder layer (`tex::COUNT` is 251) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -454,6 +455,43 @@ and a steel plate, 300 MJ) runs a 100 kW load for 50 minutes; the reactor needs 
 Washing turns a raw ore's 1.0 ingots into 2.0 for 60 kW and a pipe of water per washer. Mk5 costs 4 to 8 gold kits a
 machine on top of the Mk4, so it stays a late-game spend.
 
+### Immediate todo (user request 2026-10-08; do these before step 11.2, one per session, each green and committed)
+
+From the performance review (read-only, **not yet measured**: write a `#[ignore]` bench on a large synthetic factory first,
+e.g. 3000 belts, 300 machines, 100 poles, and record before/after numbers here). Ranked by expected cost:
+- [ ] **P1 Cache the unlocked machine recipes.** `Research::machine_recipes_unlocked()` (`research.rs:142`) allocates a
+  `Vec<bool>` with a tech scan per entry every tick (`factory/mod.rs:330`) and per insert / `room_for` (`factory/panel.rs`).
+  Keep a cached bitset or `[bool; N]` on `Research`, refreshed when a tech finishes (and on load). Derived, never saved; the
+  golden hash must not move.
+- [ ] **P2 Split the dirty flag.** Any belt placement sets `dirty` and `relink` re-derives everything, including
+  `Power::rebuild` (O(machines × poles), `power.rs:71`, `pole.rs`). Separate `links`, `power` and `pipes` flags so a belt
+  does not touch the grid; find nearby poles through a spatial grid instead of scanning all of them.
+- [ ] **P3 Cheaper box instances.** `Factory::write_instances` (`factory/render.rs:85`) scans every machine list each frame
+  with a distance test only and rebuilds the whole buffer; `light_boxes` caches only the last cell. Add a frustum test (planes
+  from the host, or a view cone) before `model`, a coarse spatial grid so far machines are never visited, and a per-frame light
+  cache per cell. Consider caching static models until the factory changes (animated parts stay per frame).
+- [ ] **P4 Incremental co-op checksum.** `Sim::state_hash` (`sim.rs:251`) serialises the whole state every 60 ticks. Hash per
+  subsystem into a streaming hasher (no big buffer) and reuse sub-hashes that did not change. Only worth it when saves grow;
+  the hash value may change, so re-record the golden hash on purpose.
+- [ ] **P5 Small items.** Reuse the per-frame `Float32Array` views onto wasm memory in `web/src/main.ts` until
+  `memory.buffer` changes; skip `update()` of closed UI panels; reuse scratch buffers instead of a `Vec` per belt in `belt_step`;
+  only re-sort visible chunks (`renderer.ts:323`) when the camera crosses a chunk.
+- [ ] **E1 Colour-coded electric grids** (user request). Each grid shows its own accent colour, so one look tells whether a
+  pole joins the main grid or stands alone. All wires and poles of one grid share a colour; two separate grids differ; joining
+  them (wiring or a cable in reach) makes both take one colour. `Power::pole_grid` already numbers the grids (in order of
+  their lowest pole, rederived at every relink), so: (a) pick a colour per grid from a small palette in a new
+  `factory/grid_colour.rs` (data, not logic in `power.rs`); make the **main grid** (the one with the most generator capacity,
+  ties by lowest index) always the same calm colour and give the others distinct accents, so a stray pole stands out and
+  colours do not flicker as grids merge or split (a stable choice: order by capacity, then lowest pole); (b) `write_wires`
+  (`power.rs:239`) and `write_cables` (`cable.rs`) tint the wire by the grid of the pole it leaves, and each pole model gets an
+  accent band (a tinted box on the crossarm; mind `INSTANCE_FLOATS` and whether the box record carries a colour, otherwise add
+  the tint as one extra field only for these boxes); (c) a wired machine's hookup wire takes its pole's colour; (d) the pole
+  readout (`power.rs` grid text) names the colour and says "main grid" or "separate grid", with an unpowered/unwired machine
+  unchanged; (e) the palette must stay readable for colour-blind players (vary lightness as well as hue) and a short legend
+  goes in README under power. Render only, no save bump, no determinism impact. Done when: two unconnected pole groups show
+  different colours, wiring them together turns both one colour, and a headless test checks that poles of one grid get one
+  colour and poles of different grids differ.
+
 ### Milestone 11 steps
 
 Goal: the factory learns compute. Chips come from chemistry (acid and pure water), datacenters turn megawatts and coolant
@@ -461,7 +499,13 @@ into **compute**, a second grid carries compute like power, and compute buys thi
 optimizer, drone swarms, auto-routing and AI survey. Laser links join far plants and datacenters by line of sight. Numbers
 below are first guesses; tune in play (`docs/WORKFLOW.md` section 6). Order: chips, the data grid, datacenters and cooling,
 what compute buys, laser links, helpers, cleanup.
-- [ ] **11.1 Pure water, the chip fab and AI accelerators** (`factory/process/fab.rs`, `recipes/compute.rs`, `research/compute.rs`,
+- [x] **11.1 Pure water, the chip fab and AI accelerators** (built 2026-10-08: block 98 Chip Fab, items 379 pure water canister, 380
+  wafer, 381 AI accelerator, machine recipes 61 pure water, 62 wafer, 63 accelerator, techs Wafers = 56 (needs Acids and Lubricants and
+  Gold Science, all five packs, so a research center) and Accelerators = 57, textures 246–250, `Category::Fabrication`, `fab_text`
+  names what a half-fed batch lacks. **Differences from the text below:** the fab has no water inlet (its only water is the canister);
+  it has six input slots; wafers and accelerators share one output slot, so the player filters the front belt; `recipes/machine.rs`
+  (406) and `recipes/mod.rs` (401) passed their soft limits: split the machine table before adding to it again. No save bump; golden
+  hash re-recorded for the new techs. Tests 634 → 643.) (`factory/process/fab.rs`, `recipes/compute.rs`, `research/compute.rs`,
   `textures/compute.rs`; `Category::Fabrication`; techs Wafers, then Accelerators). **Pure water canister** = a chemical plant
   recipe (1 empty + 2 water + 1 sand → 1 pure water; pipes stay water-only). **Chip fab:** 4×4×3 clean room, 1 MW,
   `Pick::ByInput`, water inlet; **Wafer** 2 silicon + 1 acid canister + 1 pure water canister → 1 wafer + 2 empties back, 8 s;
@@ -530,7 +574,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ## 5. Roadmap after Milestone 11
 
-Milestones 12–13 are in `docs/ROADMAP.md`; the tech tree through them is `docs/TECH_TREE.md` (concept)
+Milestones 12–13 are in `docs/ROADMAP.md`, with two interludes the user chose on 2026-10-08 (after 11: timelapse,
+factory as an instrument, follow one item, seismic prospecting, site bonuses; after 12: ruins of the last factory).
+Plan the first interlude at step 11.13 together with Milestone 12. The tech tree through them is `docs/TECH_TREE.md` (concept)
 and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
@@ -557,6 +603,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-08: Performance review and immediate todo** (user request). Read-only review of the engine and host; findings P1–P5 and the colour-coded power grids (E1) are queued in section 4 ("Immediate todo"). No code changed.
+- **2026-10-08: Chip fab (step 11.1).** `factory/process/fab.rs` (block 98, 4×4×3, 1 MW, `Category::Fabrication`), pure water (chemical plant recipe 61, 2 units of water), wafer and AI accelerator (recipes 62–63), items 379–381, techs Wafers (56) and Accelerators (57) in `research/compute.rs`, hand recipe in `recipes/compute.rs`, textures 246–250 (`textures/compute.rs`). Checked in the browser (placed, panel, model). Golden hash re-recorded (two tech rows). Tests 634 → 643. Next free block 99, item 382, texture 251, tech 58, machine recipe 64.
 - **2026-10-07: Tools move whole** (user bug report: a worn shovel in a box rode a belt as 87 shovels). A tool's stack count is its uses, so every one-at-a-time mover split it. Now `tools::lot(item, count)` is the piece a mover takes: a tool's whole count, 1 of anything else. Belt items and a router's held item carry `n` (`BeltItem::n`, `Router::held_n`); `Buffer::feed` takes a lot, `deliver` / `Sinks::accept` hand `n` over all-or-nothing (a sink with no room for every use makes the belt wait); the recycler takes a lot too. Save version 39 (belt and router counts; older saves read 1); golden hash re-recorded. Boxes and inventories still pool worn tools of one kind into stacks, so a belt carries one tool per slot.
 - **2026-10-07: Blast furnace on crushed iron** (user request). `BLAST_CRUSHED_RECIPE` (machine recipe 59, 2 crushed iron + coal + quicklime, same steel and slag), unlocked with Ore Crushing; the furnace is now `Pick::ByInput` (no recipe to choose, it takes ore or crushed iron and makes whichever it holds a full batch of; `recipe_using_if` and `Processor::next`). First version kept `Pick::Chosen` and the user could not get crushed iron in: a furnace's chosen recipe is on the old iron-ore recipe. A saved furnace's chosen recipe is simply ignored. The same for washed iron: `BLAST_WASHED_RECIPE` (60, unlocked with Ore Washing). No save bump. Tests 628 → 630. Next machine recipe 61.
 - **2026-10-06: The recycler** (user request). Block 97, a 2×2×2 `Pick::Recycle` processor (`factory/process/recycler.rs`, six in-hatches, two out, 90 kW), the coin (item 378, stack 1024, `item::COIN`; not offered in creative), the Recycling tech (55, after Blue Science), `Processor::owed` (millicoins, saved for recyclers only, so no save bump: only new worlds hold one). What an item pays is `recipes/recycling.rs`: a const-built table over `RECIPES` and `MACHINE_RECIPES`, no per-item list. Raw 1 coin; a batch is worth `STEP` (2) × its inputs, shared over what it makes (millicoin precision, so a plank is ½); the cheapest recipe wins, so the route never changes the worth; `WASTE` (slag, tailings) and what is salvaged from only waste pay 1; tools go in whole (their count is their uses). `process/intake.rs` split out of `process/mod.rs`. Golden hash re-recorded (a new tech row). Tests 611 → 628. Next free block 98, item 379, texture 246, tech 56.

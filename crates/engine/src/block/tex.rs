@@ -272,7 +272,13 @@ pub const MINER_MK5_SIDE: u16 = 242;
 pub const COIN: u16 = 243;
 pub const RECYCLER_SIDE: u16 = 244;
 pub const RECYCLER_TOP: u16 = 245;
-pub const COUNT: usize = 246;
+/// The pure water canister, the wafer and the AI accelerator icons, and the chip fab's faces.
+pub const PURE_WATER_CANISTER: u16 = 246;
+pub const WAFER: u16 = 247;
+pub const ACCELERATOR: u16 = 248;
+pub const FAB_SIDE: u16 = 249;
+pub const FAB_TOP: u16 = 250;
+pub const COUNT: usize = 251;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

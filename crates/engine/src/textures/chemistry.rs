@@ -86,7 +86,7 @@ fn plant_top(x: i32, y: i32, bars: i32) -> [u8; 4] {
 }
 
 /// A drum seen from the front on a dark ground: steel body with rim lines, a cap and a band of `band` across it.
-fn canister(x: i32, y: i32, band: [f64; 3]) -> [u8; 4] {
+pub(super) fn canister(x: i32, y: i32, band: [f64; 3]) -> [u8; 4] {
     let body = (4..=11).contains(&x) && (3..=14).contains(&y);
     if (6..=9).contains(&x) && (1..=2).contains(&y) {
         return rgb([196.0, 200.0, 208.0], 0.9 + 0.1 * n(480, x, y));

@@ -146,6 +146,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::nuclear::CENTRIFUGE_SPEC,
     super::nuclear::REACTOR_SPEC,
     super::recycler::RECYCLER_SPEC,
+    super::fab::FAB_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

@@ -13,6 +13,7 @@
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
 mod chemistry;
+mod compute;
 mod distance;
 mod join;
 mod personal;

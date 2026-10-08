@@ -22,6 +22,7 @@
 mod center;
 mod diesel;
 mod docks;
+mod fab;
 mod hangar;
 mod hoist;
 mod hydro;

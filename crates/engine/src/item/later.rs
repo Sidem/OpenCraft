@@ -50,3 +50,8 @@ pub const UNDERPASS_MK4: ItemId = ItemId(377);
 /// [`COIN_STACK`], is worth nothing itself and is not offered in creative worlds.
 pub const COIN: ItemId = ItemId(378);
 pub const COIN_STACK: u32 = 1024;
+/// Compute's parts (the Wafers and Accelerators techs, `factory/process/fab.rs`): a canister of ultra-pure water (a
+/// chemical plant recipe), the wafer and the AI accelerator, both made in the chip fab.
+pub const PURE_WATER_CANISTER: ItemId = ItemId(379);
+pub const WAFER: ItemId = ItemId(380);
+pub const AI_ACCELERATOR: ItemId = ItemId(381);

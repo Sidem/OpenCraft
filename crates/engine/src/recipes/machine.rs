@@ -18,6 +18,7 @@ use crate::item::{
 };
 use crate::item::{ACID_CANISTER, HYDROGEN_CANISTER, LUBRICANT_CANISTER, OXYGEN_CANISTER, PLASTIC};
 use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
+use crate::item::{AI_ACCELERATOR, PURE_WATER_CANISTER, WAFER};
 use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE, EMPTY_CANISTER};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 use crate::item::{CRUDE_CANISTER, DIESEL_CANISTER, HEAVY_OIL_CANISTER, NAPHTHA_CANISTER, SULFUR};
@@ -52,6 +53,8 @@ pub enum Category {
     Washing,
     /// Uranium ore and a steel casing into a fuel cell (the centrifuge).
     Enrichment,
+    /// Silicon, acid and pure water into wafers, wafers into AI accelerators (the chip fab).
+    Fabrication,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -65,8 +68,8 @@ pub struct MachineRecipe {
 }
 
 use Category::{
-    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Pressing, Smelting,
-    Splitting, Washing,
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
+    Pressing, Smelting, Splitting, Washing,
 };
 
 pub const MACHINE_RECIPES: &[MachineRecipe] = &[
@@ -335,6 +338,27 @@ pub const MACHINE_RECIPES: &[MachineRecipe] = &[
         outputs: &[(STEEL_INGOT, 1), (b(SLAG), 1)],
         seconds: 4.0,
     },
+    // Compute (Wafers): ultra-pure water is filled in the chemical plant (two units of piped water and a sand to
+    // filter them), the chip fab etches a wafer from silicon, acid and pure water and gives both shells back, then
+    // builds an AI accelerator from wafers, processors and plastic.
+    MachineRecipe {
+        category: Chemistry,
+        inputs: &[(EMPTY_CANISTER, 1), (b(SAND), 1)],
+        outputs: &[(PURE_WATER_CANISTER, 1)],
+        seconds: 3.0,
+    },
+    MachineRecipe {
+        category: Fabrication,
+        inputs: &[(SILICON, 2), (ACID_CANISTER, 1), (PURE_WATER_CANISTER, 1)],
+        outputs: &[(WAFER, 1), (EMPTY_CANISTER, 2)],
+        seconds: 8.0,
+    },
+    MachineRecipe {
+        category: Fabrication,
+        inputs: &[(WAFER, 2), (PROCESSOR, 2), (PLASTIC, 1)],
+        outputs: &[(AI_ACCELERATOR, 1)],
+        seconds: 20.0,
+    },
 ];
 
 /// Units of water a batch of a recipe takes from the machine's water inlet, by recipe index (machines that take
@@ -347,6 +371,7 @@ const WATER_USE: &[(u16, u32)] = &[
     (WASH_RECIPES[0], 1),
     (WASH_RECIPES[1], 1),
     (WASH_RECIPES[2], 1),
+    (PURE_WATER_RECIPE, 2),
 ];
 
 /// Water units one batch of machine recipe `i` uses.
