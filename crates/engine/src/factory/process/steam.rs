@@ -65,8 +65,11 @@ pub struct Steam {
     pub vents: Vec<Tap>,
     /// A tap is on a pipe network that carries both water and steam (derived).
     pub crossed: bool,
-    /// A turbine's boilers, as processor indices (derived).
+    /// A turbine's boilers, or a cooling tower's datacenters, as processor indices (derived).
     pub boilers: Vec<u32>,
+    /// A datacenter's cooling tower (derived: `tower::seat`), and whether it drew its coolant through it last tick.
+    pub tower: Option<u32>,
+    pub looped: bool,
     /// kW a turbine gave last tick (derived).
     pub output: u32,
 }
@@ -209,14 +212,25 @@ pub(in crate::factory) fn run_turbine(processors: &mut [Processor], t: usize, wa
 
 /// Every boiler or machine whose water is low takes a unit from a pump of its network that holds one.
 pub(in crate::factory) fn draw_water(processors: &mut [Processor], pipework: &mut [Pipework]) {
-    for b in processors.iter_mut().filter(|p| p.takes_water()) {
+    for i in 0..processors.len() {
+        if !processors[i].takes_water() {
+            continue;
+        }
+        let b = &mut processors[i];
         let (low, unit) = match b.energy() {
             Energy::Boiler => (WATER_LOW, UNIT_ENERGY),
             Energy::Reactor => (COOLANT_LOW, COOLANT_UNIT),
             Energy::Compute => (super::datacenter::COOLANT_LOW, super::datacenter::COOLANT_UNIT),
             _ => (MACHINE_WATER, 1),
         };
+        let tower = b.steam.tower.map(|t| t as usize).filter(|&t| processors[t].tower_ready());
+        let b = &mut processors[i];
+        b.steam.looped = tower.is_some();
         if b.steam.water >= low {
+            continue;
+        }
+        if let Some(t) = tower {
+            super::tower::circulate(processors, i, t, unit);
             continue;
         }
         let nets = &b.steam.nets;
@@ -289,7 +303,9 @@ pub(in crate::factory) fn link(processors: &mut [Processor], at: &FxHashMap<IVec
         p.steam.taps = w.into_iter().map(|t| t.1).collect();
         p.steam.vents = s.into_iter().map(|t| t.1).collect();
         p.steam.boilers = boilers;
+        p.steam.tower = None;
     }
+    super::tower::seat(processors);
 }
 
 #[cfg(test)]

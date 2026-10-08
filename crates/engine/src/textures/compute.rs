@@ -20,6 +20,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::FIBRE => fibre(x, y),
         tex::DC_SIDE => dc_side(x, y),
         tex::DC_TOP => dc_top(x, y),
+        tex::TOWER_SIDE => tower_side(x, y),
+        tex::TOWER_TOP => tower_top(x, y),
         _ => fab_top(x, y),
     }
 }
@@ -121,6 +123,31 @@ fn dc_side(x: i32, y: i32) -> [u8; 4] {
 fn dc_top(x: i32, y: i32) -> [u8; 4] {
     if (3..=12).contains(&x) && (3..=12).contains(&y) {
         return if (x + y) % 2 == 0 { rgb([150.0, 156.0, 168.0], 1.0) } else { rgb([24.0, 26.0, 32.0], 1.0) };
+    }
+    frame(x, y)
+}
+
+/// Pale concrete louvres: slanted slats with dark gaps and a damp streak down the middle.
+fn tower_side(x: i32, y: i32) -> [u8; 4] {
+    if y % 4 == 3 {
+        return rgb([36.0, 44.0, 52.0], 1.0);
+    }
+    let damp = if (6..=9).contains(&x) { 0.82 } else { 1.0 };
+    rgb([150.0, 158.0, 166.0], damp * (0.9 + 0.15 * n(631, x, y) + 0.04 * (y % 4) as f64))
+}
+
+/// A dark water basin with a steel fan hub and four blades.
+fn tower_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r2 = dx * dx + dy * dy;
+    if r2 < 5.0 {
+        return rgb([170.0, 176.0, 188.0], 1.0);
+    }
+    if (dx.abs() < 1.3 || dy.abs() < 1.3) && r2 < 42.0 {
+        return rgb([84.0, 92.0, 104.0], 0.9 + 0.2 * n(632, x, y));
+    }
+    if r2 < 56.0 {
+        return rgb([30.0, 62.0, 96.0], 0.9 + 0.2 * n(633, x, y));
     }
     frame(x, y)
 }

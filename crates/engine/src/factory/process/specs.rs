@@ -46,6 +46,8 @@ pub enum Energy {
     Reactor,
     /// A datacenter: draws power at all times and gives the data grid compute, water-cooled (datacenter.rs).
     Compute,
+    /// A cooling tower: a power sink that closes a datacenter's water loop (tower.rs).
+    Cooling,
 }
 
 impl Energy {
@@ -152,6 +154,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::recycler::RECYCLER_SPEC,
     super::fab::FAB_SPEC,
     super::datacenter::DATACENTER_SPEC,
+    super::tower::TOWER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

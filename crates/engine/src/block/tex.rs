@@ -289,7 +289,10 @@ pub const FIBRE: u16 = 259;
 /// The datacenter's server hall and roof (`textures/compute.rs`).
 pub const DC_SIDE: u16 = 260;
 pub const DC_TOP: u16 = 261;
-pub const COUNT: usize = 262;
+/// The cooling tower's louvred body and fan deck (`textures/compute.rs`).
+pub const TOWER_SIDE: u16 = 262;
+pub const TOWER_TOP: u16 = 263;
+pub const COUNT: usize = 264;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

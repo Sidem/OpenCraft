@@ -414,6 +414,10 @@ size.
   hall (40 beams, 20 concrete, 16 accelerators, 32 copper wire) that draws 3 MW all the time and gives its data grid 100 TF at
   full power. It runs hot: pipe water from a pump to its blue inlet on the left (a unit per 10 seconds), or it shuts down after
   about 20 seconds, drawing and giving nothing, until it has cooled.
+- **Cooling towers.** The Cooling tech gives the **cooling tower** (30 concrete, 12 pipes, 4 motors, 12 steel plates; 300 kW, 3×3×5).
+  Pipe its blue inlet to the same pipes as a datacenter's: the datacenter then takes its coolant through the tower ("cooling loop
+  closed") and only one unit in twenty is lost, so a single pump feeds it easily. One tower cools two datacenters; with no power
+  or water at the tower the datacenter falls back to the pump.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

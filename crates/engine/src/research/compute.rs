@@ -1,14 +1,14 @@
 //! The techs of Milestone 11 (compute and photonics), as data (appended after `recycling.rs`'s in `techs::TECHS`, so the
 //! order here is the saved index order: add rows at the bottom, never reorder). Needs name earlier indices: Acids and
-//! Lubricants 45, Gold Science 53; this table's own start at 56 (Wafers 56, Accelerators 57, Data Network 58, Datacenters 59).
+//! Lubricants 45, Gold Science 53; this table's own start at 56 (Wafers 56, Accelerators 57, Data Network 58, Datacenters 59, Cooling 60).
 
-use crate::block::{CHIP_FAB, DATACENTER, FIBRE_NODE};
+use crate::block::{CHIP_FAB, COOLING_TOWER, DATACENTER, FIBRE_NODE};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{ACCELERATOR_RECIPE, PURE_WATER_RECIPE, WAFER_RECIPE};
 
 use super::{r, Tech, Unlock};
 
-pub const COMPUTE: [Tech; 4] = [
+pub const COMPUTE: [Tech; 5] = [
     Tech {
         name: "Wafers",
         blurb:
@@ -52,5 +52,15 @@ pub const COMPUTE: [Tech; 4] = [
         units: 300,
         seconds: 60.0,
         unlocks: &[r(DATACENTER)],
+    },
+    Tech {
+        name: "Cooling",
+        blurb: "The cooling tower (300 kW, 3×3×5) closes a datacenter's water loop: piped to the same network, it takes the \
+                coolant through itself and loses only one unit in twenty. One tower cools two datacenters.",
+        needs: &[59],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
+        units: 200,
+        seconds: 50.0,
+        unlocks: &[r(COOLING_TOWER)],
     },
 ];

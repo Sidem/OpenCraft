@@ -28,6 +28,17 @@ pub const DATACENTER_RECIPE: Recipe = Recipe {
             inlet on the left, or it shuts down after 20 seconds and gives nothing until it has cooled.",
 };
 
+pub const COOLING_TOWER_RECIPE: Recipe = Recipe {
+    output: b(COOLING_TOWER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(b(CONCRETE), 30), (b(PIPE), 12), (MOTOR, 4), (STEEL_PLATE, 12)],
+    blurb: "A fan tower, 3×3×5 (R turns it before you place it), 300 kW. Pipe its blue inlet on the left to the same pipes \
+            as a datacenter's inlet and the datacenter takes its coolant through the tower: the water comes back cool and \
+            only one unit in twenty is lost, so a pump keeps up easily. One tower cools two datacenters. The tower needs a \
+            pump on its pipes for that trickle of makeup water.",
+};
+
 pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
     output: b(FIBRE_NODE),
     group: Group::Production,

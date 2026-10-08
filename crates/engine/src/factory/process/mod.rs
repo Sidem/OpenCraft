@@ -41,6 +41,7 @@ mod specs;
 mod status;
 mod steam;
 mod steam_view;
+mod tower;
 mod view;
 mod washer;
 mod work;
@@ -178,7 +179,9 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
-            (Energy::Hoist, _) => self.status = if power > 0 { Status::Working } else { Status::NoPower },
+            (Energy::Hoist | Energy::Cooling, _) => {
+                self.status = if power > 0 { Status::Working } else { Status::NoPower }
+            }
             (Energy::Compute, _) => self.run_datacenter(power),
             (e, _) if e.is_source() => {}
             (_, Pick::Recycle) => self.recycle(power),
@@ -198,7 +201,7 @@ impl Processor {
             Pick::Recycle => return self.recycle_wants_power(),
             _ => {}
         }
-        self.energy() == Energy::Hoist
+        matches!(self.energy(), Energy::Hoist | Energy::Cooling)
             || self.datacenter_wants_power()
             || self.energy() == Energy::Electric
                 && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
@@ -211,7 +214,7 @@ impl Processor {
 
     /// Whether it runs at its grid's power share (electric machines and winches).
     pub fn draws_power(&self) -> bool {
-        matches!(self.energy(), Energy::Electric | Energy::Hoist | Energy::Compute)
+        matches!(self.energy(), Energy::Electric | Energy::Hoist | Energy::Compute | Energy::Cooling)
     }
 
     /// kW it draws while it works (0 unless electric).

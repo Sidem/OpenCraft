@@ -44,6 +44,7 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
                 Energy::Hydro,
                 Energy::Reactor,
                 Energy::Compute,
+                Energy::Cooling,
             ];
             sources.contains(&t.energy) || t.energy == Energy::Hoist
         });

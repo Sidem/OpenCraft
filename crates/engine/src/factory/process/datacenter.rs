@@ -9,7 +9,9 @@
 //! - Saved like any processor: the heat is `progress` (a datacenter has no batches) and the coolant tank is `steam.water`
 //!   (it has a water inlet), so nothing new in the save. Hand recipe: `recipes/compute.rs`.
 //!
-//! Not yet: Mk tiers with more racks and the cooling tower's closed loop (steps 11.4 and later).
+//! A cooling tower on its water network closes the loop (`tower.rs`): the water comes back cool and only a trickle is lost.
+//!
+//! Not yet: Mk tiers with more racks.
 
 use crate::block::{tex, DATACENTER};
 use crate::TICK_RATE;
@@ -62,6 +64,9 @@ impl Processor {
         Some(match self.status {
             Status::Working if self.steam.water == 0 => {
                 format!("Making {tf} of {DATACENTER_TF} TF · heat {heat}% and rising: pipe water to its blue inlet")
+            }
+            Status::Working if self.steam.looped => {
+                format!("Making {tf} of {DATACENTER_TF} TF · heat {heat}% · cooling loop closed")
             }
             Status::Working => format!("Making {tf} of {DATACENTER_TF} TF · heat {heat}%"),
             Status::Overheated => {

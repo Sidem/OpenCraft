@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is built and uncommitted (660 tests). Next: step 11.4, the cooling tower** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) is built and uncommitted (668 tests). Next: step 11.5, the AI lab** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -437,8 +437,8 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 40) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 101, item 382, tech 60, machine recipe 64). Each new look gets a
-  placeholder layer (`tex::COUNT` is 262) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 102, item 382, tech 61, machine recipe 64). Each new look gets a
+  placeholder layer (`tex::COUNT` is 264) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -515,12 +515,13 @@ what compute buys, laser links, helpers, cleanup.
   only 5% of its load, so it trips after about 21 s, draws nothing and gives no compute (`Data::balance` skips it) until the heat has
   halved. Hand recipe 40 beams, 20 concrete, 16 accelerators, 32 copper wire. No save change (`SAVE_VERSION` stays 40), golden hash
   re-recorded. **Not yet:** Mk rack tiers (+50% compute for +50% power and heat): a later step if wanted. Tests 653 → 660.)
-- [ ] **11.4 Cooling tower and the coolant loop** (`process/tower.rs`; 3×3×5, block, tech Cooling). Water in and out by pipes:
-  a datacenter piped to a tower sends its hot water there and the tower returns it cool, losing only a trickle (open-loop
-  datacenters keep spending water as in 11.3, so a river or pump is the other choice). Hand recipe: concrete, pipes, motors.
-  Done when: a looped datacenter runs an hour of ticks without draining the pump's pool (test), and its status says
-  "loop closed".
-- [ ] **11.5 AI lab and compute research** (`process/ailab.rs` as a `Pick::Research` variant, `research.rs` compute cost). Techs
+- [x] **11.4 Cooling tower and the coolant loop** (built 2026-10-08: `process/tower.rs`, `Energy::Cooling`, block 101 Cooling Tower, tech Cooling 60
+  (needs Datacenters), textures 262–263, 3×3×5, 300 kW, one water inlet. **Differs from the first idea:** no separate return pipe;
+  the tower sits on the datacenter's water network (`tower::seat`, derived at relink, two datacenters to a tower) and, while powered
+  and holding water, the datacenter takes its coolant from the tower's tank instead of the pump (`circulate`), which loses one unit
+  in 20: the pump's pool is drained at a twentieth of the open rate (test: an hour of ticks, ~360 units open, ≤ 23 looped). Without
+  power or water it falls back to the pump. Status says "cooling loop closed". Hand recipe 30 concrete, 12 pipes, 4 motors, 12 steel
+  plates. No save change; golden hash re-recorded. Tests 660 → 668.)- [ ] **11.5 AI lab and compute research** (`process/ailab.rs` as a `Pick::Research` variant, `research.rs` compute cost). Techs
   gain an optional compute cost beside packs; an AI lab (2×2×2, on the data grid) spends compute per unit and the packs go
   further (every 2nd unit free, as at center Mk3). Late techs (Auto-Routing, AI Survey) need compute. Done when: a tech with
   a compute cost finishes only on a grid with a datacenter, and the tech tree says what is missing (as `needs_center` does).
@@ -595,6 +596,5 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-08: AI datacenter (step 11.3).** `process/datacenter.rs` (block 100, `Energy::Compute`, tech Datacenters 59, textures 260–261): 3 MW, 100 TF, reactor-style heat and coolant. Golden hash re-recorded, save version stays 40. Tests 653 → 660. Next free block 101, tech 60, texture 262.
-- **2026-10-08: Data grid (step 11.2).** `factory/fibre.rs` (block 99, `Kind::Node`, save version 40, `ProcessSpec::compute`, tech Data Network 58, textures 257–259), `factory/machine.rs` split out of `factory/mod.rs`. Golden hash re-recorded. Tests 647 → 653. Next free block 100, tech 59, texture 260.
+- **2026-10-08: Cooling tower (step 11.4).** `process/tower.rs` (block 101, `Energy::Cooling`, tech Cooling 60, textures 262–263): a datacenter on the tower's water network takes its coolant through the tower and loses a twentieth of the water. Golden hash re-recorded, save version stays 40. Tests 660 → 668. Next free block 102, tech 61, texture 264.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).
