@@ -422,6 +422,10 @@ size.
   100 kW): a research center on the data grid. It researches at twice a lab's speed, takes every pack, makes every 2nd unit free
   of packs and uses 20 TF while it works, so it idles without a datacenter on its grid. Techs that cost compute (AI Research is
   the first) can be researched only in it; labs and centers say so.
+- **Optimizer.** The Optimizer tech gives the **optimizer node** (8 steel plates, 4 accelerators, 10 processors, 10 circuits, 4
+  glass; 2×2×2, 150 kW). It uses 20 TF of the data grid it hangs on, and every machine and miner within 16 blocks of it works
+  25% faster, whatever grid it is on. Machines take the best optimizer in range, they do not add up, and a shortage of power or
+  compute weakens it (it says so when you point at it).
 - **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the

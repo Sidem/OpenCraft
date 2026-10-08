@@ -48,6 +48,8 @@ pub enum Energy {
     Compute,
     /// A cooling tower: a power sink that closes a datacenter's water loop (tower.rs).
     Cooling,
+    /// An optimizer: a power sink and data consumer that speeds up the machines around it (optimizer.rs).
+    Optimizer,
 }
 
 impl Energy {
@@ -156,6 +158,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::datacenter::DATACENTER_SPEC,
     super::tower::TOWER_SPEC,
     super::ailab::AI_LAB_SPEC,
+    super::optimizer::OPTIMIZER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

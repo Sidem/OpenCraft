@@ -27,7 +27,8 @@ impl Processor {
             .or_else(|| self.recycle_text())
             .or_else(|| self.fab_text())
             .or_else(|| self.datacenter_text())
-            .or_else(|| self.tower_text());
+            .or_else(|| self.tower_text())
+            .or_else(|| self.optimizer_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;
         }
@@ -100,7 +101,7 @@ impl Processor {
         }
         if !matches!(
             self.energy(),
-            Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Hoist
+            Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Hoist | Energy::Optimizer
         ) {
             lines.push("Right-click to open".to_string());
         }

@@ -295,7 +295,10 @@ pub const TOWER_TOP: u16 = 263;
 /// The AI lab's neural-net panels and crown (`textures/compute.rs`).
 pub const AI_SIDE: u16 = 264;
 pub const AI_TOP: u16 = 265;
-pub const COUNT: usize = 266;
+/// The optimizer's amber-banded panels and its lens crown (`textures/compute.rs`).
+pub const OPT_SIDE: u16 = 266;
+pub const OPT_TOP: u16 = 267;
+pub const COUNT: usize = 268;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

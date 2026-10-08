@@ -32,6 +32,7 @@ mod intake;
 mod legacy;
 mod model;
 mod nuclear;
+mod optimizer;
 mod parts;
 mod pump;
 mod recycler;
@@ -54,6 +55,7 @@ use hangar::Hangar;
 pub(super) use hydro::{run as run_hydro, sense as sense_hydro};
 pub use legacy::{read_constructor, read_smelter};
 pub(super) use nuclear::run as run_reactor;
+pub(super) use optimizer::{bonus_at as optimizer_bonus_at, bonuses as optimizer_bonuses};
 use pump::Pump;
 pub(super) use solar::run as run_renewables;
 use solar::Store;
@@ -184,7 +186,7 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
-            (Energy::Hoist | Energy::Cooling, _) => {
+            (Energy::Hoist | Energy::Cooling | Energy::Optimizer, _) => {
                 self.status = if power > 0 { Status::Working } else { Status::NoPower }
             }
             (Energy::Compute, _) => self.run_datacenter(power),
@@ -206,7 +208,7 @@ impl Processor {
             Pick::Recycle => return self.recycle_wants_power(),
             _ => {}
         }
-        matches!(self.energy(), Energy::Hoist | Energy::Cooling)
+        matches!(self.energy(), Energy::Hoist | Energy::Cooling | Energy::Optimizer)
             || self.datacenter_wants_power()
             || self.energy() == Energy::Electric
                 && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
@@ -219,7 +221,10 @@ impl Processor {
 
     /// Whether it runs at its grid's power share (electric machines and winches).
     pub fn draws_power(&self) -> bool {
-        matches!(self.energy(), Energy::Electric | Energy::Hoist | Energy::Compute | Energy::Cooling)
+        matches!(
+            self.energy(),
+            Energy::Electric | Energy::Hoist | Energy::Compute | Energy::Cooling | Energy::Optimizer
+        )
     }
 
     /// kW it draws while it works (0 unless electric).

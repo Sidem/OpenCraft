@@ -327,8 +327,10 @@ impl Factory {
         data.balance(processors, power, &unlocked, research);
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
+        let tuned = process::optimizer_bonuses(sinks.processors, power, data);
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
-            (m.speed, m.boost) = (power.speed(p), mining);
+            (m.speed, m.boost) =
+                (power.speed(p), mining * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED);
             m.step(deposits, world, tick, belts, &mut sinks, events);
         }
         for (q, &p) in quarries.iter_mut().zip(&power.quarry_pole) {
@@ -344,7 +346,7 @@ impl Factory {
                 share = share * data.satisfaction(data.process_node[i]) / power::FULL_SPEED;
                 // a data consumer
             }
-            m.boost = machines;
+            m.boost = machines * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED;
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);

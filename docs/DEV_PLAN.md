@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) and 11.5 (AI lab) are committed, 11.6 (endless bonus techs) is built and uncommitted (683 tests). Next: step 11.7, the optimizer node** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) and 11.5 (AI lab) are committed, 11.6 (endless bonus techs) is committed, 11.7 (optimizer node) is built and uncommitted (689 tests). Next: step 11.8, laser power links** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -437,8 +437,8 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 40) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 103, item 382, tech 66, machine recipe 64). Each new look gets a
-  placeholder layer (`tex::COUNT` is 266) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 104, item 382, tech 67, machine recipe 64). Each new look gets a
+  placeholder layer (`tex::COUNT` is 268) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -533,9 +533,7 @@ what compute buys, laser links, helpers, cleanup.
   (linear) through `Research::rate_permille`, read once a tick in `Factory::update` into the derived `Miner::boost` and
   `Processor::boost` (work of recipes only) and by `Sim::flight_step` for construction and cargo drones. The research screen
   shows "level N" and the next unit's seconds (`tech_endless`). Tests 673 → 683.)
-- [ ] **11.7 Optimizer node** (`process/optimizer.rs`; tech Optimizer). A consumer on the data grid (20 TF): machines of the grid
-  within 16 blocks run 25% faster while it gets its compute. Not stacking (the best node in range counts). Done when: a smelter
-  in range shows ×1.25 and loses it in a compute shortage.
+- [x] **11.7 Optimizer node** (built 2026-10-08: `process/optimizer.rs`, block 103, `Energy::Optimizer` (a power sink like the winch), tech Optimizer 66 in the new `research/ai.rs` (needs AI Research; append later Milestone 11 techs there, after the bonus techs), textures 266–267, 2×2×2, 150 kW, a data consumer of 20 TF that always wants it. **Differs from the first idea:** range, not grid: every processor and miner whose anchor is within 16 blocks gets +25% whatever grid it is on, scaled by the optimizer's power share times its grid's satisfaction (so a shortage weakens it smoothly, and none gives nothing); a machine takes the best optimizer in range (`bonus_at`). It multiplies into `boost` in `Factory::update` beside the research bonuses (`bonuses` reads this tick's balance, never a derived `speed`, so a loaded core matches). Hand recipe 8 steel plates, 4 accelerators, 10 processors, 10 circuits, 4 glass. No save change; golden hash re-recorded for the new tech. Tests 683 → 689.)
 - [ ] **11.8 Laser power links** (`factory/laser.rs`; emitter and receiver blocks, tech Photonics). An emitter and a receiver
   within 128 blocks (Mk tiers to 512) with a clear line become one edge of the power grid at 90% efficiency; the edge is
   rechecked only when a block in its path changes (`block_anywhere`; glass lets the beam through) and the path is cached.
@@ -600,6 +598,6 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.
+- **2026-10-08: Optimizer node (step 11.7).** ``process/optimizer.rs`` (block 103, ``Energy::Optimizer``, tech Optimizer 66 in ``research/ai.rs``, textures 266–267): +25% to machines within 16 blocks. Tests 683 → 689. Next free block 104, tech 67, texture 268.`n- **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.
 - **2026-10-08: AI lab (step 11.5).** `process/ailab.rs` (block 102, tech AI Labs 61, AI Research 62, textures 264–265), `LabStatus::NeedsAi`, `research::needs_ai_lab`. Golden hash re-recorded, save version stays 40. Tests 668 → 673. Next free block 103, tech 63, texture 266.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

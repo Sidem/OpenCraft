@@ -58,3 +58,14 @@ pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
             that makes or uses compute (TF) hangs on the nearest node within 5 blocks. Thin light lines show what \
             is joined. A grid shares its compute between its consumers: a shortage slows them all alike.",
 };
+
+pub const OPTIMIZER_RECIPE: Recipe = Recipe {
+    output: b(OPTIMIZER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 8), (AI_ACCELERATOR, 4), (PROCESSOR, 10), (CIRCUIT, 10), (b(GLASS), 4)],
+    blurb:
+        "A booster for the data grid, 2×2×2. It always uses 20 TF (a fibre node within 5 blocks, a datacenter on the \
+            grid) and 150 kW, and in return every machine within 16 blocks works 25% faster, miners included. Several \
+            optimizers do not add up: a machine takes the best one in range. A shortage of power or compute weakens it.",
+};

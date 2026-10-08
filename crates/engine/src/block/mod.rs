@@ -141,7 +141,9 @@ pub const DATACENTER: BlockId = 100;
 pub const COOLING_TOWER: BlockId = 101;
 /// The AI lab (`factory/process/ailab.rs`).
 pub const AI_LAB: BlockId = 102;
-pub const BLOCK_COUNT: usize = 103;
+/// The optimizer node (`factory/process/optimizer.rs`).
+pub const OPTIMIZER: BlockId = 103;
+pub const BLOCK_COUNT: usize = 104;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -368,6 +370,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Datacenter", true, 2.8, pillar(tex::DC_SIDE, tex::DC_TOP, tex::FRAME), DATACENTER),
     machine("Cooling Tower", true, 2.6, pillar(tex::TOWER_SIDE, tex::TOWER_TOP, tex::FRAME), COOLING_TOWER),
     machine("AI Lab", true, 2.4, pillar(tex::AI_SIDE, tex::AI_TOP, tex::FRAME), AI_LAB),
+    machine("Optimizer", true, 2.4, pillar(tex::OPT_SIDE, tex::OPT_TOP, tex::FRAME), OPTIMIZER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

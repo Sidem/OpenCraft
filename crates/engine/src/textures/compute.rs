@@ -24,6 +24,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::TOWER_TOP => tower_top(x, y),
         tex::AI_SIDE => ai_side(x, y),
         tex::AI_TOP => ai_top(x, y),
+        tex::OPT_SIDE => opt_side(x, y),
+        tex::OPT_TOP => opt_top(x, y),
         _ => fab_top(x, y),
     }
 }
@@ -180,4 +182,31 @@ fn ai_top(x: i32, y: i32) -> [u8; 4] {
         return rgb([200.0, 250.0, 255.0], 1.0);
     }
     rgb([20.0, 26.0, 44.0], 0.9 + 0.2 * n(643, x, y))
+}
+
+/// A dark panel with amber horizontal bands over a fine scale: the machines it quickens.
+fn opt_side(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return frame(x, y);
+    }
+    if y % 5 == 2 {
+        return rgb([255.0, 176.0, 64.0], 0.85 + 0.3 * n(651, x, y));
+    }
+    if x % 4 == 1 {
+        return rgb([60.0, 44.0, 28.0], 0.9 + 0.2 * n(652, x, y));
+    }
+    rgb([26.0, 24.0, 32.0], 0.9 + 0.2 * n(653, x, y))
+}
+
+/// A dark crown with an amber lens ring and a white-hot centre.
+fn opt_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r2 = dx * dx + dy * dy;
+    if (20.0..34.0).contains(&r2) {
+        return rgb([255.0, 190.0, 70.0], 1.0);
+    }
+    if r2 < 6.0 {
+        return rgb([255.0, 244.0, 210.0], 1.0);
+    }
+    rgb([28.0, 24.0, 34.0], 0.9 + 0.2 * n(654, x, y))
 }
