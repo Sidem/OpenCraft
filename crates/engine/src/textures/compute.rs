@@ -18,6 +18,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::NODE_SIDE => node_side(x, y),
         tex::NODE_TOP => node_top(x, y),
         tex::FIBRE => fibre(x, y),
+        tex::DC_SIDE => dc_side(x, y),
+        tex::DC_TOP => dc_top(x, y),
         _ => fab_top(x, y),
     }
 }
@@ -101,4 +103,24 @@ fn node_top(x: i32, y: i32) -> [u8; 4] {
 /// The light a fibre line carries: pale cyan with a faint grain.
 fn fibre(x: i32, y: i32) -> [u8; 4] {
     rgb([150.0, 240.0, 250.0], 0.92 + 0.14 * n(624, x, y))
+}
+
+/// Rows of dark server racks with a lit green indicator strip on every other row.
+fn dc_side(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return rgb([70.0, 76.0, 96.0], 0.9 + 0.1 * n(625, x, y));
+    }
+    if y % 4 == 2 && x % 3 != 0 {
+        let lit = n(626, x, y) > 0.45;
+        return if lit { rgb([90.0, 235.0, 130.0], 1.0) } else { rgb([30.0, 80.0, 50.0], 1.0) };
+    }
+    rgb([34.0, 38.0, 50.0], 0.9 + 0.2 * n(627, x, y) + 0.08 * smooth(628, x, y, 4))
+}
+
+/// A steel roof with a square vent grille.
+fn dc_top(x: i32, y: i32) -> [u8; 4] {
+    if (3..=12).contains(&x) && (3..=12).contains(&y) {
+        return if (x + y) % 2 == 0 { rgb([150.0, 156.0, 168.0], 1.0) } else { rgb([24.0, 26.0, 32.0], 1.0) };
+    }
+    frame(x, y)
 }

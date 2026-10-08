@@ -18,6 +18,16 @@ pub const CHIP_FAB_RECIPE: Recipe = Recipe {
             hatches and take the product from the front; it takes whatever its recipes use. Needs 1 MW.",
 };
 
+pub const DATACENTER_RECIPE: Recipe = Recipe {
+    output: b(DATACENTER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(STEEL_BEAM, 40), (b(CONCRETE), 20), (AI_ACCELERATOR, 16), (COPPER_WIRE, 32)],
+    blurb: "An AI datacenter, 4×4×3 (R turns it before you place it). Needs 3 MW all the time and gives the data grid \
+            100 TF when it has it: put a fibre node within 5 blocks. It runs hot: pipe water from a pump to its blue \
+            inlet on the left, or it shuts down after 20 seconds and gives nothing until it has cooled.",
+};
+
 pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
     output: b(FIBRE_NODE),
     group: Group::Production,

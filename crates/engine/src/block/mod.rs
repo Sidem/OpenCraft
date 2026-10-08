@@ -135,7 +135,9 @@ pub const RECYCLER: BlockId = 97;
 pub const CHIP_FAB: BlockId = 98;
 /// A fibre node: the data grid's post (factory/fibre.rs, Milestone 11).
 pub const FIBRE_NODE: BlockId = 99;
-pub const BLOCK_COUNT: usize = 100;
+/// The AI datacenter (`factory/process/datacenter.rs`, Milestone 11).
+pub const DATACENTER: BlockId = 100;
+pub const BLOCK_COUNT: usize = 101;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -359,6 +361,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Recycler", true, 1.6, pillar(tex::RECYCLER_SIDE, tex::RECYCLER_TOP, tex::FRAME), RECYCLER),
     machine("Chip Fab", true, 2.4, pillar(tex::FAB_SIDE, tex::FAB_TOP, tex::FRAME), CHIP_FAB),
     machine("Fibre Node", true, 0.8, pillar(tex::NODE_SIDE, tex::NODE_TOP, tex::FRAME), FIBRE_NODE),
+    machine("Datacenter", true, 2.8, pillar(tex::DC_SIDE, tex::DC_TOP, tex::FRAME), DATACENTER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

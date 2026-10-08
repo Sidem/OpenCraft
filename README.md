@@ -409,7 +409,11 @@ size.
   wire). Nodes within 12 blocks join into one data grid by themselves, and a machine that makes or uses compute (TF) hangs on
   the nearest node within 5 blocks; thin light lines show what is joined, and a node's readout gives the grid's supply and
   demand. A grid shares its compute among its consumers, so a shortage slows them all alike, and a consumer with no node in
-  reach does not run. Datacenters, which make the compute, are next.
+  reach does not run.
+- **Datacenters.** The Datacenters tech (after Accelerators, Data Network and Diesel Power) gives the **AI datacenter**: a 4×4×3
+  hall (40 beams, 20 concrete, 16 accelerators, 32 copper wire) that draws 3 MW all the time and gives its data grid 100 TF at
+  full power. It runs hot: pipe water from a pump to its blue inlet on the left (a unit per 10 seconds), or it shuts down after
+  about 20 seconds, drawing and giving nothing, until it has cooled.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

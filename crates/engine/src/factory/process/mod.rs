@@ -20,6 +20,7 @@
 //! To add a processor: a spec row (`specs.rs`). New behaviour (flows) goes here.
 
 mod center;
+mod datacenter;
 mod diesel;
 mod docks;
 mod fab;
@@ -178,6 +179,7 @@ impl Processor {
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
             (Energy::Hoist, _) => self.status = if power > 0 { Status::Working } else { Status::NoPower },
+            (Energy::Compute, _) => self.run_datacenter(power),
             (e, _) if e.is_source() => {}
             (_, Pick::Recycle) => self.recycle(power),
             (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research) => {}
@@ -197,6 +199,7 @@ impl Processor {
             _ => {}
         }
         self.energy() == Energy::Hoist
+            || self.datacenter_wants_power()
             || self.energy() == Energy::Electric
                 && (self.batch.is_some() || self.next(unlocked).is_ok_and(|i| self.blocked(i).is_none()))
     }
@@ -208,7 +211,7 @@ impl Processor {
 
     /// Whether it runs at its grid's power share (electric machines and winches).
     pub fn draws_power(&self) -> bool {
-        matches!(self.energy(), Energy::Electric | Energy::Hoist)
+        matches!(self.energy(), Energy::Electric | Energy::Hoist | Energy::Compute)
     }
 
     /// kW it draws while it works (0 unless electric).

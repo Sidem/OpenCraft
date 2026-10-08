@@ -8,10 +8,10 @@
 use super::lab::LAB_PACK_SLOTS;
 use crate::block::{
     BlockId, ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CABLE, CENTRIFUGE, CHEMICAL_PLANT,
-    CHIP_FAB, CONSTRUCTOR, CRACKER, CRUSHER, DIESEL_GENERATOR, DRONE_PORT, ELECTROLYSER, ELECTROLYTIC_CELL, FAST_BELT,
-    FIBRE_NODE, FILTER, GENERATOR, LAB, LIFT, LOADING_DOCK, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, PUMPJACK,
-    QUARRY, RAIL, RAMP_DOWN, RAMP_UP, REACTOR, RECYCLER, REFINERY, RESEARCH_CENTER, SENSOR, SILO, SMELTER, SOLAR_PANEL,
-    SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK, WASHER, WATER_WHEEL, WINCH,
+    CHIP_FAB, CONSTRUCTOR, CRACKER, CRUSHER, DATACENTER, DIESEL_GENERATOR, DRONE_PORT, ELECTROLYSER, ELECTROLYTIC_CELL,
+    FAST_BELT, FIBRE_NODE, FILTER, GENERATOR, LAB, LIFT, LOADING_DOCK, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP,
+    PUMPJACK, QUARRY, RAIL, RAMP_DOWN, RAMP_UP, REACTOR, RECYCLER, REFINERY, RESEARCH_CENTER, SENSOR, SILO, SMELTER,
+    SOLAR_PANEL, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK, WASHER, WATER_WHEEL, WINCH,
 };
 /// Machine kinds, in `MACHINES` order.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -44,7 +44,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 52] = [
+pub const MACHINES: [MachineDef; 53] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -90,6 +90,7 @@ pub const MACHINES: [MachineDef; 52] = [
     MachineDef { block: REACTOR, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: RECYCLER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: CHIP_FAB, kind: Kind::Process, slots: 0, panel: true },
+    MachineDef { block: DATACENTER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: RESEARCH_CENTER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: WATER_WHEEL, kind: Kind::Process, slots: 0, panel: false },
     MachineDef { block: WINCH, kind: Kind::Process, slots: 0, panel: false },

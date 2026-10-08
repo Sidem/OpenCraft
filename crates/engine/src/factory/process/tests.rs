@@ -36,8 +36,15 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
         assert!(s.tiers.len() >= family, "block {} has fewer tier rows than items", s.block);
         let [input, fuel, out] = s.buffers;
         let steam = s.tiers.iter().any(|t| {
-            let sources =
-                [Energy::Boiler, Energy::Turbine, Energy::Solar, Energy::Accumulator, Energy::Hydro, Energy::Reactor];
+            let sources = [
+                Energy::Boiler,
+                Energy::Turbine,
+                Energy::Solar,
+                Energy::Accumulator,
+                Energy::Hydro,
+                Energy::Reactor,
+                Energy::Compute,
+            ];
             sources.contains(&t.energy) || t.energy == Energy::Hoist
         });
         assert!(

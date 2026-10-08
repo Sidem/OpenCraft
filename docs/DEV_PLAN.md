@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are built (653 tests, committed). Next: step 11.3, the AI datacenter** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is built and uncommitted (660 tests). Next: step 11.4, the cooling tower** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -437,8 +437,8 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 40) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 100, item 382, tech 59, machine recipe 64). Each new look gets a
-  placeholder layer (`tex::COUNT` is 260) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 101, item 382, tech 60, machine recipe 64). Each new look gets a
+  placeholder layer (`tex::COUNT` is 262) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -507,12 +507,14 @@ what compute buys, laser links, helpers, cleanup.
   `ProcessSpec` field, TF at full power: positive makes, negative uses) hangs on the nearest node within 5. A producer gives its TF
   times its power speed; a consumer wants its TF while it wants power and runs at power speed × the grid's satisfaction (0 with
   no node: "No data link"). No real machine uses `compute` yet (11.3's datacenter is the first producer). `factory/machine.rs`
-  split out of `factory/mod.rs`; `process/specs.rs` is at 405 lines: move its inline rows out before adding a spec. Tests 647 → 653.)- [ ] **11.3 AI datacenter** (`process/datacenter.rs`, `Energy::Compute`; block, textures, tech Datacenters after Wafers, Data
-  Network and Nuclear Power or Diesel Power). 4×4×3 hall, 3 MW electric, 100 TF at full power, supplying the data grid. **Heat**
-  uses the reactor's model (coolant in `steam.water`, heat in `progress`, `Status::Overheated` with hysteresis), so no new
-  concept: without coolant it heats up and stops. Hand recipe 40 beams, 20 concrete, 16 accelerators, 32 copper wire. Mk tiers
-  add racks (+50% compute for +50% power and heat). Done when: a datacenter on a grid with enough power and water gives
-  compute, shuts down when overheated, and survives a save.
+  split out of `factory/mod.rs`; `process/specs.rs` is at 408 lines: move its inline rows out before adding a spec. Tests 647 → 653.)
+- [x] **11.3 AI datacenter** (built 2026-10-08: `process/datacenter.rs`, `Energy::Compute`, block 100 Datacenter, tech Datacenters 59 (needs
+  Accelerators, Data Network, Diesel Power), textures 260–261, 4×4×3 hall, 3 MW, 100 TF at full power times its power share, hung on
+  a fibre node like any producer. **Heat** is the reactor's model (heat in `progress`, coolant in `steam.water` filled by `draw_water`
+  from a pump pipe to its blue inlet, a unit per 10 s of full load, `Status::Overheated` with hysteresis): without coolant it sheds
+  only 5% of its load, so it trips after about 21 s, draws nothing and gives no compute (`Data::balance` skips it) until the heat has
+  halved. Hand recipe 40 beams, 20 concrete, 16 accelerators, 32 copper wire. No save change (`SAVE_VERSION` stays 40), golden hash
+  re-recorded. **Not yet:** Mk rack tiers (+50% compute for +50% power and heat): a later step if wanted. Tests 653 → 660.)
 - [ ] **11.4 Cooling tower and the coolant loop** (`process/tower.rs`; 3×3×5, block, tech Cooling). Water in and out by pipes:
   a datacenter piped to a tower sends its hot water there and the tower returns it cool, losing only a trickle (open-loop
   datacenters keep spending water as in 11.3, so a river or pump is the other choice). Hand recipe: concrete, pipes, motors.
@@ -593,6 +595,6 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-08: AI datacenter (step 11.3).** `process/datacenter.rs` (block 100, `Energy::Compute`, tech Datacenters 59, textures 260–261): 3 MW, 100 TF, reactor-style heat and coolant. Golden hash re-recorded, save version stays 40. Tests 653 → 660. Next free block 101, tech 60, texture 262.
 - **2026-10-08: Data grid (step 11.2).** `factory/fibre.rs` (block 99, `Kind::Node`, save version 40, `ProcessSpec::compute`, tech Data Network 58, textures 257–259), `factory/machine.rs` split out of `factory/mod.rs`. Golden hash re-recorded. Tests 647 → 653. Next free block 100, tech 59, texture 260.
-- **2026-10-08: Performance review, grid colours** (user request). Measured a 30 000-belt base (`factory/tests/bench.rs`): ticks 0.14 ms, a relink 2.9 ms, instances 0.7 ms; fixed P1 (cached unlocked recipes), dropped P2, parked P3–P5 (section 4). E1 built: grid accent colours (`factory/grid_colour.rs`, textures 251–256, `COUNT` 257). Tests 643 → 647. Chip fab (11.1) is committed (`d1f01fa`).
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

@@ -44,6 +44,8 @@ pub enum Energy {
     Hoist,
     /// A nuclear reactor: a water-cooled power source burning fuel cells (nuclear.rs).
     Reactor,
+    /// A datacenter: draws power at all times and gives the data grid compute, water-cooled (datacenter.rs).
+    Compute,
 }
 
 impl Energy {
@@ -149,6 +151,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::nuclear::REACTOR_SPEC,
     super::recycler::RECYCLER_SPEC,
     super::fab::FAB_SPEC,
+    super::datacenter::DATACENTER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

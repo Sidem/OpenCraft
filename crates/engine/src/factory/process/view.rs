@@ -25,7 +25,8 @@ impl Processor {
             .or_else(|| self.reactor_text())
             .or_else(|| self.center_text())
             .or_else(|| self.recycle_text())
-            .or_else(|| self.fab_text());
+            .or_else(|| self.fab_text())
+            .or_else(|| self.datacenter_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;
         }

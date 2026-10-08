@@ -286,7 +286,10 @@ pub const GRID_LAST: u16 = GRID_FIRST + GRID_COLOURS as u16 - 1;
 pub const NODE_SIDE: u16 = 257;
 pub const NODE_TOP: u16 = 258;
 pub const FIBRE: u16 = 259;
-pub const COUNT: usize = 260;
+/// The datacenter's server hall and roof (`textures/compute.rs`).
+pub const DC_SIDE: u16 = 260;
+pub const DC_TOP: u16 = 261;
+pub const COUNT: usize = 262;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

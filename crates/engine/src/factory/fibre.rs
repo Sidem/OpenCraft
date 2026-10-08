@@ -18,7 +18,7 @@ use crate::math::{IVec3, Vec3};
 
 use super::pole::dist2;
 use super::power::{wire, Power, FULL_SPEED};
-use super::process::Processor;
+use super::process::{Processor, Status};
 use super::render::push_box;
 use super::{Factory, Machine};
 
@@ -107,6 +107,9 @@ impl Data {
             let Some(node) = self.process_node[i] else { continue };
             let grid = self.node_grid[node as usize] as usize;
             if p.spec.compute > 0 {
+                if p.status == Status::Overheated {
+                    continue; // a tripped datacenter gives nothing
+                }
                 let speed = power.speed(power.process_pole[i]);
                 self.supply[grid] += p.spec.compute as u32 * speed / FULL_SPEED;
             } else if p.wants_power(unlocked, research) {

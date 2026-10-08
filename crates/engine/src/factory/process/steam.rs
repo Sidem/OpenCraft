@@ -213,6 +213,7 @@ pub(in crate::factory) fn draw_water(processors: &mut [Processor], pipework: &mu
         let (low, unit) = match b.energy() {
             Energy::Boiler => (WATER_LOW, UNIT_ENERGY),
             Energy::Reactor => (COOLANT_LOW, COOLANT_UNIT),
+            Energy::Compute => (super::datacenter::COOLANT_LOW, super::datacenter::COOLANT_UNIT),
             _ => (MACHINE_WATER, 1),
         };
         if b.steam.water >= low {
