@@ -4,7 +4,7 @@
 use crate::block::{COAL_ORE, DIRT, GENERATOR, POLE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::{Factory, Machine};
-use crate::item::{ItemId, COIN, COIN_STACK, IRON_INGOT, IRON_PLATE, MOTOR, STEEL_PICKAXE, STICK};
+use crate::item::{ItemId, COIN, COIN_STACK, IRON_INGOT, IRON_PLATE, STEEL_PICKAXE, STICK};
 use crate::math::IVec3;
 use crate::recipes::recycling::{coins, millicoins};
 use crate::research::TECHS;
@@ -58,7 +58,7 @@ fn it_destroys_items_and_pays_what_they_are_worth() {
     f.insert(IVec3::ZERO, IRON_PLATE, 2);
     run(&mut f, 3);
     let r = recycler(&f);
-    assert_eq!((r.input.total(), r.out.count(COIN)), (0, 4 * 2 + 2 * 8));
+    assert_eq!((r.input.total(), r.out.count(COIN)), (0, 4 * coins(IRON_INGOT) + 2 * coins(IRON_PLATE)));
     assert_eq!(r.power(), 90);
 }
 
@@ -74,24 +74,28 @@ fn coins_stack_to_1024_and_a_dear_item_is_paid_over_time() {
     f.insert(IVec3::ZERO, IRON_PLATE, 64);
     run(&mut f, 20);
     let r = recycler(&f);
-    assert_eq!(r.out.count(COIN), 64 * 8);
+    assert_eq!(r.out.count(COIN), 64 * coins(IRON_PLATE));
     assert!(r.out.slots.iter().all(|s| s.count <= COIN_STACK));
 }
 
 #[test]
 fn full_coin_slots_stop_it_and_taking_coins_starts_it_again() {
     let mut f = rig(true);
-    assert!(coins(MOTOR) > 50, "a motor pays a lot");
-    f.insert(IVec3::ZERO, MOTOR, 64);
+    let dear = ItemId::block(crate::block::DATACENTER);
+    assert!(coins(dear) * 128 > 4 * COIN_STACK, "128 of them pay more than the two slots and what it may owe");
+    f.insert(IVec3::ZERO, dear, 64);
+    f.insert(IVec3::ZERO, dear, 64);
     run(&mut f, 60);
     let r = recycler(&f);
     assert_eq!(r.status, Status::OutputFull);
     assert_eq!((r.out.count(COIN), r.owed >= OWED_MAX), (2 * COIN_STACK, true));
     assert!(r.input.total() > 0);
     assert!(r.status_text().starts_with("Output full"), "{}", r.status_text());
-    f.take_contents(IVec3::ZERO, |item, n| if item == COIN { n } else { 0 });
-    run(&mut f, 60);
-    assert_eq!(recycler(&f).input.total(), 0, "every motor destroyed once there was room");
+    for _ in 0..4 {
+        f.take_contents(IVec3::ZERO, |item, n| if item == COIN { n } else { 0 });
+        run(&mut f, 60);
+    }
+    assert_eq!(recycler(&f).input.total(), 0, "every one destroyed once there was room");
 }
 
 #[test]
@@ -118,11 +122,11 @@ fn what_it_owes_is_saved_and_given_back_when_it_is_broken() {
 }
 
 #[test]
-fn halves_add_up_and_a_tool_goes_in_one_piece() {
+fn a_tool_goes_in_one_piece_and_pays_per_use() {
     let mut f = rig(true);
     f.insert(IVec3::ZERO, STICK, 3);
     run(&mut f, 3);
-    assert_eq!(recycler(&f).out.count(COIN), 1, "three sticks pay 1½ coins: one is paid, the half waits");
+    assert_eq!(recycler(&f).out.count(COIN), 3 * coins(STICK), "a stick pays a whole coin");
     let mut f = rig(true);
     let uses = crate::tools::STEEL_TIER.uses;
     f.insert(IVec3::ZERO, STEEL_PICKAXE, uses);

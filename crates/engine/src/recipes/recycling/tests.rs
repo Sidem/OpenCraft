@@ -3,62 +3,74 @@ use crate::block::{
     BELT, CONCRETE, COPPER_ORE, DIRT, GLASS, IRON_ORE, LEAVES, LOG, PLANKS, SAND, SAPLING, SLAG, STONE, TAILINGS,
 };
 use crate::item::{
-    ItemId, COIN, COPPER_WIRE, CRUSHED_IRON, DRONE, GEAR, IRON_INGOT, IRON_PLATE, IRON_ROD, SCREW, STEEL_INGOT,
-    STEEL_PICKAXE, STICK, WASHED_IRON,
+    ItemId, COIN, COPPER_WIRE, CRUSHED_IRON, DRONE, GEAR, IRON_INGOT, IRON_PICKAXE, IRON_PLATE, IRON_ROD, STEEL_INGOT,
+    STEEL_PICKAXE, STONE_PICKAXE, WASHED_IRON,
 };
 
 fn b(block: u8) -> ItemId {
     ItemId::block(block)
 }
 
-/// What `item` pays, in whole coins and a thousandth of one.
-fn pays(item: ItemId) -> f64 {
-    millicoins(item) as f64 / MILLI as f64
+/// What a whole `item` pays, in coins (a tool: all its uses).
+fn pays(item: ItemId) -> u64 {
+    let uses = crate::tools::tool(item).map_or(1, |t| t.tier.uses as u64);
+    (millicoins(item) as u64 * uses + MILLI as u64 / 2) / MILLI as u64
+}
+
+/// Every real item, with what it pays whole.
+fn all() -> Vec<(ItemId, u64)> {
+    (1..ITEM_COUNT as u16).map(ItemId).filter(|&i| i != COIN && i.is_valid()).map(|i| (i, pays(i))).collect()
 }
 
 #[test]
-fn raw_things_pay_one() {
-    for item in [DIRT, SAND, LEAVES, SAPLING, LOG, STONE, IRON_ORE, COPPER_ORE] {
-        assert_eq!(coins(b(item)), 1, "{}", crate::item::name(b(item)));
+fn the_dearest_item_pays_exactly_the_maximum_and_nothing_pays_more() {
+    let max = all().into_iter().map(|(_, c)| c).max().unwrap();
+    assert_eq!(max, MAX_COINS);
+}
+
+#[test]
+fn every_item_pays_a_whole_number_of_coins_and_at_least_one() {
+    for (item, coins) in all() {
+        assert!(coins >= 1, "{} pays nothing", crate::item::name(item));
+        let uses = crate::tools::tool(item).map_or(1, |t| t.tier.uses as u64);
+        if uses == 1 {
+            assert_eq!(millicoins(item) % MILLI, 0, "{} pays a fraction", crate::item::name(item));
+        }
     }
 }
 
 #[test]
-fn each_step_of_processing_doubles_it() {
-    assert_eq!(coins(IRON_INGOT), 2, "smelted");
-    assert_eq!(coins(IRON_ROD), 4, "smelted, then pressed");
-    assert_eq!(coins(COPPER_WIRE), 2, "two wires from an ingot (2), the batch doubled to 4, shared out");
-    assert_eq!(coins(IRON_PLATE), 8, "two ingots pressed");
-    assert_eq!(coins(SCREW), 2, "four from a rod");
-    assert_eq!(coins(GEAR), 16, "a plate pressed again");
-    assert_eq!(coins(STEEL_INGOT), 10, "two ore, a coal and a quicklime (smelted limestone) blasted");
+fn raw_things_and_waste_pay_the_same() {
+    let raw = pays(b(DIRT));
+    for item in [SAND, LEAVES, SAPLING, LOG, STONE, IRON_ORE, COPPER_ORE, SLAG, TAILINGS] {
+        assert_eq!(pays(b(item)), raw, "{}", crate::item::name(b(item)));
+    }
+    assert!(is_waste(b(SLAG)) && !is_waste(b(SAND)));
 }
 
 #[test]
-fn small_shares_pay_a_fraction_that_adds_up() {
-    assert_eq!(pays(b(PLANKS)), 0.5, "four from a log: the batch's 2 coins shared out");
-    assert_eq!(pays(STICK), 0.5);
-    // A steel pickaxe is 1500 uses made from 68 coins of parts: its batch of 136 coins is spread over its uses.
-    let batch = millicoins(STEEL_PICKAXE) as u64 * crate::tools::STEEL_TIER.uses as u64;
-    assert!((136_000..136_000 + 1500).contains(&batch), "{batch}");
+fn processing_adds_value_along_a_chain() {
+    assert!(pays(IRON_INGOT) >= pays(b(IRON_ORE)));
+    assert!(pays(IRON_PLATE) >= pays(IRON_INGOT));
+    assert!(pays(GEAR) >= pays(IRON_PLATE));
+    assert!(pays(STEEL_INGOT) >= pays(IRON_INGOT));
+    assert!(pays(IRON_ROD) >= pays(IRON_INGOT) && pays(COPPER_WIRE) >= 1);
+    assert!(pays(b(CONCRETE)) >= pays(b(SAND)) && pays(b(GLASS)) >= pays(b(SAND)));
+    assert!(pays(b(PLANKS)) >= 1);
 }
 
 #[test]
 fn the_route_does_not_change_the_worth() {
-    // Raw, crushed and washed ore all end in the same ingot, and the crushed and washed ones are not worth less
-    // than the ore (a better route cannot lower what an ingot is worth, nor print coins).
-    assert_eq!(coins(IRON_INGOT), 2);
+    // Crushed and washed ore end in the same ingot, and are not worth less than the ore.
     assert!(millicoins(CRUSHED_IRON) >= millicoins(b(IRON_ORE)));
     assert!(millicoins(WASHED_IRON) >= millicoins(b(IRON_ORE)));
 }
 
 #[test]
-fn waste_pays_one_and_so_does_what_is_crushed_from_it() {
-    assert_eq!(coins(b(SLAG)), 1);
-    assert_eq!(coins(b(TAILINGS)), 1);
-    assert_eq!(coins(b(SAND)), 1, "sand crushed from slag is still 1");
-    assert_eq!(coins(b(GLASS)), 1, "glass is cheapest from quartz: 2 a smelted ore, so the batch's 2 is shared out");
-    assert!(is_waste(b(SLAG)) && !is_waste(b(SAND)));
+fn a_tool_pays_by_its_uses_so_a_worn_one_pays_less() {
+    assert!(pays(STEEL_PICKAXE) > pays(IRON_PICKAXE) && pays(IRON_PICKAXE) > pays(STONE_PICKAXE));
+    let per_use = millicoins(STEEL_PICKAXE);
+    assert!((1..MILLI).contains(&per_use), "a use pays a fraction of a coin: {per_use}");
 }
 
 #[test]
@@ -74,29 +86,14 @@ fn the_coin_is_worth_nothing_and_every_other_item_something() {
 }
 
 #[test]
-fn no_recipe_could_lower_a_value() {
-    // The settled table is a fixpoint: a batch of any recipe is never worth less than what it makes, so a
-    // cheaper route would have been found. (Salvage from waste alone pays 1.)
-    let check = |inputs: &[(ItemId, u32)], outputs: &[(ItemId, u32)]| {
-        let shares: u64 = outputs.iter().filter(|o| !is_waste(o.0)).map(|o| o.1 as u64).sum();
-        if shares == 0 {
-            return;
-        }
-        let all_waste = inputs.iter().all(|i| is_waste(i.0));
-        let total: u64 = inputs.iter().map(|i| millicoins(i.0) as u64 * i.1 as u64).sum();
-        let each = if all_waste { MILLI as u64 } else { (STEP * total).div_ceil(shares) };
-        for o in outputs.iter().filter(|o| !is_waste(o.0) && o.0 != COIN) {
-            assert!(millicoins(o.0) as u64 <= each, "{} is worth more than a recipe makes it", crate::item::name(o.0));
-        }
-    };
-    MACHINE_RECIPES.iter().for_each(|r| check(r.inputs, r.outputs));
-    RECIPES.iter().for_each(|r| check(r.inputs, &[(r.output, r.count)]));
+fn values_keep_their_order() {
+    assert!(pays(DRONE) > pays(b(BELT)), "a drone is worth more than a belt");
+    assert!(pays(b(CONCRETE)) >= pays(b(DIRT)), "concrete is made");
 }
-
+/// `DUMP=table.tsv cargo test -p opencraft-engine dump_table -- --ignored` writes name and coins of every item.
 #[test]
-fn values_are_sane_for_a_machine_to_pay() {
-    let max = (1..ITEM_COUNT as u16).map(|i| millicoins(ItemId(i))).max().unwrap();
-    assert!(max < 400_000_000, "the dearest item pays {} coins", max / MILLI);
-    assert!(coins(DRONE) > coins(b(BELT)), "a drone is worth more than a belt");
-    assert!(coins(b(CONCRETE)) > 1, "concrete is made");
+#[ignore]
+fn dump_table() {
+    let rows: Vec<String> = all().iter().map(|&(i, c)| format!("{}\t{}\n", crate::item::name(i), c)).collect();
+    std::fs::write(std::env::var("DUMP").unwrap(), rows.concat()).unwrap();
 }

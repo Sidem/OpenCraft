@@ -1,35 +1,47 @@
-//! What a recycler pays for an item ([`millicoins`], thousandths of a coin so that a plank or one use of a tool can pay
-//! a fraction), worked out from the recipe tables at compile time: no per-item list to keep in step with them.
+//! What a recycler pays for an item ([`millicoins`], thousandths of a coin), worked out from the recipe tables at
+//! compile time: no per-item list to keep in step with them. Every item is worth a **whole number of coins**, and the
+//! dearest item in the game is worth exactly [`MAX_COINS`] (64).
 //!
-//! The rule: **every step of processing doubles the value of what goes in.** A batch (a machine or a hand recipe)
-//! is worth [`STEP`] times its inputs, shared out over the items it makes:
+//! How an item's coins are worked out (all in const evaluation, integers only):
 //!
-//! `value(item) = STEP × Σ value(input) × count / Σ count of items made` (rounded up to a millicoin)
+//! 1. Two passes over the recipes give each item a *material cost* `raw` (what the cheapest route consumes, in raw
+//!    items) and a *processed value* `deep` (the same with every step of processing doubling what goes in, [`STEP`]).
+//!    A batch is shared out over the items it makes; anything no recipe makes (ore, logs, dirt, leaves, saplings) is raw
+//!    and costs 1; an item with several recipes takes its cheapest; [`WASTE`] (slag, tailings) is 1 whatever it took, and
+//!    a recipe whose inputs are all waste only salvages (what it makes is 1).
+//! 2. The curve: `coins = ½ × CURVE_TOP × ((raw × deep) / (raw × deep of the dearest item)) ^ ¼`, with `CURVE_TOP` 128 rounded
+//!    to a whole coin first and then halved and rounded down (so the dearest pays `MAX_COINS` 64), at least 1. The product mixes material (how much went in) with processing (how deep the chain is),
+//!    and the fourth root flattens the exponential growth of deep chains: a drone port Mk5 pays about 55, not 57,000.
+//! 3. A tool is priced per use (its recipe makes `uses` of them); step 2 works on the whole tool (`raw`, `deep` times its
+//!    uses), and the whole tool's coins are then spread over its uses, so a worn tool pays in proportion.
 //!
-//! - Anything no recipe makes (ore, logs, dirt, leaves, saplings) is raw and worth 1 coin.
-//! - An item with several recipes is worth what its *cheapest* recipe gives, so an ingot is 2 whether it was smelted
-//!   from ore, crushed ore or washed ore (what an item is worth does not depend on how it was made, and a better
-//!   route cannot print coins). Plates (2 ingots) are 8, a rod (1 ingot) 4, screws (4 from a rod) 2 each, a plank (4 from a log) half a coin.
-//! - [`WASTE`] (slag, tailings) is worth 1 coin for good. A recipe whose inputs are all waste only salvages: what it makes
-//!   is worth 1 coin, so sand crushed from slag stays 1. Waste a batch leaves over takes no share of the batch's value,
-//!   and what is later made *from* that sand (glass) is an ordinary step again.
-//! - The coin is worth nothing; the recycler takes everything else.
+//! The coin is worth nothing; the recycler takes everything else. Because the curve is anchored on the dearest item, a
+//! new dearer item shifts every value: `tests.rs` prints nothing but checks the anchor, so re-read the table (README
+//! "Recycler" section) after adding late-game content.
 //!
-//! Invariants: the table is built by const evaluation (relaxation: values only fall, every cycle of recipes grows a
-//! value, so it settles); `tests.rs` checks every item has a value and that no recipe could lower one.
+//! Invariants: the tables are built by const evaluation (relaxation: values only fall, every cycle of recipes grows a
+//! value, so it settles); `tests.rs` checks every item has a value, the coin has none and the dearest pays `MAX_COINS`.
 //!
-//! To change the economy: [`STEP`], or [`WASTE`] for a new byproduct that should never pay more than 1.
-
+//! To change the economy: [`MAX_COINS`] (the scale), [`STEP`] (how much depth counts), the exponent in `coins_of`, or
+//! [`WASTE`] for a new byproduct that should never pay more than 1.
 use crate::block::{SLAG, TAILINGS};
 use crate::item::{ItemId, COIN, ITEM_COUNT};
+
+use crate::tools::TOOLS;
 
 use super::{Recipe, MACHINE_RECIPES, RECIPES};
 
 #[cfg(test)]
 mod tests;
 
-/// What each step of processing multiplies the value of its inputs by.
+/// What each step of processing multiplies the value of its inputs by (the `deep` pass).
 pub const STEP: u64 = 2;
+
+/// What the dearest item pays, in coins.
+pub const MAX_COINS: u64 = 64;
+
+/// The curve is worked out on this scale (twice `MAX_COINS`), then halved and rounded down.
+const CURVE_TOP: u64 = MAX_COINS * 2;
 
 /// Millicoins in a coin.
 pub const MILLI: u32 = 1000;
@@ -63,9 +75,77 @@ pub const fn is_waste(item: ItemId) -> bool {
 /// Not worked out yet.
 const UNSET: u64 = u64::MAX;
 
-static VALUES: [u32; ITEM_COUNT] = build();
+static VALUES: [u32; ITEM_COUNT] = finish(&build(1), &build(STEP));
 
-const fn build() -> [u32; ITEM_COUNT] {
+/// Uses of `item` if it is a tool (a recipe makes that many at once), else 1.
+const fn uses(item: usize) -> u64 {
+    let mut k = 0;
+    while k < TOOLS.len() {
+        if TOOLS[k].item.0 as usize == item {
+            return TOOLS[k].tier.uses as u64;
+        }
+        k += 1;
+    }
+    1
+}
+
+/// Floor of the square root.
+const fn isqrt(n: u128) -> u128 {
+    let (mut lo, mut hi) = (0u128, 1u128 << 40);
+    while lo < hi {
+        let mid = (lo + hi).div_ceil(2);
+        if mid * mid <= n {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    lo
+}
+
+/// The curve: whole coins for a whole item of material cost `raw` and processed value `deep` (millicoins), given the
+/// dearest item's `raw × deep`.
+const fn coins_of(raw: u64, deep: u64, top: u128) -> u64 {
+    let ratio = (raw as u128 * deep as u128) << 48;
+    let root = isqrt(isqrt(ratio / top)) as u64; // (raw × deep / top) ^ ¼, scaled by 2^12
+    let coins = ((CURVE_TOP * root + (1 << 11)) >> 12) / 2;
+    if coins == 0 {
+        1
+    } else {
+        coins
+    }
+}
+
+/// Turns the two passes into what one `item` pays, in millicoins.
+const fn finish(raw: &[u32; ITEM_COUNT], deep: &[u32; ITEM_COUNT]) -> [u32; ITEM_COUNT] {
+    let mut top = 1u128;
+    let mut i = 0;
+    while i < ITEM_COUNT {
+        if i != COIN.0 as usize {
+            let n = uses(i);
+            let x = (raw[i] as u64 * n) as u128 * (deep[i] as u64 * n) as u128;
+            if x > top {
+                top = x;
+            }
+        }
+        i += 1;
+    }
+    let mut out = [0u32; ITEM_COUNT];
+    i = 0;
+    while i < ITEM_COUNT {
+        if i != COIN.0 as usize && raw[i] > 0 {
+            let n = uses(i);
+            let coins = coins_of(raw[i] as u64 * n, deep[i] as u64 * n, top);
+            // Spread over its uses, never less than a millicoin a use.
+            let each = (coins * MILLI as u64 + n / 2) / n;
+            out[i] = if each == 0 { 1 } else { each as u32 };
+        }
+        i += 1;
+    }
+    out
+}
+
+const fn build(step: u64) -> [u32; ITEM_COUNT] {
     let mut v = [UNSET; ITEM_COUNT];
     let mut made = [false; ITEM_COUNT];
     let mut i = 0;
@@ -93,13 +173,13 @@ const fn build() -> [u32; ITEM_COUNT] {
         i = 0;
         while i < MACHINE_RECIPES.len() {
             let r = &MACHINE_RECIPES[i];
-            changed |= relax(&mut v, r.inputs, r.outputs);
+            changed |= relax(&mut v, step, r.inputs, r.outputs);
             i += 1;
         }
         i = 0;
         while i < RECIPES.len() {
             let r: &Recipe = &RECIPES[i];
-            changed |= relax(&mut v, r.inputs, &[(r.output, r.count)]);
+            changed |= relax(&mut v, step, r.inputs, &[(r.output, r.count)]);
             i += 1;
         }
     }
@@ -121,7 +201,7 @@ const fn mark(made: &mut [bool; ITEM_COUNT], outputs: &[(ItemId, u32)]) {
 }
 
 /// Lowers the value of what one batch makes, if the batch's inputs are all settled; whether anything changed.
-const fn relax(v: &mut [u64; ITEM_COUNT], inputs: &[(ItemId, u32)], outputs: &[(ItemId, u32)]) -> bool {
+const fn relax(v: &mut [u64; ITEM_COUNT], step: u64, inputs: &[(ItemId, u32)], outputs: &[(ItemId, u32)]) -> bool {
     let (mut total, mut all_waste) = (0u64, true);
     let mut k = 0;
     while k < inputs.len() {
@@ -144,7 +224,7 @@ const fn relax(v: &mut [u64; ITEM_COUNT], inputs: &[(ItemId, u32)], outputs: &[(
     if shares == 0 {
         return false;
     }
-    let each = if all_waste { MILLI as u64 } else { (STEP * total).div_ceil(shares) };
+    let each = if all_waste { MILLI as u64 } else { (step * total).div_ceil(shares) };
     let mut changed = false;
     k = 0;
     while k < outputs.len() {
