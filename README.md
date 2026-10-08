@@ -422,6 +422,10 @@ size.
   100 kW): a research center on the data grid. It researches at twice a lab's speed, takes every pack, makes every 2nd unit free
   of packs and uses 20 TF while it works, so it idles without a datacenter on its grid. Techs that cost compute (AI Research is
   the first) can be researched only in it; labs and centers say so.
+- **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
+  (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
+  no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the
+  screen shows the level, not a bar). Levels add up (10 levels: +30%), not compound.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

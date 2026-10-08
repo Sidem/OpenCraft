@@ -27,7 +27,7 @@ use crate::inventory::Stack;
 use crate::item::{self, BATTERY, CARGO_DRONE, DRONE};
 use crate::math::{IVec3, Vec3};
 use crate::sim::Sim;
-use crate::{TICK, TICK_RATE};
+use crate::TICK_RATE;
 
 use super::approach;
 use crate::factory::PortInfo;
@@ -187,7 +187,7 @@ impl Sim {
 
     /// Advances `c` one tick; false when it has landed or been lost.
     fn fly_courier(&mut self, c: &mut Courier) -> bool {
-        let step = SPEED * TICK;
+        let step = self.flight_step(SPEED);
         let up = Vec3::new(0.0, HOVER, 0.0);
         match c.leg {
             Leg::Out => {

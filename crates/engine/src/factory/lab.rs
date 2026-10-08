@@ -147,7 +147,7 @@ impl Lab {
 
     /// Whether it would work this tick if powered (its grid counts it as demand).
     pub fn wants_power(&self, research: &Research) -> bool {
-        self.unit.is_some() || research.current.is_some_and(|t| self.has_packs(t))
+        self.unit.is_some() || research.current.is_some_and(|t| !needs_ai_lab(t) && self.has_packs(t))
     }
 
     fn step(&mut self, research: &mut Research, taken: &mut [u32], speed: u32) {

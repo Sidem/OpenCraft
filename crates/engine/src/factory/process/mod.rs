@@ -75,6 +75,7 @@ use crate::research::Research;
 
 use super::belt::Belt;
 use super::buffer::Buffer;
+use super::power::FULL_SPEED;
 use super::{Factory, Machine};
 
 /// Byproducts a machine holds before it stops for want of a belt to take them (a stack is more than
@@ -114,6 +115,8 @@ pub struct Processor {
     pub owed: u32,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
+    /// The machine-speed bonus research gives, in thousandths (derived; 1000 is none), set before each tick.
+    pub boost: u32,
     /// Belt indices leading away from its output ports, and from its byproduct ports.
     pub outs: Vec<u32>,
     pub side_outs: Vec<u32>,
@@ -149,6 +152,7 @@ impl Processor {
             study: Study::default(),
             owed: 0,
             speed: 0,
+            boost: FULL_SPEED,
             outs: Vec::new(),
             side_outs: Vec::new(),
             next_out: 0,

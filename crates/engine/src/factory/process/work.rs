@@ -31,7 +31,7 @@ impl Processor {
             (self.batch, self.progress) = (Some(i), 0);
         }
         let Some(r) = self.batch_recipe() else { return };
-        let work = self.stats().speed * power / FULL_SPEED;
+        let work = self.stats().speed * power / FULL_SPEED * self.boost / FULL_SPEED;
         if self.energy() == Energy::Burner {
             if self.burn == 0 {
                 self.light();

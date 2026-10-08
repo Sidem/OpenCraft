@@ -15,7 +15,7 @@ use crate::block::{tex, RESEARCH_CENTER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::{self, stack_size, ItemId};
-use crate::research::{needs_ai_lab, pack_slot, Research, TECHS};
+use crate::research::{is_bonus, needs_ai_lab, pack_slot, Research, TECHS};
 
 use super::super::fibre::Data;
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
@@ -168,7 +168,7 @@ impl Processor {
         }
         self.set_study_status(Some(LabStatus::Working));
         self.study.progress += speed * self.stats().speed / 1000;
-        if self.study.progress >= ticks(TECHS[tech as usize].seconds) * FULL_SPEED {
+        if self.study.progress >= ticks(research.unit_seconds(tech)) * FULL_SPEED {
             research.add_unit(tech);
             taken[tech as usize] -= 1;
             (self.study.unit, self.study.progress, self.study.free) = (None, 0, false);
@@ -223,7 +223,11 @@ impl Processor {
         let mut out = String::new();
         if let Some(t) = self.study.unit.or(research.current) {
             let tech = &TECHS[t as usize];
-            out += &format!("\n{}: {} of {} units", tech.name, research.progress(t), tech.units);
+            out += &if is_bonus(t) {
+                format!("\n{}: level {}", tech.name, research.progress(t))
+            } else {
+                format!("\n{}: {} of {} units", tech.name, research.progress(t), tech.units)
+            };
         }
         let free = match self.free_every(&FREE_EVERY) {
             0 => String::new(),

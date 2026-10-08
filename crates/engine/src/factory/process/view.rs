@@ -34,7 +34,8 @@ impl Processor {
         let s = self.spec;
         match (self.status, self.batch_recipe().or(self.chosen())) {
             (Status::Working, Some(r)) => {
-                let share = self.stats().speed as f64 * self.speed as f64 / (FULL_SPEED * FULL_SPEED) as f64;
+                let share = self.stats().speed as f64 * self.speed as f64 * self.boost as f64
+                    / (FULL_SPEED * FULL_SPEED * FULL_SPEED) as f64;
                 let rate = (r.main().1 as f64 * 60.0 / r.seconds * share).round() as u32;
                 let slow =
                     if self.speed < FULL_SPEED { format!(" (low power: {}%)", self.speed / 10) } else { String::new() };

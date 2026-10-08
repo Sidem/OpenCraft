@@ -23,6 +23,7 @@ fn lint_techs(techs: &[Tech]) -> Vec<String> {
                 Unlock::Recipe(item) => RECIPES.iter().any(|r| r.output == item),
                 Unlock::MachineRecipe(r) => (r as usize) < MACHINE_RECIPES.len(),
                 Unlock::Upgrade(block, tier) => tier > 0 && crate::factory::tiers::item_of(block, tier).is_some(),
+                Unlock::Bonus(_) => true,
             };
             if !exists {
                 errors.push(format!("{} unlocks {u:?}, which doesn't exist", t.name));

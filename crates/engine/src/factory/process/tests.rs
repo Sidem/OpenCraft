@@ -1,7 +1,7 @@
 use super::*;
 use crate::block::{
     ARC_FURNACE, ASSEMBLER, BAUXITE_ORE, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, ELECTROLYTIC_CELL, GENERATOR,
-    IRON_ORE, LIMESTONE, POLE, QUARTZ_ORE, SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
+    IRON_ORE, LIMESTONE, MINER, POLE, QUARTZ_ORE, SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tests::{powered, recipe_for, run};
@@ -93,6 +93,30 @@ fn a_mk2_constructor_presses_twice_as_fast_and_draws_twice_the_power() {
     };
     assert_eq!(plates(0), (2, 15));
     assert_eq!(plates(1), (4, 30));
+}
+
+#[test]
+fn machine_speed_research_makes_a_constructor_press_faster() {
+    let plates = |level: u32| {
+        let mut f = Factory::default();
+        powered(&mut f);
+        place(&mut f, CONSTRUCTOR, IVec3::ZERO, 0);
+        assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(IRON_PLATE))).is_some());
+        f.insert(IVec3::ZERO, IRON_INGOT, 20);
+        (0..level).for_each(|_| f.research.add_unit(64)); // Machine Speed
+        run(&mut f, 4.05, |_| {});
+        f.constructor_at(IVec3::ZERO).out.count(IRON_PLATE)
+    };
+    assert_eq!((plates(0), plates(50)), (2, 5), "x2.5 at level 50: 0.8 s a plate");
+}
+
+#[test]
+fn mining_research_raises_a_miners_draw() {
+    let mut f = Factory::default();
+    place(&mut f, MINER, IVec3::ZERO, 0);
+    (0..10).for_each(|_| f.research.add_unit(63)); // Mining Productivity
+    f.update(&mut World::new(1, 2), 1, &mut Vec::new());
+    assert_eq!((f.miner_at(IVec3::ZERO).boost, f.miner_at(IVec3::ZERO).rate()), (1300, 1.3));
 }
 
 #[test]

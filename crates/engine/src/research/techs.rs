@@ -1,7 +1,7 @@
 //! The tech tree as data ([`TECHS`]): every tech's packs, cost, prerequisites (by index) and unlocks.
 //! Saves store progress by index, so append rows, never reorder (`research.rs` has the rules and the
 //! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s, `distance.rs`'s, `chemistry.rs`'s,
-//! `recycling.rs`'s and `compute.rs`'s techs (joined by `join.rs`); add to the last.
+//! `recycling.rs`'s, `compute.rs`'s and `bonus.rs`'s techs (joined by `join.rs`); add to the last.
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
@@ -16,6 +16,7 @@ use crate::recipes::{
     ELECTRONICS_RECIPES, GEAR_RECIPE, QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
 };
 
+use super::bonus::BONUS;
 use super::chemistry::CHEMISTRY;
 use super::compute::COMPUTE;
 use super::distance::DISTANCE;
@@ -24,10 +25,11 @@ use super::personal::PERSONAL;
 use super::recycling::RECYCLING;
 use super::{r, Tech, Unlock};
 
-/// Every tech: the main tree, then the personal gear's, then Milestone 9's and 10's, the recycler's and Milestone 11's.
+/// Every tech: the main tree, then the personal gear's, then Milestone 9's and 10's, the recycler's, Milestone 11's and
+/// its endless bonus techs.
 pub const TECHS: &[Tech] = &join::<
-    { MAIN.len() + PERSONAL.len() + DISTANCE.len() + CHEMISTRY.len() + RECYCLING.len() + COMPUTE.len() },
->(&[&MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY, &RECYCLING, &COMPUTE]);
+    { MAIN.len() + PERSONAL.len() + DISTANCE.len() + CHEMISTRY.len() + RECYCLING.len() + COMPUTE.len() + BONUS.len() },
+>(&[&MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY, &RECYCLING, &COMPUTE, &BONUS]);
 
 const MAIN: [Tech; 30] = [
     Tech {

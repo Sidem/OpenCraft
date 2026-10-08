@@ -34,6 +34,8 @@ interface TechView {
   state: HTMLSpanElement;
   bar: HTMLDivElement;
   count: HTMLSpanElement;
+  /** The lab time of the next unit (it grows with an endless tech's level). */
+  seconds: HTMLSpanElement;
   action: HTMLParagraphElement;
 }
 
@@ -146,8 +148,9 @@ export class ResearchPanel {
     this.tracker.classList.toggle('rs-notice', notice);
     if (!notice && current >= 0) {
       const [done, units] = [g.tech_progress(current), g.tech_units(current)];
-      this.trackerText.textContent = `Researching ${g.tech_name(current)} · ${done} of ${units}`;
-      this.trackerBar.style.transform = `scaleX(${done / units})`;
+      const endless = g.tech_endless(current);
+      this.trackerText.textContent = `Researching ${g.tech_name(current)} · ${endless ? `level ${done}` : `${done} of ${units}`}`;
+      this.trackerBar.style.transform = `scaleX(${endless ? 0 : done / units})`;
     }
     if (this.isOpen) this.draw(current);
     // Just opened: the dialog has no width for the first moments, so centre once it is laid out.
@@ -229,18 +232,20 @@ export class ResearchPanel {
       ? `Labs are researching ${g.tech_name(current)}.`
       : 'Nothing is being researched. Click a glowing tech to start.';
     this.views.forEach((v, t) => {
-      const [done, available, units] = [g.tech_done(t), g.tech_available(t), g.tech_units(t)];
+      const [done, available, units, endless] = [g.tech_done(t), g.tech_available(t), g.tech_units(t), g.tech_endless(t)];
+      const amount = endless ? `level ${progress[t]}` : `${progress[t]} of ${units}`;
       const chosen = t === current;
       const state = done ? 'done' : available ? 'available' : 'locked';
       const label = done ? 'Done' : chosen ? 'Researching' : available ? 'Available' : 'Locked';
       v.node.className = `rs-node ${state}${chosen ? ' chosen' : ''}`;
       v.card.className = `rs-card ${state}${chosen ? ' chosen' : ''}`;
-      v.nodeState.textContent = chosen || (available && progress[t] > 0) ? `${progress[t]} of ${units}` : label;
+      v.nodeState.textContent = chosen || (available && progress[t] > 0) ? amount : label;
       v.state.textContent = label;
-      const fill = `scaleX(${progress[t] / units})`;
+      const fill = `scaleX(${endless ? 0 : progress[t] / units})`;
       v.nodeBar.style.transform = fill;
       v.bar.style.transform = fill;
-      v.count.textContent = `${progress[t]} of ${units} units`;
+      v.count.textContent = endless ? `${amount} · endless` : `${amount} units`;
+      v.seconds.textContent = `${Math.round(g.tech_seconds(t))} s in a ${endless ? 'AI lab, using compute' : 'lab'}`;
       v.action.textContent = done
         ? 'Researched: what comes after it builds on this.'
         : available
@@ -283,7 +288,8 @@ export class ResearchPanel {
     const cost = h('div', 'rs-chips');
     cost.append(h('span', 'rs-label', 'Each unit'));
     for (const item of g.tech_packs(t)) cost.append(this.chip(item, `1 ${g.item_name(item)}`));
-    cost.append(h('span', 'rs-label', `${g.tech_seconds(t)} s in a lab`));
+    const seconds = h('span', 'rs-label', `${g.tech_seconds(t)} s in a lab`);
+    cost.append(seconds);
     const progress = h('div', 'rs-progress');
     const barBox = h('div', 'mp-bar');
     const bar = h('div', 'mp-bar-fill');
@@ -292,7 +298,7 @@ export class ResearchPanel {
     progress.append(barBox, count);
     const action = h('p', 'rs-action');
     card.append(title, h('p', 'rs-blurb', g.tech_blurb(t)), unlocks, cost, progress, action);
-    return { node, nodeState, nodeBar, card, state, bar, count, action };
+    return { node, nodeState, nodeBar, card, state, bar, count, seconds, action };
   }
 
   /** Shows tech `t`'s card beside its node and lights the chain of techs it belongs to. */

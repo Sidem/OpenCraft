@@ -85,6 +85,8 @@ pub struct Miner {
     pub tier: u8,
     /// This tick's speed from its grid, in thousandths (derived).
     pub speed: u32,
+    /// The mining bonus research gives, in thousandths (derived; 1000 is none).
+    pub boost: u32,
 }
 
 impl Miner {
@@ -103,6 +105,7 @@ impl Miner {
             pulse: 0,
             tier,
             speed: 0,
+            boost: FULL_SPEED,
         }
     }
 
@@ -110,9 +113,9 @@ impl Miner {
         &MINER_TIERS[self.tier as usize]
     }
 
-    /// Units a second it draws at full power.
+    /// Units a second it draws at full power, with the mining bonus.
     pub fn rate(&self) -> f64 {
-        self.stats().rate
+        self.stats().rate * self.boost as f64 / FULL_SPEED as f64
     }
 
     /// Share of what it draws that becomes ore items.

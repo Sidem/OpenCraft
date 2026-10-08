@@ -67,7 +67,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 #[cfg(test)]
 use crate::math::Vec3;
-use crate::research::Research;
+use crate::research::{Bonus, Research};
 use crate::sim::SimEvent;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
@@ -326,8 +326,9 @@ impl Factory {
         power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
         data.balance(processors, power, &unlocked, research);
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
+        let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
-            m.speed = power.speed(p);
+            (m.speed, m.boost) = (power.speed(p), mining);
             m.step(deposits, world, tick, belts, &mut sinks, events);
         }
         for (q, &p) in quarries.iter_mut().zip(&power.quarry_pole) {
@@ -343,6 +344,7 @@ impl Factory {
                 share = share * data.satisfaction(data.process_node[i]) / power::FULL_SPEED;
                 // a data consumer
             }
+            m.boost = machines;
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);

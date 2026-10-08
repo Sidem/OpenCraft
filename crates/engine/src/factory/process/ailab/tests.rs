@@ -120,6 +120,38 @@ fn without_compute_on_its_grid_it_does_not_work() {
 }
 
 #[test]
+fn a_bonus_tech_takes_compute_alone_and_each_level_takes_a_quarter_longer() {
+    let mut f = rig(AI_LAB, true);
+    finish(&mut f.research, AI_TECH);
+    let bonus = AI_TECH + 1; // Mining Productivity
+    f.research.set_current(Some(bonus));
+    assert_eq!(f.research.current, Some(bonus), "AI Research opens it");
+    run(&mut f, 31.0); // 60 s at twice a lab's speed
+    assert_eq!(f.research.progress(bonus), 1);
+    run(&mut f, 30.0); // the second unit takes 75 s, so 37.5 s
+    assert_eq!(f.research.progress(bonus), 1);
+    run(&mut f, 8.0);
+    assert_eq!(f.research.progress(bonus), 2);
+    assert_eq!(lab(&f).input.count(PACKS[0]), 64, "no packs were used");
+    assert_eq!(f.research.current, Some(bonus), "it goes on");
+    assert!(lab(&f).center_line(&f.research).starts_with("\nMining Productivity: level 2\n×2 speed"));
+}
+
+#[test]
+fn a_small_lab_and_a_center_cannot_research_a_bonus_tech_and_do_not_ask_for_power() {
+    let mut f = rig(RESEARCH_CENTER, true);
+    finish(&mut f.research, AI_TECH);
+    f.research.set_current(Some(AI_TECH + 3));
+    let mut world = World::new(1, 2);
+    let at = IVec3::new(8, 0, 4);
+    f.place(&mut world, LAB, at, 0, at, 0);
+    run(&mut f, 5.0);
+    assert_eq!(f.research.progress(AI_TECH + 3), 0);
+    assert_eq!(f.labs[0].status_text(&f.research), "Drone Speed needs an AI lab");
+    assert!(!f.labs[0].wants_power(&f.research));
+}
+
+#[test]
 fn a_center_and_a_small_lab_say_the_tech_needs_an_ai_lab() {
     let mut f = rig(RESEARCH_CENTER, true);
     let mut world = World::new(1, 2);

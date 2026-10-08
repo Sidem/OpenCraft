@@ -6,14 +6,15 @@ use crate::block::{AI_LAB, CHIP_FAB, COOLING_TOWER, DATACENTER, FIBRE_NODE};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{ACCELERATOR_RECIPE, PURE_WATER_RECIPE, WAFER_RECIPE};
 
-use super::{r, Tech, Unlock};
+use super::{is_bonus, r, Tech, Unlock};
 
-/// Techs only an AI lab can research (they cost compute: `factory/process/ailab.rs`), by index.
+/// Techs only an AI lab can research (they cost compute: `factory/process/ailab.rs`), by index; the bonus techs
+/// (`bonus.rs`) are too.
 const AI_ONLY: [u8; 1] = [62];
 
 /// Whether `tech` can be researched only in an AI lab.
 pub fn needs_ai_lab(tech: u8) -> bool {
-    AI_ONLY.contains(&tech)
+    AI_ONLY.contains(&tech) || is_bonus(tech)
 }
 
 pub const COMPUTE: [Tech; 7] = [
@@ -85,7 +86,7 @@ pub const COMPUTE: [Tech; 7] = [
     Tech {
         name: "AI Research",
         blurb: "Trains the first research models. Costs compute: only an AI lab on a data grid with a datacenter can \
-                research it. Endless bonus techs build on it (later).",
+                research it. The endless bonus techs build on it.",
         needs: &[61],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
         units: 100,

@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) is committed, 11.5 (AI lab) is built and uncommitted (673 tests). Next: step 11.6, endless bonus techs** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) and 11.5 (AI lab) are committed, 11.6 (endless bonus techs) is built and uncommitted (683 tests). Next: step 11.7, the optimizer node** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -437,7 +437,7 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 40) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 103, item 382, tech 63, machine recipe 64). Each new look gets a
+- New blocks and items append (the next free block is 103, item 382, tech 66, machine recipe 64). Each new look gets a
   placeholder layer (`tex::COUNT` is 266) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
@@ -523,10 +523,16 @@ what compute buys, laser links, helpers, cleanup.
   a data consumer of 20 TF. **Differs from the first idea:** a spec row of the center's code, not a new `Pick`; `step_centers` scales its
   speed by its grid's satisfaction (no node or no datacenter: it idles); twice a lab's speed, every 2nd unit free. **Compute cost is a
   marker:** `research::needs_ai_lab` (`AI_ONLY` in `research/compute.rs`: tech AI Research 62, no unlocks yet, 11.6 builds on it); labs and
-  centers show `LabStatus::NeedsAi`. Recipe 20 steel plates, 6 accelerators, 10 processors, 20 circuits, 8 glass. Tests 668 → 673.)- [ ] **11.6 Endless bonus techs** (`research/bonus.rs`, `Unlock::Bonus(kind)`; techs AI Research, then Mining, Machine Speed and
-  Drone Speed). A bonus tech has levels, costs compute only, the cost grows 25% a level and each level adds 3% (mining draw,
-  processor speed or drone speed) through the one place that computes rates (TECH_TREE rule 5). The level is research state
-  (a save bump). Done when: levels repeat without end and rates in tests rise by the stated percentage.
+  centers show `LabStatus::NeedsAi`. Recipe 20 steel plates, 6 accelerators, 10 processors, 20 circuits, 8 glass. Tests 668 → 673.)
+- [x] **11.6 Endless bonus techs** (built 2026-10-08: `research/bonus.rs`, `Unlock::Bonus(kind)`, techs 63 Mining Productivity, 64 Machine
+  Speed, 65 Drone Speed, all needing AI Research and no packs. **Differs from the first idea:** no save bump: a level is the tech's
+  `progress`, which `Research` already saves (the table just grew by three; old saves load, golden hash re-recorded). `units` is
+  `LEVELS` 100, a cap no play reaches (cost ×1.25 a level) that keeps `progress <= units` and the tests that finish every tech
+  finite; creative worlds get level 100 (+300%). Cost is compute through lab time: `Research::unit_seconds` (60 s × 1.25 per level),
+  paid only by an AI lab (`needs_ai_lab` is true for bonus techs; small labs no longer ask for power for them). Each level adds 3%
+  (linear) through `Research::rate_permille`, read once a tick in `Factory::update` into the derived `Miner::boost` and
+  `Processor::boost` (work of recipes only) and by `Sim::flight_step` for construction and cargo drones. The research screen
+  shows "level N" and the next unit's seconds (`tech_endless`). Tests 673 → 683.)
 - [ ] **11.7 Optimizer node** (`process/optimizer.rs`; tech Optimizer). A consumer on the data grid (20 TF): machines of the grid
   within 16 blocks run 25% faster while it gets its compute. Not stacking (the best node in range counts). Done when: a smelter
   in range shows ×1.25 and loses it in a compute shortage.
@@ -594,5 +600,6 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.
 - **2026-10-08: AI lab (step 11.5).** `process/ailab.rs` (block 102, tech AI Labs 61, AI Research 62, textures 264–265), `LabStatus::NeedsAi`, `research::needs_ai_lab`. Golden hash re-recorded, save version stays 40. Tests 668 → 673. Next free block 103, tech 63, texture 266.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

@@ -33,6 +33,7 @@ use crate::factory::PortInfo;
 use crate::inventory::Stack;
 use crate::item::{ItemId, CARGO_DRONE, DRONE};
 use crate::math::{IVec3, Vec3};
+use crate::research::Bonus;
 use crate::sim::{PlayerId, Sim};
 use crate::{TICK, TICK_RATE};
 
@@ -173,9 +174,14 @@ impl Sim {
         (back > 0).then_some(Stack { item: DRONE, count: back })
     }
 
+    /// Blocks a drone of top speed `speed` (blocks a second) flies in one tick, with the drone-speed research.
+    pub(crate) fn flight_step(&self, speed: f64) -> f64 {
+        speed * TICK * self.factory.research.rate_permille(Bonus::Drones) as f64 / 1000.0
+    }
+
     /// Advances `d` one tick; false when it has landed or been lost (it is gone from the list).
     fn fly(&mut self, d: &mut Drone) -> bool {
-        let step = SPEED * TICK;
+        let step = self.flight_step(SPEED);
         match d.phase {
             Phase::Out => {
                 let goal = target_centre(d.target) + Vec3::new(0.0, HOVER, 0.0);

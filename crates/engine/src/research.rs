@@ -12,6 +12,7 @@
 //! A new kind of unlock: an `Unlock` variant (features arrive with their first use), its arm in
 //! `Unlock::item` and in the lint (`tests.rs`). A tier item's hand recipe is locked like its upgrade.
 
+mod bonus;
 mod chemistry;
 mod compute;
 mod distance;
@@ -20,6 +21,7 @@ mod personal;
 mod recycling;
 mod techs;
 
+pub use bonus::{is_bonus, Bonus};
 pub use compute::needs_ai_lab;
 pub use techs::TECHS;
 
@@ -37,6 +39,8 @@ pub enum Unlock {
     MachineRecipe(u16),
     /// Upgrading a tiered family (its block) to a tier with kits, and crafting that tier's item.
     Upgrade(BlockId, u8),
+    /// An endless bonus to one kind of work (`bonus.rs`): the tech is repeated, never done in play.
+    Bonus(Bonus),
 }
 
 impl Unlock {
@@ -46,6 +50,7 @@ impl Unlock {
             Unlock::Recipe(item) => item,
             Unlock::MachineRecipe(i) => MACHINE_RECIPES.get(i as usize).map_or(ItemId::NONE, |r| r.main().0),
             Unlock::Upgrade(block, tier) => tiers::item_of(block, tier).unwrap_or(ItemId::NONE),
+            Unlock::Bonus(_) => ItemId::NONE,
         }
     }
 }

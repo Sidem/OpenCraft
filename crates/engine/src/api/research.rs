@@ -4,7 +4,8 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::research::{TechState, TECHS};
+use crate::item::ItemId;
+use crate::research::{is_bonus, TechState, TECHS};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -35,14 +36,25 @@ impl Game {
         TECHS.get(t as usize).map_or(0, |x| x.units)
     }
 
-    /// Lab seconds per unit at full power.
+    /// Lab seconds the next unit takes at full power (an endless tech's grows with its level).
     pub fn tech_seconds(&self, t: u32) -> f64 {
-        TECHS.get(t as usize).map_or(0.0, |x| x.seconds)
+        let tech = t.min(u8::MAX as u32) as u8;
+        if (tech as usize) < TECHS.len() {
+            self.sim.factory.research.unit_seconds(tech)
+        } else {
+            0.0
+        }
+    }
+
+    /// Whether it is an endless bonus tech: progress is a level, and there are no packs.
+    pub fn tech_endless(&self, t: u32) -> bool {
+        is_bonus(t.min(u8::MAX as u32) as u8)
     }
 
     /// The items of what it unlocks (hand recipes' and machine recipes' products).
     pub fn tech_unlocks(&self, t: u32) -> Vec<u16> {
-        TECHS.get(t as usize).map_or_else(Vec::new, |x| x.unlocks.iter().map(|u| u.item().0).collect())
+        let items = TECHS.get(t as usize).map(|x| x.unlocks.iter().map(|u| u.item()));
+        items.map_or_else(Vec::new, |i| i.filter(|&i| i != ItemId::NONE).map(|i| i.0).collect())
     }
 
     /// Units done.
