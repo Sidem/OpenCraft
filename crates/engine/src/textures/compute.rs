@@ -22,6 +22,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::DC_TOP => dc_top(x, y),
         tex::TOWER_SIDE => tower_side(x, y),
         tex::TOWER_TOP => tower_top(x, y),
+        tex::AI_SIDE => ai_side(x, y),
+        tex::AI_TOP => ai_top(x, y),
         _ => fab_top(x, y),
     }
 }
@@ -150,4 +152,32 @@ fn tower_top(x: i32, y: i32) -> [u8; 4] {
         return rgb([30.0, 62.0, 96.0], 0.9 + 0.2 * n(633, x, y));
     }
     frame(x, y)
+}
+
+/// A dark panel with a lattice of cyan nodes joined by faint lines: the neural net.
+fn ai_side(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return frame(x, y);
+    }
+    let (col, row) = (x % 5 == 2, y % 5 == 2);
+    if col && row {
+        return rgb([110.0, 240.0, 255.0], 1.0);
+    }
+    if col || row {
+        return rgb([30.0, 110.0, 130.0], 0.8 + 0.4 * n(641, x, y));
+    }
+    rgb([18.0, 24.0, 40.0], 0.9 + 0.2 * n(642, x, y))
+}
+
+/// A dark crown with a glowing cyan ring.
+fn ai_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r2 = dx * dx + dy * dy;
+    if (16.0..30.0).contains(&r2) {
+        return rgb([90.0, 230.0, 250.0], 1.0);
+    }
+    if r2 < 5.0 {
+        return rgb([200.0, 250.0, 255.0], 1.0);
+    }
+    rgb([20.0, 26.0, 44.0], 0.9 + 0.2 * n(643, x, y))
 }

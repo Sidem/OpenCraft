@@ -396,11 +396,11 @@ size.
   **reactor** (3×3×3, fuel cells at the back, up to 2 MW) heats as it gives, a water pipe to its blue inlet keeps it
   cool, and it shuts down when overheated until it has cooled. Gold science and Mk5 Machines close the milestone.
 - **Recycling.** After Blue Science, the **recycler** (2×2×2, 90 kW, six input hatches, two output hatches) destroys
-  any item belts bring it and pays **recycling coins** (1024 to a stack; one day they buy cosmetics). Raw things
-  (ore, logs, dirt, leaves, saplings) pay 1; every step of processing doubles it, so an ingot pays 2, a rod 4 and a
-  plate (two ingots) 8, and the price follows the recipes (a motor 88, a drone 7,368). Slag and tailings pay 1, and
-  so does what is crushed from them. An item is worth what its cheapest recipe makes it, so no route earns more.
-- **Chips.** The Wafers tech (gold packs, so in a research center) opens the **chip fab** (4×4×3 clean room, 1 MW):
+  any item belts bring it and pays **recycling coins** (1024 to a stack; one day they buy cosmetics). Every item pays a whole number of coins, from 1
+  for raw things and basic parts (80 of the 227 items) up to 64 for the dearest item, the datacenter. The price follows the
+  recipes: the material that went in and how deep the chain is, on a flattening curve, so a motor pays 4, an AI accelerator
+  11, a drone 27 and a Mk5 drone port 55. A tool pays by its uses, so a worn one pays less. Slag and tailings pay the least,
+  and so does what is crushed from them. An item is worth what its cheapest recipe makes it, so no route earns more.- **Chips.** The Wafers tech (gold packs, so in a research center) opens the **chip fab** (4×4×3 clean room, 1 MW):
   2 silicon, an acid canister and a pure water canister make a **wafer** in 8 seconds and the two shells come back out of
   the side hatches; belt wafers back in with 2 processors and a plastic and the Accelerators tech lets it build an **AI
   accelerator** (20 s). **Pure water** is a chemical plant recipe (an empty canister, a sand and 2 units of piped
@@ -418,6 +418,10 @@ size.
   Pipe its blue inlet to the same pipes as a datacenter's: the datacenter then takes its coolant through the tower ("cooling loop
   closed") and only one unit in twenty is lost, so a single pump feeds it easily. One tower cools two datacenters; with no power
   or water at the tower the datacenter falls back to the pump.
+- **AI labs.** The AI Labs tech gives the **AI lab** (20 steel plates, 6 accelerators, 10 processors, 20 circuits, 8 glass; 2×2×2,
+  100 kW): a research center on the data grid. It researches at twice a lab's speed, takes every pack, makes every 2nd unit free
+  of packs and uses 20 TF while it works, so it idles without a datacenter on its grid. Techs that cost compute (AI Research is
+  the first) can be researched only in it; labs and centers say so.
 - **Quarries.** A quarry digs the ground in front of it for real: stone, rock, soil and sand, about 2 blocks
   a second at full power (10 kW), layer by layer from its own level down. While you hold one, its box shows
   in amber with how many blocks it would yield; R turns it. Its panel picks the size (5 to 11 wide) and the

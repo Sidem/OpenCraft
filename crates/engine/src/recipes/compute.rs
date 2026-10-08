@@ -39,6 +39,16 @@ pub const COOLING_TOWER_RECIPE: Recipe = Recipe {
             pump on its pipes for that trickle of makeup water.",
 };
 
+pub const AI_LAB_RECIPE: Recipe = Recipe {
+    output: b(AI_LAB),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 20), (AI_ACCELERATOR, 6), (PROCESSOR, 10), (CIRCUIT, 20), (b(GLASS), 8)],
+    blurb: "A research lab for the data grid, 2×2×2. Like a research center it takes every science pack on every side, \
+            at twice a lab's speed, and every 2nd unit costs no packs. While it works it uses 20 TF: put a fibre node \
+            within 5 blocks of a grid with a datacenter. Techs that cost compute can be researched only here. Needs 100 kW.",
+};
+
 pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
     output: b(FIBRE_NODE),
     group: Group::Production,

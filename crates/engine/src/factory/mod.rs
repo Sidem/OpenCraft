@@ -350,7 +350,7 @@ impl Factory {
         for r in sinks.routers.iter_mut() {
             r.step(belts);
         }
-        step_labs(sinks.labs, sinks.processors, (&power.lab_pole, &power.process_pole), power, research);
+        step_labs(sinks.labs, sinks.processors, (&power.lab_pole, &power.process_pole), power, data, research);
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);
         process::draw_water(sinks.processors, pipework);
         belt_step(belts, &mut sinks, order, TICK);

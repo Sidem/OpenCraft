@@ -1,14 +1,22 @@
 //! The techs of Milestone 11 (compute and photonics), as data (appended after `recycling.rs`'s in `techs::TECHS`, so the
 //! order here is the saved index order: add rows at the bottom, never reorder). Needs name earlier indices: Acids and
-//! Lubricants 45, Gold Science 53; this table's own start at 56 (Wafers 56, Accelerators 57, Data Network 58, Datacenters 59, Cooling 60).
+//! Lubricants 45, Gold Science 53; this table's own start at 56 (Wafers 56, Accelerators 57, Data Network 58, Datacenters 59, Cooling 60, AI Labs 61, AI Research 62).
 
-use crate::block::{CHIP_FAB, COOLING_TOWER, DATACENTER, FIBRE_NODE};
+use crate::block::{AI_LAB, CHIP_FAB, COOLING_TOWER, DATACENTER, FIBRE_NODE};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{ACCELERATOR_RECIPE, PURE_WATER_RECIPE, WAFER_RECIPE};
 
 use super::{r, Tech, Unlock};
 
-pub const COMPUTE: [Tech; 5] = [
+/// Techs only an AI lab can research (they cost compute: `factory/process/ailab.rs`), by index.
+const AI_ONLY: [u8; 1] = [62];
+
+/// Whether `tech` can be researched only in an AI lab.
+pub fn needs_ai_lab(tech: u8) -> bool {
+    AI_ONLY.contains(&tech)
+}
+
+pub const COMPUTE: [Tech; 7] = [
     Tech {
         name: "Wafers",
         blurb:
@@ -62,5 +70,26 @@ pub const COMPUTE: [Tech; 5] = [
         units: 200,
         seconds: 50.0,
         unlocks: &[r(COOLING_TOWER)],
+    },
+    Tech {
+        name: "AI Labs",
+        blurb: "The AI lab (2×2×2, 100 kW) researches at twice a lab's speed, takes every pack, makes every 2nd unit free of \
+                packs, and uses 20 TF of the data grid it hangs on while it works. It is the only lab that can research \
+                techs that cost compute.",
+        needs: &[59],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
+        units: 200,
+        seconds: 60.0,
+        unlocks: &[r(AI_LAB)],
+    },
+    Tech {
+        name: "AI Research",
+        blurb: "Trains the first research models. Costs compute: only an AI lab on a data grid with a datacenter can \
+                research it. Endless bonus techs build on it (later).",
+        needs: &[61],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
+        units: 100,
+        seconds: 60.0,
+        unlocks: &[],
     },
 ];

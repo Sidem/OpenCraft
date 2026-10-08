@@ -139,7 +139,9 @@ pub const FIBRE_NODE: BlockId = 99;
 pub const DATACENTER: BlockId = 100;
 /// The cooling tower (`factory/process/tower.rs`, Milestone 11).
 pub const COOLING_TOWER: BlockId = 101;
-pub const BLOCK_COUNT: usize = 102;
+/// The AI lab (`factory/process/ailab.rs`).
+pub const AI_LAB: BlockId = 102;
+pub const BLOCK_COUNT: usize = 103;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -365,6 +367,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Fibre Node", true, 0.8, pillar(tex::NODE_SIDE, tex::NODE_TOP, tex::FRAME), FIBRE_NODE),
     machine("Datacenter", true, 2.8, pillar(tex::DC_SIDE, tex::DC_TOP, tex::FRAME), DATACENTER),
     machine("Cooling Tower", true, 2.6, pillar(tex::TOWER_SIDE, tex::TOWER_TOP, tex::FRAME), COOLING_TOWER),
+    machine("AI Lab", true, 2.4, pillar(tex::AI_SIDE, tex::AI_TOP, tex::FRAME), AI_LAB),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

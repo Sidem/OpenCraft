@@ -155,6 +155,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::fab::FAB_SPEC,
     super::datacenter::DATACENTER_SPEC,
     super::tower::TOWER_SPEC,
+    super::ailab::AI_LAB_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

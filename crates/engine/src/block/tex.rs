@@ -292,7 +292,10 @@ pub const DC_TOP: u16 = 261;
 /// The cooling tower's louvred body and fan deck (`textures/compute.rs`).
 pub const TOWER_SIDE: u16 = 262;
 pub const TOWER_TOP: u16 = 263;
-pub const COUNT: usize = 264;
+/// The AI lab's neural-net panels and crown (`textures/compute.rs`).
+pub const AI_SIDE: u16 = 264;
+pub const AI_TOP: u16 = 265;
+pub const COUNT: usize = 266;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

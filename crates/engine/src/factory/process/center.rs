@@ -15,8 +15,9 @@ use crate::block::{tex, RESEARCH_CENTER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::{self, stack_size, ItemId};
-use crate::research::{pack_slot, Research, TECHS};
+use crate::research::{needs_ai_lab, pack_slot, Research, TECHS};
 
+use super::super::fibre::Data;
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::lab::{LabStatus, LAB_PACK_SLOTS};
 use super::super::power::{Power, FULL_SPEED, NOT_WIRED};
@@ -107,7 +108,8 @@ impl Processor {
 
     /// Whether it would work this tick if powered.
     pub(super) fn center_wants_power(&self, research: &Research) -> bool {
-        self.study.unit.is_some() || research.current.is_some_and(|t| self.has_packs(t))
+        self.study.unit.is_some()
+            || research.current.is_some_and(|t| self.has_packs(t) && (self.is_ai_lab() || !needs_ai_lab(t)))
     }
 
     fn has_packs(&self, tech: u8) -> bool {
@@ -115,7 +117,7 @@ impl Processor {
     }
 
     fn free_next(&self) -> bool {
-        let every = FREE_EVERY[self.tier as usize];
+        let every = self.free_every(&FREE_EVERY);
         every > 0 && self.study.since_free + 1 >= every
     }
 
@@ -123,7 +125,10 @@ impl Processor {
     fn can_start(&mut self, research: &Research, taken: &[u32]) -> Result<u8, LabStatus> {
         self.study.waiting = None;
         let t = research.current.ok_or(LabStatus::NoResearch)?;
-        if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
+        if needs_ai_lab(t) && !self.is_ai_lab() {
+            self.study.waiting = Some(t);
+            Err(LabStatus::NeedsAi)
+        } else if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
             Err(LabStatus::AllTaken)
         } else if !self.free_next() && !self.has_packs(t) {
             self.study.waiting = Some(t);
@@ -202,6 +207,10 @@ impl Processor {
             Some(LabStatus::AllTaken | LabStatus::NeedsCenter) => {
                 "Other labs are finishing the chosen research".to_string()
             }
+            Some(LabStatus::NeedsAi) => format!("{} needs an AI lab", name(self.study.waiting)),
+            Some(LabStatus::NoPower) if self.is_ai_lab() => {
+                "No power or no compute: hang it on a pole and a fibre node whose grid has a datacenter".to_string()
+            }
             Some(LabStatus::NoPower) => NOT_WIRED.to_string(),
         })
     }
@@ -216,7 +225,7 @@ impl Processor {
             let tech = &TECHS[t as usize];
             out += &format!("\n{}: {} of {} units", tech.name, research.progress(t), tech.units);
         }
-        let free = match FREE_EVERY[self.tier as usize] {
+        let free = match self.free_every(&FREE_EVERY) {
             0 => String::new(),
             n => format!(" · every {n}th unit is free"),
         };
@@ -250,11 +259,16 @@ pub(in crate::factory) fn step_centers(
     processors: &mut [Processor],
     pole: &[Option<u32>],
     power: &Power,
+    data: &Data,
     research: &mut Research,
     taken: &mut [u32],
 ) {
-    for (c, &p) in processors.iter_mut().zip(pole).filter(|(c, _)| c.is_center()) {
-        c.study_step(research, taken, power.speed(p));
+    for (i, (c, &p)) in processors.iter_mut().zip(pole).enumerate().filter(|(_, (c, _))| c.is_center()) {
+        let mut speed = power.speed(p);
+        if c.spec.compute < 0 {
+            speed = speed * data.satisfaction(data.process_node[i]) / FULL_SPEED;
+        }
+        c.study_step(research, taken, speed);
     }
 }
 

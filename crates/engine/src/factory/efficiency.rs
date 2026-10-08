@@ -128,7 +128,7 @@ fn quarry_sample(q: &Quarry) -> Option<Sample> {
 fn lab_sample(l: &Lab) -> Option<Sample> {
     Some(match l.status {
         LabStatus::Working => Sample::run(l.speed),
-        LabStatus::NoPacks | LabStatus::NeedsCenter => Sample::stalled(Cause::Input),
+        LabStatus::NoPacks | LabStatus::NeedsCenter | LabStatus::NeedsAi => Sample::stalled(Cause::Input),
         LabStatus::NoPower => Sample::stalled(Cause::Power),
         LabStatus::NoResearch | LabStatus::AllTaken => return None,
     })

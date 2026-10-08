@@ -15,9 +15,10 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::{self, stack_size, ItemId};
 use crate::math::{IVec3, Vec3};
-use crate::research::{pack_slot, Research, PACKS, TECHS};
+use crate::research::{needs_ai_lab, pack_slot, Research, PACKS, TECHS};
 
 use super::buffer::Buffer;
+use super::fibre::Data;
 use super::panel::{Panel, ROLE_INPUT};
 use super::power::{Power, FULL_SPEED, NOT_WIRED};
 use super::process::{needs_center, step_centers, Processor};
@@ -33,6 +34,8 @@ pub enum LabStatus {
     AllTaken,
     /// The chosen tech uses a pack a small lab has no slot for.
     NeedsCenter,
+    /// The chosen tech costs compute: only an AI lab can research it.
+    NeedsAi,
     NoPower,
 }
 
@@ -78,6 +81,7 @@ pub fn step_labs(
     processors: &mut [Processor],
     poles: (&[Option<u32>], &[Option<u32>]),
     power: &Power,
+    data: &Data,
     research: &mut Research,
 ) {
     let mut taken = [0u32; TECHS.len()];
@@ -87,7 +91,7 @@ pub fn step_labs(
     for (l, &p) in labs.iter_mut().zip(poles.0) {
         l.step(research, &mut taken, power.speed(p));
     }
-    step_centers(processors, poles.1, power, research, &mut taken);
+    step_centers(processors, poles.1, power, data, research, &mut taken);
 }
 
 impl Lab {
@@ -188,7 +192,9 @@ impl Lab {
     /// The tech a new unit would be for, or why none can start.
     fn can_start(&self, research: &Research, taken: &[u32]) -> Result<u8, LabStatus> {
         let t = research.current.ok_or(LabStatus::NoResearch)?;
-        if needs_center(t) {
+        if needs_ai_lab(t) {
+            Err(LabStatus::NeedsAi)
+        } else if needs_center(t) {
             Err(LabStatus::NeedsCenter)
         } else if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
             Err(LabStatus::AllTaken)
@@ -223,6 +229,7 @@ impl Lab {
             }
             LabStatus::AllTaken => format!("Other labs are finishing {}", name(research.current)),
             LabStatus::NeedsCenter => format!("{} needs a research center", name(research.current)),
+            LabStatus::NeedsAi => format!("{} needs an AI lab", name(research.current)),
             LabStatus::NoPower => NOT_WIRED.to_string(),
         }
     }
@@ -329,7 +336,7 @@ impl Machine for Lab {
         push_box(out, rel + Vec3::new(-0.28, 0.68, -0.28), 0.0, [0.14, 0.12, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
         let lamp = match self.status {
             LabStatus::Working => tex::LAMP_GREEN,
-            LabStatus::NoPacks | LabStatus::AllTaken | LabStatus::NeedsCenter => tex::LAMP_YELLOW,
+            LabStatus::NoPacks | LabStatus::AllTaken | LabStatus::NeedsCenter | LabStatus::NeedsAi => tex::LAMP_YELLOW,
             LabStatus::NoResearch | LabStatus::NoPower => tex::LAMP_RED,
         };
         push_box(out, rel + Vec3::new(0.31, 0.35, 0.31), 0.0, [0.13, 0.08, 0.13], 0.0, [lamp; 3], false);

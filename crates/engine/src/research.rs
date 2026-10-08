@@ -20,6 +20,7 @@ mod personal;
 mod recycling;
 mod techs;
 
+pub use compute::needs_ai_lab;
 pub use techs::TECHS;
 
 use crate::block::BlockId;
