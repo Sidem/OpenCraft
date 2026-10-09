@@ -52,7 +52,7 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), 15);
     place(&mut f, ARC_FURNACE, 50);
     assert_eq!(progress(&inv, &f), 16, "silicon");
-    let n = HINTS.len() - 3; // the chemistry hints (oil, nuclear, gold) come last
+    let n = HINTS.len() - 6; // the chemistry hints (oil, nuclear, gold) and the compute hints come last
     let violet = TECHS.iter().position(|t| t.name == "Violet Science").unwrap() as u8;
     (0..TECHS[violet as usize].units).for_each(|_| f.research.add_unit(violet));
     assert_eq!(progress(&inv, &f), n - 8, "violet science");
@@ -80,6 +80,13 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), n + 2, "nuclear");
     let gold = TECHS.iter().position(|t| t.name == "Gold Science").unwrap() as u8;
     (0..TECHS[gold as usize].units).for_each(|_| f.research.add_unit(gold));
+    assert_eq!(progress(&inv, &f), n + 3, "gold science");
+    place(&mut f, crate::block::DATACENTER, 110);
+    assert_eq!(progress(&inv, &f), n + 4, "compute");
+    place(&mut f, crate::block::LASER_EMITTER, 120);
+    assert_eq!(progress(&inv, &f), n + 5, "lasers");
+    let survey = TECHS.iter().position(|t| t.name == "AI Survey").unwrap() as u8;
+    (0..TECHS[survey as usize].units).for_each(|_| f.research.add_unit(survey));
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
 }

@@ -151,6 +151,11 @@ impl Game {
 
     pub(crate) fn update_placing(&mut self, dt: f32) {
         if self.ghost_mode {
+            // With Auto-Routing a held belt drags lines of ghosts (belt_line.rs); anything else plants one ghost.
+            let belt = self.inventory().selected_stack().item.places().is_some_and(crate::belt_line::is_belt);
+            if belt && self.auto_route_known() && self.update_belt_line() {
+                return;
+            }
             return self.update_ghosts();
         }
         // A scanner or core drill in hand makes the use button prospect instead (prospect.rs); with

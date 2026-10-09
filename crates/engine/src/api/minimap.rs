@@ -15,7 +15,9 @@ impl Game {
     /// nearby. Returns whether the image changed. The host calls it a few times a second at most.
     pub fn minimap_redraw(&mut self) -> bool {
         let p = self.body().pos.floor();
-        self.minimap.redraw(&self.sim.world, (p.x, p.z))
+        let changed = self.minimap.redraw(&self.sim.world, (p.x, p.z));
+        self.refresh_survey();
+        changed
     }
 
     /// Byte offset of the map's RGBA pixels (`minimap_size()`² of them, north up) in wasm memory.
@@ -56,6 +58,7 @@ impl Game {
     /// (x0 + i·scale, z0 + j·scale), north up; unseen columns are transparent. Read it with
     /// `world_map_ptr` (`w`·`h`·4 bytes of RGBA).
     pub fn world_map_draw(&mut self, x0: i32, z0: i32, scale: i32, w: usize, h: usize) {
+        self.refresh_survey();
         let (w, h, scale) = (w.min(WORLD_MAP_MAX), h.min(WORLD_MAP_MAX), scale.clamp(1, 64));
         let mut pixels = std::mem::take(&mut self.minimap.world_pixels);
         self.minimap.draw(x0, z0, scale, w, h, &mut pixels);

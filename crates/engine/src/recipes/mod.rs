@@ -400,6 +400,9 @@ pub const RECIPES: &[Recipe] = &[
     OPTIMIZER_RECIPE,
     LASER_EMITTER_RECIPE,
     LASER_RECEIVER_RECIPE,
+    LASER_MIRROR_RECIPE,
+    DATA_RECEIVER_RECIPE,
+    SWARM_HUB_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

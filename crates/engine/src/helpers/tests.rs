@@ -66,6 +66,22 @@ fn leftover_fuel_waits_in_the_tank_and_losing_the_jetpack_stops_the_thrust() {
 }
 
 #[test]
+fn a_world_loaded_mid_thrust_is_switched_off_by_the_hands() {
+    let mut g = crate::Game::new(2024, 3);
+    crate::tests::run_until_ready(&mut g);
+    let me = g.local.0 as usize;
+    let core = g.sim.players[me].as_mut().unwrap();
+    core.inventory.worn[4] = JETPACK;
+    core.helpers.thrusting = true;
+    core.helpers.jet = 10_000;
+    g.hands_synced = false; // as in a game just loaded
+    for _ in 0..30 {
+        g.update(1.0 / 60.0);
+    }
+    assert!(!g.sim.player(g.local).unwrap().helpers.thrusting, "nobody holds jump, so the thrust stops");
+}
+
+#[test]
 fn a_thrusting_body_climbs_to_a_steady_rate_and_falls_without() {
     let step = |thrust: bool| {
         let mut p = Player::new(crate::math::Vec3::new(0.5, 100.0, 0.5));

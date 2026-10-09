@@ -1,4 +1,4 @@
-﻿/* Onboarding tip (hints.ts): a small card at the bottom of the HUD's left column (#hud-left, hud-columns.css). */
+/* Onboarding tip (hints.ts): a small card at the bottom of the HUD's left column (#hud-left, hud-columns.css). */
 
 .hint {
   width: min(320px, 100%);

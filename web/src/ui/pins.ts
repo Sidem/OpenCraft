@@ -23,11 +23,12 @@ export interface PinKind {
 
 /** Most pins kept per world. */
 const MAX_PINS = 200;
-/** Engine mark shapes (`minimap_marks`): a prospected deposit, a machine, ore seen at the surface, a site. */
+/** Engine mark shapes (`minimap_marks`): a prospected deposit, a machine, ore seen at the surface, a site; the AI survey's guesses are `MARK_GUESS` plus 0 to 2 for how strong. */
 export const MARK_DEPOSIT = 0;
 export const MARK_MACHINE = 1;
 export const MARK_ORE = 2;
 export const MARK_SITE = 3;
+export const MARK_GUESS = 4;
 const EXTRA_KINDS: PinKind[] = [
   { id: 'home', label: 'Home', color: '#ffffff' },
   { id: 'note', label: 'Note', color: '#fa9549' },
@@ -93,6 +94,16 @@ export function hex(color: number): string {
 export function drawMark(c: CanvasRenderingContext2D, x: number, y: number, color: number, shape: number, px: number): void {
   c.fillStyle = hex(color);
   c.beginPath();
+  if (shape >= MARK_GUESS) {
+    // A faint ring, wider over more stained ground: a guess, not a find.
+    c.arc(x, y, (4 + 2 * (shape - MARK_GUESS)) * px, 0, 2 * Math.PI);
+    c.strokeStyle = hex(color);
+    c.lineWidth = Math.max(1.5, px);
+    c.globalAlpha = 0.55;
+    c.stroke();
+    c.globalAlpha = 1;
+    return;
+  }
   if (shape === MARK_SITE) {
     // A hollow square: the area, not a thing standing in it.
     c.rect(x - 3 * px, y - 3 * px, 6 * px, 6 * px);

@@ -431,7 +431,17 @@ size.
   128 blocks at the receiver, which takes the beam from any side: the two power grids become one, and the far side burns a
   tenth more power on the way. Air and glass let the beam through, any other block stops it (it flickers up to the block);
   break that block and the link returns.
-- **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
+- **Mirrors and data beams.** Photonics also gives the **laser mirror** (4 aluminium plates, 6 glass) and the **data receiver**.
+  R turns a mirror a quarter turn; a beam bends 90° at each (up to 8, 128 blocks in all). A beam that ends in a data receiver
+  joins the data grids at its two ends instead of the power grids.
+- **Swarm hub.** Drone Swarms (after AI Research and Swarm Logistics) gives the **swarm hub** (2×2×2, 100 kW, 30 TF of the data
+  grid): every drone port within 12 blocks keeps 50% more drones (a Mk4 port 24 instead of 16). Ports take the best hub in range,
+  hubs do not add up, and without power or compute the extra drones are not replaced.
+- **Auto-routing.** The Auto-Routing tech makes a belt line dragged onto a machine find its own way there, round walls and over
+  steps (it says "No route" and marks the target red when it cannot). In ghost mode (B) a dragged belt line is planted as ghosts
+  for your drones to build.
+- **AI survey.** The AI Survey tech marks, on the minimap and the world map, faint rings where ore probably lies, guessed from the
+  stained soil you have seen within 256 blocks (bigger rings for more stain). They are hints: scan or drill to be sure.- **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the
   screen shows the level, not a bar). Levels add up (10 levels: +30%), not compound.
@@ -659,6 +669,6 @@ Factory layer (the Satisfactory half):
 - [x] Aluminium from far away, trains, cargo drones
 - [x] Oil, plastics, ore washing, hydro, hoists, nuclear power, gold science and Mk5 (Milestone 10, built; being tested)
 - [x] Recycling: a machine that turns any item into coins, priced from the recipes
-- [ ] AI datacenters and laser links for power and data
+- [x] AI datacenters, laser links, drone swarms, auto-routing and the AI survey (Milestone 11, built)
 - [ ] Rockets and satellite constellations
 - [ ] An optional endgame megaproject that doesn't end the game

@@ -7,8 +7,8 @@
 //! To add a hint: a row in `HINTS`, where it belongs in the order.
 
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DRONE_PORT, IRON_ORE, MINER, PUMPJACK, REACTOR,
-    SOLAR_PANEL, TURBINE,
+    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DATACENTER, DRONE_PORT, IRON_ORE, LASER_EMITTER,
+    MINER, PUMPJACK, REACTOR, SOLAR_PANEL, TURBINE,
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
@@ -190,6 +190,25 @@ pub const HINTS: &[Hint] = &[
                Assemble packs from a plastic, a battery and a processor; Mk5 Machines, researched with them, makes \
                gold kits for Mk5.",
         done: |_, f| tech_done(f, "Gold Science"),
+    },
+    Hint {
+        text: "Compute: research Data Network and Datacenters. Fibre nodes within 12 blocks join into a data grid, and \
+               an AI datacenter (4×4×3, 3 MW) puts 100 TF on it while you pipe it cooling water (a cooling tower \
+               saves water). AI labs research with that compute, and the optimizer node makes machines within 16 \
+               blocks work 25% faster.",
+        done: |_, f| f.processors_of(DATACENTER) > 0,
+    },
+    Hint {
+        text: "Lasers: research Photonics. A laser emitter aimed along a clear line (glass lets the beam through) \
+               joins its power grid to a receiver up to 128 blocks away; mirrors, turned with R, bend the beam round \
+               corners, and a data receiver joins two data grids instead.",
+        done: |_, f| f.processors_of(LASER_EMITTER) > 0,
+    },
+    Hint {
+        text: "Smarter tools: AI Research opens more. A swarm hub gives every drone port within 12 blocks 50% more \
+               drones; Auto-Routing makes a dragged belt line find its own way to a machine (as ghosts in ghost \
+               mode, B); AI Survey rings likely ore on the maps from the stained soil you have seen.",
+        done: |_, f| ["Drone Swarms", "Auto-Routing", "AI Survey"].iter().any(|t| tech_done(f, t)),
     },
 ];
 

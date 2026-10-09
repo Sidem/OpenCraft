@@ -321,11 +321,12 @@ impl Factory {
             self.hook_by_reach();
         }
         let hooked = self.resolve_hooks();
+        let (power_beams, data_beams) = (self.beam_links(false), self.beam_links(true));
         let (poles, gens, miners, labs) = (&self.poles, &self.generators, &self.miners, &self.labs);
         let (processors, pipework) = (&self.processors, &self.pipework);
         self.power =
-            Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries, &self.beams.links);
-        self.data = Data::rebuild(&self.nodes, &self.processors);
+            Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries, &power_beams);
+        self.data = Data::rebuild(&self.nodes, &self.processors, &data_beams);
         self.link_pipework();
         self.link_rails();
         process::link_steam(&mut self.processors, &self.at, &mut self.pipework);

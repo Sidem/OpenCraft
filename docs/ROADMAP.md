@@ -107,10 +107,7 @@ moved earlier if a session has room. Each one is its own module.
 
 ## Milestone 12: Orbit (era 9)
 
-- **Rockets and a launch site:** parts from every line, fuel from electrolysis.
-- **Satellites and constellations,** moving points in the night sky: survey (every deposit on the map),
-  comms (data and drone ports anywhere in coverage, building from the map), power (beamed to rectennas),
-  science (space data by laser downlink, the last research input). Drop pods to landing pads.
+Moved into `docs/DEV_PLAN.md` section 4 (2026-10-09).
 
 ## Interlude after Milestone 12: ruins of the last factory (chosen by the user, 2026-10-08)
 

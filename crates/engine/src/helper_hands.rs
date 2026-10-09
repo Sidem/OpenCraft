@@ -16,6 +16,14 @@ impl Game {
     /// Once a tick, before the bodies move: tell the core when the thrust or the hover should start or stop, and
     /// which pole the hover pack charges from.
     pub(crate) fn update_jetpack(&mut self) {
+        if !self.hands_synced {
+            // A world saved mid-flight loads still thrusting: start from what the core says, so it gets switched off.
+            if let Some(p) = self.sim.player(self.local) {
+                (self.jet_sent, self.hover_sent, self.charge_sent) =
+                    (p.helpers.thrusting, p.helpers.hover, p.helpers.pole);
+                self.hands_synced = true;
+            }
+        }
         let body = self.body();
         let in_air = !body.on_ground && !body.flying && !body.in_water;
         let (jump, feet) = (body.input.jump, body.pos);

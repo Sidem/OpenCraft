@@ -53,7 +53,9 @@ impl Game {
             return true;
         }
         let Some(hit) = self.target else { return false };
-        if !factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router | Kind::Sensor)) {
+        let belt_like =
+            factory::machine(hit.id).is_some_and(|m| matches!(m.kind, Kind::Belt | Kind::Router | Kind::Sensor));
+        if !belt_like && !factory::turns(hit.id) {
             return false;
         }
         self.act(Action::Rotate { pos: hit.block });

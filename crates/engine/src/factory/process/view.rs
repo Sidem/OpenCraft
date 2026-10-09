@@ -29,6 +29,7 @@ impl Processor {
             .or_else(|| self.datacenter_text())
             .or_else(|| self.tower_text())
             .or_else(|| self.optimizer_text())
+            .or_else(|| self.hub_text())
             .or_else(|| self.laser_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;

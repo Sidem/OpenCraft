@@ -146,7 +146,12 @@ pub const OPTIMIZER: BlockId = 103;
 /// The laser emitter and receiver (`factory/laser.rs`, Milestone 11).
 pub const LASER_EMITTER: BlockId = 104;
 pub const LASER_RECEIVER: BlockId = 105;
-pub const BLOCK_COUNT: usize = 106;
+/// The laser mirror (turns a beam 90°) and the data receiver (a beam that ends in it joins two data grids).
+pub const LASER_MIRROR: BlockId = 106;
+pub const DATA_RECEIVER: BlockId = 107;
+/// The swarm hub (`factory/process/hub.rs`): drone ports near it keep more drones.
+pub const SWARM_HUB: BlockId = 108;
+pub const BLOCK_COUNT: usize = 109;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -376,6 +381,9 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Optimizer", true, 2.4, pillar(tex::OPT_SIDE, tex::OPT_TOP, tex::FRAME), OPTIMIZER),
     machine("Laser Emitter", true, 1.6, pillar(tex::EMIT_SIDE, tex::EMIT_TOP, tex::FRAME), LASER_EMITTER),
     machine("Laser Receiver", true, 1.6, pillar(tex::RECV_SIDE, tex::RECV_TOP, tex::FRAME), LASER_RECEIVER),
+    machine("Laser Mirror", true, 1.2, pillar(tex::MIRROR, tex::FRAME, tex::FRAME), LASER_MIRROR),
+    machine("Data Receiver", true, 1.6, pillar(tex::DATA_SIDE, tex::DATA_TOP, tex::FRAME), DATA_RECEIVER),
+    machine("Swarm Hub", true, 2.4, pillar(tex::HUB_SIDE, tex::HUB_TOP, tex::FRAME), SWARM_HUB),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

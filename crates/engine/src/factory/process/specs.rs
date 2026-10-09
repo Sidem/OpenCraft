@@ -48,9 +48,9 @@ pub enum Energy {
     Compute,
     /// A cooling tower: a power sink that closes a datacenter's water loop (tower.rs).
     Cooling,
-    /// An optimizer: a power sink and data consumer that speeds up the machines around it (optimizer.rs).
+    /// An optimizer or a swarm hub: a power sink and data consumer that boosts what is around it (optimizer.rs, hub.rs).
     Optimizer,
-    /// A laser emitter or receiver: draws nothing, joins power grids by a beam (laser.rs).
+    /// A laser block (emitter, mirror, receiver): draws nothing, joins power or data grids by a beam (laser.rs).
     Beam,
 }
 
@@ -163,6 +163,9 @@ pub const SPECS: &[ProcessSpec] = &[
     super::optimizer::OPTIMIZER_SPEC,
     super::laser::EMITTER_SPEC,
     super::laser::RECEIVER_SPEC,
+    super::laser::MIRROR_SPEC,
+    super::laser::DATA_RECEIVER_SPEC,
+    super::hub::HUB_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

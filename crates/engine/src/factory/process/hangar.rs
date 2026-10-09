@@ -42,6 +42,8 @@ pub struct Hangar {
     pub busy: bool,
     /// Which kind is out (`DRONE` or `CARGO_DRONE`; `NONE` when none): the port's one slot takes only that kind.
     pub kind: ItemId,
+    /// The share of its fleet, in thousandths, the best swarm hub in range adds this tick (`hub.rs`; 0 for none).
+    pub bonus: u32,
 }
 
 const fn inlet(side: Side) -> Port {
@@ -92,6 +94,11 @@ impl Processor {
         (self.spec.pick == Pick::Hangar).then(|| &TIERS[(self.tier as usize).min(TIERS.len() - 1)])
     }
 
+    /// How many drones it keeps: its tier's fleet and what a swarm hub adds.
+    pub fn fleet(&self) -> u32 {
+        self.hangar_tier().map_or(0, |t| t.fleet + t.fleet * self.hangar.bonus / 1000)
+    }
+
     /// Construction drones at home on the pad.
     pub fn drones_home(&self) -> u32 {
         self.input.count(DRONE)
@@ -105,13 +112,15 @@ impl Processor {
     /// How many more of `item` it takes: its fleet less those home and those out. A port keeps one kind of drone at
     /// a time (its slot, and the kind that is out), construction drones or cargo drones.
     pub(super) fn hangar_room(&self, item: ItemId) -> u32 {
-        let Some(tier) = self.hangar_tier().filter(|_| item == DRONE || item == CARGO_DRONE) else { return 0 };
+        if self.hangar_tier().is_none() || (item != DRONE && item != CARGO_DRONE) {
+            return 0;
+        }
         let other = |kind: ItemId| kind != ItemId::NONE && kind != item;
         let home = self.input.slots.first().map_or(ItemId::NONE, |s| if s.is_empty() { ItemId::NONE } else { s.item });
         if other(home) || (self.hangar.away > 0 && other(self.hangar.kind)) {
             return 0;
         }
-        tier.fleet.saturating_sub(self.input.total() + self.hangar.away)
+        self.fleet().saturating_sub(self.input.total() + self.hangar.away)
     }
 
     /// The status line of a port (`None`: another processor).
@@ -124,6 +133,7 @@ impl Processor {
         } else {
             ("drones", format!("reach {} blocks", tier.reach))
         };
-        Some(format!("{home} {noun} home, {} out · fleet {} · {range}{wiring}", self.hangar.away, tier.fleet))
+        let swarm = if self.hangar.bonus > 0 { " (swarm hub)" } else { "" };
+        Some(format!("{home} {noun} home, {} out · fleet {}{swarm} · {range}{wiring}", self.hangar.away, self.fleet()))
     }
 }

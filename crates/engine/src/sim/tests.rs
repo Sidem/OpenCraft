@@ -27,7 +27,7 @@ const B: PlayerId = PlayerId(1);
 /// for generator version 6, in 10.2 for the Oil Processing tech, in 10.3 for the Refining tech, and in 10.4
 /// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, in 10.7 for the Research Center tech, for the game mode byte (save version 38), in 11.0 for the Recycling tech, and in 11.1 for the Wafers and Accelerators techs, and on 2026-10-09 for the research queue (save version 41) and for the bigger hauler packs (three techs, 99 pack rows;
 /// save version 42).
-const GOLDEN_HASH: u64 = 0x3646_c36e_7195_b693;
+const GOLDEN_HASH: u64 = 0x371f_f5ab_69c9_edf4;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

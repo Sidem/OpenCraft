@@ -51,7 +51,7 @@ pub const OPTIMIZER_SPEC: ProcessSpec = ProcessSpec {
 impl Processor {
     /// The status line of an optimizer (`None`: another processor).
     pub(super) fn optimizer_text(&self) -> Option<String> {
-        if self.energy() != Energy::Optimizer {
+        if self.spec.block != OPTIMIZER {
             return None;
         }
         Some(match self.status {
@@ -68,7 +68,7 @@ impl Processor {
 /// Every optimizer's anchor and the speed it adds right now, in thousandths (from this tick's balance).
 pub(in crate::factory) fn bonuses(processors: &[Processor], power: &Power, data: &Data) -> Vec<(IVec3, u32)> {
     let mut out = Vec::new();
-    for (i, p) in processors.iter().enumerate().filter(|(_, p)| p.energy() == Energy::Optimizer) {
+    for (i, p) in processors.iter().enumerate().filter(|(_, p)| p.spec.block == OPTIMIZER) {
         let share = power.speed(power.process_pole[i]) as u64 * data.satisfaction(data.process_node[i]) as u64;
         out.push((p.pos, (BONUS_PERMILLE as u64 * share / (FULL_SPEED as u64 * FULL_SPEED as u64)) as u32));
     }

@@ -44,6 +44,17 @@ pub enum Unlock {
     Upgrade(BlockId, u8),
     /// An endless bonus to one kind of work (`bonus.rs`): the tech is repeated, never done in play.
     Bonus(Bonus),
+    /// A tool or view the player gets (`Feature`).
+    Feature(Feature),
+}
+
+/// What a `Unlock::Feature` switches on; the code that offers it asks `Research::has`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Feature {
+    /// Belt lines route themselves to a machine and plan as ghosts in ghost mode (`belt_line/route.rs`).
+    AutoRoute,
+    /// The maps guess where ore lies from the stained soil seen (`survey.rs`).
+    AiSurvey,
 }
 
 impl Unlock {
@@ -53,7 +64,7 @@ impl Unlock {
             Unlock::Recipe(item) => item,
             Unlock::MachineRecipe(i) => MACHINE_RECIPES.get(i as usize).map_or(ItemId::NONE, |r| r.main().0),
             Unlock::Upgrade(block, tier) => tiers::item_of(block, tier).unwrap_or(ItemId::NONE),
-            Unlock::Bonus(_) => ItemId::NONE,
+            Unlock::Bonus(_) | Unlock::Feature(_) => ItemId::NONE,
         }
     }
 }

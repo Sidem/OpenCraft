@@ -87,7 +87,12 @@ pub fn plan(
         cells.push(LineCell::belt(IVec3::new(col.0, y, col.1), dir, Shape::Flat));
         i += 1;
     }
-    // The slopes the factory will derive, for the preview.
+    slopes(&mut cells);
+    (cells, blocked)
+}
+
+/// Marks the belts the factory will turn into ramps (it derives them from the heights), for the preview.
+pub(super) fn slopes(cells: &mut [LineCell]) {
     for i in 0..cells.len() {
         let y = cells[i].pos.y;
         if cells[i].piece != Piece::Belt {
@@ -99,7 +104,6 @@ pub fn plan(
             cells[i].shape = Shape::Down;
         }
     }
-    (cells, blocked)
 }
 
 /// The belts to upgrade from the belt at `start` towards the column of `end`: the path follows belts

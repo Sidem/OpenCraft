@@ -19,7 +19,10 @@
 //! Belts and kits are paid for from the whole inventory, not just the held stack: a line takes belts from
 //! the held stack first, then from the other stacks (each placement names the slot it comes from).
 //!
-//! To change the path: `plan` / `plan_upgrade` (`path.rs`). The preview: ghost belts (`write_line_preview`) and the
+//! With Auto-Routing researched, a line whose pointer rests on a machine routes itself there (`route.rs`: an A* over
+//! the voxels, round walls and over steps), and in ghost mode (B) a dragged line is planted as ghosts for drones.
+//!
+//! To change the path: `plan` / `plan_upgrade` (`path.rs`), or a route (`route.rs`). The preview: ghost belts (`write_line_preview`) and the
 //! host's outline boxes and label (`api/hud.rs` `line_cells`, `line_label`), in the kit's colour when
 //! upgrading.
 
@@ -28,7 +31,7 @@ use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP};
 use crate::factory::{self, tiers, upgrades, Shape};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
-use crate::raycast::raycast;
+use crate::raycast::{raycast, RayHit};
 use crate::research::Unlock;
 use crate::upgrade_aim::{Aim, MAX_CHAIN};
 use crate::Game;
@@ -80,6 +83,17 @@ struct Build {
     slot: u8,
 }
 
+/// What auto-routing (`route.rs`) made of the dragged line.
+#[derive(Default, Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Route {
+    /// The pointer is not on a machine, or Auto-Routing is not researched: the plain path.
+    #[default]
+    Off,
+    Found,
+    /// The pointer is on a machine and no route reaches it.
+    Blocked,
+}
+
 /// A line being dragged out, or being built.
 #[derive(Default)]
 pub struct BeltLine {
@@ -94,12 +108,15 @@ pub struct BeltLine {
     pub blocked: Option<IVec3>,
     /// The cells being built are upgrades (kits), not placements.
     upgrading: bool,
+    /// The cells being built are ghosts (ghost mode), not blocks.
+    ghosting: bool,
+    pub route: Route,
     /// What a held kit would upgrade at the crosshair (`upgrade_aim.rs`); empty while dragging.
     pub aim: Aim,
 }
 
 /// Whether block `b` is a belt (`FAST_BELT` is a legacy block of old worlds).
-fn is_belt(b: BlockId) -> bool {
+pub(crate) fn is_belt(b: BlockId) -> bool {
     matches!(b, BELT | FAST_BELT | RAMP_UP | RAMP_DOWN)
 }
 
@@ -110,6 +127,7 @@ impl Game {
         self.line.aim = Aim::default();
         if self.line.start.is_none() {
             self.line.blocked = None;
+            self.line.route = Route::Off;
         }
         if self.send_line_placements() {
             return true;
@@ -141,19 +159,33 @@ impl Game {
                         let belt_tier = |p| self.sim.factory.tiered_at(p).filter(|t| t.0 == BELT).map(|t| t.1);
                         plan_upgrade(belt_tier, start, end, tier - 1)
                     }
-                    None => {
-                        let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing);
-                        self.line.blocked = blocked;
-                        cells
-                    }
+                    None => match self.auto_route_known().then(|| self.plan_route(start, end)).flatten() {
+                        Some(route) => {
+                            (self.line.route, self.line.blocked) = (Route::Found, None);
+                            route.unwrap_or_else(|| {
+                                (self.line.route, self.line.blocked) = (Route::Blocked, Some(end));
+                                Vec::new()
+                            })
+                        }
+                        None => {
+                            let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing);
+                            (self.line.route, self.line.blocked) = (Route::Off, blocked);
+                            cells
+                        }
+                    },
                 };
                 self.assign_passes();
                 true
             }
             (Some(_), false) => {
                 self.line.start = None;
+                self.line.route = Route::Off;
                 let cells = std::mem::take(&mut self.line.cells);
-                self.queue_build(&cells, kit.is_some());
+                if self.ghost_mode && kit.is_none() {
+                    self.queue_ghosts(&cells);
+                } else {
+                    self.queue_build(&cells, kit.is_some());
+                }
                 true
             }
         }
@@ -184,6 +216,7 @@ impl Game {
         }
         queue.reverse();
         self.line.upgrading = upgrading;
+        self.line.ghosting = false;
         self.line.build_item = item;
         self.line.building = queue;
     }
@@ -204,6 +237,7 @@ impl Game {
     /// Drops the line being dragged (the pointer was freed, or a left click).
     pub(crate) fn cancel_belt_line(&mut self) {
         self.line.start = None;
+        self.line.route = Route::Off;
         self.line.cells.clear();
     }
 
@@ -212,6 +246,7 @@ impl Game {
     pub(crate) fn line_budget(&self) -> usize {
         let held = self.inventory().selected_stack().item;
         match upgrades::kit_tier(held) {
+            None if self.ghost_mode => usize::MAX / 2, // ghosts cost nothing
             Some(tier) if !self.sim.factory.research.has(Unlock::Upgrade(BELT, tier)) => 0,
             Some(_) => {
                 let per = tiers::family(BELT).map_or(1, |f| f.kits);
@@ -267,12 +302,19 @@ impl Game {
     /// crosses the start's level when it points at the sky.
     fn line_end(&self, start: IVec3) -> Option<IVec3> {
         let (eye, dir) = (self.body().eye(), self.body().look_dir());
-        let world = &self.sim.world;
-        if let Some(hit) = raycast(eye, dir, LINE_REACH, |p| world.get_block(p).filter(|&b| !block::replaceable(b))) {
+        if let Some(hit) = self.line_hit() {
             return (hit.normal != IVec3::ZERO).then_some(hit.block + hit.normal);
         }
         let t = (start.y as f64 + 0.5 - eye.y) / dir.y;
         (dir.y < -1e-3 && t < LINE_REACH).then(|| (eye + dir * t).floor())
+    }
+
+    /// The block the pointer rests on, up to `LINE_REACH` away.
+    fn line_hit(&self) -> Option<RayHit> {
+        let world = &self.sim.world;
+        raycast(self.body().eye(), self.body().look_dir(), LINE_REACH, |p| {
+            world.get_block(p).filter(|&b| !block::replaceable(b))
+        })
     }
 
     /// Sends the next few placements of a line being built. False when there are none. Stops if a slot
@@ -295,6 +337,8 @@ impl Game {
             self.line.building.pop();
             if self.line.upgrading {
                 self.act(Action::Upgrade { pos });
+            } else if self.line.ghosting {
+                self.act(Action::PlaceGhost { pos, slot, facing: dir });
             } else {
                 self.act(Action::PlaceBlock { pos, slot, facing: dir, against: pos - UP });
             }
@@ -337,5 +381,6 @@ impl Game {
 
 mod pass;
 mod path;
+mod route;
 #[cfg(test)]
 mod tests;

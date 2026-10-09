@@ -22,6 +22,7 @@ mod geology;
 mod grid;
 mod heavy;
 mod hoist;
+mod hub;
 mod items;
 mod laser;
 mod machines;
@@ -198,7 +199,8 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::PURE_WATER_CANISTER..=tex::FAB_TOP => compute::pixel(layer, x, y),
         tex::GRID_FIRST..=tex::GRID_LAST => grid::pixel(layer, x, y),
         tex::NODE_SIDE..=tex::OPT_TOP => compute::pixel(layer, x, y),
-        tex::EMIT_SIDE..=tex::BEAM => laser::pixel(layer, x, y),
+        tex::EMIT_SIDE..=tex::BEAM | tex::MIRROR..=tex::DATA_TOP => laser::pixel(layer, x, y),
+        tex::HUB_SIDE..=tex::HUB_TOP => hub::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

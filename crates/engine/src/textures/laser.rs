@@ -1,4 +1,4 @@
-﻿//! The laser link blocks (Milestone 11): the emitter's dark housing with a red lens stripe and a ring crown, the
+//! The laser link blocks (Milestone 11): the emitter's dark housing with a red lens stripe and a ring crown, the
 //! receiver's collector panels with a pale cell lattice, and the beam's light. Placeholders until the art pass.
 
 use crate::block::tex;
@@ -11,8 +11,37 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::EMIT_TOP => emit_top(x, y),
         tex::RECV_SIDE => recv_side(x, y),
         tex::RECV_TOP => recv_top(x, y),
+        tex::MIRROR => mirror(x, y),
+        tex::DATA_SIDE => data_side(x, y),
+        tex::DATA_TOP => data_top(x, y),
         _ => beam(x, y),
     }
+}
+
+/// Silvered glass in a metal frame, with a diagonal glint.
+fn mirror(x: i32, y: i32) -> [u8; 4] {
+    if x <= 1 || x >= 14 || y <= 1 || y >= 14 {
+        return frame(x, y);
+    }
+    let glint = ((x - y).abs() <= 1) as i32 as f64 * 0.25;
+    rgb([196.0, 214.0, 232.0], 0.85 + glint + 0.1 * n(667, x, y))
+}
+
+/// The receiver's blue lattice with a green stripe of data lanes across the middle.
+fn data_side(x: i32, y: i32) -> [u8; 4] {
+    if (6..=9).contains(&y) && x % 3 != 0 {
+        return rgb([90.0, 235.0, 150.0], 0.9 + 0.2 * n(668, x, y));
+    }
+    recv_side(x, y)
+}
+
+/// A collector dish ringed in green.
+fn data_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    if (dx * dx + dy * dy).sqrt() > 6.0 {
+        return rgb([60.0, 200.0, 120.0], 1.0);
+    }
+    recv_top(x, y)
 }
 
 /// A dark housing with a bright red stripe across the middle.

@@ -31,10 +31,17 @@ pub struct Part {
     pub at: [f32; 3],
     pub size: [f32; 3],
     pub look: Look,
+    /// Extra turn about its own centre, in quarter turns (a mirror's plate stands at 45°).
+    pub turn: f32,
 }
 
 pub const fn part(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
-    Part { at, size, look }
+    Part { at, size, look, turn: 0.0 }
+}
+
+/// A part turned `turn` quarter turns more than its machine.
+pub const fn turned(at: [f32; 3], size: [f32; 3], look: Look, turn: f32) -> Part {
+    Part { at, size, look, turn }
 }
 
 /// Deepest press stroke, in blocks.
@@ -61,7 +68,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 t
             }
         };
-        push_box(out, at, yaw, part.size, 0.0, texture, false);
+        push_box(out, at, yaw + part.turn * std::f32::consts::FRAC_PI_2, part.size, 0.0, texture, false);
     }
     match p.energy() {
         // Chutes, pipe fittings and a gauge instead of the generic hatches.

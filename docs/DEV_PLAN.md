@@ -1,7 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) and 11.5 (AI lab) are committed, 11.6 (endless bonus techs) is committed, 11.7 (optimizer node) is committed, 11.8 (laser power links) is built and uncommitted (708 tests, with the research queue, paired underpasses and five-tier hauler packs built on top, also uncommitted). Next: step 11.9, mirrors and data beams** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; 736 tests, save version 43) · **Next: step 12.1, rocket parts and the launch site** (Milestone 12 is a first draft in section 4; the interlude chosen for after 11 is unplanned and may go first) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -39,8 +38,9 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   cargo drones and the hover pack.
 - **Milestone 10 is done** (`docs/CHANGELOG_M10.md`): oil and canisters, plastics,
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
-- **Next: Milestone 11: Compute and photonics** (section 4): chip fab, the data grid, AI datacenters and cooling, AI research
-  and endless bonus techs, the optimizer, laser links, swarms, auto-routing, AI survey.
+- **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
+  techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
+- **Next: Milestone 12: Orbit** (section 4, a first draft to refine with the user at 12.1).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -52,7 +52,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (305 engine tests).
+   (about 740 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -438,10 +438,9 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 40) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 43) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 104, item 382, tech 67, machine recipe 64). Each new look gets a
-  placeholder layer (`tex::COUNT` is 268) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 109, item 382, tech 74, machine recipe 64). Each new look gets a placeholder layer (`tex::COUNT` is 281) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -488,78 +487,36 @@ what was done or why it is parked.
   the main grid and always blue, the others take orange, pink, green, yellow, red by size (Okabe-Ito); wires, hookup wires, cable
   knots and a collar and crossarm sleeve on each pole wear it, and the pole readout names the grid. Textures 251–256, render only
   (no save bump); a grid that overtakes the main grid in poles swaps colours with it.
-### Milestone 11 steps
+### Milestone 11 (Compute and photonics), built and pushed
 
-Goal: the factory learns compute. Chips come from chemistry (acid and pure water), datacenters turn megawatts and coolant
-into **compute**, a second grid carries compute like power, and compute buys things: AI research, endless bonus techs, the
-optimizer, drone swarms, auto-routing and AI survey. Laser links join far plants and datacenters by line of sight. Numbers
-below are first guesses; tune in play (`docs/WORKFLOW.md` section 6). Order: chips, the data grid, datacenters and cooling,
-what compute buys, laser links, helpers, cleanup.
-- [x] **11.1 Pure water, the chip fab and AI accelerators** (built 2026-10-08: block 98 Chip Fab, items 379 pure water canister, 380
-  wafer, 381 AI accelerator, machine recipes 61 pure water (chemical plant: empty canister + sand + 2 water), 62 wafer (2 silicon +
-  acid canister + pure water canister, 8 s, both shells come back), 63 accelerator (2 wafers + 2 processors + plastic, 20 s), techs
-  Wafers = 56 (needs Acids and Lubricants and Gold Science, so a research center) and Accelerators = 57, textures 246–250,
-  `Category::Fabrication`; `factory/process/fab.rs` is a 4×4×3, 1 MW `Pick::ByInput` machine with six input slots and no water
-  inlet, and `fab_text` names what a half-fed batch lacks. Wafers and accelerators share one output slot, so the player filters the
-  front belt. `recipes/machine.rs` (406) and `recipes/mod.rs` (401) passed their soft limits: split the machine table before adding
-  to it again. No save bump; golden hash re-recorded for the new techs. Tests 634 → 643.)
-- [x] **11.2 The data grid** (built 2026-10-08: `factory/fibre.rs`, block 99 Fibre Node, `Kind::Node`, tech Data Network 58 (needs Wafers),
-  recipe 2 nodes from 2 processors, 4 glass, 2 plastic, 6 copper wire, textures 257–259, `SAVE_VERSION` 40, golden hash re-recorded.
-  **Differs from the first idea:** not a generalised power `Channel` but its own small `Data`, derived at every relink and balanced
-  after `Power::balance`. Nodes within 12 blocks join by themselves (no hand wiring); a processor whose spec has `compute` (new
-  `ProcessSpec` field, TF at full power: positive makes, negative uses) hangs on the nearest node within 5. A producer gives its TF
-  times its power speed; a consumer wants its TF while it wants power and runs at power speed × the grid's satisfaction (0 with
-  no node: "No data link"). No real machine uses `compute` yet (11.3's datacenter is the first producer). `factory/machine.rs`
-  split out of `factory/mod.rs`; `process/specs.rs` is at 408 lines: move its inline rows out before adding a spec. Tests 647 → 653.)
-- [x] **11.3 AI datacenter** (built 2026-10-08: `process/datacenter.rs`, `Energy::Compute`, block 100 Datacenter, tech Datacenters 59 (needs
-  Accelerators, Data Network, Diesel Power), textures 260–261, 4×4×3 hall, 3 MW, 100 TF at full power times its power share, hung on
-  a fibre node like any producer. **Heat** is the reactor's model (heat in `progress`, coolant in `steam.water` filled by `draw_water`
-  from a pump pipe to its blue inlet, a unit per 10 s of full load, `Status::Overheated` with hysteresis): without coolant it sheds
-  only 5% of its load, so it trips after about 21 s, draws nothing and gives no compute (`Data::balance` skips it) until the heat has
-  halved. Hand recipe 40 beams, 20 concrete, 16 accelerators, 32 copper wire. No save change (`SAVE_VERSION` stays 40), golden hash
-  re-recorded. **Not yet:** Mk rack tiers (+50% compute for +50% power and heat): a later step if wanted. Tests 653 → 660.)
-- [x] **11.4 Cooling tower and the coolant loop** (built 2026-10-08: `process/tower.rs`, block 101, tech Cooling 60, textures 262–263,
-  3×3×5, 300 kW. **Differs from the first idea:** no return pipe; a tower on a datacenter's water network (`tower::seat`, two to a
-  tower) supplies its coolant from its own tank while powered and watered, losing 1 unit in 20, else the datacenter uses the pump.
-  Test: an hour is ~360 pump units open, ≤ 23 looped. Hand recipe 30 concrete, 12 pipes, 4 motors, 12 steel plates. Tests 660 → 668.)
-- [x] **11.5 AI lab and compute research** (built 2026-10-08: `process/ailab.rs`, block 102, tech AI Labs 61, textures 264–265, 2×2×2, 100 kW,
-  a data consumer of 20 TF. **Differs from the first idea:** a spec row of the center's code, not a new `Pick`; `step_centers` scales its
-  speed by its grid's satisfaction (no node or no datacenter: it idles); twice a lab's speed, every 2nd unit free. **Compute cost is a
-  marker:** `research::needs_ai_lab` (`AI_ONLY` in `research/compute.rs`: tech AI Research 62, no unlocks yet, 11.6 builds on it); labs and
-  centers show `LabStatus::NeedsAi`. Recipe 20 steel plates, 6 accelerators, 10 processors, 20 circuits, 8 glass. Tests 668 → 673.)
-- [x] **11.6 Endless bonus techs** (built 2026-10-08: `research/bonus.rs`, `Unlock::Bonus(kind)`, techs 63 Mining Productivity, 64 Machine
-  Speed, 65 Drone Speed, all needing AI Research and no packs. **Differs from the first idea:** no save bump: a level is the tech's
-  `progress`, which `Research` already saves (the table just grew by three; old saves load, golden hash re-recorded). `units` is
-  `LEVELS` 100, a cap no play reaches (cost ×1.25 a level) that keeps `progress <= units` and the tests that finish every tech
-  finite; creative worlds get level 100 (+300%). Cost is compute through lab time: `Research::unit_seconds` (60 s × 1.25 per level),
-  paid only by an AI lab (`needs_ai_lab` is true for bonus techs; small labs no longer ask for power for them). Each level adds 3%
-  (linear) through `Research::rate_permille`, read once a tick in `Factory::update` into the derived `Miner::boost` and
-  `Processor::boost` (work of recipes only) and by `Sim::flight_step` for construction and cargo drones. The research screen
-  shows "level N" and the next unit's seconds (`tech_endless`). Tests 673 → 683.)
-- [x] **11.7 Optimizer node** (built 2026-10-08: `process/optimizer.rs`, block 103, `Energy::Optimizer` (a power sink like the winch), tech Optimizer 66 in the new `research/ai.rs` (needs AI Research; append later Milestone 11 techs there, after the bonus techs), textures 266–267, 2×2×2, 150 kW, a data consumer of 20 TF that always wants it. **Differs from the first idea:** range, not grid: every processor and miner whose anchor is within 16 blocks gets +25% whatever grid it is on, scaled by the optimizer's power share times its grid's satisfaction (so a shortage weakens it smoothly, and none gives nothing); a machine takes the best optimizer in range (`bonus_at`). It multiplies into `boost` in `Factory::update` beside the research bonuses (`bonuses` reads this tick's balance, never a derived `speed`, so a loaded core matches). Hand recipe 8 steel plates, 4 accelerators, 10 processors, 10 circuits, 4 glass. No save change; golden hash re-recorded for the new tech. Tests 683 → 689.)
-- [x] **11.8 Laser power links** (built 2026-10-08: `factory/laser.rs`, `process/laser.rs`, blocks 104 emitter / 105 receiver (1×1,
-  `Energy::Beam`, no power of their own), tech Photonics 67 (needs AI Research, 150 units, gold packs), textures 268–272,
-  hand recipes 6 aluminium plates, 1 accelerator, 4 glass, 4 circuits each. The emitter shoots out of its front up to 128
-  blocks; air and glass pass, a receiver (any side) links, anything else blocks. Rays are cached (`Beams`) and recast only on
-  relink or when `Sim::block_changed` hits a ray (`beam_cut_check`), so there is no per-tick ray cost. **Power:** `Power::rebuild`
-  groups poles into wire "sides", joins sides through beams into grids; `balance` accumulates demand per side and charges the
-  emitter's grid receiving-side demand / 9 (the 90%). **Left out for now:** Mk tiers to 512 blocks. Drawn as a thin lit box,
-  flickering up to its blocker. No save change; golden hash re-recorded. Tests 689 → 696.)
-- [ ] **11.9 Mirrors and data beams** (`laser.rs`, mirror block). A mirror turns a beam 90° so lines can go round corners; a beam
-  can carry the data channel instead of power (the receiver's mode is chosen in its panel). Done when: a beam through two
-  mirrors carries compute between two datacenter sites.
-- [ ] **11.10 Swarm hub and drone swarms** (`process/hub.rs`; tech Drone Swarms). A hub on the data grid beside a port adds 50% to
-  its fleet and costs compute. Done when: a hub raises a Mk3 port's fleet from 16 to 24 and it drops back without compute.
-- [ ] **11.11 Auto-routing** (`route.rs`, `Feature::AutoRoute`; tech Auto-Routing). Drag from a machine's output to another's
-  input: an A* over voxels (a query, never core state) finds a belt route with lifts and underpasses and shows it as ghosts for
-  drones or hands (`belt_line.rs` draws them). Done when: a route across a gap places ghosts in tests, never edits the world,
-  and a blocked target says so.
-- [ ] **11.12 AI survey** (`survey.rs`, a prospecting query; tech AI Survey). Predicts deposits within 256 blocks from the surface
-  hints and the scanner's records (likely ore by stain and bearing, not the full truth), drawn as faint marks on the map.
-  Queries only: the state hash never moves. Done when: it lists a known deposit's stain in a test and the map shows it.
-- [ ] **11.13 Cleanup:** tips, balance, worst tick (a datacenter plant bench), README, CODEMAP; then move Milestone 12 (Orbit)
-  in from the roadmap. The user reviews and tests the milestone before it is committed.
+Chips from chemistry, the data grid, AI datacenters with cooling towers, AI labs, endless bonus techs, the optimizer node, laser
+power and data links with mirrors, the swarm hub, auto-routing and the AI survey. Specs: `docs/CHANGELOG_M11.md`. **Measured:** a
+plant of 6 datacenters, 8 AI labs, 4 optimizers, 4 swarm hubs, 6 Mk4 drone ports, 14 fibre nodes, 20 generators and 4 laser links
+costs about 2 µs a tick (worst under 0.1 ms; `bench_compute`, ignored). **Balance (to tune in play):** a datacenter draws 3 MW for
+100 TF, which feeds five AI labs (20 TF each) or five optimizers; an optimizer (150 kW, 20 TF) buys +25% on everything within 16
+blocks, a swarm hub (100 kW, 30 TF) +50% drones on every port within 12, so compute is spent where a plant is densest. Coolant is a
+pump (a unit per 10 s) or a cooling tower (about a twentieth of that). A laser link costs 10% of what crosses it and 128 blocks
+at most. The endless bonus techs cost compute only and grow a quarter dearer a level. Auto-routing and the AI survey are free to use
+once researched.
 
+### Milestone 12 steps (Orbit; moved in from the roadmap, a first draft to refine at 12.1 with the user)
+
+Goal: the factory leaves the ground. Rockets from every line, fuel from electrolysis, satellites that give the map and the
+network new reach. Numbers are first guesses. Order: the launch site and a first rocket, satellites in orbit, what each kind
+gives, drop pods, cleanup. Plan the interlude chosen on 2026-10-08 for after Milestone 11 (timelapse, factory as an instrument,
+follow one item, seismic prospecting, site bonuses) with the user before 12.1; it can go first.
+- [ ] **12.1 Rocket parts and the launch site** (`process/launch.rs`, a big multi-block pad; tech Rocketry, gold packs). Parts made in
+  assemblers (hull, engine, guidance, fuel tank) and liquid fuel and oxidiser from electrolysis and the refinery, carried in canisters
+  to the pad. Done when: a pad fed in a test builds a rocket and `Action`-free ticks launch it (state: "in orbit"), and a pad
+  missing a part says which.
+- [ ] **12.2 Satellites and the sky** (`satellites.rs`, core state: an orbit is a period and a phase, positions derived from the
+  tick). A rocket carries one satellite kind into orbit; coverage is a function of the tick and a place. Done when: a satellite's
+  coverage over a place is true for part of its period in tests and the state hash stays deterministic.
+- [ ] **12.3 What satellites give:** survey (every deposit under coverage on the map, replacing the AI survey's guesses with
+  facts), comms (data grids and drone ports reach across coverage), power (a rectenna receives beamed power), science (a downlink
+  gives the last research input). One tech each, one module each.
+- [ ] **12.4 Drop pods to landing pads:** carry items from a rocket's cargo to a pad anywhere in comms coverage.
+- [ ] **12.5 Cleanup:** tips, balance, worst tick, README, CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -573,11 +530,10 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 11
+## 5. Roadmap after Milestone 12
 
-Milestones 12–13 are in `docs/ROADMAP.md`, with two interludes the user chose on 2026-10-08 (after 11: timelapse,
-factory as an instrument, follow one item, seismic prospecting, site bonuses; after 12: ruins of the last factory).
-Plan the first interlude at step 11.13 together with Milestone 12. The tech tree through them is `docs/TECH_TREE.md` (concept)
+Milestone 13 is in `docs/ROADMAP.md`, with the interlude the user chose on 2026-10-08 for after 12 (ruins of the last factory); the
+interlude chosen for after 11 (timelapse, factory as an instrument, follow one item, seismic prospecting, site bonuses) is still unplanned. The tech tree through them is `docs/TECH_TREE.md` (concept)
 and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
@@ -604,6 +560,11 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-09: Milestone 11 cleanup (step 11.13).** Three tips (compute, lasers, smarter tools), `bench_compute` (about 2 µs a tick, worst under 0.1 ms), the balance note, README and CODEMAP, the Milestone 11 step list moved to `docs/CHANGELOG_M11.md`, Milestone 12 moved in from the roadmap as a first draft. Tests stay at 736. Next free block 109, tech 74, texture 281.
+- **2026-10-09: AI survey (step 11.12).** `survey.rs` (guesses from stained soil, `MARK_GUESS` rings on both maps), `Feature::AiSurvey`, tech AI Survey 73. Golden hash re-recorded (tech table grew), no save bump. Tests 731 → 736. Next free block 109, tech 74, texture 281.
+- **2026-10-09: Auto-routing (step 11.11).** `belt_line/route.rs` (A* route to an aimed machine, ghost lines in ghost mode), `Unlock::Feature`, tech Auto-Routing 72. Golden hash re-recorded (tech table grew), no save bump. Tests 721 → 731. Next free block 109, tech 73, texture 281.
+- **2026-10-09: Swarm hub (step 11.10).** Block 108 Swarm Hub (`factory/process/hub.rs`, texture 279–280, tech Drone Swarms 71): drone ports within 12 blocks keep 50% more drones while the hub gets power and compute (`Hangar::bonus`, `Processor::fleet`). Golden hash re-recorded (tech table grew), no save bump. Tests 716 → 721. Next free block 109, tech 72, texture 281.
+- **2026-10-09: Mirrors and data beams (step 11.9).** Blocks 106 Laser Mirror and 107 Data Receiver (Photonics 67), textures 276–278: beams turn 90° at mirrors (up to 8, 128 blocks in all) and a beam ending in a data receiver joins two data grids. Also: a world saved mid-thrust no longer loads thrusting forever (hands_synced). No save change. Tests 710 → 716. Next free block 108, tech 71, texture 279.
 - **2026-10-09: Jetpack slot and HUD columns.** A fifth equipment slot (Jetpack): the jetpack works only while worn (`Inventory::has_jetpack`); save 43 (older saves wear a pack-held jetpack on load; golden hash re-recorded). The helpers' status (jetpack fuel, hover charge, drone errand) is its own HUD line (`helper_status`) instead of replacing the target readout. Top centre (`#hud-top`) and left (`#hud-left`) are flex columns so scanner pointer, helper line, target, scanner card and tip never overlap. Mk2 scanner pointer: U picks the next deposit (Nearest / Chosen). Tests 710.
 - **2026-10-08: Laser power links (step 11.8).** `factory/laser.rs` (blocks 104–105, `Energy::Beam`, tech Photonics 67, textures 268–272): a clear beam joins two power grids at 90%; `Power::rebuild` splits poles into wire "sides" and joins sides through beams. Golden hash re-recorded, no save bump. Tests 689 → 696. Next free block 106, tech 68, texture 273.
 - **2026-10-08: Optimizer node (step 11.7).** `process/optimizer.rs` (block 103, `Energy::Optimizer`, tech Optimizer 66 in `research/ai.rs`, textures 266–267): +25% to machines within 16 blocks. Tests 683 → 689.

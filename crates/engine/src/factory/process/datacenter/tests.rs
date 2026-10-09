@@ -125,3 +125,58 @@ fn heat_and_coolant_survive_a_save() {
     assert_eq!((back.status, back.progress, back.steam.water), (Status::Overheated, p.progress, 77));
     assert_eq!(back.spec.block, DATACENTER);
 }
+
+/// Benchmark (`cargo test --release bench_compute -- --ignored --nocapture`): a compute plant on one power grid with
+/// 6 datacenters, 8 AI labs, 4 optimizers, 4 swarm hubs, 6 Mk4 drone ports, 14 fibre nodes, 20 coal generators and 4 laser
+/// links with a mirror each, 3000 ticks.
+#[test]
+#[ignore]
+fn bench_compute() {
+    use crate::block::{AI_LAB, DRONE_PORT, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER, OPTIMIZER, SWARM_HUB};
+    let (mut world, mut f) = (World::new(1, 2), Factory::default());
+    let mut put = |f: &mut Factory, block, x: i32, z: i32, facing: u8| {
+        let pos = IVec3::new(x, 100, z);
+        let tier = if block == POLE || block == DRONE_PORT { 3 } else { 0 };
+        f.place(&mut world, block, pos, facing, pos - IVec3::new(0, 1, 0), tier);
+    };
+    for i in 0..6 {
+        put(&mut f, DATACENTER, i * 10, 0, 0);
+        put(&mut f, DRONE_PORT, i * 10, 40, 0);
+    }
+    for i in 0..8 {
+        put(&mut f, AI_LAB, i * 8, 16, 0);
+    }
+    for i in 0..4 {
+        put(&mut f, OPTIMIZER, i * 12, 24, 0);
+        put(&mut f, SWARM_HUB, i * 12, 32, 0);
+        // A link 20 blocks long with a mirror at its far end turning the beam east, into a receiver.
+        put(&mut f, LASER_EMITTER, 70 + i * 6, 60, 0);
+        put(&mut f, LASER_MIRROR, 70 + i * 6, 40, 0);
+        put(&mut f, LASER_RECEIVER, 74 + i * 6, 40, 0);
+    }
+    for i in 0..14 {
+        put(&mut f, FIBRE_NODE, i * 8, 12, 0);
+    }
+    for i in 0..20 {
+        put(&mut f, GENERATOR, i * 3, -8, 0);
+    }
+    for x in (0..120).step_by(8) {
+        for z in (-8..72).step_by(8) {
+            put(&mut f, POLE, x + 4, z + 4, 0);
+        }
+    }
+    let mut events = Vec::new();
+    let (mut worst, mut at, start) = (std::time::Duration::ZERO, 0, std::time::Instant::now());
+    for tick in 0..3000u64 {
+        let t = std::time::Instant::now();
+        f.update(&mut world, tick, &mut events);
+        if tick > 0 && t.elapsed() > worst {
+            (worst, at) = (t.elapsed(), tick);
+        }
+    }
+    println!(
+        "compute: {} processors, {:?} a tick on average, {worst:?} worst (tick {at})",
+        f.processors.len(),
+        start.elapsed() / 3000
+    );
+}

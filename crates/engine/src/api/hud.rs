@@ -81,6 +81,9 @@ impl Game {
     pub fn line_label(&self) -> String {
         let n = self.line.cells.len();
         if n == 0 {
+            if self.line.route == crate::belt_line::Route::Blocked {
+                return "Auto-route\nNo route to that machine: walls too long to go round, or too far".to_string();
+            }
             if self.ghost_mode {
                 return self.ghost_label();
             }

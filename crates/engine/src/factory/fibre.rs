@@ -43,13 +43,25 @@ pub(crate) struct Data {
     pub links: Vec<(u32, u32)>,
     /// The node each processor hangs on, by processor index (`None`: no compute, or no node in reach).
     pub process_node: Vec<Option<u32>>,
+    /// Data beams (emitter, data receiver as processor indices) that join two grids: both ends have a node in reach.
+    pub joined: Vec<(u32, u32)>,
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
 }
 
+/// The node nearest to any cell of `p` within [`REACH`], if there is one.
+fn node_near(nodes: &[Node], p: &Processor) -> Option<u32> {
+    let near = |c: IVec3| {
+        let best = nodes.iter().enumerate().map(|(i, nd)| (dist2(nd.pos, c), i as u32));
+        best.filter(|&(d, _)| d <= REACH * REACH).min()
+    };
+    p.cells().into_iter().filter_map(near).min().map(|(_, i)| i)
+}
+
 impl Data {
-    /// Numbers the grids (in order of their lowest node) and hangs every producer and consumer on a node.
-    pub(super) fn rebuild(nodes: &[Node], processors: &[Processor]) -> Data {
+    /// Numbers the grids (in order of their lowest node) and hangs every producer and consumer on a node. A data
+    /// beam (`beams`, from `Factory::beam_links`) joins the grids of the nodes by its two ends, which then are one grid.
+    pub(super) fn rebuild(nodes: &[Node], processors: &[Processor], beams: &[(u32, u32)]) -> Data {
         let n = nodes.len();
         let mut parent: Vec<u32> = (0..n as u32).collect();
         let mut links = Vec::new();
@@ -60,6 +72,15 @@ impl Data {
                     let (a, b) = (root(&mut parent, i as u32), root(&mut parent, j as u32));
                     parent[a.max(b) as usize] = a.min(b);
                 }
+            }
+        }
+        let mut joined = Vec::new();
+        for &(e, r) in beams {
+            let ends = (node_near(nodes, &processors[e as usize]), node_near(nodes, &processors[r as usize]));
+            if let (Some(a), Some(b)) = ends {
+                joined.push((e, r));
+                let (a, b) = (root(&mut parent, a), root(&mut parent, b));
+                parent[a.max(b) as usize] = a.min(b);
             }
         }
         let mut grid_of_root = vec![u32::MAX; n];
@@ -73,19 +94,11 @@ impl Data {
             }
             node_grid.push(grid_of_root[r]);
         }
-        let hang = |p: &Processor| {
-            if p.spec.compute == 0 {
-                return None;
-            }
-            let near = |c: IVec3| {
-                let best = nodes.iter().enumerate().map(|(i, nd)| (dist2(nd.pos, c), i as u32));
-                best.filter(|&(d, _)| d <= REACH * REACH).min()
-            };
-            p.cells().into_iter().filter_map(near).min().map(|(_, i)| i)
-        };
+        let hang = |p: &Processor| if p.spec.compute == 0 { None } else { node_near(nodes, p) };
         Data {
             node_grid,
             links,
+            joined,
             process_node: processors.iter().map(hang).collect(),
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],

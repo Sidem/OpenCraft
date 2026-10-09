@@ -134,14 +134,15 @@ impl Game {
         let short = cells.iter().filter(|c| c.piece != Piece::Belt && c.short).count();
         let sloped = cells.iter().filter(|c| matches!(c.shape, Shape::Up | Shape::Down)).count();
         let have = self.inventory().count(self.inventory().selected_stack().item) as usize;
-        let mut s = format!("Belt line\n{}", plural(belts, "belt", "belts"));
+        let title = if self.line.route == super::Route::Found { "Auto-route" } else { "Belt line" };
+        let mut s = format!("{title}\n{}", plural(belts, "belt", "belts"));
         if sloped > 0 {
             s += &format!(", {sloped} on slopes");
         }
         if passes > 0 {
             s += &format!(", {}", plural(passes, "underpass", "underpasses"));
         }
-        if have < belts {
+        if have < belts && !self.ghost_mode {
             s += &format!(" · you have {have}");
         }
         if short > 0 {
@@ -150,6 +151,7 @@ impl Game {
         if self.line.blocked.is_some() {
             s += " · too wide to go under (red)";
         }
-        s + " · release to build, left-click to cancel"
+        let verb = if self.ghost_mode { "plant ghosts" } else { "build" };
+        s + &format!(" · release to {verb}, left-click to cancel")
     }
 }

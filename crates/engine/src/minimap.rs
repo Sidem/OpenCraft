@@ -13,6 +13,8 @@ mod atlas;
 mod marks;
 
 pub use atlas::Atlas;
+#[cfg(test)]
+pub use marks::MARK_GUESS;
 pub use marks::{ore_color, Known, MARK_FIELDS};
 
 use atlas::{column_index, Tile};
@@ -22,6 +24,7 @@ use crate::chunk::CHUNK_SHIFT;
 use crate::math::{IVec3, Vec3};
 use crate::player::Player;
 use crate::sim::PlayerId;
+use crate::survey::Survey;
 use crate::textures::TEX_SIZE;
 use crate::world::World;
 
@@ -46,6 +49,8 @@ pub struct Minimap {
     pub world_pixels: Vec<u8>,
     /// Deposits the local player has prospected (marks.rs).
     pub known: Known,
+    /// The AI survey's guesses from the stained soil seen (`survey.rs`).
+    pub survey: Survey,
 }
 
 impl Minimap {
@@ -66,6 +71,7 @@ impl Minimap {
             pixels: vec![0; MAP_SIZE * MAP_SIZE * 4],
             world_pixels: Vec::new(),
             known: Known::default(),
+            survey: Survey::default(),
         }
     }
 

@@ -96,7 +96,7 @@ pub use describe::fmt_int;
 #[cfg(test)]
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
-pub use panel::{ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
+pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use pole::{preview_pole, preview_wire, POLE_TIERS};
 pub use ports::PortInfo;
 pub use process::{makes, spec as process_spec};
@@ -334,6 +334,7 @@ impl Factory {
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
         let tuned = process::optimizer_bonuses(sinks.processors, power, data);
+        let swarms = process::hub_bonuses(sinks.processors, power, data);
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
             (m.speed, m.boost) =
                 (power.speed(p), mining * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED);
@@ -353,6 +354,7 @@ impl Factory {
                 // a data consumer
             }
             m.boost = machines * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED;
+            m.hangar.bonus = process::hub_bonus_at(&swarms, m.pos);
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);

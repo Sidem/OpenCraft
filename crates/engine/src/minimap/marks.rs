@@ -30,6 +30,8 @@ pub const MARK_DEPOSIT: i32 = 0;
 pub const MARK_MACHINE: i32 = 1;
 pub const MARK_ORE: i32 = 2;
 pub const MARK_SITE: i32 = 3;
+/// An AI survey guess (`survey.rs`): this plus its strength (0..3) as the shape, in the ore's colour.
+pub const MARK_GUESS: i32 = 4;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -51,6 +53,11 @@ impl Known {
             self.deposits.remove(0);
         }
         self.deposits.push(*d);
+    }
+
+    /// Where the remembered deposits lie and their ore: x, z, block.
+    pub fn centres(&self) -> impl Iterator<Item = (i32, i32, BlockId)> + '_ {
+        self.deposits.iter().map(|d| (d.center.x, d.center.z, d.ore()))
     }
 
     /// The remembered deposits that still hold ore, `KNOWN_FIELDS` numbers each.
@@ -85,12 +92,15 @@ impl Minimap {
         self.marks_in(factory, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz))
     }
 
-    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: ore seen at the surface, then
+    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: survey guesses, ore seen at the surface, then
     /// remembered deposits that still hold ore, then terraforming sites, then machines.
     pub fn marks_in(&self, factory: &Factory, lo: (i32, i32), hi: (i32, i32), origin: (i32, i32)) -> Vec<i32> {
         let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
         let (ox, oz) = origin;
         let mut out = Vec::new();
+        for g in self.survey.guesses().iter().filter(|g| (lo.0..=hi.0).contains(&g.x) && (lo.1..=hi.1).contains(&g.z)) {
+            out.extend_from_slice(&[g.x - ox, g.z - oz, ore_color(g.ore), MARK_GUESS + g.strength as i32 - 1]);
+        }
         let tiles = ((lo.0 >> CHUNK_SHIFT, lo.1 >> CHUNK_SHIFT), (hi.0 >> CHUNK_SHIFT, hi.1 >> CHUNK_SHIFT));
         self.atlas.each_tile_in(tiles.0, tiles.1, |cx, cz, tile| {
             for &(x, z, ore) in &tile.spots {

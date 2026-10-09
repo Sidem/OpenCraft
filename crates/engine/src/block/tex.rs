@@ -308,7 +308,14 @@ pub const BEAM: u16 = 272;
 pub const HAULER_PACK_MK3: u16 = 273;
 pub const HAULER_PACK_MK4: u16 = 274;
 pub const HAULER_PACK_MK5: u16 = 275;
-pub const COUNT: usize = 276;
+/// The laser mirror's silvered glass and the data receiver's panels (`textures/laser.rs`).
+pub const MIRROR: u16 = 276;
+pub const DATA_SIDE: u16 = 277;
+pub const DATA_TOP: u16 = 278;
+/// The swarm hub's body and crown (`textures/hub.rs`).
+pub const HUB_SIDE: u16 = 279;
+pub const HUB_TOP: u16 = 280;
+pub const COUNT: usize = 281;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

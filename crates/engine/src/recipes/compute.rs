@@ -89,3 +89,35 @@ pub const LASER_RECEIVER_RECIPE: Recipe = Recipe {
         "Takes a beam from any side. An emitter with a clear line to it joins the two power grids their poles are on \
             into one: the receiving side gets its power, and a tenth more is burned on the way.",
 };
+
+pub const SWARM_HUB_RECIPE: Recipe = Recipe {
+    output: b(SWARM_HUB),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 2), (PROCESSOR, 6), (CIRCUIT, 6), (DRONE, 4)],
+    blurb:
+        "Coordinates drones, 2×2×2. It always uses 30 TF (a fibre node within 5 blocks, a datacenter on the grid) and \
+            100 kW, and in return every drone port within 12 blocks keeps 50% more drones: a Mk4 port 24 instead of \
+            16. Several hubs do not add up: a port takes the best one in range. Without power or compute the extra \
+            drones are no longer replaced.",
+};
+
+pub const LASER_MIRROR_RECIPE: Recipe = Recipe {
+    output: b(LASER_MIRROR),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 4), (b(GLASS), 6)],
+    blurb: "Turns a beam 90° so a line of sight can go round a corner A beam going in at one side \
+            comes out of the neighbouring side it is paired with; R switches which pairs (in the hand or placed) and \
+            its readout names them. Up to 8 mirrors on a beam, 128 blocks in all; it only turns level beams.",
+};
+
+pub const DATA_RECEIVER_RECIPE: Recipe = Recipe {
+    output: b(DATA_RECEIVER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 1), (b(GLASS), 4), (CIRCUIT, 4), (PROCESSOR, 2)],
+    blurb: "Takes a beam from any side. When an emitter's beam ends in it, the data grids of the fibre nodes within 5 \
+            blocks of the emitter and of this receiver become one: datacenters on one side feed machines on the other. \
+            Nothing is lost, and neither end needs power.",
+};

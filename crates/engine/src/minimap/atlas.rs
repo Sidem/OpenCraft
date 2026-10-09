@@ -100,6 +100,16 @@ impl Atlas {
         }
     }
 
+    /// Makes block column (x, z) show `block` (tests: an explored map without a world).
+    #[cfg(test)]
+    pub fn plant(&mut self, x: i32, z: i32, block: BlockId) {
+        let tile = self
+            .tiles
+            .entry((x >> CHUNK_SHIFT, z >> CHUNK_SHIFT))
+            .or_insert_with(|| Tile { columns: vec![0; COLUMNS].into_boxed_slice(), spots: Vec::new() });
+        tile.columns[column_index(x, z)] = 64 << 8 | block as u16;
+    }
+
     /// `height << 8 | block` of block column (x, z), 0 if never seen.
     #[cfg(test)]
     pub fn column(&self, x: i32, z: i32) -> u16 {

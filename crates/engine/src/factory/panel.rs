@@ -7,7 +7,7 @@
 //! To give a machine a panel: `panel: true` in its `MACHINES` row, a `panel()` method on it, and its
 //! arms here.
 
-use crate::block::BlockId;
+use crate::block::{BlockId, LASER_EMITTER, LASER_MIRROR};
 use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::math::IVec3;
@@ -21,6 +21,11 @@ use super::Factory;
 pub const ROLE_INPUT: u8 = 0;
 pub const ROLE_FUEL: u8 = 1;
 pub const ROLE_OUTPUT: u8 = 2;
+
+/// Whether R turns a placed `block` (belts, routers and sensors do too; so does a laser emitter or mirror).
+pub fn turns(block: BlockId) -> bool {
+    matches!(block, LASER_EMITTER | LASER_MIRROR)
+}
 
 /// A machine's panel, as the host shows it.
 pub struct Panel {
@@ -79,13 +84,16 @@ impl Factory {
         }
     }
 
-    /// Turns the belt or router at `pos` a quarter turn clockwise, carrying its items along. False
-    /// when nothing there turns.
+    /// Turns the belt, router, sensor, laser emitter or mirror at `pos` a quarter turn clockwise, carrying its items
+    /// along. False when nothing there turns.
     pub fn rotate(&mut self, pos: IVec3) -> bool {
         let dir = match self.at.get(&pos) {
             Some(&Slot::Belt(i)) => &mut self.belts[i as usize].dir,
             Some(&Slot::Router(i)) => &mut self.routers[i as usize].dir,
             Some(&Slot::Sensor(i)) => &mut self.sensors[i as usize].dir,
+            Some(&Slot::Process(i)) if turns(self.processors[i as usize].spec.block) => {
+                &mut self.processors[i as usize].dir
+            }
             _ => return false,
         };
         *dir = (*dir + 1) % 4;
