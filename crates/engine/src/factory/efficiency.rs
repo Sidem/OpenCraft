@@ -10,7 +10,7 @@ use crate::math::IVec3;
 use super::lab::{Lab, LabStatus};
 use super::miner::{Miner, MinerStatus};
 use super::power::FULL_SPEED;
-use super::process::{Pick, Processor, Status};
+use super::process::{Energy, Pick, Processor, Status};
 use super::quarry::{Quarry, QuarryStatus};
 use super::Factory;
 
@@ -82,7 +82,10 @@ impl Factory {
 
 /// Whether a processor is a worker (not a power source, a store, a hangar or a research center).
 fn works(p: &Processor) -> bool {
-    !p.energy().is_source() && !p.spec.pick.stores() && !matches!(p.spec.pick, Pick::Hangar | Pick::Research)
+    !p.energy().is_source()
+        && p.energy() != Energy::Beam
+        && !p.spec.pick.stores()
+        && !matches!(p.spec.pick, Pick::Hangar | Pick::Research)
 }
 
 fn process_sample(p: &Processor) -> Option<Sample> {

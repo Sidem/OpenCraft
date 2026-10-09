@@ -55,3 +55,7 @@ pub const COIN_STACK: u32 = 1024;
 pub const PURE_WATER_CANISTER: ItemId = ItemId(379);
 pub const WAFER: ItemId = ItemId(380);
 pub const AI_ACCELERATOR: ItemId = ItemId(381);
+/// The hauler packs Mk3 to Mk5 (Mk1 and Mk2 are 333 and 334): 18 more backpack slots each (`equipment.rs`).
+pub const HAULER_PACK_MK3: ItemId = ItemId(382);
+pub const HAULER_PACK_MK4: ItemId = ItemId(383);
+pub const HAULER_PACK_MK5: ItemId = ItemId(384);

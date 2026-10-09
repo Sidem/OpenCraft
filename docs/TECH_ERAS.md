@@ -13,7 +13,7 @@ Each family's numbers are one array indexed by tier, atop its module.
 |---|---|---|---|---|---|
 | Belts, ramps, lifts (blocks/s; items/s) | 1; 2.9 | 2; 5.7 | 4; 11.4 | 8; 22.9 | — |
 | (measured at 60 ticks/s: a belt takes the next item on the first tick past the 0.35 gap) | 2.9 | 5.5 | 10 | | |
-| Underpass reach (blocks under; one piece costs half as many belts of its Mk) | 4 | 6 | 8 | 10 | — |
+| Underpass reach (blocks under; made in pairs; a pair costs as many belts of its Mk as it reaches) | 4 | 6 | 8 | 10 | — |
 | Splitter, filter | pass as fast as a belt of their tier | | | | |
 | Miner (units/s · recovery · kW) | 1 · 60 % · 5 | 2 · 75 % · 20 | 4 · 85 % · 45 | 6 · 92 % · 90 | 8 · 97 % · 150 |
 | Smelter | burner ×1 | burner ×2, a quarter less fuel an ingot | electric ×3, 40 kW, no fuel | ×5, 80 kW | — |

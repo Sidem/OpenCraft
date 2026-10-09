@@ -5,7 +5,7 @@
 //! anything no tech lists is available from the start.
 //!
 //! Invariants: progress never exceeds a tech's units; `current` is `None` or a tech that is available
-//! (every prerequisite done) and not done.
+//! (every prerequisite done) and not done; the queue of techs after it is in `queue.rs`.
 //!
 //! To add a tech: append a row to `TECHS` (saves store progress by index, so never reorder), naming
 //! its prerequisites by index. A new science pack: an item, a hand recipe, and an entry in `PACKS`.
@@ -19,11 +19,13 @@ mod compute;
 mod distance;
 mod join;
 mod personal;
+mod queue;
 mod recycling;
 mod techs;
 
 pub use bonus::{is_bonus, Bonus};
 pub use compute::needs_ai_lab;
+pub use queue::MAX_QUEUE;
 pub use techs::TECHS;
 
 use crate::block::BlockId;
@@ -87,6 +89,8 @@ pub enum TechState {
 #[derive(Clone, PartialEq, Debug)]
 pub struct Research {
     pub current: Option<u8>,
+    /// The techs after `current`, next first (`queue.rs`).
+    queue: Vec<u8>,
     /// Units done, by tech index.
     progress: [u32; TECHS.len()],
     /// Which machine recipes are unlocked (derived from `progress` by `refresh`, never saved).
@@ -95,7 +99,12 @@ pub struct Research {
 
 impl Default for Research {
     fn default() -> Self {
-        let mut res = Research { current: None, progress: [0; TECHS.len()], unlocked: [false; MACHINE_RECIPES.len()] };
+        let mut res = Research {
+            current: None,
+            queue: Vec::new(),
+            progress: [0; TECHS.len()],
+            unlocked: [false; MACHINE_RECIPES.len()],
+        };
         res.refresh();
         res
     }
@@ -117,11 +126,21 @@ impl Research {
         }
     }
 
-    /// Chooses what labs work on (`None` to stop); ignored unless the tech is available.
+    /// Chooses what labs work on now; ignored unless the tech is available. The tech it replaces waits at the
+    /// front of the queue (an endless one is just dropped). `None` gives the current tech up and moves on to the
+    /// next queued one.
     pub fn set_current(&mut self, tech: Option<u8>) {
-        if tech.is_none_or(|t| self.state(t) == TechState::Available) {
-            self.current = tech;
+        if tech.is_some_and(|t| self.state(t) != TechState::Available) {
+            return;
         }
+        let old = self.current.filter(|&c| tech != Some(c) && !is_bonus(c));
+        self.current = tech;
+        if let Some(old) = old.filter(|_| tech.is_some()) {
+            self.queue.insert(0, old);
+        }
+        self.queue.retain(|&q| Some(q) != tech);
+        self.prune();
+        self.advance();
     }
 
     /// The tech whose research unlocks `unlock`, while it isn't done.
@@ -147,6 +166,7 @@ impl Research {
             *p = t.units;
         }
         self.current = None;
+        self.queue.clear();
         self.refresh();
     }
 
@@ -164,7 +184,7 @@ impl Research {
         }
     }
 
-    /// Records a finished unit of `tech`; when that finishes the tech, labs stop working on it.
+    /// Records a finished unit of `tech`; when that finishes the tech, labs move on to the next queued one.
     pub fn add_unit(&mut self, tech: u8) {
         let i = tech as usize;
         self.progress[i] = (self.progress[i] + 1).min(TECHS[i].units);
@@ -173,14 +193,17 @@ impl Research {
             if self.current == Some(tech) {
                 self.current = None;
             }
+            self.prune();
+            self.advance();
         }
     }
 
-    /// Current tech (`u8::MAX` for none), then units done for every tech.
+    /// Current tech (`u8::MAX` for none), units done for every tech, then the queue (since save 41).
     pub fn write_state(&self, w: &mut ByteWriter) {
         w.u8(self.current.unwrap_or(u8::MAX));
         w.count(TECHS.len());
         self.progress.iter().for_each(|&p| w.u32(p));
+        self.write_queue(w);
     }
 
     pub fn read_state(r: &mut ByteReader) -> Option<Research> {
@@ -196,6 +219,10 @@ impl Research {
         res.refresh();
         if current != u8::MAX {
             res.set_current(Some(current));
+        }
+        if r.version >= 41 {
+            res.read_queue(r)?;
+            res.advance();
         }
         Some(res)
     }

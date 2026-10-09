@@ -460,6 +460,9 @@ fn samples() -> Vec<Action> {
         Action::RightClickSlot { slot: 30, shift: true },
         Action::RightClickBox { pos, slot: 17, shift: true },
         Action::ThrowCursor,
+        Action::QueueResearch { tech: 9 },
+        Action::UnqueueResearch { tech: 9 },
+        Action::UpgradePack,
     ]
 }
 

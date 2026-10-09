@@ -1,0 +1,69 @@
+/* The research queue strip (research-queue.ts) and the queued marks on the tree's nodes (research.ts). */
+
+.rq {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  max-height: 96px;
+  overflow-y: auto;
+}
+
+.rq-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.rq-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 12px;
+}
+
+.rq-n {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.rq-x {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rq-x:hover,
+.rq-x:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* A tech in the queue: accent border, dashed so it reads as "later" next to the one being researched. */
+.rs-node.queued {
+  border-color: var(--accent);
+  border-style: dashed;
+  opacity: 1;
+}
+
+.rs-node.queued .rs-node-state {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rs-key.queued::before {
+  border-color: var(--accent);
+  border-style: dashed;
+}

@@ -110,7 +110,13 @@ impl Sim {
                 self.factory.upgrade(pos);
                 self.events.push(SimEvent::BlockPlaced { player, pos, block: step.block });
             }
+            Action::UpgradePack => {
+                let research = &self.factory.research;
+                inv.upgrade_pack(|pack| research.has(Unlock::Recipe(pack)));
+            }
             Action::SetResearch { tech } => self.factory.research.set_current((tech != u8::MAX).then_some(tech)),
+            Action::QueueResearch { tech } => self.factory.research.enqueue(tech),
+            Action::UnqueueResearch { tech } => self.factory.research.dequeue(tech),
             Action::Insert { pos, item } => {
                 let put = self.factory.insert(pos, item, inv.count(item));
                 if put > 0 {

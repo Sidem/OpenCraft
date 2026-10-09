@@ -69,3 +69,23 @@ pub const OPTIMIZER_RECIPE: Recipe = Recipe {
             grid) and 150 kW, and in return every machine within 16 blocks works 25% faster, miners included. Several \
             optimizers do not add up: a machine takes the best one in range. A shortage of power or compute weakens it.",
 };
+
+pub const LASER_EMITTER_RECIPE: Recipe = Recipe {
+    output: b(LASER_EMITTER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 1), (b(GLASS), 4), (CIRCUIT, 4)],
+    blurb:
+        "Shoots a beam straight out of its front (R turns it before you place it) at up to 128 blocks. Air and glass \
+            let the beam through; anything else stops it. Wire it to a pole like a machine.",
+};
+
+pub const LASER_RECEIVER_RECIPE: Recipe = Recipe {
+    output: b(LASER_RECEIVER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 1), (b(GLASS), 4), (CIRCUIT, 4)],
+    blurb:
+        "Takes a beam from any side. An emitter with a clear line to it joins the two power grids their poles are on \
+            into one: the receiving side gets its power, and a tenth more is burned on the way.",
+};

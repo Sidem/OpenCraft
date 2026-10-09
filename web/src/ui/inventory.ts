@@ -1,5 +1,6 @@
-// Inventory and build screen (E): every slot (36, up to 54 with a hauler pack) with a held stack on the cursor, the
-// equipment slots (Shift-click gear in the pack to wear it), and the build menu
+// Inventory and build screen (E): every slot (36, up to 135 with a hauler pack) with a held stack on the cursor, the
+// equipment slots (Shift-click gear in the pack to wear it; a button raises the worn pack with kits,
+// `pack-upgrade.ts`), and the build menu
 // (`crafting.ts`; creative worlds add the item picker, `creative.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
 // stacks between the box and the inventory. Right-click takes half of a stack (again: half of what is left, added to
@@ -12,6 +13,7 @@ import { BuildMenu } from './crafting';
 import { CreativeMenu, withCreativeTabs } from './creative';
 import { h } from './dom';
 import { showAmount } from './hud';
+import { PackUpgrade } from './pack-upgrade';
 
 const ICON_PX = 64;
 
@@ -33,6 +35,7 @@ export class InventoryPanel {
   private readonly dialog = h('div', 'inv');
   private readonly slots: SlotView[] = [];
   private readonly gear: SlotView[] = [];
+  private readonly packUpgrade: PackUpgrade;
   private readonly cursor: SlotView;
   private version = -1;
   private readonly title = h('h2', '', 'Inventory & build');
@@ -127,7 +130,10 @@ export class InventoryPanel {
     sortPack.addEventListener('click', () => game.sort_inventory());
     const packHead = h('div', 'inv-box-head');
     packHead.append(h('h3', '', 'Backpack'), sortPack);
-    items.append(this.boxSection, h('h3', '', 'Equipment'), gearRow, packHead, pack, h('h3', '', 'Hotbar'), bar, note);
+    this.packUpgrade = new PackUpgrade(game);
+    items.append(
+      this.boxSection, h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, note,
+    );
 
     this.menu = new BuildMenu(game, icon);
     this.menu.onCraft = () => this.onCraft();
@@ -238,6 +244,7 @@ export class InventoryPanel {
       this.drawSlot(s, item, item ? 1 : 0);
       if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn`;
     });
+    this.packUpgrade.update();
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);
 

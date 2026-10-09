@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::item::ItemId;
-use crate::research::{is_bonus, TechState, TECHS};
+use crate::research::{is_bonus, TechState, MAX_QUEUE, TECHS};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -76,10 +76,36 @@ impl Game {
         self.sim.factory.research.current.map_or(-1, i32::from)
     }
 
-    /// Chooses what labs research (-1 to stop), at the next tick. Only an available tech is taken.
+    /// Chooses what labs research now (-1 gives the current one up and moves on to the next queued), at the next
+    /// tick. Only an available tech is taken; the tech it replaces goes to the front of the queue.
     pub fn set_research(&mut self, t: i32) {
         let tech = u8::try_from(t).unwrap_or(u8::MAX);
         self.act(Action::SetResearch { tech });
+    }
+
+    /// How many techs wait behind the current one.
+    pub fn research_queue_len(&self) -> u32 {
+        self.sim.factory.research.queue().len() as u32
+    }
+
+    /// The tech at place `i` of the queue (0 is next), or -1.
+    pub fn research_queue_at(&self, i: u32) -> i32 {
+        self.sim.factory.research.queue().get(i as usize).map_or(-1, |&t| i32::from(t))
+    }
+
+    /// The most techs the queue holds.
+    pub fn research_queue_max(&self) -> u32 {
+        MAX_QUEUE as u32
+    }
+
+    /// Adds a tech, with the prerequisites it is missing, to the end of the queue, at the next tick.
+    pub fn queue_research(&mut self, t: u32) {
+        self.act(Action::QueueResearch { tech: t.min(u8::MAX as u32) as u8 });
+    }
+
+    /// Takes a tech, and the queued techs that need it, out of the queue, at the next tick.
+    pub fn unqueue_research(&mut self, t: u32) {
+        self.act(Action::UnqueueResearch { tech: t.min(u8::MAX as u32) as u8 });
     }
 }
 

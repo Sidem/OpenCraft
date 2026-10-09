@@ -6,8 +6,8 @@
 //! Invariants: roles are derived at every relink (`derive_passes`, before `derive_slopes`) from positions,
 //! directions and tiers alone, so the order of the belts doesn't matter and nothing about them is saved but
 //! "this belt is a pass piece" (`Shape::Entry` or `Shape::Exit`; both old blocks place the same piece).
-//! To change the reach or the price: `UNDERPASS_SPAN`; a piece costs `span / 2` belts of its own Mk
-//! (`recipes/tiers.rs`, checked by a test).
+//! To change the reach or the price: `UNDERPASS_SPAN`; a craft makes a pair (two pieces) for `span` belts of
+//! its own Mk, i.e. half as many per piece (`recipes/tiers.rs`, checked by a test).
 
 use crate::math::sort_small_by_key;
 

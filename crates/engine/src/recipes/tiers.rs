@@ -6,30 +6,31 @@ use crate::block::*;
 use crate::item::*;
 
 use super::{b, Group, Recipe};
-// Underpasses cost belts of their own Mk, half their reach each (`factory/underpass.rs`; a test checks it): a
-// pair reaching 6 blocks takes 6 belts. The lint doesn't ask for "the tier below plus kits" for this family.
+// Underpasses are made in pairs (an entry and an exit) and cost belts of their own Mk, half their reach per
+// piece (`factory/underpass.rs`; a test checks it): a craft of two reaching 6 blocks takes 6 belts. The lint
+// doesn't ask for "the tier below plus kits" for this family.
 pub const UNDERPASS_MK2_RECIPE: Recipe = Recipe {
     output: UNDERPASS_MK2,
     group: Group::Logistics,
-    count: 1,
-    inputs: &[(b(FAST_BELT), 3)],
-    blurb: "An underpass at belt Mk2 speed that passes under up to 6 blocks.",
+    count: 2,
+    inputs: &[(b(FAST_BELT), 6)],
+    blurb: "A pair of underpasses at belt Mk2 speed that pass under up to 6 blocks.",
 };
 
 pub const UNDERPASS_MK3_RECIPE: Recipe = Recipe {
     output: UNDERPASS_MK3,
     group: Group::Logistics,
-    count: 1,
-    inputs: &[(BELT_MK3, 4)],
-    blurb: "An underpass at belt Mk3 speed that passes under up to 8 blocks.",
+    count: 2,
+    inputs: &[(BELT_MK3, 8)],
+    blurb: "A pair of underpasses at belt Mk3 speed that pass under up to 8 blocks.",
 };
 
 pub const UNDERPASS_MK4_RECIPE: Recipe = Recipe {
     output: UNDERPASS_MK4,
     group: Group::Logistics,
-    count: 1,
-    inputs: &[(BELT_MK4, 5)],
-    blurb: "An underpass at belt Mk4 speed that passes under up to 10 blocks.",
+    count: 2,
+    inputs: &[(BELT_MK4, 10)],
+    blurb: "A pair of underpasses at belt Mk4 speed that pass under up to 10 blocks.",
 };
 
 pub const POLE_MK2_RECIPE: Recipe = Recipe {

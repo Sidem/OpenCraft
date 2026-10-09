@@ -298,7 +298,17 @@ pub const AI_TOP: u16 = 265;
 /// The optimizer's amber-banded panels and its lens crown (`textures/compute.rs`).
 pub const OPT_SIDE: u16 = 266;
 pub const OPT_TOP: u16 = 267;
-pub const COUNT: usize = 268;
+/// The laser emitter's and receiver's panels and the beam's light (`textures/laser.rs`).
+pub const EMIT_SIDE: u16 = 268;
+pub const EMIT_TOP: u16 = 269;
+pub const RECV_SIDE: u16 = 270;
+pub const RECV_TOP: u16 = 271;
+pub const BEAM: u16 = 272;
+/// The hauler packs Mk3 to Mk5 (`textures/gear.rs`, which also draws Mk1 and Mk2 at 180 and 181).
+pub const HAULER_PACK_MK3: u16 = 273;
+pub const HAULER_PACK_MK4: u16 = 274;
+pub const HAULER_PACK_MK5: u16 = 275;
+pub const COUNT: usize = 276;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

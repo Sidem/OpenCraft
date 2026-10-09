@@ -12,7 +12,10 @@ use crate::tools;
 pub const HOTBAR_SLOTS: usize = 9;
 /// Slots without gear; a hauler pack opens up to `MAX_SLOTS - INVENTORY_SLOTS` more.
 pub const INVENTORY_SLOTS: usize = 36;
-pub const MAX_SLOTS: usize = 54;
+/// The base slots and the Mk5 pack's 99 (`equipment::GEAR`; a test checks the two agree).
+pub const MAX_SLOTS: usize = 135;
+/// The pack rows saves before version 42 held (the Mk2 pack's 18).
+const LEGACY_PACK_ROWS: usize = 18;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Stack {
@@ -70,7 +73,7 @@ impl Inventory {
     };
 
     /// Core state: slots, cursor and selection (not `version`, which only serves the UI), then the pack rows and
-    /// the worn gear (version 29 on).
+    /// the worn gear (version 29 on; 18 rows before version 42, `MAX_SLOTS - INVENTORY_SLOTS` since).
     pub fn write_state(&self, w: &mut ByteWriter) {
         for s in &self.slots[..INVENTORY_SLOTS] {
             s.write_state(w);
@@ -93,7 +96,8 @@ impl Inventory {
         inv.cursor = Stack::read_state(r)?;
         inv.selected = r.u8()? as usize;
         if r.version >= 29 {
-            for s in &mut inv.slots[INVENTORY_SLOTS..] {
+            let rows = if r.version >= 42 { MAX_SLOTS - INVENTORY_SLOTS } else { LEGACY_PACK_ROWS };
+            for s in &mut inv.slots[INVENTORY_SLOTS..INVENTORY_SLOTS + rows] {
                 *s = Stack::read_state(r)?;
             }
             for (slot, item) in inv.worn.iter_mut().enumerate() {

@@ -6,6 +6,7 @@ use crate::action::Action;
 use crate::equipment::{self, SLOTS, SLOT_NAMES};
 use crate::inventory::{HOTBAR_SLOTS, MAX_SLOTS};
 use crate::item::ItemId;
+use crate::research::Unlock;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -48,6 +49,20 @@ impl Game {
 
     pub fn gear_slot_of(&self, item: u16) -> i32 {
         equipment::gear(ItemId(item)).map_or(-1, |g| g.slot as i32)
+    }
+
+    /// The upgrade of the worn hauler pack: `[next pack, kit, kits needed, kits held, unlocked (0 or 1)]`, or empty
+    /// when no pack is worn or it is the last tier.
+    pub fn pack_upgrade(&self) -> Vec<u32> {
+        let inv = self.inventory();
+        let Some((next, kit, kits)) = equipment::next_pack(inv.worn[0]) else { return Vec::new() };
+        let unlocked = self.sim.factory.research.has(Unlock::Recipe(next));
+        vec![u32::from(next.0), u32::from(kit.0), kits, inv.count(kit), u32::from(unlocked)]
+    }
+
+    /// Raises the worn hauler pack one tier with kits from the inventory (next tick).
+    pub fn upgrade_pack(&mut self) {
+        self.act(Action::UpgradePack);
     }
 
     /// Equipment-panel click (next tick): swaps the cursor stack with the gear in `slot`; `shift` takes it off.

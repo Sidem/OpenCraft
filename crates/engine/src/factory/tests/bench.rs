@@ -67,7 +67,7 @@ fn bench_big_base() {
     for _ in 0..5 {
         let hooked = f.resolve_hooks();
         let (poles, gens, miners, labs) = (&f.poles, &f.generators, &f.miners, &f.labs);
-        let p = Power::rebuild(poles, &hooked, gens, miners, &f.processors, labs, &f.pipework, &f.quarries);
+        let p = Power::rebuild(poles, &hooked, gens, miners, &f.processors, labs, &f.pipework, &f.quarries, &[]);
         std::hint::black_box(p);
     }
     println!("  of which hooks + power rebuild: {} µs", us(start.elapsed()) / 5);

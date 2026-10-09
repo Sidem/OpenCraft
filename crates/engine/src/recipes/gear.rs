@@ -10,15 +10,42 @@ pub const HAULER_PACK_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(IRON_PLATE, 6), (STEEL_PLATE, 2), (SCREW, 10)],
-    blurb: "Wear it on your back (open the inventory and Shift-click it): 9 more backpack slots.",
+    blurb: "Wear it on your back (open the inventory and Shift-click it): 27 more backpack slots.",
 };
 
+// Mk2 to Mk5 are the pack below plus `PACK_KITS` kits of the tier (`equipment::next_pack`; a test checks it). A worn
+// pack is raised in place from the equipment panel with the same kits, so it never has to come off.
 pub const HAULER_PACK_MK2_RECIPE: Recipe = Recipe {
     output: HAULER_PACK_MK2,
     group: Group::Tools,
     count: 1,
-    inputs: &[(HAULER_PACK, 1), (STEEL_PLATE, 6), (ACTUATOR, 2), (CIRCUIT, 2)],
-    blurb: "A hauler pack with powered frames: 18 more backpack slots. Made from a hauler pack.",
+    inputs: &[(HAULER_PACK, 1), (GREEN_KIT, 4)],
+    blurb: "A hauler pack with a reinforced frame: 18 more backpack slots, 45 in all. Made from a hauler pack, or \
+            raise the worn one in the inventory.",
+};
+
+pub const HAULER_PACK_MK3_RECIPE: Recipe = Recipe {
+    output: HAULER_PACK_MK3,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(HAULER_PACK_MK2, 1), (BLUE_KIT, 4)],
+    blurb: "18 more backpack slots, 63 in all. Made from a Mk2 pack, or raise the worn one in the inventory.",
+};
+
+pub const HAULER_PACK_MK4_RECIPE: Recipe = Recipe {
+    output: HAULER_PACK_MK4,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(HAULER_PACK_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "18 more backpack slots, 81 in all. Made from a Mk3 pack, or raise the worn one in the inventory.",
+};
+
+pub const HAULER_PACK_MK5_RECIPE: Recipe = Recipe {
+    output: HAULER_PACK_MK5,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(HAULER_PACK_MK4, 1), (GOLD_KIT, 4)],
+    blurb: "18 more backpack slots, 99 in all. Made from a Mk4 pack, or raise the worn one in the inventory.",
 };
 
 pub const SPRING_BOOTS_RECIPE: Recipe = Recipe {

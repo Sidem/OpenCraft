@@ -1,4 +1,4 @@
-//! Worn gear icons (`equipment.rs`): the hauler packs (a satchel, the Mk2 with side pouches and a violet flap),
+//! Worn gear icons (`equipment.rs`): the hauler packs (a satchel; Mk2 to Mk5 with side pouches and a flap in the tier's kit colour),
 //! spring boots (boots on a coil), servo boots (boots with an orange joint), the exo frame (steel ribs round a
 //! cyan core) and the mining rig (a belt with a drill bit and a gauge). Placeholder looks until the art pass
 //! (`docs/ART_HANDOVER.md`).
@@ -9,8 +9,11 @@ use super::{n, rgb};
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
-        tex::HAULER_PACK => pack(x, y, false),
-        tex::HAULER_PACK_MK2 => pack(x, y, true),
+        tex::HAULER_PACK => pack(x, y, 0),
+        tex::HAULER_PACK_MK2 => pack(x, y, 1),
+        tex::HAULER_PACK_MK3 => pack(x, y, 2),
+        tex::HAULER_PACK_MK4 => pack(x, y, 3),
+        tex::HAULER_PACK_MK5 => pack(x, y, 4),
         tex::SPRING_BOOTS => boots(x, y, [40.0, 150.0, 150.0], true),
         tex::SERVO_BOOTS => boots(x, y, [60.0, 90.0, 170.0], false),
         tex::EXO_FRAME => exo_frame(x, y),
@@ -24,17 +27,24 @@ fn dark() -> [u8; 4] {
     rgb([22.0, 24.0, 30.0], BACKDROP)
 }
 
-/// A satchel with two straps and a buckle; the Mk2 is wider, with a pouch each side and a violet flap.
-fn pack(x: i32, y: i32, mk2: bool) -> [u8; 4] {
-    let (left, right) = if mk2 { (1, 14) } else { (3, 12) };
+/// The flap colour of each pack tier above Mk1: the upgrade kit's (green, blue, violet, gold).
+const FLAPS: [[f64; 3]; 4] = [[70.0, 170.0, 90.0], [60.0, 120.0, 210.0], [120.0, 70.0, 190.0], [225.0, 180.0, 50.0]];
+
+/// A satchel with two straps and a buckle; from Mk2 on it is wider, with a pouch each side, a flap in the tier's kit
+/// colour and one pip on the flap for every tier above Mk1. `tier` is 0 for Mk1.
+fn pack(x: i32, y: i32, tier: usize) -> [u8; 4] {
+    let (left, right) = if tier > 0 { (1, 14) } else { (3, 12) };
     if !(left..=right).contains(&x) || !(2..15).contains(&y) {
         return dark();
     }
-    if mk2 && !(4..=11).contains(&x) && y > 6 {
+    if tier > 0 && !(4..=11).contains(&x) && y > 6 {
         return rgb([92.0, 78.0, 56.0], 0.85 + 0.2 * n(420, x, y));
     }
     if y < 7 {
-        let flap = if mk2 { [120.0, 70.0, 190.0] } else { [140.0, 100.0, 60.0] };
+        if tier > 0 && y == 3 && x > 3 && x < 4 + 2 * tier as i32 && x % 2 == 0 {
+            return rgb([250.0, 250.0, 250.0], 1.0);
+        }
+        let flap = if tier > 0 { FLAPS[tier - 1] } else { [140.0, 100.0, 60.0] };
         return rgb(flap, 0.9 + 0.15 * n(421, x, y));
     }
     if (x == 6 || x == 9) && y > 7 {

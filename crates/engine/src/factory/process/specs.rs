@@ -50,6 +50,8 @@ pub enum Energy {
     Cooling,
     /// An optimizer: a power sink and data consumer that speeds up the machines around it (optimizer.rs).
     Optimizer,
+    /// A laser emitter or receiver: draws nothing, joins power grids by a beam (laser.rs).
+    Beam,
 }
 
 impl Energy {
@@ -159,6 +161,8 @@ pub const SPECS: &[ProcessSpec] = &[
     super::tower::TOWER_SPEC,
     super::ailab::AI_LAB_SPEC,
     super::optimizer::OPTIMIZER_SPEC,
+    super::laser::EMITTER_SPEC,
+    super::laser::RECEIVER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

@@ -124,6 +124,16 @@
   gap: 3px;
 }
 
+.pack-upgrade {
+  margin: -6px 0 14px;
+  font-size: 12px;
+}
+
+.pack-upgrade:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .inv-gear-name {
   font-size: 11px;
   color: var(--muted);

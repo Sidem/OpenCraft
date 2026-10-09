@@ -130,11 +130,11 @@ pub const RECIPES: &[Recipe] = &[
     Recipe {
         output: b(UNDERPASS_IN),
         group: Group::Logistics,
-        count: 1,
-        inputs: &[(b(BELT), 2)],
-        blurb: "Carries items under up to 4 blocks of anything. Place two facing the same way: the first takes \
-                items in, the next one ahead brings them out. Drag a belt line over an obstacle and it places \
-                them for you. It moves items at belt speed.",
+        count: 2,
+        inputs: &[(b(BELT), 4)],
+        blurb: "Carries items under up to 4 blocks of anything. Made in pairs: place two facing the same way, the \
+                first takes items in, the next one ahead brings them out. Drag a belt line over an obstacle and \
+                it places them for you. It moves items at belt speed.",
     },
     Recipe {
         output: b(PUMP),
@@ -359,6 +359,9 @@ pub const RECIPES: &[Recipe] = &[
     PLANNER_RECIPE,
     HAULER_PACK_RECIPE,
     HAULER_PACK_MK2_RECIPE,
+    HAULER_PACK_MK3_RECIPE,
+    HAULER_PACK_MK4_RECIPE,
+    HAULER_PACK_MK5_RECIPE,
     SPRING_BOOTS_RECIPE,
     SERVO_BOOTS_RECIPE,
     EXO_FRAME_RECIPE,
@@ -395,6 +398,8 @@ pub const RECIPES: &[Recipe] = &[
     COOLING_TOWER_RECIPE,
     AI_LAB_RECIPE,
     OPTIMIZER_RECIPE,
+    LASER_EMITTER_RECIPE,
+    LASER_RECEIVER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

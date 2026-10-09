@@ -41,7 +41,9 @@ impl Factory {
             Slot::Storage(i) => self.storages[i as usize].describe(self),
             Slot::Process(i) => {
                 let text = self.processors[i as usize].describe(self);
-                self.compute_line(i as usize).map_or(text.clone(), |l| format!("{text}\n{l}"))
+                self.compute_line(i as usize)
+                    .or_else(|| self.beam_line(i as usize))
+                    .map_or(text.clone(), |l| format!("{text}\n{l}"))
             }
             Slot::Router(i) => self.routers[i as usize].describe(self),
             Slot::Generator(i) => self.generators[i as usize].describe(self),

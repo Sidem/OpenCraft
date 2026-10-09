@@ -41,7 +41,7 @@ pub const PERSONAL: [Tech; 6] = [
     },
     Tech {
         name: "Hauler Gear",
-        blurb: "Equipment slots: wear a hauler pack on your back for 9 more backpack slots. Open the inventory and \
+        blurb: "Equipment slots: wear a hauler pack on your back for 27 more backpack slots. Open the inventory and \
                 Shift-click gear to put it on.",
         needs: &[9],
         packs: &[RED_PACK, GREEN_PACK],
@@ -62,7 +62,8 @@ pub const PERSONAL: [Tech; 6] = [
     Tech {
         name: "Exosuit",
         blurb: "Powered gear built from servos and actuators: servo boots (15% faster), an exo frame (sprint 10% \
-                faster) and the Mk2 hauler pack (18 more backpack slots).",
+                faster) and the Mk2 hauler pack (18 more backpack slots, 45 in all: four green kits raise your pack in \
+                the inventory).",
         needs: &[25, 34],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 140,
@@ -70,3 +71,4 @@ pub const PERSONAL: [Tech; 6] = [
         unlocks: &[Unlock::Recipe(SERVO_BOOTS), Unlock::Recipe(EXO_FRAME), Unlock::Recipe(HAULER_PACK_MK2)],
     },
 ];
+// The hauler packs Mk3 to Mk5 are techs of their own in `ai.rs` (the last table, so indices stay put).

@@ -163,6 +163,14 @@ pub enum Action {
     SetResearch {
         tech: u8,
     },
+    /// Adds a tech to the end of the research queue, with the prerequisites it is missing (`research/queue.rs`).
+    QueueResearch {
+        tech: u8,
+    },
+    /// Takes a tech, and the queued techs that need it, out of the research queue.
+    UnqueueResearch {
+        tech: u8,
+    },
     /// Puts as many of `item` from the inventory into the machine at `pos` as it takes.
     Insert {
         pos: IVec3,
@@ -184,6 +192,8 @@ pub enum Action {
         slot: u8,
         shift: bool,
     },
+    /// Raises the worn hauler pack one tier with kits from the inventory (`equipment.rs`).
+    UpgradePack,
     /// Inventory-screen click; `shift` moves the stack between hotbar and backpack (gear goes on instead).
     ClickSlot {
         slot: u8,

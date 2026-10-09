@@ -323,7 +323,8 @@ impl Factory {
         let hooked = self.resolve_hooks();
         let (poles, gens, miners, labs) = (&self.poles, &self.generators, &self.miners, &self.labs);
         let (processors, pipework) = (&self.processors, &self.pipework);
-        self.power = Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries);
+        self.power =
+            Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries, &self.beams.links);
         self.data = Data::rebuild(&self.nodes, &self.processors);
         self.link_pipework();
         self.link_rails();

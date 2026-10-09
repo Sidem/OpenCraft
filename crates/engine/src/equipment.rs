@@ -2,7 +2,9 @@
 //! version 29, so a player who leaves keeps them), each taking the gear made for it ([`GEAR`], data).
 //!
 //! - **Back** (hauler packs) opens more backpack rows: [`Inventory::capacity`] is the base 36 slots plus the
-//!   pack's. A pack comes off only while the rows it opens are empty, so no stack is ever stranded.
+//!   pack's. A pack comes off only while the rows it opens are empty, so no stack is ever stranded. The packs are
+//!   five tiers ([`PACKS`]: 27 slots, then 18 more each); `Action::UpgradePack` raises the worn one a tier with
+//!   kits in place ([`next_pack`], [`Inventory::upgrade_pack`]), so a full pack never has to come off.
 //! - **Boots** and **Torso** scale the body's walking, sprinting and jumping ([`Inventory::boost`], read by
 //!   `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
 //! - **Tool belt** (the mining rig) speeds hand-breaking ([`Inventory::mining_speed`], read by `interaction.rs`).
@@ -15,8 +17,12 @@
 #[cfg(test)]
 mod tests;
 
+use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
-use crate::item::{ItemId, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS};
+use crate::item::{
+    ItemId, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5, MINING_RIG,
+    SERVO_BOOTS, SPRING_BOOTS,
+};
 use crate::player::Boost;
 
 pub const SLOTS: usize = 4;
@@ -51,9 +57,17 @@ pub struct Gear {
 /// Jumping 1.32 blocks becomes about 2: the speed scales by the square root of the heights.
 const SPRING_JUMP: f64 = 1.23;
 
-pub const GEAR: [Gear; 6] = [
-    Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 9, ..NONE }, blurb: "+9 backpack slots" },
-    Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 18, ..NONE }, blurb: "+18 backpack slots" },
+/// The hauler packs, Mk1 first: Mk1 opens 27 backpack slots and each tier above 18 more (the last fills `MAX_SLOTS`).
+pub const PACKS: [ItemId; 5] = [HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5];
+/// Kits one pack upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
+pub const PACK_KITS: u32 = 4;
+
+pub const GEAR: [Gear; 9] = [
+    Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
+    Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
+    Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
+    Gear { item: HAULER_PACK_MK4, slot: BACK, effect: Effect { pack: 81, ..NONE }, blurb: "+81 backpack slots" },
+    Gear { item: HAULER_PACK_MK5, slot: BACK, effect: Effect { pack: 99, ..NONE }, blurb: "+99 backpack slots" },
     Gear { item: SPRING_BOOTS, slot: BOOTS, effect: Effect { jump: SPRING_JUMP, ..NONE }, blurb: "Jump 2 blocks high" },
     Gear { item: SERVO_BOOTS, slot: BOOTS, effect: Effect { walk: 1.15, ..NONE }, blurb: "Walk and sprint 15% faster" },
     Gear { item: EXO_FRAME, slot: TORSO, effect: Effect { sprint: 1.1, ..NONE }, blurb: "Sprint 10% faster" },
@@ -67,6 +81,13 @@ pub const GEAR: [Gear; 6] = [
 
 pub fn gear(item: ItemId) -> Option<&'static Gear> {
     GEAR.iter().find(|g| g.item == item)
+}
+
+/// The pack above `item` with the kit and number of kits that make it (the same step as its hand recipe in
+/// `recipes/gear.rs`), or `None` for anything but a pack below Mk5.
+pub fn next_pack(item: ItemId) -> Option<(ItemId, ItemId, u32)> {
+    let i = PACKS.iter().position(|&p| p == item)?;
+    Some((*PACKS.get(i + 1)?, upgrades::kit(i as u8 + 1)?, PACK_KITS))
 }
 
 /// What everything in `worn` does together: slots add up, multipliers multiply.
@@ -146,6 +167,19 @@ impl Inventory {
             *self = backup;
         }
         done
+    }
+
+    /// `Action::UpgradePack`: raises the worn pack a tier for its kits from the inventory, if `unlocked(next pack)`.
+    /// The room only grows, so nothing can be stranded. Returns whether it did.
+    pub fn upgrade_pack(&mut self, unlocked: impl Fn(ItemId) -> bool) -> bool {
+        let Some((next, kit, kits)) = next_pack(self.worn[BACK]) else { return false };
+        if !unlocked(next) || self.count(kit) < kits {
+            return false;
+        }
+        self.remove(kit, kits);
+        self.worn[BACK] = next;
+        self.version += 1;
+        true
     }
 
     /// Puts `item` in equipment `slot` unless that would strand a stack beyond the new capacity.

@@ -27,6 +27,7 @@ use crate::TICK_RATE;
 
 use super::generator::Generator;
 use super::lab::Lab;
+use super::laser::LOSS_DIVISOR;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
@@ -46,6 +47,11 @@ pub const FULL_SPEED: u32 = 1000;
 pub(crate) struct Power {
     /// The grid of each pole.
     pub pole_grid: Vec<u32>,
+    /// The grid each pole would be on without the laser links (a side), and the grid of each side.
+    pub pole_side: Vec<u32>,
+    pub side_grid: Vec<u32>,
+    /// Active laser links as the poles of their emitter and receiver (laser.rs).
+    pub beam_poles: Vec<(u32, u32)>,
     /// The accent colour (`grid_colour::PALETTE` index) of each grid.
     pub grid_colour: Vec<u8>,
     /// Pole pairs that are wired together (lower index first).
@@ -64,6 +70,8 @@ pub(crate) struct Power {
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
     pub capacity: Vec<u32>,
+    /// This tick's demand per side, before laser losses are added to the grids (scratch for alance).
+    side_demand: Vec<u32>,
 }
 
 impl Power {
@@ -78,6 +86,7 @@ impl Power {
         labs: &[Lab],
         pipework: &[Pipework],
         quarries: &[Quarry],
+        beams: &[(u32, u32)],
     ) -> Power {
         let n = poles.len();
         let mut parent: Vec<u32> = (0..n as u32).collect();
@@ -90,38 +99,41 @@ impl Power {
             }
         }
         for &(i, j) in &wires {
-            let (a, b) = (root(&mut parent, i), root(&mut parent, j));
-            parent[a.max(b) as usize] = a.min(b);
+            join(&mut parent, i, j);
         }
-        // Number the grids in order of their lowest pole.
-        let mut grid_of_root = vec![u32::MAX; n];
-        let mut grids = 0;
-        let mut pole_grid = Vec::with_capacity(n);
-        for i in 0..n as u32 {
-            let r = root(&mut parent, i) as usize;
-            if grid_of_root[r] == u32::MAX {
-                grid_of_root[r] = grids;
-                grids += 1;
-            }
-            pole_grid.push(grid_of_root[r]);
-        }
+        // The sides are the pole groups the wires make; the laser links then join sides into grids.
+        let (pole_side, sides) = number(&mut parent);
         // A wired machine is on its pole; one with no wire hangs on the nearest cable in reach.
         let live = |pos: &IVec3| !hooked.off.contains(pos);
         let wired = |pos: IVec3| hooked.by_target.get(&pos).copied().filter(|_| live(&pos));
         let hang = |pos: IVec3| wired(pos).or_else(|| nearest_of(poles, pos, true).filter(|_| live(&pos)));
+        let process_pole: Vec<Option<u32>> = processors
+            .iter()
+            .map(|p| match takes_pole(p) && live(&p.pos) {
+                true => wired(p.pos).or_else(|| hang_cable(poles, &p.cells())),
+                false => None,
+            })
+            .collect();
+        let beam_poles: Vec<(u32, u32)> =
+            beams.iter().filter_map(|&(e, r)| Some((process_pole[e as usize]?, process_pole[r as usize]?))).collect();
+        for &(a, b) in &beam_poles {
+            join(&mut parent, a, b);
+        }
+        let (pole_grid, grids) = number(&mut parent);
+        let mut side_grid = vec![0; sides as usize];
+        for (s, g) in pole_side.iter().zip(&pole_grid) {
+            side_grid[*s as usize] = *g;
+        }
         Power {
             grid_colour: super::grid_colour::assign(&pole_grid),
             pole_grid,
+            pole_side,
+            side_grid,
+            beam_poles,
             wires,
             gen_pole: gens.iter().map(|g| hang(g.pos)).collect(),
             miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
-            process_pole: processors
-                .iter()
-                .map(|p| match takes_pole(p) && live(&p.pos) {
-                    true => wired(p.pos).or_else(|| hang_cable(poles, &p.cells())),
-                    false => None,
-                })
-                .collect(),
+            process_pole,
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
             pipe_pole: pipework.iter().map(|p| if p.part == Part::Pump { hang(p.pos) } else { None }).collect(),
             quarry_pole: quarries.iter().map(|q| hang(q.pos)).collect(),
@@ -129,6 +141,7 @@ impl Power {
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],
             capacity: vec![0; grids as usize],
+            side_demand: vec![0; sides as usize],
         }
     }
 
@@ -149,30 +162,39 @@ impl Power {
         self.supply.iter_mut().for_each(|s| *s = 0);
         self.demand.iter_mut().for_each(|d| *d = 0);
         self.capacity.iter_mut().for_each(|c| *c = 0);
+        self.side_demand.iter_mut().for_each(|d| *d = 0);
         for (m, p) in miners.iter().zip(&self.miner_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += m.stats().power;
+                self.side_demand[self.pole_side[p as usize] as usize] += m.stats().power;
             }
         }
         for (m, p) in processors.iter().zip(&self.process_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power(unlocked, research)) {
-                self.demand[self.pole_grid[p as usize] as usize] += m.power();
+                self.side_demand[self.pole_side[p as usize] as usize] += m.power();
             }
         }
         for (l, p) in labs.iter().zip(&self.lab_pole) {
             if let Some(&p) = p.as_ref().filter(|_| l.wants_power(research)) {
-                self.demand[self.pole_grid[p as usize] as usize] += l.stats().power;
+                self.side_demand[self.pole_side[p as usize] as usize] += l.stats().power;
             }
         }
         for (m, p) in pipework.iter().zip(&self.pipe_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += m.pump_stats().power;
+                self.side_demand[self.pole_side[p as usize] as usize] += m.pump_stats().power;
             }
         }
         for (q, p) in quarries.iter().zip(&self.quarry_pole) {
             if let Some(&p) = p.as_ref().filter(|_| q.wants_power()) {
-                self.demand[self.pole_grid[p as usize] as usize] += q.stats().power;
+                self.side_demand[self.pole_side[p as usize] as usize] += q.stats().power;
             }
+        }
+        // Each side's demand joins its grid; a beam also costs its emitter's grid a tenth of what arrives.
+        for (s, &d) in self.side_demand.iter().enumerate() {
+            self.demand[self.side_grid[s] as usize] += d;
+        }
+        for &(from, to) in &self.beam_poles {
+            let received = self.side_demand[self.pole_side[to as usize] as usize];
+            self.demand[self.pole_grid[from as usize] as usize] += received / LOSS_DIVISOR;
         }
         // The sun and the accumulators come before any fuel is burned.
         run_renewables(self, processors, tick);
@@ -278,6 +300,30 @@ impl Factory {
             }
         }
     }
+}
+
+/// Merges the groups of `i` and `j`.
+fn join(parent: &mut [u32], i: u32, j: u32) {
+    let (a, b) = (root(parent, i), root(parent, j));
+    if a != b {
+        parent[a as usize] = b;
+    }
+}
+
+/// Numbers the groups 0, 1, ... in order of their first pole: each pole's group and the group count.
+fn number(parent: &mut [u32]) -> (Vec<u32>, u32) {
+    let mut ids = vec![u32::MAX; parent.len()];
+    let mut count = 0;
+    let mut out = Vec::with_capacity(parent.len());
+    for i in 0..parent.len() as u32 {
+        let r = root(parent, i) as usize;
+        if ids[r] == u32::MAX {
+            ids[r] = count;
+            count += 1;
+        }
+        out.push(ids[r]);
+    }
+    (out, count)
 }
 
 /// Union-find root with path halving.

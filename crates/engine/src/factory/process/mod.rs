@@ -29,6 +29,7 @@ mod hangar;
 mod hoist;
 mod hydro;
 mod intake;
+mod laser;
 mod legacy;
 mod model;
 mod nuclear;
@@ -186,6 +187,7 @@ impl Processor {
         self.speed = power;
         match (self.energy(), self.spec.pick) {
             (Energy::Boiler, _) => self.boil(),
+            (Energy::Beam, _) => {}
             (Energy::Hoist | Energy::Cooling | Energy::Optimizer, _) => {
                 self.status = if power > 0 { Status::Working } else { Status::NoPower }
             }

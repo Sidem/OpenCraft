@@ -54,6 +54,21 @@ Moved into `docs/DEV_PLAN.md` at the end of Milestone 10 (2026-10-05); this is t
   needs less coolant underground or beside the sea. Fold it into DEV_PLAN steps 11.3–11.4 if those are not
   built yet, else into 11.13.
 
+## Interlude: less hand-crafting (agreed with the user, 2026-10-09; build any time, in this order)
+
+Hand crafting is a lot of work early on. No XP or skill tree (it rewards doing the chore the game wants you to automate
+and would be a second progression track beside research). Instead:
+
+1. **`player_bonus(stat)`** (S): one place that sums a player's modifiers from researched techs, worn gear and any later
+   perks, in permille like `Research::rate_permille`. Hand-crafting speed is the first stat; mining speed, reach and
+   carry capacity can read it later. Core state only if a source is (techs and gear already are).
+2. **Hand-crafting speed techs** (S): a few tiers on green, blue and violet packs (e.g. +25% each), read by
+   `Recipe::hand_ticks` through the crafting queue. A new `Unlock` kind or a `Bonus`-like row.
+3. **Worn craft-speed gear** (S): an item in the gear slots (`equipment`), a later tier on gold.
+4. **Craft from nearby boxes, or by request** (M): the hand craft takes materials from boxes beside the player (like
+   drones taking from boxes next to their port), or a crafting request is fulfilled by drones/assemblers, so the player
+   stops standing there waiting. Biggest win; plan it as its own step with the user.
+
 ## Interlude after Milestone 11: feel and feedback (chosen by the user, 2026-10-08)
 
 Small features that make the factory more satisfying to watch, hear and read. All but the site bonuses are

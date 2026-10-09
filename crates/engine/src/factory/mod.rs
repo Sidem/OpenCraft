@@ -31,6 +31,7 @@ pub mod footprint;
 mod generator;
 pub mod grid_colour;
 mod lab;
+mod laser;
 mod links;
 mod machine;
 mod miner;
@@ -164,6 +165,8 @@ pub struct Factory {
     power: Power,
     /// The data grids and last tick's compute (derived, see `fibre.rs`).
     data: Data,
+    /// The laser beams between emitters and receivers (derived, see `laser.rs`).
+    beams: laser::Beams,
     at: FxHashMap<IVec3, Slot>,
     /// Belt indices, downstream first.
     order: Vec<u32>,
@@ -300,6 +303,9 @@ impl Factory {
     pub fn update(&mut self, world: &mut World, tick: u64, events: &mut Vec<SimEvent>) {
         self.step_sensors();
         self.step_trains();
+        if self.dirty || self.beams.stale {
+            self.aim_beams(world);
+        }
         if self.dirty {
             self.relink();
         }

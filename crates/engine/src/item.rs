@@ -229,7 +229,7 @@ const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 126] = [
+const EXTRA: [ItemDef; 129] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -356,6 +356,9 @@ const EXTRA: [ItemDef; 126] = [
     canister("Pure Water Canister", tex::PURE_WATER_CANISTER),
     part("Wafer", tex::WAFER, [0.7, 0.08, 0.7]),
     part("AI Accelerator", tex::ACCELERATOR, [0.8, 0.12, 0.6]),
+    tool("Hauler Pack Mk3", tex::HAULER_PACK_MK3, &DEVICE_TIER),
+    tool("Hauler Pack Mk4", tex::HAULER_PACK_MK4, &DEVICE_TIER),
+    tool("Hauler Pack Mk5", tex::HAULER_PACK_MK5, &DEVICE_TIER),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

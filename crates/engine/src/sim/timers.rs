@@ -111,6 +111,7 @@ impl Sim {
                 _ => {}
             }
         }
+        self.factory.beam_cut_check(pos);
         self.torch_support_changed(pos);
         self.water_changed(pos, old);
     }

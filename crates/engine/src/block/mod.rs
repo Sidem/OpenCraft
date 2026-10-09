@@ -143,7 +143,10 @@ pub const COOLING_TOWER: BlockId = 101;
 pub const AI_LAB: BlockId = 102;
 /// The optimizer node (`factory/process/optimizer.rs`).
 pub const OPTIMIZER: BlockId = 103;
-pub const BLOCK_COUNT: usize = 104;
+/// The laser emitter and receiver (`factory/laser.rs`, Milestone 11).
+pub const LASER_EMITTER: BlockId = 104;
+pub const LASER_RECEIVER: BlockId = 105;
+pub const BLOCK_COUNT: usize = 106;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -371,6 +374,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Cooling Tower", true, 2.6, pillar(tex::TOWER_SIDE, tex::TOWER_TOP, tex::FRAME), COOLING_TOWER),
     machine("AI Lab", true, 2.4, pillar(tex::AI_SIDE, tex::AI_TOP, tex::FRAME), AI_LAB),
     machine("Optimizer", true, 2.4, pillar(tex::OPT_SIDE, tex::OPT_TOP, tex::FRAME), OPTIMIZER),
+    machine("Laser Emitter", true, 1.6, pillar(tex::EMIT_SIDE, tex::EMIT_TOP, tex::FRAME), LASER_EMITTER),
+    machine("Laser Receiver", true, 1.6, pillar(tex::RECV_SIDE, tex::RECV_TOP, tex::FRAME), LASER_RECEIVER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

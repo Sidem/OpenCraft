@@ -56,7 +56,7 @@ the render distance in chunks (2 to 24, default 8).
 | Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill, flatten (with the level) or a tunnel (with its section). Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |
 | Jump (in the air) | With a Coal Jetpack in your pack: keep holding it to climb on a plume of fire, burning a coal from your pack every 10 seconds; with a charged Hover Pack, hold it to hover until you land (jump rises, crouch sinks) |
-| Shift-click gear (inventory) | Wears it: back (hauler pack, 9 or 18 more backpack slots), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), tool belt (mining rig: break blocks by hand 50% faster). Researched under Hauler Gear, Field Gear and Exosuit |
+| Shift-click gear (inventory) | Wears it: back (hauler pack: 27 more backpack slots, 18 more for each Mk up to Mk5 with 99; four kits of the tier raise the worn pack in place from a button in the inventory, no need to take it off), boots (spring: jump 2 blocks; servo: walk 15% faster), torso (exo frame: sprint 10% faster), tool belt (mining rig: break blocks by hand 50% faster). Researched under Hauler Gear, Field Gear and Exosuit |
 | Right mouse on a box | Open it like a chest: click moves stacks with the cursor, Shift-click moves a whole stack between box and inventory. Hold C to place against it instead |
 | Right mouse on a miner | Take everything it holds |
 | Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
@@ -426,6 +426,11 @@ size.
   glass; 2×2×2, 150 kW). It uses 20 TF of the data grid it hangs on, and every machine and miner within 16 blocks of it works
   25% faster, whatever grid it is on. Machines take the best optimizer in range, they do not add up, and a shortage of power or
   compute weakens it (it says so when you point at it).
+- **Laser power links.** The Photonics tech gives the **laser emitter** and **laser receiver** (each 6 aluminium plates, 1
+  accelerator, 4 glass, 4 circuits). Put both on poles and aim the emitter (R turns it) along a straight, clear line of up to
+  128 blocks at the receiver, which takes the beam from any side: the two power grids become one, and the far side burns a
+  tenth more power on the way. Air and glass let the beam through, any other block stops it (it flickers up to the block);
+  break that block and the link returns.
 - **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the
@@ -486,7 +491,7 @@ parts for you, hand crafting is for one-offs. Also by recipe: a constructor is a
 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an
 arc furnace 10 steel plates, 16 stone bricks and 24 copper wire, an electrolytic cell 12 steel plates, 16 stone bricks,
 24 copper wire and 4 circuits. Two lifts cost 2 iron rods and 2 belts, and an
-underpass 2 belts (3 Mk2 belts for a Mk2, 4 Mk3 and 5 Mk4: half the blocks it reaches, so a pair costs 4, 6, 8 or 10). A research lab costs 6 iron plates, 8 copper wire and 4 belts;
+pair of underpasses 4 belts (6 Mk2 belts for a Mk2 pair, 8 Mk3 and 10 Mk4: as many belts as the blocks they reach; underpasses are only made in pairs). A research lab costs 6 iron plates, 8 copper wire and 4 belts;
 Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
 an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an
 outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. Hand-mining

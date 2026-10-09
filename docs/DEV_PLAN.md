@@ -1,7 +1,7 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-08 · Strategy controls built · Milestones 1–9 done and pushed (co-op tested across machines by the user; no TURN for
-now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) and 11.5 (AI lab) are committed, 11.6 (endless bonus techs) is committed, 11.7 (optimizer node) is built and uncommitted (689 tests). Next: step 11.8, laser power links** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+now) · Milestone 10 (fluids and chemistry) is done and pushed · **Milestone 11 (compute and photonics): 11.1 (chip fab, accelerators) and 11.2 (data grid) are committed, 11.3 (AI datacenter) is committed, 11.4 (cooling tower) and 11.5 (AI lab) are committed, 11.6 (endless bonus techs) is committed, 11.7 (optimizer node) is committed, 11.8 (laser power links) is built and uncommitted (708 tests, with the research queue, paired underpasses and five-tier hauler packs built on top, also uncommitted). Next: step 11.9, mirrors and data beams** (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -127,6 +127,9 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-06 | **Creative mode for new worlds** (user request, for testing everything): a world is normal or creative, chosen in the new-world form and never changed. Creative has every tech done and an "All items" tab in the inventory (click a stack, Shift-click one). Flying (F) already works in every world. |
 | 2026-10-06 | **Analytics and machine efficiency** (user request): an Electricity and productivity screen (P) graphs the power the grids could give, the power used and asked for, and each item made a minute, over 1m to 3h, with coloured lines; every machine says how close to full speed it runs and what costs it the rest (low power, waiting for input, full output, no fuel...). **Presentation only:** history is not saved and starts when a world is opened. |
 | 2026-10-06 | **One underpass, in tiers** (user request): entry and exit are the same item (pieces in a line facing the same way pair up by themselves, `factory/underpass.rs`); Mk1 to Mk4 reach 4 / 6 / 8 / 10 blocks at the speed of the belt of that Mk; a piece costs half its reach in belts of its Mk (a Mk1 pair is 4 belts). Dragging a belt line over a belt, machine or wall dives under it with the lowest underpass that reaches and is at least the belt's Mk; pairs the inventory lacks show red and are left out. The old exit block (23) still loads and is the same piece. No save-format change. |
+| 2026-10-09 | **Hand-crafting speed comes from research and gear, not a skill tree** (Claude's proposal, user agreed): a "hand-crafting speed" bonus tech, a modifier layer `player_bonus(stat)` that sums techs, gear and any later perks (mining speed, reach and carry capacity read it too), and crafting that takes parts from nearby boxes or is fulfilled by drones, so the player stops hand-crafting instead of doing it faster. No XP or skill points. Not scheduled yet: see `docs/ROADMAP.md`. |
+| 2026-10-09 | **Hauler packs: 27 slots, then 18 more per Mk up to Mk5 (99), raised with 4 kits of the tier** (user request: inventory space was the pain at violet). The worn pack is upgraded in place from the inventory screen. |
+| 2026-10-09 | **Underpasses are crafted in pairs; research can be queued** (user requests). A craft makes an entry and an exit; the research screen holds a queue (up to 32, with missing prerequisites added), the HUD shows only the current tech. |
 | 2026-10-08 | **Player-experience features** (user's pick from Claude's proposals): a world timelapse, the factory as an instrument, follow one item, seismic prospecting, site bonuses (where you build matters), ruins of the last factory. Placed as two interludes in `docs/ROADMAP.md`; datacenter siting may join steps 11.3–11.4. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
@@ -534,11 +537,14 @@ what compute buys, laser links, helpers, cleanup.
   `Processor::boost` (work of recipes only) and by `Sim::flight_step` for construction and cargo drones. The research screen
   shows "level N" and the next unit's seconds (`tech_endless`). Tests 673 → 683.)
 - [x] **11.7 Optimizer node** (built 2026-10-08: `process/optimizer.rs`, block 103, `Energy::Optimizer` (a power sink like the winch), tech Optimizer 66 in the new `research/ai.rs` (needs AI Research; append later Milestone 11 techs there, after the bonus techs), textures 266–267, 2×2×2, 150 kW, a data consumer of 20 TF that always wants it. **Differs from the first idea:** range, not grid: every processor and miner whose anchor is within 16 blocks gets +25% whatever grid it is on, scaled by the optimizer's power share times its grid's satisfaction (so a shortage weakens it smoothly, and none gives nothing); a machine takes the best optimizer in range (`bonus_at`). It multiplies into `boost` in `Factory::update` beside the research bonuses (`bonuses` reads this tick's balance, never a derived `speed`, so a loaded core matches). Hand recipe 8 steel plates, 4 accelerators, 10 processors, 10 circuits, 4 glass. No save change; golden hash re-recorded for the new tech. Tests 683 → 689.)
-- [ ] **11.8 Laser power links** (`factory/laser.rs`; emitter and receiver blocks, tech Photonics). An emitter and a receiver
-  within 128 blocks (Mk tiers to 512) with a clear line become one edge of the power grid at 90% efficiency; the edge is
-  rechecked only when a block in its path changes (`block_anywhere`; glass lets the beam through) and the path is cached.
-  Draw: an additive beam quad that flickers when blocked. Done when: two islands of power join through a beam, a block in the
-  path cuts it and breaking that block restores it (tests), with no per-tick ray cost.
+- [x] **11.8 Laser power links** (built 2026-10-08: `factory/laser.rs`, `process/laser.rs`, blocks 104 emitter / 105 receiver (1×1,
+  `Energy::Beam`, no power of their own), tech Photonics 67 (needs AI Research, 150 units, gold packs), textures 268–272,
+  hand recipes 6 aluminium plates, 1 accelerator, 4 glass, 4 circuits each. The emitter shoots out of its front up to 128
+  blocks; air and glass pass, a receiver (any side) links, anything else blocks. Rays are cached (`Beams`) and recast only on
+  relink or when `Sim::block_changed` hits a ray (`beam_cut_check`), so there is no per-tick ray cost. **Power:** `Power::rebuild`
+  groups poles into wire "sides", joins sides through beams into grids; `balance` accumulates demand per side and charges the
+  emitter's grid receiving-side demand / 9 (the 90%). **Left out for now:** Mk tiers to 512 blocks. Drawn as a thin lit box,
+  flickering up to its blocker. No save change; golden hash re-recorded. Tests 689 → 696.)
 - [ ] **11.9 Mirrors and data beams** (`laser.rs`, mirror block). A mirror turns a beam 90° so lines can go round corners; a beam
   can carry the data channel instead of power (the receiver's mode is chosen in its panel). Done when: a beam through two
   mirrors carries compute between two datacenter sites.
@@ -598,6 +604,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-08: Optimizer node (step 11.7).** ``process/optimizer.rs`` (block 103, ``Energy::Optimizer``, tech Optimizer 66 in ``research/ai.rs``, textures 266–267): +25% to machines within 16 blocks. Tests 683 → 689. Next free block 104, tech 67, texture 268.`n- **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.
-- **2026-10-08: AI lab (step 11.5).** `process/ailab.rs` (block 102, tech AI Labs 61, AI Research 62, textures 264–265), `LabStatus::NeedsAi`, `research::needs_ai_lab`. Golden hash re-recorded, save version stays 40. Tests 668 → 673. Next free block 103, tech 63, texture 266.
+- **2026-10-08: Laser power links (step 11.8).** `factory/laser.rs` (blocks 104–105, `Energy::Beam`, tech Photonics 67, textures 268–272): a clear beam joins two power grids at 90%; `Power::rebuild` splits poles into wire "sides" and joins sides through beams. Golden hash re-recorded, no save bump. Tests 689 → 696. Next free block 106, tech 68, texture 273.
+- **2026-10-08: Optimizer node (step 11.7).** `process/optimizer.rs` (block 103, `Energy::Optimizer`, tech Optimizer 66 in `research/ai.rs`, textures 266–267): +25% to machines within 16 blocks. Tests 683 → 689.
+- **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

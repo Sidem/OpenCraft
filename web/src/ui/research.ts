@@ -3,9 +3,11 @@
 // (green, what the rest is built on), researching (orange, with progress), available (bright and pulsing:
 // the horizon) and locked (dim). Hovering or focusing a node shows the full card (what it unlocks, what a
 // unit costs, progress) and lights its chain of prerequisites and dependents; clicking an available tech
-// sets what every lab in the world works on (again to stop). Also the HUD tracker (the tech being
-// researched and its progress) and a short notice when a tech is done. Everything is read from the
-// engine (`tech_*`, `current_research`); a new tech in the engine needs no change here.
+// sets what every lab in the world works on now (again to give it up), Shift-click or a click on a locked tech
+// adds it, with the prerequisites it lacks, to the research queue (again to take it out); the queue is listed
+// above the tree (research-queue.ts). Also the HUD tracker (only the tech being researched and its progress)
+// and a short notice when a tech is done. Everything is read from the engine (`tech_*`, `current_research`,
+// `research_queue_*`); a new tech in the engine needs no change here.
 // The dialog frame reuses the machine panel's styles (machine.css), the item chips the build menu's
 // (inventory.css).
 
@@ -15,6 +17,7 @@ import './research.css';
 import './research-card.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
+import { ResearchQueue } from './research-queue';
 import { layoutTree, related } from './tech-tree';
 
 const ICON_PX = 64;
@@ -59,6 +62,7 @@ export class ResearchPanel {
   private readonly trackerBar = h('div', 'mp-bar-fill');
   private readonly tree = h('div', 'rs-tree');
   private readonly tip = h('div', 'rs-tip hidden');
+  private readonly queue: ResearchQueue;
   private readonly views: TechView[];
   private readonly needs: number[][];
   private readonly edges: Edge[] = [];
@@ -79,6 +83,7 @@ export class ResearchPanel {
     close.setAttribute('aria-label', 'Close');
     head.append(h('h2', '', 'Research'), h('span', 'mp-keys', 'T, E or click outside to return'), close);
 
+    this.queue = new ResearchQueue(game);
     const count = game.tech_count();
     this.needs = Array.from({ length: count }, (_, t) => Array.from(game.tech_needs(t)));
     this.views = Array.from({ length: count }, (_, t) => this.makeTech(t));
@@ -86,7 +91,7 @@ export class ResearchPanel {
     this.buildTree();
     this.enablePan();
     const body = h('div', 'mp-body');
-    body.append(this.current, this.legend(), this.tree);
+    body.append(this.current, this.queue.el, this.legend(), this.tree);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog, this.tip);
 
@@ -152,7 +157,10 @@ export class ResearchPanel {
       this.trackerText.textContent = `Researching ${g.tech_name(current)} · ${endless ? `level ${done}` : `${done} of ${units}`}`;
       this.trackerBar.style.transform = `scaleX(${endless ? 0 : done / units})`;
     }
-    if (this.isOpen) this.draw(current);
+    if (this.isOpen) {
+      this.queue.update();
+      this.draw(current);
+    }
     // Just opened: the dialog has no width for the first moments, so centre once it is laid out.
     if (this.isOpen && this.centring && this.tree.clientWidth > NODE_W) {
       this.centring = false;
@@ -225,20 +233,23 @@ export class ResearchPanel {
   private draw(current: number): void {
     const g = this.game;
     const progress = this.views.map((_, t) => g.tech_progress(t));
-    const key = `${current}|${progress.join(',')}|${this.views.map((_, t) => g.tech_available(t)).join(',')}`;
+    const queued = this.queue.list();
+    const key = `${current}|${queued.join(',')}|${progress.join(',')}|${this.views.map((_, t) => g.tech_available(t)).join(',')}`;
     if (key === this.drawn) return;
     this.drawn = key;
     this.current.textContent = current >= 0
       ? `Labs are researching ${g.tech_name(current)}.`
-      : 'Nothing is being researched. Click a glowing tech to start.';
+      : 'Nothing is being researched. Click a glowing tech to start, or Shift-click to queue.';
     this.views.forEach((v, t) => {
       const [done, available, units, endless] = [g.tech_done(t), g.tech_available(t), g.tech_units(t), g.tech_endless(t)];
       const amount = endless ? `level ${progress[t]}` : `${progress[t]} of ${units}`;
       const chosen = t === current;
+      const place = queued.indexOf(t) + 1;
       const state = done ? 'done' : available ? 'available' : 'locked';
-      const label = done ? 'Done' : chosen ? 'Researching' : available ? 'Available' : 'Locked';
-      v.node.className = `rs-node ${state}${chosen ? ' chosen' : ''}`;
-      v.card.className = `rs-card ${state}${chosen ? ' chosen' : ''}`;
+      const label = done ? 'Done' : chosen ? 'Researching' : place > 0 ? `Queued #${place}` : available ? 'Available' : 'Locked';
+      const extra = `${chosen ? ' chosen' : ''}${place > 0 ? ' queued' : ''}`;
+      v.node.className = `rs-node ${state}${extra}`;
+      v.card.className = `rs-card ${state}${extra}`;
       v.nodeState.textContent = chosen || (available && progress[t] > 0) ? amount : label;
       v.state.textContent = label;
       const fill = `scaleX(${endless ? 0 : progress[t] / units})`;
@@ -248,9 +259,13 @@ export class ResearchPanel {
       v.seconds.textContent = `${Math.round(g.tech_seconds(t))} s in a ${endless ? 'AI lab, using compute' : 'lab'}`;
       v.action.textContent = done
         ? 'Researched: what comes after it builds on this.'
-        : available
-          ? chosen ? 'Click to stop researching.' : 'Click to research this next.'
-          : this.needsText(t);
+        : chosen
+          ? 'Click to give this up and move on to the next in the queue.'
+          : place > 0
+            ? 'Click to take this out of the queue.'
+            : available
+              ? 'Click to research this now, Shift-click to add it to the queue.'
+              : `${this.needsText(t)} Click to queue it with everything it needs.`;
     });
     for (const e of this.edges) {
       const [from, to] = [g.tech_done(e.from), g.tech_done(e.to)];
@@ -272,8 +287,12 @@ export class ResearchPanel {
     const nodeBar = h('i', '');
     track.append(nodeBar);
     node.append(h('span', 'rs-node-name', g.tech_name(t)), meta, track);
-    node.addEventListener('click', () => {
-      if (g.tech_available(t) || g.current_research() === t) g.set_research(g.current_research() === t ? -1 : t);
+    node.addEventListener('click', (e) => {
+      if (g.tech_done(t)) return;
+      if (g.current_research() === t) g.set_research(-1);
+      else if (this.queue.list().includes(t)) g.unqueue_research(t);
+      else if (g.tech_available(t) && !e.shiftKey) g.set_research(t);
+      else g.queue_research(t);
     });
     for (const on of ['pointerenter', 'focus']) node.addEventListener(on, () => this.showCard(t));
     for (const off of ['pointerleave', 'blur']) node.addEventListener(off, () => this.hideCard());
@@ -341,7 +360,8 @@ export class ResearchPanel {
     for (const [cls, text] of [
       ['done', 'Done: built upon'],
       ['chosen', 'Being researched'],
-      ['available', 'On the horizon: click to research'],
+      ['queued', 'In the queue'],
+      ['available', 'On the horizon: click to research, Shift-click to queue'],
       ['locked', 'Locked'],
     ]) {
       el.append(h('span', `rs-key ${cls}`, text));

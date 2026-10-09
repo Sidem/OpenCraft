@@ -36,7 +36,7 @@ fn a_hauler_pack_opens_rows_and_stays_on_while_they_hold_things() {
     assert_eq!(inv.capacity(), INVENTORY_SLOTS);
     inv.slots[0] = Stack { item: HAULER_PACK, count: 1 };
     assert!(inv.wear_from(0));
-    assert_eq!((inv.worn[0], inv.capacity(), inv.slots[0].is_empty()), (HAULER_PACK, INVENTORY_SLOTS + 9, true));
+    assert_eq!((inv.worn[0], inv.capacity(), inv.slots[0].is_empty()), (HAULER_PACK, INVENTORY_SLOTS + 27, true));
 
     // The new rows take items, so the pack cannot come off.
     fill(&mut inv, INVENTORY_SLOTS + 1);
@@ -56,15 +56,83 @@ fn replacing_a_pack_puts_the_old_one_in_the_inventory() {
     inv.worn[0] = HAULER_PACK;
     inv.slots[3] = Stack { item: HAULER_PACK_MK2, count: 1 };
     assert!(inv.wear_from(3));
-    assert_eq!((inv.worn[0], inv.count(HAULER_PACK), inv.capacity()), (HAULER_PACK_MK2, 1, INVENTORY_SLOTS + 18));
+    assert_eq!((inv.worn[0], inv.count(HAULER_PACK), inv.capacity()), (HAULER_PACK_MK2, 1, INVENTORY_SLOTS + 45));
     inv.slots.iter_mut().for_each(|s| *s = Stack::default());
 
     // Back to the smaller pack is refused while the big one's rows are in use, and nothing changes.
-    inv.slots[INVENTORY_SLOTS + 12] = Stack { item: STONE.into(), count: 5 };
+    inv.slots[INVENTORY_SLOTS + 30] = Stack { item: STONE.into(), count: 5 };
     inv.slots[3] = Stack { item: HAULER_PACK, count: 1 };
     assert!(!inv.wear_from(3));
     assert_eq!((inv.worn[0], inv.slots[3].item), (HAULER_PACK_MK2, HAULER_PACK));
-    assert_eq!(inv.slots[INVENTORY_SLOTS + 12].count, 5);
+    assert_eq!(inv.slots[INVENTORY_SLOTS + 30].count, 5);
+}
+
+#[test]
+fn every_pack_tier_opens_eighteen_more_slots_than_the_one_below() {
+    let slots = |pack: ItemId| gear(pack).unwrap().effect.pack;
+    assert_eq!(PACKS.map(slots), [27, 45, 63, 81, 99]);
+    assert_eq!(MAX_SLOTS, INVENTORY_SLOTS + slots(PACKS[4]));
+    for w in PACKS.windows(2) {
+        assert_eq!(slots(w[1]) - slots(w[0]), 18);
+    }
+}
+
+#[test]
+fn a_full_pack_is_raised_in_place_with_kits_and_only_when_unlocked() {
+    use crate::item::{BLUE_KIT, GREEN_KIT};
+    let mut inv = Inventory::default();
+    inv.worn[0] = HAULER_PACK;
+    fill(&mut inv, INVENTORY_SLOTS + 27);
+    // Not even a free slot for the kits: take stacks out first, as a player would.
+    inv.slots[0] = Stack { item: GREEN_KIT, count: PACK_KITS };
+    assert!(!inv.upgrade_pack(|_| false), "the tech has not unlocked it");
+    assert_eq!(inv.worn[0], HAULER_PACK);
+    assert!(inv.upgrade_pack(|_| true));
+    assert_eq!((inv.worn[0], inv.capacity(), inv.slots[0].is_empty()), (HAULER_PACK_MK2, INVENTORY_SLOTS + 45, true));
+    assert!(inv.slots[INVENTORY_SLOTS..INVENTORY_SLOTS + 27].iter().all(|s| !s.is_empty()), "nothing moved");
+
+    // The next step wants kits of the next colour, and as many as the recipe says.
+    inv.slots[0] = Stack { item: GREEN_KIT, count: PACK_KITS };
+    assert!(!inv.upgrade_pack(|_| true), "green kits do not make a Mk3");
+    inv.slots[0] = Stack { item: BLUE_KIT, count: PACK_KITS - 1 };
+    assert!(!inv.upgrade_pack(|_| true), "one kit short");
+    inv.slots[0].count = PACK_KITS;
+    assert!(inv.upgrade_pack(|_| true));
+    assert_eq!(inv.worn[0], HAULER_PACK_MK3);
+
+    // The last tier, and no pack at all, have nothing to raise.
+    inv.worn[0] = HAULER_PACK_MK5;
+    assert!(!inv.upgrade_pack(|_| true));
+    inv.worn[0] = ItemId::NONE;
+    assert!(!inv.upgrade_pack(|_| true));
+}
+
+#[test]
+fn pack_recipes_are_the_pack_below_plus_the_kits_of_the_upgrade() {
+    for w in PACKS.windows(2) {
+        let (next, kit, kits) = next_pack(w[0]).unwrap();
+        assert_eq!(next, w[1]);
+        let recipe = crate::recipes::RECIPES.iter().find(|r| r.output == next).expect("every pack is craftable");
+        assert_eq!((recipe.count, recipe.inputs), (1, &[(w[0], 1), (kit, kits)][..]), "{}", crate::item::name(next));
+    }
+    assert_eq!(next_pack(PACKS[4]), None);
+}
+
+#[test]
+fn saves_from_before_the_bigger_packs_read_their_eighteen_rows() {
+    let mut w = ByteWriter::default();
+    let none = Stack::default();
+    let stone = Stack { item: STONE.into(), count: 9 };
+    (0..INVENTORY_SLOTS).for_each(|i| if i == 5 { stone } else { none }.write_state(&mut w));
+    none.write_state(&mut w);
+    w.u8(0);
+    (0..18).for_each(|i| if i == 17 { stone } else { none }.write_state(&mut w));
+    (0..SLOTS).for_each(|i| w.item(if i == 0 { HAULER_PACK_MK2 } else { ItemId::NONE }));
+    let mut r = ByteReader::new(&w.bytes);
+    r.version = 41;
+    let back = Inventory::read_state(&mut r).expect("reads");
+    assert_eq!((back.slots[5].count, back.slots[INVENTORY_SLOTS + 17].count), (9, 9));
+    assert_eq!((back.worn[0], r.u8().is_none()), (HAULER_PACK_MK2, true), "all of it was read, and no more");
 }
 
 #[test]
@@ -106,8 +174,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 40,
-        "the layout above is unchanged since version 29 (30 to 40: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes)"
+        SAVE_VERSION, 42,
+        "the layout above is unchanged since version 29 (30 to 42: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before)"
     );
 
     // A save with a pack's rows full but no pack on is refused.
