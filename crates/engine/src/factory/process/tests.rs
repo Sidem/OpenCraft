@@ -272,6 +272,28 @@ fn a_blast_furnace_takes_crushed_iron_or_ore_without_being_told_which() {
 }
 
 #[test]
+fn one_input_cannot_crowd_the_others_out_of_a_blast_furnace() {
+    let mut f = Factory::default();
+    f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    research_done(&mut f, "Steelmaking");
+    research_done(&mut f, "Ore Crushing");
+    // A long belt of quicklime arrives first: it fills one slot (a stack) and no more.
+    let lime = crate::item::stack_size(QUICKLIME);
+    assert_eq!(f.insert(IVec3::ZERO, QUICKLIME, lime * 3), lime);
+    assert_eq!(f.processors[0].input.slots.iter().filter(|s| s.item == QUICKLIME).count(), 1);
+    // So crushed iron and coal still get in, and it works.
+    assert_eq!(f.insert(IVec3::ZERO, CRUSHED_IRON, 2), 2);
+    assert_eq!(f.insert(IVec3::ZERO, COAL_ORE.into(), 1), 1);
+    run(&mut f, 4.05, |_| {});
+    assert_eq!(f.processors[0].out.count(STEEL_INGOT), 1);
+    // One-input machines still fill every slot they have.
+    let mut s = Factory::default();
+    s.place(&mut World::new(1, 2), SMELTER, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    let slots = s.processors[0].input.slots.len() as u32;
+    assert_eq!(s.insert(IVec3::ZERO, IRON_ORE.into(), 64 * slots), 64 * slots);
+}
+
+#[test]
 fn crushed_iron_in_a_blast_furnace_waits_for_ore_crushing() {
     let f = Factory::default();
     assert!(!f.research.machine_recipes_unlocked()[crate::recipes::BLAST_CRUSHED_RECIPE as usize]);

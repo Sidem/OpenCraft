@@ -3,6 +3,7 @@
 
 use crate::item::{stack_size, ItemId, EMPTY_CANISTER};
 use crate::recipes::recycling::millicoins;
+use crate::recipes::{MachineRecipe, MACHINE_RECIPES};
 
 use super::{Energy, Pick, Processor};
 
@@ -34,16 +35,28 @@ impl Processor {
             Pick::Pump => item == EMPTY_CANISTER,
             Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload | Pick::Research | Pick::Recycle => false,
         };
-        let cap = if self.spec.pick == Pick::Chosen {
-            stack_size(item).saturating_sub(self.input.count(item))
-        } else {
-            u32::MAX
+        let cap = match self.spec.pick {
+            Pick::Chosen => stack_size(item).saturating_sub(self.input.count(item)),
+            Pick::ByInput => {
+                (self.input_slots_for(item) as u32 * stack_size(item)).saturating_sub(self.input.count(item))
+            }
+            _ => u32::MAX,
         };
         if wanted {
             self.input.space_for(item).min(cap)
         } else {
             0
         }
+    }
+
+    /// How many input slots one item may fill in a `Pick::ByInput` machine: the buffer's slots less one for every other
+    /// input of the widest recipe that uses the item, and at least one. Without it a belt of quicklime fills all three
+    /// slots of a blast furnace and the crushed iron and coal that go with it can never get in, so it stalls.
+    fn input_slots_for(&self, item: ItemId) -> usize {
+        let uses =
+            |r: &&MachineRecipe| self.spec.categories.contains(&r.category) && r.inputs.iter().any(|x| x.0 == item);
+        let widest = MACHINE_RECIPES.iter().filter(uses).map(|r| r.inputs.len()).max().unwrap_or(1);
+        self.input.slots.len().saturating_sub(widest - 1).max(1)
     }
 
     /// Puts up to `n` of `item` where it belongs; returns how many went in.
