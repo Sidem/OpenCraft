@@ -63,7 +63,7 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), n - 6, "ghosts: processors done");
     place(&mut f, DRONE_PORT, 70);
     assert_eq!(progress(&inv, &f), n - 5, "a drone port");
-    inv.add(crate::item::JETPACK, 1);
+    inv.worn[4] = crate::item::JETPACK;
     assert_eq!(progress(&inv, &f), n - 4, "flying");
     inv.add(crate::item::PLANNER, 1);
     assert_eq!(progress(&inv, &f), n - 3, "terraforming");

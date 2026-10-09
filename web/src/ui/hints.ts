@@ -22,7 +22,7 @@ export class Hints {
     const head = h('div', 'hint-head');
     head.append(this.counter, h('span', 'hint-key', 'H: skip'));
     this.el.append(head, this.text);
-    document.getElementById('hud')!.append(this.el);
+    document.getElementById('hud-left')!.append(this.el);
     this.again = button('secondary-btn hidden', 'Show tips again', () => {
       this.skipped.clear();
       saveSkipped(this.skipped);

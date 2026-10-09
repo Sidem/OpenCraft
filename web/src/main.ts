@@ -258,6 +258,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'ghost') game.toggle_ghost_mode();
       else if (a.kind === 'fetch') game.fetch_held();
+      else if (a.kind === 'scan-target') prospect.nextTarget();
       else if (a.kind === 'blueprint-mark') game.blueprint_mark();
       else if (a.kind === 'blueprint-copy') game.blueprint_copy_selection();
       else if (a.kind === 'mute') sound.toggleMute();

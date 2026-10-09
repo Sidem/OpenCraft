@@ -11,8 +11,8 @@ use super::{Tech, Unlock};
 pub const PERSONAL: [Tech; 6] = [
     Tech {
         name: "Jetpack",
-        blurb: "Four steel plates, two motors and two circuits: a coal-burning pack that lifts you while you hold \
-                jump. Ten seconds of thrust a coal.",
+        blurb: "Four steel plates, two motors and two circuits: a coal-burning pack, worn in its own slot, that \
+                lifts you while you hold jump. Ten seconds of thrust a coal.",
         needs: &[25],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 120,

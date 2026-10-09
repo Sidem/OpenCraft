@@ -56,11 +56,9 @@
   display: none;
 }
 
+
 #target {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  order: 2;
   min-width: 150px;
   padding: 6px 14px 8px;
   border-radius: 8px;

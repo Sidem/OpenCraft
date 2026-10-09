@@ -98,8 +98,7 @@ impl Game {
             let power = self.power_label();
             let power = if power.is_empty() { self.rail_label() } else { power };
             let power = if power.is_empty() { self.train_label() } else { power };
-            let power = if power.is_empty() { self.cargo_label() } else { power };
-            return if power.is_empty() { self.helper_label() } else { power };
+            return if power.is_empty() { self.cargo_label() } else { power };
         }
         let held = self.inventory().selected_stack().item;
         if let Some(tier) = factory::upgrades::kit_tier(held) {

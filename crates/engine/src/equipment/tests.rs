@@ -127,12 +127,35 @@ fn saves_from_before_the_bigger_packs_read_their_eighteen_rows() {
     none.write_state(&mut w);
     w.u8(0);
     (0..18).for_each(|i| if i == 17 { stone } else { none }.write_state(&mut w));
-    (0..SLOTS).for_each(|i| w.item(if i == 0 { HAULER_PACK_MK2 } else { ItemId::NONE }));
+    (0..LEGACY_SLOTS).for_each(|i| w.item(if i == 0 { HAULER_PACK_MK2 } else { ItemId::NONE }));
     let mut r = ByteReader::new(&w.bytes);
     r.version = 41;
     let back = Inventory::read_state(&mut r).expect("reads");
     assert_eq!((back.slots[5].count, back.slots[INVENTORY_SLOTS + 17].count), (9, 9));
     assert_eq!((back.worn[0], r.u8().is_none()), (HAULER_PACK_MK2, true), "all of it was read, and no more");
+}
+
+#[test]
+fn the_jetpack_works_only_while_worn_and_an_old_pack_jetpack_goes_on_when_a_save_loads() {
+    let mut inv = Inventory::default();
+    inv.add(JETPACK, 1);
+    assert!(!inv.has_jetpack(), "in the pack it does nothing");
+    assert!(inv.wear_from(0) && inv.has_jetpack() && inv.count(JETPACK) == 0);
+    inv.click_gear(4, true);
+    assert!(!inv.has_jetpack() && inv.count(JETPACK) == 1, "Shift takes it off into the pack");
+
+    let mut w = ByteWriter::default();
+    let none = Stack::default();
+    (0..INVENTORY_SLOTS)
+        .for_each(|i| if i == 2 { Stack { item: JETPACK, count: 1 } } else { none }.write_state(&mut w));
+    none.write_state(&mut w);
+    w.u8(0);
+    (0..18).for_each(|_| none.write_state(&mut w));
+    (0..LEGACY_SLOTS).for_each(|_| w.item(ItemId::NONE));
+    let mut r = ByteReader::new(&w.bytes);
+    r.version = 41;
+    let back = Inventory::read_state(&mut r).expect("reads");
+    assert!(back.has_jetpack() && back.count(JETPACK) == 0, "worn after loading an older save");
 }
 
 #[test]
@@ -174,8 +197,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 42,
-        "the layout above is unchanged since version 29 (30 to 42: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before)"
+        SAVE_VERSION, 43,
+        "the layout above is unchanged since version 29 (30 to 43: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before)"
     );
 
     // A save with a pack's rows full but no pack on is refused.
@@ -204,7 +227,7 @@ fn old_saves_read_without_gear() {
 fn boots_and_frames_scale_the_body_and_a_rig_the_hands() {
     let mut inv = Inventory::default();
     assert_eq!((inv.boost(), inv.mining_speed()), (Default::default(), 1.0));
-    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG];
+    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG, ItemId::NONE];
     let b = inv.boost();
     assert!((b.walk - 1.15).abs() < 1e-9 && (b.sprint - 1.15 * 1.1).abs() < 1e-9 && b.jump == 1.0);
     assert_eq!(inv.mining_speed(), 1.5);

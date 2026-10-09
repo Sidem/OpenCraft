@@ -604,6 +604,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-09: Jetpack slot and HUD columns.** A fifth equipment slot (Jetpack): the jetpack works only while worn (`Inventory::has_jetpack`); save 43 (older saves wear a pack-held jetpack on load; golden hash re-recorded). The helpers' status (jetpack fuel, hover charge, drone errand) is its own HUD line (`helper_status`) instead of replacing the target readout. Top centre (`#hud-top`) and left (`#hud-left`) are flex columns so scanner pointer, helper line, target, scanner card and tip never overlap. Mk2 scanner pointer: U picks the next deposit (Nearest / Chosen). Tests 710.
 - **2026-10-08: Laser power links (step 11.8).** `factory/laser.rs` (blocks 104–105, `Energy::Beam`, tech Photonics 67, textures 268–272): a clear beam joins two power grids at 90%; `Power::rebuild` splits poles into wire "sides" and joins sides through beams. Golden hash re-recorded, no save bump. Tests 689 → 696. Next free block 106, tech 68, texture 273.
 - **2026-10-08: Optimizer node (step 11.7).** `process/optimizer.rs` (block 103, `Energy::Optimizer`, tech Optimizer 66 in `research/ai.rs`, textures 266–267): +25% to machines within 16 blocks. Tests 683 → 689.
 - **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.

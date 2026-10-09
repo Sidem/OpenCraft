@@ -100,12 +100,17 @@ impl Inventory {
             for s in &mut inv.slots[INVENTORY_SLOTS..INVENTORY_SLOTS + rows] {
                 *s = Stack::read_state(r)?;
             }
-            for (slot, item) in inv.worn.iter_mut().enumerate() {
+            // Four slots before version 43; the jetpack slot came after them.
+            let worn = if r.version >= 43 { SLOTS } else { equipment::LEGACY_SLOTS };
+            for (slot, item) in inv.worn.iter_mut().enumerate().take(worn) {
                 *item = r.item()?;
                 if *item != ItemId::NONE && !equipment::gear(*item).is_some_and(|g| g.slot == slot) {
                     return None;
                 }
             }
+        }
+        if r.version < 43 {
+            inv.wear_old_jetpack();
         }
         (inv.selected < HOTBAR_SLOTS && !inv.stranded()).then_some(inv)
     }

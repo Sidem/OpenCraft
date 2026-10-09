@@ -1,4 +1,4 @@
-//! Equipment: what a player wears. Four slots (`SLOT_NAMES`), kept in the [`Inventory`] (`worn`, saved since
+//! Equipment: what a player wears. Five slots (`SLOT_NAMES`), kept in the [`Inventory`] (`worn`, saved since
 //! version 29, so a player who leaves keeps them), each taking the gear made for it ([`GEAR`], data).
 //!
 //! - **Back** (hauler packs) opens more backpack rows: [`Inventory::capacity`] is the base 36 slots plus the
@@ -8,6 +8,7 @@
 //! - **Boots** and **Torso** scale the body's walking, sprinting and jumping ([`Inventory::boost`], read by
 //!   `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
 //! - **Tool belt** (the mining rig) speeds hand-breaking ([`Inventory::mining_speed`], read by `interaction.rs`).
+//! - **Jetpack** (the coal jetpack) works only while worn ([`Inventory::has_jetpack`]), so it can be taken off.
 //!
 //! Gear is one item per slot and never stacks. Actions: `ClickGear` (the equipment panel: swap with the cursor, or
 //! with Shift take off) and shift-click on a gear item in the inventory (`Inventory::wear_from`).
@@ -20,17 +21,20 @@ mod tests;
 use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
 use crate::item::{
-    ItemId, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5, MINING_RIG,
-    SERVO_BOOTS, SPRING_BOOTS,
+    ItemId, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5, JETPACK,
+    MINING_RIG, SERVO_BOOTS, SPRING_BOOTS,
 };
 use crate::player::Boost;
 
-pub const SLOTS: usize = 4;
-pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt"];
+pub const SLOTS: usize = 5;
+pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "Jetpack"];
 const BACK: usize = 0;
 const BOOTS: usize = 1;
 const TORSO: usize = 2;
 const BELT: usize = 3;
+const JET: usize = 4;
+/// Slots saves before version 43 had (no jetpack slot).
+pub const LEGACY_SLOTS: usize = 4;
 
 /// What a piece of gear changes: extra backpack slots, and multipliers (1.0 is no change).
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -62,7 +66,7 @@ pub const PACKS: [ItemId; 5] = [HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, H
 /// Kits one pack upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
 pub const PACK_KITS: u32 = 4;
 
-pub const GEAR: [Gear; 9] = [
+pub const GEAR: [Gear; 10] = [
     Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
     Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
     Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
@@ -77,6 +81,8 @@ pub const GEAR: [Gear; 9] = [
         effect: Effect { mining: 1.5, ..NONE },
         blurb: "Break blocks by hand 50% faster",
     },
+    // Its thrust and fuel live in `helpers/`, which asks `Inventory::has_jetpack`.
+    Gear { item: JETPACK, slot: JET, effect: NONE, blurb: "Hold jump in the air to fly, burning coal from the pack" },
 ];
 
 pub fn gear(item: ItemId) -> Option<&'static Gear> {
@@ -107,6 +113,21 @@ impl Inventory {
     /// Slots in use: the base ones and the worn pack's rows.
     pub fn capacity(&self) -> usize {
         INVENTORY_SLOTS + effect(&self.worn).pack
+    }
+
+    /// Whether a jetpack is worn (it does nothing in the pack).
+    pub fn has_jetpack(&self) -> bool {
+        self.worn[JET] == JETPACK
+    }
+
+    /// Reading a save from before the jetpack slot: a jetpack that sat in the pack (where it used to work) goes on.
+    pub(crate) fn wear_old_jetpack(&mut self) {
+        if let Some(i) = self.slots.iter().position(|s| s.item == JETPACK && s.count > 0) {
+            if self.worn[JET] == ItemId::NONE {
+                self.slots[i] = Stack::default();
+                self.worn[JET] = JETPACK;
+            }
+        }
     }
 
     /// What the worn gear does to the body's movement.

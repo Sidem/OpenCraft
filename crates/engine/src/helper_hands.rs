@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::helpers::{self, CHARGE_RANGE, HOVER_CAP, JET_TICKS_PER_COAL};
-use crate::item::{self, HOVER_PACK, JETPACK};
+use crate::item::{self, HOVER_PACK};
 use crate::math::{IVec3, Vec3};
 use crate::{Game, TICK_RATE};
 
@@ -24,7 +24,7 @@ impl Game {
         let packed = inv.count(HOVER_PACK) > 0;
         let hover = packed && charge > 0 && in_air && (self.hover_sent || jump);
         let fuel = jet > 0 || inv.count(helpers::coal()) > 0;
-        let thrust = jump && in_air && fuel && inv.count(JETPACK) > 0 && !hover;
+        let thrust = jump && in_air && fuel && inv.has_jetpack() && !hover;
         let pole = self.charging_pole(feet, packed, charge);
         if hover != self.hover_sent {
             self.hover_sent = hover;
@@ -56,33 +56,39 @@ impl Game {
         self.sim.factory.poles().map(|(c, _)| c).filter(|&c| d2(c) <= reach).min_by(|&a, &b| d2(a).total_cmp(&d2(b)))
     }
 
-    /// The HUD line of the helpers: hover charge, jetpack fuel while it burns or has fuel in the tank, or the errand
-    /// under way.
+    /// The status lines of the helpers (one per line): hover charge, the errand under way, jetpack fuel while it
+    /// burns or has fuel in the tank. Own HUD line, so it never hides what the player aims at.
     pub(crate) fn helper_label(&self) -> String {
         let Some(p) = self.sim.player(self.local) else { return String::new() };
+        let mut lines = Vec::new();
         if p.inventory.count(HOVER_PACK) > 0 && (p.helpers.hover || p.helpers.pole.is_some() || p.helpers.charge > 0) {
             let secs = p.helpers.charge.div_ceil(TICK_RATE);
             let state = if p.helpers.pole.is_some() { ", charging" } else { "" };
-            return format!("Hover pack · {secs} s of charge{state}");
+            lines.push(format!("Hover pack · {secs} s of charge{state}"));
         }
         if let Some(f) = p.helpers.fetch {
-            return format!(
+            lines.push(format!(
                 "Personal drone fetching {} · back in {} s",
                 item::name(f.item),
                 f.left.div_ceil(TICK_RATE)
-            );
+            ));
         }
-        if p.helpers.thrusting || (p.helpers.jet > 0 && p.inventory.count(JETPACK) > 0) {
+        if p.helpers.thrusting || (p.helpers.jet > 0 && p.inventory.has_jetpack()) {
             let coal = p.inventory.count(helpers::coal());
             let secs = (p.helpers.jet + JET_TICKS_PER_COAL * coal).div_ceil(TICK_RATE);
-            return format!("Jetpack · {secs} s of fuel ({coal} coal)");
+            lines.push(format!("Jetpack · {secs} s of fuel ({coal} coal)"));
         }
-        String::new()
+        lines.join("\n")
     }
 }
 
 #[wasm_bindgen]
 impl Game {
+    /// The helpers' status text for the HUD's own line ("" when there is nothing to say).
+    pub fn helper_status(&self) -> String {
+        self.helper_label()
+    }
+
     /// Y: sends the personal drone for more of the item in hand. False when nothing is sent (no drone in the
     /// pack, an empty hand, or no box within reach holds it).
     pub fn fetch_held(&mut self) -> bool {

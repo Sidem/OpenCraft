@@ -1,9 +1,11 @@
-// In-game HUD: crosshair, target name with detail text and mining bar, hotbar, pickup toasts,
+﻿// In-game HUD: crosshair, the top-centre column (#hud-top: helper status line, target name with detail text and
+// mining bar; the scanner pointer joins it from prospect.ts), hotbar, pickup toasts,
 // the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
 // when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse, `showAmount` a
 // slot's count or, for a tool (whose count is its uses left), its wear bar.
 
 import './hud.css';
+import './hud-columns.css';
 import type { Game } from '../wasm/engine.js';
 
 const ICON_PX = 64;
@@ -64,6 +66,8 @@ export class Hud {
   private readonly targetName = $<HTMLSpanElement>('target-name');
   private readonly targetDetail = $<HTMLDivElement>('target-detail');
   private readonly mineFill = $<HTMLDivElement>('mine-fill');
+  private readonly helperStatus = $<HTMLDivElement>('helper-status');
+  private helperText = '';
   private readonly toastBox = $<HTMLDivElement>('toasts');
   private readonly debug = $<HTMLPreElement>('debug');
   private readonly mutedBadge = $<HTMLDivElement>('muted');
@@ -157,6 +161,13 @@ export class Hud {
       this.detailKey = '';
     }
 
+    const helpers = g.helper_status();
+    if (helpers !== this.helperText) {
+      this.helperText = helpers;
+      this.helperStatus.textContent = helpers;
+      this.helperStatus.classList.toggle('hidden', helpers === '');
+    }
+
     while (g.next_pickup()) this.pushToast(g.pickup_item(), g.pickup_count(), now);
     for (const [item, t] of this.toasts) {
       if (now > t.until) {
@@ -172,14 +183,14 @@ export class Hud {
       const yawDeg = ((g.yaw() * 180) / Math.PI + 360) % 360;
       const facing = ['N (-Z)', 'E (+X)', 'S (+Z)', 'W (-X)'][Math.round(yawDeg / 90) % 4];
       this.debug.textContent = [
-        `OpenCraft · ${f(info.fps, 0)} fps · ${f(info.frameMs, 2)} ms/frame · worldgen+mesh ${f(info.workMs, 2)} ms`,
+        `OpenCraft Â· ${f(info.fps, 0)} fps Â· ${f(info.frameMs, 2)} ms/frame Â· worldgen+mesh ${f(info.workMs, 2)} ms`,
         `XYZ ${f(g.player_x(), 2)} / ${f(g.player_y(), 2)} / ${f(g.player_z(), 2)}   facing ${facing}`,
-        `mode ${g.flying() ? 'fly' : 'walk'}${g.on_ground() ? ' · on ground' : ''}`,
-        `chunks ${g.chunks_loaded()} loaded · ${g.chunks_pending()} queued · ${g.chunks_dirty()} awaiting mesh`,
-        `meshes ${info.meshes} · drawn ${info.visible} · ${info.drawCalls} draw calls · ${(info.quads / 1000).toFixed(1)}k quads`,
+        `mode ${g.flying() ? 'fly' : 'walk'}${g.on_ground() ? ' Â· on ground' : ''}`,
+        `chunks ${g.chunks_loaded()} loaded Â· ${g.chunks_pending()} queued Â· ${g.chunks_dirty()} awaiting mesh`,
+        `meshes ${info.meshes} Â· drawn ${info.visible} Â· ${info.drawCalls} draw calls Â· ${(info.quads / 1000).toFixed(1)}k quads`,
         `items ${g.item_entities()}` +
-          (g.has_target() ? ` · target ${this.names[g.target_block()]} @ ${g.target_x()} ${g.target_y()} ${g.target_z()}` : ''),
-        `factory ${g.belts()} belts · ${g.miners()} miners · ${g.boxes()} boxes · ${g.deposits_tracked()} deposits tracked`,
+          (g.has_target() ? ` Â· target ${this.names[g.target_block()]} @ ${g.target_x()} ${g.target_y()} ${g.target_z()}` : ''),
+        `factory ${g.belts()} belts Â· ${g.miners()} miners Â· ${g.boxes()} boxes Â· ${g.deposits_tracked()} deposits tracked`,
       ].join('\n');
     }
   }

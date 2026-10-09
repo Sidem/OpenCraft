@@ -138,10 +138,10 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(DRONE_PORT) > 0,
     },
     Hint {
-        text: "Fly and fetch: research Jetpack, then keep the jetpack in your pack and hold jump in the air: it \
-               burns a coal per 10 seconds from your pack. A Personal Drone in your pack fetches the item in your \
+        text: "Fly and fetch: research Jetpack, wear it in the Jetpack slot (Shift-click it in the inventory) \
+               and hold jump in the air: it burns a coal per 10 seconds from your pack. A Personal Drone in your pack fetches the item in your \
                hand from the nearest box within 32 blocks when you press Y.",
-        done: |inv, _| inv.count(JETPACK) > 0 || inv.count(PERSONAL_DRONE) > 0,
+        done: |inv, _| inv.count(JETPACK) > 0 || inv.has_jetpack() || inv.count(PERSONAL_DRONE) > 0,
     },
     Hint {
         text: "Move the ground: research Earthworks and craft the Planner. Right-click one corner block and then the \

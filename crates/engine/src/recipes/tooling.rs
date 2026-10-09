@@ -62,8 +62,8 @@ pub const SCANNER_MK2_RECIPE: Recipe = Recipe {
     count: 1,
     inputs: &[(SCANNER, 1), (CIRCUIT, 3), (STEEL_PLATE, 2)],
     blurb: "A scanner with a violet screen: lists the ore deposits within 96 blocks, twice as far, shows each one's \
-            ore units and mining time, filters by ore (R) and points to the nearest match. Made from a Mk1 \
-            scanner. Never wears out.",
+            ore units and mining time, filters by ore (R) and points to the nearest match (U: the next one). Made \
+            from a Mk1 scanner. Never wears out.",
 };
 
 pub const STEEL_PICKAXE_RECIPE: Recipe = Recipe {
@@ -95,8 +95,9 @@ pub const JETPACK_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(STEEL_PLATE, 4), (MOTOR, 2), (CIRCUIT, 2)],
-    blurb: "Keep it in your pack and hold jump in the air to climb on a plume of fire. Burns one coal from your \
-            pack for every 10 seconds of thrust. Never wears out.",
+    blurb:
+        "Wear it in the Jetpack slot (open the inventory and Shift-click it) and hold jump in the air to climb on a \
+            plume of fire. Burns one coal from your pack for every 10 seconds of thrust. Never wears out.",
 };
 
 pub const HOVER_PACK_RECIPE: Recipe = Recipe {

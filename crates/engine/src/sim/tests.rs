@@ -27,7 +27,7 @@ const B: PlayerId = PlayerId(1);
 /// for generator version 6, in 10.2 for the Oil Processing tech, in 10.3 for the Refining tech, and in 10.4
 /// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, in 10.7 for the Research Center tech, for the game mode byte (save version 38), in 11.0 for the Recycling tech, and in 11.1 for the Wafers and Accelerators techs, and on 2026-10-09 for the research queue (save version 41) and for the bigger hauler packs (three techs, 99 pack rows;
 /// save version 42).
-const GOLDEN_HASH: u64 = 0x06d8_a04a_6419_18a3;
+const GOLDEN_HASH: u64 = 0x3646_c36e_7195_b693;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -162,7 +162,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with generator version 6 (version 6 moved the outcrop this script mines) and save version 40 (the factory writes its fibre nodes; the research table has the three endless bonus techs and the Optimizer); before that 39 (belts write each item's count), 37 and 4 and 32 (the inventory writes its pack rows and worn gear). Only a deliberate
+    // Recorded with generator version 6 (version 6 moved the outcrop this script mines) and save version 43 (the inventory writes five worn slots, with the jetpack's); before that 40 (the factory writes its fibre nodes; the research table has the three endless bonus techs and the Optimizer); before that 39 (belts write each item's count), 37 and 4 and 32 (the inventory writes its pack rows and worn gear). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

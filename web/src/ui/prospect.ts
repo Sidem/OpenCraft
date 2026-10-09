@@ -3,7 +3,8 @@
 // while a scanner or core drill is in hand. A scan's distances, arrows and depths follow the player live
 // from where it was taken. An advanced scanner (`scanner_advanced`) also lists each deposit's reserve and
 // time to work out, shows its ore filter (the engine filters the records; R steps it), and leaves a pointer
-// to the nearest match on screen after it is put away. To show another figure: append it to the engine's
+// to the nearest match on screen after it is put away (U steps it to the next deposit, nearest first; the pointer
+// says "Nearest" or "Chosen" and the list marks its row). To show another figure: append it to the engine's
 // record and read it below.
 
 import './prospect.css';
@@ -69,6 +70,11 @@ export class ProspectPanel {
   private readonly trackArrow = h('span', 'prospect-arrow', '↑');
   private readonly trackText = h('span', 'prospect-track-text');
   private tracked: Tracked | null = null;
+  /** The latest advanced scan's veins and lodes, then outcrops, nearest first (what U steps through). */
+  private candidates: Tracked[] = [];
+  /** The one the player chose, kept across scans while it is still found; null for "nearest". */
+  private pinned: Tracked | null = null;
+  private chosen: Tracked | null = null;
   private marks: Mark[] = [];
   private seq: number;
   /** What the panel shows now: `${device}:${seq}:${filter}`. */
@@ -77,7 +83,8 @@ export class ProspectPanel {
   constructor(private readonly game: Game) {
     this.el.append(this.title, this.list);
     this.track.append(this.trackArrow, this.trackText);
-    document.getElementById('hud')!.append(this.el, this.track);
+    document.getElementById('hud-left')!.append(this.el);
+    document.getElementById('hud-top')!.append(this.track);
     this.seq = game.prospect_seq();
   }
 
@@ -129,13 +136,14 @@ export class ProspectPanel {
     this.marks = [];
     const rows: HTMLElement[] = [];
     let deep = 0, outcrops = 0;
-    let nearest: { dist: number; deposit: Tracked } | null = null;
+    const found: { dist: number; deposit: Tracked }[] = [];
+    const rowOf = new Map<Tracked, HTMLElement>();
     for (let i = 0; i < r.length; i += n) {
       const [ore, tier, dx, dz, depth, band, ore_units, minutes] = r.subarray(i, i + n);
       const deposit = { name: g.deposit_label(ore, tier), x: ox + dx + 0.5, y: oy - depth, z: oz + dz + 0.5 };
-      // The pointer goes to the nearest vein or lode (an outcrop only when there is none).
+      // The pointer goes to the nearest vein or lode (an outcrop only when there is none), unless one is chosen.
       const dist = Math.hypot(dx, dz) + (tier === OUTCROP_TIER ? 1e4 : 0);
-      if (advanced && (!nearest || dist < nearest.dist)) nearest = { dist, deposit };
+      if (advanced) found.push({ dist, deposit });
       if (tier === OUTCROP_TIER ? ++outcrops > maxOutcrops : ++deep > maxDeep) continue;
       const arrow = h('span', 'prospect-arrow', '↑');
       const where = h('span', 'prospect-where');
@@ -143,10 +151,15 @@ export class ProspectPanel {
       const size = advanced ? `${units(ore_units)} · ${duration(minutes)}` : SIZES[band];
       row.append(arrow, h('span', 'prospect-name', deposit.name), where, h('span', 'prospect-size', size));
       rows.push(row);
+      rowOf.set(deposit, row);
       this.marks.push({ x: deposit.x, y: deposit.y, z: deposit.z, arrow, where });
     }
-    if (advanced) this.tracked = nearest?.deposit ?? null;
-    const far = advanced && filter !== 0 && !nearest ? this.farGround(filter, ox, oz) : null;
+    if (advanced) {
+      this.candidates = found.sort((a, b) => a.dist - b.dist).map((f) => f.deposit);
+      this.aim();
+      if (this.tracked) rowOf.get(this.tracked)?.classList.add('pointed');
+    }
+    const far = advanced && filter !== 0 && this.candidates.length === 0 ? this.farGround(filter, ox, oz) : null;
     const more = [
       deep > maxDeep ? `${deep - maxDeep} veins or lodes` : '',
       outcrops > maxOutcrops ? `${outcrops - maxOutcrops} outcrops` : '',
@@ -154,11 +167,31 @@ export class ProspectPanel {
     if (more.length) rows.push(h('p', 'prospect-note', `and ${more.join(' and ')} further off`));
     if (rows.length === 0) rows.push(h('p', 'prospect-note', far ?? 'No ore anywhere near. Try further on.'));
     if (advanced) {
-      const note = 'Right column: ore units left, and the time a full-speed mine takes to work it out. R: next ore.';
+      const note =
+        'Right column: ore units left, and the time a full-speed mine takes to work it out. R: next ore. ' +
+        'The marked row is the pointer\'s target (the nearest one unless you press U to pick the next).';
       rows.push(h('p', 'prospect-note', note));
     }
     this.el.classList.toggle('prospect-wide', advanced);
     this.list.replaceChildren(...rows);
+  }
+
+  /** Sets the pointer's target: the chosen deposit if the latest scan still has it, else the nearest. */
+  private aim(): void {
+    const p = this.pinned;
+    const same = p && this.candidates.find((c) => c.name === p.name && Math.hypot(c.x - p.x, c.z - p.z) < 3);
+    this.chosen = same ?? null;
+    this.tracked = same ?? this.candidates[0] ?? null;
+  }
+
+  /** U: points at the next deposit of the scan, nearest first; after the last it is back to the nearest. */
+  nextTarget(): void {
+    if (this.candidates.length < 2 || !this.tracked) return;
+    const next = (this.candidates.indexOf(this.tracked) + 1) % this.candidates.length;
+    this.pinned = next === 0 ? null : this.candidates[next];
+    this.shown = '';
+    this.aim();
+    this.update();
   }
 
   /**
@@ -226,6 +259,10 @@ export class ProspectPanel {
       const vertical = depth >= 0 ? `${depth} down` : `${-depth} up`;
       text = near ? `${t.name} · right below you, ${vertical}` : `${t.name} · ${Math.round(dist)} m ${compass} · ${vertical}`;
     }
+    // Say how the target was picked, and that U picks another.
+    const mode = t.y === null ? '' : this.chosen ? 'Chosen' : 'Nearest';
+    const more = this.candidates.length > 1 && t.y !== null ? ` · U: next of ${this.candidates.length}` : '';
+    if (mode) text = `${mode}: ${text}${more}`;
     if (this.trackText.textContent !== text) this.trackText.textContent = text;
   }
 

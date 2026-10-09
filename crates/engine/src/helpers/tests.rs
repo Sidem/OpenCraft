@@ -1,7 +1,7 @@
 use super::*;
 use crate::action::Action;
 use crate::block::{AIR, POLE, STORAGE};
-use crate::item::IRON_PLATE;
+use crate::item::{IRON_PLATE, JETPACK};
 use crate::player::Player;
 
 const P: PlayerId = PlayerId(0);
@@ -24,8 +24,13 @@ fn run(sim: &mut Sim, ticks: u32) {
 fn the_jetpack_burns_a_coal_per_ten_seconds_and_stops_when_the_pack_is_dry() {
     let mut sim = Sim::new(7, 2);
     sim.apply(P, Action::Jetpack { on: true });
-    assert!(!helpers(&sim).thrusting, "no jetpack in the pack");
+    assert!(!helpers(&sim).thrusting, "no jetpack");
     sim.apply(P, Action::Give { item: JETPACK, count: 1 });
+    sim.apply(P, Action::Give { item: coal(), count: 2 });
+    sim.apply(P, Action::Jetpack { on: true });
+    assert!(!helpers(&sim).thrusting, "a jetpack in the pack does nothing");
+    sim.apply(P, Action::ClickSlot { slot: 0, shift: true });
+    sim.players[0].as_mut().unwrap().inventory.remove(coal(), 2);
     sim.apply(P, Action::Jetpack { on: true });
     assert!(!helpers(&sim).thrusting, "no coal");
     sim.apply(P, Action::Give { item: coal(), count: 2 });
@@ -45,6 +50,7 @@ fn the_jetpack_burns_a_coal_per_ten_seconds_and_stops_when_the_pack_is_dry() {
 fn leftover_fuel_waits_in_the_tank_and_losing_the_jetpack_stops_the_thrust() {
     let mut sim = Sim::new(7, 2);
     sim.apply(P, Action::Give { item: JETPACK, count: 1 });
+    sim.apply(P, Action::ClickSlot { slot: 0, shift: true });
     sim.apply(P, Action::Give { item: coal(), count: 1 });
     sim.apply(P, Action::Jetpack { on: true });
     run(&mut sim, 120);
@@ -54,9 +60,9 @@ fn leftover_fuel_waits_in_the_tank_and_losing_the_jetpack_stops_the_thrust() {
     sim.apply(P, Action::Jetpack { on: true });
     assert_eq!(pack(&sim, coal()), 0, "the tank is used before another coal");
     let inv = &mut sim.players[0].as_mut().unwrap().inventory;
-    inv.remove(JETPACK, 1);
+    inv.worn[4] = ItemId::NONE;
     run(&mut sim, 1);
-    assert!(!helpers(&sim).thrusting, "no jetpack, no thrust");
+    assert!(!helpers(&sim).thrusting, "taken off, no thrust");
 }
 
 #[test]

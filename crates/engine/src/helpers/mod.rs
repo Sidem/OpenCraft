@@ -1,7 +1,7 @@
 //! Personal helpers (Milestone 7): what a player carries in the pack to get around and to fetch, kept in the
 //! core per player ([`Helpers`], in `PlayerCore`, saved since version 28).
 //!
-//! - **Coal jetpack** (`item::JETPACK`, anywhere in the pack): `Action::Jetpack { on }` starts and stops the
+//! - **Coal jetpack** (`item::JETPACK`, worn in the Jetpack slot, `equipment.rs`): `Action::Jetpack { on }` starts and stops the
 //!   thrust (the player holds jump in the air; the hands send it on changes). While it is on, the core burns
 //!   [`JET_TICKS_PER_COAL`] ticks of fuel per coal taken from the pack and stops by itself when the pack has no
 //!   coal left. The body lifts while `thrusting` (`player.rs`, set from here by `authority.rs`).
@@ -25,7 +25,7 @@ mod tests;
 use crate::block;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::{Inventory, Stack};
-use crate::item::{self, ItemId, HOVER_PACK, JETPACK, PERSONAL_DRONE};
+use crate::item::{self, ItemId, HOVER_PACK, PERSONAL_DRONE};
 use crate::math::IVec3;
 use crate::sim::{PlayerId, Sim};
 use crate::TICK_RATE;
@@ -124,7 +124,7 @@ impl Helpers {
         if !self.thrusting {
             return;
         }
-        if inv.count(JETPACK) == 0 {
+        if !inv.has_jetpack() {
             self.thrusting = false;
             return;
         }
@@ -152,7 +152,7 @@ impl Sim {
     /// `Action::Jetpack`: thrust on needs a jetpack and fuel (a coal is burnt if the tank is empty).
     pub(crate) fn set_thrust(&mut self, player: PlayerId, on: bool) {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
-        core.helpers.thrusting = on && core.inventory.count(JETPACK) > 0 && core.helpers.refuel(&mut core.inventory);
+        core.helpers.thrusting = on && core.inventory.has_jetpack() && core.helpers.refuel(&mut core.inventory);
     }
 
     /// `Action::Hover`: hover on needs a hover pack and some charge.
