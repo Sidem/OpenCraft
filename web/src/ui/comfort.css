@@ -1,20 +1,9 @@
-/* Comfort settings in the pause menu (comfort.ts). */
+/* Comfort settings on the menu's settings page (comfort.ts). */
 
 .comfort {
-  margin-top: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.04);
   font-size: 13px;
 }
 
-.comfort summary {
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.comfort-note,
 .comfort-help {
   margin: 8px 0;
   font-size: 12px;
@@ -50,11 +39,4 @@
 .comfort-choices .secondary-btn {
   flex: 1;
   padding: 5px 4px;
-}
-
-/* While the section is open the menu steps aside so the game shows through. */
-#menu.previewing {
-  background: none;
-  backdrop-filter: none;
-  place-items: center end;
 }

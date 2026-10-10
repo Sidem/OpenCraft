@@ -197,7 +197,7 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 
 | Module | Owns |
 |---|---|
-| `main.ts` | Bootstrap (opens the latest world, or co-op through `startCoop`), pause menu wiring, the frame loop (`advance`: everything but drawing, which the co-op ticker also calls; `frame`: advance, then draw and HUD); imports `base.css` and `ui/menu.css` |
+| `main.ts` | Bootstrap (opens the latest world, or co-op through `startCoop`), pause and pointer-lock wiring (the menu itself is `ui/menu.ts`), the frame loop (`advance`: everything but drawing, which the co-op ticker also calls; `frame`: advance, then draw and HUD); imports `base.css` |
 | `net/transport.ts` | `Transport`: send, `onMessage`, `onClose`, close |
 | `net/broadcast.ts` | Tabs on one machine over a `BroadcastChannel` per room: `listenBroadcast` (host), `connectBroadcast` (client) |
 | `net/protocol.ts` | Co-op messages (hello, welcome, refuse, actions, frames, checksum, bye, state, states, items, names, ping, pong, resync, snapshot): `encode` / `decode`; `BUILD_ID` |
@@ -221,7 +221,7 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |
 | `comfort/settings.ts` | Comfort settings against motion sickness (`ComfortStore`: field of view, mouse sensitivity, vignette level, third-person view and distance (V toggles), crosshair style, size, thickness, opacity; `RANGES`, `DEFAULTS`, localStorage, `subscribe`); read by `main.ts` (sensitivity, `renderer.fovY`) and the two UI files below |
-| `ui/comfort.ts` + `.css` | "Comfort settings" section of the pause menu: sliders and choices; draws the crosshair from the settings; while open the menu steps aside to preview changes |
+| `ui/comfort.ts` + `.css` | Comfort section of the menu's settings page: sliders and choices; draws the crosshair from the settings |
 | `ui/desktop-only.ts` + `.css` | Desktop-only gate: `isTouchDevice` (mobile UA, iPadOS, or a coarse no-hover main pointer) and `showDesktopOnly` (a notice replacing the page); `main.ts` skips the game on touch devices |
 | `ui/vignette.ts` + `.css` | Movement vignette: the screen edges darken while the camera turns or the player moves fast (`update` once a frame) |
 | `ui/hud.ts` + `.css` | Crosshair (styled by comfort settings), the top-centre column `#hud-top` (scanner pointer from `prospect.ts`, the `helper_status` line, target readout) and the left column `#hud-left` (scanner card, tip) so readouts never overlap, mining bar, hotbar, toasts (a count of 0: a tool wore out), debug overlay, `itemIcon` (isometric box from `item_icon`), `showAmount` (a slot's count or a tool's wear bar) |
@@ -237,12 +237,13 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `ui/worldmap.ts` + `.css` | The world map (M): the explored map at 7 zoom steps (drag, wheel), marks, pins, players; the pin editor and list; the ore guide beside it |
 | `ui/pins.ts` | `Pins` (the player's map pins, kinds from the engine's ore guide), `drawMark` / `drawPin` shared by both maps |
 | `ui/ore-guide.ts` + `.css` | "Finding ore": a depth chart of each ore's band, where it is common, how to spot it, general notes (`ore_guide`, `ore_guide_notes`) |
-| `ui/hints.ts` + `.css` | Onboarding tip card in the HUD (the first hint not done or skipped); H skips, skipped tips in localStorage; "Show tips again" in the menu |
+| `ui/hints.ts` + `.css` | Onboarding tip card in the HUD (the first hint not done or skipped); H skips, skipped tips in localStorage; "Show tips again" on the menu's controls page |
 | `ui/prospect.ts` + `.css` | Prospecting card at the top left while a device is held: scan rows (arrows and distances follow the player; Mk2 adds reserves, mining time and a persistent top-centre pointer to the nearest match, or the one picked with U (labelled Nearest / Chosen, its row marked); with a filter and no match in range, a compass bearing and distance band to far ground that holds the ore, which the pointer then leads to) or a core sample's figures; calls `onReading` for the ping |
 | `ui/blueprints.ts` + `.css` | Blueprint library (L): rows to rename, hold and delete; the engine's bytes are stored in `WorldMeta.blueprints` by `save/session.ts` |
 | `ui/research-queue.ts` + `.css` | The research queue strip above the tree (numbered chips with ×) and the queued node marks |
 | `ui/research.ts` + `.css` + `-card.css` | Research screen (T): the tech tree, a node per tech coloured by state (done, researching, queued, available = horizon, locked), curves to prerequisites, hover card with the details, click to choose, Shift-click or a locked tech to queue; layout in `ui/tech-tree.ts`; HUD tracker and "research done" notice |
-| `ui/menu.css` | Pause/start menu and "click to keep playing" hint styles (markup in `web/index.html`) |
+| `ui/menu.ts` + `.css`, `menu-pages.css` | Launcher and pause menu (markup in `web/index.html`): side column with Play and loading, the open world, page buttons and GitHub links; one page at a time (home greeting and first steps, worlds, together, settings, controls, what's new); steps aside while settings show (`previewing`); "click to keep playing" hint styles |
+| `ui/patch-notes.ts` + `.css`, `patch-notes.md` | "What's new": player-facing notes parsed from `web/src/patch-notes.md` (bundled with `?raw`), the home page's latest-update card, the unread dot (localStorage) |
 | `ui/worlds.ts` + `.css` | World list in the menu: play, new world (name, seed, normal or creative), export / import `.ocworld`, delete |
 | `ui/sound-lab.ts`, `sound-lab-footer.ts`, `volume-control.ts`, `knob.ts` (each + `.css`) | Sound designer dialog (O: material tabs, Actions tab), its footer (volume, copy/paste/reset), the mute button + volume slider (menu and designer), the rotary dial widget |
 | `audio/settings.ts` | Sound design data: materials, actions, dials, presets, `DEFAULT_DESIGN`, persistence |

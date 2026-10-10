@@ -1,0 +1,109 @@
+/* Menu pages (ui/menu.ts, markup in index.html): headings, lead and note lines, the first steps, key caps, the
+   handy keys and the controls lists, the settings sound row. The frame and side column are menu.css. */
+
+.menu-page h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.menu-page h3 {
+  margin: 22px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.menu-page .lead {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.lead:empty,
+#menu.first-visit .return-only,
+#menu.first-visit #menu-latest,
+#menu:not(.first-visit) .first-only {
+  display: none;
+}
+
+.menu-page .note {
+  margin: 18px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.steps li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+kbd {
+  display: inline-block;
+  min-width: 1.7em;
+  margin: 0 1px;
+  padding: 0 5px;
+  border-radius: 5px;
+  border: 1px solid var(--panel-border);
+  border-bottom-width: 2px;
+  background: rgba(255, 255, 255, 0.07);
+  font: 600 12px/1.6 var(--font);
+  text-align: center;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.keys kbd {
+  margin-right: 6px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 11em 1fr;
+  gap: 5px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.controls dt {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.controls dd {
+  margin: 0;
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#menu-volume {
+  flex: 1;
+  min-width: 0;
+}
+
+#menu-tips {
+  margin-top: 18px;
+}

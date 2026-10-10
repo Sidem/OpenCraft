@@ -21,6 +21,8 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
   only stores them.
 - Every file starts with a header comment: what it owns and how to extend it.
 - Size budgets: 400/600 lines per TS file, 300/500 per CSS file (`npm run check` reports them).
+- The menu (`ui/menu.ts`) shows one page at a time; a new menu section is a page in `index.html`, not more
+  scrolling. Changes players notice get a line in `patch-notes.md` ("What's new").
 
 ## API and bindings
 
@@ -39,7 +41,8 @@ Prefer engine tests; use the browser for visual proof (`docs/WORKFLOW.md` sectio
   `game.take_panel_request()`; while rAF is paused, do it by hand.
 - Pointer lock never engages in the automated pane, and `requestAnimationFrame` pauses while the pane is
   hidden: step the engine by calling `game.update(1/60)` yourself.
-- Hide the menu: `document.getElementById('menu').classList.add('hidden')`. A screenshot forces a render.
+- Hide the menu: `document.getElementById('menu').classList.add('hidden')`; `opencraft.menu.show('settings')`
+  opens a page, `pause()` the pause screen. A screenshot forces a render.
 - Co-op: open `/?host=t1` and `/?join=t1` in two tabs (BroadcastChannel), or `/?host` (or the menu's
   "Host this world") and `/?join=<code>` (WebRTC through the deployed Worker). `window.opencraft.coop`
   is the session (`players()`; a client's `checked` / `mismatches` / `resyncs`); `game.debug_desync()`

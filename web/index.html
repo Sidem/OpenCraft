@@ -31,55 +31,164 @@
       <div id="resume-hint" class="hidden">Click to keep playing · Esc for the menu</div>
     </div>
 
+    <!-- Launcher and pause menu: ui/menu.ts. Each nav button's data-tab names the data-page it shows. -->
     <div id="menu">
       <div class="panel">
-        <h1>OpenCraft</h1>
-        <p class="tagline">Voxel sandbox × factory builder · MVP</p>
-        <div class="loading">
-          <div class="bar"><div id="loading-fill"></div></div>
-          <span id="loading-text">Loading engine...</span>
-        </div>
-        <button id="play" disabled>Click to play</button>
-        <div class="sound-row">
-          <div id="menu-volume"></div>
-          <button id="open-sound-lab" type="button" class="secondary-btn" title="Tune every sound effect with dials (O)">
-            Sound designer
-          </button>
-        </div>
-        <div id="comfort"></div>
-        <div id="coop"></div>
-        <div id="worlds"></div>
-        <dl class="controls">
-          <dt>WASD</dt><dd>Move</dd>
-          <dt>Space</dt><dd>Jump</dd>
-          <dt>Shift</dt><dd>Sprint</dd>
-          <dt>C / Ctrl</dt><dd>Crouch (no falling off edges)</dd>
-          <dt>Hold left mouse</dt><dd>Mine block</dd>
-          <dt>Right mouse</dt><dd>Place selected block (belts run the way you face)</dd>
-          <dt>Right mouse on a box</dt><dd>Open it like a chest (hold C to place against it instead)</dd>
-          <dt>Right mouse on a miner</dt><dd>Take what it holds</dd>
-          <dt>E</dt><dd>Inventory &amp; build menu (craft miners, belts, boxes)</dd>
-          <dt>T</dt><dd>Research (choose what labs work on)</dd>
-          <dt>B</dt><dd>Ghost mode: right-click plants a free ghost of the held block or machine; Z marks a box, Enter copies its machines</dd>
-          <dt>L</dt><dd>Blueprints (hold one, then right-click to stamp its ghosts)</dd>
-          <dt>R</dt><dd>Turn the belt or machine you point at</dd>
-          <dt>M</dt><dd>Map: everywhere you've been, your pins, and where each ore lies</dd>
-          <dt>H</dt><dd>Skip the tip on screen</dd>
-          <dt>N</dt><dd>Show or hide the minimap</dd>
-          <dt>V</dt><dd>Cycle first person, third person and strategy view</dd>
-          <dt>G / Home</dt><dd>Free / follow camera · Home returns to the character</dd>
-          <dt>Strategy view</dt><dd>WASD pans · wheel zooms · right-click walks · X stops</dd>
-          <dt>Ctrl + right mouse</dt><dd>Use or place in strategy view (within character reach)</dd>
-          <dt>1–9 / wheel</dt><dd>Select hotbar slot</dd>
-          <dt>Q</dt><dd>Drop one item</dd>
-          <dt>F</dt><dd>Toggle fly (Space / C to rise and sink)</dd>
-          <dt>Hold Tab</dt><dd>Who is playing with you (in a shared game)</dd>
-          <dt>K</dt><dd>Mute / unmute sound</dd>
-          <dt>O</dt><dd>Sound designer (tune every sound)</dd>
-          <dt>F3</dt><dd>Debug stats</dd>
-          <dt>Esc</dt><dd>Release mouse</dd>
-        </dl>
-        <p id="world-info" class="world-info"></p>
+        <aside class="menu-side">
+          <header class="brand">
+            <h1>OpenCraft</h1>
+            <p class="tagline">Mine it. Shape it. Automate it.</p>
+          </header>
+          <div class="launch">
+            <button id="play" disabled>Play</button>
+            <div class="loading">
+              <div class="bar"><div id="loading-fill"></div></div>
+              <span id="loading-text">Loading engine...</span>
+            </div>
+            <p class="world-info"><strong id="world-name"></strong><span id="world-detail"></span></p>
+          </div>
+          <nav class="menu-nav" aria-label="Menu">
+            <button type="button" data-tab="home" class="active" aria-current="true">Home</button>
+            <button type="button" data-tab="worlds">Worlds</button>
+            <button type="button" data-tab="together">Play together</button>
+            <button type="button" data-tab="settings">Settings</button>
+            <button type="button" data-tab="controls">Controls</button>
+            <button type="button" data-tab="notes">What's new</button>
+          </nav>
+          <footer class="menu-links">
+            <a href="https://github.com/Sidem/OpenCraft" target="_blank" rel="noopener">
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+              OpenCraft on GitHub
+            </a>
+            <a href="https://github.com/Sidem/OpenCraft/issues" target="_blank" rel="noopener">Report a problem</a>
+          </footer>
+        </aside>
+
+        <main class="menu-main">
+          <section class="menu-page" data-page="home">
+            <h2 id="home-title">Welcome to OpenCraft</h2>
+            <p id="home-lead" class="lead"></p>
+            <div class="first-only">
+              <p class="lead">
+                A world of blocks to mine, reshape and slowly turn into a factory. There are no enemies and no rush:
+                play at your own pace, alone or with friends.
+              </p>
+              <h3>Your first minutes</h3>
+              <ol class="steps">
+                <li><b>Click Play.</b> Look around with the mouse, walk with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> and jump with <kbd>Space</kbd>.</li>
+                <li><b>Break something.</b> Hold the left mouse button on a block. A tree is a good start.</li>
+                <li><b>Make something.</b> Press <kbd>E</kbd> for your inventory and everything you can craft.</li>
+                <li><b>Follow the tips</b> on the left of the screen. They lead you from your first tools to your first factory.</li>
+              </ol>
+            </div>
+            <div class="return-only">
+              <h3>Handy keys</h3>
+              <ul class="keys">
+                <li><kbd>E</kbd> Inventory and crafting</li>
+                <li><kbd>T</kbd> Research</li>
+                <li><kbd>M</kbd> Map</li>
+                <li><kbd>P</kbd> Power and production</li>
+                <li><kbd>B</kbd> Plan with ghosts</li>
+                <li><kbd>V</kbd> Camera view</li>
+              </ul>
+            </div>
+            <p class="note">Esc brings you back here. Your world saves by itself in this browser. Every key is under Controls.</p>
+            <div id="menu-latest"></div>
+          </section>
+
+          <section class="menu-page hidden" data-page="worlds">
+            <div id="worlds"></div>
+            <p class="note">
+              Worlds are kept in this browser. Export one to keep a copy or to carry it to another computer. Creative worlds
+              have everything researched and every item to hand.
+            </p>
+          </section>
+
+          <section class="menu-page hidden" data-page="together">
+            <div id="coop"></div>
+            <p class="note">
+              Up to four players share one world, run from the host's browser. Friends open your link in theirs: nothing to
+              install. Some networks block direct connections; if joining fails, try another network.
+            </p>
+          </section>
+
+          <section class="menu-page hidden" data-page="settings">
+            <h2>Settings</h2>
+            <p class="lead">Changes show on the game behind this menu as you make them, and are kept in this browser.</p>
+            <h3>Sound</h3>
+            <div class="sound-row">
+              <div id="menu-volume"></div>
+              <button id="open-sound-lab" type="button" class="secondary-btn" title="Tune every sound effect with dials (O)">
+                Sound designer
+              </button>
+            </div>
+            <h3>Camera</h3>
+            <div id="menu-camera"></div>
+            <h3>Comfort</h3>
+            <p class="note">If moving in first person makes you queasy, these help.</p>
+            <div id="comfort"></div>
+          </section>
+
+          <section class="menu-page hidden" data-page="controls">
+            <h2>Controls</h2>
+            <h3>Getting around</h3>
+            <dl class="controls">
+              <dt>Mouse</dt><dd>Look around</dd>
+              <dt>W A S D</dt><dd>Walk</dd>
+              <dt>Space</dt><dd>Jump; in water, swim up</dd>
+              <dt>Shift</dt><dd>Sprint</dd>
+              <dt>C / Ctrl</dt><dd>Crouch (you won't walk off edges)</dd>
+              <dt>F</dt><dd>Fly on or off (Space and C rise and sink)</dd>
+            </dl>
+            <h3>Building</h3>
+            <dl class="controls">
+              <dt>Hold left mouse</dt><dd>Mine the block you point at</dd>
+              <dt>Right mouse</dt><dd>Place the selected block (belts run the way you face; drag to lay a line)</dd>
+              <dt>Right mouse on a box or machine</dt><dd>Open it (hold C to place against it instead)</dd>
+              <dt>R</dt><dd>Turn the belt or machine you point at</dd>
+              <dt>1–9 / wheel</dt><dd>Pick a hotbar slot</dd>
+              <dt>Q</dt><dd>Drop one item</dd>
+            </dl>
+            <h3>Screens</h3>
+            <dl class="controls">
+              <dt>E</dt><dd>Inventory and build menu</dd>
+              <dt>T</dt><dd>Research: choose what labs work on</dd>
+              <dt>M</dt><dd>Map: where you've been, your pins, where each ore lies</dd>
+              <dt>N</dt><dd>Minimap on or off</dd>
+              <dt>P</dt><dd>Power and production graphs</dd>
+              <dt>L</dt><dd>Blueprints</dd>
+              <dt>Hold Tab</dt><dd>Who is playing with you</dd>
+            </dl>
+            <h3>Planning and helpers</h3>
+            <dl class="controls">
+              <dt>B</dt><dd>Ghost mode: right-click plants a free ghost to build later</dd>
+              <dt>Z, Enter</dt><dd>In ghost mode: mark a box, then copy its machines as a blueprint</dd>
+              <dt>Y</dt><dd>Your personal drone fetches more of what you hold</dd>
+              <dt>U</dt><dd>Point the scanner at the next deposit</dd>
+            </dl>
+            <h3>Camera</h3>
+            <dl class="controls">
+              <dt>V</dt><dd>First person, third person or strategy view</dd>
+              <dt>G / Home</dt><dd>Free or follow camera; Home returns to your character</dd>
+              <dt>Strategy view</dt><dd>WASD pans, wheel zooms, right-click walks there, X stops</dd>
+              <dt>Ctrl + right mouse</dt><dd>Use or place in strategy view (within reach)</dd>
+            </dl>
+            <h3>Other</h3>
+            <dl class="controls">
+              <dt>H</dt><dd>Skip the tip on screen</dd>
+              <dt>K</dt><dd>Sound on or off</dd>
+              <dt>O</dt><dd>Sound designer</dd>
+              <dt>F3</dt><dd>Debug stats</dd>
+              <dt>Esc</dt><dd>Close a screen, free the mouse, then this menu</dd>
+            </dl>
+            <div id="menu-tips"></div>
+          </section>
+
+          <section class="menu-page hidden" data-page="notes">
+            <h2>What's new</h2>
+            <div id="notes"></div>
+          </section>
+        </main>
       </div>
     </div>
 

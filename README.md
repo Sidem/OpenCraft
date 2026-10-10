@@ -509,7 +509,7 @@ an outcrop or two and a furnace cover your first miner, generator and poles. Aft
 
 ## Sound designer
 
-Press **O** in game (or **Sound designer** in the pause menu) to tune every sound with dials. You don't need
+Press **O** in game (or **Sound designer** on the menu's Settings page) to tune every sound with dials. You don't need
 any sound-design experience to use it.
 
 - **Materials** (Stone, Dirt, Grass, Sand, Wood, Leaves, Metal): each has ten dials with plain meanings, such as

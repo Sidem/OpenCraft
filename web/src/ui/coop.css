@@ -1,12 +1,6 @@
 /* "Play together" in the menu (ui/coop.ts): name, host and join, invite, player rows (also used by the
    Tab list, ui/players.ts). */
 
-.coop {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--panel-border);
-}
-
 .coop-head {
   display: flex;
   align-items: center;
@@ -16,7 +10,7 @@
 .coop-head h2 {
   flex: 1;
   margin: 0;
-  font-size: 15px;
+  font-size: 22px;
 }
 
 .coop input {
@@ -37,7 +31,7 @@
 .coop-body {
   display: grid;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .coop-solo {

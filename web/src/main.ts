@@ -4,7 +4,6 @@
 // HUD). Keeps no game state of its own; everything lives in the engine.
 
 import './base.css';
-import './ui/menu.css';
 import init from './wasm/engine.js';
 import { SoundSystem } from './audio/sound';
 import { ComfortStore } from './comfort/settings';
@@ -29,6 +28,7 @@ import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
+import { Menu } from './ui/menu';
 import { Minimap } from './ui/minimap';
 import { NameTags } from './ui/nametags';
 import { Pins } from './ui/pins';
@@ -50,6 +50,7 @@ const intParam = (params: URLSearchParams, name: string, fallback: number, min: 
 };
 
 async function main(): Promise<void> {
+  const menu = new Menu();
   const wasm = await init();
   const params = new URLSearchParams(location.search);
   const seed = params.has('seed') ? intParam(params, 'seed', FIRST_SEED, 0, 0xffffffff) : null;
@@ -71,8 +72,9 @@ async function main(): Promise<void> {
     ({ opened, coop } = await startCoop(params, viewRadius, () => openWorld(store, seed, viewRadius)));
   } catch (err) {
     // The latest world can't be loaded, or joining failed: offer the others instead of starting.
-    document.getElementById('loading-text')!.textContent = message(err);
+    menu.say(message(err));
     if (store) worlds.append(new WorldsPanel(store, null).el);
+    menu.show('worlds');
     return;
   }
   const { game, meta } = opened;
@@ -88,10 +90,11 @@ async function main(): Promise<void> {
   const hud = new Hud(game, texPixels, game.texture_size());
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);
-  document.getElementById('comfort')!.append(new ComfortPanel(comfort, vignette, document.getElementById('menu')!).el);
+  vignette.previewing = () => menu.previewing;
+  document.getElementById('comfort')!.append(new ComfortPanel(comfort).el);
   const input = new Input(canvas);
   const views = new ViewControls(game, input, renderer, canvas, comfort);
-  document.getElementById('comfort')!.prepend(views.menu);
+  document.getElementById('menu-camera')!.append(views.menu);
   const sound = new SoundSystem();
   hud.setMuted(sound.muted);
   sound.subscribe(() => hud.setMuted(sound.muted));
@@ -131,18 +134,16 @@ async function main(): Promise<void> {
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock
-  const menu = document.getElementById('menu')!;
-  const play = document.getElementById('play') as HTMLButtonElement;
-  const loadingFill = document.getElementById('loading-fill')!;
-  const loadingText = document.getElementById('loading-text')!;
+  const play = menu.play;
   // Worlds made before Milestone 4 keep their first terrain (generator version 1).
   const terrain = game.worldgen_version() === 1 ? ' · classic terrain' : '';
-  const worldInfo = document.getElementById('world-info')!;
+  const range = viewRadius === 8 ? '' : ` · render distance ${viewRadius}`;
   const showWorldInfo = () => {
-    const time = `day ${game.day_number()}, ${clock(game.time_of_day())}`;
-    worldInfo.textContent = `${meta.name} · ${time} · seed ${meta.seed}${terrain} · render distance ${viewRadius} chunks`;
+    const time = `Day ${game.day_number()}, ${clock(game.time_of_day())}`;
+    menu.world(meta.name, `${time} · seed ${meta.seed}${terrain}${range}`);
   };
   showWorldInfo();
+  menu.opened(opened.restored);
   if (opened.restored) play.textContent = 'Continue';
   document.getElementById('menu-volume')!.append(new VolumeControl(sound).el);
   document.getElementById('open-sound-lab')!.addEventListener('click', () => {
@@ -162,7 +163,7 @@ async function main(): Promise<void> {
   const pause = () => {
     showWorldInfo();
     resumeHint.classList.add('hidden');
-    menu.classList.remove('hidden');
+    menu.pause();
   };
   // E or a click outside goes straight back to play (both are gestures that allow re-locking). Escape
   // isn't one, so it leaves the game on screen with a hint: a click plays on, a second Escape pauses.
@@ -185,15 +186,14 @@ async function main(): Promise<void> {
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
   let leftGame = -Infinity;
   window.addEventListener('beforeunload', (e) => {
-    if (menu.classList.contains('hidden') || performance.now() - leftGame < 1000) e.preventDefault();
+    if (!menu.isOpen || performance.now() - leftGame < 1000) e.preventDefault();
   });
   input.onLockChange = (locked) => {
-    menu.classList.toggle('hidden', locked || panelOpen());
     resumeHint.classList.add('hidden');
+    if (locked || panelOpen()) menu.el.classList.add('hidden');
+    else pause();
     if (!locked) {
       leftGame = performance.now();
-      showWorldInfo();
-      play.textContent = 'Resume';
       game.set_move(0, 0, false, false, false);
       game.pan_camera(0, 0, false);
       game.cancel_move_order();
@@ -206,13 +206,13 @@ async function main(): Promise<void> {
   canvas.addEventListener('webglcontextlost', (e) => {
     e.preventDefault();
     session?.saveNow();
-    loadingText.textContent = 'Graphics context lost. Reload the page to continue.';
     pause();
+    menu.say('Graphics context lost. Reload the page to continue.');
   });
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -321,14 +321,8 @@ async function main(): Promise<void> {
 
     if (!wasReady) {
       const loaded = game.chunks_loaded(), pending = game.chunks_pending();
-      const pct = ready ? 100 : Math.round((loaded / Math.max(1, loaded + pending)) * 100);
-      loadingFill.style.transform = `scaleX(${pct / 100})`;
-      loadingText.textContent = ready ? 'World ready' : `Generating terrain... ${pct}%`;
-      if (ready) {
-        wasReady = true;
-        play.disabled = false;
-        menu.classList.add('ready');
-      }
+      menu.loading(ready ? 100 : Math.min(99, Math.round((loaded / Math.max(1, loaded + pending)) * 100)));
+      wasReady = ready;
     }
 
     const hasTarget = game.has_target();
@@ -379,6 +373,7 @@ async function main(): Promise<void> {
       play.disabled = true;
       input.unlock();
       pause();
+      menu.show('together');
       coopPanel.end(reason);
     };
     tickWhenStalled(() => lastFrame, () => advance(performance.now()));

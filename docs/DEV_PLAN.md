@@ -57,7 +57,8 @@ Before you change code:
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
-   the change log (section 8). Update `docs/CODEMAP.md` in the same commit as any structural change. Keep
+   the change log (section 8). If players will notice it, add a plain-words line to the newest update in
+   `web/src/patch-notes.md` (shown in the menu under "What's new"; start a new `## date · title` for a new day). Update `docs/CODEMAP.md` in the same commit as any structural change. Keep
    this file truthful; the next session relies on it.
 
 Ground rules (details in `docs/WORKFLOW.md`):
@@ -571,6 +572,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-10: The menu as a launcher (user request).** `ui/menu.ts` (+ `menu.css`, `menu-pages.css`): a side column (Play with loading, the open world, page buttons, GitHub and issue links) and one page at a time: home (first steps for a new player, handy keys and the latest update otherwise, "Paused" on Escape), worlds, play together, settings (sound, camera, comfort; the menu steps aside while it shows), controls (grouped), what's new. Player-facing patch notes live in `web/src/patch-notes.md` (`ui/patch-notes.ts`, unread dot). `ComfortPanel` lost its `<details>` and menu wiring. Web only, no engine change.
 - **2026-10-09: Hand-crafting speed (interlude steps L1 + L2).** `perks.rs` (`player_bonus`, `Stat::Crafting`, `Unlock::Perk`), techs Handcrafting I–III 74–76 (`research/hands.rs`, +25% each), `crafting::craft_ticks`. Golden hash re-recorded (tech table grew), no save bump. Tests 736 → 739. Next free block 109, tech 77, texture 281.
 - **2026-10-09: Milestone 11 cleanup (step 11.13).** Three tips (compute, lasers, smarter tools), `bench_compute` (about 2 µs a tick, worst under 0.1 ms), the balance note, README and CODEMAP, the Milestone 11 step list moved to `docs/CHANGELOG_M11.md`, Milestone 12 moved in from the roadmap as a first draft. Tests stay at 736. Next free block 109, tech 74, texture 281.
 - **2026-10-09: AI survey (step 11.12).** `survey.rs` (guesses from stained soil, `MARK_GUESS` rings on both maps), `Feature::AiSurvey`, tech AI Survey 73. Golden hash re-recorded (tech table grew), no save bump. Tests 731 → 736. Next free block 109, tech 74, texture 281.

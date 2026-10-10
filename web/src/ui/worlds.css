@@ -1,11 +1,5 @@
 /* World management in the menu (ui/worlds.ts): header, new-world form, world list, status line. */
 
-.worlds {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--panel-border);
-}
-
 .worlds-head {
   display: flex;
   align-items: center;
@@ -15,7 +9,7 @@
 .worlds-head h2 {
   flex: 1;
   margin: 0;
-  font-size: 15px;
+  font-size: 22px;
 }
 
 .new-world {
@@ -40,9 +34,7 @@
 .world-list {
   display: grid;
   gap: 6px;
-  max-height: 188px;
-  overflow-y: auto;
-  margin: 10px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   list-style: none;
 }

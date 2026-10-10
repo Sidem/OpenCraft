@@ -8,8 +8,7 @@
 }
 .view-controls:not(.playing) { display: none; }
 .view-modes { display: flex; flex-wrap: wrap; gap: 5px; }
-.view-menu { margin: 14px 0; padding: 12px; border: 1px solid #ffffff24; border-radius: 10px; }
-.view-menu p { margin: 0 0 8px; color: #aabfbc; font-size: 12px; }
+.view-menu p { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
 .view-mode { border: 0; padding: 5px 8px; border-radius: 6px; background: transparent; color: #c2d4d1; cursor: pointer; font: inherit; }
 .view-mode[aria-pressed=true] { background: #e4ad57; color: #192b2c; }
 .view-mode:hover { background: #ffffff25; }

@@ -1,0 +1,76 @@
+/* "What's new" (patch-notes.ts): the update list, the link to the full history, the home page's teaser card. */
+
+.notes {
+  display: grid;
+  gap: 18px;
+}
+
+.notes-entry {
+  padding-left: 14px;
+  border-left: 2px solid var(--panel-border);
+}
+
+.notes-entry:first-child {
+  border-left-color: var(--accent);
+}
+
+.notes-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.notes-head h3 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.notes-date {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.notes-items {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.notes-items li + li {
+  margin-top: 3px;
+}
+
+.notes-more {
+  justify-self: start;
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.notes-card {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font: 14px var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+
+.notes-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.notes-card-label {
+  font-size: 12px;
+  color: var(--accent);
+}

@@ -1,13 +1,12 @@
-// "Comfort" section of the pause menu: sliders and choices for the settings that help against motion
+// "Comfort" on the menu's settings page: sliders and choices for the settings that help against motion
 // sickness (comfort/settings.ts): field of view, mouse sensitivity, the movement vignette (ui/vignette.ts),
-// third-person view and the crosshair, which this file also draws from the settings. While the section is open the menu
-// steps aside (`previewing`: no dimming, panel to the side) so changes show on the game behind it.
+// third-person view and the crosshair, which this file also draws from the settings. The menu steps aside
+// while its settings page shows (ui/menu.ts `previewing`), so changes show on the game behind it.
 // To add a control: a row in `SLIDERS` or a choice in the constructor.
 
 import './comfort.css';
 import { type ComfortSettings, type ComfortStore, CROSSHAIR_STYLES, RANGES } from '../comfort/settings';
 import { button, h } from './dom';
-import type { Vignette } from './vignette';
 
 type NumberKey = keyof typeof RANGES;
 
@@ -30,14 +29,11 @@ const VIGNETTE_LABELS = ['Off', 'Low', 'Medium', 'High'];
 const STYLE_LABELS = { cross: 'Cross', dot: 'Dot', both: 'Both' };
 
 export class ComfortPanel {
-  readonly el = h('details', 'comfort');
+  readonly el = h('div', 'comfort');
   private readonly sync: (() => void)[] = [];
 
-  constructor(private readonly comfort: ComfortStore, vignette: Vignette, menu: HTMLElement) {
+  constructor(private readonly comfort: ComfortStore) {
     const crosshair = document.getElementById('crosshair')!;
-    this.el.append(h('summary', '', 'Comfort settings (motion sickness)'));
-    this.el.append(h('p', 'comfort-note', 'Open this to see changes live. Everything is saved in this browser.'));
-
     const [view, third, aim] = [SLIDERS.slice(0, 2), SLIDERS[2], SLIDERS.slice(3)];
     this.el.append(
       ...view.map((s) => this.slider(s)),
@@ -57,8 +53,6 @@ export class ComfortPanel {
       this.applyCrosshair(crosshair, comfort.settings);
       for (const fn of this.sync) fn();
     });
-    vignette.previewing = () => this.el.open && !menu.classList.contains('hidden');
-    this.el.addEventListener('toggle', () => menu.classList.toggle('previewing', this.el.open));
   }
 
   private applyCrosshair(el: HTMLElement, s: ComfortSettings): void {

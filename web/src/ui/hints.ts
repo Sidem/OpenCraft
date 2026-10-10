@@ -1,7 +1,7 @@
 // Onboarding hints: one short tip at a time in the HUD, in the engine's order (`hint_text`). The engine
 // says how far the player got (`hint_progress`), so a tip goes away by itself once it's done. H skips the
-// tip on screen. Skipped tips are UI state kept in localStorage (per browser, not per world); the pause
-// menu gets a "Show tips again" button once any were skipped. New tips are engine rows (`hints.rs`).
+// tip on screen. Skipped tips are UI state kept in localStorage (per browser, not per world); the menu's
+// controls page gets a "Show tips again" button once any were skipped. New tips are engine rows (`hints.rs`).
 
 import './hints.css';
 import type { Game } from '../wasm/engine.js';
@@ -28,7 +28,7 @@ export class Hints {
       saveSkipped(this.skipped);
       this.update();
     });
-    document.querySelector('#menu .sound-row')?.append(this.again);
+    document.getElementById('menu-tips')?.append(this.again);
   }
 
   /** Skips the tip on screen for good. */
