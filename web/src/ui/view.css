@@ -17,5 +17,4 @@
 .view-status:empty { display: none; }
 .strategy-view #crosshair { display: none; }
 .strategy-view #game { cursor: crosshair; }
-body .hint { bottom: 210px; }
 @media (max-width: 700px) { .view-controls { bottom: 95px; left: 10px; max-width: calc(100vw - 20px); } }

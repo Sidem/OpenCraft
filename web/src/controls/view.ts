@@ -39,6 +39,11 @@ export class ViewControls {
     this.buttons.push(...menuButtons);
     this.el.append(row, this.hint, this.status);
     document.body.append(this.el);
+    // The HUD's left column (hud-columns.css) lifts by this much so its tip never sits under this panel.
+    new ResizeObserver(() => {
+      const h = this.el.offsetHeight;
+      document.documentElement.style.setProperty('--view-clear', h > 0 ? `${h + 12}px` : '0px');
+    }).observe(this.el);
     comfort.subscribe(() => {
       const s = comfort.settings;
       renderer.fovY = s.fov * Math.PI / 180;

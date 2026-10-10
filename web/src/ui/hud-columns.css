@@ -20,7 +20,7 @@
   position: absolute;
   left: 12px;
   top: 12px;
-  bottom: 96px;
+  bottom: calc(96px + var(--view-clear, 0px)); /* --view-clear: height of the view panel (controls/view.ts) */
   width: min(340px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
