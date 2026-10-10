@@ -12,7 +12,7 @@
 use crate::block::{tex, BlockId, DATA_RECEIVER, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER};
 
 use super::super::footprint::SINGLE;
-use super::model::{part, turned, Look, Part};
+use super::model::{drum_x, drum_z, part, turned, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 const fn spec(block: BlockId, verb: &'static str, products: &'static str, parts: &'static [Part]) -> ProcessSpec {
@@ -67,12 +67,16 @@ const MIRROR_PARTS: [Part; 3] = [
     part([0.0, -0.25, 0.0], [0.16, 0.1, 0.16], Look::Tex([tex::FRAME; 3])),
 ];
 
-/// The receiver's plinth and cabinet in the data colours: a green dish and lamp.
-const DATA_PARTS: [Part; 4] = [
+/// The data receiver: a plinth, a cabinet in the data colours and an antenna of three shrinking fins on a post
+/// (beams come from any side), a status lamp.
+const DATA_PARTS: [Part; 7] = [
     part([0.0, -0.4, 0.0], [0.9, 0.2, 0.9], Look::Band(tex::FRAME)),
-    part([0.0, -0.1, 0.0], [0.7, 0.4, 0.7], Look::Tex([tex::DATA_TOP, tex::DATA_SIDE, tex::FRAME])),
-    part([0.0, 0.25, 0.0], [0.86, 0.1, 0.86], Look::Tex([tex::DATA_TOP; 3])),
-    part([0.3, 0.0, 0.36], [0.1, 0.08, 0.1], Look::Lamp),
+    part([0.0, -0.15, 0.0], [0.7, 0.3, 0.7], Look::Tex([tex::DATA_TOP, tex::DATA_SIDE, tex::FRAME])),
+    part([0.0, 0.2, 0.0], [0.08, 0.5, 0.08], Look::Tex([tex::FRAME; 3])),
+    part([0.0, 0.08, 0.0], [0.6, 0.05, 0.6], Look::Tex([tex::DATA_TOP; 3])),
+    part([0.0, 0.24, 0.0], [0.44, 0.05, 0.44], Look::Tex([tex::DATA_TOP; 3])),
+    part([0.0, 0.4, 0.0], [0.28, 0.05, 0.28], Look::Tex([tex::DATA_TOP; 3])),
+    part([0.25, -0.1, 0.36], [0.1, 0.08, 0.04], Look::Lamp),
 ];
 
 /// Inside one cell, front towards +z: a plinth, a short dark housing, a barrel out of the front with a lens, a status lamp.
@@ -84,10 +88,14 @@ const EMITTER_PARTS: [Part; 5] = [
     part([0.3, 0.3, -0.3], [0.1, 0.08, 0.1], Look::Lamp),
 ];
 
-/// A plinth, a squat cabinet, a dish-like collector on top and a status lamp.
-const RECEIVER_PARTS: [Part; 4] = [
+/// The power receiver: a plinth, a squat cabinet, and on a short post a round collector (two crossed parts; beams
+/// come from any side) girdled by a copper ring, a status lamp.
+const RECEIVER_PARTS: [Part; 7] = [
     part([0.0, -0.4, 0.0], [0.9, 0.2, 0.9], Look::Band(tex::FRAME)),
-    part([0.0, -0.1, 0.0], [0.7, 0.4, 0.7], Look::Tex([tex::RECV_TOP, tex::RECV_SIDE, tex::FRAME])),
-    part([0.0, 0.25, 0.0], [0.86, 0.1, 0.86], Look::Tex([tex::RECV_TOP; 3])),
-    part([0.3, 0.0, 0.36], [0.1, 0.08, 0.1], Look::Lamp),
+    part([0.0, -0.15, 0.0], [0.7, 0.3, 0.7], Look::Tex([tex::RECV_TOP, tex::RECV_SIDE, tex::FRAME])),
+    part([0.0, 0.05, 0.0], [0.14, 0.12, 0.14], Look::Tex([tex::FRAME; 3])),
+    drum_x([0.0, 0.3, 0.0], [0.5, 0.4, 0.5], Look::Tex([tex::RECV_TOP; 3])),
+    drum_z([0.0, 0.3, 0.0], [0.5, 0.4, 0.5], Look::Tex([tex::RECV_TOP; 3])),
+    part([0.0, 0.3, 0.0], [0.56, 0.06, 0.56], Look::Tex([tex::COPPER_INGOT; 3])),
+    part([0.25, -0.1, 0.36], [0.1, 0.08, 0.04], Look::Lamp),
 ];

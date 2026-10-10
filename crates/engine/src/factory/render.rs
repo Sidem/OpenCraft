@@ -5,7 +5,7 @@
 
 use crate::math::{IVec3, Vec3};
 
-use crate::block::{BlockId, GENERATOR, LAB, MINER, QUARRY, STORAGE};
+use crate::block::{tex, BlockId, GENERATOR, LAB, MINER, QUARRY, STORAGE};
 use crate::world::DAYLIGHT;
 
 use super::{Factory, Machine};
@@ -13,10 +13,15 @@ use super::{Factory, Machine};
 /// Floats per box instance: centre xyz (camera-relative), yaw, size xyz, uv scroll,
 /// texture layers top/side/bottom, and the last float: uv mode (0 = whole texture per face, 1 =
 /// world-scaled) plus twice the light byte (sky in the low nibble, block light in the high one, as
-/// `light.rs` writes it), then pitch, roll, top-width taper and a reserved float. `push_box` starts
-/// every box at [`DAYLIGHT`]; `light_boxes` sets the real light. Ordinary boxes have no tilt or taper.
+/// `light.rs` writes it), then pitch, roll, top-width taper and the glow flag. `push_box` starts
+/// every box at [`DAYLIGHT`]; `light_boxes` sets the real light and the glow. Ordinary boxes have no
+/// tilt or taper.
 pub const INSTANCE_FLOATS: usize = 16;
 const MODE_LIGHT: usize = 11;
+const GLOW: usize = 15;
+/// Texture layers that give light rather than take it (status lights, lamps, laser beams, the jetpack's
+/// flame): the shader draws a box with one of them at full brightness, day or night.
+const GLOWING: [u16; 6] = [tex::LAMP_GREEN, tex::LAMP_YELLOW, tex::LAMP_RED, tex::LAMP_BLUE, tex::LAMP, tex::BEAM];
 
 /// Pushes one box instance (see [`INSTANCE_FLOATS`]).
 #[allow(clippy::too_many_arguments)]
@@ -55,7 +60,7 @@ fn packed(world_uv: bool, light: u8) -> f32 {
 }
 
 /// Lights every box in `boxes` (records of [`INSTANCE_FLOATS`], centres relative to `eye`) with the light
-/// of the cell its centre is in, from `light` (`World::light_at`). A cell with no light at all (a wire
+/// of the cell its centre is in, from `light` (`World::light_at`), and flags the [`GLOWING`] ones. A cell with no light at all (a wire
 /// or an item sunk into the ground, whose centre is inside solid rock) borrows the best of its
 /// neighbours, so only a box really in the dark is dark.
 pub fn light_boxes(boxes: &mut [f32], eye: Vec3, mut light: impl FnMut(IVec3) -> u8) {
@@ -72,6 +77,7 @@ pub fn light_boxes(boxes: &mut [f32], eye: Vec3, mut light: impl FnMut(IVec3) ->
         };
         last = Some((cell, lit));
         rec[MODE_LIGHT] = packed(rec[MODE_LIGHT] as u32 & 1 == 1, lit);
+        rec[GLOW] = f32::from(u8::from(rec[8..11].iter().any(|&l| GLOWING.contains(&(l as u16)))));
     }
 }
 
@@ -100,7 +106,7 @@ impl Factory {
         self.write_beams(out, eye, time, range);
         models(&self.rails, out, eye, time, range);
         self.write_tracks(out, eye, range);
-        self.write_train_models(out, eye, range);
+        self.write_train_models(out, eye, time, range);
         self.write_wires(out, eye, range);
         self.write_cables(out, eye, range);
     }

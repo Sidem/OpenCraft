@@ -15,8 +15,21 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::DOCK_LOAD_TOP => dock_top(x, y, [224.0, 160.0, 48.0], true),
         tex::DOCK_UNLOAD_TOP => dock_top(x, y, [48.0, 160.0, 224.0], false),
         tex::SIGNAL => signal(x, y),
+        tex::LOCO_BODY => loco_body(x, y),
         _ => [255, 0, 255, 255],
     }
+}
+
+/// The locomotive's paint: deep green, shaded from top to foot like a boiler lying down (`round_shade` across y),
+/// with a brass band round it and dark seams at its ends.
+fn loco_body(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 {
+        return rgb([30.0, 34.0, 32.0], 1.0);
+    }
+    if x == 7 || x == 8 {
+        return rgb([214.0, 172.0, 70.0], 0.95 + 0.1 * n(436, x, y));
+    }
+    rgb([46.0, 92.0, 70.0], super::paint::round_shade(y) * (0.92 + 0.1 * n(437, x, y)))
 }
 
 /// A signal: a steel post under an amber lamp, on a dark ground.

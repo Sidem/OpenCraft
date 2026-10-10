@@ -63,15 +63,20 @@ impl Processor {
     }
 }
 
-/// Across and deep 2, 2 high (±1): a banded plinth, a dark cabinet with a lit neural net, a glowing crown, a copper
-/// mast, a status lamp on the front and one on the crown.
-const PARTS: [Part; 6] = [
+/// Across and deep 2, 2 high (±1): a banded plinth, a dark cabinet with a lit neural net, a stepped pyramid of two
+/// tiers on it holding a big core that glows in the status colour (the AI lab's mark; the optimizer has a mast, the
+/// swarm hub a landing pad), four copper heat pipes at the corners and a status lamp on the front.
+const PARTS: [Part; 10] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.25, 0.0], [1.9, 1.1, 1.9], Look::Tex([tex::AI_TOP, tex::AI_SIDE, tex::FRAME])),
-    part([0.0, 0.55, 0.0], [1.5, 0.4, 1.5], Look::Tex([tex::AI_TOP, tex::AI_SIDE, tex::FRAME])),
-    part([-0.7, 0.9, -0.7], [0.14, 0.7, 0.14], Look::Tex([tex::COPPER_INGOT; 3])),
-    part([0.0, 0.85, 0.0], [0.2, 0.2, 0.2], Look::Lamp),
-    part([0.78, -0.3, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
+    part([0.0, 0.45, 0.0], [1.4, 0.3, 1.4], Look::Tex([tex::AI_TOP, tex::AI_SIDE, tex::FRAME])),
+    part([0.0, 0.72, 0.0], [0.9, 0.24, 0.9], Look::Tex([tex::AI_TOP, tex::AI_SIDE, tex::FRAME])),
+    part([0.0, 1.05, 0.0], [0.5, 0.42, 0.5], Look::Lamp),
+    part([-0.82, 0.5, -0.82], [0.1, 0.4, 0.1], Look::Tex([tex::COPPER_INGOT; 3])),
+    part([0.82, 0.5, -0.82], [0.1, 0.4, 0.1], Look::Tex([tex::COPPER_INGOT; 3])),
+    part([-0.82, 0.5, 0.82], [0.1, 0.4, 0.1], Look::Tex([tex::COPPER_INGOT; 3])),
+    part([0.82, 0.5, 0.82], [0.1, 0.4, 0.1], Look::Tex([tex::COPPER_INGOT; 3])),
+    part([0.6, -0.3, 0.97], [0.14, 0.1, 0.04], Look::Lamp),
 ];
 
 #[cfg(test)]

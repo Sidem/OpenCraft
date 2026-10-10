@@ -319,6 +319,14 @@ impl Machine for Miner {
         // The collar is the tier band.
         let band = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
         push_box(out, rel + Vec3::new(0.0, 0.28, 0.0), 0.0, [0.5, 0.15, 0.5], 0.0, band, false);
+        // A small headframe with a winding wheel that turns while it runs: a mine, not a quarry's crane.
+        for x in [-0.2, 0.2] {
+            push_box(out, rel + Vec3::new(x, 0.56, -0.1), 0.0, [0.06, 0.44, 0.06], 0.0, [tex::FRAME; 3], false);
+        }
+        push_box(out, rel + Vec3::new(0.0, 0.76, -0.1), 0.0, [0.5, 0.06, 0.08], 0.0, [tex::FRAME; 3], false);
+        push_box(out, rel + Vec3::new(0.0, 0.76, -0.1), 0.0, [0.05, 0.26, 0.26], 0.0, [tex::GEAR; 3], false);
+        let n = out.len();
+        out[n - 4] = if running { (time * 3.0) as f32 } else { 0.0 };
         push_box(out, rel + f * 0.31, 0.0, size(0.12, 0.5), 0.0, [tex::FRAME; 3], false);
         push_box(out, rel + f * (0.43 + pump), 0.0, size(0.3, 0.28), 0.0, [tex::DRILL; 3], true);
         push_box(out, rel + f * (0.57 + pump), 0.0, size(0.18, 0.16), 0.0, [tex::DRILL; 3], true);

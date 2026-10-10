@@ -1,6 +1,7 @@
 //! Shared painting helpers for natural textures: palette ramps (a few hand-picked tones per material,
 //! so textures read as pixel art rather than noise), a wrapping cell pattern (plates, leaves,
-//! grains), and blobs placed inside the tile (ore inclusions, pebbles) that differ per alternate.
+//! grains), and blobs placed inside the tile (ore inclusions, pebbles) that differ per alternate; and
+//! `round_shade`, the shading machine textures use to make a box read as a drum.
 //!
 //! Everything wraps at the 16-texel edge or stays inside it, so tiles repeat without seams.
 
@@ -15,6 +16,13 @@ pub fn tone(ramp: &Ramp, t: f64) -> [u8; 4] {
     let i = (t.clamp(0.0, 0.999) * 5.0) as usize;
     let c = ramp[i];
     [c[0], c[1], c[2], 255]
+}
+
+/// Brightness across a face (texel column `x`) that makes it read as the curve of a drum: bright down the middle,
+/// darker towards both edges. Machine tanks and columns are boxes; this sells them as round.
+pub fn round_shade(x: i32) -> f64 {
+    let t = (x as f64 - 7.5) / 7.5;
+    1.1 - 0.38 * t * t
 }
 
 /// `ramp` with every tone moved by `d` (a hint's shift in colour).

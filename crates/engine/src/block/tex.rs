@@ -315,7 +315,14 @@ pub const DATA_TOP: u16 = 278;
 /// The swarm hub's body and crown (`textures/hub.rs`).
 pub const HUB_SIDE: u16 = 279;
 pub const HUB_TOP: u16 = 280;
-pub const COUNT: usize = 281;
+/// Smoke puffs (`factory/smoke.rs`): a dense puff and a thinning one, both cut out (`textures/smoke.rs`).
+pub const SMOKE: u16 = 281;
+pub const SMOKE_THIN: u16 = 282;
+/// The locomotive's paint: dark green with a brass band (`textures/transport.rs`).
+pub const LOCO_BODY: u16 = 283;
+/// Soot-blackened iron for chimneys, smokeboxes, wheels and dark mouths (`textures/smoke.rs`).
+pub const SOOT: u16 = 284;
+pub const COUNT: usize = 285;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

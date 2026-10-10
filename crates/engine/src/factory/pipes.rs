@@ -253,17 +253,22 @@ impl Machine for Pipework {
         match self.part {
             Part::Pipe => push_box(out, rel, 0.0, [0.3; 3], 0.0, pipe, false),
             Part::Pump => {
-                let body = [tex::STEEL, tex::GENERATOR_SIDE, tex::FRAME];
-                push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.8, 0.8, 0.8], 0.0, body, false);
-                if self.tier > 0 {
-                    let band = [tex::stripe(self.tier); 3];
-                    push_box(out, rel + Vec3::new(0.0, -0.36, 0.0), 0.0, [0.84, 0.1, 0.84], 0.0, band, false);
+                // A skid, a round impeller casing lying across (two crossed boxes), a motor on top whose fan turns
+                // while it pumps.
+                let skid = if self.tier > 0 { tex::stripe(self.tier) } else { tex::FRAME };
+                push_box(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.86, 0.14, 0.86], 0.0, [skid; 3], false);
+                let casing = [tex::FRAME, tex::PIPE_WATER, tex::FRAME];
+                // The second box is a little shorter so the two never share an end face (it would flicker).
+                for size in [[0.62, 0.45, 0.62], [0.58, 0.62, 0.45]] {
+                    push_box(out, rel + Vec3::new(0.0, -0.06, 0.0), 0.0, size, 0.0, casing, false);
                 }
-                let bob = if self.flow == Flow::Working { (time * 6.0).sin() * 0.05 } else { 0.0 };
-                push_box(out, rel + Vec3::new(0.0, 0.36 + bob, 0.0), 0.0, [0.3, 0.12, 0.3], 0.0, steel, false);
+                let motor = [tex::FRAME, tex::MOTOR, tex::FRAME];
+                push_box(out, rel + Vec3::new(0.0, 0.36, 0.0), 0.0, [0.34, 0.26, 0.34], 0.0, motor, false);
+                let spin = if self.flow == Flow::Working { (time * 9.0) as f32 } else { 0.0 };
+                push_box(out, rel + Vec3::new(0.0, 0.51, 0.0), spin, [0.32, 0.04, 0.08], 0.0, steel, false);
                 push_box(
                     out,
-                    rel + Vec3::new(0.3, 0.18, 0.41),
+                    rel + Vec3::new(0.0, 0.4, 0.18),
                     0.0,
                     [0.12, 0.08, 0.02],
                     0.0,

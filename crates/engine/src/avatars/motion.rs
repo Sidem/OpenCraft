@@ -19,6 +19,9 @@ pub(super) struct Motion {
     pub using: f64,
     pub work_phase: f64,
     pub use_phase: f64,
+    /// The jetpack's flame (0 off, 1 full) and the phase its length flickers by.
+    pub thrust: f64,
+    pub flicker: f64,
 }
 
 impl Motion {
@@ -43,6 +46,8 @@ impl Motion {
         } else {
             self.work_phase = 0.0;
         }
+        self.thrust += (f64::from(body.thrust) - self.thrust) * k;
+        self.flicker = (self.flicker + dt * TAU * 9.0).rem_euclid(TAU);
         if using || self.using > 0.01 {
             self.use_phase = (self.use_phase + dt * TAU / 0.22).rem_euclid(TAU);
         } else {

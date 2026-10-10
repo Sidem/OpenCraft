@@ -279,9 +279,9 @@ fn wagons_are_drawn_too() {
     let mut f = freight(0, 2);
     let (mut bare, mut full) = (Vec::new(), Vec::new());
     f.trains[0].cars = 0;
-    f.write_train_models(&mut bare, Vec3::new(5.0, 3.0, 5.0), 60.0);
+    f.write_train_models(&mut bare, Vec3::new(5.0, 3.0, 5.0), 0.0, 60.0);
     f.trains[0].cars = 2;
-    f.write_train_models(&mut full, Vec3::new(5.0, 3.0, 5.0), 60.0);
+    f.write_train_models(&mut full, Vec3::new(5.0, 3.0, 5.0), 0.0, 60.0);
     assert!(full.len() >= bare.len() + 2 * 9 * INSTANCE_FLOATS, "{} vs {}", full.len(), bare.len());
 }
 
@@ -399,8 +399,8 @@ fn a_locomotive_draws_whole_boxes_within_range_only() {
     let mut f = line(&[(v(0, 0, 0), E), (v(12, 0, 0), E)], &[(0, 1)]);
     assert!(f.place_train(v(0, 0, 0)));
     let (mut near, mut far) = (Vec::new(), Vec::new());
-    f.write_train_models(&mut near, Vec3::new(5.0, 3.0, 5.0), 40.0);
-    f.write_train_models(&mut far, Vec3::new(500.0, 3.0, 5.0), 40.0);
+    f.write_train_models(&mut near, Vec3::new(5.0, 3.0, 5.0), 0.0, 40.0);
+    f.write_train_models(&mut far, Vec3::new(500.0, 3.0, 5.0), 0.0, 40.0);
     assert!(near.len() >= 8 * INSTANCE_FLOATS && near.len() % INSTANCE_FLOATS == 0);
     assert!(far.is_empty());
 }

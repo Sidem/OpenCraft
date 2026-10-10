@@ -1,11 +1,12 @@
-//! Heavy industry (Steam Power, Ore Crushing, Bulk Storage): the boiler (riveted dark-blue tank with
-//! a glowing firebox strip, a steel top with a fuel hatch), the steam turbine (steel casing with a vent
+//! Heavy industry (Steam Power, Ore Crushing, Bulk Storage): the boiler (a riveted dark-blue drum lying down,
+//! a steel top with a fuel hatch), the steam turbine (steel casing with a vent
 //! grille, a top with a spinning-blade disc), the crusher (a hazard-striped hopper wall, jaws on top),
-//! the silo (concrete rings under a steel roof) and crushed iron and copper (jagged chunks).
+//! the silo (round concrete rings under a steel roof) and crushed iron and copper (jagged chunks).
 //! Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
 
+use super::paint::round_shade;
 use super::{frame, n, rgb, smooth};
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
@@ -23,17 +24,16 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// A dark-blue tank plated in riveted bands, a glowing firebox slit low down.
+/// The boiler's dark-blue drum, lying down: shaded round from top to foot (`round_shade` across y), plated in
+/// riveted rings that run round it (upright seams).
 fn boiler_side(x: i32, y: i32) -> [u8; 4] {
     let k = 0.9 + 0.1 * n(380, x, y);
-    if (11..=13).contains(&y) && (3..13).contains(&x) {
-        return rgb([246.0, 140.0, 44.0], if y == 12 { 1.0 } else { 0.7 });
+    let shade = round_shade(y);
+    if x % 8 == 0 || x % 8 == 7 {
+        let rivet = y % 4 == 2 && x % 8 == 0;
+        return rgb([148.0, 156.0, 170.0], shade * if rivet { 1.15 } else { 0.85 * k });
     }
-    if y % 8 == 0 || y % 8 == 7 {
-        let rivet = x % 4 == 2 && y % 8 == 0;
-        return rgb([148.0, 156.0, 170.0], if rivet { 1.15 } else { 0.85 * k });
-    }
-    rgb([52.0, 78.0, 118.0], k + 0.08 * smooth(381, x, y, 4))
+    rgb([52.0, 78.0, 118.0], shade * (k + 0.08 * smooth(381, x, y, 4)))
 }
 
 /// A steel deck with a round fuel hatch.
@@ -107,9 +107,9 @@ fn crusher_top(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Poured concrete in rings, two dark seams and a row of bolts.
+/// Poured concrete in rings, shaded round (`round_shade`), two dark seams and a row of bolts.
 fn silo_side(x: i32, y: i32) -> [u8; 4] {
-    let k = 0.92 + 0.08 * n(388, x, y) + 0.05 * smooth(389, x, y, 4);
+    let k = round_shade(x) * (0.92 + 0.08 * n(388, x, y) + 0.05 * smooth(389, x, y, 4));
     if y == 7 || y == 8 {
         return rgb([84.0, 88.0, 94.0], 1.0);
     }

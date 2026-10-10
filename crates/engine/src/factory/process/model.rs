@@ -1,15 +1,19 @@
 //! Processor models as data: a spec's `parts` are boxes (centre and size in block units, relative to
 //! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band,
-//! the status lamp, a fire that glows while working and a press that pumps are looks, so a new processor
-//! is rows, not drawing code. A multi-block machine's port hatches are drawn from its footprint.
+//! the status lamp, a fire that glows while working, a press that pumps and a chimney's smoke are looks, so a new
+//! processor is rows, not drawing code. Round bodies are two crossed parts (`drum_x` and `drum_z`). A multi-block
+//! machine's port hatches are drawn from its footprint.
 
 use crate::block::tex;
 use crate::math::Vec3;
 
 use super::super::footprint::Role;
 use super::super::render::push_box;
-use super::super::DIRS;
+use super::super::{smoke, DIRS};
 use super::{steam_view, Energy, Processor, Status};
+
+#[cfg(test)]
+mod tests;
 
 /// How a part is textured, and whether it moves.
 #[derive(Clone, Copy)]
@@ -24,6 +28,9 @@ pub enum Look {
     Lamp,
     /// Moves down by this share of the press stroke while working.
     Press(f32, [u16; 3]),
+    /// The mouth of a chimney or exhaust: no box, but smoke while working (`factory/smoke.rs`), puffs scaled by
+    /// the part's width.
+    Smoke,
 }
 
 #[derive(Clone, Copy)]
@@ -44,6 +51,30 @@ pub const fn turned(at: [f32; 3], size: [f32; 3], look: Look, turn: f32) -> Part
     Part { at, size, look, turn }
 }
 
+/// How much of a round body's width its crossed boxes keep across their narrow side.
+const ROUND: f32 = 0.72;
+/// How much shorter the second half of a round body is along its axis, so the two halves never share an end face
+/// (coplanar faces z-fight: they flicker).
+const STAGGER: f32 = 0.04;
+
+/// An upright round body (a tank, column or drum) `size` across, high and deep is two crossed parts: `drum_x`, narrowed
+/// in depth, and `drum_z`, narrowed in width and a little shorter. Together their outline reads round at a distance, and
+/// a texture shaded with `round_shade` does the rest.
+pub const fn drum_x(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
+    part(at, [size[0], size[1], size[2] * ROUND], look)
+}
+
+/// The other half of an upright round body (`drum_x`).
+pub const fn drum_z(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
+    part(at, [size[0] * ROUND, size[1] - STAGGER, size[2]], look)
+}
+
+/// A round body lying along x (a boiler drum): the half narrowed in height and a little shorter (the other is
+/// `drum_x`).
+pub const fn drum_y(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
+    part(at, [size[0] - STAGGER, size[1] * ROUND, size[2]], look)
+}
+
 /// Deepest press stroke, in blocks.
 const STROKE: f64 = 0.12;
 /// A port hatch: how far its centre sits from its cell's centre, and its size (across, up, thick).
@@ -59,6 +90,12 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     for part in p.spec.parts {
         let mut at = local(centre, yaw, part.at.map(f64::from));
         let texture = match part.look {
+            Look::Smoke => {
+                if working {
+                    smoke::puffs(out, at, time, smoke::seed(p.pos), part.size[0]);
+                }
+                continue;
+            }
             Look::Tex(t) => t,
             Look::Band(top) => [top, tex::stripe(p.tier), tex::FRAME],
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],

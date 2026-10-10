@@ -8,6 +8,7 @@ use wasm_bindgen::prelude::*;
 use crate::action::Action;
 use crate::block::{AIR, STONE};
 use crate::deposits::Tier;
+use crate::inventory::{add_to_slots, Stack};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::sim::PlayerId;
@@ -18,6 +19,77 @@ impl Game {
     /// Debug / creative helper: adds items to the inventory at the next tick (what doesn't fit is lost).
     pub fn give(&mut self, item: u16, count: u32) {
         self.act(Action::Give { item: ItemId(item), count });
+    }
+
+    /// Scene building for tests and recordings: gives one `block` and places it at once at `(x, y, z)`
+    /// facing `facing`, bypassing reach and co-op routing (like `debug_desync`, solo worlds only).
+    pub fn place_at(&mut self, x: i32, y: i32, z: i32, block: u16, facing: u8) {
+        let me = self.local;
+        let item = ItemId(block);
+        self.sim.apply(me, Action::Give { item, count: 1 });
+        let Some(slot) = self.sim.player(me).and_then(|p| p.inventory.slots.iter().position(|s| s.item == item)) else {
+            return;
+        };
+        let pos = IVec3::new(x, y, z);
+        self.sim.apply(me, Action::PlaceBlock { pos, slot: slot as u8, facing, against: pos - IVec3::new(0, 1, 0) });
+    }
+
+    /// Scene building: wires a pole to a machine or pole, or lays track between two rail nodes, at once.
+    pub fn connect_at(&mut self, ax: i32, ay: i32, az: i32, bx: i32, by: i32, bz: i32) {
+        let (pole, to) = (IVec3::new(ax, ay, az), IVec3::new(bx, by, bz));
+        self.sim.apply(self.local, Action::Connect { pole, to });
+    }
+
+    /// Scene building: gives one `item` (a locomotive or wagon) and puts it on the rail node at once.
+    pub fn train_at(&mut self, x: i32, y: i32, z: i32, item: u16) {
+        let me = self.local;
+        let item = ItemId(item);
+        self.sim.apply(me, Action::Give { item, count: 1 });
+        let Some(slot) = self.sim.player(me).and_then(|p| p.inventory.slots.iter().position(|s| s.item == item)) else {
+            return;
+        };
+        self.sim.apply(me, Action::PlaceTrain { pos: IVec3::new(x, y, z), slot: slot as u8 });
+    }
+
+    /// Scene building: puts `count` of `item` straight into the box or machine at `(x, y, z)`, bypassing
+    /// the inventory; returns how many went in (the rest is dropped).
+    pub fn stock_at(&mut self, x: i32, y: i32, z: i32, item: u16, count: u32) -> u32 {
+        let (pos, item) = (IVec3::new(x, y, z), ItemId(item));
+        match self.sim.factory.box_slots_mut(pos) {
+            Some(slots) => count - add_to_slots(slots, item, count),
+            None => self.sim.factory.insert(pos, item, count),
+        }
+    }
+
+    /// Scene building: empties the storage box at `(x, y, z)`, so a backed-up line flows again; returns how many
+    /// items it held.
+    pub fn empty_box_at(&mut self, x: i32, y: i32, z: i32) -> u32 {
+        let Some(slots) = self.sim.factory.box_slots_mut(IVec3::new(x, y, z)) else {
+            return 0;
+        };
+        let held = slots.iter().map(|s| s.count).sum();
+        slots.fill(Stack::default());
+        held
+    }
+
+    /// Scene building: plants a ghost of `block` (for drones to build) at once.
+    pub fn ghost_at(&mut self, x: i32, y: i32, z: i32, block: u8, facing: u8) {
+        let pos = IVec3::new(x, y, z);
+        self.sim.apply(self.local, Action::PlantGhost { pos, block, facing, tier: 0 });
+    }
+
+    /// Scene building: sets every cell of the box between the two corners to terrain `block` in this core
+    /// only, bypassing actions (no drops; never use it on machines). Clears or levels ground for a set;
+    /// remeshing is left to streaming, so big fills stay fast.
+    #[allow(clippy::too_many_arguments)]
+    pub fn fill_blocks(&mut self, x0: i32, y0: i32, z0: i32, x1: i32, y1: i32, z1: i32, block: u8) {
+        for x in x0.min(x1)..=x0.max(x1) {
+            for y in y0.min(y1)..=y0.max(y1) {
+                for z in z0.min(z1)..=z0.max(z1) {
+                    self.sim.world.set_block_anywhere_later(IVec3::new(x, y, z), block);
+                }
+            }
+        }
     }
 
     pub fn teleport(&mut self, x: f64, y: f64, z: f64) {

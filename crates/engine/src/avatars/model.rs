@@ -34,6 +34,23 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
     rig.part(torso + Vec3::new(0.2, -0.03, 0.21), [0.1, 0.3, 0.13], lean, roll, 0.85, tex::AVATAR_SKIN);
     rig.part(torso + Vec3::new(-0.15, 0.3, 0.24), [0.026, 0.25, 0.026], lean, 0.15, 1.0, tex::AVATAR_JOINT);
     rig.part(torso + Vec3::new(-0.17, 0.43, 0.24), [0.055, 0.045, 0.055], 0.0, 0.0, 1.0, tex::AVATAR_TRIM);
+    if m.thrust > 0.02 {
+        // The jetpack's two flames under the pack, flickering in length; they glow (factory::render GLOWING).
+        let long = m.thrust * (0.42 + 0.07 * m.flicker.sin() + 0.04 * (m.flicker * 2.7).cos());
+        for (side, beat) in [(-1.0, 0.0), (1.0, 1.9)] {
+            let nozzle = torso + Vec3::new(-0.045 + side * 0.09, -0.2, 0.25);
+            let core = long * (0.55 + 0.06 * (m.flicker + beat).sin());
+            rig.part(
+                nozzle - Vec3::new(0.0, long / 2.0, 0.0),
+                [0.06, long as f32, 0.08],
+                0.0,
+                0.0,
+                2.2,
+                tex::LAMP_YELLOW,
+            );
+            rig.part(nozzle - Vec3::new(0.0, core / 2.0, 0.0), [0.035, core as f32, 0.05], 0.0, 0.0, 2.0, tex::LAMP);
+        }
+    }
     let neck = waist + Vec3::new(0.0, 0.55, -0.05 * m.crouch);
     rig.part(neck, [0.15, 0.1, 0.16], 0.0, 0.0, 1.0, tex::AVATAR_JOINT);
     let head = neck + Vec3::new(0.0, 0.15, 0.0);

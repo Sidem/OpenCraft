@@ -21,7 +21,7 @@ use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{Power, NOT_WIRED};
-use super::model::{part, Look, Part};
+use super::model::{drum_x, drum_z, part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 /// The most a reactor gives, in kW.
@@ -77,29 +77,38 @@ pub const REACTOR_SPEC: ProcessSpec = ProcessSpec {
 };
 
 const STEEL: Look = Look::Tex([tex::STEEL; 3]);
-const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 const CENTRIFUGE_BODY: [u16; 3] = [tex::CENTRIFUGE_TOP, tex::CENTRIFUGE_SIDE, tex::FRAME];
 const REACTOR_BODY: [u16; 3] = [tex::REACTOR_TOP, tex::REACTOR_SIDE, tex::FRAME];
+const DOME: [u16; 3] = [tex::REACTOR_TOP, tex::CONCRETE, tex::CONCRETE];
 
-/// Across and deep 2, 3 high (±1.5): a banded plinth, a tall drum, its lid, a motor housing on top and a status lamp.
-const CENTRIFUGE_PARTS: [Part; 5] = [
+/// Across and deep 2, 3 high (±1.5): a banded plinth, a cascade of four slim spinning tubes (two crossed parts each)
+/// under a header pipe, and a status lamp.
+const CENTRIFUGE_PARTS: [Part; 11] = [
     part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
-    part([0.0, -0.1, 0.0], [1.5, 2.4, 1.5], Look::Tex(CENTRIFUGE_BODY)),
-    part([0.0, 1.2, 0.0], [1.7, 0.15, 1.7], FRAME),
-    part([0.0, 1.38, 0.0], [0.6, 0.2, 0.6], STEEL),
-    part([0.78, -1.2, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
+    drum_x([-0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_z([-0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_x([0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_z([0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_x([-0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_z([-0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_x([0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    drum_z([0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    part([0.0, 1.32, 0.0], [1.3, 0.12, 0.12], STEEL),
+    part([0.85, -1.2, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
 ];
 
-/// Across, deep and high 3 (±1.5): a banded plinth, the concrete containment with a stepped lid, a glowing window on
-/// the front, a steel stack and a status lamp.
-const REACTOR_PARTS: [Part; 7] = [
+/// Across, deep and high 3 (±1.5): a banded plinth, the round concrete containment (two crossed parts) under a
+/// stepped dome, a glowing window on the front and a status lamp. Round and domed so it can't be taken for a crate.
+const REACTOR_PARTS: [Part; 9] = [
     part([0.0, -1.4, 0.0], [2.96, 0.2, 2.96], Look::Band(tex::FRAME)),
-    part([0.0, -0.2, 0.0], [2.4, 2.4, 2.4], Look::Tex(REACTOR_BODY)),
-    part([0.0, 1.15, 0.0], [1.6, 0.3, 1.6], Look::Tex([tex::REACTOR_TOP; 3])),
-    part([0.0, 0.0, 1.22], [1.0, 0.5, 0.06], Look::Tex([tex::FUEL_CELL; 3])),
-    part([0.7, 1.05, -0.7], [0.4, 0.8, 0.4], STEEL),
-    part([-0.7, 1.05, -0.7], [0.4, 0.8, 0.4], FRAME),
-    part([1.2, -1.2, 1.35], [0.14, 0.1, 0.14], Look::Lamp),
+    drum_x([0.0, -0.3, 0.0], [2.6, 2.0, 2.6], Look::Tex(REACTOR_BODY)),
+    drum_z([0.0, -0.3, 0.0], [2.6, 2.0, 2.6], Look::Tex(REACTOR_BODY)),
+    drum_x([0.0, 0.85, 0.0], [2.0, 0.3, 2.0], Look::Tex(DOME)),
+    drum_z([0.0, 0.85, 0.0], [2.0, 0.3, 2.0], Look::Tex(DOME)),
+    drum_x([0.0, 1.12, 0.0], [1.2, 0.24, 1.2], Look::Tex(DOME)),
+    drum_z([0.0, 1.12, 0.0], [1.2, 0.24, 1.2], Look::Tex(DOME)),
+    part([0.0, -0.2, 1.31], [0.8, 0.5, 0.06], Look::Tex([tex::FUEL_CELL; 3])),
+    part([1.25, -1.2, 1.35], [0.14, 0.1, 0.14], Look::Lamp),
 ];
 
 impl Processor {

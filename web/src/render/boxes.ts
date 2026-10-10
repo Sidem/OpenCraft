@@ -3,7 +3,7 @@
 // them into a growing GPU buffer and draws them with the lit cutout shader: the daylight, lamps and
 // shade of the cell each box stands in (the engine packs that light into the last float).
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
-// top/side/bottom, uv mode + 2 × light, pitch, roll, taper, reserved. Four vec4s (see `S.boxVert`).
+// top/side/bottom, uv mode + 2 Ã— light, pitch, roll, taper, reserved. Four vec4s (see `S.boxVert`).
 
 import { createProgram, uniforms } from './gl';
 import * as S from './shaders';
@@ -18,7 +18,7 @@ export class BoxPipeline {
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number) {
     this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT']);
-    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight'] as const);
+    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const);
 
     // One unit cube, per-instance centre/size/rotation/textures.
     this.vao = gl.createVertexArray()!;
@@ -56,6 +56,8 @@ export class BoxPipeline {
     gl.uniform1i(this.u.u_tex, 0);
     gl.uniform3f(this.u.u_fogColor, ...fog.color);
     gl.uniform3f(this.u.u_skyLight, ...sky.light);
+    gl.uniform3f(this.u.u_sunDir, ...sky.lightDir);
+    gl.uniform3f(this.u.u_direct, ...sky.direct);
     gl.uniform2f(this.u.u_fog, ...fog.range);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
     const bytes = count * this.instanceFloats * 4;
@@ -72,7 +74,7 @@ export class BoxPipeline {
 
 /**
  * Unit cube for instanced boxes: 36 vertices of (corner.xyz, face index). Faces follow the mesher's
- * order and axes (u × v = normal), so triangles wind counter-clockwise seen from outside.
+ * order and axes (u Ã— v = normal), so triangles wind counter-clockwise seen from outside.
  */
 function boxCorners(): Float32Array {
   const faces: [number[], number[], number[]][] = [

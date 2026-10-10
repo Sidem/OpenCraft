@@ -16,7 +16,7 @@ use crate::TICK_RATE;
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_FUEL};
 use super::render::push_box;
-use super::{Factory, Kind, Machine};
+use super::{smoke, Factory, Kind, Machine};
 
 /// What a generator tier gives, Mk1 first.
 pub struct GeneratorTier {
@@ -148,37 +148,37 @@ impl Machine for Generator {
         lines.join("\n")
     }
 
-    /// A steel housing with a spinning-looking fan cap and a status lamp.
+    /// A steam-engine look: an engine block with an upright flywheel on its flank that turns while it burns, a coal
+    /// hopper, a tall chimney that smokes while it burns, and a status lamp.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let body = [tex::GENERATOR_TOP, tex::GENERATOR_SIDE, tex::FRAME];
         push_box(out, rel + Vec3::new(0.0, -0.41, 0.0), 0.0, [0.94, 0.17, 0.94], 0.0, [tex::FRAME; 3], false);
-        push_box(out, rel + Vec3::new(0.0, -0.16, 0.0), 0.0, [0.76, 0.39, 0.74], 0.0, body, false);
-        // Broad flywheel and two crossing blades on top, plus a separate fuel hopper and exhaust.
-        push_box(out, rel + Vec3::new(0.0, 0.08, 0.0), 0.0, [0.63, 0.1, 0.63], 0.0, [tex::GENERATOR_TOP; 3], false);
-        let spin = if self.running() { (time * 8.0) as f32 } else { 0.0 };
-        push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), spin, [0.57, 0.06, 0.1], 0.0, [tex::IRON_PLATE; 3], false);
-        push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), spin, [0.1, 0.06, 0.57], 0.0, [tex::IRON_PLATE; 3], false);
-        push_box(out, rel + Vec3::new(0.0, 0.2, 0.0), 0.0, [0.14, 0.08, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
-        push_box(
-            out,
-            rel + Vec3::new(-0.32, 0.12, 0.3),
-            0.0,
-            [0.26, 0.39, 0.29],
-            0.0,
-            [tex::BOX_TOP, tex::GENERATOR_SIDE, tex::FRAME],
-            false,
-        );
-        push_box(out, rel + Vec3::new(0.32, 0.31, -0.3), 0.0, [0.2, 0.63, 0.2], 0.0, body, false);
-        push_box(out, rel + Vec3::new(0.32, 0.66, -0.3), 0.0, [0.25, 0.07, 0.25], 0.0, [tex::GENERATOR_SIDE; 3], false);
+        push_box(out, rel + Vec3::new(-0.08, -0.12, 0.0), 0.0, [0.62, 0.42, 0.72], 0.0, body, false);
+        // The flywheel stands in the y-z plane; its two spokes turn about x (the box pitch, slot 12).
+        let spin = if self.running() { (time * 5.0) as f32 } else { 0.0 };
+        // Different thicknesses, so the crossing spokes never share a face (it would flicker).
+        for spoke in [[0.06, 0.62, 0.12], [0.05, 0.12, 0.62]] {
+            push_box(out, rel + Vec3::new(0.32, 0.0, 0.05), 0.0, spoke, 0.0, [tex::IRON_PLATE; 3], false);
+            let n = out.len();
+            out[n - 4] = spin;
+        }
+        push_box(out, rel + Vec3::new(0.34, 0.0, 0.05), 0.0, [0.08, 0.14, 0.14], 0.0, [tex::COPPER_INGOT; 3], false);
+        let hopper = [tex::BOX_TOP, tex::GENERATOR_SIDE, tex::FRAME];
+        push_box(out, rel + Vec3::new(-0.2, 0.2, 0.2), 0.0, [0.34, 0.24, 0.3], 0.0, hopper, false);
+        push_box(out, rel + Vec3::new(-0.22, 0.38, -0.26), 0.0, [0.18, 0.76, 0.18], 0.0, [tex::SOOT; 3], false);
+        push_box(out, rel + Vec3::new(-0.22, 0.78, -0.26), 0.0, [0.24, 0.06, 0.24], 0.0, [tex::SOOT; 3], false);
+        if self.running() {
+            smoke::puffs(out, rel + Vec3::new(-0.22, 0.82, -0.26), time, smoke::seed(self.pos), 0.45);
+        }
         let lamp = match (self.running(), self.fuel.total() > 0 || self.energy > 0) {
             (true, _) => tex::LAMP_GREEN,
             (false, true) => tex::FRAME,
             (false, false) => tex::LAMP_RED,
         };
-        push_box(out, rel + Vec3::new(0.3, 0.1, 0.36), 0.0, [0.12, 0.08, 0.12], 0.0, [lamp; 3], false);
+        push_box(out, rel + Vec3::new(0.12, 0.12, 0.28), 0.0, [0.12, 0.08, 0.12], 0.0, [lamp; 3], false);
         if self.tier > 0 {
             let band = [tex::stripe(self.tier); 3];
-            push_box(out, rel + Vec3::new(0.0, -0.3, 0.0), 0.0, [0.79, 0.08, 0.77], 0.0, band, false);
+            push_box(out, rel + Vec3::new(-0.08, -0.28, 0.0), 0.0, [0.66, 0.08, 0.76], 0.0, band, false);
         }
     }
 }

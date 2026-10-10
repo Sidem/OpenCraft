@@ -343,11 +343,13 @@ fn a_boiler_draws_three_chutes_three_water_inlets_two_steam_outlets_and_a_gauge(
         out.len() / INSTANCE_FLOATS
     };
     let mut f = boiler_with_turbines();
-    // 6 tank parts; a chute of 2 boxes at each of 3 coal inlets, a nipple and a flange at each of 3 water inlets and
-    // each of 2 steam outlets; the gauge frame. A turbine: its parts and 2 steam inlets of 2 boxes.
-    assert_eq!(boxes(&f.processors[0]), BOILER_PARTS.len() + 6 + 6 + 4 + 1);
+    // The body parts but the smoke (none while cold); a chute of 2 boxes at each of 3 coal inlets, a nipple and a
+    // flange at each of 3 water inlets and each of 2 steam outlets; the gauge frame. A turbine: its parts and 2 steam
+    // inlets of 2 boxes.
+    let body = BOILER_PARTS.len() - 1;
+    assert_eq!(boxes(&f.processors[0]), body + 6 + 6 + 4 + 1);
     f.processors[0].steam.water = UNIT_ENERGY;
-    assert_eq!(boxes(&f.processors[0]), BOILER_PARTS.len() + 6 + 6 + 4 + 2, "water shows in the gauge");
+    assert_eq!(boxes(&f.processors[0]), body + 6 + 6 + 4 + 2, "water shows in the gauge");
     assert_eq!(boxes(&f.processors[1]), TURBINE_PARTS.len() + 4);
 }
 

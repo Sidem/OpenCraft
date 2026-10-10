@@ -300,3 +300,6 @@ Detailed entries for A0–A4 live in git history (`git log -- docs/ART_HANDOVER.
   pictures.
 - **2026-09-27 (roadmap agent):** Milestone 4 added day and night (`render/sky.ts`) and per-vertex sky
   and block light (`light.rs`, the light curve in `shaders.ts`), and the lamp (block 44, layer 105).
+- **2026-10-10 (main, on the user's request):** about 20 machine models redone for legibility (round bodies as two
+  crossed parts, `paint::round_shade`; vessel sides without window-like rivet rows), a steam locomotive and new
+  wagons, smoke (`factory/smoke.rs`, layers 281–282) and `SOOT` (284). Rebase art work on these.

@@ -1,5 +1,6 @@
 // Day and night: `skyAt` turns the engine's time of day (0 midnight, 0.25 sunrise, 0.5 noon) into the
-// sun's direction, sky and fog colours and the daylight that scales sky-lit terrain; `SkyPass` draws the
+// sun's direction, sky and fog colours, the daylight that scales sky-lit terrain and the direct light
+// (sun or moon) that lights the faces turned towards it; `SkyPass` draws the
 // sky behind everything: a zenith-to-horizon gradient, the sun, the moon opposite it, and stars at
 // night. Nights are dark blue, never black (a moonlight floor). Presentation only. To change the look:
 // the colour constants below.
@@ -17,6 +18,10 @@ const DAY_LIGHT: Rgb = [1, 1, 1];
 const DUSK_LIGHT: Rgb = [1, 0.78, 0.6];
 /** Moonlight: how bright sky-lit ground stays at midnight. */
 const NIGHT_LIGHT: Rgb = [0.2, 0.24, 0.38];
+/** Direct light on faces turned to it (shaders.ts `faceShade`): white at noon, golden low, pale moon. */
+const NOON_SUN: Rgb = [1, 0.97, 0.9];
+const LOW_SUN: Rgb = [1.6, 0.95, 0.5];
+const MOON: Rgb = [0.32, 0.4, 0.62];
 
 export interface Sky {
   /** Unit vector towards the sun (the moon is opposite). */
@@ -28,6 +33,10 @@ export interface Sky {
   light: Rgb;
   /** 0 at night, 1 by day. */
   day: number;
+  /** Unit vector towards the direct light: the sun by day, the moon by night. */
+  lightDir: Rgb;
+  /** The direct light's colour and strength (fades out as its source nears the horizon). */
+  direct: Rgb;
 }
 
 export function skyAt(t: number): Sky {
@@ -39,7 +48,11 @@ export function skyAt(t: number): Sky {
   const dusk = Math.exp(-(h * h) / 0.018) * smoothstep(-0.25, -0.05, h);
   const light = mix(mix(NIGHT_LIGHT, DAY_LIGHT, day), DUSK_LIGHT, dusk * 0.7);
   const horizon = mix(mix(NIGHT_HORIZON, DAY_HORIZON, day), DUSK_HORIZON, dusk * 0.55);
-  return { sun, zenith: mix(NIGHT_ZENITH, DAY_ZENITH, day), horizon, light, day };
+  const lightDir: Rgb = h >= 0 ? sun : [-sun[0], -sun[1], -sun[2]];
+  const rise = smoothstep(0, 0.1, Math.abs(h));
+  const colour = h >= 0 ? mix(LOW_SUN, NOON_SUN, smoothstep(0.05, 0.45, h)) : MOON;
+  const direct: Rgb = [colour[0] * rise, colour[1] * rise, colour[2] * rise];
+  return { sun, zenith: mix(NIGHT_ZENITH, DAY_ZENITH, day), horizon, light, day, lightDir, direct };
 }
 
 /** The time of day as a clock, e.g. "14:05". */

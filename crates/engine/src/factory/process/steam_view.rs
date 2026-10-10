@@ -31,6 +31,8 @@ const FLANGE_THICK: f32 = 0.08;
 /// The gauge: its place on the front, its centre height, its height and the most water it shows.
 const GAUGE_X: f64 = 0.72;
 const GAUGE_Y: f64 = 0.25;
+/// How far in front of the centre the gauge sits: on the boiler drum's front (`BOILER_PARTS`).
+const GAUGE_Z: f64 = 0.59;
 const GAUGE_TALL: f32 = 0.7;
 const GAUGE_HIGH: f64 = 0.6;
 /// Water held at which the gauge is full: a unit just taken on top of the level that asks for one.
@@ -60,12 +62,12 @@ pub(super) fn draw_boiler(p: &Processor, out: &mut Vec<f32>, rel: Vec3, centre: 
     let level = f64::from(p.steam.water.min(FULL)) / f64::from(FULL);
     let top = GAUGE_Y - f64::from(GAUGE_TALL) / 2.0;
     let frame = [tex::FRAME; 3];
-    push_box(out, local(centre, yaw, [GAUGE_X, GAUGE_Y, 0.93]), yaw, [0.16, GAUGE_TALL, 0.08], 0.0, frame, false);
+    push_box(out, local(centre, yaw, [GAUGE_X, GAUGE_Y, GAUGE_Z]), yaw, [0.16, GAUGE_TALL, 0.08], 0.0, frame, false);
     let high = GAUGE_HIGH * level;
     if high > 0.02 {
         let y = top + 0.05 + high * 0.5;
         let size = [0.08, high as f32, 0.04];
-        push_box(out, local(centre, yaw, [GAUGE_X, y, 0.97]), yaw, size, 0.0, [tex::WATER; 3], false);
+        push_box(out, local(centre, yaw, [GAUGE_X, y, GAUGE_Z + 0.04]), yaw, size, 0.0, [tex::WATER; 3], false);
     }
 }
 

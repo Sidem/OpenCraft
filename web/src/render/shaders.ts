@@ -4,7 +4,7 @@
 // the pixel art stays crisp. Repetition is broken in the textures instead (alternates per block).
 // `WATER` is the translucent liquid variant (render/water.ts): no AO (those bits mark the water line:
 // 1 lowers it a tenth of a block, 2 and 3 more for thinner flowing water), a surface that drifts over
-// time, and the texture's alpha kept.
+// time and glints in the sun, and the texture's alpha kept.
 
 export const TERRAIN_TINT_PERIOD = 256;
 
@@ -20,14 +20,24 @@ vec3 applyFog(vec3 col, vec3 rel) {
 // The colour of a cell's light (sky light | block light << 4, each 0..15, from light.rs), shared by the
 // terrain and the instanced boxes so machines and items are lit like the ground beside them. Each sky
 // light level below 15 dims by a fifth; block light (lamps) is warm and fades a little more gently;
-// caves keep a faint floor.
+// caves keep a faint floor. That light is the ambient part (`AMBIENT` of a face's shade); `sunLight` adds
+// the sun (the moon at night) on top, in its own colour, to faces turned towards it and only where the
+// sky reaches, so a low sun still lights the slopes facing it gold while the rest falls into shade.
 const LIGHT = /* glsl */ `
 const vec3 BLOCK_LIGHT = vec3(1.1, 0.88, 0.6);
 const float CAVE_FLOOR = 0.05;
+const float AMBIENT = 0.8;
+const float DIRECT = 0.34;
+uniform vec3 u_sunDir; // towards the sun by day, the moon by night (render/sky.ts)
+uniform vec3 u_direct; // that light's colour and strength
 vec3 lightTint(uint light, vec3 skyLight) {
   float sky = pow(0.8, 15.0 - float(light & 15u));
   float lamp = pow(0.84, 15.0 - float(light >> 4u)) * step(1.0, float(light >> 4u));
   return max(sky * skyLight, lamp * BLOCK_LIGHT) + CAVE_FLOOR;
+}
+vec3 sunLight(vec3 n, uint light) {
+  float sky = pow(0.8, 15.0 - float(light & 15u));
+  return u_direct * (DIRECT * max(dot(n, u_sunDir), 0.0) * sky * sky);
 }
 `;
 
@@ -45,12 +55,15 @@ uniform vec3 u_skyLight; // daylight colour (render/sky.ts)
 
 out vec3 v_uvl;
 out float v_light;
+out vec3 v_sun;
 out vec3 v_tint;
 out vec3 v_rel;
 out vec2 v_ground;
 
-// Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads.
+// Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads (lit mostly from above).
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
+const vec3 FACE_NORMAL[8] = vec3[8](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), vec3(0, -1, 0), vec3(0, 0, 1),
+                                    vec3(0, 0, -1), vec3(0, 0.7, 0), vec3(0, 0.7, 0));
 const float AO_CURVE[4] = float[4](0.40, 0.60, 0.80, 1.0);
 ${LIGHT}
 void main() {
@@ -74,9 +87,11 @@ void main() {
   p.y -= ao > 0u ? 0.3 * float(ao) - 0.2 : 0.0;
   v_uvl = vec3(uv, layer);
   v_light = FACE_SHADE[face];
+  v_sun = vec3(0.0);
 #else
   v_uvl = vec3(uv, layer);
-  v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AO_CURVE[ao];
+  v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AMBIENT * AO_CURVE[ao];
+  v_sun = sunLight(FACE_NORMAL[face], a_light) * AO_CURVE[ao];
 #endif
   v_tint = lightTint(a_light, u_skyLight);
   v_rel = u_offset + p;
@@ -93,6 +108,7 @@ uniform sampler2DArray u_tex;
 ${FOG}
 in vec3 v_uvl;
 in float v_light;
+in vec3 v_sun;
 in vec3 v_tint;
 in vec3 v_rel;
 out vec4 o_color;
@@ -113,14 +129,22 @@ float terrainField(vec2 p, float cells) {
 #endif
 #ifdef WATER
 uniform float u_time; // seconds
+uniform vec3 u_sunDir;
+uniform vec3 u_direct;
 #endif
 
 void main() {
 #ifdef WATER
   // Two copies of the texture drifting apart (one mirrored, half a block off) make the surface shimmer.
-  vec4 c = mix(texture(u_tex, v_uvl + vec3(u_time * 0.21, u_time * 0.13, 0.0)),
-               texture(u_tex, vec3(0.5 - v_uvl.x + u_time * 0.11, v_uvl.y + 0.37 - u_time * 0.17, v_uvl.z)), 0.5);
-  o_color = vec4(applyFog(c.rgb * v_light * v_tint, v_rel), c.a);
+  vec4 a = texture(u_tex, v_uvl + vec3(u_time * 0.21, u_time * 0.13, 0.0));
+  vec4 b = texture(u_tex, vec3(0.5 - v_uvl.x + u_time * 0.11, v_uvl.y + 0.37 - u_time * 0.17, v_uvl.z));
+  vec4 c = mix(a, b, 0.5);
+  // The sun (the moon at night) glints on open water: its reflection off a surface the two copies ripple.
+  vec3 n = normalize(vec3((a.r - b.r) * 0.9, 1.0, (a.g - b.g) * 0.9));
+  float glint = pow(max(dot(reflect(normalize(v_rel), n), u_sunDir), 0.0), 160.0)
+              * step(0.95, v_light) * clamp(v_tint.g * 1.5 - 0.2, 0.0, 1.0);
+  vec3 col = c.rgb * v_light * v_tint + u_direct * glint * 1.6;
+  o_color = vec4(applyFog(col, v_rel), max(c.a, min(glint, 1.0)));
 #else
   vec4 c = texture(u_tex, v_uvl);
 #ifdef CUTOUT
@@ -132,7 +156,7 @@ void main() {
               + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;
   c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
 #endif
-  o_color = vec4(applyFog(c.rgb * v_light * v_tint, v_rel), 1.0);
+  o_color = vec4(applyFog(c.rgb * (v_light * v_tint + v_sun), v_rel), 1.0);
 #endif
 }
 `;
@@ -146,13 +170,14 @@ layout(location = 0) in vec4 a_corner; // unit cube corner (±0.5) and face inde
 layout(location = 1) in vec4 a_i0;     // camera-relative centre, yaw
 layout(location = 2) in vec4 a_i1;     // size, uv scroll (top face)
 layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; uv mode (0 whole texture, 1 world-scaled) + 2 * light
-layout(location = 4) in vec4 a_i3;     // pitch, roll, top-width taper, reserved
+layout(location = 4) in vec4 a_i3;     // pitch, roll, top-width taper, glow (0 or 1)
 
 uniform mat4 u_viewProj;
 uniform vec3 u_skyLight;
 
 out vec3 v_uvl;
 out float v_light;
+out vec3 v_sun;
 out vec3 v_tint;
 out vec3 v_rel;
 ${LIGHT}
@@ -181,9 +206,12 @@ void main() {
   mat3 roll = mat3(cr, sr, 0.0, -sr, cr, 0.0, 0.0, 0.0, 1.0);
   mat3 rot = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c) * roll * tilt;
   vec3 n = rot * NORMALS[face];
-  v_light = n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86));
+  uint light = uint(a_i2.w * 0.5);
+  float glow = a_i3.w; // a status light, lamp, beam or flame lights itself (factory/render.rs GLOWING)
+  v_light = mix((n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86))) * AMBIENT, 1.0, glow);
+  v_sun = sunLight(n, light) * (1.0 - glow);
   v_uvl = vec3(uv, layer);
-  v_tint = lightTint(uint(a_i2.w * 0.5), u_skyLight);
+  v_tint = mix(lightTint(light, u_skyLight), vec3(1.0), glow);
   v_rel = a_i0.xyz + rot * local;
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }

@@ -138,7 +138,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
@@ -334,6 +334,8 @@ export class Renderer {
       gl.uniform1i(pass.u.u_tex, 0);
       gl.uniform3f(pass.u.u_fogColor, ...fog.color);
       gl.uniform3f(pass.u.u_skyLight, ...sky.light);
+      gl.uniform3f(pass.u.u_sunDir, ...sky.lightDir);
+      gl.uniform3f(pass.u.u_direct, ...sky.direct);
       gl.uniform2f(pass.u.u_fog, fogStart, fogEnd);
       for (const m of vis) {
         const n = isCutout ? m.cutout : m.opaque;

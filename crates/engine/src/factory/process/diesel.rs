@@ -51,13 +51,14 @@ const STEEL: Look = Look::Tex([tex::STEEL; 3]);
 const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 
 /// Across and deep 2, 2 high (±1): a banded plinth, an engine block with a roof plate, a tall exhaust stack at the
-/// back with a flame that burns while it gives power, a copper terminal and a status lamp.
-const DIESEL_PARTS: [Part; 7] = [
+/// back with a cap that smokes while it gives power, a copper terminal and a status lamp.
+const DIESEL_PARTS: [Part; 8] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.2, 0.15], [1.8, 1.2, 1.5], Look::Tex(BODY)),
     part([0.0, 0.46, 0.15], [1.9, 0.1, 1.6], FRAME),
-    part([-0.55, 0.6, -0.65], [0.3, 0.9, 0.3], STEEL),
-    part([-0.55, 1.1, -0.65], [0.2, 0.3, 0.2], Look::Fire(tex::GENERATOR_SIDE)),
+    part([-0.55, 0.6, -0.65], [0.24, 0.9, 0.24], STEEL),
+    part([-0.55, 1.07, -0.65], [0.32, 0.06, 0.32], Look::Tex([tex::SOOT; 3])),
+    part([-0.55, 1.12, -0.65], [0.55, 0.0, 0.0], Look::Smoke),
     part([0.5, 0.62, 0.15], [0.3, 0.2, 0.3], Look::Tex([tex::COPPER_INGOT; 3])),
     part([0.78, 0.0, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
 ];

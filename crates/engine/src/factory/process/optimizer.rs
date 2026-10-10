@@ -20,7 +20,7 @@ use super::super::fibre::Data;
 use super::super::footprint::Footprint;
 use super::super::pole::dist2;
 use super::super::power::{Power, FULL_SPEED};
-use super::model::{part, Look, Part};
+use super::model::{drum_x, drum_z, part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 /// TF it uses.
@@ -81,15 +81,18 @@ pub(in crate::factory) fn bonus_at(bonuses: &[(IVec3, u32)], pos: IVec3) -> u32 
     FULL_SPEED + best.map(|&(_, extra)| extra).max().unwrap_or(0)
 }
 
-/// Across and deep 2, 2 high (±1): a banded plinth, a dark cabinet, a crown ring, a tall mast with a lit tip and a status
-/// lamp.
-const PARTS: [Part; 6] = [
+/// Across and deep 2, 2 high (±1): a banded plinth, a dark cabinet, a low round crown (two crossed parts), a tall
+/// broadcast mast with two crossed yards and a lit tip (it reaches the machines round it), and a status lamp.
+const PARTS: [Part; 9] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.25, 0.0], [1.9, 1.1, 1.9], Look::Tex([tex::OPT_TOP, tex::OPT_SIDE, tex::FRAME])),
-    part([0.0, 0.5, 0.0], [1.5, 0.4, 1.5], Look::Tex([tex::OPT_TOP, tex::OPT_SIDE, tex::FRAME])),
-    part([0.0, 1.1, 0.0], [0.12, 0.8, 0.12], Look::Tex([tex::FRAME; 3])),
-    part([0.0, 1.55, 0.0], [0.24, 0.24, 0.24], Look::Lamp),
-    part([0.78, -0.3, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
+    drum_x([0.0, 0.45, 0.0], [1.4, 0.3, 1.4], Look::Tex([tex::OPT_TOP, tex::OPT_SIDE, tex::FRAME])),
+    drum_z([0.0, 0.45, 0.0], [1.4, 0.3, 1.4], Look::Tex([tex::OPT_TOP, tex::OPT_SIDE, tex::FRAME])),
+    part([0.0, 1.15, 0.0], [0.12, 1.1, 0.12], Look::Tex([tex::FRAME; 3])),
+    part([0.0, 1.2, 0.0], [0.9, 0.06, 0.06], Look::Tex([tex::FRAME; 3])),
+    part([0.0, 1.27, 0.0], [0.06, 0.06, 0.9], Look::Tex([tex::FRAME; 3])),
+    part([0.0, 1.75, 0.0], [0.24, 0.24, 0.24], Look::Lamp),
+    part([0.6, -0.3, 0.97], [0.14, 0.1, 0.04], Look::Lamp),
 ];
 
 #[cfg(test)]

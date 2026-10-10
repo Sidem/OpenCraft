@@ -80,15 +80,18 @@ pub(in crate::factory) fn bonus_at(bonuses: &[(IVec3, u32)], pos: IVec3) -> u32 
     near.map(|&(_, extra)| extra).max().unwrap_or(0)
 }
 
-/// A banded plinth, a dark body, a crown, a mast with three small dishes pointing out and a status lamp.
-const PARTS: [Part; 7] = [
+/// A banded plinth, a dark body, a wide landing pad overhanging it on a short neck with two drones parked on it, a
+/// corner mast with a small dish, and a status lamp.
+const PARTS: [Part; 9] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
-    part([0.0, -0.25, 0.0], [1.9, 1.1, 1.9], Look::Tex([tex::HUB_TOP, tex::HUB_SIDE, tex::FRAME])),
-    part([0.0, 0.5, 0.0], [1.4, 0.4, 1.4], Look::Tex([tex::HUB_TOP, tex::HUB_SIDE, tex::FRAME])),
-    part([0.0, 1.0, 0.0], [0.12, 0.6, 0.12], Look::Tex([tex::FRAME; 3])),
-    part([0.3, 1.2, 0.0], [0.4, 0.06, 0.4], Look::Tex([tex::HUB_TOP; 3])),
-    part([-0.3, 1.0, 0.0], [0.4, 0.06, 0.4], Look::Tex([tex::HUB_TOP; 3])),
-    part([0.78, -0.3, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
+    part([0.0, -0.3, 0.0], [1.9, 1.0, 1.9], Look::Tex([tex::HUB_TOP, tex::HUB_SIDE, tex::FRAME])),
+    part([0.0, 0.3, 0.0], [1.2, 0.2, 1.2], Look::Tex([tex::FRAME; 3])),
+    part([0.0, 0.45, 0.0], [2.2, 0.1, 2.2], Look::Tex([tex::HUB_TOP, tex::FRAME, tex::FRAME])),
+    part([-0.45, 0.56, 0.35], [0.36, 0.12, 0.36], Look::Tex([tex::HUB_SIDE; 3])),
+    part([0.45, 0.56, -0.3], [0.36, 0.12, 0.36], Look::Tex([tex::HUB_SIDE; 3])),
+    part([-0.95, 0.85, -0.95], [0.08, 0.8, 0.08], Look::Tex([tex::FRAME; 3])),
+    part([-0.95, 1.2, -0.75], [0.36, 0.36, 0.05], Look::Tex([tex::HUB_TOP; 3])),
+    part([0.6, -0.3, 0.97], [0.14, 0.1, 0.04], Look::Lamp),
 ];
 
 #[cfg(test)]

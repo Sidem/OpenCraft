@@ -60,20 +60,28 @@ const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 const LOAD: [u16; 3] = [tex::DOCK_LOAD_TOP, tex::DOCK_SIDE, tex::FRAME];
 const UNLOAD: [u16; 3] = [tex::DOCK_UNLOAD_TOP, tex::DOCK_SIDE, tex::FRAME];
 
-/// A low platform: a banded plinth, a body, and a hopper whose chute points down for loading (a wide funnel over
-/// the body) or a flat apron for unloading, a status lamp on a corner.
-const LOADING_PARTS: [Part; 5] = [
+/// The two docks are opposites. Loading: a low platform with a hopper raised on four legs above it and a spout
+/// pointing down, so goods pour into the wagon from above.
+const LOADING_PARTS: [Part; 9] = [
     part([0.0, -0.42, 0.0], [1.96, 0.16, 1.96], Look::Band(tex::FRAME)),
-    part([0.0, -0.15, 0.0], [1.84, 0.38, 1.84], Look::Tex(LOAD)),
-    part([0.0, 0.2, 0.0], [1.2, 0.32, 1.2], Look::Tex(LOAD)),
-    part([0.0, 0.4, 0.0], [1.6, 0.08, 1.6], FRAME),
-    part([0.85, 0.03, 0.85], [0.12, 0.08, 0.12], Look::Lamp),
+    part([0.0, -0.2, 0.0], [1.84, 0.28, 1.84], Look::Tex(LOAD)),
+    part([-0.6, 0.3, -0.6], [0.1, 0.7, 0.1], FRAME),
+    part([0.6, 0.3, -0.6], [0.1, 0.7, 0.1], FRAME),
+    part([-0.6, 0.3, 0.6], [0.1, 0.7, 0.1], FRAME),
+    part([0.6, 0.3, 0.6], [0.1, 0.7, 0.1], FRAME),
+    part([0.0, 0.8, 0.0], [1.4, 0.4, 1.4], Look::Tex(LOAD)),
+    part([0.0, 0.4, 0.0], [0.36, 0.4, 0.36], Look::Tex([tex::STEEL; 3])),
+    part([0.85, -0.03, 0.85], [0.12, 0.08, 0.12], Look::Lamp),
 ];
 
-const UNLOADING_PARTS: [Part; 5] = [
+/// Unloading: a sunken grate between raised curbs that the wagon tips into, and a chute leading away below it.
+const UNLOADING_PARTS: [Part; 8] = [
     part([0.0, -0.42, 0.0], [1.96, 0.16, 1.96], Look::Band(tex::FRAME)),
-    part([0.0, -0.15, 0.0], [1.84, 0.38, 1.84], Look::Tex(UNLOAD)),
-    part([0.0, 0.1, 0.0], [1.6, 0.12, 1.6], FRAME),
-    part([0.0, 0.2, -0.6], [1.6, 0.3, 0.12], Look::Tex(UNLOAD)),
-    part([0.85, 0.03, 0.85], [0.12, 0.08, 0.12], Look::Lamp),
+    part([0.0, -0.22, 0.0], [1.84, 0.24, 1.84], Look::Tex(UNLOAD)),
+    part([0.0, -0.02, 0.85], [1.8, 0.18, 0.12], FRAME),
+    part([0.0, -0.02, -0.85], [1.8, 0.18, 0.12], FRAME),
+    part([0.85, -0.02, 0.0], [0.12, 0.18, 1.56], FRAME),
+    part([-0.85, -0.02, 0.0], [0.12, 0.18, 1.56], FRAME),
+    part([0.0, -0.3, -1.04], [0.5, 0.24, 0.12], Look::Tex([tex::STEEL, tex::SOOT, tex::STEEL])),
+    part([0.8, 0.11, 0.8], [0.1, 0.08, 0.1], Look::Lamp),
 ];
