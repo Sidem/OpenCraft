@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; 736 tests, save version 43) · **Next: step 12.1, rocket parts and the launch site** (Milestone 12 is a first draft in section 4; the interlude chosen for after 11 is unplanned and may go first) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 43) · **Now: the less-hand-crafting interlude** (user's choice 2026-10-09; L1 + L2 built: `player_bonus` and Handcrafting I–III; 739 tests) · **Next: L3, worn craft-speed gear**, then L4 (plan with the user), then step 12.1 (Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -40,7 +40,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **Next: Milestone 12: Orbit** (section 4, a first draft to refine with the user at 12.1).
+- **Now: the less-hand-crafting interlude** (section 4, steps L1–L4), **then Milestone 12: Orbit** (a first draft to
+  refine with the user at 12.1).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -429,7 +430,7 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 11: Compute and photonics
+## 4. Now: the less-hand-crafting interlude, then Milestone 12: Orbit
 
 Milestones 6 (Industry), 7 (Electronics, blueprints, drones), 8 (Terraforming), 9 (Distance) and 10 (Fluids and chemistry)
 are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `docs/CHANGELOG_M9.md` and
@@ -440,7 +441,7 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 43) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 109, item 382, tech 74, machine recipe 64). Each new look gets a placeholder layer (`tex::COUNT` is 281) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 109, item 382, tech 77, machine recipe 64). Each new look gets a placeholder layer (`tex::COUNT` is 281) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -498,6 +499,16 @@ blocks, a swarm hub (100 kW, 30 TF) +50% drones on every port within 12, so comp
 pump (a unit per 10 s) or a cooling tower (about a twentieth of that). A laser link costs 10% of what crosses it and 128 blocks
 at most. The endless bonus techs cost compute only and grow a quarter dearer a level. Auto-routing and the AI survey are free to use
 once researched.
+
+### Interlude: less hand-crafting (chosen by the user on 2026-10-09 to go before Milestone 12; design in `docs/ROADMAP.md`)
+
+- [x] **L1 + L2 `player_bonus` and hand-crafting speed techs** (built 2026-10-09): `perks.rs` (`Stat::Crafting`,
+  `player_bonus` sums finished `Unlock::Perk(stat, tier)` techs, +25% each, linear), techs Handcrafting I–III 74–76
+  (`research/hands.rs`: green, blue, violet packs), `crafting::craft_ticks` shortens each craft (ticks still count real
+  ticks, so no save change); the build menu's "Takes N s" shows the faster time. Golden hash re-recorded (tech table grew).
+- [ ] **L3 Worn craft-speed gear:** an item in the gear slots (`equipment`), a later tier on gold; `player_bonus` takes the
+  player's inventory and adds it. Done when: wearing it shortens a craft in a test, taking it off restores the time.
+- [ ] **L4 Craft from nearby boxes, or by request** (M): plan it with the user first (ROADMAP item 4).
 
 ### Milestone 12 steps (Orbit; moved in from the roadmap, a first draft to refine at 12.1 with the user)
 
@@ -560,6 +571,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-09: Hand-crafting speed (interlude steps L1 + L2).** `perks.rs` (`player_bonus`, `Stat::Crafting`, `Unlock::Perk`), techs Handcrafting I–III 74–76 (`research/hands.rs`, +25% each), `crafting::craft_ticks`. Golden hash re-recorded (tech table grew), no save bump. Tests 736 → 739. Next free block 109, tech 77, texture 281.
 - **2026-10-09: Milestone 11 cleanup (step 11.13).** Three tips (compute, lasers, smarter tools), `bench_compute` (about 2 µs a tick, worst under 0.1 ms), the balance note, README and CODEMAP, the Milestone 11 step list moved to `docs/CHANGELOG_M11.md`, Milestone 12 moved in from the roadmap as a first draft. Tests stay at 736. Next free block 109, tech 74, texture 281.
 - **2026-10-09: AI survey (step 11.12).** `survey.rs` (guesses from stained soil, `MARK_GUESS` rings on both maps), `Feature::AiSurvey`, tech AI Survey 73. Golden hash re-recorded (tech table grew), no save bump. Tests 731 → 736. Next free block 109, tech 74, texture 281.
 - **2026-10-09: Auto-routing (step 11.11).** `belt_line/route.rs` (A* route to an aimed machine, ghost lines in ghost mode), `Unlock::Feature`, tech Auto-Routing 72. Golden hash re-recorded (tech table grew), no save bump. Tests 721 → 731. Next free block 109, tech 73, texture 281.

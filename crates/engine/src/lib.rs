@@ -59,6 +59,7 @@ mod mode;
 mod net;
 mod noise;
 mod ore_guide;
+mod perks;
 mod physics;
 mod player;
 mod power_tools;

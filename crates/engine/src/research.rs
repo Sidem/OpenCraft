@@ -17,6 +17,7 @@ mod bonus;
 mod chemistry;
 mod compute;
 mod distance;
+mod hands;
 mod join;
 mod personal;
 mod queue;
@@ -32,6 +33,7 @@ use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tiers;
 use crate::item::{ItemId, BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
+use crate::perks::Stat;
 use crate::recipes::MACHINE_RECIPES;
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -46,6 +48,8 @@ pub enum Unlock {
     Bonus(Bonus),
     /// A tool or view the player gets (`Feature`).
     Feature(Feature),
+    /// One tier (1, 2, ...) of a player's own rate; `perks::player_bonus` adds up the finished tiers.
+    Perk(Stat, u8),
 }
 
 /// What a `Unlock::Feature` switches on; the code that offers it asks `Research::has`.
@@ -64,7 +68,7 @@ impl Unlock {
             Unlock::Recipe(item) => item,
             Unlock::MachineRecipe(i) => MACHINE_RECIPES.get(i as usize).map_or(ItemId::NONE, |r| r.main().0),
             Unlock::Upgrade(block, tier) => tiers::item_of(block, tier).unwrap_or(ItemId::NONE),
-            Unlock::Bonus(_) | Unlock::Feature(_) => ItemId::NONE,
+            Unlock::Bonus(_) | Unlock::Feature(_) | Unlock::Perk(..) => ItemId::NONE,
         }
     }
 }

@@ -4,7 +4,8 @@
 //! materials leave the inventory at once and wait in the order's own `held` pool; each craft takes its
 //! inputs from the pool when it starts, works for `Recipe::hand_ticks`, and puts its output in the pool
 //! (a part for a later craft) or in the inventory (`deliver`: what the player asked for). Orders run one
-//! after another, one craft at a time.
+//! after another, one craft at a time. Research speeds crafts up (`perks::player_bonus`, `craft_ticks`): `ticks`
+//! still counts real ticks, only the length of a craft shrinks, so saves are unchanged.
 //!
 //! Invariants: an order's steps are in the order they can run, so a craft's inputs are always in the
 //! pool when it starts; cancelling (or the player leaving) returns the pool and the inputs of a craft in
@@ -17,6 +18,7 @@
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::{Inventory, Stack};
 use crate::item::ItemId;
+use crate::perks::{player_bonus, Stat};
 use crate::recipes::{Recipe, RECIPES};
 use crate::research::{Research, Unlock};
 use crate::sim::{PlayerId, Sim, SimEvent};
@@ -76,26 +78,35 @@ impl Order {
         self.steps.last().map_or(0, |s| s.times * RECIPES[s.recipe as usize].count)
     }
 
-    /// How far the craft in progress is, in thousandths (0 before it starts).
-    pub fn step_permille(&self) -> u32 {
-        let each = self.steps.first().map_or(1, |s| RECIPES[s.recipe as usize].hand_ticks());
+    /// How far the craft in progress is at `speed`, in thousandths (0 before it starts).
+    pub fn step_permille(&self, speed: u32) -> u32 {
+        let each = self.steps.first().map_or(1, |s| craft_ticks(&RECIPES[s.recipe as usize], speed));
         if self.busy {
-            self.ticks * 1000 / each.max(1)
+            (self.ticks * 1000 / each).min(1000)
         } else {
             0
         }
     }
 
-    /// Ticks left, counting the craft in progress.
-    fn ticks_left(&self) -> u32 {
-        let all: u32 = self.steps.iter().map(|s| s.times * RECIPES[s.recipe as usize].hand_ticks()).sum();
+    /// Ticks left at `speed`, counting the craft in progress.
+    fn ticks_left(&self, speed: u32) -> u32 {
+        let all = total_ticks(&self.steps, speed);
         all.saturating_sub(if self.busy { self.ticks } else { 0 })
     }
 
-    /// Progress of the whole order in thousandths.
-    pub fn permille(&self) -> u32 {
-        (self.total.saturating_sub(self.ticks_left()) * 1000).checked_div(self.total).unwrap_or(0)
+    /// Progress of the whole order at `speed` in thousandths.
+    pub fn permille(&self, speed: u32) -> u32 {
+        (self.total.saturating_sub(self.ticks_left(speed)) * 1000).checked_div(self.total).unwrap_or(0)
     }
+}
+
+/// Ticks one craft of `r` takes by hand at `speed` (thousandths of the base rate: `perks::player_bonus`), at least 1.
+pub fn craft_ticks(r: &Recipe, speed: u32) -> u32 {
+    (r.hand_ticks() * 1000).div_ceil(speed.max(1)).max(1)
+}
+
+fn total_ticks(steps: &[Step], speed: u32) -> u32 {
+    steps.iter().map(|s| s.times * craft_ticks(&RECIPES[s.recipe as usize], speed)).sum()
 }
 
 /// A player's queued orders; the first one is being worked on.
@@ -218,7 +229,7 @@ impl CraftQueue {
             inv.remove(item, n);
             add_to_pool(&mut held, item, n);
         }
-        let total = plan.steps.iter().map(|s| s.times * RECIPES[s.recipe as usize].hand_ticks()).sum();
+        let total = total_ticks(&plan.steps, player_bonus(research, Stat::Crafting));
         self.orders.push(Order { steps: plan.steps, held, total, ..Order::default() });
         true
     }
@@ -246,8 +257,8 @@ impl CraftQueue {
         }
     }
 
-    /// Works one tick on the first order.
-    pub fn tick(&mut self, inv: &mut Inventory, player: PlayerId, events: &mut Vec<SimEvent>) {
+    /// Works one tick on the first order, crafting at `speed` (thousandths of the base rate).
+    pub fn tick(&mut self, inv: &mut Inventory, player: PlayerId, speed: u32, events: &mut Vec<SimEvent>) {
         let Some(order) = self.orders.first_mut() else { return };
         let step = order.steps[0];
         let r = &RECIPES[step.recipe as usize];
@@ -258,7 +269,7 @@ impl CraftQueue {
             (order.busy, order.ticks) = (true, 0);
         }
         order.ticks += 1;
-        if order.ticks < r.hand_ticks() {
+        if order.ticks < craft_ticks(r, speed) {
             return;
         }
         order.busy = false;
@@ -331,9 +342,13 @@ impl CraftQueue {
 impl Sim {
     /// One tick of every player's first order.
     pub(crate) fn run_crafting(&mut self) {
+        if self.players.iter().flatten().all(|c| c.crafts.orders.is_empty()) {
+            return;
+        }
+        let speed = player_bonus(&self.factory.research, Stat::Crafting);
         for (i, core) in self.players.iter_mut().enumerate() {
             if let Some(core) = core.as_mut().filter(|c| !c.crafts.orders.is_empty()) {
-                core.crafts.tick(&mut core.inventory, PlayerId(i as u8), &mut self.events);
+                core.crafts.tick(&mut core.inventory, PlayerId(i as u8), speed, &mut self.events);
             }
         }
     }

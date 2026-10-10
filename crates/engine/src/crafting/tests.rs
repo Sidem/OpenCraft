@@ -93,12 +93,30 @@ fn crafts_take_time_one_after_another_and_deliver_when_done() {
     assert_eq!(count(&sim, IRON_PLATE), 0);
     ticks(&mut sim, 1);
     assert_eq!(count(&sim, IRON_PLATE), 1);
-    assert_eq!(queue(&sim).orders[0].permille(), 500);
+    assert_eq!(queue(&sim).orders[0].permille(1000), 500);
     ticks(&mut sim, each);
     assert_eq!((count(&sim, IRON_PLATE), queue(&sim).orders.len()), (2, 0));
     let crafted =
         sim.events.iter().filter(|e| matches!(e, SimEvent::Crafted { item, .. } if *item == IRON_PLATE)).count();
     assert_eq!(crafted, 2);
+}
+
+#[test]
+fn handcrafting_research_makes_crafts_shorter() {
+    let mut sim = Sim::new(7, 2);
+    let first = crate::research::TECHS.iter().position(|t| t.name == "Handcrafting I").unwrap() as u8;
+    (0..crate::research::TECHS[first as usize].units).for_each(|_| sim.factory.research.add_unit(first));
+    give(&mut sim, IRON_INGOT, 2);
+    let plate = recipe(IRON_PLATE);
+    let each = craft_ticks(&RECIPES[plate as usize], 1250);
+    assert_eq!(each, 120, "2.5 seconds at 125% is 2 seconds");
+    sim.apply(P, Action::Craft { recipe: plate, times: 1 });
+    assert_eq!(queue(&sim).orders[0].total, each);
+    ticks(&mut sim, each - 1);
+    assert_eq!(count(&sim, IRON_PLATE), 0);
+    ticks(&mut sim, 1);
+    assert_eq!(count(&sim, IRON_PLATE), 1);
+    assert_eq!(craft_ticks(&RECIPES[plate as usize], u32::MAX), 1, "never shorter than a tick");
 }
 
 #[test]

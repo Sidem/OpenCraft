@@ -4,7 +4,8 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::crafting::{max_times, plan, MAX_ORDERS};
+use crate::crafting::{craft_ticks, max_times, plan, MAX_ORDERS};
+use crate::perks::{player_bonus, Stat};
 use crate::recipes::{GROUPS, RECIPES};
 use crate::research::Unlock;
 use crate::Game;
@@ -62,9 +63,9 @@ impl Game {
         self.craftable_times(r) > 0
     }
 
-    /// Seconds one craft of recipe `r` takes by hand, in tenths.
+    /// Seconds one craft of recipe `r` takes by hand, in tenths, at the speed research gives.
     pub fn recipe_tenths(&self, r: u32) -> u32 {
-        RECIPES.get(r as usize).map_or(0, |x| x.hand_ticks() * 10 / crate::TICK_RATE)
+        RECIPES.get(r as usize).map_or(0, |x| craft_ticks(x, self.craft_speed()) * 10 / crate::TICK_RATE)
     }
 
     /// How many crafts of parts (not of `r` itself) crafting `r` once would queue first.
@@ -87,7 +88,8 @@ impl Game {
     /// the order being worked on first.
     pub fn craft_queue(&self) -> Vec<u32> {
         let orders = self.local_crafts().map_or(&[][..], |q| &q.orders[..]);
-        orders.iter().flat_map(|o| [o.output().0 as u32, o.amount(), o.permille()]).collect()
+        let speed = self.craft_speed();
+        orders.iter().flat_map(|o| [o.output().0 as u32, o.amount(), o.permille(speed)]).collect()
     }
 
     /// The steps still to run of the local player's `order`th order, in running order, as flat (item, items
@@ -95,7 +97,7 @@ impl Game {
     /// asked for last. Only the first step has progress.
     pub fn craft_steps(&self, order: u32) -> Vec<u32> {
         let Some(o) = self.local_crafts().and_then(|q| q.orders.get(order as usize)) else { return Vec::new() };
-        let first = o.step_permille();
+        let first = o.step_permille(self.craft_speed());
         let step = |(i, s): (usize, &crate::crafting::Step)| {
             let r = &RECIPES[s.recipe as usize];
             [r.output.0 as u32, s.times * r.count, if i == 0 { first } else { 0 }]
@@ -112,5 +114,9 @@ impl Game {
 impl Game {
     fn local_crafts(&self) -> Option<&crate::crafting::CraftQueue> {
         Some(&self.sim.player(self.local)?.crafts)
+    }
+
+    fn craft_speed(&self) -> u32 {
+        player_bonus(&self.sim.factory.research, Stat::Crafting)
     }
 }

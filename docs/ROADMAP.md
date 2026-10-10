@@ -54,7 +54,7 @@ Moved into `docs/DEV_PLAN.md` at the end of Milestone 10 (2026-10-05); this is t
   needs less coolant underground or beside the sea. Fold it into DEV_PLAN steps 11.3–11.4 if those are not
   built yet, else into 11.13.
 
-## Interlude: less hand-crafting (agreed with the user, 2026-10-09; build any time, in this order)
+## Interlude: less hand-crafting (agreed with the user, 2026-10-09; in progress, steps L1–L4 in DEV_PLAN section 4; items 1 and 2 are built)
 
 Hand crafting is a lot of work early on. No XP or skill tree (it rewards doing the chore the game wants you to automate
 and would be a second progression track beside research). Instead:
