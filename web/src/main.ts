@@ -19,6 +19,7 @@ import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/ses
 import { WorldStore } from './save/store';
 import { AnalyticsPanel } from './ui/analytics';
 import { ComfortPanel } from './ui/comfort';
+import { isTouchDevice, showDesktopOnly } from './ui/desktop-only';
 import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
 import { BlueprintPanel } from './ui/blueprints';
@@ -388,8 +389,12 @@ async function main(): Promise<void> {
   if (coop) beginCoop(coop);
 }
 
-main().catch((err: unknown) => {
-  console.error(err);
-  const text = document.getElementById('loading-text');
-  if (text) text.textContent = `Failed to start: ${err instanceof Error ? err.message : String(err)}`;
-});
+if (isTouchDevice()) {
+  showDesktopOnly();
+} else {
+  main().catch((err: unknown) => {
+    console.error(err);
+    const text = document.getElementById('loading-text');
+    if (text) text.textContent = `Failed to start: ${err instanceof Error ? err.message : String(err)}`;
+  });
+}
