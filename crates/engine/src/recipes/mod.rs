@@ -403,6 +403,7 @@ pub const RECIPES: &[Recipe] = &[
     LASER_MIRROR_RECIPE,
     DATA_RECEIVER_RECIPE,
     SWARM_HUB_RECIPE,
+    CRAFT_GLOVES_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

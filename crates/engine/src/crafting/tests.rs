@@ -2,7 +2,7 @@ use super::*;
 use crate::action::Action;
 use crate::block::{BELT, LOG, MINER, PLANKS, SPLITTER, STORAGE};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::item::{COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD};
+use crate::item::{COPPER_INGOT, COPPER_WIRE, CRAFT_GLOVES, IRON_INGOT, IRON_PLATE, IRON_ROD};
 
 const P: PlayerId = PlayerId(0);
 
@@ -117,6 +117,33 @@ fn handcrafting_research_makes_crafts_shorter() {
     ticks(&mut sim, 1);
     assert_eq!(count(&sim, IRON_PLATE), 1);
     assert_eq!(craft_ticks(&RECIPES[plate as usize], u32::MAX), 1, "never shorter than a tick");
+}
+
+#[test]
+fn worn_gloves_shorten_a_craft_and_taking_them_off_restores_the_time() {
+    let mut sim = Sim::new(7, 2);
+    let plate = recipe(IRON_PLATE);
+    let base = RECIPES[plate as usize].hand_ticks();
+    let craft_one = |sim: &mut Sim| {
+        give(sim, IRON_INGOT, 2);
+        let before = count(sim, IRON_PLATE);
+        sim.apply(P, Action::Craft { recipe: plate, times: 1 });
+        let mut taken = 0;
+        while count(sim, IRON_PLATE) == before {
+            sim.step();
+            taken += 1;
+        }
+        taken
+    };
+    assert_eq!(craft_one(&mut sim), base);
+    give(&mut sim, CRAFT_GLOVES, 1);
+    let slot = (0..crate::inventory::INVENTORY_SLOTS as u8)
+        .find(|&s| sim.player(P).unwrap().inventory.slots[s as usize].item == CRAFT_GLOVES);
+    sim.apply(P, Action::ClickSlot { slot: slot.unwrap(), shift: true });
+    assert_eq!(count(&sim, CRAFT_GLOVES), 0, "worn, not carried");
+    assert_eq!(craft_one(&mut sim), base * 1000 / 1500, "50% faster");
+    sim.apply(P, Action::ClickGear { slot: 5, shift: true });
+    assert_eq!(craft_one(&mut sim), base, "off again");
 }
 
 #[test]

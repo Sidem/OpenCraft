@@ -1,6 +1,7 @@
 //! Worn gear icons (`equipment.rs`): the hauler packs (a satchel; Mk2 to Mk5 with side pouches and a flap in the tier's kit colour),
 //! spring boots (boots on a coil), servo boots (boots with an orange joint), the exo frame (steel ribs round a
-//! cyan core) and the mining rig (a belt with a drill bit and a gauge). Placeholder looks until the art pass
+//! cyan core), the mining rig (a belt with a drill bit and a gauge) and the fabricator gloves (a dark glove with a
+//! gold cuff and a cyan pad). Placeholder looks until the art pass
 //! (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
@@ -17,6 +18,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SPRING_BOOTS => boots(x, y, [40.0, 150.0, 150.0], true),
         tex::SERVO_BOOTS => boots(x, y, [60.0, 90.0, 170.0], false),
         tex::EXO_FRAME => exo_frame(x, y),
+        tex::CRAFT_GLOVES => gloves(x, y),
         _ => mining_rig(x, y),
     }
 }
@@ -100,6 +102,24 @@ fn exo_frame(x: i32, y: i32) -> [u8; 4] {
         return rgb([150.0, 158.0, 176.0], 1.0);
     }
     rgb([84.0, 92.0, 112.0], 0.85 + 0.15 * n(424, x, y))
+}
+
+/// A dark glove: four fingers and a thumb, a gold cuff and a cyan servo pad on the back of the hand.
+fn gloves(x: i32, y: i32) -> [u8; 4] {
+    let finger = |i: i32| x >= 3 + 2 * i && x < 5 + 2 * i && y >= 2 + (i - 1).abs() && y < 8;
+    let palm = (3..11).contains(&x) && (7..12).contains(&y);
+    let thumb = (11..14).contains(&x) && (8..11).contains(&y);
+    let cuff = (4..11).contains(&x) && (12..14).contains(&y);
+    if !((0..4).any(finger) || palm || thumb || cuff) {
+        return dark();
+    }
+    if y >= 12 {
+        return rgb([225.0, 180.0, 50.0], 0.95 + 0.15 * n(427, x, y));
+    }
+    if (6..9).contains(&x) && (8..11).contains(&y) {
+        return rgb([90.0, 226.0, 255.0], 1.1);
+    }
+    rgb([54.0, 58.0, 72.0], 0.85 + 0.2 * n(428, x, y))
 }
 
 /// A leather belt with a drill bit hanging from it and an orange gauge.

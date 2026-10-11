@@ -63,7 +63,7 @@ impl Game {
         self.craftable_times(r) > 0
     }
 
-    /// Seconds one craft of recipe `r` takes by hand, in tenths, at the speed research gives.
+    /// Seconds one craft of recipe `r` takes by hand, in tenths, at the speed research and worn gear give.
     pub fn recipe_tenths(&self, r: u32) -> u32 {
         RECIPES.get(r as usize).map_or(0, |x| craft_ticks(x, self.craft_speed()) * 10 / crate::TICK_RATE)
     }
@@ -117,6 +117,6 @@ impl Game {
     }
 
     fn craft_speed(&self) -> u32 {
-        player_bonus(&self.sim.factory.research, Stat::Crafting)
+        player_bonus(&self.sim.factory.research, self.inventory(), Stat::Crafting)
     }
 }

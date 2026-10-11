@@ -1,4 +1,6 @@
 use super::*;
+use crate::inventory::Stack;
+use crate::item::CRAFT_GLOVES;
 
 fn finish(r: &mut Research, tech: usize) {
     (0..TECHS[tech].units).for_each(|_| r.add_unit(tech as u8));
@@ -30,17 +32,34 @@ fn crafting_has_three_tiers_in_order_each_needing_the_last() {
 
 #[test]
 fn each_finished_tier_adds_a_quarter_linearly() {
+    let none = Inventory::default();
     let mut r = Research::default();
-    assert_eq!(player_bonus(&r, Stat::Crafting), 1000);
+    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1000);
     let found = tiers(Stat::Crafting);
     finish(&mut r, found[0].0);
-    assert_eq!(player_bonus(&r, Stat::Crafting), 1250);
+    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1250);
     r.add_unit(found[1].0 as u8);
-    assert_eq!(player_bonus(&r, Stat::Crafting), 1250, "a tier counts only when done");
+    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1250, "a tier counts only when done");
     finish(&mut r, found[1].0);
     finish(&mut r, found[2].0);
-    assert_eq!(player_bonus(&r, Stat::Crafting), 1750);
+    assert_eq!(player_bonus(&r, &none, Stat::Crafting), 1750);
     let mut all = Research::default();
     all.complete_all();
-    assert_eq!(player_bonus(&all, Stat::Crafting), 1750, "creative worlds craft at the top speed");
+    assert_eq!(player_bonus(&all, &none, Stat::Crafting), 1750, "creative worlds craft at the top speed");
+}
+
+#[test]
+fn worn_gloves_add_their_half_to_the_techs_and_taking_them_off_takes_it_back() {
+    let mut inv = Inventory::default();
+    let mut r = Research::default();
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1000);
+    inv.add(CRAFT_GLOVES, 1);
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1000, "in the pack they do nothing");
+    assert!(inv.wear_from(0));
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1500);
+    finish(&mut r, tiers(Stat::Crafting)[0].0);
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1750, "gear and techs add up");
+    inv.click_gear(5, true);
+    assert_eq!((inv.cursor, inv.count(CRAFT_GLOVES)), (Stack::default(), 1));
+    assert_eq!(player_bonus(&r, &inv, Stat::Crafting), 1250);
 }

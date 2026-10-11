@@ -322,7 +322,9 @@ pub const SMOKE_THIN: u16 = 282;
 pub const LOCO_BODY: u16 = 283;
 /// Soot-blackened iron for chimneys, smokeboxes, wheels and dark mouths (`textures/smoke.rs`).
 pub const SOOT: u16 = 284;
-pub const COUNT: usize = 285;
+/// Fabricator gloves (`textures/gear.rs`).
+pub const CRAFT_GLOVES: u16 = 285;
+pub const COUNT: usize = 286;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

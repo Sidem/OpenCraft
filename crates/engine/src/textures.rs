@@ -189,7 +189,9 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SOLAR_TOP..=tex::ACCUMULATOR_SIDE => solar::pixel(layer, x, y),
         tex::PROCESSOR..=tex::PLANNER => robotics::pixel(layer, x, y),
         tex::PIPE_WATER..=tex::PIPE_STEAM => piping::pixel(layer, x, y),
-        tex::HAULER_PACK..=tex::MINING_RIG | tex::HAULER_PACK_MK3..=tex::HAULER_PACK_MK5 => gear::pixel(layer, x, y),
+        tex::HAULER_PACK..=tex::MINING_RIG | tex::HAULER_PACK_MK3..=tex::HAULER_PACK_MK5 | tex::CRAFT_GLOVES => {
+            gear::pixel(layer, x, y)
+        }
         tex::CRUSHED_BAUXITE..=tex::CELL_TOP | tex::HOVER_PACK | tex::CARGO_DRONE => aluminium::pixel(layer, x, y),
         tex::RAIL..=tex::SIGNAL => transport::pixel(layer, x, y),
         tex::EMPTY_CANISTER..=tex::ELECTROLYSER_TOP => chemistry::pixel(layer, x, y),

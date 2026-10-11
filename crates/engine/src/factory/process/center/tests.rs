@@ -112,7 +112,8 @@ fn tiers_are_twice_a_labs_and_the_lab_rule_follows_the_packs() {
             "Photonics",
             "Drone Swarms",
             "Auto-Routing",
-            "AI Survey"
+            "AI Survey",
+            "Fabricator Gloves"
         ]
     );
 }

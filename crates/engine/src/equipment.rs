@@ -1,4 +1,4 @@
-//! Equipment: what a player wears. Five slots (`SLOT_NAMES`), kept in the [`Inventory`] (`worn`, saved since
+//! Equipment: what a player wears. Six slots (`SLOT_NAMES`), kept in the [`Inventory`] (`worn`, saved since
 //! version 29, so a player who leaves keeps them), each taking the gear made for it ([`GEAR`], data).
 //!
 //! - **Back** (hauler packs) opens more backpack rows: [`Inventory::capacity`] is the base 36 slots plus the
@@ -9,6 +9,7 @@
 //!   `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
 //! - **Tool belt** (the mining rig) speeds hand-breaking ([`Inventory::mining_speed`], read by `interaction.rs`).
 //! - **Jetpack** (the coal jetpack) works only while worn ([`Inventory::has_jetpack`]), so it can be taken off.
+//! - **Gloves** (the fabricator gloves) speed hand crafting: [`Effect::crafting`] joins `perks::player_bonus`.
 //!
 //! Gear is one item per slot and never stacks. Actions: `ClickGear` (the equipment panel: swap with the cursor, or
 //! with Shift take off) and shift-click on a gear item in the inventory (`Inventory::wear_from`).
@@ -21,25 +22,30 @@ mod tests;
 use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
 use crate::item::{
-    ItemId, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5, JETPACK,
-    MINING_RIG, SERVO_BOOTS, SPRING_BOOTS,
+    ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
+    JETPACK, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS,
 };
 use crate::player::Boost;
 
-pub const SLOTS: usize = 5;
-pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "Jetpack"];
+pub const SLOTS: usize = 6;
+pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "Jetpack", "Gloves"];
 const BACK: usize = 0;
 const BOOTS: usize = 1;
 const TORSO: usize = 2;
 const BELT: usize = 3;
 const JET: usize = 4;
+const GLOVES: usize = 5;
 /// Slots saves before version 43 had (no jetpack slot).
 pub const LEGACY_SLOTS: usize = 4;
+/// Slots saves of version 43 had (no gloves slot).
+pub const JETPACK_SLOTS: usize = 5;
 
-/// What a piece of gear changes: extra backpack slots, and multipliers (1.0 is no change).
+/// What a piece of gear changes: extra backpack slots, hand-crafting speed (thousandths added, as the techs add), and
+/// multipliers (1.0 is no change).
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Effect {
     pub pack: usize,
+    pub crafting: u32,
     /// Walking and sprinting both; `sprint` multiplies sprinting on top.
     pub walk: f64,
     pub sprint: f64,
@@ -47,7 +53,7 @@ pub struct Effect {
     pub mining: f64,
 }
 
-const NONE: Effect = Effect { pack: 0, walk: 1.0, sprint: 1.0, jump: 1.0, mining: 1.0 };
+const NONE: Effect = Effect { pack: 0, crafting: 0, walk: 1.0, sprint: 1.0, jump: 1.0, mining: 1.0 };
 
 pub struct Gear {
     pub item: ItemId,
@@ -66,7 +72,7 @@ pub const PACKS: [ItemId; 5] = [HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, H
 /// Kits one pack upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
 pub const PACK_KITS: u32 = 4;
 
-pub const GEAR: [Gear; 10] = [
+pub const GEAR: [Gear; 11] = [
     Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
     Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
     Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
@@ -83,6 +89,12 @@ pub const GEAR: [Gear; 10] = [
     },
     // Its thrust and fuel live in `helpers/`, which asks `Inventory::has_jetpack`.
     Gear { item: JETPACK, slot: JET, effect: NONE, blurb: "Hold jump in the air to fly, burning coal from the pack" },
+    Gear {
+        item: CRAFT_GLOVES,
+        slot: GLOVES,
+        effect: Effect { crafting: 500, ..NONE },
+        blurb: "Craft by hand 50% faster (adds to Handcrafting)",
+    },
 ];
 
 pub fn gear(item: ItemId) -> Option<&'static Gear> {
@@ -101,6 +113,7 @@ pub fn effect(worn: &[ItemId; SLOTS]) -> Effect {
     let mut e = NONE;
     for g in worn.iter().filter_map(|&i| gear(i)) {
         e.pack += g.effect.pack;
+        e.crafting += g.effect.crafting;
         e.walk *= g.effect.walk;
         e.sprint *= g.effect.sprint;
         e.jump *= g.effect.jump;

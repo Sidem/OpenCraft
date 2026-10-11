@@ -202,6 +202,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   (9.4c): `tex::SIGNAL` (199) is the icon; the signal is a steel post and amber lamp (`write_signal` in `factory/rail/curve.rs`).
   Hauler packs Mk2 to Mk5 (2026-10-09): `tex::HAULER_PACK_MK2` (181) and `HAULER_PACK_MK3..MK5` (273–275) are one
   generated satchel with a flap in the tier's kit colour and a pip per tier (`textures/gear.rs`); icons only.
+  Fabricator gloves (2026-10-11): `tex::CRAFT_GLOVES` (285, `textures/gear.rs`) is an icon only: a dark glove with a gold cuff and a
+  cyan servo pad, worn in the new Gloves slot. It should read as "hands, faster" next to the mining rig and exo frame.
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

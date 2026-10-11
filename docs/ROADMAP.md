@@ -54,7 +54,7 @@ Moved into `docs/DEV_PLAN.md` at the end of Milestone 10 (2026-10-05); this is t
   needs less coolant underground or beside the sea. Fold it into DEV_PLAN steps 11.3–11.4 if those are not
   built yet, else into 11.13.
 
-## Interlude: less hand-crafting (agreed with the user, 2026-10-09; in progress, steps L1–L4 in DEV_PLAN section 4; items 1 and 2 are built)
+## Interlude: less hand-crafting (agreed with the user, 2026-10-09; done, steps L1–L3 in DEV_PLAN section 4)
 
 Hand crafting is a lot of work early on. No XP or skill tree (it rewards doing the chore the game wants you to automate
 and would be a second progression track beside research). Instead:
@@ -64,10 +64,9 @@ and would be a second progression track beside research). Instead:
    carry capacity can read it later. Core state only if a source is (techs and gear already are).
 2. **Hand-crafting speed techs** (S): a few tiers on green, blue and violet packs (e.g. +25% each), read by
    `Recipe::hand_ticks` through the crafting queue. A new `Unlock` kind or a `Bonus`-like row.
-3. **Worn craft-speed gear** (S): an item in the gear slots (`equipment`), a later tier on gold.
-4. **Craft from nearby boxes, or by request** (M): the hand craft takes materials from boxes beside the player (like
-   drones taking from boxes next to their port), or a crafting request is fulfilled by drones/assemblers, so the player
-   stops standing there waiting. Biggest win; plan it as its own step with the user.
+3. **Worn craft-speed gear** (S): built as the Fabricator Gloves in a new Gloves slot.
+
+Crafting from nearby boxes or by request was dropped by the user on 2026-10-11 and will not be built.
 
 ## Interlude after Milestone 11: feel and feedback (chosen by the user, 2026-10-08)
 
@@ -122,6 +121,91 @@ the recycler and a new generator version, so it can move earlier.
   ahead of time, a pin on the map. Near ruins hold early hints, far ones fragments about the late tech
   tree and the megaproject. The first ruin is 150–300 blocks from spawn, then about one per 512×512
   region. Placement is a pure function of the seed, like deposits.
+- **Sealed rooms and relic machines** from the thread below (the carry): vaults, a sieve, a crane and a
+  printer, the main home of that thread.
+
+## Thread: the carry (p-adic numbers and fractals, by discovery; chosen by the user, 2026-10-11)
+
+Mechanisms that behave exactly like p-adic numbers and fractals, so players find the ideas by playing.
+**Mainly in the ruins, partly in the existing eras, no tech line of its own:** pieces in the eras ride
+existing techs (the tally on logic, radiators on datacenters); ruin pieces are found, not researched.
+Optional: main progression never waits on it, but the payoffs are real (cooling, antenna bands, loot).
+
+- **Pure discovery, names only** (user's choice). The game never explains. When a player does the thing,
+  a discovery shows only its name ("3-adic address", "Cantor set"); logbooks hint with a drawing or a
+  number sequence, never a formula. So every mechanism must carry the idea by itself: digits are shown
+  right to left with a leading "…" ("…0110"), so carries and endless digits are visible.
+- **Primes 2, 3 and 5 each lead where they work best** (table at the end).
+- **The thread, for agents** (never shown in game): a binary counter's carry length is the ruler
+  sequence 1 2 1 3 1 2 1 4 (the 2-adic size of n); Tower of Hanoi moves follow it, and Hanoi's state map
+  is a Sierpinski triangle; Pascal's triangle mod p is a fractal because the power of p in a binomial is
+  the number of carries (Kummer); a carry that never ends gives …1111 = −1, so 1 + 2 + 4 + … = −1 in the
+  2-adics. Two numbers are p-adically close when their last digits agree, which is a tree.
+
+### In the existing eras
+
+- **Discoveries (S).** One module: a list of named entries, each a pure check on state (a splitter tree
+  4 deep, a tally below zero, a vault ring opened), a toast with the name, a page in the menu. Decide at
+  planning whether it is core state (shared per world in co-op, a save bump) or kept beside the save.
+- **Splitter addresses (S, primes 2 and 3, presentation only).** A splitter round-robins its outputs
+  (`factory/router.rs`), so a cascade sends item n to leaf n mod 2^k (two outputs) or n mod 3^k (three).
+  Looking at a belt fed by a tree at least 3 deep shows its address, first split rightmost ("…0110",
+  "…210"). Items share their first j splitters exactly when they agree mod p^j: the tree is the p-adic
+  integers. Discoveries "2-adic integers", "3-adic integers".
+- **The tally (S, Electronics retrofit, prime 2, core state).** A logic block that counts the box or
+  belt behind it: +1 for each item in, −1 for each item out, shown on 16 binary lamps. Below zero it rolls
+  to all lamps lit (…1111). A sensor rule can fire on one bit, so it doubles as a divider ("every 8th
+  item"), a practical reason to build it. Discoveries "2-adic −1", "two's complement".
+- **Fractal radiators and the analyzer (M, Compute retrofit, prime 3).** A radiator block for datacenter
+  cooling; a connected cluster cools by its exposed faces (counted when blocks change, from core state),
+  so a Menger sponge (keep 20 of 27, repeat) beats a solid cube by far per block. A handheld analyzer (a
+  query) box-counts a structure at scales 1, 3, 9, 27 and 1, 2, 4, 8, 16, takes the best fit and shows its
+  dimension: slab 2.0, cube 3.0, Menger sponge 2.73, Cantor dust 1.89, Sierpinski tetrahedron 2.0.
+  Discoveries "fractal dimension", "Menger sponge".
+- **Antenna bands (S, fold into Milestone 12 step 12.3).** A comms ground station built from antenna
+  blocks gains one band (one more link or more range) per level of a recognised fractal (Sierpinski
+  carpet or triangle, matched by template). Discovery "fractal antenna".
+
+### In the ruins (the main part)
+
+Each piece is a sealed room or relic in a ruin site, with loot behind it (scrap, circuits, logbooks,
+relic recipes deeper in).
+
+- **Hensel vaults (M, primes 5 and 3, and 10).** A door of rings, each a dial of p digits; the door shows
+  a target as a digit string. Ring k opens when the number on rings 1..k, squared, ends in the target's
+  last k digits. The first ring is found by trial, then each ring has exactly one right digit, so the
+  number grows from the right forever (rewards shrink after about 8 rings).
+  - The 5-door: x² = …4444 (−1 in base 5); answers 2 → 12 → 212 → … Discoveries "5-adic integers",
+    "√−1".
+  - The 3-door: x² = …2222 (−1 in base 3). No digit fits the first ring; trying all three opens a side
+    passage. Discovery "no 3-adic √−1".
+  - The 10-door: x² = x in decimal. Two endless answers (…890625 and …109376) open two halves; the last
+    lock multiplies them to …000000. Discovery "zero divisors" (why p must be prime).
+- **Cantor sieve (S, prime 3).** A wall of lamps fed by a three-way splitter cascade the player rebuilds
+  from the ruin's broken one. The door opens when exactly the leaves whose base-3 address has no digit 1
+  light up (every middle output dumped, at every level). Lamps sit in address order with the first split
+  as the coarsest, so the lit wall is Cantor dust. Discovery "Cantor set".
+- **Hanoi crane (S–M, prime 2).** A gantry crane over three pads and a stack of crates of falling size;
+  a crate never sits on a smaller one. Moving the stack opens the room; the shortest solution is 2^n − 1
+  moves and its rhythm is 1 2 1 3 1 2 1 4. A panel traces the states visited, which fill a Sierpinski
+  triangle. Discoveries "Tower of Hanoi", "ruler sequence".
+- **The layer printer (M, relic, primes 2, 3, 5).** A broken machine in a deep ruin, repaired with scrap
+  and circuits, then craftable. It prints upward onto a construction site (drones place the blocks, as in
+  terraforming): each cell is the sum mod p of its neighbours in the layer below, the digit as a block
+  colour, p set on the machine. One seed grows Pascal's triangle mod p (Sierpinski for 2); square layers
+  grow 3D fractal pyramids; two seeds overlap predictably. Its prints suit radiators and antennas.
+  Discoveries "Pascal's triangle mod 2/3/5", "Sierpinski triangle".
+
+| Prime | Leads |
+|---|---|
+| 2 | splitter addresses, the tally, the Hanoi crane, the printer's default |
+| 3 | three-way addresses, the Cantor sieve, Menger radiators, the 3-door that cannot open |
+| 5 | the √−1 vault, the printer mod 5 |
+| 10 (2 and 5) | the x² = x door: zero divisors, why primes |
+
+**Order:** discoveries, splitter addresses and the tally fit any interlude (all small); radiators and the
+analyzer any time after Milestone 11; antenna bands with step 12.3; the ruin pieces with the ruins
+interlude, after its generator version.
 
 ## Milestone 13: The megaproject (era 10; optional, non-ending)
 

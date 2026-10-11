@@ -4,8 +4,8 @@
 //! materials leave the inventory at once and wait in the order's own `held` pool; each craft takes its
 //! inputs from the pool when it starts, works for `Recipe::hand_ticks`, and puts its output in the pool
 //! (a part for a later craft) or in the inventory (`deliver`: what the player asked for). Orders run one
-//! after another, one craft at a time. Research speeds crafts up (`perks::player_bonus`, `craft_ticks`): `ticks`
-//! still counts real ticks, only the length of a craft shrinks, so saves are unchanged.
+//! after another, one craft at a time. Research and worn gear speed crafts up (`perks::player_bonus`,
+//! `craft_ticks`): `ticks` still counts real ticks, only the length of a craft shrinks, so saves are unchanged.
 //!
 //! Invariants: an order's steps are in the order they can run, so a craft's inputs are always in the
 //! pool when it starts; cancelling (or the player leaving) returns the pool and the inputs of a craft in
@@ -229,7 +229,7 @@ impl CraftQueue {
             inv.remove(item, n);
             add_to_pool(&mut held, item, n);
         }
-        let total = total_ticks(&plan.steps, player_bonus(research, Stat::Crafting));
+        let total = total_ticks(&plan.steps, player_bonus(research, inv, Stat::Crafting));
         self.orders.push(Order { steps: plan.steps, held, total, ..Order::default() });
         true
     }
@@ -345,9 +345,9 @@ impl Sim {
         if self.players.iter().flatten().all(|c| c.crafts.orders.is_empty()) {
             return;
         }
-        let speed = player_bonus(&self.factory.research, Stat::Crafting);
         for (i, core) in self.players.iter_mut().enumerate() {
             if let Some(core) = core.as_mut().filter(|c| !c.crafts.orders.is_empty()) {
+                let speed = player_bonus(&self.factory.research, &core.inventory, Stat::Crafting);
                 core.crafts.tick(&mut core.inventory, PlayerId(i as u8), speed, &mut self.events);
             }
         }

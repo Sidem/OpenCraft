@@ -1,0 +1,9 @@
+Add Fabricator Gloves and a Gloves slot (interlude step L3); drop L4
+
+Worn gear now adds to hand-crafting speed: perks::player_bonus takes the
+player's inventory, and the gloves give +50% on top of the Handcrafting
+techs. New item 385, tech 77, texture 285, sixth equipment slot.
+Save version 44 (43 saves read five worn slots); golden hash re-recorded.
+
+Crafting from nearby boxes was dropped by the user, so L4 is removed from
+the plan and roadmap.

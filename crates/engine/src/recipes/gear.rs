@@ -72,6 +72,14 @@ pub const EXO_FRAME_RECIPE: Recipe = Recipe {
     blurb: "A steel frame worn over the chest: you sprint 10% faster.",
 };
 
+pub const CRAFT_GLOVES_RECIPE: Recipe = Recipe {
+    output: CRAFT_GLOVES,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(ACTUATOR, 4), (SERVO, 4), (GOLD_KIT, 4)],
+    blurb: "Gloves with servo fingers, worn in the Gloves slot: you craft by hand 50% faster, on top of Handcrafting.",
+};
+
 pub const MINING_RIG_RECIPE: Recipe = Recipe {
     output: MINING_RIG,
     group: Group::Tools,

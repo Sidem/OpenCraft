@@ -59,3 +59,5 @@ pub const AI_ACCELERATOR: ItemId = ItemId(381);
 pub const HAULER_PACK_MK3: ItemId = ItemId(382);
 pub const HAULER_PACK_MK4: ItemId = ItemId(383);
 pub const HAULER_PACK_MK5: ItemId = ItemId(384);
+/// Fabricator gloves (worn in the Gloves slot, `equipment.rs`): hand crafting 50% faster.
+pub const CRAFT_GLOVES: ItemId = ItemId(385);

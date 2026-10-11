@@ -159,6 +159,30 @@ fn the_jetpack_works_only_while_worn_and_an_old_pack_jetpack_goes_on_when_a_save
 }
 
 #[test]
+fn saves_from_before_the_gloves_slot_read_five_slots() {
+    let mut w = ByteWriter::default();
+    let none = Stack::default();
+    (0..INVENTORY_SLOTS).for_each(|_| none.write_state(&mut w));
+    none.write_state(&mut w);
+    w.u8(0);
+    (0..MAX_SLOTS - INVENTORY_SLOTS).for_each(|_| none.write_state(&mut w));
+    (0..JETPACK_SLOTS).for_each(|i| w.item(if i == 4 { JETPACK } else { ItemId::NONE }));
+    let mut r = ByteReader::new(&w.bytes);
+    r.version = 43;
+    let back = Inventory::read_state(&mut r).expect("reads");
+    assert_eq!((back.worn[4], back.worn[5], r.u8().is_none()), (JETPACK, ItemId::NONE, true), "no more than five");
+}
+
+#[test]
+fn gloves_fit_only_the_gloves_slot() {
+    let mut inv = Inventory { cursor: Stack { item: CRAFT_GLOVES, count: 1 }, ..Default::default() };
+    inv.click_gear(3, false);
+    assert_eq!((inv.worn[3], inv.cursor.item), (ItemId::NONE, CRAFT_GLOVES), "not a tool belt");
+    inv.click_gear(5, false);
+    assert_eq!((inv.worn[5], inv.cursor.is_empty()), (CRAFT_GLOVES, true));
+}
+
+#[test]
 fn the_cursor_swaps_gear_and_only_the_right_gear_fits() {
     let mut inv = Inventory { cursor: Stack { item: MINING_RIG, count: 1 }, ..Default::default() };
     inv.click_gear(1, false);
@@ -197,8 +221,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 43,
-        "the layout above is unchanged since version 29 (30 to 43: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before)"
+        SAVE_VERSION, 44,
+        "the layout above is unchanged since version 29 (30 to 44: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before)"
     );
 
     // A save with a pack's rows full but no pack on is refused.
@@ -227,7 +251,7 @@ fn old_saves_read_without_gear() {
 fn boots_and_frames_scale_the_body_and_a_rig_the_hands() {
     let mut inv = Inventory::default();
     assert_eq!((inv.boost(), inv.mining_speed()), (Default::default(), 1.0));
-    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG, ItemId::NONE];
+    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG, ItemId::NONE, ItemId::NONE];
     let b = inv.boost();
     assert!((b.walk - 1.15).abs() < 1e-9 && (b.sprint - 1.15 * 1.1).abs() < 1e-9 && b.jump == 1.0);
     assert_eq!(inv.mining_speed(), 1.5);

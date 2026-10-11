@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-11 · Fabricator Gloves
+
+- Research Fabricator Gloves (after Handcrafting III and Gold Science) and craft them: worn in the new Gloves slot of the inventory screen, they make crafting by hand another 50% faster, on top of Handcrafting.
+- Old saves keep working; their characters get an empty Gloves slot.
+
 ## 2026-10-10 · Better light, new machine looks and smoke
 
 - Sunlight and moonlight now light the sides of blocks that face them, so the world has more depth.

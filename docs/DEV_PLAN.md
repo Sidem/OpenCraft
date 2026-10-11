@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 43) · **Now: the less-hand-crafting interlude** (user's choice 2026-10-09; L1 + L2 built: `player_bonus` and Handcrafting I–III; 739 tests) · **Next: L3, worn craft-speed gear**, then L4 (plan with the user), then step 12.1 (Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11; 744 tests) · **Next: step 12.1** (Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -40,7 +40,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **Now: the less-hand-crafting interlude** (section 4, steps L1–L4), **then Milestone 12: Orbit** (a first draft to
+- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (a first draft to
   refine with the user at 12.1).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
@@ -129,10 +129,11 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-06 | **Creative mode for new worlds** (user request, for testing everything): a world is normal or creative, chosen in the new-world form and never changed. Creative has every tech done and an "All items" tab in the inventory (click a stack, Shift-click one). Flying (F) already works in every world. |
 | 2026-10-06 | **Analytics and machine efficiency** (user request): an Electricity and productivity screen (P) graphs the power the grids could give, the power used and asked for, and each item made a minute, over 1m to 3h, with coloured lines; every machine says how close to full speed it runs and what costs it the rest (low power, waiting for input, full output, no fuel...). **Presentation only:** history is not saved and starts when a world is opened. |
 | 2026-10-06 | **One underpass, in tiers** (user request): entry and exit are the same item (pieces in a line facing the same way pair up by themselves, `factory/underpass.rs`); Mk1 to Mk4 reach 4 / 6 / 8 / 10 blocks at the speed of the belt of that Mk; a piece costs half its reach in belts of its Mk (a Mk1 pair is 4 belts). Dragging a belt line over a belt, machine or wall dives under it with the lowest underpass that reaches and is at least the belt's Mk; pairs the inventory lacks show red and are left out. The old exit block (23) still loads and is the same piece. No save-format change. |
-| 2026-10-09 | **Hand-crafting speed comes from research and gear, not a skill tree** (Claude's proposal, user agreed): a "hand-crafting speed" bonus tech, a modifier layer `player_bonus(stat)` that sums techs, gear and any later perks (mining speed, reach and carry capacity read it too), and crafting that takes parts from nearby boxes or is fulfilled by drones, so the player stops hand-crafting instead of doing it faster. No XP or skill points. Not scheduled yet: see `docs/ROADMAP.md`. |
+| 2026-10-09 | **Hand-crafting speed comes from research and gear, not a skill tree** (Claude's proposal, user agreed): a "hand-crafting speed" bonus tech, a modifier layer `player_bonus(stat)` that sums techs, gear and any later perks (mining speed, reach and carry capacity read it too), and crafting that takes parts from nearby boxes or is fulfilled by drones, so the player stops hand-crafting instead of doing it faster. No XP or skill points. Built as steps L1–L3 (section 4). **2026-10-11: the user dropped "craft from nearby boxes" (old step L4); it will not be built.** |
 | 2026-10-09 | **Hauler packs: 27 slots, then 18 more per Mk up to Mk5 (99), raised with 4 kits of the tier** (user request: inventory space was the pain at violet). The worn pack is upgraded in place from the inventory screen. |
 | 2026-10-09 | **Underpasses are crafted in pairs; research can be queued** (user requests). A craft makes an entry and an exit; the research screen holds a queue (up to 32, with missing prerequisites added), the HUD shows only the current tech. |
 | 2026-10-08 | **Player-experience features** (user's pick from Claude's proposals): a world timelapse, the factory as an instrument, follow one item, seismic prospecting, site bonuses (where you build matters), ruins of the last factory. Placed as two interludes in `docs/ROADMAP.md`; datacenter siting may join steps 11.3–11.4. |
+| 2026-10-11 | **The carry: p-adic numbers and fractals by discovery** (user's pick from Claude's brainstorm): mechanisms that behave like the math (splitter addresses, a tally, fractal radiators and antennas, Hensel vaults, a Cantor sieve, a Hanoi crane, a layer printer). Mainly in the ruins, partly in existing eras, no tech line of its own; pure discovery with names only, never explained; primes 2, 3 and 5 each lead where they work best. Design in `docs/ROADMAP.md`. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -431,7 +432,7 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: the less-hand-crafting interlude, then Milestone 12: Orbit
+## 4. Now: Milestone 12: Orbit (after the less-hand-crafting interlude)
 
 Milestones 6 (Industry), 7 (Electronics, blueprints, drones), 8 (Terraforming), 9 (Distance) and 10 (Fluids and chemistry)
 are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `docs/CHANGELOG_M9.md` and
@@ -440,9 +441,9 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 43) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 44) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 109, item 382, tech 77, machine recipe 64). Each new look gets a placeholder layer (`tex::COUNT` is 281) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 109, item 386, tech 78, machine recipe 64). Each new look gets a placeholder layer (`tex::COUNT` is 286) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -507,9 +508,14 @@ once researched.
   `player_bonus` sums finished `Unlock::Perk(stat, tier)` techs, +25% each, linear), techs Handcrafting I–III 74–76
   (`research/hands.rs`: green, blue, violet packs), `crafting::craft_ticks` shortens each craft (ticks still count real
   ticks, so no save change); the build menu's "Takes N s" shows the faster time. Golden hash re-recorded (tech table grew).
-- [ ] **L3 Worn craft-speed gear:** an item in the gear slots (`equipment`), a later tier on gold; `player_bonus` takes the
-  player's inventory and adds it. Done when: wearing it shortens a craft in a test, taking it off restores the time.
-- [ ] **L4 Craft from nearby boxes, or by request** (M): plan it with the user first (ROADMAP item 4).
+- [x] **L3 Worn craft-speed gear** (built 2026-10-11): Fabricator Gloves (item 385, texture 285, tech 77 on all five packs
+  after Handcrafting III and Gold Science; hand recipe 4 actuators, 4 servos, 4 gold kits) in a new sixth equipment slot,
+  Gloves. `Effect::crafting` (+500 permille) is added by `perks::player_bonus(research, inventory, stat)`, which now takes the
+  player's inventory; with all three techs the gloves make a craft 2.25× as fast. Save version 44 (six worn slots; 43 saves
+  read five), golden hash re-recorded. Tests: `perks/tests.rs`, `equipment/tests.rs`, `crafting/tests.rs` (wear them and a
+  craft takes 2/3 of the time, take them off and it is back).
+- ~~L4 Craft from nearby boxes, or by request~~: dropped by the user on 2026-10-11 ("crafting from nearby boxes won't be
+  a thing"). Remove it from any plan that mentions it.
 
 ### Milestone 12 steps (Orbit; moved in from the roadmap, a first draft to refine at 12.1 with the user)
 
@@ -526,7 +532,7 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   coverage over a place is true for part of its period in tests and the state hash stays deterministic.
 - [ ] **12.3 What satellites give:** survey (every deposit under coverage on the map, replacing the AI survey's guesses with
   facts), comms (data grids and drone ports reach across coverage), power (a rectenna receives beamed power), science (a downlink
-  gives the last research input). One tech each, one module each.
+  gives the last research input). One tech each, one module each. Fold in antenna bands from the roadmap's thread "the carry".
 - [ ] **12.4 Drop pods to landing pads:** carry items from a rocket's cargo to a pad anywhere in comms coverage.
 - [ ] **12.5 Cleanup:** tips, balance, worst tick, README, CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
@@ -572,6 +578,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-11: Fabricator Gloves (interlude step L3; L4 dropped by the user).** New gear slot Gloves (6th), item 385 with its recipe, tech 77 (`research/hands.rs`), texture 285 (`textures/gear.rs`), `Effect::crafting`; `player_bonus` takes the player's inventory so worn gear adds to the techs. Save version 44 (older saves read five worn slots), golden hash re-recorded. Tests 739 → 744. Next free block 109, item 386, tech 78, texture 286.
 - **2026-10-10: Light, machine looks, smoke and a steam train (user request).** Sun and moon light the sides they face, water glints, lamps and beams glow (`render/`). About 20 machine models redone so they read as what they do (round bodies as two crossed parts, `drum_x`/`drum_y`/`drum_z`, `paint::round_shade`), a steam locomotive and new wagons, smoke from working furnaces, boilers, generators, the refinery and cracker and a moving train (`factory/smoke.rs`, `Look::Smoke`, textures 281–282), `SOOT` 284, `LOCO_BODY` 283. A test keeps processor models free of coplanar faces (they flicker). No save or golden-hash change. Tests 739 → 740. Next free block 109, tech 77, texture 285.
 - **2026-10-10: The menu as a launcher (user request).** `ui/menu.ts` (+ `menu.css`, `menu-pages.css`): a side column (Play with loading, the open world, page buttons, GitHub and issue links) and one page at a time: home (first steps for a new player, handy keys and the latest update otherwise, "Paused" on Escape), worlds, play together, settings (sound, camera, comfort; the menu steps aside while it shows), controls (grouped), what's new. Player-facing patch notes live in `web/src/patch-notes.md` (`ui/patch-notes.ts`, unread dot). `ComfortPanel` lost its `<details>` and menu wiring. Web only, no engine change.
 - **2026-10-09: Hand-crafting speed (interlude steps L1 + L2).** `perks.rs` (`player_bonus`, `Stat::Crafting`, `Unlock::Perk`), techs Handcrafting I–III 74–76 (`research/hands.rs`, +25% each), `crafting::craft_ticks`. Golden hash re-recorded (tech table grew), no save bump. Tests 736 → 739. Next free block 109, tech 77, texture 281.
