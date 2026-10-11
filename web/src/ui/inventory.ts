@@ -1,5 +1,5 @@
 // Inventory and build screen (E): every slot (36, up to 135 with a hauler pack) with a held stack on the cursor, the
-// equipment slots (Shift-click gear in the pack to wear it; a button raises the worn pack with kits,
+// backpack in pages of 27 (never scrolled: the equipment and hotbar stay in view), the equipment slots (Shift-click gear in the pack to wear it; a button raises the worn pack with kits,
 // `pack-upgrade.ts`), and the build menu
 // (`crafting.ts`; creative worlds add the item picker, `creative.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
@@ -14,8 +14,11 @@ import { CreativeMenu, withCreativeTabs } from './creative';
 import { h } from './dom';
 import { showAmount } from './hud';
 import { PackUpgrade } from './pack-upgrade';
+import { Pager } from './pager';
 
 const ICON_PX = 64;
+/** Backpack slots on a page: three rows of nine, so the equipment and hotbar never scroll out of view. */
+const PAGE_SLOTS = 27;
 
 interface SlotView {
   root: HTMLDivElement;
@@ -36,6 +39,7 @@ export class InventoryPanel {
   private readonly slots: SlotView[] = [];
   private readonly gear: SlotView[] = [];
   private readonly packUpgrade: PackUpgrade;
+  private readonly packPager = new Pager();
   private readonly cursor: SlotView;
   private version = -1;
   private readonly title = h('h2', '', 'Inventory & build');
@@ -129,10 +133,12 @@ export class InventoryPanel {
     sortPack.title = 'Merge stacks and order the backpack by item (the hotbar stays as you set it)';
     sortPack.addEventListener('click', () => game.sort_inventory());
     const packHead = h('div', 'inv-box-head');
-    packHead.append(h('h3', '', 'Backpack'), sortPack);
+    packHead.append(h('h3', '', 'Backpack'), this.packPager.el, sortPack);
+    this.packPager.onChange = () => this.showPackPage();
+    this.packPager.wheel(pack);
     this.packUpgrade = new PackUpgrade(game);
     items.append(
-      this.boxSection, h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, note,
+      h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, note,
     );
 
     this.menu = new BuildMenu(game, icon);
@@ -141,7 +147,7 @@ export class InventoryPanel {
     this.right = game.is_creative() ? withCreativeTabs(this.menu.el, new CreativeMenu(game, icon)) : this.menu.el;
 
     const body = h('div', 'inv-body');
-    body.append(items, this.right);
+    body.append(items, this.right, this.boxSection);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -233,12 +239,12 @@ export class InventoryPanel {
       for (let i = 0; i < boxData.length / 2; i++) this.drawSlot(this.boxSlots[i], boxData[i * 2], boxData[i * 2 + 1]);
     }
 
-    const selected = g.selected_slot(), open = g.inventory_size();
+    const selected = g.selected_slot();
     this.slots.forEach((s, i) => {
       this.drawSlot(s, g.slot_item(i), g.slot_count(i));
       s.root.classList.toggle('selected', i === selected);
-      s.root.classList.toggle('hidden', i >= open);
     });
+    this.showPackPage();
     this.gear.forEach((s, i) => {
       const item = g.worn_item(i);
       this.drawSlot(s, item, item ? 1 : 0);
@@ -249,6 +255,17 @@ export class InventoryPanel {
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);
 
     if (!this.box) this.menu.update();
+  }
+
+  /** Shows the backpack slots of the current page (the pack grows with a hauler pack, so pages come and go). */
+  private showPackPage(): void {
+    const hotbar = this.game.hotbar_size(), open = this.game.inventory_size();
+    const pages = Math.max(1, Math.ceil((open - hotbar) / PAGE_SLOTS));
+    this.packPager.set(Array.from({ length: pages }, (_, i) => ({ title: `Backpack page ${i + 1} of ${pages}` })));
+    const first = hotbar + this.packPager.page * PAGE_SLOTS;
+    this.slots.forEach((s, i) => {
+      if (i >= hotbar) s.root.classList.toggle('hidden', i >= open || i < first || i >= first + PAGE_SLOTS);
+    });
   }
 
   /** Whether the cursor holds a stack. */

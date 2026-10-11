@@ -1,12 +1,14 @@
 // Creative item picker (creative worlds only): in the inventory screen, an "All items" tab beside the build
 // menu. Every item the engine offers is a tile (icon, name) with a search box; click takes a full stack,
-// Shift-click takes one, straight into the backpack. The tiles reuse the build menu's look (crafting.css).
+// Shift-click takes one, straight into the backpack. The tiles reuse the build menu's look (crafting.css) and, like it,\n// come in pages that fit the height (no scrollbar; the wheel and the pager flip them).
 // `withCreativeTabs` joins the two menus into one column with a tab row; normal worlds never build any of it.
 
 import './crafting.css';
 import './creative.css';
 import type { Game } from '../wasm/engine.js';
+import { TILE_GAP, TILE_H } from './crafting';
 import { h } from './dom';
+import { Pager, tilesPerPage } from './pager';
 
 const ICON_PX = 64;
 
@@ -34,13 +36,25 @@ export class CreativeMenu {
       root.append(canvas, h('span', 'craft-name', name));
       root.addEventListener('click', (e) => game.creative_give(item, !e.shiftKey));
       tiles.push({ root, name: name.toLowerCase() });
-      grid.append(root);
     }
-    search.addEventListener('input', () => {
+    const pager = new Pager();
+    // The tiles that match the search, a page of them in the grid.
+    const show = () => {
       const words = search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-      for (const t of tiles) t.root.classList.toggle('hidden', !words.every((w) => t.name.includes(w)));
+      const found = tiles.filter((t) => words.every((w) => t.name.includes(w)));
+      const size = tilesPerPage(grid, TILE_H, TILE_GAP);
+      if (size === 0) return; // hidden: laid out when the grid gets a size
+      pager.set(Array.from({ length: Math.ceil(found.length / size) }, (_, i) => ({ title: `Page ${i + 1}` })));
+      grid.replaceChildren(...found.slice(pager.page * size, (pager.page + 1) * size).map((t) => t.root));
+    };
+    pager.onChange = show;
+    pager.wheel(grid);
+    search.addEventListener('input', () => {
+      pager.page = 0;
+      show();
     });
-    this.el.append(head, grid);
+    new ResizeObserver(show).observe(grid);
+    this.el.append(head, grid, pager.el);
   }
 }
 

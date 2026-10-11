@@ -56,11 +56,22 @@
   color: var(--accent);
 }
 
-.craft-section + .craft-section {
-  margin-top: 10px;
+/* The menu fills the height it is given and shows one page of tiles; crafting.ts counts how many fit, so the
+   tile height and gap here are TILE_H and TILE_GAP there. */
+.inv-build {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.craft-section h4 {
+.craft-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.craft-page-title {
   margin: 0 0 6px;
   font-size: 11px;
   font-weight: 600;
@@ -68,9 +79,18 @@
 }
 
 .craft-grid {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  grid-auto-rows: 80px;
+  align-content: start;
   gap: 6px;
+}
+
+.inv-build > .pager {
+  margin-top: 8px;
 }
 
 .craft-tile {
@@ -79,6 +99,8 @@
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  height: 80px;
+  box-sizing: border-box;
   padding: 6px 4px 5px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.07);

@@ -7,3 +7,25 @@
 .inv-creative .craft-head {
   margin-bottom: 10px;
 }
+
+/* The tab column fills the height it is given; the build menu and the picker both page their tiles to fit it. */
+.inv-right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.inv-right > .inv-build,
+.inv-right > .inv-creative {
+  flex: 1;
+  min-height: 0;
+}
+
+.inv-creative {
+  display: flex;
+  flex-direction: column;
+}
+
+.inv-creative > .pager {
+  margin-top: 8px;
+}

@@ -1,5 +1,7 @@
 // Build menu in the inventory screen: every hand recipe as a compact tile (icon, name, how many it
-// makes), grouped by the engine's recipe groups, with a text search (names of outputs and materials)
+// makes), grouped by the engine's recipe groups and paged instead of scrolled: a category starts a new page, and so
+// does a full page (as many tiles as the menu's height and width hold; the mouse wheel and the pager flip pages).
+// A text search (names of outputs and materials, plus related words: craft-terms.ts)
 // and a state filter (unlocked, the default; all, can craft, missing items, locked). A tile's details (description,
 // materials with have/need, the time it takes, what locks it) show in one info card on hover or keyboard
 // focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5. The inventory
@@ -8,9 +10,14 @@
 
 import './crafting.css';
 import type { Game } from '../wasm/engine.js';
+import { relatedWords } from './craft-terms';
 import { h } from './dom';
+import { Pager, tilesPerPage, type PageInfo } from './pager';
 
 const ICON_PX = 64;
+/** A tile's height and the grid's gap, in px: the same numbers as `.craft-grid` in crafting.css. */
+export const TILE_H = 80;
+export const TILE_GAP = 6;
 /** Shift-clicking a tile makes up to this many at once. */
 const BULK_CRAFT = 5;
 const FILTERS = [
@@ -38,10 +45,17 @@ export class BuildMenu {
   readonly el = h('section', 'inv-build');
   private readonly search = h('input', 'craft-search');
   private readonly filterButtons = new Map<Filter, HTMLButtonElement>();
-  private readonly sections: { root: HTMLElement; tiles: Tile[] }[] = [];
+  private readonly groupNames: string[] = [];
   private readonly tiles: Tile[] = [];
   private readonly empty = h('p', 'craft-empty hidden', 'No recipe matches.');
   private readonly info = h('div', 'craft-info hidden');
+  private readonly pageTitle = h('h4', 'craft-page-title');
+  private readonly grid = h('div', 'craft-grid');
+  private readonly pager = new Pager();
+  /** The tiles of each page, for the current search and filter. */
+  private pages: { title: string; tiles: Tile[] }[] = [];
+  /** The tiles on show, to leave the DOM alone (and any hover on it) when a redraw changes nothing. */
+  private shown: Tile[] = [];
   private filter: Filter = 'unlocked';
   /** The tile whose card is showing. */
   private hovered: Tile | null = null;
@@ -53,7 +67,10 @@ export class BuildMenu {
     this.search.type = 'search';
     this.search.placeholder = 'Search recipes or materials';
     this.search.setAttribute('aria-label', 'Search recipes or materials');
-    this.search.addEventListener('input', () => this.applyFilter());
+    this.search.addEventListener('input', () => {
+      this.pager.page = 0;
+      this.applyFilter();
+    });
     const filters = h('div', 'craft-filters');
     filters.setAttribute('role', 'group');
     filters.setAttribute('aria-label', 'Show recipes');
@@ -62,6 +79,7 @@ export class BuildMenu {
       b.type = 'button';
       b.addEventListener('click', () => {
         this.filter = f.id;
+        this.pager.page = 0;
         this.applyFilter();
       });
       this.filterButtons.set(f.id, b);
@@ -70,21 +88,18 @@ export class BuildMenu {
     const head = h('div', 'craft-head');
     head.append(h('h3', '', 'Build'), this.search);
 
-    const groups = game.recipe_group_count();
-    for (let g = 0; g < groups; g++) {
-      const root = h('div', 'craft-section');
-      root.append(h('h4', '', game.recipe_group_name(g)), h('div', 'craft-grid'));
-      this.sections.push({ root, tiles: [] });
-    }
-    for (let r = 0; r < game.recipe_count(); r++) {
-      const tile = this.makeTile(r);
-      this.tiles.push(tile);
-      this.sections[tile.group].tiles.push(tile);
-      this.sections[tile.group].root.lastElementChild!.append(tile.root);
-    }
+    for (let g = 0; g < game.recipe_group_count(); g++) this.groupNames.push(game.recipe_group_name(g));
+    for (let r = 0; r < game.recipe_count(); r++) this.tiles.push(this.makeTile(r));
+    // Tiles keep their category order, whatever the recipe order.
+    this.tiles.sort((a, b) => a.group - b.group);
+
     const list = h('div', 'craft-list');
-    list.append(...this.sections.map((s) => s.root), this.empty);
-    this.el.append(head, filters, list, this.info);
+    list.append(this.pageTitle, this.grid, this.empty);
+    this.pager.onChange = () => this.showPage();
+    this.pager.wheel(list);
+    // The page size follows the menu's size: lay the pages out again whenever the grid is resized.
+    new ResizeObserver(() => this.applyFilter()).observe(this.grid);
+    this.el.append(head, filters, list, this.pager.el, this.info);
   }
 
   /** Recomputes which recipes can be crafted; call when the inventory changed. */
@@ -120,7 +135,9 @@ export class BuildMenu {
     const names = [g.item_name(out)];
     const flat = g.recipe_inputs(r);
     for (let k = 0; k + 1 < flat.length; k += 2) names.push(g.item_name(flat[k]));
-    const tile: Tile = { id: r, root, group: g.recipe_group(r), words: names.join(' ').toLowerCase(), state: 'short' };
+    const group = g.recipe_group(r);
+    const words = `${names.join(' ')} ${g.recipe_group_name(group)} ${relatedWords(names[0])}`.toLowerCase();
+    const tile: Tile = { id: r, root, group, words, state: 'short' };
     root.addEventListener('click', (e) => {
       if (tile.state === 'ready' && g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
     });
@@ -131,34 +148,60 @@ export class BuildMenu {
     return tile;
   }
 
-  /** Shows the tiles that match the search and filter; counts per filter go on its button. */
+  /** Finds the tiles that match the search and filter (counts per filter go on its button) and pages them. */
   private applyFilter(): void {
     const words = this.search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const matches = (t: Tile) => words.every((w) => t.words.includes(w));
+    const matches = (t: Tile) => words.every((w) => hasWord(t.words, w));
     const counts: Record<Filter, number> = { unlocked: 0, all: 0, ready: 0, short: 0, locked: 0 };
+    const visible: Tile[] = [];
     for (const t of this.tiles) {
       if (!matches(t)) continue;
       counts.all++;
       counts[t.state]++;
       if (t.state !== 'locked') counts.unlocked++;
+      if (this.passes(t)) visible.push(t);
     }
     for (const f of FILTERS) {
       const b = this.filterButtons.get(f.id)!;
       b.textContent = `${f.label} ${counts[f.id]}`;
       b.setAttribute('aria-pressed', String(f.id === this.filter));
     }
-    let shown = 0;
-    for (const s of this.sections) {
-      let any = false;
-      for (const t of s.tiles) {
-        const show = matches(t) && this.passes(t);
-        t.root.classList.toggle('hidden', !show);
-        any ||= show;
-        shown += Number(show);
+    this.empty.classList.toggle('hidden', visible.length > 0);
+    this.layout(visible);
+  }
+
+  /** Cuts `visible` (in category order) into pages: a new category starts a page, and a page holds as many
+   * tiles as the grid has room for. Nothing is laid out while the menu is hidden. */
+  private layout(visible: Tile[]): void {
+    const size = tilesPerPage(this.grid, TILE_H, TILE_GAP);
+    if (size === 0) return;
+    this.pages = [];
+    const infos: PageInfo[] = [];
+    for (let i = 0; i < visible.length; ) {
+      const group = visible[i].group;
+      let end = i;
+      while (end < visible.length && visible[end].group === group) end++;
+      const parts = Math.ceil((end - i) / size);
+      for (let p = 0; p < parts; p++) {
+        const name = this.groupNames[group];
+        const title = parts > 1 ? `${name} (${p + 1} of ${parts})` : name;
+        this.pages.push({ title, tiles: visible.slice(i + p * size, Math.min(end, i + (p + 1) * size)) });
+        infos.push({ title, gap: p === 0 });
       }
-      s.root.classList.toggle('hidden', !any);
+      i = end;
     }
-    this.empty.classList.toggle('hidden', shown > 0);
+    this.pager.set(infos);
+    this.showPage();
+  }
+
+  /** Puts the current page's tiles in the grid, leaving the DOM alone when they are already there. */
+  private showPage(): void {
+    const page = this.pages[this.pager.page];
+    const tiles = page ? page.tiles : [];
+    this.pageTitle.textContent = page ? page.title : '';
+    if (tiles.length === this.shown.length && tiles.every((t, i) => t === this.shown[i])) return;
+    this.shown = tiles;
+    this.grid.replaceChildren(...tiles.map((t) => t.root));
   }
 
   /** Whether the chosen state filter lets `t` through. */
@@ -206,4 +249,12 @@ export class BuildMenu {
     const y = Math.min(Math.max(8, r.top), window.innerHeight - box.height - 8);
     this.info.style.transform = `translate(${x}px, ${y}px)`;
   }
+}
+
+/** Whether `text` has a word that starts with `w` (a plural also finds the singular: "belts" finds "belt"); a
+ * very short `w` must be a whole word, so "ai" finds the AI Lab but not "air". */
+function hasWord(text: string, w: string): boolean {
+  const padded = ` ${text} `;
+  if (w.length <= 2) return padded.includes(` ${w} `);
+  return padded.includes(` ${w}`) || (w.length > 3 && w.endsWith('s') && padded.includes(` ${w.slice(0, -1)}`));
 }

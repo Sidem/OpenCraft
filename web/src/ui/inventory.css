@@ -13,7 +13,7 @@
 
 .inv {
   width: min(1120px, 100%);
-  max-height: 100%;
+  height: min(720px, 100%);
   display: flex;
   flex-direction: column;
   border-radius: 14px;
@@ -51,10 +51,10 @@
 .inv-body {
   flex: 1;
   min-height: 0;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 22px;
   padding: 14px 22px 18px;
 }
@@ -78,18 +78,21 @@
   margin-bottom: 4px;
 }
 
-/* Box screen: the box's slots above the inventory, recipes hidden. */
+/* Box screen: the inventory on the left, the box's slots beside it, recipes hidden. */
 .inv.inv-with-box {
   width: auto;
   max-width: 100%;
+  height: auto;
+  max-height: 100%;
 }
 
 .inv-with-box .inv-body {
-  grid-template-columns: auto;
+  grid-template-columns: auto auto;
+  justify-content: start;
 }
 
 .inv-box {
-  margin-bottom: 18px;
+  align-self: start;
 }
 
 .inv-box-head {
@@ -106,6 +109,10 @@
 
 .inv-box-grid {
   grid-template-columns: repeat(8, auto);
+}
+
+.inv-box-head .pager {
+  margin-right: auto;
 }
 
 .inv-grid + h3 {
@@ -180,25 +187,33 @@
   color: var(--muted);
 }
 
-/* Side by side (inventory left, build menu right), each column scrolls on its own. */
-@media (min-width: 901px) {
-  .inv:not(.inv-with-box) .inv-body {
-    overflow: hidden;
-    grid-template-rows: minmax(0, 1fr);
-  }
+/* Side by side (inventory left, build menu right): the backpack and the build menu are paged, so nothing scrolls. */
+.inv-items {
+  min-height: 0;
+}
 
-  /* The gutter keeps the vertical scrollbar from squeezing the slot grid into a sideways scroll. */
-  .inv:not(.inv-with-box) .inv-body > * {
-    min-height: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
+/* Short windows give up the explanation first. */
+@media (max-height: 760px) {
+  .inv-note {
+    display: none;
   }
 }
 
+/* One column on narrow windows: the screen scrolls, and the build menu gets a height of its own to page in. */
 @media (max-width: 900px) {
   .inv-body {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    overflow-y: auto;
+  }
+
+  .inv-with-box .inv-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inv-body > .inv-right,
+  .inv-body > .inv-build {
+    height: 520px;
   }
 }
 

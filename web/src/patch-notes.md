@@ -9,6 +9,13 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - The launch site is a big 7×7 pad with a gantry. Feed it 4 frames, 2 engines, 2 tanks, an avionics and 8 fuel canisters and it builds a rocket in a minute, then launches it into orbit. The empty canisters come back out.
 - A rocket in orbit does nothing yet: satellites come next.
 
+## 2026-10-11 · A tidier inventory
+
+- The build menu and the backpack are paged now, so nothing scrolls: every category (logistics, power and so on) starts a new page, and a page ends when no more recipes fit. Flip pages with the numbered buttons or the mouse wheel.
+- The equipment and the hotbar always stay in view; a bigger hauler pack just adds backpack pages. A storage box now opens beside your inventory.
+- Searching knows related words: water finds pumps, pipes and boilers; belt finds splitters and filters; power finds generators and poles.
+- Belt Mk3 and Mk4 now look like Mk1 and Mk2 in menus.
+
 ## 2026-10-11 · Fabricator Gloves
 
 - Research Fabricator Gloves (after Handcrafting III and Gold Science) and craft them: worn in the new Gloves slot of the inventory screen, they make crafting by hand another 50% faster, on top of Handcrafting.

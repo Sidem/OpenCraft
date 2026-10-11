@@ -30,3 +30,14 @@ fn unknown_ids_are_not_items() {
     assert!(!ItemId(256 + EXTRA.len() as u16).is_valid(), "past the extra items");
     assert_eq!(name(ItemId(9999)), "");
 }
+
+#[test]
+fn every_belt_tier_is_drawn_the_same_way() {
+    // Top, side, bottom: the belt's own top texture over the plain frame (Mk1's block and Mk2's block are drawn so).
+    let frame = def(ItemId::block(crate::block::FAST_BELT)).unwrap().tex[1];
+    for belt in [ItemId::block(BELT), ItemId::block(crate::block::FAST_BELT), BELT_MK3, BELT_MK4] {
+        let tex = def(belt).unwrap().tex;
+        assert_eq!(tex[1..], [frame; 2], "{}'s sides and bottom are the frame", name(belt));
+        assert_ne!(tex[0], frame, "{}'s top shows the belt", name(belt));
+    }
+}
