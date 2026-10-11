@@ -166,6 +166,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::laser::MIRROR_SPEC,
     super::laser::DATA_RECEIVER_SPEC,
     super::hub::HUB_SPEC,
+    super::launch::LAUNCH_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

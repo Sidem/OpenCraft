@@ -25,7 +25,8 @@ impl Processor {
             .or_else(|| self.reactor_text())
             .or_else(|| self.center_text())
             .or_else(|| self.recycle_text())
-            .or_else(|| self.fab_text())
+            .or_else(|| self.launch_text())
+            .or_else(|| self.half_fed_text())
             .or_else(|| self.datacenter_text())
             .or_else(|| self.tower_text())
             .or_else(|| self.optimizer_text())
@@ -101,6 +102,7 @@ impl Processor {
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
         }
+        lines.extend(self.launch_line());
         if !matches!(
             self.energy(),
             Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Hoist | Energy::Optimizer

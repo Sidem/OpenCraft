@@ -9,7 +9,7 @@ use crate::math::Vec3;
 
 use super::super::footprint::Role;
 use super::super::render::push_box;
-use super::super::{smoke, DIRS};
+use super::super::{smoke, ticks, DIRS};
 use super::{steam_view, Energy, Processor, Status};
 
 #[cfg(test)]
@@ -31,6 +31,8 @@ pub enum Look {
     /// The mouth of a chimney or exhaust: no box, but smoke while working (`factory/smoke.rs`), puffs scaled by
     /// the part's width.
     Smoke,
+    /// A rocket on its pad: drawn only while a batch runs, lifting off in the batch's last stretch (`LIFT_AT`).
+    Rocket([u16; 3]),
 }
 
 #[derive(Clone, Copy)]
@@ -77,6 +79,9 @@ pub const fn drum_y(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
 
 /// Deepest press stroke, in blocks.
 const STROKE: f64 = 0.12;
+/// A rocket starts to rise when its batch is this far along (thousandths) and climbs this many blocks by the end.
+const LIFT_AT: u32 = 920;
+const LIFT_HEIGHT: f64 = 48.0;
 /// A port hatch: how far its centre sits from its cell's centre, and its size (across, up, thick).
 const HATCH_OUT: f64 = 0.45;
 const HATCH: [f32; 3] = [0.66, 0.5, 0.1];
@@ -102,6 +107,13 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             Look::Lamp => [lamp(p.status); 3],
             Look::Press(share, t) => {
                 at.y -= stroke * share as f64;
+                t
+            }
+            Look::Rocket(t) => {
+                let Some(r) = p.batch_recipe().filter(|_| p.batch.is_some()) else { continue };
+                let lift = p.progress / ticks(r.seconds);
+                let lift = lift.saturating_sub(LIFT_AT) as f64 / (1000 - LIFT_AT) as f64;
+                at.y += lift * lift * LIFT_HEIGHT;
                 t
             }
         };

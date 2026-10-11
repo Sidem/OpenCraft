@@ -31,6 +31,7 @@ mod hub;
 mod hydro;
 mod intake;
 mod laser;
+mod launch;
 mod legacy;
 mod model;
 mod nuclear;
@@ -118,6 +119,8 @@ pub struct Processor {
     pub study: Study,
     /// Millicoins a recycler has earned and not yet paid out (recycler.rs; saved for recyclers only).
     pub owed: u32,
+    /// Rockets a launch site has sent into orbit (launch.rs; saved for launch sites only).
+    pub launches: u32,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// The machine-speed bonus research gives, in thousandths (derived; 1000 is none), set before each tick.
@@ -156,6 +159,7 @@ impl Processor {
             pump: Pump::default(),
             study: Study::default(),
             owed: 0,
+            launches: 0,
             speed: 0,
             boost: FULL_SPEED,
             outs: Vec::new(),
@@ -302,6 +306,9 @@ impl Machine for Processor {
         if self.spec.pick == Pick::Recycle {
             w.u32(self.owed);
         }
+        if self.is_launch() {
+            w.u32(self.launches);
+        }
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Processor> {
@@ -338,6 +345,9 @@ impl Machine for Processor {
         }
         if spec.pick == Pick::Recycle {
             p.owed = r.u32()?;
+        }
+        if p.is_launch() {
+            p.launches = r.u32()?;
         }
         p.valid()
     }

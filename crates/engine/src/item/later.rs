@@ -61,3 +61,10 @@ pub const HAULER_PACK_MK4: ItemId = ItemId(383);
 pub const HAULER_PACK_MK5: ItemId = ItemId(384);
 /// Fabricator gloves (worn in the Gloves slot, `equipment.rs`): hand crafting 50% faster.
 pub const CRAFT_GLOVES: ItemId = ItemId(385);
+/// Rocket parts (the Rocketry tech; `recipes/orbit.rs`): the assembler builds the light frame, engine, fuel tank and
+/// avionics, the chemical plant fills rocket fuel canisters, and the launch site consumes them all.
+pub const LIGHT_FRAME: ItemId = ItemId(386);
+pub const ROCKET_ENGINE: ItemId = ItemId(387);
+pub const FUEL_TANK: ItemId = ItemId(388);
+pub const AVIONICS: ItemId = ItemId(389);
+pub const ROCKET_FUEL_CANISTER: ItemId = ItemId(390);

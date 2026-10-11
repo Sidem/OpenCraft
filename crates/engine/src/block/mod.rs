@@ -151,7 +151,9 @@ pub const LASER_MIRROR: BlockId = 106;
 pub const DATA_RECEIVER: BlockId = 107;
 /// The swarm hub (`factory/process/hub.rs`): drone ports near it keep more drones.
 pub const SWARM_HUB: BlockId = 108;
-pub const BLOCK_COUNT: usize = 109;
+/// The launch site (`factory/process/launch.rs`, Milestone 12): a 7×7 pad and gantry that builds rockets and launches them.
+pub const LAUNCH_SITE: BlockId = 109;
+pub const BLOCK_COUNT: usize = 110;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -384,6 +386,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Laser Mirror", true, 1.2, pillar(tex::MIRROR, tex::FRAME, tex::FRAME), LASER_MIRROR),
     machine("Data Receiver", true, 1.6, pillar(tex::DATA_SIDE, tex::DATA_TOP, tex::FRAME), DATA_RECEIVER),
     machine("Swarm Hub", true, 2.4, pillar(tex::HUB_SIDE, tex::HUB_TOP, tex::FRAME), SWARM_HUB),
+    machine("Launch Site", true, 3.0, pillar(tex::LAUNCH_SIDE, tex::LAUNCH_TOP, tex::FRAME), LAUNCH_SITE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

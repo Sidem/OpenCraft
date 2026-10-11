@@ -4,7 +4,8 @@
 //!   side hatches (the pure water is filled in a chemical plant: `recipes/machine.rs`).
 //! - **AI accelerator** (20 s): 2 wafers, 2 processors and a plastic, so the player belts wafers back in.
 //!
-//! Six kinds of input share its six input slots (a stack each); `fab_text` names what a half-fed batch still lacks.
+//! Six kinds of input share its six input slots (a stack each); `half_fed_text` names what a half-fed batch still lacks
+//! (the launch site uses it too).
 //! Numbers: docs/TECH_ERAS.md section 7.
 //!
 //! To make another fab product: a `Fabrication` recipe row.
@@ -45,16 +46,18 @@ pub const FAB_SPEC: ProcessSpec = ProcessSpec {
 };
 
 impl Processor {
-    /// What a chip fab that holds part of a batch still lacks ("Waiting for 1 Acid Canister"); `None` for another
-    /// machine, one that is working, or an empty fab (which says what it takes).
-    pub(super) fn fab_text(&self) -> Option<String> {
-        if self.spec.block != CHIP_FAB || self.status != Status::NoInput {
+    /// What a chip fab or launch site that holds part of a batch still lacks ("Waiting for 1 Acid Canister"); `None` for
+    /// another machine, one that is working, or an empty one (which says what it takes).
+    pub(super) fn half_fed_text(&self) -> Option<String> {
+        let category =
+            *self.spec.categories.first().filter(|c| matches!(c, Category::Fabrication | Category::Launch))?;
+        if self.status != Status::NoInput {
             return None;
         }
         // The recipe it is furthest into: the most inputs fully present, among those it holds anything of.
         let done = |r: &MachineRecipe| r.inputs.iter().filter(|&&(i, n)| self.input.count(i) >= n).count();
         let touched = |r: &&MachineRecipe| r.inputs.iter().any(|&(i, _)| self.input.count(i) > 0);
-        let fab = MACHINE_RECIPES.iter().filter(|r| r.category == Category::Fabrication).filter(touched);
+        let fab = MACHINE_RECIPES.iter().filter(|r| r.category == category).filter(touched);
         let best = fab
             .fold(None, |b: Option<&MachineRecipe>, r| if b.is_none_or(|b| done(r) > done(b)) { Some(r) } else { b });
         let lacking: Vec<String> = best?

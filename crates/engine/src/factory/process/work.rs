@@ -56,6 +56,9 @@ impl Processor {
                     self.out.add(item, n);
                 }
             }
+            if self.is_launch() {
+                self.launches += 1;
+            }
             (self.batch, self.progress) = (None, 0);
         }
     }

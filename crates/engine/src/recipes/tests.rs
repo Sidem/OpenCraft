@@ -10,12 +10,12 @@ use crate::item;
 use crate::research::pack_slot;
 use crate::tools;
 use Category::{
-    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
+    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication, Launch,
     Pressing, Smelting, Splitting, Washing,
 };
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 14] = [
+const CATEGORIES: [Category; 15] = [
     Smelting,
     Pressing,
     Assembly,
@@ -30,10 +30,11 @@ const CATEGORIES: [Category; 14] = [
     Washing,
     Enrichment,
     Fabrication,
+    Launch,
 ];
 const _: fn(Category) = |c| match c {
     Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
-    | Splitting | Washing | Enrichment | Fabrication => {}
+    | Splitting | Washing | Enrichment | Fabrication | Launch => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -70,13 +71,11 @@ const WORLD_BLOCKS: &[BlockId] = &[
 /// recyclers pay coins).
 const GATHERED: &[ItemId] = &[ItemId::block(SAPLING), item::CRUDE_CANISTER, item::COIN];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
-/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; hydrogen
-/// and oxygen for fuel cells and rockets, plastic and acid for gold science and the chip fab, lubricant for Mk5).
+/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; plastic and acid for gold science and the chip fab,
+/// lubricant for Mk5).
 const NO_USE_YET: &[ItemId] = &[
     item::CIRCUIT,
     item::DRONE,
-    item::HYDROGEN_CANISTER,
-    item::OXYGEN_CANISTER,
     item::PLASTIC,
     item::ACID_CANISTER,
     item::LUBRICANT_CANISTER,

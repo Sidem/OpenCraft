@@ -49,3 +49,8 @@ pub const BLAST_WASHED_RECIPE: u16 = 60;
 pub const PURE_WATER_RECIPE: u16 = 61;
 pub const WAFER_RECIPE: u16 = 62;
 pub const ACCELERATOR_RECIPE: u16 = 63;
+/// Orbit (Rocketry; the rows of `orbit.rs`): the assembler's light frame, engine, fuel tank and avionics, the chemical plant's
+/// rocket fuel and the launch site's rocket.
+pub const ROCKET_PART_RECIPES: [u16; 4] = [64, 65, 66, 67];
+pub const ROCKET_FUEL_RECIPE: u16 = 68;
+pub const ROCKET_RECIPE: u16 = 69;

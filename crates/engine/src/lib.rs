@@ -51,6 +51,7 @@ mod interaction;
 mod inventory;
 mod item;
 mod item_models;
+mod join;
 mod light;
 mod math;
 mod mesher;

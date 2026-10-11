@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11; 744 tests) · **Next: step 12.1** (Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 is built** (Rocketry, the launch site, rocket parts and fuel; 752 tests, not yet committed), **next: step 12.2** satellites (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -40,8 +40,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (a first draft to
-  refine with the user at 12.1).
+- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (12.1 built; the
+  steps after it are a first draft to refine with the user at 12.2).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -443,7 +443,7 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 44) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 109, item 386, tech 78, machine recipe 64). Each new look gets a placeholder layer (`tex::COUNT` is 286) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 110, item 391, tech 79, machine recipe 70). Each new look gets a placeholder layer (`tex::COUNT` is 294) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -523,10 +523,20 @@ Goal: the factory leaves the ground. Rockets from every line, fuel from electrol
 network new reach. Numbers are first guesses. Order: the launch site and a first rocket, satellites in orbit, what each kind
 gives, drop pods, cleanup. Plan the interlude chosen on 2026-10-08 for after Milestone 11 (timelapse, factory as an instrument,
 follow one item, seismic prospecting, site bonuses) with the user before 12.1; it can go first.
-- [ ] **12.1 Rocket parts and the launch site** (`process/launch.rs`, a big multi-block pad; tech Rocketry, gold packs). Parts made in
-  assemblers (hull, engine, guidance, fuel tank) and liquid fuel and oxidiser from electrolysis and the refinery, carried in canisters
-  to the pad. Done when: a pad fed in a test builds a rocket and `Action`-free ticks launch it (state: "in orbit"), and a pad
-  missing a part says which.
+- [x] **12.1 Rocket parts and the launch site** (built 2026-10-11: `process/launch.rs`, block 109 Launch Site, 7×7×6, 2 MW,
+  `Category::Launch`, hatches along the whole back (in) and front (out); tech Rocketry 78 in the new `research/orbit.rs` (needs
+  Electrolysis and Accelerators, all five packs, 300 × 60 s); items 386–390 light frame, rocket engine, fuel tank, avionics, rocket
+  fuel canister; machine recipes 64–69 in the new `recipes/orbit.rs` (`ROCKET_PART_RECIPES` 64–67 assembler: light frame 2 aluminium
+  plates + steel beam + plastic, engine 8 steel plates + 4 aluminium plates + 2 motors, tank 6 aluminium + 4 steel plates + 2 plastic,
+  avionics 4 accelerators + 4 processors + 8 circuits; `ROCKET_FUEL_RECIPE` 68 chemical plant: 2 hydrogen + 1 oxygen canister → fuel
+  canister + 2 empties; `ROCKET_RECIPE` 69 launch site: 4 frames, 2 engines, 2 tanks, avionics, 8 fuel canisters, 60 s → 8 empties
+  back). Hand recipe 200 concrete, 60 steel beams, 20 motors. **Differs from the draft:** "launched" is a per-pad counter
+  (`Processor::launches`, saved for launch sites only, so no save bump; readout "N in orbit"), not a world-level orbit list; 12.2
+  replaces it with the real state when a rocket carries a satellite. The part recipes take at most 3 input kinds (the assembler's
+  slots), so the engine has no accelerator. The rocket stands on the pad only while a batch runs and lifts off in its last 8%
+  (`Look::Rocket`). `MACHINE_RECIPES` is now a compile-time join (`crate::join`, the tech table's join made generic; `MachineRecipe`
+  is `Copy`) so new rows go in `recipes/orbit.rs` and `machine.rs` stays under budget. Textures 286–293. Golden hash re-recorded
+  (tech table grew). Tests 744 → 752. Not done: a launch sound or toast, a rocket-specific tip.)
 - [ ] **12.2 Satellites and the sky** (`satellites.rs`, core state: an orbit is a period and a phase, positions derived from the
   tick). A rocket carries one satellite kind into orbit; coverage is a function of the tick and a place. Done when: a satellite's
   coverage over a place is true for part of its period in tests and the state hash stays deterministic.
@@ -578,17 +588,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-11: Rocket parts and the launch site (step 12.1).** Block 109 Launch Site (`process/launch.rs`), tech Rocketry 78 (`research/orbit.rs`), items 386–390, machine recipes 64–69 (`recipes/orbit.rs`), `Category::Launch`, `Look::Rocket`, textures 286–293 (`textures/orbit.rs`); `crate::join` (generic const join) now builds both `TECHS` and `MACHINE_RECIPES`. A pad launches a rocket per 60 s batch and counts it (`Processor::launches`). No save bump, golden hash re-recorded. Tests 744 → 752. Next free block 110, item 391, tech 79, machine recipe 70, texture 294.
 - **2026-10-11: Fabricator Gloves (interlude step L3; L4 dropped by the user).** New gear slot Gloves (6th), item 385 with its recipe, tech 77 (`research/hands.rs`), texture 285 (`textures/gear.rs`), `Effect::crafting`; `player_bonus` takes the player's inventory so worn gear adds to the techs. Save version 44 (older saves read five worn slots), golden hash re-recorded. Tests 739 → 744. Next free block 109, item 386, tech 78, texture 286.
 - **2026-10-10: Light, machine looks, smoke and a steam train (user request).** Sun and moon light the sides they face, water glints, lamps and beams glow (`render/`). About 20 machine models redone so they read as what they do (round bodies as two crossed parts, `drum_x`/`drum_y`/`drum_z`, `paint::round_shade`), a steam locomotive and new wagons, smoke from working furnaces, boilers, generators, the refinery and cracker and a moving train (`factory/smoke.rs`, `Look::Smoke`, textures 281–282), `SOOT` 284, `LOCO_BODY` 283. A test keeps processor models free of coplanar faces (they flicker). No save or golden-hash change. Tests 739 → 740. Next free block 109, tech 77, texture 285.
 - **2026-10-10: The menu as a launcher (user request).** `ui/menu.ts` (+ `menu.css`, `menu-pages.css`): a side column (Play with loading, the open world, page buttons, GitHub and issue links) and one page at a time: home (first steps for a new player, handy keys and the latest update otherwise, "Paused" on Escape), worlds, play together, settings (sound, camera, comfort; the menu steps aside while it shows), controls (grouped), what's new. Player-facing patch notes live in `web/src/patch-notes.md` (`ui/patch-notes.ts`, unread dot). `ComfortPanel` lost its `<details>` and menu wiring. Web only, no engine change.
-- **2026-10-09: Hand-crafting speed (interlude steps L1 + L2).** `perks.rs` (`player_bonus`, `Stat::Crafting`, `Unlock::Perk`), techs Handcrafting I–III 74–76 (`research/hands.rs`, +25% each), `crafting::craft_ticks`. Golden hash re-recorded (tech table grew), no save bump. Tests 736 → 739. Next free block 109, tech 77, texture 281.
-- **2026-10-09: Milestone 11 cleanup (step 11.13).** Three tips (compute, lasers, smarter tools), `bench_compute` (about 2 µs a tick, worst under 0.1 ms), the balance note, README and CODEMAP, the Milestone 11 step list moved to `docs/CHANGELOG_M11.md`, Milestone 12 moved in from the roadmap as a first draft. Tests stay at 736. Next free block 109, tech 74, texture 281.
-- **2026-10-09: AI survey (step 11.12).** `survey.rs` (guesses from stained soil, `MARK_GUESS` rings on both maps), `Feature::AiSurvey`, tech AI Survey 73. Golden hash re-recorded (tech table grew), no save bump. Tests 731 → 736. Next free block 109, tech 74, texture 281.
-- **2026-10-09: Auto-routing (step 11.11).** `belt_line/route.rs` (A* route to an aimed machine, ghost lines in ghost mode), `Unlock::Feature`, tech Auto-Routing 72. Golden hash re-recorded (tech table grew), no save bump. Tests 721 → 731. Next free block 109, tech 73, texture 281.
-- **2026-10-09: Swarm hub (step 11.10).** Block 108 Swarm Hub (`factory/process/hub.rs`, texture 279–280, tech Drone Swarms 71): drone ports within 12 blocks keep 50% more drones while the hub gets power and compute (`Hangar::bonus`, `Processor::fleet`). Golden hash re-recorded (tech table grew), no save bump. Tests 716 → 721. Next free block 109, tech 72, texture 281.
-- **2026-10-09: Mirrors and data beams (step 11.9).** Blocks 106 Laser Mirror and 107 Data Receiver (Photonics 67), textures 276–278: beams turn 90° at mirrors (up to 8, 128 blocks in all) and a beam ending in a data receiver joins two data grids. Also: a world saved mid-thrust no longer loads thrusting forever (hands_synced). No save change. Tests 710 → 716. Next free block 108, tech 71, texture 279.
-- **2026-10-09: Jetpack slot and HUD columns.** A fifth equipment slot (Jetpack): the jetpack works only while worn (`Inventory::has_jetpack`); save 43 (older saves wear a pack-held jetpack on load; golden hash re-recorded). The helpers' status (jetpack fuel, hover charge, drone errand) is its own HUD line (`helper_status`) instead of replacing the target readout. Top centre (`#hud-top`) and left (`#hud-left`) are flex columns so scanner pointer, helper line, target, scanner card and tip never overlap. Mk2 scanner pointer: U picks the next deposit (Nearest / Chosen). Tests 710.
-- **2026-10-08: Laser power links (step 11.8).** `factory/laser.rs` (blocks 104–105, `Energy::Beam`, tech Photonics 67, textures 268–272): a clear beam joins two power grids at 90%; `Power::rebuild` splits poles into wire "sides" and joins sides through beams. Golden hash re-recorded, no save bump. Tests 689 → 696. Next free block 106, tech 68, texture 273.
-- **2026-10-08: Optimizer node (step 11.7).** `process/optimizer.rs` (block 103, `Energy::Optimizer`, tech Optimizer 66 in `research/ai.rs`, textures 266–267): +25% to machines within 16 blocks. Tests 683 → 689.
-- **2026-10-08: Endless bonus techs (step 11.6).** `research/bonus.rs` (techs 63–65, `Unlock::Bonus`, `Research::rate_permille` / `unit_seconds`), `Miner::boost`, `Processor::boost`, `Sim::flight_step`. No save bump (levels are progress); golden hash re-recorded. Tests 673 → 683. Next free block 103, tech 66, texture 266.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

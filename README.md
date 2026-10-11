@@ -441,7 +441,14 @@ size.
   steps (it says "No route" and marks the target red when it cannot). In ghost mode (B) a dragged belt line is planted as ghosts
   for your drones to build.
 - **AI survey.** The AI Survey tech marks, on the minimap and the world map, faint rings where ore probably lies, guessed from the
-  stained soil you have seen within 256 blocks (bigger rings for more stain). They are hints: scan or drill to be sure.- **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
+  stained soil you have seen within 256 blocks (bigger rings for more stain). They are hints: scan or drill to be sure.
+- **Rocketry.** Rocketry (after Electrolysis and Accelerators, all five science packs) gives four rocket parts the assembler
+  builds (light frame, rocket engine, fuel tank, avionics), **rocket fuel** (the chemical plant mixes 2 hydrogen and 1 oxygen
+  canister into a fuel canister and 2 empties) and the **launch site**, a 7×7×6 pad and gantry (2 MW). Belt 4 light frames,
+  2 engines, 2 fuel tanks, an avionics and 8 fuel canisters in at the back hatches: the pad builds a rocket for a minute (you
+  see it standing there), launches it into orbit and gives the 8 empty canisters back at the front. A pad missing a part says
+  which. What a rocket carries and does in orbit comes in the next steps.
+- **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the
   screen shows the level, not a bar). Levels add up (10 levels: +30%), not compound.

@@ -10,6 +10,7 @@
 //! To add a recipe: append a row. A category: a `Category` variant (and its entry in the lint's list) and
 //! the processor specs that take it.
 
+use super::orbit::ORBIT;
 use super::rows::*;
 use crate::block::*;
 use crate::item::{
@@ -23,6 +24,7 @@ use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHE
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
 use crate::item::{CRUDE_CANISTER, DIESEL_CANISTER, HEAVY_OIL_CANISTER, NAPHTHA_CANISTER, SULFUR};
 use crate::item::{FUEL_CELL, GOLD_KIT, GOLD_PACK, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON};
+use crate::join::join;
 
 /// A kind of machine work.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -55,10 +57,13 @@ pub enum Category {
     Enrichment,
     /// Silicon, acid and pure water into wafers, wafers into AI accelerators (the chip fab).
     Fabrication,
+    /// Rocket parts and fuel into a rocket in orbit (the launch site); its outputs are the empties that come back.
+    Launch,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
 /// `seconds` of work.
+#[derive(Clone, Copy)]
 pub struct MachineRecipe {
     pub category: Category,
     pub inputs: &'static [(ItemId, u32)],
@@ -72,7 +77,10 @@ use Category::{
     Pressing, Smelting, Splitting, Washing,
 };
 
-pub const MACHINE_RECIPES: &[MachineRecipe] = &[
+/// Every machine recipe: the main table, then Milestone 12's (`orbit.rs`); add to the last.
+pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<MachineRecipe, { MAIN.len() + ORBIT.len() }>(&[MAIN, ORBIT]);
+
+const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
     MachineRecipe { category: Smelting, inputs: &[(b(COPPER_ORE), 1)], outputs: &[(COPPER_INGOT, 1)], seconds: 1.5 },
     MachineRecipe { category: Pressing, inputs: &[(IRON_INGOT, 2)], outputs: &[(IRON_PLATE, 1)], seconds: 2.0 },

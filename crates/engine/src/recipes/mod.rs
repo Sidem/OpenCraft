@@ -4,7 +4,7 @@
 //!
 //! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the
 //! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
-//! `solar.rs`, the chip fab's in `compute.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
+//! `solar.rs`, the chip fab's in `compute.rs`, the launch site's (and the rocket parts' machine rows) in `orbit.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::{
@@ -22,6 +22,7 @@ mod group;
 mod heavy;
 mod machine;
 mod materials;
+mod orbit;
 mod recycler;
 pub mod recycling;
 mod rows;
@@ -41,6 +42,7 @@ pub use group::{Group, GROUPS};
 use heavy::*;
 pub use machine::*;
 use materials::*;
+use orbit::LAUNCH_SITE_RECIPE;
 use recycler::*;
 pub use rows::*;
 use solar::*;
@@ -404,6 +406,7 @@ pub const RECIPES: &[Recipe] = &[
     DATA_RECEIVER_RECIPE,
     SWARM_HUB_RECIPE,
     CRAFT_GLOVES_RECIPE,
+    LAUNCH_SITE_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

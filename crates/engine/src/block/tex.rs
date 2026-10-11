@@ -324,7 +324,16 @@ pub const LOCO_BODY: u16 = 283;
 pub const SOOT: u16 = 284;
 /// Fabricator gloves (`textures/gear.rs`).
 pub const CRAFT_GLOVES: u16 = 285;
-pub const COUNT: usize = 286;
+/// The launch site's pad and gantry, the rocket parts' icons and the rocket's hull (`textures/orbit.rs`).
+pub const LAUNCH_SIDE: u16 = 286;
+pub const LAUNCH_TOP: u16 = 287;
+pub const LIGHT_FRAME: u16 = 288;
+pub const ROCKET_ENGINE: u16 = 289;
+pub const FUEL_TANK: u16 = 290;
+pub const AVIONICS: u16 = 291;
+pub const ROCKET_FUEL_CANISTER: u16 = 292;
+pub const ROCKET_HULL: u16 = 293;
+pub const COUNT: usize = 294;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

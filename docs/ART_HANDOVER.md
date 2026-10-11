@@ -204,6 +204,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   generated satchel with a flap in the tier's kit colour and a pip per tier (`textures/gear.rs`); icons only.
   Fabricator gloves (2026-10-11): `tex::CRAFT_GLOVES` (285, `textures/gear.rs`) is an icon only: a dark glove with a gold cuff and a
   cyan servo pad, worn in the new Gloves slot. It should read as "hands, faster" next to the mining rig and exo frame.
+  Launch site and rocket (12.1, 2026-10-11, `textures/orbit.rs`): `tex::LAUNCH_SIDE` and `LAUNCH_TOP` (286–287) are the 7×7×6 pad's
+  braced concrete with a hazard band, and its blast ring; the rocket is boxes in `LAUNCH_PARTS` (`factory/process/launch.rs`;
+  hull `tex::ROCKET_HULL` 293, nose and fins `LAMP_RED`, bell `ROCKET_ENGINE`) drawn only while a batch runs, lifting off at the end.
+  Icons: `LIGHT_FRAME`, `ROCKET_ENGINE`, `FUEL_TANK`, `AVIONICS`, `ROCKET_FUEL_CANISTER` (288–292). It should read as the biggest
+  site in the game, next to the fab and the datacenter.
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.
