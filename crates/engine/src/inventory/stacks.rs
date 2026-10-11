@@ -1,7 +1,7 @@
 //! Operations on stacks and slices of stacks, shared by the player inventory and storage boxes: topping up
 //! (`add_to_slots`), moving every stack of an item (`move_all_of`), sorting, and the screen clicks on one slot with
 //! the cursor stack: `click_stack` (pick up, put down, merge, swap), `split_stack` (right-click: half) and
-//! `place_one` (shift-right-click). A tool's count is its wear, so tools never merge or split.
+//! `place_one` (shift- or ctrl-right-click) and `take_one` (ctrl-click). A tool's count is its wear, so tools never merge or split.
 
 use super::Stack;
 use crate::item::{stack_size, ItemId};
@@ -115,6 +115,29 @@ pub fn split_stack(s: &mut Stack, c: &mut Stack) -> bool {
         return false;
     }
     *c = Stack { item: s.item, count: c.count + n };
+    s.count -= n;
+    if s.is_empty() {
+        *s = Stack::default();
+    }
+    true
+}
+
+/// A ctrl-click on slot `s` with the cursor stack `c`: takes one item of `s` onto an empty cursor or one holding the
+/// same item (with room). A tool, whose count is its wear, is taken whole onto an empty cursor. Returns whether
+/// anything changed.
+pub fn take_one(s: &mut Stack, c: &mut Stack) -> bool {
+    if s.is_empty() {
+        return false;
+    }
+    let tool = tools::tool(s.item).is_some();
+    let n = if tool { s.count } else { 1 };
+    if c.is_empty() {
+        *c = Stack { item: s.item, count: n };
+    } else if !tool && s.item == c.item && c.count < stack_size(c.item) {
+        c.count += 1;
+    } else {
+        return false;
+    }
     s.count -= n;
     if s.is_empty() {
         *s = Stack::default();

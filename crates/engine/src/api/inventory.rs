@@ -94,6 +94,11 @@ impl Game {
         self.act(Action::RightClickSlot { slot: slot.min(u8::MAX as u32) as u8, shift: place });
     }
 
+    /// Ctrl-click on an inventory slot: takes one item of it onto the cursor (a tool whole).
+    pub fn take_one_slot(&mut self, slot: u32) {
+        self.act(Action::TakeOneSlot { slot: slot.min(u8::MAX as u32) as u8 });
+    }
+
     /// Shift-right-click outside the inventory screen while holding a stack: throws one item out.
     pub fn throw_cursor(&mut self) {
         self.act(Action::ThrowCursor);

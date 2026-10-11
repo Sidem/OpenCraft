@@ -14,6 +14,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - The build menu and the backpack are paged now, so nothing scrolls: every category (logistics, power and so on) starts a new page, and a page ends when no more recipes fit. Flip pages with the numbered buttons or the mouse wheel.
 - The equipment and the hotbar always stay in view; a bigger hauler pack just adds backpack pages. A storage box now opens beside your inventory.
 - Searching knows related words: water finds pumps, pipes and boilers; belt finds splitters and filters; power finds generators and poles.
+- Ctrl-click a slot takes one item onto your cursor (again for the next one), and Ctrl-right-click puts one down, so you can build or split a stack a single item at a time.
 - Belt Mk3 and Mk4 now look like Mk1 and Mk2 in menus.
 
 ## 2026-10-11 · Fabricator Gloves

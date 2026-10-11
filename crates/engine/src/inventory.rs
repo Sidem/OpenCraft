@@ -45,7 +45,7 @@ impl Stack {
 }
 
 mod stacks;
-pub use stacks::{add_to_slots, click_stack, move_all_of, place_one, sort_stacks, split_stack};
+pub use stacks::{add_to_slots, click_stack, move_all_of, place_one, sort_stacks, split_stack, take_one};
 
 #[derive(Clone)]
 pub struct Inventory {
@@ -227,6 +227,15 @@ impl Inventory {
         let Some(s) = self.slots[..capacity].get_mut(slot) else { return };
         let changed = if place { place_one(s, &mut self.cursor) } else { split_stack(s, &mut self.cursor) };
         if changed {
+            self.version += 1;
+        }
+    }
+
+    /// Ctrl-click on `slot`: moves one item (a tool whole) from the slot onto the cursor.
+    pub fn take_one(&mut self, slot: usize) {
+        let capacity = self.capacity();
+        let Some(s) = self.slots[..capacity].get_mut(slot) else { return };
+        if take_one(s, &mut self.cursor) {
             self.version += 1;
         }
     }

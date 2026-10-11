@@ -4,8 +4,9 @@
 // (`crafting.ts`; creative worlds add the item picker, `creative.ts`). Opened on a storage box (right-click), it shows the box's slots above the inventory
 // instead of the build menu, like a chest: clicks move stacks with the cursor, shift-clicks move whole
 // stacks between the box and the inventory. Right-click takes half of a stack (again: half of what is left, added to
-// the held stack); Shift-right-click with a stack held puts one item down (outside the screen: throws one out), and
-// with an empty hand moves every stack of that item.
+// the held stack); Ctrl-click takes one item onto the cursor and Ctrl-right-click puts one down (so a stack can be
+// built or split a single item at a time); Shift-right-click with a stack held puts one item down too (outside the
+// screen: throws one out), and with an empty hand moves every stack of that item.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
@@ -76,8 +77,8 @@ export class InventoryPanel {
       h(
         'span',
         'inv-keys',
-        'E or click outside to return · Right-click takes half · Shift-right-click puts one down (outside: throws one), ' +
-          'or moves all of that item when your hand is empty · Shift-click moves a stack',
+        'E or click outside to return · Right-click takes half · Ctrl-click takes one · Ctrl-right-click puts one down · ' +
+          'Shift-click moves a stack · Shift-right-click moves all of that item (outside: throws one)',
       ),
       close,
     );
@@ -91,6 +92,7 @@ export class InventoryPanel {
           if (shift && !this.holding()) this.box ? game.store_all(...this.box, i) : game.quick_move_all(i);
           else game.right_click_slot(i, shift);
         },
+        { takeOne: () => game.take_one_slot(i), putOne: () => game.right_click_slot(i, true) },
       );
       if (i < hotbar) slot.root.append(h('span', 'key', String(i + 1)));
       this.slots.push(slot);
@@ -197,6 +199,10 @@ export class InventoryPanel {
           if (shift && !this.holding()) this.game.take_all(...this.box, i);
           else this.game.right_click_box(...this.box, i, shift);
         },
+        {
+          takeOne: () => this.box && this.game.take_one_box(...this.box, i),
+          putOne: () => this.box && this.game.right_click_box(...this.box, i, true),
+        },
       );
       this.boxSlots.push(slot);
       this.boxGrid.append(slot.root);
@@ -274,8 +280,13 @@ export class InventoryPanel {
   }
 
   /** A slot that calls `click` on a left click (`this.shift` tells whether Shift was held) and `rightClick`
-   * on a right click, with whether Shift was held. */
-  private makeSlot(click: () => void, rightClick: (shift: boolean) => void): SlotView {
+   * on a right click, with whether Shift was held. With Ctrl (or Cmd) held instead, `ctrl` takes over: a left click
+   * takes one item onto the cursor, a right click puts one down (nothing when the hand is empty). */
+  private makeSlot(
+    click: () => void,
+    rightClick: (shift: boolean) => void,
+    ctrl?: { takeOne: () => void; putOne: () => void },
+  ): SlotView {
     const root = h('div', 'slot inv-slot');
     const icon = h('canvas');
     icon.width = icon.height = ICON_PX;
@@ -285,7 +296,10 @@ export class InventoryPanel {
       if (e.button !== 0 && e.button !== 2) return;
       e.preventDefault();
       this.shift = e.shiftKey;
-      if (e.button === 2) rightClick(e.shiftKey);
+      if (ctrl && !e.shiftKey && (e.ctrlKey || e.metaKey)) {
+        if (e.button === 0) ctrl.takeOne();
+        else if (this.holding()) ctrl.putOne();
+      } else if (e.button === 2) rightClick(e.shiftKey);
       else click();
       this.moveCursor(e.clientX, e.clientY);
       this.update();

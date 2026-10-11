@@ -250,6 +250,44 @@ fn a_box_screen_moves_stacks_both_ways() {
 }
 
 #[test]
+fn ctrl_click_takes_one_and_ctrl_right_click_puts_one_back() {
+    let mut sim = Sim::new(7, 2);
+    let pos = IVec3::new(0, 200, 0);
+    sim.factory.add_storage(pos);
+    let (stone, dirt) = (ItemId::from(STONE), ItemId::from(DIRT));
+    let cursor = |sim: &Sim| (inv(sim).cursor.item, inv(sim).cursor.count);
+    sim.apply(P, Action::Give { item: stone, count: 3 });
+    sim.apply(P, Action::Give { item: dirt, count: 2 });
+    sim.apply(P, Action::Give { item: crate::item::STONE_PICKAXE, count: 40 });
+
+    // One at a time, from the same stack; another item is left alone; the last one empties the slot.
+    sim.apply(P, Action::TakeOneSlot { slot: 0 });
+    sim.apply(P, Action::TakeOneSlot { slot: 0 });
+    assert_eq!((cursor(&sim), inv(&sim).slots[0].count), ((stone, 2), 1));
+    sim.apply(P, Action::TakeOneSlot { slot: 1 });
+    assert_eq!((cursor(&sim), inv(&sim).slots[1].count), ((stone, 2), 2));
+    sim.apply(P, Action::TakeOneSlot { slot: 0 });
+    assert_eq!((cursor(&sim), inv(&sim).slots[0].is_empty()), ((stone, 3), true));
+    sim.apply(P, Action::TakeOneSlot { slot: 0 }); // an empty slot does nothing
+    assert_eq!(cursor(&sim).1, 3);
+
+    // Ctrl-right-click is the put-one: it goes back to a slot, or into a box.
+    sim.apply(P, Action::RightClickSlot { slot: 0, shift: true });
+    sim.apply(P, Action::RightClickBox { pos, slot: 0, shift: true });
+    assert_eq!((cursor(&sim).1, inv(&sim).slots[0].count, sim.factory.box_slots(pos).unwrap()[0].count), (1, 1, 1));
+    // From a box, one at a time.
+    sim.apply(P, Action::TakeOneBox { pos, slot: 0 });
+    assert_eq!((cursor(&sim).1, sim.factory.box_slots(pos).unwrap()[0].is_empty()), (2, true));
+
+    // A tool is its wear, so it comes whole, and only onto an empty cursor.
+    sim.apply(P, Action::TakeOneSlot { slot: 2 });
+    assert_eq!(cursor(&sim), (stone, 2), "the cursor holds stone, so the tool stays");
+    sim.apply(P, Action::CloseInventory);
+    sim.apply(P, Action::TakeOneSlot { slot: 2 });
+    assert_eq!((cursor(&sim), inv(&sim).slots[2].is_empty()), ((crate::item::STONE_PICKAXE, 40), true));
+}
+
+#[test]
 fn right_click_splits_a_stack_and_shift_right_click_places_or_throws_one() {
     let mut sim = Sim::new(7, 2);
     let pos = IVec3::new(0, 200, 0);
@@ -463,6 +501,8 @@ fn samples() -> Vec<Action> {
         Action::QueueResearch { tech: 9 },
         Action::UnqueueResearch { tech: 9 },
         Action::UpgradePack,
+        Action::TakeOneSlot { slot: 12 },
+        Action::TakeOneBox { pos, slot: 5 },
     ]
 }
 

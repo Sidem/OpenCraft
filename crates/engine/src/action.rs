@@ -239,6 +239,15 @@ pub enum Action {
         slot: u8,
         shift: bool,
     },
+    /// Ctrl-click on inventory `slot`: takes one item of it onto the cursor (empty, or holding the same item).
+    TakeOneSlot {
+        slot: u8,
+    },
+    /// The same ctrl-click on the box's `slot`.
+    TakeOneBox {
+        pos: IVec3,
+        slot: u8,
+    },
     /// Shift-right-click outside the inventory screen: throws one item of the cursor stack (a tool goes whole).
     ThrowCursor,
     /// Sorts the backpack (the hotbar keeps its layout): stacks merged, then ordered by item.

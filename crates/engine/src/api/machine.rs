@@ -122,6 +122,11 @@ impl Game {
         self.act(Action::RightClickBox { pos: IVec3::new(x, y, z), slot, shift: place });
     }
 
+    /// Box-screen ctrl-click on box slot `slot`: takes one item of it onto the cursor.
+    pub fn take_one_box(&mut self, x: i32, y: i32, z: i32, slot: u8) {
+        self.act(Action::TakeOneBox { pos: IVec3::new(x, y, z), slot });
+    }
+
     /// Box-screen Sort button: merges and orders the box's stacks (next tick).
     pub fn sort_box(&mut self, x: i32, y: i32, z: i32) {
         self.act(Action::SortBox { pos: IVec3::new(x, y, z) });

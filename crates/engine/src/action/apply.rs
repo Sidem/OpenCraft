@@ -136,6 +136,8 @@ impl Sim {
             | Action::TakeAll { .. }
             | Action::RightClickSlot { .. }
             | Action::RightClickBox { .. }
+            | Action::TakeOneSlot { .. }
+            | Action::TakeOneBox { .. }
             | Action::ThrowCursor
             | Action::SortInventory
             | Action::SortBox { .. } => self.apply_click(player, action),
