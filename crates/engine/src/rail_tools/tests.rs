@@ -17,7 +17,7 @@ fn on_a_platform() -> (Game, i32) {
     for x in -12..=40 {
         for z in -20..=20 {
             for h in y - 14..=y + 8 {
-                g.sim.world.set_block_anywhere(v(x, h, z), if h <= y { STONE } else { AIR });
+                g.sim.world.set_block_anywhere_later(v(x, h, z), if h <= y { STONE } else { AIR });
             }
         }
     }

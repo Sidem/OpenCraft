@@ -76,7 +76,8 @@ fn foreign_old_and_damaged_files_are_refused() {
     assert!(refused(&with(8, WORLDGEN_VERSION + 1)).contains("newer version"));
     assert_eq!(refused(&with(8, 0)), DAMAGED);
 
-    for len in MAGIC.len()..saved.len() {
+    // Every 11th cut and flipped byte (plus the last cut): each load builds a world, so all of them cost ~40 s.
+    for len in (MAGIC.len()..saved.len()).step_by(11).chain([saved.len() - 1]) {
         assert_eq!(refused(&saved[..len]), DAMAGED, "cut at {len}");
     }
     let mut longer = saved.clone();
@@ -84,7 +85,7 @@ fn foreign_old_and_damaged_files_are_refused() {
     assert_eq!(refused(&longer), DAMAGED);
 
     // No damaged byte may crash the loader (some still load, as a slightly different world).
-    for i in 0..saved.len() {
+    for i in (0..saved.len()).step_by(11) {
         let mut b = saved.clone();
         b[i] ^= 0x5a;
         let _ = Game::load(&b, 2);

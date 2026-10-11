@@ -68,7 +68,7 @@ fn on_a_platform(item: ItemId, count: u32) -> (Game, i32) {
             for h in y - 14..=y + 8 {
                 let shaft = x == 6 && z == 0 && h < y;
                 let id = if h <= y && !shaft { STONE } else { AIR };
-                g.sim.world.set_block_anywhere(v(x, h, z), id);
+                g.sim.world.set_block_anywhere_later(v(x, h, z), id);
             }
         }
     }

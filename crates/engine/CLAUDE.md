@@ -27,6 +27,9 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
   - `action/tests.rs`: a bare `Sim` with `apply` / `queue` + `step`; works without loaded chunks.
     `net/tests.rs`: `pair()` wires a host and a client `Game` through bytes.
   - `factory/tests.rs`: `run(&mut f, seconds, check)` steps a bare `Factory`; `stocked_box` fills a box.
+- Keep tests fast (CI runs them all on every deploy): editing many blocks in a test uses `set_block_anywhere_later`
+  (`set_block_anywhere` remeshes the chunk on every call, about 1 ms: 50,000 calls were 48 s a test), and a fuzz loop over
+  a save samples bytes instead of loading a world per byte.
 - Worldgen is seeded; tests use fixed seeds (2024, 1337, 7). Changing generation can move the features
   such tests look for.
 
