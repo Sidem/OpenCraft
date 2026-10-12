@@ -6,6 +6,7 @@
 
 use rustc_hash::FxHashMap;
 
+use crate::block::{BlockId, BLOCK_COUNT};
 use crate::factory::efficiency::{Cause, Sample, CAUSES};
 use crate::factory::Factory;
 use crate::math::IVec3;
@@ -21,6 +22,7 @@ const FULL: f32 = 0.985;
 const MINOR: f32 = 0.03;
 
 struct Entry {
+    block: BlockId,
     /// Average share of full pace (0 to 1), and the average share lost to each cause.
     work: f32,
     lost: [f32; CAUSES],
@@ -41,8 +43,9 @@ impl Machines {
     pub fn sample(&mut self, factory: &Factory) {
         self.stamp = self.stamp.wrapping_add(1);
         let stamp = self.stamp;
-        factory.samples(|pos, s| {
+        factory.samples(|block, pos, s| {
             let e = self.map.entry(pos).or_insert(Entry {
+                block,
                 work: 1.0,
                 lost: [0.0; CAUSES],
                 ready: false,
@@ -108,11 +111,68 @@ impl Machines {
                 out[1] += 1;
                 continue;
             }
-            let (c, _) = e.lost.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).expect("causes");
-            out[2 + c] += 1;
+            out[2 + main_cause(e)] += 1;
         }
         out
     }
+
+    /// One row of [`TYPE_FIELDS`] numbers per kind of machine seen: `[block, working, at full pace, average percent
+    /// of those working, idle, then one count per cause]` (a short machine counts under what costs it most).
+    pub fn by_type(&self) -> Vec<u32> {
+        let mut rows = vec![[0u32; TYPE_FIELDS]; BLOCK_COUNT];
+        let mut percent_sum = vec![0u32; BLOCK_COUNT];
+        for e in self.map.values().filter(|e| e.ready) {
+            let b = e.block as usize;
+            rows[b][0] = e.block as u32;
+            if e.idle {
+                rows[b][4] += 1;
+                continue;
+            }
+            rows[b][1] += 1;
+            percent_sum[b] += (e.work * 100.0).round() as u32;
+            if e.work >= FULL {
+                rows[b][2] += 1;
+            } else {
+                rows[b][5 + main_cause(e)] += 1;
+            }
+        }
+        let mut out = Vec::new();
+        for (row, sum) in rows.iter_mut().zip(percent_sum) {
+            if row[1] + row[4] == 0 {
+                continue;
+            }
+            row[3] = sum.checked_div(row[1]).unwrap_or(0);
+            out.extend_from_slice(row);
+        }
+        out
+    }
+
+    /// The `n` working machines furthest below full pace, worst first, as `[x, y, z, block, percent, cause]` each.
+    pub fn worst(&self, n: usize) -> Vec<i32> {
+        let mut found: Vec<(u32, IVec3, &Entry)> = Vec::with_capacity(n + 1);
+        for (&pos, e) in self.map.iter().filter(|(_, e)| e.ready && !e.idle && e.work < FULL) {
+            let pct = (e.work * 100.0).round() as u32;
+            // Ties go by position, so the list does not depend on the map's order.
+            let key = |(p, q, _): &(u32, IVec3, &Entry)| (*p, q.x, q.y, q.z);
+            let at = found.partition_point(|f| key(f) < (pct, pos.x, pos.y, pos.z));
+            if at < n {
+                found.insert(at, (pct, pos, e));
+                found.truncate(n);
+            }
+        }
+        found
+            .iter()
+            .flat_map(|&(pct, p, e)| [p.x, p.y, p.z, e.block as i32, pct as i32, main_cause(e) as i32])
+            .collect()
+    }
+}
+
+/// Numbers per kind of machine in [`Machines::by_type`].
+pub const TYPE_FIELDS: usize = 5 + CAUSES;
+
+/// The cause that cost the machine most of its pace (an index into the causes).
+fn main_cause(e: &Entry) -> usize {
+    e.lost.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).map_or(0, |(c, _)| c)
 }
 
 /// The causes in `Cause as usize` order.

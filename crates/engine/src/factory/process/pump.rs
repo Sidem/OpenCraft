@@ -133,6 +133,7 @@ impl Processor {
             && self.out.space_for(CRUDE_CANISTER) > 0
         {
             self.input.remove(EMPTY_CANISTER, 1);
+            self.used.push(Stack { item: EMPTY_CANISTER, count: 1 });
             self.out.add(CRUDE_CANISTER, 1);
             self.made.push(Stack { item: CRUDE_CANISTER, count: 1 });
             self.pump.carry -= CANISTER_UNITS;

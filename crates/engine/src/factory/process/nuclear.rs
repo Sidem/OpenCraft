@@ -21,8 +21,10 @@ use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{Power, NOT_WIRED};
+use super::super::power_mix::Source;
 use super::model::{drum_x, drum_z, part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use crate::inventory::Stack;
 
 /// The most a reactor gives, in kW.
 pub const REACTOR_KW: u32 = 2_000;
@@ -169,12 +171,12 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
         let want = if tripped { 0 } else { unmet.min(REACTOR_KW) };
         if want > p.store.charge && p.input.count(FUEL_CELL) > 0 {
             p.input.remove(FUEL_CELL, 1);
+            p.used.push(Stack { item: FUEL_CELL, count: 1 });
             p.store.charge += CELL_CHARGE;
         }
         let given = want.min(p.store.charge);
         p.store.charge -= given;
         p.store.given = given;
-        power.supply[grid] += given;
         let cooled = p.steam.water >= given.max(1);
         if cooled {
             p.steam.water -= given;
@@ -182,9 +184,7 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
         p.progress = (p.progress + given).saturating_sub(if cooled { COOLED_KW } else { PASSIVE_KW });
         let hot = scrammed(tripped, p.progress);
         let fuelled = p.store.charge > 0 || p.input.count(FUEL_CELL) > 0;
-        if fuelled && !hot {
-            power.capacity[grid] += REACTOR_KW;
-        }
+        power.give(Source::Reactor, grid, given, if fuelled && !hot { REACTOR_KW } else { 0 });
         p.status = match () {
             _ if hot => Status::Overheated,
             _ if given > 0 => Status::Working,

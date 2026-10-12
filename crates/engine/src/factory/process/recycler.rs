@@ -98,6 +98,7 @@ impl Processor {
                 let n = tools::lot(item, count);
                 self.owed += millicoins(item) * n;
                 self.input.take(slot, n);
+                self.used.push(Stack { item, count: 1 });
             }
         }
     }

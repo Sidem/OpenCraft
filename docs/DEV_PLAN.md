@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 is built** (Rocketry, the launch site, rocket parts and fuel; 752 tests, not yet committed), **next: step 12.2** satellites (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is built and not yet committed**, **next: step 12.3** what satellites give (the rest of Milestone 12 is a first draft in section 4, to refine with the user at 12.3; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -40,8 +40,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (12.1 built; the
-  steps after it are a first draft to refine with the user at 12.2).
+- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (12.1 and 12.2 built; the
+  steps after them are a first draft to refine with the user at 12.3).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -441,9 +441,9 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 44) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 45) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 110, item 391, tech 79, machine recipe 70). Each new look gets a placeholder layer (`tex::COUNT` is 294) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 110, item 392, tech 79, machine recipe 71). Each new look gets a placeholder layer (`tex::COUNT` is 295) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -524,23 +524,27 @@ network new reach. Numbers are first guesses. Order: the launch site and a first
 gives, drop pods, cleanup. Plan the interlude chosen on 2026-10-08 for after Milestone 11 (timelapse, factory as an instrument,
 follow one item, seismic prospecting, site bonuses) with the user before 12.1; it can go first.
 - [x] **12.1 Rocket parts and the launch site** (built 2026-10-11: `process/launch.rs`, block 109 Launch Site, 7×7×6, 2 MW,
-  `Category::Launch`, hatches along the whole back (in) and front (out); tech Rocketry 78 in the new `research/orbit.rs` (needs
-  Electrolysis and Accelerators, all five packs, 300 × 60 s); items 386–390 light frame, rocket engine, fuel tank, avionics, rocket
-  fuel canister; machine recipes 64–69 in the new `recipes/orbit.rs` (`ROCKET_PART_RECIPES` 64–67 assembler: light frame 2 aluminium
-  plates + steel beam + plastic, engine 8 steel plates + 4 aluminium plates + 2 motors, tank 6 aluminium + 4 steel plates + 2 plastic,
-  avionics 4 accelerators + 4 processors + 8 circuits; `ROCKET_FUEL_RECIPE` 68 chemical plant: 2 hydrogen + 1 oxygen canister → fuel
-  canister + 2 empties; `ROCKET_RECIPE` 69 launch site: 4 frames, 2 engines, 2 tanks, avionics, 8 fuel canisters, 60 s → 8 empties
-  back). Hand recipe 200 concrete, 60 steel beams, 20 motors. **Differs from the draft:** "launched" is a per-pad counter
-  (`Processor::launches`, saved for launch sites only, so no save bump; readout "N in orbit"), not a world-level orbit list; 12.2
-  replaces it with the real state when a rocket carries a satellite. The part recipes take at most 3 input kinds (the assembler's
-  slots), so the engine has no accelerator. The rocket stands on the pad only while a batch runs and lifts off in its last 8%
-  (`Look::Rocket`). `MACHINE_RECIPES` is now a compile-time join (`crate::join`, the tech table's join made generic; `MachineRecipe`
-  is `Copy`) so new rows go in `recipes/orbit.rs` and `machine.rs` stays under budget. Textures 286–293. Golden hash re-recorded
-  (tech table grew). Tests 744 → 752. Not done: a launch sound or toast, a rocket-specific tip.)
-- [ ] **12.2 Satellites and the sky** (`satellites.rs`, core state: an orbit is a period and a phase, positions derived from the
-  tick). A rocket carries one satellite kind into orbit; coverage is a function of the tick and a place. Done when: a satellite's
-  coverage over a place is true for part of its period in tests and the state hash stays deterministic.
-- [ ] **12.3 What satellites give:** survey (every deposit under coverage on the map, replacing the AI survey's guesses with
+  `Category::Launch`; tech Rocketry 78 in `research/orbit.rs`; items 386–390 (light frame, rocket engine, fuel tank, avionics, rocket
+  fuel canister); machine recipes 64–69 in `recipes/orbit.rs` (assembler parts 64–67, rocket fuel 68 in the chemical plant, the
+  launch 69: 4 frames, 2 engines, 2 tanks, avionics, 8 fuel canisters, 60 s → 8 empties); hand recipe 200 concrete, 60 steel beams,
+  20 motors. The part recipes take at most 3 input kinds (the assembler's slots). The rocket stands on the pad only while a batch
+  runs (`Look::Rocket`). `MACHINE_RECIPES` is a compile-time join (`crate::join`) so new rows go in `recipes/orbit.rs`. Textures
+  286–293. Tests 744 → 752. Not done: a launch sound or toast, a rocket-specific tip.)
+- [x] **12.2 Satellites and the sky** (built 2026-10-11: `satellites.rs`, core state in `Factory::orbit`, save version 45 (a
+  count and the list after the research; older saves have none), golden hash re-recorded). **Orbits:** an infinite ground cannot
+  have a globe, so the sky wraps every 4096 blocks both ways; a satellite leaves straight above its pad at the launch tick and
+  flies one of 8 headings (tilted off the axes, picked by launch count) at 6 blocks a second, so a position is integer maths on
+  the tick alone. It covers a place within its kind's `reach` (survey 768 blocks, so about 11% of the ground per satellite) of
+  the point under it; at most 24 of a kind stay up (a 25th retires the oldest). **Payload:** the rocket carries one satellite, so
+  launch recipe 69 now needs a Survey Satellite (item 391, texture 294, assembler recipe 70: 2 light frames, 4 solar panels, 4
+  AI accelerators, 40 s; both unlocked by Rocketry) as its last input: the pad's input buffer grew to 6 slots (a pad saved
+  before 45 reads 5: `saved_input_slots`, tested) and `Processor::lifted` hands the satellite to `Factory::update`. Only the
+  survey kind exists; 12.3 adds a `KINDS` row, item and recipes per kind. **Sky:** `Game::sky_satellites` gives each satellite's
+  direction (hung 400 blocks up, shown within 2400 blocks) and `render/sky.ts` draws gold lights (faint by day). The launch
+  site's readout says "Survey satellites: N up, M over this pad". `Game::launch_satellite_at` is a debug scene helper. Tests
+  752 → 763. Not done: a map layer for coverage, a launch sound or toast.
+- [ ] **12.3 What satellites give** (refine the numbers with the user first: coverage 768 blocks and 6 blocks a second are first
+  guesses, and the cap of 24 a kind is open): survey (every deposit under coverage on the map, replacing the AI survey's guesses with
   facts), comms (data grids and drone ports reach across coverage), power (a rectenna receives beamed power), science (a downlink
   gives the last research input). One tech each, one module each. Fold in antenna bands from the roadmap's thread "the carry".
 - [ ] **12.4 Drop pods to landing pads:** carry items from a rocket's cargo to a pad anywhere in comms coverage.
@@ -588,9 +592,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-12: Analytics hub (user request).** The P screen is four tabs (Overview, Power, Materials, Machines; `ui/analytics*.ts`, one file per tab, `analytics-panels.css`, `analytics-items.css`). Power is attributed to its source: `factory/power_mix.rs` (`Source`, `Power::give` replaces the direct supply/capacity sums at the 7 sources, `Power::uses` kW per machine kind). Consumption is tracked as well as production: `SimEvent::Consumed` (processors, boilers, generators, labs, pumps, recycler, reactor, research center) fed by `Processor::used`, `Lab::used` and `Generator::used`. Materials are grouped (`analytics/groups.rs`, derived from the recipes), made and used rates are separate, machines come per kind and slowest-first (`Machines::by_type`, `worst`). `api/analytics.rs` rewritten (`analytics_item_*`, `analytics_power_*`, `analytics_machine_types`, `analytics_worst_machines`). Presentation only: no save change, golden hash unchanged. Tests 763 -> 767.
 - **2026-10-11: Paged inventory and build menu (user request).** `ui/pager.ts` (`Pager`, `tilesPerPage`); the build menu and the creative picker page their tiles instead of scrolling (a category starts a page; the page size comes from the grid's size), the backpack pages by 27, a box opens beside the inventory, no scrollbars; search synonyms in `ui/craft-terms.ts`; Belt Mk3/Mk4 item icons fixed (`item.rs` had top and side swapped). Ctrl-click takes one item onto the cursor, Ctrl-right-click puts one down (actions `TakeOneSlot` 54 and `TakeOneBox` 55, `take_one` in `inventory/stacks.rs`; Ctrl-right-click reuses the shift-right-click put-one). No save change.
+- **2026-10-11: Satellites in orbit (step 12.2).** `satellites.rs` (core, `Factory::orbit`, save version 45: orbits are integer maths on the tick, a wrapped sky of 4096 blocks, 8 headings, coverage by a kind's reach, 24 a kind), the Survey Satellite (item 391, texture 294, machine recipe 70, launch recipe 69 now carries it, the pad has 6 input slots and reads old 5-slot saves), `Processor::lifted`, `api/orbit.rs` `sky_satellites`, gold lights in `render/sky.ts`, the launch site's "satellites up / over this pad" line. Golden hash re-recorded. Tests 752 → 763. Next free block 110, item 392, tech 79, machine recipe 71, texture 295.
 - **2026-10-11: Rocket parts and the launch site (step 12.1).** Block 109 Launch Site (`process/launch.rs`), tech Rocketry 78 (`research/orbit.rs`), items 386–390, machine recipes 64–69 (`recipes/orbit.rs`), `Category::Launch`, `Look::Rocket`, textures 286–293 (`textures/orbit.rs`); `crate::join` (generic const join) now builds both `TECHS` and `MACHINE_RECIPES`. A pad launches a rocket per 60 s batch and counts it (`Processor::launches`). No save bump, golden hash re-recorded. Tests 744 → 752. Next free block 110, item 391, tech 79, machine recipe 70, texture 294.
 - **2026-10-11: Fabricator Gloves (interlude step L3; L4 dropped by the user).** New gear slot Gloves (6th), item 385 with its recipe, tech 77 (`research/hands.rs`), texture 285 (`textures/gear.rs`), `Effect::crafting`; `player_bonus` takes the player's inventory so worn gear adds to the techs. Save version 44 (older saves read five worn slots), golden hash re-recorded. Tests 739 → 744. Next free block 109, item 386, tech 78, texture 286.
-- **2026-10-10: Light, machine looks, smoke and a steam train (user request).** Sun and moon light the sides they face, water glints, lamps and beams glow (`render/`). About 20 machine models redone so they read as what they do (round bodies as two crossed parts, `drum_x`/`drum_y`/`drum_z`, `paint::round_shade`), a steam locomotive and new wagons, smoke from working furnaces, boilers, generators, the refinery and cracker and a moving train (`factory/smoke.rs`, `Look::Smoke`, textures 281–282), `SOOT` 284, `LOCO_BODY` 283. A test keeps processor models free of coplanar faces (they flicker). No save or golden-hash change. Tests 739 → 740. Next free block 109, tech 77, texture 285.
-- **2026-10-10: The menu as a launcher (user request).** `ui/menu.ts` (+ `menu.css`, `menu-pages.css`): a side column (Play with loading, the open world, page buttons, GitHub and issue links) and one page at a time: home (first steps for a new player, handy keys and the latest update otherwise, "Paused" on Escape), worlds, play together, settings (sound, camera, comfort; the menu steps aside while it shows), controls (grouped), what's new. Player-facing patch notes live in `web/src/patch-notes.md` (`ui/patch-notes.ts`, unread dot). `ComfortPanel` lost its `<details>` and menu wiring. Web only, no engine change.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

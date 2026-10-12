@@ -45,6 +45,8 @@ export interface FrameInfo {
   /** Blocks quarries are digging: x, y, z and progress in thousandths each. */
   cracks: Int32Array;
   underwater: boolean; // the engine's `eye_in_water`
+  /** Satellites in orbit as the sky draws them (engine `sky_satellites`: x, y, z, kind each). */
+  satellites: Float32Array;
 }
 
 export interface RenderStats {
@@ -294,7 +296,7 @@ export class Renderer {
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     } else {
       gl.clear(gl.DEPTH_BUFFER_BIT);
-      this.sky.draw(sky, f.yaw, f.pitch, this.fovY, this.canvas.width / this.canvas.height);
+      this.sky.draw(sky, f.yaw, f.pitch, this.fovY, this.canvas.width / this.canvas.height, f.satellites);
     }
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);

@@ -70,6 +70,7 @@ mod rail_tools;
 mod raycast;
 mod recipes;
 mod research;
+mod satellites;
 mod save;
 mod sim;
 mod site_hands;

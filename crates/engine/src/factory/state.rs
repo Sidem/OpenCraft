@@ -1,5 +1,5 @@
 //! The factory's core state bytes: every machine list in `Vec` order, kind by kind, the terraforming
-//! sites, then the deposits and the research.
+//! sites, then the deposits, the research and the satellites in orbit (save 45).
 //! Derived data (`at` is rebuilt while reading; links, order and power at the first `update`) is not
 //! saved. To add a kind: append its list to both functions, read behind a `r.version` check.
 
@@ -12,6 +12,7 @@ use super::{add_to, Factory, Machine, Sites, Slot};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 use crate::research::Research;
+use crate::satellites::Satellites;
 use crate::world::World;
 
 impl Factory {
@@ -45,6 +46,7 @@ impl Factory {
         self.sites.write_state(w);
         self.deposits.write_state(w);
         self.research.write_state(w);
+        self.orbit.write_state(w);
     }
 
     /// Reads what `write_state` wrote; `world` must already hold the saved edits (deposits survey it).
@@ -116,6 +118,9 @@ impl Factory {
         f.deposits.read_state(world, r)?;
         if r.version >= 8 {
             f.research = Research::read_state(r)?;
+        }
+        if r.version >= 45 {
+            f.orbit = Satellites::read_state(r)?;
         }
         Some(f)
     }

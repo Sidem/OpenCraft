@@ -1,8 +1,9 @@
+use super::power::TOTALS;
 use super::series::{Series, COARSE_STEP};
 use super::*;
-use crate::block::{COAL_ORE, IRON_ORE, SMELTER};
+use crate::block::{COAL_ORE, IRON_ORE, MINER, SLAG, SMELTER};
 use crate::factory::Factory;
-use crate::item::IRON_INGOT;
+use crate::item::{DIESEL_CANISTER, IRON_INGOT};
 use crate::math::IVec3;
 use crate::sim::SimEvent;
 use crate::tests::{build_mine, find_outcrop_block, run_until_ready};
@@ -54,25 +55,61 @@ fn a_late_series_reads_zero_before_it_began() {
 }
 
 #[test]
-fn production_becomes_a_rate_a_minute() {
+fn production_and_use_become_rates_a_minute() {
     let mut a = Analytics::default();
     let f = Factory::default();
     for tick in 0..60 * 12 {
         if tick % 60 == 0 {
             a.produced(IRON_INGOT, 10);
+            a.consumed(IRON_INGOT, 4);
         }
         a.record(&f);
     }
     assert_eq!(a.item_ids(), vec![IRON_INGOT.0 as u32]);
-    // Ten a second for ten seconds on: 600 a minute.
-    assert_eq!(a.latest()[POWER_ROWS], 600.0);
-    let data = a.export(60, 60);
-    assert_eq!((data[0], data[1]), (60.0, (POWER_ROWS + 1) as f32));
-    assert_eq!(data.len(), 2 + 60 * (POWER_ROWS + 1));
+    // Ten made and four used a second for ten seconds on: 600 and 240 a minute, 120 and 48 in all.
+    assert_eq!(a.item_now(), vec![600.0, 240.0, 120.0, 48.0]);
+    let data = a.export_items(60, 60);
+    assert_eq!((data[0], data[1]), (60.0, 2.0), "a row for made and a row for used");
+    assert_eq!(data.len(), 2 + 60 * 2);
+    assert_eq!(data[2 + 59], 600.0);
+    assert_eq!(data[2 + 60 + 59], 240.0);
 }
 
 #[test]
-fn a_smelter_at_full_pace_reads_100_and_reports_what_it_made() {
+fn a_late_item_reads_blank_before_the_world_was_opened_and_zero_before_it_appeared() {
+    let mut a = Analytics::default();
+    let f = Factory::default();
+    for _ in 0..60 * 30 {
+        a.record(&f);
+    }
+    a.consumed(COAL_ORE.into(), 1);
+    for _ in 0..60 * 5 {
+        a.record(&f);
+    }
+    let data = a.export_items(60, 60);
+    let used = &data[2 + 60..];
+    assert!(used[..25].iter().all(|v| v.is_nan()), "before the world was opened");
+    assert_eq!(used[30], 0.0);
+}
+
+#[test]
+fn items_sort_into_material_groups() {
+    use crate::item::{COPPER_WIRE, CRUSHED_IRON, GREEN_PACK, MOTOR, SILICON};
+    let group = |item: ItemId| GROUPS[groups::group_of(item) as usize].name;
+    assert_eq!(group(IRON_ORE.into()), "Raw materials");
+    assert_eq!(group(COAL_ORE.into()), "Raw materials");
+    assert_eq!(group(IRON_INGOT), "Ingots and bricks");
+    assert_eq!(group(CRUSHED_IRON), "Ore processing");
+    assert_eq!(group(COPPER_WIRE), "Basic parts");
+    assert_eq!(group(MOTOR), "Components and kits");
+    assert_eq!(group(GREEN_PACK), "Science packs");
+    assert_eq!(group(SILICON), "Electronics");
+    assert_eq!(group(DIESEL_CANISTER), "Chemicals and fuel");
+    assert_eq!(group(SLAG.into()), "Raw materials", "a block the crusher gives back is bulk, not processed ore");
+}
+
+#[test]
+fn a_smelter_at_full_pace_reads_100_and_reports_what_it_made_and_used() {
     let mut f = Factory::default();
     let mut world = World::new(1, 2);
     let pos = IVec3::ZERO;
@@ -85,17 +122,29 @@ fn a_smelter_at_full_pace_reads_100_and_reports_what_it_made() {
         f.update(&mut world, tick, &mut events);
         a.record(&f);
     }
-    let made: u32 = events
-        .iter()
-        .filter_map(|e| match e {
-            SimEvent::Produced { item, count } if *item == IRON_INGOT => Some(*count),
-            _ => None,
-        })
-        .sum();
-    assert_eq!(made, 3);
+    let count = |want_made: bool, which: ItemId| -> u32 {
+        events
+            .iter()
+            .filter_map(|e| match e {
+                SimEvent::Produced { item, count } if want_made && *item == which => Some(*count),
+                SimEvent::Consumed { item, count } if !want_made && *item == which => Some(*count),
+                _ => None,
+            })
+            .sum()
+    };
+    assert_eq!(count(true, IRON_INGOT), 3);
+    assert_eq!(count(false, IRON_ORE.into()), 3, "each ore used up as its batch starts");
+    assert!(count(false, COAL_ORE.into()) >= 1, "the fire burned coal");
     // Out of ore, it now waits: its average shows what that cost.
     let line = a.machines.line(pos);
     assert!(line.contains("waiting for input"), "{line}");
+
+    // By kind: one smelter working, short of input.
+    let types = a.machines.by_type();
+    let row = &types[..TYPE_FIELDS];
+    assert_eq!((row[0], row[1], row[2]), (SMELTER as u32, 1, 0));
+    assert_eq!(row[5 + 1], 1, "counted under waiting for input");
+    assert_eq!(&a.machines.worst(5)[..4], &[0, 0, 0, SMELTER as i32]);
 }
 
 #[test]
@@ -109,10 +158,21 @@ fn a_miner_without_power_reads_low_power_and_one_with_it_reads_full() {
     let line = g.efficiency_line(m);
     assert!(line.starts_with("Efficiency"), "{line}");
     assert!(g.machine_efficiency_percent(m.x, m.y, m.z) >= 90, "{line}");
-    let now = g.analytics.latest();
+    let now = g.analytics.power_now();
     assert!(now[1] > 0.0 && now[0] >= now[1], "capacity {} must cover use {}", now[0], now[1]);
-    assert!(g.analytics.item_ids().len() == 1, "the miner's ore has a graph row");
+    let items = g.analytics.item_now();
+    assert!(items.chunks(4).any(|c| c[0] > 0.0), "the miner's ore has a graph row and was made");
+    assert!(items.chunks(4).any(|c| c[1] > 0.0 || c[3] > 0.0), "the generator burned some fuel");
     assert!(g.analytics.machines.summary()[0] >= 1);
+
+    // The generator supplied it all, and the miner is what asked for it.
+    let sources = TOTALS..TOTALS + SOURCE_LIST.len();
+    assert!(now[TOTALS] > 0.0, "the generator gave power");
+    assert!((now[1] - now[sources].iter().sum::<f32>()).abs() < 0.5, "the sources add up to the supply");
+    let users = g.analytics.power_users();
+    assert_eq!(users, vec![MINER as u32]);
+    assert!((now[2] - now[TOTALS + SOURCE_LIST.len()]).abs() < 0.5, "the miner asked for all of it");
+    assert!(g.analytics.power_could()[0] > 0);
 
     // Take the generator away: the average falls and names the power.
     g.sim.factory.remove(m + IVec3::new(0, 3, 0));

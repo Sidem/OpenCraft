@@ -73,6 +73,8 @@ pub struct Lab {
     /// Last tick's speed from its grid, in thousandths (derived, for the readout).
     pub speed: u32,
     pub status: LabStatus,
+    /// The packs it used this tick, until `Factory::update` reports them (derived, not saved).
+    pub used: Vec<Stack>,
 }
 
 /// One tick of every lab and research center, each at its grid's speed.
@@ -107,6 +109,7 @@ impl Lab {
             progress: 0,
             speed: 0,
             status: LabStatus::NoResearch,
+            used: Vec::new(),
         }
     }
 
@@ -170,6 +173,7 @@ impl Lab {
                 self.since_free = if self.free { 0 } else { self.since_free.saturating_add(1) };
                 for &p in TECHS[t as usize].packs.iter().filter(|_| !self.free) {
                     self.packs.take(pack_slot(p).unwrap_or(0), 1);
+                    self.used.push(Stack { item: p, count: 1 });
                 }
                 taken[t as usize] += 1;
                 (self.unit, self.progress) = (Some(t), 0);

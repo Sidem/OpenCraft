@@ -41,6 +41,7 @@ mod placed;
 mod pole;
 mod ports;
 mod power;
+pub mod power_mix;
 mod process;
 mod pumping;
 mod quarry;
@@ -70,6 +71,7 @@ use crate::math::IVec3;
 #[cfg(test)]
 use crate::math::Vec3;
 use crate::research::{Bonus, Research};
+use crate::satellites::Satellites;
 use crate::sim::SimEvent;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
@@ -177,6 +179,8 @@ pub struct Factory {
     pub research: Research,
     /// The world's terraforming sites (`sites.rs`).
     pub sites: Sites,
+    /// The satellites in orbit, which launch sites fill (`satellites.rs`).
+    pub orbit: Satellites,
     /// Blocks the machines changed this tick, with the one each replaced (not state: `Sim::step` drains it).
     pub changed: Vec<(IVec3, BlockId)>,
 }
@@ -324,10 +328,12 @@ impl Factory {
             data,
             deposits,
             research,
+            orbit,
             order,
             changed,
             ..
         } = self;
+        orbit.now = tick;
         let unlocked = research.machine_recipes_unlocked();
         process::sense_hydro(processors, world);
         power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
@@ -359,11 +365,17 @@ impl Factory {
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);
+            if let Some(payload) = m.lifted.take() {
+                orbit.launch(payload, m.pos, tick);
+            }
         }
         for r in sinks.routers.iter_mut() {
             r.step(belts);
         }
         step_labs(sinks.labs, sinks.processors, (&power.lab_pole, &power.process_pole), power, data, research);
+        let used = sinks.labs.iter_mut().flat_map(|l| l.used.drain(..));
+        let burned = sinks.generators.iter_mut().flat_map(|g| g.used.drain(..));
+        events.extend(used.chain(burned).map(|s| SimEvent::Consumed { item: s.item, count: s.count }));
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);
         process::draw_water(sinks.processors, pipework);
         belt_step(belts, &mut sinks, order, TICK);

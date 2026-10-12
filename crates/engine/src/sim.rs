@@ -103,6 +103,11 @@ pub enum SimEvent {
         item: ItemId,
         count: u32,
     },
+    /// A machine used up `count` of `item` (a batch's inputs, burned fuel, research packs), for the graphs.
+    Consumed {
+        item: ItemId,
+        count: u32,
+    },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
     Thrown {
         player: PlayerId,

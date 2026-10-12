@@ -2,8 +2,8 @@
 // sun's direction, sky and fog colours, the daylight that scales sky-lit terrain and the direct light
 // (sun or moon) that lights the faces turned towards it; `SkyPass` draws the
 // sky behind everything: a zenith-to-horizon gradient, the sun, the moon opposite it, and stars at
-// night. Nights are dark blue, never black (a moonlight floor). Presentation only. To change the look:
-// the colour constants below.
+// night, and satellites in orbit as small gold lights (engine `sky_satellites`: x, y, z, kind per satellite).
+// Nights are dark blue, never black (a moonlight floor). Presentation only. To change the look: the colour constants below.
 
 import { createProgram, uniforms } from './gl';
 
@@ -61,6 +61,9 @@ export function clock(t: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
+/** Most satellites drawn (the shader's array size; the engine keeps at most 24 of a kind). */
+const MAX_SATELLITES = 32;
+
 export class SkyPass {
   private readonly prog: WebGLProgram;
   private readonly u;
@@ -68,12 +71,13 @@ export class SkyPass {
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, skyVert, skyFrag);
-    this.u = uniforms(gl, this.prog, ['u_forward', 'u_right', 'u_up', 'u_sun', 'u_zenith', 'u_horizon', 'u_day'] as const);
+    this.u = uniforms(gl, this.prog, ['u_forward', 'u_right', 'u_up', 'u_sun', 'u_zenith', 'u_horizon', 'u_day', 'u_sats', 'u_satCount'] as const);
     this.vao = gl.createVertexArray()!; // a full-screen triangle made from gl_VertexID
   }
 
-  /** Draws the sky for a camera looking along `yaw`/`pitch` with vertical field of view `fovY`. */
-  draw(sky: Sky, yaw: number, pitch: number, fovY: number, aspect: number): void {
+  /** Draws the sky for a camera looking along `yaw`/`pitch` with vertical field of view `fovY`; `satellites` holds
+   *  at most `MAX_SATELLITES` records (x, y, z of a unit direction, then the kind). */
+  draw(sky: Sky, yaw: number, pitch: number, fovY: number, aspect: number, satellites: Float32Array): void {
     const gl = this.gl, u = this.u;
     const cp = Math.cos(pitch), sp = Math.sin(pitch), cy = Math.cos(yaw), sy = Math.sin(yaw);
     const ty = Math.tan(fovY / 2), tx = ty * aspect;
@@ -90,6 +94,9 @@ export class SkyPass {
     gl.uniform3f(u.u_zenith, ...sky.zenith);
     gl.uniform3f(u.u_horizon, ...sky.horizon);
     gl.uniform1f(u.u_day, sky.day);
+    const shown = Math.min(satellites.length >> 2, MAX_SATELLITES);
+    gl.uniform1i(u.u_satCount, shown);
+    if (shown > 0) gl.uniform4fv(u.u_sats, satellites.subarray(0, shown * 4));
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     gl.depthMask(true);
@@ -109,6 +116,8 @@ const skyFrag = /* glsl */ `#version 300 es
 precision highp float;
 uniform vec3 u_forward, u_right, u_up, u_sun, u_zenith, u_horizon;
 uniform float u_day;
+uniform vec4 u_sats[${MAX_SATELLITES}]; // unit direction towards each satellite, then its kind
+uniform int u_satCount;
 in vec2 v_ndc;
 out vec4 o_color;
 float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
@@ -126,6 +135,11 @@ void main() {
   vec3 cell = floor(dir * 240.0);
   float star = step(0.997, hash(cell)) * smoothstep(0.0, 0.25, dir.y) * smoothstep(0.8, 1.0, night);
   col += vec3(star * 0.8);
+  // Satellites: sunlit gold points, faint by day. The distance between unit vectors is the angle, without cancellation.
+  for (int i = 0; i < u_satCount; i++) {
+    float d = length(dir - u_sats[i].xyz);
+    col += vec3(1.0, 0.82, 0.42) * (smoothstep(0.012, 0.002, d) + 0.5 * smoothstep(0.03, 0.0, d)) * mix(1.0, 0.35, u_day);
+  }
   o_color = vec4(col, 1.0);
 }
 `;

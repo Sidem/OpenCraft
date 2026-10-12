@@ -1,16 +1,21 @@
-// Analytics screen (P): how the factory is doing. Three parts, all read from the engine (`analytics_*`), none kept
-// here but which items' lines are switched off and the timescale:
-//   - Electricity: a graph of the power the grids could give, the power used and the power machines asked for;
-//   - Production: a graph of each item made a minute (miners, smelters, assemblers... anything that makes items),
-//     one coloured line per item, taken from its icon; click an item's chip to hide or show its line;
-//   - Machines: how many are working, how many at full speed, and what holds the others back.
-// The timescale buttons (1m to 3h) apply to both graphs. The data refreshes once a second while the screen is open.
-// History starts when the world is opened (it is not saved). Dialog frame styles: machine.css.
+// Analytics hub (P): how the factory is running, split into tabs that each answer one question:
+//   - Overview: tiles, what needs attention, a small power chart and the busiest materials (analytics-overview.ts);
+//   - Power: supply by source and demand by kind of machine, stacked over time (analytics-power.ts);
+//   - Materials: what is made and what is used up, grouped and filterable (analytics-items.ts);
+//   - Machines: efficiency by kind, what holds machines back, the slowest machines (analytics-machines.ts).
+// This file is the shell: the dialog, the tab bar, the timescale (1m to 3h, shared by every chart) and the once-a-second
+// refresh of the tab showing. All numbers come from the engine (`analytics_*`); history starts when the world is opened
+// (it is not saved). Keys: P or E closes, Esc closes and keeps the mouse, 1-4 pick a tab. Dialog frame styles: machine.css.
+// To add a tab: implement `Tab` (analytics-tab.ts) and add it to TABS.
 
 import './machine.css';
 import './analytics.css';
 import type { Game } from '../wasm/engine.js';
-import { lineColour, LineChart, short, type Line } from './analytics-chart';
+import { OverviewTab } from './analytics-overview';
+import { ItemsTab } from './analytics-items';
+import { MachinesTab } from './analytics-machines';
+import { PowerTab } from './analytics-power';
+import type { Ctx, Tab } from './analytics-tab';
 import { button, h } from './dom';
 
 // `ticks`: how many time-axis divisions, so the labels fall on round times (15 s, 1 min, 5 min, 10 min, 30 min).
@@ -23,54 +28,13 @@ const SCALES = [
 ];
 const DEFAULT_SCALE = 1;
 const REFRESH_MS = 1000;
-const POINT_PX = 3; // pixels across per point, at most
-const CHIP_ICON_PX = 22;
-const POWER_ROWS = 3;
 
-const POWER: Line[] = [
-  { name: 'Could produce', colour: '#4ade80', values: [] },
-  { name: 'Used', colour: '#fbbf24', values: [] },
-  { name: 'Machines wanted', colour: '#f87171', values: [], dashed: true },
+const TABS: { id: string; label: string; make: () => Tab }[] = [
+  { id: 'overview', label: 'Overview', make: () => new OverviewTab() },
+  { id: 'power', label: 'Power', make: () => new PowerTab() },
+  { id: 'items', label: 'Materials', make: () => new ItemsTab() },
+  { id: 'machines', label: 'Machines', make: () => new MachinesTab() },
 ];
-
-// What holds machines back, in the order of `analytics_machines` after the first two counts.
-const HELD_BACK = [
-  { what: 'short of power', colour: '#fbbf24' },
-  { what: 'waiting for input', colour: '#7dd3fc' },
-  { what: 'stopped by a full output', colour: '#c4b5fd' },
-  { what: 'out of fuel', colour: '#fb923c' },
-  { what: 'short of water', colour: '#38bdf8' },
-  { what: 'on a thin or empty deposit', colour: '#a8a29e' },
-  { what: 'blocked (flooded or overheated)', colour: '#f87171' },
-];
-
-/** A legend entry: a colour swatch (or an item icon), a name and the newest value. */
-class Chip {
-  readonly el = h('button', 'an-chip');
-  private readonly value = h('span', 'an-chip-value');
-
-  constructor(name: string, colour: string, icon: HTMLCanvasElement | null, onClick: (() => void) | null) {
-    this.el.type = 'button';
-    const swatch = h('span', 'an-dot');
-    swatch.style.background = colour;
-    this.el.append(swatch);
-    if (icon) {
-      const canvas = h('canvas', 'an-chip-icon');
-      canvas.width = canvas.height = CHIP_ICON_PX;
-      canvas.getContext('2d')!.drawImage(icon, 0, 0, CHIP_ICON_PX, CHIP_ICON_PX);
-      this.el.append(canvas);
-    }
-    this.el.append(h('span', 'an-chip-name', name), this.value);
-    if (onClick) this.el.addEventListener('click', onClick);
-    else this.el.disabled = true;
-  }
-
-  set(text: string, off = false): void {
-    if (this.value.textContent !== text) this.value.textContent = text;
-    this.el.classList.toggle('off', off);
-    this.el.setAttribute('aria-pressed', String(!off));
-  }
-}
 
 export class AnalyticsPanel {
   /** Called after the screen closes. `resume` is true when play should continue (P, E, or a click outside). */
@@ -78,16 +42,9 @@ export class AnalyticsPanel {
 
   private readonly backdrop = h('div', 'mp-backdrop hidden');
   private readonly dialog = h('div', 'mp an');
-  private readonly powerChart = new LineChart('kW');
-  private readonly itemChart = new LineChart('a minute');
-  private readonly powerNote = h('p', 'mp-status');
-  private readonly powerChips = POWER.map((l) => new Chip(l.name, l.colour, null, null));
-  private readonly itemChips = h('div', 'an-legend');
-  private readonly itemNote = h('p', 'an-note', 'Nothing has been made yet. Miners, smelters and other machines show up here as they work.');
-  private readonly machines = h('div', 'an-machines');
+  private readonly tabs = TABS.map((t) => ({ ...t, tab: t.make(), button: null as HTMLButtonElement | null }));
   private readonly scaleButtons: HTMLButtonElement[];
-  private readonly chips = new Map<number, { chip: Chip; colour: string }>();
-  private readonly hidden = new Set<number>();
+  private active = 0;
   private scale = DEFAULT_SCALE;
   private last = -Infinity;
 
@@ -103,6 +60,14 @@ export class AnalyticsPanel {
     close.setAttribute('aria-label', 'Close');
     head.append(h('h2', '', 'Analytics'), h('span', 'mp-keys', 'P, E or click outside to return'), close);
 
+    const bar = h('div', 'an-bar');
+    const nav = h('div', 'an-tabs');
+    nav.setAttribute('role', 'tablist');
+    this.tabs.forEach((t, i) => {
+      t.button = button('an-tab', t.label, () => this.show(i));
+      t.button.setAttribute('role', 'tab');
+      nav.append(t.button);
+    });
     const scales = h('div', 'an-scales');
     scales.setAttribute('role', 'group');
     scales.setAttribute('aria-label', 'Timescale');
@@ -113,23 +78,10 @@ export class AnalyticsPanel {
       }),
     );
     scales.append(h('span', 'an-scales-label', 'Last'), ...this.scaleButtons);
+    bar.append(nav, scales);
 
-    const powerLegend = h('div', 'an-legend');
-    powerLegend.append(...this.powerChips.map((c) => c.el));
     const body = h('div', 'mp-body');
-    body.append(
-      scales,
-      h('h3', '', 'Electricity'),
-      this.powerNote,
-      this.powerChart.el,
-      powerLegend,
-      h('h3', '', 'Production'),
-      this.itemChart.el,
-      this.itemChips,
-      this.itemNote,
-      h('h3', '', 'Machines'),
-      this.machines,
-    );
+    body.append(bar, ...this.tabs.map((t) => t.tab.el));
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -137,20 +89,12 @@ export class AnalyticsPanel {
       if (e.target === this.backdrop) this.close(true);
     });
     this.backdrop.addEventListener('contextmenu', (e) => e.preventDefault());
-    window.addEventListener('keydown', (e) => {
-      if (!this.isOpen || e.repeat) return;
-      if (e.code === 'KeyP' || e.code === 'KeyE') {
-        e.preventDefault();
-        this.close(true);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        this.close(false);
-      }
-    });
+    window.addEventListener('keydown', (e) => this.onKey(e));
     window.addEventListener('resize', () => {
       if (this.isOpen) this.refresh();
     });
     document.body.append(this.backdrop);
+    this.arrange();
   }
 
   get isOpen(): boolean {
@@ -159,6 +103,7 @@ export class AnalyticsPanel {
 
   open(): void {
     this.backdrop.classList.remove('hidden');
+    this.tabs[this.active].tab.open?.();
     this.refresh();
     this.dialog.focus();
   }
@@ -169,84 +114,53 @@ export class AnalyticsPanel {
     this.onClose(resume);
   }
 
-  /** Call every frame: refreshes once a second while open. */
+  /** Call every frame: refreshes the tab showing once a second while open. */
   update(now: number): void {
     if (this.isOpen && now - this.last >= REFRESH_MS) this.refresh(now);
   }
 
-  private refresh(now = performance.now()): void {
-    this.last = now;
-    const g = this.game;
-    const { secs, ticks } = SCALES[this.scale];
-    this.scaleButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === this.scale)));
-    const points = Math.max(30, Math.floor(this.powerChart.width / POINT_PX));
-    const data = g.analytics_graphs(secs, points);
-    const n = data[0], rows = data[1];
-    const row = (i: number) => data.subarray(2 + i * n, 2 + (i + 1) * n);
-    const latest = g.analytics_now();
-
-    this.powerChart.set(POWER.map((l, i) => ({ ...l, values: row(i) })), secs, ticks);
-    this.powerChips.forEach((c, i) => c.set(`${short(latest[i])} kW`));
-    this.powerNote.textContent = this.powerSummary(latest[0], latest[1], latest[2]);
-
-    const ids = Array.from(g.analytics_items());
-    const lines: Line[] = [];
-    ids.forEach((id, k) => {
-      if (POWER_ROWS + k >= rows) return;
-      const entry = this.chipFor(id);
-      entry.chip.set(`${short(latest[POWER_ROWS + k])} /min`, this.hidden.has(id));
-      if (!this.hidden.has(id)) lines.push({ name: g.item_name(id), colour: entry.colour, values: row(POWER_ROWS + k) });
-    });
-    this.itemChart.set(lines, secs, ticks);
-    this.itemNote.classList.toggle('hidden', ids.length > 0);
-    this.drawMachines(Array.from(g.analytics_machines()));
-  }
-
-  private powerSummary(capacity: number, used: number, wanted: number): string {
-    const kw = (v: number) => `${Math.round(v)} kW`;
-    if (wanted > used + 0.5) return `Short of power: machines want ${kw(wanted)} but only get ${kw(used)}, so they slow down.`;
-    if (capacity < 0.5) return used < 0.5 ? 'No power is being made or used.' : `Using ${kw(used)}, with no fuel left in the generators.`;
-    return `Using ${kw(used)} of the ${kw(capacity)} the generators could make (${Math.round((used / capacity) * 100)}%).`;
-  }
-
-  /** The legend chip and line colour of an item, made the first time it is seen. */
-  private chipFor(id: number): { chip: Chip; colour: string } {
-    let entry = this.chips.get(id);
-    if (!entry) {
-      const icon = this.icon(id);
-      const colour = lineColour(icon, Array.from(this.chips.values(), (e) => e.colour));
-      const chip = new Chip(this.game.item_name(id), colour, icon, () => {
-        if (!this.hidden.delete(id)) this.hidden.add(id);
-        this.refresh();
-      });
-      entry = { chip, colour };
-      this.chips.set(id, entry);
-      this.itemChips.append(chip.el);
-    }
-    return entry;
-  }
-
-  private drawMachines(counts: number[]): void {
-    const [working, full, ...held] = counts;
-    this.machines.replaceChildren();
-    if (working === 0) {
-      this.machines.append(h('p', 'an-note', 'No machine is working yet.'));
+  private onKey(e: KeyboardEvent): void {
+    if (!this.isOpen || e.repeat) return;
+    // Typing in a search box must not close the screen or switch tab.
+    if ((e.target as HTMLElement | null)?.tagName === 'INPUT') {
+      if (e.key === 'Escape') (e.target as HTMLElement).blur();
       return;
     }
-    const plural = (k: number) => (k === 1 ? 'machine' : 'machines');
-    this.machines.append(h('p', 'mp-status', `${working} ${plural(working)} in use, ${full} at full speed.`));
-    const list = h('div', 'an-legend');
-    HELD_BACK.forEach((r, i) => {
-      if (!(held[i] > 0)) return;
-      const item = h('span', 'an-cause');
-      const dot = h('span', 'an-dot');
-      dot.style.background = r.colour;
-      item.append(dot, h('span', '', `${held[i]} ${r.what}`));
-      list.append(item);
-    });
-    this.machines.append(list);
-    if (list.childElementCount > 0) {
-      this.machines.append(h('p', 'an-note', 'Look at a machine, or open its panel, to see its own efficiency (an average of the last 10 seconds).'));
+    const digit = /^Digit([1-9])$/.exec(e.code);
+    if (e.code === 'KeyP' || e.code === 'KeyE') {
+      e.preventDefault();
+      this.close(true);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      this.close(false);
+    } else if (digit && Number(digit[1]) <= this.tabs.length) {
+      e.preventDefault();
+      this.show(Number(digit[1]) - 1);
     }
+  }
+
+  private show(i: number): void {
+    if (i !== this.active) {
+      this.active = i;
+      this.arrange();
+      this.tabs[i].tab.open?.();
+    }
+    this.refresh();
+  }
+
+  /** Shows the active tab's panel and marks its button. */
+  private arrange(): void {
+    this.tabs.forEach((t, i) => {
+      t.tab.el.classList.toggle('hidden', i !== this.active);
+      t.button?.setAttribute('aria-selected', String(i === this.active));
+    });
+  }
+
+  private refresh(now = performance.now()): void {
+    this.last = now;
+    this.scaleButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === this.scale)));
+    const { secs, ticks } = SCALES[this.scale];
+    const ctx: Ctx = { game: this.game, icon: this.icon, secs, ticks, go: (id) => this.show(Math.max(0, TABS.findIndex((t) => t.id === id))) };
+    this.tabs[this.active].tab.refresh(ctx);
   }
 }

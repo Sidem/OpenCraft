@@ -26,6 +26,7 @@ impl Processor {
             }
             for &(item, n) in MACHINE_RECIPES[i as usize].inputs {
                 self.input.remove(item, n);
+                self.used.push(Stack { item, count: n });
             }
             self.steam.water -= water_use(i);
             (self.batch, self.progress) = (Some(i), 0);
@@ -58,14 +59,16 @@ impl Processor {
             }
             if self.is_launch() {
                 self.launches += 1;
+                self.lifted = r.inputs.last().map(|&(payload, _)| payload);
             }
             (self.batch, self.progress) = (None, 0);
         }
     }
 
-    /// Reports what this tick made (a finished batch, a filled canister) as `Produced` events.
+    /// Reports what this tick made (a finished batch, a filled canister) and used up as `Produced` and `Consumed` events.
     pub fn report_made(&mut self, events: &mut Vec<SimEvent>) {
         events.extend(self.made.drain(..).map(|s| SimEvent::Produced { item: s.item, count: s.count }));
+        events.extend(self.used.drain(..).map(|s| SimEvent::Consumed { item: s.item, count: s.count }));
     }
 
     /// The recipe the next batch would be (a `MACHINE_RECIPES` index), or why there is none.
@@ -124,6 +127,7 @@ impl Processor {
     fn light(&mut self) {
         let Some(i) = self.fuel.slots.iter().position(|s| !s.is_empty()) else { return };
         if let Some(secs) = burn_time(self.fuel.slots[i].item) {
+            self.used.push(Stack { item: self.fuel.slots[i].item, count: 1 });
             self.fuel.take(i, 1);
             self.burn = ticks(secs) * FULL_SPEED;
         }

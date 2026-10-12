@@ -156,6 +156,7 @@ impl Processor {
                 self.study.since_free = if self.study.free { 0 } else { self.study.since_free.saturating_add(1) };
                 for &p in TECHS[t as usize].packs.iter().filter(|_| !self.study.free) {
                     self.input.remove(p, 1);
+                    self.used.push(Stack { item: p, count: 1 });
                 }
                 taken[t as usize] += 1;
                 (self.study.unit, self.study.progress) = (Some(t), 0);

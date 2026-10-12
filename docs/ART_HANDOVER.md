@@ -209,6 +209,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   hull `tex::ROCKET_HULL` 293, nose and fins `LAMP_RED`, bell `ROCKET_ENGINE`) drawn only while a batch runs, lifting off at the end.
   Icons: `LIGHT_FRAME`, `ROCKET_ENGINE`, `FUEL_TANK`, `AVIONICS`, `ROCKET_FUEL_CANISTER` (288–292). It should read as the biggest
   site in the game, next to the fab and the datacenter.
+  Survey satellite (12.2, 2026-10-11): `tex::SURVEY_SATELLITE` (294, `textures/orbit.rs`) is an icon only: a gold box with a dish between two
+  blue solar wings. In the sky it is just a gold light (`web/src/render/sky.ts`), so the icon is the only look it needs.
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

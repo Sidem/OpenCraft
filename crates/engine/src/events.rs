@@ -74,6 +74,7 @@ impl Game {
                 }
                 SimEvent::Thrown { player, item, count } => self.throw(player, item, count),
                 SimEvent::Produced { item, count } => self.analytics.produced(item, count),
+                SimEvent::Consumed { item, count } => self.analytics.consumed(item, count),
             }
         }
         if picked_up {

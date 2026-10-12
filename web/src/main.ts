@@ -341,6 +341,7 @@ async function main(): Promise<void> {
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
       cracks: game.quarry_cracks(),
       underwater: game.eye_in_water(),
+      satellites: game.sky_satellites(),
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
     views.sync();

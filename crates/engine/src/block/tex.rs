@@ -333,7 +333,8 @@ pub const FUEL_TANK: u16 = 290;
 pub const AVIONICS: u16 = 291;
 pub const ROCKET_FUEL_CANISTER: u16 = 292;
 pub const ROCKET_HULL: u16 = 293;
-pub const COUNT: usize = 294;
+pub const SURVEY_SATELLITE: u16 = 294;
+pub const COUNT: usize = 295;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

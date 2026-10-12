@@ -22,6 +22,7 @@
 use rustc_hash::FxHashMap;
 
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::inventory::Stack;
 use crate::math::IVec3;
 use crate::recipes::{fuel_energy, water_use};
 use crate::TICK_RATE;
@@ -124,6 +125,7 @@ impl Processor {
                 let e = fuel_energy(self.fuel.slots[i].item).map_or(0, |kj| kj * FUEL_GAIN * TICK_RATE);
                 if self.steam.steam + e <= STEAM_CAP {
                     if self.steam.water >= e {
+                        self.used.push(Stack { item: self.fuel.slots[i].item, count: 1 });
                         self.fuel.take(i, 1);
                         self.steam.water -= e;
                         self.steam.steam += e;

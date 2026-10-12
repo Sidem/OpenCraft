@@ -133,6 +133,10 @@ pub struct Processor {
     pub status: Status,
     /// What it made this tick, until `report_made` (derived, not saved).
     pub made: Vec<Stack>,
+    /// What it used up this tick (batch inputs, fuel, canisters), until `report_made` (derived, not saved).
+    pub used: Vec<Stack>,
+    /// The satellite a launch site's rocket carried up this tick, until `Factory::update` puts it in orbit (derived).
+    pub lifted: Option<ItemId>,
 }
 
 impl Processor {
@@ -168,6 +172,8 @@ impl Processor {
             next_side: 0,
             status,
             made: Vec::new(),
+            used: Vec::new(),
+            lifted: None,
         }
     }
 
@@ -324,7 +330,8 @@ impl Machine for Processor {
         p.recipe = read_opt(r)?;
         p.batch = read_opt(r)?;
         let [input, fuel, out] = spec.buffers;
-        p.input = Buffer::read_state(r, input)?;
+        p.input = Buffer::read_state(r, launch::saved_input_slots(spec, r.version))?;
+        p.input.slots.resize(input, Stack::default());
         p.fuel = Buffer::read_state(r, fuel)?;
         p.out = Buffer::read_state(r, out)?;
         p.progress = r.u32()?;
@@ -370,6 +377,7 @@ impl Machine for Processor {
             text.insert_str(text.rfind('\n').unwrap_or(text.len()), &self.center_line(&f.research));
         }
         text += &self.reservoir_line(f);
+        text += &self.sky_line(f);
         let source = !matches!(self.energy(), Energy::Burner | Energy::Electric | Energy::Recipe | Energy::Boiler);
         match steam::grid_line(self, f).filter(|_| source && !f.dirty) {
             Some(grid) => format!("{text}\n{grid}"),

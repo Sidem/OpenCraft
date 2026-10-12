@@ -68,3 +68,5 @@ pub const ROCKET_ENGINE: ItemId = ItemId(387);
 pub const FUEL_TANK: ItemId = ItemId(388);
 pub const AVIONICS: ItemId = ItemId(389);
 pub const ROCKET_FUEL_CANISTER: ItemId = ItemId(390);
+/// A survey satellite (`satellites.rs`): the assembler builds it, a launch site's rocket carries it into orbit.
+pub const SURVEY_SATELLITE: ItemId = ItemId(391);

@@ -381,7 +381,7 @@ fn working_miner_reports_itself_and_is_heard_nearby() {
         g.sim.step();
     }
     let mut events = std::mem::take(&mut g.sim.events);
-    events.retain(|e| !matches!(e, SimEvent::Produced { .. }));
+    events.retain(|e| !matches!(e, SimEvent::Produced { .. } | SimEvent::Consumed { .. }));
     assert_eq!(events, vec![SimEvent::MinerWorking { pos: p }; 3], "ticks 0, 54 and 108");
 
     // The view plays them only near the camera.

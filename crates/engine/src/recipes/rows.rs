@@ -54,3 +54,4 @@ pub const ACCELERATOR_RECIPE: u16 = 63;
 pub const ROCKET_PART_RECIPES: [u16; 4] = [64, 65, 66, 67];
 pub const ROCKET_FUEL_RECIPE: u16 = 68;
 pub const ROCKET_RECIPE: u16 = 69;
+pub const SURVEY_SATELLITE_RECIPE: u16 = 70;

@@ -1,0 +1,210 @@
+/* Materials tab (analytics-items.ts): family chips, tools, and the grouped list that is also the chart's legend. */
+
+.an-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.an-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.an-search {
+  width: 190px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.an-picks {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.an-picks .secondary-btn {
+  padding: 5px 10px;
+}
+
+/* The list: swatch, icon, name, made, used, balance. */
+.an-list-head,
+.an-row {
+  display: grid;
+  grid-template-columns: 14px 22px minmax(120px, 1fr) 84px 84px 150px;
+  align-items: center;
+  gap: 10px;
+}
+
+.an-list-head {
+  margin-top: 12px;
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.an-sort {
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: 600 12px var(--font);
+  text-align: right;
+  cursor: pointer;
+}
+
+.an-sort:first-of-type {
+  text-align: left;
+}
+
+.an-sort:hover,
+.an-sort.on {
+  color: var(--text);
+}
+
+.an-sort.on::after {
+  content: ' ' attr(data-dir);
+  font-size: 9px;
+}
+
+.an-scroll {
+  max-height: max(280px, 44vh);
+  overflow-y: auto;
+}
+
+.an-row {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--group, #888);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.an-row:hover,
+.an-row:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.an-row.picked {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.an-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.an-row.picked .an-swatch {
+  border-color: transparent;
+}
+
+.an-num.up {
+  color: #7bd88f;
+}
+
+.an-num.down {
+  color: #ff8f7a;
+}
+
+/* A balance bar grows right of the middle when the item piles up, left when its supply runs down. */
+.an-net {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.an-net-track {
+  position: relative;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.an-net-track::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  left: 50%;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.an-net-bar {
+  position: absolute;
+  top: 0;
+  height: 6px;
+  width: 0;
+  border-radius: 3px;
+}
+
+.an-net-bar.up {
+  left: 50%;
+  background: #7bd88f;
+}
+
+.an-net-bar.down {
+  right: 50%;
+  background: #ff8f7a;
+}
+
+.an-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-left: 3px solid var(--group, #888);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.an-group-name {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text);
+  font: 700 13px var(--font);
+  cursor: pointer;
+}
+
+.an-group-name::before {
+  content: '\25be  ';
+  color: var(--muted);
+}
+
+.an-group.collapsed .an-group-name::before {
+  content: '\25b8  ';
+}
+
+.an-group-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.an-group-plot {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: none;
+  color: var(--muted);
+  font: 600 12px var(--font);
+  cursor: pointer;
+}
+
+.an-group-plot:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}

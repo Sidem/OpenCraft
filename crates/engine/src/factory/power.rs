@@ -20,6 +20,8 @@
 
 use rustc_hash::FxHashSet;
 
+use crate::block::{LAB, MINER, PUMP, QUARRY};
+use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::fuel_energy;
 use crate::research::Research;
@@ -31,6 +33,7 @@ use super::laser::LOSS_DIVISOR;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
+use super::power_mix::{empty_uses, note_use, Mix, Source, SOURCES};
 use super::process::{run_diesel, run_hydro, run_reactor, run_renewables, run_turbine, Energy, Processor};
 use super::quarry::Quarry;
 use super::render::push_box;
@@ -70,6 +73,9 @@ pub(crate) struct Power {
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
     pub capacity: Vec<u32>,
+    /// Last tick's kW per kind of source, and the kW each kind of machine asked for (`power_mix.rs`, for the analytics).
+    pub mix: [Mix; SOURCES],
+    pub uses: Vec<u32>,
     /// This tick's demand per side, before laser losses are added to the grids (scratch for alance).
     side_demand: Vec<u32>,
 }
@@ -141,6 +147,8 @@ impl Power {
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],
             capacity: vec![0; grids as usize],
+            mix: [Mix::default(); SOURCES],
+            uses: empty_uses(),
             side_demand: vec![0; sides as usize],
         }
     }
@@ -163,29 +171,35 @@ impl Power {
         self.demand.iter_mut().for_each(|d| *d = 0);
         self.capacity.iter_mut().for_each(|c| *c = 0);
         self.side_demand.iter_mut().for_each(|d| *d = 0);
+        self.clear_mix();
         for (m, p) in miners.iter().zip(&self.miner_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
                 self.side_demand[self.pole_side[p as usize] as usize] += m.stats().power;
+                note_use(&mut self.uses, MINER, m.stats().power);
             }
         }
         for (m, p) in processors.iter().zip(&self.process_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power(unlocked, research)) {
                 self.side_demand[self.pole_side[p as usize] as usize] += m.power();
+                note_use(&mut self.uses, m.spec.block, m.power());
             }
         }
         for (l, p) in labs.iter().zip(&self.lab_pole) {
             if let Some(&p) = p.as_ref().filter(|_| l.wants_power(research)) {
                 self.side_demand[self.pole_side[p as usize] as usize] += l.stats().power;
+                note_use(&mut self.uses, LAB, l.stats().power);
             }
         }
         for (m, p) in pipework.iter().zip(&self.pipe_pole) {
             if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
                 self.side_demand[self.pole_side[p as usize] as usize] += m.pump_stats().power;
+                note_use(&mut self.uses, PUMP, m.pump_stats().power);
             }
         }
         for (q, p) in quarries.iter().zip(&self.quarry_pole) {
             if let Some(&p) = p.as_ref().filter(|_| q.wants_power()) {
                 self.side_demand[self.pole_side[p as usize] as usize] += q.stats().power;
+                note_use(&mut self.uses, QUARRY, q.stats().power);
             }
         }
         // Each side's demand joins its grid; a beam also costs its emitter's grid a tenth of what arrives.
@@ -200,9 +214,9 @@ impl Power {
         run_renewables(self, processors, tick);
         run_hydro(self, processors);
         run_reactor(self, processors);
-        for (g, p) in gens.iter_mut().zip(&self.gen_pole) {
+        for (i, g) in gens.iter_mut().enumerate() {
             g.output = 0;
-            let Some(p) = *p else { continue };
+            let Some(p) = self.gen_pole[i] else { continue };
             let grid = self.pole_grid[p as usize] as usize;
             let tier = g.stats();
             let want = (self.demand[grid] - self.supply[grid].min(self.demand[grid])).min(tier.power);
@@ -210,15 +224,14 @@ impl Power {
                 let s = g.fuel.slots[0];
                 if let Some(kj) = fuel_energy(s.item).filter(|_| !s.is_empty()) {
                     g.fuel.take(0, 1);
+                    g.used.push(Stack { item: s.item, count: 1 });
                     g.energy += kj * tier.yield_percent / 100 * TICK_RATE;
                 }
             }
-            if g.energy > 0 || g.fuel.total() > 0 {
-                self.capacity[grid] += tier.power;
-            }
+            let could = if g.energy > 0 || g.fuel.total() > 0 { tier.power } else { 0 };
             g.output = want.min(g.energy);
             g.energy -= g.output;
-            self.supply[grid] += g.output;
+            self.give(Source::Generator, grid, g.output, could);
         }
         // Steam turbines fill what the generators left.
         for t in 0..processors.len() {
@@ -229,8 +242,7 @@ impl Power {
             let grid = self.pole_grid[p as usize] as usize;
             let want = self.demand[grid] - self.supply[grid].min(self.demand[grid]);
             let (given, could) = run_turbine(processors, t, want);
-            self.supply[grid] += given;
-            self.capacity[grid] += could;
+            self.give(Source::Turbine, grid, given, could);
         }
         run_diesel(self, processors);
     }

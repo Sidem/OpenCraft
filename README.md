@@ -62,7 +62,7 @@ the render distance in chunks (2 to 24, default 8).
 | Right mouse on a smelter, constructor, assembler, filter, generator, lab or quarry | Open its panel. Hold C to place against it instead |
 | E                   | Inventory and build menu                  |
 | T                   | Research: choose what labs work on        |
-| P                   | Analytics: power and production graphs, and how well your machines run |
+| P                   | Analytics hub: power by source, materials made and used, machine health |
 | H                   | Skip the tip on screen (the menu can show tips again) |
 | M                   | The map: everywhere you've been, your pins, and the ore guide (drag to move, wheel to zoom, click to pin) |
 | N                   | Show or hide the minimap (top right, north up; diamonds mark ore you've seen, rings veins and lodes you've prospected, squares your machines, pins your pins) |
@@ -86,15 +86,7 @@ on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when
 merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
 merge, so each keeps its own wear.
 
-**Analytics (P)** shows how the factory is doing. The electricity graph has the power your generators could
-make, the power being used and the power your machines asked for (when that is above what is used, the grid is
-short and everything on it slows down). The production graph has a line for each item your machines make, a
-minute at a time, coloured like the item; click an item to hide or show its line. The buttons at the top pick
-the timescale, from the last minute to the last three hours. Below the graphs, a count shows how many machines
-run at full speed and what holds back the rest. Every machine also says how close to full speed it has run
-over the last ten seconds, for example "Efficiency 62%: lost 25% to waiting for input, 13% to low power": it
-is in the machine's panel and on the readout when you look at a miner or any other machine. The graphs start
-when you open the world; they are not saved.
+**Analytics (P)** is a hub with four tabs (keys 1 to 4). *Overview* shows power, machines and materials at a glance and lists what needs attention. *Power* shows how much power the grids could make, how much is used and how much the machines asked for (when that is above what is used, the grid is short and everything on it slows down), stacked by source (generators, turbines, solar, water wheels...) and by the kind of machine using it. *Materials* graphs what is made and what is used up of each item, a minute at a time: filter by group (raw materials, ingots, parts, electronics...), search, switch between Made, Used, Both and Balance, click a row to plot it, hover a row to light its line. *Machines* shows what holds machines back, per kind of machine, and the slowest ones with where they stand. The buttons at the top pick the timescale, from the last minute to the last three hours. Every machine also says how close to full speed it has run over the last ten seconds, for example "Efficiency 62%: lost 25% to waiting for input, 13% to low power": it is in the machine's panel and on the readout when you look at a machine. The graphs start when you open the world; they are not saved.
 
 New worlds have a sea and ponds. Water flows: dig beside the sea and it pours in and refills any hole or
 trench at or below its level, however far. Elsewhere water runs up to 7 blocks from its source, getting
@@ -444,10 +436,14 @@ size.
   stained soil you have seen within 256 blocks (bigger rings for more stain). They are hints: scan or drill to be sure.
 - **Rocketry.** Rocketry (after Electrolysis and Accelerators, all five science packs) gives four rocket parts the assembler
   builds (light frame, rocket engine, fuel tank, avionics), **rocket fuel** (the chemical plant mixes 2 hydrogen and 1 oxygen
-  canister into a fuel canister and 2 empties) and the **launch site**, a 7×7×6 pad and gantry (2 MW). Belt 4 light frames,
-  2 engines, 2 fuel tanks, an avionics and 8 fuel canisters in at the back hatches: the pad builds a rocket for a minute (you
-  see it standing there), launches it into orbit and gives the 8 empty canisters back at the front. A pad missing a part says
-  which. What a rocket carries and does in orbit comes in the next steps.
+  canister into a fuel canister and 2 empties), the **survey satellite** (an assembler: 2 light frames, 4 solar panels, 4 AI
+  accelerators) and the **launch site**, a 7×7×6 pad and gantry (2 MW). Belt 4 light frames, 2 engines, 2 fuel tanks, an
+  avionics, 8 fuel canisters and a satellite in at the back hatches: the pad builds a rocket for a minute (you see it standing
+  there), launches the satellite into orbit and gives the 8 empty canisters back at the front. A pad missing a part says
+  which, and says how many satellites are up and how many are over it. Satellites fly across the sky at 6 blocks a second, a
+  lap of the world's repeating sky in a few minutes, and show as small gold lights (brightest at night); a satellite covers
+  the ground within 768 blocks of the point under it. The first 24 of a kind stay up; a 25th retires the oldest. What each
+  kind does with its coverage comes in the next step.
 - **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the

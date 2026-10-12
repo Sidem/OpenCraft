@@ -15,8 +15,10 @@ use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{Power, NOT_WIRED};
+use super::super::power_mix::Source;
 use super::model::{part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use crate::inventory::Stack;
 
 /// The most a diesel generator gives, in kW.
 pub const DIESEL_KW: u32 = 400;
@@ -99,6 +101,8 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
             if p.out.space_for(EMPTY_CANISTER) > 0 {
                 p.input.remove(DIESEL_CANISTER, 1);
                 p.out.add(EMPTY_CANISTER, 1);
+                p.used.push(Stack { item: DIESEL_CANISTER, count: 1 });
+                p.made.push(Stack { item: EMPTY_CANISTER, count: 1 });
                 p.store.charge += CANISTER_CHARGE;
             } else {
                 stuck = true;
@@ -107,11 +111,8 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
         let given = want.min(p.store.charge);
         p.store.charge -= given;
         p.store.given = given;
-        power.supply[grid] += given;
         let fuelled = p.store.charge > 0 || p.input.count(DIESEL_CANISTER) > 0;
-        if fuelled {
-            power.capacity[grid] += DIESEL_KW;
-        }
+        power.give(Source::Diesel, grid, given, if fuelled { DIESEL_KW } else { 0 });
         p.status = match () {
             _ if given > 0 => Status::Working,
             _ if stuck => Status::OutputFull,

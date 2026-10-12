@@ -72,6 +72,12 @@ impl Game {
         held
     }
 
+    /// Scene building: puts a survey satellite in orbit above the column `(x, z)` at once, as a launch would.
+    pub fn launch_satellite_at(&mut self, x: i32, z: i32) {
+        let pad = IVec3::new(x, 0, z);
+        self.sim.factory.orbit.launch(crate::item::SURVEY_SATELLITE, pad, self.sim.tick);
+    }
+
     /// Scene building: plants a ghost of `block` (for drones to build) at once.
     pub fn ghost_at(&mut self, x: i32, y: i32, z: i32, block: u8, facing: u8) {
         let pos = IVec3::new(x, y, z);

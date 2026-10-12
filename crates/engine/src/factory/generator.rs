@@ -40,11 +40,20 @@ pub struct Generator {
     pub energy: u32,
     /// kW it supplied last tick (derived).
     pub output: u32,
+    /// The fuel it lit this tick, until `Factory::update` reports it (derived, not saved).
+    pub used: Vec<Stack>,
 }
 
 impl Generator {
     pub fn new(pos: IVec3) -> Generator {
-        Generator { pos, tier: 0, fuel: Buffer::new(Kind::Generator.def().slots), energy: 0, output: 0 }
+        Generator {
+            pos,
+            tier: 0,
+            fuel: Buffer::new(Kind::Generator.def().slots),
+            energy: 0,
+            output: 0,
+            used: Vec::new(),
+        }
     }
 
     pub fn stats(&self) -> &'static GeneratorTier {

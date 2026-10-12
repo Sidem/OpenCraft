@@ -15,6 +15,7 @@ use crate::world::World;
 
 use super::super::footprint::{Footprint, Port};
 use super::super::power::Power;
+use super::super::power_mix::Source;
 use super::model::{part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
@@ -118,8 +119,7 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
         };
         let grid = power.pole_grid[pole as usize] as usize;
         let given = p.store.flow.min(power.demand[grid] - power.supply[grid].min(power.demand[grid]));
-        power.supply[grid] += given;
-        power.capacity[grid] += p.store.flow;
+        power.give(Source::Hydro, grid, given, p.store.flow);
         p.store.given = given;
         p.status = if given > 0 { Status::Working } else { Status::NoInput };
     }

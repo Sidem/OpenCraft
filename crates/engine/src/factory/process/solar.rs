@@ -18,6 +18,7 @@ use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port};
 use super::super::power::Power;
+use super::super::power_mix::Source;
 use super::model::{part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
@@ -147,8 +148,7 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], t
         p.store.given = 0;
         if let Some(grid) = grid_of(power, i) {
             let given = sun.min(power.demand[grid] - power.supply[grid].min(power.demand[grid]));
-            power.supply[grid] += given;
-            power.capacity[grid] += sun;
+            power.give(Source::Solar, grid, given, sun);
             spare[grid] += sun - given;
             p.store.given = given;
         }
@@ -165,8 +165,7 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], t
             let given = unmet.min(ACCUMULATOR_KW).min(p.store.charge);
             p.store.charge -= given;
             p.store.given = given;
-            power.supply[grid] += given;
-            power.capacity[grid] += ACCUMULATOR_KW.min(p.store.charge);
+            power.give(Source::Accumulator, grid, given, ACCUMULATOR_KW.min(p.store.charge));
             let taken = spare[grid].min(ACCUMULATOR_KW).min(CHARGE_CAP - p.store.charge);
             p.store.charge += taken;
             p.store.taken = taken;

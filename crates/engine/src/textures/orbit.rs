@@ -18,8 +18,23 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::FUEL_TANK => tank(x, y),
         tex::AVIONICS => avionics(x, y),
         tex::ROCKET_FUEL_CANISTER => canister(x, y, FUEL_BAND),
+        tex::SURVEY_SATELLITE => survey_satellite(x, y),
         _ => hull(x, y),
     }
+}
+
+/// A gold box body between two blue solar wings, with a dish dot in the middle.
+fn survey_satellite(x: i32, y: i32) -> [u8; 4] {
+    if (6..=9).contains(&x) && (4..=11).contains(&y) {
+        let dish = (7..=8).contains(&x) && (7..=8).contains(&y);
+        let gold = if dish { [250.0, 244.0, 210.0] } else { [214.0, 170.0, 70.0] };
+        return rgb(gold, 0.9 + 0.2 * n(694, x, y));
+    }
+    if (5..=10).contains(&y) && (x <= 4 || x >= 11) {
+        let cell = x % 2 == 0 || y % 3 == 0;
+        return if cell { rgb([30.0, 56.0, 120.0], 0.9 + 0.2 * n(695, x, y)) } else { rgb([110.0, 130.0, 170.0], 1.0) };
+    }
+    rgb([10.0, 12.0, 22.0], 0.9 + 0.2 * n(696, x, y))
 }
 
 /// Grey concrete with steel cross-bracing above a yellow and black hazard band.

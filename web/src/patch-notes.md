@@ -3,11 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
-## 2026-10-11 · Rockets
+## 2026-10-12 · A proper analytics screen
 
-- New tech Rocketry (after Electrolysis and Accelerators): build light frames, rocket engines, fuel tanks and avionics in assemblers, and mix rocket fuel in the chemical plant from hydrogen and oxygen.
-- The launch site is a big 7×7 pad with a gantry. Feed it 4 frames, 2 engines, 2 tanks, an avionics and 8 fuel canisters and it builds a rocket in a minute, then launches it into orbit. The empty canisters come back out.
-- A rocket in orbit does nothing yet: satellites come next.
+- Analytics (P) is now a hub with four tabs: Overview (what needs attention), Power, Materials and Machines. Press 1 to 4 to switch.
+- Power shows where the electricity comes from (generators, steam, solar, water wheels...) and which machines use it.
+- Materials has groups (raw materials, ingots, parts, electronics...), a search box, and shows what is made and what is used up separately, with a balance. Click an item to draw its line, hover it to make it stand out.
+- Machines shows what holds each kind of machine back and lists the slowest ones with where they are.
 
 ## 2026-10-11 · A tidier inventory
 
@@ -16,6 +17,13 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - Searching knows related words: water finds pumps, pipes and boilers; belt finds splitters and filters; power finds generators and poles.
 - Ctrl-click a slot takes one item onto your cursor (again for the next one), and Ctrl-right-click puts one down, so you can build or split a stack a single item at a time.
 - Belt Mk3 and Mk4 now look like Mk1 and Mk2 in menus.
+
+## 2026-10-11 · Rockets
+
+- New tech Rocketry (after Electrolysis and Accelerators): build light frames, rocket engines, fuel tanks and avionics in assemblers, and mix rocket fuel in the chemical plant from hydrogen and oxygen.
+- The launch site is a big 7×7 pad with a gantry. Feed it 4 frames, 2 engines, 2 tanks, an avionics, 8 fuel canisters and a satellite and it builds a rocket in a minute, then launches the satellite into orbit. The empty canisters come back out.
+- Survey satellites (built in an assembler from light frames, solar panels and AI accelerators) circle the sky: look up and you see them as small gold lights, and the launch site says how many are up and how many are over it.
+- A satellite does nothing for you yet: what each kind gives comes next.
 
 ## 2026-10-11 · Fabricator Gloves
 
