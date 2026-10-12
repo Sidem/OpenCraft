@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-12 · Background music
+
+- The game has music now: two versions of one daytime piece. Adventurous is a full orchestra with a fanfare; Ambient is soft and slow, for building.
+- There is a new Sound page in the menu with separate volume sliders and mute buttons for sound effects and for music, and a choice between the two tracks. Switching fades smoothly from one to the other.
+- K still mutes or unmutes everything.
+
 ## 2026-10-12 · A proper analytics screen
 
 - Analytics (P) is now a hub with four tabs: Overview (what needs attention), Power, Materials and Machines. Press 1 to 4 to switch.

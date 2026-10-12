@@ -510,9 +510,15 @@ an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper 
 outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. Hand-mining
 an outcrop or two and a furnace cover your first miner, generator and poles. After that, let them do the work.
 
+## Music and sound
+
+The menu's **Sound** page has a volume slider and a mute button for sound effects and another pair for music, and
+a choice of two versions of the background music: **Adventurous** (a full orchestra with a fanfare) and **Ambient**
+(soft and slow, no drums). Switching crossfades. **K** mutes or unmutes everything. Settings are kept in the browser.
+
 ## Sound designer
 
-Press **O** in game (or **Sound designer** on the menu's Settings page) to tune every sound with dials. You don't need
+Press **O** in game (or **Sound designer** on the menu's Sound page) to tune every sound with dials. You don't need
 any sound-design experience to use it.
 
 - **Materials** (Stone, Dirt, Grass, Sand, Wood, Leaves, Metal): each has ten dials with plain meanings, such as

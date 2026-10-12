@@ -1,0 +1,30 @@
+/* The menu's Sound page (sound-panel.ts). */
+
+.sound-panel {
+  font-size: 13px;
+}
+
+.sound-panel-row {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.sound-tracks {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.sound-tracks .secondary-btn {
+  flex: 1;
+  padding: 6px 4px;
+}
+
+.sound-panel-help {
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--muted);
+}

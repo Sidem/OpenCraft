@@ -1,7 +1,9 @@
 // Plays the engine's positional sound events (crates/engine/src/sound.rs) through Web Audio with
 // distance attenuation and stereo panning. Every sound is synthesised from the current sound design
 // (settings.ts) on first use, and again after a dial changes, so edits in the sound designer are
-// heard immediately, in the designer and in the game. The game ships zero audio assets.
+// heard immediately, in the designer and in the game. The only audio files are the music loops, which
+// `music` plays (music.ts); this class owns the shared AudioContext, so effects and music are two
+// channels with a level and a mute each.
 
 import {
   ACTIONS,
@@ -17,6 +19,7 @@ import {
   type SoundDesign,
   type SoundSettings,
 } from './settings';
+import { Music } from './music';
 import { blip, breakSound, hitSound, mulberry32, ping, splash, tick, whoosh, type HitMods } from './synth';
 
 const EVENT_FLOATS = 6;
@@ -75,6 +78,7 @@ export class SoundSystem {
   readonly settings: SoundSettings = loadSettings();
   /** Sound material of the most recent material sound, so the designer can open on it. */
   lastMaterial = 0;
+  readonly music = new Music(() => this.notify());
 
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -84,15 +88,21 @@ export class SoundSystem {
   private saveTimer = 0;
   private warmTimer = 0;
 
+  /** Sound effects are muted. */
   get muted(): boolean {
     return this.settings.muted;
+  }
+
+  /** Effects and music are both muted. */
+  get silent(): boolean {
+    return this.muted && this.music.settings.muted;
   }
 
   get design(): SoundDesign {
     return this.settings.design;
   }
 
-  /** Calls `fn` after the master volume or mute state changes. */
+  /** Calls `fn` after a volume or mute state changes, effects or music. */
   subscribe(fn: () => void): void {
     this.listeners.add(fn);
   }
@@ -110,6 +120,7 @@ export class SoundSystem {
       this.master.connect(compressor);
       this.ctx = ctx;
       this.scheduleWarm(0);
+      this.music.start(ctx);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -119,9 +130,12 @@ export class SoundSystem {
     this.masterChanged();
   }
 
+  /** The K key: mutes everything, or unmutes everything when it was all off. */
   toggleMute(): boolean {
-    this.setMuted(!this.muted);
-    return this.muted;
+    const off = !this.silent;
+    this.setMuted(off);
+    this.music.setMuted(off);
+    return off;
   }
 
   setVolume(volume: number): void {
@@ -204,6 +218,10 @@ export class SoundSystem {
   private masterChanged(): void {
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.masterGain(), this.ctx.currentTime, 0.02);
     this.save();
+    this.notify();
+  }
+
+  private notify(): void {
     for (const fn of this.listeners) fn();
   }
 

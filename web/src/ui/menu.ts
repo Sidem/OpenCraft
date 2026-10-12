@@ -1,7 +1,7 @@
 // The launcher and pause menu (`#menu` in index.html). A side column holds what matters most: the Play
 // button with the loading bar, the world it opens, the page buttons and the GitHub links. Beside it one
 // page shows at a time: home (a welcome and the first steps for a new player, handy keys and the latest
-// update for a returning one), worlds, play together, settings, controls and what's new. Pages' contents
+// update for a returning one), worlds, play together, settings, sound, controls and what's new. Pages' contents
 // come from their own panels, which main.ts builds into each page's container; this file switches pages,
 // shows loading and the play state, and greets. While the settings page shows, the menu steps aside so
 // changes show on the game (`previewing`).
@@ -11,7 +11,7 @@ import './menu.css';
 import './menu-pages.css';
 import { PatchNotes } from './patch-notes';
 
-export type Page = 'home' | 'worlds' | 'together' | 'settings' | 'controls' | 'notes';
+export type Page = 'home' | 'worlds' | 'together' | 'settings' | 'sound' | 'controls' | 'notes';
 /** first: a new player; back: a saved world opened; fresh: a new world opened; paused: Escape during play. */
 export type Greeting = 'first' | 'back' | 'fresh' | 'paused';
 

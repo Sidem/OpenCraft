@@ -36,7 +36,7 @@ import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
 import { Vignette } from './ui/vignette';
-import { VolumeControl } from './ui/volume-control';
+import { SoundPanel } from './ui/sound-panel';
 import { WorldMap } from './ui/worldmap';
 import { WorldsPanel } from './ui/worlds';
 
@@ -96,8 +96,8 @@ async function main(): Promise<void> {
   const views = new ViewControls(game, input, renderer, canvas, comfort);
   document.getElementById('menu-camera')!.append(views.menu);
   const sound = new SoundSystem();
-  hud.setMuted(sound.muted);
-  sound.subscribe(() => hud.setMuted(sound.muted));
+  hud.setMuted(sound.silent);
+  sound.subscribe(() => hud.setMuted(sound.silent));
   // Every block except air, with the sound material it uses.
   const blocks = Array.from({ length: game.block_count() - 1 }, (_, i) => ({
     id: i + 1,
@@ -145,7 +145,7 @@ async function main(): Promise<void> {
   showWorldInfo();
   menu.opened(opened.restored);
   if (opened.restored) play.textContent = 'Continue';
-  document.getElementById('menu-volume')!.append(new VolumeControl(sound).el);
+  document.getElementById('sound-panel')!.append(new SoundPanel(sound).el);
   document.getElementById('open-sound-lab')!.addEventListener('click', () => {
     sound.unlock();
     soundLab.open(sound.lastMaterial);

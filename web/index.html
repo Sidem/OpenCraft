@@ -52,6 +52,7 @@
             <button type="button" data-tab="worlds">Worlds</button>
             <button type="button" data-tab="together">Play together</button>
             <button type="button" data-tab="settings">Settings</button>
+            <button type="button" data-tab="sound">Sound</button>
             <button type="button" data-tab="controls">Controls</button>
             <button type="button" data-tab="notes">What's new</button>
           </nav>
@@ -115,18 +116,22 @@
           <section class="menu-page hidden" data-page="settings">
             <h2>Settings</h2>
             <p class="lead">Changes show on the game behind this menu as you make them, and are kept in this browser.</p>
-            <h3>Sound</h3>
-            <div class="sound-row">
-              <div id="menu-volume"></div>
-              <button id="open-sound-lab" type="button" class="secondary-btn" title="Tune every sound effect with dials (O)">
-                Sound designer
-              </button>
-            </div>
             <h3>Camera</h3>
             <div id="menu-camera"></div>
             <h3>Comfort</h3>
             <p class="note">If moving in first person makes you queasy, these help.</p>
             <div id="comfort"></div>
+          </section>
+
+          <section class="menu-page hidden" data-page="sound">
+            <h2>Sound</h2>
+            <p class="lead">Sound effects and music have a level and a mute button each. Changes are kept in this browser, and K mutes or unmutes everything while you play.</p>
+            <div id="sound-panel"></div>
+            <h3>Sound designer</h3>
+            <p class="note">Sound effects are made on the fly. Tune how any of them sounds with dials.</p>
+            <button id="open-sound-lab" type="button" class="secondary-btn" title="Tune every sound effect with dials (O)">
+              Open the sound designer
+            </button>
           </section>
 
           <section class="menu-page hidden" data-page="controls">

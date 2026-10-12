@@ -93,17 +93,6 @@ kbd {
   margin: 0;
 }
 
-.sound-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-#menu-volume {
-  flex: 1;
-  min-width: 0;
-}
-
 #menu-tips {
   margin-top: 18px;
 }
