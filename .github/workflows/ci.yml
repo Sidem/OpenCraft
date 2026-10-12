@@ -1,0 +1,48 @@
+name: CI
+
+# Same checks as the deploy workflow, but on pull requests and on every branch except main
+# (pushes to main are checked by pages.yml before it deploys).
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installs the version, target and components pinned in rust-toolchain.toml.
+      - name: Install Rust toolchain
+        run: rustup toolchain install --profile minimal
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build engine
+        run: npm run build:wasm
+
+      # Format, clippy, engine tests, typecheck and size budgets (needs the wasm bindings above).
+      - name: Check
+        run: npm run check
+
+      - name: Bundle
+        run: npx vite build

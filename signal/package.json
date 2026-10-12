@@ -1,6 +1,7 @@
 {
   "name": "opencraft-signal",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Co-op signalling Worker for OpenCraft (Cloudflare Workers + Durable Objects).",
   "scripts": {

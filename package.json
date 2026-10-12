@@ -2,6 +2,7 @@
   "name": "opencraft",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "description": "Browser voxel sandbox meets factory builder. Rust/WebAssembly simulation, WebGL2 rendering.",
   "scripts": {

@@ -1,0 +1,20 @@
+name: Bug report
+description: Something in the game does not work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A world seed or an exported .ocworld file helps a lot.
+  - type: input
+    id: env
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 140 on Windows 11

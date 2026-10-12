@@ -1,0 +1,30 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      cargo: { patterns: ["*"] }
+
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      npm: { patterns: ["*"] }
+
+  - package-ecosystem: npm
+    directory: /signal
+    schedule: { interval: weekly }
+    groups:
+      npm-signal: { patterns: ["*"] }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      actions: { patterns: ["*"] }
+
+  # Bumps the pinned Rust version in rust-toolchain.toml.
+  - package-ecosystem: rust-toolchain
+    directory: /
+    schedule: { interval: weekly }

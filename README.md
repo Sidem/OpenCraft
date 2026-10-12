@@ -631,6 +631,11 @@ For debugging, the running game is exposed as `window.opencraft.game` in the dev
   minutes despawn).
 - `opencraft.game.block_at(x, y, z)` reads a block.
 
+## License
+
+[MIT](LICENSE). OpenCraft is an independent project and is not affiliated with Mojang, Microsoft or Coffee Stain;
+"Minecraft" and "Satisfactory" are named only to describe the genre.
+
 ## Roadmap
 
 The plan of record, with decisions, rules and the current milestone's steps, is
