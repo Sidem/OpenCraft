@@ -242,6 +242,7 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `ui/nametags.ts` + `.css` | Name tags over other players, from the engine's anchors and the session's names |
 | `ui/coop.ts` + `.css`, `ui/players.ts` + `.css` | "Play together" in the menu: name, host this world (code and link), join from a link or code, players and ping, leave, why a session ended; `playerRow`. In game: the player list while Tab is held, join and leave notices |
 | `ui/minimap.ts` + `.css` | Minimap in a round top-right frame: the engine's image (at most 4 redraws a second), marks and pins (far ones on the rim) on an overlay canvas, player arrows; N toggles (localStorage); `--map-space` moves other top-right HUD items down |
+| `ui/compass.ts` + `.css` | The XYZ readout under the minimap (X red, Y green, Z blue) with a world-fixed 3D axis gizmo and a white look-direction arrow; built and updated by `Minimap` |
 | `ui/worldmap.ts` + `.css` | The world map (M): the explored map at 7 zoom steps (drag, wheel), marks, pins, players; the pin editor and list; the ore guide beside it |
 | `ui/pins.ts` | `Pins` (the player's map pins, kinds from the engine's ore guide), `drawMark` / `drawPin` shared by both maps |
 | `ui/ore-guide.ts` + `.css` | "Finding ore": a depth chart of each ore's band, where it is common, how to spot it, general notes (`ore_guide`, `ore_guide_notes`) |

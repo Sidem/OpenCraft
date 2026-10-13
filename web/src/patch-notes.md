@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-13 · Coordinates under the minimap
+
+- Your position (X, Y, Z) now shows under the minimap: X in red, Y (height) in green, Z in blue.
+- A small 3D gizmo next to it shows the same three colours as axes: red points east, green up, blue south, just like the map. A white arrow shows which way you are looking, including up and down.
+- N hides or shows the minimap and this readout together.
+
 ## 2026-10-13 · Gears and power lines
 
 - Gears look like gears now: a toothed cog with a hub, in your backpack, on the ground and as the winding wheel on top of a miner (which turns while it works).

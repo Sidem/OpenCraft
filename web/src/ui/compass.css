@@ -1,0 +1,47 @@
+/* Position readout under the minimap (ui/compass.ts): the gizmo canvas and the X / Y / Z rows. The
+   height is mirrored as COMPASS_PX in compass.ts. */
+
+.compass {
+  position: absolute;
+  top: calc(12px + 150px + 6px);
+  right: 12px;
+  width: 150px;
+  height: 64px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px 0 4px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 2px solid var(--panel-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.cp-gizmo {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  margin: -2px 0;
+}
+
+.cp-rows {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font: 700 13px/1.25 var(--mono);
+}
+
+.cp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  text-shadow: 0 1px 2px #000;
+}
+
+.cp-value {
+  color: #fff;
+}

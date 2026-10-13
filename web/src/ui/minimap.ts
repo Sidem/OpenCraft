@@ -4,18 +4,19 @@
 // redrawn at most 4 times a second and only when the engine says it changed; the ore, deposit and
 // machine marks (`minimap_marks`, colours from the engine) and the player's pins (pins.ts; those out of
 // range sit on the rim, pointing the way) go on an overlay canvas at the same rate, clipped by the round
-// frame. N toggles it; whether it shows is UI state kept in localStorage. While shown it sets
+// frame. Under it sits the XYZ readout with its look gizmo (compass.ts). N toggles both; whether it shows is UI state kept in localStorage. While shown it sets
 // `--map-space` on #hud so the other top-right HUD items move below it.
 
 import './minimap.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
 import { drawMark, drawPin, type Pins } from './pins';
+import { Compass, COMPASS_PX } from './compass';
 
 const STORAGE_KEY = 'opencraft.minimap.hidden';
 const REDRAW_MS = 250;
 const FRAME_PX = 150; // must match .minimap in minimap.css
-const MAP_SPACE_PX = FRAME_PX + 12;
+const MAP_SPACE_PX = FRAME_PX + 12 + 6 + COMPASS_PX; // the map, then the XYZ readout under it
 
 export class Minimap {
   private readonly el = h('div', 'minimap');
@@ -26,6 +27,7 @@ export class Minimap {
   private readonly marks: CanvasRenderingContext2D;
   private readonly me = h('div', 'mm-arrow mm-me');
   private readonly others: HTMLDivElement[] = [];
+  private readonly compass: Compass;
   private readonly size: number;
   private lastDraw = -Infinity;
   private shown: boolean;
@@ -41,7 +43,8 @@ export class Minimap {
     this.overlay.width = this.overlay.height = Math.round(FRAME_PX * (window.devicePixelRatio || 1));
     this.marks = this.overlay.getContext('2d')!;
     this.el.append(this.canvas, this.overlay, this.me, h('span', 'mm-north', 'N'));
-    document.getElementById('hud')!.append(this.el);
+    this.compass = new Compass(game);
+    document.getElementById('hud')!.append(this.el, this.compass.el);
     this.shown = !loadHidden();
     this.show(this.shown);
   }
@@ -57,6 +60,7 @@ export class Minimap {
     if (!this.shown) return;
     const g = this.game;
     this.me.style.transform = `rotate(${g.yaw()}rad)`;
+    this.compass.update();
     if (now - this.lastDraw < REDRAW_MS) return;
     this.lastDraw = now;
     if (g.minimap_redraw()) {
@@ -70,6 +74,7 @@ export class Minimap {
 
   private show(on: boolean): void {
     this.el.classList.toggle('hidden', !on);
+    this.compass.el.classList.toggle('hidden', !on);
     this.lastDraw = -Infinity;
     document.getElementById('hud')!.style.setProperty('--map-space', on ? `${MAP_SPACE_PX}px` : '0px');
   }
