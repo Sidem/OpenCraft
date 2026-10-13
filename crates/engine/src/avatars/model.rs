@@ -189,6 +189,8 @@ impl Rig<'_> {
                 grip.part(center, p.size.map(|v| v * 0.55), tilt, roll, 1.0, p.tex[1]);
                 let i = grip.out.len() - INSTANCE_FLOATS;
                 grip.out[i + 8..i + 11].copy_from_slice(&p.tex.map(f32::from));
+                // A turned part (the cog's teeth) is exact while the wrist is level, close otherwise.
+                grip.out[i + 3] += p.yaw;
             }
         }
     }

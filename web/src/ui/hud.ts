@@ -250,25 +250,40 @@ export class Hud {
         ctx.globalCompositeOperation = 'source-over';
       }
     };
-    const draw = (x: number, y: number, z: number, a: number, h: number, b: number,
+    // A box turned by `yaw` about its vertical axis: its local x runs along (cos, sin) in the xz plane and
+    // its local z along (-sin, cos). A world vector (vx, vz) on screen is ((vx - vz) S/2, (vx + vz) S/4); an
+    // image is 16 px, so a face's matrix takes its edge vectors over 16.
+    const draw = (x: number, y: number, z: number, a: number, h: number, b: number, yaw: number,
       topLayer: number, sideLayer: number) => {
       const top = this.layers[topLayer], side = this.layers[sideLayer];
-      const left = project(x - a / 2, y + h / 2, z + b / 2);
-      const right = project(x + a / 2, y + h / 2, z + b / 2);
-      // The top face's texture starts at its back (topmost) corner, then runs along +x and +z.
-      const peak = project(x - a / 2, y + h / 2, z - b / 2);
-      face(side, [(a * k) / 2, (a * k) / 4, 0, (h * k) / 2, left[0], left[1]], 0.22);
-      face(side, [(b * k) / 2, (-b * k) / 4, 0, (h * k) / 2, right[0], right[1]], 0.4);
-      face(top, [(a * k) / 2, (a * k) / 4, (-b * k) / 2, (b * k) / 4, peak[0], peak[1]], 0);
+      const c = Math.cos(yaw), s = Math.sin(yaw);
+      const corner = (lx: number, lz: number) => project(x + c * lx - s * lz, y + h / 2, z + s * lx + c * lz);
+      const edge = (vx: number, vz: number): [number, number] => [((vx - vz) * S) / 32, ((vx + vz) * S) / 64];
+      const down = (h * k) / 2;
+      // Side faces seen from outside, left to right: start corner and edge; shaded by which way they face.
+      const sides: [number, number, number, number, number, number][] = [
+        [-a / 2, b / 2, c * a, s * a, -s, c], // +z face runs along +x
+        [a / 2, b / 2, s * b, -c * b, c, s], // +x face runs along -z
+        [a / 2, -b / 2, -c * a, -s * a, s, -c], // -z face runs along -x
+        [-a / 2, -b / 2, -s * b, c * b, -c, -s], // -x face runs along +z
+      ];
+      for (const [lx, lz, ex, ez, nx, nz] of sides) {
+        if (nx + nz <= 0.01) continue; // faces turned away from the viewer
+        const [sx, sy] = edge(ex, ez), [px, py] = corner(lx, lz);
+        face(side, [sx, sy, 0, down, px, py], 0.31 + 0.09 * (nx - nz));
+      }
+      // The top face's texture starts at its back corner, then runs along local +x and +z.
+      const [ax, ay] = edge(c * a, s * a), [bx, by] = edge(-s * b, c * b), [qx, qy] = corner(-a / 2, -b / 2);
+      face(top, [ax, ay, bx, by, qx, qy], 0);
     };
     const model = this.game.item_model(item);
     if (model.length) {
-      for (let i = 0; i < model.length; i += 9) {
+      for (let i = 0; i < model.length; i += 10) {
         draw(model[i], model[i + 1], model[i + 2], model[i + 3], model[i + 4], model[i + 5],
-          model[i + 6], model[i + 7]);
+          model[i + 6], model[i + 7], model[i + 8]);
       }
     } else {
-      draw(0, 0, 0, info[3], info[4], info[5], info[0], info[1]);
+      draw(0, 0, 0, info[3], info[4], info[5], 0, info[0], info[1]);
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // Tiered machines get a corner chip in their Mk colour with a pip per Mk.

@@ -46,7 +46,7 @@ impl Game {
         })
     }
 
-    /// Box parts for a manufactured item's icon: centre xyz, size xyz, then top/side/bottom layers.
+    /// Box parts for a manufactured item's icon: centre xyz, size xyz, yaw, then top/side/bottom layers.
     /// Empty means the ordinary `item_icon` box is the complete model.
     pub fn item_model(&self, id: u16) -> Vec<f32> {
         let mut out = Vec::new();
@@ -58,6 +58,7 @@ impl Game {
                 p.size[0],
                 p.size[1],
                 p.size[2],
+                p.yaw,
                 p.tex[0] as f32,
                 p.tex[1] as f32,
                 p.tex[2] as f32,

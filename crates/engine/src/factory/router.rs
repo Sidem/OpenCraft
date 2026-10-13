@@ -11,11 +11,12 @@
 
 use crate::block::{tex, FILTER};
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::entities::push_item_model;
 use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
 
-use super::belt::{Belt, ITEM_SIZE};
+use super::belt::{Belt, ITEM_DETAIL_RANGE, ITEM_SIZE};
 use super::panel::{Panel, ROLE_INPUT};
 use super::render::push_box;
 use super::{Factory, Machine};
@@ -164,7 +165,10 @@ impl Machine for Router {
         }
         if let Some(def) = item::def(self.held).filter(|_| self.held != ItemId::NONE) {
             let size = def.size.map(|s| s * ITEM_SIZE);
-            push_box(out, rel + Vec3::new(0.0, -0.22 + size[1] as f64 * 0.5, 0.0), yaw, size, 0.0, def.tex, false);
+            let pos = rel + Vec3::new(0.0, -0.22 + size[1] as f64 * 0.5, 0.0);
+            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, self.held, pos, yaw, ITEM_SIZE as f64) {
+                push_box(out, pos, yaw, size, 0.0, def.tex, false);
+            }
         }
     }
 }

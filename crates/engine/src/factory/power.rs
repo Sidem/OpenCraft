@@ -347,17 +347,36 @@ fn root(parent: &mut [u32], mut i: u32) -> u32 {
     i
 }
 
-/// A wire from `a` to `b` (camera-relative) as short flat segments that sag in the middle, drawn with texture `layer`.
+/// A wire from `a` to `b` (camera-relative) as one sagging string, drawn with texture `layer`: straight
+/// pieces, each turned (yaw and pitch) to run from one point of the curve to the next, so the joints meet
+/// however steep the span.
 pub(super) fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3, layer: u16) {
     let d = b - a;
     let len = (d.x * d.x + d.y * d.y + d.z * d.z).sqrt();
-    let n = ((len * 2.0).ceil() as usize).max(1);
-    let yaw = d.x.atan2(-d.z) as f32;
+    let n = ((len * 0.5).ceil() as usize).max(2);
     let sag = 0.04 * len;
-    for i in 0..n {
-        let t = (i as f64 + 0.5) / n as f64;
-        let p = a + d * t - Vec3::new(0.0, sag * 4.0 * t * (1.0 - t), 0.0);
-        let c = [layer; 3];
-        push_box(out, p, yaw, [0.035, 0.035, (len / n as f64) as f32 + 0.02], 0.0, c, false);
+    let point = |i: usize| {
+        let t = i as f64 / n as f64;
+        a + d * t - Vec3::new(0.0, sag * 4.0 * t * (1.0 - t), 0.0)
+    };
+    let mut from = point(0);
+    for i in 1..=n {
+        let to = point(i);
+        let s = to - from;
+        let run = (s.x * s.x + s.z * s.z).sqrt();
+        let piece = (run * run + s.y * s.y).sqrt();
+        push_box(
+            out,
+            (from + to) * 0.5,
+            s.x.atan2(-s.z) as f32,
+            [0.035, 0.035, piece as f32 + 0.03],
+            0.0,
+            [layer; 3],
+            false,
+        );
+        // A local -Z face rotates upward about +X: pitch is positive where the string climbs.
+        let at = out.len() - 4;
+        out[at] = s.y.atan2(run) as f32;
+        from = to;
     }
 }

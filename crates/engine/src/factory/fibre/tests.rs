@@ -138,7 +138,7 @@ fn lines_join_linked_nodes_and_machines_to_their_node() {
     let mut out = Vec::new();
     f.write_fibre(&mut out, Vec3::ZERO, 100.0);
     let boxes = out.len() / crate::factory::render::INSTANCE_FLOATS;
-    assert!(boxes >= 10, "a 10-block line and a 3-block line are many short boxes, got {boxes}");
+    assert!(boxes >= 5, "a 10-block line and a 3-block line are several pieces, got {boxes}");
     let layer = out[8] as u16;
     assert_eq!(layer, tex::FIBRE);
     let mut none = Vec::new();

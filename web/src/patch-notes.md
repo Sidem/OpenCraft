@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-13 · Gears and power lines
+
+- Gears look like gears now: a toothed cog with a hub, in your backpack, on the ground and as the winding wheel on top of a miner (which turns while it works).
+- Miners look like drill rigs now: a motor housing with a fan and status lamp on top of a cage with a screw auger inside. While it works the auger turns and plunges, the fan spins and the housing shivers. Miner icons show the same rig in their tier colour.
+- Power lines between poles are one smooth, sagging string, even between poles at very different heights, instead of a chain of short pieces.
+
 ## 2026-10-12 · Background music
 
 - The game has music now: two versions of one daytime piece. Adventurous is a full orchestra with a fanfare; Ambient is soft and slow, for building.

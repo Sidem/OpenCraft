@@ -1,23 +1,35 @@
 //! Presentation-only box assemblies shared by loose items and inventory icons.
 //! Coordinates and dimensions are fractions of a full item cube (y up); parts are drawn in order, so
 //! list them back to front (the icon looks from +x, +z, above). Add a static slice for a new model.
+//! A part may turn about its own vertical axis (`yaw`): round things (the cog) are built from turned boxes.
 //! Tools stand upright in the x-y plane, head up; their heads use their tier's material.
 
-use crate::block::tex;
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, FRAC_PI_6};
+
+use crate::block::{tex, MINER, MINER_MK2};
 use crate::item::{
-    ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GOLD_PACK, GREEN_PACK, IRON_AXE, IRON_INGOT,
+    ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GOLD_PACK, GREEN_PACK, IRON_AXE, IRON_INGOT,
     IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCANNER_MK2, SCREW, STEEL_AXE, STEEL_BEAM,
     STEEL_INGOT, STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
 };
 
+const ITEM_MINER_MK1: ItemId = ItemId::block(MINER);
+const ITEM_MINER_MK2: ItemId = ItemId::block(MINER_MK2);
+
 pub struct Part {
     pub center: [f32; 3],
     pub size: [f32; 3],
+    /// Turn about the part's own vertical axis, radians (0 for most parts: the box stays axis-aligned).
+    pub yaw: f32,
     pub tex: [u16; 3],
 }
 
 const fn part(center: [f32; 3], size: [f32; 3], layer: u16) -> Part {
-    Part { center, size, tex: [layer; 3] }
+    turned(center, size, 0.0, layer)
+}
+
+const fn turned(center: [f32; 3], size: [f32; 3], yaw: f32, layer: u16) -> Part {
+    Part { center, size, yaw, tex: [layer; 3] }
 }
 
 const IRON_BAR: [Part; 2] = [
@@ -49,6 +61,61 @@ const WIRE: [Part; 4] = [
     part([0.22, 0.0, 0.0], [0.06, 0.5, 0.5], tex::HANDLE),
     part([0.05, -0.22, 0.33], [0.3, 0.04, 0.05], tex::COPPER_WIRE),
 ];
+/// Where each of a cog's six strips points, in radians: strips run through the centre, so six cover the
+/// twelve directions of its teeth.
+const STRIPS: [f32; 6] = [0.0, FRAC_PI_6, FRAC_PI_3, FRAC_PI_2, 2.0 * FRAC_PI_3, 5.0 * FRAC_PI_6];
+
+/// A cog lying flat, 12 teeth: six strips make the round body, six narrower ones reach past it as the teeth,
+/// and a hub with a bore sits on top. Each box stands a hair above the one before so overlapping tops
+/// never fight. The floor of a 0.2 high item is at -0.1.
+const COG: [Part; 15] = cog();
+
+const fn cog() -> [Part; 15] {
+    let mut parts = [const { part([0.0; 3], [0.0; 3], tex::STEEL) }; 15];
+    let mut i = 0;
+    while i < 6 {
+        let lift = 0.001 * i as f32;
+        parts[i] = turned([0.0, -0.02 + lift, 0.0], [0.62, 0.16, 0.17], STRIPS[i], tex::STEEL);
+        parts[i + 6] = turned([0.0, -0.014 + lift, 0.0], [0.88, 0.16, 0.1], STRIPS[i], tex::STEEL);
+        i += 1;
+    }
+    parts[12] = turned([0.0, 0.085, 0.0], [0.24, 0.05, 0.24], 0.0, tex::STEEL);
+    parts[13] = turned([0.0, 0.086, 0.0], [0.24, 0.05, 0.24], FRAC_PI_4, tex::STEEL);
+    parts[14] = turned([0.0, 0.088, 0.0], [0.09, 0.05, 0.09], 0.0, tex::FRAME);
+    parts
+}
+
+/// A miner for the icon and loose items, drill down like `factory/miner_model.rs` (the working rig, with its cage
+/// and a turning auger): a plate and four posts round a screw auger under the tier's band and the motor housing,
+/// with a fan and a lamp on top. Back to front for the icon: the far post, the auger, the near posts, the housing.
+const fn miner(side: u16, tier: u8) -> [Part; 18] {
+    let frame = tex::FRAME;
+    let mut p = [const { part([0.0; 3], [0.0; 3], tex::FRAME) }; 18];
+    p[0] = part([0.0, -0.46, 0.0], [0.9, 0.08, 0.9], frame);
+    p[1] = part([-0.38, -0.21, -0.38], [0.1, 0.5, 0.1], frame);
+    p[2] = part([0.0, -0.2, 0.0], [0.1, 0.5, 0.1], tex::DRILL);
+    let mut k = 0;
+    while k < 6 {
+        p[3 + k] = turned([0.0, -0.38 + 0.07 * k as f32, 0.0], [0.36, 0.07, 0.08], 0.7 * k as f32, tex::DRILL);
+        k += 1;
+    }
+    p[9] = part([0.38, -0.21, -0.38], [0.1, 0.5, 0.1], frame);
+    p[10] = part([-0.38, -0.21, 0.38], [0.1, 0.5, 0.1], frame);
+    p[11] = part([0.38, -0.21, 0.38], [0.1, 0.5, 0.1], frame);
+    p[12] = Part { center: [0.0, 0.29, 0.0], size: [0.8, 0.38, 0.8], yaw: 0.0, tex: [tex::MINER_TOP, side, frame] };
+    p[13] =
+        Part { center: [0.0, 0.07, 0.0], size: [0.86, 0.06, 0.86], yaw: 0.0, tex: [frame, tex::stripe(tier), frame] };
+    p[14] = part([0.0, 0.49, 0.0], [0.1, 0.04, 0.1], tex::DRILL);
+    p[15] = turned([0.0, 0.492, 0.0], [0.36, 0.03, 0.06], 0.5, tex::DRILL);
+    p[16] = turned([0.0, 0.496, 0.0], [0.36, 0.03, 0.06], 0.5 + FRAC_PI_2, tex::DRILL);
+    p[17] = part([0.27, 0.49, 0.27], [0.12, 0.03, 0.12], tex::LAMP_GREEN);
+    p
+}
+const MINER_BODY_1: [Part; 18] = miner(tex::MINER_SIDE, 0);
+const MINER_BODY_2: [Part; 18] = miner(tex::MINER_MK2_SIDE, 1);
+const MINER_BODY_3: [Part; 18] = miner(tex::MINER_MK3_SIDE, 2);
+const MINER_BODY_4: [Part; 18] = miner(tex::MINER_MK4_SIDE, 3);
+const MINER_BODY_5: [Part; 18] = miner(tex::MINER_MK5_SIDE, 4);
 const RED_FLASK: [Part; 4] = [
     part([0.0, -0.12, 0.0], [0.42, 0.42, 0.42], tex::RED_PACK),
     part([0.0, 0.11, 0.0], [0.32, 0.06, 0.32], tex::FLASK_GLASS),
@@ -172,6 +239,12 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         IRON_ROD => &ROD,
         SCREW => &SCREWS,
         COPPER_WIRE => &WIRE,
+        GEAR => &COG,
+        ITEM_MINER_MK1 => &MINER_BODY_1,
+        ITEM_MINER_MK2 => &MINER_BODY_2,
+        crate::item::MINER_MK3 => &MINER_BODY_3,
+        crate::item::MINER_MK4 => &MINER_BODY_4,
+        crate::item::MINER_MK5 => &MINER_BODY_5,
         RED_PACK => &RED_FLASK,
         GREEN_PACK => &GREEN_FLASK,
         BLUE_PACK => &BLUE_FLASK,

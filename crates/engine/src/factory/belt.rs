@@ -12,6 +12,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use crate::block::{self, tex};
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::entities::push_item_model;
 use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
@@ -39,6 +40,8 @@ pub const BELT_TIERS: [BeltTier; 4] = [
 /// Minimum distance between item centres on a belt, in blocks.
 pub const ITEM_SPACING: f32 = 0.35;
 pub const ITEM_SIZE: f32 = 0.25;
+/// Beyond this many blocks from the camera, an item riding a belt is one plain box, not its model.
+pub const ITEM_DETAIL_RANGE: f64 = 24.0;
 /// Where items wait on a belt with nothing in front of it (still fully on the belt).
 pub const END_STOP: f32 = 1.0 - ITEM_SIZE * 0.5;
 pub const BELT_HEIGHT: f32 = 0.18;
@@ -279,7 +282,10 @@ impl Machine for Belt {
             let (x, y, z) = self.item_at(it.p);
             let size = def.size.map(|s| s * ITEM_SIZE);
             let pos = base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64);
-            push_box(out, pos, yaw, size, 0.0, def.tex, false);
+            // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
+            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ITEM_SIZE as f64) {
+                push_box(out, pos, yaw, size, 0.0, def.tex, false);
+            }
         }
     }
 }

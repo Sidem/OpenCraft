@@ -19,8 +19,8 @@ use super::belt::Belt;
 use super::buffer::Buffer;
 use super::describe::{fmt_duration, fmt_int};
 use super::links::{deliver, Link, Sinks};
+use super::miner_model::{self, Look};
 use super::power::{FULL_SPEED, NOT_WIRED};
-use super::render::push_box;
 use super::{Factory, Kind, Machine, FACES};
 
 /// A miner tier's numbers: upgrading gets more ore out of the same deposit, for more power.
@@ -298,43 +298,15 @@ impl Machine for Miner {
         lines.join("\n")
     }
 
-    /// A housing, a collar and a drill pumping into the ore, with a status lamp on the back.
+    /// A drill rig on the ore it works: see `miner_model.rs`.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
-        let f = FACES[self.drill as usize].as_vec3();
-        let axis = self.drill as usize / 2;
-        let size = |along: f32, across: f32| {
-            let mut s = [across; 3];
-            s[axis] = along;
-            s
-        };
-        let running = self.status == MinerStatus::Running && self.draw_rate > 0.01;
-        let pump = if running { 0.08 * (0.5 + 0.5 * (time * 10.0).sin()) } else { 0.0 };
-        let housing = [tex::MINER_TOP, self.stats().side, tex::FRAME];
-        // Track shoes and an exposed motor make this read as an extractor even with a downward bit.
-        push_box(out, rel + Vec3::new(0.0, -0.37, 0.0), 0.0, [0.82, 0.18, 0.86], 0.0, housing, false);
-        for x in [-0.42, 0.42] {
-            push_box(out, rel + Vec3::new(x, -0.37, 0.0), 0.0, [0.13, 0.21, 0.97], 0.0, [tex::DRILL; 3], true);
-        }
-        push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.62, 0.48, 0.62], 0.0, housing, false);
-        // The collar is the tier band.
-        let band = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
-        push_box(out, rel + Vec3::new(0.0, 0.28, 0.0), 0.0, [0.5, 0.15, 0.5], 0.0, band, false);
-        // A small headframe with a winding wheel that turns while it runs: a mine, not a quarry's crane.
-        for x in [-0.2, 0.2] {
-            push_box(out, rel + Vec3::new(x, 0.56, -0.1), 0.0, [0.06, 0.44, 0.06], 0.0, [tex::FRAME; 3], false);
-        }
-        push_box(out, rel + Vec3::new(0.0, 0.76, -0.1), 0.0, [0.5, 0.06, 0.08], 0.0, [tex::FRAME; 3], false);
-        push_box(out, rel + Vec3::new(0.0, 0.76, -0.1), 0.0, [0.05, 0.26, 0.26], 0.0, [tex::GEAR; 3], false);
-        let n = out.len();
-        out[n - 4] = if running { (time * 3.0) as f32 } else { 0.0 };
-        push_box(out, rel + f * 0.31, 0.0, size(0.12, 0.5), 0.0, [tex::FRAME; 3], false);
-        push_box(out, rel + f * (0.43 + pump), 0.0, size(0.3, 0.28), 0.0, [tex::DRILL; 3], true);
-        push_box(out, rel + f * (0.57 + pump), 0.0, size(0.18, 0.16), 0.0, [tex::DRILL; 3], true);
         let lamp = match self.status {
             MinerStatus::Running => tex::LAMP_GREEN,
             MinerStatus::OutputFull => tex::LAMP_YELLOW,
             MinerStatus::NoDeposit | MinerStatus::Exhausted | MinerStatus::NoPower => tex::LAMP_RED,
         };
-        push_box(out, rel + Vec3::new(0.28, 0.38, 0.28), 0.0, [0.13, 0.08, 0.13], 0.0, [lamp; 3], false);
+        let running = self.status == MinerStatus::Running && self.draw_rate > 0.01;
+        let look = Look { drill: self.drill, side: self.stats().side, tier: self.tier, lamp, running };
+        miner_model::write(out, rel, &look, time);
     }
 }

@@ -35,6 +35,7 @@ mod laser;
 mod links;
 mod machine;
 mod miner;
+mod miner_model;
 mod panel;
 mod pipes;
 mod placed;

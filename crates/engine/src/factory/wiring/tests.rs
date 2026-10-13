@@ -133,3 +133,27 @@ fn wires_survive_a_save() {
     let back = Factory::read_state(&mut World::new(1, 2), &mut r).expect("reads");
     assert_eq!(back.slots_used(at(0)), 1);
 }
+
+/// Each piece of a drawn wire starts where the last ended, however steep the span.
+#[test]
+fn a_wire_is_one_unbroken_string_even_up_a_cliff() {
+    use crate::factory::power::wire;
+    use crate::factory::render::INSTANCE_FLOATS;
+    use crate::math::Vec3;
+    let (a, b) = (Vec3::new(0.5, 2.0, 0.5), Vec3::new(6.5, 40.0, -3.5));
+    let mut out = Vec::new();
+    wire(&mut out, a, b, 1);
+    let ends = |p: &[f32]| {
+        let (yaw, pitch, half) = (p[3] as f64, p[12] as f64, (p[6] as f64 - 0.03) / 2.0);
+        let dir = Vec3::new(yaw.sin() * pitch.cos(), pitch.sin(), -yaw.cos() * pitch.cos()) * half;
+        let c = Vec3::new(p[0] as f64, p[1] as f64, p[2] as f64);
+        (c - dir, c + dir)
+    };
+    let pieces: Vec<_> = out.chunks(INSTANCE_FLOATS).map(ends).collect();
+    assert!(pieces.len() > 4);
+    let near = |p: Vec3, q: Vec3| (p - q).length() < 0.01;
+    assert!(near(pieces[0].0, a) && near(pieces[pieces.len() - 1].1, b));
+    for w in pieces.windows(2) {
+        assert!(near(w[0].1, w[1].0), "{:?} then {:?}", w[0].1, w[1].0);
+    }
+}

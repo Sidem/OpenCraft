@@ -183,23 +183,25 @@ pub fn push_item_box(out: &mut Vec<f32>, item: ItemId, at: Vec3, age: f32) {
     let bob = (age as f64 * 2.6).sin() * 0.05 + 0.05 - HALF * (1.0 - def.size[1] as f64);
     let at = at + Vec3::new(0.0, bob, 0.0);
     let yaw = age * 1.7;
-    let (sin, cos) = yaw.sin_cos();
-    let parts = item_models::parts(item);
-    if parts.is_empty() {
+    if !push_item_model(out, item, at, yaw, HALF * 2.0) {
         push_box(out, at, yaw, size, 0.0, def.tex, false);
-    } else {
-        for p in parts {
-            let x = p.center[0] as f64 * (HALF * 2.0);
-            let z = p.center[2] as f64 * (HALF * 2.0);
-            let center = at
-                + Vec3::new(
-                    x * cos as f64 - z * sin as f64,
-                    p.center[1] as f64 * (HALF * 2.0),
-                    x * sin as f64 + z * cos as f64,
-                );
-            push_box(out, center, yaw, p.size.map(|s| s * (HALF * 2.0) as f32), 0.0, p.tex, false);
-        }
     }
+}
+
+/// Pushes the box assembly of `item` (`item_models`) with its box centred at camera-relative `at`, turned by
+/// `yaw`, a full cube being `unit` blocks across. False when the item has no assembly: draw its plain box.
+/// Belts, splitters and dropped items all draw items through this, so an item looks the same everywhere.
+pub fn push_item_model(out: &mut Vec<f32>, item: ItemId, at: Vec3, yaw: f32, unit: f64) -> bool {
+    let parts = item_models::parts(item);
+    let (sin, cos) = yaw.sin_cos();
+    for p in parts {
+        let x = p.center[0] as f64 * unit;
+        let z = p.center[2] as f64 * unit;
+        let center =
+            at + Vec3::new(x * cos as f64 - z * sin as f64, p.center[1] as f64 * unit, x * sin as f64 + z * cos as f64);
+        push_box(out, center, yaw + p.yaw, p.size.map(|s| s * unit as f32), 0.0, p.tex, false);
+    }
+    !parts.is_empty()
 }
 
 #[cfg(test)]
