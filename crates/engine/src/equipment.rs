@@ -8,7 +8,8 @@
 //! - **Boots** and **Torso** scale the body's walking, sprinting and jumping ([`Inventory::boost`], read by
 //!   `authority.rs` into the body each tick). Bodies are not core state, so this never reaches the hash.
 //! - **Tool belt** (the mining rig) speeds hand-breaking ([`Inventory::mining_speed`], read by `interaction.rs`).
-//! - **Jetpack** (the coal jetpack) works only while worn ([`Inventory::has_jetpack`]), so it can be taken off.
+//! - **Jetpack** (the coal jetpack) and **hover pack** share one slot, so only one can be worn: each works only while worn
+//!   ([`Inventory::has_jetpack`], [`Inventory::has_hover_pack`]), and putting one on sends the other to the backpack.
 //! - **Gloves** (the fabricator gloves) speed hand crafting: [`Effect::crafting`] joins `perks::player_bonus`.
 //!
 //! Gear is one item per slot and never stacks. Actions: `ClickGear` (the equipment panel: swap with the cursor, or
@@ -23,12 +24,12 @@ use crate::factory::upgrades;
 use crate::inventory::{Inventory, Stack, INVENTORY_SLOTS};
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    JETPACK, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS,
+    HOVER_PACK, JETPACK, MINING_RIG, SERVO_BOOTS, SPRING_BOOTS,
 };
 use crate::player::Boost;
 
 pub const SLOTS: usize = 6;
-pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "Jetpack", "Gloves"];
+pub const SLOT_NAMES: [&str; SLOTS] = ["Back", "Boots", "Torso", "Tool belt", "Flight pack", "Gloves"];
 const BACK: usize = 0;
 const BOOTS: usize = 1;
 const TORSO: usize = 2;
@@ -72,7 +73,7 @@ pub const PACKS: [ItemId; 5] = [HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, H
 /// Kits one pack upgrade takes (of the kind of the tier it reaches, `upgrades::kit`).
 pub const PACK_KITS: u32 = 4;
 
-pub const GEAR: [Gear; 11] = [
+pub const GEAR: [Gear; 12] = [
     Gear { item: HAULER_PACK, slot: BACK, effect: Effect { pack: 27, ..NONE }, blurb: "+27 backpack slots" },
     Gear { item: HAULER_PACK_MK2, slot: BACK, effect: Effect { pack: 45, ..NONE }, blurb: "+45 backpack slots" },
     Gear { item: HAULER_PACK_MK3, slot: BACK, effect: Effect { pack: 63, ..NONE }, blurb: "+63 backpack slots" },
@@ -89,6 +90,13 @@ pub const GEAR: [Gear; 11] = [
     },
     // Its thrust and fuel live in `helpers/`, which asks `Inventory::has_jetpack`.
     Gear { item: JETPACK, slot: JET, effect: NONE, blurb: "Hold jump in the air to fly, burning coal from the pack" },
+    // Its charge and hover live in `helpers/`, which asks `Inventory::has_hover_pack`. It shares the jetpack's slot.
+    Gear {
+        item: HOVER_PACK,
+        slot: JET,
+        effect: NONE,
+        blurb: "Hold jump in the air to hover; charge it near a power pole",
+    },
     Gear {
         item: CRAFT_GLOVES,
         slot: GLOVES,
@@ -131,6 +139,11 @@ impl Inventory {
     /// Whether a jetpack is worn (it does nothing in the pack).
     pub fn has_jetpack(&self) -> bool {
         self.worn[JET] == JETPACK
+    }
+
+    /// Whether a hover pack is worn (it does nothing in the backpack, and it takes the jetpack's place).
+    pub fn has_hover_pack(&self) -> bool {
+        self.worn[JET] == HOVER_PACK
     }
 
     /// Reading a save from before the jetpack slot: a jetpack that sat in the pack (where it used to work) goes on.

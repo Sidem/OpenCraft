@@ -29,7 +29,7 @@ pub const WATER_WHEEL_RECIPE: Recipe = Recipe {
 
 pub const HOIST_RECIPE: Recipe = Recipe {
     output: b(HOIST),
-    group: Group::Building,
+    group: Group::Logistics,
     count: 2,
     inputs: &[(STEEL_BEAM, 2), (IRON_ROD, 4)],
     blurb:
@@ -39,7 +39,7 @@ pub const HOIST_RECIPE: Recipe = Recipe {
 
 pub const WINCH_RECIPE: Recipe = Recipe {
     output: b(WINCH),
-    group: Group::Power,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(STEEL_PLATE, 10), (STEEL_BEAM, 4), (GEAR, 4), (MOTOR, 2), (CIRCUIT, 2)],
     blurb: "Place it against the top block of a hoist shaft (above or beside it) and hang it on a power pole: riders \
@@ -103,7 +103,7 @@ pub const CHEMICAL_PLANT_RECIPE: Recipe = Recipe {
 
 pub const DIESEL_GENERATOR_RECIPE: Recipe = Recipe {
     output: b(DIESEL_GENERATOR),
-    group: Group::Production,
+    group: Group::Power,
     count: 1,
     inputs: &[(STEEL_PLATE, 14), (STEEL_BEAM, 6), (MOTOR, 4), (CIRCUIT, 4)],
     blurb: "Burns diesel canisters for 400 kW, 2×2×2 (R turns it before you place it): one canister lasts 100 \

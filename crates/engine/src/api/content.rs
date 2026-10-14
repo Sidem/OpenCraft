@@ -33,6 +33,12 @@ impl Game {
         block::tex::alternates(layer)
     }
 
+    /// The build menu card of the building an item places (`factory/facts.rs`): one row a line, `kind<TAB>label<TAB>value`,
+    /// with the kinds size, use, fuel, make, none and stat. "" for anything that is not a machine.
+    pub fn item_facts(&self, id: u16) -> String {
+        crate::factory::facts(ItemId(id)).map_or_else(String::new, |f| f.rows())
+    }
+
     /// An item's name ("" for unknown ids).
     pub fn item_name(&self, id: u16) -> String {
         item::name(ItemId(id)).to_string()

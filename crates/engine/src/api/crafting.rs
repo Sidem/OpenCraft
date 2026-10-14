@@ -6,7 +6,7 @@ use wasm_bindgen::prelude::*;
 use crate::action::Action;
 use crate::crafting::{craft_ticks, max_times, plan, MAX_ORDERS};
 use crate::perks::{player_bonus, Stat};
-use crate::recipes::{GROUPS, RECIPES};
+use crate::recipes::{menu_order, GROUPS, RECIPES};
 use crate::research::Unlock;
 use crate::Game;
 
@@ -36,6 +36,11 @@ impl Game {
     /// The build-menu section of recipe `r`, an index into the groups (`recipe_group_name`).
     pub fn recipe_group(&self, r: u32) -> u32 {
         RECIPES.get(r as usize).map_or(0, |x| GROUPS.iter().position(|&g| g == x.group).unwrap_or(0) as u32)
+    }
+
+    /// Where recipe `r` sorts inside its section: every tier of a building stands together, Mk1 first.
+    pub fn recipe_order(&self, r: u32) -> u32 {
+        RECIPES.get(r as usize).map_or(0, |_| menu_order(r as usize) as u32)
     }
 
     pub fn recipe_group_count(&self) -> u32 {

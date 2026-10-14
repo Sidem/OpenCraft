@@ -165,11 +165,11 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Rail) > 0,
     },
     Hint {
-        text: "Hover and cargo: the Hover Pack (research it; charge it within 6 blocks of a power pole) holds you in \
-               the air while you hold jump. Cargo Drones (research them, assemble them from a drone, aluminium \
+        text: "Hover and cargo: the Hover Pack (research it, wear it in its equipment slot, charge it within 6 blocks of a \
+               power pole) holds you in the air while you hold jump. Cargo Drones (research them, assemble them from a drone, aluminium \
                plates and batteries) live in a drone port: hold one, click a port and then another to set a \
                route, and keep batteries in the first port's boxes, one for every 150 blocks flown there and back.",
-        done: |inv, _| inv.count(HOVER_PACK) > 0 || inv.count(CARGO_DRONE) > 0,
+        done: |inv, _| inv.count(HOVER_PACK) > 0 || inv.has_hover_pack() || inv.count(CARGO_DRONE) > 0,
     },
     Hint {
         text:

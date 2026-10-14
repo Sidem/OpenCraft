@@ -174,6 +174,20 @@ fn saves_from_before_the_gloves_slot_read_five_slots() {
 }
 
 #[test]
+fn the_hover_pack_shares_the_jetpacks_slot_and_works_only_while_worn() {
+    let mut inv = Inventory::default();
+    inv.add(HOVER_PACK, 1);
+    assert!(!inv.has_hover_pack(), "in the backpack it does nothing");
+    assert!(inv.wear_from(0) && inv.has_hover_pack() && !inv.has_jetpack() && inv.count(HOVER_PACK) == 0);
+    inv.add(JETPACK, 1);
+    let slot = inv.slots.iter().position(|s| s.item == JETPACK).unwrap();
+    assert!(inv.wear_from(slot) && inv.has_jetpack() && !inv.has_hover_pack(), "the jetpack replaces it");
+    assert_eq!(inv.count(HOVER_PACK), 1, "the hover pack went back to the backpack");
+    inv.click_gear(4, true);
+    assert!(!inv.has_jetpack() && !inv.has_hover_pack());
+}
+
+#[test]
 fn gloves_fit_only_the_gloves_slot() {
     let mut inv = Inventory { cursor: Stack { item: CRAFT_GLOVES, count: 1 }, ..Default::default() };
     inv.click_gear(3, false);

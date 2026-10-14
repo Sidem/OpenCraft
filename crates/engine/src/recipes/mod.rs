@@ -22,6 +22,7 @@ mod group;
 mod heavy;
 mod machine;
 mod materials;
+mod menu_order;
 mod orbit;
 mod recycler;
 pub mod recycling;
@@ -42,6 +43,7 @@ pub use group::{Group, GROUPS};
 use heavy::*;
 pub use machine::*;
 use materials::*;
+pub use menu_order::menu_order;
 use orbit::LAUNCH_SITE_RECIPE;
 use recycler::*;
 pub use rows::*;
@@ -201,7 +203,7 @@ pub const RECIPES: &[Recipe] = &[
     },
     Recipe {
         output: GREEN_KIT,
-        group: Group::Production,
+        group: Group::Materials,
         count: 4,
         inputs: &[(GEAR, 2), (SCREW, 4), (COPPER_WIRE, 2)],
         blurb: "Upgrades machines to Mk2 (green stripe) in place. Hold kits and right-click a miner, smelter or \

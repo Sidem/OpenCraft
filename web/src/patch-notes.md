@@ -3,6 +3,13 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-14 · A clearer build list
+
+- The Hover Pack now goes in the Flight pack equipment slot, the same slot as the Jetpack, so you wear one or the other. Carrying it in your backpack no longer does anything.
+- The build list has a tab for each category (new: Computing and Space), every Mk of a building sits next to each other, and Diesel Generator and the other power buildings are under Power.
+- A bright button at the top of each page tells you what the next page holds, so it is hard to miss that the list continues.
+- Hovering a building shows its size, electricity use, fuel and power produced in separate fields, before the description.
+
 ## 2026-10-14 · Machine inputs and quiet tabs
 
 - The music now fades out when you switch to another tab or window, and comes back when you return. Two new options on the Sound page let you turn this off for the music, or turn it on for sound effects too.

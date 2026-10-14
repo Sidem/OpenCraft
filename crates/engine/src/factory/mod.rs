@@ -26,6 +26,7 @@ mod buffer;
 mod cable;
 mod describe;
 pub mod efficiency;
+mod facts;
 mod fibre;
 pub mod footprint;
 mod generator;
@@ -98,6 +99,7 @@ use trains::Train;
 use wiring::Hook;
 
 pub use describe::fmt_int;
+pub use facts::facts;
 #[cfg(test)]
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;

@@ -10,7 +10,7 @@ use super::{b, Category, Group, MachineRecipe, Recipe};
 
 pub const LAUNCH_SITE_RECIPE: Recipe = Recipe {
     output: b(LAUNCH_SITE),
-    group: Group::Production,
+    group: Group::Space,
     count: 1,
     inputs: &[(b(CONCRETE), 200), (STEEL_BEAM, 60), (MOTOR, 20)],
     blurb: "A pad and gantry, 7×7 and 6 high (R turns it before you place it). Belts bring rocket parts, fuel and a \

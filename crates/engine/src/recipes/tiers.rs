@@ -298,7 +298,7 @@ pub const BLAST_FURNACE_MK4_RECIPE: Recipe = Recipe {
 
 pub const DRONE_PORT_MK2_RECIPE: Recipe = Recipe {
     output: DRONE_PORT_MK2,
-    group: Group::Production,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(b(DRONE_PORT), 1), (GREEN_KIT, 8)],
     blurb: "Keeps 8 drones and sends them up to 48 blocks out; draws 60 kW while they fly. Or upgrade a placed \
@@ -307,7 +307,7 @@ pub const DRONE_PORT_MK2_RECIPE: Recipe = Recipe {
 
 pub const DRONE_PORT_MK3_RECIPE: Recipe = Recipe {
     output: DRONE_PORT_MK3,
-    group: Group::Production,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(DRONE_PORT_MK2, 1), (BLUE_KIT, 8)],
     blurb: "Keeps 12 drones and sends them up to 64 blocks out; draws 90 kW while they fly. Or upgrade a placed \
@@ -316,7 +316,7 @@ pub const DRONE_PORT_MK3_RECIPE: Recipe = Recipe {
 
 pub const DRONE_PORT_MK4_RECIPE: Recipe = Recipe {
     output: DRONE_PORT_MK4,
-    group: Group::Production,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(DRONE_PORT_MK3, 1), (VIOLET_KIT, 8)],
     blurb: "Keeps 16 drones and sends them up to 96 blocks out; draws 140 kW while they fly. Or upgrade a placed \
@@ -325,7 +325,7 @@ pub const DRONE_PORT_MK4_RECIPE: Recipe = Recipe {
 
 pub const RESEARCH_CENTER_RECIPE: Recipe = Recipe {
     output: b(RESEARCH_CENTER),
-    group: Group::Production,
+    group: Group::Science,
     count: 1,
     inputs: &[(b(LAB), 1), (STEEL_PLATE, 8), (CIRCUIT, 6), (b(GLASS), 6)],
     blurb: "A 2×2×2 lab with room for eight kinds of science pack, twice a lab's speed and belts on every side. Packs \
@@ -335,7 +335,7 @@ pub const RESEARCH_CENTER_RECIPE: Recipe = Recipe {
 
 pub const RESEARCH_CENTER_MK2_RECIPE: Recipe = Recipe {
     output: RESEARCH_CENTER_MK2,
-    group: Group::Production,
+    group: Group::Science,
     count: 1,
     inputs: &[(b(RESEARCH_CENTER), 1), (GREEN_KIT, 8)],
     blurb: "Four times a lab's speed; draws 40 kW. Or upgrade a placed center with 8 green kits.",
@@ -343,7 +343,7 @@ pub const RESEARCH_CENTER_MK2_RECIPE: Recipe = Recipe {
 
 pub const RESEARCH_CENTER_MK3_RECIPE: Recipe = Recipe {
     output: RESEARCH_CENTER_MK3,
-    group: Group::Production,
+    group: Group::Science,
     count: 1,
     inputs: &[(RESEARCH_CENTER_MK2, 1), (BLUE_KIT, 8)],
     blurb: "Six times a lab's speed, and every 5th unit takes no packs; draws 60 kW. Or upgrade a placed center with \
@@ -352,7 +352,7 @@ pub const RESEARCH_CENTER_MK3_RECIPE: Recipe = Recipe {
 
 pub const RESEARCH_CENTER_MK4_RECIPE: Recipe = Recipe {
     output: RESEARCH_CENTER_MK4,
-    group: Group::Production,
+    group: Group::Science,
     count: 1,
     inputs: &[(RESEARCH_CENTER_MK3, 1), (VIOLET_KIT, 8)],
     blurb:

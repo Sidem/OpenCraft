@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::helpers::{self, CHARGE_RANGE, HOVER_CAP, JET_TICKS_PER_COAL};
-use crate::item::{self, HOVER_PACK};
+use crate::item;
 use crate::math::{IVec3, Vec3};
 use crate::{Game, TICK_RATE};
 
@@ -29,7 +29,7 @@ impl Game {
         let (jump, feet) = (body.input.jump, body.pos);
         let inv = self.inventory();
         let (jet, charge) = self.sim.player(self.local).map_or((0, 0), |p| (p.helpers.jet, p.helpers.charge));
-        let packed = inv.count(HOVER_PACK) > 0;
+        let packed = inv.has_hover_pack();
         let hover = packed && charge > 0 && in_air && (self.hover_sent || jump);
         let fuel = jet > 0 || inv.count(helpers::coal()) > 0;
         let thrust = jump && in_air && fuel && inv.has_jetpack() && !hover;
@@ -69,7 +69,7 @@ impl Game {
     pub(crate) fn helper_label(&self) -> String {
         let Some(p) = self.sim.player(self.local) else { return String::new() };
         let mut lines = Vec::new();
-        if p.inventory.count(HOVER_PACK) > 0 && (p.helpers.hover || p.helpers.pole.is_some() || p.helpers.charge > 0) {
+        if p.inventory.has_hover_pack() && (p.helpers.hover || p.helpers.pole.is_some() || p.helpers.charge > 0) {
             let secs = p.helpers.charge.div_ceil(TICK_RATE);
             let state = if p.helpers.pole.is_some() { ", charging" } else { "" };
             lines.push(format!("Hover pack · {secs} s of charge{state}"));

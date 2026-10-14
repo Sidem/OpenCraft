@@ -9,14 +9,14 @@
 //!   nearest storage box within [`FETCH_RANGE`] blocks of the player's cell that holds the item; after the
 //!   round trip a stack of it lands in the pack (what does not fit goes back in the box). One errand at a time.
 //!
-//! - **Hover pack** (`item::HOVER_PACK`, in the pack, Milestone 9): `Action::Hover { on }` starts and stops the
+//! - **Hover pack** (`item::HOVER_PACK`, worn in the jetpack's slot (so not with a jetpack), `equipment.rs`, Milestone 9): `Action::Hover { on }` starts and stops the
 //!   hover (the player holds jump in the air; the body holds its height and moves faster while `hover`, `player.rs`).
 //!   It runs on `charge` (ticks of hover, at most [`HOVER_CAP`]), one a tick. `Action::Charge { pole, on }` ties the
 //!   pack to a power pole (the hands send it as the player walks within [`CHARGE_RANGE`] of one) and the charge
 //!   fills [`CHARGE_RATE`] a tick while that pole stands and the pack is held.
 //!
 //! Invariants: `thrusting` implies `jet > 0` and a jetpack in the pack; `hover` implies `charge > 0` and a hover pack
-//! in the pack; an errand needs the drone in the pack when it starts and when it ends. All deterministic: integer
+//! worn; an errand needs the drone in the pack when it starts and when it ends. All deterministic: integer
 //! counters only (the trip time uses one `sqrt`). To change a number: the constants below.
 
 #[cfg(test)]
@@ -25,7 +25,7 @@ mod tests;
 use crate::block;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::{Inventory, Stack};
-use crate::item::{self, ItemId, HOVER_PACK, PERSONAL_DRONE};
+use crate::item::{self, ItemId, PERSONAL_DRONE};
 use crate::math::IVec3;
 use crate::sim::{PlayerId, Sim};
 use crate::TICK_RATE;
@@ -108,7 +108,7 @@ impl Helpers {
 
     /// One tick of the hover pack: hovering costs a tick of charge; a pole in reach fills it.
     fn step_hover(&mut self, inv: &Inventory, pole_stands: impl Fn(IVec3) -> bool) {
-        let packed = inv.count(HOVER_PACK) > 0;
+        let packed = inv.has_hover_pack();
         if self.hover {
             self.charge = self.charge.saturating_sub(1);
             self.hover = packed && self.charge > 0;
@@ -158,13 +158,13 @@ impl Sim {
     /// `Action::Hover`: hover on needs a hover pack and some charge.
     pub(crate) fn set_hover(&mut self, player: PlayerId, on: bool) {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
-        core.helpers.hover = on && core.inventory.count(HOVER_PACK) > 0 && core.helpers.charge > 0;
+        core.helpers.hover = on && core.inventory.has_hover_pack() && core.helpers.charge > 0;
     }
 
     /// `Action::Charge`: ties the hover pack to the pole at `pole` (which must stand) or lets it go.
     pub(crate) fn set_charge(&mut self, player: PlayerId, pole: IVec3, on: bool) {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
-        let tied = on && core.inventory.count(HOVER_PACK) > 0 && self.factory.poles().any(|(c, _)| c == pole);
+        let tied = on && core.inventory.has_hover_pack() && self.factory.poles().any(|(c, _)| c == pole);
         core.helpers.pole = tied.then_some(pole);
     }
 

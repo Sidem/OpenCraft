@@ -8,7 +8,7 @@ use super::{b, Group, Recipe};
 
 pub const CHIP_FAB_RECIPE: Recipe = Recipe {
     output: b(CHIP_FAB),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(STEEL_PLATE, 60), (STEEL_BEAM, 24), (b(GLASS), 24), (PROCESSOR, 16), (CIRCUIT, 24)],
     blurb:
@@ -20,7 +20,7 @@ pub const CHIP_FAB_RECIPE: Recipe = Recipe {
 
 pub const DATACENTER_RECIPE: Recipe = Recipe {
     output: b(DATACENTER),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(STEEL_BEAM, 40), (b(CONCRETE), 20), (AI_ACCELERATOR, 16), (COPPER_WIRE, 32)],
     blurb: "An AI datacenter, 4×4×3 (R turns it before you place it). Needs 3 MW all the time and gives the data grid \
@@ -30,7 +30,7 @@ pub const DATACENTER_RECIPE: Recipe = Recipe {
 
 pub const COOLING_TOWER_RECIPE: Recipe = Recipe {
     output: b(COOLING_TOWER),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(b(CONCRETE), 30), (b(PIPE), 12), (MOTOR, 4), (STEEL_PLATE, 12)],
     blurb: "A fan tower, 3×3×5 (R turns it before you place it), 300 kW. Pipe its blue inlet on the left to the same pipes \
@@ -41,7 +41,7 @@ pub const COOLING_TOWER_RECIPE: Recipe = Recipe {
 
 pub const AI_LAB_RECIPE: Recipe = Recipe {
     output: b(AI_LAB),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(STEEL_PLATE, 20), (AI_ACCELERATOR, 6), (PROCESSOR, 10), (CIRCUIT, 20), (b(GLASS), 8)],
     blurb: "A research lab for the data grid, 2×2×2. Like a research center it takes every science pack on every side, \
@@ -51,7 +51,7 @@ pub const AI_LAB_RECIPE: Recipe = Recipe {
 
 pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
     output: b(FIBRE_NODE),
-    group: Group::Production,
+    group: Group::Computing,
     count: 2,
     inputs: &[(PROCESSOR, 2), (b(GLASS), 4), (PLASTIC, 2), (COPPER_WIRE, 6)],
     blurb: "A post of the data grid. Nodes within 12 blocks of each other join into one grid by themselves; a machine \
@@ -61,7 +61,7 @@ pub const FIBRE_NODE_RECIPE: Recipe = Recipe {
 
 pub const OPTIMIZER_RECIPE: Recipe = Recipe {
     output: b(OPTIMIZER),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(STEEL_PLATE, 8), (AI_ACCELERATOR, 4), (PROCESSOR, 10), (CIRCUIT, 10), (b(GLASS), 4)],
     blurb:
@@ -72,7 +72,7 @@ pub const OPTIMIZER_RECIPE: Recipe = Recipe {
 
 pub const LASER_EMITTER_RECIPE: Recipe = Recipe {
     output: b(LASER_EMITTER),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 1), (b(GLASS), 4), (CIRCUIT, 4)],
     blurb:
@@ -82,7 +82,7 @@ pub const LASER_EMITTER_RECIPE: Recipe = Recipe {
 
 pub const LASER_RECEIVER_RECIPE: Recipe = Recipe {
     output: b(LASER_RECEIVER),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 1), (b(GLASS), 4), (CIRCUIT, 4)],
     blurb:
@@ -92,7 +92,7 @@ pub const LASER_RECEIVER_RECIPE: Recipe = Recipe {
 
 pub const SWARM_HUB_RECIPE: Recipe = Recipe {
     output: b(SWARM_HUB),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 2), (PROCESSOR, 6), (CIRCUIT, 6), (DRONE, 4)],
     blurb:
@@ -104,7 +104,7 @@ pub const SWARM_HUB_RECIPE: Recipe = Recipe {
 
 pub const LASER_MIRROR_RECIPE: Recipe = Recipe {
     output: b(LASER_MIRROR),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(ALUMINIUM_PLATE, 4), (b(GLASS), 6)],
     blurb: "Turns a beam 90° so a line of sight can go round a corner A beam going in at one side \
@@ -114,7 +114,7 @@ pub const LASER_MIRROR_RECIPE: Recipe = Recipe {
 
 pub const DATA_RECEIVER_RECIPE: Recipe = Recipe {
     output: b(DATA_RECEIVER),
-    group: Group::Production,
+    group: Group::Computing,
     count: 1,
     inputs: &[(ALUMINIUM_PLATE, 6), (AI_ACCELERATOR, 1), (b(GLASS), 4), (CIRCUIT, 4), (PROCESSOR, 2)],
     blurb: "Takes a beam from any side. When an emitter's beam ends in it, the data grids of the fibre nodes within 5 \

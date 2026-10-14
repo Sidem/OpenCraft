@@ -18,7 +18,7 @@ pub const ARC_FURNACE_RECIPE: Recipe = Recipe {
 
 pub const SENSOR_RECIPE: Recipe = Recipe {
     output: b(SENSOR),
-    group: Group::Power,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(CIRCUIT, 1), (IRON_PLATE, 1)],
     blurb: "Reads the storage box, silo or belt behind it and switches the machine in front of it on or off, \
@@ -29,7 +29,7 @@ pub const SENSOR_RECIPE: Recipe = Recipe {
 
 pub const DRONE_PORT_RECIPE: Recipe = Recipe {
     output: b(DRONE_PORT),
-    group: Group::Production,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(STEEL_PLATE, 24), (CIRCUIT, 12), (PROCESSOR, 2), (MOTOR, 4)],
     blurb: "A 3×3 landing pad for construction drones (R turns it before you place it). Put drones in by hand \

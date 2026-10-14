@@ -1,0 +1,84 @@
+/* Build menu navigation (crafting.ts): category tabs, and the header above the grid that says where you are and
+   leads to the next page, so a beginner sees there is more than the page on screen. */
+
+.craft-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin: 0 0 8px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.craft-tab {
+  padding: 3px 0 5px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.craft-tab:hover {
+  color: inherit;
+}
+
+.craft-tab[aria-pressed='true'] {
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.craft-page-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  min-height: 24px;
+}
+
+.craft-page-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.craft-page-note {
+  flex: 1;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.craft-page-step {
+  padding: 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.craft-page-step:hover {
+  color: inherit;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* The way on is drawn to be noticed. */
+.craft-page-step.more {
+  margin-left: auto;
+  border-color: rgba(250, 149, 73, 0.6);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.craft-page-step.more:hover {
+  background: rgba(250, 149, 73, 0.28);
+}
+
+.craft-page-step.hidden {
+  display: none;
+}

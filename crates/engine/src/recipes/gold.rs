@@ -49,7 +49,7 @@ pub const BLAST_FURNACE_MK5_RECIPE: Recipe = Recipe {
 
 pub const DRONE_PORT_MK5_RECIPE: Recipe = Recipe {
     output: DRONE_PORT_MK5,
-    group: Group::Production,
+    group: Group::Logistics,
     count: 1,
     inputs: &[(DRONE_PORT_MK4, 1), (GOLD_KIT, 8)],
     blurb:
@@ -59,7 +59,7 @@ pub const DRONE_PORT_MK5_RECIPE: Recipe = Recipe {
 
 pub const RESEARCH_CENTER_MK5_RECIPE: Recipe = Recipe {
     output: RESEARCH_CENTER_MK5,
-    group: Group::Production,
+    group: Group::Science,
     count: 1,
     inputs: &[(RESEARCH_CENTER_MK4, 1), (GOLD_KIT, 8)],
     blurb: "Ten times a lab's speed, and every 2nd unit takes no packs; draws 100 kW. Or upgrade a placed center with \

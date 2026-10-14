@@ -1,7 +1,7 @@
 use super::*;
 use crate::action::Action;
 use crate::block::{AIR, POLE, STORAGE};
-use crate::item::{IRON_PLATE, JETPACK};
+use crate::item::{HOVER_PACK, IRON_PLATE, JETPACK};
 use crate::player::Player;
 
 const P: PlayerId = PlayerId(0);
@@ -171,9 +171,17 @@ fn helpers_saved_before_the_hover_pack_read_with_no_charge() {
     assert_eq!(Helpers::read_state(&mut r), Some(old));
 }
 
+/// Gives the player a hover pack and puts it on (it does nothing in the backpack).
+fn wear_hover_pack(sim: &mut Sim) {
+    sim.apply(P, Action::Give { item: HOVER_PACK, count: 1 });
+    let inv = &mut sim.players[0].as_mut().unwrap().inventory;
+    let slot = inv.slots.iter().position(|s| s.item == HOVER_PACK).unwrap();
+    assert!(inv.wear_from(slot));
+}
+
 fn hover_sim() -> Sim {
     let mut sim = Sim::new(7, 2);
-    sim.apply(P, Action::Give { item: HOVER_PACK, count: 1 });
+    wear_hover_pack(&mut sim);
     sim
 }
 
@@ -187,6 +195,10 @@ fn the_hover_pack_hovers_on_charge_and_stops_when_it_runs_out() {
     sim.apply(P, Action::Hover { on: true });
     assert!(!helpers(&sim).hover, "no pack");
     sim.apply(P, Action::Give { item: HOVER_PACK, count: 1 });
+    sim.apply(P, Action::Hover { on: true });
+    assert!(!helpers(&sim).hover, "in the backpack it does nothing");
+    sim.players[0].as_mut().unwrap().inventory.remove(HOVER_PACK, 1);
+    wear_hover_pack(&mut sim);
     sim.apply(P, Action::Hover { on: true });
     assert!(!helpers(&sim).hover, "no charge");
     charged(&mut sim, 100);
@@ -203,7 +215,7 @@ fn losing_the_hover_pack_stops_the_hover() {
     let mut sim = hover_sim();
     charged(&mut sim, 500);
     sim.apply(P, Action::Hover { on: true });
-    sim.players[0].as_mut().unwrap().inventory.remove(HOVER_PACK, 1);
+    sim.players[0].as_mut().unwrap().inventory.click_gear(4, true);
     run(&mut sim, 1);
     assert!(!helpers(&sim).hover);
 }
