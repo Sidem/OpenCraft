@@ -286,11 +286,40 @@ fn one_input_cannot_crowd_the_others_out_of_a_blast_furnace() {
     assert_eq!(f.insert(IVec3::ZERO, COAL_ORE.into(), 1), 1);
     run(&mut f, 4.05, |_| {});
     assert_eq!(f.processors[0].out.count(STEEL_INGOT), 1);
-    // One-input machines still fill every slot they have.
+    // A machine holds at most a stack of an item (a one-slot smelter, a stack).
     let mut s = Factory::default();
     s.place(&mut World::new(1, 2), SMELTER, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
-    let slots = s.processors[0].input.slots.len() as u32;
-    assert_eq!(s.insert(IVec3::ZERO, IRON_ORE.into(), 64 * slots), 64 * slots);
+    assert_eq!(s.insert(IVec3::ZERO, IRON_ORE.into(), 200), 64);
+}
+
+#[test]
+fn every_recipe_input_fits_in_one_slot() {
+    for r in crate::recipes::MACHINE_RECIPES.iter() {
+        for &(item, n) in r.inputs {
+            assert!(n <= crate::item::stack_size(item), "a recipe needs {n} of {item:?}, more than a stack");
+        }
+    }
+}
+
+#[test]
+fn a_player_can_take_a_stuck_input_back_by_hand() {
+    let mut f = Factory::default();
+    research_done(&mut f, "Steelmaking");
+    f.place(&mut World::new(1, 2), BLAST_FURNACE, IVec3::ZERO, NORTH, IVec3::ZERO, 0);
+    f.insert(IVec3::ZERO, QUICKLIME, 10);
+    f.insert(IVec3::ZERO, COAL_ORE.into(), 4);
+    let slot = f.processors[0].input.slots.iter().position(|s| s.item == QUICKLIME).unwrap();
+    let mut taken = Vec::new();
+    f.take_slot(IVec3::ZERO, slot, |item, n| {
+        taken.push((item, n));
+        3
+    });
+    assert_eq!(taken, [(QUICKLIME, 10)]);
+    assert_eq!(f.processors[0].input.count(QUICKLIME), 7, "what the taker couldn't hold stays");
+    assert_eq!(f.processors[0].input.count(COAL_ORE.into()), 4);
+    // An empty slot, a slot past the end and a missing machine do nothing.
+    f.take_slot(IVec3::ZERO, 200, |_, _| panic!("nothing there"));
+    f.take_slot(v(5, 5, 5), 0, |_, _| panic!("no machine"));
 }
 
 #[test]

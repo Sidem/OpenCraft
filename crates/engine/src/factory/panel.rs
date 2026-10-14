@@ -167,6 +167,14 @@ impl Factory {
         }
     }
 
+    /// Takes the stack in slot `slot` of the processor at `pos` (its panel's slot order): offers it to `take(item,
+    /// count)`, which returns how many it accepted. Inputs and fuel too, so a stuck machine can be cleared by hand.
+    pub fn take_slot(&mut self, pos: IVec3, slot: usize, take: impl FnMut(ItemId, u32) -> u32) {
+        if let Some(&Slot::Process(i)) = self.at.get(&pos) {
+            self.processors[i as usize].take_slot(slot, take);
+        }
+    }
+
     /// Takes a machine's output (everything, for a box): offers it to `take(item, count)`, which
     /// returns how many it accepted. Returns false if there is no such machine at `pos`.
     pub fn take_contents(&mut self, pos: IVec3, take: impl FnMut(ItemId, u32) -> u32) -> bool {

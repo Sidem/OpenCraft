@@ -38,6 +38,12 @@ pub enum Action {
     TakeContents {
         pos: IVec3,
     },
+    /// Takes the stack in slot `slot` of the processor at `pos` (its panel's order: inputs, fuel, outputs) into the
+    /// inventory; what doesn't fit stays.
+    TakeMachineSlot {
+        pos: IVec3,
+        slot: u8,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

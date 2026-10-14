@@ -3,7 +3,7 @@
 //! numbers per tier, its model (`model.rs`) and what it says (`view.rs`). Saves before version 18 held smelters and
 //! constructors in lists of their own (`legacy.rs`). Belts, miners and the panel deliver into it; it sorts fuel into its fuel buffer and takes only
 //! what a recipe it may make uses (`Pick`; a recipe research still locks counts as unknown), at most a
-//! stack of each input when it has a chosen recipe, so one input can't crowd out the others. Like a
+//! stack (one slot) of each input item, so one input can't crowd out the others. Like a
 //! box, it pushes one item a tick into the next belt leading away. A spec with a footprint
 //! (`footprint/`) is several cells big, turned by `dir`, and takes and gives only at its ports.
 //!

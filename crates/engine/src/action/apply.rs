@@ -54,6 +54,16 @@ impl Sim {
                     taken
                 });
             }
+            Action::TakeMachineSlot { pos, slot } => {
+                let events = &mut self.events;
+                self.factory.take_slot(pos, slot as usize, |item, n| {
+                    let taken = n - inv.add(item, n);
+                    if taken > 0 {
+                        events.push(SimEvent::Gained { player, item, count: taken });
+                    }
+                    taken
+                });
+            }
             Action::SetRecipe { pos, recipe } => {
                 let recipe = (recipe != u16::MAX).then_some(recipe);
                 if recipe.is_some_and(|i| !self.factory.research.has(Unlock::MachineRecipe(i))) {

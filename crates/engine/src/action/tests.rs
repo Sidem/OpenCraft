@@ -503,6 +503,7 @@ fn samples() -> Vec<Action> {
         Action::UpgradePack,
         Action::TakeOneSlot { slot: 12 },
         Action::TakeOneBox { pos, slot: 5 },
+        Action::TakeMachineSlot { pos, slot: 6 },
     ]
 }
 

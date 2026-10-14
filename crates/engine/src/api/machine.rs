@@ -190,6 +190,11 @@ impl Game {
         self.act(Action::SetQuarry { pos: IVec3::new(x, y, z), width, depth, paused });
     }
 
+    /// Takes the stack in the machine panel's slot `slot` (inputs and fuel too) into the inventory (next tick).
+    pub fn take_machine_slot(&mut self, x: i32, y: i32, z: i32, slot: u8) {
+        self.act(Action::TakeMachineSlot { pos: IVec3::new(x, y, z), slot });
+    }
+
     /// Takes the machine's output into the inventory (next tick).
     pub fn take_machine_output(&mut self, x: i32, y: i32, z: i32) {
         self.act(Action::TakeContents { pos: IVec3::new(x, y, z) });

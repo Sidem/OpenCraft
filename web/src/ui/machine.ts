@@ -160,7 +160,7 @@ export class MachinePanel {
       if (role === g.panel_role_output()) output = Math.max(output, 0) + n;
       else if (n > 0) held = item;
       if (many && n === 0) continue;
-      this.slots.append(this.slotView(this.roleLabels.get(role) ?? '', item, n));
+      this.slots.append(this.slotView(this.roleLabels.get(role) ?? '', item, n, i));
     }
     this.take.disabled = output <= 0;
     this.take.classList.toggle('hidden', output < 0);
@@ -251,12 +251,15 @@ export class MachinePanel {
     this.inserts.replaceChildren(...buttons);
   }
 
-  private slotView(label: string, item: number, n: number): HTMLElement {
+  /** A slot of the panel; clicking a filled one takes its stack into the inventory (a stuck input too). */
+  private slotView(label: string, item: number, n: number, index: number): HTMLElement {
     const box = h('div', 'mp-slot');
     const slot = h('div', 'slot');
     if (n > 0) {
       slot.append(this.iconCanvas(item, ''), h('span', 'count', n > 1 ? String(n) : ''));
-      slot.title = this.game.item_name(item);
+      slot.title = `${this.game.item_name(item)}: click to take`;
+      slot.classList.add('mp-takeable');
+      slot.addEventListener('click', () => this.game.take_machine_slot(...this.pos, index));
     }
     box.append(slot, h('span', 'mp-slot-label', label));
     return box;

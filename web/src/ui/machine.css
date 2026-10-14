@@ -121,6 +121,14 @@
   gap: 3px;
 }
 
+.mp-takeable {
+  cursor: pointer;
+}
+
+.mp-takeable:hover {
+  outline: 2px solid var(--muted);
+}
+
 .mp-slot-label {
   font-size: 11px;
   color: var(--muted);
