@@ -34,10 +34,12 @@ export interface MusicSettings {
   muted: boolean;
   /** A `TRACKS` id. */
   track: string;
+  /** Silent while the tab or window is not in focus (`setAway`). */
+  muteInBackground: boolean;
 }
 
 const STORAGE_KEY = 'opencraft.music';
-const DEFAULTS: MusicSettings = { volume: 20, muted: false, track: 'ambient' };
+const DEFAULTS: MusicSettings = { volume: 20, muted: false, track: 'ambient', muteInBackground: true };
 const FADE_IN = 2;
 const CROSSFADE = 3;
 
@@ -55,6 +57,7 @@ function loadSettings(): MusicSettings {
       const s = saved as Record<string, unknown>;
       if (typeof s.volume === 'number' && Number.isFinite(s.volume)) settings.volume = clamp(s.volume);
       settings.muted = s.muted === true;
+      settings.muteInBackground = s.muteInBackground !== false;
       if (TRACKS.some((t) => t.id === s.track)) settings.track = s.track as string;
     }
   } catch {
@@ -71,6 +74,8 @@ export class Music {
   private ctx: AudioContext | null = null;
   private out: GainNode | null = null;
   private current: Playing | null = null;
+  /** The tab or window is not in focus (not saved). */
+  private away = false;
   /** The track that should be playing; a load that finishes after the choice changed is dropped. */
   private wanted = this.settings.track;
   private readonly buffers = new Map<string, Promise<AudioBuffer | null>>();
@@ -101,6 +106,17 @@ export class Music {
     this.update();
   }
 
+  setMuteInBackground(on: boolean): void {
+    this.settings.muteInBackground = on;
+    this.update();
+  }
+
+  /** Called when the tab or window loses or gains focus: fades out (or back in) if `muteInBackground`. */
+  setAway(away: boolean): void {
+    this.away = away;
+    this.sync();
+  }
+
   setTrack(id: string): void {
     if (!TRACKS.some((t) => t.id === id)) return;
     this.settings.track = id;
@@ -108,7 +124,8 @@ export class Music {
   }
 
   private level(): number {
-    return this.audible ? (this.settings.volume / 100) ** 2 : 0;
+    const hushed = this.away && this.settings.muteInBackground;
+    return this.audible && !hushed ? (this.settings.volume / 100) ** 2 : 0;
   }
 
   private update(): void {

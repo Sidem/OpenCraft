@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-14 · Machine inputs and quiet tabs
+
+- The music now fades out when you switch to another tab or window, and comes back when you return. Two new options on the Sound page let you turn this off for the music, or turn it on for sound effects too.
+- A machine now takes at most one stack of each input item, so a belt full of one item can no longer fill the machine and keep the others out.
+- Click any filled slot in a machine's panel, inputs and fuel included, to take its items back into your inventory.
+
 ## 2026-10-13 · Coordinates under the minimap
 
 - Your position (X, Y, Z) now shows under the minimap: X in red, Y (height) in green, Z in blue.

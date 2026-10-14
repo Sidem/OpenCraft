@@ -87,6 +87,17 @@ export class SoundSystem {
   private voices = 0;
   private saveTimer = 0;
   private warmTimer = 0;
+  /** The tab or window is not in focus (not saved). */
+  private away = false;
+
+  constructor() {
+    // Switching tabs or windows hushes whatever is set to be muted in the background.
+    const focus = () => this.setAway(document.hidden || !document.hasFocus());
+    document.addEventListener('visibilitychange', focus);
+    window.addEventListener('focus', focus);
+    window.addEventListener('blur', focus);
+    this.setAway(document.hidden || !document.hasFocus());
+  }
 
   /** Sound effects are muted. */
   get muted(): boolean {
@@ -136,6 +147,17 @@ export class SoundSystem {
     this.setMuted(off);
     this.music.setMuted(off);
     return off;
+  }
+
+  setMuteInBackground(on: boolean): void {
+    this.settings.muteInBackground = on;
+    this.masterChanged();
+  }
+
+  private setAway(away: boolean): void {
+    this.away = away;
+    this.music.setAway(away);
+    if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.masterGain(), this.ctx.currentTime, 0.02);
   }
 
   setVolume(volume: number): void {
@@ -208,11 +230,12 @@ export class SoundSystem {
   }
 
   private audible(): boolean {
-    return this.ctx?.state === 'running' && !this.muted && this.settings.volume > 0;
+    return this.ctx?.state === 'running' && this.masterGain() > 0;
   }
 
   private masterGain(): number {
-    return this.muted ? 0 : 1.25 * (this.settings.volume / 100) ** 2;
+    const hushed = this.muted || (this.away && this.settings.muteInBackground);
+    return hushed ? 0 : 1.25 * (this.settings.volume / 100) ** 2;
   }
 
   private masterChanged(): void {

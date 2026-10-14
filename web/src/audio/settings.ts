@@ -227,6 +227,8 @@ export interface SoundSettings {
   /** Master volume, 0–100. */
   volume: number;
   muted: boolean;
+  /** Sound effects are silent while the tab or window is not in focus. */
+  muteInBackground: boolean;
   design: SoundDesign;
 }
 
@@ -283,7 +285,7 @@ function changedDials(design: SoundDesign): Partial<Record<string, Record<string
 }
 
 export function loadSettings(): SoundSettings {
-  const settings: SoundSettings = { volume: 80, muted: false, design: defaultDesign() };
+  const settings: SoundSettings = { volume: 80, muted: false, muteInBackground: false, design: defaultDesign() };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -291,6 +293,7 @@ export function loadSettings(): SoundSettings {
       if (isRecord(saved)) {
         if (typeof saved.volume === 'number' && Number.isFinite(saved.volume)) settings.volume = clampDial(saved.volume);
         settings.muted = saved.muted === true;
+        settings.muteInBackground = saved.muteInBackground === true;
         mergeDesign(settings.design, saved.design);
       }
     } else {
@@ -304,7 +307,8 @@ export function loadSettings(): SoundSettings {
 
 export function saveSettings(s: SoundSettings): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume: s.volume, muted: s.muted, design: changedDials(s.design) }));
+    const { volume, muted, muteInBackground } = s;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume, muted, muteInBackground, design: changedDials(s.design) }));
   } catch {
     // Not persisted; the settings still apply for this session.
   }
