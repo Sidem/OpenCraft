@@ -32,6 +32,8 @@ export interface FrameInfo {
   yaw: number;
   pitch: number;
   target: [number, number, number] | null;
+  /** Where the target's model sits in its cell (lowest corner, size) so the outline hugs a pole or belt; empty: whole cell. */
+  targetFit: number[];
   mineProgress: number;
   /** The engine's time of day (0 midnight, 0.5 noon). */
   time: number;
@@ -371,8 +373,14 @@ export class Renderer {
       gl.depthMask(false);
       gl.useProgram(this.line.prog);
       gl.uniformMatrix4fv(this.line.u.u_viewProj, false, this.viewProj);
-      gl.uniform3f(this.line.u.u_offset, ox, oy, oz);
-      gl.uniform3f(this.line.u.u_scale, 1, 1, 1);
+      const fit = f.targetFit;
+      if (fit.length === 6) {
+        gl.uniform3f(this.line.u.u_offset, ox + fit[0], oy + fit[1], oz + fit[2]);
+        gl.uniform3f(this.line.u.u_scale, fit[3], fit[4], fit[5]);
+      } else {
+        gl.uniform3f(this.line.u.u_offset, ox, oy, oz);
+        gl.uniform3f(this.line.u.u_scale, 1, 1, 1);
+      }
       gl.uniform4f(this.line.u.u_color, 0.05, 0.05, 0.08, 0.6);
       gl.bindVertexArray(this.lineVao);
       gl.drawArrays(gl.LINES, 0, 24);

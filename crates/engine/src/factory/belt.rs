@@ -260,6 +260,25 @@ impl Machine for Belt {
 
     /// A scrolling rubber top between two rails (or the shape's model), and the items riding on it.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
+        self.frame(out, rel, time);
+        let base = rel - Vec3::new(0.0, 0.5, 0.0);
+        let yaw = self.dir as f32 * FRAC_PI_2;
+        for it in self.items.iter().filter(|it| self.shows(it.p)) {
+            let Some(def) = item::def(it.item) else { continue };
+            let (x, y, z) = self.item_at(it.p);
+            let size = def.size.map(|s| s * ITEM_SIZE);
+            let pos = base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64);
+            // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
+            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ITEM_SIZE as f64) {
+                push_box(out, pos, yaw, size, 0.0, def.tex, false);
+            }
+        }
+    }
+}
+
+impl Belt {
+    /// The belt without its items (also what the crosshair hits, `hitbox.rs`).
+    pub(super) fn frame(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let base = rel - Vec3::new(0.0, 0.5, 0.0);
         let scroll = (time * self.speed() as f64).fract() as f32;
         let yaw = self.dir as f32 * FRAC_PI_2;
@@ -277,15 +296,5 @@ impl Machine for Belt {
             }
         }
         self.shape_model(out, &at, yaw, scroll);
-        for it in self.items.iter().filter(|it| self.shows(it.p)) {
-            let Some(def) = item::def(it.item) else { continue };
-            let (x, y, z) = self.item_at(it.p);
-            let size = def.size.map(|s| s * ITEM_SIZE);
-            let pos = base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64);
-            // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
-            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ITEM_SIZE as f64) {
-                push_box(out, pos, yaw, size, 0.0, def.tex, false);
-            }
-        }
     }
 }

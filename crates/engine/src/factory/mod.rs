@@ -30,6 +30,7 @@ mod fibre;
 pub mod footprint;
 mod generator;
 pub mod grid_colour;
+mod hitbox;
 mod lab;
 mod laser;
 mod links;

@@ -33,7 +33,9 @@ impl Game {
     /// Exact crosshair surface for the avatar's head; sky aim follows the distant camera ray.
     pub(crate) fn avatar_focus(&self) -> Vec3 {
         let dir = if self.strategy.active() { self.strategy.cursor_ray() } else { self.body().look_dir() };
-        self.target.map_or(self.render_eye + dir * 24.0, |hit| aim::surface(self.render_eye, dir, hit))
+        self.target.map_or(self.render_eye + dir * 24.0, |hit| {
+            aim::surface(self.render_eye, dir, hit, self.sim.factory.hit_boxes(hit.block).as_ref())
+        })
     }
 
     /// Queues a sound at a world position (stored relative to the local player's eye for the host).
@@ -98,12 +100,19 @@ impl Game {
         // A ladder or lift the body stands in is see-through to the hands, so one can build from inside it.
         let (feet, head) = (self.body().pos.floor(), eye.floor());
         let inside = |p: IVec3| p.x == feet.x && p.z == feet.z && p.y >= feet.y && p.y <= head.y;
-        let hit = aim::target(eye, origin, dir, self.reach(), |p| {
-            world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b)))
-        });
+        let factory = &self.sim.factory;
+        let hit = aim::target(
+            eye,
+            origin,
+            dir,
+            self.reach(),
+            |p| world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b))),
+            |p| factory.hit_boxes(p),
+        );
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
-        let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| self.sim.factory.block_at(h.block)).flatten();
+        let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| factory.block_at(h.block)).flatten();
         self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
+        self.target_fit = self.target.and_then(|h| factory.hit_boxes(h.block)).map(|b| b.bounds());
     }
 
     pub(crate) fn update_mining(&mut self, dt: f32) {

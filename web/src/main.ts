@@ -333,6 +333,7 @@ async function main(): Promise<void> {
       pitch: game.camera_pitch(),
       target: cursorBlock.length === 3 ? [cursorBlock[0], cursorBlock[1], cursorBlock[2]]
         : hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
+      targetFit: cursorBlock.length === 3 || !hasTarget ? [] : Array.from(game.target_fit()),
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),

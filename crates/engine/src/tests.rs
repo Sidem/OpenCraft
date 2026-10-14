@@ -90,6 +90,34 @@ fn a_ladder_the_player_stands_in_does_not_block_the_hands() {
 }
 
 #[test]
+fn a_pole_does_not_hide_the_block_behind_it_unless_aimed_at() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let y = g.sim.world.generator().height_at(0, 0);
+    let at = |x, h, z| IVec3::new(x, h, z);
+    for x in 0..=8 {
+        for h in y - 2..=y + 5 {
+            g.sim.world.set_block_anywhere(at(x, h, 0), if h <= y { STONE } else { AIR });
+        }
+    }
+    let (pole, wall) = (at(5, y + 2, 0), at(7, y + 2, 0));
+    g.sim.world.set_block_anywhere(wall, STONE);
+    g.sim.world.set_block_anywhere(pole, block::POLE);
+    g.sim.factory.place(&mut g.sim.world, block::POLE, pole, 0, pole, 0);
+    let body = g.body_mut();
+    body.pos = Vec3::new(3.5, (y + 1) as f64, 0.5);
+    body.yaw = std::f64::consts::FRAC_PI_2;
+    body.pitch = 0.0;
+    g.update_target();
+    assert_eq!(g.target.map(|h| (h.block, h.id)), Some((pole, block::POLE)), "aimed at the post");
+    assert!(g.target_fit().len() == 6, "the outline hugs the pole");
+    g.body_mut().pos.z = 0.95;
+    g.update_target();
+    assert_eq!(g.target.map(|h| h.block), Some(wall), "aimed past the post at the wall behind it");
+    assert!(g.target_fit().is_empty());
+}
+
+#[test]
 fn target_detail_leaves_the_core_unchanged() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);

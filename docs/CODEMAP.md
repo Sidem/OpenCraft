@@ -174,6 +174,7 @@ folder with `mod.rs`.
 | `player.rs` | Character controller (walk, sprint, crouch, jump, swim, climb ladders and belt lifts, fly, carried by the belt under the feet: `conveyor`, set by `authority.rs`; `carried` for footsteps); `in_water`, `splash_speed` for sounds |
 | `physics.rs` | Swept AABB collision against the voxel grid |
 | `raycast.rs` | Voxel traversal for targeting |
+| `hitbox.rs`, `factory/hitbox.rs` | Hit boxes for slender models: `Boxes` (oriented boxes from a model's instances, ray test, outline `bounds`); `Factory::hit_boxes(cell)` (belt frame, splitter, pole, cable cube, pipe, sensor, nodes; None = whole cell) used by `interaction/aim.rs` and `Game::target_fit` |
 | `light.rs` | Sky and block light (0–15) for a chunk being meshed (water dims it 2 per block): a field of the chunk plus a 32-block margin, sky columns shaded by the chunks above, BFS flood; `CLASS` says how each block treats light; `reach(old, new)` says how far an edit changes light (nothing, the sky column, or the 32-block margin). Render cache only |
 | `mesher.rs` | Greedy mesher with AO and smoothed per-vertex light (a byte per vertex after the `u32` vertices); ranges opaque, cutout, liquid (liquid AO bits mark the water line and how low it sits: `water_line`); plants as crossed quads (faces 6 and 7); `pick_layer` picks one of four looks per block |
 | `mesher/quad.rs` | Per-corner AO and light, the merge key, `emit_quad` |

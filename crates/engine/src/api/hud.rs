@@ -140,6 +140,12 @@ impl Game {
         self.target.map_or(AIR, |t| t.id)
     }
 
+    /// Where the target's model sits in its cell as 6 numbers (lowest corner, then size), for the outline of
+    /// a pole or a belt; empty when the whole cell is the target.
+    pub fn target_fit(&self) -> Vec<f32> {
+        self.target_fit.map_or_else(Vec::new, |fit| fit.to_vec())
+    }
+
     /// 0..1 while the targeted block is being mined, or drilled for a core sample.
     pub fn mine_progress(&self) -> f32 {
         if let Some(p) = self.prospect.drill_progress() {

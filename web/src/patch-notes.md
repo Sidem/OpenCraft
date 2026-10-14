@@ -8,6 +8,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - The music now fades out when you switch to another tab or window, and comes back when you return. Two new options on the Sound page let you turn this off for the music, or turn it on for sound effects too.
 - A machine now takes at most one stack of each input item, so a belt full of one item can no longer fill the machine and keep the others out.
 - Click any filled slot in a machine's panel, inputs and fuel included, to take its items back into your inventory.
+- Poles, belts, splitters, pipes and the like are now only hit where you actually see them, not across their whole block, so you can mine the block behind a pole without taking the pole. The highlight outline hugs the model too.
 
 ## 2026-10-13 · Coordinates under the minimap
 

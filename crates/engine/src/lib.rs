@@ -47,6 +47,7 @@ mod ghosts;
 mod helper_hands;
 mod helpers;
 mod hints;
+mod hitbox;
 mod interaction;
 mod inventory;
 mod item;
@@ -151,6 +152,8 @@ pub struct Game {
     strategy: strategy::Strategy,
     /// The local player's hands (interaction.rs). Other players run their own on their machines.
     target: Option<RayHit>,
+    /// Where in the target's cell its model is (lowest corner, size), for a pole or belt; None for the whole cell.
+    target_fit: Option<[f32; 6]>,
     mining: bool,
     mine_block: Option<IVec3>,
     mine_progress: f32,
@@ -233,6 +236,7 @@ impl Game {
             third_person: ThirdPerson::default(),
             strategy: strategy::Strategy::default(),
             target: None,
+            target_fit: None,
             mining: false,
             mine_block: None,
             mine_progress: 0.0,
