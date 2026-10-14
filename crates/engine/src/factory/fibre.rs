@@ -7,6 +7,8 @@
 //! - [`Data`] is derived at every relink (`Data::rebuild`, never saved) and balanced every tick (`Data::balance`, after
 //!   `Power::balance`): per grid, supply against demand, and `satisfaction` in thousandths. A consumer runs at its power
 //!   speed times its grid's satisfaction, and not at all with no node in reach (`update` in `mod.rs`).
+//! - A comms satellite (`satellites.rs`, Orbital Comms) joins, each tick, every grid that has a node under its footprint
+//!   into one (`Data::uplink`; `merged` maps a rebuilt grid to the grid its supply and demand are summed under).
 //! - `write_fibre` draws the thin light lines between linked nodes and from each machine to its node. Presentation only.
 //!
 //! To add a producer or consumer: a processor spec with a `compute` number (`process/specs.rs`); nothing here changes.
@@ -15,6 +17,7 @@ use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
+use crate::satellites::{Satellites, COMMS};
 
 use super::pole::dist2;
 use super::power::{wire, Power, FULL_SPEED};
@@ -47,6 +50,11 @@ pub(crate) struct Data {
     pub joined: Vec<(u32, u32)>,
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
+    /// The grid each rebuilt grid belongs to this tick: itself, or the lowest grid with a node under a comms satellite
+    /// when it has one too (`uplink`). Supply and demand are summed by this number.
+    merged: Vec<u32>,
+    /// How many nodes are under a comms satellite this tick.
+    pub uplinked: u32,
 }
 
 /// The node nearest to any cell of `p` within [`REACH`], if there is one.
@@ -102,6 +110,37 @@ impl Data {
             process_node: processors.iter().map(hang).collect(),
             supply: vec![0; grids as usize],
             demand: vec![0; grids as usize],
+            merged: (0..grids).collect(),
+            uplinked: 0,
+        }
+    }
+
+    /// The grid number supply and demand are kept under for `node` (its own, or the satellite network's).
+    pub fn grid_of(&self, node: u32) -> usize {
+        self.merged[self.node_grid[node as usize] as usize] as usize
+    }
+
+    /// Joins every grid that has a node under a comms satellite at `tick` into one, for this tick.
+    fn uplink(&mut self, nodes: &[Node], sats: &Satellites, tick: u64) {
+        self.uplinked = 0;
+        for (g, m) in self.merged.iter_mut().enumerate() {
+            *m = g as u32;
+        }
+        if sats.count(COMMS) == 0 {
+            return;
+        }
+        let mut first: Option<u32> = None;
+        for (i, node) in nodes.iter().enumerate() {
+            if sats.covering(COMMS, node.pos.x, node.pos.z, tick) == 0 {
+                continue;
+            }
+            self.uplinked += 1;
+            let grid = self.node_grid[i];
+            match first {
+                None => first = Some(grid),
+                Some(f) if grid != f => self.merged[grid as usize] = f,
+                Some(_) => {}
+            }
         }
     }
 
@@ -109,22 +148,24 @@ impl Data {
     /// consumer wants its `compute` (as a positive number) while it wants power.
     pub(super) fn balance(
         &mut self,
-        processors: &[Processor],
+        (nodes, processors): (&[Node], &[Processor]),
         power: &Power,
         unlocked: &[bool],
         research: &crate::research::Research,
+        (sats, tick): (&Satellites, u64),
     ) {
+        self.uplink(nodes, sats, tick);
         self.supply.iter_mut().for_each(|s| *s = 0);
         self.demand.iter_mut().for_each(|d| *d = 0);
         for (i, p) in processors.iter().enumerate() {
             let Some(node) = self.process_node[i] else { continue };
-            let grid = self.node_grid[node as usize] as usize;
+            let grid = self.grid_of(node);
             if p.spec.compute > 0 {
                 if p.status == Status::Overheated {
                     continue; // a tripped datacenter gives nothing
                 }
                 let speed = power.speed(power.process_pole[i]);
-                self.supply[grid] += p.spec.compute as u32 * speed / FULL_SPEED;
+                self.supply[grid] += p.offered_tf() * speed / FULL_SPEED;
             } else if p.wants_power(unlocked, research) {
                 self.demand[grid] += p.spec.compute.unsigned_abs();
             }
@@ -133,7 +174,7 @@ impl Data {
 
     /// How much of its demand the grid of `node` meets, in thousandths (0 with no node, full with nothing wanted).
     pub fn satisfaction(&self, node: Option<u32>) -> u32 {
-        let Some(grid) = node.map(|n| self.node_grid[n as usize] as usize) else { return 0 };
+        let Some(grid) = node.map(|n| self.grid_of(n)) else { return 0 };
         match (self.supply[grid], self.demand[grid]) {
             (_, 0) => FULL_SPEED,
             (s, d) => (s as u64 * FULL_SPEED as u64 / d as u64).min(FULL_SPEED as u64) as u32,
@@ -162,16 +203,18 @@ impl Machine for Node {
         let Some(me) = f.nodes.iter().position(|n| n.pos == self.pos).filter(|_| !f.dirty) else {
             return "Fibre node".to_string();
         };
-        let grid = f.data.node_grid[me];
-        let nodes = f.data.node_grid.iter().filter(|&&g| g == grid).count();
-        let on = |p: &Option<u32>| p.is_some_and(|n| f.data.node_grid[n as usize] == grid);
+        let grid = f.data.grid_of(me as u32);
+        let nodes = (0..f.nodes.len() as u32).filter(|&n| f.data.grid_of(n) == grid).count();
+        let on = |p: &Option<u32>| p.is_some_and(|n| f.data.grid_of(n) == grid);
         let here = f.processors.iter().zip(&f.data.process_node).filter(|(_, n)| on(n));
         let makers = here.clone().filter(|(p, _)| p.spec.compute > 0).count();
         let users = here.count() - makers;
-        let (s, d) = (f.data.supply[grid as usize], f.data.demand[grid as usize]);
+        let (s, d) = (f.data.supply[grid], f.data.demand[grid]);
+        let sat = f.orbit.covering(COMMS, self.pos.x, self.pos.z, f.orbit.now) > 0;
+        let sat = if sat { "\nUnder a comms satellite: this grid is joined to every other node it covers" } else { "" };
         format!(
             "Data grid: {s} TF supplied, {d} TF wanted\n{nodes} nodes, {makers} producers, {users} consumers on this grid\n\
-             Nodes within {LINK} blocks join; machines within {REACH} blocks hang on the nearest node"
+             Nodes within {LINK} blocks join; machines within {REACH} blocks hang on the nearest node{sat}"
         )
     }
 
@@ -193,7 +236,7 @@ impl Factory {
             return None;
         }
         let Some(node) = self.data.process_node[i] else { return Some(NO_NODE.to_string()) };
-        let grid = self.data.node_grid[node as usize] as usize;
+        let grid = self.data.grid_of(node);
         let (s, d) = (self.data.supply[grid], self.data.demand[grid]);
         Some(match p.spec.compute > 0 {
             true => format!("Data grid: {s} TF supplied, {d} TF wanted"),

@@ -334,7 +334,16 @@ pub const AVIONICS: u16 = 291;
 pub const ROCKET_FUEL_CANISTER: u16 = 292;
 pub const ROCKET_HULL: u16 = 293;
 pub const SURVEY_SATELLITE: u16 = 294;
-pub const COUNT: usize = 295;
+pub const COMMS_SATELLITE: u16 = 295;
+/// The power satellite's icon and the rectenna's field and side (`textures/orbit.rs`).
+pub const POWER_SATELLITE: u16 = 296;
+pub const RECTENNA_TOP: u16 = 297;
+pub const RECTENNA_SIDE: u16 = 298;
+/// The science satellite's icon and the ground station's dish and side (`textures/orbit.rs`).
+pub const SCIENCE_SATELLITE: u16 = 299;
+pub const GROUND_TOP: u16 = 300;
+pub const GROUND_SIDE: u16 = 301;
+pub const COUNT: usize = 302;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

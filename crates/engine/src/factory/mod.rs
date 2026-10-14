@@ -74,7 +74,7 @@ use crate::math::IVec3;
 #[cfg(test)]
 use crate::math::Vec3;
 use crate::research::{Bonus, Research};
-use crate::satellites::Satellites;
+use crate::satellites::{Satellites, COMMS};
 use crate::sim::SimEvent;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
@@ -328,6 +328,7 @@ impl Factory {
             labs,
             pipework,
             quarries,
+            nodes,
             power,
             data,
             deposits,
@@ -339,9 +340,9 @@ impl Factory {
         } = self;
         orbit.now = tick;
         let unlocked = research.machine_recipes_unlocked();
-        process::sense_hydro(processors, world);
+        process::sense_sources(processors, world, orbit, tick);
         power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
-        data.balance(processors, power, &unlocked, research);
+        data.balance((nodes, processors), power, &unlocked, research, (orbit, tick));
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
         let tuned = process::optimizer_bonuses(sinks.processors, power, data);
@@ -366,6 +367,7 @@ impl Factory {
             }
             m.boost = machines * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED;
             m.hangar.bonus = process::hub_bonus_at(&swarms, m.pos);
+            m.hangar.linked = m.hangar_tier().is_some() && orbit.covering(COMMS, m.pos.x, m.pos.z, tick) > 0;
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);

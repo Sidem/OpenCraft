@@ -17,6 +17,9 @@ use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::model::{part, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor};
 
+#[cfg(test)]
+mod tests;
+
 /// What a port tier gives: how far its construction drones work from the pad's centre, how far its cargo drones fly
 /// to another port, and how many drones it keeps.
 pub struct HangarTier {
@@ -44,7 +47,13 @@ pub struct Hangar {
     pub kind: ItemId,
     /// The share of its fleet, in thousandths, the best swarm hub in range adds this tick (`hub.rs`; 0 for none).
     pub bonus: u32,
+    /// Whether a comms satellite covers the pad this tick: reach and cargo range are multiplied (`LINK_REACH`, `LINK_RANGE`).
+    pub linked: bool,
 }
+
+/// What a comms satellite over the pad multiplies a port's construction reach and cargo range by.
+pub const LINK_REACH: u32 = 4;
+pub const LINK_RANGE: u32 = 2;
 
 const fn inlet(side: Side) -> Port {
     Port { side, role: Role::In, cell: Which::All }
@@ -94,6 +103,14 @@ impl Processor {
         (self.spec.pick == Pick::Hangar).then(|| &TIERS[(self.tier as usize).min(TIERS.len() - 1)])
     }
 
+    /// How far its construction drones work, in blocks, and how far its cargo drones fly: the tier's, times what a comms
+    /// satellite over the pad adds.
+    pub fn reach_and_range(&self) -> Option<(u32, u32)> {
+        let t = self.hangar_tier()?;
+        let (reach, range) = if self.hangar.linked { (LINK_REACH, LINK_RANGE) } else { (1, 1) };
+        Some((t.reach * reach, t.cargo_range * range))
+    }
+
     /// How many drones it keeps: its tier's fleet and what a swarm hub adds.
     pub fn fleet(&self) -> u32 {
         self.hangar_tier().map_or(0, |t| t.fleet + t.fleet * self.hangar.bonus / 1000)
@@ -125,15 +142,20 @@ impl Processor {
 
     /// The status line of a port (`None`: another processor).
     pub(super) fn hangar_text(&self) -> Option<String> {
-        let tier = self.hangar_tier()?;
+        let (reach, cargo_range) = self.reach_and_range()?;
         let (home, cargo) = (self.drones_home() + self.couriers_home(), self.couriers_home() > 0);
         let wiring = if self.speed == 0 { " · No power: wire it to a pole" } else { "" };
         let (noun, range) = if cargo || self.hangar.kind == CARGO_DRONE {
-            ("cargo drones", format!("range {} blocks", tier.cargo_range))
+            ("cargo drones", format!("range {cargo_range} blocks"))
         } else {
-            ("drones", format!("reach {} blocks", tier.reach))
+            ("drones", format!("reach {reach} blocks"))
         };
         let swarm = if self.hangar.bonus > 0 { " (swarm hub)" } else { "" };
-        Some(format!("{home} {noun} home, {} out · fleet {}{swarm} · {range}{wiring}", self.hangar.away, self.fleet()))
+        let comms = if self.hangar.linked { " (comms satellite)" } else { "" };
+        Some(format!(
+            "{home} {noun} home, {} out · fleet {}{swarm} · {range}{comms}{wiring}",
+            self.hangar.away,
+            self.fleet()
+        ))
     }
 }

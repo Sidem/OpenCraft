@@ -19,8 +19,110 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::AVIONICS => avionics(x, y),
         tex::ROCKET_FUEL_CANISTER => canister(x, y, FUEL_BAND),
         tex::SURVEY_SATELLITE => survey_satellite(x, y),
+        tex::COMMS_SATELLITE => comms_satellite(x, y),
+        tex::POWER_SATELLITE => power_satellite(x, y),
+        tex::RECTENNA_TOP => rectenna_top(x, y),
+        tex::RECTENNA_SIDE => rectenna_side(x, y),
+        tex::SCIENCE_SATELLITE => science_satellite(x, y),
+        tex::GROUND_TOP => ground_top(x, y),
+        tex::GROUND_SIDE => ground_side(x, y),
         _ => hull(x, y),
     }
+}
+
+/// A white body with a green sensor eye, between two small blue solar wings.
+fn science_satellite(x: i32, y: i32) -> [u8; 4] {
+    if (5..=10).contains(&x) && (4..=11).contains(&y) {
+        let eye = (7..=8).contains(&x) && (7..=8).contains(&y);
+        let col = if eye { [90.0, 230.0, 140.0] } else { [226.0, 230.0, 238.0] };
+        return rgb(col, 0.9 + 0.2 * n(707, x, y));
+    }
+    if (6..=9).contains(&y) && (x <= 3 || x >= 12) {
+        let cell = x % 2 == 0;
+        return if cell { rgb([30.0, 56.0, 120.0], 0.9 + 0.2 * n(708, x, y)) } else { rgb([110.0, 130.0, 170.0], 1.0) };
+    }
+    rgb([10.0, 12.0, 22.0], 0.9 + 0.2 * n(709, x, y))
+}
+
+/// A dish seen from above: pale concentric rings round a dark feed in the middle.
+fn ground_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r = (dx * dx + dy * dy).sqrt();
+    if r < 1.6 {
+        return rgb([40.0, 44.0, 56.0], 1.0);
+    }
+    if r > 7.6 {
+        return frame(x, y);
+    }
+    let ring = (r as i32) % 2 == 0;
+    rgb(if ring { [226.0, 230.0, 238.0] } else { [176.0, 184.0, 198.0] }, 0.92 + 0.12 * n(710, x, y))
+}
+
+/// Pale panels with seams, above a blue hazard band.
+fn ground_side(x: i32, y: i32) -> [u8; 4] {
+    if y >= 13 {
+        let blue = (x + y) / 2 % 2 == 0;
+        return if blue { rgb([60.0, 130.0, 220.0], 1.0) } else { rgb([30.0, 30.0, 34.0], 1.0) };
+    }
+    if x % 8 == 0 || y % 8 == 0 {
+        return rgb([120.0, 128.0, 142.0], 0.9 + 0.2 * n(711, x, y));
+    }
+    rgb([200.0, 206.0, 216.0], 0.9 + 0.2 * n(712, x, y))
+}
+
+/// A gold body with a red transmitter dot between two wide solar wings.
+fn power_satellite(x: i32, y: i32) -> [u8; 4] {
+    if (6..=9).contains(&x) && (5..=10).contains(&y) {
+        let dot = (7..=8).contains(&x) && (7..=8).contains(&y);
+        let col = if dot { [236.0, 70.0, 56.0] } else { [214.0, 170.0, 70.0] };
+        return rgb(col, 0.9 + 0.2 * n(700, x, y));
+    }
+    if (2..=13).contains(&y) && (x <= 4 || x >= 11) {
+        let cell = x % 2 == 0 || y % 3 == 0;
+        return if cell { rgb([30.0, 56.0, 120.0], 0.9 + 0.2 * n(701, x, y)) } else { rgb([110.0, 130.0, 170.0], 1.0) };
+    }
+    rgb([10.0, 12.0, 22.0], 0.9 + 0.2 * n(702, x, y))
+}
+
+/// A dark panel with a grid of bright diodes, in a steel frame.
+fn rectenna_top(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return frame(x, y);
+    }
+    if x % 4 == 2 && y % 4 == 2 {
+        return rgb([250.0, 200.0, 90.0], 1.0);
+    }
+    if x % 4 == 2 || y % 4 == 2 {
+        return rgb([150.0, 90.0, 50.0], 0.9 + 0.2 * n(703, x, y));
+    }
+    rgb([24.0, 30.0, 48.0], 0.9 + 0.2 * n(704, x, y))
+}
+
+/// Steel plating above an orange hazard band.
+fn rectenna_side(x: i32, y: i32) -> [u8; 4] {
+    if y >= 13 {
+        let orange = (x + y) / 2 % 2 == 0;
+        return if orange { rgb([236.0, 130.0, 40.0], 1.0) } else { rgb([30.0, 30.0, 34.0], 1.0) };
+    }
+    if x == 0 || x == 15 || y == 0 {
+        return rgb([170.0, 176.0, 186.0], 0.9 + 0.2 * n(705, x, y));
+    }
+    rgb([96.0, 104.0, 120.0], 0.88 + 0.24 * n(706, x, y))
+}
+
+/// A silver box body under a big white dish, with a red aerial on top.
+fn comms_satellite(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 5.5);
+    if dx * dx + dy * dy <= 12.0 {
+        return rgb([240.0, 242.0, 246.0], 0.88 + 0.2 * n(697, x, y));
+    }
+    if (7..=8).contains(&x) && y <= 1 {
+        return rgb([210.0, 60.0, 50.0], 1.0);
+    }
+    if (5..=10).contains(&x) && (9..=13).contains(&y) {
+        return rgb([150.0, 158.0, 170.0], 0.9 + 0.2 * n(698, x, y));
+    }
+    rgb([10.0, 12.0, 22.0], 0.9 + 0.2 * n(699, x, y))
 }
 
 /// A gold box body between two blue solar wings, with a dish dot in the middle.

@@ -19,8 +19,29 @@ pub const LAUNCH_SITE_RECIPE: Recipe = Recipe {
             empty canisters come out of the front. Needs 2 MW. A pad missing a part says which.",
 };
 
+pub const RECTENNA_RECIPE: Recipe = Recipe {
+    output: b(RECTENNA),
+    group: Group::Power,
+    count: 1,
+    inputs: &[(ALUMINIUM_PLATE, 20), (COPPER_WIRE, 60), (CIRCUIT, 20), (b(CONCRETE), 20)],
+    blurb:
+        "A flat field of receiving antennas, 5×5. Every power satellite whose circle covers it beams down 200 kW, up \
+            to 1 MW, day and night with no fuel, for as long as the satellite is overhead (a satellite flies on at 6 \
+            blocks a second, so build a constellation). Hang it on a power pole.",
+};
+
+pub const GROUND_STATION_RECIPE: Recipe = Recipe {
+    output: b(GROUND_STATION),
+    group: Group::Space,
+    count: 1,
+    inputs: &[(STEEL_BEAM, 20), (ALUMINIUM_PLATE, 20), (CIRCUIT, 30), (PROCESSOR, 8)],
+    blurb: "A dish, 3×3 and 2 high. Every science satellite whose circle covers it downlinks 40 TF to its data grid, \
+            up to 100 TF, for as long as the satellite is overhead (build a constellation). Needs 150 kW on a power \
+            pole and a fibre node within reach, like a datacenter's.",
+};
+
 /// The rows after the main table: light frame, engine, fuel tank, avionics, rocket fuel, the launch with a survey satellite,
-/// and the survey satellite itself.
+/// the survey satellite itself, then the comms, power and science satellites with their launches.
 pub const ORBIT: &[MachineRecipe] = &[
     MachineRecipe {
         category: Category::Assembly,
@@ -73,5 +94,65 @@ pub const ORBIT: &[MachineRecipe] = &[
         inputs: &[(LIGHT_FRAME, 2), (b(SOLAR_PANEL), 4), (AI_ACCELERATOR, 4)],
         outputs: &[(SURVEY_SATELLITE, 1)],
         seconds: 40.0,
+    },
+    // The comms satellite (tech Orbital Comms) and the launch that carries it.
+    MachineRecipe {
+        category: Category::Assembly,
+        inputs: &[(LIGHT_FRAME, 2), (PROCESSOR, 8), (ALUMINIUM_PLATE, 8)],
+        outputs: &[(COMMS_SATELLITE, 1)],
+        seconds: 40.0,
+    },
+    MachineRecipe {
+        category: Category::Launch,
+        inputs: &[
+            (LIGHT_FRAME, 4),
+            (ROCKET_ENGINE, 2),
+            (FUEL_TANK, 2),
+            (AVIONICS, 1),
+            (ROCKET_FUEL_CANISTER, 8),
+            (COMMS_SATELLITE, 1),
+        ],
+        outputs: &[(EMPTY_CANISTER, 8)],
+        seconds: 60.0,
+    },
+    // The power satellite (tech Orbital Power) and the launch that carries it.
+    MachineRecipe {
+        category: Category::Assembly,
+        inputs: &[(LIGHT_FRAME, 4), (b(SOLAR_PANEL), 24), (CIRCUIT, 16)],
+        outputs: &[(POWER_SATELLITE, 1)],
+        seconds: 60.0,
+    },
+    MachineRecipe {
+        category: Category::Launch,
+        inputs: &[
+            (LIGHT_FRAME, 4),
+            (ROCKET_ENGINE, 2),
+            (FUEL_TANK, 2),
+            (AVIONICS, 1),
+            (ROCKET_FUEL_CANISTER, 8),
+            (POWER_SATELLITE, 1),
+        ],
+        outputs: &[(EMPTY_CANISTER, 8)],
+        seconds: 60.0,
+    },
+    // The science satellite (tech Orbital Science) and the launch that carries it.
+    MachineRecipe {
+        category: Category::Assembly,
+        inputs: &[(LIGHT_FRAME, 2), (AI_ACCELERATOR, 8), (PROCESSOR, 8)],
+        outputs: &[(SCIENCE_SATELLITE, 1)],
+        seconds: 50.0,
+    },
+    MachineRecipe {
+        category: Category::Launch,
+        inputs: &[
+            (LIGHT_FRAME, 4),
+            (ROCKET_ENGINE, 2),
+            (FUEL_TANK, 2),
+            (AVIONICS, 1),
+            (ROCKET_FUEL_CANISTER, 8),
+            (SCIENCE_SATELLITE, 1),
+        ],
+        outputs: &[(EMPTY_CANISTER, 8)],
+        seconds: 60.0,
     },
 ];

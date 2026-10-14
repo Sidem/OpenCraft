@@ -34,7 +34,9 @@ use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
 use super::power_mix::{empty_uses, note_use, Mix, Source, SOURCES};
-use super::process::{run_diesel, run_hydro, run_reactor, run_renewables, run_turbine, Energy, Processor};
+use super::process::{
+    run_diesel, run_hydro, run_reactor, run_rectenna, run_renewables, run_turbine, Energy, Processor,
+};
 use super::quarry::Quarry;
 use super::render::push_box;
 use super::wiring::{takes_pole, Hooked};
@@ -213,6 +215,7 @@ impl Power {
         // The sun and the accumulators come before any fuel is burned.
         run_renewables(self, processors, tick);
         run_hydro(self, processors);
+        run_rectenna(self, processors);
         run_reactor(self, processors);
         for (i, g) in gens.iter_mut().enumerate() {
             g.output = 0;

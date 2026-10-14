@@ -13,7 +13,7 @@
 //! Presentation (`sky_directions`) and queries never change the list; only `launch` does, called by the launch site.
 
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::item::{ItemId, SURVEY_SATELLITE};
+use crate::item::{ItemId, COMMS_SATELLITE, POWER_SATELLITE, SCIENCE_SATELLITE, SURVEY_SATELLITE};
 use crate::math::IVec3;
 
 #[cfg(test)]
@@ -43,7 +43,21 @@ pub struct Kind {
 }
 
 /// The kinds, by saved index. What each one gives is the step after this one (12.3).
-pub const KINDS: [Kind; 1] = [Kind { name: "Survey", item: SURVEY_SATELLITE, reach: 768 }];
+pub const KINDS: [Kind; 4] = [
+    Kind { name: "Survey", item: SURVEY_SATELLITE, reach: 768 },
+    Kind { name: "Comms", item: COMMS_SATELLITE, reach: 1024 },
+    Kind { name: "Power", item: POWER_SATELLITE, reach: 1024 },
+    Kind { name: "Science", item: SCIENCE_SATELLITE, reach: 1024 },
+];
+/// The science kind: a ground station under it downlinks compute (`factory/process/ground.rs`).
+pub const SCIENCE: u8 = 3;
+/// The power kind: each one over a rectenna beams it power (`factory/process/rectenna.rs`).
+pub const POWER: u8 = 2;
+/// The index of the survey kind in `KINDS`: it shows deposits on the maps (`survey/orbit.rs`).
+pub const SURVEY: u8 = 0;
+/// The comms kind: a place it covers is on the satellite network (`factory/fibre.rs` joins data grids, `factory/ports.rs`
+/// extends drone ports).
+pub const COMMS: u8 = 1;
 
 /// The kind of satellite item `item` is, if it is one.
 pub fn kind_of(item: ItemId) -> Option<u8> {
@@ -120,6 +134,18 @@ impl Satellites {
     /// How many satellites of `kind` cover the place (a column, in blocks) at `tick`.
     pub fn covering(&self, kind: u8, x: i32, z: i32, tick: u64) -> usize {
         self.list.iter().filter(|s| s.kind == kind && s.covers(x, z, tick)).count()
+    }
+
+    /// Where each satellite's footprint is on the copy of the sky nearest the place (a column, in blocks): x, z and
+    /// reach in blocks, and the kind. The maps draw these as rings.
+    pub fn footprints(&self, x: i32, z: i32, tick: u64) -> Vec<(i32, i32, i32, u8)> {
+        self.list
+            .iter()
+            .map(|s| {
+                let [dx, dz] = s.offset(x, z, tick);
+                (x + (dx / 1000) as i32, z + (dz / 1000) as i32, KINDS[s.kind as usize].reach, s.kind)
+            })
+            .collect()
     }
 
     /// Unit directions towards the satellites above the horizon, as seen from the place (a column and the eye's height),

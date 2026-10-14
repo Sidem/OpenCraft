@@ -21,6 +21,7 @@ impl Processor {
             .or_else(|| self.hangar_text())
             .or_else(|| self.diesel_text())
             .or_else(|| self.hydro_text())
+            .or_else(|| self.rectenna_text())
             .or_else(|| self.hoist_text())
             .or_else(|| self.reactor_text())
             .or_else(|| self.center_text())
@@ -31,6 +32,7 @@ impl Processor {
             .or_else(|| self.tower_text())
             .or_else(|| self.optimizer_text())
             .or_else(|| self.hub_text())
+            .or_else(|| self.ground_text())
             .or_else(|| self.laser_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;
@@ -105,7 +107,13 @@ impl Processor {
         lines.extend(self.launch_line());
         if !matches!(
             self.energy(),
-            Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Hoist | Energy::Optimizer
+            Energy::Turbine
+                | Energy::Solar
+                | Energy::Accumulator
+                | Energy::Hydro
+                | Energy::Rectenna
+                | Energy::Hoist
+                | Energy::Optimizer
         ) {
             lines.push("Right-click to open".to_string());
         }

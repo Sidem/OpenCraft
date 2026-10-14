@@ -131,7 +131,10 @@ impl Factory {
     fn grid_has_source(&self, grid: u32) -> bool {
         let on = |p: &Option<u32>| p.is_some_and(|p| self.power.pole_grid[p as usize] == grid);
         let sun_or_steam = |m: &Processor| {
-            matches!(m.energy(), Energy::Turbine | Energy::Solar | Energy::Diesel | Energy::Hydro | Energy::Reactor)
+            matches!(
+                m.energy(),
+                Energy::Turbine | Energy::Solar | Energy::Diesel | Energy::Hydro | Energy::Reactor | Energy::Rectenna
+            )
         };
         self.power.gen_pole.iter().any(on)
             || self.processors.iter().zip(&self.power.process_pole).any(|(m, p)| sun_or_steam(m) && on(p))

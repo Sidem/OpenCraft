@@ -70,3 +70,9 @@ pub const AVIONICS: ItemId = ItemId(389);
 pub const ROCKET_FUEL_CANISTER: ItemId = ItemId(390);
 /// A survey satellite (`satellites.rs`): the assembler builds it, a launch site's rocket carries it into orbit.
 pub const SURVEY_SATELLITE: ItemId = ItemId(391);
+/// A comms satellite: data grids and drone ports reach across its footprint (`factory/fibre.rs`, `factory/ports.rs`).
+pub const COMMS_SATELLITE: ItemId = ItemId(392);
+/// A power satellite: it beams power down to rectennas under its footprint (`factory/process/rectenna.rs`).
+pub const POWER_SATELLITE: ItemId = ItemId(393);
+/// A science satellite: a ground station under its footprint downlinks its data as compute (`factory/process/ground.rs`).
+pub const SCIENCE_SATELLITE: ItemId = ItemId(394);

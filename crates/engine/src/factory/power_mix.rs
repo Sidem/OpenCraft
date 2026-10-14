@@ -13,7 +13,7 @@ use crate::block::{BlockId, BLOCK_COUNT};
 use super::power::Power;
 
 /// How many kinds of power source there are.
-pub const SOURCES: usize = 7;
+pub const SOURCES: usize = 8;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Source {
@@ -25,6 +25,8 @@ pub enum Source {
     Hydro,
     Diesel,
     Reactor,
+    /// Power satellites' beams, received by rectennas.
+    Rectenna,
 }
 
 pub const ALL: [Source; SOURCES] = [
@@ -35,6 +37,7 @@ pub const ALL: [Source; SOURCES] = [
     Source::Hydro,
     Source::Diesel,
     Source::Reactor,
+    Source::Rectenna,
 ];
 
 impl Source {
@@ -47,6 +50,7 @@ impl Source {
             Source::Hydro => "Water wheels",
             Source::Diesel => "Diesel generators",
             Source::Reactor => "Nuclear reactors",
+            Source::Rectenna => "Orbital power",
         }
     }
 
@@ -60,6 +64,7 @@ impl Source {
             Source::Hydro => 0x2dd4bf,
             Source::Diesel => 0xfb923c,
             Source::Reactor => 0xc084fc,
+            Source::Rectenna => 0xf472b6,
         }
     }
 }

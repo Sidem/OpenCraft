@@ -42,6 +42,7 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
                 Energy::Solar,
                 Energy::Accumulator,
                 Energy::Hydro,
+                Energy::Rectenna,
                 Energy::Reactor,
                 Energy::Compute,
                 Energy::Cooling,

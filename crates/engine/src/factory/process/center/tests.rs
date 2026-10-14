@@ -114,7 +114,10 @@ fn tiers_are_twice_a_labs_and_the_lab_rule_follows_the_packs() {
             "Auto-Routing",
             "AI Survey",
             "Fabricator Gloves",
-            "Rocketry"
+            "Rocketry",
+            "Orbital Comms",
+            "Orbital Power",
+            "Orbital Science"
         ]
     );
 }

@@ -52,6 +52,8 @@ pub enum Energy {
     Optimizer,
     /// A laser block (emitter, mirror, receiver): draws nothing, joins power or data grids by a beam (laser.rs).
     Beam,
+    /// A rectenna: a power source fed by the power satellites over it (rectenna.rs).
+    Rectenna,
 }
 
 impl Energy {
@@ -59,7 +61,13 @@ impl Energy {
     pub fn is_source(self) -> bool {
         matches!(
             self,
-            Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Diesel | Energy::Hydro | Energy::Reactor
+            Energy::Turbine
+                | Energy::Solar
+                | Energy::Accumulator
+                | Energy::Diesel
+                | Energy::Hydro
+                | Energy::Reactor
+                | Energy::Rectenna
         )
     }
 }
@@ -167,6 +175,8 @@ pub const SPECS: &[ProcessSpec] = &[
     super::laser::DATA_RECEIVER_SPEC,
     super::hub::HUB_SPEC,
     super::launch::LAUNCH_SPEC,
+    super::rectenna::RECTENNA_SPEC,
+    super::ground::STATION_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

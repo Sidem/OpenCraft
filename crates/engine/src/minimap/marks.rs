@@ -32,6 +32,9 @@ pub const MARK_ORE: i32 = 2;
 pub const MARK_SITE: i32 = 3;
 /// An AI survey guess (`survey.rs`): this plus its strength (0..3) as the shape, in the ore's colour.
 pub const MARK_GUESS: i32 = 4;
+/// A satellite's footprint (`satellites.rs`): this plus its kind as the shape, and the third number is its reach in
+/// blocks instead of a colour.
+pub const MARK_COVER: i32 = 8;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -53,6 +56,10 @@ impl Known {
             self.deposits.remove(0);
         }
         self.deposits.push(*d);
+    }
+
+    fn has(&self, key: &DepositKey) -> bool {
+        self.deposits.iter().any(|d| d.key == *key)
     }
 
     /// Where the remembered deposits lie and their ore: x, z, block.
@@ -92,12 +99,19 @@ impl Minimap {
         self.marks_in(factory, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz))
     }
 
-    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: survey guesses, ore seen at the surface, then
-    /// remembered deposits that still hold ore, then terraforming sites, then machines.
+    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: satellite footprints, survey guesses, ore seen
+    /// at the surface, then remembered deposits and those survey satellites saw (both while they hold ore), then
+    /// terraforming sites, then machines.
     pub fn marks_in(&self, factory: &Factory, lo: (i32, i32), hi: (i32, i32), origin: (i32, i32)) -> Vec<i32> {
         let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
         let (ox, oz) = origin;
         let mut out = Vec::new();
+        let (mid, half) = (((lo.0 + hi.0) / 2, (lo.1 + hi.1) / 2), (hi.0 - lo.0).max(hi.1 - lo.1) / 2);
+        for (x, z, reach, kind) in factory.orbit.footprints(mid.0, mid.1, factory.orbit.now) {
+            if (x - mid.0).abs() <= half + reach && (z - mid.1).abs() <= half + reach {
+                out.extend_from_slice(&[x - ox, z - oz, reach, MARK_COVER + kind as i32]);
+            }
+        }
         for g in self.survey.guesses().iter().filter(|g| (lo.0..=hi.0).contains(&g.x) && (lo.1..=hi.1).contains(&g.z)) {
             out.extend_from_slice(&[g.x - ox, g.z - oz, ore_color(g.ore), MARK_GUESS + g.strength as i32 - 1]);
         }
@@ -111,6 +125,9 @@ impl Minimap {
             }
         });
         for d in self.known.deposits.iter().filter(|d| inside(d.center) && !dry(factory, d)) {
+            out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
+        }
+        for d in self.seen.deposits().filter(|d| inside(d.center) && !dry(factory, d) && !self.known.has(&d.key)) {
             out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
         }
         for s in &factory.sites.list {

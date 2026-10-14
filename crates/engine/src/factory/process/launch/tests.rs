@@ -235,6 +235,35 @@ fn an_assembler_builds_the_satellite_and_the_rocket_carries_it_last() {
 }
 
 #[test]
+fn the_comms_satellite_has_its_own_tech_assembler_row_and_launch() {
+    let [build, launch] = crate::recipes::COMMS_SATELLITE_RECIPES;
+    assert_eq!(MACHINE_RECIPES[build as usize].outputs, &[(crate::item::COMMS_SATELLITE, 1)]);
+    assert!(spec(crate::block::ASSEMBLER).unwrap().recipe(build).is_some());
+    assert!(LAUNCH_SPEC.recipe(launch).is_some());
+    let payload = MACHINE_RECIPES[launch as usize].inputs.last().unwrap().0;
+    assert_eq!(crate::satellites::kind_of(payload), Some(crate::satellites::COMMS));
+    let tech = TECHS.iter().position(|t| t.name == "Orbital Comms").unwrap();
+    assert_eq!(tech, 79, "saved by index");
+    assert!(TECHS[tech].unlocks.iter().any(|u| matches!(u, Unlock::MachineRecipe(i) if *i == launch)));
+    let rocketry = TECHS.iter().position(|t| t.name == "Rocketry").unwrap() as u8;
+    assert!(TECHS[tech].needs.contains(&rocketry));
+}
+
+#[test]
+fn the_power_satellite_has_its_own_tech_assembler_row_launch_and_rectenna() {
+    let [build, launch] = crate::recipes::POWER_SATELLITE_RECIPES;
+    assert_eq!(MACHINE_RECIPES[build as usize].outputs, &[(crate::item::POWER_SATELLITE, 1)]);
+    assert!(spec(crate::block::ASSEMBLER).unwrap().recipe(build).is_some());
+    assert!(LAUNCH_SPEC.recipe(launch).is_some());
+    let payload = MACHINE_RECIPES[launch as usize].inputs.last().unwrap().0;
+    assert_eq!(crate::satellites::kind_of(payload), Some(crate::satellites::POWER));
+    let tech = TECHS.iter().position(|t| t.name == "Orbital Power").unwrap();
+    assert_eq!(tech, 80, "saved by index");
+    assert!(TECHS[tech].unlocks.iter().any(|u| matches!(u, Unlock::MachineRecipe(i) if *i == launch)));
+    assert!(TECHS[tech].unlocks.iter().any(|u| matches!(u, Unlock::Recipe(_))), "the rectenna's hand recipe");
+}
+
+#[test]
 fn the_launch_site_waits_for_rocketry() {
     let tech = TECHS.iter().position(|t| t.name == "Rocketry").unwrap() as u8;
     assert_eq!(tech, 78, "saved by index");

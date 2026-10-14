@@ -3,6 +3,29 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-14 · Science from orbit
+
+- New research, Orbital Science: an assembler builds science satellites, and the new Ground Station (a 3×3 dish you hang on a power pole and a fibre node) downlinks their data as compute.
+- Each science satellite over a ground station gives its data grid 40 TF, up to 100 TF, with no datacenter. The station uses 150 kW. The satellite flies on, so build a constellation.
+- A science satellite's circle on the maps is pale blue.
+
+## 2026-10-14 · Power from orbit
+
+- New research, Orbital Power: an assembler builds power satellites, and the new Rectenna (a flat 5×5 field you hang on a power pole) turns their beam into electricity.
+- Each power satellite over a rectenna gives it 200 kW, up to 1 MW, day and night with no fuel. The satellite flies on, so a few of them and some accumulators keep a grid steady.
+- Orbital power has its own colour on the electricity graph, and a satellite's circle on the maps is pink.
+
+## 2026-10-14 · Comms satellites
+
+- New research, Orbital Comms: an assembler builds comms satellites and the launch site sends them up. Each one covers a circle 1024 blocks wide (drawn in blue on the maps).
+- Under a comms satellite, all fibre nodes join into one data grid however far apart they are, so a datacenter can serve labs on the other side of the map.
+- A drone port under one reaches four times as far, and its cargo drones fly twice as far. The cover moves on with the satellite, so a dozen up keep it steady.
+
+## 2026-10-14 · Survey satellites show the ground
+
+- A survey satellite now maps what is under it: every iron, coal, copper and other vein or lode inside its circle appears on the minimap and the world map as it passes, and stays there. The circle itself is drawn as a faint gold disc.
+- The AI survey stops guessing where a satellite has already found the ore.
+
 ## 2026-10-14 · A clearer build list
 
 - The Hover Pack now goes in the Flight pack equipment slot, the same slot as the Jetpack, so you wear one or the other. Carrying it in your backpack no longer does anything.

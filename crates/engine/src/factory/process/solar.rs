@@ -38,7 +38,7 @@ pub struct Store {
     pub sun: u32,
     pub given: u32,
     pub taken: u32,
-    /// kW the water around a water wheel gives (derived; `hydro.rs`).
+    /// kW the water around a water wheel, or the satellites over a rectenna, give (derived; `hydro.rs`, `rectenna.rs`).
     pub flow: u32,
 }
 

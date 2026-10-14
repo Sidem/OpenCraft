@@ -10,7 +10,12 @@
 //! deposit of that ore is dropped: it has been found. Ores that leave no stain (bauxite, oil sand, uranium) are
 //! never guessed.
 //!
-//! To guess from something else too: add its columns to `stained` in [`survey`].
+//! To guess from something else too: add its columns to `stained` in [`survey`]. Survey satellites' finds, which
+//! are facts, are in `orbit.rs`.
+
+mod orbit;
+
+pub use orbit::Seen;
 
 use rustc_hash::FxHashMap;
 
@@ -61,7 +66,7 @@ pub fn ore_of(stain: BlockId) -> Option<BlockId> {
 #[derive(Default)]
 pub struct Survey {
     guesses: Vec<Guess>,
-    at: Option<((i32, i32), u32, usize)>,
+    at: Option<((i32, i32), u32, usize, u32)>,
 }
 
 impl Survey {
@@ -71,17 +76,18 @@ impl Survey {
 
     /// Brings the guesses up to date for a player at `centre`; clears them while the tech is not known (`on`).
     /// Does nothing unless the player changed square, the explored map changed or a deposit was prospected.
-    pub fn update(&mut self, atlas: &Atlas, known: &Known, centre: (i32, i32), on: bool) {
+    /// Deposits that survey satellites saw count as found too: guesses near them are dropped.
+    pub fn update(&mut self, atlas: &Atlas, known: &Known, seen: &Seen, centre: (i32, i32), on: bool) {
         if !on {
             *self = Survey::default();
             return;
         }
-        let stamp = ((centre.0 >> 4, centre.1 >> 4), atlas.changes, known.centres().count());
+        let stamp = ((centre.0 >> 4, centre.1 >> 4), atlas.changes, known.centres().count(), seen.changes);
         if self.at == Some(stamp) {
             return;
         }
         self.at = Some(stamp);
-        let known: Vec<_> = known.centres().collect();
+        let known: Vec<_> = known.centres().chain(seen.centres()).collect();
         self.guesses = survey(atlas, centre, &known);
     }
 }
@@ -138,7 +144,9 @@ impl Game {
         let on = self.sim.factory.research.has(Unlock::Feature(Feature::AiSurvey));
         let p = self.body().pos.floor();
         let m = &mut self.minimap;
-        m.survey.update(&m.atlas, &m.known, (p.x, p.z), on);
+        let (sats, tick) = (&self.sim.factory.orbit, self.sim.tick);
+        m.seen.step(self.sim.world.generator(), sats, tick, (p.x, p.z));
+        m.survey.update(&m.atlas, &m.known, &m.seen, (p.x, p.z), on);
     }
 }
 

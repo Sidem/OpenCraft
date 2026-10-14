@@ -41,6 +41,10 @@ pub fn facts(spec: &ProcessSpec, tier: usize) -> Facts {
             f.makes = Some((super::hydro::MAX_KW, ", with flowing water"));
             f.stat("Needs", "Flowing water touching it");
         }
+        Energy::Rectenna => {
+            f.makes = Some((super::rectenna::MAX_KW, ", with five power satellites overhead"));
+            f.stat("Needs", "Power satellites over it");
+        }
         Energy::Reactor => {
             f.fuel = Some(item::name(FUEL_CELL).to_string());
             f.makes = Some((super::nuclear::REACTOR_KW, ""));

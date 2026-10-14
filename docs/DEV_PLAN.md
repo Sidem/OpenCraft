@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is built and not yet committed**, **next: step 12.3** what satellites give (the rest of Milestone 12 is a first draft in section 4, to refine with the user at 12.3; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 in progress: survey, comms, power and science satellites are all built (2026-10-14, uncommitted); next: commit, then 12.4** (the rest of Milestone 12 is a first draft in section 4, to refine with the user at 12.3; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -443,7 +443,7 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 45) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 110, item 392, tech 79, machine recipe 71). Each new look gets a placeholder layer (`tex::COUNT` is 295) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 112, item 395, tech 82, machine recipe 77). Each new look gets a placeholder layer (`tex::COUNT` is 302) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -543,10 +543,25 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   direction (hung 400 blocks up, shown within 2400 blocks) and `render/sky.ts` draws gold lights (faint by day). The launch
   site's readout says "Survey satellites: N up, M over this pad". `Game::launch_satellite_at` is a debug scene helper. Tests
   752 → 763. Not done: a map layer for coverage, a launch sound or toast.
-- [ ] **12.3 What satellites give** (refine the numbers with the user first: coverage 768 blocks and 6 blocks a second are first
-  guesses, and the cap of 24 a kind is open): survey (every deposit under coverage on the map, replacing the AI survey's guesses with
-  facts), comms (data grids and drone ports reach across coverage), power (a rectenna receives beamed power), science (a downlink
-  gives the last research input). One tech each, one module each. Fold in antenna bands from the roadmap's thread "the carry".
+- [ ] **12.3 What satellites give** (numbers kept as built, 2026-10-14, to tune in play; split into one kind per session).
+  **Survey done** (2026-10-14, `survey/orbit.rs`: veins and lodes under a survey footprint go on both maps as facts, kept for the
+  session and not saved; the AI survey drops guesses near them; footprints are `MARK_COVER` marks drawn as a gold disc; no save
+  change; not looked at in the browser pane). **Comms done** (2026-10-14: tech Orbital Comms 79 (needs Rocketry, Data Network), item
+  392, texture 295, assembler recipe 71 and launch recipe 72, `KINDS` row `COMMS` with reach 1024. Under a comms footprint all fibre
+  nodes are one data grid, rejoined each tick (`Data::uplink`, `merged`, derived, not saved), and a drone port's construction reach is
+  ×4 and its cargo range ×2 (`Hangar::linked`, `reach_and_range`); both end when the satellite flies on, so a dozen are wanted for
+  steady cover. No new block: no ground station yet. No save change; golden hash re-recorded; 796 tests; not seen in the browser
+  pane.) **Power done** (2026-10-14: block 110 Rectenna, 5×5×1, `process/rectenna.rs`, `Energy::Rectenna`, `Source::Rectenna`;
+  each power satellite over it beams 200 kW, cap 1 MW, day and night, derived every tick by `sense_sources` and given like a
+  water wheel's power in `Power::balance`; tech Orbital Power 80 (needs Rocketry, Nuclear Power) unlocks it, item 393, textures
+  296–298, assembler recipe 73 and launch recipe 74, hand recipe in Group::Power; reach 1024; no save change, golden hash
+  re-recorded; 801 tests; not seen in the browser pane; no sky beam drawn yet). **Science done** (2026-10-14: "space data" is
+  compute, not a new research mechanism: block 111 Ground Station, 3×3×2, `process/ground.rs`, a data producer (`compute 100`,
+  `Energy::Optimizer` power sink, 150 kW) that offers 40 TF per science satellite over it, cap 100 TF, derived every tick by
+  `ground::sense` (`Store::flow`) and read by `Data::balance` via `Processor::offered_tf`; tech Orbital Science 81 (needs Rocketry,
+  Data Network), item 394, textures 299–301, assembler recipe 75 and launch recipe 76 (three inputs: the assembler's limit), `KINDS`
+  row `SCIENCE`, reach 1024; the maps tint its footprint pale blue; no save change, golden hash re-recorded; 805 tests; not seen in
+  the browser pane). All four kinds are in. Fold in antenna bands from the roadmap's thread "the carry" or leave them.
 - [ ] **12.4 Drop pods to landing pads:** carry items from a rocket's cargo to a pad anywhere in comms coverage.
 - [ ] **12.5 Cleanup:** tips, balance, worst tick, README, CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
@@ -592,6 +607,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-14: What satellites give (step 12.3, all four kinds).** Survey (`survey/orbit.rs`), comms (`Data::uplink`, `Hangar::linked`), power (Rectenna 110, `process/rectenna.rs`) and science (Ground Station 111, `process/ground.rs`: 40 TF a satellite overhead, cap 100, 150 kW). Techs 79–81, items 391–394, machine recipes 70–76, textures 294–301. Golden hash re-recorded; 805 tests. Next free block 112, item 395, tech 82, machine recipe 77, texture 302.
 - **2026-10-11: Satellites in orbit (step 12.2).** `satellites.rs` (core, `Factory::orbit`, save version 45: orbits are integer maths on the tick, a wrapped sky of 4096 blocks, 8 headings, coverage by a kind's reach, 24 a kind), the Survey Satellite (item 391, texture 294, machine recipe 70, launch recipe 69 now carries it, the pad has 6 input slots and reads old 5-slot saves), `Processor::lifted`, `api/orbit.rs` `sky_satellites`, gold lights in `render/sky.ts`, the launch site's "satellites up / over this pad" line. Golden hash re-recorded. Tests 752 → 763. Next free block 110, item 392, tech 79, machine recipe 71, texture 295.
 - **2026-10-11: Rocket parts and the launch site (step 12.1).** Block 109 Launch Site (`process/launch.rs`), tech Rocketry 78 (`research/orbit.rs`), items 386–390, machine recipes 64–69 (`recipes/orbit.rs`), `Category::Launch`, `Look::Rocket`, textures 286–293 (`textures/orbit.rs`); `crate::join` (generic const join) now builds both `TECHS` and `MACHINE_RECIPES`. A pad launches a rocket per 60 s batch and counts it (`Processor::launches`). No save bump, golden hash re-recorded. Tests 744 → 752. Next free block 110, item 391, tech 79, machine recipe 70, texture 294.
 - **2026-10-14: Hit boxes follow the model (user request).** Poles, belts, splitters, filters, pipes, sensors and nodes are hit where their model is, not as a whole cell, so a pole no longer hides the block behind it: `hitbox.rs` (`Boxes`: oriented boxes from the model's own instances, slab test) fed by `Factory::hit_boxes` (`factory/hitbox.rs`; a belt without its items via `Belt::frame`, a cable a 0.4 cube), used by `interaction/aim.rs`; the target outline hugs the model (`Game::target_fit`). Presentation only: no save change. 779 tests.

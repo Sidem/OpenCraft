@@ -24,7 +24,7 @@ use crate::chunk::CHUNK_SHIFT;
 use crate::math::{IVec3, Vec3};
 use crate::player::Player;
 use crate::sim::PlayerId;
-use crate::survey::Survey;
+use crate::survey::{Seen, Survey};
 use crate::textures::TEX_SIZE;
 use crate::world::World;
 
@@ -51,6 +51,8 @@ pub struct Minimap {
     pub known: Known,
     /// The AI survey's guesses from the stained soil seen (`survey.rs`).
     pub survey: Survey,
+    /// Deposits survey satellites have covered (`survey/orbit.rs`).
+    pub seen: Seen,
 }
 
 impl Minimap {
@@ -72,6 +74,7 @@ impl Minimap {
             world_pixels: Vec::new(),
             known: Known::default(),
             survey: Survey::default(),
+            seen: Seen::default(),
         }
     }
 

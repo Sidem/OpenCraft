@@ -44,7 +44,7 @@ use heavy::*;
 pub use machine::*;
 use materials::*;
 pub use menu_order::menu_order;
-use orbit::LAUNCH_SITE_RECIPE;
+use orbit::{GROUND_STATION_RECIPE, LAUNCH_SITE_RECIPE, RECTENNA_RECIPE};
 use recycler::*;
 pub use rows::*;
 use solar::*;
@@ -409,6 +409,8 @@ pub const RECIPES: &[Recipe] = &[
     SWARM_HUB_RECIPE,
     CRAFT_GLOVES_RECIPE,
     LAUNCH_SITE_RECIPE,
+    GROUND_STATION_RECIPE,
+    RECTENNA_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

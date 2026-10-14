@@ -155,7 +155,7 @@ export class WorldMap {
     c.lineWidth = dpr;
     for (let i = 0; i < marks.length; i += n) {
       const [x, y] = at(marks[i] + 0.5, marks[i + 1] + 0.5);
-      drawMark(c, x, y, marks[i + 2], marks[i + 3], dpr * 1.3);
+      drawMark(c, x, y, marks[i + 2], marks[i + 3], dpr * 1.3, dpr / v.bpp);
     }
     for (const pin of this.pins.list) {
       const [x, y] = at(pin.x + 0.5, pin.z + 0.5);

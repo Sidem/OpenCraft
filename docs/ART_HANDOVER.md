@@ -211,6 +211,16 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   site in the game, next to the fab and the datacenter.
   Survey satellite (12.2, 2026-10-11): `tex::SURVEY_SATELLITE` (294, `textures/orbit.rs`) is an icon only: a gold box with a dish between two
   blue solar wings. In the sky it is just a gold light (`web/src/render/sky.ts`), so the icon is the only look it needs.
+  Comms satellite (12.3, 2026-10-14): `tex::COMMS_SATELLITE` (295, same file) is an icon only: a silver body under a big white dish with a
+  red aerial. In the sky it is the same gold light as the survey kind; give the kinds different colours there if wanted.
+  Power satellite (12.3, 2026-10-14): `tex::POWER_SATELLITE` (296) is an icon only: a gold body with a red transmitter dot between two wide
+  solar wings. Rectenna (block 110, 5×5×1, `process/rectenna.rs`): `tex::RECTENNA_TOP` (297, a dark panel of diodes) and `RECTENNA_SIDE`
+  (298, plating over an orange hazard band); the model is a banded plinth, the flat field, a mast with a lamp and one corner post. A
+  beam from the sky onto the field while it receives would suit it (not drawn yet).
+  Science satellite (12.3, 2026-10-14): `tex::SCIENCE_SATELLITE` (299) is an icon only: a white body with a green sensor eye between two small
+  solar wings. Ground station (block 111, 3×3×2, `process/ground.rs`): `tex::GROUND_TOP` (300, pale concentric dish rings round a dark feed) and
+  `GROUND_SIDE` (301, panels over a blue hazard band); the model is a banded plinth, a pale body, a neck with a flat dish plate, a mast and a lamp.
+  A real tilted dish that turns towards the satellites would suit it.
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

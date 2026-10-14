@@ -29,6 +29,8 @@ export const MARK_MACHINE = 1;
 export const MARK_ORE = 2;
 export const MARK_SITE = 3;
 export const MARK_GUESS = 4;
+/** A satellite's footprint is `MARK_COVER` plus its kind; the colour field holds its reach in blocks. */
+export const MARK_COVER = 8;
 const EXTRA_KINDS: PinKind[] = [
   { id: 'home', label: 'Home', color: '#ffffff' },
   { id: 'note', label: 'Note', color: '#fa9549' },
@@ -90,10 +92,28 @@ export function hex(color: number): string {
   return `#${color.toString(16).padStart(6, '0')}`;
 }
 
-/** One engine mark at canvas point (x, y): a ringed dot, a square, a diamond or a hollow square; `px` is one map pixel. */
-export function drawMark(c: CanvasRenderingContext2D, x: number, y: number, color: number, shape: number, px: number): void {
+/** One engine mark at canvas point (x, y): a ringed dot, a square, a diamond or a hollow square; `px` is one map pixel,
+ * `perBlock` the canvas pixels in one block (for a satellite's footprint, whose size is in blocks). */
+export function drawMark(
+  c: CanvasRenderingContext2D, x: number, y: number, color: number, shape: number, px: number, perBlock = px,
+): void {
   c.fillStyle = hex(color);
   c.beginPath();
+  if (shape >= MARK_COVER) {
+    // A satellite's footprint (the colour field is its reach in blocks): a faint disc and ring, gold for survey,
+    // cyan for comms and pink for power.
+    const tint = ['#f2c230', '#5ad1e0', '#f472b6', '#9be7ff'][shape - MARK_COVER] ?? '#ffffff';
+    c.arc(x, y, color * perBlock, 0, 2 * Math.PI);
+    c.globalAlpha = 0.07;
+    c.fillStyle = tint;
+    c.fill();
+    c.globalAlpha = 0.5;
+    c.strokeStyle = tint;
+    c.lineWidth = Math.max(1.5, px);
+    c.stroke();
+    c.globalAlpha = 1;
+    return;
+  }
   if (shape >= MARK_GUESS) {
     // A faint ring, wider over more stained ground: a guess, not a find.
     c.arc(x, y, (4 + 2 * (shape - MARK_GUESS)) * px, 0, 2 * Math.PI);

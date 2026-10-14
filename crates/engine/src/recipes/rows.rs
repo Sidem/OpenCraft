@@ -55,3 +55,9 @@ pub const ROCKET_PART_RECIPES: [u16; 4] = [64, 65, 66, 67];
 pub const ROCKET_FUEL_RECIPE: u16 = 68;
 pub const ROCKET_RECIPE: u16 = 69;
 pub const SURVEY_SATELLITE_RECIPE: u16 = 70;
+/// Orbital Comms: the assembler's comms satellite and the launch site's rocket for it.
+pub const COMMS_SATELLITE_RECIPES: [u16; 2] = [71, 72];
+/// Orbital Power: the assembler's power satellite and the launch site's rocket for it.
+pub const POWER_SATELLITE_RECIPES: [u16; 2] = [73, 74];
+/// Orbital Science: the assembler's science satellite and the launch site's rocket for it.
+pub const SCIENCE_SATELLITE_RECIPES: [u16; 2] = [75, 76];

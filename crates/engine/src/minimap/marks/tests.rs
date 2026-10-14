@@ -55,6 +55,30 @@ fn a_scan_marks_its_veins_and_lodes_where_they_lie() {
 }
 
 #[test]
+fn a_survey_satellite_marks_its_footprint_and_the_deposits_under_it() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    g.minimap_redraw();
+    assert!(marks_of(&g, MARK_COVER).is_empty() && marks_of(&g, MARK_DEPOSIT).is_empty(), "nothing before a launch");
+    let at = g.body().pos.floor();
+    g.launch_satellite_at(at.x, at.z);
+    g.run_ticks(1);
+    for _ in 0..40 {
+        g.minimap_redraw();
+    }
+    // The player stands under it: the ring is centred on the image, its reach (in blocks) in the colour field.
+    let rings = marks_of(&g, MARK_COVER);
+    assert_eq!(rings.len(), 1);
+    assert!(rings[0].0.abs() <= 1 && rings[0].1.abs() <= 1, "{rings:?}");
+    assert_eq!(rings[0].2, crate::satellites::KINDS[0].reach);
+    // The whole world map's window shows many deposits that nobody prospected.
+    let (x, z) = (at.x, at.z);
+    let marks = g.world_map_marks(x - 700, z - 700, x + 700, z + 700);
+    let deposits = marks.chunks_exact(MARK_FIELDS).filter(|r| r[3] == MARK_DEPOSIT).count();
+    assert!(deposits > 20 && g.minimap.known.deposits.is_empty(), "{deposits} seen from orbit");
+}
+
+#[test]
 fn a_deposit_that_runs_dry_loses_its_mark() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);

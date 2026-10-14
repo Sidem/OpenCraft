@@ -32,15 +32,15 @@ impl Factory {
     pub fn ports(&self) -> Vec<PortInfo> {
         let mut ports = Vec::new();
         for p in &self.processors {
-            let Some(tier) = p.hangar_tier() else { continue };
+            let Some((reach, cargo_range)) = p.reach_and_range() else { continue };
             let centre = p.pos.as_vec3() + Vec3::new(0.5, 0.0, 0.5) + p.spec.footprint.centre(p.dir);
             ports.push(PortInfo {
                 anchor: p.pos,
                 centre,
-                reach: f64::from(tier.reach),
+                reach: f64::from(reach),
                 home: p.drones_home(),
                 couriers: p.couriers_home(),
-                cargo_range: f64::from(tier.cargo_range),
+                cargo_range: f64::from(cargo_range),
                 powered: p.speed > 0,
             });
         }

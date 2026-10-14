@@ -205,7 +205,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::NODE_SIDE..=tex::OPT_TOP => compute::pixel(layer, x, y),
         tex::EMIT_SIDE..=tex::BEAM | tex::MIRROR..=tex::DATA_TOP => laser::pixel(layer, x, y),
         tex::HUB_SIDE..=tex::HUB_TOP => hub::pixel(layer, x, y),
-        tex::LAUNCH_SIDE..=tex::SURVEY_SATELLITE => orbit::pixel(layer, x, y),
+        tex::LAUNCH_SIDE..=tex::GROUND_SIDE => orbit::pixel(layer, x, y),
         tex::SMOKE..=tex::SMOKE_THIN | tex::SOOT => smoke::pixel(layer, x, y),
         tex::LOCO_BODY => transport::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),

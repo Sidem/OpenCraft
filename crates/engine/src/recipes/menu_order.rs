@@ -68,6 +68,7 @@ const MENU: &[ItemId] = &[
     b(WATER_WHEEL),
     b(DIESEL_GENERATOR),
     b(REACTOR),
+    b(RECTENNA),
     b(POLE),
     b(CABLE),
     // Science.
