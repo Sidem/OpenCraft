@@ -278,10 +278,7 @@ impl Factory {
     pub(super) fn write_wires(&self, out: &mut Vec<f32>, eye: Vec3, range: f64) {
         let top = |pos: IVec3, h: f64| pos.as_vec3() + Vec3::new(0.5, h, 0.5);
         // A pole's wire leaves its crossarm, a cable's its centre.
-        let pole = |i: u32| {
-            let p = &self.poles[i as usize];
-            top(p.pos, if p.is_cable() { 0.5 } else { 0.92 })
-        };
+        let pole = |i: u32| self.poles[i as usize].wire_point();
         // A wire wears the colour of the grid it hangs from.
         let mut span = |a: Vec3, b: Vec3, from: u32| {
             let mid = (a + b) * 0.5 - eye;

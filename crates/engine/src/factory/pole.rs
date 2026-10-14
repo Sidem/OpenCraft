@@ -14,6 +14,8 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 
+use super::footprint::Footprint;
+use super::links::Slot;
 use super::render::push_box;
 use super::{Factory, Machine};
 
@@ -44,6 +46,35 @@ pub const CABLE_STATS: PoleTier = PoleTier { link: 1, reach: 2, slots: 0 };
 /// Cables this close (squared: touching, diagonals too) are one wire.
 const CABLE_TOUCH2: i32 = 2;
 
+/// The tier a long-distance pole (block `LONG_POLE`, 2×2×3) is stored as: its own block, so no upgrade reaches it.
+pub const LONG_TIER: u8 = 14;
+/// A long-distance pole's numbers: `link` is the span to other long-distance poles only.
+pub const LONG_STATS: PoleTier = PoleTier { link: 160, reach: 10, slots: 6 };
+/// How far a long-distance pole links to an ordinary pole (it is no further than a Mk2 pole there).
+pub const LONG_LOCAL_LINK: i32 = 16;
+/// A long-distance pole stands on these cells, from its anchor, whichever way it was placed (it stores no facing).
+pub const LONG_FOOTPRINT: Footprint = Footprint { size: [2, 2, 3], ports: &[] };
+
+/// The numbers of pole tier `tier` (a cable and a long-distance pole have their own).
+pub fn tier_stats(tier: u8) -> &'static PoleTier {
+    match tier {
+        CABLE_TIER => &CABLE_STATS,
+        LONG_TIER => &LONG_STATS,
+        t => &POLE_TIERS[t as usize],
+    }
+}
+
+/// How far apart poles of tiers `a` and `b` can be wired: two long-distance poles span `LONG_STATS.link`, but a
+/// long-distance pole reaches an ordinary pole only as far as `LONG_LOCAL_LINK` (the longer link of the two wins).
+pub fn span(a: u8, b: u8) -> i32 {
+    let local = |t: u8| if t == LONG_TIER { LONG_LOCAL_LINK } else { tier_stats(t).link };
+    if a == LONG_TIER && b == LONG_TIER {
+        LONG_STATS.link
+    } else {
+        local(a).max(local(b))
+    }
+}
+
 pub struct Pole {
     pub pos: IVec3,
     pub tier: u8,
@@ -51,20 +82,33 @@ pub struct Pole {
 
 impl Pole {
     pub fn stats(&self) -> &'static PoleTier {
-        if self.is_cable() {
-            &CABLE_STATS
-        } else {
-            &POLE_TIERS[self.tier as usize]
-        }
+        tier_stats(self.tier)
     }
 
     pub fn is_cable(&self) -> bool {
         self.tier == CABLE_TIER
     }
+
+    pub fn is_long(&self) -> bool {
+        self.tier == LONG_TIER
+    }
+
+    /// Where its wires hang, in the world: a crossarm, a cable's middle, or the top of a long-distance pole.
+    pub fn wire_point(&self) -> Vec3 {
+        let base = self.pos.as_vec3();
+        match self.tier {
+            CABLE_TIER => base + Vec3::new(0.5, 0.5, 0.5),
+            LONG_TIER => {
+                let c = LONG_FOOTPRINT.centre(0);
+                base + Vec3::new(0.5 + c.x, 2.95, 0.5 + c.z)
+            }
+            _ => base + Vec3::new(0.5, 0.92, 0.5),
+        }
+    }
 }
 
 /// Whether poles `a` and `b` are within range of each other: cables touching, a cable in a pole's reach, or
-/// two real poles within their link. Cables join by range alone; real poles only by hand (`wiring.rs`),
+/// two real poles within their `span`. Cables join by range alone; real poles only by hand (`wiring.rs`),
 /// and saves before version 24 are converted with this rule (`Factory::hook_by_reach`).
 pub(super) fn linked(a: &Pole, b: &Pole) -> bool {
     let d = dist2(a.pos, b.pos);
@@ -72,7 +116,7 @@ pub(super) fn linked(a: &Pole, b: &Pole) -> bool {
         (true, true) => d <= CABLE_TOUCH2,
         (true, false) => d <= b.stats().reach * b.stats().reach,
         (false, true) => d <= a.stats().reach * a.stats().reach,
-        (false, false) => d <= a.stats().link.max(b.stats().link).pow(2),
+        (false, false) => d <= span(a.tier, b.tier).pow(2),
     }
 }
 
@@ -105,6 +149,14 @@ impl Machine for Pole {
         self.pos
     }
 
+    fn cells(&self) -> Vec<IVec3> {
+        if self.is_long() {
+            LONG_FOOTPRINT.cells(self.pos, 0)
+        } else {
+            vec![self.pos]
+        }
+    }
+
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.tier);
@@ -114,7 +166,7 @@ impl Machine for Pole {
         let pos = r.ivec3()?;
         let tier = if r.version >= 21 { r.u8()? } else { 0 };
         let tier = if r.version == 21 && tier == 3 { CABLE_TIER } else { tier };
-        (((tier as usize) < POLE_TIERS.len()) || tier == CABLE_TIER).then_some(Pole { pos, tier })
+        (((tier as usize) < POLE_TIERS.len()) || tier == CABLE_TIER || tier == LONG_TIER).then_some(Pole { pos, tier })
     }
 
     fn contents(&self) -> Vec<Stack> {
@@ -137,6 +189,15 @@ impl Machine for Pole {
         let machines = f.power.miner_pole.iter().chain(&f.power.process_pole).chain(&f.power.lab_pole);
         let machines = machines.chain(&f.power.pipe_pole).chain(&f.power.quarry_pole).filter(|p| on(p)).count();
         let PoleTier { link, reach, slots } = *self.stats();
+        if self.is_long() {
+            return format!(
+                "{label}{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} \
+                 connections used: long-distance poles within {link} blocks, other poles within {LONG_LOCAL_LINK}, \
+                 machines within {reach}",
+                f.power.grid_line(me),
+                f.slots_used(self.pos)
+            );
+        }
         format!(
             "{label}{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} connections \
              used: poles within {link} blocks, machines within {reach}",
@@ -150,6 +211,9 @@ impl Machine for Pole {
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
         if self.is_cable() {
             return;
+        }
+        if self.is_long() {
+            return long_model(out, rel + LONG_FOOTPRINT.centre(0));
         }
         push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
         push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.13, 0.85, 0.13], 0.0, [tex::FRAME; 3], true);
@@ -167,10 +231,18 @@ impl Machine for Pole {
 }
 
 impl Factory {
-    /// Every real pole (cables left out) as its cell and tier: what the pole tool chains from
-    /// (`power_tools.rs`).
+    /// Every ordinary pole (cables and long-distance poles left out) as its cell and tier: what the pole tool
+    /// chains from (`power_tools.rs`).
     pub fn poles(&self) -> impl Iterator<Item = (IVec3, u8)> + '_ {
-        self.poles.iter().filter(|p| !p.is_cable()).map(|p| (p.pos, p.tier))
+        self.poles.iter().filter(|p| !p.is_cable() && !p.is_long()).map(|p| (p.pos, p.tier))
+    }
+
+    /// Where the wires of the pole anchored at `pos` hang, in the world (`None` when no pole is anchored there).
+    pub fn pole_top(&self, pos: IVec3) -> Option<Vec3> {
+        match self.at.get(&pos) {
+            Some(&Slot::Pole(i)) => Some(self.poles[i as usize].wire_point()),
+            _ => None,
+        }
     }
 
     /// Whether a cable put at `pos` would join a grid: a pole reaches it or a cable touches it.
@@ -178,6 +250,39 @@ impl Factory {
         let probe = Pole { pos, tier: CABLE_TIER };
         self.poles.iter().any(|p| p.pos != pos && linked(&probe, p))
     }
+}
+
+/// The long-distance pole's lattice tower, 2×2×3; `c` is its centre relative to the camera.
+fn long_model(out: &mut Vec<f32>, c: Vec3) {
+    let frame = [tex::FRAME; 3];
+    let mut put = |at: [f64; 3], size: [f32; 3], tex: [u16; 3]| {
+        push_box(out, c + Vec3::new(at[0], at[1], at[2]), 0.0, size, 0.0, tex, false);
+    };
+    put([0.0, -1.4, 0.0], [1.9, 0.2, 1.9], frame);
+    for (x, z) in [(-0.75, -0.75), (0.75, -0.75), (-0.75, 0.75), (0.75, 0.75)] {
+        put([x, -0.05, z], [0.2, 2.8, 0.2], frame);
+    }
+    for y in [-0.6, 0.5] {
+        for s in [-0.75, 0.75] {
+            put([0.0, y, s], [1.7, 0.1, 0.1], frame);
+            put([s, y, 0.0], [0.1, 0.1, 1.7], frame);
+        }
+    }
+    put([0.0, 0.0, 0.0], [0.3, 3.0, 0.3], frame);
+    put([0.0, 1.15, 0.0], [2.0, 0.12, 0.26], frame);
+    for x in [-0.9, 0.9] {
+        put([x, 1.3, 0.0], [0.14, 0.2, 0.14], [tex::FLASK_GLASS; 3]);
+        put([x, 1.42, 0.0], [0.09, 0.05, 0.09], [tex::COPPER_WIRE; 3]);
+    }
+}
+
+/// A long-distance pole's grid-coloured sleeves on its four legs and crossarm; `c` is its centre relative to the camera.
+pub(super) fn long_accent(out: &mut Vec<f32>, c: Vec3, layer: u16) {
+    let tex = [layer; 3];
+    for (x, z) in [(-0.75, -0.75), (0.75, -0.75), (-0.75, 0.75), (0.75, 0.75)] {
+        push_box(out, c + Vec3::new(x, 0.9, z), 0.0, [0.26, 0.2, 0.26], 0.0, tex, false);
+    }
+    push_box(out, c + Vec3::new(0.0, 1.15, 0.0), 0.0, [0.5, 0.18, 0.32], 0.0, tex, false);
 }
 
 /// A pole's model where none stands yet (the pole tool's preview, `power_tools.rs`); `rel` is its cell

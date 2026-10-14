@@ -58,7 +58,8 @@ impl Factory {
             }
             Slot::Storage(i) => Some((STORAGE, self.storages[i as usize].tier)),
             Slot::Generator(i) => Some((GENERATOR, self.generators[i as usize].tier)),
-            Slot::Pole(i) => Some((POLE, self.poles[i as usize].tier)).filter(|t| t.1 != super::pole::CABLE_TIER),
+            Slot::Pole(i) => Some((POLE, self.poles[i as usize].tier))
+                .filter(|t| t.1 != super::pole::CABLE_TIER && t.1 != super::pole::LONG_TIER),
             Slot::Lab(i) => Some((LAB, self.labs[i as usize].tier)),
             Slot::Pipe(i) => {
                 (self.pipework[i as usize].part == Part::Pump).then_some((PUMP, self.pipework[i as usize].tier))

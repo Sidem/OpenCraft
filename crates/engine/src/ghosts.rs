@@ -33,7 +33,8 @@ pub struct Ghost {
 impl Ghost {
     /// Every cell the ghost covers, the anchor first.
     pub fn cells(&self) -> Vec<IVec3> {
-        footprint::of(self.block).map_or_else(|| vec![self.pos], |f| f.cells(self.pos, self.facing))
+        footprint::of(self.block)
+            .map_or_else(|| vec![self.pos], |f| f.cells(self.pos, footprint::layout_dir(self.block, self.facing)))
     }
 
     /// The item that builds it (a tiered machine's tier item).

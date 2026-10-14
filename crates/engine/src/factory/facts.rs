@@ -12,7 +12,7 @@ use super::describe::fmt_int;
 use super::generator::GENERATOR_TIERS;
 use super::lab::LAB_TIERS;
 use super::miner::MINER_TIERS;
-use super::pole::{CABLE_STATS, POLE_TIERS};
+use super::pole::{CABLE_STATS, LONG_LOCAL_LINK, LONG_STATS, POLE_TIERS};
 use super::process::{facts as process_facts, spec};
 use super::pumping::{OUTLET_RATE, PUMP_TIERS};
 use super::quarry::{DEPTHS, QUARRY_TIERS, WIDTHS};
@@ -20,8 +20,8 @@ use super::storage::BOX_SLOTS;
 use super::tiers::placed_by;
 use super::underpass::UNDERPASS_SPAN;
 use crate::block::{
-    BELT, CABLE, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP, QUARRY, SENSOR,
-    SPLITTER, STORAGE, UNDERPASS_IN,
+    BELT, CABLE, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP,
+    QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{self, ItemId};
 use crate::recipes::FUELS;
@@ -124,6 +124,13 @@ pub fn facts(item: ItemId) -> Option<Facts> {
             f.stat("Links poles", format!("within {} blocks", t.link));
             f.stat("Powers machines", format!("within {} blocks", t.reach));
             f.stat("Connections", t.slots.to_string());
+        }
+        LONG_POLE => {
+            f.size = super::pole::LONG_FOOTPRINT.size;
+            f.stat("Links long-distance poles", format!("within {} blocks", LONG_STATS.link));
+            f.stat("Links other poles", format!("within {LONG_LOCAL_LINK} blocks"));
+            f.stat("Powers machines", format!("within {} blocks", LONG_STATS.reach));
+            f.stat("Connections", LONG_STATS.slots.to_string());
         }
         CABLE => f.stat("Powers machines", format!("within {} blocks", CABLE_STATS.reach)),
         LAB => {

@@ -1,6 +1,8 @@
 use super::super::tests::{place_block, rod_maker, round_trip, run};
 use super::*;
-use crate::block::{CABLE, COAL_ORE, GENERATOR, POLE};
+use crate::block::{CABLE, COAL_ORE, GENERATOR, LONG_POLE, MINER, POLE};
+use crate::factory::Hookup;
+use crate::world::World;
 
 fn v(x: i32, y: i32, z: i32) -> IVec3 {
     IVec3::new(x, y, z)
@@ -85,4 +87,61 @@ fn a_version_21_cable_kept_its_tier_3_and_is_still_a_cable_while_tier_3_is_now_t
         Pole::read_state(&mut r).map(|p| p.is_cable())
     };
     assert_eq!((read(21), read(22)), (Some(true), Some(false)));
+}
+
+fn by_hand() -> Factory {
+    Factory { by_hand: true, ..Factory::default() }
+}
+
+#[test]
+fn a_long_distance_pole_stands_on_a_2x2x3_footprint_and_breaks_whole() {
+    let mut f = by_hand();
+    place_block(&mut f, LONG_POLE, v(10, 5, 10));
+    let cells = f.machine_cells(v(11, 7, 9));
+    assert_eq!(cells.len(), 12);
+    assert_eq!(cells[0], v(10, 5, 10), "the anchor first");
+    assert!(cells.iter().all(|&c| f.anchor_of(c) == Some(v(10, 5, 10))));
+    assert_eq!(f.footprint_at(v(11, 6, 10)).map(|x| x.1), Some(LONG_POLE));
+    assert_eq!(f.poles().count(), 0, "the pole tool never chains from a long-distance pole");
+    assert!(f.hit_boxes(v(10, 5, 10)).is_none(), "the whole cell counts");
+    f.remove(v(11, 7, 9));
+    assert!(f.poles.is_empty() && f.at.is_empty(), "breaking any cell removes the whole tower");
+}
+
+#[test]
+fn long_distance_poles_span_far_to_each_other_but_not_to_ordinary_poles() {
+    let mut f = by_hand();
+    for x in [0, 150, 170] {
+        place_block(&mut f, LONG_POLE, v(x, 3, 0));
+    }
+    place_block(&mut f, POLE, v(15, 3, 5));
+    place_block(&mut f, POLE, v(20, 3, 5));
+    assert_eq!(f.hookup(v(0, 3, 0), v(150, 3, 0)), Hookup::Connect);
+    assert_eq!(f.hookup(v(150, 3, 0), v(0, 3, 0)), Hookup::Connect);
+    assert_eq!(f.hookup(v(0, 3, 0), v(170, 3, 0)), Hookup::TooFar, "past 160 blocks");
+    assert_eq!(f.hookup(v(0, 3, 0), v(15, 3, 5)), Hookup::Connect, "an ordinary pole within 16");
+    assert_eq!(f.hookup(v(0, 3, 0), v(20, 3, 5)), Hookup::TooFar, "but not past it, however long the tower's span");
+    // An ordinary pole's own link is no longer for it either: a Mk3 pole links 32, so 150 is out of the question.
+    assert_eq!(span(2, LONG_TIER), 32);
+    assert_eq!(span(0, LONG_TIER), LONG_LOCAL_LINK);
+}
+
+#[test]
+fn power_crosses_a_long_span_and_the_tower_survives_a_save() {
+    let mut f = by_hand();
+    place_block(&mut f, LONG_POLE, v(0, 3, 0));
+    place_block(&mut f, LONG_POLE, v(150, 3, 0));
+    place_block(&mut f, GENERATOR, v(4, 3, 0));
+    place_block(&mut f, MINER, v(146, 3, 0));
+    f.connect(v(0, 3, 0), v(150, 3, 0));
+    f.connect(v(0, 3, 0), v(4, 3, 0));
+    f.connect(v(150, 3, 0), v(146, 3, 0));
+    f.update(&mut World::new(1, 2), 1, &mut Vec::new());
+    let grid = |x| f.poles.iter().position(|p| p.pos == v(x, 3, 0)).map(|i| f.power.pole_grid[i]);
+    assert_eq!(grid(0), grid(150), "the two towers are one grid");
+    assert!(f.power.gen_pole[0].is_some() && f.power.miner_pole[0].is_some());
+    let g = round_trip(&f);
+    assert_eq!(g.poles.iter().filter(|p| p.is_long()).count(), 2);
+    assert_eq!(g.machine_cells(v(150, 3, 0)).len(), 12);
+    assert_eq!(g.slots_used(v(0, 3, 0)), 2);
 }

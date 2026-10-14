@@ -1,6 +1,6 @@
 //! Milestone 12's techs (Orbit), appended after `hands.rs`'s in `techs::TECHS`, so the saved index order is: Rocketry 78,
 //! Orbital Comms 79, Orbital Power 80, Orbital Science 81;
-//! add rows at the bottom, never reorder. Needs name earlier indices: Nuclear Power 52, Electrolysis 47, Accelerators 57,
+//! closed: new techs go in `later.rs`, never reorder. Needs name earlier indices: Nuclear Power 52, Electrolysis 47, Accelerators 57,
 //! Data Network 58.
 
 use crate::block::{GROUND_STATION, LAUNCH_SITE, RECTENNA};

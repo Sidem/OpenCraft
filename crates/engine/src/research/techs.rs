@@ -1,7 +1,7 @@
 //! The tech tree as data ([`TECHS`]): every tech's packs, cost, prerequisites (by index) and unlocks.
 //! Saves store progress by index, so append rows, never reorder (`research.rs` has the rules and the
 //! progress state). The table is this file's [`MAIN`] followed by `personal.rs`'s, `distance.rs`'s, `chemistry.rs`'s,
-//! `recycling.rs`'s, `compute.rs`'s, `bonus.rs`'s, `ai.rs`'s, `hands.rs`'s and `orbit.rs`'s techs (joined by `crate::join`); add to the last.
+//! `recycling.rs`'s, `compute.rs`'s, `bonus.rs`'s, `ai.rs`'s, `hands.rs`'s, `orbit.rs`'s and `later.rs`'s techs (joined by `crate::join`); add to the last.
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
@@ -22,6 +22,7 @@ use super::chemistry::CHEMISTRY;
 use super::compute::COMPUTE;
 use super::distance::DISTANCE;
 use super::hands::HANDS;
+use super::later::LATER;
 use super::orbit::ORBIT;
 use super::personal::PERSONAL;
 use super::recycling::RECYCLING;
@@ -44,8 +45,9 @@ pub const TECHS: &[Tech] =
                 + AI.len()
                 + HANDS.len()
                 + ORBIT.len()
+                + LATER.len()
         },
-    >(&[&MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY, &RECYCLING, &COMPUTE, &BONUS, &AI, &HANDS, &ORBIT]);
+    >(&[&MAIN, &PERSONAL, &DISTANCE, &CHEMISTRY, &RECYCLING, &COMPUTE, &BONUS, &AI, &HANDS, &ORBIT, &LATER]);
 
 const MAIN: [Tech; 30] = [
     Tech {
@@ -140,7 +142,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Assembly",
-        blurb: "The assembler, a 2×2×2 machine that puts parts together: motors, concrete, and packs and kits \
+        blurb: "The assembler, a 2Ã—2Ã—2 machine that puts parts together: motors, concrete, and packs and kits \
                 by the beltful.",
         needs: &[4],
         packs: &[RED_PACK, GREEN_PACK],
@@ -159,7 +161,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Steelmaking",
-        blurb: "The blast furnace, a 2×2×3 furnace: iron ore, coal and quicklime in, steel out the front and slag \
+        blurb: "The blast furnace, a 2Ã—2Ã—3 furnace: iron ore, coal and quicklime in, steel out the front and slag \
                 out the side. Constructors press steel into plates and beams.",
         needs: &[7, 8],
         packs: &[RED_PACK, GREEN_PACK],
@@ -258,7 +260,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Bulk Storage",
-        blurb: "Silos: 2×2×3 stores of 144 stacks that take belts on every side and give to belts leading away.",
+        blurb: "Silos: 2Ã—2Ã—3 stores of 144 stacks that take belts on every side and give to belts leading away.",
         needs: &[10],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 40,
@@ -394,7 +396,7 @@ const MAIN: [Tech; 30] = [
     Tech {
         name: "Construction Drones",
         blurb: "The drone: two actuators, a drone cell and a guidance module, 30 seconds in an assembler, and the \
-                drone port, a 3×3 pad that keeps four and sends them out to build your ghosts and tear down what \
+                drone port, a 3Ã—3 pad that keeps four and sends them out to build your ghosts and tear down what \
                 you mark, working from storage boxes beside it.",
         needs: &[26, 27],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],

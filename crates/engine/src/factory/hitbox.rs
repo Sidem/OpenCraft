@@ -25,6 +25,9 @@ impl Factory {
                 if pole.is_cable() {
                     return Some(Boxes::centred(CABLE_SIZE));
                 }
+                if pole.is_long() {
+                    return None; // a tower: its whole footprint counts
+                }
                 pole.model(&mut out, here, 0.0);
             }
             Slot::Pipe(i) => self.pipework[i as usize].model(&mut out, here, 0.0),

@@ -156,6 +156,7 @@ impl Factory {
             Slot::Process(i) => self.processors[i as usize].spec.block,
             Slot::Router(_) => block::SPLITTER,
             Slot::Generator(_) => block::GENERATOR,
+            Slot::Pole(i) if self.poles[i as usize].is_long() => block::LONG_POLE,
             Slot::Pole(_) => block::POLE,
             Slot::Lab(_) => block::LAB,
             Slot::Pipe(i) => match self.pipework[i as usize].part {

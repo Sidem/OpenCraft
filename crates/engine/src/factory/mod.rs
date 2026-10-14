@@ -65,7 +65,7 @@ mod wiring;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, MINER_MK2, POLE};
+use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
@@ -104,7 +104,7 @@ pub use facts::facts;
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
 pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
-pub use pole::{preview_pole, preview_wire, POLE_TIERS};
+pub use pole::{preview_pole, preview_wire, tier_stats, POLE_TIERS};
 pub use ports::PortInfo;
 pub use process::{makes, spec as process_spec};
 #[cfg(test)]
@@ -220,6 +220,7 @@ impl Factory {
     pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3, tier: u8) {
         let Some(def) = machine(block) else { return };
         self.remove(pos);
+        let tier = if block == LONG_POLE { pole::LONG_TIER } else { tier };
         let at = &mut self.at;
         match def.kind {
             Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block), tier.max((block == FAST_BELT) as u8)),
@@ -239,7 +240,11 @@ impl Factory {
             Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
             Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
             Kind::Pole => {
-                let tier = if block == CABLE { pole::CABLE_TIER } else { 0 };
+                let tier = match block {
+                    CABLE => pole::CABLE_TIER,
+                    LONG_POLE => pole::LONG_TIER,
+                    _ => 0,
+                };
                 add_to(&mut self.poles, Pole { pos, tier }, at, Slot::Pole)
             }
             Kind::Lab => add_to(&mut self.labs, Lab::new(pos), at, Slot::Lab),
@@ -253,7 +258,7 @@ impl Factory {
             self.set_tier(pos, tier);
         }
         self.dirty = true;
-        if block == POLE {
+        if block == POLE || block == LONG_POLE {
             self.hook_new_pole(pos, tier);
         }
     }

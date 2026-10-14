@@ -70,6 +70,7 @@ const MENU: &[ItemId] = &[
     b(REACTOR),
     b(RECTENNA),
     b(POLE),
+    b(LONG_POLE),
     b(CABLE),
     // Science.
     b(LAB),

@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-14 · Long-distance power
+
+- New research, Long-Distance Power: the long-distance pole, a lattice tower 2×2 and 3 high, links to other long-distance poles up to 160 blocks away (an ordinary pole only 16), to carry power out to far ore mines and oil wells. It powers machines within 10 blocks, takes 6 connections, and wires like any pole.
+- Esc on the pause menu now plays on (if your browser won't give the mouse back at once, click the game).
+
 ## 2026-10-14 · Science from orbit
 
 - New research, Orbital Science: an assembler builds science satellites, and the new Ground Station (a 3×3 dish you hang on a power pole and a fibre node) downlinks their data as compute.

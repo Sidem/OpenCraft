@@ -21,7 +21,7 @@ impl Sim {
         (placed, fp): (BlockId, &Footprint),
         facing: u8,
     ) -> bool {
-        let cells = fp.cells(pos, facing % 4);
+        let cells = fp.cells(pos, footprint::layout_dir(placed, facing));
         let world = &mut self.world;
         if footprint::blocked(&cells, |c| Some(world.block_anywhere_or_generate(c))).contains(&true) {
             return false;

@@ -26,7 +26,7 @@ impl Game {
     pub(crate) fn footprint_ghost(&self) -> Option<Ghost> {
         let (block, fp) = self.held_footprint()?;
         let hit = self.target.filter(|h| h.normal != IVec3::ZERO)?;
-        let (anchor, dir) = (hit.block + hit.normal, self.placing_facing());
+        let (anchor, dir) = (hit.block + hit.normal, footprint::layout_dir(block, self.placing_facing()));
         let cells = fp.cells(anchor, dir);
         let body = self.body().aabb();
         let in_body =
@@ -46,6 +46,7 @@ impl Game {
             1 => "1 cell in the way (red)".to_string(),
             _ => format!("{n} cells in the way (red)"),
         };
-        format!("{}\n{w}×{d}×{h} · {state} · R turns it", block::def(block).name)
+        let turn = if block == block::LONG_POLE { "" } else { " · R turns it" };
+        format!("{}\n{w}×{d}×{h} · {state}{turn}", block::def(block).name)
     }
 }

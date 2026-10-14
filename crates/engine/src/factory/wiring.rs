@@ -16,9 +16,9 @@ use crate::math::IVec3;
 
 use super::links::Slot;
 use super::pipes::Part;
-use super::pole::{dist2, linked, nearest_of, Pole, POLE_TIERS};
+use super::pole::{dist2, linked, nearest_of, span, tier_stats, Pole};
 use super::process::{Energy, Processor};
-use super::Factory;
+use super::{Factory, Machine};
 
 /// A wire from the pole at `pole` to the machine or other pole whose anchor cell is `to`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -80,19 +80,21 @@ impl Factory {
     pub fn anchor_of(&self, cell: IVec3) -> Option<IVec3> {
         match *self.at.get(&cell)? {
             Slot::Process(i) => Some(self.processors[i as usize].pos),
+            Slot::Pole(i) => Some(self.poles[i as usize].pos),
             _ => Some(cell),
         }
     }
 
     /// The tier of the real pole at `pole`.
     pub fn pole_tier(&self, pole: IVec3) -> Option<u8> {
-        self.pole_slots(pole).map(|_| self.tier_at(pole) as u8)
+        self.pole_slots(pole).map(|_| self.tier_at(pole))
     }
 
     /// Every cell of the machine at `cell` (one, unless it is a multi-block processor).
     pub fn machine_cells(&self, cell: IVec3) -> Vec<IVec3> {
         match self.at.get(&cell) {
             Some(&Slot::Process(i)) => self.processors[i as usize].cells(),
+            Some(&Slot::Pole(i)) => self.poles[i as usize].cells(),
             _ => vec![cell],
         }
     }
@@ -104,10 +106,9 @@ impl Factory {
         if self.dirty {
             return None;
         }
-        let mine = POLE_TIERS[tier as usize].link;
         let mut best: Option<(i32, IVec3)> = None;
         for (i, p) in self.poles.iter().enumerate().filter(|(_, p)| !p.is_cable() && p.pos != pos) {
-            let (d, link) = (dist2(p.pos, pos), mine.max(p.stats().link));
+            let (d, link) = (dist2(p.pos, pos), span(tier, p.tier));
             let open = self.slots_used(p.pos) < p.stats().slots as usize;
             if d <= link * link && open && best.is_none_or(|b| d < b.0) && self.grid_has_source(self.power.pole_grid[i])
             {
@@ -167,7 +168,8 @@ impl Factory {
             return Hookup::Nothing;
         }
         let wired = |a, b| self.hooks.iter().any(|h| h.pole == a && h.to == b);
-        let stats = &POLE_TIERS[self.tier_at(pole)];
+        let tier = self.tier_at(pole);
+        let stats = tier_stats(tier);
         let (near, other_full) = match *target {
             Slot::Pole(i) => {
                 let other = &self.poles[i as usize];
@@ -177,7 +179,7 @@ impl Factory {
                 if wired(pole, anchor) || wired(anchor, pole) {
                     return Hookup::Disconnect;
                 }
-                let link = stats.link.max(other.stats().link);
+                let link = span(tier, other.tier);
                 let full = self.slots_used(anchor) >= other.stats().slots as usize;
                 (dist2(pole, anchor) <= link * link, full)
             }
@@ -282,9 +284,9 @@ impl Factory {
         self.hooks.retain(|_| keep.next().unwrap_or(false));
     }
 
-    fn tier_at(&self, pole: IVec3) -> usize {
+    fn tier_at(&self, pole: IVec3) -> u8 {
         match self.at.get(&pole) {
-            Some(&Slot::Pole(i)) => self.poles[i as usize].tier as usize,
+            Some(&Slot::Pole(i)) => self.poles[i as usize].tier,
             _ => 0,
         }
     }

@@ -19,7 +19,7 @@ const GREETINGS: Record<Greeting, [string, string]> = {
   first: ['Welcome to OpenCraft', ''],
   back: ['Welcome back', 'Your world is just as you left it.'],
   fresh: ['A new world', 'Fresh ground, waiting for its first factory.'],
-  paused: ['Paused', 'Take your time. Resume when you are ready.'],
+  paused: ['Paused', 'Take your time. Press Esc or Resume when you are ready.'],
 };
 const WELCOMED_KEY = 'opencraft.welcomed';
 
@@ -35,6 +35,7 @@ export class Menu {
   private readonly main = this.el.querySelector<HTMLElement>('.menu-main')!;
   private readonly notes: PatchNotes;
   private page: Page = 'home';
+  private greeting: Greeting = 'first';
 
   constructor() {
     for (const tab of this.tabs) tab.addEventListener('click', () => this.show(tab.dataset.tab as Page));
@@ -55,6 +56,11 @@ export class Menu {
 
   get isOpen(): boolean {
     return !this.el.classList.contains('hidden');
+  }
+
+  /** True while the pause screen shows (the menu opened by Escape during play, on any page): Escape resumes. */
+  get isPaused(): boolean {
+    return this.isOpen && this.greeting === 'paused';
   }
 
   /** True while the settings page shows: the vignette and other settings preview on the game. */
@@ -84,6 +90,7 @@ export class Menu {
   }
 
   greet(kind: Greeting): void {
+    this.greeting = kind;
     const [title, line] = GREETINGS[kind];
     document.getElementById('home-title')!.textContent = title;
     document.getElementById('home-lead')!.textContent = line;

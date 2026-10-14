@@ -18,7 +18,7 @@ use crate::block::{self, BlockId};
 use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
-use super::{opposite, Factory, DIRS};
+use super::{opposite, Factory, Machine, DIRS};
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
@@ -142,9 +142,22 @@ impl Footprint {
     }
 }
 
-/// The footprint of the machine `block` places, if it takes more than one cell.
+/// The footprint of the machine `block` places, if it takes more than one cell (a long-distance pole is one too).
 pub fn of(block: BlockId) -> Option<&'static Footprint> {
+    if block == block::LONG_POLE {
+        return Some(&super::pole::LONG_FOOTPRINT);
+    }
     super::process::spec(block).map(|s| &s.footprint).filter(|f| !f.is_single())
+}
+
+/// The facing `block`'s cells are laid out with when placed facing `dir`: a long-distance pole stores no facing,
+/// so it stands the same way however it was placed.
+pub fn layout_dir(block: BlockId, dir: u8) -> u8 {
+    if block == block::LONG_POLE {
+        0
+    } else {
+        dir % 4
+    }
 }
 
 /// Which of `cells` are in the way of placing a machine (anything but air or water), by the block
@@ -156,9 +169,17 @@ pub fn blocked(cells: &[IVec3], mut block_at: impl FnMut(IVec3) -> Option<BlockI
 impl Factory {
     /// The anchor, block and cells of the multi-block machine with a cell at `pos`.
     pub fn footprint_at(&self, pos: IVec3) -> Option<(IVec3, BlockId, Vec<IVec3>)> {
-        let Slot::Process(i) = *self.at.get(&pos)? else { return None };
-        let p = &self.processors[i as usize];
-        (!p.spec.footprint.is_single()).then(|| (p.pos, p.spec.block, p.cells()))
+        match *self.at.get(&pos)? {
+            Slot::Process(i) => {
+                let p = &self.processors[i as usize];
+                (!p.spec.footprint.is_single()).then(|| (p.pos, p.spec.block, p.cells()))
+            }
+            Slot::Pole(i) => {
+                let p = &self.poles[i as usize];
+                p.is_long().then(|| (p.pos, block::LONG_POLE, p.cells()))
+            }
+            _ => None,
+        }
     }
 
     /// The block of the multi-block machine with a cell at `pos` (what a `MACHINE_PART` belongs to).

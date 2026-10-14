@@ -171,13 +171,25 @@ async function main(): Promise<void> {
     if (resume) start();
     else resumeHint.classList.remove('hidden');
   };
+  // Escape: a screen's own handler closes it first (and prevents the default). On the game with the hint it pauses; on
+  // the pause screen it plays on. Escape isn't a gesture that lets a page grab the mouse again, so when the browser
+  // refuses, the game stays on screen with the hint (a click plays on) rather than leaving the menu stuck.
   window.addEventListener('keydown', (e) => {
-    // A panel's own Escape handler already ran (and prevented the default) when it closed.
-    if (e.key !== 'Escape' || e.repeat || e.defaultPrevented || resumeHint.classList.contains('hidden')) return;
-    pause();
-    session?.save().catch(() => {}); // pausing saves
-  });
-  inventory.onClose = (resume) => {
+    if (e.key !== 'Escape' || e.repeat || e.defaultPrevented) return;
+    if (!menu.isPaused) {
+      if (resumeHint.classList.contains('hidden')) return;
+      pause();
+      session?.save().catch(() => {}); // pausing saves
+      return;
+    }
+    if ((e.target as HTMLElement | null)?.closest?.('input, textarea, select') || soundLab.isOpen || panelOpen()) return;
+    e.preventDefault();
+    menu.el.classList.add('hidden');
+    sound.unlock();
+    void input.lock().then(() => {
+      if (!input.locked && !document.pointerLockElement) resumeHint.classList.remove('hidden');
+    });
+  });  inventory.onClose = (resume) => {
     game.close_inventory();
     closed(resume);
   };

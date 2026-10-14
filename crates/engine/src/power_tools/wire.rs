@@ -12,7 +12,7 @@
 
 use crate::action::Action;
 use crate::block;
-use crate::factory::{Hookup, POLE_TIERS};
+use crate::factory::{tier_stats, Hookup};
 use crate::math::{IVec3, Vec3};
 use crate::sound;
 use crate::Game;
@@ -122,8 +122,12 @@ impl Game {
     pub(super) fn wire_preview(&self) -> Option<(Vec3, Vec3)> {
         let aim = self.wire_aim()?;
         let sel = aim.sel.filter(|_| matches!(aim.hookup, Hookup::Connect | Hookup::Move(_)))?;
-        let end = if aim.pole { Vec3::new(0.5, 0.92, 0.5) } else { Vec3::new(0.5, 0.7, 0.5) };
-        Some((sel.as_vec3() + Vec3::new(0.5, 0.92, 0.5), aim.anchor.as_vec3() + end))
+        let f = &self.sim.factory;
+        let end = match f.pole_top(aim.anchor).filter(|_| aim.pole) {
+            Some(top) => top,
+            None => aim.anchor.as_vec3() + Vec3::new(0.5, 0.7, 0.5),
+        };
+        Some((f.pole_top(sel)?, end))
     }
 
     /// The HUD lines for the aimed pole or machine: what a click does, and what stops it.
@@ -131,7 +135,7 @@ impl Game {
         let aim = self.wire_aim()?;
         let f = &self.sim.factory;
         let slots = |p: IVec3| format!("{} of {}", f.slots_used(p), f.pole_slots(p).unwrap_or(0));
-        let reach = |p: IVec3| POLE_TIERS[f.pole_tier(p).unwrap_or(0) as usize].reach;
+        let reach = |p: IVec3| tier_stats(f.pole_tier(p).unwrap_or(0)).reach;
         let text = match (aim.pole, aim.hookup) {
             (true, _) if aim.sel == Some(aim.anchor) => {
                 format!("Power pole (selected)\n{} connections used · click to deselect", slots(aim.anchor))

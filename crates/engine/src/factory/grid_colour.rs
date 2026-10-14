@@ -69,6 +69,11 @@ impl Factory {
             if rel.x * rel.x + rel.y * rel.y + rel.z * rel.z > range * range {
                 continue;
             }
+            if p.is_long() {
+                let c = rel + super::pole::LONG_FOOTPRINT.centre(0);
+                super::pole::long_accent(out, c, self.power.pole_layer(i as u32));
+                continue;
+            }
             let layer = [self.power.pole_layer(i as u32); 3];
             push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), 0.0, [0.19, 0.12, 0.19], 0.0, layer, false);
             push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), 0.0, [0.40, 0.10, 0.14], 0.0, layer, false);

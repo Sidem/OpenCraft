@@ -411,6 +411,7 @@ pub const RECIPES: &[Recipe] = &[
     LAUNCH_SITE_RECIPE,
     GROUND_STATION_RECIPE,
     RECTENNA_RECIPE,
+    LONG_POLE_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

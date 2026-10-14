@@ -157,7 +157,9 @@ pub const LAUNCH_SITE: BlockId = 109;
 pub const RECTENNA: BlockId = 110;
 /// The ground station (`factory/process/ground.rs`): a dish that downlinks science satellites' data as compute.
 pub const GROUND_STATION: BlockId = 111;
-pub const BLOCK_COUNT: usize = 112;
+/// The long-distance pole (`factory/pole.rs`): a 2×2×3 tower that spans far to other long-distance poles.
+pub const LONG_POLE: BlockId = 112;
+pub const BLOCK_COUNT: usize = 113;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -393,6 +395,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Launch Site", true, 3.0, pillar(tex::LAUNCH_SIDE, tex::LAUNCH_TOP, tex::FRAME), LAUNCH_SITE),
     machine("Rectenna", true, 2.0, pillar(tex::RECTENNA_SIDE, tex::RECTENNA_TOP, tex::FRAME), RECTENNA),
     machine("Ground Station", true, 2.4, pillar(tex::GROUND_SIDE, tex::GROUND_TOP, tex::FRAME), GROUND_STATION),
+    machine("Long-Distance Pole", true, 1.6, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), LONG_POLE),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
