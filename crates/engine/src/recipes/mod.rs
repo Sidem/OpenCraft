@@ -4,7 +4,7 @@
 //!
 //! To add a hand recipe: add a row (its `group` is its build-menu section); tier items' are in `tiers.rs`, the
 //! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
-//! `solar.rs`, the chip fab's in `compute.rs`, the launch site's (and the rocket parts' machine rows) in `orbit.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
+//! `solar.rs`, the upgrader's (and its machine row per tier) in `refit.rs`, the automated buildings' machine rows in `automate.rs`, the chip fab's in `compute.rs`, the launch site's (and the rocket parts' machine rows) in `orbit.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::{
@@ -13,6 +13,7 @@ use crate::item::{
 };
 
 mod aluminium;
+mod automate;
 mod chemistry;
 mod compute;
 mod electronics;
@@ -26,6 +27,7 @@ mod menu_order;
 mod orbit;
 mod recycler;
 pub mod recycling;
+mod refit;
 mod rows;
 mod solar;
 mod tiers;
@@ -46,6 +48,7 @@ use materials::*;
 pub use menu_order::menu_order;
 use orbit::{GROUND_STATION_RECIPE, LANDING_PAD_RECIPE, LAUNCH_SITE_RECIPE, POD_LAUNCHER_RECIPE, RECTENNA_RECIPE};
 use recycler::*;
+use refit::UPGRADER_RECIPE;
 pub use rows::*;
 use solar::*;
 use tiers::*;
@@ -414,6 +417,7 @@ pub const RECIPES: &[Recipe] = &[
     LONG_POLE_RECIPE,
     POD_LAUNCHER_RECIPE,
     LANDING_PAD_RECIPE,
+    UPGRADER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

@@ -6,14 +6,14 @@
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, DRONE_PORT, FILTER,
     GENERATOR, LAB, LIFT, MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER,
-    STORAGE, TURBINE, UNDERPASS_IN,
+    STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
 };
 use crate::item::{
     BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, SCANNER_MK2, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL, VIOLET_PACK,
 };
 use crate::recipes::{
-    ASSEMBLY_RECIPES, BLAST_CRUSHED_RECIPE, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES,
-    ELECTRONICS_RECIPES, GEAR_RECIPE, QUICKLIME_RECIPE, STEEL_RECIPES, VIOLET_RECIPES,
+    ACCUMULATOR_ROW, ASSEMBLY_RECIPES, BLAST_CRUSHED_RECIPE, BLUE_RECIPES, BRICK_RECIPE, CRUSH_RECIPES, DRONE_RECIPES,
+    ELECTRONICS_RECIPES, GEAR_RECIPE, QUICKLIME_RECIPE, SOLAR_PANEL_ROW, STEEL_RECIPES, UNDERPASS_ROW, VIOLET_RECIPES,
 };
 
 use super::ai::AI;
@@ -85,7 +85,7 @@ const MAIN: [Tech; 30] = [
         packs: &[RED_PACK, GREEN_PACK],
         units: 15,
         seconds: 10.0,
-        unlocks: &[r(UNDERPASS_IN)],
+        unlocks: &[r(UNDERPASS_IN), Unlock::MachineRecipe(UNDERPASS_ROW)],
     },
     // Was "Miner Mk2" (saves keep progress by index): kits replaced the separate Mk2 recipes.
     Tech {
@@ -150,6 +150,7 @@ const MAIN: [Tech; 30] = [
         seconds: 10.0,
         unlocks: &[
             r(ASSEMBLER),
+            r(UPGRADER),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[0]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[1]),
             Unlock::MachineRecipe(ASSEMBLY_RECIPES[2]),
@@ -331,7 +332,12 @@ const MAIN: [Tech; 30] = [
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 80,
         seconds: 20.0,
-        unlocks: &[r(SOLAR_PANEL), r(ACCUMULATOR)],
+        unlocks: &[
+            r(SOLAR_PANEL),
+            r(ACCUMULATOR),
+            Unlock::MachineRecipe(SOLAR_PANEL_ROW),
+            Unlock::MachineRecipe(ACCUMULATOR_ROW),
+        ],
     },
     Tech {
         name: "Advanced Scanning",

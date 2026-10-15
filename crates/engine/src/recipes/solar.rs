@@ -10,7 +10,8 @@ pub const SOLAR_PANEL_RECIPE: Recipe = Recipe {
     output: b(SOLAR_PANEL),
     group: Group::Power,
     count: 1,
-    inputs: &[(SILICON, 6), (b(GLASS), 2), (COPPER_WIRE, 4), (IRON_PLATE, 2)],
+    // Three kinds, so an assembler makes it too (`automate.rs`).
+    inputs: &[(SILICON, 6), (b(GLASS), 2), (COPPER_WIRE, 6)],
     blurb: "A flat 2×2 panel: gives up to 10 kW in full sun, less towards dawn and dusk and nothing at night. \
             Hang it on a power pole; a panel that has nothing to feed charges accumulators.",
 };

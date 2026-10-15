@@ -51,6 +51,7 @@ mod status;
 mod steam;
 mod steam_view;
 mod tower;
+mod upgrader;
 mod view;
 mod washer;
 mod work;

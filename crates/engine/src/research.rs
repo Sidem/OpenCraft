@@ -35,7 +35,7 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tiers;
 use crate::item::{ItemId, BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::perks::Stat;
-use crate::recipes::MACHINE_RECIPES;
+use crate::recipes::{Category, MACHINE_RECIPES};
 /// Something a finished tech makes possible.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Unlock {
@@ -165,6 +165,13 @@ impl Research {
             Unlock::Recipe(item) => {
                 tiers::placed_by(item).filter(|t| t.1 > 0).map_or(unlock, |(b, t)| Unlock::Upgrade(b, t))
             }
+            // An upgrader row is locked like the upgrade it does.
+            Unlock::MachineRecipe(i) => match MACHINE_RECIPES.get(usize::from(i)) {
+                Some(r) if r.category == Category::Refit => {
+                    tiers::placed_by(r.main().0).map_or(unlock, |(b, t)| Unlock::Upgrade(b, t))
+                }
+                _ => unlock,
+            },
             other => other,
         };
         let i = TECHS.iter().position(|t| t.unlocks.contains(&unlock))? as u8;

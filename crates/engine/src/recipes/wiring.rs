@@ -10,7 +10,8 @@ pub const LONG_POLE_RECIPE: Recipe = Recipe {
     output: b(LONG_POLE),
     group: Group::Power,
     count: 1,
-    inputs: &[(STEEL_BEAM, 12), (ALUMINIUM_PLATE, 12), (COPPER_WIRE, 80), (b(CONCRETE), 30), (b(GLASS), 8)],
+    // Three kinds, none over a stack, so an assembler makes it too (`automate.rs`).
+    inputs: &[(STEEL_BEAM, 12), (ALUMINIUM_PLATE, 16), (COPPER_WIRE, 60)],
     blurb: "A lattice tower, 2×2 and 3 high, for power lines that cross the wilderness to far mines and oil wells. \
             It links to other long-distance poles up to 160 blocks away, but to an ordinary pole only within 16. \
             Wire it by hand like a pole (right-click to select it, crouch-click to link); it powers machines within 10 \

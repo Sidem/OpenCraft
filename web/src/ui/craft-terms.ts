@@ -55,7 +55,7 @@ const ROWS: [string, string][] = [
   ['nuclear|uranium|radiation|atom|atomic|fission', 'reactor|centrifuge'],
   ['recycle|recycling|waste|scrap|reuse', 'recycler'],
   ['space|rocket|orbit|satellite|launch', 'launch site'],
-  ['kit|kits|upgrade|upgrades|tier|mk|improve', 'kit'],
+  ['kit|kits|upgrade|upgrades|tier|mk|improve', 'kit|upgrader'],
   ['logic|switch|sensor|automation|control|threshold', 'sensor|filter'],
 ];
 

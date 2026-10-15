@@ -163,7 +163,9 @@ pub const LONG_POLE: BlockId = 112;
 pub const POD_LAUNCHER: BlockId = 113;
 /// The landing pad (`factory/process/pods.rs`): drop pods from launchers on its channel come down on it; belts empty it.
 pub const LANDING_PAD: BlockId = 114;
-pub const BLOCK_COUNT: usize = 115;
+/// The upgrader (`factory/process/upgrader.rs`): raises a Mk1 item to a chosen tier, using up the kits of each step.
+pub const UPGRADER: BlockId = 115;
+pub const BLOCK_COUNT: usize = 116;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -402,6 +404,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Long-Distance Pole", true, 1.6, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), LONG_POLE),
     machine("Pod Launcher", true, 2.4, pillar(tex::POD_SIDE, tex::POD_LAUNCH_TOP, tex::FRAME), POD_LAUNCHER),
     machine("Landing Pad", true, 2.0, pillar(tex::POD_SIDE, tex::POD_PAD_TOP, tex::FRAME), LANDING_PAD),
+    machine("Upgrader", true, 1.4, pillar(tex::ASSEMBLER_SIDE, tex::STEEL, tex::FRAME), UPGRADER),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

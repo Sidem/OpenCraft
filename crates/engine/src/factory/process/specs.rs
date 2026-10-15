@@ -183,6 +183,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::ground::STATION_SPEC,
     super::pods::LAUNCHER_SPEC,
     super::pods::PAD_SPEC,
+    super::upgrader::UPGRADER_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

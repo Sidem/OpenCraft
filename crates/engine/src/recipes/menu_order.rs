@@ -30,6 +30,7 @@ const MENU: &[ItemId] = &[
     b(WASHER),
     b(CONSTRUCTOR),
     b(ASSEMBLER),
+    b(UPGRADER),
     b(ELECTROLYTIC_CELL),
     b(CENTRIFUGE),
     b(PUMPJACK),

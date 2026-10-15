@@ -4,7 +4,7 @@
 
 use crate::block::{LANDING_PAD, LONG_POLE, POD_LAUNCHER};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
-use crate::recipes::DROP_POD_RECIPE;
+use crate::recipes::{DROP_POD_RECIPE, LONG_POLE_ROW};
 
 use super::{r, Tech, Unlock};
 
@@ -17,7 +17,7 @@ pub const LATER: [Tech; 2] = [
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 150,
         seconds: 30.0,
-        unlocks: &[r(LONG_POLE)],
+        unlocks: &[r(LONG_POLE), Unlock::MachineRecipe(LONG_POLE_ROW)],
     },
     Tech {
         name: "Drop Pods",

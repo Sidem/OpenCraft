@@ -7,15 +7,15 @@ use crate::block::{self, BLOCK_COUNT};
 use crate::factory::tiers::{Family, FAMILIES};
 use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
-use crate::research::pack_slot;
+use crate::research::{pack_slot, Research, Unlock};
 use crate::tools;
 use Category::{
     Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication, Launch,
-    Pressing, Smelting, Splitting, Washing,
+    Pressing, Refit, Smelting, Splitting, Washing,
 };
 
 /// Every category (the match below stops compiling until a new one is listed).
-const CATEGORIES: [Category; 15] = [
+const CATEGORIES: [Category; 16] = [
     Smelting,
     Pressing,
     Assembly,
@@ -31,10 +31,11 @@ const CATEGORIES: [Category; 15] = [
     Enrichment,
     Fabrication,
     Launch,
+    Refit,
 ];
 const _: fn(Category) = |c| match c {
     Smelting | Pressing | Assembly | Blasting | Crushing | Arc | Electrolysis | Distilling | Cracking | Chemistry
-    | Splitting | Washing | Enrichment | Fabrication | Launch => {}
+    | Splitting | Washing | Enrichment | Fabrication | Launch | Refit => {}
 };
 
 /// Blocks the world has (generated, or left by worked-out deposits): breaking them is how their drops
@@ -205,10 +206,14 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     let has = |errors: Vec<String>, what: &str| errors.iter().any(|e| e == what);
     // An item nothing makes, and one nothing uses.
     let no_sticks: Vec<Recipe> = RECIPES.iter().filter(|r| r.output != item::STICK).map(copy).collect();
-    assert!(has(lint_items(&no_sticks, MACHINE_RECIPES), "Stick has no source"));
+    // (The constructor saws sticks too, so that row goes as well.)
+    let no_saw: Vec<MachineRecipe> = MACHINE_RECIPES.iter().copied().filter(|r| r.main().0 != item::STICK).collect();
+    assert!(has(lint_items(&no_sticks, &no_saw), "Stick has no source"));
     let no_sticks_used: Vec<Recipe> =
         RECIPES.iter().filter(|r| !r.inputs.iter().any(|i| i.0 == item::STICK)).map(copy).collect();
-    assert!(has(lint_items(&no_sticks_used, MACHINE_RECIPES), "Stick has no use"));
+    let no_pole_row: Vec<MachineRecipe> =
+        MACHINE_RECIPES.iter().copied().filter(|r| !r.inputs.iter().any(|i| i.0 == item::STICK)).collect();
+    assert!(has(lint_items(&no_sticks_used, &no_pole_row), "Stick has no use"));
     // A category no machine takes, and a spec for a block that isn't a processor.
     assert!(has(lint_categories(&SPECS[..1]), "Pressing has no machine"));
     const STONY: [ProcessSpec; 1] = [ProcessSpec { block: STONE, ..SPECS[0] }];
@@ -278,4 +283,61 @@ fn a_recipes_hand_time_is_the_formula_unless_overridden() {
     assert_eq!(plate.hand_ticks(), BASE_TICKS + 2 * timing::TICKS_PER_ITEM);
     assert_eq!(plate.ticks_with(&[(IRON_PLATE, 15)]), 90, "1.5 s");
     assert_eq!(plate.ticks_with(&[(IRON_ROD, 15)]), plate.hand_ticks(), "another recipe's row");
+}
+
+/// The buildings machines make (`automate.rs`) cost exactly what their hand recipes do, fit an assembler (three kinds, no
+/// more of one than a stack), and the rows research unlocks are where `rows.rs` says.
+#[test]
+fn automated_buildings_cost_what_their_hand_recipes_cost() {
+    let row = |i: u16| &MACHINE_RECIPES[i as usize];
+    let at = [
+        (LONG_POLE_ROW, b(LONG_POLE)),
+        (SOLAR_PANEL_ROW, b(SOLAR_PANEL)),
+        (ACCUMULATOR_ROW, b(ACCUMULATOR)),
+        (UNDERPASS_ROW, b(UNDERPASS_IN)),
+        (RAIL_ROW, b(RAIL)),
+        (LONG_POLE_ROW - 1, b(POLE)),
+        (UNDERPASS_ROW - 1, b(STORAGE)),
+        (UNDERPASS_ROW - 2, b(LAMP)),
+    ];
+    for (i, out) in at {
+        let (machine, hand) = (row(i), RECIPES.iter().find(|r| r.output == out).unwrap());
+        assert_eq!(machine.category, Assembly, "{}", item::name(out));
+        assert_eq!((machine.outputs, machine.inputs), (&[(out, hand.count)][..], hand.inputs), "{}", item::name(out));
+        assert!(machine.inputs.iter().all(|&(it, n)| n <= item::stack_size(it)), "{} fits a slot", item::name(out));
+    }
+    // Planks and sticks from the constructor: the first two rows of the table.
+    assert_eq!(row(LONG_POLE_ROW - 3).main(), (b(PLANKS), 4));
+    assert_eq!(row(LONG_POLE_ROW - 2).main(), (item::STICK, 4));
+    assert_eq!(row(LONG_POLE_ROW - 3).category, Pressing);
+    assert_eq!(row(RAIL_ROW + 1).category, Category::Refit, "the upgrader's rows come right after");
+}
+
+/// Every tier of every family has a row of the upgrader: the Mk1 item and each step's kits, which is what upgrading in
+/// place step by step costs, in as many seconds as steps take.
+#[test]
+fn the_upgrader_makes_every_tier_for_the_mk1_item_and_every_steps_kits() {
+    let refit: Vec<&MachineRecipe> = MACHINE_RECIPES.iter().filter(|r| r.category == Category::Refit).collect();
+    let tiers: usize = FAMILIES.iter().map(|f| f.items.len() - 1).sum();
+    assert_eq!(refit.len(), tiers, "a row per tier above Mk1: add the family or tier to `refit.rs`");
+    for f in FAMILIES {
+        for t in 1..f.items.len() {
+            let row =
+                refit.iter().find(|r| r.main().0 == f.items[t]).unwrap_or_else(|| panic!("tier {t} of {}", f.block));
+            let mut want = vec![(f.items[0], 1)];
+            want.extend((1..=t).map(|s| (crate::factory::upgrades::KITS[s], f.kits)));
+            assert_eq!(row.inputs, &want[..], "tier {t} of block {}", f.block);
+            assert_eq!(row.seconds, 4.0 * t as f64);
+        }
+    }
+}
+
+/// An upgrader row is locked by the tech that unlocks the upgrade (the tier's hand recipe is too).
+#[test]
+fn upgrader_rows_are_locked_like_the_upgrade() {
+    let research = Research::default();
+    let mk3_pole = MACHINE_RECIPES.iter().position(|r| r.main().0 == item::POLE_MK3).unwrap() as u16;
+    let tech = research.locked_by(Unlock::MachineRecipe(mk3_pole));
+    assert!(tech.is_some());
+    assert_eq!(tech, research.locked_by(Unlock::Upgrade(block::POLE, 2)));
 }

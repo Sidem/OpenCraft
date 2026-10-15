@@ -68,7 +68,9 @@ own builders. Flight arrives: the jetpack.
 | Actuator | 2 servos, 2 steel beams, 4 screws → 1 (assembler, 12 s) | drones |
 | Drone cell | 1 motor, 3 circuits, 2 steel plates → 1 (assembler, 14 s) | drones |
 | Guidance module | 1 processor, 2 circuits, 4 copper wire → 1 (assembler, 16 s) | drones |
-| Solar panel (block) | 2 silicon, 2 glass, 2 steel plates → 1 (assembler, 8 s) | 10 kW by day |
+| Solar panel (block) | 6 silicon, 2 glass, 6 copper wire → 1 (assembler, 8 s; the hand recipe is the same) | 10 kW by day |
+| Automated buildings (2026-10-15) | assembler rows equal the hand recipes: pole (2 sticks, 2 wire → 2), long-distance pole (12 steel beams, 16 aluminium plates, 60 wire), accumulator, lamp, box (8 planks, 2 plates), underpass (4 belts → 2), rail; the constructor saws a log into 4 planks and 2 planks into 4 sticks | rows 78–87 (`recipes/automate.rs`) |
+| Upgrader (block 115) | 12 iron plates, 10 gears, 16 wire, 2 motors by hand; Assembly | one row per tier of every family: the Mk1 item + the kits of each step up to it (a Mk4 pole: pole + green + blue + violet kit), 4 s a step, 30 kW; same research gate as the upgrade |
 | Accumulator (2×2×2) | 8 steel plates, 4 circuits, 12 copper wire (hand) | stores 10 MJ |
 | Logic blocks | sensor (box or belt fullness), switch, lamp signal: 1 circuit, 1 plate | machines on/off by condition |
 | Jetpack (tool) | 4 steel plates, 2 motors, 2 circuits (hand) | burns coal from a fuel slot: 10 s of thrust a coal |

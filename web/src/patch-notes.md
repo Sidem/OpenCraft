@@ -3,6 +3,13 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-15 · Automating buildings and the Upgrader
+
+- Assemblers now build power poles, long-distance poles, solar panels, accumulators, lamps, storage boxes, underpasses and rails, so a base can build its own parts. Constructors saw logs into planks and planks into sticks.
+- The long-distance pole now costs 12 steel beams, 16 aluminium plates and 60 copper wire, and the solar panel 6 silicon, 2 glass and 6 copper wire, so an assembler can hold everything.
+- "Choose what it makes" in constructors, assemblers and other machines is redesigned: each recipe is a card with the product and how many a batch makes, the batch time, and an icon chip for every ingredient with its count (byproducts show as "Also gives"). Recipes you cannot use yet sink to the bottom and say what to research, and long lists have a search box.
+- New building, the Upgrader (researched with Assembly): belts bring in a Mk1 item and the kits of each step, you choose the tier, and it makes it in one machine, using the kits up. A Mk4 pole is a pole and a green, a blue and a violet kit.
+
 ## 2026-10-15 · A research map
 
 - The research screen is a map you can drag and zoom with the wheel: no more scrolling in two directions. It opens on what you are researching now.

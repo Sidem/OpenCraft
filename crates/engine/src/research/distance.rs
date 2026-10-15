@@ -4,7 +4,7 @@
 
 use crate::block::{ELECTROLYTIC_CELL, LOADING_DOCK, RAIL, UNLOADING_DOCK};
 use crate::item::{BLUE_PACK, GREEN_PACK, HOVER_PACK, LOCOMOTIVE, RAIL_SIGNAL, RED_PACK, VIOLET_PACK, WAGON};
-use crate::recipes::{BAUXITE_RECIPES, CARGO_RECIPE};
+use crate::recipes::{BAUXITE_RECIPES, CARGO_RECIPE, RAIL_ROW};
 
 use super::{r, Tech, Unlock};
 
@@ -35,7 +35,7 @@ pub const DISTANCE: [Tech; 6] = [
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 100,
         seconds: 30.0,
-        unlocks: &[r(RAIL)],
+        unlocks: &[r(RAIL), Unlock::MachineRecipe(RAIL_ROW)],
     },
     Tech {
         name: "Trains",

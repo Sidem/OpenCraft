@@ -63,3 +63,11 @@ pub const POWER_SATELLITE_RECIPES: [u16; 2] = [73, 74];
 pub const SCIENCE_SATELLITE_RECIPES: [u16; 2] = [75, 76];
 /// Drop Pods: the assembler's drop pod.
 pub const DROP_POD_RECIPE: u16 = 77;
+/// `automate.rs`: the constructor's planks and sticks (ungated), then the assembler's pole and lamp and box (ungated), long
+/// pole, solar panel, accumulator, underpass and rail, each unlocked with its hand recipe.
+pub const LONG_POLE_ROW: u16 = 81;
+pub const SOLAR_PANEL_ROW: u16 = 82;
+pub const ACCUMULATOR_ROW: u16 = 83;
+pub const UNDERPASS_ROW: u16 = 86;
+pub const RAIL_ROW: u16 = 87;
+// Rows 88 on are the upgrader's, one per tier (`refit.rs`; research locks them by category, `Research::locked_by`).

@@ -438,6 +438,40 @@ fn research_done(f: &mut Factory, name: &str) {
 }
 
 #[test]
+fn an_assembler_builds_a_long_distance_pole_and_poles_come_from_logs() {
+    use crate::block::{LOG, LONG_POLE, PLANKS};
+    use crate::item::{ALUMINIUM_PLATE, STEEL_BEAM, STICK};
+    let mut f = Factory::default();
+    powered(&mut f);
+    let gen = v(3, 3, 1);
+    f.place(&mut World::new(1, 2), GENERATOR, gen, 0, gen, 1);
+    f.insert(gen, COAL_ORE.into(), 64);
+    f.research.complete_all();
+    // A constructor saws planks from a log, another sticks from planks, an assembler makes poles from sticks and wire.
+    place(&mut f, CONSTRUCTOR, v(0, 0, 0), 0);
+    assert!(f.set_recipe(v(0, 0, 0), Some(recipe_for(PLANKS.into()))).is_some());
+    assert_eq!(f.insert(v(0, 0, 0), LOG.into(), 1), 1);
+    place(&mut f, CONSTRUCTOR, v(4, 0, 0), 0);
+    assert!(f.set_recipe(v(4, 0, 0), Some(recipe_for(STICK))).is_some());
+    assert_eq!(f.insert(v(4, 0, 0), PLANKS.into(), 2), 2);
+    f.place(&mut World::new(1, 2), ASSEMBLER, v(0, 0, 3), NORTH, v(0, 0, 3), 0);
+    assert!(f.set_recipe(v(0, 0, 3), Some(recipe_for(POLE.into()))).is_some());
+    f.insert(v(0, 0, 3), STICK, 2);
+    f.insert(v(0, 0, 3), COPPER_WIRE, 2);
+    // A second assembler builds the tower: three kinds, steel beams, aluminium plates and wire.
+    f.place(&mut World::new(1, 2), ASSEMBLER, v(4, 0, 3), NORTH, v(4, 0, 3), 0);
+    assert!(f.set_recipe(v(4, 0, 3), Some(recipe_for(LONG_POLE.into()))).is_some());
+    for (item, n) in [(STEEL_BEAM, 12), (ALUMINIUM_PLATE, 16), (COPPER_WIRE, 60)] {
+        assert_eq!(f.insert(v(4, 0, 3), item, n), n, "a stack of each fits");
+    }
+    run(&mut f, 21.0, |_| {});
+    assert_eq!(f.processors[0].out.count(PLANKS.into()), 4, "a log saws into four planks");
+    assert_eq!(f.processors[1].out.count(STICK), 4);
+    assert_eq!(f.processors[2].out.count(POLE.into()), 2);
+    assert_eq!(f.processors[3].out.count(LONG_POLE.into()), 1);
+}
+
+#[test]
 fn a_crusher_line_gives_one_and_a_half_ingots_an_ore() {
     // Box of ore, crusher, smelter (with coal), box: 40 ore make 20 batches of 3 crushed, 60 ingots.
     let mut f = Factory::default();

@@ -10,7 +10,9 @@
 //! To add a recipe: append a row. A category: a `Category` variant (and its entry in the lint's list) and
 //! the processor specs that take it.
 
+use super::automate::AUTOMATE;
 use super::orbit::ORBIT;
+use super::refit::REFIT;
 use super::rows::*;
 use crate::block::*;
 use crate::item::{
@@ -59,6 +61,8 @@ pub enum Category {
     Fabrication,
     /// Rocket parts and fuel into a rocket in orbit (the launch site); its outputs are the empties that come back.
     Launch,
+    /// A Mk1 item and the kits of each step into a higher tier's item (the upgrader; rows are `refit.rs`'s).
+    Refit,
 }
 
 /// Something a machine makes: `inputs` are used up when a batch starts, `outputs` appear after
@@ -77,8 +81,14 @@ use Category::{
     Pressing, Smelting, Splitting, Washing,
 };
 
-/// Every machine recipe: the main table, then Milestone 12's (`orbit.rs`); add to the last.
-pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<MachineRecipe, { MAIN.len() + ORBIT.len() }>(&[MAIN, ORBIT]);
+/// Every machine recipe: the main table, then Milestone 12's (`orbit.rs`), the automated buildings' (`automate.rs`) and the
+/// upgrader's, one per tier (`refit.rs`). Saved machines hold row indices, so rows only ever go on the end: a new table
+/// joins after the last one (a tier or family added to `refit.rs` later goes in a table of its own too, as the upgrader's
+/// rows are derived from `FAMILIES`, and a test asks that every tier has one).
+pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
+    MachineRecipe,
+    { MAIN.len() + ORBIT.len() + AUTOMATE.len() + REFIT.len() },
+>(&[MAIN, ORBIT, AUTOMATE, REFIT]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
