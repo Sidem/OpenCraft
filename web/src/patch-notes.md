@@ -3,6 +3,14 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-15 · A research map
+
+- The research screen is a map you can drag and zoom with the wheel: no more scrolling in two directions. It opens on what you are researching now.
+- The tree is split into eras by the science packs they need (Red, Green, Blue, Violet, Gold), each with how many of its techs are done. Click an era at the top to fly there.
+- Zoomed out you see names, then only coloured tiles for the whole tree at once. A small map in the corner shows where you are; click or drag it to move.
+- Search (press /) finds techs by name or by what they unlock, such as "steel". Enter jumps to the next match.
+- Each tech shows icons of what it unlocks and how many units it costs; Where I am and Fit all buttons bring you back.
+
 ## 2026-10-15 · Drop pods
 
 - New research, Drop Pods (needs Rocketry and Orbital Comms): ship cargo through the sky. An assembler builds drop pods (a light frame, a fuel tank and 10 circuits each).

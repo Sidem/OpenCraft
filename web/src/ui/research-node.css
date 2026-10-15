@@ -1,0 +1,214 @@
+/* A tech node on the research tree (research-node.ts): its states, the search highlight and the levels of detail by zoom
+   (research-view.ts sets lod-near, lod-far or lod-tiny on the viewport). Size must match NODE_W and NODE_H in
+   research-eras.ts. The dialog, viewport and edges are research.css. */
+
+/* Nodes. */
+
+.rs-node {
+  position: absolute;
+  width: 176px;
+  height: 58px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 2px;
+  padding: 7px 10px 9px;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  background: rgba(30, 33, 42, 0.96);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: default;
+  overflow: hidden;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+
+.rs-node-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rs-node-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.rs-unlocks {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rs-more {
+  font-size: 10px;
+}
+
+.rs-pack {
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.rs-node-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.rs-node-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.rs-node.locked {
+  opacity: 0.5;
+  border-style: dashed;
+}
+
+.rs-node.done {
+  border-color: var(--rs-done);
+  background: rgba(38, 66, 46, 0.96);
+}
+
+.rs-node.done .rs-node-state {
+  color: var(--rs-done);
+  font-weight: 600;
+}
+
+.rs-node.done .rs-node-state::before {
+  content: 'âœ“ ';
+}
+
+.rs-node.done .rs-node-track i {
+  background: var(--rs-done);
+  transform: scaleX(1);
+}
+
+.rs-node.available {
+  cursor: pointer;
+  border-color: var(--rs-horizon);
+  animation: rs-glow 2.2s ease-in-out infinite;
+}
+
+.rs-node.available .rs-node-state {
+  color: var(--rs-horizon);
+  font-weight: 600;
+}
+
+.rs-node.chosen {
+  border-color: var(--accent);
+  background: rgba(70, 48, 30, 0.96);
+  animation: none;
+  box-shadow: 0 0 10px rgba(250, 149, 73, 0.45);
+}
+
+.rs-node.chosen .rs-node-state {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.rs-node:hover,
+.rs-node:focus-visible {
+  outline: none;
+  border-color: #fff;
+}
+
+.rs-focus .rs-node:not(.rel) {
+  opacity: 0.3;
+}
+
+/* Search: the hits stay lit, the rest fades. */
+
+.searching .rs-node:not(.hit) {
+  opacity: 0.2;
+}
+
+.rs-node.hit {
+  opacity: 1;
+  box-shadow: 0 0 0 3px #fde68a, 0 0 18px rgba(253, 230, 138, 0.7);
+  animation: none;
+}
+
+/* Level of detail: zoomed out, a node drops its small print and shows its name big; further out, only its colour. */
+
+.lod-far .rs-node {
+  border-width: 3px;
+  padding: 2px 8px 8px;
+}
+
+.lod-far .rs-node-meta {
+  display: none;
+}
+
+.lod-far .rs-node-name {
+  font-size: 18px;
+  line-height: 1.1;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.lod-tiny .rs-node {
+  border-width: 12px;
+  animation: none;
+}
+
+.lod-tiny .rs-node-name,
+.lod-tiny .rs-node-meta {
+  visibility: hidden;
+}
+
+.lod-tiny .rs-node.locked {
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.lod-tiny .rs-node.done {
+  background: rgba(143, 220, 156, 0.55);
+}
+
+.lod-tiny .rs-node.available {
+  background: rgba(125, 211, 252, 0.45);
+  box-shadow: 0 0 40px rgba(125, 211, 252, 0.9);
+}
+
+.lod-tiny .rs-node.chosen {
+  background: rgba(250, 149, 73, 0.7);
+  box-shadow: 0 0 40px rgba(250, 149, 73, 0.9);
+}
+
+.lod-tiny .rs-node.hit {
+  background: rgba(253, 230, 138, 0.8);
+}
+
+@keyframes rs-glow {
+  0%, 100% { box-shadow: 0 0 3px rgba(125, 211, 252, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(125, 211, 252, 0.75); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rs-node.available {
+    animation: none;
+    box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+  }
+
+  .rs-stage.glide {
+    transition: none;
+  }
+}

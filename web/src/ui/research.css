@@ -1,17 +1,109 @@
-/* Research screen (research.ts): the tech tree, its nodes and edges. The hover card and HUD tracker are in
-   research-card.css. Node size and gaps are set in research.ts. */
+/* Research screen (research.ts): the dialog, the pan and zoom viewport with its overlays, and the tree's edges.
+   Nodes are research-node.css, eras research-eras.css, the minimap research-map.css, the hover card and HUD
+   tracker research-card.css. */
 
 .rs {
-  width: min(1180px, 100%);
+  width: min(1800px, 100%);
+  height: 100%;
   --rs-done: #8fdc9c;
   --rs-horizon: #7dd3fc;
+}
+
+.rs .mp-head {
+  gap: 8px 16px;
+  align-items: center;
+  padding-right: 60px;
+}
+
+.rs .mp-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 14px;
+}
+
+.rs .mp-status {
+  flex: none;
+}
+
+.rs .rq {
+  flex: none;
+}
+
+/* The camera's window onto the tree (research-view.ts). */
+
+.rs-view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(10, 12, 17, 0.7);
+  border: 1px solid var(--panel-border);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+
+.rs-view.panning {
+  cursor: grabbing;
+}
+
+.rs-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.rs-stage.glide {
+  transition: transform 0.42s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+/* Overlays in the corners of the viewport. */
+
+.rs-hud {
+  position: absolute;
+  bottom: 10px;
+  z-index: 2;
+  cursor: default;
+}
+
+.rs-hud-left {
+  left: 10px;
+  max-width: calc(100% - min(360px, 40vw) - 40px);
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.rs-hud-right {
+  right: 10px;
 }
 
 .rs-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 0 0 12px;
+  gap: 4px 16px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(14, 16, 22, 0.85);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rs-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rs-hint {
   font-size: 12px;
   color: var(--muted);
 }
@@ -42,24 +134,7 @@
   box-shadow: 0 0 6px var(--rs-horizon);
 }
 
-.rs-tree {
-  overflow: auto;
-  max-height: calc(100vh - 210px);
-  padding: 4px 4px 10px;
-}
-
-.rs-stage {
-  position: relative;
-}
-
-.rs-tree {
-  cursor: grab;
-}
-
-.rs-tree.panning {
-  cursor: grabbing;
-  user-select: none;
-}
+/* Edges: their width stays the same on screen at any zoom. */
 
 .rs-edges {
   position: absolute;
@@ -70,8 +145,9 @@
 
 .rs-edges path {
   fill: none;
-  stroke-width: 2;
-  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  stroke: rgba(255, 255, 255, 0.16);
   stroke-dasharray: 5 5;
   transition: stroke 0.15s, opacity 0.15s;
 }
@@ -93,143 +169,10 @@
 }
 
 .rs-edges path.closed.hot {
-  stroke: rgba(255, 255, 255, 0.55);
+  stroke: rgba(255, 255, 255, 0.6);
 }
 
 .rs-focus .rs-edges path:not(.hot) {
-  opacity: 0.12;
+  opacity: 0.1;
 }
 
-.rs-node {
-  position: absolute;
-  width: 176px;
-  height: 58px;
-  box-sizing: border-box;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 2px;
-  padding: 7px 10px 9px;
-  border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  background: rgba(30, 33, 42, 0.96);
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: default;
-  overflow: hidden;
-  transition: opacity 0.15s, border-color 0.15s;
-}
-
-.rs-node-name {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rs-node-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.rs-packs {
-  display: flex;
-  gap: 3px;
-}
-
-.rs-pack {
-  width: 16px;
-  height: 16px;
-  image-rendering: pixelated;
-}
-
-.rs-node-track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.rs-node-track i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-
-.rs-node.locked {
-  opacity: 0.45;
-  border-style: dashed;
-}
-
-.rs-node.done {
-  border-color: var(--rs-done);
-  background: rgba(38, 66, 46, 0.96);
-}
-
-.rs-node.done .rs-node-state {
-  color: var(--rs-done);
-  font-weight: 600;
-}
-
-.rs-node.done .rs-node-state::before {
-  content: '✓ ';
-}
-
-.rs-node.done .rs-node-track i {
-  background: var(--rs-done);
-  transform: scaleX(1);
-}
-
-.rs-node.available {
-  cursor: pointer;
-  border-color: var(--rs-horizon);
-  animation: rs-glow 2.2s ease-in-out infinite;
-}
-
-.rs-node.available .rs-node-state {
-  color: var(--rs-horizon);
-  font-weight: 600;
-}
-
-.rs-node.chosen {
-  border-color: var(--accent);
-  background: rgba(70, 48, 30, 0.96);
-  animation: none;
-  box-shadow: 0 0 10px rgba(250, 149, 73, 0.45);
-}
-
-.rs-node.chosen .rs-node-state {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.rs-node:hover,
-.rs-node:focus-visible {
-  outline: none;
-  border-color: #fff;
-}
-
-.rs-focus .rs-node:not(.rel) {
-  opacity: 0.3;
-}
-
-@keyframes rs-glow {
-  0%, 100% { box-shadow: 0 0 3px rgba(125, 211, 252, 0.3); }
-  50% { box-shadow: 0 0 12px rgba(125, 211, 252, 0.75); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rs-node.available {
-    animation: none;
-    box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
-  }
-}

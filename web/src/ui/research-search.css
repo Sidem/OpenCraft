@@ -1,0 +1,30 @@
+/* The research screen's search box (research-search.ts). */
+
+.rs-search {
+  position: relative;
+}
+
+.rs-search input {
+  width: 250px;
+  padding: 5px 40px 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.rs-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.rs-search-note {
+  position: absolute;
+  right: 28px;
+  top: 6px;
+  font-size: 12px;
+  color: var(--accent);
+  pointer-events: none;
+}

@@ -1,0 +1,11 @@
+/* The research tree's minimap (research-map.ts), a floating panel in the corner of the tree's viewport. */
+
+.rs-map {
+  display: block;
+  width: min(360px, 40vw);
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(14, 16, 22, 0.85);
+  cursor: crosshair;
+  touch-action: none;
+}
