@@ -1,6 +1,6 @@
 use super::*;
 use crate::action::Action;
-use crate::block::{AIR, POLE, STORAGE};
+use crate::block::{AIR, LONG_POLE, POLE, STORAGE};
 use crate::item::{HOVER_PACK, IRON_PLATE, JETPACK};
 use crate::player::Player;
 
@@ -240,6 +240,80 @@ fn a_pole_charges_the_pack_to_its_cap_and_losing_the_pole_stops_it() {
     assert_eq!(helpers(&sim).pole, None, "the pole is gone");
     sim.apply(P, Action::Charge { pole, on: false });
     assert_eq!(helpers(&sim).pole, None);
+}
+
+/// Puts `block` down at `pos` for player `who` (a bare placement: it gives the block first).
+fn place(sim: &mut Sim, who: PlayerId, block: u8, pos: IVec3) {
+    sim.apply(who, Action::Give { item: ItemId::block(block), count: 1 });
+    let inv = &sim.player(who).unwrap().inventory;
+    let slot = inv.slots.iter().position(|s| s.item == ItemId::block(block)).unwrap();
+    sim.apply(who, Action::PlaceBlock { pos, slot: slot as u8, facing: 0, against: pos });
+}
+
+#[test]
+fn a_long_distance_pole_can_charge_the_pack_too() {
+    let mut sim = hover_sim();
+    let pole = IVec3::new(900, 200, -900);
+    place(&mut sim, P, LONG_POLE, pole);
+    sim.apply(P, Action::Charge { pole, on: true });
+    assert_eq!(helpers(&sim).pole, Some(pole));
+    run(&mut sim, 10);
+    assert_eq!(helpers(&sim).charge, 10 * CHARGE_RATE);
+}
+
+/// A game with the local player wearing a hover pack, and a pole of `block` put `up` blocks above them.
+fn pole_game(block: u8, up: i32) -> (crate::Game, IVec3) {
+    let mut g = crate::Game::new(2024, 3);
+    crate::tests::run_until_ready(&mut g);
+    let me = g.local.0 as usize;
+    g.sim.players[me].as_mut().unwrap().inventory.worn[4] = HOVER_PACK;
+    let feet = g.body().pos.floor();
+    let pole = IVec3::new(feet.x, feet.y + up, feet.z);
+    place(&mut g.sim, g.local, block, pole);
+    (g, pole)
+}
+
+fn tied(g: &crate::Game) -> Option<IVec3> {
+    g.sim.player(g.local).unwrap().helpers.pole
+}
+
+#[test]
+fn the_hands_tie_the_pack_to_a_long_pole_from_far_away_but_not_to_an_ordinary_one() {
+    let (mut g, _) = pole_game(POLE, 25);
+    g.update(1.0 / 20.0);
+    g.update(1.0 / 20.0);
+    assert_eq!(tied(&g), None, "an ordinary pole 25 blocks up is out of reach");
+    let (mut g, pole) = pole_game(LONG_POLE, 25);
+    for _ in 0..3 {
+        g.update(1.0 / 20.0);
+    }
+    assert_eq!(tied(&g), Some(pole), "a long-distance pole reaches that far");
+    let (mut g, _) = pole_game(LONG_POLE, CHARGE_RANGE_LONG + 5);
+    g.update(1.0 / 20.0);
+    g.update(1.0 / 20.0);
+    assert_eq!(tied(&g), None, "but not past its own range");
+}
+
+#[test]
+fn the_pack_powers_up_when_it_starts_charging_and_down_when_it_loses_the_pole() {
+    use crate::sound::{POWER_DOWN, POWER_UP};
+    let (mut g, pole) = pole_game(LONG_POLE, 10);
+    let mut heard = Vec::new();
+    let frames = |g: &mut crate::Game, n: u32, heard: &mut Vec<u8>| {
+        for _ in 0..n {
+            g.update(1.0 / 20.0);
+            heard.extend(g.sounds.kinds());
+            g.sounds.clear();
+        }
+    };
+    frames(&mut g, 4, &mut heard);
+    assert_eq!(tied(&g), Some(pole));
+    assert_eq!(heard.iter().filter(|&&k| k == POWER_UP).count(), 1, "one power-up: {heard:?}");
+    assert!(!heard.contains(&POWER_DOWN));
+    g.sim.apply(g.local, Action::BreakBlock { pos: pole });
+    frames(&mut g, 4, &mut heard);
+    assert_eq!(tied(&g), None);
+    assert_eq!(heard.iter().filter(|&&k| k == POWER_DOWN).count(), 1, "one power-down: {heard:?}");
 }
 
 #[test]

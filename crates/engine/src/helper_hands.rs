@@ -1,15 +1,17 @@
 //! The local player's hands for the personal helpers (`helpers/`; presentation only): holding jump in the air
 //! with a jetpack in the pack and fuel to burn sends `Action::Jetpack` on changes, and with a charged hover pack
 //! `Action::Hover` (which wins over the jetpack and lasts until the body lands); standing near a power pole
-//! with a hover pack sends `Action::Charge`. Y sends the personal drone for the held item (`fetch_held`), and the
+//! with a hover pack sends `Action::Charge` (a long-distance pole from much further away), and the power-up and
+//! power-down sounds follow whether the pack is tied to a pole. Y sends the personal drone for the held item (`fetch_held`), and the
 //! HUD line says how much fuel or charge is left or what the drone is on.
 
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::helpers::{self, CHARGE_RANGE, HOVER_CAP, JET_TICKS_PER_COAL};
+use crate::helpers::{self, CHARGE_HOLD, CHARGE_RANGE, CHARGE_RANGE_LONG, HOVER_CAP, JET_TICKS_PER_COAL};
 use crate::item;
 use crate::math::{IVec3, Vec3};
+use crate::sound;
 use crate::{Game, TICK_RATE};
 
 impl Game {
@@ -21,9 +23,11 @@ impl Game {
             if let Some(p) = self.sim.player(self.local) {
                 (self.jet_sent, self.hover_sent, self.charge_sent) =
                     (p.helpers.thrusting, p.helpers.hover, p.helpers.pole);
+                self.charge_heard = p.helpers.pole.is_some();
                 self.hands_synced = true;
             }
         }
+        self.charge_sounds();
         let body = self.body();
         let in_air = !body.on_ground && !body.flying && !body.in_water;
         let (jump, feet) = (body.input.jump, body.pos);
@@ -52,16 +56,32 @@ impl Game {
 
     /// The nearest pole within reach of `feet` for a hover pack to charge from: none with no pack, and a pack not
     /// tied to a pole only starts when it is not full (a tied one stays tied, so a full pack does not flicker).
+    /// A long-distance pole reaches much further; the pole the pack is tied to reaches a little further still.
     fn charging_pole(&self, feet: Vec3, packed: bool, charge: u32) -> Option<IVec3> {
         if !packed || (self.charge_sent.is_none() && charge >= HOVER_CAP) {
             return None;
         }
-        let reach = f64::from(CHARGE_RANGE * CHARGE_RANGE);
-        let d2 = |c: IVec3| {
-            let d = Vec3::new(f64::from(c.x) + 0.5, f64::from(c.y) + 0.5, f64::from(c.z) + 0.5) - feet;
-            d.x * d.x + d.y * d.y + d.z * d.z
+        // Squared distance from `feet` to the pole's middle, and the squared range it must be within.
+        let near = |(c, mid, long): (IVec3, Vec3, bool)| {
+            let d = mid - feet;
+            let hold = if self.charge_sent == Some(c) { CHARGE_HOLD } else { 0 };
+            let range = f64::from(if long { CHARGE_RANGE_LONG } else { CHARGE_RANGE } + hold);
+            let d2 = d.x * d.x + d.y * d.y + d.z * d.z;
+            (d2 <= range * range).then_some((d2, c))
         };
-        self.sim.factory.poles().map(|(c, _)| c).filter(|&c| d2(c) <= reach).min_by(|&a, &b| d2(a).total_cmp(&d2(b)))
+        let best = self.sim.factory.charge_poles().filter_map(near).min_by(|a, b| a.0.total_cmp(&b.0));
+        best.map(|b| b.1)
+    }
+
+    /// Plays the power-up sound when the local hover pack starts charging and the power-down sound when it stops
+    /// (it walked out of range, the pole was removed, the pack was taken off).
+    fn charge_sounds(&mut self) {
+        let tied = self.sim.player(self.local).is_some_and(|p| p.helpers.pole.is_some());
+        if tied != self.charge_heard {
+            self.charge_heard = tied;
+            let kind = if tied { sound::POWER_UP } else { sound::POWER_DOWN };
+            self.sounds.push(kind, 0, Vec3::new(0.0, -0.4, 0.0), 1.0);
+        }
     }
 
     /// The status lines of the helpers (one per line): hover charge, the errand under way, jetpack fuel while it

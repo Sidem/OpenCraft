@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -172,6 +172,18 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     material: false,
     dials: ['volume', 'pitch', 'length'],
   },
+  powerdown: {
+    label: 'Power down',
+    help: 'The hover pack losing its charging connection: an electric whine falling away.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
+  powerup: {
+    label: 'Power up',
+    help: 'The hover pack starting to charge: an electric whine rising to a thump.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
 };
 
 // prettier-ignore
@@ -218,6 +230,8 @@ export const DEFAULT_DESIGN: SoundDesign = {
     click: neutral(),
     scan: neutral(),
     splash: neutral(),
+    powerdown: neutral(),
+    powerup: neutral(),
   },
 };
 

@@ -12,8 +12,9 @@
 //! - **Hover pack** (`item::HOVER_PACK`, worn in the jetpack's slot (so not with a jetpack), `equipment.rs`, Milestone 9): `Action::Hover { on }` starts and stops the
 //!   hover (the player holds jump in the air; the body holds its height and moves faster while `hover`, `player.rs`).
 //!   It runs on `charge` (ticks of hover, at most [`HOVER_CAP`]), one a tick. `Action::Charge { pole, on }` ties the
-//!   pack to a power pole (the hands send it as the player walks within [`CHARGE_RANGE`] of one) and the charge
-//!   fills [`CHARGE_RATE`] a tick while that pole stands and the pack is held.
+//!   pack to a power pole (the hands send it as the player walks within [`CHARGE_RANGE`] of one, or
+//!   [`CHARGE_RANGE_LONG`] of a long-distance pole) and the charge fills [`CHARGE_RATE`] a tick while that pole
+//!   stands and the pack is held. The hands play the power-up and power-down sounds as the tie starts and ends.
 //!
 //! Invariants: `thrusting` implies `jet > 0` and a jetpack in the pack; `hover` implies `charge > 0` and a hover pack
 //! worn; an errand needs the drone in the pack when it starts and when it ends. All deterministic: integer
@@ -38,6 +39,10 @@ pub const HOVER_CAP: u32 = 90 * TICK_RATE;
 pub const CHARGE_RATE: u32 = 2;
 /// How close to a pole the player must stand to charge, in blocks (the hands' check; the core wants the pole to exist).
 pub const CHARGE_RANGE: i32 = 6;
+/// The same for a long-distance pole, which charges from much further away.
+pub const CHARGE_RANGE_LONG: i32 = 32;
+/// A pack already tied to a pole stays tied this much further out, so walking along the edge does not flicker.
+pub const CHARGE_HOLD: i32 = 2;
 /// How far from the player the drone looks for a box, in blocks.
 pub const FETCH_RANGE: i32 = 32;
 /// Blocks a second the personal drone flies (it is quicker than a construction drone).
@@ -164,7 +169,7 @@ impl Sim {
     /// `Action::Charge`: ties the hover pack to the pole at `pole` (which must stand) or lets it go.
     pub(crate) fn set_charge(&mut self, player: PlayerId, pole: IVec3, on: bool) {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
-        let tied = on && core.inventory.has_hover_pack() && self.factory.poles().any(|(c, _)| c == pole);
+        let tied = on && core.inventory.has_hover_pack() && self.factory.charge_poles().any(|(c, ..)| c == pole);
         core.helpers.pole = tied.then_some(pole);
     }
 
@@ -185,7 +190,7 @@ impl Sim {
         for slot in &mut self.players {
             let Some(core) = slot else { continue };
             core.helpers.step_jet(&mut core.inventory);
-            core.helpers.step_hover(&core.inventory, |p| self.factory.poles().any(|(c, _)| c == p));
+            core.helpers.step_hover(&core.inventory, |p| self.factory.charge_poles().any(|(c, ..)| c == p));
             let Some(f) = core.helpers.fetch.as_mut() else { continue };
             f.left = f.left.saturating_sub(1);
             if f.left > 0 {

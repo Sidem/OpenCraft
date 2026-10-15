@@ -14,6 +14,8 @@ pub const LAND: u8 = 4;
 pub const PICKUP: u8 = 5;
 pub const DROP: u8 = 6;
 pub const SPLASH: u8 = 7;
+pub const POWER_DOWN: u8 = 8;
+pub const POWER_UP: u8 = 9;
 
 /// Floats per event: kind, sound material, camera-relative x, y, z, volume (0..1).
 pub const EVENT_FLOATS: usize = 6;

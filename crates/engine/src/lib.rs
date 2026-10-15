@@ -170,6 +170,8 @@ pub struct Game {
     /// Whether the hover was last sent on, and the pole the pack was last sent to charge from (`helper_hands.rs`).
     hover_sent: bool,
     charge_sent: Option<IVec3>,
+    /// Whether the hover pack was last heard charging, for the power-up and power-down sounds (`helper_hands.rs`).
+    charge_heard: bool,
     /// Whether the three above have been taken from the core yet (a loaded save may be mid-thrust).
     hands_synced: bool,
     /// The first port of the cargo route being set, and whether the use button was down (`cargo_tools.rs`).
@@ -249,6 +251,7 @@ impl Game {
             jet_sent: false,
             hover_sent: false,
             charge_sent: None,
+            charge_heard: false,
             hands_synced: false,
             cargo_from: None,
             cargo_down: false,

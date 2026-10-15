@@ -237,6 +237,15 @@ impl Factory {
         self.poles.iter().filter(|p| !p.is_cable() && !p.is_long()).map(|p| (p.pos, p.tier))
     }
 
+    /// Every pole a hover pack can charge from (everything but cables) as its anchor, the middle of its body and
+    /// whether it is a long-distance pole, which charges from further away (`helpers/`).
+    pub fn charge_poles(&self) -> impl Iterator<Item = (IVec3, Vec3, bool)> + '_ {
+        self.poles.iter().filter(|p| !p.is_cable()).map(|p| {
+            let mid = p.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
+            (p.pos, if p.is_long() { mid + LONG_FOOTPRINT.centre(0) } else { mid }, p.is_long())
+        })
+    }
+
     /// Where the wires of the pole anchored at `pos` hang, in the world (`None` when no pole is anchored there).
     pub fn pole_top(&self, pos: IVec3) -> Option<Vec3> {
         match self.at.get(&pos) {

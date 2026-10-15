@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-15 · Hover pack charging from far away
+
+- A long-distance pole charges your hover pack from up to 32 blocks away, so a tower can keep a whole base topped up. Ordinary poles still need you within 6 blocks.
+- The hover pack now makes a power-up sound when it starts charging and a power-down sound when the connection drops (you walked out of range, or the pole was removed). They are in the sound designer as Power up and Power down.
+
 ## 2026-10-15 · Automating buildings and the Upgrader
 
 - Assemblers now build power poles, long-distance poles, solar panels, accumulators, lamps, storage boxes, underpasses and rails, so a base can build its own parts. Constructors saw logs into planks and planks into sticks.

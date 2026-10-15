@@ -324,6 +324,44 @@ export function ping(sr: number, mods: HitMods): Float32Array {
   return normalize(out);
 }
 
+/** A buzzing electric tone: a sawtooth-like stack of the first few harmonics of phase `p`. */
+const buzz = (p: number) => Math.sin(p) + 0.5 * Math.sin(2 * p) + 0.33 * Math.sin(3 * p) + 0.2 * Math.sin(5 * p);
+
+/** Electric power-down: a buzzing whine falling from a high pitch to a low hum while it fades, with crackles. */
+export function powerDown(sr: number, rand: Rand, mods: HitMods): Float32Array {
+  const len = 0.7 * mods.length;
+  const n = Math.ceil(sr * len);
+  const out = new Float32Array(n);
+  let phase = 0, hum = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / sr, u = t / len;
+    phase += (2 * Math.PI * (70 + 900 * Math.exp(-5 * u)) * mods.pitch) / sr;
+    hum += (2 * Math.PI * 100 * mods.pitch) / sr;
+    const env = Math.min(1, t / 0.004) * (1 - u) ** 1.3;
+    const crackle = rand() < 0.0015 * (1 - u) ? (rand() * 2 - 1) * 2 : 0;
+    out[i] = (buzz(phase) * 0.7 + Math.sin(hum) * 0.4) * env + crackle * env;
+  }
+  return normalize(biquad(out, sr, 'lp', 3500 * mods.pitch, 0.7));
+}
+
+/** Electric power-up: a buzzing whine rising from a hum to a high pitch, ending in a thump and a short zap. */
+export function powerUp(sr: number, rand: Rand, mods: HitMods): Float32Array {
+  const rise = 0.55 * mods.length, tail = 0.15 * mods.length;
+  const n = Math.ceil(sr * (rise + tail));
+  const out = new Float32Array(n);
+  let phase = 0, hum = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / sr, u = Math.min(1, t / rise), after = Math.max(0, t - rise);
+    phase += (2 * Math.PI * (70 + 1100 * u * u) * mods.pitch) / sr;
+    hum += (2 * Math.PI * 100 * mods.pitch) / sr;
+    const env = Math.min(1, t / 0.01) * (0.15 + 0.85 * u ** 1.5) * Math.exp(-after / (0.04 * mods.length));
+    const crackle = rand() < 0.002 * u ? (rand() * 2 - 1) * 2 : 0;
+    out[i] = (buzz(phase) * 0.7 + Math.sin(hum) * 0.4 + crackle) * env;
+    if (after > 0) out[i] += Math.sin(2 * Math.PI * 55 * mods.pitch * t) * Math.exp(-after / (0.05 * mods.length)) * 0.9;
+  }
+  return normalize(biquad(out, sr, 'lp', 4500 * mods.pitch, 0.7));
+}
+
 /** Hotbar selection click. */
 export function tick(sr: number, mods: HitMods): Float32Array {
   const n = Math.ceil(sr * 0.03 * mods.length);
