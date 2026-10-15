@@ -39,6 +39,7 @@ mod model;
 mod nuclear;
 mod optimizer;
 mod parts;
+mod pods;
 mod pump;
 mod rectenna;
 mod recycler;
@@ -64,6 +65,7 @@ pub(super) use hydro::run as run_hydro;
 pub use legacy::{read_constructor, read_smelter};
 pub(super) use nuclear::run as run_reactor;
 pub(super) use optimizer::{bonus_at as optimizer_bonus_at, bonuses as optimizer_bonuses};
+pub(super) use pods::run as run_pods;
 use pump::Pump;
 pub(super) use rectenna::{run as run_rectenna, sense_sources};
 pub(super) use solar::run as run_renewables;
@@ -225,6 +227,7 @@ impl Processor {
             Pick::Hangar => return self.hangar.busy,
             Pick::Pump => return self.pump_wants_power(),
             Pick::Recycle => return self.recycle_wants_power(),
+            Pick::Pods => return self.pod_wants_power(),
             _ => {}
         }
         matches!(self.energy(), Energy::Hoist | Energy::Cooling | Energy::Optimizer)
@@ -383,6 +386,7 @@ impl Machine for Processor {
         }
         text += &self.reservoir_line(f);
         text += &self.sky_line(f);
+        text += &self.pods_line(f);
         let source = !matches!(self.energy(), Energy::Burner | Energy::Electric | Energy::Recipe | Energy::Boiler);
         match steam::grid_line(self, f).filter(|_| source && !f.dirty) {
             Some(grid) => format!("{text}\n{grid}"),

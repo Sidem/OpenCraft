@@ -343,7 +343,12 @@ pub const RECTENNA_SIDE: u16 = 298;
 pub const SCIENCE_SATELLITE: u16 = 299;
 pub const GROUND_TOP: u16 = 300;
 pub const GROUND_SIDE: u16 = 301;
-pub const COUNT: usize = 302;
+/// The drop pod's icon and capsule, the pod launcher's and landing pad's tops and their shared side (`textures/orbit.rs`).
+pub const DROP_POD: u16 = 302;
+pub const POD_SIDE: u16 = 303;
+pub const POD_LAUNCH_TOP: u16 = 304;
+pub const POD_PAD_TOP: u16 = 305;
+pub const COUNT: usize = 306;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

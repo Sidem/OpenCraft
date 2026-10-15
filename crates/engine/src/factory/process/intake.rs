@@ -19,6 +19,9 @@ impl Processor {
         if matches!(self.energy(), Energy::Diesel | Energy::Reactor) {
             return if item == self.generator_fuel() { self.input.space_for(item) } else { 0 };
         }
+        if self.takes_pod(item) {
+            return self.input.space_for(item);
+        }
         if self.spec.pick.stores() {
             return self.out.space_for(item);
         }
@@ -32,7 +35,14 @@ impl Processor {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
             Pick::Pump => item == EMPTY_CANISTER,
-            Pick::Store | Pick::Hangar | Pick::Load | Pick::Unload | Pick::Research | Pick::Recycle => false,
+            Pick::Store
+            | Pick::Hangar
+            | Pick::Load
+            | Pick::Unload
+            | Pick::Research
+            | Pick::Recycle
+            | Pick::Pods
+            | Pick::Land => false,
         };
         // One item fills at most one input slot (a stack), so a belt of one input can't crowd out the others.
         let cap = match self.spec.pick {
@@ -69,6 +79,7 @@ impl Processor {
         let put = n.min(self.room_for(item, unlocked));
         let buf = match () {
             _ if self.is_fuel(item) => &mut self.fuel,
+            _ if self.takes_pod(item) => &mut self.input,
             _ if self.spec.pick.stores() => &mut self.out,
             _ => &mut self.input,
         };

@@ -76,3 +76,5 @@ pub const COMMS_SATELLITE: ItemId = ItemId(392);
 pub const POWER_SATELLITE: ItemId = ItemId(393);
 /// A science satellite: a ground station under its footprint downlinks its data as compute (`factory/process/ground.rs`).
 pub const SCIENCE_SATELLITE: ItemId = ItemId(394);
+/// A drop pod (the Drop Pods tech): a pod launcher spends one to send a load of cargo to a landing pad (`pods.rs`).
+pub const DROP_POD: ItemId = ItemId(395);

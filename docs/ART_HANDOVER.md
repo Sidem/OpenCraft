@@ -221,6 +221,12 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   solar wings. Ground station (block 111, 3×3×2, `process/ground.rs`): `tex::GROUND_TOP` (300, pale concentric dish rings round a dark feed) and
   `GROUND_SIDE` (301, panels over a blue hazard band); the model is a banded plinth, a pale body, a neck with a flat dish plate, a mast and a lamp.
   A real tilted dish that turns towards the satellites would suit it.
+  Drop pods (12.4, 2026-10-15): `tex::DROP_POD` (302, a white capsule with a window and a scorched base; the item icon, and the capsule that
+  falls onto a pad as boxes in `drone_view.rs`), `POD_SIDE` (303, steel with chevrons over a cyan hazard band), `POD_LAUNCH_TOP` (304, a
+  hatch with a dark tube mouth) and `POD_PAD_TOP` (305, a bullseye of cyan and white rings). Pod launcher (block 113, 3×3×3, `process/pods.rs`):
+  a banded plinth, a squat body, a launch tube with a capsule nose, a red mark on its front face (the channel is the way it faces). Landing pad
+  (114, 3×3×1): a plinth and a ringed slab with a red mark on the front edge. The falling capsule is two boxes (capsule and flame); a dust puff
+  on touchdown and a rising capsule at launch would suit it (not drawn yet).
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

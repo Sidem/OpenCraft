@@ -16,7 +16,8 @@ impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
         let special = self
-            .steam_text()
+            .pods_text()
+            .or_else(|| self.steam_text())
             .or_else(|| self.solar_text())
             .or_else(|| self.hangar_text())
             .or_else(|| self.diesel_text())

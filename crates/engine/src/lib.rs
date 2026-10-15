@@ -64,6 +64,7 @@ mod ore_guide;
 mod perks;
 mod physics;
 mod player;
+mod pods;
 mod power_tools;
 mod prospect;
 mod quarry_preview;

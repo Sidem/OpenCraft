@@ -11,6 +11,8 @@ use crate::{Game, TICK};
 
 /// Drones further than this from the eye are not drawn.
 const DRAW_RANGE: f64 = 160.0;
+/// Drop pods further than this from the eye are not drawn (they fall from high up and are seen from afar).
+const POD_RANGE: f64 = 400.0;
 
 impl Game {
     /// Appends every drone near the eye to the box instances; `alpha` is how far into the tick the frame is.
@@ -39,7 +41,36 @@ impl Game {
             let lid = if c.load.count > 0 { tex::CARGO_DRONE } else { tex::FRAME };
             push_box(&mut self.instances, at + Vec3::new(0.0, -0.32, 0.0), yaw, [0.5, 0.3, 0.5], 0.0, [lid; 3], false);
         }
+        self.write_pod_instances(eye, alpha);
         self.write_companion(eye, alpha, time);
+    }
+
+    /// The drop pods in their last seconds, falling onto their pads: a white capsule with a red flame under it.
+    fn write_pod_instances(&mut self, eye: Vec3, alpha: f64) {
+        for at in self.sim.factory.falling_pods(self.sim.tick as f64 + alpha) {
+            let at = at - eye;
+            if at.length() > POD_RANGE {
+                continue;
+            }
+            push_box(
+                &mut self.instances,
+                at + Vec3::new(0.0, 0.5, 0.0),
+                0.0,
+                [0.7, 1.0, 0.7],
+                0.0,
+                [tex::DROP_POD; 3],
+                false,
+            );
+            push_box(
+                &mut self.instances,
+                at - Vec3::new(0.0, 0.2, 0.0),
+                0.0,
+                [0.3, 0.4, 0.3],
+                0.0,
+                [tex::LAMP_RED; 3],
+                false,
+            );
+        }
     }
 
     /// The local player's personal drone: hovering at their right shoulder, or out on an errand to its box.

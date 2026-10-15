@@ -73,6 +73,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 #[cfg(test)]
 use crate::math::Vec3;
+use crate::pods::Pods;
 use crate::research::{Bonus, Research};
 use crate::satellites::{Satellites, COMMS};
 use crate::sim::SimEvent;
@@ -185,6 +186,8 @@ pub struct Factory {
     pub sites: Sites,
     /// The satellites in orbit, which launch sites fill (`satellites.rs`).
     pub orbit: Satellites,
+    /// The drop pods in flight between pod launchers and landing pads (`pods.rs`).
+    pub pods: Pods,
     /// Blocks the machines changed this tick, with the one each replaced (not state: `Sim::step` drains it).
     pub changed: Vec<(IVec3, BlockId)>,
 }
@@ -339,6 +342,7 @@ impl Factory {
             deposits,
             research,
             orbit,
+            pods,
             order,
             changed,
             ..
@@ -380,6 +384,7 @@ impl Factory {
                 orbit.launch(payload, m.pos, tick);
             }
         }
+        process::run_pods(sinks.processors, pods, orbit, tick);
         for r in sinks.routers.iter_mut() {
             r.step(belts);
         }

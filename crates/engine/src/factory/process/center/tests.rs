@@ -117,7 +117,8 @@ fn tiers_are_twice_a_labs_and_the_lab_rule_follows_the_packs() {
             "Rocketry",
             "Orbital Comms",
             "Orbital Power",
-            "Orbital Science"
+            "Orbital Science",
+            "Drop Pods"
         ]
     );
 }

@@ -159,7 +159,11 @@ pub const RECTENNA: BlockId = 110;
 pub const GROUND_STATION: BlockId = 111;
 /// The long-distance pole (`factory/pole.rs`): a 2×2×3 tower that spans far to other long-distance poles.
 pub const LONG_POLE: BlockId = 112;
-pub const BLOCK_COUNT: usize = 113;
+/// The pod launcher (`factory/process/pods.rs`, step 12.4): belts load it, a drop pod carries the cargo to a landing pad.
+pub const POD_LAUNCHER: BlockId = 113;
+/// The landing pad (`factory/process/pods.rs`): drop pods from launchers on its channel come down on it; belts empty it.
+pub const LANDING_PAD: BlockId = 114;
+pub const BLOCK_COUNT: usize = 115;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -396,6 +400,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Rectenna", true, 2.0, pillar(tex::RECTENNA_SIDE, tex::RECTENNA_TOP, tex::FRAME), RECTENNA),
     machine("Ground Station", true, 2.4, pillar(tex::GROUND_SIDE, tex::GROUND_TOP, tex::FRAME), GROUND_STATION),
     machine("Long-Distance Pole", true, 1.6, pillar(tex::POLE_SIDE, tex::FRAME, tex::FRAME), LONG_POLE),
+    machine("Pod Launcher", true, 2.4, pillar(tex::POD_SIDE, tex::POD_LAUNCH_TOP, tex::FRAME), POD_LAUNCHER),
+    machine("Landing Pad", true, 2.0, pillar(tex::POD_SIDE, tex::POD_PAD_TOP, tex::FRAME), LANDING_PAD),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

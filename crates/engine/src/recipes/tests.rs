@@ -112,6 +112,7 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || it == item::DIESEL_CANISTER // burned by the diesel generator
             || it == item::FUEL_CELL // burned by the reactor
             || it == item::COIN // spent on cosmetics, a later step
+            || it == item::DROP_POD // spent by the pod launcher (`factory/process/pods.rs`)
             || tools::tool(it).is_some()
             || tools::device(it).is_some()
             || crate::equipment::gear(it).is_some();

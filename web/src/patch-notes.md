@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-15 · Drop pods
+
+- New research, Drop Pods (needs Rocketry and Orbital Comms): ship cargo through the sky. An assembler builds drop pods (a light frame, a fuel tank and 10 circuits each).
+- The Pod Launcher (3×3×3, 500 kW) takes cargo from belts and a drop pod. Under a comms satellite it loads for 15 seconds, then sends up to 6 stacks. 20 seconds later the pod comes down on a Landing Pad (3×3, no power), which belts empty. Watch it fall.
+- A launcher and a pad pair up by the way they face (four channels, shown in their readouts); a pod goes to the nearest pad on its channel that a comms satellite covers. If the pad is full the rest waits in the sky.
+
 ## 2026-10-14 · Long-distance power
 
 - New research, Long-Distance Power: the long-distance pole, a lattice tower 2×2 and 3 high, links to other long-distance poles up to 160 blocks away (an ordinary pole only 16), to carry power out to far ore mines and oil wells. It powers machines within 10 blocks, takes 6 connections, and wires like any pole.

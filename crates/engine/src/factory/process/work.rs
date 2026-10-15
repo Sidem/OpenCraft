@@ -85,9 +85,15 @@ impl Processor {
                     .find_map(|s| self.spec.recipe_using_if(s.item, unlocked, ready));
                 startable.or_else(|| self.spec.recipe_using(held.item, unlocked)).ok_or(Status::NoInput)
             }
-            Pick::Store | Pick::Hangar | Pick::Pump | Pick::Load | Pick::Unload | Pick::Research | Pick::Recycle => {
-                Err(Status::NoInput)
-            }
+            Pick::Store
+            | Pick::Hangar
+            | Pick::Pump
+            | Pick::Load
+            | Pick::Unload
+            | Pick::Research
+            | Pick::Recycle
+            | Pick::Pods
+            | Pick::Land => Err(Status::NoInput),
         }
     }
 

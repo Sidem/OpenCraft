@@ -61,3 +61,5 @@ pub const COMMS_SATELLITE_RECIPES: [u16; 2] = [71, 72];
 pub const POWER_SATELLITE_RECIPES: [u16; 2] = [73, 74];
 /// Orbital Science: the assembler's science satellite and the launch site's rocket for it.
 pub const SCIENCE_SATELLITE_RECIPES: [u16; 2] = [75, 76];
+/// Drop Pods: the assembler's drop pod.
+pub const DROP_POD_RECIPE: u16 = 77;

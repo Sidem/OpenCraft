@@ -26,8 +26,74 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SCIENCE_SATELLITE => science_satellite(x, y),
         tex::GROUND_TOP => ground_top(x, y),
         tex::GROUND_SIDE => ground_side(x, y),
+        tex::DROP_POD => drop_pod(x, y),
+        tex::POD_SIDE => pod_side(x, y),
+        tex::POD_LAUNCH_TOP => pod_launch_top(x, y),
+        tex::POD_PAD_TOP => pod_pad_top(x, y),
         _ => hull(x, y),
     }
+}
+
+/// A rounded white capsule with a dark window and a heat-scorched base, on black.
+fn drop_pod(x: i32, y: i32) -> [u8; 4] {
+    let half = if y < 5 { 1.5 + y as f64 * 0.9 } else { 5.5 };
+    if (x as f64 - 7.5).abs() > half || y > 14 {
+        return rgb([10.0, 12.0, 22.0], 0.9 + 0.2 * n(713, x, y));
+    }
+    if y >= 12 {
+        return rgb([60.0, 50.0, 46.0], 0.9 + 0.2 * n(714, x, y));
+    }
+    if (6..=8).contains(&x) && (6..=8).contains(&y) {
+        return rgb([40.0, 64.0, 100.0], 1.0);
+    }
+    rgb([232.0, 234.0, 240.0], round_shade(x) * (0.95 + 0.06 * n(715, x, y)))
+}
+
+/// Steel plating with chevrons over a cyan hazard band.
+fn pod_side(x: i32, y: i32) -> [u8; 4] {
+    if y >= 13 {
+        let cyan = (x + y) / 2 % 2 == 0;
+        return if cyan { rgb([60.0, 190.0, 220.0], 1.0) } else { rgb([30.0, 30.0, 34.0], 1.0) };
+    }
+    if (x - 8).abs() == y % 4 + 2 && y % 8 < 4 {
+        return rgb([170.0, 176.0, 186.0], 0.9 + 0.2 * n(716, x, y));
+    }
+    rgb([104.0, 110.0, 124.0], 0.88 + 0.24 * n(717, x, y))
+}
+
+/// A launcher's top: a round hatch with a dark tube mouth, in a steel frame.
+fn pod_launch_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r = (dx * dx + dy * dy).sqrt();
+    if r < 3.0 {
+        return rgb([14.0, 16.0, 22.0], 0.9 + 0.2 * n(718, x, y));
+    }
+    if r < 4.5 {
+        return rgb([60.0, 190.0, 220.0], 1.0);
+    }
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return frame(x, y);
+    }
+    rgb([120.0, 126.0, 140.0], 0.9 + 0.2 * n(719, x, y))
+}
+
+/// A landing pad's top: a bullseye of cyan and white rings on dark concrete, in a steel frame.
+fn pod_pad_top(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r = (dx * dx + dy * dy).sqrt();
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return frame(x, y);
+    }
+    if r < 1.8 {
+        return rgb([250.0, 250.0, 252.0], 1.0);
+    }
+    if (3.0..4.4).contains(&r) {
+        return rgb([60.0, 190.0, 220.0], 1.0);
+    }
+    if (5.6..6.6).contains(&r) {
+        return rgb([236.0, 238.0, 244.0], 1.0);
+    }
+    rgb([70.0, 72.0, 80.0], 0.9 + 0.2 * n(720, x, y))
 }
 
 /// A white body with a green sensor eye, between two small blue solar wings.

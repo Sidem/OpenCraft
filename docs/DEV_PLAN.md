@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 in progress: survey, comms, power and science satellites are all built (2026-10-14, uncommitted); next: commit, then 12.4** (the rest of Milestone 12 is a first draft in section 4, to refine with the user at 12.3; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 (what satellites give: survey, comms, power, science) is committed; 12.4 (drop pods: pod launcher, landing pad, tech Drop Pods; save version 46; 822 tests) is built, 2026-10-15, uncommitted; next: 12.5 cleanup** (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -441,9 +441,9 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 45) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 46) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 112, item 395, tech 82, machine recipe 77). Each new look gets a placeholder layer (`tex::COUNT` is 302) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 115, item 396, tech 84, machine recipe 78). Each new look gets a placeholder layer (`tex::COUNT` is 306) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
@@ -543,7 +543,7 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   direction (hung 400 blocks up, shown within 2400 blocks) and `render/sky.ts` draws gold lights (faint by day). The launch
   site's readout says "Survey satellites: N up, M over this pad". `Game::launch_satellite_at` is a debug scene helper. Tests
   752 → 763. Not done: a map layer for coverage, a launch sound or toast.
-- [ ] **12.3 What satellites give** (numbers kept as built, 2026-10-14, to tune in play; split into one kind per session).
+- [x] **12.3 What satellites give** (numbers kept as built, 2026-10-14, to tune in play; split into one kind per session).
   **Survey done** (2026-10-14, `survey/orbit.rs`: veins and lodes under a survey footprint go on both maps as facts, kept for the
   session and not saved; the AI survey drops guesses near them; footprints are `MARK_COVER` marks drawn as a gold disc; no save
   change; not looked at in the browser pane). **Comms done** (2026-10-14: tech Orbital Comms 79 (needs Rocketry, Data Network), item
@@ -562,7 +562,21 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   Data Network), item 394, textures 299–301, assembler recipe 75 and launch recipe 76 (three inputs: the assembler's limit), `KINDS`
   row `SCIENCE`, reach 1024; the maps tint its footprint pale blue; no save change, golden hash re-recorded; 805 tests; not seen in
   the browser pane). All four kinds are in. Fold in antenna bands from the roadmap's thread "the carry" or leave them.
-- [ ] **12.4 Drop pods to landing pads:** carry items from a rocket's cargo to a pad anywhere in comms coverage.
+- [x] **12.4 Drop pods to landing pads** (built 2026-10-15, uncommitted; numbers to tune in play). Design choices (the plan line said
+  "from a launch site"; a separate small machine fits the belts better, so the launch site stays the rocket builder): **Pod Launcher**
+  (block 113, 3×3×3, 500 kW, `factory/process/pods.rs`, `Pick::Pods`): belts fill 12 cargo stacks and a **Drop Pod** (item 395, texture
+  302, assembler row 77: a light frame, a fuel tank, 10 circuits, 20 s) arms it; under a comms satellite, with a landing pad on its channel
+  also under cover, it loads 15 s at full power and sends up to 6 stacks. **Landing Pad** (114, 3×3×1, no power, `Pick::Land`): the pod
+  comes down `FLIGHT_TICKS` (20 s) later and the cargo lands in its 24 stacks, which belts empty; what does not fit waits in the pod (in
+  `Factory::pods`, saved since 46, `pods.rs`) and lands as room opens, so nothing is lost while a pad exists. **Channel** = the way the
+  launcher or pad was placed facing (four), read in its status line; a pod goes to the nearest comms-covered pad on its channel (no UI to
+  pick a destination was built). Tech **Drop Pods** (83, `research/later.rs`, needs Rocketry and Orbital Comms, five packs, 250 units)
+  unlocks both blocks (hand recipes in `orbit.rs`) and the pod row. A capsule is drawn falling onto its pad for the last 4 s
+  (`Factory::falling_pods`, `drone_view.rs`). Textures 302–305 (`ART_HANDOVER.md`). Save version 46 (the pods after the satellites),
+  golden hash re-recorded; tests 805 → 822. Not done: a launch rising capsule, a touchdown puff or sound, a map mark for pads, a tip;
+  seen in the browser pane (a scene with a powered launcher and pad: the pod launched, fell as a capsule and landed 200 plates; the
+  launcher shows its capsule nose even when empty; `Game::launch_kind_at` is a debug helper for any satellite kind). Open question for the user: is facing-as-channel clear enough, or should a pad have a name or a
+  colour chosen in its panel?
 - [ ] **12.5 Cleanup:** tips, balance, worst tick, README, CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -607,6 +621,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-15: Drop pods (step 12.4).** Blocks 113 Pod Launcher and 114 Landing Pad (`factory/process/pods.rs`, `Pick::Pods` / `Pick::Land`), item 395 Drop Pod, texture 302–305, assembler row 77, tech Drop Pods 83 (`research/later.rs`), `pods.rs` (pods in flight, `Factory::pods`, save version 46), the falling capsule (`drone_view.rs`). Golden hash re-recorded; 822 tests. Next free block 115, item 396, tech 84, machine recipe 78, texture 306.
 - **2026-10-14: Long-distance pole (user request, off-plan).** Block `LONG_POLE` 112, a 2×2×3 lattice tower (tech Long-Distance Power 82 in the new `research/later.rs`, the open end of `TECHS`; hand recipe `LONG_POLE_RECIPE` at the end of `RECIPES`). A `Pole` of tier 14 (`LONG_TIER`) whose cells are indexed in `Factory.at` like a multi-block machine (`footprint::of` / `layout_dir` / `footprint_at` know it; it stores no facing, so it stands the same whichever way it is placed). Links 160 blocks to other long-distance poles, at most 16 to an ordinary pole (`pole::span`), reach 10, 6 slots. No save-format change. Also: Esc on the pause screen plays on (`main.ts`; if the browser will not re-lock the mouse the click-to-play hint shows). Reuses the pole textures: art request in `ART_HANDOVER.md`. Golden hash re-recorded. Next free block 113.
 - **2026-10-14: What satellites give (step 12.3, all four kinds).** Survey (`survey/orbit.rs`), comms (`Data::uplink`, `Hangar::linked`), power (Rectenna 110, `process/rectenna.rs`) and science (Ground Station 111, `process/ground.rs`: 40 TF a satellite overhead, cap 100, 150 kW). Techs 79–81, items 391–394, machine recipes 70–76, textures 294–301. Golden hash re-recorded; 805 tests. Next free block 112, item 395, tech 82, machine recipe 77, texture 302.
 - **2026-10-11: Satellites in orbit (step 12.2).** `satellites.rs` (core, `Factory::orbit`, save version 45: orbits are integer maths on the tick, a wrapped sky of 4096 blocks, 8 headings, coverage by a kind's reach, 24 a kind), the Survey Satellite (item 391, texture 294, machine recipe 70, launch recipe 69 now carries it, the pad has 6 input slots and reads old 5-slot saves), `Processor::lifted`, `api/orbit.rs` `sky_satellites`, gold lights in `render/sky.ts`, the launch site's "satellites up / over this pad" line. Golden hash re-recorded. Tests 752 → 763. Next free block 110, item 392, tech 79, machine recipe 71, texture 295.

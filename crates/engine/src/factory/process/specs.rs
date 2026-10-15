@@ -93,12 +93,16 @@ pub enum Pick {
     Research,
     /// A recycler: destroys any item it is given and pays coins (recycler.rs).
     Recycle,
+    /// A pod launcher: stores cargo like a silo and keeps drop pods in its input slot; sends them to a landing pad (pods.rs).
+    Pods,
+    /// A landing pad: stores what drop pods bring, like a silo that belts empty (pods.rs).
+    Land,
 }
 
 impl Pick {
-    /// Whether it holds anything it is given in its output buffer: silos and docks.
+    /// Whether it holds anything it is given in its output buffer: silos, docks, pod launchers and landing pads.
     pub fn stores(self) -> bool {
-        matches!(self, Pick::Store | Pick::Load | Pick::Unload)
+        matches!(self, Pick::Store | Pick::Load | Pick::Unload | Pick::Pods | Pick::Land)
     }
 
     /// Whether trains stop at it.
@@ -177,6 +181,8 @@ pub const SPECS: &[ProcessSpec] = &[
     super::launch::LAUNCH_SPEC,
     super::rectenna::RECTENNA_SPEC,
     super::ground::STATION_SPEC,
+    super::pods::LAUNCHER_SPEC,
+    super::pods::PAD_SPEC,
     ProcessSpec {
         block: SMELTER,
         categories: &[Category::Smelting],

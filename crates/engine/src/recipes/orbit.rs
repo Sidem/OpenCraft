@@ -40,6 +40,25 @@ pub const GROUND_STATION_RECIPE: Recipe = Recipe {
             pole and a fibre node within reach, like a datacenter's.",
 };
 
+pub const POD_LAUNCHER_RECIPE: Recipe = Recipe {
+    output: b(POD_LAUNCHER),
+    group: Group::Space,
+    count: 1,
+    inputs: &[(b(CONCRETE), 60), (STEEL_BEAM, 20), (MOTOR, 10), (CIRCUIT, 20)],
+    blurb: "A launch tube, 3×3 and 3 high (R turns it: the way it faces is its channel). Belts bring cargo in, up to 12 \
+            stacks, and drop pods. Under a comms satellite, with a landing pad on its channel also under cover, it loads \
+            for 15 seconds and sends a pod with up to 6 stacks of cargo, which lands 20 seconds later. Needs 500 kW.",
+};
+
+pub const LANDING_PAD_RECIPE: Recipe = Recipe {
+    output: b(LANDING_PAD),
+    group: Group::Space,
+    count: 1,
+    inputs: &[(b(CONCRETE), 40), (STEEL_BEAM, 10), (CIRCUIT, 20)],
+    blurb: "A target pad, 3×3. Drop pods sent from a pod launcher facing the same way (its channel) come down on the \
+            nearest pad that comms cover, and belts leading away from its sides take the cargo out. Needs no power.",
+};
+
 /// The rows after the main table: light frame, engine, fuel tank, avionics, rocket fuel, the launch with a survey satellite,
 /// the survey satellite itself, then the comms, power and science satellites with their launches.
 pub const ORBIT: &[MachineRecipe] = &[
@@ -154,5 +173,12 @@ pub const ORBIT: &[MachineRecipe] = &[
         ],
         outputs: &[(EMPTY_CANISTER, 8)],
         seconds: 60.0,
+    },
+    // The drop pod (tech Drop Pods): a pod launcher spends one for each load it sends.
+    MachineRecipe {
+        category: Category::Assembly,
+        inputs: &[(LIGHT_FRAME, 1), (FUEL_TANK, 1), (CIRCUIT, 10)],
+        outputs: &[(DROP_POD, 1)],
+        seconds: 20.0,
     },
 ];
