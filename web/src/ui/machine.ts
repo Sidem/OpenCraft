@@ -9,16 +9,10 @@
 import './machine.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
+import { RecipePicker } from './machine-recipes';
 import { QuarrySection } from './quarry';
 
 const ICON_PX = 64;
-
-interface RecipeButton {
-  id: number;
-  el: HTMLButtonElement;
-  /** "Research … first" while a tech locks it. */
-  lock: HTMLElement;
-}
 
 export class MachinePanel {
   /** Called after the panel closes. `resume` is true when play should continue (E, or a click outside). */
@@ -33,7 +27,7 @@ export class MachinePanel {
   private readonly fire = h('span', 'mp-fire');
   private readonly slots = h('div', 'mp-slots');
   private readonly recipeHead = h('h3', '', 'Recipe');
-  private readonly recipeList = h('div', 'mp-recipes');
+  private readonly recipes: RecipePicker;
   private readonly inserts = h('div', 'mp-inserts');
   private readonly put = h('section', 'mp-put');
   private readonly progress = h('div', 'mp-bar');
@@ -42,7 +36,6 @@ export class MachinePanel {
   private readonly take: HTMLButtonElement;
   private readonly quarry: QuarrySection;
   private readonly roleLabels: Map<number, string>;
-  private recipes: RecipeButton[] = [];
   private pos: [number, number, number] = [0, 0, 0];
   private block = -1;
   private drawn = '';
@@ -75,8 +68,12 @@ export class MachinePanel {
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
     this.quarry = new QuarrySection(game);
+    this.recipes = new RecipePicker(game, icon, (id) => {
+      const current = this.game.machine_panel(...this.pos)[1];
+      this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
+    });
     const body = h('div', 'mp-body');
-    body.append(state, this.quarry.el, this.filterSection, this.recipeHead, this.recipeList, this.put);
+    body.append(state, this.quarry.el, this.filterSection, this.recipeHead, this.recipes.el, this.put);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
 
@@ -85,7 +82,8 @@ export class MachinePanel {
     });
     this.backdrop.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('keydown', (e) => {
-      if (!this.isOpen || e.repeat) return;
+      // Typing in the recipe search is not a command (its own Escape empties the box and prevents the default).
+      if (!this.isOpen || e.repeat || e.target instanceof HTMLInputElement) return;
       if (e.code === 'KeyE') {
         e.preventDefault();
         this.close(true);
@@ -106,7 +104,10 @@ export class MachinePanel {
     const data = this.game.machine_panel(x, y, z);
     if (data.length === 0) return;
     this.pos = [x, y, z];
-    if (data[0] !== this.block) this.buildRecipes(data[0]);
+    if (data[0] !== this.block) {
+      this.block = data[0];
+      this.recipes.build(data[0]);
+    }
     this.title.textContent = this.game.block_name(data[0]);
     this.backdrop.classList.remove('hidden');
     this.drawn = '';
@@ -171,15 +172,9 @@ export class MachinePanel {
     this.put.classList.toggle('hidden', filtering || quarry);
     this.progress.classList.toggle('hidden', filtering);
     if (filtering) this.drawFilter(filter, held);
-    this.recipeHead.classList.toggle('hidden', this.recipes.length === 0);
-
-    for (const r of this.recipes) {
-      const tech = this.game.machine_recipe_locked_by(r.id);
-      r.el.classList.toggle('active', r.id === recipe);
-      r.el.classList.toggle('locked', tech >= 0);
-      r.el.disabled = !choosable || tech >= 0;
-      r.lock.textContent = tech >= 0 ? `Research ${this.game.tech_name(tech)} first` : '';
-    }
+    this.recipeHead.classList.toggle('hidden', this.recipes.isEmpty);
+    this.recipes.el.classList.toggle('hidden', this.recipes.isEmpty);
+    this.recipes.update(recipe === 0xffffffff ? -1 : recipe, choosable === 1);
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from the ore it gets)';
     if (!filtering && !quarry) this.drawInserts();
   }
@@ -211,30 +206,6 @@ export class MachinePanel {
       if (n > 0) totals.set(g.slot_item(s), (totals.get(g.slot_item(s)) ?? 0) + n);
     }
     return totals;
-  }
-
-  private buildRecipes(block: number): void {
-    const g = this.game;
-    this.block = block;
-    this.recipes = Array.from(g.machine_recipes(block), (id) => {
-      const [out, n] = g.machine_recipe_output(id);
-      const ins = g.machine_recipe_inputs(id);
-      const text = h('span', 'mp-recipe-text');
-      text.append(h('b', '', `${g.item_name(out)}${n > 1 ? ` ×${n}` : ''}`));
-      const parts: string[] = [];
-      for (let k = 0; k + 1 < ins.length; k += 2) parts.push(`${ins[k + 1]} ${g.item_name(ins[k])}`);
-      text.append(h('small', '', `from ${parts.join(' + ')} · ${g.machine_recipe_seconds(id)} s`));
-      const el = button('mp-recipe', '', () => {
-        const current = this.game.machine_panel(...this.pos)[1];
-        this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
-      });
-      el.title = 'Click again to clear. Items it holds come back to you.';
-      const lock = h('small', 'mp-lock');
-      text.append(lock);
-      el.append(this.iconCanvas(out, 'mp-recipe-icon'), text);
-      return { id, el, lock };
-    });
-    this.recipeList.replaceChildren(...this.recipes.map((r) => r.el));
   }
 
   /** One button per item in the inventory that the machine would take now. */
