@@ -31,6 +31,8 @@ export const MARK_SITE = 3;
 export const MARK_GUESS = 4;
 /** A satellite's footprint is `MARK_COVER` plus its kind; the colour field holds its reach in blocks. */
 export const MARK_COVER = 8;
+/** A long-distance pole's reach, shown while one is held; the colour field holds the reach in blocks. */
+export const MARK_RANGE = 12;
 /** A pod launcher or landing pad is `MARK_CHANNEL` plus its channel (0 north, 1 east, 2 south, 3 west); a launch site
  * is `MARK_LAUNCH`. */
 export const MARK_CHANNEL = 16;
@@ -107,6 +109,20 @@ export function drawMark(
   c.beginPath();
   if (shape >= MARK_CHANNEL) {
     drawSpaceMark(c, x, y, shape, px);
+    return;
+  }
+  if (shape === MARK_RANGE) {
+    // A dashed ring: where the next long-distance pole can stand and still link to this one.
+    c.arc(x, y, color * perBlock, 0, 2 * Math.PI);
+    c.setLineDash([6 * px, 4 * px]);
+    c.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    c.lineWidth = Math.max(1.5, px);
+    c.stroke();
+    c.setLineDash([]);
+    c.beginPath();
+    c.arc(x, y, 2.5 * px, 0, 2 * Math.PI);
+    c.fillStyle = '#fff';
+    c.fill();
     return;
   }
   if (shape >= MARK_COVER) {

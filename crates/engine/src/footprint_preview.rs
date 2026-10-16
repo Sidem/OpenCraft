@@ -1,8 +1,9 @@
 //! Placing a multi-block machine (the local player's, presentation only): while one is held and aimed
 //! at a face, `footprint_ghost` is where it would stand, each cell marked free or in the way (the host
 //! outlines the footprint amber and the cells in the way red: `api/hud.rs`), `footprint_label` names it
-//! and says what stops it, and R turns it (`turn_placement`, shared with the quarry). Reads loaded
-//! chunks only; never touches the core (placing is `Action::PlaceBlock`, checked again there).
+//! and says what stops it (a long-distance pole's also says what it would link to: `power_tools/long_pole.rs`),
+//! and R turns it (`turn_placement`, shared with the quarry). Reads loaded chunks only; never touches the core
+//! (placing is `Action::PlaceBlock`, checked again there).
 
 use crate::block::{self, BlockId};
 use crate::factory::footprint::{self, Footprint};
@@ -46,7 +47,13 @@ impl Game {
             1 => "1 cell in the way (red)".to_string(),
             _ => format!("{n} cells in the way (red)"),
         };
+        let name = block::def(block).name;
+        // A long-distance pole has no facing; what it would link to says more than its size.
+        let link = self.long_pole_line();
+        if !link.is_empty() {
+            return format!("{name}\n{link} · {state}");
+        }
         let turn = if block == block::LONG_POLE { "" } else { " · R turns it" };
-        format!("{}\n{w}×{d}×{h} · {state}{turn}", block::def(block).name)
+        format!("{name}\n{w}×{d}×{h} · {state}{turn}")
     }
 }

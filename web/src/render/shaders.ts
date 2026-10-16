@@ -113,6 +113,9 @@ in vec3 v_tint;
 in vec3 v_rel;
 out vec4 o_color;
 
+#ifdef BOXES
+in float v_haze; // 0 for a beacon, which the fog doesn't hide
+#endif
 #ifdef TERRAIN
 in vec2 v_ground;
 float terrainHash(vec2 p) {
@@ -156,7 +159,12 @@ void main() {
               + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;
   c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
 #endif
-  o_color = vec4(applyFog(c.rgb * (v_light * v_tint + v_sun), v_rel), 1.0);
+#ifdef BOXES
+  vec3 hazed = v_rel * v_haze;
+#else
+  vec3 hazed = v_rel;
+#endif
+  o_color = vec4(applyFog(c.rgb * (v_light * v_tint + v_sun), hazed), 1.0);
 #endif
 }
 `;
@@ -180,6 +188,7 @@ out float v_light;
 out vec3 v_sun;
 out vec3 v_tint;
 out vec3 v_rel;
+out float v_haze;
 ${LIGHT}
 const vec3 NORMALS[6] = vec3[6](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0, 0, -1));
 
@@ -207,7 +216,9 @@ void main() {
   mat3 rot = mat3(c, 0.0, s, 0.0, 1.0, 0.0, -s, 0.0, c) * roll * tilt;
   vec3 n = rot * NORMALS[face];
   uint light = uint(a_i2.w * 0.5);
-  float glow = a_i3.w; // a status light, lamp, beam or flame lights itself (factory/render.rs GLOWING)
+  // A status light, lamp, beam or flame lights itself (factory/render.rs GLOWING); a beacon (2) is also seen through the fog.
+  float glow = min(a_i3.w, 1.0);
+  v_haze = a_i3.w > 1.5 ? 0.0 : 1.0;
   v_light = mix((n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86))) * AMBIENT, 1.0, glow);
   v_sun = sunLight(n, light) * (1.0 - glow);
   v_uvl = vec3(uv, layer);

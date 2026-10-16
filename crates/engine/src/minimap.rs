@@ -15,6 +15,8 @@ mod marks;
 pub use atlas::Atlas;
 #[cfg(test)]
 pub use marks::MARK_GUESS;
+#[cfg(test)]
+pub use marks::MARK_RANGE;
 pub use marks::{ore_color, Known, MARK_FIELDS};
 
 use atlas::{column_index, Tile};

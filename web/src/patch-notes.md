@@ -5,6 +5,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-16 · A better first minute
 
+- Placing a long-distance pole now shows whether it will connect before you build it: the outline turns green or red, a wire runs to the pole it will join, the label says how far it is and how many blocks of reach you have left, a light pillar marks the far tower even through the haze, and you hear a soft blip when you step past the edge of its reach. While you hold one, the minimap and the map ring every long-distance pole's reach.
 - A new world starts in front of a small production line that has stopped: one belt came loose. Put it back, turn it the right way with R, and the line runs again; its last load of ore becomes the ingots for your first miner. Floating key prompts show what to press where.
 - Tips are bigger and easier to skim: a title, the important words highlighted and keys drawn as keys.
 - The tip for placing your first miner now also says where to look for ore.

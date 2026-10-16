@@ -17,7 +17,7 @@ export class BoxPipeline {
   private capacity = 0;
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number) {
-    this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT']);
+    this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT', 'BOXES']);
     this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const);
 
     // One unit cube, per-instance centre/size/rotation/textures.

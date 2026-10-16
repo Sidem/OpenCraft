@@ -35,9 +35,10 @@ impl Game {
     }
 
     /// Prospected deposits and machines inside the image, `minimap_mark_fields()` numbers each: x and z
-    /// offset in blocks from the image's centre column, colour (0xRRGGBB), shape (0 deposit, 1 machine).
+    /// offset in blocks from the image's centre column, colour (0xRRGGBB), shape (0 deposit, 1 machine; the shapes are
+    /// `minimap/marks.rs`'s). With a long-distance pole in hand, every one's reach is a ring.
     pub fn minimap_marks(&self) -> Vec<i32> {
-        self.minimap.marks(&self.sim.factory)
+        self.minimap.marks(&self.sim.factory, self.holds_long_pole())
     }
 
     pub fn minimap_mark_fields(&self) -> u32 {
@@ -77,7 +78,7 @@ impl Game {
     /// Marks on block columns x0..=x1, z0..=z1 (`minimap_mark_fields()` numbers each, as
     /// `minimap_marks`, but x and z are world columns): shape 2 is ore seen at the surface.
     pub fn world_map_marks(&self, x0: i32, z0: i32, x1: i32, z1: i32) -> Vec<i32> {
-        self.minimap.marks_in(&self.sim.factory, (x0, z0), (x1, z1), (0, 0))
+        self.minimap.marks_in(&self.sim.factory, (x0, z0), (x1, z1), (0, 0), self.holds_long_pole())
     }
 
     /// The explored map as bytes, for the host to keep with the world's record.

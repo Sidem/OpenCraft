@@ -70,7 +70,8 @@ impl Game {
         let Some((_, _, _, cells)) = self.footprint_ghost() else { return Vec::new() };
         let lo = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.min(c.0.x), m.y.min(c.0.y), m.z.min(c.0.z)));
         let hi = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.max(c.0.x), m.y.max(c.0.y), m.z.max(c.0.z)));
-        let mut out = vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0];
+        let mut out = vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, self.long_pole_outline()];
+        out.extend(self.long_pole_boxes());
         for &(c, _) in cells.iter().filter(|c| c.1) {
             out.extend([c.x, c.y, c.z, c.x, c.y, c.z, BLOCKED_RED]);
         }

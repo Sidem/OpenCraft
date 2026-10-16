@@ -1,8 +1,9 @@
 use super::*;
-use crate::block::{GENERATOR, MINER, STONE, STORAGE};
+use crate::block::{GENERATOR, LONG_POLE, MINER, STONE, STORAGE};
 use crate::factory::Kind;
 use crate::item::ItemId;
 use crate::raycast::RayHit;
+use crate::sound;
 use crate::tests::run_until_ready;
 
 fn v(x: i32, y: i32, z: i32) -> IVec3 {
@@ -288,4 +289,41 @@ fn a_drop_stops_at_the_stack_and_at_things_in_the_way() {
     assert_eq!(g.cable_drop(), [v(2, y + 1, 2)]);
     g.using = true;
     assert!(!g.update_power_tools(1.0 / 60.0), "one cell is left to plain placing");
+}
+
+#[test]
+fn a_held_long_distance_pole_shows_what_it_links_to_and_how_much_reach_is_left() {
+    let (mut g, y) = on_a_platform(LONG_POLE.into(), 2);
+    let (tower, gen) = (v(-10, y + 1, 0), v(-7, y + 1, 0));
+    put(&mut g, LONG_POLE, tower);
+    put(&mut g, GENERATOR, gen);
+    g.sim.factory.connect(tower, gen);
+    g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
+    aim_at(&mut g, v(20, y, 0), v(0, 1, 0));
+    assert!(
+        g.line_label().contains("Links to the long-distance pole 30 blocks away · 130 to spare"),
+        "{}",
+        g.line_label()
+    );
+    let boxes = g.placement_box();
+    assert_eq!(boxes[6], GHOST_GREEN, "the outline is green: it links");
+    assert_eq!(boxes[7..14], [-10, y + 1, -1, -9, y + 3, 0, ANCHOR_BLUE], "the tower it links to is boxed blue");
+    // While one is held the maps ring every tower's reach.
+    let marks = g.world_map_marks(-200, -200, 200, 200);
+    assert!(marks.chunks_exact(4).any(|m| m == [-10, 0, 160, crate::minimap::MARK_RANGE]), "{marks:?}");
+
+    // The tower moves far off: out of reach, red, and a blip as the spot crosses the edge.
+    tick_using(&mut g, false);
+    g.sounds.clear();
+    g.sim.factory.remove(tower);
+    put(&mut g, LONG_POLE, v(-200, y + 1, 0));
+    g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
+    tick_using(&mut g, false);
+    assert!(g.line_label().contains("Out of reach: the nearest long-distance pole is 220 blocks away, 160 at most"));
+    assert_eq!(g.placement_box()[6], BLOCKED_RED);
+    assert_eq!(g.sounds.kinds(), [sound::POWER_DOWN]);
+    // Something else in hand: no rings.
+    g.select_slot(8);
+    g.run_ticks(2);
+    assert!(!g.world_map_marks(-300, -200, 200, 200).chunks_exact(4).any(|m| m[3] == crate::minimap::MARK_RANGE));
 }

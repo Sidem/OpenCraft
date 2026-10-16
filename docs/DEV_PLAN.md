@@ -642,6 +642,13 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Long-distance pole placing preview (user request).** While one is held and aimed, `Factory::long_link` says
+  what `auto_hook` would wire it to, or why not (too far, full, unpowered, alone), and `power_tools/long_pole.rs` shows it:
+  the footprint outline green or red, the pole it links to boxed, the label's line ("Links to the long-distance pole 132
+  blocks away · 28 to spare" or the reason), a ghost tower and its wire in the grid's colour (red and cut at 160 blocks
+  when too far), a beacon over the far tower that shows through the fog (`mark_beacon`: glow flag 2, `BOXES` in the box
+  shader), a power-up or power-down blip as the spot crosses the edge of reach, and the maps ring every long-distance pole's
+  reach (`MARK_RANGE`, dashed). Presentation only; no save or core change. Seen in the browser pane. 844 tests.
 - **2026-10-16: Dialog screens fixed (user bug report).** Moving the machine panel into the inventory (7bd9b78) deleted the
   shared dialog styles (`.mp-backdrop`, `.mp`, `.mp-head`, `.mp-keys`, `.mp-body`) that research, analytics, the world map,
   blueprints and the site panel use; they are back in `base.css`, and the machine panel's root is now `.mp-panel` so its

@@ -259,6 +259,46 @@ impl Factory {
         let probe = Pole { pos, tier: CABLE_TIER };
         self.poles.iter().any(|p| p.pos != pos && linked(&probe, p))
     }
+
+    /// What a long-distance pole put at `anchor` would be wired to (the placing preview, `power_tools/long_pole.rs`):
+    /// `auto_hook`'s pole, else the nearest long-distance pole and why not. `None` while the grids are stale.
+    pub fn long_link(&self, anchor: IVec3) -> Option<LongLink> {
+        if self.dirty {
+            return None;
+        }
+        if let Some(to) = self.auto_hook(anchor, LONG_TIER) {
+            let Some(&Slot::Pole(i)) = self.at.get(&to) else { return None };
+            let span = span(LONG_TIER, self.poles[i as usize].tier);
+            return Some(LongLink::Links { to, span, layer: self.power.pole_layer(i) });
+        }
+        let nearest = self.poles.iter().filter(|p| p.is_long() && p.pos != anchor).min_by_key(|p| dist2(p.pos, anchor));
+        Some(match nearest {
+            None => LongLink::Alone,
+            Some(p) if dist2(p.pos, anchor) > LONG_STATS.link.pow(2) => LongLink::TooFar(p.pos),
+            Some(p) if self.slots_used(p.pos) >= LONG_STATS.slots as usize => LongLink::Full(p.pos),
+            Some(p) => LongLink::Unpowered(p.pos),
+        })
+    }
+}
+
+/// What a new long-distance pole would be wired to (`Factory::long_link`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LongLink {
+    /// To the pole at `to`, at most `span` blocks off, on the grid whose colour is texture layer `layer`.
+    Links { to: IVec3, span: i32, layer: u16 },
+    /// Nothing: the nearest long-distance pole is out of reach,
+    TooFar(IVec3),
+    /// in reach with every connection used,
+    Full(IVec3),
+    /// or in reach with no power source on its grid;
+    Unpowered(IVec3),
+    /// or no long-distance pole stands, and no powered pole is near.
+    Alone,
+}
+
+/// Where the wires of a long-distance pole anchored at `anchor` would hang, in the world (the placing preview).
+pub fn long_top(anchor: IVec3) -> Vec3 {
+    Pole { pos: anchor, tier: LONG_TIER }.wire_point()
 }
 
 /// The long-distance pole's lattice tower, 2×2×3; `c` is its centre relative to the camera.
@@ -300,9 +340,10 @@ pub fn preview_pole(out: &mut Vec<f32>, tier: u8, rel: Vec3) {
     Pole { pos: IVec3::ZERO, tier }.model(out, rel, 0.0);
 }
 
-/// A wire between two camera-relative points, drawn like the placed ones (the pole tool's preview).
-pub fn preview_wire(out: &mut Vec<f32>, a: Vec3, b: Vec3) {
-    super::power::wire(out, a, b, tex::GRID_FIRST);
+/// A wire between two camera-relative points, drawn like the placed ones with texture `layer` (the pole tool's
+/// preview: a grid's colour, `tex::GRID_FIRST` for the main grid's).
+pub fn preview_wire(out: &mut Vec<f32>, a: Vec3, b: Vec3, layer: u16) {
+    super::power::wire(out, a, b, layer);
 }
 
 #[cfg(test)]

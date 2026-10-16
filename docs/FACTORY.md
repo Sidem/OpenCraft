@@ -150,7 +150,9 @@ size.
   blocks and to generators and machines within 5 (taller poles reach further; you see the wires). **Grid colours:** every grid wears one accent colour on its wires, pole collars and cables. The biggest grid (most poles) is the main grid and is always blue; any other, separate grid is orange, pink, green, yellow or red, so a pole in a different colour is not on the main grid. Wire two grids together and both turn blue; the pole readout names its grid.
   **Long-distance pole** (Long-Distance Power research; 12 steel beams, 16 aluminium plates, 60 copper wire): a 2×2×3
   lattice tower that links to another long-distance pole up to 160 blocks away (to an ordinary pole only within 16),
-  wires machines within 10 blocks and holds 6 wires.
+  wires machines within 10 blocks and holds 6 wires. While you hold one, its outline turns green when it will link and
+  red when it won't, the label says how far the pole it links to is and how much reach is left (or why it won't link), a
+  light pillar marks the far tower, and the maps ring every long-distance pole's 160-block reach.
   **Placing:** with a pole in hand, right-click puts it where you aim, if that is within reach of the last
   pole (further off, at the widest spacing towards the aim); hold Shift to snap to the widest spacing along
   your view, and hold Shift and right-click while walking to lay a line. A new pole wires itself to the

@@ -145,3 +145,33 @@ fn power_crosses_a_long_span_and_the_tower_survives_a_save() {
     assert_eq!(g.machine_cells(v(150, 3, 0)).len(), 12);
     assert_eq!(g.slots_used(v(0, 3, 0)), 2);
 }
+
+#[test]
+fn long_link_says_what_a_new_long_distance_pole_would_be_wired_to_or_why_not() {
+    let mut f = by_hand();
+    let tick = |f: &mut Factory| f.update(&mut World::new(1, 2), 1, &mut Vec::new());
+    let tower = v(0, 3, 0);
+    assert_eq!(f.long_link(v(100, 3, 0)), Some(LongLink::Alone));
+    place_block(&mut f, LONG_POLE, tower);
+    tick(&mut f);
+    assert_eq!(f.long_link(v(100, 3, 0)), Some(LongLink::Unpowered(tower)), "no power on its grid yet");
+    assert_eq!(f.long_link(v(170, 3, 0)), Some(LongLink::TooFar(tower)));
+    place_block(&mut f, GENERATOR, v(4, 3, 0));
+    f.connect(tower, v(4, 3, 0));
+    tick(&mut f);
+    let links = |f: &Factory, at| match f.long_link(at) {
+        Some(LongLink::Links { to, span, .. }) => Some((to, span)),
+        _ => None,
+    };
+    assert_eq!(links(&f, v(150, 3, 0)), Some((tower, LONG_STATS.link)));
+    assert_eq!(links(&f, v(170, 3, 0)), None);
+    // An ordinary powered pole near the spot is reached only within 16 blocks, and wins when nearer.
+    for k in 0..5 {
+        place_block(&mut f, POLE, v(-3, 3, 2 + 2 * k));
+        f.connect(tower, v(-3, 3, 2 + 2 * k));
+    }
+    tick(&mut f);
+    assert_eq!(links(&f, v(-3, 3, 20)), Some((v(-3, 3, 10), LONG_LOCAL_LINK)));
+    // Six connections used: the tower is full.
+    assert_eq!(f.long_link(v(150, 3, 0)), Some(LongLink::Full(tower)));
+}

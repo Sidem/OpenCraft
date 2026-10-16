@@ -35,6 +35,8 @@ pub const MARK_GUESS: i32 = 4;
 /// A satellite's footprint (`satellites.rs`): this plus its kind as the shape, and the third number is its reach in
 /// blocks instead of a colour.
 pub const MARK_COVER: i32 = 8;
+/// A long-distance pole's reach while one is held (`power_tools/long_pole.rs`): the third number is the reach in blocks.
+pub const MARK_RANGE: i32 = 12;
 /// A pod launcher or landing pad: this plus its channel (0 north, 1 east, 2 south, 3 west) as the shape, in its colour.
 pub const MARK_CHANNEL: i32 = 16;
 /// A launch site (a rocket shape), in its colour.
@@ -98,15 +100,23 @@ impl Known {
 impl Minimap {
     /// Marks inside the minimap image (`MARK_FIELDS` numbers each), relative to its centre column.
     /// Empty before the first redraw.
-    pub fn marks(&self, factory: &Factory) -> Vec<i32> {
+    pub fn marks(&self, factory: &Factory, ranges: bool) -> Vec<i32> {
         let Some((cx, cz)) = self.centre else { return Vec::new() };
-        self.marks_in(factory, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz))
+        self.marks_in(factory, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz), ranges)
     }
 
-    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: satellite footprints, survey guesses, ore seen
-    /// at the surface, then remembered deposits and those survey satellites saw (both while they hold ore), then
-    /// terraforming sites, then machines (pod launchers and pads last, with their channel).
-    pub fn marks_in(&self, factory: &Factory, lo: (i32, i32), hi: (i32, i32), origin: (i32, i32)) -> Vec<i32> {
+    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: satellite footprints, with `ranges` every
+    /// long-distance pole's reach, survey guesses, ore seen at the surface, then remembered deposits and those survey
+    /// satellites saw (both while they hold ore), then terraforming sites, then machines (pod launchers and pads last,
+    /// with their channel).
+    pub fn marks_in(
+        &self,
+        factory: &Factory,
+        lo: (i32, i32),
+        hi: (i32, i32),
+        origin: (i32, i32),
+        ranges: bool,
+    ) -> Vec<i32> {
         let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
         let (ox, oz) = origin;
         let mut out = Vec::new();
@@ -114,6 +124,12 @@ impl Minimap {
         for (x, z, reach, kind) in factory.orbit.footprints(mid.0, mid.1, factory.orbit.now) {
             if (x - mid.0).abs() <= half + reach && (z - mid.1).abs() <= half + reach {
                 out.extend_from_slice(&[x - ox, z - oz, reach, MARK_COVER + kind as i32]);
+            }
+        }
+        let reach = factory::LONG_STATS.link;
+        for (p, _, _) in factory.charge_poles().filter(|p| ranges && p.2) {
+            if (p.x - mid.0).abs() <= half + reach && (p.z - mid.1).abs() <= half + reach {
+                out.extend_from_slice(&[p.x - ox, p.z - oz, reach, MARK_RANGE]);
             }
         }
         for g in self.survey.guesses().iter().filter(|g| (lo.0..=hi.0).contains(&g.x) && (lo.1..=hi.1).contains(&g.z)) {

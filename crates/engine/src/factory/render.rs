@@ -15,10 +15,11 @@ use super::{Factory, Machine};
 /// world-scaled) plus twice the light byte (sky in the low nibble, block light in the high one, as
 /// `light.rs` writes it), then pitch, roll, top-width taper and the glow flag. `push_box` starts
 /// every box at [`DAYLIGHT`]; `light_boxes` sets the real light and the glow. Ordinary boxes have no
-/// tilt or taper.
+/// tilt or taper. A glow flag of 2 is a beacon (`mark_beacon`): it glows and the fog doesn't hide it.
 pub const INSTANCE_FLOATS: usize = 16;
 const MODE_LIGHT: usize = 11;
 const GLOW: usize = 15;
+const BEACON: f32 = 2.0;
 /// Texture layers that give light rather than take it (status lights, lamps, laser beams, the jetpack's
 /// flame): the shader draws a box with one of them at full brightness, day or night.
 const GLOWING: [u16; 6] = [tex::LAMP_GREEN, tex::LAMP_YELLOW, tex::LAMP_RED, tex::LAMP_BLUE, tex::LAMP, tex::BEAM];
@@ -54,6 +55,13 @@ pub fn push_box(
     ]);
 }
 
+/// Makes the box just pushed onto `out` a beacon: it lights itself and shows through the fog, to mark something far\n/// off (the long-distance pole a held one is measured from: `power_tools/long_pole.rs`).
+pub fn mark_beacon(out: &mut [f32]) {
+    if let Some(last) = out.last_mut() {
+        *last = BEACON;
+    }
+}
+
 /// The instance's last float: the uv mode plus twice the light byte.
 fn packed(world_uv: bool, light: u8) -> f32 {
     f32::from(world_uv) + 2.0 * f32::from(light)
@@ -77,7 +85,9 @@ pub fn light_boxes(boxes: &mut [f32], eye: Vec3, mut light: impl FnMut(IVec3) ->
         };
         last = Some((cell, lit));
         rec[MODE_LIGHT] = packed(rec[MODE_LIGHT] as u32 & 1 == 1, lit);
-        rec[GLOW] = f32::from(u8::from(rec[8..11].iter().any(|&l| GLOWING.contains(&(l as u16)))));
+        if rec[GLOW] != BEACON {
+            rec[GLOW] = f32::from(u8::from(rec[8..11].iter().any(|&l| GLOWING.contains(&(l as u16)))));
+        }
     }
 }
 

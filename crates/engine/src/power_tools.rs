@@ -18,12 +18,13 @@
 //!
 //! To change the spacing rule: [`plan_pole`]. The preview: a ghost pole, wire and cables
 //! (`write_power_preview`), the outline boxes (`power_boxes`) and the label (`power_label`), which
-//! `api/hud.rs` forwards.
+//! `api/hud.rs` forwards. A long-distance pole is placed like a machine; its preview is `long_pole.rs`.
 
+mod long_pole;
 mod wire;
 
 use crate::action::Action;
-use crate::block::{self, BlockId, AIR, CABLE, POLE, SOLID};
+use crate::block::{self, tex, BlockId, AIR, CABLE, POLE, SOLID};
 use crate::factory::{self, tiers, POLE_TIERS};
 use crate::interaction::{PLACE_REPEAT_SECONDS, REACH};
 use crate::math::{IVec3, Vec3};
@@ -62,6 +63,8 @@ pub struct PowerTools {
     /// Cables of a drop still to send (last first), and the hotbar slot and item they come from.
     drop: Vec<IVec3>,
     drop_from: (u8, u16),
+    /// Whether the held long-distance pole's spot linked when last looked at (`long_pole.rs`'s edge cue).
+    long_cue: Option<bool>,
 }
 
 /// The next pole: where, the pole it is placed from, its tier, and how it stands.
@@ -207,6 +210,7 @@ impl Game {
         if let Some(last) = self.tools.last.as_mut() {
             last.2 = last.2.saturating_add(1);
         }
+        self.update_long_pole_cue();
         let sending = self.send_cable_drop();
         if !self.using {
             self.tools.down = false;
@@ -358,7 +362,7 @@ impl Game {
         if let Some(g) = self.pole_ghost().filter(|g| g.free) {
             factory::preview_pole(&mut self.instances, g.tier, g.pos.as_vec3() + half - eye);
             if let Some(hook) = self.sim.factory.auto_hook(g.pos, g.tier) {
-                factory::preview_wire(&mut self.instances, top(hook), top(g.pos));
+                factory::preview_wire(&mut self.instances, top(hook), top(g.pos), tex::GRID_FIRST);
             }
         } else if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
@@ -369,8 +373,9 @@ impl Game {
                 factory::preview_cable(&mut self.instances, c.as_vec3() + half - eye, arms);
             }
         } else if let Some((from, to)) = self.wire_preview() {
-            factory::preview_wire(&mut self.instances, from - eye, to - eye);
+            factory::preview_wire(&mut self.instances, from - eye, to - eye, tex::GRID_FIRST);
         }
+        self.write_long_pole_preview(eye);
     }
 }
 
