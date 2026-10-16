@@ -642,6 +642,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Dialog screens fixed (user bug report).** Moving the machine panel into the inventory (7bd9b78) deleted the
+  shared dialog styles (`.mp-backdrop`, `.mp`, `.mp-head`, `.mp-keys`, `.mp-body`) that research, analytics, the world map,
+  blueprints and the site panel use; they are back in `base.css`, and the machine panel's root is now `.mp-panel` so its
+  in-inventory rules no longer reach the dialogs. Web only; seen in the browser pane.
 - **2026-10-16: Launch recipes named by their satellite (user bug report).** The recipe picker showed every launch as
   "Empty Canister" (its only output); `Game::machine_recipe_payload` gives a launch row's satellite (its last input) and
   `ui/machine-recipes.ts` shows it as the product ("Into orbit"), the empties as "Also gives". 842 tests.

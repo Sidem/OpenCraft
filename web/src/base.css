@@ -1,5 +1,6 @@
 /* Page basics shared by every panel: theme variables, reset, the game canvas, focus rings, and
-   the shared .hidden, .secondary-btn and .close-btn classes. Imported first, by main.ts. */
+   the shared .hidden, .secondary-btn and .close-btn classes, and the dialog box (.mp-backdrop, .mp). Imported first,
+   by main.ts. */
 
 :root {
   --accent: #fa9549;
@@ -90,4 +91,60 @@ input:focus-visible {
 .close-btn:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text);
+}
+
+/* Dialog screens (analytics, research, blueprints, site planner, world map): a dimmed backdrop, the `.mp` box, its
+   head (title, keys, close) and a scrolling body. Each screen sizes its own box (`.an`, `.rs`, `.bp`, `.site`, `.wm`). */
+
+.mp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 10, 14, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.mp {
+  position: relative;
+  width: min(620px, 100%);
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  background: rgba(20, 22, 29, 0.97);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  outline: none;
+}
+
+.mp-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 16px 60px 12px 22px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.mp-head h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.mp-keys {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.mp-head .close-btn {
+  top: 8px;
+}
+
+.mp-body {
+  overflow-y: auto;
+  padding: 14px 22px 18px;
 }

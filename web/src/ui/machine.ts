@@ -18,7 +18,7 @@ import { QuarrySection } from './quarry';
 const ICON_PX = 64;
 
 export class MachinePanel implements Beside {
-  readonly el = h('section', 'mp');
+  readonly el = h('section', 'mp-panel');
   title = '';
   private readonly status = h('p', 'mp-status');
   private readonly efficiency = h('p', 'mp-efficiency');

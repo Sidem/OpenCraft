@@ -1,15 +1,16 @@
 /* Machine panel (machine.ts): status and progress, buffer slots, put-in buttons; the recipe choice is
    machine-recipes.css. It is a column of the inventory screen (inventory.css), beside the backpack, and scrolls by
-   itself. Slots reuse `.slot` from hud.css. */
+   itself. Its root is `.mp-panel` (`.mp` is the dialog box in base.css). Slots reuse `.slot` from hud.css. */
 
-.mp {
+.mp-panel {
   width: min(540px, 100%);
   min-height: 0;
   overflow-y: auto;
   padding-right: 8px;
 }
 
-.mp h3 {
+.mp h3,
+.mp-panel h3 {
   margin: 16px 0 8px;
   font-size: 12px;
   letter-spacing: 0.08em;
