@@ -141,7 +141,7 @@ impl Sim {
                 }
             }
             Action::Craft { recipe, times } => {
-                core.crafts.enqueue(inv, &self.factory.research, recipe, times);
+                core.crafts.enqueue(inv, &self.factory.research, self.settlements.gear_works(), recipe, times);
             }
             Action::CancelCraft { order } => core.crafts.cancel(order as usize, inv, player, &mut self.events),
             Action::ClickGear { .. }

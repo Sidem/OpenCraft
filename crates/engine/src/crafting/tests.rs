@@ -23,7 +23,7 @@ fn queue(sim: &Sim) -> &CraftQueue {
 }
 
 fn plan_for(sim: &Sim, output: ItemId, times: u32) -> Option<Plan> {
-    plan(&sim.player(P).unwrap().inventory, &sim.factory.research, recipe(output), times)
+    plan(&sim.player(P).unwrap().inventory, &sim.factory.research, false, recipe(output), times)
 }
 
 fn ticks(sim: &mut Sim, n: u32) {
@@ -70,10 +70,10 @@ fn how_many_can_be_crafted_counts_the_parts_that_can_be_made() {
     let inv = |s: &Sim| s.player(P).unwrap().inventory.count(IRON_PLATE);
     give(&mut sim, IRON_INGOT, 11);
     let (inventory, research) = (&sim.player(P).unwrap().inventory, &sim.factory.research);
-    assert_eq!(max_times(inventory, research, recipe(IRON_PLATE)), 5);
+    assert_eq!(max_times(inventory, research, false, recipe(IRON_PLATE)), 5);
     // A belt is a plate and a rod: three ingots, and there are 11.
-    assert_eq!(max_times(inventory, research, recipe(BELT.into())), 3);
-    assert_eq!(max_times(inventory, research, recipe(MINER.into())), 0);
+    assert_eq!(max_times(inventory, research, false, recipe(BELT.into())), 3);
+    assert_eq!(max_times(inventory, research, false, recipe(MINER.into())), 0);
     assert_eq!(inv(&sim), 0);
     // Research locks a recipe, however many parts there are.
     give(&mut sim, IRON_PLATE, 4);

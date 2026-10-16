@@ -5,7 +5,9 @@
 //! inputs from the pool when it starts, works for `Recipe::hand_ticks`, and puts its output in the pool
 //! (a part for a later craft) or in the inventory (`deliver`: what the player asked for). Orders run one
 //! after another, one craft at a time. Research and worn gear speed crafts up (`perks::player_bonus`,
-//! `craft_ticks`): `ticks` still counts real ticks, only the length of a craft shrinks, so saves are unchanged.
+//! `craft_ticks`): `ticks` still counts real ticks, only the length of a craft shrinks, so saves are unchanged. A
+//! supplied highland workshop halves the cost of some gear (`settlements::gear_cost`); each step keeps whether it was
+//! costed so (`Step::half`, saved since 52), so a town stalling later never breaks an order.
 //!
 //! Invariants: an order's steps are in the order they can run, so a craft's inputs are always in the
 //! pool when it starts; cancelling (or the player leaving) returns the pool and the inputs of a craft in
@@ -21,6 +23,7 @@ use crate::item::ItemId;
 use crate::perks::{player_bonus, Stat};
 use crate::recipes::{Recipe, RECIPES};
 use crate::research::{Research, Unlock};
+use crate::settlements::{discounted, gear_cost};
 use crate::sim::{PlayerId, Sim, SimEvent};
 
 /// Most crafts one order may ask for, and most orders a player may queue.
@@ -32,12 +35,14 @@ const MAX_DEPTH: u32 = 6;
 const MAX_STEPS: usize = 64;
 
 /// `times` crafts of one recipe. `deliver` is true for the recipe the player chose (its output goes to
-/// the inventory), false for a part made for a later step (its output waits in the pool).
+/// the inventory), false for a part made for a later step (its output waits in the pool). `half`: its crafts cost
+/// half, as when it was queued a highland workshop made that gear cheaper (`settlements::gear_cost`).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Step {
     pub recipe: u16,
     pub times: u32,
     pub deliver: bool,
+    pub half: bool,
 }
 
 /// What it takes to make something: the crafts in running order and the raw materials they use.
@@ -116,26 +121,26 @@ pub struct CraftQueue {
 }
 
 /// The crafts and materials for `times` of recipe `recipe` from what `inv` holds, or `None` when a
-/// material is missing (or the recipe is locked, or a part has no hand recipe).
-pub fn plan(inv: &Inventory, research: &Research, recipe: u16, times: u32) -> Option<Plan> {
+/// material is missing (or the recipe is locked, or a part has no hand recipe). `half`: a workshop's gear costs half.
+pub fn plan(inv: &Inventory, research: &Research, half: bool, recipe: u16, times: u32) -> Option<Plan> {
     let r = RECIPES.get(recipe as usize)?;
     if times == 0 || !research.has(Unlock::Recipe(r.output)) {
         return None;
     }
-    let mut p = Planner { inv, research, used: Vec::new(), steps: Vec::new() };
+    let mut p = Planner { inv, research, half, used: Vec::new(), steps: Vec::new() };
     p.craft(recipe, r, times, 0, true)?;
     Some(Plan { steps: p.steps, leaves: p.used })
 }
 
 /// The most crafts of `recipe` (up to `MAX_TIMES`) that `plan` allows.
-pub fn max_times(inv: &Inventory, research: &Research, recipe: u16) -> u32 {
-    if plan(inv, research, recipe, 1).is_none() {
+pub fn max_times(inv: &Inventory, research: &Research, half: bool, recipe: u16) -> u32 {
+    if plan(inv, research, half, recipe, 1).is_none() {
         return 0;
     }
     let (mut lo, mut hi) = (1, MAX_TIMES);
     while lo < hi {
         let mid = (lo + hi).div_ceil(2);
-        if plan(inv, research, recipe, mid).is_some() {
+        if plan(inv, research, half, recipe, mid).is_some() {
             lo = mid;
         } else {
             hi = mid - 1;
@@ -147,6 +152,7 @@ pub fn max_times(inv: &Inventory, research: &Research, recipe: u16) -> u32 {
 struct Planner<'a> {
     inv: &'a Inventory,
     research: &'a Research,
+    half: bool,
     /// What the plan takes from the inventory so far.
     used: Vec<(ItemId, u32)>,
     steps: Vec<Step>,
@@ -179,10 +185,10 @@ impl Planner<'_> {
         if depth > MAX_DEPTH {
             return None;
         }
-        for &(item, n) in r.inputs {
+        for (item, n) in gear_cost(r, self.half) {
             self.need(item, n.checked_mul(times)?, depth)?;
         }
-        self.steps.push(Step { recipe: index, times, deliver });
+        self.steps.push(Step { recipe: index, times, deliver, half: self.half && discounted(r.output) });
         Some(())
     }
 }
@@ -219,9 +225,9 @@ fn give(inv: &mut Inventory, player: PlayerId, item: ItemId, count: u32, events:
 
 impl CraftQueue {
     /// Queues `times` of `recipe` (fewer if the inventory can't pay for all); false if nothing was queued.
-    pub fn enqueue(&mut self, inv: &mut Inventory, research: &Research, recipe: u16, times: u32) -> bool {
-        let times = times.min(max_times(inv, research, recipe));
-        let Some(plan) = plan(inv, research, recipe, times).filter(|_| self.orders.len() < MAX_ORDERS) else {
+    pub fn enqueue(&mut self, inv: &mut Inventory, research: &Research, half: bool, recipe: u16, times: u32) -> bool {
+        let times = times.min(max_times(inv, research, half, recipe));
+        let Some(plan) = plan(inv, research, half, recipe, times).filter(|_| self.orders.len() < MAX_ORDERS) else {
             return false;
         };
         let mut held = Vec::new();
@@ -241,7 +247,8 @@ impl CraftQueue {
         }
         let order = self.orders.remove(index);
         if order.busy {
-            for &(item, n) in RECIPES[order.steps[0].recipe as usize].inputs {
+            let step = order.steps[0];
+            for (item, n) in gear_cost(&RECIPES[step.recipe as usize], step.half) {
                 give(inv, player, item, n, events);
             }
         }
@@ -263,7 +270,7 @@ impl CraftQueue {
         let step = order.steps[0];
         let r = &RECIPES[step.recipe as usize];
         if !order.busy {
-            if !take_from_pool(&mut order.held, r.inputs) {
+            if !take_from_pool(&mut order.held, &gear_cost(r, step.half).collect::<Vec<_>>()) {
                 return self.cancel(0, inv, player, events);
             }
             (order.busy, order.ticks) = (true, 0);
@@ -299,6 +306,7 @@ impl CraftQueue {
                 w.u16(s.recipe);
                 w.u32(s.times);
                 w.bool(s.deliver);
+                w.bool(s.half);
             }
             w.count(o.held.len());
             for s in &o.held {
@@ -323,7 +331,8 @@ impl CraftQueue {
                 return None;
             }
             for _ in 0..steps {
-                let step = Step { recipe: r.u16()?, times: r.u32()?, deliver: r.bool()? };
+                let (recipe, times, deliver) = (r.u16()?, r.u32()?, r.bool()?);
+                let step = Step { recipe, times, deliver, half: r.version >= 52 && r.bool()? };
                 if step.recipe as usize >= RECIPES.len() || step.times == 0 {
                     return None;
                 }

@@ -84,6 +84,9 @@ impl Game {
             let (done, all, out) = (town.cursor, town.plots.len(), town.drones.len());
             s += &format!("\nBuilding: {done} of {all} buildings done · {out} of {} drones out", fleet(town.built));
         }
+        if let Some(perk) = town.perk_text() {
+            s += &format!("\n{perk}");
+        }
         let upkeep = upkeep(town.kind, town.built.max(1));
         let held = |item| self.sim.factory.depot_held(anchor).map_or(0, |b| b.count(item));
         let goods: Vec<String> = upkeep.iter().map(|&(item, n)| format!("{} {n}", name(item))).collect();

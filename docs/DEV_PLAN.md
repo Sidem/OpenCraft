@@ -4,8 +4,8 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1–13.3 built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; save version 51, 855 tests; not pushed) · **Next: step 13.4** (perks) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+**Milestone 13 (Settlements): 13.1–13.3 and 13.4a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
+the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); save version 52, 860 tests; not pushed) · **Next: step 13.5** (the depot panel, maps and tips), then 13.4b (the harbour) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -154,6 +154,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **13.1: town kinds and perks** (talked with the user). Four kinds, one per kind of place: **harbour** (sea shore): **contract work**, taking large lots of basic goods for complex products the player has already made in a machine, at about 3× their raw content, never raw or rare materials and never products whose chain needs bauxite or uranium (user: barter must not make far ores unnecessary); **river town** (river bank): **drone relay**, double range for cargo and construction drones within 128 blocks; **highland workshop** (granite hills): **gear works**, hauler packs, jetpacks and gloves cost less there and worn tools come back repaired; **basalt forge** (basalt fields): **better smelting**, ore comes back as plates with 50% more yield. Towns at least 300 blocks apart, none on the spawn plains; founding unlocks on blue packs after Steelmaking. |
 | 2026-10-16 | **13.2: orders and upkeep** (user's picks, all Claude's recommendations). The player's pack (135 stacks) carries any one-off order in a trip, so the steady pull is the **upkeep**, drawn from the depot's 24-stack store. **5 stages** (camp, hamlet, village, town, city; the city is where Milestone 14 can start). **Stage orders double from about 1,000 items** (1,000, 2,000, 4,000, 8,000, 16,000: basics first, then concrete, steel and lamps, later plastic, circuits and processors). **Upkeep grows to a Mk3 belt:** 20, 60, 150, 300 and 600 items a minute by stage; a town stalls once a minute's upkeep is missing and resumes when it is there, and growth pauses while stalled. **Upkeep goods per town kind:** harbour planks and glass, river town bricks and lamps, highland workshop gears and steel plates, basalt forge coal and quicklime; later stages add one better good each. |
 | 2026-10-16 | **13.3: how a town grows** (user's picks, all Claude's recommendations). **The town's own drones build it:** the depot keeps a small fleet of its own (more each stage) that builds the town's plan block by block; the blocks are free (the delivered order paid for them), no player box is touched, and the player sees drones at work before researching them. **Foundations, bad plots skipped:** plots in fixed rings round the depot, each building on a stone foundation down to the ground; plots on steep slopes, over deep water or holding the player's blocks are skipped, plots over shallow water get piers on stilts; the terrain is never dug. **One set of buildings in each kind's materials** (houses, a hall, a workshop, a tower; 2 to 4 more a stage); R7's decor joins later. **Breaking:** town blocks break normally and the town's drones put them back; breaking the depot leaves the town **dormant** (stage and progress kept), and a depot placed on the same spot wakes it. |
+| 2026-10-16 | **13.4: perks** (user's picks, all Claude's recommendations). **The depot's front becomes an out side** for perk goods (belts or by hand; the other three sides stay in). **The forge's rate grows with its stage** like the upkeep (about 20 ore a minute at a camp to 600 at a city). **Workshop:** while supplied, hauler packs, jetpacks and gloves cost half their inputs in hand crafting anywhere, and worn tools put into its depot come back whole. **Harbour:** the player picks a product their machines have made in the depot panel; built as its own step (13.4b) after the panel. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -602,10 +603,22 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   (a cell the player has filled with something else is skipped). Breaking the depot makes the town dormant (kept with its
   stage, progress and plan; no tick, no building); `Settlements::site` lets a depot on a dormant town's own anchor wake it.
   **Done when:** tests break a town block (rebuilt) and the depot (dormant, then woken with its stage).
-- [ ] **13.4 Perks.** One module per perk, each paused while its town is stalled. The harbour's contract work needs two new
-  pieces: a core record of which items the player's machines have ever made (a bitset by item, saved), and a derived "raw
-  content" per item from the recipes (with a flag for chains that need bauxite or uranium, which are never offered). **Done
-  when:** each kind's perk is tested on and off, and a test shows the harbour never offers a far-material product.
+- [x] **13.4a Perks: the depot's out side, relay, forge, workshop.** Built 2026-10-16 (save version 52; `settlements/perks/`,
+  the depot's perk buffers, `Step::half` for half-price crafts, the perk line in the depot readout). The forge turns 4 iron
+  ore into 3 plates and 4 copper ore into 6 ingots; the workshop mends one tool a batch (a batch is 4 items at the upkeep's
+  rate). Hand-craft cards show the half price; a hint on the card naming the workshop waits for 13.5. As talked: One module per perk,
+  each paused while its town is stalled or dormant. The depot's front side sends perk goods out onto belts (the other three
+  stay in; the player can also take them by hand). **River town:** drone ports within 128 blocks get double reach and cargo
+  range. **Basalt forge:** takes raw iron and copper ore (on top of its order and upkeep goods) and sends out plates with 50%
+  more yield, at a rate growing with its stage like the upkeep (about 20 ore a minute at a camp to 600 at a city).
+  **Highland workshop:** while one is supplied, hauler packs, jetpacks and gloves cost half their inputs in hand crafting
+  anywhere; worn tools put into its depot come back out whole. **Done when:** each of the three perks is tested on, off and
+  paused by a stall.
+- [ ] **13.4b Harbour contract work** (after 13.5's chooser). The player picks, in the depot panel, a product their machines
+  have made; the harbour takes three times its basic raw content and sends it out. New pieces: a core record of which items
+  the player's machines have ever made (a bitset by item, saved) and a derived raw content per item from the recipes (with
+  a flag for chains that need bauxite or uranium, which are never offered). **Done when:** the perk is tested on and off,
+  and a test shows the harbour never offers a far-material product.
 - [ ] **13.5 Panel, maps and tips.** The depot panel (stage, open order with progress, upkeep, stalled or not, the perk), towns
   on both maps, tips that introduce founding and delivering from far. **Done when:** a first-time player can find a site and
   see what a town wants without reading docs.
@@ -661,6 +674,12 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
+  a perk, a batch every `period(built)` ticks at the upkeep's rate, no saved state); the depot keeps perk goods apart
+  (`Want::perk` into `input`, out at the front from `side`; save version 52, which also saves `crafting::Step::half`);
+  `Hangar::relayed`; the processor's bytes moved to `factory/process/state.rs`. 860 tests; golden hash unchanged.
+- **2026-10-16: 13.4 talked (docs only).** The depot's front becomes an out side; the forge's rate grows with the stage;
+  the workshop halves gear and mends tools; the harbour's product is the player's pick, as 13.4b after 13.5 (section 1).
 - **2026-10-16: Town blocks can't be farmed (user request).** Breaking a block of a town's plan (from the floor up)
   drops nothing (`Settlements::broken` says so to `dismantle`); chosen over rebuilds paid from the depot's store, which
   would need new saved state. No save change.
@@ -673,19 +692,5 @@ and the balance numbers. Read the section you need.
 - **2026-10-16: 13.3 talked (docs only).** The town's own drones build it for free; buildings stand on foundations and bad
   plots are skipped; one building set in each kind's materials; broken town blocks are rebuilt and a town without its depot
   goes dormant (section 1). Step 13.3 split into 13.3a (plots, plans, drones) and 13.3b (rebuilding, dormant towns).
-- **2026-10-16: Step 13.2 built (orders, upkeep and stalling).** `settlements/orders.rs` and `run.rs`, `Town` grows stages
-  (save version 49), `Pick::Depot` takes in only its town's goods up to a cap, the depot readout shows the order and upkeep.
-  853 tests; the golden hash is unchanged (its scene has no towns).
-- **2026-10-16: 13.2 talked (docs only).** Five stages, orders doubling from about 1,000 items, upkeep growing to 600 items a
-  minute (a Mk3 belt) of goods per town kind; a stall pauses the perk and growth (section 1). Step 13.2 rewritten to match.
-- **2026-10-16: Step 13.1 built (town kinds, sites and the depot).** `settlements/` (core state, saved since version 48),
-  `WorldGen::open_water`, block 116 Town Depot (`factory/process/depot.rs`), tech Settlements 84, `recipes/towns.rs`, the
-  placing preview and readout (`town_preview.rs`). Older 10-16 change log entries moved to `docs/CHANGELOG_M12.md`. Golden
-  hash re-recorded; 851 tests. Next free block 117, item 396, tech 85.
-- **2026-10-16: 13.1 talked (docs only).** Town kinds and perks settled (section 1): harbour contract work (no raw or far
-  materials), river drone relay, highland gear works, basalt better smelting; 300-block spacing, founding on blue packs.
-- **2026-10-16: R6 talked (docs only).** The user's picks are in section 1: player-founded towns at fitting sites, a perk per
-  town kind, stalled towns pause their perk, a space elevator as the megaproject. Milestone 13 (Settlements, 13.1–13.6) is a
-  first draft in section 4; Milestone 14 (the space elevator) is in `docs/ROADMAP.md`; 12.5 closed.
 
 Earlier entries live in [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).

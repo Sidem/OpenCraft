@@ -8,6 +8,7 @@ use crate::crafting::{craft_ticks, max_times, plan, MAX_ORDERS};
 use crate::perks::{player_bonus, Stat};
 use crate::recipes::{menu_order, GROUPS, RECIPES};
 use crate::research::Unlock;
+use crate::settlements::gear_cost;
 use crate::Game;
 
 #[wasm_bindgen]
@@ -24,9 +25,12 @@ impl Game {
         RECIPES.get(r as usize).map_or(0, |x| x.count)
     }
 
-    /// Inputs as flat (item, count) pairs.
+    /// Inputs as flat (item, count) pairs: half for a workshop's gear while one is supplied.
     pub fn recipe_inputs(&self, r: u32) -> Vec<u32> {
-        RECIPES.get(r as usize).map_or_else(Vec::new, |x| x.inputs.iter().flat_map(|&(i, n)| [i.0 as u32, n]).collect())
+        let half = self.sim.settlements.gear_works();
+        RECIPES
+            .get(r as usize)
+            .map_or_else(Vec::new, |x| gear_cost(x, half).flat_map(|(i, n)| [i.0 as u32, n]).collect())
     }
 
     pub fn recipe_blurb(&self, r: u32) -> String {
@@ -54,7 +58,7 @@ impl Game {
     /// How many times the local player can craft recipe `r` right now, counting the parts it can make
     /// first (0 while research locks it).
     pub fn craftable_times(&self, r: u32) -> u32 {
-        max_times(self.inventory(), &self.sim.factory.research, r as u16)
+        max_times(self.inventory(), &self.sim.factory.research, self.sim.settlements.gear_works(), r as u16)
     }
 
     /// The tech (`tech_*`) that must be researched before recipe `r` can be crafted, or -1.
@@ -75,7 +79,8 @@ impl Game {
 
     /// How many crafts of parts (not of `r` itself) crafting `r` once would queue first.
     pub fn recipe_part_crafts(&self, r: u32) -> u32 {
-        plan(self.inventory(), &self.sim.factory.research, r as u16, 1).map_or(0, |p| p.part_crafts())
+        plan(self.inventory(), &self.sim.factory.research, self.sim.settlements.gear_works(), r as u16, 1)
+            .map_or(0, |p| p.part_crafts())
     }
 
     /// Queues up to `times` crafts of recipe `r` at the next tick, with the crafts of missing parts.

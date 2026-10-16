@@ -4,7 +4,7 @@
 //! Invariants: runs inside `Sim::step` only (`sync_depots` before the tick's actions, `step_towns` after the factory),
 //! so it stays deterministic. The depot's store is the factory's; a town only takes from it, through `depot_store`.
 
-use crate::factory::Buffer;
+use crate::factory::{Buffer, Want};
 use crate::sim::{Sim, SimEvent};
 use crate::TICK_RATE;
 
@@ -14,14 +14,19 @@ use super::{Town, ORDERS};
 pub(super) const MINUTE: u64 = 60 * TICK_RATE as u64;
 
 impl Sim {
-    /// Tells each depot what its town takes in now.
+    /// Tells each depot what its town and its perk take in now, and marks the drone ports a river town relays.
     pub(crate) fn sync_depots(&mut self) {
         for t in &self.settlements.towns {
-            self.factory.set_depot_wants(t.pos, t.wants());
+            let mut wants: Vec<Want> =
+                t.wants().into_iter().map(|(item, cap)| Want { item, cap, perk: false }).collect();
+            wants.extend(t.perk_wants());
+            self.factory.set_depot_wants(t.pos, wants);
         }
+        self.relay_ports();
     }
 
-    /// Runs each town on what its depot holds, plans the buildings of a stage just built, and flies its drones.
+    /// Runs each town on what its depot holds, then its perk, plans the buildings of a stage just built, and flies its
+    /// drones.
     pub(crate) fn step_towns(&mut self) {
         for i in 0..self.settlements.towns.len() {
             let t = &mut self.settlements.towns[i];
@@ -30,6 +35,9 @@ impl Sim {
             }
             if let Some(store) = self.factory.depot_store(t.pos) {
                 t.step(store, self.tick, &mut self.events);
+            }
+            if let Some((input, out)) = self.factory.depot_perk(t.pos) {
+                t.step_perk(input, out, self.tick, &mut self.events);
             }
             while self.settlements.towns[i].planned < self.settlements.towns[i].built {
                 self.plan_stage(i);

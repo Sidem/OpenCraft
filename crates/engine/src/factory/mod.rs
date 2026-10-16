@@ -109,7 +109,7 @@ pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
 pub use pole::POLE_TIERS;
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
 pub use ports::PortInfo;
-pub use process::{makes, spec as process_spec};
+pub use process::{makes, spec as process_spec, Want};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};

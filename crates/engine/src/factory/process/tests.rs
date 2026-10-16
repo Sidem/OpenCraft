@@ -1,7 +1,7 @@
 use super::*;
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BAUXITE_ORE, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, ELECTROLYTIC_CELL, GENERATOR,
-    IRON_ORE, LIMESTONE, MINER, POLE, QUARTZ_ORE, SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
+    BlockId, ARC_FURNACE, ASSEMBLER, BAUXITE_ORE, BLAST_FURNACE, COAL_ORE, CONSTRUCTOR, CRUSHER, ELECTROLYTIC_CELL,
+    GENERATOR, IRON_ORE, LIMESTONE, MINER, POLE, QUARTZ_ORE, SAND, SLAG, SMELTER, STONE, STONE_BRICKS,
 };
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::tests::{powered, recipe_for, run};
@@ -639,4 +639,21 @@ fn bench_chemistry() {
         }
     }
     println!("chemistry: {:?} a tick on average, {worst:?} worst (tick {at})", start.elapsed() / 3000);
+}
+
+#[test]
+fn a_depot_from_before_the_perks_loads_with_empty_perk_buffers() {
+    let mut p = Processor::new(IVec3::new(4, 5, 6), spec(crate::block::TOWN_DEPOT).unwrap(), 0);
+    p.out.add(STONE_BRICKS.into(), 30);
+    // Save 51 wrote no perk buffers: no input slots, and no out buffer with its round-robin position at the end.
+    (p.input, p.side) = (Buffer::new(0), Buffer::new(0));
+    let mut w = ByteWriter::default();
+    p.write_state(&mut w);
+    w.bytes.truncate(w.bytes.len() - 4);
+    let mut r = ByteReader::new(&w.bytes);
+    r.version = 51;
+    let back = Processor::read_state(&mut r).expect("a save-51 depot loads");
+    assert_eq!(r.u8(), None, "every byte read");
+    assert_eq!((back.input.slots.len(), back.side.slots.len()), (8, 8));
+    assert_eq!(back.out.count(STONE_BRICKS.into()), 30);
 }

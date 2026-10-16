@@ -1,6 +1,6 @@
 //! Settlements (Milestone 13): towns the player founds by placing a Town Depot at a site that fits a town kind. Core
 //! state on `Sim`: the towns, each with its depot's anchor, its kind, the stages it has built, what it has delivered
-//! toward the next, whether it is stalled, its building plots and its drones. The perks come in step 13.4.
+//! toward the next, whether it is stalled, its building plots and its drones.
 //!
 //! - **Kinds** are rows ([`KINDS`]): what place each needs (open water near, or a biome) and how it is called. A site
 //!   takes the first row that fits, so water comes before biome: a basalt shore is a harbour, and a step inland a forge.
@@ -18,6 +18,7 @@
 //!   open order, and a complete order builds the next stage.
 //! - **Growth** (`plans.rs` data, `plots.rs` where, `build.rs` the town's drones): each stage built adds its buildings
 //!   on plots round the depot, and the town's own drones build them, free, bottom first.
+//! - **Perks** (`perks/`, one module each): what a supplied town gives back, paused while it is stalled.
 //!
 //! Invariants: the towns are in founding order; their bytes follow the opening scene (save version 48; the stage, order
 //! and upkeep state since 49; plots, cursor and drones since 50; dormant since 51). A town's `delivered` has one count per line of its
@@ -26,12 +27,14 @@
 
 mod build;
 mod orders;
+mod perks;
 mod plans;
 mod plots;
 mod run;
 
 pub use build::{fleet, TownDrone};
 pub use orders::{upkeep, Line, ORDERS, STAGES, STAGE_NAMES};
+pub use perks::{discounted, gear_cost};
 pub use plans::{chimney_mouth, height};
 pub use plots::Plot;
 
@@ -73,6 +76,10 @@ pub const KINDS: [KindDef; 4] = [
     KindDef { name: "Highland Workshop", needs: Needs::Biome(Biome::Highlands), place: "in the granite highlands" },
     KindDef { name: "Basalt Forge", needs: Needs::Biome(Biome::BasaltFields), place: "in the basalt fields" },
 ];
+/// The kinds by index, for their perks (the harbour is 0).
+pub const RIVER_TOWN: u8 = 1;
+pub const WORKSHOP: u8 = 2;
+pub const FORGE: u8 = 3;
 
 /// Minutes of upkeep a depot stocks of each upkeep good.
 pub const STOCK_MINUTES: u32 = 2;
@@ -86,7 +93,7 @@ pub struct Town {
     pub built: u8,
     /// Delivered toward each line of the open order (empty once fully grown).
     pub delivered: Vec<u32>,
-    /// Whether a minute's upkeep is missing: the order stops filling (and, from 13.4, the perk pauses).
+    /// Whether a minute's upkeep is missing: the order stops filling and the perk pauses.
     pub stalled: bool,
     /// The tick the next minute's upkeep is due (once a camp stands).
     pub due: u64,

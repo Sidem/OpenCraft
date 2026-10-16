@@ -95,13 +95,16 @@ impl Processor {
                 b.contents().iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
             (!each.is_empty()).then(|| format!("{label} {}", each.join(", ")))
         };
+        // A depot's store has its own line (`Holding`); its perk takes in and gives out the front.
+        let (into, side) =
+            if self.spec.pick == Pick::Depot { ("Perk in:", "Out the front:") } else { ("In:", "Side:") };
         let mut parts: Vec<String> =
-            [held("In:", &self.input), held("Fuel:", &self.fuel)].into_iter().flatten().collect();
+            [held(into, &self.input), held("Fuel:", &self.fuel)].into_iter().flatten().collect();
         if self.burn > 0 {
             parts.push(format!("fire for {} s", self.fire_seconds()));
         }
         parts.extend(held("Out:", &self.out));
-        parts.extend(held("Side:", &self.side));
+        parts.extend(held(side, &self.side));
         if !parts.is_empty() {
             lines.push(parts.join(" · "));
         }

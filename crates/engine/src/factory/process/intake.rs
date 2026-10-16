@@ -23,8 +23,7 @@ impl Processor {
             return self.input.space_for(item);
         }
         if self.spec.pick == Pick::Depot {
-            let cap = self.wants.iter().find(|w| w.0 == item).map_or(0, |w| w.1);
-            return cap.saturating_sub(self.out.count(item)).min(self.out.space_for(item));
+            return self.depot_room(item);
         }
         if self.spec.pick.stores() {
             return self.out.space_for(item);
@@ -84,7 +83,7 @@ impl Processor {
         let put = n.min(self.room_for(item, unlocked));
         let buf = match () {
             _ if self.is_fuel(item) => &mut self.fuel,
-            _ if self.takes_pod(item) => &mut self.input,
+            _ if self.takes_pod(item) || self.for_perk(item) => &mut self.input,
             _ if self.spec.pick.stores() => &mut self.out,
             _ => &mut self.input,
         };

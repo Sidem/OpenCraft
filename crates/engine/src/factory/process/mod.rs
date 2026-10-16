@@ -48,6 +48,7 @@ mod refinery;
 mod shape;
 mod solar;
 mod specs;
+mod state;
 mod status;
 mod steam;
 mod steam_view;
@@ -59,6 +60,7 @@ mod work;
 
 use center::Study;
 pub(super) use center::{needs_center, step_centers};
+pub use depot::Want;
 pub(super) use diesel::run as run_diesel;
 pub use facts::facts;
 use hangar::Hangar;
@@ -80,7 +82,6 @@ use status::STATUSES;
 use steam::Steam;
 pub(super) use steam::{draw_water, link as link_steam, run_turbine};
 
-use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::ItemId;
@@ -146,9 +147,9 @@ pub struct Processor {
     pub used: Vec<Stack>,
     /// The satellite a launch site's rocket carried up this tick, until `Factory::update` puts it in orbit (derived).
     pub lifted: Option<ItemId>,
-    /// What a town depot takes in and up to how many it holds of each: its town's open order and upkeep goods
+    /// What a town depot takes in and up to how many it holds of each: its town's open order, upkeep and perk goods
     /// (derived, set by `Sim::sync_depots` each tick).
-    pub wants: Vec<(ItemId, u32)>,
+    pub wants: Vec<Want>,
 }
 
 impl Processor {
@@ -293,84 +294,12 @@ impl Machine for Processor {
         Processor::cells(self)
     }
 
-    /// Core state: block, tier and facing, recipe, batch, buffers, work, fire, round-robin position and status,
-    /// then the byproduct buffer and its round-robin position if its spec has one (`outs` come from `relink`).
     fn write_state(&self, w: &mut ByteWriter) {
-        w.ivec3(self.pos);
-        w.u8(self.spec.block);
-        w.u8(self.tier);
-        w.u8(self.dir);
-        for i in [self.recipe, self.batch] {
-            w.bool(i.is_some());
-            w.u16(i.unwrap_or(0));
-        }
-        self.input.write_state(w);
-        self.fuel.write_state(w);
-        self.out.write_state(w);
-        w.u32(self.progress);
-        w.u32(self.burn);
-        w.u32(self.next_out as u32);
-        w.u8(self.status as u8);
-        if self.spec.side > 0 {
-            self.side.write_state(w);
-            w.u32(self.next_side as u32);
-        }
-        self.write_tanks(w);
-        self.write_store(w);
-        if self.spec.pick == Pick::Pump {
-            self.pump.write_state(w);
-        }
-        if self.is_center() {
-            self.write_study(w);
-        }
-        if self.spec.pick == Pick::Recycle {
-            w.u32(self.owed);
-        }
-        if self.is_launch() {
-            w.u32(self.launches);
-        }
+        self.save(w);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Processor> {
-        let pos = r.ivec3()?;
-        let spec = spec(r.u8()? as BlockId)?;
-        let tier = r.u8()?;
-        if tier as usize >= spec.tiers.len() {
-            return None;
-        }
-        let mut p = Processor::new(pos, spec, tier);
-        // Saves before version 19 had no facing: every processor then was one cell facing north.
-        p.dir = if r.version >= 19 { r.u8()? % 4 } else { 0 };
-        p.recipe = read_opt(r)?;
-        p.batch = read_opt(r)?;
-        let [input, fuel, out] = spec.buffers;
-        p.input = Buffer::read_state(r, launch::saved_input_slots(spec, r.version))?;
-        p.input.slots.resize(input, Stack::default());
-        p.fuel = Buffer::read_state(r, fuel)?;
-        p.out = Buffer::read_state(r, out)?;
-        p.progress = r.u32()?;
-        p.burn = r.u32()?;
-        p.next_out = r.u32()? as usize;
-        p.status = *STATUSES.get(r.u8()? as usize)?;
-        if spec.side > 0 {
-            p.side = Buffer::read_state(r, spec.side)?;
-            p.next_side = r.u32()? as usize;
-        }
-        p.read_tanks(r)?;
-        p.read_store(r)?;
-        if spec.pick == Pick::Pump {
-            p.pump = Pump::read_state(r)?;
-        }
-        if spec.pick == Pick::Research {
-            p.read_study(r)?;
-        }
-        if spec.pick == Pick::Recycle {
-            p.owed = r.u32()?;
-        }
-        if p.is_launch() {
-            p.launches = r.u32()?;
-        }
-        p.valid()
+        Processor::load(r)
     }
 
     /// Its buffers, plus the inputs of an unfinished batch (given back rather than lost).
@@ -403,12 +332,6 @@ impl Machine for Processor {
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         model::draw(self, out, rel, time);
     }
-}
-
-/// An optional recipe index as written: a flag, then the index (0 for none).
-fn read_opt(r: &mut ByteReader) -> Option<Option<u16>> {
-    let (some, i) = (r.bool()?, r.u16()?);
-    Some(some.then_some(i))
 }
 
 #[cfg(test)]

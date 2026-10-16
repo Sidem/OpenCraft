@@ -155,6 +155,23 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   name or colour chosen in its panel? **Next:** the feel-and-feedback interlude (`docs/ROADMAP.md`), starting with the factory
   as an instrument.
 
+## Change log, 2026-10-16 (Milestone 13: R6 talked, steps 13.1 and 13.2)
+
+- **2026-10-16: Step 13.2 built (orders, upkeep and stalling).** `settlements/orders.rs` and `run.rs`, `Town` grows stages
+  (save version 49), `Pick::Depot` takes in only its town's goods up to a cap, the depot readout shows the order and upkeep.
+  853 tests; the golden hash is unchanged (its scene has no towns).
+- **2026-10-16: 13.2 talked (docs only).** Five stages, orders doubling from about 1,000 items, upkeep growing to 600 items a
+  minute (a Mk3 belt) of goods per town kind; a stall pauses the perk and growth (section 1). Step 13.2 rewritten to match.
+- **2026-10-16: Step 13.1 built (town kinds, sites and the depot).** `settlements/` (core state, saved since version 48),
+  `WorldGen::open_water`, block 116 Town Depot (`factory/process/depot.rs`), tech Settlements 84, `recipes/towns.rs`, the
+  placing preview and readout (`town_preview.rs`). Older 10-16 change log entries moved to `docs/CHANGELOG_M12.md`. Golden
+  hash re-recorded; 851 tests. Next free block 117, item 396, tech 85.
+- **2026-10-16: 13.1 talked (docs only).** Town kinds and perks settled (section 1): harbour contract work (no raw or far
+  materials), river drone relay, highland gear works, basalt better smelting; 300-block spacing, founding on blue packs.
+- **2026-10-16: R6 talked (docs only).** The user's picks are in section 1: player-founded towns at fitting sites, a perk per
+  town kind, stalled towns pause their perk, a space elevator as the megaproject. Milestone 13 (Settlements, 13.1–13.6) is a
+  first draft in section 4; Milestone 14 (the space elevator) is in `docs/ROADMAP.md`; 12.5 closed.
+
 ## Change log, 2026-10-16 (the play-test response, before Milestone 13)
 
 - **2026-10-16: R1a and R1b built.** `scripts/inspect-save.mjs` reads a player's save headlessly; the blueprint prompt
