@@ -1,6 +1,6 @@
 //! Settlements (Milestone 13): towns the player founds by placing a Town Depot at a site that fits a town kind. Core
 //! state on `Sim`: the towns, each with its depot's anchor, its kind, the stages it has built, what it has delivered
-//! toward the next and whether it is stalled. Growth as buildings and the perks come in steps 13.3 and 13.4.
+//! toward the next, whether it is stalled, its building plots and its drones. The perks come in step 13.4.
 //!
 //! - **Kinds** are rows ([`KINDS`]): what place each needs (open water near, or a biome) and how it is called. A site
 //!   takes the first row that fits, so water comes before biome: a basalt shore is a harbour, and a step inland a forge.
@@ -13,15 +13,24 @@
 //! - **Orders and upkeep** (`orders.rs` data, `run.rs` the tick): the depot takes in only its town's goods; each minute
 //!   the town uses up its upkeep from the depot, or stalls until it is there; while not stalled the rest goes toward the
 //!   open order, and a complete order builds the next stage.
+//! - **Growth** (`plans.rs` data, `plots.rs` where, `build.rs` the town's drones): each stage built adds its buildings
+//!   on plots round the depot, and the town's own drones build them, free, bottom first.
 //!
 //! Invariants: the towns are in founding order; their bytes follow the opening scene (save version 48; the stage, order
-//! and upkeep state since 49). A town's `delivered` has one count per line of its open order (none once fully grown).
+//! and upkeep state since 49; plots, cursor and drones since 50). A town's `delivered` has one count per line of its
+//! open order (none once fully grown).
 //! To add a kind: a row in `KINDS` (append only: saves store the index), its `Needs` and its `orders::UPKEEP` row.
 
+mod build;
 mod orders;
+mod plans;
+mod plots;
 mod run;
 
+pub use build::{fleet, TownDrone};
 pub use orders::{upkeep, Line, ORDERS, STAGES, STAGE_NAMES};
+pub use plans::{chimney_mouth, height};
+pub use plots::Plot;
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
@@ -65,7 +74,7 @@ pub const KINDS: [KindDef; 4] = [
 pub const STOCK_MINUTES: u32 = 2;
 
 /// A town: where its depot stands (the anchor), its kind (an index into `KINDS`) and how far it has grown.
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Town {
     pub pos: IVec3,
     pub kind: u8,
@@ -77,12 +86,32 @@ pub struct Town {
     pub stalled: bool,
     /// The tick the next minute's upkeep is due (once a camp stands).
     pub due: u64,
+    /// Stages whose buildings have plots (behind `built` for a tick, or after loading an older save).
+    pub planned: u8,
+    /// Its buildings' places, in building order (`plots.rs`).
+    pub plots: Vec<Plot>,
+    /// Plots before this one are finished.
+    pub cursor: u16,
+    /// Its drones out of the depot (`build.rs`).
+    pub drones: Vec<TownDrone>,
 }
 
 impl Town {
     /// A town just founded: only its depot stands, and the first order is open.
     pub fn new(pos: IVec3, kind: u8) -> Town {
-        Town { pos, kind, built: 0, delivered: vec![0; ORDERS[0].len()], stalled: false, due: 0 }
+        let delivered = vec![0; ORDERS[0].len()];
+        Town {
+            pos,
+            kind,
+            built: 0,
+            delivered,
+            stalled: false,
+            due: 0,
+            planned: 0,
+            plots: Vec::new(),
+            cursor: 0,
+            drones: Vec::new(),
+        }
     }
 
     /// The open order: what builds the next stage (empty once fully grown).
@@ -199,6 +228,12 @@ impl Settlements {
             t.delivered.iter().for_each(|&d| w.u32(d));
             w.bool(t.stalled);
             w.u64(t.due);
+            w.u8(t.planned);
+            w.count(t.plots.len());
+            t.plots.iter().for_each(|p| p.write(w));
+            w.u16(t.cursor);
+            w.count(t.drones.len());
+            t.drones.iter().for_each(|d| d.write(w));
         }
     }
 
@@ -219,6 +254,12 @@ impl Settlements {
                 if town.built as usize > STAGES || town.delivered.len() != town.order().len() {
                     return None;
                 }
+            }
+            if r.version >= 50 {
+                town.planned = r.u8()?.min(town.built);
+                town.plots = (0..r.count()?).map(|_| Plot::read(r)).collect::<Option<_>>()?;
+                town.cursor = r.u16()?;
+                town.drones = (0..r.count()?).map(|_| TownDrone::read(r)).collect::<Option<_>>()?;
             }
             towns.push(town);
         }

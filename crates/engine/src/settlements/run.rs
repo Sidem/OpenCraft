@@ -21,12 +21,17 @@ impl Sim {
         }
     }
 
-    /// Runs each town on what its depot holds.
+    /// Runs each town on what its depot holds, plans the buildings of a stage just built, and flies its drones.
     pub(crate) fn step_towns(&mut self) {
-        for t in &mut self.settlements.towns {
+        for i in 0..self.settlements.towns.len() {
+            let t = &mut self.settlements.towns[i];
             if let Some(store) = self.factory.depot_store(t.pos) {
                 t.step(store, self.tick, &mut self.events);
             }
+            while self.settlements.towns[i].planned < self.settlements.towns[i].built {
+                self.plan_stage(i);
+            }
+            self.step_builders(i);
         }
     }
 }

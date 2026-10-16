@@ -4,10 +4,10 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1 and 13.2 built** (town kinds, sites, the depot; orders, upkeep and stalling; save version
-49, 853 tests; not pushed) · 13.3 talked · **Next: build step 13.3a** (plots, plans and the town's drones), then 13.3b · Then R2–R5, R7, R8, the
-feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator) · Art work continues from `main`
-(`docs/ART_HANDOVER.md`).
+**Milestone 13 (Settlements): 13.1, 13.2 and 13.3a built** (town kinds, sites, the depot; orders, upkeep and stalling;
+buildings by the town's own drones; save version 50, 854 tests; not pushed) · **Next: build step 13.3b** (rebuilding,
+dormant towns) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+· Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -583,7 +583,10 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   next stage. A minute's upkeep missing: the town is **stalled** (its perk pauses, the order stops filling), nothing is lost,
   and it resumes once the upkeep is there. Town state saved (stage, order progress, stalled). **Done when:** a scenario test
   feeds a depot by belt through two stages, then starves it into a stall and back.
-- [ ] **13.3a Plots, plans and the town's drones.** Talked 2026-10-16 (section 1). `settlements/plans.rs`: building plans as
+- [x] **13.3a Plots, plans and the town's drones.** Built 2026-10-16 (save version 50; `Town::planned` plans the stages of
+  an older save on load; buildings going up show as one faint outline each; drones carry up to 8 blocks a trip; a camp
+  takes about 3 minutes; a basalt forge seen growing to a village in the browser pane). As talked (section 1):
+  `settlements/plans.rs`: building plans as
   data (cells by role: wall, roof, floor, window, lamp, chimney; 2 to 4 buildings a stage) and a palette per kind mapping
   roles to existing blocks (harbour planks, river town stone bricks, workshop steel-looking blocks, forge stone with
   chimneys). Plots in fixed rings round the depot, chosen when a stage opens from the anchor alone and read through
@@ -657,6 +660,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.3a built (plots, plans and the town's drones).** `settlements/plans.rs`, `plots.rs` and `build.rs`;
+  `Town` gains `planned`, `plots`, `cursor` and `drones` (save version 50); town drones, chimney smoke and outlines in
+  `town_preview.rs`; `drones::approach` and `factory::smoke` opened to the crate. 854 tests.
 - **2026-10-16: 13.3 talked (docs only).** The town's own drones build it for free; buildings stand on foundations and bad
   plots are skipped; one building set in each kind's materials; broken town blocks are rebuilt and a town without its depot
   goes dormant (section 1). Step 13.3 split into 13.3a (plots, plans, drones) and 13.3b (rebuilding, dormant towns).

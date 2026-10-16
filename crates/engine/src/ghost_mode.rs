@@ -99,6 +99,7 @@ impl Game {
                 push_box(&mut out, &g.cells(), GHOST_CYAN);
             }
         }
+        self.town_boxes(&mut out);
         out
     }
 

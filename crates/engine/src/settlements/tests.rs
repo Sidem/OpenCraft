@@ -1,3 +1,4 @@
+use super::plans::BUILDINGS;
 use super::*;
 use crate::action::Action;
 use crate::block::{self, AIR, TOWN_DEPOT};
@@ -199,6 +200,66 @@ fn a_depot_fed_by_belt_builds_two_stages_then_stalls_without_upkeep_and_recovers
     assert!(run(&mut sim, &feeds, 60, |t| !t.stalled), "recovers once the glass is back");
     run(&mut sim, &feeds, 30, |_| false);
     assert!(concrete_line(&sim.settlements.towns[0]) > before);
+}
+
+#[test]
+fn a_camp_is_built_by_the_towns_own_drones_on_uneven_ground_around_the_players_blocks() {
+    let mut sim = Sim::new(SEED, 2);
+    let gen = WorldGen::new(SEED);
+    let shore = find(&gen, |x, z| gen.open_water(x, z) == Some(Water::Sea));
+    let at = IVec3::new(shore.x, gen.height_at(shore.x, shore.z).max(crate::worldgen::SEA_LEVEL) + 1, shore.z);
+    sim.apply(P, Action::Give { item: ItemId::block(TOWN_DEPOT), count: 1 });
+    sim.apply(P, Action::PlaceBlock { pos: at, slot: 0, facing: 0, against: at - IVec3::new(0, 1, 0) });
+    assert_eq!(sim.settlements.towns.len(), 1, "founded at {at:?}");
+    // The player's block in the nearest plot: that plot is skipped and the block stays.
+    let mid = at + plans::slot_offset(0);
+    let mine = IVec3::new(mid.x, gen.height_at(mid.x, mid.z).max(crate::worldgen::SEA_LEVEL) + 2, mid.z);
+    sim.world.set_block_anywhere(mine, block::STORAGE);
+
+    let store = sim.factory.depot_store(at).unwrap();
+    for &(item, n) in ORDERS[0] {
+        store.add(item, n);
+    }
+    for tick in 0..20 * 60 * crate::TICK_RATE {
+        // Upkeep keeps coming, so the town never stalls.
+        if tick % 600 == 0 {
+            for (item, n) in sim.settlements.towns[0].upkeep() {
+                sim.factory.depot_store(at).unwrap().add(item, n);
+            }
+        }
+        sim.step();
+        if tick == 5000 {
+            // Mid-build, drones out: the town survives a save.
+            assert!(!sim.settlements.towns[0].drones.is_empty());
+            let mut w = ByteWriter::default();
+            sim.write_state(&mut w);
+            let mut back = Sim::new(SEED, 2);
+            back.read_state(&mut ByteReader::new(&w.bytes)).expect("reads");
+            assert_eq!(back.state_hash(), sim.state_hash());
+        }
+        let t = &sim.settlements.towns[0];
+        if t.built == 1 && t.cursor as usize == t.plots.len() && t.drones.is_empty() {
+            break;
+        }
+    }
+    let t = sim.settlements.towns[0].clone();
+    assert_eq!(t.built, 1);
+    assert_eq!(t.plots.len(), BUILDINGS[0].len(), "every camp building found a plot");
+    assert!(t.plots.iter().all(|p| p.slot != 0), "the plot with the player's block is skipped");
+    assert_eq!(sim.world.block_anywhere_or_generate(mine), block::STORAGE);
+    assert!(t.drones.is_empty() && t.cursor as usize == t.plots.len(), "built within 20 minutes");
+    let (mut placed, mut below_floor) = (0, 0);
+    for p in &t.plots {
+        for (cell, b, role) in p.cells(t.pos, t.kind) {
+            assert!(!build::pending(&mut sim.world, cell, b, role), "{cell:?} {role:?} still to build");
+            if b != AIR && sim.world.block_anywhere_or_generate(cell) == b {
+                placed += 1;
+                below_floor += i32::from(cell.y < p.base - 1);
+            }
+        }
+    }
+    assert!(placed > 200, "{placed} blocks placed");
+    assert!(below_floor > 0, "the foundation reaches down to uneven ground");
 }
 
 #[test]

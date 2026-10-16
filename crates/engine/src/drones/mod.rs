@@ -351,12 +351,12 @@ impl Sim {
 }
 
 /// The middle of the cell at `cell`.
-fn target_centre(cell: IVec3) -> Vec3 {
+pub(crate) fn target_centre(cell: IVec3) -> Vec3 {
     cell.as_vec3() + Vec3::new(0.5, 0.5, 0.5)
 }
 
 /// `from` moved `step` towards `goal`, and whether it got there.
-fn approach(from: Vec3, goal: Vec3, step: f64) -> (Vec3, bool) {
+pub(crate) fn approach(from: Vec3, goal: Vec3, step: f64) -> (Vec3, bool) {
     let to = goal - from;
     let dist = to.length();
     if dist <= step {

@@ -41,6 +41,7 @@ impl Game {
             let lid = if c.load.count > 0 { tex::CARGO_DRONE } else { tex::FRAME };
             push_box(&mut self.instances, at + Vec3::new(0.0, -0.32, 0.0), yaw, [0.5, 0.3, 0.5], 0.0, [lid; 3], false);
         }
+        self.write_town_instances(eye, alpha);
         self.write_pod_instances(eye, alpha);
         self.write_companion(eye, alpha, time);
     }
@@ -84,7 +85,7 @@ impl Game {
     }
 }
 
-fn push_drone(out: &mut Vec<f32>, at: Vec3, yaw: f32, carried: bool) {
+pub(crate) fn push_drone(out: &mut Vec<f32>, at: Vec3, yaw: f32, carried: bool) {
     let body = [tex::DRONE; 3];
     push_box(out, at, yaw, [0.34, 0.12, 0.34], 0.0, body, false);
     // Two crossed arms with a rotor lamp at each end.

@@ -53,7 +53,7 @@ mod render;
 mod router;
 mod sensor;
 mod sites;
-mod smoke;
+pub(crate) mod smoke;
 mod state;
 mod storage;
 mod table;
