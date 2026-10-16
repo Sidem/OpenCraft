@@ -155,6 +155,28 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   name or colour chosen in its panel? **Next:** the feel-and-feedback interlude (`docs/ROADMAP.md`), starting with the factory
   as an instrument.
 
+## Change log, 2026-10-16 (the play-test response, before Milestone 13)
+
+- **2026-10-16: R1a and R1b built.** `scripts/inspect-save.mjs` reads a player's save headlessly; the blueprint prompt
+  (`blueprint/repeat.rs`, `Factory::works_at`, `blueprint_prompt` in `api/blueprint.rs`, a card in `ui/hints.ts`) offers a
+  blueprint when a machine is built a third time nearby, with the box preset. Garbled "·" and "×" fixed in five files. No save or
+  core change; golden hash unchanged.
+- **2026-10-16: R1 talked (docs only).** The tree's pack demand and far material measured (one hauler trip of bauxite covers
+  the game); the user picked settlements as growing demand and a blueprint prompt. New steps R1a (save inspector) and R1b
+  (blueprint prompt); R6's talk moved up to follow them.
+- **2026-10-16: Whole-game review and play-test response (user request, docs only).** Claude's review (strengths, weaknesses,
+  past and planned work, new dimensions, art, plants, music) was adopted in full; with the user's 32-hour save it became steps
+  R1–R8 in section 4, eight decision rows in section 1 and new open questions in section 6. Finished Milestone 10–12 detail moved
+  to the new `docs/CHANGELOG_M12.md`. `docs/ROADMAP.md` gained the designs (settlements, decor, pressure without combat, a
+  living world) and the trimmed carry; `docs/ART_HANDOVER.md` the art direction update. No code change.
+- **2026-10-16: Long-distance pole placing preview (user request).** While one is held and aimed, `Factory::long_link` says
+  what `auto_hook` would wire it to, or why not (too far, full, unpowered, alone), and `power_tools/long_pole.rs` shows it:
+  the footprint outline green or red, the pole it links to boxed, the label's line ("Links to the long-distance pole 132
+  blocks away · 28 to spare" or the reason), a ghost tower and its wire in the grid's colour (red and cut at 160 blocks
+  when too far), a beacon over the far tower that shows through the fog (`mark_beacon`: glow flag 2, `BOXES` in the box
+  shader), a power-up or power-down blip as the spot crosses the edge of reach, and the maps ring every long-distance pole's
+  reach (`MARK_RANGE`, dashed). Presentation only; no save or core change. Seen in the browser pane. 844 tests.
+
 ## Change log, 2026-10-16 (before the play-test response)
 
 - **2026-10-16: Dialog screens fixed (user bug report).** Moving the machine panel into the inventory (7bd9b78) deleted the

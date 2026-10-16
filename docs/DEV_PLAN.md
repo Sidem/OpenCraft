@@ -5,7 +5,7 @@ polish) are built and pushed · **The play-test response (section 4)**, from Cla
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
 **Milestone 13 (Settlements): 13.1 and 13.2 built** (town kinds, sites, the depot; orders, upkeep and stalling; save version
-49, 853 tests; not pushed) · **Next: step 13.3** (the town grows itself) · Then R2–R5, R7, R8, the
+49, 853 tests; not pushed) · 13.3 talked · **Next: build step 13.3a** (plots, plans and the town's drones), then 13.3b · Then R2–R5, R7, R8, the
 feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator) · Art work continues from `main`
 (`docs/ART_HANDOVER.md`).
 
@@ -154,6 +154,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **R6: settlements and the megaproject** (user's picks, all Claude's recommendations): **the player founds towns** with a depot at a site that fits the town's kind, far from other towns (works in existing worlds; no worldgen towns); **each town kind gives a perk** while supplied; **an unsupplied town stalls and its perk pauses**, but it never shrinks or loses what was built; **the megaproject is a space elevator** grown from the biggest town, built in phases, unlocking asteroid mining. Settlements become **Milestone 13**, the elevator **Milestone 14**; 12.5 closes. |
 | 2026-10-16 | **13.1: town kinds and perks** (talked with the user). Four kinds, one per kind of place: **harbour** (sea shore): **contract work**, taking large lots of basic goods for complex products the player has already made in a machine, at about 3× their raw content, never raw or rare materials and never products whose chain needs bauxite or uranium (user: barter must not make far ores unnecessary); **river town** (river bank): **drone relay**, double range for cargo and construction drones within 128 blocks; **highland workshop** (granite hills): **gear works**, hauler packs, jetpacks and gloves cost less there and worn tools come back repaired; **basalt forge** (basalt fields): **better smelting**, ore comes back as plates with 50% more yield. Towns at least 300 blocks apart, none on the spawn plains; founding unlocks on blue packs after Steelmaking. |
 | 2026-10-16 | **13.2: orders and upkeep** (user's picks, all Claude's recommendations). The player's pack (135 stacks) carries any one-off order in a trip, so the steady pull is the **upkeep**, drawn from the depot's 24-stack store. **5 stages** (camp, hamlet, village, town, city; the city is where Milestone 14 can start). **Stage orders double from about 1,000 items** (1,000, 2,000, 4,000, 8,000, 16,000: basics first, then concrete, steel and lamps, later plastic, circuits and processors). **Upkeep grows to a Mk3 belt:** 20, 60, 150, 300 and 600 items a minute by stage; a town stalls once a minute's upkeep is missing and resumes when it is there, and growth pauses while stalled. **Upkeep goods per town kind:** harbour planks and glass, river town bricks and lamps, highland workshop gears and steel plates, basalt forge coal and quicklime; later stages add one better good each. |
+| 2026-10-16 | **13.3: how a town grows** (user's picks, all Claude's recommendations). **The town's own drones build it:** the depot keeps a small fleet of its own (more each stage) that builds the town's plan block by block; the blocks are free (the delivered order paid for them), no player box is touched, and the player sees drones at work before researching them. **Foundations, bad plots skipped:** plots in fixed rings round the depot, each building on a stone foundation down to the ground; plots on steep slopes, over deep water or holding the player's blocks are skipped, plots over shallow water get piers on stilts; the terrain is never dug. **One set of buildings in each kind's materials** (houses, a hall, a workshop, a tower; 2 to 4 more a stage); R7's decor joins later. **Breaking:** town blocks break normally and the town's drones put them back; breaking the depot leaves the town **dormant** (stage and progress kept), and a depot placed on the same spot wakes it. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -565,8 +566,8 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   blue; needs Blue Science), its hand recipe (`recipes/towns.rs`), founding in `put_footprint` and removal in `dismantle`,
   the placing preview (`town_preview.rs`: outline green or red, the label names the town or why not) and a readout line on
   the depot. In the user's world (seed 1337) the nearest sites are 205–363 blocks out. Tested headlessly; seen in the
-  browser pane. Perks (13.4) and orders (13.2) are not built yet; breaking a depot ends its town for now (13.3 decides
-  whether a grown town survives that).
+  browser pane. Perks (13.4) and orders (13.2) are not built yet; breaking a depot ends its town for now (13.3b makes it
+  dormant instead).
 - [x] **13.2 Orders, upkeep and stalling.** Built 2026-10-16: `settlements/orders.rs` (the tables), `settlements/run.rs`
   (the tick, after the factory), `Pick::Depot` with `Processor::wants` (each good capped: two minutes of upkeep plus what
   the order still misses, so the store can't silt up; a stalled town takes only upkeep goods), save version 49, the depot
@@ -582,10 +583,21 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   next stage. A minute's upkeep missing: the town is **stalled** (its perk pauses, the order stops filling), nothing is lost,
   and it resumes once the upkeep is there. Town state saved (stage, order progress, stalled). **Done when:** a scenario test
   feeds a depot by belt through two stages, then starves it into a stall and back.
-- [ ] **13.3 The town grows itself.** Each stage is a blueprint of existing building blocks (planks, bricks, glass, concrete,
-  lamps; R7's decor later), planted as ghosts around the depot and built by the town's own drones from the delivered goods
-  (reusing `drones/`). Life without townspeople: lit windows at night, chimney smoke, a few sounds. **Done when:** a town is
-  seen growing from a depot to its third stage in the browser pane.
+- [ ] **13.3a Plots, plans and the town's drones.** Talked 2026-10-16 (section 1). `settlements/plans.rs`: building plans as
+  data (cells by role: wall, roof, floor, window, lamp, chimney; 2 to 4 buildings a stage) and a palette per kind mapping
+  roles to existing blocks (harbour planks, river town stone bricks, workshop steel-looking blocks, forge stone with
+  chimneys). Plots in fixed rings round the depot, chosen when a stage opens from the anchor alone and read through
+  `block_anywhere_or_generate` (no dependence on loaded chunks): skipped when steep, over deep water or holding a non-natural
+  block; stilts over shallow water; each building on a stone foundation down to the ground; never digs. The town's open
+  build list is core state on `Town` (save version 50), never the shared `Ghosts`, so the player's drones never take it; it
+  is drawn as faint ghosts. The depot's own fleet (2, plus 2 a stage) reuses the `drones/` flight; blocks are free; work
+  pauses while stalled. Lamps in the plans light the windows at night; forge and workshop chimneys smoke (`factory/smoke.rs`).
+  **Done when:** a scenario test builds a camp on uneven ground with the town's drones only, no player block touched; a town
+  is seen growing from a depot to its third stage in the browser pane.
+- [ ] **13.3b Rebuilding and dormant towns.** A built town cell that no longer holds its block goes back on the build list
+  (a cell the player has filled with something else is skipped). Breaking the depot makes the town dormant (kept with its
+  stage, progress and plan; no tick, no building); `Settlements::site` lets a depot on a dormant town's own anchor wake it.
+  **Done when:** tests break a town block (rebuilt) and the depot (dormant, then woken with its stage).
 - [ ] **13.4 Perks.** One module per perk, each paused while its town is stalled. The harbour's contract work needs two new
   pieces: a core record of which items the player's machines have ever made (a bitset by item, saved), and a derived "raw
   content" per item from the recipes (with a flag for chains that need bauxite or uranium, which are never offered). **Done
@@ -645,6 +657,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: 13.3 talked (docs only).** The town's own drones build it for free; buildings stand on foundations and bad
+  plots are skipped; one building set in each kind's materials; broken town blocks are rebuilt and a town without its depot
+  goes dormant (section 1). Step 13.3 split into 13.3a (plots, plans, drones) and 13.3b (rebuilding, dormant towns).
 - **2026-10-16: Step 13.2 built (orders, upkeep and stalling).** `settlements/orders.rs` and `run.rs`, `Town` grows stages
   (save version 49), `Pick::Depot` takes in only its town's goods up to a cap, the depot readout shows the order and upkeep.
   853 tests; the golden hash is unchanged (its scene has no towns).
@@ -659,23 +674,5 @@ and the balance numbers. Read the section you need.
 - **2026-10-16: R6 talked (docs only).** The user's picks are in section 1: player-founded towns at fitting sites, a perk per
   town kind, stalled towns pause their perk, a space elevator as the megaproject. Milestone 13 (Settlements, 13.1–13.6) is a
   first draft in section 4; Milestone 14 (the space elevator) is in `docs/ROADMAP.md`; 12.5 closed.
-- **2026-10-16: R1a and R1b built.** `scripts/inspect-save.mjs` reads a player's save headlessly; the blueprint prompt
-  (`blueprint/repeat.rs`, `Factory::works_at`, `blueprint_prompt` in `api/blueprint.rs`, a card in `ui/hints.ts`) offers a
-  blueprint when a machine is built a third time nearby, with the box preset. Garbled "·" and "×" fixed in five files. No save or
-  core change; golden hash unchanged.
-- **2026-10-16: R1 talked (docs only).** The tree's pack demand and far material measured (one hauler trip of bauxite covers
-  the game); the user picked settlements as growing demand and a blueprint prompt. New steps R1a (save inspector) and R1b
-  (blueprint prompt); R6's talk moved up to follow them.
-- **2026-10-16: Whole-game review and play-test response (user request, docs only).** Claude's review (strengths, weaknesses,
-  past and planned work, new dimensions, art, plants, music) was adopted in full; with the user's 32-hour save it became steps
-  R1–R8 in section 4, eight decision rows in section 1 and new open questions in section 6. Finished Milestone 10–12 detail moved
-  to the new `docs/CHANGELOG_M12.md`. `docs/ROADMAP.md` gained the designs (settlements, decor, pressure without combat, a
-  living world) and the trimmed carry; `docs/ART_HANDOVER.md` the art direction update. No code change.
-- **2026-10-16: Long-distance pole placing preview (user request).** While one is held and aimed, `Factory::long_link` says
-  what `auto_hook` would wire it to, or why not (too far, full, unpowered, alone), and `power_tools/long_pole.rs` shows it:
-  the footprint outline green or red, the pole it links to boxed, the label's line ("Links to the long-distance pole 132
-  blocks away · 28 to spare" or the reason), a ghost tower and its wire in the grid's colour (red and cut at 160 blocks
-  when too far), a beacon over the far tower that shows through the fog (`mark_beacon`: glow flag 2, `BOXES` in the box
-  shader), a power-up or power-down blip as the spot crosses the edge of reach, and the maps ring every long-distance pole's
-  reach (`MARK_RANGE`, dashed). Presentation only; no save or core change. Seen in the browser pane. 844 tests.
+
 Earlier entries live in [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).
