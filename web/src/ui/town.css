@@ -1,0 +1,50 @@
+/* The town part of a depot's panel (ui/town.ts). Bars and headings come from machine.css. */
+
+.tp-town {
+  margin-bottom: 8px;
+}
+
+.tp-stall {
+  margin: 0 0 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #ffd2cc;
+  background: rgba(255, 74, 61, 0.16);
+  border-left: 3px solid #ff4a3d;
+}
+
+.tp-lines {
+  display: grid;
+  gap: 6px;
+}
+
+.tp-line {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  column-gap: 8px;
+  font-size: 13px;
+}
+
+.tp-line canvas {
+  width: 22px;
+  height: 22px;
+}
+
+.tp-figure {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.tp-line.done .tp-figure {
+  color: #4ade80;
+}
+
+.tp-line.short .tp-figure {
+  color: #ff7a6e;
+}
+
+.tp-bar {
+  grid-column: 2 / 4;
+}

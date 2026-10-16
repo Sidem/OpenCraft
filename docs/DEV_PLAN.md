@@ -4,8 +4,8 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1–13.3 and 13.4a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); save version 52, 860 tests; not pushed) · **Next: step 13.5a** (the town panel and stall news), then 13.5b (maps and tips), then 13.4b (the harbour) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+**Milestone 13 (Settlements): 13.1–13.3, 13.4a and 13.5a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
+the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); save version 52, 861 tests; not pushed) · **Next: step 13.5b** (maps and tips), then 13.4b (the harbour) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -619,7 +619,10 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   the player's machines have ever made (a bitset by item, saved) and a derived raw content per item from the recipes (with
   a flag for chains that need bauxite or uranium, which are never offered). **Done when:** the perk is tested on and off,
   and a test shows the harbour never offers a far-material product.
-- [ ] **13.5a The town panel and stall news.** Talked 2026-10-16 (section 1). Right-clicking a depot opens the usual machine
+- [x] **13.5a The town panel and stall news.** Built 2026-10-16 (`ui/town.ts`, `api/towns.rs`; no save change). The news is
+  not a `SimEvent` queue but `town_states` read once a second by the HUD, compared with its last look (`lib.rs` is over
+  budget for a new `Game` field, and 13.5b's map markers need the same query); the depot's store got its own panel role
+  (`ROLE_STORE`, "Town") so "Take output" leaves it alone. As talked: Right-clicking a depot opens the usual machine
   panel with a town section on top (one new UI file, `ui/town.ts`, fed by a flat engine query): kind and stage, the open
   order with a progress bar a line, each upkeep good with its stock in minutes, and the perk (its text, its in and out slots,
   taken by hand like any panel slot). A toast when a town stalls, naming what it is short of, and when it is supplied again
@@ -684,7 +687,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
+- **2026-10-16: Step 13.5a built (the town panel and stall news).** `ui/town.ts` on top of a depot's machine panel,
+  `api/towns.rs` (`town_panel`, `town_states`, `town_news`), HUD toasts when a town stalls or is supplied again, the
+  store's own panel role. 861 tests.- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
   stall and recovery toasts, three tips (section 1); 13.5 split into 13.5a (panel, stall news) and 13.5b (maps, tips).- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
   a perk, a batch every `period(built)` ticks at the upkeep's rate, no saved state); the depot keeps perk goods apart
   (`Want::perk` into `input`, out at the front from `side`; save version 52, which also saves `crafting::Step::half`);

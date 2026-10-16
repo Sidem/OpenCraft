@@ -7,7 +7,7 @@ use crate::recipes::{MachineRecipe, MACHINE_RECIPES};
 use crate::TICK_RATE;
 
 use super::super::buffer::Buffer;
-use super::super::panel::{Panel, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
+use super::super::panel::{Panel, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
 use super::{Energy, Pick, Processor, Status};
@@ -74,7 +74,9 @@ impl Processor {
         let progress = self.batch_recipe().map_or(0, |r| self.progress / ticks(r.seconds));
         let mut slots: Vec<(u8, Stack)> = self.input.slots.iter().map(|&s| (ROLE_INPUT, s)).collect();
         slots.extend(self.fuel.slots.iter().map(|&s| (ROLE_FUEL, s)));
-        slots.extend(self.out.slots.iter().chain(&self.side.slots).map(|&s| (ROLE_OUTPUT, s)));
+        let store = if self.spec.pick == Pick::Depot { ROLE_STORE } else { ROLE_OUTPUT };
+        slots.extend(self.out.slots.iter().map(|&s| (store, s)));
+        slots.extend(self.side.slots.iter().map(|&s| (ROLE_OUTPUT, s)));
         Panel {
             block: self.spec.block,
             recipe: if chosen { self.recipe } else { self.batch },

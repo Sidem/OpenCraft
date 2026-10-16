@@ -3,8 +3,8 @@
 // `beside`), so items move between the two like a chest: click a slot with a stack held to put it in, click a filled
 // slot to take it, Shift-click an inventory stack to put it in. Shows what the machine is doing, its buffers, the
 // recipe choice for machines where the player picks it, a filter's item choice, one-click put-in buttons, a
-// take-output button, and a quarry's choices (ui/quarry.ts; `quarryBox` for its outline). Sections a machine doesn't
-// use are hidden.
+// take-output button, a quarry's choices (ui/quarry.ts; `quarryBox` for its outline) and a depot's town on top
+// (ui/town.ts). Sections a machine doesn't use are hidden.
 // Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions.
 // A new machine with a panel needs no change here unless it adds a buffer role (`ROLE_LABELS`).
 
@@ -14,6 +14,7 @@ import { button, h } from './dom';
 import type { Beside, InventoryPanel } from './inventory';
 import { RecipePicker } from './machine-recipes';
 import { QuarrySection } from './quarry';
+import { TownSection } from './town';
 
 const ICON_PX = 64;
 
@@ -34,6 +35,7 @@ export class MachinePanel implements Beside {
   private readonly filterList = h('div', 'mp-inserts');
   private readonly take: HTMLButtonElement;
   private readonly quarry: QuarrySection;
+  private readonly town: TownSection;
   private readonly roleLabels: Map<number, string>;
   private pos: [number, number, number] = [0, 0, 0];
   private block = -1;
@@ -49,6 +51,7 @@ export class MachinePanel implements Beside {
       [game.panel_role_input(), 'In'],
       [game.panel_role_fuel(), 'Fuel'],
       [game.panel_role_output(), 'Out'],
+      [game.panel_role_store(), 'Town'],
     ]);
     this.progress.append(this.bar);
     this.take = button('secondary-btn mp-take', 'Take output', () => {
@@ -60,11 +63,12 @@ export class MachinePanel implements Beside {
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
     this.quarry = new QuarrySection(game);
+    this.town = new TownSection(game, icon);
     this.recipes = new RecipePicker(game, icon, (id) => {
       const current = this.game.machine_panel(...this.pos)[1];
       this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
     });
-    this.el.append(state, this.quarry.el, this.filterSection, this.recipeHead, this.recipes.el, this.put);
+    this.el.append(this.town.el, state, this.quarry.el, this.filterSection, this.recipeHead, this.recipes.el, this.put);
   }
 
   get isOpen(): boolean {
@@ -117,6 +121,7 @@ export class MachinePanel implements Beside {
     const [, recipe, progress, fire, choosable, count] = data;
     this.bar.style.transform = `scaleX(${progress / 1000})`;
     const quarry = this.quarry.update(this.pos);
+    this.town.update(this.pos);
     // The running average moves a little every frame, so it is outside the redraw key below.
     const efficiency = g.machine_efficiency(...this.pos);
     if (this.efficiency.textContent !== efficiency) this.efficiency.textContent = efficiency;

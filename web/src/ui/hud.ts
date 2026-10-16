@@ -1,5 +1,6 @@
 // In-game HUD: crosshair, the top-centre column (#hud-top: helper status line, target name with detail text and
-// mining bar; the scanner pointer joins it from prospect.ts), hotbar, pickup toasts,
+// mining bar; the scanner pointer joins it from prospect.ts), hotbar, pickup toasts (and a town's news when it stalls
+// or is supplied again: `town_states` compared with the last look, `town_news` for the words),
 // the muted badge and the F3 debug overlay. Reads from the engine each frame; hotbar slots redraw only
 // when `inventory_version` changes. `itemIcon` renders the item icons other panels reuse, `showAmount` a
 // slot's count or, for a tool (whose count is its uses left), its wear bar.
@@ -14,6 +15,12 @@ const TOAST_MS = 2600;
 const LAUNCHED = -100000;
 /** How often the target's detail text (deposit size, machine status) is refreshed. */
 const DETAIL_MS = 150;
+/** Toast keys below this are towns' news, one per town; how often the towns' states are read; `town_states`'s values
+ * (api/towns.rs) for a stalled and a dormant town. */
+const TOWN_KEY = -200000;
+const TOWN_MS = 1000;
+const STALLED = 1;
+const DORMANT = 2;
 
 interface Slot {
   root: HTMLDivElement;
@@ -70,6 +77,8 @@ export class Hud {
   private readonly mineFill = $<HTMLDivElement>('mine-fill');
   private readonly helperStatus = $<HTMLDivElement>('helper-status');
   private helperText = '';
+  private townStates: number[] | null = null;
+  private lastTowns = 0;
   private readonly toastBox = $<HTMLDivElement>('toasts');
   private readonly debug = $<HTMLPreElement>('debug');
   private readonly mutedBadge = $<HTMLDivElement>('muted');
@@ -172,6 +181,7 @@ export class Hud {
 
     while (g.next_pickup()) this.pushToast(g.pickup_item(), g.pickup_count(), now);
     for (let sat = g.next_launch(); sat !== 0; sat = g.next_launch()) this.pushToast(sat, LAUNCHED, now);
+    if (now - this.lastTowns > TOWN_MS) this.townNews(now);
     for (const [item, t] of this.toasts) {
       if (now > t.until) {
         this.toasts.delete(item);
@@ -224,7 +234,24 @@ export class Hud {
     this.addToast(key, item, text(count), count, now);
   }
 
-  private addToast(key: number, item: number, amount: string, count: number, now: number): void {
+  /** Toasts each town that stalled or is supplied again since the last look (the first look only remembers). */
+  private townNews(now: number): void {
+    this.lastTowns = now;
+    const states = Array.from(this.game.town_states());
+    const before = this.townStates;
+    this.townStates = states;
+    if (!before) return;
+    states.forEach((state, i) => {
+      if (before[i] === undefined || state === before[i] || state === DORMANT || before[i] === DORMANT) return;
+      this.toasts.get(TOWN_KEY - i)?.el.remove();
+      const stalled = state === STALLED;
+      const label = stalled ? 'stalled' : 'supplied';
+      this.addToast(TOWN_KEY - i, this.game.town_depot_item(), label, 0, now, this.game.town_news(i));
+      this.toasts.get(TOWN_KEY - i)!.el.classList.toggle('warn', stalled);
+    });
+  }
+
+  private addToast(key: number, item: number, amount: string, count: number, now: number, words = ''): void {
     const el = document.createElement('div');
     el.className = 'toast';
     const icon = document.createElement('canvas');
@@ -234,7 +261,7 @@ export class Hud {
     label.className = 'amount';
     label.textContent = amount;
     const name = document.createElement('span');
-    name.textContent = this.game.item_name(item);
+    name.textContent = words || this.game.item_name(item);
     el.append(icon, label, name);
     this.toastBox.append(el);
     this.toasts.set(key, { el, label, count, until: now + TOAST_MS });

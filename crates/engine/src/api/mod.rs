@@ -25,6 +25,7 @@ mod render;
 mod research;
 mod save;
 mod sites;
+mod towns;
 mod view;
 
 use wasm_bindgen::prelude::*;

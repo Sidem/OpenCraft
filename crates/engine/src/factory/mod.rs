@@ -105,7 +105,7 @@ pub use facts::facts;
 #[cfg(test)]
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
-pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT};
+pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 pub use pole::POLE_TIERS;
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
 pub use ports::PortInfo;

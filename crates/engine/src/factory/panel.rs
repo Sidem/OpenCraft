@@ -21,6 +21,8 @@ use super::Factory;
 pub const ROLE_INPUT: u8 = 0;
 pub const ROLE_FUEL: u8 = 1;
 pub const ROLE_OUTPUT: u8 = 2;
+/// A town depot's store: its town's goods, which "take output" leaves alone.
+pub const ROLE_STORE: u8 = 3;
 
 /// Whether R turns a placed `block` (belts, routers and sensors do too; so does a laser emitter or mirror).
 pub fn turns(block: BlockId) -> bool {
@@ -175,8 +177,8 @@ impl Factory {
         }
     }
 
-    /// Takes a machine's output (everything, for a box): offers it to `take(item, count)`, which
-    /// returns how many it accepted. Returns false if there is no such machine at `pos`.
+    /// Takes a machine's output (everything, for a box; only its perk's goods, for a town depot): offers it to
+    /// `take(item, count)`, which returns how many it accepted. Returns false if there is no such machine at `pos`.
     pub fn take_contents(&mut self, pos: IVec3, take: impl FnMut(ItemId, u32) -> u32) -> bool {
         let mut take = take;
         let buf = match self.at.get(&pos) {
@@ -185,6 +187,9 @@ impl Factory {
             Some(Slot::Process(i)) => {
                 let p = &mut self.processors[*i as usize];
                 p.side.drain(&mut take);
+                if p.spec.pick == Pick::Depot {
+                    return true;
+                }
                 &mut p.out
             }
             Some(Slot::Quarry(i)) => &mut self.quarries[*i as usize].out,
