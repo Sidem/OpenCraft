@@ -62,6 +62,7 @@ mod mode;
 mod net;
 mod noise;
 mod opening;
+mod orbit_fx;
 mod ore_guide;
 mod perks;
 mod physics;
@@ -188,6 +189,8 @@ pub struct Game {
     pickups: VecDeque<(ItemId, u32)>,
     /// Ore the local player wasted by hand mining this session (`hand_waste.rs`).
     waste: hand_waste::HandWaste,
+    /// Launch and landing effects, and launches the HUD has yet to toast (`orbit_fx.rs`).
+    orbit_fx: orbit_fx::OrbitFx,
     cur_pickup: (ItemId, u32),
     cur_mesh: Option<MeshData>,
     cur_event_pos: IVec3,
@@ -264,6 +267,7 @@ impl Game {
             instances: Vec::new(),
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),
+            orbit_fx: orbit_fx::OrbitFx::default(),
             cur_pickup: (ItemId::NONE, 0),
             cur_mesh: None,
             cur_event_pos: IVec3::ZERO,
@@ -312,10 +316,9 @@ impl Game {
         self.settle_view(before, self.render_eye, dt);
         if self.strategy.active() {
             self.strategy_target();
-        }
-        if !self.strategy.active() && self.third_person.active() {
+        } else if self.third_person.active() {
             self.update_target_at(self.render_eye);
-        } else if !self.strategy.active() {
+        } else {
             self.update_target();
         }
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
@@ -347,7 +350,6 @@ impl Game {
         self.update_jetpack();
         self.step_bodies();
         self.update_movement_sounds(feet);
-
         self.update_target();
         self.update_mining(TICK as f32);
         self.update_placing(TICK as f32);

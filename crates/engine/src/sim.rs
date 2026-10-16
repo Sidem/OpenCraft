@@ -87,6 +87,19 @@ pub enum SimEvent {
         kept: u32,
         lost: u32,
     },
+    /// A launch site's rocket went up with a satellite (`item`); `pos` is the site's anchor.
+    Launched {
+        pos: IVec3,
+        item: ItemId,
+    },
+    /// The pod launcher at `pos` sent a drop pod up.
+    PodSent {
+        pos: IVec3,
+    },
+    /// A drop pod touched down on the landing pad at `pos` (its cargo lands as the pad has room).
+    PodLanded {
+        pos: IVec3,
+    },
     /// A player's tool broke a block with its last use and is gone.
     ToolWornOut {
         player: PlayerId,

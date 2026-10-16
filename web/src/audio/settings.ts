@@ -11,7 +11,7 @@ export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', '
 export type MaterialDial = (typeof MATERIAL_DIALS)[number];
 export type MaterialParams = Record<MaterialDial, number>;
 
-export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup'] as const;
+export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
 export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
@@ -184,6 +184,24 @@ export const ACTION_INFO: Record<ActionName, { label: string; help: string; mate
     material: false,
     dials: ['volume', 'pitch', 'length'],
   },
+  launch: {
+    label: 'Rocket launch',
+    help: 'A rocket leaving its launch site: an ignition thump and a long rumbling roar, heard from far away.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
+  podup: {
+    label: 'Pod launch',
+    help: 'A drop pod fired from its launcher: a pneumatic thump and a rising whoosh.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
+  poddown: {
+    label: 'Pod landing',
+    help: 'A drop pod coming down on its pad: a retro-burn hiss, then a heavy thud.',
+    material: false,
+    dials: ['volume', 'pitch', 'length'],
+  },
 };
 
 // prettier-ignore
@@ -232,6 +250,9 @@ export const DEFAULT_DESIGN: SoundDesign = {
     splash: neutral(),
     powerdown: neutral(),
     powerup: neutral(),
+    launch: neutral(),
+    podup: neutral(),
+    poddown: neutral(),
   },
 };
 

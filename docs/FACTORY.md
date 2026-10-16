@@ -303,6 +303,7 @@ size.
   over the launcher and over a pad on its channel, the launcher loads for 15 seconds and sends one pod with up to 6 stacks
   to the nearest such pad; it comes down 20 seconds later and the cargo goes into the pad's 24 stacks, which belts empty.
   A full pad keeps the pod waiting and lands what fits, so nothing is lost. The launcher's status says what it waits for.
+  On the maps, launchers and pads carry an arrow pointing their channel's way, so matching ones are easy to spot.
 - **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the

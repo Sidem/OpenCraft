@@ -16,6 +16,7 @@ use crate::recipes::{
     MACHINE_RECIPES, RECIPES, ROCKET_FUEL_RECIPE, ROCKET_PART_RECIPES, ROCKET_RECIPE, SURVEY_SATELLITE_RECIPE,
 };
 use crate::research::{Unlock, TECHS};
+use crate::sim::SimEvent;
 use crate::world::World;
 
 use super::super::refinery::PLANT_SPEC;
@@ -141,6 +142,8 @@ fn a_launched_satellite_is_in_the_factorys_orbit_and_the_pad_says_so() {
         f.update(&mut world, tick, &mut events);
     }
     assert_eq!(f.processors[0].launches, 1);
+    let launched = events.iter().filter(|e| matches!(e, SimEvent::Launched { .. })).collect::<Vec<_>>();
+    assert_eq!(launched, [&SimEvent::Launched { pos: IVec3::ZERO, item: SURVEY_SATELLITE }], "reported once");
     let sat = f.orbit.list();
     assert_eq!((sat.len(), sat[0].kind, sat[0].from), (1, 0, [0, 0]));
     assert!(

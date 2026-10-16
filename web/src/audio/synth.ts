@@ -36,7 +36,7 @@ export interface HitMods {
 type FilterType = 'lp' | 'hp' | 'bp';
 
 /** RBJ-cookbook biquad, applied in place. */
-function biquad(x: Float32Array, sr: number, type: FilterType, freq: number, q: number): Float32Array {
+export function biquad(x: Float32Array, sr: number, type: FilterType, freq: number, q: number): Float32Array {
   const w = (2 * Math.PI * Math.min(freq, sr * 0.45)) / sr;
   const cos = Math.cos(w), alpha = Math.sin(w) / (2 * q);
   let b0: number, b1: number, b2: number;
@@ -83,7 +83,7 @@ function mix(into: Float32Array, x: Float32Array, gain: number, offset = 0): voi
   for (let i = 0; i < n; i++) into[offset + i] += x[i] * gain;
 }
 
-function normalize(x: Float32Array, peak = 0.9): Float32Array {
+export function normalize(x: Float32Array, peak = 0.9): Float32Array {
   let m = 0;
   for (const v of x) m = Math.max(m, Math.abs(v));
   if (m > 0) for (let i = 0; i < x.length; i++) x[i] *= peak / m;

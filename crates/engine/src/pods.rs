@@ -5,7 +5,7 @@
 //! carries. A pod whose pad is not ready (gone, out of comms cover or full) stays in flight and tries again each tick, so
 //! cargo is never lost while a pad exists; at most `MAX_IN_FLIGHT` are up at once.
 //!
-//! Presentation (`falling`) never changes the list; only `send` and `Pods::list` edits by the landing code do.
+//! Presentation (`falling`, `rising`) never changes the list; only `send` and `Pods::list` edits by the landing code do.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
@@ -24,6 +24,9 @@ pub const POD_STACKS: usize = 6;
 pub const FALL_TICKS: u64 = 240;
 /// Blocks above the pad where the fall begins.
 pub const FALL_HEIGHT: f64 = 120.0;
+/// Ticks after launch in which a pod is drawn rising out of its launcher, and how high it is by then.
+pub const RISE_TICKS: u64 = 180;
+pub const RISE_HEIGHT: f64 = 120.0;
 
 /// One pod: where it left, the pad it is bound for, the channel it flies on, when it left and lands, and its cargo.
 pub struct Pod {
@@ -69,6 +72,16 @@ impl Pods {
             (left <= FALL_TICKS as f64).then(|| FALL_HEIGHT * (left / FALL_TICKS as f64).powi(2))
         };
         self.list.iter().filter_map(|p| high(p).map(|h| (p.to, h))).collect()
+    }
+
+    /// Pods in the first stretch after launch at `time`: the launcher each left and how high above it it is, in blocks,
+    /// speeding up as it climbs. Presentation (the rising capsule).
+    pub fn rising(&self, time: f64) -> Vec<(IVec3, f64)> {
+        let high = |p: &Pod| {
+            let gone = time - p.launched as f64;
+            (0.0..=RISE_TICKS as f64).contains(&gone).then(|| RISE_HEIGHT * (gone / RISE_TICKS as f64).powi(2))
+        };
+        self.list.iter().filter_map(|p| high(p).map(|h| (p.from, h))).collect()
     }
 
     /// Core state: the pods in flight.

@@ -1,4 +1,5 @@
-//! The satellites the sky draws (`satellites.rs`): a query, never a change to the world.
+//! The satellites the sky draws (`satellites.rs`) and the launches the HUD toasts (`orbit_fx.rs`): queries and
+//! presentation, never a change to the world.
 
 use wasm_bindgen::prelude::*;
 
@@ -11,5 +12,10 @@ impl Game {
     pub fn sky_satellites(&self) -> Vec<f32> {
         let eye = self.render_eye;
         self.sim.factory.orbit.sky_directions(eye.x, eye.z, self.sim.tick)
+    }
+
+    /// Pops the next satellite launch to toast ("in orbit"): its item, or 0 when there is none (`orbit_fx.rs`).
+    pub fn next_launch(&mut self) -> u16 {
+        self.orbit_fx.news.pop_front().map_or(0, |item| item.0)
     }
 }

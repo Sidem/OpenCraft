@@ -9,6 +9,7 @@ use crate::math::IVec3;
 use crate::pods::{FLIGHT_TICKS, POD_STACKS};
 use crate::recipes::{DROP_POD_RECIPE, MACHINE_RECIPES};
 use crate::research::{Unlock, TECHS};
+use crate::sim::SimEvent;
 use crate::world::World;
 
 use super::super::spec;
@@ -31,12 +32,14 @@ fn cover() -> Satellites {
     sats
 }
 
-/// Runs `n` ticks from `from`, every launcher at full power.
-fn go(ps: &mut [Processor], pods: &mut Pods, sats: &Satellites, from: u64, n: u64) {
+/// Runs `n` ticks from `from`, every launcher at full power, and returns the events (launches and touchdowns).
+fn go(ps: &mut [Processor], pods: &mut Pods, sats: &Satellites, from: u64, n: u64) -> Vec<SimEvent> {
+    let mut events = Vec::new();
     for t in from..from + n {
         ps.iter_mut().for_each(|p| p.speed = FULL_SPEED);
-        run(ps, pods, sats, t);
+        run(ps, pods, sats, t, &mut events);
     }
+    events
 }
 
 fn load(p: &mut Processor, cargo: &[(ItemId, u32)]) {
@@ -83,7 +86,8 @@ fn a_launcher_loads_for_fifteen_seconds_then_sends_six_stacks_to_the_pad_twenty_
     go(&mut ps, &mut pods, &sats, 0, LOAD - 2);
     assert!(pods.list.is_empty());
     assert!(ps[0].status_text().contains("loading the pod: 99%"), "{}", ps[0].status_text());
-    go(&mut ps, &mut pods, &sats, LOAD - 2, 3);
+    let sent = go(&mut ps, &mut pods, &sats, LOAD - 2, 3);
+    assert_eq!(sent, vec![SimEvent::PodSent { pos: IVec3::ZERO }], "the launch is reported once");
     assert_eq!(pods.list.len(), 1);
     assert_eq!((ps[0].input.total(), ps[0].out.total()), (0, 0), "the pod and the cargo went up");
     assert_eq!(ps[0].used.len(), 1, "the pod is reported as used");
@@ -91,7 +95,8 @@ fn a_launcher_loads_for_fifteen_seconds_then_sends_six_stacks_to_the_pad_twenty_
     assert_eq!((pod.to, pod.channel, pod.lands - pod.launched), (IVec3::new(30, 0, 0), 0, FLIGHT_TICKS));
     assert_eq!(ps[1].out.total(), 0, "not landed yet");
     assert!(ps[1].pods_text().is_some());
-    go(&mut ps, &mut pods, &sats, LOAD + 1, FLIGHT_TICKS);
+    let landed = go(&mut ps, &mut pods, &sats, LOAD + 1, FLIGHT_TICKS);
+    assert_eq!(landed, vec![SimEvent::PodLanded { pos: IVec3::new(30, 0, 0) }], "the touchdown is reported once");
     assert!(pods.list.is_empty());
     assert_eq!((ps[1].out.count(IRON_PLATE), ps[1].out.count(IRON_INGOT), ps[1].out.count(SCREW)), (100, 100, 30));
 }
@@ -185,7 +190,7 @@ fn a_launcher_draws_power_only_while_it_loads() {
     go(&mut ps, &mut pods, &cover(), 0, 2);
     assert!(ps[0].wants_power(&unlocked, &research));
     ps[0].speed = 0;
-    run(&mut ps, &mut pods, &cover(), 3);
+    run(&mut ps, &mut pods, &cover(), 3, &mut Vec::new());
     assert_eq!(ps[0].status, Status::NoPower);
     assert!(ps[0].progress > 0 || ps[0].status == Status::NoPower, "an unwired launcher holds its progress");
 }
@@ -226,6 +231,21 @@ fn a_capsule_is_drawn_only_in_the_last_four_seconds_above_its_pad() {
     assert!(near[0].y > base[0].y + 10.0, "higher up an earlier tick: {} against {}", near[0].y, base[0].y);
     // The pad's cells run right and away from the placer: x 4..=6, z 2..=4, so its middle is (5.5, 3.5).
     assert!((base[0].x - 5.5).abs() < 0.1 && (base[0].z - 3.5).abs() < 0.1, "above the pad: {:?}", base[0]);
+}
+
+#[test]
+fn a_capsule_rises_out_of_its_launcher_for_the_first_three_seconds() {
+    let mut world = World::new(1, 2);
+    let mut f = Factory::default();
+    let at = IVec3::new(4, 10, 4);
+    f.place(&mut world, POD_LAUNCHER, at, 0, IVec3::ZERO, 0);
+    f.pods.send(at, IVec3::new(90, 10, 4), 0, vec![Stack { item: IRON_PLATE, count: 1 }], 100);
+    assert!(f.rising_pods(99.0).is_empty(), "not launched yet");
+    let (low, high) = (f.rising_pods(110.0), f.rising_pods(100.0 + crate::pods::RISE_TICKS as f64 - 1.0));
+    assert_eq!((low.len(), high.len()), (1, 1));
+    assert!(low[0].y > 12.0 && low[0].y < 15.0, "at the tube's mouth, 3 high: {}", low[0].y);
+    assert!(high[0].y > low[0].y + 100.0, "far up by the end: {}", high[0].y);
+    assert!(f.rising_pods(100.0 + crate::pods::RISE_TICKS as f64 + 1.0).is_empty(), "out of sight after");
 }
 
 #[test]

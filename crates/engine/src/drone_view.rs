@@ -45,32 +45,20 @@ impl Game {
         self.write_companion(eye, alpha, time);
     }
 
-    /// The drop pods in their last seconds, falling onto their pads: a white capsule with a red flame under it.
+    /// The drop pods in their first seconds, rising out of their launchers, and in their last, falling onto their pads: a
+    /// white capsule with a red flame under it. Then the bursts of dust where they left or landed (`orbit_fx.rs`).
     fn write_pod_instances(&mut self, eye: Vec3, alpha: f64) {
-        for at in self.sim.factory.falling_pods(self.sim.tick as f64 + alpha) {
+        let time = self.sim.tick as f64 + alpha;
+        let (factory, out) = (&self.sim.factory, &mut self.instances);
+        for at in factory.falling_pods(time).into_iter().chain(factory.rising_pods(time)) {
             let at = at - eye;
             if at.length() > POD_RANGE {
                 continue;
             }
-            push_box(
-                &mut self.instances,
-                at + Vec3::new(0.0, 0.5, 0.0),
-                0.0,
-                [0.7, 1.0, 0.7],
-                0.0,
-                [tex::DROP_POD; 3],
-                false,
-            );
-            push_box(
-                &mut self.instances,
-                at - Vec3::new(0.0, 0.2, 0.0),
-                0.0,
-                [0.3, 0.4, 0.3],
-                0.0,
-                [tex::LAMP_RED; 3],
-                false,
-            );
+            push_box(out, at + Vec3::new(0.0, 0.5, 0.0), 0.0, [0.7, 1.0, 0.7], 0.0, [tex::DROP_POD; 3], false);
+            push_box(out, at - Vec3::new(0.0, 0.2, 0.0), 0.0, [0.3, 0.4, 0.3], 0.0, [tex::LAMP_RED; 3], false);
         }
+        self.orbit_fx.write(&mut self.instances, eye, time * TICK);
     }
 
     /// The local player's personal drone: hovering at their right shoulder, or out on an errand to its box.

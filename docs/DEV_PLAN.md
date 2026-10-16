@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 (what satellites give) and 12.4 (drop pods) are pushed; 12.5 cleanup is in progress (2026-10-16: orbit tips, `bench_orbit`, the manual done; save version 47 since the opening scene; 837 tests); left of 12.5: move Milestone 13 in once the user picks the megaproject theme (section 6), balance stays "tune in play"** (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 (what satellites give) and 12.4 (drop pods) are pushed; 12.5 cleanup is in progress (2026-10-16: orbit tips, `bench_orbit`, the manual done; save version 47 since the opening scene; 837 tests); left of 12.5: move Milestone 13 in once the user picks the megaproject theme (section 6), balance stays "tune in play"** · **Agreed order next (2026-10-16, section 1): orbit polish (built 2026-10-16), then the feel-and-feedback interlude, the carry's era pieces, the megaproject theme, the ruins, Milestone 13** (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -135,6 +135,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-09 | **Underpasses are crafted in pairs; research can be queued** (user requests). A craft makes an entry and an exit; the research screen holds a queue (up to 32, with missing prerequisites added), the HUD shows only the current tech. |
 | 2026-10-08 | **Player-experience features** (user's pick from Claude's proposals): a world timelapse, the factory as an instrument, follow one item, seismic prospecting, site bonuses (where you build matters), ruins of the last factory. Placed as two interludes in `docs/ROADMAP.md`; datacenter siting may join steps 11.3–11.4. |
 | 2026-10-11 | **The carry: p-adic numbers and fractals by discovery** (user's pick from Claude's brainstorm): mechanisms that behave like the math (splitter addresses, a tally, fractal radiators and antennas, Hensel vaults, a Cantor sieve, a Hanoi crane, a layer printer). Mainly in the ruins, partly in existing eras, no tech line of its own; pure discovery with names only, never explained; primes 2, 3 and 5 each lead where they work best. Design in `docs/ROADMAP.md`. |
+| 2026-10-16 | **Order after Milestone 12** (Claude's proposal, user agreed): 1 orbit polish (12.x's "not done" items), 2 the feel-and-feedback interlude (instrument, follow one item, timelapse; then seismic prospecting and site bonuses), 3 the carry's pieces in the existing eras (discoveries, splitter addresses, tally, radiators and analyzer), 4 pick the megaproject theme (talk only), 5 the ruins interlude with the carry's ruin pieces, 6 Milestone 13. Parked items fit in where a session has room. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -587,6 +588,17 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   nodes in two islands joined by the comms uplink, 40 pods in flight onto full pads): about 19 µs a tick, worst 40–63 µs.
   **Balance:** numbers kept as built, to tune in play. **Left:** Milestone 13 needs the user's megaproject theme and what
   finishing it unlocks (section 6) before it moves in from `docs/ROADMAP.md`.
+- [x] **Orbit polish** (first of the order agreed on 2026-10-16, section 1; built 2026-10-16): new `SimEvent`s `Launched`
+  (`Factory::update`, a launch site's lifted satellite), `PodSent` and `PodLanded` (`process/pods.rs` `run`, at a pod's landing
+  tick) feed `orbit_fx.rs` (presentation): sounds `LAUNCH` (heard 12× as far), `POD_UP`, `POD_DOWN` (`audio/synth-orbit.ts`,
+  `reach` in `audio/sound.ts`, three sound-designer actions), a dust burst at the machine, and an "in orbit" toast per
+  satellite (`next_launch`). A pod is drawn rising out of its launcher for 3 s (`Pods::rising`, `Factory::rising_pods`). The
+  maps draw pod launchers and pads with an arrow for their channel (`MARK_CHANNEL`) and launch sites as a rocket
+  (`MARK_LAUNCH`). Seen in the browser pane (a pod rising and falling, the touchdown burst, the marks); the rocket launch was
+  checked headless only. No save or core-state change; golden hash unchanged; 841 tests. **Not done:** a beam drawn from power
+  satellites down to rectennas. **Open question for the user:** is facing-as-channel clear enough, or should a pad get a
+  name or colour chosen in its panel? **Next:** the feel-and-feedback interlude (`docs/ROADMAP.md`), starting with the factory
+  as an instrument.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -630,6 +642,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Orbit polish.** Launch and landing sounds, dust bursts and the "in orbit" toast (`orbit_fx.rs`,
+  `audio/synth-orbit.ts`), the capsule rising from its launcher, channel arrows and a rocket mark on the maps. The agreed order
+  after Milestone 12 is recorded in section 1 and `docs/ROADMAP.md`. 841 tests.
 - **2026-10-16: Step 12.5, first part.** Orbit tips (rockets, what satellites give, drop pods) in `hints.rs`; `bench_orbit`
   (`factory/tests/bench_orbit.rs`, ignored): about 19 µs a tick, worst under 0.07 ms; `docs/FACTORY.md` brought up to date
   (satellite kinds, drop pods, long-distance pole, upgrader, automated buildings). No save or core change.

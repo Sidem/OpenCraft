@@ -380,11 +380,12 @@ impl Factory {
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);
-            if let Some(payload) = m.lifted.take() {
-                orbit.launch(payload, m.pos, tick);
+            if let Some(item) = m.lifted.take() {
+                orbit.launch(item, m.pos, tick);
+                events.push(SimEvent::Launched { pos: m.pos, item });
             }
         }
-        process::run_pods(sinks.processors, pods, orbit, tick);
+        process::run_pods(sinks.processors, pods, orbit, tick, events);
         for r in sinks.routers.iter_mut() {
             r.step(belts);
         }

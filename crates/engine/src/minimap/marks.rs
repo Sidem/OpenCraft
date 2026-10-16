@@ -35,6 +35,10 @@ pub const MARK_GUESS: i32 = 4;
 /// A satellite's footprint (`satellites.rs`): this plus its kind as the shape, and the third number is its reach in
 /// blocks instead of a colour.
 pub const MARK_COVER: i32 = 8;
+/// A pod launcher or landing pad: this plus its channel (0 north, 1 east, 2 south, 3 west) as the shape, in its colour.
+pub const MARK_CHANNEL: i32 = 16;
+/// A launch site (a rocket shape), in its colour.
+pub const MARK_LAUNCH: i32 = 20;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -101,7 +105,7 @@ impl Minimap {
 
     /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: satellite footprints, survey guesses, ore seen
     /// at the surface, then remembered deposits and those survey satellites saw (both while they hold ore), then
-    /// terraforming sites, then machines.
+    /// terraforming sites, then machines (pod launchers and pads last, with their channel).
     pub fn marks_in(&self, factory: &Factory, lo: (i32, i32), hi: (i32, i32), origin: (i32, i32)) -> Vec<i32> {
         let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
         let (ox, oz) = origin;
@@ -137,8 +141,16 @@ impl Minimap {
             }
         }
         factory.map_machines(lo, hi, &mut |block, p| {
-            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), MARK_MACHINE]);
+            let shape = match block {
+                block::POD_LAUNCHER | block::LANDING_PAD => return, // drawn with their channel below
+                block::LAUNCH_SITE => MARK_LAUNCH,
+                _ => MARK_MACHINE,
+            };
+            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), shape]);
         });
+        for (block, p, channel) in factory.pod_machines().filter(|&(_, p, _)| inside(p)) {
+            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), MARK_CHANNEL + channel as i32]);
+        }
         out
     }
 }

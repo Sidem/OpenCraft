@@ -16,6 +16,10 @@ pub const DROP: u8 = 6;
 pub const SPLASH: u8 = 7;
 pub const POWER_DOWN: u8 = 8;
 pub const POWER_UP: u8 = 9;
+/// A rocket leaving its launch site (heard from far away), a drop pod leaving its launcher and one landing.
+pub const LAUNCH: u8 = 10;
+pub const POD_UP: u8 = 11;
+pub const POD_DOWN: u8 = 12;
 
 /// Floats per event: kind, sound material, camera-relative x, y, z, volume (0..1).
 pub const EVENT_FLOATS: usize = 6;

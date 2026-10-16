@@ -31,6 +31,12 @@ export const MARK_SITE = 3;
 export const MARK_GUESS = 4;
 /** A satellite's footprint is `MARK_COVER` plus its kind; the colour field holds its reach in blocks. */
 export const MARK_COVER = 8;
+/** A pod launcher or landing pad is `MARK_CHANNEL` plus its channel (0 north, 1 east, 2 south, 3 west); a launch site
+ * is `MARK_LAUNCH`. */
+export const MARK_CHANNEL = 16;
+export const MARK_LAUNCH = 20;
+/** Map direction of each channel (x right, z down: north is up). */
+const CHANNEL_DIR = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const EXTRA_KINDS: PinKind[] = [
   { id: 'home', label: 'Home', color: '#ffffff' },
   { id: 'note', label: 'Note', color: '#fa9549' },
@@ -99,6 +105,10 @@ export function drawMark(
 ): void {
   c.fillStyle = hex(color);
   c.beginPath();
+  if (shape >= MARK_CHANNEL) {
+    drawSpaceMark(c, x, y, shape, px);
+    return;
+  }
   if (shape >= MARK_COVER) {
     // A satellite's footprint (the colour field is its reach in blocks): a faint disc and ring, gold for survey,
     // cyan for comms and pink for power.
@@ -146,6 +156,29 @@ export function drawMark(
     c.lineTo(x - r, y);
     c.closePath();
     c.strokeStyle = '#fff';
+  }
+  c.fill();
+  c.stroke();
+}
+
+/** A launch site as a rocket (a tall triangle), or a pod launcher or pad as a square with an arrow out of the side its
+ * channel faces, so pads that match a launcher are easy to pick out. The fill colour is already set. */
+function drawSpaceMark(c: CanvasRenderingContext2D, x: number, y: number, shape: number, px: number): void {
+  c.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+  c.lineWidth = Math.max(1, px);
+  if (shape === MARK_LAUNCH) {
+    c.moveTo(x, y - 5 * px);
+    c.lineTo(x + 3 * px, y + 4 * px);
+    c.lineTo(x - 3 * px, y + 4 * px);
+    c.closePath();
+  } else {
+    const [dx, dy] = CHANNEL_DIR[(shape - MARK_CHANNEL) % 4];
+    const s = 2.5 * px, tip = 6 * px;
+    c.rect(x - s, y - s, 2 * s, 2 * s);
+    c.moveTo(x + dx * tip, y + dy * tip);
+    c.lineTo(x + dx * s - dy * s, y + dy * s + dx * s);
+    c.lineTo(x + dx * s + dy * s, y + dy * s - dx * s);
+    c.closePath();
   }
   c.fill();
   c.stroke();

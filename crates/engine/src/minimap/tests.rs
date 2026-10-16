@@ -131,6 +131,22 @@ fn ore_seen_at_the_surface_is_marked_and_coloured() {
 }
 
 #[test]
+fn pods_show_their_channel_and_a_launch_site_its_own_shape() {
+    let mut g = Game::new(7, 2);
+    let mut world = crate::world::World::new(1, 2);
+    let f = &mut g.sim.factory;
+    f.place(&mut world, crate::block::LANDING_PAD, IVec3::new(10, 70, 0), 1, IVec3::ZERO, 0);
+    f.place(&mut world, crate::block::POD_LAUNCHER, IVec3::new(20, 70, 0), 2, IVec3::ZERO, 0);
+    f.place(&mut world, crate::block::LAUNCH_SITE, IVec3::new(40, 70, 0), 0, IVec3::ZERO, 0);
+    let marks = g.world_map_marks(-100, -100, 100, 100);
+    let shapes: Vec<(i32, i32)> = marks.chunks_exact(MARK_FIELDS).map(|m| (m[0], m[3])).collect();
+    assert!(shapes.contains(&(10, marks::MARK_CHANNEL + 1)), "the pad points east: {shapes:?}");
+    assert!(shapes.contains(&(20, marks::MARK_CHANNEL + 2)), "the launcher points south");
+    assert!(shapes.contains(&(40, marks::MARK_LAUNCH)));
+    assert!(!shapes.iter().any(|&s| s.1 == marks::MARK_MACHINE), "none as a plain machine square");
+}
+
+#[test]
 fn other_players_are_marked_relative_to_the_local_one() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);

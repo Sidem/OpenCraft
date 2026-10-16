@@ -21,6 +21,7 @@ import {
 } from './settings';
 import { Music } from './music';
 import { blip, breakSound, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
+import { launch, podDown, podUp } from './synth-orbit';
 
 const EVENT_FLOATS = 6;
 const MAX_VOICES = 24;
@@ -31,7 +32,7 @@ const WARM_SLICE_MS = 4;
 const WARM_DELAY_MS = 400;
 
 /** Engine event kinds, in order. */
-const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup'];
+const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown'];
 
 interface ActionBase {
   /** Mix level before the Volume dials. */
@@ -44,6 +45,8 @@ interface ActionBase {
   pitch: number;
   length: number;
   weight: number;
+  /** Heard this many times as far as an ordinary sound (40 blocks), fading as slowly; 1 when left out. */
+  reach?: number;
 }
 
 /** Built-in shaping per action; the designer's action dials adjust it around these values. */
@@ -60,6 +63,9 @@ const ACTION_BASE: Record<ActionName, ActionBase> = {
   splash: { gain: 0.45, jitter: 0.1, variants: 3, material: false, pitch: 1, length: 1, weight: 0 },
   powerdown: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
   powerup: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
+  launch: { gain: 0.9, jitter: 0.04, variants: 1, material: false, pitch: 1, length: 1, weight: 0, reach: 12 },
+  podup: { gain: 0.6, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
+  poddown: { gain: 0.7, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
 };
 
 /** Typical in-game event volume and distance, so previews match what you hear while playing. */
@@ -209,10 +215,11 @@ export class SoundSystem {
       const material = Math.min(MATERIALS.length - 1, Math.max(0, events[o + 1] | 0));
       const x = events[o + 2], y = events[o + 3], z = events[o + 4];
       const d = Math.hypot(x, y, z);
-      if (d > HEARING_RANGE) continue;
+      const reach = ACTION_BASE[action].reach ?? 1;
+      if (d > HEARING_RANGE * reach) continue;
       if (ACTION_BASE[action].material) this.lastMaterial = material;
       const pan = Math.max(-1, Math.min(1, (x * rx + z * rz) / Math.max(d, 1.5))) * 0.75;
-      this.play(action, material, events[o + 5] * attenuation(d), pan);
+      this.play(action, material, events[o + 5] * attenuation(d / reach), pan);
     }
   }
 
@@ -349,6 +356,9 @@ export class SoundSystem {
     else if (action === 'splash') data = splash(sr, rand, mods);
     else if (action === 'powerdown') data = powerDown(sr, rand, mods);
     else if (action === 'powerup') data = powerUp(sr, rand, mods);
+    else if (action === 'launch') data = launch(sr, rand, mods);
+    else if (action === 'podup') data = podUp(sr, rand, mods);
+    else if (action === 'poddown') data = podDown(sr, rand, mods);
     else data = hitSound(sr, rand, m, mods);
     const buffer = ctx.createBuffer(1, data.length, sr);
     buffer.getChannelData(0).set(data);

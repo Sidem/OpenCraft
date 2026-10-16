@@ -10,6 +10,8 @@ import type { Game } from '../wasm/engine.js';
 
 const ICON_PX = 64;
 const TOAST_MS = 2600;
+/** A toast count that means "went into orbit" (keys below it are launch toasts, one per satellite kind). */
+const LAUNCHED = -100000;
 /** How often the target's detail text (deposit size, machine status) is refreshed. */
 const DETAIL_MS = 150;
 
@@ -169,6 +171,7 @@ export class Hud {
     }
 
     while (g.next_pickup()) this.pushToast(g.pickup_item(), g.pickup_count(), now);
+    for (let sat = g.next_launch(); sat !== 0; sat = g.next_launch()) this.pushToast(sat, LAUNCHED, now);
     for (const [item, t] of this.toasts) {
       if (now > t.until) {
         this.toasts.delete(item);
@@ -195,9 +198,17 @@ export class Hud {
     }
   }
 
-  /** A toast per item, adding up; a tool shows no amount, and a count of 0 means it wore out. */
+  /** A toast per item, adding up; a tool shows no amount, a count of 0 means it wore out, and `LAUNCHED` that a
+   * satellite went into orbit (`next_launch`). */
   private pushToast(item: number, count: number, now: number): void {
     const tool = this.game.tool_uses(item) > 0;
+    if (count === LAUNCHED) {
+      const key = LAUNCHED - item;
+      const existing = this.toasts.get(key);
+      if (existing) existing.until = now + TOAST_MS;
+      else this.addToast(key, item, 'in orbit', 0, now);
+      return;
+    }
     const key = count === 0 ? -1 - item : item;
     const text = (n: number) => (!tool ? `+${n}` : n === 0 ? 'wore out' : '');
     const existing = this.toasts.get(key);
@@ -210,6 +221,10 @@ export class Hud {
       existing.el.classList.add('bump');
       return;
     }
+    this.addToast(key, item, text(count), count, now);
+  }
+
+  private addToast(key: number, item: number, amount: string, count: number, now: number): void {
     const el = document.createElement('div');
     el.className = 'toast';
     const icon = document.createElement('canvas');
@@ -217,7 +232,7 @@ export class Hud {
     icon.getContext('2d')!.drawImage(this.itemIcon(item), 0, 0);
     const label = document.createElement('span');
     label.className = 'amount';
-    label.textContent = text(count);
+    label.textContent = amount;
     const name = document.createElement('span');
     name.textContent = this.game.item_name(item);
     el.append(icon, label, name);

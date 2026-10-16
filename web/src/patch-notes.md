@@ -11,6 +11,9 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - Mining ore by hand now shows what you kept and how much was lost with each block, and after a few blocks a warning sums it up and points you to a miner.
 - A machine's panel now opens next to your inventory: click a held stack into a slot, Shift-click a stack to put it in, click a slot to take it.
 - New tips for the space age: building a launch site, what each kind of satellite does, and sending drop pods.
+- Rockets roar as they lift off (you hear them from far away) and a toast says when a satellite is in orbit.
+- Drop pods now rise out of their launcher, thud down on their pad in a cloud of dust, and each has its own sound.
+- On the maps, pod launchers and landing pads show an arrow for their channel, and launch sites show as a rocket.
 - The inventory's long line of instructions is gone: a bar along the bottom now shows just the clicks that work on the slot under your pointer.
 - Long recipe lists (the Upgrader's) scroll inside their own box instead of stretching the whole panel.
 

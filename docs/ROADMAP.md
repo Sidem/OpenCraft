@@ -4,6 +4,9 @@ Read this only when a milestone ends and the next one is being planned. `docs/DE
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
 plan and detail it there (steps with where, how and done-when).
 
+**Agreed order after Milestone 12 (2026-10-16):** orbit polish, the feel-and-feedback interlude, the carry's pieces
+in the existing eras, the megaproject theme (talk only), the ruins interlude, Milestone 13 (DEV_PLAN section 1).
+
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) and the content
 architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone ends with a cleanup step.

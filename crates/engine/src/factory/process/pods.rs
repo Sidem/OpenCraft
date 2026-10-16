@@ -15,12 +15,13 @@
 //!
 //! To add a destination kind: a `Pick` like `Land` and a branch in [`pad_index`].
 
-use crate::block::{tex, LANDING_PAD, POD_LAUNCHER};
+use crate::block::{tex, BlockId, LANDING_PAD, POD_LAUNCHER};
 use crate::inventory::Stack;
 use crate::item::{ItemId, DROP_POD};
 use crate::math::{IVec3, Vec3};
 use crate::pods::{Pods, POD_STACKS};
 use crate::satellites::{Satellites, COMMS};
+use crate::sim::SimEvent;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
@@ -197,15 +198,55 @@ impl Factory {
         }
         seen
     }
+
+    /// The pods just launched, rising out of their launchers' tubes, as the centre of each capsule's base (world
+    /// coordinates). Presentation (`drone_view.rs`), like `falling_pods`.
+    pub fn rising_pods(&self, time: f64) -> Vec<Vec3> {
+        let mut seen = Vec::new();
+        for (from, height) in self.pods.rising(time) {
+            if let Some(p) = self.processors.iter().find(|p| p.is_launcher() && p.pos == from) {
+                let mouth = p.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) + p.spec.footprint.centre(p.dir);
+                seen.push(mouth + Vec3::new(0.0, TUBE_TOP + height, 0.0));
+            }
+        }
+        seen
+    }
+
+    /// Every pod launcher and landing pad: its block, anchor and channel. Presentation (the maps' channel marks).
+    pub fn pod_machines(&self) -> impl Iterator<Item = (BlockId, IVec3, u8)> + '_ {
+        self.processors.iter().filter(|p| p.is_launcher() || p.is_pad()).map(|p| (p.spec.block, p.pos, p.dir))
+    }
+
+    /// The middle of the processor anchored at `pos`, level with the bottom of its anchor cell (that cell's middle when
+    /// none is there any more). Presentation: where a launch or a landing bursts (`orbit_fx.rs`).
+    pub fn base_middle(&self, pos: IVec3) -> Vec3 {
+        let base = pos.as_vec3() + Vec3::new(0.5, 0.0, 0.5);
+        match self.processors.iter().find(|p| p.pos == pos) {
+            Some(p) => {
+                let c = p.spec.footprint.centre(p.dir);
+                base + Vec3::new(c.x, 0.0, c.z)
+            }
+            None => base,
+        }
+    }
 }
 
+/// Above a launcher's centre, the base of the capsule that shows in its tube (`LAUNCHER_PARTS`'s nose part).
+const TUBE_TOP: f64 = 0.8;
+
 /// One tick of the whole pod system, after the processors have stepped: pods that are due land, then each launcher loads or
-/// launches. Called by `Factory::update`.
-pub(in crate::factory) fn run(processors: &mut [Processor], pods: &mut Pods, sats: &Satellites, tick: u64) {
+/// launches. Reports each launch and touchdown (`SimEvent::PodSent`, `PodLanded`). Called by `Factory::update`.
+pub(in crate::factory) fn run(
+    processors: &mut [Processor],
+    pods: &mut Pods,
+    sats: &Satellites,
+    tick: u64,
+    events: &mut Vec<SimEvent>,
+) {
     if pods.list.is_empty() && !processors.iter().any(Processor::is_launcher) {
         return;
     }
-    land(processors, pods, sats, tick);
+    land(processors, pods, sats, tick, events);
     for i in 0..processors.len() {
         if !processors[i].is_launcher() {
             continue;
@@ -213,15 +254,23 @@ pub(in crate::factory) fn run(processors: &mut [Processor], pods: &mut Pods, sat
         let (pos, channel) = (processors[i].pos, processors[i].dir);
         let pad = pad_index(processors, pos, channel, sats, tick).map(|k| processors[k].pos);
         let uplink = sats.covering(COMMS, pos.x, pos.z, tick) > 0;
+        let before = pods.list.len();
         processors[i].pod_step(pad, uplink, pods, tick);
+        if pods.list.len() > before {
+            events.push(SimEvent::PodSent { pos });
+        }
     }
 }
 
 /// Puts the cargo of every pod that is due into its pad: as much as fits, the rest staying in the pod for the next tick.
-fn land(processors: &mut [Processor], pods: &mut Pods, sats: &Satellites, tick: u64) {
+/// A pod touches down at its landing tick (where the falling capsule ends), whether or not its pad takes it all yet.
+fn land(processors: &mut [Processor], pods: &mut Pods, sats: &Satellites, tick: u64, events: &mut Vec<SimEvent>) {
     let mut i = 0;
     while i < pods.list.len() {
         let pod = &mut pods.list[i];
+        if pod.lands == tick {
+            events.push(SimEvent::PodLanded { pos: pod.to });
+        }
         let pad = (pod.lands <= tick).then(|| pad_index(processors, pod.to, pod.channel, sats, tick)).flatten();
         let Some(k) = pad else {
             i += 1;
