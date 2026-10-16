@@ -36,6 +36,7 @@ impl Game {
         let mut boxes = self.held_boxes();
         boxes.extend(self.ghost_cell_box());
         boxes.extend(self.ghost_boxes());
+        boxes.extend(self.opening_boxes());
         boxes.extend(self.blueprint_boxes());
         boxes.extend(self.site_boxes());
         boxes

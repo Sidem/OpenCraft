@@ -89,6 +89,11 @@ fn hints_follow_what_the_player_has_done() {
     (0..TECHS[survey as usize].units).for_each(|_| f.research.add_unit(survey));
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
+    // Markup the host draws (`web/src/ui/hints.ts`): `*words*` and `[keys]` come in closed pairs.
+    for h in HINTS {
+        assert_eq!(h.text.matches('*').count() % 2, 0, "{}", h.text);
+        assert_eq!(h.text.matches('[').count(), h.text.matches(']').count(), "{}", h.text);
+    }
 }
 
 #[test]
@@ -97,5 +102,9 @@ fn a_later_step_skips_the_earlier_hints() {
     place(&mut f, SMELTER, 0);
     assert_eq!(progress(&inv, &f), 2, "a furnace but no miner");
     place(&mut f, BELT, 1);
-    assert_eq!(progress(&inv, &f), 7, "a belt line with a smelter");
+    place(&mut f, STORAGE, 2);
+    assert_eq!(progress(&inv, &f), 2, "the opening's line (furnace, belts, boxes) leaves the miner tips");
+    place(&mut f, MINER, 3);
+    place(&mut f, GENERATOR, 4);
+    assert_eq!(progress(&inv, &f), 7, "a powered miner beside a belt line with a smelter");
 }

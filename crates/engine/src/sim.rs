@@ -27,6 +27,7 @@ use crate::inventory::Inventory;
 use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::mode::Mode;
+use crate::opening::Opening;
 use crate::world::World;
 use crate::worldgen::WorldGen;
 
@@ -161,6 +162,8 @@ pub struct Sim {
     pub cargo: Cargo,
     /// Normal or creative, fixed when the world was made (mode.rs).
     pub mode: Mode,
+    /// Where a new normal world's opening scene is (opening.rs); None in older and creative worlds.
+    pub opening: Option<Opening>,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -190,6 +193,7 @@ impl Sim {
             drones: Drones::default(),
             cargo: Cargo::default(),
             mode: Mode::Normal,
+            opening: None,
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -290,11 +294,12 @@ impl Sim {
         self.drones.write_state(w);
         self.cargo.write_state(w);
         w.u8(self.mode.byte());
+        Opening::write_state(&self.opening, w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
     /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks;
-    /// before 38, the normal mode.
+    /// before 38, the normal mode; before 47, no opening scene.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -329,6 +334,7 @@ impl Sim {
         self.cargo = if r.version >= 37 { Cargo::read_state(r)? } else { Cargo::default() };
         let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
         self.set_mode(mode);
+        self.opening = if r.version >= 47 { Opening::read_state(r)? } else { None };
         Some(())
     }
 }

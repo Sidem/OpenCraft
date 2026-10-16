@@ -17,6 +17,7 @@ mod inventory;
 mod machine;
 mod minimap;
 mod net;
+mod opening;
 mod orbit;
 mod prospect;
 mod render;

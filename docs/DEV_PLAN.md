@@ -10,7 +10,8 @@ continues from `main` (`docs/ART_HANDOVER.md`).
 > change would break them, restructure first.
 
 This is the plan of record. It says where the game is heading, what exists today, and exactly what to build
-next. README.md covers setup and how the game works for players; this file covers direction and work.
+next. README.md is the project brief and setup; `docs/PLAYING.md` and `docs/FACTORY.md` are the player's manual;
+this file covers direction and work.
 
 ---
 
@@ -51,7 +52,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
 Before you change code:
 
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
-   `CLAUDE.md` of the area you work in. Skim README.md only if you need the player's view.
+   `CLAUDE.md` of the area you work in. Skim `docs/PLAYING.md` / `docs/FACTORY.md` only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
    (about 740 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
@@ -428,7 +429,8 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 - Section 3.1 comes first. Beyond it, match the surrounding code: comment density, naming, idioms.
 - Every engine feature gets unit tests in its module. Run `cargo test --workspace --release`.
-- Keep README.md in sync for anything player-visible, and keep this plan in sync for everything else.
+- Keep the player's manual (`docs/PLAYING.md`, `docs/FACTORY.md`) in sync for anything player-visible, and keep
+  this plan in sync for everything else. README.md is the project brief: touch it only when the pitch or setup changes.
 
 ---
 
@@ -577,7 +579,7 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   seen in the browser pane (a scene with a powered launcher and pad: the pod launched, fell as a capsule and landed 200 plates; the
   launcher shows its capsule nose even when empty; `Game::launch_kind_at` is a debug helper for any satellite kind). Open question for the user: is facing-as-channel clear enough, or should a pad have a name or a
   colour chosen in its panel?
-- [ ] **12.5 Cleanup:** tips, balance, worst tick, README, CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
+- [ ] **12.5 Cleanup:** tips, balance, worst tick, the manual (`docs/FACTORY.md`), CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -621,6 +623,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: The opening scene, a hook for the first minute, and readable tips (user request, off-plan).** A new normal world (`Game::new_normal`, used by `save/session.ts` for fresh worlds; `new Game` and creative worlds have none) starts facing a stopped line on a stone-brick slab: ore box, belts with ore waiting at an outlined gap, a stone furnace with coal, an ingot box; the missing belt lies on the grass in front. The player breaks it, walks over it, places it (it keeps their facing, so it points away) and turns it with R; then the line runs and its load (14 iron, 4 copper ore) is exactly a Miner Mk1. `opening.rs` (`Sim::build_opening`, `Opening`, `Step`, `marker`), `Sim::opening` saved since version 47; `api/opening.rs`; a floating key/mouse prompt over what to act on (`ui/key-prompt.ts`), the power-up sound when the line starts. Tips are bigger and skimmable: a lead-in title, `*highlights*` and `[key]` caps in hint texts (`ui/hints.ts` `richText`; all `HINTS` marked up, a test checks the pairs). Hints "Carry the ore away" and "Ingots by belt" now also need a miner and a generator (the scene's belts must not skip the miner tips); "Place the miner" says where ore shows. Golden hash re-recorded; 835 tests.
+- **2026-10-16: README rewritten as a project brief (user request, off-plan).** README.md now pitches the game and
+  explains how the repo is built for fast agent iteration; the player's manual moved verbatim to `docs/PLAYING.md`
+  (controls, worlds, co-op, crafting, upgrades, sound) and `docs/FACTORY.md` (resources and extraction). No code change.
 - **2026-10-15: Hover pack charges from long-distance poles; power-up/down sounds (user request, off-plan).** `Factory::charge_poles` (everything but cables, with its middle and whether it is long) replaces `poles()` in the hover pack's core checks; the hands tie the pack within `CHARGE_RANGE` 6 of an ordinary pole or `CHARGE_RANGE_LONG` 32 of a long-distance one, and keep a tied pole `CHARGE_HOLD` 2 further out so the edge does not flicker (`helper_hands.rs`). New sound events `POWER_UP` / `POWER_DOWN` (8, 9; `audio/synth.ts` `powerUp` / `powerDown`, actions `powerup` / `powerdown` in the sound designer) play on the local pack's tie starting and ending. No save-format or core change.
 - **2026-10-15: Automated buildings and the Upgrader (user request, off-plan).** Assembler rows for pole, long-distance pole, solar panel, accumulator, lamp, box, underpass and rail, and constructor rows for planks and sticks (`recipes/automate.rs`, rows 78–87, each equal to its hand recipe; the long-distance pole (12 beams, 16 aluminium plates, 60 wire) and the solar panel (6 silicon, 2 glass, 6 wire) lost a kind so they fit an assembler's three slots, and a stack caps one kind at 64). Block 115 Upgrader (`factory/process/upgrader.rs`, 2×2×2, `Category::Refit`, five input slots, tech Assembly; hand recipe in `recipes/refit.rs`): one machine row per tier of every `FAMILIES` entry (the Mk1 item plus each step's kits, built at compile time by `ladder` and `rows!`), locked like the upgrade (`Research::locked_by`, by category). No save-format change, no new tech, golden hash unchanged; 829 tests. Next free block 116, item 396, tech 84, machine recipe 135 (new tables join after `REFIT`), texture 306 (the Upgrader reuses assembler layers: request line in `ART_HANDOVER.md`).
 - **2026-10-15: Research screen redesign (user request, web only).** A pan and zoom canvas instead of scrollbars: `ui/research-view.ts` (`PanZoom`: drag, wheel at the pointer, glide, level of detail near/far/tiny), eras as tinted bands by pack count with progress and jump buttons (`ui/research-eras.ts`, `tech-tree.ts` now lays out per era and sweeps rows to cut crossings), a minimap (`research-map.ts`), search by name or unlock (`research-search.ts`), nodes show what they unlock (`research-node.ts`). No engine or save change.
@@ -629,5 +635,4 @@ and the balance numbers. Read the section you need.
 - **2026-10-14: What satellites give (step 12.3, all four kinds).** Survey (`survey/orbit.rs`), comms (`Data::uplink`, `Hangar::linked`), power (Rectenna 110, `process/rectenna.rs`) and science (Ground Station 111, `process/ground.rs`: 40 TF a satellite overhead, cap 100, 150 kW). Techs 79–81, items 391–394, machine recipes 70–76, textures 294–301. Golden hash re-recorded; 805 tests. Next free block 112, item 395, tech 82, machine recipe 77, texture 302.
 - **2026-10-14: Hit boxes follow the model (user request).** Poles, belts, splitters, filters, pipes, sensors and nodes are hit where their model is, not as a whole cell, so a pole no longer hides the block behind it: `hitbox.rs` (`Boxes`: oriented boxes from the model's own instances, slab test) fed by `Factory::hit_boxes` (`factory/hitbox.rs`; a belt without its items via `Belt::frame`, a cable a 0.4 cube), used by `interaction/aim.rs`; the target outline hugs the model (`Game::target_fit`). Presentation only: no save change. 779 tests.
 - **2026-10-14: one slot per input item, and click-to-take.** `Processor::room_for` caps every `Pick::ByInput` machine like `Pick::Chosen` (a stack of an item at most, so one item can't fill several slots; `input_slots_for` is gone). `Action::TakeMachineSlot` (tag 56) takes a panel slot's stack (inputs and fuel too) into the inventory; the machine panel's filled slots are buttons. 771 tests.
-- **2026-10-14: Build menu rework, hover pack slot (user request).** The Hover Pack is worn in the Flight pack slot (shares it with the Jetpack, mutually exclusive; `Equipment::has_hover_pack`; the pack in the backpack does nothing; no save change). Build menu: `recipes/menu_order.rs` (curated order, every Mk of a building together; `menu_order(r)` via `recipe_order`), groups Computing and Space, Diesel Generator and the like under Power, Production holds the processors. Cards: `factory/facts.rs` + `process/facts.rs` (`item_facts`, rows `kind<TAB>label<TAB>value`) and `ui/craft-card.ts`/`.css` give size, electricity kW, fuel, produced kW their own fields. `ui/craft-nav.css`: category tabs and a "Next: ..." page button, tier families kept on one page.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

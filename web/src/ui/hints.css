@@ -1,33 +1,112 @@
-/* Onboarding tip (hints.ts): a small card at the bottom of the HUD's left column (#hud-left, hud-columns.css). */
+/* Onboarding tip (hints.ts): a card at the bottom of the HUD's left column (#hud-left, hud-columns.css),
+   sized to be read at a glance: a title, highlighted words and key caps. */
 
 .hint {
-  width: min(320px, 100%);
-  padding: 9px 13px 11px;
-  border-radius: 10px;
-  background: var(--panel);
-  border: 1px solid rgba(250, 149, 73, 0.45);
-  font-size: 13px;
-  line-height: 1.45;
+  width: min(400px, 100%);
+  padding: 12px 16px 14px;
+  border-radius: 12px;
+  background: rgba(14, 16, 22, 0.86);
+  border: 1px solid rgba(250, 149, 73, 0.55);
+  border-left: 4px solid var(--accent);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 .hint-head {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   font-size: 11px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .hint-count {
   color: var(--accent);
+  font-weight: 700;
 }
 
 .hint-key {
   color: var(--muted);
 }
 
-.hint-text {
+.hint-title {
+  margin-bottom: 2px;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.hint-body {
   margin: 0;
+}
+
+/* `*words*`: what the tip is about. */
+.hint-em {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* `[keys]`: a small key cap, the same look as the floating prompt's (key-prompt.css). */
+.hint-cap {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 6px;
+  margin: 0 1px;
+  border-radius: 5px;
+  background: linear-gradient(#ffffff, #dfe3ea);
+  border: 1px solid #1b1e25;
+  box-shadow: 0 2px 0 #1b1e25;
+  color: #1b1e25;
+  font-size: 0.85em;
+  font-weight: 800;
+  line-height: 1.45;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* A new tip slides in, so a change is noticed. */
+.hint-new {
+  animation: hint-new 0.45s ease-out;
+}
+
+@keyframes hint-new {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A step of the opening scene is done: a short green glow. */
+.hint-cheer {
+  animation: hint-cheer 1.4s ease-out;
+}
+
+@keyframes hint-cheer {
+  0% {
+    border-color: rgba(120, 220, 130, 1);
+    box-shadow: 0 0 0 4px rgba(120, 220, 130, 0.6);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint-new,
+  .hint-cheer {
+    animation-duration: 0.01s;
+  }
 }

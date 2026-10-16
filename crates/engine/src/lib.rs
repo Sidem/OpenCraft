@@ -60,6 +60,7 @@ mod minimap;
 mod mode;
 mod net;
 mod noise;
+mod opening;
 mod ore_guide;
 mod perks;
 mod physics;

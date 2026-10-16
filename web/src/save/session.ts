@@ -171,9 +171,9 @@ export function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-/** A world that was never saved starts from its seed, in the mode it was made with. */
+/** A world that was never saved starts from its seed, in the mode it was made with (normal: with the opening scene). */
 function freshGame(meta: WorldMeta, viewRadius: number): Game {
-  return meta.creative ? Game.new_creative(meta.seed, viewRadius) : new Game(meta.seed, viewRadius);
+  return meta.creative ? Game.new_creative(meta.seed, viewRadius) : Game.new_normal(meta.seed, viewRadius);
 }
 
 async function load(store: WorldStore, meta: WorldMeta, slot: number, viewRadius: number): Promise<Game> {

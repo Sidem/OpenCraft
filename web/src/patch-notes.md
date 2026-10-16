@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-16 · A better first minute
+
+- A new world starts in front of a small production line that has stopped: one belt came loose. Put it back, turn it the right way with R, and the line runs again; its last load of ore becomes the ingots for your first miner. Floating key prompts show what to press where.
+- Tips are bigger and easier to skim: a title, the important words highlighted and keys drawn as keys.
+- The tip for placing your first miner now also says where to look for ore.
+
 ## 2026-10-15 · Hover pack charging from far away
 
 - A long-distance pole charges your hover pack from up to 32 blocks away, so a tower can keep a whole base topped up. Ordinary poles still need you within 6 blocks.
