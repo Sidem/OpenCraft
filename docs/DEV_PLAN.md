@@ -4,8 +4,8 @@
 polish) are built and pushed; save version 47, 846 tests · **The play-test response (section 4)**, from Claude's whole-game
 review (adopted in full) and the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1
 talked, R1a and R1b built (committed, not pushed); R6 talked: the player founds towns, a perk per town kind, stalled towns
-pause their perk, the megaproject is a space elevator · **Next: Milestone 13 (Settlements), step 13.1 starts with a talk** on
-town kinds, sites and perks · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space
+pause their perk, the megaproject is a space elevator · **Next: Milestone 13 (Settlements), build step 13.1** (kinds and perks
+settled in a talk) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space
 elevator) · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -151,6 +151,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **Pod channels are chosen by name and colour**, not facing. **Add the TURN relay** (the user adds the secrets; supersedes 2026-09-26). The factory instrument gets few voices, a distance cap, and music quiets under it. |
 | 2026-10-16 | **R1: what makes drones, trains and blueprints needed** (user's pick from Claude's levers): **settlements as growing demand** (the main lever; R6's talk comes next) and **a blueprint prompt** when a machine group is repeated (R1b). Not now: smaller ore stacks, far bulk inputs in late recipes (fallbacks if settlements are not enough). |
 | 2026-10-16 | **R6: settlements and the megaproject** (user's picks, all Claude's recommendations): **the player founds towns** with a depot at a site that fits the town's kind, far from other towns (works in existing worlds; no worldgen towns); **each town kind gives a perk** while supplied; **an unsupplied town stalls and its perk pauses**, but it never shrinks or loses what was built; **the megaproject is a space elevator** grown from the biggest town, built in phases, unlocking asteroid mining. Settlements become **Milestone 13**, the elevator **Milestone 14**; 12.5 closes. |
+| 2026-10-16 | **13.1: town kinds and perks** (talked with the user). Four kinds, one per kind of place: **harbour** (sea shore): **contract work**, taking large lots of basic goods for complex products the player has already made in a machine, at about 3× their raw content, never raw or rare materials and never products whose chain needs bauxite or uranium (user: barter must not make far ores unnecessary); **river town** (river bank): **drone relay**, double range for cargo and construction drones within 128 blocks; **highland workshop** (granite hills): **gear works**, hauler packs, jetpacks and gloves cost less there and worn tools come back repaired; **basalt forge** (basalt fields): **better smelting**, ore comes back as plates with 50% more yield. Towns at least 300 blocks apart, none on the spawn plains; founding unlocks on blue packs after Steelmaking. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -554,10 +555,9 @@ Goal: towns the player founds become customers whose orders keep growing, so out
 press again (R1): belts, trains, cargo drones and drop pods carry the orders, and each town grows itself with the blueprint
 and drone systems. **Order:** Milestone 13 comes next as R1's main lever; R2–R5, R7 and R8 follow it, or fit between its
 steps where a session has room. Numbers are first guesses. Design notes: `docs/ROADMAP.md` ("The play-test response").
-- [ ] **13.1 Town kinds, sites and the depot.** Talk first: kinds, their sites and perks (first guesses: a **harbour** on a sea
-  shore trades bulk goods for rare ones; a **river town** by a river relays cargo drones, doubling their range near it; a
-  **highland workshop** in granite hills turns delivered parts into upgrade kits at a better rate; a **basalt forge** in basalt
-  fields makes steel and aluminium plates from ore at a better rate). Then: `settlements/` (core state, `Sim`), kinds as rows,
+- [ ] **13.1 Town kinds, sites and the depot.** Kinds and perks were settled in a talk (section 1, 2026-10-16): harbour
+  (contract work), river town (drone relay), highland workshop (gear works), basalt forge (better smelting). The user's play-test
+  world is generator version 7, so it has every kind of site. Build: `settlements/` (core state, `Sim`), kinds as rows,
   a site check that is a pure function of seed and position (biome, sea or river within a few blocks, at least 300 blocks
   from any other town), a **Town Depot** block (multi-block, belt inputs) unlocked by a tech on blue packs (so towns arrive
   before drones and trains and pull them), and a placing preview that says whether the site fits and why not (like the
@@ -571,8 +571,10 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   lamps; R7's decor later), planted as ghosts around the depot and built by the town's own drones from the delivered goods
   (reusing `drones/`). Life without townspeople: lit windows at night, chimney smoke, a few sounds. **Done when:** a town is
   seen growing from a depot to its third stage in the browser pane.
-- [ ] **13.4 Perks.** One module per perk, each paused while its town is stalled. **Done when:** each kind's perk is tested on
-  and off.
+- [ ] **13.4 Perks.** One module per perk, each paused while its town is stalled. The harbour's contract work needs two new
+  pieces: a core record of which items the player's machines have ever made (a bitset by item, saved), and a derived "raw
+  content" per item from the recipes (with a flag for chains that need bauxite or uranium, which are never offered). **Done
+  when:** each kind's perk is tested on and off, and a test shows the harbour never offers a far-material product.
 - [ ] **13.5 Panel, maps and tips.** The depot panel (stage, open order with progress, upkeep, stalled or not, the perk), towns
   on both maps, tips that introduce founding and delivering from far. **Done when:** a first-time player can find a site and
   see what a town wants without reading docs.
@@ -613,7 +615,7 @@ and adjust the steps.
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
-| 13.1 | Town kinds, their sites and perks (first guesses in step 13.1), and the order sizes. |
+| 13.2 | Order sizes per stage and how many stages a town has (first guesses are fine; tune in play). |
 | R2b | New tree species and desert and basalt plants on new worlds only (generator version 8; the user's world keeps version 7 and gets only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
 | R4 | Which new music pieces, and when (the user composes them)? |
 | R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
@@ -629,6 +631,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: 13.1 talked (docs only).** Town kinds and perks settled (section 1): harbour contract work (no raw or far
+  materials), river drone relay, highland gear works, basalt better smelting; 300-block spacing, founding on blue packs.
 - **2026-10-16: R6 talked (docs only).** The user's picks are in section 1: player-founded towns at fitting sites, a perk per
   town kind, stalled towns pause their perk, a space elevator as the megaproject. Milestone 13 (Settlements, 13.1–13.6) is a
   first draft in section 4; Milestone 14 (the space elevator) is in `docs/ROADMAP.md`; 12.5 closed.
