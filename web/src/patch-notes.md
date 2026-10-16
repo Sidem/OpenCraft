@@ -10,6 +10,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - The tip for placing your first miner now also says where to look for ore.
 - Mining ore by hand now shows what you kept and how much was lost with each block, and after a few blocks a warning sums it up and points you to a miner.
 - A machine's panel now opens next to your inventory: click a held stack into a slot, Shift-click a stack to put it in, click a slot to take it.
+- New tips for the space age: building a launch site, what each kind of satellite does, and sending drop pods.
 - The inventory's long line of instructions is gone: a bar along the bottom now shows just the clicks that work on the slot under your pointer.
 - Long recipe lists (the Upgrader's) scroll inside their own box instead of stretching the whole panel.
 

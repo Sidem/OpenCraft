@@ -1,4 +1,5 @@
 mod bench;
+mod bench_orbit;
 
 use super::belt::{END_STOP, ITEM_SPACING};
 use super::describe::fmt_duration;

@@ -52,7 +52,7 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), 15);
     place(&mut f, ARC_FURNACE, 50);
     assert_eq!(progress(&inv, &f), 16, "silicon");
-    let n = HINTS.len() - 6; // the chemistry hints (oil, nuclear, gold) and the compute hints come last
+    let n = HINTS.len() - 9; // the chemistry hints (oil, nuclear, gold), the compute and the orbit hints come last
     let violet = TECHS.iter().position(|t| t.name == "Violet Science").unwrap() as u8;
     (0..TECHS[violet as usize].units).for_each(|_| f.research.add_unit(violet));
     assert_eq!(progress(&inv, &f), n - 8, "violet science");
@@ -87,6 +87,14 @@ fn hints_follow_what_the_player_has_done() {
     assert_eq!(progress(&inv, &f), n + 5, "lasers");
     let survey = TECHS.iter().position(|t| t.name == "AI Survey").unwrap() as u8;
     (0..TECHS[survey as usize].units).for_each(|_| f.research.add_unit(survey));
+    assert_eq!(progress(&inv, &f), n + 6, "smarter tools");
+    place(&mut f, crate::block::LAUNCH_SITE, 130);
+    assert_eq!(progress(&inv, &f), n + 7, "a launch site");
+    f.orbit.launch(crate::item::SURVEY_SATELLITE, IVec3::ZERO, 0);
+    assert_eq!(progress(&inv, &f), n + 7, "a survey satellite is not yet the other kinds");
+    f.orbit.launch(crate::item::POWER_SATELLITE, IVec3::ZERO, 0);
+    assert_eq!(progress(&inv, &f), n + 8, "satellites of another kind");
+    place(&mut f, crate::block::POD_LAUNCHER, 150);
     assert_eq!(progress(&inv, &f), HINTS.len(), "all done");
     assert!(HINTS.iter().all(|h| !h.text.is_empty()));
     // Markup the host draws (`web/src/ui/hints.ts`): `*words*` and `[keys]` come in closed pairs.

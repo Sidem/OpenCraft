@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 (what satellites give: survey, comms, power, science) is committed; 12.4 (drop pods: pod launcher, landing pad, tech Drop Pods; save version 46; 822 tests) is built, 2026-10-15, uncommitted; next: 12.5 cleanup** (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 (what satellites give) and 12.4 (drop pods) are pushed; 12.5 cleanup is in progress (2026-10-16: orbit tips, `bench_orbit`, the manual done; save version 47 since the opening scene; 837 tests); left of 12.5: move Milestone 13 in once the user picks the megaproject theme (section 6), balance stays "tune in play"** (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -41,8 +41,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (12.1 and 12.2 built; the
-  steps after them are a first draft to refine with the user at 12.3).
+- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (12.1–12.4 built and pushed;
+  12.5 cleanup is the last step).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -443,7 +443,7 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 46) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 47) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
 - New blocks and items append (the next free block is 116, item 396, tech 84, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 306) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
@@ -564,7 +564,7 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   Data Network), item 394, textures 299–301, assembler recipe 75 and launch recipe 76 (three inputs: the assembler's limit), `KINDS`
   row `SCIENCE`, reach 1024; the maps tint its footprint pale blue; no save change, golden hash re-recorded; 805 tests; not seen in
   the browser pane). All four kinds are in. Fold in antenna bands from the roadmap's thread "the carry" or leave them.
-- [x] **12.4 Drop pods to landing pads** (built 2026-10-15, uncommitted; numbers to tune in play). Design choices (the plan line said
+- [x] **12.4 Drop pods to landing pads** (built 2026-10-15, pushed; numbers to tune in play). Design choices (the plan line said
   "from a launch site"; a separate small machine fits the belts better, so the launch site stays the rocket builder): **Pod Launcher**
   (block 113, 3×3×3, 500 kW, `factory/process/pods.rs`, `Pick::Pods`): belts fill 12 cargo stacks and a **Drop Pod** (item 395, texture
   302, assembler row 77: a light frame, a fuel tank, 10 circuits, 20 s) arms it; under a comms satellite, with a landing pad on its channel
@@ -580,6 +580,13 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   launcher shows its capsule nose even when empty; `Game::launch_kind_at` is a debug helper for any satellite kind). Open question for the user: is facing-as-channel clear enough, or should a pad have a name or a
   colour chosen in its panel?
 - [ ] **12.5 Cleanup:** tips, balance, worst tick, the manual (`docs/FACTORY.md`), CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
+  **Done 2026-10-16:** three orbit tips at the end of `HINTS` (a launch site placed; a comms, power or science satellite up;
+  a pod launcher placed), `docs/FACTORY.md` covers the four satellite kinds, drop pods, the long-distance pole, the upgrader
+  and the automated buildings. **Measured** (`bench_orbit`, ignored: 24 satellites of each kind overhead, 2 launch sites,
+  8 rectennas, 4 ground stations, 4 optimizers, 8 Mk4 drone ports, 8 pod launchers and 8 pads on four channels, 30 fibre
+  nodes in two islands joined by the comms uplink, 40 pods in flight onto full pads): about 19 µs a tick, worst 40–63 µs.
+  **Balance:** numbers kept as built, to tune in play. **Left:** Milestone 13 needs the user's megaproject theme and what
+  finishing it unlocks (section 6) before it moves in from `docs/ROADMAP.md`.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
@@ -623,6 +630,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 12.5, first part.** Orbit tips (rockets, what satellites give, drop pods) in `hints.rs`; `bench_orbit`
+  (`factory/tests/bench_orbit.rs`, ignored): about 19 µs a tick, worst under 0.07 ms; `docs/FACTORY.md` brought up to date
+  (satellite kinds, drop pods, long-distance pole, upgrader, automated buildings). No save or core change.
 - **2026-10-16: Hand-mining waste taught as it happens; machine panels beside the inventory (user request, off-plan).** `SimEvent::HandMined` (kept, lost; `Deposits::hand_mined` now returns the block's share) feeds `hand_waste.rs` (session counter, not saved): a notice under the crosshair per ore block, from 3 blocks an amber warning card ahead of every tip (`ui/hints.ts`, H snoozes 10 blocks). The machine panel is now a `Beside` column of the inventory screen (`ui/inventory.ts`); new `Action::InsertCursor` (tag 57) clicks the held stack into a machine. The recipe list scrolls within its own height. The inventory header's list of clicks became a context controls bar (`ui/slot-controls.ts`). 837 tests.
 - **2026-10-16: README rewritten as a project brief (user request, off-plan).** README.md now pitches the game and explains how the repo is built for fast agent iteration; the player's manual moved verbatim to `docs/PLAYING.md` (controls, worlds, co-op, crafting, upgrades, sound) and `docs/FACTORY.md` (resources and extraction). No code change.
 - **2026-10-16: The opening scene, a hook for the first minute, and readable tips (user request, off-plan).** A new normal world (`Game::new_normal`, used by `save/session.ts` for fresh worlds; `new Game` and creative worlds have none) starts facing a stopped line on a stone-brick slab: ore box, belts with ore waiting at an outlined gap, a stone furnace with coal, an ingot box; the missing belt lies on the grass in front. The player breaks it, walks over it, places it (it keeps their facing, so it points away) and turns it with R; then the line runs and its load (14 iron, 4 copper ore) is exactly a Miner Mk1. `opening.rs` (`Sim::build_opening`, `Opening`, `Step`, `marker`), `Sim::opening` saved since version 47; `api/opening.rs`; a floating key/mouse prompt over what to act on (`ui/key-prompt.ts`), the power-up sound when the line starts. Tips are bigger and skimmable: a lead-in title, `*highlights*` and `[key]` caps in hint texts (`ui/hints.ts` `richText`; all `HINTS` marked up, a test checks the pairs). Hints "Carry the ore away" and "Ingots by belt" now also need a miner and a generator (the scene's belts must not skip the miner tips); "Place the miner" says where ore shows. Golden hash re-recorded; 835 tests.

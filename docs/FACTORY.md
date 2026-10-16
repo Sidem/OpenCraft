@@ -68,7 +68,12 @@ size.
   the way) and R turns it. Belts bring parts in at the cyan hatches on its back and sides, and a belt leading
   away from the amber hatch at its front takes what it makes: motors (a rod, 2 gears, 4 wire), concrete (4
   from quicklime, 2 sand and 2 stone), red and green packs and green kits. It holds a stack of each input at
-  most and draws 20 kW. Break any part of it to pick it up with what it held.
+  most and draws 20 kW. Break any part of it to pick it up with what it held. Buildings you would otherwise craft by
+  hand have assembler recipes too, at the hand cost: poles, long-distance poles, solar panels, accumulators, lamps,
+  boxes, underpasses and rails (the constructor saws planks and sticks).
+- **The upgrader** (Assembly research, 2×2×2, 30 kW; 12 iron plates, 10 gears, 16 copper wire, 2 motors) raises a
+  machine's Mk without you: choose the tier it makes, and belts bring the Mk1 item and the kits of each step (Mk3 takes
+  green and blue kits, Mk4 adds violet). Each tier unlocks with its upgrade's research.
 - **The blast furnace** (Steelmaking research) is 2×2×3 and needs no power. Belts bring iron ore, coal and
   quicklime in at the hatches on its back and left (2 ore, a coal and a quicklime make a steel ingot in 4 s);
   steel leaves by the amber hatch at its front and slag by the violet hatch on its right. Slag has to be
@@ -143,6 +148,9 @@ size.
   grid draws, so fuel lasts longer under a light load. Power poles connect only what you wire to them, and
   each wire takes one of a pole's slots (Mk1 4, Mk2 8, Mk3 12, Mk4 16): a pole wires to poles within 10
   blocks and to generators and machines within 5 (taller poles reach further; you see the wires). **Grid colours:** every grid wears one accent colour on its wires, pole collars and cables. The biggest grid (most poles) is the main grid and is always blue; any other, separate grid is orange, pink, green, yellow or red, so a pole in a different colour is not on the main grid. Wire two grids together and both turn blue; the pole readout names its grid.
+  **Long-distance pole** (Long-Distance Power research; 12 steel beams, 16 aluminium plates, 60 copper wire): a 2×2×3
+  lattice tower that links to another long-distance pole up to 160 blocks away (to an ordinary pole only within 16),
+  wires machines within 10 blocks and holds 6 wires.
   **Placing:** with a pole in hand, right-click puts it where you aim, if that is within reach of the last
   pole (further off, at the widest spacing towards the aim); hold Shift to snap to the widest spacing along
   your view, and hold Shift and right-click while walking to lay a line. A new pole wires itself to the
@@ -177,7 +185,7 @@ size.
   Jetpack and Bauxite Processing; 6 aluminium plates, 2 motors, 4 batteries, 2 processors) makes a pack that hovers:
   hold jump in the air and you stay at your height (jump rises, crouch sinks) and glide at 8 blocks a second, 13 when
   sprinting. It runs on charge, 90 seconds of hover at most, and refills (twice as fast as it drains) while you stand
-  within 6 blocks of a power pole; the line under the hotbar shows the charge. A hover pack wins over the jetpack. The Earthworks tech (needs
+  within 6 blocks of a power pole (32 of a long-distance pole); the line under the hotbar shows the charge. A hover pack wins over the jetpack. The Earthworks tech (needs
   Construction Drones) unlocks the **Planner** (3 iron plates, 4 copper wire, 2 glass, a circuit): mark an area to
   dig, fill or flatten and drone ports in reach do the work, digging into the storage boxes beside their pad and
   filling from them (dirt on top, else stone, dirt, sand or grass), so ground dug in one site fills another.
@@ -276,8 +284,25 @@ size.
   there), launches the satellite into orbit and gives the 8 empty canisters back at the front. A pad missing a part says
   which, and says how many satellites are up and how many are over it. Satellites fly across the sky at 6 blocks a second, a
   lap of the world's repeating sky in a few minutes, and show as small gold lights (brightest at night); a satellite covers
-  the ground within 768 blocks of the point under it. The first 24 of a kind stay up; a 25th retires the oldest. What each
-  kind does with its coverage comes in the next step.
+  the ground within 768 blocks of the point under it. The first 24 of a kind stay up; a 25th retires the oldest.
+- **What satellites give.** Every kind works only where its circle is (768 blocks for survey, 1,024 for the others) and
+  flies on, so a dozen of a kind give steady cover. Each kind has its own tech after Rocketry, its own assembler recipe and
+  its own rocket (the same parts, with that satellite as the last input). **Survey:** the veins and lodes under its circle
+  go on the minimap and the world map as known ore (for this session), and the maps draw its footprint as a gold disc.
+  **Comms** (Orbital Comms, after Data Network; 2 light frames, 8 processors, 8 aluminium plates): every fibre node under
+  its circle is on one data grid, and a drone port under it builds 4× as far and sends cargo drones twice as far.
+  **Power** (Orbital Power, after Nuclear Power; 4 light frames, 24 solar panels, 16 circuits): the **rectenna** (5×5,
+  20 aluminium plates, 60 copper wire, 20 circuits, 20 concrete; hang it on a pole) gets 200 kW from each power satellite
+  over it, up to 1 MW, day and night. **Science** (Orbital Science, after Data Network; 2 light frames, 8 AI accelerators,
+  8 processors): the **ground station** (3×3×2, 150 kW, a fibre node in reach) puts 40 TF on its data grid for each
+  science satellite over it, up to 100 TF.
+- **Drop pods.** The Drop Pods tech (after Rocketry and Orbital Comms) gives the **pod launcher** (3×3×3, 500 kW; 60
+  concrete, 20 steel beams, 10 motors, 20 circuits), the **landing pad** (3×3×1, no power) and the **drop pod** (an
+  assembler: a light frame, a fuel tank, 10 circuits). Belts fill a launcher with cargo (12 stacks) and drop pods. The way
+  a launcher or pad faces when placed (R turns it) is its channel: north, east, south or west. While a comms satellite is
+  over the launcher and over a pad on its channel, the launcher loads for 15 seconds and sends one pod with up to 6 stacks
+  to the nearest such pad; it comes down 20 seconds later and the cargo goes into the pad's 24 stacks, which belts empty.
+  A full pad keeps the pod waiting and lands what fits, so nothing is lost. The launcher's status says what it waits for.
 - **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the

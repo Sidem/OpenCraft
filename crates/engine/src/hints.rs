@@ -10,12 +10,13 @@
 
 use crate::block::{
     ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DATACENTER, DRONE_PORT, IRON_ORE, LASER_EMITTER,
-    MINER, PUMPJACK, REACTOR, SOLAR_PANEL, TURBINE,
+    LAUNCH_SITE, MINER, POD_LAUNCHER, PUMPJACK, REACTOR, SOLAR_PANEL, TURBINE,
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
 use crate::item::{CARGO_DRONE, HOVER_PACK, IRON_INGOT, JETPACK, PERSONAL_DRONE, PLANNER};
 use crate::research::{TechState, TECHS};
+use crate::satellites::{COMMS, POWER, SCIENCE};
 
 pub struct Hint {
     pub text: &'static str,
@@ -212,6 +213,24 @@ pub const HINTS: &[Hint] = &[
                drones; Auto-Routing makes a dragged belt line find its own way to a machine (as ghosts in ghost \
                mode, B); AI Survey rings likely ore on the maps from the stained soil you have seen.",
         done: |_, f| ["Drone Swarms", "Auto-Routing", "AI Survey"].iter().any(|t| tech_done(f, t)),
+    },
+    Hint {
+        text: "Rockets: research Rocketry and build a *launch site* (7×7×6, 2 MW). Belt 4 light frames, 2 engines, 2 \
+               fuel tanks, avionics, 8 *rocket fuel* canisters and a *satellite* into its back hatches: a minute later \
+               the satellite is in orbit and the empty canisters come out of the front.",
+        done: |_, f| f.processors_of(LAUNCH_SITE) > 0,
+    },
+    Hint {
+        text: "Satellites fly on: each covers the ground within 768 to 1024 blocks of the point under it, so \
+               launch several. *Survey* puts the veins below it on the map, *comms* joins data grids and lets drone ports \
+               reach 4× as far, *power* beams 200 kW to a *rectenna*, *science* gives a *ground station* 40 TF.",
+        done: |_, f| [COMMS, POWER, SCIENCE].iter().any(|&k| f.orbit.count(k) > 0),
+    },
+    Hint {
+        text: "Drop pods: research Drop Pods. A *pod launcher* given cargo and a *drop pod* sends 6 stacks to the \
+               nearest *landing pad* placed facing the same way (its channel), while a comms satellite is over both. \
+               The pod lands 20 seconds later; belts empty the pad.",
+        done: |_, f| f.processors_of(POD_LAUNCHER) > 0,
     },
 ];
 
