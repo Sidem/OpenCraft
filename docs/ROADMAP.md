@@ -4,8 +4,10 @@ Read this only when a milestone ends and the next one is being planned. `docs/DE
 **current** milestone only. At each milestone's cleanup step, move the next milestone from here into the
 plan and detail it there (steps with where, how and done-when).
 
-**Agreed order after Milestone 12 (2026-10-16):** orbit polish, the feel-and-feedback interlude, the carry's pieces
-in the existing eras, the megaproject theme (talk only), the ruins interlude, Milestone 13 (DEV_PLAN section 1).
+**Agreed order (2026-10-16, after Claude's whole-game review and the user's play-test):** the play-test response, steps
+R1–R8 in DEV_PLAN section 4 (why the middle systems go unused, plants, ambient sound, music by context, the ruins,
+settlements and the megaproject theme, a decor set, pressure without combat), then the feel-and-feedback interlude, the
+carry's era pieces (trimmed), Milestone 13. The designs the R steps need are in the section "The play-test response" below.
 
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) and the content
@@ -85,7 +87,8 @@ moved earlier if a session has room. Each one is its own module.
 - **The factory as an instrument (S).** Machine cycles already land on fixed ticks: give each family a
   pitched note, quantised to a shared beat (e.g. every 15 ticks), so a balanced line has a groove and a
   starved or blocked machine leaves a gap you can hear before you see it. Volume falls off with distance,
-  and a setting turns it off. Lives in `web/src/audio/` from the existing sound events. Later, maybe: a
+  and a setting turns it off. **Limits (2026-10-16):** only the few nearest families sound at once, a hard distance
+  cap, and the music (R4) quiets while it plays, so a big base never turns into noise. Lives in `web/src/audio/` from the existing sound events. Later, maybe: a
   sequencer block (core state, driven by logic) to compose with machines.
 - **Follow one item (S).** Tag an item (one tag per player) on a belt or from an inventory; the tag moves
   with it, and through a machine it passes to the first output made with it. Its route is drawn on the
@@ -111,10 +114,38 @@ moved earlier if a session has room. Each one is its own module.
 
 Moved into `docs/DEV_PLAN.md` section 4 (2026-10-09).
 
-## Interlude after Milestone 12: ruins of the last factory (chosen by the user, 2026-10-08)
+## The play-test response: designs for steps R1–R8 (agreed 2026-10-16)
 
-Placed before the megaproject so its logbooks can foreshadow it (whose theme is decided then); it needs only
-the recycler and a new generator version, so it can move earlier.
+The steps, their order and done-when are in DEV_PLAN section 4; the findings that led here are there too. Each design below
+is a sketch to settle with the user when its step comes up.
+
+- **A living world (R2–R4).** The world is the reason to go outward (pillar 2), so it must be worth looking at and listening
+  to, not only mined. Plants per biome and tree species, indicator plants over ore, procedural ambience, music by context with
+  silences. Plants are looks first, data second: ground cover is presentation only; species and indicator plants are
+  worldgen rows. Later, with pollution (R8), plants thin around a dirty base and come back when it is cleaned.
+- **Settlements as customers (R6).** The missing "what for": today output goes only into packs and kits. A settlement is a
+  site (placed by worldgen near spawn and in far biomes, or founded by the player) with a list of orders (bricks, glass,
+  lamps, steel, concrete; later plastics, chips) delivered by belt, train, cargo drone or drop pod into its depot. Supplied, it
+  grows in stages: each stage is a blueprint its own drones build, so it reuses the blueprint and drone systems and shows the
+  player what they can do. Bigger stages order more, so demand grows with the town and pulls trains and drones in (R1). What a
+  town gives back: a perk per town kind (a market that trades bulk for rare items, a workshop that crafts kits, a station that
+  extends drone range), never combat. No walking townspeople (lights, smoke and building is enough life), no diplomacy or war.
+  Core state: orders and stage per settlement, deterministic. The megaproject may be the settlements' joint project (a colony
+  ship, a space elevator they build up); decide with the user in R6.
+- **Decor building set (R7).** Factory players love making a base beautiful, and the world is the material (pillar 1).
+  Machine-made rows in a Decor group: concrete in about eight colours (dyes from minerals already mined), brick kinds, framed
+  glass, metal panels, catwalks and railings (cutout), light fixtures in a few shapes. Later: slabs, stairs and beams need
+  non-cube meshing and hit boxes, a step of their own. Pure content, no new mechanics.
+- **Pressure without combat (R8).** What enemies give Factorio is pressure: the factory can't be left alone. Peaceful options,
+  all deterministic and built on existing systems: **subsidence** (hollowed lodes collapse unless backfilled or supported;
+  already in "Later / maybe"), **groundwater** (deep mines below the water table seep and need pumps), **storms** (rare, from
+  the core tick; lines in the open stop or wear unless roofed), **pollution** (smelters and generators spread a haze value
+  per region that thins plants and dims solar; scrubbers clean it). Pick one or two; none may destroy the player's work.
+
+## Ruins of the last factory (step R5; chosen by the user 2026-10-08, moved up 2026-10-16)
+
+Placed before the megaproject so its logbooks can foreshadow it (whose theme R6 decides); it needs only the recycler and a
+new generator version (shared with R2b's if that is not released yet).
 
 - **Ruins (M).** Rare worldgen sites (new worlds only, a generator version bump): rusted machines, belts
   and poles of builders who came before and ran their ground dry, over collapsed shafts down to nearly
@@ -124,102 +155,49 @@ the recycler and a new generator version, so it can move earlier.
   ahead of time, a pin on the map. Near ruins hold early hints, far ones fragments about the late tech
   tree and the megaproject. The first ruin is 150–300 blocks from spawn, then about one per 512×512
   region. Placement is a pure function of the seed, like deposits.
-- **Sealed rooms and relic machines** from the thread below (the carry): vaults, a sieve, a crane and a
-  printer, the main home of that thread.
+- **One sealed vault** from the thread below (the carry), as an easter egg with modest loot. The ruins serve every
+  player: story and loot first (trimmed 2026-10-16).
 
-## Thread: the carry (p-adic numbers and fractals, by discovery; chosen by the user, 2026-10-11)
+## Thread: the carry (p-adic numbers and fractals, by discovery; chosen 2026-10-11, trimmed 2026-10-16)
 
-Mechanisms that behave exactly like p-adic numbers and fractals, so players find the ideas by playing.
-**Mainly in the ruins, partly in the existing eras, no tech line of its own:** pieces in the eras ride
-existing techs (the tally on logic, radiators on datacenters); ruin pieces are found, not researched.
-Optional: main progression never waits on it, but the payoffs are real (cooling, antenna bands, loot).
+Mechanisms that behave exactly like p-adic numbers, so players find the ideas by playing. **Trimmed on 2026-10-16** (the
+user agreed with Claude's review: the puzzles cost a lot of design for a small audience, and "names only, never explained"
+would leave most players at a locked door): two cheap era pieces that come out of normal play, and one vault in the ruins
+as an easter egg. Dropped: the 3-door, the 10-door, the Cantor sieve, the Hanoi crane and the layer printer. Parked, only if
+a later step wants more depth for datacenters or comms: fractal radiators with the analyzer, and antenna bands.
 
-- **Pure discovery, names only** (user's choice). The game never explains. When a player does the thing,
-  a discovery shows only its name ("3-adic address", "Cantor set"); logbooks hint with a drawing or a
-  number sequence, never a formula. So every mechanism must carry the idea by itself: digits are shown
-  right to left with a leading "…" ("…0110"), so carries and endless digits are visible.
-- **Primes 2, 3 and 5 each lead where they work best** (table at the end).
-- **The thread, for agents** (never shown in game): a binary counter's carry length is the ruler
-  sequence 1 2 1 3 1 2 1 4 (the 2-adic size of n); Tower of Hanoi moves follow it, and Hanoi's state map
-  is a Sierpinski triangle; Pascal's triangle mod p is a fractal because the power of p in a binomial is
-  the number of carries (Kummer); a carry that never ends gives …1111 = −1, so 1 + 2 + 4 + … = −1 in the
-  2-adics. Two numbers are p-adically close when their last digits agree, which is a tree.
+- **Pure discovery, names only** (user's choice). When a player does the thing, a discovery shows only its name ("3-adic
+  address"); digits are shown right to left with a leading "…" ("…0110"), so carries and endless digits are visible.
+- **The thread, for agents** (never shown in game): a binary counter's carry length is the ruler sequence 1 2 1 3 1 2 1 4;
+  a carry that never ends gives …1111 = −1, so 1 + 2 + 4 + … = −1 in the 2-adics. Two numbers are p-adically close when
+  their last digits agree, which is a tree.
+- **Discoveries (S).** One module: a list of named entries, each a pure check on state, a toast with the name, a page in the
+  menu. Decide at planning whether it is core state (shared per world in co-op, a save bump) or kept beside the save.
+- **Splitter addresses (S, primes 2 and 3, presentation only).** A splitter round-robins its outputs (`factory/router.rs`),
+  so a cascade sends item n to leaf n mod 2^k (two outputs) or n mod 3^k (three). Looking at a belt fed by a tree at least 3
+  deep shows its address, first split rightmost ("…0110", "…210"). Discoveries "2-adic integers", "3-adic integers".
+- **The tally (S, Electronics retrofit, prime 2, core state).** A logic block that counts the box or belt behind it: +1 for
+  each item in, −1 for each item out, shown on 16 binary lamps. Below zero it rolls to all lamps lit (…1111). A sensor rule
+  can fire on one bit, so it doubles as a divider ("every 8th item"). Discoveries "2-adic −1", "two's complement".
+- **The vault (ruins, the one easter egg, prime 5).** A door of rings, each a dial of 5 digits, showing …4444 (−1 in base
+  5). Ring k opens when the number on rings 1..k, squared, ends in the target's last k digits: the first ring is found by
+  trial (2 or 3), then each ring has exactly one right digit (2 → 12 → 212 → …). Modest loot; rewards stop after about 6
+  rings. Discoveries "5-adic integers", "√−1".
 
-### In the existing eras
-
-- **Discoveries (S).** One module: a list of named entries, each a pure check on state (a splitter tree
-  4 deep, a tally below zero, a vault ring opened), a toast with the name, a page in the menu. Decide at
-  planning whether it is core state (shared per world in co-op, a save bump) or kept beside the save.
-- **Splitter addresses (S, primes 2 and 3, presentation only).** A splitter round-robins its outputs
-  (`factory/router.rs`), so a cascade sends item n to leaf n mod 2^k (two outputs) or n mod 3^k (three).
-  Looking at a belt fed by a tree at least 3 deep shows its address, first split rightmost ("…0110",
-  "…210"). Items share their first j splitters exactly when they agree mod p^j: the tree is the p-adic
-  integers. Discoveries "2-adic integers", "3-adic integers".
-- **The tally (S, Electronics retrofit, prime 2, core state).** A logic block that counts the box or
-  belt behind it: +1 for each item in, −1 for each item out, shown on 16 binary lamps. Below zero it rolls
-  to all lamps lit (…1111). A sensor rule can fire on one bit, so it doubles as a divider ("every 8th
-  item"), a practical reason to build it. Discoveries "2-adic −1", "two's complement".
-- **Fractal radiators and the analyzer (M, Compute retrofit, prime 3).** A radiator block for datacenter
-  cooling; a connected cluster cools by its exposed faces (counted when blocks change, from core state),
-  so a Menger sponge (keep 20 of 27, repeat) beats a solid cube by far per block. A handheld analyzer (a
-  query) box-counts a structure at scales 1, 3, 9, 27 and 1, 2, 4, 8, 16, takes the best fit and shows its
-  dimension: slab 2.0, cube 3.0, Menger sponge 2.73, Cantor dust 1.89, Sierpinski tetrahedron 2.0.
-  Discoveries "fractal dimension", "Menger sponge".
-- **Antenna bands (S, fold into Milestone 12 step 12.3).** A comms ground station built from antenna
-  blocks gains one band (one more link or more range) per level of a recognised fractal (Sierpinski
-  carpet or triangle, matched by template). Discovery "fractal antenna".
-
-### In the ruins (the main part)
-
-Each piece is a sealed room or relic in a ruin site, with loot behind it (scrap, circuits, logbooks,
-relic recipes deeper in).
-
-- **Hensel vaults (M, primes 5 and 3, and 10).** A door of rings, each a dial of p digits; the door shows
-  a target as a digit string. Ring k opens when the number on rings 1..k, squared, ends in the target's
-  last k digits. The first ring is found by trial, then each ring has exactly one right digit, so the
-  number grows from the right forever (rewards shrink after about 8 rings).
-  - The 5-door: x² = …4444 (−1 in base 5); answers 2 → 12 → 212 → … Discoveries "5-adic integers",
-    "√−1".
-  - The 3-door: x² = …2222 (−1 in base 3). No digit fits the first ring; trying all three opens a side
-    passage. Discovery "no 3-adic √−1".
-  - The 10-door: x² = x in decimal. Two endless answers (…890625 and …109376) open two halves; the last
-    lock multiplies them to …000000. Discovery "zero divisors" (why p must be prime).
-- **Cantor sieve (S, prime 3).** A wall of lamps fed by a three-way splitter cascade the player rebuilds
-  from the ruin's broken one. The door opens when exactly the leaves whose base-3 address has no digit 1
-  light up (every middle output dumped, at every level). Lamps sit in address order with the first split
-  as the coarsest, so the lit wall is Cantor dust. Discovery "Cantor set".
-- **Hanoi crane (S–M, prime 2).** A gantry crane over three pads and a stack of crates of falling size;
-  a crate never sits on a smaller one. Moving the stack opens the room; the shortest solution is 2^n − 1
-  moves and its rhythm is 1 2 1 3 1 2 1 4. A panel traces the states visited, which fill a Sierpinski
-  triangle. Discoveries "Tower of Hanoi", "ruler sequence".
-- **The layer printer (M, relic, primes 2, 3, 5).** A broken machine in a deep ruin, repaired with scrap
-  and circuits, then craftable. It prints upward onto a construction site (drones place the blocks, as in
-  terraforming): each cell is the sum mod p of its neighbours in the layer below, the digit as a block
-  colour, p set on the machine. One seed grows Pascal's triangle mod p (Sierpinski for 2); square layers
-  grow 3D fractal pyramids; two seeds overlap predictably. Its prints suit radiators and antennas.
-  Discoveries "Pascal's triangle mod 2/3/5", "Sierpinski triangle".
-
-| Prime | Leads |
-|---|---|
-| 2 | splitter addresses, the tally, the Hanoi crane, the printer's default |
-| 3 | three-way addresses, the Cantor sieve, Menger radiators, the 3-door that cannot open |
-| 5 | the √−1 vault, the printer mod 5 |
-| 10 (2 and 5) | the x² = x door: zero divisors, why primes |
-
-**Order:** discoveries, splitter addresses and the tally fit any interlude (all small); radiators and the
-analyzer any time after Milestone 11; antenna bands with step 12.3; the ruin pieces with the ruins
-interlude, after its generator version.
+**Order:** discoveries, splitter addresses and the tally after the feel-and-feedback interlude; the vault with the ruins (R5).
 
 ## Milestone 13: The megaproject (era 10; optional, non-ending)
 
 - Theme to be decided (orbital ring, space elevator, interstellar probe or another). Built in phases,
   physically in the world, needing enormous resources. Completing it **unlocks** something rather than
   ending the game: asteroid mining by drop pod, resources beyond the finite ground. Play continues.
+- The theme is settled in R6 together with settlements (it may be their joint project).
 
 ## Later / maybe
 
-- A tower-defence mode as a world setting (the user's idea; explicitly not now).
-- Subsidence: hollowed-out lodes collapse the ground above unless backfilled or supported.
+- A tower-defence mode as a world setting (the user's idea; explicitly not now; 2026-10-16: still peaceful, no combat).
+- Subsidence: hollowed-out lodes collapse the ground above unless backfilled or supported (an R8 candidate).
+- Slabs, stairs and beams for building (after R7's decor set; needs non-cube meshing).
 - A world settings screen: ore richness, deposit size, peaceful toggle.
 - Catch-up on return: factories run forward for the time the game was closed, capped.
 - Weather, mod support (the data-driven content tables are the first step towards mods).

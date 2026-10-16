@@ -1,6 +1,10 @@
 # OpenCraft development plan
 
-**Status:** 2026-10-09 · Strategy controls built · Milestones 1–10 done and pushed (co-op tested across machines by the user; no TURN for now) · **Milestone 11 (compute and photonics) is done and pushed** (11.1–11.13: chips, data grid, datacenters, AI labs, optimizer, laser links with mirrors, swarm hub, auto-routing, AI survey; save version 44) · **The less-hand-crafting interlude is done** (user's choice 2026-10-09; L1–L3 built: `player_bonus`, Handcrafting I–III, Fabricator Gloves; crafting from nearby boxes was dropped by the user on 2026-10-11) · **Milestone 12 (Orbit) in progress: 12.1 (Rocketry, the launch site, rocket parts and fuel) is pushed, 12.2 (satellites in orbit, seen in the sky; save version 45; 763 tests) is committed**, **12.3 (what satellites give) and 12.4 (drop pods) are pushed; 12.5 cleanup is in progress (2026-10-16: orbit tips, `bench_orbit`, the manual done; save version 47 since the opening scene; 837 tests); left of 12.5: move Milestone 13 in once the user picks the megaproject theme (section 6), balance stays "tune in play"** · **Agreed order next (2026-10-16, section 1): orbit polish (built 2026-10-16), then the feel-and-feedback interlude, the carry's era pieces, the megaproject theme, the ruins, Milestone 13** (the rest of Milestone 12 is a first draft in section 4; the feel-and-feedback interlude is still unplanned) (the immediate todo P1, P2, E1 is done; P3–P5 are parked, section 4) · The `art` branch is superseded; art work
+**Status:** 2026-10-16 · Milestones 1–11, the less-hand-crafting interlude and Milestone 12 (Orbit: 12.1–12.4 and the orbit
+polish) are built and pushed; save version 47, 844 tests · 12.5 stays open only to move Milestone 13 in after R6 ·
+**Next: the play-test response, steps R1–R8 (section 4)**, from Claude's whole-game review, which the user adopted in full, and
+the user's 32-hour play-test (drones, trains and blueprints researched but never needed) · R1 (why the middle systems go
+unused) is a talk with the user first · Then the feel-and-feedback interlude, the trimmed carry, Milestone 13 · Art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -41,8 +45,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **The less-hand-crafting interlude is done** (section 4, steps L1–L3). **Now: Milestone 12: Orbit** (12.1–12.4 built and pushed;
-  12.5 cleanup is the last step).
+- **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`; 12.5 waits for R6).
+  **Now: the play-test response, steps R1–R8** (section 4).
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -136,6 +140,14 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-08 | **Player-experience features** (user's pick from Claude's proposals): a world timelapse, the factory as an instrument, follow one item, seismic prospecting, site bonuses (where you build matters), ruins of the last factory. Placed as two interludes in `docs/ROADMAP.md`; datacenter siting may join steps 11.3–11.4. |
 | 2026-10-11 | **The carry: p-adic numbers and fractals by discovery** (user's pick from Claude's brainstorm): mechanisms that behave like the math (splitter addresses, a tally, fractal radiators and antennas, Hensel vaults, a Cantor sieve, a Hanoi crane, a layer printer). Mainly in the ruins, partly in existing eras, no tech line of its own; pure discovery with names only, never explained; primes 2, 3 and 5 each lead where they work best. Design in `docs/ROADMAP.md`. |
 | 2026-10-16 | **Order after Milestone 12** (Claude's proposal, user agreed): 1 orbit polish (12.x's "not done" items), 2 the feel-and-feedback interlude (instrument, follow one item, timelapse; then seismic prospecting and site bonuses), 3 the carry's pieces in the existing eras (discoveries, splitter addresses, tally, radiators and analyzer), 4 pick the megaproject theme (talk only), 5 the ruins interlude with the carry's ruin pieces, 6 Milestone 13. Parked items fit in where a session has room. |
+| 2026-10-16 | **Claude's whole-game review adopted in full** (user: "I agree with all your assessments"); with the user's 32-hour play-test (section 4) it **supersedes the order of the row above**: next are R1–R8 (section 4), then the feel-and-feedback interlude, the carry's era pieces and Milestone 13. |
+| 2026-10-16 | **Needs before techs.** Research outran need in play (drones, trains, blueprints researched, never used). New work must give the player a problem that its tech solves; **no more multiplier layers** (compute, orbit) **and no more perk layers** (like Handcrafting I–III). Depth in the systems that exist beats new systems. |
+| 2026-10-16 | **A living world:** plants per biome (ground cover on every world; tree species, desert and basalt plants on new worlds), indicator plants over ore, ambient sound, music chosen by context with silences between pieces. The user supplies new music. |
+| 2026-10-16 | **Still peaceful: no combat or PvE.** Pressure comes without enemies (subsidence, mine flooding, storms, pollution; pick in R8). The tower-defence world setting stays a "much later, maybe". |
+| 2026-10-16 | **Settlements as customers** (planned with the megaproject, R6): towns order goods and grow in stages, built by the existing blueprint and drone systems; no walking townspeople, no diplomacy or war. **House building** through a machine-made decor set (R7). |
+| 2026-10-16 | **Art moves away from Minecraft, shapes before textures:** plants, machine silhouettes, calmer textures, atmosphere (`docs/ART_HANDOVER.md` 2b). Not realism. |
+| 2026-10-16 | **The carry is trimmed:** splitter addresses and the tally stay (era pieces); in the ruins at most one vault as an easter egg; the 3-door, the 10-door, the Cantor sieve, the Hanoi crane and the layer printer are dropped; radiators, the analyzer and antenna bands are parked. **Ruins move up** (R5). |
+| 2026-10-16 | **Pod channels are chosen by name and colour**, not facing. **Add the TURN relay** (the user adds the secrets; supersedes 2026-09-26). The factory instrument gets few voices, a distance cap, and music quiets under it. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -435,11 +447,12 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 ---
 
-## 4. Now: Milestone 12: Orbit (after the less-hand-crafting interlude)
+## 4. Now: the play-test response (steps R1–R8, agreed 2026-10-16)
 
-Milestones 6 (Industry), 7 (Electronics, blueprints, drones), 8 (Terraforming), 9 (Distance) and 10 (Fluids and chemistry)
-are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `docs/CHANGELOG_M9.md` and
-`docs/CHANGELOG_M10.md`. Design: `docs/TECH_TREE.md` (sections 4 and 5) and `docs/TECH_ERAS.md` section 7.
+Milestones 6 to 12 are built; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `docs/CHANGELOG_M9.md`,
+`docs/CHANGELOG_M10.md`, `docs/CHANGELOG_M11.md` and `docs/CHANGELOG_M12.md` (Milestone 12, the less-hand-crafting
+interlude and the performance todo). On 2026-10-16 Claude reviewed the whole game and the user agreed with every point
+(section 1); with the user's play-test save that review became steps R1–R8 below, the direct next work.
 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
@@ -449,160 +462,88 @@ are done; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `do
 - New blocks and items append (the next free block is 116, item 396, tech 84, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 306) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
-### Milestone 10 (Fluids and chemistry), built; the user reviews and tests it before it is committed
+### Where the last milestones stand
 
-Oil and canisters, the pumpjack, refinery, cracker, chemical plant, diesel power, electrolysis, ore washing, the research
-center, a terrain overhaul with rivers and water wheels (generator versions 6 and 7), hoists, nuclear power, gold science
-and Mk5. Specs: `docs/CHANGELOG_M10.md`. **Measured:** 20 dry water wheels, 8 reactors, 8 refineries, 8 diesel generators,
-4 winches and 4 riders asking the hoist rate each tick cost 19 µs a tick (worst 36 µs) on one grid (`bench_chemistry`,
-ignored); water's worst tick is 0.09 ms. **Balance (to tune in play):** power per source: coal generator 60 kW, steam turbine
-240 kW, water wheel up to 48 kW (free, but needs a river), diesel generator 400 kW, reactor 2 MW. Oil pays: a vein's pumpjack
-(90 kW) fills about 22 canisters a minute and 3 of them refine into one diesel canister (40 MJ, the energy of 148 coal) plus
-naphtha and heavy oil, so one pumpjack and one refinery (150 kW) feed several diesel generators. A fuel cell (4 uranium ore
-and a steel plate, 300 MJ) runs a 100 kW load for 50 minutes; the reactor needs coolant, and a centrifuge draws 200 kW.
-Washing turns a raw ore's 1.0 ingots into 2.0 for 60 kW and a pipe of water per washer. Mk5 costs 4 to 8 gold kits a
-machine on top of the Mk4, so it stays a late-game spend.
+- **Milestones 10 and 11** are built and pushed (specs and balance in their changelogs). **The less-hand-crafting interlude**
+  is done (L1–L3); crafting from nearby boxes (L4) was dropped by the user on 2026-10-11 and is never built.
+- **Milestone 12 (Orbit):** 12.1–12.4 and the orbit polish are built and pushed (`docs/CHANGELOG_M12.md`). **12.5 is left
+  open** only for moving Milestone 13 in, which waits for R6 (the megaproject theme). Not done: a beam drawn from power
+  satellites down to rectennas. The pads' open question is answered: step "Pod channels by name" below.
+- **Parked performance items** (details in `docs/CHANGELOG_M12.md`): P3 cheaper box instances (measure in the browser
+  first), P4 an incremental co-op checksum (time a large save first), P5 small TS savings. Fit them in where a session has room.
 
-### Immediate todo (user request 2026-10-08; do these before step 11.2, one per session, each green and committed)
+### Play-test findings (the user's save, 2026-10-16)
 
-From the performance review. **Measured 2026-10-08** with `factory/tests/bench.rs` (`cargo test --release bench_big_base -- --ignored
---nocapture`, a synthetic base of belts in rows, a smelter per 10 belts and a pole per 40 cells, empty belts, native speed):
+The user has played seed 1337 in a normal world for **31.9 hours** (day 97) and enjoys it. Read headlessly from the save (Node
+loading `web/src/wasm`, `Game.load`, the tech and analytics getters):
+- **78 of 84 techs done**: everything but the three endless bonus techs, Orbital Comms, Orbital Power and Drop Pods. Construction
+  drones, swarms, trains, freight, cargo drones, the hover pack, Rocketry and Orbital Science are all researched.
+- **Researched but never used** (the user's words): drones, trains, the planner and blueprints; no rocket built (the Launch Site
+  sits in the inventory).
+- **97 machines** in the analytics: 37 at full speed, **38 held back by full output**, 15 waiting for input, 7 by their deposit.
+  Assemblers (18) average 10%, miners (13) 11%, the two refineries 0%. The base makes more than anything uses.
+- **22 deposits** touched in 32 hours. The inventory is a store: about 800 belts, stacks of kits, logs, stone and coal.
 
-| base | steady tick | place one belt (whole relink) | hooks + power rebuild | `write_instances` |
-|---|---|---|---|---|
-| 3000 belts, 300 machines, 100 poles | 9 µs | 236 µs | (small) | 244 µs |
-| 30000 belts, 3000 machines, 1020 poles | 141 µs | 2.9 ms | 0.25 ms | 0.7 ms (1 M floats in range) |
+**Reading:** research outran need. The tree can be finished while the problems its techs solve (distance, scale, repetition)
+never arrive, so pillar 5 ("every tier adds a new kind of problem") does not bite in the middle and late game. Likely causes:
+carrying is cheap (hauler packs up to 99 slots, the hover pack), so a far deposit is a trip, not a route; demand is small, so
+nothing has to scale; deposits last, so distance never presses; every build is one-off, so blueprints don't pay.
 
-The review's guess was wrong where it mattered most: the power rebuild is under 10 % of a relink even at 30 000 belts, and a
-relink is linear (about 90 ns a belt), so a placement hitch stays under 3 ms for any base a player will build. Rows below say
-what was done or why it is parked.
-- [x] **P1 Cache the unlocked machine recipes** (done: `Research::unlocked`, refreshed in `refresh()` when a tech finishes,
-  on load and in `complete_all`; `machine_recipes_unlocked()` returns the `[bool; N]` by value, a per-tick snapshot, no heap
-  allocation). Golden hash unchanged. Saves one allocation and about 64 tech scans per tick, per insert and per `room_for`.
-- [x] **P2 Split the dirty flag: dropped.** Measured above: the power rebuild is not the cost. If a relink hitch ever shows in
-  play, make `relink` incremental per touched cell instead (belt links only look at the four neighbours).
-- [ ] **P3 Cheaper box instances: parked.** 0.24 ms for 61 000 boxes is cheap natively; what could matter in the browser is
-  the buffer upload (`bufferSubData` of up to 4 MB a frame) and the wasm slowdown. Measure in the browser first
-  (`stats` of the renderer, frame time with 60 000 boxes in range) before adding a frustum test or a spatial grid.
-- [ ] **P4 Incremental co-op checksum: parked.** `Sim::state_hash` serialises the whole state every 60 ticks. Only worth it
-  when a save measures slow in co-op; time it on a large save first. The hash value would change: re-record the golden hash.
-- [ ] **P5 Small items (optional, cheap).** Reuse the per-frame `Float32Array` views onto wasm memory in `web/src/main.ts`
-  until `memory.buffer` changes; skip `update()` of closed UI panels; only re-sort visible chunks (`renderer.ts:323`) when the
-  camera crosses a chunk.
-- [x] **E1 Colour-coded electric grids** (user request; built 2026-10-08, `factory/grid_colour.rs`): the biggest grid (most poles) is
-  the main grid and always blue, the others take orange, pink, green, yellow, red by size (Okabe-Ito); wires, hookup wires, cable
-  knots and a collar and crossarm sleeve on each pole wear it, and the pole readout names the grid. Textures 251–256, render only
-  (no save bump); a grid that overtakes the main grid in poles swaps colours with it.
-### Milestone 11 (Compute and photonics), built and pushed
+### Next steps, in this order (one per session; "talk" steps are a conversation with the user first)
 
-Chips from chemistry, the data grid, AI datacenters with cooling towers, AI labs, endless bonus techs, the optimizer node, laser
-power and data links with mirrors, the swarm hub, auto-routing and the AI survey. Specs: `docs/CHANGELOG_M11.md`. **Measured:** a
-plant of 6 datacenters, 8 AI labs, 4 optimizers, 4 swarm hubs, 6 Mk4 drone ports, 14 fibre nodes, 20 generators and 4 laser links
-costs about 2 µs a tick (worst under 0.1 ms; `bench_compute`, ignored). **Balance (to tune in play):** a datacenter draws 3 MW for
-100 TF, which feeds five AI labs (20 TF each) or five optimizers; an optimizer (150 kW, 20 TF) buys +25% on everything within 16
-blocks, a swarm hub (100 kW, 30 TF) +50% drones on every port within 12, so compute is spent where a plant is densest. Coolant is a
-pump (a unit per 10 s) or a cooling tower (about a twentieth of that). A laser link costs 10% of what crosses it and 128 blocks
-at most. The endless bonus techs cost compute only and grow a quarter dearer a level. Auto-routing and the AI survey are free to use
-once researched.
+- [ ] **R1 Why the middle systems go unused (talk, then tuning).** Put the findings above to the user with levers to pick:
+  (a) bulk demand that keeps growing (R6's settlements; science and kits that need far materials continuously, not once);
+  (b) bulk goods that carry badly (smaller stacks for heavy items, or a carry weight), so belts, trains and drones beat hauling;
+  (c) far-only ingredients in every later pack; (d) offering a blueprint at the moment of repetition (the second time the same
+  group of machines is placed, a prompt to copy it); (e) cheaper or earlier drones and trains. Deposit life stays long (decision
+  2026-09-25) unless the user says otherwise. Add the save summary script as `scripts/inspect-save.mjs` (about 40 lines) so later
+  play-tests can be read the same way. **Done when:** the user's picks are in section 1 and turned into tuning steps here.
+- [ ] **R2 Plants (a living world, part 1).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
+  - **R2a Ground cover, presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
+    and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
+    top of grass, sand or dirt with air above. Never blocks, never saved; a remesh clears them when the ground changes. Watch
+    `bench_meshing` and vertex counts. **Done when:** every biome has its own cover, meshing costs at most 15% more, seen in the pane.
+  - **R2b Tree species and biome plants (generator version 8, new worlds only, section 6):** species as rows in
+    `worldgen/trees.rs` (shape, log and leaf blocks): today's broadleaf (plains), conifers (highlands), wide wet-ground trees
+    (lowlands, by water), a pale-barked plains mix, cacti (desert), dead snags and heather (basalt). Each species has a sapling;
+    every log saws into the same planks. Version 7 pinned by test. **Done when:** each biome reads differently from afar.
+  - **R2c Indicator plants** (real geobotany, like the stained soil): a flower or shrub per ore over shallow veins and lodes, a
+    pure function of deposit placement; pointing at one names the ore below. In the ore guide too. **Done when:** a test shows
+    they grow only over their ore.
+- [ ] **R3 Ambient sound (part 2).** Today there is none. `web/src/audio/ambience.ts` (+ a synth file): procedural beds and
+  one-shots: wind rising with height and openness, birds by day near trees, insects at night, surf by the sea, river water, cave
+  drips and a low room tone underground, dry wind in deserts. A query `Game::surroundings` (biome underfoot, sky exposure, water
+  near, depth below the surface, trees near; presentation only) polled a few times a second. It quiets near working machines and
+  has its own slider and mute on the Sound page. **Done when:** each place gets its own bed (logged in the pane), cost measured.
+- [ ] **R4 Music by context (part 3).** `audio/music.ts` picks a piece from the player's context (from R3's `surroundings` and
+  the era reached): day, night, underground, desert, highlands, sea, late eras. Silence of a few minutes between pieces,
+  a context must hold about 20 s before it switches, crossfades. The setting becomes Context / Always calm / Always adventurous
+  / Off. Long pieces stream through a media element instead of a decoded buffer (each decoded loop is tens of MB). **The user
+  supplies the pieces** (MusicComposer): night, underground, desert and highlands first, then an industrial and a space piece.
+  **Done when:** it runs with today's two pieces, and a new piece is one row.
+- [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`. Share R2b's generator version if that is not
+  released yet. Logbooks give real help. The carry is trimmed (section 1): at most one vault, as an easter egg.
+- [ ] **R6 Settlements as customers and the megaproject theme (talk).** Sketch in `docs/ROADMAP.md`. Settle with the user what
+  towns order, how they grow, whether the megaproject is theirs, and what finishing it unlocks; then detail the steps here and
+  move Milestone 13 in (closes 12.5).
+- [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
+  concrete, bricks, framed glass, metal panels, catwalks, railings, light fixtures). Slabs and stairs need non-cube meshing:
+  a later step. **Done when:** they are made in machines, placed, and their art requests are listed.
+- [ ] **R8 Pressure without combat (talk).** Pick one or two with the user from `docs/ROADMAP.md` (subsidence, mine flooding,
+  storms, pollution that thins plants and solar). Each must reuse existing systems and stay deterministic.
+- [ ] **Pod channels by name (small, any time).** Facing as a channel is unclear (user, 2026-10-16): a launcher and a pad pick
+  their channel in their panel (a colour and a name), not by facing. Save version bump with a migration (facing becomes the
+  colour).
+- **The user's to do:** add the two TURN secrets (`docs/WORKFLOW.md` section 4) so friends behind strict networks can join.
 
-### Interlude: less hand-crafting (chosen by the user on 2026-10-09 to go before Milestone 12; design in `docs/ROADMAP.md`)
+**After R1–R8:** the feel-and-feedback interlude (`docs/ROADMAP.md`; the instrument with few voices, a distance cap and music
+quieting under it), the carry's era pieces (splitter addresses and the tally only), Milestone 13. **Art** goes on in parallel
+(`docs/ART_HANDOVER.md` section 2b, 2026-10-16: shapes before textures).
 
-- [x] **L1 + L2 `player_bonus` and hand-crafting speed techs** (built 2026-10-09): `perks.rs` (`Stat::Crafting`,
-  `player_bonus` sums finished `Unlock::Perk(stat, tier)` techs, +25% each, linear), techs Handcrafting I–III 74–76
-  (`research/hands.rs`: green, blue, violet packs), `crafting::craft_ticks` shortens each craft (ticks still count real
-  ticks, so no save change); the build menu's "Takes N s" shows the faster time. Golden hash re-recorded (tech table grew).
-- [x] **L3 Worn craft-speed gear** (built 2026-10-11): Fabricator Gloves (item 385, texture 285, tech 77 on all five packs
-  after Handcrafting III and Gold Science; hand recipe 4 actuators, 4 servos, 4 gold kits) in a new sixth equipment slot,
-  Gloves. `Effect::crafting` (+500 permille) is added by `perks::player_bonus(research, inventory, stat)`, which now takes the
-  player's inventory; with all three techs the gloves make a craft 2.25× as fast. Save version 44 (six worn slots; 43 saves
-  read five), golden hash re-recorded. Tests: `perks/tests.rs`, `equipment/tests.rs`, `crafting/tests.rs` (wear them and a
-  craft takes 2/3 of the time, take them off and it is back).
-- ~~L4 Craft from nearby boxes, or by request~~: dropped by the user on 2026-10-11 ("crafting from nearby boxes won't be
-  a thing"). Remove it from any plan that mentions it.
-
-### Milestone 12 steps (Orbit; moved in from the roadmap, a first draft to refine at 12.1 with the user)
-
-Goal: the factory leaves the ground. Rockets from every line, fuel from electrolysis, satellites that give the map and the
-network new reach. Numbers are first guesses. Order: the launch site and a first rocket, satellites in orbit, what each kind
-gives, drop pods, cleanup. Plan the interlude chosen on 2026-10-08 for after Milestone 11 (timelapse, factory as an instrument,
-follow one item, seismic prospecting, site bonuses) with the user before 12.1; it can go first.
-- [x] **12.1 Rocket parts and the launch site** (built 2026-10-11: `process/launch.rs`, block 109 Launch Site, 7×7×6, 2 MW,
-  `Category::Launch`; tech Rocketry 78 in `research/orbit.rs`; items 386–390 (light frame, rocket engine, fuel tank, avionics, rocket
-  fuel canister); machine recipes 64–69 in `recipes/orbit.rs` (assembler parts 64–67, rocket fuel 68 in the chemical plant, the
-  launch 69: 4 frames, 2 engines, 2 tanks, avionics, 8 fuel canisters, 60 s → 8 empties); hand recipe 200 concrete, 60 steel beams,
-  20 motors. The part recipes take at most 3 input kinds (the assembler's slots). The rocket stands on the pad only while a batch
-  runs (`Look::Rocket`). `MACHINE_RECIPES` is a compile-time join (`crate::join`) so new rows go in `recipes/orbit.rs`. Textures
-  286–293. Tests 744 → 752. Not done: a launch sound or toast, a rocket-specific tip.)
-- [x] **12.2 Satellites and the sky** (built 2026-10-11: `satellites.rs`, core state in `Factory::orbit`, save version 45 (a
-  count and the list after the research; older saves have none), golden hash re-recorded). **Orbits:** an infinite ground cannot
-  have a globe, so the sky wraps every 4096 blocks both ways; a satellite leaves straight above its pad at the launch tick and
-  flies one of 8 headings (tilted off the axes, picked by launch count) at 6 blocks a second, so a position is integer maths on
-  the tick alone. It covers a place within its kind's `reach` (survey 768 blocks, so about 11% of the ground per satellite) of
-  the point under it; at most 24 of a kind stay up (a 25th retires the oldest). **Payload:** the rocket carries one satellite, so
-  launch recipe 69 now needs a Survey Satellite (item 391, texture 294, assembler recipe 70: 2 light frames, 4 solar panels, 4
-  AI accelerators, 40 s; both unlocked by Rocketry) as its last input: the pad's input buffer grew to 6 slots (a pad saved
-  before 45 reads 5: `saved_input_slots`, tested) and `Processor::lifted` hands the satellite to `Factory::update`. Only the
-  survey kind exists; 12.3 adds a `KINDS` row, item and recipes per kind. **Sky:** `Game::sky_satellites` gives each satellite's
-  direction (hung 400 blocks up, shown within 2400 blocks) and `render/sky.ts` draws gold lights (faint by day). The launch
-  site's readout says "Survey satellites: N up, M over this pad". `Game::launch_satellite_at` is a debug scene helper. Tests
-  752 → 763. Not done: a map layer for coverage, a launch sound or toast.
-- [x] **12.3 What satellites give** (numbers kept as built, 2026-10-14, to tune in play; split into one kind per session).
-  **Survey done** (2026-10-14, `survey/orbit.rs`: veins and lodes under a survey footprint go on both maps as facts, kept for the
-  session and not saved; the AI survey drops guesses near them; footprints are `MARK_COVER` marks drawn as a gold disc; no save
-  change; not looked at in the browser pane). **Comms done** (2026-10-14: tech Orbital Comms 79 (needs Rocketry, Data Network), item
-  392, texture 295, assembler recipe 71 and launch recipe 72, `KINDS` row `COMMS` with reach 1024. Under a comms footprint all fibre
-  nodes are one data grid, rejoined each tick (`Data::uplink`, `merged`, derived, not saved), and a drone port's construction reach is
-  ×4 and its cargo range ×2 (`Hangar::linked`, `reach_and_range`); both end when the satellite flies on, so a dozen are wanted for
-  steady cover. No new block: no ground station yet. No save change; golden hash re-recorded; 796 tests; not seen in the browser
-  pane.) **Power done** (2026-10-14: block 110 Rectenna, 5×5×1, `process/rectenna.rs`, `Energy::Rectenna`, `Source::Rectenna`;
-  each power satellite over it beams 200 kW, cap 1 MW, day and night, derived every tick by `sense_sources` and given like a
-  water wheel's power in `Power::balance`; tech Orbital Power 80 (needs Rocketry, Nuclear Power) unlocks it, item 393, textures
-  296–298, assembler recipe 73 and launch recipe 74, hand recipe in Group::Power; reach 1024; no save change, golden hash
-  re-recorded; 801 tests; not seen in the browser pane; no sky beam drawn yet). **Science done** (2026-10-14: "space data" is
-  compute, not a new research mechanism: block 111 Ground Station, 3×3×2, `process/ground.rs`, a data producer (`compute 100`,
-  `Energy::Optimizer` power sink, 150 kW) that offers 40 TF per science satellite over it, cap 100 TF, derived every tick by
-  `ground::sense` (`Store::flow`) and read by `Data::balance` via `Processor::offered_tf`; tech Orbital Science 81 (needs Rocketry,
-  Data Network), item 394, textures 299–301, assembler recipe 75 and launch recipe 76 (three inputs: the assembler's limit), `KINDS`
-  row `SCIENCE`, reach 1024; the maps tint its footprint pale blue; no save change, golden hash re-recorded; 805 tests; not seen in
-  the browser pane). All four kinds are in. Fold in antenna bands from the roadmap's thread "the carry" or leave them.
-- [x] **12.4 Drop pods to landing pads** (built 2026-10-15, pushed; numbers to tune in play). Design choices (the plan line said
-  "from a launch site"; a separate small machine fits the belts better, so the launch site stays the rocket builder): **Pod Launcher**
-  (block 113, 3×3×3, 500 kW, `factory/process/pods.rs`, `Pick::Pods`): belts fill 12 cargo stacks and a **Drop Pod** (item 395, texture
-  302, assembler row 77: a light frame, a fuel tank, 10 circuits, 20 s) arms it; under a comms satellite, with a landing pad on its channel
-  also under cover, it loads 15 s at full power and sends up to 6 stacks. **Landing Pad** (114, 3×3×1, no power, `Pick::Land`): the pod
-  comes down `FLIGHT_TICKS` (20 s) later and the cargo lands in its 24 stacks, which belts empty; what does not fit waits in the pod (in
-  `Factory::pods`, saved since 46, `pods.rs`) and lands as room opens, so nothing is lost while a pad exists. **Channel** = the way the
-  launcher or pad was placed facing (four), read in its status line; a pod goes to the nearest comms-covered pad on its channel (no UI to
-  pick a destination was built). Tech **Drop Pods** (83, `research/later.rs`, needs Rocketry and Orbital Comms, five packs, 250 units)
-  unlocks both blocks (hand recipes in `orbit.rs`) and the pod row. A capsule is drawn falling onto its pad for the last 4 s
-  (`Factory::falling_pods`, `drone_view.rs`). Textures 302–305 (`ART_HANDOVER.md`). Save version 46 (the pods after the satellites),
-  golden hash re-recorded; tests 805 → 822. Not done: a launch rising capsule, a touchdown puff or sound, a map mark for pads, a tip;
-  seen in the browser pane (a scene with a powered launcher and pad: the pod launched, fell as a capsule and landed 200 plates; the
-  launcher shows its capsule nose even when empty; `Game::launch_kind_at` is a debug helper for any satellite kind). Open question for the user: is facing-as-channel clear enough, or should a pad have a name or a
-  colour chosen in its panel?
-- [ ] **12.5 Cleanup:** tips, balance, worst tick, the manual (`docs/FACTORY.md`), CODEMAP; move Milestone 13 (the megaproject) in from the roadmap.
-  **Done 2026-10-16:** three orbit tips at the end of `HINTS` (a launch site placed; a comms, power or science satellite up;
-  a pod launcher placed), `docs/FACTORY.md` covers the four satellite kinds, drop pods, the long-distance pole, the upgrader
-  and the automated buildings. **Measured** (`bench_orbit`, ignored: 24 satellites of each kind overhead, 2 launch sites,
-  8 rectennas, 4 ground stations, 4 optimizers, 8 Mk4 drone ports, 8 pod launchers and 8 pads on four channels, 30 fibre
-  nodes in two islands joined by the comms uplink, 40 pods in flight onto full pads): about 19 µs a tick, worst 40–63 µs.
-  **Balance:** numbers kept as built, to tune in play. **Left:** Milestone 13 needs the user's megaproject theme and what
-  finishing it unlocks (section 6) before it moves in from `docs/ROADMAP.md`.
-- [x] **Orbit polish** (first of the order agreed on 2026-10-16, section 1; built 2026-10-16): new `SimEvent`s `Launched`
-  (`Factory::update`, a launch site's lifted satellite), `PodSent` and `PodLanded` (`process/pods.rs` `run`, at a pod's landing
-  tick) feed `orbit_fx.rs` (presentation): sounds `LAUNCH` (heard 12× as far), `POD_UP`, `POD_DOWN` (`audio/synth-orbit.ts`,
-  `reach` in `audio/sound.ts`, three sound-designer actions), a dust burst at the machine, and an "in orbit" toast per
-  satellite (`next_launch`). A pod is drawn rising out of its launcher for 3 s (`Pods::rising`, `Factory::rising_pods`). The
-  maps draw pod launchers and pads with an arrow for their channel (`MARK_CHANNEL`) and launch sites as a rocket
-  (`MARK_LAUNCH`). Seen in the browser pane (a pod rising and falling, the touchdown burst, the marks); the rocket launch was
-  checked headless only. No save or core-state change; golden hash unchanged; 841 tests. **Not done:** a beam drawn from power
-  satellites down to rectennas. **Open question for the user:** is facing-as-channel clear enough, or should a pad get a
-  name or colour chosen in its panel? **Next:** the feel-and-feedback interlude (`docs/ROADMAP.md`), starting with the factory
-  as an instrument.
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
-- **The relay (TURN):** left out for now (section 1). If friends can't connect, the user adds the TURN
-  secrets (`docs/WORKFLOW.md` section 4); then test with `&relay` on both ends.
+- **The relay (TURN):** agreed on 2026-10-16 to add it (section 1): the user adds the TURN secrets
+  (`docs/WORKFLOW.md` section 4); then test with `&relay` on both ends.
 - **Instant feedback for your own edits** (was step 3.9): measured, not built. On one machine a client's
   action applies about 90 ms after it is made (the host's own, about 76 ms: `INPUT_DELAY` is 4 ticks);
   over the internet add the round trip, so roughly 110–170 ms. Build it only if placing and breaking feel
@@ -612,11 +553,11 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 ---
 
-## 5. Roadmap after Milestone 12
+## 5. Roadmap after R1–R8
 
-Milestone 13 is in `docs/ROADMAP.md`, with the interlude the user chose on 2026-10-08 for after 12 (ruins of the last factory); the
-interlude chosen for after 11 (timelapse, factory as an instrument, follow one item, seismic prospecting, site bonuses) is still unplanned. The tech tree through them is `docs/TECH_TREE.md` (concept)
-and `docs/TECH_ERAS.md` (detail). Read them only when planning.
+`docs/ROADMAP.md` holds the designs the R steps point to (ruins, settlements, decor, pressure without combat), the
+feel-and-feedback interlude (still unplanned), the trimmed carry and Milestone 13. The tech tree is `docs/TECH_TREE.md`
+(concept) and `docs/TECH_ERAS.md` (detail). Read them only when planning.
 
 ---
 
@@ -629,7 +570,11 @@ and adjust the steps.
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
-| M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. |
+| M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. Now asked in R6, together with settlements. |
+| R1 | Which levers make drones, trains and blueprints needed (section 4, R1)? |
+| R2b | New tree species and desert and basalt plants on new worlds only (generator version 8; the user's world keeps version 7 and gets only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
+| R4 | Which new music pieces, and when (the user composes them)? |
+| R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
 
 ---
 
@@ -642,6 +587,11 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Whole-game review and play-test response (user request, docs only).** Claude's review (strengths, weaknesses,
+  past and planned work, new dimensions, art, plants, music) was adopted in full; with the user's 32-hour save it became steps
+  R1–R8 in section 4, eight decision rows in section 1 and new open questions in section 6. Finished Milestone 10–12 detail moved
+  to the new `docs/CHANGELOG_M12.md`. `docs/ROADMAP.md` gained the designs (settlements, decor, pressure without combat, a
+  living world) and the trimmed carry; `docs/ART_HANDOVER.md` the art direction update. No code change.
 - **2026-10-16: Long-distance pole placing preview (user request).** While one is held and aimed, `Factory::long_link` says
   what `auto_hook` would wire it to, or why not (too far, full, unpowered, alone), and `power_tools/long_pole.rs` shows it:
   the footprint outline green or red, the pole it links to boxed, the label's line ("Links to the long-distance pole 132
@@ -665,12 +615,4 @@ and the balance numbers. Read the section you need.
 - **2026-10-16: Hand-mining waste taught as it happens; machine panels beside the inventory (user request, off-plan).** `SimEvent::HandMined` (kept, lost; `Deposits::hand_mined` now returns the block's share) feeds `hand_waste.rs` (session counter, not saved): a notice under the crosshair per ore block, from 3 blocks an amber warning card ahead of every tip (`ui/hints.ts`, H snoozes 10 blocks). The machine panel is now a `Beside` column of the inventory screen (`ui/inventory.ts`); new `Action::InsertCursor` (tag 57) clicks the held stack into a machine. The recipe list scrolls within its own height. The inventory header's list of clicks became a context controls bar (`ui/slot-controls.ts`). 837 tests.
 - **2026-10-16: README rewritten as a project brief (user request, off-plan).** README.md now pitches the game and explains how the repo is built for fast agent iteration; the player's manual moved verbatim to `docs/PLAYING.md` (controls, worlds, co-op, crafting, upgrades, sound) and `docs/FACTORY.md` (resources and extraction). No code change.
 - **2026-10-16: The opening scene, a hook for the first minute, and readable tips (user request, off-plan).** A new normal world (`Game::new_normal`, used by `save/session.ts` for fresh worlds; `new Game` and creative worlds have none) starts facing a stopped line on a stone-brick slab: ore box, belts with ore waiting at an outlined gap, a stone furnace with coal, an ingot box; the missing belt lies on the grass in front. The player breaks it, walks over it, places it (it keeps their facing, so it points away) and turns it with R; then the line runs and its load (14 iron, 4 copper ore) is exactly a Miner Mk1. `opening.rs` (`Sim::build_opening`, `Opening`, `Step`, `marker`), `Sim::opening` saved since version 47; `api/opening.rs`; a floating key/mouse prompt over what to act on (`ui/key-prompt.ts`), the power-up sound when the line starts. Tips are bigger and skimmable: a lead-in title, `*highlights*` and `[key]` caps in hint texts (`ui/hints.ts` `richText`; all `HINTS` marked up, a test checks the pairs). Hints "Carry the ore away" and "Ingots by belt" now also need a miner and a generator (the scene's belts must not skip the miner tips); "Place the miner" says where ore shows. Golden hash re-recorded; 835 tests.
-- **2026-10-15: Hover pack charges from long-distance poles; power-up/down sounds (user request, off-plan).** `Factory::charge_poles` (everything but cables, with its middle and whether it is long) replaces `poles()` in the hover pack's core checks; the hands tie the pack within `CHARGE_RANGE` 6 of an ordinary pole or `CHARGE_RANGE_LONG` 32 of a long-distance one, and keep a tied pole `CHARGE_HOLD` 2 further out so the edge does not flicker (`helper_hands.rs`). New sound events `POWER_UP` / `POWER_DOWN` (8, 9; `audio/synth.ts` `powerUp` / `powerDown`, actions `powerup` / `powerdown` in the sound designer) play on the local pack's tie starting and ending. No save-format or core change.
-- **2026-10-15: Automated buildings and the Upgrader (user request, off-plan).** Assembler rows for pole, long-distance pole, solar panel, accumulator, lamp, box, underpass and rail, and constructor rows for planks and sticks (`recipes/automate.rs`, rows 78–87, each equal to its hand recipe; the long-distance pole (12 beams, 16 aluminium plates, 60 wire) and the solar panel (6 silicon, 2 glass, 6 wire) lost a kind so they fit an assembler's three slots, and a stack caps one kind at 64). Block 115 Upgrader (`factory/process/upgrader.rs`, 2×2×2, `Category::Refit`, five input slots, tech Assembly; hand recipe in `recipes/refit.rs`): one machine row per tier of every `FAMILIES` entry (the Mk1 item plus each step's kits, built at compile time by `ladder` and `rows!`), locked like the upgrade (`Research::locked_by`, by category). No save-format change, no new tech, golden hash unchanged; 829 tests. Next free block 116, item 396, tech 84, machine recipe 135 (new tables join after `REFIT`), texture 306 (the Upgrader reuses assembler layers: request line in `ART_HANDOVER.md`).
-- **2026-10-15: Research screen redesign (user request, web only).** A pan and zoom canvas instead of scrollbars: `ui/research-view.ts` (`PanZoom`: drag, wheel at the pointer, glide, level of detail near/far/tiny), eras as tinted bands by pack count with progress and jump buttons (`ui/research-eras.ts`, `tech-tree.ts` now lays out per era and sweeps rows to cut crossings), a minimap (`research-map.ts`), search by name or unlock (`research-search.ts`), nodes show what they unlock (`research-node.ts`). No engine or save change.
-- **2026-10-15: Drop pods (step 12.4).** Blocks 113 Pod Launcher and 114 Landing Pad (`factory/process/pods.rs`, `Pick::Pods` / `Pick::Land`), item 395 Drop Pod, texture 302–305, assembler row 77, tech Drop Pods 83 (`research/later.rs`), `pods.rs` (pods in flight, `Factory::pods`, save version 46), the falling capsule (`drone_view.rs`). Golden hash re-recorded; 822 tests. Next free block 115, item 396, tech 84, machine recipe 78, texture 306.
-- **2026-10-14: Long-distance pole (user request, off-plan).** Block `LONG_POLE` 112, a 2×2×3 lattice tower (tech Long-Distance Power 82 in the new `research/later.rs`, the open end of `TECHS`; hand recipe `LONG_POLE_RECIPE` at the end of `RECIPES`). A `Pole` of tier 14 (`LONG_TIER`) whose cells are indexed in `Factory.at` like a multi-block machine (`footprint::of` / `layout_dir` / `footprint_at` know it; it stores no facing, so it stands the same whichever way it is placed). Links 160 blocks to other long-distance poles, at most 16 to an ordinary pole (`pole::span`), reach 10, 6 slots. No save-format change. Also: Esc on the pause screen plays on (`main.ts`; if the browser will not re-lock the mouse the click-to-play hint shows). Reuses the pole textures: art request in `ART_HANDOVER.md`. Golden hash re-recorded. Next free block 113.
-- **2026-10-14: What satellites give (step 12.3, all four kinds).** Survey (`survey/orbit.rs`), comms (`Data::uplink`, `Hangar::linked`), power (Rectenna 110, `process/rectenna.rs`) and science (Ground Station 111, `process/ground.rs`: 40 TF a satellite overhead, cap 100, 150 kW). Techs 79–81, items 391–394, machine recipes 70–76, textures 294–301. Golden hash re-recorded; 805 tests. Next free block 112, item 395, tech 82, machine recipe 77, texture 302.
-- **2026-10-14: Hit boxes follow the model (user request).** Poles, belts, splitters, filters, pipes, sensors and nodes are hit where their model is, not as a whole cell, so a pole no longer hides the block behind it: `hitbox.rs` (`Boxes`: oriented boxes from the model's own instances, slab test) fed by `Factory::hit_boxes` (`factory/hitbox.rs`; a belt without its items via `Belt::frame`, a cable a 0.4 cube), used by `interaction/aim.rs`; the target outline hugs the model (`Game::target_fit`). Presentation only: no save change. 779 tests.
-- **2026-10-14: one slot per input item, and click-to-take.** `Processor::room_for` caps every `Pick::ByInput` machine like `Pick::Chosen` (a stack of an item at most, so one item can't fill several slots; `input_slots_for` is gone). `Action::TakeMachineSlot` (tag 56) takes a panel slot's stack (inputs and fuel too) into the inventory; the machine panel's filled slots are buttons. 771 tests.
 Earlier entries live in [CHANGELOG.md](CHANGELOG.md).

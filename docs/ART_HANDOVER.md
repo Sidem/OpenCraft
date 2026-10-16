@@ -75,6 +75,15 @@ press or arm over the input tray. Lab: glass chamber and a short antenna. Keep f
 consistent, but give each a distinct outline; stay near 12 boxes per machine and stop work
 animation when idle or blocked. Implement in A4 after A2–A3, per the agreed step order.
 
+**Update 2026-10-16 (Claude's review, adopted by the user): shapes before textures.** The palette moved
+away from Minecraft; the outlines did not. What still reads as Minecraft: grass blocks with dirt sides,
+cube "lollipop" trees, 16 × 16 speckled textures, full cubes everywhere. Work in this order (section 6, A9–A12):
+plants (one tree shape today; DEV_PLAN R2 adds ground cover and species, which need plant textures and
+leaf and log layers), machine silhouettes (continue the A4 brief for every machine after the first
+twenty), calmer textures (less pixel noise, larger flat areas; try 32 × 32 for natural blocks and show
+the user a sample), atmosphere (sky gradients, haze tinted by biome, sunsets). Code-made textures suit a
+clean, flat-shaded look better than detailed pixel art; lean into that. Not realism.
+
 The user's brief: make the existing textures and models **more beautiful and less like a cheap
 Minecraft clone**. The game is a frontier-industry sandbox (voxel world + Satisfactory-style factories),
 peaceful and open-ended. Ideas to start from; settle the direction with the user in step A0:
@@ -135,7 +144,7 @@ you touched the game.** Undo that part. Looks never need to change it.
 - **Performance:** a machine model may have about 12 boxes at most, since big factories draw thousands.
   The texture array is generated once at start-up; keep `generate()` under 20 ms. Check frame time in
   the debug overlay (F3) near a busy factory.
-- **Readability at distance:** keep textures at 16 × 16 pixel art unless the user asks for more
+- **Readability at distance:** keep textures at 16 × 16 pixel art unless the user agrees to more (A11)
   (`TEX_SIZE`; the crack overlay in `shaders.ts` assumes 16 cells). Ores must stay distinct from each
   other and from stone at a glance, for players with colour-vision deficiency too (vary pattern and
   brightness, not just hue).
@@ -184,6 +193,14 @@ Start by restyling what exists (A0–A4, then A6's avatar look); new things (A5,
   for the pickaxe, axe and shovel.
 - [ ] **A8. Shader polish** (ask the user, and coordinate with Milestone 4's day/night and lighting):
   unlit lamp texels, better fog colour, subtle per-face variation.
+- [ ] **A9. Plants** (with DEV_PLAN R2): textures for ground cover per biome (tufts, flowers, ferns, reeds,
+  dry brush, lichen), indicator plants that differ by shape and not only colour, and log, leaf and
+  sapling layers per tree species. Crossed quads; keep cutouts readable at distance.
+- [ ] **A10. Machine silhouettes, the rest** (the A4 brief): every machine since Milestone 6 recognisable
+  by its outline.
+- [ ] **A11. Calmer natural textures:** less speckle, larger flat areas, a softer grass-block side; a
+  32 × 32 sample for the user before changing `TEX_SIZE` (the crack overlay assumes 16 cells).
+- [ ] **A12. Atmosphere** (with A8): sky gradients, distance haze tinted by biome, sunset colours.
 
 ## 7. Requests from the roadmap agent
 
