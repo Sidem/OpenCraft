@@ -1,6 +1,6 @@
 # Milestone 13 (Settlements): the finished steps moved out of the plan
 
-Moved from `docs/DEV_PLAN.md` on 2026-10-16 at step 13.6, when 13.1 to 13.5b were built, to keep the plan under its
+Moved from `docs/DEV_PLAN.md` on 2026-10-16 at step 13.6, when 13.1 to 13.5b were built (13.6a and the change log after R1c), to keep the plan under its
 budget. Each step keeps what was built and, after "As talked", what was agreed. The player's view is `docs/TOWNS.md`;
 the code map rows are under `settlements/` in `docs/CODEMAP.md`.
 - [x] **13.1 Town kinds, sites and the depot.** Built 2026-10-16: `settlements/` (`Sim::settlements`, save version 48;
@@ -95,3 +95,45 @@ the code map rows are under `settlements/` in `docs/CODEMAP.md`.
   upkeep, what a stall does); supply it from far (cargo drones, trains or drop pods); each clears when done. **Done when:** a
   first-time player can find a site and see what a town wants without reading docs; the tint's cost is measured on a big
   explored map.
+- [x] **13.6a Cleanup without the play-test** (2026-10-16): `bench_towns` (`settlements/tests.rs`, ignored: one town of
+  each kind made a city at once, perks running, 20 minutes) found a stage's planning re-reading every column for each
+  building and slot through the 8-chunk generated cache, about 14 ms a town; `plan_stage` now reads each column's ground
+  once a plan (`plots.rs`), so a camp plans in about 4 ms a town. Four cities then cost 10 µs a tick on average, 1.9 ms
+  at worst; planning all twenty stages at once (only an old save loading a grown town) about 105 ms. The manual got its
+  town chapter (`docs/TOWNS.md`). Milestone 14 stays in `docs/ROADMAP.md` until the R steps before it are done (the plan
+  is near its budget; it moves in when it is next).
+
+## Change log (moved from the plan's section 8)
+
+- **2026-10-16: Step 13.6a (cleanup without the play-test).** `bench_towns`; `plan_stage` reads each column's ground once a
+  plan (a camp's planning about 14 ms a town down to about 4 ms); `docs/TOWNS.md`, the player's town chapter; Milestone 13's
+  finished steps moved to `docs/CHANGELOG_M13.md`. Balance (13.6b) waits for the user's play-test.
+- **2026-10-16: Step 13.4b built (harbour contract work).** `settlements/perks/harbour/` (`Made`, `price`, the perk),
+  `Action::SetHarbourProduct`, the chooser `ui/harbour.ts`; `settlements/state.rs` split out of `mod.rs`; save version 53.
+  866 tests.
+- **2026-10-16: Step 13.5b built (maps and tips).** Town houses on both maps (`MARK_TOWN`), town site shading and a
+  legend on the world map while a depot is held (`minimap/sites.rs`, `world_map_sites`), and three town tips as a side
+  track (`hints::SIDE_HINTS`, `hint_side`). 864 tests.
+- **2026-10-16: Step 13.5a built (the town panel and stall news).** `ui/town.ts` on top of a depot's machine panel,
+  `api/towns.rs` (`town_panel`, `town_states`, `town_news`), HUD toasts when a town stalls or is supplied again, the
+  store's own panel role. 861 tests.
+- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
+  stall and recovery toasts, three tips (section 1); 13.5 split into 13.5a (panel, stall news) and 13.5b (maps, tips).
+- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
+  a perk, a batch every `period(built)` ticks at the upkeep's rate, no saved state); the depot keeps perk goods apart
+  (`Want::perk` into `input`, out at the front from `side`; save version 52, which also saves `crafting::Step::half`);
+  `Hangar::relayed`; the processor's bytes moved to `factory/process/state.rs`. 860 tests; golden hash unchanged.
+- **2026-10-16: 13.4 talked (docs only).** The depot's front becomes an out side; the forge's rate grows with the stage;
+  the workshop halves gear and mends tools; the harbour's product is the player's pick, as 13.4b after 13.5 (section 1).
+- **2026-10-16: Town blocks can't be farmed (user request).** Breaking a block of a town's plan (from the floor up)
+  drops nothing (`Settlements::broken` says so to `dismantle`); chosen over rebuilds paid from the depot's store, which
+  would need new saved state. No save change.
+- **2026-10-16: Step 13.3b built (rebuilding and dormant towns).** Breaking a depot makes its town dormant (`Town::dormant`,
+  save version 51) and a depot on its old spot wakes it; breaking a finished town block sends the cursor back so the drones
+  rebuild it, unless the player filled the gap. 855 tests.
+- **2026-10-16: Step 13.3a built (plots, plans and the town's drones).** `settlements/plans.rs`, `plots.rs` and `build.rs`;
+  `Town` gains `planned`, `plots`, `cursor` and `drones` (save version 50); town drones, chimney smoke and outlines in
+  `town_preview.rs`; `drones::approach` and `factory::smoke` opened to the crate. 854 tests.
+- **2026-10-16: 13.3 talked (docs only).** The town's own drones build it for free; buildings stand on foundations and bad
+  plots are skipped; one building set in each kind's materials; broken town blocks are rebuilt and a town without its depot
+  goes dormant (section 1). Step 13.3 split into 13.3a (plots, plans, drones) and 13.3b (rebuilding, dormant towns).

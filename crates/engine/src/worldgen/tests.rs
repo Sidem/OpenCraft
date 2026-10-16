@@ -65,7 +65,8 @@ fn digest(version: u32) -> u64 {
 
 /// Worlds regenerate their untouched terrain from their own version, so released output is frozen.
 /// Version 1 was recorded before Milestone 4, version 2 before Milestone 5, version 3 before version 4,
-/// versions 4 and 5 before version 6; if one fails, a change leaked into a released version.
+/// versions 4 and 5 before version 6, version 6 before version 7, version 7 before version 8 and version 8 when R1c was pushed; if one fails, a
+/// change leaked into a released version.
 #[test]
 fn released_versions_never_change() {
     assert_eq!(digest(1), 0xefee_9cc6_179e_584f, "version 1");
@@ -74,6 +75,8 @@ fn released_versions_never_change() {
     assert_eq!(digest(4), 0xeabc_f56c_e953_ede9, "version 4");
     assert_eq!(digest(5), 0x742c_d9cc_c3ab_3f75, "version 5");
     assert_eq!(digest(6), 0x08cc_c363_a4e3_5bee, "version 6");
+    assert_eq!(digest(7), 0xd207_77b1_c4a4_339f, "version 7");
+    assert_eq!(digest(8), 0xf662_465f_c7cd_b6a8, "version 8");
 }
 
 #[test]

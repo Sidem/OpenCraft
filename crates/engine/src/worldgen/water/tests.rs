@@ -112,3 +112,15 @@ fn older_versions_have_no_water() {
         assert_eq!(chunk.get((x & 31) as usize, (SEA_LEVEL & 31) as usize, (z & 31) as usize), AIR, "{h}");
     }
 }
+
+#[test]
+fn version_8_ponds_are_not_round() {
+    let g = WorldGen::new(1337);
+    let ponds: Vec<Pond> =
+        (-12..=12).flat_map(|gz| (-12..=12).map(move |gx| (gx, gz))).filter_map(|(gx, gz)| g.pond_in(gx, gz)).collect();
+    assert!(ponds.len() >= 10, "{} ponds", ponds.len());
+    for p in ponds {
+        let (hi, lo) = crate::worldgen::shore::spread(p.x, p.z, |x, z| p.covers(x, z));
+        assert!(hi >= 1.25 * lo.max(1.0), "pond at {},{}: {lo} to {hi}", p.x, p.z);
+    }
+}

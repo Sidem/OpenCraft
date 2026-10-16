@@ -114,7 +114,10 @@ fn a_miner_on_limestone_or_quartz_fills_a_box() {
                 for cx in -r..=r {
                     let mut seeded = Vec::new();
                     gen.seed_deposits(cx, cz, &mut seeded);
-                    let surface = |d: &Deposit| d.center.y >= gen.height_at(d.center.x, d.center.z) - 3;
+                    let surface = |d: &Deposit| {
+                        let h = gen.height_at(d.center.x, d.center.z);
+                        d.center.y >= h - 3 && gen.water_top(d.center.x, d.center.z, h) < h
+                    };
                     if let Some(d) =
                         seeded.into_iter().find(|d| d.ore() == ore && d.tier() == Tier::Outcrop && surface(d))
                     {

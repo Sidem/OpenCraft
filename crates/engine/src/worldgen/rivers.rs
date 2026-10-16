@@ -12,10 +12,16 @@
 //!   the ground, snapped to the sea when near it.
 //! - Shape: the channel is carved to a bed under the pool; banks are raised to the water around it; beyond them the
 //!   ground blends to the old height over a ramp that grows with the height difference (gorges through mountains).
+//! - Version 8 (R1c, `course.rs`, `seg.rs`): reaches wind, pools end in a drop with no weir (the water spills down as
+//!   rapids or a waterfall: `falls` in `mod.rs`), with a lip before it and a plunge pool after; widths and shores
+//!   wobble by the column (`wobble`), and lakes have a shore instead of a disc (`shore.rs`).
 //!
 //! Invariants: a pure function of the seed and the column (nodes and segments are cached, which never changes
 //! results). Nothing within `SPAWN_DRY` of spawn. A column asks the segments reaching its cell (`REACH`); the
-//! caches fill lazily. To tune: the constants below. Version 7 only.
+//! caches fill lazily. To tune: the constants below and in `course.rs` and `seg.rs`. Version 7 on.
+
+mod course;
+mod seg;
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -24,7 +30,9 @@ use rustc_hash::FxHashMap;
 
 use crate::math::{hash2, smoothstep, unit};
 
+use super::shore::Shore;
 use super::{WorldGen, SEA_LEVEL};
+use seg::{Sample, Seg};
 
 /// Blocks between nodes (one per cell of this size) and how far a node keeps from its cell's edge.
 const CELL: i32 = 256;
@@ -47,6 +55,8 @@ const LAKE_CHANCE: f64 = 0.45;
 const WET_LAKE: f64 = 0.12;
 /// No river or lake within this many blocks of spawn (their water included).
 const SPAWN_DRY: f64 = 100.0;
+/// Version 8: the scale of the columns' wobble noise (widths and shores).
+const WOBBLE_SCALE: f64 = 19.0;
 
 #[derive(Clone, Copy)]
 pub(super) struct Node {
@@ -73,34 +83,9 @@ impl Node {
     }
 }
 
-/// A river reach (a node to its downstream) or, with both ends equal, a lake.
-pub(super) struct Seg {
-    a: (f64, f64),
-    b: (f64, f64),
-    len: f64,
-    wa: f64,
-    wb: f64,
-    depth: f64,
-    /// Water level of each pool from the upstream end; the first and last equal the nodes' levels.
-    levels: Vec<i32>,
-    pool_len: f64,
-}
-
-/// What a segment says about one column.
-#[derive(Clone, Copy)]
-pub(super) struct Sample {
-    /// Distance from the water's edge (negative inside), the water's half-width there, the distance to its axis and
-    /// the channel's depth in the middle.
-    sd: f64,
-    width: f64,
-    axis: f64,
-    depth: f64,
-    /// The pool's water level, and the weir's top when on one (`i32::MIN` if not).
-    level: i32,
-    weir: i32,
-}
-
 type Segs = Rc<Vec<Rc<Seg>>>;
+/// A column and its sample.
+type Cached = ((i32, i32), Option<Sample>);
 
 /// The lazily filled caches (all pure functions of the seed).
 #[derive(Default)]
@@ -109,7 +94,13 @@ pub(super) struct RiverCache {
     segs: RefCell<FxHashMap<(i32, i32), Segs>>,
     cells: RefCell<FxHashMap<(i32, i32), Segs>>,
     last: RefCell<Option<((i32, i32), Segs)>>,
+    /// The last sample of each column, by its (x, z) mod `SAMPLES` (a chunk column's heights and then its water
+    /// ask the same columns, which never collide in a 36-wide window).
+    samples: RefCell<Vec<Option<Cached>>>,
 }
+
+/// The sample cache's side.
+const SAMPLES: i32 = 64;
 
 /// Levels this close above the sea are the sea (so no river hangs a block over it).
 fn snap(level: i32) -> i32 {
@@ -117,45 +108,6 @@ fn snap(level: i32) -> i32 {
         SEA_LEVEL
     } else {
         level
-    }
-}
-
-impl Seg {
-    fn new(a: &Node, b: Option<&Node>, levels: Vec<i32>) -> Seg {
-        let (ax, az) = (a.x as f64, a.z as f64);
-        let (bx, bz) = b.map_or((ax, az), |b| (b.x as f64, b.z as f64));
-        let len = ((bx - ax).powi(2) + (bz - az).powi(2)).sqrt();
-        let pool_len = len / levels.len() as f64;
-        let (wa, wb, depth) = match b {
-            Some(b) => (a.width, b.width, RIVER_DEPTH),
-            None => (a.width, a.width, LAKE_DEPTH),
-        };
-        Seg { a: (ax, az), b: (bx, bz), len, wa, wb, depth, levels, pool_len }
-    }
-
-    /// Whether the segment can shape any column of the rectangle (`REACH` beyond its ends).
-    fn reaches(&self, min: (f64, f64), max: (f64, f64)) -> bool {
-        self.a.0.min(self.b.0) - REACH < max.0
-            && self.a.0.max(self.b.0) + REACH > min.0
-            && self.a.1.min(self.b.1) - REACH < max.1
-            && self.a.1.max(self.b.1) + REACH > min.1
-    }
-
-    fn sample(&self, px: f64, pz: f64) -> Sample {
-        let (dx, dz) = (self.b.0 - self.a.0, self.b.1 - self.a.1);
-        let t = if self.len > 0.0 {
-            (((px - self.a.0) * dx + (pz - self.a.1) * dz) / (self.len * self.len)).clamp(0.0, 1.0)
-        } else {
-            0.0
-        };
-        let (cx, cz) = (self.a.0 + dx * t, self.a.1 + dz * t);
-        let axis = ((px - cx).powi(2) + (pz - cz).powi(2)).sqrt();
-        let width = self.wa + (self.wb - self.wa) * t;
-        let s = t * self.len;
-        let i = ((s / self.pool_len) as usize).min(self.levels.len() - 1);
-        let on_weir = i > 0 && self.levels[i - 1] != self.levels[i] && s - i as f64 * self.pool_len < WEIR_WIDTH;
-        let weir = if on_weir { self.levels[i - 1] } else { i32::MIN };
-        Sample { sd: axis - width, width, axis, depth: self.depth, level: self.levels[i], weir }
     }
 }
 
@@ -168,10 +120,14 @@ impl WorldGen {
                 return s.weir;
             }
             let u = s.axis / s.width;
-            let bed = s.level - 1 - (s.depth * (1.0 - u * u)).round() as i32;
+            let mut bed = s.level - 1 - (s.depth * (1.0 - u * u)).round() as i32;
+            if s.lip {
+                bed = bed.max(s.level - 2);
+            }
+            bed -= s.plunge;
             return if s.level <= SEA_LEVEL { bed.min(h) } else { bed };
         }
-        let target = s.level + 1;
+        let target = s.bank + 1;
         let excess = (h - target) as f64;
         if excess <= 0.0 && s.level <= SEA_LEVEL {
             return h;
@@ -194,18 +150,47 @@ impl WorldGen {
         self.river_sample(x, z).is_some()
     }
 
-    /// The segment whose water is nearest (x, z), as it sees the column.
+    /// The segment whose water is nearest (x, z), as it sees the column (cached).
     fn river_sample(&self, x: i32, z: i32) -> Option<Sample> {
+        let slot = (z.rem_euclid(SAMPLES) * SAMPLES + x.rem_euclid(SAMPLES)) as usize;
+        if let Some(Some((key, s))) = self.rivers.samples.borrow().get(slot) {
+            if *key == (x, z) {
+                return *s;
+            }
+        }
+        let s = self.sample_rivers(x, z);
+        let mut samples = self.rivers.samples.borrow_mut();
+        if samples.is_empty() {
+            samples.resize((SAMPLES * SAMPLES) as usize, None);
+        }
+        samples[slot] = Some(((x, z), s));
+        s
+    }
+
+    /// `river_sample` worked out. From version 8 the bank rises above any water whose bank reaches the column, so a
+    /// bank between two rivers at different levels holds the higher.
+    fn sample_rivers(&self, x: i32, z: i32) -> Option<Sample> {
         let segs = self.river_segs_near(x.div_euclid(CELL), z.div_euclid(CELL));
         let (px, pz) = (x as f64, z as f64);
+        let v8 = self.version >= 8;
+        let wobble =
+            if v8 && !segs.is_empty() { self.meander.noise2(px / WOBBLE_SCALE, pz / WOBBLE_SCALE) } else { 0.0 };
         let mut best: Option<Sample> = None;
+        let mut high = i32::MIN;
         for seg in segs.iter() {
-            let s = seg.sample(px, pz);
+            let s = seg.sample(px, pz, wobble);
+            if s.sd < BANK {
+                high = high.max(s.bank);
+            }
             if best.is_none_or(|b| s.sd < b.sd) {
                 best = Some(s);
             }
         }
-        best.filter(|b| b.sd < BANK + MAX_RAMP)
+        let best = best.filter(|b| b.sd < BANK + MAX_RAMP);
+        if v8 {
+            return best.map(|b| Sample { bank: b.bank.max(high), ..b });
+        }
+        best
     }
 
     /// The segments that can reach cell (cx, cz): those of the nodes up to two cells away, filtered (cached).
@@ -241,22 +226,28 @@ impl WorldGen {
         let n = self.river_node(gx, gz);
         let mut out = Vec::new();
         let down = self.river_down(&n);
+        let v8 = self.version >= 8;
         if n.wet {
             if let Some(d) = &down {
-                out.push(Rc::new(Seg::new(&n, Some(d), self.river_levels(&n, d))));
+                out.push(Rc::new(if v8 {
+                    let course = self.course(&n, d);
+                    let (ends, levels) = self.course_pools(&n, d, &course);
+                    Seg::winding(&n, d, course, ends, levels)
+                } else {
+                    Seg::new(&n, Some(d), self.river_levels(&n, d))
+                }));
             }
         }
         if self.has_lake(&n, down.is_some()) {
-            out.push(Rc::new(Seg::new(&Node { width: self.lake_radius(&n), ..n }, None, vec![n.level])));
+            // A shore reaches 0.4 to 1 of its full radius, so version 8 lakes start wider.
+            let lake = Node { width: self.lake_radius(&n) * if v8 { 1.3 } else { 1.0 }, ..n };
+            out.push(Rc::new(if v8 {
+                Seg::lake(&lake, Shore::new(hash2(self.seed ^ 0x215A, gx, gz)))
+            } else {
+                Seg::new(&lake, None, vec![n.level])
+            }));
         }
-        out.retain(|s| {
-            let (ax, az, bx, bz) = (s.a.0, s.a.1, s.b.0, s.b.1);
-            // The nearest point of the segment to spawn.
-            let (dx, dz) = (bx - ax, bz - az);
-            let t = if s.len > 0.0 { (-(ax * dx + az * dz) / (s.len * s.len)).clamp(0.0, 1.0) } else { 0.0 };
-            let d = ((ax + dx * t).powi(2) + (az + dz * t).powi(2)).sqrt();
-            d > SPAWN_DRY + s.wa.max(s.wb)
-        });
+        out.retain(|s| s.clear_of_spawn());
         let out = Rc::new(out);
         self.rivers.segs.borrow_mut().insert((gx, gz), out.clone());
         out

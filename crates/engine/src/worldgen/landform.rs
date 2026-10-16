@@ -1,6 +1,6 @@
 //! Version 7 landforms (Milestone 10): the terrain noise with larger continents, taller and sharper mountain
 //! ranges, stepped mesas in the hot dry regions and a guaranteed dry spawn. Rivers and lakes are carved into this
-//! height afterwards (`rivers.rs`); ponds after those (`water.rs`).
+//! height afterwards (`rivers.rs`); ponds after those (`water.rs`). Version 8 bends the distance from spawn by noise.
 //!
 //! Invariants: a pure function of the seed and the column; versions before 7 never call into this file. The result
 //! stays inside `4..=WORLD_HEIGHT - 16` (a soft cap bends the highest peaks under it). To tune: the constants below.
@@ -17,9 +17,11 @@ const MESA_STEP: f64 = 14.0;
 /// Within this many blocks of spawn the ground is lifted to dry land, fading out by the second figure.
 const SPAWN_LAND: (f64, f64) = (50.0, 170.0);
 const SPAWN_FLOOR: f64 = 66.0;
+/// Version 8 bends the distance from spawn within this far (past the mesas' fade even bent 35% short).
+const BENT: f64 = 620.0;
 
 impl WorldGen {
-    /// Version 7's terrain height at (x, z), before rivers.
+    /// Version 7's terrain height at (x, z), before rivers (version 8 with the spawn ring bent).
     pub(super) fn land_height(&self, x: i32, z: i32) -> i32 {
         let (fx, fz) = (x as f64, z as f64);
         let c = self.continent.fbm2(fx / 1300.0, fz / 1300.0, 4);
@@ -28,7 +30,14 @@ impl WorldGen {
         let ridge = (1.0 - r.abs() * 2.2).max(0.0);
         let mountains = ridge * ridge * smoothstep(-0.05, 0.3, c) * 135.0;
         let mut h = 68.0 + c * 58.0 + hills * 24.0 + mountains;
+        // Version 8 bends the distance from spawn, so the lifted ground and the mesas' fade end in no ring.
+        // Bent at most 35% either way; beyond `BENT` neither fade can tell, so the noise is skipped there.
         let dist = (fx * fx + fz * fz).sqrt();
+        let dist = if self.version >= 8 && dist < BENT {
+            dist * (1.0 + 0.35 * self.meander.noise2(fx / 160.0, fz / 160.0).clamp(-1.0, 1.0))
+        } else {
+            dist
+        };
         // Hot dry ground steps up in terraces (the same fields as the desert biome, near spawn faded out).
         let t = self.temperature.fbm2(fx / 1100.0, fz / 1100.0, 2);
         let m = self.moisture.fbm2(fx / 900.0, fz / 900.0, 2);

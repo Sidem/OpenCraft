@@ -8,15 +8,9 @@ use crate::math::IVec3;
 
 const SEEDS: [u32; 3] = [2024, 1337, 7];
 
-/// The (x, z) columns of the segment's axis, every `step` blocks.
+/// The (x, z) columns of the segment's axis, about every `step` blocks.
 fn axis_points(s: &Seg, step: f64) -> Vec<(i32, i32)> {
-    let n = (s.len / step).ceil().max(1.0) as i32;
-    (0..=n)
-        .map(|i| {
-            let t = i as f64 / n as f64;
-            ((s.a.0 + (s.b.0 - s.a.0) * t) as i32, (s.a.1 + (s.b.1 - s.a.1) * t) as i32)
-        })
-        .collect()
+    s.axis(step)
 }
 
 /// Every segment of the cells within `cells` of the origin.
@@ -194,6 +188,48 @@ fn lakes_hold_their_water() {
     }
 }
 
+/// The farthest any point of `pts` lies from the line through its first and last.
+fn bulge(pts: &[(i32, i32)]) -> f64 {
+    let ((ax, az), (bx, bz)) = (pts[0], pts[pts.len() - 1]);
+    let (dx, dz) = ((bx - ax) as f64, (bz - az) as f64);
+    let len = (dx * dx + dz * dz).sqrt().max(1.0);
+    pts.iter().map(|&(x, z)| (((x - ax) as f64 * dz - (z - az) as f64 * dx) / len).abs()).fold(0.0, f64::max)
+}
+
+#[test]
+fn version_8_lakes_are_not_round() {
+    for seed in SEEDS {
+        let g = WorldGen::new(seed);
+        let lakes: Vec<_> = all_segs(&g, 6).into_iter().filter(|s| s.len == 0.0).collect();
+        assert!(lakes.len() >= 5, "seed {seed}: {} lakes", lakes.len());
+        for l in lakes {
+            let (x, z) = (l.a.0 as i32, l.a.1 as i32);
+            let (hi, lo) = crate::worldgen::shore::spread(x, z, |px, pz| l.sample(px as f64, pz as f64, 0.0).sd < 0.0);
+            assert!(hi >= 1.25 * lo, "seed {seed}: lake at {x},{z}: {lo} to {hi}");
+        }
+    }
+}
+#[test]
+fn version_8_reaches_wind() {
+    for seed in SEEDS {
+        let g = WorldGen::new(seed);
+        let (mut windows, mut straight, mut reaches, mut bent) = (0, 0, 0, 0);
+        for s in all_segs(&g, 6).iter().filter(|s| s.len > 0.0) {
+            let pts = s.axis(6.0);
+            // Windows of about 48 blocks (8 points 6 apart) that stay within a block of their chord.
+            for w in pts.windows(8) {
+                windows += 1;
+                straight += usize::from(bulge(w) < 1.0);
+            }
+            reaches += 1;
+            bent += usize::from(bulge(&pts) >= 8.0);
+        }
+        println!("seed {seed}: {straight} of {windows} windows straight, {bent} of {reaches} reaches bent 8+");
+        assert!(straight * 25 <= windows, "seed {seed}: {straight} of {windows} stretches are straight");
+        assert_eq!(bent, reaches, "seed {seed}: every reach bends");
+    }
+}
+
 /// An ASCII map of the land round spawn (run with `--ignored --nocapture`): `~` sea, `=` river or lake, `:` pond,
 /// `^` high ground (digits would be better, but this fits a terminal).
 #[test]
@@ -229,24 +265,66 @@ fn map_of_the_land() {
             .collect();
         println!("{line}");
     }
+    // A close-up, 3 blocks a character, round the middle of the first long reach.
+    let s = all_segs(&g, 4).into_iter().find(|s| s.len > 220.0).expect("a long reach");
+    let (mx, mz) = s.axis(6.0)[s.axis(6.0).len() / 2];
+    for row in -25..25 {
+        let line: String = (-60..60)
+            .map(|col| {
+                let (x, z) = (mx + col * 3, mz + row * 3);
+                let h = g.height_at(x, z);
+                if g.water_top(x, z, h) > h {
+                    char::from(b'0' + (g.water_top(x, z, h) % 10) as u8)
+                } else {
+                    '.'
+                }
+            })
+            .collect();
+        println!("{line}");
+    }
 }
 
-/// Generation cost of version 7 against version 6 (run with `--release --ignored --nocapture`).
+/// Generation cost of versions 6, 7 and 8 round spawn and in river country 1,500 blocks out (run with `--release
+/// --ignored --nocapture --test-threads=1`).
 #[test]
 #[ignore]
 fn bench_generation() {
-    for version in [6, 7] {
-        let mut g = WorldGen::with_version(1337, version);
-        let start = std::time::Instant::now();
-        for cz in -6..6 {
-            for cx in -6..6 {
-                for cy in 0..4 {
-                    g.generate(IVec3::new(cx, cy, cz));
+    for (name, (x0, z0)) in [("spawn", (0, 0)), ("far", (47, 47))] {
+        for version in [6, 7, 8, 7, 8] {
+            let mut g = WorldGen::with_version(1337, version);
+            let start = std::time::Instant::now();
+            for cz in z0 - 6..z0 + 6 {
+                for cx in x0 - 6..x0 + 6 {
+                    for cy in 1..4 {
+                        g.generate(IVec3::new(cx, cy, cz));
+                    }
                 }
             }
+            println!("{name}, version {version}: {:?} for 432 chunks", start.elapsed());
         }
-        println!("version {version}: {:?} for 576 chunks", start.elapsed());
     }
+}
+
+/// Version 7's rivers as released (recorded before version 8): heights, water and the chunk blocks along reaches
+/// and lakes round spawn, since `released_versions_never_change` seldom samples a river.
+#[test]
+fn version_7_rivers_never_change() {
+    let mut g = WorldGen::with_version(1337, 7);
+    let mut bytes = Vec::new();
+    let segs = all_segs(&g, 5);
+    for s in segs.iter().take(12) {
+        for (x, z) in axis_points(s, 9.0) {
+            for (dx, dz) in [(0, 0), (4, 3), (-7, 5), (11, -9)] {
+                let h = g.height_at(x + dx, z + dz);
+                bytes.extend_from_slice(&h.to_le_bytes());
+                bytes.extend_from_slice(&g.water_top(x + dx, z + dz, h).to_le_bytes());
+            }
+        }
+        let (x, z) = axis_points(s, 9.0)[1];
+        let chunk = g.generate(IVec3::new(x >> 5, g.height_at(x, z) >> 5, z >> 5));
+        bytes.extend((0..crate::chunk::CHUNK_VOLUME).map(|i| chunk.get(i & 31, i >> 10, (i >> 5) & 31)));
+    }
+    assert_eq!(crate::bytes::fnv1a(&bytes), 0x119e_c1c9_a2d5_08b9, "version 7 rivers");
 }
 
 #[test]

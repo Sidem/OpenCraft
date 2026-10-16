@@ -3,7 +3,7 @@
 //! biome it lies in (`biome.rs`), so copper gathers in the highlands, coal and limestone in the
 //! lowlands, quartz in the deserts and iron in the basalt. Veins and lodes stain the grass and sand
 //! above them (`stain_surface`: rusty over iron, dark over coal, green over copper, pale over limestone
-//! and quartz); outcrops show themselves.
+//! and quartz; from version 8 in an irregular patch, `hint_area`); outcrops show themselves.
 //!
 //! Invariants: a pure function of the seed and the column, like version 1's seeding, and keys stay
 //! unique per (column, tier, slot), so `deposit_by_key` finds a saved deposit again. Shapes come from
@@ -18,6 +18,7 @@ use crate::deposits::{Deposit, DepositKey, Tier};
 use crate::math::{hash2, IVec3, Rng};
 
 use super::ore::{lode_shape, LODE_CHANCE, ORE_SPAWN_CLEARING};
+use super::shore::Shore;
 use super::{Biome, WorldGen};
 
 /// Outcrops per chunk column (version 1: 4 coal + 4 iron + 3 copper).
@@ -106,11 +107,12 @@ impl WorldGen {
     /// lode of `near` (and `HINT_MARGIN` blocks around it) in the column starting at (x0, z0).
     pub(super) fn stain_surface(&self, x0: i32, z0: i32, near: &[Deposit], surface: &mut [(BlockId, BlockId)]) {
         for d in near.iter().filter(|d| d.tier() != Tier::Outcrop) {
-            let r = d.radii[0].max(d.radii[2]) + HINT_MARGIN;
+            let (r, shore) = self.hint_area(d);
             let reach = r.ceil() as i32;
             for z in (d.center.z - reach).max(z0)..=(d.center.z + reach).min(z0 + CHUNK_SIZE - 1) {
                 for x in (d.center.x - reach).max(x0)..=(d.center.x + reach).min(x0 + CHUNK_SIZE - 1) {
                     let (dx, dz) = ((x - d.center.x) as f32, (z - d.center.z) as f32);
+                    let r = shore.map_or(r, |s| r * s.reach(dx as f64, dz as f64) as f32);
                     if dx * dx + dz * dz > r * r || !hash2(self.seed ^ 0x41E7, x, z).is_multiple_of(HINT_ONE_IN) {
                         continue;
                     }
@@ -130,12 +132,23 @@ impl WorldGen {
         let mut best: Option<(f32, Deposit)> = None;
         for d in self.deposits_near(x >> 5, z >> 5).into_iter().filter(|d| d.tier() != Tier::Outcrop && marks(d)) {
             let (dx, dz) = ((x - d.center.x) as f32, (z - d.center.z) as f32);
-            let (dist, r) = (dx * dx + dz * dz, d.radii[0].max(d.radii[2]) + HINT_MARGIN);
+            let (r, shore) = self.hint_area(&d);
+            let (dist, r) = (dx * dx + dz * dz, shore.map_or(r, |s| r * s.reach(dx as f64, dz as f64) as f32));
             if dist <= r * r && best.as_ref().is_none_or(|b| dist < b.0) {
                 best = Some((dist, d));
             }
         }
         best.map(|b| b.1)
+    }
+
+    /// A vein or lode's stain area: its full radius, and from version 8 a shore bending it (a circle before).
+    fn hint_area(&self, d: &Deposit) -> (f32, Option<Shore>) {
+        let r = d.radii[0].max(d.radii[2]) + HINT_MARGIN;
+        if self.version >= 8 {
+            (r * 1.25, Some(Shore::new(d.seed)))
+        } else {
+            (r, None)
+        }
     }
 
     /// An ore drawn from the weights of the biome above `at`.

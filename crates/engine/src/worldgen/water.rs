@@ -7,6 +7,7 @@
 //!   bowl carved into `height_at` (`shape_ponds`) and filled to its level (the lowest of 16 rim samples,
 //!   minus 1). A bank ring around the bowl is raised to that level, so the water stays in whatever the
 //!   ground between the samples does.
+//! - Version 8: a pond's bowl follows a shore (`shore.rs`) instead of a circle; its bank follows the bowl.
 //! - Watertight: no cave is carved within 2 blocks of water ([`WaterGuard`]).
 //!
 //! Invariants: a pure function of the seed and the column; versions 1 and 2 never call into this file.
@@ -16,6 +17,7 @@
 use crate::block::{BlockId, SAND};
 use crate::math::{hash2, unit};
 
+use super::shore::Shore;
 use super::strata::DIRS16;
 use super::{Biome, WorldGen, SEA_LEVEL};
 
@@ -50,6 +52,24 @@ pub(super) struct Pond {
     pub r: i32,
     depth: i32,
     pub level: i32,
+    /// Version 8: the bowl's outline (a circle of `r` before).
+    shore: Option<Shore>,
+}
+
+impl Pond {
+    /// Version 8: how far (x, z) lies from the centre and the bowl's radius in its direction.
+    fn reach(&self, x: i32, z: i32) -> Option<(f64, f64)> {
+        let (dx, dz) = ((x - self.x) as f64, (z - self.z) as f64);
+        self.shore.map(|s| ((dx * dx + dz * dz).sqrt(), self.r as f64 * s.reach(dx, dz)))
+    }
+
+    /// Whether the bowl covers (x, z).
+    fn covers(&self, x: i32, z: i32) -> bool {
+        match self.reach(x, z) {
+            Some((d, r)) => d < r,
+            None => (x - self.x).pow(2) + (z - self.z).pow(2) < self.r * self.r,
+        }
+    }
 }
 
 /// Around one chunk column (a margin of `CAVE_GUARD` on every side): each column's ground height and
@@ -84,6 +104,15 @@ impl WorldGen {
     /// level around that.
     pub(super) fn shape_ponds(&self, x: i32, z: i32, h: i32) -> i32 {
         let Some(p) = self.pond_near(x, z) else { return h };
+        if let Some((d, r)) = p.reach(x, z) {
+            return if d < r {
+                h.min(p.level - 1 - (p.depth as f64 * (1.0 - (d / r).powi(2))) as i32)
+            } else if d < r + BANK as f64 {
+                h.max(p.level)
+            } else {
+                h
+            };
+        }
         let (d2, r2) = ((x - p.x).pow(2) + (z - p.z).pow(2), p.r * p.r);
         if d2 < r2 {
             h.min(p.level - 1 - p.depth * (r2 - d2) / r2)
@@ -102,7 +131,7 @@ impl WorldGen {
             }
         }
         if let Some(p) = self.pond_near(x, z) {
-            if (x - p.x).pow(2) + (z - p.z).pow(2) < p.r * p.r && h < p.level {
+            if p.covers(x, z) && h < p.level {
                 return p.level;
             }
         }
@@ -173,6 +202,7 @@ impl WorldGen {
         if x * x + z * z < (POND_SPAWN_CLEARING + r + BANK).pow(2) {
             return None;
         }
+        let shore = (self.version >= 8).then(|| Shore::new(hash2(self.seed ^ 0x90DF, gx, gz)));
         let h0 = self.base_height(x, z);
         if !matches!(self.biome_at(x, z, h0), Biome::Plains | Biome::Lowlands) {
             return None;
@@ -182,7 +212,7 @@ impl WorldGen {
         }
         let rim = DIRS16.map(|(dx, dz)| self.base_height(x + dx * (r + 1) / 1000, z + dz * (r + 1) / 1000));
         let (lo, hi) = (rim.iter().copied().fold(h0, i32::min), rim.iter().copied().fold(h0, i32::max));
-        (lo > SEA_LEVEL + 3 && hi - lo <= POND_FLATNESS).then_some(Pond { x, z, r, depth, level: lo - 1 })
+        (lo > SEA_LEVEL + 3 && hi - lo <= POND_FLATNESS).then_some(Pond { x, z, r, depth, level: lo - 1, shore })
     }
 }
 

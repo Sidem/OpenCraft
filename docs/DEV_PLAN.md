@@ -4,8 +4,12 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1–13.3, 13.4a and 13.5a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); town markers, site shading and town tips (13.5b); harbour contract work (13.4b); cleanup without the play-test (13.6a); save version 53, 866 tests; not pushed) · **Next: R1c** (natural rivers and lakes), then R2 (plants); 13.6b (balance) once the user has played Milestone 13 · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+**Milestone 13 (Settlements) built and pushed** except 13.6b (town kinds and sites, the depot, orders, upkeep and stalls,
+buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
+version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
+irregular lakes, ponds and stains; 871 tests) · **Next: R2** (plants: R2a ground cover for every world, R2b on generator
+version 9); 13.6b (balance) once the user has played Milestone 13 · Then R3–R5, R7, R8, the feel-and-feedback interlude,
+the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -47,7 +51,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
-  **Now: the play-test response (section 4): R1 and R6 are settled, next is Milestone 13 (Settlements)**, then the rest of R2–R8.
+  **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b) and R1c
+  (natural rivers) are done; **next is R2 (plants)**, then the rest of R3–R8.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -59,7 +64,7 @@ Before you change code:
 1. Read sections 0–4 of this file (section 3.1 carefully), then `docs/CODEMAP.md`, then the nested
    `CLAUDE.md` of the area you work in. Skim `docs/PLAYING.md` / `docs/FACTORY.md` only if you need the player's view.
 2. Run `npm run build:wasm` (if `web/src/wasm` is missing) and `npm run check` to confirm a green baseline
-   (about 740 engine tests).
+   (about 870 engine tests).
 3. Work through the current milestone in step order. Each step lists where, how and when it's done. Do
    one step, or one clean part of a step, per session, and stop in a green, committed state.
 4. When a step is done, tick its checkbox here, update the **Status** line at the top, and add a line to
@@ -458,13 +463,14 @@ presentation (camera, sounds, particles, meshes, HUD, readouts) never feed back 
 
 Milestones 6 to 12 are built; their step lists are in `docs/CHANGELOG.md` ("Milestones 6 to 8"), `docs/CHANGELOG_M9.md`,
 `docs/CHANGELOG_M10.md`, `docs/CHANGELOG_M11.md` and `docs/CHANGELOG_M12.md` (Milestone 12, the less-hand-crafting
-interlude and the performance todo). On 2026-10-16 Claude reviewed the whole game and the user agreed with every point
+interlude and the performance todo); Milestone 13's in `docs/CHANGELOG_M13.md`, the finished R steps' in
+`docs/CHANGELOG_R.md`. On 2026-10-16 Claude reviewed the whole game and the user agreed with every point
 (section 1); with the user's play-test save that review became steps R1–R8 below, the direct next work.
 
 **Rules that still bind every step:**
 - `docs/TECH_TREE.md` section 8: tiers are data, processing machines are spec rows, recipes belong to
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
-- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 47) with a migration and a fixture
+- Old saves keep loading: each format change bumps `SAVE_VERSION` (now 53) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
 - New blocks and items append (the next free block is 117, item 396, tech 85, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 306) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
@@ -479,74 +485,27 @@ interlude and the performance todo). On 2026-10-16 Claude reviewed the whole gam
 - **Parked performance items** (details in `docs/CHANGELOG_M12.md`): P3 cheaper box instances (measure in the browser
   first), P4 an incremental co-op checksum (time a large save first), P5 small TS savings. Fit them in where a session has room.
 
-### Play-test findings (the user's save, 2026-10-16)
+### Play-test findings (2026-10-16) and the finished R steps
 
-The user has played seed 1337 in a normal world for **31.9 hours** (day 97) and enjoys it. Read headlessly from the save (Node
-loading `web/src/wasm`, `Game.load`, the tech and analytics getters):
-- **78 of 84 techs done**: everything but the three endless bonus techs, Orbital Comms, Orbital Power and Drop Pods. Construction
-  drones, swarms, trains, freight, cargo drones, the hover pack, Rocketry and Orbital Science are all researched.
-- **Researched but never used** (the user's words): drones, trains, the planner and blueprints; no rocket built (the Launch Site
-  sits in the inventory).
-- **97 machines** in the analytics: 37 at full speed, **38 held back by full output**, 15 waiting for input, 7 by their deposit.
-  Assemblers (18) average 10%, miners (13) 11%, the two refineries 0%. The base makes more than anything uses.
-- **22 deposits** touched in 32 hours. The inventory is a store: about 800 belts, stacks of kits, logs, stone and coal.
-
-**Reading:** research outran need. The tree can be finished while the problems its techs solve (distance, scale, repetition)
-never arrive, so pillar 5 ("every tier adds a new kind of problem") does not bite in the middle and late game. Likely causes:
-carrying is cheap (hauler packs up to 99 slots, the hover pack), so a far deposit is a trip, not a route; demand is small, so
-nothing has to scale; deposits last, so distance never presses; every build is one-off, so blueprints don't pay.
+The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet drones, trains and blueprints never used;
+38 of 97 machines held back by full output). Findings and the finished steps' records: `docs/CHANGELOG_R.md`.
 
 ### Next steps, in this order (one per session; "talk" steps are a conversation with the user first)
 
-- [x] **R1 Why the middle systems go unused (talked 2026-10-16).** Measured from the engine's tables: the whole tree asks for
-  about 45,000 packs (10,725 red, 10,635 green, 10,290 blue, 9,420 violet, 4,180 gold; 126 lab-hours at Mk1 speed), and its
-  only far material, bauxite, comes to about 2,800 ore (gold packs via batteries), some 44 stacks: **one trip with a Mk5 hauler
-  pack** (99 slots). Demand ends with the tree; builds never repeat; deposits last. **The user picked (section 1):** settlements
-  as growing demand (A, designed in R6, which comes next) and a blueprint prompt (D). Not picked: ore stacks of 16 (B), far
-  bulk inputs in late recipes (C), accepting drones and trains as optional (E); B and C stay fallbacks if A is not enough.
-- [x] **R1a Save inspector** (built 2026-10-16): `scripts/inspect-save.mjs <file.ocworld>` loads a save in Node through
-  `web/src/wasm` and prints play time, techs done and available, the tree's pack demand, machines by kind with what holds them
-  back, deposits touched and the inventory (`docs/WORKFLOW.md` section 1). It printed the findings above for the user's save.
-- [x] **R1b Blueprint prompt** (built 2026-10-16, presentation only, never saved): `blueprint/repeat.rs`. When the local player
-  places the same working machine (`Factory::works_at`: a processor, miner, generator or lab; same block and tier, since a recipe
-  is chosen after placing) a third time within 32 blocks this session, `blueprint_prompt` gives a tip ("Building the same again"),
-  shown ahead of the other tips by `ui/hints.ts` for 90 s (H dismisses it), and the blueprint selection is preset to a box around
-  the previous copy, so B then Enter copies it. Once per kind a session; never in creative worlds or once the world has a
-  blueprint. Tests: `blueprint/tests.rs` (fires on the third smelter, not for belts, once per kind, not with a blueprint, ends by
-  itself). Seen in the browser pane. Also fixed: garbled "·" and "×" in five files (blueprint label, quarry readout, research
-  blurbs, debug overlay). 846 tests.
-- [x] **R6 Settlements and the megaproject (talked 2026-10-16, moved up).** Decisions in section 1; the build is Milestone 13
-  below, the elevator Milestone 14 (`docs/ROADMAP.md`).
-- [ ] **R1c Natural rivers and lakes (asked 2026-10-16, before R2).** The user: rivers are far too straight, their steps
-  read as a row of dams and reservoirs instead of water flowing down, and no perfectly straight line or circle should
-  show anywhere. Causes in `worldgen/rivers.rs`: each reach is one straight segment between two nodes 256 apart; a reach
-  is long flat pools (`POOL_LENGTH` 12) held by **weirs**, strips of ground at the upper pool's level; lakes are discs
-  (`LAKE_RADIUS`) and ponds round bowls (`water.rs`). **Generator version 8, new worlds only** (the user's world keeps
-  version 7, pinned by test; R2b shares version 8 if it is not released first, else takes 9).
-  - **Winding courses:** a reach becomes a polyline (cached per segment) that meanders: a hashed sideways offset with
-    varying wavelength and amplitude growing with width, gentler in gorges; its ends stay on the nodes, so joins agree.
-    Width and the bank's edge wobble with low noise along the course.
-  - **Water that runs downhill:** no ground weirs. Where the level drops, the water spills over a stone or gravel lip as
-    **rapids** (generated flowing water, `FLOW_*`) and drops of 2 or more become a small **waterfall** into a plunge
-    pool. Drops are one block each and as often as the slope needs, so pools are short on steep ground and long only
-    on flat ground. The generated flow must be exactly what `sim/water.rs`'s rule settles on (a test runs the rule over
-    generated rapids and nothing changes), so an edit beside a river never starts a flood. Water wheels gain spots.
-  - **Shores:** lakes and ponds get irregular outlines (radius bent by a few hashed harmonics and fbm, some elongated),
-    a lake meeting its rivers where they enter and leave.
-  - **Audit the rest** for straight lines and circles in generated land: ore stains over lodes, the spawn lift's ring
-    (`SPAWN_LAND`), mesa terrace edges, tree crowns; fix what shows, list what is left in the step.
-  - **Done when:** `map_of_the_land` shows winding rivers; tests: no reach's axis stays within 2 blocks of its chord over
-    40 blocks, no lake or pond is round (radius spread at least 20%), levels never rise downstream, channels and lakes
-    hold their water, rapids are settled water; `bench_generation` costs at most 15% more; seen from above in the pane.
+- [x] **R1** (talked: settlements as demand, a blueprint prompt), **R1a** (`scripts/inspect-save.mjs`), **R1b**
+  (`blueprint/repeat.rs`), **R6** (talked: settlements became Milestone 13, the space elevator Milestone 14 in the roadmap).
+- [x] **R1c Natural rivers and lakes** (generator version 8, new worlds only; versions 7 and 8 pinned): winding reaches
+  (`rivers/course.rs`), rapids and waterfalls of settled falling water instead of weirs (`worldgen::falls`), shores for
+  lakes, ponds and ore stains (`shore.rs`), the spawn ring bent.
 - [ ] **R2 Plants (a living world, part 1).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
   - **R2a Ground cover, presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
     and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
     top of grass, sand or dirt with air above. Never blocks, never saved; a remesh clears them when the ground changes. Watch
     `bench_meshing` and vertex counts. **Done when:** every biome has its own cover, meshing costs at most 15% more, seen in the pane.
-  - **R2b Tree species and biome plants (generator version 8, new worlds only, section 6):** species as rows in
+  - **R2b Tree species and biome plants (generator version 9, new worlds only, section 6; R1c released version 8):** species as rows in
     `worldgen/trees.rs` (shape, log and leaf blocks): today's broadleaf (plains), conifers (highlands), wide wet-ground trees
     (lowlands, by water), a pale-barked plains mix, cacti (desert), dead snags and heather (basalt). Each species has a sapling;
-    every log saws into the same planks. Version 7 pinned by test. **Done when:** each biome reads differently from afar.
+    every log saws into the same planks. Versions 7 and 8 are pinned (`released_versions_never_change`). **Done when:** each biome reads differently from afar.
   - **R2c Indicator plants** (real geobotany, like the stained soil): a flower or shrub per ore over shallow veins and lodes, a
     pure function of deposit placement; pointing at one names the ore below. In the ore guide too. **Done when:** a test shows
     they grow only over their ore.
@@ -573,25 +532,19 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   colour).
 - **The user's to do:** add the two TURN secrets (`docs/WORKFLOW.md` section 4) so friends behind strict networks can join.
 
-### Milestone 13: Settlements (a first draft from R6, to refine with the user at 13.1)
+### Milestone 13: Settlements (built 2026-10-16 but for 13.6b)
 
-Goal: towns the player founds become customers whose orders keep growing, so output has a purpose and distance and scale
-press again (R1): belts, trains, cargo drones and drop pods carry the orders, and each town grows itself with the blueprint
-and drone systems. **Order:** Milestone 13 comes next as R1's main lever; R2–R5, R7 and R8 follow it, or fit between its
-steps where a session has room. Numbers are first guesses. Design notes: `docs/ROADMAP.md` ("The play-test response").
+Towns the player founds are customers whose orders keep growing, so output has a purpose and distance and scale press
+again (R1's main lever). Design notes: `docs/ROADMAP.md` ("The play-test response").
 - [x] **13.1 to 13.5b built** (2026-10-16; each step's record is in `docs/CHANGELOG_M13.md`, the player's view in
   `docs/TOWNS.md`): four town kinds and their sites, the depot, orders, upkeep and stalls, plots built by the town's own
   drones, rebuilding and dormant towns, the four perks (forge, workshop, river relay, harbour contract work), the town
   panel and stall news, map markers, site shading and the town tips. Save versions 48 to 53.
-- [x] **13.6a Cleanup without the play-test** (2026-10-16): `bench_towns` (`settlements/tests.rs`, ignored: one town of
-  each kind made a city at once, perks running, 20 minutes) found a stage's planning re-reading every column for each
-  building and slot through the 8-chunk generated cache, about 14 ms a town; `plan_stage` now reads each column's ground
-  once a plan (`plots.rs`), so a camp plans in about 4 ms a town. Four cities then cost 10 µs a tick on average, 1.9 ms
-  at worst; planning all twenty stages at once (only an old save loading a grown town) about 105 ms. The manual got its
-  town chapter (`docs/TOWNS.md`). Milestone 14 stays in `docs/ROADMAP.md` until the R steps before it are done (the plan
-  is near its budget; it moves in when it is next).
+- [x] **13.6a Cleanup without the play-test** (2026-10-16; record in `docs/CHANGELOG_M13.md`): `bench_towns`, stage
+  planning 3.5× faster, `docs/TOWNS.md`. Milestone 14 moves into this plan when it is next.
 - [ ] **13.6b Balance from the user's next play-test** (`scripts/inspect-save.mjs`): order sizes, upkeep rates, perk rates
-  and the harbour's price, once the user has played Milestone 13 (it is not pushed yet).
+  and the harbour's price, once the user has played Milestone 13 (pushed 2026-10-16; their saves are version 7 worlds,
+  so towns there sit by the old rivers).
 
 **After the R steps and Milestone 13:** the feel-and-feedback interlude (`docs/ROADMAP.md`; the instrument with few voices, a
 distance cap and music quieting under it), the carry's era pieces (splitter addresses and the tally only), Milestone 14. **Art**
@@ -601,11 +554,9 @@ Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
 - **The relay (TURN):** agreed on 2026-10-16 to add it (section 1): the user adds the TURN secrets
   (`docs/WORKFLOW.md` section 4); then test with `&relay` on both ends.
-- **Instant feedback for your own edits** (was step 3.9): measured, not built. On one machine a client's
-  action applies about 90 ms after it is made (the host's own, about 76 ms: `INPUT_DELAY` is 4 ticks);
-  over the internet add the round trip, so roughly 110–170 ms. Build it only if placing and breaking feel
-  laggy in real play: show your own block edits at once in the render cache, undo them if the core
-  disagrees, never touch the core (`interaction.rs`).
+- **Instant feedback for your own edits** (was 3.9; measured, not built): an action applies about 90 ms after it is made
+  on one machine (`INPUT_DELAY` 4 ticks), 110–170 ms over the internet. Only if placing feels laggy: show your own edits
+  at once in the render cache, undo them if the core disagrees, never touch the core (`interaction.rs`).
 - A client's every resync logs the tick and both hashes; turn any real one into a replayable test.
 
 ---
@@ -627,7 +578,7 @@ and adjust the steps.
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
-| R2b | New tree species and desert and basalt plants on new worlds only (generator version 8; the user's world keeps version 7 and gets only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
+| R2b | New tree species and desert and basalt plants on new worlds only (generator version 9; the user's worlds keep their own version and get only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
 | R4 | Which new music pieces, and when (the user composes them)? |
 | R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
 
@@ -642,38 +593,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-16: Step R1c added** (the user's ask): natural rivers and lakes on generator version 8, before R2.
-- **2026-10-16: Step 13.6a (cleanup without the play-test).** `bench_towns`; `plan_stage` reads each column's ground once a
-  plan (a camp's planning about 14 ms a town down to about 4 ms); `docs/TOWNS.md`, the player's town chapter; Milestone 13's
-  finished steps moved to `docs/CHANGELOG_M13.md`. Balance (13.6b) waits for the user's play-test.
-- **2026-10-16: Step 13.4b built (harbour contract work).** `settlements/perks/harbour/` (`Made`, `price`, the perk),
-  `Action::SetHarbourProduct`, the chooser `ui/harbour.ts`; `settlements/state.rs` split out of `mod.rs`; save version 53.
-  866 tests.
-- **2026-10-16: Step 13.5b built (maps and tips).** Town houses on both maps (`MARK_TOWN`), town site shading and a
-  legend on the world map while a depot is held (`minimap/sites.rs`, `world_map_sites`), and three town tips as a side
-  track (`hints::SIDE_HINTS`, `hint_side`). 864 tests.
-- **2026-10-16: Step 13.5a built (the town panel and stall news).** `ui/town.ts` on top of a depot's machine panel,
-  `api/towns.rs` (`town_panel`, `town_states`, `town_news`), HUD toasts when a town stalls or is supplied again, the
-  store's own panel role. 861 tests.
-- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
-  stall and recovery toasts, three tips (section 1); 13.5 split into 13.5a (panel, stall news) and 13.5b (maps, tips).
-- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
-  a perk, a batch every `period(built)` ticks at the upkeep's rate, no saved state); the depot keeps perk goods apart
-  (`Want::perk` into `input`, out at the front from `side`; save version 52, which also saves `crafting::Step::half`);
-  `Hangar::relayed`; the processor's bytes moved to `factory/process/state.rs`. 860 tests; golden hash unchanged.
-- **2026-10-16: 13.4 talked (docs only).** The depot's front becomes an out side; the forge's rate grows with the stage;
-  the workshop halves gear and mends tools; the harbour's product is the player's pick, as 13.4b after 13.5 (section 1).
-- **2026-10-16: Town blocks can't be farmed (user request).** Breaking a block of a town's plan (from the floor up)
-  drops nothing (`Settlements::broken` says so to `dismantle`); chosen over rebuilds paid from the depot's store, which
-  would need new saved state. No save change.
-- **2026-10-16: Step 13.3b built (rebuilding and dormant towns).** Breaking a depot makes its town dormant (`Town::dormant`,
-  save version 51) and a depot on its old spot wakes it; breaking a finished town block sends the cursor back so the drones
-  rebuild it, unless the player filled the gap. 855 tests.
-- **2026-10-16: Step 13.3a built (plots, plans and the town's drones).** `settlements/plans.rs`, `plots.rs` and `build.rs`;
-  `Town` gains `planned`, `plots`, `cursor` and `drones` (save version 50); town drones, chimney smoke and outlines in
-  `town_preview.rs`; `drones::approach` and `factory::smoke` opened to the crate. 854 tests.
-- **2026-10-16: 13.3 talked (docs only).** The town's own drones build it for free; buildings stand on foundations and bad
-  plots are skipped; one building set in each kind's materials; broken town blocks are rebuilt and a town without its depot
-  goes dormant (section 1). Step 13.3 split into 13.3a (plots, plans, drones) and 13.3b (rebuilding, dormant towns).
+- **2026-10-16: Milestone 13 (to 13.6a) and R1c pushed** to the live site; generator version 8 pinned as released.
+- **2026-10-16: Step R1c asked and built** (generator version 8): winding rivers that spill down as rapids and waterfalls, lakes,
+  ponds and ore stains with irregular shores, the spawn ring bent; version 7 pinned. 871 tests.
 
-Earlier entries live in [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).
+Earlier entries live in [CHANGELOG_M13.md](CHANGELOG_M13.md), [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).

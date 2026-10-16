@@ -2,7 +2,7 @@
 //! actions change blocks (`change`: the edit plus `block_changed`).
 
 use super::*;
-use crate::block::{FLOW_1, STONE};
+use crate::block::{FLOW_1, FLOW_7, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
 
 const SEED: u32 = 1337;
@@ -192,6 +192,47 @@ fn a_big_flood_keeps_to_the_cap_and_fills_every_cell() {
             }
         }
     }
+}
+
+/// Generator version 8 spills each river pool into the next as falling water (`worldgen::falls`): checking every
+/// such cell and its neighbours changes nothing, so an edit beside a river never sets it moving.
+#[test]
+fn generated_falls_are_settled_water() {
+    let mut gen = crate::worldgen::WorldGen::new(SEED);
+    let mut chunks = Vec::new();
+    for z in (-1200..1200).step_by(8) {
+        for x in (-1200..1200).step_by(8) {
+            let c = IVec3::new(x >> 5, gen.height_at(x, z) >> 5, z >> 5);
+            if gen.open_water(x, z) == Some(crate::worldgen::Water::River) && !chunks.contains(&c) && chunks.len() < 40
+            {
+                chunks.push(c);
+            }
+        }
+    }
+    let mut falls = Vec::new();
+    for c in chunks {
+        let chunk = gen.generate(c);
+        for i in 0..crate::chunk::CHUNK_VOLUME {
+            let (x, y, z) = (i & 31, i >> 10, (i >> 5) & 31);
+            if chunk.get(x, y, z) == FLOW_7 {
+                falls.push(IVec3::new(c.x * 32 + x as i32, c.y * 32 + y as i32, c.z * 32 + z as i32));
+            }
+        }
+    }
+    assert!(falls.len() > 20, "rivers have falls: {}", falls.len());
+    let mut sim = Sim::new(SEED, 2);
+    let mut cells: Vec<IVec3> = falls.iter().flat_map(|&p| FACES.map(|f| p + f).into_iter().chain([p])).collect();
+    cells.extend(falls.iter().flat_map(|&p| SIDES.map(|s| p + s + UP)));
+    let before: Vec<BlockId> = cells.iter().map(|&p| sim.block(p)).collect();
+    for &p in &cells {
+        sim.water.schedule(sim.tick, p);
+    }
+    let pending = sim.water.pending_count();
+    settle(&mut sim);
+    println!("{} falls, {pending} checks", falls.len());
+    let after: Vec<BlockId> = cells.iter().map(|&p| sim.block(p)).collect();
+    let moved: Vec<_> = cells.iter().zip(before.iter().zip(&after)).filter(|(_, (b, a))| b != a).take(5).collect();
+    assert!(moved.is_empty(), "{} falls; changed: {moved:?}", falls.len());
 }
 
 /// `cargo test --release bench_water -- --ignored --nocapture`

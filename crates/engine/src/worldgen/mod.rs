@@ -19,7 +19,9 @@
 //! 6 = Milestone 10's new ground: bauxite from 300 blocks out instead of 600, oil sand and uranium (`geology.rs`
 //! `EXTRAS`, deep bands in `strata.rs`, found by scanning), and far fewer caves (`caves.rs`: cave zones);
 //! 7 = Milestone 10's terrain overhaul: bigger continents, taller ranges, mesas (`landform.rs`), rivers and lakes
-//! (`rivers.rs`, branching in `height_at` and `water_top`).
+//! (`rivers.rs`, branching in `height_at` and `water_top`);
+//! 8 = R1c's natural water: winding rivers whose pools spill down as rapids and waterfalls (`falls` here, `rivers/`),
+//! lakes and ponds with irregular shores (`shore.rs`).
 
 mod bearing;
 mod biome;
@@ -28,6 +30,7 @@ mod geology;
 mod landform;
 mod ore;
 mod rivers;
+mod shore;
 mod strata;
 mod trees;
 mod water;
@@ -54,7 +57,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 7;
+pub const WORLDGEN_VERSION: u32 = 8;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -84,6 +87,8 @@ pub struct WorldGen {
     temperature: Perlin,
     moisture: Perlin,
     basalt: Perlin,
+    /// Version 8: river bends and the wobble of widths and shores (`rivers/`).
+    meander: Perlin,
     columns: FxHashMap<(i32, i32), Rc<Column>>,
     /// Version 7's river nodes and reaches (`rivers.rs`), caches.
     rivers: rivers::RiverCache,
@@ -116,6 +121,7 @@ impl WorldGen {
             temperature: Perlin::new(s ^ 0x07),
             moisture: Perlin::new(s ^ 0x08),
             basalt: Perlin::new(s ^ 0x09),
+            meander: Perlin::new(s ^ 0x0B),
             columns: FxHashMap::default(),
             rivers: Default::default(),
             ponds: RefCell::default(),
@@ -202,6 +208,15 @@ impl WorldGen {
         let mut surface = vec![(AIR, AIR); 1024];
         let mut rock = vec![STONE; 1024];
         let mut water = vec![i32::MIN; 1024];
+        // Version 3: every padded column's top water block (`i32::MIN` when dry).
+        let wet: Vec<i32> = if self.version >= 3 {
+            hm.iter()
+                .enumerate()
+                .map(|(i, &h)| self.water_top(x0 + (i % P) as i32 - 2, z0 + (i / P) as i32 - 2, h))
+                .collect()
+        } else {
+            Vec::new()
+        };
         let mut max_ground = 0;
         for z in 0..32 {
             for x in 0..32 {
@@ -215,7 +230,7 @@ impl WorldGen {
                     let biome = self.biome_at(x0 + x as i32, z0 + z as i32, h);
                     (surface[i], rock[i]) = Self::surface_v2(biome, h, slope);
                     if self.version >= 3 {
-                        water[i] = self.water_top(x0 + x as i32, z0 + z as i32, h);
+                        water[i] = wet[(z + 2) * P + x + 2];
                         surface[i] = Self::surface_v3(surface[i], h, water[i] > h);
                     }
                 } else {
@@ -226,24 +241,15 @@ impl WorldGen {
         }
         let trees = self.trees_near(x0, z0);
         let max_y = trees.iter().map(|t| t.ground + t.trunk + 2).fold(max_ground, i32::max);
-        let max_y = water.iter().copied().fold(max_y, i32::max);
-        let guard = (self.version >= 3)
-            .then(|| {
-                let (sx, sz) = (x0 - 2, z0 - 2);
-                WaterGuard::new(
-                    hm.iter()
-                        .enumerate()
-                        .map(|(i, &h)| (h, self.water_top(sx + (i % P) as i32, sz + (i / P) as i32, h)))
-                        .collect(),
-                )
-            })
-            .flatten();
+        let falls = if self.version >= 8 { falls(&wet, P) } else { Vec::new() };
+        let max_y = water.iter().chain(&falls).copied().fold(max_y, i32::max);
+        let guard = (self.version >= 3).then(|| WaterGuard::new(hm.iter().copied().zip(wet).collect())).flatten();
         let near = self.deposits_near(cx, cz);
         if self.version >= 2 {
             self.stain_surface(x0, z0, &near, &mut surface);
         }
         let deposits = ore::in_column(near, cx, cz);
-        Column { heights, surface, rock, water, guard, trees, deposits, max_y, max_ground }
+        Column { heights, surface, rock, water, falls, guard, trees, deposits, max_y, max_ground }
     }
 
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
@@ -327,6 +333,11 @@ impl WorldGen {
                 for wy in (h + 1).max(base.y)..=top {
                     b[index(x, (wy - base.y) as usize, z)] = WATER;
                 }
+                if let Some(&fall) = col.falls.get(z * 32 + x) {
+                    for wy in (col.water[z * 32 + x] + 1).max(base.y)..=fall.min(base.y + CHUNK_SIZE - 1) {
+                        b[index(x, (wy - base.y) as usize, z)] = FLOW_7;
+                    }
+                }
             }
         }
 
@@ -351,6 +362,8 @@ struct Column {
     rock: Vec<BlockId>,
     /// Version 3: each column's top water block, `i32::MIN` when dry (`water.rs`).
     water: Vec<i32>,
+    /// Version 8: the top of the falling water above each column's water (`i32::MIN` for none; empty before).
+    falls: Vec<i32>,
     guard: Option<WaterGuard>,
     trees: Vec<Tree>,
     /// Deposits (seeded here or in a neighbouring column) whose shape reaches into this column,
@@ -359,6 +372,23 @@ struct Column {
     /// Highest non-air voxel in the column, including tree canopies.
     max_y: i32,
     max_ground: i32,
+}
+
+/// Version 8: where water stands next to higher water (a pool below a drop), the cells between them hold falling water
+/// up to the higher top (`FLOW_7`), exactly what `sim/water.rs` settles on there, so nothing moves until an edit.
+/// `wet` holds the top water blocks of a `p`-wide grid padded by 2; the result covers the 32² inner columns.
+fn falls(wet: &[i32], p: usize) -> Vec<i32> {
+    let mut out = vec![i32::MIN; 1024];
+    for z in 0..32 {
+        for x in 0..32 {
+            let c = (z + 2) * p + x + 2;
+            let top = [c - 1, c + 1, c - p, c + p].iter().map(|&n| wet[n]).max().unwrap_or(i32::MIN);
+            if wet[c] != i32::MIN && top > wet[c] {
+                out[z * 32 + x] = top;
+            }
+        }
+    }
+    out
 }
 
 #[cfg(test)]
