@@ -34,8 +34,11 @@ impl Game {
                 SimEvent::BlockBroken { pos, block, .. } => {
                     self.play(sound::BREAK, block::def(block).sound, pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
                 }
-                SimEvent::BlockPlaced { pos, block, .. } => {
+                SimEvent::BlockPlaced { player, pos, block } => {
                     self.play(sound::PLACE, block::def(block).sound, pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
+                    if player == local {
+                        self.note_placed(pos, block);
+                    }
                 }
                 SimEvent::LeafDecayed { pos } => {
                     let at = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);

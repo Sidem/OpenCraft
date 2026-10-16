@@ -3,7 +3,7 @@
 // them into a growing GPU buffer and draws them with the lit cutout shader: the daylight, lamps and
 // shade of the cell each box stands in (the engine packs that light into the last float).
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
-// top/side/bottom, uv mode + 2 Ã— light, pitch, roll, taper, reserved. Four vec4s (see `S.boxVert`).
+// top/side/bottom, uv mode + 2 × light, pitch, roll, taper, reserved. Four vec4s (see `S.boxVert`).
 
 import { createProgram, uniforms } from './gl';
 import * as S from './shaders';
@@ -74,7 +74,7 @@ export class BoxPipeline {
 
 /**
  * Unit cube for instanced boxes: 36 vertices of (corner.xyz, face index). Faces follow the mesher's
- * order and axes (u Ã— v = normal), so triangles wind counter-clockwise seen from outside.
+ * order and axes (u × v = normal), so triangles wind counter-clockwise seen from outside.
  */
 function boxCorners(): Float32Array {
   const faces: [number[], number[], number[]][] = [

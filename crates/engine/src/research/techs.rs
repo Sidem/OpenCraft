@@ -142,7 +142,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Assembly",
-        blurb: "The assembler, a 2Ã—2Ã—2 machine that puts parts together: motors, concrete, and packs and kits \
+        blurb: "The assembler, a 2×2×2 machine that puts parts together: motors, concrete, and packs and kits \
                 by the beltful.",
         needs: &[4],
         packs: &[RED_PACK, GREEN_PACK],
@@ -162,7 +162,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Steelmaking",
-        blurb: "The blast furnace, a 2Ã—2Ã—3 furnace: iron ore, coal and quicklime in, steel out the front and slag \
+        blurb: "The blast furnace, a 2×2×3 furnace: iron ore, coal and quicklime in, steel out the front and slag \
                 out the side. Constructors press steel into plates and beams.",
         needs: &[7, 8],
         packs: &[RED_PACK, GREEN_PACK],
@@ -261,7 +261,7 @@ const MAIN: [Tech; 30] = [
     },
     Tech {
         name: "Bulk Storage",
-        blurb: "Silos: 2Ã—2Ã—3 stores of 144 stacks that take belts on every side and give to belts leading away.",
+        blurb: "Silos: 2×2×3 stores of 144 stacks that take belts on every side and give to belts leading away.",
         needs: &[10],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
         units: 40,
@@ -402,7 +402,7 @@ const MAIN: [Tech; 30] = [
     Tech {
         name: "Construction Drones",
         blurb: "The drone: two actuators, a drone cell and a guidance module, 30 seconds in an assembler, and the \
-                drone port, a 3Ã—3 pad that keeps four and sends them out to build your ghosts and tear down what \
+                drone port, a 3×3 pad that keeps four and sends them out to build your ghosts and tear down what \
                 you mark, working from storage boxes beside it.",
         needs: &[26, 27],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],

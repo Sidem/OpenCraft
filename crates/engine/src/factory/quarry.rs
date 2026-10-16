@@ -1,5 +1,5 @@
 //! Quarry: a powered machine (its tier's kW, `QUARRY_TIERS`) that digs the ground in a box in front of it for real,
-//! leaving a pit. The box (`DigBox`) is `width` Ã— `width` cells from one cell in front of its face,
+//! leaving a pit. The box (`DigBox`) is `width` × `width` cells from one cell in front of its face,
 //! from the quarry's own level down to its depth choice (`DEPTHS`). It works through the box top
 //! layer first, row by row back and forth (`DigBox::cell`), one block every `dig_ticks` at full
 //! power. Each ground block (`QUARRIABLE`) becomes its normal drop in the output buffer, which feeds
@@ -37,7 +37,7 @@ use super::{Factory, Kind, Machine};
 
 /// What a quarry tier does, Mk1 first.
 pub struct QuarryTier {
-    /// Ticks per block at full power: 30, 15 and 10 make 2, 4 and 6 blocks a second (a 7 Ã— 7 Ã— 16 pit takes
+    /// Ticks per block at full power: 30, 15 and 10 make 2, 4 and 6 blocks a second (a 7 × 7 × 16 pit takes
     /// about 7 minutes at Mk1).
     pub dig_ticks: u32,
     /// kW while it digs.
@@ -360,7 +360,7 @@ impl Machine for Quarry {
         let mut lines = vec![
             self.status_text(f),
             format!(
-                "{w}Ã—{w}, {} Â· layer {layer} of {layers} Â· {} dug Â· needs {} kW",
+                "{w}×{w}, {} · layer {layer} of {layers} · {} dug · needs {} kW",
                 DEPTHS[self.depth as usize].label(),
                 fmt_int(self.dug as u64),
                 self.stats().power,
@@ -371,7 +371,7 @@ impl Machine for Quarry {
         let held = self.out.contents();
         if !held.is_empty() {
             let names: Vec<String> = held.iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
-            lines.push(format!("Holding {} Â· right-click for its panel", names.join(", ")));
+            lines.push(format!("Holding {} · right-click for its panel", names.join(", ")));
         }
         lines.join("\n")
     }

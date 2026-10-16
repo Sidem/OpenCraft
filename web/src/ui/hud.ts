@@ -186,14 +186,14 @@ export class Hud {
       const yawDeg = ((g.yaw() * 180) / Math.PI + 360) % 360;
       const facing = ['N (-Z)', 'E (+X)', 'S (+Z)', 'W (-X)'][Math.round(yawDeg / 90) % 4];
       this.debug.textContent = [
-        `OpenCraft Â· ${f(info.fps, 0)} fps Â· ${f(info.frameMs, 2)} ms/frame Â· worldgen+mesh ${f(info.workMs, 2)} ms`,
+        `OpenCraft · ${f(info.fps, 0)} fps · ${f(info.frameMs, 2)} ms/frame · worldgen+mesh ${f(info.workMs, 2)} ms`,
         `XYZ ${f(g.player_x(), 2)} / ${f(g.player_y(), 2)} / ${f(g.player_z(), 2)}   facing ${facing}`,
-        `mode ${g.flying() ? 'fly' : 'walk'}${g.on_ground() ? ' Â· on ground' : ''}`,
-        `chunks ${g.chunks_loaded()} loaded Â· ${g.chunks_pending()} queued Â· ${g.chunks_dirty()} awaiting mesh`,
-        `meshes ${info.meshes} Â· drawn ${info.visible} Â· ${info.drawCalls} draw calls Â· ${(info.quads / 1000).toFixed(1)}k quads`,
+        `mode ${g.flying() ? 'fly' : 'walk'}${g.on_ground() ? ' · on ground' : ''}`,
+        `chunks ${g.chunks_loaded()} loaded · ${g.chunks_pending()} queued · ${g.chunks_dirty()} awaiting mesh`,
+        `meshes ${info.meshes} · drawn ${info.visible} · ${info.drawCalls} draw calls · ${(info.quads / 1000).toFixed(1)}k quads`,
         `items ${g.item_entities()}` +
-          (g.has_target() ? ` Â· target ${this.names[g.target_block()]} @ ${g.target_x()} ${g.target_y()} ${g.target_z()}` : ''),
-        `factory ${g.belts()} belts Â· ${g.miners()} miners Â· ${g.boxes()} boxes Â· ${g.deposits_tracked()} deposits tracked`,
+          (g.has_target() ? ` · target ${this.names[g.target_block()]} @ ${g.target_x()} ${g.target_y()} ${g.target_z()}` : ''),
+        `factory ${g.belts()} belts · ${g.miners()} miners · ${g.boxes()} boxes · ${g.deposits_tracked()} deposits tracked`,
       ].join('\n');
     }
   }

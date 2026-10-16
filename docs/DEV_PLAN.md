@@ -3,8 +3,8 @@
 **Status:** 2026-10-16 · Milestones 1–11, the less-hand-crafting interlude and Milestone 12 (Orbit: 12.1–12.4 and the orbit
 polish) are built and pushed; save version 47, 844 tests · 12.5 stays open only to move Milestone 13 in after R6 ·
 **Next: the play-test response, steps R1–R8 (section 4)**, from Claude's whole-game review, which the user adopted in full, and
-the user's 32-hour play-test (drones, trains and blueprints researched but never needed) · R1 talked: settlements as growing
-demand and a blueprint prompt; next R1a, R1b, then R6's talk (settlements and the megaproject), moved up · Then the feel-and-feedback interlude, the trimmed carry, Milestone 13 · Art work
+the user's 32-hour play-test (drones, trains and blueprints researched but never needed) · R1 talked (settlements as growing
+demand, a blueprint prompt); R1a and R1b built · **Next: R6's talk** (settlements and the megaproject), moved up · Then the feel-and-feedback interlude, the trimmed carry, Milestone 13 · Art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -498,14 +498,17 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   pack** (99 slots). Demand ends with the tree; builds never repeat; deposits last. **The user picked (section 1):** settlements
   as growing demand (A, designed in R6, which comes next) and a blueprint prompt (D). Not picked: ore stacks of 16 (B), far
   bulk inputs in late recipes (C), accepting drones and trains as optional (E); B and C stay fallbacks if A is not enough.
-- [ ] **R1a Save inspector (small).** `scripts/inspect-save.mjs`: gunzip an `.ocworld`, load it in Node through `web/src/wasm`
-  (`initSync`, `Game.load`), print play time, techs done and available, machines by kind with what holds them back, the
-  inventory, and the tree's pack demand (`tech_units` × `tech_packs`). A line in `docs/WORKFLOW.md`. **Done when:** it prints
-  the summary above for the user's save.
-- [ ] **R1b Blueprint prompt (small, presentation).** When the player places a machine of the same kind and recipe as two others
-  within 32 blocks (the third copy), a tip offers to copy the group as a blueprint (B), with the selection preset to the box around
-  the existing copies if the blueprint tool allows it. Once per machine kind per world, H snoozes, never in creative. Kept beside
-  the save, not core state. **Done when:** a scenario test places three smelter rows and the prompt fires once.
+- [x] **R1a Save inspector** (built 2026-10-16): `scripts/inspect-save.mjs <file.ocworld>` loads a save in Node through
+  `web/src/wasm` and prints play time, techs done and available, the tree's pack demand, machines by kind with what holds them
+  back, deposits touched and the inventory (`docs/WORKFLOW.md` section 1). It printed the findings above for the user's save.
+- [x] **R1b Blueprint prompt** (built 2026-10-16, presentation only, never saved): `blueprint/repeat.rs`. When the local player
+  places the same working machine (`Factory::works_at`: a processor, miner, generator or lab; same block and tier, since a recipe
+  is chosen after placing) a third time within 32 blocks this session, `blueprint_prompt` gives a tip ("Building the same again"),
+  shown ahead of the other tips by `ui/hints.ts` for 90 s (H dismisses it), and the blueprint selection is preset to a box around
+  the previous copy, so B then Enter copies it. Once per kind a session; never in creative worlds or once the world has a
+  blueprint. Tests: `blueprint/tests.rs` (fires on the third smelter, not for belts, once per kind, not with a blueprint, ends by
+  itself). Seen in the browser pane. Also fixed: garbled "·" and "×" in five files (blueprint label, quarry readout, research
+  blurbs, debug overlay). 846 tests.
 - **Next: R6's talk, moved up** (settlements are R1's main lever); the build steps it produces are placed after R1b.
 - [ ] **R2 Plants (a living world, part 1).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
   - **R2a Ground cover, presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
@@ -595,6 +598,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: R1a and R1b built.** `scripts/inspect-save.mjs` reads a player's save headlessly; the blueprint prompt
+  (`blueprint/repeat.rs`, `Factory::works_at`, `blueprint_prompt` in `api/blueprint.rs`, a card in `ui/hints.ts`) offers a
+  blueprint when a machine is built a third time nearby, with the box preset. Garbled "·" and "×" fixed in five files. No save or
+  core change; golden hash unchanged.
 - **2026-10-16: R1 talked (docs only).** The tree's pack demand and far material measured (one hauler trip of bauxite covers
   the game); the user picked settlements as growing demand and a blueprint prompt. New steps R1a (save inspector) and R1b
   (blueprint prompt); R6's talk moved up to follow them.

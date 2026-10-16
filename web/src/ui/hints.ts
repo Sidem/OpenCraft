@@ -10,6 +10,8 @@
 // Hand mining is taught as it happens (`hand_waste.rs`): each ore block broken by hand flashes what was kept and
 // lost under the crosshair, and after a few a warning card with the totals jumps ahead of every tip (the opening's
 // too) while the player keeps at it (H snoozes it for `SNOOZE_BLOCKS` more). Creative worlds skip both.
+// Building the same machine a third time nearby brings the blueprint prompt (`blueprint_prompt`,
+// `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it.
 
 import './hints.css';
 import type { Game } from '../wasm/engine.js';
@@ -22,6 +24,8 @@ const STORAGE_KEY = 'opencraft.hints.skipped';
 const OPENING = -2;
 /** `shown` for the hand-mining warning. */
 const WASTE = -3;
+/** `shown` for the blueprint prompt. */
+const REPEAT = -4;
 /** A lead-in this short before the first ": " is the tip's title. */
 const TITLE_MAX = 40;
 /** The hand-mining warning stays this long after the latest ore block broken by hand. */
@@ -79,6 +83,11 @@ export class Hints {
       this.update();
       return;
     }
+    if (this.shown === REPEAT) {
+      this.game.blueprint_prompt_dismiss();
+      this.update();
+      return;
+    }
     this.skipped.add(this.shown);
     saveSkipped(this.skipped);
     this.update();
@@ -98,6 +107,11 @@ export class Hints {
       if (this.shown !== WASTE) this.show(WASTE, 'Heads up', waste);
       else if (waste !== this.wasteText) this.draw(waste); // the totals grew: no new animation
       this.wasteText = waste;
+      return;
+    }
+    const repeat = g.blueprint_prompt();
+    if (repeat) {
+      if (this.shown !== REPEAT) this.show(REPEAT, 'Save some work', repeat);
       return;
     }
     if (step > 0) {

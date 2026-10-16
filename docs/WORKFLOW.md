@@ -18,6 +18,7 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `node scripts/check-size.mjs` | Size budgets only. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
 | `node scripts/wasm-sizes.mjs [n] [filter]` | After `npm run build:wasm`: the largest wasm functions by name, to find what grew. Compare with the same list from the last commit (build it in a `git worktree`). |
+| `node scripts/inspect-save.mjs <file.ocworld>` | After `npm run build:wasm`: reads a player's exported world headlessly (play time, techs, the tree's pack demand, machines and what holds them back, the inventory). Use it on the user's play-test saves before judging balance. |
 
 Line counts: use `(Get-Content <file>).Count`. `Measure-Object -Line` skips blank lines and undercounts.
 

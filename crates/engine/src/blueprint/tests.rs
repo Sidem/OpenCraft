@@ -161,3 +161,56 @@ fn the_hands_mark_copy_and_stamp_through_the_game() {
     g.mark_blueprint_corner();
     assert_eq!(g.library.held, None, "Z puts it away");
 }
+
+#[test]
+fn a_third_copy_of_a_machine_offers_a_blueprint_once() {
+    use crate::block::{CONSTRUCTOR, SMELTER};
+    let mut g = crate::Game::new(2024, 3);
+    crate::tests::run_until_ready(&mut g);
+    let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
+    let place = |g: &mut crate::Game, block: BlockId, at: IVec3| {
+        build(&mut g.sim, block, base + at, 1);
+        g.run_ticks(1);
+    };
+    place(&mut g, SMELTER, IVec3::ZERO);
+    place(&mut g, SMELTER, IVec3::new(4, 0, 0));
+    for i in 0..3 {
+        place(&mut g, BELT, IVec3::new(i, 0, 2)); // logistics never count
+    }
+    assert_eq!(g.repeat_prompt(), "", "two copies are not a pattern yet");
+    place(&mut g, SMELTER, IVec3::new(8, 0, 0));
+    let tip = g.repeat_prompt();
+    assert!(tip.starts_with("Building the same again") && tip.contains("third *Smelter*"), "{tip}");
+    let (lo, hi) = g.library.selection.expect("a box is preset");
+    let previous = base + IVec3::new(4, 0, 0);
+    assert!(lo.x <= previous.x && previous.x <= hi.x && lo.z <= previous.z && previous.z <= hi.z);
+    assert!(hi.x < base.x + 8, "the box holds the previous copy, not the new one");
+
+    g.dismiss_repeat_prompt();
+    assert_eq!(g.repeat_prompt(), "");
+    place(&mut g, SMELTER, IVec3::new(12, 0, 0));
+    assert_eq!(g.repeat_prompt(), "", "once per kind a session");
+
+    // A world with a blueprint already knows the tool.
+    g.library.selection = None;
+    g.library.list.push(Blueprint { name: "Line".into(), size: IVec3::new(1, 1, 1), entries: Vec::new() });
+    for i in 0..3 {
+        place(&mut g, CONSTRUCTOR, IVec3::new(4 * i, 0, 6));
+    }
+    assert_eq!((g.repeat_prompt(), g.library.selection), (String::new(), None));
+}
+
+#[test]
+fn the_blueprint_prompt_ends_by_itself() {
+    use crate::block::GENERATOR;
+    let mut g = crate::Game::new(2024, 3);
+    crate::tests::run_until_ready(&mut g);
+    let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
+    for i in 0..3 {
+        build(&mut g.sim, GENERATOR, base + IVec3::new(2 * i, 0, 0), 0);
+        g.run_ticks(1);
+    }
+    assert!(!g.repeat_prompt().is_empty());
+    g.sim.tick += super::repeat::SHOW_TICKS;
+    assert_eq!(g.repeat_prompt(), "");
+}

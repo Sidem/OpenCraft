@@ -124,7 +124,7 @@ impl Game {
         let lib = &self.library;
         let note = |default: &str| if lib.note.is_empty() { default.to_string() } else { lib.note.clone() };
         if let Some(bp) = lib.held.and_then(|i| lib.list.get(i)) {
-            let title = format!("Blueprint Â· {} Â· {} machines", bp.name, bp.entries.len());
+            let title = format!("Blueprint · {} · {} machines", bp.name, bp.entries.len());
             let inv = self.inventory();
             let short: Vec<String> = bp
                 .needs()
@@ -138,11 +138,11 @@ impl Game {
             } else {
                 format!("Missing {}{more}", short.iter().take(LABEL_MISSING).cloned().collect::<Vec<_>>().join(", "))
             };
-            let hint = note("Right-click stamps ghosts Â· R turns Â· Z puts it away");
+            let hint = note("Right-click stamps ghosts · R turns · Z puts it away");
             return Some(format!("{title}\n{hint}\n{missing}"));
         }
         if lib.selection.is_some() {
-            return Some(format!("Box selected\n{} Â· Enter copies its machines Â· Z clears", note("")));
+            return Some(format!("Box selected\n{} · Enter copies its machines · Z clears", note("")));
         }
         lib.corner.map(|_| format!("Marking a box\n{}", note("Aim at the opposite corner and press Z")))
     }

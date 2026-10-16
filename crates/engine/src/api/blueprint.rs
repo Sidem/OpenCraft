@@ -1,6 +1,6 @@
 //! The blueprint library for the host (`web/src/ui/blueprints.ts`): the names to list, picking one up,
-//! renaming and deleting, the keys' marking and copying, and the bytes the host keeps with the world
-//! (`blueprint/`).
+//! renaming and deleting, the keys' marking and copying, the bytes the host keeps with the world, and the
+//! prompt offering a blueprint when a machine is built again (`blueprint/`).
 
 use wasm_bindgen::prelude::*;
 
@@ -52,6 +52,17 @@ impl Game {
 
     pub fn blueprint_delete(&mut self, i: u32) {
         self.library.delete(i as usize);
+    }
+
+    /// The tip offering a blueprint after the same machine was built a third time nearby (hint markup), or
+    /// empty while there is none (`blueprint/repeat.rs`).
+    pub fn blueprint_prompt(&self) -> String {
+        self.repeat_prompt()
+    }
+
+    /// H on that tip: hides it.
+    pub fn blueprint_prompt_dismiss(&mut self) {
+        self.dismiss_repeat_prompt();
     }
 
     /// The library as bytes for the host to keep.

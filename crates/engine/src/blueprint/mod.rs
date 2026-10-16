@@ -15,6 +15,7 @@
 //! To copy more of a machine: read it in `Factory::placed_as` and carry it in [`Entry`] (and `Ghost`).
 
 mod hands;
+mod repeat;
 #[cfg(test)]
 mod tests;
 
@@ -65,6 +66,8 @@ pub struct Library {
     pub note: String,
     /// Changes whenever the list does, so the host knows to save and redraw.
     pub version: u32,
+    /// The prompt offering a blueprint when a machine is built again (`repeat.rs`).
+    pub repeat: repeat::Repeat,
 }
 
 impl Blueprint {

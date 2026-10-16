@@ -1,5 +1,5 @@
-//! How a machine was placed, read back: the facing and tier a blueprint copies (`blueprint/`).
-//! Read-only; `Factory::place` is the inverse.
+//! How a machine was placed, read back: the facing and tier a blueprint copies (`blueprint/`), and whether
+//! it is a working machine. Read-only; `Factory::place` is the inverse.
 
 use crate::math::IVec3;
 
@@ -33,5 +33,15 @@ impl Factory {
             | Slot::Node(_) => 0,
         };
         Some((facing % 4, self.tiered_at(pos).map_or(0, |(_, tier)| tier)))
+    }
+
+    /// Whether a working machine (a processor, miner, generator or lab, not logistics, storage or poles) is
+    /// anchored at `pos`: what the blueprint prompt counts (`blueprint/repeat.rs`).
+    pub fn works_at(&self, pos: IVec3) -> bool {
+        match self.at.get(&pos) {
+            Some(Slot::Process(i)) => self.processors[*i as usize].pos == pos,
+            Some(Slot::Miner(_) | Slot::Generator(_) | Slot::Lab(_)) => true,
+            _ => false,
+        }
     }
 }
