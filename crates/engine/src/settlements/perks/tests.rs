@@ -3,10 +3,12 @@ use crate::action::Action;
 use crate::block::{COPPER_ORE, DRONE_PORT, IRON_ORE, TOWN_DEPOT};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::crafting::Step;
-use crate::item::{ItemId, COPPER_INGOT, HAULER_PACK, IRON_PICKAXE, IRON_PLATE, SCREW, STEEL_PLATE};
+use crate::item::{
+    ItemId, BATTERY, COPPER_INGOT, FUEL_CELL, HAULER_PACK, IRON_PICKAXE, IRON_PLATE, MOTOR, SCREW, STEEL_PLATE,
+};
 use crate::math::IVec3;
 use crate::recipes::RECIPES;
-use crate::settlements::{RIVER_TOWN, WORKSHOP};
+use crate::settlements::{HARBOUR, RIVER_TOWN, WORKSHOP};
 use crate::sim::{PlayerId, Sim};
 
 const P: PlayerId = PlayerId(0);
@@ -139,4 +141,67 @@ fn a_workshop_mends_worn_tools_and_halves_its_gear_while_supplied() {
     give(&mut back);
     back.apply(P, Action::Craft { recipe: pack, times: 1 });
     assert!(back.player(P).unwrap().crafts.orders.is_empty());
+}
+
+#[test]
+fn the_harbour_offers_made_products_but_never_far_ores_tools_or_raw_goods() {
+    let iron = ItemId::block(IRON_ORE);
+    let motor = harbour::price(MOTOR).expect("a motor is offered");
+    assert_eq!(motor, &vec![(iron, 8), (ItemId::block(COPPER_ORE), 4)], "three times its raw materials");
+    for item in [iron, IRON_PLATE, IRON_PICKAXE, BATTERY, FUEL_CELL, crate::item::COIN] {
+        assert!(harbour::price(item).is_none(), "{} is not offered", crate::item::name(item));
+    }
+    let far = [ItemId::block(crate::block::BAUXITE_ORE), ItemId::block(crate::block::URANIUM_ORE)];
+    for i in 0..crate::item::ITEM_COUNT {
+        if let Some(price) = harbour::price(ItemId(i as u16)) {
+            assert!(price.len() >= 2 && price.iter().all(|(r, n)| !far.contains(r) && *n > 0));
+        }
+    }
+    // Only once the players' machines have made one.
+    let mut sim = camp(HARBOUR);
+    sim.apply(P, Action::SetHarbourProduct { pos: AT, item: MOTOR });
+    assert_eq!(sim.settlements.towns[0].product, ItemId::NONE, "never made");
+    sim.settlements.made.insert(MOTOR);
+    sim.apply(P, Action::SetHarbourProduct { pos: AT, item: MOTOR });
+    assert_eq!(sim.settlements.towns[0].product, MOTOR);
+
+    // What a tick reports making is noted: a forge's plates.
+    let mut forge = camp(FORGE);
+    forge.factory.insert(AT, iron, 4);
+    assert!(!forge.settlements.made.has(IRON_PLATE));
+    steps(&mut forge, period(1));
+    assert!(forge.settlements.made.has(IRON_PLATE));
+}
+
+#[test]
+fn a_harbour_sends_out_its_product_once_paid_and_keeps_its_payment_through_a_save() {
+    let mut sim = camp(HARBOUR);
+    sim.settlements.made.insert(MOTOR);
+    sim.apply(P, Action::SetHarbourProduct { pos: AT, item: MOTOR });
+    sim.step();
+    let (iron, copper) = (ItemId::block(IRON_ORE), ItemId::block(COPPER_ORE));
+    assert_eq!(sim.factory.insert(AT, iron, 20), 8, "it takes what the next motor still owes");
+    assert_eq!(sim.factory.insert(AT, copper, 20), 4);
+    assert_eq!(sim.factory.insert(AT, ItemId::block(crate::block::STONE), 1), 0, "nothing else");
+    steps(&mut sim, 2 * period(1));
+    assert_eq!(sim.settlements.towns[0].paid, [8, 0], "4 a batch, line by line");
+    assert_eq!(sim.factory.insert(AT, iron, 20), 0, "the iron is paid");
+
+    let mut w = ByteWriter::default();
+    sim.write_state(&mut w);
+    let mut back = Sim::new(2024, 2);
+    back.read_state(&mut ByteReader::new(&w.bytes)).expect("loads");
+    assert_eq!((back.settlements.towns[0].product, &back.settlements.towns[0].paid[..]), (MOTOR, &[8, 0][..]));
+    assert!(back.settlements.made.has(MOTOR));
+    steps(&mut back, period(1));
+    assert_eq!(held(&mut back, MOTOR), (0, 1), "paid in full: a motor out the front");
+    assert_eq!(back.settlements.towns[0].paid, [0, 0], "and the next starts");
+
+    // Stalled, it takes no payment; another product starts over.
+    back.settlements.towns[0].stalled = true;
+    back.factory.insert(AT, iron, 4);
+    steps(&mut back, 2 * period(1));
+    assert_eq!(back.settlements.towns[0].paid, [0, 0]);
+    let text = back.settlements.towns[0].perk_text().unwrap();
+    assert!(text.starts_with("Perk: Motor out the front for 3 times its raw materials"), "{text}");
 }

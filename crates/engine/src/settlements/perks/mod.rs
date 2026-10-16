@@ -13,6 +13,7 @@
 //! To add a perk: a module here, its arm in `wants` and `step`.
 
 mod forge;
+pub mod harbour;
 mod relay;
 mod workshop;
 
@@ -26,7 +27,7 @@ use crate::sim::SimEvent;
 
 use super::orders::UPKEEP_PER_MINUTE;
 use super::run::MINUTE;
-use super::{Settlements, Town, FORGE, RIVER_TOWN, WORKSHOP};
+use super::{Settlements, Town, FORGE, HARBOUR, RIVER_TOWN, WORKSHOP};
 
 /// Items (or tools) a perk handles in one batch.
 pub const BATCH: u32 = 4;
@@ -56,6 +57,7 @@ impl Town {
         let lines = match self.kind {
             FORGE => forge::wants(self.built),
             WORKSHOP => workshop::wants(),
+            HARBOUR => harbour::wants(self),
             _ => Vec::new(),
         };
         lines.into_iter().map(|(item, cap)| Want { item, cap, perk: true }).collect()
@@ -74,6 +76,16 @@ impl Town {
                 rate / BATCH
             ),
             RIVER_TOWN => format!("drone ports within {} blocks reach and fly twice as far", relay::RELAY_RANGE),
+            HARBOUR if self.product == crate::item::ItemId::NONE => format!(
+                "pick a product your machines have made below: it comes out the front for {} times its raw \
+                 materials, {rate} of them a minute in",
+                harbour::PRICE
+            ),
+            HARBOUR => format!(
+                "{} out the front for {} times its raw materials, {rate} of them a minute in",
+                crate::item::name(self.product),
+                harbour::PRICE
+            ),
             _ => return None,
         };
         let state = match (self.built, self.stalled) {
@@ -85,7 +97,7 @@ impl Town {
     }
 
     /// One tick of its perk: a batch when one is due, from what it has taken in to what it gives.
-    pub fn step_perk(&self, input: &mut Buffer, out: &mut Buffer, tick: u64, events: &mut Vec<SimEvent>) {
+    pub fn step_perk(&mut self, input: &mut Buffer, out: &mut Buffer, tick: u64, events: &mut Vec<SimEvent>) {
         let period = period(self.built);
         if !self.perk_on() || !tick.is_multiple_of(period) {
             return;
@@ -93,6 +105,7 @@ impl Town {
         match self.kind {
             FORGE => forge::batch(input, out, tick / period, events),
             WORKSHOP => workshop::repair(input, out),
+            HARBOUR => harbour::batch(self, input, out, events),
             _ => {}
         }
     }

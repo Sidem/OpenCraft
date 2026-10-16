@@ -1,11 +1,15 @@
 //! Towns for the host (queries only): the town section of a depot's panel (`web/src/ui/town.ts`), and each town's state
-//! with its news line, which the HUD toasts when a town stalls or is supplied again (`web/src/ui/hud.ts`), and the
+//! with its news line, which the HUD toasts when a town stalls or is supplied again (`web/src/ui/hud.ts`), a harbour's
+//! contract and the products it offers (`web/src/ui/harbour.ts`), and the
 //! kinds for the world map's legend.
 
 use wasm_bindgen::prelude::*;
 
+use crate::action::Action;
+use crate::item::{ItemId, ITEM_COUNT};
 use crate::math::IVec3;
-use crate::settlements::{upkeep, KINDS, STAGES};
+use crate::settlements::harbour::price;
+use crate::settlements::{upkeep, HARBOUR, KINDS, STAGES};
 use crate::Game;
 
 #[cfg(test)]
@@ -65,6 +69,38 @@ impl Game {
     /// What its perk does ("Perk: …"), or empty.
     pub fn town_perk(&self, x: i32, y: i32, z: i32) -> String {
         self.town_at(IVec3::new(x, y, z)).and_then(|t| t.perk_text()).unwrap_or_default()
+    }
+
+    /// The harbour whose depot has a cell at (x, y, z): `[product (0 for none), then (raw material, price, paid) per
+    /// line of its price]`; empty for any other depot.
+    pub fn harbour_contract(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        let Some(t) = self.town_at(IVec3::new(x, y, z)).filter(|t| t.kind == HARBOUR) else { return Vec::new() };
+        let mut out = vec![u32::from(t.product.0)];
+        for (&(item, n), &paid) in price(t.product).into_iter().flatten().zip(&t.paid) {
+            out.extend([u32::from(item.0), n, paid]);
+        }
+        out
+    }
+
+    /// What that harbour may take on: the products it offers that the players' machines have made, in item order.
+    pub fn harbour_offers(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        if self.town_at(IVec3::new(x, y, z)).is_none_or(|t| t.kind != HARBOUR) {
+            return Vec::new();
+        }
+        let s = &self.sim.settlements;
+        (0..ITEM_COUNT as u16).filter(|&i| s.offers(ItemId(i))).map(u32::from).collect()
+    }
+
+    /// How many times its raw materials a harbour asks for a product.
+    pub fn harbour_price_factor(&self) -> u32 {
+        crate::settlements::harbour::PRICE as u32
+    }
+
+    /// Chooses what that harbour sends out (0 for nothing; next tick).
+    pub fn set_harbour_product(&mut self, x: i32, y: i32, z: i32, item: u16) {
+        if let Some(pos) = self.town_at(IVec3::new(x, y, z)).map(|t| t.pos) {
+            self.act(Action::SetHarbourProduct { pos, item: ItemId(item) });
+        }
     }
 
     /// Each town's state in founding order: 0 growing or supplied, 1 stalled, 2 dormant (its depot broken).

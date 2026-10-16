@@ -144,7 +144,8 @@ fn a_save_from_before_towns_loads_with_none_and_a_bad_kind_is_refused() {
     assert_eq!(r.u8(), None, "every byte read");
 
     let mut bad = ByteWriter::default();
-    Settlements { towns: vec![Town::new(IVec3::new(400, 70, 0), KINDS.len() as u8)] }.write_state(&mut bad);
+    Settlements { towns: vec![Town::new(IVec3::new(400, 70, 0), KINDS.len() as u8)], ..Default::default() }
+        .write_state(&mut bad);
     assert!(Settlements::read_state(&mut ByteReader::new(&bad.bytes)).is_none());
 }
 
@@ -326,6 +327,6 @@ fn a_town_from_save_48_has_just_its_depot_and_a_bad_stage_is_refused() {
     let mut town = Town::new(IVec3::new(400, 70, 0), 1);
     town.built = STAGES as u8 + 1;
     let mut bad = ByteWriter::default();
-    Settlements { towns: vec![town] }.write_state(&mut bad);
+    Settlements { towns: vec![town], ..Default::default() }.write_state(&mut bad);
     assert!(Settlements::read_state(&mut ByteReader::new(&bad.bytes)).is_none());
 }

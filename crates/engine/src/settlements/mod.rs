@@ -31,15 +31,17 @@ mod perks;
 mod plans;
 mod plots;
 mod run;
+mod state;
 
 pub use build::{fleet, TownDrone};
 pub use orders::{upkeep, Line, ORDERS, STAGES, STAGE_NAMES};
+pub use perks::harbour::{self, Made};
 pub use perks::{discounted, gear_cost};
 pub use plans::{chimney_mouth, height};
 pub use plots::Plot;
 
 use crate::block::BlockId;
-use crate::bytes::{ByteReader, ByteWriter};
+use crate::item::ItemId;
 use crate::math::IVec3;
 use crate::worldgen::{Biome, Water, WorldGen};
 
@@ -93,7 +95,8 @@ pub const KINDS: [KindDef; 4] = [
         colour: 0xe0603a,
     },
 ];
-/// The kinds by index, for their perks (the harbour is 0).
+/// The kinds by index, for their perks.
+pub const HARBOUR: u8 = 0;
 pub const RIVER_TOWN: u8 = 1;
 pub const WORKSHOP: u8 = 2;
 pub const FORGE: u8 = 3;
@@ -129,6 +132,10 @@ pub struct Town {
     pub cursor: u16,
     /// Its drones out of the depot (`build.rs`).
     pub drones: Vec<TownDrone>,
+    /// A harbour's chosen product (`NONE` for none) and what is paid toward the next, per line of its price
+    /// (`perks/harbour/`).
+    pub product: ItemId,
+    pub paid: Vec<u32>,
 }
 
 impl Town {
@@ -147,6 +154,8 @@ impl Town {
             plots: Vec::new(),
             cursor: 0,
             drones: Vec::new(),
+            product: ItemId::NONE,
+            paid: Vec::new(),
         }
     }
 
@@ -231,6 +240,8 @@ impl Unfit {
 #[derive(Default)]
 pub struct Settlements {
     pub towns: Vec<Town>,
+    /// What the players' machines have ever made (the harbour offers only those).
+    pub made: Made,
 }
 
 impl Settlements {
@@ -284,56 +295,6 @@ impl Settlements {
             }
         }
         owned
-    }
-
-    pub fn write_state(&self, w: &mut ByteWriter) {
-        w.count(self.towns.len());
-        for t in &self.towns {
-            w.ivec3(t.pos);
-            w.u8(t.kind);
-            w.u8(t.built);
-            w.count(t.delivered.len());
-            t.delivered.iter().for_each(|&d| w.u32(d));
-            w.bool(t.stalled);
-            w.u64(t.due);
-            w.bool(t.dormant);
-            w.u8(t.planned);
-            w.count(t.plots.len());
-            t.plots.iter().for_each(|p| p.write(w));
-            w.u16(t.cursor);
-            w.count(t.drones.len());
-            t.drones.iter().for_each(|d| d.write(w));
-        }
-    }
-
-    /// Reads what `write_state` wrote (a town from before save version 49 has just its depot); `None` on a kind or
-    /// stage that doesn't exist, or deliveries that don't match the open order.
-    pub fn read_state(r: &mut ByteReader) -> Option<Settlements> {
-        let mut towns = Vec::new();
-        for _ in 0..r.count()? {
-            let (pos, kind) = (r.ivec3()?, r.u8()?);
-            if kind as usize >= KINDS.len() {
-                return None;
-            }
-            let mut town = Town::new(pos, kind);
-            if r.version >= 49 {
-                town.built = r.u8()?;
-                town.delivered = (0..r.count()?).map(|_| r.u32()).collect::<Option<_>>()?;
-                (town.stalled, town.due) = (r.bool()?, r.u64()?);
-                if town.built as usize > STAGES || town.delivered.len() != town.order().len() {
-                    return None;
-                }
-            }
-            if r.version >= 50 {
-                town.dormant = r.version >= 51 && r.bool()?;
-                town.planned = r.u8()?.min(town.built);
-                town.plots = (0..r.count()?).map(|_| Plot::read(r)).collect::<Option<_>>()?;
-                town.cursor = r.u16()?;
-                town.drones = (0..r.count()?).map(|_| TownDrone::read(r)).collect::<Option<_>>()?;
-            }
-            towns.push(town);
-        }
-        Some(Settlements { towns })
     }
 }
 

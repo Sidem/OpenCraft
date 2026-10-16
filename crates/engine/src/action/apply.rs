@@ -77,6 +77,7 @@ impl Sim {
                 }
             }
             Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
+            Action::SetHarbourProduct { pos, item } => self.settlements.set_product(pos, item),
             Action::SetSensor { pos, rule } => self.factory.set_sensor(pos, rule),
             Action::PlaceGhost { pos, slot, facing } => self.place_ghost(player, pos, slot, facing),
             Action::PlantGhost { pos, block, facing, tier } => self.plant_ghost(pos, block, facing, tier),

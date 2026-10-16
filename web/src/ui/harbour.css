@@ -1,0 +1,13 @@
+/* A harbour's contract work in a depot's panel (ui/harbour.ts). */
+
+.hb-harbour {
+  margin-top: 8px;
+}
+
+.hb-offers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+}

@@ -271,11 +271,13 @@ impl Sim {
         self.run_helpers();
         self.run_timers();
         self.run_water();
+        let made_from = self.events.len();
         self.factory.update(&mut self.world, self.tick, &mut self.events);
         for (pos, old) in std::mem::take(&mut self.factory.changed) {
             self.block_changed(pos, old);
         }
         self.step_towns();
+        self.settlements.made.note(&self.events[made_from..]);
         self.step_drones();
         self.step_cargo();
         self.tick += 1;
@@ -362,7 +364,8 @@ impl Sim {
         let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
         self.set_mode(mode);
         self.opening = if r.version >= 47 { Opening::read_state(r)? } else { None };
-        // Save 49 added each town's stage and order, 50 its plots and drones, 51 dormancy (`Settlements::read_state` follows the version).
+        // Save 49 added each town's stage and order, 50 its plots and drones, 51 dormancy, 53 the harbour's product and
+        // what machines have made (`Settlements::read_state` follows the version).
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         Some(())
     }

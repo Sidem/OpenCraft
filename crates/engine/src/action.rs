@@ -49,6 +49,12 @@ pub enum Action {
     InsertCursor {
         pos: IVec3,
     },
+    /// Chooses what the harbour whose depot is at `pos` sends out (`NONE` for nothing): a product it offers that the
+    /// players' machines have made (`Settlements::set_product`).
+    SetHarbourProduct {
+        pos: IVec3,
+        item: ItemId,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

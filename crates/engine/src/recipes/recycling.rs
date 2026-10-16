@@ -75,7 +75,15 @@ pub const fn is_waste(item: ItemId) -> bool {
 /// Not worked out yet.
 const UNSET: u64 = u64::MAX;
 
-static VALUES: [u32; ITEM_COUNT] = finish(&build(1), &build(STEP));
+static VALUES: [u32; ITEM_COUNT] = finish(&RAW, &build(STEP));
+/// Each item's material cost (`raw`, millis of raw items by its cheapest route; 0 for none).
+static RAW: [u32; ITEM_COUNT] = build(1);
+
+/// Millis of raw items the cheapest route to one `item` consumes (1,000 for a raw item; 0 when nothing makes it). The
+/// harbour follows the same routes (`settlements/perks/harbour/price.rs`).
+pub fn raw_cost(item: ItemId) -> u32 {
+    RAW.get(item.0 as usize).copied().unwrap_or(0)
+}
 
 /// Uses of `item` if it is a tool (a recipe makes that many at once), else 1.
 const fn uses(item: usize) -> u64 {

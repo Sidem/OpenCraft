@@ -1,12 +1,14 @@
 // The town part of a depot's machine panel (ui/machine.ts), shown on top: the town and its stage, whether it is stalled,
 // the open order with a progress bar a line, each upkeep good with how many minutes the depot holds, and the perk. Read
 // from the engine (`town_panel`, `town_heading`, `town_perk`) and redrawn only when those numbers change; the depot's
-// slots, the take button and the put-in buttons stay the machine panel's. Hidden for any other machine.
+// slots, the take button and the put-in buttons stay the machine panel's. Hidden for any other machine. A harbour's
+// contract work and its product choice follow the perk (ui/harbour.ts).
 // A new kind or stage needs no change here: names and numbers come from the engine.
 
 import './town.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
+import { HarbourSection } from './harbour';
 
 type Pos = [number, number, number];
 
@@ -21,13 +23,15 @@ export class TownSection {
   private readonly order = h('div', 'tp-lines');
   private readonly upkeepHead = h('h3');
   private readonly upkeep = h('div', 'tp-lines');
+  private readonly harbour: HarbourSection;
   private drawn = '';
 
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
   ) {
-    this.el.append(this.heading, this.stall, this.perk, this.orderHead, this.order, this.upkeepHead, this.upkeep);
+    this.harbour = new HarbourSection(game, icon);
+    this.el.append(this.heading, this.stall, this.perk, this.harbour.el, this.orderHead, this.order, this.upkeepHead, this.upkeep);
   }
 
   /** Redraws for the depot at `pos`; false (and hidden) when no town's depot is there. */
@@ -36,6 +40,7 @@ export class TownSection {
     const data = g.town_panel(...pos);
     this.el.classList.toggle('hidden', data.length === 0);
     if (data.length === 0) return false;
+    this.harbour.update(pos);
     const key = data.join(',');
     if (key === this.drawn) return true;
     this.drawn = key;

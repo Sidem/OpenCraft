@@ -5,7 +5,7 @@ polish) are built and pushed · **The play-test response (section 4)**, from Cla
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
 **Milestone 13 (Settlements): 13.1–13.3, 13.4a and 13.5a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); town markers, site shading and town tips (13.5b); save version 52, 864 tests; not pushed) · **Next: step 13.4b** (the harbour), then 13.6 (cleanup) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); town markers, site shading and town tips (13.5b); harbour contract work (13.4b); save version 53, 866 tests; not pushed) · **Next: step 13.6** (cleanup and balance with the next play-test) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -614,7 +614,14 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   **Highland workshop:** while one is supplied, hauler packs, jetpacks and gloves cost half their inputs in hand crafting
   anywhere; worn tools put into its depot come back out whole. **Done when:** each of the three perks is tested on, off and
   paused by a stall.
-- [ ] **13.4b Harbour contract work** (after 13.5; its product chooser is built here, in the town panel). The player picks, in the depot panel, a product their machines
+- [x] **13.4b Harbour contract work.** Built 2026-10-16 (save version 53). `settlements/perks/harbour/`: `Made` (a bit per
+  item, noted from the tick's `Produced` events, so a pre-53 world starts empty and fills as its machines run), `price.rs`
+  (raw content by the route `recipes::recycling::raw_cost` already picks; sand salvaged from slag counts as raw; tools
+  are not offered, since priced per use one would come out worn), `Town::product` and `Town::paid` (saved: a dear
+  product takes many batches). Choices made in the build: the harbour pays in `BATCH` raw goods at its upkeep's rate
+  (20 to 600 a minute), the depot wants each raw good only up to what the next product still owes (a stack at most), and
+  another pick starts the payment over. The chooser is `ui/harbour.ts` in the town section. Seen in the browser on the
+  dev world (a harbour founded at (-200, 64, -470), an assembler making lamps beside it). As planned: The player picks, in the depot panel, a product their machines
   have made; the harbour takes three times its basic raw content and sends it out. New pieces: a core record of which items
   the player's machines have ever made (a bitset by item, saved) and a derived raw content per item from the recipes (with
   a flag for chains that need bauxite or uranium, which are never offered). **Done when:** the perk is tested on and off,
@@ -695,6 +702,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.4b built (harbour contract work).** `settlements/perks/harbour/` (`Made`, `price`, the perk),
+  `Action::SetHarbourProduct`, the chooser `ui/harbour.ts`; `settlements/state.rs` split out of `mod.rs`; save version 53.
+  866 tests.
 - **2026-10-16: Step 13.5b built (maps and tips).** Town houses on both maps (`MARK_TOWN`), town site shading and a
   legend on the world map while a depot is held (`minimap/sites.rs`, `world_map_sites`), and three town tips as a side
   track (`hints::SIDE_HINTS`, `hint_side`). 864 tests.
