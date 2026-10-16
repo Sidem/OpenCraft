@@ -4,8 +4,8 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1 built** (town kinds, sites, the depot; save version 48, 851 tests; not pushed) · **Next:
-step 13.2** (orders, upkeep and stalling; talk the order sizes first, section 6) · Then R2–R5, R7, R8, the
+**Milestone 13 (Settlements): 13.1 built** (town kinds, sites, the depot; save version 48, 851 tests; committed, not pushed) · **Next:
+build step 13.2** (orders, upkeep and stalling; numbers settled in a talk) · Then R2–R5, R7, R8, the
 feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator) · Art work continues from `main`
 (`docs/ART_HANDOVER.md`).
 
@@ -153,6 +153,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **R1: what makes drones, trains and blueprints needed** (user's pick from Claude's levers): **settlements as growing demand** (the main lever; R6's talk comes next) and **a blueprint prompt** when a machine group is repeated (R1b). Not now: smaller ore stacks, far bulk inputs in late recipes (fallbacks if settlements are not enough). |
 | 2026-10-16 | **R6: settlements and the megaproject** (user's picks, all Claude's recommendations): **the player founds towns** with a depot at a site that fits the town's kind, far from other towns (works in existing worlds; no worldgen towns); **each town kind gives a perk** while supplied; **an unsupplied town stalls and its perk pauses**, but it never shrinks or loses what was built; **the megaproject is a space elevator** grown from the biggest town, built in phases, unlocking asteroid mining. Settlements become **Milestone 13**, the elevator **Milestone 14**; 12.5 closes. |
 | 2026-10-16 | **13.1: town kinds and perks** (talked with the user). Four kinds, one per kind of place: **harbour** (sea shore): **contract work**, taking large lots of basic goods for complex products the player has already made in a machine, at about 3× their raw content, never raw or rare materials and never products whose chain needs bauxite or uranium (user: barter must not make far ores unnecessary); **river town** (river bank): **drone relay**, double range for cargo and construction drones within 128 blocks; **highland workshop** (granite hills): **gear works**, hauler packs, jetpacks and gloves cost less there and worn tools come back repaired; **basalt forge** (basalt fields): **better smelting**, ore comes back as plates with 50% more yield. Towns at least 300 blocks apart, none on the spawn plains; founding unlocks on blue packs after Steelmaking. |
+| 2026-10-16 | **13.2: orders and upkeep** (user's picks, all Claude's recommendations). The player's pack (135 stacks) carries any one-off order in a trip, so the steady pull is the **upkeep**, drawn from the depot's 24-stack store. **5 stages** (camp, hamlet, village, town, city; the city is where Milestone 14 can start). **Stage orders double from about 1,000 items** (1,000, 2,000, 4,000, 8,000, 16,000: basics first, then concrete, steel and lamps, later plastic, circuits and processors). **Upkeep grows to a Mk3 belt:** 20, 60, 150, 300 and 600 items a minute by stage; a town stalls once a minute's upkeep is missing and resumes when it is there, and growth pauses while stalled. **Upkeep goods per town kind:** harbour planks and glass, river town bricks and lamps, highland workshop gears and steel plates, basalt forge coal and quicklime; later stages add one better good each. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -566,11 +567,15 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   the depot. In the user's world (seed 1337) the nearest sites are 205–363 blocks out. Tested headlessly; seen in the
   browser pane. Perks (13.4) and orders (13.2) are not built yet; breaking a depot ends its town for now (13.3 decides
   whether a grown town survives that).
-- [ ] **13.2 Orders, upkeep and stalling.** Per kind and stage, an order list (data rows: bricks, glass, planks and concrete
-  first; steel, plastics, circuits and chips later), filled from what the depot takes in; once a stage's order is complete
-  the next one opens. An upkeep per minute at the town's size; while it is unmet the town is **stalled** and its perk pauses,
-  but nothing is lost. **Done when:** a scenario test feeds a depot by belt through two stages, then starves it into a stall
-  and back.
+- [ ] **13.2 Orders, upkeep and stalling.** Numbers settled in a talk (section 1, 2026-10-16). Data rows per kind and stage
+  (5 stages): the stage's order (about 1,000, 2,000, 4,000, 8,000, 16,000 items; bricks, glass, planks and concrete first,
+  steel and lamps, then plastics, circuits and processors) and its upkeep (20, 60, 150, 300, 600 items a minute, of the
+  kind's goods: harbour planks and glass, river town bricks and lamps, workshop gears and steel plates, forge coal and
+  quicklime, plus one better good a stage). The depot takes in only what its town wants (its order and upkeep goods); each
+  minute it uses up a minute's upkeep from its store, then counts the rest toward the open order; a complete order opens the
+  next stage. A minute's upkeep missing: the town is **stalled** (its perk pauses, the order stops filling), nothing is lost,
+  and it resumes once the upkeep is there. Town state saved (stage, order progress, stalled). **Done when:** a scenario test
+  feeds a depot by belt through two stages, then starves it into a stall and back.
 - [ ] **13.3 The town grows itself.** Each stage is a blueprint of existing building blocks (planks, bricks, glass, concrete,
   lamps; R7's decor later), planted as ghosts around the depot and built by the town's own drones from the delivered goods
   (reusing `drones/`). Life without townspeople: lit windows at night, chimney smoke, a few sounds. **Done when:** a town is
@@ -619,7 +624,6 @@ and adjust the steps.
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
-| 13.2 | Order sizes per stage and how many stages a town has (first guesses are fine; tune in play). |
 | R2b | New tree species and desert and basalt plants on new worlds only (generator version 8; the user's world keeps version 7 and gets only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
 | R4 | Which new music pieces, and when (the user composes them)? |
 | R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
@@ -635,6 +639,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: 13.2 talked (docs only).** Five stages, orders doubling from about 1,000 items, upkeep growing to 600 items a
+  minute (a Mk3 belt) of goods per town kind; a stall pauses the perk and growth (section 1). Step 13.2 rewritten to match.
 - **2026-10-16: Step 13.1 built (town kinds, sites and the depot).** `settlements/` (core state, saved since version 48),
   `WorldGen::open_water`, block 116 Town Depot (`factory/process/depot.rs`), tech Settlements 84, `recipes/towns.rs`, the
   placing preview and readout (`town_preview.rs`). Older 10-16 change log entries moved to `docs/CHANGELOG_M12.md`. Golden
