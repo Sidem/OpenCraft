@@ -16,8 +16,8 @@
 //!    uses), and the whole tool's coins are then spread over its uses, so a worn tool pays in proportion.
 //!
 //! The coin is worth nothing; the recycler takes everything else. Because the curve is anchored on the dearest item, a
-//! new dearer item shifts every value: `tests.rs` prints nothing but checks the anchor, so re-read the table (README
-//! "Recycler" section) after adding late-game content.
+//! new dearer item shifts every value: `tests.rs` prints nothing but checks the anchor, so re-read the table
+//! (`docs/FACTORY.md`, "Recycling") after adding late-game content.
 //!
 //! Invariants: the tables are built by const evaluation (relaxation: values only fall, every cycle of recipes grows a
 //! value, so it settles); `tests.rs` checks every item has a value, the coin has none and the dearest pays `MAX_COINS`.
