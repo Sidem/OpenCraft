@@ -11,7 +11,8 @@
 //! - **Founding**: `put_footprint` (`action/multiblock.rs`) refuses a depot at an unfitting site and founds the town
 //!   when one is placed. Breaking the depot (`dismantle`) leaves its town **dormant** (`sleep`: stage, progress and
 //!   plots kept, nothing runs), and a depot put back on its old spot wakes it (`site`, `found`). Breaking any block of a
-//!   finished building sends the town's cursor back to it (`broken`), so its drones rebuild it.
+//!   finished building sends the town's cursor back to it (`broken`), so its drones rebuild it; a town's own block drops
+//!   nothing, so rebuilt blocks can't be farmed.
 //! - **Orders and upkeep** (`orders.rs` data, `run.rs` the tick): the depot takes in only its town's goods; each minute
 //!   the town uses up its upkeep from the depot, or stalls until it is there; while not stalled the rest goes toward the
 //!   open order, and a complete order builds the next stage.
@@ -34,6 +35,7 @@ pub use orders::{upkeep, Line, ORDERS, STAGES, STAGE_NAMES};
 pub use plans::{chimney_mouth, height};
 pub use plots::Plot;
 
+use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 use crate::worldgen::{Biome, Water, WorldGen};
@@ -239,13 +241,18 @@ impl Settlements {
         }
     }
 
-    /// The block at `pos` was broken: a town whose finished plot held it rebuilds from that plot on.
-    pub fn broken(&mut self, pos: IVec3) {
+    /// Block `id` at `pos` was broken: a town whose finished plot held it rebuilds from that plot on. Whether it was a
+    /// town's own block, which drops nothing (so rebuilt blocks can't be farmed): its plan's block there, from the
+    /// floor up (below the floor a foundation cell may be the natural ground).
+    pub fn broken(&mut self, pos: IVec3, id: BlockId) -> bool {
+        let mut owned = false;
         for t in &mut self.towns {
-            if let Some(k) = t.plots.iter().take(t.cursor as usize).position(|p| p.holds(t.pos, pos)) {
-                t.cursor = k as u16;
+            for (k, p) in t.plots.iter().enumerate().filter(|(_, p)| p.holds(t.pos, pos)) {
+                t.cursor = t.cursor.min(k as u16);
+                owned |= pos.y >= p.base - 1 && p.cells(t.pos, t.kind).iter().any(|c| c.0 == pos && c.1 == id);
             }
         }
+        owned
     }
 
     pub fn write_state(&self, w: &mut ByteWriter) {

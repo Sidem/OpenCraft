@@ -597,8 +597,8 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   **Done when:** a scenario test builds a camp on uneven ground with the town's drones only, no player block touched; a town
   is seen growing from a depot to its third stage in the browser pane.
 - [x] **13.3b Rebuilding and dormant towns.** Built 2026-10-16 (save version 51; `Settlements::sleep` / `broken`, the
-  dormant spot marked amber and `Unfit::Dormant` naming it). Broken town blocks drop as usual, so a player could farm
-  them while the drones put them back (a balance question for 13.6). As talked: A built town cell that no longer holds its block goes back on the build list
+  dormant spot marked amber and `Unfit::Dormant` naming it). A town's own blocks drop nothing when broken (from the floor
+  up), so the free rebuilds can't be farmed (Claude's pick at the user's request, 2026-10-16). As talked: A built town cell that no longer holds its block goes back on the build list
   (a cell the player has filled with something else is skipped). Breaking the depot makes the town dormant (kept with its
   stage, progress and plan; no tick, no building); `Settlements::site` lets a depot on a dormant town's own anchor wake it.
   **Done when:** tests break a town block (rebuilt) and the depot (dormant, then woken with its stage).
@@ -661,6 +661,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Town blocks can't be farmed (user request).** Breaking a block of a town's plan (from the floor up)
+  drops nothing (`Settlements::broken` says so to `dismantle`); chosen over rebuilds paid from the depot's store, which
+  would need new saved state. No save change.
 - **2026-10-16: Step 13.3b built (rebuilding and dormant towns).** Breaking a depot makes its town dormant (`Town::dormant`,
   save version 51) and a depot on its old spot wakes it; breaking a finished town block sends the cursor back so the drones
   rebuild it, unless the player filled the gap. 855 tests.

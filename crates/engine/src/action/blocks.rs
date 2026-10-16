@@ -83,7 +83,8 @@ impl Sim {
         if id == block::TOWN_DEPOT {
             self.settlements.sleep(pos);
         }
-        self.settlements.broken(pos);
+        // A town's own block drops nothing: its drones put it back for free.
+        let town_block = self.settlements.broken(pos, id);
         let held = if with_tool { self.wear_tool(player, id) } else { ItemId::NONE };
         if let Some(share) = share.filter(|_| with_tool) {
             let kept = tools::ore_yield(held);
@@ -95,7 +96,7 @@ impl Sim {
         // Breaking a port calls its drones home as items.
         drops.extend(self.recall_drones(pos));
         drops.extend(self.recall_cargo(pos));
-        if def.drop != AIR {
+        if def.drop != AIR && !town_block {
             let item = tiered.unwrap_or(ItemId::block(def.drop));
             drops.insert(0, Stack { item, count: if ore { tools::ore_yield(held) } else { 1 } });
         }

@@ -298,9 +298,12 @@ fn a_broken_town_block_is_rebuilt_unless_the_player_filled_the_gap() {
     let t = sim.settlements.towns[0].clone();
     let walls: Vec<_> = t.plots[1].cells(t.pos, t.kind).into_iter().filter(|c| c.2 == Role::Wall).collect();
     let (a, b) = (walls[0], walls[1]);
+    sim.events.clear();
     sim.apply(P, Action::BreakBlock { pos: a.0 });
     sim.apply(P, Action::BreakBlock { pos: b.0 });
     assert_eq!(sim.world.block_anywhere_or_generate(a.0), AIR);
+    let dropped = sim.events.iter().any(|e| matches!(e, crate::sim::SimEvent::Dropped { .. }));
+    assert!(!dropped, "a town's own blocks drop nothing, so they can't be farmed");
     assert_eq!(sim.settlements.towns[0].cursor, 1, "back to the broken building");
     sim.world.set_block_anywhere(b.0, block::CONCRETE);
 
