@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::action::Action;
-use crate::block::STONE;
+use crate::block::{LEAVES, LOG, STONE};
 use crate::sim::tests::SEED;
 use crate::sim::PlayerId;
 

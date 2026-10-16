@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::action::Action;
-use crate::block::{GRASS, IRON_ORE, STONE, WATER};
+use crate::block::{GRASS, IRON_ORE, LEAVES, LOG, STONE, WATER};
 use crate::sim::{PlayerId, Sim};
 
 const P: PlayerId = PlayerId(0);

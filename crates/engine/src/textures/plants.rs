@@ -5,7 +5,15 @@
 use super::{n, rgb};
 
 pub fn sapling(x: i32, y: i32) -> [u8; 4] {
-    let needles = [62.0, 105.0, 79.0];
+    needle_sapling(x, y, [62.0, 105.0, 79.0])
+}
+
+/// The pine's sapling: the same shape in darker needles.
+pub fn pine_sapling(x: i32, y: i32) -> [u8; 4] {
+    needle_sapling(x, y, [36.0, 74.0, 62.0])
+}
+
+fn needle_sapling(x: i32, y: i32, needles: [f64; 3]) -> [u8; 4] {
     let stem = x == 7 && y >= 4 || x == 8 && y >= 9;
     let twig = y == 7 && (4..=7).contains(&x) || y == 9 && (8..=11).contains(&x) || y == 11 && (5..=7).contains(&x);
     if stem || twig {

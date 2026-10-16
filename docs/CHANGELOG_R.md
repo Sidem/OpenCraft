@@ -22,6 +22,14 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R2b Tree species (generator version 9, built 2026-10-17, new worlds only):** `worldgen/trees.rs` rows: oak (4–6) and birch (5–7,
+  white bark) on plains (70/30), broad low trees (3–4 trunk, canopy 3 out) in lowlands (60%, rest oak/birch), pines (6–8, a cone of
+  needles) on highlands (90%), cacti on desert sand and dead snags on basalt (flat 7% and 5% of cells; the others follow the forest noise). Blocks 117–123
+  (`block/forest.rs`; `tex` 314–321): birch log and leaves, pine needles, cactus, dead log, birch and pine saplings. Leaves drop their own
+  species' sapling (`sapling_of`), saplings grow their species (`species_of_sapling`), decay, terraform surveys and town plots treat every
+  species alike (`is_log`, `is_leaves`, `is_tree`). Generated logs and leaves drop the oak's item, so every log saws into the same planks;
+  the broad tree has no sapling of its own (it shares the oak's leaves). Not built: heather on basalt (left for R2c). Version 9
+  is pinned when released.
 - [x] **R2a Ground cover** (built 2026-10-16, presentation only, every world from generator version 2): `mesher/cover.rs` draws
   grass tufts, daisies, poppies, bluebells, ferns, reeds, dry brush and lichen (`tex` 306–313, `textures/ground_cover.rs`, plain
   placeholders) as plants on top of natural ground (grass and stained grass, dirt, sand and stained sand, basalt, granite) in empty

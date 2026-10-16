@@ -187,16 +187,20 @@ fn sand(x: i32, y: i32, hint: Option<&Hint>) -> [u8; 4] {
 
 /// Leaf clusters, brighter towards their middles and outlined darker; gaps open along the outlines. Transparent texels keep a leaf colour so mipmaps don't fringe.
 fn leaves(x: i32, y: i32, alt: u32) -> [u8; 4] {
-    let seed = 165 + alt * 11;
-    let (f1, f2, id) = cells(seed, x, y, 4);
+    leaves_in(&LEAF, 165 + alt * 11, x, y, 4)
+}
+
+/// Leaf clusters in `ramp` from noise `seed` on a grid of `grid` cells (other species' leaves, `forest.rs`).
+pub(super) fn leaves_in(ramp: &Ramp, seed: u32, x: i32, y: i32, grid: i32) -> [u8; 4] {
+    let (f1, f2, id) = cells(seed, x, y, grid);
     let edge = f2 - f1;
     if edge < 0.9 && n(seed + 2, x, y) > 0.5 {
-        let mut c = tone(&LEAF, 0.3);
+        let mut c = tone(ramp, 0.3);
         c[3] = 0;
         return c;
     }
     let t = 0.2 + id * 0.35 + (1.0 - f1 / 3.0).max(0.0) * 0.35;
-    tone(&LEAF, if edge < 0.6 { t - 0.25 } else { t })
+    tone(ramp, if edge < 0.6 { t - 0.25 } else { t })
 }
 
 fn shade(c: [u8; 4], delta: i8) -> [u8; 4] {

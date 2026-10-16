@@ -247,6 +247,9 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Ground cover (R2a, 2026-10-16, `textures/ground_cover.rs`, layers 306–313): `GRASS_TUFT`, `DAISY`, `POPPY`, `BLUEBELL`, `FERN`, `REED`,
   `DRY_BRUSH`, `LICHEN`, plain placeholders on crossed quads (`mesher/cover.rs`; the ground is the texture's bottom row). Shapes before
   textures: taller, more varied tufts, a fuller fern and cattail, flowers that read from afar; the quads' vertex budget is the limit.
+  Forest (R2b, 2026-10-17, `textures/forest.rs`, layers 314–321): `BIRCH_SIDE` (pale bark with dark scars), `BIRCH_LEAVES`, `PINE_LEAVES` (dark
+  needles), `CACTUS_SIDE` / `CACTUS_TOP` (ribs and spines; blocks 120), `DEAD_SIDE` (grey cracked wood), `BIRCH_SAPLING`, `PINE_SAPLING`. Shapes of
+  the trees (`worldgen/trees.rs` `Shape`) are blocky placeholders: silhouettes that read from afar matter most (a real cone, drooping broad trees).
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

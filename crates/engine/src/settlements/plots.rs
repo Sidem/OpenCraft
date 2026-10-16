@@ -9,7 +9,7 @@
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{self, BlockId, LEAVES, LIQUID, LOG, PLANT, SAPLING};
+use crate::block::{self, is_tree, BlockId, LIQUID, PLANT};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 use crate::sim::Sim;
@@ -87,7 +87,7 @@ impl Plot {
 
 /// Whether a town may build over this block: air, water, leaves, logs and plants (a sapling too).
 pub fn takeable(b: BlockId) -> bool {
-    block::replaceable(b) || matches!(b, LOG | LEAVES | SAPLING) || PLANT[b as usize]
+    block::replaceable(b) || is_tree(b) || PLANT[b as usize]
 }
 
 /// Each column's ground (`Sim::ground`), worked out during one plan.

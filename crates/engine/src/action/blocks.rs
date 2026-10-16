@@ -3,7 +3,7 @@
 //! `action.rs` to keep it small; the arms there just call these. Drones (`drones/`) build and break
 //! through `put_block` and `dismantle`, which take nothing from any inventory.
 
-use crate::block::{self, BlockId, AIR, LEAVES, SAPLING};
+use crate::block::{self, BlockId, AIR};
 use crate::factory;
 use crate::inventory::Stack;
 use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
@@ -100,8 +100,8 @@ impl Sim {
             let item = tiered.unwrap_or(ItemId::block(def.drop));
             drops.insert(0, Stack { item, count: if ore { tools::ore_yield(held) } else { 1 } });
         }
-        if id == LEAVES && self.leaf_drops_sapling() {
-            drops.push(Stack { item: SAPLING.into(), count: 1 });
+        if block::is_leaves(id) && self.leaf_drops_sapling() {
+            drops.push(Stack { item: block::sapling_of(id).into(), count: 1 });
         }
         Some((pos, drops))
     }
@@ -162,7 +162,7 @@ impl Sim {
         if let Some(fp) = factory::footprint::of(placed) {
             return self.put_footprint(player, pos, item, (placed, fp), facing);
         }
-        if placed == SAPLING && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
+        if block::is_sapling(placed) && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
             return false;
         }
         let old = self.world.block_anywhere_or_generate(pos);

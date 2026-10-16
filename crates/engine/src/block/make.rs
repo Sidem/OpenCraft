@@ -35,6 +35,21 @@ pub(super) const fn frame(name: &'static str, break_time: f32, faces: [u16; 6], 
     BlockDef { render: Render::Cutout, solid: false, ..cube(name, break_time, faces, id, sound) }
 }
 
+/// A generated tree's leaves: cutout, dropping `drop`, never held (`forest.rs`).
+pub(super) const fn leaves(name: &'static str, layer: u16, drop: BlockId) -> BlockDef {
+    BlockDef {
+        render: Render::Cutout,
+        placeable: false,
+        break_time: 0.2,
+        ..cube(name, 0.2, all(layer), drop, sound::LEAVES)
+    }
+}
+
+/// A sapling of one species: a plant that drops itself (`forest.rs`, `sim/saplings.rs`).
+pub(super) const fn sapling(name: &'static str, layer: u16, id: BlockId) -> BlockDef {
+    BlockDef { render: Render::Plant, solid: false, ..cube(name, 0.1, all(layer), id, sound::LEAVES) }
+}
+
 /// Water, still or flowing: not solid, never targeted, dropping nothing.
 pub(super) const fn liquid(name: &'static str) -> BlockDef {
     let base = cube(name, -1.0, all(tex::WATER), AIR, sound::SAND);

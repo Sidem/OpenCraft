@@ -175,8 +175,7 @@ pub(super) fn camera_ground(world: &World, focus: Vec3) -> Option<f64> {
             };
             if b != AIR
                 && (block::SOLID[b as usize] || block::LIQUID[b as usize])
-                && b != block::LOG
-                && b != block::LEAVES
+                && !block::is_tree(b)
                 && crate::factory::machine(b).is_none()
                 && b != block::MACHINE_PART
             {

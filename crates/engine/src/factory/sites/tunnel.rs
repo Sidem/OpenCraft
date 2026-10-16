@@ -10,7 +10,7 @@
 //! (its index is saved).
 
 use super::{cut_takes, Column, SiteSurvey};
-use crate::block::{is_ore, BlockId, LEAVES, LIQUID, LOG};
+use crate::block::{is_ore, is_tree, BlockId, LIQUID};
 use crate::math::IVec3;
 use crate::world::World;
 use crate::worldgen::WORLD_HEIGHT;
@@ -144,7 +144,7 @@ pub fn survey_tunnel(world: &World, t: &Tunnel) -> SiteSurvey {
             Some(b) if cut_takes(b) => {
                 s.cut += 1;
                 s.ore += is_ore(b) as u32;
-                s.trees += (b == LOG || b == LEAVES) as u32;
+                s.trees += is_tree(b) as u32;
                 s.water += touches_water(|p| world.get_block(p), pos) as u32;
             }
             Some(_) => {}

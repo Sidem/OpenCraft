@@ -48,6 +48,7 @@ const WORLD_BLOCKS: &[BlockId] = &[
     SAND,
     LOG,
     LEAVES,
+    block::CACTUS,
     COAL_ORE,
     IRON_ORE,
     COPPER_ORE,
@@ -70,7 +71,13 @@ const WORLD_BLOCKS: &[BlockId] = &[
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters;
 /// recyclers pay coins).
-const GATHERED: &[ItemId] = &[ItemId::block(SAPLING), item::CRUDE_CANISTER, item::COIN];
+const GATHERED: &[ItemId] = &[
+    ItemId::block(SAPLING),
+    ItemId::block(block::BIRCH_SAPLING),
+    ItemId::block(block::PINE_SAPLING),
+    item::CRUDE_CANISTER,
+    item::COIN,
+];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
 /// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; plastic and acid for gold science and the chip fab,
 /// lubricant for Mk5).

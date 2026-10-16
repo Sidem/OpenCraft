@@ -13,7 +13,7 @@
 //! To add a timed rule: a `TimerKind` (append: saves store it as a byte), its check in `block_changed`
 //! and its effect in `fire`.
 
-use crate::block::{BlockId, AIR, DIRT, GRASS, LEAVES, LOG, SAPLING, SOLID};
+use crate::block::{is_leaves, is_log, is_sapling, sapling_of, BlockId, AIR, DIRT, GRASS, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::{IVec3, Vec3};
 use crate::sim::{Sim, SimEvent};
@@ -93,13 +93,13 @@ impl Sim {
     /// sapling planted at `pos`; a torch on `pos` losing its support (torches.rs); then the water checks
     /// (water.rs).
     pub(crate) fn block_changed(&mut self, pos: IVec3, old: BlockId) {
-        if self.block(pos) == SAPLING {
+        if is_sapling(self.block(pos)) {
             self.schedule_growth(pos);
         }
-        if old == LOG {
+        if is_log(old) {
             let r = LEAF_CHECK_RADIUS;
             for p in cube(pos, r) {
-                if self.block(p) == LEAVES && !self.leaf_supported(p) {
+                if is_leaves(self.block(p)) && !self.leaf_supported(p) {
                     self.schedule(p, TimerKind::LeafDecay, LEAF_HALF_LIFE);
                 }
             }
@@ -142,7 +142,7 @@ impl Sim {
     /// Makes a timer's change if its block and condition still hold.
     fn fire(&mut self, t: Timer) {
         let (block, new) = match t.kind {
-            TimerKind::LeafDecay => (LEAVES, AIR),
+            TimerKind::LeafDecay => (self.block(t.pos), AIR),
             TimerKind::GrassGrow => (DIRT, GRASS),
             TimerKind::GrassDie => (GRASS, DIRT),
             TimerKind::SaplingGrow => return self.grow_sapling(t.pos),
@@ -151,7 +151,7 @@ impl Sim {
             return;
         }
         let holds = match t.kind {
-            TimerKind::LeafDecay => !self.leaf_supported(t.pos),
+            TimerKind::LeafDecay => is_leaves(block) && !self.leaf_supported(t.pos),
             TimerKind::GrassGrow => self.grass_can_grow(t.pos),
             TimerKind::GrassDie => self.covered(t.pos),
             TimerKind::SaplingGrow => false, // returned above
@@ -164,7 +164,7 @@ impl Sim {
             self.events.push(SimEvent::LeafDecayed { pos: t.pos });
             if self.leaf_drops_sapling() {
                 let (pos, vel) = (t.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), Vec3::new(0.0, 1.0, 0.0));
-                self.events.push(SimEvent::Dropped { pos, vel, item: SAPLING.into(), count: 1 });
+                self.events.push(SimEvent::Dropped { pos, vel, item: sapling_of(block).into(), count: 1 });
             }
         }
         self.block_changed(t.pos, block);
@@ -203,10 +203,12 @@ impl Sim {
                     if std::mem::replace(&mut seen[index(n)], true) {
                         continue;
                     }
-                    match self.block(n) {
-                        LOG => return true,
-                        LEAVES => next.push(n),
-                        _ => {}
+                    let b = self.block(n);
+                    if is_log(b) {
+                        return true;
+                    }
+                    if is_leaves(b) {
+                        next.push(n);
                     }
                 }
             }

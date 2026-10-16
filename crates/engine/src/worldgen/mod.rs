@@ -21,7 +21,9 @@
 //! 7 = Milestone 10's terrain overhaul: bigger continents, taller ranges, mesas (`landform.rs`), rivers and lakes
 //! (`rivers.rs`, branching in `height_at` and `water_top`);
 //! 8 = R1c's natural water: winding rivers whose pools spill down as rapids and waterfalls (`falls` here, `rivers/`),
-//! lakes and ponds with irregular shores (`shore.rs`).
+//! lakes and ponds with irregular shores (`shore.rs`);
+//! 9 = R2b's forests: tree species per biome (`trees.rs`: oak and birch on plains, broad trees in lowlands, pines on
+//! highlands, cacti in deserts, dead snags on basalt fields).
 
 mod bearing;
 mod biome;
@@ -41,6 +43,7 @@ use caves::CaveField;
 pub use geology::ore_shares;
 pub use ore::LODE_HEIGHTS;
 pub use trees::tree_blocks;
+pub(crate) use trees::{species_of_sapling, trunk_range};
 use trees::{stamp_tree, Tree};
 pub use water::Water;
 use water::WaterGuard;
@@ -57,7 +60,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 8;
+pub const WORLDGEN_VERSION: u32 = 9;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -67,6 +70,8 @@ const ROCK_LEVEL: i32 = 170;
 const CLIFF_SLOPE: i32 = 5;
 const TREE_CELL: i32 = 7;
 const TREE_REACH: i32 = 2;
+/// Version 9's broad and conifer canopies reach a block further.
+const TREE_REACH_V9: i32 = 3;
 const SPAWN_CLEARING: i32 = 6;
 
 /// A pond cell and its pond, if it has one.
@@ -267,10 +272,11 @@ impl WorldGen {
     }
 
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
-    /// One candidate per TREE_CELL² cell keeps trunks apart without any neighbour search.
+    /// One candidate per TREE_CELLÂ² cell keeps trunks apart without any neighbour search.
     fn trees_near(&self, x0: i32, z0: i32) -> Vec<Tree> {
-        let (min_x, max_x) = (x0 - TREE_REACH, x0 + CHUNK_SIZE - 1 + TREE_REACH);
-        let (min_z, max_z) = (z0 - TREE_REACH, z0 + CHUNK_SIZE - 1 + TREE_REACH);
+        let reach = if self.version >= 9 { TREE_REACH_V9 } else { TREE_REACH };
+        let (min_x, max_x) = (x0 - reach, x0 + CHUNK_SIZE - 1 + reach);
+        let (min_z, max_z) = (z0 - reach, z0 + CHUNK_SIZE - 1 + reach);
         let mut out = Vec::new();
         for gz in min_z.div_euclid(TREE_CELL)..=max_z.div_euclid(TREE_CELL) {
             for gx in min_x.div_euclid(TREE_CELL)..=max_x.div_euclid(TREE_CELL) {
@@ -286,7 +292,12 @@ impl WorldGen {
                 let f = self.forest.fbm2(x as f64 / 220.0, z as f64 / 220.0, 3);
                 let ground = self.height_at(x, z);
                 let biome = (self.version >= 2).then(|| self.biome_at(x, z, ground));
-                let density = (smoothstep(-0.2, 0.3, f) * 0.85 + 0.03) * biome.map_or(1.0, Biome::tree_factor);
+                let species =
+                    if self.version >= 9 { biome.map_or(trees::OAK, |b| trees::pick(b, h)) } else { trees::OAK };
+                let density = trees::bare_density(species).map_or_else(
+                    || (smoothstep(-0.2, 0.3, f) * 0.85 + 0.03) * biome.map_or(1.0, Biome::tree_factor),
+                    |per_mille| f64::from(per_mille) / 1000.0,
+                );
                 if unit(hash2(self.seed ^ 0x5EED, gx, gz)) >= density {
                     continue;
                 }
@@ -295,10 +306,12 @@ impl WorldGen {
                     Some(b) => Self::surface_v2(b, ground, slope).0 .0,
                     None => Self::surface_for(ground, slope).0,
                 };
-                if top != GRASS || (self.version >= 3 && self.water_top(x, z, ground) > ground) {
+                if top != trees::SPECIES[species].ground || (self.version >= 3 && self.water_top(x, z, ground) > ground)
+                {
                     continue;
                 }
-                out.push(Tree { x, z, ground, trunk: 4 + ((h >> 16) % 3) as i32 });
+                let trunk = trees::SPECIES[species].trunk_min + ((h >> 16) % trees::SPECIES[species].spread) as i32;
+                out.push(Tree { x, z, ground, trunk, species });
             }
         }
         out
@@ -392,7 +405,7 @@ struct Column {
 
 /// Version 8: where water stands next to higher water (a pool below a drop), the cells between them hold falling water
 /// up to the higher top (`FLOW_7`), exactly what `sim/water.rs` settles on there, so nothing moves until an edit.
-/// `wet` holds the top water blocks of a `p`-wide grid padded by 2; the result covers the 32² inner columns.
+/// `wet` holds the top water blocks of a `p`-wide grid padded by 2; the result covers the 32Â² inner columns.
 fn falls(wet: &[i32], p: usize) -> Vec<i32> {
     let mut out = vec![i32::MIN; 1024];
     for z in 0..32 {

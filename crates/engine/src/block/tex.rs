@@ -357,7 +357,16 @@ pub const FERN: u16 = 310;
 pub const REED: u16 = 311;
 pub const DRY_BRUSH: u16 = 312;
 pub const LICHEN: u16 = 313;
-pub const COUNT: usize = 314;
+/// The forest's other trees (`textures/forest.rs`, blocks in `block/forest.rs`); logs share `LOG_TOP`.
+pub const BIRCH_SIDE: u16 = 314;
+pub const BIRCH_LEAVES: u16 = 315;
+pub const PINE_LEAVES: u16 = 316;
+pub const CACTUS_SIDE: u16 = 317;
+pub const CACTUS_TOP: u16 = 318;
+pub const DEAD_SIDE: u16 = 319;
+pub const BIRCH_SAPLING: u16 = 320;
+pub const PINE_SAPLING: u16 = 321;
+pub const COUNT: usize = 322;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

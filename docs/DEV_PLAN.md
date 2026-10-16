@@ -7,8 +7,8 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 **Milestone 13 (Settlements) built and pushed** except 13.6b (town kinds and sites, the depot, orders, upkeep and stalls,
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
-irregular lakes, ponds and stains) · **R2a built** (ground cover for every biome, 877 tests) · **Next: R2b** (tree species and
-biome plants on generator version 9, then R2c indicator plants); 13.6b (balance) once the user has played Milestone 13 · Then R3–R5, R7, R8, the feel-and-feedback interlude,
+irregular lakes, ponds and stains) · **R2a and R2b built** (ground cover for every biome; tree species on generator version 9, not pinned until released; 882 tests) ·
+**Next: R2c** (indicator plants; heather left over from R2b); 13.6b (balance) once the user has played Milestone 13 · Then R3–R5, R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -52,7 +52,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
   **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b), R1c
-  (natural rivers) and R2a (ground cover) are done; **next is R2b (tree species and biome plants)**, then the rest of R2–R8.
+  (natural rivers), R2a (ground cover) and R2b (tree species) are done; **next is R2c (indicator plants)**, then R3–R8.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -472,7 +472,7 @@ interlude and the performance todo); Milestone 13's in `docs/CHANGELOG_M13.md`, 
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 53) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 117, item 396, tech 85, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 314) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 124, item 396, tech 85, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 322) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Where the last milestones stand
@@ -502,7 +502,7 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
     and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
     top of grass, sand or dirt with air above. Never blocks, never saved; a remesh clears them when the ground changes. Watch
     `bench_meshing` and vertex counts. **Done when:** every biome has its own cover, meshing costs at most 15% more, seen in the pane.
-  - **R2b Tree species and biome plants (generator version 9, new worlds only, section 6; R1c released version 8):** species as rows in
+  - [x] **R2b Tree species and biome plants (built 2026-10-17, record in `docs/CHANGELOG_R.md`; generator version 9, new worlds only, section 6; R1c released version 8):** species as rows in
     `worldgen/trees.rs` (shape, log and leaf blocks): today's broadleaf (plains), conifers (highlands), wide wet-ground trees
     (lowlands, by water), a pale-barked plains mix, cacti (desert), dead snags and heather (basalt). Each species has a sapling;
     every log saws into the same planks. Versions 7 and 8 are pinned (`released_versions_never_change`). **Done when:** each biome reads differently from afar.
@@ -593,6 +593,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-17: Step R2b built** (generator version 9: oak and birch on plains, broad trees in lowlands, pines on highlands, cacti
+  in deserts, dead snags on basalt fields; two new saplings; blocks 117–123, `tex::COUNT` 322). 882 tests. Version 9 is pinned
+  (`released_versions_never_change`) when it is pushed.
 - **2026-10-16: Step R2a built** (ground cover: tufts, flowers, ferns, reeds, dry brush and lichen per biome, drawn by the mesher on
   every world from generator version 2; `tex::COUNT` 314). 877 tests.
 - **2026-10-16: Milestone 13 (to 13.6a) and R1c pushed** to the live site; generator version 8 pinned as released.

@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::action::Action;
-use crate::block::{BlockId, LEAVES, LOG, STONE};
+use crate::block::{BlockId, LEAVES, LOG, SAPLING, STONE};
 use crate::item::ItemId;
 use crate::sim::tests::SEED;
 use crate::sim::PlayerId;
@@ -90,4 +90,35 @@ fn saplings_need_soil_and_room() {
     sim.world.set_block_anywhere(at(0, SKY + 2, 0), crate::block::AIR);
     assert_eq!(run(&mut sim, 900), 1);
     assert_eq!(sim.block(at(0, SKY, 0)), LOG);
+}
+
+#[test]
+fn each_species_leaves_and_grows_its_own_sapling() {
+    use crate::block::{BIRCH_LEAVES, BIRCH_LOG, BIRCH_SAPLING, PINE_LEAVES, PINE_SAPLING};
+    let mut sim = Sim::new(SEED, 2);
+    for (leaves, sapling) in [(BIRCH_LEAVES, BIRCH_SAPLING), (PINE_LEAVES, PINE_SAPLING), (LEAVES, SAPLING)] {
+        assert_eq!(crate::block::sapling_of(leaves), sapling);
+        let mut got = 0;
+        for i in 0..300 {
+            let p = at(i % 40, SKY, i / 40);
+            sim.world.set_block_anywhere(p, leaves);
+            sim.apply(A, Action::BreakBlock { pos: p });
+            got += sim
+                .events
+                .iter()
+                .filter(|e| matches!(e, SimEvent::Dropped { item, .. } if *item == sapling.into()))
+                .count();
+            sim.events.clear();
+        }
+        assert!(got > 0, "{leaves} leaves left no sapling");
+    }
+    // A planted pine sapling grows a pine (a log trunk of at least 6 under needles), a birch a birch.
+    sim.world.set_block_anywhere(at(0, SKY - 1, 100), GRASS);
+    sim.world.set_block_anywhere(at(10, SKY - 1, 100), GRASS);
+    assert!(place(&mut sim, at(0, SKY, 100), PINE_SAPLING) && place(&mut sim, at(10, SKY, 100), BIRCH_SAPLING));
+    assert_eq!(run(&mut sim, 900), 2);
+    let trunk = (SKY..SKY + 10).take_while(|&y| sim.block(at(0, y, 100)) == LOG).count();
+    assert!((6..=8).contains(&trunk), "pine trunk {trunk}");
+    assert_eq!(sim.block(at(0, SKY + trunk as i32 - 1, 101)), PINE_LEAVES);
+    assert_eq!(sim.block(at(10, SKY, 100)), BIRCH_LOG);
 }

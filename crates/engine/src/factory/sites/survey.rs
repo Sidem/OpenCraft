@@ -2,7 +2,7 @@
 //! (`ground_range`, from the world as it is). See `factory/sites.rs`.
 
 use super::{cut_takes, is_ground, shape, Column, Job};
-use crate::block::{is_ore, AIR, LEAVES, LIQUID, LOG};
+use crate::block::{is_ore, is_tree, AIR, LIQUID};
 use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
 use crate::math::IVec3;
 use crate::world::World;
@@ -110,7 +110,7 @@ fn survey_column(world: &World, x: i32, z: i32, level: i32, job: Job) -> Option<
             if cut_takes(b) {
                 s.cut += 1;
                 s.ore += is_ore(b) as u32;
-                s.trees += (b == LOG || b == LEAVES) as u32;
+                s.trees += is_tree(b) as u32;
             }
             s.water += water as u32;
         } else if y <= level && ground.is_none() && job.fills() {

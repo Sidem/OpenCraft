@@ -15,7 +15,7 @@
 //! `Job::cuts` / `Job::fills`.
 
 use super::machine;
-use crate::block::{BlockId, AIR, BEDROCK, LEAVES, LIQUID, LOG, SOLID};
+use crate::block::{is_tree, BlockId, AIR, BEDROCK, LIQUID, SOLID};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
 use crate::world::World;
@@ -287,7 +287,7 @@ impl Sites {
 
 /// Ground a column is built on: solid, and not part of a tree.
 pub(super) fn is_ground(b: BlockId) -> bool {
-    SOLID[b as usize] && b != LOG && b != LEAVES
+    SOLID[b as usize] && !is_tree(b)
 }
 
 /// Whether a cut takes `b`: everything but air, water, bedrock and machines (belts and pipes too).

@@ -167,7 +167,10 @@ pub const LANDING_PAD: BlockId = 114;
 pub const UPGRADER: BlockId = 115;
 /// The town depot (`factory/process/depot.rs`, step 13.1): placed at a fitting site it founds a town (`settlements/`).
 pub const TOWN_DEPOT: BlockId = 116;
-pub const BLOCK_COUNT: usize = 117;
+/// The forest's blocks, ids 117–123 (`forest.rs`).
+mod forest;
+pub use forest::*;
+pub const BLOCK_COUNT: usize = 124;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -408,6 +411,19 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Landing Pad", true, 2.0, pillar(tex::POD_SIDE, tex::POD_PAD_TOP, tex::FRAME), LANDING_PAD),
     machine("Upgrader", true, 1.4, pillar(tex::ASSEMBLER_SIDE, tex::STEEL, tex::FRAME), UPGRADER),
     machine("Town Depot", true, 2.0, pillar(tex::PLANKS, tex::STONE_BRICKS, tex::FRAME), TOWN_DEPOT),
+    BlockDef {
+        placeable: false,
+        ..cube("Birch Log", 0.9, pillar(tex::BIRCH_SIDE, tex::LOG_TOP, tex::LOG_TOP), LOG, sound::WOOD)
+    },
+    make::leaves("Birch Leaves", tex::BIRCH_LEAVES, LEAVES),
+    make::leaves("Pine Needles", tex::PINE_LEAVES, LEAVES),
+    cube("Cactus", 0.4, pillar(tex::CACTUS_SIDE, tex::CACTUS_TOP, tex::CACTUS_TOP), CACTUS, sound::LEAVES),
+    BlockDef {
+        placeable: false,
+        ..cube("Dead Log", 0.9, pillar(tex::DEAD_SIDE, tex::LOG_TOP, tex::LOG_TOP), LOG, sound::WOOD)
+    },
+    make::sapling("Birch Sapling", tex::BIRCH_SAPLING, BIRCH_SAPLING),
+    make::sapling("Pine Sapling", tex::PINE_SAPLING, PINE_SAPLING),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

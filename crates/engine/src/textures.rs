@@ -6,7 +6,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, ground cover in `ground_cover.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, ground cover in `ground_cover.rs`, the other trees in `forest.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -17,6 +17,7 @@ mod avatar;
 mod chemistry;
 mod compute;
 mod electronics;
+mod forest;
 mod gear;
 mod geology;
 mod grid;
@@ -208,6 +209,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::HUB_SIDE..=tex::HUB_TOP => hub::pixel(layer, x, y),
         tex::LAUNCH_SIDE..=tex::POD_PAD_TOP => orbit::pixel(layer, x, y),
         tex::GRASS_TUFT..=tex::LICHEN => ground_cover::pixel(layer, x, y),
+        tex::BIRCH_SIDE..=tex::PINE_SAPLING => forest::pixel(layer, x, y),
         tex::SMOKE..=tex::SMOKE_THIN | tex::SOOT => smoke::pixel(layer, x, y),
         tex::LOCO_BODY => transport::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
