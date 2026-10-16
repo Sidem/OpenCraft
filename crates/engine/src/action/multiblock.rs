@@ -31,7 +31,7 @@ impl Sim {
         let town = (placed == TOWN_DEPOT).then(|| self.settlements.site(self.world.generator(), pos));
         if let Some(kind) = town {
             let Ok(kind) = kind else { return false };
-            self.settlements.found(pos, kind);
+            self.settlements.found(pos, kind, self.tick);
         }
         for (i, &c) in cells.iter().enumerate() {
             let old = self.world.block_anywhere_or_generate(c);

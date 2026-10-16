@@ -11,7 +11,7 @@ use crate::TICK_RATE;
 use super::{Town, ORDERS};
 
 /// Ticks between two upkeeps.
-const MINUTE: u64 = 60 * TICK_RATE as u64;
+pub(super) const MINUTE: u64 = 60 * TICK_RATE as u64;
 
 impl Sim {
     /// Tells each depot what its town takes in now.
@@ -25,6 +25,9 @@ impl Sim {
     pub(crate) fn step_towns(&mut self) {
         for i in 0..self.settlements.towns.len() {
             let t = &mut self.settlements.towns[i];
+            if t.dormant {
+                continue;
+            }
             if let Some(store) = self.factory.depot_store(t.pos) {
                 t.step(store, self.tick, &mut self.events);
             }

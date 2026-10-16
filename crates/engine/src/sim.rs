@@ -362,7 +362,7 @@ impl Sim {
         let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
         self.set_mode(mode);
         self.opening = if r.version >= 47 { Opening::read_state(r)? } else { None };
-        // Save 49 added each town's stage and order, 50 its plots and drones (`Settlements::read_state` follows the version).
+        // Save 49 added each town's stage and order, 50 its plots and drones, 51 dormancy (`Settlements::read_state` follows the version).
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         Some(())
     }

@@ -1,4 +1,4 @@
-use super::plans::BUILDINGS;
+use super::plans::{Role, BUILDINGS};
 use super::*;
 use crate::action::Action;
 use crate::block::{self, AIR, TOWN_DEPOT};
@@ -64,7 +64,7 @@ fn towns_keep_apart_and_off_the_spawn_plains() {
     let mut towns = Settlements::default();
     assert_eq!(towns.site(&gen, IVec3::new(120, 70, -90)), Err(Unfit::NearSpawn(150)));
     let harbour = find(&gen, |x, z| gen.open_water(x, z) == Some(Water::Sea));
-    towns.found(harbour, 0);
+    towns.found(harbour, 0, 0);
     // Further out along x, so further from spawn too.
     let out = |d: i32| harbour + IVec3::new(d * harbour.x.signum().max(1), 0, 0);
     assert_eq!(towns.site(&gen, out(100)), Err(Unfit::NearTown(0, 100)));
@@ -74,7 +74,7 @@ fn towns_keep_apart_and_off_the_spawn_plains() {
 }
 
 #[test]
-fn a_depot_founds_a_town_only_at_a_fitting_site_and_breaking_it_ends_the_town() {
+fn a_depot_founds_a_town_only_at_a_fitting_site_and_breaking_it_leaves_the_town_dormant() {
     let mut sim = Sim::new(SEED, 2);
     let gen = WorldGen::new(SEED);
     let depot = ItemId::block(TOWN_DEPOT);
@@ -109,7 +109,22 @@ fn a_depot_founds_a_town_only_at_a_fitting_site_and_breaking_it_ends_the_town() 
     let part = *sim.factory.footprint_at(at).expect("a footprint").2.last().unwrap();
     sim.apply(P, Action::BreakBlock { pos: part });
     assert_eq!(sim.world.block_anywhere_or_generate(at), AIR);
-    assert!(sim.settlements.towns.is_empty(), "breaking the depot ends its town");
+    let mut town = sim.settlements.towns[0].clone();
+    assert!(town.dormant, "breaking the depot leaves its town dormant");
+    assert!(sim.settlements.at(at).is_none());
+
+    // Only its old spot wakes it; near it, the label says where.
+    let aside = at + IVec3::new(5, 0, 0);
+    assert_eq!(sim.settlements.site(&gen, aside), Err(Unfit::Dormant(0, 5)));
+    assert!(Unfit::Dormant(0, 5).text().contains("Your harbour sleeps"));
+    place(&mut sim, aside);
+    assert_eq!(sim.world.block_anywhere_or_generate(aside), AIR);
+    sim.step();
+    place(&mut sim, at);
+    assert_eq!(sim.world.block_anywhere_or_generate(at), TOWN_DEPOT);
+    assert_eq!(sim.settlements.towns.len(), 1, "woken, not founded again");
+    (town.dormant, town.due) = (false, sim.tick + 3600);
+    assert_eq!(sim.settlements.towns[0], town);
 }
 
 #[test]
@@ -202,8 +217,8 @@ fn a_depot_fed_by_belt_builds_two_stages_then_stalls_without_upkeep_and_recovers
     assert!(concrete_line(&sim.settlements.towns[0]) > before);
 }
 
-#[test]
-fn a_camp_is_built_by_the_towns_own_drones_on_uneven_ground_around_the_players_blocks() {
+/// A harbour founded on the shore with its first order delivered, and the player's block in its nearest plot.
+fn found_camp() -> (Sim, IVec3, IVec3) {
     let mut sim = Sim::new(SEED, 2);
     let gen = WorldGen::new(SEED);
     let shore = find(&gen, |x, z| gen.open_water(x, z) == Some(Water::Sea));
@@ -211,43 +226,57 @@ fn a_camp_is_built_by_the_towns_own_drones_on_uneven_ground_around_the_players_b
     sim.apply(P, Action::Give { item: ItemId::block(TOWN_DEPOT), count: 1 });
     sim.apply(P, Action::PlaceBlock { pos: at, slot: 0, facing: 0, against: at - IVec3::new(0, 1, 0) });
     assert_eq!(sim.settlements.towns.len(), 1, "founded at {at:?}");
-    // The player's block in the nearest plot: that plot is skipped and the block stays.
     let mid = at + plans::slot_offset(0);
     let mine = IVec3::new(mid.x, gen.height_at(mid.x, mid.z).max(crate::worldgen::SEA_LEVEL) + 2, mid.z);
     sim.world.set_block_anywhere(mine, block::STORAGE);
-
     let store = sim.factory.depot_store(at).unwrap();
     for &(item, n) in ORDERS[0] {
         store.add(item, n);
     }
-    for tick in 0..20 * 60 * crate::TICK_RATE {
-        // Upkeep keeps coming, so the town never stalls.
+    (sim, at, mine)
+}
+
+/// Steps `sim` up to `ticks`, keeping the upkeep of the town at `at` coming so it never stalls, until `done`.
+fn keep_town(sim: &mut Sim, at: IVec3, ticks: u32, done: impl Fn(&Town) -> bool) -> bool {
+    for tick in 0..ticks {
         if tick % 600 == 0 {
             for (item, n) in sim.settlements.towns[0].upkeep() {
                 sim.factory.depot_store(at).unwrap().add(item, n);
             }
         }
         sim.step();
-        if tick == 5000 {
-            // Mid-build, drones out: the town survives a save.
-            assert!(!sim.settlements.towns[0].drones.is_empty());
-            let mut w = ByteWriter::default();
-            sim.write_state(&mut w);
-            let mut back = Sim::new(SEED, 2);
-            back.read_state(&mut ByteReader::new(&w.bytes)).expect("reads");
-            assert_eq!(back.state_hash(), sim.state_hash());
-        }
-        let t = &sim.settlements.towns[0];
-        if t.built == 1 && t.cursor as usize == t.plots.len() && t.drones.is_empty() {
-            break;
+        if done(&sim.settlements.towns[0]) {
+            return true;
         }
     }
+    false
+}
+
+/// Whether the town has built every building it planned.
+fn finished(t: &Town) -> bool {
+    t.built >= 1 && t.cursor as usize == t.plots.len() && t.drones.is_empty()
+}
+
+const MINUTES_20: u32 = 20 * 60 * crate::TICK_RATE;
+
+#[test]
+fn a_camp_is_built_by_the_towns_own_drones_on_uneven_ground_around_the_players_blocks() {
+    let (mut sim, at, mine) = found_camp();
+    keep_town(&mut sim, at, 5000, |_| false);
+    // Mid-build, drones out: the town survives a save.
+    assert!(!sim.settlements.towns[0].drones.is_empty());
+    let mut w = ByteWriter::default();
+    sim.write_state(&mut w);
+    let mut back = Sim::new(SEED, 2);
+    back.read_state(&mut ByteReader::new(&w.bytes)).expect("reads");
+    assert_eq!(back.state_hash(), sim.state_hash());
+
+    assert!(keep_town(&mut sim, at, MINUTES_20, finished), "built within 20 minutes");
     let t = sim.settlements.towns[0].clone();
     assert_eq!(t.built, 1);
     assert_eq!(t.plots.len(), BUILDINGS[0].len(), "every camp building found a plot");
     assert!(t.plots.iter().all(|p| p.slot != 0), "the plot with the player's block is skipped");
     assert_eq!(sim.world.block_anywhere_or_generate(mine), block::STORAGE);
-    assert!(t.drones.is_empty() && t.cursor as usize == t.plots.len(), "built within 20 minutes");
     let (mut placed, mut below_floor) = (0, 0);
     for p in &t.plots {
         for (cell, b, role) in p.cells(t.pos, t.kind) {
@@ -260,6 +289,24 @@ fn a_camp_is_built_by_the_towns_own_drones_on_uneven_ground_around_the_players_b
     }
     assert!(placed > 200, "{placed} blocks placed");
     assert!(below_floor > 0, "the foundation reaches down to uneven ground");
+}
+
+#[test]
+fn a_broken_town_block_is_rebuilt_unless_the_player_filled_the_gap() {
+    let (mut sim, at, _) = found_camp();
+    assert!(keep_town(&mut sim, at, MINUTES_20, finished));
+    let t = sim.settlements.towns[0].clone();
+    let walls: Vec<_> = t.plots[1].cells(t.pos, t.kind).into_iter().filter(|c| c.2 == Role::Wall).collect();
+    let (a, b) = (walls[0], walls[1]);
+    sim.apply(P, Action::BreakBlock { pos: a.0 });
+    sim.apply(P, Action::BreakBlock { pos: b.0 });
+    assert_eq!(sim.world.block_anywhere_or_generate(a.0), AIR);
+    assert_eq!(sim.settlements.towns[0].cursor, 1, "back to the broken building");
+    sim.world.set_block_anywhere(b.0, block::CONCRETE);
+
+    assert!(keep_town(&mut sim, at, MINUTES_20, finished), "rebuilt");
+    assert_eq!(sim.world.block_anywhere_or_generate(a.0), a.1);
+    assert_eq!(sim.world.block_anywhere_or_generate(b.0), block::CONCRETE, "the player's block stays");
 }
 
 #[test]

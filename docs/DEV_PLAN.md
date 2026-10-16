@@ -4,9 +4,8 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1, 13.2 and 13.3a built** (town kinds, sites, the depot; orders, upkeep and stalling;
-buildings by the town's own drones; save version 50, 854 tests; not pushed) · **Next: build step 13.3b** (rebuilding,
-dormant towns) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+**Milestone 13 (Settlements): 13.1–13.3 built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
+the town's own drones, rebuilding, dormant towns; save version 51, 855 tests; not pushed) · **Next: step 13.4** (perks) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -597,7 +596,9 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   pauses while stalled. Lamps in the plans light the windows at night; forge and workshop chimneys smoke (`factory/smoke.rs`).
   **Done when:** a scenario test builds a camp on uneven ground with the town's drones only, no player block touched; a town
   is seen growing from a depot to its third stage in the browser pane.
-- [ ] **13.3b Rebuilding and dormant towns.** A built town cell that no longer holds its block goes back on the build list
+- [x] **13.3b Rebuilding and dormant towns.** Built 2026-10-16 (save version 51; `Settlements::sleep` / `broken`, the
+  dormant spot marked amber and `Unfit::Dormant` naming it). Broken town blocks drop as usual, so a player could farm
+  them while the drones put them back (a balance question for 13.6). As talked: A built town cell that no longer holds its block goes back on the build list
   (a cell the player has filled with something else is skipped). Breaking the depot makes the town dormant (kept with its
   stage, progress and plan; no tick, no building); `Settlements::site` lets a depot on a dormant town's own anchor wake it.
   **Done when:** tests break a town block (rebuilt) and the depot (dormant, then woken with its stage).
@@ -660,6 +661,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.3b built (rebuilding and dormant towns).** Breaking a depot makes its town dormant (`Town::dormant`,
+  save version 51) and a depot on its old spot wakes it; breaking a finished town block sends the cursor back so the drones
+  rebuild it, unless the player filled the gap. 855 tests.
 - **2026-10-16: Step 13.3a built (plots, plans and the town's drones).** `settlements/plans.rs`, `plots.rs` and `build.rs`;
   `Town` gains `planned`, `plots`, `cursor` and `drones` (save version 50); town drones, chimney smoke and outlines in
   `town_preview.rs`; `drones::approach` and `factory::smoke` opened to the crate. 854 tests.

@@ -7,7 +7,8 @@
 //! - once founded, the target readout on its depot names the town and its stage, and shows the open order and the
 //!   upkeep (`town_line`, from `api/hud.rs`);
 //! - while it grows, its drones are drawn (`write_town_instances`, from `drone_view.rs`), finished chimneys smoke, and
-//!   the buildings still going up are outlined faintly (`town_boxes`, from `ghost_boxes`).
+//!   the buildings still going up are outlined faintly (`town_boxes`, from `ghost_boxes`);
+//! - a dormant town's chimneys go cold and its old depot spot is marked amber (`town_boxes`).
 //!
 //! The core checks the site again when the depot is placed (`action/multiblock.rs`).
 
@@ -23,6 +24,8 @@ const GHOST_GREEN: i32 = 0x4ade80;
 const BLOCKED_RED: i32 = 0xff4a3d;
 /// The faint outline of a town building still going up.
 const TOWN_PLAN: i32 = 0xd8c8a0;
+/// The marked spot where a dormant town's depot stood.
+const DORMANT_SPOT: i32 = 0xffb347;
 /// Towns further than this from the eye are not drawn.
 const DRAW_RANGE: f64 = 160.0;
 
@@ -110,7 +113,7 @@ impl Game {
                 let at = d.prev + (d.pos - d.prev) * alpha + Vec3::new(0.0, bob, 0.0);
                 push_drone(&mut self.instances, at - eye, (time * 0.5) as f32, true);
             }
-            for p in t.plots.iter().take(t.cursor as usize).filter(|p| p.chimney(t.kind)) {
+            for p in t.plots.iter().take(t.cursor as usize).filter(|p| p.chimney(t.kind) && !t.dormant) {
                 let mouth = p.corner(t.pos) + chimney_mouth(p.shape());
                 let at = mouth.as_vec3() + Vec3::new(0.5, 0.0, 0.5) - eye;
                 smoke::puffs(&mut self.instances, at, time, smoke::seed(mouth), 1.0);
@@ -124,6 +127,10 @@ impl Game {
         for t in &self.sim.settlements.towns {
             if (t.pos.as_vec3() - eye).length() > DRAW_RANGE {
                 continue;
+            }
+            if t.dormant {
+                // Where its depot stood: put one back there to wake it.
+                out.extend([t.pos.x, t.pos.y, t.pos.z, t.pos.x, t.pos.y, t.pos.z, DORMANT_SPOT]);
             }
             for p in t.plots.iter().skip(t.cursor as usize) {
                 let (lo, s) = (p.corner(t.pos), p.shape());

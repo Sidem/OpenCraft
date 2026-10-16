@@ -9,7 +9,9 @@
 //!   other town, and a kind's place within [`SHORE`] blocks. It reads the generator's fields, never chunks, so a site
 //!   is the same explored or not; a canal dug by hand doesn't make a harbour.
 //! - **Founding**: `put_footprint` (`action/multiblock.rs`) refuses a depot at an unfitting site and founds the town
-//!   when one is placed; breaking the depot (`dismantle`) removes its town.
+//!   when one is placed. Breaking the depot (`dismantle`) leaves its town **dormant** (`sleep`: stage, progress and
+//!   plots kept, nothing runs), and a depot put back on its old spot wakes it (`site`, `found`). Breaking any block of a
+//!   finished building sends the town's cursor back to it (`broken`), so its drones rebuild it.
 //! - **Orders and upkeep** (`orders.rs` data, `run.rs` the tick): the depot takes in only its town's goods; each minute
 //!   the town uses up its upkeep from the depot, or stalls until it is there; while not stalled the rest goes toward the
 //!   open order, and a complete order builds the next stage.
@@ -17,7 +19,7 @@
 //!   on plots round the depot, and the town's own drones build them, free, bottom first.
 //!
 //! Invariants: the towns are in founding order; their bytes follow the opening scene (save version 48; the stage, order
-//! and upkeep state since 49; plots, cursor and drones since 50). A town's `delivered` has one count per line of its
+//! and upkeep state since 49; plots, cursor and drones since 50; dormant since 51). A town's `delivered` has one count per line of its
 //! open order (none once fully grown).
 //! To add a kind: a row in `KINDS` (append only: saves store the index), its `Needs` and its `orders::UPKEEP` row.
 
@@ -86,6 +88,8 @@ pub struct Town {
     pub stalled: bool,
     /// The tick the next minute's upkeep is due (once a camp stands).
     pub due: u64,
+    /// Whether its depot is broken: no orders, upkeep or building until a depot is put back on its spot.
+    pub dormant: bool,
     /// Stages whose buildings have plots (behind `built` for a tick, or after loading an older save).
     pub planned: u8,
     /// Its buildings' places, in building order (`plots.rs`).
@@ -107,6 +111,7 @@ impl Town {
             delivered,
             stalled: false,
             due: 0,
+            dormant: false,
             planned: 0,
             plots: Vec::new(),
             cursor: 0,
@@ -153,6 +158,8 @@ pub enum Unfit {
     NearSpawn(i32),
     /// Within `SPACING` of a town of this kind; how far it is.
     NearTown(u8, i32),
+    /// Within `SPACING` of a dormant town of this kind (its depot broken), but not on its old spot; how far that is.
+    Dormant(u8, i32),
     /// No kind's place is here.
     NoKind,
 }
@@ -166,6 +173,10 @@ impl Unfit {
             }
             Unfit::NearTown(kind, d) => format!(
                 "No town here: your {} is {d} blocks away; towns stand at least {SPACING} apart",
+                KINDS[kind as usize].name.to_lowercase()
+            ),
+            Unfit::Dormant(kind, d) => format!(
+                "Your {} sleeps without its depot: put one back on its old spot ({d} blocks away, marked) to wake it",
                 KINDS[kind as usize].name.to_lowercase()
             ),
             Unfit::NoKind => format!(
@@ -185,13 +196,16 @@ pub struct Settlements {
 impl Settlements {
     /// The kind of town a depot anchored at `at` would found (an index into `KINDS`), or why none.
     pub fn site(&self, gen: &WorldGen, at: IVec3) -> Result<u8, Unfit> {
+        if let Some(t) = self.towns.iter().find(|t| t.dormant && t.pos == at) {
+            return Ok(t.kind);
+        }
         let spawn = far(IVec3::ZERO, at);
         if spawn < SPAWN_CLEAR {
             return Err(Unfit::NearSpawn(spawn));
         }
-        let nearest = self.towns.iter().map(|t| (t.kind, far(t.pos, at))).min_by_key(|t| t.1);
-        if let Some((kind, d)) = nearest.filter(|t| t.1 < SPACING) {
-            return Err(Unfit::NearTown(kind, d));
+        let nearest = self.towns.iter().map(|t| (t, far(t.pos, at))).min_by_key(|t| t.1);
+        if let Some((t, d)) = nearest.filter(|t| t.1 < SPACING) {
+            return Err(if t.dormant { Unfit::Dormant(t.kind, far3(t.pos, at)) } else { Unfit::NearTown(t.kind, d) });
         }
         let (sea, river) = water_near(gen, at.x, at.z);
         let biome = (gen.version() >= 2).then(|| gen.biome_at(at.x, at.z, gen.height_at(at.x, at.z)));
@@ -203,19 +217,35 @@ impl Settlements {
         KINDS.iter().position(|k| fits(k.needs)).map(|i| i as u8).ok_or(Unfit::NoKind)
     }
 
-    /// The town whose depot is anchored at `pos`.
+    /// The town (awake) whose depot is anchored at `pos`.
     pub fn at(&self, pos: IVec3) -> Option<&Town> {
-        self.towns.iter().find(|t| t.pos == pos)
+        self.towns.iter().find(|t| t.pos == pos && !t.dormant)
     }
 
-    /// Founds a town of `kind` with its depot at `pos`.
-    pub fn found(&mut self, pos: IVec3, kind: u8) {
-        self.towns.push(Town::new(pos, kind));
+    /// Founds a town of `kind` with its depot at `pos`, or wakes the dormant town whose depot stood there (its upkeep
+    /// next due a minute after `tick`).
+    pub fn found(&mut self, pos: IVec3, kind: u8, tick: u64) {
+        match self.towns.iter_mut().find(|t| t.dormant && t.pos == pos) {
+            Some(t) => (t.dormant, t.due) = (false, tick + run::MINUTE),
+            None => self.towns.push(Town::new(pos, kind)),
+        }
     }
 
-    /// Removes the town whose depot was anchored at `pos`, if there is one.
-    pub fn remove(&mut self, pos: IVec3) {
-        self.towns.retain(|t| t.pos != pos);
+    /// Its depot at `pos` was broken: that town goes dormant, keeping its stage, progress and plots; its drones out
+    /// are lost.
+    pub fn sleep(&mut self, pos: IVec3) {
+        if let Some(t) = self.towns.iter_mut().find(|t| t.pos == pos) {
+            (t.dormant, t.drones) = (true, Vec::new());
+        }
+    }
+
+    /// The block at `pos` was broken: a town whose finished plot held it rebuilds from that plot on.
+    pub fn broken(&mut self, pos: IVec3) {
+        for t in &mut self.towns {
+            if let Some(k) = t.plots.iter().take(t.cursor as usize).position(|p| p.holds(t.pos, pos)) {
+                t.cursor = k as u16;
+            }
+        }
     }
 
     pub fn write_state(&self, w: &mut ByteWriter) {
@@ -228,6 +258,7 @@ impl Settlements {
             t.delivered.iter().for_each(|&d| w.u32(d));
             w.bool(t.stalled);
             w.u64(t.due);
+            w.bool(t.dormant);
             w.u8(t.planned);
             w.count(t.plots.len());
             t.plots.iter().for_each(|p| p.write(w));
@@ -256,6 +287,7 @@ impl Settlements {
                 }
             }
             if r.version >= 50 {
+                town.dormant = r.version >= 51 && r.bool()?;
                 town.planned = r.u8()?.min(town.built);
                 town.plots = (0..r.count()?).map(|_| Plot::read(r)).collect::<Option<_>>()?;
                 town.cursor = r.u16()?;
@@ -265,6 +297,12 @@ impl Settlements {
         }
         Some(Settlements { towns })
     }
+}
+
+/// Whole blocks between two cells (rounded down).
+fn far3(a: IVec3, b: IVec3) -> i32 {
+    let d = (a - b).as_vec3();
+    d.length() as i32
 }
 
 /// Whole blocks between two columns, horizontally (rounded down).

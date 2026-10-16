@@ -13,7 +13,7 @@ use crate::math::IVec3;
 use crate::sim::Sim;
 use crate::worldgen::SEA_LEVEL;
 
-use super::plans::{cells, height, slot_offset, slots, Role, Shape, BUILDINGS, PALETTES};
+use super::plans::{cells, height, slot_offset, slots, Role, Shape, BUILDINGS, FOUNDATION_DEPTH, PALETTES};
 use super::STAGES;
 
 /// Most a plot's ground may rise across it.
@@ -33,6 +33,15 @@ pub struct Plot {
 impl Plot {
     pub fn shape(&self) -> &'static Shape {
         &BUILDINGS[self.stage as usize - 1][self.building as usize]
+    }
+
+    /// Whether `pos` lies in the building's box, foundation to chimney top, for a town anchored at `anchor`.
+    pub fn holds(&self, anchor: IVec3, pos: IVec3) -> bool {
+        let (lo, s) = (self.corner(anchor), self.shape());
+        let inside = |v: i32, from: i32, n: i32| (from..from + n).contains(&v);
+        inside(pos.x, lo.x, s.w)
+            && inside(pos.z, lo.z, s.d)
+            && (lo.y - FOUNDATION_DEPTH..lo.y + height(s)).contains(&pos.y)
     }
 
     /// Whether the building has a chimney in a town of `kind`.
