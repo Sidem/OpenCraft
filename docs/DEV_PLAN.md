@@ -3,8 +3,8 @@
 **Status:** 2026-10-16 · Milestones 1–11, the less-hand-crafting interlude and Milestone 12 (Orbit: 12.1–12.4 and the orbit
 polish) are built and pushed; save version 47, 844 tests · 12.5 stays open only to move Milestone 13 in after R6 ·
 **Next: the play-test response, steps R1–R8 (section 4)**, from Claude's whole-game review, which the user adopted in full, and
-the user's 32-hour play-test (drones, trains and blueprints researched but never needed) · R1 (why the middle systems go
-unused) is a talk with the user first · Then the feel-and-feedback interlude, the trimmed carry, Milestone 13 · Art work
+the user's 32-hour play-test (drones, trains and blueprints researched but never needed) · R1 talked: settlements as growing
+demand and a blueprint prompt; next R1a, R1b, then R6's talk (settlements and the megaproject), moved up · Then the feel-and-feedback interlude, the trimmed carry, Milestone 13 · Art work
 continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -148,6 +148,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **Art moves away from Minecraft, shapes before textures:** plants, machine silhouettes, calmer textures, atmosphere (`docs/ART_HANDOVER.md` 2b). Not realism. |
 | 2026-10-16 | **The carry is trimmed:** splitter addresses and the tally stay (era pieces); in the ruins at most one vault as an easter egg; the 3-door, the 10-door, the Cantor sieve, the Hanoi crane and the layer printer are dropped; radiators, the analyzer and antenna bands are parked. **Ruins move up** (R5). |
 | 2026-10-16 | **Pod channels are chosen by name and colour**, not facing. **Add the TURN relay** (the user adds the secrets; supersedes 2026-09-26). The factory instrument gets few voices, a distance cap, and music quiets under it. |
+| 2026-10-16 | **R1: what makes drones, trains and blueprints needed** (user's pick from Claude's levers): **settlements as growing demand** (the main lever; R6's talk comes next) and **a blueprint prompt** when a machine group is repeated (R1b). Not now: smaller ore stacks, far bulk inputs in late recipes (fallbacks if settlements are not enough). |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -491,13 +492,21 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ### Next steps, in this order (one per session; "talk" steps are a conversation with the user first)
 
-- [ ] **R1 Why the middle systems go unused (talk, then tuning).** Put the findings above to the user with levers to pick:
-  (a) bulk demand that keeps growing (R6's settlements; science and kits that need far materials continuously, not once);
-  (b) bulk goods that carry badly (smaller stacks for heavy items, or a carry weight), so belts, trains and drones beat hauling;
-  (c) far-only ingredients in every later pack; (d) offering a blueprint at the moment of repetition (the second time the same
-  group of machines is placed, a prompt to copy it); (e) cheaper or earlier drones and trains. Deposit life stays long (decision
-  2026-09-25) unless the user says otherwise. Add the save summary script as `scripts/inspect-save.mjs` (about 40 lines) so later
-  play-tests can be read the same way. **Done when:** the user's picks are in section 1 and turned into tuning steps here.
+- [x] **R1 Why the middle systems go unused (talked 2026-10-16).** Measured from the engine's tables: the whole tree asks for
+  about 45,000 packs (10,725 red, 10,635 green, 10,290 blue, 9,420 violet, 4,180 gold; 126 lab-hours at Mk1 speed), and its
+  only far material, bauxite, comes to about 2,800 ore (gold packs via batteries), some 44 stacks: **one trip with a Mk5 hauler
+  pack** (99 slots). Demand ends with the tree; builds never repeat; deposits last. **The user picked (section 1):** settlements
+  as growing demand (A, designed in R6, which comes next) and a blueprint prompt (D). Not picked: ore stacks of 16 (B), far
+  bulk inputs in late recipes (C), accepting drones and trains as optional (E); B and C stay fallbacks if A is not enough.
+- [ ] **R1a Save inspector (small).** `scripts/inspect-save.mjs`: gunzip an `.ocworld`, load it in Node through `web/src/wasm`
+  (`initSync`, `Game.load`), print play time, techs done and available, machines by kind with what holds them back, the
+  inventory, and the tree's pack demand (`tech_units` × `tech_packs`). A line in `docs/WORKFLOW.md`. **Done when:** it prints
+  the summary above for the user's save.
+- [ ] **R1b Blueprint prompt (small, presentation).** When the player places a machine of the same kind and recipe as two others
+  within 32 blocks (the third copy), a tip offers to copy the group as a blueprint (B), with the selection preset to the box around
+  the existing copies if the blueprint tool allows it. Once per machine kind per world, H snoozes, never in creative. Kept beside
+  the save, not core state. **Done when:** a scenario test places three smelter rows and the prompt fires once.
+- **Next: R6's talk, moved up** (settlements are R1's main lever); the build steps it produces are placed after R1b.
 - [ ] **R2 Plants (a living world, part 1).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
   - **R2a Ground cover, presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
     and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
@@ -571,7 +580,6 @@ and adjust the steps.
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
 | M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. Now asked in R6, together with settlements. |
-| R1 | Which levers make drones, trains and blueprints needed (section 4, R1)? |
 | R2b | New tree species and desert and basalt plants on new worlds only (generator version 8; the user's world keeps version 7 and gets only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
 | R4 | Which new music pieces, and when (the user composes them)? |
 | R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
@@ -587,6 +595,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: R1 talked (docs only).** The tree's pack demand and far material measured (one hauler trip of bauxite covers
+  the game); the user picked settlements as growing demand and a blueprint prompt. New steps R1a (save inspector) and R1b
+  (blueprint prompt); R6's talk moved up to follow them.
 - **2026-10-16: Whole-game review and play-test response (user request, docs only).** Claude's review (strengths, weaknesses,
   past and planned work, new dimensions, art, plants, music) was adopted in full; with the user's 32-hour save it became steps
   R1–R8 in section 4, eight decision rows in section 1 and new open questions in section 6. Finished Milestone 10–12 detail moved
