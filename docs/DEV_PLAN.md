@@ -5,7 +5,7 @@ polish) are built and pushed · **The play-test response (section 4)**, from Cla
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
 **Milestone 13 (Settlements): 13.1–13.3 and 13.4a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); save version 52, 860 tests; not pushed) · **Next: step 13.5** (the depot panel, maps and tips), then 13.4b (the harbour) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); save version 52, 860 tests; not pushed) · **Next: step 13.5a** (the town panel and stall news), then 13.5b (maps and tips), then 13.4b (the harbour) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -155,7 +155,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **13.2: orders and upkeep** (user's picks, all Claude's recommendations). The player's pack (135 stacks) carries any one-off order in a trip, so the steady pull is the **upkeep**, drawn from the depot's 24-stack store. **5 stages** (camp, hamlet, village, town, city; the city is where Milestone 14 can start). **Stage orders double from about 1,000 items** (1,000, 2,000, 4,000, 8,000, 16,000: basics first, then concrete, steel and lamps, later plastic, circuits and processors). **Upkeep grows to a Mk3 belt:** 20, 60, 150, 300 and 600 items a minute by stage; a town stalls once a minute's upkeep is missing and resumes when it is there, and growth pauses while stalled. **Upkeep goods per town kind:** harbour planks and glass, river town bricks and lamps, highland workshop gears and steel plates, basalt forge coal and quicklime; later stages add one better good each. |
 | 2026-10-16 | **13.3: how a town grows** (user's picks, all Claude's recommendations). **The town's own drones build it:** the depot keeps a small fleet of its own (more each stage) that builds the town's plan block by block; the blocks are free (the delivered order paid for them), no player box is touched, and the player sees drones at work before researching them. **Foundations, bad plots skipped:** plots in fixed rings round the depot, each building on a stone foundation down to the ground; plots on steep slopes, over deep water or holding the player's blocks are skipped, plots over shallow water get piers on stilts; the terrain is never dug. **One set of buildings in each kind's materials** (houses, a hall, a workshop, a tower; 2 to 4 more a stage); R7's decor joins later. **Breaking:** town blocks break normally and the town's drones put them back; breaking the depot leaves the town **dormant** (stage and progress kept), and a depot placed on the same spot wakes it. |
 | 2026-10-16 | **13.4: perks** (user's picks, all Claude's recommendations). **The depot's front becomes an out side** for perk goods (belts or by hand; the other three sides stay in). **The forge's rate grows with its stage** like the upkeep (about 20 ore a minute at a camp to 600 at a city). **Workshop:** while supplied, hauler packs, jetpacks and gloves cost half their inputs in hand crafting anywhere, and worn tools put into its depot come back whole. **Harbour:** the player picks a product their machines have made in the depot panel; built as its own step (13.4b) after the panel. |
-| 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
+| 2026-10-16 | **13.5: the town panel, maps and tips** (user's picks, all Claude's recommendations). **A town section in the usual machine panel** (not a screen of its own). **Town markers on both maps**, coloured by state, and **site shading** on the world map while a depot is held. **A toast when a town stalls and when it recovers.** **Three tips:** found, feed, supply from far. The harbour's product chooser is built with 13.4b (Claude's default). || 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
 
@@ -614,14 +614,24 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   **Highland workshop:** while one is supplied, hauler packs, jetpacks and gloves cost half their inputs in hand crafting
   anywhere; worn tools put into its depot come back out whole. **Done when:** each of the three perks is tested on, off and
   paused by a stall.
-- [ ] **13.4b Harbour contract work** (after 13.5's chooser). The player picks, in the depot panel, a product their machines
+- [ ] **13.4b Harbour contract work** (after 13.5; its product chooser is built here, in the town panel). The player picks, in the depot panel, a product their machines
   have made; the harbour takes three times its basic raw content and sends it out. New pieces: a core record of which items
   the player's machines have ever made (a bitset by item, saved) and a derived raw content per item from the recipes (with
   a flag for chains that need bauxite or uranium, which are never offered). **Done when:** the perk is tested on and off,
   and a test shows the harbour never offers a far-material product.
-- [ ] **13.5 Panel, maps and tips.** The depot panel (stage, open order with progress, upkeep, stalled or not, the perk), towns
-  on both maps, tips that introduce founding and delivering from far. **Done when:** a first-time player can find a site and
-  see what a town wants without reading docs.
+- [ ] **13.5a The town panel and stall news.** Talked 2026-10-16 (section 1). Right-clicking a depot opens the usual machine
+  panel with a town section on top (one new UI file, `ui/town.ts`, fed by a flat engine query): kind and stage, the open
+  order with a progress bar a line, each upkeep good with its stock in minutes, and the perk (its text, its in and out slots,
+  taken by hand like any panel slot). A toast when a town stalls, naming what it is short of, and when it is supplied again
+  (a `SimEvent`, turned into news like the launch toasts). **Done when:** an engine test covers the query and the stall and
+  recovery events; the panel is seen in the browser pane on the dev world's forge village.
+- [ ] **13.5b Maps and tips.** Each town gets a marker of its kind on both maps (a new mark kind), coloured supplied, stalled or
+  dormant. While a depot is held, the world map tints explored ground by the kind a depot there would found
+  (`Settlements::site` sampled coarsely, worked out once per explored tile and cached, presentation only). Three hints after
+  Settlements research: found a town (where each kind goes, its perk); feed it (belts into its back and sides, a minute's
+  upkeep, what a stall does); supply it from far (cargo drones, trains or drop pods); each clears when done. **Done when:** a
+  first-time player can find a site and see what a town wants without reading docs; the tint's cost is measured on a big
+  explored map.
 - [ ] **13.6 Cleanup:** balance in play with the user's next play-test (`scripts/inspect-save.mjs`), worst tick, the manual,
   CODEMAP; move Milestone 14 (the space elevator) in from the roadmap.
 
@@ -674,7 +684,8 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
+- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
+  stall and recovery toasts, three tips (section 1); 13.5 split into 13.5a (panel, stall news) and 13.5b (maps, tips).- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
   a perk, a batch every `period(built)` ticks at the upkeep's rate, no saved state); the depot keeps perk goods apart
   (`Want::perk` into `input`, out at the front from `side`; save version 52, which also saves `crafting::Step::half`);
   `Hangar::relayed`; the processor's bytes moved to `factory/process/state.rs`. 860 tests; golden hash unchanged.
