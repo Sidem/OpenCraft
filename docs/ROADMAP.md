@@ -7,7 +7,9 @@ plan and detail it there (steps with where, how and done-when).
 **Agreed order (2026-10-16, after Claude's whole-game review and the user's play-test):** the play-test response, steps
 R1–R8 in DEV_PLAN section 4 (why the middle systems go unused, plants, ambient sound, music by context, the ruins,
 settlements and the megaproject theme, a decor set, pressure without combat), then the feel-and-feedback interlude, the
-carry's era pieces (trimmed), Milestone 13. The designs the R steps need are in the section "The play-test response" below.
+carry's era pieces (trimmed), the megaproject. The designs the R steps need are in the section "The play-test response" below.
+**Updated after R1 and R6 (2026-10-16):** settlements became Milestone 13 (DEV_PLAN section 4) and come next; then the rest of
+R2–R8, the interlude, the carry; the megaproject is Milestone 14, a space elevator.
 
 The order can change with the user's priorities. The determinism rules (DEV_PLAN section 3.4) keep every
 feature co-op-safe even before networking exists. The agent rules (DEV_PLAN section 3.1) and the content
@@ -123,7 +125,10 @@ is a sketch to settle with the user when its step comes up.
   to, not only mined. Plants per biome and tree species, indicator plants over ore, procedural ambience, music by context with
   silences. Plants are looks first, data second: ground cover is presentation only; species and indicator plants are
   worldgen rows. Later, with pollution (R8), plants thin around a dirty base and come back when it is cleaned.
-- **Settlements as customers (R6).** The missing "what for": today output goes only into packs and kits. A settlement is a
+- **Settlements as customers (R6; decided 2026-10-16, now Milestone 13 in DEV_PLAN).** The user's picks: the player founds
+  each town with a depot at a site that fits its kind (no worldgen towns, so existing worlds get them), a perk per town kind,
+  and a stalled town (upkeep unmet) pauses its perk but never shrinks. The sketch as written before the picks: the missing
+  "what for": today output goes only into packs and kits. A settlement is a
   site (placed by worldgen near spawn and in far biomes, or founded by the player) with a list of orders (bricks, glass,
   lamps, steel, concrete; later plastics, chips) delivered by belt, train, cargo drone or drop pod into its depot. Supplied, it
   grows in stages: each stage is a blueprint its own drones build, so it reuses the blueprint and drone systems and shows the
@@ -186,12 +191,19 @@ a later step wants more depth for datacenters or comms: fractal radiators with t
 
 **Order:** discoveries, splitter addresses and the tally after the feel-and-feedback interlude; the vault with the ruins (R5).
 
-## Milestone 13: The megaproject (era 10; optional, non-ending)
+## Milestone 14: The megaproject, a space elevator (era 10; optional, non-ending; theme chosen 2026-10-16)
 
-- Theme to be decided (orbital ring, space elevator, interstellar probe or another). Built in phases,
-  physically in the world, needing enormous resources. Completing it **unlocks** something rather than
-  ending the game: asteroid mining by drop pod, resources beyond the finite ground. Play continues.
-- The theme is settled in R6 together with settlements (it may be their joint project).
+Milestone 13 (Settlements) took the number 13. Optional, built in phases, physically in the world, needing enormous
+resources; completing it **unlocks** something rather than ending the game. Play continues.
+- **Where:** it rises from the player's biggest town (a town stage unlocks its foundation), so the towns are its workforce
+  and their supply routes its supply routes.
+- **Phases** (a first sketch): the anchor and foundation, the tether climbing in sections (each a large order delivered to
+  its base: steel, aluminium, plastics, chips, rocket fuel for the climbers), a counterweight station sent up by rocket,
+  the climber cars. Each finished section shows: the tower grows visibly into the sky, seen from far away, lit at night.
+- **What finishing unlocks:** asteroid mining. Climbers carry mining craft up; asteroid ore returns by drop pod to landing
+  pads, resources beyond the finite ground (pillar 2's answer at the end).
+- **Engine notes for planning:** a very tall structure must stay cheap to draw (boxes or a dedicated mesh, not 4,000 blocks),
+  and its sections are core state like a machine's; the sky already draws satellites (`render/sky.ts`).
 
 ## Later / maybe
 

@@ -1,11 +1,12 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-16 · Milestones 1–11, the less-hand-crafting interlude and Milestone 12 (Orbit: 12.1–12.4 and the orbit
-polish) are built and pushed; save version 47, 844 tests · 12.5 stays open only to move Milestone 13 in after R6 ·
-**Next: the play-test response, steps R1–R8 (section 4)**, from Claude's whole-game review, which the user adopted in full, and
-the user's 32-hour play-test (drones, trains and blueprints researched but never needed) · R1 talked (settlements as growing
-demand, a blueprint prompt); R1a and R1b built · **Next: R6's talk** (settlements and the megaproject), moved up · Then the feel-and-feedback interlude, the trimmed carry, Milestone 13 · Art work
-continues from `main` (`docs/ART_HANDOVER.md`).
+polish) are built and pushed; save version 47, 846 tests · **The play-test response (section 4)**, from Claude's whole-game
+review (adopted in full) and the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1
+talked, R1a and R1b built (committed, not pushed); R6 talked: the player founds towns, a perk per town kind, stalled towns
+pause their perk, the megaproject is a space elevator · **Next: Milestone 13 (Settlements), step 13.1 starts with a talk** on
+town kinds, sites and perks · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space
+elevator) · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -45,8 +46,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
 - **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
-- **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`; 12.5 waits for R6).
-  **Now: the play-test response, steps R1–R8** (section 4).
+- **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
+  **Now: the play-test response (section 4): R1 and R6 are settled, next is Milestone 13 (Settlements)**, then the rest of R2–R8.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -149,6 +150,7 @@ shape and industrialise. Not a Minecraft clone; its conventions can be broken fr
 | 2026-10-16 | **The carry is trimmed:** splitter addresses and the tally stay (era pieces); in the ruins at most one vault as an easter egg; the 3-door, the 10-door, the Cantor sieve, the Hanoi crane and the layer printer are dropped; radiators, the analyzer and antenna bands are parked. **Ruins move up** (R5). |
 | 2026-10-16 | **Pod channels are chosen by name and colour**, not facing. **Add the TURN relay** (the user adds the secrets; supersedes 2026-09-26). The factory instrument gets few voices, a distance cap, and music quiets under it. |
 | 2026-10-16 | **R1: what makes drones, trains and blueprints needed** (user's pick from Claude's levers): **settlements as growing demand** (the main lever; R6's talk comes next) and **a blueprint prompt** when a machine group is repeated (R1b). Not now: smaller ore stacks, far bulk inputs in late recipes (fallbacks if settlements are not enough). |
+| 2026-10-16 | **R6: settlements and the megaproject** (user's picks, all Claude's recommendations): **the player founds towns** with a depot at a site that fits the town's kind, far from other towns (works in existing worlds; no worldgen towns); **each town kind gives a perk** while supplied; **an unsupplied town stalls and its perk pauses**, but it never shrinks or loses what was built; **the megaproject is a space elevator** grown from the biggest town, built in phases, unlocking asteroid mining. Settlements become **Milestone 13**, the elevator **Milestone 14**; 12.5 closes. |
 | 2026-10-04 | **Terraforming is done by the drone ports** (no excavator machine); spoil goes into belts and boxes. **Far ground must be findable and reachable** (user): the player gets a rough bearing to the biome that holds an ore (step 9.3), and **trains** carry long-distance cargo (step 9.4; trucks are not planned). |
 
 ### Proposed, not yet confirmed by the user
@@ -467,9 +469,9 @@ interlude and the performance todo). On 2026-10-16 Claude reviewed the whole gam
 
 - **Milestones 10 and 11** are built and pushed (specs and balance in their changelogs). **The less-hand-crafting interlude**
   is done (L1–L3); crafting from nearby boxes (L4) was dropped by the user on 2026-10-11 and is never built.
-- **Milestone 12 (Orbit):** 12.1–12.4 and the orbit polish are built and pushed (`docs/CHANGELOG_M12.md`). **12.5 is left
-  open** only for moving Milestone 13 in, which waits for R6 (the megaproject theme). Not done: a beam drawn from power
-  satellites down to rectennas. The pads' open question is answered: step "Pod channels by name" below.
+- **Milestone 12 (Orbit) is done:** 12.1–12.4 and the orbit polish are built and pushed (`docs/CHANGELOG_M12.md`); 12.5 closed
+  on 2026-10-16 when R6 made settlements Milestone 13. Not done: a beam drawn from power satellites down to rectennas. The
+  pads' open question is answered: step "Pod channels by name" below.
 - **Parked performance items** (details in `docs/CHANGELOG_M12.md`): P3 cheaper box instances (measure in the browser
   first), P4 an incremental co-op checksum (time a large save first), P5 small TS savings. Fit them in where a session has room.
 
@@ -509,7 +511,8 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   blueprint. Tests: `blueprint/tests.rs` (fires on the third smelter, not for belts, once per kind, not with a blueprint, ends by
   itself). Seen in the browser pane. Also fixed: garbled "·" and "×" in five files (blueprint label, quarry readout, research
   blurbs, debug overlay). 846 tests.
-- **Next: R6's talk, moved up** (settlements are R1's main lever); the build steps it produces are placed after R1b.
+- [x] **R6 Settlements and the megaproject (talked 2026-10-16, moved up).** Decisions in section 1; the build is Milestone 13
+  below, the elevator Milestone 14 (`docs/ROADMAP.md`).
 - [ ] **R2 Plants (a living world, part 1).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
   - **R2a Ground cover, presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
     and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
@@ -535,9 +538,6 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   **Done when:** it runs with today's two pieces, and a new piece is one row.
 - [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`. Share R2b's generator version if that is not
   released yet. Logbooks give real help. The carry is trimmed (section 1): at most one vault, as an easter egg.
-- [ ] **R6 Settlements as customers and the megaproject theme (talk).** Sketch in `docs/ROADMAP.md`. Settle with the user what
-  towns order, how they grow, whether the megaproject is theirs, and what finishing it unlocks; then detail the steps here and
-  move Milestone 13 in (closes 12.5).
 - [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
   concrete, bricks, framed glass, metal panels, catwalks, railings, light fixtures). Slabs and stairs need non-cube meshing:
   a later step. **Done when:** they are made in machines, placed, and their art requests are listed.
@@ -548,9 +548,40 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   colour).
 - **The user's to do:** add the two TURN secrets (`docs/WORKFLOW.md` section 4) so friends behind strict networks can join.
 
-**After R1–R8:** the feel-and-feedback interlude (`docs/ROADMAP.md`; the instrument with few voices, a distance cap and music
-quieting under it), the carry's era pieces (splitter addresses and the tally only), Milestone 13. **Art** goes on in parallel
-(`docs/ART_HANDOVER.md` section 2b, 2026-10-16: shapes before textures).
+### Milestone 13: Settlements (a first draft from R6, to refine with the user at 13.1)
+
+Goal: towns the player founds become customers whose orders keep growing, so output has a purpose and distance and scale
+press again (R1): belts, trains, cargo drones and drop pods carry the orders, and each town grows itself with the blueprint
+and drone systems. **Order:** Milestone 13 comes next as R1's main lever; R2–R5, R7 and R8 follow it, or fit between its
+steps where a session has room. Numbers are first guesses. Design notes: `docs/ROADMAP.md` ("The play-test response").
+- [ ] **13.1 Town kinds, sites and the depot.** Talk first: kinds, their sites and perks (first guesses: a **harbour** on a sea
+  shore trades bulk goods for rare ones; a **river town** by a river relays cargo drones, doubling their range near it; a
+  **highland workshop** in granite hills turns delivered parts into upgrade kits at a better rate; a **basalt forge** in basalt
+  fields makes steel and aluminium plates from ore at a better rate). Then: `settlements/` (core state, `Sim`), kinds as rows,
+  a site check that is a pure function of seed and position (biome, sea or river within a few blocks, at least 300 blocks
+  from any other town), a **Town Depot** block (multi-block, belt inputs) unlocked by a tech on blue packs (so towns arrive
+  before drones and trains and pull them), and a placing preview that says whether the site fits and why not (like the
+  long-distance pole). Save version bump. **Done when:** a depot can be founded only at a fitting site, tested headlessly.
+- [ ] **13.2 Orders, upkeep and stalling.** Per kind and stage, an order list (data rows: bricks, glass, planks and concrete
+  first; steel, plastics, circuits and chips later), filled from what the depot takes in; once a stage's order is complete
+  the next one opens. An upkeep per minute at the town's size; while it is unmet the town is **stalled** and its perk pauses,
+  but nothing is lost. **Done when:** a scenario test feeds a depot by belt through two stages, then starves it into a stall
+  and back.
+- [ ] **13.3 The town grows itself.** Each stage is a blueprint of existing building blocks (planks, bricks, glass, concrete,
+  lamps; R7's decor later), planted as ghosts around the depot and built by the town's own drones from the delivered goods
+  (reusing `drones/`). Life without townspeople: lit windows at night, chimney smoke, a few sounds. **Done when:** a town is
+  seen growing from a depot to its third stage in the browser pane.
+- [ ] **13.4 Perks.** One module per perk, each paused while its town is stalled. **Done when:** each kind's perk is tested on
+  and off.
+- [ ] **13.5 Panel, maps and tips.** The depot panel (stage, open order with progress, upkeep, stalled or not, the perk), towns
+  on both maps, tips that introduce founding and delivering from far. **Done when:** a first-time player can find a site and
+  see what a town wants without reading docs.
+- [ ] **13.6 Cleanup:** balance in play with the user's next play-test (`scripts/inspect-save.mjs`), worst tick, the manual,
+  CODEMAP; move Milestone 14 (the space elevator) in from the roadmap.
+
+**After the R steps and Milestone 13:** the feel-and-feedback interlude (`docs/ROADMAP.md`; the instrument with few voices, a
+distance cap and music quieting under it), the carry's era pieces (splitter addresses and the tally only), Milestone 14. **Art**
+goes on in parallel (`docs/ART_HANDOVER.md` section 2b, 2026-10-16: shapes before textures).
 
 Open items from Milestone 3 (the user's to unblock; do them when they come up):
 
@@ -582,7 +613,7 @@ and adjust the steps.
 |---|---|
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
-| M13 | Megaproject theme (orbital ring, space elevator, interstellar probe or other) and what completing it unlocks. Now asked in R6, together with settlements. |
+| 13.1 | Town kinds, their sites and perks (first guesses in step 13.1), and the order sizes. |
 | R2b | New tree species and desert and basalt plants on new worlds only (generator version 8; the user's world keeps version 7 and gets only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
 | R4 | Which new music pieces, and when (the user composes them)? |
 | R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
@@ -598,6 +629,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: R6 talked (docs only).** The user's picks are in section 1: player-founded towns at fitting sites, a perk per
+  town kind, stalled towns pause their perk, a space elevator as the megaproject. Milestone 13 (Settlements, 13.1–13.6) is a
+  first draft in section 4; Milestone 14 (the space elevator) is in `docs/ROADMAP.md`; 12.5 closed.
 - **2026-10-16: R1a and R1b built.** `scripts/inspect-save.mjs` reads a player's save headlessly; the blueprint prompt
   (`blueprint/repeat.rs`, `Factory::works_at`, `blueprint_prompt` in `api/blueprint.rs`, a card in `ui/hints.ts`) offers a
   blueprint when a machine is built a third time nearby, with the box preset. Garbled "·" and "×" fixed in five files. No save or
