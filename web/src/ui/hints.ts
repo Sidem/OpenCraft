@@ -11,7 +11,8 @@
 // lost under the crosshair, and after a few a warning card with the totals jumps ahead of every tip (the opening's
 // too) while the player keeps at it (H snoozes it for `SNOOZE_BLOCKS` more). Creative worlds skip both.
 // Building the same machine a third time nearby brings the blueprint prompt (`blueprint_prompt`,
-// `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it.
+// `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it. Side tips (`hint_side`: towns, once
+// Settlements is researched) come next, ahead of the main order, until done or skipped.
 
 import './hints.css';
 import type { Game } from '../wasm/engine.js';
@@ -118,6 +119,12 @@ export class Hints {
       if (this.shown === OPENING && step === this.openingStep) return;
       this.show(OPENING, 'Getting started', g.opening_text(step));
       this.openingStep = step;
+      return;
+    }
+    // A side tip (towns, once researched) comes ahead of the main order.
+    const side = [...g.hint_side()].find((i) => !this.skipped.has(i));
+    if (side !== undefined) {
+      if (side !== this.shown) this.show(side, 'New to try', g.hint_text(side));
       return;
     }
     const count = g.hint_count();

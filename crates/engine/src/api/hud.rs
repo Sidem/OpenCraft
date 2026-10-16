@@ -214,8 +214,14 @@ impl Game {
         HINTS.len() as u32
     }
 
+    /// Tip `i`'s text: a main tip below `hint_count`, a side tip from `hint_side`'s numbers.
     pub fn hint_text(&self, i: u32) -> String {
-        HINTS.get(i as usize).map_or_else(String::new, |h| h.text.to_string())
+        hints::text(i as usize).to_string()
+    }
+
+    /// The side tips to show now, ahead of the main ones (`hints::SIDE_HINTS`: researched, not done yet).
+    pub fn hint_side(&self) -> Vec<u32> {
+        hints::side(&self.sim.factory, &self.sim.settlements)
     }
 
     /// The first hint the local player hasn't done yet (`hint_count` when all are done).

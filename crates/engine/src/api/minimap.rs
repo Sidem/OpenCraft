@@ -1,12 +1,16 @@
 //! The maps (minimap.rs): the minimap's redraw on request and image (zero-copy), the world map's
 //! images at any scale (key M), other players' marks, the ore, deposit and machine marks with the
-//! prospected deposits and explored map the host keeps (minimap/marks.rs, minimap/atlas.rs), and the
+//! prospected deposits and explored map the host keeps (minimap/marks.rs, minimap/atlas.rs), where towns fit while a
+//! depot is held (minimap/sites.rs), and the
 //! ore guide shown beside the world map (ore_guide.rs).
 
 use wasm_bindgen::prelude::*;
 
+use crate::block::TOWN_DEPOT;
+use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
 use crate::minimap::{Minimap, MAP_SIZE, MARK_FIELDS, WORLD_MAP_MAX};
 use crate::ore_guide;
+use crate::settlements::{SPACING, SPAWN_CLEAR};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -38,7 +42,7 @@ impl Game {
     /// offset in blocks from the image's centre column, colour (0xRRGGBB), shape (0 deposit, 1 machine; the shapes are
     /// `minimap/marks.rs`'s). With a long-distance pole in hand, every one's reach is a ring.
     pub fn minimap_marks(&self) -> Vec<i32> {
-        self.minimap.marks(&self.sim.factory, self.holds_long_pole())
+        self.minimap.marks(&self.sim.factory, &self.sim.settlements.towns, self.holds_long_pole())
     }
 
     pub fn minimap_mark_fields(&self) -> u32 {
@@ -78,7 +82,40 @@ impl Game {
     /// Marks on block columns x0..=x1, z0..=z1 (`minimap_mark_fields()` numbers each, as
     /// `minimap_marks`, but x and z are world columns): shape 2 is ore seen at the surface.
     pub fn world_map_marks(&self, x0: i32, z0: i32, x1: i32, z1: i32) -> Vec<i32> {
-        self.minimap.marks_in(&self.sim.factory, (x0, z0), (x1, z1), (0, 0), self.holds_long_pole())
+        self.minimap.marks_in(
+            &self.sim.factory,
+            &self.sim.settlements.towns,
+            (x0, z0),
+            (x1, z1),
+            (0, 0),
+            self.holds_long_pole(),
+        )
+    }
+
+    /// While a town depot is held, the explored tiles in block columns x0..=x1, z0..=z1 where a town would fit, as
+    /// (x, z of the tile's north-west column, its size in blocks, the kind: `town_kind_name`) per tile; tiles near
+    /// spawn or another town are left out. Empty otherwise. Each call works out a few more tiles, so a fresh view fills
+    /// in over a few calls.
+    pub fn world_map_sites(&mut self, x0: i32, z0: i32, x1: i32, z1: i32) -> Vec<i32> {
+        if !self.held_footprint().is_some_and(|f| f.0 == TOWN_DEPOT) {
+            return Vec::new();
+        }
+        let (lo, hi) = ((x0 >> CHUNK_SHIFT, z0 >> CHUNK_SHIFT), (x1 >> CHUNK_SHIFT, z1 >> CHUNK_SHIFT));
+        let tiles = self.minimap.sites.tiles_in(&self.minimap.atlas, self.sim.world.generator(), lo, hi);
+        let half = CHUNK_SIZE / 2;
+        let clear = |x: i32, z: i32| {
+            let far = |p: (i32, i32)| f64::from(x - p.0).hypot(f64::from(z - p.1));
+            far((0, 0)) >= f64::from(SPAWN_CLEAR)
+                && self.sim.settlements.towns.iter().all(|t| far((t.pos.x, t.pos.z)) >= f64::from(SPACING))
+        };
+        let mut out = Vec::new();
+        for (cx, cz, kind) in tiles {
+            let (x, z) = (cx << CHUNK_SHIFT, cz << CHUNK_SHIFT);
+            if clear(x + half, z + half) {
+                out.extend([x, z, CHUNK_SIZE, i32::from(kind)]);
+            }
+        }
+        out
     }
 
     /// The explored map as bytes, for the host to keep with the world's record.

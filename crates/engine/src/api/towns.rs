@@ -1,17 +1,12 @@
 //! Towns for the host (queries only): the town section of a depot's panel (`web/src/ui/town.ts`), and each town's state
-//! with its news line, which the HUD toasts when a town stalls or is supplied again (`web/src/ui/hud.ts`; the maps'
-//! markers from step 13.5b).
+//! with its news line, which the HUD toasts when a town stalls or is supplied again (`web/src/ui/hud.ts`), and the
+//! kinds for the world map's legend.
 
 use wasm_bindgen::prelude::*;
 
 use crate::math::IVec3;
 use crate::settlements::{upkeep, KINDS, STAGES};
 use crate::Game;
-
-/// `town_states` values.
-const GROWING: u32 = 0;
-const STALLED: u32 = 1;
-const DORMANT: u32 = 2;
 
 #[cfg(test)]
 mod tests;
@@ -47,6 +42,21 @@ impl Game {
         out
     }
 
+    /// How many kinds of town there are (for the world map's legend).
+    pub fn town_kind_count(&self) -> u32 {
+        KINDS.len() as u32
+    }
+
+    /// Town kind `k`'s name ("Basalt Forge"), or empty.
+    pub fn town_kind_name(&self, k: u32) -> String {
+        KINDS.get(k as usize).map_or_else(String::new, |d| d.name.to_string())
+    }
+
+    /// Town kind `k`'s colour on the maps (`0xRRGGBB`), or 0.
+    pub fn town_kind_colour(&self, k: u32) -> i32 {
+        KINDS.get(k as usize).map_or(0, |d| d.colour)
+    }
+
     /// "Basalt Forge, a village, 474 blocks from spawn" for the depot with a cell at (x, y, z); empty for none.
     pub fn town_heading(&self, x: i32, y: i32, z: i32) -> String {
         self.town_at(IVec3::new(x, y, z)).map_or_else(String::new, |t| self.town_heading_of(t))
@@ -59,12 +69,7 @@ impl Game {
 
     /// Each town's state in founding order: 0 growing or supplied, 1 stalled, 2 dormant (its depot broken).
     pub fn town_states(&self) -> Vec<u32> {
-        let state = |t: &crate::settlements::Town| match (t.dormant, t.stalled) {
-            (true, _) => DORMANT,
-            (_, true) => STALLED,
-            _ => GROWING,
-        };
-        self.sim.settlements.towns.iter().map(state).collect()
+        self.sim.settlements.towns.iter().map(|t| u32::from(t.state())).collect()
     }
 
     /// Town `i`'s news in its state now: "Your basalt forge has stalled: short of Coal Ore and Quicklime" or "Your basalt

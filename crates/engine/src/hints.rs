@@ -7,6 +7,10 @@
 //! A new world's opening scene has its own tip before these (`opening.rs`).
 //! Text markup the host draws: `*words*` are highlighted, `[keys]` drawn as key caps, and a short lead-in
 //! before the first colon becomes the title. To add a hint: a row in `HINTS`, where it belongs in the order.
+//!
+//! Side tips (`SIDE_HINTS`) teach a feature that can come at many points of the main order (towns): each shows once its
+//! tech is researched until it is done, ahead of the main tips, and never moves `progress`. The host numbers them from
+//! `SIDE_BASE`, so main tips appended later don't renumber the ones a player skipped.
 
 use crate::block::{
     ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_ORE, COPPER_ORE, DATACENTER, DRONE_PORT, IRON_ORE, LASER_EMITTER,
@@ -17,6 +21,7 @@ use crate::inventory::Inventory;
 use crate::item::{CARGO_DRONE, HOVER_PACK, IRON_INGOT, JETPACK, PERSONAL_DRONE, PLANNER};
 use crate::research::{TechState, TECHS};
 use crate::satellites::{COMMS, POWER, SCIENCE};
+use crate::settlements::Settlements;
 
 pub struct Hint {
     pub text: &'static str,
@@ -233,6 +238,59 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(POD_LAUNCHER) > 0,
     },
 ];
+
+/// A side tip: shown once the tech named `after` is researched, until `done`.
+pub struct SideHint {
+    pub after: &'static str,
+    pub text: &'static str,
+    done: fn(&Factory, &Settlements) -> bool,
+}
+
+/// The host's number for `SIDE_HINTS[0]`.
+pub const SIDE_BASE: usize = 1000;
+
+pub const SIDE_HINTS: &[SideHint] = &[
+    SideHint {
+        after: "Settlements",
+        text: "Found a town: hold a *town depot* and its outline turns green where a town fits, while the map ([M]) \
+               shades the places each kind fits. A *harbour* stands on a sea shore, a *river town* on a river or lake \
+               bank, a *highland workshop* in the granite highlands and a *basalt forge* in the basalt fields, 300 \
+               blocks apart and away from spawn. Each kind gives a perk once its camp stands.",
+        done: |_, s| !s.towns.is_empty(),
+    },
+    SideHint {
+        after: "Settlements",
+        text: "Feed your town: belt goods into the depot's back and sides, or [Right-click] it to put them in. Its \
+               panel shows the order that builds the next stage and, once the camp stands, the *upkeep* it uses every \
+               minute. Without a minute's upkeep it *stalls*: it stops growing and its perk pauses until supplied.",
+        done: |_, s| s.towns.iter().any(|t| t.built >= 1),
+    },
+    SideHint {
+        after: "Settlements",
+        text: "Supply it from far: towns stand far from your base, so carry their goods with *cargo drones* between \
+               two drone ports, a *train* line or *drop pods*. The maps mark each town, ringed red while it stalls.",
+        done: |f, s| {
+            let far = f.count(Kind::Rail) > 0
+                || f.processors_of(POD_LAUNCHER) > 0
+                || f.ports().iter().any(|p| p.couriers > 0);
+            s.towns.iter().any(|t| t.built >= 2) || (!s.towns.is_empty() && far)
+        },
+    },
+];
+
+/// The side tips to show now, by the host's numbers (`SIDE_BASE` on): researched and not yet done.
+pub fn side(f: &Factory, s: &Settlements) -> Vec<u32> {
+    let open = |h: &SideHint| tech_done(f, h.after) && !(h.done)(f, s);
+    SIDE_HINTS.iter().enumerate().filter(|(_, h)| open(h)).map(|(k, _)| (SIDE_BASE + k) as u32).collect()
+}
+
+/// Tip `i`'s text, main or side (empty for none).
+pub fn text(i: usize) -> &'static str {
+    match i.checked_sub(SIDE_BASE) {
+        Some(k) => SIDE_HINTS.get(k).map_or("", |h| h.text),
+        None => HINTS.get(i).map_or("", |h| h.text),
+    }
+}
 
 /// A miner and a generator: belts and boxes before that may be the opening scene's (`opening.rs`).
 fn powered_miner(f: &Factory) -> bool {

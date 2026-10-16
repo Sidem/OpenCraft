@@ -156,3 +156,46 @@ fn other_players_are_marked_relative_to_the_local_one() {
     g.bodies[id].as_mut().unwrap().pos = at + Vec3::new(10.0, 0.0, -5.0);
     assert_eq!(g.minimap_players(), vec![10.0, -5.0, g.bodies[id].as_ref().unwrap().yaw as f32]);
 }
+
+#[test]
+fn a_town_is_a_house_of_its_kind_in_place_of_its_depot() {
+    let mut g = Game::new(7, 2);
+    let mut world = crate::world::World::new(1, 2);
+    let at = IVec3::new(500, 70, 0);
+    g.sim.factory.place(&mut world, crate::block::TOWN_DEPOT, at, 0, IVec3::ZERO, 0);
+    let mut town = crate::settlements::Town::new(at, crate::settlements::FORGE);
+    town.stalled = true;
+    g.sim.settlements.towns.push(town);
+    let marks = g.world_map_marks(400, -100, 600, 100);
+    let forge = crate::settlements::KINDS[crate::settlements::FORGE as usize].colour;
+    let towns: Vec<&[i32]> = marks.chunks_exact(MARK_FIELDS).filter(|m| m[3] >= marks::MARK_TOWN).collect();
+    assert_eq!(towns, [&[500, 0, forge, marks::MARK_TOWN + 1][..]], "one stalled forge: {marks:?}");
+    assert!(!marks.chunks_exact(MARK_FIELDS).any(|m| m[3] == marks::MARK_MACHINE), "the depot is no machine square");
+    g.sim.settlements.towns[0].dormant = true;
+    let marks = g.world_map_marks(400, -100, 600, 100);
+    assert_eq!(marks.chunks_exact(MARK_FIELDS).last().unwrap()[3], marks::MARK_TOWN + 2, "dormant");
+}
+
+#[test]
+fn sites_are_shaded_only_while_a_depot_is_held_and_away_from_spawn_and_towns() {
+    let mut g = Game::new(2024, 3);
+    let gen = g.sim.world.generator();
+    // A chunk column well out from spawn that some town fits by its own grid.
+    let fits = |cx: i32| sites::tile_kind(gen, cx, 0) != sites::NONE;
+    let cx = (20..200).find(|&cx| fits(cx)).expect("a fitting tile on the ring");
+    let kind = sites::tile_kind(gen, cx, 0);
+    let x = cx << crate::chunk::CHUNK_SHIFT;
+    g.minimap.atlas.plant(x, 0, STONE);
+    g.minimap.atlas.plant(0, 0, STONE); // spawn's own tile
+    assert!(g.world_map_sites(-64, -64, x + 64, 64).is_empty(), "no depot in hand");
+
+    g.give(crate::item::ItemId::block(crate::block::TOWN_DEPOT).0, 1);
+    g.run_ticks(3);
+    let slot = g.inventory().slots.iter().position(|s| s.count > 0).expect("given") as u32;
+    g.select_slot(slot);
+    g.run_ticks(2);
+    let size = crate::chunk::CHUNK_SIZE;
+    assert_eq!(g.world_map_sites(-64, -64, x + 64, 64), [x, 0, size, i32::from(kind)], "spawn's tile is left out");
+    g.sim.settlements.towns.push(crate::settlements::Town::new(IVec3::new(x + 100, 70, 0), 0));
+    assert!(g.world_map_sites(-64, -64, x + 64, 64).is_empty(), "too near a town");
+}

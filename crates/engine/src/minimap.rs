@@ -7,10 +7,12 @@
 //! ore stands out), lighter or darker by the height step to the column one pixel north-west; unseen
 //! columns stay transparent. `redraw` does nothing unless the centre moved or the atlas changed; the host
 //! limits how often it asks. To colour a block differently, change its texture, not this file.
-//! Deposit, ore and machine marks over the images are in `minimap/marks.rs`.
+//! Deposit, ore, machine and town marks over the images are in `minimap/marks.rs`; where towns fit, shaded on the
+//! world map while a depot is held, in `minimap/sites.rs`.
 
 mod atlas;
 mod marks;
+mod sites;
 
 pub use atlas::Atlas;
 #[cfg(test)]
@@ -18,6 +20,7 @@ pub use marks::MARK_GUESS;
 #[cfg(test)]
 pub use marks::MARK_RANGE;
 pub use marks::{ore_color, Known, MARK_FIELDS};
+pub use sites::Sites;
 
 use atlas::{column_index, Tile};
 
@@ -55,6 +58,8 @@ pub struct Minimap {
     pub survey: Survey,
     /// Deposits survey satellites have covered (`survey/orbit.rs`).
     pub seen: Seen,
+    /// Where towns fit (`sites.rs`), worked out as the world map asks.
+    pub sites: Sites,
 }
 
 impl Minimap {
@@ -77,6 +82,7 @@ impl Minimap {
             known: Known::default(),
             survey: Survey::default(),
             seen: Seen::default(),
+            sites: Sites::default(),
         }
     }
 

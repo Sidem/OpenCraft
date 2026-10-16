@@ -37,6 +37,10 @@ export const MARK_RANGE = 12;
  * is `MARK_LAUNCH`. */
 export const MARK_CHANNEL = 16;
 export const MARK_LAUNCH = 20;
+/** A town is `MARK_TOWN` plus its state (`town_states`: 0 supplied, 1 stalled, 2 dormant), in its kind's colour. */
+export const MARK_TOWN = 24;
+const TOWN_STALLED = 1;
+const TOWN_DORMANT = 2;
 /** Map direction of each channel (x right, z down: north is up). */
 const CHANNEL_DIR = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const EXTRA_KINDS: PinKind[] = [
@@ -100,13 +104,17 @@ export function hex(color: number): string {
   return `#${color.toString(16).padStart(6, '0')}`;
 }
 
-/** One engine mark at canvas point (x, y): a ringed dot, a square, a diamond or a hollow square; `px` is one map pixel,
+/** One engine mark at canvas point (x, y): a ringed dot, a square, a diamond, a hollow square or a house (a town); `px` is one map pixel,
  * `perBlock` the canvas pixels in one block (for a satellite's footprint, whose size is in blocks). */
 export function drawMark(
   c: CanvasRenderingContext2D, x: number, y: number, color: number, shape: number, px: number, perBlock = px,
 ): void {
   c.fillStyle = hex(color);
   c.beginPath();
+  if (shape >= MARK_TOWN) {
+    drawTown(c, x, y, shape - MARK_TOWN, px);
+    return;
+  }
   if (shape >= MARK_CHANNEL) {
     drawSpaceMark(c, x, y, shape, px);
     return;
@@ -174,6 +182,29 @@ export function drawMark(
     c.strokeStyle = '#fff';
   }
   c.fill();
+  c.stroke();
+}
+
+/** A town as a house in its kind's colour (already set): ringed red while stalled, faded while dormant. */
+function drawTown(c: CanvasRenderingContext2D, x: number, y: number, state: number, px: number): void {
+  const w = 4 * px, wall = 3 * px, roof = 4 * px;
+  c.moveTo(x - w, y + wall);
+  c.lineTo(x - w, y - wall / 2);
+  c.lineTo(x, y - wall / 2 - roof);
+  c.lineTo(x + w, y - wall / 2);
+  c.lineTo(x + w, y + wall);
+  c.closePath();
+  c.globalAlpha = state === TOWN_DORMANT ? 0.45 : 1;
+  c.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+  c.lineWidth = Math.max(1, px);
+  c.fill();
+  c.stroke();
+  c.globalAlpha = 1;
+  if (state !== TOWN_STALLED) return;
+  c.beginPath();
+  c.arc(x, y - px, 7.5 * px, 0, 2 * Math.PI);
+  c.strokeStyle = '#ff4a3d';
+  c.lineWidth = Math.max(2, 1.5 * px);
   c.stroke();
 }
 

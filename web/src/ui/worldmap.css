@@ -124,6 +124,34 @@
   margin: 0;
 }
 
+.wm-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.85);
+  border: 1px solid var(--panel-border);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.wm-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wm-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  opacity: 0.8;
+}
+
 .wm-editor {
   position: absolute;
   top: 12px;

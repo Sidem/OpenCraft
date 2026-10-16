@@ -17,6 +17,7 @@ use crate::chunk::CHUNK_SHIFT;
 use crate::deposits::{Deposit, DepositKey, Tier};
 use crate::factory::{self, Factory};
 use crate::math::IVec3;
+use crate::settlements::{Town, KINDS};
 use crate::worldgen::WorldGen;
 
 use super::{Minimap, HALF};
@@ -41,6 +42,9 @@ pub const MARK_RANGE: i32 = 12;
 pub const MARK_CHANNEL: i32 = 16;
 /// A launch site (a rocket shape), in its colour.
 pub const MARK_LAUNCH: i32 = 20;
+/// A town (a house at its depot), in its kind's colour (`KINDS`): this plus its state as the shape (`TOWN_STATES`:
+/// growing or supplied, stalled, dormant).
+pub const MARK_TOWN: i32 = 24;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -100,18 +104,19 @@ impl Known {
 impl Minimap {
     /// Marks inside the minimap image (`MARK_FIELDS` numbers each), relative to its centre column.
     /// Empty before the first redraw.
-    pub fn marks(&self, factory: &Factory, ranges: bool) -> Vec<i32> {
+    pub fn marks(&self, factory: &Factory, towns: &[Town], ranges: bool) -> Vec<i32> {
         let Some((cx, cz)) = self.centre else { return Vec::new() };
-        self.marks_in(factory, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz), ranges)
+        self.marks_in(factory, towns, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz), ranges)
     }
 
     /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: satellite footprints, with `ranges` every
     /// long-distance pole's reach, survey guesses, ore seen at the surface, then remembered deposits and those survey
     /// satellites saw (both while they hold ore), then terraforming sites, then machines (pod launchers and pads last,
-    /// with their channel).
+    /// with their channel), then towns (in place of their depots).
     pub fn marks_in(
         &self,
         factory: &Factory,
+        towns: &[Town],
         lo: (i32, i32),
         hi: (i32, i32),
         origin: (i32, i32),
@@ -158,7 +163,7 @@ impl Minimap {
         }
         factory.map_machines(lo, hi, &mut |block, p| {
             let shape = match block {
-                block::POD_LAUNCHER | block::LANDING_PAD => return, // drawn with their channel below
+                block::POD_LAUNCHER | block::LANDING_PAD | block::TOWN_DEPOT => return, // drawn below
                 block::LAUNCH_SITE => MARK_LAUNCH,
                 _ => MARK_MACHINE,
             };
@@ -166,6 +171,10 @@ impl Minimap {
         });
         for (block, p, channel) in factory.pod_machines().filter(|&(_, p, _)| inside(p)) {
             out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), MARK_CHANNEL + channel as i32]);
+        }
+        for t in towns.iter().filter(|t| inside(t.pos)) {
+            let colour = KINDS[t.kind as usize].colour;
+            out.extend_from_slice(&[t.pos.x - ox, t.pos.z - oz, colour, MARK_TOWN + i32::from(t.state())]);
         }
         out
     }

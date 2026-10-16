@@ -61,20 +61,37 @@ pub enum Needs {
     Biome(Biome),
 }
 
-/// A kind of town: its name, the place it needs and what that is called.
+/// A kind of town: its name, the place it needs and what that is called, and its colour on the maps (`0xRRGGBB`: its
+/// marker and the shading of the places it fits).
 pub struct KindDef {
     pub name: &'static str,
     pub needs: Needs,
     pub place: &'static str,
+    pub colour: i32,
 }
 
 /// The town kinds, settled with the user on 2026-10-16 (`docs/DEV_PLAN.md` section 1). Saves store the index. Their
 /// perks (step 13.4): contract work, drone relay, gear works, better smelting.
 pub const KINDS: [KindDef; 4] = [
-    KindDef { name: "Harbour", needs: Needs::Water(Water::Sea), place: "on a sea shore" },
-    KindDef { name: "River Town", needs: Needs::Water(Water::River), place: "on a river or lake bank" },
-    KindDef { name: "Highland Workshop", needs: Needs::Biome(Biome::Highlands), place: "in the granite highlands" },
-    KindDef { name: "Basalt Forge", needs: Needs::Biome(Biome::BasaltFields), place: "in the basalt fields" },
+    KindDef { name: "Harbour", needs: Needs::Water(Water::Sea), place: "on a sea shore", colour: 0x4aa3ff },
+    KindDef {
+        name: "River Town",
+        needs: Needs::Water(Water::River),
+        place: "on a river or lake bank",
+        colour: 0x7be0c8,
+    },
+    KindDef {
+        name: "Highland Workshop",
+        needs: Needs::Biome(Biome::Highlands),
+        place: "in the granite highlands",
+        colour: 0xc9a46a,
+    },
+    KindDef {
+        name: "Basalt Forge",
+        needs: Needs::Biome(Biome::BasaltFields),
+        place: "in the basalt fields",
+        colour: 0xe0603a,
+    },
 ];
 /// The kinds by index, for their perks (the harbour is 0).
 pub const RIVER_TOWN: u8 = 1;
@@ -83,6 +100,11 @@ pub const FORGE: u8 = 3;
 
 /// Minutes of upkeep a depot stocks of each upkeep good.
 pub const STOCK_MINUTES: u32 = 2;
+
+/// A town's state for the host (`Town::state`): growing or supplied, stalled, dormant (its depot broken).
+pub const GROWING: u8 = 0;
+pub const STALLED: u8 = 1;
+pub const DORMANT: u8 = 2;
 
 /// A town: where its depot stands (the anchor), its kind (an index into `KINDS`) and how far it has grown.
 #[derive(Clone, PartialEq, Debug)]
@@ -125,6 +147,15 @@ impl Town {
             plots: Vec::new(),
             cursor: 0,
             drones: Vec::new(),
+        }
+    }
+
+    /// `GROWING`, `STALLED` or `DORMANT`.
+    pub fn state(&self) -> u8 {
+        match (self.dormant, self.stalled) {
+            (true, _) => DORMANT,
+            (_, true) => STALLED,
+            _ => GROWING,
         }
     }
 
@@ -216,14 +247,7 @@ impl Settlements {
         if let Some((t, d)) = nearest.filter(|t| t.1 < SPACING) {
             return Err(if t.dormant { Unfit::Dormant(t.kind, far3(t.pos, at)) } else { Unfit::NearTown(t.kind, d) });
         }
-        let (sea, river) = water_near(gen, at.x, at.z);
-        let biome = (gen.version() >= 2).then(|| gen.biome_at(at.x, at.z, gen.height_at(at.x, at.z)));
-        let fits = |needs: Needs| match needs {
-            Needs::Water(Water::Sea) => sea,
-            Needs::Water(Water::River) => river,
-            Needs::Biome(b) => biome == Some(b),
-        };
-        KINDS.iter().position(|k| fits(k.needs)).map(|i| i as u8).ok_or(Unfit::NoKind)
+        kind_at(gen, at.x, at.z).ok_or(Unfit::NoKind)
     }
 
     /// The town (awake) whose depot is anchored at `pos`.
@@ -311,6 +335,19 @@ impl Settlements {
         }
         Some(Settlements { towns })
     }
+}
+
+/// The kind of town column (x, z) fits by its place alone (an index into `KINDS`, the first that fits), ignoring spawn
+/// and other towns.
+pub fn kind_at(gen: &WorldGen, x: i32, z: i32) -> Option<u8> {
+    let (sea, river) = water_near(gen, x, z);
+    let biome = (gen.version() >= 2).then(|| gen.biome_at(x, z, gen.height_at(x, z)));
+    let fits = |needs: Needs| match needs {
+        Needs::Water(Water::Sea) => sea,
+        Needs::Water(Water::River) => river,
+        Needs::Biome(b) => biome == Some(b),
+    };
+    KINDS.iter().position(|k| fits(k.needs)).map(|i| i as u8)
 }
 
 /// Whole blocks between two cells (rounded down).

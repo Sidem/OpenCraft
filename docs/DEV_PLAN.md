@@ -5,7 +5,7 @@ polish) are built and pushed · **The play-test response (section 4)**, from Cla
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
 **Milestone 13 (Settlements): 13.1–13.3, 13.4a and 13.5a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); save version 52, 861 tests; not pushed) · **Next: step 13.5b** (maps and tips), then 13.4b (the harbour) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); town markers, site shading and town tips (13.5b); save version 52, 864 tests; not pushed) · **Next: step 13.4b** (the harbour), then 13.6 (cleanup) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -628,7 +628,15 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   taken by hand like any panel slot). A toast when a town stalls, naming what it is short of, and when it is supplied again
   (a `SimEvent`, turned into news like the launch toasts). **Done when:** an engine test covers the query and the stall and
   recovery events; the panel is seen in the browser pane on the dev world's forge village.
-- [ ] **13.5b Maps and tips.** Each town gets a marker of its kind on both maps (a new mark kind), coloured supplied, stalled or
+- [x] **13.5b Maps and tips.** Built 2026-10-16 (no save change). A town is a house mark (`MARK_TOWN` + state) in its kind's
+  colour (`KindDef::colour`, shared with the shading), ringed red while stalled and faded while dormant, in place of its
+  depot's machine square. The shading (`minimap/sites.rs`) votes per explored tile over a 4×4 grid of dry columns with
+  `settlements::kind_at` (split out of `site`); spawn and towns are filtered per query, since they change. Measured on the
+  dev world (about 555 explored tiles): 3–5 ms a call while it works out 24 new tiles, 0.1 ms once cached, so a
+  4,096-tile map fills in within about 17 s at the map's 10 marks a second. The tips are a new side track
+  (`SIDE_HINTS`, numbered from `SIDE_BASE` 1000): Settlements needs only blue science, so linear tips would have skipped
+  or been skipped by the main order; they show ahead of it once researched, clear when a town is founded, its camp
+  stands, and it reaches a village or a rail, pod launcher or cargo drone exists. As talked: Each town gets a marker of its kind on both maps (a new mark kind), coloured supplied, stalled or
   dormant. While a depot is held, the world map tints explored ground by the kind a depot there would found
   (`Settlements::site` sampled coarsely, worked out once per explored tile and cached, presentation only). Three hints after
   Settlements research: found a town (where each kind goes, its perk); feed it (belts into its back and sides, a minute's
@@ -687,10 +695,15 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.5b built (maps and tips).** Town houses on both maps (`MARK_TOWN`), town site shading and a
+  legend on the world map while a depot is held (`minimap/sites.rs`, `world_map_sites`), and three town tips as a side
+  track (`hints::SIDE_HINTS`, `hint_side`). 864 tests.
 - **2026-10-16: Step 13.5a built (the town panel and stall news).** `ui/town.ts` on top of a depot's machine panel,
   `api/towns.rs` (`town_panel`, `town_states`, `town_news`), HUD toasts when a town stalls or is supplied again, the
-  store's own panel role. 861 tests.- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
-  stall and recovery toasts, three tips (section 1); 13.5 split into 13.5a (panel, stall news) and 13.5b (maps, tips).- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
+  store's own panel role. 861 tests.
+- **2026-10-16: 13.5 talked (docs only).** A town section in the machine panel, town markers and site shading on the maps,
+  stall and recovery toasts, three tips (section 1); 13.5 split into 13.5a (panel, stall news) and 13.5b (maps, tips).
+- **2026-10-16: Step 13.4a built (perks: the depot's out side, relay, forge, workshop).** `settlements/perks/` (one module
   a perk, a batch every `period(built)` ticks at the upkeep's rate, no saved state); the depot keeps perk goods apart
   (`Want::perk` into `input`, out at the front from `side`; save version 52, which also saves `crafting::Step::half`);
   `Hangar::relayed`; the processor's bytes moved to `factory/process/state.rs`. 860 tests; golden hash unchanged.

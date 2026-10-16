@@ -1,6 +1,7 @@
 // The world map (M): everywhere the player has been (the engine's explored map, `world_map_draw`),
-// north up, with the engine's marks (ore seen at the surface, prospected deposits, machines), players
-// and pins, and beside it the pin list and the ore guide (ore-guide.ts). Drag to move, wheel or the
+// north up, with the engine's marks (ore seen at the surface, prospected deposits, machines, towns), players
+// and pins, and beside it the pin list and the ore guide (ore-guide.ts). While a town depot is held, the places each
+// kind of town fits are shaded in its colour, with a legend (`world_map_sites`). Drag to move, wheel or the
 // buttons to zoom, click to pin a spot or edit a pin. The image is redrawn only when the view or the
 // explored map changes; marks, pins and players at most 10 times a second. Pins live in pins.ts.
 // The dialog frame reuses the machine panel's styles (machine.css).
@@ -10,7 +11,7 @@ import './worldmap.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
 import { OreGuide } from './ore-guide';
-import { drawMark, drawPin, type Pin, type Pins } from './pins';
+import { drawMark, drawPin, hex, type Pin, type Pins } from './pins';
 
 /** Blocks per screen pixel at each zoom step. */
 const ZOOMS = [0.25, 0.5, 1, 2, 4, 8, 16];
@@ -20,6 +21,8 @@ const MARKS_MS = 100;
 const CLICK_SLOP = 4;
 /** How near (screen px) a click must be to a pin's point to pick it. */
 const PIN_REACH = 14;
+/** How strongly the places a town fits are shaded. */
+const SITE_ALPHA = 0.4;
 
 export class WorldMap {
   /** Called after the map closes. `resume` is true when play should continue (M, or a click outside). */
@@ -33,6 +36,7 @@ export class WorldMap {
   private readonly scaleLabel = h('span', 'wm-scale');
   private readonly pinList = h('div', 'wm-pins');
   private readonly editor = h('div', 'wm-editor hidden');
+  private readonly legend = h('div', 'wm-legend hidden');
   private readonly ctx: CanvasRenderingContext2D;
   private centre = { x: 0, z: 0 };
   private zoom = START_ZOOM;
@@ -65,7 +69,15 @@ export class WorldMap {
       button('secondary-btn', 'Pin where I stand', () => this.editAt(this.game.player_x(), this.game.player_z(), null)),
       this.coords,
     );
-    this.view.append(this.image, this.overlay, this.editor);
+    this.legend.append(h('strong', '', 'Where a town fits'));
+    for (let k = 0; k < game.town_kind_count(); k++) {
+      const swatch = h('span', 'wm-swatch');
+      swatch.style.background = hex(game.town_kind_colour(k));
+      const row = h('span', 'wm-legend-row');
+      row.append(swatch, game.town_kind_name(k));
+      this.legend.append(row);
+    }
+    this.view.append(this.image, this.overlay, this.legend, this.editor);
     const side = h('aside', 'wm-side');
     side.append(h('h3', '', 'Pins'), this.pinList, new OreGuide(game).el);
     const main = h('div', 'wm-main');
@@ -150,6 +162,16 @@ export class WorldMap {
     c.clearRect(0, 0, o.width, o.height);
     const at = (x: number, z: number): [number, number] => [((x - v.left) / v.bpp) * dpr, ((z - v.top) / v.bpp) * dpr];
     const x1 = Math.ceil(v.left + v.w * v.bpp), z1 = Math.ceil(v.top + v.h * v.bpp);
+    const sites = this.game.world_map_sites(Math.floor(v.left), Math.floor(v.top), x1, z1);
+    this.legend.classList.toggle('hidden', sites.length === 0);
+    c.globalAlpha = SITE_ALPHA;
+    for (let i = 0; i < sites.length; i += 4) {
+      const [x, y] = at(sites[i], sites[i + 1]);
+      const size = (sites[i + 2] / v.bpp) * dpr;
+      c.fillStyle = hex(this.game.town_kind_colour(sites[i + 3]));
+      c.fillRect(x, y, size, size);
+    }
+    c.globalAlpha = 1;
     const marks = this.game.world_map_marks(Math.floor(v.left), Math.floor(v.top), x1, z1);
     const n = this.game.minimap_mark_fields();
     c.lineWidth = dpr;
