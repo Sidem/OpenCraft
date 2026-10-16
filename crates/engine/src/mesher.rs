@@ -23,7 +23,7 @@
 //! merging never changes how their gradients look. Layers with alternates (ores, leaves:
 //! `block::tex::alternates`) get one of four looks per block (`pick_layer`), so those faces merge
 //! less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
-//! cutout list and never merged. Liquids (`block::LIQUID`) get faces only against cells that are neither
+//! cutout list and never merged (so is the ground cover on natural ground: `cover.rs`). Liquids (`block::LIQUID`) get faces only against cells that are neither
 //! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their
 //! AO bits mark the water line instead, with how far it sits below the block's top (`water_line`):
 //! 1 for sources and falling water, 2 and 3 for thinner flows.
@@ -31,7 +31,9 @@
 use crate::block::{flow_level, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
 
+mod cover;
 mod quad;
+pub use cover::Cover;
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
 
 const N: usize = 32;
@@ -124,7 +126,7 @@ impl Mesher {
 
     /// Meshes the centre chunk of a 3×3×3 neighbourhood (see [`neighbor_index`]), lit by `light`
     /// (`PAD_VOLUME` bytes in the padded layout, from `light.rs`; unread when [`Self::is_trivially_empty`]).
-    pub fn mesh(&mut self, n: &[&Chunk; 27], light: &[u8]) -> MeshOutput {
+    pub fn mesh(&mut self, n: &[&Chunk; 27], light: &[u8], cover: Option<&Cover>) -> MeshOutput {
         self.opaque.clear();
         self.cutout.clear();
         self.liquid.clear();
@@ -137,6 +139,9 @@ impl Mesher {
                 self.mesh_face(face, light);
             }
             self.mesh_plants(light);
+            if let Some(cover) = cover {
+                self.mesh_cover(light, cover);
+            }
         }
         let count = self.opaque.len() + self.cutout.len() + self.liquid.len();
         let mut verts = Vec::with_capacity(count + count.div_ceil(4));
@@ -323,20 +328,24 @@ impl Mesher {
                     if !PLANT[b as usize] {
                         continue;
                     }
-                    self.cutout_light.extend_from_slice(&[light[p]; 16]);
-                    let (x, y, z) = (x as u32, y as u32, z as u32);
                     let layer = FACE_TEX[b as usize][0] as u32;
-                    let v = |dx: u32, dy: u32, dz: u32, face: u32| {
-                        (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (layer << 23)
-                    };
-                    let a = [v(0, 0, 0, 6), v(1, 0, 1, 6), v(1, 1, 1, 6), v(0, 1, 0, 6)];
-                    let b = [v(1, 0, 0, 7), v(0, 0, 1, 7), v(0, 1, 1, 7), v(1, 1, 0, 7)];
-                    for q in [a, b] {
-                        self.cutout.extend_from_slice(&q);
-                        self.cutout.extend_from_slice(&[q[3], q[2], q[1], q[0]]);
-                    }
+                    self.push_plant(x as u32, y as u32, z as u32, layer, light[p]);
                 }
             }
+        }
+    }
+
+    /// The crossed quads of a plant in chunk cell (x, y, z) drawn with texture `layer`, lit by `light`.
+    fn push_plant(&mut self, x: u32, y: u32, z: u32, layer: u32, light: u8) {
+        self.cutout_light.extend_from_slice(&[light; 16]);
+        let v = |dx: u32, dy: u32, dz: u32, face: u32| {
+            (x + dx) | ((y + dy) << 6) | ((z + dz) << 12) | (face << 18) | (3 << 21) | (layer << 23)
+        };
+        let a = [v(0, 0, 0, 6), v(1, 0, 1, 6), v(1, 1, 1, 6), v(0, 1, 0, 6)];
+        let b = [v(1, 0, 0, 7), v(0, 0, 1, 7), v(0, 1, 1, 7), v(1, 1, 0, 7)];
+        for q in [a, b] {
+            self.cutout.extend_from_slice(&q);
+            self.cutout.extend_from_slice(&[q[3], q[2], q[1], q[0]]);
         }
     }
 }

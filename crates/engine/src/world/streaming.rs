@@ -1,4 +1,4 @@
-//! Streaming and meshing, the render cache side of `World`: re-centring on the player, the
+﻿//! Streaming and meshing, the render cache side of `World`: re-centring on the player, the
 //! generation and mesh queues, one unit of work per `work_step`, and remeshing edited chunks.
 //!
 //! Chunks load within the view radius of the local player and within `OTHERS_RADIUS` of every other
@@ -11,7 +11,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::chunk::{Chunk, CHUNK_SHIFT};
 use crate::math::{IVec3, Vec3};
-use crate::mesher::{neighbor_index, Mesher};
+use crate::mesher::{neighbor_index, Cover, Mesher};
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
 use super::{Entry, Event, MeshData, World};
@@ -198,11 +198,13 @@ impl World {
     pub(super) fn remesh(&mut self, p: IVec3) -> bool {
         let Some(refs) = neighbourhood(&self.chunks, &self.air, &self.floor, p) else { return false };
         let out = if Mesher::is_trivially_empty(&refs) {
-            self.mesher.mesh(&refs, &[])
+            self.mesher.mesh(&refs, &[], None)
         } else {
             let Some((above, count)) = chunks_above(&self.chunks, &self.air, p) else { return false };
             self.lighting.light(&refs, &std::array::from_fn(|i| &above[i][..count]));
-            self.mesher.mesh(&refs, &self.lighting.pad)
+            let biomes = self.generator.biomes(p.x, p.z);
+            let cover = Cover { x0: p.x << CHUNK_SHIFT, z0: p.z << CHUNK_SHIFT, biomes: &biomes };
+            self.mesher.mesh(&refs, &self.lighting.pad, Some(&cover))
         };
         self.dirty.remove(&p);
         let entry = self.chunks.get_mut(&p).expect("centre chunk is loaded");
@@ -287,7 +289,7 @@ fn priority(focus: IVec3, p: IVec3) -> i32 {
 }
 
 /// Sorts a work queue so the chunk nearest a player comes last (popped first). The one sort both
-/// queues share: each distinct sort closure adds 5–9 KB of wasm.
+/// queues share: each distinct sort closure adds 5â€“9 KB of wasm.
 fn sort_nearest_last(queue: &mut [IVec3], focus: IVec3, others: &[IVec3]) {
     queue.sort_unstable_by_key(|&p| std::cmp::Reverse(nearest(focus, others, p)));
 }

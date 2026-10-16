@@ -244,6 +244,9 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   a banded plinth, a squat body, a launch tube with a capsule nose, a red mark on its front face (the channel is the way it faces). Landing pad
   (114, 3×3×1): a plinth and a ringed slab with a red mark on the front edge. The falling capsule is two boxes (capsule and flame); a dust puff
   on touchdown and a rising capsule at launch would suit it (not drawn yet).
+  Ground cover (R2a, 2026-10-16, `textures/ground_cover.rs`, layers 306–313): `GRASS_TUFT`, `DAISY`, `POPPY`, `BLUEBELL`, `FERN`, `REED`,
+  `DRY_BRUSH`, `LICHEN`, plain placeholders on crossed quads (`mesher/cover.rs`; the ground is the texture's bottom row). Shapes before
+  textures: taller, more varied tufts, a fuller fern and cattail, flowers that read from afar; the quads' vertex budget is the limit.
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

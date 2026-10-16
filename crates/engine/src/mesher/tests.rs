@@ -1,4 +1,4 @@
-use super::*;
+﻿use super::*;
 use crate::block::{flow, LEAVES, STONE, WATER};
 
 /// Full sky light everywhere.
@@ -10,7 +10,7 @@ fn mesh_single(setup: impl FnOnce(&mut Chunk)) -> MeshOutput {
     setup(&mut c);
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
-    Mesher::new().mesh(&refs, &DAYLIGHT)
+    Mesher::new().mesh(&refs, &DAYLIGHT, None)
 }
 
 fn decode(v: u32) -> (u32, u32, u32, u32, u32) {
@@ -105,7 +105,7 @@ fn machines_are_left_to_the_host_and_do_not_hide_faces() {
 fn uniform_solid_neighbourhood_is_empty() {
     let stone = Chunk::uniform(STONE);
     let refs = [&stone; 27];
-    let m = Mesher::new().mesh(&refs, &DAYLIGHT);
+    let m = Mesher::new().mesh(&refs, &DAYLIGHT, None);
     assert_eq!(m.verts.len(), 0);
 }
 
@@ -118,7 +118,7 @@ fn faces_on_chunk_border_respect_neighbours() {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     refs[neighbor_index(1, 0, 0)] = &stone;
-    let m = Mesher::new().mesh(&refs, &DAYLIGHT);
+    let m = Mesher::new().mesh(&refs, &DAYLIGHT, None);
     // +X face is hidden by the solid neighbour chunk.
     assert!(m.verts[..m.vertex_count()].iter().all(|&v| decode(v).3 != 0));
     assert_eq!(m.opaque_quads, 5);
@@ -143,7 +143,7 @@ fn a_change_in_light_stops_merging_and_is_smoothed() {
     refs[neighbor_index(0, 0, 0)] = &c;
     // Bright sky over the west half (padded x below 17), dim over the east half.
     let light: Vec<u8> = (0..PAD_VOLUME).map(|i| if i % PAD < 17 { 15 } else { 5 }).collect();
-    let m = Mesher::new().mesh(&refs, &light);
+    let m = Mesher::new().mesh(&refs, &light, None);
     assert!(m.opaque_quads > 6, "the top can't be one quad any more");
     let top: Vec<u8> = (0..m.vertex_count()).filter(|&i| decode(m.verts[i]).3 == 2).map(|i| m.light(i)).collect();
     assert!(top.contains(&15) && top.contains(&5) && top.contains(&10), "the corners on the step average: {top:?}");
@@ -151,7 +151,7 @@ fn a_change_in_light_stops_merging_and_is_smoothed() {
 
 #[test]
 fn water_shows_only_towards_open_cells_with_a_lowered_surface() {
-    // A 3 × 2 × 3 pool standing on a stone floor, open to the air on every other side.
+    // A 3 Ã— 2 Ã— 3 pool standing on a stone floor, open to the air on every other side.
     let m = mesh_single(|c| {
         for z in 3..8 {
             for x in 3..8 {

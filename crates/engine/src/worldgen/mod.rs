@@ -218,6 +218,7 @@ impl WorldGen {
             Vec::new()
         };
         let mut max_ground = 0;
+        let mut biomes = Vec::new();
         for z in 0..32 {
             for x in 0..32 {
                 let h = hm[(z + 2) * P + x + 2];
@@ -228,6 +229,7 @@ impl WorldGen {
                 heights[i] = h;
                 if self.version >= 2 {
                     let biome = self.biome_at(x0 + x as i32, z0 + z as i32, h);
+                    biomes.push(biome);
                     (surface[i], rock[i]) = Self::surface_v2(biome, h, slope);
                     if self.version >= 3 {
                         water[i] = wet[(z + 2) * P + x + 2];
@@ -249,7 +251,19 @@ impl WorldGen {
             self.stain_surface(x0, z0, &near, &mut surface);
         }
         let deposits = ore::in_column(near, cx, cz);
-        Column { heights, surface, rock, water, falls, guard, trees, deposits, max_y, max_ground }
+        Column {
+            heights,
+            surface,
+            rock,
+            biomes: biomes.into(),
+            water,
+            falls,
+            guard,
+            trees,
+            deposits,
+            max_y,
+            max_ground,
+        }
     }
 
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
@@ -360,6 +374,8 @@ struct Column {
     surface: Vec<(BlockId, BlockId)>,
     /// The rock below the soil (stone everywhere in version 1).
     rock: Vec<BlockId>,
+    /// Version 2: each column's biome (empty before), for the ground cover the mesher draws (`mesher/cover.rs`).
+    biomes: Rc<[Biome]>,
     /// Version 3: each column's top water block, `i32::MIN` when dry (`water.rs`).
     water: Vec<i32>,
     /// Version 8: the top of the falling water above each column's water (`i32::MIN` for none; empty before).

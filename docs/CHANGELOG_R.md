@@ -22,6 +22,14 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R2a Ground cover** (built 2026-10-16, presentation only, every world from generator version 2): `mesher/cover.rs` draws
+  grass tufts, daisies, poppies, bluebells, ferns, reeds, dry brush and lichen (`tex` 306–313, `textures/ground_cover.rs`, plain
+  placeholders) as plants on top of natural ground (grass and stained grass, dirt, sand and stained sand, basalt, granite) in empty
+  cells with sky light at least 12, chosen per column by a hash and the biome (`WorldGen::biomes`, kept in the column cache; plains
+  tufts and meadow flowers, lowlands ferns, highlands tufts, ferns and bluebells, deserts dry brush on sand, basalt fields lichen
+  and dry brush; reeds beside water in every biome). Flowers cluster in 4 × 4 meadows. Never blocks, never saved, never in the state
+  hash; a remesh redraws it, so it follows edits. `Mesher::mesh` takes `Option<&Cover>`. `bench_meshing`: 0.54 to 0.56 ms a chunk.
+  Tests in `mesher/cover/tests.rs`.
 
 - [x] **R1 Why the middle systems go unused (talked 2026-10-16).** Measured from the engine's tables: the whole tree asks for
   about 45,000 packs (10,725 red, 10,635 green, 10,290 blue, 9,420 violet, 4,180 gold; 126 lab-hours at Mk1 speed), and its

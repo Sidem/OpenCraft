@@ -8,6 +8,8 @@
 //! column by a hash, a few blocks wide. Version 1 never calls into this file. To add a biome: a
 //! `Biome` variant, its rule in `biome_at` and its rows in `surface`, `rock` and `tree_factor`.
 
+use std::rc::Rc;
+
 use crate::block::*;
 use crate::math::{hash2, smoothstep};
 
@@ -68,6 +70,11 @@ impl Biome {
 }
 
 impl WorldGen {
+    /// The biomes of chunk column (cx, cz), 32 × 32 with z rows (x fastest); empty before version 2.
+    pub fn biomes(&mut self, cx: i32, cz: i32) -> Rc<[Biome]> {
+        self.column(cx, cz).biomes.clone()
+    }
+
     /// The biome of the column at (x, z), whose surface is at height `h`.
     pub fn biome_at(&self, x: i32, z: i32, h: i32) -> Biome {
         // The climate is read a little off the column (by a hash), which frays the borders.

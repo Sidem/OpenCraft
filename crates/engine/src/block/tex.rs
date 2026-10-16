@@ -348,7 +348,16 @@ pub const DROP_POD: u16 = 302;
 pub const POD_SIDE: u16 = 303;
 pub const POD_LAUNCH_TOP: u16 = 304;
 pub const POD_PAD_TOP: u16 = 305;
-pub const COUNT: usize = 306;
+/// Ground cover on crossed quads, never blocks (`mesher/cover.rs`, `textures/ground_cover.rs`).
+pub const GRASS_TUFT: u16 = 306;
+pub const DAISY: u16 = 307;
+pub const POPPY: u16 = 308;
+pub const BLUEBELL: u16 = 309;
+pub const FERN: u16 = 310;
+pub const REED: u16 = 311;
+pub const DRY_BRUSH: u16 = 312;
+pub const LICHEN: u16 = 313;
+pub const COUNT: usize = 314;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {
