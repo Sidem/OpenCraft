@@ -330,3 +330,66 @@ fn a_town_from_save_48_has_just_its_depot_and_a_bad_stage_is_refused() {
     Settlements { towns: vec![town], ..Default::default() }.write_state(&mut bad);
     assert!(Settlements::read_state(&mut ByteReader::new(&bad.bytes)).is_none());
 }
+
+/// The worst tick with towns (run with `--ignored --nocapture`): one town of each kind grown to a city at once, so all
+/// five stages are planned in one tick and their drones build every building, while each perk runs; 20 minutes.
+#[test]
+#[ignore]
+fn bench_towns() {
+    let mut sim = Sim::new(SEED, 2);
+    let gen = WorldGen::new(SEED);
+    for kind in 0..KINDS.len() as u8 {
+        let before = sim.settlements.towns.len();
+        for (x, z) in rings() {
+            if sim.settlements.towns.len() > before || sim.settlements.site(&gen, IVec3::new(x, 0, z)) != Ok(kind) {
+                continue;
+            }
+            let at = IVec3::new(x, gen.height_at(x, z).max(crate::worldgen::SEA_LEVEL) + 1, z);
+            sim.apply(P, Action::Give { item: ItemId::block(TOWN_DEPOT), count: 1 });
+            let slot = sim.player(P).unwrap().inventory.slots.iter().position(|s| s.count > 0).unwrap() as u8;
+            sim.apply(P, Action::PlaceBlock { pos: at, slot, facing: 0, against: at - IVec3::new(0, 1, 0) });
+        }
+        let t = sim.settlements.towns.last_mut().filter(|t| t.kind == kind).expect("founded");
+        (t.built, t.due, t.delivered) = (STAGES as u8, u64::MAX, Vec::new());
+    }
+    let motor = crate::item::MOTOR;
+    sim.settlements.made.insert(motor);
+    let harbour = sim.settlements.towns[0].pos;
+    sim.settlements.set_product(harbour, motor);
+    let (iron, copper) = (ItemId::block(block::IRON_ORE), ItemId::block(block::COPPER_ORE));
+    let (mut worst, mut at, start) = (std::time::Duration::ZERO, 0, std::time::Instant::now());
+    let mut first = std::time::Duration::ZERO;
+    let ticks = 20 * 60 * crate::TICK_RATE as u64;
+    for tick in 0..ticks {
+        if tick % 60 == 0 {
+            for t in sim.settlements.towns.clone() {
+                sim.factory.insert(t.pos, iron, 64);
+                sim.factory.insert(t.pos, copper, 64);
+                sim.factory.take_contents(t.pos, |_, n| n);
+            }
+        }
+        let t = std::time::Instant::now();
+        sim.step();
+        if tick == 0 {
+            first = t.elapsed();
+        } else if t.elapsed() > worst {
+            (worst, at) = (t.elapsed(), tick);
+        }
+    }
+    let built: usize = sim.settlements.towns.iter().map(|t| t.cursor as usize).sum();
+    let plots: usize = sim.settlements.towns.iter().map(|t| t.plots.len()).sum();
+    println!(
+        "towns: {} cities, {built} of {plots} buildings done, {:?} a tick on average, {first:?} planning all stages \
+         (tick 0), then {worst:?} worst (tick {at})",
+        sim.settlements.towns.len(),
+        start.elapsed() / ticks as u32,
+    );
+    // One stage planned, as in play: the camp of a fresh town of each kind.
+    for t in &mut sim.settlements.towns {
+        (t.planned, t.plots, t.cursor) = (0, Vec::new(), 0);
+        t.built = 1;
+    }
+    let t = std::time::Instant::now();
+    sim.step();
+    println!("towns: planning one stage in each of 4 towns at once: {:?}", t.elapsed());
+}

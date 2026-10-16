@@ -1,7 +1,7 @@
 # Playing OpenCraft
 
 The player's manual: controls, worlds, co-op, crafting, upgrades and sound. The factory itself (deposits,
-machines, power, research and every later era) is in [FACTORY.md](FACTORY.md). New players get the basics from
+machines, power, research and every later era) is in [FACTORY.md](FACTORY.md), towns in [TOWNS.md](TOWNS.md). New players get the basics from
 the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anything player-visible.
 
 ## Controls

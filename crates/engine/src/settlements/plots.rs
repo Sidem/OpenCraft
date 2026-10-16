@@ -7,6 +7,8 @@
 //! Invariants: reads the world only through `block_anywhere_or_generate` and the generator, inside `Sim::step`, so the
 //! choice is the same on every machine and whether chunks are loaded. A slot is used at most once per town.
 
+use rustc_hash::FxHashMap;
+
 use crate::block::{self, BlockId, LEAVES, LIQUID, LOG, PLANT, SAPLING};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
@@ -88,6 +90,9 @@ pub fn takeable(b: BlockId) -> bool {
     block::replaceable(b) || matches!(b, LOG | LEAVES | SAPLING) || PLANT[b as usize]
 }
 
+/// Each column's ground (`Sim::ground`), worked out during one plan.
+type Grounds = FxHashMap<(i32, i32), Option<(i32, i32)>>;
+
 impl Sim {
     /// Plans town `i`'s next stage not yet planned: gives each of its buildings the nearest free slot that fits it (a
     /// building that fits nowhere is left out).
@@ -96,10 +101,13 @@ impl Sim {
         let (anchor, built) = (self.settlements.towns[i].pos, self.settlements.towns[i].planned);
         let Some(shapes) = BUILDINGS.get(built as usize - 1) else { return };
         let mut used: Vec<u8> = self.settlements.towns[i].plots.iter().map(|p| p.slot).collect();
+        // Each column's ground, read once a plan: the slots are tried again for every building, and the world keeps
+        // only a few generated chunks.
+        let mut grounds = FxHashMap::default();
         for (b, s) in shapes.iter().enumerate() {
             let free = (0..slots().len() as u8).filter(|slot| !used.contains(slot)).collect::<Vec<_>>();
             for slot in free {
-                if let Some(base) = self.plot_base(anchor + slot_offset(slot), s) {
+                if let Some(base) = self.plot_base(anchor + slot_offset(slot), s, &mut grounds) {
                     self.settlements.towns[i].plots.push(Plot { slot, stage: built, building: b as u8, base });
                     used.push(slot);
                     break;
@@ -109,12 +117,17 @@ impl Sim {
     }
 
     /// The floor height of shape `s` centred on `mid`, or `None` when the plot doesn't fit it.
-    fn plot_base(&mut self, mid: IVec3, s: &Shape) -> Option<i32> {
+    fn plot_base(&mut self, mid: IVec3, s: &Shape, grounds: &mut Grounds) -> Option<i32> {
         let corner = IVec3::new(mid.x - s.w / 2, 0, mid.z - s.d / 2);
         let mut columns = Vec::with_capacity((s.w * s.d) as usize);
         for z in 0..s.d {
             for x in 0..s.w {
-                columns.push((corner.x + x, corner.z + z, self.ground(corner.x + x, corner.z + z)?));
+                let (x, z) = (corner.x + x, corner.z + z);
+                let ground = match grounds.get(&(x, z)) {
+                    Some(&g) => g,
+                    None => *grounds.entry((x, z)).or_insert(self.ground(x, z)),
+                };
+                columns.push((x, z, ground?));
             }
         }
         let top = |c: &(i32, i32, (i32, i32))| c.2 .1;
