@@ -1,0 +1,76 @@
+/* The inventory screen's controls bar (slot-controls.ts): one line of key caps and mouse glyphs with a word each.
+   The key cap matches hints.css and key-prompt.css, small. */
+
+.sc {
+  display: flex;
+  align-items: center;
+  gap: 8px 18px;
+  min-height: 46px;
+  padding: 8px 22px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.sc-list {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+}
+
+.sc-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.sc-close {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.sc-plus {
+  color: var(--muted);
+}
+
+.sc-cap {
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: linear-gradient(#ffffff, #dfe3ea);
+  border: 1px solid #1b1e25;
+  box-shadow: 0 2px 0 #1b1e25;
+  color: #1b1e25;
+  font: 800 11px/18px var(--font);
+  text-align: center;
+}
+
+/* A mouse seen from above, the button to press lit. */
+.sc-mouse {
+  display: inline-flex;
+  width: 14px;
+  height: 20px;
+  border-radius: 7px 7px 6px 6px;
+  background: #dfe3ea;
+  border: 1.5px solid #1b1e25;
+  overflow: hidden;
+}
+
+.sc-btn {
+  flex: 1;
+  height: 45%;
+  border-bottom: 1.5px solid #1b1e25;
+}
+
+.sc-btn:first-child {
+  border-right: 1.5px solid #1b1e25;
+}
+
+.sc-mouse.lit-left .sc-btn:first-child,
+.sc-mouse.lit-right .sc-btn:last-child {
+  background: var(--accent);
+}

@@ -68,7 +68,10 @@ impl Game {
                     picked_up = true;
                 }
                 SimEvent::Crafted { player, item, count } if player == local => self.toast(item, count),
-                SimEvent::Gained { .. } | SimEvent::Crafted { .. } => {}
+                SimEvent::HandMined { player, ore, kept, lost } if player == local => {
+                    self.waste.record(ore, kept, lost)
+                }
+                SimEvent::Gained { .. } | SimEvent::Crafted { .. } | SimEvent::HandMined { .. } => {}
                 SimEvent::Dropped { pos, vel, item, count } => {
                     self.spawn_item(pos, vel, item, count, DROP_PICKUP_DELAY)
                 }

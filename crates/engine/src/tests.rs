@@ -346,6 +346,9 @@ fn hand_mining_ore_keeps_a_handful_and_costs_a_block() {
     let drop = g.items.list.last().unwrap();
     assert_eq!((drop.item, drop.count), (ore.into(), HAND_YIELD));
     assert_eq!(drop.item.places(), None, "ore can't be put back");
+    let lost = Tier::Outcrop.grade() - HAND_YIELD;
+    assert_eq!(g.hand_mined_blocks(), 1, "the HUD counts the waste");
+    assert!(g.hand_waste_notice().contains(&format!("*{lost} lost*")), "{}", g.hand_waste_notice());
 }
 
 /// Miner on top of an outcrop block, a belt leading east, and a box at the end.

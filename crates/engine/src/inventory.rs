@@ -256,6 +256,16 @@ impl Inventory {
         Some(thrown)
     }
 
+    /// Removes `n` items from the cursor stack (what a machine took from it).
+    pub fn take_from_cursor(&mut self, n: u32) {
+        let c = &mut self.cursor;
+        c.count = c.count.saturating_sub(n);
+        if c.is_empty() {
+            *c = Stack::default();
+        }
+        self.version += 1;
+    }
+
     /// Shift-click: moves a stack between the hotbar and the backpack.
     pub fn quick_move(&mut self, slot: usize) {
         let capacity = self.capacity();

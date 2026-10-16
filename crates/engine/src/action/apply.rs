@@ -133,6 +133,13 @@ impl Sim {
                     inv.remove(item, put);
                 }
             }
+            Action::InsertCursor { pos } => {
+                let held = inv.cursor;
+                let put = if held.is_empty() { 0 } else { self.factory.insert(pos, held.item, held.count) };
+                if put > 0 {
+                    inv.take_from_cursor(put);
+                }
+            }
             Action::Craft { recipe, times } => {
                 core.crafts.enqueue(inv, &self.factory.research, recipe, times);
             }

@@ -44,6 +44,7 @@ mod factory;
 mod footprint_preview;
 mod ghost_mode;
 mod ghosts;
+mod hand_waste;
 mod helper_hands;
 mod helpers;
 mod hints;
@@ -122,11 +123,6 @@ const MAX_TICKS_PER_FRAME: u32 = 8;
 /// Float slack when comparing accumulated frame time with `TICK`, so 60 frames of 1/60 s run 60 ticks.
 const TICK_SLACK: f64 = 1e-9;
 
-#[wasm_bindgen(start)]
-pub fn start() {
-    console_error_panic_hook::set_once();
-}
-
 #[wasm_bindgen]
 pub struct Game {
     /// The deterministic core: world blocks, factory, deposits, inventories, tick.
@@ -190,6 +186,8 @@ pub struct Game {
     /// Box instances (dropped items, belt items, machine parts) for the current frame.
     instances: Vec<f32>,
     pickups: VecDeque<(ItemId, u32)>,
+    /// Ore the local player wasted by hand mining this session (`hand_waste.rs`).
+    waste: hand_waste::HandWaste,
     cur_pickup: (ItemId, u32),
     cur_mesh: Option<MeshData>,
     cur_event_pos: IVec3,
@@ -265,6 +263,7 @@ impl Game {
             textures,
             instances: Vec::new(),
             pickups: VecDeque::new(),
+            waste: hand_waste::HandWaste::default(),
             cur_pickup: (ItemId::NONE, 0),
             cur_mesh: None,
             cur_event_pos: IVec3::ZERO,

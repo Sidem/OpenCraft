@@ -8,6 +8,10 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - A new world starts in front of a small production line that has stopped: one belt came loose. Put it back, turn it the right way with R, and the line runs again; its last load of ore becomes the ingots for your first miner. Floating key prompts show what to press where.
 - Tips are bigger and easier to skim: a title, the important words highlighted and keys drawn as keys.
 - The tip for placing your first miner now also says where to look for ore.
+- Mining ore by hand now shows what you kept and how much was lost with each block, and after a few blocks a warning sums it up and points you to a miner.
+- A machine's panel now opens next to your inventory: click a held stack into a slot, Shift-click a stack to put it in, click a slot to take it.
+- The inventory's long line of instructions is gone: a bar along the bottom now shows just the clicks that work on the slot under your pointer.
+- Long recipe lists (the Upgrader's) scroll inside their own box instead of stretching the whole panel.
 
 ## 2026-10-15 · Hover pack charging from far away
 

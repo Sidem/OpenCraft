@@ -7,6 +7,9 @@
 // A new world's opening scene comes first (`opening_step`, `opening.rs`): its tips replace the list until it
 // is done, a floating prompt points at what to do (`key-prompt.ts`), the card cheers briefly each time one of
 // its steps is done, and `onLineRuns` fires when its line starts again.
+// Hand mining is taught as it happens (`hand_waste.rs`): each ore block broken by hand flashes what was kept and
+// lost under the crosshair, and after a few a warning card with the totals jumps ahead of every tip (the opening's
+// too) while the player keeps at it (H snoozes it for `SNOOZE_BLOCKS` more). Creative worlds skip both.
 
 import './hints.css';
 import type { Game } from '../wasm/engine.js';
@@ -17,9 +20,14 @@ import { KeyPrompt } from './key-prompt';
 const STORAGE_KEY = 'opencraft.hints.skipped';
 /** `shown` and the skipped set use this for the opening scene's tips (-1 is no tip). */
 const OPENING = -2;
+/** `shown` for the hand-mining warning. */
+const WASTE = -3;
 /** A lead-in this short before the first ": " is the tip's title. */
 const TITLE_MAX = 40;
-
+/** The hand-mining warning stays this long after the latest ore block broken by hand. */
+const WASTE_MS = 45_000;
+/** Skipping the warning hides it until this many more ore blocks are broken by hand. */
+const SNOOZE_BLOCKS = 10;
 export class Hints {
   private readonly el = h('div', 'hint hidden');
   private readonly counter = h('span', 'hint-count');
@@ -31,6 +39,13 @@ export class Hints {
   private openingStep = 0;
   /** Whether the opening's line ran last frame (null before the first, so loading a world never cheers). */
   private running: boolean | null = null;
+  private readonly notice = h('div', 'waste-notice');
+  private readonly creative: boolean;
+  /** Ore blocks broken by hand as last seen, when the latest was, and the count the warning is snoozed until. */
+  private mined = 0;
+  private minedAt = -Infinity;
+  private snoozed = 0;
+  private wasteText = '';
 
   constructor(
     private readonly game: Game,
@@ -38,6 +53,9 @@ export class Hints {
     private readonly onLineRuns: () => void = () => {},
   ) {
     this.skipped = loadSkipped();
+    this.creative = game.is_creative();
+    document.getElementById('hud')!.append(this.notice);
+    this.notice.addEventListener('animationend', () => this.notice.classList.remove('waste-show'));
     const head = h('div', 'hint-head');
     const key = h('span', 'hint-key');
     richText(key, '[H] skip');
@@ -56,6 +74,11 @@ export class Hints {
   /** Skips the tip on screen for good. */
   skip(): void {
     if (this.shown === -1) return;
+    if (this.shown === WASTE) {
+      this.snoozed = this.mined + SNOOZE_BLOCKS;
+      this.update();
+      return;
+    }
     this.skipped.add(this.shown);
     saveSkipped(this.skipped);
     this.update();
@@ -70,6 +93,13 @@ export class Hints {
     const running = step > 0 && g.opening_runs();
     if (running && this.running === false) this.onLineRuns();
     this.running = running;
+    const waste = this.wasteTip();
+    if (waste) {
+      if (this.shown !== WASTE) this.show(WASTE, 'Heads up', waste);
+      else if (waste !== this.wasteText) this.draw(waste); // the totals grew: no new animation
+      this.wasteText = waste;
+      return;
+    }
     if (step > 0) {
       if (this.shown === OPENING && step === this.openingStep) return;
       this.show(OPENING, 'Getting started', g.opening_text(step));
@@ -88,12 +118,39 @@ export class Hints {
     this.show(tip, `Tip ${tip + 1} of ${count}`, tip < 0 ? '' : g.hint_text(tip));
   }
 
+  /** Flashes the latest hand-mined block's loss, and returns the warning card's text while it should show. */
+  private wasteTip(): string {
+    const g = this.game;
+    if (this.creative) return '';
+    const mined = g.hand_mined_blocks();
+    if (mined !== this.mined) {
+      this.mined = mined;
+      this.minedAt = performance.now();
+      this.notice.replaceChildren();
+      richText(this.notice, g.hand_waste_notice());
+      this.notice.classList.remove('waste-show');
+      void this.notice.offsetWidth; // restarts the animation
+      this.notice.classList.add('waste-show');
+    }
+    if (mined < this.snoozed || performance.now() - this.minedAt > WASTE_MS) return '';
+    return g.hand_waste_tip();
+  }
+
   private show(tip: number, head: string, text: string): void {
-    const stepDone = this.shown === OPENING && !this.skipped.has(OPENING);
+    const stepDone = this.shown === OPENING && tip !== WASTE && !this.skipped.has(OPENING);
     this.shown = tip;
     this.el.classList.toggle('hidden', tip === -1);
     if (tip === -1) return;
     this.counter.textContent = head;
+    this.el.classList.toggle('hint-warn', tip === WASTE);
+    this.draw(text);
+    this.el.classList.remove('hint-cheer', 'hint-new');
+    void this.el.offsetWidth; // restarts the animation
+    this.el.classList.add(stepDone ? 'hint-cheer' : 'hint-new');
+  }
+
+  /** The card's title and body from a tip's text. */
+  private draw(text: string): void {
     this.text.replaceChildren();
     const lead = text.indexOf(': ');
     if (lead > 0 && lead <= TITLE_MAX && !/[*[]/.test(text.slice(0, lead))) {
@@ -104,9 +161,6 @@ export class Hints {
     const body = h('p', 'hint-body');
     richText(body, text);
     this.text.append(body);
-    this.el.classList.remove('hint-cheer', 'hint-new');
-    void this.el.offsetWidth; // restarts the animation
-    this.el.classList.add(stepDone ? 'hint-cheer' : 'hint-new');
   }
 }
 

@@ -11,6 +11,7 @@ mod content;
 mod crafting;
 mod creative;
 mod debug;
+mod hand_waste;
 mod hud;
 mod input;
 mod inventory;
@@ -25,3 +26,11 @@ mod research;
 mod save;
 mod sites;
 mod view;
+
+use wasm_bindgen::prelude::*;
+
+/// Runs once when the wasm module loads: panics show in the browser console.
+#[wasm_bindgen(start)]
+pub fn start() {
+    console_error_panic_hook::set_once();
+}

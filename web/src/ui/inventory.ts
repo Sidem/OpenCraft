@@ -6,7 +6,10 @@
 // stacks between the box and the inventory. Right-click takes half of a stack (again: half of what is left, added to
 // the held stack); Ctrl-click takes one item onto the cursor and Ctrl-right-click puts one down (so a stack can be
 // built or split a single item at a time); Shift-right-click with a stack held puts one item down too (outside the
-// screen: throws one out), and with an empty hand moves every stack of that item.
+// screen: throws one out), and with an empty hand moves every stack of that item. Opened with a `Beside` (a machine's
+// panel, `machine.ts`), that panel takes the build menu's place and Shift-click puts a stack into it.
+// The clicks are taught by the controls bar along the bottom (`slot-controls.ts`): it shows what applies to the
+// hovered slot (`data-slot`, `data-item`) and the held stack, so the screen needs no wall of instructions.
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
@@ -16,10 +19,25 @@ import { h } from './dom';
 import { showAmount } from './hud';
 import { PackUpgrade } from './pack-upgrade';
 import { Pager } from './pager';
+import { type SlotContext, SlotControls } from './slot-controls';
 
 const ICON_PX = 64;
 /** Backpack slots on a page: three rows of nine, so the equipment and hotbar never scroll out of view. */
 const PAGE_SLOTS = 27;
+
+/** A panel shown beside the inventory in place of the build menu (a machine's: `machine.ts`). */
+export interface Beside {
+  readonly el: HTMLElement;
+  readonly title: string;
+  /** Redraws what changed; false once what it shows is gone (the screen then closes). Called every frame. */
+  update(): boolean;
+  /** Shift-click on inventory slot `slot`: true if it took the stack. */
+  shiftSlot(slot: number): boolean;
+  /** Whether Shift-click would put `item` in (for the controls bar). */
+  wants(item: number): boolean;
+  /** The screen closed. */
+  closed(): void;
+}
 
 interface SlotView {
   root: HTMLDivElement;
@@ -52,8 +70,14 @@ export class InventoryPanel {
   private readonly boxSlots: SlotView[] = [];
   /** The open box's position, or null for the plain inventory screen. */
   private box: [number, number, number] | null = null;
+  /** The panel shown beside the inventory, if any. */
+  private beside: Beside | null = null;
+  private readonly body = h('div', 'inv-body');
   /** Whether Shift was held for the slot click being handled. */
   private shift = false;
+  private readonly controls = new SlotControls();
+  /** The pointer's last position, to find the slot under it (`showControls`). */
+  private pointer: [number, number] = [-1, -1];
   private boxKey = '';
 
   constructor(
@@ -72,22 +96,17 @@ export class InventoryPanel {
     close.type = 'button';
     close.setAttribute('aria-label', 'Close inventory');
     close.addEventListener('click', () => this.close(true));
-    head.append(
-      title,
-      h(
-        'span',
-        'inv-keys',
-        'E or click outside to return · Right-click takes half · Ctrl-click takes one · Ctrl-right-click puts one down · ' +
-          'Shift-click moves a stack · Shift-right-click moves all of that item (outside: throws one)',
-      ),
-      close,
-    );
+    head.append(title, close);
 
     // Backpack (slots 9..35) above the hotbar (0..8), as in the HUD.
     const size = game.inventory_max_size(), hotbar = game.hotbar_size();
     for (let i = 0; i < size; i++) {
       const slot = this.makeSlot(
-        () => (this.box && this.shift ? game.store_slot(...this.box, i) : game.click_slot(i, this.shift)),
+        () => {
+          if (this.shift && this.beside?.shiftSlot(i)) return;
+          if (this.box && this.shift) game.store_slot(...this.box, i);
+          else game.click_slot(i, this.shift);
+        },
         (shift) => {
           if (shift && !this.holding()) this.box ? game.store_all(...this.box, i) : game.quick_move_all(i);
           else game.right_click_slot(i, shift);
@@ -95,6 +114,7 @@ export class InventoryPanel {
         { takeOne: () => game.take_one_slot(i), putOne: () => game.right_click_slot(i, true) },
       );
       if (i < hotbar) slot.root.append(h('span', 'key', String(i + 1)));
+      slot.root.dataset.slot = i < hotbar ? 'hotbar' : 'pack';
       this.slots.push(slot);
     }
     const pack = h('div', 'inv-grid');
@@ -107,6 +127,7 @@ export class InventoryPanel {
         () => game.click_gear(i, this.shift),
         (shift) => shift && game.click_gear(i, true),
       );
+      slot.root.dataset.slot = 'gear';
       this.gear.push(slot);
       const cell = h('div', 'inv-gear-cell');
       cell.append(slot.root, h('span', 'inv-gear-name', game.gear_slot_name(i)));
@@ -148,9 +169,8 @@ export class InventoryPanel {
     // A creative world adds an "All items" tab beside the build menu.
     this.right = game.is_creative() ? withCreativeTabs(this.menu.el, new CreativeMenu(game, icon)) : this.menu.el;
 
-    const body = h('div', 'inv-body');
-    body.append(items, this.right, this.boxSection);
-    this.dialog.append(head, body);
+    this.body.append(items, this.right, this.boxSection);
+    this.dialog.append(head, this.body, this.controls.el);
     this.backdrop.append(this.dialog);
 
     const cur = h('div', 'slot inv-cursor hidden');
@@ -174,7 +194,8 @@ export class InventoryPanel {
       if (e.code === 'KeyE' && !(e.target instanceof HTMLInputElement)) {
         e.preventDefault();
         this.close(true);
-      } else if (e.key === 'Escape') {
+      } else if (e.key === 'Escape' && !e.defaultPrevented) {
+        // (A search box's first Escape only empties it and prevents the default.)
         e.preventDefault();
         this.close(false);
       }
@@ -186,8 +207,14 @@ export class InventoryPanel {
     return !this.backdrop.classList.contains('hidden');
   }
 
-  /** Opens the screen, on the box at `box` if given. */
-  open(box: [number, number, number] | null = null): void {
+  /** Opens the screen, on the box at `box` if given, or with `beside` in place of the build menu. */
+  open(box: [number, number, number] | null = null, beside: Beside | null = null): void {
+    if (this.beside !== beside) {
+      this.beside?.el.remove();
+      this.beside?.closed();
+      if (beside) this.body.append(beside.el);
+    }
+    this.beside = beside;
     this.box = box;
     const n = box ? this.game.box_slots(...box).length / 2 : 0;
     while (this.boxSlots.length < n) {
@@ -204,15 +231,16 @@ export class InventoryPanel {
           putOne: () => this.box && this.game.right_click_box(...this.box, i, true),
         },
       );
+      slot.root.dataset.slot = 'box';
       this.boxSlots.push(slot);
       this.boxGrid.append(slot.root);
     }
     // Slots are kept between boxes; a smaller box hides the extras (an upgraded box has more).
     this.boxSlots.forEach((s, i) => s.root.classList.toggle('hidden', i >= n));
     this.boxSection.classList.toggle('hidden', !box);
-    this.right.classList.toggle('hidden', !!box);
-    this.dialog.classList.toggle('inv-with-box', !!box);
-    this.title.textContent = box ? 'Storage box' : 'Inventory & build';
+    this.right.classList.toggle('hidden', !!box || !!beside);
+    this.dialog.classList.toggle('inv-with-box', !!box || !!beside);
+    this.title.textContent = beside ? beside.title : box ? 'Storage box' : 'Inventory & build';
     this.backdrop.classList.remove('hidden');
     this.version = -1;
     this.boxKey = '';
@@ -224,12 +252,19 @@ export class InventoryPanel {
     if (!this.isOpen) return;
     this.backdrop.classList.add('hidden');
     this.menu.hideInfo();
+    this.beside?.el.remove();
+    this.beside?.closed();
+    this.beside = null;
     this.onClose(resume);
   }
 
   /** Redraws whatever changed since the last call. Cheap when nothing did; call every frame. */
   update(): void {
     if (!this.isOpen) return;
+    if (this.beside && !this.beside.update()) {
+      this.close(true); // the machine is gone
+      return;
+    }
     const g = this.game;
     const v = g.inventory_version();
     const boxData = this.box ? g.box_slots(...this.box) : null;
@@ -238,7 +273,7 @@ export class InventoryPanel {
       return;
     }
     const boxKey = boxData ? boxData.join(',') : '';
-    if (v === this.version && boxKey === this.boxKey) return;
+    if (v === this.version && boxKey === this.boxKey) return this.showControls();
     this.version = v;
     this.boxKey = boxKey;
     if (boxData) {
@@ -260,7 +295,27 @@ export class InventoryPanel {
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);
 
-    if (!this.box) this.menu.update();
+    if (!this.box && !this.beside) this.menu.update();
+    this.showControls();
+  }
+
+  /** The controls bar for the slot under the pointer (looked up every frame: machine slots are rebuilt as they change)
+   * and the held stack. */
+  private showControls(): void {
+    const el = document.elementFromPoint(...this.pointer)?.closest<HTMLElement>('[data-slot]');
+    const kind = (el?.dataset.slot ?? null) as SlotContext['kind'];
+    const item = Number(el?.dataset.item || 0);
+    const held = this.holding() ? this.game.cursor_item() : 0;
+    this.controls.show({ kind, item, held, shift: kind ? this.shiftLabel(kind, item) : '' });
+  }
+
+  /** What Shift-click does with the stack in a slot of `kind`, in the controls bar's words. */
+  private shiftLabel(kind: string, item: number): string {
+    if (kind === 'box') return 'Move to inventory';
+    if (this.box) return 'Move to the box';
+    if (this.beside?.wants(item)) return `Put in the ${this.beside.title}`;
+    if (this.game.gear_blurb(item)) return 'Wear it';
+    return kind === 'hotbar' ? 'Move to backpack' : 'Move to hotbar';
   }
 
   /** Shows the backpack slots of the current page (the pack grows with a hauler pack, so pages come and go). */
@@ -312,6 +367,7 @@ export class InventoryPanel {
     const amount = uses > 0 ? ` (${n} of ${uses} uses left)` : n > 1 ? ` ×${n}` : '';
     const effect = n > 0 ? this.game.gear_blurb(item) : '';
     s.root.title = n > 0 ? `${this.game.item_name(item)}${amount}${effect ? `: ${effect}` : ''}` : '';
+    s.root.dataset.item = n > 0 ? String(item) : '';
     if (item === s.item && n === s.n) return;
     const ctx = s.icon.getContext('2d')!;
     ctx.clearRect(0, 0, ICON_PX, ICON_PX);
@@ -321,7 +377,9 @@ export class InventoryPanel {
     s.n = n;
   }
 
+  /** Follows the pointer (on moves and clicks): the held stack, and where `showControls` looks. */
   private moveCursor(x: number, y: number): void {
+    this.pointer = [x, y];
     this.cursor.root.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
   }
 }

@@ -1,26 +1,25 @@
-// Machine panel: opens when the player right-clicks a smelter, constructor, filter or quarry (the engine
-// asks with `take_panel_request`). Shows what the machine is doing, its buffers, the recipe choice for
-// machines where the player picks it, a filter's item choice, buttons to put items in from the
-// inventory, a take-output button, and a quarry's choices (ui/quarry.ts; `quarryBox` for its outline).
-// Sections a machine doesn't use are hidden.
+// Machine panel: opens when the player right-clicks a smelter, constructor, filter or quarry (the engine asks with
+// `take_panel_request`). It shows inside the inventory screen in place of the build menu (`InventoryPanel.open`'s
+// `beside`), so items move between the two like a chest: click a slot with a stack held to put it in, click a filled
+// slot to take it, Shift-click an inventory stack to put it in. Shows what the machine is doing, its buffers, the
+// recipe choice for machines where the player picks it, a filter's item choice, one-click put-in buttons, a
+// take-output button, and a quarry's choices (ui/quarry.ts; `quarryBox` for its outline). Sections a machine doesn't
+// use are hidden.
 // Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions.
 // A new machine with a panel needs no change here unless it adds a buffer role (`ROLE_LABELS`).
 
 import './machine.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
+import type { Beside, InventoryPanel } from './inventory';
 import { RecipePicker } from './machine-recipes';
 import { QuarrySection } from './quarry';
 
 const ICON_PX = 64;
 
-export class MachinePanel {
-  /** Called after the panel closes. `resume` is true when play should continue (E, or a click outside). */
-  onClose: (resume: boolean) => void = () => {};
-
-  private readonly backdrop = h('div', 'mp-backdrop hidden');
-  private readonly dialog = h('div', 'mp');
-  private readonly title = h('h2', '');
+export class MachinePanel implements Beside {
+  readonly el = h('section', 'mp');
+  title = '';
   private readonly status = h('p', 'mp-status');
   private readonly efficiency = h('p', 'mp-efficiency');
   private readonly bar = h('div', 'mp-bar-fill');
@@ -39,25 +38,18 @@ export class MachinePanel {
   private pos: [number, number, number] = [0, 0, 0];
   private block = -1;
   private drawn = '';
+  private shown = false;
 
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
+    private readonly inventory: InventoryPanel,
   ) {
     this.roleLabels = new Map([
       [game.panel_role_input(), 'In'],
       [game.panel_role_fuel(), 'Fuel'],
       [game.panel_role_output(), 'Out'],
     ]);
-    this.dialog.setAttribute('role', 'dialog');
-    this.dialog.setAttribute('aria-modal', 'true');
-    this.dialog.tabIndex = -1;
-
-    const head = h('div', 'mp-head');
-    const close = button('close-btn', '×', () => this.close(true));
-    close.setAttribute('aria-label', 'Close');
-    head.append(this.title, h('span', 'mp-keys', 'E or click outside to return'), close);
-
     this.progress.append(this.bar);
     this.take = button('secondary-btn mp-take', 'Take output', () => {
       this.game.take_machine_output(...this.pos);
@@ -72,34 +64,14 @@ export class MachinePanel {
       const current = this.game.machine_panel(...this.pos)[1];
       this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
     });
-    const body = h('div', 'mp-body');
-    body.append(state, this.quarry.el, this.filterSection, this.recipeHead, this.recipes.el, this.put);
-    this.dialog.append(head, body);
-    this.backdrop.append(this.dialog);
-
-    this.backdrop.addEventListener('pointerdown', (e) => {
-      if (e.target === this.backdrop) this.close(true);
-    });
-    this.backdrop.addEventListener('contextmenu', (e) => e.preventDefault());
-    window.addEventListener('keydown', (e) => {
-      // Typing in the recipe search is not a command (its own Escape empties the box and prevents the default).
-      if (!this.isOpen || e.repeat || e.target instanceof HTMLInputElement) return;
-      if (e.code === 'KeyE') {
-        e.preventDefault();
-        this.close(true);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        this.close(false);
-      }
-    });
-    document.body.append(this.backdrop);
+    this.el.append(state, this.quarry.el, this.filterSection, this.recipeHead, this.recipes.el, this.put);
   }
 
   get isOpen(): boolean {
-    return !this.backdrop.classList.contains('hidden');
+    return this.shown;
   }
 
-  /** Opens the panel of the machine at a position (does nothing if it has none). */
+  /** Opens the inventory screen with the panel of the machine at a position (does nothing if it has none). */
   open(x: number, y: number, z: number): void {
     const data = this.game.machine_panel(x, y, z);
     if (data.length === 0) return;
@@ -108,33 +80,40 @@ export class MachinePanel {
       this.block = data[0];
       this.recipes.build(data[0]);
     }
-    this.title.textContent = this.game.block_name(data[0]);
-    this.backdrop.classList.remove('hidden');
+    this.recipes.reveal();
+    this.title = this.game.block_name(data[0]);
     this.drawn = '';
-    this.update();
-    this.dialog.focus();
+    this.shown = true;
+    this.inventory.open(null, this);
   }
 
   /** The open quarry's box, as lowest and highest cells, or null when no quarry panel is open. */
   quarryBox(): Int32Array | null {
-    return this.isOpen && this.quarry.visible ? this.game.quarry_box(...this.pos) : null;
+    return this.shown && this.quarry.visible ? this.game.quarry_box(...this.pos) : null;
   }
 
-  close(resume: boolean): void {
-    if (!this.isOpen) return;
-    this.backdrop.classList.add('hidden');
-    this.onClose(resume);
+  closed(): void {
+    this.shown = false;
   }
 
-  /** Redraws whatever changed; cheap when nothing did. Call every frame. Closes if the machine is gone. */
-  update(): void {
-    if (!this.isOpen) return;
+  /** Shift-click on inventory slot `slot`: puts that item in if the machine takes it. */
+  shiftSlot(slot: number): boolean {
+    const g = this.game;
+    if (g.slot_count(slot) === 0 || !g.machine_wants(...this.pos, g.slot_item(slot))) return false;
+    g.insert_into_machine(...this.pos, g.slot_item(slot));
+    return true;
+  }
+
+  wants(item: number): boolean {
+    return this.game.machine_wants(...this.pos, item);
+  }
+
+  /** Redraws whatever changed; cheap when nothing did. Called every frame by the inventory screen; false once the
+   * machine is gone. */
+  update(): boolean {
     const g = this.game;
     const data = g.machine_panel(...this.pos);
-    if (data.length === 0) {
-      this.close(true);
-      return;
-    }
+    if (data.length === 0) return false;
     const [, recipe, progress, fire, choosable, count] = data;
     this.bar.style.transform = `scaleX(${progress / 1000})`;
     const quarry = this.quarry.update(this.pos);
@@ -146,7 +125,7 @@ export class MachinePanel {
     // Everything else changes rarely: redraw it only when the rest of the data or the inventory does.
     data[2] = 0;
     const key = `${data.join(',')}|${g.inventory_version()}`;
-    if (key === this.drawn) return;
+    if (key === this.drawn) return true;
     this.drawn = key;
 
     this.status.textContent = g.machine_status(...this.pos);
@@ -177,6 +156,7 @@ export class MachinePanel {
     this.recipes.update(recipe === 0xffffffff ? -1 : recipe, choosable === 1);
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from the ore it gets)';
     if (!filtering && !quarry) this.drawInserts();
+    return true;
   }
 
   /** The filter's choice: nothing, or any item in the inventory, the current choice or the held item. */
@@ -222,16 +202,23 @@ export class MachinePanel {
     this.inserts.replaceChildren(...buttons);
   }
 
-  /** A slot of the panel; clicking a filled one takes its stack into the inventory (a stuck input too). */
+  /** A slot of the panel: with a stack held, a click puts it in (as far as the machine takes it); otherwise a click
+   * on a filled slot takes its stack into the inventory (a stuck input too). */
   private slotView(label: string, item: number, n: number, index: number): HTMLElement {
     const box = h('div', 'mp-slot');
-    const slot = h('div', 'slot');
+    const slot = h('div', 'slot mp-takeable');
+    slot.dataset.slot = 'machine'; // for the inventory screen's controls bar
+    slot.dataset.item = n > 0 ? String(item) : '';
     if (n > 0) {
       slot.append(this.iconCanvas(item, ''), h('span', 'count', n > 1 ? String(n) : ''));
-      slot.title = `${this.game.item_name(item)}: click to take`;
-      slot.classList.add('mp-takeable');
-      slot.addEventListener('click', () => this.game.take_machine_slot(...this.pos, index));
+      slot.title = this.game.item_name(item);
     }
+    slot.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      if (this.game.cursor_count() > 0) this.game.insert_cursor_into_machine(...this.pos);
+      else if (n > 0) this.game.take_machine_slot(...this.pos, index);
+    });
     box.append(slot, h('span', 'mp-slot-label', label));
     return box;
   }

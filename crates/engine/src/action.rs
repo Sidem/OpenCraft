@@ -44,6 +44,11 @@ pub enum Action {
         pos: IVec3,
         slot: u8,
     },
+    /// Puts as much of the stack held on the cursor into the machine at `pos` as it takes (the inventory screen
+    /// opened beside a machine panel); the rest stays held.
+    InsertCursor {
+        pos: IVec3,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

@@ -14,7 +14,8 @@ size.
 | Lode    | rare, huge bodies deep down (y 12–25)        | 2,000           | 1,200 per minute  |
 
 - **By hand** you keep 3 ore per block (4 with an iron pickaxe). The rest of that block's share of the pool
-  is lost.
+  is lost. Each block broken by hand shows what you kept and lost under the crosshair, and after a few blocks a
+  warning tip adds it up.
 - **Tools.** Hold a pickaxe (stone and ore), an axe (wood) or a shovel (dirt, grass, sand) in the hotbar to
   break those blocks faster: stone tools twice as fast, iron tools four times. Each block broken with the
   right tool uses it up a little (stone tools last 150 blocks, iron 600); the bar under its slot shows

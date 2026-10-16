@@ -312,16 +312,16 @@ impl Deposits {
         Some(d.key)
     }
 
-    /// Hand mining: the block at `p` is about to be broken and its whole share is lost.
-    /// Call before removing the block.
-    pub fn hand_mined(&mut self, world: &mut World, p: IVec3) {
-        if let Some(key) = self.lookup(world, p) {
-            let st = self.states.get_mut(&key).expect("lookup tracks the deposit");
-            st.remaining_blocks = st.remaining_blocks.saturating_sub(1);
-            if st.remaining_blocks == 0 {
-                st.partial = 0.0;
-            }
+    /// Hand mining: the block at `p` is about to be broken and its whole share is lost. Returns that share in
+    /// units (`None` if the block is in no deposit). Call before removing the block.
+    pub fn hand_mined(&mut self, world: &mut World, p: IVec3) -> Option<u32> {
+        let key = self.lookup(world, p)?;
+        let st = self.states.get_mut(&key).expect("lookup tracks the deposit");
+        st.remaining_blocks = st.remaining_blocks.saturating_sub(1);
+        if st.remaining_blocks == 0 {
+            st.partial = 0.0;
         }
+        Some(st.grade())
     }
 
     /// Draws for a miner at `near` wanting `rate` units per second for `dt` seconds.

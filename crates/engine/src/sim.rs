@@ -80,6 +80,13 @@ pub enum SimEvent {
         item: ItemId,
         count: u32,
     },
+    /// A player broke a deposit's ore block by hand: they keep `kept` ore and `lost` units of the deposit are gone.
+    HandMined {
+        player: PlayerId,
+        ore: BlockId,
+        kept: u32,
+        lost: u32,
+    },
     /// A player's tool broke a block with its last use and is gone.
     ToolWornOut {
         player: PlayerId,

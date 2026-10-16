@@ -195,6 +195,11 @@ impl Game {
         self.act(Action::TakeMachineSlot { pos: IVec3::new(x, y, z), slot });
     }
 
+    /// Puts the stack held on the cursor into the machine, as far as it takes it (next tick).
+    pub fn insert_cursor_into_machine(&mut self, x: i32, y: i32, z: i32) {
+        self.act(Action::InsertCursor { pos: IVec3::new(x, y, z) });
+    }
+
     /// Takes the machine's output into the inventory (next tick).
     pub fn take_machine_output(&mut self, x: i32, y: i32, z: i32) {
         self.act(Action::TakeContents { pos: IVec3::new(x, y, z) });

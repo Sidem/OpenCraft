@@ -107,7 +107,7 @@ async function main(): Promise<void> {
   const soundLab = new SoundLab(sound, blocks, (id) => hud.itemIcon(id));
   const inventory = new InventoryPanel(game, (id) => hud.itemIcon(id));
   inventory.onCraft = () => sound.ui();
-  const machine = new MachinePanel(game, (id) => hud.itemIcon(id));
+  const machine = new MachinePanel(game, (id) => hud.itemIcon(id), inventory);
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
@@ -130,7 +130,7 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, analytics, 'world-map': worldMap };
-  const panels = [inventory, machine, research, worldMap, blueprints, sites, analytics];
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock
@@ -189,11 +189,12 @@ async function main(): Promise<void> {
     void input.lock().then(() => {
       if (!input.locked && !document.pointerLockElement) resumeHint.classList.remove('hidden');
     });
-  });  inventory.onClose = (resume) => {
+  });
+  inventory.onClose = (resume) => {
     game.close_inventory();
     closed(resume);
   };
-  for (const p of [machine, research, blueprints, sites, worldMap, analytics]) p.onClose = closed;
+  for (const p of [research, blueprints, sites, worldMap, analytics]) p.onClose = closed;
   // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
   let leftGame = -Infinity;
@@ -364,8 +365,7 @@ async function main(): Promise<void> {
     frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
     fps = fps * 0.9 + (dt > 0 ? 1 / dt : 0) * 0.1;
     hud.update(now, { fps, frameMs, workMs, ...renderer.stats });
-    inventory.update();
-    machine.update();
+    inventory.update(); // and the machine panel shown in it
     research.update(now);
     analytics.update(now);
     hints.update();

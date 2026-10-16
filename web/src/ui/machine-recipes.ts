@@ -1,7 +1,8 @@
 // The recipe picker of a machine panel ("Choose what it makes"): one card per recipe, read at a glance. The product
 // sits in a tile on the left with the amount a batch makes; its name and the batch time are on the first line; below
 // it, "Uses" and a chip for each ingredient (icon, count, name). Byproducts show as "Also gives". A recipe research still
-// locks goes last, dimmed, with the tech to finish. Long lists (the upgrader has dozens) get a search box.
+// locks goes last, dimmed, with the tech to finish. Long lists (the upgrader has dozens) get a search box, and the list
+// scrolls within a height of its own (machine-recipes.css); `reveal` scrolls it to the active card on the next update.
 // `update` marks the active card and re-sorts only when a lock changed. To change a card: `buildCard`.
 
 import './machine-recipes.css';
@@ -43,6 +44,7 @@ export class RecipePicker {
   private readonly empty = h('p', 'rp-empty hidden', 'No recipe matches.');
   private cards: Card[] = [];
   private order = '';
+  private revealing = false;
 
   /** `pick` is called with a recipe's id when its card is clicked. */
   constructor(
@@ -82,6 +84,11 @@ export class RecipePicker {
     this.empty.classList.add('hidden');
   }
 
+  /** On the next `update`, scrolls the list to show the active card (or to the top when none is). */
+  reveal(): void {
+    this.revealing = true;
+  }
+
   /** Marks the card of recipe `active` (or none: -1), and whether cards can be clicked at all. */
   update(active: number, choosable: boolean): void {
     for (const c of this.cards) {
@@ -96,10 +103,16 @@ export class RecipePicker {
     }
     // Recipes you can use first, the locked ones after them; each group keeps the engine's order.
     const order = this.cards.map((c) => (c.locked ? 'l' : 'u')).join('');
-    if (order === this.order) return;
-    this.order = order;
-    const sorted = [...this.cards].sort((a, b) => Number(a.locked) - Number(b.locked));
-    this.list.replaceChildren(...sorted.map((c) => c.el));
+    if (order !== this.order) {
+      this.order = order;
+      const sorted = [...this.cards].sort((a, b) => Number(a.locked) - Number(b.locked));
+      this.list.replaceChildren(...sorted.map((c) => c.el));
+    }
+    if (this.revealing) {
+      this.revealing = false;
+      const card = this.cards.find((c) => c.id === active)?.el;
+      this.list.scrollTop = card ? card.offsetTop - (this.list.clientHeight - card.offsetHeight) / 2 : 0;
+    }
   }
 
   private filter(): void {

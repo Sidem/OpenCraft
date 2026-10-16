@@ -104,9 +104,69 @@
   }
 }
 
+/* The hand-mining warning: amber, so it reads as "careful", not as the next step. */
+.hint.hint-warn {
+  border-color: rgba(251, 191, 36, 0.6);
+  border-left-color: #fbbf24;
+}
+
+.hint-warn .hint-count {
+  color: #fbbf24;
+}
+
+/* What the latest ore block broken by hand kept and lost, just under the crosshair; fades out by itself. */
+.waste-notice {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 34px);
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(14, 16, 22, 0.78);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+}
+
+.waste-notice .hint-em {
+  color: #ff7a6b;
+}
+
+.waste-notice.waste-show {
+  animation: waste-show 2.6s ease-out;
+}
+
+@keyframes waste-show {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  10%,
+  75% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hint-new,
   .hint-cheer {
     animation-duration: 0.01s;
+  }
+
+  @keyframes waste-show {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 }

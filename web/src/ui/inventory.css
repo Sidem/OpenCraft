@@ -39,11 +39,6 @@
   font-size: 20px;
 }
 
-.inv-keys {
-  font-size: 12px;
-  color: var(--muted);
-}
-
 .inv-head .close-btn {
   top: 8px;
 }

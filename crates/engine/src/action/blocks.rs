@@ -73,9 +73,7 @@ impl Sim {
             return None;
         }
         let ore = block::is_ore(id);
-        if ore {
-            self.factory.deposits.hand_mined(&mut self.world, pos);
-        }
+        let share = if ore { self.factory.deposits.hand_mined(&mut self.world, pos) } else { None };
         if !self.world.set_block_anywhere(pos, AIR) {
             return None;
         }
@@ -83,6 +81,10 @@ impl Sim {
         self.block_changed(pos, id);
         self.clear_parts(pos);
         let held = if with_tool { self.wear_tool(player, id) } else { ItemId::NONE };
+        if let Some(share) = share.filter(|_| with_tool) {
+            let kept = tools::ore_yield(held);
+            self.events.push(SimEvent::HandMined { player, ore: id, kept, lost: share.saturating_sub(kept) });
+        }
         // A tiered machine drops its tier's item (`factory/tiers.rs`).
         let tiered = self.factory.tiered_at(pos).and_then(|t| factory::tiers::item_of(def.drop, t.1));
         let mut drops = self.factory.remove(pos);

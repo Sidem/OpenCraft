@@ -424,6 +424,27 @@ fn a_powered_line_works_where_no_chunk_is_loaded() {
 }
 
 #[test]
+fn a_held_stack_goes_into_a_machine_as_far_as_it_takes() {
+    use crate::block::{COAL_ORE, SMELTER};
+    let mut sim = Sim::new(7, 2);
+    let pos = IVec3::new(900, 200, -900);
+    sim.apply(P, Action::Give { item: SMELTER.into(), count: 1 });
+    sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos });
+    sim.apply(P, Action::Give { item: COAL_ORE.into(), count: 5 });
+    sim.apply(P, Action::ClickSlot { slot: 0, shift: false });
+    sim.apply(P, Action::InsertCursor { pos });
+    let inv = &sim.players[0].as_ref().unwrap().inventory;
+    assert!(inv.cursor.is_empty(), "the smelter took the coal: {:?}", inv.cursor);
+    let held: u32 = sim.factory.panel(pos).unwrap().slots.iter().map(|s| s.1.count).sum();
+    assert_eq!(held, 5);
+    sim.apply(P, Action::Give { item: crate::item::IRON_PLATE, count: 3 });
+    sim.apply(P, Action::ClickSlot { slot: 0, shift: false });
+    sim.apply(P, Action::InsertCursor { pos });
+    let inv = &sim.players[0].as_ref().unwrap().inventory;
+    assert_eq!(inv.cursor.count, 3, "a smelter takes no plates, so they stay held");
+}
+
+#[test]
 fn crafting_a_recipe_research_locks_does_nothing() {
     use crate::block::SPLITTER;
     let mut sim = Sim::new(7, 2);
@@ -504,6 +525,7 @@ fn samples() -> Vec<Action> {
         Action::TakeOneSlot { slot: 12 },
         Action::TakeOneBox { pos, slot: 5 },
         Action::TakeMachineSlot { pos, slot: 6 },
+        Action::InsertCursor { pos },
     ]
 }
 

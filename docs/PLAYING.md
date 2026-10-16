@@ -190,7 +190,9 @@ an outcrop or two and a furnace cover your first miner, generator and poles. Aft
   fast (a smelter 80 kW), a Mk4 pole (a substation) links 32 blocks and reaches 16, and a Mk4 lab works four
   times as fast and skips the packs of every third unit. Boxes, pumps and quarries stop at Mk3.
 - **Machine panels.** Right-click a smelter, constructor, assembler, arc furnace, boiler, crusher, silo, filter, generator, lab or quarry to see what it's doing, put items in
-  straight from your inventory (ore, fuel, ingots, packs), and take what it made.
+  straight from your inventory (ore, fuel, ingots, packs), and take what it made. The panel opens next to your
+  inventory: click a held stack into one of its slots, Shift-click a stack in your inventory to put it in, or click
+  a filled slot to take it.
 
 ## Music and sound
 
