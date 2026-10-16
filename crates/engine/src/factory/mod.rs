@@ -99,6 +99,7 @@ use storage::Storage;
 use trains::Train;
 use wiring::Hook;
 
+pub use buffer::Buffer;
 pub use describe::fmt_int;
 pub use facts::facts;
 #[cfg(test)]

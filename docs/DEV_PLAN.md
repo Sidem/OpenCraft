@@ -4,8 +4,8 @@
 polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
-**Milestone 13 (Settlements): 13.1 built** (town kinds, sites, the depot; save version 48, 851 tests; committed, not pushed) · **Next:
-build step 13.2** (orders, upkeep and stalling; numbers settled in a talk) · Then R2–R5, R7, R8, the
+**Milestone 13 (Settlements): 13.1 and 13.2 built** (town kinds, sites, the depot; orders, upkeep and stalling; save version
+49, 853 tests; not pushed) · **Next: step 13.3** (the town grows itself) · Then R2–R5, R7, R8, the
 feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator) · Art work continues from `main`
 (`docs/ART_HANDOVER.md`).
 
@@ -567,7 +567,13 @@ steps where a session has room. Numbers are first guesses. Design notes: `docs/R
   the depot. In the user's world (seed 1337) the nearest sites are 205–363 blocks out. Tested headlessly; seen in the
   browser pane. Perks (13.4) and orders (13.2) are not built yet; breaking a depot ends its town for now (13.3 decides
   whether a grown town survives that).
-- [ ] **13.2 Orders, upkeep and stalling.** Numbers settled in a talk (section 1, 2026-10-16). Data rows per kind and stage
+- [x] **13.2 Orders, upkeep and stalling.** Built 2026-10-16: `settlements/orders.rs` (the tables), `settlements/run.rs`
+  (the tick, after the factory), `Pick::Depot` with `Processor::wants` (each good capped: two minutes of upkeep plus what
+  the order still misses, so the store can't silt up; a stalled town takes only upkeep goods), save version 49, the depot
+  readout (stage, order progress, upkeep, supplied or stalled). A town already stocks the camp's upkeep before the camp
+  stands; the store's last minute of upkeep is never counted toward the order. Tested headlessly (belt-fed through two
+  stages, stalled and back) and in the browser pane. The plan as talked:
+  Numbers settled in a talk (section 1, 2026-10-16). Data rows per kind and stage
   (5 stages): the stage's order (about 1,000, 2,000, 4,000, 8,000, 16,000 items; bricks, glass, planks and concrete first,
   steel and lamps, then plastics, circuits and processors) and its upkeep (20, 60, 150, 300, 600 items a minute, of the
   kind's goods: harbour planks and glass, river town bricks and lamps, workshop gears and steel plates, forge coal and
@@ -639,6 +645,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.2 built (orders, upkeep and stalling).** `settlements/orders.rs` and `run.rs`, `Town` grows stages
+  (save version 49), `Pick::Depot` takes in only its town's goods up to a cap, the depot readout shows the order and upkeep.
+  853 tests; the golden hash is unchanged (its scene has no towns).
 - **2026-10-16: 13.2 talked (docs only).** Five stages, orders doubling from about 1,000 items, upkeep growing to 600 items a
   minute (a Mk3 belt) of goods per town kind; a stall pauses the perk and growth (section 1). Step 13.2 rewritten to match.
 - **2026-10-16: Step 13.1 built (town kinds, sites and the depot).** `settlements/` (core state, saved since version 48),

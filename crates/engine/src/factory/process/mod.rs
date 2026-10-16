@@ -146,6 +146,9 @@ pub struct Processor {
     pub used: Vec<Stack>,
     /// The satellite a launch site's rocket carried up this tick, until `Factory::update` puts it in orbit (derived).
     pub lifted: Option<ItemId>,
+    /// What a town depot takes in and up to how many it holds of each: its town's open order and upkeep goods
+    /// (derived, set by `Sim::sync_depots` each tick).
+    pub wants: Vec<(ItemId, u32)>,
 }
 
 impl Processor {
@@ -183,6 +186,7 @@ impl Processor {
             made: Vec::new(),
             used: Vec::new(),
             lifted: None,
+            wants: Vec::new(),
         }
     }
 

@@ -22,6 +22,10 @@ impl Processor {
         if self.takes_pod(item) {
             return self.input.space_for(item);
         }
+        if self.spec.pick == Pick::Depot {
+            let cap = self.wants.iter().find(|w| w.0 == item).map_or(0, |w| w.1);
+            return cap.saturating_sub(self.out.count(item)).min(self.out.space_for(item));
+        }
         if self.spec.pick.stores() {
             return self.out.space_for(item);
         }
@@ -42,7 +46,8 @@ impl Processor {
             | Pick::Research
             | Pick::Recycle
             | Pick::Pods
-            | Pick::Land => false,
+            | Pick::Land
+            | Pick::Depot => false,
         };
         // One item fills at most one input slot (a stack), so a belt of one input can't crowd out the others.
         let cap = match self.spec.pick {

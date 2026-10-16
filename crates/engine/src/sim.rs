@@ -259,8 +259,9 @@ impl Sim {
 
     /// Advances the core by one tick of `TICK` seconds: this tick's actions, the block timers due, the
     /// water checks due, then the factory (whose block changes, from pumps and outlets, then start
-    /// timers and water checks).
+    /// timers and water checks), then the towns.
     pub fn step(&mut self) {
+        self.sync_depots();
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
         let later = self.pending.split_off(due);
         for q in std::mem::replace(&mut self.pending, later) {
@@ -274,6 +275,7 @@ impl Sim {
         for (pos, old) in std::mem::take(&mut self.factory.changed) {
             self.block_changed(pos, old);
         }
+        self.step_towns();
         self.step_drones();
         self.step_cargo();
         self.tick += 1;
@@ -360,6 +362,7 @@ impl Sim {
         let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
         self.set_mode(mode);
         self.opening = if r.version >= 47 { Opening::read_state(r)? } else { None };
+        // Save 49 added each town's stage and order (`Settlements::read_state` follows the version).
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         Some(())
     }

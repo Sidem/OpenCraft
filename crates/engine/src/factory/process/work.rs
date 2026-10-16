@@ -93,7 +93,8 @@ impl Processor {
             | Pick::Research
             | Pick::Recycle
             | Pick::Pods
-            | Pick::Land => Err(Status::NoInput),
+            | Pick::Land
+            | Pick::Depot => Err(Status::NoInput),
         }
     }
 

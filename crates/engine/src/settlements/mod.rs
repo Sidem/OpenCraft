@@ -1,6 +1,6 @@
 //! Settlements (Milestone 13): towns the player founds by placing a Town Depot at a site that fits a town kind. Core
-//! state on `Sim`: the towns, each with its depot's anchor and its kind. Orders, upkeep, growth and perks come in steps
-//! 13.2 to 13.4 (`docs/DEV_PLAN.md`).
+//! state on `Sim`: the towns, each with its depot's anchor, its kind, the stages it has built, what it has delivered
+//! toward the next and whether it is stalled. Growth as buildings and the perks come in steps 13.3 and 13.4.
 //!
 //! - **Kinds** are rows ([`KINDS`]): what place each needs (open water near, or a biome) and how it is called. A site
 //!   takes the first row that fits, so water comes before biome: a basalt shore is a harbour, and a step inland a forge.
@@ -10,9 +10,18 @@
 //!   is the same explored or not; a canal dug by hand doesn't make a harbour.
 //! - **Founding**: `put_footprint` (`action/multiblock.rs`) refuses a depot at an unfitting site and founds the town
 //!   when one is placed; breaking the depot (`dismantle`) removes its town.
+//! - **Orders and upkeep** (`orders.rs` data, `run.rs` the tick): the depot takes in only its town's goods; each minute
+//!   the town uses up its upkeep from the depot, or stalls until it is there; while not stalled the rest goes toward the
+//!   open order, and a complete order builds the next stage.
 //!
-//! Invariants: the towns are in founding order; their bytes follow the opening scene (save version 48).
-//! To add a kind: a row in `KINDS` (append only: saves store the index) and its `Needs`.
+//! Invariants: the towns are in founding order; their bytes follow the opening scene (save version 48; the stage, order
+//! and upkeep state since 49). A town's `delivered` has one count per line of its open order (none once fully grown).
+//! To add a kind: a row in `KINDS` (append only: saves store the index), its `Needs` and its `orders::UPKEEP` row.
+
+mod orders;
+mod run;
+
+pub use orders::{upkeep, Line, ORDERS, STAGES, STAGE_NAMES};
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::math::IVec3;
@@ -52,11 +61,60 @@ pub const KINDS: [KindDef; 4] = [
     KindDef { name: "Basalt Forge", needs: Needs::Biome(Biome::BasaltFields), place: "in the basalt fields" },
 ];
 
-/// A town: where its depot stands (the anchor) and its kind (an index into `KINDS`).
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+/// Minutes of upkeep a depot stocks of each upkeep good.
+pub const STOCK_MINUTES: u32 = 2;
+
+/// A town: where its depot stands (the anchor), its kind (an index into `KINDS`) and how far it has grown.
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Town {
     pub pos: IVec3,
     pub kind: u8,
+    /// Stages built, 0 (only the depot) to `STAGES` (a city).
+    pub built: u8,
+    /// Delivered toward each line of the open order (empty once fully grown).
+    pub delivered: Vec<u32>,
+    /// Whether a minute's upkeep is missing: the order stops filling (and, from 13.4, the perk pauses).
+    pub stalled: bool,
+    /// The tick the next minute's upkeep is due (once a camp stands).
+    pub due: u64,
+}
+
+impl Town {
+    /// A town just founded: only its depot stands, and the first order is open.
+    pub fn new(pos: IVec3, kind: u8) -> Town {
+        Town { pos, kind, built: 0, delivered: vec![0; ORDERS[0].len()], stalled: false, due: 0 }
+    }
+
+    /// The open order: what builds the next stage (empty once fully grown).
+    pub fn order(&self) -> &'static [Line] {
+        ORDERS.get(self.built as usize).copied().unwrap_or(&[])
+    }
+
+    /// What it uses up a minute (none before the camp).
+    pub fn upkeep(&self) -> Vec<Line> {
+        upkeep(self.kind, self.built)
+    }
+
+    /// What its depot takes in, and up to how many it holds of each: `STOCK_MINUTES` of upkeep (the camp's already
+    /// before it stands, so the player can stock up), plus, unless stalled, what the open order still misses. So the
+    /// store never fills with one good, and a stalled town only takes what ends the stall.
+    pub fn wants(&self) -> Vec<Line> {
+        let mut wants: Vec<Line> =
+            upkeep(self.kind, self.built.max(1)).iter().map(|&(i, n)| (i, n * STOCK_MINUTES)).collect();
+        if self.stalled {
+            return wants;
+        }
+        for (&(item, want), &got) in self.order().iter().zip(&self.delivered) {
+            if got >= want {
+                continue;
+            }
+            match wants.iter_mut().find(|w| w.0 == item) {
+                Some(w) => w.1 += want - got,
+                None => wants.push((item, want - got)),
+            }
+        }
+        wants
+    }
 }
 
 /// Why no town can be founded at a place.
@@ -64,8 +122,8 @@ pub struct Town {
 pub enum Unfit {
     /// Within `SPAWN_CLEAR` of spawn; how far it is.
     NearSpawn(i32),
-    /// Within `SPACING` of this town; how far it is.
-    NearTown(Town, i32),
+    /// Within `SPACING` of a town of this kind; how far it is.
+    NearTown(u8, i32),
     /// No kind's place is here.
     NoKind,
 }
@@ -77,9 +135,9 @@ impl Unfit {
             Unfit::NearSpawn(d) => {
                 format!("No town here: too close to spawn ({d} blocks); towns stand at least {SPAWN_CLEAR} out")
             }
-            Unfit::NearTown(t, d) => format!(
+            Unfit::NearTown(kind, d) => format!(
                 "No town here: your {} is {d} blocks away; towns stand at least {SPACING} apart",
-                KINDS[t.kind as usize].name.to_lowercase()
+                KINDS[kind as usize].name.to_lowercase()
             ),
             Unfit::NoKind => format!(
                 "No town fits here: towns need the sea or a river within {SHORE} blocks, granite highlands or basalt \
@@ -102,9 +160,9 @@ impl Settlements {
         if spawn < SPAWN_CLEAR {
             return Err(Unfit::NearSpawn(spawn));
         }
-        let nearest = self.towns.iter().map(|t| (*t, far(t.pos, at))).min_by_key(|t| t.1);
-        if let Some((town, d)) = nearest.filter(|t| t.1 < SPACING) {
-            return Err(Unfit::NearTown(town, d));
+        let nearest = self.towns.iter().map(|t| (t.kind, far(t.pos, at))).min_by_key(|t| t.1);
+        if let Some((kind, d)) = nearest.filter(|t| t.1 < SPACING) {
+            return Err(Unfit::NearTown(kind, d));
         }
         let (sea, river) = water_near(gen, at.x, at.z);
         let biome = (gen.version() >= 2).then(|| gen.biome_at(at.x, at.z, gen.height_at(at.x, at.z)));
@@ -123,7 +181,7 @@ impl Settlements {
 
     /// Founds a town of `kind` with its depot at `pos`.
     pub fn found(&mut self, pos: IVec3, kind: u8) {
-        self.towns.push(Town { pos, kind });
+        self.towns.push(Town::new(pos, kind));
     }
 
     /// Removes the town whose depot was anchored at `pos`, if there is one.
@@ -136,10 +194,16 @@ impl Settlements {
         for t in &self.towns {
             w.ivec3(t.pos);
             w.u8(t.kind);
+            w.u8(t.built);
+            w.count(t.delivered.len());
+            t.delivered.iter().for_each(|&d| w.u32(d));
+            w.bool(t.stalled);
+            w.u64(t.due);
         }
     }
 
-    /// Reads what `write_state` wrote; `None` on a kind that doesn't exist.
+    /// Reads what `write_state` wrote (a town from before save version 49 has just its depot); `None` on a kind or
+    /// stage that doesn't exist, or deliveries that don't match the open order.
     pub fn read_state(r: &mut ByteReader) -> Option<Settlements> {
         let mut towns = Vec::new();
         for _ in 0..r.count()? {
@@ -147,7 +211,16 @@ impl Settlements {
             if kind as usize >= KINDS.len() {
                 return None;
             }
-            towns.push(Town { pos, kind });
+            let mut town = Town::new(pos, kind);
+            if r.version >= 49 {
+                town.built = r.u8()?;
+                town.delivered = (0..r.count()?).map(|_| r.u32()).collect::<Option<_>>()?;
+                (town.stalled, town.due) = (r.bool()?, r.u64()?);
+                if town.built as usize > STAGES || town.delivered.len() != town.order().len() {
+                    return None;
+                }
+            }
+            towns.push(town);
         }
         Some(Settlements { towns })
     }

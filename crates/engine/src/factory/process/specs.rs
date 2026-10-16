@@ -97,12 +97,14 @@ pub enum Pick {
     Pods,
     /// A landing pad: stores what drop pods bring, like a silo that belts empty (pods.rs).
     Land,
+    /// A town depot: stores only what its town wants (`Processor::wants`), which the town uses up (depot.rs).
+    Depot,
 }
 
 impl Pick {
-    /// Whether it holds anything it is given in its output buffer: silos, docks, pod launchers and landing pads.
+    /// Whether it holds what it is given in its output buffer: silos, docks, pod launchers, landing pads and depots.
     pub fn stores(self) -> bool {
-        matches!(self, Pick::Store | Pick::Load | Pick::Unload | Pick::Pods | Pick::Land)
+        matches!(self, Pick::Store | Pick::Load | Pick::Unload | Pick::Pods | Pick::Land | Pick::Depot)
     }
 
     /// Whether trains stop at it.
