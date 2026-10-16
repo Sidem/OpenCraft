@@ -129,7 +129,9 @@ export class RecipePicker {
 
   private buildCard(id: number): Card {
     const g = this.game;
-    const outs = g.machine_recipe_output(id);
+    // A launch's product is the satellite it sends up; the empty canisters it gives back show as "Also gives".
+    const payload = g.machine_recipe_payload(id);
+    const outs = payload ? [payload, 1, ...g.machine_recipe_output(id)] : Array.from(g.machine_recipe_output(id));
     const ins = g.machine_recipe_inputs(id);
     const name = g.item_name(outs[0]);
     const names = [name];
@@ -142,7 +144,7 @@ export class RecipePicker {
     time.append(formatSeconds(g.machine_recipe_seconds(id)));
     time.title = 'How long one batch takes at Mk1 speed';
     const top = h('span', 'rp-top');
-    top.append(h('b', 'rp-name', name), h('span', 'rp-making', 'Making'), time);
+    top.append(h('b', 'rp-name', name), h('span', 'rp-making', payload ? 'Into orbit' : 'Making'), time);
 
     const cost = h('span', 'rp-cost');
     cost.append(h('span', 'rp-label', 'Uses'));

@@ -642,6 +642,9 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Launch recipes named by their satellite (user bug report).** The recipe picker showed every launch as
+  "Empty Canister" (its only output); `Game::machine_recipe_payload` gives a launch row's satellite (its last input) and
+  `ui/machine-recipes.ts` shows it as the product ("Into orbit"), the empties as "Also gives". 842 tests.
 - **2026-10-16: Orbit polish.** Launch and landing sounds, dust bursts and the "in orbit" toast (`orbit_fx.rs`,
   `audio/synth-orbit.ts`), the capsule rising from its launcher, channel arrows and a rocket mark on the maps. The agreed order
   after Milestone 12 is recorded in section 1 and `docs/ROADMAP.md`. 841 tests.

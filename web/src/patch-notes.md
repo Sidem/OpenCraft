@@ -14,6 +14,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - Rockets roar as they lift off (you hear them from far away) and a toast says when a satellite is in orbit.
 - Drop pods now rise out of their launcher, thud down on their pad in a cloud of dust, and each has its own sound.
 - On the maps, pod launchers and landing pads show an arrow for their channel, and launch sites show as a rocket.
+- The launch site's recipe list names each rocket by the satellite it sends up (it used to show only the empty canisters).
 - The inventory's long line of instructions is gone: a bar along the bottom now shows just the clicks that work on the slot under your pointer.
 - Long recipe lists (the Upgrader's) scroll inside their own box instead of stretching the whole panel.
 

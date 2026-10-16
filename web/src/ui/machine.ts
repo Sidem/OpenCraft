@@ -154,7 +154,7 @@ export class MachinePanel implements Beside {
     this.recipeHead.classList.toggle('hidden', this.recipes.isEmpty);
     this.recipes.el.classList.toggle('hidden', this.recipes.isEmpty);
     this.recipes.update(recipe === 0xffffffff ? -1 : recipe, choosable === 1);
-    this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from the ore it gets)';
+    this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from what it gets)';
     if (!filtering && !quarry) this.drawInserts();
     return true;
   }

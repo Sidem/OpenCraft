@@ -9,7 +9,7 @@ use crate::factory;
 use crate::factory::makes;
 use crate::item::ItemId;
 use crate::math::IVec3;
-use crate::recipes::MACHINE_RECIPES;
+use crate::recipes::{Category, MACHINE_RECIPES};
 use crate::research::Unlock;
 use crate::Game;
 
@@ -73,6 +73,16 @@ impl Game {
         MACHINE_RECIPES
             .get(i as usize)
             .map_or_else(Vec::new, |r| r.outputs.iter().flat_map(|&(it, n)| [it.0 as u32, n]).collect())
+    }
+
+    /// What a launch recipe sends into orbit (its last input, the satellite: `process/work.rs` lifts it), or 0 for any
+    /// other recipe. The recipe picker shows it as the product and the empty canisters as what it also gives.
+    pub fn machine_recipe_payload(&self, i: u32) -> u16 {
+        MACHINE_RECIPES
+            .get(i as usize)
+            .filter(|r| r.category == Category::Launch)
+            .and_then(|r| r.inputs.last())
+            .map_or(0, |&(item, _)| item.0)
     }
 
     pub fn machine_recipe_seconds(&self, i: u32) -> f64 {

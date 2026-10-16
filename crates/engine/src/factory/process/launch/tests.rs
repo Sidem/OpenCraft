@@ -283,3 +283,19 @@ fn the_launch_site_waits_for_rocketry() {
     (0..TECHS[tech as usize].units).for_each(|_| f.research.add_unit(tech));
     assert_eq!(f.insert(IVec3::ZERO, LIGHT_FRAME, 4), 4);
 }
+
+#[test]
+fn the_recipe_picker_names_each_launch_by_the_satellite_it_sends_up() {
+    let g = crate::Game::new(7, 2);
+    let mut launches = 0;
+    for (i, r) in MACHINE_RECIPES.iter().enumerate() {
+        let payload = ItemId(g.machine_recipe_payload(i as u32));
+        if r.category == crate::recipes::Category::Launch {
+            assert!(crate::satellites::kind_of(payload).is_some(), "row {i} names {}", name(payload));
+            launches += 1;
+        } else {
+            assert_eq!(payload, ItemId(0), "row {i} is not a launch");
+        }
+    }
+    assert_eq!(launches, crate::satellites::KINDS.len(), "a rocket per satellite kind");
+}
