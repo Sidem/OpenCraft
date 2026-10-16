@@ -5,7 +5,7 @@ polish) are built and pushed · **The play-test response (section 4)**, from Cla
 the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
 talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
 **Milestone 13 (Settlements): 13.1–13.3, 13.4a and 13.5a built** (town kinds, sites, the depot; orders, upkeep and stalling; buildings by
-the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); town markers, site shading and town tips (13.5b); harbour contract work (13.4b); cleanup without the play-test (13.6a); save version 53, 866 tests; not pushed) · **Next: R2** (plants); 13.6b (balance) once the user has played Milestone 13 · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
+the town's own drones, rebuilding, dormant towns; perks: forge, workshop, river relay (13.4a); the town panel and stall news (13.5a); town markers, site shading and town tips (13.5b); harbour contract work (13.4b); cleanup without the play-test (13.6a); save version 53, 866 tests; not pushed) · **Next: R1c** (natural rivers and lakes), then R2 (plants); 13.6b (balance) once the user has played Milestone 13 · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
@@ -517,6 +517,27 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   blurbs, debug overlay). 846 tests.
 - [x] **R6 Settlements and the megaproject (talked 2026-10-16, moved up).** Decisions in section 1; the build is Milestone 13
   below, the elevator Milestone 14 (`docs/ROADMAP.md`).
+- [ ] **R1c Natural rivers and lakes (asked 2026-10-16, before R2).** The user: rivers are far too straight, their steps
+  read as a row of dams and reservoirs instead of water flowing down, and no perfectly straight line or circle should
+  show anywhere. Causes in `worldgen/rivers.rs`: each reach is one straight segment between two nodes 256 apart; a reach
+  is long flat pools (`POOL_LENGTH` 12) held by **weirs**, strips of ground at the upper pool's level; lakes are discs
+  (`LAKE_RADIUS`) and ponds round bowls (`water.rs`). **Generator version 8, new worlds only** (the user's world keeps
+  version 7, pinned by test; R2b shares version 8 if it is not released first, else takes 9).
+  - **Winding courses:** a reach becomes a polyline (cached per segment) that meanders: a hashed sideways offset with
+    varying wavelength and amplitude growing with width, gentler in gorges; its ends stay on the nodes, so joins agree.
+    Width and the bank's edge wobble with low noise along the course.
+  - **Water that runs downhill:** no ground weirs. Where the level drops, the water spills over a stone or gravel lip as
+    **rapids** (generated flowing water, `FLOW_*`) and drops of 2 or more become a small **waterfall** into a plunge
+    pool. Drops are one block each and as often as the slope needs, so pools are short on steep ground and long only
+    on flat ground. The generated flow must be exactly what `sim/water.rs`'s rule settles on (a test runs the rule over
+    generated rapids and nothing changes), so an edit beside a river never starts a flood. Water wheels gain spots.
+  - **Shores:** lakes and ponds get irregular outlines (radius bent by a few hashed harmonics and fbm, some elongated),
+    a lake meeting its rivers where they enter and leave.
+  - **Audit the rest** for straight lines and circles in generated land: ore stains over lodes, the spawn lift's ring
+    (`SPAWN_LAND`), mesa terrace edges, tree crowns; fix what shows, list what is left in the step.
+  - **Done when:** `map_of_the_land` shows winding rivers; tests: no reach's axis stays within 2 blocks of its chord over
+    40 blocks, no lake or pond is round (radius spread at least 20%), levels never rise downstream, channels and lakes
+    hold their water, rapids are settled water; `bench_generation` costs at most 15% more; seen from above in the pane.
 - [ ] **R2 Plants (a living world, part 1).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
   - **R2a Ground cover, presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
     and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
@@ -621,6 +642,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step R1c added** (the user's ask): natural rivers and lakes on generator version 8, before R2.
 - **2026-10-16: Step 13.6a (cleanup without the play-test).** `bench_towns`; `plan_stage` reads each column's ground once a
   plan (a camp's planning about 14 ms a town down to about 4 ms); `docs/TOWNS.md`, the player's town chapter; Milestone 13's
   finished steps moved to `docs/CHANGELOG_M13.md`. Balance (13.6b) waits for the user's play-test.
