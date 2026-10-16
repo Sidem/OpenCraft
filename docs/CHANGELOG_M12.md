@@ -155,6 +155,25 @@ follow one item, seismic prospecting, site bonuses) with the user before 12.1; i
   name or colour chosen in its panel? **Next:** the feel-and-feedback interlude (`docs/ROADMAP.md`), starting with the factory
   as an instrument.
 
+## Change log, 2026-10-16 (before the play-test response)
+
+- **2026-10-16: Dialog screens fixed (user bug report).** Moving the machine panel into the inventory (7bd9b78) deleted the
+  shared dialog styles (`.mp-backdrop`, `.mp`, `.mp-head`, `.mp-keys`, `.mp-body`) that research, analytics, the world map,
+  blueprints and the site panel use; they are back in `base.css`, and the machine panel's root is now `.mp-panel` so its
+  in-inventory rules no longer reach the dialogs. Web only; seen in the browser pane.
+- **2026-10-16: Launch recipes named by their satellite (user bug report).** The recipe picker showed every launch as
+  "Empty Canister" (its only output); `Game::machine_recipe_payload` gives a launch row's satellite (its last input) and
+  `ui/machine-recipes.ts` shows it as the product ("Into orbit"), the empties as "Also gives". 842 tests.
+- **2026-10-16: Orbit polish.** Launch and landing sounds, dust bursts and the "in orbit" toast (`orbit_fx.rs`,
+  `audio/synth-orbit.ts`), the capsule rising from its launcher, channel arrows and a rocket mark on the maps. The agreed order
+  after Milestone 12 is recorded in section 1 and `docs/ROADMAP.md`. 841 tests.
+- **2026-10-16: Step 12.5, first part.** Orbit tips (rockets, what satellites give, drop pods) in `hints.rs`; `bench_orbit`
+  (`factory/tests/bench_orbit.rs`, ignored): about 19 µs a tick, worst under 0.07 ms; `docs/FACTORY.md` brought up to date
+  (satellite kinds, drop pods, long-distance pole, upgrader, automated buildings). No save or core change.
+- **2026-10-16: Hand-mining waste taught as it happens; machine panels beside the inventory (user request, off-plan).** `SimEvent::HandMined` (kept, lost; `Deposits::hand_mined` now returns the block's share) feeds `hand_waste.rs` (session counter, not saved): a notice under the crosshair per ore block, from 3 blocks an amber warning card ahead of every tip (`ui/hints.ts`, H snoozes 10 blocks). The machine panel is now a `Beside` column of the inventory screen (`ui/inventory.ts`); new `Action::InsertCursor` (tag 57) clicks the held stack into a machine. The recipe list scrolls within its own height. The inventory header's list of clicks became a context controls bar (`ui/slot-controls.ts`). 837 tests.
+- **2026-10-16: README rewritten as a project brief (user request, off-plan).** README.md now pitches the game and explains how the repo is built for fast agent iteration; the player's manual moved verbatim to `docs/PLAYING.md` (controls, worlds, co-op, crafting, upgrades, sound) and `docs/FACTORY.md` (resources and extraction). No code change.
+- **2026-10-16: The opening scene, a hook for the first minute, and readable tips (user request, off-plan).** A new normal world (`Game::new_normal`, used by `save/session.ts` for fresh worlds; `new Game` and creative worlds have none) starts facing a stopped line on a stone-brick slab: ore box, belts with ore waiting at an outlined gap, a stone furnace with coal, an ingot box; the missing belt lies on the grass in front. The player breaks it, walks over it, places it (it keeps their facing, so it points away) and turns it with R; then the line runs and its load (14 iron, 4 copper ore) is exactly a Miner Mk1. `opening.rs` (`Sim::build_opening`, `Opening`, `Step`, `marker`), `Sim::opening` saved since version 47; `api/opening.rs`; a floating key/mouse prompt over what to act on (`ui/key-prompt.ts`), the power-up sound when the line starts. Tips are bigger and skimmable: a lead-in title, `*highlights*` and `[key]` caps in hint texts (`ui/hints.ts` `richText`; all `HINTS` marked up, a test checks the pairs). Hints "Carry the ore away" and "Ingots by belt" now also need a miner and a generator (the scene's belts must not skip the miner tips); "Place the miner" says where ore shows. Golden hash re-recorded; 835 tests.
+
 ## Change log, 2026-10-14 to 2026-10-15
 
 - **2026-10-15: Hover pack charges from long-distance poles; power-up/down sounds (user request, off-plan).** `Factory::charge_poles` (everything but cables, with its middle and whether it is long) replaces `poles()` in the hover pack's core checks; the hands tie the pack within `CHARGE_RANGE` 6 of an ordinary pole or `CHARGE_RANGE_LONG` 32 of a long-distance one, and keep a tied pole `CHARGE_HOLD` 2 further out so the edge does not flicker (`helper_hands.rs`). New sound events `POWER_UP` / `POWER_DOWN` (8, 9; `audio/synth.ts` `powerUp` / `powerDown`, actions `powerup` / `powerdown` in the sound designer) play on the local pack's tie starting and ending. No save-format or core change.

@@ -1,12 +1,13 @@
 # OpenCraft development plan
 
 **Status:** 2026-10-16 · Milestones 1–11, the less-hand-crafting interlude and Milestone 12 (Orbit: 12.1–12.4 and the orbit
-polish) are built and pushed; save version 47, 846 tests · **The play-test response (section 4)**, from Claude's whole-game
-review (adopted in full) and the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1
-talked, R1a and R1b built (committed, not pushed); R6 talked: the player founds towns, a perk per town kind, stalled towns
-pause their perk, the megaproject is a space elevator · **Next: Milestone 13 (Settlements), build step 13.1** (kinds and perks
-settled in a talk) · Then R2–R5, R7, R8, the feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space
-elevator) · Art work continues from `main` (`docs/ART_HANDOVER.md`).
+polish) are built and pushed · **The play-test response (section 4)**, from Claude's whole-game review (adopted in full) and
+the user's 32-hour play-test (drones, trains and blueprints researched but never needed): R1 talked, R1a and R1b built; R6
+talked: the player founds towns, a perk per town kind, stalled towns pause their perk, the megaproject is a space elevator ·
+**Milestone 13 (Settlements): 13.1 built** (town kinds, sites, the depot; save version 48, 851 tests; not pushed) · **Next:
+step 13.2** (orders, upkeep and stalling; talk the order sizes first, section 6) · Then R2–R5, R7, R8, the
+feel-and-feedback interlude, the trimmed carry, Milestone 14 (the space elevator) · Art work continues from `main`
+(`docs/ART_HANDOVER.md`).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold, and every line an
 > agent has to read costs tokens and time. **Keeping the codebase small, modular and cheap to read is as
@@ -463,7 +464,7 @@ interlude and the performance todo). On 2026-10-16 Claude reviewed the whole gam
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 47) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 116, item 396, tech 84, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 306) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 117, item 396, tech 85, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 306) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Where the last milestones stand
@@ -555,13 +556,16 @@ Goal: towns the player founds become customers whose orders keep growing, so out
 press again (R1): belts, trains, cargo drones and drop pods carry the orders, and each town grows itself with the blueprint
 and drone systems. **Order:** Milestone 13 comes next as R1's main lever; R2–R5, R7 and R8 follow it, or fit between its
 steps where a session has room. Numbers are first guesses. Design notes: `docs/ROADMAP.md` ("The play-test response").
-- [ ] **13.1 Town kinds, sites and the depot.** Kinds and perks were settled in a talk (section 1, 2026-10-16): harbour
-  (contract work), river town (drone relay), highland workshop (gear works), basalt forge (better smelting). The user's play-test
-  world is generator version 7, so it has every kind of site. Build: `settlements/` (core state, `Sim`), kinds as rows,
-  a site check that is a pure function of seed and position (biome, sea or river within a few blocks, at least 300 blocks
-  from any other town), a **Town Depot** block (multi-block, belt inputs) unlocked by a tech on blue packs (so towns arrive
-  before drones and trains and pull them), and a placing preview that says whether the site fits and why not (like the
-  long-distance pole). Save version bump. **Done when:** a depot can be founded only at a fitting site, tested headlessly.
+- [x] **13.1 Town kinds, sites and the depot.** Built 2026-10-16: `settlements/` (`Sim::settlements`, save version 48;
+  `KINDS` rows: harbour = sea within 6 blocks, river town = river or lake within 6, highland workshop = Highlands, basalt
+  forge = BasaltFields; water rows first), `Settlements::site` (pure function of the generator: `WorldGen::open_water`,
+  `biome_at`; never within 200 blocks of spawn, at least 300 from another town), block 116 Town Depot (3×3×2,
+  `factory/process/depot.rs`, `Pick::Store`, belts in on all sides; placeholder look), tech Settlements 84 (red, green,
+  blue; needs Blue Science), its hand recipe (`recipes/towns.rs`), founding in `put_footprint` and removal in `dismantle`,
+  the placing preview (`town_preview.rs`: outline green or red, the label names the town or why not) and a readout line on
+  the depot. In the user's world (seed 1337) the nearest sites are 205–363 blocks out. Tested headlessly; seen in the
+  browser pane. Perks (13.4) and orders (13.2) are not built yet; breaking a depot ends its town for now (13.3 decides
+  whether a grown town survives that).
 - [ ] **13.2 Orders, upkeep and stalling.** Per kind and stage, an order list (data rows: bricks, glass, planks and concrete
   first; steel, plastics, circuits and chips later), filled from what the depot takes in; once a stage's order is complete
   the next one opens. An upkeep per minute at the town's size; while it is unmet the town is **stalled** and its perk pauses,
@@ -631,6 +635,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-16: Step 13.1 built (town kinds, sites and the depot).** `settlements/` (core state, saved since version 48),
+  `WorldGen::open_water`, block 116 Town Depot (`factory/process/depot.rs`), tech Settlements 84, `recipes/towns.rs`, the
+  placing preview and readout (`town_preview.rs`). Older 10-16 change log entries moved to `docs/CHANGELOG_M12.md`. Golden
+  hash re-recorded; 851 tests. Next free block 117, item 396, tech 85.
 - **2026-10-16: 13.1 talked (docs only).** Town kinds and perks settled (section 1): harbour contract work (no raw or far
   materials), river drone relay, highland gear works, basalt better smelting; 300-block spacing, founding on blue packs.
 - **2026-10-16: R6 talked (docs only).** The user's picks are in section 1: player-founded towns at fitting sites, a perk per
@@ -655,20 +663,4 @@ and the balance numbers. Read the section you need.
   when too far), a beacon over the far tower that shows through the fog (`mark_beacon`: glow flag 2, `BOXES` in the box
   shader), a power-up or power-down blip as the spot crosses the edge of reach, and the maps ring every long-distance pole's
   reach (`MARK_RANGE`, dashed). Presentation only; no save or core change. Seen in the browser pane. 844 tests.
-- **2026-10-16: Dialog screens fixed (user bug report).** Moving the machine panel into the inventory (7bd9b78) deleted the
-  shared dialog styles (`.mp-backdrop`, `.mp`, `.mp-head`, `.mp-keys`, `.mp-body`) that research, analytics, the world map,
-  blueprints and the site panel use; they are back in `base.css`, and the machine panel's root is now `.mp-panel` so its
-  in-inventory rules no longer reach the dialogs. Web only; seen in the browser pane.
-- **2026-10-16: Launch recipes named by their satellite (user bug report).** The recipe picker showed every launch as
-  "Empty Canister" (its only output); `Game::machine_recipe_payload` gives a launch row's satellite (its last input) and
-  `ui/machine-recipes.ts` shows it as the product ("Into orbit"), the empties as "Also gives". 842 tests.
-- **2026-10-16: Orbit polish.** Launch and landing sounds, dust bursts and the "in orbit" toast (`orbit_fx.rs`,
-  `audio/synth-orbit.ts`), the capsule rising from its launcher, channel arrows and a rocket mark on the maps. The agreed order
-  after Milestone 12 is recorded in section 1 and `docs/ROADMAP.md`. 841 tests.
-- **2026-10-16: Step 12.5, first part.** Orbit tips (rockets, what satellites give, drop pods) in `hints.rs`; `bench_orbit`
-  (`factory/tests/bench_orbit.rs`, ignored): about 19 µs a tick, worst under 0.07 ms; `docs/FACTORY.md` brought up to date
-  (satellite kinds, drop pods, long-distance pole, upgrader, automated buildings). No save or core change.
-- **2026-10-16: Hand-mining waste taught as it happens; machine panels beside the inventory (user request, off-plan).** `SimEvent::HandMined` (kept, lost; `Deposits::hand_mined` now returns the block's share) feeds `hand_waste.rs` (session counter, not saved): a notice under the crosshair per ore block, from 3 blocks an amber warning card ahead of every tip (`ui/hints.ts`, H snoozes 10 blocks). The machine panel is now a `Beside` column of the inventory screen (`ui/inventory.ts`); new `Action::InsertCursor` (tag 57) clicks the held stack into a machine. The recipe list scrolls within its own height. The inventory header's list of clicks became a context controls bar (`ui/slot-controls.ts`). 837 tests.
-- **2026-10-16: README rewritten as a project brief (user request, off-plan).** README.md now pitches the game and explains how the repo is built for fast agent iteration; the player's manual moved verbatim to `docs/PLAYING.md` (controls, worlds, co-op, crafting, upgrades, sound) and `docs/FACTORY.md` (resources and extraction). No code change.
-- **2026-10-16: The opening scene, a hook for the first minute, and readable tips (user request, off-plan).** A new normal world (`Game::new_normal`, used by `save/session.ts` for fresh worlds; `new Game` and creative worlds have none) starts facing a stopped line on a stone-brick slab: ore box, belts with ore waiting at an outlined gap, a stone furnace with coal, an ingot box; the missing belt lies on the grass in front. The player breaks it, walks over it, places it (it keeps their facing, so it points away) and turns it with R; then the line runs and its load (14 iron, 4 copper ore) is exactly a Miner Mk1. `opening.rs` (`Sim::build_opening`, `Opening`, `Step`, `marker`), `Sim::opening` saved since version 47; `api/opening.rs`; a floating key/mouse prompt over what to act on (`ui/key-prompt.ts`), the power-up sound when the line starts. Tips are bigger and skimmable: a lead-in title, `*highlights*` and `[key]` caps in hint texts (`ui/hints.ts` `richText`; all `HINTS` marked up, a test checks the pairs). Hints "Carry the ore away" and "Ingots by belt" now also need a miner and a generator (the scene's belts must not skip the miner tips); "Place the miner" says where ore shows. Golden hash re-recorded; 835 tests.
-Earlier entries live in [CHANGELOG.md](CHANGELOG.md).
+Earlier entries live in [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).

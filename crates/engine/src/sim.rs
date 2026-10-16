@@ -28,6 +28,7 @@ use crate::item::ItemId;
 use crate::math::{hash2, IVec3, Rng, Vec3};
 use crate::mode::Mode;
 use crate::opening::Opening;
+use crate::settlements::Settlements;
 use crate::world::World;
 use crate::worldgen::WorldGen;
 
@@ -184,6 +185,8 @@ pub struct Sim {
     pub mode: Mode,
     /// Where a new normal world's opening scene is (opening.rs); None in older and creative worlds.
     pub opening: Option<Opening>,
+    /// The towns the players founded (settlements/).
+    pub settlements: Settlements,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -214,6 +217,7 @@ impl Sim {
             cargo: Cargo::default(),
             mode: Mode::Normal,
             opening: None,
+            settlements: Settlements::default(),
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -315,11 +319,12 @@ impl Sim {
         self.cargo.write_state(w);
         w.u8(self.mode.byte());
         Opening::write_state(&self.opening, w);
+        self.settlements.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
     /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks;
-    /// before 38, the normal mode; before 47, no opening scene.
+    /// before 38, the normal mode; before 47, no opening scene; before 48, no towns.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -355,6 +360,7 @@ impl Sim {
         let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
         self.set_mode(mode);
         self.opening = if r.version >= 47 { Opening::read_state(r)? } else { None };
+        self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         Some(())
     }
 }

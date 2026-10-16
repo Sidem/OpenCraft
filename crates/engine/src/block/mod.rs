@@ -165,7 +165,9 @@ pub const POD_LAUNCHER: BlockId = 113;
 pub const LANDING_PAD: BlockId = 114;
 /// The upgrader (`factory/process/upgrader.rs`): raises a Mk1 item to a chosen tier, using up the kits of each step.
 pub const UPGRADER: BlockId = 115;
-pub const BLOCK_COUNT: usize = 116;
+/// The town depot (`factory/process/depot.rs`, step 13.1): placed at a fitting site it founds a town (`settlements/`).
+pub const TOWN_DEPOT: BlockId = 116;
+pub const BLOCK_COUNT: usize = 117;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -405,6 +407,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     machine("Pod Launcher", true, 2.4, pillar(tex::POD_SIDE, tex::POD_LAUNCH_TOP, tex::FRAME), POD_LAUNCHER),
     machine("Landing Pad", true, 2.0, pillar(tex::POD_SIDE, tex::POD_PAD_TOP, tex::FRAME), LANDING_PAD),
     machine("Upgrader", true, 1.4, pillar(tex::ASSEMBLER_SIDE, tex::STEEL, tex::FRAME), UPGRADER),
+    machine("Town Depot", true, 2.0, pillar(tex::PLANKS, tex::STONE_BRICKS, tex::FRAME), TOWN_DEPOT),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

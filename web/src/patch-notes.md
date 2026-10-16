@@ -5,6 +5,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-16 · A better first minute
 
+- New research on blue science, Settlements: found your own towns with a town depot. Where you place it decides the town: a harbour on a sea shore, a river town on a river or lake bank, a highland workshop in the granite highlands, a basalt forge in the basalt fields. Towns stand at least 300 blocks apart and away from the spawn plains; while you hold a depot, its outline turns green or red and the label says which town it would found or why none fits. What towns ask for and give back comes in the next updates.
 - Building the same machine a third time close by now offers a shortcut: a tip shows how to copy a working group as a blueprint and stamp it again, with a box already marked around your previous copy (press B, then Enter).
 - Some labels showed garbled characters instead of a dot or a times sign (the blueprint label, the quarry and a few research texts); fixed.
 - Placing a long-distance pole now shows whether it will connect before you build it: the outline turns green or red, a wire runs to the pole it will join, the label says how far it is and how many blocks of reach you have left, a light pillar marks the far tower even through the haze, and you hear a soft blip when you step past the edge of its reach. While you hold one, the minimap and the map ring every long-distance pole's reach.

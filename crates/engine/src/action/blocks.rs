@@ -80,6 +80,9 @@ impl Sim {
         self.events.push(SimEvent::BlockBroken { player, pos, block: id });
         self.block_changed(pos, id);
         self.clear_parts(pos);
+        if id == block::TOWN_DEPOT {
+            self.settlements.remove(pos);
+        }
         let held = if with_tool { self.wear_tool(player, id) } else { ItemId::NONE };
         if let Some(share) = share.filter(|_| with_tool) {
             let kept = tools::ore_yield(held);

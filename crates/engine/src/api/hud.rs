@@ -70,7 +70,11 @@ impl Game {
         let Some((_, _, _, cells)) = self.footprint_ghost() else { return Vec::new() };
         let lo = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.min(c.0.x), m.y.min(c.0.y), m.z.min(c.0.z)));
         let hi = cells.iter().fold(cells[0].0, |m, c| IVec3::new(m.x.max(c.0.x), m.y.max(c.0.y), m.z.max(c.0.z)));
-        let mut out = vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, self.long_pole_outline()];
+        let outline = match self.long_pole_outline() {
+            0 => self.depot_outline(),
+            colour => colour,
+        };
+        let mut out = vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, outline];
         out.extend(self.long_pole_boxes());
         for &(c, _) in cells.iter().filter(|c| c.1) {
             out.extend([c.x, c.y, c.z, c.x, c.y, c.z, BLOCKED_RED]);
@@ -166,6 +170,10 @@ impl Game {
     pub fn target_detail(&mut self) -> String {
         let Some(hit) = self.target else { return String::new() };
         if let Some(text) = self.sim.factory.describe(hit.block) {
+            let text = match self.town_line(hit.block) {
+                Some(town) => format!("{town}\n{text}"),
+                None => text,
+            };
             let efficiency = self.efficiency_line(hit.block);
             return if efficiency.is_empty() { text } else { format!("{text}\n{efficiency}") };
         }

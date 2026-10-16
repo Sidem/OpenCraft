@@ -35,6 +35,13 @@ const POND_FLATNESS: i32 = 3;
 /// No cave within this many blocks of water.
 const CAVE_GUARD: i32 = 2;
 
+/// Open water a town can stand beside (`settlements/`): the sea, or a river or lake (version 7).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Water {
+    Sea,
+    River,
+}
+
 /// A pond: centre, bowl radius and depth, and the height of its top water block.
 #[derive(Clone, Copy, Debug)]
 pub(super) struct Pond {
@@ -104,6 +111,19 @@ impl WorldGen {
         } else {
             i32::MIN
         }
+    }
+
+    /// Whether the column at (x, z) lies under the sea or a river or lake as generated; `None` when dry or a pond.
+    /// A query (no chunks), like `biome_at`.
+    pub fn open_water(&self, x: i32, z: i32) -> Option<Water> {
+        if self.version < 3 {
+            return None;
+        }
+        let h = self.height_at(x, z);
+        if self.version >= 7 && self.river_water(x, z, h).is_some() {
+            return Some(Water::River);
+        }
+        (h < SEA_LEVEL).then_some(Water::Sea)
     }
 
     /// Version 3's (top, filler) pair: sand under water and on the shore, else `surface_v2`'s.

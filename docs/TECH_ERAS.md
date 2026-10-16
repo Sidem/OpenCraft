@@ -51,6 +51,9 @@ section 4 and git history. The numbers worth keeping:
 - **Crushing:** 2 ore → 3 crushed (2 s), so a crusher line gives 1.5 ingots an ore; 1 slag → 1 sand.
 - **Techs** (append order): Mechanics, Masonry, Assembly, Steelmaking, Blue Science, Mk3 Logistics, Mk3
   Machines, Steel Tools, Steam Power (r g b, 60 × 20), Ore Crushing (60 × 20), Bulk Storage (40 × 20).
+- **Settlements** (Milestone 13, tech 84, r g b, 100 × 20, after Blue Science): the town depot (block 116, 3×3×2, 24 stacks,
+  belts in on all sides, no power) by hand from 40 stone bricks, 40 planks, 8 glass, 10 steel plates. Placed at a fitting
+  site it founds a town (`settlements/`).
 
 ## 3. Era 4: Electronics (violet, Milestone 7, now)
 

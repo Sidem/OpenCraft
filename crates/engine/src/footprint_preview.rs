@@ -1,7 +1,8 @@
 //! Placing a multi-block machine (the local player's, presentation only): while one is held and aimed
 //! at a face, `footprint_ghost` is where it would stand, each cell marked free or in the way (the host
 //! outlines the footprint amber and the cells in the way red: `api/hud.rs`), `footprint_label` names it
-//! and says what stops it (a long-distance pole's also says what it would link to: `power_tools/long_pole.rs`),
+//! and says what stops it (a long-distance pole's also says what it would link to: `power_tools/long_pole.rs`; a town
+//! depot's what town it would found: `town_preview.rs`),
 //! and R turns it (`turn_placement`, shared with the quarry). Reads loaded chunks only; never touches the core
 //! (placing is `Action::PlaceBlock`, checked again there).
 
@@ -54,6 +55,11 @@ impl Game {
             return format!("{name}\n{link} · {state}");
         }
         let turn = if block == block::LONG_POLE { "" } else { " · R turns it" };
-        format!("{name}\n{w}×{d}×{h} · {state}{turn}")
+        // A depot says what town it founds, or why none fits (`town_preview.rs`).
+        match self.depot_line() {
+            Some((why, false)) => format!("{name}\n{why}"),
+            Some((town, true)) => format!("{name}\n{town} · {state}{turn}"),
+            None => format!("{name}\n{w}×{d}×{h} · {state}{turn}"),
+        }
     }
 }

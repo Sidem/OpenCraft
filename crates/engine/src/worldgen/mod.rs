@@ -39,6 +39,7 @@ pub use geology::ore_shares;
 pub use ore::LODE_HEIGHTS;
 pub use trees::tree_blocks;
 use trees::{stamp_tree, Tree};
+pub use water::Water;
 use water::WaterGuard;
 
 use std::cell::{Cell, RefCell};

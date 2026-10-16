@@ -26,8 +26,9 @@ const B: PlayerId = PlayerId(1);
 /// Cargo Drones tech and the cargo routes and drones saved after the construction drones (save version 37), in 10.1
 /// for generator version 6, in 10.2 for the Oil Processing tech, in 10.3 for the Refining tech, and in 10.4
 /// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, in 10.7 for the Research Center tech, for the game mode byte (save version 38), in 11.0 for the Recycling tech, and in 11.1 for the Wafers and Accelerators techs, and on 2026-10-09 for the research queue (save version 41) and for the bigger hauler packs (three techs, 99 pack rows;
-/// save version 42), and for the Long-Distance Power tech 82 (2026-10-14).
-const GOLDEN_HASH: u64 = 0x0fd5_e533_3fb2_9582;
+/// save version 42), and for the Long-Distance Power tech 82 (2026-10-14), and in 13.1 for the Settlements tech and the
+/// town list (save version 48).
+const GOLDEN_HASH: u64 = 0x6461_66bd_f0d1_75fb;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

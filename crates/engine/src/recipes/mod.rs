@@ -33,6 +33,7 @@ mod solar;
 mod tiers;
 mod timing;
 mod tooling;
+mod towns;
 mod transport;
 mod wiring;
 use aluminium::*;
@@ -55,6 +56,7 @@ use tiers::*;
 #[cfg(test)]
 use timing::{BASE_TICKS, MAX_TICKS};
 use tooling::*;
+use towns::TOWN_DEPOT_RECIPE;
 use transport::*;
 use wiring::*;
 
@@ -418,6 +420,7 @@ pub const RECIPES: &[Recipe] = &[
     POD_LAUNCHER_RECIPE,
     LANDING_PAD_RECIPE,
     UPGRADER_RECIPE,
+    TOWN_DEPOT_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

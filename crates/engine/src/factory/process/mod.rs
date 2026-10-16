@@ -22,6 +22,7 @@
 mod ailab;
 mod center;
 mod datacenter;
+mod depot;
 mod diesel;
 mod docks;
 mod fab;
