@@ -8,7 +8,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
 irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (not pinned until released), R2c indicator plants over stained ground; 883 tests) ·
-**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests); **next: R5** (ruins); 13.6b (balance) once the user has played Milestone 13 · Then R5, R7, R8, the feel-and-feedback interlude,
+**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5a built** (ruin sites on generator version 9, rusted blocks, scrap metal); **next: R5b** (logbooks); 13.6b (balance) once the user has played Milestone 13 · Then R5b and R5c, R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -52,7 +52,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
   **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b), R1c
-  (natural rivers), R2 (plants: ground cover, tree species, indicator plants), R3 (ambient sound) and R4 (music by context) are done; **next is R5 (ruins)**, then R7, R8.
+  (natural rivers), R2 (plants: ground cover, tree species, indicator plants), R3 (ambient sound) and R4 (music by context) are done, R5a (ruin sites and scrap) too; **next is R5b (logbooks)**, then R5c, R7, R8.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -472,7 +472,7 @@ interlude and the performance todo); Milestone 13's in `docs/CHANGELOG_M13.md`, 
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 53) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 124, item 396, tech 85, machine recipe 135). Each new look gets a placeholder layer (`tex::COUNT` is 326) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 127, item 397, tech 85, machine recipe 136). Each new look gets a placeholder layer (`tex::COUNT` is 330) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Where the last milestones stand
@@ -513,8 +513,11 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
 - [x] **R4 Music by context (part 3; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** a tested director, streamed 64 kbit/s Opus
   pieces (1.3 to 2.1 MB each) composed in the user's MusicComposer project, modes By place / Always calm / Always adventurous.
   **Not built (waits for its first piece):** the era as a context (industrial, space). Next pieces: sea, industrial, space.
-- [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`. Share R2b's generator version if that is not
-  released yet. Logbooks give real help. The carry is trimmed (section 1): at most one vault, as an easter egg.
+- [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`; shares generator version 9 (not pinned until released).
+  - [x] **R5a Ruin sites, rusted blocks, scrap (built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `worldgen/ruins.rs`, blocks
+    124–126, Scrap Metal, smelter row 135. Deviation: rusted blocks are never held, so no recycler; they give scrap, smelted to iron.
+  - [ ] **R5b Logbooks:** a readable block in each ruin, a reading panel; real help (bearing to an ore biome, recipe or tip, map pin).
+  - [ ] **R5c The vault (easter egg, the trimmed carry's only one):** a sealed vault (5-adic ring dial puzzle), modest loot.
 - [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
   concrete, bricks, framed glass, metal panels, catwalks, railings, light fixtures). Slabs and stairs need non-cube meshing:
   a later step. **Done when:** they are made in machines, placed, and their art requests are listed.
@@ -586,13 +589,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-17: Step R4 built** (music by context, composed in MusicComposer; 9.3 MB for six pieces, each about 30% smaller than an old loop; `npm run check` gained `web tests` and `music`).
-- **2026-10-17: Step R3 built** (ambient sound: `Game::surroundings`, `audio/ambience.ts`; own slider and mute). 889 tests.
-- **2026-10-16 and 17: Steps R2a to R2c built** (ground cover on every world from version 2; generator version 9 with tree species
-  per biome, blocks 117–123, pinned in `released_versions_never_change` when pushed; indicator plants over stained soil;
-  `tex::COUNT` 326). 883 tests.
-- **2026-10-16: Milestone 13 (to 13.6a) and R1c pushed** to the live site; generator version 8 pinned as released.
-- **2026-10-16: Step R1c asked and built** (generator version 8): winding rivers that spill down as rapids and waterfalls, lakes,
-  ponds and ore stains with irregular shores, the spawn ring bent; version 7 pinned. 871 tests.
+- **2026-10-17: Step R5a built** (ruins on generator version 9: sites, blocks 124–126, Scrap Metal; `tex::COUNT` 330). 902 tests.
+- **2026-10-17: Steps R3 and R4 built** (ambient sound; music by context, composed in MusicComposer, six pieces in 9.3 MB;
+  `npm run check` gained `web tests` and `music`).
+- **2026-10-16 and 17: Steps R2a to R2c built** (ground cover; generator version 9, pinned in `released_versions_never_change`
+  when pushed, with tree species per biome, blocks 117–123; indicator plants over stained soil).
 
 Earlier entries live in [CHANGELOG_M13.md](CHANGELOG_M13.md), [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).

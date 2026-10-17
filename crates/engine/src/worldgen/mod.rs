@@ -23,7 +23,7 @@
 //! 8 = R1c's natural water: winding rivers whose pools spill down as rapids and waterfalls (`falls` here, `rivers/`),
 //! lakes and ponds with irregular shores (`shore.rs`);
 //! 9 = R2b's forests: tree species per biome (`trees.rs`: oak and birch on plains, broad trees in lowlands, pines on
-//! highlands, cacti in deserts, dead snags on basalt fields).
+//! highlands, cacti in deserts, dead snags on basalt fields) and R5's ruins of the last factory (`ruins.rs`).
 
 mod bearing;
 mod biome;
@@ -32,6 +32,7 @@ mod geology;
 mod landform;
 mod ore;
 mod rivers;
+mod ruins;
 mod shore;
 mod strata;
 mod trees;
@@ -101,6 +102,8 @@ pub struct WorldGen {
     ponds: RefCell<FxHashMap<(i32, i32), Option<water::Pond>>>,
     /// The last cell asked about, which neighbouring columns nearly always share.
     last_pond: Cell<Option<PondCell>>,
+    /// Version 9's ruin per region (`ruins.rs`), a cache.
+    ruins: ruins::Cache,
 }
 
 impl WorldGen {
@@ -131,6 +134,7 @@ impl WorldGen {
             rivers: Default::default(),
             ponds: RefCell::default(),
             last_pond: Cell::new(None),
+            ruins: RefCell::default(),
         }
     }
 
@@ -247,7 +251,9 @@ impl WorldGen {
             }
         }
         let trees = self.trees_near(x0, z0);
+        let ruins = self.ruins_near(x0, z0);
         let max_y = trees.iter().map(|t| t.ground + t.trunk + 2).fold(max_ground, i32::max);
+        let max_y = ruins.iter().map(|r| r.top()).fold(max_y, i32::max);
         let falls = if self.version >= 8 { falls(&wet, P) } else { Vec::new() };
         let max_y = water.iter().chain(&falls).copied().fold(max_y, i32::max);
         let guard = (self.version >= 3).then(|| WaterGuard::new(hm.iter().copied().zip(wet).collect())).flatten();
@@ -265,6 +271,7 @@ impl WorldGen {
             falls,
             guard,
             trees,
+            ruins,
             deposits,
             max_y,
             max_ground,
@@ -286,7 +293,7 @@ impl WorldGen {
                 if x < min_x || x > max_x || z < min_z || z > max_z {
                     continue;
                 }
-                if x.abs() < SPAWN_CLEARING && z.abs() < SPAWN_CLEARING {
+                if x.abs() < SPAWN_CLEARING && z.abs() < SPAWN_CLEARING || self.ruin_covers(x, z) {
                     continue;
                 }
                 let f = self.forest.fbm2(x as f64 / 220.0, z as f64 / 220.0, 3);
@@ -377,6 +384,9 @@ impl WorldGen {
         for t in &col.trees {
             stamp_tree(t, base, self.seed, &mut b);
         }
+        for r in &col.ruins {
+            r.stamp(base, &mut b);
+        }
         Chunk::from_blocks(b)
     }
 }
@@ -395,6 +405,8 @@ struct Column {
     falls: Vec<i32>,
     guard: Option<WaterGuard>,
     trees: Vec<Tree>,
+    /// Version 9: the ruins that reach into this column (`ruins.rs`).
+    ruins: Vec<Rc<ruins::Ruin>>,
     /// Deposits (seeded here or in a neighbouring column) whose shape reaches into this column,
     /// sorted by key: stamping and ownership lookups both walk them in this order.
     deposits: Vec<Deposit>,

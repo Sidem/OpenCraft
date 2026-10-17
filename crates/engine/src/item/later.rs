@@ -78,3 +78,5 @@ pub const POWER_SATELLITE: ItemId = ItemId(393);
 pub const SCIENCE_SATELLITE: ItemId = ItemId(394);
 /// A drop pod (the Drop Pods tech): a pod launcher spends one to send a load of cargo to a landing pad (`pods.rs`).
 pub const DROP_POD: ItemId = ItemId(395);
+/// Salvage from the ruins' rusted blocks (`sim/scrap.rs`); a smelter melts it into iron (`recipes/scrap.rs`).
+pub const SCRAP_METAL: ItemId = ItemId(396);

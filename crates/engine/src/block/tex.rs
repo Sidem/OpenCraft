@@ -371,7 +371,12 @@ pub const INDICATOR_IRON: u16 = 322;
 pub const INDICATOR_COAL: u16 = 323;
 pub const INDICATOR_COPPER: u16 = 324;
 pub const INDICATOR_PALE: u16 = 325;
-pub const COUNT: usize = 326;
+/// The ruins (`textures/ruins.rs`, blocks in `block/ruins.rs`): rusted plating, a machine husk's side, a girder and the scrap metal item.
+pub const RUST_PLATE: u16 = 326;
+pub const RUST_MACHINE: u16 = 327;
+pub const RUST_GIRDER: u16 = 328;
+pub const SCRAP: u16 = 329;
+pub const COUNT: usize = 330;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

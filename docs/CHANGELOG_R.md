@@ -22,6 +22,22 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R5a Ruins of the last factory: sites, rusted blocks, scrap** (built 2026-10-17, generator version 9 so new worlds only; v9 is
+  still unreleased, so it is not pinned). **Where:** `worldgen/ruins.rs`: 512 × 512 regions centred on spawn, each with at most one
+  ruin from up to 8 hashed tries (flat within 3 blocks over nine samples, dry, above sea level + 1); the spawn's region rings spawn at
+  150 to 297 blocks, so the first ruin is a short walk; a pure function of the seed, cached per region, so chunk order never matters.
+  **What:** a cracked concrete slab (30 to 55% cracks), three machine husks (sometimes a second block or a plating cap), two girder
+  poles, a broken plating belt run, a 2 × 2 shaft 9 to 13 blocks deep with rubble, ending in a spent-rock chamber with one more husk;
+  trees keep off. Blocks 124–126 (`block/ruins.rs`, generated, never held), Scrap Metal (item 396), a smelter row (135): 3 scrap to
+  an iron ingot. Breaking a rusted block gives scrap (1; girder 1 to 2; husk 2 to 4) and a husk a 25% circuit (`sim/scrap.rs`, core
+  `rng`). **Deviation from the roadmap:** no "feed rusted blocks to the recycler" (they cannot be held); scrap is the loop instead.
+  **Checks:** `worldgen/ruins/tests.rs` (first ruin 150 to 300 blocks out for 200 seeds; candidates stay in their region; parts and
+  reach; slab follows slopes; every test seed has a first ruin on flat dry land; at least 20 of 49 regions have one; every block reads
+  back from a second generator asked in another order; no trunk on the slab; none before version 9), `sim/scrap/tests.rs`, the
+  recipe lint (`GATHERED`). **Seen in the pane** (seed 1337, ruin at x -174, z 30; `where_the_ruins_stand`, an ignored test, prints the spots): the slab,
+  girders, plating run and shaft; breaking a husk by hand gave 4 Scrap Metal in the hotbar. **Not built:** logbooks (R5b), the vault (R5c).
+  Looks are placeholders (`docs/ART_HANDOVER.md`).
+
 - [x] **R4 Music by context** (built 2026-10-17, presentation only; user: "the music shouldn't be that big", compose the pieces in the
   MusicComposer project). **Code:** `audio/surroundings.ts` (the float layout, `daylight`, `contextFor`: underground beats night beats
   biome beats sea), `audio/music-director.ts` (pure: a place holds `HOLD` 20 s before music follows, first piece after 10 to 30 s, then

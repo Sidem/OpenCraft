@@ -29,6 +29,7 @@ mod recycler;
 pub mod recycling;
 mod refit;
 mod rows;
+mod scrap;
 mod solar;
 mod tiers;
 mod timing;

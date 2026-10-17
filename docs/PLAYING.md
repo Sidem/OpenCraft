@@ -194,6 +194,13 @@ an outcrop or two and a furnace cover your first miner, generator and poles. Aft
   inventory: click a held stack into one of its slots, Shift-click a stack in your inventory to put it in, or click
   a filled slot to take it.
 
+## Ruins
+
+New worlds hold the ruins of an older factory: a cracked concrete slab with rusted machines, girder poles, a broken run of plating
+and a collapsed shaft. The first lies 150 to 300 blocks from where you start (walk out in any direction; flat dry land only), and
+about one more turns up in every 500 by 500 blocks. Break the rusted blocks for scrap metal (machines may hold a circuit); a smelter
+melts 3 scrap into an iron ingot. The shaft drops about ten blocks to a chamber of spent rock with one more machine at the bottom.
+
 ## Music and sound
 
 The menu's **Sound** page has a volume slider and a mute button each for sound effects, ambience (wind, water, birds) and

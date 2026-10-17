@@ -170,7 +170,10 @@ pub const TOWN_DEPOT: BlockId = 116;
 /// The forest's blocks, ids 117–123 (`forest.rs`).
 mod forest;
 pub use forest::*;
-pub const BLOCK_COUNT: usize = 124;
+/// The ruins' blocks, ids 124–126 (`ruins.rs`).
+mod ruins;
+pub use ruins::*;
+pub const BLOCK_COUNT: usize = 127;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -424,6 +427,9 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
     },
     make::sapling("Birch Sapling", tex::BIRCH_SAPLING, BIRCH_SAPLING),
     make::sapling("Pine Sapling", tex::PINE_SAPLING, PINE_SAPLING),
+    make::rusted("Rusted Plating", all(tex::RUST_PLATE), 1.2),
+    make::rusted("Rusted Machine", pillar(tex::RUST_MACHINE, tex::RUST_PLATE, tex::RUST_PLATE), 1.6),
+    make::rusted("Rusted Girder", all(tex::RUST_GIRDER), 1.0),
 ];
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;

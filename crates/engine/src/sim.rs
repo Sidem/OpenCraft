@@ -33,6 +33,7 @@ use crate::world::World;
 use crate::worldgen::WorldGen;
 
 mod saplings;
+mod scrap;
 mod timers;
 mod torches;
 mod water;

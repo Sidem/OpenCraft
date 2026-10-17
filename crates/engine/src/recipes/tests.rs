@@ -70,8 +70,9 @@ const WORLD_BLOCKS: &[BlockId] = &[
     PALE_SAND,
 ];
 /// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters;
-/// recyclers pay coins).
+/// recyclers pay coins; the ruins' rusted blocks leave scrap metal: `sim/scrap.rs`).
 const GATHERED: &[ItemId] = &[
+    item::SCRAP_METAL,
     ItemId::block(SAPLING),
     ItemId::block(block::BIRCH_SAPLING),
     ItemId::block(block::PINE_SAPLING),

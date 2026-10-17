@@ -103,6 +103,7 @@ impl Sim {
         if block::is_leaves(id) && self.leaf_drops_sapling() {
             drops.push(Stack { item: block::sapling_of(id).into(), count: 1 });
         }
+        drops.extend(self.salvage(id));
         Some((pos, drops))
     }
 

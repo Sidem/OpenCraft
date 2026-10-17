@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · Ruins of the last factory
+
+- New worlds hold ruins: a cracked concrete slab with rusted machines, girder poles, a broken run of plating where a belt once ran, and a collapsed shaft that drops about ten blocks into a chamber of spent rock. The first one lies 150 to 300 blocks from where you start, and roughly one more in every 500 by 500 blocks of land. Break the rusted blocks to salvage scrap metal (machines may hold a circuit too); a smelter melts three scrap into an iron ingot. Worlds you already have keep their ground.
+
 ## 2026-10-17 · Music for every place
 
 - The music now follows where you are. Night, caves, deserts and highlands each have a piece of their own, composed for them (Lantern Hours, Deep Seam, Salt Road, High Pasture); the two Open Ground pieces play by day and at the coast. A piece plays now and then with quiet minutes between, and the music waits until you have stayed somewhere for a few seconds before it changes, so a walk along a shore never makes it jump. On the Sound page you can pick By place (the default), Always calm or Always adventurous.

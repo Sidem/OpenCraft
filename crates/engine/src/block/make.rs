@@ -50,6 +50,11 @@ pub(super) const fn sapling(name: &'static str, layer: u16, id: BlockId) -> Bloc
     BlockDef { render: Render::Plant, solid: false, ..cube(name, 0.1, all(layer), id, sound::LEAVES) }
 }
 
+/// A block of the ruins: metal, generated and never held, dropping nothing itself (`ruins.rs`).
+pub(super) const fn rusted(name: &'static str, faces: [u16; 6], break_time: f32) -> BlockDef {
+    BlockDef { placeable: false, drop: AIR, ..cube(name, break_time, faces, AIR, sound::METAL) }
+}
+
 /// Water, still or flowing: not solid, never targeted, dropping nothing.
 pub(super) const fn liquid(name: &'static str) -> BlockDef {
     let base = cube(name, -1.0, all(tex::WATER), AIR, sound::SAND);
