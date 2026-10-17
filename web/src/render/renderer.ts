@@ -5,7 +5,9 @@
 // Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
 
 import { BoxPipeline } from './boxes';
+import { boxEdges, cubeVertices } from './geometry';
 import { createProgram, uniforms } from './gl';
+import { PrecipPass } from './precip';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
 import { drawBoxes, drawCracks, drawLineCells } from './outlines';
 import * as S from './shaders';
@@ -68,50 +70,6 @@ export interface RenderStats {
 
 const chunkKey = (x: number, y: number, z: number) => ((x + 1048576) * 2097152 + (z + 1048576)) * 16 + y;
 
-/**
- * Unit cube centred on the origin: 36 vertices of (pos.xyz, u, v, face kind, shade).
- * Face order and u/v axes match the engine mesher so textures line up with world blocks.
- */
-function cubeVertices(): Float32Array {
-  const faces: [number[], number[], number[], number, number, number[]][] = [
-    // normal, u axis, v axis, face kind (0 top, 1 side, 2 bottom), shade, texture right axis
-    [[1, 0, 0], [0, 1, 0], [0, 0, 1], 1, 0.72, [0, 0, -1]],
-    [[-1, 0, 0], [0, 0, 1], [0, 1, 0], 1, 0.72, [0, 0, 1]],
-    [[0, 1, 0], [0, 0, 1], [1, 0, 0], 0, 1.0, [1, 0, 0]],
-    [[0, -1, 0], [1, 0, 0], [0, 0, 1], 2, 0.52, [1, 0, 0]],
-    [[0, 0, 1], [1, 0, 0], [0, 1, 0], 1, 0.86, [1, 0, 0]],
-    [[0, 0, -1], [0, 1, 0], [1, 0, 0], 1, 0.86, [-1, 0, 0]],
-  ];
-  const out: number[] = [];
-  for (const [n, u, v, kind, shade, right] of faces) {
-    const corner = (cu: number, cv: number) => {
-      const p = [0, 1, 2].map((i) => n[i] * 0.5 + (cu - 0.5) * u[i] + (cv - 0.5) * v[i]);
-      const s = p[0] * right[0] + p[1] * right[1] + p[2] * right[2] + 0.5;
-      const t = kind === 1 ? 0.5 - p[1] : p[2] + 0.5;
-      return [...p, s, t, kind, shade];
-    };
-    const c = [corner(0, 0), corner(1, 0), corner(1, 1), corner(0, 1)];
-    for (const i of [0, 1, 2, 0, 2, 3]) out.push(...c[i]);
-  }
-  return new Float32Array(out);
-}
-
-function boxEdges(): Float32Array {
-  const e: number[] = [];
-  for (let a = 0; a < 3; a++) {
-    for (const i of [0, 1]) {
-      for (const j of [0, 1]) {
-        const p0 = [0, 0, 0], p1 = [0, 0, 0];
-        p1[a] = 1;
-        p0[(a + 1) % 3] = p1[(a + 1) % 3] = i;
-        p0[(a + 2) % 3] = p1[(a + 2) % 3] = j;
-        e.push(...p0, ...p1);
-      }
-    }
-  }
-  return new Float32Array(e);
-}
-
 export class Renderer {
   readonly gl: WebGL2RenderingContext;
   readonly stats: RenderStats = { meshes: 0, visible: 0, drawCalls: 0, quads: 0 };
@@ -140,7 +98,8 @@ export class Renderer {
 
   fovY = (72 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
   skySettings: SkySettings = SKY_DEFAULTS; // how the sky is drawn (sky/settings.ts, set from the menu)
-  readonly weather = new WeatherSky(); // the weather as drawn (`.ease.value`); step S3's particles read it too
+  readonly weather = new WeatherSky(); // the weather as drawn (`.ease.value`); the rain and snow pass reads it
+  readonly precip: PrecipPass; // rain, snow and the ground's wet or snowy look (precip.ts)
   constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number) {
     const gl = canvas.getContext('webgl2', {
       antialias: true,
@@ -152,7 +111,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
@@ -179,6 +138,7 @@ export class Renderer {
     this.boxes = new BoxPipeline(gl, instanceFloats);
     this.sky = new SkyPass(gl);
     this.water = new WaterPass(gl);
+    this.precip = new PrecipPass(gl);
 
     this.lineVao = gl.createVertexArray()!;
     gl.bindVertexArray(this.lineVao);
@@ -303,6 +263,8 @@ export class Renderer {
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     const look = this.weather.look(this.skySettings, f.seed, f.days, f.biome, performance.now()); // undefined: the plain sky
     const sky = skyAt(f.time, look);
+    const now = performance.now(), drawn = look ? this.weather.ease.value : undefined;
+    const ground = this.precip.groundLook(drawn, this.skySettings.precip, now);
     const murk = 1 - 0.35 * (look?.gloom ?? 0); // gloom shortens the sight
     const fog = fogFor(sky, f.underwater, [this.viewRadius * CHUNK * 0.95 * 0.55 * murk, this.viewRadius * CHUNK * 0.95 * murk]);
     if (f.underwater) {
@@ -354,6 +316,7 @@ export class Renderer {
       gl.uniform3f(pass.u.u_sunDir, ...sky.lightDir);
       gl.uniform3f(pass.u.u_direct, ...sky.direct);
       gl.uniform2f(pass.u.u_fog, fogStart, fogEnd);
+      gl.uniform2f(pass.u.u_ground, ground[0], ground[1]);
       for (const m of vis) {
         const n = isCutout ? m.cutout : m.opaque;
         if (n === 0) continue;
@@ -371,6 +334,7 @@ export class Renderer {
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
     drawCalls += waterCalls;
     quads += waterQuads;
+    if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now);
 
     const eye: [number, number, number] = [ex, ey, ez];
     drawCalls += drawCracks(gl, this.crack, this.cubeVao, this.viewProj, f.cracks, eye);

@@ -18,13 +18,15 @@ export interface SkySettings {
   weather: WeatherQuality;
   /** The red glow of dusk and dawn. */
   dusk: boolean;
+  /** Rain and snow falling, wet ground and snow cover (render/precip.ts; needs Weather on): 0 off, 1 low, 2 full. */
+  precip: WeatherQuality;
 }
 
 /** 0 off, 1 low, 2 full. */
 export type WeatherQuality = 0 | 1 | 2;
 export const WEATHER_NAMES = ['Off', 'Low', 'Full'] as const;
 
-export const DEFAULTS: SkySettings = { quality: 2, lines: false, twinkle: true, weather: 2, dusk: true };
+export const DEFAULTS: SkySettings = { quality: 2, lines: false, twinkle: true, weather: 2, dusk: true, precip: 2 };
 
 const STORAGE_KEY = 'opencraft.sky';
 
@@ -38,6 +40,7 @@ function load(): SkySettings {
     if (typeof rec.twinkle === 'boolean') s.twinkle = rec.twinkle;
     if (rec.weather === 0 || rec.weather === 1 || rec.weather === 2) s.weather = rec.weather;
     if (typeof rec.dusk === 'boolean') s.dusk = rec.dusk;
+    if (rec.precip === 0 || rec.precip === 1 || rec.precip === 2) s.precip = rec.precip;
   } catch {
     // Storage unavailable or corrupt: the defaults.
   }

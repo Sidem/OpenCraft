@@ -333,6 +333,7 @@ async function main(): Promise<void> {
       sound.playEvents(events, game.sound_count(), game.camera_yaw());
     }
     game.clear_sounds();
+    sound.ambience.weather = renderer.weather.ease.value; // rain is heard as it is drawn
     if (!document.hidden) sound.poll(game, dt);
 
     loaded ||= game.ready();
@@ -352,6 +353,7 @@ async function main(): Promise<void> {
   };
 
   // The weather is a function of the seed and the biome underfoot (render/sky/weather.ts); the biome is read twice a second.
+  renderer.precip.roofSource = () => game.rain_roof(); // where rain stops (roofs, caves)
   const worldSeed = game.seed();
   let biome = 0, biomeRead = -1e9;
   const biomeNow = (now: number) => {

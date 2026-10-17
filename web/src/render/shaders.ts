@@ -59,6 +59,7 @@ out vec3 v_sun;
 out vec3 v_tint;
 out vec3 v_rel;
 out vec2 v_ground;
+out vec2 v_open; // how much open sky this vertex has (0..1) and 1 on an upward face: where rain wets and snow lies
 
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads (lit mostly from above).
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
@@ -96,6 +97,7 @@ void main() {
   v_tint = lightTint(a_light, u_skyLight);
   v_rel = u_offset + p;
   v_ground = (u_worldOrigin + p).xz;
+  v_open = vec2(clamp(float(a_light & 15u) - 12.0, 0.0, 3.0) / 3.0, face == 2u ? 1.0 : 0.0);
   gl_Position = u_viewProj * vec4(v_rel, 1.0);
 }
 `;
@@ -118,6 +120,8 @@ in float v_haze; // 0 for a beacon, which the fog doesn't hide
 #endif
 #ifdef TERRAIN
 in vec2 v_ground;
+in vec2 v_open;
+uniform vec2 u_ground; // wet ground and snow cover, 0..1 (render/precip.ts)
 float terrainHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
@@ -158,6 +162,10 @@ void main() {
   float field = terrainField(v_ground / 16.0, ${TERRAIN_TINT_PERIOD / 16}.0) * 0.65
               + terrainField(v_ground / 64.0, ${TERRAIN_TINT_PERIOD / 64}.0) * 0.35;
   c.rgb *= mix(vec3(0.93, 0.96, 1.0), vec3(1.05, 1.03, 0.95), field);
+  // Rain darkens the ground that sees the sky; snow settles in patches on the faces that look up, thicker as it builds.
+  c.rgb *= 1.0 - 0.3 * u_ground.x * v_open.x;
+  float cover = smoothstep(field * 0.7, field * 0.7 + 0.3, u_ground.y) * v_open.x * v_open.y;
+  c.rgb = mix(c.rgb, vec3(0.9, 0.93, 0.98), cover * 0.92);
 #endif
 #ifdef BOXES
   vec3 hazed = v_rel * v_haze;

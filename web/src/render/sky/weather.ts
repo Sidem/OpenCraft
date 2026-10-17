@@ -125,8 +125,9 @@ export class WeatherEase {
     return v;
   }
 
-  /** Forget the history: the next `update` snaps (used while the weather is off). */
+  /** Forget the history: the next `update` snaps, and what is drawn (and heard) is clear sky (used while the weather is off). */
   reset(): void {
     this.primed = false;
+    this.value = { ...CLEAR };
   }
 }

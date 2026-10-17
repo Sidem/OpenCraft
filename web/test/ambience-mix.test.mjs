@@ -6,17 +6,17 @@ import { BEDS, bedGains, CEILING } from '../src/audio/ambience-mix.ts';
 
 const NAMES = Object.keys(BEDS);
 const loudness = (g) => Math.sqrt(NAMES.reduce((sum, n) => sum + (g[n] * BEDS[n].loud) ** 2, 0));
-const levels = (over) => ({ wind: 0, surf: 0, river: 0, hum: 0, ...over });
+const levels = (over) => ({ wind: 0, surf: 0, river: 0, rain: 0, hum: 0, ...over });
 
 test('a bed alone is never louder than the ceiling and silence stays silent', () => {
   for (const n of NAMES) assert.ok(loudness(bedGains(levels({ [n]: 1 }))) <= CEILING + 1e-9, n);
-  assert.deepEqual(bedGains(levels({})), { wind: 0, surf: 0, river: 0, hum: 0 });
+  assert.deepEqual(bedGains(levels({})), { wind: 0, surf: 0, river: 0, rain: 0, hum: 0 });
 });
 
 test('every combination of levels stays under the ceiling', () => {
   const steps = [0, 0.25, 0.5, 0.75, 1];
-  for (const wind of steps) for (const surf of steps) for (const river of steps) for (const hum of steps) {
-    assert.ok(loudness(bedGains(levels({ wind, surf, river, hum }))) <= CEILING + 1e-9, `${wind} ${surf} ${river} ${hum}`);
+  for (const wind of steps) for (const surf of steps) for (const river of steps) for (const hum of steps) for (const rain of [0, 1]) {
+    assert.ok(loudness(bedGains(levels({ wind, surf, river, rain, hum }))) <= CEILING + 1e-9, `${wind} ${surf} ${river} ${rain} ${hum}`);
   }
 });
 

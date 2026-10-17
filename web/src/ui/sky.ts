@@ -16,6 +16,8 @@ export class SkyPanel {
       this.choices('Twinkling', ['Off', 'On'], () => Number(sky.settings.twinkle), (i) => sky.set('twinkle', i === 1)),
       this.choices('Weather', [...WEATHER_NAMES], () => sky.settings.weather, (i) => sky.set('weather', i as WeatherQuality)),
       h('p', 'comfort-help', 'Clouds that come and go, gloomy days that dim the sun and the stars. The weather is the same for everyone in a shared game. Low is a little cheaper than Full.'),
+      this.choices('Rain and snow', [...WEATHER_NAMES], () => sky.settings.precip, (i) => sky.set('precip', i as WeatherQuality)),
+      h('p', 'comfort-help', 'Falling rain and snow, wet ground and snow that settles. Needs Weather on; nothing falls indoors or in caves.'),
       this.choices('Red dusk and dawn', ['Off', 'On'], () => Number(sky.settings.dusk), (i) => sky.set('dusk', i === 1)),
       button('secondary-btn', 'Reset to defaults', () => sky.reset()),
     );

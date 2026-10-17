@@ -6,6 +6,8 @@
 //! Layout of the floats `survey` returns (mirrored by `SURROUNDINGS` in `ambience.ts`): the `BIOME`..`DIN`
 //! constants below. To add a reading: a constant, one line in `survey`, and its use in the host.
 
+pub mod roof;
+
 use crate::block::{self, AIR};
 use crate::factory::Factory;
 use crate::math::{IVec3, Vec3};

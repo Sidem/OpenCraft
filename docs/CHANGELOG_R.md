@@ -22,6 +22,27 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **S3 Rain and snow and S4 the rain sound** (built 2026-10-17; user request). Presentation only: no save, core or generator change.
+  **Engine:** `surroundings/roof.rs` `roof_grid` / `Game::rain_roof` (a 17 x 17 grid of 2-block cells round the camera; per column the top of the first
+  meshed, non-plant block found looking down from 40 blocks over the eye to 20 under it, or the bottom of that range): a column under a roof or in a cave reads
+  high, open ground reads as the ground. About 13,000 block reads a poll, polled 5 times a second only while it falls (3 tests: ground, roof, cave).
+  **Drops** (`web/src/render/precip.ts`): one instanced draw of up to 8,000 (Low 3,500) quads with no vertex data: the vertex shader makes each drop from
+  its instance number (an integer hash), falls it with the clock (rain 17 to 22 blocks a second as a slanted streak, snow 1.3 to 2.2 swaying flakes), wraps it in
+  a 24 x 24 x 36 box round the camera by the eye modulo the box (so drops stay put in the world as the camera moves) and hides it below its column's landing
+  height (the grid as a `R32F` texture, `texelFetch`); alpha-blended after the water, no depth writes; fades at the box edge and very near the camera; none
+  underwater. The count follows the eased `precip`. **Ground** (`sky/ground.ts`, pure, 4 tests): `Ground` follows the drawn weather: rain wets in about 8 s and
+  dries in 2 minutes, snow builds over a minute and melts in 4 (40 s in rain); a player joining mid-fall starts part-way. The terrain shader (`u_ground`,
+  `v_open` = how open the vertex's sky light is and whether the face looks up) darkens wet ground by up to 30% and lays snow in patches (the terrain noise
+  decides where it takes first) on upward faces that see the sky, so floors under roofs and in caves stay bare. Fog and the dimmer sun under gloom were S2's.
+  Settings: Rain and snow Off / Low / Full (needs Weather on). **Sound** (`audio/ambience-levels.ts`, split out of `ambience.ts` so it can be tested, 5 tests):
+  a rain bed (white noise, 500 Hz to 5.5 kHz, a 9 Hz swell, `BEDS.rain` peak 0.3, so it shares the ceiling), full in the open, a patter at 30% under a roof with
+  its low-pass pulled from 5.5 kHz to 1.3 kHz by the open sky, none underground or in snow; birds and crickets fall to 15% in a downpour and the wind rises a
+  quarter. `main.ts` hands `renderer.weather.ease.value` to `sound.ambience.weather`; `WeatherEase.reset` now clears it (weather off = no rain sound).
+  **Checked:** `npm run check` (921 engine tests, 44 web tests); in the pane: rain over plains with a wet dark ground, snow with patchy cover, a plank roof
+  with bare floor and no drops under it (grid reads the roof's top there and the ground beside it), no console errors. **Cost:** `render` timed with `gl.finish`
+  in the pane on 60 frames per setting: 0.3 ms with rain or snow Full against 0.1 to 0.3 ms Off (noise as large as the effect; the pane's GPU is not a player's,
+  so measure on the target machine if frames drop). **Not heard:** the rain bed was only checked for its levels, not by ear. **Not built:** splashes where drops land,
+  wind slant, lightning, snow on machines and boxes (they take no wet or snow), the same snow for items on the ground.
 - [x] **S2 Weather model, clouds, red dusk and dawn** (built 2026-10-17; user request for atmospheric weather, cheap and adjustable).
   Presentation only: no engine, save or generator change. `web/src/render/sky/weather.ts` is pure and tested: `weatherAt(seed, days, biome)`
   gives `cover`, `gloom`, `precip` (0 to 1) and `snow`, from `storminess(seed, days)` (three smooth noises of the seed: fronts about 1.6 game days,

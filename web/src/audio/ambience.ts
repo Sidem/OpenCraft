@@ -1,53 +1,17 @@
 // Ambient sound: the beds and one-shots of the place the player is in. A few times a second it reads
 // `game.surroundings()` (crates/engine/src/surroundings/mod.rs) and the time of day, turns them into target levels
-// (`mixFor`: wind rising with height and openness, surf by the sea, running water, a low room tone and drips
-// underground, birds by day near trees, crickets at night), and glides the beds to them (`bedGains`, ambience-mix.ts,
+// (`mixFor`, ambience-levels.ts: wind rising with height and openness, surf by the sea, running water, rain, a low room tone
+// and drips underground, birds by day near trees, crickets at night), and glides the beds to them (`bedGains`, ambience-mix.ts,
 // keeps them from adding up past one full wind bed); the one-shots (birds,
-// crickets, drips) are scheduled at random by their level. Working machines duck everything. Owns its own level,
-// mute and settings (localStorage); plays through the sound system's AudioContext (`start`, from
-// `SoundSystem.unlock`). To add a sound: a field in `Mix` and `mixFor`, then a bed in `start` or a row in `SHOTS`.
+// crickets, drips) are scheduled at random by their level. Working machines duck everything. The rain is the drawn weather
+// (`weather`, set from main.ts), dulled under a roof. Owns its own level, mute and settings (localStorage); plays through the
+// sound system's AudioContext (`start`, from `SoundSystem.unlock`). To add a sound: a field in `Mix` and `mixFor`
+// (ambience-levels.ts), then a bed in `start` or a row in `SHOTS`.
 
 import { type BedName, bedGains } from './ambience-mix';
+import { type Falling, type Mix, mixFor } from './ambience-levels';
 import { bed, birdCall, cricket, drip } from './synth-ambience';
 import { mulberry32, type Rand } from './synth';
-import { BASALT, caveness, clamp01, DESERT, daylight, HIGHLANDS, S } from './surroundings';
-
-/** Target levels, each 0 to 1 (see `mixFor`). */
-export interface Mix {
-  wind: number;
-  /** 0 to 1: how dry and hissing the wind is (deserts, basalt fields). */
-  dry: number;
-  surf: number;
-  river: number;
-  hum: number;
-  birds: number;
-  insects: number;
-  drips: number;
-  /** How much working machinery quiets everything else. */
-  duck: number;
-}
-
-/** What should be heard for a `surroundings` reading at the time of day `tod` (0 midnight, 0.5 noon). */
-export function mixFor(s: ArrayLike<number>, tod: number): Mix {
-  const sky = s[S.sky], open = s[S.open], trees = s[S.trees], biome = s[S.biome];
-  const day = daylight(tod);
-  const cave = caveness(s);
-  const dryland = biome === DESERT ? 1 : biome === BASALT ? 0.5 : 0;
-  const high = clamp01((s[S.height] - 20) / 120 + (biome === HIGHLANDS ? 0.15 : 0));
-  const wind = sky * (0.3 + 0.7 * open) * (0.1 + 0.9 * high + 0.25 * dryland) * (1 - 0.5 * trees);
-  const green = biome === DESERT || biome === BASALT ? 0 : 1;
-  return {
-    wind: clamp01(wind),
-    dry: dryland,
-    surf: s[S.sea] * (0.3 + 0.7 * sky),
-    river: s[S.fresh] * (0.3 + 0.7 * sky),
-    hum: cave,
-    birds: day * trees * clamp01(sky * 1.5 - 0.2) * green,
-    insects: (1 - day) * sky * (0.4 + 0.6 * trees) * (biome === HIGHLANDS ? 0.4 : biome === DESERT ? 0.3 : green),
-    drips: cave * (s[S.depth] > 6 ? 1 : 0.5),
-    duck: 1 - 0.55 * s[S.din],
-  };
-}
 
 export interface AmbienceSettings {
   /** 0–100. */
@@ -101,6 +65,8 @@ export class Ambience {
   readonly settings = loadSettings();
   /** The latest target levels, for the debug overlay and tests in the pane. */
   readonly mix: Mix = mixFor([0, 1, 1, 0, 0, 0, 0, 0, 0], 0.5);
+  /** The weather being drawn (render/sky/weather.ts `WeatherEase.value`); main.ts sets it every frame. */
+  weather: Falling = { precip: 0, snow: false };
 
   private ctx: AudioContext | null = null;
   private out: GainNode | null = null;
@@ -135,6 +101,7 @@ export class Ambience {
       wind: this.makeBed(white, [filter(ctx, 'bandpass', 500, 0.6)], 0.17, 0.25),
       surf: this.makeBed(white, [filter(ctx, 'lowpass', 750, 0.7)], 0.09, 0.5),
       river: this.makeBed(white, [filter(ctx, 'highpass', 300, 0.5), filter(ctx, 'lowpass', 2400, 0.5)], 5.5, 0.1),
+      rain: this.makeBed(white, [filter(ctx, 'highpass', 500, 0.5), filter(ctx, 'lowpass', 5500, 0.5)], 9, 0.18),
       hum: this.makeBed(rumble, [], 0.05, 0.1),
     };
   }
@@ -161,7 +128,7 @@ export class Ambience {
     this.since += dt;
     if (this.since >= POLL) {
       this.since = 0;
-      this.retarget(mixFor(game.surroundings(), game.time_of_day()));
+      this.retarget(mixFor(game.surroundings(), game.time_of_day(), this.weather));
     }
     SHOTS.forEach((shot, i) => {
       this.waits[i] -= dt;
@@ -184,6 +151,7 @@ export class Ambience {
     to(bus.gain, duck);
     to(beds.wind.filters[0].frequency, 280 + 700 * wind + 500 * dry);
     to(beds.wind.filters[0].Q, 0.6 + 0.9 * dry);
+    to(beds.rain.filters[1].frequency, 1300 + 4200 * target.sky); // a roof turns the hiss into a muffled patter
     for (const name of Object.keys(gains) as BedName[]) to(beds[name].level.gain, gains[name]);
   }
 

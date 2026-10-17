@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · Rain and snow
+
+- Rain and snow now fall. Rain streaks down and darkens the ground, and you hear it patter; in snow the flakes drift and snow settles on the ground in patches. Nothing falls indoors, under a roof or in a cave, and the rain on a roof sounds muffled. Birds and crickets go quiet in the rain.
+- Settings > Sky has a new switch: Rain and snow (Off, Low or Full). It needs Weather on.
+
 ## 2026-10-17 · Clouds and weather
 
 - The sky has weather now: clear most of the time, then clouds roll in, the day turns gloomy and dim, and rain or snow is on its way. It is the same for everyone in a shared game, and it follows the seasons: highlands and cold winters bring snow, deserts stay dry. Stars go out behind the clouds.

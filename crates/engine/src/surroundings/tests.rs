@@ -50,6 +50,50 @@ fn a_roof_closes_the_sky_and_leaves_only_dim_it() {
     assert_eq!(read(&g, eye)[SKY], 0.0, "stone closes it");
 }
 
+/// The landing height of the grid column holding block column (x, z).
+fn landing(grid: &[f32], x: i32, z: i32) -> f32 {
+    let (i, j) = ((x - grid[0] as i32) / roof::STRIDE, (z - grid[1] as i32) / roof::STRIDE);
+    grid[2 + j as usize * roof::SIDE + i as usize]
+}
+
+#[test]
+fn rain_lands_on_the_ground_and_stops_on_a_roof() {
+    let mut g = world();
+    let eye = above_ground(&g, 0, 0);
+    let cell = eye.floor();
+    let grid = roof::roof_grid(&g.sim.world, eye);
+    assert_eq!(grid.len(), 2 + roof::SIDE * roof::SIDE);
+    assert!(
+        grid[0] <= (cell.x - 14) as f32 && grid[0] >= (cell.x - 18) as f32,
+        "the grid is centred on the eye: {}",
+        grid[0]
+    );
+    let ground = g.sim.world.generator().height_at(cell.x, cell.z) as f32;
+    assert!((landing(&grid, cell.x, cell.z) - (ground + 1.0)).abs() <= 1.0, "open ground catches it at the surface");
+    // A roof two blocks over the head (stone, then leaves and a plant do not matter) lifts the landing height over it.
+    for dx in -2..=2 {
+        for dz in -2..=2 {
+            g.sim.world.set_block_anywhere_later(IVec3::new(cell.x + dx, cell.y + 3, cell.z + dz), STONE);
+        }
+    }
+    let roofed = roof::roof_grid(&g.sim.world, eye);
+    assert_eq!(landing(&roofed, cell.x, cell.z), (cell.y + 4) as f32, "under the roof nothing falls below its top");
+    assert!(
+        landing(&roofed, cell.x + 8, cell.z) < landing(&roofed, cell.x, cell.z),
+        "beside the roof it still reaches the ground"
+    );
+}
+
+#[test]
+fn a_cave_reads_as_roofed_to_the_top_of_the_range() {
+    let g = world();
+    let top = above_ground(&g, 0, 0);
+    let deep = Vec3::new(top.x, top.y - 24.0, top.z);
+    let grid = roof::roof_grid(&g.sim.world, deep);
+    let here = landing(&grid, deep.x as i32, deep.z as i32);
+    assert!(here > deep.y as f32 + 20.0, "inside rock the drops stop far overhead: {here} for an eye at {}", deep.y);
+}
+
 #[test]
 fn depth_counts_blocks_below_the_surface() {
     let g = world();

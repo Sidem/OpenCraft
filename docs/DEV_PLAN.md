@@ -8,7 +8,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
 irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (pinned when pushed), R2c indicator plants over stained ground; 883 tests) ·
-**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5 built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks; R5c the vault on version 10, pinned when pushed); **S1 and S2 built** (the real night sky; weather model, clouds and red dusk; S3 rain and snow and S4 rain sound next, user-requested), then **R7**, R8; 13.6b (balance) once the user has played Milestone 13 · Then R7, R8, the feel-and-feedback interlude,
+**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5 built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks; R5c the vault on version 10, pinned when pushed); **S1 to S4 built** (the real night sky; weather model, clouds and red dusk; rain, snow, wet ground and the rain sound), next **R7**, R8; 13.6b (balance) once the user has played Milestone 13 · Then R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -44,12 +44,8 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   and the silo.
 - **Milestones 7 and 8 are done** (`docs/CHANGELOG.md`): circuits, violet science, solar, logic, blueprints,
   construction drones, jetpack and gear; then terraforming by drone (dig, fill, flatten, tunnels).
-- **Milestone 9 is done** (`docs/CHANGELOG_M9.md`): bauxite in far biomes, aluminium, bearings to far ground, trains,
-  cargo drones and the hover pack.
-- **Milestone 10 is done** (`docs/CHANGELOG_M10.md`): oil and canisters, plastics,
-  diesel, electrolysis, ore washing, rivers and hydro, hoists, nuclear power, gold science, Mk5.
-- **Milestone 11 is done** (`docs/CHANGELOG_M11.md`): chip fab, the data grid, AI datacenters and cooling, AI labs and endless bonus
-  techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
+- **Milestones 9 to 11 are done** (`docs/CHANGELOG_M9.md`, `_M10.md`, `_M11.md`): far biomes, aluminium, trains and cargo drones; oil,
+  plastics, rivers, nuclear power, Mk5; chips, the data grid, AI datacenters and labs, laser links, auto-routing.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
   **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b), R1c
   (natural rivers), R2 (plants: ground cover, tree species, indicator plants), R3 (ambient sound) and R4 (music by context) are done, R5 (ruins, scrap, logbooks, the vault) too; **next is R7**, then R8.
@@ -515,14 +511,10 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
   **Not built (waits for its first piece):** the era as a context (industrial, space). Next pieces: sea, industrial, space.
 - [x] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`; records in `docs/CHANGELOG_R.md`. R5a ruin sites, rusted blocks
   (never held: they give scrap) and Scrap Metal; R5b logbooks (block 127, `ui/logbook.ts`); R5c the vault, generator version 10 (`sim/vault.rs`).
-- [ ] **S Sky and weather (user, 2026-10-17; record in `docs/CHANGELOG_R.md`).** Presentation only, cheap, every effect has a setting and an Off.
-  - [x] **S1 The real night sky:** real stars, the Milky Way, moon phases, constellation lines (`render/sky/`, `scripts/bake-sky/`).
-  - [x] **S2 Weather model, clouds, red dusk and dawn (built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `render/sky/weather.ts`, a pure
-    function of (seed, game days, biome) (clear, cloudy, gloomy, rain, snow by biome and season) shared by co-op peers, tested for
-    determinism; cloud layer and red dusk in the sky shader; settings Weather Off/Low/Full and Red dusk. **Handoff for S3:** the
-    renderer's `weather.ease.value` is the drawn weather (`cover`, `gloom`, `precip` 0 to 1, `snow` bool); S3 reads it and `FrameInfo.biome`.
-  - [ ] **S3 Rain and snow** (one particle pass around the camera, roof occlusion by sky light, wet ground, fog) and **S4 rain sound** through
-    `audio/ambience-mix.ts`'s ceiling. **Done when:** a frame-time check with every effect on costs under 1 ms.
+- [x] **S Sky and weather (user, 2026-10-17; built the same day, record in `docs/CHANGELOG_R.md`).** Presentation only, every effect has a setting and an Off.
+  S1 the real night sky (`render/sky/`, `scripts/bake-sky/`); S2 the weather model (`render/sky/weather.ts`: a pure function of seed, game days
+  and biome, so co-op peers agree), clouds and red dusk; S3 rain and snow (`render/precip.ts`: vertex-shader-only drops, roofs by the engine's
+  `rain_roof` grid, wet and snowy ground); S4 the rain sound (`audio/ambience-levels.ts`). Not built: splashes, lightning, snow on machines.
 - [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
   concrete, bricks, framed glass, metal panels, catwalks, railings, light fixtures). Slabs and stairs need non-cube meshing:
   a later step. **Done when:** they are made in machines, placed, and their art requests are listed.
@@ -594,20 +586,15 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-17: frame-rate fix** (user: drops and a laggy camera when flying with the 32 h play-test save). Cause, measured on the save:
-  `World::light_at` (box light) kept 128 chunks, the base's 60,000 boxes sit in 137, so facing the base every frame lit them all
-  again: `Game::update` took 100 ms. Now a hash map of up to 512 chunks and at most `LIGHTS_PER_FRAME` (2) new chunks lit a frame
-  (the rest read as daylight until lit): `update` 1.5 ms. `main.ts`: the 28 ms loading budget is only for the first load (it also
-  fired whenever `ready()` flickered near the base); streaming work gets `13 ms - update` (2.5 to 6 ms) and skips a step the
-  slowest recent one would overrun. New tools: `scripts/bench-flight.mjs`, `tests/frame_bench.rs`. 919 tests.
-
-- **2026-10-17: Steps R5a to R5c built** (ruins on generator version 9: sites, blocks 124–127, Scrap Metal, logbooks; the vault on
-  version 10: block 128, `Action::OpenVault` tag 59; `tex::COUNT` 333). 917 tests. Then quieter ambience (user: wind and water
-  piled up loud): beds share a loudness ceiling (`audio/ambience-mix.ts`), water is read by squared nearness. Then **S1**: the real
-  night sky (HYG stars, NASA Milky Way, moon phases; `render/sky/`, `scripts/bake-sky/`; settings Classic/Stars/Stars and Milky Way).
-  **S2** (same day): the weather model and clouds (`render/sky/weather.ts`, `clouds.ts`): clear most of the time, a front every few
-  days, rain or snow by biome and season; red dusk and dawn; settings Weather Off/Low/Full and Red dusk. 918 engine tests, 35 web tests.
+- **2026-10-17: Steps S3 and S4 built** (rain, snow, wet ground and the rain sound; presentation only). Engine: `Game::rain_roof`
+  (`surroundings/roof.rs`). Web: `render/precip.ts`, `render/sky/ground.ts`, `audio/ambience-levels.ts` (split out of `ambience.ts`),
+  `render/geometry.ts` (split out of `renderer.ts`); setting Rain and snow Off/Low/Full. 921 engine tests, 44 web tests.
+- **2026-10-17: frame-rate fix** (user: drops flying over the 32 h save): `World::light_at` kept 128 chunks but the base's boxes sit
+  in 137, so every frame relit them (`update` 100 ms); now 512 chunks and at most 2 lit a frame (1.5 ms), and `main.ts`'s 28 ms
+  loading budget is for the first load only. Tools: `scripts/bench-flight.mjs`, `tests/frame_bench.rs`.
+- **2026-10-17: Steps R5a to R5c built** (ruins, logbooks and the vault; generator versions 9 and 10, blocks 124–128), then quieter
+  ambience (beds share a loudness ceiling, `audio/ambience-mix.ts`), **S1** (the real night sky) and **S2** (weather, clouds, red
+  dusk; `render/sky/weather.ts`).
 - **2026-10-16 and 17: Steps R2 to R4 built** (ground cover, tree species on generator version 9 with blocks 117–123, indicator
   plants; ambient sound; music by context, six pieces in 9.3 MB; `npm run check` gained `web tests` and `music`).
-
 Earlier entries live in [CHANGELOG_M13.md](CHANGELOG_M13.md), [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).
