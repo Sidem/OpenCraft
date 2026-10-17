@@ -22,6 +22,23 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R4 Music by context** (built 2026-10-17, presentation only; user: "the music shouldn't be that big", compose the pieces in the
+  MusicComposer project). **Code:** `audio/surroundings.ts` (the float layout, `daylight`, `contextFor`: underground beats night beats
+  biome beats sea), `audio/music-director.ts` (pure: a place holds `HOLD` 20 s before music follows, first piece after 10 to 30 s, then
+  2 to 5 minutes of silence between pieces in By place and 4 to 12 s in the "always" modes, never the piece that just played, a
+  playing piece that does not fit the new place or mode is faded into one that does, a piece that fails to load is never chosen again,
+  machines lower the music up to 30%), `audio/music-pieces.ts` (rows: file, mood, places, `'any'` fallback, gain), `audio/music.ts`
+  (`MODES`; streams each piece through a media element into the AudioContext, crossfades, pauses while hushed, no decoding: a decoded
+  loop was 67 and 82 MB). Saved mode: the old "adventurous" track becomes Always adventurous, "ambient" (the old default) becomes By
+  place. **Pieces** (composed with LilyPond and `render_midi.py`, `MusicComposer/opencraft/music-by-context`, all about -18 LUFS):
+  Lantern Hours (night, A minor pad, celesta, harp, flute), Deep Seam (caves, C phrygian drone, low clarinet, drips), Salt Road (desert,
+  D phrygian dominant, frame drums, oboe, accordion), High Pasture (highlands, D mixolydian, horn, flute, strings); the two Open Ground
+  versions are the day pieces and the fallback for the sea. 24 kbit/s Opus: 0.5 to 0.8 MB a piece, 3.8 MB for all six (two Vorbis loops
+  were 5.8 MB). **Checks:** `web/test/music-director.test.mjs` (13 tests on scripted walks with a fake clock; breaking the hold makes two
+  fail), `scripts/check-music.mjs` (rows and files agree, at most 1.3 MB a file, loudness within 2 LU), both in `npm run check`. Seen
+  in the pane: the first piece after 10 s, the cave piece fades in 20 s after going underground, only the pieces played are fetched
+  (range requests), no `decodeAudioData`. **Not heard by the agent:** how the pieces sound; levels and tunes want the user's ear (`gain`
+  per row trims a piece). Not built: the era as a context, a sea piece.
 - [x] **R3 Ambient sound** (built 2026-10-17, presentation only, every world): `Game::surroundings` (`surroundings/mod.rs`, nine
   floats read from the loaded blocks: biome, sky overhead, openness, height above sea level, depth below the surface, sea, fresh
   water, trees, din of working machines via `Factory::din_near`; about 0.01 ms a call) is polled four times a second by

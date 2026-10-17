@@ -2,7 +2,7 @@
 // output of any step that fails. Exits 1 if anything failed.
 //   npm run check
 // Steps: rustfmt, clippy (warnings are errors), engine tests, TypeScript (web and the signal Worker),
-// size budgets.
+// the web tests (web/test, node --test), the music library lint, size budgets.
 // TypeScript needs the generated bindings in web/src/wasm (npm run build:wasm).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -20,6 +20,8 @@ const steps = [
   { name: 'tests', cmd: 'cargo', args: ['test', '--workspace', '-q'], summary: testSummary },
   { name: 'types', cmd: 'npx', args: ['tsc', '--noEmit'], before: needsBindings },
   { name: 'signal types', cmd: 'npx', args: ['tsc', '--noEmit', '-p', 'signal'] },
+  { name: 'web tests', cmd: 'node', args: ['--test', 'web/test/*.test.mjs'], summary: webTestSummary },
+  { name: 'music', cmd: 'node', args: ['scripts/check-music.mjs'], summary: (out) => out.trim().split('\n') },
   { name: 'sizes', cmd: 'node', args: ['scripts/check-size.mjs'], summary: (out) => out.trim().split('\n') },
 ];
 
@@ -63,6 +65,10 @@ function testSummary(out) {
   let passed = 0;
   for (const m of out.matchAll(/test result: ok\. (\d+) passed/g)) passed += Number(m[1]);
   return [`${passed} passed`];
+}
+
+function webTestSummary(out) {
+  return [`${out.match(/ℹ pass (\d+)/)?.[1] ?? '?'} passed`];
 }
 
 function needsBindings() {

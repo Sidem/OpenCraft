@@ -1,8 +1,8 @@
 // Plays the engine's positional sound events (crates/engine/src/sound.rs) through Web Audio with
 // distance attenuation and stereo panning. Every sound is synthesised from the current sound design
 // (settings.ts) on first use, and again after a dial changes, so edits in the sound designer are
-// heard immediately, in the designer and in the game. The only audio files are the music loops, which
-// `music` plays (music.ts); `ambience` (ambience.ts) adds the sounds of the place. This class owns the
+// heard immediately, in the designer and in the game. The only audio files are the music pieces, which
+// `music` streams (music.ts); `ambience` (ambience.ts) adds the sounds of the place. This class owns the
 // shared AudioContext, so effects, music and ambience are three channels with a level and a mute each.
 
 import {
@@ -145,6 +145,12 @@ export class SoundSystem {
       this.ambience.start(ctx);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
+  }
+
+  /** Call every frame (not while hidden): ambience and music read the player's place a few times a second. */
+  poll(game: { surroundings(): Float32Array; time_of_day(): number }, dt: number): void {
+    this.ambience.poll(game, dt);
+    this.music.poll(game, dt);
   }
 
   setMuted(muted: boolean): void {

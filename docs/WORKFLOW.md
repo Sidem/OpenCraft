@@ -134,3 +134,18 @@ next day (no charge).
 | `prospect.rs` | `SCANNERS` (range per scanner), `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH` | 48 / 96 blocks, 2 s · 3 s, 2 blocks around the column |
 | `sim/timers.rs`, `sim/saplings.rs` | half-lives, `SAPLING_CHANCE`, `GROW_MIN` | leaves 5 s, grass grows 30 s, dies 15 s · a sapling from 1 in 25 leaves, grows after 60 s + 90 s half-life |
 | `daytime.rs`, `light.rs`, `block/mod.rs` | `DAY_TICKS`, `START`, `MARGIN`, `SOURCES`, `BlockDef::light` | a 20-minute day, new worlds start at 7:00 · the lit field reaches 20 blocks · lamp 20 losing 1 per block (full within 5, gone at 20), torch 12 losing 2 (gone at 6); a cell shows at most 15 |
+
+
+## 7. Composing music (the MusicComposer project)
+
+Pieces are written in the user's MusicComposer project (`X:\Programming\Projects\MusicComposer`, LilyPond 2.26 bundled, ffmpeg and Python
+with numpy and scipy needed): a score `.ly` becomes MIDI, `tools/render_midi.py` plays it through a small additive synth and a hall
+reverb, ffmpeg encodes it. `opencraft/music-by-context/` holds the four place pieces and its `build.ps1` (`.\build.ps1 night` builds
+one); `opencraft/overworld-day/` holds the two Open Ground versions (its build also writes the `*_once.ogg` the game uses).
+- A piece plays **once** (`render_midi.py --once`, a faded reverb tail), is encoded as **24 kbit/s Opus in an .ogg** (0.5 to 0.8 MB), and
+  is rendered to about -20 dBFS RMS (about -18 LUFS). The user wants the music small; `scripts/check-music.mjs` fails a file over 1.3 MB.
+- To add a piece: write the score, add it to `build.ps1`, copy the `.ogg` to `web/src/audio/music/`, add a row in `audio/music-pieces.ts`
+  (places, mood, `'any'` if it may fill in), run `npm run check`. The synth's voices are listed in `render_midi.py` (`GM`, `DRUMS`).
+- The agent cannot hear: measure with ffmpeg (`ebur128`, `astats`) and leave taste to the user, who tunes a piece's `gain` in its row.
+- Tests for the director run with `node --test web/test/*.test.mjs` (Node 24 runs the TypeScript directly: no enums or constructor parameter
+  properties in `music-director.ts` and `surroundings.ts`).

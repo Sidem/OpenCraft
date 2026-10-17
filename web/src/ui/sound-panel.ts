@@ -1,10 +1,10 @@
 // The menu's Sound page (`#sound-panel` in index.html): a volume slider with a mute button for sound
 // effects, ambience (wind, water, birds) and music, whether each is muted while the tab is not in focus, and the choice
-// between the music's tracks. The sound designer button
+// between the music's modes. The sound designer button
 // stays in the page's markup (main.ts wires it). To add a control: a row below.
 
 import './sound-panel.css';
-import { TRACKS } from '../audio/music';
+import { MODES } from '../audio/music';
 import type { SoundSystem } from '../audio/sound';
 import { button, h } from './dom';
 import { VolumeControl } from './volume-control';
@@ -20,16 +20,16 @@ export class SoundPanel {
     };
 
     const tracks = h('div', 'sound-tracks');
-    const buttons = TRACKS.map((t) => button('secondary-btn', t.label, () => {
+    const buttons = MODES.map((m) => button('secondary-btn', m.label, () => {
       sound.unlock();
-      sound.music.setTrack(t.id);
+      sound.music.setMode(m.id);
     }));
     tracks.append(...buttons);
     const help = h('p', 'sound-panel-help');
     const draw = () => {
-      const current = sound.music.settings.track;
-      buttons.forEach((b, i) => b.classList.toggle('active', TRACKS[i].id === current));
-      help.textContent = TRACKS.find((t) => t.id === current)?.help ?? '';
+      const current = sound.music.settings.mode;
+      buttons.forEach((b, i) => b.classList.toggle('active', MODES[i].id === current));
+      help.textContent = MODES.find((m) => m.id === current)?.help ?? '';
     };
     sound.subscribe(draw);
     draw();

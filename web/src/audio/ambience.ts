@@ -8,11 +8,7 @@
 
 import { bed, birdCall, cricket, drip } from './synth-ambience';
 import { mulberry32, type Rand } from './synth';
-
-/** Indices of the floats in `Game.surroundings()`; must match the constants in `surroundings/mod.rs`. */
-const S = { biome: 0, sky: 1, open: 2, height: 3, depth: 4, sea: 5, fresh: 6, trees: 7, din: 8 } as const;
-/** `Biome` variants in the engine's order. */
-const DESERT = 1, HIGHLANDS = 2, BASALT = 4;
+import { BASALT, caveness, clamp01, DESERT, daylight, HIGHLANDS, S } from './surroundings';
 
 /** Target levels, each 0 to 1 (see `mixFor`). */
 export interface Mix {
@@ -29,17 +25,11 @@ export interface Mix {
   duck: number;
 }
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-const smooth = (a: number, b: number, v: number) => {
-  const t = clamp01((v - a) / (b - a));
-  return t * t * (3 - 2 * t);
-};
-
 /** What should be heard for a `surroundings` reading at the time of day `tod` (0 midnight, 0.5 noon). */
 export function mixFor(s: ArrayLike<number>, tod: number): Mix {
   const sky = s[S.sky], open = s[S.open], trees = s[S.trees], biome = s[S.biome];
-  const day = smooth(0.2, 0.3, tod) * (1 - smooth(0.7, 0.8, tod));
-  const cave = (1 - sky) * clamp01(s[S.depth] / 8);
+  const day = daylight(tod);
+  const cave = caveness(s);
   const dryland = biome === DESERT ? 1 : biome === BASALT ? 0.5 : 0;
   const high = clamp01((s[S.height] - 20) / 120 + (biome === HIGHLANDS ? 0.15 : 0));
   const wind = sky * (0.3 + 0.7 * open) * (0.1 + 0.9 * high + 0.25 * dryland) * (1 - 0.5 * trees);

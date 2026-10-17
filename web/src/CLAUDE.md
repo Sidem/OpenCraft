@@ -34,6 +34,7 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
 ## Verifying in the browser
 
 Prefer engine tests; use the browser for visual proof (`docs/WORKFLOW.md` section 2 has the details).
+Pure TS logic is tested in `web/test/*.test.mjs` (`node --test`, types stripped: no enums or parameter properties in what it imports).
 
 - `preview_start` name `opencraft`, then drive `window.opencraft.game` with `javascript_tool`.
   `window.opencraft` also exposes `renderer`, `sound`, `soundLab`, `inventory`, `machine` (panel:

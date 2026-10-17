@@ -196,9 +196,12 @@ an outcrop or two and a furnace cover your first miner, generator and poles. Aft
 
 ## Music and sound
 
-The menu's **Sound** page has a volume slider and a mute button for sound effects and another pair for music, and
-a choice of two versions of the background music: **Adventurous** (a full orchestra with a fanfare) and **Ambient**
-(soft and slow, no drums). Switching crossfades. **K** mutes or unmutes everything. Settings are kept in the browser.
+The menu's **Sound** page has a volume slider and a mute button each for sound effects, ambience (wind, water, birds) and
+music, and a choice of how the music is picked: **By place** (the default: night, caves, deserts and highlands each have a
+piece of their own, the two Open Ground pieces play by day and at the coast; a piece plays now and then with a few quiet
+minutes between, and the music changes only after you have stayed somewhere about 20 seconds), **Always calm** (soft, slow
+pieces one after another) or **Always adventurous** (fuller pieces). Switching crossfades. **K** mutes or unmutes everything.
+Settings are kept in the browser.
 
 ## Sound designer
 

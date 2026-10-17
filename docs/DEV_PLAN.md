@@ -8,7 +8,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
 irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (not pinned until released), R2c indicator plants over stained ground; 883 tests) ·
-**R3 built** (ambient sound; 889 tests); **next: R4** (music by context); 13.6b (balance) once the user has played Milestone 13 · Then R4, R5, R7, R8, the feel-and-feedback interlude,
+**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests); **next: R5** (ruins); 13.6b (balance) once the user has played Milestone 13 · Then R5, R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -52,7 +52,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
   **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b), R1c
-  (natural rivers), R2 (plants: ground cover, tree species, indicator plants) and R3 (ambient sound) are done; **next is R4 (music by context)**, then R5–R8.
+  (natural rivers), R2 (plants: ground cover, tree species, indicator plants), R3 (ambient sound) and R4 (music by context) are done; **next is R5 (ruins)**, then R7, R8.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -510,12 +510,9 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
     pure function of deposit placement; pointing at one names the ore below. In the ore guide too. **Done when:** a test shows
     they grow only over their ore.
 - [x] **R3 Ambient sound (part 2; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `Game::surroundings` feeds `audio/ambience.ts`.
-- [ ] **R4 Music by context (part 3).** `audio/music.ts` picks a piece from the player's context (from R3's `surroundings` and
-  the era reached): day, night, underground, desert, highlands, sea, late eras. Silence of a few minutes between pieces,
-  a context must hold about 20 s before it switches, crossfades. The setting becomes Context / Always calm / Always adventurous
-  / Off. Long pieces stream through a media element instead of a decoded buffer (each decoded loop is tens of MB). **The user
-  supplies the pieces** (MusicComposer): night, underground, desert and highlands first, then an industrial and a space piece.
-  **Done when:** it runs with today's two pieces, and a new piece is one row.
+- [x] **R4 Music by context (part 3; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** a tested director, streamed 24 kbit/s Opus
+  pieces (0.5 to 0.8 MB each) composed in the user's MusicComposer project, modes By place / Always calm / Always adventurous.
+  **Not built (waits for its first piece):** the era as a context (industrial, space). Next pieces: sea, industrial, space.
 - [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`. Share R2b's generator version if that is not
   released yet. Logbooks give real help. The carry is trimmed (section 1): at most one vault, as an easter egg.
 - [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
@@ -575,7 +572,7 @@ and adjust the steps.
 | M7 | A colour-blind palette option for tier colours (pips and "Mk" text are there regardless)? Kits go in as one step at a time, never refunded: change? |
 | M10 | Rivers and the new landforms are on new worlds only (generator version 7; built that way in 10.8): existing worlds keep their ground. Acceptable, or should they wait for a world-settings screen? Also: should far deposits seen once get a map pin (9.3 left it as a bearing only)? |
 | R2b | New tree species and desert and basalt plants on new worlds only (generator version 9; the user's worlds keep their own version and get only R2a's ground cover), or another way? Default: new worlds only, like rivers. |
-| R4 | Which new music pieces, and when (the user composes them)? |
+| R4 | ~~Which new music pieces?~~ Answered 2026-10-17: Claude composes them in the user's MusicComposer project, small files. Open: a sea piece; industrial and space pieces (with the era as a context). |
 | R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
 
 ---
@@ -589,6 +586,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-17: Step R4 built** (music by context, composed in MusicComposer; 3.8 MB for six pieces where two took 5.8 MB; `npm run check` gained `web tests` and `music`).
 - **2026-10-17: Step R3 built** (ambient sound: `Game::surroundings`, `audio/ambience.ts`; own slider and mute). 889 tests.
 - **2026-10-16 and 17: Steps R2a to R2c built** (ground cover on every world from version 2; generator version 9 with tree species
   per biome, blocks 117–123, pinned in `released_versions_never_change` when pushed; indicator plants over stained soil;
