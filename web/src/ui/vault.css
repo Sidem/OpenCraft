@@ -1,0 +1,68 @@
+/* The vault door panel (ui/vault.ts): rows of six cells under the machine panel's frame. */
+.vault {
+  max-width: 440px;
+}
+
+.vault-label {
+  margin: 10px 0 4px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.vault-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.vault-dial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.vault-turn {
+  width: 44px;
+  height: 22px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: var(--panel);
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.vault-turn:hover {
+  background: var(--accent);
+  color: #000;
+}
+
+.vault-digit,
+.vault-cell {
+  display: inline-block;
+  width: 44px;
+  line-height: 38px;
+  text-align: center;
+  font: 700 22px var(--font);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+}
+
+.vault-cell {
+  line-height: 32px;
+  font-size: 18px;
+  opacity: 0.55;
+}
+
+.vault-cell.lit {
+  opacity: 1;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vault-note {
+  min-height: 1.4em;
+  margin: 10px 0 6px;
+  text-align: center;
+}

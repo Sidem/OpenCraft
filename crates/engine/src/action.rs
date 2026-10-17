@@ -55,6 +55,11 @@ pub enum Action {
         pos: IVec3,
         item: ItemId,
     },
+    /// Turns the rings of the vault door at `pos` to `dials` (`sim/vault.rs`: the digits packed in base 5): opens it if they fit.
+    OpenVault {
+        pos: IVec3,
+        dials: u32,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

@@ -36,6 +36,7 @@ mod saplings;
 mod scrap;
 mod timers;
 mod torches;
+pub mod vault;
 mod water;
 
 pub use timers::BlockTimers;

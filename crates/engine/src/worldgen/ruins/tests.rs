@@ -1,6 +1,6 @@
 use super::*;
 use crate::block::{self, GRASS, LOG};
-use crate::worldgen::{WorldGen, WORLDGEN_VERSION};
+use crate::worldgen::WorldGen;
 
 const SEEDS: [u32; 4] = [2024, 1337, 7, 99];
 
@@ -15,7 +15,16 @@ fn count(r: &Ruin, id: BlockId) -> usize {
 
 /// A flat site at y = 70 with grass on top.
 fn flat(seed: u32) -> Ruin {
-    build(seed, 1000, -400, 70, GRASS, |_, _| 70)
+    build(seed, 1000, -400, 70, GRASS, false, |_, _| 70)
+}
+
+fn with_vault(seed: u32) -> Ruin {
+    build(seed, 1000, -400, 70, GRASS, true, |_, _| 70)
+}
+
+/// The block a ruin sets at `p` (the last entry wins, as when stamping).
+fn set_at(r: &Ruin, p: IVec3) -> Option<BlockId> {
+    r.blocks.iter().rev().find(|(q, _)| *q == p).map(|(_, id)| *id)
 }
 
 #[test]
@@ -69,7 +78,7 @@ fn building_is_deterministic_and_varies() {
 #[test]
 fn a_slab_follows_the_ground_it_stands_on() {
     // A slope: the slab stays level, so the high side is cut and the low side filled.
-    let r = build(3, 0, 0, 70, GRASS, |x, _| 70 + x.clamp(-3, 3));
+    let r = build(3, 0, 0, 70, GRASS, false, |x, _| 70 + x.clamp(-3, 3));
     let at = |x: i32, y: i32, z: i32| r.blocks.iter().rev().find(|(p, _)| *p == IVec3::new(x, y, z)).map(|b| b.1);
     assert_eq!(at(3, 72, 5), Some(AIR), "the hill is cut down to the slab");
     assert_eq!(at(-3, 68, 5), Some(DIRT), "and the hollow filled up to it");
@@ -132,6 +141,62 @@ fn trees_keep_off_the_slab() {
     }
 }
 
+#[test]
+fn a_vault_is_a_sealed_room_behind_a_two_block_door() {
+    for seed in 0..12 {
+        let r = with_vault(seed);
+        let door = r.vault.expect("a vault");
+        assert_eq!(set_at(&r, door), Some(VAULT_DOOR));
+        assert_eq!(set_at(&r, door + IVec3::new(0, 1, 0)), Some(VAULT_DOOR));
+        assert_eq!(set_at(&r, door + IVec3::new(0, 2, 0)), Some(SPENT_ROCK), "a door two blocks tall");
+        let side = set_at(&r, door + IVec3::new(-1, 0, 0));
+        assert!(matches!(side, Some(AIR | RUSTED_MACHINE)), "the chamber is at the door: {side:?}");
+        // Walk the room's box: its 18 cells are air, and everything round them is spent rock or the door.
+        let mut air = 0;
+        for dz in -2..=2 {
+            for dx in 2..=6 {
+                for dy in -1..=2 {
+                    let p = IVec3::new(r.x + dx, door.y + dy, door.z + dz);
+                    match set_at(&r, p) {
+                        Some(AIR) => air += 1,
+                        Some(SPENT_ROCK | VAULT_DOOR) => {}
+                        other => panic!("seed {seed}: {other:?} at {p:?}"),
+                    }
+                }
+            }
+        }
+        assert_eq!(air, 18, "a room of 3 x 3 x 2");
+        assert_eq!(count(&r, VAULT_DOOR), 2);
+        for (p, _) in &r.blocks {
+            assert!((p.x - r.x).abs() <= RADIUS && (p.z - r.z).abs() <= RADIUS, "{p:?} is out of reach");
+        }
+        assert!(flat(seed).vault.is_none() && count(&flat(seed), VAULT_DOOR) == 0);
+    }
+}
+
+#[test]
+fn about_one_far_ruin_in_five_has_a_vault_and_never_the_first() {
+    for seed in SEEDS {
+        let g = WorldGen::new(seed);
+        assert!(g.ruin_at(0, 0).expect("ruin").vault.is_none(), "seed {seed}: the first ruin has none");
+        let (mut ruins, mut vaults) = (0, 0);
+        for rz in -12..=12 {
+            for rx in -12..=12 {
+                if let Some(r) = g.ruin_at(rx, rz) {
+                    ruins += 1;
+                    vaults += usize::from(r.vault.is_some());
+                }
+            }
+        }
+        assert!(
+            ruins > 100 && (ruins / 10..=ruins * 3 / 10).contains(&vaults),
+            "seed {seed}: {vaults} vaults in {ruins}"
+        );
+        let old = WorldGen::with_version(seed, 9);
+        assert!((-12..=12).all(|rz| (-12..=12).all(|rx| old.ruin_at(rx, rz).is_none_or(|r| r.vault.is_none()))));
+    }
+}
+
 /// Prints where the ruins of the nearest regions stand for a seed (`SEED=1337 cargo test -p opencraft-engine where_the_ruins_stand
 /// -- --ignored --nocapture`), for walking to one in the browser.
 #[test]
@@ -145,11 +210,16 @@ fn where_the_ruins_stand() {
             None => println!("region ({i}, {j}): none"),
         }
     }
+    for (i, j) in (-3..=3).flat_map(|j| (-3..=3).map(move |i| (i, j))) {
+        if let Some(door) = g.ruin_at(i, j).and_then(|r| r.vault) {
+            println!("region ({i}, {j}): vault door at {door:?}");
+        }
+    }
 }
 
 #[test]
 fn only_the_newest_generator_has_ruins() {
-    let g = WorldGen::with_version(2024, WORLDGEN_VERSION - 1);
+    let g = WorldGen::with_version(2024, 8);
     assert!(g.ruins_near(200, 0).is_empty() && !g.ruin_covers(200, 0));
     let g = WorldGen::new(2024);
     let r = g.ruin_at(0, 0).expect("ruin");

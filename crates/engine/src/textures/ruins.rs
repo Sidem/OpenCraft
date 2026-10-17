@@ -1,6 +1,6 @@
 //! The ruins' looks (`block/ruins.rs`): rusted plating (orange-brown panels with bolts and flaking), a machine husk's
 //! side (a hatch and a dead gauge on rust), a girder (cross-braced), the scrap metal item (a heap of bent plate) and the
-//! logbook (green cloth cover, pale pages).
+//! logbook (green cloth cover, pale pages) and a vault's door (iron with three brass rings).
 //! Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use super::paint::{mottle, tone, Ramp};
@@ -17,8 +17,27 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::RUST_GIRDER => girder(x, y),
         tex::LOGBOOK_SIDE => logbook(x, y, true),
         tex::LOGBOOK_TOP => logbook(x, y, false),
+        tex::VAULT_DOOR => vault(x, y),
         _ => scrap(x, y),
     }
+}
+
+/// A heavy iron door: a riveted frame around three brass rings, one inside the other, on dark steel.
+fn vault(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return rgb([30.0, 32.0, 36.0], 0.9 + 0.2 * n(713, x, y));
+    }
+    if matches!(x, 2 | 13) && matches!(y, 2 | 13) {
+        return rgb([150.0, 150.0, 156.0], 0.9);
+    }
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r = (dx * dx + dy * dy).sqrt();
+    for ring in [5.6, 3.8, 2.0] {
+        if (r - ring).abs() < 0.6 {
+            return rgb([186.0, 140.0, 58.0], 0.8 + 0.3 * n(714, x, y));
+        }
+    }
+    tone(&IRON, mottle(715, x, y, 0.3) * 0.7)
 }
 
 /// A weathered green cloth cover with a pale page block and a brass clasp (the side), or the pages seen from above.

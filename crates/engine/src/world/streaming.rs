@@ -289,7 +289,7 @@ fn priority(focus: IVec3, p: IVec3) -> i32 {
 }
 
 /// Sorts a work queue so the chunk nearest a player comes last (popped first). The one sort both
-/// queues share: each distinct sort closure adds 5â€“9 KB of wasm.
+/// queues share: each distinct sort closure adds 5–9 KB of wasm.
 fn sort_nearest_last(queue: &mut [IVec3], focus: IVec3, others: &[IVec3]) {
     queue.sort_unstable_by_key(|&p| std::cmp::Reverse(nearest(focus, others, p)));
 }

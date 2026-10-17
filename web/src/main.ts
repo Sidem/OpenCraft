@@ -24,6 +24,7 @@ import { CraftQueueView } from './ui/craftqueue';
 import { BlueprintPanel } from './ui/blueprints';
 import { SitePanel } from './ui/site';
 import { LogbookPanel } from './ui/logbook';
+import { VaultPanel } from './ui/vault';
 import { Hints } from './ui/hints';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
@@ -120,6 +121,7 @@ async function main(): Promise<void> {
   prospect.onReading = () => sound.scan();
   const pins = new Pins(game, meta.pins);
   const logbook = new LogbookPanel(game, pins);
+  const vault = new VaultPanel(game);
   session?.keepPins(pins);
   const minimap = new Minimap(game, wasm.memory, pins);
   const worldMap = new WorldMap(game, wasm.memory, pins);
@@ -132,7 +134,7 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, analytics, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook]; // a machine's panel is in the inventory
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock
@@ -196,7 +198,7 @@ async function main(): Promise<void> {
     game.close_inventory();
     closed(resume);
   };
-  for (const p of [research, blueprints, sites, worldMap, analytics, logbook]) p.onClose = closed;
+  for (const p of [research, blueprints, sites, worldMap, analytics, logbook, vault]) p.onClose = closed;
   // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
   let leftGame = -Infinity;
@@ -227,7 +229,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -297,7 +299,7 @@ async function main(): Promise<void> {
     if (request.length === 3) {
       const [x, y, z] = request;
       if (game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
-      else if (!logbook.open(x, y, z)) machine.open(x, y, z);
+      else if (!logbook.open(x, y, z) && !vault.open(x, y, z)) machine.open(x, y, z);
       input.unlock();
       sound.ui();
     }

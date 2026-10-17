@@ -10,6 +10,8 @@ pub const RUSTED_MACHINE: BlockId = 125;
 pub const RUSTED_GIRDER: BlockId = 126;
 /// A ruin's logbook (R5b): unbreakable, right-click to read it (`worldgen/logbook.rs`, `api/ruins.rs`).
 pub const LOGBOOK: BlockId = 127;
+/// A vault's door (R5c, generator version 10): unbreakable, right-click to turn its rings (`sim/vault.rs`).
+pub const VAULT_DOOR: BlockId = 128;
 
 /// Any block of the ruins: what breaks into scrap.
 #[inline]

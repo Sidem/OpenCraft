@@ -22,6 +22,18 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R5c The vault** (built 2026-10-17, generator version 10). About one ruin in five (`VAULT_ONE_IN`, never the spawn's first) has a
+  sealed 3 × 3 × 2 room east of the shaft's chamber, behind a two-block Vault Door (block 128, unbreakable, `worldgen/ruins.rs`). Right-click
+  opens a panel (`ui/vault.ts`): six dials of digits 0 to 4, the first ring on the right, the dials' number times itself (the
+  engine's `vault_probe`) set against the door's `…444444` (-1 in base 5). A ring lights when its digits and those before agree, so the first
+  ring takes 2 or 3 and then each has one right digit (2, 12, 212, …; two numbers open it, one the negative of the other, tested over all 15,625).
+  `Action::OpenVault {pos, dials}` (codec tag 59) is validated by the engine (`sim/vault.rs`: door at `pos`, `lit_rings == RINGS`), clears both
+  door blocks and drops the loot (5 circuits, 4 steel plates, a motor, 8 scrap). The vault is no core state. **Hint:** a far-ruin logbook
+  fragment says doors of rings exist and the rings must multiply by themselves to match the fours. **Checks:** `sim/vault/tests.rs`,
+  `worldgen/ruins/tests.rs` (a sealed room of exactly 18 cells of air; frequency 10 to 30% on four seeds; none at version 9), the codec
+  test. **Seen in the pane** (seed 1337, door at x -119, y 76, z -497; `where_the_ruins_stand` prints the vaults): solved ring by ring, the
+  loot reached the hotbar. **Not built:** discoveries with names (no such module yet). The door's look is a placeholder (`ART_HANDOVER.md`).
+
 - [x] **R5b Logbooks** (built 2026-10-17, generator version 9). Block 127, unbreakable, stands on every ruin's slab; right-click opens a
   panel (`ui/logbook.ts`, through `take_panel_request` and `Game::logbook`). A page is a pure function of the seed and the ruin's spot
   (`worldgen/logbook.rs`), never saved. **Pages:** a bearing (the nearest ground that holds an ore, from `bearing_to`, as "about N

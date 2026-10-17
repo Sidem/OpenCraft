@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · A door of rings
+
+- Some of the far ruins hide a sealed vault at the foot of their shaft: a heavy iron door you cannot break, with six rings to turn. Right-click it. The far logbooks hint at how the rings work. Behind it waits a small store of parts. New worlds only.
+
 ## 2026-10-17 · Ruins of the last factory
 
 - New worlds hold ruins: a cracked concrete slab with rusted machines, girder poles, a broken run of plating where a belt once ran, and a collapsed shaft that drops about ten blocks into a chamber of spent rock. The first one lies 150 to 300 blocks from where you start, and roughly one more in every 500 by 500 blocks of land. Break the rusted blocks to salvage scrap metal (machines may hold a circuit too); a smelter melts three scrap into an iron ingot. Worlds you already have keep their ground.

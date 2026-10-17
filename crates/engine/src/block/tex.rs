@@ -379,7 +379,8 @@ pub const SCRAP: u16 = 329;
 /// The logbook's cover and its page edge (`textures/ruins.rs`).
 pub const LOGBOOK_SIDE: u16 = 330;
 pub const LOGBOOK_TOP: u16 = 331;
-pub const COUNT: usize = 332;
+pub const VAULT_DOOR: u16 = 332;
+pub const COUNT: usize = 333;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

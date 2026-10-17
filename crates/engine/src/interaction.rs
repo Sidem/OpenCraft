@@ -193,8 +193,9 @@ impl Game {
             self.using = false;
             return;
         }
-        // A ruin's logbook: ask the host to show its page (`api/ruins.rs`).
-        if let Some(hit) = self.target.filter(|h| !self.body().input.crouch && h.id == block::LOGBOOK) {
+        // A ruin's logbook or a vault's door: ask the host to show its page or dials (`api/ruins.rs`).
+        let ruin_block = |id| id == block::LOGBOOK || id == block::VAULT_DOOR;
+        if let Some(hit) = self.target.filter(|h| !self.body().input.crouch && ruin_block(h.id)) {
             self.panel_request = Some(hit.block);
             self.using = false;
             return;

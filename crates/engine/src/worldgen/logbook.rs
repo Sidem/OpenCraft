@@ -28,7 +28,8 @@ const TIPS: [&str; 6] = [
     "Stone bricks: smelt 2 stone. Glass: smelt sand, or quartz ore for twice as much.",
 ];
 
-const FRAGMENTS: [&str; 4] = [
+const FRAGMENTS: [&str; 5] = [
+    "Some of our shafts end in a door of rings. The door shows nothing but fours, and the rings must be turned until their number, multiplied by itself, ends the same way. Do one ring at a time; each has a single right digit.",
     "The tower was to reach the sky: a cable from the ground to a station above, and everything we built was for it. We never found enough of the right ground to finish it.",
     "Seam after seam went to spent rock. The foreman kept saying the ground gives only once. We should have built where the ore was, and carried less.",
     "The reactor ran on enriched fuel cells and the satellites watched the ore from orbit. It was not enough to find what the ground no longer held.",

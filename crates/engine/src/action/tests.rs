@@ -527,6 +527,7 @@ fn samples() -> Vec<Action> {
         Action::TakeMachineSlot { pos, slot: 6 },
         Action::InsertCursor { pos },
         Action::SetHarbourProduct { pos, item: IRON_PLATE },
+        Action::OpenVault { pos, dials: 7 },
     ]
 }
 

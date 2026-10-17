@@ -23,7 +23,8 @@
 //! 8 = R1c's natural water: winding rivers whose pools spill down as rapids and waterfalls (`falls` here, `rivers/`),
 //! lakes and ponds with irregular shores (`shore.rs`);
 //! 9 = R2b's forests: tree species per biome (`trees.rs`: oak and birch on plains, broad trees in lowlands, pines on
-//! highlands, cacti in deserts, dead snags on basalt fields) and R5's ruins of the last factory (`ruins.rs`).
+//! highlands, cacti in deserts, dead snags on basalt fields) and R5's ruins of the last factory (`ruins.rs`);
+//! 10 = R5c's vaults: in about one far ruin in five a sealed room off the shaft's chamber (`ruins.rs`).
 
 mod bearing;
 mod biome;
@@ -62,7 +63,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 9;
+pub const WORLDGEN_VERSION: u32 = 10;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;

@@ -6,6 +6,8 @@
 //! first ruin, the one in the spawn's region, lies 150 to 297 blocks from the spawn. A ruin is a list of blocks
 //! (`build`), so a chunk stamps the ones that fall in it, like a tree, and generation stays order-independent. Trees
 //! keep out of the slab (`WorldGen::ruin_covers`).
+//! From version 10 about one ruin in five (never the first) has a vault east of the shaft's chamber: a sealed room behind a
+//! two-block door that only the right dials open (`sim/vault.rs`).
 //! To add a part to a ruin: lay its blocks in `build`; keep every block within `RADIUS` of the centre.
 
 use std::cell::RefCell;
@@ -14,7 +16,9 @@ use std::rc::Rc;
 use rustc_hash::FxHashMap;
 
 use super::{WorldGen, SEA_LEVEL};
-use crate::block::{BlockId, AIR, CONCRETE, DIRT, LOGBOOK, RUSTED_GIRDER, RUSTED_MACHINE, RUSTED_PLATING, SPENT_ROCK};
+use crate::block::{
+    BlockId, AIR, CONCRETE, DIRT, LOGBOOK, RUSTED_GIRDER, RUSTED_MACHINE, RUSTED_PLATING, SPENT_ROCK, VAULT_DOOR,
+};
 use crate::chunk::{index, CHUNK_SIZE};
 use crate::math::{hash3, IVec3};
 
@@ -32,6 +36,8 @@ const ATTEMPTS: u32 = 8;
 const MAX_RELIEF: i32 = 3;
 /// The logbook's offset from the centre (x, z).
 const LOGBOOK_AT: (i32, i32) = (2, -2);
+/// One ruin in this many (outside the first) has a vault.
+const VAULT_ONE_IN: u32 = 5;
 
 /// The ruin of each region asked about, `None` for a region with none (`WorldGen::ruins`).
 pub(super) type Cache = RefCell<FxHashMap<(i32, i32), Option<Rc<Ruin>>>>;
@@ -41,6 +47,9 @@ pub(super) struct Ruin {
     pub z: i32,
     /// Where the ruin's logbook stands (`logbook.rs` reads it).
     pub logbook: IVec3,
+    /// The lower cell of the vault's door (version 10, a ruin in about one region in `VAULT_ONE_IN` outside the first).
+    #[cfg(test)]
+    pub vault: Option<IVec3>,
     /// The lowest and highest block the ruin sets (`stamp` skips chunks outside).
     bottom: i32,
     top: i32,
@@ -154,13 +163,16 @@ impl WorldGen {
         }
         let biome = self.biome_at(x, z, y);
         let surface = Self::surface_v2(biome, y, self.slope_at(x, z)).0 .0;
-        Some(build(self.seed, x, z, y, surface, |wx, wz| self.height_at(wx, wz)))
+        let vault = self.version >= 10
+            && (rx, rz) != (0, 0)
+            && hash3(self.seed ^ 0x2D30, rx, 1, rz).is_multiple_of(VAULT_ONE_IN);
+        Some(build(self.seed, x, z, y, surface, vault, |wx, wz| self.height_at(wx, wz)))
     }
 }
 
 /// The ruin centred on (`x`, `z`) with its slab at `y`: `ground` is the terrain height, `surface` the block on top of
 /// it (shows through the slab's cracks).
-fn build(seed: u32, x: i32, z: i32, y: i32, surface: BlockId, ground: impl Fn(i32, i32) -> i32) -> Ruin {
+fn build(seed: u32, x: i32, z: i32, y: i32, surface: BlockId, vault: bool, ground: impl Fn(i32, i32) -> i32) -> Ruin {
     let mut out = Vec::new();
     let mut put = |dx: i32, wy: i32, dz: i32, id: BlockId| out.push((IVec3::new(x + dx, wy, z + dz), id));
     let roll = |salt: i32, i: i32| hash3(seed ^ 0x2D20, x + salt, i, z - salt);
@@ -236,13 +248,41 @@ fn build(seed: u32, x: i32, z: i32, y: i32, surface: BlockId, ground: impl Fn(i3
     let k = roll(9, 0);
     put(((k >> 4) & 1) as i32, y - depth, ((k >> 5) & 1) as i32, RUSTED_MACHINE);
 
+    // A vault, if this ruin has one: a sealed 3x3 room east of the chamber behind a two-block door (version 10).
+    let door_z = ((roll(10, 0) >> 6) & 1) as i32;
+    if vault {
+        let floor = y - depth;
+        for dz in door_z - 2..=door_z + 2 {
+            for dx in 2..=6 {
+                (floor - 1..=floor + 2).for_each(|wy| put(dx, wy, dz, SPENT_ROCK));
+            }
+        }
+        for dz in door_z - 1..=door_z + 1 {
+            for dx in 3..=5 {
+                (floor..=floor + 1).for_each(|wy| put(dx, wy, dz, AIR));
+            }
+        }
+        (floor..=floor + 1).for_each(|wy| put(2, wy, door_z, VAULT_DOOR));
+    }
+
     // The logbook on the slab, in the one corner no part uses.
     put(LOGBOOK_AT.0, y + 1, LOGBOOK_AT.1, LOGBOOK);
     let logbook = IVec3::new(x + LOGBOOK_AT.0, y + 1, z + LOGBOOK_AT.1);
 
     let bottom = out.iter().map(|(p, _)| p.y).min().unwrap_or(y);
     let top = out.iter().filter(|(_, id)| *id != AIR).map(|(p, _)| p.y).max().unwrap_or(y);
-    Ruin { x, z, logbook, bottom, top, blocks: out }
+    #[cfg(test)]
+    let vault = vault.then(|| IVec3::new(x + 2, y - depth, z + door_z));
+    Ruin {
+        x,
+        z,
+        logbook,
+        #[cfg(test)]
+        vault,
+        bottom,
+        top,
+        blocks: out,
+    }
 }
 
 #[cfg(test)]
