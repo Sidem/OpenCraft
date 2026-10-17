@@ -19,6 +19,10 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
 | `node scripts/wasm-sizes.mjs [n] [filter]` | After `npm run build:wasm`: the largest wasm functions by name, to find what grew. Compare with the same list from the last commit (build it in a `git worktree`). |
 | `node scripts/inspect-save.mjs <file.ocworld>` | After `npm run build:wasm`: reads a player's exported world headlessly (play time, techs, the tree's pack demand, machines and what holds them back, the inventory). Use it on the user's play-test saves before judging balance. |
+| `node scripts/bench-flight.mjs <file.ocworld> [seconds] [yaw] [rd] [sprint]` | After `npm run build:wasm`: loads a save headlessly, flies a line and prints the engine's share of the frame (`update`, streaming `work`, event `drain`: avg, p50, p99, max, frames over 16.6 ms; `SPIKES=1` lists spikes). Run it on a big play-test save after any per-frame change. |
+| `OC_SAVE=<unpacked save> cargo test --release -q bench_save_frame -- --ignored --nocapture` | Times each presentation step of `Game::update` on a real save (`src/tests/frame_bench.rs`); gunzip the `.ocworld` first. Add `CARGO_PROFILE_RELEASE_LTO=off` for a fast build. |
+
+Frame budget (60 fps = 16.6 ms): `Game::update` about 2 ms, streaming work at most 6 ms (`main.ts` sizes it from what `update` left), drawing under 6 ms of GPU on a mid card. In the browser pane the page cannot run `requestAnimationFrame` while hidden: step `game.update`, `work_step` and `renderer.render` by hand and time them, and use `EXT_disjoint_timer_query_webgl2` for real GPU time.
 
 Line counts: use `(Get-Content <file>).Count`. `Measure-Object -Line` skips blank lines and undercounts.
 

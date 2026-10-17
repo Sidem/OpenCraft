@@ -594,6 +594,13 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-17: frame-rate fix** (user: drops and a laggy camera when flying with the 32 h play-test save). Cause, measured on the save:
+  `World::light_at` (box light) kept 128 chunks, the base's 60,000 boxes sit in 137, so facing the base every frame lit them all
+  again: `Game::update` took 100 ms. Now a hash map of up to 512 chunks and at most `LIGHTS_PER_FRAME` (2) new chunks lit a frame
+  (the rest read as daylight until lit): `update` 1.5 ms. `main.ts`: the 28 ms loading budget is only for the first load (it also
+  fired whenever `ready()` flickered near the base); streaming work gets `13 ms - update` (2.5 to 6 ms) and skips a step the
+  slowest recent one would overrun. New tools: `scripts/bench-flight.mjs`, `tests/frame_bench.rs`. 919 tests.
+
 - **2026-10-17: Steps R5a to R5c built** (ruins on generator version 9: sites, blocks 124–127, Scrap Metal, logbooks; the vault on
   version 10: block 128, `Action::OpenVault` tag 59; `tex::COUNT` 333). 917 tests. Then quieter ambience (user: wind and water
   piled up loud): beds share a loudness ceiling (`audio/ambience-mix.ts`), water is read by squared nearness. Then **S1**: the real

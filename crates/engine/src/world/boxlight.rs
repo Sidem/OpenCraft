@@ -2,7 +2,7 @@
 //! `World::light_at` gives the sky and block light of a cell, so lamps and torches light them and
 //! shade darkens them like the terrain beside them. The chunk mesher's light field (`light.rs`) is
 //! only alive while a chunk meshes, so a cell's chunk is lit again here on demand and its interior kept in a
-//! small cache (`LIGHT_CHUNKS`).
+//! cache (`LIGHT_CHUNKS`), with at most `LIGHTS_PER_FRAME` new chunks lit a frame so no view can stall one.
 //!
 //! Render cache only, derived from blocks, never core state. A chunk's entry goes stale when a block
 //! changes within light's reach (`World::set_block`, the same chunks it marks dirty for the mesher): it is
@@ -20,9 +20,13 @@ use crate::worldgen::{WORLD_HEIGHT, WORLD_HEIGHT_CHUNKS};
 use super::streaming::{chunks_above, neighbourhood};
 use super::{chunk_of, local_of, World};
 
-/// Chunks kept lit (32 KB each). Every chunk holding a box in view must fit, or each frame lights them all
-/// again (about 1.6 ms a chunk): a big factory in view spans dozens.
-const LIGHT_CHUNKS: usize = 128;
+/// Chunks kept lit (32 KB each, so 16 MB at most; a base only pays for the chunks that hold its boxes). Every
+/// chunk holding a box in view should fit, or the oldest are lit again and again.
+const LIGHT_CHUNKS: usize = 512;
+/// New chunks lit per frame (`World::begin_work` resets the count; about 2 ms each). A scene with many
+/// unlit chunks (a base seen for the first time) fills the cache over a few frames, its boxes reading as
+/// daylight until then, instead of one frame lighting them all.
+pub(super) const LIGHTS_PER_FRAME: u8 = 2;
 /// Full sky light and no block light, in `light.rs`'s byte (sky low nibble, block high nibble).
 pub const DAYLIGHT: u8 = 15;
 
@@ -32,7 +36,6 @@ pub(super) type Lit = Option<Box<[u8]>>;
 /// One cached chunk and when `light_at` last read it (`World::light_clock`). A `stale` entry is still
 /// read, and lit again by `World::work_step` when it has nothing else to do.
 pub(super) struct Entry {
-    pub(super) chunk: IVec3,
     pub(super) lit: Lit,
     used: u64,
     stale: bool,
@@ -46,19 +49,19 @@ impl World {
         }
         let c = chunk_of(p);
         self.light_clock += 1;
-        let at = match self.light_cache.iter().position(|e| e.chunk == c) {
-            Some(i) => i,
-            None => {
-                let lit = self.light_chunk(c);
-                if self.light_cache.len() >= LIGHT_CHUNKS {
-                    let stalest = (0..self.light_cache.len()).min_by_key(|&i| self.light_cache[i].used);
-                    self.light_cache.swap_remove(stalest.unwrap_or(0));
-                }
-                self.light_cache.push(Entry { chunk: c, lit, used: 0, stale: false });
-                self.light_cache.len() - 1
+        if !self.light_cache.contains_key(&c) {
+            if self.light_budget == 0 {
+                return DAYLIGHT; // lit on a later frame
             }
-        };
-        let entry = &mut self.light_cache[at];
+            let lit = self.light_chunk(c);
+            self.light_budget -= u8::from(lit.is_some());
+            if self.light_cache.len() >= LIGHT_CHUNKS {
+                let stalest = self.light_cache.iter().min_by_key(|(_, e)| e.used).map(|(&k, _)| k);
+                stalest.map(|k| self.light_cache.remove(&k));
+            }
+            self.light_cache.insert(c, Entry { lit, used: 0, stale: false });
+        }
+        let entry = self.light_cache.get_mut(&c).expect("cached above");
         entry.used = self.light_clock;
         let (x, y, z) = local_of(p);
         entry.lit.as_ref().map_or(DAYLIGHT, |cells| cells[index(x, y, z)])
@@ -88,7 +91,7 @@ impl World {
                 }
             }
         }
-        for e in self.light_cache.iter_mut().filter(|e| reached.contains(&e.chunk)) {
+        for (_, e) in self.light_cache.iter_mut().filter(|(c, _)| reached.contains(c)) {
             e.stale = true;
         }
     }
@@ -105,17 +108,16 @@ impl World {
 
     /// Lights the most recently read stale chunk again (one unit of `World::work_step`). False if none is.
     pub(super) fn relight_one(&mut self) -> bool {
-        let Some(at) = (0..self.light_cache.len())
-            .filter(|&i| self.light_cache[i].stale)
-            .max_by_key(|&i| self.light_cache[i].used)
+        let Some(at) = self.light_cache.iter().filter(|(_, e)| e.stale).max_by_key(|(_, e)| e.used).map(|(&c, _)| c)
         else {
             return false;
         };
-        let lit = self.light_chunk(self.light_cache[at].chunk);
-        let e = &mut self.light_cache[at];
-        e.stale = false;
-        if lit.is_some() {
-            e.lit = lit;
+        let lit = self.light_chunk(at);
+        if let Some(e) = self.light_cache.get_mut(&at) {
+            e.stale = false;
+            if lit.is_some() {
+                e.lit = lit;
+            }
         }
         true
     }

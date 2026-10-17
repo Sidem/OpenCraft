@@ -45,7 +45,12 @@ import { WorldMap } from './ui/worldmap';
 import { WorldsPanel } from './ui/worlds';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel at 100% (the comfort setting scales it)
-const WORK_BUDGET_MS = 6; // per frame, for streaming world generation and meshing
+// Streaming work (generating and meshing chunks) gets what a 60 fps frame has left after `game.update`: at most
+// WORK_BUDGET_MS, at least WORK_MIN_MS. A step is not started when the slowest recent one would overrun it.
+// Only the first load, before the world is ready once, may take LOADING_WORK_BUDGET_MS a frame.
+const WORK_BUDGET_MS = 6;
+const WORK_MIN_MS = 2.5;
+const FRAME_ENGINE_MS = 13; // update + streaming work together
 const LOADING_WORK_BUDGET_MS = 28;
 
 const intParam = (params: URLSearchParams, name: string, fallback: number, min: number, max: number) => {
@@ -242,7 +247,8 @@ async function main(): Promise<void> {
   let last = performance.now();
   let lastFrame = last;
   let lastSlot = game.selected_slot();
-  let fps = 0, frameMs = 0, workMs = 0;
+  let fps = 0, frameMs = 0, workMs = 0, stepMs = 0;
+  let loaded = false; // the world has been ready once: from then on streaming never takes a loading-screen budget
   let wasReady = false;
 
   const drainEvents = () => {
@@ -297,7 +303,9 @@ async function main(): Promise<void> {
         input.unlock();
       }
     }
+    const u0 = performance.now();
     game.update(dt);
+    const updateMs = performance.now() - u0;
     coop?.pump();
     // A right-clicked machine with a panel: free the mouse and open it (a box opens like a chest).
     const request = game.take_panel_request();
@@ -327,10 +335,17 @@ async function main(): Promise<void> {
     game.clear_sounds();
     if (!document.hidden) sound.poll(game, dt);
 
-    const budget = game.ready() ? WORK_BUDGET_MS : LOADING_WORK_BUDGET_MS;
+    loaded ||= game.ready();
+    const budget = loaded ? Math.min(WORK_BUDGET_MS, Math.max(WORK_MIN_MS, FRAME_ENGINE_MS - updateMs)) : LOADING_WORK_BUDGET_MS;
     const w0 = performance.now();
     game.begin_work();
-    while (game.work_step() && performance.now() - w0 < budget);
+    for (let more = true, from = w0; more; ) {
+      more = game.work_step();
+      const now = performance.now();
+      stepMs = Math.max(stepMs * 0.995, now - from); // the slowest recent step, slowly forgotten
+      from = now;
+      if (now - w0 + (loaded ? stepMs * 0.5 : 0) >= budget) break;
+    }
     workMs = workMs * 0.9 + (performance.now() - w0) * 0.1;
     drainEvents();
     return dt;

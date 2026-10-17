@@ -56,7 +56,7 @@ fn an_edit_that_changes_no_light_leaves_the_cache_alone() {
     settle(&mut w);
     w.dirty.clear();
     w.set_block(air, crate::block::DIRT);
-    assert!(w.light_cache.iter().all(|e| !e.stale));
+    assert!(w.light_cache.values().all(|e| !e.stale));
     assert_eq!(w.dirty_count(), 0, "the chunk itself is meshed at once, no other waits");
 }
 
@@ -80,12 +80,32 @@ fn a_big_spread_of_boxes_is_lit_once_not_every_frame() {
     let cells: Vec<IVec3> = (-1..=1)
         .flat_map(|x| (-1..=1).flat_map(move |z| (0..6).map(move |y| IVec3::new(x * 32 + 5, y * 32 + 5, z * 32 + 5))))
         .collect();
-    let lit = |w: &World| w.light_cache.iter().filter_map(|e| e.lit.as_ref().map(|b| b.as_ptr())).collect::<Vec<_>>();
-    cells.iter().for_each(|&c| _ = w.light_at(c));
+    let lit = |w: &World| {
+        let mut all: Vec<_> = w.light_cache.values().filter_map(|e| e.lit.as_ref().map(|b| b.as_ptr())).collect();
+        all.sort();
+        all
+    };
+    for _ in 0..cells.len() {
+        w.begin_work(); // a new frame: its budget of new chunks
+        cells.iter().for_each(|&c| _ = w.light_at(c));
+    }
     let first = lit(&w);
     assert!(first.len() > 24, "only {} chunks lit", first.len());
+    w.begin_work();
     cells.iter().for_each(|&c| _ = w.light_at(c));
     assert!(lit(&w) == first, "the same lit chunks, none lit again");
+}
+
+#[test]
+fn a_frame_lights_only_a_few_new_chunks_and_the_rest_read_as_daylight() {
+    let (mut w, _) = streamed_world();
+    let cells: Vec<IVec3> = (0..12).map(|y| IVec3::new(5, y * 16 + 5, 5)).collect(); // six chunks, two cells each
+    w.begin_work();
+    cells.iter().for_each(|&c| _ = w.light_at(c));
+    assert_eq!(w.light_cache.values().filter(|e| e.lit.is_some()).count(), LIGHTS_PER_FRAME as usize);
+    w.begin_work();
+    cells.iter().for_each(|&c| _ = w.light_at(c));
+    assert_eq!(w.light_cache.values().filter(|e| e.lit.is_some()).count(), 2 * LIGHTS_PER_FRAME as usize);
 }
 
 #[test]
@@ -95,10 +115,11 @@ fn the_cache_evicts_the_chunk_read_longest_ago() {
     w.light_at(keep);
     w.light_at(spare);
     for i in 0..LIGHT_CHUNKS as i32 {
+        w.begin_work();
         w.light_at(keep); // read again and again: never the stalest
         w.light_at(IVec3::new(5, 69, 5 + 32 * (i + 1)));
     }
-    let has = |c: IVec3| w.light_cache.iter().any(|e| e.chunk == chunk_of(c));
+    let has = |c: IVec3| w.light_cache.contains_key(&chunk_of(c));
     assert!(has(keep) && !has(spare));
     assert!(w.light_cache.len() <= LIGHT_CHUNKS);
 }

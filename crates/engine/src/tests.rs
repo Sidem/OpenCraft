@@ -879,3 +879,6 @@ fn a_left_click_cancels_a_belt_line() {
     assert_eq!(g.sim.factory.count(factory::Kind::Belt), 0, "nothing was built");
     assert_eq!(g.slot_count(slot as u32), 20);
 }
+
+#[cfg(test)]
+mod frame_bench;

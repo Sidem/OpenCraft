@@ -65,8 +65,10 @@ pub struct World {
     mesher: Mesher,
     lighting: Lighting,
     /// Lit chunks for `light_at` (boxlight.rs), the least recently read evicted first.
-    light_cache: Vec<boxlight::Entry>,
+    light_cache: FxHashMap<IVec3, boxlight::Entry>,
     light_clock: u64,
+    /// New chunks `light_at` may still light this frame (reset by `begin_work`).
+    light_budget: u8,
     air: Chunk,
     floor: Chunk,
     /// Recently generated, unedited chunks, oldest first (never shadows an edit: `chunks` and
@@ -98,8 +100,9 @@ impl World {
             view_radius: view_radius.max(2),
             mesher: Mesher::new(),
             lighting: Lighting::default(),
-            light_cache: Vec::new(),
+            light_cache: FxHashMap::default(),
             light_clock: 0,
+            light_budget: boxlight::LIGHTS_PER_FRAME,
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
             generated: Vec::new(),
