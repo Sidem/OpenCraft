@@ -1,5 +1,6 @@
 //! The ruins' looks (`block/ruins.rs`): rusted plating (orange-brown panels with bolts and flaking), a machine husk's
-//! side (a hatch and a dead gauge on rust), a girder (cross-braced) and the scrap metal item (a heap of bent plate).
+//! side (a hatch and a dead gauge on rust), a girder (cross-braced), the scrap metal item (a heap of bent plate) and the
+//! logbook (green cloth cover, pale pages).
 //! Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use super::paint::{mottle, tone, Ramp};
@@ -14,8 +15,25 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::RUST_PLATE => plate(x, y),
         tex::RUST_MACHINE => machine(x, y),
         tex::RUST_GIRDER => girder(x, y),
+        tex::LOGBOOK_SIDE => logbook(x, y, true),
+        tex::LOGBOOK_TOP => logbook(x, y, false),
         _ => scrap(x, y),
     }
+}
+
+/// A weathered green cloth cover with a pale page block and a brass clasp (the side), or the pages seen from above.
+fn logbook(x: i32, y: i32, side: bool) -> [u8; 4] {
+    if !side {
+        let ruled = y % 3 == 1;
+        return rgb([206.0, 196.0, 160.0], if ruled { 0.82 } else { 0.95 } + 0.08 * n(710, x, y));
+    }
+    if !(2..=13).contains(&y) {
+        return rgb([206.0, 196.0, 160.0], 0.85 + 0.1 * n(711, x, y));
+    }
+    if (7..=8).contains(&x) && (5..=10).contains(&y) {
+        return rgb([196.0, 150.0, 60.0], 0.9);
+    }
+    rgb([54.0, 84.0, 62.0], 0.8 + 0.3 * mottle(712, x, y, 0.4))
 }
 
 /// Rust over grey metal: bare iron shows through flaked patches.

@@ -14,7 +14,7 @@ use std::rc::Rc;
 use rustc_hash::FxHashMap;
 
 use super::{WorldGen, SEA_LEVEL};
-use crate::block::{BlockId, AIR, CONCRETE, DIRT, RUSTED_GIRDER, RUSTED_MACHINE, RUSTED_PLATING, SPENT_ROCK};
+use crate::block::{BlockId, AIR, CONCRETE, DIRT, LOGBOOK, RUSTED_GIRDER, RUSTED_MACHINE, RUSTED_PLATING, SPENT_ROCK};
 use crate::chunk::{index, CHUNK_SIZE};
 use crate::math::{hash3, IVec3};
 
@@ -30,6 +30,8 @@ const SLAB_R2: i32 = 36;
 const ATTEMPTS: u32 = 8;
 /// The most the ground may rise or fall across a site (blocks).
 const MAX_RELIEF: i32 = 3;
+/// The logbook's offset from the centre (x, z).
+const LOGBOOK_AT: (i32, i32) = (2, -2);
 
 /// The ruin of each region asked about, `None` for a region with none (`WorldGen::ruins`).
 pub(super) type Cache = RefCell<FxHashMap<(i32, i32), Option<Rc<Ruin>>>>;
@@ -37,6 +39,8 @@ pub(super) type Cache = RefCell<FxHashMap<(i32, i32), Option<Rc<Ruin>>>>;
 pub(super) struct Ruin {
     pub x: i32,
     pub z: i32,
+    /// Where the ruin's logbook stands (`logbook.rs` reads it).
+    pub logbook: IVec3,
     /// The lowest and highest block the ruin sets (`stamp` skips chunks outside).
     bottom: i32,
     top: i32,
@@ -121,7 +125,7 @@ impl WorldGen {
     }
 
     /// The ruins of the regions next to (x, z)'s: a ruin only ever reaches into the next region.
-    fn ruins_around(&self, x: i32, z: i32) -> impl Iterator<Item = Rc<Ruin>> + '_ {
+    pub(super) fn ruins_around(&self, x: i32, z: i32) -> impl Iterator<Item = Rc<Ruin>> + '_ {
         let (rx, rz) = (region_of(x), region_of(z));
         let near = self.version >= 9;
         (rz - 1..=rz + 1)
@@ -232,9 +236,13 @@ fn build(seed: u32, x: i32, z: i32, y: i32, surface: BlockId, ground: impl Fn(i3
     let k = roll(9, 0);
     put(((k >> 4) & 1) as i32, y - depth, ((k >> 5) & 1) as i32, RUSTED_MACHINE);
 
+    // The logbook on the slab, in the one corner no part uses.
+    put(LOGBOOK_AT.0, y + 1, LOGBOOK_AT.1, LOGBOOK);
+    let logbook = IVec3::new(x + LOGBOOK_AT.0, y + 1, z + LOGBOOK_AT.1);
+
     let bottom = out.iter().map(|(p, _)| p.y).min().unwrap_or(y);
     let top = out.iter().filter(|(_, id)| *id != AIR).map(|(p, _)| p.y).max().unwrap_or(y);
-    Ruin { x, z, bottom, top, blocks: out }
+    Ruin { x, z, logbook, bottom, top, blocks: out }
 }
 
 #[cfg(test)]

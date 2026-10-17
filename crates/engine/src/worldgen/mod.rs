@@ -30,6 +30,7 @@ mod biome;
 mod caves;
 mod geology;
 mod landform;
+mod logbook;
 mod ore;
 mod rivers;
 mod ruins;

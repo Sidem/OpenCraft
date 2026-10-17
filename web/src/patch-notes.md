@@ -6,6 +6,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 ## 2026-10-17 · Ruins of the last factory
 
 - New worlds hold ruins: a cracked concrete slab with rusted machines, girder poles, a broken run of plating where a belt once ran, and a collapsed shaft that drops about ten blocks into a chamber of spent rock. The first one lies 150 to 300 blocks from where you start, and roughly one more in every 500 by 500 blocks of land. Break the rusted blocks to salvage scrap metal (machines may hold a circuit too); a smelter melts three scrap into an iron ingot. Worlds you already have keep their ground.
+- Every ruin has a logbook on its slab (a green book you cannot break). Right-click to read it: a page points you to the nearest ground that holds an ore, with a button that pins it on your map, or gives a recipe tip; the far ruins also tell the story of the people who built them.
 
 ## 2026-10-17 · Music for every place
 

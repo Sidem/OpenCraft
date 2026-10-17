@@ -376,7 +376,10 @@ pub const RUST_PLATE: u16 = 326;
 pub const RUST_MACHINE: u16 = 327;
 pub const RUST_GIRDER: u16 = 328;
 pub const SCRAP: u16 = 329;
-pub const COUNT: usize = 330;
+/// The logbook's cover and its page edge (`textures/ruins.rs`).
+pub const LOGBOOK_SIDE: u16 = 330;
+pub const LOGBOOK_TOP: u16 = 331;
+pub const COUNT: usize = 332;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

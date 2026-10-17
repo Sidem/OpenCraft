@@ -22,6 +22,20 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R5b Logbooks** (built 2026-10-17, generator version 9). Block 127, unbreakable, stands on every ruin's slab; right-click opens a
+  panel (`ui/logbook.ts`, through `take_panel_request` and `Game::logbook`). A page is a pure function of the seed and the ruin's spot
+  (`worldgen/logbook.rs`), never saved. **Pages:** a bearing (the nearest ground that holds an ore, from `bearing_to`, as "about N
+  blocks north-east" with a Pin button that adds an ore pin), a tip naming real recipes (stained soil, hand mining, scrap, concrete,
+  motor, bricks and glass), and from ruins 700 or more blocks from spawn story fragments (the tower to the sky, spent rock, the
+  reactor) and bearings to bauxite, uranium and oil sand. **Finding:** the common ores lie under every biome (nearest iron, coal and
+  limestone were 0 blocks away from every spot tried, copper up to 107, quartz 48 to 173), so near pages point mostly at quartz and
+  otherwise give a tip; the roadmap's "bearing to an ore's biome" is only useful for the rare ores. **Deviation:** a block, not an item.
+  **Checks:** `worldgen/logbook/tests.rs` (a logbook on every test seed's first ruin and nowhere else; near pages never tell the late
+  story; far ones do; a bearing points at ground that holds the ore and the text's distance and compass point are right; pages depend
+  on seed and spot only; compass), `api/ruins/tests.rs`. **Seen in the pane:** right-click opened the panel; Pin put an ore-34 pin at
+  the page's ground. Old R5a ruins in a saved test world lack the logbook (the chunk was edited before it existed; worlds on the live
+  site never saw that version).
+
 - [x] **R5a Ruins of the last factory: sites, rusted blocks, scrap** (built 2026-10-17, generator version 9 so new worlds only; v9 is
   still unreleased, so it is not pinned). **Where:** `worldgen/ruins.rs`: 512 × 512 regions centred on spawn, each with at most one
   ruin from up to 8 hashed tries (flat within 3 blocks over nine samples, dry, above sea level + 1); the spawn's region rings spawn at

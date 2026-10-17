@@ -250,6 +250,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Indicator plants (R2c, 2026-10-17, `textures/ground_cover.rs`, layers 322–325): `INDICATOR_IRON` (a low rosette with three rust-orange blooms), `INDICATOR_COAL` (a round
   dark purple-green shrub with black berries), `INDICATOR_COPPER` (a tall spike with teal bells), `INDICATOR_PALE` (thin stems with pale stars). Each must read from
   afar as its own colour and shape: they tell the ore below.
+  Logbook (R5b, `textures/ruins.rs`, layers 330–331): `LOGBOOK_SIDE` (green cloth cover, brass clasp, pale page edges), `LOGBOOK_TOP` (ruled page); it is a plain cube on the slab, an open book on a lectern would read better.
   Ruins (R5a, 2026-10-17, `textures/ruins.rs`, layers 326–329): `RUST_PLATE` (rusted panels, bolts, flaked patches showing grey iron; also the husk's top and
   bottom), `RUST_MACHINE` (a husk's side: dead hatch and gauge), `RUST_GIRDER` (an I-beam seen end-on, cross-braced) and `SCRAP` (the Scrap Metal item, a heap of bent plate).
   The ruin's silhouette matters more than the tiles: husks and poles are plain cubes now (`worldgen/ruins.rs` `build`); broken pipes, collapsed roofs and leaning poles would sell it.

@@ -23,6 +23,7 @@ mod orbit;
 mod prospect;
 mod render;
 mod research;
+mod ruins;
 mod save;
 mod sites;
 mod surroundings;

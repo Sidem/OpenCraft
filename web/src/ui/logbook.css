@@ -1,0 +1,10 @@
+/* The logbook panel (ui/logbook.ts): a narrow page of text under the machine panel's frame. */
+.logbook {
+  max-width: 460px;
+}
+
+.logbook-text {
+  margin: 0 0 14px;
+  line-height: 1.55;
+  white-space: pre-line;
+}

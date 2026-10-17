@@ -193,6 +193,12 @@ impl Game {
             self.using = false;
             return;
         }
+        // A ruin's logbook: ask the host to show its page (`api/ruins.rs`).
+        if let Some(hit) = self.target.filter(|h| !self.body().input.crouch && h.id == block::LOGBOOK) {
+            self.panel_request = Some(hit.block);
+            self.using = false;
+            return;
+        }
         // A machine with a panel: ask the host to open it (unless crouching, which places against it).
         if let Some(hit) =
             self.target.filter(|h| !self.body().input.crouch && factory::machine(h.id).is_some_and(|m| m.panel))

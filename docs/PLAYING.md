@@ -200,6 +200,9 @@ New worlds hold the ruins of an older factory: a cracked concrete slab with rust
 and a collapsed shaft. The first lies 150 to 300 blocks from where you start (walk out in any direction; flat dry land only), and
 about one more turns up in every 500 by 500 blocks. Break the rusted blocks for scrap metal (machines may hold a circuit); a smelter
 melts 3 scrap into an iron ingot. The shaft drops about ten blocks to a chamber of spent rock with one more machine at the bottom.
+Each slab holds a logbook (a green book on the concrete, it cannot be broken): right-click it to read. A page points you to ground
+that holds an ore (with a button to pin it on your map), or gives a recipe tip; ruins far from the start also tell the story of the
+people who left them.
 
 ## Music and sound
 
