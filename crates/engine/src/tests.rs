@@ -882,3 +882,15 @@ fn a_left_click_cancels_a_belt_line() {
 
 #[cfg(test)]
 mod frame_bench;
+
+#[test]
+fn the_console_finds_items_by_name_and_knows_the_day_length() {
+    let g = Game::new(2024, 3);
+    let iron = g.find_item("iron ingot");
+    assert_eq!(iron.len(), 1, "an exact name matches alone");
+    assert_eq!(item::name(ItemId(iron[0])), "Iron Ingot");
+    let ingots = g.find_item("ingot");
+    assert!(ingots.len() > 1 && ingots.len() <= 8, "a part of a name lists the candidates");
+    assert!(g.find_item("").is_empty() && g.find_item("no such thing").is_empty());
+    assert_eq!(g.day_seconds(), 1200.0);
+}

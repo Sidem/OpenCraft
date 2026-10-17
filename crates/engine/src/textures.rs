@@ -1,4 +1,5 @@
-//! Procedural 16×16 block and item textures, generated at startup so the game ships with zero art assets.
+//! Procedural block and item textures, generated at startup so the game ships with zero art assets: painted 16×16 and
+//! repeated to `TEX_SIZE`, except the plants, which `hires.rs` paints at the full size with the `brush.rs` shapes.
 //! Every pattern tiles seamlessly (noise lattices wrap at the texture edge). `generate` writes one
 //! RGBA layer per `block::tex` constant; to add a texture, add the constant there and its pattern
 //! arm in `pixel`. An alternate layer draws its base's pattern with another `alt` (`tex::look`).
@@ -6,7 +7,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, ground cover in `ground_cover.rs`, the other trees in `forest.rs`, the ruins in `ruins.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, the plants (ground cover, indicators, saplings) in `hires.rs`, the other trees in `forest.rs`, the ruins in `ruins.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -14,6 +15,7 @@ use crate::math::{hash3, unit};
 mod aluminium;
 mod assembly;
 mod avatar;
+mod brush;
 mod chemistry;
 mod compute;
 mod electronics;
@@ -21,8 +23,8 @@ mod forest;
 mod gear;
 mod geology;
 mod grid;
-mod ground_cover;
 mod heavy;
+mod hires;
 mod hoist;
 mod hub;
 mod items;
@@ -53,15 +55,31 @@ use machines::{
     pole, router_top, smelter, wire,
 };
 
-pub const TEX_SIZE: usize = 16;
+/// Texels along a layer's side. All art is painted on a `BASE` grid and repeated `TEX_SIZE / BASE` times along each side
+/// (so blocks keep their pixel look), except the layers `hires::covers` says are painted at the full size.
+pub const TEX_SIZE: usize = 64;
+const BASE: usize = 16;
 
 pub fn generate() -> Vec<u8> {
     let mut out = vec![0u8; tex::COUNT * TEX_SIZE * TEX_SIZE * 4];
+    let scale = TEX_SIZE / BASE;
     for layer in 0..tex::COUNT {
-        for y in 0..TEX_SIZE {
-            for x in 0..TEX_SIZE {
-                let i = ((layer * TEX_SIZE + y) * TEX_SIZE + x) * 4;
-                out[i..i + 4].copy_from_slice(&pixel(layer as u16, x as i32, y as i32));
+        let at = |x: usize, y: usize| ((layer * TEX_SIZE + y) * TEX_SIZE + x) * 4;
+        if hires::covers(layer as u16) {
+            for y in 0..TEX_SIZE {
+                for x in 0..TEX_SIZE {
+                    out[at(x, y)..at(x, y) + 4].copy_from_slice(&hires::pixel(layer as u16, x as i32, y as i32));
+                }
+            }
+            continue;
+        }
+        for y in 0..BASE {
+            for x in 0..BASE {
+                let px = pixel(layer as u16, x as i32, y as i32);
+                for (dy, dx) in (0..scale).flat_map(|dy| (0..scale).map(move |dx| (dy, dx))) {
+                    let i = at(x * scale + dx, y * scale + dy);
+                    out[i..i + 4].copy_from_slice(&px);
+                }
             }
         }
     }
@@ -166,7 +184,6 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
             let i = layer - tex::STONE_PICKAXE;
             tools::tool(x, y, i % 3, if i >= 3 { tools::IRON_HEAD } else { tools::STONE_HEAD })
         }
-        tex::SAPLING => plants::sapling(x, y),
         tex::TORCH => plants::torch(x, y),
         tex::GRANITE => geology::granite(x, y),
         tex::SANDSTONE => geology::sandstone(x, y),
@@ -209,8 +226,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::EMIT_SIDE..=tex::BEAM | tex::MIRROR..=tex::DATA_TOP => laser::pixel(layer, x, y),
         tex::HUB_SIDE..=tex::HUB_TOP => hub::pixel(layer, x, y),
         tex::LAUNCH_SIDE..=tex::POD_PAD_TOP => orbit::pixel(layer, x, y),
-        tex::GRASS_TUFT..=tex::LICHEN | tex::INDICATOR_IRON..=tex::INDICATOR_PALE => ground_cover::pixel(layer, x, y),
-        tex::BIRCH_SIDE..=tex::PINE_SAPLING => forest::pixel(layer, x, y),
+        tex::BIRCH_SIDE..=tex::DEAD_SIDE => forest::pixel(layer, x, y),
         tex::RUST_PLATE..=tex::VAULT_DOOR => ruins::pixel(layer, x, y),
         tex::SMOKE..=tex::SMOKE_THIN | tex::SOOT => smoke::pixel(layer, x, y),
         tex::LOCO_BODY => transport::pixel(layer, x, y),

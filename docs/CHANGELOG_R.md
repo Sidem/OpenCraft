@@ -22,6 +22,16 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **Plant detail, the admin command line and a livelier rain** (built 2026-10-17; user requests). Presentation and tooling: no save, core or generator change.
+  **Plants:** `TEX_SIZE` is 64 (`BASE` 16, every other layer repeated 4 x), and the plant layers (`hires::covers`) are painted at the full 64 by
+  `textures/hires.rs` with a signed-distance pen (`brush.rs`: blades, petals, ellipses); the HUD's block icons scale by `16 / img.width`. Texture memory is
+  16x what it was for the array (about 9 MB with mips).
+  **Console:** `/` or backquote opens `ui/console.ts`; `console/commands.ts` (pure, `web/test/commands.test.mjs`) runs help, weather (forced through
+  `WeatherSky.forced`, never saved), time (`skip_time` ahead to the asked time; `day_seconds` is the new getter), tp, pos, give (`find_item`, new). `time` and
+  `tp` refuse in a shared world.
+  **Rain sound:** its own 13 s noise loop in place of the shared 3 s one, random gusts instead of a 9 Hz tremolo, and single drops at exponential waits
+  (`raindrop`; about 13 a second in a downpour), pitched lower and duller under a roof.
+
 - [x] **S3 Rain and snow and S4 the rain sound** (built 2026-10-17; user request). Presentation only: no save, core or generator change.
   **Engine:** `surroundings/roof.rs` `roof_grid` / `Game::rain_roof` (a 17 x 17 grid of 2-block cells round the camera; per column the top of the first
   meshed, non-plant block found looking down from 40 blocks over the eye to 20 under it, or the bottom of that range): a column under a roof or in a cave reads
@@ -164,7 +174,7 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   the broad tree has no sapling of its own (it shares the oak's leaves). Not built: heather on basalt (left for R2c). Version 9
   is pinned when released.
 - [x] **R2a Ground cover** (built 2026-10-16, presentation only, every world from generator version 2): `mesher/cover.rs` draws
-  grass tufts, daisies, poppies, bluebells, ferns, reeds, dry brush and lichen (`tex` 306–313, `textures/ground_cover.rs`, plain
+  grass tufts, daisies, poppies, bluebells, ferns, reeds, dry brush and lichen (`tex` 306–313, `textures/hires.rs`, plain
   placeholders) as plants on top of natural ground (grass and stained grass, dirt, sand and stained sand, basalt, granite) in empty
   cells with sky light at least 12, chosen per column by a hash and the biome (`WorldGen::biomes`, kept in the column cache; plains
   tufts and meadow flowers, lowlands ferns, highlands tufts, ferns and bluebells, deserts dry brush on sand, basalt fields lichen

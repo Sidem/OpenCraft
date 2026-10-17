@@ -27,6 +27,8 @@ import { BlueprintPanel } from './ui/blueprints';
 import { SitePanel } from './ui/site';
 import { LogbookPanel } from './ui/logbook';
 import { VaultPanel } from './ui/vault';
+import { ConsolePanel } from './ui/console';
+import { consoleHost } from './console/host';
 import { Hints } from './ui/hints';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
@@ -132,6 +134,7 @@ async function main(): Promise<void> {
   const pins = new Pins(game, meta.pins);
   const logbook = new LogbookPanel(game, pins);
   const vault = new VaultPanel(game);
+  const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);
   const minimap = new Minimap(game, wasm.memory, pins);
   const worldMap = new WorldMap(game, wasm.memory, pins);
@@ -144,7 +147,7 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, analytics, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault]; // a machine's panel is in the inventory
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, adminConsole]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock
@@ -208,7 +211,7 @@ async function main(): Promise<void> {
     game.close_inventory();
     closed(resume);
   };
-  for (const p of [research, blueprints, sites, worldMap, analytics, logbook, vault]) p.onClose = closed;
+  for (const p of [research, blueprints, sites, worldMap, analytics, logbook, vault, adminConsole]) p.onClose = closed;
   // Browsers never let a page block Ctrl+W, so closing the tab mid-game (or just after the pointer was
   // freed by it) asks first. With the menu showing, its own links and reloads leave without asking.
   let leftGame = -Infinity;
@@ -239,7 +242,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -295,6 +298,9 @@ async function main(): Promise<void> {
         // Open on the block being looked at, else on whatever was heard last (e.g. the ground).
         input.unlock();
         soundLab.open(game.has_target() ? game.block_sound(game.target_block()) : sound.lastMaterial);
+      } else if (a.kind === 'console') {
+        adminConsole.open();
+        input.unlock();
       } else if (a.kind === 'inventory') {
         inventory.open();
         input.unlock();

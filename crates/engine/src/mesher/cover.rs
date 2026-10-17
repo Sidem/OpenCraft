@@ -5,7 +5,7 @@
 //!
 //! Invariants: a pure function of the chunk's blocks, light, biomes and world position; generator
 //! version 1 has no biomes and so no cover. To add a plant: a texture (`block::tex`,
-//! `textures/ground_cover.rs`) and a rule in [`pick`]. Over stained ground (`block::RUSTY_SOIL..`) grow the indicator
+//! `textures/hires.rs`) and a rule in [`pick`]. Over stained ground (`block::RUSTY_SOIL..`) grow the indicator
 //! plants (R2c): each stain has its own, so a patch of one tells the ore below before anyone points at it.
 
 use super::{pidx, Mesher, N, P, P2};

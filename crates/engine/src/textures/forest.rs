@@ -1,9 +1,9 @@
-//! The other trees' looks (`block/forest.rs`): pale birch bark, birch and pine leaves, cactus, grey dead wood and
-//! the two new saplings. Same pixel-art language as `nature.rs`; the log tops share the oak's rings.
+//! The other trees' looks (`block/forest.rs`): pale birch bark, birch and pine leaves, cactus and grey dead wood (their
+//! saplings are in `hires.rs`). Same pixel-art language as `nature.rs`; the log tops share the oak's rings.
 
 use super::nature::{grain, leaves_in};
 use super::paint::{mottle, tone, Ramp};
-use super::{n, rgb, smooth};
+use super::{n, smooth};
 use crate::block::tex;
 
 const BIRCH_LEAF: Ramp = [[58, 92, 52], [76, 114, 60], [98, 138, 68], [124, 158, 78], [150, 178, 92]];
@@ -18,8 +18,6 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::CACTUS_SIDE => cactus(x, y, true),
         tex::CACTUS_TOP => cactus(x, y, false),
         tex::DEAD_SIDE => dead_wood(x, y),
-        tex::BIRCH_SAPLING => birch_sapling(x, y),
-        tex::PINE_SAPLING => super::plants::pine_sapling(x, y),
         _ => unreachable!("not a forest texture"),
     }
 }
@@ -72,24 +70,5 @@ fn dead_wood(x: i32, y: i32) -> [u8; 4] {
     } else if crack > 0.74 {
         c = [c[0].saturating_add(10), c[1].saturating_add(10), c[2].saturating_add(9), 255];
     }
-    c
-}
-
-/// A pale thin stem with a few round leaves on short twigs.
-fn birch_sapling(x: i32, y: i32) -> [u8; 4] {
-    let leaf = [96.0, 138.0, 70.0];
-    let stem = x == 8 && y >= 5 || x == 7 && (3..5).contains(&y);
-    if stem {
-        return rgb([214.0, 208.0, 194.0], 0.88 + 0.16 * n(380, x, y));
-    }
-    let tufts = [(6, 3), (10, 6), (5, 8), (11, 10), (6, 12)];
-    for (cx, cy) in tufts {
-        let (dx, dy) = ((x - cx).abs(), (y - cy).abs());
-        if dx + dy <= 1 || (dx <= 1 && dy <= 1 && n(381, x, y) > 0.4) {
-            return rgb(leaf, 0.84 + 0.26 * n(382, x, y));
-        }
-    }
-    let mut c = rgb(leaf, 0.84);
-    c[3] = 0;
     c
 }

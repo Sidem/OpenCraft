@@ -91,9 +91,22 @@ export function kindOf(w: Weather): WeatherKind {
   return w.cover > 0.4 ? 'cloudy' : 'clear';
 }
 
+/** A weather of a kind at a strength (0 to 1, only rain and snow use it): what the console's `weather` command forces. */
+export function weatherOf(kind: WeatherKind, amount = 1): Weather {
+  const a = Math.min(1, Math.max(0, amount));
+  switch (kind) {
+    case 'clear': return { ...CLEAR };
+    case 'cloudy': return { cover: 0.7, gloom: 0.15, precip: 0, snow: false };
+    case 'gloomy': return { cover: 1, gloom: 0.75, precip: 0, snow: false };
+    default: return { cover: 1, gloom: 0.75 + 0.25 * a, precip: Math.max(0.2, a), snow: kind === 'snow' };
+  }
+}
+
 /** The weather as drawn: the model, eased, and turned into the `SkyLook` for the sky's settings (the renderer owns one). */
 export class WeatherSky {
   readonly ease = new WeatherEase();
+  /** When set, this weather is drawn instead of the model's (the console's `weather` command; never saved). */
+  forced: Weather | undefined;
   private last = 0;
 
   /** The look for this frame (`now` in milliseconds), or `undefined` when weather and red dusk are both off: today's plain sky. */
@@ -104,7 +117,7 @@ export class WeatherSky {
       this.ease.reset();
       return settings.dusk ? { cover: 0, gloom: 0, precip: 0, dusk: true, clouds: 0 } : undefined;
     }
-    const w = this.ease.update(weatherAt(seed, days, biome), dt);
+    const w = this.ease.update(this.forced ?? weatherAt(seed, days, biome), dt);
     return { cover: w.cover, gloom: w.gloom, precip: w.precip, dusk: settings.dusk, clouds: settings.weather };
   }
 }

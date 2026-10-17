@@ -141,6 +141,11 @@ impl Game {
         daytime::time_of_day(self.sim.tick)
     }
 
+    /// Seconds in one day (the console turns "time noon" into a number of seconds to skip).
+    pub fn day_seconds(&self) -> f64 {
+        (daytime::DAY_TICKS / crate::TICK_RATE as u64) as f64
+    }
+
     /// The day the world is on, counting from 1.
     pub fn day_number(&self) -> u32 {
         daytime::day_number(self.sim.tick) as u32

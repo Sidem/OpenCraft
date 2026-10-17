@@ -1,0 +1,48 @@
+/* The admin console (console.ts): a translucent strip along the bottom-left with the answers above one text line.
+   No backdrop, so the sky and weather stay in view while testing. */
+
+.console {
+  position: fixed;
+  left: 16px;
+  bottom: 92px; /* above the hotbar */
+  z-index: 11;
+  width: min(640px, calc(100% - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.console-log {
+  max-height: 34vh;
+  overflow-y: auto;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font: 13px/1.5 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  color: var(--text, #e8eaf0);
+  pointer-events: auto;
+}
+
+.console-log:empty {
+  display: none;
+}
+
+.console-out {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.console-out.echo {
+  color: var(--muted);
+}
+
+.console-line {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: rgba(14, 16, 21, 0.92);
+  color: var(--text, #e8eaf0);
+  font: 14px ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  outline: none;
+}

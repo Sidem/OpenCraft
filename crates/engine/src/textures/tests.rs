@@ -13,12 +13,70 @@ fn looks(layer: u16) -> Vec<u16> {
 #[test]
 fn every_layer_is_generated() {
     let px = generate();
-    assert_eq!(px.len(), tex::COUNT * 16 * 16 * 4);
+    let bytes = TEX_SIZE * TEX_SIZE * 4;
+    assert_eq!(px.len(), tex::COUNT * bytes);
     for layer in 0..tex::COUNT {
-        let start = layer * 16 * 16 * 4;
-        let slice = &px[start..start + 16 * 16 * 4];
+        let slice = &px[layer * bytes..(layer + 1) * bytes];
         let magenta = slice.chunks(4).filter(|c| c == &[255, 0, 255, 255]).count();
         assert_eq!(magenta, 0, "layer {layer} fell through to the placeholder");
+    }
+}
+
+#[test]
+fn painted_layers_are_repeated_and_plants_are_finer() {
+    let px = generate();
+    let at = |layer: u16, x: usize, y: usize| {
+        let i = ((usize::from(layer) * TEX_SIZE + y) * TEX_SIZE + x) * 4;
+        [px[i], px[i + 1], px[i + 2], px[i + 3]]
+    };
+    let scale = TEX_SIZE / BASE;
+    for (x, y) in [(0, 0), (5, 9), (15, 15)] {
+        let want = pixel(tex::STONE, x as i32, y as i32);
+        assert_eq!(
+            at(tex::STONE, x * scale + scale - 1, y * scale),
+            want,
+            "a block's texel fills its {scale} x {scale} square"
+        );
+    }
+    // A plant is drawn texel by texel: many more distinct colours than a repeated 16 x 16 pattern could hold per quadrant.
+    for layer in [tex::GRASS_TUFT, tex::FERN, tex::INDICATOR_COAL, tex::SAPLING] {
+        assert!(hires::covers(layer));
+        let colours: std::collections::HashSet<[u8; 4]> =
+            (0..TEX_SIZE).flat_map(|y| (0..TEX_SIZE).map(move |x| (x, y))).map(|(x, y)| at(layer, x, y)).collect();
+        assert!(colours.len() > 60, "layer {layer} has only {} colours", colours.len());
+    }
+}
+
+#[test]
+fn plants_are_cutouts_that_keep_their_colour_and_stand_on_the_ground() {
+    let px = generate();
+    let at = |layer: u16, x: usize, y: usize| {
+        let i = ((usize::from(layer) * TEX_SIZE + y) * TEX_SIZE + x) * 4;
+        [px[i], px[i + 1], px[i + 2], px[i + 3]]
+    };
+    let plants = (tex::GRASS_TUFT..=tex::LICHEN).chain(tex::BIRCH_SAPLING..=tex::INDICATOR_PALE).chain([tex::SAPLING]);
+    for layer in plants {
+        let (mut open, mut solid) = (0, 0);
+        for y in 0..TEX_SIZE {
+            for x in 0..TEX_SIZE {
+                let c = at(layer, x, y);
+                assert!(c[3] == 0 || c[3] == 255, "layer {layer}: alpha is all or nothing");
+                if c[3] == 0 {
+                    open += 1;
+                    assert!(
+                        c[0] != 0 || c[1] != 0 || c[2] != 0,
+                        "layer {layer}: a transparent texel needs its plant's colour"
+                    );
+                } else {
+                    solid += 1;
+                }
+            }
+        }
+        let area = TEX_SIZE * TEX_SIZE;
+        assert!(solid > area / 40 && open > area / 3, "layer {layer}: {solid} solid and {open} open of {area}");
+        let rooted =
+            (0..TEX_SIZE).any(|x| at(layer, x, TEX_SIZE - 1)[3] == 255 || at(layer, x, TEX_SIZE - 2)[3] == 255);
+        assert!(rooted, "layer {layer} should touch the ground");
     }
 }
 

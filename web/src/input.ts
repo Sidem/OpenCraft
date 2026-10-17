@@ -28,6 +28,7 @@ export type Action =
   | { kind: 'recenter' }
   | { kind: 'stop-order' }
   | { kind: 'move-order' }
+  | { kind: 'console' }
   | { kind: 'debug' };
 
 export interface Movement {
@@ -205,6 +206,7 @@ export class Input {
       else if (e.code === 'KeyT') this.actions.push({ kind: 'research' });
       else if (e.code === 'KeyP') this.actions.push({ kind: 'analytics' });
       else if (e.code === 'KeyH') this.actions.push({ kind: 'hint' });
+      else if (e.code === 'Slash' || e.code === 'Backquote') this.actions.push({ kind: 'console' });
       else if (e.code === 'KeyN') this.actions.push({ kind: 'map' });
       else if (e.code === 'KeyV') this.actions.push({ kind: 'view' });
       else if (e.code === 'KeyG') this.actions.push({ kind: 'free-camera' });

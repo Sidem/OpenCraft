@@ -348,7 +348,7 @@ pub const DROP_POD: u16 = 302;
 pub const POD_SIDE: u16 = 303;
 pub const POD_LAUNCH_TOP: u16 = 304;
 pub const POD_PAD_TOP: u16 = 305;
-/// Ground cover on crossed quads, never blocks (`mesher/cover.rs`, `textures/ground_cover.rs`).
+/// Ground cover on crossed quads, never blocks (`mesher/cover.rs`, `textures/hires.rs`).
 pub const GRASS_TUFT: u16 = 306;
 pub const DAISY: u16 = 307;
 pub const POPPY: u16 = 308;
@@ -366,7 +366,7 @@ pub const CACTUS_TOP: u16 = 318;
 pub const DEAD_SIDE: u16 = 319;
 pub const BIRCH_SAPLING: u16 = 320;
 pub const PINE_SAPLING: u16 = 321;
-/// Indicator plants over stained ground, one per stain: iron, coal, copper, limestone and quartz (`textures/ground_cover.rs`).
+/// Indicator plants over stained ground, one per stain: iron, coal, copper, limestone and quartz (`textures/hires.rs`).
 pub const INDICATOR_IRON: u16 = 322;
 pub const INDICATOR_COAL: u16 = 323;
 pub const INDICATOR_COPPER: u16 = 324;

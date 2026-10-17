@@ -34,7 +34,7 @@ roadmap agent's.
 - **Textures** are generated in Rust, procedurally, at start-up: `crates/engine/src/textures.rs`
   (`generate()`, the noise helpers `n` / `smooth` / `rgb`, and natural patterns) and
   `textures/machines.rs` (machine and item patterns). `pixel(layer, x, y)` maps each layer to a pattern.
-  They are 16 × 16 (`TEX_SIZE`), RGBA, one layer of a WebGL2 texture array per `block::tex` constant
+  They are 64 × 64 (`TEX_SIZE`), RGBA, painted on a 16 × 16 grid and repeated 4 × (`BASE`) except the plants (`textures/hires.rs`, painted at the full 64 with the `brush.rs` shapes; the user asked for sharper plants on 2026-10-17), one layer of a WebGL2 texture array per `block::tex` constant
   (see `tex::COUNT`). The magenta placeholder test (`textures/tests.rs`) fails if a layer has no pattern.
 - **Blocks** (`block.rs`): each `BlockDef` names 6 face layers (+X, -X, +Y, -Y, +Z, -Z). `Render::Opaque`
   and `Cutout` (leaves: alpha below 0.5 is cut) go through the greedy chunk mesher. Merged quads *tile*
@@ -145,7 +145,7 @@ you touched the game.** Undo that part. Looks never need to change it.
   The texture array is generated once at start-up; keep `generate()` under 20 ms. Check frame time in
   the debug overlay (F3) near a busy factory.
 - **Readability at distance:** keep textures at 16 × 16 pixel art unless the user agrees to more (A11)
-  (`TEX_SIZE`; the crack overlay in `shaders.ts` assumes 16 cells). Ores must stay distinct from each
+  (`BASE`; the crack overlay in `shaders.ts` assumes 16 cells, so it is the grid, not the layer size, that matters). Ores must stay distinct from each
   other and from stone at a glance, for players with colour-vision deficiency too (vary pattern and
   brightness, not just hue).
 - **Tiling:** block textures tile across greedy-merged faces, so no borders or edge seams on natural
@@ -244,10 +244,10 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   a banded plinth, a squat body, a launch tube with a capsule nose, a red mark on its front face (the channel is the way it faces). Landing pad
   (114, 3×3×1): a plinth and a ringed slab with a red mark on the front edge. The falling capsule is two boxes (capsule and flame); a dust puff
   on touchdown and a rising capsule at launch would suit it (not drawn yet).
-  Ground cover (R2a, 2026-10-16, `textures/ground_cover.rs`, layers 306–313): `GRASS_TUFT`, `DAISY`, `POPPY`, `BLUEBELL`, `FERN`, `REED`,
+  Ground cover (R2a, 2026-10-16, `textures/hires.rs`, layers 306–313; now painted at 64 × 64, tall blades, petals and leaves): `GRASS_TUFT`, `DAISY`, `POPPY`, `BLUEBELL`, `FERN`, `REED`,
   `DRY_BRUSH`, `LICHEN`, plain placeholders on crossed quads (`mesher/cover.rs`; the ground is the texture's bottom row). Shapes before
   textures: taller, more varied tufts, a fuller fern and cattail, flowers that read from afar; the quads' vertex budget is the limit.
-  Indicator plants (R2c, 2026-10-17, `textures/ground_cover.rs`, layers 322–325): `INDICATOR_IRON` (a low rosette with three rust-orange blooms), `INDICATOR_COAL` (a round
+  Indicator plants (R2c, 2026-10-17, `textures/hires.rs`, layers 322–325; painted at 64 × 64): `INDICATOR_IRON` (a low rosette with three rust-orange blooms), `INDICATOR_COAL` (a round
   dark purple-green shrub with black berries), `INDICATOR_COPPER` (a tall spike with teal bells), `INDICATOR_PALE` (thin stems with pale stars). Each must read from
   afar as its own colour and shape: they tell the ore below.
   Vault Door (R5c, `textures/ruins.rs`, layer 332): iron frame with rivets and three brass rings; an inset door with a wheel would read better.

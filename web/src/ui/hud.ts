@@ -274,7 +274,7 @@ export class Hud {
     c = document.createElement('canvas');
     c.width = c.height = ICON_PX;
     const ctx = c.getContext('2d')!;
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingQuality = 'high'; // layers are 64 px and drawn at about 16: filter them down
     const info = this.game.item_icon(item);
     this.icons.set(item, c);
     if (info.length < 6) return c;
@@ -283,12 +283,13 @@ export class Hud {
     const project = (x: number, y: number, z: number): [number, number] =>
       [ICON_PX / 2 + (x - z) * S / 2, ICON_PX * 0.54 + (x + z) * S / 4 - y * S / 2];
     const face = (img: HTMLCanvasElement, m: [number, number, number, number, number, number], shade: number) => {
-      ctx.setTransform(...m);
+      const f = 16 / img.width; // the matrices are for a 16 px image; textures are finer
+      ctx.setTransform(m[0] * f, m[1] * f, m[2] * f, m[3] * f, m[4], m[5]);
       ctx.drawImage(img, 0, 0);
       if (shade > 0) {
         ctx.globalCompositeOperation = 'source-atop';
         ctx.fillStyle = `rgba(0,0,0,${shade})`;
-        ctx.fillRect(0, 0, 16, 16);
+        ctx.fillRect(0, 0, img.width, img.height);
         ctx.globalCompositeOperation = 'source-over';
       }
     };

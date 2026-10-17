@@ -1,6 +1,6 @@
 // Procedural sounds of the open world for ambience.ts: two seamless noise beds (white, for wind, surf and running
 // water, which the host filters; and a low rumble for the underground) and the one-shots that sit on top of them
-// (a bird's call, a cricket's chirps, a cave drip). Built from noise and sines like synth.ts's foley, with a seeded
+// (a bird's call, a cricket's chirps, a cave drip, a raindrop). Built from noise and sines like synth.ts's foley, with a seeded
 // random so every run sounds the same. To add one: a function here, a row in ambience.ts.
 
 import { biquad, normalize, type Rand } from './synth';
@@ -66,6 +66,21 @@ export function cricket(sr: number, rand: Rand): Float32Array {
     at += pause;
   }
   return normalize(out, 0.35);
+}
+
+/** One raindrop landing: a tick of filtered noise whose brightness, length and loudness differ from drop to drop, and now
+ *  and then a tiny watery ping behind it. Played at random, many a second, over the rain bed so it never loops audibly. */
+export function raindrop(sr: number, rand: Rand): Float32Array {
+  const n = Math.floor(sr * 0.09);
+  const out = new Float32Array(n);
+  const tau = 0.004 + rand() * 0.012;
+  for (let i = 0; i < n; i++) out[i] = (rand() * 2 - 1) * Math.exp(-i / sr / tau);
+  biquad(out, sr, 'bp', 1800 + rand() * 4200, 0.8 + rand() * 1.2);
+  if (rand() < 0.4) {
+    const f = 2200 + rand() * 2600, decay = 0.008 + rand() * 0.012;
+    for (let i = 0; i < n; i++) out[i] += 0.5 * Math.sin((TAU * f * i) / sr) * Math.exp(-i / sr / decay);
+  }
+  return normalize(out, 0.5);
 }
 
 /** A drop of water landing in a cave pool: a short falling blip and a quieter ring behind it. */

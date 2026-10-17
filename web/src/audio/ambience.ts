@@ -4,13 +4,14 @@
 // and drips underground, birds by day near trees, crickets at night), and glides the beds to them (`bedGains`, ambience-mix.ts,
 // keeps them from adding up past one full wind bed); the one-shots (birds,
 // crickets, drips) are scheduled at random by their level. Working machines duck everything. The rain is the drawn weather
-// (`weather`, set from main.ts), dulled under a roof. Owns its own level, mute and settings (localStorage); plays through the
+// (`weather`, set from main.ts), dulled under a roof; it is a long hiss loop with random gusts and single drops on top, so
+// it never repeats audibly. Owns its own level, mute and settings (localStorage); plays through the
 // sound system's AudioContext (`start`, from `SoundSystem.unlock`). To add a sound: a field in `Mix` and `mixFor`
 // (ambience-levels.ts), then a bed in `start` or a row in `SHOTS`.
 
 import { type BedName, bedGains } from './ambience-mix';
 import { type Falling, type Mix, mixFor } from './ambience-levels';
-import { bed, birdCall, cricket, drip } from './synth-ambience';
+import { bed, birdCall, cricket, drip, raindrop } from './synth-ambience';
 import { mulberry32, type Rand } from './synth';
 
 export interface AmbienceSettings {
@@ -25,10 +26,12 @@ const DEFAULTS: AmbienceSettings = { volume: 50, muted: false };
 const POLL = 0.25;
 const GLIDE = 1.2;
 const BED_SECONDS = 3;
+/** The rain's own noise loop is long, so its hiss does not repeat where an ear can catch it. */
+const RAIN_SECONDS = 13;
 
 /** The one-shots: its level in `Mix`, how many variants are synthesised, the wait in seconds at full and at no level. */
 interface Shot {
-  field: 'birds' | 'insects' | 'drips';
+  field: 'birds' | 'insects' | 'drips' | 'rain';
   make: (sr: number, rand: Rand) => Float32Array;
   variants: number;
   gain: number;
@@ -38,6 +41,8 @@ const SHOTS: readonly Shot[] = [
   { field: 'birds', make: birdCall, variants: 6, gain: 0.4, wait: [3, 14] },
   { field: 'insects', make: cricket, variants: 3, gain: 0.35, wait: [2, 8] },
   { field: 'drips', make: drip, variants: 4, gain: 0.7, wait: [2.5, 12] },
+  // Single drops at random (an exponential wait, like real rain) over the hiss; many a second in a downpour.
+  { field: 'rain', make: raindrop, variants: 12, gain: 0.2, wait: [0.05, 0.7] },
 ];
 
 function loadSettings(): AmbienceSettings {
@@ -55,9 +60,10 @@ function loadSettings(): AmbienceSettings {
   return settings;
 }
 
-/** A looping bed: its `level` (the node the mix sets) and the `filters` the mix may retune. */
+/** A looping bed: its `level` (the node the mix sets), its `swell` stage (the rain's gusts move it) and the `filters` the mix may retune. */
 interface Bed {
   level: GainNode;
+  swell: GainNode;
   filters: BiquadFilterNode[];
 }
 
@@ -76,6 +82,8 @@ export class Ambience {
   private readonly waits = SHOTS.map(() => 1);
   private readonly rand = mulberry32(0xa11b1e);
   private since = POLL;
+  /** Seconds until the rain bed's next gust (a new random loudness, a few seconds apart). */
+  private gustIn = 0;
   /** Set by the sound system when the tab is not in focus and effects are to be muted there (not saved). */
   private away = false;
 
@@ -97,11 +105,12 @@ export class Ambience {
     const rand = mulberry32(7);
     const white = this.loop(bed(ctx.sampleRate, BED_SECONDS, rand, 'white'));
     const rumble = this.loop(bed(ctx.sampleRate, BED_SECONDS, rand, 'rumble'));
+    const rainNoise = this.loop(bed(ctx.sampleRate, RAIN_SECONDS, mulberry32(31), 'white'));
     this.beds = {
       wind: this.makeBed(white, [filter(ctx, 'bandpass', 500, 0.6)], 0.17, 0.25),
       surf: this.makeBed(white, [filter(ctx, 'lowpass', 750, 0.7)], 0.09, 0.5),
       river: this.makeBed(white, [filter(ctx, 'highpass', 300, 0.5), filter(ctx, 'lowpass', 2400, 0.5)], 5.5, 0.1),
-      rain: this.makeBed(white, [filter(ctx, 'highpass', 500, 0.5), filter(ctx, 'lowpass', 5500, 0.5)], 9, 0.18),
+      rain: this.makeBed(rainNoise, [filter(ctx, 'highpass', 500, 0.5), filter(ctx, 'lowpass', 5500, 0.5)], 1, 0), // no steady tremolo: gusts (`gust`) vary it
       hum: this.makeBed(rumble, [], 0.05, 0.1),
     };
   }
@@ -130,13 +139,29 @@ export class Ambience {
       this.since = 0;
       this.retarget(mixFor(game.surroundings(), game.time_of_day(), this.weather));
     }
+    this.gust(dt);
     SHOTS.forEach((shot, i) => {
       this.waits[i] -= dt;
       if (this.waits[i] > 0) return;
       const level = this.mix[shot.field];
-      this.waits[i] = level < 0.05 ? 1 : shot.wait[1] + (shot.wait[0] - shot.wait[1]) * level * (0.6 + 0.8 * this.rand());
+      const spread = shot.wait[0] - shot.wait[1];
+      // Raindrops fall at random: an exponential wait around the mean. The others wait a jittered time.
+      const wait =
+        shot.field === 'rain'
+          ? (shot.wait[1] + spread * level) * -Math.log(1 - this.rand())
+          : shot.wait[1] + spread * level * (0.6 + 0.8 * this.rand());
+      this.waits[i] = level < 0.05 ? 1 : Math.max(0.02, wait);
       if (level >= 0.05) this.play(shot, level);
     });
+  }
+
+  /** Every second or few, the rain swells or eases to a new random loudness: the sound of wind-driven showers, never a steady loop. */
+  private gust(dt: number): void {
+    this.gustIn -= dt;
+    const { ctx, beds } = this;
+    if (this.gustIn > 0 || !ctx || !beds) return;
+    this.gustIn = 0.7 + this.rand() * 3.5;
+    beds.rain.swell.gain.setTargetAtTime(0.55 + this.rand() * 0.5, ctx.currentTime, 0.5);
   }
 
   /** Aims the beds at `target` (they glide there). */
@@ -169,7 +194,8 @@ export class Ambience {
     }
     const src = ctx.createBufferSource();
     src.buffer = buffer;
-    src.playbackRate.value = 0.94 + this.rand() * 0.12;
+    // Drops differ in pitch a lot, and under a roof they land lower and duller.
+    src.playbackRate.value = shot.field === 'rain' ? (0.75 + this.rand() * 0.5) * (0.55 + 0.45 * this.mix.sky) : 0.94 + this.rand() * 0.12;
     const gain = ctx.createGain();
     gain.gain.value = shot.gain * (0.4 + 0.6 * level) * (0.7 + 0.3 * this.rand());
     const pan = ctx.createStereoPanner();
@@ -210,7 +236,7 @@ export class Ambience {
     node.connect(swell).connect(level).connect(this.bus!);
     src.start(0, this.rand() * BED_SECONDS);
     lfo.start();
-    return { level, filters };
+    return { level, swell, filters };
   }
 
   private level(): number {

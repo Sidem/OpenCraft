@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · Sharper plants, a command line, livelier rain
+
+- Grasses, flowers, ferns, reeds, saplings and the plants that mark ore are drawn in four times the detail: single blades, petals and leaves.
+- Press / (or the backquote key) for a command line: weather rain, weather snow 0.5, weather auto, time noon, time dusk, tp 0 100 0, give iron ingot 20, and help for the rest. Press Enter on an empty line to go back to playing. Time and teleport are for worlds of your own.
+- The rain no longer sounds like a loop: it gusts and eases, and single drops land at random, higher in the open and duller under a roof.
+
 ## 2026-10-17 · Rain and snow
 
 - Rain and snow now fall. Rain streaks down and darkens the ground, and you hear it patter; in snow the flakes drift and snow settles on the ground in patches. Nothing falls indoors, under a roof or in a cave, and the rain on a roof sounds muffled. Birds and crickets go quiet in the rain.

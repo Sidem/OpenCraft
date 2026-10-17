@@ -166,6 +166,27 @@ impl Game {
             .map_or_else(Vec::new, |d| vec![d.center.x, d.center.y, d.center.z, d.ore() as i32])
     }
 
+    /// The items whose name is `query` (ignoring case), else those whose name contains it; at most 8 ids. For the console's
+    /// `give`.
+    pub fn find_item(&self, query: &str) -> Vec<u16> {
+        let q = query.trim().to_ascii_lowercase();
+        let names = |exact: bool| {
+            (0..crate::item::ITEM_COUNT as u16)
+                .filter(|&i| {
+                    let name = crate::item::name(ItemId(i)).to_ascii_lowercase();
+                    !name.is_empty() && !q.is_empty() && if exact { name == q } else { name.contains(&q) }
+                })
+                .take(8)
+                .collect::<Vec<u16>>()
+        };
+        let exact = names(true);
+        if exact.is_empty() {
+            names(false)
+        } else {
+            exact
+        }
+    }
+
     /// Block at a position in a loaded chunk (air otherwise). For testing and the console.
     pub fn block_at(&self, x: i32, y: i32, z: i32) -> u8 {
         self.sim.world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR)
