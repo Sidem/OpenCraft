@@ -33,9 +33,8 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   place. **Pieces** (composed with LilyPond and `render_midi.py`, `MusicComposer/opencraft/music-by-context`, all about -18 LUFS):
   Lantern Hours (night, A minor pad, celesta, harp, flute), Deep Seam (caves, C phrygian drone, low clarinet, drips), Salt Road (desert,
   D phrygian dominant, frame drums, oboe, accordion), High Pasture (highlands, D mixolydian, horn, flute, strings); the two Open Ground
-  versions are the day pieces and the fallback for the sea. 24 kbit/s Opus: 0.5 to 0.8 MB a piece, 3.8 MB for all six (two Vorbis loops
-  were 5.8 MB). **Checks:** `web/test/music-director.test.mjs` (13 tests on scripted walks with a fake clock; breaking the hold makes two
-  fail), `scripts/check-music.mjs` (rows and files agree, at most 1.3 MB a file, loudness within 2 LU), both in `npm run check`. Seen
+  versions are the day pieces and the fallback for the sea. 64 kbit/s Opus (first shipped at 24, which measured clearly worse than the old Vorbis loops: spectral error 4.5 and 7.9 dB against 2.6 and 3.2): 1.3 to 2.1 MB a piece, 9.3 MB for all six (two Vorbis loops were 5.8 MB). **Checks:** `web/test/music-director.test.mjs` (13 tests on scripted walks with a fake clock; breaking the hold makes two
+  fail), `scripts/check-music.mjs` (rows and files agree, at most 2.5 MB a file, loudness within 2 LU), both in `npm run check`. Seen
   in the pane: the first piece after 10 s, the cave piece fades in 20 s after going underground, only the pieces played are fetched
   (range requests), no `decodeAudioData`. **Not heard by the agent:** how the pieces sound; levels and tunes want the user's ear (`gain`
   per row trims a piece). Not built: the era as a context, a sea piece.

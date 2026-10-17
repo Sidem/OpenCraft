@@ -510,8 +510,8 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
     pure function of deposit placement; pointing at one names the ore below. In the ore guide too. **Done when:** a test shows
     they grow only over their ore.
 - [x] **R3 Ambient sound (part 2; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `Game::surroundings` feeds `audio/ambience.ts`.
-- [x] **R4 Music by context (part 3; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** a tested director, streamed 24 kbit/s Opus
-  pieces (0.5 to 0.8 MB each) composed in the user's MusicComposer project, modes By place / Always calm / Always adventurous.
+- [x] **R4 Music by context (part 3; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** a tested director, streamed 64 kbit/s Opus
+  pieces (1.3 to 2.1 MB each) composed in the user's MusicComposer project, modes By place / Always calm / Always adventurous.
   **Not built (waits for its first piece):** the era as a context (industrial, space). Next pieces: sea, industrial, space.
 - [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`. Share R2b's generator version if that is not
   released yet. Logbooks give real help. The carry is trimmed (section 1): at most one vault, as an easter egg.
@@ -586,7 +586,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-17: Step R4 built** (music by context, composed in MusicComposer; 3.8 MB for six pieces where two took 5.8 MB; `npm run check` gained `web tests` and `music`).
+- **2026-10-17: Step R4 built** (music by context, composed in MusicComposer; 9.3 MB for six pieces, each about 30% smaller than an old loop; `npm run check` gained `web tests` and `music`).
 - **2026-10-17: Step R3 built** (ambient sound: `Game::surroundings`, `audio/ambience.ts`; own slider and mute). 889 tests.
 - **2026-10-16 and 17: Steps R2a to R2c built** (ground cover on every world from version 2; generator version 9 with tree species
   per biome, blocks 117–123, pinned in `released_versions_never_change` when pushed; indicator plants over stained soil;

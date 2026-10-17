@@ -1,5 +1,5 @@
 // The music library: one row per piece (composed in the MusicComposer project, see docs/WORKFLOW.md). Files are
-// small Ogg Opus passes that play once; music.ts streams them from a media element. `gain` trims a piece to the others
+// Ogg Opus passes (64 kbit/s) that play once; music.ts streams them from a media element. `gain` trims a piece to the others
 // by ear (1 is as rendered, all at about -18 LUFS, checked by scripts/check-music.mjs).
 // To add a piece: drop the .ogg in audio/music/ and add a row. `contexts` are the places it is made for
 // (day, night, underground, desert, highlands, sea), plus 'any' if it may play where no piece is made for the place;

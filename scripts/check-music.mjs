@@ -1,5 +1,5 @@
 // Lints the music library (part of `npm run check`): every file in web/src/audio/music is a row in music-pieces.ts and
-// every row has its file; each file is small (warn at 900 KB, fail at 1.3 MB: the old loops were 2.9 MB); and, when ffmpeg
+// every row has its file; each file is small (warn at 2.2 MB, fail at 2.5 MB: 64 kbit/s Opus runs 1.3 to 2.1 MB; the old loops were 2.9 MB); and, when ffmpeg
 // is installed, each file's integrated loudness is within 2 LU of the library's target (-18 LUFS), so no piece startles.
 // Exits 1 on any failure. A new piece: drop the .ogg in the folder, add its row, run this.
 import { spawnSync } from 'node:child_process';
@@ -10,8 +10,8 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'web/src/audio/music');
 const rows = fs.readFileSync(path.join(root, 'web/src/audio/music-pieces.ts'), 'utf8');
-const WARN_BYTES = 900 * 1024;
-const FAIL_BYTES = 1300 * 1024;
+const WARN_BYTES = 2200 * 1024;
+const FAIL_BYTES = 2500 * 1024;
 const TARGET_LUFS = -18;
 const TOLERANCE_LU = 2;
 

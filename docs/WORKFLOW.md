@@ -142,8 +142,8 @@ Pieces are written in the user's MusicComposer project (`X:\Programming\Projects
 with numpy and scipy needed): a score `.ly` becomes MIDI, `tools/render_midi.py` plays it through a small additive synth and a hall
 reverb, ffmpeg encodes it. `opencraft/music-by-context/` holds the four place pieces and its `build.ps1` (`.\build.ps1 night` builds
 one); `opencraft/overworld-day/` holds the two Open Ground versions (its build also writes the `*_once.ogg` the game uses).
-- A piece plays **once** (`render_midi.py --once`, a faded reverb tail), is encoded as **24 kbit/s Opus in an .ogg** (0.5 to 0.8 MB), and
-  is rendered to about -20 dBFS RMS (about -18 LUFS). The user wants the music small; `scripts/check-music.mjs` fails a file over 1.3 MB.
+- A piece plays **once** (`render_midi.py --once`, a faded reverb tail), is encoded as **64 kbit/s Opus in an .ogg** (1.3 to 2.1 MB), and
+  is rendered to about -20 dBFS RMS (about -18 LUFS). The user wants the music small but not thin (24 kbit/s sounded worse than the old Vorbis loops, 48 to 64 matches them); `scripts/check-music.mjs` fails a file over 2.5 MB.
 - To add a piece: write the score, add it to `build.ps1`, copy the `.ogg` to `web/src/audio/music/`, add a row in `audio/music-pieces.ts`
   (places, mood, `'any'` if it may fill in), run `npm run check`. The synth's voices are listed in `render_midi.py` (`GM`, `DRUMS`).
 - The agent cannot hear: measure with ffmpeg (`ebur128`, `astats`) and leave taste to the user, who tunes a piece's `gain` in its row.
