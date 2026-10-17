@@ -37,7 +37,7 @@ nothing has to scale; deposits last, so distance never presses; every build is o
   site never saw that version).
 
 - [x] **R5a Ruins of the last factory: sites, rusted blocks, scrap** (built 2026-10-17, generator version 9 so new worlds only; v9 is
-  still unreleased, so it is not pinned). **Where:** `worldgen/ruins.rs`: 512 × 512 regions centred on spawn, each with at most one
+  pinned when pushed with R5b). **Where:** `worldgen/ruins.rs`: 512 × 512 regions centred on spawn, each with at most one
   ruin from up to 8 hashed tries (flat within 3 blocks over nine samples, dry, above sea level + 1); the spawn's region rings spawn at
   150 to 297 blocks, so the first ruin is a short walk; a pure function of the seed, cached per region, so chunk order never matters.
   **What:** a cracked concrete slab (30 to 55% cracks), three machine husks (sometimes a second block or a plating cap), two girder

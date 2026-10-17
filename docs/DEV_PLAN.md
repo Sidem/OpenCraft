@@ -7,7 +7,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 **Milestone 13 (Settlements) built and pushed** except 13.6b (town kinds and sites, the depot, orders, upkeep and stalls,
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
-irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (not pinned until released), R2c indicator plants over stained ground; 883 tests) ·
+irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (pinned when pushed), R2c indicator plants over stained ground; 883 tests) ·
 **R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5a and R5b built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks); **next: R5c** (the vault, if wanted), then R7; 13.6b (balance) once the user has played Milestone 13 · Then R5c, R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
@@ -513,7 +513,7 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
 - [x] **R4 Music by context (part 3; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** a tested director, streamed 64 kbit/s Opus
   pieces (1.3 to 2.1 MB each) composed in the user's MusicComposer project, modes By place / Always calm / Always adventurous.
   **Not built (waits for its first piece):** the era as a context (industrial, space). Next pieces: sea, industrial, space.
-- [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`; shares generator version 9 (not pinned until released).
+- [ ] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`; on generator version 9, pinned and live from 2026-10-17: the vault (R5c) needs version 10.
   - [x] **R5a Ruin sites, rusted blocks, scrap (built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `worldgen/ruins.rs`, blocks
     124–126, Scrap Metal, smelter row 135. Deviation: rusted blocks are never held, so no recycler; they give scrap, smelted to iron.
   - [x] **R5b Logbooks (built 2026-10-17, record in `docs/CHANGELOG_R.md`):** block 127 on every slab, a reading panel (`ui/logbook.ts`),
@@ -594,6 +594,6 @@ and the balance numbers. Read the section you need.
 - **2026-10-17: Steps R3 and R4 built** (ambient sound; music by context, composed in MusicComposer, six pieces in 9.3 MB;
   `npm run check` gained `web tests` and `music`).
 - **2026-10-16 and 17: Steps R2a to R2c built** (ground cover; generator version 9, pinned in `released_versions_never_change`
-  when pushed, with tree species per biome, blocks 117–123; indicator plants over stained soil).
+  when pushed (2026-10-17), with tree species per biome, blocks 117–123; indicator plants over stained soil).
 
 Earlier entries live in [CHANGELOG_M13.md](CHANGELOG_M13.md), [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).
