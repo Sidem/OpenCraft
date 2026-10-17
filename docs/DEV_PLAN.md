@@ -592,10 +592,9 @@ and the balance numbers. Read the section you need.
 ## 8. Recent changes
 
 - **2026-10-17: Steps R5a to R5c built** (ruins on generator version 9: sites, blocks 124–127, Scrap Metal, logbooks; the vault on
-  version 10: block 128, `Action::OpenVault` tag 59; `tex::COUNT` 333). 917 tests.
-- **2026-10-17: Steps R3 and R4 built** (ambient sound; music by context, composed in MusicComposer, six pieces in 9.3 MB;
-  `npm run check` gained `web tests` and `music`).
-- **2026-10-16 and 17: Steps R2a to R2c built** (ground cover; generator version 9, pinned in `released_versions_never_change`
-  when pushed (2026-10-17), with tree species per biome, blocks 117–123; indicator plants over stained soil).
+  version 10: block 128, `Action::OpenVault` tag 59; `tex::COUNT` 333). 917 tests. Then quieter ambience (user: wind and water
+  piled up loud): beds share a loudness ceiling (`audio/ambience-mix.ts`), water is read by squared nearness.
+- **2026-10-16 and 17: Steps R2 to R4 built** (ground cover, tree species on generator version 9 with blocks 117–123, indicator
+  plants; ambient sound; music by context, six pieces in 9.3 MB; `npm run check` gained `web tests` and `music`).
 
 Earlier entries live in [CHANGELOG_M13.md](CHANGELOG_M13.md), [CHANGELOG_M12.md](CHANGELOG_M12.md) and [CHANGELOG.md](CHANGELOG.md).

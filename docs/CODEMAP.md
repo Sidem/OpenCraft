@@ -219,7 +219,7 @@ folder with `mod.rs`.
 | `noise.rs` | Seeded Perlin noise + fBm |
 | `math.rs` | `Vec3`, `IVec3`, hashes, deterministic `Rng`, `sort_small_by_key` |
 | `sound.rs` | Sound event buffer read by the host |
-| `surroundings/` | `survey` (presentation): nine floats for the host's ambient sound (biome, sky, openness, height, depth below the surface, sea, fresh water, trees, machine din; `Factory::din_near`), read from loaded blocks; `Game::surroundings` in `api/surroundings.rs` |
+| `surroundings/` | `survey` (presentation): nine floats for the host's ambient sound (biome, sky, openness, height, depth below the surface, sea, fresh water, trees, machine din; `Factory::din_near`), read from loaded blocks (water counts by squared nearness, so streams and the sea are heard only close by); `Game::surroundings` in `api/surroundings.rs` |
 | `tests.rs` | Game-level scenario tests (mining, placing, sounds, miners, a smelter line, crafting, a second player, frame-rate independence); helpers shared with `save/tests.rs` |
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
@@ -291,6 +291,7 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `ui/sound-lab.ts`, `sound-lab-footer.ts`, `volume-control.ts`, `knob.ts`, `sound-panel.ts` (each + `.css`) | Sound designer dialog (O: material tabs, Actions tab), its footer (volume, copy/paste/reset), `VolumeControl` (mute button + slider for one channel, effects or music), the rotary dial widget; `SoundPanel`: the menu's Sound page (effects, ambience and music sliders, the music mode choice) |
 | `audio/settings.ts` | Sound design data: materials, actions, dials, presets, `DEFAULT_DESIGN`, persistence |
 | `audio/synth.ts`, `synth-orbit.ts` | Procedural foley synthesis (dials → samples); `synth-orbit.ts`: the rocket launch, pod launch and pod landing |
+| `audio/ambience-mix.ts` (+ `web/test/ambience-mix.test.mjs`) | `bedGains`: each bed's peak gain and loudness weight, all turned down together so wind, surf and river never add up past one full wind bed (`CEILING`); pure |
 | `audio/ambience.ts`, `synth-ambience.ts` | `Ambience` (own level and mute, a third channel on the sound system; reads `surroundings.ts`): polls `game.surroundings()` 4×/s, `mixFor` turns it and the time of day into bed levels (wind, surf, river, room tone) and one-shot rates (birds, crickets, drips); machines duck it. `synth-ambience.ts`: the noise beds and the one-shots |
 | `audio/sound.ts` | Engine sound events → Web Audio voices, buffer cache, previews; owns the `AudioContext`, the effects level and mute, `silent` (K mutes every channel), `poll` (ambience and music, each frame) |
 | `audio/surroundings.ts` | The layout of `Game.surroundings()` (`S`, biome numbers), `daylight`, `caveness`, `contextFor` (the place music is chosen for: underground, night, desert, highlands, sea, day); pure |

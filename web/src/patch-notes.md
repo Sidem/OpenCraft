@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · A quieter world
+
+- Wind, water and surf no longer pile up into a roar: the ambient sounds are quieter and share a ceiling, so wind on a hilltop above a river is no louder than the wind alone. Running water now fades out much sooner as you walk away from it, and the sea is heard only near the shore. Crickets and birds call a little less often.
+
 ## 2026-10-17 · A door of rings
 
 - Some of the far ruins hide a sealed vault at the foot of their shaft: a heavy iron door you cannot break, with six rings to turn. Right-click it. The far logbooks hint at how the rings work. Behind it waits a small store of parts. New worlds only.

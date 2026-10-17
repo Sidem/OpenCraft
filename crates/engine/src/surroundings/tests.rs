@@ -74,6 +74,30 @@ fn water_at_sea_level_is_sea_and_other_water_is_fresh() {
     assert!(high[SEA] < r[SEA], "the sea is quieter from 12 blocks up: {} against {}", high[SEA], r[SEA]);
 }
 
+/// What a stream (a strip of still water 3 blocks wide and 1 deep, 20 blocks each way) reads as `d` blocks to the side.
+fn stream_at(g: &mut Game, d: i32) -> f32 {
+    let cell = above_ground(g, 0, 0).floor();
+    let y = SEA_LEVEL + 30;
+    for dx in -20..=20 {
+        for dz in 0..3 {
+            g.sim.world.set_block_anywhere_later(IVec3::new(cell.x + dx, y, cell.z + dz), WATER);
+        }
+    }
+    read(g, Vec3::new(f64::from(cell.x) + 0.5, f64::from(y) + 2.5, f64::from(cell.z) + 1.5 + f64::from(d)))[FRESH]
+}
+
+#[test]
+fn a_stream_fades_quickly_with_distance() {
+    let mut g = world();
+    let levels = [0, 3, 6, 9, 12].map(|d| stream_at(&mut g, d));
+    println!("stream by distance {levels:?}");
+    assert!(levels[0] > 0.6, "beside the stream: {levels:?}");
+    assert!(levels.windows(2).all(|w| w[1] < w[0]), "fades steadily: {levels:?}");
+    assert!(levels[2] < 0.5 * levels[0], "half the din by 6 blocks: {levels:?}");
+    assert!(levels[3] < 0.15, "a whisper at 9 blocks: {levels:?}");
+    assert_eq!(levels[4], 0.0, "out of earshot at 12: {levels:?}");
+}
+
 #[test]
 fn leaves_around_read_as_trees() {
     let mut g = world();

@@ -1,11 +1,13 @@
 // Ambient sound: the beds and one-shots of the place the player is in. A few times a second it reads
 // `game.surroundings()` (crates/engine/src/surroundings/mod.rs) and the time of day, turns them into target levels
 // (`mixFor`: wind rising with height and openness, surf by the sea, running water, a low room tone and drips
-// underground, birds by day near trees, crickets at night), and glides the beds to them; the one-shots (birds,
+// underground, birds by day near trees, crickets at night), and glides the beds to them (`bedGains`, ambience-mix.ts,
+// keeps them from adding up past one full wind bed); the one-shots (birds,
 // crickets, drips) are scheduled at random by their level. Working machines duck everything. Owns its own level,
 // mute and settings (localStorage); plays through the sound system's AudioContext (`start`, from
 // `SoundSystem.unlock`). To add a sound: a field in `Mix` and `mixFor`, then a bed in `start` or a row in `SHOTS`.
 
+import { type BedName, bedGains } from './ambience-mix';
 import { bed, birdCall, cricket, drip } from './synth-ambience';
 import { mulberry32, type Rand } from './synth';
 import { BASALT, caveness, clamp01, DESERT, daylight, HIGHLANDS, S } from './surroundings';
@@ -69,8 +71,8 @@ interface Shot {
   wait: [number, number];
 }
 const SHOTS: readonly Shot[] = [
-  { field: 'birds', make: birdCall, variants: 6, gain: 0.5, wait: [2.5, 14] },
-  { field: 'insects', make: cricket, variants: 3, gain: 0.5, wait: [1.2, 6] },
+  { field: 'birds', make: birdCall, variants: 6, gain: 0.4, wait: [3, 14] },
+  { field: 'insects', make: cricket, variants: 3, gain: 0.35, wait: [2, 8] },
   { field: 'drips', make: drip, variants: 4, gain: 0.7, wait: [2.5, 12] },
 ];
 
@@ -103,7 +105,7 @@ export class Ambience {
   private ctx: AudioContext | null = null;
   private out: GainNode | null = null;
   private bus: GainNode | null = null;
-  private beds: Record<'wind' | 'surf' | 'river' | 'hum', Bed> | null = null;
+  private beds: Record<BedName, Bed> | null = null;
   private readonly shotBuffers = new Map<string, AudioBuffer>();
   private readonly waits = SHOTS.map(() => 1);
   private readonly rand = mulberry32(0xa11b1e);
@@ -132,7 +134,7 @@ export class Ambience {
     this.beds = {
       wind: this.makeBed(white, [filter(ctx, 'bandpass', 500, 0.6)], 0.17, 0.25),
       surf: this.makeBed(white, [filter(ctx, 'lowpass', 750, 0.7)], 0.09, 0.5),
-      river: this.makeBed(white, [filter(ctx, 'highpass', 300, 0.5), filter(ctx, 'lowpass', 3200, 0.5)], 5.5, 0.1),
+      river: this.makeBed(white, [filter(ctx, 'highpass', 300, 0.5), filter(ctx, 'lowpass', 2400, 0.5)], 5.5, 0.1),
       hum: this.makeBed(rumble, [], 0.05, 0.1),
     };
   }
@@ -177,14 +179,12 @@ export class Ambience {
     if (!ctx || !beds || !bus) return;
     const now = ctx.currentTime;
     const to = (param: AudioParam, value: number) => param.setTargetAtTime(value, now, GLIDE);
-    const { wind, dry, surf, river, hum, duck } = target;
+    const { wind, dry, duck } = target;
+    const gains = bedGains(target);
     to(bus.gain, duck);
-    to(beds.wind.level.gain, wind * 0.55);
-    to(beds.wind.filters[0].frequency, 280 + 900 * wind + 900 * dry);
+    to(beds.wind.filters[0].frequency, 280 + 700 * wind + 500 * dry);
     to(beds.wind.filters[0].Q, 0.6 + 0.9 * dry);
-    to(beds.surf.level.gain, surf * 0.5);
-    to(beds.river.level.gain, river * 0.3);
-    to(beds.hum.level.gain, hum * 0.7);
+    for (const name of Object.keys(gains) as BedName[]) to(beds[name].level.gain, gains[name]);
   }
 
   private play(shot: Shot, level: number): void {

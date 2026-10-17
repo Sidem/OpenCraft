@@ -41,9 +41,10 @@ const SEA_STRIDE: usize = 4;
 /// Vertical sampling of the near grid: from this far below the eye to this far above it.
 const BELOW: i32 = -8;
 const ABOVE: i32 = 10;
-/// Weighted hits (`1 - distance / reach` each) that count as "all around you" for each reading.
-const SEA_FULL: f32 = 20.0;
-const FRESH_FULL: f32 = 5.0;
+/// Weighted hits (`1 - distance / reach` each; squared for water, so it is heard only fairly close by) that count
+/// as "all around you" for each reading.
+const SEA_FULL: f32 = 12.0;
+const FRESH_FULL: f32 = 3.0;
 const TREES_FULL: f32 = 14.0;
 const DIN_FULL: f32 = 3.0;
 const DIN_RADIUS: f64 = 28.0;
@@ -93,7 +94,7 @@ pub fn survey(world: &World, factory: &Factory, eye: Vec3) -> [f32; FLOATS] {
     for dx in (-SEA_NEAR..=SEA_NEAR).step_by(SEA_STRIDE) {
         for dz in (-SEA_NEAR..=SEA_NEAR).step_by(SEA_STRIDE) {
             if at(cell.x + dx, SEA_LEVEL, cell.z + dz) == block::WATER {
-                sea += weight(dx, SEA_LEVEL - cell.y, dz, SEA_NEAR);
+                sea += weight(dx, SEA_LEVEL - cell.y, dz, SEA_NEAR).powi(2);
             }
         }
     }
@@ -107,9 +108,9 @@ pub fn survey(world: &World, factory: &Factory, eye: Vec3) -> [f32; FLOATS] {
                 if block::is_leaves(b) {
                     trees += w;
                 } else if b == block::WATER && y > SEA_LEVEL {
-                    fresh += w;
+                    fresh += w * w; // squared: running water is only heard close by
                 } else if block::flow_level(b).is_some() {
-                    fresh += 2.0 * w; // moving water is louder than a pool
+                    fresh += 1.5 * w * w; // moving water is louder than a pool
                 }
             }
         }
