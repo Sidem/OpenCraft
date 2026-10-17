@@ -248,7 +248,9 @@ Home follows, middle-drag rotates the overhead views, right-click orders walking
 | `render/water.ts` | The liquid range drawn last (blended, back to front, both sides) and the underwater fog (`fogFor`, from `eye_in_water`) |
 | `render/outlines.ts` | Overlays: mining cracks (the player's and quarries'), a dragged belt line's cells (`line_cells`), placement boxes (amber; red cells in a machine's way); the renderer's line and crack programs |
 | `render/boxes.ts` | Instanced box pipeline (items, machines, articulated avatars); yaw/pitch/roll and tapered parts; record size from `game.instance_floats()` |
-| `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon, stars) |
+| `render/sky.ts` | Day and night: `skyAt` (sun direction, sky and fog colours, daylight from the time of day), `clock`, `SkyPass` (full-screen gradient, sun, moon with phases, the Milky Way, classic hash stars at quality 0; then `StarsPass`) |
+| `render/sky/` | The real night sky, presentation only. `astro.ts` (pure, tested: `skyFrame(days)` = the stars' turn, moon and phase, sun; `readStars`), `stars.ts` (`StarsPass`: catalogue points and constellation lines, loads `stars.bin` and `milkyway.jpg` on first use), `settings.ts` (`SkyStore`: quality Classic/Stars/Stars and Milky Way, lines, twinkle; localStorage), `CREDITS.md` (sources, licences). The two data files are baked by `scripts/bake-sky/bake-sky.py` from HYG v4.4 and NASA SVS Deep Star Maps (`constellations.txt` = the hand-drawn figures); not part of the build. `FrameInfo.days` = game days since the start |
+| `ui/sky.ts` | "Sky" section of the menu's settings page (reuses `comfort.css` rows) |
 | `render/shaders.ts` | GLSL sources; the light curve (sky light × daylight, warm block light, `CAVE_FLOOR`); periodic world-anchored Alpine tint for terrain only (`TERRAIN_TINT_PERIOD`); boxes (`BOXES`) with glow flag 2 skip the fog |
 | `render/gl.ts`, `render/mat4.ts` | Program/uniform helpers; matrix and frustum helpers |
 | `ui/dom.ts` | `h()` and `button()` element helpers |

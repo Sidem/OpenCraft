@@ -18,6 +18,8 @@ import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/ses
 import { WorldStore } from './save/store';
 import { AnalyticsPanel } from './ui/analytics';
 import { ComfortPanel } from './ui/comfort';
+import { SkyStore } from './render/sky/settings';
+import { SkyPanel } from './ui/sky';
 import { isTouchDevice, showDesktopOnly } from './ui/desktop-only';
 import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
@@ -94,8 +96,11 @@ async function main(): Promise<void> {
   const vignette = new Vignette(comfort);
   vignette.previewing = () => menu.previewing;
   document.getElementById('comfort')!.append(new ComfortPanel(comfort).el);
+  const skyStore = new SkyStore();
+  skyStore.subscribe(() => (renderer.skySettings = skyStore.settings));
+  document.getElementById('sky-settings')!.append(new SkyPanel(skyStore).el);
   const input = new Input(canvas);
-  const views = new ViewControls(game, input, renderer, canvas, comfort);
+  const views =new ViewControls(game, input, renderer, canvas, comfort);
   document.getElementById('menu-camera')!.append(views.menu);
   const sound = new SoundSystem();
   hud.setMuted(sound.silent);
@@ -354,6 +359,7 @@ async function main(): Promise<void> {
       targetFit: cursorBlock.length === 3 || !hasTarget ? [] : Array.from(game.target_fit()),
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
+      days: game.day_number() - 1 + game.time_of_day(),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),
       boxCount: game.instance_count(),
       lineCells: game.line_cells(),

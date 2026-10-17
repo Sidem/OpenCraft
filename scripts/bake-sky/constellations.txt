@@ -1,0 +1,22 @@
+# Hand-drawn figures for the sky (read by bake-sky.py). One constellation per row: its name, a colon, then line
+# segments "Bayer Con-Bayer Con" separated by commas. Bayer letters and constellation codes are the catalogue's
+# (HYG's `bayer` and `con` columns); the brightest star of a name is taken.
+
+Ursa Major (the Plough): Alp UMa-Bet UMa, Bet UMa-Gam UMa, Gam UMa-Del UMa, Del UMa-Alp UMa, Del UMa-Eps UMa, Eps UMa-Zet UMa, Zet UMa-Eta UMa
+Ursa Minor (the Little Dipper): Alp UMi-Del UMi, Del UMi-Eps UMi, Eps UMi-Zet UMi, Zet UMi-Bet UMi, Bet UMi-Gam UMi, Gam UMi-Eta UMi, Eta UMi-Zet UMi
+Cassiopeia: Eps Cas-Del Cas, Del Cas-Gam Cas, Gam Cas-Alp Cas, Alp Cas-Bet Cas
+Cepheus: Alp Cep-Bet Cep, Bet Cep-Gam Cep, Gam Cep-Iot Cep, Iot Cep-Zet Cep, Zet Cep-Alp Cep
+Orion: Lam Ori-Alp Ori, Lam Ori-Gam Ori, Alp Ori-Zet Ori, Gam Ori-Del Ori, Del Ori-Eps Ori, Eps Ori-Zet Ori, Zet Ori-Kap Ori, Del Ori-Bet Ori
+Cygnus: Alp Cyg-Gam Cyg, Gam Cyg-Bet Cyg, Del Cyg-Gam Cyg, Gam Cyg-Eps Cyg
+Lyra: Alp Lyr-Eps Lyr, Alp Lyr-Zet Lyr, Zet Lyr-Bet Lyr, Bet Lyr-Gam Lyr, Gam Lyr-Del Lyr, Del Lyr-Zet Lyr
+Aquila: Alp Aql-Gam Aql, Alp Aql-Bet Aql, Alp Aql-Del Aql
+Bootes: Alp Boo-Eps Boo, Eps Boo-Del Boo, Del Boo-Bet Boo, Bet Boo-Gam Boo, Gam Boo-Rho Boo, Rho Boo-Alp Boo
+Corona Borealis: The CrB-Bet CrB, Bet CrB-Alp CrB, Alp CrB-Gam CrB, Gam CrB-Del CrB, Del CrB-Eps CrB, Eps CrB-Iot CrB
+Hercules (the keystone): Zet Her-Eps Her, Eps Her-Pi Her, Pi Her-Eta Her, Eta Her-Zet Her
+Pegasus (the Great Square): Alp Peg-Bet Peg, Bet Peg-Alp And, Alp And-Gam Peg, Gam Peg-Alp Peg
+Andromeda: Alp And-Del And, Del And-Bet And, Bet And-Gam And
+Auriga: Alp Aur-Bet Aur, Bet Aur-The Aur, The Aur-Bet Tau, Bet Tau-Iot Aur, Iot Aur-Alp Aur
+Canis Minor: Alp CMi-Bet CMi
+Delphinus: Alp Del-Bet Del, Bet Del-Del Del, Del Del-Gam Del, Gam Del-Alp Del, Del Del-Eps Del
+Aries: Alp Ari-Bet Ari, Bet Ari-Gam Ari
+Leo: Alp Leo-Eta Leo, Eta Leo-Gam Leo, Gam Leo-Zet Leo, Zet Leo-Mu Leo, Mu Leo-Eps Leo, Gam Leo-Del Leo, Del Leo-Bet Leo, Del Leo-The Leo, The Leo-Bet Leo

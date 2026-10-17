@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · The real night sky
+
+- The night sky is now the real one: about 9,000 true stars, the band of the Milky Way with its dark dust lanes, and a moon that goes through its phases (a full moon every eight days). The stars drift through the seasons, so each stretch of nights shows different constellations. Look up from a hilltop.
+- Settings has a new Sky section: pick Classic (the old sky), Stars, or Stars and Milky Way, draw faint lines for the constellations, and switch the twinkling off.
+
 ## 2026-10-17 · A quieter world
 
 - Wind, water and surf no longer pile up into a roar: the ambient sounds are quieter and share a ceiling, so wind on a hilltop above a river is no louder than the wind alone. Running water now fades out much sooner as you walk away from it, and the sea is heard only near the shore. Crickets and birds call a little less often.

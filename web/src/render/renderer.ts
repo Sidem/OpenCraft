@@ -10,6 +10,8 @@ import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from
 import { drawBoxes, drawCracks, drawLineCells } from './outlines';
 import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
+import { skyFrame } from './sky/astro';
+import { DEFAULTS as SKY_DEFAULTS, type SkySettings } from './sky/settings';
 import { fogFor, WaterPass } from './water';
 
 const CHUNK = 32;
@@ -37,6 +39,8 @@ export interface FrameInfo {
   mineProgress: number;
   /** The engine's time of day (0 midnight, 0.5 noon). */
   time: number;
+  /** Days since the world began as a fraction (0 at the first midnight); moves the stars and the moon's phase. */
+  days: number;
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;
@@ -131,6 +135,7 @@ export class Renderer {
   private readonly planes = new Float32Array(24);
 
   fovY = (72 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
+  skySettings: SkySettings = SKY_DEFAULTS; // how the night sky is drawn (sky/settings.ts, set from the menu)
   constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number) {
     const gl = canvas.getContext('webgl2', {
       antialias: true,
@@ -298,7 +303,8 @@ export class Renderer {
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     } else {
       gl.clear(gl.DEPTH_BUFFER_BIT);
-      this.sky.draw(sky, f.yaw, f.pitch, this.fovY, this.canvas.width / this.canvas.height, f.satellites);
+      const view = { settings: this.skySettings, frame: skyFrame(f.days), time: performance.now() / 1000 };
+      this.sky.draw(sky, f.yaw, f.pitch, this.fovY, this.canvas.width / this.canvas.height, f.satellites, view);
     }
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);

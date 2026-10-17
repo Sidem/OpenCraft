@@ -22,6 +22,21 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **S1 The real night sky** (built 2026-10-17; user request "an actual night sky, real constellations, the Milky Way"). Presentation only:
+  no engine, save or generator change. `scripts/bake-sky/bake-sky.py` bakes `web/src/render/sky/stars.bin` (HYG v4.4, 8,920 stars to
+  magnitude 6.5, 6 bytes each) and `milkyway.jpg` (NASA SVS Deep Star Map 2020, 2048 x 1024, 320 KB) plus 89 hand-drawn line segments for 18
+  constellations (`constellations.txt`); it refuses a line naming a missing star or spanning under 0.8 or over 40 degrees, and checks the
+  picture's orientation at the galactic centre, the anticentre and the Large Magellanic Cloud. Sources and licences (CC BY-SA 4.0
+  for the star file): `web/src/render/sky/CREDITS.md`. `sky/astro.ts` is the tested maths: the observer is the game's sun model (an
+  equator observer with the sun at declination -19 degrees), `skyFrame(days)` gives the turn, the moon (phase cycle `MOON_DAYS` = 8 game days,
+  a full moon at midnight) and the sun; the stars come round once per `YEAR_DAYS` = 96 game days. `sky/stars.ts` draws the stars in one
+  `POINTS` draw and the lines in one `LINES` draw (no CPU work per star); the sky shader samples the Milky Way with a fixed mip. Settings
+  (`sky/settings.ts`, `ui/sky.ts`, menu Settings > Sky): Classic / Stars / Stars and Milky Way, constellation lines, twinkling.
+  **Checked:** `web/test/astro.test.mjs` (rotation, the sun equals `skyAt`, rise/transit/set, Orion not mirrored, moon phases, picture
+  orientation, the star file); in the pane the galactic centre, the Great Rift and a crescent moon with earthshine show where they should;
+  Classic is byte-identical to the old sky (FNV hash of 20 frames at 640 x 480: five times of day, four directions, satellites on).
+  **Cost** (pane, 1383 x 1222, hardware GL, sky pass alone, `finish`-timed): Classic 0.11 ms, Stars 0.14, Stars and Milky Way 0.19 (up to 0.46 while
+  the GPU clocks ramp). **Left:** moon phases do not change the terrain's moonlight (still full-strength moon colour); lines cover 18 constellations.
 - [x] **R5c The vault** (built 2026-10-17, generator version 10). About one ruin in five (`VAULT_ONE_IN`, never the spawn's first) has a
   sealed 3 × 3 × 2 room east of the shaft's chamber, behind a two-block Vault Door (block 128, unbreakable, `worldgen/ruins.rs`). Right-click
   opens a panel (`ui/vault.ts`): six dials of digits 0 to 4, the first ring on the right, the dials' number times itself (the
