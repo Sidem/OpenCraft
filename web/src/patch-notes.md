@@ -5,6 +5,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-16 · A better first minute
 
+- Plants now show what lies below. Over rusty soil grow rust-orange blooms (iron), over dark soil dark shrubs (coal), over green soil tall teal bells (copper) and over pale soil pale stars (limestone and quartz). The ore guide says so too; point at the soil under one to see how deep the ore is.
 - New worlds have forests that differ by place: birches among the oaks on the plains, low broad trees in the lowlands, dark pines on the highlands, cacti in the deserts and bare dead trees on the basalt fields. Birch and pine leaves leave their own saplings, which grow into their own trees. Worlds you already have keep their trees.
 - The ground now has plants. Meadows grow grass tufts and clusters of daisies, poppies and bluebells; lowlands are full of ferns; highlands have tufts and bluebells, and lichen on the granite; deserts have dry brush on the sand; basalt fields have lichen and dry brush; reeds stand wherever the bank meets water. They are only for looking at: you walk through them, nothing drops, and they follow the ground when you dig or build. In worlds made before biomes existed there are none.
 - New worlds have more natural water: rivers wind through the land, and where the ground drops they spill down as rapids and small waterfalls instead of standing behind dams. Lakes, ponds and the stained soil over ore have irregular shapes instead of circles. Worlds you already have keep the rivers they were made with.

@@ -5,7 +5,8 @@
 //!
 //! Invariants: a pure function of the chunk's blocks, light, biomes and world position; generator
 //! version 1 has no biomes and so no cover. To add a plant: a texture (`block::tex`,
-//! `textures/ground_cover.rs`) and a rule in [`pick`].
+//! `textures/ground_cover.rs`) and a rule in [`pick`]. Over stained ground (`block::RUSTY_SOIL..`) grow the indicator
+//! plants (R2c): each stain has its own, so a patch of one tells the ore below before anyone points at it.
 
 use super::{pidx, Mesher, N, P, P2};
 use crate::block::{
@@ -37,6 +38,21 @@ enum Ground {
     Rock(BlockId),
 }
 
+/// The plant that grows over each stain (R2c), by the stain's order in `block`: rusty (iron), dark (coal), green
+/// (copper), pale (limestone and quartz). Real geobotany: some plants thrive on metal-rich soil.
+const INDICATORS: [u16; 4] = [tex::INDICATOR_IRON, tex::INDICATOR_COAL, tex::INDICATOR_COPPER, tex::INDICATOR_PALE];
+/// Chance in thousandths that a stained column carries its indicator.
+const INDICATOR_PERMILLE: u32 = 450;
+
+/// The indicator of a stained soil or stained sand block, if it is one.
+fn indicator_of(b: BlockId) -> Option<u16> {
+    match b {
+        RUSTY_SOIL..=PALE_SOIL => Some(INDICATORS[(b - RUSTY_SOIL) as usize]),
+        RUSTY_SAND..=PALE_SAND => Some(INDICATORS[(b - RUSTY_SAND) as usize]),
+        _ => None,
+    }
+}
+
 fn ground_of(b: BlockId) -> Option<Ground> {
     match b {
         GRASS | RUSTY_SOIL..=PALE_SOIL => Some(Ground::Turf),
@@ -63,7 +79,8 @@ impl Mesher {
                     if self.pad[p] != AIR {
                         continue;
                     }
-                    let Some(ground) = ground_of(self.pad[p - P2]) else { continue };
+                    let below = self.pad[p - P2];
+                    let Some(ground) = ground_of(below) else { continue };
                     if (light[p] & 15) < SKY_MIN {
                         continue;
                     }
@@ -71,7 +88,8 @@ impl Mesher {
                         (hash2(SEED, wx, wz), hash2(SEED ^ 1, wx >> 2, wz >> 2) % 1000 < MEADOW_PERMILLE)
                     });
                     let wet = !matches!(ground, Ground::Rock(_)) && self.water_beside(p, y);
-                    if let Some(layer) = pick(cover.biomes[z * N + x], ground, h, meadow, wet) {
+                    let stain = indicator_of(below).filter(|_| h % 1000 < INDICATOR_PERMILLE);
+                    if let Some(layer) = stain.or_else(|| pick(cover.biomes[z * N + x], ground, h, meadow, wet)) {
                         self.push_plant(x as u32, y as u32, z as u32, u32::from(layer), light[p]);
                     }
                 }

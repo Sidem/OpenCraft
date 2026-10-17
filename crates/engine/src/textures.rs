@@ -208,7 +208,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::EMIT_SIDE..=tex::BEAM | tex::MIRROR..=tex::DATA_TOP => laser::pixel(layer, x, y),
         tex::HUB_SIDE..=tex::HUB_TOP => hub::pixel(layer, x, y),
         tex::LAUNCH_SIDE..=tex::POD_PAD_TOP => orbit::pixel(layer, x, y),
-        tex::GRASS_TUFT..=tex::LICHEN => ground_cover::pixel(layer, x, y),
+        tex::GRASS_TUFT..=tex::LICHEN | tex::INDICATOR_IRON..=tex::INDICATOR_PALE => ground_cover::pixel(layer, x, y),
         tex::BIRCH_SIDE..=tex::PINE_SAPLING => forest::pixel(layer, x, y),
         tex::SMOKE..=tex::SMOKE_THIN | tex::SOOT => smoke::pixel(layer, x, y),
         tex::LOCO_BODY => transport::pixel(layer, x, y),

@@ -111,3 +111,30 @@ fn reeds_stand_on_the_bank() {
     let reeds = count(&m, tex::REED);
     assert!(reeds > 5 && reeds < 32, "reeds only along the shore line: {reeds}");
 }
+
+#[test]
+fn indicator_plants_grow_only_over_their_own_stain() {
+    use crate::block::{DARK_SAND, DARK_SOIL, GREEN_SAND, GREEN_SOIL, PALE_SOIL, RUSTY_SAND, RUSTY_SOIL};
+    let all = [tex::INDICATOR_IRON, tex::INDICATOR_COAL, tex::INDICATOR_COPPER, tex::INDICATOR_PALE];
+    let stains = [
+        (RUSTY_SOIL, tex::INDICATOR_IRON),
+        (DARK_SOIL, tex::INDICATOR_COAL),
+        (GREEN_SOIL, tex::INDICATOR_COPPER),
+        (PALE_SOIL, tex::INDICATOR_PALE),
+        (RUSTY_SAND, tex::INDICATOR_IRON),
+        (DARK_SAND, tex::INDICATOR_COAL),
+        (GREEN_SAND, tex::INDICATOR_COPPER),
+    ];
+    for (stain, own) in stains {
+        let m = floor(stain, Biome::Plains, &DAYLIGHT, 0);
+        let mine = count(&m, own);
+        assert!(mine > 300, "stain {stain}: {mine} of 1024 columns carry its plant");
+        for other in all.into_iter().filter(|&o| o != own) {
+            assert_eq!(count(&m, other), 0, "stain {stain} grows another stain's plant");
+        }
+    }
+    for ground in [GRASS, SAND, DIRT, BASALT] {
+        let m = floor(ground, Biome::Plains, &DAYLIGHT, 0);
+        assert!(all.iter().all(|&o| count(&m, o) == 0), "unstained ground {ground} grows an indicator");
+    }
+}

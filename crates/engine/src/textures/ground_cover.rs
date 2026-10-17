@@ -15,6 +15,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::REED => reed(x, y),
         tex::DRY_BRUSH => dry_brush(x, y),
         tex::LICHEN => lichen(x, y),
+        tex::INDICATOR_IRON..=tex::INDICATOR_PALE => indicator(layer, x, y),
         _ => unreachable!("not a ground cover texture"),
     }
 }
@@ -123,4 +124,66 @@ fn lichen(x: i32, y: i32) -> [u8; 4] {
         return rgb(base, 0.8 + 0.3 * n(322, x, y));
     }
     clear([140.0, 156.0, 108.0])
+}
+
+/// The indicator plants (`mesher/cover.rs`): each stain has its own colour and shape, so patches read from afar.
+pub fn indicator(layer: u16, x: i32, y: i32) -> [u8; 4] {
+    match layer {
+        tex::INDICATOR_IRON => rust_bloom(x, y),
+        tex::INDICATOR_COAL => coal_shrub(x, y),
+        tex::INDICATOR_COPPER => copper_bell(x, y),
+        _ => pale_star(x, y),
+    }
+}
+
+/// A low rosette of leaves with three rust-orange blooms.
+fn rust_bloom(x: i32, y: i32) -> [u8; 4] {
+    let blooms = [(5, 8), (8, 5), (11, 8)];
+    if blooms.iter().any(|&(bx, by)| (x - bx).abs() + (y - by).abs() <= 1) {
+        return rgb([220.0, 118.0, 48.0], 0.86 + 0.2 * n(330, x, y));
+    }
+    let (dx, dy) = ((x - 8).abs(), 15 - y);
+    if (9..=15).contains(&y) && dx <= (dy + 1).min(6) && n(331, x, y) > 0.2 {
+        return rgb([88.0, 112.0, 64.0], 0.78 + 0.3 * n(332, x, y));
+    }
+    clear([88.0, 112.0, 64.0])
+}
+
+/// A round bush of dark purple-green leaves with a few black berries.
+fn coal_shrub(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (f64::from(x) - 7.5, f64::from(y) - 10.0);
+    if dx * dx / 30.0 + dy * dy / 20.0 <= 1.0 && y <= 15 && n(333, x, y) > 0.18 {
+        if n(334, x, y) > 0.9 {
+            return rgb([34.0, 28.0, 40.0], 1.0);
+        }
+        return rgb([72.0, 78.0, 84.0], 0.62 + 0.4 * n(335, x, y));
+    }
+    clear([72.0, 78.0, 84.0])
+}
+
+/// A tall spike with teal bells up its length.
+fn copper_bell(x: i32, y: i32) -> [u8; 4] {
+    if x == 8 && y >= 2 {
+        return blade_green(336, x, y, f64::from(15 - y) / 13.0);
+    }
+    let bell = (2..=11).contains(&y) && y % 3 == 2 && (x == 7 || x == 9 || (x == 6 || x == 10) && y > 5);
+    if bell {
+        return rgb([62.0, 172.0, 152.0], 0.84 + 0.2 * n(337, x, y));
+    }
+    clear(GREEN)
+}
+
+/// Thin stems each crowned with a small pale star.
+fn pale_star(x: i32, y: i32) -> [u8; 4] {
+    let stars = [(4, 7), (8, 3), (12, 9)];
+    for (sx, sy) in stars {
+        if (x - sx).abs() + (y - sy).abs() <= 1 {
+            let heart = x == sx && y == sy;
+            return rgb(if heart { [236.0, 214.0, 120.0] } else { [226.0, 220.0, 244.0] }, 0.9);
+        }
+        if x == sx && y > sy + 1 {
+            return blade_green(338, x, y, f64::from(15 - y) / 12.0);
+        }
+    }
+    clear(GREEN)
 }

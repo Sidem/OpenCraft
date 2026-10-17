@@ -22,6 +22,12 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R2c Indicator plants** (built 2026-10-17, presentation only, every world from version 2): over each stained soil or sand (blocks
+  36–43: rusty = iron, dark = coal, green = copper, pale = limestone and quartz) `mesher/cover.rs` grows that stain's own plant on 45% of
+  the columns (`tex::INDICATOR_IRON..=INDICATOR_PALE`, 322–325: a rust-orange bloom, a dark shrub, a tall teal bell, pale stars), so
+  they follow the stains, which follow the veins and lodes (`geology.rs`), and never grow elsewhere (`cover/tests.rs`). Pointing at one
+  reads the stained soil under it ("Stains like this lie over ore veins and lodes"; the existing depth reading); the ore guide's note on
+  stained soil names the plants. No new state.
 - [x] **R2b Tree species (generator version 9, built 2026-10-17, new worlds only):** `worldgen/trees.rs` rows: oak (4–6) and birch (5–7,
   white bark) on plains (70/30), broad low trees (3–4 trunk, canopy 3 out) in lowlands (60%, rest oak/birch), pines (6–8, a cone of
   needles) on highlands (90%), cacti on desert sand and dead snags on basalt (flat 7% and 5% of cells; the others follow the forest noise). Blocks 117–123

@@ -247,6 +247,9 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Ground cover (R2a, 2026-10-16, `textures/ground_cover.rs`, layers 306–313): `GRASS_TUFT`, `DAISY`, `POPPY`, `BLUEBELL`, `FERN`, `REED`,
   `DRY_BRUSH`, `LICHEN`, plain placeholders on crossed quads (`mesher/cover.rs`; the ground is the texture's bottom row). Shapes before
   textures: taller, more varied tufts, a fuller fern and cattail, flowers that read from afar; the quads' vertex budget is the limit.
+  Indicator plants (R2c, 2026-10-17, `textures/ground_cover.rs`, layers 322–325): `INDICATOR_IRON` (a low rosette with three rust-orange blooms), `INDICATOR_COAL` (a round
+  dark purple-green shrub with black berries), `INDICATOR_COPPER` (a tall spike with teal bells), `INDICATOR_PALE` (thin stems with pale stars). Each must read from
+  afar as its own colour and shape: they tell the ore below.
   Forest (R2b, 2026-10-17, `textures/forest.rs`, layers 314–321): `BIRCH_SIDE` (pale bark with dark scars), `BIRCH_LEAVES`, `PINE_LEAVES` (dark
   needles), `CACTUS_SIDE` / `CACTUS_TOP` (ribs and spines; blocks 120), `DEAD_SIDE` (grey cracked wood), `BIRCH_SAPLING`, `PINE_SAPLING`. Shapes of
   the trees (`worldgen/trees.rs` `Shape`) are blocky placeholders: silhouettes that read from afar matter most (a real cone, drooping broad trees).

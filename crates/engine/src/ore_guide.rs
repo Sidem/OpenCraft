@@ -86,7 +86,7 @@ pub fn guide_notes(gen: &WorldGen) -> String {
         ));
     }
     if gen.version() >= 2 {
-        lines.push("Stained soil lies over veins and lodes. Point at it to see how far down the ore is.".into());
+        lines.push("Stained soil lies over veins and lodes, and a plant grows on each stain: rust-orange blooms over iron, dark shrubs over coal, teal bells over copper, pale stars over limestone and quartz. Point at the soil to see how far down the ore is.".into());
     }
     let (lo, hi) = LODE_HEIGHTS;
     lines.push(format!("Lodes, the biggest deposits, lie near bedrock (height {lo} to {hi}) under any ground."));

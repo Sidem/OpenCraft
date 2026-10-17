@@ -366,7 +366,12 @@ pub const CACTUS_TOP: u16 = 318;
 pub const DEAD_SIDE: u16 = 319;
 pub const BIRCH_SAPLING: u16 = 320;
 pub const PINE_SAPLING: u16 = 321;
-pub const COUNT: usize = 322;
+/// Indicator plants over stained ground, one per stain: iron, coal, copper, limestone and quartz (`textures/ground_cover.rs`).
+pub const INDICATOR_IRON: u16 = 322;
+pub const INDICATOR_COAL: u16 = 323;
+pub const INDICATOR_COPPER: u16 = 324;
+pub const INDICATOR_PALE: u16 = 325;
+pub const COUNT: usize = 326;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {
