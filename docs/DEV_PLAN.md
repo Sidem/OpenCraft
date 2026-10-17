@@ -8,7 +8,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
 irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (pinned when pushed), R2c indicator plants over stained ground; 883 tests) ·
-**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5 built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks; R5c the vault on version 10, pinned when pushed); **S1 built** (the real night sky; S2 to S4 weather next, user-requested), then **R7**, R8; 13.6b (balance) once the user has played Milestone 13 · Then R7, R8, the feel-and-feedback interlude,
+**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5 built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks; R5c the vault on version 10, pinned when pushed); **S1 and S2 built** (the real night sky; weather model, clouds and red dusk; S3 rain and snow and S4 rain sound next, user-requested), then **R7**, R8; 13.6b (balance) once the user has played Milestone 13 · Then R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -517,8 +517,10 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
   (never held: they give scrap) and Scrap Metal; R5b logbooks (block 127, `ui/logbook.ts`); R5c the vault, generator version 10 (`sim/vault.rs`).
 - [ ] **S Sky and weather (user, 2026-10-17; record in `docs/CHANGELOG_R.md`).** Presentation only, cheap, every effect has a setting and an Off.
   - [x] **S1 The real night sky:** real stars, the Milky Way, moon phases, constellation lines (`render/sky/`, `scripts/bake-sky/`).
-  - [ ] **S2 Weather model, clouds, red dusk and dawn:** a pure function of (seed, tick) (clear, cloudy, gloomy, rain, snow by biome and season)
-    shared by co-op peers, tested for determinism; cloud layer and sky tint in the sky shader; the same Off and quality switches.
+  - [x] **S2 Weather model, clouds, red dusk and dawn (built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `render/sky/weather.ts`, a pure
+    function of (seed, game days, biome) (clear, cloudy, gloomy, rain, snow by biome and season) shared by co-op peers, tested for
+    determinism; cloud layer and red dusk in the sky shader; settings Weather Off/Low/Full and Red dusk. **Handoff for S3:** the
+    renderer's `weather.ease.value` is the drawn weather (`cover`, `gloom`, `precip` 0 to 1, `snow` bool); S3 reads it and `FrameInfo.biome`.
   - [ ] **S3 Rain and snow** (one particle pass around the camera, roof occlusion by sky light, wet ground, fog) and **S4 rain sound** through
     `audio/ambience-mix.ts`'s ceiling. **Done when:** a frame-time check with every effect on costs under 1 ms.
 - [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
@@ -596,6 +598,8 @@ and the balance numbers. Read the section you need.
   version 10: block 128, `Action::OpenVault` tag 59; `tex::COUNT` 333). 917 tests. Then quieter ambience (user: wind and water
   piled up loud): beds share a loudness ceiling (`audio/ambience-mix.ts`), water is read by squared nearness. Then **S1**: the real
   night sky (HYG stars, NASA Milky Way, moon phases; `render/sky/`, `scripts/bake-sky/`; settings Classic/Stars/Stars and Milky Way).
+  **S2** (same day): the weather model and clouds (`render/sky/weather.ts`, `clouds.ts`): clear most of the time, a front every few
+  days, rain or snow by biome and season; red dusk and dawn; settings Weather Off/Low/Full and Red dusk. 918 engine tests, 35 web tests.
 - **2026-10-16 and 17: Steps R2 to R4 built** (ground cover, tree species on generator version 9 with blocks 117–123, indicator
   plants; ambient sound; music by context, six pieces in 9.3 MB; `npm run check` gained `web tests` and `music`).
 

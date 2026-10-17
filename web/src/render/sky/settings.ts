@@ -1,5 +1,6 @@
-// Sky settings: how the night sky is drawn. `SkyStore` keeps them in localStorage and tells subscribers (the renderer, the
-// menu section ui/sky.ts) when one changes. Presentation only: nothing here reaches the engine or a save.
+// Sky settings: how the night sky, the weather and the dusk are drawn. `SkyStore` keeps them in localStorage and tells
+// subscribers (the renderer, the menu section ui/sky.ts) when one changes. Presentation only: nothing here reaches the engine
+// or a save. Weather Off and red dusk Off together draw exactly the sky of before step S2.
 // To add a setting: a field in `SkySettings` and `DEFAULTS`, a line in `load`, then use it in sky.ts / stars.ts and add a
 // control in ui/sky.ts.
 
@@ -13,9 +14,17 @@ export interface SkySettings {
   lines: boolean;
   /** Let the stars shimmer. */
   twinkle: boolean;
+  /** Weather in the sky (sky/weather.ts): 0 off, 1 low (clouds and gloom), 2 full (clouds lit from the side as well). */
+  weather: WeatherQuality;
+  /** The red glow of dusk and dawn. */
+  dusk: boolean;
 }
 
-export const DEFAULTS: SkySettings = { quality: 2, lines: false, twinkle: true };
+/** 0 off, 1 low, 2 full. */
+export type WeatherQuality = 0 | 1 | 2;
+export const WEATHER_NAMES = ['Off', 'Low', 'Full'] as const;
+
+export const DEFAULTS: SkySettings = { quality: 2, lines: false, twinkle: true, weather: 2, dusk: true };
 
 const STORAGE_KEY = 'opencraft.sky';
 
@@ -27,6 +36,8 @@ function load(): SkySettings {
     if (rec.quality === 0 || rec.quality === 1 || rec.quality === 2) s.quality = rec.quality;
     if (typeof rec.lines === 'boolean') s.lines = rec.lines;
     if (typeof rec.twinkle === 'boolean') s.twinkle = rec.twinkle;
+    if (rec.weather === 0 || rec.weather === 1 || rec.weather === 2) s.weather = rec.weather;
+    if (typeof rec.dusk === 'boolean') s.dusk = rec.dusk;
   } catch {
     // Storage unavailable or corrupt: the defaults.
   }

@@ -7,6 +7,7 @@
 
 import { createProgram, uniforms } from '../gl';
 import { readStars, type StarCatalogue } from './astro';
+import { CLOUD_GLSL, CLOUD_UNIT } from './clouds';
 
 const STARS_URL = new URL('./stars.bin', import.meta.url).href;
 const MILKY_URL = new URL('./milkyway.jpg', import.meta.url).href;
@@ -33,7 +34,7 @@ export class StarsPass {
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, vert, frag);
-    this.u = uniforms(gl, this.prog, ['u_eq', 'u_right', 'u_up', 'u_fwd', 'u_tan', 'u_night', 'u_time', 'u_twinkle', 'u_px', 'u_lines'] as const);
+    this.u = uniforms(gl, this.prog, ['u_eq', 'u_right', 'u_up', 'u_fwd', 'u_tan', 'u_night', 'u_time', 'u_twinkle', 'u_px', 'u_lines', 'u_cloudOn', 'u_cloud', 'u_cloudTex'] as const);
     this.vao = gl.createVertexArray()!;
   }
 
@@ -50,9 +51,14 @@ export class StarsPass {
   }
 
   /** Adds the stars (and the lines when `lines`) to the frame; `night` is 0 by day and 1 at night, `time` in seconds. */
-  draw(eq: Float32Array | number[], cam: SkyCamera, night: number, lines: boolean, twinkle: boolean, height: number, time: number): void {
+  draw(eq: Float32Array | number[], cam: SkyCamera, night: number, lines: boolean, twinkle: boolean, height: number, time: number, cloud?: { cover: number; wind: number }): void {
     const gl = this.gl, u = this.u;
     gl.useProgram(this.prog);
+    gl.uniform1i(u.u_cloudOn, cloud ? 1 : 0);
+    if (cloud) {
+      gl.uniform2f(u.u_cloud, cloud.cover, cloud.wind);
+      gl.uniform1i(u.u_cloudTex, CLOUD_UNIT); // SkyPass has bound the picture to that unit for this frame
+    }
     gl.uniformMatrix3fv(u.u_eq, false, eq);
     gl.uniform3f(u.u_right, ...cam.right);
     gl.uniform3f(u.u_up, ...cam.up);
@@ -112,8 +118,12 @@ export class StarsPass {
 }
 
 const vert = /* glsl */ `#version 300 es
+#define CLOUD_SAMPLE(t, uv) textureLod(t, uv, 0.0)
+${CLOUD_GLSL}
 layout(location = 0) in vec4 a_star; // equatorial unit vector, magnitude
 layout(location = 1) in vec4 a_col;
+uniform int u_cloudOn;
+uniform vec2 u_cloud; // cover and wind (clouds.ts): a star behind cloud goes out
 uniform mat3 u_eq; // world to equatorial (astro.ts: the turn's rows); world = eq * u_eq
 uniform vec3 u_right, u_up, u_fwd;
 uniform vec2 u_tan;
@@ -125,6 +135,7 @@ void main() {
   vec3 d = a_star.xyz * u_eq;
   gl_Position = vec4(dot(d, u_right) / u_tan.x, dot(d, u_up) / u_tan.y, 0.0, dot(d, u_fwd));
   float low = smoothstep(-0.02, 0.2, d.y); // stars dim and vanish into the haze at the horizon
+  if (u_cloudOn == 1) low *= 1.0 - cloudAt(d, u_cloud.x, u_cloud.y) * 0.94 * smoothstep(0.0, 0.2, d.y);
   if (u_lines == 1) {
     v_col = vec3(0.4, 0.55, 1.0);
     v_a = 0.22 * smoothstep(0.7, 0.95, u_night) * low;

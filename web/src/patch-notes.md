@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · Clouds and weather
+
+- The sky has weather now: clear most of the time, then clouds roll in, the day turns gloomy and dim, and rain or snow is on its way. It is the same for everyone in a shared game, and it follows the seasons: highlands and cold winters bring snow, deserts stay dry. Stars go out behind the clouds.
+- Dusk and dawn glow red and orange, and the clouds catch the colour.
+- Settings > Sky has new switches: Weather (Off, Low or Full) and Red dusk and dawn. With both off the sky looks exactly as before. Rain and snow you can see and hear come next.
+
 ## 2026-10-17 · The real night sky
 
 - The night sky is now the real one: about 9,000 true stars, the band of the Milky Way with its dark dust lanes, and a moon that goes through its phases (a full moon every eight days). The stars drift through the seasons, so each stretch of nights shows different constellations. Look up from a hilltop.

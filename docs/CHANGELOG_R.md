@@ -22,6 +22,28 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **S2 Weather model, clouds, red dusk and dawn** (built 2026-10-17; user request for atmospheric weather, cheap and adjustable).
+  Presentation only: no engine, save or generator change. `web/src/render/sky/weather.ts` is pure and tested: `weatherAt(seed, days, biome)`
+  gives `cover`, `gloom`, `precip` (0 to 1) and `snow`, from `storminess(seed, days)` (three smooth noises of the seed: fronts about 1.6 game days,
+  squalls 0.9, wet and dry weeks 9) cut by three smoothsteps. `days` is the core's day and time (`FrameInfo.days`), so every co-op peer
+  with the same seed sees the same sky; the biome (read twice a second in `main.ts`) shifts it (`WET`: deserts dry, lowlands wet) and, with a
+  year swing of `YEAR_DAYS` 96 (the stars' year), sets the temperature (`WARMTH`): precipitation is snow below zero (deserts never, plains in the deep of
+  winter about a fifth of the year, highlands about half). **Frequencies** (plains, 5 seeds x 1,500 game days): 63% clear, 17% cloudy,
+  6% gloomy, 14% rain or snow; a rainy spell about every 9 game days (a game day is 20 minutes), a gloomy one more often; nothing moves more
+  than about a tenth in 12 seconds. `WeatherEase` eases the drawn weather over a few seconds (biome borders, time skips); `WeatherSky.look` joins the
+  settings and the eased weather into the `SkyLook`. **Sky:** `skyAt(t, look)` greys, dims and shortens the sky under gloom (zenith, horizon, ground
+  light, direct sun, fog range x 0.65 at most) and, with red dusk on, warms horizon and light after sunset; the shader adds a red glow low towards the sun, a rose band
+  opposite and one flat cloud layer (`sky/clouds.ts`: a baked 256 x 256 tiling noise sampled twice per pixel, three times at Full for the side lit by the
+  sun, drifting with the game time, seamless every 64 days), coloured white, golden, red (dusk), grey (gloom) or moonlit, which hides sun, moon, Milky Way and
+  satellites; each catalogue star samples the same noise in its vertex shader, so stars behind clouds go out and stars between them shine.
+  Settings (`sky/settings.ts`, `ui/sky.ts`, Settings > Sky): Weather Off / Low / Full (Low skips the sun-side lighting of clouds) and Red dusk and dawn.
+  **Checked:** `web/test/weather.test.mjs` (11 tests: determinism and no hidden state, different seeds differ, shares of clear and wet time, a stormy
+  spell every few days, no jumps, biome dryness and snow only below freezing, the ease, Off gives no look); **Off is byte-identical** to the sky
+  before S2 (weather Off and dusk Off: FNV hash of `readPixels` at 640 x 480 over 72 frames, quality 0 to 2 x six times of day x four directions, against the
+  old `SkyPass` loaded from `git show HEAD`); scenes seen in the pane (clear noon, cloudy, a rain-grey noon, red cloudy sunset, a night with patchy cloud and stars between). **Cost**
+  (pane, 1383 x 1222, sync by `readPixels`, 30 draws averaged, best of 8): sky pass Off 0.08 to 0.11 ms, Low or Full with clouds 0.10 to 0.13 ms, so clouds add under 0.03 ms.
+  **Left to S3 and S4:** rain and snow particles, wet ground and the rain sound read `renderer.weather.ease.value` (`precip`, `snow`) and the player's roof (sky light);
+  the terrain's own lighting under gloom comes from `skyAt` only; no lightning, no fog bank at the horizon beyond the shorter fog range.
 - [x] **S1 The real night sky** (built 2026-10-17; user request "an actual night sky, real constellations, the Milky Way"). Presentation only:
   no engine, save or generator change. `scripts/bake-sky/bake-sky.py` bakes `web/src/render/sky/stars.bin` (HYG v4.4, 8,920 stars to
   magnitude 6.5, 6 bytes each) and `milkyway.jpg` (NASA SVS Deep Star Map 2020, 2048 x 1024, 320 KB) plus 89 hand-drawn line segments for 18

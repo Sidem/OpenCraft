@@ -336,6 +336,17 @@ async function main(): Promise<void> {
     return dt;
   };
 
+  // The weather is a function of the seed and the biome underfoot (render/sky/weather.ts); the biome is read twice a second.
+  const worldSeed = game.seed();
+  let biome = 0, biomeRead = -1e9;
+  const biomeNow = (now: number) => {
+    if (now - biomeRead > 500) {
+      biomeRead = now;
+      biome = game.surroundings()[0];
+    }
+    return biome;
+  };
+
   const frame = (now: number) => {
     const t0 = performance.now();
     lastFrame = t0;
@@ -360,6 +371,8 @@ async function main(): Promise<void> {
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
       days: game.day_number() - 1 + game.time_of_day(),
+      seed: worldSeed,
+      biome: biomeNow(now),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),
       boxCount: game.instance_count(),
       lineCells: game.line_cells(),

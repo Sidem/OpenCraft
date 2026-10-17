@@ -8,19 +8,28 @@
 // stars (sky/stars.ts draws them after this pass) and, at 2, the Milky Way picture. Until the star files have loaded the classic
 // look shows. Nights are dark blue, never black (a moonlight floor). Presentation only. To change the look: the colour
 // constants below, and the moon and Milky Way lines in the fragment shader.
+// Weather (sky/weather.ts, clouds in sky/clouds.ts): given a `SkyLook`, `skyAt` greys, dims and shortens the sky under
+// gloom (colours, light, direct sun) and warms it at dusk when asked, and the shader adds the red dusk glow and one cloud layer
+// that hides the sun, moon, Milky Way and satellites (the stars pass fades each star behind a cloud). Without a look
+// (weather and red dusk off) nothing changes: the sky is byte-identical to the one before step S2.
 
 import { createProgram, uniforms } from './gl';
 import type { SkyFrame } from './sky/astro';
+import { CLOUD_GLSL, CLOUD_UNIT, createCloudTexture, windOf } from './sky/clouds';
 import type { SkySettings } from './sky/settings';
 import { StarsPass } from './sky/stars';
+import type { SkyLook } from './sky/weather';
 
 type Rgb = [number, number, number];
 
-/** What the night sky needs besides `Sky`: the settings, where the stars and moon are, and the time in seconds. */
+/** What the night sky needs besides `Sky`: the settings, where the stars and moon are, the time in seconds, the game time in
+ *  days (the clouds drift with it) and the weather look (absent while the weather and red dusk are both off). */
 export interface SkyView {
   settings: SkySettings;
   frame: SkyFrame;
   time: number;
+  days: number;
+  look?: SkyLook;
 }
 
 const DAY_ZENITH: Rgb = [0.36, 0.58, 0.92];
@@ -36,6 +45,9 @@ const NIGHT_LIGHT: Rgb = [0.2, 0.24, 0.38];
 const NOON_SUN: Rgb = [1, 0.97, 0.9];
 const LOW_SUN: Rgb = [1.6, 0.95, 0.5];
 const MOON: Rgb = [0.32, 0.4, 0.62];
+/** The red dusk setting: a redder horizon (and fog) and a warmer light on the ground at sunset and sunrise. */
+const DUSK_RED: Rgb = [1, 0.38, 0.2];
+const DUSK_WARM: Rgb = [1, 0.62, 0.46];
 
 export interface Sky {
   /** Unit vector towards the sun (the moon is opposite). */
@@ -53,7 +65,13 @@ export interface Sky {
   direct: Rgb;
 }
 
-export function skyAt(t: number): Sky {
+/** Weather and the red dusk (sky/weather.ts `SkyLook`) change the colours, the light and the fog: without a `look` the sky is the plain one. */
+export function skyAt(t: number, look?: SkyLook): Sky {
+  const sky = plainSky(t);
+  return look ? weathered(sky, look) : sky;
+}
+
+function plainSky(t: number): Sky {
   // The sun rises in the east (+x) at 0.25, stands high in the south at noon, sets in the west.
   const a = (t - 0.25) * 2 * Math.PI;
   const sun = normalize([Math.cos(a), Math.sin(a), 0.35]);
@@ -67,6 +85,50 @@ export function skyAt(t: number): Sky {
   const colour = h >= 0 ? mix(LOW_SUN, NOON_SUN, smoothstep(0.05, 0.45, h)) : MOON;
   const direct: Rgb = [colour[0] * rise, colour[1] * rise, colour[2] * rise];
   return { sun, zenith: mix(NIGHT_ZENITH, DAY_ZENITH, day), horizon, light, day, lightDir, direct };
+}
+
+/** How strong the red glow of dusk and dawn is for a sun at height `h` (sine of its elevation), 0 to 1; it lingers after sunset. */
+function duskGlow(h: number): number {
+  return Math.exp(-(h * h) / 0.03) * smoothstep(-0.3, -0.05, h);
+}
+
+const grey = (c: Rgb, k: number, scale: number): Rgb => {
+  const l = 0.3 * c[0] + 0.59 * c[1] + 0.11 * c[2];
+  return [(c[0] + (l - c[0]) * k) * scale, (c[1] + (l - c[1]) * k) * scale, (c[2] + (l - c[2]) * k) * scale];
+};
+
+/** The plain sky seen through the weather: a red dusk if asked, then grey, dim and short-sighted under heavy cloud. */
+function weathered(s: Sky, look: SkyLook): Sky {
+  const g = look.gloom;
+  let { zenith, horizon, light, direct } = s;
+  if (look.dusk) {
+    const glow = duskGlow(s.sun[1]) * (1 - g);
+    horizon = mix(horizon, DUSK_RED, glow * 0.45);
+    light = mix(light, DUSK_WARM, glow * 0.35);
+  }
+  if (g > 0 || look.cover > 0.3) {
+    const sun = 1 - Math.min(0.9, 0.25 * Math.max(0, look.cover - 0.3) + 0.65 * g);
+    zenith = grey(zenith, 0.7 * g, 1 - 0.45 * g);
+    horizon = grey(horizon, 0.7 * g, 1 - 0.3 * g);
+    light = grey(light, 0.3 * g, 1 - 0.3 * g);
+    direct = [direct[0] * sun, direct[1] * sun, direct[2] * sun];
+  }
+  return { ...s, zenith, horizon, light, direct };
+}
+
+/** Colours of a cloud's lit and shaded sides: white by day, golden or red low sun (strongly red with the dusk on), blue-grey moonlit, grey when gloomy. */
+function cloudColours(s: Sky, look: SkyLook): { lit: Rgb; dark: Rgb } {
+  const h = s.sun[1];
+  let lit = mix(mix([0.14, 0.17, 0.28], [1, 0.8, 0.6], s.day), [1.05, 1.05, 1.05], smoothstep(0.05, 0.4, h) * s.day);
+  let dark = mix(lit, [0.55, 0.62, 0.78], 0.5);
+  dark = [dark[0] * 0.62, dark[1] * 0.62, dark[2] * 0.66];
+  if (look.dusk) {
+    const glow = duskGlow(h) * (1 - look.gloom);
+    lit = mix(lit, [1.1, 0.45, 0.22], glow * 0.85);
+    dark = mix(dark, [0.5, 0.24, 0.32], glow * 0.7);
+  }
+  const g = look.gloom;
+  return { lit: grey(lit, 0.75 * g, 1 - 0.35 * g), dark: grey(dark, 0.75 * g, 1 - 0.4 * g) };
 }
 
 /** The time of day as a clock, e.g. "14:05". */
@@ -84,12 +146,14 @@ export class SkyPass {
   private readonly vao: WebGLVertexArrayObject;
 
   private readonly stars: StarsPass;
+  private cloudTexture: WebGLTexture | null = null; // made when clouds are first wanted
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, skyVert, skyFrag);
     this.u = uniforms(gl, this.prog, [
       'u_forward', 'u_right', 'u_up', 'u_sun', 'u_zenith', 'u_horizon', 'u_day', 'u_sats', 'u_satCount',
       'u_quality', 'u_eq', 'u_moon', 'u_moonR', 'u_moonU', 'u_moonL', 'u_milky', 'u_mwLod',
+      'u_cloudOn', 'u_cloud', 'u_cloudTex', 'u_cloudLit', 'u_cloudDark', 'u_cloudSun', 'u_dusk',
     ] as const);
     this.vao = gl.createVertexArray()!; // a full-screen triangle made from gl_VertexID
     this.stars = new StarsPass(gl);
@@ -122,6 +186,26 @@ export class SkyPass {
     gl.uniform1i(u.u_satCount, shown);
     if (shown > 0) gl.uniform4fv(u.u_sats, satellites.subarray(0, shown * 4));
     gl.uniform1i(u.u_quality, quality);
+    const look = view?.look;
+    const clouds = look ? look.clouds : 0;
+    gl.uniform1i(u.u_cloudOn, clouds);
+    let cloud: { cover: number; wind: number } | undefined;
+    if (look && view) {
+      gl.uniform1f(u.u_dusk, look.dusk ? duskGlow(sky.sun[1]) * (1 - look.gloom) : 0);
+      if (clouds > 0) {
+        cloud = { cover: look.cover, wind: windOf(view.days) };
+        const c = cloudColours(sky, look);
+        const sl = Math.hypot(sky.sun[0], sky.sun[2]) || 1;
+        gl.uniform3f(u.u_cloud, cloud.cover, cloud.wind, clouds === 2 ? 1 : 0);
+        gl.uniform3f(u.u_cloudLit, ...c.lit);
+        gl.uniform3f(u.u_cloudDark, ...c.dark);
+        gl.uniform2f(u.u_cloudSun, (sky.sun[0] / sl) * 0.05, (sky.sun[2] / sl) * 0.05);
+        this.bindClouds();
+        gl.uniform1i(u.u_cloudTex, CLOUD_UNIT);
+      }
+    } else {
+      gl.uniform1f(u.u_dusk, 0);
+    }
     if (view && quality > 0) {
       const m = view.frame.moon, r = normalize(cross(m, [0, 1, 0])); // the moon's right and up as seen from here
       const mu = cross(r, m), sn = view.frame.sun;
@@ -142,10 +226,18 @@ export class SkyPass {
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     if (view && quality > 0 && sky.day < 0.98) {
-      this.stars.draw(view.frame.rotation, { forward: f, right: s, up, tanX: tx, tanY: ty }, 1 - sky.day, view.settings.lines, view.settings.twinkle, gl.drawingBufferHeight, view.time);
+      this.stars.draw(view.frame.rotation, { forward: f, right: s, up, tanX: tx, tanY: ty }, 1 - sky.day, view.settings.lines, view.settings.twinkle, gl.drawingBufferHeight, view.time, cloud);
     }
     gl.depthMask(true);
     gl.enable(gl.DEPTH_TEST);
+  }
+
+  private bindClouds(): void {
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE0 + CLOUD_UNIT);
+    this.cloudTexture ??= createCloudTexture(gl);
+    gl.bindTexture(gl.TEXTURE_2D, this.cloudTexture);
+    gl.activeTexture(gl.TEXTURE0);
   }
 }
 
@@ -159,8 +251,13 @@ void main() {
 
 const skyFrag = /* glsl */ `#version 300 es
 precision highp float;
+#define CLOUD_SAMPLE(t, uv) texture(t, uv)
+${CLOUD_GLSL}
 uniform vec3 u_forward, u_right, u_up, u_sun, u_zenith, u_horizon;
-uniform float u_day, u_mwLod;
+uniform float u_day, u_mwLod, u_dusk;
+uniform int u_cloudOn; // 0 no clouds, 1 low, 2 full
+uniform vec3 u_cloud, u_cloudLit, u_cloudDark; // cover, wind and 1 for side lighting; the lit and shaded cloud colours
+uniform vec2 u_cloudSun; // a short step in the cloud layer towards the sun
 uniform int u_quality; // 0 classic, 1 real stars and moon phases, 2 and the Milky Way
 uniform mat3 u_eq; // world to equatorial (sky/astro.ts)
 uniform vec3 u_moon, u_moonR, u_moonU, u_moonL; // the moon's direction, its right and up, and the sun in that frame
@@ -207,10 +304,31 @@ void main() {
       col = mix(col, disc, smoothstep(1.0, 0.94, sqrt(r2)) * seen);
     }
   }
+  // The red dusk (a setting): a glow low on the horizon towards the sun, a rose band opposite it.
+  if (u_dusk > 0.0) {
+    vec2 around = normalize(dir.xz + 1e-5), toSun = normalize(u_sun.xz + 1e-5);
+    float az = dot(around, toSun), low = exp(-max(dir.y, 0.0) * 5.0);
+    col += vec3(1.0, 0.3, 0.1) * u_dusk * (pow(max(az, 0.0), 4.0) * 0.55 + pow(max(az, 0.0), 1.5) * 0.12) * low;
+    col += vec3(0.5, 0.2, 0.35) * u_dusk * pow(max(-az, 0.0), 2.0) * 0.12 * exp(-max(dir.y, 0.0) * 3.0);
+  }
+  // Clouds: one flat layer from the noise picture, lit from the sun's side when the setting is Full. Satellites sit above it.
+  float hidden = 0.0;
+  if (u_cloudOn > 0) {
+    float fade = smoothstep(0.0, 0.2, dir.y);
+    if (fade > 0.0) {
+      float n = cloudNoise(dir, u_cloud.y, vec2(0.0));
+      float thick = cloudThick(n, u_cloud.x);
+      float lit = 0.5 + 0.7 * (n - 0.5); // the cloud's own mottling, even under a solid sheet
+      if (u_cloud.z > 0.5) lit += 2.5 * (thick - cloudThick(cloudNoise(dir, u_cloud.y, u_cloudSun), u_cloud.x));
+      lit = clamp(lit, 0.0, 1.0);
+      hidden = thick * fade * 0.94;
+      col = mix(col, mix(u_cloudDark, u_cloudLit, lit), hidden);
+    }
+  }
   // Satellites: sunlit gold points, faint by day. The distance between unit vectors is the angle, without cancellation.
   for (int i = 0; i < u_satCount; i++) {
     float d = length(dir - u_sats[i].xyz);
-    col += vec3(1.0, 0.82, 0.42) * (smoothstep(0.012, 0.002, d) + 0.5 * smoothstep(0.03, 0.0, d)) * mix(1.0, 0.35, u_day);
+    col += vec3(1.0, 0.82, 0.42) * (smoothstep(0.012, 0.002, d) + 0.5 * smoothstep(0.03, 0.0, d)) * mix(1.0, 0.35, u_day) * (1.0 - hidden);
   }
   o_color = vec4(col, 1.0);
 }

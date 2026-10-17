@@ -1,4 +1,4 @@
-// WebGL2 world renderer: the sky (sky.ts: day and night), chunk meshes (opaque then cutout pass,
+// WebGL2 world renderer: the sky (sky.ts: day, night and weather), chunk meshes (opaque then cutout pass,
 // frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), water (water.ts:
 // blended, last, and the underwater fog), and the target
 // outline; overlays from outlines.ts: mining cracks (the player's and quarries'), a dragged belt line, quarry boxes.
@@ -12,6 +12,7 @@ import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
 import { skyFrame } from './sky/astro';
 import { DEFAULTS as SKY_DEFAULTS, type SkySettings } from './sky/settings';
+import { WeatherSky } from './sky/weather';
 import { fogFor, WaterPass } from './water';
 
 const CHUNK = 32;
@@ -41,6 +42,9 @@ export interface FrameInfo {
   time: number;
   /** Days since the world began as a fraction (0 at the first midnight); moves the stars and the moon's phase. */
   days: number;
+  /** The world's seed and the biome the player stands in (engine order): what the weather is a function of (sky/weather.ts). */
+  seed: number;
+  biome: number;
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;
@@ -135,7 +139,8 @@ export class Renderer {
   private readonly planes = new Float32Array(24);
 
   fovY = (72 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
-  skySettings: SkySettings = SKY_DEFAULTS; // how the night sky is drawn (sky/settings.ts, set from the menu)
+  skySettings: SkySettings = SKY_DEFAULTS; // how the sky is drawn (sky/settings.ts, set from the menu)
+  readonly weather = new WeatherSky(); // the weather as drawn (`.ease.value`); step S3's particles read it too
   constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number) {
     const gl = canvas.getContext('webgl2', {
       antialias: true,
@@ -296,14 +301,16 @@ export class Renderer {
     const gl = this.gl;
     this.resize();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    const sky = skyAt(f.time);
-    const fog = fogFor(sky, f.underwater, [this.viewRadius * CHUNK * 0.95 * 0.55, this.viewRadius * CHUNK * 0.95]);
+    const look = this.weather.look(this.skySettings, f.seed, f.days, f.biome, performance.now()); // undefined: the plain sky
+    const sky = skyAt(f.time, look);
+    const murk = 1 - 0.35 * (look?.gloom ?? 0); // gloom shortens the sight
+    const fog = fogFor(sky, f.underwater, [this.viewRadius * CHUNK * 0.95 * 0.55 * murk, this.viewRadius * CHUNK * 0.95 * murk]);
     if (f.underwater) {
       gl.clearColor(...fog.color, 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     } else {
       gl.clear(gl.DEPTH_BUFFER_BIT);
-      const view = { settings: this.skySettings, frame: skyFrame(f.days), time: performance.now() / 1000 };
+      const view = { settings: this.skySettings, frame: skyFrame(f.days), time: performance.now() / 1000, days: f.days, look };
       this.sky.draw(sky, f.yaw, f.pitch, this.fovY, this.canvas.width / this.canvas.height, f.satellites, view);
     }
     gl.enable(gl.DEPTH_TEST);
