@@ -2,8 +2,8 @@
 // distance attenuation and stereo panning. Every sound is synthesised from the current sound design
 // (settings.ts) on first use, and again after a dial changes, so edits in the sound designer are
 // heard immediately, in the designer and in the game. The only audio files are the music loops, which
-// `music` plays (music.ts); this class owns the shared AudioContext, so effects and music are two
-// channels with a level and a mute each.
+// `music` plays (music.ts); `ambience` (ambience.ts) adds the sounds of the place. This class owns the
+// shared AudioContext, so effects, music and ambience are three channels with a level and a mute each.
 
 import {
   ACTIONS,
@@ -19,6 +19,7 @@ import {
   type SoundDesign,
   type SoundSettings,
 } from './settings';
+import { Ambience } from './ambience';
 import { Music } from './music';
 import { blip, breakSound, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
 import { launch, podDown, podUp } from './synth-orbit';
@@ -87,6 +88,7 @@ export class SoundSystem {
   /** Sound material of the most recent material sound, so the designer can open on it. */
   lastMaterial = 0;
   readonly music = new Music(() => this.notify());
+  readonly ambience = new Ambience(() => this.notify());
 
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -112,9 +114,9 @@ export class SoundSystem {
     return this.settings.muted;
   }
 
-  /** Effects and music are both muted. */
+  /** Effects, music and ambience are all muted. */
   get silent(): boolean {
-    return this.muted && this.music.settings.muted;
+    return this.muted && this.music.settings.muted && this.ambience.settings.muted;
   }
 
   get design(): SoundDesign {
@@ -140,6 +142,7 @@ export class SoundSystem {
       this.ctx = ctx;
       this.scheduleWarm(0);
       this.music.start(ctx);
+      this.ambience.start(ctx);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -154,17 +157,20 @@ export class SoundSystem {
     const off = !this.silent;
     this.setMuted(off);
     this.music.setMuted(off);
+    this.ambience.setMuted(off);
     return off;
   }
 
   setMuteInBackground(on: boolean): void {
     this.settings.muteInBackground = on;
+    this.ambience.setAway(this.away && on);
     this.masterChanged();
   }
 
   private setAway(away: boolean): void {
     this.away = away;
     this.music.setAway(away);
+    this.ambience.setAway(away && this.settings.muteInBackground);
     if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.masterGain(), this.ctx.currentTime, 0.02);
   }
 

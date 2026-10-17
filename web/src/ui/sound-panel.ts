@@ -1,5 +1,5 @@
 // The menu's Sound page (`#sound-panel` in index.html): a volume slider with a mute button for sound
-// effects and another for music, whether each is muted while the tab is not in focus, and the choice
+// effects, ambience (wind, water, birds) and music, whether each is muted while the tab is not in focus, and the choice
 // between the music's tracks. The sound designer button
 // stays in the page's markup (main.ts wires it). To add a control: a row below.
 
@@ -47,10 +47,11 @@ export class SoundPanel {
     this.el.append(
       h('h3', '', 'Volume'),
       volume('Sound effects', new VolumeControl(sound, 'effects')),
+      volume('Ambience', new VolumeControl(sound, 'ambience')),
       volume('Music', new VolumeControl(sound, 'music')),
       h('h3', '', 'When the tab is not in focus'),
       check('Mute music', () => sound.music.settings.muteInBackground, (on) => sound.music.setMuteInBackground(on)),
-      check('Mute sound effects', () => sound.settings.muteInBackground, (on) => sound.setMuteInBackground(on)),
+      check('Mute sound effects and ambience',() => sound.settings.muteInBackground, (on) => sound.setMuteInBackground(on)),
       h('h3', '', 'Music'),
       tracks,
       help,

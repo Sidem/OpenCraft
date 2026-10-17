@@ -8,7 +8,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
 irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (not pinned until released), R2c indicator plants over stained ground; 883 tests) ·
-**Next: R3** (ambient sound); 13.6b (balance) once the user has played Milestone 13 · Then R3–R5, R7, R8, the feel-and-feedback interlude,
+**R3 built** (ambient sound; 889 tests); **next: R4** (music by context); 13.6b (balance) once the user has played Milestone 13 · Then R4, R5, R7, R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -52,7 +52,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   techs, the optimizer, laser links with mirrors, the swarm hub, auto-routing, the AI survey.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
   **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b), R1c
-  (natural rivers), R2a (ground cover) and R2 (plants: ground cover, tree species, indicator plants) are done; **next is R3 (ambient sound)**, then R4–R8.
+  (natural rivers), R2 (plants: ground cover, tree species, indicator plants) and R3 (ambient sound) are done; **next is R4 (music by context)**, then R5–R8.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -509,11 +509,7 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
   - [x] **R2c Indicator plants (built 2026-10-17, record in `docs/CHANGELOG_R.md`)** (real geobotany, like the stained soil): a flower or shrub per ore over shallow veins and lodes, a
     pure function of deposit placement; pointing at one names the ore below. In the ore guide too. **Done when:** a test shows
     they grow only over their ore.
-- [ ] **R3 Ambient sound (part 2).** Today there is none. `web/src/audio/ambience.ts` (+ a synth file): procedural beds and
-  one-shots: wind rising with height and openness, birds by day near trees, insects at night, surf by the sea, river water, cave
-  drips and a low room tone underground, dry wind in deserts. A query `Game::surroundings` (biome underfoot, sky exposure, water
-  near, depth below the surface, trees near; presentation only) polled a few times a second. It quiets near working machines and
-  has its own slider and mute on the Sound page. **Done when:** each place gets its own bed (logged in the pane), cost measured.
+- [x] **R3 Ambient sound (part 2; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `Game::surroundings` feeds `audio/ambience.ts`.
 - [ ] **R4 Music by context (part 3).** `audio/music.ts` picks a piece from the player's context (from R3's `surroundings` and
   the era reached): day, night, underground, desert, highlands, sea, late eras. Silence of a few minutes between pieces,
   a context must hold about 20 s before it switches, crossfades. The setting becomes Context / Always calm / Always adventurous
@@ -593,13 +589,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
-- **2026-10-17: Step R2c built** (indicator plants: a rust bloom, coal shrub, teal bell and pale star grow over the matching stained
-  soil and sand; `tex::COUNT` 326; presentation only). 883 tests.
-- **2026-10-17: Step R2b built** (generator version 9: oak and birch on plains, broad trees in lowlands, pines on highlands, cacti
-  in deserts, dead snags on basalt fields; two new saplings; blocks 117–123, `tex::COUNT` 322). 882 tests. Version 9 is pinned
-  (`released_versions_never_change`) when it is pushed.
-- **2026-10-16: Step R2a built** (ground cover: tufts, flowers, ferns, reeds, dry brush and lichen per biome, drawn by the mesher on
-  every world from generator version 2; `tex::COUNT` 314). 877 tests.
+- **2026-10-17: Step R3 built** (ambient sound: `Game::surroundings`, `audio/ambience.ts`; own slider and mute). 889 tests.
+- **2026-10-16 and 17: Steps R2a to R2c built** (ground cover on every world from version 2; generator version 9 with tree species
+  per biome, blocks 117–123, pinned in `released_versions_never_change` when pushed; indicator plants over stained soil;
+  `tex::COUNT` 326). 883 tests.
 - **2026-10-16: Milestone 13 (to 13.6a) and R1c pushed** to the live site; generator version 8 pinned as released.
 - **2026-10-16: Step R1c asked and built** (generator version 8): winding rivers that spill down as rapids and waterfalls, lakes,
   ponds and ore stains with irregular shores, the spawn ring bent; version 7 pinned. 871 tests.

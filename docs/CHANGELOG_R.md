@@ -22,6 +22,17 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R3 Ambient sound** (built 2026-10-17, presentation only, every world): `Game::surroundings` (`surroundings/mod.rs`, nine
+  floats read from the loaded blocks: biome, sky overhead, openness, height above sea level, depth below the surface, sea, fresh
+  water, trees, din of working machines via `Factory::din_near`; about 0.01 ms a call) is polled four times a second by
+  `web/src/audio/ambience.ts`. `mixFor` turns it and the time of day into levels: wind (rising with height and openness, dry and
+  stronger over deserts and basalt), surf (still water at sea level), rushing fresh water (rivers, falls, lakes above the sea),
+  a low room tone underground, and one-shots at random by level: birds by day near trees, crickets at night on green ground,
+  cave drips (`synth-ambience.ts`, all procedural). Working machines quiet everything by up to 55%. A third channel on the sound
+  system with its own slider and mute on the Sound page (K mutes it too); it follows the "mute sound effects when not in focus"
+  box. Tests: `surroundings/tests.rs` (sky, roofs and leaves, depth, sea against fresh water, trees, din with distance). Seen in the
+  pane: spawn plains calm, the desert coast surf with dry wind, a cave hum and drips, a river's rush, pines' wind on the highlands,
+  birds (7 a minute in woodland) by day and crickets (20) at night. Not heard by the agent: levels want tuning by ear.
 - [x] **R2c Indicator plants** (built 2026-10-17, presentation only, every world from version 2): over each stained soil or sand (blocks
   36–43: rusty = iron, dark = coal, green = copper, pale = limestone and quartz) `mesher/cover.rs` grows that stain's own plant on 45% of
   the columns (`tex::INDICATOR_IRON..=INDICATOR_PALE`, 322–325: a rust-orange bloom, a dark shrub, a tall teal bell, pale stars), so

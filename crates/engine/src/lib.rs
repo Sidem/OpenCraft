@@ -82,6 +82,7 @@ mod sim;
 mod site_hands;
 mod sound;
 mod strategy;
+mod surroundings;
 mod survey;
 mod textures;
 mod tools;

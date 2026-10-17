@@ -1,4 +1,4 @@
-// A volume control for one sound channel (sound effects or music): mute button, slider and level
+// A volume control for one sound channel (sound effects, music or ambience): mute button, slider and level
 // readout, kept in sync with the sound system. Used on the menu's sound page and in the sound
 // designer's footer (effects).
 
@@ -11,8 +11,8 @@ const SPEAKER_ON =
 const SPEAKER_OFF =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 9v6h4l5 4V5L7 9z"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
 
-export type Channel = 'effects' | 'music';
-const NAMES: Record<Channel, string> = { effects: 'Sound effects', music: 'Music' };
+export type Channel = 'effects' | 'music' | 'ambience';
+const NAMES: Record<Channel, string> = { effects: 'Sound effects', music: 'Music', ambience: 'Ambience' };
 
 export class VolumeControl {
   readonly el = h('div', 'volume-control');
@@ -32,8 +32,10 @@ export class VolumeControl {
     this.range.addEventListener('input', () => {
       sound.unlock();
       if (this.state.muted) this.setMuted(false);
-      if (channel === 'music') sound.music.setVolume(Number(this.range.value));
-      else sound.setVolume(Number(this.range.value));
+      const value = Number(this.range.value);
+      if (channel === 'music') sound.music.setVolume(value);
+      else if (channel === 'ambience') sound.ambience.setVolume(value);
+      else sound.setVolume(value);
     });
     // A sample on release, so the new level can be judged (music is already playing).
     if (channel === 'effects') this.range.addEventListener('change', () => sound.preview('place', 0));
@@ -43,11 +45,13 @@ export class VolumeControl {
   }
 
   private get state(): { volume: number; muted: boolean } {
-    return this.channel === 'music' ? this.sound.music.settings : this.sound.settings;
+    if (this.channel === 'music') return this.sound.music.settings;
+    return this.channel === 'ambience' ? this.sound.ambience.settings : this.sound.settings;
   }
 
   private setMuted(muted: boolean): void {
     if (this.channel === 'music') this.sound.music.setMuted(muted);
+    else if (this.channel === 'ambience') this.sound.ambience.setMuted(muted);
     else this.sound.setMuted(muted);
   }
 

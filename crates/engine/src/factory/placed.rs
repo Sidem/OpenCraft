@@ -1,9 +1,10 @@
 //! How a machine was placed, read back: the facing and tier a blueprint copies (`blueprint/`), and whether
-//! it is a working machine. Read-only; `Factory::place` is the inverse.
+//! it is a working machine, and how much working machinery is near a point. Read-only; `Factory::place` is the inverse.
 
-use crate::math::IVec3;
+use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
+use super::miner::MinerStatus;
 use super::Factory;
 
 impl Factory {
@@ -43,5 +44,18 @@ impl Factory {
             Some(Slot::Miner(_) | Slot::Generator(_) | Slot::Lab(_)) => true,
             _ => false,
         }
+    }
+
+    /// How loud the machines at work around `at` are (ambient sound, `surroundings`): each processor with a
+    /// batch in progress, running miner or generator with output counts `1 - distance / radius`, summed.
+    pub fn din_near(&self, at: Vec3, radius: f64) -> f64 {
+        let near = |p: IVec3| {
+            let d = (Vec3::new(f64::from(p.x) + 0.5, f64::from(p.y) + 0.5, f64::from(p.z) + 0.5) - at).length();
+            (1.0 - d / radius).max(0.0)
+        };
+        let processors = self.processors.iter().filter(|p| p.batch.is_some()).map(|p| near(p.pos));
+        let miners = self.miners.iter().filter(|m| m.status == MinerStatus::Running).map(|m| near(m.pos));
+        let generators = self.generators.iter().filter(|g| g.output > 0).map(|g| near(g.pos));
+        processors.chain(miners).chain(generators).sum()
     }
 }

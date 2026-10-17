@@ -316,6 +316,7 @@ async function main(): Promise<void> {
       sound.playEvents(events, game.sound_count(), game.camera_yaw());
     }
     game.clear_sounds();
+    if (!document.hidden) sound.ambience.poll(game, dt);
 
     const budget = game.ready() ? WORK_BUDGET_MS : LOADING_WORK_BUDGET_MS;
     const w0 = performance.now();

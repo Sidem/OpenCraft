@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-17 · The world has a sound
+
+- The world now has sounds of its own, with their own volume slider and mute button on the Sound page (Ambience). Wind picks up as you climb and in the open, and blows dry over deserts and basalt fields; the sea has surf and rivers rush; caves have a low hum and dripping water; birds sing by day near trees and crickets chirp at night. Working machines nearby quiet it all.
+
 ## 2026-10-16 · A better first minute
 
 - Plants now show what lies below. Over rusty soil grow rust-orange blooms (iron), over dark soil dark shrubs (coal), over green soil tall teal bells (copper) and over pale soil pale stars (limestone and quartz). The ore guide says so too; point at the soil under one to see how deep the ore is.

@@ -25,6 +25,7 @@ mod render;
 mod research;
 mod save;
 mod sites;
+mod surroundings;
 mod towns;
 mod view;
 
