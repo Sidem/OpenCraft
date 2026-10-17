@@ -1,15 +1,26 @@
 //! The open end of `techs::TECHS`: techs added after Milestone 12's first steps, so that `orbit.rs` stays closed and no saved
-//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84. Add rows at the bottom, never reorder (new
-//! Orbit techs go here too). Needs name earlier indices: Blue Science 10, Mk4 Logistics 19, Bauxite Processing 36,
-//! Rocketry 78, Orbital Comms 79.
+//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85. Add rows at the
+//! bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Masonry 7, Assembly 8, Blue Science 10,
+//! Mk4 Logistics 19, Bauxite Processing 36, Rocketry 78, Orbital Comms 79.
 
 use crate::block::{LANDING_PAD, LONG_POLE, POD_LAUNCHER, TOWN_DEPOT};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
-use crate::recipes::{DROP_POD_RECIPE, LONG_POLE_ROW};
+use crate::recipes::{DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, LONG_POLE_ROW};
 
 use super::{r, Tech, Unlock};
 
-pub const LATER: [Tech; 3] = [
+/// Every machine row of the decor set.
+const DECOR_UNLOCKS: [Unlock; DECOR_ROWS as usize] = {
+    let mut out = [Unlock::MachineRecipe(DECOR_FIRST); DECOR_ROWS as usize];
+    let mut i = 0;
+    while i < out.len() {
+        out[i] = Unlock::MachineRecipe(DECOR_FIRST + i as u16);
+        i += 1;
+    }
+    out
+};
+
+pub const LATER: [Tech; 4] = [
     Tech {
         name: "Long-Distance Power",
         blurb: "Lattice towers, 2×2 and 3 high, that link to each other 160 blocks apart (an ordinary pole only 16), \
@@ -43,5 +54,16 @@ pub const LATER: [Tech; 3] = [
         units: 100,
         seconds: 20.0,
         unlocks: &[r(TOWN_DEPOT)],
+    },
+    Tech {
+        name: "Architecture",
+        blurb: "Build for looks. Assemblers tint concrete red, green, black, white or yellow with a pinch of iron ore, \
+                copper ore, coal, quicklime or sulfur; smelters fire basalt, granite, sandstone and slag into tiles \
+                and bricks; assemblers make framed glass, metal panels, catwalks, railings and panel lights.",
+        needs: &[7, 8],
+        packs: &[RED_PACK, GREEN_PACK],
+        units: 40,
+        seconds: 10.0,
+        unlocks: &DECOR_UNLOCKS,
     },
 ];

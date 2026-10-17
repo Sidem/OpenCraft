@@ -21,7 +21,7 @@ export interface PieceInfo {
 export const HOLD = 20;
 /** Seconds to wait before the first piece of a session, and between pieces, by mode: [shortest, longest]. */
 export const FIRST_WAIT: readonly [number, number] = [10, 30];
-export const GAP: Record<Mode, readonly [number, number]> = { context: [120, 300], calm: [4, 12], lively: [4, 12] };
+export const GAP: Record<Mode, readonly [number, number]> = { context: [10, 30], calm: [4, 12], lively: [4, 12] };
 /** Seconds to wait to try again when no piece fits, and after a piece that would not load. */
 const RETRY = 10;
 const AFTER_FAILURE = 2;

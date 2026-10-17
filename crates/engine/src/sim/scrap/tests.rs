@@ -49,8 +49,7 @@ fn a_machine_husk_holds_a_circuit_now_and_then() {
 
 #[test]
 fn a_smelter_melts_three_scrap_into_an_ingot() {
-    let row = MACHINE_RECIPES.len() - 1;
-    assert_eq!(row, 135, "the salvage row is the last, at the index saves would name");
+    let row = 135;
     let r = &MACHINE_RECIPES[row];
     assert_eq!((r.inputs, r.outputs), (&[(SCRAP_METAL, 3)][..], &[(IRON_INGOT, 1)][..]));
     assert!(crate::factory::process_spec(block::SMELTER).unwrap().recipe(row as u16).is_some());

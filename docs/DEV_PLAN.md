@@ -8,7 +8,7 @@ talked: the player founds towns, a perk per town kind, stalled towns pause their
 buildings by the town's own drones, the four perks with harbour contract work, the town panel, maps and tips; save
 version 53) · **R1c built and pushed** (generator version 8: winding rivers that spill down as rapids and waterfalls,
 irregular lakes, ponds and stains) · **R2 built** (R2a ground cover for every biome, R2b tree species on generator version 9 (pinned when pushed), R2c indicator plants over stained ground; 883 tests) ·
-**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5 built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks; R5c the vault on version 10, pinned when pushed); **S1 to S4 built** (the real night sky; weather model, clouds and red dusk; rain, snow, wet ground and the rain sound), next **R7**, R8; 13.6b (balance) once the user has played Milestone 13 · Then R7, R8, the feel-and-feedback interlude,
+**R3 built** (ambient sound; 889 tests) · **R4 built** (music by context: a tested director, streamed Opus pieces, four new pieces composed for night, caves, deserts and highlands; 889 engine tests, 13 web tests) · **R5 built** (ruins on generator version 9 with rusted blocks, scrap metal and logbooks; R5c the vault on version 10, pinned when pushed); **S1 to S4 built** (the real night sky; weather model, clouds and red dusk; rain, snow, wet ground and the rain sound), **R7 built** (the decor set: 14 machine-made blocks, tech Architecture), next **R8**; 13.6b (balance) once the user has played Milestone 13 · Then R8, the feel-and-feedback interlude,
 the trimmed carry, Milestone 14 (the space elevator)
 · Art work continues from `main` (`docs/ART_HANDOVER.md`).
 
@@ -48,7 +48,7 @@ You are picking up a working browser factory game (Rust → wasm engine, TypeScr
   plastics, rivers, nuclear power, Mk5; chips, the data grid, AI datacenters and labs, laser links, auto-routing.
 - **The less-hand-crafting interlude and Milestone 12 (Orbit) are done** (`docs/CHANGELOG_M12.md`).
   **Now: the play-test response (section 4):** R1, R6, Milestone 13 (Settlements, all but its balance step 13.6b), R1c
-  (natural rivers), R2 (plants: ground cover, tree species, indicator plants), R3 (ambient sound) and R4 (music by context) are done, R5 (ruins, scrap, logbooks, the vault) too; **next is R7**, then R8.
+  (natural rivers), R2 (plants: ground cover, tree species, indicator plants), R3 (ambient sound) and R4 (music by context) are done, R5 (ruins, scrap, logbooks, the vault) and R7 (the decor set) too; **next is R8**.
 - **Tech tree:** `docs/TECH_TREE.md` is the concept (lines, links, the far end, upgrades, and the content
   architecture every step follows: its section 8); `docs/TECH_ERAS.md` has each era's items, recipes,
   machines and techs. Read the concept once and the era you build.
@@ -468,7 +468,7 @@ interlude and the performance todo); Milestone 13's in `docs/CHANGELOG_M13.md`, 
   categories, unlocks are one enum. No new `bool` per variant, no block per tier.
 - Old saves keep loading: each format change bumps `SAVE_VERSION` (now 53) with a migration and a fixture
   test. Golden hashes are re-recorded only on purpose, noted in the step.
-- New blocks and items append (the next free block is 129, item 397, tech 85, machine recipe 136). Each new look gets a placeholder layer (`tex::COUNT` is 333) and a `docs/ART_HANDOVER.md` request line.
+- New blocks and items append (the next free block is 143, item 397, tech 86, machine recipe 150). Each new look gets a placeholder layer (`tex::COUNT` is 347) and a `docs/ART_HANDOVER.md` request line.
 - Fluids other than water ride belts as **canister items** (pipes stay water-only); empty canisters come back.
 
 ### Where the last milestones stand
@@ -515,9 +515,8 @@ The user's 32-hour save (seed 1337): research outran need (78 of 84 techs, yet d
   S1 the real night sky (`render/sky/`, `scripts/bake-sky/`); S2 the weather model (`render/sky/weather.ts`: a pure function of seed, game days
   and biome, so co-op peers agree), clouds and red dusk; S3 rain and snow (`render/precip.ts`: vertex-shader-only drops, roofs by the engine's
   `rain_roof` grid, wet and snowy ground); S4 the rain sound (`audio/ambience-levels.ts`). Not built: splashes, lightning, snow on machines.
-- [ ] **R7 Decor building set.** Sketch in `docs/ROADMAP.md`: about a dozen machine-made decor blocks in a Decor group (coloured
-  concrete, bricks, framed glass, metal panels, catwalks, railings, light fixtures). Slabs and stairs need non-cube meshing:
-  a later step. **Done when:** they are made in machines, placed, and their art requests are listed.
+- [x] **R7 Decor building set** (built 2026-10-17, record in `docs/CHANGELOG_R.md`): 14 machine-made blocks (five tinted concretes, four rock
+  bricks, framed glass, metal panels, catwalk, railing, panel light), blocks 129–142, tech Architecture (85). Slabs and stairs need non-cube meshing: a later step.
 - [ ] **R8 Pressure without combat (talk).** Pick one or two with the user from `docs/ROADMAP.md` (subsidence, mine flooding,
   storms, pollution that thins plants and solar). Each must reuse existing systems and stay deterministic.
 - [ ] **Pod channels by name (small, any time).** Facing as a channel is unclear (user, 2026-10-16): a launcher and a pad pick
@@ -586,6 +585,7 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-17: Step R7 built** (decor set; golden hash re-recorded: the research table gained tech 85). 930 engine tests, 50 web tests.
 - **2026-10-17: Steps S3 and S4 built** (rain, snow, wet ground and the rain sound; presentation only). Engine: `Game::rain_roof`
   (`surroundings/roof.rs`). Web: `render/precip.ts`, `render/sky/ground.ts`, `audio/ambience-levels.ts` (split out of `ambience.ts`),
   `render/geometry.ts` (split out of `renderer.ts`); setting Rain and snow Off/Low/Full. 921 engine tests, 44 web tests.

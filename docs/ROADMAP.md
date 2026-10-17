@@ -137,7 +137,7 @@ is a sketch to settle with the user when its step comes up.
   extends drone range), never combat. No walking townspeople (lights, smoke and building is enough life), no diplomacy or war.
   Core state: orders and stage per settlement, deterministic. The megaproject may be the settlements' joint project (a colony
   ship, a space elevator they build up); decide with the user in R6.
-- **Decor building set (R7).** Factory players love making a base beautiful, and the world is the material (pillar 1).
+- **Decor building set (R7; built 2026-10-17 as 14 machine-made cubes, see `docs/CHANGELOG_R.md`; slabs, stairs and beams remain).** Factory players love making a base beautiful, and the world is the material (pillar 1).
   Machine-made rows in a Decor group: concrete in about eight colours (dyes from minerals already mined), brick kinds, framed
   glass, metal panels, catwalks and railings (cutout), light fixtures in a few shapes. Later: slabs, stairs and beams need
   non-cube meshing and hit boxes, a step of their own. Pure content, no new mechanics.

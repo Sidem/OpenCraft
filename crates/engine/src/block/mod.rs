@@ -4,7 +4,7 @@
 //! into the world (ore, bedrock) are simply not placeable.
 //!
 //! To add a block: append an id constant (never renumber; ids will be saved) and bump
-//! `BLOCK_COUNT`, add its `DEFS` row (`cube`, `ore` or `machine`), and any new texture layers in
+//! `BASE_COUNT`, add its `BASE_DEFS` row (`cube`, `ore` or `machine`; decor blocks go in `decor.rs`), and any new texture layers in
 //! `tex` with their patterns in `textures::pixel`. A machine also needs factory code (docs/CODEMAP.md).
 
 pub type BlockId = u8;
@@ -173,7 +173,11 @@ pub use forest::*;
 /// The ruins' blocks, ids 124–127 (`ruins.rs`).
 mod ruins;
 pub use ruins::*;
-pub const BLOCK_COUNT: usize = 129;
+/// The decor set, ids 129–142 (`decor.rs`).
+mod decor;
+pub use decor::*;
+const BASE_COUNT: usize = 129;
+pub const BLOCK_COUNT: usize = BASE_COUNT + DECOR_COUNT;
 
 mod make;
 use make::{all, cube, frame, liquid, machine, ore, pillar};
@@ -200,6 +204,7 @@ pub enum Render {
     Liquid,
 }
 
+#[derive(Clone, Copy)]
 pub struct BlockDef {
     pub name: &'static str,
     pub render: Render,
@@ -229,7 +234,10 @@ pub mod sound {
     pub const METAL: u8 = 6;
 }
 
-pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = [
+/// Every block's row: the base table, then the decor set's.
+pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[&BASE_DEFS, &DECOR_DEFS]);
+
+const BASE_DEFS: [BlockDef; BASE_COUNT] = [
     BlockDef {
         name: "Air",
         render: Render::None,

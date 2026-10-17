@@ -5,8 +5,10 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-17 · Sharper plants, a command line, livelier rain
 
+- New research, Architecture (after Masonry and Assembly): 14 blocks for building something that looks good, made in machines. Assemblers tint concrete red, green, black, white or yellow with a pinch of iron ore, copper ore, coal, quicklime or sulfur; smelters fire basalt, granite, sandstone and slag into tiles and bricks; assemblers make framed glass, metal panels, catwalks, railings you walk through, and panel lights.
 - Grasses, flowers, ferns, reeds, saplings and the plants that mark ore are drawn in four times the detail: single blades, petals and leaves.
 - Press / (or the backquote key) for a command line: weather rain, weather snow 0.5, weather auto, time noon, time dusk, tp 0 100 0, give iron ingot 20, and help for the rest. Press Enter on an empty line to go back to playing. Time and teleport are for worlds of your own.
+- In the "By place" music mode the quiet between pieces is now 10 to 30 seconds instead of 2 to 5 minutes.
 - The rain no longer sounds like a loop: it gusts and eases, and single drops land at random, higher in the open and duller under a roof.
 
 ## 2026-10-17 · Rain and snow

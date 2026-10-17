@@ -380,7 +380,9 @@ pub const SCRAP: u16 = 329;
 pub const LOGBOOK_SIDE: u16 = 330;
 pub const LOGBOOK_TOP: u16 = 331;
 pub const VAULT_DOOR: u16 = 332;
-pub const COUNT: usize = 333;
+/// The decor set's layers, 333 on (`block/decor.rs`, `textures/decor.rs`).
+pub use super::decor::layers::*;
+pub const COUNT: usize = LAYERS_END as usize;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

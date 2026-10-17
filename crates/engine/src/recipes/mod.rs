@@ -16,6 +16,7 @@ mod aluminium;
 mod automate;
 mod chemistry;
 mod compute;
+mod decor;
 mod electronics;
 mod gear;
 mod gold;

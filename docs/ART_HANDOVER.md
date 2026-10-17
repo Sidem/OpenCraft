@@ -250,6 +250,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Indicator plants (R2c, 2026-10-17, `textures/hires.rs`, layers 322–325; painted at 64 × 64): `INDICATOR_IRON` (a low rosette with three rust-orange blooms), `INDICATOR_COAL` (a round
   dark purple-green shrub with black berries), `INDICATOR_COPPER` (a tall spike with teal bells), `INDICATOR_PALE` (thin stems with pale stars). Each must read from
   afar as its own colour and shape: they tell the ore below.
+  Decor set (R7, 2026-10-17, `textures/decor.rs`, layers 333–346, blocks 129–142 in `block/decor.rs`): `RED_CONCRETE`, `GREEN_CONCRETE`, `BLACK_CONCRETE`, `WHITE_CONCRETE`,
+  `YELLOW_CONCRETE` (poured slabs; colours must read apart on a wall from afar and stay calm, not toy-bright), `BASALT_TILES`, `GRANITE_BRICKS`, `SANDSTONE_BRICKS`,
+  `SLAG_BRICKS` (each province's own rock fired; the bricks should look unlike stone bricks), `FRAMED_GLASS` (a steel frame with a cross bar, clear panes),
+  `METAL_PANEL` (bolted plates), `CATWALK` (an open grating, cutout), `RAILING` (rails and posts, cutout, not solid), `PANEL_LIGHT` (a glowing panel). They are
+  plain cubes now; slabs, stairs, a thin railing and a real lamp shape need non-cube meshing (a later step), after which the cutout cubes become thin pieces.
   Vault Door (R5c, `textures/ruins.rs`, layer 332): iron frame with rivets and three brass rings; an inset door with a wheel would read better.
   Logbook (R5b, `textures/ruins.rs`, layers 330–331): `LOGBOOK_SIDE` (green cloth cover, brass clasp, pale page edges), `LOGBOOK_TOP` (ruled page); it is a plain cube on the slab, an open book on a lectern would read better.
   Ruins (R5a, 2026-10-17, `textures/ruins.rs`, layers 326–329): `RUST_PLATE` (rusted panels, bolts, flaked patches showing grey iron; also the husk's top and

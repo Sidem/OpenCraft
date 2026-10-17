@@ -20,7 +20,7 @@ export const MODES: readonly ModeInfo[] = [
   {
     id: 'context',
     label: 'By place',
-    help: 'The music follows where you are: day, night, caves, deserts and highlands. A piece plays now and then, with quiet minutes between.',
+    help: 'The music follows where you are: day, night, caves, deserts and highlands. A piece plays now and then, with a short quiet between.',
   },
   { id: 'calm', label: 'Always calm', help: 'Soft, slow pieces one after another. Good for building and tending a factory.' },
   { id: 'lively', label: 'Always adventurous', help: 'Fuller pieces with more going on, one after another. Good for exploring.' },

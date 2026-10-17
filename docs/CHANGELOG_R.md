@@ -22,6 +22,19 @@ nothing has to scale; deposits last, so distance never presses; every build is o
 
 ## Finished steps
 
+- [x] **R7 Decor building set** (built 2026-10-17; no generator or save-format change). 14 plain cube blocks, 129–142 (`block/decor.rs`), made only
+  by machines (`recipes/decor.rs`, rows 136–149) and unlocked together by the **Architecture** tech (index 85: needs Masonry and Assembly, red and
+  green packs, 40 units; `research/later.rs`). **Colours:** an assembler turns 4 concrete and one mineral (iron ore red, copper ore green, coal
+  black, quicklime white, sulfur yellow) into 4 coloured blocks, so a pinch of mineral stands for the dye (stained soil drops plain dirt, so it cannot
+  be one). **Rock:** smelters fire basalt, granite, sandstone or slag 1 for 1 into tiles and bricks (each province's own rock; slag finally has a use).
+  **Parts:** an assembler makes framed glass (4 glass, 2 rods for 4), metal panels (4 plates for 4), catwalks (4 rods, a plate for 4; a cutout grating,
+  solid), railings (4 rods for 4; cutout, not solid, walked through) and panel lights (glass, plate, wire for 2; the torch's light row). No hand recipe, so
+  none is in the build menu; the creative "All items" tab has them. `DEFS` is now `BASE_DEFS` joined with `DECOR_DEFS` (`BlockDef` is `Copy`).
+  **Checks:** `recipes/decor/tests.rs` (rows sit where research says, one row a block and no hand recipe, rows fit a stack and the machine, colours are
+  concrete plus one mineral, shapes and light, the tech unlocks every row and nothing earlier does); the golden hash was re-recorded on purpose (the
+  research table gained tech 85). **Seen in the pane:** all 14 in a wall; framed glass, catwalk and railing see through; the aim names each block.
+  **Not built:** slabs, stairs and thin rails (non-cube meshing, a step of its own), more colours (blue has no mineral yet), a Decor build-menu group
+  (nothing in it is hand-made). Looks are placeholders (`docs/ART_HANDOVER.md`).
 - [x] **Plant detail, the admin command line and a livelier rain** (built 2026-10-17; user requests). Presentation and tooling: no save, core or generator change.
   **Plants:** `TEX_SIZE` is 64 (`BASE` 16, every other layer repeated 4 x), and the plant layers (`hires::covers`) are painted at the full 64 by
   `textures/hires.rs` with a signed-distance pen (`brush.rs`: blades, petals, ellipses); the HUD's block icons scale by `16 / img.width`. Texture memory is

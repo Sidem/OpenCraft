@@ -71,6 +71,13 @@ size.
   most and draws 20 kW. Break any part of it to pick it up with what it held. Buildings you would otherwise craft by
   hand have assembler recipes too, at the hand cost: poles, long-distance poles, solar panels, accumulators, lamps,
   boxes, underpasses and rails (the constructor saws planks and sticks).
+- **Decor** (Architecture research, after Masonry and Assembly; red and green packs) is machine-made only, 14 blocks for
+  building something that looks good. An assembler tints 4 concrete with one pinch of a mineral into 4 coloured blocks: iron
+  ore red, copper ore green, coal black, quicklime white, sulfur yellow. A smelter fires basalt, granite, sandstone or slag
+  into basalt tiles, granite, sandstone and slag bricks (one block each). An assembler also makes framed glass (4 glass, 2
+  rods for 4), metal panels (4 plates for 4), catwalks (a see-through grating you walk on: 4 rods, a plate for 4), railings
+  (non-solid, you walk through: 4 rods for 4) and panel lights (glass, plate, wire for 2; a soft light like a torch's).
+  They are not in the build menu: belt them into a box, then take them from it.
 - **The upgrader** (Assembly research, 2×2×2, 30 kW; 12 iron plates, 10 gears, 16 copper wire, 2 motors) raises a
   machine's Mk without you: choose the tier it makes, and belts bring the Mk1 item and the kits of each step (Mk3 takes
   green and blue kits, Mk4 adds violet). Each tier unlocks with its upgrade's research.
