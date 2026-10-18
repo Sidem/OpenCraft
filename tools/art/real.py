@@ -5,9 +5,7 @@
 `contrast`, since a block face needs a little more relief than a photo to read), and each lightness gets the photos'
 mean a, b there plus patchy colour variation of the photos' size. Continuous tone, no outlines, no posterising.
 Recipes return `rgba` tiles and wrap. Add a material: give it photos in `realism.MATERIALS`, then a recipe here.
-
-Prototypes for now: `PROTOTYPES` swaps them in when `ART_REAL=1` (registry.py), so the old and the new look can be
-compared in game; the user picks which to roll out.
+Rolled out: the ground (stone, so every ore body, dirt, grass top and side, sand; `hints.py` stains them).
 """
 import numpy as np
 
@@ -88,4 +86,28 @@ def grass_top(seed=0):
     return rgba(colour("grass", field, 1.3, hue_var=1.2, seed=seed))
 
 
-PROTOTYPES = {"stone": stone, "dirt": dirt, "grass_top": grass_top}
+def grass_side(seed=0):
+    """Turf hanging over the soil: a ragged lip of grass (single blades poke lower), a soft shadow under it; tiles
+    sideways. Built from this module's dirt and grass, so it matches both."""
+    soil = dirt(seed + 4)[..., :3].astype(float)
+    top = grass_top(seed + 2)[..., :3].astype(float)
+    col = np.arange(N)
+    X, _ = coords()
+    depth = 22 + 10 * fbm(X[:1], np.zeros((1, N)), 6, 3, seed + 3)[0] + 7 * (hash2(col, 0, seed + 8) > 0.8) * hash2(col, 1, seed + 9)
+    yy = np.arange(N)[:, None]
+    lip = yy < depth[None, :]
+    shade = 1 - 0.45 * np.clip(1 - (yy - depth[None, :]) / 12.0, 0, 1) * ~lip  # soft, no dither
+    return rgba(np.where(lip[..., None], top, soil * shade[..., None]).clip(0, 255).astype(np.uint8))
+
+
+def sand(seed=0):
+    """Wind-blown sand: low asymmetric ripples lit from the side, fine grain, a few darker heavy-mineral streaks."""
+    X, Y = coords()
+    warp = fbm(X, Y, 3, 3, seed + 1)
+    phase = (Y * 9 + warp * 1.6 + X * 0.6) % 1.0
+    ripple = np.where(phase < 0.7, phase / 0.7, (1 - phase) / 0.3)  # gentle windward slope, steep lee
+    light = relief_light(blur(ripple, 1.0) * 2.5, 1.0)
+    grain = fbm(X, Y, 64, 1, seed + 2)
+    streak = fbm(X, Y, 4, 3, seed + 3, 0.5, 0.3)
+    field = blur(light, 1.0) * 0.3 + grain * 0.45 + streak * 0.25
+    return rgba(colour("sand", field, 1.2, seed=seed))

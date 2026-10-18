@@ -1,11 +1,12 @@
 """The other rocks (docs/ART_STYLE.md): granite, sandstone, basalt, limestone, quartz ore, bedrock and spent rock. Each is its
 own texture language so they read apart at a glance: granite is a coarse speckled crystal mosaic, sandstone hard red strata,
-basalt dark polygonal columns, limestone pale layers with pits and shells. All wrap at the edge. Ores are `natural.stone`
-bodies with a deposit, as in `ores.py`.
+basalt dark polygonal columns, limestone pale layers with pits and shells. All wrap at the edge. Quartz ore is the realistic
+`real.stone` body with a deposit, as in `ores.py`; bedrock and spent rock still use the stylized `natural.stone`.
 """
 import numpy as np
 
 from lib import N, bayer, cavity, coords, edges, fbm, grow, hash2, paint, ramp, relief_light, rgba, roll, worley
+import real
 from natural import RAMPS, leaf_shape, stone
 
 GRANITE = ramp(["#141824", "#2f2a38", "#574649", "#836359", "#ab8672", "#d0ab93", "#ecd3bc"])
@@ -124,7 +125,7 @@ def limestone(seed=0):
 def quartz_ore(alt=0):
     """Clusters of long glassy crystals fanning out of the stone, each with a lit and a shaded facet and a pointed tip."""
     rng = np.random.default_rng(130 + alt * 29)
-    img = stone(0)[..., :3].copy()
+    img = real.stone(0)[..., :3].copy()  # the ore body is the realistic stone, like `ores.py`
     ys, xs = np.mgrid[-36:37, -36:37]
     for _ in range(3):
         bx, by = rng.integers(26, N - 26, 2)

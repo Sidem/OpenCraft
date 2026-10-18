@@ -1,11 +1,12 @@
-"""Natural block recipes for the Ember & Aether look (docs/ART_STYLE.md): stone, dirt, grass, sand, logs, planks, leaves.
+"""Natural block recipes in the stylized Ember & Aether look (docs/ART_STYLE.md): logs, planks, leaves, and the stylized
+stone that bedrock and spent rock still use. The ground (stone, dirt, grass, sand) moved to the realistic `real.py`.
 
-Every function returns an `N` x `N` x 4 uint8 tile. Tiles that repeat (stone, dirt, grass top, sand, bark, planks) wrap at
-the edge. `ores.py` builds on `stone`, `masonry.py` on `RAMPS`.
+Every function returns an `N` x `N` x 4 uint8 tile. Tiles that repeat (stone, bark, planks) wrap at the edge.
+`masonry.py`, `plants.py` and others take their colours from `RAMPS`.
 """
 import numpy as np
 
-from lib import N, bayer, cavity, coords, edges, fbm, hash2, paint, ramp, relief_light, rgba, roll, snap, stroke, vnoise, worley
+from lib import N, cavity, coords, edges, fbm, hash2, paint, ramp, relief_light, rgba, roll, vnoise, worley
 
 RAMPS = {
     "stone": ramp(["#0f1520", "#1e2431", "#323745", "#4b4f5e", "#666878", "#868390", "#a8a0a2", "#cbbdb6"]),
@@ -39,72 +40,6 @@ def stone(seed=0, tones=None, lift=0.0):
     ix, iy = (X * N).astype(int), (Y * N).astype(int)
     v = v + (hash2(ix, iy, seed + 6) > 0.994) * 0.3
     return rgba(paint(RAMPS["stone"] if tones is None else tones, v, 0.3))
-
-
-def dirt(seed=0, post=None):
-    """Packed earth: clods, a scatter of small grey-violet pebbles and a few meandering roots. `post(img, ramp)` may
-    recolour the earth (a surface-hint stain, `stains.apply`) before the pebbles go on."""
-    X, Y = coords()
-    clods = fbm(X, Y, 6, 4, seed + 1, 0.55)
-    f1, f2, pid = worley(X, Y, 10, seed + 2, 1.0)
-    r = 0.12 + pid * 0.14
-    pebble = (pid > 0.7) & (f1 < r)
-    dome = np.where(pebble, 1 - f1 / r, 0)
-    h = clods * 0.5 + dome * 0.9
-    light = relief_light(h * 6, 1.2)
-    root = np.abs(fbm(X, Y, 3, 3, seed + 3, 0.5, 0.35) - 0.5) < 0.009
-    v = 0.28 + clods * 0.3 + (light - 0.5) * 0.5 - cavity(h * 3, 2.0)
-    v = np.where(root, 0.1, v)
-    img = paint(RAMPS["dirt"], v, 0.3)
-    if post:
-        img = post(img, RAMPS["dirt"])
-    rock = paint(RAMPS["stone"], 0.55 + dome * 0.25 + (light - 0.5) * 0.7, 0.3)
-    return rgba(np.where(pebble[..., None], rock, img))
-
-
-def blades(img, rng, count, tones, lo, hi, down=False):
-    """Scatter `count` short curved strokes (dark at the root, light at the tip) onto `img`, darkest first."""
-    for shade in sorted(rng.uniform(lo, hi, count)):
-        x, y = rng.integers(0, N), rng.integers(0, N)
-        ang = rng.uniform(0, 2 * np.pi)
-        length = int(rng.integers(6, 15))
-        stroke(img, tones, x, y, np.cos(ang) * 0.8, np.sin(ang) * 0.8, length, shade * 8, 1)
-
-
-def grass_top(seed=0, post=None):
-    """Dense blades over a deep mottled green; light catches the tips."""
-    X, Y = coords()
-    tones = RAMPS["grass"]
-    img = paint(tones, fbm(X, Y, 5, 4, seed + 1) * 0.5 + 0.1, 0.5)
-    blades(img, np.random.default_rng(seed + 11), 2300, tones, 0.0, 0.55)
-    return rgba(post(img, tones) if post else img)
-
-
-def grass_side(seed=0, post=None):
-    """A ragged grass lip hanging over dirt, with a soft shadow beneath (an ordered dither between the soil and a darker
-    copy of it); tiles sideways."""
-    soil = dirt(seed + 4, post)[..., :3]
-    top = grass_top(seed + 2, post)[..., :3]
-    col = np.arange(N)
-    depth = (24 + 12 * vnoise(col / N * 16, np.zeros(N), 16, seed + 3) + hash2(col // 2, 0, seed + 8) * 10).astype(int)
-    yy = np.arange(N)[:, None]
-    lip = yy < depth[None, :]
-    shade = np.clip(1 - (yy - depth[None, :]) / 14.0, 0, 1) * (~lip)
-    soil = np.where((shade + bayer() * 0.5 > 0.4)[..., None], (soil * 0.6).astype(np.uint8), soil)
-    return rgba(np.where(lip[..., None], top, soil))
-
-
-def sand(seed=0, post=None):
-    """Wind-rippled sand with fine grain and a few pale shell fragments."""
-    X, Y = coords()
-    warp = fbm(X, Y, 3, 3, seed + 1)
-    ripple = np.sin((Y * 7 + warp * 2.2 + X) * 2 * np.pi) * 0.5 + 0.5
-    grain = fbm(X, Y, 40, 1, seed + 2)
-    ix, iy = (X * N).astype(int), (Y * N).astype(int)
-    shell = (hash2(ix // 3, iy // 3, seed + 3) > 0.985) & (hash2(ix, iy, seed + 4) > 0.4)
-    v = 0.5 + (ripple - 0.5) * 0.2 + (grain - 0.5) * 0.18 + (warp - 0.5) * 0.25
-    img = paint(RAMPS["sand"], np.where(shell, 0.95, v), 0.3)
-    return rgba(post(img, RAMPS["sand"]) if post else img)
 
 
 def bark(seed=0, tones=None, moss=True):

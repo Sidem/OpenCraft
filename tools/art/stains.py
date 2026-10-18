@@ -1,41 +1,39 @@
-"""Surface hints: the tinted ground over each ore (docs/ART_STYLE.md). A stain recolours part of a plain tile (dirt, grass,
-sand) into the ore's ramp, keeping the tile's own light and shade, and each ore has its own SHAPE so the four read apart
-without colour (the same language as the ores in `ores.py`): rust is fat round blotches, coal angular shards, copper thin
-teal veins, chalk fine pale chips. `apply` is the hook `natural.dirt`, `grass_top`, `grass_side` and `sand` take as `post`.
-Add a stain: a ramp, a mask function and a row in `KINDS`.
+"""Surface hints: the tinted ground over each ore (docs/ART_STYLE.md section 12). A stain blends part of a realistic ground
+tile (dirt, grass, sand from `real.py`) toward the mineral's colour in Oklab, keeping the tile's own light and shade, and
+each ore has its own SHAPE so the four read apart without colour (the same language as the ores): iron is big ragged
+oxide patches, coal clustered dark shards, copper small broken green crusts, chalk fine pale chips. `apply` is called by
+`hints.py`. Add a stain: a ramp, a mask function and a row in `KINDS`.
+
+`RUST`, `COAL` and `VERDIGRIS` are the older stylized ramps other recipes still use (iron ore, coal ore, plants).
 """
 import numpy as np
 
-from lib import N, coords, fbm, hash2, ramp
-from natural import leaf_shape
+from lib import N, blur, coords, fbm, hash2, ramp, smooth, worley
+from style import oklab_to_srgb, srgb_to_oklab
 
 RUST = ramp(["#241012", "#4a1f1a", "#6e2c20", "#8f3d28", "#b05a38", "#cc7e52"])
 COAL = ramp(["#05060b", "#0c0f19", "#171b2a", "#272d42", "#3f4a68", "#6f86ad"])
 VERDIGRIS = ramp(["#1a2a2a", "#38504a", "#5d7f6c", "#8aa890", "#b4c8ae"])
-CHALK = ramp(["#2b2640", "#5c5578", "#8d86a6", "#c5c0d8", "#f1eefc"])
+# The realistic stains: limonite and hematite ochre, coal dust, copper's green salts, chalk.
+OXIDE = ramp(["#4a2a10", "#7a4818", "#a8682a", "#c88c3c", "#e0b060"])
+SOOT = ramp(["#0a0a0b", "#151516", "#212122", "#303032", "#46464a"])
+COPPER_SALTS = ramp(["#1e3a2a", "#33604a", "#4f8466", "#7aa68a", "#a8c8b2"])
+CHALK = ramp(["#8a867c", "#aeaa9e", "#cdc9bd", "#e4e1d6", "#f4f2ea"])
 
 
 def _rust():
-    """Iron staining: big ragged patches of oxide, a dithered halo where it thins out, never round or leaf-shaped.
-    Returns 0 (clean), 0.5 (halo) or 1 (core)."""
+    """Iron staining: big ragged patches of oxide fading out at their edge, never round or leaf-shaped. 0..1."""
     X, Y = coords()
-    n = fbm(X, Y, 5, 4, 103, 0.55, 0.35)
-    grain = hash2((X * N).astype(int), (Y * N).astype(int), 104)
-    core = n > 0.63
-    halo = (n > 0.56) & ~core & (grain > 0.5)
-    return np.where(core, 1.0, np.where(halo, 0.5, 0.0))
+    n = fbm(X, Y, 3, 4, 103, 0.55, 0.35)
+    return np.clip((n - 0.57) / 0.08, 0, 1)
 
 
 def _coal():
-    rng = np.random.default_rng(105)
-    ys, xs = np.mgrid[-14:15, -14:15]
-    mask = np.zeros((N, N), bool)
-    for _ in range(26):
-        cx, cy = rng.integers(0, N, 2)
-        ang, la = rng.uniform(0, np.pi), rng.uniform(5, 11)
-        inside, _, _ = leaf_shape(xs, ys, ang, la, la * rng.uniform(0.3, 0.5))
-        mask[((cy + ys) % N)[inside], ((cx + xs) % N)[inside]] = True
-    return mask
+    """Coal fragments: small angular chips (Voronoi cells, so straight broken sides) in loose clusters."""
+    X, Y = coords()
+    f1, f2, pid = worley(X, Y, 18, 105, 1.0)
+    cluster = fbm(X, Y, 4, 3, 106)
+    return (pid > 0.78 - 0.5 * np.clip(cluster - 0.5, 0, 1)) & (f2 - f1 > 0.12)
 
 
 def _verdigris():
@@ -44,32 +42,40 @@ def _verdigris():
     ix, iy = (X * N).astype(int), (Y * N).astype(int)
     n = fbm(X, Y, 7, 4, 107, 0.5, 0.3)
     grain = hash2(ix, iy, 108)
-    crust = (n > 0.62) & (grain > 0.12)
-    thin = (n > 0.56) & ~crust & (grain > 0.66)
-    return crust | thin
+    return np.clip((n - 0.57) / 0.05, 0, 1) * (grain > 0.15)
 
 
 def _chalk():
+    """Chalk and limestone chips: small irregular pale fragments, scattered in loose drifts."""
     X, Y = coords()
-    ix, iy = (X * N).astype(int), (Y * N).astype(int)
-    return (hash2(ix // 3, iy // 3, 110) > 0.68) & (hash2(ix, iy, 111) > 0.25) & (fbm(X, Y, 5, 2, 112) > 0.38)
+    f1, _, pid = worley(X, Y, 28, 110, 1.0)
+    r = 0.25 + 0.2 * fbm(X, Y, 20, 2, 111)
+    return (f1 < r) & (pid > 0.55) & (fbm(X, Y, 5, 2, 112) > 0.4)
 
 
-KINDS = {"rusty": (_rust, RUST), "dark": (_coal, COAL), "green": (_verdigris, VERDIGRIS), "pale": (_chalk, CHALK)}
+KINDS = {"rusty": (_rust, OXIDE), "dark": (_coal, SOOT), "green": (_verdigris, COPPER_SALTS), "pale": (_chalk, CHALK)}
 
 
-def apply(img, base, kind):
-    """`img` (n, n, 3) painted from the ramp `base`, with the stain `kind` recoloured into its ramp where its shape falls.
-    The stain always differs in lightness from the ground, not just in hue (so colour-blind players see it): coal is dark,
-    and the others go lighter on dark ground and darker on light ground (sand)."""
+def apply(img, kind, grass=False):
+    """`img` (n, n, 3) with the stain `kind` blended in where its shape falls (soft edges, continuous tone). The stain
+    always differs in lightness from the ground, not just in hue (so colour-blind players see it): coal is darker, the
+    others lighter on dark ground and darker on light ground (sand). On `grass` rust is darker too: rusty bare soil
+    showing through the turf, not orange paint on it."""
     mask_fn, tones = KINDS[kind]
-    d = ((img[..., None, :].astype(int) - base[None, None].astype(int)) ** 2).sum(-1)
-    idx = d.argmin(-1) / (len(base) - 1) * (len(tones) - 1)
-    strength = mask_fn().astype(float)  # 0..1: a stain may fade out (rust) or be all or nothing
+    m = np.clip(blur(mask_fn().astype(float), 0.6), 0, 1)[..., None]
+    lab = srgb_to_oklab(img.reshape(-1, 3).astype(float)).reshape(img.shape)
+    L = lab[..., 0]
+    shade = (L - L.min()) / (np.ptp(L) + 1e-9)  # the ground's own light and shade, kept inside the stain
+    tone = srgb_to_oklab(smooth(tones, shade).reshape(-1, 3)).reshape(img.shape)
+    lift = {"rusty": 0.16, "green": 0.15, "pale": 0.25}  # green on brown or green ground leans on lightness
     if kind == "dark":
-        idx = idx * 0.4
-    elif img.mean() > 135:
-        idx = idx * 0.5
+        tone[..., 0] = L * 0.5
+    elif grass and kind == "rusty":
+        tone[..., 0] = L - 0.16
+        tone[..., 1:] *= 0.55  # darkened oxide turns blood red at full chroma; rusty soil is a muted brown
+    elif L.mean() > 0.6:
+        tone[..., 0] = L - (0.2 if kind == "pale" else 0.17)
     else:
-        idx = idx + (4 * strength if kind == "rusty" else 2)
-    return np.where((strength > 0)[..., None], tones[np.clip(np.round(idx).astype(int), 0, len(tones) - 1)], img).astype(np.uint8)
+        tone[..., 0] = L + lift[kind]
+    out = lab * (1 - m) + tone * m
+    return oklab_to_srgb(out.reshape(-1, 3)).reshape(img.shape)

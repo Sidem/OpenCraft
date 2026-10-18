@@ -248,11 +248,27 @@ grid shows on a large floor**, and **the old ore stickers look pasted on** again
 
 **Suggested rollout, each a reviewed step with an in-game A/B:**
 
-1. **Ground:** stone (and so every ore body), dirt, grass top and side, sand, their 12 hint variants.
+1. **Ground (done, below):** stone (and so every ore body), dirt, grass top and side, sand, their 12 hint variants.
 2. **Ores and rocks:** the five sticker ores redone on the real body, then bedrock, spent rock, granite, basalt,
    limestone, sandstone.
 3. **Wood:** bark, log end, planks, leaves of the three trees, birch, dead wood, cactus.
 4. **Built materials:** stone and masonry bricks, concrete, basalt tiles (fetch brick and concrete photos first).
+
+**Batch 1 done (2026-10-18): the ground.** `real.py` now paints stone (so every ore body, quartz included), dirt, grass
+top, grass side (real turf over real soil, a soft shadow, no dither) and sand (asymmetric ripples). The 12 hints are
+`stains.apply` over them: blended in Oklab with soft edges, in mineral colours (ochre oxide, coal dust, muted copper
+green, chalk), each keeping its shape language. Iron is big ragged patches, coal angular Voronoi chips (no longer leaf
+shapes), copper broken crusts, chalk small chips. Lightness still carries each stain for colour-blind players: rust and
+chalk lift more (protan reads red darker), and on grass rust goes darker and muted, as bare rusty soil, since bright
+orange on turf read as paint and darkened full-chroma oxide read as blood. The old stylized ground recipes are gone
+from `natural.py`. Measured: stone 0.030 / 7.5% / 0.069, dirt 0.033 / 9.3% / 0.093, grass 0.046 / 10.1% / 0.054,
+sand 0.013 / 8.2% / 0.061 (limit 0.014: sand's two fit photos are nearly alike, so its floor is tight); every hint
+stands out on 8-37% of its tile under all four vision types. Pack 2.56 MB (35 continuous-tone tiles at about 22 KB
+each, not the 15 KB I estimated). The rest of the rollout extrapolates to about 3.8 MB against the 4 MB budget, so
+batch 2 should measure it and may need palette-reduced PNGs for tiles whose detail allows it. Decode and merge
+measured 170-241 ms warm. In game: `artifacts/art2/batch1_pit.jpg` and `batch1_meadow.jpg`. Still showing: the stone
+floor's repeat grid (the engine step below, in progress in its own session), and the coal, iron, bauxite and oil sand
+deposits as stylized stickers on the realistic body (batch 2).
 
 **Engine follow-up the realistic look needs** (its own step): realistic tiles show the block grid on large surfaces.
 The fix is per-block variation, either a hashed rotation or flip of the UVs for natural blocks, or alternates for stone,

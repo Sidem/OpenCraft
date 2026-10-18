@@ -5,7 +5,6 @@ coal 73-75, iron 76-78, copper 79-81, limestone 82-84, quartz 85-87, leaves 88-9
 `tiles`: the tile repeats over greedy-merged faces, so `check.py` demands a seamless wrap. `cutout`: alpha is coverage
 (leaves, glass); otherwise alpha carries `255 - glow`. `real`: the realistic look (ART_STYLE.md section 12).
 """
-import os
 from dataclasses import dataclass
 from typing import Callable
 
@@ -64,11 +63,11 @@ NATURAL = [
     Entry(59, "sandstone", rocks.sandstone, tiles=True),
     Entry(60, "basalt", rocks.basalt, tiles=True),
     *alts(61, 82, "limestone", lambda a: rocks.limestone(a * 5), tiles=True),
-    *alts(62, 85, "quartz_ore", rocks.quartz_ore),
-    *hints(64, hint_tiles.soil, tiles=True),
-    *hints(91, hint_tiles.grass_top, tiles=True),
-    *hints(95, hint_tiles.grass_side),
-    *hints(99, hint_tiles.sand, tiles=True),
+    *alts(62, 85, "quartz_ore", rocks.quartz_ore, real=True),
+    *hints(64, hint_tiles.soil, tiles=True, real=True),
+    *hints(91, hint_tiles.grass_top, tiles=True, real=True),
+    *hints(95, hint_tiles.grass_side, real=True),
+    *hints(99, hint_tiles.sand, tiles=True, real=True),
     Entry(106, "water", forest.water, tiles=True),
     Entry(314, "birch_bark", forest.birch_bark, tiles=True),
     Entry(315, "birch_leaves", forest.birch_leaves, cutout=True),
@@ -80,18 +79,18 @@ NATURAL = [
 ]
 
 LAYERS = [
-    Entry(0, "stone", natural.stone, tiles=True),
-    Entry(1, "dirt", natural.dirt, tiles=True),
-    Entry(2, "grass_top", natural.grass_top, tiles=True),
-    Entry(3, "grass_side", natural.grass_side),
-    Entry(4, "sand", natural.sand, tiles=True),
+    Entry(0, "stone", real.stone, tiles=True, real=True),
+    Entry(1, "dirt", real.dirt, tiles=True, real=True),
+    Entry(2, "grass_top", real.grass_top, tiles=True, real=True),
+    Entry(3, "grass_side", real.grass_side, real=True),
+    Entry(4, "sand", real.sand, tiles=True, real=True),
     Entry(5, "log_side", natural.bark, tiles=True),
     Entry(6, "log_top", natural.log_end),
     Entry(109, "planks", natural.planks, tiles=True),
     Entry(119, "stone_bricks", masonry.bricks, tiles=True),
     *alts(7, 88, "leaves", lambda a: natural.leaves(a), cutout=True),
-    *alts(8, 73, "coal_ore", ores.coal),
-    *alts(9, 76, "iron_ore", ores.iron),
+    *alts(8, 73, "coal_ore", ores.coal, real=True),  # realistic stone body; the deposits are redone in batch 2
+    *alts(9, 76, "iron_ore", ores.iron, real=True),
     *alts(10, 79, "copper_ore", ores.copper, real=True),
     Entry(63, "glass", machines.glass, cutout=True),
     Entry(105, "lamp", machines.lamp),
@@ -214,7 +213,7 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     (188, "aluminium_ingot", lambda: items.ingot(items.ALUMINIUM, 188), {}), (189, "aluminium_plate", lambda: items.plate_item(items.ALUMINIUM, 189), {}),
     (153, "silicon", items.silicon, {}), (69, "core_drill", items.core_drill, {}),
     # ores and what is made of them
-    (186, "bauxite_ore", ores.bauxite, dict(tiles=True)), (202, "oil_sand", ores.oil_sand, dict(tiles=True)),
+    (186, "bauxite_ore", ores.bauxite, dict(tiles=True, real=True)), (202, "oil_sand", ores.oil_sand, dict(tiles=True, real=True)),
     (203, "uranium_ore", ores.uranium, dict(tiles=True, real=True)),
     (149, "crushed_iron", lambda: items.rubble(_CRUSHED, stains.RUST, 149), {}), (150, "crushed_copper", lambda: items.rubble(_CRUSHED, ores.MALACHITE, 150, fleck_frac=0.35), {}),
     (187, "crushed_bauxite", lambda: items.rubble(_CRUSHED, ores.BAUXITE, 187, fleck_frac=0.6), {}),
@@ -277,8 +276,3 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
 )]
 
 LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS
-
-if os.environ.get("ART_REAL"):  # the realistic prototypes, for an A/B in game (real.py); ores sit on the new stone
-    ores._body = lambda alt: real.stone()[..., :3]
-    LAYERS = [Entry(e.layer, e.name, real.PROTOTYPES[e.name], e.tiles, e.cutout, e.cover, True)
-              if e.name in real.PROTOTYPES else e for e in LAYERS]

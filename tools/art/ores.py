@@ -5,7 +5,8 @@ along cracks, uranium black pitchblende masses with yellow flakes. Ore colours f
 import numpy as np
 
 from lib import N, coords, edges, fbm, grow, hash2, paint, ramp, relief_light, rgba, roll, smooth, worley
-from natural import leaf_shape, stone
+from natural import leaf_shape
+from real import stone
 from stains import COAL, RUST as IRON
 
 # Mineral colours from specimens: malachite banded deep to pale green, azurite deep blue, chalcopyrite brass.
