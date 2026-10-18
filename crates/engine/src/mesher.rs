@@ -7,9 +7,9 @@
 //! bits  6..12  y
 //! bits 12..18  z
 //! bits 18..21  face  (+X, -X, +Y, -Y, +Z, -Z; 6 and 7 are a plant's two diagonal quads)
-//! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded); for a liquid quad, 1 marks a surface
-//!              corner, which the shader lowers by a tenth of a block (the water line)
+//! bits 21..23  ambient occlusion (0 = darkest, 3 = unoccluded)
 //! bits 23..32  texture array layer
+//! (a liquid vertex holds its surface drop, kind of water and flow direction there instead: `water.rs`)
 //! ```
 //!
 //! UVs are not stored: the shader derives them from the vertex position, so a merged 5x3 quad
@@ -25,16 +25,18 @@
 //! less. Plants (`block::PLANT`) are two crossed quads, each emitted in both windings, into the
 //! cutout list and never merged (so is the ground cover on natural ground: `cover.rs`). Liquids (`block::LIQUID`) get faces only against cells that are neither
 //! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their
-//! AO bits mark the water line instead, with how far it sits below the block's top (`water_line`):
-//! 1 for sources and falling water, 2 and 3 for thinner flows.
+//! surface corners sit below the block's top by a height read from the cells around (`water::corner_drop`), so
+//! flows slope smoothly and no face is needed between two liquid cells.
 
-use crate::block::{flow_level, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
+use crate::block::{BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
 
 mod cover;
 mod quad;
+mod water;
 pub use cover::Cover;
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
+pub use water::height as water_height;
 
 const N: usize = 32;
 const P: usize = N + 2;
@@ -228,12 +230,22 @@ impl Mesher {
                             for (i, (du, dv)) in [(-su, -sv), (su, -sv), (su, sv), (-su, sv)].into_iter().enumerate() {
                                 let mut k = corner(pad, light, q, du, dv);
                                 if liquid {
-                                    let top = face == 2 || du == P2 as isize || dv == P2 as isize;
-                                    k = (k & !3) | if surface && top { water_line(b) } else { 0 };
+                                    // The corner's side of the cell on each axis: the normal's, then the face's own.
+                                    let mut side = [0isize; 3];
+                                    side[d] = sign;
+                                    side[u] = if i == 1 || i == 2 { 1 } else { -1 };
+                                    side[v] = if i >= 2 { 1 } else { -1 };
+                                    let drop = if surface && side[1] > 0 {
+                                        water::corner_drop(pad, p, side[0], side[2])
+                                    } else {
+                                        0
+                                    };
+                                    k = (k & 0x3FC) | (drop & 3) | (drop >> 2) << 10;
                                 }
                                 corners |= u64::from(k) << (i * CORNER_BITS);
                             }
-                            let layer = u64::from(pick_layer(b, face, c));
+                            let layer =
+                                if liquid { u64::from(water::look(pad, p)) } else { u64::from(pick_layer(b, face, c)) };
                             key = KEY_FLAG
                                 | (u64::from(CUTOUT[b as usize]) << KEY_CUTOUT)
                                 | (u64::from(liquid) << KEY_LIQUID)
@@ -347,16 +359,6 @@ impl Mesher {
             self.cutout.extend_from_slice(&q);
             self.cutout.extend_from_slice(&[q[3], q[2], q[1], q[0]]);
         }
-    }
-}
-
-/// How far a liquid's surface sits below its block's top, as the shader's water-line class: 1 (a tenth)
-/// for sources and falling water, 2 for flows of level 4–6, 3 for the thinnest.
-fn water_line(b: BlockId) -> u32 {
-    match flow_level(b) {
-        None | Some(7) => 1,
-        Some(4..=6) => 2,
-        Some(_) => 3,
     }
 }
 

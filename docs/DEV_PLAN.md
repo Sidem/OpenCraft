@@ -585,6 +585,11 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-18: water rework** (user: finer levels, still vs flowing vs falling, a missing side texture; presentation only). The sim
+  already had a source and 7 flow levels; the mesher drew 3 heights and culled faces between liquid cells, so the wall above a lower
+  surface was missing (the screenshot's bug). Now `mesher/water.rs` gives each surface corner a height in sixteenths from its four
+  cells (one sloped sheet) and tags cells still / laminar / turbulent / falling plus a direction; the `WATER` shader draws each.
+  Not done: swimming and pumps treat every flow cell as a whole block.
 - **2026-10-18: per-block texture turning** (for the realistic natural tiles, `docs/ART_STYLE.md` section 12): the terrain
   fragment shader turns, mirrors or flips each natural block's tile by a hash of its cell (`block/turn.rs`, `turnUv` in
   `render/shaders.ts`). No mesher change: vertex count and meshing time are unchanged, frame time measured the same (0.7 ms at

@@ -124,6 +124,17 @@ fn a_broken_dam_falls_into_the_pit_and_spreads_seven_cells() {
     assert_eq!(sim.block(at(1, 100, 15)), WATER, "the pond is a source: it stays");
 }
 
+/// What the player sees (`mesher/water.rs`): a settled flow thins out in even steps, from 13/16 of a block where it
+/// lands to the last cell's 1/16, never a step that skips a height.
+#[test]
+fn a_settled_flow_thins_in_even_steps_of_height() {
+    let mut sim = pond_above_a_pit();
+    change(&mut sim, DAM, AIR);
+    settle(&mut sim);
+    let heights: Vec<u32> = (0..8).map(|d| crate::mesher::water_height(sim.block(at(6 + d, 90, 15)))).collect();
+    assert_eq!(heights, [13, 13, 11, 9, 7, 5, 3, 1], "the landing cell, then 7 cells out");
+}
+
 #[test]
 fn closing_the_dam_dries_the_flow() {
     let mut sim = pond_above_a_pit();

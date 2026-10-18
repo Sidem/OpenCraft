@@ -8,6 +8,8 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - Every block, machine and item is repainted in hand-made 128 × 128 art: glowing windows, lamps and belts, granite with real crystals and mica, rock stains that look like stained ground. Add ?art=off to the address to see the old look.
 - Stone, dirt, sand, grass and rock no longer show a repeating grid on large floors and walls: each block's pattern is turned its own way.
 - Rivers and the sea are much quieter, and the sound of water together never passes a low limit, so walking along a river no longer hisses over everything else.
+- Water has a smooth surface now: a spreading flow thins out in even steps and slopes down to a thin film instead of stepping in three coarse levels, and the gaps where the sides of water were missing at the edge of lakes are gone.
+- You can tell still, flowing and falling water apart: still water is calm and glassy, a flow streaks along the way it runs, rapids churn with white foam, and a waterfall pours down in pale streaks. Thin water is clearer, so the ground shows through the end of a flow.
 
 ## 2026-10-17 · Sharper plants, a command line, livelier rain
 

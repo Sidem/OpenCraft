@@ -12,8 +12,9 @@ fn ao(side1: bool, side2: bool, corner: bool) -> u32 {
     }
 }
 
-/// The merge key: 4 corners of `CORNER_BITS` (AO 2 bits, light 8 bits), then layer, cutout, liquid, flag.
-pub(super) const CORNER_BITS: usize = 10;
+/// The merge key: 4 corners of `CORNER_BITS` (AO 2 bits, light 8 bits, then 2 bits only a liquid corner uses:
+/// the high bits of its drop, `water.rs`), then layer, cutout, liquid, flag.
+pub(super) const CORNER_BITS: usize = 12;
 pub(super) const KEY_LAYER: usize = 4 * CORNER_BITS;
 pub(super) const KEY_CUTOUT: usize = KEY_LAYER + 9;
 pub(super) const KEY_LIQUID: usize = KEY_CUTOUT + 1;
@@ -52,7 +53,7 @@ pub(super) fn emit_quad(
     (w, h): (u32, u32),
     key: u64,
 ) {
-    let layer = (key >> KEY_LAYER) as u32 & 0x1FF;
+    let layer = (key >> KEY_LAYER) as u32 & 0x1FF; // for a liquid quad: its kind and direction (`water.rs`)
     let corner = corners_of(key);
     let corners = [(bu, bv), (bu + w, bv), (bu + w, bv + h), (bu, bv + h)];
     let mut vs = [0u32; 4];
@@ -64,6 +65,7 @@ pub(super) fn emit_quad(
         c[u] = corners[i].0;
         c[v] = corners[i].1;
         let (a, l) = (corner[i] & 3, (corner[i] >> 2) as u8);
+        let layer = layer | (corner[i] >> 10) << 5; // a liquid vertex's layer bits hold its drop's high bits
         vs[i] = c[0] | (c[1] << 6) | (c[2] << 12) | ((face as u32) << 18) | (a << 21) | (layer << 23);
         ls[i] = l;
         bright[i] = a * 16 + u32::from((l & 15).max(l >> 4));

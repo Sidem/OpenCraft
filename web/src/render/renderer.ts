@@ -156,6 +156,9 @@ export class Renderer {
   }
 
   /** Uploads all block textures as one TEXTURE_2D_ARRAY (one layer per texture, no atlas bleeding). */
+  /** The texture layer of water (`game.water_layer()`; liquid vertices don't carry one). */
+  setWaterLayer(layer: number): void { this.water.layer = layer; }
+
   setTextures(pixels: Uint8Array, size: number, layers: number, glow: Uint8Array | null = null): void {
     const gl = this.gl;
     const upload = (format: number, base: number, data: Uint8Array, w: number, depth: number) => {

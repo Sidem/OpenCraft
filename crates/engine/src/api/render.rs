@@ -119,13 +119,21 @@ impl Game {
         self.sim.factory.quarry_cracks(self.render_eye, 48.0)
     }
 
-    /// Whether the camera is below a water surface (drawn a tenth of a block below the top of its block),
+    /// The water texture layer, which every liquid vertex shares (`mesher/water.rs`).
+    pub fn water_layer(&self) -> u32 {
+        block::tex::WATER.into()
+    }
+
+    /// Whether the camera is below a water surface (drawn at the block's own water height, `mesher::water_height`),
     /// so the host draws the underwater fog.
     pub fn eye_in_water(&self) -> bool {
         let e = self.render_eye;
         let p = IVec3::new(e.x.floor() as i32, e.y.floor() as i32, e.z.floor() as i32);
-        let liquid = |p| self.sim.world.get_block(p).is_some_and(|b| block::LIQUID[b as usize]);
-        liquid(p) && (e.y - f64::from(p.y) < 0.9 || liquid(p + IVec3::new(0, 1, 0)))
+        let at = |p| self.sim.world.get_block(p).filter(|&b| block::LIQUID[b as usize]);
+        at(p).is_some_and(|b| {
+            e.y - f64::from(p.y) < f64::from(crate::mesher::water_height(b)) / 16.0
+                || at(p + IVec3::new(0, 1, 0)).is_some()
+        })
     }
 
     pub fn yaw(&self) -> f64 {

@@ -3,9 +3,10 @@
 // gentle world-anchored shift in tone across blocks; texels are always sampled exactly as drawn, so
 // the pixel art stays crisp. Repetition is broken by alternates per block (the mesher) and, for natural layers,
 // by turning each block's tile in place (`turnUv`, engine `block/turn.rs`), which keeps greedy quads merged.
-// `WATER` is the translucent liquid variant (render/water.ts): no AO (those bits mark the water line:
-// 1 lowers it a tenth of a block, 2 and 3 more for thinner flowing water), a surface that drifts over
-// time and glints in the sun, and the texture's alpha kept.
+// `WATER` is the translucent liquid variant (render/water.ts): no AO and no texture layer (a liquid vertex carries
+// its surface drop, the kind of water and its flow direction instead: engine `mesher/water.rs`, which says how
+// they are packed). The kind sets the look: still water shimmers slowly and glints in the sun, a laminar flow
+// streaks along its direction, rapids churn and foam, a fall streaks downwards in white. Thin water is clearer.
 
 export const TERRAIN_TINT_PERIOD = 256;
 /** The texture unit of the self-light array (`u_glow`); 1 and 2 belong to the rain mask and the clouds. */
@@ -68,6 +69,10 @@ uniform uint u_turns[32]; // two bits per layer: how its blocks may turn (engine
 // The face's offset in world tile cells (xy), its plane and side (z), and how it may turn (w): 0 not, 1 mirror,
 // 2 mirror and flip upside down, 3 any of eight ways.
 flat out vec4 v_turn;
+#else
+uniform float u_waterLayer; // the one tile every liquid vertex shares
+flat out uvec3 v_water; // kind of water, flow direction (eighths of a turn from +X to +Z), face
+out float v_depth; // the surface's height above the block's floor (0..1) on a top face
 #endif
 
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads (lit mostly from above).
@@ -92,11 +97,18 @@ void main() {
   uint face = (a_vert >> 18u) & 7u;
   uint ao = (a_vert >> 21u) & 3u;
   float layer = float(a_vert >> 23u);
+#ifdef WATER
+  float drop = float(ao | (((a_vert >> 28u) & 3u) << 2u)) / 16.0;
+  p.y -= drop;
+  layer = u_waterLayer;
+  uint info = (a_vert >> 23u) & 31u;
+  v_water = uvec3(info & 3u, info >> 2u, face);
+  v_depth = face == 2u ? 1.0 - drop : 1.0;
+#endif
 
   vec2 uv = faceUv(face, p);
 
 #ifdef WATER
-  p.y -= ao > 0u ? 0.3 * float(ao) - 0.2 : 0.0;
   v_uvl = vec3(uv, layer);
   v_light = FACE_SHADE[face];
   v_sun = vec3(0.0);
@@ -185,20 +197,73 @@ vec2 turnUv(vec2 uv, inout vec2 dx, inout vec2 dy) {
 uniform float u_time; // seconds
 uniform vec3 u_sunDir;
 uniform vec3 u_direct;
+flat in uvec3 v_water; // kind (0 still, 1 laminar, 2 turbulent, 3 falling), direction, face
+in float v_depth;
+const vec2 FLOW_DIR[8] = vec2[8](vec2(1, 0), vec2(0.7071, 0.7071), vec2(0, 1), vec2(-0.7071, 0.7071), vec2(-1, 0),
+                                 vec2(-0.7071, -0.7071), vec2(0, -1), vec2(0.7071, -0.7071));
+const vec3 FOAM = vec3(0.86, 0.97, 0.98);
+float waterHash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float waterNoise(vec2 p) {
+  vec2 cell = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(waterHash(cell), waterHash(cell + vec2(1, 0)), f.x), mix(waterHash(cell + vec2(0, 1)), waterHash(cell + vec2(1, 1)), f.x), f.y);
+}
 #endif
 
 void main() {
 #ifdef WATER
-  // Two copies of the texture drifting apart (one mirrored, half a block off) make the surface shimmer.
-  vec4 a = texture(u_tex, v_uvl + vec3(u_time * 0.21, u_time * 0.13, 0.0));
-  vec4 b = texture(u_tex, vec3(0.5 - v_uvl.x + u_time * 0.11, v_uvl.y + 0.37 - u_time * 0.17, v_uvl.z));
+  float t = u_time;
+  vec2 uv = v_uvl.xy;
+  float layer = v_uvl.z;
+  bool top = v_water.z == 2u;
+  uint kind = v_water.x;
+  if (!top && kind == 2u) kind = 3u; // the wall of a drop is a fall
+  vec2 d = FLOW_DIR[v_water.y];
+  vec2 across = vec2(-d.y, d.x);
+  vec4 a, b;
+  float foam = 0.0, ripple = 0.9, shine = 1.0;
+  if (kind == 0u) {
+    // Still water: two copies of the texture drifting slowly apart (one mirrored, half a block off) shimmer; calm, glassy.
+    a = texture(u_tex, vec3(uv + vec2(t * 0.07, t * 0.04), layer));
+    b = texture(u_tex, vec3(0.5 - uv.x + t * 0.04, uv.y + 0.37 - t * 0.06, layer));
+    ripple = 0.5;
+    shine = 1.4;
+  } else if (kind == 1u) {
+    // A laminar flow: the texture stretched along the current and carried with it, in two layers a little apart in speed.
+    vec2 s = vec2(dot(uv, across), dot(uv, d) * 0.4);
+    a = texture(u_tex, vec3(s + vec2(0.0, -t * 0.22), layer));
+    b = texture(u_tex, vec3(vec2(0.31 - s.x * 1.3, s.y * 1.3 + 0.2 - t * 0.37), layer));
+    ripple = 0.7;
+    foam = smoothstep(0.78, 0.95, waterNoise(s * vec2(7.0, 3.0) - vec2(0.0, t * 0.9))) * 0.35;
+  } else if (kind == 2u) {
+    // Rapids: two currents running through each other, broken up, with white water on the crests.
+    vec2 s = vec2(dot(uv, across), dot(uv, d) * 0.6);
+    a = texture(u_tex, vec3(s * 1.2 + vec2(0.0, -t * 0.9), layer));
+    b = texture(u_tex, vec3(vec2(0.37 - s.x * 1.7, s.y * 1.7 + 0.2 - t * 0.6), layer));
+    ripple = 1.4;
+    float churn = waterNoise(uv * 5.0 + d * t * 1.4) * 0.55 + (a.g + b.g) * 0.4;
+    foam = smoothstep(0.62, 0.95, churn) * 0.9;
+  } else {
+    // A fall: narrow streaks running down, white where they bunch.
+    vec2 s = vec2(uv.x * 1.6 + uv.y * 0.08, uv.y * 0.35 - t * 1.5);
+    a = texture(u_tex, vec3(s, layer));
+    b = texture(u_tex, vec3(vec2(s.x * 1.9 + 0.3, s.y * 1.6 + 0.4 - t * 0.5), layer));
+    ripple = 0.3;
+    foam = smoothstep(0.35, 0.8, waterNoise(vec2(uv.x * 7.0, uv.y * 1.2 - t * 3.0)) * 0.7 + (a.g + b.g) * 0.3) * 0.8;
+  }
   vec4 c = mix(a, b, 0.5);
-  // The sun (the moon at night) glints on open water: its reflection off a surface the two copies ripple.
-  vec3 n = normalize(vec3((a.r - b.r) * 0.9, 1.0, (a.g - b.g) * 0.9));
+  // The sun (the moon at night) glints on open still or gently flowing water: its reflection off a surface the two copies ripple.
+  vec3 n = normalize(vec3((a.r - b.r) * ripple, 1.0, (a.g - b.g) * ripple));
   float glint = pow(max(dot(reflect(normalize(v_rel), n), u_sunDir), 0.0), 160.0)
-              * step(0.95, v_light) * clamp(v_tint.g * 1.5 - 0.2, 0.0, 1.0);
+              * step(0.95, v_light) * clamp(v_tint.g * 1.5 - 0.2, 0.0, 1.0) * (top && kind < 2u ? shine : 0.0);
   vec3 col = c.rgb * v_light * v_tint + u_direct * glint * 1.6;
-  o_color = vec4(applyFog(col, v_rel), max(c.a, min(glint, 1.0)));
+  col = mix(col, FOAM * (0.35 + 0.65 * v_light) * v_tint, foam);
+  // Thin water is clearer, so the ground shows through the tail of a flow; falling water is the most solid.
+  float alpha = c.a * mix(0.45, 1.0, smoothstep(0.0, 0.5, v_depth));
+  alpha = max(kind == 3u ? max(alpha, 0.7) : alpha, foam * 0.9);
+  o_color = vec4(applyFog(col, v_rel), max(alpha, min(glint, 1.0)));
 #else
   vec3 uvl = v_uvl;
   vec2 dx = dFdx(uvl.xy), dy = dFdy(uvl.xy);

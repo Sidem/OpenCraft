@@ -40,8 +40,12 @@ export class WaterPass {
     this.prog = createProgram(gl, S.chunkVert, S.litFrag, ['WATER']);
     this.u = uniforms(gl, this.prog, [
       'u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_time', 'u_sunDir', 'u_direct',
+      'u_waterLayer',
     ] as const);
   }
+
+  /** The texture layer every liquid vertex shares (the engine's `water_layer`). */
+  layer = 0;
 
   /** Draws the liquid quads of `vis` (sorted front to back); returns [draw calls, quads]. */
   draw(vis: readonly WaterMesh[], viewProj: Float32Array, eye: Rgb, sky: Sky, fog: { color: Rgb; range: [number, number] }): [number, number] {
@@ -49,6 +53,7 @@ export class WaterPass {
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(u.u_viewProj, false, viewProj);
     gl.uniform1i(u.u_tex, 0);
+    gl.uniform1f(u.u_waterLayer, this.layer);
     gl.uniform3f(u.u_fogColor, ...fog.color);
     gl.uniform3f(u.u_skyLight, ...sky.light);
     gl.uniform3f(u.u_sunDir, ...sky.lightDir);
