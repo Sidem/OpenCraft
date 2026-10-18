@@ -3,8 +3,9 @@
 coal 73-75, iron 76-78, copper 79-81, limestone 82-84, quartz 85-87, leaves 88-90).
 
 `tiles`: the tile repeats over greedy-merged faces, so `check.py` demands a seamless wrap. `cutout`: alpha is coverage
-(leaves, glass); otherwise alpha carries `255 - glow`.
+(leaves, glass); otherwise alpha carries `255 - glow`. `real`: the realistic look (ART_STYLE.md section 12).
 """
+import os
 from dataclasses import dataclass
 from typing import Callable
 
@@ -24,6 +25,7 @@ import masonry
 import natural
 import ores
 import plants
+import real
 import rocks
 import stains
 from lib import ramp
@@ -37,6 +39,7 @@ class Entry:
     tiles: bool = False
     cutout: bool = False
     cover: tuple = None  # cutouts: the allowed share of covered texels (default: leaves 0.55-0.85)
+    real: bool = False  # painted in the realistic look (continuous tone): judged by `realism.py`, not the colour cap
 
 
 def alts(base, first, name, make, **kw):
@@ -89,7 +92,7 @@ LAYERS = [
     *alts(7, 88, "leaves", lambda a: natural.leaves(a), cutout=True),
     *alts(8, 73, "coal_ore", ores.coal),
     *alts(9, 76, "iron_ore", ores.iron),
-    *alts(10, 79, "copper_ore", ores.copper),
+    *alts(10, 79, "copper_ore", ores.copper, real=True),
     Entry(63, "glass", machines.glass, cutout=True),
     Entry(105, "lamp", machines.lamp),
     Entry(14, "frame", machines.frame),
@@ -212,11 +215,11 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     (153, "silicon", items.silicon, {}), (69, "core_drill", items.core_drill, {}),
     # ores and what is made of them
     (186, "bauxite_ore", ores.bauxite, dict(tiles=True)), (202, "oil_sand", ores.oil_sand, dict(tiles=True)),
-    (203, "uranium_ore", ores.uranium, dict(tiles=True)),
-    (149, "crushed_iron", lambda: items.rubble(_CRUSHED, stains.RUST, 149), {}), (150, "crushed_copper", lambda: items.rubble(_CRUSHED, machines.COPPER, 150), {}),
+    (203, "uranium_ore", ores.uranium, dict(tiles=True, real=True)),
+    (149, "crushed_iron", lambda: items.rubble(_CRUSHED, stains.RUST, 149), {}), (150, "crushed_copper", lambda: items.rubble(_CRUSHED, ores.MALACHITE, 150, fleck_frac=0.35), {}),
     (187, "crushed_bauxite", lambda: items.rubble(_CRUSHED, ores.BAUXITE, 187, fleck_frac=0.6), {}),
     (227, "washed_iron", lambda: items.rubble(_WASHED("#2a303c", "#6a7488", "#a8b2c6", "#e0e6f2"), stains.RUST, 227, 10, 0.12, 0.2), {}),
-    (228, "washed_copper", lambda: items.rubble(_WASHED("#3a2018", "#8a5040", "#d09078", "#ffd4bc"), machines.COPPER, 228, 10, 0.3, 0.2), {}),
+    (228, "washed_copper", lambda: items.rubble(_WASHED("#14241c", "#3a5a48", "#729a84", "#b8d6c4"), ores.MALACHITE, 228, 10, 0.4, 0.2), {}),
     (229, "washed_bauxite", lambda: items.rubble(_WASHED("#3a1c18", "#8a4a40", "#d08a78", "#ffcab8"), ores.BAUXITE, 229, 10, 0.3, 0.2), {}),
     (230, "tailings", lambda: items.rubble(_WASHED("#14100e", "#3a322a", "#6a5e4e", "#9a8c76"), _CRUSHED, 230, 14, 0.15), {}),
     (120, "quicklime", lambda: items.rubble(_LIME, _LIME, 120, 9, 0.0, 0.1, 0.05), {}),
@@ -274,3 +277,8 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
 )]
 
 LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS
+
+if os.environ.get("ART_REAL"):  # the realistic prototypes, for an A/B in game (real.py); ores sit on the new stone
+    ores._body = lambda alt: real.stone()[..., :3]
+    LAYERS = [Entry(e.layer, e.name, real.PROTOTYPES[e.name], e.tiles, e.cutout, e.cover, True)
+              if e.name in real.PROTOTYPES else e for e in LAYERS]

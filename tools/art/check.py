@@ -3,7 +3,10 @@
 Rules, each measured on the rendered tiles (docs/ART_STYLE.md section 6):
   seam    repeating tiles: the wrap edge is no harsher than the harshest line inside the tile (ratio <= 1.3)
   phase   texel phases look alike (>= 0.15; upscaled grids score 0.0, hard-edged machine faces 0.2-0.9), so no layer is an upscaled 64 or 32 grid
-  colours at most 96 distinct colours in a tile (a painted palette, not noise)
+  colours at most 96 distinct colours in a tile (a painted palette, not noise); `real` tiles are continuous tone instead
+  realism `real` tiles with a material in realism.py: colour distance, hard-edge share and lightness spread against the
+          CC0 photos of that material (limits in `realism_fails`)
+  deposits no two ores' deposits share a colour under any colour-vision type (`deposit_colours`)
   value   mean Oklab lightness 0.18..0.78: no tile near black or white (glowing tiles may go down to 0.12)
   cutout  alpha is only 0 or 255; leaves 55-85% covered, glass 10-45%
   ores    every ore's deposit covers 6-45% of its tile and differs from the stone body by more than 0.12 Oklab in normal
@@ -14,9 +17,10 @@ import sys
 
 import numpy as np
 
+import realism
 import registry
 from stains import KINDS
-from style import srgb_to_oklab
+from style import sliced_wasserstein, srgb_to_oklab
 
 CVD = {
     "protan": [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
@@ -66,6 +70,58 @@ def edge_density(lab):
     return float(((gx + gy) > 0.12).mean())
 
 
+REAL_TILES = {t: mat for mat, (tiles, _, _) in realism.MATERIALS.items() for t in tiles}
+_REF = realism.load()
+
+
+def realism_fails(name, rgb, mat):
+    """A realistic tile against its material's photos: colour distance at most 1.5x the photo-to-photo floor (0.04 with
+    one photo), hard edges at most 5 points over the photos', lightness spread at most twice theirs (a block needs some
+    more relief than a photo to read at a distance)."""
+    d, m = realism.score(rgb, mat, _REF)
+    photos = _REF[mat]["photo"].values()
+    edges = np.mean([p["edges"] for p in photos])
+    lsd = np.mean([p["Lsd"] for p in photos])
+    limit = 1.5 * _REF[mat]["floor"] if _REF[mat]["floor"] else 0.04
+    print(f"        realism {name}: dist {d:.4f} (<= {limit:.4f})  edges {m['edges']:.1%} (<= {edges + 0.05:.1%})"
+          f"  Lsd {m['Lsd']:.3f} (<= {2 * lsd:.3f})")
+    out = []
+    if d > limit:
+        out.append(f"{name}: colour distance {d:.4f} to the {mat} photos (limit {limit:.4f})")
+    if m["edges"] > edges + 0.05:
+        out.append(f"{name}: {m['edges']:.1%} hard edges ({mat} photos {edges:.1%})")
+    if m["Lsd"] > 2 * lsd:
+        out.append(f"{name}: lightness spread {m['Lsd']:.3f} ({mat} photos {lsd:.3f})")
+    return out
+
+
+def deposit_colours(tiles, members, base="stone"):
+    """Ore deposits (texels > 0.12 from the plain stone) compared as colour clouds (sliced Wasserstein, so a black and
+    yellow deposit is not averaged to mud) under normal, protan, deutan and tritan vision. A pair under 0.03 at its
+    worst vision fails; pairs under 0.08 are printed, as they rely on their shapes for colour-blind players."""
+    ref = tiles[base][1][..., :3]
+    clouds = {}
+    for name in members:
+        rgb = tiles[name][1][..., :3]
+        mask = np.linalg.norm(to_lab(rgb) - to_lab(ref), axis=-1) > 0.12
+        clouds[name] = {c: to_lab(rgb, c)[mask] for c in (None, "protan", "deutan", "tritan")}
+    fails = []
+    print("\nore deposit pairs closer than 0.08 at their worst vision:")
+    for i, a in enumerate(members):
+        for b in members[i + 1:]:
+            dist = []
+            for c in clouds[a]:
+                rng = np.random.default_rng(1)
+                pa, pb = clouds[a][c], clouds[b][c]
+                n = min(len(pa), len(pb))
+                dist.append(sliced_wasserstein(pa[rng.permutation(len(pa))[:n]], pb[rng.permutation(len(pb))[:n]]))
+            if min(dist) < 0.08:
+                print(f"  {a:12} {b:12} " + " ".join(f"{d:.3f}" for d in dist) + "  (normal protan deutan tritan)")
+            if min(dist) < 0.03:
+                fails.append(f"{a} and {b} deposits share a colour ({min(dist):.3f}, worst vision)")
+    return fails
+
+
 def hue_shift(rgb):
     lab = to_lab(rgb).reshape(-1, 3)
     order = np.argsort(lab[:, 0])
@@ -94,8 +150,10 @@ def main():
             fails.append(f"{e.name}: wrap seam {seam:.2f}")
         if det < 0.15:
             fails.append(f"{e.name}: texel phases are {det:.2f} alike: an upscaled grid?")
-        if cols > 96:
+        if cols > 96 and not e.real:
             fails.append(f"{e.name}: {cols} colours")
+        if e.real and e.name in REAL_TILES:
+            fails += realism_fails(e.name, rgb, REAL_TILES[e.name])
         if not lo <= mean_l <= (0.95 if glow.max() > 8 else 0.78):
             fails.append(f"{e.name}: mean lightness {mean_l:.2f}")
         if e.cutout:
@@ -131,6 +189,8 @@ def main():
                 ok = colour > 0.012 or shape > 0.02
                 if not ok:
                     fails.append(f"{a} and {b} are too alike (colour {colour:.3f}, edges {shape:.3f})")
+    fails += deposit_colours(tiles, ["coal_ore", "iron_ore", "copper_ore", "quartz_ore", "bauxite_ore", "uranium_ore",
+                                     "oil_sand"])
     print("\n" + ("FAIL\n  " + "\n  ".join(fails) if fails else "all rules pass"))
     return 1 if fails else 0
 

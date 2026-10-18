@@ -145,6 +145,16 @@ def paint(tones, v, dither=0.35, n=N):
     return tones[idx].astype(np.uint8)
 
 
+def smooth(tones, v):
+    """A 0..1 field coloured along the ramp in continuous tone (linear between neighbouring tones, no quantising), for
+    the realistic materials. Returns float (h, w, 3); `np.uint8` it when done blending."""
+    t = np.clip(v, 0, 1) * (len(tones) - 1)
+    i = np.minimum(t.astype(int), len(tones) - 2)
+    f = (t - i)[..., None]
+    tf = tones.astype(float)
+    return tf[i] * (1 - f) + tf[i + 1] * f
+
+
 def snap(img, tones):
     """Each texel moved to the nearest of `tones` (RGB distance): shading by arithmetic keeps a painted palette this way."""
     d = ((img[..., None, :].astype(int) - tones[None, None].astype(int)) ** 2).sum(-1)

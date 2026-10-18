@@ -1,5 +1,10 @@
 # Art style: Ember & Aether (pilot signed off 2026-10-18; natural batch built)
 
+> **Direction change, 2026-10-18 (later the same day):** the user found the look too stylized and asked for realism
+> back, with copper ore green. Natural blocks and building materials move to the **realistic look** in section 12
+> (photo-referenced colour, continuous tone, no outlines, true mineralogy). Machines, items and icons keep Ember &
+> Aether. Sections 1-11 stay as the record and still govern the machine faces.
+
 Direction chosen 2026-10-18 from the user's brief ("move away from Minecraft low-detail pixel art to at least 128 × 128,
 a sci-fi fantasy fusion, like the attached sample backgrounds"). **It supersedes "B · Alpine" and the "calmer textures"
 note in `ART_HANDOVER.md` 2b**, and lifts two of that file's rules for the art pack only: textures stay 16 × 16 pixel art,
@@ -36,7 +41,7 @@ Five sample sheets, 20 panels. The pixel statistics decided the palette more tha
 Material families (recipes in `tools/art`): rock = blue-grey plates with wobbly outlines and warm highlights; earth = umber
 clods with grey pebbles; grass = deep green with lime tips; sand = ochre ripples; wood = oak (rings, boards, nails) and
 bark (broad plates, moss); ores = one shape language each so they differ without colour (coal dark angular shards, iron fat
-rust nodules, copper thin veins with a teal crust); masonry = uneven courses, per-brick tone, moss in the joints; metal =
+rust nodules, copper green malachite crusts along cracks, realistic since section 12); masonry = uneven courses, per-brick tone, moss in the joints; metal =
 navy steel, bronze (the wood ramp pushed to gold), firebrick, copper coil.
 
 Ramps (dark → light, interpolated in Oklab to 7–9 tones; defined in `natural.py` and `machines.py`):
@@ -91,7 +96,7 @@ are still generated at 64 × 64 and doubled to fill gaps until every layer has b
 
 Rules, per tile: **seam** (the wrap edge is no harsher than the harshest line already inside the tile), **phase** (detail at
 all four texel phases alike, which an upscaled 64 or 32 grid fails; negative control: upscaling the engine's layers 0, 2, 109,
-119 scores 0.00, the pack scores 0.65–1.0), **colours** (≤ 96), **value** (mean L 0.18–0.78, 0.12 for glowing tiles),
+119 scores 0.00, the pack scores 0.65–1.0), **colours** (≤ 96; `real` tiles are judged by **realism** instead, section 12), **value** (mean L 0.18–0.78, 0.12 for glowing tiles),
 **cutout** (alpha 0/255, leaves 55–85% covered, glass 10–45%), **ores** (each deposit covers 6–45% of the tile and stands out
 from the stone by > 0.12 Oklab under normal, protan, deutan and tritan vision; ores differ by colour or edge density).
 Known weak spots, so nobody over-trusts it: it cannot see taste; the seam test misses a drawn border whose two edges
@@ -170,4 +175,86 @@ only (their names tell the rest), the boots read as boots only because of the so
    roofs, arches and slabs; glow on boxes' status lamps from the pack; retire the engine's own 64 px generators once the pack
    is the only source (wasm size).
 2. **Judgement pass in game:** night and dusk glow on the big machines, water in a real lake, the style distance to the
-   samples on the fixed scene (target about 0.032, 0.0864 at the pilot).
+   samples on the fixed scene (target about 0.032, 0.0864 at the pilot). The style distance no longer applies to natural
+   blocks (section 12): it rewards closeness to fantasy paintings.
+
+## 12. The realistic look for natural blocks (2026-10-18)
+
+**Why the old look read as stylized (measured, not felt).** The rules themselves made it: "6-30 colours a tile", hard
+aliased edges, ink outlines, and a 96-colour cap in `check.py`. Stone had 9 colours, sand 6, water 5. Against CC0 photo
+scans of the same materials (ambientCG, lit by their own normal and AO maps from the top left like `relief_light`,
+cropped to 1 m and reduced to 128 px), the tiles had **2.5-4x the photos' lightness spread** and **3-10x their
+hard-edge share** (stone 33% vs 6%, grass 65% vs 9%). Noise was not the cause: spectral slopes were already natural
+(-1.8 to -2.3). The causes are posterising, outlines, one sticker motif per tile and invented hues.
+
+**The look.** Structure stays procedural (it must wrap, stay small and stay seeded); colour comes from photos.
+`real.colour(mat, field)` maps any structure field onto the fit photos' lightness quantiles and their a, b by
+lightness, with patchy hue variation of the photos' size. Continuous tone, no outlines, no ordered dither. Relief may be
+up to twice the photos' lightness spread, since a block must read at a distance without normal maps. Minerals take their
+real colours: copper is malachite green with azurite and brassy chalcopyrite, uranium is black pitchblende with yellow
+autunite (which fluoresces, so only it glows).
+
+**The judge.** `python tools/art/realism.py fetch` (photos to `artifacts/art2/refs/`, git-ignored), `reference`
+(writes `tools/art/reference/materials.json`: fit-photo palette, holdout-photo cloud, photo metrics), `score`. Fit photos
+give the palette and holdout photos judge it, so a tile cannot pass by copying its judge. `check.py` applies to every
+`real=True` entry with a material: colour distance at most 1.5x the photo-to-photo floor, hard edges at most 5 points
+over the photos', lightness spread at most 2x. A deposit rule now compares ores as colour clouds under all four vision
+types (pairs under 0.03 fail; pairs under 0.08 are printed, they lean on shape for colour-blind players).
+Limits: the floor is tiny for planks and sand (0.005, 0.009), so those will need a looser absolute limit; scan sizes are
+stated for 6 of 23 photos (others taken as 150 cm); `colour` reproduces the fit photos' value distribution, so the
+distance mostly checks hue and the holdout match, while edges and spread check the structure.
+
+**Done in this step.** Copper ore (4 looks) as malachite crusts along cracks with a green stain fading into the rock;
+crushed and washed copper follow it; uranium as pitchblende with autunite. Copper vs uranium is 0.086-0.100 (cloud
+distance) under every vision type, up from 0.064. Cost: copper vs iron under deutan fell from 0.087 to 0.069, as a
+green ore must; the crusts are lighter than iron's nodules so lightness carries part of it. The minimap mark was
+already green (`0x3cc8a0`). Prototypes `real.stone`, `real.dirt`, `real.grass_top` pass the judge:
+
+| Tile | Distance (limit) | Hard edges (limit) | Lightness spread (limit) | Old tile |
+|---|---|---|---|---|
+| stone | 0.030 (0.042) | 7.5% (11.0%) | 0.069 (0.080) | 0.051, 33%, 0.143 |
+| dirt | 0.033 (0.047) | 9.3% (27.6%) | 0.093 (0.107) | 0.075, 20%, 0.095 |
+| grass top | 0.047 (0.068) | 10.1% (14.2%) | 0.054 (0.065) | 0.042, 65%, 0.107 |
+
+Stone's distance is 41% better, not the 50% targeted: 50% would sit below the photo-to-photo floor (0.028).
+Grass's colour was already within the photos' range; its stylization was contrast and edges only.
+In game (`ART_REAL=1 python tools/art/build.py`, fixed pit scene, `artifacts/art2/ab_A_day.jpg` vs `ab_B_day.jpg`): the
+realistic stone and dirt read as rock and soil, but two problems show that the review sheet hides. **The stone's repeat
+grid shows on a large floor**, and **the old ore stickers look pasted on** against a realistic body. Pack: 1.78 MB now,
+2.07 MB with the prototypes (about 15 KB a realistic tile against 5 KB); about 90 realistic tiles extrapolate to about
+2.7 MB (budget 4 MB). Decode and merge stayed within 110-250 ms in the pane, inside the 300 ms budget.
+
+**Evaluation of the other natural tiles** (colours / hard edges / lightness spread; photo distance where photos exist):
+
+| Tile | Measured | What reads stylized | Suggested change |
+|---|---|---|---|
+| grass side | 35 / 33% / 0.105 | dithered shadow band, old dirt | real dirt + real grass, ragged lip, soft shadow |
+| sand | 6 / 12% / 0.079, d 0.024 (0.013) | 6 tones, pinkish | photo palette (Ground054/080), same ripples at lower contrast |
+| log side | 14 / 20% / 0.124, d 0.125 (0.056) | red-orange bark, moss stripes; worst distance | grey-brown fissured plates in the Bark012/014 palette, moss only in a few fissures |
+| log top | 11 / 19% / 0.124 | perfect concentric orange rings | irregular rings, paler heartwood, radial checks (needs an end-grain photo) |
+| planks | 8 / 20% / 0.089, d 0.057 | orange oak, black seams, pixel nails | greyer brown from Planks023A/037A, soft seams, continuous grain |
+| stone bricks | 20 / 17% / 0.125 | pink and grey alternating, moss in every joint | real stone cut into courses, light mortar, rare moss |
+| leaves (3 trees) | 9 / 19% / 0.13-0.15 | clean sprite leaves; pine is teal (173°) | smaller, denser leaves in continuous tone; pine toward 150-160° |
+| bedrock, spent rock | 9-10 / 11-44% / 0.07-0.19 | outlined cells | darker and paler `real.stone` variants |
+| granite | 32 / 55% / 0.181, d 0.067 (0.040) | grains right, too contrasty and pink | Granite001A palette, finer grains, half the contrast |
+| sandstone | 8 / 23% / 0.100 | saturated orange bands | bedding in a sandstone photo palette (needs a photo) |
+| basalt | 9 / 15% / 0.096, d 0.040 (0.040) | outlined cells | fine dark rock, a few vesicles, joints as cracks only |
+| limestone | 8 / 27% / 0.083, ink 10% | cartoon spiral fossils | keep the palette (passes), fossils as faint shell fragments |
+| coal, iron, quartz, bauxite, oil sand | 15-27 / 23-45% / 0.15-0.18 | outlined stickers on cobble | on `real.stone`: coal as dull black seams with a sooty halo, iron as red-brown and ochre staining, quartz as milky veins, bauxite as small soft pisoliths in red earth, oil sand as dark oily sand |
+| water | 5 / 24% / 0.077 | cyan caustic cells | after the water renderer work in progress: deeper blue-green, soft ripples |
+| birch bark, dead wood, cactus | 5-9 / 12-22% / 0.11-0.19 | few tones, ink lines (cactus 9.7%) | more tones, varied lenticels, no outlines; follows the bark |
+| hint stains (12) | 10-21 / 26-69% / 0.09-0.14 | blobs on the stylized ground | follow their ground; a soft colour shift plus small mineral grains, keeping the shape rules |
+| concrete, masonry bricks, basalt tiles | 7-11 / 14-19% / 0.07-0.18 | black mortar, loud per-brick tone | light mortar, subtle per-brick tone (needs photos) |
+
+**Suggested rollout, each a reviewed step with an in-game A/B:**
+
+1. **Ground:** stone (and so every ore body), dirt, grass top and side, sand, their 12 hint variants.
+2. **Ores and rocks:** the five sticker ores redone on the real body, then bedrock, spent rock, granite, basalt,
+   limestone, sandstone.
+3. **Wood:** bark, log end, planks, leaves of the three trees, birch, dead wood, cactus.
+4. **Built materials:** stone and masonry bricks, concrete, basalt tiles (fetch brick and concrete photos first).
+
+**Engine follow-up the realistic look needs** (its own step): realistic tiles show the block grid on large surfaces.
+The fix is per-block variation, either a hashed rotation or flip of the UVs for natural blocks, or alternates for stone,
+dirt and grass like the ores already have. Without it, the low-frequency detail has to stay flattened, which costs
+realism.

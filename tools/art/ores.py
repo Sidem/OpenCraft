@@ -1,13 +1,17 @@
 """Ore blocks: the plain `natural.stone` body with a deposit painted on, one shape language per ore so they differ
-without colour: coal is dark angular shards (darkest tile), iron is fat round nodules, copper is thin branching veins
-with a teal crust. `alt` (0..3) moves the deposit but keeps the body, so seams between alternates stay quiet."""
+without colour: coal is dark angular shards (darkest tile), iron is fat round nodules, copper is green malachite crusts
+along cracks, uranium black pitchblende masses with yellow flakes. Ore colours follow the real minerals.
+`alt` (0..3) moves the deposit but keeps the body, so seams between alternates stay quiet."""
 import numpy as np
 
-from lib import N, coords, edges, fbm, grow, hash2, paint, ramp, relief_light, rgba, roll, worley
+from lib import N, coords, edges, fbm, grow, hash2, paint, ramp, relief_light, rgba, roll, smooth, worley
 from natural import leaf_shape, stone
-from stains import COAL, RUST as IRON, VERDIGRIS
+from stains import COAL, RUST as IRON
 
-COPPER = ramp(["#33160f", "#70361f", "#b9632e", "#e8915a", "#ffc58a"])
+# Mineral colours from specimens: malachite banded deep to pale green, azurite deep blue, chalcopyrite brass.
+MALACHITE = ramp(["#072219", "#0e3a29", "#175a3c", "#227a50", "#3a9a66", "#6cbd8a", "#a8dcb6"])
+AZURITE = ramp(["#0c1630", "#18295a", "#25407f", "#3a5c9e", "#7088c0"])
+CHALCOPYRITE = ramp(["#2e230c", "#6a5520", "#a68e3c", "#d4c068", "#f0e4a0"])
 
 
 def _body(alt):
@@ -56,7 +60,8 @@ def coal(alt=0):
 
 BAUXITE = ramp(["#2a0f0a", "#5a2418", "#8c3e26", "#bf6a40", "#e8a070"])
 TAR = ramp(["#050403", "#120d08", "#241a10", "#3c2c18", "#6a5230"])
-URANIUM = ramp(["#0a2a06", "#2a7a10", "#70d020", "#c8ff60", "#f0ffb0"])
+PITCH = ramp(["#050506", "#111113", "#1f1d1c", "#33302c", "#5a544c", "#8a8278"])
+AUTUNITE = ramp(["#5a5208", "#9a9214", "#d2cc30", "#ece86c", "#faf8bc"])
 
 
 def bauxite(alt=0):
@@ -87,45 +92,52 @@ def oil_sand(alt=0):
 
 
 def uranium(alt=0):
-    """Angular green crystals that light themselves, clustered in the stone."""
-    rng = np.random.default_rng(170 + alt * 37)
-    img = _body(alt).copy()
-    glow = np.zeros((N, N))
-    ys, xs = np.mgrid[-22:23, -22:23]
-    for cx0, cy0 in rng.integers(0, N, (4, 2)):
-        for _ in range(5):
-            cx, cy = (cx0 + rng.integers(-12, 13)) % N, (cy0 + rng.integers(-12, 13)) % N
-            ang, la = rng.uniform(0, np.pi), rng.uniform(8, 15)
-            # A prism: straight sides, one square end and one pointed tip, split into a lit and a shaded facet.
-            u = xs * np.cos(ang) + ys * np.sin(ang)
-            w = -xs * np.sin(ang) + ys * np.cos(ang)
-            half = la * 0.32 * np.clip((la - u) / (la * 0.45), 0.0, 1.0)
-            inside = (u > -la) & (u < la) & (np.abs(w) < np.maximum(half, 0.5 * (u < la - 1)))
-            shade = np.clip(0.45 + 0.45 * np.clip(-w / (la * 0.32), -1, 1) + 0.1 * (u / la), 0, 1)
-            idx = (shade * len(URANIUM)).astype(int).clip(0, len(URANIUM) - 1)
-            px, py = (cx + xs) % N, (cy + ys) % N
-            img[py[inside], px[inside]] = URANIUM[idx[inside]]
-            glow[py[inside], px[inside]] = 0.45 + 0.4 * shade[inside]
-            rim = edges(inside) & inside
-            img[py[rim], px[rim]] = URANIUM[0]
-            glow[py[rim], px[rim]] = 0.1
-    return rgba(img, glow=glow)
+    """Pitchblende as it is found: black, greasy, kidney-shaped masses with a soft sheen, and the lemon-yellow flakes of
+    autunite (its weathering crust) on and around them; the flakes glow faintly, as autunite fluoresces."""
+    X, Y = coords()
+    seed = 170 + alt * 37
+    field = fbm(X, Y, 3, 4, seed, 0.5, 0.3)
+    mass = field > 0.5
+    g1, _, _ = worley(X, Y, 14, seed + 1, 1.0)  # botryoidal: the mass is a crowd of small domes
+    dome = np.clip((field - 0.5) / 0.1, 0, 1) ** 0.5 * 2 + (1 - np.clip(g1, 0, 0.7) / 0.7) ** 0.5
+    light = relief_light(dome * 4, 1.0)
+    sheen = np.clip((light - 0.6) * 4, 0, 1) ** 2  # a greasy lustre catches the light on each dome
+    black = smooth(PITCH, 0.2 + (light - 0.5) * 0.5 + sheen * 0.5 + (fbm(X, Y, 30, 2, seed + 2) - 0.5) * 0.1)
+    body = _body(alt).astype(float)
+    out = np.where(mass[..., None], black, body)
+    rim = (field > 0.44) & (field < 0.53)  # the yellow crust forms where the pitchblende meets air and water
+    crust = rim & (fbm(X, Y, 20, 3, seed + 4) > 0.55)
+    yellow = smooth(AUTUNITE, 0.3 + (light - 0.5) * 0.8 + (fbm(X, Y, 40, 1, seed + 5) - 0.5) * 0.5)
+    out = np.where(crust[..., None], yellow, out)
+    glow = np.where(crust, 0.3, 0.0)
+    return rgba(np.clip(out, 0, 255).astype(np.uint8), glow=glow)
 
 
 def copper(alt=0):
-    """Thin branching veins of bright metal, crusted with teal verdigris where they thicken."""
+    """Copper ore as it shows at the surface: green malachite crusts spreading from a crack network into the rock,
+    banded parallel to the crack, a green stain fading into the stone around them, a few blue azurite spots and brassy
+    chalcopyrite grains in the cracks. Continuous tone, no outlines (the realistic look, ART_STYLE.md section 12)."""
     X, Y = coords()
     seed = 90 + alt * 17
-    line = np.abs(fbm(X, Y, 4, 3, seed, 0.5, 0.45) - 0.5)
-    blob = fbm(X, Y, 7, 2, seed + 3)
-    vein = line < 0.022 + 0.05 * np.clip(blob - 0.4, 0, 1)
-    crust = grow(vein, 2) & ~vein & (fbm(X, Y, 12, 2, seed + 5) > 0.42)
-    body = _body(alt)
-    light = relief_light(fbm(X, Y, 18, 2, seed + 6) * 3, 1.0)
-    metal = paint(COPPER, 0.35 + (light - 0.5) * 0.8 + blob * 0.35, 0.3)
-    green = paint(VERDIGRIS, 0.3 + (light - 0.5) * 0.7 + blob * 0.3, 0.3)
-    out = np.where(crust[..., None], green, body)
-    out = np.where(vein[..., None], metal, out)
-    ink = edges(vein) & ~roll(vein, 1, 1)
-    out[ink] = COPPER[0]
-    return rgba(out)
+    line = np.abs(fbm(X, Y, 2, 3, seed, 0.5, 0.5) - 0.5)  # 0 on a crack
+    patch = fbm(X, Y, 3, 3, seed + 3)
+    rough = fbm(X, Y, 12, 4, seed + 5)
+    width = 0.006 + 0.12 * np.clip((patch - 0.38) / 0.25, 0, 1) ** 1.3  # the crust gathers in a few broad patches
+    d = line / width + (rough - 0.5) * 1.1  # < 1 inside the crust, ragged at its edge
+    crust = d < 1
+    band = 0.5 + 0.5 * np.sin(np.clip(d, 0, 1.5) * 12 + rough * 5)
+    height = np.clip(1 - d, 0, 1) ** 0.5 * 3 + rough * 0.8
+    light = relief_light(height, 1.2)
+    green = smooth(MALACHITE, 0.36 + 0.25 * np.clip(1 - d, 0, 1) + (band - 0.5) * 0.3 + (light - 0.5) * 0.6
+                   + (fbm(X, Y, 32, 2, seed + 6) - 0.5) * 0.15)
+    body = _body(alt).astype(float)
+    halo = np.clip((3.0 - d) / 2.0, 0, 1) ** 1.3 * (0.25 + 0.45 * fbm(X, Y, 10, 3, seed + 8))
+    out = body * (1 - halo[..., None]) + MALACHITE[3].astype(float) * halo[..., None]
+    out = np.where(crust[..., None], green, out)
+    azure = crust & (fbm(X, Y, 8, 3, seed + 7) > 0.71) & (d < 0.7)
+    out = np.where(azure[..., None], smooth(AZURITE, 0.25 + (light - 0.5) * 0.7 + (band - 0.5) * 0.2), out)
+    ix, iy = (X * N).astype(int), (Y * N).astype(int)
+    grain = (d < 0.3) & (hash2(ix // 2, iy // 2, seed + 9) > 0.93)
+    out = np.where(grain[..., None], smooth(CHALCOPYRITE, 0.35 + (light - 0.5) * 1.2), out)
+    out = np.where((line < 0.0035)[..., None], out * 0.45, out)  # the crack itself, a shadow not an outline
+    return rgba(np.clip(out, 0, 255).astype(np.uint8))
