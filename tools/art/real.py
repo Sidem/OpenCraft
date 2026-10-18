@@ -17,15 +17,20 @@ from style import oklab_to_srgb
 _REF = None
 
 
-def colour(mat, field, contrast=1.5, hue_var=1.0, seed=0, lift=0.0, chroma=1.0):
+def colour(mat, field, contrast=1.5, hue_var=1.0, seed=0, lift=0.0, chroma=1.0, mask=None):
     """Paint a 0..1-ish structure field in the photos' colours of `mat`. Returns uint8 (N, N, 3). `lift` shifts the
-    lightness and `chroma` scales the colour, for rocks that are a photographed rock altered (bedrock, spent rock)."""
+    lightness and `chroma` scales the colour, for rocks that are a photographed rock altered (bedrock, spent rock).
+    `mask` (cutouts): only these texels share out the photos' lightness range."""
     global _REF
     _REF = _REF or realism.load()
     prof = _REF[mat]["profile"]
     q = np.array(prof["quantiles"])
     bins = np.array(prof["bins"])  # per lightness bin: L, a, b, std a, std b
-    rank = np.argsort(np.argsort(field.ravel())).reshape(field.shape) / (field.size - 1)
+    if mask is None:
+        rank = np.argsort(np.argsort(field.ravel())).reshape(field.shape) / (field.size - 1)
+    else:
+        rank = np.full(field.shape, 0.5)
+        rank[mask] = np.argsort(np.argsort(field[mask])) / max(1, mask.sum() - 1)
     L = np.interp(rank, np.linspace(0, 1, len(q)), q)
     L = np.median(q) + (L - np.median(q)) * contrast
     a, b = np.interp(L, bins[:, 0], bins[:, 1]), np.interp(L, bins[:, 0], bins[:, 2])

@@ -285,15 +285,3 @@ def smoke(thin):
     for x, y, r in spots:
         pen.ellipse((x, y), r, r * 0.9, 0.0, SMOKE_TONES, 0.7)
     return pen.rgba()
-
-
-def stick(seed=112):
-    X, Y = coords()
-    grain = np.sin((Y + 0.2 * fbm(X, Y, 3, 2, seed)) * 80) * 0.5 + 0.5
-    return rgba(paint(WOOD, 0.4 + 0.2 * grain + (fbm(X, Y, 10, 2, seed + 1) - 0.5) * 0.2, 0.3))
-
-
-def handle(seed=103):
-    X, Y = coords()
-    grain = np.sin((X + 0.1 * fbm(X, Y, 3, 2, seed)) * 90) * 0.5 + 0.5
-    return rgba(paint(WOOD, 0.62 + 0.14 * grain + (fbm(X, Y, 10, 2, seed + 1) - 0.5) * 0.14, 0.3))

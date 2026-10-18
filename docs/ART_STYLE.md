@@ -40,7 +40,7 @@ Five sample sheets, 20 panels. The pixel statistics decided the palette more tha
 
 Material families (recipes in `tools/art`): rock = blue-grey plates with wobbly outlines and warm highlights; earth = umber
 clods with grey pebbles; grass = deep green with lime tips; sand = ochre ripples; wood = oak (rings, boards, nails) and
-bark (broad plates, moss); ores = one shape language each so they differ without colour (coal dark angular shards, iron fat
+bark (broad plates, moss), realistic since section 12; ores = one shape language each so they differ without colour (coal dark angular shards, iron fat
 rust nodules, copper green malachite crusts along cracks, realistic since section 12); masonry = uneven courses, per-brick tone, moss in the joints; metal =
 navy steel, bronze (the wood ramp pushed to gold), firebrick, copper coil.
 
@@ -289,3 +289,39 @@ merge 175-225 ms. Still stylized among natural blocks: quartz ore's crystal fans
 built materials (batch 4).
 
 **Engine follow-up** (done, b462dea): natural tiles are turned per block, so large surfaces no longer show the grid.
+
+**Batch 3 done (2026-10-18): wood, canopies, quartz.** `wood.py` paints the log's bark (corky plates split by a net of
+fissures, two cellular nets on stretched coordinates so it reads as a network, not scales), the log end (wobbly rings
+round an off-centre pith, heartwood darkening toward it with no hard boundary, two radial checks, faint saw marks, a
+thin bark rim), planks (four boards, continuous grain with knots, soft gaps, small nail heads), birch bark (white
+paper, lenticels of varied length, ragged black fissure patches, grey peel bands), dead wood (bleached grey fibres,
+tapering drying checks) and the planed wood of handles and the stick. `wood.streaks` is value noise with its own period
+per axis, for grain. `foliage.py` paints the oak (4 looks), birch and pine canopies as small overlapping leaves (pine:
+needle sprays on twigs) in three depths, each lit across its blade with a paler midrib, front leaves casting a soft
+shadow, no rims; shade cools toward blue-green (the photos are sunlit scans), so pine sits at hue 162 (was a teal 173).
+Quartz ore is a milky vein through the middle of the block (four orientations, all wrapping) that swells and pinches
+out, with a druse of six-faceted crystal points and a faint iron bloom at the contact, no outlines. In game a pillar
+of it first showed a white grid where full-width veins of different alternates met at block edges; the pinching fixed it. New photos (CC0): ambientCG TreeEnd001-004, Wood049, LeafSet004/014/019/024; Poly
+Haven bark_brown_02, rough_wood, oak_veneer_01, white_oak_veneer; TextureCan wood_0027 (birch). `realism.py` now fetches
+from all three (`TEXTURECAN` lists its zip), crops photos of one object (`CROP`, the log ends), and uses only the opaque
+texels of atlases. The bark's fit photos are now Bark001 + Bark014 (Bark012 is olive, the log read yellow-green).
+Judge, new tile against the old one, both scored on the new references (distance / edges / spread):
+
+| Tile | New | Old | Limit |
+|---|---|---|---|
+| log side (bark) | 0.078 / 27.6% / 0.143 | 0.045 / 20.4% / 0.124 | 0.111 / 36.7% / 0.172 |
+| log end | 0.035 / 4.1% / 0.093 | 0.158 / 19.3% / 0.124 | 0.053 / 10.8% / 0.095 |
+| planks | 0.005 / 2.5% / 0.052 | 0.057 / 19.9% / 0.089 | 0.008 / 6.8% / 0.075 |
+| birch bark | 0.002 / 15.2% / 0.108 | 0.066 / 12.4% / 0.107 | 0.040 / 19.9% / 0.201 |
+| dead wood | 0.004 / 9.4% / 0.079 | 0.040 / 22.1% / 0.145 | 0.040 / 10.4% / 0.122 |
+| handle, stick | 0.044 / 0.3-0.5% / 0.031 | 0.034-0.036 / 6.5-8.5% / 0.04-0.05 | 0.067 / 5.9% / 0.049 |
+
+Read with care: for bark and planed wood the distance sits at the photo-to-photo floor (bark's fit photos are 0.074
+from the holdout, planed 0.044), so it cannot tell the looks apart there; the old tiles even score closer. The old ones
+fail on edges instead (stick, handle) or on structure the numbers cannot see (red-orange bark with moss stripes). The
+canopies are not judged by distance: the leaf photos are flat scans of single leaves, a canopy is shaded (they are
+palettes only, `leaves` and `needles` with no tiles); they pass the cover and value rules. Quartz deposit covers 8-12%
+per alternate, and no ore pair with quartz is under 0.08. Pack 3.24 MB (+0.32 MB for 17 tiles). In game (fixed scene,
+seed 4242, pillars at (8..30, 67, 8), rain): bark, birch, dead wood, planks, log ends, the canopies and quartz were
+looked at; the hotbar-sized handle and stick were not. Still stylized among natural blocks:
+cactus, water (its own renderer work), the plant sprites, and batch 4 (stone and masonry bricks, concrete, basalt tiles).

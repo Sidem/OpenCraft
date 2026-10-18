@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import decor
+import foliage
 import forest
 import later
 import heavy
@@ -22,12 +23,12 @@ import kit
 import machines
 import masonry
 import materials
-import natural
 import ores
 import plants
 import real
 import rocks
 import stains
+import wood
 from lib import ramp
 
 
@@ -70,12 +71,12 @@ NATURAL = [
     *hints(95, hint_tiles.grass_side, real=True),
     *hints(99, hint_tiles.sand, tiles=True, real=True),
     Entry(106, "water", forest.water, tiles=True),
-    Entry(314, "birch_bark", forest.birch_bark, tiles=True),
-    Entry(315, "birch_leaves", forest.birch_leaves, cutout=True),
-    Entry(316, "pine_leaves", forest.pine_leaves, cutout=True, cover=(0.45, 0.85)),
+    Entry(314, "birch_bark", wood.birch_bark, tiles=True, real=True),
+    Entry(315, "birch_leaves", foliage.birch_leaves, cutout=True, real=True),
+    Entry(316, "pine_leaves", foliage.pine_leaves, cutout=True, cover=(0.45, 0.85), real=True),
     Entry(317, "cactus_side", forest.cactus_side, tiles=True),
     Entry(318, "cactus_top", forest.cactus_top),
-    Entry(319, "dead_wood", forest.dead_wood, tiles=True),
+    Entry(319, "dead_wood", wood.dead_wood, tiles=True, real=True),
     *[Entry(layer, name, getattr(plants, name), cutout=True, cover=(0.02, 0.5)) for layer, name in PLANTS],
 ]
 
@@ -85,11 +86,11 @@ LAYERS = [
     Entry(2, "grass_top", real.grass_top, tiles=True, real=True),
     Entry(3, "grass_side", real.grass_side, real=True),
     Entry(4, "sand", real.sand, tiles=True, real=True),
-    Entry(5, "log_side", natural.bark, tiles=True),
-    Entry(6, "log_top", natural.log_end),
-    Entry(109, "planks", natural.planks, tiles=True),
+    Entry(5, "log_side", wood.bark, tiles=True, real=True),
+    Entry(6, "log_top", wood.log_end, real=True),
+    Entry(109, "planks", wood.planks, tiles=True, real=True),
     Entry(119, "stone_bricks", masonry.bricks, tiles=True),
-    *alts(7, 88, "leaves", lambda a: natural.leaves(a), cutout=True),
+    *alts(7, 88, "leaves", foliage.oak_leaves, cutout=True, real=True),
     *alts(8, 73, "coal_ore", ores.coal, real=True),
     *alts(9, 76, "iron_ore", ores.iron, real=True),
     *alts(10, 79, "copper_ore", ores.copper, real=True),
@@ -229,7 +230,7 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     (138, "blue_pack", lambda: items.pack(kit.BLUE, 138), {}), (155, "violet_pack", lambda: items.pack(kit.VIOLET, 155), {}),
     (241, "gold_pack", lambda: items.pack(kit.GOLD, 241), {}), (72, "flask_glass", items.flask_glass, {}),
     # wood, smoke, the avatar
-    (103, "handle", items.handle, {}), (112, "stick", items.stick, {}),
+    (103, "handle", wood.handle, dict(real=True)), (112, "stick", wood.stick, dict(real=True)),
     (110, "ladder", items.ladder_side, dict(cutout=True, cover=(0.1, 0.6))), (111, "ladder_top", items.ladder_top, dict(cutout=True, cover=(0.01, 0.2))),
     (281, "smoke", lambda: items.smoke(False), dict(cutout=True, cover=(0.2, 0.9))), (282, "smoke_thin", lambda: items.smoke(True), dict(cutout=True, cover=(0.05, 0.8))),
     (47, "avatar_suit", items.suit, {}), (48, "avatar_skin", items.skin, {}), (49, "avatar_helmet", items.helmet, {}),

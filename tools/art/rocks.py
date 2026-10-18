@@ -2,12 +2,12 @@
 spent rock and quartz ore. Structure is procedural, colour comes from photos through `real.colour`; each rock keeps its
 own structure so they read apart without colour: granite a crystal mosaic, sandstone soft cross-bedded strata, basalt
 dark rock with column joints and gas vesicles, limestone pale beds split by joints, bedrock massive black plates with
-deep fractures, spent rock bleached and pitted stone with rust seams. All wrap at the edge. The ramps stay for the cut
+deep fractures, spent rock bleached and pitted stone with rust seams, quartz ore a milky vein with a pocket of crystal\npoints (specimen colours, MILKY and CLEAR). All wrap at the edge. The ramps stay for the cut
 stone in `decor.py`. Add a rock: photos in `realism.MATERIALS`, a recipe here, an entry with `real=True`.
 """
 import numpy as np
 
-from lib import N, blur, cavity, coords, edges, fbm, hash2, ramp, relief_light, rgba, worley
+from lib import blur, cavity, coords, fbm, hash2, ramp, relief_light, rgba, smooth, worley
 import real
 from real import colour
 from stains import OXIDE
@@ -15,11 +15,33 @@ from stains import OXIDE
 GRANITE = ramp(["#141824", "#2f2a38", "#574649", "#836359", "#ab8672", "#d0ab93", "#ecd3bc"])
 SANDSTONE = ramp(["#1c1624", "#44283a", "#74423f", "#a3604a", "#cc8858", "#e9b27c", "#f9d9a2"])
 BASALT = ramp(["#070a12", "#0d1320", "#16202f", "#223045", "#344760", "#4d6482", "#7690ab"])
-QUARTZ = ramp(["#0b1c28", "#1f4458", "#4a8697", "#93c9d0", "#d4f1f2", "#ffffff"])
+MILKY = ramp(["#56585c", "#86888b", "#b2b3b3", "#d2d1cc", "#e6e3dc", "#f4f2ec"])  # vein quartz, milky with fluid inclusions
+CLEAR = ramp(["#33393f", "#5d666c", "#959da2", "#c9cfd1", "#eef1f1", "#ffffff"])  # rock crystal points, grey glass
 
 
 def _soft(x, width):
     return np.clip(x / width + 0.5, 0, 1)
+
+
+def _crystals(X, Y, cells, seed):
+    """Scattered points on a wrapping grid: distance to the nearest and second nearest (cell units), the offset from
+    the nearest point to the texel, and a 0..1 id per point."""
+    gx, gy = X * cells, Y * cells
+    ix, iy = np.floor(gx).astype(np.int64), np.floor(gy).astype(np.int64)
+    f1, f2 = np.full(gx.shape, 9.0), np.full(gx.shape, 9.0)
+    ox_, oy_, ident = np.zeros(gx.shape), np.zeros(gx.shape), np.zeros(gx.shape)
+    for oy in (-1, 0, 1):
+        for ox in (-1, 0, 1):
+            kx, ky = (ix + ox) % cells, (iy + oy) % cells
+            px = ix + ox + 0.5 + (hash2(kx, ky, seed) - 0.5) * 0.8
+            py = iy + oy + 0.5 + (hash2(kx, ky, seed + 5) - 0.5) * 0.8
+            d = np.hypot(gx - px, gy - py)
+            closer = d < f1
+            f2 = np.where(closer, f1, np.minimum(f2, d))
+            ox_, oy_ = np.where(closer, gx - px, ox_), np.where(closer, gy - py, oy_)
+            ident = np.where(closer, hash2(kx, ky, seed + 9), ident)
+            f1 = np.where(closer, d, f1)
+    return f1, f2, ox_, oy_, ident
 
 
 def granite(seed=0):
@@ -119,24 +141,39 @@ def spent_rock(seed=9):
 
 
 def quartz_ore(alt=0):
-    """Clusters of long glassy crystals fanning out of the stone, each with a lit and a shaded facet and a pointed tip."""
-    rng = np.random.default_rng(130 + alt * 29)
-    img = real.stone(0)[..., :3].copy()  # the ore body is the realistic stone, like `ores.py`
-    ys, xs = np.mgrid[-36:37, -36:37]
-    for _ in range(3):
-        bx, by = rng.integers(26, N - 26, 2)
-        fan = rng.uniform(0, 2 * np.pi)
-        for _ in range(int(rng.integers(4, 7))):
-            ang = fan + rng.uniform(-0.8, 0.8)
-            la, lb = rng.uniform(15, 24), rng.uniform(4.5, 7.0)
-            u = xs * np.cos(ang) + ys * np.sin(ang) - la * 0.7
-            w = -xs * np.sin(ang) + ys * np.cos(ang)
-            tip = np.clip((la - u) / (la * 0.28), 0, 1)
-            inside = (np.abs(w) < lb * np.minimum(1, tip + 0.15)) & (u > -la) & (u < la)
-            facet = np.clip(0.55 + 0.9 * (-w / lb) * 0.5 + 0.25 * (u / la), 0, 0.999)
-            idx = (facet * len(QUARTZ)).astype(int)
-            px, py = (bx + xs) % N, (by + ys) % N
-            img[py[inside], px[inside]] = QUARTZ[idx[inside]]
-            rim = edges(inside) & inside
-            img[py[rim], px[rim]] = QUARTZ[0]
-    return rgba(img)
+    """A milky quartz vein through the stone: sugary white quartz with grey translucent patches and hairline fractures,
+    a pocket (druse) of small glassy crystal tips, each a six-faceted point lit from the top left, and a faint iron
+    stain along the contact. Alternates turn the vein (across, down, the two diagonals; all wrap)."""
+    X, Y = coords()
+    seed = 130 + alt * 29
+    body = real.stone(0)[..., :3].astype(float)
+    lum = body.mean(-1)
+    rel = (lum / lum.mean())[..., None]
+    run = (Y, X, (X + Y) % 1.0, (X - Y) % 1.0)[alt]
+    along = (X, Y, (X - Y) % 1.0, (X + Y) % 1.0)[alt]
+    centre = run + (fbm(X, Y, 2, 3, seed) - 0.5) * 0.25
+    dist = np.abs(centre % 1.0 - 0.5)  # 0 on the vein, which runs through the middle of the block
+    pinch = _soft(fbm(along, np.full_like(X, 0.3), 2, 2, seed + 10) - 0.32, 0.3)  # the vein swells and pinches out
+    thick = (0.03 + 0.1 * fbm(X, Y, 3, 2, seed + 1)) * pinch - 0.005
+    rough = fbm(X, Y, 20, 3, seed + 2) - 0.5
+    vein = _soft(thick - dist + rough * 0.025, 0.012)
+    sugar = fbm(X, Y, 48, 2, seed + 3)
+    cloud = fbm(X, Y, 6, 3, seed + 4)
+    crack = np.abs(fbm(X, Y, 5, 3, seed + 5, 0.5, 0.3) - 0.5)
+    crack = _soft(0.006 - crack, 0.006) * _soft(fbm(X, Y, 4, 2, seed + 6) - 0.45, 0.1)
+    milky = smooth(MILKY, 0.62 + (sugar - 0.5) * 0.35 - _soft(cloud - 0.6, 0.15) * 0.3 - blur(crack, 0.5) * 0.35)
+    out = body * (1 - vein[..., None]) + milky * rel ** 0.3 * vein[..., None]
+    # the druse: crystal points crowd a pocket in the middle of the vein
+    pocket = _soft(fbm(along, np.full_like(X, 0.5), 3, 2, seed + 7) - 0.58, 0.1) * _soft(thick * 0.8 - dist, 0.02)
+    f1, f2, dx, dy, pid = _crystals(X, Y, 13, seed + 8)
+    turn = pid * 2 * np.pi  # each point is a six-sided pyramid seen from above, turned at random
+    facet = np.floor((np.arctan2(dy, dx) - turn) / (np.pi / 3))
+    normal = (facet + 0.5) * np.pi / 3 + turn
+    lit = 0.5 + 0.5 * np.cos(normal + 3 * np.pi / 4)  # light from the top left: facing (-1, -1) is lit
+    glass = smooth(CLEAR, np.clip(0.1 + lit * 0.8 - _soft(0.1 - (f2 - f1), 0.1) * 0.3, 0, 1))
+    cryst = pocket * _soft(0.6 - f1, 0.15)
+    out = out * (1 - cryst[..., None]) + glass * cryst[..., None]
+    fade = np.clip(1 - (dist - thick) / 0.12, 0, 1) ** 2  # iron stain bleeds from the contact in a few patches
+    stain = blur(fade * (1 - vein) * _soft(fbm(X, Y, 6, 3, seed + 9) - 0.55, 0.2), 1.5) * 0.3
+    out = out * (1 - stain[..., None]) + OXIDE[1].astype(float) * rel * stain[..., None]
+    return rgba(out.clip(0, 255).astype(np.uint8))
