@@ -5,7 +5,8 @@
 `contrast`, since a block face needs a little more relief than a photo to read), and each lightness gets the photos'
 mean a, b there plus patchy colour variation of the photos' size. Continuous tone, no outlines, no posterising.
 Recipes return `rgba` tiles and wrap. Add a material: give it photos in `realism.MATERIALS`, then a recipe here.
-Rolled out: the ground (stone, so every ore body, dirt, grass top and side, sand; `hints.py` stains them).
+Rolled out: the ground (stone, so every ore body, dirt, grass top and side, sand; `hints.py` stains them); the
+other rocks are in `rocks.py`, ores in `ores.py`.
 """
 import numpy as np
 
@@ -16,8 +17,9 @@ from style import oklab_to_srgb
 _REF = None
 
 
-def colour(mat, field, contrast=1.5, hue_var=1.0, seed=0):
-    """Paint a 0..1-ish structure field in the photos' colours of `mat`. Returns uint8 (N, N, 3)."""
+def colour(mat, field, contrast=1.5, hue_var=1.0, seed=0, lift=0.0, chroma=1.0):
+    """Paint a 0..1-ish structure field in the photos' colours of `mat`. Returns uint8 (N, N, 3). `lift` shifts the
+    lightness and `chroma` scales the colour, for rocks that are a photographed rock altered (bedrock, spent rock)."""
     global _REF
     _REF = _REF or realism.load()
     prof = _REF[mat]["profile"]
@@ -26,21 +28,22 @@ def colour(mat, field, contrast=1.5, hue_var=1.0, seed=0):
     rank = np.argsort(np.argsort(field.ravel())).reshape(field.shape) / (field.size - 1)
     L = np.interp(rank, np.linspace(0, 1, len(q)), q)
     L = np.median(q) + (L - np.median(q)) * contrast
-    a = np.interp(L, bins[:, 0], bins[:, 1])
-    b = np.interp(L, bins[:, 0], bins[:, 2])
+    a, b = np.interp(L, bins[:, 0], bins[:, 1]), np.interp(L, bins[:, 0], bins[:, 2])
+    L = L + lift
     X, Y = coords()
     for ch, k in ((1, 3), (2, 4)):  # colour wanders in patches, with a little texel grain
         n = (fbm(X, Y, 3, 3, seed + 40 + ch) - 0.5) * 2.4 + (hash2((X * N).astype(int), (Y * N).astype(int), seed + 50 + ch) - 0.5) * 0.8
-        std = np.interp(L, bins[:, 0], bins[:, k])
+        std = np.interp(L - lift, bins[:, 0], bins[:, k])
         if ch == 1:
             a = a + n * std * hue_var
         else:
             b = b + n * std * hue_var
+    a, b = a * chroma, b * chroma
     lab = np.stack([L, a, b], -1).reshape(-1, 3)
     return oklab_to_srgb(lab).reshape(N, N, 3)
 
 
-def stone(seed=0):
+def stone(seed=0, lift=0.0, chroma=1.0):
     """Rock face: broad weathered facets and ridges, a few hairline fractures that fade, mineral grain."""
     X, Y = coords()
     big = fbm(X, Y, 3, 5, seed + 1, 0.5, 0.25)
@@ -52,7 +55,7 @@ def stone(seed=0):
     crack = np.clip(1 - crack / 0.012, 0, 1) * (fbm(X, Y, 4, 2, seed + 4) > 0.5)  # only some stretches open up
     grain = fbm(X, Y, 48, 2, seed + 5)
     field = light * 0.55 + h * 0.3 + grain * 0.15 - blur(crack, 0.7) * 0.35
-    return rgba(colour("stone", field, 1.6, seed=seed))
+    return rgba(colour("stone", field, 1.6, seed=seed, lift=lift, chroma=chroma))
 
 
 def dirt(seed=0):

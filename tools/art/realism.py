@@ -40,6 +40,7 @@ MATERIALS = {
     "granite": (["granite"], ["Granite001A"], []),
     "basalt": (["basalt"], ["Rock035"], []),
     "limestone": (["limestone"], ["Rock023"], []),
+    "sandstone": (["sandstone"], ["Rock029"], ["Rock009"]),
 }
 
 

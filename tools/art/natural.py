@@ -1,12 +1,12 @@
-"""Natural block recipes in the stylized Ember & Aether look (docs/ART_STYLE.md): logs, planks, leaves, and the stylized
-stone that bedrock and spent rock still use. The ground (stone, dirt, grass, sand) moved to the realistic `real.py`.
+"""Natural block recipes in the stylized Ember & Aether look (docs/ART_STYLE.md): logs, planks and leaves. The ground
+(stone, dirt, grass, sand) moved to the realistic `real.py`, the other rocks to `rocks.py`.
 
-Every function returns an `N` x `N` x 4 uint8 tile. Tiles that repeat (stone, bark, planks) wrap at the edge.
+Every function returns an `N` x `N` x 4 uint8 tile. Tiles that repeat (bark, planks) wrap at the edge.
 `masonry.py`, `plants.py` and others take their colours from `RAMPS`.
 """
 import numpy as np
 
-from lib import N, cavity, coords, edges, fbm, hash2, paint, ramp, relief_light, rgba, roll, vnoise, worley
+from lib import N, coords, edges, fbm, hash2, paint, ramp, relief_light, rgba, roll, vnoise
 
 RAMPS = {
     "stone": ramp(["#0f1520", "#1e2431", "#323745", "#4b4f5e", "#666878", "#868390", "#a8a0a2", "#cbbdb6"]),
@@ -16,30 +16,6 @@ RAMPS = {
     "bark": ramp(["#0f080c", "#1f0f12", "#3b1b1a", "#5a2c22", "#78402f", "#9b573d", "#c07a55"]),
     "oak": ramp(["#2a1214", "#4a2420", "#6b3a2b", "#8c5236", "#ad6e46", "#c98d5c", "#e1b07e"]),
 }
-
-
-def stone(seed=0, tones=None, lift=0.0):
-    """Fractured rock: angular plates of two sizes with chiselled edges, dark cracks, faint strata and glints.
-    `tones` swaps the ramp (bedrock, spent rock) and `lift` shifts the whole value."""
-    X, Y = coords()
-    Xw = (X + (fbm(X, Y, 4, 3, seed + 11) - 0.5) * 0.2) % 1.0  # wobbly plate outlines, not straight cuts
-    Yw = (Y + (fbm(X, Y, 4, 3, seed + 12) - 0.5) * 0.2) % 1.0
-    f1, f2, pid = worley(Xw, Yw, 4, seed + 1, 0.9)
-    g1, g2, qid = worley(Xw, Yw, 8, seed + 7, 0.9)
-    edge = f2 - f1
-    sub = (g2 - g1) * (qid > 0.45)  # the small fractures only split some plates
-    h = np.minimum(edge / 0.3, 1) ** 0.6 * 0.6 + np.minimum(sub / 0.3, 1) * 0.12 + pid * 0.35
-    h = h + fbm(X, Y, 10, 3, seed + 3) * 0.12
-    light = relief_light(h * 7, 0.95)
-    strata = np.sin((Y * 9 + fbm(X, Y, 3, 2, seed + 4) * 1.5) * 2 * np.pi) * 0.5 + 0.5
-    grain = fbm(X, Y, 24, 2, seed + 5)
-    v = 0.33 + lift + pid * 0.2 + qid * 0.06 + (light - 0.5) * 0.7 + (strata - 0.5) * 0.08 + (grain - 0.5) * 0.14
-    v = v - cavity(h * 3, 2.5) * 1.1
-    v = np.where(edge < 0.03, 0.03 + 0.1 * grain, v)
-    v = np.where((sub < 0.025) & (qid > 0.45) & (edge >= 0.04), v - 0.18, v)
-    ix, iy = (X * N).astype(int), (Y * N).astype(int)
-    v = v + (hash2(ix, iy, seed + 6) > 0.994) * 0.3
-    return rgba(paint(RAMPS["stone"] if tones is None else tones, v, 0.3))
 
 
 def bark(seed=0, tones=None, moss=True):

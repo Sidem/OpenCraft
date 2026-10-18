@@ -1,125 +1,121 @@
-"""The other rocks (docs/ART_STYLE.md): granite, sandstone, basalt, limestone, quartz ore, bedrock and spent rock. Each is its
-own texture language so they read apart at a glance: granite is a coarse speckled crystal mosaic, sandstone hard red strata,
-basalt dark polygonal columns, limestone pale layers with pits and shells. All wrap at the edge. Quartz ore is the realistic
-`real.stone` body with a deposit, as in `ores.py`; bedrock and spent rock still use the stylized `natural.stone`.
+"""The other rocks in the realistic look (docs/ART_STYLE.md section 12): granite, sandstone, basalt, limestone, bedrock,
+spent rock and quartz ore. Structure is procedural, colour comes from photos through `real.colour`; each rock keeps its
+own structure so they read apart without colour: granite a crystal mosaic, sandstone soft cross-bedded strata, basalt
+dark rock with column joints and gas vesicles, limestone pale beds split by joints, bedrock massive black plates with
+deep fractures, spent rock bleached and pitted stone with rust seams. All wrap at the edge. The ramps stay for the cut
+stone in `decor.py`. Add a rock: photos in `realism.MATERIALS`, a recipe here, an entry with `real=True`.
 """
 import numpy as np
 
-from lib import N, bayer, cavity, coords, edges, fbm, grow, hash2, paint, ramp, relief_light, rgba, roll, worley
+from lib import N, blur, cavity, coords, edges, fbm, hash2, ramp, relief_light, rgba, worley
 import real
-from natural import RAMPS, leaf_shape, stone
+from real import colour
+from stains import OXIDE
 
 GRANITE = ramp(["#141824", "#2f2a38", "#574649", "#836359", "#ab8672", "#d0ab93", "#ecd3bc"])
 SANDSTONE = ramp(["#1c1624", "#44283a", "#74423f", "#a3604a", "#cc8858", "#e9b27c", "#f9d9a2"])
 BASALT = ramp(["#070a12", "#0d1320", "#16202f", "#223045", "#344760", "#4d6482", "#7690ab"])
-LIMESTONE = ramp(["#1a2130", "#3a4150", "#686a72", "#958f8d", "#bcb2a7", "#dcd0bf", "#f2e9d6"])
-BEDROCK = ramp(["#030409", "#07090f", "#0e1220", "#171d30", "#232b42", "#323d5a", "#475577"])
-ASH = ramp(["#1b1c26", "#383844", "#5a5863", "#827e83", "#a8a29e", "#cdc4b8", "#e9e0d0"])
 QUARTZ = ramp(["#0b1c28", "#1f4458", "#4a8697", "#93c9d0", "#d4f1f2", "#ffffff"])
 
 
-def _wrap_dist(a, b):
-    d = np.abs(a - b)
-    return np.minimum(d, 1 - d)
-
-
-FELDSPAR = ramp(["#33262e", "#654850", "#91706c", "#b8978a", "#d6b8a4"])
-QUARTZ_GREY = ramp(["#2a2f3c", "#4f5463", "#7b7f8b", "#a4a7af", "#c6c8ce"])
-PLAGIOCLASE = ramp(["#423e4a", "#767074", "#a09890", "#c2bab0", "#ddd6c6"])
-MICA = ramp(["#05060b", "#0e1018", "#1c1f2c", "#323648"])
+def _soft(x, width):
+    return np.clip(x / width + 0.5, 0, 1)
 
 
 def granite(seed=0):
-    """Coarse-grained plutonic rock: interlocking crystals, each grain one mineral (pink feldspar, grey glassy quartz,
-    cream plagioclase) with its own facet shading, dark grain boundaries, and clusters of black mica flecks."""
+    """Coarse-grained plutonic rock: interlocking crystals, each one mineral (pale feldspar, grey glassy quartz, black
+    mica) with a little cloudiness; a sawn-flat face, so no relief per grain and no outlines, grains meet edge to edge."""
     X, Y = coords()
-    f1, f2, pid = worley(X, Y, 17, seed + 1, 1.0)
-    edge = f2 - f1
-    # Mineral by grain: roughly 45% feldspar, 25% quartz, 30% plagioclase.
-    kind = np.where(pid < 0.45, 0, np.where(pid < 0.7, 1, 2))
-    # Grains interlock with little relief: a faint dome lit from the top left, cloudiness and speckle inside, and a
-    # darker seam only here and there.
-    light = relief_light(np.minimum(edge / 0.6, 1) * 4, 0.8)
-    cloud = fbm(X, Y, 26, 2, seed + 3)
-    speckle = hash2((X * N).astype(int), (Y * N).astype(int), seed + 8)
-    v = 0.52 + (light - 0.5) * 0.5 + (cloud - 0.5) * 0.3 + (pid * 7 % 1 - 0.5) * 0.14 + (speckle - 0.5) * 0.1
-    v = np.where((edge < 0.07) & (fbm(X, Y, 6, 2, seed + 4) > 0.42), v - 0.3, v)
-    img = np.zeros((N, N, 3), np.uint8)
-    for k, tones in enumerate((FELDSPAR, QUARTZ_GREY, PLAGIOCLASE)):
-        img[kind == k] = paint(tones, v, 0.3)[kind == k]
-    # Mica and hornblende: small dark flecks in loose clusters, each with a lit corner.
-    g1, g2, gid = worley(X, Y, 22, seed + 6, 1.0)
-    cluster = fbm(X, Y, 4, 2, seed + 7)
-    fleck = (gid > 0.66) & (g1 < 0.4) & (cluster > 0.4)
-    img[fleck] = paint(MICA, 0.15 + 0.5 * relief_light(g1 * -4, 1.2), 0.3)[fleck]
-    img[fleck & ~roll(fleck, 1, 1) & ~roll(fleck, 1, 0)] = MICA[3]  # the corner that faces the light
-    return rgba(img)
+    Xw = (X + (fbm(X, Y, 16, 2, seed + 4) - 0.5) * 0.03) % 1.0  # irregular grains, not Voronoi polygons
+    Yw = (Y + (fbm(X, Y, 16, 2, seed + 5) - 0.5) * 0.03) % 1.0
+    _, _, pid = worley(Xw, Yw, 30, seed + 1, 1.0)
+    _, _, fine = worley(Xw, Yw, 60, seed + 6, 1.0)
+    mineral = np.where(pid < 0.12, 0.04, np.where(pid < 0.42, 0.4, 0.72))  # mica, quartz, feldspar
+    mineral = np.where(fine < 0.08, 0.06, mineral)  # small mica flakes between the big grains
+    field = (mineral + (pid * 7 % 1 - 0.5) * 0.14 + (fbm(X, Y, 64, 1, seed + 2) - 0.5) * 0.12
+             + (fbm(X, Y, 4, 3, seed + 3) - 0.5) * 0.1)
+    return rgba(colour("granite", blur(field, 0.4), 1.0, seed=seed))
 
 
 def sandstone(seed=0):
-    """Hard red strata: each band its own tone, a dark seam under it, crossbed flecks and grain."""
+    """Red-brown sandstone: soft strata of slightly different tone, faint cross-bedding inside them, sandy grain, and
+    shallow weathered hollows."""
     X, Y = coords()
-    warp = fbm(X, Y, 3, 3, seed + 1) - 0.5
-    pos = Y * 8 + warp * 1.6
-    band = np.floor(pos).astype(int) % 8
-    local = pos % 1.0
-    tone = hash2(band, 0, seed + 2)
-    cross = np.sin((X * 5 + local * 0.7 + band * 0.37) * 2 * np.pi) * 0.5 + 0.5
-    grain = fbm(X, Y, 40, 1, seed + 3)
-    v = 0.28 + tone * 0.34 + (local - 0.5) * 0.18 + (cross - 0.5) * 0.08 + (grain - 0.5) * 0.2
-    v = np.where(local < 0.07, v - 0.22, v)
-    img = paint(SANDSTONE, v, 0.3)
-    ix, iy = (X * N).astype(int), (Y * N).astype(int)
-    img[(hash2(ix // 2, iy // 2, seed + 4) > 0.975) & (local > 0.2)] = SANDSTONE[6]
-    return rgba(img)
+    pos = Y * 6 + (fbm(X, Y, 3, 3, seed + 1) - 0.5) * 1.2
+    layer, local = np.floor(pos).astype(int) % 6, pos % 1.0
+    tone = hash2(layer, 0, seed + 2)
+    cross = np.sin((X * 4 + local * 0.8 + layer * 0.37) * 2 * np.pi * 3) * 0.5 + 0.5
+    seam = blur(_soft(0.06 - local, 0.05), 0.8)
+    hollow = fbm(X, Y, 5, 4, seed + 3, 0.5, 0.3)
+    light = relief_light(blur(hollow, 1.0) * 6 - seam * 0.5, 1.0)
+    grain = fbm(X, Y, 64, 1, seed + 4)
+    field = tone * 0.3 + cross * 0.06 + light * 0.35 + grain * 0.22 + hollow * 0.15 - seam * 0.15
+    return rgba(colour("sandstone", field, 1.2, seed=seed))
 
 
 def basalt(seed=0):
-    """Dark polygonal columns: near-regular cells split by deep cracks, each facet lit from the top left."""
+    """Dark, fine-grained lava rock: a rough, finely hackly surface, a long cooling joint here and there, and scattered
+    small gas vesicles; no plates, so it reads apart from bedrock."""
     X, Y = coords()
-    f1, f2, pid = worley(X, Y, 5, seed + 1, 0.4)
-    edge = f2 - f1
-    h = np.minimum(edge / 0.4, 1) ** 0.5 * 0.7 + pid * 0.2
-    light = relief_light(h * 6, 1.1)
-    v = 0.3 + pid * 0.22 + (light - 0.5) * 0.7 + (fbm(X, Y, 22, 3, seed + 2) - 0.5) * 0.2
-    v = v - cavity(h * 3, 2.5)
-    v = np.where(edge < 0.035, 0.02 + 0.06 * fbm(X, Y, 20, 2, seed + 3), v)
-    img = paint(BASALT, v, 0.3)
-    ix, iy = (X * N).astype(int), (Y * N).astype(int)
-    img[hash2(ix, iy, seed + 4) > 0.993] = BASALT[6]
-    return rgba(img)
-
-
-def _shell(X, Y, cx, cy, r):
-    """An ammonite: a mask of its whorls (a spiral of ridges) and its centre, on a wrapped tile."""
-    dx, dy = ((X - cx + 0.5) % 1) - 0.5, ((Y - cy + 0.5) % 1) - 0.5
-    d = np.hypot(dx, dy) * N
-    ang = np.arctan2(dy, dx)
-    whorl = ((d / r * 2.0 - ang / (2 * np.pi)) % 1.0) < 0.3
-    return (d < r) & whorl, d < r
+    rough = fbm(X, Y, 8, 5, seed + 2, 0.55)
+    hackly = 1 - np.abs(fbm(X, Y, 16, 3, seed + 5) - 0.5) * 2
+    light = relief_light(rough * 5 + hackly ** 2 * 1.2, 1.0)
+    joint = np.abs(fbm(X, Y, 2, 3, seed + 6, 0.4, 0.15) - 0.5)  # a long, nearly straight cooling joint
+    joint = _soft(0.006 - joint, 0.006) * _soft(fbm(X, Y, 3, 2, seed + 9) - 0.45, 0.1)
+    g1, _, gid = worley(X, Y, 22, seed + 3, 1.0)
+    vesicle = (gid > 0.85) * np.clip(1 - g1 / 0.3, 0, 1) ** 0.7
+    field = (light * 0.5 + rough * 0.25 + fbm(X, Y, 64, 1, seed + 4) * 0.15 - blur(joint, 0.6) * 0.5
+             - blur(vesicle, 0.5) * 0.45)
+    return rgba(colour("basalt", field, 1.2, seed=seed))
 
 
 def limestone(seed=0):
-    """Pale layers with hard seams, small pits, and a few fossil shells."""
+    """Pale bedded limestone: beds of slightly different tone with darker seams that open and close, a few long
+    fractures across the beds, and a weathered, finely pitted skin."""
     X, Y = coords()
-    warp = fbm(X, Y, 3, 3, seed + 1) - 0.5
-    pos = Y * 7 + warp * 1.4
-    local = pos % 1.0
-    tone = hash2(np.floor(pos).astype(int) % 7, 0, seed + 2)
-    grain = fbm(X, Y, 36, 2, seed + 3)
-    v = 0.5 + tone * 0.16 + (local - 0.5) * 0.1 + (grain - 0.5) * 0.2 + (fbm(X, Y, 5, 3, seed + 4) - 0.5) * 0.2
-    v = np.where(local < 0.05, v - 0.2, v)
-    pits = (fbm(X, Y, 30, 2, seed + 5) > 0.72) & (fbm(X, Y, 4, 2, seed + 8) > 0.4)
-    v = np.where(pits, v - 0.2, np.where(grow(pits, 1) & roll(pits, -1, -1), v + 0.1, v))
-    img = paint(LIMESTONE, v, 0.3)
-    rng = np.random.default_rng(seed + 6)
-    for _ in range(1 + seed % 2):
-        cx, cy, r = rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(12, 17)
-        whorl, disc = _shell(X, Y, cx, cy, r)
-        img[disc] = LIMESTONE[5]
-        img[whorl] = LIMESTONE[3]
-        img[edges(disc) & disc] = LIMESTONE[2]
-    return rgba(img)
+    pos = Y * 4 + (fbm(X, Y, 3, 3, seed + 1) - 0.5) * 0.8
+    layer, local = np.floor(pos).astype(int) % 4, pos % 1.0
+    tone = hash2(layer, 0, seed + 2)
+    seam = _soft(0.03 - local, 0.035) * _soft(fbm(X, Y, 3, 3, seed + 3) - 0.45, 0.15)
+    crack = np.abs(fbm(X, Y, 2, 4, seed + 4, 0.5, 0.5) - 0.5)
+    crack = _soft(0.008 - crack, 0.008) * _soft(fbm(X, Y, 4, 2, seed + 5) - 0.5, 0.1)
+    skin = fbm(X, Y, 6, 4, seed + 7)
+    pit = _soft(fbm(X, Y, 40, 2, seed + 8) - 0.74, 0.06) * _soft(fbm(X, Y, 4, 2, seed + 9) - 0.45, 0.2)
+    light = relief_light(skin * 4 - blur(pit, 0.5) * 0.4, 1.0)
+    field = (tone * 0.15 + light * 0.4 + skin * 0.2 + fbm(X, Y, 48, 1, seed + 10) * 0.12
+             - blur(seam + crack, 0.6) * 0.4 - blur(pit, 0.5) * 0.15)
+    return rgba(colour("limestone", field, 1.2, seed=seed))
+
+
+def bedrock(seed=5):
+    """The floor of the world: massive near-black rock under great pressure, crushed into a jumble of big angular shards,
+    darker in the gaps; nothing a player can dig. The basalt photos' colours, a shade darker."""
+    X, Y = coords()
+    Xw = (X + (fbm(X, Y, 4, 3, seed + 11) - 0.5) * 0.15) % 1.0
+    Yw = (Y + (fbm(X, Y, 4, 3, seed + 12) - 0.5) * 0.15) % 1.0
+    h = np.zeros_like(X)
+    for cells, amp in ((3, 0.6), (6, 0.3)):  # shards of two sizes, each a tilted flat facet
+        f1, f2, pid = worley(Xw, Yw, cells, seed + cells, 1.0)
+        tilt = ((hash2((pid * 997).astype(int), 0, seed + 1) - 0.5) * Xw + (pid - 0.5) * Yw) * 0.6
+        h = h + amp * (tilt * cells * 0.6 - _soft(0.04 - (f2 - f1), 0.04) * 0.15)
+    light = relief_light(blur(h, 1.2) * 3, 1.0)  # blurred, so a step between shards is a soft edge, not a lit line
+    gap = cavity(h, 2.0)
+    field = light * 0.55 + fbm(X, Y, 4, 3, seed + 2) * 0.25 + fbm(X, Y, 48, 2, seed + 3) * 0.1 - gap * 1.5
+    return rgba(colour("basalt", field, 1.2, seed=seed, lift=-0.01))
+
+
+def spent_rock(seed=9):
+    """What a worked-out deposit leaves: the stone bleached pale and dusty, pitted where the ore was taken, with rust
+    stains along old seams."""
+    X, Y = coords()
+    rock = real.stone(seed, lift=0.13, chroma=0.5)[..., :3].astype(float)
+    pit = _soft(fbm(X, Y, 24, 2, seed + 1) - 0.7, 0.05) * _soft(fbm(X, Y, 4, 2, seed + 7) - 0.4, 0.1)
+    rock = rock * (1 - 0.4 * blur(pit, 0.6))[..., None]
+    seam = np.abs(fbm(X, Y, 3, 4, seed + 2, 0.5, 0.4) - 0.5)
+    rust = _soft(0.03 - seam, 0.05) * (0.2 + 0.3 * fbm(X, Y, 12, 3, seed + 3))
+    rel = rock.mean(-1, keepdims=True) / rock.mean()
+    rock = rock * (1 - rust[..., None]) + OXIDE[1].astype(float) * rel * rust[..., None]
+    return rgba(rock.clip(0, 255).astype(np.uint8))
 
 
 def quartz_ore(alt=0):
@@ -144,21 +140,3 @@ def quartz_ore(alt=0):
             rim = edges(inside) & inside
             img[py[rim], px[rim]] = QUARTZ[0]
     return rgba(img)
-
-
-def bedrock(seed=5):
-    """The floor of the world: almost black blue-violet, deep cracks, nothing a player can dig."""
-    return stone(seed, BEDROCK, 0.0)
-
-
-def spent_rock(seed=9):
-    """What a worked-out deposit leaves: bleached, pitted ash-grey rock with rust-stained seams."""
-    X, Y = coords()
-    base = stone(seed, ASH, 0.1)[..., :3].copy()
-    pits = (fbm(X, Y, 28, 2, seed + 1) > 0.7) & (fbm(X, Y, 4, 2, seed + 7) > 0.4)
-    rim = grow(pits, 1) & ~pits & ~roll(pits, 1, 1)
-    base[pits] = ASH[1]
-    base[rim] = ASH[6]
-    rust = (fbm(X, Y, 4, 3, seed + 2, 0.5, 0.4) > 0.64) & ~pits
-    base[rust & (hash2((X * N).astype(int) // 2, (Y * N).astype(int) // 2, seed + 3) > 0.45)] = RAMPS["dirt"][4]
-    return rgba(base)

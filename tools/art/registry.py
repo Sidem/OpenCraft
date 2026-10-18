@@ -57,12 +57,12 @@ PLANTS = [(306, "tuft"), (307, "daisy"), (308, "poppy"), (309, "bluebell"), (310
           (323, "coal_shrub"), (324, "copper_bell"), (325, "pale_star"), (108, "torch")]
 
 NATURAL = [
-    Entry(11, "bedrock", rocks.bedrock, tiles=True),
-    Entry(12, "spent_rock", rocks.spent_rock, tiles=True),
-    Entry(58, "granite", rocks.granite, tiles=True),
-    Entry(59, "sandstone", rocks.sandstone, tiles=True),
-    Entry(60, "basalt", rocks.basalt, tiles=True),
-    *alts(61, 82, "limestone", lambda a: rocks.limestone(a * 5), tiles=True),
+    Entry(11, "bedrock", rocks.bedrock, tiles=True, real=True),
+    Entry(12, "spent_rock", rocks.spent_rock, tiles=True, real=True),
+    Entry(58, "granite", rocks.granite, tiles=True, real=True),
+    Entry(59, "sandstone", rocks.sandstone, tiles=True, real=True),
+    Entry(60, "basalt", rocks.basalt, tiles=True, real=True),
+    *alts(61, 82, "limestone", lambda a: rocks.limestone(a * 5), tiles=True, real=True),
     *alts(62, 85, "quartz_ore", rocks.quartz_ore, real=True),
     *hints(64, hint_tiles.soil, tiles=True, real=True),
     *hints(91, hint_tiles.grass_top, tiles=True, real=True),
@@ -89,7 +89,7 @@ LAYERS = [
     Entry(109, "planks", natural.planks, tiles=True),
     Entry(119, "stone_bricks", masonry.bricks, tiles=True),
     *alts(7, 88, "leaves", lambda a: natural.leaves(a), cutout=True),
-    *alts(8, 73, "coal_ore", ores.coal, real=True),  # realistic stone body; the deposits are redone in batch 2
+    *alts(8, 73, "coal_ore", ores.coal, real=True),
     *alts(9, 76, "iron_ore", ores.iron, real=True),
     *alts(10, 79, "copper_ore", ores.copper, real=True),
     Entry(63, "glass", machines.glass, cutout=True),

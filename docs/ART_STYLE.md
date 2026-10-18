@@ -270,7 +270,22 @@ measured 170-241 ms warm. In game: `artifacts/art2/batch1_pit.jpg` and `batch1_m
 floor's repeat grid (the engine step below, in progress in its own session), and the coal, iron, bauxite and oil sand
 deposits as stylized stickers on the realistic body (batch 2).
 
-**Engine follow-up the realistic look needs** (its own step): realistic tiles show the block grid on large surfaces.
-The fix is per-block variation, either a hashed rotation or flip of the UVs for natural blocks, or alternates for stone,
-dirt and grass like the ores already have. Without it, the low-frequency detail has to stay flattened, which costs
-realism.
+**Batch 2 done (2026-10-18): ores and rocks.** Deposits now grow into the rock instead of sitting on it: soft-edged
+masks, and the body's own relief multiplied through the deposit (`ores._relief`). Coal is a ragged black seam with faint
+laminae, cleat cracks and a soot halo; iron ragged hematite-to-limonite masses with a rust stain, sized by quantile so
+every alternate shows about a quarter of deposit; bauxite pale laterite crowded with pisoliths of three sizes; oil sand
+dark granular sand with glossy pools and loose grains. Copper's crust and azurite and uranium's masses and autunite got
+the same soft edges. The rocks are in `rocks.py` through `real.colour`: granite a flat crystal mosaic (Granite001A),
+sandstone soft cross-bedded strata (new photo Rock029), basalt rough dark rock with vesicles and a rare joint
+(Rock035), limestone pale beds with fading seams, long fractures and pits (Rock023, the cartoon fossils are gone),
+bedrock big dark shards with soft steps (basalt colours, a shade darker, so it reads apart from basalt by structure),
+spent rock bleached, pitted `real.stone` with faint oxide seams. Judge (distance / edges / spread): granite 0.002 /
+15.2% / 0.075, sandstone 0.028 / 12.7% / 0.075 (edge limit 13.8%), basalt 0.006 / 13.2% / 0.075, limestone 0.006 /
+15.4% / 0.095. Deposit colours: every ore pair is at least 0.034 at its worst vision. The ores sit on a lightness ladder
+so colour-blind players can tell them apart (coal 0.17, oil sand 0.23, iron 0.30, bauxite 0.54 under protan), since
+coal, oil sand, iron and pitchblende are all dark; closest pairs: coal vs oil sand 0.035, iron vs oil sand 0.034. Pack
+2.78 MB (+0.22 MB for 22 tiles, about 10 KB each, so the smooth ore deposits compress better than ground). Decode and
+merge 175-225 ms. Still stylized among natural blocks: quartz ore's crystal fans (outlined), then wood (batch 3) and
+built materials (batch 4).
+
+**Engine follow-up** (done, b462dea): natural tiles are turned per block, so large surfaces no longer show the grid.
