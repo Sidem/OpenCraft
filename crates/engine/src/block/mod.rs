@@ -184,6 +184,7 @@ use make::{all, cube, frame, liquid, machine, ore, pillar};
 
 /// Texture array layers (`block/tex.rs`).
 pub mod tex;
+pub mod turn;
 
 /// Face order used everywhere (mesher, shaders, textures): +X, -X, +Y, -Y, +Z, -Z.
 pub const FACE_TOP: usize = 2;

@@ -103,6 +103,7 @@ async function main(): Promise<void> {
   const texPixels = art ? art.pixels : engineTex;
   const texSize = art ? art.size : game.texture_size();
   renderer.setTextures(texPixels, texSize, game.texture_layers(), art?.glow ?? null);
+  renderer.setTurns(new Uint32Array(game.texture_turns()));
   const hud = new Hud(game, texPixels, texSize);
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);

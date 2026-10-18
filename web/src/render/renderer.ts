@@ -112,7 +112,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
@@ -177,6 +177,14 @@ export class Renderer {
     }
     // Self-light, one byte a texel on its own unit; without any, a single black layer (array layers clamp).
     this.glowTexture = glow ? upload(gl.R8, gl.RED, glow, size, layers) : upload(gl.R8, gl.RED, new Uint8Array(1), 1, 1);
+  }
+
+  /** How each layer turns per block (`game.texture_turns()`: two bits a layer, 32 words); all zeros turns none. */
+  setTurns(mask: Uint32Array): void {
+    for (const pass of [this.opaque, this.cutout]) {
+      this.gl.useProgram(pass.prog);
+      this.gl.uniform1uiv(pass.u.u_turns, mask);
+    }
   }
 
   /**
@@ -330,7 +338,8 @@ export class Renderer {
         const n = isCutout ? m.cutout : m.opaque;
         if (n === 0) continue;
         gl.uniform3f(pass.u.u_offset, m.x * CHUNK - ex, m.y * CHUNK - ey, m.z * CHUNK - ez);
-        gl.uniform3f(pass.u.u_worldOrigin, (m.x * CHUNK) % S.TERRAIN_TINT_PERIOD, 0, (m.z * CHUNK) % S.TERRAIN_TINT_PERIOD);
+        const period = S.TERRAIN_TINT_PERIOD;
+        gl.uniform3f(pass.u.u_worldOrigin, (m.x * CHUNK) % period, (m.y * CHUNK) % period, (m.z * CHUNK) % period);
         gl.bindVertexArray(m.vao);
         // Cutout quads are stored after the opaque ones; the shared index buffer is offset to match.
         gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, isCutout ? m.opaque * 24 : 0);

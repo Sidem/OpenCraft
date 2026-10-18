@@ -206,4 +206,9 @@ impl Game {
     pub fn texture_layers(&self) -> u32 {
         block::tex::COUNT as u32
     }
+
+    /// One bit per texture layer the terrain shader may turn and mirror per block (`block::turn`), 16 words.
+    pub fn texture_turns(&self) -> Vec<u32> {
+        block::turn::MASK.to_vec()
+    }
 }

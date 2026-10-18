@@ -585,6 +585,11 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-18: per-block texture turning** (for the realistic natural tiles, `docs/ART_STYLE.md` section 12): the terrain
+  fragment shader turns, mirrors or flips each natural block's tile by a hash of its cell (`block/turn.rs`, `turnUv` in
+  `render/shaders.ts`). No mesher change: vertex count and meshing time are unchanged, frame time measured the same (0.7 ms at
+  1024 × 768). Before/after: `artifacts/art2/turn_*.jpg`. Close up, the realistic stone's dark cracks still meet out of line at
+  block edges (an art follow-up: fade the cracks near the tile edge).
 - **2026-10-17: Step R7 built** (decor set; golden hash re-recorded: the research table gained tech 85). 930 engine tests, 50 web tests.
 - **2026-10-17: Steps S3 and S4 built** (rain, snow, wet ground and the rain sound; presentation only). Engine: `Game::rain_roof`
   (`surroundings/roof.rs`). Web: `render/precip.ts`, `render/sky/ground.ts`, `audio/ambience-levels.ts` (split out of `ambience.ts`),

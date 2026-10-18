@@ -1,7 +1,8 @@
 // GLSL ES 3.00 sources. `CUTOUT` is defined for the alpha-tested (leaves) variant only, so the
 // opaque pass never contains `discard` and keeps early-z. `TERRAIN` (chunk meshes only) adds a
 // gentle world-anchored shift in tone across blocks; texels are always sampled exactly as drawn, so
-// the pixel art stays crisp. Repetition is broken in the textures instead (alternates per block).
+// the pixel art stays crisp. Repetition is broken by alternates per block (the mesher) and, for natural layers,
+// by turning each block's tile in place (`turnUv`, engine `block/turn.rs`), which keeps greedy quads merged.
 // `WATER` is the translucent liquid variant (render/water.ts): no AO (those bits mark the water line:
 // 1 lowers it a tenth of a block, 2 and 3 more for thinner flowing water), a surface that drifts over
 // time and glints in the sun, and the texture's alpha kept.
@@ -62,6 +63,12 @@ out vec3 v_tint;
 out vec3 v_rel;
 out vec2 v_ground;
 out vec2 v_open; // how much open sky this vertex has (0..1) and 1 on an upward face: where rain wets and snow lies
+#ifndef WATER
+uniform uint u_turns[32]; // two bits per layer: how its blocks may turn (engine block/turn.rs)
+// The face's offset in world tile cells (xy), its plane and side (z), and how it may turn (w): 0 not, 1 mirror,
+// 2 mirror and flip upside down, 3 any of eight ways.
+flat out vec4 v_turn;
+#endif
 
 // Faces +X, -X, +Y, -Y, +Z, -Z, then a plant's two diagonal quads (lit mostly from above).
 const float FACE_SHADE[8] = float[8](0.72, 0.72, 1.0, 0.52, 0.86, 0.86, 0.9, 0.9);
@@ -69,22 +76,24 @@ const vec3 FACE_NORMAL[8] = vec3[8](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0)
                                     vec3(0, 0, -1), vec3(0, 0.7, 0), vec3(0, 0.7, 0));
 const float AO_CURVE[4] = float[4](0.40, 0.60, 0.80, 1.0);
 ${LIGHT}
+// UVs come from the position, so merged quads tile their texture (wrap = REPEAT).
+vec2 faceUv(uint face, vec3 p) {
+  if (face == 0u) return vec2(-p.z, -p.y);
+  if (face == 1u) return vec2(p.z, -p.y);
+  if (face == 2u) return p.xz;
+  if (face == 3u) return vec2(p.x, -p.z);
+  if (face == 4u) return vec2(p.x, -p.y);
+  if (face == 5u) return vec2(-p.x, -p.y);
+  if (face == 6u) return vec2(p.x, -p.y);
+  return vec2(p.z, -p.y);
+}
 void main() {
   vec3 p = vec3(float(a_vert & 63u), float((a_vert >> 6u) & 63u), float((a_vert >> 12u) & 63u));
   uint face = (a_vert >> 18u) & 7u;
   uint ao = (a_vert >> 21u) & 3u;
   float layer = float(a_vert >> 23u);
 
-  // UVs come from the position, so merged quads tile their texture (wrap = REPEAT).
-  vec2 uv;
-  if (face == 0u) uv = vec2(-p.z, -p.y);
-  else if (face == 1u) uv = vec2(p.z, -p.y);
-  else if (face == 2u) uv = p.xz;
-  else if (face == 3u) uv = vec2(p.x, -p.z);
-  else if (face == 4u) uv = vec2(p.x, -p.y);
-  else if (face == 5u) uv = vec2(-p.x, -p.y);
-  else if (face == 6u) uv = vec2(p.x, -p.y);
-  else uv = vec2(p.z, -p.y);
+  vec2 uv = faceUv(face, p);
 
 #ifdef WATER
   p.y -= ao > 0u ? 0.3 * float(ao) - 0.2 : 0.0;
@@ -95,6 +104,12 @@ void main() {
   v_uvl = vec3(uv, layer);
   v_light = (face >= 6u ? 0.84 : FACE_SHADE[face]) * AMBIENT * AO_CURVE[ao];
   v_sun = sunLight(FACE_NORMAL[face], a_light) * AO_CURVE[ao];
+  // How this layer may turn, and what the hash in turnUv reads; every vertex of a quad agrees.
+  uint li = a_vert >> 23u;
+  vec3 w = u_worldOrigin + p;
+  float plane = face < 2u ? w.x : (face < 4u ? w.y : w.z);
+  uint how = (u_turns[li >> 4u] >> ((li & 15u) * 2u)) & 3u;
+  v_turn = vec4(faceUv(face, u_worldOrigin), plane * 8.0 + float(face), float(how));
 #endif
   v_tint = lightTint(a_light, u_skyLight);
   v_rel = u_offset + p;
@@ -106,6 +121,7 @@ void main() {
 
 export const litFrag = /* glsl */ `#version 300 es
 precision highp float;
+precision highp int;
 precision highp sampler2DArray;
 
 uniform sampler2DArray u_tex;
@@ -136,6 +152,34 @@ float terrainField(vec2 p, float cells) {
   float c = terrainHash(mod(cell + vec2(0, 1), cells)), d = terrainHash(mod(cell + vec2(1, 1), cells));
   return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
+flat in vec4 v_turn;
+uint turnHash(ivec3 c) {
+  uvec3 u = uvec3(c + 4096);
+  uint h = (u.x * 0x8da6b343u) ^ (u.y * 0xd8163841u) ^ (u.z * 0xcb1ab31fu);
+  h ^= h >> 16u;
+  h *= 0x7feb352du;
+  h ^= h >> 15u;
+  h *= 0x846ca68bu;
+  return h ^ (h >> 16u);
+}
+// A turning block's tile in one of its orientations, picked by the block's cell; the gradients turn with it so the
+// mip level stays the same across block edges.
+vec2 turnUv(vec2 uv, inout vec2 dx, inout vec2 dy) {
+  if (v_turn.w == 0.0) return uv;
+  vec2 cell = floor(uv);
+  uint h = turnHash(ivec3(cell + v_turn.xy, v_turn.z));
+  mat2 m = mat2((h & 1u) == 1u ? -1.0 : 1.0, 0.0, 0.0, 1.0);
+  if (v_turn.w > 2.5) {
+    uint r = (h >> 1u) & 3u;
+    vec2 cs = r == 0u ? vec2(1, 0) : (r == 1u ? vec2(0, 1) : (r == 2u ? vec2(-1, 0) : vec2(0, -1)));
+    m = mat2(cs.x, cs.y, -cs.y, cs.x) * m;
+  } else if (v_turn.w > 1.5 && (h & 2u) == 2u) {
+    m[1][1] = -1.0;
+  }
+  dx = m * dx;
+  dy = m * dy;
+  return cell + 0.5 + m * (uv - cell - 0.5);
+}
 #endif
 #ifdef WATER
 uniform float u_time; // seconds
@@ -156,7 +200,12 @@ void main() {
   vec3 col = c.rgb * v_light * v_tint + u_direct * glint * 1.6;
   o_color = vec4(applyFog(col, v_rel), max(c.a, min(glint, 1.0)));
 #else
-  vec4 c = texture(u_tex, v_uvl);
+  vec3 uvl = v_uvl;
+  vec2 dx = dFdx(uvl.xy), dy = dFdy(uvl.xy);
+#ifdef TERRAIN
+  uvl.xy = turnUv(uvl.xy, dx, dy);
+#endif
+  vec4 c = textureGrad(u_tex, uvl, dx, dy);
 #ifdef CUTOUT
   if (c.a < 0.5) discard;
 #endif
@@ -175,7 +224,7 @@ void main() {
 #else
   vec3 hazed = v_rel;
 #endif
-  float glow = texture(u_glow, v_uvl).r;
+  float glow = textureGrad(u_glow, uvl, dx, dy).r;
   vec3 shown = mix(c.rgb * (v_light * v_tint + v_sun), c.rgb * 1.1, glow);
   o_color = vec4(applyFog(shown, hazed), 1.0);
 #endif
