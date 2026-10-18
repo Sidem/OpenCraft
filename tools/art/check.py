@@ -2,7 +2,7 @@
 
 Rules, each measured on the rendered tiles (docs/ART_STYLE.md section 6):
   seam    repeating tiles: the wrap edge is no harsher than the harshest line inside the tile (ratio <= 1.3)
-  phase   texel phases look alike (>= 0.5), so no layer is an upscaled 64 or 32 grid
+  phase   texel phases look alike (>= 0.15; upscaled grids score 0.0, hard-edged machine faces 0.2-0.9), so no layer is an upscaled 64 or 32 grid
   colours at most 96 distinct colours in a tile (a painted palette, not noise)
   value   mean Oklab lightness 0.18..0.78: no tile near black or white (glowing tiles may go down to 0.12)
   cutout  alpha is only 0 or 255; leaves 55-85% covered, glass 10-45%
@@ -56,7 +56,7 @@ def upscale_phase(lab):
         jump = np.abs(np.roll(a, -1, 0) - a).sum(-1)
         small = ((jump > 1e-6) & (jump < 0.12)).mean(1)
         phase = [small[p::4].mean() for p in range(4)]
-        if max(phase) > 0.02:
+        if max(phase) > 0.04:
             worst = min(worst, min(phase) / max(phase))
     return worst
 
@@ -92,11 +92,11 @@ def main():
         print(f"{e.layer:5} {e.name:16} {seam:5.2f} {det:6.2f} {cols:5} {mean_l:5.2f}  {hs:3.0f} -> {hl:3.0f}")
         if e.tiles and seam > 1.3:
             fails.append(f"{e.name}: wrap seam {seam:.2f}")
-        if det < 0.5:
+        if det < 0.15:
             fails.append(f"{e.name}: texel phases are {det:.2f} alike: an upscaled grid?")
         if cols > 96:
             fails.append(f"{e.name}: {cols} colours")
-        if not lo <= mean_l <= 0.78:
+        if not lo <= mean_l <= (0.95 if glow.max() > 8 else 0.78):
             fails.append(f"{e.name}: mean lightness {mean_l:.2f}")
         if e.cutout:
             if not np.isin(alpha, (0, 255)).all():

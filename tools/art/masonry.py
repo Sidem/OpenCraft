@@ -7,7 +7,7 @@ from natural import RAMPS
 WARM = ramp(["#161722", "#2c2b3a", "#443f50", "#625564", "#836f76", "#a58a88", "#c9a899", "#e8cdb5"])
 
 
-def bricks(seed=0, heights=(30, 34, 32, 32), mortar=2, moss=True):
+def bricks(seed=0, heights=(30, 34, 32, 32), mortar=2, moss=True, tones=None, joint_tones=None):
     """Ashlar courses of uneven height and brick width, bevelled and variegated, with moss creeping in the joints."""
     rng = np.random.default_rng(seed + 3)
     X, Y = coords()
@@ -42,8 +42,10 @@ def bricks(seed=0, heights=(30, 34, 32, 32), mortar=2, moss=True):
     crack = (np.abs(fbm(X, Y, 4, 3, seed + 6, 0.5, 0.3) - 0.5) < 0.008) & (bid > 0.75)
     v = np.where(crack, v - 0.25, v)
     face = np.where((bid > 0.5)[..., None], paint(WARM, v, 0.3), paint(RAMPS["stone"], v + 0.05, 0.3))
+    if tones is not None:  # one family of brick (the decor set) instead of warm and grey mixed
+        face = paint(tones, v + 0.1, 0.3)
     joint = d < mortar + (hash2((X * N).astype(int) // 4, (Y * N).astype(int) // 4, seed + 4) > 0.8)
-    joint_img = paint(RAMPS["stone"], 0.1 + grain * 0.14, 0.3)
+    joint_img = paint(RAMPS["stone"] if joint_tones is None else joint_tones, 0.1 + grain * 0.14, 0.3)
     if moss:
         green = (fbm(X, Y, 6, 3, seed + 8) > 0.5) & joint
         joint_img = np.where(green[..., None], paint(RAMPS["grass"], 0.2 + grain * 0.3, 0.4), joint_img)

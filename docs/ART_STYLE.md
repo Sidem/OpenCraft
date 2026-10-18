@@ -126,11 +126,28 @@ merge of the 347 layers measured 80 ms warm (264 ms the first, uncached time on 
 in game: water's look (it needs a lake; the tile itself is checked), dusk and night views.
 Known soft spots: the coal shrub reads as a bubble cluster, rust stains on sand are flat, cactus spines are tiny.
 
-## 9. Next, in order (each one green and its own commit; ask before pushing)
+## 9. Industry batch (2026-10-18)
 
-1. **Industry batch:** every machine face (about 150 layers), tiers as accent colours (the stripe language stays), ports.
-2. **Blocks and items left:** wood and masonry (ladder, hoist, decor set, ruins, rails), then item icons and tool and
-   avatar materials (the HUD icons already read the pack through `texPixels`).
+141 more layers, 226 of 347 painted: belts (tier chevrons glowing), miners, routers, constructor, lab, assembler, motor,
+ramps, lift, underpass, pipes, docks, power, process plants, hoist and winch (cutouts), the grid colours, compute campus,
+lasers, launch set, locomotive paint, and the decor set and ruins (concretes, bricks, tiles, framed glass, catwalk, railing,
+rusted plating, logbook, vault door). All are `kit.Face` recipes: a face is a short list of parts in texel coordinates
+(`rect`, `disc`, `port`, `fan`, `coil`, `pipe`, `slots`, `hazard`, `window`, `screen`, ...) over a bevelled plate, so a new
+machine is 5-10 lines in the matching module. Tier colours: ember, aether, blue, violet, gold (`kit.TIERS`).
+`check.py` changes: the phase rule now needs 0.15 (hard-edged machine tiles score 0.2-0.5, an upscaled grid still 0.0),
+and each entry may declare its own `cover` range (hoist frame, glass, pine leaves).
+Pack: 1.18 MB for 226 tiles (5.2 KB each: panels compress well); 347 would be about 1.8 MB. `npm run check` is green.
+Decode and merge was 175-195 ms warm at 226 layers; the PNG unfilter loops dominate (rewritten per filter type, output
+checked byte-identical to Pillow). Extrapolated 250-400 ms for 347, so the 300 ms budget is at risk: a worker or a palette
+PNG is the fix. In game only belts, crates and the smelter were looked at closely; the rest are judged on the review sheet.
+Soft spots: day and night glow untested on the big machines; water still unseen in a lake.
+
+## 10. Next, in order (each one green and its own commit; ask before pushing)
+
+1. **Items batch:** item icons, tools, avatar materials, ingots, plates, canisters, status lamps (layers 20-22, 107), stripes
+   (114-118), smoke (281-282), scrap (329) and the remaining ~121 layers (the HUD icons already read the pack through
+   `texPixels`).
+2. **Rails and the last blocks** if any are left after the items.
 3. **Engine follow-ups the look needs, each its own step:** the crack overlay and minimap still assume 16 cells; a
    warm-light / cool-shadow grade in `litFrag` (the samples' signature, measured: warm highlights, navy shadows); non-cube
    meshing for roofs, arches and slabs (buildings); glow on boxes' status lamps from the pack; a faster PNG decode
