@@ -1,4 +1,4 @@
-﻿"""The other rocks (docs/ART_STYLE.md): granite, sandstone, basalt, limestone, quartz ore, bedrock and spent rock. Each is its
+"""The other rocks (docs/ART_STYLE.md): granite, sandstone, basalt, limestone, quartz ore, bedrock and spent rock. Each is its
 own texture language so they read apart at a glance: granite is a coarse speckled crystal mosaic, sandstone hard red strata,
 basalt dark polygonal columns, limestone pale layers with pits and shells. All wrap at the edge. Ores are `natural.stone`
 bodies with a deposit, as in `ores.py`.

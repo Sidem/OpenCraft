@@ -1,4 +1,4 @@
-﻿"""The art tool's outside judge: python tools/art/check.py   (exit code 1 when a rule fails)
+"""The art tool's outside judge: python tools/art/check.py   (exit code 1 when a rule fails)
 
 Rules, each measured on the rendered tiles (docs/ART_STYLE.md section 6):
   seam    repeating tiles: the wrap edge is no harsher than the harshest line inside the tile (ratio <= 1.3)

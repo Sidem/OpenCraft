@@ -1,4 +1,4 @@
-﻿"""Plants on crossed transparent quads (docs/ART_STYLE.md): ground cover, saplings, the indicator plants over stained
+"""Plants on crossed transparent quads (docs/ART_STYLE.md): ground cover, saplings, the indicator plants over stained
 ground, and the torch. Drawn with `draw.Pen` in plant space (0..1, standing on y = 0); each recipe is seeded, so a
 rebuild gives the same plant. Colours stay muted and cool-shadowed so a meadow reads as one place; flowers are the
 accents. To add one: a function returning `pen.rgba()` and a row in `registry.py` (`cutout=True`).

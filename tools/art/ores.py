@@ -1,4 +1,4 @@
-﻿"""Ore blocks: the plain `natural.stone` body with a deposit painted on, one shape language per ore so they differ
+"""Ore blocks: the plain `natural.stone` body with a deposit painted on, one shape language per ore so they differ
 without colour: coal is dark angular shards (darkest tile), iron is fat round nodules, copper is thin branching veins
 with a teal crust. `alt` (0..3) moves the deposit but keeps the body, so seams between alternates stay quiet."""
 import numpy as np

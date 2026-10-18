@@ -1,4 +1,4 @@
-﻿"""Surface hints: the tinted ground over each ore (docs/ART_STYLE.md). A stain recolours part of a plain tile (dirt, grass,
+"""Surface hints: the tinted ground over each ore (docs/ART_STYLE.md). A stain recolours part of a plain tile (dirt, grass,
 sand) into the ore's ramp, keeping the tile's own light and shade, and each ore has its own SHAPE so the four read apart
 without colour (the same language as the ores in `ores.py`): rust is fat round blotches, coal angular shards, copper thin
 teal veins, chalk fine pale chips. `apply` is the hook `natural.dirt`, `grass_top`, `grass_side` and `sand` take as `post`.

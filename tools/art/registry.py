@@ -1,4 +1,4 @@
-﻿"""The layer table: which engine layer each recipe paints. Add a recipe by appending a row (engine layer ids are in
+"""The layer table: which engine layer each recipe paints. Add a recipe by appending a row (engine layer ids are in
 `crates/engine/src/block/tex.rs`; alternates of ores and leaves are 73 + 3 * i + 0..2 in `WITH_ALTERNATES` order:
 coal 73-75, iron 76-78, copper 79-81, limestone 82-84, quartz 85-87, leaves 88-90).
 

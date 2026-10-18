@@ -1,4 +1,4 @@
-﻿"""The forest's other trees and the water (docs/ART_STYLE.md): pale birch bark with dark scars, birch and pine canopies,
+"""The forest's other trees and the water (docs/ART_STYLE.md): pale birch bark with dark scars, birch and pine canopies,
 cactus, grey dead wood, and the water tile. Built on the oak's recipes in `natural`; logs share `natural.log_end`.
 """
 import numpy as np

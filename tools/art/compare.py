@@ -1,4 +1,4 @@
-﻿"""Before / after sheet: python tools/art/compare.py <current.bin> [out.png]
+"""Before / after sheet: python tools/art/compare.py <current.bin> [out.png]
 
 Each pack layer as the engine draws it today (64 x 64, shown doubled with no smoothing) beside the new 128 x 128 tile.
 Repeating layers are shown 2 x 2 so the seams and the repeat can be judged. Writes artifacts/art2/before_after.png.

@@ -1,4 +1,4 @@
-﻿# Art handover: textures and 3D models
+# Art handover: textures and 3D models
 
 Brief for the agent that improves OpenCraft's looks (block textures, item icons, machine and avatar
 models, held items) **in parallel** with the agent building the roadmap (`docs/DEV_PLAN.md`). Everything

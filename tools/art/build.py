@@ -1,4 +1,4 @@
-﻿"""Renders the art pack layers: python tools/art/build.py [name ...]
+"""Renders the art pack layers: python tools/art/build.py [name ...]
 
 Writes `artifacts/art2/tiles/<layer>_<name>.png` (each 128 x 128 RGBA tile), `artifacts/art2/sheet.png` (every
 tile; repeating ones shown 2 x 2 so seams show; glowing texels brightened beside the tile) and, for a full run, the pack

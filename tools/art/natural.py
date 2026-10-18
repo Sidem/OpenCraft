@@ -1,4 +1,4 @@
-﻿"""Natural block recipes for the Ember & Aether look (docs/ART_STYLE.md): stone, dirt, grass, sand, logs, planks, leaves.
+"""Natural block recipes for the Ember & Aether look (docs/ART_STYLE.md): stone, dirt, grass, sand, logs, planks, leaves.
 
 Every function returns an `N` x `N` x 4 uint8 tile. Tiles that repeat (stone, dirt, grass top, sand, bark, planks) wrap at
 the edge. `ores.py` builds on `stone`, `masonry.py` on `RAMPS`.

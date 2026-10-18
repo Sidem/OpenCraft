@@ -1,4 +1,4 @@
-﻿# Art style: Ember & Aether (pilot signed off 2026-10-18; natural batch built)
+# Art style: Ember & Aether (pilot signed off 2026-10-18; natural batch built)
 
 Direction chosen 2026-10-18 from the user's brief ("move away from Minecraft low-detail pixel art to at least 128 × 128,
 a sci-fi fantasy fusion, like the attached sample backgrounds"). **It supersedes "B · Alpine" and the "calmer textures"

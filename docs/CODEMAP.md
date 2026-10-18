@@ -1,4 +1,4 @@
-﻿# OpenCraft code map
+# OpenCraft code map
 
 One line per module, then recipes for common changes. **Update this file in the same commit as any
 structural change** (a module added, moved, split or removed). Each module's header says more: what it
