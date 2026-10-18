@@ -191,3 +191,15 @@ fn foliage_keeps_cutouts_and_colour_for_mipmaps() {
         assert!((25..=80).contains(&holes), "foliage needs 10–31% open area, got {holes}/256 in {layer}");
     }
 }
+
+/// Writes every layer as raw RGBA for the art tool: `OC_DUMP=<file> cargo test -q --release dump_layers -- --ignored`.
+/// The file is `TEX_SIZE` and the layer count as little-endian u32s, then the layers' texels.
+#[test]
+#[ignore]
+fn dump_layers() {
+    let Ok(path) = std::env::var("OC_DUMP") else { return };
+    let mut bytes = (TEX_SIZE as u32).to_le_bytes().to_vec();
+    bytes.extend((tex::COUNT as u32).to_le_bytes());
+    bytes.extend(generate());
+    std::fs::write(path, bytes).unwrap();
+}

@@ -5,6 +5,12 @@ models, held items) **in parallel** with the agent building the roadmap (`docs/D
 here is presentation: it never changes game rules, saves or co-op. Keep this file current: tick requests,
 add to the log at the bottom, keep it under 300 lines.
 
+> **2026-10-18 update: block textures follow `docs/ART_STYLE.md` ("Ember & Aether").** The user approved a new offline
+> pipeline (`tools/art`, Python, committed PNG pack in `web/src/art/`, 128 × 128 layers, glow array). For the layers the
+> pack covers, this supersedes "B · Alpine" (2b), A11 "calmer textures", and the rules "procedural stays procedural" and
+> "16 × 16 pixel art" below. Pilot only so far (33 layers, awaiting the user's sign-off); the engine's procedural
+> textures still draw every other layer. Models, icons and held items keep the rules below.
+
 ## 1. Set-up: your own worktree and branch
 
 The roadmap agent works on `main` in `X:\Programming\Projects\OpenCraft`. Never edit files there.

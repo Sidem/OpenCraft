@@ -12,6 +12,7 @@ import type { Coop } from './net/coop';
 import { hostWorld, startCoop } from './net/session';
 import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
+import { composeTextures } from './render/art-pack';
 import { Renderer } from './render/renderer';
 import { clock } from './render/sky';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
@@ -96,9 +97,13 @@ async function main(): Promise<void> {
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();
   const renderer = new Renderer(canvas, viewRadius, instanceFloats);
-  const texPixels = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
-  renderer.setTextures(texPixels, game.texture_size(), game.texture_layers());
-  const hud = new Hud(game, texPixels, game.texture_size());
+  const engineTex = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
+  // The hand-painted art pack (tools/art) over the engine's generated layers; `?art=off` shows the generated ones.
+  const art = params.get('art') === 'off' ? null : await composeTextures(engineTex, game.texture_size(), game.texture_layers());
+  const texPixels = art ? art.pixels : engineTex;
+  const texSize = art ? art.size : game.texture_size();
+  renderer.setTextures(texPixels, texSize, game.texture_layers(), art?.glow ?? null);
+  const hud = new Hud(game, texPixels, texSize);
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);
   vignette.previewing = () => menu.previewing;

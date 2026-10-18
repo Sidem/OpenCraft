@@ -21,3 +21,7 @@ Thumbs.db
 
 # Wrangler local state (signal/)
 .wrangler/
+
+# Art tool review output (screenshots, sheets)
+/artifacts/
+__pycache__/

@@ -18,7 +18,7 @@ export class BoxPipeline {
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number) {
     this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT', 'BOXES']);
-    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const);
+    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const);
 
     // One unit cube, per-instance centre/size/rotation/textures.
     this.vao = gl.createVertexArray()!;
@@ -54,6 +54,7 @@ export class BoxPipeline {
     gl.useProgram(this.prog);
     gl.uniformMatrix4fv(this.u.u_viewProj, false, viewProj);
     gl.uniform1i(this.u.u_tex, 0);
+    gl.uniform1i(this.u.u_glow, S.GLOW_UNIT);
     gl.uniform3f(this.u.u_fogColor, ...fog.color);
     gl.uniform3f(this.u.u_skyLight, ...sky.light);
     gl.uniform3f(this.u.u_sunDir, ...sky.lightDir);

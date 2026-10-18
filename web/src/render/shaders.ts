@@ -7,6 +7,8 @@
 // time and glints in the sun, and the texture's alpha kept.
 
 export const TERRAIN_TINT_PERIOD = 256;
+/** The texture unit of the self-light array (`u_glow`); 1 and 2 belong to the rain mask and the clouds. */
+export const GLOW_UNIT = 4;
 
 const FOG = /* glsl */ `
 uniform vec3 u_fogColor;
@@ -107,6 +109,7 @@ precision highp float;
 precision highp sampler2DArray;
 
 uniform sampler2DArray u_tex;
+uniform sampler2DArray u_glow; // self-light 0..1 a texel (art pack): lit as if by itself, whatever the daylight
 ${FOG}
 in vec3 v_uvl;
 in float v_light;
@@ -172,7 +175,9 @@ void main() {
 #else
   vec3 hazed = v_rel;
 #endif
-  o_color = vec4(applyFog(c.rgb * (v_light * v_tint + v_sun), hazed), 1.0);
+  float glow = texture(u_glow, v_uvl).r;
+  vec3 shown = mix(c.rgb * (v_light * v_tint + v_sun), c.rgb * 1.1, glow);
+  o_color = vec4(applyFog(shown, hazed), 1.0);
 #endif
 }
 `;

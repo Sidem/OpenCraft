@@ -79,6 +79,7 @@ export class Renderer {
   private readonly quadIndex: WebGLBuffer;
   private quadCapacity = 0;
   private texture: WebGLTexture | null = null;
+  private glowTexture: WebGLTexture | null = null;
 
   private readonly opaque;
   private readonly cutout;
@@ -111,7 +112,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
@@ -155,22 +156,27 @@ export class Renderer {
   }
 
   /** Uploads all block textures as one TEXTURE_2D_ARRAY (one layer per texture, no atlas bleeding). */
-  setTextures(pixels: Uint8Array, size: number, layers: number): void {
+  setTextures(pixels: Uint8Array, size: number, layers: number, glow: Uint8Array | null = null): void {
     const gl = this.gl;
-    const tex = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
-    gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA8, size, size, layers, 0, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    const upload = (format: number, base: number, data: Uint8Array, w: number, depth: number) => {
+      const tex = gl.createTexture()!;
+      gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
+      gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, format, w, w, depth, 0, base, gl.UNSIGNED_BYTE, data);
+      gl.generateMipmap(gl.TEXTURE_2D_ARRAY);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.REPEAT);
+      return tex;
+    };
+    this.texture = upload(gl.RGBA8, gl.RGBA, pixels, size, layers);
     const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
     if (aniso) {
       const max = gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
       gl.texParameterf(gl.TEXTURE_2D_ARRAY, aniso.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, max));
     }
-    this.texture = tex;
+    // Self-light, one byte a texel on its own unit; without any, a single black layer (array layers clamp).
+    this.glowTexture = glow ? upload(gl.R8, gl.RED, glow, size, layers) : upload(gl.R8, gl.RED, new Uint8Array(1), 1, 1);
   }
 
   /**
@@ -302,6 +308,8 @@ export class Renderer {
     vis.sort((a, b) => a.dist - b.dist);
 
     const [fogStart, fogEnd] = fog.range;
+    gl.activeTexture(gl.TEXTURE0 + S.GLOW_UNIT);
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.glowTexture);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texture);
 
@@ -311,6 +319,7 @@ export class Renderer {
       gl.useProgram(pass.prog);
       gl.uniformMatrix4fv(pass.u.u_viewProj, false, this.viewProj);
       gl.uniform1i(pass.u.u_tex, 0);
+      gl.uniform1i(pass.u.u_glow, S.GLOW_UNIT);
       gl.uniform3f(pass.u.u_fogColor, ...fog.color);
       gl.uniform3f(pass.u.u_skyLight, ...sky.light);
       gl.uniform3f(pass.u.u_sunDir, ...sky.lightDir);
