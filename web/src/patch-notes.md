@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-18 · A new look, and quieter water
+
+- Most blocks and machines are repainted in hand-made 128 × 128 art: glowing windows, lamps and belts, granite with real crystals and mica, rock stains that look like stained ground. Add ?art=off to the address to see the old look.
+- Rivers and the sea are much quieter, and the sound of water together never passes a low limit, so walking along a river no longer hisses over everything else.
+
 ## 2026-10-17 · Sharper plants, a command line, livelier rain
 
 - New research, Architecture (after Masonry and Assembly): 14 blocks for building something that looks good, made in machines. Assemblers tint concrete red, green, black, white or yellow with a pinch of iron ore, copper ore, coal, quicklime or sulfur; smelters fire basalt, granite, sandstone and slag into tiles and bricks; assemblers make framed glass, metal panels, catwalks, railings you walk through, and panel lights.

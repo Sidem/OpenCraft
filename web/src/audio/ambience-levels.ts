@@ -7,6 +7,9 @@
 
 import { BASALT, caveness, clamp01, DESERT, daylight, HIGHLANDS, S } from './surroundings.ts';
 
+/** Exponent on the fresh-water reading: above 1, a river a few blocks off is much quieter than one at your feet. */
+const RIVER_CURVE = 1.6;
+
 /** Target levels, each 0 to 1 (see `mixFor`). */
 export interface Mix {
   wind: number;
@@ -47,7 +50,7 @@ export function mixFor(s: ArrayLike<number>, tod: number, falling: Falling = { p
     wind: clamp01(wind + 0.25 * precip * sky),
     dry: dryland,
     surf: s[S.sea] * (0.3 + 0.7 * sky),
-    river: s[S.fresh] * (0.3 + 0.7 * sky),
+    river: s[S.fresh] ** RIVER_CURVE * (0.3 + 0.7 * sky), // the reading saturates near any water; the curve lets it fade sooner
     rain: falling.snow ? 0 : precip * (1 - cave) * (0.3 + 0.7 * sky),
     sky,
     hum: cave,

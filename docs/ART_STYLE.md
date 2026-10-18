@@ -142,6 +142,11 @@ checked byte-identical to Pillow). Extrapolated 250-400 ms for 347, so the 300 m
 PNG is the fix. In game only belts, crates and the smelter were looked at closely; the rest are judged on the review sheet.
 Soft spots: day and night glow untested on the big machines; water still unseen in a lake.
 
+Review fixes (2026-10-18, after the user played it): rust stains were fat orange blobs that read as fallen leaves, now ragged
+iron-oxide patches with a dithered halo (`stains._rust`); verdigris was neon teal veins, now a pale sage crust in broken
+patches; granite was a pink gravel, now interlocking pink feldspar, grey quartz and cream plagioclase grains with black mica
+flecks (`rocks.granite`). Rule of thumb they taught: a stain must not have a clean round or leaf outline.
+
 ## 10. Next, in order (each one green and its own commit; ask before pushing)
 
 1. **Items batch:** item icons, tools, avatar materials, ingots, plates, canisters, status lamps (layers 20-22, 107), stripes

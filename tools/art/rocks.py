@@ -22,22 +22,36 @@ def _wrap_dist(a, b):
     return np.minimum(d, 1 - d)
 
 
+FELDSPAR = ramp(["#33262e", "#654850", "#91706c", "#b8978a", "#d6b8a4"])
+QUARTZ_GREY = ramp(["#2a2f3c", "#4f5463", "#7b7f8b", "#a4a7af", "#c6c8ce"])
+PLAGIOCLASE = ramp(["#423e4a", "#767074", "#a09890", "#c2bab0", "#ddd6c6"])
+MICA = ramp(["#05060b", "#0e1018", "#1c1f2c", "#323648"])
+
+
 def granite(seed=0):
-    """Coarse crystal mosaic: grains of feldspar pink and quartz grey with dark mica and bright glint specks."""
+    """Coarse-grained plutonic rock: interlocking crystals, each grain one mineral (pink feldspar, grey glassy quartz,
+    cream plagioclase) with its own facet shading, dark grain boundaries, and clusters of black mica flecks."""
     X, Y = coords()
-    f1, f2, pid = worley(X, Y, 14, seed + 1, 1.0)
+    f1, f2, pid = worley(X, Y, 17, seed + 1, 1.0)
     edge = f2 - f1
-    h = pid * 0.5 + np.minimum(edge / 0.25, 1) * 0.3
-    light = relief_light(h * 4, 0.9)
-    big = fbm(X, Y, 3, 3, seed + 2)
-    v = 0.3 + pid * 0.36 + (light - 0.5) * 0.45 + (big - 0.5) * 0.25 + (fbm(X, Y, 30, 2, seed + 3) - 0.5) * 0.1
-    v = np.where(edge < 0.05, v - 0.2, v)
-    img = paint(GRANITE, v, 0.25)
-    ix, iy = (X * N).astype(int), (Y * N).astype(int)
-    mica = hash2(ix // 2, iy // 2, seed + 4) > 0.9
-    glint = hash2(ix // 2, iy // 2, seed + 5) > 0.985
-    img[mica] = GRANITE[0]
-    img[glint] = GRANITE[6]
+    # Mineral by grain: roughly 45% feldspar, 25% quartz, 30% plagioclase.
+    kind = np.where(pid < 0.45, 0, np.where(pid < 0.7, 1, 2))
+    # Grains interlock with little relief: a faint dome lit from the top left, cloudiness and speckle inside, and a
+    # darker seam only here and there.
+    light = relief_light(np.minimum(edge / 0.6, 1) * 4, 0.8)
+    cloud = fbm(X, Y, 26, 2, seed + 3)
+    speckle = hash2((X * N).astype(int), (Y * N).astype(int), seed + 8)
+    v = 0.52 + (light - 0.5) * 0.5 + (cloud - 0.5) * 0.3 + (pid * 7 % 1 - 0.5) * 0.14 + (speckle - 0.5) * 0.1
+    v = np.where((edge < 0.07) & (fbm(X, Y, 6, 2, seed + 4) > 0.42), v - 0.3, v)
+    img = np.zeros((N, N, 3), np.uint8)
+    for k, tones in enumerate((FELDSPAR, QUARTZ_GREY, PLAGIOCLASE)):
+        img[kind == k] = paint(tones, v, 0.3)[kind == k]
+    # Mica and hornblende: small dark flecks in loose clusters, each with a lit corner.
+    g1, g2, gid = worley(X, Y, 22, seed + 6, 1.0)
+    cluster = fbm(X, Y, 4, 2, seed + 7)
+    fleck = (gid > 0.66) & (g1 < 0.4) & (cluster > 0.4)
+    img[fleck] = paint(MICA, 0.15 + 0.5 * relief_light(g1 * -4, 1.2), 0.3)[fleck]
+    img[fleck & ~roll(fleck, 1, 1) & ~roll(fleck, 1, 0)] = MICA[3]  # the corner that faces the light
     return rgba(img)
 
 

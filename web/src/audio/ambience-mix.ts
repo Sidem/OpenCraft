@@ -1,9 +1,11 @@
 // How loud the ambient beds may be together (used by ambience.ts, tested in web/test/ambience-mix.test.mjs). Each bed
 // has a peak gain, and a loudness weight (how loud one unit of its gain sounds next to the wind's: running water is
 // bright and carries far more than the same gain of wind or surf, a cave's rumble is felt more than heard). The beds
-// are uncorrelated noise, so their loudness adds as the root of the sum of squares; when that passes `CEILING` every
-// bed is turned down by the same factor, so piling wind, surf and a river on top of each other is never louder than
-// the loudest of them alone. Pure numbers, no Web Audio. To add a bed: a row in `BEDS`.
+// are uncorrelated noise, so their loudness adds as the root of the sum of squares. Two limits keep them in check:
+// water (surf and river together) is held under `WATER_CEILING`, because its steady hiss tires the ear long before
+// the same loudness of wind would, and the sum of all beds is held under `CEILING`; each limit turns the beds it
+// covers down by one common factor, so their proportions survive. Pure numbers, no Web Audio. To add a bed: a row in
+// `BEDS` (and in `WATER` if it is water).
 
 export type BedName = 'wind' | 'surf' | 'river' | 'rain' | 'hum';
 
@@ -17,19 +19,26 @@ export const BEDS: Record<BedName, { peak: number; loud: number }> = {
   hum: { peak: 0.5, loud: 0.5 },
 };
 
+/** The beds that are water, which share one smaller ceiling. */
+export const WATER: readonly BedName[] = ['surf', 'river'];
+
 /** The most the beds may add up to, in the wind's units: one full wind bed. */
 export const CEILING = 0.4;
 
-/** The gain of each bed for target `levels` (0 to 1 each), turned down together when they would add up past `CEILING`. */
+/** The most the water beds may add up to: a river or the sea at its loudest is about a third of a full wind bed. */
+export const WATER_CEILING = 0.13;
+
+const loudness = (gains: Record<BedName, number>, names: readonly BedName[]): number =>
+  Math.sqrt(names.reduce((sum, name) => sum + (gains[name] * BEDS[name].loud) ** 2, 0));
+
+/** The gain of each bed for target `levels` (0 to 1 each), turned down together when they would pass a ceiling. */
 export function bedGains(levels: Record<BedName, number>): Record<BedName, number> {
   const out = { wind: 0, surf: 0, river: 0, rain: 0, hum: 0 };
-  let sum = 0;
-  for (const name of Object.keys(BEDS) as BedName[]) {
-    const { peak, loud } = BEDS[name];
-    out[name] = Math.min(1, Math.max(0, levels[name])) * peak;
-    sum += (out[name] * loud) ** 2;
-  }
-  const scale = Math.min(1, CEILING / Math.sqrt(sum || 1));
-  for (const name of Object.keys(out) as BedName[]) out[name] *= scale;
+  const all = Object.keys(BEDS) as BedName[];
+  for (const name of all) out[name] = Math.min(1, Math.max(0, levels[name])) * BEDS[name].peak;
+  const water = Math.min(1, WATER_CEILING / (loudness(out, WATER) || 1));
+  for (const name of WATER) out[name] *= water;
+  const scale = Math.min(1, CEILING / (loudness(out, all) || 1));
+  for (const name of all) out[name] *= scale;
   return out;
 }
