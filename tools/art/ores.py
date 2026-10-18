@@ -54,6 +54,64 @@ def coal(alt=0):
     return rgba(img)
 
 
+BAUXITE = ramp(["#2a0f0a", "#5a2418", "#8c3e26", "#bf6a40", "#e8a070"])
+TAR = ramp(["#050403", "#120d08", "#241a10", "#3c2c18", "#6a5230"])
+URANIUM = ramp(["#0a2a06", "#2a7a10", "#70d020", "#c8ff60", "#f0ffb0"])
+
+
+def bauxite(alt=0):
+    """Clay-red pebbles (pisoliths) packed into the stone: many small round domes, each with a pale glint."""
+    X, Y = coords()
+    f1, f2, pid = worley(X, Y, 9, 150 + alt, 0.9)
+    r = 0.3 + pid * 0.16
+    node = (pid > 0.12) & (f1 < r)
+    dome = np.where(node, 1 - f1 / r, 0)
+    light = relief_light(dome * 5, 1.3)
+    v = 0.3 + dome * 0.35 + (light - 0.5) * 0.9 + (fbm(X, Y, 24, 2, 151) - 0.5) * 0.15
+    img = np.where(node[..., None], paint(BAUXITE, v, 0.3), _body(alt))
+    ring = node & (f1 > r - 0.05)
+    img[ring] = BAUXITE[0]
+    return rgba(img)
+
+
+def oil_sand(alt=0):
+    """Stone soaked with tar: black glossy pools that creep along the grain, a few amber flecks."""
+    X, Y = coords()
+    pools = fbm(X, Y, 5, 4, 160 + alt, 0.55, 0.4) > 0.5
+    light = relief_light(fbm(X, Y, 16, 2, 161) * 3, 1.2)
+    img = np.where(pools[..., None], paint(TAR, 0.2 + (light - 0.5) * 0.9, 0.3), _body(alt))
+    img[pools & (light > 0.7)] = TAR[4]
+    amber = (hash2((X * N).astype(int) // 2, (Y * N).astype(int) // 2, 162) > 0.96) & ~pools
+    img[amber] = ramp(["#a86010", "#f0a020"])[1]
+    return rgba(img)
+
+
+def uranium(alt=0):
+    """Angular green crystals that light themselves, clustered in the stone."""
+    rng = np.random.default_rng(170 + alt * 37)
+    img = _body(alt).copy()
+    glow = np.zeros((N, N))
+    ys, xs = np.mgrid[-22:23, -22:23]
+    for cx0, cy0 in rng.integers(0, N, (4, 2)):
+        for _ in range(5):
+            cx, cy = (cx0 + rng.integers(-12, 13)) % N, (cy0 + rng.integers(-12, 13)) % N
+            ang, la = rng.uniform(0, np.pi), rng.uniform(8, 15)
+            # A prism: straight sides, one square end and one pointed tip, split into a lit and a shaded facet.
+            u = xs * np.cos(ang) + ys * np.sin(ang)
+            w = -xs * np.sin(ang) + ys * np.cos(ang)
+            half = la * 0.32 * np.clip((la - u) / (la * 0.45), 0.0, 1.0)
+            inside = (u > -la) & (u < la) & (np.abs(w) < np.maximum(half, 0.5 * (u < la - 1)))
+            shade = np.clip(0.45 + 0.45 * np.clip(-w / (la * 0.32), -1, 1) + 0.1 * (u / la), 0, 1)
+            idx = (shade * len(URANIUM)).astype(int).clip(0, len(URANIUM) - 1)
+            px, py = (cx + xs) % N, (cy + ys) % N
+            img[py[inside], px[inside]] = URANIUM[idx[inside]]
+            glow[py[inside], px[inside]] = 0.45 + 0.4 * shade[inside]
+            rim = edges(inside) & inside
+            img[py[rim], px[rim]] = URANIUM[0]
+            glow[py[rim], px[rim]] = 0.1
+    return rgba(img, glow=glow)
+
+
 def copper(alt=0):
     """Thin branching veins of bright metal, crusted with teal verdigris where they thicken."""
     X, Y = coords()

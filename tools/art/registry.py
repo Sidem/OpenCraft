@@ -14,7 +14,11 @@ import later
 import heavy
 import process
 import hints as hint_tiles
+import icons
+import icons2
 import industry
+import items
+import kit
 import machines
 import masonry
 import natural
@@ -22,6 +26,7 @@ import ores
 import plants
 import rocks
 import stains
+from lib import ramp
 
 
 @dataclass
@@ -179,4 +184,93 @@ DECOR = [
     Entry(345, "railing", decor.railing, cutout=True, cover=(0.05, 0.5)),
 ]
 
-LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR
+_CRUSHED = ramp(["#10141c", "#2a303c", "#4a5262", "#707a8c", "#a0a8b8"])
+_LIME = ramp(["#2a2638", "#6a6684", "#a8a4c0", "#dcdaec", "#ffffff"])
+_SULFUR = ramp(["#3a2c06", "#8a6a0c", "#d0a818", "#f4de44", "#fffbb0"])
+_PLASTIC = ramp(["#2a3248", "#6a7aa0", "#a8bcdc", "#dcecfa", "#ffffff"])
+_WASHED = lambda *s: ramp(list(s))
+_LIQUIDS = {
+    "naphtha": ramp(["#4a4010", "#a89830", "#e8dc60", "#fff6a0"]), "heavy": ramp(["#1a0806", "#4a1a10", "#7a2c1a", "#a04a2c"]),
+    "acid": ramp(["#102a06", "#3a8a10", "#8ae020", "#d0ff70"]), "hydrogen": ramp(["#0a2a4a", "#2a70c0", "#70b8f0", "#c8ecff"]),
+    "oxygen": ramp(["#3a4a60", "#8aa0c0", "#d8e8f8", "#ffffff"]), "crude": ramp(["#050505", "#14100c", "#241c14", "#3a2c1c"]),
+}
+
+ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
+    # status lights, tier stripes, lights and bands
+    (20, "lamp_green", lambda: items.lamp_light(kit.GREEN, 20), {}), (21, "lamp_yellow", lambda: items.lamp_light(kit.GOLD, 21), {}),
+    (22, "lamp_red", lambda: items.lamp_light(kit.RED, 22), {}), (107, "lamp_blue", lambda: items.lamp_light(kit.BLUE, 107), {}),
+    *[(114 + i, f"stripe_{i + 1}", lambda i=i: items.stripe(i, 114 + i), {}) for i in range(5)],
+    (68, "scanner", lambda: items.scanner(kit.GREEN, 68), {}), (166, "scanner_mk2", lambda: items.scanner(kit.VIOLET, 166), {}),
+    (165, "strategy_fog", items.fog, dict(tiles=True)),
+    # metals
+    (23, "iron_ingot", lambda: items.ingot(icons.IRON_HEAD, 23), {}), (24, "copper_ingot", lambda: items.ingot(machines.COPPER, 24), {}),
+    (27, "iron_plate", lambda: items.plate_item(icons.IRON_HEAD, 27), {}), (28, "copper_wire", items.wire, {}),
+    (70, "iron_rod", items.rod, {}), (71, "screw", items.screw, {}), (113, "gear", icons.gear_icon, {}),
+    (131, "steel_ingot", lambda: items.ingot(icons.STEEL_HEAD, 131), {}), (132, "steel_plate", lambda: items.plate_item(icons.STEEL_HEAD, 132), {}),
+    (133, "steel_beam", items.beam, {}), (137, "steel_head", items.forged, {}), (130, "slag", items.slag, {}),
+    (188, "aluminium_ingot", lambda: items.ingot(items.ALUMINIUM, 188), {}), (189, "aluminium_plate", lambda: items.plate_item(items.ALUMINIUM, 189), {}),
+    (153, "silicon", items.silicon, {}), (69, "core_drill", items.core_drill, {}),
+    # ores and what is made of them
+    (186, "bauxite_ore", ores.bauxite, dict(tiles=True)), (202, "oil_sand", ores.oil_sand, dict(tiles=True)),
+    (203, "uranium_ore", ores.uranium, dict(tiles=True)),
+    (149, "crushed_iron", lambda: items.rubble(_CRUSHED, stains.RUST, 149), {}), (150, "crushed_copper", lambda: items.rubble(_CRUSHED, machines.COPPER, 150), {}),
+    (187, "crushed_bauxite", lambda: items.rubble(_CRUSHED, ores.BAUXITE, 187, fleck_frac=0.6), {}),
+    (227, "washed_iron", lambda: items.rubble(_WASHED("#2a303c", "#6a7488", "#a8b2c6", "#e0e6f2"), stains.RUST, 227, 10, 0.12, 0.2), {}),
+    (228, "washed_copper", lambda: items.rubble(_WASHED("#3a2018", "#8a5040", "#d09078", "#ffd4bc"), machines.COPPER, 228, 10, 0.3, 0.2), {}),
+    (229, "washed_bauxite", lambda: items.rubble(_WASHED("#3a1c18", "#8a4a40", "#d08a78", "#ffcab8"), ores.BAUXITE, 229, 10, 0.3, 0.2), {}),
+    (230, "tailings", lambda: items.rubble(_WASHED("#14100e", "#3a322a", "#6a5e4e", "#9a8c76"), _CRUSHED, 230, 14, 0.15), {}),
+    (120, "quicklime", lambda: items.rubble(_LIME, _LIME, 120, 9, 0.0, 0.1, 0.05), {}),
+    (211, "sulfur", lambda: items.rubble(_SULFUR, _SULFUR, 211, 10, 0.0, 0.25), {}), (216, "plastic", lambda: items.rubble(_PLASTIC, _PLASTIC, 216, 6, 0.0, 0.2, 0.06), {}),
+    # science and glass
+    (43, "red_pack", lambda: items.pack(kit.RED, 43), {}), (44, "green_pack", lambda: items.pack(kit.GREEN, 44), {}),
+    (138, "blue_pack", lambda: items.pack(kit.BLUE, 138), {}), (155, "violet_pack", lambda: items.pack(kit.VIOLET, 155), {}),
+    (241, "gold_pack", lambda: items.pack(kit.GOLD, 241), {}), (72, "flask_glass", items.flask_glass, {}),
+    # wood, smoke, the avatar
+    (103, "handle", items.handle, {}), (112, "stick", items.stick, {}),
+    (110, "ladder", items.ladder_side, dict(cutout=True, cover=(0.1, 0.6))), (111, "ladder_top", items.ladder_top, dict(cutout=True, cover=(0.01, 0.2))),
+    (281, "smoke", lambda: items.smoke(False), dict(cutout=True, cover=(0.2, 0.9))), (282, "smoke_thin", lambda: items.smoke(True), dict(cutout=True, cover=(0.05, 0.8))),
+    (47, "avatar_suit", items.suit, {}), (48, "avatar_skin", items.skin, {}), (49, "avatar_helmet", items.helmet, {}),
+    (50, "avatar_visor", items.visor, {}), (162, "avatar_joint", items.joint, {}), (163, "avatar_trim", items.trim, {}),
+    (164, "avatar_pack", items.avatar_pack, {}),
+    # tools
+    *[(layer, f"{mat}_{kind}", lambda kind=kind, head=head, layer=layer: icons.tool(kind, head, layer), {})
+      for mat, head, layers in (("stone", icons.STONE_HEAD, (51, 52, 53)), ("iron", icons.IRON_HEAD, (54, 55, 56)),
+                                ("steel", icons.STEEL_HEAD, (134, 135, 136)))
+      for layer, kind in zip(layers, ("pick", "axe", "shovel"))],
+    # robot parts, gear, vehicles
+    (154, "circuit", icons.circuit, {}), (167, "processor", lambda: icons.chip(167), {}), (168, "servo", icons.servo, {}),
+    (169, "actuator", icons.actuator, {}), (170, "drone_cell", icons.drone_cell, {}), (171, "guidance", icons.guidance, {}),
+    (172, "drone", lambda: icons.quad(172, machines.EMBER), {}), (173, "drone_port_top", icons2.port_top, {}),
+    (174, "drone_port_side", icons2.port_side, {}), (175, "jetpack", icons.jetpack, {}), (176, "personal_drone", icons.personal_drone, {}),
+    (177, "planner", icons.planner, {}),
+    *[(layer, f"hauler_pack_{tier + 1}", lambda tier=tier, layer=layer: icons.hauler(tier, layer), {})
+      for tier, layer in enumerate((180, 181, 273, 274, 275))],
+    (182, "spring_boots", lambda: icons.boots(182, machines.EMBER, machines.AMBER), {}),
+    (183, "servo_boots", lambda: icons.boots(183, machines.STEEL, machines.AETHER), {}),
+    (184, "exo_frame", icons.exo_frame, {}), (185, "mining_rig", icons.mining_rig, {}), (285, "craft_gloves", icons.gloves, {}),
+    (193, "rail", icons2.rail, {}), (194, "locomotive", icons2.loco, {}), (195, "wagon", icons2.wagon, {}),
+    (200, "hover_pack", icons2.hover_pack, {}), (201, "cargo_drone", icons2.cargo_drone, {}),
+    # canisters
+    (204, "empty_canister", lambda: icons.canister(None, 204), {}),
+    (205, "crude_canister", lambda: icons.canister(_LIQUIDS["crude"], 205, dark_fill=True), {}),
+    (208, "naphtha_canister", lambda: icons.canister(_LIQUIDS["naphtha"], 208), {}),
+    (209, "diesel_canister", lambda: icons.canister(machines.AMBER, 209), {}),
+    (210, "heavy_oil_canister", lambda: icons.canister(_LIQUIDS["heavy"], 210), {}),
+    (217, "acid_canister", lambda: icons.canister(_LIQUIDS["acid"], 217), {}),
+    (218, "lubricant_canister", lambda: icons.canister(kit.GOLD, 218), {}),
+    (221, "hydrogen_canister", lambda: icons.canister(_LIQUIDS["hydrogen"], 221), {}),
+    (222, "oxygen_canister", lambda: icons.canister(_LIQUIDS["oxygen"], 222), {}),
+    (246, "pure_water_canister", lambda: icons.canister(machines.AETHER, 246), {}),
+    (292, "rocket_fuel_canister", lambda: icons.canister(machines.EMBER, 292, 0.95), {}),
+    # small things, the rocket and the satellites
+    (190, "battery", icons2.battery, {}), (236, "fuel_cell", icons2.fuel_cell, {}), (243, "coin", icons2.coin, {}),
+    (247, "wafer", icons2.wafer, {}), (248, "accelerator", icons2.accelerator, {}), (329, "scrap", icons2.scrap, {}),
+    (289, "rocket_engine", icons2.rocket_engine, {}), (290, "fuel_tank", icons2.fuel_tank, {}), (291, "avionics", icons2.avionics, {}),
+    (294, "survey_satellite", lambda: icons2.satellite(294, kit.GOLD, machines.AMBER), {}),
+    (295, "comms_satellite", icons2.comms_satellite, {}),
+    (296, "power_satellite", lambda: icons2.satellite(296, kit.RED, machines.EMBER), {}),
+    (299, "science_satellite", lambda: icons2.satellite(299, icons.WHITE, kit.GREEN), {}),
+    (302, "drop_pod", icons2.drop_pod, {}),
+)]
+
+LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS

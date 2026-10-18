@@ -147,13 +147,27 @@ iron-oxide patches with a dithered halo (`stains._rust`); verdigris was neon tea
 patches; granite was a pink gravel, now interlocking pink feldspar, grey quartz and cream plagioclase grains with black mica
 flecks (`rocks.granite`). Rule of thumb they taught: a stain must not have a clean round or leaf outline.
 
-## 10. Next, in order (each one green and its own commit; ask before pushing)
+## 10. Items batch (2026-10-18): the last 121 layers, 347 of 347 painted
 
-1. **Items batch:** item icons, tools, avatar materials, ingots, plates, canisters, status lamps (layers 20-22, 107), stripes
-   (114-118), smoke (281-282), scrap (329) and the remaining ~121 layers (the HUD icons already read the pack through
-   `texPixels`).
-2. **Rails and the last blocks** if any are left after the items.
-3. **Engine follow-ups the look needs, each its own step:** the crack overlay and minimap still assume 16 cells; a
-   warm-light / cool-shadow grade in `litFrag` (the samples' signature, measured: warm highlights, navy shadows); non-cube
-   meshing for roofs, arches and slabs (buildings); glow on boxes' status lamps from the pack; a faster PNG decode
-   (palette PNG or a worker) if the full pack's merge exceeds the 300 ms budget.
+Two kinds of layer. **Materials** that skin small item models and machine lights (`items.py`): metals as bevelled slabs with
+a stamp and brushed grain (ingots, plates, wire, rod, screw, beam, forged head, slag, silicon), rubble fields for crushed and
+washed ores, tailings, quicklime, sulfur and plastic (`items.rubble`), glowing flask liquid under a glass meniscus for the
+five science packs, status lens lights, tier stripes with pips, scanner screens, the avatar's seven parts, the ladder and
+smoke cutouts, and three ore blocks in `ores.py` (bauxite pebbles, tar-soaked oil sand, glowing uranium prisms).
+**Pictures** the item shows as its whole tile (`icons.py`, `icons2.py`): tools by metal, gear, robot parts, canisters (steel
+can, brass cap, a window of the fluid), vehicles, the rocket parts, satellites, drop pod, coin, wafer. They are drawn on the
+machine kit's `Face` over a navy backdrop (`icons.canvas`), plus `poly` and `shape` for free-form bevelled solids.
+`check.py` passes (three tiles needed darkening: flask glass, avatar skin, fuel tank).
+Pack: 1.71 MB for 347 tiles (4.9 KB each; the 3-4 MB target is met with room). Decode and merge of all 347 layers measured
+140-220 ms warm in the browser pane, inside the 300 ms budget (my 250-400 ms extrapolation was pessimistic). In game the
+hotbar icons are too small to judge; the review sheets are the evidence. Soft spots: the canisters differ by liquid colour
+only (their names tell the rest), the boots read as boots only because of the sole, the uranium prisms are thin.
+
+## 11. Next, in order (each one green and its own commit; ask before pushing)
+
+1. **Engine follow-ups the look needs, each its own step:** the crack overlay and minimap still assume 16 cells; a
+   warm-light / cool-shadow grade in `litFrag` (the samples' signature: warm highlights, navy shadows); non-cube meshing for
+   roofs, arches and slabs; glow on boxes' status lamps from the pack; retire the engine's own 64 px generators once the pack
+   is the only source (wasm size).
+2. **Judgement pass in game:** night and dusk glow on the big machines, water in a real lake, the style distance to the
+   samples on the fixed scene (target about 0.032, 0.0864 at the pilot).

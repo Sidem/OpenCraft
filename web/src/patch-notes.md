@@ -5,7 +5,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-18 · A new look, and quieter water
 
-- Most blocks and machines are repainted in hand-made 128 × 128 art: glowing windows, lamps and belts, granite with real crystals and mica, rock stains that look like stained ground. Add ?art=off to the address to see the old look.
+- Every block, machine and item is repainted in hand-made 128 × 128 art: glowing windows, lamps and belts, granite with real crystals and mica, rock stains that look like stained ground. Add ?art=off to the address to see the old look.
 - Rivers and the sea are much quieter, and the sound of water together never passes a low limit, so walking along a river no longer hisses over everything else.
 
 ## 2026-10-17 · Sharper plants, a command line, livelier rain
