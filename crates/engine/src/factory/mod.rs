@@ -58,7 +58,7 @@ mod state;
 mod storage;
 mod table;
 pub mod tiers;
-mod trains;
+pub(crate) mod trains;
 pub mod underpass;
 pub mod upgrades;
 mod wiring;

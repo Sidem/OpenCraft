@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-18 · Items you can hold
+
+- About 70 items that were a box with a picture on each side are now real 3D models, on the ground, on belts, in your hand and in the inventory: canisters are painted drums, drones have arms and rotors, packs have straps and pockets, the locomotive and wagon are small copies of the real trains, satellites spread their solar wings, and heaps of crushed ore are heaps.
+- Plastic is clean white sheets instead of something that looked like styrofoam.
+
 ## 2026-10-18 · A new look, and quieter water
 
 - Every block, machine and item is repainted in hand-made 128 × 128 art: glowing windows, lamps and belts, granite with real crystals and mica, rock stains that look like stained ground. Add ?art=off to the address to see the old look.

@@ -1,6 +1,6 @@
 //! Where a train is and how it looks: poses along its path, and the boxes of the locomotive and its wagons.
 //! Presentation only. A car sits between the poses of its front and its rear (so it follows a bend), at the
-//! rails' height.
+//! rails' height. The item models of the locomotive and wagon are these boxes scaled (`item_models/craft.rs`).
 
 use crate::block::tex;
 use crate::factory::render::push_box;
@@ -15,7 +15,7 @@ const SAMPLES: usize = 24;
 const RAIL_TOP: f64 = -0.34;
 
 /// One box of a car: x to the right, y above the rails, z backwards from its centre; its size; its texture.
-type CarBox = (f64, f64, f64, [f32; 3], u16);
+pub(crate) type CarBox = (f64, f64, f64, [f32; 3], u16);
 
 const WHEEL: [f32; 3] = [0.08, 0.22, 0.22];
 /// A driving wheel is two crossed discs (an octagon from the side), of different thicknesses so they never share a
@@ -28,7 +28,7 @@ const CHIMNEY_MOUTH: [f64; 3] = [0.0, 1.3, -0.85];
 /// A steam locomotive, nose at -z: a frame with a red buffer beam, a round green boiler (two crossed parts) with a
 /// dark smokebox door and a headlamp, a chimney, a brass dome, the cab with its roof, three pairs of tall driving
 /// wheels joined by coupling rods.
-const LOCOMOTIVE_BOXES: [CarBox; 24] = [
+pub(crate) const LOCOMOTIVE_BOXES: [CarBox; 24] = [
     (0.0, 0.3, 0.0, [0.8, 0.14, 2.5], tex::FRAME),
     (0.0, 0.32, -1.27, [0.92, 0.16, 0.08], tex::stripe(3)),
     (0.0, 0.7, -0.35, [0.64, 0.46, 1.5], tex::LOCO_BODY),
@@ -57,7 +57,7 @@ const LOCOMOTIVE_BOXES: [CarBox; 24] = [
 
 /// An open wagon: a bed, a steel body with upright ribs, a dark hold seen over a rim of rails, two bogies of two
 /// axles each.
-const WAGON_BOXES: [CarBox; 21] = [
+pub(crate) const WAGON_BOXES: [CarBox; 21] = [
     (0.0, 0.3, 0.0, [0.8, 0.14, 2.4], tex::FRAME),
     (0.0, 0.67, 0.0, [0.76, 0.6, 2.2], tex::STEEL),
     (0.0, 0.98, 0.0, [0.66, 0.04, 2.1], tex::SOOT),

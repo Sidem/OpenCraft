@@ -382,7 +382,16 @@ pub const LOGBOOK_TOP: u16 = 331;
 pub const VAULT_DOOR: u16 = 332;
 /// The decor set's layers, 333 on (`block/decor.rs`, `textures/decor.rs`).
 pub use super::decor::layers::*;
-pub const COUNT: usize = LAYERS_END as usize;
+/// Plain materials the item models are built from (`item_models`, `textures/materials.rs`), 347 on: brushed
+/// steel, dark gunmetal, black rubber, brass, canvas webbing, and the two paint colours of the kit (ember, aether).
+pub const MAT_METAL: u16 = LAYERS_END;
+pub const MAT_GUNMETAL: u16 = LAYERS_END + 1;
+pub const MAT_RUBBER: u16 = LAYERS_END + 2;
+pub const MAT_BRASS: u16 = LAYERS_END + 3;
+pub const MAT_FABRIC: u16 = LAYERS_END + 4;
+pub const MAT_EMBER: u16 = LAYERS_END + 5;
+pub const MAT_AETHER: u16 = LAYERS_END + 6;
+pub const COUNT: usize = MAT_AETHER as usize + 1;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

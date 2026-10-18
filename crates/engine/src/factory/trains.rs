@@ -25,7 +25,7 @@
 
 mod cars;
 mod docks;
-mod model;
+pub(crate) mod model;
 mod schedule;
 mod signals;
 

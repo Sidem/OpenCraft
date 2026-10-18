@@ -3,6 +3,10 @@
 //! list them back to front (the icon looks from +x, +z, above). Add a static slice for a new model.
 //! A part may turn about its own vertical axis (`yaw`): round things (the cog) are built from turned boxes.
 //! Tools stand upright in the x-y plane, head up; their heads use their tier's material.
+//! Invariant: every item that is not a block has a model, its bottom at `-size[1] / 2` of its `ItemDef` (where it
+//! rests on the ground and on belts), built from materials (`tex::MAT_*`, metals, rubble), never from a picture of the
+//! item. Later items live in submodules by kind (`stock`, `components`, `wear`, `craft`, `space`) with the shape
+//! helpers in `shapes`; a new item gets a const there and a row in its module's `parts`.
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, FRAC_PI_6};
 
@@ -13,9 +17,17 @@ use crate::item::{
     STEEL_INGOT, STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
 };
 
+mod components;
+mod craft;
+mod shapes;
+mod space;
+mod stock;
+mod wear;
+
 const ITEM_MINER_MK1: ItemId = ItemId::block(MINER);
 const ITEM_MINER_MK2: ItemId = ItemId::block(MINER_MK2);
 
+#[derive(Clone, Copy)]
 pub struct Part {
     pub center: [f32; 3],
     pub size: [f32; 3],
@@ -265,7 +277,15 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         SCANNER => &SCANNER_SET,
         SCANNER_MK2 => &SCANNER_MK2_SET,
         CORE_DRILL => &DRILL_SET,
-        _ => &[],
+        _ => {
+            for find in [stock::parts, components::parts, wear::parts, craft::parts, space::parts] {
+                let model = find(item);
+                if !model.is_empty() {
+                    return model;
+                }
+            }
+            &[]
+        }
     }
 }
 

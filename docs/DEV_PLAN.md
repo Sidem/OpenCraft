@@ -585,6 +585,10 @@ and the balance numbers. Read the section you need.
 
 ## 8. Recent changes
 
+- **2026-10-18: real item models** (user: items were a cube with their picture on each side; plastic looked like styrofoam).
+  Every non-block item now has a box assembly (`item_models/`, test `every_item_that_is_not_a_block_is_a_model_resting_on_its_floor`),
+  skinned with new plain materials (`tex::MAT_*`, 347–353) and repainted faces (white plastic, board, chip lid, wafer, canister
+  paints; `tools/art/materials.py`). Some `ItemDef` sizes changed to fit the models. The old icon layers now only skin far belts.
 - **2026-10-18: water rework** (user: finer levels, still vs flowing vs falling, a missing side texture; presentation only). The sim
   already had a source and 7 flow levels; the mesher drew 3 heights and culled faces between liquid cells, so the wall above a lower
   surface was missing (the screenshot's bug). Now `mesher/water.rs` gives each surface corner a height in sixteenths from its four

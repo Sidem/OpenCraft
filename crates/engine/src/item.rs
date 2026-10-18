@@ -10,10 +10,12 @@
 //! texture layer in `block::tex` with its pattern in `textures::pixel` if it needs a new look.
 
 use crate::block::{self, tex, BlockId, AIR, BLOCK_COUNT, FACE_BOTTOM, FACE_SIDE, FACE_TOP};
-use crate::tools::{Tier, DEVICE_TIER, IRON_TIER, STEEL_TIER, STONE_TIER};
+use crate::tools::{DEVICE_TIER, IRON_TIER, STEEL_TIER, STONE_TIER};
 
 mod later;
+mod rows;
 pub use later::*;
+use rows::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct ItemId(pub u16);
@@ -201,31 +203,6 @@ pub fn stack_size(id: ItemId) -> u32 {
     def(id).map_or(MAX_STACK, |d| d.stack)
 }
 
-/// An ingot: a small bar of metal.
-const fn ingot(name: &'static str, layer: u16) -> ItemDef {
-    ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size: [0.9, 0.45, 0.55], places: AIR }
-}
-
-/// A part: `layer` on every face, proportions `size`.
-const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> ItemDef {
-    ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
-}
-
-/// A canister: a small drum that holds a fluid, 16 to a slot.
-const fn canister(name: &'static str, layer: u16) -> ItemDef {
-    ItemDef { name, stack: 16, tex: [layer; 3], size: [0.5, 0.7, 0.5], places: AIR }
-}
-
-/// A tier of a machine block: that block's look (the icon adds the tier chip).
-const fn machine(name: &'static str, tex: [u16; 3]) -> ItemDef {
-    ItemDef { name, stack: MAX_STACK, tex, size: [1.0; 3], places: AIR }
-}
-
-/// A tool: a flat plate showing it, whose stack size is its uses.
-const fn tool(name: &'static str, layer: u16, tier: &Tier) -> ItemDef {
-    ItemDef { name, stack: tier.uses, tex: [layer; 3], size: [0.7, 0.9, 0.12], places: AIR }
-}
-
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
@@ -248,11 +225,11 @@ const EXTRA: [ItemDef; 141] = [
     tool("Core Drill", tex::CORE_DRILL, &DEVICE_TIER),
     part("Stick", tex::STICK, [1.0, 0.14, 0.14]),
     part("Gear", tex::GEAR, [0.8, 0.2, 0.8]),
-    part("Green Kit", tex::stripe(1), [0.6, 0.45, 0.6]),
+    part("Green Kit", tex::stripe(1), KIT),
     part("Quicklime", tex::QUICKLIME, [0.6, 0.4, 0.6]),
     machine("Smelter Mk2", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
     machine("Constructor Mk2", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
-    part("Motor", tex::MOTOR, [0.55, 0.55, 0.8]),
+    part("Motor", tex::MOTOR, [0.8, 0.55, 0.5]),
     ingot("Steel Ingot", tex::STEEL_INGOT),
     part("Steel Plate", tex::STEEL_PLATE, [0.85, 0.14, 0.85]),
     part("Steel Beam", tex::STEEL_BEAM, [1.0, 0.3, 0.3]),
@@ -260,7 +237,7 @@ const EXTRA: [ItemDef; 141] = [
     tool("Steel Axe", tex::STEEL_AXE, &STEEL_TIER),
     tool("Steel Shovel", tex::STEEL_SHOVEL, &STEEL_TIER),
     part("Blue Science Pack", tex::BLUE_PACK, [0.4, 0.6, 0.4]),
-    part("Blue Kit", tex::stripe(2), [0.6, 0.45, 0.6]),
+    part("Blue Kit", tex::stripe(2), KIT),
     machine("Belt Mk3", [tex::BELT_MK3_TOP, tex::FRAME, tex::FRAME]),
     machine("Miner Mk3", [tex::MINER_TOP, tex::MINER_MK3_SIDE, tex::FRAME]),
     machine("Smelter Mk3", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
@@ -285,7 +262,7 @@ const EXTRA: [ItemDef; 141] = [
     ingot("Silicon", tex::SILICON),
     part("Circuit", tex::CIRCUIT, [0.7, 0.1, 0.7]),
     part("Violet Science Pack", tex::VIOLET_PACK, [0.4, 0.6, 0.4]),
-    part("Violet Kit", tex::stripe(3), [0.6, 0.45, 0.6]),
+    part("Violet Kit", tex::stripe(3), KIT),
     machine("Belt Mk4", [tex::BELT_MK4_TOP, tex::FRAME, tex::FRAME]),
     machine("Miner Mk4", [tex::MINER_TOP, tex::MINER_MK4_SIDE, tex::FRAME]),
     machine("Smelter Mk4", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
@@ -304,24 +281,24 @@ const EXTRA: [ItemDef; 141] = [
     machine("Drone Port Mk2", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
     machine("Drone Port Mk3", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
     machine("Drone Port Mk4", [tex::DRONE_PORT_TOP, tex::DRONE_PORT_SIDE, tex::FRAME]),
-    tool("Coal Jetpack", tex::JETPACK, &DEVICE_TIER),
-    tool("Personal Drone", tex::PERSONAL_DRONE, &DEVICE_TIER),
-    tool("Planner", tex::PLANNER, &DEVICE_TIER),
-    tool("Hauler Pack", tex::HAULER_PACK, &DEVICE_TIER),
-    tool("Hauler Pack Mk2", tex::HAULER_PACK_MK2, &DEVICE_TIER),
-    tool("Spring Boots", tex::SPRING_BOOTS, &DEVICE_TIER),
-    tool("Servo Boots", tex::SERVO_BOOTS, &DEVICE_TIER),
-    tool("Exo Frame", tex::EXO_FRAME, &DEVICE_TIER),
-    tool("Mining Rig", tex::MINING_RIG, &DEVICE_TIER),
+    device("Coal Jetpack", tex::JETPACK, [0.5, 0.66, 0.4]),
+    device("Personal Drone", tex::PERSONAL_DRONE, [0.6, 0.25, 0.6]),
+    device("Planner", tex::PLANNER, [0.6, 0.7, 0.12]),
+    device("Hauler Pack", tex::HAULER_PACK, PACK),
+    device("Hauler Pack Mk2", tex::HAULER_PACK_MK2, PACK),
+    device("Spring Boots", tex::SPRING_BOOTS, BOOTS),
+    device("Servo Boots", tex::SERVO_BOOTS, BOOTS),
+    device("Exo Frame", tex::EXO_FRAME, [0.6, 0.95, 0.4]),
+    device("Mining Rig", tex::MINING_RIG, [0.7, 0.62, 0.4]),
     part("Crushed Bauxite", tex::CRUSHED_BAUXITE, [0.6, 0.4, 0.6]),
     ingot("Aluminium Ingot", tex::ALUMINIUM_INGOT),
     part("Aluminium Plate", tex::ALUMINIUM_PLATE, [0.85, 0.14, 0.85]),
     part("Battery", tex::BATTERY, [0.4, 0.6, 0.4]),
-    ItemDef { name: "Locomotive", stack: 8, tex: [tex::LOCOMOTIVE; 3], size: [0.9, 0.7, 0.9], places: AIR },
-    ItemDef { name: "Wagon", stack: 8, tex: [tex::WAGON; 3], size: [0.9, 0.6, 0.9], places: AIR },
+    ItemDef { name: "Locomotive", stack: 8, tex: [tex::LOCOMOTIVE; 3], size: [0.9, 0.47, 0.4], places: AIR },
+    ItemDef { name: "Wagon", stack: 8, tex: [tex::WAGON; 3], size: [0.9, 0.37, 0.4], places: AIR },
     ItemDef { name: "Rail Signal", stack: 64, tex: [tex::SIGNAL; 3], size: [0.4, 0.8, 0.4], places: AIR },
-    tool("Hover Pack", tex::HOVER_PACK, &DEVICE_TIER),
-    part("Cargo Drone", tex::CARGO_DRONE, [0.8, 0.4, 0.8]),
+    device("Hover Pack", tex::HOVER_PACK, [0.8, 0.5, 0.4]),
+    part("Cargo Drone", tex::CARGO_DRONE, [0.8, 0.55, 0.8]),
     canister("Empty Canister", tex::EMPTY_CANISTER),
     canister("Crude Oil Canister", tex::CRUDE_CANISTER),
     canister("Naphtha Canister", tex::NAPHTHA_CANISTER),
@@ -341,7 +318,7 @@ const EXTRA: [ItemDef; 141] = [
     machine("Research Center Mk4", [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME]),
     part("Fuel Cell", tex::FUEL_CELL, [0.35, 0.8, 0.35]),
     part("Gold Science Pack", tex::GOLD_PACK, [0.4, 0.6, 0.4]),
-    part("Gold Kit", tex::stripe(4), [0.6, 0.45, 0.6]),
+    part("Gold Kit", tex::stripe(4), KIT),
     machine("Miner Mk5", [tex::MINER_TOP, tex::MINER_MK5_SIDE, tex::FRAME]),
     machine("Smelter Mk5", [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::SMELTER_TOP]),
     machine("Constructor Mk5", [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME]),
@@ -356,10 +333,10 @@ const EXTRA: [ItemDef; 141] = [
     canister("Pure Water Canister", tex::PURE_WATER_CANISTER),
     part("Wafer", tex::WAFER, [0.7, 0.08, 0.7]),
     part("AI Accelerator", tex::ACCELERATOR, [0.8, 0.12, 0.6]),
-    tool("Hauler Pack Mk3", tex::HAULER_PACK_MK3, &DEVICE_TIER),
-    tool("Hauler Pack Mk4", tex::HAULER_PACK_MK4, &DEVICE_TIER),
-    tool("Hauler Pack Mk5", tex::HAULER_PACK_MK5, &DEVICE_TIER),
-    tool("Fabricator Gloves", tex::CRAFT_GLOVES, &DEVICE_TIER),
+    device("Hauler Pack Mk3", tex::HAULER_PACK_MK3, PACK),
+    device("Hauler Pack Mk4", tex::HAULER_PACK_MK4, PACK),
+    device("Hauler Pack Mk5", tex::HAULER_PACK_MK5, PACK),
+    device("Fabricator Gloves", tex::CRAFT_GLOVES, [0.8, 0.14, 0.6]),
     part("Light Frame", tex::LIGHT_FRAME, [0.85, 0.3, 0.85]),
     part("Rocket Engine", tex::ROCKET_ENGINE, [0.7, 0.8, 0.7]),
     part("Fuel Tank", tex::FUEL_TANK, [0.6, 0.85, 0.6]),
