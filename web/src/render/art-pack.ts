@@ -1,11 +1,11 @@
-// The art pack: hand-painted 128 × 128 layers made by `tools/art` (docs/ART_STYLE.md) that replace layers of the
+﻿// The art pack: hand-painted 128 Ã— 128 layers made by `tools/art` (docs/ART_STYLE.md) that replace layers of the
 // engine's own generated textures. `composeTextures` builds the array the renderer uploads: engine layers the pack
-// doesn't cover are repeated 2 × 2 to 128 so every layer has one size, pack layers are copied in, and a second array
+// doesn't cover are repeated 2 Ã— 2 to 128 so every layer has one size, pack layers are copied in, and a second array
 // holds each texel's self-light (glow). To add layers, extend `tools/art/registry.py` and rebuild the pack.
 
-import packUrl from '../art/pilot.png?url';
-import glowUrl from '../art/pilot_glow.png?url';
-import table from '../art/pilot.json';
+import packUrl from '../art/pack.png?url';
+import glowUrl from '../art/pack_glow.png?url';
+import table from '../art/pack.json';
 
 export const ART_SIZE = 128;
 

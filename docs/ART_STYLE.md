@@ -1,10 +1,10 @@
-# Art style: Ember & Aether (pilot, awaiting the user's sign-off)
+﻿# Art style: Ember & Aether (pilot signed off 2026-10-18; natural batch built)
 
 Direction chosen 2026-10-18 from the user's brief ("move away from Minecraft low-detail pixel art to at least 128 × 128,
 a sci-fi fantasy fusion, like the attached sample backgrounds"). **It supersedes "B · Alpine" and the "calmer textures"
 note in `ART_HANDOVER.md` 2b**, and lifts two of that file's rules for the art pack only: textures stay 16 × 16 pixel art,
 and "procedural stays procedural" (the pack ships as PNG, like the music ships as audio). Everything else in the handover
-(what you may touch, budgets, tests) still holds. Status: the pilot is built (33 layers); the other 314 are not.
+(what you may touch, budgets, tests) still holds. Status: 85 of 347 layers are painted (the pilot's 33, then the natural batch); industry, items and the remaining blocks are not.
 
 ## 1. What the samples actually show (measured, `tools/art/style.py`)
 
@@ -65,18 +65,18 @@ Ramps (dark → light, interpolated in Oklab to 7–9 tones; defined in `natural
 ## 4. Pipeline
 
 ```
-tools/art (Python, numpy + Pillow)  →  web/src/art/pilot.png, pilot_glow.png, pilot.json  →  render/art-pack.ts  →  Renderer
+tools/art (Python, numpy + Pillow)  →  web/src/art/pack.png, pack_glow.png, pack.json  →  render/art-pack.ts  →  Renderer
 ```
 
 | Command | What it does |
 |---|---|
-| `python tools/art/build.py [name …]` | Renders the tiles to `artifacts/art2/pilot/`, a review sheet (`artifacts/art2/pilot_sheet.png`, repeating tiles shown 2 × 2); a full run also writes the pack |
+| `python tools/art/build.py [name …]` | Renders the tiles to `artifacts/art2/tiles/`, a review sheet (`artifacts/art2/sheet.png`, repeating tiles shown 2 × 2); a full run also writes the pack |
 | `python tools/art/check.py` | The rules below; exit 1 on a failure |
 | `python tools/art/compare.py artifacts/art2/current.bin` | Before/after sheet against the engine's generated layers |
 | `python tools/art/style.py compare <screenshot>` | Style distance of a screenshot to the samples |
 | `OC_DUMP=<file> cargo test -q --release dump_layers -- --ignored` | Dumps the engine's current layers (for `compare.py`, `dump.py`) |
 
-Add a layer: write a recipe returning `lib.rgba(...)`, append an `Entry` in `registry.py` (engine layer ids are in
+Add a layer: write a recipe returning `lib.rgba(...)` (sprites: `draw.Pen`), append an `Entry` in `registry.py` (engine layer ids are in
 `block/tex.rs`), run `build.py` and `check.py`. The game picks the pack up on reload; `?art=off` shows the old look.
 Reproducible: every recipe is seeded, so a rebuild gives the same pixels.
 
@@ -99,7 +99,7 @@ match (I tried a band test and removed it, it could not tell borders from bricks
 and judged on the review sheet; and the **style distance** is dominated by the sky and global exposure, so darkening the
 whole frame would "win". Use it for before/after on one fixed scene, never alone.
 
-## 7. Pilot results (2026-10-18)
+## 7. Pilot results (2026-10-18, signed off)
 
 33 layers: stone, dirt, grass top and side, sand, log side and end, planks, stone bricks, leaves (4 looks), coal, iron, copper
 (4 looks each), glass, lamp, frame, steel, smelter side and top, generator side and top. All rules pass.
@@ -114,14 +114,24 @@ whole frame would "win". Use it for before/after on one fixed scene, never alone
   re-measure (target ≤ 300 ms extra; a Web Worker or a palette PNG are the levers).
 - Wasm size and `generate()` time: unchanged (the engine's generator still runs for the layers not yet repainted).
 
-## 8. Next, in order (each one green and its own commit; ask before pushing)
+## 8. Natural batch (2026-10-18, after the user signed off the pilot)
 
-1. **User sign-off on the pilot** (`artifacts/art2/before_after.png`, `pilot_sheet.png`, the day / dusk / night screenshots).
-   Possible edits: stone busyness, ore saturation, how dark the world reads.
-2. **Natural batch:** every remaining terrain block, hints, soils, rocks (granite, sandstone, basalt, limestone, quartz),
-   plants (ground cover is 64 × 64 now), water, sky-facing hints.
-3. **Industry batch:** every machine face (about 150 layers), tiers as accent colours (the stripe language stays), ports.
-4. **Items and icons batch;** HUD icons already read the pack through `texPixels`.
-5. **Engine follow-ups the look needs, each its own step:** the crack overlay and minimap still assume 16 cells; a
+52 more layers: bedrock, spent rock, granite, sandstone, basalt, limestone (+3 alternates), quartz ore (+3), the four
+stained soils, grass tops, grass sides and sands (`stains.py`: rust blotches, coal shards, copper veins, chalk chips, each lighter or
+darker than the ground so colour-blind players still see them), water, the birch, pine, cactus and dead-wood
+blocks, and 16 cutout sprites drawn with `draw.Pen` (`plants.py`: ground cover, saplings, indicator plants, the torch with a
+glow flame). `check.py` now judges each variant family against its plain tile (ores, soils, grass tops, sands).
+All rules pass; `npm run check` is green. Pack: 744 KB for 85 tiles (about 8.8 KB each, 347 would be about 3 MB). Decode and
+merge of the 347 layers measured 80 ms warm (264 ms the first, uncached time on the dev server) with 85 painted. Not verified
+in game: water's look (it needs a lake; the tile itself is checked), dusk and night views.
+Known soft spots: the coal shrub reads as a bubble cluster, rust stains on sand are flat, cactus spines are tiny.
+
+## 9. Next, in order (each one green and its own commit; ask before pushing)
+
+1. **Industry batch:** every machine face (about 150 layers), tiers as accent colours (the stripe language stays), ports.
+2. **Blocks and items left:** wood and masonry (ladder, hoist, decor set, ruins, rails), then item icons and tool and
+   avatar materials (the HUD icons already read the pack through `texPixels`).
+3. **Engine follow-ups the look needs, each its own step:** the crack overlay and minimap still assume 16 cells; a
    warm-light / cool-shadow grade in `litFrag` (the samples' signature, measured: warm highlights, navy shadows); non-cube
-   meshing for roofs, arches and slabs (buildings); glow on boxes' status lamps from the pack.
+   meshing for roofs, arches and slabs (buildings); glow on boxes' status lamps from the pack; a faster PNG decode
+   (palette PNG or a worker) if the full pack's merge exceeds the 300 ms budget.

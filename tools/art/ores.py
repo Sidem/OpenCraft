@@ -1,15 +1,13 @@
-"""Ore blocks: the plain `natural.stone` body with a deposit painted on, one shape language per ore so they differ
+﻿"""Ore blocks: the plain `natural.stone` body with a deposit painted on, one shape language per ore so they differ
 without colour: coal is dark angular shards (darkest tile), iron is fat round nodules, copper is thin branching veins
 with a teal crust. `alt` (0..3) moves the deposit but keeps the body, so seams between alternates stay quiet."""
 import numpy as np
 
 from lib import N, coords, edges, fbm, grow, hash2, paint, ramp, relief_light, rgba, roll, worley
 from natural import leaf_shape, stone
+from stains import COAL, RUST as IRON, VERDIGRIS
 
-COAL = ramp(["#05060b", "#0c0f19", "#171b2a", "#272d42", "#3f4a68", "#6f86ad"])
-IRON = ramp(["#241012", "#4a1f1a", "#74341f", "#a0502a", "#c47a3e", "#e3a566"])
 COPPER = ramp(["#33160f", "#70361f", "#b9632e", "#e8915a", "#ffc58a"])
-VERDIGRIS = ramp(["#0d2a31", "#1c5456", "#33887a", "#6fc4a8", "#b4ecd0"])
 
 
 def _body(alt):

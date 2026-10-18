@@ -1,11 +1,11 @@
-"""Natural block recipes for the Ember & Aether look (docs/ART_STYLE.md): stone, dirt, grass, sand, logs, planks, leaves.
+﻿"""Natural block recipes for the Ember & Aether look (docs/ART_STYLE.md): stone, dirt, grass, sand, logs, planks, leaves.
 
 Every function returns an `N` x `N` x 4 uint8 tile. Tiles that repeat (stone, dirt, grass top, sand, bark, planks) wrap at
 the edge. `ores.py` builds on `stone`, `masonry.py` on `RAMPS`.
 """
 import numpy as np
 
-from lib import N, cavity, coords, edges, fbm, hash2, paint, ramp, relief_light, rgba, roll, snap, stroke, vnoise, worley
+from lib import N, bayer, cavity, coords, edges, fbm, hash2, paint, ramp, relief_light, rgba, roll, snap, stroke, vnoise, worley
 
 RAMPS = {
     "stone": ramp(["#0f1520", "#1e2431", "#323745", "#4b4f5e", "#666878", "#868390", "#a8a0a2", "#cbbdb6"]),
@@ -17,8 +17,9 @@ RAMPS = {
 }
 
 
-def stone(seed=0):
-    """Fractured rock: angular plates of two sizes with chiselled edges, dark cracks, faint strata and glints."""
+def stone(seed=0, tones=None, lift=0.0):
+    """Fractured rock: angular plates of two sizes with chiselled edges, dark cracks, faint strata and glints.
+    `tones` swaps the ramp (bedrock, spent rock) and `lift` shifts the whole value."""
     X, Y = coords()
     Xw = (X + (fbm(X, Y, 4, 3, seed + 11) - 0.5) * 0.2) % 1.0  # wobbly plate outlines, not straight cuts
     Yw = (Y + (fbm(X, Y, 4, 3, seed + 12) - 0.5) * 0.2) % 1.0
@@ -31,17 +32,18 @@ def stone(seed=0):
     light = relief_light(h * 7, 0.95)
     strata = np.sin((Y * 9 + fbm(X, Y, 3, 2, seed + 4) * 1.5) * 2 * np.pi) * 0.5 + 0.5
     grain = fbm(X, Y, 24, 2, seed + 5)
-    v = 0.33 + pid * 0.2 + qid * 0.06 + (light - 0.5) * 0.7 + (strata - 0.5) * 0.08 + (grain - 0.5) * 0.14
+    v = 0.33 + lift + pid * 0.2 + qid * 0.06 + (light - 0.5) * 0.7 + (strata - 0.5) * 0.08 + (grain - 0.5) * 0.14
     v = v - cavity(h * 3, 2.5) * 1.1
     v = np.where(edge < 0.03, 0.03 + 0.1 * grain, v)
     v = np.where((sub < 0.025) & (qid > 0.45) & (edge >= 0.04), v - 0.18, v)
     ix, iy = (X * N).astype(int), (Y * N).astype(int)
     v = v + (hash2(ix, iy, seed + 6) > 0.994) * 0.3
-    return rgba(paint(RAMPS["stone"], v, 0.3))
+    return rgba(paint(RAMPS["stone"] if tones is None else tones, v, 0.3))
 
 
-def dirt(seed=0):
-    """Packed earth: clods, a scatter of small grey-violet pebbles and a few meandering roots."""
+def dirt(seed=0, post=None):
+    """Packed earth: clods, a scatter of small grey-violet pebbles and a few meandering roots. `post(img, ramp)` may
+    recolour the earth (a surface-hint stain, `stains.apply`) before the pebbles go on."""
     X, Y = coords()
     clods = fbm(X, Y, 6, 4, seed + 1, 0.55)
     f1, f2, pid = worley(X, Y, 10, seed + 2, 1.0)
@@ -54,6 +56,8 @@ def dirt(seed=0):
     v = 0.28 + clods * 0.3 + (light - 0.5) * 0.5 - cavity(h * 3, 2.0)
     v = np.where(root, 0.1, v)
     img = paint(RAMPS["dirt"], v, 0.3)
+    if post:
+        img = post(img, RAMPS["dirt"])
     rock = paint(RAMPS["stone"], 0.55 + dome * 0.25 + (light - 0.5) * 0.7, 0.3)
     return rgba(np.where(pebble[..., None], rock, img))
 
@@ -67,29 +71,30 @@ def blades(img, rng, count, tones, lo, hi, down=False):
         stroke(img, tones, x, y, np.cos(ang) * 0.8, np.sin(ang) * 0.8, length, shade * 8, 1)
 
 
-def grass_top(seed=0):
+def grass_top(seed=0, post=None):
     """Dense blades over a deep mottled green; light catches the tips."""
     X, Y = coords()
     tones = RAMPS["grass"]
     img = paint(tones, fbm(X, Y, 5, 4, seed + 1) * 0.5 + 0.1, 0.5)
     blades(img, np.random.default_rng(seed + 11), 2300, tones, 0.0, 0.55)
-    return rgba(img)
+    return rgba(post(img, tones) if post else img)
 
 
-def grass_side(seed=0):
-    """A ragged grass lip hanging over dirt, with a soft shadow beneath; tiles sideways."""
-    soil = dirt(seed + 4)[..., :3].astype(float)
-    top = grass_top(seed + 2)[..., :3]
+def grass_side(seed=0, post=None):
+    """A ragged grass lip hanging over dirt, with a soft shadow beneath (an ordered dither between the soil and a darker
+    copy of it); tiles sideways."""
+    soil = dirt(seed + 4, post)[..., :3]
+    top = grass_top(seed + 2, post)[..., :3]
     col = np.arange(N)
     depth = (24 + 12 * vnoise(col / N * 16, np.zeros(N), 16, seed + 3) + hash2(col // 2, 0, seed + 8) * 10).astype(int)
     yy = np.arange(N)[:, None]
     lip = yy < depth[None, :]
     shade = np.clip(1 - (yy - depth[None, :]) / 14.0, 0, 1) * (~lip)
-    soil = snap(soil * (1 - 0.5 * shade[..., None]), np.concatenate([RAMPS["dirt"], RAMPS["stone"]]))
+    soil = np.where((shade + bayer() * 0.5 > 0.4)[..., None], (soil * 0.6).astype(np.uint8), soil)
     return rgba(np.where(lip[..., None], top, soil))
 
 
-def sand(seed=0):
+def sand(seed=0, post=None):
     """Wind-rippled sand with fine grain and a few pale shell fragments."""
     X, Y = coords()
     warp = fbm(X, Y, 3, 3, seed + 1)
@@ -98,11 +103,13 @@ def sand(seed=0):
     ix, iy = (X * N).astype(int), (Y * N).astype(int)
     shell = (hash2(ix // 3, iy // 3, seed + 3) > 0.985) & (hash2(ix, iy, seed + 4) > 0.4)
     v = 0.5 + (ripple - 0.5) * 0.2 + (grain - 0.5) * 0.18 + (warp - 0.5) * 0.25
-    return rgba(paint(RAMPS["sand"], np.where(shell, 0.95, v), 0.3))
+    img = paint(RAMPS["sand"], np.where(shell, 0.95, v), 0.3)
+    return rgba(post(img, RAMPS["sand"]) if post else img)
 
 
-def bark(seed=0):
-    """Broad bark plates split by deep fissures, a few mossy patches on the lit side; tiles in both directions."""
+def bark(seed=0, tones=None, moss=True):
+    """Broad bark plates split by deep fissures, a few mossy patches on the lit side; tiles in both directions.
+    `tones` swaps the ramp (dead wood) and `moss=False` leaves the moss off."""
     X, Y = coords()
     u = X * 6 + (fbm(X, Y, 3, 3, seed + 1) - 0.5) * 1.3
     plate = hash2(np.floor(u).astype(int) % 6, 0, seed + 9)
@@ -112,8 +119,8 @@ def bark(seed=0):
     light = relief_light(h * 8, 1.0)
     fissure = (ridge < 0.12 + 0.1 * along) | (np.abs(fbm(X, Y, 5, 3, seed + 6, 0.5, 0.3) - 0.5) < 0.008)
     v = 0.16 + h * 0.5 + (light - 0.5) * 0.5 + plate * 0.08
-    img = paint(RAMPS["bark"], np.where(fissure, 0.03 + along * 0.08, v), 0.3)
-    moss = (fbm(X, Y, 3, 3, seed + 3) > 0.7) & (light > 0.48) & ~fissure & (ridge > 0.4)
+    img = paint(RAMPS["bark"] if tones is None else tones, np.where(fissure, 0.03 + along * 0.08, v), 0.3)
+    moss = moss & (fbm(X, Y, 3, 3, seed + 3) > 0.7) & (light > 0.48) & ~fissure & (ridge > 0.4)
     green = paint(RAMPS["grass"], 0.18 + h * 0.3 + (light - 0.5) * 0.5, 0.45)
     return rgba(np.where(moss[..., None], green, img))
 
@@ -167,19 +174,21 @@ def leaf_shape(dx, dy, ang, la, lb):
     return inside, u / la, w / lb
 
 
-def leaves(seed=0):
-    """Clustered leaves in three depths: dark back leaves, mid, lit front leaves; a cutout with holes."""
+def leaves(seed=0, tones=None, width=0.42, scale=1.0, density=1.0):
+    """Clustered leaves in three depths: dark back leaves, mid, lit front leaves; a cutout with holes. `tones`, `width`
+    (leaf width over length; needles are thin), `scale` and `density` make the other trees' canopies."""
     rng = np.random.default_rng(seed + 50)
-    tones = RAMPS["grass"]
+    tones = RAMPS["grass"] if tones is None else tones
     rgb = np.zeros((N, N, 3), np.uint8)
     rgb[:] = tones[2]
     cover = np.zeros((N, N), bool)
     ys, xs = np.mgrid[-16:17, -16:17]
     for count, size, lo, hi in ((38, 13, 0.08, 0.3), (36, 12, 0.3, 0.55), (24, 11, 0.5, 0.85)):
-        for _ in range(count):
+        size *= scale
+        for _ in range(int(count * density)):
             cx, cy = rng.integers(0, N), rng.integers(0, N)
             ang, la = rng.uniform(0, np.pi), size * rng.uniform(0.8, 1.3)
-            inside, u, w = leaf_shape(xs, ys, ang, la, la * 0.42)
+            inside, u, w = leaf_shape(xs, ys, ang, la, la * width)
             base = rng.uniform(lo, hi)
             shade = base + 0.16 * (-(xs * np.cos(ang) * 0 + (xs + ys) / (2 * la))) - 0.1 * (np.abs(w) < 0.12) + 0.08 * (u + 1) / 2
             idx = (np.clip(shade, 0, 0.999) * len(tones)).astype(int)

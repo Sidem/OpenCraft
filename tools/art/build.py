@@ -1,8 +1,8 @@
-"""Renders the pilot layers: python tools/art/build.py [name ...]
+﻿"""Renders the art pack layers: python tools/art/build.py [name ...]
 
-Writes `artifacts/art2/pilot/<layer>_<name>.png` (each 128 x 128 RGBA tile), `artifacts/art2/pilot_sheet.png` (every
+Writes `artifacts/art2/tiles/<layer>_<name>.png` (each 128 x 128 RGBA tile), `artifacts/art2/sheet.png` (every
 tile; repeating ones shown 2 x 2 so seams show; glowing texels brightened beside the tile) and, for a full run, the pack
-the game loads: `web/src/art/pilot.png` (the tiles stacked, RGBA), `pilot_glow.png` (their glow, grey) and `pilot.json`
+the game loads: `web/src/art/pack.png` (the tiles stacked, RGBA), `pack_glow.png` (their glow, grey) and `pack.json`
 (layer table). Pass names to render a subset and skip the pack.
 """
 import json
@@ -15,8 +15,8 @@ from PIL import Image, ImageDraw
 import registry
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / "artifacts" / "art2" / "pilot"
-SHEET = ROOT / "artifacts" / "art2" / "pilot_sheet.png"
+OUT = ROOT / "artifacts" / "art2" / "tiles"
+SHEET = ROOT / "artifacts" / "art2" / "sheet.png"
 PACK = ROOT / "web" / "src" / "art"
 
 
@@ -33,7 +33,7 @@ def main():
     want = set(sys.argv[1:])
     OUT.mkdir(parents=True, exist_ok=True)
     cells, tiles = [], []
-    for e in registry.PILOT:
+    for e in registry.LAYERS:
         tile = e.make()
         tiles.append(tile)
         if want and e.name not in want:
@@ -56,11 +56,11 @@ def main():
     if not want:
         PACK.mkdir(parents=True, exist_ok=True)
         stack = np.concatenate(tiles)
-        Image.fromarray(stack[..., :4], "RGBA").save(PACK / "pilot.png", optimize=True)
-        Image.fromarray(stack[..., 4], "L").save(PACK / "pilot_glow.png", optimize=True)
-        table = [{"layer": e.layer, "name": e.name, "cutout": e.cutout} for e in registry.PILOT]
-        (PACK / "pilot.json").write_text(json.dumps(table, separators=(",", ":")))
-        print("pack:", {p.name: p.stat().st_size for p in PACK.glob("pilot*")})
+        Image.fromarray(stack[..., :4], "RGBA").save(PACK / "pack.png", optimize=True)
+        Image.fromarray(stack[..., 4], "L").save(PACK / "pack_glow.png", optimize=True)
+        table = [{"layer": e.layer, "name": e.name, "cutout": e.cutout} for e in registry.LAYERS]
+        (PACK / "pack.json").write_text(json.dumps(table, separators=(",", ":")))
+        print("pack:", {p.name: p.stat().st_size for p in PACK.glob("pack*")})
 
 
 if __name__ == "__main__":

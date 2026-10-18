@@ -1,4 +1,4 @@
-"""The art tool's outside judge: python tools/art/check.py   (exit code 1 when a rule fails)
+﻿"""The art tool's outside judge: python tools/art/check.py   (exit code 1 when a rule fails)
 
 Rules, each measured on the rendered tiles (docs/ART_STYLE.md section 6):
   seam    repeating tiles: the wrap edge is no harsher than the harshest line inside the tile (ratio <= 1.3)
@@ -15,6 +15,7 @@ import sys
 import numpy as np
 
 import registry
+from stains import KINDS
 from style import srgb_to_oklab
 
 CVD = {
@@ -76,7 +77,7 @@ def hue_shift(rgb):
 def main():
     fails, tiles = [], {}
     print(f"{'layer':>5} {'name':16} {'seam':>5} {'phase':>6} {'cols':>5} {'L':>5}  shadow->light hue")
-    for e in registry.PILOT:
+    for e in registry.LAYERS:
         tile = e.make()
         tiles[e.name] = (e, tile)
         rgb, alpha, glow = tile[..., :3], tile[..., 3], tile[..., 4]
@@ -101,32 +102,35 @@ def main():
             if not np.isin(alpha, (0, 255)).all():
                 fails.append(f"{e.name}: alpha is not 0/255")
             cover = float(solid.mean())
-            lo_c, hi_c = (0.10, 0.45) if "glass" in e.name else (0.55, 0.85)
+            lo_c, hi_c = e.cover or ((0.10, 0.45) if "glass" in e.name else (0.55, 0.85))
             if not lo_c <= cover <= hi_c:
                 fails.append(f"{e.name}: {cover:.0%} covered")
-    body = to_lab(tiles["stone"][1][..., :3])
-    print("\nores vs the stone body (share of texels that stand out, worst case over colour-vision types):")
-    shapes = {}
-    for name in ("coal_ore", "iron_ore", "copper_ore"):
-        rgb = tiles[name][1][..., :3]
-        worst = 1.0
-        for cvd in (None, "protan", "deutan", "tritan"):
-            d = np.linalg.norm(to_lab(rgb, cvd) - to_lab(tiles["stone"][1][..., :3], cvd), axis=-1)
-            worst = min(worst, float((d > 0.12).mean()))
-        shapes[name] = edge_density(to_lab(rgb))
-        print(f"  {name:11} deposit {worst:5.1%}   edge density {shapes[name]:.3f}")
-        if not 0.06 <= worst <= 0.45:
-            fails.append(f"{name}: deposit covers {worst:.1%} of the tile (worst case)")
-    pairs = [("coal_ore", "iron_ore"), ("coal_ore", "copper_ore"), ("iron_ore", "copper_ore")]
-    for a, b in pairs:
-        la = to_lab(tiles[a][1][..., :3]).reshape(-1, 3)
-        lb = to_lab(tiles[b][1][..., :3]).reshape(-1, 3)
-        colour = float(np.linalg.norm(la.mean(0) - lb.mean(0)))
-        shape = abs(shapes[a] - shapes[b])
-        ok = colour > 0.012 or shape > 0.02
-        print(f"  {a} vs {b}: mean colour apart {colour:.3f}, edge density apart {shape:.3f}  {'ok' if ok else 'TOO ALIKE'}")
-        if not ok:
-            fails.append(f"{a} and {b} are too alike")
+    groups = [
+        ("stone", ["coal_ore", "iron_ore", "copper_ore", "quartz_ore"]),
+        ("dirt", [f"soil_{k}" for k in KINDS]),
+        ("grass_top", [f"grass_top_{k}" for k in KINDS]),
+        ("sand", [f"sand_{k}" for k in KINDS]),
+    ]
+    for base, members in groups:
+        print(f"\nvariants of {base} (share of texels that stand out, worst case over colour-vision types):")
+        ref = tiles[base][1][..., :3]
+        shapes = {}
+        for name in members:
+            rgb = tiles[name][1][..., :3]
+            worst = min(float((np.linalg.norm(to_lab(rgb, c) - to_lab(ref, c), axis=-1) > 0.12).mean())
+                        for c in (None, "protan", "deutan", "tritan"))
+            shapes[name] = edge_density(to_lab(rgb))
+            print(f"  {name:16} deposit {worst:5.1%}   edge density {shapes[name]:.3f}")
+            if not 0.06 <= worst <= 0.45:
+                fails.append(f"{name}: deposit covers {worst:.1%} of the tile (worst case)")
+        for i, a in enumerate(members):
+            for b in members[i + 1:]:
+                la, lb = (to_lab(tiles[n][1][..., :3]).reshape(-1, 3) for n in (a, b))
+                colour = float(np.linalg.norm(la.mean(0) - lb.mean(0)))
+                shape = abs(shapes[a] - shapes[b])
+                ok = colour > 0.012 or shape > 0.02
+                if not ok:
+                    fails.append(f"{a} and {b} are too alike (colour {colour:.3f}, edges {shape:.3f})")
     print("\n" + ("FAIL\n  " + "\n  ".join(fails) if fails else "all rules pass"))
     return 1 if fails else 0
 
