@@ -34,10 +34,10 @@ fn cover() -> Satellites {
 
 /// Runs `n` ticks from `from`, every launcher at full power, and returns the events (launches and touchdowns).
 fn go(ps: &mut [Processor], pods: &mut Pods, sats: &Satellites, from: u64, n: u64) -> Vec<SimEvent> {
-    let mut events = Vec::new();
+    let (mut events, kinds) = (Vec::new(), Kinds::of(ps));
     for t in from..from + n {
         ps.iter_mut().for_each(|p| p.speed = FULL_SPEED);
-        run(ps, pods, sats, t, &mut events);
+        run(ps, &kinds, pods, sats, t, &mut events);
     }
     events
 }
@@ -190,7 +190,8 @@ fn a_launcher_draws_power_only_while_it_loads() {
     go(&mut ps, &mut pods, &cover(), 0, 2);
     assert!(ps[0].wants_power(&unlocked, &research));
     ps[0].speed = 0;
-    run(&mut ps, &mut pods, &cover(), 3, &mut Vec::new());
+    let kinds = Kinds::of(&ps);
+    run(&mut ps, &kinds, &mut pods, &cover(), 3, &mut Vec::new());
     assert_eq!(ps[0].status, Status::NoPower);
     assert!(ps[0].progress > 0 || ps[0].status == Status::NoPower, "an unwired launcher holds its progress");
 }

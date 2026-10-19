@@ -20,7 +20,7 @@ use super::super::footprint::{Footprint, Port};
 use super::super::power::Power;
 use super::super::power_mix::Source;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Kinds, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 /// What a panel gives in full sun, in kW.
 pub const SOLAR_KW: u32 = 10;
@@ -136,14 +136,12 @@ impl Processor {
 
 /// One tick of every panel and accumulator on a grid: panels give what their grid lacks, accumulators fill
 /// what is still lacking, and the spare sun charges accumulators. `Power::balance` adds the demands first.
-pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], tick: u64) {
+pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], kinds: &Kinds, tick: u64) {
     let sun = sunlight(tick) * SOLAR_KW / 1000;
     let grid_of = |power: &Power, i: usize| power.process_pole[i].map(|p| power.pole_grid[p as usize] as usize);
     let mut spare = vec![0u32; power.supply.len()];
-    for (i, p) in processors.iter_mut().enumerate() {
-        if p.energy() != Energy::Solar {
-            continue;
-        }
+    for &i in &kinds.solar {
+        let (i, p) = (i as usize, &mut processors[i as usize]);
         p.store.sun = sun;
         p.store.given = 0;
         if let Some(grid) = grid_of(power, i) {
@@ -154,10 +152,8 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], t
         }
         p.status = if p.store.given > 0 { Status::Working } else { Status::NoInput };
     }
-    for (i, p) in processors.iter_mut().enumerate() {
-        if p.energy() != Energy::Accumulator {
-            continue;
-        }
+    for &i in &kinds.accumulator {
+        let (i, p) = (i as usize, &mut processors[i as usize]);
         p.store.given = 0;
         p.store.taken = 0;
         if let Some(grid) = grid_of(power, i) {

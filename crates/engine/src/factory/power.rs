@@ -34,9 +34,7 @@ use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
 use super::power_mix::{empty_uses, note_use, Mix, Source, SOURCES};
-use super::process::{
-    run_diesel, run_hydro, run_reactor, run_rectenna, run_renewables, run_turbine, Energy, Processor,
-};
+use super::process::{run_diesel, run_hydro, run_reactor, run_rectenna, run_renewables, run_turbine, Kinds, Processor};
 use super::quarry::Quarry;
 use super::render::push_box;
 use super::wiring::{takes_pole, Hooked};
@@ -162,6 +160,7 @@ impl Power {
         gens: &mut [Generator],
         miners: &[Miner],
         processors: &mut [Processor],
+        kinds: &Kinds,
         labs: &[Lab],
         pipework: &[Pipework],
         quarries: &[Quarry],
@@ -213,10 +212,10 @@ impl Power {
             self.demand[self.pole_grid[from as usize] as usize] += received / LOSS_DIVISOR;
         }
         // The sun and the accumulators come before any fuel is burned.
-        run_renewables(self, processors, tick);
-        run_hydro(self, processors);
-        run_rectenna(self, processors);
-        run_reactor(self, processors);
+        run_renewables(self, processors, kinds, tick);
+        run_hydro(self, processors, &kinds.hydro);
+        run_rectenna(self, processors, &kinds.rectenna);
+        run_reactor(self, processors, &kinds.reactor);
         for (i, g) in gens.iter_mut().enumerate() {
             g.output = 0;
             let Some(p) = self.gen_pole[i] else { continue };
@@ -237,17 +236,15 @@ impl Power {
             self.give(Source::Generator, grid, g.output, could);
         }
         // Steam turbines fill what the generators left.
-        for t in 0..processors.len() {
-            if processors[t].energy() != Energy::Turbine {
-                continue;
-            }
+        for &t in &kinds.turbine {
+            let t = t as usize;
             let Some(p) = self.process_pole[t] else { continue };
             let grid = self.pole_grid[p as usize] as usize;
             let want = self.demand[grid] - self.supply[grid].min(self.demand[grid]);
             let (given, could) = run_turbine(processors, t, want);
             self.give(Source::Turbine, grid, given, could);
         }
-        run_diesel(self, processors);
+        run_diesel(self, processors, &kinds.diesel);
     }
 
     /// Speed in thousandths for a machine hanging on `pole` (0 with no pole or no power).

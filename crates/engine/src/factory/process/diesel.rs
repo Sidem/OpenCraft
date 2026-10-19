@@ -87,8 +87,9 @@ impl Processor {
 
 /// One tick of every diesel generator on a grid: each gives what its grid still lacks, lighting a canister when it
 /// must. Called by `Power::balance` after the demands, the sun, the generators and the turbines.
-pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
-    for (i, p) in processors.iter_mut().enumerate().filter(|(_, p)| p.energy() == Energy::Diesel) {
+pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], generators: &[u32]) {
+    for &i in generators {
+        let (i, p) = (i as usize, &mut processors[i as usize]);
         p.store.given = 0;
         let Some(pole) = power.process_pole[i] else {
             p.status = Status::NoPower;

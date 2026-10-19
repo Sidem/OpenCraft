@@ -63,8 +63,9 @@ impl Processor {
 }
 
 /// Measures the science satellites over every ground station. Called by `Factory::update` before the data balance.
-pub(in crate::factory) fn sense(processors: &mut [Processor], sats: &Satellites, tick: u64) {
-    for p in processors.iter_mut().filter(|p| p.spec.block == GROUND_STATION) {
+pub(in crate::factory) fn sense(processors: &mut [Processor], stations: &[u32], sats: &Satellites, tick: u64) {
+    for &i in stations {
+        let p = &mut processors[i as usize];
         let overhead = sats.covering(SCIENCE, p.pos.x, p.pos.z, tick) as u32;
         p.store.flow = (overhead * TF_PER_SATELLITE).min(MAX_TF);
     }

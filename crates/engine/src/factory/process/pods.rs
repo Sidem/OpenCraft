@@ -13,7 +13,7 @@
 //! Invariants: everything here is derived from the processors, the satellites and the tick; the only state is the launcher's
 //! `progress` and the pods in the sky (`Factory::pods`). `Processor::store.flow` holds why a launcher waits (derived).
 //!
-//! To add a destination kind: a `Pick` like `Land` and a branch in [`pad_index`].
+//! To add a destination kind: a `Pick` like `Land`, its list in `kinds.rs` and a branch in [`pad_index`].
 
 use crate::block::{tex, BlockId, LANDING_PAD, POD_LAUNCHER};
 use crate::inventory::Stack;
@@ -27,7 +27,7 @@ use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Kinds, Pick, ProcessSpec, ProcessTier, Processor, Status};
 use crate::factory::Factory;
 
 #[cfg(test)]
@@ -238,21 +238,20 @@ const TUBE_TOP: f64 = 0.8;
 /// launches. Reports each launch and touchdown (`SimEvent::PodSent`, `PodLanded`). Called by `Factory::update`.
 pub(in crate::factory) fn run(
     processors: &mut [Processor],
+    kinds: &Kinds,
     pods: &mut Pods,
     sats: &Satellites,
     tick: u64,
     events: &mut Vec<SimEvent>,
 ) {
-    if pods.list.is_empty() && !processors.iter().any(Processor::is_launcher) {
+    if pods.list.is_empty() && kinds.launcher.is_empty() {
         return;
     }
-    land(processors, pods, sats, tick, events);
-    for i in 0..processors.len() {
-        if !processors[i].is_launcher() {
-            continue;
-        }
+    land((processors, &kinds.pad), pods, sats, tick, events);
+    for &i in &kinds.launcher {
+        let i = i as usize;
         let (pos, channel) = (processors[i].pos, processors[i].dir);
-        let pad = pad_index(processors, pos, channel, sats, tick).map(|k| processors[k].pos);
+        let pad = pad_index((processors, &kinds.pad), pos, channel, sats, tick).map(|k| processors[k].pos);
         let uplink = sats.covering(COMMS, pos.x, pos.z, tick) > 0;
         let before = pods.list.len();
         processors[i].pod_step(pad, uplink, pods, tick);
@@ -264,14 +263,20 @@ pub(in crate::factory) fn run(
 
 /// Puts the cargo of every pod that is due into its pad: as much as fits, the rest staying in the pod for the next tick.
 /// A pod touches down at its landing tick (where the falling capsule ends), whether or not its pad takes it all yet.
-fn land(processors: &mut [Processor], pods: &mut Pods, sats: &Satellites, tick: u64, events: &mut Vec<SimEvent>) {
+fn land(
+    (processors, pads): (&mut [Processor], &[u32]),
+    pods: &mut Pods,
+    sats: &Satellites,
+    tick: u64,
+    events: &mut Vec<SimEvent>,
+) {
     let mut i = 0;
     while i < pods.list.len() {
         let pod = &mut pods.list[i];
         if pod.lands == tick {
             events.push(SimEvent::PodLanded { pos: pod.to });
         }
-        let pad = (pod.lands <= tick).then(|| pad_index(processors, pod.to, pod.channel, sats, tick)).flatten();
+        let pad = (pod.lands <= tick).then(|| pad_index((processors, pads), pod.to, pod.channel, sats, tick)).flatten();
         let Some(k) = pad else {
             i += 1;
             continue;
@@ -293,16 +298,24 @@ fn land(processors: &mut [Processor], pods: &mut Pods, sats: &Satellites, tick: 
     }
 }
 
-/// The landing pad on `channel` nearest to `near` that a comms satellite covers right now (an index into `processors`).
-fn pad_index(processors: &[Processor], near: IVec3, channel: u8, sats: &Satellites, tick: u64) -> Option<usize> {
+/// The landing pad (of `pads`, `Kinds::pad`) on `channel` nearest to `near` that a comms satellite covers right now (an
+/// index into `processors`). The first of equally near pads wins.
+fn pad_index(
+    (processors, pads): (&[Processor], &[u32]),
+    near: IVec3,
+    channel: u8,
+    sats: &Satellites,
+    tick: u64,
+) -> Option<usize> {
     let dist = |p: &Processor| {
         let (dx, dy, dz) = ((p.pos.x - near.x) as i64, (p.pos.y - near.y) as i64, (p.pos.z - near.z) as i64);
         dx * dx + dy * dy + dz * dz
     };
-    (0..processors.len())
+    pads.iter()
+        .map(|&k| k as usize)
         .filter(|&k| {
             let p = &processors[k];
-            p.is_pad() && p.dir == channel && sats.covering(COMMS, p.pos.x, p.pos.z, tick) > 0
+            p.dir == channel && sats.covering(COMMS, p.pos.x, p.pos.z, tick) > 0
         })
         .min_by_key(|&k| dist(&processors[k]))
 }

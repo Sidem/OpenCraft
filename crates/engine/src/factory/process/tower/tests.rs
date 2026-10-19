@@ -3,6 +3,7 @@
 
 use super::super::datacenter::{COOLANT_UNIT, DATACENTER_SPEC};
 use super::super::steam::draw_water;
+use super::super::Kinds;
 use super::*;
 use crate::block::{COOLING_TOWER, DATACENTER, PIPE, PUMP};
 use crate::bytes::{ByteReader, ByteWriter};
@@ -65,9 +66,10 @@ fn hour(with_tower: bool) -> (u32, bool) {
     seat(&mut ps);
     let mut pipes = vec![pump(2)];
     let (mut taken, mut looped) = (0, false);
+    let inlets = Kinds::of(&ps).water;
     for _ in 0..3600 * TICK_RATE {
         pipes[0].held = 2;
-        draw_water(&mut ps, &mut pipes);
+        draw_water(&mut ps, &inlets, &mut pipes);
         taken += 2 - pipes[0].held;
         ps[0].run_datacenter(1000);
         assert_ne!(ps[0].status, Status::Overheated, "it never overheats with water");
@@ -96,7 +98,8 @@ fn an_unpowered_tower_or_one_without_water_leaves_the_loop_open() {
             _ => ps[1].steam.water = 0,
         }
         let mut pipes = vec![pump(2)];
-        draw_water(&mut ps, &mut pipes);
+        let inlets = Kinds::of(&ps).water;
+        draw_water(&mut ps, &inlets, &mut pipes);
         assert!(!ps[0].steam.looped, "fault {fault}");
         assert_eq!(ps[0].steam.water, COOLANT_UNIT, "the datacenter fell back to the pump");
     }

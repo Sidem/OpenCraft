@@ -81,19 +81,21 @@ pub struct Lab {
 pub fn step_labs(
     labs: &mut [Lab],
     processors: &mut [Processor],
+    centers: &[u32],
     poles: (&[Option<u32>], &[Option<u32>]),
     power: &Power,
     data: &Data,
     research: &mut Research,
 ) {
     let mut taken = [0u32; TECHS.len()];
-    for t in labs.iter().filter_map(|l| l.unit).chain(processors.iter().filter_map(|p| p.study_unit())) {
+    let studied = centers.iter().filter_map(|&i| processors[i as usize].study_unit());
+    for t in labs.iter().filter_map(|l| l.unit).chain(studied) {
         taken[t as usize] += 1;
     }
     for (l, &p) in labs.iter_mut().zip(poles.0) {
         l.step(research, &mut taken, power.speed(p));
     }
-    step_centers(processors, poles.1, power, data, research, &mut taken);
+    step_centers((processors, centers), poles.1, power, data, research, &mut taken);
 }
 
 impl Lab {

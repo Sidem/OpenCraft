@@ -310,7 +310,7 @@ fn a_boiler_takes_water_from_every_network_that_touches_it() {
     assert_eq!(b.taps, [(IVec3::new(0, 0, -1), IVec3::new(-1, 0, 0)), (IVec3::new(1, 0, 0), IVec3::new(1, 0, 0))]);
     let pump = f.pipework.iter().position(|p| p.part == Part::Pump).unwrap();
     f.pipework[pump].held = 1;
-    draw_water(&mut f.processors, &mut f.pipework);
+    draw_water(&mut f.processors, &f.kinds.water, &mut f.pipework);
     assert_eq!(
         (f.processors[0].steam.water, f.pipework[pump].held),
         (UNIT_ENERGY, 0),

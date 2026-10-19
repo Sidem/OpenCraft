@@ -36,6 +36,7 @@ impl Factory {
             nodes,
             power,
             data,
+            kinds,
             deposits,
             research,
             orbit,
@@ -45,14 +46,15 @@ impl Factory {
             ..
         } = self;
         orbit.now = tick;
+        let kinds: &process::Kinds = kinds;
         let unlocked = research.machine_recipes_unlocked();
-        process::sense_sources(processors, world, orbit, tick);
-        power.balance(generators, miners, processors, labs, pipework, quarries, research, &unlocked, tick);
+        process::sense_sources(processors, kinds, world, orbit, tick);
+        power.balance(generators, miners, processors, kinds, labs, pipework, quarries, research, &unlocked, tick);
         data.balance((nodes, processors), power, &unlocked, research, (orbit, tick));
         let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
         let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
-        let tuned = process::optimizer_bonuses(sinks.processors, power, data);
-        let swarms = process::hub_bonuses(sinks.processors, power, data);
+        let tuned = process::optimizer_bonuses(sinks.processors, &kinds.optimizer, power, data);
+        let swarms = process::hub_bonuses(sinks.processors, &kinds.hub, power, data);
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
             (m.speed, m.boost) =
                 (power.speed(p), mining * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED);
@@ -85,16 +87,24 @@ impl Factory {
                 events.push(SimEvent::Launched { pos: m.pos, item });
             }
         }
-        process::run_pods(sinks.processors, pods, orbit, tick, events);
+        process::run_pods(sinks.processors, kinds, pods, orbit, tick, events);
         for r in sinks.routers.iter_mut() {
             r.step(belts);
         }
-        step_labs(sinks.labs, sinks.processors, (&power.lab_pole, &power.process_pole), power, data, research);
+        step_labs(
+            sinks.labs,
+            sinks.processors,
+            &kinds.center,
+            (&power.lab_pole, &power.process_pole),
+            power,
+            data,
+            research,
+        );
         let used = sinks.labs.iter_mut().flat_map(|l| l.used.drain(..));
         let burned = sinks.generators.iter_mut().flat_map(|g| g.used.drain(..));
         events.extend(used.chain(burned).map(|s| SimEvent::Consumed { item: s.item, count: s.count }));
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);
-        process::draw_water(sinks.processors, pipework);
+        process::draw_water(sinks.processors, &kinds.water, pipework);
         belt_step(belts, &mut sinks, order, TICK);
     }
 }

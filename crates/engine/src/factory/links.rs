@@ -327,6 +327,7 @@ impl Factory {
         self.power =
             Power::rebuild(poles, &hooked, gens, miners, processors, labs, pipework, &self.quarries, &power_beams);
         self.data = Data::rebuild(&self.nodes, &self.processors, &data_beams);
+        self.kinds = process::Kinds::of(&self.processors);
         self.link_pipework();
         self.link_rails();
         process::link_steam(&mut self.processors, &self.at, &mut self.pipework);

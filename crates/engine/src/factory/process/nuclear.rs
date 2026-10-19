@@ -158,8 +158,9 @@ fn scrammed(was: bool, heat: u32) -> bool {
 
 /// One tick of every reactor on a grid: each gives what its grid still lacks, lighting a fuel cell when it must, heats by
 /// what it gives and sheds heat to its coolant. Called by `Power::balance` after the sun and the water wheels.
-pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
-    for (i, p) in processors.iter_mut().enumerate().filter(|(_, p)| p.energy() == Energy::Reactor) {
+pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], reactors: &[u32]) {
+    for &i in reactors {
+        let (i, p) = (i as usize, &mut processors[i as usize]);
         p.store.given = 0;
         let Some(pole) = power.process_pole[i] else {
             p.status = Status::NoPower;

@@ -66,9 +66,15 @@ impl Processor {
 }
 
 /// Every optimizer's anchor and the speed it adds right now, in thousandths (from this tick's balance).
-pub(in crate::factory) fn bonuses(processors: &[Processor], power: &Power, data: &Data) -> Vec<(IVec3, u32)> {
+pub(in crate::factory) fn bonuses(
+    processors: &[Processor],
+    optimizers: &[u32],
+    power: &Power,
+    data: &Data,
+) -> Vec<(IVec3, u32)> {
     let mut out = Vec::new();
-    for (i, p) in processors.iter().enumerate().filter(|(_, p)| p.spec.block == OPTIMIZER) {
+    for &i in optimizers {
+        let (i, p) = (i as usize, &processors[i as usize]);
         let share = power.speed(power.process_pole[i]) as u64 * data.satisfaction(data.process_node[i]) as u64;
         out.push((p.pos, (BONUS_PERMILLE as u64 * share / (FULL_SPEED as u64 * FULL_SPEED as u64)) as u32));
     }

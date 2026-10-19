@@ -175,6 +175,8 @@ pub struct Factory {
     power: Power,
     /// The data grids and last tick's compute (derived, see `fibre.rs`).
     data: Data,
+    /// The processors of each kind with a pass of its own (derived, see `process/kinds.rs`).
+    kinds: process::Kinds,
     /// The laser beams between emitters and receivers (derived, see `laser.rs`).
     beams: laser::Beams,
     at: FxHashMap<IVec3, Slot>,

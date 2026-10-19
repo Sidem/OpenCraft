@@ -93,8 +93,9 @@ impl Processor {
 }
 
 /// Counts the water around every wheel (see the header); called by `Factory::update` before the power balance.
-pub(in crate::factory) fn sense(processors: &mut [Processor], world: &mut World) {
-    for p in processors.iter_mut().filter(|p| p.energy() == Energy::Hydro) {
+pub(in crate::factory) fn sense(processors: &mut [Processor], wheels: &[u32], world: &mut World) {
+    for &i in wheels {
+        let p = &mut processors[i as usize];
         let cells = p.cells();
         let mut wet = 0;
         for &c in &cells {
@@ -110,8 +111,9 @@ pub(in crate::factory) fn sense(processors: &mut [Processor], world: &mut World)
 
 /// One tick of every water wheel on a grid: each gives what its grid still lacks, up to what its water gives.
 /// Called by `Power::balance` with the sun, before any fuel burns.
-pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
-    for (i, p) in processors.iter_mut().enumerate().filter(|(_, p)| p.energy() == Energy::Hydro) {
+pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], wheels: &[u32]) {
+    for &i in wheels {
+        let (i, p) = (i as usize, &mut processors[i as usize]);
         p.store.given = 0;
         let Some(pole) = power.process_pole[i] else {
             p.status = Status::NoPower;

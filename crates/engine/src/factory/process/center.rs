@@ -280,15 +280,16 @@ fn has_packs(input: &Buffer, tech: u8) -> bool {
 
 /// One tick of every research center, each at its grid's speed (`taken`: units each tech has in progress).
 pub(in crate::factory) fn step_centers(
-    processors: &mut [Processor],
+    (processors, centers): (&mut [Processor], &[u32]),
     pole: &[Option<u32>],
     power: &Power,
     data: &Data,
     research: &mut Research,
     taken: &mut [u32],
 ) {
-    for (i, (c, &p)) in processors.iter_mut().zip(pole).enumerate().filter(|(_, (c, _))| c.is_center()) {
-        let mut speed = power.speed(p);
+    for &i in centers {
+        let (i, c) = (i as usize, &mut processors[i as usize]);
+        let mut speed = power.speed(pole[i]);
         if c.spec.compute < 0 {
             speed = speed * data.satisfaction(data.process_node[i]) / FULL_SPEED;
         }

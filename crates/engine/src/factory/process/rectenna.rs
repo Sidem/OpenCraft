@@ -16,7 +16,7 @@ use super::super::footprint::{Footprint, Port};
 use super::super::power::Power;
 use super::super::power_mix::Source;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Kinds, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 /// kW one power satellite beams to a field it covers.
 pub const SATELLITE_KW: u32 = 200;
@@ -69,10 +69,17 @@ impl Processor {
 /// Measures what every renewable source is given this tick: the water around each wheel (`hydro.rs`) and the power
 /// satellites over each rectenna (and, for the data grid, over each ground station). Called by `Factory::update` before
 /// the power balance.
-pub(in crate::factory) fn sense_sources(processors: &mut [Processor], world: &mut World, sats: &Satellites, tick: u64) {
-    super::hydro::sense(processors, world);
-    super::ground::sense(processors, sats, tick);
-    for p in processors.iter_mut().filter(|p| p.energy() == Energy::Rectenna) {
+pub(in crate::factory) fn sense_sources(
+    processors: &mut [Processor],
+    kinds: &Kinds,
+    world: &mut World,
+    sats: &Satellites,
+    tick: u64,
+) {
+    super::hydro::sense(processors, &kinds.hydro, world);
+    super::ground::sense(processors, &kinds.ground, sats, tick);
+    for &i in &kinds.rectenna {
+        let p = &mut processors[i as usize];
         let overhead = sats.covering(POWER, p.pos.x, p.pos.z, tick) as u32;
         p.store.flow = (overhead * SATELLITE_KW).min(MAX_KW);
     }
@@ -80,8 +87,9 @@ pub(in crate::factory) fn sense_sources(processors: &mut [Processor], world: &mu
 
 /// One tick of every rectenna on a grid: each gives what its grid still lacks, up to what the sky gives. Called by
 /// `Power::balance` after the water wheels, before any fuel burns.
-pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor]) {
-    for (i, p) in processors.iter_mut().enumerate().filter(|(_, p)| p.energy() == Energy::Rectenna) {
+pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], fields: &[u32]) {
+    for &i in fields {
+        let (i, p) = (i as usize, &mut processors[i as usize]);
         p.store.given = 0;
         let Some(pole) = power.process_pole[i] else {
             p.status = Status::NoPower;

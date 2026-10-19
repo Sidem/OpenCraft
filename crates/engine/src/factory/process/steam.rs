@@ -213,11 +213,10 @@ pub(in crate::factory) fn run_turbine(processors: &mut [Processor], t: usize, wa
 }
 
 /// Every boiler or machine whose water is low takes a unit from a pump of its network that holds one.
-pub(in crate::factory) fn draw_water(processors: &mut [Processor], pipework: &mut [Pipework]) {
-    for i in 0..processors.len() {
-        if !processors[i].takes_water() {
-            continue;
-        }
+/// `inlets` lists them (`Kinds::water`).
+pub(in crate::factory) fn draw_water(processors: &mut [Processor], inlets: &[u32], pipework: &mut [Pipework]) {
+    for &i in inlets {
+        let i = i as usize;
         let b = &mut processors[i];
         let (low, unit) = match b.energy() {
             Energy::Boiler => (WATER_LOW, UNIT_ENERGY),
