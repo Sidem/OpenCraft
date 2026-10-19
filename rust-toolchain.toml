@@ -1,5 +1,5 @@
 [toolchain]
 # Pinned so a new stable's lints cannot break the build; Dependabot bumps it.
-channel = "1.99.0"
+channel = "1.99.1"
 targets = ["wasm32-unknown-unknown"]
 components = ["clippy", "rustfmt"]
