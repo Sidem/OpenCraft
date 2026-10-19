@@ -29,7 +29,8 @@ menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` 
 (categories, energy, pick, buffers, tiers, footprint and ports, model parts) in `factory/process/basic.rs` or its
 own file, named in `SPECS` (`specs.rs`), a `MACHINES` row of
 `Kind::Process` for its block, the block (`machine(...)` in `block/defs.rs`), a hand recipe, and its family
-in `factory/tiers.rs` if it has tiers. No new code unless it needs new behaviour (then in `process/`: the
+in `factory/tiers.rs` if it has tiers. No new code unless it needs new behaviour (then in `process/`, with state
+only its kind keeps as a variant in `process/extra.rs`, never a new `Processor` field: the
 boiler, turbine and silo are `Energy::Boiler`, `Energy::Turbine` and `Pick::Store` rows with their code in
 `process/steam.rs`; the crusher is a plain 1×1 row with `Category::Crushing`).
 

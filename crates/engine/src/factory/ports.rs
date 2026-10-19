@@ -50,10 +50,9 @@ impl Factory {
     /// Sets how many of the port's drones are out and of which kind (it draws power while any are).
     pub fn set_port_flight(&mut self, anchor: IVec3, away: u32, kind: ItemId) {
         if let Some(Slot::Process(i)) = self.at.get(&anchor).copied() {
-            let p = &mut self.processors[i as usize];
-            p.hangar.away = away;
-            p.hangar.busy = away > 0;
-            p.hangar.kind = kind;
+            if let Some(port) = self.processors[i as usize].port_mut() {
+                (port.away, port.busy, port.kind) = (away, away > 0, kind);
+            }
         }
     }
 

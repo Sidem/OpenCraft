@@ -26,6 +26,7 @@ mod datacenter;
 mod depot;
 mod diesel;
 mod docks;
+mod extra;
 mod fab;
 mod facts;
 mod ground;
@@ -59,19 +60,17 @@ mod view;
 mod washer;
 mod work;
 
-use center::Study;
 pub(super) use center::{needs_center, step_centers};
 pub use depot::Want;
 pub(super) use diesel::run as run_diesel;
+use extra::Extra;
 pub use facts::facts;
-use hangar::Hangar;
 pub(super) use hub::{bonus_at as hub_bonus_at, bonuses as hub_bonuses};
 pub(super) use hydro::run as run_hydro;
 pub use legacy::{read_constructor, read_smelter};
 pub(super) use nuclear::run as run_reactor;
 pub(super) use optimizer::{bonus_at as optimizer_bonus_at, bonuses as optimizer_bonuses};
 pub(super) use pods::run as run_pods;
-use pump::Pump;
 pub(super) use rectenna::{run as run_rectenna, sense_sources};
 pub(super) use solar::run as run_renewables;
 use solar::Store;
@@ -122,16 +121,8 @@ pub struct Processor {
     pub steam: Steam,
     /// A panel's, accumulator's or water wheel's charge and flow (solar.rs, hydro.rs).
     pub store: Store,
-    /// A drone port's fleet out and whether it is busy (hangar.rs; derived).
-    pub hangar: Hangar,
-    /// A pumpjack's well and the oil kept towards a canister (pump.rs).
-    pub pump: Pump,
-    /// A research center's unit in progress (center.rs).
-    pub study: Study,
-    /// Millicoins a recycler has earned and not yet paid out (recycler.rs; saved for recyclers only).
-    pub owed: u32,
-    /// Rockets a launch site has sent into orbit (launch.rs; saved for launch sites only).
-    pub launches: u32,
+    /// What only its kind keeps: a pumpjack's well, a center's unit, a drone port's fleet (extra.rs).
+    pub extra: Extra,
     /// Last tick's power share, in thousandths (derived, for the readout).
     pub speed: u32,
     /// The machine-speed bonus research gives, in thousandths (derived; 1000 is none), set before each tick.
@@ -146,11 +137,6 @@ pub struct Processor {
     pub made: Vec<Stack>,
     /// What it used up this tick (batch inputs, fuel, canisters), until `report_made` (derived, not saved).
     pub used: Vec<Stack>,
-    /// The satellite a launch site's rocket carried up this tick, until `Factory::update` puts it in orbit (derived).
-    pub lifted: Option<ItemId>,
-    /// What a town depot takes in and up to how many it holds of each: its town's open order, upkeep and perk goods
-    /// (derived, set by `Sim::sync_depots` each tick).
-    pub wants: Vec<Want>,
 }
 
 impl Processor {
@@ -173,11 +159,7 @@ impl Processor {
             side: Buffer::new(spec.side),
             steam: Steam::default(),
             store: Store::default(),
-            hangar: Hangar::default(),
-            pump: Pump::default(),
-            study: Study::default(),
-            owed: 0,
-            launches: 0,
+            extra: Extra::new(spec),
             speed: 0,
             boost: FULL_SPEED,
             outs: Vec::new(),
@@ -187,8 +169,6 @@ impl Processor {
             status,
             made: Vec::new(),
             used: Vec::new(),
-            lifted: None,
-            wants: Vec::new(),
         }
     }
 
@@ -232,7 +212,7 @@ impl Processor {
     pub fn wants_power(&self, unlocked: &[bool], research: &Research) -> bool {
         match self.spec.pick {
             Pick::Research => return self.center_wants_power(research),
-            Pick::Hangar => return self.hangar.busy,
+            Pick::Hangar => return self.port().is_some_and(|(_, h)| h.busy),
             Pick::Pump => return self.pump_wants_power(),
             Pick::Recycle => return self.recycle_wants_power(),
             Pick::Pods => return self.pod_wants_power(),

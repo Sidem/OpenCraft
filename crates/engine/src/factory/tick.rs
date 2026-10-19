@@ -72,12 +72,15 @@ impl Factory {
                 // a data consumer
             }
             m.boost = machines * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED;
-            m.hangar.bonus = process::hub_bonus_at(&swarms, m.pos);
-            m.hangar.linked = m.hangar_tier().is_some() && orbit.covering(COMMS, m.pos.x, m.pos.z, tick) > 0;
+            let pos = m.pos;
+            if let Some(port) = m.port_mut() {
+                port.bonus = process::hub_bonus_at(&swarms, pos);
+                port.linked = orbit.covering(COMMS, pos.x, pos.z, tick) > 0;
+            }
             m.pump(deposits, world, tick, share);
             m.step(belts, share, &unlocked);
             m.report_made(events);
-            if let Some(item) = m.lifted.take() {
+            if let Some(item) = m.take_lifted() {
                 orbit.launch(item, m.pos, tick);
                 events.push(SimEvent::Launched { pos: m.pos, item });
             }

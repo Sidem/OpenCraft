@@ -8,7 +8,7 @@ use crate::sim::SimEvent;
 
 use super::super::power::FULL_SPEED;
 use super::super::ticks;
-use super::{Energy, Pick, Processor, Status, SIDE_ROOM};
+use super::{Energy, Extra, Pick, Processor, Status, SIDE_ROOM};
 
 impl Processor {
     pub(super) fn work(&mut self, power: u32, unlocked: &[bool]) {
@@ -57,9 +57,9 @@ impl Processor {
                     self.out.add(item, n);
                 }
             }
-            if self.is_launch() {
-                self.launches += 1;
-                self.lifted = r.inputs.last().map(|&(payload, _)| payload);
+            if let Extra::Launch { launches, lifted } = &mut self.extra {
+                *launches += 1;
+                *lifted = r.inputs.last().map(|&(payload, _)| payload);
             }
             (self.batch, self.progress) = (None, 0);
         }

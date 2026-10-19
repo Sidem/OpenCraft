@@ -17,13 +17,14 @@ use crate::inventory::Stack;
 use crate::item::{self, stack_size, ItemId};
 use crate::research::{is_bonus, needs_ai_lab, pack_slot, Research, TECHS};
 
+use super::super::buffer::Buffer;
 use super::super::fibre::Data;
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::lab::{LabStatus, LAB_PACK_SLOTS};
 use super::super::power::{Power, FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 /// Pack kinds a center holds (a small lab holds the first `LAB_PACK_SLOTS` of `PACKS`).
 pub const CENTER_SLOTS: usize = 8;
@@ -108,107 +109,78 @@ impl Processor {
 
     /// Whether it would work this tick if powered.
     pub(super) fn center_wants_power(&self, research: &Research) -> bool {
-        self.study.unit.is_some()
-            || research.current.is_some_and(|t| self.has_packs(t) && (self.is_ai_lab() || !needs_ai_lab(t)))
+        self.study_unit().is_some()
+            || research.current.is_some_and(|t| has_packs(&self.input, t) && (self.is_ai_lab() || !needs_ai_lab(t)))
     }
 
-    fn has_packs(&self, tech: u8) -> bool {
-        TECHS[tech as usize].packs.iter().all(|&p| self.input.count(p) > 0)
-    }
-
-    fn free_next(&self) -> bool {
-        let every = self.free_every(&FREE_EVERY);
-        every > 0 && self.study.since_free + 1 >= every
-    }
-
-    /// The tech a new unit would be for, or why none can start.
-    fn can_start(&mut self, research: &Research, taken: &[u32]) -> Result<u8, LabStatus> {
-        self.study.waiting = None;
-        let t = research.current.ok_or(LabStatus::NoResearch)?;
-        if needs_ai_lab(t) && !self.is_ai_lab() {
-            self.study.waiting = Some(t);
-            Err(LabStatus::NeedsAi)
-        } else if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
-            Err(LabStatus::AllTaken)
-        } else if !self.free_next() && !self.has_packs(t) {
-            self.study.waiting = Some(t);
-            Err(LabStatus::NoPacks)
-        } else {
-            Ok(t)
+    /// The tech of a center's unit in progress (`None`: none, or another processor).
+    pub(in crate::factory) fn study_unit(&self) -> Option<u8> {
+        match &self.extra {
+            Extra::Study(study) => study.unit,
+            _ => None,
         }
     }
 
     /// One tick of research at `speed` (thousandths: its grid's share).
     fn study_step(&mut self, research: &mut Research, taken: &mut [u32], speed: u32) {
         self.speed = speed;
-        let tech = match self.study.unit {
+        let (ai, every, rate) = (self.is_ai_lab(), self.free_every(&FREE_EVERY), self.stats().speed);
+        let Extra::Study(study) = &mut self.extra else { return };
+        let tech = match study.unit {
             Some(t) => t,
             None => {
-                let started = match self.can_start(research, taken) {
+                let started = match study.can_start(&self.input, ai, every, research, taken) {
                     Ok(_) if speed == 0 => Err(LabStatus::NoPower),
                     other => other,
                 };
                 let Ok(t) = started else {
-                    self.set_study_status(started.err());
+                    self.status = study.set_status(started.err());
                     return;
                 };
-                self.study.free = self.free_next();
-                self.study.since_free = if self.study.free { 0 } else { self.study.since_free.saturating_add(1) };
-                for &p in TECHS[t as usize].packs.iter().filter(|_| !self.study.free) {
+                study.free = study.free_next(every);
+                study.since_free = if study.free { 0 } else { study.since_free.saturating_add(1) };
+                for &p in TECHS[t as usize].packs.iter().filter(|_| !study.free) {
                     self.input.remove(p, 1);
                     self.used.push(Stack { item: p, count: 1 });
                 }
                 taken[t as usize] += 1;
-                (self.study.unit, self.study.progress) = (Some(t), 0);
+                (study.unit, study.progress) = (Some(t), 0);
                 t
             }
         };
         if speed == 0 {
-            self.set_study_status(Some(LabStatus::NoPower));
+            self.status = study.set_status(Some(LabStatus::NoPower));
             return;
         }
-        self.set_study_status(Some(LabStatus::Working));
-        self.study.progress += speed * self.stats().speed / 1000;
-        if self.study.progress >= ticks(research.unit_seconds(tech)) * FULL_SPEED {
+        self.status = study.set_status(Some(LabStatus::Working));
+        study.progress += speed * rate / 1000;
+        if study.progress >= ticks(research.unit_seconds(tech)) * FULL_SPEED {
             research.add_unit(tech);
             taken[tech as usize] -= 1;
-            (self.study.unit, self.study.progress, self.study.free) = (None, 0, false);
+            (study.unit, study.progress, study.free) = (None, 0, false);
         }
-    }
-
-    /// Records last tick's status for the readout, and the `Status` the model's lamp reads.
-    fn set_study_status(&mut self, why: Option<LabStatus>) {
-        self.study.status = why;
-        self.status = match why {
-            Some(LabStatus::Working) => Status::Working,
-            Some(LabStatus::NoPower) => Status::NoPower,
-            Some(LabStatus::NoResearch) => Status::NoRecipe,
-            _ => Status::NoInput,
-        };
     }
 
     /// The status line of a center (`None`: another processor).
     pub(super) fn center_text(&self) -> Option<String> {
-        if !self.is_center() {
-            return None;
-        }
+        let Extra::Study(study) = &self.extra else { return None };
         let name = |t: Option<u8>| t.map_or("", |t| TECHS[t as usize].name);
-        Some(match self.study.status {
+        Some(match study.status {
             None | Some(LabStatus::NoResearch) => "No research chosen: pick one on the research screen (T)".to_string(),
             Some(LabStatus::Working) => {
                 let slow =
                     if self.speed < FULL_SPEED { format!(" (low power: {}%)", self.speed / 10) } else { String::new() };
-                format!("Researching {}{slow}", name(self.study.unit))
+                format!("Researching {}{slow}", name(study.unit))
             }
             Some(LabStatus::NoPacks) => {
-                let packs = self.study.waiting.map_or(&[][..], |t| TECHS[t as usize].packs);
+                let packs = study.waiting.map_or(&[][..], |t| TECHS[t as usize].packs);
                 let names: Vec<&str> = packs.iter().map(|&p| item::name(p)).collect();
                 format!("Waiting for {}", names.join(" and "))
             }
             Some(LabStatus::AllTaken | LabStatus::NeedsCenter) => {
                 "Other labs are finishing the chosen research".to_string()
             }
-            Some(LabStatus::NeedsAi) => format!("{} needs an AI lab", name(self.study.waiting)),
+            Some(LabStatus::NeedsAi) => format!("{} needs an AI lab", name(study.waiting)),
             Some(LabStatus::NoPower) if self.is_ai_lab() => {
                 "No power or no compute: hang it on a pole and a fibre node whose grid has a datacenter".to_string()
             }
@@ -222,7 +194,7 @@ impl Processor {
             return String::new();
         }
         let mut out = String::new();
-        if let Some(t) = self.study.unit.or(research.current) {
+        if let Some(t) = self.study_unit().or(research.current) {
             let tech = &TECHS[t as usize];
             out += &if is_bonus(t) {
                 format!("\n{}: level {}", tech.name, research.progress(t))
@@ -239,24 +211,71 @@ impl Processor {
 
     /// An unfinished unit's packs, given back with the rest rather than lost.
     pub(super) fn study_contents(&self) -> Vec<Stack> {
-        let Some(t) = self.study.unit.filter(|_| !self.study.free) else { return Vec::new() };
+        let Extra::Study(Study { unit: Some(t), free: false, .. }) = self.extra else { return Vec::new() };
         TECHS[t as usize].packs.iter().map(|&item| Stack { item, count: 1 }).collect()
     }
+}
 
-    pub(super) fn write_study(&self, w: &mut ByteWriter) {
-        w.u8(self.study.unit.unwrap_or(u8::MAX));
-        w.u32(self.study.progress);
-        w.u8(self.study.since_free);
-        w.bool(self.study.free);
+impl Study {
+    /// Whether the next unit is free (`every`: the tier's `FREE_EVERY`).
+    fn free_next(&self, every: u8) -> bool {
+        every > 0 && self.since_free + 1 >= every
     }
 
-    pub(super) fn read_study(&mut self, r: &mut ByteReader) -> Option<()> {
+    /// The tech a new unit would be for, or why none can start (`ai`: whether the center is an AI lab).
+    fn can_start(
+        &mut self,
+        input: &Buffer,
+        ai: bool,
+        every: u8,
+        research: &Research,
+        taken: &[u32],
+    ) -> Result<u8, LabStatus> {
+        self.waiting = None;
+        let t = research.current.ok_or(LabStatus::NoResearch)?;
+        if needs_ai_lab(t) && !ai {
+            self.waiting = Some(t);
+            Err(LabStatus::NeedsAi)
+        } else if research.progress(t) + taken[t as usize] >= TECHS[t as usize].units {
+            Err(LabStatus::AllTaken)
+        } else if !self.free_next(every) && !has_packs(input, t) {
+            self.waiting = Some(t);
+            Err(LabStatus::NoPacks)
+        } else {
+            Ok(t)
+        }
+    }
+
+    /// Records last tick's status for the readout, and returns the `Status` the model's lamp reads.
+    fn set_status(&mut self, why: Option<LabStatus>) -> Status {
+        self.status = why;
+        match why {
+            Some(LabStatus::Working) => Status::Working,
+            Some(LabStatus::NoPower) => Status::NoPower,
+            Some(LabStatus::NoResearch) => Status::NoRecipe,
+            _ => Status::NoInput,
+        }
+    }
+
+    pub(super) fn write_state(&self, w: &mut ByteWriter) {
+        w.u8(self.unit.unwrap_or(u8::MAX));
+        w.u32(self.progress);
+        w.u8(self.since_free);
+        w.bool(self.free);
+    }
+
+    pub(super) fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         let unit = r.u8()?;
-        self.study.unit = (unit != u8::MAX).then_some(unit).filter(|&t| (t as usize) < TECHS.len());
-        self.study.progress = r.u32()?;
-        (self.study.since_free, self.study.free) = (r.u8()?, r.bool()?);
+        self.unit = (unit != u8::MAX).then_some(unit).filter(|&t| (t as usize) < TECHS.len());
+        self.progress = r.u32()?;
+        (self.since_free, self.free) = (r.u8()?, r.bool()?);
         Some(())
     }
+}
+
+/// Whether `input` holds one of each of `tech`'s packs.
+fn has_packs(input: &Buffer, tech: u8) -> bool {
+    TECHS[tech as usize].packs.iter().all(|&p| input.count(p) > 0)
 }
 
 /// One tick of every research center, each at its grid's speed (`taken`: units each tech has in progress).

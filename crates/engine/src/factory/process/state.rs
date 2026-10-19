@@ -1,5 +1,5 @@
 //! A processor's bytes in a save (`Machine::write_state` and `read_state` forward here): what every processor writes,
-//! then what only some specs have. Older layouts are read by version: no facing before 19, a launch site's satellite
+//! then what only some specs have (tanks, store, then the kind's own: `extra.rs`). Older layouts are read by version: no facing before 19, a launch site's satellite
 //! slot from 45 (`launch.rs`), a town depot's perk buffers from 52 (`depot.rs`).
 //! To save something new: write it last, behind its spec's condition, and read it behind the same and a version check.
 
@@ -8,9 +8,8 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 
 use super::super::buffer::Buffer;
-use super::pump::Pump;
 use super::status::STATUSES;
-use super::{depot, launch, spec, Pick, Processor};
+use super::{depot, launch, spec, Processor};
 
 impl Processor {
     /// Core state: block, tier and facing, recipe, batch, buffers, work, fire, round-robin position and status,
@@ -37,18 +36,7 @@ impl Processor {
         }
         self.write_tanks(w);
         self.write_store(w);
-        if self.spec.pick == Pick::Pump {
-            self.pump.write_state(w);
-        }
-        if self.is_center() {
-            self.write_study(w);
-        }
-        if self.spec.pick == Pick::Recycle {
-            w.u32(self.owed);
-        }
-        if self.is_launch() {
-            w.u32(self.launches);
-        }
+        self.extra.write_state(w);
     }
 
     pub(super) fn load(r: &mut ByteReader) -> Option<Processor> {
@@ -79,18 +67,7 @@ impl Processor {
         }
         p.read_tanks(r)?;
         p.read_store(r)?;
-        if spec.pick == Pick::Pump {
-            p.pump = Pump::read_state(r)?;
-        }
-        if spec.pick == Pick::Research {
-            p.read_study(r)?;
-        }
-        if spec.pick == Pick::Recycle {
-            p.owed = r.u32()?;
-        }
-        if p.is_launch() {
-            p.launches = r.u32()?;
-        }
+        p.extra.read_state(r)?;
         p.valid()
     }
 }

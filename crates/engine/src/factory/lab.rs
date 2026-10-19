@@ -87,7 +87,7 @@ pub fn step_labs(
     research: &mut Research,
 ) {
     let mut taken = [0u32; TECHS.len()];
-    for t in labs.iter().filter_map(|l| l.unit).chain(processors.iter().filter_map(|p| p.study.unit)) {
+    for t in labs.iter().filter_map(|l| l.unit).chain(processors.iter().filter_map(|p| p.study_unit())) {
         taken[t as usize] += 1;
     }
     for (l, &p) in labs.iter_mut().zip(poles.0) {

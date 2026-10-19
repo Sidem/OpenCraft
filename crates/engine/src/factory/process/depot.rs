@@ -17,7 +17,7 @@ use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::Factory;
 use super::model::{part, Look, Part};
 use super::specs::{Energy, Pick, ProcessSpec, ProcessTier};
-use super::Processor;
+use super::{Extra, Processor};
 
 /// Stacks a depot's store holds.
 const SLOTS: usize = 24;
@@ -79,8 +79,9 @@ impl Factory {
 
     /// Sets what the depot anchored at `pos` takes in (its town's goods) and up to how many it holds of each.
     pub fn set_depot_wants(&mut self, pos: IVec3, wants: Vec<Want>) {
-        if let Some(p) = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.block == TOWN_DEPOT) {
-            p.wants = wants;
+        let depot = self.processors.iter_mut().find(|p| p.pos == pos && p.spec.block == TOWN_DEPOT);
+        if let Some(Extra::Depot { wants: held }) = depot.map(|p| &mut p.extra) {
+            *held = wants;
         }
     }
 }
@@ -88,14 +89,15 @@ impl Factory {
 impl Processor {
     /// How many of `item` a depot takes now: up to its want's cap, in the buffer the want names.
     pub(super) fn depot_room(&self, item: ItemId) -> u32 {
-        let Some(w) = self.wants.iter().find(|w| w.item == item) else { return 0 };
+        let Extra::Depot { wants } = &self.extra else { return 0 };
+        let Some(w) = wants.iter().find(|w| w.item == item) else { return 0 };
         let buf = if w.perk { &self.input } else { &self.out };
         w.cap.saturating_sub(buf.count(item)).min(buf.space_for(item))
     }
 
     /// Whether `item` goes to the depot's perk (`input`) rather than its store.
     pub(super) fn for_perk(&self, item: ItemId) -> bool {
-        self.wants.iter().any(|w| w.item == item && w.perk)
+        matches!(&self.extra, Extra::Depot { wants } if wants.iter().any(|w| w.item == item && w.perk))
     }
 }
 

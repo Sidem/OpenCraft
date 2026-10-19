@@ -10,12 +10,13 @@
 
 use crate::block::{tex, LAUNCH_SITE};
 use crate::factory::Factory;
+use crate::item::ItemId;
 use crate::recipes::Category;
 use crate::satellites::KINDS;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::model::{drum_x, drum_z, part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 #[cfg(test)]
 mod tests;
@@ -62,7 +63,10 @@ impl Processor {
 
     /// A readout line with the rockets this pad has sent up, once there are any.
     pub(super) fn launch_line(&self) -> Option<String> {
-        (self.is_launch() && self.launches > 0).then(|| format!("{} in orbit", self.launches))
+        match self.extra {
+            Extra::Launch { launches, .. } if launches > 0 => Some(format!("{launches} in orbit")),
+            _ => None,
+        }
     }
 
     /// What is up in the sky, one line for each kind that has a satellite: how many, and how many cover this pad right now
@@ -80,6 +84,14 @@ impl Processor {
             }
         }
         text
+    }
+
+    /// The satellite its rocket carried up this tick, for Factory::update to put in orbit (once).
+    pub(in crate::factory) fn take_lifted(&mut self) -> Option<ItemId> {
+        match &mut self.extra {
+            Extra::Launch { lifted, .. } => lifted.take(),
+            _ => None,
+        }
     }
 
     /// Whether this is a launch site (the one block that keeps a launch count).

@@ -88,7 +88,7 @@ fn full_coin_slots_stop_it_and_taking_coins_starts_it_again() {
     run(&mut f, 60);
     let r = recycler(&f);
     assert_eq!(r.status, Status::OutputFull);
-    assert_eq!((r.out.count(COIN), r.owed >= OWED_MAX), (2 * COIN_STACK, true));
+    assert_eq!((r.out.count(COIN), r.owed() >= OWED_MAX), (2 * COIN_STACK, true));
     assert!(r.input.total() > 0);
     assert!(r.status_text().starts_with("Output full"), "{}", r.status_text());
     for _ in 0..4 {
@@ -109,13 +109,13 @@ fn without_power_it_destroys_nothing() {
 #[test]
 fn what_it_owes_is_saved_and_given_back_when_it_is_broken() {
     let mut p = Processor::new(IVec3::new(1, 2, 3), &RECYCLER_SPEC, 0);
-    p.owed = 2_500_700;
+    *p.owed_mut() = 2_500_700;
     p.input.add(ItemId::block(DIRT), 3);
     let mut w = ByteWriter::default();
     p.write_state(&mut w);
     let mut r = ByteReader::new(&w.bytes);
     let back = Processor::read_state(&mut r).unwrap();
-    assert_eq!((back.owed, back.input.total()), (2_500_700, 3));
+    assert_eq!((back.owed(), back.input.total()), (2_500_700, 3));
     assert_eq!(r.u8(), None, "every byte read");
     let coins: Vec<u32> = back.contents().iter().filter(|s| s.item == COIN).map(|s| s.count).collect();
     assert_eq!(coins, [COIN_STACK, COIN_STACK, 452]);
@@ -133,7 +133,10 @@ fn a_tool_goes_in_one_piece_and_pays_per_use() {
     run(&mut f, 3);
     let r = recycler(&f);
     assert_eq!(r.input.total(), 0, "a 1500-use pickaxe is one item, destroyed at once");
-    assert_eq!(r.out.count(COIN) + r.owed / crate::recipes::recycling::MILLI, uses * millicoins(STEEL_PICKAXE) / 1000);
+    assert_eq!(
+        r.out.count(COIN) + r.owed() / crate::recipes::recycling::MILLI,
+        uses * millicoins(STEEL_PICKAXE) / 1000
+    );
 }
 
 #[test]
@@ -153,7 +156,7 @@ fn a_worn_tool_on_a_belt_is_one_piece_and_pays_once() {
         most = most.max(f.belts[0].items.len());
     }
     assert_eq!(most, 1, "87 uses ride the belt as one pickaxe ");
-    let paid = recycler(&f).out.count(COIN) + recycler(&f).owed / crate::recipes::recycling::MILLI;
+    let paid = recycler(&f).out.count(COIN) + recycler(&f).owed() / crate::recipes::recycling::MILLI;
     assert_eq!((f.storage_count_at(from, STEEL_PICKAXE), paid), (0, 87 * millicoins(STEEL_PICKAXE) / 1000));
 }
 

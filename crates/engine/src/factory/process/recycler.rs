@@ -4,7 +4,7 @@
 //!
 //! - It takes any item worth coins (everything but the coin) into its six input slots. At full power it destroys one
 //!   a [`ITEM_SECONDS`] (a tool, whose stack count is its uses, all at once); the items' worth is added to
-//!   `Processor::owed` in millicoins, and whole coins move into the two output slots as they have room (a belt takes
+//!   `Extra::Recycler` in millicoins, and whole coins move into the two output slots as they have room (a belt takes
 //!   one a tick), so a dear item never needs a whole stack of room at once and a plank's half coin is not lost.
 //! - It stops taking work once [`OWED_MAX`] is owed (the status says the output is full) and draws power only while
 //!   it has an item to destroy and room to be paid.
@@ -22,7 +22,7 @@ use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 #[cfg(test)]
 mod tests;
@@ -74,29 +74,31 @@ const PARTS: [Part; 7] = [
 impl Processor {
     /// One tick of destroying items at `power` (thousandths of full): pay out what is owed, then work on the next item.
     pub(super) fn recycle(&mut self, power: u32) {
-        let pay = (self.owed / MILLI).min(self.out.space_for(COIN));
+        let speed = self.stats().speed;
+        let Extra::Recycler { owed } = &mut self.extra else { return };
+        let pay = (*owed / MILLI).min(self.out.space_for(COIN));
         if pay > 0 {
             self.out.add(COIN, pay);
-            self.owed -= pay * MILLI;
+            *owed -= pay * MILLI;
             self.made.push(Stack { item: COIN, count: pay });
         }
         let Some(slot) = self.input.slots.iter().position(|s| !s.is_empty()) else {
             (self.progress, self.status) = (0, Status::NoInput);
             return;
         };
-        if self.owed >= OWED_MAX {
+        if *owed >= OWED_MAX {
             self.status = Status::OutputFull;
         } else if power == 0 {
             self.status = Status::NoPower;
         } else {
             self.status = Status::Working;
-            self.progress += self.stats().speed * power / FULL_SPEED;
+            self.progress += speed * power / FULL_SPEED;
             if self.progress >= ticks(ITEM_SECONDS) * FULL_SPEED {
                 self.progress = 0;
                 let Stack { item, count } = self.input.slots[slot];
                 // A tool's count is its uses left, not a pile: it goes in one piece.
                 let n = tools::lot(item, count);
-                self.owed += millicoins(item) * n;
+                *owed += millicoins(item) * n;
                 self.input.take(slot, n);
                 self.used.push(Stack { item, count: 1 });
             }
@@ -105,12 +107,13 @@ impl Processor {
 
     /// Whether it would destroy an item this tick if powered.
     pub(super) fn recycle_wants_power(&self) -> bool {
-        self.owed < OWED_MAX && self.input.total() > 0
+        matches!(self.extra, Extra::Recycler { owed } if owed < OWED_MAX) && self.input.total() > 0
     }
 
     /// The whole coins it still owes, to give back when it is broken (stacks no bigger than a coin stack holds).
     pub(super) fn owed_stacks(&self) -> Vec<Stack> {
-        let mut left = self.owed / MILLI;
+        let Extra::Recycler { owed } = self.extra else { return Vec::new() };
+        let mut left = owed / MILLI;
         let mut stacks = Vec::new();
         while left > 0 {
             let count = left.min(COIN_STACK);
@@ -122,12 +125,13 @@ impl Processor {
 
     /// The status line of a recycler (`None`: another processor).
     pub(super) fn recycle_text(&self) -> Option<String> {
-        (self.spec.pick == Pick::Recycle).then(|| match self.status {
+        let Extra::Recycler { owed } = self.extra else { return None };
+        Some(match self.status {
             Status::NoPower => NOT_WIRED.to_string(),
             Status::OutputFull => {
                 "Output full: put a belt leading away from a front hatch, or take the coins".to_string()
             }
-            Status::Working => format!("Recycling · {} coins owed", self.owed / MILLI),
+            Status::Working => format!("Recycling · {} coins owed", owed / MILLI),
             _ => self.spec.waiting.to_string(),
         })
     }

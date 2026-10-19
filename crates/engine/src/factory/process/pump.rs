@@ -25,7 +25,7 @@ use super::super::footprint::SINGLE;
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::Factory;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
+use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 #[cfg(test)]
 mod tests;
@@ -108,11 +108,9 @@ const PARTS: [Part; 9] = [
 impl Processor {
     /// Finds the well below a freshly placed pumpjack (nothing for other processors, or with no oil underneath).
     pub(crate) fn sink_well(&mut self, deposits: &mut Deposits, world: &mut World) {
-        if self.spec.pick != Pick::Pump {
-            return;
-        }
         let pos = self.pos;
-        self.pump.well = (1..=MAX_DEPTH.min(pos.y)).map(|d| pos - IVec3::new(0, d, 0)).find_map(|bit| {
+        let Extra::Pump(pump) = &mut self.extra else { return };
+        pump.well = (1..=MAX_DEPTH.min(pos.y)).map(|d| pos - IVec3::new(0, d, 0)).find_map(|bit| {
             let block = world.block_anywhere_or_generate(bit);
             let found = matches!(block, OIL_SAND | SPENT_ROCK).then(|| deposits.lookup(world, bit)).flatten();
             found.filter(|key| key.ore == OIL_SAND).map(|key| Well { key, bit })
@@ -121,14 +119,12 @@ impl Processor {
 
     /// One tick of pumping at `share` of full power (called before `step`).
     pub(crate) fn pump(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, share: u32) {
-        if self.spec.pick != Pick::Pump {
-            return;
-        }
-        let Some(well) = self.pump.well else {
+        let Extra::Pump(pump) = &mut self.extra else { return };
+        let Some(well) = pump.well else {
             self.status = Status::NoDeposit;
             return;
         };
-        if self.pump.carry >= CANISTER_UNITS
+        if pump.carry >= CANISTER_UNITS
             && self.input.count(EMPTY_CANISTER) > 0
             && self.out.space_for(CRUDE_CANISTER) > 0
         {
@@ -136,10 +132,10 @@ impl Processor {
             self.used.push(Stack { item: EMPTY_CANISTER, count: 1 });
             self.out.add(CRUDE_CANISTER, 1);
             self.made.push(Stack { item: CRUDE_CANISTER, count: 1 });
-            self.pump.carry -= CANISTER_UNITS;
+            pump.carry -= CANISTER_UNITS;
         }
         let mut drawn = 0.0;
-        self.status = if self.pump.carry >= CANISTER_UNITS {
+        self.status = if pump.carry >= CANISTER_UNITS {
             if self.out.space_for(CRUDE_CANISTER) == 0 {
                 Status::OutputFull
             } else {
@@ -151,34 +147,36 @@ impl Processor {
             Status::NoPower
         } else {
             drawn = deposits.draw(world, &well.key, RATE * share as f64 / FULL_SPEED as f64, well.bit, tick, TICK);
-            self.pump.carry += drawn * RECOVERY;
+            pump.carry += drawn * RECOVERY;
             Status::Working
         };
         let rate = drawn / TICK;
-        self.pump.rate =
-            if self.pump.rate == 0.0 { rate } else { self.pump.rate + (rate - self.pump.rate) * (TICK / 2.0) };
+        pump.rate = if pump.rate == 0.0 { rate } else { pump.rate + (rate - pump.rate) * (TICK / 2.0) };
     }
 
     /// Whether it would draw this tick if powered.
     pub(super) fn pump_wants_power(&self) -> bool {
-        self.pump.well.is_some() && self.pump.carry < CANISTER_UNITS && self.status != Status::Exhausted
+        let Extra::Pump(pump) = &self.extra else { return false };
+        pump.well.is_some() && pump.carry < CANISTER_UNITS && self.status != Status::Exhausted
     }
 
     /// The status line of a pumpjack (`None`: another processor).
     pub(super) fn pump_text(&self) -> Option<String> {
-        (self.spec.pick == Pick::Pump).then(|| match self.status {
+        let Extra::Pump(pump) = &self.extra else { return None };
+        Some(match self.status {
             Status::NoDeposit => "No oil below: stand it on the ground right above an oil reservoir".to_string(),
             Status::Exhausted => "The reservoir is dry".to_string(),
             Status::NoPower => NOT_WIRED.to_string(),
             Status::NoInput => "Waiting for empty canisters: a belt brings them in".to_string(),
             Status::OutputFull => "Output full: put a belt leading away, or take the canisters".to_string(),
-            _ => format!("Pumping crude oil · {} canisters a minute", (self.pump.rate * RECOVERY * 6.0).round() as u32),
+            _ => format!("Pumping crude oil · {} canisters a minute", (pump.rate * RECOVERY * 6.0).round() as u32),
         })
     }
 
     /// A line on how much oil is left in the reservoir (empty for other processors).
     pub(super) fn reservoir_line(&self, f: &Factory) -> String {
-        let left = self.pump.well.and_then(|w| f.deposits.get(&w.key)).map(|s| s.remaining_units() * RECOVERY);
+        let Extra::Pump(pump) = &self.extra else { return String::new() };
+        let left = pump.well.and_then(|w| f.deposits.get(&w.key)).map(|s| s.remaining_units() * RECOVERY);
         left.map_or_else(String::new, |units| {
             format!("\nReservoir: {} canisters left", fmt_int((units / CANISTER_UNITS) as u64))
         })

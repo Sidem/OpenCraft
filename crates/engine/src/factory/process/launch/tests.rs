@@ -69,10 +69,10 @@ fn a_full_load_builds_a_rocket_in_a_minute_and_launches_it() {
     let mut p = pad();
     feed(&mut p, &ROCKET);
     run(&mut p, 59);
-    assert_eq!((p.launches, p.status), (0, Status::Working), "{}", p.status_text());
+    assert_eq!((p.launch_state().0, p.status), (0, Status::Working), "{}", p.status_text());
     assert!(p.status_text().starts_with("Building a rocket: 98%"), "{}", p.status_text());
     run(&mut p, 2);
-    assert_eq!((p.launches, p.out.count(EMPTY_CANISTER), p.input.total()), (1, 8, 0));
+    assert_eq!((p.launch_state().0, p.out.count(EMPTY_CANISTER), p.input.total()), (1, 8, 0));
     assert_eq!(p.readout().lines().filter(|l| *l == "1 in orbit").count(), 1);
 }
 
@@ -83,13 +83,13 @@ fn the_empties_must_leave_before_a_third_rocket_and_each_launch_counts() {
         feed(&mut p, &ROCKET);
         run(&mut p, 61);
     }
-    assert_eq!((p.launches, p.out.count(EMPTY_CANISTER)), (2, 16));
+    assert_eq!((p.launch_state().0, p.out.count(EMPTY_CANISTER)), (2, 16));
     feed(&mut p, &ROCKET);
     run(&mut p, 1);
     assert_eq!(p.status, Status::OutputFull, "{}", p.status_text());
     p.out.take(0, 16);
     run(&mut p, 61);
-    assert_eq!(p.launches, 3);
+    assert_eq!(p.launch_state().0, 3);
 }
 
 #[test]
@@ -99,11 +99,11 @@ fn a_pad_missing_a_part_says_which_and_does_not_start() {
     feed(&mut p, &ROCKET[..4]);
     feed(&mut p, &[(ROCKET_FUEL_CANISTER, 5)]);
     run(&mut p, 100);
-    assert_eq!((p.launches, p.batch), (0, None));
+    assert_eq!((p.launch_state().0, p.batch), (0, None));
     assert_eq!(p.status_text(), "Waiting for 3 Rocket Fuel Canister, 1 Survey Satellite");
     feed(&mut p, &[(ROCKET_FUEL_CANISTER, 3), (SURVEY_SATELLITE, 1)]);
     run(&mut p, 61);
-    assert_eq!(p.launches, 1);
+    assert_eq!(p.launch_state().0, 1);
 }
 
 #[test]
@@ -111,9 +111,9 @@ fn a_launch_hands_its_satellite_up_once() {
     let mut p = pad();
     feed(&mut p, &ROCKET);
     run(&mut p, 59);
-    assert_eq!(p.lifted, None, "still on the pad");
+    assert_eq!(p.launch_state().1, None, "still on the pad");
     run(&mut p, 2);
-    assert_eq!(p.lifted, Some(SURVEY_SATELLITE));
+    assert_eq!(p.launch_state().1, Some(SURVEY_SATELLITE));
     assert_eq!(p.input.count(SURVEY_SATELLITE), 0, "the satellite went with the rocket");
 }
 
@@ -141,7 +141,7 @@ fn a_launched_satellite_is_in_the_factorys_orbit_and_the_pad_says_so() {
     for tick in 600..900 {
         f.update(&mut world, tick, &mut events);
     }
-    assert_eq!(f.processors[0].launches, 1);
+    assert_eq!(f.processors[0].launch_state().0, 1);
     let launched = events.iter().filter(|e| matches!(e, SimEvent::Launched { .. })).collect::<Vec<_>>();
     assert_eq!(launched, [&SimEvent::Launched { pos: IVec3::ZERO, item: SURVEY_SATELLITE }], "reported once");
     let sat = f.orbit.list();
@@ -182,9 +182,9 @@ fn a_launch_count_and_a_batch_in_progress_survive_a_save() {
     let mut r = ByteReader::new(&w.bytes);
     let mut back = Processor::read_state(&mut r).unwrap();
     assert_eq!(r.u8(), None, "every byte read");
-    assert_eq!((back.launches, back.batch, back.progress), (1, p.batch, p.progress));
+    assert_eq!((back.launch_state().0, back.batch, back.progress), (1, p.batch, p.progress));
     run(&mut back, 41);
-    assert_eq!(back.launches, 2);
+    assert_eq!(back.launch_state().0, 2);
 }
 
 #[test]

@@ -54,7 +54,7 @@ fn a_pumpjack_drills_down_to_the_oil_below_and_fills_canisters_at_the_veins_pace
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
-    let well = jack(&f).pump.well.expect("oil under the pumpjack");
+    let well = jack(&f).pump_state().well.expect("oil under the pumpjack");
     assert_eq!(well.key.ore, OIL_SAND);
     assert!(well.bit.y < spot.y - 10, "the oil is deep: bit at {:?}", well.bit);
     assert_eq!(f.insert(spot, EMPTY_CANISTER, 16), 16);
@@ -73,11 +73,11 @@ fn it_waits_for_empties_and_stops_drawing_while_a_canister_s_worth_is_held() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
-    let key = jack(&f).pump.well.unwrap().key;
+    let key = jack(&f).pump_state().well.unwrap().key;
     run(&mut f, &mut world, 0, 20);
     let p = jack(&f);
     assert_eq!((p.status, p.out.total()), (Status::NoInput, 0));
-    let held = p.pump.carry;
+    let held = p.pump_state().carry;
     assert!((CANISTER_UNITS..CANISTER_UNITS + 1.0).contains(&held), "{held} units kept");
     let left = f.deposits.get(&key).unwrap().remaining_units();
     run(&mut f, &mut world, 1200, 20);
@@ -97,7 +97,7 @@ fn a_pumpjack_with_no_oil_below_says_so_and_the_deposit_is_not_touched() {
     let mut f = Factory::default();
     let spot = IVec3::new(5, 80, 5);
     f.place(&mut world, PUMPJACK, spot, 0, spot, 0);
-    assert!(jack(&f).pump.well.is_none());
+    assert!(jack(&f).pump_state().well.is_none());
     run(&mut f, &mut world, 0, 2);
     assert_eq!(jack(&f).status, Status::NoDeposit);
     assert!(jack(&f).status_text().starts_with("No oil below"));
@@ -117,10 +117,10 @@ fn the_well_and_the_oil_kept_survive_a_save() {
     let mut r = ByteReader::new(&w.bytes);
     let back = Processor::read_state(&mut r).expect("reads back");
     assert_eq!(r.u8(), None, "every byte read");
-    assert_eq!(back.pump.well.map(|x| (x.key, x.bit)), p.pump.well.map(|x| (x.key, x.bit)));
+    assert_eq!(back.pump_state().well.map(|x| (x.key, x.bit)), p.pump_state().well.map(|x| (x.key, x.bit)));
     assert_eq!(
-        (back.pump.carry, back.status, back.out.count(CRUDE_CANISTER)),
-        (p.pump.carry, p.status, p.out.count(CRUDE_CANISTER))
+        (back.pump_state().carry, back.status, back.out.count(CRUDE_CANISTER)),
+        (p.pump_state().carry, p.status, p.out.count(CRUDE_CANISTER))
     );
 }
 
@@ -129,7 +129,7 @@ fn a_dry_reservoir_leaves_a_pumpjack_that_says_so_and_asks_for_no_power() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
-    let Well { key, bit } = jack(&f).pump.well.unwrap();
+    let Well { key, bit } = jack(&f).pump_state().well.unwrap();
     // Hand mining takes a block's whole share at once (an hour of pumping would take too long to run).
     for _ in 0..f.deposits.get(&key).unwrap().remaining_blocks {
         f.deposits.hand_mined(&mut world, bit);

@@ -72,7 +72,8 @@ simulated. Budgets for 4 players: under ~10 KB/s per client outside snapshots, t
 
 ### Measured (2026-10-19, `bench_*` and `scripts/bench-flight.mjs` on the user's 32-hour save)
 
-- A 30,000-belt, 3,000-processor base: a steady tick 133 µs, but any belt placed relinks the whole factory (3.4 ms) and
+- A 30,000-belt, 3,000-processor base: a steady tick 148 µs (layout-sensitive: about ten passes a tick walk every
+  processor to find a few of one kind; the same code padded to 528 bytes ticks in 131 µs), but any belt placed relinks the whole factory (3.4 ms) and
   `write_instances` writes 1 M floats (0.5 ms) a frame. Towns plan every stage in 92 ms at once, one stage in 16 ms.
 - Flying over the 32-hour base: the engine's share of a frame averages 5.5 ms, p99 13.4 ms (streaming and meshing),
   2 frames in 1,200 over 16.6 ms. Wasm 575 KB gzipped, JS 125 KB.
@@ -208,6 +209,8 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   stale sections dropped from this plan and `WORKFLOW.md`. `npm run check` gained byte budgets for docs and
   `scripts/check-map.mjs` (map paths exist, every module is mapped, the core reads no presentation). Then the 12 source
   files over 400 lines were split along their seams (table rows into set or era files, `frame.rs`, `factory/tick.rs`,
-  `pause.ts`, overlays into `outlines.ts`), no behaviour change.
+  `pause.ts`, overlays into `outlines.ts`), no behaviour change. Last, what only one kind of processor keeps (well,
+  research unit, debt, launches, depot wants, drone fleet) moved from six `Processor` fields into one enum
+  (`process/extra.rs`): 528 to 464 bytes, save bytes unchanged.
 - **2026-10-18:** real 3D item models, the water rework (smooth surfaces, still, flowing, rapid and falling water),
   per-block texture turning, and the realistic art batches (records in `docs/history/CHANGELOG_R.md`).

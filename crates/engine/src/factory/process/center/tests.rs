@@ -78,12 +78,12 @@ fn a_unit_in_progress_survives_a_save() {
     f.insert(IVec3::ZERO, RED_PACK, 10);
     f.research.set_current(Some(0));
     run(&mut f, 1.0);
-    let (unit, progress) = (center(&f).study.unit, center(&f).study.progress);
+    let (unit, progress) = (center(&f).study_state().unit, center(&f).study_state().progress);
     assert!(unit.is_some() && progress > 0);
     let mut w = ByteWriter::default();
     center(&f).write_state(&mut w);
     let back = Processor::read_state(&mut ByteReader::new(&w.bytes)).unwrap();
-    assert_eq!((back.study.unit, back.study.progress), (unit, progress));
+    assert_eq!((back.study_state().unit, back.study_state().progress), (unit, progress));
     // Given back with the rest if the center is taken down: the packs of an unfinished unit.
     assert_eq!(back.contents().len(), back.input.contents().len() + back.study_contents().len());
 }

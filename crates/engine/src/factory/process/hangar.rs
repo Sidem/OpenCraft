@@ -16,7 +16,7 @@ use crate::item::{ItemId, CARGO_DRONE, DRONE};
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::Factory;
 use super::model::{part, Look, Part};
-use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor};
+use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor};
 
 #[cfg(test)]
 mod tests;
@@ -105,21 +105,35 @@ const PORT_PARTS: [Part; 10] = [
 impl Processor {
     /// The tier's reach and fleet (`None`: not a port).
     pub fn hangar_tier(&self) -> Option<&'static HangarTier> {
-        (self.spec.pick == Pick::Hangar).then(|| &TIERS[(self.tier as usize).min(TIERS.len() - 1)])
+        self.port().map(|(tier, _)| tier)
+    }
+
+    /// Its tier and this tick's fleet out and helpers (`None`: not a port).
+    pub(super) fn port(&self) -> Option<(&'static HangarTier, &Hangar)> {
+        let Extra::Hangar(port) = &self.extra else { return None };
+        Some((&TIERS[(self.tier as usize).min(TIERS.len() - 1)], port))
+    }
+
+    /// The fleet out and helpers, for `drones/` and the factory tick to set (`None`: not a port).
+    pub(in crate::factory) fn port_mut(&mut self) -> Option<&mut Hangar> {
+        match &mut self.extra {
+            Extra::Hangar(port) => Some(port),
+            _ => None,
+        }
     }
 
     /// How far its construction drones work, in blocks, and how far its cargo drones fly: the tier's, times what a comms
     /// satellite over the pad and a river town near add.
     pub fn reach_and_range(&self) -> Option<(u32, u32)> {
-        let t = self.hangar_tier()?;
-        let (reach, range) = if self.hangar.linked { (LINK_REACH, LINK_RANGE) } else { (1, 1) };
-        let relay = if self.hangar.relayed { RELAY } else { 1 };
+        let (t, port) = self.port()?;
+        let (reach, range) = if port.linked { (LINK_REACH, LINK_RANGE) } else { (1, 1) };
+        let relay = if port.relayed { RELAY } else { 1 };
         Some((t.reach * reach * relay, t.cargo_range * range * relay))
     }
 
     /// How many drones it keeps: its tier's fleet and what a swarm hub adds.
     pub fn fleet(&self) -> u32 {
-        self.hangar_tier().map_or(0, |t| t.fleet + t.fleet * self.hangar.bonus / 1000)
+        self.port().map_or(0, |(t, port)| t.fleet + t.fleet * port.bonus / 1000)
     }
 
     /// Construction drones at home on the pad.
@@ -135,47 +149,45 @@ impl Processor {
     /// How many more of `item` it takes: its fleet less those home and those out. A port keeps one kind of drone at
     /// a time (its slot, and the kind that is out), construction drones or cargo drones.
     pub(super) fn hangar_room(&self, item: ItemId) -> u32 {
-        if self.hangar_tier().is_none() || (item != DRONE && item != CARGO_DRONE) {
-            return 0;
-        }
+        let Some((_, port)) = self.port().filter(|_| item == DRONE || item == CARGO_DRONE) else { return 0 };
         let other = |kind: ItemId| kind != ItemId::NONE && kind != item;
         let home = self.input.slots.first().map_or(ItemId::NONE, |s| if s.is_empty() { ItemId::NONE } else { s.item });
-        if other(home) || (self.hangar.away > 0 && other(self.hangar.kind)) {
+        if other(home) || (port.away > 0 && other(port.kind)) {
             return 0;
         }
-        self.fleet().saturating_sub(self.input.total() + self.hangar.away)
+        self.fleet().saturating_sub(self.input.total() + port.away)
     }
 
     /// The status line of a port (`None`: another processor).
     pub(super) fn hangar_text(&self) -> Option<String> {
         let (reach, cargo_range) = self.reach_and_range()?;
+        let (_, port) = self.port()?;
         let (home, cargo) = (self.drones_home() + self.couriers_home(), self.couriers_home() > 0);
         let wiring = if self.speed == 0 { " · No power: wire it to a pole" } else { "" };
-        let (noun, range) = if cargo || self.hangar.kind == CARGO_DRONE {
+        let (noun, range) = if cargo || port.kind == CARGO_DRONE {
             ("cargo drones", format!("range {cargo_range} blocks"))
         } else {
             ("drones", format!("reach {reach} blocks"))
         };
-        let swarm = if self.hangar.bonus > 0 { " (swarm hub)" } else { "" };
-        let comms = match (self.hangar.linked, self.hangar.relayed) {
+        let swarm = if port.bonus > 0 { " (swarm hub)" } else { "" };
+        let comms = match (port.linked, port.relayed) {
             (true, true) => " (comms satellite, river town)",
             (true, false) => " (comms satellite)",
             (false, true) => " (river town)",
             (false, false) => "",
         };
-        Some(format!(
-            "{home} {noun} home, {} out · fleet {}{swarm} · {range}{comms}{wiring}",
-            self.hangar.away,
-            self.fleet()
-        ))
+        Some(format!("{home} {noun} home, {} out · fleet {}{swarm} · {range}{comms}{wiring}", port.away, self.fleet()))
     }
 }
 
 impl Factory {
     /// Marks each drone port relayed this tick or not, by its anchor (a river town's perk, `settlements/perks/`).
     pub fn relay_ports(&mut self, near: impl Fn(crate::math::IVec3) -> bool) {
-        for p in self.processors.iter_mut().filter(|p| p.spec.pick == Pick::Hangar) {
-            p.hangar.relayed = near(p.pos);
+        for p in self.processors.iter_mut() {
+            let pos = p.pos;
+            if let Some(port) = p.port_mut() {
+                port.relayed = near(pos);
+            }
         }
     }
 }
