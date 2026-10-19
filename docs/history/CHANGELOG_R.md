@@ -233,3 +233,67 @@ nothing has to scale; deposits last, so distance never presses; every build is o
     noise's contours) and the one tree shape (R2b). The lip is the ground's own block, not stone.
   - **Cost:** `bench_generation`, 432 chunks: version 8 is 10–15% over version 7, and no slower than version 7 was
     before this step's per-column sample cache (which serves both). 871 tests.
+
+
+## Moved from the plan on 2026-10-19 (docs restructure)
+
+The finished R steps as the plan listed them:
+
+- [x] **R1** (talked: settlements as demand, a blueprint prompt), **R1a** (`scripts/inspect-save.mjs`), **R1b**
+  (`blueprint/repeat.rs`), **R6** (talked: settlements became Milestone 13, the space elevator Milestone 14 in the roadmap).
+- [x] **R1c Natural rivers and lakes** (generator version 8, new worlds only; versions 7 and 8 pinned): winding reaches
+  (`rivers/course.rs`), rapids and waterfalls of settled falling water instead of weirs (`worldgen::falls`), shores for
+  lakes, ponds and ore stains (`shore.rs`), the spawn ring bent.
+- [x] **R2 Plants (a living world, part 1; R2a to R2c built 2026-10-16 and 17).** Today: one tree shape, grass and saplings; deserts and basalt fields are bare.
+  - [x] **R2a Ground cover (built 2026-10-16, record in `docs/CHANGELOG_R.md`), presentation only, every world from generator version 2:** grass tufts, flowers, ferns, reeds, dry brush
+    and lichen chosen per biome by a hash of the column, drawn by the mesher as crossed quads (`Render::Plant`, faces 6 and 7) on
+    top of grass, sand or dirt with air above. Never blocks, never saved; a remesh clears them when the ground changes. Watch
+    `bench_meshing` and vertex counts. **Done when:** every biome has its own cover, meshing costs at most 15% more, seen in the pane.
+  - [x] **R2b Tree species and biome plants (built 2026-10-17, record in `docs/CHANGELOG_R.md`; generator version 9, new worlds only, section 6; R1c released version 8):** species as rows in
+    `worldgen/trees.rs` (shape, log and leaf blocks): today's broadleaf (plains), conifers (highlands), wide wet-ground trees
+    (lowlands, by water), a pale-barked plains mix, cacti (desert), dead snags and heather (basalt). Each species has a sapling;
+    every log saws into the same planks. Versions 7 and 8 are pinned (`released_versions_never_change`). **Done when:** each biome reads differently from afar.
+  - [x] **R2c Indicator plants (built 2026-10-17, record in `docs/CHANGELOG_R.md`)** (real geobotany, like the stained soil): a flower or shrub per ore over shallow veins and lodes, a
+    pure function of deposit placement; pointing at one names the ore below. In the ore guide too. **Done when:** a test shows
+    they grow only over their ore.
+- [x] **R3 Ambient sound (part 2; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** `Game::surroundings` feeds `audio/ambience.ts`.
+- [x] **R4 Music by context (part 3; built 2026-10-17, record in `docs/CHANGELOG_R.md`):** a tested director, streamed 64 kbit/s Opus
+  pieces (1.3 to 2.1 MB each) composed in the user's MusicComposer project, modes By place / Always calm / Always adventurous.
+  **Not built (waits for its first piece):** the era as a context (industrial, space). Next pieces: sea, industrial, space.
+- [x] **R5 Ruins of the last factory (moved up).** Design in `docs/ROADMAP.md`; records in `docs/CHANGELOG_R.md`. R5a ruin sites, rusted blocks
+  (never held: they give scrap) and Scrap Metal; R5b logbooks (block 127, `ui/logbook.ts`); R5c the vault, generator version 10 (`sim/vault.rs`).
+- [x] **S Sky and weather (user, 2026-10-17; built the same day, record in `docs/CHANGELOG_R.md`).** Presentation only, every effect has a setting and an Off.
+  S1 the real night sky (`render/sky/`, `scripts/bake-sky/`); S2 the weather model (`render/sky/weather.ts`: a pure function of seed, game days
+  and biome, so co-op peers agree), clouds and red dusk; S3 rain and snow (`render/precip.ts`: vertex-shader-only drops, roofs by the engine's
+  `rain_roof` grid, wet and snowy ground); S4 the rain sound (`audio/ambience-levels.ts`). Not built: splashes, lightning, snow on machines.
+- [x] **R7 Decor building set** (built 2026-10-17, record in `docs/CHANGELOG_R.md`): 14 machine-made blocks (five tinted concretes, four rock
+  bricks, framed glass, metal panels, catwalk, railing, panel light), blocks 129–142, tech Architecture (85). Slabs and stairs need non-cube meshing: a later step.
+
+The plan's change log, 2026-10-16 to 2026-10-18:
+
+- **2026-10-18: real item models** (user: items were a cube with their picture on each side; plastic looked like styrofoam).
+  Every non-block item now has a box assembly (`item_models/`, test `every_item_that_is_not_a_block_is_a_model_resting_on_its_floor`),
+  skinned with new plain materials (`tex::MAT_*`, 347–353) and repainted faces (white plastic, board, chip lid, wafer, canister
+  paints; `tools/art/materials.py`). Some `ItemDef` sizes changed to fit the models. The old icon layers now only skin far belts.
+- **2026-10-18: water rework** (user: finer levels, still vs flowing vs falling, a missing side texture; presentation only). The sim
+  already had a source and 7 flow levels; the mesher drew 3 heights and culled faces between liquid cells, so the wall above a lower
+  surface was missing (the screenshot's bug). Now `mesher/water.rs` gives each surface corner a height in sixteenths from its four
+  cells (one sloped sheet) and tags cells still / laminar / turbulent / falling plus a direction; the `WATER` shader draws each.
+  Not done: swimming and pumps treat every flow cell as a whole block.
+- **2026-10-18: per-block texture turning** (for the realistic natural tiles, `docs/ART_STYLE.md` section 12): the terrain
+  fragment shader turns, mirrors or flips each natural block's tile by a hash of its cell (`block/turn.rs`, `turnUv` in
+  `render/shaders.ts`). No mesher change: vertex count and meshing time are unchanged, frame time measured the same (0.7 ms at
+  1024 × 768). Before/after: `artifacts/art2/turn_*.jpg`. Close up, the realistic stone's dark cracks still meet out of line at
+  block edges (an art follow-up: fade the cracks near the tile edge).
+- **2026-10-17: Step R7 built** (decor set; golden hash re-recorded: the research table gained tech 85). 930 engine tests, 50 web tests.
+- **2026-10-17: Steps S3 and S4 built** (rain, snow, wet ground and the rain sound; presentation only). Engine: `Game::rain_roof`
+  (`surroundings/roof.rs`). Web: `render/precip.ts`, `render/sky/ground.ts`, `audio/ambience-levels.ts` (split out of `ambience.ts`),
+  `render/geometry.ts` (split out of `renderer.ts`); setting Rain and snow Off/Low/Full. 921 engine tests, 44 web tests.
+- **2026-10-17: frame-rate fix** (user: drops flying over the 32 h save): `World::light_at` kept 128 chunks but the base's boxes sit
+  in 137, so every frame relit them (`update` 100 ms); now 512 chunks and at most 2 lit a frame (1.5 ms), and `main.ts`'s 28 ms
+  loading budget is for the first load only. Tools: `scripts/bench-flight.mjs`, `tests/frame_bench.rs`.
+- **2026-10-17: Steps R5a to R5c built** (ruins, logbooks and the vault; generator versions 9 and 10, blocks 124–128), then quieter
+  ambience (beds share a loudness ceiling, `audio/ambience-mix.ts`), **S1** (the real night sky) and **S2** (weather, clouds, red
+  dusk; `render/sky/weather.ts`).
+- **2026-10-16 and 17: Steps R2 to R4 built** (ground cover, tree species on generator version 9 with blocks 117–123, indicator
+  plants; ambient sound; music by context, six pieces in 9.3 MB; `npm run check` gained `web tests` and `music`).

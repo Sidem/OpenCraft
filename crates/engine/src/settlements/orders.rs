@@ -1,4 +1,4 @@
-//! What towns ask for, as data (step 13.2; numbers settled with the user on 2026-10-16, `docs/DEV_PLAN.md` section 1).
+//! What towns ask for, as data (step 13.2; numbers settled with the user on 2026-10-16, `docs/DECISIONS.md`).
 //!
 //! - **Orders** ([`ORDERS`]): one per stage, the same for every kind; delivering all of it builds the next stage. They
 //!   double from about 1,000 items: basics first, then concrete, steel and lamps, later plastic, circuits and processors.

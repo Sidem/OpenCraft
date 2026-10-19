@@ -2,21 +2,26 @@
 
 Module ownership is mapped in CODEMAP.md. These recipes describe how to add content, APIs and UI.
 
+**Next free ids** come from the code, never from a doc: blocks `BLOCK_COUNT` (`block/mod.rs`), items the last
+constant in `item/later.rs`, layers `tex::COUNT` (`block/tex.rs`), techs `TECHS.len()`, machine recipes
+`MACHINE_RECIPES.len()`. All of them append only: saves store them by number.
+
 ## How to add…
 
-**A block.** `block.rs`: append an id constant (never renumber), bump `BLOCK_COUNT`, add a `DEFS` row
-(`cube`, `ore` or `machine` helper). New texture: a `tex` constant plus its arm in `textures::pixel`.
-Placeable blocks work at once; worldgen use goes in `worldgen/`.
+**A block.** `block/mod.rs` (or a set's own file, like `block/decor.rs`): append an id constant (never
+renumber), add a `DEFS` row (`cube`, `ore` or `machine` helper from `make.rs`). New look: a `tex` constant
+(`block/tex.rs`), a painter arm in that set's `textures/<set>.rs` `pixel`, and a request line in
+`docs/ART_HANDOVER.md`. Placeable blocks work at once; worldgen use goes in `worldgen/`.
 
 **An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
-and a row in `item.rs` `EXTRA`, with a texture layer in `block::tex` and its pattern in `textures::pixel`
-if it needs a new look; the HUD icon and the loose and belt models follow from the row. A recipe is a row
-in `recipes/mod.rs` (its `group` picks the build-menu section); the build menu shows every row. To lock it
-behind research, list `Unlock::Recipe(item)` in a tech's `unlocks` (`research/techs.rs`). A machine recipe is a
-row in `recipes/machine.rs` with its category (lock: `Unlock::MachineRecipe(index)`). The content lint
-(`recipes/tests.rs`, `research/tests.rs`) says what is missing: a source, a use, a machine.
+and a row in `item.rs` `EXTRA`, and a model in `item_models/` (a test asks every non-block item for one).
+A recipe is a row in `recipes/mod.rs` or its era's file (its `group` picks the build-menu section). To lock it
+behind research, list `Unlock::Recipe(item)` in a tech's `unlocks`. A machine recipe is a row in the last
+table joined into `MACHINE_RECIPES` (`recipes/machine.rs`), with its category (lock:
+`Unlock::MachineRecipe(index)`). The content lint (`recipes/tests.rs`, `research/tests.rs`) says what is
+missing: a source, a use, a machine.
 
-**A tech.** A row appended to `TECHS` in `research/techs.rs` (saves store progress by index): name, blurb,
+**A tech.** A row at the bottom of `research/later.rs`, the open end of `TECHS` (saves store progress by index): name, blurb,
 prerequisites by index, packs per unit, units, seconds, what it unlocks. The research screen and the build
 menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` (labs get a slot for it).
 
@@ -50,7 +55,7 @@ action loop.
 **Core state, a way to change it, or a reaction to it.** State: a field on `Sim` (`sim.rs`) or the type
 that owns it (per-player state in `PlayerCore`), plus its bytes in that type's `write_state` and
 `read_state`, which the state hash and saves use (a save test fails if the two disagree). A change: an
-`Action` variant, its arm in `Sim::apply_to_player` (`action.rs`) and its bytes in `action/codec.rs`; `Game` queues it with `act` (local
+`Action` variant, its arm in `Sim::apply_to_player` (`action/apply.rs`) and its bytes in `action/codec.rs`; `Game` queues it with `act` (local
 player) or `act_as`. A reaction (sound, toast, item spawn): a `SimEvent` variant, pushed by the core, and
 its arm in `Game::handle_sim_events` (`events.rs`). Per-player state the authority keeps (body-related)
 goes in `authority.rs`, indexed by `PlayerId` like `Sim.players`.

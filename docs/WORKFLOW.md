@@ -1,7 +1,7 @@
 # Working in the OpenCraft repo
 
 Operational reference: commands, verification, environment gotchas, deploying, working with the user, and
-the balance numbers. Read the section you need; there's no need to read it all every session.
+composing music. Read the section you need; there's no need to read it all every session.
 Rules and direction live in `docs/DEV_PLAN.md`.
 
 ## 1. Commands
@@ -13,9 +13,10 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `npm run build:wasm` | Build the engine only (release). |
 | `npm run typecheck` | TypeScript check. |
 | `npm run build` | Wasm, typecheck, and the Vite production bundle into `dist/`. |
-| `cargo test --workspace -q` | Engine tests only (74 after Milestone 1). Add a name to filter. |
+| `cargo test --workspace -q` | Engine tests only. Add a name to filter. |
 | `cargo fmt --all` | Format the engine (`rustfmt.toml`: width 120). |
-| `node scripts/check-size.mjs` | Size budgets only. |
+| `node scripts/check-size.mjs` | Size budgets only (lines for code, bytes for docs and the session-start read). |
+| `node scripts/check-map.mjs` | The code map's paths exist, every module is on it, the core names no presentation module. |
 | `npx vite build` | Prints gzipped bundle sizes; check wasm size here. |
 | `node scripts/wasm-sizes.mjs [n] [filter]` | After `npm run build:wasm`: the largest wasm functions by name, to find what grew. Compare with the same list from the last commit (build it in a `git worktree`). |
 | `node scripts/inspect-save.mjs <file.ocworld>` | After `npm run build:wasm`: reads a player's exported world headlessly (play time, techs, the tree's pack demand, machines and what holds them back, the inventory). Use it on the user's play-test saves before judging balance. |
@@ -44,8 +45,7 @@ section 3.1) and use the browser for final visual proof.
   place with `set_using(true)`. Take a screenshot to force a render.
 - Useful: `block_at`, `find_deposit(tier)` (0 lode, 1 vein, 2 outcrop), `skip_time(s)` (silent),
   `run_ticks(n)`, `give(id, n)`, `craft(r, n)`, `target_detail()`, and `opencraft.inventory.open()`.
-  `add_player()` / `remove_player(id)` add an invisible second body at spawn (nothing draws other
-  players yet). `state_hash()` (a BigInt) fingerprints the core state; it changes every tick.
+  `add_player()` / `remove_player(id)` add a second body at spawn. `state_hash()` (a BigInt) fingerprints the core state; it changes every tick.
 - `update(dt)` runs whole 60 Hz ticks, so a single `update(1/144)` may run none. `run_ticks(n)` steps the
   simulation exactly; follow it with `update(0)` to refresh the camera and box instances.
 - Mutating calls (`give`, `craft`, `click_slot`, `select_slot`, `drop_selected`, placing, breaking) are
@@ -105,42 +105,7 @@ next day (no charge).
 - Balance numbers are expected to change; keep them as named constants near the top of their module.
 - Offer recommendations, not surveys of options.
 
-## 6. Tuning knobs (values after Milestone 4)
-
-`docs/CODEMAP.md` lists where every tuning constant lives; this is the current balance at a glance.
-
-| Where | Constant | Value |
-|---|---|---|
-| `deposits.rs` | `HAND_YIELD`, `TAPER_START`, `TAPER_FLOOR` | 3, 0.2, 0.25 |
-| `deposits.rs` | `Tier::grade` / `draw_cap` (units per s) | lode 2000 / 20, vein 1000 / 4, outcrop 100 / 1 |
-| `factory/miner.rs` | `MINER_TIERS` (rate, recovery, power) | Mk1 1.0 units/s, 0.6 · Mk2 2.0 units/s (at full power), 0.75 · Mk3 4.0, 0.85 · power: Mk1 5 kW, Mk2 20 kW, Mk3 45 kW while drilling |
-| `factory/belt.rs` | `BELT_TIERS`, `ITEM_SPACING` | 1, 2 and 4 blocks/s (about 2.9, 5.5 and 10 items/s), 0.35 |
-| `factory/belt_shape.rs` | `UNDERPASS_RANGE` | 5 cells |
-| `belt_line.rs` | `MAX_LINE`, `LINE_REACH`, `BUILD_PER_TICK` | 64 cells, 48 blocks, 3 placements per tick |
-| `factory/power.rs` | `ROUTER_POWER` | router 1 kW while holding an item (routers have no tiers) |
-| `factory/generator.rs`, `lab.rs`, `quarry.rs` | `GENERATOR_TIERS`, `LAB_TIERS`, `QUARRY_TIERS` | a generator gives up to 60 kW (Mk2 100 kW and 125 % of a fuel's energy), only what is drawn · lab ×1, ×2, ×3 at 10, 20, 30 kW while researching, Mk3 every 5th unit free · quarry 2, 4, 6 blocks/s at 10, 20, 30 kW while digging |
-| `factory/storage.rs` | `BOX_SLOTS` | 24, 36, 48 slots |
-| `factory/pumping.rs` | `PUMP_TIERS`, `OUTLET_RATE`, `PUMP_RANGE`, `POUR_REACH` | a pump lifts 2, 4, 6 sources a second, holds as many, and needs 5, 10, 20 kW while it has room; an outlet pours up to 4 a second, never above its front cell, more than 3 cells sideways from it, or at/below sea level away from water; both search 16 steps through water |
-| `sim/water.rs` | `WATER_DELAY`, `MAX_WATER_UPDATES` | a change reaches its neighbours 5 ticks later; at most 256 water checks a tick |
-| `research.rs` | `TECHS` (units × seconds, packs per unit) | Belt Routing 10 × 5 s red · Belt Lifts 20 × 5 s red · Green Science 30 × 5 s red · Underpasses 15 × 10 s red + green (reach 4 blocks; later Mk techs add 6, 8, 10) · Mechanics 30 × 10 s red + green (gear, green kit, Mk2 miners, smelters and constructors) · Belt Mk2 20 × 10 s red + green · Fluid Handling 15 × 5 s red · Masonry 15 × 5 s red (stone bricks, quicklime) · Assembly 40 × 10 s red + green (assembler, motor, concrete, packs and kits by assembler) · Steelmaking 50 × 15 s red + green (blast furnace, steel) · Blue Science 50 × 15 s red + green (blue pack) · Mk3 Logistics 60 × 20 s, Mk3 Machines 80 × 20 s (Mk3 tiers), Steel Tools 30 × 15 s, all red + green + blue |
-| `factory/pole.rs` | `POLE_TIERS` | poles link within 10, 16, 32 blocks (the longer of two counts), machines hang on the nearest pole within 5, 7, 9 |
-| `factory/mod.rs` | `MACHINES` slots | miner 1 stack (64 ore), box 24, generator 1 fuel stack, lab 1 stack per pack kind |
-| `factory/process/specs.rs` | `SPECS` (`buffers`, `tiers`) | smelter and constructor 1 stack per buffer · smelter Mk1 ×1, Mk2 ×2 on ¾ the fuel an ingot · constructor Mk1 ×1 at 15 kW, Mk2 ×2 at 30 kW · assembler 3 input slots (a stack of each input at most), ×1, ×2, ×3 at 20, 40, 60 kW · Mk3 smelter electric ×3 at 40 kW, constructor ×3 at 45 kW, blast furnace ×2, ×3 · blast furnace 3 input slots, 1 output, 1 byproduct slot (16 slag wait before it stops), ×1, no power |
-| `recipes/machine.rs` | `MACHINE_RECIPES`, `FUELS` | smelter: 1 ore → 1 ingot in 1.5 s · coal ore 8 s, log 4 s of smelter fire; 270 and 135 kJ in a generator · constructor: 2 iron ingots → plate 2 s, 1 → rod 2 s, rod → 4 screws 3 s, copper ingot → 2 wire 2 s, plate → gear 2 s · smelter: 1 quartz ore → 2 glass 2 s, 1 sand → 1 glass 2 s, 2 stone → stone bricks 3 s, limestone → quicklime 2 s · assembler: rod, 2 gears, 4 wire → motor 5 s; quicklime, 2 sand, 2 stone → 4 concrete 4 s; red pack 5 s, green pack 6 s, 4 green kits 5 s (the hand recipes' inputs) · blast furnace: 2 iron ore, coal, quicklime → steel ingot + slag 4 s · constructor: steel ingot → plate 3 s, 2 → beam 4 s · assembler: motor, steel plate, concrete → 2 blue packs 12 s; motor, 2 steel plates, 4 screws → 4 blue kits 5 s |
-| `worldgen/ore.rs` | `ORE_GEN`, `LODE_CHANCE`, `ORE_SPAWN_CLEARING` | per ore (outcrops per column, vein chance, lode weight); 1/40; 10 |
-| `recipes/mod.rs` | `RECIPES` | Miner 10 iron, 6 copper, 12 stone · 4 belts 1 iron, 2 stone · Box 6 log, 2 iron · Smelter 16 stone, 4 iron · Constructor 10 iron ingots, 4 copper ingots, 8 stone · Splitter 2 plates, 2 belts · Filter 2 plates, 2 wire, 2 belts · 2 lifts 2 rods, 2 belts · underpass 2 belts (Mk2 3 Mk2 belts, Mk3 4, Mk4 5) · Generator 6 iron ore, 4 copper ore, 12 stone · 2 poles 1 iron ore, 1 copper ore, 1 log · Lab 6 plates, 8 wire, 4 belts · red pack 1 plate, 2 wire · green pack 2 belts, 4 screws · 4 green kits 2 gears, 4 screws, 2 wire · Miner, Smelter and Constructor Mk2 a Mk1 and 4 green kits · Belt Mk2 a belt and 1 green kit · scanner 4 plates, 6 wire, 4 screws · core drill 6 plates, 2 wire, 8 screws · 2 lamps 1 glass, 1 plate, 2 wire · pump 6 plates, 4 rods, 6 wire · 4 pipes 2 plates · outlet 3 plates, 2 rods · 8 torches 1 log, 1 coal ore · quarry 12 plates, 8 rods, 16 screws, 8 wire · assembler 12 plates, 6 gears, 12 wire, 4 rods · blast furnace 32 stone bricks, 8 concrete, 12 plates, 2 motors · steel pickaxe and axe 3 steel plates, 2 rods (1,500 uses), shovel 1 plate, 2 rods |
-| `worldgen/geology.rs` | `OUTCROPS`, `VEIN_CHANCES`, `ORES_BY_BIOME`, `HINT_MARGIN` | version 2: 11 outcrops per column, veins 1.0 and 0.3, ore weights per biome, hints 3 blocks past a deposit |
-| `worldgen/water.rs` | `SEA_LEVEL` (mod.rs), `POND_CELL`, `POND_CHANCE`, `POND_RADIUS`, `POND_DEPTH`, `POND_FLATNESS` | sea 62 (about 20 % of the land under water), a pond chance per 96-block cell of 0.5 (flat plains and lowlands only), radius 5–9, 2–4 deep |
-| `worldgen/strata.rs` | `EXPOSED_CHANCE`, `ORE_DEPTH`, `STARTERS` (version 3, released) | 0.28 of outcrop slots on bare rock show (0.24–0.5 per column), bands limestone 8–25, coal 10–35, iron 20–50, copper and quartz 35–70; one starter each 40–80 blocks out |
-| `worldgen/strata.rs` | `EXPOSED_CHANCE_METALS`, `ORE_DEPTH_V4`, `STARTERS_V4` (version 4, new worlds) | coal, iron and copper slots show 0.42 (0.30–0.58 exposed per column); bands limestone 6–20, coal 6–22, iron 8–28, copper 12–34, quartz 25–50; two starters each, 28–60 and 60–110 blocks out, radii 2.6 × 2.0 |
-| `worldgen/biome.rs` | `HIGHLAND_LEVEL`, `LOWLAND_LEVEL`, `SPAWN_CALM` | highlands above 112, lowlands below 74; plains within 64–320 blocks of spawn |
-| `tools.rs` | `STONE_TIER`, `IRON_TIER` | stone 150 uses, 2× speed · iron 600 uses, 4× speed, 1 more ore per hand-mined block |
-| `prospect.rs` | `SCANNERS` (range per scanner), `SCAN_COOLDOWN`, `DRILL_SECONDS`, `DRILL_REACH` | 48 / 96 blocks, 2 s · 3 s, 2 blocks around the column |
-| `sim/timers.rs`, `sim/saplings.rs` | half-lives, `SAPLING_CHANCE`, `GROW_MIN` | leaves 5 s, grass grows 30 s, dies 15 s · a sapling from 1 in 25 leaves, grows after 60 s + 90 s half-life |
-| `daytime.rs`, `light.rs`, `block/mod.rs` | `DAY_TICKS`, `START`, `MARGIN`, `SOURCES`, `BlockDef::light` | a 20-minute day, new worlds start at 7:00 · the lit field reaches 20 blocks · lamp 20 losing 1 per block (full within 5, gone at 20), torch 12 losing 2 (gone at 6); a cell shows at most 15 |
-
-
-## 7. Composing music (the MusicComposer project)
+## 6. Composing music (the MusicComposer project)
 
 Pieces are written in the user's MusicComposer project (`X:\Programming\Projects\MusicComposer`, LilyPond 2.26 bundled, ffmpeg and Python
 with numpy and scipy needed): a score `.ly` becomes MIDI, `tools/render_midi.py` plays it through a small additive synth and a hall

@@ -72,7 +72,7 @@ pub struct KindDef {
     pub colour: i32,
 }
 
-/// The town kinds, settled with the user on 2026-10-16 (`docs/DEV_PLAN.md` section 1). Saves store the index. Their
+/// The town kinds, settled with the user on 2026-10-16 (`docs/DECISIONS.md`). Saves store the index. Their
 /// perks (step 13.4): contract work, drone relay, gear works, better smelting.
 pub const KINDS: [KindDef; 4] = [
     KindDef { name: "Harbour", needs: Needs::Water(Water::Sea), place: "on a sea shore", colour: 0x4aa3ff },

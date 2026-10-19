@@ -1,4 +1,4 @@
-//! What a town builds, as data (step 13.3a; talked with the user on 2026-10-16, `docs/DEV_PLAN.md` section 1).
+//! What a town builds, as data (step 13.3a; talked with the user on 2026-10-16, `docs/DECISIONS.md`).
 //!
 //! - **Buildings** ([`BUILDINGS`]): the shapes each stage adds (2 to 4), the same for every kind. A shape is a box of
 //!   storeys (3 cells of wall, then a ceiling) with a door facing the depot, windows, a lamp in each ceiling, a stepped

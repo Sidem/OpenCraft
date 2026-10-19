@@ -63,11 +63,12 @@ a correct change. Keeping that small matters as much as any feature.
 ### A short, fixed reading path
 
 1. [CLAUDE.md](CLAUDE.md) (under 60 lines): the rules that matter and where everything else lives.
-2. [docs/DEV_PLAN.md](docs/DEV_PLAN.md) sections 0–4: a status line, the user's settled decisions, the rules, and the
-   current milestone's next step with its acceptance criteria. Only the current milestone is detailed. Later ones live in
-   [docs/ROADMAP.md](docs/ROADMAP.md) and finished ones in `docs/CHANGELOG*.md`.
-3. [docs/CODEMAP.md](docs/CODEMAP.md): one line per module, plus recipes for adding blocks, items, recipes, machines,
-   API methods, UI panels and sounds.
+2. [docs/DEV_PLAN.md](docs/DEV_PLAN.md): a status line, the decisions that bind new work, the rules, and the
+   next steps with their acceptance criteria. Only current work is detailed. Later work lives in
+   [docs/ROADMAP.md](docs/ROADMAP.md), every settled decision in [docs/DECISIONS.md](docs/DECISIONS.md) and finished
+   work in `docs/history/`.
+3. [docs/CODEMAP.md](docs/CODEMAP.md): an index, one line per module; [docs/EXTENDING.md](docs/EXTENDING.md) has the
+   recipes for adding blocks, items, recipes, machines, API methods, UI panels and sounds.
 4. The area's conventions: [crates/engine/CLAUDE.md](crates/engine/CLAUDE.md) or [web/src/CLAUDE.md](web/src/CLAUDE.md).
 
 Then read only the module you touch. Each one opens with a header saying what it owns, its invariants and how to

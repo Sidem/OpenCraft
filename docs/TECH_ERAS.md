@@ -211,9 +211,8 @@ Constellations: coverage and uptime grow with each satellite of a kind (comms fu
 n / 24). Survey fills the map with every deposit; comms carries data and drone ports anywhere in
 coverage (building from the map); science satellites downlink space data, the last research input.
 
-## 9. Era 10: the megaproject (Milestone 13)
+## 9. Era 10: the megaproject (Milestone 14)
 
-Theme is the user's to choose (DEV_PLAN section 6): an orbital ring built from shipments, a space
-elevator (a tether rising from a ground anchor), or an interstellar probe. Built in phases in the world.
+A space elevator (chosen 2026-10-16, `docs/DECISIONS.md`; design in `docs/ROADMAP.md`). Built in phases in the world.
 Completing it unlocks, never ends: asteroid mining (ore arriving by drop pod: resources beyond the
 finite ground), and endless bonus techs keep compute busy.

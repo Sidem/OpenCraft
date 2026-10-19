@@ -5,7 +5,7 @@ small and cheap to read. They apply to people and agents alike.
 
 ## Before you start
 
-- Read [CLAUDE.md](CLAUDE.md), then `docs/DEV_PLAN.md` (sections 0 to 4) and `docs/CODEMAP.md`. The plan says what is
+- Read [CLAUDE.md](CLAUDE.md), then `docs/DEV_PLAN.md` and `docs/CODEMAP.md`. The plan says what is
   being built now and why; area conventions are in `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md`.
 - For anything bigger than a fix, open an issue first so it can be fitted into the plan.
 - Setup, commands and Windows notes: [README](README.md#quick-start) and `docs/WORKFLOW.md`.
