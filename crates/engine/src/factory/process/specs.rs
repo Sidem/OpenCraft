@@ -5,19 +5,16 @@
 //! Invariants: a spec has a tier row for every tier of its family (`tiers.rs`; tested); a spec with no
 //! burner tier has no fuel buffer; its block is a `Kind::Process` row in `MACHINES`.
 //!
-//! To add a processor: its block (`block/`), a `MACHINES` row of `Kind::Process`, a row here with its
-//! parts, and its recipes' category (`recipes/machine.rs`).
+//! To add a processor: its block (`block/`), a `MACHINES` row of `Kind::Process`, its row with its parts (in
+//! `basic.rs`, or its own file if it has logic of its own) named in `SPECS`, and its recipes' category
+//! (`recipes/machine.rs`).
 
-use crate::block::{
-    BlockId, ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, ELECTROLYTIC_CELL, SILO, SMELTER,
-    TURBINE,
-};
+use crate::block::BlockId;
 use crate::item::ItemId;
 use crate::recipes::{Category, MachineRecipe, MACHINE_RECIPES};
 
-use super::super::footprint::{Footprint, Port, Role, Side, Which, SINGLE};
+use super::super::footprint::Footprint;
 use super::model::Part;
-use super::parts::*;
 
 /// How a processor is driven.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -187,227 +184,17 @@ pub const SPECS: &[ProcessSpec] = &[
     super::pods::PAD_SPEC,
     super::upgrader::UPGRADER_SPEC,
     super::depot::DEPOT_SPEC,
-    ProcessSpec {
-        block: SMELTER,
-        categories: &[Category::Smelting],
-        pick: Pick::ByInput,
-        buffers: [1, 1, 1],
-        side: 0,
-        tiers: &[
-            ProcessTier { energy: Energy::Burner, speed: 1000, fuel: 1000, power: 0 },
-            ProcessTier { energy: Energy::Burner, speed: 2000, fuel: 750, power: 0 },
-            ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 40 },
-            ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 80 },
-            ProcessTier { energy: Energy::Electric, speed: 8000, fuel: 0, power: 130 },
-        ],
-        footprint: SINGLE,
-        verb: "Smelting",
-        products: "ingots",
-        waiting: "Waiting for ore, sand or stone",
-        map_colour: 0xe5533d,
-        compute: 0,
-        parts: &SMELTER_PARTS,
-    },
-    ProcessSpec {
-        block: CONSTRUCTOR,
-        categories: &[Category::Pressing],
-        pick: Pick::Chosen,
-        buffers: [1, 0, 1],
-        side: 0,
-        tiers: &[
-            ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 15 },
-            ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 30 },
-            ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 45 },
-            ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 75 },
-            ProcessTier { energy: Energy::Electric, speed: 8000, fuel: 0, power: 120 },
-        ],
-        footprint: SINGLE,
-        verb: "Making",
-        products: "parts",
-        waiting: "",
-        map_colour: 0x4a90e2,
-        compute: 0,
-        parts: &CONSTRUCTOR_PARTS,
-    },
-    ProcessSpec {
-        block: ASSEMBLER,
-        categories: &[Category::Assembly],
-        pick: Pick::Chosen,
-        buffers: [3, 0, 1],
-        side: 0,
-        tiers: &[
-            ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 20 },
-            ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 40 },
-            ProcessTier { energy: Energy::Electric, speed: 3000, fuel: 0, power: 60 },
-            ProcessTier { energy: Energy::Electric, speed: 5000, fuel: 0, power: 100 },
-            ProcessTier { energy: Energy::Electric, speed: 8000, fuel: 0, power: 160 },
-        ],
-        footprint: Footprint {
-            size: [2, 2, 2],
-            ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right), OUT_FRONT],
-        },
-        verb: "Assembling",
-        products: "parts",
-        waiting: "",
-        map_colour: 0x34a898,
-        compute: 0,
-        parts: &ASSEMBLER_PARTS,
-    },
-    ProcessSpec {
-        block: BLAST_FURNACE,
-        categories: &[Category::Blasting],
-        pick: Pick::ByInput,
-        buffers: [3, 0, 1],
-        side: 1,
-        tiers: &[
-            ProcessTier { energy: Energy::Recipe, speed: 1000, fuel: 0, power: 0 },
-            ProcessTier { energy: Energy::Recipe, speed: 2000, fuel: 0, power: 0 },
-            ProcessTier { energy: Energy::Recipe, speed: 3000, fuel: 0, power: 0 },
-            ProcessTier { energy: Energy::Recipe, speed: 5000, fuel: 0, power: 0 },
-            ProcessTier { energy: Energy::Recipe, speed: 8000, fuel: 0, power: 0 },
-        ],
-        footprint: Footprint {
-            size: [2, 2, 3],
-            ports: &[
-                inlet(Side::Back),
-                inlet(Side::Left),
-                OUT_FRONT,
-                Port { side: Side::Right, role: Role::Side, cell: Which::All },
-            ],
-        },
-        verb: "Blasting",
-        products: "steel",
-        waiting: "",
-        map_colour: 0xb84a30,
-        compute: 0,
-        parts: &BLAST_PARTS,
-    },
-    ProcessSpec {
-        block: BOILER,
-        categories: &[],
-        pick: Pick::ByInput,
-        buffers: [0, 2, 0],
-        side: 0,
-        tiers: &[ProcessTier { energy: Energy::Boiler, speed: 1000, fuel: 0, power: 0 }],
-        footprint: Footprint { size: [2, 2, 2], ports: &BOILER_PORTS },
-        verb: "Boiling",
-        products: "steam",
-        waiting: "Idle",
-        map_colour: 0x3a5f9a,
-        compute: 0,
-        parts: &BOILER_PARTS,
-    },
-    ProcessSpec {
-        block: TURBINE,
-        categories: &[],
-        pick: Pick::ByInput,
-        buffers: [0, 0, 0],
-        side: 0,
-        tiers: &[ProcessTier { energy: Energy::Turbine, speed: 1000, fuel: 0, power: 0 }],
-        footprint: Footprint { size: [3, 2, 2], ports: &TURBINE_PORTS },
-        verb: "Turning",
-        products: "power",
-        waiting: "Idle",
-        map_colour: 0xc8ced8,
-        compute: 0,
-        parts: &TURBINE_PARTS,
-    },
-    ProcessSpec {
-        block: CRUSHER,
-        categories: &[Category::Crushing],
-        pick: Pick::ByInput,
-        buffers: [1, 0, 1],
-        side: 0,
-        tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 30 }],
-        footprint: SINGLE,
-        verb: "Crushing",
-        products: "crushed ore",
-        waiting: "Waiting for iron, copper or bauxite ore, or slag",
-        map_colour: 0xd6a930,
-        compute: 0,
-        parts: &CRUSHER_PARTS,
-    },
-    ProcessSpec {
-        block: SILO,
-        categories: &[],
-        pick: Pick::Store,
-        buffers: [0, 0, 144],
-        side: 0,
-        tiers: &[ProcessTier { energy: Energy::Recipe, speed: 1000, fuel: 0, power: 0 }],
-        footprint: Footprint {
-            size: [2, 2, 3],
-            ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right), OUT_FRONT],
-        },
-        verb: "Storing",
-        products: "items",
-        waiting: "",
-        map_colour: 0x9a9a92,
-        compute: 0,
-        parts: &SILO_PARTS,
-    },
-    ProcessSpec {
-        block: ARC_FURNACE,
-        categories: &[Category::Arc],
-        pick: Pick::Chosen,
-        buffers: [2, 0, 1],
-        side: 0,
-        tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 120 }],
-        footprint: Footprint {
-            size: [2, 2, 2],
-            ports: &[inlet(Side::Back), inlet(Side::Left), inlet(Side::Right), OUT_FRONT],
-        },
-        verb: "Arcing",
-        products: "silicon",
-        waiting: "",
-        map_colour: 0x9a7ad8,
-        compute: 0,
-        parts: &ARC_PARTS,
-    },
-    ProcessSpec {
-        block: ELECTROLYTIC_CELL,
-        categories: &[Category::Electrolysis],
-        pick: Pick::Chosen,
-        buffers: [2, 0, 1],
-        side: 1,
-        tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 300 }],
-        footprint: Footprint {
-            size: [3, 2, 2],
-            ports: &[
-                inlet(Side::Back),
-                inlet(Side::Left),
-                OUT_FRONT,
-                Port { side: Side::Right, role: Role::Side, cell: Which::All },
-            ],
-        },
-        verb: "Electrolysing",
-        products: "aluminium",
-        waiting: "",
-        map_colour: 0xcfd8e3,
-        compute: 0,
-        parts: &CELL_PARTS,
-    },
+    super::basic::SMELTER_SPEC,
+    super::basic::CONSTRUCTOR_SPEC,
+    super::basic::ASSEMBLER_SPEC,
+    super::basic::BLAST_SPEC,
+    super::basic::BOILER_SPEC,
+    super::basic::TURBINE_SPEC,
+    super::basic::CRUSHER_SPEC,
+    super::basic::SILO_SPEC,
+    super::basic::ARC_SPEC,
+    super::basic::CELL_SPEC,
 ];
-
-const fn inlet(side: Side) -> Port {
-    Port { side, role: Role::In, cell: Which::All }
-}
-
-const OUT_FRONT: Port = Port { side: Side::Front, role: Role::Out, cell: Which::All };
-
-/// A boiler's ports: on each of the back, left and right a belt inlet for fuel and, on the other cell of the
-/// side, a pipe inlet for water (alternating round the corners); two steam outlets on the front.
-const BOILER_PORTS: [Port; 7] = [
-    Port { side: Side::Back, role: Role::In, cell: Which::Nth(0) },
-    Port { side: Side::Back, role: Role::Water, cell: Which::Nth(1) },
-    Port { side: Side::Left, role: Role::In, cell: Which::Nth(0) },
-    Port { side: Side::Left, role: Role::Water, cell: Which::Nth(1) },
-    Port { side: Side::Right, role: Role::In, cell: Which::Nth(1) },
-    Port { side: Side::Right, role: Role::Water, cell: Which::Nth(0) },
-    Port { side: Side::Front, role: Role::Steam, cell: Which::All },
-];
-
-/// A turbine's steam inlets: both cells of its right end (the end opposite the generator).
-const TURBINE_PORTS: [Port; 1] = [Port { side: Side::Right, role: Role::Steam, cell: Which::All }];
 
 /// The spec of the processor `block` is, if it is one.
 pub fn spec(block: BlockId) -> Option<&'static ProcessSpec> {

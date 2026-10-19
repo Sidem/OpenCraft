@@ -12,7 +12,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 (`scripts/check-map.mjs` enforces the core list).
 
 ### Facade and API
-- `lib.rs`: `Game` (core `sim`, local player, co-op role, bodies, view state), `update` per frame, `run_tick` at 60 Hz, `act`.
+- `lib.rs`: `Game` (core `sim`, local player, co-op role, bodies, view state), `run_tick` at 60 Hz, `act`. `frame.rs`: `update`,
+  one frame (whole ticks, then camera, targeting, instances).
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content` (names, icons, getters),
   `hud`, `sites`, `save`, `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `opening`, `blueprint`,
@@ -30,8 +31,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `deposits.rs`: deposit pools, tiers, draw caps, taper, `HAND_YIELD`. `daytime.rs`: time of day and sunlight from the tick.
 - `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks. `equipment.rs`: worn gear, packs. `tools.rs`: tool tiers.
 - `crafting.rs`: the hand-craft queue. `perks.rs`: `player_bonus` (techs plus gear). `mode.rs`: normal or creative.
-- `research.rs`: `Tech`, `Unlock`, `Research`. `research/`: tech tables by era (`techs.rs` first, `later.rs` is the open end),
-  `queue.rs`, `bonus.rs` (endless techs).
+- `research.rs`: `Tech`, `Unlock`, `Research`. `research/`: tech tables by era (`techs.rs` first, then `electronics.rs`;
+  `later.rs` is the open end), `queue.rs`, `bonus.rs` (endless techs).
 - `ghosts.rs`: planned blocks. `drones/`: construction drones, `earthworks.rs` (terraforming), `cargo/` (cargo routes).
 - `helpers/`: jetpack, personal drone, hover pack. `blueprint/mod.rs`: blueprint data and bytes.
 - `satellites.rs`: satellites in orbit. `pods.rs`: drop pods in flight. `opening.rs`: a new world's opening scene.
@@ -40,8 +41,9 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `hints.rs`: onboarding tips (read-only checks on the core).
 
 ### Factory (core): `factory/`
-- `mod.rs`: `Factory` (a `Vec` per kind, cell index, `update` = one tick). `table.rs`: `Kind`, `MACHINES`. `machine.rs`: the
-  `Machine` trait. `state.rs`: bytes of every list. `tiers.rs`: tier families. `upgrades.rs`: kits, in-place upgrades.
+- `mod.rs`: `Factory` (a `Vec` per kind, cell index, place, remove). `tick.rs`: `update`, one tick. `table.rs`: `Kind`,
+  `MACHINES`. `machine.rs`: the `Machine` trait. `state.rs`: bytes of every list. `tiers.rs`: tier families.
+  `upgrades.rs`: kits, in-place upgrades.
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `belt_shape.rs` (ramps, lifts), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
 - Extraction: `miner.rs` (+ `miner_model.rs`), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
@@ -49,8 +51,8 @@ local player's hands, presentation, then the **deterministic core**, which never
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs`, `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
-- `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`); `mod.rs`,
-  `work.rs` (the loop), `state.rs` (bytes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `shape.rs`,
+- `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
+  machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `shape.rs`,
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
@@ -59,12 +61,13 @@ local player's hands, presentation, then the **deterministic core**, which never
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
-- `block/`: `mod.rs` (ids, `DEFS`), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` (texture layers),
-  `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`, `decor.rs`; `ores.rs`.
+- `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
+  `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
+  `decor.rs`; `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
-- `recipes/`: `mod.rs` (`RECIPES`, hand), `machine.rs` (`MACHINE_RECIPES`, `FUELS`), `rows.rs` (row indices), `tiers.rs`,
-  `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs` (build menu), `recycling.rs` (coin values); one file per era or set:
-  `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
+- `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
+  Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
+  `menu_order.rs` (build menu), `recycling.rs` (coin values); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`.
 - `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
@@ -73,7 +76,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `chunk.rs` (32³ storage), `world/mod.rs` (loaded chunks, `*_anywhere` accessors for core code), `world/streaming.rs`
   (generate and mesh queues), `world/boxlight.rs` (light for box-drawn things).
 - `worldgen/mod.rs`: heights, caves, trees, `generate`, generator versions (pinned by `released_versions_never_change`).
-  `biome.rs`, `landform.rs`, `caves.rs`, `water.rs` (sea, ponds), `rivers.rs` + `rivers/` (course, seg), `shore.rs`,
+  `column.rs` (per-column data), `biome.rs`, `landform.rs`, `caves.rs`, `water.rs` (sea, ponds), `rivers.rs` + `rivers/` (course, seg), `shore.rs`,
   `trees.rs` (species), `geology.rs` + `strata.rs` + `ore.rs` (deposit seeding), `bearing.rs`, `ruins.rs`, `logbook.rs`.
 - `noise.rs`: Perlin and fBm. `light.rs`: sky and block light while meshing (render cache only).
 
@@ -102,11 +105,12 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
-- `main.ts`: bootstrap, frame loop (`advance`, `frame`). `input.ts`: keys and mouse, one-shot `Action`s.
-  `controls/view.ts`: perspective input. `base.css`: theme and shared classes. `patch-notes.md`: "What's new".
+- `main.ts`: bootstrap, frame loop (`advance`, `frame`). `pause.ts`: play, pause, pointer lock, Escape. `input.ts`: keys
+  and mouse, one-shot `Action`s. `controls/view.ts`: perspective input. `base.css`: theme and shared classes.
+  `patch-notes.md`: "What's new".
 - `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes),
-  `water.ts`, `outlines.ts`, `precip.ts` (rain, snow), `sky.ts` + `sky/` (stars, weather, clouds, wet ground),
-  `art-pack.ts` (merges the 128 px pack from `art/`), `gl.ts`, `mat4.ts`.
+  `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
+  `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
   `ambience.ts` + `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`,
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
@@ -145,7 +149,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 Balance numbers are named constants atop their module; grep the name for the value.
 - Ticks and co-op: `TICK_RATE` (`lib.rs`), `INPUT_DELAY`, `CHECKSUM_TICKS` (`net/mod.rs`), `MAX_PLAYERS` (`authority.rs`).
 - Mining: `HAND_YIELD`, taper (`deposits.rs`), tool tiers (`tools.rs`), `MINER_TIERS` (`factory/miner.rs`).
-- Machines: `MACHINES` (`factory/table.rs`), `SPECS` tiers and buffers (`factory/process/specs.rs`), `MACHINE_RECIPES`,
+- Machines: `MACHINES` (`factory/table.rs`), `SPECS` tiers and buffers (`factory/process/basic.rs`, machine files), `MACHINE_RECIPES`,
   `FUELS` (`recipes/machine.rs`), `BELT_TIERS` (`factory/belt.rs`), `POLE_TIERS`, `GENERATOR_TIERS`, `LAB_TIERS`,
   `BOX_SLOTS`, `QUARRY_TIERS`, `PUMP_TIERS` (their `factory/` files).
 - Research: `TECHS` (`research/techs.rs` and the era files). Hand recipes: `RECIPES` (`recipes/mod.rs`).

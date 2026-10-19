@@ -9,14 +9,14 @@ constant in `item/later.rs`, layers `tex::COUNT` (`block/tex.rs`), techs `TECHS.
 ## How to add…
 
 **A block.** `block/mod.rs` (or a set's own file, like `block/decor.rs`): append an id constant (never
-renumber), add a `DEFS` row (`cube`, `ore` or `machine` helper from `make.rs`). New look: a `tex` constant
+renumber), add a `DEFS` row in `block/defs.rs` (`cube`, `ore` or `machine` helper from `make.rs`). New look: a `tex` constant
 (`block/tex.rs`), a painter arm in that set's `textures/<set>.rs` `pixel`, and a request line in
 `docs/ART_HANDOVER.md`. Placeable blocks work at once; worldgen use goes in `worldgen/`.
 
 **An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
 and a row in `item.rs` `EXTRA`, and a model in `item_models/` (a test asks every non-block item for one).
-A recipe is a row in `recipes/mod.rs` or its era's file (its `group` picks the build-menu section). To lock it
-behind research, list `Unlock::Recipe(item)` in a tech's `unlocks`. A machine recipe is a row in the last
+A hand recipe is a `pub const` in its era's file under `recipes/`, named in `RECIPES` (`recipes/mod.rs`); its
+`group` picks the build-menu section. To lock it behind research, list `Unlock::Recipe(item)` in a tech's `unlocks`. A machine recipe is a row in the last
 table joined into `MACHINE_RECIPES` (`recipes/machine.rs`), with its category (lock:
 `Unlock::MachineRecipe(index)`). The content lint (`recipes/tests.rs`, `research/tests.rs`) says what is
 missing: a source, a use, a machine.
@@ -26,8 +26,9 @@ prerequisites by index, packs per unit, units, seconds, what it unlocks. The res
 menu follow. A new science pack: an item, a hand recipe and an entry in `PACKS` (labs get a slot for it).
 
 **A processor** (anything that turns inputs into outputs: assembler, furnace, crusher): a `ProcessSpec` row
-in `factory/process/specs.rs` (categories, energy, pick, buffers, tiers, footprint and ports, model parts), a `MACHINES` row of
-`Kind::Process` for its block, the block (`machine(...)` in `block/mod.rs`), a hand recipe, and its family
+(categories, energy, pick, buffers, tiers, footprint and ports, model parts) in `factory/process/basic.rs` or its
+own file, named in `SPECS` (`specs.rs`), a `MACHINES` row of
+`Kind::Process` for its block, the block (`machine(...)` in `block/defs.rs`), a hand recipe, and its family
 in `factory/tiers.rs` if it has tiers. No new code unless it needs new behaviour (then in `process/`: the
 boiler, turbine and silo are `Energy::Boiler`, `Energy::Turbine` and `Pick::Store` rows with their code in
 `process/steam.rs`; the crusher is a plain 1×1 row with `Category::Crushing`).

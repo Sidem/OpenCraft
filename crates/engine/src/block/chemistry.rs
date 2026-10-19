@@ -1,5 +1,5 @@
 //! Block ids of Milestone 10's machines: the pumpjack, refinery, cracker, chemical plant, diesel generator, electrolyser
-//! and washer, the tailings block it leaves, the research center, the water wheel, the hoist shaft and winch, the centrifuge and the reactor. Definitions: the `DEFS` rows in `mod.rs`; their processors: `factory/process/`.
+//! and washer, the tailings block it leaves, the research center, the water wheel, the hoist shaft and winch, the centrifuge and the reactor. Definitions: the `DEFS` rows in `defs.rs`; their processors: `factory/process/`.
 
 use super::BlockId;
 

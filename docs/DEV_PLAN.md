@@ -206,6 +206,8 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 - **2026-10-19: docs restructure.** The session-start read went from about 188 KB to under 48 KB: `CODEMAP.md` is an
   index (detail lives in module headers), decisions moved to `docs/DECISIONS.md`, finished work to `docs/history/`,
   stale sections dropped from this plan and `WORKFLOW.md`. `npm run check` gained byte budgets for docs and
-  `scripts/check-map.mjs` (map paths exist, every module is mapped, the core reads no presentation).
+  `scripts/check-map.mjs` (map paths exist, every module is mapped, the core reads no presentation). Then the 12 source
+  files over 400 lines were split along their seams (table rows into set or era files, `frame.rs`, `factory/tick.rs`,
+  `pause.ts`, overlays into `outlines.ts`), no behaviour change.
 - **2026-10-18:** real 3D item models, the water rework (smooth surfaces, still, flowing, rapid and falling water),
   per-block texture turning, and the realistic art batches (records in `docs/history/CHANGELOG_R.md`).

@@ -7,6 +7,7 @@ use crate::block::{self, BLOCK_COUNT};
 use crate::factory::tiers::{Family, FAMILIES};
 use crate::factory::{Kind, ProcessSpec, SPECS};
 use crate::item;
+use crate::item::{COPPER_INGOT, COPPER_WIRE, IRON_INGOT, IRON_PLATE, IRON_ROD};
 use crate::research::{pack_slot, Research, Unlock};
 use crate::tools;
 use Category::{

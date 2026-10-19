@@ -22,8 +22,9 @@
 use crate::action::Action;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::Items;
+use crate::frame::MAX_TICKS_PER_FRAME;
 use crate::sim::{PlayerId, Sim};
-use crate::{Game, MAX_TICKS_PER_FRAME};
+use crate::Game;
 use items::ItemView;
 use players::Relay;
 

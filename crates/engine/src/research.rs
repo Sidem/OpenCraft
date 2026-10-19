@@ -17,6 +17,7 @@ mod bonus;
 mod chemistry;
 mod compute;
 mod distance;
+mod electronics;
 mod hands;
 mod later;
 mod orbit;

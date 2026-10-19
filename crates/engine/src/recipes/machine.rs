@@ -12,6 +12,7 @@
 
 use super::automate::AUTOMATE;
 use super::decor::DECOR;
+use super::machine_later::LATER;
 use super::orbit::ORBIT;
 use super::refit::REFIT;
 use super::rows::*;
@@ -21,13 +22,9 @@ use crate::item::{
     ItemId, COPPER_INGOT, COPPER_WIRE, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR, QUICKLIME,
     RED_PACK, SCREW, STEEL_BEAM, STEEL_INGOT, STEEL_PLATE,
 };
-use crate::item::{ACID_CANISTER, HYDROGEN_CANISTER, LUBRICANT_CANISTER, OXYGEN_CANISTER, PLASTIC};
 use crate::item::{ACTUATOR, DRONE, DRONE_CELL, GUIDANCE_MODULE, PROCESSOR, SERVO};
-use crate::item::{AI_ACCELERATOR, PURE_WATER_CANISTER, WAFER};
-use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE, EMPTY_CANISTER};
+use crate::item::{ALUMINIUM_INGOT, ALUMINIUM_PLATE, BATTERY, CARGO_DRONE, CRUSHED_BAUXITE};
 use crate::item::{BLUE_KIT, BLUE_PACK, CIRCUIT, CRUSHED_COPPER, CRUSHED_IRON, SILICON, VIOLET_KIT, VIOLET_PACK};
-use crate::item::{CRUDE_CANISTER, DIESEL_CANISTER, HEAVY_OIL_CANISTER, NAPHTHA_CANISTER, SULFUR};
-use crate::item::{FUEL_CELL, GOLD_KIT, GOLD_PACK, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON};
 use crate::join::join;
 
 /// A kind of machine work.
@@ -78,20 +75,17 @@ pub struct MachineRecipe {
     pub seconds: f64,
 }
 
-use Category::{
-    Arc, Assembly, Blasting, Chemistry, Cracking, Crushing, Distilling, Electrolysis, Enrichment, Fabrication,
-    Pressing, Smelting, Splitting, Washing,
-};
+use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelting};
 
-/// Every machine recipe: the main table, then Milestone 12's (`orbit.rs`), the automated buildings' (`automate.rs`) and the
-/// upgrader's, one per tier (`refit.rs`). Saved machines hold row indices, so rows only ever go on the end: a new table
-/// joins after the last one (a tier or family added to `refit.rs` later goes in a table of its own too, as the upgrader's
-/// rows are derived from `FAMILIES`, and a test asks that every tier has one). The ruins' salvage row (`scrap.rs`) follows;
-/// the decor set's rows (`decor.rs`) are last.
+/// Every machine recipe: the main table (here, then Milestones 10 and 11's in `machine_later.rs`), then Milestone 12's
+/// (`orbit.rs`), the automated buildings' (`automate.rs`) and the upgrader's, one per tier (`refit.rs`). Saved machines
+/// hold row indices, so rows only ever go on the end: a new table joins after the last one (a tier or family added to
+/// `refit.rs` later goes in a table of its own too, as the upgrader's rows are derived from `FAMILIES`, and a test asks
+/// that every tier has one). The ruins' salvage row (`scrap.rs`) follows; the decor set's rows (`decor.rs`) are last.
 pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
     MachineRecipe,
-    { MAIN.len() + ORBIT.len() + AUTOMATE.len() + REFIT.len() + SCRAP.len() + DECOR.len() },
->(&[MAIN, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR]);
+    { MAIN.len() + LATER.len() + ORBIT.len() + AUTOMATE.len() + REFIT.len() + SCRAP.len() + DECOR.len() },
+>(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -255,130 +249,6 @@ const MAIN: &[MachineRecipe] = &[
         inputs: &[(DRONE, 1), (ALUMINIUM_PLATE, 4), (BATTERY, 2)],
         outputs: &[(CARGO_DRONE, 1)],
         seconds: 30.0,
-    },
-    MachineRecipe { category: Pressing, inputs: &[(STEEL_PLATE, 1)], outputs: &[(EMPTY_CANISTER, 2)], seconds: 1.5 },
-    // Distil and Crack pour a canister's oil into another, so the shells go through: 3 in, 3 out, and 2 in, 2 out.
-    MachineRecipe {
-        category: Distilling,
-        inputs: &[(CRUDE_CANISTER, 3)],
-        outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1), (HEAVY_OIL_CANISTER, 1), (SULFUR, 1)],
-        seconds: 6.0,
-    },
-    MachineRecipe {
-        category: Cracking,
-        inputs: &[(HEAVY_OIL_CANISTER, 2)],
-        outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1)],
-        seconds: 4.0,
-    },
-    // The chemical plant: plastic gives its two naphtha canisters' shells back (byproduct), acid and lubricant fill one.
-    MachineRecipe {
-        category: Chemistry,
-        inputs: &[(NAPHTHA_CANISTER, 2), (b(COAL_ORE), 1)],
-        outputs: &[(PLASTIC, 4), (EMPTY_CANISTER, 2)],
-        seconds: 4.0,
-    },
-    MachineRecipe {
-        category: Chemistry,
-        inputs: &[(SULFUR, 1), (EMPTY_CANISTER, 1)],
-        outputs: &[(ACID_CANISTER, 1)],
-        seconds: 3.0,
-    },
-    MachineRecipe {
-        category: Chemistry,
-        inputs: &[(HEAVY_OIL_CANISTER, 1), (EMPTY_CANISTER, 1)],
-        outputs: &[(LUBRICANT_CANISTER, 2)],
-        seconds: 3.0,
-    },
-    // The electrolyser splits two units of water into three canisters of gas (three empties in, three out).
-    MachineRecipe {
-        category: Splitting,
-        inputs: &[(EMPTY_CANISTER, 3)],
-        outputs: &[(HYDROGEN_CANISTER, 2), (OXYGEN_CANISTER, 1)],
-        seconds: 6.0,
-    },
-    // The washer takes only crushed ore: 3 crushed + 1 water → 4 washed + 1 tailings (the crusher stays the first step).
-    MachineRecipe {
-        category: Washing,
-        inputs: &[(CRUSHED_IRON, 3)],
-        outputs: &[(WASHED_IRON, 4), (b(TAILINGS), 1)],
-        seconds: 3.0,
-    },
-    MachineRecipe {
-        category: Washing,
-        inputs: &[(CRUSHED_COPPER, 3)],
-        outputs: &[(WASHED_COPPER, 4), (b(TAILINGS), 1)],
-        seconds: 3.0,
-    },
-    MachineRecipe {
-        category: Washing,
-        inputs: &[(CRUSHED_BAUXITE, 3)],
-        outputs: &[(WASHED_BAUXITE, 4), (b(TAILINGS), 1)],
-        seconds: 3.0,
-    },
-    MachineRecipe { category: Smelting, inputs: &[(WASHED_IRON, 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
-    MachineRecipe { category: Smelting, inputs: &[(WASHED_COPPER, 1)], outputs: &[(COPPER_INGOT, 1)], seconds: 1.5 },
-    MachineRecipe {
-        category: Electrolysis,
-        inputs: &[(WASHED_BAUXITE, 2), (QUICKLIME, 1)],
-        outputs: &[(ALUMINIUM_INGOT, 1), (b(SLAG), 1)],
-        seconds: 6.0,
-    },
-    MachineRecipe { category: Crushing, inputs: &[(b(TAILINGS), 1)], outputs: &[(b(SAND), 1)], seconds: 1.0 },
-    // The centrifuge: four uranium ore and a steel casing make a fuel cell (2 MW for 150 s in a reactor).
-    MachineRecipe {
-        category: Enrichment,
-        inputs: &[(b(URANIUM_ORE), 4), (STEEL_PLATE, 1)],
-        outputs: &[(FUEL_CELL, 1)],
-        seconds: 10.0,
-    },
-    // Gold science (assembler only): the pack of the chemical era, and the kit that makes Mk5.
-    MachineRecipe {
-        category: Assembly,
-        inputs: &[(PLASTIC, 1), (BATTERY, 1), (PROCESSOR, 1)],
-        outputs: &[(GOLD_PACK, 2)],
-        seconds: 20.0,
-    },
-    MachineRecipe {
-        category: Assembly,
-        inputs: &[(PROCESSOR, 1), (ALUMINIUM_PLATE, 2), (PLASTIC, 1)],
-        outputs: &[(GOLD_KIT, 4)],
-        seconds: 5.0,
-    },
-    // The blast furnace on crushed ore (Ore Crushing): one crushed ore for one, like the smelter, so an ore gives steel
-    // at 1.5 times the raw rate.
-    MachineRecipe {
-        category: Blasting,
-        inputs: &[(CRUSHED_IRON, 2), (b(COAL_ORE), 1), (QUICKLIME, 1)],
-        outputs: &[(STEEL_INGOT, 1), (b(SLAG), 1)],
-        seconds: 4.0,
-    },
-    // Washed iron, the same two for one (Ore Washing).
-    MachineRecipe {
-        category: Blasting,
-        inputs: &[(WASHED_IRON, 2), (b(COAL_ORE), 1), (QUICKLIME, 1)],
-        outputs: &[(STEEL_INGOT, 1), (b(SLAG), 1)],
-        seconds: 4.0,
-    },
-    // Compute (Wafers): ultra-pure water is filled in the chemical plant (two units of piped water and a sand to
-    // filter them), the chip fab etches a wafer from silicon, acid and pure water and gives both shells back, then
-    // builds an AI accelerator from wafers, processors and plastic.
-    MachineRecipe {
-        category: Chemistry,
-        inputs: &[(EMPTY_CANISTER, 1), (b(SAND), 1)],
-        outputs: &[(PURE_WATER_CANISTER, 1)],
-        seconds: 3.0,
-    },
-    MachineRecipe {
-        category: Fabrication,
-        inputs: &[(SILICON, 2), (ACID_CANISTER, 1), (PURE_WATER_CANISTER, 1)],
-        outputs: &[(WAFER, 1), (EMPTY_CANISTER, 2)],
-        seconds: 8.0,
-    },
-    MachineRecipe {
-        category: Fabrication,
-        inputs: &[(WAFER, 2), (PROCESSOR, 2), (PLASTIC, 1)],
-        outputs: &[(AI_ACCELERATOR, 1)],
-        seconds: 20.0,
     },
 ];
 

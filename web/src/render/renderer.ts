@@ -1,15 +1,14 @@
 // WebGL2 world renderer: the sky (sky.ts: day, night and weather), chunk meshes (opaque then cutout pass,
 // frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), water (water.ts:
-// blended, last, and the underwater fog), and the target
-// outline; overlays from outlines.ts: mining cracks (the player's and quarries'), a dragged belt line, quarry boxes.
+// blended, last, and the underwater fog), then the overlays (outlines.ts: mining cracks, the target outline, a dragged
+// belt line, placement boxes).
 // Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
 
 import { BoxPipeline } from './boxes';
-import { boxEdges, cubeVertices } from './geometry';
 import { createProgram, uniforms } from './gl';
 import { PrecipPass } from './precip';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
-import { drawBoxes, drawCracks, drawLineCells } from './outlines';
+import { Overlays } from './outlines';
 import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
 import { skyFrame } from './sky/astro';
@@ -83,14 +82,11 @@ export class Renderer {
 
   private readonly opaque;
   private readonly cutout;
-  private readonly line;
-  private readonly crack;
 
-  private readonly cubeVao: WebGLVertexArrayObject;
   private readonly boxes: BoxPipeline;
   private readonly sky: SkyPass;
   private readonly water: WaterPass;
-  private readonly lineVao: WebGLVertexArrayObject;
+  private readonly overlays: Overlays;
 
   private readonly proj = new Float32Array(16);
   private readonly view = new Float32Array(16);
@@ -115,40 +111,18 @@ export class Renderer {
     const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
-    const lineProg = createProgram(gl, S.lineVert, S.lineFrag);
-    const crackProg = createProgram(gl, S.crackVert, S.crackFrag);
     this.opaque = { prog: opaqueProg, u: uniforms(gl, opaqueProg, lit) };
     this.cutout = { prog: cutoutProg, u: uniforms(gl, cutoutProg, lit) };
-    this.line = { prog: lineProg, u: uniforms(gl, lineProg, ['u_viewProj', 'u_offset', 'u_scale', 'u_color'] as const) };
-    this.crack = { prog: crackProg, u: uniforms(gl, crackProg, ['u_viewProj', 'u_offset', 'u_progress'] as const) };
 
     this.quadIndex = gl.createBuffer()!;
     this.ensureQuadCapacity(1 << 15);
-
-    // Cube geometry for the mining-crack overlay.
-    const cube = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, cube);
-    gl.bufferData(gl.ARRAY_BUFFER, cubeVertices(), gl.STATIC_DRAW);
-    this.cubeVao = gl.createVertexArray()!;
-    gl.bindVertexArray(this.cubeVao);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 28, 0);
-    gl.enableVertexAttribArray(1);
-    gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 28, 12);
 
     this.boxes = new BoxPipeline(gl, instanceFloats);
     this.sky = new SkyPass(gl);
     this.water = new WaterPass(gl);
     this.precip = new PrecipPass(gl);
 
-    this.lineVao = gl.createVertexArray()!;
-    gl.bindVertexArray(this.lineVao);
-    const lines = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, lines);
-    gl.bufferData(gl.ARRAY_BUFFER, boxEdges(), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-    gl.bindVertexArray(null);
+    this.overlays = new Overlays(gl);
   }
 
   setViewRadius(r: number): void {
@@ -357,37 +331,7 @@ export class Renderer {
     quads += waterQuads;
     if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now);
 
-    const eye: [number, number, number] = [ex, ey, ez];
-    drawCalls += drawCracks(gl, this.crack, this.cubeVao, this.viewProj, f.cracks, eye);
-    if (f.target) {
-      const [tx, ty, tz] = f.target;
-      const ox = tx - ex, oy = ty - ey, oz = tz - ez;
-      if (f.mineProgress > 0) {
-        const own = new Int32Array([tx, ty, tz, Math.round(f.mineProgress * 1000)]);
-        drawCalls += drawCracks(gl, this.crack, this.cubeVao, this.viewProj, own, eye);
-      }
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-      gl.depthMask(false);
-      gl.useProgram(this.line.prog);
-      gl.uniformMatrix4fv(this.line.u.u_viewProj, false, this.viewProj);
-      const fit = f.targetFit;
-      if (fit.length === 6) {
-        gl.uniform3f(this.line.u.u_offset, ox + fit[0], oy + fit[1], oz + fit[2]);
-        gl.uniform3f(this.line.u.u_scale, fit[3], fit[4], fit[5]);
-      } else {
-        gl.uniform3f(this.line.u.u_offset, ox, oy, oz);
-        gl.uniform3f(this.line.u.u_scale, 1, 1, 1);
-      }
-      gl.uniform4f(this.line.u.u_color, 0.05, 0.05, 0.08, 0.6);
-      gl.bindVertexArray(this.lineVao);
-      gl.drawArrays(gl.LINES, 0, 24);
-      gl.depthMask(true);
-      gl.disable(gl.BLEND);
-      drawCalls++;
-    }
-    drawCalls += drawLineCells(gl, this.line, this.lineVao, this.viewProj, f.lineCells, eye);
-    drawCalls += drawBoxes(gl, this.line, this.lineVao, this.viewProj, f.quarryBoxes, eye);
+    drawCalls += this.overlays.draw(this.viewProj, f, [ex, ey, ez]);
     gl.bindVertexArray(null);
 
     this.stats.meshes = this.meshes.size;

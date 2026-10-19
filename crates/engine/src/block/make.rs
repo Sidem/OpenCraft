@@ -1,4 +1,4 @@
-//! Constructors for the rows of `DEFS` (`mod.rs`): a block's faces (`all`, `pillar`) and its kinds (`cube`, `ore`,
+//! Constructors for the rows of `DEFS` (`defs.rs`): a block's faces (`all`, `pillar`) and its kinds (`cube`, `ore`,
 //! `machine`, `frame`, `liquid`). To add a kind of block: a constructor here.
 
 use super::{sound, tex, BlockDef, BlockId, Render, AIR};
