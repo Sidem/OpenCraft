@@ -10,7 +10,8 @@
 //! map records are in world columns.
 //!
 //! To mark another machine kind: a line in `Factory::map_machines` and a colour in `machine_color`
-//! (processors: `map_colour` in their spec).
+//! (processors: `map_colour` in their spec). Every mark is a `Subject`; a new shape constant needs a variant
+//! and its words in `describe.rs` (a test fails without them).
 
 use crate::block::{self, BlockId};
 use crate::chunk::CHUNK_SHIFT;
@@ -38,7 +39,7 @@ pub const MARK_GUESS: i32 = 4;
 pub const MARK_COVER: i32 = 8;
 /// A long-distance pole's reach while one is held (`power_tools/long_pole.rs`): the third number is the reach in blocks.
 pub const MARK_RANGE: i32 = 12;
-/// A pod launcher or landing pad: this plus its channel (0 north, 1 east, 2 south, 3 west) as the shape, in its colour.
+/// A landing pad (a square); this plus 1 is a pod launcher (a square with an arrow up). Drawn in its channel's colour.
 pub const MARK_CHANNEL: i32 = 16;
 /// A launch site (a rocket shape), in its colour.
 pub const MARK_LAUNCH: i32 = 20;
@@ -101,6 +102,76 @@ impl Known {
     }
 }
 
+/// What a mark stands for. Every mark is built from one, so what the maps draw (`shape`, `colour`) and what hovering
+/// says (`describe.rs`) cannot differ. Add a variant with its shape constant, and `describe.rs` must explain it.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum Subject {
+    Deposit {
+        ore: BlockId,
+        tier: Tier,
+    },
+    Ore(BlockId),
+    /// An AI survey guess; `strength` is 1 to 3.
+    Guess {
+        ore: BlockId,
+        strength: u8,
+    },
+    /// A terraforming site of this job (`Job as u8`).
+    Site {
+        job: u8,
+    },
+    Machine(BlockId),
+    Launch,
+    Pod {
+        launcher: bool,
+        channel: u8,
+    },
+    /// A satellite footprint of this kind (`satellites::KINDS`) reaching this far.
+    Cover {
+        kind: u8,
+        reach: i32,
+    },
+    Range {
+        reach: i32,
+    },
+    /// A town of this kind (`KINDS`) in this state (`TOWN_STATES`).
+    Town {
+        kind: u8,
+        state: u8,
+    },
+}
+
+impl Subject {
+    /// The shape the host draws (`MARK_*`).
+    pub fn shape(self) -> i32 {
+        match self {
+            Subject::Deposit { .. } => MARK_DEPOSIT,
+            Subject::Ore(_) => MARK_ORE,
+            Subject::Guess { strength, .. } => MARK_GUESS + i32::from(strength) - 1,
+            Subject::Site { .. } => MARK_SITE,
+            Subject::Machine(_) => MARK_MACHINE,
+            Subject::Launch => MARK_LAUNCH,
+            Subject::Pod { launcher, .. } => MARK_CHANNEL + i32::from(launcher),
+            Subject::Cover { kind, .. } => MARK_COVER + i32::from(kind),
+            Subject::Range { .. } => MARK_RANGE,
+            Subject::Town { state, .. } => MARK_TOWN + i32::from(state),
+        }
+    }
+
+    /// The third number of the mark: its colour (0xRRGGBB), or the reach in blocks for a footprint or a pole's ring.
+    pub fn colour(self) -> i32 {
+        match self {
+            Subject::Deposit { ore, .. } | Subject::Ore(ore) | Subject::Guess { ore, .. } => ore_color(ore),
+            Subject::Site { job } => SITE_COLOURS[usize::from(job)],
+            Subject::Machine(block) => machine_color(block),
+            Subject::Launch => machine_color(block::LAUNCH_SITE),
+            Subject::Pod { channel, .. } => factory::channel_colour(channel) as i32,
+            Subject::Cover { reach, .. } | Subject::Range { reach } => reach,
+            Subject::Town { kind, .. } => KINDS[usize::from(kind)].colour,
+        }
+    }
+}
+
 impl Minimap {
     /// Marks inside the minimap image (`MARK_FIELDS` numbers each), relative to its centre column.
     /// Empty before the first redraw.
@@ -109,10 +180,7 @@ impl Minimap {
         self.marks_in(factory, towns, (cx - HALF, cz - HALF), (cx + HALF - 1, cz + HALF - 1), (cx, cz), ranges)
     }
 
-    /// Marks for columns `lo..=hi` (x, z), relative to column `origin`: satellite footprints, with `ranges` every
-    /// long-distance pole's reach, survey guesses, ore seen at the surface, then remembered deposits and those survey
-    /// satellites saw (both while they hold ore), then terraforming sites, then machines (pod launchers and pads last,
-    /// with their channel), then towns (in place of their depots).
+    /// The flat records of `each_mark`, relative to column `origin`.
     pub fn marks_in(
         &self,
         factory: &Factory,
@@ -122,61 +190,77 @@ impl Minimap {
         origin: (i32, i32),
         ranges: bool,
     ) -> Vec<i32> {
-        let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
-        let (ox, oz) = origin;
         let mut out = Vec::new();
+        self.each_mark(factory, towns, lo, hi, ranges, &mut |x, z, s| {
+            out.extend_from_slice(&[x - origin.0, z - origin.1, s.colour(), s.shape()]);
+        });
+        out
+    }
+
+    /// Calls `f` with the column and subject of every mark for columns `lo..=hi` (x, z): satellite footprints, with
+    /// `ranges` every long-distance pole's reach, survey guesses, ore seen at the surface, then remembered deposits and
+    /// those survey satellites saw (both while they hold ore), then terraforming sites, then machines (pod launchers and
+    /// pads last, with their channel), then towns (in place of their depots).
+    pub(super) fn each_mark(
+        &self,
+        factory: &Factory,
+        towns: &[Town],
+        lo: (i32, i32),
+        hi: (i32, i32),
+        ranges: bool,
+        f: &mut impl FnMut(i32, i32, Subject),
+    ) {
+        let inside = |p: IVec3| (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z);
         let (mid, half) = (((lo.0 + hi.0) / 2, (lo.1 + hi.1) / 2), (hi.0 - lo.0).max(hi.1 - lo.1) / 2);
         for (x, z, reach, kind) in factory.orbit.footprints(mid.0, mid.1, factory.orbit.now) {
             if (x - mid.0).abs() <= half + reach && (z - mid.1).abs() <= half + reach {
-                out.extend_from_slice(&[x - ox, z - oz, reach, MARK_COVER + kind as i32]);
+                f(x, z, Subject::Cover { kind, reach });
             }
         }
         let reach = factory::LONG_STATS.link;
         for (p, _, _) in factory.charge_poles().filter(|p| ranges && p.2) {
             if (p.x - mid.0).abs() <= half + reach && (p.z - mid.1).abs() <= half + reach {
-                out.extend_from_slice(&[p.x - ox, p.z - oz, reach, MARK_RANGE]);
+                f(p.x, p.z, Subject::Range { reach });
             }
         }
         for g in self.survey.guesses().iter().filter(|g| (lo.0..=hi.0).contains(&g.x) && (lo.1..=hi.1).contains(&g.z)) {
-            out.extend_from_slice(&[g.x - ox, g.z - oz, ore_color(g.ore), MARK_GUESS + g.strength as i32 - 1]);
+            f(g.x, g.z, Subject::Guess { ore: g.ore, strength: g.strength });
         }
         let tiles = ((lo.0 >> CHUNK_SHIFT, lo.1 >> CHUNK_SHIFT), (hi.0 >> CHUNK_SHIFT, hi.1 >> CHUNK_SHIFT));
         self.atlas.each_tile_in(tiles.0, tiles.1, |cx, cz, tile| {
             for &(x, z, ore) in &tile.spots {
                 let p = IVec3::new((cx << CHUNK_SHIFT) + x as i32, 0, (cz << CHUNK_SHIFT) + z as i32);
                 if inside(p) {
-                    out.extend_from_slice(&[p.x - ox, p.z - oz, ore_color(ore), MARK_ORE]);
+                    f(p.x, p.z, Subject::Ore(ore));
                 }
             }
         });
         for d in self.known.deposits.iter().filter(|d| inside(d.center) && !dry(factory, d)) {
-            out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
+            f(d.center.x, d.center.z, Subject::Deposit { ore: d.ore(), tier: d.tier() });
         }
         for d in self.seen.deposits().filter(|d| inside(d.center) && !dry(factory, d) && !self.known.has(&d.key)) {
-            out.extend_from_slice(&[d.center.x - ox, d.center.z - oz, ore_color(d.ore()), MARK_DEPOSIT]);
+            f(d.center.x, d.center.z, Subject::Deposit { ore: d.ore(), tier: d.tier() });
         }
         for s in &factory.sites.list {
             let (x, z) = ((s.lo.0 + s.hi.0) / 2, (s.lo.1 + s.hi.1) / 2);
             if (lo.0..=hi.0).contains(&x) && (lo.1..=hi.1).contains(&z) {
-                out.extend_from_slice(&[x - ox, z - oz, SITE_COLOURS[s.job as usize], MARK_SITE]);
+                f(x, z, Subject::Site { job: s.job as u8 });
             }
         }
         factory.map_machines(lo, hi, &mut |block, p| {
-            let shape = match block {
+            let subject = match block {
                 block::POD_LAUNCHER | block::LANDING_PAD | block::TOWN_DEPOT => return, // drawn below
-                block::LAUNCH_SITE => MARK_LAUNCH,
-                _ => MARK_MACHINE,
+                block::LAUNCH_SITE => Subject::Launch,
+                _ => Subject::Machine(block),
             };
-            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), shape]);
+            f(p.x, p.z, subject);
         });
         for (block, p, channel) in factory.pod_machines().filter(|&(_, p, _)| inside(p)) {
-            out.extend_from_slice(&[p.x - ox, p.z - oz, machine_color(block), MARK_CHANNEL + channel as i32]);
+            f(p.x, p.z, Subject::Pod { launcher: block == block::POD_LAUNCHER, channel });
         }
         for t in towns.iter().filter(|t| inside(t.pos)) {
-            let colour = KINDS[t.kind as usize].colour;
-            out.extend_from_slice(&[t.pos.x - ox, t.pos.z - oz, colour, MARK_TOWN + i32::from(t.state())]);
+            f(t.pos.x, t.pos.z, Subject::Town { kind: t.kind, state: t.state() });
         }
-        out
     }
 }
 

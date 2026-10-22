@@ -79,12 +79,14 @@ mod research;
 mod satellites;
 mod save;
 mod settlements;
+mod sickle;
 mod sim;
 mod site_hands;
 mod sound;
 mod strategy;
 mod surroundings;
 mod survey;
+mod telescope;
 mod textures;
 mod tools;
 mod town_preview;
@@ -178,6 +180,8 @@ pub struct Game {
     library: blueprint::Library,
     /// The planner's corner and the request for the site panel (`site_hands.rs`).
     planner: site_hands::Planner,
+    /// The telescope's zoom, aim and the pins it draws (`telescope.rs`).
+    scope: telescope::Telescope,
     dig_timer: f32,
     step_distance: f64,
     sounds: Sounds,
@@ -258,6 +262,7 @@ impl Game {
             cargo_down: false,
             library: blueprint::Library::default(),
             planner: site_hands::Planner::default(),
+            scope: telescope::Telescope::default(),
             dig_timer: 0.0,
             step_distance: 0.0,
             sounds: Sounds::default(),

@@ -27,6 +27,7 @@ mod ruins;
 mod save;
 mod sites;
 mod surroundings;
+mod telescope;
 mod towns;
 mod view;
 

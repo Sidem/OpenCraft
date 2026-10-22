@@ -33,6 +33,8 @@ pub enum Look {
     Smoke,
     /// A rocket on its pad: drawn only while a batch runs, lifting off in the batch's last stretch (`LIFT_AT`).
     Rocket([u16; 3]),
+    /// A solid mark in the machine's channel colour (a pod launcher or pad: `pods/channels.rs`).
+    Channel,
 }
 
 #[derive(Clone, Copy)]
@@ -109,6 +111,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 at.y -= stroke * share as f64;
                 t
             }
+            Look::Channel => [tex::GRID_FIRST + u16::from(p.channel()); 3],
             Look::Rocket(t) => {
                 let Some(r) = p.batch_recipe().filter(|_| p.batch.is_some()) else { continue };
                 let lift = p.progress / ticks(r.seconds);

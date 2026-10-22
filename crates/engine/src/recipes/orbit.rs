@@ -45,7 +45,7 @@ pub const POD_LAUNCHER_RECIPE: Recipe = Recipe {
     group: Group::Space,
     count: 1,
     inputs: &[(b(CONCRETE), 60), (STEEL_BEAM, 20), (MOTOR, 10), (CIRCUIT, 20)],
-    blurb: "A launch tube, 3×3 and 3 high (R turns it: the way it faces is its channel). Belts bring cargo in, up to 12 \
+    blurb: "A launch tube, 3×3 and 3 high. Right-click it to pick its channel, a colour. Belts bring cargo in, up to 12 \
             stacks, and drop pods. Under a comms satellite, with a landing pad on its channel also under cover, it loads \
             for 15 seconds and sends a pod with up to 6 stacks of cargo, which lands 20 seconds later. Needs 500 kW.",
 };
@@ -55,8 +55,10 @@ pub const LANDING_PAD_RECIPE: Recipe = Recipe {
     group: Group::Space,
     count: 1,
     inputs: &[(b(CONCRETE), 40), (STEEL_BEAM, 10), (CIRCUIT, 20)],
-    blurb: "A target pad, 3×3. Drop pods sent from a pod launcher facing the same way (its channel) come down on the \
-            nearest pad that comms cover, and belts leading away from its sides take the cargo out. Needs no power.",
+    blurb:
+        "A target pad, 3×3. Right-click it to pick its channel, a colour. Drop pods sent from a pod launcher on the \
+            same channel come down on the nearest pad that comms cover, and belts leading away from its sides take the \
+            cargo out. Needs no power.",
 };
 
 /// The rows after the main table: light frame, engine, fuel tank, avionics, rocket fuel, the launch with a survey satellite,

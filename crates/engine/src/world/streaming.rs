@@ -204,7 +204,8 @@ impl World {
             let Some((above, count)) = chunks_above(&self.chunks, &self.air, p) else { return false };
             self.lighting.light(&refs, &std::array::from_fn(|i| &above[i][..count]));
             let biomes = self.generator.biomes(p.x, p.z);
-            let cover = Cover { x0: p.x << CHUNK_SHIFT, z0: p.z << CHUNK_SHIFT, biomes: &biomes };
+            let cleared = self.cleared.rows(p.x, p.z);
+            let cover = Cover { x0: p.x << CHUNK_SHIFT, z0: p.z << CHUNK_SHIFT, biomes: &biomes, cleared };
             self.mesher.mesh(&refs, &self.lighting.pad, Some(&cover))
         };
         self.dirty.remove(&p);

@@ -247,8 +247,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Drop pods (12.4, 2026-10-15): `tex::DROP_POD` (302, a white capsule with a window and a scorched base; the item icon, and the capsule that
   falls onto a pad as boxes in `drone_view.rs`), `POD_SIDE` (303, steel with chevrons over a cyan hazard band), `POD_LAUNCH_TOP` (304, a
   hatch with a dark tube mouth) and `POD_PAD_TOP` (305, a bullseye of cyan and white rings). Pod launcher (block 113, 3×3×3, `process/pods.rs`):
-  a banded plinth, a squat body, a launch tube with a capsule nose, a red mark on its front face (the channel is the way it faces). Landing pad
-  (114, 3×3×1): a plinth and a ringed slab with a red mark on the front edge. The falling capsule is two boxes (capsule and flame); a dust puff
+  a banded plinth, a squat body, a launch tube with a capsule nose, a mark on its front face in its channel's colour (the power-grid accent
+  tiles, `tex::GRID_FIRST`; no layer of its own). Landing pad (114, 3×3×1): a plinth and a ringed slab with a channel-coloured mark on the front edge. The falling capsule is two boxes (capsule and flame); a dust puff
   on touchdown and a rising capsule at launch would suit it (not drawn yet).
   Ground cover (R2a, 2026-10-16, `textures/hires.rs`, layers 306–313; now painted at 64 × 64, tall blades, petals and leaves): `GRASS_TUFT`, `DAISY`, `POPPY`, `BLUEBELL`, `FERN`, `REED`,
   `DRY_BRUSH`, `LICHEN`, plain placeholders on crossed quads (`mesher/cover.rs`; the ground is the texture's bottom row). Shapes before
@@ -351,6 +351,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   windows at night, and its own faces and item icon. Ideally one look that each town kind can tint (harbour, river town,
   highland workshop, basalt forge).
 - [ ] (2026-10-15, landed) The upgrader (block 115, 2x2x2, `factory/process/upgrader.rs`): placeholder look from existing layers only (`tex::ASSEMBLER_SIDE` housing with `tex::STEEL` top, a steel gantry and an iron-plate press that pumps while it works, a status lamp). It wants its own faces (`block/mod.rs` uses `ASSEMBLER_SIDE` and `STEEL`) and a model that reads as "raises a Mk": a tier-stripe band that steps through the colours while it works.
+- [ ] (U2, 2026-10-22, landed) The telescope (item 397, `device(...)` in `item.rs`): its icon is `tex::MAT_BRASS` (a flat brass square) and the held model is `TELESCOPE_MODEL` in `item_models/wear.rs` (three nested tubes, a glass lens, existing layers only). It wants an icon of its own and a nicer model. The view through it is a CSS ring and hairlines (`web/src/ui/scope.css`; wants a real reticle), and the pin columns are flat-coloured boxes (`telescope/beacons.rs`, `boxVert` in `render/shaders.ts`; wants a softer glow and a base ring).
+- [ ] (U3, 2026-10-22, landed) The sickle (item 398, `device(...)` in `item.rs`): its icon is `tex::STEEL` (a flat steel square) and the held model is `SICKLE_MODEL` in `item_models/wear.rs` (a wooden grip, a steel ferrule, a hooked blade of seven small boxes; existing layers only). It wants an icon of its own and a blade that really curves and has an edge. The cut itself has no effect yet: the plants just vanish at the next remesh (wants a small puff of leaves) and the swing plays the dig sound on grass.
 - [ ] (7.5, landed) The sensor (block 74, `Kind::Sensor`): placeholder model in `factory/sensor.rs` (a low circuit-topped housing, a hatch nose each way, a green/red lamp box from `tex::LAMP_GREEN` / `LAMP_RED`); block faces are `tex::FRAME` and `tex::CIRCUIT`. It wants a clearer "eye" on its reading side and an arrow on its switching side.
 
 ## 8. Log

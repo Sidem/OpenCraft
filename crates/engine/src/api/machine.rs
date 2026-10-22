@@ -111,6 +111,31 @@ impl Game {
         self.act(Action::SetFilter { pos: IVec3::new(x, y, z), item: ItemId(item) });
     }
 
+    /// The channel of the pod launcher or landing pad at a position, or -1 if the machine there isn't one.
+    pub fn machine_channel(&self, x: i32, y: i32, z: i32) -> i32 {
+        self.sim.factory.channel_at(IVec3::new(x, y, z)).map_or(-1, i32::from)
+    }
+
+    /// Tunes the pod launcher or landing pad at a position to a channel (next tick).
+    pub fn set_machine_channel(&mut self, x: i32, y: i32, z: i32, channel: u8) {
+        self.act(Action::SetChannel { pos: IVec3::new(x, y, z), channel });
+    }
+
+    /// How many pod channels there are.
+    pub fn channel_count(&self) -> u32 {
+        u32::from(crate::pods::CHANNELS)
+    }
+
+    /// A pod channel's name ("blue").
+    pub fn channel_name(&self, channel: u8) -> String {
+        factory::channel_name(channel).to_string()
+    }
+
+    /// A pod channel's colour as 0xRRGGBB.
+    pub fn channel_colour(&self, channel: u8) -> u32 {
+        factory::channel_colour(channel)
+    }
+
     /// Puts as many of `item` from the inventory into the machine as it takes (next tick).
     pub fn insert_into_machine(&mut self, x: i32, y: i32, z: i32, item: u16) {
         self.act(Action::Insert { pos: IVec3::new(x, y, z), item: ItemId(item) });

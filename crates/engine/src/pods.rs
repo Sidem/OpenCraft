@@ -1,7 +1,7 @@
 //! Drop pods in flight (Milestone 12, step 12.4): core state the factory owns (`Factory::pods`, saved since 46). A pod
 //! launcher (`factory/process/pods.rs`) spends a drop pod item to send a load of cargo up; `FLIGHT_TICKS` later it comes down
 //! on a landing pad, which is where `factory/process/pods.rs` delivers it. Nothing here knows about machines: a pod is
-//! where it left, where it is going, its channel (the facing the launcher and the pads must share), when it lands and what it
+//! where it left, where it is going, its channel (the colour the launcher and the pads must share), when it lands and what it
 //! carries. A pod whose pad is not ready (gone, out of comms cover or full) stays in flight and tries again each tick, so
 //! cargo is never lost while a pad exists; at most `MAX_IN_FLIGHT` are up at once.
 //!
@@ -14,6 +14,8 @@ use crate::math::IVec3;
 #[cfg(test)]
 mod tests;
 
+/// How many channels a launcher or pad can be tuned to: one per colour of the grid palette (`factory/grid_colour.rs`).
+pub const CHANNELS: u8 = crate::block::tex::GRID_COLOURS as u8;
 /// Ticks a pod takes from the launcher to its pad: 20 seconds.
 pub const FLIGHT_TICKS: u64 = 1200;
 /// Pods in the air at once, in all.
@@ -106,7 +108,7 @@ impl Pods {
         }
         let mut pods = Pods::default();
         for _ in 0..n {
-            let (from, to, channel) = (r.ivec3()?, r.ivec3()?, r.u8()? % 4);
+            let (from, to, channel) = (r.ivec3()?, r.ivec3()?, r.u8()? % CHANNELS);
             let (launched, lands) = (r.u64()?, r.u64()?);
             let stacks = r.count()?;
             if stacks > POD_STACKS {

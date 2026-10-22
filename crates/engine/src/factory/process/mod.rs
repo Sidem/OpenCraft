@@ -73,6 +73,7 @@ pub use legacy::{read_constructor, read_smelter};
 pub(super) use nuclear::run as run_reactor;
 pub(super) use optimizer::{bonus_at as optimizer_bonus_at, bonuses as optimizer_bonuses};
 pub(super) use pods::run as run_pods;
+pub use pods::{channel_colour, channel_name};
 pub(super) use rectenna::{run as run_rectenna, sense_sources};
 pub(super) use solar::run as run_renewables;
 use solar::Store;

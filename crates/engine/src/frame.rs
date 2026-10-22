@@ -54,6 +54,7 @@ impl Game {
         } else {
             self.update_target();
         }
+        self.update_scope(dt, self.render_eye);
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();
         self.write_item_instances(dt, eye);
@@ -67,6 +68,7 @@ impl Game {
         self.write_power_preview(eye);
         self.write_rail_preview(eye);
         self.hide_unexplored_instances(eye);
+        self.write_scope_beacons(eye);
         self.write_strategy_fog(eye);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }

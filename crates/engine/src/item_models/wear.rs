@@ -1,15 +1,15 @@
 //! Item models of worn and handheld gear: the jetpack and hover pack, hauler packs, boots, the exo frame, the mining
-//! rig, fabricator gloves and the planner. Packs face the viewer with their outer side (+z), harness straps behind.
+//! rig, fabricator gloves, the planner, the telescope and the sickle. Packs face the viewer with their outer side (+z), harness straps behind.
 //! Add a const and a `parts` row.
 
 use std::f32::consts::FRAC_PI_4;
 
-use super::shapes::{cylinder, Build};
+use super::shapes::{bar_x, cylinder, Build};
 use super::{part, turned, Part};
 use crate::block::tex;
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SPRING_BOOTS,
+    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -35,6 +35,8 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         MINING_RIG => &RIG,
         CRAFT_GLOVES => &GLOVES,
         PLANNER => &TABLET,
+        TELESCOPE => &TELESCOPE_MODEL,
+        SICKLE => &SICKLE_MODEL,
         _ => &[],
     }
 }
@@ -200,6 +202,26 @@ const fn glove(x: f32, inner: f32) -> [Part; 8] {
 
 /// Fabricator gloves: a pair, thumbs inward.
 const GLOVES: [Part; 16] = Build::new().all(glove(-0.2, 1.0)).all(glove(0.2, -1.0)).done();
+
+/// The telescope lying along x: a gunmetal eyepiece, a steel middle draw and a brass objective tube, glass at the far end.
+const TELESCOPE_MODEL: [Part; 10] = Build::new()
+    .all(bar_x([-0.41, 0.0, 0.0], 0.12, 0.14, GUNMETAL))
+    .all(bar_x([-0.2, 0.0, 0.0], 0.3, 0.22, METAL))
+    .all(bar_x([0.18, 0.0, 0.0], 0.5, 0.3, BRASS))
+    .with(part([0.435, 0.0, 0.0], [0.02, 0.24, 0.24], tex::FLASK_GLASS))
+    .done();
+
+/// The sickle standing upright: a wooden grip with a steel ferrule, the blade rising from it and hooking round to the
+/// right (a placeholder crescent made of small boxes).
+const SICKLE_MODEL: [Part; 7] = [
+    part([0.0, -0.15, 0.0], [0.07, 0.55, 0.07], tex::HANDLE),
+    part([0.0, 0.14, 0.0], [0.1, 0.05, 0.1], METAL),
+    part([0.0, 0.2, 0.0], [0.05, 0.1, 0.035], METAL),
+    part([0.06, 0.29, 0.0], [0.11, 0.1, 0.03], METAL),
+    part([0.17, 0.35, 0.0], [0.14, 0.08, 0.03], METAL),
+    part([0.28, 0.31, 0.0], [0.09, 0.1, 0.03], METAL),
+    part([0.32, 0.22, 0.0], [0.04, 0.1, 0.025], METAL),
+];
 
 /// The planner: a gunmetal tablet with a rubber grip, its blueprint screen in front and a stylus at its side.
 const TABLET: [Part; 5] = [

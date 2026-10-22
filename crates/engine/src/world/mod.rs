@@ -1,4 +1,4 @@
-﻿//! Chunk storage and block access: loaded chunks, edited chunks kept while streamed out (`saved`),
+//! Chunk storage and block access: loaded chunks, edited chunks kept while streamed out (`saved`),
 //! and the accessors. Streaming and meshing live in `streaming.rs`; results reach the renderer
 //! through the ordered `events` queue.
 //!
@@ -10,9 +10,12 @@
 //! around unloaded ground don't generate the same chunk over and over.
 
 mod boxlight;
+mod cover_clear;
 mod streaming;
 
 pub use boxlight::DAYLIGHT;
+pub use cover_clear::PATCH_RADIUS;
+use cover_clear::{ClearedCover, COVER_SAVED};
 use std::collections::VecDeque;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -51,6 +54,8 @@ pub struct World {
     generator: WorldGen,
     /// Player-modified chunks that were streamed out; restored instead of regenerated.
     saved: FxHashMap<IVec3, Chunk>,
+    /// Columns whose ground cover the player cut (core state: `cover_clear.rs`).
+    cleared: ClearedCover,
     dirty: FxHashSet<IVec3>,
     gen_queue: Vec<IVec3>,
     mesh_queue: Vec<IVec3>,
@@ -89,6 +94,7 @@ impl World {
             chunks: FxHashMap::default(),
             generator,
             saved: FxHashMap::default(),
+            cleared: ClearedCover::default(),
             dirty: FxHashSet::default(),
             gen_queue: Vec::new(),
             mesh_queue: Vec::new(),
@@ -220,7 +226,7 @@ impl World {
         true
     }
 
-    /// Core state: every edited chunk, loaded or stored, sorted by coordinate (x, y, z).
+    /// Core state: every edited chunk, loaded or stored, sorted by coordinate (x, y, z), then the cleared ground cover.
     pub fn write_state(&self, w: &mut ByteWriter) {
         let loaded = self.chunks.iter().filter(|(_, e)| e.chunk.modified).map(|(&c, e)| (c, &e.chunk));
         let mut edited: Vec<(IVec3, &Chunk)> = loaded.chain(self.saved.iter().map(|(&c, chunk)| (c, chunk))).collect();
@@ -230,10 +236,11 @@ impl World {
             w.ivec3(c);
             chunk.write_state(w);
         }
+        self.cleared.write_state(w);
     }
 
     /// Restores the edited chunks `write_state` wrote, into a world with no edits yet. They go to
-    /// storage and stream in like any edited chunk.
+    /// storage and stream in like any edited chunk. Saves before version 55 have no cleared cover.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         for _ in 0..r.count()? {
             let c = r.ivec3()?;
@@ -243,6 +250,7 @@ impl World {
                 return None;
             }
         }
+        self.cleared = if r.version >= COVER_SAVED { ClearedCover::read_state(r)? } else { ClearedCover::default() };
         Some(())
     }
 
@@ -334,7 +342,7 @@ impl World {
     /// whose blocks differ from this world's is replaced and remeshed with its neighbours; the rest
     /// keep their meshes.
     pub fn adopt_loaded(&mut self, old: World) {
-        let World { chunks, dirty, gen_queue, center, focus, others, observer, view_radius, events, .. } = old;
+        let World { chunks, dirty, gen_queue, center, focus, others, observer, view_radius, events, cleared, .. } = old;
         (self.dirty, self.gen_queue, self.center, self.focus) = (dirty, gen_queue, center, focus);
         (self.others, self.view_radius, self.events) = (others, view_radius, events);
         self.observer = observer;
@@ -366,6 +374,10 @@ impl World {
                 }
             }
         }
+        // A loaded chunk column whose cleared cover differs from the host's redraws its plants.
+        let redraw: Vec<IVec3> =
+            self.chunks.keys().filter(|p| cleared.rows(p.x, p.z) != self.cleared.rows(p.x, p.z)).copied().collect();
+        self.dirty.extend(redraw);
         self.mesh_queue_stale = true;
     }
 }

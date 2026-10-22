@@ -7,7 +7,7 @@ use super::players::STATE_TICKS;
 use super::*;
 use crate::authority::MAX_PLAYERS;
 use crate::block::{self, MINER, STONE};
-use crate::item::SCANNER;
+use crate::item::{SCANNER, SICKLE};
 use crate::math::{IVec3, Vec3};
 use crate::sim::tests::{build_pond_above_a_pit, outcrop, script, DAM, SEED};
 use crate::tests::run_until_ready;
@@ -103,6 +103,40 @@ fn flowing_water_stays_in_step() {
     let below = DAM + IVec3::new(1, -10, 0);
     assert!(block::LIQUID[client.sim.world.block_anywhere_or_generate(below) as usize], "water fell on both");
     assert_eq!(client.sim.water.pending_count(), 0, "and settled");
+}
+
+#[test]
+fn clearing_ground_cover_keeps_host_and_client_equal() {
+    let (mut host, mut client) = pair();
+    let pos = IVec3::new(33, 60, -20);
+    let mut hashes = vec![host.sim.state_hash()];
+    let step = |host: &mut Game, client: &mut Game, hashes: &mut Vec<u64>| {
+        assert!(host.host_stamp(1, &client.take_outbox()));
+        let frames = frames_of(host, 1);
+        hashes.push(host.sim.state_hash());
+        assert!(client.push_frames(&frames));
+        client.update(1.0 / 60.0);
+        assert_eq!(client.sim.state_hash(), hashes[client.sim.tick as usize], "tick {}", client.sim.tick);
+    };
+    host.act(Action::Give { item: SICKLE, count: 1 });
+    host.act(Action::ClearCover { pos });
+    for _ in 0..30 {
+        step(&mut host, &mut client, &mut hashes);
+    }
+    for g in [&host, &client] {
+        assert!(g.sim.world.patch_cleared(pos), "the sickle cut the same nine columns on both");
+        assert!(!g.sim.world.is_cover_cleared(pos.x + 2, pos.z));
+    }
+    // A patch of the client's own, over a chunk border, goes through the host and back.
+    let after_host_cut = host.sim.state_hash();
+    client.act(Action::Give { item: SICKLE, count: 1 });
+    client.act(Action::ClearCover { pos: IVec3::new(0, 60, 0) });
+    for _ in 0..30 {
+        step(&mut host, &mut client, &mut hashes);
+    }
+    assert!(host.sim.world.patch_cleared(IVec3::new(0, 60, 0)));
+    assert_ne!(host.sim.state_hash(), after_host_cut);
+    assert_eq!(host.sim.state_hash(), client.sim.state_hash());
 }
 
 #[test]

@@ -1,7 +1,7 @@
 use super::plans::{Role, BUILDINGS};
 use super::*;
 use crate::action::Action;
-use crate::block::{self, AIR, TOWN_DEPOT};
+use crate::block::{self, AIR, STONE, TOWN_DEPOT};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::ItemId;
 use crate::sim::{PlayerId, Sim};
@@ -129,17 +129,27 @@ fn a_depot_founds_a_town_only_at_a_fitting_site_and_breaking_it_leaves_the_town_
 
 #[test]
 fn a_save_from_before_towns_loads_with_none_and_a_bad_kind_is_refused() {
-    let sim = Sim::new(SEED, 2);
+    let mut sim = Sim::new(SEED, 2);
+    // One edited chunk makes the world's bytes easy to find in the stream.
+    let edit = IVec3::new(900, 200, 900);
+    assert!(sim.world.set_block_anywhere(edit, STONE));
     let mut w = ByteWriter::default();
     sim.write_state(&mut w);
     let mut empty = ByteWriter::default();
     Settlements::default().write_state(&mut empty);
-    // Save 47 ended with the opening scene: cut the empty town list off the end.
-    let old = &w.bytes[..w.bytes.len() - empty.bytes.len()];
+    let mut world = ByteWriter::default();
+    sim.world.write_state(&mut world);
+    let world_at = w.bytes.windows(world.bytes.len()).position(|s| s == world.bytes).expect("the world's bytes");
+    // Save 47 ended with the opening scene: cut the empty town list off the end, and the cleared cover (save 55, an
+    // empty count) off the end of the world's edited chunks.
+    let cleared_at = world_at + world.bytes.len() - 4;
+    let mut old = w.bytes[..cleared_at].to_vec();
+    old.extend_from_slice(&w.bytes[cleared_at + 4..w.bytes.len() - empty.bytes.len()]);
     let mut back = Sim::new(SEED, 2);
-    let mut r = ByteReader::new(old);
+    let mut r = ByteReader::new(&old);
     r.version = 47;
     back.read_state(&mut r).expect("a save 47 loads");
+    assert_eq!(back.world.block_anywhere(edit), Some(STONE));
     assert!(back.settlements.towns.is_empty());
     assert_eq!(r.u8(), None, "every byte read");
 

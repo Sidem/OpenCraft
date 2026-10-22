@@ -55,6 +55,17 @@ pub const IRON_SHOVEL_RECIPE: Recipe = Recipe {
     blurb: "Digs dirt, grass and sand four times as fast. Lasts 600 blocks.",
 };
 
+/// The first iron a smelter makes buys it: it breaks no block, so it never wears out and costs no stack of uses.
+pub const SICKLE_RECIPE: Recipe = Recipe {
+    output: SICKLE,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(IRON_INGOT, 2), (STICK, 2)],
+    blurb: "Hold it and right-click the ground to cut the grass, flowers, ferns and other small plants of a 3 by 3 \
+            patch, to clear a place to build. They leave nothing behind and do not grow back. Trees are not touched. \
+            Never wears out.",
+};
+
 /// Built on a Mk1 scanner (which it uses up), so scanning stays a ladder.
 pub const SCANNER_MK2_RECIPE: Recipe = Recipe {
     output: SCANNER_MK2,

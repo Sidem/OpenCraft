@@ -5,7 +5,7 @@
 use crate::block::*;
 use crate::item::{
     COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GREEN_KIT, GREEN_PACK, IRON_INGOT, IRON_PLATE, IRON_ROD, MOTOR,
-    RED_PACK, SCANNER, SCREW, STICK,
+    RED_PACK, SCANNER, SCREW, STICK, TELESCOPE,
 };
 
 use super::{b, Group, Recipe};
@@ -216,6 +216,15 @@ pub const CORE_DRILL_RECIPE: Recipe = Recipe {
     inputs: &[(IRON_PLATE, 6), (COPPER_WIRE, 2), (SCREW, 8)],
     blurb: "Hold right-click on the ground for 3 seconds to learn exactly how much ore lies beneath it, \
             and at what depth. Never wears out.",
+};
+
+pub const TELESCOPE_RECIPE: Recipe = Recipe {
+    output: TELESCOPE,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(b(GLASS), 2), (IRON_PLATE, 2), (IRON_ROD, 2)],
+    blurb: "Hold it and right-click to look through it; the wheel zooms. Left-click pins the ground you look at, \
+            and every pin shows as a column of light in its colour, however far. Never wears out.",
 };
 
 pub const LAMP_RECIPE: Recipe = Recipe {

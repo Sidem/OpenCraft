@@ -3,10 +3,12 @@
 //! saved, not in the state hash; a remesh redraws it, so it follows the ground. Only open sky gets any
 //! (sky light at least `SKY_MIN`), so floors under roofs and in caves stay bare.
 //!
-//! Invariants: a pure function of the chunk's blocks, light, biomes and world position; generator
+//! Invariants: a pure function of the chunk's blocks, light, biomes, world position and `Cover::cleared`; generator
 //! version 1 has no biomes and so no cover. To add a plant: a texture (`block::tex`,
 //! `textures/hires.rs`) and a rule in [`pick`]. Over stained ground (`block::RUSTY_SOIL..`) grow the indicator
 //! plants (R2c): each stain has its own, so a patch of one tells the ore below before anyone points at it.
+//! A column the player cleared with the sickle (U3, `world/cover_clear.rs`, which is core state) grows nothing: one
+//! bit test per candidate column, and an empty `cleared` (a chunk column never touched) costs no more than that.
 
 use super::{pidx, Mesher, N, P, P2};
 use crate::block::{
@@ -21,6 +23,8 @@ pub struct Cover<'a> {
     pub z0: i32,
     /// 32 × 32, z rows, x fastest (`WorldGen::biomes`).
     pub biomes: &'a [Biome],
+    /// The columns the player cleared: 32 rows by z, bit x of a row set for a cleared column; empty for none.
+    pub cleared: &'a [u32],
 }
 
 /// Least sky light (of 15) a cell needs to grow anything.
@@ -53,6 +57,11 @@ fn indicator_of(b: BlockId) -> Option<u16> {
     }
 }
 
+/// Whether plants can grow over block `b`: what the sickle's hands aim at (`sickle.rs`) and what a clear looks for.
+pub fn bears_cover(b: BlockId) -> bool {
+    ground_of(b).is_some()
+}
+
 fn ground_of(b: BlockId) -> Option<Ground> {
     match b {
         GRASS | RUSTY_SOIL..=PALE_SOIL => Some(Ground::Turf),
@@ -83,6 +92,9 @@ impl Mesher {
                     let Some(ground) = ground_of(below) else { continue };
                     if (light[p] & 15) < SKY_MIN {
                         continue;
+                    }
+                    if cover.cleared.get(z).is_some_and(|row| row >> x & 1 != 0) {
+                        break;
                     }
                     let (h, meadow) = *rolls.get_or_insert_with(|| {
                         (hash2(SEED, wx, wz), hash2(SEED ^ 1, wx >> 2, wz >> 2) % 1000 < MEADOW_PERMILLE)

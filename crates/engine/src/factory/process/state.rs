@@ -1,6 +1,6 @@
 //! A processor's bytes in a save (`Machine::write_state` and `read_state` forward here): what every processor writes,
 //! then what only some specs have (tanks, store, then the kind's own: `extra.rs`). Older layouts are read by version: no facing before 19, a launch site's satellite
-//! slot from 45 (`launch.rs`), a town depot's perk buffers from 52 (`depot.rs`).
+//! slot from 45 (`launch.rs`), a town depot's perk buffers from 52 (`depot.rs`), a pod machine's channel from 54 (`pods/channels.rs`).
 //! To save something new: write it last, behind its spec's condition, and read it behind the same and a version check.
 
 use crate::block::BlockId;
@@ -9,7 +9,7 @@ use crate::inventory::Stack;
 
 use super::super::buffer::Buffer;
 use super::status::STATUSES;
-use super::{depot, launch, spec, Processor};
+use super::{depot, launch, pods, spec, Processor};
 
 impl Processor {
     /// Core state: block, tier and facing, recipe, batch, buffers, work, fire, round-robin position and status,
@@ -67,6 +67,10 @@ impl Processor {
         }
         p.read_tanks(r)?;
         p.read_store(r)?;
+        // Before channels were chosen, the way a launcher or pad faced was its channel.
+        if r.version < pods::CHANNEL_SAVED {
+            p.set_channel(p.dir);
+        }
         p.extra.read_state(r)?;
         p.valid()
     }

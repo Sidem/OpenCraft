@@ -19,11 +19,15 @@ const ALL: [bool; MACHINE_RECIPES.len()] = [true; MACHINE_RECIPES.len()];
 const LOAD: u64 = 900;
 
 fn launcher(channel: u8) -> Processor {
-    Processor { dir: channel, ..Processor::new(IVec3::ZERO, &LAUNCHER_SPEC, 0) }
+    let mut p = Processor::new(IVec3::ZERO, &LAUNCHER_SPEC, 0);
+    p.set_channel(channel);
+    p
 }
 
 fn pad_at(x: i32, channel: u8) -> Processor {
-    Processor { dir: channel, ..Processor::new(IVec3::new(x, 0, 0), &PAD_SPEC, 0) }
+    let mut p = Processor::new(IVec3::new(x, 0, 0), &PAD_SPEC, 0);
+    p.set_channel(channel);
+    p
 }
 
 fn cover() -> Satellites {
@@ -74,7 +78,7 @@ fn it_says_what_it_lacks_in_order() {
     go(&mut ps, &mut pods, &Satellites::default(), 0, 2);
     assert!(ps[0].status_text().contains("No comms satellite overhead"), "{}", ps[0].status_text());
     go(&mut ps, &mut pods, &cover(), 2, 2);
-    assert!(ps[0].status_text().contains("No landing pad on channel east"), "{}", ps[0].status_text());
+    assert!(ps[0].status_text().contains("No landing pad on channel orange"), "{}", ps[0].status_text());
     assert_eq!((ps[0].status, ps[0].progress), (Status::NoInput, 0));
 }
 
@@ -123,7 +127,7 @@ fn a_pod_goes_only_to_a_pad_on_its_channel_and_to_the_nearest() {
     let mut ps = vec![l, pad_at(10, 0), pad_at(200, 2), pad_at(50, 2)];
     let (mut pods, sats) = (Pods::default(), cover());
     go(&mut ps, &mut pods, &sats, 0, LOAD + 1);
-    assert_eq!(pods.list[0].to, IVec3::new(50, 0, 0), "the nearer of the two south pads, not the north one");
+    assert_eq!(pods.list[0].to, IVec3::new(50, 0, 0), "the nearer of the two pink pads, not the blue one");
     go(&mut ps, &mut pods, &sats, LOAD + 1, FLIGHT_TICKS);
     assert_eq!((ps[1].out.total(), ps[2].out.total(), ps[3].out.total()), (0, 0, 10));
 }
@@ -206,7 +210,7 @@ fn pods_in_flight_survive_a_save_and_a_launcher_keeps_its_load() {
     ps[0].write_state(&mut w);
     let back = Processor::read_state(&mut ByteReader::new(&w.bytes)).unwrap();
     assert_eq!(
-        (back.dir, back.progress, back.input.count(DROP_POD), back.out.count(IRON_PLATE)),
+        (back.channel(), back.progress, back.input.count(DROP_POD), back.out.count(IRON_PLATE)),
         (3, ps[0].progress, 1, 5)
     );
     assert!(back.progress > 0, "a load in progress is saved");
@@ -217,6 +221,70 @@ fn pods_in_flight_survive_a_save_and_a_launcher_keeps_its_load() {
     let back = Pods::read_state(&mut ByteReader::new(&w.bytes)).unwrap();
     assert_eq!((back.list.len(), back.list[0].channel, back.list[0].cargo.len()), (1, 3, 1));
     assert_eq!(back.list[0].lands, pods.list[0].lands);
+}
+
+#[test]
+fn a_channel_is_a_colour_chosen_in_the_panel_and_has_nothing_to_do_with_facing() {
+    let mut world = World::new(1, 2);
+    let mut f = Factory::default();
+    let (launcher_at, pad_at) = (IVec3::new(4, 10, 4), IVec3::new(14, 10, 4));
+    // Placed facing different ways, both start on the first channel.
+    f.place(&mut world, POD_LAUNCHER, launcher_at, 1, IVec3::ZERO, 0);
+    f.place(&mut world, crate::block::LANDING_PAD, pad_at, 3, IVec3::ZERO, 0);
+    assert_eq!((f.channel_at(launcher_at), f.channel_at(pad_at)), (Some(0), Some(0)));
+    f.set_channel(launcher_at, 4);
+    f.set_channel(pad_at, 5);
+    assert_eq!((f.channel_at(launcher_at), f.channel_at(pad_at)), (Some(4), Some(5)));
+    f.set_channel(pad_at, crate::pods::CHANNELS);
+    f.set_channel(pad_at, u8::MAX);
+    assert_eq!(f.channel_at(pad_at), Some(5), "a channel that does not exist changes nothing");
+    assert_eq!(f.channel_at(IVec3::new(0, 0, 0)), None, "no machine there");
+    let nearest = |f: &Factory| {
+        let (ps, kinds) = (&f.processors, Kinds::of(&f.processors));
+        pad_index((ps, &kinds.pad), launcher_at, f.channel_at(launcher_at).unwrap(), &cover(), 0)
+    };
+    assert_eq!(nearest(&f), None, "the pad is on another channel");
+    f.set_channel(pad_at, 4);
+    assert!(nearest(&f).is_some(), "tuned to the same colour, the facing does not matter");
+    assert_eq!((channel_name(4), channel_name(5)), ("yellow", "red"));
+    assert_ne!(channel_colour(0), channel_colour(1));
+}
+
+#[test]
+fn the_mark_on_the_model_wears_the_channels_colour() {
+    use crate::factory::INSTANCE_FLOATS;
+    let marks = |p: &Processor, channel: u8| {
+        let mut out = Vec::new();
+        super::super::model::draw(p, &mut out, crate::math::Vec3::ZERO, 0.0);
+        let layer = f32::from(crate::block::tex::GRID_FIRST + u16::from(channel));
+        out.chunks_exact(INSTANCE_FLOATS).filter(|b| b[8..11] == [layer; 3]).count()
+    };
+    for mut p in [launcher(0), pad_at(0, 0)] {
+        assert_eq!(marks(&p, 0), 1, "one mark, in the first colour");
+        p.set_channel(5);
+        assert_eq!((marks(&p, 5), marks(&p, 0)), (1, 0), "the mark follows the channel");
+    }
+}
+
+#[test]
+fn a_save_before_channels_reads_the_facing_as_the_channel() {
+    let (mut l, mut pad) = (launcher(0), pad_at(10, 0));
+    (l.dir, pad.dir) = (2, 3);
+    for (p, channel) in [(&mut l, 2), (&mut pad, 3)] {
+        let mut w = ByteWriter::default();
+        p.write_state(&mut w);
+        // The channel is the last byte of the current layout; the old layout ends one byte sooner.
+        let old = &w.bytes[..w.bytes.len() - 1];
+        let mut r = ByteReader::new(old);
+        r.version = CHANNEL_SAVED - 1;
+        let back = Processor::read_state(&mut r).expect("the old layout reads");
+        assert_eq!((back.dir, back.channel()), (channel, channel));
+        // Written afresh, it carries the channel on its own.
+        p.set_channel(5);
+        let mut w = ByteWriter::default();
+        p.write_state(&mut w);
+        assert_eq!(Processor::read_state(&mut ByteReader::new(&w.bytes)).unwrap().channel(), 5);
+    }
 }
 
 #[test]

@@ -60,6 +60,16 @@ pub enum Action {
         pos: IVec3,
         dials: u32,
     },
+    /// Tunes the pod launcher or landing pad at `pos` to `channel` (a `grid_colour::PALETTE` index; `pods.rs`).
+    SetChannel {
+        pos: IVec3,
+        channel: u8,
+    },
+    /// Cuts the ground plants of the 3 × 3 columns centred on the column of the ground block at `pos`, with the sickle
+    /// the player holds (`world/cover_clear.rs`). Does nothing without a sickle in the selected slot.
+    ClearCover {
+        pos: IVec3,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

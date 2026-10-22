@@ -90,8 +90,11 @@ impl Game {
         self.act(Action::SelectSlot { slot: slot.min(u8::MAX as u32) as u8 });
     }
 
+    /// The wheel, one notch: zooms the telescope while one is up (`telescope.rs`), else changes the slot.
     pub fn scroll_slot(&mut self, delta: i32) {
-        self.act(Action::ScrollSlot { delta: delta.signum() as i8 });
+        if !self.scope_wheel(delta) {
+            self.act(Action::ScrollSlot { delta: delta.signum() as i8 });
+        }
     }
 
     pub fn toggle_fly(&mut self) {

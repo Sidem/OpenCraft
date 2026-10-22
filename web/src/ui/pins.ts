@@ -2,13 +2,16 @@
 // plus a few words), kept with the world's record in the browser (save/session.ts), never in the save:
 // like prospected deposits, pins are the player's memory, not the world. Pin kinds are the ores of the
 // engine's ore guide (`ore_guide`, so names and colours stay the engine's) plus Home and Note.
-// `drawMark` / `drawPin` draw the engine's map marks and pins on a canvas for the minimap and the map.
-// To add a pin kind: a row in `EXTRA_KINDS`.
+// `drawMark` / `drawPin` / `arrow` draw the engine's map marks, pins and players on a canvas for the minimap and the
+// map. Which pins and marks show is map-filter.ts's call; hovering one is map-info.ts. To add a pin kind: a row in
+// `EXTRA_KINDS` (it gets a filter chip by itself).
 
 import type { Game } from '../wasm/engine.js';
 
 export interface Pin {
   x: number;
+  /** The ground's top block, when the telescope set it; older pins have none and the engine looks the ground up. */
+  y?: number;
   z: number;
   /** A `PinKind.id`. */
   kind: string;
@@ -21,8 +24,6 @@ export interface PinKind {
   color: string;
 }
 
-/** Most pins kept per world. */
-const MAX_PINS = 200;
 /** Engine mark shapes (`minimap_marks`): a prospected deposit, a machine, ore seen at the surface, a site; the AI survey's guesses are `MARK_GUESS` plus 0 to 2 for how strong. */
 export const MARK_DEPOSIT = 0;
 export const MARK_MACHINE = 1;
@@ -33,16 +34,14 @@ export const MARK_GUESS = 4;
 export const MARK_COVER = 8;
 /** A long-distance pole's reach, shown while one is held; the colour field holds the reach in blocks. */
 export const MARK_RANGE = 12;
-/** A pod launcher or landing pad is `MARK_CHANNEL` plus its channel (0 north, 1 east, 2 south, 3 west); a launch site
- * is `MARK_LAUNCH`. */
+/** A landing pad is `MARK_CHANNEL` and a pod launcher the next shape, both in their channel's colour; a launch site is
+ * `MARK_LAUNCH`. */
 export const MARK_CHANNEL = 16;
 export const MARK_LAUNCH = 20;
 /** A town is `MARK_TOWN` plus its state (`town_states`: 0 supplied, 1 stalled, 2 dormant), in its kind's colour. */
 export const MARK_TOWN = 24;
 const TOWN_STALLED = 1;
 const TOWN_DORMANT = 2;
-/** Map direction of each channel (x right, z down: north is up). */
-const CHANNEL_DIR = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const EXTRA_KINDS: PinKind[] = [
   { id: 'home', label: 'Home', color: '#ffffff' },
   { id: 'note', label: 'Note', color: '#fa9549' },
@@ -51,12 +50,15 @@ const EXTRA_KINDS: PinKind[] = [
 export class Pins {
   readonly kinds: PinKind[];
   private pins: Pin[];
+  /** Most pins kept per world: the engine draws that many as columns (telescope.ts). */
+  private readonly limit: number;
   private readonly listeners: (() => void)[] = [];
 
   constructor(game: Game, saved: Pin[] | undefined) {
     const ores = game.ore_guide().trim().split('\n').map((line) => line.split('\t'));
     this.kinds = [...ores.map(([id, color, name]) => ({ id: `ore-${id}`, label: name, color: hex(Number(color)) })), ...EXTRA_KINDS];
-    this.pins = (saved ?? []).filter((p) => Number.isFinite(p.x) && Number.isFinite(p.z)).slice(0, MAX_PINS);
+    this.limit = game.scope_pin_limit();
+    this.pins = (saved ?? []).filter((p) => Number.isFinite(p.x) && Number.isFinite(p.z)).slice(0, this.limit);
   }
 
   get list(): readonly Pin[] {
@@ -78,7 +80,7 @@ export class Pins {
   }
 
   add(pin: Pin): void {
-    if (this.pins.length >= MAX_PINS) this.pins.shift();
+    if (this.pins.length >= this.limit) this.pins.shift();
     this.pins.push(pin);
     this.changed();
   }
@@ -208,8 +210,8 @@ function drawTown(c: CanvasRenderingContext2D, x: number, y: number, state: numb
   c.stroke();
 }
 
-/** A launch site as a rocket (a tall triangle), or a pod launcher or pad as a square with an arrow out of the side its
- * channel faces, so pads that match a launcher are easy to pick out. The fill colour is already set. */
+/** A launch site as a rocket (a tall triangle), a landing pad as a square and a pod launcher as a square with an arrow
+ * up out of it. The fill colour (the channel's) is already set, so matching pads and launchers are easy to pick out. */
 function drawSpaceMark(c: CanvasRenderingContext2D, x: number, y: number, shape: number, px: number): void {
   c.strokeStyle = 'rgba(0, 0, 0, 0.8)';
   c.lineWidth = Math.max(1, px);
@@ -219,16 +221,35 @@ function drawSpaceMark(c: CanvasRenderingContext2D, x: number, y: number, shape:
     c.lineTo(x - 3 * px, y + 4 * px);
     c.closePath();
   } else {
-    const [dx, dy] = CHANNEL_DIR[(shape - MARK_CHANNEL) % 4];
-    const s = 2.5 * px, tip = 6 * px;
+    const s = 2.5 * px;
     c.rect(x - s, y - s, 2 * s, 2 * s);
-    c.moveTo(x + dx * tip, y + dy * tip);
-    c.lineTo(x + dx * s - dy * s, y + dy * s + dx * s);
-    c.lineTo(x + dx * s + dy * s, y + dy * s - dx * s);
-    c.closePath();
+    if (shape > MARK_CHANNEL) {
+      c.moveTo(x, y - 6 * px);
+      c.lineTo(x + s, y - s);
+      c.lineTo(x - s, y - s);
+      c.closePath();
+    }
   }
   c.fill();
   c.stroke();
+}
+
+/** A player arrow at canvas point (x, y), turned by `yaw` (0 faces north, up the map). */
+export function arrow(c: CanvasRenderingContext2D, x: number, y: number, yaw: number, dpr: number, color: string): void {
+  c.save();
+  c.translate(x, y);
+  c.rotate(yaw);
+  c.beginPath();
+  c.moveTo(0, -8 * dpr);
+  c.lineTo(6 * dpr, 7 * dpr);
+  c.lineTo(0, 3 * dpr);
+  c.lineTo(-6 * dpr, 7 * dpr);
+  c.closePath();
+  c.fillStyle = color;
+  c.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+  c.fill();
+  c.stroke();
+  c.restore();
 }
 
 /** A pin whose point is at (x, y): a round head on a short stem, and its label when given. */

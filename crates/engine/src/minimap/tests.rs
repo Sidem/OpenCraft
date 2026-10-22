@@ -135,15 +135,19 @@ fn pods_show_their_channel_and_a_launch_site_its_own_shape() {
     let mut g = Game::new(7, 2);
     let mut world = crate::world::World::new(1, 2);
     let f = &mut g.sim.factory;
-    f.place(&mut world, crate::block::LANDING_PAD, IVec3::new(10, 70, 0), 1, IVec3::ZERO, 0);
-    f.place(&mut world, crate::block::POD_LAUNCHER, IVec3::new(20, 70, 0), 2, IVec3::ZERO, 0);
+    let (pad, launcher) = (IVec3::new(10, 70, 0), IVec3::new(20, 70, 0));
+    f.place(&mut world, crate::block::LANDING_PAD, pad, 1, IVec3::ZERO, 0);
+    f.place(&mut world, crate::block::POD_LAUNCHER, launcher, 2, IVec3::ZERO, 0);
     f.place(&mut world, crate::block::LAUNCH_SITE, IVec3::new(40, 70, 0), 0, IVec3::ZERO, 0);
+    f.set_channel(pad, 3);
+    f.set_channel(launcher, 5);
     let marks = g.world_map_marks(-100, -100, 100, 100);
-    let shapes: Vec<(i32, i32)> = marks.chunks_exact(MARK_FIELDS).map(|m| (m[0], m[3])).collect();
-    assert!(shapes.contains(&(10, marks::MARK_CHANNEL + 1)), "the pad points east: {shapes:?}");
-    assert!(shapes.contains(&(20, marks::MARK_CHANNEL + 2)), "the launcher points south");
-    assert!(shapes.contains(&(40, marks::MARK_LAUNCH)));
-    assert!(!shapes.iter().any(|&s| s.1 == marks::MARK_MACHINE), "none as a plain machine square");
+    let shapes: Vec<(i32, i32, i32)> = marks.chunks_exact(MARK_FIELDS).map(|m| (m[0], m[2], m[3])).collect();
+    let colour = |channel| crate::factory::channel_colour(channel) as i32;
+    assert!(shapes.contains(&(10, colour(3), marks::MARK_CHANNEL)), "the pad is a square in its colour: {shapes:?}");
+    assert!(shapes.contains(&(20, colour(5), marks::MARK_CHANNEL + 1)), "the launcher has an arrow, in its colour");
+    assert!(shapes.iter().any(|s| (s.0, s.2) == (40, marks::MARK_LAUNCH)));
+    assert!(!shapes.iter().any(|&s| s.2 == marks::MARK_MACHINE), "none as a plain machine square");
 }
 
 #[test]

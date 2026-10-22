@@ -3,6 +3,7 @@
 //! action, which hands the longer ones to `blocks.rs` and `clicks.rs` or to the module that owns the rule.
 //! To add an action: its variant in `action.rs`, its arm here and its bytes in `codec.rs`.
 
+use crate::item::SICKLE;
 use crate::research::Unlock;
 use crate::sim::{Away, PlayerCore, PlayerId, Sim, SimEvent};
 use crate::tools;
@@ -80,6 +81,12 @@ impl Sim {
             Action::SetHarbourProduct { pos, item } => self.settlements.set_product(pos, item),
             Action::OpenVault { pos, dials } => self.open_vault(player, pos, dials),
             Action::SetSensor { pos, rule } => self.factory.set_sensor(pos, rule),
+            Action::SetChannel { pos, channel } => self.factory.set_channel(pos, channel),
+            Action::ClearCover { pos } => {
+                if inv.selected_stack().item == SICKLE {
+                    self.world.clear_cover(pos);
+                }
+            }
             Action::PlaceGhost { pos, slot, facing } => self.place_ghost(player, pos, slot, facing),
             Action::PlantGhost { pos, block, facing, tier } => self.plant_ghost(pos, block, facing, tier),
             Action::MarkRemoval { pos } => self.mark_removal(pos),

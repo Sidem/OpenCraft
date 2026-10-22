@@ -1,9 +1,9 @@
 # OpenCraft development plan
 
 **Status (2026-10-19):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b) and the play-test
-response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realistic art pass is live. **Next: R8** (a talk
-step), then "Pod channels by name"; 13.6b waits for the user to play Milestone 13. After those: the feel-and-feedback
-interlude, the carry's era pieces, Milestone 14 (the space elevator).
+response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realistic art pass is live. R8 is decided
+as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
+Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -169,13 +169,42 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
 - [x] R1–R7 and S1–S4 (talks, rivers, plants, ambient sound, music, ruins, decor, sky and weather): built and pushed.
   Not built from them: the era as a music context (waits for an industrial or space piece), rain splashes, lightning,
   snow on machines, decor slabs and stairs (need non-cube meshing).
-- [ ] **R8 Pressure without combat (talk).** Pick one or two with the user from `docs/ROADMAP.md` (subsidence, mine
-  flooding, storms, pollution that thins plants and solar). Each must reuse existing systems and stay deterministic.
-- [ ] **Pod channels by name (small).** A launcher and a pad pick their channel in their panel (a colour and a name), not
-  by facing (`factory/process/pods.rs`). Save version bump with a migration: the facing becomes the colour.
+- [x] **R8 Pressure without combat (talk).** Decided 2026-10-22: none for now. The options (groundwater, pollution,
+  storms, subsidence) stay in `docs/ROADMAP.md`; reopen only if the user asks.
+- [x] **Pod channels by name (small).** A launcher and a pad pick one of six named colours in their panel
+  (`factory/process/pods/channels.rs`, `ui/pod-channel.ts`), not by facing. Save version 54: the facing becomes the colour.
 - [ ] **13.6b Balance from the user's next play-test** (`scripts/inspect-save.mjs`): order sizes, upkeep rates, perk
   rates and the harbour's price, once the user has played Milestone 13. Their latest save (2026-10-17, 32.4 h) has not
   yet researched Settlements.
+- [x] **U1 Map hover and filters** (built 2026-10-22; do U1, U2, U3 in this order, one session each). `world_map_describe`
+  answers up to eight marks, nearest first, so the host can skip filtered ones; every mark is a `Subject`
+  (`minimap/marks.rs`), so drawing and describing cannot drift. U2's pins gain `y` in `ui/pins.ts` (`Pin`); filter
+  category `pin:<kind id>` already covers them.
+  Hovering a map or minimap mark shows an info box saying what it is; filter chips hide marks and pins by category.
+  - *Where:* one engine query `world_map_describe(x, z, reach)` next to `minimap/marks.rs` (machines by block name, known
+    deposits by ore and tier only, towns, sites, satellite cover, launch sites, pod channels by colour); never reveals
+    what the player has not learned. New TS files `ui/map-info.ts` and `ui/map-filter.ts` (`worldmap.ts` is near its
+    400-line budget: do not grow it). Filters: Pins (by kind), Ores (by ore), Machines, Towns, Sites, Satellite cover;
+    kept in `localStorage`; applied to both the map and the corner minimap; the pin list follows the pin filter.
+  - *Done when:* a test enumerates every mark shape and fails if one has no description; the query takes under 0.2 ms
+    (a `bench_`); the filter logic is a pure function with `web/test/*.test.mjs` tests; seen in the browser pane;
+    patch note and `docs/PLAYING.md` updated.
+- [x] **U2 Telescope** (built 2026-10-22; needs U1's pin filter to exist). A hotbar item. Right-click toggles looking through it, the wheel
+  zooms, left-click pins the spot under the crosshair. Looking through it shows every pin as a glowing column in its
+  colour (reuse `factory::mark_beacon`, as `power_tools/long_pole.rs` does).
+  - *Where:* a `ToolKind` row and item (`tools.rs`, as the scanner), a held-device module for the scope, the web
+    renderer's `fovY` for zoom, an engine setter that TS calls when pins change. Pins gain an optional `y` (old pins
+    keep working). A ray-march over the generator's heightfield (`worldgen/`) finds ground that is not loaded yet.
+  - *Done when:* over 500 random rays the pinned height is within 1 block of the true surface on loaded ground and
+    within 3 on unloaded ground (the test generates the chunk afterwards and compares); beacons show beyond 1,000
+    blocks; a `bench_` shows the frame cost of 200 beacons; placeholder texture, `docs/ART_HANDOVER.md` line, patch note.
+- [x] **U3 Sickle: clear ground plants** (built 2026-10-22; user: ground plants only, a sickle tool). Ground cover (`mesher/cover.rs`) is
+  presentation drawn from a hash, so clearing needs saved state: a bitset of cleared columns per touched chunk, kept in
+  the core so saves and co-op agree. `Action::ClearCover` (a codec tag), a 3×3 patch per click, the chunk remeshed, no
+  drops, no regrowth. Save version bump with a migration and a fixture test; sickle item, recipe, placeholder texture
+  and `docs/ART_HANDOVER.md` line.
+  - *Done when:* untouched chunks mesh byte-identically to before; `bench_meshing` slows by under 2%; a two-player
+    `net` test keeps equal state hashes after a clear; save and load keep cleared patches; wasm size change reported.
 - **Parked, fit in where a session has room:** P3 cheaper box instances, P4 an incremental co-op checksum, P5 small TS
   savings (`docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to rectennas; incremental `relink` if
   big bases hitch on placing (measured above).
@@ -195,7 +224,6 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 | Needed by | Question |
 |---|---|
-| R8 | Which pressure without combat, if any: subsidence, mine flooding, storms, pollution? |
 | Any UI step | A colour-blind palette for tier colours (pips and "Mk" text are there regardless)? |
 | A world-settings step | Should old worlds be able to opt into newer generation (rivers, trees, ruins)? Should far deposits seen once get a map pin? |
 | Music | A sea piece; industrial and space pieces (with the era as a context). |
@@ -203,6 +231,46 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-22: sickle (U3).** Item 398 (`ToolKind::Sickle`, never wears; two iron ingots and two sticks, a hand recipe in
+  `recipes/tooling.rs`). Right-click on natural ground (`mesher::bears_cover`) queues `Action::ClearCover` (codec tag 61),
+  hold to sweep (0.25 s a swing; a patch already cleared sends nothing); anything else falls through, so panels still open
+  (`sickle.rs`, with a green outline of the patch and a HUD label). The core: `world/cover_clear.rs`, one bit per world
+  column, a 32 × 32 bitset (128 bytes) per touched chunk column in a sorted `Vec`, saved after the edited chunks (save
+  version 55; older saves have none) and so in the state hash; the golden hash in `sim/tests.rs` was re-recorded for the
+  four extra bytes. A 3 × 3 patch sets its bits whether or not the columns bore cover (the core cannot see light or
+  biome); the bit stays when the ground is broken or replaced. The mesher gets the chunk column's rows in `Cover::cleared`
+  and does one bit test per candidate column; loaded chunks with a cover cell in a newly cleared column remesh, the rest
+  mesh bare when they load; a co-op resync redraws columns whose rows differ. No drops, no regrowth. Measured: 39 chunks
+  around a seed-1337 spawn mesh byte for byte as before (hash recorded from the old mesher; `world/tests.rs`);
+  `bench_meshing` median of 9 interleaved runs 0.602 ms a chunk before, 0.587 after (no slowdown); a scenario test clears
+  a patch of the busiest 3 × 3 of a generated meadow, and across a chunk border, and compares every plant's words; a
+  two-player `net` test keeps equal hashes. Wasm 1,620,447 → 1,630,288 bytes (+9.8 KB), gzipped 579,770 → 584,218
+  (+4.4 KB, same `gzipSync` on the optimised builds). Seen in the browser pane (outline, cut, label). Not verified: real
+  pointer lock, the feel of sweeping.
+- **2026-10-22: telescope (U2).** Item 397 (`ToolKind::Telescope`, brass tube model, recipe from glass, plates and rods).
+  Selected: right-click toggles the view (first person; eased 2-8x zoom, wheel steps it, never a jump; mouse look is divided
+  by the zoom), left-click pins the ground under the crosshair as an empty-note Note (`ui/scope.ts`, `ui/pins.ts` gains
+  `y`). Looking shows every pin as a flat-coloured light column (kind colour): `factory::mark_beacon_tinted` (glow flag
+  3 + 12-bit colour, one `boxVert` line). Far plane: columns beyond 1.5 view distances are scaled about the eye to that
+  distance, so the angle is kept (`telescope/beacons.rs`). Aim: `telescope/ground.rs`, an adaptive heightfield march
+  (6,000 blocks) over loaded blocks then `height_at`. Measured: 500 rays on loaded ground, 499 within 1 block of their
+  column's surface (500 within 3); 500 rays at unloaded ground (156-4,593 blocks, 228 beyond 1,000), 500 equal the
+  generated surface, 499 within 3 of an exact block walk. Release bench: 200 beacons 78 us a frame (7 without pins; the
+  aim alone mean 79 us, worst 1,081 us). Engine limit `MAX_PINS` 200 (`scope_pin_limit`). Save version unchanged (pins
+  live in TS). Not verified: real pointer lock, feel and comfort. Pins are per browser, not shared in co-op.
+- **2026-10-22: map hover and filters (U1).** Every map mark is now a `Subject` (`minimap/marks.rs`: shape, colour and,
+  in `minimap/describe.rs`, words come from it), so `world_map_describe(x, z, reach)` (a query, nothing created) tells what
+  the nearest marks are, only what the player has learned: a deposit by ore and tier, never its reserve. A test reads
+  every `MARK_*` constant from the source and fails for one without words. Measured on 3,000 processors, 30,000 belts, 96
+  satellites and 30 towns at a 224-block reach: 20 µs a query (61 µs worst; the budget was 200). TS: `ui/map-filter.ts`
+  (pure rules and the saved set of hidden categories, `web/test/map-filter.test.mjs`), `map-filter-panel.ts` (chips beside
+  the map), `map-info.ts` (the box, on the map and the minimap). Filters apply to both maps; the pin list follows.
+  The minimap box works only while the cursor is free (menu or panel): pointer lock hides it in play.
+- **2026-10-20: pod channels by name.** A pod launcher's or landing pad's channel is now one of the power-grid palette's
+  six colours (`grid_colour::PALETTE`, `pods::CHANNELS`), set in its panel by `Action::SetChannel` (codec tag 60) and kept in
+  `Extra::Channel`, apart from the facing. The 3D mark and the map marks wear the colour (no new texture layers). Save
+  version 54 stores it; older saves read the facing as the channel (blue, orange, pink, green). Blueprints do not copy it.
 
 - **2026-10-19: docs restructure.** The session-start read went from about 188 KB to under 48 KB: `CODEMAP.md` is an
   index (detail lives in module headers), decisions moved to `docs/DECISIONS.md`, finished work to `docs/history/`,

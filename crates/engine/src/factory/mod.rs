@@ -109,12 +109,12 @@ pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 pub use pole::POLE_TIERS;
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
 pub use ports::PortInfo;
-pub use process::{makes, spec as process_spec, Want};
+pub use process::{channel_colour, channel_name, makes, spec as process_spec, Want};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
 pub use rail::{dir_of, fit as fit_track, write_node, write_track, yaw_of, Curve, Fit, MAX_LINKS, MAX_SPAN};
-pub use render::{light_boxes, mark_beacon, push_box, INSTANCE_FLOATS};
+pub use render::{light_boxes, mark_beacon, mark_beacon_tinted, push_box, INSTANCE_FLOATS};
 pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
 pub use trains::Spot;

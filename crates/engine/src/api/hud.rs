@@ -39,6 +39,7 @@ impl Game {
         boxes.extend(self.opening_boxes());
         boxes.extend(self.blueprint_boxes());
         boxes.extend(self.site_boxes());
+        boxes.extend(self.sickle_box());
         boxes
     }
 
@@ -93,7 +94,8 @@ impl Game {
             if self.ghost_mode {
                 return self.ghost_label();
             }
-            if let Some(label) = self.planner_label() {
+            if let Some(label) = self.planner_label().or_else(|| self.telescope_label()).or_else(|| self.sickle_label())
+            {
                 return label;
             }
             if !self.line.aim.label.is_empty() {

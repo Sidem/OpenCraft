@@ -7,11 +7,12 @@
 //!   pod: up to `POD_STACKS` stacks of cargo go up (`pods.rs`) and land `FLIGHT_TICKS` later.
 //! - **Pad** (3×3×1, no power): the pods bound for it come down on it and their cargo lands in its store, which belts leading
 //!   away empty. A pod whose pad is full waits and lands what fits each tick.
-//! - **Channel:** the way a launcher or pad was placed facing (`Processor::dir`, four of them) is its channel. A pod goes to
-//!   the nearest pad on its launcher's channel that comms cover reaches, so one world can run four routes.
+//! - **Channel:** a colour the player tunes the launcher or pad to in its panel (`channels.rs`). A pod goes to the nearest
+//!   pad on its launcher's channel that comms cover reaches, so one world can run as many routes as there are colours.
 //!
-//! Invariants: everything here is derived from the processors, the satellites and the tick; the only state is the launcher's
-//! `progress` and the pods in the sky (`Factory::pods`). `Processor::store.flow` holds why a launcher waits (derived).
+//! Invariants: everything here is derived from the processors, the satellites and the tick; the state is the launcher's
+//! `progress`, the channel of each machine (`Extra::Channel`) and the pods in the sky (`Factory::pods`).
+//! `Processor::store.flow` holds why a launcher waits (derived).
 //!
 //! To add a destination kind: a `Pick` like `Land`, its list in `kinds.rs` and a branch in [`pad_index`].
 
@@ -30,8 +31,12 @@ use super::model::{part, Look, Part};
 use super::{Energy, Kinds, Pick, ProcessSpec, ProcessTier, Processor, Status};
 use crate::factory::Factory;
 
+mod channels;
 #[cfg(test)]
 mod tests;
+
+pub(super) use channels::CHANNEL_SAVED;
+pub use channels::{channel_colour, channel_name};
 
 /// What a launcher draws while it loads a pod, in kW.
 pub const LAUNCHER_KW: u32 = 500;
@@ -47,8 +52,6 @@ const UNCOVERED: u32 = 1;
 const NO_PAD: u32 = 2;
 const SKY_FULL: u32 = 3;
 const LOADING: u32 = 4;
-/// The names of the four channels, by facing.
-const CHANNELS: [&str; 4] = ["north", "east", "south", "west"];
 
 const fn ports(role: Role) -> [Port; 4] {
     [
@@ -114,7 +117,7 @@ impl Processor {
 
     /// The status line of a launcher or a pad (`None`: another processor).
     pub(super) fn pods_text(&self) -> Option<String> {
-        let channel = CHANNELS[self.dir as usize % 4];
+        let channel = channel_name(self.channel());
         if self.is_pad() {
             let used = self.out.slots.iter().filter(|s| !s.is_empty()).count();
             return Some(format!("Channel {channel} · holding {used} of {} stacks", self.out.slots.len()));
@@ -138,7 +141,7 @@ impl Processor {
 
     /// A pad's second line: how many pods are on their way to its channel (starts with a newline; empty for none).
     pub(super) fn pods_line(&self, f: &Factory) -> String {
-        match f.pods.inbound(self.dir) {
+        match f.pods.inbound(self.channel()) {
             _ if !self.is_pad() => String::new(),
             0 => String::new(),
             1 => "\n1 pod on the way".to_string(),
@@ -179,7 +182,7 @@ impl Processor {
         }
         self.input.remove(DROP_POD, 1);
         self.used.push(Stack { item: DROP_POD, count: 1 });
-        pods.send(self.pos, pad, self.dir, cargo, tick);
+        pods.send(self.pos, pad, self.channel(), cargo, tick);
         self.progress = 0;
     }
 }
@@ -214,7 +217,7 @@ impl Factory {
 
     /// Every pod launcher and landing pad: its block, anchor and channel. Presentation (the maps' channel marks).
     pub fn pod_machines(&self) -> impl Iterator<Item = (BlockId, IVec3, u8)> + '_ {
-        self.processors.iter().filter(|p| p.is_launcher() || p.is_pad()).map(|p| (p.spec.block, p.pos, p.dir))
+        self.processors.iter().filter(|p| p.is_launcher() || p.is_pad()).map(|p| (p.spec.block, p.pos, p.channel()))
     }
 
     /// The middle of the processor anchored at `pos`, level with the bottom of its anchor cell (that cell's middle when
@@ -250,7 +253,7 @@ pub(in crate::factory) fn run(
     land((processors, &kinds.pad), pods, sats, tick, events);
     for &i in &kinds.launcher {
         let i = i as usize;
-        let (pos, channel) = (processors[i].pos, processors[i].dir);
+        let (pos, channel) = (processors[i].pos, processors[i].channel());
         let pad = pad_index((processors, &kinds.pad), pos, channel, sats, tick).map(|k| processors[k].pos);
         let uplink = sats.covering(COMMS, pos.x, pos.z, tick) > 0;
         let before = pods.list.len();
@@ -315,17 +318,17 @@ fn pad_index(
         .map(|&k| k as usize)
         .filter(|&k| {
             let p = &processors[k];
-            p.dir == channel && sats.covering(COMMS, p.pos.x, p.pos.z, tick) > 0
+            p.channel() == channel && sats.covering(COMMS, p.pos.x, p.pos.z, tick) > 0
         })
         .min_by_key(|&k| dist(&processors[k]))
 }
 
 const SLAB: Look = Look::Tex([tex::POD_PAD_TOP, tex::POD_SIDE, tex::FRAME]);
 const BODY: Look = Look::Tex([tex::POD_LAUNCH_TOP, tex::POD_SIDE, tex::FRAME]);
-const MARK: Look = Look::Tex([tex::LAMP_RED; 3]);
+const MARK: Look = Look::Channel;
 
-/// A banded plinth, a squat body, a dark launch tube on top with a capsule's nose just showing, a red mark on the front
-/// face (so its channel can be read) and a status lamp.
+/// A banded plinth, a squat body, a dark launch tube on top with a capsule's nose just showing, a mark on the front
+/// face in its channel's colour (so it can be read from afar) and a status lamp.
 const LAUNCHER_PARTS: [Part; 6] = [
     part([0.0, -1.35, 0.0], [2.96, 0.3, 2.96], Look::Band(tex::FRAME)),
     part([0.0, -0.45, 0.0], [2.4, 1.5, 2.4], BODY),
@@ -335,7 +338,7 @@ const LAUNCHER_PARTS: [Part; 6] = [
     part([1.1, -1.1, 1.1], [0.14, 0.1, 0.14], Look::Lamp),
 ];
 
-/// A banded plinth, a flat ringed pad with a steel kerb, a red mark on the front edge and a status lamp.
+/// A banded plinth, a flat ringed pad with a steel kerb, a mark in its channel's colour on the front edge and a status lamp.
 const PAD_PARTS: [Part; 4] = [
     part([0.0, -0.42, 0.0], [2.96, 0.16, 2.96], Look::Band(tex::FRAME)),
     part([0.0, -0.2, 0.0], [2.8, 0.28, 2.8], SLAB),

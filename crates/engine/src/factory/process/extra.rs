@@ -11,10 +11,12 @@
 use crate::block::LAUNCH_SITE;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::ItemId;
+use crate::pods::CHANNELS;
 
 use super::center::Study;
 use super::depot::Want;
 use super::hangar::Hangar;
+use super::pods::CHANNEL_SAVED;
 use super::pump::Pump;
 use super::{Pick, ProcessSpec};
 
@@ -40,6 +42,8 @@ pub enum Extra {
     },
     /// A drone port's fleet out and what helps it this tick (hangar.rs; derived).
     Hangar(Hangar),
+    /// The channel a pod launcher or landing pad is tuned to (pods/channels.rs; saved from `pods::CHANNEL_SAVED`).
+    Channel(u8),
 }
 
 impl Extra {
@@ -50,6 +54,7 @@ impl Extra {
             Pick::Recycle => Extra::Recycler { owed: 0 },
             Pick::Depot => Extra::Depot { wants: Vec::new() },
             Pick::Hangar => Extra::Hangar(Hangar::default()),
+            Pick::Pods | Pick::Land => Extra::Channel(0),
             _ if spec.block == LAUNCH_SITE => Extra::Launch { launches: 0, lifted: None },
             _ => Extra::None,
         }
@@ -61,6 +66,7 @@ impl Extra {
             Extra::Study(study) => study.write_state(w),
             Extra::Recycler { owed } => w.u32(*owed),
             Extra::Launch { launches, .. } => w.u32(*launches),
+            Extra::Channel(channel) => w.u8(*channel),
             Extra::None | Extra::Depot { .. } | Extra::Hangar(_) => {}
         }
     }
@@ -71,7 +77,9 @@ impl Extra {
             Extra::Study(study) => study.read_state(r)?,
             Extra::Recycler { owed } => *owed = r.u32()?,
             Extra::Launch { launches, .. } => *launches = r.u32()?,
-            Extra::None | Extra::Depot { .. } | Extra::Hangar(_) => {}
+            // Older saves have none: `Processor::load` set it from the facing.
+            Extra::Channel(channel) if r.version >= CHANNEL_SAVED => *channel = r.u8()? % CHANNELS,
+            Extra::Channel(_) | Extra::None | Extra::Depot { .. } | Extra::Hangar(_) => {}
         }
         Some(())
     }

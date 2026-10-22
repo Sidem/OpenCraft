@@ -1,0 +1,54 @@
+/* Map filter chips (ui/map-filter-panel.ts): a row of toggles above the pin list on the world map. */
+
+.mf {
+  margin-bottom: 14px;
+}
+
+.mf > h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.mf-name {
+  margin: 8px 0 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 12px var(--font);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.mf-name:hover {
+  color: var(--text);
+}
+
+.mf-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mf-chip {
+  padding: 3px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--text);
+  font: 12px var(--font);
+  cursor: pointer;
+}
+
+.mf-chip.mf-swatch {
+  border-left: 8px solid var(--kind);
+  padding-left: 6px;
+}
+
+.mf-chip.off {
+  background: transparent;
+  color: var(--muted);
+  text-decoration: line-through;
+  opacity: 0.6;
+}

@@ -148,6 +148,7 @@ out vec4 o_color;
 
 #ifdef BOXES
 in float v_haze; // 0 for a beacon, which the fog doesn't hide
+in vec4 v_beacon; // a tinted beacon's colour and 1 (a flat light, whatever the texture), else 0
 #endif
 #ifdef TERRAIN
 in vec2 v_ground;
@@ -291,6 +292,9 @@ void main() {
 #endif
   float glow = textureGrad(u_glow, uvl, dx, dy).r;
   vec3 shown = mix(c.rgb * (v_light * v_tint + v_sun), c.rgb * 1.1, glow);
+#ifdef BOXES
+  shown = mix(shown, v_beacon.rgb, v_beacon.a);
+#endif
   o_color = vec4(applyFog(shown, hazed), 1.0);
 #endif
 }
@@ -316,6 +320,7 @@ out vec3 v_sun;
 out vec3 v_tint;
 out vec3 v_rel;
 out float v_haze;
+out vec4 v_beacon;
 ${LIGHT}
 const vec3 NORMALS[6] = vec3[6](vec3(1, 0, 0), vec3(-1, 0, 0), vec3(0, 1, 0), vec3(0, -1, 0), vec3(0, 0, 1), vec3(0, 0, -1));
 
@@ -346,6 +351,9 @@ void main() {
   // A status light, lamp, beam or flame lights itself (factory/render.rs GLOWING); a beacon (2) is also seen through the fog.
   float glow = min(a_i3.w, 1.0);
   v_haze = a_i3.w > 1.5 ? 0.0 : 1.0;
+  // A tinted beacon (3 + a 12-bit colour, factory/render.rs mark_beacon_tinted) is painted that colour, 4 bits a channel.
+  float tint = a_i3.w - 3.0;
+  v_beacon = tint < 0.0 ? vec4(0.0) : vec4(mod(tint, 16.0), mod(floor(tint / 16.0), 16.0), floor(tint / 256.0), 15.0) / 15.0;
   v_light = mix((n.y > 0.5 ? 1.0 : (n.y < -0.5 ? 0.52 : (abs(n.x) > 0.5 ? 0.72 : 0.86))) * AMBIENT, 1.0, glow);
   v_sun = sunLight(n, light) * (1.0 - glow);
   v_uvl = vec3(uv, layer);

@@ -1,0 +1,50 @@
+/* The view through a telescope (scope.ts): a dark ring round a clear circle with hairlines, fading in with the zoom.
+   Static on purpose: a steady frame is easier on the eyes than a moving one. */
+
+.scope {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 0,
+    transparent calc(min(50vh, 50vw) * 0.9),
+    rgba(0, 0, 0, 0.55) calc(min(50vh, 50vw) * 0.9 + 3px),
+    rgba(0, 0, 0, 0.96) calc(min(50vh, 50vw) * 0.9 + 60px)
+  );
+}
+
+.scope-hair {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.scope-h {
+  left: calc(50% - min(50vh, 50vw) * 0.9);
+  right: calc(50% - min(50vh, 50vw) * 0.9);
+  top: 50%;
+  height: 1px;
+  /* Open in the middle, so the spot being pinned stays visible. */
+  mask-image: linear-gradient(90deg, #000 0, #000 46%, transparent 46%, transparent 54%, #000 54%);
+}
+
+.scope-v {
+  top: calc(50% - min(50vh, 50vw) * 0.9);
+  bottom: calc(50% - min(50vh, 50vw) * 0.9);
+  left: 50%;
+  width: 1px;
+  mask-image: linear-gradient(180deg, #000 0, #000 46%, transparent 46%, transparent 54%, #000 54%);
+}
+
+/* A pin was just made: the hairlines flash once. */
+.scope.pinned .scope-hair {
+  animation: scope-pinned 0.5s ease-out;
+}
+
+@keyframes scope-pinned {
+  from {
+    background: rgba(255, 220, 120, 1);
+  }
+}

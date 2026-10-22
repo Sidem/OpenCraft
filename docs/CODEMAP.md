@@ -56,7 +56,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
-  `pods.rs`, `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `upgrader.rs`, `laser.rs`.
+  `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `upgrader.rs`, `laser.rs`.
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances),
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
@@ -74,7 +74,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### World and generation
 - `chunk.rs` (32³ storage), `world/mod.rs` (loaded chunks, `*_anywhere` accessors for core code), `world/streaming.rs`
-  (generate and mesh queues), `world/boxlight.rs` (light for box-drawn things).
+  (generate and mesh queues), `world/boxlight.rs` (light for box-drawn things), `world/cover_clear.rs` (columns whose
+  ground plants the sickle cut: core state, saved).
 - `worldgen/mod.rs`: heights, caves, trees, `generate`, generator versions (pinned by `released_versions_never_change`).
   `column.rs` (per-column data), `biome.rs`, `landform.rs`, `caves.rs`, `water.rs` (sea, ponds), `rivers.rs` + `rivers/` (course, seg), `shore.rs`,
   `trees.rs` (species), `geology.rs` + `strata.rs` + `ore.rs` (deposit seeding), `bearing.rs`, `ruins.rs`, `logbook.rs`.
@@ -86,12 +87,14 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`.
 - `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `train_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
-  `blueprint/repeat.rs` (blueprint prompt), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`.
+  `blueprint/repeat.rs` (blueprint prompt), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
+  `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
+  `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants).
 - `entities.rs` (loose items), `avatars.rs` + `avatars/`, `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
-- `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
+- `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`, `groups.rs`); never saved.
 - `surroundings/`: nine floats for ambient sound, `roof.rs` (where rain stops).
 
@@ -119,14 +122,14 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds). `comfort/settings.ts`: comfort options.
 - `console/`: `commands.ts` (pure admin commands), `host.ts` (wires them to the engine).
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements. Screens and panels:
-  - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `vignette.ts`,
+  - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
-  - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
+  - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
-  - Maps: `worldmap.ts`, `pins.ts`, `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
+  - Maps: `worldmap.ts`, `pins.ts` (+ drawing), `map-filter.ts` (pure filter rules, saved state) + `map-filter-panel.ts`, `map-info.ts` (hover box), `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
     `analytics-overview.ts`, `analytics-power.ts`, `analytics-items.ts`, `analytics-machines.ts` (base `analytics-tab.ts`),
     `analytics-chart.ts`, `analytics-format.ts`, `analytics-panels.css`.
   - Menu: `menu.ts` (+ `menu-pages.css`), `worlds.ts`, `coop.ts`, `players.ts`, `patch-notes.ts`, `comfort.ts`, `sky.ts`,

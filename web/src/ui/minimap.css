@@ -12,6 +12,7 @@
   background: var(--panel);
   border: 2px solid var(--panel-border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: auto; /* the HUD ignores the pointer; the map answers hovering (map-info.ts) while the cursor is free */
 }
 
 .mm-image {

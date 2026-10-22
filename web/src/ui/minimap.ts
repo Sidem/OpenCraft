@@ -4,17 +4,22 @@
 // redrawn at most 4 times a second and only when the engine says it changed; the ore, deposit and
 // machine marks (`minimap_marks`, colours from the engine) and the player's pins (pins.ts; those out of
 // range sit on the rim, pointing the way) go on an overlay canvas at the same rate, clipped by the round
-// frame. Under it sits the XYZ readout with its look gizmo (compass.ts). N toggles both; whether it shows is UI state kept in localStorage. While shown it sets
+// frame; the map filters (map-filter.ts) hide marks and pins, and resting the cursor on one shows what it is
+// (map-info.ts, while the cursor is free: in a menu or panel). Under it sits the XYZ readout with its look gizmo (compass.ts). N toggles both; whether it shows is UI state kept in localStorage. While shown it sets
 // `--map-space` on #hud so the other top-right HUD items move below it.
 
 import './minimap.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
-import { drawMark, drawPin, type Pins } from './pins';
+import { drawMark, drawPin, type Pin, type Pins } from './pins';
 import { Compass, COMPASS_PX } from './compass';
+import type { MapFilter } from './map-filter';
+import { infoAt, type MapInfo } from './map-info';
 
 const STORAGE_KEY = 'opencraft.minimap.hidden';
 const REDRAW_MS = 250;
+/** How near (CSS px) the pointer must rest to a mark or a pin for the info box. */
+const HOVER_PX = 7;
 const FRAME_PX = 150; // must match .minimap in minimap.css
 const MAP_SPACE_PX = FRAME_PX + 12 + 6 + COMPASS_PX; // the map, then the XYZ readout under it
 
@@ -36,6 +41,8 @@ export class Minimap {
     private readonly game: Game,
     private readonly memory: WebAssembly.Memory,
     private readonly pins: Pins,
+    private readonly filter: MapFilter,
+    private readonly info: MapInfo,
   ) {
     this.size = game.minimap_size();
     this.canvas.width = this.canvas.height = this.size;
@@ -47,6 +54,9 @@ export class Minimap {
     document.getElementById('hud')!.append(this.el, this.compass.el);
     this.shown = !loadHidden();
     this.show(this.shown);
+    this.el.addEventListener('pointermove', (e) => this.hover(e));
+    this.el.addEventListener('pointerleave', () => info.hide());
+    filter.subscribe(() => (this.lastDraw = -Infinity));
   }
 
   toggle(): void {
@@ -81,23 +91,48 @@ export class Minimap {
 
   /** Engine marks at their columns' centres on the image, then pins (on the rim when out of range).
    * Marks are relative to the column the image was drawn around: the player's, this frame. */
-  private drawMarks(marks: Int32Array): void {
+  private drawMarks(all: Int32Array): void {
     const c = this.marks, n = this.game.minimap_mark_fields();
     const w = this.overlay.width, px = w / this.size, half = this.size / 2;
+    const marks = this.filter.marks(all, n);
     c.clearRect(0, 0, w, w);
     c.lineWidth = Math.max(1, px);
     for (let i = 0; i < marks.length; i += n) {
       drawMark(c, (marks[i] + half + 0.5) * px, (marks[i + 1] + half + 0.5) * px, marks[i + 2], marks[i + 3], px);
     }
-    const cx = Math.floor(this.game.player_x()), cz = Math.floor(this.game.player_z());
-    const rim = half - 6;
     const dpr = w / FRAME_PX;
-    for (const pin of this.pins.list) {
-      let dx = pin.x - cx, dz = pin.z - cz;
-      const d = Math.hypot(dx, dz);
-      if (d > rim) [dx, dz] = [(dx / d) * rim, (dz / d) * rim];
+    for (const pin of this.shownPins()) {
+      const [dx, dz] = this.pinOffset(pin);
       drawPin(c, (dx + half + 0.5) * px, (dz + half + 0.5) * px, this.pins.kind(pin.kind).color, dpr * 0.7);
     }
+  }
+
+  private shownPins(): Pin[] {
+    return this.pins.list.filter((p) => this.filter.showsPin(p.kind));
+  }
+
+  /** A pin's offset in blocks from the player's column, held to the rim when out of range. */
+  private pinOffset(pin: Pin): [number, number] {
+    let dx = pin.x - Math.floor(this.game.player_x()), dz = pin.z - Math.floor(this.game.player_z());
+    const d = Math.hypot(dx, dz), rim = this.size / 2 - 6;
+    if (d > rim) [dx, dz] = [(dx / d) * rim, (dz / d) * rim];
+    return [dx, dz];
+  }
+
+  /** The info box for the pin or marks under the pointer (it only moves over the map while the cursor is free). */
+  private hover(e: PointerEvent): void {
+    const r = this.el.getBoundingClientRect();
+    const blocks = this.size / r.width; // blocks per CSS px
+    const x = (e.clientX - r.left) * blocks - this.size / 2, z = (e.clientY - r.top) * blocks - this.size / 2;
+    let pin: Pin | null = null, best = HOVER_PX * blocks;
+    for (const p of this.shownPins()) {
+      const [dx, dz] = this.pinOffset(p);
+      // The pin's point, or its head (drawn about 10 CSS px above it).
+      const d = Math.min(Math.hypot(dx - x, dz - z), Math.hypot(dx - x, dz - 10 * blocks - z));
+      if (d < best) [pin, best] = [p, d];
+    }
+    const cx = Math.floor(this.game.player_x()), cz = Math.floor(this.game.player_z());
+    this.info.show(infoAt(this.game, this.filter, this.pins, pin, cx + x, cz + z, HOVER_PX * blocks), e.clientX, e.clientY);
   }
 
   /** One arrow per other player: (x offset, z offset, yaw) triples in blocks. */

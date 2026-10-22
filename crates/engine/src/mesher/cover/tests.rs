@@ -17,7 +17,7 @@ fn floor(ground: BlockId, biome: Biome, light: &[u8], x0: i32) -> MeshOutput {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     let biomes = vec![biome; 1024];
-    Mesher::new().mesh(&refs, light, Some(&Cover { x0, z0: 0, biomes: &biomes }))
+    Mesher::new().mesh(&refs, light, Some(&Cover { x0, z0: 0, biomes: &biomes, cleared: &[] }))
 }
 
 /// The texture layers of the plants in a mesh (one per plant), skipping the floor's own quads.
@@ -70,7 +70,7 @@ fn no_cover_without_sky_without_biomes_or_off_natural_ground() {
     refs[neighbor_index(0, 0, 0)] = &c;
     let none = Mesher::new().mesh(&refs, &DAYLIGHT, None);
     assert_eq!(none.cutout_quads, 0, "versions without biomes get no cover");
-    let short = Cover { x0: 0, z0: 0, biomes: &[] };
+    let short = Cover { x0: 0, z0: 0, biomes: &[], cleared: &[] };
     assert_eq!(Mesher::new().mesh(&refs, &DAYLIGHT, Some(&short)).cutout_quads, 0);
 }
 
@@ -86,7 +86,7 @@ fn cover_stays_off_cells_that_are_not_empty() {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     let biomes = vec![Biome::Plains; 1024];
-    let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes }));
+    let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[] }));
     assert_eq!(m.cutout_quads, 0);
 }
 
@@ -107,7 +107,7 @@ fn reeds_stand_on_the_bank() {
     let mut refs = [&air; 27];
     refs[neighbor_index(0, 0, 0)] = &c;
     let biomes = vec![Biome::Plains; 1024];
-    let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes }));
+    let m = Mesher::new().mesh(&refs, &DAYLIGHT, Some(&Cover { x0: 0, z0: 0, biomes: &biomes, cleared: &[] }));
     let reeds = count(&m, tex::REED);
     assert!(reeds > 5 && reeds < 32, "reeds only along the shore line: {reeds}");
 }

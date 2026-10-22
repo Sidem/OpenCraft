@@ -233,8 +233,8 @@ pub const HINTS: &[Hint] = &[
     },
     Hint {
         text: "Drop pods: research Drop Pods. A *pod launcher* given cargo and a *drop pod* sends 6 stacks to the \
-               nearest *landing pad* placed facing the same way (its channel), while a comms satellite is over both. \
-               The pod lands 20 seconds later; belts empty the pad.",
+               nearest *landing pad* tuned to the same colour (right-click either to pick its channel), while a comms \
+               satellite is over both. The pod lands 20 seconds later; belts empty the pad.",
         done: |_, f| f.processors_of(POD_LAUNCHER) > 0,
     },
 ];

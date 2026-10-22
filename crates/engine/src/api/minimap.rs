@@ -92,6 +92,12 @@ impl Game {
         )
     }
 
+    /// What the marks within `reach` blocks of column (x, z) are, nearest first, for the hover box: one line each,
+    /// `shape<TAB>colour<TAB>title<TAB>detail` (shape and colour as in `world_map_marks`). Only what the player knows.
+    pub fn world_map_describe(&self, x: i32, z: i32, reach: i32) -> String {
+        self.minimap.describe(&self.sim.factory, &self.sim.settlements.towns, (x, z), reach, self.holds_long_pole())
+    }
+
     /// While a town depot is held, the explored tiles in block columns x0..=x1, z0..=z1 where a town would fit, as
     /// (x, z of the tile's north-west column, its size in blocks, the kind: `town_kind_name`) per tile; tiles near
     /// spawn or another town are left out. Empty otherwise. Each call works out a few more tiles, so a fresh view fills

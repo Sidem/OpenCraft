@@ -80,3 +80,7 @@ pub const SCIENCE_SATELLITE: ItemId = ItemId(394);
 pub const DROP_POD: ItemId = ItemId(395);
 /// Salvage from the ruins' rusted blocks (`sim/scrap.rs`); a smelter melts it into iron (`recipes/scrap.rs`).
 pub const SCRAP_METAL: ItemId = ItemId(396);
+/// The telescope (`telescope.rs`): look through it to pin faraway ground and see every pin as a column of light.
+pub const TELESCOPE: ItemId = ItemId(397);
+/// The sickle (`sickle.rs`): right-click cuts the ground plants of a 3 × 3 patch (`world/cover_clear.rs`).
+pub const SICKLE: ItemId = ItemId(398);

@@ -27,8 +27,9 @@ const B: PlayerId = PlayerId(1);
 /// for generator version 6, in 10.2 for the Oil Processing tech, in 10.3 for the Refining tech, and in 10.4
 /// for the Plastics and Acids and Lubricants techs, in 10.5 for the Diesel Power and Electrolysis techs, in 10.6 for the Ore Washing tech, in 10.7 for the Research Center tech, for the game mode byte (save version 38), in 11.0 for the Recycling tech, and in 11.1 for the Wafers and Accelerators techs, and on 2026-10-09 for the research queue (save version 41) and for the bigger hauler packs (three techs, 99 pack rows;
 /// save version 42), and for the Long-Distance Power tech 82 (2026-10-14), and in 13.1 for the Settlements tech and the
-/// town list (save version 48).
-const GOLDEN_HASH: u64 = 0x018f_cf55_a36a_19a3;
+/// town list (save version 48), and on 2026-10-22 (U3, save version 55) for the empty count of cleared ground cover the
+/// world now writes after its edited chunks: the old hash, 0x018f_cf55_a36a_19a3, is what these bytes give without those 4.
+const GOLDEN_HASH: u64 = 0xc43e_fd0a_5b2b_73e3;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

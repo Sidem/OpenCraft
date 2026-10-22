@@ -34,7 +34,7 @@ use crate::chunk::{index, Chunk};
 mod cover;
 mod quad;
 mod water;
-pub use cover::Cover;
+pub use cover::{bears_cover, Cover};
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
 pub use water::height as water_height;
 

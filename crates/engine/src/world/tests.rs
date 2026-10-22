@@ -83,3 +83,34 @@ fn bench_meshing() {
     let with_faces = w.events.iter().filter(|e| matches!(e, Event::Mesh(m) if !m.verts.is_empty())).count() / 3;
     println!("{meshed} remeshes of {} chunks ({with_faces} with faces): {per:.3} ms per chunk", all.len());
 }
+
+/// Fingerprint of every mesh a seed-1337 world makes around spawn (view radius 3), sorted by chunk. Recorded from the
+/// mesher before ground cover could be cleared (U3): an empty cleared set must keep producing exactly these bytes.
+#[test]
+fn untouched_chunks_mesh_as_they_always_did() {
+    let mut w = World::new(1337, 3);
+    let spawn = Vec3::new(0.5, w.generator().height_at(0, 0) as f64 + 1.0, 0.5);
+    w.update_streaming(spawn, &[]);
+    drain_meshes(&mut w);
+    let mut meshes: Vec<MeshData> =
+        w.events.drain(..).filter_map(|e| if let Event::Mesh(m) = e { Some(m) } else { None }).collect();
+    meshes.sort_by_key(|m| (m.pos.x, m.pos.y, m.pos.z));
+    let mut bytes = Vec::new();
+    for m in &meshes {
+        let head = [m.pos.x, m.pos.y, m.pos.z, m.opaque_quads as i32, m.cutout_quads as i32, m.liquid_quads as i32];
+        bytes.extend(head.iter().flat_map(|v| v.to_le_bytes()));
+        bytes.extend(m.verts.iter().flat_map(|v| v.to_le_bytes()));
+    }
+    let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
+    // Taken from the mesher as it was before `Cover::cleared` existed: 39 chunks, 75,464 cutout quads, 1,983,916 bytes.
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 75_464, 0x9ebe_2cfe_4b82_78ad));
+}
+
+fn drain_meshes(w: &mut World) {
+    loop {
+        w.begin_work();
+        if !w.work_step() {
+            break;
+        }
+    }
+}

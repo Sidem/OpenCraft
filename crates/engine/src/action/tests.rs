@@ -528,6 +528,8 @@ fn samples() -> Vec<Action> {
         Action::InsertCursor { pos },
         Action::SetHarbourProduct { pos, item: IRON_PLATE },
         Action::OpenVault { pos, dials: 7 },
+        Action::SetChannel { pos, channel: 4 },
+        Action::ClearCover { pos },
     ]
 }
 

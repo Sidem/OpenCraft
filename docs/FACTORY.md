@@ -307,12 +307,14 @@ size.
   science satellite over it, up to 100 TF.
 - **Drop pods.** The Drop Pods tech (after Rocketry and Orbital Comms) gives the **pod launcher** (3×3×3, 500 kW; 60
   concrete, 20 steel beams, 10 motors, 20 circuits), the **landing pad** (3×3×1, no power) and the **drop pod** (an
-  assembler: a light frame, a fuel tank, 10 circuits). Belts fill a launcher with cargo (12 stacks) and drop pods. The way
-  a launcher or pad faces when placed (R turns it) is its channel: north, east, south or west. While a comms satellite is
+  assembler: a light frame, a fuel tank, 10 circuits). Belts fill a launcher with cargo (12 stacks) and drop pods. Right-click
+  a launcher or pad to tune it to a channel, one of six colours (blue until you change it); the way it faces does not matter.
+  While a comms satellite is
   over the launcher and over a pad on its channel, the launcher loads for 15 seconds and sends one pod with up to 6 stacks
   to the nearest such pad; it comes down 20 seconds later and the cargo goes into the pad's 24 stacks, which belts empty.
   A full pad keeps the pod waiting and lands what fits, so nothing is lost. The launcher's status says what it waits for.
-  On the maps, launchers and pads carry an arrow pointing their channel's way, so matching ones are easy to spot.
+  On the maps, launchers (a square with an arrow) and pads (a square) are drawn in their channel's colour, and each has a
+  mark in that colour on its front, so matching ones are easy to spot.
 - **Endless bonus techs.** AI Research opens **Mining Productivity** (miners draw 3% faster per level), **Machine Speed**
   (smelters, assemblers and every other processing machine work 3% faster) and **Drone Speed** (drones fly 3% faster). They use
   no packs, only an AI lab's time and compute; each level takes a quarter longer than the last, and you can keep going (the

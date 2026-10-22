@@ -3,6 +3,27 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-22 · A sickle to clear the plants
+
+- New **sickle** (two iron ingots and two sticks). Hold it and right-click the ground to cut the grass, flowers, ferns, reeds, dry brush, lichen and ore-hint plants of a 3 by 3 patch; hold the button to sweep across a meadow. A green outline shows the patch before you cut.
+- Cut plants leave nothing behind and do not grow back, so a cleared spot stays clear, even if you dig the ground away and put a new floor there. Trees, leaves and logs are not touched: chop those as before.
+- In a shared game everyone sees the same cleared ground, and a world you saved keeps it. Worlds you already have load as before.
+
+## 2026-10-22 · A telescope for your pins
+
+- New **telescope** (a few glass lenses, iron plates and rods). Hold it and right-click to look through it: the view zooms in gently, the wheel changes the zoom, and left-click drops a pin on the ground you are looking at (an empty note, ready to name on the map).
+- While you look through it, every pin you have is a tall coloured column of light, even through fog and from thousands of blocks away. Lower the telescope and they are gone.
+
+## 2026-10-22 · Hover the map, filter the map
+
+- Rest the mouse on anything on the map or the minimap and a small box tells you what it is: the ore and kind of a deposit you know of (never how much is left), a machine, a town and whether it is growing, short of upkeep or dormant, a terraforming site, a satellite's cover, or your pin's kind and note. On the minimap it works while the cursor is free, in a menu or a panel.
+- New "Show on the map" chips beside the world map hide or show machines, towns, sites, satellite cover, each ore and each kind of pin. They apply to the minimap too, the pin list follows them, and they are remembered.
+
+## 2026-10-20 · Pod channels you can name
+
+- Right-click a pod launcher or a landing pad to pick its channel from six colours. A pod goes to the nearest pad on the same colour, whichever way either one faces. The map shows each in its colour, and so does the mark on the machine.
+- Worlds you already have keep their routes: the four directions become blue, orange, pink and green.
+
 ## 2026-10-18 · Items you can hold
 
 - About 70 items that were a box with a picture on each side are now real 3D models, on the ground, on belts, in your hand and in the inventory: canisters are painted drums, drones have arms and rotors, packs have straps and pockets, the locomotive and wagon are small copies of the real trains, satellites spread their solar wings, and heaps of crushed ore are heaps.

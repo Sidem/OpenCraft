@@ -36,9 +36,12 @@ import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
 import { Menu } from './ui/menu';
+import { MapFilter } from './ui/map-filter';
+import { MapInfo } from './ui/map-info';
 import { Minimap } from './ui/minimap';
 import { NameTags } from './ui/nametags';
 import { Pins } from './ui/pins';
+import { Scope } from './ui/scope';
 import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
@@ -142,8 +145,11 @@ async function main(): Promise<void> {
   const vault = new VaultPanel(game);
   const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);
-  const minimap = new Minimap(game, wasm.memory, pins);
-  const worldMap = new WorldMap(game, wasm.memory, pins);
+  const scope = new Scope(game, renderer, comfort, pins, () => input.locked, () => sound.ui());
+  const mapFilter = new MapFilter();
+  const mapInfo = new MapInfo();
+  const minimap = new Minimap(game, wasm.memory, pins, mapFilter, mapInfo);
+  const worldMap = new WorldMap(game, wasm.memory, pins, mapFilter, mapInfo);
   const nameTags = new NameTags();
   const playerList = new PlayerList();
   const coopPanel = new CoopPanel(coop, {
@@ -162,7 +168,7 @@ async function main(): Promise<void> {
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views,
+    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -197,7 +203,8 @@ async function main(): Promise<void> {
     last = now;
 
     if (input.locked) {
-      views.advance((MOUSE_SENSITIVITY * comfort.settings.sensitivity) / 100);
+      // Looking through a telescope, the same mouse movement turns the picture as far as it always does.
+      views.advance((MOUSE_SENSITIVITY * comfort.settings.sensitivity) / 100 / game.scope_zoom());
     }
     for (const a of input.takeActions()) {
       if (views.action(a)) continue;
@@ -302,6 +309,7 @@ async function main(): Promise<void> {
       wasReady = ready;
     }
 
+    scope.update();
     const hasTarget = game.has_target();
     const cursorBlock = game.view_mode() >= 2 ? game.strategy_hover() : [];
     renderer.render({

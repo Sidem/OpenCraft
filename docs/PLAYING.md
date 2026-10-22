@@ -30,7 +30,9 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | T                   | Research: choose what labs work on        |
 | P                   | Analytics hub: power by source, materials made and used, machine health |
 | H                   | Skip the tip on screen (the menu can show tips again) |
-| M                   | The map: everywhere you've been, your pins, and the ore guide (drag to move, wheel to zoom, click to pin) |
+| M                   | The map: everywhere you've been, your pins, filter chips and the ore guide (drag to move, wheel to zoom, click to pin, rest on a mark to see what it is) |
+| Telescope           | Hold it, **right-click** to look through it (first person), **wheel** zooms 2× to 8×, **left-click** pins the ground you look at (an empty note, editable on the map); while you look, every pin is a coloured column of light, even from far beyond the fog |
+| Sickle              | Hold it, **right-click** natural ground (grass, dirt, sand, basalt, granite) to cut the small plants of a 3×3 patch; hold to sweep. They drop nothing and never grow back (a new floor on that ground stays bare too); trees are not touched. Two iron ingots and two sticks |
 | N                   | Show or hide the minimap (top right, north up; diamonds mark ore you've seen, rings veins and lodes you've prospected, squares your machines, pins your pins) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
@@ -99,7 +101,13 @@ oldest ones, before biomes, are "classic terrain"), so nothing you built there c
 **The map** (M) shows everywhere you have been, north up; the browser remembers it with the world.
 Ore you have seen at the surface is marked with a diamond, so a patch spotted in passing is easy to find
 again. Click the map to drop a **pin** (an ore, home or a note, with a few words); pins show on the
-minimap too, at its edge when they are far away. Beside the map, **Finding ore** charts how deep each ore
+minimap too, at its edge when they are far away. Rest the mouse on a mark or a pin, on the map or on the
+minimap (while the cursor is free, in a menu or panel), and a small box says what it is: an ore and its kind
+of deposit (never how much is left), a machine, a town and how it is doing, a terraforming site, a
+satellite's cover, or your pin's kind and note. **Show on the map**, beside the map, has chips that hide
+machines, towns, sites, satellite cover, any one ore or any kind of pin (the name above a row of chips
+hides the row); they apply to the map and the minimap, the pin list follows, and the browser remembers
+them. Beside the map, **Finding ore** charts how deep each ore
 lies, which biomes hold it and how to spot it, with this world's own numbers.
 
 A day lasts 20 minutes, from sunrise through a golden dusk to a dark blue night with stars; the pause menu

@@ -120,7 +120,8 @@ impl Game {
         if self.ghost_mode {
             return self.update_marking();
         }
-        let Some(hit) = self.target.filter(|_| self.mining) else {
+        // Looking through a telescope, the left button pins instead of mining (telescope.rs).
+        let Some(hit) = self.target.filter(|_| self.mining && !self.scope_active()) else {
             self.mine_block = None;
             self.mine_progress = 0.0;
             self.dig_timer = 0.0;
@@ -167,9 +168,12 @@ impl Game {
             }
             return self.update_ghosts();
         }
-        // A scanner or core drill in hand makes the use button prospect instead (prospect.rs); with
-        // belts it lays lines (belt_line.rs); poles and cables have their own tools (power_tools.rs).
-        if self.update_planner()
+        // A telescope in hand makes the use button raise it (telescope.rs); a sickle in hand, aimed at ground, cuts
+        // its plants (sickle.rs); a scanner or core drill, prospect instead (prospect.rs); with belts it lays lines
+        // (belt_line.rs); poles and cables have their own tools (power_tools.rs).
+        if self.update_telescope()
+            || self.update_sickle(dt)
+            || self.update_planner()
             || self.update_prospecting(dt)
             || self.update_belt_line()
             || self.update_rail_tools()

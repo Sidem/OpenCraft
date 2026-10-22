@@ -229,6 +229,8 @@ pub const RECIPES: &[Recipe] = &[
     LANDING_PAD_RECIPE,
     UPGRADER_RECIPE,
     TOWN_DEPOT_RECIPE,
+    TELESCOPE_RECIPE,
+    SICKLE_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

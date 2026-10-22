@@ -58,6 +58,11 @@ fn bench_orbit() {
             f.orbit.launch(item, IVec3::new(30, 100, 30), (k as u64 * MAX_PER_KIND as u64 + i) % 60);
         }
     }
+    // Four routes: each launcher and pad is tuned to the channel its facing used to be.
+    let machines: Vec<(IVec3, u8)> = f.processors.iter().map(|p| (p.pos, p.dir)).collect();
+    for (pos, dir) in machines {
+        f.set_channel(pos, dir);
+    }
     // Launchers stocked with pods and cargo; the pads have no belts, so they fill and later pods wait in the sky.
     let all = [true; MACHINE_RECIPES.len()];
     for p in f.processors.iter_mut().filter(|p| p.spec.block == POD_LAUNCHER) {
@@ -65,7 +70,7 @@ fn bench_orbit() {
         (0..12).for_each(|_| _ = p.insert(IRON_PLATE, 64, &all));
     }
     let pads: Vec<(IVec3, u8)> =
-        f.processors.iter().filter(|p| p.spec.block == LANDING_PAD).map(|p| (p.pos, p.dir)).collect();
+        f.processors.iter().filter(|p| p.spec.block == LANDING_PAD).map(|p| (p.pos, p.channel())).collect();
     for i in 0..40 {
         let (to, channel) = pads[i % pads.len()];
         f.pods.send(IVec3::ZERO, to, channel, vec![Stack { item: IRON_PLATE, count: 64 }; 6], 60 + i as u64 * 20);
