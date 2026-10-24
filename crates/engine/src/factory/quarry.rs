@@ -33,6 +33,7 @@ use super::describe::fmt_int;
 use super::links::{deliver, Link, Sinks};
 use super::panel::{Panel, ROLE_OUTPUT};
 use super::power::{FULL_SPEED, NOT_WIRED};
+use super::provenance::Tag;
 use super::{Factory, Kind, Machine};
 
 /// What a quarry tier does, Mk1 first.
@@ -228,7 +229,7 @@ impl Quarry {
         let (item, n) = (self.out.slots[src].item, self.outs.len());
         for i in 0..n {
             let slot = (self.next_out + i) % n;
-            if deliver(belts, sinks, self.outs[slot], item, 1, 0.0) {
+            if deliver(belts, sinks, self.outs[slot], (item, 1, Tag::made_at(self.pos)), 0.0) {
                 self.out.take(src, 1);
                 self.next_out = (slot + 1) % n;
                 return;

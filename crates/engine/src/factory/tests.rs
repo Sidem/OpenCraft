@@ -95,7 +95,7 @@ fn spacing_ok(f: &Factory) {
     }
 }
 
-fn stocked_box(f: &mut Factory, pos: IVec3, item: ItemId, n: u32) {
+pub(super) fn stocked_box(f: &mut Factory, pos: IVec3, item: ItemId, n: u32) {
     f.add_storage(pos);
     let Some(Slot::Storage(i)) = f.at.get(&pos) else { unreachable!() };
     f.storages[*i as usize].buf.add(item, n);

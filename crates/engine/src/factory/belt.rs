@@ -19,6 +19,7 @@ use crate::math::{IVec3, Vec3};
 
 use super::belt_shape::Shape;
 use super::links::{deliver, Link, Sinks, Slot};
+use super::provenance::Tag;
 use super::render::push_box;
 use super::{Factory, Machine, DIRS};
 
@@ -52,6 +53,8 @@ pub struct BeltItem {
     /// 1, except a tool: its uses left (it rides as one piece, `tools::lot`).
     pub n: u32,
     pub p: f32,
+    /// Where it was put on a belt and how long it has ridden (`provenance.rs`).
+    pub tag: Tag,
 }
 
 pub struct Belt {
@@ -102,13 +105,13 @@ impl Belt {
 
     /// Accepts an item (`n` of it: 1, or a tool's uses) at the start (with `overflow` progress already travelled)
     /// or in the middle.
-    pub fn accept(&mut self, item: ItemId, n: u32, mid: bool, overflow: f32) -> bool {
+    pub fn accept(&mut self, item: ItemId, n: u32, tag: Tag, mid: bool, overflow: f32) -> bool {
         if mid {
             if !self.mid_free() {
                 return false;
             }
             let i = self.items.iter().position(|it| it.p < 0.5).unwrap_or(self.items.len());
-            self.items.insert(i, BeltItem { item, n, p: 0.5 });
+            self.items.insert(i, BeltItem { item, n, p: 0.5, tag });
             return true;
         }
         let p = match self.items.last() {
@@ -116,7 +119,7 @@ impl Belt {
             Some(rear) => overflow.min(rear.p - ITEM_SPACING),
             None => overflow.min(END_STOP),
         };
-        self.items.push(BeltItem { item, n, p: p.max(0.0) });
+        self.items.push(BeltItem { item, n, p: p.max(0.0), tag });
         true
     }
 }
@@ -172,12 +175,13 @@ pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) 
         for it in belts[bi].items.iter_mut() {
             it.p = (it.p + step).min(limit).max(it.p);
             limit = it.p - ITEM_SPACING;
+            it.tag.age();
         }
         while let Some(front) = belts[bi].items.first().copied() {
             if front.p < 1.0 {
                 break;
             }
-            if deliver(belts, sinks, out, front.item, front.n, front.p - 1.0) {
+            if deliver(belts, sinks, out, (front.item, front.n, front.tag), front.p - 1.0) {
                 belts[bi].items.remove(0);
             } else {
                 belts[bi].items[0].p = 1.0;
@@ -205,6 +209,7 @@ impl Machine for Belt {
             w.item(it.item);
             w.u32(it.n);
             w.f32(it.p);
+            it.tag.write_state(w);
         }
     }
 
@@ -217,7 +222,8 @@ impl Machine for Belt {
             let item = r.item()?;
             // Before version 39 a tool on a belt was one use per item.
             let n = if r.version >= 39 { r.u32()? } else { 1 };
-            belt.items.push(BeltItem { item, n, p: r.f32()? });
+            let p = r.f32()?;
+            belt.items.push(BeltItem { item, n, p, tag: Tag::read_state(r)? });
         }
         (dir < 4 && (tier as usize) < BELT_TIERS.len()).then_some(belt)
     }
@@ -264,19 +270,34 @@ impl Machine for Belt {
         let base = rel - Vec3::new(0.0, 0.5, 0.0);
         let yaw = self.dir as f32 * FRAC_PI_2;
         for it in self.items.iter().filter(|it| self.shows(it.p)) {
-            let Some(def) = item::def(it.item) else { continue };
-            let (x, y, z) = self.item_at(it.p);
-            let size = def.size.map(|s| s * ITEM_SIZE);
-            let pos = base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64);
+            let Some((pos, size)) = self.item_pose(it, base) else { continue };
             // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
             if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ITEM_SIZE as f64) {
-                push_box(out, pos, yaw, size, 0.0, def.tex, false);
+                push_box(out, pos, yaw, size, 0.0, item::def(it.item).map_or([0; 3], |d| d.tex), false);
             }
         }
     }
 }
 
 impl Belt {
+    /// Where a riding item's box centre is and how big it is, `base` being the cell's bottom centre.
+    fn item_pose(&self, it: &BeltItem, base: Vec3) -> Option<(Vec3, [f32; 3])> {
+        let def = item::def(it.item)?;
+        let (x, y, z) = self.item_at(it.p);
+        let size = def.size.map(|s| s * ITEM_SIZE);
+        Some((base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64), size))
+    }
+
+    /// A plain box for item `it`, for the crosshair (`belt_items.rs`), unless it is out of sight; the cell's centre
+    /// is `rel`. Returns whether a box was pushed.
+    pub(super) fn item_box(&self, it: &BeltItem, out: &mut Vec<f32>, rel: Vec3) -> bool {
+        let pose = self.item_pose(it, rel - Vec3::new(0.0, 0.5, 0.0)).filter(|_| self.shows(it.p));
+        if let Some((pos, size)) = pose {
+            push_box(out, pos, self.dir as f32 * FRAC_PI_2, size, 0.0, [0; 3], false);
+        }
+        pose.is_some()
+    }
+
     /// The belt without its items (also what the crosshair hits, `hitbox.rs`).
     pub(super) fn frame(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let base = rel - Vec3::new(0.0, 0.5, 0.0);

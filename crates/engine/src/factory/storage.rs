@@ -38,7 +38,7 @@ impl Storage {
 
     /// Pushes one item into the next belt leading away that accepts it.
     pub fn step(&mut self, belts: &mut [Belt]) {
-        self.buf.feed(&self.outs, &mut self.next_out, belts);
+        self.buf.feed(&self.outs, &mut self.next_out, belts, self.pos);
     }
 }
 

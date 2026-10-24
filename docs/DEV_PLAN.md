@@ -3,7 +3,8 @@
 **Status (2026-10-19):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b) and the play-test
 response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realistic art pass is live. R8 is decided
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
-Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
+belt items tell where they came from (2026-10-24). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -232,6 +233,21 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-24: belt items have a story.** Pointing at an item on a belt names it, outlines it and says how long it has been on
+  belts, which machine put it there and where, and the recipe if a machine made it (user request). Every `BeltItem` and a
+  router's held item carry a `Tag` (`factory/provenance.rs`: ticks on belts, the maker's cell; 16 bytes), core state, so in
+  saves (version 56; older items read as origin unknown) and the state hash. Producers (miner, quarry, box, processor) start a
+  tag, `belt_step` ages it, `deliver` and routers pass it on, a machine that takes the item in drops it. No tick is threaded
+  through the machines: the tag counts its own ticks. Picking: `factory/belt_items.rs` (`aim_boxes` adds the items to a
+  belt's hit boxes so a tall item's top still selects the belt, `belt_item_under`, `belt_item_report`); `Game` keeps
+  `target_item`; `target_item_name` and `target_detail` (`api/hud.rs`) feed `ui/hud.ts`; the outline is the item's box.
+  Measured on the 34 h save (6,347 belts, 14,554 items, 4,339 belts backed up with 3): a whole tick 146 to 158 us (medians of
+  35 interleaved runs, +8%, about 0.07% of a frame); a save 1,025,484 to 1,258,684 bytes raw, 243,688 to 270,898 gzipped
+  (+11%; stuck items share one age here, so real play may add up to about twice that). The golden hash in `sim/tests.rs` was
+  re-recorded. Wasm 1,630,288 to 1,639,380 bytes (+9.1 KB; `vite build` reports 592.98 KB gzipped). Seen in the browser pane
+  (a smelter's ingot: name, 27 s on belts, "Made in a Smelter from ...", 2 west from here, outline). Not verified: the feel of
+  aiming with real pointer lock. Not done: a tally per belt of how old its items are;
+  following one item along its way (the roadmap's "follow one item" can now build on the tag).
 - **2026-10-22: sickle (U3).** Item 398 (`ToolKind::Sickle`, never wears; two iron ingots and two sticks, a hand recipe in
   `recipes/tooling.rs`). Right-click on natural ground (`mesher::bears_cover`) queues `Action::ClearCover` (codec tag 61),
   hold to sweep (0.25 s a swing; a patch already cleared sends nothing); anything else falls through, so panels still open

@@ -21,6 +21,7 @@ use super::describe::{fmt_duration, fmt_int};
 use super::links::{deliver, Link, Sinks};
 use super::miner_model::{self, Look};
 use super::power::{FULL_SPEED, NOT_WIRED};
+use super::provenance::Tag;
 use super::{Factory, Kind, Machine, FACES};
 
 /// A miner tier's numbers: upgrading gets more ore out of the same deposit, for more power.
@@ -195,7 +196,7 @@ impl Miner {
         let n = self.outs.len();
         for i in 0..n {
             let slot = (self.next_out + i) % n;
-            if deliver(belts, sinks, self.outs[slot], self.ore, 1, 0.0) {
+            if deliver(belts, sinks, self.outs[slot], (self.ore, 1, Tag::made_at(self.pos)), 0.0) {
                 self.out.take(0, 1);
                 self.next_out = (slot + 1) % n;
                 break;

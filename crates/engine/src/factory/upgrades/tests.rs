@@ -1,5 +1,6 @@
 use super::*;
 use crate::block::IRON_ORE;
+use crate::factory::provenance::Tag;
 use crate::factory::MINER_TIERS;
 use crate::world::World;
 
@@ -21,7 +22,7 @@ fn kits_name_their_tier() {
 fn an_upgraded_belt_keeps_its_items_and_each_tier_doubles_its_speed() {
     let mut f = Factory::default();
     f.add_belt(P, 1);
-    assert!(f.belts[0].accept(IRON_ORE.into(), 1, false, 0.3));
+    assert!(f.belts[0].accept(IRON_ORE.into(), 1, Tag::UNKNOWN, false, 0.3));
     assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 1, kit: GREEN_KIT, kits: 1 }));
     let speed = f.belt_at(P).speed();
     assert!(f.upgrade(P));

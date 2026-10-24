@@ -20,6 +20,7 @@
 
 mod belt;
 mod belt_chain;
+mod belt_items;
 mod belt_shape;
 mod buffer;
 mod cable;
@@ -45,6 +46,7 @@ mod ports;
 mod power;
 pub mod power_mix;
 mod process;
+mod provenance;
 mod pumping;
 mod quarry;
 mod rail;
@@ -99,6 +101,7 @@ use storage::Storage;
 use trains::Train;
 use wiring::Hook;
 
+pub use belt_items::ItemAim;
 pub use buffer::Buffer;
 pub use describe::fmt_int;
 pub use facts::facts;

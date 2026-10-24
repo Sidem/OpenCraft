@@ -82,6 +82,7 @@ impl Game {
     }
 
     pub(crate) fn update_target(&mut self) {
+        self.target_item = None;
         if self.strategy.active() {
             self.strategy_target();
             return;
@@ -107,12 +108,17 @@ impl Game {
             dir,
             self.reach(),
             |p| world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b))),
-            |p| factory.hit_boxes(p),
+            |p| factory.aim_boxes(p),
         );
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
         let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| factory.block_at(h.block)).flatten();
         self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
         self.target_fit = self.target.and_then(|h| factory.hit_boxes(h.block)).map(|b| b.bounds());
+        // Aiming at a belt's item outlines the item instead of the belt.
+        self.target_item = self.target.and_then(|h| factory.belt_item_under(h.block, origin, dir));
+        if let Some(item) = self.target_item {
+            self.target_fit = Some(item.bounds);
+        }
     }
 
     pub(crate) fn update_mining(&mut self, dt: f32) {

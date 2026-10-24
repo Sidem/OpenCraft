@@ -5,9 +5,11 @@
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::{add_to_slots, Stack};
 use crate::item::{stack_size, ItemId};
+use crate::math::IVec3;
 use crate::tools;
 
 use super::belt::Belt;
+use super::provenance::Tag;
 
 pub struct Buffer {
     pub slots: Vec<Stack>,
@@ -106,15 +108,16 @@ impl Buffer {
     }
 
     /// Pushes one item (a tool, with all its uses) from its last non-empty slot into the next belt in `outs` that
-    /// accepts it, round-robin from `next_out`. How boxes and processing machines feed belts leading away.
-    pub fn feed(&mut self, outs: &[u32], next_out: &mut usize, belts: &mut [Belt]) {
+    /// accepts it, round-robin from `next_out`. How boxes and processing machines feed belts leading away;
+    /// `from` is the machine's cell, the origin the item's tag starts with.
+    pub fn feed(&mut self, outs: &[u32], next_out: &mut usize, belts: &mut [Belt], from: IVec3) {
         let Some(src) = self.slots.iter().rposition(|st| !st.is_empty()) else { return };
         let item = self.slots[src].item;
         let lot = tools::lot(item, self.slots[src].count);
         let n = outs.len();
         for i in 0..n {
             let slot = (*next_out + i) % n;
-            if belts[outs[slot] as usize].accept(item, lot, false, 0.0) {
+            if belts[outs[slot] as usize].accept(item, lot, Tag::made_at(from), false, 0.0) {
                 self.take(src, lot);
                 *next_out = (slot + 1) % n;
                 return;

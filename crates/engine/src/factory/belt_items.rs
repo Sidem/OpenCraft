@@ -1,0 +1,137 @@
+//! Pointing at one item riding a belt: which one the crosshair meets, and what its tag (`provenance.rs`) says.
+//! Read-only queries for the target readout; nothing here runs unless the crosshair is on a belt.
+//! `aim_boxes` is what the crosshair may hit in a cell: a belt's frame plus its items, because a tall item pokes above
+//! the rails and aiming at its top should still select the belt. `hit_boxes` (the frame alone) stays the outline.
+//! To say more about an item: add a line to `belt_item_report`.
+
+use crate::block;
+use crate::hitbox::Boxes;
+use crate::item::{self, ItemId};
+use crate::math::{IVec3, Vec3};
+use crate::recipes::{MachineRecipe, MACHINE_RECIPES};
+
+use super::describe::fmt_duration;
+use super::links::Slot;
+use super::process::ProcessSpec;
+use super::{Factory, INSTANCE_FLOATS};
+
+/// An item the crosshair is on: its place in the belt's list and its box (lowest corner, then size, in cell units).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ItemAim {
+    pub cell: IVec3,
+    pub index: usize,
+    pub bounds: [f32; 6],
+}
+
+impl Factory {
+    /// What the crosshair can hit in `cell`: `hit_boxes`, with a belt's items added.
+    pub fn aim_boxes(&self, cell: IVec3) -> Option<Boxes> {
+        let Some(&Slot::Belt(i)) = self.at.get(&cell) else { return self.hit_boxes(cell) };
+        let belt = &self.belts[i as usize];
+        let mut out = Vec::new();
+        belt.frame(&mut out, Vec3::ZERO, 0.0);
+        for it in &belt.items {
+            belt.item_box(it, &mut out, Vec3::ZERO);
+        }
+        Boxes::from_instances(&out)
+    }
+
+    /// The item of the belt in `cell` that the ray from `origin` along the unit vector `dir` meets first.
+    pub fn belt_item_under(&self, cell: IVec3, origin: Vec3, dir: Vec3) -> Option<ItemAim> {
+        let Some(&Slot::Belt(i)) = self.at.get(&cell) else { return None };
+        let belt = &self.belts[i as usize];
+        let (mut best, mut out): (Option<(f64, ItemAim)>, Vec<f32>) = (None, Vec::with_capacity(INSTANCE_FLOATS));
+        for (index, it) in belt.items.iter().enumerate() {
+            out.clear();
+            if !belt.item_box(it, &mut out, Vec3::ZERO) {
+                continue;
+            }
+            let Some(boxes) = Boxes::from_instances(&out) else { continue };
+            let Some(t) = boxes.enter(origin - cell.as_vec3(), dir) else { continue };
+            if best.is_none_or(|(near, _)| t < near) {
+                best = Some((t, ItemAim { cell, index, bounds: boxes.bounds() }));
+            }
+        }
+        best.map(|(_, aim)| aim)
+    }
+
+    /// The item an aim names and its readout: how long it has ridden belts, who put it there and where that is.
+    /// None when the belt has changed since (the item moved on).
+    pub fn belt_item_report(&self, aim: ItemAim) -> Option<(ItemId, String)> {
+        let Some(&Slot::Belt(i)) = self.at.get(&aim.cell) else { return None };
+        let it = self.belts[i as usize].items.get(aim.index)?;
+        let time = match it.tag.seconds() {
+            0 => "Just left its maker".to_string(),
+            s => format!("{} on belts", fmt_duration(f64::from(s))),
+        };
+        let origin = match it.tag.origin() {
+            Some(from) => self.origin_words(from, it.item, aim.cell),
+            None => {
+                "Origin unknown: it was already on the belt when this world was saved by an older version".to_string()
+            }
+        };
+        Some((it.item, format!("{time}\n{origin}")))
+    }
+
+    /// "Made in a Smelter from Iron Ore ×1 · 12 east, 3 up from here".
+    fn origin_words(&self, from: IVec3, item: ItemId, here: IVec3) -> String {
+        let Some(&slot) = self.at.get(&from) else {
+            return format!("Put on the belt by a machine since removed · {}", offset_words(from - here));
+        };
+        let name = block::def(self.block_name_of(slot, from)).name;
+        let (verb, recipe) = match slot {
+            Slot::Miner(_) => ("Mined by", String::new()),
+            Slot::Quarry(_) => ("Quarried by", String::new()),
+            Slot::Storage(_) => ("Taken out of", String::new()),
+            Slot::Process(i) => ("Made in", self.recipe_words(self.processors[i as usize].spec, item)),
+            _ => ("Put on the belt by", String::new()),
+        };
+        format!("{verb} a {name}{recipe} · {}", offset_words(from - here))
+    }
+
+    /// The machine's block: its tier's if it has tiers, else the plain one of its kind.
+    fn block_name_of(&self, slot: Slot, pos: IVec3) -> block::BlockId {
+        match (self.tiered_at(pos), slot) {
+            (Some((id, _)), _) => id,
+            (None, Slot::Process(i)) => self.processors[i as usize].spec.block,
+            _ => slot.kind().def().block,
+        }
+    }
+
+    /// " from Iron Ore ×1": the recipe of this machine's kind that makes `item` (" or " the next, if two do).
+    /// The machine's own recipe may have changed since, so the kind's table is the answer, not its state.
+    fn recipe_words(&self, spec: &ProcessSpec, item: ItemId) -> String {
+        let makes = |r: &&MachineRecipe| spec.categories.contains(&r.category) && r.outputs.iter().any(|o| o.0 == item);
+        let words = |r: &MachineRecipe| {
+            let inputs: Vec<String> = r.inputs.iter().map(|(i, n)| format!("{} ×{n}", item::name(*i))).collect();
+            inputs.join(" + ")
+        };
+        let found: Vec<String> = MACHINE_RECIPES.iter().filter(makes).take(2).map(words).collect();
+        if found.is_empty() {
+            String::new()
+        } else {
+            format!(" from {}", found.join(" or "))
+        }
+    }
+}
+
+/// "12 east, 3 up from here" (north is -z, as everywhere in the readouts); "right here" for a zero offset.
+fn offset_words(d: IVec3) -> String {
+    let part = |n: i32, plus: &str, minus: &str| match n {
+        0 => None,
+        n if n > 0 => Some(format!("{n} {plus}")),
+        n => Some(format!("{} {minus}", -n)),
+    };
+    let parts: Vec<String> = [part(d.x, "east", "west"), part(d.z, "south", "north"), part(d.y, "up", "down")]
+        .into_iter()
+        .flatten()
+        .collect();
+    if parts.is_empty() {
+        "right here".to_string()
+    } else {
+        format!("{} from here", parts.join(", "))
+    }
+}
+
+#[cfg(test)]
+mod tests;

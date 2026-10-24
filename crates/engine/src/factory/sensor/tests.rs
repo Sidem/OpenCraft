@@ -1,6 +1,7 @@
 use super::super::Kind;
 use super::*;
 use crate::block::{BELT, GENERATOR, POLE, SENSOR, STORAGE};
+use crate::factory::provenance::Tag;
 use crate::item::IRON_PLATE;
 use crate::world::World;
 
@@ -93,7 +94,7 @@ fn a_belt_is_read_by_the_items_on_it_and_a_sensor_in_the_dark_stays_on() {
     f.belts[0].items.clear();
     assert_eq!(f.level_at(at(0)), Some(0));
     for p in [0.2, 0.55] {
-        f.belts[0].items.push(super::super::belt::BeltItem { item: IRON_PLATE, n: 1, p });
+        f.belts[0].items.push(super::super::belt::BeltItem { item: IRON_PLATE, n: 1, p, tag: Tag::UNKNOWN });
     }
     assert_eq!(f.level_at(at(0)), Some(66));
     assert_eq!(f.level_at(at(5)), None);

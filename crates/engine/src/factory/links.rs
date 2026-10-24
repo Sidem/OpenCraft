@@ -15,6 +15,7 @@ use super::generator::Generator;
 use super::lab::Lab;
 use super::power::Power;
 use super::process::{self, Processor};
+use super::provenance::Tag;
 use super::router::Router;
 use super::storage::Storage;
 use super::underpass::derive_passes;
@@ -120,14 +121,14 @@ impl Sinks<'_> {
     }
 
     /// Hands `n` of `item` (1, or a tool's uses) to the sink at `slot`; false, and nothing taken, if it doesn't.
-    pub(super) fn accept(&mut self, slot: Slot, item: ItemId, n: u32) -> bool {
+    pub(super) fn accept(&mut self, slot: Slot, (item, n, tag): Load) -> bool {
         if !self.can_accept(slot, item, n) {
             return false;
         }
         match slot {
             Slot::Storage(i) => self.storages[i as usize].buf.add(item, n) == 0,
             Slot::Process(i) => self.processors[i as usize].insert(item, n, self.unlocked) == n,
-            Slot::Router(i) => self.routers[i as usize].accept(item, n),
+            Slot::Router(i) => self.routers[i as usize].accept(item, n, tag),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
             Slot::Belt(_)
@@ -142,12 +143,15 @@ impl Sinks<'_> {
     }
 }
 
-/// Hands one item to a link. `overflow` is how far past the end of the source belt it already is.
-pub(super) fn deliver(belts: &mut [Belt], sinks: &mut Sinks, link: Link, item: ItemId, n: u32, overflow: f32) -> bool {
+/// What moves between machines: an item, how many of it (1, or a tool's uses) and its tag.
+pub(super) type Load = (ItemId, u32, Tag);
+
+/// Hands one load to a link. `overflow` is how far past the end of the source belt it already is.
+pub(super) fn deliver(belts: &mut [Belt], sinks: &mut Sinks, link: Link, load: Load, overflow: f32) -> bool {
     match link {
         Link::None => false,
-        Link::Belt { belt, mid } => belts[belt as usize].accept(item, n, mid, overflow),
-        Link::Machine(slot) => sinks.accept(slot, item, n),
+        Link::Belt { belt, mid } => belts[belt as usize].accept(load.0, load.1, load.2, mid, overflow),
+        Link::Machine(slot) => sinks.accept(slot, load),
     }
 }
 

@@ -207,8 +207,8 @@ impl Processor {
             (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research) => {}
             _ => self.work(power, unlocked),
         }
-        self.out.feed(&self.outs, &mut self.next_out, belts);
-        self.side.feed(&self.side_outs, &mut self.next_side, belts);
+        self.out.feed(&self.outs, &mut self.next_out, belts, self.pos);
+        self.side.feed(&self.side_outs, &mut self.next_side, belts, self.pos);
     }
 
     /// Whether it would work this tick if powered (its grid counts it as demand).

@@ -165,12 +165,21 @@ impl Game {
         }
     }
 
+    /// The name of the belt item the crosshair is on, or empty: the readout's title then.
+    pub fn target_item_name(&self) -> String {
+        let report = self.target_item.and_then(|aim| self.sim.factory.belt_item_report(aim));
+        report.map_or_else(String::new, |(item, _)| crate::item::name(item).to_string())
+    }
+
     /// Extra lines for the target readout: deposit details for ore, status for machines, what lies
-    /// under stained soil.
+    /// under stained soil, how long a belt item has ridden and where it came from.
     /// Lines are separated by `\n`; empty when there is nothing to add. Leaves the core unchanged:
     /// a deposit nobody has touched is surveyed into `self.surveyed`, not tracked.
     pub fn target_detail(&mut self) -> String {
         let Some(hit) = self.target else { return String::new() };
+        if let Some((_, text)) = self.target_item.and_then(|aim| self.sim.factory.belt_item_report(aim)) {
+            return text;
+        }
         if let Some(text) = self.sim.factory.describe(hit.block) {
             let text = match self.town_line(hit.block) {
                 Some(town) => format!("{town}\n{text}"),

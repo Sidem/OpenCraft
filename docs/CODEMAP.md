@@ -44,7 +44,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `mod.rs`: `Factory` (a `Vec` per kind, cell index, place, remove). `tick.rs`: `update`, one tick. `table.rs`: `Kind`,
   `MACHINES`. `machine.rs`: the `Machine` trait. `state.rs`: bytes of every list. `tiers.rs`: tier families.
   `upgrades.rs`: kits, in-place upgrades.
-- Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `belt_shape.rs` (ramps, lifts), `underpass.rs`, `belt_chain.rs`,
+- Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
+  `belt_items.rs` (the crosshair picks a belt item and reads its tag), `belt_shape.rs` (ramps, lifts), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
 - Extraction: `miner.rs` (+ `miner_model.rs`), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs`, `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),

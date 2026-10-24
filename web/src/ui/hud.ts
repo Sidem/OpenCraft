@@ -154,12 +154,14 @@ export class Hud {
       this.detailKey = '';
     } else if (g.has_target()) {
       this.target.classList.remove('hidden');
-      this.targetName.textContent = this.names[g.target_block()] ?? '';
+      // A belt item under the crosshair is named instead of its belt.
+      const itemName = g.target_item_name();
+      this.targetName.textContent = itemName || (this.names[g.target_block()] ?? '');
       const p = g.mine_progress();
       this.mineFill.style.transform = `scaleX(${p})`;
       this.target.classList.toggle('mining', p > 0);
       // Refresh at once on a new target, then a few times a second for live machine status.
-      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()}`;
+      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()},${itemName}`;
       if (key !== this.detailKey || now - this.lastDetail > DETAIL_MS) {
         this.detailKey = key;
         this.lastDetail = now;

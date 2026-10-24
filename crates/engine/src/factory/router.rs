@@ -18,6 +18,7 @@ use crate::math::{IVec3, Vec3};
 
 use super::belt::{Belt, ITEM_DETAIL_RANGE, ITEM_SIZE};
 use super::panel::{Panel, ROLE_INPUT};
+use super::provenance::Tag;
 use super::render::push_box;
 use super::{Factory, Machine};
 
@@ -32,6 +33,8 @@ pub struct Router {
     pub held: ItemId,
     /// How many of it: 1, or a tool's uses.
     pub held_n: u32,
+    /// Its tag, passed on to the belt it leaves into.
+    pub held_tag: Tag,
     /// Belts leading away: front, left, right (derived, from `relink`).
     pub outs: [Option<u32>; 3],
     /// The output to try first (round robin).
@@ -42,7 +45,17 @@ impl Router {
     pub fn new(pos: IVec3, dir: u8, is_filter: bool) -> Router {
         let none = ItemId::NONE;
         let outs = [None; 3];
-        Router { pos, dir: dir % 4, is_filter, filter: none, held: none, held_n: 0, outs, next_out: 0 }
+        Router {
+            pos,
+            dir: dir % 4,
+            is_filter,
+            filter: none,
+            held: none,
+            held_n: 0,
+            held_tag: Tag::UNKNOWN,
+            outs,
+            next_out: 0,
+        }
     }
 
     /// The horizontal directions of its outputs: front, left, right.
@@ -54,10 +67,10 @@ impl Router {
         self.held == ItemId::NONE
     }
 
-    pub fn accept(&mut self, item: ItemId, n: u32) -> bool {
+    pub fn accept(&mut self, item: ItemId, n: u32, tag: Tag) -> bool {
         let free = self.can_accept();
         if free {
-            (self.held, self.held_n) = (item, n);
+            (self.held, self.held_n, self.held_tag) = (item, n, tag);
         }
         free
     }
@@ -71,7 +84,7 @@ impl Router {
         for k in 0..3 {
             let slot = (self.next_out as usize + k) % 3;
             let Some(b) = self.outs[slot].filter(|_| allowed(slot)) else { continue };
-            if belts[b as usize].accept(self.held, self.held_n, false, 0.0) {
+            if belts[b as usize].accept(self.held, self.held_n, self.held_tag, false, 0.0) {
                 (self.held, self.held_n) = (ItemId::NONE, 0);
                 self.next_out = ((slot + 1) % 3) as u8;
                 return;
@@ -114,6 +127,7 @@ impl Machine for Router {
         w.item(self.held);
         w.u32(self.held_n);
         w.u8(self.next_out);
+        self.held_tag.write_state(w);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Router> {
@@ -123,6 +137,7 @@ impl Machine for Router {
         // Before version 39 a router held a single item (a tool: one use).
         m.held_n = if r.version >= 39 { r.u32()? } else { (m.held != ItemId::NONE) as u32 };
         m.next_out = r.u8()?;
+        m.held_tag = Tag::read_state(r)?;
         (dir < 4 && m.next_out < 3).then_some(m)
     }
 

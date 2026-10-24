@@ -235,8 +235,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 55,
-        "the layout above is unchanged since version 29 (30 to 48: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before; 45 added the satellites after the research; 46 the drop pods in flight after them; 47 the opening scene after the game mode; 48 the towns after it)"
+        SAVE_VERSION, 56,
+        "the layout above is unchanged since version 29 (30 to 48: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before; 45 added the satellites after the research; 46 the drop pods in flight after them; 47 the opening scene after the game mode; 48 the towns after it; 56 only added the belt items' tags)"
     );
 
     // A save with a pack's rows full but no pack on is refused.

@@ -52,6 +52,9 @@ size.
   two lines can cross. Drag a belt line over a belt, a machine or a wall and it dives under by itself with the
   lowest underpass that reaches, is at least as fast as your belt and that you hold a pair of. Pairs you don't have
   show red and are left out when you build; an obstacle too wide for any underpass is marked red and ends the line.
+- **Point at an item** riding a belt to read it: its name, how long it has been on belts (an item waiting at a line's
+  end shows the line is backed up), which miner, quarry, box or machine put it there and where that is, and the recipe
+  if a machine made it. A splitter or filter keeps that story; a machine that takes the item in starts a new one.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
 - **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and sand into
