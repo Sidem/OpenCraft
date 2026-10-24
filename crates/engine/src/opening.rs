@@ -8,7 +8,9 @@
 //! edits and `Sim::put_block`. `Opening` (core state, saved since version 47) remembers where it is, so the
 //! HUD can say what to do next (`Opening::step`, read-only). Old and creative worlds have none.
 //!
-//! Invariants: a pure function of the generator; nothing here runs after the world is made.
+//! Invariants: the scene is a pure function of the generator. Progress only moves forward (`Opening::advance`,
+//! once a tick, saved since version 57): once the line has run or a miner exists, the tips for putting the belt
+//! back never return, however the player later rebuilds the scene.
 //! To change the scene: the constants below (cells in the scene's frame: `r` to the right, `d` away from
 //! the player, `y` up from the ground the player starts on) and `STOCK`.
 
@@ -35,6 +37,18 @@ pub struct Opening {
     /// The box the ore comes from and the box the ingots collect in.
     pub source: IVec3,
     pub out: IVec3,
+    pub progress: Progress,
+}
+
+/// How far the world's opening has got. It never goes back.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub enum Progress {
+    /// The line is still to be mended.
+    Start,
+    /// The gap belt has been put back the right way round; the ingots are still to be taken.
+    Fixed,
+    /// Someone took ingots or has a miner: nothing more to teach.
+    Over,
 }
 
 /// What the opening asks of the player now.
@@ -103,24 +117,26 @@ const COAL: u32 = 6;
 pub const PITCH: f64 = -0.42;
 
 impl Opening {
-    /// What the player should do now, from what the scene and their inventory show. Over once they have a
-    /// miner, so later building at the scene never brings it back.
+    /// What the player should do now, from the progress and what the scene and their inventory show. The belt
+    /// steps only show before the line was first mended, and nothing shows once they have a miner.
     pub fn step(&self, inv: &Inventory, f: &Factory) -> Step {
-        if f.count(Kind::Miner) > 0 || inv.count(block::MINER.into()) > 0 {
+        if self.progress == Progress::Over || f.count(Kind::Miner) > 0 || inv.count(block::MINER.into()) > 0 {
             return Step::Done;
         }
-        let is_belt = |pos| f.tiered_at(pos).is_some_and(|t| t.0 == BELT);
-        if !is_belt(self.gap) {
-            return if is_belt(self.loose) {
-                Step::Pick
-            } else if inv.count(BELT.into()) > 0 {
-                Step::Place
-            } else {
-                Step::Collect
-            };
-        }
-        if f.placed_as(self.gap).is_some_and(|(dir, _)| dir != self.run()) {
-            return Step::Rotate;
+        if self.progress == Progress::Start {
+            let is_belt = |pos| f.tiered_at(pos).is_some_and(|t| t.0 == BELT);
+            if !is_belt(self.gap) {
+                return if is_belt(self.loose) {
+                    Step::Pick
+                } else if inv.count(BELT.into()) > 0 {
+                    Step::Place
+                } else {
+                    Step::Collect
+                };
+            }
+            if f.placed_as(self.gap).is_some_and(|(dir, _)| dir != self.run()) {
+                return Step::Rotate;
+            }
         }
         let holds = |pos| f.box_slots(pos).is_some_and(|s| s.iter().any(|s| s.count > 0));
         let holding = inv.count(IRON_INGOT) > 0 || inv.count(COPPER_INGOT) > 0;
@@ -149,18 +165,54 @@ impl Opening {
         let unit = IVec3::new(d.x.signum(), 0, d.z.signum());
         DIRS.iter().position(|&x| x == unit).unwrap_or(0) as u8
     }
+
+    /// Moves the progress forward from the core state, once a tick. `inventories` is every player's. Cheap
+    /// once over.
+    pub fn advance<'a>(&mut self, f: &Factory, inventories: impl Iterator<Item = &'a Inventory> + Clone) {
+        if self.progress == Progress::Over {
+            return;
+        }
+        let has = |item: ItemId| inventories.clone().any(|inv| inv.count(item) > 0);
+        if f.count(Kind::Miner) > 0 || has(block::MINER.into()) {
+            self.progress = Progress::Over;
+        } else if self.progress == Progress::Start {
+            if f.placed_as(self.gap).is_some_and(|(dir, _)| dir == self.run()) {
+                self.progress = Progress::Fixed;
+            }
+        } else if has(IRON_INGOT) || has(COPPER_INGOT) {
+            self.progress = Progress::Over;
+        }
+    }
+
+    /// A scene from before progress was saved (version 57): when neither the gap nor the loose belt is a belt, the
+    /// player is past the belt steps, or took the belts away to use elsewhere.
+    pub fn migrate(&mut self, f: &Factory) {
+        let is_belt = |pos| f.tiered_at(pos).is_some_and(|t| t.0 == BELT);
+        if !is_belt(self.gap) && !is_belt(self.loose) {
+            self.progress = Progress::Over;
+        }
+    }
+
     pub fn write_state(this: &Option<Opening>, w: &mut ByteWriter) {
         w.bool(this.is_some());
         if let Some(o) = this {
             [o.gap, o.loose, o.source, o.out].into_iter().for_each(|p| w.ivec3(p));
+            w.u8(o.progress as u8);
         }
     }
 
+    /// Before version 57 there was no progress byte: the scene starts at `Start` (see `migrate`).
     pub fn read_state(r: &mut ByteReader) -> Option<Option<Opening>> {
         if !r.bool()? {
             return Some(None);
         }
-        Some(Some(Opening { gap: r.ivec3()?, loose: r.ivec3()?, source: r.ivec3()?, out: r.ivec3()? }))
+        let (gap, loose, source, out) = (r.ivec3()?, r.ivec3()?, r.ivec3()?, r.ivec3()?);
+        let progress = if r.version >= 57 {
+            [Progress::Start, Progress::Fixed, Progress::Over].get(r.u8()? as usize).copied()?
+        } else {
+            Progress::Start
+        };
+        Some(Some(Opening { gap, loose, source, out, progress }))
     }
 }
 
@@ -205,7 +257,13 @@ impl Sim {
         self.factory.insert(line(furnace), ItemId::from(COAL_ORE), COAL);
         // Building it is not news: no sounds or drops on the first tick.
         self.events.clear();
-        self.opening = Some(Opening { gap: line(GAP), loose, source: line(0), out: line(LINE.len() as i32 - 1) });
+        self.opening = Some(Opening {
+            gap: line(GAP),
+            loose,
+            source: line(0),
+            out: line(LINE.len() as i32 - 1),
+            progress: Progress::Start,
+        });
         k as f64 * FRAC_PI_2
     }
 }

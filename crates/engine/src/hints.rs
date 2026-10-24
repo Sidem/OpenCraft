@@ -3,7 +3,9 @@
 //! hints a player dismissed is UI state the host keeps (`web/src/ui/hints.ts`).
 //!
 //! Invariant: `progress` is the index after the last hint that is done, so doing a later step implies
-//! the earlier ones (a player who already has a smelter skips the mining tips).
+//! the earlier ones (a player who already has a smelter skips the mining tips). The world keeps the furthest
+//! progress of any player (`Sim::hints_reached`, updated each second, saved since version 57) and the host
+//! shows the larger of that and the live value (`hint_progress`), so a done tip never comes back.
 //! A new world's opening scene has its own tip before these (`opening.rs`).
 //! Text markup the host draws: `*words*` are highlighted, `[keys]` drawn as key caps, and a short lead-in
 //! before the first colon becomes the title. To add a hint: a row in `HINTS`, where it belongs in the order.
@@ -22,6 +24,7 @@ use crate::item::{CARGO_DRONE, HOVER_PACK, IRON_INGOT, JETPACK, PERSONAL_DRONE, 
 use crate::research::{TechState, TECHS};
 use crate::satellites::{COMMS, POWER, SCIENCE};
 use crate::settlements::Settlements;
+use crate::sim::Sim;
 
 pub struct Hint {
     pub text: &'static str,
@@ -304,6 +307,22 @@ fn tech_done(f: &Factory, name: &str) -> bool {
 /// How far the player got: the index after the last hint that is done (0 when none is).
 pub fn progress(inv: &Inventory, f: &Factory) -> usize {
     HINTS.iter().rposition(|h| (h.done)(inv, f)).map_or(0, |i| i + 1)
+}
+
+impl Sim {
+    /// Once a tick, after the factory: moves the opening's progress (`opening.rs`) and, each second, the world's
+    /// furthest main tip (`hints_reached`) forward from every player's inventory. Neither ever goes back, so
+    /// taking a machine away later never brings a done tip back.
+    pub(crate) fn step_tips(&mut self) {
+        let invs = self.players.iter().flatten().map(|p| &p.inventory);
+        if let Some(o) = &mut self.opening {
+            o.advance(&self.factory, invs.clone());
+        }
+        if self.tick.is_multiple_of(crate::TICK_RATE as u64) {
+            let reached = invs.map(|inv| progress(inv, &self.factory) as u8).fold(self.hints_reached, u8::max);
+            self.hints_reached = reached;
+        }
+    }
 }
 
 #[cfg(test)]

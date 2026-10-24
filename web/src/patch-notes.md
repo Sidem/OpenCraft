@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-24 · The first tips stay done
+- The opening tips ("put the belt back", "turn it", "take the ingots") no longer come back when you later take those belts away to use somewhere else. Once you have mended the line, they are done for good in that world.
+- The same goes for the numbered tips: once a tip is done, removing a machine or belt to reuse it never brings it, or an earlier one, back. In a shared game the world remembers the furthest anyone got.
+- Worlds you saved earlier load as before; if you had already taken the opening's belts away, those tips stay away. The numbered tips start counting from what you have built when you next load.
+
 ## 2026-10-24 · The minimap always comes back
 - Hiding the minimap with **N** now lasts only until you start a game or reload; it no longer stays hidden in every world you open afterwards. If anything else ever hides the map while it should be showing, it is put back straight away.
 

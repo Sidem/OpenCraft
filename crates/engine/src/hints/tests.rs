@@ -12,6 +12,31 @@ fn place(f: &mut Factory, block: crate::block::BlockId, x: i32) {
 }
 
 #[test]
+fn a_tip_done_once_stays_done_in_the_world_and_its_save() {
+    use crate::action::Action;
+    use crate::bytes::{ByteReader, ByteWriter};
+    use crate::sim::{PlayerId, Sim};
+    let mut sim = Sim::new(7, 2);
+    sim.apply(PlayerId(0), Action::Give { item: IRON_ORE.into(), count: 3 });
+    sim.step();
+    assert_eq!(sim.hints_reached, 1, "found ore");
+    // The ore is used up or put away: the live progress goes back, the world's does not.
+    sim.players[0].as_mut().unwrap().inventory = Inventory::default();
+    for _ in 0..2 * crate::TICK_RATE {
+        sim.step();
+    }
+    let inv = &sim.players[0].as_ref().unwrap().inventory;
+    assert_eq!(progress(inv, &sim.factory), 0);
+    assert_eq!(sim.hints_reached, 1);
+
+    let mut w = ByteWriter::default();
+    sim.write_state(&mut w);
+    let mut back = Sim::new(7, 2);
+    back.read_state(&mut ByteReader::new(&w.bytes)).expect("reads back");
+    assert_eq!(back.hints_reached, 1, "saved with the world");
+}
+
+#[test]
 fn hints_follow_what_the_player_has_done() {
     let (mut inv, mut f) = (Inventory::default(), Factory::default());
     assert_eq!(progress(&inv, &f), 0);

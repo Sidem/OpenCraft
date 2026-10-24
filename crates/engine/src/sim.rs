@@ -189,6 +189,8 @@ pub struct Sim {
     pub opening: Option<Opening>,
     /// The towns the players founded (settlements/).
     pub settlements: Settlements,
+    /// How far the main tips got in this world, whoever got there (hints.rs); never goes back.
+    pub hints_reached: u8,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -220,6 +222,7 @@ impl Sim {
             mode: Mode::Normal,
             opening: None,
             settlements: Settlements::default(),
+            hints_reached: 0,
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -282,6 +285,7 @@ impl Sim {
         self.settlements.made.note(&self.events[made_from..]);
         self.step_drones();
         self.step_cargo();
+        self.step_tips();
         self.tick += 1;
     }
 
@@ -326,11 +330,12 @@ impl Sim {
         w.u8(self.mode.byte());
         Opening::write_state(&self.opening, w);
         self.settlements.write_state(w);
+        w.u8(self.hints_reached);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
     /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks;
-    /// before 38, the normal mode; before 47, no opening scene; before 48, no towns.
+    /// before 38, the normal mode; before 47, no opening scene; before 48, no towns; before 57, no opening progress and no main tip progress.
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -366,9 +371,13 @@ impl Sim {
         let mode = if r.version >= 38 { Mode::from_byte(r.u8()?)? } else { Mode::Normal };
         self.set_mode(mode);
         self.opening = if r.version >= 47 { Opening::read_state(r)? } else { None };
+        if let Some(o) = self.opening.as_mut().filter(|_| r.version < 57) {
+            o.migrate(&self.factory);
+        }
         // Save 49 added each town's stage and order, 50 its plots and drones, 51 dormancy, 53 the harbour's product and
         // what machines have made (`Settlements::read_state` follows the version).
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
+        self.hints_reached = if r.version >= 57 { r.u8()? } else { 0 };
         Some(())
     }
 }

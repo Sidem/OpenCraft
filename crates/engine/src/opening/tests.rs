@@ -49,6 +49,69 @@ fn putting_the_loose_belt_back_runs_the_line_and_pays_for_a_miner() {
     assert_eq!(step(&g), Step::Done, "holding ingots");
 }
 
+/// Mends the line the way the tutorial asks: pick the loose belt up, put it in the gap, turn it.
+fn mend(g: &mut Game, o: &Opening) {
+    g.act(Action::BreakBlock { pos: o.loose });
+    g.run_ticks(1);
+    g.give(BELT as u16, 1);
+    g.run_ticks(1);
+    let slot = g.inventory().slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
+    let away = (o.run() + 3) % 4;
+    g.act(Action::PlaceBlock { pos: o.gap, slot, facing: away, against: o.gap - IVec3::new(0, 1, 0) });
+    g.run_ticks(1);
+    g.act(Action::Rotate { pos: o.gap });
+    g.run_ticks(1);
+}
+
+#[test]
+fn taking_the_belts_away_later_does_not_bring_the_belt_steps_back() {
+    let mut g = Game::new_normal(2024, 2);
+    let o = g.sim.opening.unwrap();
+    mend(&mut g, &o);
+    assert_eq!(g.sim.opening.unwrap().progress, Progress::Fixed, "the line was mended");
+
+    // Reusing the belts before taking the ingots: the gap is empty again and the pack holds a belt.
+    g.act(Action::BreakBlock { pos: o.gap });
+    g.run_ticks(2);
+    g.give(BELT as u16, 1);
+    g.run_ticks(1);
+    assert!(!matches!(step(&g), Step::Pick | Step::Collect | Step::Place | Step::Rotate), "{:?}", step(&g));
+
+    g.give(IRON_INGOT.0, 1);
+    g.run_ticks(1);
+    assert_eq!(g.sim.opening.unwrap().progress, Progress::Over, "someone holds ingots");
+    g.act(Action::BreakBlock { pos: o.loose });
+    g.run_ticks(1);
+    assert_eq!(step(&g), Step::Done);
+
+    let loaded = Game::load(&g.save(), 2).unwrap();
+    assert_eq!(loaded.sim.opening.unwrap().progress, Progress::Over, "progress is saved");
+}
+
+#[test]
+fn a_miner_ends_the_opening_for_good() {
+    let mut g = Game::new_normal(2024, 2);
+    g.give(block::MINER as u16, 1);
+    g.run_ticks(1);
+    assert_eq!(g.sim.opening.unwrap().progress, Progress::Over);
+    g.sim.players[0].as_mut().unwrap().inventory = Default::default(); // the miner is used up elsewhere
+    g.run_ticks(2);
+    assert_eq!(step(&g), Step::Done, "the miner is gone and the scene untouched, and the tips stay done");
+}
+
+#[test]
+fn a_save_from_before_progress_was_kept_reads_it_from_the_scene() {
+    let mut g = Game::new_normal(2024, 2);
+    let mut o = g.sim.opening.unwrap();
+    o.migrate(&g.sim.factory);
+    assert_eq!(o.progress, Progress::Start, "an untouched scene still teaches");
+    // Both belts taken away: the player is past the belt steps.
+    g.act(Action::BreakBlock { pos: o.loose });
+    g.run_ticks(1);
+    o.migrate(&g.sim.factory);
+    assert_eq!(o.progress, Progress::Over);
+}
+
 #[test]
 fn the_scene_is_saved_and_the_same_for_a_seed() {
     let (a, b) = (Game::new_normal(7, 2), Game::new_normal(7, 2));

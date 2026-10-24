@@ -251,9 +251,10 @@ impl Game {
         hints::side(&self.sim.factory, &self.sim.settlements)
     }
 
-    /// The first hint the local player hasn't done yet (`hint_count` when all are done).
+    /// The first hint not done yet (`hint_count` when all are): the further of the local player's live
+    /// progress and the world's (`Sim::hints_reached`), so a tip done once stays done.
     pub fn hint_progress(&self) -> u32 {
-        hints::progress(self.inventory(), &self.sim.factory) as u32
+        hints::progress(self.inventory(), &self.sim.factory).max(self.sim.hints_reached as usize) as u32
     }
 
     pub fn chunks_loaded(&self) -> u32 {

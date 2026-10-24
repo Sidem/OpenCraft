@@ -38,7 +38,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `satellites.rs`: satellites in orbit. `pods.rs`: drop pods in flight. `opening.rs`: a new world's opening scene.
 - `settlements/`: towns (Milestone 13). `orders.rs` data (orders, upkeep), `run.rs` (the tick), `plans.rs` and `plots.rs`
   (buildings), `build.rs` (the town's drones), `state.rs` (bytes), `perks/` (forge, workshop, relay, `harbour/`).
-- `hints.rs`: onboarding tips (read-only checks on the core).
+- `hints.rs`: onboarding tips (checks on the core; `Sim::step_tips` latches the opening's and the main tips' progress).
 
 ### Factory (core): `factory/`
 - `mod.rs`: `Factory` (a `Vec` per kind, cell index, place, remove). `tick.rs`: `update`, one tick. `table.rs`: `Kind`,
