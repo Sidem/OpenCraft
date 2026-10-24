@@ -78,6 +78,10 @@ pub enum Action {
         item: ItemId,
         at: u8,
     },
+    /// Marks lesson `bit` taught for the whole world (`lessons.rs`): the player saw it through or waved it away.
+    LessonTaught {
+        bit: u8,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

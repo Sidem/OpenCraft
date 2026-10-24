@@ -92,6 +92,7 @@ impl Sim {
             Action::OpenVault { pos, dials } => self.open_vault(player, pos, dials),
             Action::SetSensor { pos, rule } => self.factory.set_sensor(pos, rule),
             Action::SetChannel { pos, channel } => self.factory.set_channel(pos, channel),
+            Action::LessonTaught { bit } => self.taught |= crate::lessons::mask(bit),
             Action::ClearCover { pos } => {
                 if inv.selected_stack().item == SICKLE {
                     self.world.clear_cover(pos);

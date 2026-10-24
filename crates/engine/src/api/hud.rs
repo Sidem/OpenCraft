@@ -248,7 +248,7 @@ impl Game {
 
     /// The side tips to show now, ahead of the main ones (`hints::SIDE_HINTS`: researched, not done yet).
     pub fn hint_side(&self) -> Vec<u32> {
-        hints::side(&self.sim.factory, &self.sim.settlements)
+        hints::side(&self.sim.factory, &self.sim.settlements, self.sim.taught)
     }
 
     /// The first hint not done yet (`hint_count` when all are): the further of the local player's live

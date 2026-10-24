@@ -531,6 +531,7 @@ fn samples() -> Vec<Action> {
         Action::SetChannel { pos, channel: 4 },
         Action::ClearCover { pos },
         Action::TakeBeltItem { pos, item: IRON_PLATE, at: 200 },
+        Action::LessonTaught { bit: 3 },
     ]
 }
 

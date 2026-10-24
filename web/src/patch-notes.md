@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-24 · Told when a machine stops
+- If a machine near you has stood stopped for half a minute, a **Machine stopped** card says why and what to do (no power, nothing to work on, output full, out of fuel, no water, no ore, or overheated), and a **Check** sign hangs over the machine.
+- Each reason is explained **once**: when the machine works again, or when you press **H** on the card, that reason is counted as learned in that world and never shown again. A full machine just waiting is normal in a big base, so it is never nagged about twice.
+- There is a quiet minute after each card. The opening's own furnace is left out, and worlds you saved earlier show none of these cards.
+
 ## 2026-10-24 · The first tips stay done
 - The opening tips ("put the belt back", "turn it", "take the ingots") no longer come back when you later take those belts away to use somewhere else. Once you have mended the line, they are done for good in that world.
 - The same goes for the numbered tips: once a tip is done, removing a machine or belt to reuse it never brings it, or an earlier one, back. In a shared game the world remembers the furthest anyone got.

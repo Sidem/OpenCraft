@@ -297,3 +297,47 @@ The plan's change log, 2026-10-16 to 2026-10-18:
   dusk; `render/sky/weather.ts`).
 - **2026-10-16 and 17: Steps R2 to R4 built** (ground cover, tree species on generator version 9 with blocks 117–123, indicator
   plants; ambient sound; music by context, six pieces in 9.3 MB; `npm run check` gained `web tests` and `music`).
+
+## Moved from the plan's recent changes (2026-10-24)
+
+U1 to U3 and pod channels, as recorded when they were built.
+
+- **2026-10-22: sickle (U3).** Item 398 (`ToolKind::Sickle`, never wears; two iron ingots and two sticks, a hand recipe in
+  `recipes/tooling.rs`). Right-click on natural ground (`mesher::bears_cover`) queues `Action::ClearCover` (codec tag 61),
+  hold to sweep (0.25 s a swing; a patch already cleared sends nothing); anything else falls through, so panels still open
+  (`sickle.rs`, with a green outline of the patch and a HUD label). The core: `world/cover_clear.rs`, one bit per world
+  column, a 32 × 32 bitset (128 bytes) per touched chunk column in a sorted `Vec`, saved after the edited chunks (save
+  version 55; older saves have none) and so in the state hash; the golden hash in `sim/tests.rs` was re-recorded for the
+  four extra bytes. A 3 × 3 patch sets its bits whether or not the columns bore cover (the core cannot see light or
+  biome); the bit stays when the ground is broken or replaced. The mesher gets the chunk column's rows in `Cover::cleared`
+  and does one bit test per candidate column; loaded chunks with a cover cell in a newly cleared column remesh, the rest
+  mesh bare when they load; a co-op resync redraws columns whose rows differ. No drops, no regrowth. Measured: 39 chunks
+  around a seed-1337 spawn mesh byte for byte as before (hash recorded from the old mesher; `world/tests.rs`);
+  `bench_meshing` median of 9 interleaved runs 0.602 ms a chunk before, 0.587 after (no slowdown); a scenario test clears
+  a patch of the busiest 3 × 3 of a generated meadow, and across a chunk border, and compares every plant's words; a
+  two-player `net` test keeps equal hashes. Wasm 1,620,447 → 1,630,288 bytes (+9.8 KB), gzipped 579,770 → 584,218
+  (+4.4 KB, same `gzipSync` on the optimised builds). Seen in the browser pane (outline, cut, label). Not verified: real
+  pointer lock, the feel of sweeping.
+- **2026-10-22: telescope (U2).** Item 397 (`ToolKind::Telescope`, brass tube model, recipe from glass, plates and rods).
+  Selected: right-click toggles the view (first person; eased 2-8x zoom, wheel steps it, never a jump; mouse look is divided
+  by the zoom), left-click pins the ground under the crosshair as an empty-note Note (`ui/scope.ts`, `ui/pins.ts` gains
+  `y`). Looking shows every pin as a flat-coloured light column (kind colour): `factory::mark_beacon_tinted` (glow flag
+  3 + 12-bit colour, one `boxVert` line). Far plane: columns beyond 1.5 view distances are scaled about the eye to that
+  distance, so the angle is kept (`telescope/beacons.rs`). Aim: `telescope/ground.rs`, an adaptive heightfield march
+  (6,000 blocks) over loaded blocks then `height_at`. Measured: 500 rays on loaded ground, 499 within 1 block of their
+  column's surface (500 within 3); 500 rays at unloaded ground (156-4,593 blocks, 228 beyond 1,000), 500 equal the
+  generated surface, 499 within 3 of an exact block walk. Release bench: 200 beacons 78 us a frame (7 without pins; the
+  aim alone mean 79 us, worst 1,081 us). Engine limit `MAX_PINS` 200 (`scope_pin_limit`). Save version unchanged (pins
+  live in TS). Not verified: real pointer lock, feel and comfort. Pins are per browser, not shared in co-op.
+- **2026-10-22: map hover and filters (U1).** Every map mark is now a `Subject` (`minimap/marks.rs`: shape, colour and,
+  in `minimap/describe.rs`, words come from it), so `world_map_describe(x, z, reach)` (a query, nothing created) tells what
+  the nearest marks are, only what the player has learned: a deposit by ore and tier, never its reserve. A test reads
+  every `MARK_*` constant from the source and fails for one without words. Measured on 3,000 processors, 30,000 belts, 96
+  satellites and 30 towns at a 224-block reach: 20 µs a query (61 µs worst; the budget was 200). TS: `ui/map-filter.ts`
+  (pure rules and the saved set of hidden categories, `web/test/map-filter.test.mjs`), `map-filter-panel.ts` (chips beside
+  the map), `map-info.ts` (the box, on the map and the minimap). Filters apply to both maps; the pin list follows.
+  The minimap box works only while the cursor is free (menu or panel): pointer lock hides it in play.
+- **2026-10-20: pod channels by name.** A pod launcher's or landing pad's channel is now one of the power-grid palette's
+  six colours (`grid_colour::PALETTE`, `pods::CHANNELS`), set in its panel by `Action::SetChannel` (codec tag 60) and kept in
+  `Extra::Channel`, apart from the facing. The 3D mark and the map marks wear the colour (no new texture layers). Save
+  version 54 stores it; older saves read the facing as the channel (blue, orange, pink, green). Blueprints do not copy it.

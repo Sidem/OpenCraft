@@ -21,6 +21,7 @@ use crate::block::{
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
 use crate::item::{CARGO_DRONE, HOVER_PACK, IRON_INGOT, JETPACK, PERSONAL_DRONE, PLANNER};
+use crate::lessons::SIDE_BIT;
 use crate::research::{TechState, TECHS};
 use crate::satellites::{COMMS, POWER, SCIENCE};
 use crate::settlements::Settlements;
@@ -281,10 +282,13 @@ pub const SIDE_HINTS: &[SideHint] = &[
     },
 ];
 
-/// The side tips to show now, by the host's numbers (`SIDE_BASE` on): researched and not yet done.
-pub fn side(f: &Factory, s: &Settlements) -> Vec<u32> {
-    let open = |h: &SideHint| tech_done(f, h.after) && !(h.done)(f, s);
-    SIDE_HINTS.iter().enumerate().filter(|(_, h)| open(h)).map(|(k, _)| (SIDE_BASE + k) as u32).collect()
+/// The side tips to show now, by the host's numbers (`SIDE_BASE` on): researched and not yet done. `taught` is
+/// `Sim::taught`, which keeps a done tip done (`Sim::step_tips`).
+pub fn side(f: &Factory, s: &Settlements, taught: u32) -> Vec<u32> {
+    let open = |k: usize, h: &SideHint| {
+        taught & (1 << (SIDE_BIT as usize + k)) == 0 && tech_done(f, h.after) && !(h.done)(f, s)
+    };
+    SIDE_HINTS.iter().enumerate().filter(|&(k, h)| open(k, h)).map(|(k, _)| (SIDE_BASE + k) as u32).collect()
 }
 
 /// Tip `i`'s text, main or side (empty for none).
@@ -321,6 +325,11 @@ impl Sim {
         if self.tick.is_multiple_of(crate::TICK_RATE as u64) {
             let reached = invs.map(|inv| progress(inv, &self.factory) as u8).fold(self.hints_reached, u8::max);
             self.hints_reached = reached;
+            for (k, h) in SIDE_HINTS.iter().enumerate() {
+                if (h.done)(&self.factory, &self.settlements) {
+                    self.taught |= 1 << (SIDE_BIT as usize + k);
+                }
+            }
         }
     }
 }

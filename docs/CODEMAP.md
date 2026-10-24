@@ -17,7 +17,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content` (names, icons, getters),
   `hud`, `sites`, `save`, `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `opening`, `blueprint`,
-  `hand_waste`, `surroundings`, `debug` (give, teleport, run_ticks, scene building).
+  `hand_waste`, `lessons`, `surroundings`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics counts. `authority.rs`: every body, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -39,6 +39,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `settlements/`: towns (Milestone 13). `orders.rs` data (orders, upkeep), `run.rs` (the tick), `plans.rs` and `plots.rs`
   (buildings), `build.rs` (the town's drones), `state.rs` (bytes), `perks/` (forge, workshop, relay, `harbour/`).
 - `hints.rs`: onboarding tips (checks on the core; `Sim::step_tips` latches the opening's and the main tips' progress).
+  `lessons.rs`: the bits of `Sim::taught` (what the world was taught; `Action::LessonTaught`).
 
 ### Factory (core): `factory/`
 - `mod.rs`: `Factory` (a `Vec` per kind, cell index, place, remove). `tick.rs`: `update`, one tick. `table.rs`: `Kind`,
@@ -89,7 +90,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`.
 - `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `train_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
-  `blueprint/repeat.rs` (blueprint prompt), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
+  `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
   `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).
 
@@ -144,7 +145,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 - `signal/`: the Cloudflare signalling Worker (`src/index.ts` routes, `src/room.ts` the room); deploying: WORKFLOW section 4.
 - `scripts/`: `check.mjs` (`npm run check`), `check-size.mjs` (budgets), `check-map.mjs` (this map and the core layer),
-  `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
+  `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
   `bench-flight.mjs` (frame timing on a real save), `bake-sky/` (star data, not part of the build).
 - `tools/art/`: the art pack's Python tool (`build.py`, `check.py`); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).

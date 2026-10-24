@@ -56,6 +56,7 @@ mod item;
 mod item_models;
 mod item_select;
 mod join;
+mod lessons;
 mod light;
 mod math;
 mod mesher;
@@ -84,6 +85,7 @@ mod sickle;
 mod sim;
 mod site_hands;
 mod sound;
+mod stall_lesson;
 mod strategy;
 mod surroundings;
 mod survey;
@@ -197,6 +199,8 @@ pub struct Game {
     pickups: VecDeque<(ItemId, u32)>,
     /// Ore the local player wasted by hand mining this session (`hand_waste.rs`).
     waste: hand_waste::HandWaste,
+    /// The machine stall lesson being watched for the local player (`stall_lesson.rs`); never saved.
+    stall: stall_lesson::StallWatch,
     /// Launch and landing effects, and launches the HUD has yet to toast (`orbit_fx.rs`).
     orbit_fx: orbit_fx::OrbitFx,
     cur_pickup: (ItemId, u32),
@@ -278,6 +282,7 @@ impl Game {
             instances: Vec::new(),
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),
+            stall: stall_lesson::StallWatch::default(),
             orbit_fx: orbit_fx::OrbitFx::default(),
             cur_pickup: (ItemId::NONE, 0),
             cur_mesh: None,
@@ -322,6 +327,7 @@ impl Game {
         self.role.end_tick(&mut self.sim);
         self.handle_sim_events();
         self.analytics.record(&self.sim.factory);
+        self.watch_stalls();
     }
 
     /// Queues an action by the local player for the coming tick.

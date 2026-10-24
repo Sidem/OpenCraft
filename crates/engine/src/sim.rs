@@ -189,8 +189,9 @@ pub struct Sim {
     pub opening: Option<Opening>,
     /// The towns the players founded (settlements/).
     pub settlements: Settlements,
-    /// How far the main tips got in this world, whoever got there (hints.rs); never goes back.
+    /// How far the main tips and the lessons got in this world (hints.rs, lessons.rs); neither ever goes back.
     pub hints_reached: u8,
+    pub taught: u32,
     /// Events from the ticks since the last drain.
     pub events: Vec<SimEvent>,
     /// Actions not yet applied, sorted by (tick, player, sequence).
@@ -223,6 +224,7 @@ impl Sim {
             opening: None,
             settlements: Settlements::default(),
             hints_reached: 0,
+            taught: 0,
             events: Vec::new(),
             pending: Vec::new(),
             next_seq: 0,
@@ -262,9 +264,8 @@ impl Sim {
         Some(())
     }
 
-    /// Advances the core by one tick of `TICK` seconds: this tick's actions, the block timers due, the
-    /// water checks due, then the factory (whose block changes, from pumps and outlets, then start
-    /// timers and water checks), then the towns.
+    /// Advances the core by one tick of `TICK` seconds: this tick's actions, the timers and water checks due, the
+    /// factory (its block changes start new ones), then towns, drones, cargo and the tips.
     pub fn step(&mut self) {
         self.sync_depots();
         let due = self.pending.iter().take_while(|q| q.tick <= self.tick).count();
@@ -331,11 +332,10 @@ impl Sim {
         Opening::write_state(&self.opening, w);
         self.settlements.write_state(w);
         w.u8(self.hints_reached);
+        w.u32(self.taught);
     }
 
-    /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed. Saves before
-    /// version 10 have no keys (0) and nobody away; before 11, no block timers; before 13, no water checks;
-    /// before 38, the normal mode; before 47, no opening scene; before 48, no towns; before 57, no opening progress and no main tip progress.
+    /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
     pub fn read_state(&mut self, r: &mut ByteReader) -> Option<()> {
         self.tick = r.u64()?;
         self.rng = Rng::new(r.u64()?);
@@ -378,6 +378,7 @@ impl Sim {
         // what machines have made (`Settlements::read_state` follows the version).
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         self.hints_reached = if r.version >= 57 { r.u8()? } else { 0 };
+        self.taught = if r.version >= 58 { r.u32()? } else { crate::lessons::STALL_MASK };
         Some(())
     }
 }

@@ -31,7 +31,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | E                   | Inventory and build menu                  |
 | T                   | Research: choose what labs work on        |
 | P                   | Analytics hub: power by source, materials made and used, machine health |
-| H                   | Skip the tip on screen (the menu can show tips again) |
+| H                   | Skip the tip on screen (the menu can show tips again); on a "Machine stopped" card, the world counts that reason as learned |
 | M                   | The map: everywhere you've been, your pins, filter chips and the ore guide (drag to move, wheel to zoom, click to pin, rest on a mark to see what it is) |
 | Telescope           | Hold it, **right-click** to look through it (first person), **wheel** zooms 2× to 8×, **left-click** pins the ground you look at (an empty note, editable on the map); while you look, every pin is a coloured column of light, even from far beyond the fog |
 | Sickle              | Hold it, **right-click** natural ground (grass, dirt, sand, basalt, granite) to cut the small plants of a 3×3 patch; hold to sweep. They drop nothing and never grow back (a new floor on that ground stays bare too); trees are not touched. Two iron ingots and two sticks |

@@ -4,7 +4,8 @@
 response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realistic art pass is live. R8 is decided
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
-belt items tell where they came from and can be clicked to stay selected (2026-10-24). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
+machine-stopped lesson is built (L1, 2026-10-24). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -206,6 +207,29 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
   and `docs/ART_HANDOVER.md` line.
   - *Done when:* untouched chunks mesh byte-identically to before; `bench_meshing` slows by under 2%; a two-player
     `net` test keeps equal state hashes after a clear; save and load keep cleared patches; wasm size change reported.
+- [ ] **L1 Mini-lessons: when and where they show** (user request 2026-10-24). Built: the rules and lesson 1; L2 to L6 are
+  one session each, in this order. Every lesson also gets a patch note.
+  - *Evidence* (the user's 34 h and 3.9 h saves, `scripts/check-lessons.mjs`): readouts already say what to do ("Output full:
+    put a belt leading away"), so a lesson makes the first sighting hard to miss and adds no facts. 60 of 98 working machines
+    in the 34 h base were output-blocked, which is normal: teach a stall once per cause, never nag. That base has 0 blueprints
+    and 0 earthworks sites: a lesson cannot create a need (needs before techs). No early-session data exists, so the 30 s and
+    60 s timings are guesses for the user to tune in play.
+  - *Rules (every lesson):* (1) shown only for a need standing near the player now, never on a timeline; (2) one card at a
+    time in `ui/hints.ts` order: hand-mining warning, blueprint prompt, opening, lesson, side tip, main tip, with
+    `QUIET_TICKS` after each; (3) done is a bit of `Sim::taught` (`lessons.rs`; saved, world-wide, set by doing the job or by
+    H via `Action::LessonTaught`, never cleared; older saves read their stall lessons as taught); (4) one escalation: the
+    card, then a prompt on the object (`key-prompt.ts`), no camera effects; (5) a lesson whose job is already done when it
+    would start never shows; (6) a headless test completes it, and `lessons/tests.rs` fuzzes the latches.
+  - *L1 built:* the machine-stopped lesson (`stall_lesson.rs`). A machine within 24 blocks, stalled 30 s for a cause not yet
+    taught (power, input, output, fuel, water, deposit, blocked) brings a card with the cause and the fix and a "Check" prompt
+    on it; it works again, or H, and the cause is taught. The opening scene's machines are left alone. Side tips now stay
+    done too (bits 16 up).
+  - *Next:* **L2 No recipe** (an assembler with no recipe chosen: its sample is `None` today; add a bit and a prompt "Open").
+    **L3 Blueprint walk-through** (once the player accepts the repeat prompt: prompts on the two corners; done: a blueprint
+    saved). **L4 Planner** (planner crafted, no site; card only; done: first site). **L5 Upgrade with kits** (a bottleneck
+    machine pointed at while kits are held; the 34 h save's 315 green kits sit beside 13 output-blocked Mk1 miners, so first
+    check an upgrade would help). **L6 Map and pins** (first 150 blocks out from spawn).
+  - *Done when (each):* its bot test passes; `node scripts/check-lessons.mjs <saves>` stays quiet; seen in the browser pane.
 - **Parked, fit in where a session has room:** P3 cheaper box instances, P4 an incremental co-op checksum, P5 small TS
   savings (`docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to rectennas; incremental `relink` if
   big bases hitch on placing (measured above).
@@ -232,6 +256,18 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-24: tips stay done; the machine-stopped lesson (L1).** The opening kept `Opening::progress` (start, mended, over;
+  `opening.rs`) and the main tips `Sim::hints_reached`, checked each second by `Sim::step_tips` (`hints.rs`) from every player's
+  inventory, so taking machines away to reuse them never brings a done tip back; `Sim::taught` (`lessons.rs`) holds the lesson
+  bits, the side tips' among them. `stall_lesson.rs` (on `Game`, scanning `Factory::samples` each second) feeds
+  `lesson_now`, `lesson_text`, `lesson_marker` and `lesson_dismiss` (`api/lessons.rs`) to `ui/hints.ts`. Save version 58
+  (57 was the two tip latches); the golden hash was re-recorded twice. Older saves: the opening reads its progress from the
+  scene (`Opening::migrate`), tips start at 0, stall lessons count as taught. Checked: 8 lesson tests (a miner stalled for power
+  shows at 30 s, mending it teaches it, a later stall waits out the quiet spell, the opening furnace stays quiet and the test fails
+  without that rule, 400 random breaks and gives never lose a latch across saves); `check-lessons.mjs` on the 34 h save, the 12 October save,
+  the 3.9 h save and a fresh world, all quiet for 5 minutes (the three saves stall 77, 81 and 6 machines, which is why old saves
+  count as taught).
 
 - **2026-10-24: click to keep a belt item selected** (user request). The mining button's press (`set_mining`, rising edge)
   selects the item under the crosshair or, over anything else, lets go (`item_select.rs`, `Game::selected_item`; presentation
@@ -266,45 +302,6 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   under the crosshair; `ui/hud.ts` shows an "I Pick up" chip under the readout (`#target-key`), `input.ts` binds the key, the
   controls page and `PLAYING.md` list it. A dedicated key, not right-click, because right-click places a held block against
   the belt. Seen in the browser pane (0 to 1 ingots); the real key press and pointer lock are not verified.
-- **2026-10-22: sickle (U3).** Item 398 (`ToolKind::Sickle`, never wears; two iron ingots and two sticks, a hand recipe in
-  `recipes/tooling.rs`). Right-click on natural ground (`mesher::bears_cover`) queues `Action::ClearCover` (codec tag 61),
-  hold to sweep (0.25 s a swing; a patch already cleared sends nothing); anything else falls through, so panels still open
-  (`sickle.rs`, with a green outline of the patch and a HUD label). The core: `world/cover_clear.rs`, one bit per world
-  column, a 32 × 32 bitset (128 bytes) per touched chunk column in a sorted `Vec`, saved after the edited chunks (save
-  version 55; older saves have none) and so in the state hash; the golden hash in `sim/tests.rs` was re-recorded for the
-  four extra bytes. A 3 × 3 patch sets its bits whether or not the columns bore cover (the core cannot see light or
-  biome); the bit stays when the ground is broken or replaced. The mesher gets the chunk column's rows in `Cover::cleared`
-  and does one bit test per candidate column; loaded chunks with a cover cell in a newly cleared column remesh, the rest
-  mesh bare when they load; a co-op resync redraws columns whose rows differ. No drops, no regrowth. Measured: 39 chunks
-  around a seed-1337 spawn mesh byte for byte as before (hash recorded from the old mesher; `world/tests.rs`);
-  `bench_meshing` median of 9 interleaved runs 0.602 ms a chunk before, 0.587 after (no slowdown); a scenario test clears
-  a patch of the busiest 3 × 3 of a generated meadow, and across a chunk border, and compares every plant's words; a
-  two-player `net` test keeps equal hashes. Wasm 1,620,447 → 1,630,288 bytes (+9.8 KB), gzipped 579,770 → 584,218
-  (+4.4 KB, same `gzipSync` on the optimised builds). Seen in the browser pane (outline, cut, label). Not verified: real
-  pointer lock, the feel of sweeping.
-- **2026-10-22: telescope (U2).** Item 397 (`ToolKind::Telescope`, brass tube model, recipe from glass, plates and rods).
-  Selected: right-click toggles the view (first person; eased 2-8x zoom, wheel steps it, never a jump; mouse look is divided
-  by the zoom), left-click pins the ground under the crosshair as an empty-note Note (`ui/scope.ts`, `ui/pins.ts` gains
-  `y`). Looking shows every pin as a flat-coloured light column (kind colour): `factory::mark_beacon_tinted` (glow flag
-  3 + 12-bit colour, one `boxVert` line). Far plane: columns beyond 1.5 view distances are scaled about the eye to that
-  distance, so the angle is kept (`telescope/beacons.rs`). Aim: `telescope/ground.rs`, an adaptive heightfield march
-  (6,000 blocks) over loaded blocks then `height_at`. Measured: 500 rays on loaded ground, 499 within 1 block of their
-  column's surface (500 within 3); 500 rays at unloaded ground (156-4,593 blocks, 228 beyond 1,000), 500 equal the
-  generated surface, 499 within 3 of an exact block walk. Release bench: 200 beacons 78 us a frame (7 without pins; the
-  aim alone mean 79 us, worst 1,081 us). Engine limit `MAX_PINS` 200 (`scope_pin_limit`). Save version unchanged (pins
-  live in TS). Not verified: real pointer lock, feel and comfort. Pins are per browser, not shared in co-op.
-- **2026-10-22: map hover and filters (U1).** Every map mark is now a `Subject` (`minimap/marks.rs`: shape, colour and,
-  in `minimap/describe.rs`, words come from it), so `world_map_describe(x, z, reach)` (a query, nothing created) tells what
-  the nearest marks are, only what the player has learned: a deposit by ore and tier, never its reserve. A test reads
-  every `MARK_*` constant from the source and fails for one without words. Measured on 3,000 processors, 30,000 belts, 96
-  satellites and 30 towns at a 224-block reach: 20 µs a query (61 µs worst; the budget was 200). TS: `ui/map-filter.ts`
-  (pure rules and the saved set of hidden categories, `web/test/map-filter.test.mjs`), `map-filter-panel.ts` (chips beside
-  the map), `map-info.ts` (the box, on the map and the minimap). Filters apply to both maps; the pin list follows.
-  The minimap box works only while the cursor is free (menu or panel): pointer lock hides it in play.
-- **2026-10-20: pod channels by name.** A pod launcher's or landing pad's channel is now one of the power-grid palette's
-  six colours (`grid_colour::PALETTE`, `pods::CHANNELS`), set in its panel by `Action::SetChannel` (codec tag 60) and kept in
-  `Extra::Channel`, apart from the facing. The 3D mark and the map marks wear the colour (no new texture layers). Save
-  version 54 stores it; older saves read the facing as the channel (blue, orange, pink, green). Blueprints do not copy it.
 
 - **2026-10-19: docs restructure.** The session-start read went from about 188 KB to under 48 KB: `CODEMAP.md` is an
   index (detail lives in module headers), decisions moved to `docs/DECISIONS.md`, finished work to `docs/history/`,

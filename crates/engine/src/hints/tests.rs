@@ -3,6 +3,7 @@ use crate::block::{
     ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, GENERATOR, POLE, PUMP, QUARRY, RAIL, SMELTER,
     SOLAR_PANEL, STORAGE, TURBINE,
 };
+use crate::lessons::SIDE_BIT;
 use crate::math::IVec3;
 use crate::world::World;
 
@@ -147,18 +148,19 @@ fn town_tips_show_once_settlements_is_researched_and_clear_as_the_town_grows() {
     let mut f = Factory::default();
     let mut s = Settlements::default();
     let base = SIDE_BASE as u32;
-    assert!(side(&f, &s).is_empty(), "not researched yet");
+    assert!(side(&f, &s, 0).is_empty(), "not researched yet");
     let settlements = TECHS.iter().position(|t| t.name == "Settlements").unwrap() as u8;
     (0..TECHS[settlements as usize].units).for_each(|_| f.research.add_unit(settlements));
-    assert_eq!(side(&f, &s), [base, base + 1, base + 2]);
+    assert_eq!(side(&f, &s, 0), [base, base + 1, base + 2]);
+    assert_eq!(side(&f, &s, 1 << SIDE_BIT), [base + 1, base + 2], "a taught tip stays away");
     assert!(text(base as usize).starts_with("Found a town"));
     assert_eq!(text(base as usize + 9), "");
     let before = progress(&Inventory::default(), &f);
     s.towns.push(crate::settlements::Town::new(IVec3::new(0, 70, 900), 0));
-    assert_eq!(side(&f, &s), [base + 1, base + 2], "founded");
+    assert_eq!(side(&f, &s, 0), [base + 1, base + 2], "founded");
     s.towns[0].built = 1;
-    assert_eq!(side(&f, &s), [base + 2], "its camp stands");
+    assert_eq!(side(&f, &s, 0), [base + 2], "its camp stands");
     assert_eq!(progress(&Inventory::default(), &f), before, "side tips never move the main order");
     place(&mut f, RAIL, 0);
-    assert!(side(&f, &s).is_empty(), "a rail line can carry its goods");
+    assert!(side(&f, &s, 0).is_empty(), "a rail line can carry its goods");
 }

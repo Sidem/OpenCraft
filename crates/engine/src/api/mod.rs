@@ -15,6 +15,7 @@ mod hand_waste;
 mod hud;
 mod input;
 mod inventory;
+mod lessons;
 mod machine;
 mod minimap;
 mod net;

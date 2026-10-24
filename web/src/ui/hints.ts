@@ -11,8 +11,10 @@
 // lost under the crosshair, and after a few a warning card with the totals jumps ahead of every tip (the opening's
 // too) while the player keeps at it (H snoozes it for `SNOOZE_BLOCKS` more). Creative worlds skip both.
 // Building the same machine a third time nearby brings the blueprint prompt (`blueprint_prompt`,
-// `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it. Side tips (`hint_side`: towns, once
-// Settlements is researched) come next, ahead of the main order, until done or skipped.
+// `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it. A machine that has stood stalled near
+// the player brings its lesson (`lesson_now`, `stall_lesson.rs`): the card names the cause and the fix, a prompt hangs over
+// the machine, the engine ends it when the machine works again, and H teaches it away for the world. Side tips
+// (`hint_side`: towns, once Settlements is researched) come next, ahead of the main order, until done or skipped.
 
 import './hints.css';
 import type { Game } from '../wasm/engine.js';
@@ -27,6 +29,8 @@ const OPENING = -2;
 const WASTE = -3;
 /** `shown` for the blueprint prompt. */
 const REPEAT = -4;
+/** `shown` for a machine-stopped lesson. */
+const LESSON = -5;
 /** A lead-in this short before the first ": " is the tip's title. */
 const TITLE_MAX = 40;
 /** The hand-mining warning stays this long after the latest ore block broken by hand. */
@@ -42,6 +46,8 @@ export class Hints {
   private readonly skipped: Set<number>;
   private shown = -1;
   private openingStep = 0;
+  /** The lesson on the card (`lesson_now`'s number), so another cause redraws it. */
+  private lesson = 0;
   /** Whether the opening's line ran last frame (null before the first, so loading a world never cheers). */
   private running: boolean | null = null;
   private readonly notice = h('div', 'waste-notice');
@@ -89,6 +95,11 @@ export class Hints {
       this.update();
       return;
     }
+    if (this.shown === LESSON) {
+      this.game.lesson_dismiss();
+      this.update();
+      return;
+    }
     this.skipped.add(this.shown);
     saveSkipped(this.skipped);
     this.update();
@@ -99,7 +110,8 @@ export class Hints {
     const g = this.game;
     this.again.classList.toggle('hidden', this.skipped.size === 0);
     const step = this.skipped.has(OPENING) ? 0 : g.opening_step();
-    this.prompt.update(step > 0 ? g.opening_marker() : [], this.renderer);
+    const marker = step > 0 ? g.opening_marker() : this.shown === LESSON ? g.lesson_marker() : [];
+    this.prompt.update(marker, this.renderer);
     const running = step > 0 && g.opening_runs();
     if (running && this.running === false) this.onLineRuns();
     this.running = running;
@@ -119,6 +131,13 @@ export class Hints {
       if (this.shown === OPENING && step === this.openingStep) return;
       this.show(OPENING, 'Getting started', g.opening_text(step));
       this.openingStep = step;
+      return;
+    }
+    // A machine that has stood stalled near the player: its lesson goes ahead of the side and main tips.
+    const lesson = g.lesson_now();
+    if (lesson) {
+      if (this.shown !== LESSON || lesson !== this.lesson) this.show(LESSON, 'Machine stopped', g.lesson_text());
+      this.lesson = lesson;
       return;
     }
     // A side tip (towns, once researched) comes ahead of the main order.
@@ -158,7 +177,8 @@ export class Hints {
   }
 
   private show(tip: number, head: string, text: string): void {
-    const stepDone = this.shown === OPENING && tip !== WASTE && !this.skipped.has(OPENING);
+    // The card the player just finished (an opening step, a stalled machine mended) is followed by a cheer.
+    const stepDone = (this.shown === OPENING || this.shown === LESSON) && tip !== WASTE && !this.skipped.has(OPENING);
     this.shown = tip;
     this.el.classList.toggle('hidden', tip === -1);
     if (tip === -1) return;
