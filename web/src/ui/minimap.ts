@@ -5,8 +5,9 @@
 // machine marks (`minimap_marks`, colours from the engine) and the player's pins (pins.ts; those out of
 // range sit on the rim, pointing the way) go on an overlay canvas at the same rate, clipped by the round
 // frame; the map filters (map-filter.ts) hide marks and pins, and resting the cursor on one shows what it is
-// (map-info.ts, while the cursor is free: in a menu or panel). Under it sits the XYZ readout with its look gizmo (compass.ts). N toggles both; whether it shows is UI state kept in localStorage. While shown it sets
-// `--map-space` on #hud so the other top-right HUD items move below it.
+// (map-info.ts, while the cursor is free: in a menu or panel). Under it sits the XYZ readout with its look gizmo (compass.ts). N toggles both for this page only: a new game or reload always starts with the map shown, and `update`
+// puts it back if anything else hid it. While shown it sets `--map-space` on #hud so the other top-right
+// HUD items move below it.
 
 import './minimap.css';
 import type { Game } from '../wasm/engine.js';
@@ -16,7 +17,6 @@ import { Compass, COMPASS_PX } from './compass';
 import type { MapFilter } from './map-filter';
 import { infoAt, type MapInfo } from './map-info';
 
-const STORAGE_KEY = 'opencraft.minimap.hidden';
 const REDRAW_MS = 250;
 /** How near (CSS px) the pointer must rest to a mark or a pin for the info box. */
 const HOVER_PX = 7;
@@ -35,7 +35,7 @@ export class Minimap {
   private readonly compass: Compass;
   private readonly size: number;
   private lastDraw = -Infinity;
-  private shown: boolean;
+  private shown = true;
 
   constructor(
     private readonly game: Game,
@@ -52,8 +52,7 @@ export class Minimap {
     this.el.append(this.canvas, this.overlay, this.me, h('span', 'mm-north', 'N'));
     this.compass = new Compass(game);
     document.getElementById('hud')!.append(this.el, this.compass.el);
-    this.shown = !loadHidden();
-    this.show(this.shown);
+    this.show(true);
     this.el.addEventListener('pointermove', (e) => this.hover(e));
     this.el.addEventListener('pointerleave', () => info.hide());
     filter.subscribe(() => (this.lastDraw = -Infinity));
@@ -62,12 +61,12 @@ export class Minimap {
   toggle(): void {
     this.shown = !this.shown;
     this.show(this.shown);
-    saveHidden(!this.shown);
   }
 
   /** Call every frame: turns the arrows, and redraws the image when it's due and changed. */
   update(now: number): void {
     if (!this.shown) return;
+    if (this.el.classList.contains('hidden')) this.show(true); // hidden by something other than N: bring it back
     const g = this.game;
     this.me.style.transform = `rotate(${g.yaw()}rad)`;
     this.compass.update();
@@ -153,22 +152,5 @@ export class Minimap {
       if (d > rim) [x, y] = [(x / d) * rim, (y / d) * rim];
       a.style.transform = `translate(${x}px, ${y}px) rotate(${marks[i * 3 + 2]}rad)`;
     });
-  }
-}
-
-// Storage can be unavailable (private windows, blocked site data); the map then just shows.
-function loadHidden(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function saveHidden(hidden: boolean): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, hidden ? '1' : '0');
-  } catch {
-    // Not remembered; see loadHidden.
   }
 }

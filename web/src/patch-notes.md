@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-24 · The minimap always comes back
+- Hiding the minimap with **N** now lasts only until you start a game or reload; it no longer stays hidden in every world you open afterwards. If anything else ever hides the map while it should be showing, it is put back straight away.
+
 ## 2026-10-24 · Point at an item on a belt
 
 - Aim at an item riding a belt and the box names it, with an outline round that one item. Below the name it says **how long the item has been on belts**, **which machine put it there** (a miner, a quarry, a storage box or a machine that made it) and **where that is** from the belt you are looking at, in blocks east or west, south or north, up or down. For a machine's product it also says what the machine makes it from.
