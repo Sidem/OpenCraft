@@ -26,8 +26,9 @@ fn smelting_line(ore: u32) -> Factory {
     f
 }
 
-fn aim_at(cell: IVec3, index: usize) -> ItemAim {
-    ItemAim { cell, index, item: IRON_ORE.into(), at: 0, bounds: [0.0; 6] }
+/// The aim for the item at `index` of the belt in `cell`.
+fn aim_at(f: &Factory, cell: IVec3, index: usize) -> ItemAim {
+    belt_aim(f.belts.iter().find(|b| b.pos == cell).unwrap(), index)
 }
 
 #[test]
@@ -66,7 +67,7 @@ fn a_splitter_passes_the_tag_on() {
 fn the_readout_says_how_long_where_from_and_how() {
     let mut f = smelting_line(300);
     run(&mut f, 30.0, |_| {});
-    let ingot = f.belt_item_report(aim_at(v(4, 0, 0), 0)).unwrap();
+    let ingot = f.belt_item_report(&aim_at(&f, v(4, 0, 0), 0));
     assert_eq!(ingot.0, crate::item::IRON_INGOT);
     let smelter = block::def(SMELTER).name;
     assert!(ingot.1.contains(" on belts\n"), "{}", ingot.1);
@@ -74,25 +75,65 @@ fn the_readout_says_how_long_where_from_and_how() {
     assert!(ingot.1.contains("from Iron Ore ×1"), "{}", ingot.1);
     assert!(ingot.1.ends_with("1 west from here"), "{}", ingot.1);
 
-    let ore = f.belt_item_report(aim_at(v(1, 0, 0), 0)).unwrap();
+    let ore = f.belt_item_report(&aim_at(&f, v(1, 0, 0), 0));
     assert!(ore.1.contains(&format!("Taken out of a {}", block::def(STORAGE).name)), "{}", ore.1);
     assert!(ore.1.ends_with("1 west from here"), "{}", ore.1);
 
     // The maker is gone, or never known.
     f.remove(v(3, 0, 0));
-    let orphan = f.belt_item_report(aim_at(v(4, 0, 0), 0)).unwrap();
+    let orphan = f.belt_item_report(&aim_at(&f, v(4, 0, 0), 0));
     assert!(orphan.1.contains("since removed · 1 west"), "{}", orphan.1);
     f.belts.iter_mut().find(|b| b.pos == v(4, 0, 0)).unwrap().items[0].tag = Tag::UNKNOWN;
-    assert!(f.belt_item_report(aim_at(v(4, 0, 0), 0)).unwrap().1.contains("Origin unknown"));
+    assert!(f.belt_item_report(&aim_at(&f, v(4, 0, 0), 0)).1.contains("Origin unknown"));
+}
+
+/// Steps one tick at a time, finding a marked item again after each: where it is, through belts and a splitter.
+#[test]
+fn a_selected_item_is_found_again_as_it_rides_through_belts_and_a_splitter() {
+    let mut f = Factory::default();
+    stocked_box(&mut f, v(0, 0, 0), IRON_ORE.into(), 12);
+    for x in 1..=3 {
+        f.add_belt(v(x, 0, 0), EAST);
+    }
+    place_block(&mut f, crate::block::SPLITTER, v(4, 0, 0));
+    for x in 5..=7 {
+        f.add_belt(v(x, 0, 0), EAST);
+    }
+    // Select the first item to appear, then look for it after every tick, as the frame does.
+    let (mut tick, mut selected, mut cells) = (0u64, None::<(ItemKey, ItemAim)>, std::collections::BTreeSet::new());
+    run(&mut f, 14.0, |f| {
+        tick += 1;
+        if let Some((key, seen)) = selected {
+            let found = f.find_item(key, tick, seen.cell).expect("the item is found after every tick");
+            assert_eq!(found.tag.origin(), Some(v(0, 0, 0)));
+            cells.insert(found.cell.x);
+            selected = Some((found.key(tick), found));
+        } else if let Some(b) = f.belts.iter().find(|b| !b.items.is_empty()) {
+            let seen = belt_aim(b, 0);
+            selected = Some((seen.key(tick), seen));
+        }
+    });
+    let (key, seen) = selected.unwrap();
+    assert!(cells.contains(&7), "followed to the last belt, {cells:?}");
+    assert!(cells.contains(&4), "and through the splitter, {cells:?}");
+    // Once taken it cannot be found.
+    assert!(f.take_belt_item(seen.cell, seen.item, seen.at, |_, n| n));
+    assert!(f.find_item(key, tick, seen.cell).is_none());
 }
 
 #[test]
-fn an_item_that_is_gone_has_no_report() {
+fn of_several_items_with_one_key_the_one_nearest_the_last_sighting_is_found() {
     let mut f = Factory::default();
     f.add_belt(v(0, 5, 0), EAST);
-    let aim = aim_at(v(0, 5, 0), 0);
-    assert!(f.belt_item_report(aim).is_none(), "an empty belt");
-    assert!(f.belt_item_report(ItemAim { cell: v(9, 9, 9), ..aim }).is_none(), "no belt at all");
+    f.add_belt(v(9, 5, 0), EAST);
+    for belt in &mut f.belts {
+        assert!(belt.accept(IRON_ORE.into(), 1, Tag::UNKNOWN, false, 0.5));
+    }
+    let key = aim_at(&f, v(9, 5, 0), 0).key(0);
+    assert_eq!(f.find_item(key, 0, v(9, 5, 1)).unwrap().cell, v(9, 5, 0));
+    assert_eq!(f.find_item(key, 0, v(0, 5, 1)).unwrap().cell, v(0, 5, 0));
+    // A different tick: nothing fits.
+    assert!(f.find_item(key, 40, v(0, 5, 1)).is_none());
 }
 
 #[test]

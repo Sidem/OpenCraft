@@ -74,7 +74,11 @@ impl Game {
         body.pitch = pitch.clamp(-1.55, 1.55);
     }
 
+    /// The mining button, told each frame. Pressing it also selects the belt item under the crosshair (`item_select.rs`).
     pub fn set_mining(&mut self, on: bool) {
+        if on && !self.mining && !self.scope_active() {
+            self.click_item();
+        }
         self.mining = on;
     }
 

@@ -4,7 +4,7 @@
 response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realistic art pass is live. R8 is decided
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
-belt items tell where they came from (2026-10-24). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+belt items tell where they came from and can be clicked to stay selected (2026-10-24). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -233,6 +233,16 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-24: click to keep a belt item selected** (user request). The mining button's press (`set_mining`, rising edge)
+  selects the item under the crosshair or, over anything else, lets go (`item_select.rs`, `Game::selected_item`; presentation
+  only, the core never sees it). Each frame `Factory::find_item` finds the item again by `ItemKey` (item, maker cell, birth
+  tick = now minus ticks on belts, slack 2; of several fits, nearest the last sighting, for old saves' shared tags): one scan
+  of the belts and routers, only while something is selected. To keep the birth tick steady a router now ages the tag of an item
+  it holds (`Router::step`; the golden hash did not move). The readout shows the pointed-at item, else the selected one, and
+  `I` takes the shown item unless it is selected and out of reach or held in a splitter (`target_item_state`: chip text in
+  `ui/hud.ts`); an amber outline (`selected_item_box`, `FrameInfo.selectedItem`, `render/outlines.ts`) marks the selected one.
+  No save-format change. Seen in the browser pane: select, look away, 5 s of belts followed, out of reach, taken. Not verified:
+  a real click with pointer lock; holding the button still mines the belt as before.
 - **2026-10-24: belt items have a story.** Pointing at an item on a belt names it, outlines it and says how long it has been on
   belts, which machine put it there and where, and the recipe if a machine made it (user request). Every `BeltItem` and a
   router's held item carry a `Tag` (`factory/provenance.rs`: ticks on belts, the maker's cell; 16 bytes), core state, so in

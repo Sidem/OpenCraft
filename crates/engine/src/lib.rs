@@ -54,6 +54,7 @@ mod interaction;
 mod inventory;
 mod item;
 mod item_models;
+mod item_select;
 mod join;
 mod light;
 mod math;
@@ -156,6 +157,8 @@ pub struct Game {
     target_fit: Option<[f32; 6]>,
     /// The belt item the crosshair is on, if the target is a belt (`factory/belt_items.rs`).
     target_item: Option<factory::ItemAim>,
+    /// The belt item a click selected (`item_select.rs`).
+    selected_item: Option<item_select::Selection>,
     mining: bool,
     mine_block: Option<IVec3>,
     mine_progress: f32,
@@ -248,6 +251,7 @@ impl Game {
             target: None,
             target_fit: None,
             target_item: None,
+            selected_item: None,
             mining: false,
             mine_block: None,
             mine_progress: 0.0,

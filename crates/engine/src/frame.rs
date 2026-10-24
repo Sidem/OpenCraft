@@ -54,6 +54,7 @@ impl Game {
         } else {
             self.update_target();
         }
+        self.track_selected_item();
         self.update_scope(dt, self.render_eye);
         let (eye, time) = (self.render_eye, (self.sim.tick as f64 + alpha) * TICK);
         self.instances.clear();

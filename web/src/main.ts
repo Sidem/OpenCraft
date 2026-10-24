@@ -320,6 +320,7 @@ async function main(): Promise<void> {
       target: cursorBlock.length === 3 ? [cursorBlock[0], cursorBlock[1], cursorBlock[2]]
         : hasTarget ? [game.target_x(), game.target_y(), game.target_z()] : null,
       targetFit: cursorBlock.length === 3 || !hasTarget ? [] : Array.from(game.target_fit()),
+      selectedItem: Array.from(game.selected_item_box()),
       mineProgress: game.mine_progress(),
       time: game.time_of_day(),
       days: game.day_number() - 1 + game.time_of_day(),

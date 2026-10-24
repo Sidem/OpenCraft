@@ -38,6 +38,8 @@ export interface FrameInfo {
   target: [number, number, number] | null;
   /** Where the target's model sits in its cell (lowest corner, size) so the outline hugs a pole or belt; empty: whole cell. */
   targetFit: number[];
+  /** The selected belt item's box in the world (lowest corner, then size), or empty. */
+  selectedItem: number[];
   mineProgress: number;
   /** The engine's time of day (0 midnight, 0.5 noon). */
   time: number;

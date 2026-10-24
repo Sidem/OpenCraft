@@ -90,6 +90,8 @@ impl Router {
                 return;
             }
         }
+        // Waiting counts as riding, so the tick it was put on a belt (`ItemKey`) stays the same.
+        self.held_tag.age();
     }
 
     fn status_text(&self) -> String {

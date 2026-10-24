@@ -7,6 +7,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 - Aim at an item riding a belt and the box names it, with an outline round that one item. Below the name it says **how long the item has been on belts**, **which machine put it there** (a miner, a quarry, a storage box or a machine that made it) and **where that is** from the belt you are looking at, in blocks east or west, south or north, up or down. For a machine's product it also says what the machine makes it from.
 - Press **I** to pick that item up into your pack. The readout shows the key whenever you are aiming at an item; if your pack is full the item stays on the belt.
+- **Click an item to keep it selected**, which makes a moving item easy to read: its box stays up (with an amber outline) and follows the item along the belts, even when you look away. Click another item to select that one, or click anywhere else to let go. A selected item you are within reach of can still be picked up with **I**; out of reach it says so. The box tells you if the item has been picked up or taken into a machine.
 - An item that has waited a long time at the end of a line tells you the line is backed up. A splitter or filter keeps an item's story; a machine that takes it in and makes something new starts a new one.
 - Worlds you saved before this update load as before; the items already on their belts say their origin is unknown, but still count their time on belts from now on.
 

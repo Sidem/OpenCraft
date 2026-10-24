@@ -3,7 +3,6 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::action::Action;
 use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
 use crate::factory::{self, Kind, MINER_TIERS};
@@ -166,17 +165,26 @@ impl Game {
         }
     }
 
-    /// The name of the belt item the crosshair is on, or empty: the readout's title then.
+    /// The name of the belt item shown (the one the crosshair is on, else the selected one), or empty: the readout's
+    /// title then.
     pub fn target_item_name(&self) -> String {
-        let report = self.target_item.and_then(|aim| self.sim.factory.belt_item_report(aim));
-        report.map_or_else(String::new, |(item, _)| crate::item::name(item).to_string())
+        self.shown_item().map_or_else(String::new, |aim| crate::item::name(aim.item).to_string())
     }
 
-    /// Picks up the belt item the crosshair is on (the host's pick-up key); nothing when there is none.
+    /// What the pick-up key does with the shown belt item: 0 no item, 1 pointed at, 2 selected, 3 selected but out of
+    /// reach, 4 selected but inside a splitter or filter.
+    pub fn target_item_state(&self) -> u8 {
+        self.item_state() as u8
+    }
+
+    /// Picks up the shown belt item (the host's pick-up key); nothing when there is none or it cannot be taken.
     pub fn take_target_item(&mut self) {
-        if let Some(aim) = self.target_item {
-            self.act(Action::TakeBeltItem { pos: aim.cell, item: aim.item, at: aim.at });
-        }
+        self.take_shown_item();
+    }
+
+    /// The selected belt item's box in the world (lowest corner, then size), or empty.
+    pub fn selected_item_box(&self) -> Vec<f32> {
+        self.selected_box()
     }
 
     /// Extra lines for the target readout: deposit details for ore, status for machines, what lies
@@ -184,10 +192,10 @@ impl Game {
     /// Lines are separated by `\n`; empty when there is nothing to add. Leaves the core unchanged:
     /// a deposit nobody has touched is surveyed into `self.surveyed`, not tracked.
     pub fn target_detail(&mut self) -> String {
-        let Some(hit) = self.target else { return String::new() };
-        if let Some((_, text)) = self.target_item.and_then(|aim| self.sim.factory.belt_item_report(aim)) {
-            return text;
+        if let Some(aim) = self.shown_item() {
+            return self.sim.factory.belt_item_report(&aim).1;
         }
+        let Some(hit) = self.target else { return String::new() };
         if let Some(text) = self.sim.factory.describe(hit.block) {
             let text = match self.town_line(hit.block) {
                 Some(town) => format!("{town}\n{text}"),

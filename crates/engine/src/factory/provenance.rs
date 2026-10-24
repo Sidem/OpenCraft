@@ -5,7 +5,7 @@
 //!   A splitter or filter only passes the tag on; a belt that hands over to a machine drops it, and the machine's own
 //!   output starts a new one. [`Tag::UNKNOWN`] is for items from saves older than version 56.
 //! - `ticks` counts the ticks spent on belts (`belt_step` adds one a tick; waiting counts, a router's one tick
-//!   does not), saturating at `u32::MAX` (over two years).
+//!   does not, but waiting in one does), saturating at `u32::MAX` (over two years).
 //!
 //! A tag is 16 bytes an item. Reading it for the crosshair is `belt_items.rs`; nothing here runs per frame.
 

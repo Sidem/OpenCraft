@@ -55,7 +55,9 @@ size.
 - **Point at an item** riding a belt to read it: its name, how long it has been on belts (an item waiting at a line's
   end shows the line is backed up), which miner, quarry, box or machine put it there and where that is, and the recipe
   if a machine made it. A splitter or filter keeps that story; a machine that takes the item in starts a new one.
-  Press **I** to take that item into your pack.
+  Press **I** to take that item into your pack. **Click** an item to keep it selected: the readout stays up and follows
+  it (an amber outline marks it); click another item to move the selection, anywhere else to let go. Selected and
+  within reach, **I** still takes it. `item_select.rs`.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
   from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
 - **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and sand into

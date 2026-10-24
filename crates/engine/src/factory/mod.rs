@@ -101,7 +101,7 @@ use storage::Storage;
 use trains::Train;
 use wiring::Hook;
 
-pub use belt_items::ItemAim;
+pub use belt_items::{ItemAim, ItemKey};
 pub use buffer::Buffer;
 pub use describe::fmt_int;
 pub use facts::facts;

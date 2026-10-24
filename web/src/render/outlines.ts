@@ -11,7 +11,12 @@ import type { FrameInfo } from './renderer';
 import { boxEdges, cubeVertices } from './geometry';
 import { createProgram, uniforms, type Uniforms } from './gl';
 
-type Overlaid = Pick<FrameInfo, 'cracks' | 'target' | 'targetFit' | 'mineProgress' | 'lineCells' | 'quarryBoxes'>;
+type Overlaid = Pick<
+  FrameInfo,
+  'cracks' | 'target' | 'targetFit' | 'selectedItem' | 'mineProgress' | 'lineCells' | 'quarryBoxes'
+>;
+/** How far the selected item's outline stands off its box, so it clears the item. */
+const SELECT_PAD = 0.02;
 
 export class Overlays {
   private readonly line: LineProgram;
@@ -75,6 +80,16 @@ export class Overlays {
       gl.drawArrays(gl.LINES, 0, 24);
       gl.depthMask(true);
       gl.disable(gl.BLEND);
+      drawCalls++;
+    }
+    const item = f.selectedItem;
+    if (item.length === 6) {
+      beginOverlay(gl, this.line, this.lineVao, viewProj);
+      gl.uniform4f(this.line.u.u_color, 1, 0.68, 0.18, 0.95);
+      gl.uniform3f(this.line.u.u_offset, item[0] - eye[0] - SELECT_PAD, item[1] - eye[1] - SELECT_PAD, item[2] - eye[2] - SELECT_PAD);
+      gl.uniform3f(this.line.u.u_scale, item[3] + 2 * SELECT_PAD, item[4] + 2 * SELECT_PAD, item[5] + 2 * SELECT_PAD);
+      gl.drawArrays(gl.LINES, 0, 24);
+      endOverlay(gl);
       drawCalls++;
     }
     drawCalls += drawLineCells(gl, this.line, this.lineVao, viewProj, f.lineCells, eye);

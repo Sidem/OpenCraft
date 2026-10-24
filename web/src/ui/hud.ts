@@ -15,6 +15,10 @@ const TOAST_MS = 2600;
 const LAUNCHED = -100000;
 /** How often the target's detail text (deposit size, machine status) is refreshed. */
 const DETAIL_MS = 150;
+/** The pick-up chip's words by `target_item_name`'s state (api/hud.rs `target_item_state`): none, pointed at, selected,
+ * selected but out of reach, selected but held in a splitter. The key shows for the states up to `ITEM_TAKEABLE`. */
+const ITEM_KEY_TEXT = ['', ' Pick up · click to keep it selected', ' Pick up · selected', 'Selected · out of reach', 'Selected · held in a splitter'];
+const ITEM_TAKEABLE = 2;
 /** Toast keys below this are towns' news, one per town; how often the towns' states are read; `town_states`'s values
  * (api/towns.rs) for a stalled and a dormant town. */
 const TOWN_KEY = -200000;
@@ -154,17 +158,20 @@ export class Hud {
       this.targetDetail.classList.remove('hidden');
       this.targetKey.classList.add('hidden');
       this.detailKey = '';
-    } else if (g.has_target()) {
+    } else if (g.has_target() || g.target_item_state() !== 0) {
       this.target.classList.remove('hidden');
-      // A belt item under the crosshair is named instead of its belt.
+      // A belt item under the crosshair, or the one clicked and kept selected, is named instead of its belt.
       const itemName = g.target_item_name();
       this.targetName.textContent = itemName || (this.names[g.target_block()] ?? '');
-      this.targetKey.classList.toggle('hidden', itemName === '');
+      const itemState = g.target_item_state();
+      this.targetKey.classList.toggle('hidden', itemState === 0);
+      this.targetKey.firstElementChild!.classList.toggle('hidden', itemState > ITEM_TAKEABLE);
+      this.targetKey.lastElementChild!.textContent = ITEM_KEY_TEXT[itemState];
       const p = g.mine_progress();
       this.mineFill.style.transform = `scaleX(${p})`;
       this.target.classList.toggle('mining', p > 0);
       // Refresh at once on a new target, then a few times a second for live machine status.
-      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()},${itemName}`;
+      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()},${itemName},${itemState}`;
       if (key !== this.detailKey || now - this.lastDetail > DETAIL_MS) {
         this.detailKey = key;
         this.lastDetail = now;

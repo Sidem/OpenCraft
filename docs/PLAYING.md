@@ -16,7 +16,8 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | Right mouse (hold)  | Place the selected block                  |
 | Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
 | R                   | Turn the belt or splitter/filter you point at; while holding a quarry or an assembler, turn it before placing |
-| I                   | Pick up the item on the belt you point at (the readout shows the key when you are on one); it goes into your pack, or stays if there is no room |
+| I                   | Pick up the item on the belt you point at, or the one you clicked to select if it is within reach; it goes into your pack, or stays if there is no room |
+| Left-click an item  | Select it on its belt: its readout stays up and follows it; click elsewhere to let go |
 | B                   | Ghost mode: right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
 | Z, Enter (ghost mode) | Z marks the two corners of a box (a third press clears it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
 | L | Blueprint library: rename, hold or delete your blueprints (kept per world in this browser) |
