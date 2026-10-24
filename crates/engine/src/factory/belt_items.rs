@@ -1,5 +1,6 @@
-//! Pointing at one item riding a belt: which one the crosshair meets, and what its tag (`provenance.rs`) says.
-//! Read-only queries for the target readout; nothing here runs unless the crosshair is on a belt.
+//! Pointing at one item riding a belt: which one the crosshair meets, what its tag (`provenance.rs`) says, and taking it
+//! (`Action::TakeBeltItem`, the one place here that changes the core). The rest are read-only queries for the target
+//! readout; nothing runs unless the crosshair is on a belt.
 //! `aim_boxes` is what the crosshair may hit in a cell: a belt's frame plus its items, because a tall item pokes above
 //! the rails and aiming at its top should still select the belt. `hit_boxes` (the frame alone) stays the outline.
 //! To say more about an item: add a line to `belt_item_report`.
@@ -15,11 +16,15 @@ use super::links::Slot;
 use super::process::ProcessSpec;
 use super::{Factory, INSTANCE_FLOATS};
 
-/// An item the crosshair is on: its place in the belt's list and its box (lowest corner, then size, in cell units).
+/// An item the crosshair is on: its place in the belt's list, what it is and how far along the belt (255ths: what
+/// `Action::TakeBeltItem` names it by, since the list shifts while an action travels), and its box (lowest corner,
+/// then size, in cell units).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ItemAim {
     pub cell: IVec3,
     pub index: usize,
+    pub item: ItemId,
+    pub at: u8,
     pub bounds: [f32; 6],
 }
 
@@ -49,10 +54,37 @@ impl Factory {
             let Some(boxes) = Boxes::from_instances(&out) else { continue };
             let Some(t) = boxes.enter(origin - cell.as_vec3(), dir) else { continue };
             if best.is_none_or(|(near, _)| t < near) {
-                best = Some((t, ItemAim { cell, index, bounds: boxes.bounds() }));
+                let at = (it.p.clamp(0.0, 1.0) * 255.0).round() as u8;
+                best = Some((t, ItemAim { cell, index, item: it.item, at, bounds: boxes.bounds() }));
             }
         }
         best.map(|(_, aim)| aim)
+    }
+
+    /// Core: takes one `item` off the belt at `pos`, the one nearest progress `at` (255ths), by offering it to `take`
+    /// (which returns how many of its `n` it kept: 1, or a tool's uses). A tool the taker keeps only part of stays, with
+    /// the rest of its uses. Returns whether anything was taken.
+    pub fn take_belt_item(
+        &mut self,
+        pos: IVec3,
+        item: ItemId,
+        at: u8,
+        mut take: impl FnMut(ItemId, u32) -> u32,
+    ) -> bool {
+        let Some(&Slot::Belt(i)) = self.at.get(&pos) else { return false };
+        let belt = &mut self.belts[i as usize];
+        let want = f32::from(at) / 255.0;
+        let nearest = (0..belt.items.len())
+            .filter(|&k| belt.items[k].item == item && belt.shows(belt.items[k].p))
+            .min_by(|&a, &b| (belt.items[a].p - want).abs().total_cmp(&(belt.items[b].p - want).abs()));
+        let Some(k) = nearest else { return false };
+        let taken = take(item, belt.items[k].n);
+        if taken >= belt.items[k].n {
+            belt.items.remove(k);
+        } else {
+            belt.items[k].n -= taken;
+        }
+        taken > 0
     }
 
     /// The item an aim names and its readout: how long it has ridden belts, who put it there and where that is.

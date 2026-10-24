@@ -530,6 +530,7 @@ fn samples() -> Vec<Action> {
         Action::OpenVault { pos, dials: 7 },
         Action::SetChannel { pos, channel: 4 },
         Action::ClearCover { pos },
+        Action::TakeBeltItem { pos, item: IRON_PLATE, at: 200 },
     ]
 }
 

@@ -248,6 +248,14 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   (a smelter's ingot: name, 27 s on belts, "Made in a Smelter from ...", 2 west from here, outline). Not verified: the feel of
   aiming with real pointer lock. Not done: a tally per belt of how old its items are;
   following one item along its way (the roadmap's "follow one item" can now build on the tag).
+- **2026-10-24: pick an item off a belt (key I)** (user request). `Action::TakeBeltItem { pos, item, at }` (codec tag 62): of the
+  belt's items of that kind the one nearest progress `at` (255ths) goes to the player's pack, or stays when the pack is full
+  (`Factory::take_belt_item`, `factory/belt_items.rs`; a tool keeps the uses that did not fit). The action names the item by kind
+  and progress, not list index, because the list shifts while an action travels; on a fast belt in co-op the item can have
+  moved on by then and nothing happens. No save-format change. `Game::take_target_item` (`api/hud.rs`) queues it for the item
+  under the crosshair; `ui/hud.ts` shows an "I Pick up" chip under the readout (`#target-key`), `input.ts` binds the key, the
+  controls page and `PLAYING.md` list it. A dedicated key, not right-click, because right-click places a held block against
+  the belt. Seen in the browser pane (0 to 1 ingots); the real key press and pointer lock are not verified.
 - **2026-10-22: sickle (U3).** Item 398 (`ToolKind::Sickle`, never wears; two iron ingots and two sticks, a hand recipe in
   `recipes/tooling.rs`). Right-click on natural ground (`mesher::bears_cover`) queues `Action::ClearCover` (codec tag 61),
   hold to sweep (0.25 s a swing; a patch already cleared sends nothing); anything else falls through, so panels still open

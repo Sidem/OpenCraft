@@ -3,6 +3,7 @@
 
 use wasm_bindgen::prelude::*;
 
+use crate::action::Action;
 use crate::block::{self, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
 use crate::factory::{self, Kind, MINER_TIERS};
@@ -169,6 +170,13 @@ impl Game {
     pub fn target_item_name(&self) -> String {
         let report = self.target_item.and_then(|aim| self.sim.factory.belt_item_report(aim));
         report.map_or_else(String::new, |(item, _)| crate::item::name(item).to_string())
+    }
+
+    /// Picks up the belt item the crosshair is on (the host's pick-up key); nothing when there is none.
+    pub fn take_target_item(&mut self) {
+        if let Some(aim) = self.target_item {
+            self.act(Action::TakeBeltItem { pos: aim.cell, item: aim.item, at: aim.at });
+        }
     }
 
     /// Extra lines for the target readout: deposit details for ore, status for machines, what lies

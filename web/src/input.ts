@@ -16,6 +16,7 @@ export type Action =
   | { kind: 'rotate' }
   | { kind: 'ghost' }
   | { kind: 'fetch' }
+  | { kind: 'take-item' }
   | { kind: 'scan-target' }
   | { kind: 'blueprint-mark' }
   | { kind: 'blueprint-copy' }
@@ -199,6 +200,7 @@ export class Input {
       else if (e.code === 'KeyR') this.actions.push({ kind: 'rotate' });
       else if (e.code === 'KeyB') this.actions.push({ kind: 'ghost' });
       else if (e.code === 'KeyY') this.actions.push({ kind: 'fetch' });
+      else if (e.code === 'KeyI') this.actions.push({ kind: 'take-item' });
       else if (e.code === 'KeyU') this.actions.push({ kind: 'scan-target' });
       else if (e.code === 'KeyZ') this.actions.push({ kind: 'blueprint-mark' });
       else if (e.code === 'Enter') this.actions.push({ kind: 'blueprint-copy' });

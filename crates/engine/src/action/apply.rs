@@ -55,6 +55,16 @@ impl Sim {
                     taken
                 });
             }
+            Action::TakeBeltItem { pos, item, at } => {
+                let events = &mut self.events;
+                self.factory.take_belt_item(pos, item, at, |item, n| {
+                    let taken = n - inv.add(item, n);
+                    if taken > 0 {
+                        events.push(SimEvent::Gained { player, item, count: taken });
+                    }
+                    taken
+                });
+            }
             Action::TakeMachineSlot { pos, slot } => {
                 let events = &mut self.events;
                 self.factory.take_slot(pos, slot as usize, |item, n| {

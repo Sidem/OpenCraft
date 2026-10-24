@@ -27,7 +27,7 @@ fn smelting_line(ore: u32) -> Factory {
 }
 
 fn aim_at(cell: IVec3, index: usize) -> ItemAim {
-    ItemAim { cell, index, bounds: [0.0; 6] }
+    ItemAim { cell, index, item: IRON_ORE.into(), at: 0, bounds: [0.0; 6] }
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn the_readout_says_how_long_where_from_and_how() {
 fn an_item_that_is_gone_has_no_report() {
     let mut f = Factory::default();
     f.add_belt(v(0, 5, 0), EAST);
-    let aim = ItemAim { cell: v(0, 5, 0), index: 0, bounds: [0.0; 6] };
+    let aim = aim_at(v(0, 5, 0), 0);
     assert!(f.belt_item_report(aim).is_none(), "an empty belt");
     assert!(f.belt_item_report(ItemAim { cell: v(9, 9, 9), ..aim }).is_none(), "no belt at all");
 }
@@ -178,4 +178,78 @@ fn belts_and_routers_from_version_55_load_with_unknown_tags() {
     let router = Router::read_state(&mut r).expect("an old router loads");
     assert_eq!((router.held_n, router.held_tag), (1, Tag::UNKNOWN));
     assert!(r.bytes(1).is_none(), "nothing left over");
+}
+
+/// A belt at (0,5,0) carrying ore at progress 0.8, a plate at 0.45 and ore at 0.1 (front first; a belt holds three).
+fn loaded_belt() -> Factory {
+    let mut f = Factory::default();
+    f.add_belt(v(0, 5, 0), EAST);
+    let belt = &mut f.belts[0];
+    let tag = Tag::made_at(v(-3, 5, 0));
+    for (item, over) in [(IRON_ORE.into(), 0.8), (crate::item::IRON_PLATE, 0.5), (IRON_ORE.into(), 0.3)] {
+        assert!(belt.accept(item, 1, tag, false, over));
+    }
+    f
+}
+
+#[test]
+fn taking_a_belt_item_takes_the_one_of_its_kind_nearest_where_you_aimed() {
+    let mut f = loaded_belt();
+    let ps: Vec<f32> = f.belts[0].items.iter().map(|it| it.p).collect();
+    assert_eq!(ps.len(), 3, "{ps:?}");
+    let mut kept = Vec::new();
+    // Aimed near the rear ore: it goes, the plate and the front ore stay.
+    let near_back = (ps[2] * 255.0).round() as u8;
+    assert!(f.take_belt_item(v(0, 5, 0), IRON_ORE.into(), near_back, |item, n| {
+        kept.push((item, n));
+        n
+    }));
+    assert_eq!(kept, [(IRON_ORE.into(), 1)]);
+    let left: Vec<f32> = f.belts[0].items.iter().map(|it| it.p).collect();
+    assert_eq!(left, ps[..2], "the rear ore is gone, order kept");
+
+    // Nothing of that kind, or no belt there: nothing happens.
+    assert!(!f.take_belt_item(v(0, 5, 0), crate::item::COPPER_INGOT, 0, |_, n| n));
+    assert!(!f.take_belt_item(v(1, 5, 0), IRON_ORE.into(), 0, |_, n| n));
+    // No room: the taker keeps none, the item stays.
+    assert!(!f.take_belt_item(v(0, 5, 0), IRON_ORE.into(), 255, |_, _| 0));
+    assert_eq!(f.belts[0].items.len(), 2);
+}
+
+#[test]
+fn a_tool_on_a_belt_keeps_the_uses_the_taker_could_not_hold() {
+    let mut f = Factory::default();
+    f.add_belt(v(0, 5, 0), EAST);
+    assert!(f.belts[0].accept(crate::item::STEEL_PICKAXE, 40, Tag::UNKNOWN, false, 0.5));
+    assert!(f.take_belt_item(v(0, 5, 0), crate::item::STEEL_PICKAXE, 128, |_, n| n - 15));
+    assert_eq!(f.belts[0].items[0].n, 15, "the 15 uses that did not fit are still riding");
+}
+
+#[test]
+fn the_take_action_moves_the_item_into_the_players_inventory_or_leaves_it_when_full() {
+    use crate::action::Action;
+    use crate::sim::{PlayerId, Sim, SimEvent};
+    let p = PlayerId(0);
+    let mut sim = Sim::new(7, 2);
+    sim.factory = loaded_belt();
+    let take = Action::TakeBeltItem { pos: v(0, 5, 0), item: IRON_ORE.into(), at: 255 };
+    let before = sim.state_hash();
+    sim.apply(p, take);
+    assert_ne!(sim.state_hash(), before);
+    assert_eq!(sim.factory.belts[0].items.len(), 2);
+    assert_eq!(sim.players[0].as_ref().unwrap().inventory.count(IRON_ORE.into()), 1);
+    assert!(sim
+        .events
+        .iter()
+        .any(|e| matches!(e, SimEvent::Gained { item, count: 1, .. } if *item == IRON_ORE.into())));
+
+    // A full inventory takes nothing and the belt keeps the item.
+    let inv = &mut sim.players[0].as_mut().unwrap().inventory;
+    for stack in inv.slots.iter_mut() {
+        *stack = crate::inventory::Stack { item: crate::block::STONE.into(), count: 64 };
+    }
+    let hash = sim.state_hash();
+    sim.apply(p, take);
+    assert_eq!(sim.factory.belts[0].items.len(), 2, "the belt kept the ore it could not give");
+    assert_eq!(sim.state_hash(), hash);
 }

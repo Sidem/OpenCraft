@@ -6,6 +6,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 ## 2026-10-24 · Point at an item on a belt
 
 - Aim at an item riding a belt and the box names it, with an outline round that one item. Below the name it says **how long the item has been on belts**, **which machine put it there** (a miner, a quarry, a storage box or a machine that made it) and **where that is** from the belt you are looking at, in blocks east or west, south or north, up or down. For a machine's product it also says what the machine makes it from.
+- Press **I** to pick that item up into your pack. The readout shows the key whenever you are aiming at an item; if your pack is full the item stays on the belt.
 - An item that has waited a long time at the end of a line tells you the line is backed up. A splitter or filter keeps an item's story; a machine that takes it in and makes something new starts a new one.
 - Worlds you saved before this update load as before; the items already on their belts say their origin is unknown, but still count their time on belts from now on.
 

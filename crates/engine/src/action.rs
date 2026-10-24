@@ -70,6 +70,14 @@ pub enum Action {
     ClearCover {
         pos: IVec3,
     },
+    /// Takes one `item` riding the belt at `pos` into the player's inventory (`factory/belt_items.rs`): of the belt's items
+    /// of that kind, the one nearest `at` (its progress along the belt, in 255ths). Does nothing if none is there any more
+    /// (it moved on while the action travelled) or the inventory has no room.
+    TakeBeltItem {
+        pos: IVec3,
+        item: ItemId,
+        at: u8,
+    },
     /// Chooses what the machine at `pos` makes (`MACHINE_RECIPES` index; `u16::MAX` for nothing).
     /// The inputs it held go back to the player.
     SetRecipe {

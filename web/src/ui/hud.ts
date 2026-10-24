@@ -74,6 +74,7 @@ export class Hud {
   private readonly target = $<HTMLDivElement>('target');
   private readonly targetName = $<HTMLSpanElement>('target-name');
   private readonly targetDetail = $<HTMLDivElement>('target-detail');
+  private readonly targetKey = $<HTMLDivElement>('target-key');
   private readonly mineFill = $<HTMLDivElement>('mine-fill');
   private readonly helperStatus = $<HTMLDivElement>('helper-status');
   private helperText = '';
@@ -151,12 +152,14 @@ export class Hud {
       this.targetName.textContent = line.slice(0, cut);
       this.targetDetail.textContent = line.slice(cut + 1);
       this.targetDetail.classList.remove('hidden');
+      this.targetKey.classList.add('hidden');
       this.detailKey = '';
     } else if (g.has_target()) {
       this.target.classList.remove('hidden');
       // A belt item under the crosshair is named instead of its belt.
       const itemName = g.target_item_name();
       this.targetName.textContent = itemName || (this.names[g.target_block()] ?? '');
+      this.targetKey.classList.toggle('hidden', itemName === '');
       const p = g.mine_progress();
       this.mineFill.style.transform = `scaleX(${p})`;
       this.target.classList.toggle('mining', p > 0);
