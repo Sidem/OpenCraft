@@ -11,6 +11,7 @@ use crate::block::tex;
 use crate::math::Vec3;
 
 use super::render::{push_box, INSTANCE_FLOATS};
+use super::smoke;
 
 /// What the model shows besides its place.
 pub(super) struct Look {
@@ -22,6 +23,8 @@ pub(super) struct Look {
     /// The status lamp's texture.
     pub lamp: u16,
     pub running: bool,
+    /// A coal miner (`miner_burner.rs`): the smoke's seed. It gets a chimney instead of the tier's band.
+    pub coal_seed: Option<f64>,
 }
 
 /// Boxes placed in the drill's frame: `u` and `w` across it, `v` along it towards the ore.
@@ -37,23 +40,35 @@ struct Frame<'a> {
 }
 
 impl Frame<'_> {
-    /// One box at `c` (`u`, `v`, `w`) of `size` (the same order). `turn` spins it about the drill axis; the box's
-    /// own `u` side is then the one that sweeps round.
-    fn put(&mut self, c: [f32; 3], size: [f32; 3], turn: Option<f32>, layers: [u16; 3], world_uv: bool) {
-        let (ua, wa) = match self.axis {
+    /// The world axes `u` and `w` run along.
+    fn across(&self) -> (usize, usize) {
+        match self.axis {
             0 => (1, 2),
             1 => (0, 2),
             _ => (0, 1),
-        };
+        }
+    }
+
+    /// The world position of the frame's point `c` (`u`, `v`, `w`), without the shiver.
+    fn point(&self, c: [f32; 3]) -> Vec3 {
+        let (ua, wa) = self.across();
         let mut d = [0.0; 3];
-        d[ua] = c[0] as f64 + self.shake;
+        d[ua] = c[0] as f64;
         d[self.axis] = self.sign * c[1] as f64;
         d[wa] = c[2] as f64;
+        self.at + Vec3::new(d[0], d[1], d[2])
+    }
+
+    /// One box at `c` (`u`, `v`, `w`) of `size` (the same order). `turn` spins it about the drill axis; the box's
+    /// own `u` side is then the one that sweeps round.
+    fn put(&mut self, c: [f32; 3], size: [f32; 3], turn: Option<f32>, layers: [u16; 3], world_uv: bool) {
+        let (ua, wa) = self.across();
         let mut s = [0.0; 3];
         s[ua] = size[0];
         s[self.axis] = size[1];
         s[wa] = size[2];
-        push_box(self.out, self.at + Vec3::new(d[0], d[1], d[2]), 0.0, s, 0.0, layers, world_uv);
+        let at = self.point([c[0] + self.shake as f32, c[1], c[2]]);
+        push_box(self.out, at, 0.0, s, 0.0, layers, world_uv);
         if let Some(angle) = turn {
             // A turn about x is the instance's pitch, about y its yaw, about z its roll.
             let i = self.out.len() - INSTANCE_FLOATS;
@@ -92,7 +107,19 @@ pub(super) fn write(out: &mut Vec<f32>, rel: Vec3, look: &Look, time: f64) {
     // The motor housing with the tier's band, a fan on its back and the status lamp.
     f.shake = shiver;
     f.put([0.0, -0.35, 0.0], [0.72, 0.3, 0.72], None, [tex::MINER_TOP, look.side, tex::FRAME], false);
-    f.put([0.0, -0.17, 0.0], [0.76, 0.06, 0.76], None, [tex::FRAME, tex::stripe(look.tier), tex::FRAME], false);
+    match look.coal_seed {
+        None => {
+            f.put([0.0, -0.17, 0.0], [0.76, 0.06, 0.76], None, [tex::FRAME, tex::stripe(look.tier), tex::FRAME], false)
+        }
+        Some(seed) => {
+            // A coal miner burns its fuel: a soot-black chimney rises from the housing and smokes while it digs.
+            f.put([-0.2, -0.62, -0.2], [0.16, 0.54, 0.16], None, [tex::SOOT; 3], false);
+            f.put([-0.2, -0.9, -0.2], [0.22, 0.06, 0.22], None, [tex::SOOT; 3], false);
+            if look.running {
+                smoke::puffs(f.out, f.point([-0.2, -0.94, -0.2]), time, seed, 0.4);
+            }
+        }
+    }
     f.put([0.0, -0.49, 0.0], [0.1, 0.04, 0.1], None, ribbed, true);
     f.put([0.0, -0.485, 0.0], [0.36, 0.03, 0.06], Some(fan), ribbed, true);
     f.put([0.0, -0.488, 0.0], [0.36, 0.03, 0.06], Some(fan + std::f32::consts::FRAC_PI_2), ribbed, true);

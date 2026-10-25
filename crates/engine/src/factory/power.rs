@@ -138,7 +138,7 @@ impl Power {
             beam_poles,
             wires,
             gen_pole: gens.iter().map(|g| hang(g.pos)).collect(),
-            miner_pole: miners.iter().map(|m| hang(m.pos)).collect(),
+            miner_pole: miners.iter().map(|m| hang(m.pos).filter(|_| !m.is_coal())).collect(),
             process_pole,
             lab_pole: labs.iter().map(|l| hang(l.pos)).collect(),
             pipe_pole: pipework.iter().map(|p| if p.part == Part::Pump { hang(p.pos) } else { None }).collect(),

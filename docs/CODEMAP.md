@@ -48,7 +48,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
   `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
-- Extraction: `miner.rs` (+ `miner_model.rs`), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
+- Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs`, `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs`, `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
@@ -65,7 +65,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`; `ores.rs`.
+  `decor.rs`, `coal_miner.rs` (id 143); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +

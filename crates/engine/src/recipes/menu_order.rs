@@ -21,6 +21,7 @@ const fn b(id: BlockId) -> ItemId {
 
 const MENU: &[ItemId] = &[
     // Production: getting and processing material, then the oil and chemistry chain.
+    b(COAL_MINER),
     b(MINER),
     b(QUARRY),
     b(SMELTER),

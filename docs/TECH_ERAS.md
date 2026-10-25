@@ -16,6 +16,7 @@ Each family's numbers are one array indexed by tier, atop its module.
 | Underpass reach (blocks under; made in pairs; a pair costs as many belts of its Mk as it reaches) | 4 | 6 | 8 | 10 | — |
 | Splitter, filter | pass as fast as a belt of their tier | | | | |
 | Miner (units/s · recovery · kW) | 1 · 60 % · 5 | 2 · 75 % · 20 | 4 · 85 % · 45 | 6 · 92 % · 90 | 8 · 97 % · 150 |
+| Coal miner (no tier: a side branch before Mk1, `COAL_STATS`) | 0.5 · 40 % · 10 kW of fuel, no wire | | | | |
 | Smelter | burner ×1 | burner ×2, a quarter less fuel an ingot | electric ×3, 40 kW, no fuel | ×5, 80 kW | — |
 | Other processors (speed; power grows alike) | ×1 | ×2 | ×3 | ×5 | ×8 |
 | Coal generator (kW · kJ a coal) | 60 · 270 | 100 · 337 | — | — | — |

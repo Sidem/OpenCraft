@@ -37,6 +37,7 @@ mod laser;
 mod links;
 mod machine;
 mod miner;
+mod miner_burner;
 mod miner_model;
 mod panel;
 mod pipes;
@@ -67,7 +68,7 @@ mod wiring;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, CABLE, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE};
+use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
@@ -230,7 +231,11 @@ impl Factory {
     pub fn place(&mut self, world: &mut World, block: BlockId, pos: IVec3, facing: u8, against: IVec3, tier: u8) {
         let Some(def) = machine(block) else { return };
         self.remove(pos);
-        let tier = if block == LONG_POLE { pole::LONG_TIER } else { tier };
+        let tier = match block {
+            LONG_POLE => pole::LONG_TIER,
+            COAL_MINER => miner_burner::COAL_TIER,
+            _ => tier,
+        };
         let at = &mut self.at;
         match def.kind {
             Kind::Belt => self.add_shaped_belt(pos, facing, Shape::of(block), tier.max((block == FAST_BELT) as u8)),

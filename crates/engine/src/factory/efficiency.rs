@@ -5,7 +5,7 @@
 //! `None` means it has nothing to do (no recipe, no research, paused): that is not a loss.
 //! To cover a new machine kind: one loop in `Factory::samples`.
 
-use crate::block::{BlockId, LAB, MINER, QUARRY};
+use crate::block::{BlockId, LAB, QUARRY};
 use crate::math::IVec3;
 
 use super::lab::{Lab, LabStatus};
@@ -83,7 +83,7 @@ impl Factory {
     /// Calls `f` with the block, anchor and latest [`Sample`] of every machine that does work (miners, quarries, labs,
     /// processors; not belts, boxes, power sources or docks).
     pub fn samples(&self, mut f: impl FnMut(BlockId, IVec3, Option<Sample>)) {
-        self.miners.iter().for_each(|m| f(MINER, m.pos, miner_sample(m)));
+        self.miners.iter().for_each(|m| f(m.block(), m.pos, miner_sample(m)));
         self.quarries.iter().for_each(|q| f(QUARRY, q.pos, quarry_sample(q)));
         self.labs.iter().for_each(|l| f(LAB, l.pos, lab_sample(l)));
         for p in self.processors.iter().filter(|p| works(p)) {
@@ -127,6 +127,7 @@ fn miner_sample(m: &Miner) -> Option<Sample> {
         MinerStatus::OutputFull => Sample::stalled(Cause::Output),
         MinerStatus::NoDeposit | MinerStatus::Exhausted => Sample::stalled(Cause::Deposit),
         MinerStatus::NoPower => Sample::stalled(Cause::Power),
+        MinerStatus::NoFuel => Sample::stalled(Cause::Fuel),
     })
 }
 

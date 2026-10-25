@@ -19,6 +19,17 @@ pub const MINER_RECIPE: Recipe = Recipe {
             and pushes ore into a belt, box, smelter or generator beside it. Needs power (5 kW).",
 };
 
+/// The bridge to electricity: no copper, no wire, no power. Always available (no tech unlocks it).
+pub const COAL_MINER_RECIPE: Recipe = Recipe {
+    output: b(COAL_MINER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(IRON_PLATE, 4), (IRON_ROD, 3), (b(STONE), 8)],
+    blurb: "Place it against an ore block. It burns coal ore or logs instead of power: right-click it to fuel it. \
+            Slow and wasteful (a third of a Mk1's ore, 40% recovery, no upgrades), but it needs no wire. A coal \
+            miner on coal keeps its own fire going.",
+};
+
 pub const BELT_RECIPE: Recipe = Recipe {
     output: b(BELT),
     group: Group::Logistics,

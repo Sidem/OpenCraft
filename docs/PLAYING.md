@@ -176,7 +176,11 @@ arc furnace 10 steel plates, 16 stone bricks and 24 copper wire, an electrolytic
 pair of underpasses 4 belts (6 Mk2 belts for a Mk2 pair, 8 Mk3 and 10 Mk4: as many belts as the blocks they reach; underpasses are only made in pairs). A research lab costs 6 iron plates, 8 copper wire and 4 belts;
 Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
 an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an
-outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. Hand-mining
+outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. The bridge to
+electricity is the **Coal Miner** (4 iron plates, 3 iron rods and 8 stone, no copper): it burns coal ore or logs
+(right-click it to open it and give it fuel) instead of drawing power, digs a third as much as a Mk1 and keeps 40%, and
+has no upgrades. On a coal deposit it keeps a few coal back from its own digging, so it runs by itself. Belts cannot
+feed it. Hand-mining
 an outcrop or two and a furnace cover your first miner, generator and poles. After that, let them do the work.
 
 - **Upgrades.** Machines come in tiers, shown by the coloured stripe on them (red Mk1, green Mk2, with one

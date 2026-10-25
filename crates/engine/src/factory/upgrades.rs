@@ -51,7 +51,11 @@ impl Factory {
                 let b = &self.belts[i as usize];
                 Some((if b.shape.is_pass() { UNDERPASS_IN } else { BELT }, b.tier))
             }
-            Slot::Miner(i) => Some((MINER, self.miners[i as usize].tier)),
+            // A coal miner has no family: no kit raises it.
+            Slot::Miner(i) => {
+                let m = &self.miners[i as usize];
+                (!m.is_coal()).then_some((MINER, m.tier))
+            }
             Slot::Process(i) => {
                 let p = &self.processors[i as usize];
                 tiers::family(p.spec.block).map(|_| (p.spec.block, p.tier))

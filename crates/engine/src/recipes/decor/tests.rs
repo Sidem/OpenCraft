@@ -1,5 +1,5 @@
 use super::{b, DECOR};
-use crate::block::{self, BLOCK_COUNT};
+use crate::block;
 use crate::factory::process_spec;
 use crate::item;
 use crate::recipes::{Category, DECOR_FIRST, DECOR_ROWS, MACHINE_RECIPES};
@@ -8,7 +8,7 @@ use crate::research::{Research, Unlock, TECHS};
 const FIRST_DECOR_BLOCK: block::BlockId = block::RED_CONCRETE;
 
 fn decor_blocks() -> impl Iterator<Item = block::BlockId> {
-    FIRST_DECOR_BLOCK..BLOCK_COUNT as block::BlockId
+    FIRST_DECOR_BLOCK..FIRST_DECOR_BLOCK + block::DECOR_COUNT as block::BlockId
 }
 
 #[test]
@@ -16,7 +16,11 @@ fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
     assert_eq!(DECOR.len(), DECOR_ROWS as usize);
     assert_eq!(MACHINE_RECIPES.len(), DECOR_FIRST as usize + DECOR.len());
     assert_eq!(MACHINE_RECIPES[DECOR_FIRST as usize - 1].inputs, &[(item::SCRAP_METAL, 3)][..], "the salvage row");
-    assert_eq!(block::BLOCK_COUNT, FIRST_DECOR_BLOCK as usize + block::DECOR_COUNT);
+    assert_eq!(
+        block::COAL_MINER as usize,
+        FIRST_DECOR_BLOCK as usize + block::DECOR_COUNT,
+        "the decor set ends the table"
+    );
 }
 
 #[test]

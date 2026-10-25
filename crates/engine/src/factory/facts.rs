@@ -12,6 +12,7 @@ use super::describe::fmt_int;
 use super::generator::GENERATOR_TIERS;
 use super::lab::LAB_TIERS;
 use super::miner::MINER_TIERS;
+use super::miner_burner::COAL_STATS;
 use super::pole::{CABLE_STATS, LONG_LOCAL_LINK, LONG_STATS, POLE_TIERS};
 use super::process::{facts as process_facts, spec};
 use super::pumping::{OUTLET_RATE, PUMP_TIERS};
@@ -20,8 +21,8 @@ use super::storage::BOX_SLOTS;
 use super::tiers::placed_by;
 use super::underpass::UNDERPASS_SPAN;
 use crate::block::{
-    BELT, CABLE, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MINER, MINER_MK2, OUTLET, PIPE, POLE, PUMP,
-    QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
+    BELT, CABLE, COAL_MINER, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MINER, MINER_MK2, OUTLET, PIPE, POLE,
+    PUMP, QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{self, ItemId};
 use crate::recipes::FUELS;
@@ -95,6 +96,12 @@ pub fn facts(item: ItemId) -> Option<Facts> {
             f.uses = Some(t.power);
             f.stat("Mines", format!("{} ore/s", t.rate as u32));
             f.stat("Keeps", format!("{}% of the ore", (t.recovery * 100.0).round() as u32));
+        }
+        COAL_MINER => {
+            f.fuel = Some(fuel_names());
+            f.stat("Mines", format!("{} ore per 10 s", (COAL_STATS.rate * 10.0).round() as u32));
+            f.stat("Keeps", format!("{}% of the ore", (COAL_STATS.recovery * 100.0).round() as u32));
+            f.stat("Fire", format!("{} kW of fuel, no wire", COAL_STATS.power));
         }
         BELT | FAST_BELT => {
             f.stat("Speed", format!("{} blocks/s", BELT_TIERS[tier.min(BELT_TIERS.len() - 1)].speed as u32));

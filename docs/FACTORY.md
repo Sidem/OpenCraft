@@ -39,7 +39,9 @@ size.
 - **A miner** placed against any block of a deposit draws from the whole pool and delivers 60% of what it
   drills, while it has power (see Power). All miners on one deposit share its draw limit. Output slows over the last 20% of the pool.
   Each time a block's worth is used up, the ore block nearest the miner turns into spent rock, even in
-  chunks that aren't loaded. A worked-out deposit is gone for good.
+  chunks that aren't loaded. A worked-out deposit is gone for good. The **coal miner** (`factory/miner_burner.rs`) is the
+  same machine without a wire: it burns a stack of coal ore or logs you give it (10 kW of fire, only while it digs),
+  digs 0.5 units a second and keeps 40%, and cannot be upgraded.
 - **Conveyor belts** carry items one block per second. Hold right-click on the ground and drag to lay a
   whole line: outlines show where the belts go (red past the belts you have) and releasing builds it.
   A single belt runs the way you face; press R on a belt to turn it. A belt ending in another belt's side

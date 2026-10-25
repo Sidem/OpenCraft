@@ -3,7 +3,8 @@
 //! is full, and push ore round-robin into belts leading away or adjacent boxes and smelters (never
 //! through the drill face). The deposit's shared draw cap and taper decide how much it actually gets
 //! (`deposits.rs`). Both need power and run at their grid's `speed` (set before each step from
-//! `power.rs`); a higher tier draws faster, recovers more and uses more power.
+//! `power.rs`); a higher tier draws faster, recovers more and uses more power. The coal miner (tier
+//! `COAL_TIER`, `miner_burner.rs`) is the exception: it burns fuel, sets its own `speed` and never joins a grid.
 
 use crate::block::{tex, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
@@ -19,10 +20,11 @@ use super::belt::Belt;
 use super::buffer::Buffer;
 use super::describe::{fmt_duration, fmt_int};
 use super::links::{deliver, Link, Sinks};
+use super::miner_burner::{Burner, COAL_STATS, COAL_TIER};
 use super::miner_model::{self, Look};
 use super::power::{FULL_SPEED, NOT_WIRED};
 use super::provenance::Tag;
-use super::{Factory, Kind, Machine, FACES};
+use super::{smoke, Factory, Kind, Machine, FACES};
 
 /// A miner tier's numbers: upgrading gets more ore out of the same deposit, for more power.
 pub struct MinerTier {
@@ -54,15 +56,18 @@ pub enum MinerStatus {
     NoDeposit,
     Exhausted,
     NoPower,
+    /// A coal miner with nothing to burn.
+    NoFuel,
 }
 
 /// Every status, in declaration order: saves store `status as u8`.
-const STATUSES: [MinerStatus; 5] = [
+const STATUSES: [MinerStatus; 6] = [
     MinerStatus::Running,
     MinerStatus::OutputFull,
     MinerStatus::NoDeposit,
     MinerStatus::Exhausted,
     MinerStatus::NoPower,
+    MinerStatus::NoFuel,
 ];
 
 pub struct Miner {
@@ -88,6 +93,8 @@ pub struct Miner {
     pub speed: u32,
     /// The mining bonus research gives, in thousandths (derived; 1000 is none).
     pub boost: u32,
+    /// The coal miner's fuel and fire (`miner_burner.rs`); no slots for the electric tiers.
+    pub burner: Burner,
 }
 
 impl Miner {
@@ -107,11 +114,12 @@ impl Miner {
             tier,
             speed: 0,
             boost: FULL_SPEED,
+            burner: Burner::new(tier == COAL_TIER),
         }
     }
 
     pub fn stats(&self) -> &'static MinerTier {
-        &MINER_TIERS[self.tier as usize]
+        MINER_TIERS.get(self.tier as usize).unwrap_or(&COAL_STATS)
     }
 
     /// Units a second it draws at full power, with the mining bonus.
@@ -124,9 +132,12 @@ impl Miner {
         self.stats().recovery
     }
 
-    /// Whether it would draw this tick if powered (its grid counts it as demand).
+    /// Whether it would draw this tick if powered (its grid counts it as demand). A coal miner never asks.
     pub fn wants_power(&self) -> bool {
-        self.deposit.is_some() && self.out.can_accept(self.ore) && self.status != MinerStatus::Exhausted
+        !self.is_coal()
+            && self.deposit.is_some()
+            && self.out.can_accept(self.ore)
+            && self.status != MinerStatus::Exhausted
     }
 
     /// One tick: draw from the deposit, push one item on, report the drilling.
@@ -139,6 +150,11 @@ impl Miner {
         sinks: &mut Sinks,
         events: &mut Vec<SimEvent>,
     ) {
+        if self.is_coal() {
+            let live = self.deposit.and_then(|k| deposits.get(&k)).is_some_and(|s| !s.exhausted());
+            let burning = self.burner.fire(live && self.out.can_accept(self.ore), self.stats().power);
+            self.speed = if burning { FULL_SPEED } else { 0 };
+        }
         let drawn = self.draw(deposits, world, tick, events);
         self.push_out(belts, sinks);
         self.pulse(drawn, events);
@@ -160,7 +176,8 @@ impl Miner {
                     drawn = deposits.draw(world, &key, rate, face, tick, dt);
                     self.carry += drawn * self.recovery();
                     let whole = self.carry.floor();
-                    self.out.add(self.ore, whole as u32);
+                    let kept = self.burner.keep_own(self.ore, whole as u32);
+                    self.out.add(self.ore, whole as u32 - kept);
                     if whole >= 1.0 {
                         events.push(SimEvent::Produced { item: self.ore, count: whole as u32 });
                     }
@@ -169,8 +186,12 @@ impl Miner {
                 let exhausted = deposits.get(&key).is_none_or(|s| s.exhausted());
                 self.status = if !self.out.can_accept(self.ore) {
                     MinerStatus::OutputFull
-                } else if speed == 0 {
-                    MinerStatus::NoPower
+                } else if speed == 0 && !(self.is_coal() && exhausted) {
+                    if self.is_coal() {
+                        MinerStatus::NoFuel
+                    } else {
+                        MinerStatus::NoPower
+                    }
                 } else if exhausted && drawn == 0.0 {
                     MinerStatus::Exhausted
                 } else {
@@ -215,6 +236,23 @@ impl Miner {
         }
         self.pulse -= 1;
     }
+
+    /// What it is doing, in a line (the readout and a coal miner's panel).
+    pub(super) fn status_line(&self) -> String {
+        match self.status {
+            MinerStatus::Running if self.draw_rate > 0.01 => format!(
+                "Running · {} ore/min ({}% recovery)",
+                (self.draw_rate * self.recovery() * 60.0).round() as u32,
+                (self.recovery() * 100.0).round() as u32
+            ),
+            MinerStatus::Running => "Waiting: other miners are using this deposit's full draw".to_string(),
+            MinerStatus::OutputFull => "Output full: put a belt leading away, or a box, next to it".to_string(),
+            MinerStatus::Exhausted => "Deposit worked out".to_string(),
+            MinerStatus::NoPower => NOT_WIRED.to_string(),
+            MinerStatus::NoFuel => "Out of fuel: right-click it and give it coal ore or logs".to_string(),
+            MinerStatus::NoDeposit => String::new(),
+        }
+    }
 }
 
 impl Machine for Miner {
@@ -238,6 +276,9 @@ impl Machine for Miner {
         w.f64(self.draw_rate);
         w.u32(self.pulse);
         w.u8(self.tier);
+        if self.is_coal() {
+            self.burner.write_state(w);
+        }
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Miner> {
@@ -253,11 +294,18 @@ impl Machine for Miner {
         if r.version >= 9 {
             m.tier = r.u8()?;
         }
-        (drill < 6 && (m.tier as usize) < MINER_TIERS.len() && m.out.add(m.ore, held) == 0).then_some(m)
+        // Saved from version 59; no older save has this tier, so older bytes never reach the read.
+        if m.tier == COAL_TIER {
+            m.burner = Burner::read_state(r)?;
+        }
+        (drill < 6 && m.tier <= COAL_TIER && m.out.add(m.ore, held) == 0).then_some(m)
     }
 
+    /// What it drops when removed: the ore it holds and, for a coal miner, the fuel it has not lit.
     fn contents(&self) -> Vec<Stack> {
-        self.out.contents()
+        let mut held = self.out.contents();
+        held.extend(self.burner.fuel.contents());
+        held
     }
 
     /// Deposit, status, what it holds and how long the deposit lasts at the current draw.
@@ -272,22 +320,13 @@ impl Machine for Miner {
             fmt_int(st.remaining_blocks as u64),
             fmt_int(st.initial_blocks as u64)
         )];
-        lines.push(match self.status {
-            MinerStatus::Running if self.draw_rate > 0.01 => format!(
-                "Running · {} ore/min ({}% recovery)",
-                (self.draw_rate * self.recovery() * 60.0).round() as u32,
-                (self.recovery() * 100.0).round() as u32
-            ),
-            MinerStatus::Running => "Waiting: other miners are using this deposit's full draw".to_string(),
-            MinerStatus::OutputFull => "Output full: put a belt leading away, or a box, next to it".to_string(),
-            MinerStatus::Exhausted => "Deposit worked out".to_string(),
-            MinerStatus::NoPower => NOT_WIRED.to_string(),
-            MinerStatus::NoDeposit => String::new(),
-        });
+        lines.push(self.status_line());
         let held = self.out.total();
         if held > 0 {
-            lines.push(format!("Holding {held} {} · right-click to take", item::name(self.ore)));
+            let then = if self.is_coal() { "right-click to open" } else { "right-click to take" };
+            lines.push(format!("Holding {held} {} · {then}", item::name(self.ore)));
         }
+        lines.extend(self.burner.line().filter(|_| self.is_coal()));
         let total_draw: f64 = f.miners.iter().filter(|o| o.deposit == Some(key)).map(|o| o.draw_rate).sum();
         if total_draw > 0.01 && !st.exhausted() {
             lines.push(format!(
@@ -304,10 +343,19 @@ impl Machine for Miner {
         let lamp = match self.status {
             MinerStatus::Running => tex::LAMP_GREEN,
             MinerStatus::OutputFull => tex::LAMP_YELLOW,
-            MinerStatus::NoDeposit | MinerStatus::Exhausted | MinerStatus::NoPower => tex::LAMP_RED,
+            MinerStatus::NoDeposit | MinerStatus::Exhausted | MinerStatus::NoPower | MinerStatus::NoFuel => {
+                tex::LAMP_RED
+            }
         };
         let running = self.status == MinerStatus::Running && self.draw_rate > 0.01;
-        let look = Look { drill: self.drill, side: self.stats().side, tier: self.tier, lamp, running };
+        let look = Look {
+            drill: self.drill,
+            side: self.stats().side,
+            tier: self.tier,
+            lamp,
+            running,
+            coal_seed: self.is_coal().then(|| smoke::seed(self.pos)),
+        };
         miner_model::write(out, rel, &look, time);
     }
 }

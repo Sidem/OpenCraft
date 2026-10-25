@@ -177,8 +177,11 @@ pub use ruins::*;
 /// The decor set, ids 129–142 (`decor.rs`).
 mod decor;
 pub use decor::*;
+/// The coal miner, id 143 (`coal_miner.rs`).
+mod coal_miner;
+pub use coal_miner::*;
 const BASE_COUNT: usize = 129;
-pub const BLOCK_COUNT: usize = BASE_COUNT + DECOR_COUNT;
+pub const BLOCK_COUNT: usize = BASE_COUNT + DECOR_COUNT + COAL_MINER_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · Coal miner: a drill before electricity
+- A new **Coal Miner** (4 iron plates, 3 iron rods, 8 stone: no copper) drills ore without any power. Right-click it to give it coal ore or logs; it burns them only while it digs.
+- It is the bridge: slower than a Mk1 miner (a third of the ore) and wasteful (it keeps 40% of what it draws), and it cannot be upgraded. Put it on coal and it keeps a few coal back to fuel itself.
+- Belts cannot feed it fuel, so past a few drills it is time to build a generator.
+
 ## 2026-10-24 · Told when a machine stops
 - If a machine near you has stood stopped for half a minute, a **Machine stopped** card says why and what to do (no power, nothing to work on, output full, out of fuel, no water, no ore, or overheated), and a **Check** sign hangs over the machine.
 - Each reason is explained **once**: when the machine works again, or when you press **H** on the card, that reason is counted as learned in that world and never shown again. A full machine just waiting is normal in a big base, so it is never nagged about twice.

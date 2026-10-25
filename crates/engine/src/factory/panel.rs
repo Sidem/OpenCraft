@@ -1,5 +1,5 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
-//! a processor, filter, generator or lab), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
+//! a processor, filter, generator, lab, quarry or coal miner), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
 //! `rotate` (belts and routers, the R key), `set_quarry`, `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
@@ -60,8 +60,11 @@ impl Factory {
             }
             Slot::Lab(i) => Some(self.labs[i as usize].panel(&self.research)),
             Slot::Quarry(i) => Some(self.quarries[i as usize].panel(self)),
+            Slot::Miner(i) => {
+                let m = &self.miners[i as usize];
+                m.panel(m.status_line())
+            }
             Slot::Belt(_)
-            | Slot::Miner(_)
             | Slot::Storage(_)
             | Slot::Pole(_)
             | Slot::Pipe(_)
@@ -152,6 +155,12 @@ impl Factory {
                 g.fuel.add(item, put);
                 put
             }
+            Some(Slot::Miner(i)) => {
+                let burner = &mut self.miners[*i as usize].burner;
+                let put = n.min(burner.room_for(item));
+                burner.fuel.add(item, put);
+                put
+            }
             Some(Slot::Lab(i)) => n - self.labs[*i as usize].add(item, n),
             _ => 0,
         }
@@ -164,16 +173,26 @@ impl Factory {
                 self.processors[*i as usize].room_for(item, &self.research.machine_recipes_unlocked()) > 0
             }
             Some(Slot::Generator(i)) => self.generators[*i as usize].room_for(item) > 0,
+            Some(Slot::Miner(i)) => self.miners[*i as usize].burner.room_for(item) > 0,
             Some(Slot::Lab(i)) => self.labs[*i as usize].room_for(item) > 0,
             _ => false,
         }
     }
 
-    /// Takes the stack in slot `slot` of the processor at `pos` (its panel's slot order): offers it to `take(item,
-    /// count)`, which returns how many it accepted. Inputs and fuel too, so a stuck machine can be cleared by hand.
+    /// Takes the stack in slot `slot` of the processor or coal miner at `pos` (its panel's slot order): offers it to
+    /// `take(item, count)`, which returns how many it accepted. Inputs and fuel too, so a stuck machine can be cleared by hand.
     pub fn take_slot(&mut self, pos: IVec3, slot: usize, take: impl FnMut(ItemId, u32) -> u32) {
-        if let Some(&Slot::Process(i)) = self.at.get(&pos) {
-            self.processors[i as usize].take_slot(slot, take);
+        match self.at.get(&pos) {
+            Some(&Slot::Process(i)) => self.processors[i as usize].take_slot(slot, take),
+            Some(&Slot::Miner(i)) => {
+                let m = &mut self.miners[i as usize];
+                match slot {
+                    0 => m.burner.fuel.drain(take),
+                    1 => m.out.drain(take),
+                    _ => {}
+                }
+            }
+            _ => {}
         }
     }
 

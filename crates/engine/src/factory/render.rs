@@ -5,7 +5,7 @@
 
 use crate::math::{IVec3, Vec3};
 
-use crate::block::{tex, BlockId, GENERATOR, LAB, MINER, QUARRY, STORAGE};
+use crate::block::{tex, BlockId, GENERATOR, LAB, QUARRY, STORAGE};
 use crate::world::DAYLIGHT;
 
 use super::{Factory, Machine};
@@ -145,7 +145,7 @@ impl Factory {
                 f(block, p);
             }
         };
-        self.miners.iter().for_each(|m| each(MINER, m.pos()));
+        self.miners.iter().for_each(|m| each(m.block(), m.pos()));
         self.storages.iter().for_each(|m| each(STORAGE, m.pos()));
         self.processors.iter().for_each(|m| each(m.spec.block, m.pos()));
         self.generators.iter().for_each(|m| each(GENERATOR, m.pos()));

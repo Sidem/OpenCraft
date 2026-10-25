@@ -10,7 +10,7 @@
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, FRAC_PI_6};
 
-use crate::block::{tex, MINER, MINER_MK2};
+use crate::block::{tex, COAL_MINER, MINER, MINER_MK2};
 use crate::item::{
     ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GOLD_PACK, GREEN_PACK, IRON_AXE, IRON_INGOT,
     IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCANNER_MK2, SCREW, STEEL_AXE, STEEL_BEAM,
@@ -26,6 +26,7 @@ mod wear;
 
 const ITEM_MINER_MK1: ItemId = ItemId::block(MINER);
 const ITEM_MINER_MK2: ItemId = ItemId::block(MINER_MK2);
+const ITEM_COAL_MINER: ItemId = ItemId::block(COAL_MINER);
 
 #[derive(Clone, Copy)]
 pub struct Part {
@@ -128,6 +129,12 @@ const MINER_BODY_2: [Part; 18] = miner(tex::MINER_MK2_SIDE, 1);
 const MINER_BODY_3: [Part; 18] = miner(tex::MINER_MK3_SIDE, 2);
 const MINER_BODY_4: [Part; 18] = miner(tex::MINER_MK4_SIDE, 3);
 const MINER_BODY_5: [Part; 18] = miner(tex::MINER_MK5_SIDE, 4);
+/// The coal miner: a smelter-sided housing under a soot band instead of a tier's stripe.
+const COAL_MINER_BODY: [Part; 18] = {
+    let mut p = miner(tex::SMELTER_SIDE, 0);
+    p[13].tex = [tex::FRAME, tex::SOOT, tex::FRAME];
+    p
+};
 const RED_FLASK: [Part; 4] = [
     part([0.0, -0.12, 0.0], [0.42, 0.42, 0.42], tex::RED_PACK),
     part([0.0, 0.11, 0.0], [0.32, 0.06, 0.32], tex::FLASK_GLASS),
@@ -257,6 +264,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         crate::item::MINER_MK3 => &MINER_BODY_3,
         crate::item::MINER_MK4 => &MINER_BODY_4,
         crate::item::MINER_MK5 => &MINER_BODY_5,
+        ITEM_COAL_MINER => &COAL_MINER_BODY,
         RED_PACK => &RED_FLASK,
         GREEN_PACK => &GREEN_FLASK,
         BLUE_PACK => &BLUE_FLASK,

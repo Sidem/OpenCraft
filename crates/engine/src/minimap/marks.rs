@@ -289,6 +289,7 @@ pub fn ore_color(ore: BlockId) -> i32 {
 fn machine_color(block: BlockId) -> i32 {
     match block {
         block::MINER => 0xf2c230,
+        block::COAL_MINER => 0xc9902c,
         block::STORAGE => 0xb07a44,
         block::GENERATOR => 0xa070e0,
         block::LAB => 0x5ad1e0,

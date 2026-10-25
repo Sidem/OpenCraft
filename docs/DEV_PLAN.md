@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -256,6 +256,16 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-25: the coal miner** (user request: a drill before the Mk1 miner that burns coal, weaker, no upgrades). Block 143
+  (`block/coal_miner.rs`, a third block set joined in `defs.rs`), a `Kind::Miner` machine at tier byte `COAL_TIER` (one past
+  `MINER_TIERS`, no `FAMILIES` row so no kit touches it), with `miner_burner.rs` holding its fuel stack and energy (kW·ticks like
+  the generator), `COAL_STATS` (0.5 units/s, 40%, 10 kW of fire) and its panel. It sets its own `speed` from the fire, takes no
+  wire (`wants_power`, `miner_pole`, `powered_cells`), burns only on ticks it can dig, and on coal keeps 3 back from its own
+  digging. Fuel by hand through the panel only: miners are never `Sink`s, so belts cannot feed it. Hand recipe from iron and stone
+  (no tech), first in the build menu; hints mention it. Save version 59 (a tier-5 miner writes its fuel after the tier byte;
+  no golden hash moved). Checked: 8 tests in `miner_burner/tests.rs` (no fuel waits, burns only while digging, a full output
+  burns nothing, coal on coal runs by itself, panel and take-back, no grid, bytes), `npm run check` green.
 
 - **2026-10-24: tips stay done; the machine-stopped lesson (L1).** The opening kept `Opening::progress` (start, mended, over;
   `opening.rs`) and the main tips `Sim::hints_reached`, checked each second by `Sim::step_tips` (`hints.rs`) from every player's

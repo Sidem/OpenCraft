@@ -4,7 +4,7 @@
 //! `relink` resolves them to indices (`Hooked`) for `power.rs`. Removing either end drops the hook.
 //!
 //! Who takes a wire (`takes_pole`): generators, miners, quarries, labs, pumps and the processors that run
-//! on electricity or the sun. Belts, splitters, filters, boxes and burners need none. A machine has at most
+//! on electricity or the sun. Belts, splitters, filters, boxes, burners and coal miners need none. A machine has at most
 //! one pole; wiring it to another moves it. Cables are not wired by hand (`pole.rs`).
 //!
 //! [`Factory::hookup`] tells the hands (`power_tools.rs`) what a click would do; `Factory::hook_by_reach`
@@ -308,7 +308,7 @@ impl Factory {
     pub(super) fn powered_cells(&self, slot: Slot) -> Option<Vec<IVec3>> {
         match slot {
             Slot::Generator(i) => Some(vec![self.generators[i as usize].pos]),
-            Slot::Miner(i) => Some(vec![self.miners[i as usize].pos]),
+            Slot::Miner(i) => Some(&self.miners[i as usize]).filter(|m| !m.is_coal()).map(|m| vec![m.pos]),
             Slot::Process(i) => {
                 let p = &self.processors[i as usize];
                 takes_pole(p).then(|| p.cells())

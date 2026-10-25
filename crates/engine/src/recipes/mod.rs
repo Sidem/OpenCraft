@@ -231,6 +231,7 @@ pub const RECIPES: &[Recipe] = &[
     TOWN_DEPOT_RECIPE,
     TELESCOPE_RECIPE,
     SICKLE_RECIPE,
+    COAL_MINER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

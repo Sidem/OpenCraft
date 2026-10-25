@@ -151,7 +151,7 @@ impl Factory {
     fn block_in(&self, slot: Slot) -> BlockId {
         match slot {
             Slot::Belt(_) => block::BELT,
-            Slot::Miner(_) => block::MINER,
+            Slot::Miner(i) => self.miners[i as usize].block(),
             Slot::Storage(_) => block::STORAGE,
             Slot::Process(i) => self.processors[i as usize].spec.block,
             Slot::Router(_) => block::SPLITTER,
