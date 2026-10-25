@@ -51,7 +51,7 @@ impl Factory {
         process::sense_sources(processors, kinds, world, orbit, tick);
         power.balance(generators, miners, processors, kinds, labs, pipework, quarries, research, &unlocked, tick);
         data.balance((nodes, processors), power, &unlocked, research, (orbit, tick));
-        let mut sinks = Sinks { storages, processors, routers, generators, labs, unlocked: &unlocked };
+        let mut sinks = Sinks { storages, processors, routers, generators, labs, miners: &mut [], unlocked: &unlocked };
         let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
         let tuned = process::optimizer_bonuses(sinks.processors, &kinds.optimizer, power, data);
         let swarms = process::hub_bonuses(sinks.processors, &kinds.hub, power, data);
@@ -60,6 +60,7 @@ impl Factory {
                 (power.speed(p), mining * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED);
             m.step(deposits, world, tick, belts, &mut sinks, events);
         }
+        sinks.miners = miners;
         for (q, &p) in quarries.iter_mut().zip(&power.quarry_pole) {
             q.speed = power.speed(p);
             q.step(world, belts, &mut sinks, changed, events);

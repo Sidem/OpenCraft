@@ -1,11 +1,11 @@
 //! Tests of the coal miner: fuel, self-feeding on coal, no grid, the panel and the bytes.
 
 use super::*;
-use crate::block::{COAL_MINER, COAL_ORE, GENERATOR, IRON_ORE, POLE};
+use crate::block::{COAL_MINER, COAL_ORE, GENERATOR, IRON_ORE, MINER, POLE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Tier};
 use crate::factory::{Machine, MinerStatus};
-use crate::item::MAX_STACK;
+use crate::item::{ItemId, MAX_STACK};
 use crate::math::IVec3;
 use crate::tests::{nearby_ore, run_until_ready};
 use crate::Game;
@@ -116,6 +116,54 @@ fn it_takes_fuel_only_and_gives_it_back_when_taken_apart() {
     assert_eq!(panel.slots.iter().map(|s| s.0).collect::<Vec<_>>(), [ROLE_FUEL, ROLE_OUTPUT]);
     let back = g.sim.factory.remove(m);
     assert!(back.iter().any(|s| s.item == COAL_ORE.into() && s.count == MAX_STACK), "{back:?}");
+}
+
+/// A box of `n` `item` two cells east of `m` and a belt from it into `m`.
+fn belt_into(g: &mut Game, m: IVec3, item: ItemId, n: u32) {
+    let f = &mut g.sim.factory;
+    f.add_storage(m + IVec3::new(2, 0, 0));
+    f.stock(m + IVec3::new(2, 0, 0), item, n);
+    f.add_belt(m + IVec3::new(1, 0, 0), 3);
+}
+
+#[test]
+fn a_belt_of_coal_keeps_it_running_and_stops_when_the_stack_is_full() {
+    let mut g = game();
+    let (m, _, _) = coal_miner_on(&mut g, IRON_ORE);
+    belt_into(&mut g, m, COAL_ORE.into(), 100);
+    g.skip_time(30.0);
+    let miner = g.sim.factory.miner_at(m);
+    assert_eq!(miner.status, MinerStatus::Running, "fed by the belt, with no hand on it");
+    assert!(miner.out.total() >= 4);
+    // A stack's worth went in and no more; the rest waits in the box and on the belt.
+    assert!(miner.burner.fuel.total() >= MAX_STACK - 2, "{} coal in the fire", miner.burner.fuel.total());
+    g.skip_time(30.0);
+    let f = &g.sim.factory;
+    assert!(f.miner_at(m).burner.fuel.total() <= MAX_STACK);
+    let waiting = f.storages[0].buf.total() + f.belts[0].items.iter().map(|i| i.n).sum::<u32>();
+    assert!(waiting > 25, "{waiting} coal left outside the miner");
+}
+
+#[test]
+fn a_belt_gives_it_fuel_only_and_an_electric_miner_nothing() {
+    let mut g = game();
+    let (m, _, _) = coal_miner_on(&mut g, IRON_ORE);
+    belt_into(&mut g, m, IRON_ORE.into(), 10);
+    g.skip_time(10.0);
+    let miner = g.sim.factory.miner_at(m);
+    assert_eq!((miner.burner.fuel.total(), miner.status), (0, MinerStatus::NoFuel), "ore is not fuel");
+
+    let mut g = game();
+    let (m, p, _) = coal_miner_on(&mut g, IRON_ORE);
+    g.sim.factory.remove(m);
+    g.sim.factory.place(&mut g.sim.world, MINER, m, 0, p, 0);
+    belt_into(&mut g, m, COAL_ORE.into(), 10);
+    g.skip_time(10.0);
+    let miner = g.sim.factory.miner_at(m);
+    assert_eq!((miner.burner.fuel.total(), miner.out.total()), (0, 0), "a powered miner takes no belt's coal");
+    let f = &g.sim.factory;
+    let outside = f.storages[0].buf.total() + f.belts[0].items.iter().map(|i| i.n).sum::<u32>();
+    assert_eq!(outside, 10, "the coal stayed on the belt and in the box");
 }
 
 #[test]

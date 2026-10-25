@@ -41,7 +41,8 @@ size.
   Each time a block's worth is used up, the ore block nearest the miner turns into spent rock, even in
   chunks that aren't loaded. A worked-out deposit is gone for good. The **coal miner** (`factory/miner_burner.rs`) is the
   same machine without a wire: it burns a stack of coal ore or logs you give it (10 kW of fire, only while it digs),
-  digs 0.5 units a second and keeps 40%, and cannot be upgraded.
+  digs 0.5 units a second and keeps 40%, and cannot be upgraded. A belt ending at it (or a router or filter facing it)
+  feeds it fuel; a miner or quarry beside it does not.
 - **Conveyor belts** carry items one block per second. Hold right-click on the ground and drag to lay a
   whole line: outlines show where the belts go (red past the belts you have) and releasing builds it.
   A single belt runs the way you face; press R on a belt to turn it. A belt ending in another belt's side

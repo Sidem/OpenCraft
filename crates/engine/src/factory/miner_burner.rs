@@ -2,8 +2,9 @@
 //! (anything `recipes::fuel_energy` knows) and the energy of the item it lit, in kW·ticks like a generator
 //! (1 kJ = `TICK_RATE`). It burns only on ticks it can drill, so fuel lasts exactly as long as the work does.
 //!
-//! Fuel comes in by hand (the panel) or from its own digging: a coal miner on coal keeps [`SELF_FUEL_RESERVE`] coal
-//! back before anything goes out. Belts cannot feed it (miners are never sinks), and it takes no wire (`wiring.rs`).
+//! Fuel comes in by hand (the panel), from a belt (`links.rs`: a coal miner is a sink for fuel; miners and quarries
+//! beside it do not feed it) or from its own digging: a coal miner on coal keeps [`SELF_FUEL_RESERVE`] coal back before
+//! anything goes out. It takes no wire (`wiring.rs`).
 //! Its numbers are [`COAL_STATS`], one row beside `MINER_TIERS`; it has no kit and no upgrade. To tune it: that row.
 
 use crate::block::{tex, BlockId, COAL_MINER, MINER};

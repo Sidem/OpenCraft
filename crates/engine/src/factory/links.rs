@@ -3,7 +3,7 @@
 //! any machine is added or removed: belt outputs (for every belt shape) and corner curves, the outputs of every other machine,
 //! and the downstream-first belt update order, and the power grids (`power.rs`). Nothing here is saved; links are a pure function of the
 //! machines and their positions. A multi-block machine takes and gives only at its ports (`footprint/`).
-//! A new machine that takes items: an arm in `Slot::is_sink` and in `Sinks`.
+//! A new machine that takes items: an arm in `Slot::is_sink` and in `Sinks`. The coal miner takes fuel from belts.
 
 use crate::item::ItemId;
 use crate::math::IVec3;
@@ -13,6 +13,7 @@ use super::belt_shape::{derive_slopes, Shape};
 use super::fibre::Data;
 use super::generator::Generator;
 use super::lab::Lab;
+use super::miner::Miner;
 use super::power::Power;
 use super::process::{self, Processor};
 use super::provenance::Tag;
@@ -58,9 +59,14 @@ impl Slot {
     /// Whether belts and miners can deliver into it (belts are linked separately).
     pub(super) fn is_sink(self) -> bool {
         match self {
-            Slot::Storage(_) | Slot::Process(_) | Slot::Router(_) | Slot::Generator(_) | Slot::Lab(_) => true,
+            // A miner is a sink for the coal miner's fuel; `takes` in `relink` turns the electric ones away.
+            Slot::Storage(_)
+            | Slot::Process(_)
+            | Slot::Router(_)
+            | Slot::Generator(_)
+            | Slot::Lab(_)
+            | Slot::Miner(_) => true,
             Slot::Belt(_)
-            | Slot::Miner(_)
             | Slot::Pole(_)
             | Slot::Pipe(_)
             | Slot::Quarry(_)
@@ -96,6 +102,9 @@ pub(crate) struct Sinks<'a> {
     pub(super) routers: &'a mut [Router],
     pub(super) generators: &'a mut [Generator],
     pub(super) labs: &'a mut [Lab],
+    /// The coal miners' fuel. Empty while the miners themselves step (they cannot be borrowed twice), so only belts
+    /// feed them; `Factory::update` hands the slice over before the belts move.
+    pub(super) miners: &'a mut [Miner],
     /// Which machine recipes research allows, by index (processors take only what these use).
     pub(super) unlocked: &'a [bool],
 }
@@ -109,8 +118,8 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].can_accept(),
             Slot::Generator(i) => self.generators[i as usize].room_for(item) >= n,
             Slot::Lab(i) => self.labs[i as usize].room_for(item) >= n,
+            Slot::Miner(i) => self.miners.get(i as usize).is_some_and(|m| m.burner.room_for(item) >= n),
             Slot::Belt(_)
-            | Slot::Miner(_)
             | Slot::Pole(_)
             | Slot::Pipe(_)
             | Slot::Quarry(_)
@@ -131,8 +140,8 @@ impl Sinks<'_> {
             Slot::Router(i) => self.routers[i as usize].accept(item, n, tag),
             Slot::Generator(i) => self.generators[i as usize].accept(item),
             Slot::Lab(i) => self.labs[i as usize].accept(item),
+            Slot::Miner(i) => self.miners[i as usize].burner.fuel.add(item, n) == 0,
             Slot::Belt(_)
-            | Slot::Miner(_)
             | Slot::Pole(_)
             | Slot::Pipe(_)
             | Slot::Quarry(_)
@@ -164,9 +173,12 @@ impl Factory {
         let at = &self.at;
         let belts = &self.belts;
         let processors = &self.processors;
-        // Whether the sink `s` takes items into its cell `cell` from `from` (multi-block machines: at a port).
+        let miners = &self.miners;
+        // Whether the sink `s` takes items into its cell `cell` from `from` (multi-block machines: at a port; only a
+        // coal miner takes anything).
         let takes = |s: Slot, cell: IVec3, from: IVec3| match s {
             Slot::Process(i) => processors[i as usize].takes_from(cell, from),
+            Slot::Miner(i) => miners[i as usize].is_coal(),
             _ => true,
         };
         let belt_at = |q: IVec3| match at.get(&q) {
@@ -272,7 +284,10 @@ impl Factory {
         let extractor_outs = |pos: IVec3, skip: usize| -> Vec<Link> {
             let mut v: Vec<Link> = feeds(pos).into_iter().map(|belt| Link::Belt { belt, mid: false }).collect();
             for (f, &n) in FACES.iter().enumerate() {
-                if let Some(&s) = at.get(&(pos + n)).filter(|&&s| f != skip && s.is_sink() && takes(s, pos + n, pos)) {
+                // Not into miners: they step while borrowed, so only belts can fuel a coal miner.
+                let sink =
+                    |&&s: &&Slot| f != skip && s.is_sink() && !matches!(s, Slot::Miner(_)) && takes(s, pos + n, pos);
+                if let Some(&s) = at.get(&(pos + n)).filter(sink) {
                     v.push(Link::Machine(s));
                 }
             }

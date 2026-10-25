@@ -185,8 +185,8 @@ an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper 
 outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. The bridge to
 electricity is the **Coal Miner** (4 iron plates, 3 iron rods and 8 stone, no copper): it burns coal ore or logs
 (right-click it to open it and give it fuel) instead of drawing power, digs a third as much as a Mk1 and keeps 40%, and
-has no upgrades. On a coal deposit it keeps a few coal back from its own digging, so it runs by itself. Belts cannot
-feed it. Hand-mining
+has no upgrades. On a coal deposit it keeps a few coal back from its own digging, so it runs by itself. A belt that
+ends at it feeds it coal ore or logs, so one coal line can keep a row of them going. Hand-mining
 an outcrop or two and a furnace cover your first miner, generator and poles. After that, let them do the work.
 
 - **Upgrades.** Machines come in tiers, shown by the coloured stripe on them (red Mk1, green Mk2, with one

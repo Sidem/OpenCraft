@@ -259,6 +259,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 - **2026-10-25: free flight is creative-only** (hotfix, user: a playtester's save flew at fly-sprint speed with no hover pack). F set a `flying` body flag that any world accepted and a save kept. `Sim::may_fly` (`mode.rs`) now gates `toggle_fly` and `step_bodies` clears the flag on every body every tick, so such saves lose it on load. Hover was already core-gated (pack worn, charge left). Tests: `mode/tests.rs`; tests that fly for a vantage use `tests::fly`.
 
+- **2026-10-25: belts feed the coal miner** (user request). `Slot::Miner` is now a sink (`links.rs`): `takes` in `relink` admits
+  only coal miners, `Sinks::miners` holds the slice and `Burner::room_for` decides what fits (fuel, up to the stack). The slice
+  is empty while the miners step (they cannot be borrowed twice) and is handed over before the quarries and belts, so a miner
+  or quarry beside a coal miner does not fuel it (`extractor_outs` skips miners); belts, routers and filters do. No save change.
+  Checked: 2 new tests in `miner_burner/tests.rs` (a coal line keeps it running and stops at a full stack, ore is refused, an
+  electric miner takes nothing and the coal stays on the belt).
+
 - **2026-10-25: take apart what you built by mistake** (user request: a wrong Miner should become a Coal Miner). `take_apart.rs`
   (core): `Action::TakeApart { recipe, times }` (codec tag 64; reading moved to `action/codec/read.rs`) takes whole batches
   (`Recipe::count`) of a held item apart at once: `KEEP_PERCENT` of each input, rounded, and of the iron kept back a third as
