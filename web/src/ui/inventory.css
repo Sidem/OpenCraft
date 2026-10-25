@@ -86,6 +86,11 @@
   justify-content: start;
 }
 
+/* Tips wrap here (the panel is only as wide as its slots): hold two lines so the height never jumps either. */
+.inv-with-box .sc {
+  min-height: 76px;
+}
+
 .inv-box {
   align-self: start;
 }

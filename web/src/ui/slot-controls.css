@@ -1,7 +1,12 @@
 /* The inventory screen's controls bar (slot-controls.ts): one line of key caps and mouse glyphs with a word each.
    The key cap matches hints.css and key-prompt.css, small. */
 
+/* width 0 with min-width 100%: the bar takes the panel's width but never sets it, so a longer tip cannot widen a box
+   screen (whose panel is as wide as its slots); tips wrap instead, and `.inv-with-box` keeps room for two lines. */
 .sc {
+  width: 0;
+  min-width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: 8px 18px;

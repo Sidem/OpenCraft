@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · Steadier panels, shorter craft list
+- **The storage box screen keeps its size** while you move the mouse over slots: the controls tips along the bottom wrap instead of widening the panel.
+- **A long hand-craft queue shows its first three orders** and a "+6 more queued" count instead of covering the screen; the rest run in turn.
+
 ## 2026-10-25 · Playtester fixes
 - **The selected item's name shows above the hotbar** when you pick a slot or the item in it changes, then fades.
 - **Power poles stand two blocks tall**, with their wires hanging from the top, and have a proper icon: a post with a crossarm, wearing its tier's stripe (the long-distance pole shows its lattice tower). Aim at any part of the pole.

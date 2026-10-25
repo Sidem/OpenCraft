@@ -1,7 +1,7 @@
 // Hand-craft queue strip, above the hotbar (also over the inventory screen): one group per queued order, and
 // in it one chip per step still to run, in running order: the parts first (planks, plates), what was asked
 // for last (the box), each with the amount still to come and, on the step being worked on, a progress bar.
-// Finished steps drop off the front. The ✕ on a group cancels the order and returns its materials and the
+// Only the first few orders are drawn, the rest as a count. Finished steps drop off the front. The ✕ on a group cancels the order and returns its materials and the
 // parts already made. The engine owns the queue (`craft_queue`, `craft_steps`); this only draws it. Call
 // `update` every frame: it rebuilds the groups when the queue changes and otherwise moves the bar.
 
@@ -10,6 +10,8 @@ import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
 
 const ICON_PX = 64;
+/** Orders drawn at once; the rest are counted ("+3 more queued"), and run in turn as these finish. */
+const MAX_SHOWN = 3;
 
 export class CraftQueueView {
   private readonly el = h('div', 'craftq hidden');
@@ -45,7 +47,7 @@ export class CraftQueueView {
     this.bars = [];
     this.el.classList.toggle('hidden', steps.length === 0);
     const g = this.game;
-    const groups = steps.map((s, order) => {
+    const groups = steps.slice(0, MAX_SHOWN).map((s, order) => {
       const group = h('div', 'craftq-order');
       const last = s.length / 3 - 1;
       for (let i = 0; i <= last; i++) {
@@ -69,6 +71,9 @@ export class CraftQueueView {
       group.append(cancel);
       return group;
     });
+    // A long queue shows its first orders and a count, so it never grows into a wall over the screen.
+    const more = steps.length - MAX_SHOWN;
+    if (more > 0) groups.push(h('div', 'craftq-more', `+${more} more queued`));
     this.el.replaceChildren(...groups);
   }
 }

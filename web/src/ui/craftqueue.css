@@ -27,6 +27,13 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+.craftq-more {
+  align-self: center;
+  padding: 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .craftq-next {
   color: var(--muted);
   font-size: 16px;
