@@ -40,6 +40,9 @@ impl Game {
                         self.note_placed(pos, block);
                     }
                 }
+                SimEvent::DoorMoved { pos, block } => {
+                    self.play(sound::PLACE, block::def(block).sound, pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 0.7);
+                }
                 SimEvent::LeafDecayed { pos } => {
                     let at = pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
                     if (at - self.body().eye()).length() < LEAF_SOUND_RANGE {

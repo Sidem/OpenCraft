@@ -45,8 +45,7 @@ fn an_unwired_miner_shows_its_lesson_after_half_a_minute_and_fixing_it_teaches_i
     assert_eq!(g.lesson_now(), POWER);
     let text = g.lesson_text();
     assert!(text.starts_with("No power:") && text.contains("Miner"), "{text}");
-    let marker = g.lesson_marker();
-    assert_eq!((marker.len(), marker[3]), (4, PROMPT_CHECK as f32), "a prompt over the machine");
+    assert!(g.lesson_marker().is_empty(), "a right-click does not wire a miner: the card says what does");
 
     power_up(&mut g, m);
     g.skip_time(10.0);
@@ -57,6 +56,19 @@ fn an_unwired_miner_shows_its_lesson_after_half_a_minute_and_fixing_it_teaches_i
     g.sim.factory.remove(m + IVec3::new(0, 2, 0));
     g.skip_time(150.0);
     assert_eq!(g.lesson_now(), 0);
+}
+
+#[test]
+fn the_prompt_says_right_click_only_over_a_machine_that_a_right_click_fixes() {
+    let mut g = ready();
+    let at = IVec3::new(0, 200, 0);
+    g.sim.world.set_block_anywhere(at, block::STONE);
+    stand_at(&mut g, at + IVec3::new(0, 2, 0));
+    idle_smelter(&mut g, at + IVec3::new(0, 1, -3));
+    g.skip_time(35.0);
+    assert_eq!(g.lesson_now(), INPUT);
+    let marker = g.lesson_marker();
+    assert_eq!((marker.len(), marker[3]), (4, PROMPT_CHECK as f32), "feed it by hand: right-click it");
 }
 
 #[test]

@@ -110,6 +110,7 @@ impl Sim {
             Action::Rotate { pos } => {
                 self.factory.rotate(pos);
             }
+            Action::ToggleDoor { pos } => self.toggle_door(pos),
             Action::Connect { pole, to } => self.factory.connect(pole, to),
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),
             Action::PlaceTrain { pos, slot } => self.place_train(player, pos, slot),

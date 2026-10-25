@@ -30,6 +30,10 @@ pub enum Action {
         facing: u8,
         against: IVec3,
     },
+    /// Opens or closes the door at `pos`, with the doors of its state stacked above and below it (`doors.rs`).
+    ToggleDoor {
+        pos: IVec3,
+    },
     /// Turns the belt or router at `pos` a quarter turn clockwise (the R key).
     Rotate {
         pos: IVec3,

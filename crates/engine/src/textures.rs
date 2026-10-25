@@ -27,6 +27,7 @@ mod grid;
 mod heavy;
 mod hires;
 mod hoist;
+mod house;
 mod hub;
 mod items;
 mod laser;
@@ -231,6 +232,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::BIRCH_SIDE..=tex::DEAD_SIDE => forest::pixel(layer, x, y),
         tex::RUST_PLATE..=tex::VAULT_DOOR => ruins::pixel(layer, x, y),
         tex::RED_CONCRETE..=tex::PANEL_LIGHT => decor::pixel(layer, x, y),
+        tex::WOOD_DOOR..=tex::PLASTER => house::pixel(layer, x, y),
         tex::MAT_METAL..=tex::MAT_AETHER => materials::pixel(layer, x, y),
         tex::SMOKE..=tex::SMOKE_THIN | tex::SOOT => smoke::pixel(layer, x, y),
         tex::LOCO_BODY => transport::pixel(layer, x, y),

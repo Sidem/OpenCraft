@@ -35,6 +35,7 @@ mod chunk;
 mod crafting;
 mod daytime;
 mod deposits;
+mod doors;
 mod drone_view;
 mod drones;
 mod entities;

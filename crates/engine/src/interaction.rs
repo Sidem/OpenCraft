@@ -186,6 +186,7 @@ impl Game {
             || self.update_train_tools()
             || self.update_cargo_tools()
             || self.update_power_tools(dt)
+            || self.use_door()
             || !self.using
         {
             return;

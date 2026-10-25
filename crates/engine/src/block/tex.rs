@@ -211,7 +211,9 @@ pub const MAT_BRASS: u16 = LAYERS_END + 3;
 pub const MAT_FABRIC: u16 = LAYERS_END + 4;
 pub const MAT_EMBER: u16 = LAYERS_END + 5;
 pub const MAT_AETHER: u16 = LAYERS_END + 6;
-pub const COUNT: usize = MAT_AETHER as usize + 1;
+/// The house set's layers, 354 on (`block/house.rs`, `textures/house.rs`).
+pub use super::house::layers::*;
+pub const COUNT: usize = HOUSE_LAYERS_END as usize;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

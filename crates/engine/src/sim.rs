@@ -64,6 +64,11 @@ pub enum SimEvent {
         pos: IVec3,
         block: BlockId,
     },
+    /// A door at `pos` swung to `block` (its new state: `doors.rs`).
+    DoorMoved {
+        pos: IVec3,
+        block: BlockId,
+    },
     /// Items entered a player's inventory from the world (a pickup or a machine's contents).
     Gained {
         player: PlayerId,

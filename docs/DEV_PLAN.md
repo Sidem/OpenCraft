@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -256,6 +256,22 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-25: the stalled-machine prompt no longer says right-click where it does nothing** (playtester: a miner with no power
+  showed the mouse "Check" prompt, but a Mk1 miner has nothing to open and the fix was the pole). `Game::stall_prompt`
+  (`stall_lesson.rs`) gives the floating prompt only for causes fixed by hand (input, output, fuel) over a machine that opens;
+  `lesson_marker` is empty otherwise, and the card alone teaches the wiring. Tests: `stall_lesson/tests.rs`.
+
+- **2026-10-25: house pieces and doors** (user request: doors, roof tiles and more house items; chosen: full cubes plus working
+  doors; slabs, stairs, sloped roofs and thin doors need non-cube meshing, a step of their own). `block/house.rs`, ids 144–156
+  (layers 354–366, after the plain materials): wooden and iron doors (a closed solid block, the item, and an open see-through
+  twin that is never held and breaks into the closed one; `block::toggled` pairs them), red, slate and green roof tiles, thatch,
+  plaster, timber frame, wood floor, window, chimney bricks. Hand recipes in `recipes/house.rs` (Building section, no tech; roof
+  tints use ingots, since a lint forbids raw ore in hand recipes). `Action::ToggleDoor { pos }` (codec tag 66, `doors.rs`) swaps
+  the door and the same-state doors stacked within 3 cells above and below it, so a two-high doorway moves as one;
+  `SimEvent::DoorMoved` plays the thunk. The use button on a door toggles it (`Game::use_door`; crouching places against it) and
+  refuses to shut one on the local body (other players' bodies are not checked). No save-format change. Checked: 6 tests in
+  `doors/tests.rs`, 2 in `recipes/house/tests.rs`, the codec round trip. Placeholder textures; art wanted in `ART_HANDOVER.md`.
 
 - **2026-10-25: a torch in the hand lights the way; a left hand** (user request: a selected torch glows and is held; one tool in
   each hand, so up to two at once; chosen: avatar only, no first-person arm, an off-hand slot with a swap key). Core:

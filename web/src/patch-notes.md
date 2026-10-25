@@ -3,6 +3,14 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · A truer "machine stopped" prompt
+- The floating mouse prompt over a stopped machine now shows only when a right-click really helps (feeding, emptying or fuelling something that opens). A miner without power no longer says "right-click": its card tells you to wire it to a pole.
+
+## 2026-10-25 · Doors, roofs and more for houses
+- **Wooden and iron doors** you open and close with right-click (crouch to place something against one instead). Stack two for a doorway: they swing together, and an open door can be walked through. A door will not close on you.
+- **Roof tiles** in red, slate and green (stone bricks plus a little iron, coal or copper), **thatch**, **plaster**, **timber frame**, **wood floor**, **windows** and **chimney bricks**, all in the build menu's Building section.
+- They are whole blocks for now: sloped roofs, stairs and slabs need a different kind of block shape and come later.
+
 ## 2026-10-25 · A torch in your hand, and a second hand
 - **A torch or lamp in your hand lights the way**: the ground, machines and other players around you brighten in the lamps' warm colour, and your avatar holds it (look at yourself in third person with V). It shines through walls, like a candle through a thin sheet.
 - **A left hand.** Press **J** to swap the selected slot with your left hand (the dashed slot beside the hotbar, also in the inventory screen). The torch keeps glowing from there while you work with a tool in your right hand.

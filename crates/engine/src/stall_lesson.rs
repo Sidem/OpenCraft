@@ -70,6 +70,17 @@ impl Game {
         self.stall.watch.filter(shown).map(|w| (w.pos, w.cause))
     }
 
+    /// The floating prompt for the lesson on show: "right-click to check" only where a right-click is the way to fix it
+    /// (feeding, emptying or fuelling a machine that opens), never for a cause fixed with a pole, a pipe or a move, nor
+    /// for a machine with nothing to open.
+    pub(crate) fn stall_prompt(&self) -> Option<u8> {
+        let (pos, cause) = self.stall_lesson()?;
+        let block = self.stall.watch.filter(|w| w.pos == pos)?.block;
+        let by_hand = matches!(cause, Cause::Input | Cause::Output | Cause::Fuel);
+        let opens = crate::factory::machine(block).is_some_and(|m| m.panel || m.slots > 0);
+        (by_hand && opens).then_some(PROMPT_CHECK)
+    }
+
     /// The card's text for a lesson from `stall_lesson`.
     pub(crate) fn stall_text(&self, pos: IVec3, cause: Cause) -> String {
         let block = self.stall.watch.filter(|w| w.pos == pos).map_or(block::AIR, |w| w.block);

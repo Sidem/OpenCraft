@@ -3,11 +3,13 @@
 //! To add a block: its id in `mod.rs` (or a set file), then its row here at the end of `BASE_DEFS` (or the set's table).
 
 use super::coal_miner::COAL_MINER_DEFS;
+use super::house::HOUSE_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
 use super::*;
 
-/// Every block's row: the base table, then the decor set's, then the coal miner's.
-pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[&BASE_DEFS, &DECOR_DEFS, &COAL_MINER_DEFS]);
+/// Every block's row: the base table, then the decor set's, the coal miner's and the house set's.
+pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] =
+    crate::join::join(&[&BASE_DEFS, &DECOR_DEFS, &COAL_MINER_DEFS, &HOUSE_DEFS]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [
     BlockDef {

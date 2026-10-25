@@ -41,7 +41,7 @@ fn concrete(x: i32, y: i32, colour: [f64; 3]) -> [u8; 4] {
 }
 
 /// Bricks in a running bond, each its own shade, recessed mortar between them.
-fn bricks(x: i32, y: i32, brick: [f64; 3], mortar: [f64; 3], seed: u32) -> [u8; 4] {
+pub(super) fn bricks(x: i32, y: i32, brick: [f64; 3], mortar: [f64; 3], seed: u32) -> [u8; 4] {
     let (row, shift) = (y / 4, if (y / 4) % 2 == 0 { 0 } else { 4 });
     let mortar_line = y % 4 == 3 || (x + shift).rem_euclid(8) == 7;
     if mortar_line {

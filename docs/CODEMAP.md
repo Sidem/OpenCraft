@@ -28,6 +28,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `blocks.rs` (break and place), `multiblock.rs` (footprints), `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (`write_state` / `read_state`). `save.rs`: the file (core, bodies, loose items), `SAVE_VERSION`.
 - `join.rs`: compile-time joins of const tables (`TECHS`, `MACHINE_RECIPES`). `math.rs`: vectors, hashes, `Rng`, small sort.
+- `doors.rs`: `Action::ToggleDoor` swings a door (and the doors stacked on it) and the use button on one (`block/house.rs`).
 - `deposits.rs`: deposit pools, tiers, draw caps, taper, `HAND_YIELD`. `daytime.rs`: time of day and sunlight from the tick.
 - `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks. `equipment.rs`: worn gear, packs. `offhand.rs`: the left-hand
   stack (swap, click, the tool that suits a block). `tools.rs`: tool tiers.
@@ -66,12 +67,12 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`, `coal_miner.rs` (id 143); `ores.rs`.
+  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
-  `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`.
+  `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
 - `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
 

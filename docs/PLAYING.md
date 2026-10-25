@@ -165,6 +165,10 @@ material, and a little of the lost iron as scrap metal (a smelter melts 3 scrap 
 exactly what. A Miner made by mistake gives back enough for a Coal Miner. Tools cannot be taken apart, nor the few
 items that a machine makes more cheaply than the hand recipe (empty canisters, underpasses Mk2 and up).
 
+**House pieces** (Building section, crafted by hand): wooden and iron doors (right-click to open or close; two stacked swing
+together, an open one can be walked through and will not close on you), roof tiles in three colours (stone bricks plus iron,
+coal or copper), thatch, plaster, timber frame, wood floor, windows and chimney bricks. All are whole blocks.
+
 **Bootstrapping, without raw ore in a recipe.** Nothing is built from raw ore. Wood comes first (Materials): a log
 saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles
 and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up,

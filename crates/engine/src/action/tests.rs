@@ -534,6 +534,7 @@ fn samples() -> Vec<Action> {
         Action::LessonTaught { bit: 3 },
         Action::TakeApart { recipe: 0, times: 2 },
         Action::Offhand { swap: true },
+        Action::ToggleDoor { pos: IVec3::new(4, 70, -2) },
     ]
 }
 

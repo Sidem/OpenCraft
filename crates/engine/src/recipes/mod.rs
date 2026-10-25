@@ -22,6 +22,7 @@ mod gear;
 mod gold;
 mod group;
 mod heavy;
+mod house;
 mod machine;
 mod machine_later;
 mod materials;
@@ -48,6 +49,7 @@ use gear::*;
 use gold::*;
 pub use group::{Group, GROUPS};
 use heavy::*;
+use house::*;
 pub use machine::*;
 use materials::*;
 pub use menu_order::menu_order;
@@ -233,6 +235,17 @@ pub const RECIPES: &[Recipe] = &[
     TELESCOPE_RECIPE,
     SICKLE_RECIPE,
     COAL_MINER_RECIPE,
+    WOOD_DOOR_RECIPE,
+    IRON_DOOR_RECIPE,
+    WINDOW_RECIPE,
+    PLASTER_RECIPE,
+    TIMBER_FRAME_RECIPE,
+    WOOD_FLOOR_RECIPE,
+    THATCH_RECIPE,
+    RED_ROOF_RECIPE,
+    SLATE_ROOF_RECIPE,
+    GREEN_ROOF_RECIPE,
+    CHIMNEY_BRICKS_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

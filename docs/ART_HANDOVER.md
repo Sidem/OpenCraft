@@ -261,6 +261,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   `SLAG_BRICKS` (each province's own rock fired; the bricks should look unlike stone bricks), `FRAMED_GLASS` (a steel frame with a cross bar, clear panes),
   `METAL_PANEL` (bolted plates), `CATWALK` (an open grating, cutout), `RAILING` (rails and posts, cutout, not solid), `PANEL_LIGHT` (a glowing panel). They are
   plain cubes now; slabs, stairs, a thin railing and a real lamp shape need non-cube meshing (a later step), after which the cutout cubes become thin pieces.
+  House set (2026-10-25, `textures/house.rs`, layers 354–366, blocks 144–156 in `block/house.rs`): `WOOD_DOOR` and `IRON_DOOR` (a whole face: boards with braces and
+  a brass handle; riveted plate), `WOOD_DOOR_OPEN` and `IRON_DOOR_OPEN` (cutout: only the two leftmost texel columns are the leaf, the rest is clear, the same on every face
+  because a door has no facing), `RED_ROOF`, `SLATE_ROOF`, `GREEN_ROOF` (overlapping tile rows, shadowed lower edges), `THATCH` (straw courses), `TIMBER_FRAME` (plaster between
+  dark beams), `WOOD_FLOOR` (lengthwise boards), `WINDOW` (a wooden frame, cutout panes), `CHIMNEY_BRICKS` (sooty red), `PLASTER` (pale lime). Plain cubes now; a thin hinged door and
+  sloped roofs wait for non-cube meshing.
   Vault Door (R5c, `textures/ruins.rs`, layer 332): iron frame with rivets and three brass rings; an inset door with a wheel would read better.
   Logbook (R5b, `textures/ruins.rs`, layers 330–331): `LOGBOOK_SIDE` (green cloth cover, brass clasp, pale page edges), `LOGBOOK_TOP` (ruled page); it is a plain cube on the slab, an open book on a lectern would read better.
   Ruins (R5a, 2026-10-17, `textures/ruins.rs`, layers 326–329): `RUST_PLATE` (rusted panels, bolts, flaked patches showing grey iron; also the husk's top and

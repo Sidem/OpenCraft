@@ -4,7 +4,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::math::Vec3;
-use crate::stall_lesson::{PROMPT_CHECK, RANGE};
+use crate::stall_lesson::RANGE;
 use crate::Game;
 
 /// The prompt hangs this far above the middle of the machine's cell.
@@ -23,14 +23,14 @@ impl Game {
     }
 
     /// The floating prompt over the stalled machine, as `opening_marker` gives one: camera-relative x, y, z and the
-    /// prompt kind; empty for none.
+    /// prompt kind; empty for none (also when no right-click would fix the cause: `stall_prompt`).
     pub fn lesson_marker(&self) -> Vec<f32> {
-        let Some((pos, _)) = self.stall_lesson() else { return Vec::new() };
+        let (Some((pos, _)), Some(kind)) = (self.stall_lesson(), self.stall_prompt()) else { return Vec::new() };
         let at = pos.as_vec3() + Vec3::new(0.5, 0.5 + PROMPT_LIFT, 0.5) - self.render_eye;
         if at.length() > RANGE + 8.0 {
             return Vec::new();
         }
-        vec![at.x as f32, at.y as f32, at.z as f32, PROMPT_CHECK as f32]
+        vec![at.x as f32, at.y as f32, at.z as f32, kind as f32]
     }
 
     /// The player waves the lesson away (H): it counts as taught for the world.
