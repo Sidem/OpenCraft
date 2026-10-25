@@ -90,7 +90,7 @@
 }
 
 .rs-node.done .rs-node-state::before {
-  content: 'âœ“ ';
+  content: '\2713  ';
 }
 
 .rs-node.done .rs-node-track i {

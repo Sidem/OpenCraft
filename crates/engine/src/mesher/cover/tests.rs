@@ -6,7 +6,7 @@ use crate::mesher::{neighbor_index, MeshOutput, PAD_VOLUME};
 static DAYLIGHT: [u8; PAD_VOLUME] = [15; PAD_VOLUME];
 static DARK: [u8; PAD_VOLUME] = [0; PAD_VOLUME];
 
-/// A 32 Ã— 32 floor of `ground` at y = 3, meshed with ground cover of `biome` (or none) under `light`.
+/// A 32 x 32 floor of `ground` at y = 3, meshed with ground cover of `biome` (or none) under `light`.
 fn floor(ground: BlockId, biome: Biome, light: &[u8], x0: i32) -> MeshOutput {
     let (air, mut c) = (Chunk::uniform(AIR), Chunk::uniform(AIR));
     for z in 0..32 {
