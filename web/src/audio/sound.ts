@@ -21,7 +21,7 @@ import {
 } from './settings';
 import { Ambience } from './ambience';
 import { Music } from './music';
-import { blip, breakSound, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
+import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
 import { launch, podDown, podUp } from './synth-orbit';
 
 const EVENT_FLOATS = 6;
@@ -33,7 +33,7 @@ const WARM_SLICE_MS = 4;
 const WARM_DELAY_MS = 400;
 
 /** Engine event kinds, in order. */
-const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown'];
+const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied'];
 
 interface ActionBase {
   /** Mix level before the Volume dials. */
@@ -67,6 +67,7 @@ const ACTION_BASE: Record<ActionName, ActionBase> = {
   launch: { gain: 0.9, jitter: 0.04, variants: 1, material: false, pitch: 1, length: 1, weight: 0, reach: 12 },
   podup: { gain: 0.6, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
   poddown: { gain: 0.7, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
+  denied: { gain: 0.35, jitter: 0.03, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
 };
 
 /** Typical in-game event volume and distance, so previews match what you hear while playing. */
@@ -371,6 +372,7 @@ export class SoundSystem {
     else if (action === 'launch') data = launch(sr, rand, mods);
     else if (action === 'podup') data = podUp(sr, rand, mods);
     else if (action === 'poddown') data = podDown(sr, rand, mods);
+    else if (action === 'denied') data = denied(sr, mods);
     else data = hitSound(sr, rand, m, mods);
     const buffer = ctx.createBuffer(1, data.length, sr);
     buffer.getChannelData(0).set(data);

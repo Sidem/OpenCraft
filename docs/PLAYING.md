@@ -51,7 +51,8 @@ Mined blocks drop as items, which are pulled into your inventory when you get cl
 hotbar and the backpack. **Right-click** a stack to take half of it (an odd stack gives the larger half);
 right-click it again to take half of what is left and add it to the stack in your hand. With a stack in
 hand, **Shift-right-click** puts one item into a slot (an empty one, or the same item with room), and
-Shift-right-click outside the window throws one item out. With an empty hand, Shift-right-click moves every
+Shift-right-click outside the window throws one item out; **drag a stack out of the window** and let go
+to throw the whole stack. With an empty hand, Shift-right-click moves every
 stack of that item (between hotbar and backpack, or box and inventory). Tools always move whole. These work
 on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
 merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never

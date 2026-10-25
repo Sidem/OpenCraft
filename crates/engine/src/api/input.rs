@@ -86,6 +86,7 @@ impl Game {
     pub fn set_using(&mut self, on: bool) {
         if on && !self.using {
             self.use_cooldown = 0.0;
+            self.refuse_cooldown = 0.0;
         }
         self.using = on;
     }

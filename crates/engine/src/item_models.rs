@@ -5,7 +5,7 @@
 //! Tools stand upright in the x-y plane, head up; their heads use their tier's material.
 //! Invariant: every item that is not a block has a model, its bottom at `-size[1] / 2` of its `ItemDef` (where it
 //! rests on the ground and on belts), built from materials (`tex::MAT_*`, metals, rubble), never from a picture of the
-//! item. Later items live in submodules by kind (`stock`, `components`, `wear`, `craft`, `space`) with the shape
+//! item. Later items live in submodules by kind (`stock`, `components`, `wear`, `craft`, `space`, `power`) with the shape
 //! helpers in `shapes`; a new item gets a const there and a row in its module's `parts`.
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, FRAC_PI_6};
@@ -19,6 +19,7 @@ use crate::item::{
 
 mod components;
 mod craft;
+mod power;
 mod shapes;
 mod space;
 mod stock;
@@ -286,7 +287,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         SCANNER_MK2 => &SCANNER_MK2_SET,
         CORE_DRILL => &DRILL_SET,
         _ => {
-            for find in [stock::parts, components::parts, wear::parts, craft::parts, space::parts] {
+            for find in [stock::parts, components::parts, wear::parts, craft::parts, space::parts, power::parts] {
                 let model = find(item);
                 if !model.is_empty() {
                     return model;

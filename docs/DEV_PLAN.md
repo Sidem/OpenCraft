@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -256,6 +256,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-25: playtester feedback** (five items). Hotbar: the selected item's name above the bar (`ui/held-name.ts`, fades after
+  `HELD_NAME_MS`). Poles: two blocks tall by `POLE_RISE` (`factory/pole.rs`; visual only, nothing saved: the air cell above holds
+  the upper half, aimed at through `Factory::pole_below`/`tall_pole_boxes`, remapped to the pole in `update_target_ray`; blocks may
+  still be placed in that cell), wires at `POLE_WIRE_Y`, and icons for the poles (`item_models/power.rs`). Refusals
+  (`place_refusal.rs`): a solid block with the body in its cell, or a footprint with a taken cell, plays `sound::DENIED` (13; web
+  action `denied`) once per click and every `REFUSE_REPEAT_SECONDS` while held; single blocks also get a red box and a "step aside"
+  card. `Action::ThrowCursorAll` (codec tag 67) throws the cursor stack when a drag from a slot is let go over the dim backdrop
+  (`ui/drag-throw.ts`). No save change. Tests: `place_refusal/tests.rs`, hitbox, item model, action and a pole-aim Game test.
 
 - **2026-10-25: the stalled-machine prompt no longer says right-click where it does nothing** (playtester: a miner with no power
   showed the mouse "Check" prompt, but a Mk1 miner has nothing to open and the fix was the pole). `Game::stall_prompt`

@@ -370,3 +370,18 @@ export function tick(sr: number, mods: HitMods): Float32Array {
   for (let i = 0; i < n; i++) out[i] = Math.sin(w * i) * Math.exp(-i / (0.006 * mods.length * sr));
   return normalize(out, 0.6);
 }
+
+/** "Cannot place": two low, dull knocks, the second lower, a refusal that is not an alarm. */
+export function denied(sr: number, mods: HitMods): Float32Array {
+  const knock = 0.075 * mods.length;
+  const n = Math.ceil(sr * (0.1 + knock * 3));
+  const out = new Float32Array(n);
+  for (const [start, hz] of [[0, 200], [0.1, 150]]) {
+    for (let i = Math.floor(start * sr); i < n; i++) {
+      const t = i / sr - start;
+      const w = 2 * Math.PI * hz * mods.pitch * t;
+      out[i] += (Math.sin(w) + 0.35 * Math.sin(2 * w)) * Math.min(1, t / 0.003) * Math.exp(-t / (knock * 0.6));
+    }
+  }
+  return normalize(out, 0.8);
+}

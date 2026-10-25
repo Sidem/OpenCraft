@@ -16,9 +16,28 @@ fn a_pole_is_hit_on_its_post_but_not_in_the_empty_corner_of_its_cell() {
     place_block(&mut f, POLE, v(0, 5, 0));
     let pole = f.hit_boxes(v(0, 5, 0)).unwrap();
     assert!(ray(&pole, 0.5, 0.5), "the post");
-    assert!(ray(&pole, 0.2, 0.84), "the crossarm");
+    assert!(ray(&pole, 0.2, 1.84), "the crossarm, a block up");
+    assert!(!ray(&pole, 0.2, 0.84), "no crossarm at the old height");
     assert!(!ray(&pole, 0.1, 0.3), "empty air beside the post");
     assert!(!ray(&pole, 0.95, 0.9));
+}
+
+#[test]
+fn a_pole_stands_two_blocks_tall_and_its_upper_half_is_hit_from_the_cell_above() {
+    let mut f = Factory::default();
+    place_block(&mut f, POLE, v(0, 5, 0));
+    place_block(&mut f, CABLE, v(4, 5, 0));
+    assert_eq!(f.pole_below(v(0, 6, 0)), Some(v(0, 5, 0)));
+    assert_eq!((f.pole_below(v(0, 7, 0)), f.pole_below(v(4, 6, 0))), (None, None), "only a pole's own cell, no cable");
+    let upper = f.tall_pole_boxes(v(0, 6, 0)).unwrap();
+    assert!(ray(&upper, 0.5, 0.2), "the post goes on");
+    assert!(ray(&upper, 0.2, 0.84), "the crossarm");
+    assert!(!ray(&upper, 0.1, 0.3));
+    // The wires hang from the crossarm, in the cell above.
+    let wire = f.pole_top(v(0, 5, 0)).unwrap().y - 5.0;
+    assert!((1.7..2.1).contains(&wire), "{wire}");
+    let [_, lo, _, _, height, _] = f.hit_boxes(v(0, 5, 0)).unwrap().bounds();
+    assert!(lo + height > 2.0, "the outline reaches the crossarm: {}", lo + height);
 }
 
 #[test]

@@ -123,6 +123,11 @@ impl Game {
         self.act(Action::ThrowCursor);
     }
 
+    /// A stack dragged out of the inventory screen and dropped outside it: throws the whole stack on the cursor.
+    pub fn throw_cursor_all(&mut self) {
+        self.act(Action::ThrowCursorAll);
+    }
+
     /// Shift-right-click on an inventory slot: moves every stack of its item between hotbar and backpack.
     pub fn quick_move_all(&mut self, slot: u32) {
         self.act(Action::QuickMoveAll { slot: slot.min(u8::MAX as u32) as u8 });

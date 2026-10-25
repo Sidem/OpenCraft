@@ -358,7 +358,7 @@ impl Game {
     /// Ghost pole and wire, or ghost cables, drawn with the machines.
     pub(crate) fn write_power_preview(&mut self, eye: Vec3) {
         let half = Vec3::new(0.5, 0.5, 0.5);
-        let top = |p: IVec3| p.as_vec3() + Vec3::new(0.5, 0.92, 0.5) - eye;
+        let top = |p: IVec3| p.as_vec3() + Vec3::new(0.5, factory::POLE_WIRE_Y, 0.5) - eye;
         if let Some(g) = self.pole_ghost().filter(|g| g.free) {
             factory::preview_pole(&mut self.instances, g.tier, g.pos.as_vec3() + half - eye);
             if let Some(hook) = self.sim.factory.auto_hook(g.pos, g.tier) {

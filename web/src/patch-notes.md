@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · Playtester fixes
+- **The selected item's name shows above the hotbar** when you pick a slot or the item in it changes, then fades.
+- **Power poles stand two blocks tall**, with their wires hanging from the top, and have a proper icon: a post with a crossarm, wearing its tier's stripe (the long-distance pole shows its lattice tower). Aim at any part of the pole.
+- **A placement that cannot happen now says so.** When you are standing where a block or machine would go, the spot turns red, the card reads "step aside", and a low double knock plays (large machines already showed their red cells; now they knock too, and single blocks like smelters tell you as well).
+- **Drag a stack out of the inventory window and let go outside it to throw the whole stack.**
+
 ## 2026-10-25 · A truer "machine stopped" prompt
 - The floating mouse prompt over a stopped machine now shows only when a right-click really helps (feeding, emptying or fuelling something that opens). A miner without power no longer says "right-click": its card tells you to wire it to a pole.
 

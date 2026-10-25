@@ -71,3 +71,24 @@ fn the_cog_is_round_and_stays_inside_its_cell() {
     }
     assert!(model.iter().any(|p| p.yaw > 1.0), "the teeth run at several angles");
 }
+
+#[test]
+fn every_power_pole_is_a_post_with_a_crossarm_inside_its_cell_and_a_tier_wears_its_stripe() {
+    use crate::block::{LONG_POLE, POLE};
+    use crate::item::{POLE_MK2, POLE_MK3, POLE_MK4};
+    let poles = [ItemId::block(POLE), POLE_MK2, POLE_MK3, POLE_MK4, ItemId::block(LONG_POLE)];
+    for item in poles {
+        let model = parts(item);
+        assert!(model.len() >= 8, "{item:?} is still a striped cube");
+        for p in model {
+            assert!(p.size.iter().all(|&s| s > 0.0) && p.tex.iter().all(|&t| (t as usize) < tex::COUNT));
+            for axis in 0..3 {
+                assert!(p.center[axis].abs() + p.size[axis] * 0.5 <= 0.501, "{item:?} leaves its cell");
+            }
+        }
+    }
+    let band = |item| parts(item)[2].tex[0];
+    assert_ne!(band(ItemId::block(POLE)), band(POLE_MK2));
+    assert_ne!(band(POLE_MK2), band(POLE_MK3));
+    assert_ne!(band(POLE_MK3), band(POLE_MK4));
+}

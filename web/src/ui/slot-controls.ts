@@ -47,7 +47,7 @@ export function slotControls(c: SlotContext): Control[] {
     }
     if (!c.item) return [];
     return [
-      { keys: ['Left'], label: 'Pick up' },
+      { keys: ['Left'], label: 'Pick up (drag out of the panel to throw it all)' },
       { keys: ['Right'], label: 'Take half' },
       { keys: ['Ctrl', 'Left'], label: 'Take one' },
       { keys: ['Shift', 'Left'], label: c.shift },

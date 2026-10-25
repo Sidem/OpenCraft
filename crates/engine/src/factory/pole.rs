@@ -37,6 +37,12 @@ pub const POLE_TIERS: [PoleTier; 4] = [
     PoleTier { link: 32, reach: 16, slots: 16 },
 ];
 
+/// How far a pole's post stands above its own cell's old height: it is two blocks tall, the upper half drawn (and
+/// aimed at: `Factory::tall_pole_boxes`) in the air cell above. Nothing is stored for it, so old saves are unchanged.
+pub const POLE_RISE: f64 = 1.0;
+/// Where an ordinary pole's wires hang, above the bottom of its cell.
+pub const POLE_WIRE_Y: f64 = 0.92 + POLE_RISE;
+
 /// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it). It was 3 in the few saves of
 /// version 21 that hold cables, before the Mk4 pole took that number.
 pub const CABLE_TIER: u8 = 15;
@@ -102,7 +108,7 @@ impl Pole {
                 let c = LONG_FOOTPRINT.centre(0);
                 base + Vec3::new(0.5 + c.x, 2.95, 0.5 + c.z)
             }
-            _ => base + Vec3::new(0.5, 0.92, 0.5),
+            _ => base + Vec3::new(0.5, POLE_WIRE_Y, 0.5),
         }
     }
 }
@@ -206,8 +212,8 @@ impl Machine for Pole {
         )
     }
 
-    /// A steel post with a crossarm and two copper insulators; a tier wears its stripe on the post. A cable
-    /// is drawn by `cable.rs`, which knows what it touches.
+    /// A steel post two blocks tall (`POLE_RISE` above its cell's top) with a crossarm and two copper insulators; a
+    /// tier wears its stripe on the post. A cable is drawn by `cable.rs`, which knows what it touches.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
         if self.is_cable() {
             return;
@@ -216,16 +222,27 @@ impl Machine for Pole {
             return long_model(out, rel + LONG_FOOTPRINT.centre(0));
         }
         push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
-        push_box(out, rel + Vec3::new(0.0, -0.04, 0.0), 0.0, [0.13, 0.85, 0.13], 0.0, [tex::FRAME; 3], true);
+        let post = 0.85 + POLE_RISE as f32;
+        push_box(
+            out,
+            rel + Vec3::new(0.0, -0.04 + POLE_RISE / 2.0, 0.0),
+            0.0,
+            [0.13, post, 0.13],
+            0.0,
+            [tex::FRAME; 3],
+            true,
+        );
         if self.tier > 0 {
             let band = [tex::stripe(self.tier); 3];
             push_box(out, rel + Vec3::new(0.0, -0.28, 0.0), 0.0, [0.17, 0.14, 0.17], 0.0, band, false);
         }
-        push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
+        let top = POLE_RISE;
+        push_box(out, rel + Vec3::new(0.0, 0.34 + top, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
         for x in [-0.28, 0.28] {
             let c = [tex::COPPER_WIRE; 3];
-            push_box(out, rel + Vec3::new(x, 0.45, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, [tex::FLASK_GLASS; 3], false);
-            push_box(out, rel + Vec3::new(x, 0.55, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
+            let glass = [tex::FLASK_GLASS; 3];
+            push_box(out, rel + Vec3::new(x, 0.45 + top, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, glass, false);
+            push_box(out, rel + Vec3::new(x, 0.55 + top, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
         }
     }
 }

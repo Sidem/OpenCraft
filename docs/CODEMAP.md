@@ -73,7 +73,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
-- `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers).
+- `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
 
 ### World and generation
@@ -90,6 +90,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `hitbox.rs`, `camera.rs`, `strategy.rs` + `strategy/navigation.rs` (overhead camera, walking orders).
   `item_select.rs` (a clicked belt item stays selected: readout, outline, pick-up in reach).
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`.
+- `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `train_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
   `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
@@ -130,7 +131,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
-    `craft-card.ts`, `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
+    `craft-card.ts`, `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
   - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.

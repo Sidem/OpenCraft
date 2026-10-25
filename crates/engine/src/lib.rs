@@ -72,6 +72,7 @@ mod orbit_fx;
 mod ore_guide;
 mod perks;
 mod physics;
+mod place_refusal;
 mod player;
 mod pods;
 mod power_tools;
@@ -171,6 +172,8 @@ pub struct Game {
     mine_cooldown: f32,
     using: bool,
     use_cooldown: f32,
+    /// Seconds until a refused placement may sound again (`place_refusal.rs`).
+    refuse_cooldown: f32,
     /// A machine the player right-clicked whose panel the host should open (`take_panel_request`).
     panel_request: Option<IVec3>,
     /// Ghost mode (B): the use button plants ghosts instead of building (`ghost_mode.rs`).
@@ -266,6 +269,7 @@ impl Game {
             mine_cooldown: 0.0,
             using: false,
             use_cooldown: 0.0,
+            refuse_cooldown: 0.0,
             panel_request: None,
             ghost_mode: false,
             jet_sent: false,

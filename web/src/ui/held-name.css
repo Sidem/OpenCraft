@@ -1,0 +1,20 @@
+/* The selected item's name, resting on the hotbar's top edge (held-name.ts fades it in on a new selection). */
+.held-name {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+
+.held-name.shown {
+  opacity: 1;
+  transition-duration: 0.08s;
+}

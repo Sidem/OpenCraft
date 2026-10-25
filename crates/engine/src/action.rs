@@ -308,6 +308,8 @@ pub enum Action {
     },
     /// Shift-right-click outside the inventory screen: throws one item of the cursor stack (a tool goes whole).
     ThrowCursor,
+    /// A stack dragged out of the inventory screen and let go outside it: throws the whole cursor stack.
+    ThrowCursorAll,
     /// Sorts the backpack (the hotbar keeps its layout): stacks merged, then ordered by item.
     SortInventory,
     /// Sorts the slots of the box at `pos` the same way.

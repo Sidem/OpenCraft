@@ -110,8 +110,8 @@ pub use facts::facts;
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
 pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
-pub use pole::POLE_TIERS;
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
+pub use pole::{POLE_TIERS, POLE_WIRE_Y};
 pub use ports::PortInfo;
 pub use process::{channel_colour, channel_name, makes, spec as process_spec, Want};
 #[cfg(test)]

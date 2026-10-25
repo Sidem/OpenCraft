@@ -328,6 +328,26 @@ fn right_click_splits_a_stack_and_shift_right_click_places_or_throws_one() {
 }
 
 #[test]
+fn a_stack_dragged_out_of_the_screen_is_thrown_whole_a_tool_too() {
+    let mut sim = Sim::new(7, 2);
+    let stone = ItemId::from(STONE);
+    sim.apply(P, Action::Give { item: stone, count: 40 });
+    sim.apply(P, Action::ClickSlot { slot: 0, shift: false });
+    sim.events.clear();
+    sim.apply(P, Action::ThrowCursorAll);
+    assert!(inv(&sim).cursor.is_empty() && inv(&sim).slots[0].is_empty());
+    assert_eq!(sim.events, vec![SimEvent::Thrown { player: P, item: stone, count: 40 }]);
+    sim.events.clear();
+    sim.apply(P, Action::ThrowCursorAll);
+    assert!(sim.events.is_empty(), "an empty hand throws nothing");
+
+    sim.apply(P, Action::Give { item: crate::item::IRON_PICKAXE, count: 1 });
+    sim.apply(P, Action::ClickSlot { slot: 0, shift: false });
+    sim.apply(P, Action::ThrowCursorAll);
+    assert!(matches!(sim.events[..], [SimEvent::Thrown { item: crate::item::IRON_PICKAXE, .. }]));
+}
+
+#[test]
 fn shift_right_click_moves_every_stack_of_an_item_until_the_target_is_full() {
     let mut sim = Sim::new(7, 2);
     let pos = IVec3::new(0, 200, 0);
@@ -535,6 +555,7 @@ fn samples() -> Vec<Action> {
         Action::TakeApart { recipe: 0, times: 2 },
         Action::Offhand { swap: true },
         Action::ToggleDoor { pos: IVec3::new(4, 70, -2) },
+        Action::ThrowCursorAll,
     ]
 }
 

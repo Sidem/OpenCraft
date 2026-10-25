@@ -40,6 +40,7 @@ impl Game {
         boxes.extend(self.blueprint_boxes());
         boxes.extend(self.site_boxes());
         boxes.extend(self.sickle_box());
+        boxes.extend(self.crowded_box());
         boxes
     }
 
@@ -102,6 +103,7 @@ impl Game {
                 return self.line.aim.label.clone();
             }
             let quarry = self.quarry_label();
+            let quarry = if quarry.is_empty() { self.crowded_label() } else { quarry };
             let footprint = if quarry.is_empty() { self.footprint_label() } else { quarry };
             if !footprint.is_empty() {
                 return footprint;

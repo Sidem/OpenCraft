@@ -38,6 +38,24 @@ impl Factory {
         }
         Boxes::from_instances(&out)
     }
+
+    /// The pole standing in the cell below `cell`, if it is an ordinary one: its post reaches up into `cell`, so
+    /// the crosshair can hit the part of it drawn there (`interaction.rs` then points the target at the pole's cell).
+    pub fn pole_below(&self, cell: IVec3) -> Option<IVec3> {
+        let below = cell - IVec3::new(0, 1, 0);
+        let Some(&Slot::Pole(i)) = self.at.get(&below) else { return None };
+        let pole = &self.poles[i as usize];
+        (!pole.is_cable() && !pole.is_long()).then_some(below)
+    }
+
+    /// The hit boxes of the upper half of the pole below `cell`, seen from `cell`.
+    pub fn tall_pole_boxes(&self, cell: IVec3) -> Option<Boxes> {
+        let below = self.pole_below(cell)?;
+        let Some(&Slot::Pole(i)) = self.at.get(&below) else { return None };
+        let mut out = Vec::new();
+        self.poles[i as usize].model(&mut out, Vec3::new(0.0, -1.0, 0.0), 0.0);
+        Boxes::from_instances(&out)
+    }
 }
 
 #[cfg(test)]

@@ -6,7 +6,8 @@
 // stacks between the box and the inventory. Right-click takes half of a stack (again: half of what is left, added to
 // the held stack); Ctrl-click takes one item onto the cursor and Ctrl-right-click puts one down (so a stack can be
 // built or split a single item at a time); Shift-right-click with a stack held puts one item down too (outside the
-// screen: throws one out), and with an empty hand moves every stack of that item. Opened with a `Beside` (a machine's
+// screen: throws one out), and with an empty hand moves every stack of that item. Pressing a stack and letting go
+// outside the panel (a drag) throws the whole stack. Opened with a `Beside` (a machine's
 // panel, `machine.ts`), that panel takes the build menu's place and Shift-click puts a stack into it.
 // The clicks are taught by the controls bar along the bottom (`slot-controls.ts`): it shows what applies to the
 // hovered slot (`data-slot`, `data-item`) and the held stack, so the screen needs no wall of instructions.
@@ -15,6 +16,7 @@ import './inventory.css';
 import type { Game } from '../wasm/engine.js';
 import { BuildMenu } from './crafting';
 import { CreativeMenu, withCreativeTabs } from './creative';
+import { DragThrow } from './drag-throw';
 import { h } from './dom';
 import { showAmount } from './hud';
 import { PackUpgrade } from './pack-upgrade';
@@ -81,11 +83,14 @@ export class InventoryPanel {
   /** The pointer's last position, to find the slot under it (`showControls`). */
   private pointer: [number, number] = [-1, -1];
   private boxKey = '';
+  /** Dragging a stack out of the panel throws it. */
+  private readonly drag: DragThrow;
 
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
   ) {
+    this.drag = new DragThrow(this.backdrop, game, () => this.isOpen);
     this.dialog.setAttribute('role', 'dialog');
     this.dialog.setAttribute('aria-modal', 'true');
     this.dialog.setAttribute('aria-labelledby', 'inv-title');
@@ -359,6 +364,7 @@ export class InventoryPanel {
     root.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 && e.button !== 2) return;
       e.preventDefault();
+      this.drag.press(e, !this.holding() && !!root.dataset.item);
       this.shift = e.shiftKey;
       if (ctrl && !e.shiftKey && (e.ctrlKey || e.metaKey)) {
         if (e.button === 0) ctrl.takeOne();

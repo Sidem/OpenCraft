@@ -9,7 +9,6 @@ use crate::action::Action;
 use crate::block;
 use crate::factory;
 use crate::math::{IVec3, Vec3};
-use crate::physics::Aabb;
 use crate::player;
 use crate::raycast::RayHit;
 use crate::sound;
@@ -102,17 +101,27 @@ impl Game {
         let (feet, head) = (self.body().pos.floor(), eye.floor());
         let inside = |p: IVec3| p.x == feet.x && p.z == feet.z && p.y >= feet.y && p.y <= head.y;
         let factory = &self.sim.factory;
+        // The air above a power pole holds the upper half of its post: it is aimed at, and stands for the pole.
+        let upper_pole =
+            |p: IVec3| world.get_block(p).is_some_and(block::replaceable) && factory.pole_below(p).is_some();
         let hit = aim::target(
             eye,
             origin,
             dir,
             self.reach(),
-            |p| world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b))),
-            |p| factory.aim_boxes(p),
+            |p| {
+                let solid =
+                    world.get_block(p).filter(|&b| !block::replaceable(b) && !(inside(p) && player::climbable(b)));
+                solid.or_else(|| upper_pole(p).then_some(block::POLE))
+            },
+            |p| factory.aim_boxes(p).or_else(|| factory.tall_pole_boxes(p)),
         );
         // A multi-block machine's part cells stand for the machine (its name, panel, breaking time).
         let machine = |h: &RayHit| (h.id == block::MACHINE_PART).then(|| factory.block_at(h.block)).flatten();
-        self.target = hit.map(|h| RayHit { id: machine(&h).unwrap_or(h.id), ..h });
+        self.target = hit.map(|h| match factory.pole_below(h.block).filter(|_| upper_pole(h.block)) {
+            Some(pole) => RayHit { block: pole, ..h },
+            None => RayHit { id: machine(&h).unwrap_or(h.id), ..h },
+        });
         self.target_fit = self.target.and_then(|h| factory.hit_boxes(h.block)).map(|b| b.bounds());
         // Aiming at a belt's item outlines the item instead of the belt.
         self.target_item = self.target.and_then(|h| factory.belt_item_under(h.block, origin, dir));
@@ -166,6 +175,7 @@ impl Game {
     }
 
     pub(crate) fn update_placing(&mut self, dt: f32) {
+        self.refuse_cooldown = (self.refuse_cooldown - dt).max(0.0);
         if self.ghost_mode {
             // With Auto-Routing a held belt drags lines of ghosts (belt_line.rs); anything else plants one ghost.
             let belt = self.inventory().selected_stack().item.places().is_some_and(crate::belt_line::is_belt);
@@ -222,6 +232,8 @@ impl Game {
         if let Some(action) = self.right_click_action() {
             self.act(action);
             self.use_cooldown = PLACE_REPEAT_SECONDS;
+        } else {
+            self.refuse_placing();
         }
     }
 
@@ -250,8 +262,7 @@ impl Game {
             return None;
         }
         // The body is the authority's to check: don't place a solid block where the player stands.
-        let cell = Aabb { min: pos.as_vec3(), max: pos.as_vec3() + Vec3::new(1.0, 1.0, 1.0) };
-        if block::SOLID[placed as usize] && cell.intersects(&body.aabb()) {
+        if self.body_blocks(placed, pos) {
             return None;
         }
         let facing = if placed == block::QUARRY { self.placing_facing() } else { factory::dir_from_yaw(body.yaw) };

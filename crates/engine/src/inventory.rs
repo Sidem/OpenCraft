@@ -270,6 +270,16 @@ impl Inventory {
         Some(thrown)
     }
 
+    /// Takes the whole cursor stack out to be thrown (a stack dragged out of the inventory screen).
+    pub fn take_cursor_all(&mut self) -> Option<Stack> {
+        let thrown = std::mem::take(&mut self.cursor);
+        if thrown.is_empty() {
+            return None;
+        }
+        self.version += 1;
+        Some(thrown)
+    }
+
     /// Removes `n` items from the cursor stack (what a machine took from it).
     pub fn take_from_cursor(&mut self, n: u32) {
         let c = &mut self.cursor;

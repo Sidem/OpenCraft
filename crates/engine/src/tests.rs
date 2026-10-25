@@ -125,6 +125,35 @@ fn a_pole_does_not_hide_the_block_behind_it_unless_aimed_at() {
 }
 
 #[test]
+fn the_upper_half_of_a_pole_is_aimed_at_and_stands_for_the_pole() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let y = g.sim.world.generator().height_at(0, 0);
+    let at = |x, h, z| IVec3::new(x, h, z);
+    for x in 0..=8 {
+        for h in y - 2..=y + 6 {
+            g.sim.world.set_block_anywhere(at(x, h, 0), if h <= y { STONE } else { AIR });
+        }
+    }
+    let (pole, wall) = (at(5, y + 1, 0), at(7, y + 2, 0));
+    g.sim.world.set_block_anywhere(wall, STONE);
+    g.sim.world.set_block_anywhere(pole, block::POLE);
+    g.sim.factory.place(&mut g.sim.world, block::POLE, pole, 0, pole, 0);
+    // Eye level in the cell above the pole's: the crossarm height.
+    let body = g.body_mut();
+    body.pos = Vec3::new(3.5, y as f64 + 1.0, 0.5);
+    body.yaw = std::f64::consts::FRAC_PI_2;
+    body.pitch = 0.0;
+    g.update_target();
+    let hit = g.target.expect("the upper post is aimed at");
+    assert_eq!((hit.block, hit.id), (pole, block::POLE), "it stands for the pole in the cell below");
+    assert!(g.target_fit().len() == 6);
+    g.body_mut().pos.z = 0.95;
+    g.update_target();
+    assert_eq!(g.target.map(|h| h.block), Some(wall), "aimed past it, the wall behind");
+}
+
+#[test]
 fn target_detail_leaves_the_core_unchanged() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);

@@ -54,6 +54,11 @@ impl Sim {
                     self.events.push(SimEvent::Thrown { player, item, count });
                 }
             }
+            Action::ThrowCursorAll => {
+                if let Some(Stack { item, count }) = inv.take_cursor_all() {
+                    self.events.push(SimEvent::Thrown { player, item, count });
+                }
+            }
             Action::StoreSlot { pos, slot } => {
                 let Some(b) = self.factory.box_slots_mut(pos) else { return };
                 let Some((item, n)) = inv.take_slot(slot as usize, u32::MAX) else { return };

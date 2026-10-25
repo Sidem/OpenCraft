@@ -8,6 +8,7 @@
 import './hud.css';
 import './hud-columns.css';
 import type { Game } from '../wasm/engine.js';
+import { HeldName } from './held-name';
 import { OffhandSlot } from './offhand';
 
 const ICON_PX = 64;
@@ -72,6 +73,7 @@ export class Hud {
   private readonly names: string[] = [];
   private readonly toasts = new Map<number, Toast>();
   private invVersion = -1;
+  private readonly heldName: HeldName;
   private debugVisible = false;
   private lastDebug = 0;
   private lastDetail = 0;
@@ -118,6 +120,8 @@ export class Hud {
     }
     this.offhand = new OffhandSlot(game, (item) => this.itemIcon(item));
     bar.append(this.offhand.root);
+    this.heldName = new HeldName(game);
+    bar.append(this.heldName.el);
   }
 
   toggleDebug(): void {
@@ -151,6 +155,7 @@ export class Hud {
       });
       this.offhand.update();
     }
+    this.heldName.update(now);
 
     const line = g.line_label();
     if (line !== '') {

@@ -11,6 +11,8 @@ use crate::math::Vec3;
 
 /// Slack around every box, so a thin post is not a hairline to hit.
 const PAD: f64 = 0.04;
+/// How far up the cell's origin `bounds` reach: a power pole stands two blocks tall (`factory::pole::POLE_RISE`).
+const TALLEST: f64 = 2.2;
 
 /// One oriented box: centre, half sizes and the rotation (as the box shader applies it) to world axes.
 struct Obb {
@@ -54,7 +56,7 @@ impl Boxes {
             }
         }
         let lo = lo.map(|v| v.max(0.0));
-        let hi = hi.map(|v| v.min(1.0));
+        let hi = hi.map(|v| v.min(TALLEST));
         [lo[0], lo[1], lo[2], hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]].map(|v| v as f32)
     }
 }

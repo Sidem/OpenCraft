@@ -181,6 +181,7 @@ impl Sim {
             | Action::TakeOneSlot { .. }
             | Action::TakeOneBox { .. }
             | Action::ThrowCursor
+            | Action::ThrowCursorAll
             | Action::SortInventory
             | Action::SortBox { .. } => self.apply_click(player, action),
             Action::CloseInventory => {

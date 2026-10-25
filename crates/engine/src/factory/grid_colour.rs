@@ -75,8 +75,9 @@ impl Factory {
                 continue;
             }
             let layer = [self.power.pole_layer(i as u32); 3];
-            push_box(out, rel + Vec3::new(0.0, 0.16, 0.0), 0.0, [0.19, 0.12, 0.19], 0.0, layer, false);
-            push_box(out, rel + Vec3::new(0.0, 0.34, 0.0), 0.0, [0.40, 0.10, 0.14], 0.0, layer, false);
+            let rise = super::pole::POLE_RISE;
+            push_box(out, rel + Vec3::new(0.0, 0.16 + rise, 0.0), 0.0, [0.19, 0.12, 0.19], 0.0, layer, false);
+            push_box(out, rel + Vec3::new(0.0, 0.34 + rise, 0.0), 0.0, [0.40, 0.10, 0.14], 0.0, layer, false);
         }
     }
 }
