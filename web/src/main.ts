@@ -47,6 +47,7 @@ import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
 import { Vignette } from './ui/vignette';
 import { WorldMap } from './ui/worldmap';
+import { LeavePrompt } from './ui/leave-prompt';
 import { WorldsPanel } from './ui/worlds';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel at 100% (the comfort setting scales it)
@@ -93,6 +94,7 @@ async function main(): Promise<void> {
   }
   const { game, meta } = opened;
   const session = store && !game.is_client() ? new Session(store, meta, game) : null;
+  if (store && session) document.getElementById('data-settings')!.append(new LeavePrompt(game, store, session).row);
   if (store) worlds.append(new WorldsPanel(store, session, opened.notice).el);
   else worlds.textContent = preview ? 'Controls preview · this world is not saved' : opened.notice;
 

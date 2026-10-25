@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · Ask before closing the tab
+- **Settings > Saving has a new option, off by default: ask me to export my worlds before the tab closes.** For browsers that delete site data when you quit. Closing the tab then shows your browser's "leave site?" prompt; choose to stay and the game offers to export this world or all worlds as `.ocworld` files. Such a browser also forgets the option, so turn it on again each visit.
+
 ## 2026-10-25 · Steadier panels, shorter craft list
 - **The storage box screen keeps its size** while you move the mouse over slots: the controls tips along the bottom wrap instead of widening the panel.
 - **A long hand-craft queue shows its first three orders** and a "+6 more queued" count instead of covering the screen; the rest run in turn.

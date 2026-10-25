@@ -125,7 +125,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts` (start co-op from URL or menu), `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`,
   `webrtc.ts`, `broadcast.ts`, `signal.ts`, `ticker.ts` (keeps a hidden host ticking).
-- `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds). `comfort/settings.ts`: comfort options.
+- `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds), `export.ts` (`.ocworld` downloads), `leave-guard.ts` (the ask-before-closing setting and rule; `ui/leave-prompt.ts` draws it). `comfort/settings.ts`: comfort options.
 - `console/`: `commands.ts` (pure admin commands), `host.ts` (wires them to the engine).
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements. Screens and panels:
   - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,

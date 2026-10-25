@@ -1,0 +1,55 @@
+/* The "ask before closing" setting row and the export dialog (leave-prompt.ts). */
+
+.leave-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.leave-check input {
+  accent-color: var(--accent);
+}
+
+.leave-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(8, 10, 14, 0.7);
+  backdrop-filter: blur(3px);
+}
+
+.leave-card {
+  width: min(460px, 100%);
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: rgba(20, 22, 29, 0.98);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+}
+
+.leave-card h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.leave-card p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.leave-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.leave-card .leave-status {
+  margin: 12px 0 0;
+  min-height: 1.2em;
+  color: var(--text);
+}

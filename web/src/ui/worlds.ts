@@ -4,6 +4,7 @@
 
 import './worlds.css';
 import { Game } from '../wasm/engine.js';
+import { exportWorld } from '../save/export';
 import { message, type Session, switchTo } from '../save/session';
 import { newWorld, pack, unpack, type WorldMeta, type WorldStore } from '../save/store';
 import { button, h } from './dom';
@@ -88,7 +89,7 @@ export class WorldsPanel {
     li.append(text);
     if (current) li.append(h('span', 'world-playing', 'Playing'));
     else li.append(button('secondary-btn', 'Play', () => this.run(() => this.open(w))));
-    li.append(button('secondary-btn', 'Export', () => this.run(() => this.export(w))));
+    li.append(button('secondary-btn', 'Export', () => this.run(() => exportWorld(this.store, this.session, w))));
     if (!current) li.append(button('secondary-btn danger', 'Delete', () => this.run(() => this.delete(w))));
     return li;
   }
@@ -101,20 +102,6 @@ export class WorldsPanel {
   private open(meta: WorldMeta): Promise<void> {
     this.say('Saving...');
     return switchTo(this.store, this.session, meta);
-  }
-
-  /** Downloads a world's newest save as a gzipped `.ocworld` file (saving the open world first). */
-  private async export(w: WorldMeta): Promise<void> {
-    if (w.id === this.session?.meta.id) await this.session.save();
-    const meta = await this.store.get(w.id);
-    const bytes = meta?.slot != null ? await this.store.read(meta.id, meta.slot) : null;
-    if (!bytes) throw new Error(`"${w.name}" hasn't been saved yet, so there's nothing to export.`);
-    const url = URL.createObjectURL(new Blob([(await pack(bytes)) as Uint8Array<ArrayBuffer>]));
-    const a = h('a');
-    a.href = url;
-    a.download = `${w.name.replace(/[\\/:*?"<>|]/g, '_')}.ocworld`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
   }
 
   /** Adds a world from a file. The engine reads it once, which checks it and gives its seed and time. */

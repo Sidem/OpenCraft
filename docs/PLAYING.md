@@ -127,6 +127,11 @@ Worlds are stored in this browser only. Clearing the site's data deletes them, s
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the
 latest save can't be read.
 
+If your browser deletes site data when you close it, turn on **Settings > Saving > Ask me to export my worlds
+before the tab closes**. Closing the tab then shows the browser's own "leave site?" prompt (a page cannot add
+buttons to it); stay, and the game offers to export this world or all of them. It is off by default, and a
+browser that wipes site data also wipes this setting, so turn it on again each visit.
+
 ## Playing together
 
 Up to four players can build in one world. **Play together** in the pause menu:

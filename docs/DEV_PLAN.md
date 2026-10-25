@@ -257,6 +257,9 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-25: optional "ask before closing"** (user request). Off by default: `ui/leave-prompt.ts` and `save/leave-guard.ts`
+  hold `beforeunload` once played on since the last export; staying shows an export dialog (`save/export.ts`). No save change.
+
 - **2026-10-25: playtester feedback** (five items). Hotbar: the selected item's name above the bar (`ui/held-name.ts`, fades after
   `HELD_NAME_MS`). Poles: two blocks tall by `POLE_RISE` (`factory/pole.rs`; visual only, nothing saved: the air cell above holds
   the upper half, aimed at through `Factory::pole_below`/`tall_pole_boxes`, remapped to the pole in `update_target_ray`; blocks may
