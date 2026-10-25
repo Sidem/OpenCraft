@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -256,6 +256,21 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-25: a torch in the hand lights the way; a left hand** (user request: a selected torch glows and is held; one tool in
+  each hand, so up to two at once; chosen: avatar only, no first-person arm, an off-hand slot with a swap key). Core:
+  `Inventory::offhand` (a stack after the worn gear, `offhand.rs`), `Action::Offhand { swap }` (codec tag 65; swap trades the
+  selected hotbar stack, otherwise the cursor clicks it), and `Inventory::tool_hand`: a block is broken, worn and its ore
+  counted with the right hand's tool, else the left's (`wear_tool`, `interaction.rs`). Save version 60; **the golden hash was
+  re-recorded on purpose** (every player now writes 6 more bytes; the two tests that cut an old save from the end use
+  `offhand::before_offhand`). Presentation: `held_light.rs` (an item that places a shining block lights a `REACH` of 9 blocks)
+  fills `Avatars::lights` for every player each frame (the local one just below the eye, or at the avatar's chest in third
+  person); `render/held-light.ts` uploads up to four to `u_held`, and the fragment shader of terrain, boxes and water takes the
+  brighter of the baked light and `heldGlow` (per fragment: a merged quad can span the circle). Both hands show their item on the
+  avatar. UI: J (`swap-hands`), the dashed slot by the hotbar (`ui/offhand.ts`) and the slot in the inventory screen. No shadows:
+  the light shines through walls. Checked: 7 tests in `offhand/tests.rs` (swap, cursor click, tool choice, a left-hand axe wears
+  and reports wearing out, a left-hand pickaxe breaks stone twice as fast as bare hands in a `Game`, bytes and the version-59
+  layout, the action's bytes), 3 in `held_light/tests.rs`.
 
 - **2026-10-25: free flight is creative-only** (hotfix, user: a playtester's save flew at fly-sprint speed with no hover pack). F set a `flying` body flag that any world accepted and a save kept. `Sim::may_fly` (`mode.rs`) now gates `toggle_fly` and `step_bodies` clears the flag on every body every tick, so such saves lose it on load. Hover was already core-gated (pack worn, charge left). Tests: `mode/tests.rs`; tests that fly for a vantage use `tests::fly`.
 

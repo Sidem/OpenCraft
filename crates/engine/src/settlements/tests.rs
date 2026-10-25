@@ -133,8 +133,9 @@ fn a_save_from_before_towns_loads_with_none_and_a_bad_kind_is_refused() {
     // One edited chunk makes the world's bytes easy to find in the stream.
     let edit = IVec3::new(900, 200, 900);
     assert!(sim.world.set_block_anywhere(edit, STONE));
-    let mut w = ByteWriter::default();
-    sim.write_state(&mut w);
+    let mut full = ByteWriter::default();
+    sim.write_state(&mut full);
+    let w = ByteWriter { bytes: crate::offhand::before_offhand(&sim, &full.bytes) };
     let mut empty = ByteWriter::default();
     Settlements::default().write_state(&mut empty);
     let mut world = ByteWriter::default();

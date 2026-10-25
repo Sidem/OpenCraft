@@ -53,6 +53,8 @@ pub struct Inventory {
     pub slots: [Stack; MAX_SLOTS],
     /// Worn gear, one item per equipment slot (`equipment.rs`); `ItemId::NONE` for nothing.
     pub worn: [ItemId; SLOTS],
+    /// The stack in the left hand (`offhand.rs`); empty for nothing.
+    pub offhand: Stack,
     pub selected: usize,
     /// Held by the mouse in the inventory screen.
     pub cursor: Stack,
@@ -69,11 +71,19 @@ impl Default for Inventory {
 impl Inventory {
     pub const EMPTY: Inventory = {
         let none = Stack { item: ItemId::NONE, count: 0 };
-        Inventory { slots: [none; MAX_SLOTS], worn: [ItemId::NONE; SLOTS], selected: 0, cursor: none, version: 0 }
+        Inventory {
+            slots: [none; MAX_SLOTS],
+            worn: [ItemId::NONE; SLOTS],
+            offhand: none,
+            selected: 0,
+            cursor: none,
+            version: 0,
+        }
     };
 
     /// Core state: slots, cursor and selection (not `version`, which only serves the UI), then the pack rows and
-    /// the worn gear (version 29 on; 18 rows before version 42, `MAX_SLOTS - INVENTORY_SLOTS` since).
+    /// the worn gear (version 29 on; 18 rows before version 42, `MAX_SLOTS - INVENTORY_SLOTS` since) and the
+    /// off-hand stack (version 60 on).
     pub fn write_state(&self, w: &mut ByteWriter) {
         for s in &self.slots[..INVENTORY_SLOTS] {
             s.write_state(w);
@@ -86,6 +96,7 @@ impl Inventory {
         for &item in &self.worn {
             w.item(item);
         }
+        self.offhand.write_state(w);
     }
 
     pub fn read_state(r: &mut ByteReader) -> Option<Inventory> {
@@ -115,6 +126,9 @@ impl Inventory {
         }
         if r.version < 43 {
             inv.wear_old_jetpack();
+        }
+        if r.version >= 60 {
+            inv.offhand = Stack::read_state(r)?;
         }
         (inv.selected < HOTBAR_SLOTS && !inv.stranded()).then_some(inv)
     }

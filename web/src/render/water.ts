@@ -5,6 +5,7 @@
 // `WATER` variant in shaders.ts.
 
 import { createProgram, uniforms } from './gl';
+import { uploadHeldLights } from './held-light';
 import * as S from './shaders';
 import type { Sky } from './sky';
 
@@ -39,7 +40,7 @@ export class WaterPass {
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.prog = createProgram(gl, S.chunkVert, S.litFrag, ['WATER']);
     this.u = uniforms(gl, this.prog, [
-      'u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_time', 'u_sunDir', 'u_direct',
+      'u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_time', 'u_sunDir', 'u_direct', 'u_held',
       'u_waterLayer',
     ] as const);
   }
@@ -59,6 +60,7 @@ export class WaterPass {
     gl.uniform3f(u.u_sunDir, ...sky.lightDir);
     gl.uniform3f(u.u_direct, ...sky.direct);
     gl.uniform2f(u.u_fog, ...fog.range);
+    uploadHeldLights(gl, u.u_held);
     gl.uniform1f(u.u_time, (performance.now() / 1000) % 1000);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

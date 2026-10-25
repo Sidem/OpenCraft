@@ -70,6 +70,25 @@ impl Game {
         self.act(Action::ClickGear { slot: slot.min(u8::MAX as u32) as u8, shift });
     }
 
+    /// The left hand's stack (`offhand.rs`): its item (0 for nothing) and count.
+    pub fn offhand_item(&self) -> u16 {
+        self.inventory().offhand.item.0
+    }
+
+    pub fn offhand_count(&self) -> u32 {
+        self.inventory().offhand.count
+    }
+
+    /// Swaps the selected hotbar stack with the left hand's (next tick).
+    pub fn swap_offhand(&mut self) {
+        self.act(Action::Offhand { swap: true });
+    }
+
+    /// Inventory-screen click on the left hand (next tick): like a slot, with the cursor stack.
+    pub fn click_offhand(&mut self) {
+        self.act(Action::Offhand { swap: false });
+    }
+
     pub fn slot_item(&self, slot: u32) -> u16 {
         self.inventory().slots.get(slot as usize).map_or(0, |s| s.item.0)
     }

@@ -6,6 +6,7 @@
 // top/side/bottom, uv mode + 2 × light, pitch, roll, taper, reserved. Four vec4s (see `S.boxVert`).
 
 import { createProgram, uniforms } from './gl';
+import { uploadHeldLights } from './held-light';
 import * as S from './shaders';
 import type { Sky } from './sky';
 
@@ -18,7 +19,7 @@ export class BoxPipeline {
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number) {
     this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT', 'BOXES']);
-    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct'] as const);
+    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held'] as const);
 
     // One unit cube, per-instance centre/size/rotation/textures.
     this.vao = gl.createVertexArray()!;
@@ -60,6 +61,7 @@ export class BoxPipeline {
     gl.uniform3f(this.u.u_sunDir, ...sky.lightDir);
     gl.uniform3f(this.u.u_direct, ...sky.direct);
     gl.uniform2f(this.u.u_fog, ...fog.range);
+    uploadHeldLights(gl, this.u.u_held);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.instances);
     const bytes = count * this.instanceFloats * 4;
     if (bytes > this.capacity) {

@@ -8,6 +8,7 @@
 import './hud.css';
 import './hud-columns.css';
 import type { Game } from '../wasm/engine.js';
+import { OffhandSlot } from './offhand';
 
 const ICON_PX = 64;
 const TOAST_MS = 2600;
@@ -64,6 +65,7 @@ export function showAmount(game: Game, root: HTMLElement, count: HTMLElement, it
 /** DOM overlay: hotbar, target readout, mining progress, pickup toasts and the F3 debug panel. */
 export class Hud {
   private readonly slots: Slot[] = [];
+  private readonly offhand: OffhandSlot;
   private readonly icons = new Map<number, HTMLCanvasElement>();
   private readonly layers: HTMLCanvasElement[] = [];
   /** Block names, for the target readout. */
@@ -114,6 +116,8 @@ export class Hud {
       bar.append(root);
       this.slots.push({ root, icon, count, item: -1, n: -1 });
     }
+    this.offhand = new OffhandSlot(game, (item) => this.itemIcon(item));
+    bar.append(this.offhand.root);
   }
 
   toggleDebug(): void {
@@ -145,6 +149,7 @@ export class Hud {
           s.n = n;
         }
       });
+      this.offhand.update();
     }
 
     const line = g.line_label();

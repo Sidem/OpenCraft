@@ -1,0 +1,5 @@
+/* The left-hand slot (offhand.ts) at the end of the hotbar row: set apart from the numbered slots. */
+.slot.offhand {
+  margin-left: 8px;
+  border-style: dashed;
+}

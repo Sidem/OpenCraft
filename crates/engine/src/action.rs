@@ -244,6 +244,10 @@ pub enum Action {
     },
     /// Raises the worn hauler pack one tier with kits from the inventory (`equipment.rs`).
     UpgradePack,
+    /// The left hand (`offhand.rs`): `swap` trades the selected hotbar stack with it; otherwise the cursor clicks it.
+    Offhand {
+        swap: bool,
+    },
     /// Inventory-screen click; `shift` moves the stack between hotbar and backpack (gear goes on instead).
     ClickSlot {
         slot: u8,

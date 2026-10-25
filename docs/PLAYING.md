@@ -37,6 +37,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | Sickle              | Hold it, **right-click** natural ground (grass, dirt, sand, basalt, granite) to cut the small plants of a 3×3 patch; hold to sweep. They drop nothing and never grow back (a new floor on that ground stays bare too); trees are not touched. Two iron ingots and two sticks |
 | N                   | Show or hide the minimap until you next start a game or reload (top right, north up; diamonds mark ore you've seen, rings veins and lodes you've prospected, squares your machines, pins your pins) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
+| J                   | Swap the selected slot with your **left hand** (the dashed slot beside the hotbar; it is also in the inventory screen, where you click it with the cursor). A torch or lamp in either hand lights the ground, machines and players around you, brighter than the dark but never darker than daylight; it shines through walls. A tool in the left hand breaks the blocks it is made for when the one in your right hand is not (wearing as usual); everything else (placing, tools that aim) works from the selected slot only |
 | Q                   | Drop one item                             |
 | F                   | Toggle fly mode, in creative worlds only (Space / C: up / down); a normal world has the jetpack and hover pack |
 | Hold Tab            | Who is playing with you (in a shared game) |

@@ -26,8 +26,10 @@ fn bits_are_distinct_and_a_bad_number_does_nothing() {
 #[test]
 fn a_save_from_before_the_lessons_counts_every_stall_lesson_as_taught() {
     let mut w = ByteWriter::default();
-    Sim::new(7, 2).write_state(&mut w);
-    let mut old = ByteReader::new(&w.bytes[..w.bytes.len() - 4]);
+    let sim = Sim::new(7, 2);
+    sim.write_state(&mut w);
+    let before = crate::offhand::before_offhand(&sim, &w.bytes);
+    let mut old = ByteReader::new(&before[..before.len() - 4]);
     old.version = 57;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 57 loads");

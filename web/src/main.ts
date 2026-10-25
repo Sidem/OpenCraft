@@ -214,6 +214,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'slot') game.select_slot(a.slot);
       else if (a.kind === 'fly') game.toggle_fly();
       else if (a.kind === 'drop') game.drop_selected();
+      else if (a.kind === 'swap-hands') game.swap_offhand();
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'ghost') game.toggle_ghost_mode();
       else if (a.kind === 'fetch') game.fetch_held();
@@ -333,6 +334,7 @@ async function main(): Promise<void> {
       cracks: game.quarry_cracks(),
       underwater: game.eye_in_water(),
       satellites: game.sky_satellites(),
+      held: new Float32Array(wasm.memory.buffer, game.held_light_ptr(), game.held_light_count() * 4),
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
     views.sync();

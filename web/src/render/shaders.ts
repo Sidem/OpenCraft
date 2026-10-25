@@ -11,6 +11,8 @@
 export const TERRAIN_TINT_PERIOD = 256;
 /** The texture unit of the self-light array (`u_glow`); 1 and 2 belong to the rain mask and the clouds. */
 export const GLOW_UNIT = 4;
+/** Held lights the shader can show at once: one a player (the engine caps them at its `MAX_PLAYERS`). */
+export const HELD_LIGHT_SLOTS = 4;
 
 const FOG = /* glsl */ `
 uniform vec3 u_fogColor;
@@ -21,6 +23,28 @@ vec3 applyFog(vec3 col, vec3 rel) {
 }
 `;
 
+const LAMP_COLOUR = /* glsl */ `
+const vec3 BLOCK_LIGHT = vec3(1.1, 0.88, 0.6);
+const float CAVE_FLOOR = 0.05;
+`;
+
+// The lights players hold (engine held_light.rs; render/held-light.ts fills the uniform): a torch in a hand lights what
+// is near it, in the lamps' colour, as bright as the baked light there or brighter. Added per fragment, not per vertex,
+// because one merged quad can span the whole lit circle.
+const HELD_LIGHT = /* glsl */ `
+${LAMP_COLOUR}
+const int HELD_LIGHTS = ${HELD_LIGHT_SLOTS};
+uniform vec4 u_held[HELD_LIGHTS]; // camera-relative x, y, z and the reach in blocks (0: no light)
+vec3 heldGlow(vec3 rel) {
+  float g = 0.0;
+  for (int i = 0; i < HELD_LIGHTS; i++) {
+    float f = clamp((1.0 - length(rel - u_held[i].xyz) / max(u_held[i].w, 0.001)) * 1.6, 0.0, 1.0);
+    g = max(g, f * f * step(0.001, u_held[i].w));
+  }
+  return g * BLOCK_LIGHT + CAVE_FLOOR;
+}
+`;
+
 // The colour of a cell's light (sky light | block light << 4, each 0..15, from light.rs), shared by the
 // terrain and the instanced boxes so machines and items are lit like the ground beside them. Each sky
 // light level below 15 dims by a fifth; block light (lamps) is warm and fades a little more gently;
@@ -28,8 +52,7 @@ vec3 applyFog(vec3 col, vec3 rel) {
 // the sun (the moon at night) on top, in its own colour, to faces turned towards it and only where the
 // sky reaches, so a low sun still lights the slopes facing it gold while the rest falls into shade.
 const LIGHT = /* glsl */ `
-const vec3 BLOCK_LIGHT = vec3(1.1, 0.88, 0.6);
-const float CAVE_FLOOR = 0.05;
+${LAMP_COLOUR}
 const float AMBIENT = 0.8;
 const float DIRECT = 0.34;
 uniform vec3 u_sunDir; // towards the sun by day, the moon by night (render/sky.ts)
@@ -139,6 +162,7 @@ precision highp sampler2DArray;
 uniform sampler2DArray u_tex;
 uniform sampler2DArray u_glow; // self-light 0..1 a texel (art pack): lit as if by itself, whatever the daylight
 ${FOG}
+${HELD_LIGHT}
 in vec3 v_uvl;
 in float v_light;
 in vec3 v_sun;
@@ -214,6 +238,7 @@ float waterNoise(vec2 p) {
 #endif
 
 void main() {
+  vec3 tint = max(v_tint, heldGlow(v_rel));
 #ifdef WATER
   float t = u_time;
   vec2 uv = v_uvl.xy;
@@ -259,8 +284,8 @@ void main() {
   vec3 n = normalize(vec3((a.r - b.r) * ripple, 1.0, (a.g - b.g) * ripple));
   float glint = pow(max(dot(reflect(normalize(v_rel), n), u_sunDir), 0.0), 160.0)
               * step(0.95, v_light) * clamp(v_tint.g * 1.5 - 0.2, 0.0, 1.0) * (top && kind < 2u ? shine : 0.0);
-  vec3 col = c.rgb * v_light * v_tint + u_direct * glint * 1.6;
-  col = mix(col, FOAM * (0.35 + 0.65 * v_light) * v_tint, foam);
+  vec3 col = c.rgb * v_light * tint + u_direct * glint * 1.6;
+  col = mix(col, FOAM * (0.35 + 0.65 * v_light) * tint, foam);
   // Thin water is clearer, so the ground shows through the tail of a flow; falling water is the most solid.
   float alpha = c.a * mix(0.45, 1.0, smoothstep(0.0, 0.5, v_depth));
   alpha = max(kind == 3u ? max(alpha, 0.7) : alpha, foam * 0.9);
@@ -291,7 +316,7 @@ void main() {
   vec3 hazed = v_rel;
 #endif
   float glow = textureGrad(u_glow, uvl, dx, dy).r;
-  vec3 shown = mix(c.rgb * (v_light * v_tint + v_sun), c.rgb * 1.1, glow);
+  vec3 shown = mix(c.rgb * (v_light * tint + v_sun), c.rgb * 1.1, glow);
 #ifdef BOXES
   shown = mix(shown, v_beacon.rgb, v_beacon.a);
 #endif

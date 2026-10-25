@@ -10,7 +10,7 @@ fn pickaxe_point_leads_the_downstroke_in_the_arm_swing_plane_for_every_tier() {
     for held in [STONE_PICKAXE, IRON_PICKAXE, STEEL_PICKAXE] {
         for yaw in [0.0, 0.8] {
             let mut boxes = Vec::new();
-            model::push_avatar(&mut boxes, Vec3::new(0.0, 0.0, -4.0), yaw, 0.0, &pose, held);
+            model::push_avatar(&mut boxes, Vec3::new(0.0, 0.0, -4.0), yaw, 0.0, &pose, [held, ItemId::NONE]);
             let tool = &boxes[boxes.len() - 6 * INSTANCE_FLOATS..];
             let socket = &tool[INSTANCE_FLOATS..];
             let point = &tool[5 * INSTANCE_FLOATS..];
@@ -32,7 +32,7 @@ fn head_looks_up_and_down_with_the_view_and_at_the_offset_crosshair_surface() {
     };
     for pitch in [-0.7, 0.7] {
         let mut boxes = Vec::new();
-        model::push_avatar(&mut boxes, at, 0.4, pitch, &Motion::default(), ItemId::NONE);
+        model::push_avatar(&mut boxes, at, 0.4, pitch, &Motion::default(), [ItemId::NONE; 2]);
         let part = visor(&boxes);
         assert!((part[12] as f64 - pitch).abs() < 0.001);
         assert_eq!(part[12].is_sign_positive(), pitch.is_sign_positive());
@@ -40,7 +40,7 @@ fn head_looks_up_and_down_with_the_view_and_at_the_offset_crosshair_surface() {
     let focus = Vec3::new(2.0, 4.0, -9.0);
     let pose = Motion { focus: Some(focus), ..Default::default() };
     let mut boxes = Vec::new();
-    model::push_avatar(&mut boxes, at, 0.0, 0.0, &pose, ItemId::NONE);
+    model::push_avatar(&mut boxes, at, 0.0, 0.0, &pose, [ItemId::NONE; 2]);
     let part = visor(&boxes);
     let (s, c) = (part[3] as f64).sin_cos();
     let (sp, cp) = (part[12] as f64).sin_cos();
@@ -76,9 +76,9 @@ fn crouch_folds_the_rig_and_keeps_the_boots_on_the_ground() {
     let mut standing = Vec::new();
     let mut crouched = Vec::new();
     let at = Vec3::new(0.0, 0.0, -4.0);
-    model::push_avatar(&mut standing, at, 0.0, 0.0, &Motion::default(), ItemId::NONE);
+    model::push_avatar(&mut standing, at, 0.0, 0.0, &Motion::default(), [ItemId::NONE; 2]);
     let pose = Motion { crouch: 1.0, ..Default::default() };
-    model::push_avatar(&mut crouched, at, 0.0, 0.0, &pose, ItemId::NONE);
+    model::push_avatar(&mut crouched, at, 0.0, 0.0, &pose, [ItemId::NONE; 2]);
     let top = |v: &[f32]| v.chunks_exact(INSTANCE_FLOATS).map(|p| p[1] + p[5] * 0.5).fold(0.0, f32::max);
     assert!(top(&standing) - top(&crouched) > 0.25);
     for v in [&standing, &crouched] {
@@ -101,12 +101,12 @@ fn work_gestures_articulate_the_arm_and_the_equipped_tool_follows_it() {
         pose.advance(&body, 1.0 / 60.0);
     }
     let mut first = Vec::new();
-    model::push_avatar(&mut first, at, 0.0, 0.0, &pose, IRON_PICKAXE);
+    model::push_avatar(&mut first, at, 0.0, 0.0, &pose, [IRON_PICKAXE, ItemId::NONE]);
     for _ in 0..10 {
         pose.advance(&body, 1.0 / 60.0);
     }
     let mut second = Vec::new();
-    model::push_avatar(&mut second, at, 0.0, 0.0, &pose, IRON_PICKAXE);
+    model::push_avatar(&mut second, at, 0.0, 0.0, &pose, [IRON_PICKAXE, ItemId::NONE]);
     assert_ne!(first, second);
     assert_ne!(&first[first.len() - INSTANCE_FLOATS..], &second[second.len() - INSTANCE_FLOATS..]);
     body.gesture = 2;

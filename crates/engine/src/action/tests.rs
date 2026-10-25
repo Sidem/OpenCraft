@@ -533,6 +533,7 @@ fn samples() -> Vec<Action> {
         Action::TakeBeltItem { pos, item: IRON_PLATE, at: 200 },
         Action::LessonTaught { bit: 3 },
         Action::TakeApart { recipe: 0, times: 2 },
+        Action::Offhand { swap: true },
     ]
 }
 

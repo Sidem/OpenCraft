@@ -1,4 +1,4 @@
-//! The inventory-screen and box-screen clicks (`Action::ClickSlot`, `ClickBox`, `ClickGear`, the shift-clicks, the ctrl-clicks that take one, the
+//! The inventory-screen and box-screen clicks (`Action::ClickSlot`, `ClickBox`, `ClickGear`, `Offhand`, the shift-clicks, the ctrl-clicks that take one, the
 //! right-clicks that split a stack or place one item, and the sorts): what each does to the player's inventory and the box they touch. To add one: its arm below, and a
 //! line naming it in `Sim::apply_to_player`.
 
@@ -15,6 +15,8 @@ impl Sim {
         let inv = &mut core.inventory;
         match action {
             Action::ClickGear { slot, shift } => inv.click_gear(slot as usize, shift),
+            Action::Offhand { swap: true } => inv.swap_offhand(),
+            Action::Offhand { swap: false } => inv.click_offhand(),
             Action::ClickSlot { slot, shift: true } => {
                 if !inv.wear_from(slot as usize) {
                     inv.quick_move(slot as usize);

@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · A torch in your hand, and a second hand
+- **A torch or lamp in your hand lights the way**: the ground, machines and other players around you brighten in the lamps' warm colour, and your avatar holds it (look at yourself in third person with V). It shines through walls, like a candle through a thin sheet.
+- **A left hand.** Press **J** to swap the selected slot with your left hand (the dashed slot beside the hotbar, also in the inventory screen). The torch keeps glowing from there while you work with a tool in your right hand.
+- A tool in your left hand breaks the blocks it is made for when your right hand's tool is not: a pickaxe in one and an axe in the other, and each wears down as it is used.
+
 ## 2026-10-25 · Flying is for creative worlds
 - **The F key flies only in creative worlds.** In a normal world you get off the ground with the jetpack or the hover pack (worn, and the hover pack charged). A world saved in the middle of a flight comes back on foot.
 

@@ -1,6 +1,6 @@
 //! Procedural Kestrel rig: a narrow-waisted survey robot with a wedge helmet and asymmetric pack.
 //! All parts use the shared instance draw call. Legs solve a two-link chain to planted/lifting feet;
-//! arms pivot at shoulder and elbow, and the equipped item's existing model follows the right hand.
+//! arms pivot at shoulder and elbow, and each hand's item model (the selected slot right, `offhand.rs` left) follows it.
 
 use super::motion::Motion;
 use crate::block::tex;
@@ -14,7 +14,8 @@ use std::f64::consts::{FRAC_PI_2, PI};
 const NEAR: f64 = 0.9;
 const LEG_LINK: f64 = 0.35;
 
-pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m: &Motion, held: ItemId) -> bool {
+/// `hands` is what the right and then the left hand hold.
+pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m: &Motion, hands: [ItemId; 2]) -> bool {
     let hip_y = 0.83 - m.crouch * 0.26;
     if (at + Vec3::new(0.0, hip_y + 0.78, 0.0)).length() < NEAR {
         return false;
@@ -120,9 +121,7 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
         rig.part(joint, [0.15, 0.13, 0.16], upper, 0.0, 1.0, tex::AVATAR_JOINT);
         rig.link(joint, wrist, [0.16, 0.0, 0.18], tex::AVATAR_SKIN);
         rig.part(wrist, [0.16, 0.15, 0.16], upper + elbow, 0.0, 0.9, tex::AVATAR_JOINT);
-        if side > 0.0 {
-            rig.held_item(wrist, upper + elbow - FRAC_PI_2, held);
-        }
+        rig.held_item(wrist, upper + elbow - FRAC_PI_2, hands[usize::from(side > 0.0)]);
     }
     true
 }

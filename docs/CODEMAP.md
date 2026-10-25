@@ -29,7 +29,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `bytes.rs`: canonical encoding (`write_state` / `read_state`). `save.rs`: the file (core, bodies, loose items), `SAVE_VERSION`.
 - `join.rs`: compile-time joins of const tables (`TECHS`, `MACHINE_RECIPES`). `math.rs`: vectors, hashes, `Rng`, small sort.
 - `deposits.rs`: deposit pools, tiers, draw caps, taper, `HAND_YIELD`. `daytime.rs`: time of day and sunlight from the tick.
-- `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks. `equipment.rs`: worn gear, packs. `tools.rs`: tool tiers.
+- `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks. `equipment.rs`: worn gear, packs. `offhand.rs`: the left-hand
+  stack (swap, click, the tool that suits a block). `tools.rs`: tool tiers.
 - `crafting.rs`: the hand-craft queue. `take_apart.rs`: taking a hand-crafted item apart (most inputs back, iron as scrap). `perks.rs`: `player_bonus` (techs plus gear). `mode.rs`: normal or creative.
 - `research.rs`: `Tech`, `Unlock`, `Research`. `research/`: tech tables by era (`techs.rs` first, then `electronics.rs`;
   `later.rs` is the open end), `queue.rs`, `bonus.rs` (endless techs).
@@ -96,7 +97,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants).
-- `entities.rs` (loose items), `avatars.rs` + `avatars/`, `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
+- `entities.rs` (loose items), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`, `groups.rs`); never saved.
 - `surroundings/`: nine floats for ambient sound, `roof.rs` (where rain stops).
@@ -116,7 +117,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `patch-notes.md`: "What's new".
 - `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
-  `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `gl.ts`, `mat4.ts`.
+  `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
   `ambience.ts` + `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`,
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
@@ -128,7 +129,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
-    `craft-card.ts`, `take-apart.ts`, `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
+    `craft-card.ts`, `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
   - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.

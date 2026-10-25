@@ -9,7 +9,7 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
   engine actions applied at the next tick, so read results on a later frame (`inventory_version`), not
   right after the call. If TS needs a number the engine owns, expose a getter (see `api/content.rs`) rather than
   copying the constant. Box stride comes from `game.instance_floats()`. Remaining mirrors:
-  the 6 floats per sound event (`main.ts`), `MATERIALS` and `EVENT_ACTIONS` order (`audio/`), `town_states` values (`ui/hud.ts`, `ui/pins.ts`).
+  the 6 floats per sound event (`main.ts`), `MATERIALS` and `EVENT_ACTIONS` order (`audio/`), `town_states` values (`ui/hud.ts`, `ui/pins.ts`), `HELD_LIGHT_SLOTS` (`render/shaders.ts`; the engine's `held_light::MAX_LIGHTS`).
 - **Zero-copy bulk data.** Meshes, instances, sounds and textures are typed-array views on
   `wasm.memory.buffer`. Use a view immediately and never keep it: it becomes invalid when wasm memory
   grows.

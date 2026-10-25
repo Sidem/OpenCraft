@@ -10,7 +10,7 @@ import { h } from './dom';
 /** What the inventory screen knows about the moment. */
 export interface SlotContext {
   /** The hovered slot's kind, or null when the pointer is on no slot. */
-  kind: 'hotbar' | 'pack' | 'gear' | 'box' | 'machine' | null;
+  kind: 'hotbar' | 'pack' | 'gear' | 'hand' | 'box' | 'machine' | null;
   /** The hovered slot's item, 0 when it is empty. */
   item: number;
   /** The item held on the cursor, 0 for none. */
@@ -31,6 +31,10 @@ export function slotControls(c: SlotContext): Control[] {
   if (c.kind === 'machine') {
     if (c.held) return [{ keys: ['Left'], label: 'Put in' }];
     return c.item ? [{ keys: ['Left'], label: 'Take' }] : [];
+  }
+  if (c.kind === 'hand') {
+    if (c.held) return [{ keys: ['Left'], label: c.item ? 'Swap' : 'Put in the left hand' }];
+    return c.item ? [{ keys: ['Left'], label: 'Pick up' }] : [];
   }
   if (c.kind === 'gear') {
     if (c.held) return [{ keys: ['Left'], label: c.item ? 'Swap' : 'Wear' }];

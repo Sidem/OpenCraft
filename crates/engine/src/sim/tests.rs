@@ -29,8 +29,9 @@ const B: PlayerId = PlayerId(1);
 /// save version 42), and for the Long-Distance Power tech 82 (2026-10-14), and in 13.1 for the Settlements tech and the
 /// town list (save version 48), and on 2026-10-22 (U3, save version 55) for the empty count of cleared ground cover the
 /// world now writes after its edited chunks: the old hash, 0x018f_cf55_a36a_19a3, is what these bytes give without those 4. On 2026-10-24 (save version 56) the belt items' and routers' tags (16 bytes each) came in: the
-/// previous hash was 0xc43e_fd0a_5b2b_73e3.
-const GOLDEN_HASH: u64 = 0x3ef4_9b04_e930_3ec1;
+/// previous hash was 0xc43e_fd0a_5b2b_73e3. On 2026-10-25 (save version 60) each player's inventory began to write the
+/// left-hand stack after the worn gear: the previous hash was 0x3ef4_9b04_e930_3ec1.
+const GOLDEN_HASH: u64 = 0xbdfb_8546_261a_a991;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

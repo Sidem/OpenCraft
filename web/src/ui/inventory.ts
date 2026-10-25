@@ -57,6 +57,8 @@ export class InventoryPanel {
   private readonly dialog = h('div', 'inv');
   private readonly slots: SlotView[] = [];
   private readonly gear: SlotView[] = [];
+  /** The left hand's slot (`offhand.ts` shows the same stack in the HUD). */
+  private readonly offhand: SlotView;
   private readonly packUpgrade: PackUpgrade;
   private readonly packPager = new Pager();
   private readonly cursor: SlotView;
@@ -133,6 +135,12 @@ export class InventoryPanel {
       cell.append(slot.root, h('span', 'inv-gear-name', game.gear_slot_name(i)));
       gearRow.append(cell);
     }
+    // The left hand sits with the gear: a click puts the cursor stack in or takes it out (J swaps it with the hotbar).
+    this.offhand = this.makeSlot(() => game.click_offhand(), () => {});
+    this.offhand.root.dataset.slot = 'hand';
+    const handCell = h('div', 'inv-gear-cell');
+    handCell.append(this.offhand.root, h('span', 'inv-gear-name', 'Left hand (J)'));
+    gearRow.append(handCell);
     const note = h(
       'p',
       'inv-note',
@@ -291,6 +299,7 @@ export class InventoryPanel {
       this.drawSlot(s, item, item ? 1 : 0);
       if (!item) s.root.title = `${g.gear_slot_name(i)}: nothing worn`;
     });
+    this.drawSlot(this.offhand, g.offhand_item(), g.offhand_count());
     this.packUpgrade.update();
     this.drawSlot(this.cursor, g.cursor_item(), g.cursor_count());
     this.cursor.root.classList.toggle('hidden', g.cursor_count() === 0);

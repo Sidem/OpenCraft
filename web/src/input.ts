@@ -8,6 +8,7 @@ export type Action =
   | { kind: 'scroll'; delta: number }
   | { kind: 'fly' }
   | { kind: 'drop' }
+  | { kind: 'swap-hands' }
   | { kind: 'mute' }
   | { kind: 'sound-lab' }
   | { kind: 'inventory' }
@@ -193,6 +194,7 @@ export class Input {
       if (digit) this.actions.push({ kind: 'slot', slot: Number(digit[1]) - 1 });
       else if (e.code === 'KeyF') this.actions.push({ kind: 'fly' });
       else if (e.code === 'KeyQ') this.actions.push({ kind: 'drop' });
+      else if (e.code === 'KeyJ') this.actions.push({ kind: 'swap-hands' });
       else if (e.code === 'KeyK') this.actions.push({ kind: 'mute' });
       else if (e.code === 'KeyM') this.actions.push({ kind: 'world-map' });
       else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });

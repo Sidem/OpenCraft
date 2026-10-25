@@ -8,6 +8,7 @@ use crate::avatars::LABEL_FLOATS;
 use crate::block;
 use crate::daytime;
 use crate::factory::INSTANCE_FLOATS;
+use crate::held_light;
 use crate::math::IVec3;
 use crate::textures;
 use crate::world::Event;
@@ -182,6 +183,16 @@ impl Game {
 
     pub fn label_count(&self) -> usize {
         self.avatars.labels.len() / LABEL_FLOATS
+    }
+
+    /// Byte offset of this frame's held lights (a torch in a hand, `held_light.rs`): `held_light_count()` records of
+    /// (camera-relative x, y, z, reach in blocks) as f32, at most one a player.
+    pub fn held_light_ptr(&self) -> usize {
+        self.avatars.lights.as_ptr() as usize
+    }
+
+    pub fn held_light_count(&self) -> usize {
+        self.avatars.lights.len() / held_light::LIGHT_FLOATS
     }
 
     /// Byte offset of this frame's sound events: `sound_count()` records of

@@ -168,6 +168,7 @@ impl Sim {
                 crate::take_apart::take_apart(inv, recipe as usize, times as u32, player, &mut self.events)
             }
             Action::ClickGear { .. }
+            | Action::Offhand { .. }
             | Action::ClickSlot { .. }
             | Action::ClickBox { .. }
             | Action::StoreSlot { .. }

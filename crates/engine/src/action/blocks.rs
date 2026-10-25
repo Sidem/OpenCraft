@@ -116,17 +116,15 @@ impl Sim {
         }
     }
 
-    /// The item the player breaks `block` with (their selected slot). A tool for it loses a use (its
-    /// stack count); one that wears out reports it.
+    /// The item the player breaks `block` with: the tool for it in the right hand, else in the left (`offhand.rs`),
+    /// else the right hand's item. A tool for it loses a use (its stack count); one that wears out reports it.
     fn wear_tool(&mut self, player: PlayerId, block: BlockId) -> ItemId {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return ItemId::NONE };
         let inv = &mut core.inventory;
-        let held = inv.selected_stack().item;
-        if tools::tool_for(held, block).is_some() {
-            inv.take_slot(inv.selected, 1);
-            if inv.selected_stack().is_empty() {
-                self.events.push(SimEvent::ToolWornOut { player, item: held });
-            }
+        let hand = inv.tool_hand(block);
+        let held = inv.in_hand(hand).item;
+        if tools::tool_for(held, block).is_some() && inv.wear_hand(hand) {
+            self.events.push(SimEvent::ToolWornOut { player, item: held });
         }
         held
     }

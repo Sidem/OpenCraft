@@ -7,6 +7,7 @@
 import { BoxPipeline } from './boxes';
 import { createProgram, uniforms } from './gl';
 import { PrecipPass } from './precip';
+import { setHeldLights, uploadHeldLights } from './held-light';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
 import { Overlays } from './outlines';
 import * as S from './shaders';
@@ -60,6 +61,8 @@ export interface FrameInfo {
   underwater: boolean; // the engine's `eye_in_water`
   /** Satellites in orbit as the sky draws them (engine `sky_satellites`: x, y, z, kind each). */
   satellites: Float32Array;
+  /** Lights held in hands this frame: camera-relative x, y, z and reach in blocks each (held-light.ts). */
+  held: Float32Array;
 }
 
 export interface RenderStats {
@@ -110,7 +113,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_held'] as const;
     const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
     const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
     this.opaque = { prog: opaqueProg, u: uniforms(gl, opaqueProg, lit) };
@@ -295,6 +298,7 @@ export class Renderer {
     vis.sort((a, b) => a.dist - b.dist);
 
     const [fogStart, fogEnd] = fog.range;
+    setHeldLights(f.held);
     gl.activeTexture(gl.TEXTURE0 + S.GLOW_UNIT);
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.glowTexture);
     gl.activeTexture(gl.TEXTURE0);
@@ -313,6 +317,7 @@ export class Renderer {
       gl.uniform3f(pass.u.u_direct, ...sky.direct);
       gl.uniform2f(pass.u.u_fog, fogStart, fogEnd);
       gl.uniform2f(pass.u.u_ground, ground[0], ground[1]);
+      uploadHeldLights(gl, pass.u.u_held);
       for (const m of vis) {
         const n = isCutout ? m.cutout : m.opaque;
         if (n === 0) continue;
