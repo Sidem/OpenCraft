@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart (2026-10-25). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -257,6 +257,21 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-25: take apart what you built by mistake** (user request: a wrong Miner should become a Coal Miner). `take_apart.rs`
+  (core): `Action::TakeApart { recipe, times }` (codec tag 64; reading moved to `action/codec/read.rs`) takes whole batches
+  (`Recipe::count`) of a held item apart at once: `KEEP_PERCENT` of each input, rounded, and of the iron kept back a third as
+  scrap metal (`SCRAP_IRON`). The harbour's raw-content walk moved to `recipes/content.rs` so both share it (prices unchanged).
+  Refused: tools (a workshop mends worn ones whole) and any recipe whose parts hold more of a raw material than the item's
+  cheapest route: empty canisters (a refining byproduct: oil would become steel) and underpasses Mk2 to Mk4 (the upgrader's
+  route is cheaper). Build menu: right-click a tile, Shift for five; the card says what comes back (`ui/take-apart.ts`). No
+  save change, golden hash unmoved. Checked: 7 tests in `take_apart/tests.rs` (the Miner to Coal Miner path through actions,
+  every hand and machine route per raw material, the refused list, workshop half price, tools, no scrap from stone); a linear
+  program (scipy HiGHS, kept out of the repo) over 592 rows (hand, workshop, machine, forge, harbour) found no item cheaper in
+  any ore once the 135 take-apart rows are added, and caught all three loops the rule refuses when injected (stone to scrap:
+  iron for nothing; canisters: 242 items; underpasses: a Mk2 belt for 0.8 iron ore, not 1). A first draft paid scrap for any
+  lost material and would have turned stone into iron. Seen in the browser pane: a real right-click took a Miner apart (4
+  plates, 3 rods, 5 wire, 1 scrap) and the Coal Miner crafted from it.
+
 - **2026-10-25: the coal miner** (user request: a drill before the Mk1 miner that burns coal, weaker, no upgrades). Block 143
   (`block/coal_miner.rs`, a third block set joined in `defs.rs`), a `Kind::Miner` machine at tier byte `COAL_TIER` (one past
   `MINER_TIERS`, no `FAMILIES` row so no kit touches it), with `miner_burner.rs` holding its fuel stack and energy (kW·ticks like
@@ -279,49 +294,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   the 3.9 h save and a fresh world, all quiet for 5 minutes (the three saves stall 77, 81 and 6 machines, which is why old saves
   count as taught).
 
-- **2026-10-24: click to keep a belt item selected** (user request). The mining button's press (`set_mining`, rising edge)
-  selects the item under the crosshair or, over anything else, lets go (`item_select.rs`, `Game::selected_item`; presentation
-  only, the core never sees it). Each frame `Factory::find_item` finds the item again by `ItemKey` (item, maker cell, birth
-  tick = now minus ticks on belts, slack 2; of several fits, nearest the last sighting, for old saves' shared tags): one scan
-  of the belts and routers, only while something is selected. To keep the birth tick steady a router now ages the tag of an item
-  it holds (`Router::step`; the golden hash did not move). The readout shows the pointed-at item, else the selected one, and
-  `I` takes the shown item unless it is selected and out of reach or held in a splitter (`target_item_state`: chip text in
-  `ui/hud.ts`); an amber outline (`selected_item_box`, `FrameInfo.selectedItem`, `render/outlines.ts`) marks the selected one.
-  No save-format change. Seen in the browser pane: select, look away, 5 s of belts followed, out of reach, taken. Not verified:
-  a real click with pointer lock; holding the button still mines the belt as before.
-- **2026-10-24: belt items have a story.** Pointing at an item on a belt names it, outlines it and says how long it has been on
-  belts, which machine put it there and where, and the recipe if a machine made it (user request). Every `BeltItem` and a
-  router's held item carry a `Tag` (`factory/provenance.rs`: ticks on belts, the maker's cell; 16 bytes), core state, so in
-  saves (version 56; older items read as origin unknown) and the state hash. Producers (miner, quarry, box, processor) start a
-  tag, `belt_step` ages it, `deliver` and routers pass it on, a machine that takes the item in drops it. No tick is threaded
-  through the machines: the tag counts its own ticks. Picking: `factory/belt_items.rs` (`aim_boxes` adds the items to a
-  belt's hit boxes so a tall item's top still selects the belt, `belt_item_under`, `belt_item_report`); `Game` keeps
-  `target_item`; `target_item_name` and `target_detail` (`api/hud.rs`) feed `ui/hud.ts`; the outline is the item's box.
-  Measured on the 34 h save (6,347 belts, 14,554 items, 4,339 belts backed up with 3): a whole tick 146 to 158 us (medians of
-  35 interleaved runs, +8%, about 0.07% of a frame); a save 1,025,484 to 1,258,684 bytes raw, 243,688 to 270,898 gzipped
-  (+11%; stuck items share one age here, so real play may add up to about twice that). The golden hash in `sim/tests.rs` was
-  re-recorded. Wasm 1,630,288 to 1,639,380 bytes (+9.1 KB; `vite build` reports 592.98 KB gzipped). Seen in the browser pane
-  (a smelter's ingot: name, 27 s on belts, "Made in a Smelter from ...", 2 west from here, outline). Not verified: the feel of
-  aiming with real pointer lock. Not done: a tally per belt of how old its items are;
-  following one item along its way (the roadmap's "follow one item" can now build on the tag).
-- **2026-10-24: pick an item off a belt (key I)** (user request). `Action::TakeBeltItem { pos, item, at }` (codec tag 62): of the
-  belt's items of that kind the one nearest progress `at` (255ths) goes to the player's pack, or stays when the pack is full
-  (`Factory::take_belt_item`, `factory/belt_items.rs`; a tool keeps the uses that did not fit). The action names the item by kind
-  and progress, not list index, because the list shifts while an action travels; on a fast belt in co-op the item can have
-  moved on by then and nothing happens. No save-format change. `Game::take_target_item` (`api/hud.rs`) queues it for the item
-  under the crosshair; `ui/hud.ts` shows an "I Pick up" chip under the readout (`#target-key`), `input.ts` binds the key, the
-  controls page and `PLAYING.md` list it. A dedicated key, not right-click, because right-click places a held block against
-  the belt. Seen in the browser pane (0 to 1 ingots); the real key press and pointer lock are not verified.
-
-- **2026-10-19: docs restructure.** The session-start read went from about 188 KB to under 48 KB: `CODEMAP.md` is an
-  index (detail lives in module headers), decisions moved to `docs/DECISIONS.md`, finished work to `docs/history/`,
-  stale sections dropped from this plan and `WORKFLOW.md`. `npm run check` gained byte budgets for docs and
-  `scripts/check-map.mjs` (map paths exist, every module is mapped, the core reads no presentation). Then the 12 source
-  files over 400 lines were split along their seams (table rows into set or era files, `frame.rs`, `factory/tick.rs`,
-  `pause.ts`, overlays into `outlines.ts`), no behaviour change. Last, what only one kind of processor keeps (well,
-  research unit, debt, launches, depot wants, drone fleet) moved from six `Processor` fields into one enum
-  (`process/extra.rs`): 528 to 464 bytes, save bytes unchanged. That made the tick slower (136 to 148 µs) through
-  layout alone: about ten passes walked every processor to find a few of one kind. They now walk index lists rebuilt
-  with the links (`process/kinds.rs`), same order: the big base's tick went from 180 to 112 µs (median of 6, interleaved).
-- **2026-10-18:** real 3D item models, the water rework (smooth surfaces, still, flowing, rapid and falling water),
-  per-block texture turning, and the realistic art batches (records in `docs/history/CHANGELOG_R.md`).

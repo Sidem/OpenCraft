@@ -164,6 +164,9 @@ impl Sim {
                 core.crafts.enqueue(inv, &self.factory.research, self.settlements.gear_works(), recipe, times);
             }
             Action::CancelCraft { order } => core.crafts.cancel(order as usize, inv, player, &mut self.events),
+            Action::TakeApart { recipe, times } => {
+                crate::take_apart::take_apart(inv, recipe as usize, times as u32, player, &mut self.events)
+            }
             Action::ClickGear { .. }
             | Action::ClickSlot { .. }
             | Action::ClickBox { .. }

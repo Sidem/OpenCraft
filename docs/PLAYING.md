@@ -158,6 +158,12 @@ If you hold the raw materials for something that needs parts, asking for it queu
 order: a Miner Mk1 from 14 iron ingots and 3 copper ingots queues 5 plates, 4 rods and 3 wire crafts and then the
 miner. The queue shows each step in that order, parts first and what you asked for last (a storage box from 2 logs and 4 iron ingots: planks, plates, then the box); a part you already hold is used, not made again. Only what the inventory can pay for is queued. The time each craft takes is in `crates/engine/src/recipes/timing.rs`. Leaving a co-op world returns the queue to your inventory.
 
+**Taking things apart.** Right-click a recipe in the build menu to take apart one of that item you hold (what one
+craft makes: four belts, one machine), Shift-right-click for up to five. You get back about four in five of each
+material, and a little of the lost iron as scrap metal (a smelter melts 3 scrap into an iron ingot); the card says
+exactly what. A Miner made by mistake gives back enough for a Coal Miner. Tools cannot be taken apart, nor the few
+items that a machine makes more cheaply than the hand recipe (empty canisters, underpasses Mk2 and up).
+
 **Bootstrapping, without raw ore in a recipe.** Nothing is built from raw ore. Wood comes first (Materials): a log
 saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles
 and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up,

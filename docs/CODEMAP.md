@@ -25,12 +25,12 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `sim/`: `timers.rs` (leaf decay, grass, saplings), `water.rs` (flowing water rules, capped per tick), `saplings.rs`,
   `torches.rs`, `scrap.rs` (salvage from ruins), `vault.rs` (the ruin vault's dial puzzle).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm per action), `clicks.rs` (inventory and box clicks),
-  `blocks.rs` (break and place), `multiblock.rs` (footprints), `codec.rs` (bytes; tags append only).
+  `blocks.rs` (break and place), `multiblock.rs` (footprints), `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (`write_state` / `read_state`). `save.rs`: the file (core, bodies, loose items), `SAVE_VERSION`.
 - `join.rs`: compile-time joins of const tables (`TECHS`, `MACHINE_RECIPES`). `math.rs`: vectors, hashes, `Rng`, small sort.
 - `deposits.rs`: deposit pools, tiers, draw caps, taper, `HAND_YIELD`. `daytime.rs`: time of day and sunlight from the tick.
 - `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks. `equipment.rs`: worn gear, packs. `tools.rs`: tool tiers.
-- `crafting.rs`: the hand-craft queue. `perks.rs`: `player_bonus` (techs plus gear). `mode.rs`: normal or creative.
+- `crafting.rs`: the hand-craft queue. `take_apart.rs`: taking a hand-crafted item apart (most inputs back, iron as scrap). `perks.rs`: `player_bonus` (techs plus gear). `mode.rs`: normal or creative.
 - `research.rs`: `Tech`, `Unlock`, `Research`. `research/`: tech tables by era (`techs.rs` first, then `electronics.rs`;
   `later.rs` is the open end), `queue.rs`, `bonus.rs` (endless techs).
 - `ghosts.rs`: planned blocks. `drones/`: construction drones, `earthworks.rs` (terraforming), `cargo/` (cargo routes).
@@ -69,7 +69,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
-  `menu_order.rs` (build menu), `recycling.rs` (coin values); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
+  `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`.
 - `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
@@ -128,7 +128,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
-    `craft-card.ts`, `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
+    `craft-card.ts`, `take-apart.ts`, `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
   - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.

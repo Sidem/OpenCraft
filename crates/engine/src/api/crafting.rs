@@ -9,7 +9,7 @@ use crate::perks::{player_bonus, Stat};
 use crate::recipes::{menu_order, GROUPS, RECIPES};
 use crate::research::Unlock;
 use crate::settlements::gear_cost;
-use crate::Game;
+use crate::{take_apart, Game};
 
 #[wasm_bindgen]
 impl Game {
@@ -118,6 +118,28 @@ impl Game {
     /// Cancels the local player's `order`th queued craft.
     pub fn cancel_craft(&mut self, order: u32) {
         self.act(Action::CancelCraft { order: order.min(u16::MAX as u32) as u16 });
+    }
+
+    /// What one batch (`recipe_output_count` of the item) of recipe `r` gives back when taken apart, as flat (item,
+    /// count) pairs, scrap metal last; empty when it cannot be taken apart (`take_apart.rs`).
+    pub fn take_apart_parts(&self, r: u32) -> Vec<u32> {
+        let Some(p) = take_apart::parts(r as usize) else { return Vec::new() };
+        let scrap = (p.scrap > 0).then_some((crate::item::SCRAP_METAL, p.scrap));
+        p.items.into_iter().chain(scrap).flat_map(|(i, n)| [i.0 as u32, n]).collect()
+    }
+
+    /// How many batches of recipe `r` the local player could take apart now.
+    pub fn take_apart_times(&self, r: u32) -> u32 {
+        take_apart::batches(self.inventory(), r as usize)
+    }
+
+    /// Takes up to `times` batches of recipe `r` apart at the next tick; returns how many.
+    pub fn take_apart(&mut self, r: u32, times: u32) -> u32 {
+        let n = times.min(self.take_apart_times(r)).min(u16::MAX as u32);
+        if n > 0 {
+            self.act(Action::TakeApart { recipe: r as u16, times: n as u16 });
+        }
+        n
     }
 }
 

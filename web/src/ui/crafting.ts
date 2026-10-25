@@ -5,8 +5,8 @@
 // change page. A text search (names of outputs and materials, plus related words: craft-terms.ts)
 // and a state filter (unlocked, the default; all, can craft, missing items, locked). A tile's details (a building's
 // facts: craft-card.ts, description, materials with have/need, the time it takes, what locks it) show in one info card on hover or keyboard
-// focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5. The inventory
-// panel calls `update` when the inventory changes.
+// focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5; right-clicking takes
+// one apart (take-apart.ts). The inventory panel calls `update` when the inventory changes.
 // To show another fact about a recipe: add it to `showInfo`.
 
 import './crafting.css';
@@ -16,6 +16,7 @@ import { factsBlock } from './craft-card';
 import { relatedWords } from './craft-terms';
 import { h } from './dom';
 import { Pager, tilesPerPage, type PageInfo } from './pager';
+import { takeApart, takeApartNote } from './take-apart';
 
 const ICON_PX = 64;
 /** A tile's height and the grid's gap, in px: the same numbers as `.craft-grid` in crafting.css. */
@@ -164,6 +165,10 @@ export class BuildMenu {
     const tile: Tile = { id: r, root, group, order: g.recipe_order(r), words, state: 'short' };
     root.addEventListener('click', (e) => {
       if (tile.state === 'ready' && g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
+    });
+    root.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (takeApart(g, r, e.shiftKey)) this.onCraft();
     });
     root.addEventListener('pointerenter', () => this.showInfo(tile));
     root.addEventListener('focus', () => this.showInfo(tile));
@@ -317,7 +322,9 @@ export class BuildMenu {
           : 'Gather the missing materials to craft it.';
     const note = h('p', `craft-status ${t.state}`, status);
     const facts = factsBlock(g, out);
+    const apart = takeApartNote(g, t.id);
     this.info.replaceChildren(head, ...(facts ? [facts] : []), h('p', 'craft-blurb', g.recipe_blurb(t.id)), inputs, time, note);
+    if (apart) this.info.append(apart);
     this.info.classList.remove('hidden');
     const r = t.root.getBoundingClientRect(), box = this.info.getBoundingClientRect();
     const right = r.right + 8 + box.width <= window.innerWidth;

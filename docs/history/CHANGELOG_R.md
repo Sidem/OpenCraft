@@ -341,3 +341,52 @@ U1 to U3 and pod channels, as recorded when they were built.
   six colours (`grid_colour::PALETTE`, `pods::CHANNELS`), set in its panel by `Action::SetChannel` (codec tag 60) and kept in
   `Extra::Channel`, apart from the facing. The 3D mark and the map marks wear the colour (no new texture layers). Save
   version 54 stores it; older saves read the facing as the channel (blue, orange, pink, green). Blueprints do not copy it.
+
+## Moved from the plan's recent changes (2026-10-25)
+
+- **2026-10-24: click to keep a belt item selected** (user request). The mining button's press (`set_mining`, rising edge)
+  selects the item under the crosshair or, over anything else, lets go (`item_select.rs`, `Game::selected_item`; presentation
+  only, the core never sees it). Each frame `Factory::find_item` finds the item again by `ItemKey` (item, maker cell, birth
+  tick = now minus ticks on belts, slack 2; of several fits, nearest the last sighting, for old saves' shared tags): one scan
+  of the belts and routers, only while something is selected. To keep the birth tick steady a router now ages the tag of an item
+  it holds (`Router::step`; the golden hash did not move). The readout shows the pointed-at item, else the selected one, and
+  `I` takes the shown item unless it is selected and out of reach or held in a splitter (`target_item_state`: chip text in
+  `ui/hud.ts`); an amber outline (`selected_item_box`, `FrameInfo.selectedItem`, `render/outlines.ts`) marks the selected one.
+  No save-format change. Seen in the browser pane: select, look away, 5 s of belts followed, out of reach, taken. Not verified:
+  a real click with pointer lock; holding the button still mines the belt as before.
+- **2026-10-24: belt items have a story.** Pointing at an item on a belt names it, outlines it and says how long it has been on
+  belts, which machine put it there and where, and the recipe if a machine made it (user request). Every `BeltItem` and a
+  router's held item carry a `Tag` (`factory/provenance.rs`: ticks on belts, the maker's cell; 16 bytes), core state, so in
+  saves (version 56; older items read as origin unknown) and the state hash. Producers (miner, quarry, box, processor) start a
+  tag, `belt_step` ages it, `deliver` and routers pass it on, a machine that takes the item in drops it. No tick is threaded
+  through the machines: the tag counts its own ticks. Picking: `factory/belt_items.rs` (`aim_boxes` adds the items to a
+  belt's hit boxes so a tall item's top still selects the belt, `belt_item_under`, `belt_item_report`); `Game` keeps
+  `target_item`; `target_item_name` and `target_detail` (`api/hud.rs`) feed `ui/hud.ts`; the outline is the item's box.
+  Measured on the 34 h save (6,347 belts, 14,554 items, 4,339 belts backed up with 3): a whole tick 146 to 158 us (medians of
+  35 interleaved runs, +8%, about 0.07% of a frame); a save 1,025,484 to 1,258,684 bytes raw, 243,688 to 270,898 gzipped
+  (+11%; stuck items share one age here, so real play may add up to about twice that). The golden hash in `sim/tests.rs` was
+  re-recorded. Wasm 1,630,288 to 1,639,380 bytes (+9.1 KB; `vite build` reports 592.98 KB gzipped). Seen in the browser pane
+  (a smelter's ingot: name, 27 s on belts, "Made in a Smelter from ...", 2 west from here, outline). Not verified: the feel of
+  aiming with real pointer lock. Not done: a tally per belt of how old its items are;
+  following one item along its way (the roadmap's "follow one item" can now build on the tag).
+- **2026-10-24: pick an item off a belt (key I)** (user request). `Action::TakeBeltItem { pos, item, at }` (codec tag 62): of the
+  belt's items of that kind the one nearest progress `at` (255ths) goes to the player's pack, or stays when the pack is full
+  (`Factory::take_belt_item`, `factory/belt_items.rs`; a tool keeps the uses that did not fit). The action names the item by kind
+  and progress, not list index, because the list shifts while an action travels; on a fast belt in co-op the item can have
+  moved on by then and nothing happens. No save-format change. `Game::take_target_item` (`api/hud.rs`) queues it for the item
+  under the crosshair; `ui/hud.ts` shows an "I Pick up" chip under the readout (`#target-key`), `input.ts` binds the key, the
+  controls page and `PLAYING.md` list it. A dedicated key, not right-click, because right-click places a held block against
+  the belt. Seen in the browser pane (0 to 1 ingots); the real key press and pointer lock are not verified.
+
+- **2026-10-19: docs restructure.** The session-start read went from about 188 KB to under 48 KB: `CODEMAP.md` is an
+  index (detail lives in module headers), decisions moved to `docs/DECISIONS.md`, finished work to `docs/history/`,
+  stale sections dropped from this plan and `WORKFLOW.md`. `npm run check` gained byte budgets for docs and
+  `scripts/check-map.mjs` (map paths exist, every module is mapped, the core reads no presentation). Then the 12 source
+  files over 400 lines were split along their seams (table rows into set or era files, `frame.rs`, `factory/tick.rs`,
+  `pause.ts`, overlays into `outlines.ts`), no behaviour change. Last, what only one kind of processor keeps (well,
+  research unit, debt, launches, depot wants, drone fleet) moved from six `Processor` fields into one enum
+  (`process/extra.rs`): 528 to 464 bytes, save bytes unchanged. That made the tick slower (136 to 148 µs) through
+  layout alone: about ten passes walked every processor to find a few of one kind. They now walk index lists rebuilt
+  with the links (`process/kinds.rs`), same order: the big base's tick went from 180 to 112 µs (median of 6, interleaved).
+- **2026-10-18:** real 3D item models, the water rework (smooth surfaces, still, flowing, rapid and falling water),
+  per-block texture turning, and the realistic art batches (records in `docs/history/CHANGELOG_R.md`).

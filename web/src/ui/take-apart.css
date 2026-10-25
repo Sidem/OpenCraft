@@ -1,0 +1,6 @@
+/* The build-menu card's take-apart line (take-apart.ts). */
+.craft-apart {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}

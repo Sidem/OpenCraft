@@ -89,6 +89,7 @@ mod stall_lesson;
 mod strategy;
 mod surroundings;
 mod survey;
+mod take_apart;
 mod telescope;
 mod textures;
 mod tools;

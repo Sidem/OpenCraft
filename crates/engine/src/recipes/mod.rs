@@ -14,6 +14,7 @@ mod aluminium;
 mod automate;
 mod chemistry;
 mod compute;
+pub mod content;
 mod decor;
 mod electronics;
 mod first;

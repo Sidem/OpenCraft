@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · Take apart what you built by mistake
+- **Right-click a recipe in the build menu** to take apart one of that item you hold: you get back about four in five of each material, and some of the lost iron as scrap metal. The recipe's card says exactly what you get.
+- Made a Miner when you meant a Coal Miner? Taking it apart gives back enough plates and rods for the Coal Miner.
+- Tools cannot be taken apart, nor the few things a machine makes more cheaply than you can by hand.
+
 ## 2026-10-25 · Coal miner: a drill before electricity
 - A new **Coal Miner** (4 iron plates, 3 iron rods, 8 stone: no copper) drills ore without any power. Right-click it to give it coal ore or logs; it burns them only while it digs.
 - It is the bridge: slower than a Mk1 miner (a third of the ore) and wasteful (it keeps 40% of what it draws), and it cannot be upgraded. Put it on coal and it keeps a few coal back to fuel itself.

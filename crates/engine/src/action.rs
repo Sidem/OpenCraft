@@ -230,6 +230,12 @@ pub enum Action {
     CancelCraft {
         order: u16,
     },
+    /// Takes `times` batches of hand recipe `recipe`'s item apart at once (`take_apart.rs`): most of its inputs come
+    /// back, some iron as scrap. Does nothing for what cannot be taken apart or is not held.
+    TakeApart {
+        recipe: u16,
+        times: u16,
+    },
     /// Equipment-panel click on worn-gear `slot` (`equipment.rs`): the cursor stack swaps with the gear (only gear for
     /// that slot goes on); `shift` takes it off into the inventory.
     ClickGear {

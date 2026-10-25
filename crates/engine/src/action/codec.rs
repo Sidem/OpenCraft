@@ -5,16 +5,17 @@
 //! buffer gives `None`, never a panic. `apply` still checks every value against the state, so a
 //! well-formed but odd action (a slot past the end, a missing machine) does nothing. Tags are the
 //! wire format: append, never renumber.
-//! To add an action: the next tag in `write` (the compiler asks for the arm) and in `read`; the
+//! To add an action: the next tag in `write` (the compiler asks for the arm) and in `read` (`codec/read.rs`); the
 //! round-trip test in `action/tests.rs` asks for a sample.
 
 use super::Action;
-use crate::bytes::{ByteReader, ByteWriter};
-use crate::factory::Job;
+use crate::bytes::ByteWriter;
+
+mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 64;
+pub const TAG_COUNT: u8 = 65;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -313,82 +314,12 @@ impl Action {
                 w.u8(25);
                 w.ivec3(pos);
             }
+            Action::TakeApart { recipe, times } => {
+                w.u8(64);
+                w.u16(recipe);
+                w.u16(times);
+            }
         }
-    }
-
-    pub fn read(r: &mut ByteReader) -> Option<Action> {
-        Some(match r.u8()? {
-            0 => Action::BreakBlock { pos: r.ivec3()? },
-            1 => Action::PlaceBlock { pos: r.ivec3()?, slot: r.u8()?, facing: r.u8()?, against: r.ivec3()? },
-            2 => Action::TakeContents { pos: r.ivec3()? },
-            3 => Action::SetRecipe { pos: r.ivec3()?, recipe: r.u16()? },
-            4 => Action::SetFilter { pos: r.ivec3()?, item: r.item()? },
-            5 => Action::SetResearch { tech: r.u8()? },
-            6 => Action::Insert { pos: r.ivec3()?, item: r.item()? },
-            7 => Action::Craft { recipe: r.u16()?, times: r.u32()? },
-            8 => Action::ClickSlot { slot: r.u8()?, shift: r.bool()? },
-            9 => Action::ClickBox { pos: r.ivec3()?, slot: r.u8()?, shift: r.bool()? },
-            10 => Action::StoreSlot { pos: r.ivec3()?, slot: r.u8()? },
-            11 => Action::CloseInventory,
-            12 => Action::SelectSlot { slot: r.u8()? },
-            13 => Action::ScrollSlot { delta: r.u8()? as i8 },
-            14 => Action::DropSelected { count: r.u32()? },
-            15 => Action::PickUp { item: r.item()?, count: r.u32()? },
-            16 => Action::Give { item: r.item()?, count: r.u32()? },
-            17 => Action::Join { key: r.u64()? },
-            18 => Action::Leave { pos: r.vec3()? },
-            19 => Action::Rotate { pos: r.ivec3()? },
-            20 => Action::SetQuarry { pos: r.ivec3()?, width: r.u8()?, depth: r.u8()?, paused: r.bool()? },
-            21 => Action::MarkSite {
-                a: (r.i32()?, r.i32()?),
-                b: (r.i32()?, r.i32()?),
-                level: r.i32()?,
-                job: Job::from_byte(r.u8()?)?,
-            },
-            22 => Action::RemoveSite { id: r.u32()? },
-            23 => Action::Upgrade { pos: r.ivec3()? },
-            24 => Action::SortInventory,
-            25 => Action::SortBox { pos: r.ivec3()? },
-            26 => Action::CancelCraft { order: r.u16()? },
-            27 => Action::Connect { pole: r.ivec3()?, to: r.ivec3()? },
-            28 => Action::Disconnect { pole: r.ivec3()?, to: r.ivec3()? },
-            29 => Action::QuickMoveAll { slot: r.u8()? },
-            30 => Action::StoreAll { pos: r.ivec3()?, slot: r.u8()? },
-            31 => Action::TakeAll { pos: r.ivec3()?, slot: r.u8()? },
-            32 => Action::SetSensor { pos: r.ivec3()?, rule: r.u8()? },
-            60 => Action::SetChannel { pos: r.ivec3()?, channel: r.u8()? },
-            61 => Action::ClearCover { pos: r.ivec3()? },
-            62 => Action::TakeBeltItem { pos: r.ivec3()?, item: r.item()?, at: r.u8()? },
-            63 => Action::LessonTaught { bit: r.u8()? },
-            33 => Action::PlaceGhost { pos: r.ivec3()?, slot: r.u8()?, facing: r.u8()? },
-            34 => Action::RemoveGhost { pos: r.ivec3()? },
-            36 => Action::MarkRemoval { pos: r.ivec3()? },
-            37 => Action::Jetpack { on: r.bool()? },
-            38 => Action::Fetch { item: r.item()?, at: r.ivec3()? },
-            39 => Action::ClickGear { slot: r.u8()?, shift: r.bool()? },
-            40 => Action::MarkTunnel { from: r.ivec3()?, to: r.ivec3()?, size: r.u8()? },
-            41 => Action::PlaceTrain { pos: r.ivec3()?, slot: r.u8()? },
-            42 => Action::TakeTrain { pos: r.ivec3()? },
-            43 => Action::TrainStop { node: r.ivec3()?, dock: r.ivec3()?, clear: r.bool()? },
-            44 => Action::ToggleSignal { pos: r.ivec3()?, slot: r.u8()? },
-            45 => Action::Hover { on: r.bool()? },
-            46 => Action::Charge { pole: r.ivec3()?, on: r.bool()? },
-            47 => Action::SetRoute { from: r.ivec3()?, to: r.ivec3()?, clear: r.bool()? },
-            48 => Action::RightClickSlot { slot: r.u8()?, shift: r.bool()? },
-            49 => Action::RightClickBox { pos: r.ivec3()?, slot: r.u8()?, shift: r.bool()? },
-            50 => Action::ThrowCursor,
-            51 => Action::QueueResearch { tech: r.u8()? },
-            52 => Action::UnqueueResearch { tech: r.u8()? },
-            53 => Action::UpgradePack,
-            54 => Action::TakeOneSlot { slot: r.u8()? },
-            55 => Action::TakeOneBox { pos: r.ivec3()?, slot: r.u8()? },
-            56 => Action::TakeMachineSlot { pos: r.ivec3()?, slot: r.u8()? },
-            57 => Action::InsertCursor { pos: r.ivec3()? },
-            58 => Action::SetHarbourProduct { pos: r.ivec3()?, item: r.item()? },
-            59 => Action::OpenVault { pos: r.ivec3()?, dials: r.u32()? },
-            35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
-            _ => return None,
-        })
     }
 
     /// Whether a peer may send this for its own player. Joining, leaving and pickups are the
