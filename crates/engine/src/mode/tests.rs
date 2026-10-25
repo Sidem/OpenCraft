@@ -57,6 +57,46 @@ fn the_mode_survives_a_save_and_never_changes() {
 }
 
 #[test]
+fn only_a_creative_world_can_fly() {
+    let mut plain = Game::new(7, 2);
+    plain.toggle_fly();
+    plain.run_ticks(1);
+    assert!(!plain.flying(), "F does nothing in a normal world");
+
+    let mut creative = Game::new_creative(7, 2);
+    creative.toggle_fly();
+    creative.run_ticks(1);
+    assert!(creative.flying(), "F still works in a creative world");
+}
+
+#[test]
+fn a_normal_world_saved_while_flying_loses_the_flight() {
+    // The playtest save that flew at 24 blocks a second with nothing worn: flying was in the saved body.
+    let mut g = Game::new(7, 2);
+    g.body_mut().flying = true;
+    let mut back = Game::from_save(&g.save(), 2).expect("loads");
+    assert!(back.flying(), "the file says flying");
+    back.run_ticks(1);
+    assert!(!back.flying(), "a normal world takes it back on the first tick");
+
+    let mut creative = Game::new_creative(7, 2);
+    creative.body_mut().flying = true;
+    let mut back = Game::from_save(&creative.save(), 2).expect("loads");
+    back.run_ticks(1);
+    assert!(back.flying(), "a creative world keeps it");
+}
+
+#[test]
+fn a_hover_without_a_charged_pack_does_not_last() {
+    let mut g = Game::new(7, 2);
+    let me = g.sim.players[0].as_mut().expect("the local player");
+    assert!(!me.inventory.has_hover_pack());
+    (me.helpers.hover, me.helpers.charge) = (true, 5_000);
+    g.run_ticks(1);
+    assert!(!g.sim.players[0].as_ref().unwrap().helpers.hover, "no pack worn: no hover, charge or not");
+}
+
+#[test]
 fn a_creative_world_completes_techs_added_after_it_was_saved() {
     let mut g = Game::new_creative(7, 2);
     // Pretend the newest tech did not exist yet when this world was saved.

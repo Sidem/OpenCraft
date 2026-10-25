@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-25 · Flying is for creative worlds
+- **The F key flies only in creative worlds.** In a normal world you get off the ground with the jetpack or the hover pack (worn, and the hover pack charged). A world saved in the middle of a flight comes back on foot.
+
 ## 2026-10-25 · Take apart what you built by mistake
 - **Right-click a recipe in the build menu** to take apart one of that item you hold: you get back about four in five of each material, and some of the lost iron as scrap metal. The recipe's card says exactly what you get.
 - Made a Miner when you meant a Coal Miner? Taking it apart gives back enough plates and rods for the Coal Miner.

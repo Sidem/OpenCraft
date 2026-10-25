@@ -7,8 +7,8 @@ use crate::tests::{build_mine, find_outcrop_block, run_until_ready};
 
 #[test]
 fn a_saved_world_loads_back_to_the_same_bytes() {
-    // A running mine, a second player, a loose item and a flying local player.
-    let mut g = Game::new(2024, 3);
+    // A running mine, a second player, a loose item and a flying local player (flight is creative-only).
+    let mut g = Game::new_creative(2024, 3);
     run_until_ready(&mut g);
     let (p, _) = find_outcrop_block(&mut g, 6);
     build_mine(&mut g, p);

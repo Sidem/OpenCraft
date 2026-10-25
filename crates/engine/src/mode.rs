@@ -42,6 +42,13 @@ impl Sim {
             self.factory.research.complete_all();
         }
     }
+
+    /// Whether bodies may fly freely (the F key). Only a creative world does; in a normal one getting off the ground
+    /// is the jetpack's and the hover pack's job (`helpers/`). `authority.rs` enforces it on every body every tick,
+    /// so a save or a peer that says "flying" in a normal world loses it at once.
+    pub fn may_fly(&self) -> bool {
+        self.mode == Mode::Creative
+    }
 }
 
 /// Every item a creative world offers: each block that can be placed, then every other item (not the recycling coin,

@@ -38,7 +38,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | N                   | Show or hide the minimap until you next start a game or reload (top right, north up; diamonds mark ore you've seen, rings veins and lodes you've prospected, squares your machines, pins your pins) |
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | Q                   | Drop one item                             |
-| F                   | Toggle fly mode (Space / C: up / down)    |
+| F                   | Toggle fly mode, in creative worlds only (Space / C: up / down); a normal world has the jetpack and hover pack |
 | Hold Tab            | Who is playing with you (in a shared game) |
 | K                   | Mute / unmute sound                       |
 | O                   | Open the sound designer                   |

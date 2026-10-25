@@ -23,6 +23,13 @@ pub(crate) fn run_until_ready(g: &mut Game) {
     panic!("world never became ready");
 }
 
+/// Turns free flight on for a test that needs a vantage point: flying is a creative-only rule (`Sim::may_fly`), so the
+/// world is made creative first (its techs stay as they were).
+pub(crate) fn fly(g: &mut Game) {
+    g.sim.mode = crate::mode::Mode::Creative;
+    g.toggle_fly();
+}
+
 /// Loaded ore blocks near spawn, top layer first.
 pub(crate) fn nearby_ore(g: &Game) -> Vec<IVec3> {
     let base = g.body().pos.floor();
@@ -188,7 +195,7 @@ fn mine_collect_place_loop() {
     g.clear_sounds();
 
     // Hover above the hole and put the block back.
-    g.toggle_fly();
+    fly(&mut g);
     g.teleport(tx as f64 + 0.5, ty as f64 + 3.0, tz as f64 + 0.5);
     g.set_look(0.0, -1.55);
     g.update(1.0 / 60.0);
@@ -239,7 +246,7 @@ fn footsteps_and_landing_make_sounds() {
     let steps = g.sounds.kinds().iter().filter(|&&k| k == sound::STEP).count();
     assert!(steps >= 2, "expected footsteps, got {:?}", g.sounds.kinds());
     g.clear_sounds();
-    g.toggle_fly();
+    fly(&mut g);
     for _ in 0..90 {
         g.update(1.0 / 60.0);
     }
@@ -277,7 +284,7 @@ fn standing_on_a_belt_carries_the_player_without_footsteps() {
     assert_eq!(g.sounds.kinds().len(), sounds, "being carried makes no footsteps");
 
     // Flying is never carried.
-    g.toggle_fly();
+    fly(&mut g);
     let up = g.player_x();
     g.run_ticks(30);
     assert!((g.player_x() - up).abs() < 1e-6, "a flying player stays where it is");
@@ -306,7 +313,7 @@ fn a_player_splashes_into_a_pool_where_items_float_and_steps_are_silent() {
     }
     let (x, z) = (feet.x as f64 + 0.5, feet.z as f64 + 0.5);
     g.spawn_item(Vec3::new(x, feet.y as f64 - 4.5, z), Vec3::ZERO, STONE.into(), 1, 0.0);
-    g.toggle_fly();
+    fly(&mut g);
     g.teleport(x, feet.y as f64 + 20.0, z);
     for _ in 0..300 {
         g.update(1.0 / 60.0);
@@ -805,7 +812,7 @@ pub(crate) fn belt_test_slab(g: &mut Game) {
             }
         }
     }
-    g.toggle_fly();
+    fly(g);
     g.teleport(0.5, 202.0, 0.5);
 }
 

@@ -96,12 +96,14 @@ impl Game {
         let mut solid = |x, y, z| world.is_solid(x, y, z);
         let mut block = |x, y, z| world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR);
         let respawn = self.spawn + Vec3::new(0.0, 2.0, 0.0);
+        let may_fly = self.sim.may_fly();
         let mut local_fell = false;
         for (slot, body) in self.bodies.iter_mut().enumerate() {
             let Some(body) = body else { continue };
             if self.role.drives(PlayerId(slot as u8), self.local) {
                 continue;
             }
+            body.flying &= may_fly;
             // Wait while the ground isn't loaded rather than fall through it.
             if world.is_loaded(body.pos) && world.is_loaded(body.pos - Vec3::new(0.0, 1.0, 0.0)) {
                 body.conveyor = factory.conveyor_at(body.pos);

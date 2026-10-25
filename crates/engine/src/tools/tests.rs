@@ -69,7 +69,7 @@ fn hold(g: &mut Game, item: ItemId, uses: u32) {
 fn a_pickaxe_breaks_stone_faster_and_wears() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
-    g.toggle_fly();
+    crate::tests::fly(&mut g);
     g.select_slot(8);
     let hands = ticks_to_break_stone(&mut g);
     hold(&mut g, STONE_PICKAXE, STONE_TIER.uses);

@@ -101,7 +101,11 @@ impl Game {
         }
     }
 
+    /// Free flight on or off; only in a creative world (`Sim::may_fly`).
     pub fn toggle_fly(&mut self) {
+        if !self.sim.may_fly() {
+            return;
+        }
         let body = self.body_mut();
         body.flying = !body.flying;
         body.vel.y = 0.0;
