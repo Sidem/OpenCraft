@@ -2,7 +2,7 @@
 // (synonyms and related ideas) and the recipes they should find. A recipe matches a row when its output's name
 // contains one of the row's `items` (so "belt" covers Belt Mk3 too); the row's words are then searchable on it.
 // To teach the search a new word, add it to a row; to cover a new machine, add its name to the rows it belongs to.
-// `hasWord` is how a typed word matches a tile's words.
+// `hasWord` is how a typed word matches a tile's words, `nameScore` how results are ranked.
 
 /** [words typed, item names (parts of the output's lower-case name)], both separated by `|`. */
 const ROWS: [string, string][] = [
@@ -68,6 +68,17 @@ export function relatedWords(name: string): string {
   const found: string[] = [];
   for (const row of TABLE) if (row.items.some((i) => lower.includes(i))) found.push(...row.words);
   return found.join(' ');
+}
+
+/** How well an item's `name` answers the search `words` (lower case, as typed): 0 it is the name, 1 the name starts
+ * with them, 2 each word starts a word of the name, 3 none of these (it matched on its materials or related words).
+ * The build menu shows lower scores first, so typing "concrete" puts Concrete before what is made from it. */
+export function nameScore(name: string, words: string[]): number {
+  const lower = name.toLowerCase(), query = words.join(' ');
+  if (words.length === 0) return 3;
+  if (lower === query) return 0;
+  if (lower.startsWith(query)) return 1;
+  return words.every((w) => hasWord(lower, w)) ? 2 : 3;
 }
 
 /** Whether `text` has a word that starts with `w` (a plural also finds the singular: "belts" finds "belt"); a

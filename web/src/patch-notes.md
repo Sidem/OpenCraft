@@ -7,6 +7,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - **The build menu's search now finds every item, not only what you craft by hand.** Type "concrete" and it shows up with the items made in machines or found in the world, on a last page.
 - **Click one, or any recipe you cannot craft yet, for its page in the new item guide:** every way to get it (by hand, in which machine from what and the research it needs, or where in the world to dig: how deep, in which lands, how to spot it) and what it is used to make. Every item on a page opens its own page, so concrete leads to quicklime, quicklime to limestone, and limestone to where to dig; Back retraces your steps.
 - **A missing material on a recipe's card now says where it comes from** ("made in a Smelter", "found in the world").
+- **Search results come best first:** what you typed by name leads (Concrete before the Blast Furnace made from it), in one list that fills the page, even if research still locks it. The best match is lit: press Enter to open its page, or the down arrow to step into the results.
 
 ## 2026-10-25 · Ask before closing the tab
 - **Settings > Saving has a new option, off by default: ask me to export my worlds before the tab closes.** For browsers that delete site data when you quit. Closing the tab then shows your browser's "leave site?" prompt; choose to stay and the game offers to export this world or all worlds as `.ocworld` files. Such a browser also forgets the option, so turn it on again each visit.

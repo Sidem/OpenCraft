@@ -1,31 +1,29 @@
-// Build menu in the inventory screen: every hand recipe as a compact tile (icon, name, how many it
-// makes), grouped by the engine's recipe groups (every tier of one building side by side: `recipe_order`) and paged
-// instead of scrolled: a category starts a new page, and so does a full page (as many tiles as the menu's height and
-// width hold). The page header above the grid, the pager below it, the mouse wheel and a row of category tabs all
-// change page. A text search (names of outputs and materials, plus related words: craft-terms.ts)
-// and a state filter (unlocked, the default; all, can craft, missing items, locked). A tile's details (a building's
-// facts: craft-card.ts, description, materials with have/need, the time it takes, what locks it) show in one info card on hover or keyboard
-// focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5; right-clicking takes
-// one apart (take-apart.ts). Clicking a tile you cannot craft yet opens its page in the item guide (item-guide.ts),
-// and a search also finds the items no hand recipe makes, as guide tiles on a last page that open their page too.
-// The inventory panel calls `update` when the inventory changes. To show another fact about a recipe: `showInfo`.
+// Build menu in the inventory screen: every hand recipe as a compact tile (icon, name, how many it makes), grouped by
+// the engine's recipe groups (every tier of one building side by side: `recipe_order`) and paged instead of scrolled:
+// a category starts a new page, and so does a full page (as many tiles as the menu's height and width hold). The page
+// header above the grid, the pager below it, the mouse wheel and a row of category tabs all change page. A state
+// filter (unlocked, the default; all, can craft, missing items, locked) and a text search (names of outputs and
+// materials, plus related words: craft-terms.ts). A search also finds the items no hand recipe makes (guide tiles) and
+// ranks instead of grouping, in one list that fills each page: first what is called by the words typed (the best
+// match marked, Enter opens it; shown even if locked), then what is made from it or related. Hover or focus shows a tile's card (craft-info.ts). Clicking a tile
+// queues one craft (craftqueue.ts shows the queue), Shift-click up to 5, right-click takes one apart (take-apart.ts);
+// clicking one you cannot craft yet opens its page in the item guide (item-guide.ts). The inventory panel calls
+// `update` when the inventory changes. To rank search results differently: `nameScore` in craft-terms.ts.
 
 import './crafting.css';
 import './craft-nav.css';
 import type { Game } from '../wasm/engine.js';
-import { factsBlock } from './craft-card';
-import { hasWord, relatedWords } from './craft-terms';
+import { BULK_CRAFT, CraftInfo } from './craft-info';
+import { hasWord, nameScore, relatedWords } from './craft-terms';
 import { h } from './dom';
-import { ItemGuide, sourceHint, waySummary, wayWords } from './item-guide';
+import { ItemGuide, wayWords } from './item-guide';
 import { Pager, tilesPerPage, type PageInfo } from './pager';
-import { takeApart, takeApartNote } from './take-apart';
+import { takeApart } from './take-apart';
 
 const ICON_PX = 64;
 /** A tile's height and the grid's gap, in px: the same numbers as `.craft-grid` in crafting.css. */
 export const TILE_H = 80;
 export const TILE_GAP = 6;
-/** Shift-clicking a tile makes up to this many at once. */
-const BULK_CRAFT = 5;
 const FILTERS = [
   { id: 'unlocked', label: 'Unlocked' },
   { id: 'all', label: 'All' },
@@ -36,13 +34,15 @@ const FILTERS = [
 /** `guide`: an item no hand recipe makes, shown only for a search. */
 type State = 'ready' | 'short' | 'locked' | 'guide';
 type Filter = (typeof FILTERS)[number]['id'];
-/** The last page's name: the items a search finds that no hand recipe makes. */
+/** The guide tiles' category: the items a search finds that no hand recipe makes. */
 const ELSEWHERE = 'Made in machines or found';
+/** A search's one section (categories are 0 and up): every result in rank order, filling each page. */
+const RESULTS = -1;
 
 interface Page {
-  title: string;
-  group: number;
-  /** Which page of its category this is, of how many. */
+  /** Its category, or a search section. */
+  section: number;
+  /** Which page of its section this is, of how many. */
   part: number;
   parts: number;
   tiles: Tile[];
@@ -56,9 +56,12 @@ interface Tile {
   group: number;
   /** Where it sorts inside its category (the engine's `recipe_order`). */
   order: number;
-  /** Lower-case output and material names, for the search. */
+  /** The item's name, and the lower-case output and material names for the search. */
+  name: string;
   words: string;
   state: State;
+  /** How well its name answers the search (`nameScore`; 3 when there is none). */
+  score: number;
 }
 
 export class BuildMenu {
@@ -70,8 +73,8 @@ export class BuildMenu {
   private readonly filterButtons = new Map<Filter, HTMLButtonElement>();
   private readonly groupNames: string[] = [];
   private readonly tiles: Tile[] = [];
-  private readonly empty = h('p', 'craft-empty hidden', 'No recipe matches.');
-  private readonly info = h('div', 'craft-info hidden');
+  private readonly empty = h('p', 'craft-empty hidden', 'Nothing matches.');
+  private readonly info: CraftInfo;
   private readonly tabs = h('div', 'craft-tabs');
   private readonly pageTitle = h('h4', 'craft-page-title');
   private readonly pageNote = h('span', 'craft-page-note');
@@ -86,18 +89,21 @@ export class BuildMenu {
   private filter: Filter = 'unlocked';
   /** The tile whose card is showing. */
   private hovered: Tile | null = null;
+  /** The search's best match (Enter opens it), if its name answers the search. */
+  private best: Tile | null = null;
 
   constructor(
     private readonly game: Game,
     private readonly icon: (item: number) => HTMLCanvasElement,
   ) {
     this.search.type = 'search';
-    this.search.placeholder = 'Search recipes or materials';
-    this.search.setAttribute('aria-label', 'Search recipes or materials');
+    this.search.placeholder = 'Search any item or material';
+    this.search.setAttribute('aria-label', 'Search any item or material');
     this.search.addEventListener('input', () => {
       this.pager.page = 0;
       this.applyFilter();
     });
+    this.search.addEventListener('keydown', (e) => this.searchKey(e));
     const filters = h('div', 'craft-filters');
     filters.setAttribute('role', 'group');
     filters.setAttribute('aria-label', 'Show recipes');
@@ -135,8 +141,9 @@ export class BuildMenu {
     this.pager.wheel(list);
     // The page size follows the menu's size: lay the pages out again whenever the grid is resized.
     new ResizeObserver(() => this.applyFilter()).observe(this.grid);
+    this.info = new CraftInfo(game, icon);
     this.guide = new ItemGuide(game, icon);
-    this.el.append(head, filters, this.tabs, list, this.pager.el, this.info, this.guide.el);
+    this.el.append(head, filters, this.tabs, list, this.pager.el, this.info.el, this.guide.el);
   }
 
   /** Recomputes which recipes can be crafted; call when the inventory changed. */
@@ -155,7 +162,7 @@ export class BuildMenu {
   /** Hides the info card (the screen closed). */
   hideInfo(): void {
     this.hovered = null;
-    this.info.classList.add('hidden');
+    this.info.hide();
   }
 
   private makeTile(r: number): Tile {
@@ -170,7 +177,8 @@ export class BuildMenu {
     for (let k = 0; k + 1 < flat.length; k += 2) names.push(g.item_name(flat[k]));
     const group = g.recipe_group(r);
     const words = `${names.join(' ')} ${g.recipe_group_name(group)} ${relatedWords(names[0])}`.toLowerCase();
-    const tile: Tile = { id: r, item: out, root, group, order: g.recipe_order(r), words, state: 'short' };
+    const order = g.recipe_order(r);
+    const tile: Tile = { id: r, item: out, root, group, order, name: names[0], words, state: 'short', score: 3 };
     root.addEventListener('click', (e) => {
       if (tile.state !== 'ready') this.openGuide(out);
       else if (g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
@@ -185,11 +193,12 @@ export class BuildMenu {
 
   /** A tile for an item no hand recipe makes: its search words are its name and what goes into it. */
   private makeGuideTile(item: number): Tile {
-    const g = this.game;
+    const name = this.game.item_name(item);
     const root = this.tileRoot(item);
     root.dataset.state = 'guide';
-    const words = `${g.item_name(item)} ${wayWords(g, item)} ${relatedWords(g.item_name(item))}`.toLowerCase();
-    const tile: Tile = { id: -1, item, root, group: this.groupNames.length - 1, order: item, words, state: 'guide' };
+    const words = `${name} ${wayWords(this.game, item)} ${relatedWords(name)}`.toLowerCase();
+    const group = this.groupNames.length - 1;
+    const tile: Tile = { id: -1, item, root, group, order: item, name, words, state: 'guide', score: 3 };
     root.addEventListener('click', () => this.openGuide(item));
     this.hover(tile);
     return tile;
@@ -213,19 +222,36 @@ export class BuildMenu {
     tile.root.addEventListener('blur', () => this.hideInfo());
   }
 
+  private showInfo(t: Tile): void {
+    this.hovered = t;
+    this.info.show(t, this.groupNames[t.group]);
+  }
+
   private openGuide(item: number): void {
     this.hideInfo();
     this.guide.open(item);
   }
 
-  /** Finds the tiles that match the search and filter (counts per filter go on its button) and pages them. */
+  /** Enter opens the best match's page; the down arrow moves into the results. */
+  private searchKey(e: KeyboardEvent): void {
+    if (e.key === 'Enter' && this.best) {
+      e.preventDefault();
+      this.openGuide(this.best.item);
+    } else if (e.key === 'ArrowDown' && this.shown.length > 0) {
+      e.preventDefault();
+      this.shown[0].root.focus();
+    }
+  }
+
+  /** Finds the tiles that match the search and filter (counts per filter go on its button) and pages them; a search
+   * ranks them by name. */
   private applyFilter(): void {
     const words = this.search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    const matches = (t: Tile) => words.every((w) => hasWord(t.words, w));
     const counts: Record<Filter, number> = { unlocked: 0, all: 0, ready: 0, short: 0, locked: 0 };
     const visible: Tile[] = [];
     for (const t of this.tiles) {
-      if (!matches(t)) continue;
+      if (!words.every((w) => hasWord(t.words, w))) continue;
+      t.score = nameScore(t.name, words);
       if (t.state === 'guide') {
         if (words.length > 0 && (this.filter === 'all' || this.filter === 'unlocked')) visible.push(t);
         continue;
@@ -240,21 +266,28 @@ export class BuildMenu {
       b.textContent = `${f.label} ${counts[f.id]}`;
       b.setAttribute('aria-pressed', String(f.id === this.filter));
     }
+    // A stable sort: within a score, the category order stays.
+    if (words.length > 0) visible.sort((a, b) => a.score - b.score);
+    this.best?.root.classList.remove('best');
+    this.best = visible.length > 0 && visible[0].score < 3 ? visible[0] : null;
+    this.best?.root.classList.add('best');
     this.empty.classList.toggle('hidden', visible.length > 0);
-    this.layout(visible);
+    this.layout(visible, words.length > 0);
   }
 
-  /** Cuts `visible` (in category order) into pages: a new category starts a page, and a page holds as many
-   * tiles as the grid has room for. Nothing is laid out while the menu is hidden. */
-  private layout(visible: Tile[]): void {
+  /** Cuts `visible` (in order) into pages: a new section (a category; a `search` is one section, so its best results
+   * share the first page) starts a page, and a page holds as many tiles as the grid has room for. Nothing is laid out
+   * while hidden. */
+  private layout(visible: Tile[], search: boolean): void {
     const size = tilesPerPage(this.grid, TILE_H, TILE_GAP);
     if (size === 0) return;
+    const sectionOf = (t: Tile) => (search ? RESULTS : t.group);
     this.pages = [];
     const infos: PageInfo[] = [];
     for (let i = 0; i < visible.length; ) {
-      const group = visible[i].group;
+      const section = sectionOf(visible[i]);
       let end = i;
-      while (end < visible.length && visible[end].group === group) end++;
+      while (end < visible.length && sectionOf(visible[end]) === section) end++;
       // A page ends before a building's tiers (Mk1, Mk2, ...) that would be split over two pages, unless they are
       // more than a page.
       const cuts: number[] = [i];
@@ -268,9 +301,9 @@ export class BuildMenu {
       }
       const parts = cuts.length - 1;
       for (let p = 0; p < parts; p++) {
-        const name = this.groupNames[group];
+        const name = this.sectionName(section);
         const title = parts > 1 ? `${name} (${p + 1} of ${parts})` : name;
-        this.pages.push({ title, group, part: p + 1, parts, tiles: visible.slice(cuts[p], cuts[p + 1]) });
+        this.pages.push({ section, part: p + 1, parts, tiles: visible.slice(cuts[p], cuts[p + 1]) });
         infos.push({ title, gap: p === 0 });
       }
       i = end;
@@ -280,16 +313,20 @@ export class BuildMenu {
     this.showPage();
   }
 
-  /** One tab per category that has a page; clicking jumps to the category's first page. */
+  private sectionName(section: number): string {
+    return section === RESULTS ? `Results for “${this.search.value.trim()}”` : this.groupNames[section];
+  }
+
+  /** One tab per section that has a page; clicking jumps to the section's first page. */
   private makeTabs(): void {
     const seen = new Set<number>();
     const buttons: HTMLButtonElement[] = [];
     this.pages.forEach((page, index) => {
-      if (seen.has(page.group)) return;
-      seen.add(page.group);
-      const b = h('button', 'craft-tab', this.groupNames[page.group]);
+      if (seen.has(page.section)) return;
+      seen.add(page.section);
+      const b = h('button', 'craft-tab', this.sectionName(page.section));
       b.type = 'button';
-      b.dataset.group = String(page.group);
+      b.dataset.section = String(page.section);
       b.addEventListener('click', () => this.pager.go(index));
       buttons.push(b);
     });
@@ -297,13 +334,12 @@ export class BuildMenu {
     this.tabs.classList.toggle('hidden', buttons.length < 2);
   }
 
-  /** Labels a page-step button with where it leads: another page of this category, or the category after it. */
+  /** Labels a page-step button with where it leads: another page of this section, or the section after it. */
   private stepButton(b: HTMLButtonElement, to: Page | undefined, from: Page | undefined, before: string, after: string) {
     b.classList.toggle('hidden', !to || !from);
     if (!to || !from) return;
-    const next = to.part > from.part || to.group > from.group;
-    const lead = next ? 'Next' : 'Previous';
-    const word = to.group !== from.group ? `${lead}: ${this.groupNames[to.group]}` : `${lead} page`;
+    const lead = this.pages.indexOf(to) > this.pages.indexOf(from) ? 'Next' : 'Previous';
+    const word = to.section !== from.section ? `${lead}: ${this.sectionName(to.section)}` : `${lead} page`;
     b.textContent = before + word + after;
   }
 
@@ -312,83 +348,24 @@ export class BuildMenu {
     const index = this.pager.page;
     const page = this.pages[index];
     const tiles = page ? page.tiles : [];
-    this.pageTitle.textContent = page ? this.groupNames[page.group] : '';
+    this.pageTitle.textContent = page ? this.sectionName(page.section) : '';
     this.pageNote.textContent = page && page.parts > 1 ? `Page ${page.part} of ${page.parts}` : '';
     this.stepButton(this.pageBack, this.pages[index - 1], page, '‹ ', '');
     this.stepButton(this.pageNext, this.pages[index + 1], page, '', ' ›');
     for (const b of Array.from(this.tabs.children)) {
-      b.setAttribute('aria-pressed', String(page !== undefined && (b as HTMLElement).dataset.group === String(page.group)));
+      const on = page !== undefined && (b as HTMLElement).dataset.section === String(page.section);
+      b.setAttribute('aria-pressed', String(on));
     }
     if (tiles.length === this.shown.length && tiles.every((t, i) => t === this.shown[i])) return;
     this.shown = tiles;
     this.grid.replaceChildren(...tiles.map((t) => t.root));
   }
 
-  /** Whether the chosen state filter lets `t` through. */
+  /** Whether the chosen state filter lets `t` through. "Unlocked" still shows a locked tile the search names: you
+   * typed its name, so it should come up (dimmed, with its lock). */
   private passes(t: Tile): boolean {
     if (this.filter === 'all') return true;
-    return this.filter === 'unlocked' ? t.state !== 'locked' : t.state === this.filter;
-  }
-
-  /** Fills the info card for `t` and places it beside the tile, inside the window. */
-  private showInfo(t: Tile): void {
-    const g = this.game;
-    this.hovered = t;
-    const out = t.item;
-    const title = h('h4', '', g.item_name(out));
-    const n = t.id < 0 ? 1 : g.recipe_output_count(t.id);
-    if (n > 1 && g.tool_uses(out) === 0) title.append(h('span', 'craft-yield', ` ×${n}`));
-    const icon = h('canvas', 'card-icon');
-    icon.width = icon.height = ICON_PX;
-    icon.getContext('2d')!.drawImage(this.icon(out), 0, 0);
-    const head = h('div', 'card-head');
-    head.append(icon, title, h('span', 'card-group', this.groupNames[t.group]));
-    if (t.id < 0) {
-      const ways = waySummary(g, out).map((line) => h('p', 'craft-way', line));
-      this.place(t, [head, h('p', 'craft-blurb', 'No hand recipe makes it:'), ...ways, h('p', 'craft-status ready', 'Click for how to get it.')]);
-      return;
-    }
-    const inputs = h('div', 'craft-inputs');
-    const flat = g.recipe_inputs(t.id);
-    for (let k = 0; k + 1 < flat.length; k += 2) {
-      const item = flat[k], need = flat[k + 1], have = g.item_total(item);
-      const row = h('div', have < need ? 'craft-input short' : 'craft-input');
-      const icon = h('canvas', 'craft-input-icon');
-      icon.width = icon.height = ICON_PX;
-      icon.getContext('2d')!.drawImage(this.icon(item), 0, 0);
-      const name = h('span', '', g.item_name(item));
-      // What is missing says where it comes from, so the card alone answers the next question.
-      if (have < need) name.append(h('span', 'craft-source', ` · ${sourceHint(g, item)}`));
-      row.append(icon, name, h('span', 'craft-have', `${have}/${need}`));
-      inputs.append(row);
-    }
-    const secs = g.recipe_tenths(t.id) / 10;
-    const parts = g.recipe_part_crafts(t.id);
-    const time = h('p', 'craft-time', `Takes ${secs} s by hand`);
-    if (parts > 0) time.append(` (${parts} part crafts first, queued for you)`);
-    const tech = g.recipe_locked_by(t.id);
-    const status =
-      t.state === 'locked'
-        ? `Research ${g.tech_name(tech)} to unlock it (T). Click for how to get it.`
-        : t.state === 'ready'
-          ? `Click to queue it · Shift-click for up to ${BULK_CRAFT}`
-          : 'Click for where the missing materials come from.';
-    const facts = factsBlock(g, out);
-    const apart = takeApartNote(g, t.id);
-    const blurb = h('p', 'craft-blurb', g.recipe_blurb(t.id));
-    const note = h('p', `craft-status ${t.state}`, status);
-    this.place(t, [head, ...(facts ? [facts] : []), blurb, inputs, time, note, ...(apart ? [apart] : [])]);
-  }
-
-  /** Fills the info card with `parts` and places it beside tile `t`, inside the window. */
-  private place(t: Tile, parts: HTMLElement[]): void {
-    this.info.replaceChildren(...parts);
-    this.info.classList.remove('hidden');
-    const r = t.root.getBoundingClientRect(), box = this.info.getBoundingClientRect();
-    const right = r.right + 8 + box.width <= window.innerWidth;
-    const x = right ? r.right + 8 : Math.max(8, r.left - 8 - box.width);
-    const y = Math.min(Math.max(8, r.top), window.innerHeight - box.height - 8);
-    this.info.style.transform = `translate(${x}px, ${y}px)`;
+    return this.filter === 'unlocked' ? t.state !== 'locked' || t.score < 3 : t.state === this.filter;
   }
 }
 

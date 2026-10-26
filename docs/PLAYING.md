@@ -159,7 +159,8 @@ research still locks. Hover a recipe for its description, materials and how long
 Shift-click for up to five.
 
 **The item guide answers "how do I get this?" for every item.** The search also finds what no hand recipe makes
-(concrete, quicklime, steel, ore), as dashed tiles on a last page. Click one, or any recipe you cannot craft yet, and
+(concrete, quicklime, steel, ore), as dashed tiles, and ranks: items named by what you typed come first (even locked
+ones), then what is made from them; Enter opens the best match's page. Click one, or any recipe you cannot craft yet, and
 its page lists every way to get it: by hand, in which machine from what (and the research it needs), or where in the
 world to find it (for ore: how deep, in which lands, how to spot it). Every ingredient, machine and product on a page
 opens its own page, so you can follow a chain to the ground, then come back with Back. A missing material on a

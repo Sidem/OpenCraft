@@ -1,0 +1,80 @@
+/* The build menu's info card (craft-info.ts): beside a hovered tile, its materials, time and what to do. */
+
+.craft-info {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 12;
+  width: 300px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(14, 16, 22, 0.98);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.craft-info h4 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.craft-blurb {
+  margin: 4px 0 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.craft-inputs {
+  display: grid;
+  gap: 3px;
+}
+
+.craft-input {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.craft-input-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.craft-have {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.craft-input.short .craft-have {
+  color: #ff9a86;
+}
+
+.craft-time {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+
+.craft-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.craft-status.ready,
+.craft-status.locked {
+  color: var(--accent);
+}
+
+.craft-source {
+  color: var(--muted);
+}
+
+.craft-way {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}

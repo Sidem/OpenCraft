@@ -257,6 +257,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-26: search ranks by name** (user: typing "concrete" showed the Blast Furnace, made from concrete, and Concrete
+  only on the last page). While searching, the build menu drops its category pages for one ranked list
+  (`nameScore` in `ui/craft-terms.ts`: the name, its start, its words, then material and related matches), a locked item
+  named by the search shows under "Unlocked", the best match is lit and Enter opens its guide page. The hover card moved to
+  `ui/craft-info.ts` to keep `crafting.ts` in budget. Checked: `web/test/craft-terms.test.mjs`; the play-tester's save in
+  the browser pane ("concrete": Concrete first, all 8 results on page 1; "quick": Quicklime first).
+
 - **2026-10-26: the item guide** (a playtester with Masonry, Assembly and Steelmaking done, 10.6 h in, could not find out
   how to make quicklime for concrete: the build menu searched hand recipes only, machine recipes showed only in a machine's
   panel, and limestone's depth only in the map's ore guide). `item_guide.rs` lists every way to get an item from the tables
