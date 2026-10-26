@@ -427,6 +427,7 @@ fn a_powered_line_works_where_no_chunk_is_loaded() {
     for (i, block) in [GENERATOR, POLE, CONSTRUCTOR].into_iter().enumerate() {
         sim.apply(P, Action::Give { item: block.into(), count: 1 });
         let pos = at(i as i32 * 4);
+        sim.world.set_block_anywhere(pos - IVec3::new(0, 1, 0), STONE); // a pole needs something to stand on
         sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing: 0, against: pos });
     }
     let rods = crate::recipes::MACHINE_RECIPES.iter().position(|r| r.main().0 == IRON_ROD).unwrap() as u16;

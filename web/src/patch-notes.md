@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-26 · Poles on walls
+- **A power pole placed against a wall is bolted to it** (a plate and two struts) instead of standing in the air. Aim at the side of a wall block and place the pole in front of it.
+- **A pole now needs the ground under it or a wall beside it.** In open air the spot turns red and the card says why; nothing is placed. Poles you already placed stay as they are.
+- **"What's new" shows bold text properly** instead of the stray `**` marks.
+
 ## 2026-10-26 · Find out how to get anything
 - **The build menu's search now finds every item, not only what you craft by hand.** Type "concrete" and it shows up with the items made in machines or found in the world, on a last page.
 - **Click one, or any recipe you cannot craft yet, for its page in the new item guide:** every way to get it (by hand, in which machine from what and the research it needs, or where in the world to dig: how deep, in which lands, how to spot it) and what it is used to make. Every item on a page opens its own page, so concrete leads to quicklime, quicklime to limestone, and limestone to where to dig; Back retraces your steps.

@@ -145,7 +145,7 @@ fn older_saves_load_boxes_poles_and_generators_at_tier_one() {
     let s = Storage::read_state(&mut r).unwrap();
     assert_eq!((s.tier, s.buf.slots.len(), r.u8()), (0, 24, None));
     // The poles and generators wrote it last.
-    let mut old = bytes(&|w| Pole { pos: IVec3::ZERO, tier: 0 }.write_state(w));
+    let mut old = bytes(&|w| Pole { pos: IVec3::ZERO, tier: 0, wall: 0 }.write_state(w));
     old.pop();
     let mut r = ByteReader::new(&old);
     r.version = 20;

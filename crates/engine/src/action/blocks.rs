@@ -164,6 +164,11 @@ impl Sim {
         if block::is_sapling(placed) && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
             return false;
         }
+        // A pole needs ground under it or a wall beside it, never open air (`factory/pole_mount.rs`).
+        let solid = |p| block::SOLID[self.world.block_anywhere_or_generate(p) as usize];
+        if placed == block::POLE && !factory::pole_mount::is_held_up(solid, pos) {
+            return false;
+        }
         let old = self.world.block_anywhere_or_generate(pos);
         if !crate::block::replaceable(old) || !self.world.set_block_anywhere(pos, placed) {
             return false;

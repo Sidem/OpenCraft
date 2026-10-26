@@ -94,7 +94,7 @@ impl Game {
         let Some((anchor, link)) = self.long_pole_link() else { return };
         let free = self.footprint_ghost().is_some_and(|g| g.3.iter().all(|c| !c.1));
         if free {
-            factory::preview_pole(&mut self.instances, LONG_TIER, anchor.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye);
+            factory::preview_pole(&mut self.instances, LONG_TIER, 0, anchor.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye);
         }
         let Some((to, _)) = far_pole(link) else { return };
         let Some(from) = self.sim.factory.pole_top(to) else { return };

@@ -23,6 +23,7 @@ fn site(sim: &mut Sim, dx: i32, drones: u32) -> (IVec3, IVec3) {
     let at = |x: i32| IVec3::new(900 + dx + x, 200, -900);
     let (gen, pole, port) = (at(0), at(4), at(9));
     put(sim, GENERATOR.into(), gen);
+    sim.world.set_block_anywhere(pole - IVec3::new(0, 1, 0), STORAGE); // a pole needs something to stand on
     put(sim, POLE.into(), pole);
     put(sim, DRONE_PORT.into(), port);
     sim.apply(P, Action::Give { item: COAL_ORE.into(), count: 20 });

@@ -45,6 +45,7 @@ fn base_on_ground(sim: &mut Sim, drones: u32) -> (IVec3, IVec3) {
 fn base_at(sim: &mut Sim, drones: u32, y: i32) -> (IVec3, IVec3) {
     let (gen, pole, port) = (at(y, 0, 0), at(y, 4, 0), at(y, 9, 0));
     put(sim, GENERATOR.into(), gen);
+    sim.world.set_block_anywhere(pole - IVec3::new(0, 1, 0), DIRT); // a pole needs something to stand on
     put(sim, POLE.into(), pole);
     put(sim, DRONE_PORT.into(), port);
     sim.apply(P, Action::Give { item: COAL_ORE.into(), count: 20 });

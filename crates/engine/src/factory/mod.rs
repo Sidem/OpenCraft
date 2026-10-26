@@ -43,6 +43,7 @@ mod panel;
 mod pipes;
 mod placed;
 mod pole;
+pub mod pole_mount;
 mod ports;
 mod power;
 pub mod power_mix;
@@ -68,7 +69,7 @@ mod wiring;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE};
+use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE, SOLID};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
@@ -260,7 +261,12 @@ impl Factory {
                     LONG_POLE => pole::LONG_TIER,
                     _ => 0,
                 };
-                add_to(&mut self.poles, Pole { pos, tier }, at, Slot::Pole)
+                let wall = if block == POLE {
+                    pole_mount::wall_for(|p| SOLID[world.block_anywhere_or_generate(p) as usize], pos, against)
+                } else {
+                    0
+                };
+                add_to(&mut self.poles, Pole { pos, tier, wall }, at, Slot::Pole)
             }
             Kind::Lab => add_to(&mut self.labs, Lab::new(pos), at, Slot::Lab),
             Kind::Pipe => add_to(&mut self.pipework, Pipework::new(pos, block, facing), at, Slot::Pipe),

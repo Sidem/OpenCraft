@@ -173,6 +173,8 @@ size.
   pole (further off, at the widest spacing towards the aim); hold Shift to snap to the widest spacing along
   your view, and hold Shift and right-click while walking to lay a line. A new pole wires itself to the
   nearest powered pole in range (one with a generator on its grid), so it is live at once, and it is selected.
+  A pole needs the ground under it or a wall beside it (the spot turns red in open air); with no ground under
+  it, it is bolted to the wall (a plate and two struts), on the side you aimed at.
   **Wiring:** right-click a pole to select it (blue box; right-click again to deselect). Aim at a machine
   with no power and it shows a green outline and a wire: click to connect. Crouch-click moves a machine to
   the selected pole, cuts a wire, or links two poles (the label says which). A power cable (4 from an iron

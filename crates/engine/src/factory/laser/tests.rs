@@ -24,6 +24,9 @@ fn at(x: i32) -> IVec3 {
 }
 
 fn put(sim: &mut Sim, block: BlockId, pos: IVec3, facing: u8) {
+    if block == POLE {
+        sim.world.set_block_anywhere(pos - IVec3::new(0, 1, 0), STONE); // a pole needs something to stand on
+    }
     sim.apply(P, Action::Give { item: block.into(), count: 1 });
     sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing, against: pos });
     assert_eq!(sim.world.block_anywhere_or_generate(pos), block, "placed at {pos:?}");

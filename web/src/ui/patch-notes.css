@@ -45,6 +45,13 @@
   margin-top: 3px;
 }
 
+.notes-items code {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+}
+
 .notes-more {
   justify-self: start;
   font-size: 13px;

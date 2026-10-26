@@ -39,6 +39,9 @@ fn count(sim: &mut Sim, lo: IVec3, hi: IVec3, b: BlockId) -> u32 {
 }
 
 fn put(sim: &mut Sim, block: BlockId, pos: IVec3, facing: u8) {
+    if block == POLE {
+        sim.world.set_block_anywhere(pos - IVec3::new(0, 1, 0), STONE); // a pole needs something to stand on
+    }
     sim.apply(P, Action::Give { item: block.into(), count: 1 });
     sim.apply(P, Action::PlaceBlock { pos, slot: 0, facing, against: pos - IVec3::new(0, 1, 0) });
     assert_eq!(sim.world.block_anywhere_or_generate(pos), block);

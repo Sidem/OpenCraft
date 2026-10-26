@@ -39,8 +39,8 @@ fn a_column_of_cables_carries_power_from_a_pole_to_a_machine_below() {
 
 #[test]
 fn cables_link_by_touching_and_to_poles_within_the_poles_reach() {
-    let cable = |x, y, z| Pole { pos: v(x, y, z), tier: CABLE_TIER };
-    let pole = Pole { pos: v(0, 0, 0), tier: 0 };
+    let cable = |x, y, z| Pole { pos: v(x, y, z), tier: CABLE_TIER, wall: 0 };
+    let pole = Pole { pos: v(0, 0, 0), tier: 0, wall: 0 };
     assert!(linked(&cable(0, 1, 0), &cable(0, 2, 1)) && !linked(&cable(0, 1, 0), &cable(0, 3, 0)));
     assert!(linked(&pole, &cable(0, 5, 0)), "a pole reaches a cable within its own machine reach");
     assert!(!linked(&pole, &cable(0, 6, 0)));
@@ -80,7 +80,7 @@ fn cables_survive_a_save_round_trip_and_stay_out_of_the_pole_upgrades() {
 fn a_version_21_cable_kept_its_tier_3_and_is_still_a_cable_while_tier_3_is_now_the_substation() {
     use crate::bytes::{ByteReader, ByteWriter};
     let mut w = ByteWriter::default();
-    Pole { pos: v(1, 2, 3), tier: 3 }.write_state(&mut w);
+    Pole { pos: v(1, 2, 3), tier: 3, wall: 0 }.write_state(&mut w);
     let read = |version: u32| {
         let mut r = ByteReader::new(&w.bytes);
         r.version = version;

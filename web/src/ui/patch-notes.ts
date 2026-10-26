@@ -6,6 +6,7 @@
 import './patch-notes.css';
 import source from '../patch-notes.md?raw';
 import { button, h } from './dom';
+import { inlinePieces } from './inline-text';
 
 const STORAGE_KEY = 'opencraft.notes.seen';
 const REPO = 'https://github.com/Sidem/OpenCraft';
@@ -30,7 +31,7 @@ export class PatchNotes {
       const head = h('header', 'notes-head');
       head.append(h('h3', '', u.title), h('time', 'notes-date', formatDate(u.date)));
       const list = h('ul', 'notes-items');
-      for (const item of u.items) list.append(h('li', '', item));
+      for (const item of u.items) list.append(noteItem(item));
       entry.append(head, list);
       this.el.append(entry);
     }
@@ -81,6 +82,16 @@ export function parse(text: string): Update[] {
     }
   }
   return updates;
+}
+
+/** One list item: its **bold** and `code` spans become elements (never innerHTML: the text is data). */
+function noteItem(text: string): HTMLLIElement {
+  const li = h('li');
+  for (const piece of inlinePieces(text)) {
+    if (piece.kind === 'plain') li.append(document.createTextNode(piece.text));
+    else li.append(h(piece.kind === 'bold' ? 'strong' : 'code', '', piece.text));
+  }
+  return li;
 }
 
 const key = (u: Update) => `${u.date} ${u.title}`;

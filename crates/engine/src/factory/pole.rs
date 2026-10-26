@@ -16,6 +16,7 @@ use crate::math::{IVec3, Vec3};
 
 use super::footprint::Footprint;
 use super::links::Slot;
+use super::pole_mount::{mount_model, SIDES};
 use super::render::push_box;
 use super::{Factory, Machine};
 
@@ -42,6 +43,10 @@ pub const POLE_TIERS: [PoleTier; 4] = [
 pub const POLE_RISE: f64 = 1.0;
 /// Where an ordinary pole's wires hang, above the bottom of its cell.
 pub const POLE_WIRE_Y: f64 = 0.92 + POLE_RISE;
+
+/// The saved byte holds the tier in its low bits and the wall above them.
+const TIER_BITS: u32 = 4;
+const TIER_MASK: u8 = (1 << TIER_BITS) - 1;
 
 /// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it). It was 3 in the few saves of
 /// version 21 that hold cables, before the Mk4 pole took that number.
@@ -84,6 +89,8 @@ pub fn span(a: u8, b: u8) -> i32 {
 pub struct Pole {
     pub pos: IVec3,
     pub tier: u8,
+    /// The side it is mounted on (`pole_mount::SIDES` index plus one), 0 for a pole standing on the ground.
+    pub wall: u8,
 }
 
 impl Pole {
@@ -165,14 +172,17 @@ impl Machine for Pole {
 
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
-        w.u8(self.tier);
+        // The wall rides in the bits above the tier (a tier fits in four), so saves that predate it read as no wall.
+        w.u8(self.tier | self.wall << TIER_BITS);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Pole> {
         let pos = r.ivec3()?;
-        let tier = if r.version >= 21 { r.u8()? } else { 0 };
+        let packed = if r.version >= 21 { r.u8()? } else { 0 };
+        let (tier, wall) = (packed & TIER_MASK, packed >> TIER_BITS);
         let tier = if r.version == 21 && tier == 3 { CABLE_TIER } else { tier };
-        (((tier as usize) < POLE_TIERS.len()) || tier == CABLE_TIER || tier == LONG_TIER).then_some(Pole { pos, tier })
+        let known = ((tier as usize) < POLE_TIERS.len()) || tier == CABLE_TIER || tier == LONG_TIER;
+        (known && wall as usize <= SIDES.len()).then_some(Pole { pos, tier, wall })
     }
 
     fn contents(&self) -> Vec<Stack> {
@@ -221,7 +231,11 @@ impl Machine for Pole {
         if self.is_long() {
             return long_model(out, rel + LONG_FOOTPRINT.centre(0));
         }
-        push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
+        if self.wall == 0 {
+            push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
+        } else {
+            mount_model(out, rel, self.wall);
+        }
         let post = 0.85 + POLE_RISE as f32;
         push_box(
             out,
@@ -273,7 +287,7 @@ impl Factory {
 
     /// Whether a cable put at `pos` would join a grid: a pole reaches it or a cable touches it.
     pub fn cable_joins(&self, pos: IVec3) -> bool {
-        let probe = Pole { pos, tier: CABLE_TIER };
+        let probe = Pole { pos, tier: CABLE_TIER, wall: 0 };
         self.poles.iter().any(|p| p.pos != pos && linked(&probe, p))
     }
 
@@ -315,7 +329,7 @@ pub enum LongLink {
 
 /// Where the wires of a long-distance pole anchored at `anchor` would hang, in the world (the placing preview).
 pub fn long_top(anchor: IVec3) -> Vec3 {
-    Pole { pos: anchor, tier: LONG_TIER }.wire_point()
+    Pole { pos: anchor, tier: LONG_TIER, wall: 0 }.wire_point()
 }
 
 /// The long-distance pole's lattice tower, 2×2×3; `c` is its centre relative to the camera.
@@ -351,10 +365,10 @@ pub(super) fn long_accent(out: &mut Vec<f32>, c: Vec3, layer: u16) {
     push_box(out, c + Vec3::new(0.0, 1.15, 0.0), 0.0, [0.5, 0.18, 0.32], 0.0, tex, false);
 }
 
-/// A pole's model where none stands yet (the pole tool's preview, `power_tools.rs`); `rel` is its cell
-/// centre relative to the camera.
-pub fn preview_pole(out: &mut Vec<f32>, tier: u8, rel: Vec3) {
-    Pole { pos: IVec3::ZERO, tier }.model(out, rel, 0.0);
+/// A pole's model where none stands yet (the pole tool's preview, `power_tools.rs`) on wall `wall` (0: none);
+/// `rel` is its cell centre relative to the camera.
+pub fn preview_pole(out: &mut Vec<f32>, tier: u8, wall: u8, rel: Vec3) {
+    Pole { pos: IVec3::ZERO, tier, wall }.model(out, rel, 0.0);
 }
 
 /// A wire between two camera-relative points, drawn like the placed ones with texture `layer` (the pole tool's

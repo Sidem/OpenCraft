@@ -226,6 +226,7 @@ fn a_pole_charges_the_pack_to_its_cap_and_losing_the_pole_stops_it() {
     let pole = IVec3::new(900, 200, -900);
     sim.apply(P, Action::Charge { pole, on: true });
     assert_eq!(helpers(&sim).pole, None, "no pole stands there");
+    sim.world.set_block_anywhere(pole - IVec3::new(0, 1, 0), STORAGE); // a pole needs something to stand on
     sim.apply(P, Action::Give { item: ItemId::block(POLE), count: 1 });
     let slot = sim.player(P).unwrap().inventory.slots.iter().position(|s| s.item == ItemId::block(POLE)).unwrap();
     sim.apply(P, Action::PlaceBlock { pos: pole, slot: slot as u8, facing: 0, against: pole });

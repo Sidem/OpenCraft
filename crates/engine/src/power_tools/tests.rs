@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{GENERATOR, LONG_POLE, MINER, STONE, STORAGE};
+use crate::block::{CABLE, GENERATOR, LONG_POLE, MINER, STONE, STORAGE};
 use crate::factory::Kind;
 use crate::item::ItemId;
 use crate::raycast::RayHit;
@@ -144,6 +144,31 @@ fn the_ghost_pole_goes_where_aimed_and_shift_snaps_it_to_full_reach() {
     g.select_slot(8);
     g.run_ticks(2);
     assert_eq!(g.pole_ghost(), None);
+}
+
+#[test]
+fn a_pole_in_open_air_is_refused_and_one_against_a_wall_is_bolted_to_it() {
+    let (mut g, y) = on_a_platform(POLE.into(), 8);
+    put(&mut g, POLE, v(0, y + 1, 0));
+    // Aimed at the air four blocks up: red, with the reason, and a click places nothing.
+    aim_at(&mut g, v(4, y + 3, 0), v(0, 1, 0));
+    let ghost = g.pole_ghost().unwrap();
+    assert_eq!((ghost.pos, ghost.free, ghost.held_up), (v(4, y + 4, 0), true, false));
+    assert!(g.power_label().contains("Needs the ground under it or a wall beside it"), "{}", g.power_label());
+    assert_eq!(g.power_boxes(), [4, y + 4, 0, 4, y + 4, 0, BLOCKED_RED]);
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(poles(&g), [v(0, y + 1, 0)]);
+
+    // The same height beside a wall block: held, drawn on the wall, and the click places it there.
+    g.sim.world.set_block(v(5, y + 4, 0), STONE);
+    aim_at(&mut g, v(5, y + 4, 0), v(-1, 0, 0));
+    let ghost = g.pole_ghost().unwrap();
+    assert_eq!((ghost.pos, ghost.held_up, ghost.wall), (v(4, y + 4, 0), true, 1));
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    assert_eq!(poles(&g), [v(0, y + 1, 0), v(4, y + 4, 0)]);
+    assert_eq!(g.sim.factory.pole_wall(v(4, y + 4, 0)), Some(1), "east: the wall block it was aimed at");
 }
 
 #[test]
