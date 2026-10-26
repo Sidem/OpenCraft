@@ -390,3 +390,42 @@ U1 to U3 and pod channels, as recorded when they were built.
   with the links (`process/kinds.rs`), same order: the big base's tick went from 180 to 112 µs (median of 6, interleaved).
 - **2026-10-18:** real 3D item models, the water rework (smooth surfaces, still, flowing, rapid and falling water),
   per-block texture turning, and the realistic art batches (records in `docs/history/CHANGELOG_R.md`).
+
+## Moved from the plan's recent changes (2026-10-26)
+
+- **2026-10-25: take apart what you built by mistake** (user request: a wrong Miner should become a Coal Miner). `take_apart.rs`
+  (core): `Action::TakeApart { recipe, times }` (codec tag 64; reading moved to `action/codec/read.rs`) takes whole batches
+  (`Recipe::count`) of a held item apart at once: `KEEP_PERCENT` of each input, rounded, and of the iron kept back a third as
+  scrap metal (`SCRAP_IRON`). The harbour's raw-content walk moved to `recipes/content.rs` so both share it (prices unchanged).
+  Refused: tools (a workshop mends worn ones whole) and any recipe whose parts hold more of a raw material than the item's
+  cheapest route: empty canisters (a refining byproduct: oil would become steel) and underpasses Mk2 to Mk4 (the upgrader's
+  route is cheaper). Build menu: right-click a tile, Shift for five; the card says what comes back (`ui/take-apart.ts`). No
+  save change, golden hash unmoved. Checked: 7 tests in `take_apart/tests.rs` (the Miner to Coal Miner path through actions,
+  every hand and machine route per raw material, the refused list, workshop half price, tools, no scrap from stone); a linear
+  program (scipy HiGHS, kept out of the repo) over 592 rows (hand, workshop, machine, forge, harbour) found no item cheaper in
+  any ore once the 135 take-apart rows are added, and caught all three loops the rule refuses when injected (stone to scrap:
+  iron for nothing; canisters: 242 items; underpasses: a Mk2 belt for 0.8 iron ore, not 1). A first draft paid scrap for any
+  lost material and would have turned stone into iron. Seen in the browser pane: a real right-click took a Miner apart (4
+  plates, 3 rods, 5 wire, 1 scrap) and the Coal Miner crafted from it.
+
+- **2026-10-25: the coal miner** (user request: a drill before the Mk1 miner that burns coal, weaker, no upgrades). Block 143
+  (`block/coal_miner.rs`, a third block set joined in `defs.rs`), a `Kind::Miner` machine at tier byte `COAL_TIER` (one past
+  `MINER_TIERS`, no `FAMILIES` row so no kit touches it), with `miner_burner.rs` holding its fuel stack and energy (kW·ticks like
+  the generator), `COAL_STATS` (0.5 units/s, 40%, 10 kW of fire) and its panel. It sets its own `speed` from the fire, takes no
+  wire (`wants_power`, `miner_pole`, `powered_cells`), burns only on ticks it can dig, and on coal keeps 3 back from its own
+  digging. Fuel by hand through the panel only: miners are never `Sink`s, so belts cannot feed it. Hand recipe from iron and stone
+  (no tech), first in the build menu; hints mention it. Save version 59 (a tier-5 miner writes its fuel after the tier byte;
+  no golden hash moved). Checked: 8 tests in `miner_burner/tests.rs` (no fuel waits, burns only while digging, a full output
+  burns nothing, coal on coal runs by itself, panel and take-back, no grid, bytes), `npm run check` green.
+
+- **2026-10-24: tips stay done; the machine-stopped lesson (L1).** The opening kept `Opening::progress` (start, mended, over;
+  `opening.rs`) and the main tips `Sim::hints_reached`, checked each second by `Sim::step_tips` (`hints.rs`) from every player's
+  inventory, so taking machines away to reuse them never brings a done tip back; `Sim::taught` (`lessons.rs`) holds the lesson
+  bits, the side tips' among them. `stall_lesson.rs` (on `Game`, scanning `Factory::samples` each second) feeds
+  `lesson_now`, `lesson_text`, `lesson_marker` and `lesson_dismiss` (`api/lessons.rs`) to `ui/hints.ts`. Save version 58
+  (57 was the two tip latches); the golden hash was re-recorded twice. Older saves: the opening reads its progress from the
+  scene (`Opening::migrate`), tips start at 0, stall lessons count as taught. Checked: 8 lesson tests (a miner stalled for power
+  shows at 30 s, mending it teaches it, a later stall waits out the quiet spell, the opening furnace stays quiet and the test fails
+  without that rule, 400 random breaks and gives never lose a latch across saves); `check-lessons.mjs` on the 34 h save, the 12 October save,
+  the 3.9 h save and a fresh world, all quiet for 5 minutes (the three saves stall 77, 81 and 6 machines, which is why old saves
+  count as taught).

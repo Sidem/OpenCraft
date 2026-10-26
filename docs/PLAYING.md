@@ -158,6 +158,13 @@ or everything made from a material, and filter by what is unlocked (the default)
 research still locks. Hover a recipe for its description, materials and how long it takes; click it to queue one,
 Shift-click for up to five.
 
+**The item guide answers "how do I get this?" for every item.** The search also finds what no hand recipe makes
+(concrete, quicklime, steel, ore), as dashed tiles on a last page. Click one, or any recipe you cannot craft yet, and
+its page lists every way to get it: by hand, in which machine from what (and the research it needs), or where in the
+world to find it (for ore: how deep, in which lands, how to spot it). Every ingredient, machine and product on a page
+opens its own page, so you can follow a chain to the ground, then come back with Back. A missing material on a
+recipe's hover card says where it comes from.
+
 **Crafting takes time and queues.** Each hand craft runs for a few seconds (90 ticks plus 30 per material, at most
 20 s; a plate 2.5 s, a miner 9 s), one after another, shown above the hotbar; click ✕ to cancel that
 order and get everything back, including the parts it had already made. The materials are paid when you queue.

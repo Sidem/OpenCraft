@@ -201,6 +201,11 @@ pub fn spec(block: BlockId) -> Option<&'static ProcessSpec> {
     SPECS.iter().find(|s| s.block == block)
 }
 
+/// The block of the first processor in [`SPECS`] that makes recipes of `category` (the item guide names it).
+pub fn first_maker(category: Category) -> Option<BlockId> {
+    SPECS.iter().find(|s| s.categories.contains(&category)).map(|s| s.block)
+}
+
 /// Whether the machine `block` makes recipes of `category`.
 pub fn makes(block: BlockId, category: Category) -> bool {
     spec(block).is_some_and(|s| s.categories.contains(&category))

@@ -11,6 +11,7 @@ mod content;
 mod crafting;
 mod creative;
 mod debug;
+mod guide;
 mod hand_waste;
 mod hud;
 mod input;

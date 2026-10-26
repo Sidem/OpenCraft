@@ -79,7 +79,7 @@ pub(super) use solar::run as run_renewables;
 use solar::Store;
 #[cfg(test)]
 pub use specs::SPECS;
-pub use specs::{makes, spec, Energy, Pick, ProcessSpec, ProcessTier};
+pub use specs::{first_maker, makes, spec, Energy, Pick, ProcessSpec, ProcessTier};
 pub use status::Status;
 use status::STATUSES;
 use steam::Steam;

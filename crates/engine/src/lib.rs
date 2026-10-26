@@ -55,6 +55,7 @@ mod hitbox;
 mod interaction;
 mod inventory;
 mod item;
+mod item_guide;
 mod item_models;
 mod item_select;
 mod join;

@@ -59,6 +59,7 @@
 /* The menu fills the height it is given and shows one page of tiles; crafting.ts counts how many fit, so the
    tile height and gap here are TILE_H and TILE_GAP there. */
 .inv-build {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -117,9 +118,20 @@
   background: rgba(250, 149, 73, 0.16);
 }
 
-.craft-tile[data-state='short'],
-.craft-tile[data-state='locked'] {
-  cursor: default;
+/* A guide tile (an item no hand recipe makes, found by a search): dashed, it opens the item guide. */
+.craft-tile[data-state='guide'] {
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.craft-source {
+  color: var(--muted);
+}
+
+.craft-way {
+  margin: 0 0 6px;
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .craft-tile[data-state='short'] > canvas {

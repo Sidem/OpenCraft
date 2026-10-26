@@ -1,0 +1,168 @@
+/* The item guide (item-guide.ts): a page over the build menu, the ways to get an item and what it makes. */
+
+.guide {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* While a page shows, the build menu under it is hidden but keeps its place (and its search). */
+.inv-build:has(> .guide:not(.hidden)) > :not(.guide) {
+  visibility: hidden;
+}
+
+.guide-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.guide-back,
+.guide-close {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.guide-back:hover,
+.guide-close:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.guide-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.guide-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.guide-head h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.guide-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.guide-have {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.guide-title {
+  margin: 14px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.guide-ways {
+  display: grid;
+  gap: 8px;
+}
+
+.guide-way {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.guide-label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.guide-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.guide-inputs,
+.guide-uses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.guide-link:hover,
+.guide-link:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.guide-link.short b {
+  color: #ff9a86;
+}
+
+.guide-link-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.guide-foot {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.guide-lock {
+  color: var(--accent);
+}
+
+.guide-craft {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(250, 149, 73, 0.6);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.guide-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}

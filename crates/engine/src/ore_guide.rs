@@ -43,21 +43,31 @@ pub fn guide_rows(gen: &WorldGen) -> String {
             let parts: Vec<String> = shares.iter().map(|(b, pct)| format!("{} {pct}%", b.name())).collect();
             format!("Share of deposits: {}", parts.join(", "))
         };
-        let mut signs = format!("Exposed: {looks}.");
-        if matches!(ore, OIL_SAND | URANIUM_ORE) {
-            signs = format!(
-                "Never at the surface: {looks}. Only veins and lodes. Scan for it (the Mk2's bearing shows the way), then drill down."
-            );
-        } else if stain.is_empty() {
-            signs += " It leaves no stain: find the right biome far from the start, then scan.";
-        } else if gen.version() >= 2 {
-            signs += &format!(" Buried: {stain} or sand above a vein or lode.");
-        }
+        let signs = signs(gen, ore, stain, looks);
         let label = block::ore_label(ore);
         let name = if matches!(ore, LIMESTONE | OIL_SAND) { label.to_string() } else { format!("{label} ore") };
         out += &format!("{ore}\t{}\t{name}\t{lo}\t{hi}\t{common}\t{signs}\n", ore_color(ore));
     }
     out
+}
+
+/// Where to dig for `ore` in this world, in a few sentences for the item guide (`item_guide.rs`): its depth, where it
+/// is most common, how to spot it and that a scanner finds it. `None` for anything that is not an ore of this world.
+pub fn ore_way(gen: &WorldGen, ore: BlockId) -> Option<String> {
+    let &(_, stain, looks) = GUIDE.iter().find(|g| g.0 == ore)?;
+    if !gen.has_ore(ore) {
+        return None;
+    }
+    let (lo, hi) = gen.ore_band(ore);
+    let mut text = format!("Dig it {lo} to {hi} blocks below the ground; a miner placed on it digs it for you.");
+    let mut shares = ore_shares(ore, gen.version());
+    if gen.version() >= 2 && !shares.is_empty() {
+        crate::math::sort_small_by_key(&mut shares, |s| u32::MAX - s.1);
+        let names: Vec<&str> = shares.iter().take(2).map(|s| s.0.name()).collect();
+        text += &format!(" Most common in {}.", names.join(" and "));
+    }
+    text += &format!(" {} A scanner (R picks the ore) lists it near you.", signs(gen, ore, stain, looks));
+    Some(text)
 }
 
 /// General advice, one line each, true for this world's generator version.
@@ -112,6 +122,22 @@ pub fn stain_reading(gen: &WorldGen, pos: IVec3, stain: BlockId) -> Option<Strin
     Some(format!(
         "{article} {name} lies below: its top is about {depth} blocks down{bedrock}.\nDig straight down, or scan here."
     ))
+}
+
+/// How to spot `ore`: how it looks exposed and, buried, the stain over it (or that it leaves none).
+fn signs(gen: &WorldGen, ore: BlockId, stain: &str, looks: &str) -> String {
+    if matches!(ore, OIL_SAND | URANIUM_ORE) {
+        return format!(
+            "Never at the surface: {looks}. Only veins and lodes. Scan for it (the Mk2's bearing shows the way), then drill down."
+        );
+    }
+    let mut signs = format!("Exposed: {looks}.");
+    if stain.is_empty() {
+        signs += " It leaves no stain: find the right biome far from the start, then scan.";
+    } else if gen.version() >= 2 {
+        signs += &format!(" Buried: {stain} or sand above a vein or lode.");
+    }
+    signs
 }
 
 #[cfg(test)]

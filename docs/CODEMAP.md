@@ -17,7 +17,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content` (names, icons, getters),
   `hud`, `sites`, `save`, `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `opening`, `blueprint`,
-  `hand_waste`, `lessons`, `surroundings`, `debug` (give, teleport, run_ticks, scene building).
+  `hand_waste`, `lessons`, `guide`, `surroundings`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics counts. `authority.rs`: every body, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -101,6 +101,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants).
 - `entities.rs` (loose items), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
+- `item_guide.rs`: every way to get an item (found, hand, machine) and what uses it; a test makes every needed item answerable.
 - `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`, `groups.rs`); never saved.
 - `surroundings/`: nine floats for ambient sound, `roof.rs` (where rain stops).
 
@@ -131,7 +132,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
-    `craft-card.ts`, `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
+    `craft-card.ts`, `item-guide.ts` (an item's page: how to get it, what it makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms), `creative.ts`, `pack-upgrade.ts`.
   - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.

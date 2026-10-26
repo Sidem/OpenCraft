@@ -6,15 +6,17 @@
 // and a state filter (unlocked, the default; all, can craft, missing items, locked). A tile's details (a building's
 // facts: craft-card.ts, description, materials with have/need, the time it takes, what locks it) show in one info card on hover or keyboard
 // focus. Clicking a tile queues one craft (craftqueue.ts shows the queue), Shift-click up to 5; right-clicking takes
-// one apart (take-apart.ts). The inventory panel calls `update` when the inventory changes.
-// To show another fact about a recipe: add it to `showInfo`.
+// one apart (take-apart.ts). Clicking a tile you cannot craft yet opens its page in the item guide (item-guide.ts),
+// and a search also finds the items no hand recipe makes, as guide tiles on a last page that open their page too.
+// The inventory panel calls `update` when the inventory changes. To show another fact about a recipe: `showInfo`.
 
 import './crafting.css';
 import './craft-nav.css';
 import type { Game } from '../wasm/engine.js';
 import { factsBlock } from './craft-card';
-import { relatedWords } from './craft-terms';
+import { hasWord, relatedWords } from './craft-terms';
 import { h } from './dom';
+import { ItemGuide, sourceHint, waySummary, wayWords } from './item-guide';
 import { Pager, tilesPerPage, type PageInfo } from './pager';
 import { takeApart, takeApartNote } from './take-apart';
 
@@ -31,8 +33,11 @@ const FILTERS = [
   { id: 'short', label: 'Missing items' },
   { id: 'locked', label: 'Locked' },
 ] as const;
-type State = 'ready' | 'short' | 'locked';
+/** `guide`: an item no hand recipe makes, shown only for a search. */
+type State = 'ready' | 'short' | 'locked' | 'guide';
 type Filter = (typeof FILTERS)[number]['id'];
+/** The last page's name: the items a search finds that no hand recipe makes. */
+const ELSEWHERE = 'Made in machines or found';
 
 interface Page {
   title: string;
@@ -44,7 +49,9 @@ interface Page {
 }
 
 interface Tile {
+  /** The hand recipe, or -1 for a guide tile. */
   id: number;
+  item: number;
   root: HTMLButtonElement;
   group: number;
   /** Where it sorts inside its category (the engine's `recipe_order`). */
@@ -58,6 +65,7 @@ export class BuildMenu {
   /** Called after something was crafted. */
   onCraft: () => void = () => {};
   readonly el = h('section', 'inv-build');
+  readonly guide: ItemGuide;
   private readonly search = h('input', 'craft-search');
   private readonly filterButtons = new Map<Filter, HTMLButtonElement>();
   private readonly groupNames: string[] = [];
@@ -109,6 +117,9 @@ export class BuildMenu {
 
     for (let g = 0; g < game.recipe_group_count(); g++) this.groupNames.push(game.recipe_group_name(g));
     for (let r = 0; r < game.recipe_count(); r++) this.tiles.push(this.makeTile(r));
+    const byHand = new Set(this.tiles.map((t) => t.item));
+    this.groupNames.push(ELSEWHERE);
+    for (const item of game.guide_items()) if (!byHand.has(item)) this.tiles.push(this.makeGuideTile(item));
     // Tiles keep their category order, and every tier of a building stands together, whatever the recipe order.
     this.tiles.sort((a, b) => a.group - b.group || a.order - b.order);
 
@@ -124,19 +135,21 @@ export class BuildMenu {
     this.pager.wheel(list);
     // The page size follows the menu's size: lay the pages out again whenever the grid is resized.
     new ResizeObserver(() => this.applyFilter()).observe(this.grid);
-    this.el.append(head, filters, this.tabs, list, this.pager.el, this.info);
+    this.guide = new ItemGuide(game, icon);
+    this.el.append(head, filters, this.tabs, list, this.pager.el, this.info, this.guide.el);
   }
 
   /** Recomputes which recipes can be crafted; call when the inventory changed. */
   update(): void {
     const g = this.game;
     for (const t of this.tiles) {
+      if (t.state === 'guide') continue;
       t.state = g.recipe_locked_by(t.id) >= 0 ? 'locked' : g.craftable_times(t.id) > 0 ? 'ready' : 'short';
       t.root.dataset.state = t.state;
-      t.root.setAttribute('aria-disabled', String(t.state !== 'ready'));
     }
     this.applyFilter();
     if (this.hovered) this.showInfo(this.hovered);
+    this.guide.refresh();
   }
 
   /** Hides the info card (the screen closed). */
@@ -148,12 +161,7 @@ export class BuildMenu {
   private makeTile(r: number): Tile {
     const g = this.game;
     const out = g.recipe_output(r);
-    const root = h('button', 'craft-tile');
-    root.type = 'button';
-    const canvas = h('canvas', 'craft-icon');
-    canvas.width = canvas.height = ICON_PX;
-    canvas.getContext('2d')!.drawImage(this.icon(out), 0, 0);
-    root.append(canvas, h('span', 'craft-name', g.item_name(out)));
+    const root = this.tileRoot(out);
     const n = g.recipe_output_count(r);
     if (n > 1 && g.tool_uses(out) === 0) root.append(h('span', 'craft-yield', `×${n}`));
     root.append(h('span', 'craft-lock'));
@@ -162,19 +170,52 @@ export class BuildMenu {
     for (let k = 0; k + 1 < flat.length; k += 2) names.push(g.item_name(flat[k]));
     const group = g.recipe_group(r);
     const words = `${names.join(' ')} ${g.recipe_group_name(group)} ${relatedWords(names[0])}`.toLowerCase();
-    const tile: Tile = { id: r, root, group, order: g.recipe_order(r), words, state: 'short' };
+    const tile: Tile = { id: r, item: out, root, group, order: g.recipe_order(r), words, state: 'short' };
     root.addEventListener('click', (e) => {
-      if (tile.state === 'ready' && g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
+      if (tile.state !== 'ready') this.openGuide(out);
+      else if (g.craft(r, e.shiftKey ? BULK_CRAFT : 1) > 0) this.onCraft();
     });
     root.addEventListener('contextmenu', (e) => {
       e.preventDefault();
       if (takeApart(g, r, e.shiftKey)) this.onCraft();
     });
-    root.addEventListener('pointerenter', () => this.showInfo(tile));
-    root.addEventListener('focus', () => this.showInfo(tile));
-    root.addEventListener('pointerleave', () => this.hideInfo());
-    root.addEventListener('blur', () => this.hideInfo());
+    this.hover(tile);
     return tile;
+  }
+
+  /** A tile for an item no hand recipe makes: its search words are its name and what goes into it. */
+  private makeGuideTile(item: number): Tile {
+    const g = this.game;
+    const root = this.tileRoot(item);
+    root.dataset.state = 'guide';
+    const words = `${g.item_name(item)} ${wayWords(g, item)} ${relatedWords(g.item_name(item))}`.toLowerCase();
+    const tile: Tile = { id: -1, item, root, group: this.groupNames.length - 1, order: item, words, state: 'guide' };
+    root.addEventListener('click', () => this.openGuide(item));
+    this.hover(tile);
+    return tile;
+  }
+
+  /** A tile's button with the item's icon and name. */
+  private tileRoot(item: number): HTMLButtonElement {
+    const root = h('button', 'craft-tile');
+    root.type = 'button';
+    const canvas = h('canvas', 'craft-icon');
+    canvas.width = canvas.height = ICON_PX;
+    canvas.getContext('2d')!.drawImage(this.icon(item), 0, 0);
+    root.append(canvas, h('span', 'craft-name', this.game.item_name(item)));
+    return root;
+  }
+
+  private hover(tile: Tile): void {
+    tile.root.addEventListener('pointerenter', () => this.showInfo(tile));
+    tile.root.addEventListener('focus', () => this.showInfo(tile));
+    tile.root.addEventListener('pointerleave', () => this.hideInfo());
+    tile.root.addEventListener('blur', () => this.hideInfo());
+  }
+
+  private openGuide(item: number): void {
+    this.hideInfo();
+    this.guide.open(item);
   }
 
   /** Finds the tiles that match the search and filter (counts per filter go on its button) and pages them. */
@@ -185,6 +226,10 @@ export class BuildMenu {
     const visible: Tile[] = [];
     for (const t of this.tiles) {
       if (!matches(t)) continue;
+      if (t.state === 'guide') {
+        if (words.length > 0 && (this.filter === 'all' || this.filter === 'unlocked')) visible.push(t);
+        continue;
+      }
       counts.all++;
       counts[t.state]++;
       if (t.state !== 'locked') counts.unlocked++;
@@ -289,15 +334,20 @@ export class BuildMenu {
   private showInfo(t: Tile): void {
     const g = this.game;
     this.hovered = t;
-    const out = g.recipe_output(t.id);
+    const out = t.item;
     const title = h('h4', '', g.item_name(out));
-    const n = g.recipe_output_count(t.id);
+    const n = t.id < 0 ? 1 : g.recipe_output_count(t.id);
     if (n > 1 && g.tool_uses(out) === 0) title.append(h('span', 'craft-yield', ` ×${n}`));
     const icon = h('canvas', 'card-icon');
     icon.width = icon.height = ICON_PX;
     icon.getContext('2d')!.drawImage(this.icon(out), 0, 0);
     const head = h('div', 'card-head');
     head.append(icon, title, h('span', 'card-group', this.groupNames[t.group]));
+    if (t.id < 0) {
+      const ways = waySummary(g, out).map((line) => h('p', 'craft-way', line));
+      this.place(t, [head, h('p', 'craft-blurb', 'No hand recipe makes it:'), ...ways, h('p', 'craft-status ready', 'Click for how to get it.')]);
+      return;
+    }
     const inputs = h('div', 'craft-inputs');
     const flat = g.recipe_inputs(t.id);
     for (let k = 0; k + 1 < flat.length; k += 2) {
@@ -306,7 +356,10 @@ export class BuildMenu {
       const icon = h('canvas', 'craft-input-icon');
       icon.width = icon.height = ICON_PX;
       icon.getContext('2d')!.drawImage(this.icon(item), 0, 0);
-      row.append(icon, h('span', '', g.item_name(item)), h('span', 'craft-have', `${have}/${need}`));
+      const name = h('span', '', g.item_name(item));
+      // What is missing says where it comes from, so the card alone answers the next question.
+      if (have < need) name.append(h('span', 'craft-source', ` · ${sourceHint(g, item)}`));
+      row.append(icon, name, h('span', 'craft-have', `${have}/${need}`));
       inputs.append(row);
     }
     const secs = g.recipe_tenths(t.id) / 10;
@@ -316,15 +369,20 @@ export class BuildMenu {
     const tech = g.recipe_locked_by(t.id);
     const status =
       t.state === 'locked'
-        ? `Research ${g.tech_name(tech)} to unlock it (T).`
+        ? `Research ${g.tech_name(tech)} to unlock it (T). Click for how to get it.`
         : t.state === 'ready'
           ? `Click to queue it · Shift-click for up to ${BULK_CRAFT}`
-          : 'Gather the missing materials to craft it.';
-    const note = h('p', `craft-status ${t.state}`, status);
+          : 'Click for where the missing materials come from.';
     const facts = factsBlock(g, out);
     const apart = takeApartNote(g, t.id);
-    this.info.replaceChildren(head, ...(facts ? [facts] : []), h('p', 'craft-blurb', g.recipe_blurb(t.id)), inputs, time, note);
-    if (apart) this.info.append(apart);
+    const blurb = h('p', 'craft-blurb', g.recipe_blurb(t.id));
+    const note = h('p', `craft-status ${t.state}`, status);
+    this.place(t, [head, ...(facts ? [facts] : []), blurb, inputs, time, note, ...(apart ? [apart] : [])]);
+  }
+
+  /** Fills the info card with `parts` and places it beside tile `t`, inside the window. */
+  private place(t: Tile, parts: HTMLElement[]): void {
+    this.info.replaceChildren(...parts);
     this.info.classList.remove('hidden');
     const r = t.root.getBoundingClientRect(), box = this.info.getBoundingClientRect();
     const right = r.right + 8 + box.width <= window.innerWidth;
@@ -337,12 +395,4 @@ export class BuildMenu {
 /** Whether two tiles are tiers of one building (the engine's `recipe_order` gives a building's tiers one rank). */
 function sameFamily(a: Tile, b: Tile): boolean {
   return a.group === b.group && Math.floor(a.order / 8) === Math.floor(b.order / 8);
-}
-
-/** Whether `text` has a word that starts with `w` (a plural also finds the singular: "belts" finds "belt"); a
- * very short `w` must be a whole word, so "ai" finds the AI Lab but not "air". */
-function hasWord(text: string, w: string): boolean {
-  const padded = ` ${text} `;
-  if (w.length <= 2) return padded.includes(` ${w} `);
-  return padded.includes(` ${w}`) || (w.length > 3 && w.endsWith('s') && padded.includes(` ${w.slice(0, -1)}`));
 }

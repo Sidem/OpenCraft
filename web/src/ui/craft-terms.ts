@@ -2,6 +2,7 @@
 // (synonyms and related ideas) and the recipes they should find. A recipe matches a row when its output's name
 // contains one of the row's `items` (so "belt" covers Belt Mk3 too); the row's words are then searchable on it.
 // To teach the search a new word, add it to a row; to cover a new machine, add its name to the rows it belongs to.
+// `hasWord` is how a typed word matches a tile's words.
 
 /** [words typed, item names (parts of the output's lower-case name)], both separated by `|`. */
 const ROWS: [string, string][] = [
@@ -67,4 +68,12 @@ export function relatedWords(name: string): string {
   const found: string[] = [];
   for (const row of TABLE) if (row.items.some((i) => lower.includes(i))) found.push(...row.words);
   return found.join(' ');
+}
+
+/** Whether `text` has a word that starts with `w` (a plural also finds the singular: "belts" finds "belt"); a
+ * very short `w` must be a whole word, so "ai" finds the AI Lab but not "air". */
+export function hasWord(text: string, w: string): boolean {
+  const padded = ` ${text} `;
+  if (w.length <= 2) return padded.includes(` ${w} `);
+  return padded.includes(` ${w}`) || (w.length > 3 && w.endsWith('s') && padded.includes(` ${w.slice(0, -1)}`));
 }
