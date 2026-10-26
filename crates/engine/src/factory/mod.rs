@@ -85,6 +85,9 @@ use crate::world::World;
 use crate::TICK_RATE;
 
 use belt::Belt;
+#[cfg(test)]
+pub(crate) use belt::BELT_HEIGHT;
+pub(crate) use belt::BELT_TIERS;
 use fibre::{Data, Node};
 use generator::Generator;
 use lab::Lab;
@@ -114,6 +117,7 @@ pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
 pub use pole::{POLE_TIERS, POLE_WIRE_Y};
 pub use ports::PortInfo;
+pub(crate) use process::EJECTOR_ICON;
 pub use process::{channel_colour, channel_name, first_maker, makes, spec as process_spec, Want};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};

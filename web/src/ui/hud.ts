@@ -343,8 +343,15 @@ export class Hud {
     };
     const model = this.game.item_model(item);
     if (model.length) {
+      // A model standing on the floor of its cell (a belt) is centred up and down, so it does not sit low in the icon.
+      let low = 1, high = -1;
       for (let i = 0; i < model.length; i += 10) {
-        draw(model[i], model[i + 1], model[i + 2], model[i + 3], model[i + 4], model[i + 5],
+        low = Math.min(low, model[i + 1] - model[i + 4] / 2);
+        high = Math.max(high, model[i + 1] + model[i + 4] / 2);
+      }
+      const lift = low <= -0.49 ? -(low + high) / 2 : 0;
+      for (let i = 0; i < model.length; i += 10) {
+        draw(model[i], model[i + 1] + lift, model[i + 2], model[i + 3], model[i + 4], model[i + 5],
           model[i + 6], model[i + 7], model[i + 8]);
       }
     } else {

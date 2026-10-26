@@ -17,6 +17,7 @@ use crate::item::{
     STEEL_INGOT, STEEL_PICKAXE, STEEL_PLATE, STEEL_SHOVEL, STONE_AXE, STONE_PICKAXE, STONE_SHOVEL, VIOLET_PACK,
 };
 
+mod belts;
 mod components;
 mod craft;
 mod power;
@@ -287,7 +288,9 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         SCANNER_MK2 => &SCANNER_MK2_SET,
         CORE_DRILL => &DRILL_SET,
         _ => {
-            for find in [stock::parts, components::parts, wear::parts, craft::parts, space::parts, power::parts] {
+            for find in
+                [stock::parts, components::parts, wear::parts, craft::parts, space::parts, power::parts, belts::parts]
+            {
                 let model = find(item);
                 if !model.is_empty() {
                     return model;

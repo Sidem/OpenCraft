@@ -32,9 +32,12 @@ mod tests;
 const EJECT_SECONDS: f64 = 0.1;
 /// Items it holds at once, over all its slots.
 const ROOM: u32 = 4;
-/// Where a drop starts, forward of the block's centre and above its floor, and how it is thrown (blocks per second).
-const FORWARD: f64 = 0.35;
-const START_HEIGHT: f64 = 1.2;
+/// The centre of the muzzle: forward of the block's centre and above it. A drop starts here, so the model and the
+/// throw cannot drift apart (`tests::an_item_leaves_the_muzzle`).
+const MOUTH: [f64; 2] = [0.38, 0.31];
+const FORWARD: f64 = MOUTH[0];
+const START_HEIGHT: f64 = 0.5 + MOUTH[1];
+/// How a drop is thrown (blocks per second): forward and up, about as steeply as the tube's last stretch rises.
 const THROW: f64 = 2.0;
 const LIFT: f64 = 1.5;
 
@@ -56,15 +59,54 @@ pub const EJECTOR_SPEC: ProcessSpec = ProcessSpec {
 
 const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 
-/// Front towards +z, so the chute is at the back (-z), where the items go: a plinth, a housing, a funnel on top with a
-/// conveyor tray running out to the back, and a status lamp.
-const PARTS: [Part; 5] = [
-    part([0.0, -0.4, 0.0], [0.96, 0.2, 0.96], Look::Band(tex::FRAME)),
-    part([0.0, -0.05, 0.05], [0.8, 0.5, 0.7], FRAME),
-    part([0.0, 0.3, 0.0], [0.7, 0.2, 0.7], Look::Tex([tex::BELT_TOP, tex::FRAME, tex::FRAME])),
-    part([0.0, 0.42, -0.3], [0.4, 0.06, 0.5], Look::Tex([tex::BELT_TOP, tex::FRAME, tex::FRAME])),
-    part([0.3, 0.1, 0.42], [0.12, 0.1, 0.12], Look::Lamp),
-];
+/// Front towards +z, so the muzzle is at the back (-z), where the items go: a plinth and a housing carrying a funnel
+/// (a cup over a neck) and a steel tube that climbs in four steps towards the front and ends in a flared mouth with a
+/// dark bore, then a status lamp on the side. The mouth is at [`MOUTH`].
+const PARTS: [Part; 12] = {
+    const TUBE: Look = Look::Tex([tex::MAT_BRASS; 3]);
+    const DARK: Look = Look::Tex([tex::DRILL; 3]);
+    let mouth = [0.0, MOUTH[1] as f32, -(MOUTH[0] as f32)];
+    [
+        part([0.0, -0.4, 0.0], [0.96, 0.2, 0.96], Look::Band(tex::FRAME)),
+        part([0.0, -0.175, 0.1], [0.76, 0.25, 0.7], FRAME),
+        part([0.0, 0.03, 0.3], [0.28, 0.16, 0.28], TUBE),
+        part([0.0, 0.14, 0.3], [0.4, 0.06, 0.4], FRAME),
+        part([0.0, 0.175, 0.3], [0.24, 0.01, 0.24], DARK),
+        part([0.39, -0.17, 0.15], [0.08, 0.1, 0.12], Look::Lamp),
+        part([0.0, -0.02, 0.12], [0.2, 0.2, 0.2], TUBE),
+        part([0.0, 0.08, -0.02], [0.19, 0.19, 0.19], TUBE),
+        part([0.0, 0.19, -0.16], [0.18, 0.18, 0.18], TUBE),
+        part([0.0, 0.3, -0.3], [0.17, 0.17, 0.17], TUBE),
+        part(mouth, [0.3, 0.26, 0.1], FRAME),
+        part([0.0, mouth[1], mouth[2] - 0.055], [0.18, 0.18, 0.02], DARK),
+    ]
+};
+
+/// The boxes of the item's icon and loose model (`item_models`): the same parts turned a quarter, so the mouth points
+/// to the viewer's right (local -z becomes +x) and not away from them.
+pub(crate) const ICON: [crate::item_models::Part; 12] = icon(&PARTS);
+
+const fn icon(parts: &[Part; 12]) -> [crate::item_models::Part; 12] {
+    let mut out = [crate::item_models::Part { center: [0.0; 3], size: [0.0; 3], yaw: 0.0, tex: [0; 3] }; 12];
+    let mut i = 0;
+    while i < 12 {
+        let p = &parts[i];
+        let tex = match p.look {
+            Look::Tex(t) => t,
+            Look::Band(top) => [top, tex::stripe(0), tex::FRAME],
+            Look::Lamp => [tex::LAMP_GREEN; 3],
+            _ => panic!("an ejector part has a look the icon does not know"),
+        };
+        out[i] = crate::item_models::Part {
+            center: [-p.at[2], p.at[1], p.at[0]],
+            size: [p.size[2], p.size[1], p.size[0]],
+            yaw: 0.0,
+            tex,
+        };
+        i += 1;
+    }
+    out
+}
 
 impl Processor {
     /// How many of an item it takes now: up to [`ROOM`] items in all.

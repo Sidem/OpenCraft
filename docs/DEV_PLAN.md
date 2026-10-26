@@ -257,12 +257,11 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
-- **2026-10-26: belt ejector and merging loose items** (user request). `factory/process/ejector.rs` (`Pick::Eject`, block 157): holds
-  4 items, drops one every 0.1 s as `SimEvent::Dropped` from above its front, so a belt backs up behind it (the core cannot see
-  how many items lie about, so the rate is data). `entities/merge.rs` merges resting loose items of one kind per 1.5-block
-  cell into stacks, also in unloaded chunks; never tools. Host-side only, no wire or save change. Measured: a 5,000-item update
-  was never the cost (`bench_items`, about 0.4% of a frame); the gain is entity count: 40 s of an ejector leaves 12 entities, not
-  400 (`tests/ejector.rs`).
+- **2026-10-26: belt ejector and merging loose items** (user request). `factory/process/ejector.rs` (`Pick::Eject`, block 157):
+  holds 4 items, drops one per 0.1 s as `SimEvent::Dropped` from its tube's mouth (`MOUTH`), so a belt backs up (the rate is data).
+  `entities/merge.rs` merges resting loose items per 1.5-block cell, also unloaded; never tools. Host-side only. The update loop was
+  never the cost (`bench_items`); the gain is entity count (40 s: 12 entities, not 400, `tests/ejector.rs`). Belt-family icons:
+  `item_models/belts.rs`, judged by silhouette overlap (`item_models/tests.rs`).
 
 - **2026-10-26: poles hang on walls and need support** (user request). `factory/pole_mount.rs`: a pole needs a solid block
   under it or at one of its four sides, else `Sim::put_block` refuses it (`action/blocks.rs`; drones and blueprints too).

@@ -58,7 +58,6 @@ fn it_drops_ten_a_second_in_front_of_the_way_it_faces() {
     let (pos, vel, item, count) = drops[0];
     assert_eq!((item, count), (DIRT.into(), 1));
     assert!(pos.x > 0.5 && (pos.z - 0.5).abs() < 1e-9, "forward is east: {pos:?}");
-    assert!(pos.y >= 1.0 + 0.125, "starts above the block, clear of it: {pos:?}");
     assert!(vel.x > 0.0 && vel.z == 0.0 && vel.y > 0.0, "thrown forward and up: {vel:?}");
     assert!(ejector(&f).input.total() >= 3, "it never holds more than its room, and is kept topped up");
 }
@@ -76,6 +75,42 @@ fn it_drops_the_way_its_placer_faced_whichever_that_is() {
             (f64::from(want.x), f64::from(want.z))
         );
         assert!(((pos.x - 0.5) * f64::from(want.x) + (pos.z - 0.5) * f64::from(want.z)) > 0.0);
+    }
+}
+
+#[test]
+fn an_item_leaves_the_muzzle_of_its_model_whichever_way_it_faces() {
+    // The mouth is the model's widest part at the front (-z); a drop must start at its centre once the machine is turned.
+    let mouth = [0.0, MOUTH[1] as f32, -(MOUTH[0] as f32)];
+    assert!(
+        PARTS.iter().any(|p| p.at == mouth && p.size[0] > 0.25 && p.size[1] > 0.2),
+        "the model has a flared mouth at MOUTH"
+    );
+    for dir in 0..4u8 {
+        let mut f = Factory::default();
+        let at = IVec3::new(7, 3, -2);
+        f.place(&mut World::new(1, 2), BELT_EJECTOR, at, dir, at, 0);
+        f.insert(at, DIRT.into(), 1);
+        let mut events = Vec::new();
+        let mut world = World::new(1, 2);
+        let mut start = None;
+        for tick in 0..20 {
+            f.update(&mut world, tick, &mut events);
+            start = start.or(events.iter().find_map(|e| match e {
+                SimEvent::Dropped { pos, vel, .. } => Some((*pos, *vel)),
+                _ => None,
+            }));
+        }
+        let (pos, vel) = start.expect("it dropped the item");
+        let yaw = f32::from(dir) * std::f32::consts::FRAC_PI_2;
+        let centre = Vec3::new(7.5, 3.5, -1.5);
+        let muzzle = super::super::model::local(centre, yaw, mouth.map(f64::from));
+        assert!((pos - muzzle).length() < 1e-6, "dir {dir}: starts at {pos:?}, the model's mouth is at {muzzle:?}");
+        assert!(
+            vel.y > 0.0 && (vel.x * (muzzle.x - centre.x) + vel.z * (muzzle.z - centre.z)) > 0.0,
+            "thrown out of the mouth"
+        );
+        assert!(pos.y > 3.0 && pos.y < 4.0, "the mouth is inside the block's height: {pos:?}");
     }
 }
 

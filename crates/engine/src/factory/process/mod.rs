@@ -65,6 +65,7 @@ mod work;
 pub(super) use center::{needs_center, step_centers};
 pub use depot::Want;
 pub(super) use diesel::run as run_diesel;
+pub(crate) use ejector::ICON as EJECTOR_ICON;
 use extra::Extra;
 pub use facts::facts;
 pub(super) use hub::{bonus_at as hub_bonus_at, bonuses as hub_bonuses};
