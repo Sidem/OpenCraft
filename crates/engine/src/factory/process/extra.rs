@@ -10,6 +10,7 @@
 
 use crate::block::LAUNCH_SITE;
 use crate::bytes::{ByteReader, ByteWriter};
+use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::pods::CHANNELS;
 
@@ -44,6 +45,8 @@ pub enum Extra {
     Hangar(Hangar),
     /// The channel a pod launcher or landing pad is tuned to (pods/channels.rs; saved from `pods::CHANNEL_SAVED`).
     Channel(u8),
+    /// What a belt ejector threw out this tick, until `report_made` (ejector.rs; derived).
+    Ejector(Vec<Stack>),
 }
 
 impl Extra {
@@ -55,6 +58,7 @@ impl Extra {
             Pick::Depot => Extra::Depot { wants: Vec::new() },
             Pick::Hangar => Extra::Hangar(Hangar::default()),
             Pick::Pods | Pick::Land => Extra::Channel(0),
+            Pick::Eject => Extra::Ejector(Vec::new()),
             _ if spec.block == LAUNCH_SITE => Extra::Launch { launches: 0, lifted: None },
             _ => Extra::None,
         }
@@ -67,7 +71,7 @@ impl Extra {
             Extra::Recycler { owed } => w.u32(*owed),
             Extra::Launch { launches, .. } => w.u32(*launches),
             Extra::Channel(channel) => w.u8(*channel),
-            Extra::None | Extra::Depot { .. } | Extra::Hangar(_) => {}
+            Extra::None | Extra::Depot { .. } | Extra::Hangar(_) | Extra::Ejector(_) => {}
         }
     }
 
@@ -79,7 +83,7 @@ impl Extra {
             Extra::Launch { launches, .. } => *launches = r.u32()?,
             // Older saves have none: `Processor::load` set it from the facing.
             Extra::Channel(channel) if r.version >= CHANNEL_SAVED => *channel = r.u8()? % CHANNELS,
-            Extra::Channel(_) | Extra::None | Extra::Depot { .. } | Extra::Hangar(_) => {}
+            Extra::Channel(_) | Extra::None | Extra::Depot { .. } | Extra::Hangar(_) | Extra::Ejector(_) => {}
         }
         Some(())
     }

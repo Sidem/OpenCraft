@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-26 · Belt ejector
+- **New: the Belt Ejector**, unlocked with Underpasses. Put it at the end of a belt, facing the way the belt runs, and it drops what arrives onto the ground in front of it (up to ten items a second; the belt backs up behind it). It needs no power.
+- **Items lying on the ground now merge into stacks** when they sit still close together, so a busy ejector (or a long day of mining) leaves a few piles instead of hundreds of single items. Tools never merge.
+
 ## 2026-10-26 · Poles on walls
 - **A power pole placed against a wall is bolted to it** (a plate and two struts) instead of standing in the air. Aim at the side of a wall block and place the pole in front of it.
 - **A pole now needs the ground under it or a wall beside it.** In open air the spot turns red and the card says why; nothing is placed. Poles you already placed stay as they are.

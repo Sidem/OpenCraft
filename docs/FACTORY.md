@@ -55,6 +55,12 @@ size.
   two lines can cross. Drag a belt line over a belt, a machine or a wall and it dives under by itself with the
   lowest underpass that reaches, is at least as fast as your belt and that you hold a pair of. Pairs you don't have
   show red and are left out when you build; an obstacle too wide for any underpass is marked red and ends the line.
+- **Belt ejector** (the Underpasses tech; 4 iron plates, 2 iron rods and 2 belts). Put it at the end of a belt, facing the way the
+  belt runs: it takes up to 4 items at a time from any side, needs no power and drops one every tenth of a second
+  from above its front onto the ground (`factory/process/ejector.rs`, a `Pick::Eject` processor), so the belt backs up behind it
+  instead of flooding the ground. Loose items lying still and close together merge into stacks up to the item's stack size
+  (`entities/merge.rs`; also in chunks nobody has loaded; tools never merge). Dropped items vanish after 5 minutes
+  unless picked up.
 - **Point at an item** riding a belt to read it: its name, how long it has been on belts (an item waiting at a line's
   end shows the line is backed up), which miner, quarry, box or machine put it there and where that is, and the recipe
   if a machine made it. A splitter or filter keeps that story; a machine that takes the item in starts a new one.

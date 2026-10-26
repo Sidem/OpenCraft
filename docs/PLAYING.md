@@ -198,7 +198,7 @@ parts for you, hand crafting is for one-offs. Also by recipe: a constructor is a
 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an
 arc furnace 10 steel plates, 16 stone bricks and 24 copper wire, an electrolytic cell 12 steel plates, 16 stone bricks,
 24 copper wire and 4 circuits. Two lifts cost 2 iron rods and 2 belts, and an
-pair of underpasses 4 belts (6 Mk2 belts for a Mk2 pair, 8 Mk3 and 10 Mk4: as many belts as the blocks they reach; underpasses are only made in pairs). A research lab costs 6 iron plates, 8 copper wire and 4 belts;
+pair of underpasses 4 belts (6 Mk2 belts for a Mk2 pair, 8 Mk3 and 10 Mk4: as many belts as the blocks they reach; underpasses are only made in pairs). A belt ejector costs 4 iron plates, 2 iron rods and 2 belts. A research lab costs 6 iron plates, 8 copper wire and 4 belts;
 Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
 an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an
 outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire. The bridge to

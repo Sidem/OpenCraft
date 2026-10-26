@@ -27,6 +27,7 @@ impl Processor {
             .or_else(|| self.reactor_text())
             .or_else(|| self.center_text())
             .or_else(|| self.recycle_text())
+            .or_else(|| self.eject_text())
             .or_else(|| self.launch_text())
             .or_else(|| self.half_fed_text())
             .or_else(|| self.datacenter_text())
@@ -111,16 +112,18 @@ impl Processor {
             lines.push(parts.join(" · "));
         }
         lines.extend(self.launch_line());
-        if !matches!(
-            self.energy(),
-            Energy::Turbine
-                | Energy::Solar
-                | Energy::Accumulator
-                | Energy::Hydro
-                | Energy::Rectenna
-                | Energy::Hoist
-                | Energy::Optimizer
-        ) {
+        if self.spec.pick != Pick::Eject
+            && !matches!(
+                self.energy(),
+                Energy::Turbine
+                    | Energy::Solar
+                    | Energy::Accumulator
+                    | Energy::Hydro
+                    | Energy::Rectenna
+                    | Energy::Hoist
+                    | Energy::Optimizer
+            )
+        {
             lines.push("Right-click to open".to_string());
         }
         lines.join("\n")

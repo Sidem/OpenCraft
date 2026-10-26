@@ -183,8 +183,11 @@ pub use coal_miner::*;
 /// The house set, ids 144–156 (`house.rs`).
 mod house;
 pub use house::*;
+/// The belt ejector, id 157 (`ejector.rs`).
+mod ejector;
+pub use ejector::*;
 const BASE_COUNT: usize = 129;
-pub const BLOCK_COUNT: usize = BASE_COUNT + DECOR_COUNT + COAL_MINER_COUNT + HOUSE_COUNT;
+pub const BLOCK_COUNT: usize = BASE_COUNT + DECOR_COUNT + COAL_MINER_COUNT + HOUSE_COUNT + EJECTOR_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

@@ -21,5 +21,6 @@ fn every_placeable_house_block_has_one_hand_recipe_in_the_building_section() {
 #[test]
 fn the_house_set_is_the_ids_after_the_coal_miner() {
     assert_eq!(FIRST, block::COAL_MINER + 1);
-    assert_eq!(FIRST as usize + HOUSE_COUNT, block::BLOCK_COUNT);
+    assert_eq!(FIRST as usize + HOUSE_COUNT, usize::from(block::BELT_EJECTOR), "the ejector follows the house set");
+    assert_eq!(usize::from(block::BELT_EJECTOR) + block::EJECTOR_COUNT, block::BLOCK_COUNT);
 }

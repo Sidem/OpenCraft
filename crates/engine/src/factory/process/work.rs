@@ -69,6 +69,7 @@ impl Processor {
     pub fn report_made(&mut self, events: &mut Vec<SimEvent>) {
         events.extend(self.made.drain(..).map(|s| SimEvent::Produced { item: s.item, count: s.count }));
         events.extend(self.used.drain(..).map(|s| SimEvent::Consumed { item: s.item, count: s.count }));
+        self.report_drops(events);
     }
 
     /// The recipe the next batch would be (a `MACHINE_RECIPES` index), or why there is none.
@@ -94,7 +95,8 @@ impl Processor {
             | Pick::Recycle
             | Pick::Pods
             | Pick::Land
-            | Pick::Depot => Err(Status::NoInput),
+            | Pick::Depot
+            | Pick::Eject => Err(Status::NoInput),
         }
     }
 

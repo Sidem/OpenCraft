@@ -917,6 +917,8 @@ fn a_left_click_cancels_a_belt_line() {
 }
 
 #[cfg(test)]
+mod ejector;
+#[cfg(test)]
 mod frame_bench;
 
 #[test]

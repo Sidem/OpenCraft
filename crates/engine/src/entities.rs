@@ -6,7 +6,8 @@
 //! that collector has room, and despawn after [`DESPAWN_SECONDS`]. Drawn as small boxes through
 //! `factory::push_box` (`push_item_box`, which a co-op client's view of the host's items uses too).
 //! Every item gets an `id` when spawned, unique while the game runs (not saved), so a client can
-//! follow it between the host's updates.
+//! follow it between the host's updates. Items lying still merge into stacks (`merge.rs`), so `count` can
+//! be more than one.
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::push_box;
@@ -15,6 +16,8 @@ use crate::item::{self, ItemId};
 use crate::item_models;
 use crate::math::Vec3;
 use crate::physics::{move_axis, Aabb};
+
+mod merge;
 
 const HALF: f64 = 0.125;
 const GRAVITY: f64 = 22.0;
@@ -42,6 +45,8 @@ pub struct ItemEntity {
 pub struct Items {
     pub list: Vec<ItemEntity>,
     next_id: u32,
+    /// Seconds since the last merge pass (`merge.rs`; not saved).
+    merge_clock: f32,
 }
 
 /// Something items fly to: a player's body centre and a scratch copy of its inventory, which the
@@ -165,6 +170,7 @@ impl Items {
             }
             i += 1;
         }
+        self.merge_resting(dt as f32, loaded);
     }
 
     /// Appends camera-relative box instances (see `factory::INSTANCE_FLOATS`) for the renderer.

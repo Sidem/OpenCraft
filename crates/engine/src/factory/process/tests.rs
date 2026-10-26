@@ -52,7 +52,9 @@ fn every_spec_has_a_row_per_tier_and_fitting_buffers() {
             sources.contains(&t.energy) || t.energy == Energy::Hoist
         });
         assert!(
-            steam || matches!(s.pick, Pick::Hangar | Pick::Research) || (input > 0 || s.pick.stores()) && out > 0,
+            steam
+                || matches!(s.pick, Pick::Hangar | Pick::Research | Pick::Eject)
+                || (input > 0 || s.pick.stores()) && out > 0,
             "block {}",
             s.block
         );

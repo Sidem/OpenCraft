@@ -4,8 +4,8 @@
 //! `recycling.rs`'s, `compute.rs`'s, `bonus.rs`'s, `ai.rs`'s, `hands.rs`'s, `orbit.rs`'s and `later.rs`'s techs (joined by `crate::join`); add to the last.
 
 use crate::block::{
-    ASSEMBLER, BELT, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB, LIFT, MINER, OUTLET, PIPE,
-    POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
+    ASSEMBLER, BELT, BELT_EJECTOR, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB, LIFT, MINER,
+    OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
 };
 use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
 use crate::recipes::{
@@ -91,12 +91,13 @@ const MAIN: [Tech; 17] = [
     Tech {
         name: "Underpasses",
         blurb: "Underpasses carry a belt under up to 4 blocks of anything. Drag a belt line over an obstacle and \
-                it dives under by itself, if you carry underpasses.",
+                it dives under by itself, if you carry underpasses. Belt ejectors end a belt by dropping its items \
+                on the ground.",
         needs: &[2],
         packs: &[RED_PACK, GREEN_PACK],
         units: 15,
         seconds: 10.0,
-        unlocks: &[r(UNDERPASS_IN), Unlock::MachineRecipe(UNDERPASS_ROW)],
+        unlocks: &[r(UNDERPASS_IN), r(BELT_EJECTOR), Unlock::MachineRecipe(UNDERPASS_ROW)],
     },
     // Was "Miner Mk2" (saves keep progress by index): kits replaced the separate Mk2 recipes.
     Tech {

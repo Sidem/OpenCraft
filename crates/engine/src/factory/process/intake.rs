@@ -34,6 +34,9 @@ impl Processor {
         if self.spec.pick == Pick::Recycle {
             return if millicoins(item) > 0 { self.input.space_for(item) } else { 0 };
         }
+        if self.spec.pick == Pick::Eject {
+            return self.eject_room(item);
+        }
         let wanted = match self.spec.pick {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
@@ -46,7 +49,8 @@ impl Processor {
             | Pick::Recycle
             | Pick::Pods
             | Pick::Land
-            | Pick::Depot => false,
+            | Pick::Depot
+            | Pick::Eject => false,
         };
         // One item fills at most one input slot (a stack), so a belt of one input can't crowd out the others.
         let cap = match self.spec.pick {

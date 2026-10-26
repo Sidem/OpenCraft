@@ -26,6 +26,7 @@ mod datacenter;
 mod depot;
 mod diesel;
 mod docks;
+mod ejector;
 mod extra;
 mod fab;
 mod facts;
@@ -204,6 +205,7 @@ impl Processor {
             (Energy::Compute, _) => self.run_datacenter(power),
             (e, _) if e.is_source() => {}
             (_, Pick::Recycle) => self.recycle(power),
+            (_, Pick::Eject) => self.eject(),
             (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research) => {}
             _ => self.work(power, unlocked),
         }

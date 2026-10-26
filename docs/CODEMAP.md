@@ -60,14 +60,14 @@ local player's hands, presentation, then the **deterministic core**, which never
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
-  `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `upgrader.rs`, `laser.rs`.
+  `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`.
 - Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances),
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors); `ores.rs`.
+  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
@@ -99,7 +99,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants).
-- `entities.rs` (loose items), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
+- `entities.rs` + `entities/merge.rs` (loose items; resting ones merge into stacks), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `item_guide.rs`: every way to get an item (found, hand, machine) and what uses it; a test makes every needed item answerable.
 - `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`, `groups.rs`); never saved.

@@ -96,6 +96,8 @@ pub enum Pick {
     Land,
     /// A town depot: stores only what its town wants (`Processor::wants`), which the town uses up (depot.rs).
     Depot,
+    /// A belt ejector: takes a few of anything and drops them on the ground in front of it (ejector.rs).
+    Eject,
 }
 
 impl Pick {
@@ -184,6 +186,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::pods::PAD_SPEC,
     super::upgrader::UPGRADER_SPEC,
     super::depot::DEPOT_SPEC,
+    super::ejector::EJECTOR_SPEC,
     super::basic::SMELTER_SPEC,
     super::basic::CONSTRUCTOR_SPEC,
     super::basic::ASSEMBLER_SPEC,

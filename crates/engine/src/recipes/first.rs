@@ -104,6 +104,17 @@ pub const UNDERPASS_RECIPE: Recipe = Recipe {
             it places them for you. It moves items at belt speed.",
 };
 
+pub const BELT_EJECTOR_RECIPE: Recipe = Recipe {
+    output: b(BELT_EJECTOR),
+    group: Group::Logistics,
+    count: 1,
+    inputs: &[(IRON_PLATE, 4), (IRON_ROD, 2), (b(BELT), 2)],
+    blurb:
+        "Put it at the end of a belt, facing the way the belt runs: it drops what arrives on the ground in front of \
+            it, ten items a second at most, and the belt backs up behind it. Items lying together merge into stacks. \
+            It needs no power.",
+};
+
 pub const PUMP_RECIPE: Recipe = Recipe {
     output: b(PUMP),
     group: Group::Logistics,
