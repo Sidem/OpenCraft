@@ -69,7 +69,8 @@ function testSummary(out) {
 }
 
 function webTestSummary(out) {
-  return [`${out.match(/ℹ pass (\d+)/)?.[1] ?? '?'} passed`];
+  // The spec reporter prints `ℹ pass N`; TAP (Node 22 without a terminal, as on CI) prints `# pass N`.
+  return [`${out.match(/^(?:ℹ|#) pass (\d+)/m)?.[1] ?? '?'} passed`];
 }
 
 function needsBindings() {

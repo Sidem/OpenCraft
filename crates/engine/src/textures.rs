@@ -63,6 +63,18 @@ use machines::{
 pub const TEX_SIZE: usize = 64;
 const BASE: usize = 16;
 
+/// The atlas a new `Game` holds: `generate()`, made once per process in tests, which build thousands of games.
+#[cfg(not(test))]
+pub fn atlas() -> Vec<u8> {
+    generate()
+}
+
+#[cfg(test)]
+pub fn atlas() -> Vec<u8> {
+    static ATLAS: std::sync::OnceLock<Vec<u8>> = std::sync::OnceLock::new();
+    ATLAS.get_or_init(generate).clone()
+}
+
 pub fn generate() -> Vec<u8> {
     let mut out = vec![0u8; tex::COUNT * TEX_SIZE * TEX_SIZE * 4];
     let scale = TEX_SIZE / BASE;

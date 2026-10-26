@@ -76,7 +76,7 @@ fn foreign_old_and_damaged_files_are_refused() {
     assert!(refused(&with(8, WORLDGEN_VERSION + 1)).contains("newer version"));
     assert_eq!(refused(&with(8, 0)), DAMAGED);
 
-    // Every 11th cut and flipped byte (plus the last cut): each load builds a world, so all of them cost ~40 s.
+    // Every 11th cut and flipped byte (plus the last cut): each load builds a whole `Game`.
     for len in (MAGIC.len()..saved.len()).step_by(11).chain([saved.len() - 1]) {
         assert_eq!(refused(&saved[..len]), DAMAGED, "cut at {len}");
     }

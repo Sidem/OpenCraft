@@ -245,7 +245,7 @@ impl Game {
         let spawn = Vec3::new(0.5, sim.world.generator().height_at(0, 0) as f64 + 1.0, 0.5);
         let player = Player::new(spawn);
         let eye = player.eye();
-        let textures = textures::generate();
+        let textures = textures::atlas();
         Game {
             sim,
             local: PlayerId(0),
