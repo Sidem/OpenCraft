@@ -4,12 +4,8 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
 ## 2026-10-28 · See what a machine makes
-- **Every machine that makes items now shows its product** on a small dark sign: on the roof of smelters, constructors, crushers, assemblers and the other machines up to the chip fab, or on the front of the tall ones. It shows the recipe you chose, or for a smelter, crusher or washer what it made last; an empty sign means no recipe yet. No need to click a machine to know what it makes.
+- **Every machine that makes items now shows its product** on a small light sign: on the roof of smelters, constructors, crushers, assemblers and the other machines up to the chip fab, or on the front of the tall ones. It shows the recipe you chose, or for a smelter, crusher or washer what it made last; an empty sign means no recipe yet. No need to click a machine to know what it makes.
 - **The Mk is easy to see:** every machine that comes in tiers wears one pale stud per Mk on its sides, on a band in the Mk's colour (one stud for Mk1 up to five for Mk5). Storage boxes, labs and generators show their Mk for the first time. Poles wear pale rings, underpasses studs on their hood, and a belt run shows its Mk every six blocks.
-
-## 2026-10-27 · Recorded sound effects
-- **Mining, placing, breaking, walking and landing now use real recordings** of each material: stone, dirt, grass, sand, wood, leaves and metal each sound like the thing itself instead of a synthesised knock. Dropping items, the scanner, rocket launches and pod launches have new sounds too.
-- **The sound designer (key O) now has one Volume dial** per material and per action; the dials that shaped the old synthesised sounds are gone. Volumes you set before are kept.
 
 ## 2026-10-26 · Belt ejector
 - **Belt icons look like belts.** Belts, belt lifts, underpasses, splitters, filters and the ejector now show their real shape in the hotbar and menus (a flat belt, a caged lift, a belt running into a hood) instead of a cube, so they are easy to tell apart. Belts and underpasses lying on the ground are flat too.

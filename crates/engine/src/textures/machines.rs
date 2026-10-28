@@ -1,4 +1,4 @@
-//! Machine and item textures (belts, machines, routers, power, ingots and parts): one pixel function
+﻿//! Machine and item textures (belts, machines, routers, power, ingots and parts): one pixel function
 //! per pattern, called from `textures::pixel`. To add one: a function here and its arm there.
 
 use super::{n, rgb, smooth};
@@ -272,4 +272,13 @@ pub(super) fn lab(x: i32, y: i32, top: bool) -> [u8; 4] {
     } else {
         rgb([214.0, 220.0, 228.0], k)
     }
+}
+
+/// A product sign's face (`factory/process/display.rs`): a light blue-grey panel in a dark rim, so dark products (a
+/// gear, screws) and light ones both stand out; it was soot, and dark items vanished on it.
+pub(super) fn sign(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || y == 0 || x == 15 || y == 15 {
+        return rgb([44.0, 48.0, 56.0], 1.0);
+    }
+    rgb([188.0, 198.0, 208.0], 0.96 + 0.05 * n(261, x, y) - 0.004 * y as f64)
 }

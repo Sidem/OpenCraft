@@ -217,7 +217,9 @@ pub use super::house::layers::*;
 /// `textures/stripes.rs`).
 pub const TIER_PAINT_1: u16 = HOUSE_LAYERS_END;
 pub const TIER_PAINT_5: u16 = HOUSE_LAYERS_END + 4;
-pub const COUNT: usize = TIER_PAINT_5 as usize + 1;
+/// The face of a machine's product sign (`textures/machines.rs` `sign`).
+pub const SIGN: u16 = TIER_PAINT_5 + 1;
+pub const COUNT: usize = SIGN as usize + 1;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

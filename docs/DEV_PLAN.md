@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Sound effects play from recordings (FX1–FX4 done 2026-10-27). Machines show what they make and wear their Mk as studs (2026-10-28). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs (2026-10-28). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -233,6 +233,8 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
 - [ ] **FX Sound effects from recordings** (decided 2026-10-27, `docs/DECISIONS.md`). One step per session, in order. Tools
   stay outside the game: earshot in a local venv (`pip install` of github.com/Leonxlnx/earshot plus CPU torch), source
   recordings and their licences in a git-ignored folder; only the rendered effects and a credits list are committed.
+  **Held back (user, 2026-10-28: not happy with it yet):** FX1–FX4 live on the local branch `sound-effects`, not on
+  `main`; the game still plays the synthesised effects. Bring them back from that branch when the user is ready.
   - [x] **FX1 Non-material sounds** (done 2026-10-27): earshot's top 3 bank sounds per action plus the current sound, blind.
     earshot won 4 of 11, never with its own first choice: drop `swish/zing`, scan `pro_notify/ding_2045`, launch
     `impact/blast`, pod up `whoosh_big/jet` (render with `bank.render(id, seed)`; v0 seed `None` is the take picked, v1 seed
@@ -293,9 +295,11 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   cover every maker and family, slot fit, sight lines and studs left uncovered. `bench_machine_marks` (1,600 machines):
   `write_instances` 149 → 168 µs (+13%, target was under 10%). A cold Haiku judge read 800×450 shots at the
   16-block equivalent poorly (Mk 6/29, products 1/22; it answered rows as 1-2-3-4-5), so it is no judge at that size;
-  by eye, studs count at 8 blocks, while dark products (gear, screws) are lost on the dark sign.
+  by eye, studs count at 8 blocks. Dark products (gear, screws) were lost on a dark sign, so the sign is a light
+  panel with a dark rim (`tex::SIGN`).
 
-- **2026-10-27: sound effects from files** (steps FX1–FX4). `audio/effects.ts` + `effect-levels.ts` + `effects/` (156
+- **2026-10-27: sound effects from files** (steps FX1–FX4; pushed 2026-10-28, then reverted on `main` at the user's
+  word: the work is on branch `sound-effects`). `audio/effects.ts` + `effect-levels.ts` + `effects/` (156
   Opus files, 742 KB; sources in `effects/CREDITS.md`) replace the synthesised effects (`synth-orbit.ts` gone, `synth.ts`
   kept for ambience). The designer has one Volume dial per material and action; saved designs keep their volumes. A
   stone/grass synth retune earlier the same day was dropped for this. earshot (an audio-ML judge) agreed with the user's

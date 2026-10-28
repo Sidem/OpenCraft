@@ -1,6 +1,6 @@
 //! The product display: every processor that makes items shows what it makes in one slot of its model
-//! (`Look::Product`, placed per model where it is seen from the front and above; tested in `model/tests.rs`). A dark
-//! plate stands at the slot's back and the product's own model (`item_models`, as on a belt) in front of it, scaled to
+//! (`Look::Product`, placed per model where it is seen from the front and above; tested in `model/tests.rs`). A light
+//! plate in a dark rim (`tex::SIGN`, so dark and light products both stand out) stands at the slot's back and the product's own model (`item_models`, as on a belt) in front of it, scaled to
 //! fill the slot and tipped back `TILT`, so a flat item (a plate, an ingot) shows its face from the ground and from
 //! above. The product is the chosen recipe's (`Pick::Chosen`), else the last batch's (`Processor::shown`), so a machine
 //! that picks by input keeps showing it between batches; with none the plate stands empty. The display is drawn within
@@ -57,7 +57,7 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
     let turn =
         |v: [f32; 3]| at + Vec3::new(c * v[0] as f64 - s * v[2] as f64, v[1] as f64, s * v[0] as f64 + c * v[2] as f64);
     let back = turn([0.0, 0.0, (PLATE - size[2]) / 2.0]);
-    push_box(out, back, yaw, [size[0], size[1], PLATE], 0.0, [tex::FRAME, tex::SOOT, tex::FRAME], false);
+    push_box(out, back, yaw, [size[0], size[1], PLATE], 0.0, [tex::FRAME, tex::SIGN, tex::FRAME], false);
     // Seen from behind, the plate hides the product.
     let front = turn([0.0, 0.0, 1.0]) - at;
     if front.x * back.x + front.z * back.z >= 0.0 {

@@ -215,6 +215,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STICK => wood::stick(x, y),
         tex::STRIPE_1..=tex::STRIPE_5 => stripes::stripe(x, y, (layer - tex::STRIPE_1) as u8),
         tex::TIER_PAINT_1..=tex::TIER_PAINT_5 => stripes::paint(x, y, (layer - tex::TIER_PAINT_1) as u8),
+        tex::SIGN => machines::sign(x, y),
         tex::STONE_BRICKS => masonry::stone_bricks(x, y),
         tex::QUICKLIME => masonry::quicklime(x, y),
         tex::ASSEMBLER_SIDE..=tex::MOTOR => assembly::pixel(layer, x, y),
