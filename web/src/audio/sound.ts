@@ -1,17 +1,36 @@
 // Plays the engine's positional sound events (crates/engine/src/sound.rs) through Web Audio with
-// distance attenuation and stereo panning. The sounds are files (effects.ts), fetched and decoded when audio
-// starts; the sound designer sets a volume per material and per action (settings.ts). `music` streams the
-// music pieces (music.ts) and `ambience` (ambience.ts) adds the sounds of the place. This class owns the
+// distance attenuation and stereo panning. Every sound is synthesised from the current sound design
+// (settings.ts) on first use, and again after a dial changes, so edits in the sound designer are
+// heard immediately, in the designer and in the game. The only audio files are the music pieces, which
+// `music` streams (music.ts); `ambience` (ambience.ts) adds the sounds of the place. This class owns the
 // shared AudioContext, so effects, music and ambience are three channels with a level and a mute each.
 
-import { MATERIALS, clampDial, loadSettings, saveSettings, type ActionName, type SoundDesign, type SoundSettings } from './settings';
+import {
+  ACTIONS,
+  MATERIALS,
+  clampDial,
+  loadSettings,
+  saveSettings,
+  type ActionDial,
+  type ActionName,
+  type ActionParams,
+  type MaterialDial,
+  type MaterialParams,
+  type SoundDesign,
+  type SoundSettings,
+} from './settings';
 import { Ambience } from './ambience';
-import { EffectBank, effectGain, effectName } from './effects';
 import { Music } from './music';
+import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
+import { launch, podDown, podUp } from './synth-orbit';
 
 const EVENT_FLOATS = 6;
 const MAX_VOICES = 24;
 const HEARING_RANGE = 40;
+/** Background synthesis budget per slice, so warming the cache never stalls a frame. */
+const WARM_SLICE_MS = 4;
+/** Warm-up waits this long after the last dial change, instead of redoing work mid-drag. */
+const WARM_DELAY_MS = 400;
 
 /** Engine event kinds, in order. */
 const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied'];
@@ -19,32 +38,36 @@ const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', '
 interface ActionBase {
   /** Mix level before the Volume dials. */
   gain: number;
-  /** Random playback-rate spread per play, so repeats never sound identical. */
+  /** Random playback-rate spread per play, scaled by the material's Variation. */
   jitter: number;
+  variants: number;
   /** Uses the material's sound (as opposed to one shared sound). */
   material: boolean;
+  pitch: number;
+  length: number;
+  weight: number;
   /** Heard this many times as far as an ordinary sound (40 blocks), fading as slowly; 1 when left out. */
   reach?: number;
 }
 
-/** Mix level and behaviour per action. Variants are however many files a sound has (effects.ts). */
+/** Built-in shaping per action; the designer's action dials adjust it around these values. */
 const ACTION_BASE: Record<ActionName, ActionBase> = {
-  dig: { gain: 0.32, jitter: 0.1, material: true },
-  break: { gain: 0.75, jitter: 0.08, material: true },
-  place: { gain: 0.6, jitter: 0.08, material: true },
-  step: { gain: 0.2, jitter: 0.12, material: true },
-  land: { gain: 0.42, jitter: 0.06, material: true },
-  pickup: { gain: 0.2, jitter: 0.35, material: false },
-  drop: { gain: 0.28, jitter: 0.1, material: false },
-  click: { gain: 0.12, jitter: 0, material: false },
-  scan: { gain: 0.22, jitter: 0, material: false },
-  splash: { gain: 0.45, jitter: 0.1, material: false },
-  powerdown: { gain: 0.4, jitter: 0.03, material: false },
-  powerup: { gain: 0.4, jitter: 0.03, material: false },
-  launch: { gain: 0.9, jitter: 0.04, material: false, reach: 12 },
-  podup: { gain: 0.6, jitter: 0.05, material: false, reach: 3 },
-  poddown: { gain: 0.7, jitter: 0.05, material: false, reach: 3 },
-  denied: { gain: 0.35, jitter: 0.03, material: false },
+  dig: { gain: 0.32, jitter: 0.1, variants: 4, material: true, pitch: 1, length: 1, weight: 0 },
+  break: { gain: 0.75, jitter: 0.08, variants: 4, material: true, pitch: 1, length: 1.4, weight: 0 },
+  place: { gain: 0.6, jitter: 0.08, variants: 4, material: true, pitch: 0.85, length: 1.1, weight: 0.15 },
+  step: { gain: 0.2, jitter: 0.12, variants: 4, material: true, pitch: 1.08, length: 0.85, weight: 0 },
+  land: { gain: 0.42, jitter: 0.06, variants: 4, material: true, pitch: 0.75, length: 1.3, weight: 0.25 },
+  pickup: { gain: 0.2, jitter: 0.35, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  drop: { gain: 0.28, jitter: 0.1, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
+  click: { gain: 0.12, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  scan: { gain: 0.22, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
+  splash: { gain: 0.45, jitter: 0.1, variants: 3, material: false, pitch: 1, length: 1, weight: 0 },
+  powerdown: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
+  powerup: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
+  launch: { gain: 0.9, jitter: 0.04, variants: 1, material: false, pitch: 1, length: 1, weight: 0, reach: 12 },
+  podup: { gain: 0.6, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
+  poddown: { gain: 0.7, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
+  denied: { gain: 0.35, jitter: 0.03, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
 };
 
 /** Typical in-game event volume and distance, so previews match what you hear while playing. */
@@ -55,6 +78,12 @@ const PREVIEW_DISTANCE = 2;
 const level = (dial: number) => (dial / 50) ** 2;
 const attenuation = (d: number) => 1 / (1 + (d / 10) ** 2);
 
+interface Bank {
+  action: ActionName;
+  material: number;
+  buffers: (AudioBuffer | undefined)[];
+}
+
 export class SoundSystem {
   readonly settings: SoundSettings = loadSettings();
   /** Sound material of the most recent material sound, so the designer can open on it. */
@@ -64,10 +93,11 @@ export class SoundSystem {
 
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
-  private effects: EffectBank | null = null;
+  private readonly banks = new Map<string, Bank>();
   private readonly listeners = new Set<() => void>();
   private voices = 0;
   private saveTimer = 0;
+  private warmTimer = 0;
   /** The tab or window is not in focus (not saved). */
   private away = false;
 
@@ -111,7 +141,7 @@ export class SoundSystem {
       this.master.gain.value = this.masterGain();
       this.master.connect(compressor);
       this.ctx = ctx;
-      this.effects = new EffectBank(ctx);
+      this.scheduleWarm(0);
       this.music.start(ctx);
       this.ambience.start(ctx);
     }
@@ -156,18 +186,34 @@ export class SoundSystem {
     this.masterChanged();
   }
 
-  setMaterialVolume(material: number, value: number): void {
-    this.design.materials[MATERIALS[material]].volume = clampDial(value);
+  setMaterialDial(material: number, dial: MaterialDial, value: number): void {
+    this.design.materials[MATERIALS[material]][dial] = clampDial(value);
+    // Volume is applied at playback; everything else is baked into the synthesised buffers.
+    if (dial !== 'volume') this.invalidate((b) => b.material === material && ACTION_BASE[b.action].material);
     this.save();
   }
 
-  setActionVolume(action: ActionName, value: number): void {
-    this.design.actions[action].volume = clampDial(value);
+  setMaterial(material: number, params: MaterialParams): void {
+    Object.assign(this.design.materials[MATERIALS[material]], params);
+    this.invalidate((b) => b.material === material && ACTION_BASE[b.action].material);
+    this.save();
+  }
+
+  setActionDial(action: ActionName, dial: ActionDial, value: number): void {
+    this.design.actions[action][dial] = clampDial(value);
+    if (dial !== 'volume') this.invalidate((b) => b.action === action);
+    this.save();
+  }
+
+  setAction(action: ActionName, params: ActionParams): void {
+    Object.assign(this.design.actions[action], params);
+    this.invalidate((b) => b.action === action);
     this.save();
   }
 
   setDesign(design: SoundDesign): void {
     this.settings.design = design;
+    this.invalidate(() => true);
     this.save();
   }
 
@@ -232,13 +278,12 @@ export class SoundSystem {
   private play(action: ActionName, material: number, volume: number, pan: number): void {
     if (this.voices >= MAX_VOICES) return;
     const base = ACTION_BASE[action];
-    const name = effectName(action, base.material ? MATERIALS[material] : undefined);
-    const buffer = this.effects?.pick(name);
-    if (!buffer) return;
     const m = this.design.materials[MATERIALS[material]];
-    const gain = base.gain * effectGain(name) * level(this.design.actions[action].volume) * (base.material ? level(m.volume) : 1) * volume;
+    const gain = base.gain * level(this.design.actions[action].volume) * (base.material ? level(m.volume) : 1) * volume;
     if (gain <= 0) return;
-    this.voice(buffer, gain, 1 + (Math.random() * 2 - 1) * base.jitter, pan);
+    const spread = base.material ? m.variation / 50 : 1;
+    const rate = 1 + (Math.random() * 2 - 1) * base.jitter * spread;
+    this.voice(this.buffer(action, material, Math.floor(Math.random() * base.variants)), gain, rate, pan);
   }
 
   private voice(buffer: AudioBuffer, gain: number, rate: number, pan: number): void {
@@ -259,5 +304,78 @@ export class SoundSystem {
       p.disconnect();
     };
     src.start();
+  }
+
+  private bank(action: ActionName, material: number): Bank {
+    const m = ACTION_BASE[action].material ? material : 0;
+    const key = `${action}:${m}`;
+    let bank = this.banks.get(key);
+    if (!bank) {
+      bank = { action, material: m, buffers: [] };
+      this.banks.set(key, bank);
+    }
+    return bank;
+  }
+
+  private buffer(action: ActionName, material: number, variant: number): AudioBuffer {
+    const bank = this.bank(action, material);
+    return (bank.buffers[variant] ??= this.synthesize(bank.action, bank.material, variant));
+  }
+
+  /** Drops the cached buffers that `affected` selects; they are rebuilt on demand and by warm-up. */
+  private invalidate(affected: (bank: Bank) => boolean): void {
+    for (const bank of this.banks.values()) if (affected(bank)) bank.buffers = [];
+    this.scheduleWarm(WARM_DELAY_MS);
+  }
+
+  /** Synthesises every missing buffer in the background, a few milliseconds at a time. */
+  private scheduleWarm(delay: number): void {
+    if (!this.ctx) return;
+    clearTimeout(this.warmTimer);
+    this.warmTimer = window.setTimeout(() => {
+      const t0 = performance.now();
+      for (const action of ACTIONS) {
+        const base = ACTION_BASE[action];
+        for (let m = 0; m < (base.material ? MATERIALS.length : 1); m++) {
+          for (let v = 0; v < base.variants; v++) {
+            if (this.bank(action, m).buffers[v]) continue;
+            if (performance.now() - t0 > WARM_SLICE_MS) return this.scheduleWarm(0);
+            this.buffer(action, m, v);
+          }
+        }
+      }
+    }, delay);
+  }
+
+  private synthesize(action: ActionName, material: number, variant: number): AudioBuffer {
+    const ctx = this.ctx!;
+    const sr = ctx.sampleRate;
+    const base = ACTION_BASE[action];
+    const a = this.design.actions[action];
+    const m = this.design.materials[MATERIALS[material]];
+    // A fixed seed per sound: moving a dial changes only what that dial controls, not the randomness.
+    const rand = mulberry32((ACTIONS.indexOf(action) + 1) * 7919 + material * 101 + variant);
+    const mods: HitMods = {
+      pitch: base.pitch * 2 ** ((a.pitch / 100 - 0.5) * 2), // ±1 octave
+      length: base.length * 4 ** (a.length / 100 - 0.5), // ×0.5 .. ×2
+      weight: base.weight + (a.weight / 100 - 0.5),
+    };
+    let data: Float32Array;
+    if (action === 'break') data = breakSound(sr, rand, m, mods, 1 + Math.round((a.debris / 100) * 10));
+    else if (action === 'pickup') data = blip(sr, mods);
+    else if (action === 'drop') data = whoosh(sr, rand, mods);
+    else if (action === 'click') data = tick(sr, mods);
+    else if (action === 'scan') data = ping(sr, mods);
+    else if (action === 'splash') data = splash(sr, rand, mods);
+    else if (action === 'powerdown') data = powerDown(sr, rand, mods);
+    else if (action === 'powerup') data = powerUp(sr, rand, mods);
+    else if (action === 'launch') data = launch(sr, rand, mods);
+    else if (action === 'podup') data = podUp(sr, rand, mods);
+    else if (action === 'poddown') data = podDown(sr, rand, mods);
+    else if (action === 'denied') data = denied(sr, mods);
+    else data = hitSound(sr, rand, m, mods);
+    const buffer = ctx.createBuffer(1, data.length, sr);
+    buffer.getChannelData(0).set(data);
+    return buffer;
   }
 }

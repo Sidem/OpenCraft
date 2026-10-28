@@ -121,8 +121,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
   `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `gl.ts`, `mat4.ts`.
-- `audio/`: `sound.ts` (events → voices, `AudioContext`), `effects.ts` + `effect-levels.ts` + `effects/` (the
-  effect files, credits in `effects/CREDITS.md`), `settings.ts` (volume dials), `synth.ts` (DSP helpers for ambience),
+- `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
   `ambience.ts` + `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`,
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts` (start co-op from URL or menu), `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`,

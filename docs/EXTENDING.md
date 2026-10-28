@@ -70,8 +70,7 @@ side (`web/src/save/`) only stores bytes and never needs to change.
 
 **A sound material.** Engine: a constant in `block::sound` and point blocks' `DEFS` rows at it. Web: append
 the name to `MATERIALS` (same order as the engine), add a `MATERIAL_LABELS` entry and a
-`DEFAULT_DESIGN.materials` entry in `audio/settings.ts`, then its files (`audio/effects.ts` says how). The designer
-gets a tab automatically.
+`DEFAULT_DESIGN.materials` entry in `audio/settings.ts`. The designer gets a tab automatically.
 
-**A sound event kind.** A constant in `sound.rs`, its entry in `EVENT_ACTIONS` and `ACTION_BASE` (`audio/sound.ts`),
-an action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions`) and its files.
+**A sound event kind.** A constant in `sound.rs`, its entry in `EVENT_ACTIONS` (`audio/sound.ts`) and an
+action in `audio/settings.ts` (`ACTIONS`, `ACTION_INFO`, `DEFAULT_DESIGN.actions`).
