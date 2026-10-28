@@ -1,26 +1,21 @@
-// The sound design: every sound in the game is described by dials with a plain-language meaning,
-// each a number from 0 to 100. synth.ts turns dial positions into physical units (Hz, seconds).
-// `SoundDesign` is also the copy/paste format of the sound designer, so a design tuned in the
-// browser can be pasted back here as the new DEFAULT_DESIGN.
+// The sound mix: a Volume dial (0 to 100, 50 = normal) per sound material and per action; the sounds themselves are
+// files (effects.ts). `SoundDesign` is also the copy/paste format of the sound designer, so a mix tuned in the browser
+// can be pasted back here as the new DEFAULT_DESIGN. Older saved or pasted designs had more dials; only Volume is read.
 
 /** Sound materials in engine order; must match `block::sound` in the engine. */
 export const MATERIALS = ['stone', 'dirt', 'grass', 'sand', 'wood', 'leaves', 'metal'] as const;
 export type MaterialName = (typeof MATERIALS)[number];
 
-export const MATERIAL_DIALS = ['pitch', 'tone', 'length', 'crunch', 'scatter', 'snap', 'thud', 'ring', 'volume', 'variation'] as const;
-export type MaterialDial = (typeof MATERIAL_DIALS)[number];
-export type MaterialParams = Record<MaterialDial, number>;
-
 export const ACTIONS = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'click', 'scan', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied'] as const;
 export type ActionName = (typeof ACTIONS)[number];
 
-export const ACTION_DIALS = ['volume', 'pitch', 'length', 'weight', 'debris'] as const;
-export type ActionDial = (typeof ACTION_DIALS)[number];
-export type ActionParams = Record<ActionDial, number>;
+/** The dials, the same for materials and actions. */
+const DIALS = ['volume'] as const;
+export type Params = Record<(typeof DIALS)[number], number>;
 
 export interface SoundDesign {
-  materials: Record<MaterialName, MaterialParams>;
-  actions: Record<ActionName, ActionParams>;
+  materials: Record<MaterialName, Params>;
+  actions: Record<ActionName, Params>;
 }
 
 export interface DialInfo {
@@ -42,224 +37,62 @@ export const MATERIAL_LABELS: Record<MaterialName, string> = {
   metal: 'Metal',
 };
 
-export const MATERIAL_DIAL_INFO: Record<MaterialDial, DialInfo> = {
-  pitch: {
-    label: 'Pitch',
-    low: 'deep',
-    high: 'high',
-    help: 'How high or low the whole sound is. Big, heavy things sound deep; small, light things sound high.',
-  },
-  tone: {
-    label: 'Tone',
-    low: 'muffled',
-    high: 'bright',
-    help: 'Muffled is dull, as if heard through a wall. Bright is crisp and airy. Soft ground like dirt is muffled; sand and leaves are bright.',
-  },
-  length: {
-    label: 'Length',
-    low: 'short',
-    high: 'long',
-    help: 'How long each hit lasts. Hard materials stop almost at once; loose ones like sand or leaves trail off.',
-  },
-  crunch: {
-    label: 'Crunch',
-    low: 'smooth',
-    high: 'gritty',
-    help: 'Smooth is a soft "shh". Gritty is made of tiny crackles, like gravel, dry leaves or crumbling rock.',
-  },
-  scatter: {
-    label: 'Scatter',
-    low: 'one hit',
-    high: 'many bits',
-    help: 'One solid knock, or lots of little bits moving at once? Turn it up for grass, sand, gravel and leaves.',
-  },
-  snap: {
-    label: 'Snap',
-    low: 'soft',
-    high: 'sharp',
-    help: 'How suddenly the sound starts. Sharp is a hard click, like stone or wood. Soft fades in gently, like brushing through leaves.',
-  },
-  thud: {
-    label: 'Thud',
-    low: 'none',
-    high: 'heavy',
-    help: 'A deep thump under the sound: the weight you feel from packed earth or a heavy block. Too much sounds boomy.',
-  },
-  ring: {
-    label: 'Ring',
-    low: 'dead',
-    high: 'ringing',
-    help: 'A musical note that rings after the hit. Wood gives a short, hollow knock; metal rings for a long time. Soft materials have none.',
-  },
-  volume: {
-    label: 'Volume',
-    low: 'quiet',
-    high: 'loud',
-    help: 'How loud this material is compared to the others. 50 is normal.',
-  },
-  variation: {
-    label: 'Variation',
-    low: 'identical',
-    high: 'varied',
-    help: 'How different each hit is from the last. At zero every hit is the same and sounds robotic; high sounds natural, until it gets messy.',
-  },
+export const MATERIAL_VOLUME_INFO: DialInfo = {
+  label: 'Volume',
+  low: 'quiet',
+  high: 'loud',
+  help: 'How loud this material is compared to the others. Its default is the level it was mixed at.',
 };
 
-/** How the material dials are grouped in the sound designer. */
-export const MATERIAL_GROUPS: { title: string; blurb: string; dials: MaterialDial[] }[] = [
-  { title: 'Character', blurb: 'Pitch, brightness and length', dials: ['pitch', 'tone', 'length'] },
-  { title: 'Texture', blurb: 'Smooth or gritty, one hit or many', dials: ['crunch', 'scatter', 'snap'] },
-  { title: 'Body', blurb: 'Weight and resonance', dials: ['thud', 'ring'] },
-  { title: 'Mix', blurb: 'Level and naturalness', dials: ['volume', 'variation'] },
-];
+export const ACTION_VOLUME_INFO: DialInfo = { label: 'Volume', low: 'quiet', high: 'loud', help: 'How loud this action is. 50 is normal.' };
 
-export const ACTION_DIAL_INFO: Record<ActionDial, DialInfo> = {
-  volume: { label: 'Volume', low: 'quiet', high: 'loud', help: 'How loud this action is. 50 is normal.' },
-  pitch: {
-    label: 'Pitch',
-    low: 'lower',
-    high: 'higher',
-    help: "Shifts this action higher or lower than the material's own pitch. 50 leaves it unchanged.",
-  },
-  length: {
-    label: 'Length',
-    low: 'shorter',
-    high: 'longer',
-    help: "Makes this action shorter or longer than the material's own length. 50 leaves it unchanged.",
-  },
-  weight: {
-    label: 'Weight',
-    low: 'lighter',
-    high: 'heavier',
-    help: 'Adds or removes low thump for this action only. 50 leaves it unchanged.',
-  },
-  debris: { label: 'Debris', low: 'few', high: 'many', help: 'How many pieces you hear clattering when a block breaks.' },
-};
-
-export const ACTION_INFO: Record<ActionName, { label: string; help: string; material: boolean; dials: ActionDial[] }> = {
-  dig: { label: 'Mining', help: 'Repeated hits while you hold the mouse on a block.', material: true, dials: ['volume', 'pitch', 'length'] },
-  break: { label: 'Break', help: 'The block crumbling when mining finishes.', material: true, dials: ['volume', 'pitch', 'length', 'debris'] },
-  place: { label: 'Place', help: 'Setting a block down.', material: true, dials: ['volume', 'pitch', 'length', 'weight'] },
-  step: { label: 'Footstep', help: 'Walking. Sneaking is quieter, sprinting louder.', material: true, dials: ['volume', 'pitch', 'length'] },
-  land: {
-    label: 'Landing',
-    help: 'Hitting the ground after a jump or fall. Longer falls are louder.',
-    material: true,
-    dials: ['volume', 'pitch', 'length', 'weight'],
-  },
-  pickup: {
-    label: 'Item pickup',
-    help: 'The pop when an item flies into your hotbar. The same for every material.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  drop: {
-    label: 'Throw item',
-    help: 'The whoosh when you drop an item with Q. The same for every material.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  click: { label: 'Hotbar click', help: 'The tick when you change hotbar slots.', material: false, dials: ['volume', 'pitch'] },
-  scan: {
-    label: 'Scanner',
-    help: 'The ping when the scanner or core drill reports what it found.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  splash: {
-    label: 'Splash',
-    help: 'Falling or jumping into water. Faster falls are louder. The same for every material.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  powerdown: {
-    label: 'Power down',
-    help: 'The hover pack losing its charging connection: an electric whine falling away.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  powerup: {
-    label: 'Power up',
-    help: 'The hover pack starting to charge: an electric whine rising to a thump.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  launch: {
-    label: 'Rocket launch',
-    help: 'A rocket leaving its launch site: an ignition thump and a long rumbling roar, heard from far away.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  podup: {
-    label: 'Pod launch',
-    help: 'A drop pod fired from its launcher: a pneumatic thump and a rising whoosh.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
-  poddown: {
-    label: 'Pod landing',
-    help: 'A drop pod coming down on its pad: a retro-burn hiss, then a heavy thud.',
-    material: false,
-    dials: ['volume', 'pitch', 'length'],
-  },
+export const ACTION_INFO: Record<ActionName, { label: string; help: string; material: boolean }> = {
+  dig: { label: 'Mining', help: 'Repeated hits while you hold the mouse on a block.', material: true },
+  break: { label: 'Break', help: 'The block crumbling when mining finishes.', material: true },
+  place: { label: 'Place', help: 'Setting a block down.', material: true },
+  step: { label: 'Footstep', help: 'Walking. Sneaking is quieter, sprinting louder.', material: true },
+  land: { label: 'Landing', help: 'Hitting the ground after a jump or fall. Longer falls are louder.', material: true },
+  pickup: { label: 'Item pickup', help: 'The pop when an item flies into your hotbar. The same for every material.', material: false },
+  drop: { label: 'Throw item', help: 'The whoosh when you drop an item with Q. The same for every material.', material: false },
+  click: { label: 'Hotbar click', help: 'The tick when you change hotbar slots.', material: false },
+  scan: { label: 'Scanner', help: 'The ping when the scanner or core drill reports what it found.', material: false },
+  splash: { label: 'Splash', help: 'Falling or jumping into water. Faster falls are louder. The same for every material.', material: false },
+  powerdown: { label: 'Power down', help: 'The hover pack losing its charging connection: an electric whine falling away.', material: false },
+  powerup: { label: 'Power up', help: 'The hover pack starting to charge: an electric whine rising to a thump.', material: false },
+  launch: { label: 'Rocket launch', help: 'A rocket leaving its launch site: a heavy blast, heard from far away.', material: false },
+  podup: { label: 'Pod launch', help: 'A drop pod fired from its launcher: a rushing whoosh.', material: false },
+  poddown: { label: 'Pod landing', help: 'A drop pod coming down on its pad: a retro-burn hiss, then a heavy thud.', material: false },
   denied: {
     label: 'Cannot place',
     help: 'A low double knock when a block or machine cannot go where you aim: you are standing in the way, or something already is.',
     material: false,
-    dials: ['volume', 'pitch', 'length'],
   },
-};
-
-// prettier-ignore
-/** Starting points for a material. The first six are the built-in defaults; Metal's default is METAL_DEFAULT. */
-export const PRESETS: Record<string, MaterialParams> = {
-  Stone:  { pitch: 33, tone: 53, length: 16, crunch: 19, scatter: 2, snap: 70, thud: 19, ring: 7, volume: 15, variation: 35 },
-  Dirt:   { pitch: 53, tone: 46, length: 28, crunch: 37, scatter: 84, snap: 42, thud: 16, ring: 0, volume: 15, variation: 24 },
-  Grass:  { pitch: 40, tone: 30, length: 40, crunch: 55, scatter: 35, snap: 55, thud: 50, ring: 0, volume: 10, variation: 55 },
-  Sand:   { pitch: 72, tone: 75, length: 64, crunch: 33, scatter: 100, snap: 20, thud: 11, ring: 0, volume: 11, variation: 50 },
-  Wood:   { pitch: 15, tone: 28, length: 8, crunch: 33, scatter: 0, snap: 35, thud: 82, ring: 2, volume: 21, variation: 45 },
-  Leaves: { pitch: 60, tone: 78, length: 55, crunch: 56, scatter: 84, snap: 35, thud: 9, ring: 0, volume: 10, variation: 60 },
-  Gravel: { pitch: 50, tone: 50, length: 30, crunch: 85, scatter: 70, snap: 75, thud: 25, ring: 10, volume: 50, variation: 60 },
-  Snow:   { pitch: 50, tone: 45, length: 50, crunch: 30, scatter: 60, snap: 20, thud: 10, ring: 0, volume: 45, variation: 50 },
-  Metal:  { pitch: 60, tone: 70, length: 30, crunch: 5, scatter: 0, snap: 95, thud: 20, ring: 85, volume: 45, variation: 30 },
-  Glass:  { pitch: 80, tone: 85, length: 15, crunch: 20, scatter: 15, snap: 100, thud: 0, ring: 60, volume: 45, variation: 40 },
-  Wool:   { pitch: 35, tone: 20, length: 30, crunch: 10, scatter: 20, snap: 15, thud: 20, ring: 0, volume: 50, variation: 40 },
 };
 
 // Every entry gets its own object: structuredClone keeps shared references shared, so aliasing one
 // object here would make a dial move several sounds at once.
-const neutral = (): ActionParams => ({ volume: 50, pitch: 50, length: 50, weight: 50, debris: 50 });
-
-/** Machines (belts, miners). Not tuned by ear yet; levelled to sit with the hand-tuned materials. */
-const METAL_DEFAULT: MaterialParams = { ...PRESETS.Metal, ring: 55, thud: 30, volume: 14 };
+const vol = (volume: number): Params => ({ volume });
 
 export const DEFAULT_DESIGN: SoundDesign = {
-  materials: {
-    stone: { ...PRESETS.Stone },
-    dirt: { ...PRESETS.Dirt },
-    grass: { ...PRESETS.Grass },
-    sand: { ...PRESETS.Sand },
-    wood: { ...PRESETS.Wood },
-    leaves: { ...PRESETS.Leaves },
-    metal: { ...METAL_DEFAULT },
-  },
+  // The material levels the hand-tuned mix had; the effect files are levelled to match it (effect-levels.ts).
+  materials: { stone: vol(15), dirt: vol(15), grass: vol(10), sand: vol(11), wood: vol(21), leaves: vol(10), metal: vol(14) },
   actions: {
-    dig: neutral(),
-    break: neutral(),
-    place: neutral(),
-    step: neutral(),
-    land: neutral(),
-    pickup: neutral(),
-    drop: neutral(),
-    click: neutral(),
-    scan: neutral(),
-    splash: neutral(),
-    powerdown: neutral(),
-    powerup: neutral(),
-    launch: neutral(),
-    podup: neutral(),
-    poddown: neutral(),
-    denied: neutral(),
+    dig: vol(50),
+    break: vol(50),
+    place: vol(50),
+    step: vol(50),
+    land: vol(50),
+    pickup: vol(50),
+    drop: vol(50),
+    click: vol(50),
+    scan: vol(50),
+    splash: vol(50),
+    powerdown: vol(50),
+    powerup: vol(50),
+    launch: vol(50),
+    podup: vol(50),
+    poddown: vol(50),
+    denied: vol(50),
   },
 };
 
@@ -298,8 +131,8 @@ export function mergeDesign(into: SoundDesign, src: unknown): number {
     }
   };
   const { materials, actions } = src;
-  if (isRecord(materials)) for (const m of MATERIALS) copy(into.materials[m], materials[m], MATERIAL_DIALS);
-  if (isRecord(actions)) for (const a of ACTIONS) copy(into.actions[a], actions[a], ACTION_DIALS);
+  if (isRecord(materials)) for (const m of MATERIALS) copy(into.materials[m], materials[m], DIALS);
+  if (isRecord(actions)) for (const a of ACTIONS) copy(into.actions[a], actions[a], DIALS);
   return applied;
 }
 
@@ -315,12 +148,12 @@ function changedDials(design: SoundDesign): Partial<Record<string, Record<string
   };
   const materials: Record<string, Record<string, number>> = {};
   for (const m of MATERIALS) {
-    const d = pick(design.materials[m], DEFAULT_DESIGN.materials[m], MATERIAL_DIALS);
+    const d = pick(design.materials[m], DEFAULT_DESIGN.materials[m], DIALS);
     if (Object.keys(d).length) materials[m] = d;
   }
   const actions: Record<string, Record<string, number>> = {};
   for (const a of ACTIONS) {
-    const d = pick(design.actions[a], DEFAULT_DESIGN.actions[a], ACTION_DIALS);
+    const d = pick(design.actions[a], DEFAULT_DESIGN.actions[a], DIALS);
     if (Object.keys(d).length) actions[a] = d;
   }
   return { materials, actions };
@@ -360,7 +193,7 @@ export function saveSettings(s: SoundSettings): void {
 export function exportDesign(design: SoundDesign): string {
   const line = (key: string, values: Record<string, number>, keys: readonly string[]) =>
     `    "${key}": { ${keys.map((k) => `"${k}": ${values[k]}`).join(', ')} }`;
-  const materials = MATERIALS.map((m) => line(m, design.materials[m], MATERIAL_DIALS));
-  const actions = ACTIONS.map((a) => line(a, design.actions[a], ACTION_INFO[a].dials));
+  const materials = MATERIALS.map((m) => line(m, design.materials[m], DIALS));
+  const actions = ACTIONS.map((a) => line(a, design.actions[a], DIALS));
   return `{\n  "materials": {\n${materials.join(',\n')}\n  },\n  "actions": {\n${actions.join(',\n')}\n  }\n}\n`;
 }

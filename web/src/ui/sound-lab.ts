@@ -1,20 +1,18 @@
-// The sound designer (key O): every sound material and action tuned with plain-language dials while
-// listening. One tab per material (Listen buttons, loops, dial groups) plus an Actions tab. The footer
-// and settings copy/paste live in sound-lab-footer.ts; dial definitions live in audio/settings.ts.
-// To add a dial: add it to audio/settings.ts; the tabs render whatever is listed there.
+// The sound designer (key O): the volume of every sound material and action, set while listening. One tab
+// per material (Listen buttons, loops, its Volume dial) plus an Actions tab. The sounds themselves are files
+// (audio/effects.ts). The footer and settings copy/paste live in sound-lab-footer.ts; dial texts and
+// defaults live in audio/settings.ts.
 
 import './sound-lab.css';
 import type { SoundSystem } from '../audio/sound';
 import {
   ACTIONS,
-  ACTION_DIAL_INFO,
   ACTION_INFO,
+  ACTION_VOLUME_INFO,
   DEFAULT_DESIGN,
   MATERIALS,
-  MATERIAL_DIAL_INFO,
-  MATERIAL_GROUPS,
   MATERIAL_LABELS,
-  PRESETS,
+  MATERIAL_VOLUME_INFO,
   type ActionName,
 } from '../audio/settings';
 import { button, h } from './dom';
@@ -81,7 +79,7 @@ export class SoundLab {
       h(
         'p',
         'lab-intro',
-        'Pick a material, press a Listen button, then turn the dials until it sounds right. Changes apply in the game straight away and are saved in this browser.',
+        'Pick a material, press a Listen button, then turn its Volume until it sits right with the rest. Changes apply in the game straight away and are saved in this browser.',
       ),
       button('close-btn', '×', () => this.close()),
     );
@@ -169,21 +167,9 @@ export class SoundLab {
     const titles = h('div');
     titles.append(h('h3', '', MATERIAL_LABELS[name]), h('p', 'lab-used-by', `Used by: ${users.map((b) => b.name).join(', ') || 'no blocks'}`));
     const tools = h('div', 'lab-mat-tools');
-    const preset = h('select', 'lab-select');
-    preset.setAttribute('aria-label', 'Start from a preset');
-    preset.append(new Option('Start from a preset…', ''));
-    for (const p of Object.keys(PRESETS)) preset.append(new Option(p, p));
-    preset.addEventListener('change', () => {
-      const p = PRESETS[preset.value];
-      if (!p) return;
-      this.sound.setMaterial(m, { ...p });
-      this.render();
-      this.audition(this.listen, m);
-    });
     tools.append(
-      preset,
       button('secondary-btn', `Reset ${MATERIAL_LABELS[name]}`, () => {
-        this.sound.setMaterial(m, { ...DEFAULT_DESIGN.materials[name] });
+        this.sound.setMaterialVolume(m, DEFAULT_DESIGN.materials[name].volume);
         this.render();
         this.audition(this.listen, m);
       }),
@@ -217,26 +203,21 @@ export class SoundLab {
     this.syncLoops();
 
     const groups = h('div', 'lab-groups');
-    const params = this.sound.design.materials[name];
-    for (const g of MATERIAL_GROUPS) {
-      const box = h('div', 'lab-group');
-      const knobs = h('div', 'lab-knobs');
-      for (const dial of g.dials) {
-        const knob = new Knob({
-          ...MATERIAL_DIAL_INFO[dial],
-          value: params[dial],
-          defaultValue: DEFAULT_DESIGN.materials[name][dial],
-          onInput: (v) => {
-            this.sound.setMaterialDial(m, dial, v);
-            this.dialTurned(this.listen, m);
-          },
-          onHelp: (text) => this.setHelp(text),
-        });
-        knobs.append(knob.el);
-      }
-      box.append(h('h4', '', g.title), h('p', '', g.blurb), knobs);
-      groups.append(box);
-    }
+    const box = h('div', 'lab-group');
+    const knobs = h('div', 'lab-knobs');
+    const knob = new Knob({
+      ...MATERIAL_VOLUME_INFO,
+      value: this.sound.design.materials[name].volume,
+      defaultValue: DEFAULT_DESIGN.materials[name].volume,
+      onInput: (v) => {
+        this.sound.setMaterialVolume(m, v);
+        this.dialTurned(this.listen, m);
+      },
+      onHelp: (text) => this.setHelp(text),
+    });
+    knobs.append(knob.el);
+    box.append(h('h4', '', 'Mix'), h('p', '', 'How loud this material is'), knobs);
+    groups.append(box);
 
     this.body.append(head, listen, groups);
   }
@@ -249,10 +230,7 @@ export class SoundLab {
     pick.addEventListener('change', () => (this.hearOn = Number(pick.value)));
     const label = h('label');
     label.append('Hear them on ', pick);
-    intro.append(
-      h('p', '', "Actions start from the material's sound and adjust it. 50 on these dials leaves the material's sound as it is."),
-      label,
-    );
+    intro.append(h('p', '', "Each action's volume, on top of the material's. 50 is normal."), label);
     this.body.append(intro);
 
     for (const action of ACTIONS) {
@@ -266,23 +244,20 @@ export class SoundLab {
       const text = h('div', 'lab-action-text');
       text.append(h('h4', '', info.label), h('p', '', info.help));
       const knobs = h('div', 'lab-knobs');
-      const params = this.sound.design.actions[action];
-      for (const dial of info.dials) {
-        const knob = new Knob({
-          ...ACTION_DIAL_INFO[dial],
-          value: params[dial],
-          defaultValue: DEFAULT_DESIGN.actions[action][dial],
-          small: true,
-          onInput: (v) => {
-            this.sound.setActionDial(action, dial, v);
-            this.dialTurned(action, this.hearOn);
-          },
-          onHelp: (t) => this.setHelp(t),
-        });
-        knobs.append(knob.el);
-      }
+      const knob = new Knob({
+        ...ACTION_VOLUME_INFO,
+        value: this.sound.design.actions[action].volume,
+        defaultValue: DEFAULT_DESIGN.actions[action].volume,
+        small: true,
+        onInput: (v) => {
+          this.sound.setActionVolume(action, v);
+          this.dialTurned(action, this.hearOn);
+        },
+        onHelp: (t) => this.setHelp(t),
+      });
+      knobs.append(knob.el);
       const reset = button('secondary-btn', 'Reset', () => {
-        this.sound.setAction(action, { ...DEFAULT_DESIGN.actions[action] });
+        this.sound.setActionVolume(action, DEFAULT_DESIGN.actions[action].volume);
         this.render();
         this.audition(action, this.hearOn);
       });
