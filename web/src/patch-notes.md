@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-28 · Bigger icons
+- **Every item icon now fills its box.** Tools, parts, canisters, science packs and other small items used to sit tiny in the middle of their slot; each icon is now sized to its own shape, so a pickaxe or a screw is as large as a block and much easier to recognise. Torches and saplings show as their picture instead of a see-through cube.
+
 ## 2026-10-26 · Belt ejector
 - **Belt icons look like belts.** Belts, belt lifts, underpasses, splitters, filters and the ejector now show their real shape in the hotbar and menus (a flat belt, a caged lift, a belt running into a hood) instead of a cube, so they are easy to tell apart. Belts and underpasses lying on the ground are flat too.
 - **New: the Belt Ejector**, unlocked with Underpasses. Put it at the end of a belt, facing the way the belt runs, and it drops what arrives onto the ground in front of it (up to ten items a second; the belt backs up behind it). It needs no power. It looks like a funnel feeding a brass tube, and items fly out of the tube's mouth in a small arc.

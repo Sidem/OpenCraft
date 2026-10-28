@@ -73,7 +73,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
-- `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector).
+- `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
 
 ### World and generation
@@ -129,7 +129,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds), `export.ts` (`.ocworld` downloads), `leave-guard.ts` (the ask-before-closing setting and rule; `ui/leave-prompt.ts` draws it). `comfort/settings.ts`: comfort options.
 - `console/`: `commands.ts` (pure admin commands), `host.ts` (wires them to the engine).
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements. Screens and panels:
-  - HUD: `hud.ts` (+ `hud-columns.css`), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
+  - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` draws every icon), `icon-sprite.ts` (flat icons), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it

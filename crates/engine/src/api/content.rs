@@ -45,10 +45,24 @@ impl Game {
     }
 
     /// How to draw an item's icon: texture layers top, side, bottom, then its box proportions x, y, z
-    /// (1 = a full cube). Empty for unknown ids.
+    /// (1 = a full cube), then its fit (`item_models::icon_frame`): one cube unit as a share of the box side,
+    /// the icon's centre right and down in cube units, and 1 if it is drawn flat as its side picture. Empty for
+    /// unknown ids.
     pub fn item_icon(&self, id: u16) -> Vec<f32> {
         item::def(ItemId(id)).map_or_else(Vec::new, |d| {
-            vec![d.tex[0] as f32, d.tex[1] as f32, d.tex[2] as f32, d.size[0], d.size[1], d.size[2]]
+            let fit = item_models::icon_frame(ItemId(id));
+            vec![
+                d.tex[0] as f32,
+                d.tex[1] as f32,
+                d.tex[2] as f32,
+                d.size[0],
+                d.size[1],
+                d.size[2],
+                fit.scale(),
+                fit.centre[0],
+                fit.centre[1],
+                f32::from(u8::from(fit.flat)),
+            ]
         })
     }
 

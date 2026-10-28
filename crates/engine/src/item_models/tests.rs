@@ -95,20 +95,21 @@ fn every_power_pole_is_a_post_with_a_crossarm_inside_its_cell_and_a_tier_wears_i
 
 const GRID: usize = 96;
 
-/// The silhouette of a model as its icon draws it (`web/src/ui/hud.ts` `itemIcon`: x runs right-down, z left-down, y up,
-/// models standing on their cell's floor centred up and down), on a `GRID`² grid over [-0.6, 0.6]².
-fn silhouette(model: &[Part]) -> Vec<bool> {
+/// The silhouette of an item's model as its icon draws it (`web/src/ui/hud.ts` `itemIcon`: x runs right-down, z
+/// left-down, y up, fitted to its own bounds by `icon_frame`, its longer side 1), on a `GRID`² grid over [-0.6, 0.6]².
+fn silhouette(item: ItemId) -> Vec<bool> {
+    let model = icon_frame::icon_boxes(item);
     assert!(model.iter().all(|p| p.yaw == 0.0), "the silhouette only handles upright boxes");
-    let (low, high) = model.iter().fold((1.0f32, -1.0f32), |(l, h), p| {
-        (l.min(p.center[1] - p.size[1] * 0.5), h.max(p.center[1] + p.size[1] * 0.5))
-    });
-    let lift = if low <= -0.49 { -(low + high) * 0.5 } else { 0.0 };
-    let proj = |x: f32, y: f32, z: f32| [(x - z) * 0.5, (x + z) * 0.25 - y * 0.5];
+    let frame = icon_frame(item);
+    let proj = |x: f32, y: f32, z: f32| {
+        let p = icon_frame::project(x, y, z);
+        [(p[0] - frame.centre[0]) / frame.span, (p[1] - frame.centre[1]) / frame.span]
+    };
     let edge = |a: [f32; 2], b: [f32; 2]| [b[0] - a[0], b[1] - a[1]];
     // The three faces a viewer above and in front of +x, +z sees: a corner and two edges each.
     let mut faces = Vec::new();
-    for p in model {
-        let (c, h) = ([p.center[0], p.center[1] + lift, p.center[2]], p.size.map(|s| s * 0.5));
+    for p in &model {
+        let (c, h) = (p.center, p.size.map(|s| s * 0.5));
         let top = proj(c[0] - h[0], c[1] + h[1], c[2] - h[2]);
         faces.push((
             top,
@@ -195,9 +196,9 @@ fn a_belt_model_is_as_low_as_the_placed_belt_and_wears_its_tier() {
 #[test]
 fn belts_lifts_underpasses_and_ejectors_have_different_silhouettes_and_a_belt_is_flat() {
     use crate::block::{BELT, BELT_EJECTOR, LIFT, UNDERPASS_IN};
-    let shape = |b| silhouette(parts(ItemId::block(b)));
+    let shape = |b| silhouette(ItemId::block(b));
     let (belt, lift, pass, eject) = (shape(BELT), shape(LIFT), shape(UNDERPASS_IN), shape(BELT_EJECTOR));
-    let cube = silhouette(&[part([0.0; 3], [1.0; 3], 0)]);
+    let cube = silhouette(ItemId::block(crate::block::STONE));
     let ratio = |m: &[bool]| tall(m) as f32 / tall(&cube) as f32;
     eprintln!(
         "heights belt {:.2} lift {:.2} underpass {:.2} ejector {:.2}; iou belt/lift {:.2} belt/underpass {:.2} belt/ejector {:.2} lift/underpass {:.2} lift/ejector {:.2} underpass/ejector {:.2}",

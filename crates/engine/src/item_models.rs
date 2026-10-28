@@ -20,11 +20,14 @@ use crate::item::{
 mod belts;
 mod components;
 mod craft;
+mod icon_frame;
 mod power;
 mod shapes;
 mod space;
 mod stock;
 mod wear;
+
+pub use icon_frame::icon_frame;
 
 const ITEM_MINER_MK1: ItemId = ItemId::block(MINER);
 const ITEM_MINER_MK2: ItemId = ItemId::block(MINER_MK2);
