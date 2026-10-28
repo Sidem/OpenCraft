@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-28 · Bigger icons
+- **Every item icon now fills its box.** Tools, parts, canisters, science packs and other small items used to sit tiny in the middle of their slot; each icon is now sized to its own shape, so a pickaxe or a screw is as large as a block and much easier to recognise. Torches and saplings show as their picture instead of a see-through cube.
+
 ## 2026-10-28 · See what a machine makes
 - **Every machine that makes items now shows its product** on a small light sign: on the roof of smelters, constructors, crushers, assemblers and the other machines up to the chip fab, or on the front of the tall ones. It shows the recipe you chose, or for a smelter, crusher or washer what it made last; an empty sign means no recipe yet. No need to click a machine to know what it makes.
 - **The Mk is easy to see:** every machine that comes in tiers wears one pale stud per Mk on its sides, on a band in the Mk's colour (one stud for Mk1 up to five for Mk5). Storage boxes, labs and generators show their Mk for the first time. Poles wear pale rings, underpasses studs on their hood, and a belt run shows its Mk every six blocks.

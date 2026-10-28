@@ -9,6 +9,7 @@ import './hud.css';
 import './hud-columns.css';
 import type { Game } from '../wasm/engine.js';
 import { HeldName } from './held-name';
+import { drawSprite } from './icon-sprite';
 import { OffhandSlot } from './offhand';
 
 const ICON_PX = 64;
@@ -289,7 +290,8 @@ export class Hud {
     this.toasts.set(key, { el, label, count, until: now + TOAST_MS });
   }
 
-  /** Isometric icon using the same box assembly as the loose item; blocks keep their single box. */
+  /** Isometric icon using the same box assembly as the loose item (blocks keep their single box), fitted to fill the
+   * box; a plant-drawn block is its flat picture (`icon-sprite.ts`). */
   itemIcon(item: number): HTMLCanvasElement {
     let c = this.icons.get(item);
     if (c) return c;
@@ -299,11 +301,16 @@ export class Hud {
     ctx.imageSmoothingQuality = 'high'; // layers are 64 px and drawn at about 16: filter them down
     const info = this.game.item_icon(item);
     this.icons.set(item, c);
-    if (info.length < 6) return c;
-    // +x runs right-down, +z left-down, +y up. Part coordinates are fractions of one cube.
-    const S = ICON_PX * 0.86, k = S / 16;
+    if (info.length < 10) return c;
+    if (info[9]) {
+      drawSprite(ctx, this.layers[info[1]], ICON_PX, info[6]);
+      return c;
+    }
+    // +x runs right-down, +z left-down, +y up. Part coordinates are fractions of one cube. The engine's fit
+    // (`item_models::icon_frame`) scales each icon to its own bounds, so a thin tool fills the box as a block does.
+    const S = ICON_PX * info[6], k = S / 16, cx = info[7], cy = info[8];
     const project = (x: number, y: number, z: number): [number, number] =>
-      [ICON_PX / 2 + (x - z) * S / 2, ICON_PX * 0.54 + (x + z) * S / 4 - y * S / 2];
+      [ICON_PX / 2 + ((x - z) / 2 - cx) * S, ICON_PX / 2 + ((x + z) / 4 - y / 2 - cy) * S];
     const face = (img: HTMLCanvasElement, m: [number, number, number, number, number, number], shade: number) => {
       const f = 16 / img.width; // the matrices are for a 16 px image; textures are finer
       ctx.setTransform(m[0] * f, m[1] * f, m[2] * f, m[3] * f, m[4], m[5]);
@@ -343,15 +350,8 @@ export class Hud {
     };
     const model = this.game.item_model(item);
     if (model.length) {
-      // A model standing on the floor of its cell (a belt) is centred up and down, so it does not sit low in the icon.
-      let low = 1, high = -1;
       for (let i = 0; i < model.length; i += 10) {
-        low = Math.min(low, model[i + 1] - model[i + 4] / 2);
-        high = Math.max(high, model[i + 1] + model[i + 4] / 2);
-      }
-      const lift = low <= -0.49 ? -(low + high) / 2 : 0;
-      for (let i = 0; i < model.length; i += 10) {
-        draw(model[i], model[i + 1] + lift, model[i + 2], model[i + 3], model[i + 4], model[i + 5],
+        draw(model[i], model[i + 1], model[i + 2], model[i + 3], model[i + 4], model[i + 5],
           model[i + 6], model[i + 7], model[i + 8]);
       }
     } else {
