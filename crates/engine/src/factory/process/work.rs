@@ -29,7 +29,7 @@ impl Processor {
                 self.used.push(Stack { item, count: n });
             }
             self.steam.water -= water_use(i);
-            (self.batch, self.progress) = (Some(i), 0);
+            (self.batch, self.shown, self.progress) = (Some(i), Some(i), 0);
         }
         let Some(r) = self.batch_recipe() else { return };
         let work = self.stats().speed * power / FULL_SPEED * self.boost / FULL_SPEED;

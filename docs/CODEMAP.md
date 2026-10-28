@@ -46,7 +46,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Factory (core): `factory/`
 - `mod.rs`: `Factory` (a `Vec` per kind, cell index, place, remove). `tick.rs`: `update`, one tick. `table.rs`: `Kind`,
   `MACHINES`. `machine.rs`: the `Machine` trait. `state.rs`: bytes of every list. `tiers.rs`: tier families.
-  `upgrades.rs`: kits, in-place upgrades.
+  `upgrades.rs`: kits, in-place upgrades. `tier_mark.rs`: the Mk studs every tiered machine wears (presentation).
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
   `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
@@ -56,7 +56,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Rails: `rail.rs` + `rail/curve.rs`, `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
-  machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `shape.rs`,
+  machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the product sign, `Look::Product`), `shape.rs`,
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
@@ -111,7 +111,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Tests and benches
 - `tests.rs` (scenarios), `tests/frame_bench.rs`; ignored `bench_*` tests time hot paths (`cargo test --release -q bench_
-  -- --ignored --nocapture`): meshing, big base, trains, towns, water, drones, orbit, worldgen.
+  -- --ignored --nocapture`): meshing, big base, trains, towns, water, drones, orbit, worldgen, machine marks (`factory/tests/bench_marks.rs`).
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
@@ -121,7 +121,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
   `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `gl.ts`, `mat4.ts`.
-- `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
+- `audio/`: `sound.ts` (events → voices, `AudioContext`), `effects.ts` + `effect-levels.ts` + `effects/` (the
+  effect files, credits in `effects/CREDITS.md`), `settings.ts` (volume dials), `synth.ts` (DSP helpers for ambience),
   `ambience.ts` + `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`,
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts` (start co-op from URL or menu), `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`,

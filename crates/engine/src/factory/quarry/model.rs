@@ -7,7 +7,7 @@ use crate::block::tex;
 use crate::math::Vec3;
 
 use super::super::render::push_box;
-use super::super::DIRS;
+use super::super::{tier_mark, DIRS};
 use super::{Quarry, QuarryStatus};
 
 /// How high the gantry runs above the quarry's floor.
@@ -22,6 +22,7 @@ pub(super) fn draw(q: &Quarry, out: &mut Vec<f32>, rel: Vec3, time: f64) {
 
     let housing = [tex::STEEL, tex::MINER_MK2_SIDE, tex::FRAME];
     push_box(out, rel + Vec3::new(0.0, -0.2, 0.0), 0.0, [0.9, 0.6, 0.9], 0.0, housing, false);
+    tier_mark::ring(out, rel + Vec3::new(0.0, -0.22, 0.0), 0.0, [0.45, 0.45], q.tier);
     push_box(out, rel + Vec3::new(0.0, 0.2, 0.0), 0.0, [0.55, 0.22, 0.55], 0.0, frame, false);
     push_box(out, rel + Vec3::new(0.3, 0.36, 0.3), 0.0, [0.14, 0.1, 0.14], 0.0, [lamp(q.status); 3], false);
     if q.tier > 0 {

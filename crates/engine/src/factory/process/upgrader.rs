@@ -48,8 +48,8 @@ const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 const STEEL: Look = Look::Tex([tex::STEEL; 3]);
 
 /// Across and deep 2, 2 high (±1): a banded plinth, a low housing, two posts and a crossbar over it with a platen that
-/// presses down while it works, a kit chute on the back and a status lamp.
-const PARTS: [Part; 8] = [
+/// presses down while it works, a kit chute on the back, a status lamp and the product display on the housing's front.
+const PARTS: [Part; 9] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.4, 0.0], [1.8, 0.8, 1.8], Look::Tex(BODY)),
     part([-0.7, 0.55, 0.0], [0.14, 1.0, 0.14], STEEL),
@@ -58,4 +58,5 @@ const PARTS: [Part; 8] = [
     part([0.0, 0.62, 0.0], [0.7, 0.2, 0.7], Look::Press(1.0, [tex::IRON_PLATE; 3])),
     part([0.0, 0.2, -0.95], [0.9, 0.4, 0.3], FRAME),
     part([0.78, 0.1, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
+    part([0.0, 0.3, 0.6], super::parts::SIGN, Look::Product),
 ];

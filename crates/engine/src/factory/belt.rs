@@ -21,7 +21,7 @@ use super::belt_shape::Shape;
 use super::links::{deliver, Link, Sinks, Slot};
 use super::provenance::Tag;
 use super::render::push_box;
-use super::{Factory, Machine, DIRS};
+use super::{tier_mark, Factory, Machine, DIRS};
 
 const DIR_NAMES: [&str; 4] = ["north", "east", "south", "west"];
 
@@ -314,6 +314,16 @@ impl Belt {
             }
             for z in [-0.45, 0.45] {
                 push_box(out, at(0.0, 0.2, z), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
+            }
+            // A run shows its Mk every `BELT_EVERY` cells: studs along the tops of both rails.
+            let marked = (self.pos.x + self.pos.z).rem_euclid(tier_mark::BELT_EVERY) == 0;
+            if self.shape == Shape::Flat && marked && tier_mark::near(rel) {
+                let (paint, d) = ([tex::paint(self.tier); 3], tier_mark::DEPTH);
+                for (side, o) in
+                    [-0.46, 0.46].into_iter().flat_map(|s| tier_mark::offsets(self.tier).map(move |o| (s, o)))
+                {
+                    push_box(out, at(side, 0.26 + d / 2.0, o), yaw, [0.1, d, tier_mark::STUD], 0.0, paint, false);
+                }
             }
         }
         self.shape_model(out, &at, yaw, scroll);

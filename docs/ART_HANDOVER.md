@@ -334,6 +334,9 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   kits; stone bricks (block 60, `tex::STONE_BRICKS`, 119) and quicklime (item 275, `tex::QUICKLIME`, 120)
   in `textures/masonry.rs`. The Smelter and Constructor Mk2 items (276, 277) reuse their block faces; the
   hotbar adds the tier chip (`web/src/ui/hud.ts` `itemIcon`).
+- [ ] (2026-10-28, landed) Tier paint (`tex::TIER_PAINT_1`..`TIER_PAINT_5`, `tex::paint`, `textures/stripes.rs` `paint`):
+  the plain tier colour on the Mk studs and pole collars (`factory/tier_mark.rs`). Keep it flat and bright: a stud is a
+  few pixels across, so any pattern is lost and the colour has to stand out from the band beneath it.
 - [ ] (6.5, landed) Assembly: the assembler (block 61, 2×2×2; its model is spec parts in
   `factory/process/specs.rs` `ASSEMBLER_PARTS`, drawn by `process/model.rs`), its housing layers
   (`tex::ASSEMBLER_SIDE`/`TOP`, 121–122), the port hatches every multi-block machine gets (`tex::PORT_IN`,

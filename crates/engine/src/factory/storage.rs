@@ -1,7 +1,7 @@
 //! Storage boxes: a buffer of item stacks, `BOX_SLOTS[tier]` of them. Belts and miners deliver into
 //! them; each step a box pushes one item from its last non-empty slot into the next belt leading away
-//! (round-robin). The box is an ordinary meshed cube, so it has no model of its own. Tiers add slots
-//! (an upgrade keeps every stack where it is).
+//! (round-robin). The box is an ordinary meshed cube; its model is only its Mk studs (`tier_mark.rs`). Tiers add
+//! slots (an upgrade keeps every stack where it is).
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
@@ -11,7 +11,7 @@ use crate::math::{sort_small_by_key, IVec3, Vec3};
 use super::belt::Belt;
 use super::buffer::Buffer;
 use super::describe::fmt_int;
-use super::{Factory, Machine};
+use super::{tier_mark, Factory, Machine};
 
 /// Slots of each tier, Mk1 first.
 pub const BOX_SLOTS: [usize; 3] = [24, 36, 48];
@@ -95,5 +95,8 @@ impl Machine for Storage {
         lines.join("\n")
     }
 
-    fn model(&self, _: &mut Vec<f32>, _: Vec3, _: f64) {}
+    /// Only its Mk studs, low on its four sides (the cube itself is meshed).
+    fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
+        tier_mark::ring(out, rel - Vec3::new(0.0, 0.32, 0.0), 0.0, [0.5, 0.5], self.tier);
+    }
 }

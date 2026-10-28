@@ -25,6 +25,7 @@ mod center;
 mod datacenter;
 mod depot;
 mod diesel;
+mod display;
 mod docks;
 mod ejector;
 mod extra;
@@ -114,6 +115,9 @@ pub struct Processor {
     pub recipe: Option<u16>,
     /// The batch in progress and the work it has had (thousandths of a Mk1 tick).
     pub batch: Option<u16>,
+    /// The last batch started, which the product display shows (`display.rs`; derived, not saved: a loaded machine
+    /// shows its batch in progress, else the product it holds, `guess_shown`).
+    pub shown: Option<u16>,
     pub progress: u32,
     /// Work the fire can still fuel (burners, same units).
     pub burn: u32,
@@ -156,6 +160,7 @@ impl Processor {
             tier,
             recipe: None,
             batch: None,
+            shown: None,
             progress: 0,
             burn: 0,
             input,

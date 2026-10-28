@@ -1,6 +1,6 @@
 //! Processor models as data: a spec's `parts` are boxes (centre and size in block units, relative to
-//! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band,
-//! the status lamp, a fire that glows while working, a press that pumps and a chimney's smoke are looks, so a new
+//! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band (with the
+//! Mk studs of `tier_mark.rs` round it), the product display (`display.rs`), the status lamp, a fire that glows while working, a press that pumps and a chimney's smoke are looks, so a new
 //! processor is rows, not drawing code. Round bodies are two crossed parts (`drum_x` and `drum_z`). A multi-block
 //! machine's port hatches are drawn from its footprint.
 
@@ -9,7 +9,7 @@ use crate::math::Vec3;
 
 use super::super::footprint::Role;
 use super::super::render::push_box;
-use super::super::{smoke, ticks, DIRS};
+use super::super::{smoke, ticks, tier_mark, DIRS};
 use super::{steam_view, Energy, Processor, Status};
 
 #[cfg(test)]
@@ -35,6 +35,9 @@ pub enum Look {
     Rocket([u16; 3]),
     /// A solid mark in the machine's channel colour (a pod launcher or pad: `pods/channels.rs`).
     Channel,
+    /// The product display (`display.rs`): the part is its slot, the product is drawn inside it, the plate at its
+    /// back. Every machine that makes items has one (tested).
+    Product,
 }
 
 #[derive(Clone, Copy)]
@@ -103,8 +106,18 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 }
                 continue;
             }
+            Look::Product => {
+                super::display::draw(p, out, at, yaw, part.size);
+                continue;
+            }
             Look::Tex(t) => t,
-            Look::Band(top) => [top, tex::stripe(p.tier), tex::FRAME],
+            Look::Band(top) => {
+                // A machine that comes in tiers wears its Mk studs around its band.
+                if p.spec.tiers.len() > 1 {
+                    tier_mark::ring(out, at, yaw, [part.size[0] / 2.0, part.size[2] / 2.0], p.tier);
+                }
+                [top, tex::stripe(p.tier), tex::FRAME]
+            }
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],
             Look::Lamp => [lamp(p.status); 3],
             Look::Press(share, t) => {

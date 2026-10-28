@@ -23,7 +23,7 @@ use super::panel::{Panel, ROLE_INPUT};
 use super::power::{Power, FULL_SPEED, NOT_WIRED};
 use super::process::{needs_center, step_centers, Processor};
 use super::render::push_box;
-use super::{ticks, Factory, Kind, Machine};
+use super::{ticks, tier_mark, Factory, Kind, Machine};
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LabStatus {
@@ -330,6 +330,7 @@ impl Machine for Lab {
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let body = [tex::LAB_TOP, tex::LAB_SIDE, tex::FRAME];
         push_box(out, rel + Vec3::new(0.0, -0.4, 0.0), 0.0, [0.94, 0.18, 0.94], 0.0, body, false);
+        tier_mark::ring(out, rel + Vec3::new(0.0, -0.4, 0.0), 0.0, [0.47, 0.47], self.tier);
         push_box(out, rel + Vec3::new(0.0, -0.1, 0.0), 0.0, [0.67, 0.43, 0.67], 0.0, [tex::FLASK_GLASS; 3], false);
         for x in [-0.37, 0.37] {
             push_box(out, rel + Vec3::new(x, -0.02, 0.0), 0.0, [0.08, 0.61, 0.75], 0.0, [tex::FRAME; 3], false);

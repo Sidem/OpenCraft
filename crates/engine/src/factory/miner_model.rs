@@ -11,7 +11,7 @@ use crate::block::tex;
 use crate::math::Vec3;
 
 use super::render::{push_box, INSTANCE_FLOATS};
-use super::smoke;
+use super::{smoke, tier_mark};
 
 /// What the model shows besides its place.
 pub(super) struct Look {
@@ -109,7 +109,27 @@ pub(super) fn write(out: &mut Vec<f32>, rel: Vec3, look: &Look, time: f64) {
     f.put([0.0, -0.35, 0.0], [0.72, 0.3, 0.72], None, [tex::MINER_TOP, look.side, tex::FRAME], false);
     match look.coal_seed {
         None => {
-            f.put([0.0, -0.17, 0.0], [0.76, 0.06, 0.76], None, [tex::FRAME, tex::stripe(look.tier), tex::FRAME], false)
+            f.put([0.0, -0.17, 0.0], [0.76, 0.06, 0.76], None, [tex::FRAME, tex::stripe(look.tier), tex::FRAME], false);
+            // The Mk studs on the housing's sides that face the camera.
+            if tier_mark::near(rel) {
+                let (paint, s, d, half) = ([tex::paint(look.tier); 3], tier_mark::STUD, tier_mark::DEPTH, 0.36 + 0.015);
+                for side in [-half, half] {
+                    let (u_face, w_face) = (f.point([side, -0.35, 0.0]), f.point([0.0, -0.35, side]));
+                    let toward = |face: Vec3| {
+                        let n = face - f.point([0.0, -0.35, 0.0]);
+                        n.x * face.x + n.y * face.y + n.z * face.z < 0.0
+                    };
+                    let (u_seen, w_seen) = (toward(u_face), toward(w_face));
+                    for o in tier_mark::offsets(look.tier) {
+                        if u_seen {
+                            f.put([side, -0.35, o], [d, s, s], None, paint, false);
+                        }
+                        if w_seen {
+                            f.put([o, -0.35, side], [s, s, d], None, paint, false);
+                        }
+                    }
+                }
+            }
         }
         Some(seed) => {
             // A coal miner burns its fuel: a soot-black chimney rises from the housing and smokes while it digs.

@@ -16,7 +16,7 @@ use crate::TICK_RATE;
 use super::buffer::Buffer;
 use super::panel::{Panel, ROLE_FUEL};
 use super::render::push_box;
-use super::{smoke, Factory, Kind, Machine};
+use super::{smoke, tier_mark, Factory, Kind, Machine};
 
 /// What a generator tier gives, Mk1 first.
 pub struct GeneratorTier {
@@ -162,6 +162,7 @@ impl Machine for Generator {
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let body = [tex::GENERATOR_TOP, tex::GENERATOR_SIDE, tex::FRAME];
         push_box(out, rel + Vec3::new(0.0, -0.41, 0.0), 0.0, [0.94, 0.17, 0.94], 0.0, [tex::FRAME; 3], false);
+        tier_mark::ring(out, rel + Vec3::new(0.0, -0.41, 0.0), 0.0, [0.47, 0.47], self.tier);
         push_box(out, rel + Vec3::new(-0.08, -0.12, 0.0), 0.0, [0.62, 0.42, 0.72], 0.0, body, false);
         // The flywheel stands in the y-z plane; its two spokes turn about x (the box pitch, slot 12).
         let spin = if self.running() { (time * 5.0) as f32 } else { 0.0 };

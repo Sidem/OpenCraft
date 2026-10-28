@@ -72,6 +72,7 @@ impl Processor {
             p.set_channel(p.dir);
         }
         p.extra.read_state(r)?;
+        p.shown = p.guess_shown();
         p.valid()
     }
 }

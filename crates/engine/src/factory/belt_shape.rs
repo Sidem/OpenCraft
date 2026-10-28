@@ -22,7 +22,7 @@ use crate::math::{IVec3, Vec3};
 use super::belt::{Belt, BELT_HEIGHT, BELT_TIERS};
 use super::links::Slot;
 use super::render::push_box;
-use super::DIRS;
+use super::{tier_mark, DIRS};
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
@@ -196,6 +196,14 @@ impl Belt {
                     push_box(out, at(x, 0.32, z), yaw, [0.14, 0.64, 0.5], 0.0, rail, false);
                 }
                 push_box(out, at(0.0, 0.62, z), yaw, [0.96, 0.1, 0.5], 0.0, [tex::COPPER_INGOT; 3], false);
+                // Every pass piece shows its Mk: studs across its hood.
+                if tier_mark::near(at(0.0, 0.0, 0.0)) {
+                    let (paint, d) = ([tex::paint(self.tier); 3], tier_mark::DEPTH);
+                    let stud = [tier_mark::STUD, d, tier_mark::STUD];
+                    for o in tier_mark::offsets(self.tier) {
+                        push_box(out, at(o, 0.67 + d / 2.0, z), yaw, stud, 0.0, paint, false);
+                    }
+                }
             }
         }
     }

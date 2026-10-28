@@ -75,8 +75,9 @@ const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 const STEEL: Look = Look::Tex([tex::STEEL; 3]);
 
 /// Across and deep 4, 3 high (±2, ±2, ±1.5): a banded plinth, the clean room (a low windowless hall), a roof deck with
-/// three fan-filter units and an air duct behind them, a dark airlock door and a status lamp.
-const FAB_PARTS: [Part; 10] = [
+/// three fan-filter units and an air duct behind them, a dark airlock door, a status lamp and the product display on
+/// the front wall.
+const FAB_PARTS: [Part; 11] = [
     part([0.0, -1.4, 0.0], [3.96, 0.2, 3.96], Look::Band(tex::FRAME)),
     part([0.0, -0.35, -0.1], [3.8, 1.9, 3.6], Look::Tex(BODY)),
     part([0.0, 0.65, -0.1], [3.9, 0.1, 3.7], FRAME),
@@ -87,4 +88,5 @@ const FAB_PARTS: [Part; 10] = [
     part([0.0, -0.75, 1.74], [1.3, 1.3, 0.12], Look::Tex([tex::GENERATOR_SIDE; 3])),
     part([0.0, -0.05, 1.74], [1.5, 0.1, 0.14], FRAME),
     part([1.6, 0.3, 1.74], [0.16, 0.12, 0.14], Look::Lamp),
+    part([-1.15, -0.2, 1.85], [0.7, 0.7, 0.3], Look::Product),
 ];

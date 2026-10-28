@@ -213,11 +213,20 @@ pub const MAT_EMBER: u16 = LAYERS_END + 5;
 pub const MAT_AETHER: u16 = LAYERS_END + 6;
 /// The house set's layers, 354 on (`block/house.rs`, `textures/house.rs`).
 pub use super::house::layers::*;
-pub const COUNT: usize = HOUSE_LAYERS_END as usize;
+/// The tier paints, 367 on: one flat tier colour each, worn by the Mk studs (`factory/tier_mark.rs`,
+/// `textures/stripes.rs`).
+pub const TIER_PAINT_1: u16 = HOUSE_LAYERS_END;
+pub const TIER_PAINT_5: u16 = HOUSE_LAYERS_END + 4;
+pub const COUNT: usize = TIER_PAINT_5 as usize + 1;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {
     STRIPE_1 + tier as u16
+}
+
+/// The paint layer of tier `tier` (0 is Mk1).
+pub const fn paint(tier: u8) -> u16 {
+    TIER_PAINT_1 + tier as u16
 }
 
 /// How many alternates a layer with any has.

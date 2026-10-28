@@ -18,7 +18,7 @@ use super::footprint::Footprint;
 use super::links::Slot;
 use super::pole_mount::{mount_model, SIDES};
 use super::render::push_box;
-use super::{Factory, Machine};
+use super::{tier_mark, Factory, Machine};
 
 /// What a pole tier reaches, in blocks between cell centres.
 pub struct PoleTier {
@@ -250,6 +250,7 @@ impl Machine for Pole {
             let band = [tex::stripe(self.tier); 3];
             push_box(out, rel + Vec3::new(0.0, -0.28, 0.0), 0.0, [0.17, 0.14, 0.17], 0.0, band, false);
         }
+        tier_mark::collars(out, rel + Vec3::new(0.0, -0.08, 0.0), 0.13, self.tier);
         let top = POLE_RISE;
         push_box(out, rel + Vec3::new(0.0, 0.34 + top, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
         for x in [-0.28, 0.28] {

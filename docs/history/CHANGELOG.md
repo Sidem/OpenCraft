@@ -298,3 +298,48 @@ flatten, `MarkSite` / `RemoveSite`, `survey_site`, `api/sites.rs`; saved); the d
 - **2026-10-11: Satellites in orbit (step 12.2).** `satellites.rs` (core, `Factory::orbit`, save version 45: orbits are integer maths on the tick, a wrapped sky of 4096 blocks, 8 headings, coverage by a kind's reach, 24 a kind), the Survey Satellite (item 391, texture 294, machine recipe 70, launch recipe 69 now carries it, the pad has 6 input slots and reads old 5-slot saves), `Processor::lifted`, `api/orbit.rs` `sky_satellites`, gold lights in `render/sky.ts`, the launch site's "satellites up / over this pad" line. Golden hash re-recorded. Tests 752 → 763. Next free block 110, item 392, tech 79, machine recipe 71, texture 295.
 - **2026-10-11: Rocket parts and the launch site (step 12.1).** Block 109 Launch Site (`process/launch.rs`), tech Rocketry 78 (`research/orbit.rs`), items 386–390, machine recipes 64–69 (`recipes/orbit.rs`), `Category::Launch`, `Look::Rocket`, textures 286–293 (`textures/orbit.rs`); `crate::join` (generic const join) now builds both `TECHS` and `MACHINE_RECIPES`. A pad launches a rocket per 60 s batch and counts it (`Processor::launches`). No save bump, golden hash re-recorded. Tests 744 → 752. Next free block 110, item 391, tech 79, machine recipe 70, texture 294.
 - **2026-10-14: Build menu rework, hover pack slot (user request).** The Hover Pack is worn in the Flight pack slot (shares it with the Jetpack, mutually exclusive; `Equipment::has_hover_pack`; the pack in the backpack does nothing; no save change). Build menu: `recipes/menu_order.rs` (curated order, every Mk of a building together; `menu_order(r)` via `recipe_order`), groups Computing and Space, Diesel Generator and the like under Power, Production holds the processors. Cards: `factory/facts.rs` + `process/facts.rs` (`item_facts`, rows `kind<TAB>label<TAB>value`) and `ui/craft-card.ts`/`.css` give size, electricity kW, fuel, produced kW their own fields. `ui/craft-nav.css`: category tabs and a "Next: ..." page button, tier families kept on one page.
+- **2026-10-25: optional "ask before closing"** (user request). Off by default: `ui/leave-prompt.ts` and `save/leave-guard.ts`
+  hold `beforeunload` once played on since the last export; staying shows an export dialog (`save/export.ts`). No save change.
+- **2026-10-25: playtester feedback** (five items). Hotbar: the selected item's name above the bar (`ui/held-name.ts`, fades after
+  `HELD_NAME_MS`). Poles: two blocks tall by `POLE_RISE` (`factory/pole.rs`; visual only, nothing saved: the air cell above holds
+  the upper half, aimed at through `Factory::pole_below`/`tall_pole_boxes`, remapped to the pole in `update_target_ray`; blocks may
+  still be placed in that cell), wires at `POLE_WIRE_Y`, and icons for the poles (`item_models/power.rs`). Refusals
+  (`place_refusal.rs`): a solid block with the body in its cell, or a footprint with a taken cell, plays `sound::DENIED` (13; web
+  action `denied`) once per click and every `REFUSE_REPEAT_SECONDS` while held; single blocks also get a red box and a "step aside"
+  card. `Action::ThrowCursorAll` (codec tag 67) throws the cursor stack when a drag from a slot is let go over the dim backdrop
+  (`ui/drag-throw.ts`). No save change. Tests: `place_refusal/tests.rs`, hitbox, item model, action and a pole-aim Game test.
+- **2026-10-25: the stalled-machine prompt no longer says right-click where it does nothing** (playtester: a miner with no power
+  showed the mouse "Check" prompt, but a Mk1 miner has nothing to open and the fix was the pole). `Game::stall_prompt`
+  (`stall_lesson.rs`) gives the floating prompt only for causes fixed by hand (input, output, fuel) over a machine that opens;
+  `lesson_marker` is empty otherwise, and the card alone teaches the wiring. Tests: `stall_lesson/tests.rs`.
+- **2026-10-25: house pieces and doors** (user request: doors, roof tiles and more house items; chosen: full cubes plus working
+  doors; slabs, stairs, sloped roofs and thin doors need non-cube meshing, a step of their own). `block/house.rs`, ids 144–156
+  (layers 354–366, after the plain materials): wooden and iron doors (a closed solid block, the item, and an open see-through
+  twin that is never held and breaks into the closed one; `block::toggled` pairs them), red, slate and green roof tiles, thatch,
+  plaster, timber frame, wood floor, window, chimney bricks. Hand recipes in `recipes/house.rs` (Building section, no tech; roof
+  tints use ingots, since a lint forbids raw ore in hand recipes). `Action::ToggleDoor { pos }` (codec tag 66, `doors.rs`) swaps
+  the door and the same-state doors stacked within 3 cells above and below it, so a two-high doorway moves as one;
+  `SimEvent::DoorMoved` plays the thunk. The use button on a door toggles it (`Game::use_door`; crouching places against it) and
+  refuses to shut one on the local body (other players' bodies are not checked). No save-format change. Checked: 6 tests in
+  `doors/tests.rs`, 2 in `recipes/house/tests.rs`, the codec round trip. Placeholder textures; art wanted in `ART_HANDOVER.md`.
+- **2026-10-25: a torch in the hand lights the way; a left hand** (user request: a selected torch glows and is held; one tool in
+  each hand, so up to two at once; chosen: avatar only, no first-person arm, an off-hand slot with a swap key). Core:
+  `Inventory::offhand` (a stack after the worn gear, `offhand.rs`), `Action::Offhand { swap }` (codec tag 65; swap trades the
+  selected hotbar stack, otherwise the cursor clicks it), and `Inventory::tool_hand`: a block is broken, worn and its ore
+  counted with the right hand's tool, else the left's (`wear_tool`, `interaction.rs`). Save version 60; **the golden hash was
+  re-recorded on purpose** (every player now writes 6 more bytes; the two tests that cut an old save from the end use
+  `offhand::before_offhand`). Presentation: `held_light.rs` (an item that places a shining block lights a `REACH` of 9 blocks)
+  fills `Avatars::lights` for every player each frame (the local one just below the eye, or at the avatar's chest in third
+  person); `render/held-light.ts` uploads up to four to `u_held`, and the fragment shader of terrain, boxes and water takes the
+  brighter of the baked light and `heldGlow` (per fragment: a merged quad can span the circle). Both hands show their item on the
+  avatar. UI: J (`swap-hands`), the dashed slot by the hotbar (`ui/offhand.ts`) and the slot in the inventory screen. No shadows:
+  the light shines through walls. Checked: 7 tests in `offhand/tests.rs` (swap, cursor click, tool choice, a left-hand axe wears
+  and reports wearing out, a left-hand pickaxe breaks stone twice as fast as bare hands in a `Game`, bytes and the version-59
+  layout, the action's bytes), 3 in `held_light/tests.rs`.
+- **2026-10-25: free flight is creative-only** (hotfix, user: a playtester's save flew at fly-sprint speed with no hover pack). F set a `flying` body flag that any world accepted and a save kept. `Sim::may_fly` (`mode.rs`) now gates `toggle_fly` and `step_bodies` clears the flag on every body every tick, so such saves lose it on load. Hover was already core-gated (pack worn, charge left). Tests: `mode/tests.rs`; tests that fly for a vantage use `tests::fly`.
+- **2026-10-25: belts feed the coal miner** (user request). `Slot::Miner` is now a sink (`links.rs`): `takes` in `relink` admits
+  only coal miners, `Sinks::miners` holds the slice and `Burner::room_for` decides what fits (fuel, up to the stack). The slice
+  is empty while the miners step (they cannot be borrowed twice) and is handed over before the quarries and belts, so a miner
+  or quarry beside a coal miner does not fuel it (`extractor_outs` skips miners); belts, routers and filters do. No save change.
+  Checked: 2 new tests in `miner_burner/tests.rs` (a coal line keeps it running and stops at a full stack, ore is refused, an
+  electric miner takes nothing and the coal stays on the belt).
