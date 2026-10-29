@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-29 · Turning product displays
+- **A machine's product now stands on a small plate on top of it** and turns slowly while the machine works, so you can see what it makes from every side, not just the front. Tall machines (the refinery, cracker, centrifuge, chemical plant and others) carry it on top of their tallest tank or column, where it shows from far away. The plate stops turning when the machine stops.
+- The smelter's chimney is a little shorter so it doesn't hide the product beside it, and the crusher has a bar across its hopper for its display.
+
 ## 2026-10-28 · Bigger icons
 - **Every item icon now fills its box.** Tools, parts, canisters, science packs and other small items used to sit tiny in the middle of their slot; each icon is now sized to its own shape, so a pickaxe or a screw is as large as a block and much easier to recognise. Torches and saplings show as their picture instead of a see-through cube.
 

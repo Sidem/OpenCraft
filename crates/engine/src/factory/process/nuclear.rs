@@ -84,7 +84,7 @@ const REACTOR_BODY: [u16; 3] = [tex::REACTOR_TOP, tex::REACTOR_SIDE, tex::FRAME]
 const DOME: [u16; 3] = [tex::REACTOR_TOP, tex::CONCRETE, tex::CONCRETE];
 
 /// Across and deep 2, 3 high (±1.5): a banded plinth, a cascade of four slim spinning tubes (two crossed parts each)
-/// under a header pipe, a status lamp and the product display hung on the front tubes.
+/// under a header pipe, a status lamp and the product display on the header pipe.
 const CENTRIFUGE_PARTS: [Part; 12] = [
     part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     drum_x([-0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
@@ -97,7 +97,7 @@ const CENTRIFUGE_PARTS: [Part; 12] = [
     drum_z([0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
     part([0.0, 1.32, 0.0], [1.3, 0.12, 0.12], STEEL),
     part([0.85, -1.2, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
-    part([0.0, 0.0, 0.87], [0.5, 0.5, 0.24], Look::Product),
+    part([0.0, 1.68, 0.0], super::parts::DISPLAY, Look::Product),
 ];
 
 /// Across, deep and high 3 (±1.5): a banded plinth, the round concrete containment (two crossed parts) under a

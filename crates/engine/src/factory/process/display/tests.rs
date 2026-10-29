@@ -10,36 +10,45 @@ use crate::world::World;
 use super::super::model::Look;
 use super::super::specs::SPECS;
 
-/// Every product of every maker, drawn in its display, stays inside the slot (small or big, flat or tall), and the
-/// plate is drawn too.
+/// Every product of every maker, drawn in its display at any turn, stays inside the circle the slot turns in and
+/// between its floor and top (small or big, flat or tall), and the plate is drawn too.
 #[test]
 fn every_product_fits_its_slot() {
     for spec in SPECS {
         let Some(slot) = spec.parts.iter().find(|p| matches!(p.look, Look::Product)) else { continue };
         for r in (0..MACHINE_RECIPES.len() as u16).filter(|&r| spec.recipe(r).is_some()) {
             let mut p = Processor::new(IVec3::ZERO, spec, 0);
-            (p.recipe, p.shown) = (Some(r), Some(r));
-            let mut out = Vec::new();
-            draw(&p, &mut out, Vec3::ZERO, 0.0, slot.size);
+            (p.recipe, p.shown, p.status) = (Some(r), Some(r), Status::Working);
             let name = item::name(p.product().unwrap());
-            assert!(out.len() > INSTANCE_FLOATS, "{name}: no product drawn");
-            for b in out.chunks_exact(INSTANCE_FLOATS).skip(1) {
-                let (centre, size) = ([b[0], b[1], b[2]], [b[4], b[5], b[6]]);
-                // A part with a turn of its own is let off by its size.
-                let spare = if b[3] != 0.0 { size[0].max(size[2]) / 2.0 } else { 0.0 };
-                for (k, c) in centre.iter().enumerate() {
-                    let far = c.abs() + corners_reach(size, k) - spare;
-                    assert!(far <= slot.size[k] / 2.0 + 0.02, "{name} pokes out of block {}'s slot", spec.block);
+            for frame in 0..12 {
+                let mut out = Vec::new();
+                draw(&p, &mut out, Vec3::ZERO, 0.0, slot.size, frame as f64 * MAX_STEP);
+                assert!(out.len() > INSTANCE_FLOATS, "{name}: no product drawn");
+                for b in out.chunks_exact(INSTANCE_FLOATS) {
+                    for [x, y, z] in corners(b) {
+                        let at = format!("{name} pokes out of block {}'s slot", spec.block);
+                        assert!(x.hypot(z) <= slot.size[0] / 2.0 + 0.02, "{at} (across)");
+                        assert!(y.abs() <= slot.size[1] / 2.0 + 0.02, "{at} (up)");
+                    }
                 }
             }
         }
     }
 }
 
+/// The display turns while its machine works, at `SPIN`, and holds still otherwise.
 #[test]
-fn the_tilt_constants_agree() {
-    let (s, c) = TILT.sin_cos();
-    assert!((s - TILT_SIN).abs() < 1e-6 && (c - TILT_COS).abs() < 1e-6);
+fn the_display_turns_only_while_working() {
+    let spec = SPECS.iter().find(|s| s.block == SMELTER).unwrap();
+    let mut p = Processor::new(IVec3::ZERO, spec, 0);
+    p.status = Status::Working;
+    let start = p.display_turn(1.0);
+    let turned = p.display_turn(1.05);
+    assert!((turned - start - 0.05 * SPIN).abs() < 1e-5);
+    p.status = Status::NoInput;
+    assert_eq!(p.display_turn(2.0), turned);
+    p.status = Status::Working;
+    assert!(p.display_turn(30.0) - turned <= MAX_STEP as f32 * SPIN + 1e-5, "a long gap is one short step");
 }
 
 /// A smelter picks its recipe by what it is fed: between batches, with nothing left in it, it still shows its last
@@ -65,18 +74,29 @@ fn a_smelter_keeps_showing_its_last_product() {
     assert_eq!(back.processors[0].product(), Some(IRON_INGOT), "after loading");
 }
 
-/// How far a tipped box of `size` reaches along `k`, from all eight of its corners (the closed form `reach` is checked
-/// against this).
-fn corners_reach(size: [f32; 3], k: usize) -> f32 {
-    let corner = |i: usize| tip([0, 1, 2].map(|a| if i >> a & 1 == 0 { -size[a] / 2.0 } else { size[a] / 2.0 }));
-    (0..8).map(|i| corner(i)[k].abs()).fold(0.0, f32::max)
+/// The eight corners of an instance's box, turned as the box shader turns it (`boxVert`: pitch about x, then yaw).
+fn corners(b: &[f32]) -> [[f32; 3]; 8] {
+    let (centre, yaw, size, pitch) = ([b[0], b[1], b[2]], b[3], [b[4], b[5], b[6]], b[12]);
+    let (sy, cy, sp, cp) = (yaw.sin(), yaw.cos(), pitch.sin(), pitch.cos());
+    std::array::from_fn(|i| {
+        let [x, y, z] = [0, 1, 2].map(|a| if i >> a & 1 == 0 { -size[a] / 2.0 } else { size[a] / 2.0 });
+        let (y, z) = (cp * y - sp * z, sp * y + cp * z);
+        [centre[0] + cy * x - sy * z, centre[1] + y, centre[2] + sy * x + cy * z]
+    })
 }
 
+/// `up` turns a point as a pitch of a quarter turn does, and `bounds` reaches every stood-up corner.
 #[test]
-fn the_closed_form_reach_matches_the_corners() {
-    for size in [[0.3, 0.1, 0.5], [1.0, 1.0, 1.0], [0.05, 0.6, 0.2]] {
-        for k in 0..3 {
-            assert!((reach(size)[k] - corners_reach(size, k)).abs() < 1e-5);
+fn standing_up_matches_the_shader() {
+    let part = Part { center: [0.1, 0.02, -0.2], size: [0.3, 0.04, 0.5], yaw: 0.0, tex: [0; 3] };
+    let (lo, hi) = bounds(&[part], true);
+    let mut b = [0.0; INSTANCE_FLOATS];
+    (b[0], b[1], b[2]) = (up(part.center)[0], up(part.center)[1], up(part.center)[2]);
+    (b[4], b[5], b[6], b[12]) = (part.size[0], part.size[1], part.size[2], FRAC_PI_2);
+    for c in corners(&b) {
+        for a in 0..3 {
+            assert!(c[a] >= lo[a] - 1e-5 && c[a] <= hi[a] + 1e-5);
         }
     }
+    assert!(lies_flat(&[part]));
 }

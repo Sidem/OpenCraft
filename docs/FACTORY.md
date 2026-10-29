@@ -79,9 +79,10 @@ size.
   and copper wire (2 from a copper ingot). Right-click it to choose what it makes; changing the choice
   gives back the ingots it held. Belts bring the input and a belt leading away takes the parts. Parts build
   splitters and filters, and the machines still to come (better miners).
-- **What a machine makes and its Mk show on it.** Every machine that makes items has a small dark sign (on its roof,
-  or its front if it is tall) holding a model of its product: what you chose, or for a smelter, crusher or washer what
-  it last made; an empty sign means nothing chosen yet. Every machine that comes in tiers wears one pale stud per
+- **What a machine makes and its Mk show on it.** Every machine that makes items has a small light plate on top (its roof,
+  or the top of its tallest tank or column) with a model of its product standing on it, turning slowly while the machine
+  works, so it reads from every side: what you chose, or for a smelter, crusher or washer what it last made; an empty
+  plate means nothing chosen yet. Every machine that comes in tiers wears one pale stud per
   Mk on its sides, tinted with the tier colour (Mk3: three studs on a blue band; poles wear rings, a belt run shows them every few blocks, an underpass on its
   hood). Products show within 48 blocks, studs within 24 (`process/display.rs`, `tier_mark.rs`).
 - **The assembler** (Assembly research) is 2×2×2: the ghost shows where it goes (red where something is in

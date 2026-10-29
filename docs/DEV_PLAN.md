@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine (2026-10-29). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -288,6 +288,14 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-10-29: product displays turn on top** (user: the sign faced one way and the product vanished from the side).
+  Every `Look::Product` slot is now square and stands on the model's top (roof, tank lid, column top), and `display.rs`
+  draws a light plate with the product standing on it (flat items stood on edge), turning at `SPIN` while working and
+  holding its angle otherwise (a `Cell` on `Processor`, presentation only). Smelter chimney shortened, blast chimney
+  moved back, a bar across the crusher's hopper. Tests: products fit the turning circle at every angle; each slot stands
+  on a part; from 16 level directions at least two of five sight lines across it pass every part (a tall smelter
+  chimney fails it).
 
 - **2026-10-28: icons fill their box** (user: tool icons were tiny). `hud.ts` drew every model at a cube's scale; measured in
   the browser, 114 of 300 icons spanned under 80% of the box (servo, sickle 34%, axes 42%). `item_models/icon_frame.rs` fits

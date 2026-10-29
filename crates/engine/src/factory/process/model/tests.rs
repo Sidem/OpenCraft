@@ -40,27 +40,70 @@ fn every_maker_has_one_product_display() {
     }
 }
 
-/// A display's slot is big enough to read, inside the machine's cells across (a neighbour never clips it; a one-cell
-/// machine's sign may rise above its cell, as its chimney does), overlaps no part, and no part stands in front of it
-/// (towards +z, the front).
+/// A display's slot is square (it turns), big enough to read, inside the machine's cells across (a neighbour never
+/// clips it; it may rise above them, as a chimney does), overlaps no part and stands on one.
 #[test]
-fn every_product_display_is_in_sight() {
+fn every_product_display_stands_on_a_roof() {
     const EPS: f32 = 1e-3;
     for spec in SPECS {
         for d in displays(spec) {
             let at = format!("block {}", spec.block);
-            assert!(d.size[0] >= MIN_SLOT && d.size[1] >= MIN_SLOT, "{at}: slot too small");
+            assert!(d.size[0] == d.size[2] && d.size[0] >= MIN_SLOT && d.size[1] >= MIN_SLOT, "{at}: slot shape");
             let [x, z, y] = spec.footprint.size.map(|n| n as f32 / 2.0);
             let room = [x, y, z];
             let inside = |k: usize| hi(d, k) <= room[k] + EPS && lo(d, k) >= -room[k] - EPS;
             assert!(inside(0) && inside(2) && lo(d, 1) >= -room[1], "{at}: outside its cells");
-            for p in spec.parts.iter().filter(|p| boxed(p) && p.turn == 0.0) {
-                let across = |k: usize| hi(d, k).min(hi(p, k)) - lo(d, k).max(lo(p, k)) > EPS;
-                assert!(!(across(0) && across(1) && across(2)), "{at}: a part overlaps the display");
-                assert!(!(across(0) && across(1) && lo(p, 2) >= hi(d, 2) - EPS), "{at}: a part hides the display");
+            let solid = || spec.parts.iter().filter(|p| boxed(p) && p.turn == 0.0);
+            let across = |p: &Part, k: usize| hi(d, k).min(hi(p, k)) - lo(d, k).max(lo(p, k)) > EPS;
+            for p in solid() {
+                assert!(!(across(p, 0) && across(p, 1) && across(p, 2)), "{at}: a part overlaps the display");
+            }
+            let under = |p: &&Part| (hi(p, 1) - lo(d, 1)).abs() < EPS && across(p, 0) && across(p, 2);
+            assert!(solid().any(|p| under(&p)), "{at}: the display stands on nothing");
+        }
+    }
+}
+
+/// A display is seen from every side: looking at it level from any of 16 directions, at least two of five sight lines
+/// across the middle of its product pass every part (a slim post may hide a strip of it, a chimney or tank no more).
+#[test]
+fn every_product_display_is_seen_from_every_side() {
+    const EPS: f32 = 1e-3;
+    for spec in SPECS {
+        for d in displays(spec) {
+            for i in 0..16 {
+                let a = i as f32 * std::f32::consts::TAU / 16.0;
+                let (dx, dz) = (a.cos(), a.sin());
+                let clear = [-0.4, -0.2, 0.0, 0.2, 0.4]
+                    .iter()
+                    .filter(|&&k| {
+                        let (x, z) = (d.at[0] - dz * k * d.size[0], d.at[2] + dx * k * d.size[0]);
+                        !spec.parts.iter().filter(|p| boxed(p) && p.turn == 0.0).any(|p| {
+                            let level = d.at[1] > lo(p, 1) + EPS && d.at[1] < hi(p, 1) - EPS;
+                            level && ray_hits([x, z], [dx, dz], [lo(p, 0), lo(p, 2)], [hi(p, 0), hi(p, 2)])
+                        })
+                    })
+                    .count();
+                assert!(clear >= 2, "block {}: hidden from direction {i} of 16", spec.block);
             }
         }
     }
+}
+
+/// Whether the ray from `from` along `dir` (on the ground plane) crosses the rectangle `lo`..`hi`.
+fn ray_hits(from: [f32; 2], dir: [f32; 2], lo: [f32; 2], hi: [f32; 2]) -> bool {
+    let (mut near, mut far) = (0.0f32, f32::MAX);
+    for k in 0..2 {
+        if dir[k].abs() < 1e-6 {
+            if from[k] <= lo[k] || from[k] >= hi[k] {
+                return false;
+            }
+            continue;
+        }
+        let (a, b) = ((lo[k] - from[k]) / dir[k], (hi[k] - from[k]) / dir[k]);
+        (near, far) = (near.max(a.min(b)), far.min(a.max(b)));
+    }
+    near < far
 }
 
 /// A machine that comes in tiers has a family (`tiers.rs`) and one band, whose sides take a row of Mk5 studs.

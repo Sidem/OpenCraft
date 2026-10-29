@@ -88,6 +88,8 @@ use status::STATUSES;
 use steam::Steam;
 pub(super) use steam::{draw_water, link as link_steam, run_turbine};
 
+use std::cell::Cell;
+
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::ItemId;
@@ -146,6 +148,8 @@ pub struct Processor {
     pub made: Vec<Stack>,
     /// What it used up this tick (batch inputs, fuel, canisters), until `report_made` (derived, not saved).
     pub used: Vec<Stack>,
+    /// The time its product display was last drawn and its turn then (presentation only, `display.rs`).
+    pub display_turn: Cell<(f64, f32)>,
 }
 
 impl Processor {
@@ -179,6 +183,7 @@ impl Processor {
             status,
             made: Vec::new(),
             used: Vec::new(),
+            display_turn: Cell::new((0.0, 0.0)),
         }
     }
 

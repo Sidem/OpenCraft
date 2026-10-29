@@ -217,7 +217,7 @@ pub use super::house::layers::*;
 /// `textures/stripes.rs`).
 pub const TIER_PAINT_1: u16 = HOUSE_LAYERS_END;
 pub const TIER_PAINT_5: u16 = HOUSE_LAYERS_END + 4;
-/// The face of a machine's product sign (`textures/machines.rs` `sign`).
+/// The plate of a machine's product display (`textures/machines.rs` `sign`).
 pub const SIGN: u16 = TIER_PAINT_5 + 1;
 pub const COUNT: usize = SIGN as usize + 1;
 

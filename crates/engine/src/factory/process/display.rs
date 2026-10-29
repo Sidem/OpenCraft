@@ -1,10 +1,12 @@
-//! The product display: every processor that makes items shows what it makes in one slot of its model
-//! (`Look::Product`, placed per model where it is seen from the front and above; tested in `model/tests.rs`). A light
-//! plate in a dark rim (`tex::SIGN`, so dark and light products both stand out) stands at the slot's back and the product's own model (`item_models`, as on a belt) in front of it, scaled to
-//! fill the slot and tipped back `TILT`, so a flat item (a plate, an ingot) shows its face from the ground and from
-//! above. The product is the chosen recipe's (`Pick::Chosen`), else the last batch's (`Processor::shown`), so a machine
-//! that picks by input keeps showing it between batches; with none the plate stands empty. The display is drawn within
-//! `NEAR` only, and the product only when seen from the front side of the plate. Presentation only.
+//! The product display: every processor that makes items shows what it makes on top of its model (`Look::Product`, a
+//! square slot standing on a roof, seen from every side; tested in `model/tests.rs`). A light plate (`tex::SIGN`) lies
+//! at the slot's floor and the product's own model (`item_models`, as on a belt) stands on it, scaled to fit the slot
+//! as it turns; a flat item (a plate, a tool) stands on its edge. Plate and product turn slowly while the machine works
+//! and stop where they are when it doesn't. The product is the chosen recipe's (`Pick::Chosen`), else the last batch's
+//! (`Processor::shown`), so a machine that picks by input keeps showing it between batches; with none the plate turns
+//! empty. Drawn within `NEAR` only. Presentation only: the turn lives in a `Cell` and is neither saved nor hashed.
+
+use std::f32::consts::{FRAC_PI_2, TAU};
 
 use crate::block::tex;
 use crate::item::{self, ItemId};
@@ -13,20 +15,23 @@ use crate::math::Vec3;
 use crate::recipes::MACHINE_RECIPES;
 
 use super::super::render::push_box;
-use super::{Pick, Processor};
+use super::{Pick, Processor, Status};
 
 #[cfg(test)]
 mod tests;
 
-/// How far the product is tipped back (its top turned towards the front), in radians, and its sine and cosine
-/// (`tip` runs for every corner of every product each frame; a test checks they agree).
-const TILT: f32 = 0.6;
-const TILT_SIN: f32 = 0.564_642_5;
-const TILT_COS: f32 = 0.825_335_6;
-/// The plate's thickness, and the share of the slot the product fills.
+/// How fast the display turns while its machine works, in radians a second (a turn in about ten seconds).
+const SPIN: f32 = 0.6;
+/// The longest step one frame may turn it, in seconds (a machine back in sight doesn't jump).
+const MAX_STEP: f64 = 0.1;
+/// The plate's thickness, its side as a share of the slot's (its corners stay inside the slot as it turns), and the
+/// share of the slot the product fills.
 const PLATE: f32 = 0.04;
+const PLATE_SIDE: f32 = 0.7;
 const FILL: f32 = 0.9;
-/// The display is drawn within this many blocks of the camera: a small sign is 5 px across there (1080p).
+/// An item whose height is under this share of its narrower side lies flat and is stood on its edge.
+const FLAT: f32 = 0.5;
+/// The display is drawn within this many blocks of the camera: a small display is 5 px across there (1080p).
 const NEAR: f64 = 48.0;
 
 impl Processor {
@@ -45,24 +50,31 @@ impl Processor {
         let held = self.out.slots.iter().find(|s| !s.is_empty())?.item;
         (0..MACHINE_RECIPES.len() as u16).find(|&i| self.spec.recipe(i).is_some_and(|r| r.main().0 == held))
     }
+
+    /// The display's turn at `time` (seconds): it moves on only while the machine works.
+    fn display_turn(&self, time: f64) -> f32 {
+        let (last, mut turn) = self.display_turn.get();
+        if self.status == Status::Working {
+            turn = (turn + (time - last).clamp(0.0, MAX_STEP) as f32 * SPIN) % TAU;
+        }
+        self.display_turn.set((time, turn));
+        turn
+    }
 }
 
 /// Draws `p`'s display in the slot centred at `at` (relative to the camera) of `size` (in the machine's frame), the
-/// machine turned by `yaw`.
-pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: [f32; 3]) {
+/// machine turned by `yaw`, at `time` (seconds).
+pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: [f32; 3], time: f64) {
     if at.x * at.x + at.y * at.y + at.z * at.z > NEAR * NEAR {
         return;
     }
-    let (s, c) = (yaw.sin() as f64, yaw.cos() as f64);
-    let turn =
+    let turn = yaw + p.display_turn(time);
+    let (s, c) = (turn.sin() as f64, turn.cos() as f64);
+    let place =
         |v: [f32; 3]| at + Vec3::new(c * v[0] as f64 - s * v[2] as f64, v[1] as f64, s * v[0] as f64 + c * v[2] as f64);
-    let back = turn([0.0, 0.0, (PLATE - size[2]) / 2.0]);
-    push_box(out, back, yaw, [size[0], size[1], PLATE], 0.0, [tex::FRAME, tex::SIGN, tex::FRAME], false);
-    // Seen from behind, the plate hides the product.
-    let front = turn([0.0, 0.0, 1.0]) - at;
-    if front.x * back.x + front.z * back.z >= 0.0 {
-        return;
-    }
+    let floor = -size[1] / 2.0;
+    let plate = [size[0] * PLATE_SIDE, PLATE, size[2] * PLATE_SIDE];
+    push_box(out, place([0.0, floor + PLATE / 2.0, 0.0]), turn, plate, 0.0, [tex::SIGN, tex::FRAME, tex::FRAME], false);
     let Some(item) = p.product() else { return };
     let plain;
     let parts = match item_models::parts(item) {
@@ -73,41 +85,46 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
         }
         parts => parts,
     };
-    let (lo, hi) = tipped_bounds(parts);
-    let room = [size[0] * FILL, size[1] * FILL, (size[2] - PLATE) * FILL];
-    let k = (0..3).map(|a| room[a] / (hi[a] - lo[a]).max(1e-3)).fold(f32::MAX, f32::min);
-    let mid = [(lo[0] + hi[0]) / 2.0, (lo[1] + hi[1]) / 2.0, (lo[2] + hi[2]) / 2.0];
+    let stand = lies_flat(parts);
+    let (lo, hi) = bounds(parts, stand);
+    let radius = (hi[0] - lo[0]).hypot(hi[2] - lo[2]) / 2.0;
+    let k = (size[0] * FILL / 2.0 / radius.max(1e-3)).min((size[1] - PLATE) * FILL / (hi[1] - lo[1]).max(1e-3));
+    let mid = [(lo[0] + hi[0]) / 2.0, (lo[2] + hi[2]) / 2.0];
     for part in parts {
-        let t = tip(part.center);
-        let v = [(t[0] - mid[0]) * k, (t[1] - mid[1]) * k, (t[2] - mid[2]) * k + PLATE / 2.0];
-        push_box(out, turn(v), yaw + part.yaw, part.size.map(|x| x * k), 0.0, part.tex, false);
-        let n = out.len();
-        out[n - 4] = TILT; // the box's pitch (`render.rs`), the same tip about its own centre
+        let t = if stand { up(part.center) } else { part.center };
+        let v = [(t[0] - mid[0]) * k, floor + PLATE + (t[1] - lo[1]) * k, (t[2] - mid[1]) * k];
+        push_box(out, place(v), turn + part.yaw, part.size.map(|x| x * k), 0.0, part.tex, false);
+        if stand {
+            let n = out.len();
+            out[n - 4] = FRAC_PI_2; // the box's pitch (`render.rs`): stood up about its own centre, as `up` does
+        }
     }
 }
 
-/// A point of the item turned by `TILT` about x, as the box shader turns a box by its pitch (`boxVert`).
-fn tip(v: [f32; 3]) -> [f32; 3] {
-    let (s, c) = (TILT_SIN, TILT_COS);
-    [v[0], c * v[1] - s * v[2], s * v[1] + c * v[2]]
+/// Whether an item lies flat (its height well under its narrower side), measured untipped.
+fn lies_flat(parts: &[Part]) -> bool {
+    let (lo, hi) = bounds(parts, false);
+    let d = [0, 1, 2].map(|a| hi[a] - lo[a]);
+    d[1] < FLAT * d[0].min(d[2])
 }
 
-/// The bounds of `parts` once tipped (each part's own turn left out: few items have one, and it changes the bounds
-/// little).
-fn tipped_bounds(parts: &[Part]) -> ([f32; 3], [f32; 3]) {
+/// A point of the item stood on its edge: turned a quarter about x, as the box shader turns a box by a pitch of a
+/// quarter turn (`boxVert`).
+fn up(v: [f32; 3]) -> [f32; 3] {
+    [v[0], -v[2], v[1]]
+}
+
+/// The bounds of `parts`, stood up or not (each part's own turn left out: few items have one, and it changes the
+/// bounds little).
+fn bounds(parts: &[Part], stand: bool) -> ([f32; 3], [f32; 3]) {
     let (mut lo, mut hi) = ([f32::MAX; 3], [f32::MIN; 3]);
     for p in parts {
-        let (t, reach) = (tip(p.center), reach(p.size));
+        let h = p.size.map(|s| s / 2.0);
+        let (t, reach) = if stand { (up(p.center), [h[0], h[2], h[1]]) } else { (p.center, h) };
         for a in 0..3 {
             lo[a] = lo[a].min(t[a] - reach[a]);
             hi[a] = hi[a].max(t[a] + reach[a]);
         }
     }
     (lo, hi)
-}
-
-/// How far a box of `size` reaches from its centre along each axis once tipped.
-fn reach(size: [f32; 3]) -> [f32; 3] {
-    let h = size.map(|s| s / 2.0);
-    [h[0], TILT_COS * h[1] + TILT_SIN * h[2], TILT_SIN * h[1] + TILT_COS * h[2]]
 }

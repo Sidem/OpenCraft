@@ -337,7 +337,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (2026-10-28, landed) Tier paint (`tex::TIER_PAINT_1`..`TIER_PAINT_5`, `tex::paint`, `textures/stripes.rs` `paint`):
   the plain tier colour on the Mk studs and pole collars (`factory/tier_mark.rs`). Keep it flat and bright: a stud is a
   few pixels across, so any pattern is lost and the colour has to stand out from the band beneath it. The product
-  sign's face (`tex::SIGN`, `textures/machines.rs` `sign`): a light panel in a dark rim; keep it light and plain so
+  display's plate (`tex::SIGN`, `textures/machines.rs` `sign`): a light panel in a dark rim; keep it light and plain so
   dark and light products both read on it.
 - [ ] (6.5, landed) Assembly: the assembler (block 61, 2×2×2; its model is spec parts in
   `factory/process/specs.rs` `ASSEMBLER_PARTS`, drawn by `process/model.rs`), its housing layers

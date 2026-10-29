@@ -9,14 +9,13 @@ const IVORY: [u16; 3] = [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME
 const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 const SOOT: Look = Look::Tex([tex::SOOT; 3]);
 
-/// The product display of a one-cell machine (`display.rs`): a slot this size.
-pub(super) const SMALL_SIGN: [f32; 3] = [0.34, 0.34, 0.34];
-/// The product display of a bigger machine, and of one whose display hangs on its front (shallower).
-pub(super) const SIGN: [f32; 3] = [0.6, 0.6, 0.5];
-pub(super) const FRONT_SIGN: [f32; 3] = [0.5, 0.5, 0.3];
+/// The product display of a one-cell machine (`display.rs`): a slot this size, standing on a roof.
+pub(super) const SMALL_DISPLAY: [f32; 3] = [0.36, 0.44, 0.36];
+/// The product display of a bigger machine.
+pub(super) const DISPLAY: [f32; 3] = [0.6, 0.6, 0.6];
 
-/// A brick furnace: a dark upper ore mouth over a glowing crucible, a tall chimney that smokes while it works, a
-/// status lamp, the product display on its roof.
+/// A brick furnace: a dark upper ore mouth over a glowing crucible, a short chimney that smokes while it works (lower
+/// than the display beside it, which shows over it), a status lamp, the product display on its roof.
 pub(super) const SMELTER_PARTS: [Part; 11] = [
     part([0.0, -0.42, 0.0], [0.94, 0.16, 0.94], Look::Band(tex::FRAME)),
     part([0.0, -0.06, -0.1], [0.82, 0.67, 0.72], Look::Tex(BRICK)),
@@ -24,11 +23,11 @@ pub(super) const SMELTER_PARTS: [Part; 11] = [
     part([0.0, 0.14, 0.32], [0.46, 0.23, 0.13], SOOT),
     part([0.0, -0.24, 0.34], [0.55, 0.2, 0.15], Look::Fire(tex::SOOT)),
     part([0.0, -0.31, 0.46], [0.65, 0.07, 0.08], FRAME), // above the Mk studs
-    part([-0.23, 0.48, -0.23], [0.27, 0.48, 0.27], Look::Tex(BRICK)),
-    part([-0.23, 0.75, -0.23], [0.33, 0.07, 0.33], SOOT),
-    part([-0.23, 0.82, -0.23], [0.5, 0.0, 0.0], Look::Smoke),
+    part([-0.23, 0.375, -0.23], [0.27, 0.27, 0.27], Look::Tex(BRICK)),
+    part([-0.23, 0.535, -0.23], [0.33, 0.07, 0.33], SOOT),
+    part([-0.23, 0.6, -0.23], [0.5, 0.0, 0.0], Look::Smoke),
     part([0.33, 0.34, 0.32], [0.12, 0.08, 0.12], Look::Lamp),
-    part([0.08, 0.53, 0.05], SMALL_SIGN, Look::Product),
+    part([0.12, 0.58, -0.05], SMALL_DISPLAY, Look::Product),
 ];
 
 /// An open press: tray, rear gantry, a ram and head that pump while working, a status lamp, the product display on
@@ -43,7 +42,7 @@ pub(super) const CONSTRUCTOR_PARTS: [Part; 10] = [
     part([0.0, 0.04, -0.1], [0.48, 0.08, 0.48], Look::Press(1.0, [tex::IRON_PLATE; 3])),
     part([0.0, -0.32, 0.49], [0.64, 0.04, 0.06], Look::Tex([tex::COPPER_INGOT; 3])), // above the Mk studs
     part([0.39, 0.37, -0.31], [0.12, 0.08, 0.12], Look::Lamp),
-    part([0.0, 0.585, -0.32], SMALL_SIGN, Look::Product),
+    part([0.0, 0.635, -0.32], SMALL_DISPLAY, Look::Product),
 ];
 
 const TEAL: [u16; 3] = [tex::ASSEMBLER_TOP, tex::ASSEMBLER_SIDE, tex::FRAME];
@@ -62,26 +61,26 @@ pub(super) const ASSEMBLER_PARTS: [Part; 10] = [
     part([0.0, 0.98, -0.05], [0.28, 0.24, 0.28], Look::Press(1.0, [tex::IRON_PLATE; 3])),
     part([0.9, 0.3, -0.3], [0.2, 0.5, 0.7], Look::Tex([tex::FRAME, tex::MOTOR, tex::FRAME])),
     part([0.78, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
-    part([0.0, 1.09, 0.45], SIGN, Look::Product),
+    part([0.0, 1.09, 0.5], DISPLAY, Look::Product),
 ];
 
 const FIREBRICK: [u16; 3] = [tex::BLAST_TOP, tex::BLAST_SIDE, tex::FRAME];
 
 /// A firebrick stack on a banded plinth: a wide hearth under a narrower shaft and chimney, a tap hole
 /// on the front that glows while it works, a hot-blast pipe up one flank, smoke while it works, a status lamp and the
-/// product display on the hearth's roof.
+/// product display on the shaft's roof, before the chimney.
 pub(super) const BLAST_PARTS: [Part; 11] = [
     part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.55, 0.0], [1.8, 1.5, 1.8], Look::Tex(FIREBRICK)),
     part([0.0, 0.26, 0.0], [1.92, 0.12, 1.92], FRAME),
     part([0.0, 0.8, 0.0], [1.3, 1.0, 1.3], Look::Tex(FIREBRICK)),
     part([0.0, 1.38, 0.0], [1.42, 0.12, 1.42], FRAME),
-    part([0.0, 1.2, 0.0], [0.6, 0.5, 0.6], SOOT),
-    part([0.0, 1.5, 0.0], [1.0, 0.0, 0.0], Look::Smoke),
+    part([0.0, 1.2, -0.38], [0.5, 0.5, 0.5], SOOT),
+    part([0.0, 1.5, -0.38], [0.9, 0.0, 0.0], Look::Smoke),
     part([0.0, -0.4, 0.92], [0.7, 0.5, 0.12], Look::Fire(tex::SOOT)),
     part([-0.98, 0.0, -0.5], [0.16, 2.0, 0.16], STEEL),
     part([0.78, 0.36, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
-    part([0.0, 0.57, 0.8], FRONT_SIGN, Look::Product),
+    part([0.0, 1.74, 0.35], DISPLAY, Look::Product),
 ];
 
 const BLUE_TANK: [u16; 3] = [tex::BOILER_TOP, tex::BOILER_SIDE, tex::FRAME];
@@ -115,8 +114,9 @@ pub(super) const TURBINE_PARTS: [Part; 5] = [
 const HAZARD: [u16; 3] = [tex::CRUSHER_TOP, tex::CRUSHER_SIDE, tex::FRAME];
 
 /// A hazard-striped body on a base under an open hopper (four walls round a dark mouth) with a fixed jaw and one
-/// that pounds while crushing, a discharge chute at the front foot, a lamp and the product display on the back wall.
-pub(super) const CRUSHER_PARTS: [Part; 12] = [
+/// that pounds while crushing, a discharge chute at the front foot, a lamp and the product display on a bar across the
+/// hopper.
+pub(super) const CRUSHER_PARTS: [Part; 13] = [
     part([0.0, -0.4, 0.0], [0.94, 0.18, 0.94], Look::Band(tex::FRAME)),
     part([0.0, -0.06, 0.0], [0.8, 0.5, 0.8], Look::Tex(HAZARD)),
     part([0.0, 0.35, 0.44], [0.96, 0.32, 0.08], Look::Tex(HAZARD)),
@@ -128,7 +128,8 @@ pub(super) const CRUSHER_PARTS: [Part; 12] = [
     part([0.14, 0.4, 0.0], [0.1, 0.26, 0.6], Look::Press(1.0, [tex::STEEL; 3])),
     part([0.0, -0.22, 0.46], [0.42, 0.1, 0.16], STEEL),
     part([0.3, 0.06, 0.41], [0.12, 0.08, 0.04], Look::Lamp),
-    part([0.0, 0.71, -0.3], SMALL_SIGN, Look::Product),
+    part([0.0, 0.53, -0.3], [0.96, 0.04, 0.12], STEEL),
+    part([0.0, 0.77, -0.3], SMALL_DISPLAY, Look::Product),
 ];
 
 const GRAPHITE: [u16; 3] = [tex::ARC_TOP, tex::ARC_SIDE, tex::FRAME];
@@ -143,7 +144,7 @@ pub(super) const ARC_PARTS: [Part; 8] = [
     part([-0.45, 1.0, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::STEEL; 3])),
     part([0.45, 1.0, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::STEEL; 3])),
     part([0.78, 0.86, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
-    part([0.0, 1.09, 0.5], SIGN, Look::Product),
+    part([0.0, 1.09, 0.5], DISPLAY, Look::Product),
 ];
 
 const TILES: [u16; 3] = [tex::CELL_TOP, tex::CELL_SIDE, tex::FRAME];
@@ -158,7 +159,7 @@ pub(super) const CELL_PARTS: [Part; 8] = [
     part([-0.8, 0.95, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::COPPER_INGOT; 3])),
     part([0.8, 0.95, 0.0], [0.24, 0.4, 0.24], Look::Press(0.6, [tex::COPPER_INGOT; 3])),
     part([1.3, 0.76, 0.78], [0.14, 0.12, 0.14], Look::Lamp),
-    part([0.0, 1.01, 0.5], SIGN, Look::Product),
+    part([0.0, 1.01, 0.5], DISPLAY, Look::Product),
 ];
 
 const CONCRETE_RINGS: [u16; 3] = [tex::SILO_TOP, tex::SILO_SIDE, tex::FRAME];

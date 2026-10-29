@@ -35,8 +35,8 @@ pub enum Look {
     Rocket([u16; 3]),
     /// A solid mark in the machine's channel colour (a pod launcher or pad: `pods/channels.rs`).
     Channel,
-    /// The product display (`display.rs`): the part is its slot, the product is drawn inside it, the plate at its
-    /// back. Every machine that makes items has one (tested).
+    /// The product display (`display.rs`): the part is its slot (square, on a roof), a turning plate at its floor and
+    /// the product standing on it. Every machine that makes items has one (tested).
     Product,
 }
 
@@ -107,7 +107,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 continue;
             }
             Look::Product => {
-                super::display::draw(p, out, at, yaw, part.size);
+                super::display::draw(p, out, at, yaw, part.size, time);
                 continue;
             }
             Look::Tex(t) => t,

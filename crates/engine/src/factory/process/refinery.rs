@@ -17,7 +17,7 @@ use crate::block::{tex, CHEMICAL_PLANT, CRACKER, ELECTROLYSER, REFINERY};
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::model::{drum_x, drum_y, drum_z, part, Look, Part};
-use super::parts::{FRONT_SIGN, SIGN};
+use super::parts::DISPLAY;
 use super::{Energy, Pick, ProcessSpec, ProcessTier};
 use crate::recipes::Category;
 
@@ -111,7 +111,7 @@ const TANK: [u16; 3] = [tex::FRAME, tex::CHEM_SIDE, tex::FRAME];
 
 /// Across 3, deep 2, 3 high (±1.5, ±1, ±1.5): storage tanks, not a house. A banded plinth, a tall and a short round
 /// tank with lids behind, a lying tank on a skid in front, a pipe rack over the tank tops with a down pipe, a lamp and
-/// the product display standing on the lying tank.
+/// the product display on the tall tank's lid.
 const PLANT_PARTS: [Part; 13] = [
     part([0.0, -1.4, 0.0], [2.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     drum_x([-0.8, 0.0, -0.35], [1.15, 2.6, 1.15], Look::Tex(TANK)),
@@ -125,7 +125,7 @@ const PLANT_PARTS: [Part; 13] = [
     part([-0.1, 0.85, -0.35], [1.4, 0.12, 0.12], STEEL),
     part([-0.8, -0.65, 0.42], [0.12, 1.1, 0.12], STEEL),
     part([1.3, -1.15, 0.98], [0.14, 0.1, 0.14], Look::Lamp),
-    part([0.4, -0.4, 0.6], SIGN, Look::Product),
+    part([-0.8, 1.69, -0.35], DISPLAY, Look::Product),
 ];
 
 /// The electrolyser's two gas tanks: hydrogen in the machine's blue, oxygen white.
@@ -134,7 +134,7 @@ const OXYGEN_TANK: [u16; 3] = [tex::FRAME, tex::PLASTIC, tex::FRAME];
 
 /// Across and deep 2, 2 high (±1): a banded plinth, a low cell bath across the front with a copper bus bar on it,
 /// and the two gas tanks the water splits into behind it, hydrogen taller (twice the gas), each with a lid; a lamp,
-/// and the product display on the bath.
+/// and the product display on the hydrogen tank's lid.
 const ELECTROLYSER_PARTS: [Part; 11] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.5, 0.45], [1.8, 0.6, 0.9], Look::Tex([tex::ELECTROLYSER_TOP, tex::ELECTROLYSER_SIDE, tex::FRAME])),
@@ -146,7 +146,7 @@ const ELECTROLYSER_PARTS: [Part; 11] = [
     drum_z([0.5, -0.05, -0.45], [0.85, 1.1, 0.85], Look::Tex(OXYGEN_TANK)),
     part([0.5, 0.54, -0.45], [0.6, 0.08, 0.6], FRAME),
     part([0.78, -0.4, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
-    part([0.4, 0.05, 0.73], FRONT_SIGN, Look::Product),
+    part([-0.48, 1.28, -0.45], DISPLAY, Look::Product),
 ];
 const REFINERY_BODY: [u16; 3] = [tex::REFINERY_TOP, tex::REFINERY_SIDE, tex::FRAME];
 const COLUMN: [u16; 3] = [tex::FRAME, tex::REFINERY_SIDE, tex::FRAME];
@@ -158,7 +158,7 @@ const SOOT: Look = Look::Tex([tex::SOOT; 3]);
 /// Parts are relative to the footprint's centre (3×3 across, 4 high: ±1.5 and ±2). A banded plinth, a low fired heater
 /// across the front with a smoking stack, a tall round distillation column with a platform ring and a slimmer one
 /// joined by a pipe bridge, a flare on the slim one that burns while it works, a status lamp and the product display
-/// on the heater.
+/// on top of the tall column.
 const REFINERY_PARTS: [Part; 15] = [
     part([0.0, -1.9, 0.0], [2.96, 0.2, 2.96], Look::Band(tex::FRAME)),
     part([0.0, -1.35, 0.75], [2.6, 0.9, 1.3], Look::Tex(REFINERY_BODY)),
@@ -174,12 +174,12 @@ const REFINERY_PARTS: [Part; 15] = [
     part([0.8, 1.2, -0.7], [0.12, 0.2, 0.12], STEEL),
     part([0.8, 1.38, -0.7], [0.18, 0.18, 0.18], Look::Fire(tex::SOOT)),
     part([1.25, -1.6, 1.42], [0.14, 0.1, 0.14], Look::Lamp),
-    part([-0.6, -0.52, 0.85], SIGN, Look::Product),
+    part([-0.5, 2.2, -0.55], DISPLAY, Look::Product),
 ];
 
 /// Across 2 and 3 high (±1 and ±1.5): a banded plinth, a furnace box with a bundle of cracking tubes over its roof, a
 /// round reactor column with a cap behind it, a tall flue that smokes while it works, a status lamp and the product
-/// display on the furnace roof's front.
+/// display on the column's cap.
 const CRACKER_PARTS: [Part; 13] = [
     part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.85, 0.25], [1.8, 0.9, 1.4], Look::Tex(CRACKER_BODY)),
@@ -193,5 +193,5 @@ const CRACKER_PARTS: [Part; 13] = [
     part([0.55, 0.35, -0.6], [0.28, 2.1, 0.28], SOOT),
     part([0.55, 1.45, -0.6], [0.8, 0.0, 0.0], Look::Smoke),
     part([0.75, -0.55, 0.97], [0.12, 0.08, 0.12], Look::Lamp),
-    part([0.3, -0.08, 0.835], FRONT_SIGN, Look::Product),
+    part([-0.45, 1.82, -0.55], DISPLAY, Look::Product),
 ];
