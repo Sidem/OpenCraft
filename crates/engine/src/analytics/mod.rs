@@ -26,7 +26,7 @@ use crate::item::ItemId;
 use crate::TICK_RATE;
 
 pub use groups::GROUPS;
-pub use machines::{Machines, TYPE_FIELDS};
+pub use machines::{Machines, KIND_FIELDS, TYPE_FIELDS};
 use power::PowerHistory;
 use series::Series;
 

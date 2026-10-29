@@ -14,6 +14,8 @@ export interface Ctx {
   ticks: number;
   /** Switches the hub to another tab (by name). */
   go: (tab: string) => void;
+  /** Closes the hub and rings every machine of kind `block` on the world map, centred on `at` if given. */
+  showOnMap: (block: number, at?: { x: number; z: number }) => void;
 }
 
 export interface Tab {

@@ -1,0 +1,28 @@
+/* "Show on map": the chip over the world map's view saying which machines are ringed (map-focus-layer.ts). */
+
+.mf-chip {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 6px 6px 6px 12px;
+  border-radius: 8px;
+  background: rgba(18, 20, 26, 0.9);
+  border: 1px solid var(--panel-border);
+  font-size: 13px;
+  cursor: default;
+}
+
+.mf-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mf-clear {
+  padding: 2px 10px;
+  font-size: 12px;
+}

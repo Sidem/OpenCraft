@@ -152,6 +152,7 @@ async function main(): Promise<void> {
   const mapInfo = new MapInfo();
   const minimap = new Minimap(game, wasm.memory, pins, mapFilter, mapInfo);
   const worldMap = new WorldMap(game, wasm.memory, pins, mapFilter, mapInfo);
+  analytics.onShowOnMap = (block, at) => (analytics.close(false), worldMap.showMachines(block, at));
   const nameTags = new NameTags();
   const playerList = new PlayerList();
   const coopPanel = new CoopPanel(coop, {

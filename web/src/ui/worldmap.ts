@@ -4,7 +4,8 @@
 // a town depot is held, the places each kind of town fits are shaded in its colour, with a legend (`world_map_sites`).
 // Drag to move, wheel or the buttons to zoom, click to pin a spot or edit a pin; resting on a mark or pin shows what it
 // is (map-info.ts). The image is redrawn only when the view or the explored map changes; marks, pins and players at most
-// 10 times a second. Pins live in pins.ts.
+// 10 times a second. Pins live in pins.ts, their list in map-pin-list.ts. `showMachines` (analytics' "Show on map")
+// rings every machine of a kind and fits the view to them (map-focus-layer.ts).
 // The dialog frame reuses the machine panel's styles (machine.css).
 
 import './machine.css';
@@ -12,8 +13,11 @@ import './worldmap.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
 import { FilterPanel } from './map-filter-panel';
+import { fitView } from './map-focus';
+import { MapFocus } from './map-focus-layer';
 import { infoAt, type MapInfo } from './map-info';
 import type { MapFilter } from './map-filter';
+import { fillPinList } from './map-pin-list';
 import { OreGuide } from './ore-guide';
 import { arrow, drawMark, drawPin, hex, type Pin, type Pins } from './pins';
 
@@ -29,6 +33,8 @@ const PIN_REACH = 14;
 const HOVER_REACH = 8;
 /** How strongly the places a town fits are shaded. */
 const SITE_ALPHA = 0.4;
+/** Screen px kept clear around the machines "Show on map" fits into view. */
+const FOCUS_PAD = 48;
 
 export class WorldMap {
   /** Called after the map closes. `resume` is true when play should continue (M, or a click outside). */
@@ -44,6 +50,7 @@ export class WorldMap {
   private readonly editor = h('div', 'wm-editor hidden');
   private readonly legend = h('div', 'wm-legend hidden');
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly focus: MapFocus;
   private centre = { x: 0, z: 0 };
   private zoom = START_ZOOM;
   private drawnKey = '';
@@ -59,6 +66,11 @@ export class WorldMap {
     private readonly info: MapInfo,
   ) {
     this.ctx = this.image.getContext('2d')!;
+    this.focus = new MapFocus(game);
+    this.focus.onClear = () => {
+      this.focus.clear();
+      this.lastMarks = -Infinity;
+    };
     const dialog = h('div', 'mp wm');
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
@@ -85,7 +97,7 @@ export class WorldMap {
       row.append(swatch, game.town_kind_name(k));
       this.legend.append(row);
     }
-    this.view.append(this.image, this.overlay, this.legend, this.editor);
+    this.view.append(this.image, this.overlay, this.legend, this.focus.chip, this.editor);
     const side = h('aside', 'wm-side');
     side.append(new FilterPanel(game, filter, pins.kinds).el, h('h3', '', 'Pins'), this.pinList, new OreGuide(game).el);
     const main = h('div', 'wm-main');
@@ -117,8 +129,21 @@ export class WorldMap {
     (this.backdrop.firstElementChild as HTMLElement).focus();
   }
 
+  /** Opens the map on every machine of kind `block` (analytics' "Show on map"): all in view, or centred on `at`. */
+  showMachines(block: number, at?: { x: number; z: number }): void {
+    this.open();
+    this.focus.show(block, at);
+    const v = this.frame();
+    const fit = at ? { x: at.x + 0.5, z: at.z + 0.5, zoom: START_ZOOM } : v && fitView(this.focus.machines, v.w, v.h, ZOOMS, START_ZOOM, FOCUS_PAD);
+    if (!fit) return;
+    this.centre = { x: fit.x, z: fit.z };
+    this.zoom = fit.zoom;
+    this.scaleLabel.textContent = scaleText(ZOOMS[fit.zoom]);
+  }
+
   close(resume: boolean): void {
     if (!this.isOpen) return;
+    this.focus.clear();
     this.closeEditor();
     this.info.hide();
     this.backdrop.classList.add('hidden');
@@ -190,6 +215,8 @@ export class WorldMap {
       const [x, y] = at(marks[i] + 0.5, marks[i + 1] + 0.5);
       drawMark(c, x, y, marks[i + 2], marks[i + 3], dpr * 1.3, dpr / v.bpp);
     }
+    this.focus.refresh();
+    this.focus.draw(c, at, dpr);
     for (const pin of this.pins.list.filter((p) => this.filter.showsPin(p.kind))) {
       const [x, y] = at(pin.x + 0.5, pin.z + 0.5);
       drawPin(c, x, y, this.pins.kind(pin.kind).color, dpr, this.pins.label(pin));
@@ -251,7 +278,11 @@ export class WorldMap {
     const world = this.toWorld(clientX, clientY);
     if (!world) return;
     const reach = HOVER_REACH * ZOOMS[this.zoom];
-    this.info.show(infoAt(this.game, this.filter, this.pins, this.pinNear(clientX, clientY), world.x, world.z, reach), clientX, clientY);
+    const ringed = this.focus.near(world.x, world.z, reach);
+    // A ringed machine's line replaces the engine's plain line for its kind.
+    const rest = infoAt(this.game, this.filter, this.pins, this.pinNear(clientX, clientY), world.x, world.z, reach);
+    const lines = [...ringed, ...rest.filter((l) => ringed.length === 0 || l.title !== this.focus.name)].slice(0, 3);
+    this.info.show(lines, clientX, clientY);
   }
 
   /** The world column under a screen point. */
@@ -353,37 +384,13 @@ export class WorldMap {
   }
 
   private fillPinList(): void {
-    const list = this.pinList;
-    list.replaceChildren();
-    const shown = this.pins.list.filter((p) => this.filter.showsPin(p.kind));
-    if (shown.length === 0) {
-      const none = this.pins.list.length === 0 ? 'No pins yet. Click the map to pin a spot.' : 'All your pins are hidden by the filter.';
-      list.append(h('p', 'wm-empty', none));
-      return;
-    }
-    const px = this.game.player_x(), pz = this.game.player_z();
-    for (const pin of shown) {
-      const row = button('wm-pin', '', () => {
-        this.centre = { x: pin.x + 0.5, z: pin.z + 0.5 };
-        this.editAt(pin.x, pin.z, pin);
-      });
-      const dot = h('span', 'og-swatch');
-      dot.style.background = this.pins.kind(pin.kind).color;
-      const dx = pin.x + 0.5 - px, dz = pin.z + 0.5 - pz, d = Math.round(Math.hypot(dx, dz));
-      const far = d < 4 ? 'here' : `${d} blocks ${compass(dx, dz)}`;
-      row.append(dot, h('span', 'wm-pin-label', this.pins.label(pin)), h('span', 'wm-pin-far', far));
-      list.append(row);
-    }
+    fillPinList(this.pinList, this.game, this.pins, this.filter, (pin) => {
+      this.centre = { x: pin.x + 0.5, z: pin.z + 0.5 };
+      this.editAt(pin.x, pin.z, pin);
+    });
   }
 }
 
 function scaleText(bpp: number): string {
   return bpp < 1 ? `1 block = ${1 / bpp} px` : `1 px = ${bpp} block${bpp === 1 ? '' : 's'}`;
-}
-
-/** The compass direction of an offset (north is -z). */
-function compass(dx: number, dz: number): string {
-  const names = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-  const turn = Math.atan2(dx, -dz) / (Math.PI / 4);
-  return names[(Math.round(turn) + 8) % 8];
 }

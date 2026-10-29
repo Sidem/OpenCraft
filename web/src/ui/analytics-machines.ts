@@ -1,11 +1,12 @@
 // Machines tab of the analytics hub: how well the machines run and what holds them back. A bar splits the working
 // machines by what costs them most (full speed, short of power, waiting for input...); a table gives each kind of
 // machine its count, average efficiency and causes; a list names the slowest machines with where they stand and how
-// far away. Efficiency is the engine's average of the last 10 seconds (`analytics_machine*`, `analytics_worst_*`).
+// far away. Every row has "Show on map" (the world map rings that kind, map-focus-layer.ts). Efficiency is the engine's
+// average of the last 10 seconds (`analytics_machine*`, `analytics_worst_*`).
 
 import './analytics-panels.css';
 import { dot, iconCanvas, type Ctx, type Tab } from './analytics-tab';
-import { h } from './dom';
+import { button, h } from './dom';
 
 // What holds machines back, in the order of the engine's causes (`analytics_machines` after the first two counts).
 // `bad` marks the causes that are a real fault (the overview shows them in red) rather than a thing worth a look.
@@ -98,7 +99,7 @@ export class MachinesTab implements Tab {
     // Kinds with machines working come first, worst average first; idle kinds close the list.
     rows.sort((a, b) => (b.row[1] > 0 ? 1 : 0) - (a.row[1] > 0 ? 1 : 0) || a.row[3] - b.row[3]);
     const head = h('div', 'an-mrow an-mhead');
-    head.append(h('span'), h('span', '', 'Machine'), h('span', 'an-num', 'Working'), h('span', 'an-num', 'Idle'), h('span', '', 'Efficiency'), h('span', '', 'Held back by'));
+    head.append(h('span'), h('span', '', 'Machine'), h('span', 'an-num', 'Working'), h('span', 'an-num', 'Idle'), h('span', '', 'Efficiency'), h('span', '', 'Held back by'), h('span'));
     this.table.replaceChildren(head);
     for (const { block, row } of rows) {
       const [, working, full, percent, idle] = row;
@@ -117,7 +118,7 @@ export class MachinesTab implements Tab {
         causes.append(chip);
       });
       if (working > 0 && full === working) causes.append(h('span', 'an-faint', 'all at full speed'));
-      el.append(iconCanvas(ctx.icon(block)), h('span', 'an-row-name', g.item_name(block)), h('span', 'an-num', String(working)), h('span', 'an-num an-faint', String(idle)), meter, causes);
+      el.append(iconCanvas(ctx.icon(block)), h('span', 'an-row-name', g.item_name(block)), h('span', 'an-num', String(working)), h('span', 'an-num an-faint', String(idle)), meter, causes, mapButton(ctx, block));
       this.table.append(el);
     }
   }
@@ -138,9 +139,15 @@ export class MachinesTab implements Tab {
         h('strong', 'an-slow-pct', `${percent}%`),
         h('span', 'an-slow-why', why),
         h('span', 'an-faint', `at ${x}, ${y}, ${z} · ${away} blocks away`),
+        mapButton(ctx, block, { x, z }),
       );
       el.querySelector<HTMLElement>('.an-slow-pct')!.style.color = healthColour(percent);
       this.slowest.append(el);
     }
   }
+}
+
+/** The row's "Show on map" button: every machine of the kind, centred on one if `at` is given. */
+function mapButton(ctx: Ctx, block: number, at?: { x: number; z: number }): HTMLButtonElement {
+  return button('secondary-btn an-map-btn', 'Show on map', () => ctx.showOnMap(block, at));
 }

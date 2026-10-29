@@ -1,9 +1,10 @@
 use super::power::TOTALS;
 use super::series::{Series, COARSE_STEP};
 use super::*;
-use crate::block::{COAL_ORE, IRON_ORE, MINER, SLAG, SMELTER};
+use crate::block::{BlockId, COAL_ORE, CONSTRUCTOR, IRON_ORE, LAB, MINER, SLAG, SMELTER};
+use crate::factory::efficiency::CAUSES;
 use crate::factory::Factory;
-use crate::item::{DIESEL_CANISTER, IRON_INGOT};
+use crate::item::{DIESEL_CANISTER, IRON_INGOT, IRON_PLATE};
 use crate::math::IVec3;
 use crate::sim::SimEvent;
 use crate::tests::{build_mine, find_outcrop_block, run_until_ready};
@@ -145,6 +146,88 @@ fn a_smelter_at_full_pace_reads_100_and_reports_what_it_made_and_used() {
     assert_eq!((row[0], row[1], row[2]), (SMELTER as u32, 1, 0));
     assert_eq!(row[5 + 1], 1, "counted under waiting for input");
     assert_eq!(&a.machines.worst(5)[..4], &[0, 0, 0, SMELTER as i32]);
+}
+
+/// A row of machines: smelters that run and then wait for ore, constructors with a recipe and nothing to make it
+/// from, and one constructor whose recipe is taken away after it has worked (idle).
+fn yard() -> (Factory, Analytics, IVec3) {
+    let (mut f, mut world) = (Factory::default(), World::new(1, 2));
+    let recipe = crate::recipes::MACHINE_RECIPES.iter().position(|r| r.main().0 == IRON_PLATE).unwrap() as u16;
+    let at = |i: i32| IVec3::new(i * 4, 0, 0);
+    for i in 0..3 {
+        f.place(&mut world, SMELTER, at(i), 0, at(i) - IVec3::new(0, 1, 0), 0);
+        f.insert(at(i), IRON_ORE.into(), 2 + i as u32);
+        f.insert(at(i), COAL_ORE.into(), 3);
+    }
+    for i in 3..6 {
+        f.place(&mut world, CONSTRUCTOR, at(i), 0, at(i) - IVec3::new(0, 1, 0), 0);
+        assert!(f.set_recipe(at(i), Some(recipe)).is_some(), "a constructor makes plates");
+    }
+    let (mut a, mut events) = (Analytics::default(), Vec::new());
+    for tick in 0..60 * 20 {
+        if tick == 60 * 5 {
+            drop(f.set_recipe(at(5), None));
+        }
+        f.update(&mut world, tick, &mut events);
+        a.record(&f);
+    }
+    (f, a, at(5))
+}
+
+#[test]
+fn every_kind_lists_the_machines_its_row_counts_where_the_map_marks_them() {
+    let (f, a, idle) = yard();
+    let mut marked = Vec::new();
+    f.map_machines((i32::MIN, i32::MIN), (i32::MAX, i32::MAX), &mut |b, p| marked.push((b, p)));
+    let types = a.machines.by_type();
+    assert!(types.len() >= 2 * TYPE_FIELDS, "smelters and constructors both counted");
+    for row in types.chunks(TYPE_FIELDS) {
+        let block = row[0] as BlockId;
+        let list = a.machines.of_kind(block);
+        let machines: Vec<&[i32]> = list.chunks(KIND_FIELDS).collect();
+        assert_eq!(machines.len() as u32, row[1] + row[4], "every machine the row counts, block {block}");
+        assert_eq!(machines.iter().filter(|m| m[3] < 0).count() as u32, row[4], "idle ones");
+        assert_eq!(machines.iter().filter(|m| m[3] >= 0 && m[4] < 0).count() as u32, row[2], "full-speed ones");
+        for c in 0..CAUSES {
+            assert_eq!(machines.iter().filter(|m| m[4] == c as i32).count() as u32, row[5 + c], "cause {c}");
+        }
+        for m in &machines {
+            let p = IVec3::new(m[0], m[1], m[2]);
+            assert!(marked.contains(&(block, p)), "{p:?} is a {block} mark on the map");
+        }
+    }
+    let constructors = a.machines.of_kind(CONSTRUCTOR);
+    let gone = constructors.chunks(KIND_FIELDS).find(|m| IVec3::new(m[0], m[1], m[2]) == idle).expect("listed");
+    assert_eq!((gone[3], gone[4]), (-1, -1), "the constructor without a recipe reads idle");
+    assert!(a.machines.of_kind(LAB).is_empty());
+}
+
+/// `cargo test --release -q bench_machines_of_kind -- --ignored --nocapture`: one kind picked out of 3,025 machines.
+#[test]
+#[ignore]
+fn bench_machines_of_kind() {
+    let (mut f, mut world) = (Factory::default(), World::new(1, 2));
+    for x in 0..55 {
+        for z in 0..55 {
+            let pos = IVec3::new(x * 3, 100, z * 3);
+            f.place(
+                &mut world,
+                if (x + z) % 2 == 0 { SMELTER } else { CONSTRUCTOR },
+                pos,
+                0,
+                pos - IVec3::new(0, 1, 0),
+                0,
+            );
+        }
+    }
+    let mut a = Analytics::default();
+    a.machines.sample(&f);
+    let start = std::time::Instant::now();
+    let mut n = 0;
+    for _ in 0..1000 {
+        n += a.machines.of_kind(SMELTER).len() / KIND_FIELDS;
+    }
+    println!("of_kind: {} smelters of {} machines in {} µs", n / 1000, 55 * 55, start.elapsed().as_micros() / 1000);
 }
 
 #[test]

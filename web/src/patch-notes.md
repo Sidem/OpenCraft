@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-29 · Show on map
+- **Analytics can now show you where your machines are.** In the Machines tab (P), every kind of machine and every one of the slowest machines has a **Show on map** button. It opens the map with each machine of that kind circled: green at full speed, amber when slowed, red when badly held back, a grey dashed circle when it has nothing to do. A strip at the top counts what holds them back, and resting the mouse on a circle says how fast that machine runs, what stops it and where it stands. From a slowest machine, the map centres on that one. Thanks to a playtester for the idea.
+
 ## 2026-10-29 · Round things are round
 - **Canisters, wafers, silicon, fuel cells, gears and other round things are now real cylinders**, in the world and in their icons, instead of crossed boxes. Canisters look like oil drums with ridges, a wafer is one disc with its chips on top, and silicon is a crystal lying on its side. Round tanks, columns, boilers and the pump's casing on machines, and the steam engine's boiler and wheels, are round too.
 - **The long-distance pole is now a lattice transmission tower 2×2 and 4 high**: legs that lean in, cross bracing, two levels of arms with insulators hanging from them, and the wire on its peak. Towers you already built grow to the new height.

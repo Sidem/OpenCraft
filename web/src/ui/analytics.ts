@@ -39,6 +39,8 @@ const TABS: { id: string; label: string; make: () => Tab }[] = [
 export class AnalyticsPanel {
   /** Called after the screen closes. `resume` is true when play should continue (P, E, or a click outside). */
   onClose: (resume: boolean) => void = () => {};
+  /** A tab's "Show on map": main.ts closes this screen and opens the world map on those machines. */
+  onShowOnMap: (block: number, at?: { x: number; z: number }) => void = () => {};
 
   private readonly backdrop = h('div', 'mp-backdrop hidden');
   private readonly dialog = h('div', 'mp an');
@@ -160,7 +162,8 @@ export class AnalyticsPanel {
     this.last = now;
     this.scaleButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === this.scale)));
     const { secs, ticks } = SCALES[this.scale];
-    const ctx: Ctx = { game: this.game, icon: this.icon, secs, ticks, go: (id) => this.show(Math.max(0, TABS.findIndex((t) => t.id === id))) };
+    const go = (id: string) => this.show(Math.max(0, TABS.findIndex((t) => t.id === id)));
+    const ctx: Ctx = { game: this.game, icon: this.icon, secs, ticks, go, showOnMap: (block, at) => this.onShowOnMap(block, at) };
     this.tabs[this.active].tab.refresh(ctx);
   }
 }

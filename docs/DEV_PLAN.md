@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -289,6 +289,12 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-29: "Show on map" from analytics** (a playtester's idea). Every kind row and slowest row of the Machines tab
+  opens the world map with each machine of that kind ringed by health (`analytics_machines_of`, `Machines::of_kind`;
+  `ui/map-focus.ts` fits the view, `map-focus-layer.ts` draws rings, chip and hover lines; the pin list moved to
+  `map-pin-list.ts` to keep `worldmap.ts` under budget). Presentation only. Test: every kind's list matches its row's
+  counts and every ring sits on a map mark (`analytics/tests.rs`); `bench_machines_of_kind` 13 µs for 1,513 of 3,025
+  machines. On the 13.5 h play-test save, Quarry ×4 (3 output full, 1 flooded) all fall inside the fitted view.
 - **2026-10-29: real round bodies and a transmission tower** (user: canisters, wafer, silicon, fuel cell looked like crossed
   boxes; the long pole should look like a real tower). The box pipeline gained a cylinder pass (`render/round-mesh.ts`,
   `boxes.ts`; the instance's `ROUND` mode bit and taper, `factory::push_round`), icons paint round bodies and leaned boxes
@@ -331,12 +337,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   `entities/merge.rs` merges resting loose items per 1.5-block cell, also unloaded; never tools. Host-side only. The update loop was
   never the cost (`bench_items`); the gain is entity count (40 s: 12 entities, not 400, `tests/ejector.rs`). Belt-family icons:
   `item_models/belts.rs`, judged by silhouette overlap (`item_models/tests.rs`).
-
-- **2026-10-26: poles hang on walls and need support** (user request). `factory/pole_mount.rs`: a pole needs a solid block
-  under it or at one of its four sides, else `Sim::put_block` refuses it (`action/blocks.rs`; drones and blueprints too).
-  With no ground under it, `Factory::place` picks the wall (the clicked side if solid, else the first) into `Pole::wall`,
-  drawn as a plate and two struts (`mount_model`). The wall rides in the high bits of the pole's tier byte, so there is
-  no save-version bump and old saves read as no wall (old poles keep floating where they are; nothing drops when a
-  support is mined). The pole tool shows red and "Needs the ground under it or a wall beside it" (`PoleGhost::held_up`).
-  The patch notes render `**bold**` and `` `code` `` (`ui/inline-text.ts`, a pure function with a node test). Tests that
-  placed poles in open air now lay a floor first.

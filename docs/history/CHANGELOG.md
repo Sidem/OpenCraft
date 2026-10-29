@@ -4,6 +4,15 @@ Earlier development entries, retained from DEV_PLAN.md so the active plan stays 
 
 ## 8. Change log of this plan
 
+- **2026-10-26: poles hang on walls and need support** (user request). `factory/pole_mount.rs`: a pole needs a solid block
+  under it or at one of its four sides, else `Sim::put_block` refuses it (`action/blocks.rs`; drones and blueprints too).
+  With no ground under it, `Factory::place` picks the wall (the clicked side if solid, else the first) into `Pole::wall`,
+  drawn as a plate and two struts (`mount_model`). The wall rides in the high bits of the pole's tier byte, so there is
+  no save-version bump and old saves read as no wall (old poles keep floating where they are; nothing drops when a
+  support is mined). The pole tool shows red and "Needs the ground under it or a wall beside it" (`PoleGhost::held_up`).
+  The patch notes render `**bold**` and `` `code` `` (`ui/inline-text.ts`, a pure function with a node test). Tests that
+  placed poles in open air now lay a floor first.
+
 - **2026-10-26: search ranks by name** (user: typing "concrete" showed the Blast Furnace, made from concrete, and Concrete
   only on the last page). While searching, the build menu drops its category pages for one ranked list
   (`nameScore` in `ui/craft-terms.ts`: the name, its start, its words, then material and related matches), a locked item

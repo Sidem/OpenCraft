@@ -165,10 +165,28 @@ impl Machines {
             .flat_map(|&(pct, p, e)| [p.x, p.y, p.z, e.block as i32, pct as i32, main_cause(e) as i32])
             .collect()
     }
+
+    /// Every machine of kind `block` that `by_type` counts (working or idle), as [`KIND_FIELDS`] numbers each:
+    /// `[x, y, z, percent, cause]`. Percent is -1 for an idle machine; cause is -1 for one idle or at full pace, else
+    /// what costs it most. For the world map's "Show on map" (`web/src/ui/map-focus.ts`); order is not meaningful.
+    pub fn of_kind(&self, block: BlockId) -> Vec<i32> {
+        let mut out = Vec::new();
+        for (p, e) in self.map.iter().filter(|(_, e)| e.ready && e.block == block) {
+            let (pct, cause) = match (e.idle, e.work >= FULL) {
+                (true, _) => (-1, -1),
+                (false, true) => ((e.work * 100.0).round() as i32, -1),
+                (false, false) => ((e.work * 100.0).round() as i32, main_cause(e) as i32),
+            };
+            out.extend_from_slice(&[p.x, p.y, p.z, pct, cause]);
+        }
+        out
+    }
 }
 
 /// Numbers per kind of machine in [`Machines::by_type`].
 pub const TYPE_FIELDS: usize = 5 + CAUSES;
+/// Numbers per machine in [`Machines::of_kind`].
+pub const KIND_FIELDS: usize = 5;
 
 /// The cause that cost the machine most of its pace (an index into the causes).
 fn main_cause(e: &Entry) -> usize {
