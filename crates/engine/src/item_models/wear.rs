@@ -4,7 +4,7 @@
 
 use std::f32::consts::FRAC_PI_4;
 
-use super::shapes::{bar_x, cylinder, Build};
+use super::shapes::{bar_x, cylinder, frustum, Build};
 use super::{part, turned, Part};
 use crate::block::tex;
 use crate::item::{
@@ -46,19 +46,19 @@ const STRAPS: [Part; 2] =
     [part([-0.14, 0.02, -0.19], [0.06, 0.5, 0.03], WEBBING), part([0.14, 0.02, -0.19], [0.06, 0.5, 0.03], WEBBING)];
 
 /// A jetpack tank at `x`, bottom up (the icon has no depth test, so a band drawn after a taller body would paint
-/// over it): the steel nozzle, the gunmetal tank with an ember band, a steel cap.
-const fn tank(x: f32) -> [Part; 9] {
+/// over it): the flared steel nozzle, the gunmetal tank with an ember band, a steel cap.
+const fn tank(x: f32) -> [Part; 5] {
     Build::new()
-        .all(cylinder::<2>([x, -0.28, 0.0], 0.12, 0.1, METAL))
-        .all(cylinder::<2>([x, -0.08, 0.0], 0.2, 0.3, GUNMETAL))
-        .all(cylinder::<2>([x, 0.1, 0.0], 0.21, 0.06, EMBER))
-        .all(cylinder::<2>([x, 0.2, 0.0], 0.2, 0.14, GUNMETAL))
+        .with(frustum([x, -0.28, 0.0], 0.15, 0.1, 0.7, METAL))
+        .with(cylinder([x, -0.08, 0.0], 0.2, 0.3, GUNMETAL))
+        .with(cylinder([x, 0.1, 0.0], 0.21, 0.06, EMBER))
+        .with(cylinder([x, 0.2, 0.0], 0.2, 0.14, GUNMETAL))
         .with(part([x, 0.285, 0.0], [0.1, 0.03, 0.1], METAL))
         .done()
 }
 
 /// The coal jetpack: two gunmetal tanks with ember bands and steel caps on a webbing backplate, nozzles below.
-const JETPACK_MODEL: [Part; 21] = Build::new()
+const JETPACK_MODEL: [Part; 13] = Build::new()
     .all(STRAPS)
     .with(part([0.0, 0.0, -0.14], [0.46, 0.6, 0.06], WEBBING))
     .all(tank(-0.12))
@@ -66,17 +66,17 @@ const JETPACK_MODEL: [Part; 21] = Build::new()
     .done();
 
 /// A hover pack's lift fan at `x`, bottom up: gunmetal with a glowing band round its middle.
-const fn fan(x: f32) -> [Part; 6] {
+const fn fan(x: f32) -> [Part; 3] {
     Build::new()
-        .all(cylinder::<2>([x, -0.165, -0.02], 0.2, 0.03, GUNMETAL))
-        .all(cylinder::<2>([x, -0.14, -0.02], 0.21, 0.02, tex::LAMP_BLUE))
-        .all(cylinder::<2>([x, -0.115, -0.02], 0.2, 0.03, GUNMETAL))
+        .with(cylinder([x, -0.165, -0.02], 0.2, 0.03, GUNMETAL))
+        .with(cylinder([x, -0.14, -0.02], 0.21, 0.02, tex::LAMP_BLUE))
+        .with(cylinder([x, -0.115, -0.02], 0.2, 0.03, GUNMETAL))
         .done()
 }
 
 /// The hover pack: a white shell on its harness, a strut through it to a lift fan at each side, and a light strip
 /// down its back.
-const HOVER_PACK_MODEL: [Part; 17] = Build::new()
+const HOVER_PACK_MODEL: [Part; 11] = Build::new()
     .all(STRAPS)
     .with(part([0.0, -0.14, -0.02], [0.56, 0.04, 0.06], METAL))
     .all(fan(-0.28))
@@ -173,13 +173,13 @@ const EXO: [Part; 17] = [
 
 /// A mining rig: a gunmetal back unit with a brass cap and its glowing core on a webbing harness, an arm out to its
 /// right holding the ember drill motor, its steel bit stepping down to a point.
-const RIG: [Part; 11] = Build::new()
+const RIG: [Part; 10] = Build::new()
     .all(STRAPS)
     .with(part([0.0, 0.1, -0.08], [0.36, 0.36, 0.16], GUNMETAL))
     .with(part([0.0, 0.3, -0.08], [0.38, 0.04, 0.18], BRASS))
     .with(part([0.0, 0.1, 0.005], [0.12, 0.12, 0.012], tex::LAMP_RED))
     .with(part([0.24, 0.12, 0.0], [0.08, 0.08, 0.24], METAL))
-    .all(cylinder::<2>([0.26, -0.02, 0.08], 0.16, 0.18, EMBER))
+    .with(cylinder([0.26, -0.02, 0.08], 0.16, 0.18, EMBER))
     .with(turned([0.26, -0.15, 0.08], [0.12, 0.08, 0.12], 0.0, METAL))
     .with(turned([0.26, -0.22, 0.08], [0.08, 0.07, 0.08], 0.4, METAL))
     .with(turned([0.26, -0.28, 0.08], [0.04, 0.06, 0.04], 0.8, METAL))
@@ -204,10 +204,10 @@ const fn glove(x: f32, inner: f32) -> [Part; 8] {
 const GLOVES: [Part; 16] = Build::new().all(glove(-0.2, 1.0)).all(glove(0.2, -1.0)).done();
 
 /// The telescope lying along x: a gunmetal eyepiece, a steel middle draw and a brass objective tube, glass at the far end.
-const TELESCOPE_MODEL: [Part; 10] = Build::new()
-    .all(bar_x([-0.41, 0.0, 0.0], 0.12, 0.14, GUNMETAL))
-    .all(bar_x([-0.2, 0.0, 0.0], 0.3, 0.22, METAL))
-    .all(bar_x([0.18, 0.0, 0.0], 0.5, 0.3, BRASS))
+const TELESCOPE_MODEL: [Part; 4] = Build::new()
+    .with(bar_x([-0.41, 0.0, 0.0], 0.12, 0.14, GUNMETAL))
+    .with(bar_x([-0.2, 0.0, 0.0], 0.3, 0.22, METAL))
+    .with(bar_x([0.18, 0.0, 0.0], 0.5, 0.3, BRASS))
     .with(part([0.435, 0.0, 0.0], [0.02, 0.24, 0.24], tex::FLASK_GLASS))
     .done();
 

@@ -20,16 +20,16 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// The locomotive's paint: deep green, shaded from top to foot like a boiler lying down (`round_shade` across y),
-/// with a brass band round it and dark seams at its ends.
+/// The locomotive's paint: deep green with a brass band round it and dark seams at its ends (rows: its boiler is round,
+/// and a round body's texture runs along it in y).
 fn loco_body(x: i32, y: i32) -> [u8; 4] {
-    if x == 0 || x == 15 {
+    if y == 0 || y == 15 {
         return rgb([30.0, 34.0, 32.0], 1.0);
     }
-    if x == 7 || x == 8 {
+    if y == 7 || y == 8 {
         return rgb([214.0, 172.0, 70.0], 0.95 + 0.1 * n(436, x, y));
     }
-    rgb([46.0, 92.0, 70.0], super::paint::round_shade(y) * (0.92 + 0.1 * n(437, x, y)))
+    rgb([46.0, 92.0, 70.0], 0.92 + 0.1 * n(437, x, y))
 }
 
 /// A signal: a steel post under an amber lamp, on a dark ground.

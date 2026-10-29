@@ -7,7 +7,7 @@ use crate::block::{self, BLOCK_COUNT};
 use crate::deposits::HAND_YIELD;
 use crate::factory::tiers;
 use crate::factory::upgrades::TIER_COLOURS;
-use crate::factory::MINER_TIERS;
+use crate::factory::{Axis, Form, MINER_TIERS};
 use crate::item::{self, ItemId};
 use crate::item_models;
 use crate::tools;
@@ -66,11 +66,19 @@ impl Game {
         })
     }
 
-    /// Box parts for a manufactured item's icon: centre xyz, size xyz, yaw, then top/side/bottom layers.
-    /// Empty means the ordinary `item_icon` box is the complete model.
+    /// Parts for a manufactured item's icon, `item_model_floats()` each: centre xyz, size xyz (the box it fills), yaw,
+    /// top/side/bottom layers, then its form (0 a box; a round body along 1 y, 2 x, 3 z; 4 a leaned box) and the round
+    /// body's taper (its far end's width as a share of its near end's) or the leaned box's pitch. Empty means the ordinary `item_icon` box is the model.
     pub fn item_model(&self, id: u16) -> Vec<f32> {
         let mut out = Vec::new();
         for p in item_models::parts(ItemId(id)) {
+            let (form, taper) = match p.form {
+                Form::Box => (0.0, 1.0),
+                Form::Lean(pitch) => (4.0, pitch),
+                Form::Round(Axis::Up, t) => (1.0, t),
+                Form::Round(Axis::X, t) => (2.0, t),
+                Form::Round(Axis::Z, t) => (3.0, t),
+            };
             out.extend_from_slice(&[
                 p.center[0],
                 p.center[1],
@@ -82,9 +90,16 @@ impl Game {
                 p.tex[0] as f32,
                 p.tex[1] as f32,
                 p.tex[2] as f32,
+                form,
+                taper,
             ]);
         }
         out
+    }
+
+    /// Floats per part of `item_model`.
+    pub fn item_model_floats(&self) -> usize {
+        12
     }
 
     /// A tool's uses when new, which is also its stack size (its count is the uses left); 0 for

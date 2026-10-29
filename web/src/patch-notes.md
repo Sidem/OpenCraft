@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-29 · Round things are round
+- **Canisters, wafers, silicon, fuel cells, gears and other round things are now real cylinders**, in the world and in their icons, instead of crossed boxes. Canisters look like oil drums with ridges, a wafer is one disc with its chips on top, and silicon is a crystal lying on its side. Round tanks, columns, boilers and the pump's casing on machines, and the steam engine's boiler and wheels, are round too.
+- **The long-distance pole is now a lattice transmission tower 2×2 and 4 high**: legs that lean in, cross bracing, two levels of arms with insulators hanging from them, and the wire on its peak. Towers you already built grow to the new height.
 ## 2026-10-29 · Turning product displays
 - **A machine's product now stands on a small plate on top of it** and turns slowly while the machine works, so you can see what it makes from every side, not just the front. Tall machines (the refinery, cracker, centrifuge, chemical plant and others) carry it on top of their tallest tank or column, where it shows from far away. The plate stops turning when the machine stops.
 - The smelter's chimney is a little shorter so it doesn't hide the product beside it, and the crusher has a bar across its hopper for its display.

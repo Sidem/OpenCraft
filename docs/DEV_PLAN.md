@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine (2026-10-29). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -289,6 +289,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-29: real round bodies and a transmission tower** (user: canisters, wafer, silicon, fuel cell looked like crossed
+  boxes; the long pole should look like a real tower). The box pipeline gained a cylinder pass (`render/round-mesh.ts`,
+  `boxes.ts`; the instance's `ROUND` mode bit and taper, `factory::push_round`), icons paint round bodies and leaned boxes
+  (`ui/icon-paint.ts`, `icon-geometry.ts`), and every faked round model moved to `Form::Round` (items, processors,
+  pump, train). `factory/tests/fake_round.rs` fails on any model faking one (at HEAD it flagged 32 items, 12 machines).
+  The long pole is 2×2×4 (`pole_tower.rs`, `Form::Lean` legs on the item); save 61 fills old towers' new top with machine
+  parts where it is air (`raise_old_towers`; the play-test save: 14 filled, 1 under stone kept). Baked round shading was flattened on round bodies' textures. `write_instances` +2.4%, wasm +4 KB.
 - **2026-10-29: product displays turn on top** (user: the sign faced one way and the product vanished from the side).
   Every `Look::Product` slot is now square and stands on the model's top (roof, tank lid, column top), and `display.rs`
   draws a light plate with the product standing on it (flat items stood on edge), turning at `SPIN` while working and
@@ -333,21 +340,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   support is mined). The pole tool shows red and "Needs the ground under it or a wall beside it" (`PoleGhost::held_up`).
   The patch notes render `**bold**` and `` `code` `` (`ui/inline-text.ts`, a pure function with a node test). Tests that
   placed poles in open air now lay a floor first.
-
-- **2026-10-26: search ranks by name** (user: typing "concrete" showed the Blast Furnace, made from concrete, and Concrete
-  only on the last page). While searching, the build menu drops its category pages for one ranked list
-  (`nameScore` in `ui/craft-terms.ts`: the name, its start, its words, then material and related matches), a locked item
-  named by the search shows under "Unlocked", the best match is lit and Enter opens its guide page. The hover card moved to
-  `ui/craft-info.ts` to keep `crafting.ts` in budget. Checked: `web/test/craft-terms.test.mjs`; the play-tester's save in
-  the browser pane ("concrete": Concrete first, all 8 results on page 1; "quick": Quicklime first).
-
-- **2026-10-26: the item guide** (a playtester with Masonry, Assembly and Steelmaking done, 10.6 h in, could not find out
-  how to make quicklime for concrete: the build menu searched hand recipes only, machine recipes showed only in a machine's
-  panel, and limestone's depth only in the map's ore guide). `item_guide.rs` lists every way to get an item from the tables
-  (found: `ore_guide::ore_way` for ore of this world, `FOUND` rows for ground, trees, ruins, pumpjack, recycler; hand
-  recipes; machine recipes in `factory::first_maker`) and what uses it; `api/guide.rs` serves it. `ui/item-guide.ts` is a
-  page over the build menu where every item links to its page, with Back; the build menu's search adds dashed tiles for
-  items no hand recipe makes, and clicking any tile not craftable now opens its page. Tests (`item_guide/tests.rs`): every
-  item a recipe, fuel, town order or upkeep asks for and every breakable block's drop has a way in generator versions 1 to
-  current, and all of them are reachable from what the world gives (deleting the scrap-metal row fails both); the concrete
-  chain reaches limestone's depth band. No save change, no core change.

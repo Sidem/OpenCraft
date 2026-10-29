@@ -175,6 +175,21 @@ impl Game {
         INSTANCE_FLOATS
     }
 
+    /// Byte offset of this frame's round bodies, copied out of the box instances (which still hold them, marked
+    /// with `round_bit()`): `round_count()` records, drawn with a cylinder mesh.
+    pub fn round_ptr(&self) -> usize {
+        self.round_instances.as_ptr() as usize
+    }
+
+    pub fn round_count(&self) -> usize {
+        self.round_instances.len() / INSTANCE_FLOATS
+    }
+
+    /// The mode bit that marks a round body in an instance's mode-and-light float.
+    pub fn round_bit(&self) -> u32 {
+        crate::factory::ROUND
+    }
+
     /// Byte offset of this frame's name-tag anchors, one per other player in range: `label_count()`
     /// records of (player id, camera-relative x, y, z) as f32.
     pub fn label_ptr(&self) -> usize {

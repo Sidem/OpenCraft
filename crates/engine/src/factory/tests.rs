@@ -1,6 +1,7 @@
 mod bench;
 mod bench_marks;
 mod bench_orbit;
+mod fake_round;
 
 use super::belt::{END_STOP, ITEM_SPACING};
 use super::describe::fmt_duration;

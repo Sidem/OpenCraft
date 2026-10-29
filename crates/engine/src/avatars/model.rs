@@ -4,7 +4,7 @@
 
 use super::motion::Motion;
 use crate::block::tex;
-use crate::factory::{push_box, INSTANCE_FLOATS};
+use crate::factory::{make_round, push_box, Form, INSTANCE_FLOATS};
 use crate::item::{self, ItemId};
 use crate::item_models;
 use crate::math::Vec3;
@@ -190,6 +190,11 @@ impl Rig<'_> {
                 grip.out[i + 8..i + 11].copy_from_slice(&p.tex.map(f32::from));
                 // A turned part (the cog's teeth) is exact while the wrist is level, close otherwise.
                 grip.out[i + 3] += p.yaw;
+                // A leaned part (the long-distance pole's legs) is held upright: a pitch on top of the wrist's needs the
+                // two rotations composed, and the tower only shows its shape on the icon and in the world.
+                if let Form::Round(axis, taper) = p.form {
+                    make_round(grip.out, axis, taper);
+                }
             }
         }
     }

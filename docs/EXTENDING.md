@@ -14,7 +14,8 @@ renumber), add a `DEFS` row in `block/defs.rs` (`cube`, `ore` or `machine` helpe
 `docs/ART_HANDOVER.md`. Placeable blocks work at once; worldgen use goes in `worldgen/`.
 
 **An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
-and a row in `item.rs` `EXTRA`, and a model in `item_models/` (a test asks every non-block item for one).
+and a row in `item.rs` `EXTRA`, and a model in `item_models/` (a test asks every non-block item for one; round parts are `cylinder` / `frustum` /
+`bar_x`, never crossed boxes: `factory/tests/fake_round.rs` checks).
 A hand recipe is a `pub const` in its era's file under `recipes/`, named in `RECIPES` (`recipes/mod.rs`); its
 `group` picks the build-menu section. To lock it behind research, list `Unlock::Recipe(item)` in a tech's `unlocks`. A machine recipe is a row in the last
 table joined into `MACHINE_RECIPES` (`recipes/machine.rs`), with its category (lock:

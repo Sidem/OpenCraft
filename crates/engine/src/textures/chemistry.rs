@@ -5,7 +5,6 @@
 
 use crate::block::tex;
 
-use super::paint::round_shade;
 use super::{frame, n, rgb, smooth};
 
 const EMPTY_BAND: [f64; 3] = [150.0, 156.0, 166.0];
@@ -63,19 +62,18 @@ fn sulfur(x: i32, y: i32) -> [u8; 4] {
     rgb(base, 0.88 + 0.2 * n(493, x, y))
 }
 
-/// The painted steel of a vessel (a tank, column or engine casing) in `paint`: shaded round across (`round_shade`),
+/// The painted steel of a vessel (a tank, column or engine casing) in `paint` (round ones shade themselves):
 /// two weld rings each lit along its upper edge, and a dark foot. No rows of rivets: stretched up a tall part those
 /// read as the lit windows of a building.
 fn plant_side(x: i32, y: i32, paint: [f64; 3]) -> [u8; 4] {
-    let shade = round_shade(x);
     if y == 15 {
         return rgb([54.0, 58.0, 66.0], 0.9 + 0.1 * n(494, x, y));
     }
     if y == 4 || y == 11 {
-        return rgb([paint[0] * 0.55, paint[1] * 0.55, paint[2] * 0.6], shade);
+        return rgb([paint[0] * 0.55, paint[1] * 0.55, paint[2] * 0.6], 1.0);
     }
     let lit = if y == 3 || y == 10 { 1.12 } else { 0.92 + 0.08 * n(495, x, y) + 0.06 * smooth(496, x, y, 4) };
-    rgb(paint, shade * lit)
+    rgb(paint, lit)
 }
 
 /// A steel deck with a grille of `bars` dark slots.

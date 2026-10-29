@@ -39,7 +39,8 @@ fn every_item_that_is_not_a_block_is_a_model_resting_on_its_floor() {
             continue; // a machine tier: drawn as its block, with a tier chip on the icon
         }
         let model = parts(item);
-        assert!(model.len() >= 2, "{} is still one textured box", def.name);
+        let round = model.len() == 1 && model[0].form != Form::Box;
+        assert!(model.len() >= 2 || round, "{} is still one textured box", def.name);
         let mut bottom = f32::MAX;
         for p in model {
             assert!(p.size.iter().all(|&s| s > 0.0), "{} has an empty part", def.name);
@@ -58,7 +59,8 @@ fn every_item_that_is_not_a_block_is_a_model_resting_on_its_floor() {
 #[test]
 fn the_cog_is_round_and_stays_inside_its_cell() {
     let model = parts(GEAR);
-    assert!(model.len() >= 12, "a cog is turned boxes, not one cube");
+    assert!(model.len() >= 12, "a cog has its teeth, not one cube");
+    assert!(model.iter().any(|p| p.form != Form::Box && p.size[0] > 0.5), "its body is a real disc");
     for p in model {
         // The farthest corner of a part turned by its yaw.
         let (s, c) = p.yaw.sin_cos();
@@ -82,9 +84,8 @@ fn every_power_pole_is_a_post_with_a_crossarm_inside_its_cell_and_a_tier_wears_i
         assert!(model.len() >= 8, "{item:?} is still a striped cube");
         for p in model {
             assert!(p.size.iter().all(|&s| s > 0.0) && p.tex.iter().all(|&t| (t as usize) < tex::COUNT));
-            for axis in 0..3 {
-                assert!(p.center[axis].abs() + p.size[axis] * 0.5 <= 0.501, "{item:?} leaves its cell");
-            }
+            let reach = icon_frame::outline_points(p).iter().flatten().fold(0.0f32, |m, v| m.max(v.abs()));
+            assert!(reach <= 0.501, "{item:?} leaves its cell");
         }
     }
     let band = |item| parts(item)[2].tex[0];

@@ -94,11 +94,11 @@ fn by_hand() -> Factory {
 }
 
 #[test]
-fn a_long_distance_pole_stands_on_a_2x2x3_footprint_and_breaks_whole() {
+fn a_long_distance_pole_stands_on_a_2x2x4_footprint_and_breaks_whole() {
     let mut f = by_hand();
     place_block(&mut f, LONG_POLE, v(10, 5, 10));
     let cells = f.machine_cells(v(11, 7, 9));
-    assert_eq!(cells.len(), 12);
+    assert_eq!(cells.len(), 16);
     assert_eq!(cells[0], v(10, 5, 10), "the anchor first");
     assert!(cells.iter().all(|&c| f.anchor_of(c) == Some(v(10, 5, 10))));
     assert_eq!(f.footprint_at(v(11, 6, 10)).map(|x| x.1), Some(LONG_POLE));
@@ -142,7 +142,7 @@ fn power_crosses_a_long_span_and_the_tower_survives_a_save() {
     assert!(f.power.gen_pole[0].is_some() && f.power.miner_pole[0].is_some());
     let g = round_trip(&f);
     assert_eq!(g.poles.iter().filter(|p| p.is_long()).count(), 2);
-    assert_eq!(g.machine_cells(v(150, 3, 0)).len(), 12);
+    assert_eq!(g.machine_cells(v(150, 3, 0)).len(), 16);
     assert_eq!(g.slots_used(v(0, 3, 0)), 2);
 }
 
@@ -174,4 +174,28 @@ fn long_link_says_what_a_new_long_distance_pole_would_be_wired_to_or_why_not() {
     assert_eq!(links(&f, v(-3, 3, 20)), Some((v(-3, 3, 10), LONG_LOCAL_LINK)));
     // Six connections used: the tower is full.
     assert_eq!(f.long_link(v(150, 3, 0)), Some(LongLink::Full(tower)));
+}
+
+#[test]
+fn a_tower_from_before_save_61_fills_its_new_top_with_machine_parts_but_keeps_ground_there() {
+    use crate::block::{AIR, MACHINE_PART, STONE};
+    let mut f = by_hand();
+    place_block(&mut f, LONG_POLE, v(10, 70, 10));
+    let mut w = crate::bytes::ByteWriter::default();
+    f.write_state(&mut w);
+    let top: Vec<IVec3> = f.machine_cells(v(10, 70, 10)).into_iter().filter(|c| c.y == 73).collect();
+    assert_eq!(top.len(), 4);
+    let load = |version: u32, ground: bool| {
+        let mut world = World::new(1, 2);
+        if ground {
+            world.set_block_anywhere(top[0], STONE);
+        }
+        let mut r = crate::bytes::ByteReader::new(&w.bytes);
+        r.version = version;
+        Factory::read_state(&mut world, &mut r).unwrap();
+        top.iter().map(|&c| world.block_anywhere_or_generate(c)).collect::<Vec<_>>()
+    };
+    assert_eq!(load(60, false), [MACHINE_PART; 4], "an old tower's top is filled");
+    assert_eq!(load(60, true), [STONE, MACHINE_PART, MACHINE_PART, MACHINE_PART], "ground in the way stays");
+    assert_eq!(load(61, false), [AIR; 4], "a new save is left as it was written");
 }

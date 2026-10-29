@@ -10,11 +10,11 @@ use std::f32::consts::{FRAC_PI_2, TAU};
 
 use crate::block::tex;
 use crate::item::{self, ItemId};
-use crate::item_models::{self, Part};
+use crate::item_models::{self, Form, Part};
 use crate::math::Vec3;
 use crate::recipes::MACHINE_RECIPES;
 
-use super::super::render::push_box;
+use super::super::render::{push_box, push_round, push_shape, Axis};
 use super::{Pick, Processor, Status};
 
 #[cfg(test)]
@@ -80,7 +80,7 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
     let parts = match item_models::parts(item) {
         [] => {
             let Some(def) = item::def(item) else { return };
-            plain = [Part { center: [0.0; 3], size: def.size, yaw: 0.0, tex: def.tex }];
+            plain = [Part { center: [0.0; 3], size: def.size, yaw: 0.0, tex: def.tex, form: Form::Box }];
             &plain[..]
         }
         parts => parts,
@@ -93,10 +93,27 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
     for part in parts {
         let t = if stand { up(part.center) } else { part.center };
         let v = [(t[0] - mid[0]) * k, floor + PLATE + (t[1] - lo[1]) * k, (t[2] - mid[1]) * k];
-        push_box(out, place(v), turn + part.yaw, part.size.map(|x| x * k), 0.0, part.tex, false);
-        if stand {
-            let n = out.len();
-            out[n - 4] = FRAC_PI_2; // the box's pitch (`render.rs`): stood up about its own centre, as `up` does
+        let size = part.size.map(|x| x * k);
+        match (stand, part.form) {
+            (false, form) => push_shape(out, form, place(v), turn + part.yaw, size, part.tex, false),
+            (true, Form::Box | Form::Lean(_)) => {
+                push_box(out, place(v), turn + part.yaw, size, 0.0, part.tex, false);
+                let n = out.len();
+                out[n - 4] = FRAC_PI_2; // the box's pitch (`render.rs`): stood up about its own centre, as `up` does
+            }
+            (true, Form::Round(axis, t)) => {
+                // Stood up as `up` turns it: +y goes to +z, +z to -y, x stays; the box it fills turns with it.
+                let (axis, t, across) = match axis {
+                    Axis::Up => (Axis::Z, t, 1.0),
+                    Axis::Z => (Axis::Up, 1.0 / t, t),
+                    Axis::X => (Axis::X, t, 1.0),
+                };
+                let stood = match axis {
+                    Axis::Up => [size[0] * across, size[2], size[1] * across],
+                    _ => [size[0], size[2], size[1]],
+                };
+                push_round(out, place(v), turn + part.yaw, axis, stood, t, part.tex, false);
+            }
         }
     }
 }

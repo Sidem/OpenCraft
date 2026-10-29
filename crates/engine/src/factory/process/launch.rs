@@ -15,7 +15,7 @@ use crate::recipes::Category;
 use crate::satellites::KINDS;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
-use super::model::{drum_x, drum_z, part, Look, Part};
+use super::model::{part, round, Look, Part};
 use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 #[cfg(test)]
@@ -107,14 +107,13 @@ const RED: Look = Look::Rocket([tex::LAMP_RED; 3]);
 
 /// Across and deep 7, 6 high (±3.5, ±3.5, ±3): a concrete slab, a mount, a gantry tower with two arms on the left and, while
 /// a batch runs, the rocket (hull, nose, bell and fins) standing on the mount; the status lamp sits at a corner.
-const LAUNCH_PARTS: [Part; 12] = [
+const LAUNCH_PARTS: [Part; 11] = [
     part([0.0, -2.85, 0.0], [6.96, 0.3, 6.96], SLAB),
     part([0.0, -2.6, 0.0], [2.4, 0.2, 2.4], GANTRY),
     part([-2.9, 0.0, -0.4], [0.6, 5.6, 0.6], GANTRY),
     part([-1.75, 1.3, -0.4], [2.1, 0.2, 0.3], GANTRY),
     part([-1.75, -0.7, -0.4], [2.1, 0.2, 0.3], GANTRY),
-    drum_x([0.0, 0.1, 0.0], [1.2, 4.6, 1.2], HULL),
-    drum_z([0.0, 0.1, 0.0], [1.2, 4.6, 1.2], HULL),
+    round([0.0, 0.1, 0.0], [1.2, 4.6, 1.2], HULL),
     part([0.0, 2.7, 0.0], [0.7, 0.6, 0.7], RED),
     part([0.0, -2.35, 0.0], [0.9, 0.3, 0.9], Look::Rocket([tex::FRAME, tex::ROCKET_ENGINE, tex::FRAME])),
     part([0.0, -1.7, 0.0], [2.2, 0.9, 0.1], RED),

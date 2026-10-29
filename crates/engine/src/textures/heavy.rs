@@ -6,7 +6,6 @@
 
 use crate::block::tex;
 
-use super::paint::round_shade;
 use super::{frame, n, rgb, smooth};
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
@@ -24,16 +23,15 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// The boiler's dark-blue drum, lying down: shaded round from top to foot (`round_shade` across y), plated in
-/// riveted rings that run round it (upright seams).
+/// The boiler's dark-blue drum, lying down, plated in riveted rings that run round it (rows: a round body's texture runs
+/// round it in x and along it in y).
 fn boiler_side(x: i32, y: i32) -> [u8; 4] {
     let k = 0.9 + 0.1 * n(380, x, y);
-    let shade = round_shade(y);
-    if x % 8 == 0 || x % 8 == 7 {
-        let rivet = y % 4 == 2 && x % 8 == 0;
-        return rgb([148.0, 156.0, 170.0], shade * if rivet { 1.15 } else { 0.85 * k });
+    if y % 8 == 0 || y % 8 == 7 {
+        let rivet = x % 4 == 2 && y % 8 == 0;
+        return rgb([148.0, 156.0, 170.0], if rivet { 1.15 } else { 0.85 * k });
     }
-    rgb([52.0, 78.0, 118.0], shade * (k + 0.08 * smooth(381, x, y, 4)))
+    rgb([52.0, 78.0, 118.0], k + 0.08 * smooth(381, x, y, 4))
 }
 
 /// A steel deck with a round fuel hatch.
@@ -107,9 +105,9 @@ fn crusher_top(x: i32, y: i32) -> [u8; 4] {
     }
 }
 
-/// Poured concrete in rings, shaded round (`round_shade`), two dark seams and a row of bolts.
+/// Poured concrete in rings, two dark seams and a row of bolts.
 fn silo_side(x: i32, y: i32) -> [u8; 4] {
-    let k = round_shade(x) * (0.92 + 0.08 * n(388, x, y) + 0.05 * smooth(389, x, y, 4));
+    let k = 0.92 + 0.08 * n(388, x, y) + 0.05 * smooth(389, x, y, 4);
     if y == 7 || y == 8 {
         return rgb([84.0, 88.0, 94.0], 1.0);
     }

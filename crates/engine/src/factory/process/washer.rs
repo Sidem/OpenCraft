@@ -10,7 +10,7 @@
 use crate::block::{tex, WASHER};
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
-use super::model::{drum_x, drum_y, part, Look, Part};
+use super::model::{part, round_x, Look, Part};
 use super::parts::DISPLAY;
 use super::{Energy, Pick, ProcessSpec, ProcessTier};
 use crate::recipes::Category;
@@ -48,12 +48,11 @@ const FRAME: Look = Look::Tex([tex::FRAME; 3]);
 /// Across and deep 2, 2 high (±1): a banded plinth, an open trough of water, a rotating screen drum lying over it
 /// (two crossed parts) fed by a hopper at one end, a spray pipe along it, a status lamp and the product display on the
 /// drum.
-const WASHER_PARTS: [Part; 9] = [
+const WASHER_PARTS: [Part; 8] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.55, 0.0], [1.9, 0.5, 1.7], Look::Tex(BODY)),
     part([0.0, -0.29, 0.0], [1.7, 0.04, 1.5], Look::Tex([tex::WATER; 3])),
-    drum_x([0.1, 0.15, 0.0], [1.5, 0.8, 0.8], Look::Tex([tex::FRAME, tex::WASHER_TOP, tex::FRAME])),
-    drum_y([0.1, 0.15, 0.0], [1.5, 0.8, 0.8], Look::Tex([tex::FRAME, tex::WASHER_TOP, tex::FRAME])),
+    round_x([0.1, 0.15, 0.0], [1.5, 0.8, 0.8], Look::Tex([tex::FRAME, tex::WASHER_TOP, tex::FRAME])),
     part([-0.75, 0.65, 0.0], [0.5, 0.4, 0.6], FRAME),
     part([0.1, 0.62, 0.3], [1.4, 0.08, 0.08], Look::Tex([tex::PIPE_WATER; 3])),
     part([0.8, -0.5, 0.86], [0.14, 0.1, 0.06], Look::Lamp),

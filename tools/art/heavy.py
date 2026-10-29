@@ -158,7 +158,8 @@ def crusher_top():
 
 def silo_side():
     f = Face(147, CONCRETE, 7)
-    f.pipe((0, 0, N, N), False, CONCRETE, 0.55)
+    # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
+    f.fill(np.ones((N, N), bool), CONCRETE, 0.55)
     for y in (4, 62, 120):
         f.rect((0, y - 3, N, y + 4), STEEL, 0.45, 1.0, 2, outline=False)
     f.rect((50, 84, 78, 112), STEEL, 0.45, -1.0, 4)

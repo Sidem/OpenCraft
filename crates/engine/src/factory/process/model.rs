@@ -1,14 +1,14 @@
 //! Processor models as data: a spec's `parts` are boxes (centre and size in block units, relative to
 //! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band (with the
 //! Mk studs of `tier_mark.rs` round it), the product display (`display.rs`), the status lamp, a fire that glows while working, a press that pumps and a chimney's smoke are looks, so a new
-//! processor is rows, not drawing code. Round bodies are two crossed parts (`drum_x` and `drum_z`). A multi-block
+//! processor is rows, not drawing code. Round bodies are real ones (`round`, `round_x`: `push_round`). A multi-block
 //! machine's port hatches are drawn from its footprint.
 
 use crate::block::tex;
 use crate::math::Vec3;
 
 use super::super::footprint::Role;
-use super::super::render::push_box;
+use super::super::render::{push_box, push_shape, Axis, Form, UPRIGHT};
 use super::super::{smoke, ticks, tier_mark, DIRS};
 use super::{steam_view, Energy, Processor, Status};
 
@@ -47,39 +47,27 @@ pub struct Part {
     pub look: Look,
     /// Extra turn about its own centre, in quarter turns (a mirror's plate stands at 45°).
     pub turn: f32,
+    /// A box, or a round body filling the box (`push_round`).
+    pub form: Form,
 }
 
 pub const fn part(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
-    Part { at, size, look, turn: 0.0 }
+    Part { at, size, look, turn: 0.0, form: Form::Box }
 }
 
 /// A part turned `turn` quarter turns more than its machine.
 pub const fn turned(at: [f32; 3], size: [f32; 3], look: Look, turn: f32) -> Part {
-    Part { at, size, look, turn }
+    Part { at, size, look, turn, form: Form::Box }
 }
 
-/// How much of a round body's width its crossed boxes keep across their narrow side.
-const ROUND: f32 = 0.72;
-/// How much shorter the second half of a round body is along its axis, so the two halves never share an end face
-/// (coplanar faces z-fight: they flicker).
-const STAGGER: f32 = 0.04;
-
-/// An upright round body (a tank, column or drum) `size` across, high and deep is two crossed parts: `drum_x`, narrowed
-/// in depth, and `drum_z`, narrowed in width and a little shorter. Together their outline reads round at a distance, and
-/// a texture shaded with `round_shade` does the rest.
-pub const fn drum_x(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
-    part(at, [size[0], size[1], size[2] * ROUND], look)
+/// An upright round body (a tank, column or drum) `size` across, high and deep.
+pub const fn round(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
+    Part { at, size, look, turn: 0.0, form: UPRIGHT }
 }
 
-/// The other half of an upright round body (`drum_x`).
-pub const fn drum_z(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
-    part(at, [size[0] * ROUND, size[1] - STAGGER, size[2]], look)
-}
-
-/// A round body lying along x (a boiler drum): the half narrowed in height and a little shorter (the other is
-/// `drum_x`).
-pub const fn drum_y(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
-    part(at, [size[0] - STAGGER, size[1] * ROUND, size[2]], look)
+/// A round body lying along x (a boiler drum), `size` long, high and deep.
+pub const fn round_x(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
+    Part { at, size, look, turn: 0.0, form: Form::Round(Axis::X, 1.0) }
 }
 
 /// Deepest press stroke, in blocks.
@@ -133,7 +121,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 t
             }
         };
-        push_box(out, at, yaw + part.turn * std::f32::consts::FRAC_PI_2, part.size, 0.0, texture, false);
+        push_shape(out, part.form, at, yaw + part.turn * std::f32::consts::FRAC_PI_2, part.size, texture, false);
     }
     match p.energy() {
         // Chutes, pipe fittings and a gauge instead of the generic hatches.

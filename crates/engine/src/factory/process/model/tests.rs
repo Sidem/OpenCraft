@@ -1,6 +1,7 @@
 use super::super::specs::{ProcessSpec, SPECS};
 use super::*;
 use crate::block::LAUNCH_SITE;
+use crate::factory::render::{Axis, Form};
 use crate::factory::tier_mark::{DEPTH, ROW_MAX, STUD};
 use crate::factory::tiers;
 use crate::recipes::MACHINE_RECIPES;
@@ -165,6 +166,16 @@ fn hi(p: &Part, k: usize) -> f32 {
     p.at[k] + p.size[k] / 2.0
 }
 
+/// Whether `p` has flat faces across `axis` (0 x, 1 y, 2 z): a box on every axis, a round body only its two ends (its
+/// side meets a plane in a line, which cannot flicker).
+fn flat_across(p: &Part, axis: usize) -> bool {
+    match p.form {
+        Form::Box => true,
+        Form::Lean(_) => false,
+        Form::Round(along, _) => axis == [Axis::X, Axis::Up, Axis::Z].iter().position(|&a| a == along).unwrap(),
+    }
+}
+
 /// The axis (0 x, 1 y, 2 z) on which `a` and `b` have a face in one plane, facing the same way and overlapping.
 fn shared_face(a: &Part, b: &Part) -> Option<usize> {
     const EPS: f32 = 1e-3;
@@ -173,7 +184,7 @@ fn shared_face(a: &Part, b: &Part) -> Option<usize> {
     for axis in 0..3 {
         let same_plane = (lo(a, axis) - lo(b, axis)).abs() < EPS || (hi(a, axis) - hi(b, axis)).abs() < EPS;
         let overlap = (0..3).filter(|&k| k != axis).all(|k| hi(a, k).min(hi(b, k)) - lo(a, k).max(lo(b, k)) > EPS);
-        if same_plane && overlap {
+        if same_plane && overlap && flat_across(a, axis) && flat_across(b, axis) {
             return Some(axis);
         }
     }

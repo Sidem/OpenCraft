@@ -4,7 +4,6 @@
 
 use crate::block::tex;
 
-use super::paint::round_shade;
 use super::{n, rgb, smooth};
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
@@ -31,17 +30,15 @@ fn fuel_cell(x: i32, y: i32) -> [u8; 4] {
     rgb([62.0, 68.0, 78.0], 0.85 + 0.2 * n(553, x, y))
 }
 
-/// A slim spun tube of pale steel, shaded round (`round_shade`), with a dark ring near each end and a thin green
-/// gauge line.
+/// A slim spun tube of pale steel with a dark ring near each end and a thin green gauge line.
 fn centrifuge_side(x: i32, y: i32) -> [u8; 4] {
-    let shade = round_shade(x);
     if y == 1 || y == 14 {
-        return rgb([70.0, 80.0, 92.0], shade);
+        return rgb([70.0, 80.0, 92.0], 1.0);
     }
     if y == 8 && (6..10).contains(&x) {
         return rgb(GLOW, 0.9);
     }
-    rgb([150.0, 160.0, 174.0], shade * (0.9 + 0.1 * n(555, x, y)))
+    rgb([150.0, 160.0, 174.0], 0.9 + 0.1 * n(555, x, y))
 }
 /// A round lid with spiral grooves (the spin) round a dark hub.
 fn centrifuge_top(x: i32, y: i32) -> [u8; 4] {
@@ -58,18 +55,14 @@ fn centrifuge_top(x: i32, y: i32) -> [u8; 4] {
     rgb([150.0, 160.0, 174.0], if groove { 0.62 } else { 0.95 + 0.1 * n(557, x, y) })
 }
 
-/// A round concrete shell (`round_shade`) with formwork lines and a yellow and black hazard band round its foot.
+/// A round concrete shell with formwork lines and a yellow and black hazard band round its foot.
 fn reactor_side(x: i32, y: i32) -> [u8; 4] {
     if y >= 13 {
         let black = (x + y) % 6 < 3;
         return if black { rgb([30.0, 30.0, 30.0], 1.0) } else { rgb(HAZARD, 0.95) };
     }
-    let shade = round_shade(x);
     let line = y == 4 || y == 9;
-    rgb(
-        [150.0, 148.0, 140.0],
-        shade * if line { 0.78 } else { 0.86 + 0.14 * n(559, x, y) + 0.08 * smooth(560, x, y, 4) },
-    )
+    rgb([150.0, 148.0, 140.0], if line { 0.78 } else { 0.86 + 0.14 * n(559, x, y) + 0.08 * smooth(560, x, y, 4) })
 }
 /// A concrete lid with a 3×3 grid of dark fuel channels, each with a green glow at the bottom.
 fn reactor_top(x: i32, y: i32) -> [u8; 4] {

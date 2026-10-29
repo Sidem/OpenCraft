@@ -282,14 +282,13 @@ fn avionics(x: i32, y: i32) -> [u8; 4] {
     rgb([26.0, 42.0, 34.0], 0.9 + 0.2 * n(692, x, y))
 }
 
-/// White paint shaded round, a red band near the top and black rivet seams.
+/// White paint, a red band near the top and black rivet seams.
 fn hull(x: i32, y: i32) -> [u8; 4] {
-    let shade = round_shade(x);
     if y == 6 || y == 11 {
-        return rgb([40.0, 42.0, 48.0], shade);
+        return rgb([40.0, 42.0, 48.0], 1.0);
     }
     if (3..=5).contains(&y) {
-        return rgb([204.0, 52.0, 44.0], shade);
+        return rgb([204.0, 52.0, 44.0], 1.0);
     }
-    rgb([238.0, 240.0, 244.0], shade * (0.95 + 0.06 * n(693, x, y)))
+    rgb([238.0, 240.0, 244.0], 0.95 + 0.06 * n(693, x, y))
 }

@@ -9,6 +9,7 @@ import './hud.css';
 import './hud-columns.css';
 import type { Game } from '../wasm/engine.js';
 import { HeldName } from './held-name';
+import { paintBox, paintParts } from './icon-paint';
 import { drawSprite } from './icon-sprite';
 import { OffhandSlot } from './offhand';
 
@@ -306,57 +307,12 @@ export class Hud {
       drawSprite(ctx, this.layers[info[1]], ICON_PX, info[6]);
       return c;
     }
-    // +x runs right-down, +z left-down, +y up. Part coordinates are fractions of one cube. The engine's fit
-    // (`item_models::icon_frame`) scales each icon to its own bounds, so a thin tool fills the box as a block does.
-    const S = ICON_PX * info[6], k = S / 16, cx = info[7], cy = info[8];
-    const project = (x: number, y: number, z: number): [number, number] =>
-      [ICON_PX / 2 + ((x - z) / 2 - cx) * S, ICON_PX / 2 + ((x + z) / 4 - y / 2 - cy) * S];
-    const face = (img: HTMLCanvasElement, m: [number, number, number, number, number, number], shade: number) => {
-      const f = 16 / img.width; // the matrices are for a 16 px image; textures are finer
-      ctx.setTransform(m[0] * f, m[1] * f, m[2] * f, m[3] * f, m[4], m[5]);
-      ctx.drawImage(img, 0, 0);
-      if (shade > 0) {
-        ctx.globalCompositeOperation = 'source-atop';
-        ctx.fillStyle = `rgba(0,0,0,${shade})`;
-        ctx.fillRect(0, 0, img.width, img.height);
-        ctx.globalCompositeOperation = 'source-over';
-      }
-    };
-    // A box turned by `yaw` about its vertical axis: its local x runs along (cos, sin) in the xz plane and
-    // its local z along (-sin, cos). A world vector (vx, vz) on screen is ((vx - vz) S/2, (vx + vz) S/4); an
-    // image is 16 px, so a face's matrix takes its edge vectors over 16.
-    const draw = (x: number, y: number, z: number, a: number, h: number, b: number, yaw: number,
-      topLayer: number, sideLayer: number) => {
-      const top = this.layers[topLayer], side = this.layers[sideLayer];
-      const c = Math.cos(yaw), s = Math.sin(yaw);
-      const corner = (lx: number, lz: number) => project(x + c * lx - s * lz, y + h / 2, z + s * lx + c * lz);
-      const edge = (vx: number, vz: number): [number, number] => [((vx - vz) * S) / 32, ((vx + vz) * S) / 64];
-      const down = (h * k) / 2;
-      // Side faces seen from outside, left to right: start corner and edge; shaded by which way they face.
-      const sides: [number, number, number, number, number, number][] = [
-        [-a / 2, b / 2, c * a, s * a, -s, c], // +z face runs along +x
-        [a / 2, b / 2, s * b, -c * b, c, s], // +x face runs along -z
-        [a / 2, -b / 2, -c * a, -s * a, s, -c], // -z face runs along -x
-        [-a / 2, -b / 2, -s * b, c * b, -c, -s], // -x face runs along +z
-      ];
-      for (const [lx, lz, ex, ez, nx, nz] of sides) {
-        if (nx + nz <= 0.01) continue; // faces turned away from the viewer
-        const [sx, sy] = edge(ex, ez), [px, py] = corner(lx, lz);
-        face(side, [sx, sy, 0, down, px, py], 0.31 + 0.09 * (nx - nz));
-      }
-      // The top face's texture starts at its back corner, then runs along local +x and +z.
-      const [ax, ay] = edge(c * a, s * a), [bx, by] = edge(-s * b, c * b), [qx, qy] = corner(-a / 2, -b / 2);
-      face(top, [ax, ay, bx, by, qx, qy], 0);
-    };
+    // The engine's fit (`item_models::icon_frame`) scales each icon to its own bounds, so a thin tool fills the box as
+    // a block does.
+    const view = { px: ICON_PX, S: ICON_PX * info[6], cx: info[7], cy: info[8] };
     const model = this.game.item_model(item);
-    if (model.length) {
-      for (let i = 0; i < model.length; i += 10) {
-        draw(model[i], model[i + 1], model[i + 2], model[i + 3], model[i + 4], model[i + 5],
-          model[i + 6], model[i + 7], model[i + 8]);
-      }
-    } else {
-      draw(0, 0, 0, info[3], info[4], info[5], 0, info[0], info[1]);
-    }
+    if (model.length) paintParts(ctx, this.layers, view, model, this.game.item_model_floats());
+    else paintBox(ctx, this.layers, view, 0, 0, 0, info[3], info[4], info[5], 0, info[0], info[1]);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     // Tiered machines get a corner chip in their Mk colour with a pip per Mk.
     const tier = this.game.item_tier(item);

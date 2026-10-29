@@ -1,16 +1,18 @@
 //! Presentation-only box assemblies shared by loose items and inventory icons.
 //! Coordinates and dimensions are fractions of a full item cube (y up); parts are drawn in order, so
 //! list them back to front (the icon looks from +x, +z, above). Add a static slice for a new model.
-//! A part may turn about its own vertical axis (`yaw`): round things (the cog) are built from turned boxes.
+//! A part may turn about its own vertical axis (`yaw`) and is a box or a round body (`form`: `shapes::cylinder`,
+//! `bar_x`); never fake a round thing from turned or crossed boxes (`tests.rs` checks).
 //! Tools stand upright in the x-y plane, head up; their heads use their tier's material.
 //! Invariant: every item that is not a block has a model, its bottom at `-size[1] / 2` of its `ItemDef` (where it
 //! rests on the ground and on belts), built from materials (`tex::MAT_*`, metals, rubble), never from a picture of the
 //! item. Later items live in submodules by kind (`stock`, `components`, `wear`, `craft`, `space`, `power`) with the shape
 //! helpers in `shapes`; a new item gets a const there and a row in its module's `parts`.
 
-use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, FRAC_PI_6};
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_6};
 
 use crate::block::{tex, COAL_MINER, MINER, MINER_MK2};
+pub use crate::factory::{Axis, Form};
 use crate::item::{
     ItemId, BLUE_PACK, COPPER_INGOT, COPPER_WIRE, CORE_DRILL, GEAR, GOLD_PACK, GREEN_PACK, IRON_AXE, IRON_INGOT,
     IRON_PICKAXE, IRON_PLATE, IRON_ROD, IRON_SHOVEL, RED_PACK, SCANNER, SCANNER_MK2, SCREW, STEEL_AXE, STEEL_BEAM,
@@ -40,6 +42,8 @@ pub struct Part {
     /// Turn about the part's own vertical axis, radians (0 for most parts: the box stays axis-aligned).
     pub yaw: f32,
     pub tex: [u16; 3],
+    /// A box, or a round body filling the box (`factory::push_round`: its size is across, along, across).
+    pub form: Form,
 }
 
 const fn part(center: [f32; 3], size: [f32; 3], layer: u16) -> Part {
@@ -47,7 +51,7 @@ const fn part(center: [f32; 3], size: [f32; 3], layer: u16) -> Part {
 }
 
 const fn turned(center: [f32; 3], size: [f32; 3], yaw: f32, layer: u16) -> Part {
-    Part { center, size, yaw, tex: [layer; 3] }
+    Part { center, size, yaw, tex: [layer; 3], form: Form::Box }
 }
 
 const IRON_BAR: [Part; 2] = [
@@ -79,30 +83,55 @@ const WIRE: [Part; 4] = [
     part([0.22, 0.0, 0.0], [0.06, 0.5, 0.5], tex::HANDLE),
     part([0.05, -0.22, 0.33], [0.3, 0.04, 0.05], tex::COPPER_WIRE),
 ];
-/// Where each of a cog's six strips points, in radians: strips run through the centre, so six cover the
-/// twelve directions of its teeth.
-const STRIPS: [f32; 6] = [0.0, FRAC_PI_6, FRAC_PI_3, FRAC_PI_2, 2.0 * FRAC_PI_3, 5.0 * FRAC_PI_6];
+/// Where each of a cog's 12 teeth points: the cosine and sine of k turns of 30 degrees.
+const TEETH: [(f32, f32); 12] = {
+    const H: f32 = 0.866_025_4;
+    [
+        (1.0, 0.0),
+        (H, 0.5),
+        (0.5, H),
+        (0.0, 1.0),
+        (-0.5, H),
+        (-H, 0.5),
+        (-1.0, 0.0),
+        (-H, -0.5),
+        (-0.5, -H),
+        (0.0, -1.0),
+        (0.5, -H),
+        (H, -0.5),
+    ]
+};
 
-/// A cog lying flat, 12 teeth: six strips make the round body, six narrower ones reach past it as the teeth,
-/// and a hub with a bore sits on top. Each box stands a hair above the one before so overlapping tops
-/// never fight. The floor of a 0.2 high item is at -0.1.
+/// A cog lying flat: a round steel disc with 12 teeth standing out of its rim, a hub and a bore on top. The icon has
+/// no depth test, so the teeth behind the disc (towards -x, -z) come first, then the disc, then the teeth in front.
+/// The floor of a 0.2 high item is at -0.1.
 const COG: [Part; 15] = cog();
 
 const fn cog() -> [Part; 15] {
     let mut parts = [const { part([0.0; 3], [0.0; 3], tex::STEEL) }; 15];
-    let mut i = 0;
-    while i < 6 {
-        let lift = 0.001 * i as f32;
-        parts[i] = turned([0.0, -0.02 + lift, 0.0], [0.62, 0.16, 0.17], STRIPS[i], tex::STEEL);
-        parts[i + 6] = turned([0.0, -0.014 + lift, 0.0], [0.88, 0.16, 0.1], STRIPS[i], tex::STEEL);
-        i += 1;
+    let mut n = 0;
+    let mut pass = 0;
+    while pass < 2 {
+        let mut k = 0;
+        while k < 12 {
+            let (c, s) = TEETH[k];
+            if (c + s < 0.0) == (pass == 0) {
+                let yaw = k as f32 * FRAC_PI_6;
+                parts[n] = turned([0.36 * c, -0.02, 0.36 * s], [0.14, 0.16, 0.09], yaw, tex::STEEL);
+                n += 1;
+            }
+            k += 1;
+        }
+        if pass == 0 {
+            parts[n] = shapes::cylinder([0.0, -0.02, 0.0], 0.62, 0.16, tex::STEEL);
+            n += 1;
+        }
+        pass += 1;
     }
-    parts[12] = turned([0.0, 0.085, 0.0], [0.24, 0.05, 0.24], 0.0, tex::STEEL);
-    parts[13] = turned([0.0, 0.086, 0.0], [0.24, 0.05, 0.24], FRAC_PI_4, tex::STEEL);
-    parts[14] = turned([0.0, 0.088, 0.0], [0.09, 0.05, 0.09], 0.0, tex::FRAME);
+    parts[13] = shapes::cylinder([0.0, 0.085, 0.0], 0.24, 0.05, tex::STEEL);
+    parts[14] = shapes::cylinder([0.0, 0.088, 0.0], 0.09, 0.05, tex::FRAME);
     parts
 }
-
 /// A miner for the icon and loose items, drill down like `factory/miner_model.rs` (the working rig, with its cage
 /// and a turning auger): a plate and four posts round a screw auger under the tier's band and the motor housing,
 /// with a fan and a lamp on top. Back to front for the icon: the far post, the auger, the near posts, the housing.
@@ -120,9 +149,20 @@ const fn miner(side: u16, tier: u8) -> [Part; 18] {
     p[9] = part([0.38, -0.21, -0.38], [0.1, 0.5, 0.1], frame);
     p[10] = part([-0.38, -0.21, 0.38], [0.1, 0.5, 0.1], frame);
     p[11] = part([0.38, -0.21, 0.38], [0.1, 0.5, 0.1], frame);
-    p[12] = Part { center: [0.0, 0.29, 0.0], size: [0.8, 0.38, 0.8], yaw: 0.0, tex: [tex::MINER_TOP, side, frame] };
-    p[13] =
-        Part { center: [0.0, 0.07, 0.0], size: [0.86, 0.06, 0.86], yaw: 0.0, tex: [frame, tex::stripe(tier), frame] };
+    p[12] = Part {
+        center: [0.0, 0.29, 0.0],
+        size: [0.8, 0.38, 0.8],
+        yaw: 0.0,
+        tex: [tex::MINER_TOP, side, frame],
+        form: Form::Box,
+    };
+    p[13] = Part {
+        center: [0.0, 0.07, 0.0],
+        size: [0.86, 0.06, 0.86],
+        yaw: 0.0,
+        tex: [frame, tex::stripe(tier), frame],
+        form: Form::Box,
+    };
     p[14] = part([0.0, 0.49, 0.0], [0.1, 0.04, 0.1], tex::DRILL);
     p[15] = turned([0.0, 0.492, 0.0], [0.36, 0.03, 0.06], 0.5, tex::DRILL);
     p[16] = turned([0.0, 0.496, 0.0], [0.36, 0.03, 0.06], 0.5 + FRAC_PI_2, tex::DRILL);

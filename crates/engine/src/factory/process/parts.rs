@@ -3,7 +3,7 @@
 
 use crate::block::tex;
 
-use super::model::{drum_x, drum_y, drum_z, part, Look, Part};
+use super::model::{part, round, round_x, Look, Part};
 const BRICK: [u16; 3] = [tex::SMELTER_TOP, tex::SMELTER_SIDE, tex::FRAME];
 const IVORY: [u16; 3] = [tex::CONSTRUCTOR_TOP, tex::CONSTRUCTOR_SIDE, tex::FRAME];
 const FRAME: Look = Look::Tex([tex::FRAME; 3]);
@@ -88,12 +88,11 @@ const BLUE_TANK: [u16; 3] = [tex::BOILER_TOP, tex::BOILER_SIDE, tex::FRAME];
 /// A banded plinth, a low brick firebox whose door glows while it burns, the riveted drum lying on it (two crossed
 /// parts; the water gauge on its front and the pipe fittings are `steam_view.rs`'s), a steam dome, a smoking stack
 /// and a status lamp.
-pub(super) const BOILER_PARTS: [Part; 9] = [
+pub(super) const BOILER_PARTS: [Part; 8] = [
     part([0.0, -0.9, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
     part([0.0, -0.45, 0.0], [1.8, 0.7, 1.8], Look::Tex(FIREBRICK)),
     part([0.0, -0.45, 0.91], [0.8, 0.4, 0.06], Look::Fire(tex::SOOT)),
-    drum_x([0.0, 0.35, -0.1], [1.7, 1.3, 1.3], Look::Tex(BLUE_TANK)),
-    drum_y([0.0, 0.35, -0.1], [1.7, 1.3, 1.3], Look::Tex(BLUE_TANK)),
+    round_x([0.0, 0.35, -0.1], [1.7, 1.3, 1.3], Look::Tex(BLUE_TANK)),
     part([0.3, 1.05, 0.0], [0.4, 0.2, 0.4], STEEL),
     part([-0.55, 1.25, -0.2], [0.26, 0.6, 0.26], SOOT),
     part([-0.55, 1.58, -0.2], [0.8, 0.0, 0.0], Look::Smoke),
@@ -166,15 +165,11 @@ const CONCRETE_RINGS: [u16; 3] = [tex::SILO_TOP, tex::SILO_SIDE, tex::FRAME];
 
 /// A tall round concrete drum (two crossed parts) on a banded plinth with two steel rings, a low round roof with a
 /// hatch, and a status lamp on its front.
-pub(super) const SILO_PARTS: [Part; 10] = [
+pub(super) const SILO_PARTS: [Part; 6] = [
     part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
-    drum_x([0.0, -0.05, 0.0], [1.8, 2.6, 1.8], Look::Tex(CONCRETE_RINGS)),
-    drum_z([0.0, -0.05, 0.0], [1.8, 2.6, 1.8], Look::Tex(CONCRETE_RINGS)),
-    drum_x([0.0, 0.5, 0.0], [1.9, 0.1, 1.9], FRAME),
-    drum_z([0.0, 0.5, 0.0], [1.9, 0.1, 1.9], FRAME),
-    drum_x([0.0, -0.6, 0.0], [1.9, 0.1, 1.9], FRAME),
-    drum_z([0.0, -0.6, 0.0], [1.9, 0.1, 1.9], FRAME),
-    drum_x([0.0, 1.32, 0.0], [1.3, 0.14, 1.3], Look::Tex([tex::SILO_TOP, tex::FRAME, tex::FRAME])),
-    drum_z([0.0, 1.32, 0.0], [1.3, 0.14, 1.3], Look::Tex([tex::SILO_TOP, tex::FRAME, tex::FRAME])),
+    round([0.0, -0.05, 0.0], [1.8, 2.6, 1.8], Look::Tex(CONCRETE_RINGS)),
+    round([0.0, 0.5, 0.0], [1.9, 0.1, 1.9], FRAME),
+    round([0.0, -0.6, 0.0], [1.9, 0.1, 1.9], FRAME),
+    round([0.0, 1.32, 0.0], [1.3, 0.14, 1.3], Look::Tex([tex::SILO_TOP, tex::FRAME, tex::FRAME])),
     part([0.0, -1.1, 0.92], [0.14, 0.1, 0.06], Look::Lamp),
 ];

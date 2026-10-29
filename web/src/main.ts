@@ -100,7 +100,7 @@ async function main(): Promise<void> {
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();
-  const renderer = new Renderer(canvas, viewRadius, instanceFloats);
+  const renderer = new Renderer(canvas, viewRadius, instanceFloats, game.round_bit());
   const engineTex = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
   // The hand-painted art pack (tools/art) over the engine's generated layers; `?art=off` shows the generated ones.
   const art = params.get('art') === 'off' ? null : await composeTextures(engineTex, game.texture_size(), game.texture_layers());
@@ -331,6 +331,8 @@ async function main(): Promise<void> {
       biome: biomeNow(now),
       boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),
       boxCount: game.instance_count(),
+      round: new Float32Array(wasm.memory.buffer, game.round_ptr(), game.round_count() * instanceFloats),
+      roundCount: game.round_count(),
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
       cracks: game.quarry_cracks(),

@@ -1,10 +1,8 @@
-//! Building blocks for item models: `Build` puts parts and shapes together into one const assembly, round upright
-//! bodies come from turned squares (`cylinder`), round bars lying along x from three stepped boxes (`bar_x`), and
-//! heaps from a fixed set of lumps (`pile`). All sizes are fractions of the item cube, y up.
+//! Building blocks for item models: `Build` puts parts and shapes together into one const assembly, round bodies are
+//! real ones (`cylinder` and `frustum` upright, `bar_x` and `cone_x` lying along x), and heaps come from a fixed set
+//! of lumps (`pile`). All sizes are fractions of the item cube, y up.
 
-use std::f32::consts::FRAC_PI_2;
-
-use super::{part, turned, Part};
+use super::{turned, Axis, Form, Part};
 
 /// An unused slot while an assembly is filled in.
 pub(super) const EMPTY: Part = turned([0.0; 3], [0.0; 3], 0.0, 0);
@@ -46,30 +44,27 @@ impl<const N: usize> Build<N> {
 
 /// A box with `top` on its top and bottom and `side` round it (a board's print, a screen's bezel).
 pub(super) const fn faced(c: [f32; 3], size: [f32; 3], top: u16, side: u16) -> Part {
-    Part { center: c, size, yaw: 0.0, tex: [top, side, top] }
+    Part { center: c, size, yaw: 0.0, tex: [top, side, top], form: Form::Box }
 }
 
-/// A round upright body of diameter `d` and height `h` centred at `c`: `N` squares turned evenly through a quarter
-/// turn (2 make an octagon, 3 a 12-sided body), each a hair higher than the last so their tops never fight.
-pub(super) const fn cylinder<const N: usize>(c: [f32; 3], d: f32, h: f32, layer: u16) -> [Part; N] {
-    let mut out = [EMPTY; N];
-    let mut i = 0;
-    while i < N {
-        let lift = 0.0015 * i as f32;
-        out[i] = turned([c[0], c[1] + lift, c[2]], [d, h, d], FRAC_PI_2 * i as f32 / N as f32, layer);
-        i += 1;
-    }
-    out
+/// A round upright body of diameter `d` and height `h` centred at `c` (a drum, a disc, a coin).
+pub(super) const fn cylinder(c: [f32; 3], d: f32, h: f32, layer: u16) -> Part {
+    frustum(c, d, h, 1.0, layer)
 }
 
-/// A round bar of diameter `d` lying along x (motors, rods, boules): a wide box, a tall one and a square whose
-/// corners touch the circle step its outline round. Each is a hair shorter than the last so their ends never fight.
-pub(super) const fn bar_x(c: [f32; 3], len: f32, d: f32, layer: u16) -> [Part; 3] {
-    [
-        part(c, [len, 0.38 * d, 0.92 * d], layer),
-        part(c, [len - 0.004, 0.92 * d, 0.38 * d], layer),
-        part(c, [len - 0.008, 0.7 * d, 0.7 * d], layer),
-    ]
+/// An upright cone's frustum `d` across its foot and `top` times that across its top (a nozzle, a nose cone).
+pub(super) const fn frustum(c: [f32; 3], d: f32, h: f32, top: f32, layer: u16) -> Part {
+    Part { center: c, size: [d, h, d], yaw: 0.0, tex: [layer; 3], form: Form::Round(Axis::Up, top) }
+}
+
+/// A round bar of diameter `d` and length `len` lying along x (motors, rods, a boule).
+pub(super) const fn bar_x(c: [f32; 3], len: f32, d: f32, layer: u16) -> Part {
+    cone_x(c, len, d, 1.0, layer)
+}
+
+/// A round body lying along x, `d` across its -x end and `end` times that across its +x end (a boule's shoulder).
+pub(super) const fn cone_x(c: [f32; 3], len: f32, d: f32, end: f32, layer: u16) -> Part {
+    Part { center: c, size: [len, d, d], yaw: 0.0, tex: [layer; 3], form: Form::Round(Axis::X, end) }
 }
 
 /// Lumps of a heap 0.4 high (centre x, y, z, size x, y, z, turn), back to front and bottom up for the icon.

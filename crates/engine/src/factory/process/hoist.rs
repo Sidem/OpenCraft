@@ -15,7 +15,7 @@ use crate::math::{IVec3, Vec3};
 use super::super::footprint::SINGLE;
 use super::super::links::Slot;
 use super::super::Factory;
-use super::model::{drum_x, drum_y, part, Look, Part};
+use super::model::{part, round_x, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 /// Blocks a second at full power (a ladder is 3).
@@ -43,12 +43,11 @@ pub const WINCH_SPEC: ProcessSpec = ProcessSpec {
 
 /// A banded plinth, two side cheeks carrying a cable drum lying across (two crossed parts), the cable running up
 /// off it, a copper motor behind and a status lamp.
-const WINCH_PARTS: [Part; 8] = [
+const WINCH_PARTS: [Part; 7] = [
     part([0.0, -0.4, 0.0], [0.96, 0.2, 0.96], Look::Band(tex::FRAME)),
     part([-0.38, 0.0, 0.0], [0.08, 0.6, 0.7], Look::Tex([tex::FRAME, tex::WINCH_SIDE, tex::FRAME])),
     part([0.38, 0.0, 0.0], [0.08, 0.6, 0.7], Look::Tex([tex::FRAME, tex::WINCH_SIDE, tex::FRAME])),
-    drum_x([0.0, 0.05, 0.0], [0.64, 0.5, 0.5], Look::Tex([tex::FRAME, tex::GEAR, tex::FRAME])),
-    drum_y([0.0, 0.05, 0.0], [0.64, 0.5, 0.5], Look::Tex([tex::FRAME, tex::GEAR, tex::FRAME])),
+    round_x([0.0, 0.05, 0.0], [0.64, 0.5, 0.5], Look::Tex([tex::FRAME, tex::GEAR, tex::FRAME])),
     part([0.1, 0.4, 0.24], [0.05, 0.6, 0.05], Look::Tex([tex::FRAME; 3])),
     part([0.0, -0.15, -0.36], [0.4, 0.3, 0.2], Look::Tex([tex::COPPER_INGOT; 3])),
     part([0.38, 0.34, 0.3], [0.1, 0.08, 0.1], Look::Lamp),

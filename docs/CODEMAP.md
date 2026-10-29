@@ -51,7 +51,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
-- Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
+- Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs`, `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
@@ -61,7 +61,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
   `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`.
-- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances),
+- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `fake_round` the check none is faked from boxes),
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
@@ -73,7 +73,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
-- `item_models.rs` + `item_models/`: box assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box).
+- `item_models.rs` + `item_models/`: box and cylinder assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
 
 ### World and generation
@@ -118,7 +118,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `main.ts`: bootstrap, frame loop (`advance`, `frame`). `pause.ts`: play, pause, pointer lock, Escape. `input.ts`: keys
   and mouse, one-shot `Action`s. `controls/view.ts`: perspective input. `base.css`: theme and shared classes.
   `patch-notes.md`: "What's new".
-- `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes),
+- `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes, and round bodies from `round-mesh.ts`),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
   `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
@@ -129,7 +129,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds), `export.ts` (`.ocworld` downloads), `leave-guard.ts` (the ask-before-closing setting and rule; `ui/leave-prompt.ts` draws it). `comfort/settings.ts`: comfort options.
 - `console/`: `commands.ts` (pure admin commands), `host.ts` (wires them to the engine).
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements. Screens and panels:
-  - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` draws every icon), `icon-sprite.ts` (flat icons), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
+  - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` draws every icon through `icon-paint.ts` and `icon-geometry.ts`), `icon-sprite.ts` (flat icons), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it

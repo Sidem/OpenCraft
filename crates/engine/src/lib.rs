@@ -204,6 +204,8 @@ pub struct Game {
     minimap: Minimap,
     /// Box instances (dropped items, belt items, machine parts) for the current frame.
     instances: Vec<f32>,
+    /// This frame's round bodies, copied out of `instances` (`factory::split_round`) for the host's cylinder pass.
+    round_instances: Vec<f32>,
     pickups: VecDeque<(ItemId, u32)>,
     /// Ore the local player wasted by hand mining this session (`hand_waste.rs`).
     waste: hand_waste::HandWaste,
@@ -289,6 +291,7 @@ impl Game {
             minimap: Minimap::new(&textures),
             textures,
             instances: Vec::new(),
+            round_instances: Vec::new(),
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),
             stall: stall_lesson::StallWatch::default(),

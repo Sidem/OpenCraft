@@ -71,7 +71,7 @@ impl Factory {
             }
             if p.is_long() {
                 let c = rel + super::pole::LONG_FOOTPRINT.centre(0);
-                super::pole::long_accent(out, c, self.power.pole_layer(i as u32));
+                super::pole_tower::long_accent(out, c, self.power.pole_layer(i as u32));
                 continue;
             }
             let layer = [self.power.pole_layer(i as u32); 3];

@@ -13,7 +13,12 @@ fn fitted_mask(item: ItemId) -> Vec<bool> {
         [0.5 + (p[0] - frame.centre[0]) * frame.scale(), 0.5 + (p[1] - frame.centre[1]) * frame.scale()]
     };
     let mut faces = Vec::new();
+    let mut hulls = Vec::new();
     for p in &boxes {
+        if p.form != Form::Box {
+            hulls.push(hull(outline_points(p).iter().map(|&[x, y, z]| to_box(x, y, z)).collect()));
+            continue;
+        }
         let (s, c) = p.yaw.sin_cos();
         let at = |lx: f32, ly: f32, lz: f32| {
             let (lx, ly, lz) = (lx * p.size[0], ly * p.size[1], lz * p.size[2]);
@@ -34,9 +39,37 @@ fn fitted_mask(item: ItemId) -> Vec<bool> {
             let det = u[0] * v[1] - u[1] * v[0];
             let (s, t) = ((d[0] * v[1] - d[1] * v[0]) / det, (u[0] * d[1] - u[1] * d[0]) / det);
             det.abs() > 1e-7 && (0.0..=1.0).contains(&s) && (0.0..=1.0).contains(&t)
-        });
+        }) || hulls.iter().any(|h| inside(h, q));
     }
     mask
+}
+
+/// The convex hull of `pts`, counter-clockwise with y down (Andrew's monotone chain, as `icon-geometry.ts`).
+fn hull(mut pts: Vec<[f32; 2]>) -> Vec<[f32; 2]> {
+    pts.sort_by(|a, b| a[0].total_cmp(&b[0]).then(a[1].total_cmp(&b[1])));
+    let cross = |o: [f32; 2], a: [f32; 2], b: [f32; 2]| (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    let half = |list: &mut dyn Iterator<Item = [f32; 2]>| {
+        let mut h: Vec<[f32; 2]> = Vec::new();
+        for q in list {
+            while h.len() >= 2 && cross(h[h.len() - 2], h[h.len() - 1], q) <= 0.0 {
+                h.pop();
+            }
+            h.push(q);
+        }
+        h.pop();
+        h
+    };
+    let mut out = half(&mut pts.iter().copied());
+    out.extend(half(&mut pts.iter().rev().copied()));
+    out
+}
+
+/// Whether `q` is inside the convex polygon `h` (wound as `hull` winds it).
+fn inside(h: &[[f32; 2]], q: [f32; 2]) -> bool {
+    (0..h.len()).all(|i| {
+        let (a, b) = (h[i], h[(i + 1) % h.len()]);
+        (b[0] - a[0]) * (q[1] - a[1]) - (b[1] - a[1]) * (q[0] - a[0]) >= 0.0
+    })
 }
 
 /// The share of the box side the mask's bounds cover across and down, and whether it touches the box's edge.

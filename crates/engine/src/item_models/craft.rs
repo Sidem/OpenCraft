@@ -5,7 +5,7 @@
 use std::f32::consts::FRAC_PI_4;
 
 use super::shapes::{cylinder, Build, EMPTY};
-use super::{part, turned, Part};
+use super::{part, turned, Axis, Form, Part};
 use crate::block::tex;
 use crate::factory::trains::model::{CarBox, LOCOMOTIVE_BOXES, WAGON_BOXES};
 use crate::item::{
@@ -86,9 +86,15 @@ const fn car<const N: usize>(boxes: &[CarBox; N], s: f32, mid: f32) -> [Part; N]
     let mut out = [EMPTY; N];
     let mut i = 0;
     while i < N {
-        let (x, y, z, size, layer) = boxes[i];
+        let (x, y, z, size, layer, shape) = boxes[i];
         let c = [-z as f32 * s, (y as f32 - mid) * s, x as f32 * s];
         out[i] = part(c, [size[2] * s, size[1] * s, size[0] * s], layer);
+        // The car's x is the item's z and the other way round.
+        out[i].form = match shape {
+            Form::Round(Axis::X, t) => Form::Round(Axis::Z, t),
+            Form::Round(Axis::Z, t) => Form::Round(Axis::X, t),
+            s => s,
+        };
         let mut j = i;
         while j > 0 && depth(&out[j - 1]) > depth(&out[j]) {
             let p = out[j - 1];
@@ -105,7 +111,7 @@ const fn depth(p: &Part) -> f32 {
     p.center[0] + p.center[1] + p.center[2]
 }
 
-const LOCO: [Part; 24] = car(&LOCOMOTIVE_BOXES, 0.35, 0.667);
+const LOCO: [Part; 17] = car(&LOCOMOTIVE_BOXES, 0.35, 0.667);
 const WAGON_MODEL: [Part; 21] = car(&WAGON_BOXES, 0.36, 0.515);
 
 /// A rail signal: a gunmetal footing, a steel post, the signal head with green over red lamps under their hoods.
@@ -119,30 +125,35 @@ const SIGNAL: [Part; 7] = [
     part([0.0, 0.215, 0.08], [0.1, 0.015, 0.05], GUNMETAL),
 ];
 
-/// A canister: a 12-sided steel drum painted in its fluid's colour (`paint`), a gunmetal rib round its middle and a
-/// chime round its top rim, and a brass bung. Stacked bottom up (the icon has no depth test, so a hoop drawn after
-/// a taller body would paint over it).
-const fn drum(paint: u16) -> [Part; 16] {
+/// A canister: a round steel drum painted in its fluid's colour (`paint`), as an oil drum is made: a gunmetal chime at
+/// its foot and its top rim, two painted rolling hoops standing out of it in thirds, the painted lid inside the top chime and a brass
+/// bung and vent on it. Stacked bottom up (the icon has no depth test, so a hoop drawn after a taller body would paint
+/// over it).
+const fn drum(paint: u16) -> [Part; 10] {
     Build::new()
-        .all(cylinder::<3>([0.0, -0.18, 0.0], 0.42, 0.21, paint))
-        .all(cylinder::<3>([0.0, -0.055, 0.0], 0.435, 0.04, GUNMETAL))
-        .all(cylinder::<3>([0.0, 0.105, 0.0], 0.42, 0.28, paint))
-        .all(cylinder::<3>([0.0, 0.26, 0.0], 0.44, 0.03, GUNMETAL))
-        .all(cylinder::<3>([0.0, 0.28, 0.0], 0.42, 0.01, paint))
-        .with(part([0.1, 0.295, 0.08], [0.07, 0.03, 0.07], tex::MAT_BRASS))
+        .with(cylinder([0.0, -0.28, 0.0], 0.43, 0.04, GUNMETAL))
+        .with(cylinder([0.0, -0.19, 0.0], 0.42, 0.14, paint))
+        .with(cylinder([0.0, -0.11, 0.0], 0.44, 0.02, paint))
+        .with(cylinder([0.0, -0.01, 0.0], 0.42, 0.18, paint))
+        .with(cylinder([0.0, 0.09, 0.0], 0.44, 0.02, paint))
+        .with(cylinder([0.0, 0.17, 0.0], 0.42, 0.14, paint))
+        .with(cylinder([0.0, 0.26, 0.0], 0.43, 0.04, GUNMETAL))
+        .with(cylinder([0.0, 0.2825, 0.0], 0.39, 0.005, paint))
+        .with(cylinder([-0.11, 0.29, -0.07], 0.04, 0.012, tex::MAT_BRASS))
+        .with(cylinder([0.1, 0.295, 0.08], 0.07, 0.02, tex::MAT_BRASS))
         .done()
 }
-const EMPTY_DRUM: [Part; 16] = drum(tex::EMPTY_CANISTER);
-const CRUDE_DRUM: [Part; 16] = drum(tex::CRUDE_CANISTER);
-const NAPHTHA_DRUM: [Part; 16] = drum(tex::NAPHTHA_CANISTER);
-const DIESEL_DRUM: [Part; 16] = drum(tex::DIESEL_CANISTER);
-const HEAVY_OIL_DRUM: [Part; 16] = drum(tex::HEAVY_OIL_CANISTER);
-const ACID_DRUM: [Part; 16] = drum(tex::ACID_CANISTER);
-const LUBRICANT_DRUM: [Part; 16] = drum(tex::LUBRICANT_CANISTER);
-const HYDROGEN_DRUM: [Part; 16] = drum(tex::HYDROGEN_CANISTER);
-const OXYGEN_DRUM: [Part; 16] = drum(tex::OXYGEN_CANISTER);
-const PURE_WATER_DRUM: [Part; 16] = drum(tex::PURE_WATER_CANISTER);
-const ROCKET_FUEL_DRUM: [Part; 16] = drum(tex::ROCKET_FUEL_CANISTER);
+const EMPTY_DRUM: [Part; 10] = drum(tex::EMPTY_CANISTER);
+const CRUDE_DRUM: [Part; 10] = drum(tex::CRUDE_CANISTER);
+const NAPHTHA_DRUM: [Part; 10] = drum(tex::NAPHTHA_CANISTER);
+const DIESEL_DRUM: [Part; 10] = drum(tex::DIESEL_CANISTER);
+const HEAVY_OIL_DRUM: [Part; 10] = drum(tex::HEAVY_OIL_CANISTER);
+const ACID_DRUM: [Part; 10] = drum(tex::ACID_CANISTER);
+const LUBRICANT_DRUM: [Part; 10] = drum(tex::LUBRICANT_CANISTER);
+const HYDROGEN_DRUM: [Part; 10] = drum(tex::HYDROGEN_CANISTER);
+const OXYGEN_DRUM: [Part; 10] = drum(tex::OXYGEN_CANISTER);
+const PURE_WATER_DRUM: [Part; 10] = drum(tex::PURE_WATER_CANISTER);
+const ROCKET_FUEL_DRUM: [Part; 10] = drum(tex::ROCKET_FUEL_CANISTER);
 
 /// A light frame: an aluminium space frame of two square rings of bars on four corner posts, each ring crossed by
 /// a diagonal brace.

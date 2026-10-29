@@ -54,7 +54,8 @@ def pumpjack_top():
 
 def refinery_side():
     f = Face(212, STEEL, 7)
-    f.pipe((0, 0, N, N), False, STEEL, 0.5)
+    # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
+    f.fill(np.ones((N, N), bool), STEEL, 0.5)
     for y in (24, 64, 104):
         f.rect((0, y, N, y + 8), BRONZE, 0.5, 1.0, 3, outline=False)
     f.rect((44, 36, 84, 56), DARK, 0.25, -1.0, 4)
@@ -74,7 +75,8 @@ def refinery_top():
 
 def cracker_side():
     f = Face(214, COPPER, 7)
-    f.pipe((0, 0, N, N), False, COPPER, 0.5)
+    # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
+    f.fill(np.ones((N, N), bool), COPPER, 0.5)
     for y in (22, 62, 102):
         f.rect((0, y, N, y + 8), STEEL, 0.45, 1.0, 3, outline=False)
     f.window((44, 34, 84, 54), EMBER, 0.85)
@@ -199,7 +201,8 @@ def winch_side():
 
 def centrifuge_side():
     f = Face(237, STEEL, 7)
-    f.pipe((0, 0, N, N), False, STEEL, 0.5)
+    # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
+    f.fill(np.ones((N, N), bool), STEEL, 0.5)
     f.rect((0, 56, N, 72), VIOLET, 0.55, 1.0, 3, 0.4, outline=False)
     f.window((44, 24, 84, 48), AETHER, 0.7)
     f.hazard((0, 96, N, 112), GOLD, DARK, 18, 0.6)

@@ -228,7 +228,8 @@ def light_frame():
 
 def rocket_hull():
     f = Face(293, STEEL, 1)
-    f.pipe((0, 0, N, N), True, STEEL, 0.75)
+    # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
+    f.fill(np.ones((N, N), bool), STEEL, 0.75)
     f.rect((0, 20, N, 40), RED, 0.55, 1.0, 3, outline=False)
     f.rect((0, 88, N, 108), RED, 0.55, 1.0, 3, outline=False)
     return f.rgba()
@@ -294,7 +295,8 @@ def pod_pad_top():
 
 def loco_body():
     f = Face(283, STEEL, 1)
-    f.pipe((0, 0, N, N), False, GREEN, 0.45)
+    # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
+    f.fill(np.ones((N, N), bool), GREEN, 0.45)
     f.rect((0, 52, N, 76), GOLD, 0.55, 1.0, 3, outline=False)
     return f.rgba()
 

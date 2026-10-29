@@ -332,7 +332,7 @@ fn a_held_long_distance_pole_shows_what_it_links_to_and_how_much_reach_is_left()
     );
     let boxes = g.placement_box();
     assert_eq!(boxes[6], GHOST_GREEN, "the outline is green: it links");
-    assert_eq!(boxes[7..14], [-10, y + 1, -1, -9, y + 3, 0, ANCHOR_BLUE], "the tower it links to is boxed blue");
+    assert_eq!(boxes[7..14], [-10, y + 1, -1, -9, y + 4, 0, ANCHOR_BLUE], "the tower it links to is boxed blue");
     // While one is held the maps ring every tower's reach.
     let marks = g.world_map_marks(-200, -200, 200, 200);
     assert!(marks.chunks_exact(4).any(|m| m == [-10, 0, 160, crate::minimap::MARK_RANGE]), "{marks:?}");

@@ -10,7 +10,7 @@
 //! be more than one.
 
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::factory::push_box;
+use crate::factory::{push_box, push_shape};
 use crate::inventory::Inventory;
 use crate::item::{self, ItemId};
 use crate::item_models;
@@ -205,7 +205,7 @@ pub fn push_item_model(out: &mut Vec<f32>, item: ItemId, at: Vec3, yaw: f32, uni
         let z = p.center[2] as f64 * unit;
         let center =
             at + Vec3::new(x * cos as f64 - z * sin as f64, p.center[1] as f64 * unit, x * sin as f64 + z * cos as f64);
-        push_box(out, center, yaw + p.yaw, p.size.map(|s| s * unit as f32), 0.0, p.tex, false);
+        push_shape(out, p.form, center, yaw + p.yaw, p.size.map(|s| s * unit as f32), p.tex, false);
     }
     !parts.is_empty()
 }

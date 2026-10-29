@@ -176,7 +176,7 @@ size.
   grid draws, so fuel lasts longer under a light load. Power poles connect only what you wire to them, and
   each wire takes one of a pole's slots (Mk1 4, Mk2 8, Mk3 12, Mk4 16): a pole wires to poles within 10
   blocks and to generators and machines within 5 (taller poles reach further; you see the wires). **Grid colours:** every grid wears one accent colour on its wires, pole collars and cables. The biggest grid (most poles) is the main grid and is always blue; any other, separate grid is orange, pink, green, yellow or red, so a pole in a different colour is not on the main grid. Wire two grids together and both turn blue; the pole readout names its grid.
-  **Long-distance pole** (Long-Distance Power research; 12 steel beams, 16 aluminium plates, 60 copper wire): a 2×2×3
+  **Long-distance pole** (Long-Distance Power research; 12 steel beams, 16 aluminium plates, 60 copper wire): a 2×2×4
   lattice tower that links to another long-distance pole up to 160 blocks away (to an ordinary pole only within 16),
   wires machines within 10 blocks and holds 6 wires. While you hold one, its outline turns green when it will link and
   red when it won't, the label says how far the pole it links to is and how much reach is left (or why it won't link), a

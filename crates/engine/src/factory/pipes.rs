@@ -16,7 +16,7 @@ use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
 use super::pumping::{PumpTier, OUTLET_RATE, PUMP_RANGE, PUMP_TIERS};
-use super::render::push_box;
+use super::render::{push_box, push_round, Axis};
 use super::{tier_mark, Factory, Machine, DIRS, FACES};
 
 /// Progress per unit of water: a unit per second at a rate of 1 takes `UNIT` / `TICK_RATE` a tick.
@@ -253,16 +253,13 @@ impl Machine for Pipework {
         match self.part {
             Part::Pipe => push_box(out, rel, 0.0, [0.3; 3], 0.0, pipe, false),
             Part::Pump => {
-                // A skid, a round impeller casing lying across (two crossed boxes), a motor on top whose fan turns
-                // while it pumps.
+                // A skid, a round impeller casing lying across, a motor on top whose fan turns while it pumps.
                 let skid = if self.tier > 0 { tex::stripe(self.tier) } else { tex::FRAME };
                 push_box(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.86, 0.14, 0.86], 0.0, [skid; 3], false);
                 tier_mark::ring(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.43, 0.43], self.tier);
                 let casing = [tex::FRAME, tex::PIPE_WATER, tex::FRAME];
-                // The second box is a little shorter so the two never share an end face (it would flicker).
-                for size in [[0.62, 0.45, 0.62], [0.58, 0.62, 0.45]] {
-                    push_box(out, rel + Vec3::new(0.0, -0.06, 0.0), 0.0, size, 0.0, casing, false);
-                }
+                let at = rel + Vec3::new(0.0, -0.06, 0.0);
+                push_round(out, at, 0.0, Axis::X, [0.6, 0.62, 0.62], 1.0, casing, false);
                 let motor = [tex::FRAME, tex::MOTOR, tex::FRAME];
                 push_box(out, rel + Vec3::new(0.0, 0.36, 0.0), 0.0, [0.34, 0.26, 0.34], 0.0, motor, false);
                 let spin = if self.flow == Flow::Working { (time * 9.0) as f32 } else { 0.0 };

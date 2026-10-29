@@ -20,6 +20,7 @@ use crate::tools;
 
 use super::super::footprint::SINGLE;
 use super::super::power::FULL_SPEED;
+use super::super::render::{Axis, Form};
 use super::super::ticks;
 use super::super::DIRS;
 use super::model::{part, Look, Part};
@@ -87,7 +88,8 @@ const PARTS: [Part; 12] = {
 pub(crate) const ICON: [crate::item_models::Part; 12] = icon(&PARTS);
 
 const fn icon(parts: &[Part; 12]) -> [crate::item_models::Part; 12] {
-    let mut out = [crate::item_models::Part { center: [0.0; 3], size: [0.0; 3], yaw: 0.0, tex: [0; 3] }; 12];
+    let mut out =
+        [crate::item_models::Part { center: [0.0; 3], size: [0.0; 3], yaw: 0.0, tex: [0; 3], form: Form::Box }; 12];
     let mut i = 0;
     while i < 12 {
         let p = &parts[i];
@@ -102,6 +104,12 @@ const fn icon(parts: &[Part; 12]) -> [crate::item_models::Part; 12] {
             size: [p.size[2], p.size[1], p.size[0]],
             yaw: 0.0,
             tex,
+            // The icon's x is the part's z: a body lying along one lies along the other.
+            form: match p.form {
+                Form::Round(Axis::X, t) => Form::Round(Axis::Z, t),
+                Form::Round(Axis::Z, t) => Form::Round(Axis::X, t),
+                s => s,
+            },
         };
         i += 1;
     }

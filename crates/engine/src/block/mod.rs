@@ -158,7 +158,7 @@ pub const LAUNCH_SITE: BlockId = 109;
 pub const RECTENNA: BlockId = 110;
 /// The ground station (`factory/process/ground.rs`): a dish that downlinks science satellites' data as compute.
 pub const GROUND_STATION: BlockId = 111;
-/// The long-distance pole (`factory/pole.rs`): a 2×2×3 tower that spans far to other long-distance poles.
+/// The long-distance pole (`factory/pole.rs`): a 2×2×4 lattice tower that spans far to other long-distance poles.
 pub const LONG_POLE: BlockId = 112;
 /// The pod launcher (`factory/process/pods.rs`, step 12.4): belts load it, a drop pod carries the cargo to a landing pad.
 pub const POD_LAUNCHER: BlockId = 113;

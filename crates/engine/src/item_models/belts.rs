@@ -4,7 +4,7 @@
 //! and the ejector a funnel and a bent tube (`factory/process/ejector.rs`). Sizes are those of the placed models; the
 //! parts rest on the cell's floor (y = -0.5). Add a const and a `parts` row.
 
-use super::{part, Part};
+use super::{part, Form, Part};
 use crate::block::{tex, BELT, UNDERPASS_IN};
 use crate::factory::{tiers::placed_by, BELT_TIERS, EJECTOR_ICON};
 use crate::item::ItemId;
@@ -15,7 +15,7 @@ const ITEM_LIFT: ItemId = ItemId::block(crate::block::LIFT);
 const ITEM_EJECTOR: ItemId = ItemId::block(crate::block::BELT_EJECTOR);
 
 const fn boxed(center: [f32; 3], size: [f32; 3], tex: [u16; 3]) -> Part {
-    Part { center, size, yaw: 0.0, tex }
+    Part { center, size, yaw: 0.0, tex, form: Form::Box }
 }
 
 const fn top(tier: u8) -> u16 {

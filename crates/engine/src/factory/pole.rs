@@ -9,16 +9,17 @@
 //! hangs on it, unless it is wired to a pole by hand (poles win). Hang a cable from a pole at the rim
 //! and lower it.
 
-use crate::block::tex;
+use crate::block::{tex, AIR, MACHINE_PART};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
+use crate::world::World;
 
 use super::footprint::Footprint;
 use super::links::Slot;
 use super::pole_mount::{mount_model, SIDES};
 use super::render::push_box;
-use super::{tier_mark, Factory, Machine};
+use super::{pole_tower, tier_mark, Factory, Machine};
 
 /// What a pole tier reaches, in blocks between cell centres.
 pub struct PoleTier {
@@ -57,14 +58,14 @@ pub const CABLE_STATS: PoleTier = PoleTier { link: 1, reach: 2, slots: 0 };
 /// Cables this close (squared: touching, diagonals too) are one wire.
 const CABLE_TOUCH2: i32 = 2;
 
-/// The tier a long-distance pole (block `LONG_POLE`, 2×2×3) is stored as: its own block, so no upgrade reaches it.
+/// The tier a long-distance pole (block `LONG_POLE`, 2×2×4) is stored as: its own block, so no upgrade reaches it.
 pub const LONG_TIER: u8 = 14;
 /// A long-distance pole's numbers: `link` is the span to other long-distance poles only.
 pub const LONG_STATS: PoleTier = PoleTier { link: 160, reach: 10, slots: 6 };
 /// How far a long-distance pole links to an ordinary pole (it is no further than a Mk2 pole there).
 pub const LONG_LOCAL_LINK: i32 = 16;
 /// A long-distance pole stands on these cells, from its anchor, whichever way it was placed (it stores no facing).
-pub const LONG_FOOTPRINT: Footprint = Footprint { size: [2, 2, 3], ports: &[] };
+pub const LONG_FOOTPRINT: Footprint = Footprint { size: [2, 2, 4], ports: &[] };
 
 /// The numbers of pole tier `tier` (a cable and a long-distance pole have their own).
 pub fn tier_stats(tier: u8) -> &'static PoleTier {
@@ -113,7 +114,7 @@ impl Pole {
             CABLE_TIER => base + Vec3::new(0.5, 0.5, 0.5),
             LONG_TIER => {
                 let c = LONG_FOOTPRINT.centre(0);
-                base + Vec3::new(0.5 + c.x, 2.95, 0.5 + c.z)
+                base + Vec3::new(0.5, 0.5, 0.5) + c + Vec3::new(0.0, pole_tower::TOP, 0.0)
             }
             _ => base + Vec3::new(0.5, POLE_WIRE_Y, 0.5),
         }
@@ -229,7 +230,7 @@ impl Machine for Pole {
             return;
         }
         if self.is_long() {
-            return long_model(out, rel + LONG_FOOTPRINT.centre(0));
+            return pole_tower::long_model(out, rel + LONG_FOOTPRINT.centre(0));
         }
         if self.wall == 0 {
             push_box(out, rel + Vec3::new(0.0, -0.42, 0.0), 0.0, [0.38, 0.15, 0.38], 0.0, [tex::FRAME; 3], false);
@@ -276,6 +277,18 @@ impl Factory {
             let mid = p.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
             (p.pos, if p.is_long() { mid + LONG_FOOTPRINT.centre(0) } else { mid }, p.is_long())
         })
+    }
+
+    /// Saves before version 61 stood long-distance poles three high: each one's new fourth layer becomes machine parts
+    /// where it is air, as placing it would have made it (`action/multiblock.rs`); ground already there stays.
+    pub(super) fn raise_old_towers(&self, world: &mut World) {
+        for p in self.poles.iter().filter(|p| p.is_long()) {
+            for c in LONG_FOOTPRINT.cells(p.pos, 0).into_iter().filter(|c| c.y == p.pos.y + 3) {
+                if world.block_anywhere_or_generate(c) == AIR {
+                    world.set_block_anywhere(c, MACHINE_PART);
+                }
+            }
+        }
     }
 
     /// Where the wires of the pole anchored at `pos` hang, in the world (`None` when no pole is anchored there).
@@ -331,39 +344,6 @@ pub enum LongLink {
 /// Where the wires of a long-distance pole anchored at `anchor` would hang, in the world (the placing preview).
 pub fn long_top(anchor: IVec3) -> Vec3 {
     Pole { pos: anchor, tier: LONG_TIER, wall: 0 }.wire_point()
-}
-
-/// The long-distance pole's lattice tower, 2×2×3; `c` is its centre relative to the camera.
-fn long_model(out: &mut Vec<f32>, c: Vec3) {
-    let frame = [tex::FRAME; 3];
-    let mut put = |at: [f64; 3], size: [f32; 3], tex: [u16; 3]| {
-        push_box(out, c + Vec3::new(at[0], at[1], at[2]), 0.0, size, 0.0, tex, false);
-    };
-    put([0.0, -1.4, 0.0], [1.9, 0.2, 1.9], frame);
-    for (x, z) in [(-0.75, -0.75), (0.75, -0.75), (-0.75, 0.75), (0.75, 0.75)] {
-        put([x, -0.05, z], [0.2, 2.8, 0.2], frame);
-    }
-    for y in [-0.6, 0.5] {
-        for s in [-0.75, 0.75] {
-            put([0.0, y, s], [1.7, 0.1, 0.1], frame);
-            put([s, y, 0.0], [0.1, 0.1, 1.7], frame);
-        }
-    }
-    put([0.0, 0.0, 0.0], [0.3, 3.0, 0.3], frame);
-    put([0.0, 1.15, 0.0], [2.0, 0.12, 0.26], frame);
-    for x in [-0.9, 0.9] {
-        put([x, 1.3, 0.0], [0.14, 0.2, 0.14], [tex::FLASK_GLASS; 3]);
-        put([x, 1.42, 0.0], [0.09, 0.05, 0.09], [tex::COPPER_WIRE; 3]);
-    }
-}
-
-/// A long-distance pole's grid-coloured sleeves on its four legs and crossarm; `c` is its centre relative to the camera.
-pub(super) fn long_accent(out: &mut Vec<f32>, c: Vec3, layer: u16) {
-    let tex = [layer; 3];
-    for (x, z) in [(-0.75, -0.75), (0.75, -0.75), (-0.75, 0.75), (0.75, 0.75)] {
-        push_box(out, c + Vec3::new(x, 0.9, z), 0.0, [0.26, 0.2, 0.26], 0.0, tex, false);
-    }
-    push_box(out, c + Vec3::new(0.0, 1.15, 0.0), 0.0, [0.5, 0.18, 0.32], 0.0, tex, false);
 }
 
 /// A pole's model where none stands yet (the pole tool's preview, `power_tools.rs`) on wall `wall` (0: none);

@@ -508,3 +508,12 @@ fn bench_trains() {
         println!("{} trains, signals {signals}: {:?} a tick, worst {worst:?}", f.trains.len(), total / ticks);
     }
 }
+
+#[test]
+fn a_train_draws_its_boiler_and_wheels_round_not_faked_from_boxes() {
+    let f = freight(1, 2);
+    let mut out = Vec::new();
+    f.write_instances(&mut out, head(&f), 0.0, 60.0);
+    assert!(out.chunks_exact(crate::factory::INSTANCE_FLOATS).any(|r| r[11] as u32 & crate::factory::ROUND != 0));
+    assert_eq!(crate::factory::render::fake_round(&out), None);
+}

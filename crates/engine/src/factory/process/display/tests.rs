@@ -88,7 +88,7 @@ fn corners(b: &[f32]) -> [[f32; 3]; 8] {
 /// `up` turns a point as a pitch of a quarter turn does, and `bounds` reaches every stood-up corner.
 #[test]
 fn standing_up_matches_the_shader() {
-    let part = Part { center: [0.1, 0.02, -0.2], size: [0.3, 0.04, 0.5], yaw: 0.0, tex: [0; 3] };
+    let part = Part { center: [0.1, 0.02, -0.2], size: [0.3, 0.04, 0.5], yaw: 0.0, tex: [0; 3], form: Form::Box };
     let (lo, hi) = bounds(&[part], true);
     let mut b = [0.0; INSTANCE_FLOATS];
     (b[0], b[1], b[2]) = (up(part.center)[0], up(part.center)[1], up(part.center)[2]);

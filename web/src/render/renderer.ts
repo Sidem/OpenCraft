@@ -52,6 +52,9 @@ export interface FrameInfo {
   /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
   boxes: Float32Array;
   boxCount: number;
+  /** The round bodies among them, copied out (`round_ptr`), drawn with the cylinder mesh. */
+  round: Float32Array;
+  roundCount: number;
   /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
   lineCells: Int32Array;
   /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */
@@ -102,7 +105,7 @@ export class Renderer {
   skySettings: SkySettings = SKY_DEFAULTS; // how the sky is drawn (sky/settings.ts, set from the menu)
   readonly weather = new WeatherSky(); // the weather as drawn (`.ease.value`); the rain and snow pass reads it
   readonly precip: PrecipPass; // rain, snow and the ground's wet or snowy look (precip.ts)
-  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number) {
+  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number, roundBit: number) {
     const gl = canvas.getContext('webgl2', {
       antialias: true,
       alpha: false,
@@ -122,7 +125,7 @@ export class Renderer {
     this.quadIndex = gl.createBuffer()!;
     this.ensureQuadCapacity(1 << 15);
 
-    this.boxes = new BoxPipeline(gl, instanceFloats);
+    this.boxes = new BoxPipeline(gl, instanceFloats, roundBit);
     this.sky = new SkyPass(gl);
     this.water = new WaterPass(gl);
     this.precip = new PrecipPass(gl);
@@ -332,7 +335,7 @@ export class Renderer {
       }
     }
 
-    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount);
+    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount);
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
     drawCalls += waterCalls;
     quads += waterQuads;

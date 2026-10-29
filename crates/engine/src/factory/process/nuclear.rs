@@ -22,7 +22,7 @@ use crate::TICK_RATE;
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{Power, NOT_WIRED};
 use super::super::power_mix::Source;
-use super::model::{drum_x, drum_z, part, Look, Part};
+use super::model::{part, round, Look, Part};
 use super::{Energy, Pick, ProcessSpec, ProcessTier, Processor, Status};
 use crate::inventory::Stack;
 
@@ -85,16 +85,12 @@ const DOME: [u16; 3] = [tex::REACTOR_TOP, tex::CONCRETE, tex::CONCRETE];
 
 /// Across and deep 2, 3 high (±1.5): a banded plinth, a cascade of four slim spinning tubes (two crossed parts each)
 /// under a header pipe, a status lamp and the product display on the header pipe.
-const CENTRIFUGE_PARTS: [Part; 12] = [
+const CENTRIFUGE_PARTS: [Part; 8] = [
     part([0.0, -1.4, 0.0], [1.96, 0.2, 1.96], Look::Band(tex::FRAME)),
-    drum_x([-0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_z([-0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_x([0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_z([0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_x([-0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_z([-0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_x([0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
-    drum_z([0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    round([-0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    round([0.45, -0.05, -0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    round([-0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
+    round([0.45, -0.05, 0.45], [0.6, 2.5, 0.6], Look::Tex(CENTRIFUGE_BODY)),
     part([0.0, 1.32, 0.0], [1.3, 0.12, 0.12], STEEL),
     part([0.85, -1.2, 0.92], [0.14, 0.1, 0.14], Look::Lamp),
     part([0.0, 1.68, 0.0], super::parts::DISPLAY, Look::Product),
@@ -102,14 +98,11 @@ const CENTRIFUGE_PARTS: [Part; 12] = [
 
 /// Across, deep and high 3 (±1.5): a banded plinth, the round concrete containment (two crossed parts) under a
 /// stepped dome, a glowing window on the front and a status lamp. Round and domed so it can't be taken for a crate.
-const REACTOR_PARTS: [Part; 9] = [
+const REACTOR_PARTS: [Part; 6] = [
     part([0.0, -1.4, 0.0], [2.96, 0.2, 2.96], Look::Band(tex::FRAME)),
-    drum_x([0.0, -0.3, 0.0], [2.6, 2.0, 2.6], Look::Tex(REACTOR_BODY)),
-    drum_z([0.0, -0.3, 0.0], [2.6, 2.0, 2.6], Look::Tex(REACTOR_BODY)),
-    drum_x([0.0, 0.85, 0.0], [2.0, 0.3, 2.0], Look::Tex(DOME)),
-    drum_z([0.0, 0.85, 0.0], [2.0, 0.3, 2.0], Look::Tex(DOME)),
-    drum_x([0.0, 1.12, 0.0], [1.2, 0.24, 1.2], Look::Tex(DOME)),
-    drum_z([0.0, 1.12, 0.0], [1.2, 0.24, 1.2], Look::Tex(DOME)),
+    round([0.0, -0.3, 0.0], [2.6, 2.0, 2.6], Look::Tex(REACTOR_BODY)),
+    round([0.0, 0.85, 0.0], [2.0, 0.3, 2.0], Look::Tex(DOME)),
+    round([0.0, 1.12, 0.0], [1.2, 0.24, 1.2], Look::Tex(DOME)),
     part([0.0, -0.2, 1.31], [0.8, 0.5, 0.06], Look::Tex([tex::FUEL_CELL; 3])),
     part([1.25, -1.2, 1.35], [0.14, 0.1, 0.14], Look::Lamp),
 ];
