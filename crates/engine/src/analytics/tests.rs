@@ -148,6 +148,74 @@ fn a_smelter_at_full_pace_reads_100_and_reports_what_it_made_and_used() {
     assert_eq!(&a.machines.worst(5)[..4], &[0, 0, 0, SMELTER as i32]);
 }
 
+/// The numbers a player plans with, held to what the analytics hub measures on a running line: ore from a box along
+/// a belt into a smelter, ingots along a belt into a box. The smelter is the slow part, so both belts carry its rate.
+#[test]
+fn the_panel_and_belt_numbers_match_what_analytics_measures() {
+    use crate::factory::{FLOW_SECS, FLOW_WINDOWS};
+    let (mut f, mut world) = (Factory::default(), World::new(1, 2));
+    let at = |x| IVec3::new(x, 0, 0);
+    f.add_storage(at(0));
+    f.stock(at(0), IRON_ORE.into(), 400);
+    f.add_belt(at(1), 1);
+    f.add_belt(at(2), 1);
+    f.place(&mut world, SMELTER, at(3), 0, at(3) - IVec3::new(0, 1, 0), 0);
+    assert_eq!(f.insert(at(3), COAL_ORE.into(), 40), 40);
+    f.add_belt(at(4), 1);
+    f.add_storage(at(5));
+
+    let (mut a, mut events) = (Analytics::default(), Vec::new());
+    let mut run = |f: &mut Factory, a: &mut Analytics, ticks: std::ops::Range<u64>| {
+        for tick in ticks {
+            f.update(&mut world, tick, &mut events);
+            for e in events.drain(..) {
+                match e {
+                    SimEvent::Produced { item, count } => a.produced(item, count),
+                    SimEvent::Consumed { item, count } => a.consumed(item, count),
+                    _ => {}
+                }
+            }
+            a.record(f);
+        }
+    };
+    let totals = |a: &Analytics, item: ItemId| {
+        let i = a.item_ids().iter().position(|&id| id == item.0 as u32).expect("an analytics row");
+        let now = a.item_now();
+        (now[i * 4], now[i * 4 + 1], now[i * 4 + 2], now[i * 4 + 3])
+    };
+    run(&mut f, &mut a, 0..60 * 30);
+    let (ore_before, ingots_before) = (totals(&a, IRON_ORE.into()).3, totals(&a, IRON_INGOT).2);
+    run(&mut f, &mut a, 60 * 30..60 * 90);
+
+    let (ins, outs) = f.smelter_at(at(3)).rates().expect("a smelter given ore has rates");
+    assert_eq!((ins[0].0, outs[0].0), (IRON_ORE.into(), IRON_INGOT));
+    let (ore_panel, ingots_panel) = (ins[0].1 as f32 / 10.0, outs[0].1 as f32 / 10.0);
+    // A whole minute of analytics totals: equal to the panel's numbers but for a batch cut off at either end.
+    let made = totals(&a, IRON_INGOT).2 - ingots_before;
+    let used = totals(&a, IRON_ORE.into()).3 - ore_before;
+    assert!((made - ingots_panel).abs() <= 1.0, "panel says {ingots_panel} ingots a minute, analytics counted {made}");
+    assert!((used - ore_panel).abs() <= 1.0, "panel says {ore_panel} ore a minute, analytics counted {used}");
+    // The hub's own trailing rates, a step of 60 / RATE_SECS.
+    let step = 60.0 / RATE_SECS as f32;
+    let (hub_made, hub_used) = (totals(&a, IRON_INGOT).0, totals(&a, IRON_ORE.into()).1);
+    assert!((hub_made - ingots_panel).abs() <= step, "hub {hub_made} ingots a minute, panel {ingots_panel}");
+    assert!((hub_used - ore_panel).abs() <= step, "hub {hub_used} ore a minute, panel {ore_panel}");
+
+    // Each belt moves what the smelter takes or makes, but for an item over the windows it averages; the text says it.
+    let step = 60.0 / (FLOW_SECS * FLOW_WINDOWS as u32) as f32;
+    let flow = |x| f.belt_at(at(x)).flow_a_minute().expect("a window has closed") as f32;
+    assert!((flow(2) - ore_panel).abs() <= step, "the ore belt moves {}, the smelter takes {ore_panel}", flow(2));
+    assert!(
+        (flow(4) - ingots_panel).abs() <= step,
+        "the ingot belt moves {}, the smelter makes {ingots_panel}",
+        flow(4)
+    );
+    let text = f.describe(at(4)).unwrap();
+    assert!(text.contains(&format!("Moves {} items a minute", flow(4))), "{text}");
+    let line = f.rates(at(3)).unwrap();
+    assert!(line.starts_with("Full speed: takes") && line.contains("Iron Ingot a minute"), "{line}");
+}
+
 /// A row of machines: smelters that run and then wait for ore, constructors with a recipe and nothing to make it
 /// from, and one constructor whose recipe is taken away after it has worked (idle).
 fn yard() -> (Factory, Analytics, IVec3) {

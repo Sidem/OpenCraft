@@ -88,6 +88,7 @@ pub use status::Status;
 use status::STATUSES;
 use steam::Steam;
 pub(super) use steam::{draw_water, link as link_steam, run_turbine};
+pub use view::{tenths, tenths_a_minute};
 
 use std::cell::Cell;
 

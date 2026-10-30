@@ -178,6 +178,9 @@ export class ItemGuide {
       if (tech >= 0) foot.append(lock(`Research ${g.tech_name(tech)} to unlock it (T)`));
     }
     row.append(label, ins, foot);
+    // How many machines feed how many, to plan a line before building it.
+    const ratios = way.kind === 'machine' ? g.machine_recipe_ratios(way.recipe) : '';
+    if (ratios) row.append(h('p', 'guide-ratio', `At full speed: ${ratios}`));
     return row;
   }
 

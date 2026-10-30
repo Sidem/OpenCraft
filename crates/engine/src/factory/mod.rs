@@ -110,6 +110,8 @@ use storage::Storage;
 use trains::Train;
 use wiring::Hook;
 
+#[cfg(test)]
+pub use belt::{FLOW_SECS, FLOW_WINDOWS};
 pub use belt_items::{ItemAim, ItemKey};
 pub use buffer::Buffer;
 pub(crate) use capsule::push_capsule;
@@ -124,6 +126,7 @@ pub use pole::{POLE_TIERS, POLE_WIRE_Y};
 pub use ports::PortInfo;
 pub(crate) use process::EJECTOR_ICON;
 pub use process::{channel_colour, channel_name, first_maker, makes, spec as process_spec, Want};
+pub use process::{tenths, tenths_a_minute};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};

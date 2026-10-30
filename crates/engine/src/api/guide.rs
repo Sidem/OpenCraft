@@ -5,7 +5,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::item::{ItemId, ITEM_COUNT};
-use crate::item_guide::{uses, ways, Way};
+use crate::item_guide::{ratios, uses, ways, Way};
 use crate::Game;
 
 #[wasm_bindgen]
@@ -19,6 +19,17 @@ impl Game {
             Way::Machine { recipe, machine } => format!("machine\t{recipe}\t{}", machine.0),
         });
         lines.collect::<Vec<_>>().join("\n")
+    }
+
+    /// How many machines feed how many on machine recipe `recipe` at full speed, in words (empty if none of its
+    /// inputs comes from a machine).
+    pub fn machine_recipe_ratios(&self, recipe: u32) -> String {
+        let ok = (recipe as usize) < crate::recipes::MACHINE_RECIPES.len();
+        if ok {
+            ratios(self.sim.world.generator(), recipe as usize)
+        } else {
+            String::new()
+        }
     }
 
     /// What uses `item`, as flat (kind, recipe) pairs: kind 0 a hand recipe, 1 a machine recipe.

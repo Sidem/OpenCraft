@@ -106,6 +106,6 @@ impl Factory {
         events.extend(used.chain(burned).map(|s| SimEvent::Consumed { item: s.item, count: s.count }));
         pumping::step_pipework(pipework, &power.pipe_pole, power, world, changed);
         process::draw_water(sinks.processors, &kinds.water, pipework);
-        belt_step(belts, &mut sinks, order, TICK);
+        belt_step(belts, &mut sinks, order, TICK, tick);
     }
 }

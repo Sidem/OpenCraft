@@ -23,6 +23,7 @@ export class MachinePanel implements Beside {
   readonly el = h('section', 'mp-panel');
   title = '';
   private readonly status = h('p', 'mp-status');
+  private readonly rates = h('p', 'mp-rates');
   private readonly efficiency = h('p', 'mp-efficiency');
   private readonly bar = h('div', 'mp-bar-fill');
   private readonly fire = h('span', 'mp-fire');
@@ -60,7 +61,7 @@ export class MachinePanel implements Beside {
       this.game.take_machine_output(...this.pos);
     });
     const state = h('section', 'mp-state');
-    state.append(this.status, this.efficiency, this.progress, this.fire, this.slots, this.take);
+    state.append(this.status, this.rates, this.efficiency, this.progress, this.fire, this.slots, this.take);
 
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
@@ -139,6 +140,8 @@ export class MachinePanel implements Beside {
     this.drawn = key;
 
     this.status.textContent = g.machine_status(...this.pos);
+    this.rates.textContent = g.machine_rates(...this.pos);
+    this.rates.classList.toggle('hidden', !this.rates.textContent);
     this.fire.textContent = fire > 0 ? `Fire: ${fire} s left` : '';
     this.slots.replaceChildren();
     let output = -1;

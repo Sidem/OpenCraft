@@ -7,7 +7,7 @@
 //! `use` (electricity drawn), `fuel`, `make` (power produced), `none` (needs no energy) or `stat`.
 //! To give another building a card: an arm in `facts` (processors need none: their spec has it all).
 
-use super::belt::BELT_TIERS;
+use super::belt::{most_a_minute, BELT_TIERS};
 use super::describe::fmt_int;
 use super::generator::GENERATOR_TIERS;
 use super::lab::LAB_TIERS;
@@ -104,7 +104,9 @@ pub fn facts(item: ItemId) -> Option<Facts> {
             f.stat("Fire", format!("{} kW of fuel, no wire", COAL_STATS.power));
         }
         BELT | FAST_BELT => {
-            f.stat("Speed", format!("{} blocks/s", BELT_TIERS[tier.min(BELT_TIERS.len() - 1)].speed as u32));
+            let tier = tier.min(BELT_TIERS.len() - 1);
+            f.stat("Speed", format!("{} blocks/s", BELT_TIERS[tier].speed as u32));
+            f.stat("Carries", format!("Up to {} items a minute", most_a_minute(tier as u8)));
         }
         UNDERPASS_IN => {
             f.stat("Reach", format!("{} blocks", UNDERPASS_SPAN[tier.min(UNDERPASS_SPAN.len() - 1)]));

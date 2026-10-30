@@ -133,6 +133,28 @@ fn blocked_line_backs_up_without_overlap() {
     assert!(last.items[0].p <= END_STOP + 1e-6);
 }
 
+/// The capacity the build menu and readout give is what a full line of each tier really moves, box to box.
+#[test]
+fn a_full_belt_moves_the_most_its_readout_says() {
+    for tier in 0..belt::BELT_TIERS.len() as u8 {
+        let mut f = Factory::default();
+        stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 900);
+        for x in 1..=6 {
+            f.add_belt(IVec3::new(x, 0, 0), EAST);
+        }
+        f.belts.iter_mut().for_each(|b| b.tier = tier);
+        f.add_storage(IVec3::new(7, 0, 0));
+        // Past the first window, while the line fills, and before the source box runs dry.
+        let windows = belt::FLOW_WINDOWS as u32 + 1;
+        run(&mut f, f64::from(windows * belt::FLOW_SECS) + 1.0, |_| {});
+        let (flow, most) = (f.belt_at(IVec3::new(6, 0, 0)).flow_a_minute().unwrap(), belt::most_a_minute(tier));
+        // One item more or less over the windows it averages, or 2%: at Mk1, 21 ticks of travel is exactly the
+        // spacing, so float rounding makes some gaps a tick longer (a full Mk1 belt moves about 168, not 171).
+        let step = (60 / (belt::FLOW_SECS * belt::FLOW_WINDOWS as u32)).max(most / 50);
+        assert!(most.abs_diff(flow) <= step, "tier {tier}: moves {flow}, readout says {most}");
+    }
+}
+
 #[test]
 fn corner_turns_and_side_joins() {
     let mut f = Factory::default();

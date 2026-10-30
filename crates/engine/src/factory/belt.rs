@@ -6,7 +6,9 @@
 //! another belt (entering at its start, or in its middle when joining from the side) or a box.
 //! Ramps, lifts and underpasses are belts with a `shape` (`belt_shape.rs`); every shape comes in the
 //! tiers of [`BELT_TIERS`] (`tier` indexes it; `tiers.rs` names the item of each). A body standing on
-//! a belt is carried along at its speed (`Factory::conveyor_at`, used by `authority.rs`).
+//! a belt is carried along at its speed (`Factory::conveyor_at`, used by `authority.rs`). Each belt counts the items it
+//! hands on per [`FLOW_SECS`] window and averages the last [`FLOW_WINDOWS`] (its readout's flow, against
+//! [`most_a_minute`]; derived, not saved).
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -72,6 +74,27 @@ pub struct Belt {
     pub lift_above: bool,
     /// Index into [`BELT_TIERS`] (0 is Mk1).
     pub tier: u8,
+    /// Items handed on so far this [`FLOW_SECS`] window, in the last [`FLOW_WINDOWS`] whole ones (newest first), and
+    /// how many of those have closed (derived, not saved: the readout's flow).
+    pub passed: u16,
+    pub recent: [u16; FLOW_WINDOWS],
+    pub windows: u8,
+}
+
+/// Seconds a belt counts the items it hands on before its readout's flow changes.
+pub const FLOW_SECS: u32 = 10;
+/// Windows the flow averages: one alone counts 6 or 7 items where a machine makes 40 a minute.
+pub const FLOW_WINDOWS: usize = 3;
+
+/// Items a minute a belt of `tier` carries at most: one enters when the one before has gone [`ITEM_SPACING`],
+/// counted in whole ticks as a box or machine feeds it (the same sums as `belt_step`).
+pub fn most_a_minute(tier: u8) -> u32 {
+    let step = BELT_TIERS[tier as usize].speed * crate::TICK as f32;
+    let (mut p, mut ticks) = (0.0f32, 0);
+    while p < ITEM_SPACING {
+        (p, ticks) = (p + step, ticks + 1);
+    }
+    60 * crate::TICK_RATE / ticks
 }
 
 /// A belt's model where none stands yet (the line tool's preview, `belt_line.rs`), without items.
@@ -82,7 +105,16 @@ pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, dir: u8, shape: Shape, tier:
 impl Belt {
     pub fn new(pos: IVec3, dir: u8, shape: Shape, tier: u8) -> Belt {
         let (items, out, curve_from) = (Vec::new(), Link::None, None);
-        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below: false, lift_above: false, tier }
+        let (lift_below, lift_above) = (false, false);
+        let (passed, recent, windows) = (0, [0; FLOW_WINDOWS], 0);
+        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below, lift_above, tier, passed, recent, windows }
+    }
+
+    /// Items a minute it handed on over its closed windows (the last [`FLOW_WINDOWS`]), if one has closed.
+    pub fn flow_a_minute(&self) -> Option<u32> {
+        let n = usize::from(self.windows);
+        let items: u32 = self.recent[..n].iter().map(|&c| u32::from(c)).sum();
+        (n > 0).then(|| items * 60 / (FLOW_SECS * n as u32))
     }
 
     /// Blocks per second.
@@ -145,8 +177,16 @@ impl Factory {
     }
 }
 
-/// Moves every belt's items forward by `dt` and hands front items on, downstream belts first.
-pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) {
+/// Moves every belt's items forward by `dt` and hands front items on, downstream belts first. On every
+/// [`FLOW_SECS`]th second of `tick` each belt's count of items handed on closes a window of its flow.
+pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64, tick: u64) {
+    if tick > 0 && tick.is_multiple_of(u64::from(FLOW_SECS * crate::TICK_RATE)) {
+        for b in belts.iter_mut() {
+            b.recent.rotate_right(1);
+            b.recent[0] = std::mem::take(&mut b.passed);
+            b.windows = (b.windows + 1).min(FLOW_WINDOWS as u8);
+        }
+    }
     for &bi in order.iter() {
         let bi = bi as usize;
         let step = belts[bi].speed() * dt as f32;
@@ -183,6 +223,7 @@ pub fn belt_step(belts: &mut [Belt], sinks: &mut Sinks, order: &[u32], dt: f64) 
             }
             if deliver(belts, sinks, out, (front.item, front.n, front.tag), front.p - 1.0) {
                 belts[bi].items.remove(0);
+                belts[bi].passed = belts[bi].passed.saturating_add(1);
             } else {
                 belts[bi].items[0].p = 1.0;
                 break;
@@ -261,7 +302,12 @@ impl Machine for Belt {
                 Link::Machine(slot) => format!(" · delivers into the {}", block::def(slot.kind().def().block).name),
             }
         };
-        format!("{load} · heading {}{}{end}", DIR_NAMES[self.dir as usize], self.shape.words())
+        let most = most_a_minute(self.tier);
+        let flow = match self.flow_a_minute() {
+            Some(n) => format!("Moves {n} items a minute, {}% of the {most} it can carry", n * 100 / most),
+            None => format!("Carries up to {most} items a minute"),
+        };
+        format!("{load} · heading {}{}{end}\n{flow}", DIR_NAMES[self.dir as usize], self.shape.words())
     }
 
     /// A scrolling rubber top between two rails (or the shape's model), and the items riding on it.

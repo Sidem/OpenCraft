@@ -1,8 +1,8 @@
-//! What a processor says: its status line (the readout's first line and the panel's), the readout, and
-//! its panel (`panel.rs`). Presentation only.
+//! What a processor says: its status line (the readout's first line and the panel's), what it takes and makes a
+//! minute at full speed (`rates`, the second line), the readout, and its panel (`panel.rs`). Presentation only.
 
 use crate::inventory::Stack;
-use crate::item;
+use crate::item::{self, ItemId};
 use crate::recipes::{MachineRecipe, MACHINE_RECIPES};
 use crate::TICK_RATE;
 
@@ -11,6 +11,9 @@ use super::super::panel::{Panel, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE}
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::ticks;
 use super::{Energy, Pick, Processor, Status};
+
+/// Items, each with tenths of an item a minute.
+pub type Rates = Vec<(ItemId, u32)>;
 
 impl Processor {
     /// The first readout line, also the panel's status.
@@ -70,6 +73,30 @@ impl Processor {
         }
     }
 
+    /// What it takes and makes a minute at full speed (this tier, research's bonus, full power), in tenths of an item,
+    /// for the recipe it runs, was given or would run from what it holds: `(inputs, outputs)`. None for a machine
+    /// that does not work through recipes, or before it has one.
+    pub fn rates(&self) -> Option<(Rates, Rates)> {
+        if !matches!(self.spec.pick, Pick::Chosen | Pick::ByInput) {
+            return None;
+        }
+        let r = self.batch_recipe().or(self.chosen()).or_else(|| self.held_recipe())?;
+        // Work a tick at full power, as `work` counts it.
+        let work = self.stats().speed * self.boost / FULL_SPEED;
+        let a_minute = |list: &[(ItemId, u32)]| list.iter().map(|&(i, n)| (i, tenths_a_minute(r, n, work))).collect();
+        (work > 0).then(|| (a_minute(r.inputs), a_minute(r.outputs)))
+    }
+
+    /// `rates` in words: "Full speed: takes 30 Iron Ore, makes 30 Iron Ingot a minute".
+    pub fn rates_text(&self) -> Option<String> {
+        let (ins, outs) = self.rates()?;
+        let words = |list: Rates| -> String {
+            let each: Vec<String> = list.iter().map(|&(i, t)| format!("{} {}", tenths(t), item::name(i))).collect();
+            each.join(" and ")
+        };
+        Some(format!("Full speed: takes {}, makes {} a minute", words(ins), words(outs)))
+    }
+
     pub fn panel(&self) -> Panel {
         let chosen = self.spec.pick == Pick::Chosen;
         let progress = self.batch_recipe().map_or(0, |r| self.progress / ticks(r.seconds));
@@ -93,6 +120,7 @@ impl Processor {
     /// Status and rate, what it holds and its fire.
     pub(super) fn readout(&self) -> String {
         let mut lines = vec![self.status_text()];
+        lines.extend(self.rates_text());
         let held = |label: &str, b: &Buffer| {
             let each: Vec<String> =
                 b.contents().iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
@@ -139,5 +167,21 @@ impl Processor {
     fn fire_seconds(&self) -> u32 {
         let per_tick = (self.stats().speed * self.stats().fuel / 1000).max(1);
         self.burn.div_ceil(per_tick * TICK_RATE)
+    }
+}
+
+/// Tenths of an item a minute that `n` a batch of `r` comes to at `work` thousandths of a Mk1 tick each tick (a
+/// tier's `speed` at full power), a batch taking whole ticks as `work.rs` counts them.
+pub fn tenths_a_minute(r: &MachineRecipe, n: u32, work: u32) -> u32 {
+    let batch = u64::from((ticks(r.seconds) * FULL_SPEED).div_ceil(work.max(1)));
+    ((u64::from(n) * 600 * u64::from(TICK_RATE) + batch / 2) / batch) as u32
+}
+
+/// Tenths as words: "7.5", or "30" when whole (integers only: float formatting costs wasm size).
+pub fn tenths(t: u32) -> String {
+    if t.is_multiple_of(10) {
+        (t / 10).to_string()
+    } else {
+        format!("{}.{}", t / 10, t % 10)
     }
 }

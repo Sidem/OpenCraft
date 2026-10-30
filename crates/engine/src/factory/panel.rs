@@ -74,6 +74,14 @@ impl Factory {
         }
     }
 
+    /// What the machine at `pos` takes and makes a minute at full speed, in words (`Processor::rates_text`), if it says.
+    pub fn rates(&self, pos: IVec3) -> Option<String> {
+        match self.at.get(&pos)? {
+            Slot::Process(i) => self.processors[*i as usize].rates_text(),
+            _ => None,
+        }
+    }
+
     /// The slots of the box at `pos`, if there is one (its screen shows them, `ClickBox` edits them).
     pub fn box_slots(&self, pos: IVec3) -> Option<&[Stack]> {
         match self.at.get(&pos) {

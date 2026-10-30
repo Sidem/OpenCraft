@@ -38,6 +38,11 @@ impl Game {
         self.sim.factory.panel(IVec3::new(x, y, z)).map_or_else(String::new, |p| p.status)
     }
 
+    /// What the machine takes and makes a minute at full speed, in words (empty for one without recipes).
+    pub fn machine_rates(&self, x: i32, y: i32, z: i32) -> String {
+        self.sim.factory.rates(IVec3::new(x, y, z)).unwrap_or_default()
+    }
+
     pub fn panel_role_input(&self) -> u32 {
         crate::factory::ROLE_INPUT as u32
     }

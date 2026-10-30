@@ -98,6 +98,32 @@ fn concrete_leads_back_to_limestone_in_the_ground() {
 }
 
 #[test]
+fn the_plate_ratio_is_what_the_two_machines_panels_say() {
+    use crate::block::{CONSTRUCTOR, IRON_ORE, SMELTER};
+    use crate::factory::Factory;
+    use crate::item::{IRON_INGOT, IRON_PLATE};
+    use crate::math::IVec3;
+    let plates = MACHINE_RECIPES.iter().position(|r| r.main().0 == IRON_PLATE).unwrap();
+    let (mut f, mut world) = (Factory::default(), crate::world::World::new(1, 2));
+    let (smelter, constructor) = (IVec3::ZERO, IVec3::new(4, 0, 0));
+    f.place(&mut world, SMELTER, smelter, 0, smelter - IVec3::new(0, 1, 0), 0);
+    f.place(&mut world, CONSTRUCTOR, constructor, 0, constructor - IVec3::new(0, 1, 0), 0);
+    f.insert(smelter, IRON_ORE.into(), 1);
+    f.set_recipe(constructor, Some(plates as u16)).unwrap();
+    let give = f.smelter_at(smelter).rates().unwrap().1[0];
+    let need = f.constructor_at(constructor).rates().unwrap().0[0];
+    assert_eq!((give.0, need.0), (IRON_INGOT, IRON_INGOT));
+    let line = ratios(&WorldGen::new(7), plates);
+    let (a, b) = line.split_once(" Smelter to ").expect(&line);
+    let b: u32 = b.split(' ').next().unwrap().parse().unwrap();
+    let a: f64 = a.parse().unwrap();
+    // a smelters make what b constructors use, within the 3% the line rounds to.
+    let (made, used) = (a * f64::from(give.1), f64::from(b * need.1));
+    assert!((made - used).abs() <= used * 0.03, "{line}: {a} × {} against {b} × {}", give.1, need.1);
+    assert!(line.ends_with("Constructor (Iron Ingot)"), "{line}");
+}
+
+#[test]
 fn every_machine_named_can_be_built_by_hand() {
     let gen = WorldGen::new(7);
     for r in MACHINE_RECIPES.iter().filter(|r| r.category != Category::Launch) {

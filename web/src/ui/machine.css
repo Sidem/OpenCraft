@@ -23,6 +23,12 @@
   font-size: 14px;
 }
 
+/* What it takes and makes a minute at full speed (the engine's words), to plan how many feed how many. */
+.mp-rates {
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
 /* How well it has run lately (the engine's words); the colour follows the percentage. */
 .mp-efficiency {
   margin: 0 0 8px;
