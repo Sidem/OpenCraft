@@ -13,8 +13,9 @@
 //! With upgrade kits selected the same drag upgrades belts instead (`factory/upgrades.rs`): the path
 //! ([`plan_upgrade`]) follows existing belts, the cells are the belts one tier below the kit, and
 //! releasing sends `Upgrade` actions as far as the kits last. Shift-clicking a belt upgrades every belt
-//! joined to it of the same tier (`Factory::belt_chain`). Clicking another tiered machine (a miner) with
-//! kits upgrades it at once. Before the click, `upgrade_aim.rs` outlines what the kit would upgrade.
+//! joined to it of the same tier, underpass pairs included (`Factory::belt_chain`). Clicking another tiered
+//! machine (a miner) with kits upgrades it at once. Each `Upgrade` names the kit's tier, so a held button
+//! (the host sends `using` every frame) never climbs past it with other kits. Before the click, `upgrade_aim.rs` outlines what the kit would upgrade.
 //!
 //! Belts and kits are paid for from the whole inventory, not just the held stack: a line takes belts from
 //! the held stack first, then from the other stacks (each placement names the slot it comes from).
@@ -27,7 +28,7 @@
 //! upgrading.
 
 use crate::action::Action;
-use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP};
+use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, UNDERPASS_IN};
 use crate::factory::{self, tiers, upgrades, Shape};
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
@@ -156,7 +157,9 @@ impl Game {
                 let end = self.line_end(start).unwrap_or_else(|| self.line.cells.last().map_or(start, |c| c.pos));
                 self.line.cells = match kit {
                     Some(tier) => {
-                        let belt_tier = |p| self.sim.factory.tiered_at(p).filter(|t| t.0 == BELT).map(|t| t.1);
+                        let belt_tier = |p| {
+                            self.sim.factory.tiered_at(p).filter(|t| matches!(t.0, BELT | UNDERPASS_IN)).map(|t| t.1)
+                        };
                         plan_upgrade(belt_tier, start, end, tier - 1)
                     }
                     None => match self.auto_route_known().then(|| self.plan_route(start, end)).flatten() {
@@ -198,9 +201,15 @@ impl Game {
         let item = self.inventory().selected_stack().item;
         let mut queue = Vec::with_capacity(cells.len());
         if upgrading {
-            let slot = self.inventory().selected as u8;
-            let n = cells.len().min(self.line_budget());
-            queue.extend(cells.iter().take(n).map(|c| Build { pos: c.pos, dir: c.dir, item, slot }));
+            // As far as the kits go, nearest first: an underpass takes more than a belt.
+            let (slot, have, budget) =
+                (self.inventory().selected as u8, self.inventory().count(item), self.line_budget());
+            let mut spent = 0;
+            let paid = cells.iter().take(budget).take_while(|c| {
+                spent += self.sim.factory.upgrade_kits([c.pos]);
+                spent <= have
+            });
+            queue.extend(paid.map(|c| Build { pos: c.pos, dir: c.dir, item, slot }));
         } else {
             let mut pools: Vec<(ItemId, std::vec::IntoIter<u8>)> = Vec::new();
             for (c, _) in cells.iter().zip(pass::affordable(cells, self.line_budget())).filter(|p| p.1) {
@@ -260,20 +269,20 @@ impl Game {
     fn start_upgrade(&mut self, tier: u8) -> bool {
         let Some(hit) = self.target else { return false };
         match self.sim.factory.tiered_at(hit.block) {
-            Some((BELT, t)) if t + 1 == tier && self.body().input.sprint => {
-                // Shift: the whole line of belts joined to this one.
+            Some((BELT | UNDERPASS_IN, t)) if t + 1 == tier && self.body().input.sprint => {
+                // Shift: the whole line of belts joined to this one, underpasses included.
                 let chain = self.sim.factory.belt_chain(hit.block, MAX_CHAIN);
                 let cells: Vec<_> = chain.iter().map(|&pos| LineCell::belt(pos, 0, Shape::Flat)).collect();
                 self.queue_build(&cells, true);
                 self.using = false;
             }
-            Some((BELT, t)) => {
+            Some((BELT | UNDERPASS_IN, t)) => {
                 self.line.start = Some((hit.block, 0));
                 let cell = LineCell::belt(hit.block, 0, Shape::Flat);
                 self.line.cells = if t + 1 == tier { vec![cell] } else { Vec::new() };
             }
             Some(_) => {
-                self.act(Action::Upgrade { pos: hit.block });
+                self.act(Action::Upgrade { pos: hit.block, tier });
                 self.using = false;
             }
             None => return false,
@@ -336,7 +345,8 @@ impl Game {
             }
             self.line.building.pop();
             if self.line.upgrading {
-                self.act(Action::Upgrade { pos });
+                let Some(tier) = upgrades::kit_tier(item) else { continue };
+                self.act(Action::Upgrade { pos, tier });
             } else if self.line.ghosting {
                 self.act(Action::PlaceGhost { pos, slot, facing: dir });
             } else {

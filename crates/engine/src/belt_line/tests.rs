@@ -1,7 +1,7 @@
 use super::*;
 use crate::block::{AIR, STONE, STORAGE, UNDERPASS_IN};
 use crate::inventory::Stack;
-use crate::item::GREEN_KIT;
+use crate::item::{self, GREEN_KIT};
 use crate::raycast::RayHit;
 use crate::tests::{belt_test_slab, run_until_ready};
 
@@ -287,6 +287,65 @@ fn shift_clicking_a_belt_upgrades_its_whole_line_with_kits_from_every_stack() {
     let tiers: Vec<u8> = (0..6).map(|x| g.sim.factory.belt_at(IVec3::new(x, 70, 0)).tier).collect();
     assert_eq!(tiers, [1, 1, 1, 1, 1, 0], "five kits upgrade the five belts nearest the click");
     assert_eq!(g.item_total(GREEN_KIT.0), 0);
+}
+
+/// `kit_line` with an underpass pair after it (x 6 and 9) and two more belts (x 10, 11): 10 pieces at y 70.
+fn kit_line_with_underpass(g: &mut Game) -> Vec<IVec3> {
+    kit_line(g, 6);
+    for x in [6, 9] {
+        let pos = IVec3::new(x, 70, 0);
+        g.sim.factory.place(&mut g.sim.world, UNDERPASS_IN, pos, 1, pos - UP, 0);
+    }
+    for x in [10, 11] {
+        g.sim.factory.add_belt(IVec3::new(x, 70, 0), 1);
+    }
+    g.run_ticks(1);
+    [0, 1, 2, 3, 4, 5, 6, 9, 10, 11].map(|x| IVec3::new(x, 70, 0)).to_vec()
+}
+
+/// Holds the use button on `hit` for half a second, as the host does: `using` again every frame.
+fn hold(g: &mut Game, hit: RayHit) {
+    for _ in 0..30 {
+        (g.target, g.using) = (Some(hit), true);
+        g.update_belt_line();
+        g.run_ticks(1);
+    }
+}
+
+/// Kits for every tier, the green ones held: a green click must never spend the others.
+const ALL_KITS: [(usize, ItemId, u32); 4] =
+    [(0, GREEN_KIT, 40), (1, item::BLUE_KIT, 40), (2, item::VIOLET_KIT, 40), (3, item::GOLD_KIT, 40)];
+
+#[test]
+fn shift_clicking_upgrades_the_underpasses_in_the_line_to_the_kits_tier_only() {
+    let mut g = Game::new(7, 2);
+    let pieces = kit_line_with_underpass(&mut g);
+    stock(&mut g, &ALL_KITS, 0);
+    let hit = RayHit { block: IVec3::new(0, 70, 0), normal: IVec3::ZERO, id: BELT };
+    g.target = Some(hit);
+    g.body_mut().input.sprint = true;
+    g.update_belt_line();
+    assert!(g.line.aim.label.contains("8 belts + 2 underpasses"), "{}", g.line.aim.label);
+    assert!(g.line.aim.label.contains("12 × "), "an underpass takes two kits: {}", g.line.aim.label);
+    hold(&mut g, hit);
+    let tiers: Vec<u8> = pieces.iter().map(|&p| g.sim.factory.tiered_at(p).unwrap().1).collect();
+    assert_eq!(tiers, [1; 10], "every piece of the line, underpasses too, at Mk2 and no higher");
+    assert_eq!(g.item_total(GREEN_KIT.0), 40 - 12);
+    assert_eq!(g.item_total(item::BLUE_KIT.0), 40, "no blue kit spent");
+}
+
+#[test]
+fn holding_the_button_on_an_underpass_raises_it_one_tier() {
+    let mut g = Game::new(7, 2);
+    kit_line_with_underpass(&mut g);
+    stock(&mut g, &ALL_KITS, 0);
+    let pass = IVec3::new(6, 70, 0);
+    hold(&mut g, RayHit { block: pass, normal: IVec3::ZERO, id: UNDERPASS_IN });
+    g.using = false;
+    g.update_belt_line();
+    g.run_ticks(30);
+    assert_eq!(g.sim.factory.tiered_at(pass), Some((UNDERPASS_IN, 1)), "a green kit makes Mk2, not Mk4");
+    assert_eq!(g.item_total(item::BLUE_KIT.0) + g.item_total(item::VIOLET_KIT.0), 80);
 }
 
 #[test]

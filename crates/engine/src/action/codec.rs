@@ -138,9 +138,10 @@ impl Action {
                 w.u8(22);
                 w.u32(id);
             }
-            Action::Upgrade { pos } => {
+            Action::Upgrade { pos, tier } => {
                 w.u8(23);
                 w.ivec3(pos);
+                w.u8(tier);
             }
             Action::Connect { pole, to } => {
                 w.u8(27);

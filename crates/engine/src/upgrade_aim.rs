@@ -3,8 +3,8 @@
 //! `belt_line.rs` (belts, miners and the rest) and the core's `Action::Upgrade`.
 //!
 //! [`Aim`] is recomputed every tick a kit is held and no belt line is being dragged. A machine gets an
-//! outline over all its cells; a belt gets its own outline, or with Shift held every belt joined to it of
-//! the same tier (`Factory::belt_chain`). The colour is the kit's tier colour, or red when the kits in the
+//! outline over all its cells; a belt or underpass gets its own outline, or with Shift held every belt and
+//! underpass joined to it of the same tier (`Factory::belt_chain`). The colour is the kit's tier colour, or red when the kits in the
 //! inventory don't pay for it or research hasn't unlocked the step. The HUD label gives the cost.
 //!
 //! To change what is said or drawn: `upgrade_aim`. The host reads `placement_box` (the machine's outline),
@@ -52,14 +52,13 @@ impl Game {
         }
         let title = format!("{name} · Mk{from} → Mk{}", from + 1);
         let have = self.inventory().count(kit);
-        let cost = |units: usize| {
-            let kits = units as u32 * step.kits;
+        let cost = |kits: u32| {
             let short = if have < kits { format!(" (you have {have})") } else { String::new() };
             (kits, format!("{kits} × {}{short}", item::name(kit)))
         };
-        if block != block::BELT {
+        if block != block::BELT && block != block::UNDERPASS_IN {
             let cells = f.footprint_at(hit.block).map_or_else(|| vec![hit.block], |f| f.2);
-            let (kits, cost) = cost(1);
+            let (kits, cost) = cost(step.kits);
             let colour = if have >= kits { upgrades::TIER_COLOURS[step.tier as usize] as i32 } else { BLOCKED_RED };
             return Aim {
                 machine: Some(bounds(&cells)),
@@ -70,12 +69,13 @@ impl Game {
         }
         let whole_line = self.body().input.sprint;
         let belts = if whole_line { f.belt_chain(hit.block, MAX_CHAIN) } else { vec![hit.block] };
-        let n = belts.len();
+        let passes = belts.iter().filter(|&&p| f.tiered_at(p).is_some_and(|t| t.0 == block::UNDERPASS_IN)).count();
         let how =
             if whole_line { "click to upgrade them all" } else { "click to upgrade · hold Shift for the whole line" };
         let title = if whole_line { format!("{title} (whole line)") } else { title };
+        let (_, cost) = cost(f.upgrade_kits(belts.iter().copied()));
         Aim {
-            label: format!("{title}\n{n} belt{} · {} · {how}", if n == 1 { "" } else { "s" }, cost(n).1),
+            label: format!("{title}\n{} · {cost} · {how}", pieces(belts.len() - passes, passes)),
             belts,
             ..Aim::default()
         }
@@ -85,6 +85,27 @@ impl Game {
     pub(crate) fn aim_box(&self) -> Vec<i32> {
         let a = &self.line.aim;
         a.machine.map_or_else(Vec::new, |(lo, hi)| vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, a.colour])
+    }
+}
+
+/// "3 belts", "1 underpass" or "3 belts + 2 underpasses".
+fn pieces(belts: usize, passes: usize) -> String {
+    let say = |n: usize, one: &str| {
+        format!(
+            "{n} {one}{}",
+            if n == 1 {
+                ""
+            } else if one == "belt" {
+                "s"
+            } else {
+                "es"
+            }
+        )
+    };
+    match (belts, passes) {
+        (_, 0) => say(belts, "belt"),
+        (0, _) => say(passes, "underpass"),
+        _ => format!("{} + {}", say(belts, "belt"), say(passes, "underpass")),
     }
 }
 

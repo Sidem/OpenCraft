@@ -98,7 +98,7 @@ fn kits_upgrade_belts_until_they_run_out_once_research_allows() {
     let at = |x: i32| IVec3::new(500 + x, 200, -500);
     (0..12).for_each(|x| sim.factory.add_belt(at(x), 1));
     sim.apply(P, Action::Give { item: GREEN_KIT, count: 9 });
-    let upgrade_all = |sim: &mut Sim| (0..12).for_each(|x| sim.apply(P, Action::Upgrade { pos: at(x) }));
+    let upgrade_all = |sim: &mut Sim| (0..12).for_each(|x| sim.apply(P, Action::Upgrade { pos: at(x), tier: 1 }));
     upgrade_all(&mut sim);
     assert_eq!(inv(&sim).count(GREEN_KIT), 9, "Belt Mk2 isn't researched yet");
     for tech in [0, 2, 4, 5] {
@@ -108,6 +108,10 @@ fn kits_upgrade_belts_until_they_run_out_once_research_allows() {
     let tiers: Vec<u8> = (0..12).map(|x| sim.factory.tiered_at(at(x)).unwrap().1).collect();
     assert_eq!(tiers, [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0], "9 kits upgrade 9 of 12");
     assert_eq!(inv(&sim).count(GREEN_KIT), 0);
+    // An upgrade names its tier: sent again, it doesn't climb on with other kits.
+    sim.apply(P, Action::Give { item: crate::item::BLUE_KIT, count: 9 });
+    sim.apply(P, Action::Upgrade { pos: at(0), tier: 1 });
+    assert_eq!((sim.factory.tiered_at(at(0)).unwrap().1, inv(&sim).count(crate::item::BLUE_KIT)), (1, 9));
     // Breaking an upgraded belt gives the Mk2 item back, never the kit.
     sim.events.clear();
     sim.apply(P, Action::BreakBlock { pos: at(0) });
@@ -512,7 +516,7 @@ fn samples() -> Vec<Action> {
         Action::SetQuarry { pos, width: 3, depth: 2, paused: true },
         Action::MarkSite { a: (i32::MIN, 5), b: (-9, i32::MAX), level: 70, job: Job::Flatten },
         Action::RemoveSite { id: u32::MAX - 1 },
-        Action::Upgrade { pos },
+        Action::Upgrade { pos, tier: 2 },
         Action::SortInventory,
         Action::SortBox { pos },
         Action::CancelCraft { order: 513 },

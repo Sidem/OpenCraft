@@ -35,6 +35,21 @@ fn a_chain_follows_belts_of_one_tier_both_ways_and_through_side_joins() {
 }
 
 #[test]
+fn a_chain_runs_through_an_underpass_pair_and_takes_both_ends() {
+    use crate::block::UNDERPASS_IN;
+    let mut f = Factory::default();
+    let world = &mut crate::world::World::new(1, 2);
+    f.add_belt(at(0, 0), EAST);
+    f.place(world, UNDERPASS_IN, at(1, 0), EAST, at(1, 0), 0);
+    f.place(world, UNDERPASS_IN, at(4, 0), EAST, at(4, 0), 0);
+    f.add_belt(at(5, 0), EAST);
+    run(&mut f, 0.05, |_| {});
+    let mut chain = f.belt_chain(at(0, 0), 99);
+    chain.sort_by_key(|p| p.x);
+    assert_eq!(chain, [at(0, 0), at(1, 0), at(4, 0), at(5, 0)]);
+}
+
+#[test]
 fn a_chain_is_capped_and_empty_where_no_belt_stands() {
     let f = line();
     assert_eq!(f.belt_chain(at(4, 0), 2).len(), 2);

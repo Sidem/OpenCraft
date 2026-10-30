@@ -131,8 +131,8 @@ impl Sim {
             Action::RemoveSite { id } => {
                 self.factory.sites.remove(id);
             }
-            Action::Upgrade { pos } => {
-                let Some(step) = self.factory.next_upgrade(pos) else { return };
+            Action::Upgrade { pos, tier } => {
+                let Some(step) = self.factory.next_upgrade(pos).filter(|s| s.tier == tier) else { return };
                 if !self.factory.research.has(Unlock::Upgrade(step.block, step.tier)) || inv.count(step.kit) < step.kits
                 {
                     return;

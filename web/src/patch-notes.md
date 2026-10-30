@@ -5,6 +5,8 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-30 · Machine icons you can tell apart
 - **Sixteen machine icons now look like the real thing** instead of a cube: a cooling tower's waisted chimney, a steam turbine's rotor, a pumpjack nodding over its well, a hoist's headframe, a winch with its hook, a robot arm for the constructor, a coiled power cable with its plug, and more.
+- **Shift-upgrading a belt line now upgrades its underpasses too**, both ends of each pair, and the label counts them (an underpass takes two kits).
+- **An upgrade kit only raises a machine to its own tier.** Holding the button on an underpass with green kits used to spend your other kits and climb all the way to Mk4.
 - **Higher tiers share their machine's icon**, so a Constructor Mk3 looks like a constructor too.
 - **Some round parts reappear in icons** (gears, motors, servos, satellites): they had gone missing when drawn after a flat part.
 

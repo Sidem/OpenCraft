@@ -289,6 +289,12 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-30: kits upgrade underpasses to their own tier** (user: a green kit took an underpass to Mk4). The host
+  sends `using` every frame, so a held click on a non-belt piece re-sent `Upgrade`, and the core took whatever kit the
+  next step needed. `Action::Upgrade` now names the kit's tier (the codec grew a byte: co-op peers must match). Shift
+  lines include underpass pairs (`belt_chain`), budgeted per piece (`Factory::upgrade_kits`, 2 kits an underpass).
+  Tests: `belt_line/tests.rs` holds the button 30 frames with every kit in stock; `belt_chain/tests.rs`.
+
 - **2026-10-30: machine icons after the real things** (user: 16 icons hard to recognise). 13 are built by hand in
   `item_models/machines.rs` + `machines_plant.rs` (a waisted cooling tower, a turbine rotor, a headframe, a winch and
   hook, a cable coil and plug, a horsehead pumpjack, a robot arm…); pipe, rail and fibre node draw their placed model

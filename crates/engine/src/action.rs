@@ -203,9 +203,11 @@ pub enum Action {
         pole: IVec3,
         on: bool,
     },
-    /// Raises the tiered machine at `pos` one tier with kits from the inventory (`factory/upgrades.rs`).
+    /// Raises the tiered machine at `pos` one tier, to `tier` (the held kit's), with kits from the inventory
+    /// (`factory/upgrades.rs`); nothing when its next tier is another, so a click held or sent twice never climbs on.
     Upgrade {
         pos: IVec3,
+        tier: u8,
     },
     /// Chooses what every lab in the world researches (`u8::MAX` to stop); only an available tech.
     SetResearch {

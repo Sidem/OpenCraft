@@ -115,9 +115,9 @@ impl Game {
         }
         let held = self.inventory().selected_stack().item;
         if let Some(tier) = factory::upgrades::kit_tier(held) {
-            let per = factory::tiers::family(block::BELT).map_or(1, |f| f.kits) as usize;
-            let (kits, have) = (n * per, self.inventory().count(held));
-            let short = if (have as usize) < kits { format!(" (you have {have})") } else { String::new() };
+            let kits = self.sim.factory.upgrade_kits(self.line.cells.iter().map(|c| c.pos));
+            let have = self.inventory().count(held);
+            let short = if have < kits { format!(" (you have {have})") } else { String::new() };
             if let Some(t) = self.sim.factory.research.locked_by(Unlock::Upgrade(block::BELT, tier)) {
                 return format!("Belt upgrade to Mk{}\nResearch {} first", tier + 1, research::TECHS[t as usize].name);
             }

@@ -36,7 +36,7 @@ impl Action {
                 job: Job::from_byte(r.u8()?)?,
             },
             22 => Action::RemoveSite { id: r.u32()? },
-            23 => Action::Upgrade { pos: r.ivec3()? },
+            23 => Action::Upgrade { pos: r.ivec3()?, tier: r.u8()? },
             24 => Action::SortInventory,
             25 => Action::SortBox { pos: r.ivec3()? },
             26 => Action::CancelCraft { order: r.u16()? },

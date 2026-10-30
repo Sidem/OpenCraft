@@ -84,6 +84,11 @@ impl Factory {
         Some(Step { block, tier: next, kit: kit(next)?, kits: family.kits })
     }
 
+    /// The kits the next upgrade of every machine at `cells` takes together (an underpass takes more than a belt).
+    pub fn upgrade_kits(&self, cells: impl IntoIterator<Item = IVec3>) -> u32 {
+        cells.into_iter().filter_map(|p| self.next_upgrade(p)).map(|s| s.kits).sum()
+    }
+
     /// Raises the machine at `pos` one tier (the caller has taken the kits). False if it can't go higher.
     pub fn upgrade(&mut self, pos: IVec3) -> bool {
         let Some((_, tier)) = self.tiered_at(pos).filter(|_| self.next_upgrade(pos).is_some()) else { return false };
