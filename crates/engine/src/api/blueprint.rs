@@ -9,7 +9,8 @@ use crate::Game;
 
 #[wasm_bindgen]
 impl Game {
-    /// Z in ghost mode: mark a box corner, finish the box, clear it, or put a held blueprint away.
+    /// Z in ghost mode: mark a box corner (replacing a selected box), finish the box, clear it when aimed at
+    /// nothing, or put a held blueprint away.
     pub fn blueprint_mark(&mut self) {
         self.mark_blueprint_corner();
     }
@@ -24,10 +25,27 @@ impl Game {
         self.library.version
     }
 
-    /// One line per blueprint: its name, a tab, and how many machines it holds.
+    /// One line per blueprint: its name, a tab, and how many pieces (machines, belts, poles…) it holds.
     pub fn blueprint_list(&self) -> String {
         let rows: Vec<String> = self.library.list.iter().map(|b| format!("{}\t{}", b.name, b.entries.len())).collect();
         rows.join("\n")
+    }
+
+    /// Blueprint `i` seen from above for the library's picture: its box size (x, y, z), then
+    /// `blueprint_plan_fields()` numbers per piece (`blueprint/plan.rs`). Empty when there is no such blueprint.
+    pub fn blueprint_plan(&self, i: u32) -> Vec<i32> {
+        self.library.list.get(i as usize).map_or_else(Vec::new, |b| b.plan())
+    }
+
+    pub fn blueprint_plan_fields(&self) -> u32 {
+        blueprint::PLAN_FIELDS as u32
+    }
+
+    /// What building blueprint `i` takes, most needed first: `[item, count, carried]` per item.
+    pub fn blueprint_needs(&self, i: u32) -> Vec<u32> {
+        let Some(bp) = self.library.list.get(i as usize) else { return Vec::new() };
+        let inv = self.inventory();
+        bp.needs().iter().flat_map(|&(it, n)| [u32::from(it.0), n, inv.count(it)]).collect()
     }
 
     /// The blueprint in hand, or -1.

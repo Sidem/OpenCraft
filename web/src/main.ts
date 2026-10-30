@@ -137,7 +137,7 @@ async function main(): Promise<void> {
   research.onDone = () => sound.ui();
   const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
   const hints = new Hints(game, renderer, () => sound.preview('powerup', 0));
-  const blueprints = new BlueprintPanel(game);
+  const blueprints = new BlueprintPanel(game, (id) => hud.itemIcon(id));
   const sites = new SitePanel(game);
   const craftQueue = new CraftQueueView(game, (id) => hud.itemIcon(id));
   const prospect = new ProspectPanel(game);

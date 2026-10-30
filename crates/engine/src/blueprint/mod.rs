@@ -15,7 +15,10 @@
 //! To copy more of a machine: read it in `Factory::placed_as` and carry it in [`Entry`] (and `Ghost`).
 
 mod hands;
+mod plan;
 mod repeat;
+
+pub use plan::PLAN_FIELDS;
 #[cfg(test)]
 mod tests;
 

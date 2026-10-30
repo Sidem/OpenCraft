@@ -78,7 +78,7 @@ impl Game {
         let lib = &mut self.library;
         match Blueprint::copy(&self.sim, lo, hi, name) {
             Ok(bp) => {
-                lib.note = format!("Copied {} machines", bp.entries.len());
+                lib.note = format!("Copied {} pieces", bp.entries.len());
                 lib.list.push(bp);
                 lib.held = Some(lib.list.len() - 1);
                 lib.turns = 0;
@@ -141,7 +141,7 @@ impl Game {
         let with_note =
             |how: &str| if lib.note.is_empty() { how.to_string() } else { format!("{} · {how}", lib.note) };
         if let Some(bp) = lib.held.and_then(|i| lib.list.get(i)) {
-            let title = format!("Blueprint · {} · {} machines", bp.name, bp.entries.len());
+            let title = format!("Blueprint · {} · {} pieces", bp.name, bp.entries.len());
             let inv = self.inventory();
             let short: Vec<String> = bp
                 .needs()

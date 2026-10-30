@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-30 · Blueprints you can recognise
+- **Each blueprint in the library (L) now shows a picture of it from above**: machines as their icons on their footprint, belts as tracks with an arrow the way items go.
+- **The card lists what the blueprint holds** ("3 Smelter", "12 Conveyor Belt"), marks in red what you carry too little of, and says what is missing to build it all.
+- **Blueprints count pieces, not machines**, since belts and poles are copied too.
+
 ## 2026-10-30 · Blueprint keys that do what they say
 - **Z always marks a corner.** Two presses aimed at blocks make a box, even when a box was already marked for you: pressing Z used to clear that box first, so the second press only marked one corner. Z aimed at the sky clears a box.
 - **Leaving ghost mode forgets a half-marked box**, so the next time you press Z it starts fresh instead of finishing an old corner.

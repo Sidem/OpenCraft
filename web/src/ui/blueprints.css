@@ -1,7 +1,7 @@
 /* Blueprint library (blueprints.ts): the frame is the machine panel's (machine.css). */
 
 .bp {
-  width: min(620px, 100%);
+  width: min(680px, 100%);
 }
 
 .bp-help {
@@ -16,12 +16,81 @@
   color: var(--muted);
 }
 
+/* A card: the picture, then name, items and status, then the buttons. */
 .bp-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.bp-plan {
+  display: block;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.bp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bp-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 0;
-  border-top: 1px solid var(--panel-border);
+}
+
+.bp-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+}
+
+.bp-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 3px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.bp-item.bp-short {
+  color: #ff9b8f;
+  background: rgba(255, 90, 70, 0.14);
+}
+
+.bp-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.bp-more {
+  align-self: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bp-status {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bp-status.bp-missing {
+  color: #ff9b8f;
+}
+
+.bp-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .bp-name {

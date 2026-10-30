@@ -47,6 +47,27 @@ fn copy_takes_machine_anchors_with_facing() {
 }
 
 #[test]
+fn the_plan_shows_every_piece_from_above() {
+    let bp = whole_box(&factory());
+    let plan = bp.plan();
+    assert_eq!(&plan[..3], &[bp.size.x, bp.size.y, bp.size.z]);
+    let pieces: Vec<&[i32]> = plan[3..].chunks_exact(PLAN_FIELDS).collect();
+    assert_eq!(pieces.len(), bp.entries.len(), "one piece per entry");
+    let of = |item: ItemId| pieces.iter().filter(|p| p[5] == i32::from(item.0)).count() as u32;
+    for (item, n) in bp.needs() {
+        assert_eq!(of(item), n, "the plan holds what building it needs");
+    }
+    let belts: Vec<&&[i32]> = pieces.iter().filter(|p| p[5] == i32::from(ItemId::block(BELT).0)).collect();
+    assert!(belts.iter().all(|p| (p[6], p[7]) == (1, 1)), "belts run east and show which way: {belts:?}");
+    let asm = pieces.last().unwrap();
+    assert_eq!(asm[5], i32::from(ItemId::block(ASSEMBLER).0), "the tallest piece is drawn last");
+    assert_eq!((asm[2] - asm[0], asm[3] - asm[1], asm[7]), (1, 1, 0), "a 2×2 machine covers 2×2 columns");
+    for p in &pieces {
+        assert!(p[0] >= 0 && p[2] < bp.size.x && p[1] >= 0 && p[3] < bp.size.z, "{p:?} inside the box");
+    }
+}
+
+#[test]
 fn four_turns_come_back_and_each_turn_keeps_the_shape() {
     let bp = whole_box(&factory());
     assert_eq!(bp.turned(4), (bp.size, bp.entries.clone()));
