@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-30 · Round pipes and fixes
+- **Pipes are round**, with a steel flange at every joint and a hub where they branch. Joined pipes no longer flicker as you move: they used to draw the same surface twice where they met.
+- **Copper wire is a round spool** now, with an axle hole and a loose end.
+- **The map's filter chips are back in the side panel.** They had piled up over the close button in the top right corner.
+- **Choosing an item in a filter now shows at once** which one is picked, and its line updates.
+
 ## 2026-10-29 · Show on map
 - **Analytics can now show you where your machines are.** In the Machines tab (P), every kind of machine and every one of the slowest machines has a **Show on map** button. It opens the map with each machine of that kind circled: green at full speed, amber when slowed, red when badly held back, a grey dashed circle when it has nothing to do. A strip at the top counts what holds them back, and resting the mouse on a circle says how fast that machine runs, what stops it and where it stands. From a slowest machine, the map centres on that one. Thanks to a playtester for the idea.
 

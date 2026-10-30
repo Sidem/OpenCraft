@@ -61,7 +61,8 @@ local player's hands, presentation, then the **deterministic core**, which never
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
   `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`.
-- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `fake_round` the check none is faked from boxes),
+- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `fake_round` the check none is faked from boxes;
+  `tests/face_fight.rs` the check no two faces share a plane),
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
@@ -149,7 +150,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 ## Outside the game
 
 - `signal/`: the Cloudflare signalling Worker (`src/index.ts` routes, `src/room.ts` the room); deploying: WORKFLOW section 4.
-- `scripts/`: `check.mjs` (`npm run check`), `check-size.mjs` (budgets), `check-map.mjs` (this map and the core layer),
+- `scripts/`: `check.mjs` (`npm run check`), `check-size.mjs` (budgets), `check-css.mjs` (one stylesheet per class),
+  `check-map.mjs` (this map and the core layer),
   `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
   `bench-flight.mjs` (frame timing on a real save), `bake-sky/` (star data, not part of the build).
 - `tools/art/`: the art pack's Python tool (`build.py`, `check.py`); see `docs/ART_STYLE.md`.

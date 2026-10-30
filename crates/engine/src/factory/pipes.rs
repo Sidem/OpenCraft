@@ -233,8 +233,10 @@ impl Machine for Pipework {
         }
     }
 
-    /// Pipes along every joined face (blue banded for water, pale and red banded for steam); a pump housing or
-    /// an outlet spout around them.
+    /// Round pipes (blue banded for water, pale and red banded for steam): a pipe whose joins lie on one line is one
+    /// straight length through its cell, else a round hub with an arm to each joined face; a pump housing or an outlet
+    /// spout around a pump's or outlet's arms. Each arm ends at its face, so joined cells never draw the same surface
+    /// twice (they flickered), and a steel flange rings each joint, drawn by the cell on its low side only.
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         let steel = [tex::STEEL; 3];
         let pipe = [match self.fluid {
@@ -242,31 +244,55 @@ impl Machine for Pipework {
             Fluid::Steam => tex::PIPE_STEAM,
             Fluid::Mixed => tex::LAMP_RED,
         }; 3];
-        for (f, &n) in FACES.iter().enumerate() {
-            if self.arms & (1 << f) != 0 {
-                let arm = n.as_vec3() * 0.3;
-                let size =
-                    [0.24 + 0.36 * n.x.abs() as f32, 0.24 + 0.36 * n.y.abs() as f32, 0.24 + 0.36 * n.z.abs() as f32];
-                push_box(out, rel + arm, 0.0, size, 0.0, pipe, false);
+        let joined = |f: usize| self.arms & (1 << f) != 0;
+        // The line every join lies on (none joined: the way it was placed), or none for a bend or a junction.
+        let facing = if DIRS[self.facing as usize].x != 0 { 0 } else { 2 };
+        let line = (0..6).filter(|&f| joined(f)).map(axis_of).try_fold(None, |line, a| match line {
+            Some(l) if l != a => Err(()),
+            _ => Ok(Some(a)),
+        });
+        let straight = match line {
+            Ok(a) => Some(a.unwrap_or(facing)),
+            Err(()) => None,
+        };
+        match (self.part, straight) {
+            (Part::Pipe, Some(a)) => push_round(out, rel, 0.0, AXES[a], along(a, 1.0, PIPE_D), 1.0, pipe, false),
+            (part, _) => {
+                if part == Part::Pipe {
+                    // The hub lies along the axis with the most arms.
+                    let arms_on = |a: usize| (0..6).filter(|&f| joined(f) && axis_of(f) == a).count();
+                    let a = (0..3).max_by_key(|&a| arms_on(a)).unwrap_or(0);
+                    push_round(out, rel, 0.0, AXES[a], along(a, HUB_D, HUB_D), 1.0, steel, false);
+                }
+                for (f, &n) in FACES.iter().enumerate().filter(|&(f, _)| joined(f)) {
+                    let a = axis_of(f);
+                    push_round(out, rel + n.as_vec3() * 0.25, 0.0, AXES[a], along(a, 0.5, PIPE_D), 1.0, pipe, false);
+                }
             }
         }
+        for (f, &n) in FACES.iter().enumerate().filter(|&(f, n)| joined(f) && n.x + n.y + n.z > 0) {
+            let a = axis_of(f);
+            push_round(out, rel + n.as_vec3() * 0.5, 0.0, AXES[a], along(a, FLANGE_LEN, FLANGE_D), 1.0, steel, false);
+        }
         match self.part {
-            Part::Pipe => push_box(out, rel, 0.0, [0.3; 3], 0.0, pipe, false),
+            Part::Pipe => {}
             Part::Pump => {
                 // A skid, a round impeller casing lying across, a motor on top whose fan turns while it pumps.
                 let skid = if self.tier > 0 { tex::stripe(self.tier) } else { tex::FRAME };
-                push_box(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.86, 0.14, 0.86], 0.0, [skid; 3], false);
+                // Its underside a hair above the cell's floor, off the plane where a downward arm ends.
+                push_box(out, rel + Vec3::new(0.0, -0.425, 0.0), 0.0, [0.86, 0.13, 0.86], 0.0, [skid; 3], false);
                 tier_mark::ring(out, rel + Vec3::new(0.0, -0.43, 0.0), 0.0, [0.43, 0.43], self.tier);
                 let casing = [tex::FRAME, tex::PIPE_WATER, tex::FRAME];
                 let at = rel + Vec3::new(0.0, -0.06, 0.0);
                 push_round(out, at, 0.0, Axis::X, [0.6, 0.62, 0.62], 1.0, casing, false);
                 let motor = [tex::FRAME, tex::MOTOR, tex::FRAME];
-                push_box(out, rel + Vec3::new(0.0, 0.36, 0.0), 0.0, [0.34, 0.26, 0.34], 0.0, motor, false);
+                // Motor and fan stay under the flange of a pipe joined on top.
+                push_box(out, rel + Vec3::new(0.0, 0.33, 0.0), 0.0, [0.34, 0.2, 0.34], 0.0, motor, false);
                 let spin = if self.flow == Flow::Working { (time * 9.0) as f32 } else { 0.0 };
-                push_box(out, rel + Vec3::new(0.0, 0.51, 0.0), spin, [0.32, 0.04, 0.08], 0.0, steel, false);
+                push_box(out, rel + Vec3::new(0.0, 0.45, 0.0), spin, [0.32, 0.04, 0.08], 0.0, steel, false);
                 push_box(
                     out,
-                    rel + Vec3::new(0.0, 0.4, 0.18),
+                    rel + Vec3::new(0.0, 0.37, 0.18),
                     0.0,
                     [0.12, 0.08, 0.02],
                     0.0,
@@ -287,6 +313,33 @@ impl Machine for Pipework {
             }
         }
     }
+}
+
+/// A pipe's diameter, a junction's hub, and the flange round each joint (as fractions of a block).
+const PIPE_D: f32 = 0.24;
+const HUB_D: f32 = 0.34;
+const FLANGE_D: f32 = 0.32;
+const FLANGE_LEN: f32 = 0.06;
+/// The round body's axis for world axis x, y, z.
+const AXES: [Axis; 3] = [Axis::X, Axis::Up, Axis::Z];
+
+/// The world axis (0 x, 1 y, 2 z) of face `f` of `FACES`.
+fn axis_of(f: usize) -> usize {
+    let n = FACES[f];
+    if n.x != 0 {
+        0
+    } else if n.y != 0 {
+        1
+    } else {
+        2
+    }
+}
+
+/// The size of a round body `len` long along world axis `a` and `d` across.
+fn along(a: usize, len: f32, d: f32) -> [f32; 3] {
+    let mut s = [d; 3];
+    s[a] = len;
+    s
 }
 
 /// The status lamp: green working, yellow full or blocked, red without power or water.

@@ -4,6 +4,11 @@ Earlier development entries, retained from DEV_PLAN.md so the active plan stays 
 
 ## 8. Change log of this plan
 
+- **2026-10-26: belt ejector and merging loose items** (user request). `factory/process/ejector.rs` (`Pick::Eject`, block 157):
+  holds 4 items, drops one per 0.1 s as `SimEvent::Dropped` from its tube's mouth (`MOUTH`), so a belt backs up (the rate is data).
+  `entities/merge.rs` merges resting loose items per 1.5-block cell, also unloaded; never tools. Host-side only. The update loop was
+  never the cost (`bench_items`); the gain is entity count (40 s: 12 entities, not 400, `tests/ejector.rs`). Belt-family icons:
+  `item_models/belts.rs`, judged by silhouette overlap (`item_models/tests.rs`).
 - **2026-10-26: poles hang on walls and need support** (user request). `factory/pole_mount.rs`: a pole needs a solid block
   under it or at one of its four sides, else `Sim::put_block` refuses it (`action/blocks.rs`; drones and blueprints too).
   With no ground under it, `Factory::place` picks the wall (the clicked side if solid, else the first) into `Pole::wall`,

@@ -76,12 +76,20 @@ const SCREWS: [Part; 3] = [
     part([-0.36, -0.06, -0.1], [0.13, 0.24, 0.24], tex::IRON_PLATE),
     part([0.11, 0.09, 0.17], [0.43, 0.09, 0.09], tex::SCREW),
 ];
-/// A spool on its side: copper windings between two wooden flanges, a loose end on the ground.
-const WIRE: [Part; 4] = [
-    part([-0.22, 0.0, 0.0], [0.06, 0.5, 0.5], tex::HANDLE),
-    part([0.0, 0.0, 0.0], [0.38, 0.4, 0.4], tex::COPPER_WIRE),
-    part([0.22, 0.0, 0.0], [0.06, 0.5, 0.5], tex::HANDLE),
-    part([0.05, -0.22, 0.33], [0.3, 0.04, 0.05], tex::COPPER_WIRE),
+/// A round spool on its side: copper windings between two round wooden flanges, a dark axle hole, and a loose end
+/// unrolled from under it along the ground.
+const WIRE: [Part; 5] = [
+    shapes::bar_x([-0.22, 0.0, 0.0], 0.06, 0.5, tex::HANDLE),
+    shapes::bar_x([0.0, 0.0, 0.0], 0.38, 0.4, tex::COPPER_WIRE),
+    Part {
+        center: [0.08, -0.23, 0.18],
+        size: [0.04, 0.04, 0.36],
+        yaw: 0.0,
+        tex: [tex::COPPER_WIRE; 3],
+        form: Form::Round(Axis::Z, 1.0),
+    },
+    shapes::bar_x([0.22, 0.0, 0.0], 0.06, 0.5, tex::HANDLE),
+    shapes::bar_x([0.25, 0.0, 0.0], 0.02, 0.12, tex::FRAME),
 ];
 /// Where each of a cog's 12 teeth points: the cosine and sine of k turns of 30 degrees.
 const TEETH: [(f32, f32); 12] = {

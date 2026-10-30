@@ -2,7 +2,8 @@
 // output of any step that fails. Exits 1 if anything failed.
 //   npm run check
 // Steps: rustfmt, clippy (warnings are errors), engine tests, TypeScript (web and the signal Worker),
-// the web tests (web/test, node --test), the music library lint, size budgets, the code map and core layer.
+// the web tests (web/test, node --test), the music library lint, size budgets, one stylesheet per CSS class, the code
+// map and core layer.
 // TypeScript needs the generated bindings in web/src/wasm (npm run build:wasm).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -23,6 +24,7 @@ const steps = [
   { name: 'web tests', cmd: 'node', args: ['--test', 'web/test/*.test.mjs'], summary: webTestSummary },
   { name: 'music', cmd: 'node', args: ['scripts/check-music.mjs'], summary: (out) => out.trim().split('\n') },
   { name: 'sizes', cmd: 'node', args: ['scripts/check-size.mjs'], summary: (out) => out.trim().split('\n') },
+  { name: 'css classes', cmd: 'node', args: ['scripts/check-css.mjs'], summary: (out) => out.trim().split('\n') },
   { name: 'code map', cmd: 'node', args: ['scripts/check-map.mjs'], summary: (out) => out.trim().split('\n') },
 ];
 

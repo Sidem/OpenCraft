@@ -18,7 +18,7 @@ const IDLE = '#a8a29e';
 
 export class MapFocus {
   /** The chip saying what is shown, for the map to place over its view. */
-  readonly chip = h('div', 'mf-chip hidden');
+  readonly chip = h('div', 'fo-chip hidden');
   /** Called when the chip's Clear is pressed. */
   onClear: () => void = () => {};
   private block = -1;
@@ -61,7 +61,7 @@ export class MapFocus {
     ];
     const text = this.list.length === 0 ? `No ${name} has run lately` : `${name} ×${this.list.length}: ${parts.filter(Boolean).join(', ')}`;
     if (this.chip.firstChild?.textContent !== text) {
-      this.chip.replaceChildren(h('span', 'mf-text', text), button('secondary-btn mf-clear', 'Clear', () => this.onClear()));
+      this.chip.replaceChildren(h('span', 'fo-text', text), button('secondary-btn fo-clear', 'Clear', () => this.onClear()));
     }
     this.chip.classList.remove('hidden');
   }

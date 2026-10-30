@@ -1,6 +1,6 @@
 /* "Show on map": the chip over the world map's view saying which machines are ringed (map-focus-layer.ts). */
 
-.mf-chip {
+.fo-chip {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -16,13 +16,13 @@
   cursor: default;
 }
 
-.mf-text {
+.fo-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mf-clear {
+.fo-clear {
   padding: 2px 10px;
   font-size: 12px;
 }

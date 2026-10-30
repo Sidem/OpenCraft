@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes (2026-10-30). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -289,6 +289,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-30: round pipes, wire spool, two UI fixes** (user: four bugs). Pipes are cylinders ending at their faces (a
+  straight one is one length, a junction a hub), with a flange drawn by the joint's low side only; joined arms had
+  overlapped 0.2 block and flickered. `factory/tests/face_fight.rs` fails on two faces sharing a plane and a facing
+  across all 2,304 pipework layouts (at HEAD it flagged the first joint; it also lowered the pump's fan out of a top
+  flange). Not fixed, found by the same check: cables fight in 54 of 64 layouts, fibre in 48. Copper wire is a round
+  spool. The map filter's chips had shared `.mf-chip` with the focus chip (now `fo-chip`); `scripts/check-css.mjs` fails
+  on a class defined in two stylesheets. A filter's choice is in its panel's redraw key (`ui/machine.ts`).
 - **2026-10-29: "Show on map" from analytics** (a playtester's idea). Every kind row and slowest row of the Machines tab
   opens the world map with each machine of that kind ringed by health (`analytics_machines_of`, `Machines::of_kind`;
   `ui/map-focus.ts` fits the view, `map-focus-layer.ts` draws rings, chip and hover lines; the pin list moved to
@@ -332,8 +339,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   stone/grass synth retune earlier the same day was dropped for this. earshot (an audio-ML judge) agreed with the user's
   ears on 24–34% of items and was not adopted as a judge; its sound bank supplied four effects.
 
-- **2026-10-26: belt ejector and merging loose items** (user request). `factory/process/ejector.rs` (`Pick::Eject`, block 157):
-  holds 4 items, drops one per 0.1 s as `SimEvent::Dropped` from its tube's mouth (`MOUTH`), so a belt backs up (the rate is data).
-  `entities/merge.rs` merges resting loose items per 1.5-block cell, also unloaded; never tools. Host-side only. The update loop was
-  never the cost (`bench_items`); the gain is entity count (40 s: 12 entities, not 400, `tests/ejector.rs`). Belt-family icons:
-  `item_models/belts.rs`, judged by silhouette overlap (`item_models/tests.rs`).

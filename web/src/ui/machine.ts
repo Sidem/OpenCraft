@@ -133,7 +133,8 @@ export class MachinePanel implements Beside {
     this.efficiency.dataset.level = percent < 0 ? 'idle' : percent >= 98 ? 'full' : percent >= 60 ? 'ok' : 'low';
     // Everything else changes rarely: redraw it only when the rest of the data or the inventory does.
     data[2] = 0;
-    const key = `${data.join(',')}|${g.inventory_version()}|${channel}`;
+    const filter = g.machine_filter(...this.pos);
+    const key = `${data.join(',')}|${g.inventory_version()}|${channel}|${filter}`;
     if (key === this.drawn) return true;
     this.drawn = key;
 
@@ -154,7 +155,6 @@ export class MachinePanel implements Beside {
     this.take.disabled = output <= 0;
     this.take.classList.toggle('hidden', output < 0);
 
-    const filter = g.machine_filter(...this.pos);
     const filtering = filter !== 0xffffffff;
     this.filterSection.classList.toggle('hidden', !filtering);
     this.put.classList.toggle('hidden', filtering || quarry);
