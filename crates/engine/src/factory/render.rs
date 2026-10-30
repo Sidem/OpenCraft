@@ -3,7 +3,7 @@
 //! in each kind's file); `map_machines` for the minimap's marks. Presentation only: nothing here
 //! changes factory state.
 
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 use crate::math::{IVec3, Vec3};
 
@@ -126,6 +126,28 @@ pub fn make_round(out: &mut [f32], axis: Axis, taper: f32) {
     }
     r[MODE_LIGHT] = packed(r[MODE_LIGHT] as u32 & 1 | ROUND, (r[MODE_LIGHT] as u32 >> 2) as u8);
     r[TAPER] = taper;
+}
+
+/// The part one instance record draws, as `push_shape` takes it: its form, centre, yaw, size and layers (the inverse
+/// of `push_shape`, for icons drawn from a placed model: `item_models/placed.rs`). A round body comes back along y or
+/// z (one along x is the same body along z turned a quarter); roll and a round body's lean are dropped.
+pub fn shape_of(r: &[f32]) -> (Form, [f32; 3], f32, [f32; 3], [u16; 3]) {
+    let centre = [r[0], r[1], r[2]];
+    let tex = [r[8] as u16, r[9] as u16, r[10] as u16];
+    let (yaw, pitch, size) = (r[3], r[PITCH], [r[4], r[5], r[6]]);
+    if r[MODE_LIGHT] as u32 & ROUND == 0 {
+        let form = if pitch.abs() < 1e-4 { Form::Box } else { Form::Lean(pitch) };
+        return (form, centre, yaw, size, tex);
+    }
+    // `make_round` laid a body along z by a quarter of pitch, its size then across, along, across.
+    let taper = r[TAPER];
+    if (pitch - FRAC_PI_2).abs() < 1e-3 {
+        (Form::Round(Axis::Z, taper), centre, yaw, [size[0], size[2], size[1]], tex)
+    } else if (pitch + FRAC_PI_2).abs() < 1e-3 {
+        (Form::Round(Axis::Z, taper), centre, yaw + PI, [size[0], size[2], size[1]], tex)
+    } else {
+        (Form::Round(Axis::Up, taper), centre, yaw, size, tex)
+    }
 }
 
 /// Pushes a part of `form` (a box or [`push_round`]). Always inlined: processors push every box through it, and a call per

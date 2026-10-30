@@ -1,4 +1,4 @@
-//! Where items go. `Slot` names a machine, `Link` is where a belt or miner delivers, `Sinks` borrows
+﻿//! Where items go. `Slot` names a machine, `Link` is where a belt or miner delivers, `Sinks` borrows
 //! the machines that take items and `deliver` hands one over. `relink` rebuilds the derived data after
 //! any machine is added or removed: belt outputs (for every belt shape) and corner curves, the outputs of every other machine,
 //! and the downstream-first belt update order, and the power grids (`power.rs`). Nothing here is saved; links are a pure function of the
@@ -166,7 +166,7 @@ pub(super) fn deliver(belts: &mut [Belt], sinks: &mut Sinks, link: Link, load: L
 
 impl Factory {
     /// Recomputes belt links, curves, machine outputs and the belt update order.
-    pub(super) fn relink(&mut self) {
+    pub(crate) fn relink(&mut self) {
         self.dirty = false;
         let exit_of = derive_passes(&mut self.belts);
         derive_slopes(&mut self.belts, &self.at);

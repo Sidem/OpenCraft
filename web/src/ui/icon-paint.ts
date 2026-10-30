@@ -59,6 +59,8 @@ export function paintBox(ctx: CanvasRenderingContext2D, layers: HTMLCanvasElemen
 function paintRound(ctx: CanvasRenderingContext2D, layers: HTMLCanvasElement[], view: IconView, p: number[]): void {
   const b = roundBody(p)!;
   const { S } = view;
+  // Its outline is in canvas pixels: a box painted before it leaves its last face's matrix set.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   const shape = outline(b).map((q) => toPx(view, q));
   const near = toPx(view, iso(endCentre(b, -1))), far = toPx(view, iso(endCentre(b, 1)));
   const along: P2 = [far[0] - near[0], far[1] - near[1]];

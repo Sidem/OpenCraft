@@ -102,6 +102,53 @@ fn every_icon_fills_its_box_with_a_margin() {
     eprintln!("smallest icon: {} at {:.2}", worst.1, worst.0);
 }
 
+/// Machines whose icons were drawn after the real thing to be told apart at hotbar size (`machines.rs`, `placed.rs`).
+const LOOKALIKES: [u8; 16] = {
+    use crate::block::*;
+    [
+        PIPE,
+        WASHER,
+        PUMPJACK,
+        PUMP,
+        OUTLET,
+        TURBINE,
+        WATER_WHEEL,
+        COOLING_TOWER,
+        CONSTRUCTOR,
+        REFINERY,
+        CENTRIFUGE,
+        RAIL,
+        WINCH,
+        HOIST,
+        CABLE,
+        FIBRE_NODE,
+    ]
+};
+
+#[test]
+fn machines_drawn_after_real_things_have_outlines_of_their_own() {
+    let masks: Vec<(&str, Vec<bool>)> = LOOKALIKES
+        .iter()
+        .map(|&b| (item::def(ItemId::block(b)).unwrap().name, fitted_mask(ItemId::block(b))))
+        .collect();
+    for &b in &LOOKALIKES {
+        assert!(icon_boxes(ItemId::block(b)).len() > 1, "block {b} is still a plain cube");
+    }
+    let mut closest = (0.0, "", "");
+    for (i, (a, ma)) in masks.iter().enumerate() {
+        for (b, mb) in &masks[i + 1..] {
+            let both = ma.iter().zip(mb).filter(|(x, y)| **x && **y).count();
+            let either = ma.iter().zip(mb).filter(|(x, y)| **x || **y).count();
+            let overlap = both as f32 / either as f32;
+            if overlap > closest.0 {
+                closest = (overlap, a, b);
+            }
+            assert!(overlap <= 0.8, "{a} and {b} share {overlap:.2} of their outlines");
+        }
+    }
+    eprintln!("closest outlines: {} and {} at {:.2}", closest.1, closest.2, closest.0);
+}
+
 #[test]
 fn a_full_block_keeps_its_size_and_sits_in_the_middle() {
     let frame = icon_frame(ItemId::block(crate::block::STONE));

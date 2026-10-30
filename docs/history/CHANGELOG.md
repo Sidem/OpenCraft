@@ -4,6 +4,22 @@ Earlier development entries, retained from DEV_PLAN.md so the active plan stays 
 
 ## 8. Change log of this plan
 
+- **2026-10-28: product signs and Mk studs** (user request). Every maker shows its product's model on a sign
+  (`process/display.rs`, `Look::Product`; chosen recipe, else the last batch, `Processor::shown`, guessed on load), and
+  every tiered machine of all 15 families wears its Mk as pale studs, collars on poles (`factory/tier_mark.rs`). Tests
+  cover every maker and family, slot fit, sight lines and studs left uncovered. `bench_machine_marks` (1,600 machines):
+  `write_instances` 149 → 168 µs (+13%, target was under 10%). A cold Haiku judge read 800×450 shots at the
+  16-block equivalent poorly (Mk 6/29, products 1/22; it answered rows as 1-2-3-4-5), so it is no judge at that size;
+  by eye, studs count at 8 blocks. Dark products (gear, screws) were lost on a dark sign, so the sign is a light
+  panel with a dark rim (`tex::SIGN`).
+
+- **2026-10-27: sound effects from files** (steps FX1–FX4; pushed 2026-10-28, then reverted on `main` at the user's
+  word: the work is on branch `sound-effects`). `audio/effects.ts` + `effect-levels.ts` + `effects/` (156
+  Opus files, 742 KB; sources in `effects/CREDITS.md`) replace the synthesised effects (`synth-orbit.ts` gone, `synth.ts`
+  kept for ambience). The designer has one Volume dial per material and action; saved designs keep their volumes. A
+  stone/grass synth retune earlier the same day was dropped for this. earshot (an audio-ML judge) agreed with the user's
+  ears on 24–34% of items and was not adopted as a judge; its sound bank supplied four effects.
+
 - **2026-10-26: belt ejector and merging loose items** (user request). `factory/process/ejector.rs` (`Pick::Eject`, block 157):
   holds 4 items, drops one per 0.1 s as `SimEvent::Dropped` from its tube's mouth (`MOUTH`), so a belt backs up (the rate is data).
   `entities/merge.rs` merges resting loose items per 1.5-block cell, also unloaded; never tools. Host-side only. The update loop was

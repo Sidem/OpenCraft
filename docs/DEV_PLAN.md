@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes (2026-10-30). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes, and 16 machine icons drawn after the real things (2026-10-30). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -289,6 +289,14 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-30: machine icons after the real things** (user: 16 icons hard to recognise). 13 are built by hand in
+  `item_models/machines.rs` + `machines_plant.rs` (a waisted cooling tower, a turbine rotor, a headframe, a winch and
+  hook, a cable coil and plug, a horsehead pumpjack, a robot arm…); pipe, rail and fibre node draw their placed model
+  (`placed.rs` via `factory::shape_of`). A tier's item shares its machine's icon. `icon-paint.ts` reset a transform a box
+  leaked into the next round part (17 other icons misdrew one: gear, motor, servo, satellites…). Judge: 16 at 40 px, 3
+  shuffles: cubes 2.7, placed models 5.3, final Opus 16/16/16; Sonnet 9.0, but it binds names to wrong letters in closed
+  cycles and two retests matched. Test: no two outlines overlap over 80%, none a cube. 75 of 111 machines are cubes.
+
 - **2026-10-30: round pipes, wire spool, two UI fixes** (user: four bugs). Pipes are cylinders ending at their faces (a
   straight one is one length, a junction a hub), with a flange drawn by the joint's low side only; joined arms had
   overlapped 0.2 block and flickered. `factory/tests/face_fight.rs` fails on two faces sharing a plane and a facing
@@ -322,20 +330,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   each icon to its model's screen bounds (`ICON_FILL`, centred; `item_icon` carries the fit); plant-drawn blocks draw as their
   picture trimmed to visible pixels (`ui/icon-sprite.ts`). After: none under 80% (ladder 81%, the rest 86–91%). Tests:
   `icon_frame/tests.rs` rasterises every item's fitted icon; `web/test/icon-sprite.test.mjs`. No save or core change.
-
-- **2026-10-28: product signs and Mk studs** (user request). Every maker shows its product's model on a sign
-  (`process/display.rs`, `Look::Product`; chosen recipe, else the last batch, `Processor::shown`, guessed on load), and
-  every tiered machine of all 15 families wears its Mk as pale studs, collars on poles (`factory/tier_mark.rs`). Tests
-  cover every maker and family, slot fit, sight lines and studs left uncovered. `bench_machine_marks` (1,600 machines):
-  `write_instances` 149 → 168 µs (+13%, target was under 10%). A cold Haiku judge read 800×450 shots at the
-  16-block equivalent poorly (Mk 6/29, products 1/22; it answered rows as 1-2-3-4-5), so it is no judge at that size;
-  by eye, studs count at 8 blocks. Dark products (gear, screws) were lost on a dark sign, so the sign is a light
-  panel with a dark rim (`tex::SIGN`).
-
-- **2026-10-27: sound effects from files** (steps FX1–FX4; pushed 2026-10-28, then reverted on `main` at the user's
-  word: the work is on branch `sound-effects`). `audio/effects.ts` + `effect-levels.ts` + `effects/` (156
-  Opus files, 742 KB; sources in `effects/CREDITS.md`) replace the synthesised effects (`synth-orbit.ts` gone, `synth.ts`
-  kept for ambience). The designer has one Volume dial per material and action; saved designs keep their volumes. A
-  stone/grass synth retune earlier the same day was dropped for this. earshot (an audio-ML judge) agreed with the user's
-  ears on 24–34% of items and was not adopted as a judge; its sound bank supplied four effects.
-

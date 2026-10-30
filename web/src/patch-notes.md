@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-30 · Machine icons you can tell apart
+- **Sixteen machine icons now look like the real thing** instead of a cube: a cooling tower's waisted chimney, a steam turbine's rotor, a pumpjack nodding over its well, a hoist's headframe, a winch with its hook, a robot arm for the constructor, a coiled power cable with its plug, and more.
+- **Higher tiers share their machine's icon**, so a Constructor Mk3 looks like a constructor too.
+- **Some round parts reappear in icons** (gears, motors, servos, satellites): they had gone missing when drawn after a flat part.
+
 ## 2026-10-30 · Round pipes and fixes
 - **Pipes are round**, with a steel flange at every joint and a hub where they branch. Joined pipes no longer flicker as you move: they used to draw the same surface twice where they met.
 - **Copper wire is a round spool** now, with an axle hole and a loose end.

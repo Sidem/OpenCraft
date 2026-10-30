@@ -23,6 +23,9 @@ mod belts;
 mod components;
 mod craft;
 mod icon_frame;
+mod machines;
+mod machines_plant;
+mod placed;
 mod power;
 mod shapes;
 mod space;
@@ -339,9 +342,17 @@ pub fn parts(item: ItemId) -> &'static [Part] {
         SCANNER_MK2 => &SCANNER_MK2_SET,
         CORE_DRILL => &DRILL_SET,
         _ => {
-            for find in
-                [stock::parts, components::parts, wear::parts, craft::parts, space::parts, power::parts, belts::parts]
-            {
+            for find in [
+                stock::parts,
+                components::parts,
+                wear::parts,
+                craft::parts,
+                space::parts,
+                power::parts,
+                belts::parts,
+                machines::parts,
+                placed::parts,
+            ] {
                 let model = find(item);
                 if !model.is_empty() {
                     return model;

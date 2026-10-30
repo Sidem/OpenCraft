@@ -74,7 +74,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
-- `item_models.rs` + `item_models/`: box and cylinder assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box).
+- `item_models.rs` + `item_models/`: box and cylinder assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box; `machines.rs` + `machines_plant.rs` hand-built machine icons; `placed.rs` icons from a placed model via `factory::shape_of`).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
 
 ### World and generation
