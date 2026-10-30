@@ -258,3 +258,68 @@ fn a_signal_in_hand_goes_on_a_node_and_comes_off_again() {
     assert!(!g.sim.factory.signal_at(a));
     assert_eq!(count(&g), 3);
 }
+
+#[test]
+fn a_node_aimed_at_a_wall_drops_to_the_ground_and_the_core_refuses_one_in_the_air() {
+    let (mut g, y) = on_a_platform();
+    // A pillar three high at x = 8: aiming at its west face, two up, puts the node on the ground beside it.
+    for h in 1..=3 {
+        g.sim.world.set_block_anywhere_later(v(8, y + h, 0), STONE);
+    }
+    aim_at(&mut g, v(8, y + 2, 0), v(-1, 0, 0));
+    assert!(matches!(g.rail_plan(), Some(Plan::Place { pos, free: true, .. }) if pos == v(7, y + 1, 0)));
+    click(&mut g);
+    assert_eq!(g.sim.factory.rail_yaw(v(7, y + 1, 0)), Some(64));
+    // The core itself refuses a node with air under it, whatever sends it.
+    let air = v(20, y + 3, 0);
+    let slot = g.inventory().selected as u8;
+    g.act(Action::PlaceBlock { pos: air, slot, facing: 64, against: air - UP });
+    g.run_ticks(1);
+    assert_eq!(g.sim.factory.rail_yaw(air), None);
+    assert_eq!(g.sim.world.get_block(air), Some(AIR));
+}
+
+#[test]
+fn track_over_a_ditch_is_refused_the_cells_to_fill_are_outlined_and_filling_them_lets_it_lie() {
+    let (mut g, y) = on_a_platform();
+    // A ditch two deep across the line at x = 9 and 10.
+    let ditch: Vec<IVec3> = [9, 10].into_iter().flat_map(|x| [v(x, y, 0), v(x, y - 1, 0)]).collect();
+    for &c in &ditch {
+        g.sim.world.set_block_anywhere_later(c, AIR);
+    }
+    aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
+    click(&mut g);
+    aim_at(&mut g, v(16, y, 0), v(0, 1, 0));
+    assert!(g.rail_label().contains("fill 2 blocks (amber)"), "{}", g.rail_label());
+    let boxes = g.rail_boxes();
+    let amber: Vec<IVec3> = boxes.chunks_exact(7).filter(|b| b[6] == FILL_AMBER).map(|b| v(b[0], b[1], b[2])).collect();
+    assert_eq!(amber, vec![v(9, y, 0), v(10, y, 0)], "the cells that would carry the track");
+    assert_eq!(boxes[13], BLOCKED_RED, "the ghost node is red");
+    click(&mut g);
+    assert_eq!(g.sim.factory.count(Kind::Rail), 1, "nothing placed");
+    // Two nodes already standing either side: the core will not join them either.
+    let (a, b) = (v(4, y + 1, 0), v(16, y + 1, 0));
+    g.sim.world.set_block_anywhere(b, RAIL);
+    g.sim.factory.place(&mut g.sim.world, RAIL, b, 64, b - UP, 0);
+    g.act(Action::Connect { pole: a, to: b });
+    g.run_ticks(1);
+    assert!(!g.sim.factory.track_between(a, b));
+    // Filling the top of the ditch is enough (ballast covers a block's drop).
+    for x in [9, 10] {
+        g.sim.world.set_block_anywhere_later(v(x, y, 0), STONE);
+    }
+    g.act(Action::Connect { pole: a, to: b });
+    g.run_ticks(1);
+    assert!(g.sim.factory.track_between(a, b));
+}
+
+#[test]
+fn a_hill_in_the_way_is_outlined_red_to_clear() {
+    let (mut g, y) = on_a_platform();
+    g.sim.world.set_block_anywhere_later(v(10, y + 2, 0), STONE);
+    aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
+    click(&mut g);
+    aim_at(&mut g, v(16, y, 0), v(0, 1, 0));
+    assert!(g.rail_label().contains("ground is in the way: clear 1 block (red)"), "{}", g.rail_label());
+    assert!(g.rail_boxes().chunks_exact(7).any(|b| v(b[0], b[1], b[2]) == v(10, y + 2, 0) && b[6] == BLOCKED_RED));
+}

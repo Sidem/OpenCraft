@@ -172,6 +172,10 @@ impl Sim {
         if placed == block::POLE && !factory::pole_mount::is_held_up(solid, pos) {
             return false;
         }
+        // A rail node stands on the ground (`factory/rail/ground.rs`).
+        if placed == block::RAIL && !factory::rail_node_stands(|p| self.world.block_anywhere_or_generate(p), pos) {
+            return false;
+        }
         let old = self.world.block_anywhere_or_generate(pos);
         if !crate::block::replaceable(old) || !self.world.set_block_anywhere(pos, placed) {
             return false;
@@ -181,5 +185,16 @@ impl Sim {
         self.events.push(SimEvent::BlockPlaced { player, pos, block: placed });
         self.block_changed(pos, old);
         true
+    }
+
+    /// `Action::Connect`: a wire, or a track between two rail nodes when every point of it lies on the ground
+    /// (`factory/rail/ground.rs`).
+    pub(super) fn connect(&mut self, pole: IVec3, to: IVec3) {
+        if let Some(curve) = self.factory.track_fit(pole, to).and(self.factory.track_curve(pole, to)) {
+            if !factory::rail_faults(&curve, |p| self.world.block_anywhere_or_generate(p)).is_empty() {
+                return;
+            }
+        }
+        self.factory.connect(pole, to);
     }
 }

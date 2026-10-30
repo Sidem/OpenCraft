@@ -133,7 +133,10 @@ pub use process::{tenths, tenths_a_minute};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};
 pub use quarry::{survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS, WIDTHS};
-pub use rail::{dir_of, fit as fit_track, write_node, write_track, yaw_of, Curve, Fit, MAX_LINKS, MAX_SPAN};
+pub use rail::{
+    dir_of, fit as fit_track, rail_faults, rail_node_stands, write_node, write_track, yaw_of, Curve, Fault, Fit,
+    MAX_LINKS, MAX_SPAN,
+};
 pub use render::{
     light_boxes, make_round, mark_beacon, mark_beacon_tinted, push_box, push_shape, shape_of, split_round, Axis, Form,
     INSTANCE_FLOATS, ROUND,

@@ -115,7 +115,7 @@ impl Sim {
             }
             Action::EditSign { pos, line, text, back, ink } => self.signs.edit(pos, line, &text, back, ink),
             Action::ToggleDoor { pos } => self.toggle_door(pos),
-            Action::Connect { pole, to } => self.factory.connect(pole, to),
+            Action::Connect { pole, to } => self.connect(pole, to),
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),
             Action::PlaceTrain { pos, slot } => self.place_train(player, pos, slot),
             Action::TakeTrain { pos } => self.take_train(player, pos),

@@ -12,6 +12,10 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - **Signs for notes** (Building section: 4 planks, 2 sticks): a board two blocks wide on a wall, or on two posts in the open. Right-click it to write up to four lines and pick the board's and the letters' colours on a colour wheel. Everyone in a co-op world sees what you write.
 - **Sort groups your backpack by kind**: buildings first (in build-menu order, each Mk next to its Mk1), then tools, building blocks, ingredients, raw materials and natural blocks. Storage boxes sort the same way. The hotbar still stays as you set it.
 
+## 2026-10-30 · Trains on solid ground
+- **Rails lie on the ground now.** A rail node stands on a solid block: aim at a wall or into the air and it drops to the ground below. The track between two nodes may sink a little into a step or lie up to a block over the ground, where a gravel bed fills the gap, and needs two blocks of room above it.
+- **Where a track would float, the blocks to fill are outlined amber; where the ground is in the way, the blocks to clear are red**, and the label counts them. Track you already laid stays as it is.
+
 ## 2026-10-30 · Rates where you build
 - **Every machine says what it takes and makes a minute at full speed**, in its panel and when you look at it, whatever it is doing: "Full speed: takes 40 Iron Ore, makes 40 Iron Ingot a minute". The numbers are the same ones Analytics (P) measures.
 - **A belt says how many items it moved** over the last ten seconds and how much of its most that is: "Moves 36 items a minute, 21% of the 171 it can carry". The build menu lists each belt's most too.

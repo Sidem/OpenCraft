@@ -2,7 +2,8 @@
 //! with a heading (a byte, `curve::dir_of`), and the player joins two nodes with a *track* (`Action::Connect`,
 //! quietly nothing unless `track_fit` says the pair fits). A track is a smooth curve between its two nodes
 //! (`curve.rs`), free of the voxel grid; only the nodes sit on cells. A node may hold up to `MAX_LINKS` tracks
-//! (a junction needs three).
+//! (a junction needs three). Both lie on the ground (`ground.rs`): the core refuses a node with nothing solid under
+//! it and a track that floats or runs through the ground (`Sim::connect`); `lay_track` itself checks only the shape.
 //!
 //! Saved: each node's cell and heading, then the tracks as pairs of node cells (`state.rs`). Derived: each
 //! node's `links` count (`relink`). Removing a node drops its tracks.
@@ -10,8 +11,10 @@
 //! To use the track: `Factory::tracks` and `curve_of` give the graph and its shapes (trains, step 9.4b).
 
 mod curve;
+mod ground;
 
 pub use curve::{dir_of, fit, write_node, write_track, yaw_of, Curve, Fit, MAX_SPAN};
+pub use ground::{faults as rail_faults, node_stands as rail_node_stands, Fault};
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
@@ -105,7 +108,12 @@ impl Factory {
 
     /// The curve of `track`, `None` if an end is not a node.
     pub fn curve_of(&self, track: &Track) -> Option<Curve> {
-        Some(Curve::new(track.a, self.rail_yaw(track.a)?, track.b, self.rail_yaw(track.b)?))
+        self.track_curve(track.a, track.b)
+    }
+
+    /// The curve a track between the nodes at `a` and `b` follows (laid or not), `None` unless both are nodes.
+    pub fn track_curve(&self, a: IVec3, b: IVec3) -> Option<Curve> {
+        Some(Curve::new(a, self.rail_yaw(a)?, b, self.rail_yaw(b)?))
     }
 
     /// Every track laid. Tests for now: trains (9.4b) route along it.

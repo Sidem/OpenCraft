@@ -429,3 +429,101 @@ U1 to U3 and pod channels, as recorded when they were built.
   without that rule, 400 random breaks and gives never lose a latch across saves); `check-lessons.mjs` on the 34 h save, the 12 October save,
   the 3.9 h save and a fresh world, all quiet for 5 minutes (the three saves stall 77, 81 and 6 machines, which is why old saves
   count as taught).
+
+## Moved from the plan's recent changes (2026-10-30)
+
+- **2026-10-30: blueprint library cards** (health check task 2: a blueprint was a name and "18 machines"). Each card
+  draws the blueprint from above (`blueprint/plan.rs` → `blueprint_plan`; `ui/blueprint-plan.ts`: icons on
+  footprints, belts and routers as arrows), lists its items as chips and what you are short of (`blueprint_needs`),
+  and counts pieces. Tests: `the_plan_shows_every_piece_from_above`, `web/test/blueprint-plan.test.mjs`.
+
+- **2026-10-30: blueprint keys do what they say** (health check task 1: following the repeat prompt's "[Z] marks new
+  corners" left one corner, as Z first cleared the preset box; a corner also survived leaving ghost mode). Z aimed at
+  a block always marks a corner (replacing a selected box), Z at nothing clears, leaving ghost mode forgets the box
+  (`forget_blueprint_box`), and the label keeps the keys after a note. Tests in `blueprint/tests.rs` follow the prompt
+  word for word. The health check's backlog and numbers: https://claude.ai/artifact/YWW4V66jRiKpv4YQVSVUow.
+
+- **2026-10-30: a steel two-stage rocket, a capsule pod, exhaust with shock diamonds** (user: the rocket and pods did not
+  look beautiful and the climb was jagged). `process/rocket.rs` draws the launch site's rocket as round parts (steel
+  booster and ship, heat tiles, grid fins, flaps, seven bells) by a tower with catch arms; it climbs from the batch's
+  progress blended into the tick at last tick's speed, so it no longer steps once a tick. Drop pods fly as a capsule
+  (`factory/capsule.rs`) on four canted plumes; `factory/plume.rs` is the shared exhaust (glowing cells, a pale diamond
+  at each pinch). New layers in `textures/flight.rs`. Tests: `launch/tests.rs` (cold, firing, an even rise between
+  ticks), `plume/tests.rs`. Presentation only: no save or core change.
+
+- **2026-10-30: kits upgrade underpasses to their own tier** (user: a green kit took an underpass to Mk4). The host
+  sends `using` every frame, so a held click on a non-belt piece re-sent `Upgrade`, and the core took whatever kit the
+  next step needed. `Action::Upgrade` now names the kit's tier (the codec grew a byte: co-op peers must match). Shift
+  lines include underpass pairs (`belt_chain`), budgeted per piece (`Factory::upgrade_kits`, 2 kits an underpass).
+  Tests: `belt_line/tests.rs` holds the button 30 frames with every kit in stock; `belt_chain/tests.rs`.
+
+- **2026-10-30: machine icons after the real things** (user: 16 icons hard to recognise). 13 are built by hand in
+  `item_models/machines.rs` + `machines_plant.rs` (a waisted cooling tower, a turbine rotor, a headframe, a winch and
+  hook, a cable coil and plug, a horsehead pumpjack, a robot arm…); pipe, rail and fibre node draw their placed model
+  (`placed.rs` via `factory::shape_of`). A tier's item shares its machine's icon. `icon-paint.ts` reset a transform a box
+  leaked into the next round part (17 other icons misdrew one: gear, motor, servo, satellites…). Judge: 16 at 40 px, 3
+  shuffles: cubes 2.7, placed models 5.3, final Opus 16/16/16; Sonnet 9.0, but it binds names to wrong letters in closed
+  cycles and two retests matched. Test: no two outlines overlap over 80%, none a cube. 75 of 111 machines are cubes.
+
+- **2026-10-30: round pipes, wire spool, two UI fixes** (user: four bugs). Pipes are cylinders ending at their faces (a
+  straight one is one length, a junction a hub), with a flange drawn by the joint's low side only; joined arms had
+  overlapped 0.2 block and flickered. `factory/tests/face_fight.rs` fails on two faces sharing a plane and a facing
+  across all 2,304 pipework layouts (at HEAD it flagged the first joint; it also lowered the pump's fan out of a top
+  flange). Not fixed, found by the same check: cables fight in 54 of 64 layouts, fibre in 48. Copper wire is a round
+  spool. The map filter's chips had shared `.mf-chip` with the focus chip (now `fo-chip`); `scripts/check-css.mjs` fails
+  on a class defined in two stylesheets. A filter's choice is in its panel's redraw key (`ui/machine.ts`).
+- **2026-10-29: "Show on map" from analytics** (a playtester's idea). Every kind row and slowest row of the Machines tab
+  opens the world map with each machine of that kind ringed by health (`analytics_machines_of`, `Machines::of_kind`;
+  `ui/map-focus.ts` fits the view, `map-focus-layer.ts` draws rings, chip and hover lines; the pin list moved to
+  `map-pin-list.ts` to keep `worldmap.ts` under budget). Presentation only. Test: every kind's list matches its row's
+  counts and every ring sits on a map mark (`analytics/tests.rs`); `bench_machines_of_kind` 13 µs for 1,513 of 3,025
+  machines. On the 13.5 h play-test save, Quarry ×4 (3 output full, 1 flooded) all fall inside the fitted view.
+- **2026-10-29: real round bodies and a transmission tower** (user: canisters, wafer, silicon, fuel cell looked like crossed
+  boxes; the long pole should look like a real tower). The box pipeline gained a cylinder pass (`render/round-mesh.ts`,
+  `boxes.ts`; the instance's `ROUND` mode bit and taper, `factory::push_round`), icons paint round bodies and leaned boxes
+  (`ui/icon-paint.ts`, `icon-geometry.ts`), and every faked round model moved to `Form::Round` (items, processors,
+  pump, train). `factory/tests/fake_round.rs` fails on any model faking one (at HEAD it flagged 32 items, 12 machines).
+  The long pole is 2×2×4 (`pole_tower.rs`, `Form::Lean` legs on the item); save 61 fills old towers' new top with machine
+  parts where it is air (`raise_old_towers`; the play-test save: 14 filled, 1 under stone kept). Baked round shading was flattened on round bodies' textures. `write_instances` +2.4%, wasm +4 KB.
+- **2026-10-29: product displays turn on top** (user: the sign faced one way and the product vanished from the side).
+  Every `Look::Product` slot is now square and stands on the model's top (roof, tank lid, column top), and `display.rs`
+  draws a light plate with the product standing on it (flat items stood on edge), turning at `SPIN` while working and
+  holding its angle otherwise (a `Cell` on `Processor`, presentation only). Smelter chimney shortened, blast chimney
+  moved back, a bar across the crusher's hopper. Tests: products fit the turning circle at every angle; each slot stands
+  on a part; from 16 level directions at least two of five sight lines across it pass every part (a tall smelter
+  chimney fails it).
+
+## The FX step as it stood in the plan (moved 2026-10-30)
+
+- [ ] **FX Sound effects from recordings** (decided 2026-10-27, `docs/DECISIONS.md`). One step per session, in order. Tools
+  stay outside the game: earshot in a local venv (`pip install` of github.com/Leonxlnx/earshot plus CPU torch), source
+  recordings and their licences in a git-ignored folder; only the rendered effects and a credits list are committed.
+  **Held back (user, 2026-10-28: not happy with it yet):** FX1–FX4 live on the local branch `sound-effects`, not on
+  `main`; the game still plays the synthesised effects. Bring them back from that branch when the user is ready.
+  - [x] **FX1 Non-material sounds** (done 2026-10-27): earshot's top 3 bank sounds per action plus the current sound, blind.
+    earshot won 4 of 11, never with its own first choice: drop `swish/zing`, scan `pro_notify/ding_2045`, launch
+    `impact/blast`, pod up `whoosh_big/jet` (render with `bank.render(id, seed)`; v0 seed `None` is the take picked, v1 seed
+    11; all clean in `sfx check`, 69 KB as 64 kbit/s Opus). The current sound won the other 7 (pickup, click, splash, power
+    up/down, pod down, denied): FX4 renders those from the synth as they are. The v1 takes are not yet heard by the user.
+  - [x] **FX2 Recordings** (done 2026-10-27): 154 Freesound searches (CC0, up to 12 s) found 891 recordings. Pairs like
+    grass break or sand place found almost nothing, so the sources are pooled per material (steps also give land, hits
+    give dig, break and place): the 8 most used footsteps and 8 hits naming the material, 110 in all, all CC0. HQ Ogg
+    previews, the scripts and `credits.csv` (id, author, licence, link) are in git-ignored `artifacts/fx2/`; the key
+    lives in `~/.freesound.env` (`FREESOUND_CLIENT_SECRET`) and is never printed. A few picks are off-topic (a roof
+    slide under grass): the blind pick filters them.
+  - [x] **FX3 Material foley** (2026-10-27, results in `artifacts/fx3/`): blind pick, a recording won 26 of 35 (the
+    chance rate; earshot's first choice 12 of 26). Naming test: game sounds 19 of 35, held-out real recordings (the
+    ceiling) only 7 of 13, so the bar moved to the ceiling. Re-test: 20 of 35, at the ceiling; sand 0 of 5 every time
+    (real sand 0 of 2 too). *Then ear tests ended* (user): sounds are chosen by label, two per material (`docs/DECISIONS.md`). Built:
+    140 files in `artifacts/fx3l/` (`credits.csv`, 482 KB as Opus); `sfx check` 113 clean, 14 ring (pickaxe and
+    metal, the material itself), 13 footsteps cut from walking recordings still end above -45 dB.
+  - [x] **FX4 In the game** (done 2026-10-27): `audio/effects.ts` plays files found by name (variants = files present,
+    none = silent); `effect-levels.ts` levels each to the synth sound it replaced (K-weighted loudest 100 ms), so old
+    volumes hold; the designer keeps one Volume dial; synth effects removed. 156 files, 742 KB (budget ~600; the user kept 742 KB). Fixed after
+    the user's listen: footsteps are whole steps (the cuts ended mid-sound; sand and metal from single takes, the
+    closest to their label's consensus spectrum), power up/down without crackle (128 kbit/s); `sfx check` flags only
+    the stone and metal hits' ring.
+  - *Done when:* every effect comes from a file (met); in the blind naming test the game sounds are named right at least as
+    often as held-out real recordings (the ceiling) and no material under 2 of 5 (user, 2026-10-27: real recordings
+    scored 7 of 13, so 11 of 14 was out of reach; not run on the label set, ear tests ended); `npm run check` passes;
+    credits list (`audio/effects/CREDITS.md`) and patch note (met).

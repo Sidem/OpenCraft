@@ -54,7 +54,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
-- Rails: `rail.rs` + `rail/curve.rs`, `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
+- Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` (track lies on the ground: one rule for the core and the preview), `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
   machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `shape.rs`,

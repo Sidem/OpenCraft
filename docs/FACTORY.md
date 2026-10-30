@@ -143,8 +143,11 @@ size.
   the full 32-block reach along the way you face, crouch-click the ground to start a separate line). Click a node to
   select it, click another to join them, crouch-click a joined node to cut the track. A pair joins if it is 3 to 32
   blocks apart, climbs no more than 1 in 3 and bends no tighter than 8 blocks of radius; a node holds up to 4 tracks
-  (for junctions). The outline turns red and the label says why when it does not fit. Track does not clear the
-  ground: use the planner to level, cut or tunnel the route.
+  (for junctions). The outline turns red and the label says why when it does not fit. Track lies on the ground: a
+  node stands on a solid block (aimed at a wall or into the air, it drops to the ground below), and the track between
+  two nodes may sink a quarter block into a step or lie up to one block over the ground (its gravel bed fills the
+  gap), with two blocks of room above it. Where it would float, the cells to fill are outlined amber; where the
+  ground is in its way, the cells to clear are red. Fill, cut or tunnel the route by hand or with the planner.
 - **Trains** (Trains research, after Rails): a locomotive is 4 motors, 4 circuits, 10 steel plates and 4 steel beams.
   Hold it and click a rail node that has track to put it on the line; crouch-click near it to pick it up again. It
   runs at 9 blocks a second along the curves, turns round at the end of the track and takes the straightest track at

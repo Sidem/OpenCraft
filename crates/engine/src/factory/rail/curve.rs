@@ -28,6 +28,11 @@ const RAIL_Y: f32 = -0.38;
 const GAUGE: f32 = 0.18;
 const RAIL_THICK: f32 = 0.06;
 const SLEEPER_Y: f32 = -0.45;
+/// The gravel bed under the sleepers: its top just over the ground of a level track, its foot as deep as the ground
+/// may drop under the track (`ground::MAX_DROP`), so it always reaches the ground.
+const BALLAST_TOP: f32 = -0.47;
+const BALLAST_BOTTOM: f32 = -1.52;
+const BALLAST_WIDTH: f32 = 1.0;
 /// Length of one drawn piece (a sleeper each), and the samples used to measure a curve.
 const PIECE: f64 = 0.75;
 const MEASURE: usize = 24;
@@ -204,6 +209,12 @@ pub fn write_track(out: &mut Vec<f32>, curve: &Curve, eye: Vec3, range: f64) {
                 piece(x, RAIL_Y, [RAIL_THICK, 0.08, len + 0.03], tex::STEEL);
             }
             piece(0.0, SLEEPER_Y, [0.5, 0.05, 0.14], tex::PLANKS);
+            piece(
+                0.0,
+                (BALLAST_TOP + BALLAST_BOTTOM) / 2.0,
+                [BALLAST_WIDTH, BALLAST_TOP - BALLAST_BOTTOM, len + 0.15],
+                tex::SPENT_ROCK,
+            );
         }
         from = to;
     }

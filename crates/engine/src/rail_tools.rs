@@ -14,8 +14,11 @@
 //! The preview: ghost node and curve (`write_rail_preview`), outlines (`rail_boxes`) and label (`rail_label`).
 
 use crate::action::Action;
-use crate::block::{self, RAIL};
-use crate::factory::{dir_of, fit_track, write_node, write_track, yaw_of, Curve, Fit, MAX_LINKS, MAX_SPAN};
+use crate::block::{self, AIR, RAIL};
+use crate::factory::{
+    dir_of, fit_track, rail_faults, rail_node_stands, write_node, write_track, yaw_of, Curve, Fault, Fit, MAX_LINKS,
+    MAX_SPAN,
+};
 use crate::math::{IVec3, Vec3};
 use crate::power_tools::plan_pole;
 use crate::sound;
@@ -28,6 +31,11 @@ const GHOST_GREEN: i32 = 0x4ade80;
 const ANCHOR_BLUE: i32 = 0x7dd3fc;
 const BLOCKED_RED: i32 = 0xff4a3d;
 const CUT_AMBER: i32 = 0xfbbf24;
+/// A cell the track needs filled to lie on the ground (a cell in its way is `BLOCKED_RED`).
+const FILL_AMBER: i32 = 0xfbbf24;
+/// How far down from the aim a node looks for ground to stand on, and the most fault cells outlined.
+const SETTLE: i32 = 8;
+const MAX_FAULT_BOXES: usize = 64;
 
 /// The track hand's input state: never saved.
 #[derive(Default)]
@@ -105,10 +113,32 @@ impl Game {
                 (hit.block + hit.normal, yaw_of(look.x, look.z))
             }
         };
-        let free = world.get_block(pos).is_some_and(block::replaceable);
+        // A node aimed at a wall or into the air drops to the ground under it.
+        let block_at = |p| world.get_block(p).unwrap_or(AIR);
+        let pos = (0..=SETTLE)
+            .map(|d| pos - UP * d)
+            .find(|&p| block_at(p) == AIR && rail_node_stands(block_at, p))
+            .unwrap_or(pos);
+        let yaw = anchor.map_or(yaw, |(a, ya)| Self::follow_yaw(a, ya, pos));
+        let free = world.get_block(pos).is_some_and(block::replaceable) && rail_node_stands(block_at, pos);
         let fit =
             anchor.map(|(a, ya)| if f.track_count(a) >= MAX_LINKS { Fit::Full } else { fit_track(a, ya, pos, yaw) });
         Some(Plan::Place { pos, yaw, fit, free })
+    }
+
+    /// Where the track a click would lay leaves the ground (`factory/rail/ground.rs`): the cells to fill or clear.
+    fn rail_track_faults(&self, plan: Plan) -> Vec<(IVec3, Fault)> {
+        let Some((a, ya)) = self.rail_anchor() else { return Vec::new() };
+        let curve = match plan {
+            Plan::Place { pos, yaw, fit: Some(Fit::Ok), .. } => Curve::new(a, ya, pos, yaw),
+            Plan::Node { pos, fit: Some(Fit::Ok) } => match self.sim.factory.rail_yaw(pos) {
+                Some(yb) => Curve::new(a, ya, pos, yb),
+                None => return Vec::new(),
+            },
+            _ => return Vec::new(),
+        };
+        let world = &self.sim.world;
+        rail_faults(&curve, |p| world.get_block(p).unwrap_or(AIR))
     }
 
     /// Runs the track hand for one tick. True while rails are in hand (the press is its own: a plain placement
@@ -128,7 +158,11 @@ impl Game {
         }
         let crouch = self.body().input.crouch;
         let anchor = self.rail_anchor().map(|a| a.0);
-        match self.rail_plan() {
+        let plan = self.rail_plan();
+        if plan.is_some_and(|p| !self.rail_track_faults(p).is_empty()) {
+            return true; // the track would leave the ground: the outlines show where
+        }
+        match plan {
             Some(Plan::Node { pos, fit }) => match (anchor, fit) {
                 (Some(a), Some(Fit::Ok)) => {
                     self.act(Action::Connect { pole: a, to: pos });
@@ -161,14 +195,19 @@ impl Game {
         if let Some((a, _)) = self.rail_anchor() {
             boxed(a, ANCHOR_BLUE);
         }
+        let faults = self.rail_track_faults(plan);
+        let ok = if faults.is_empty() { GHOST_GREEN } else { BLOCKED_RED };
         match plan {
-            Plan::Node { pos, fit: Some(Fit::Ok) } => boxed(pos, GHOST_GREEN),
+            Plan::Node { pos, fit: Some(Fit::Ok) } => boxed(pos, ok),
             Plan::Node { pos, fit: Some(Fit::Joined) } => boxed(pos, CUT_AMBER),
             Plan::Node { pos, fit: Some(_) } => boxed(pos, BLOCKED_RED),
             Plan::Node { .. } => {}
             Plan::Place { pos, fit, free, .. } => {
-                boxed(pos, if free && matches!(fit, None | Some(Fit::Ok)) { GHOST_GREEN } else { BLOCKED_RED })
+                boxed(pos, if free && matches!(fit, None | Some(Fit::Ok)) { ok } else { BLOCKED_RED })
             }
+        }
+        for &(cell, fault) in faults.iter().take(MAX_FAULT_BOXES) {
+            boxed(cell, if fault == Fault::Floating { FILL_AMBER } else { BLOCKED_RED });
         }
         out
     }
@@ -177,6 +216,10 @@ impl Game {
     pub(crate) fn rail_label(&self) -> String {
         let Some(plan) = self.rail_plan() else { return String::new() };
         let anchor = self.rail_anchor();
+        let faults = self.rail_track_faults(plan);
+        if !faults.is_empty() {
+            return format!("Rail node\n{}", ground_why(&faults));
+        }
         match plan {
             Plan::Node { pos, fit } => match (fit, anchor) {
                 (_, Some((a, _))) if a == pos => "Rail node (selected)\nclick to deselect".to_string(),
@@ -191,7 +234,7 @@ impl Game {
                 (None, _) => "Rail node\nclick to select it, then join it to another node".to_string(),
             },
             Plan::Place { pos, yaw, fit, free } => match (fit, anchor) {
-                _ if !free => "Rail node\nSomething is in the way".to_string(),
+                _ if !free => "Rail node\nNeeds clear ground to stand on: aim at the top of a solid block".to_string(),
                 (Some(Fit::Ok), Some((a, ya))) => {
                     let how = if self.body().input.sprint {
                         "release Shift: free placement"
@@ -239,6 +282,18 @@ fn describe_span(a: IVec3, ya: u8, b: IVec3, yb: u8) -> String {
     let slope =
         if rise == 0 { String::new() } else { format!(", {}% slope", (f64::from(rise) / run * 100.0).round() as i32) };
     format!("{} blocks of track{slope}", curve.length().round() as i32)
+}
+
+/// Why a track cannot be laid along the ground: how many cells to fill and to clear (outlined amber and red).
+fn ground_why(faults: &[(IVec3, Fault)]) -> String {
+    let fill = faults.iter().filter(|f| f.1 == Fault::Floating).count();
+    let clear = faults.len() - fill;
+    let cells = |n: usize| if n == 1 { "1 block".to_string() } else { format!("{n} blocks") };
+    match (fill, clear) {
+        (_, 0) => format!("Track must lie on the ground: fill {} (amber) or move the aim", cells(fill)),
+        (0, _) => format!("The ground is in the way: clear {} (red) or move the aim", cells(clear)),
+        _ => format!("Track must lie on the ground: fill {} (amber), clear {} (red)", cells(fill), cells(clear)),
+    }
 }
 
 fn why_not(fit: Fit) -> String {
