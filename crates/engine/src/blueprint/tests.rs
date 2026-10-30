@@ -200,6 +200,92 @@ fn a_third_copy_of_a_machine_offers_a_blueprint_once() {
     assert_eq!((g.repeat_prompt(), g.library.selection), (String::new(), None));
 }
 
+/// A game with three smelters in a row (4 apart), so the third brought the prompt and a preset box.
+fn prompted_game() -> (crate::Game, IVec3) {
+    use crate::block::SMELTER;
+    let mut g = crate::Game::new(2024, 3);
+    crate::tests::run_until_ready(&mut g);
+    let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
+    for i in 0..3 {
+        build(&mut g.sim, SMELTER, base + IVec3::new(4 * i, 0, 0), 1);
+        g.run_ticks(1);
+    }
+    assert!(g.repeat_prompt().contains("[Z] marks new corners"));
+    (g, base)
+}
+
+fn aim_at(g: &mut crate::Game, block: IVec3) {
+    g.target = Some(crate::raycast::RayHit { block, normal: IVec3::new(0, 1, 0), id: 0 });
+}
+
+#[test]
+fn following_the_prompt_word_for_word_copies_a_blueprint() {
+    // "Press [B]: a box is already marked … and [Enter] copies it."
+    let (mut g, _) = prompted_game();
+    g.toggle_ghost_mode();
+    g.copy_blueprint();
+    assert_eq!((g.library.list.len(), g.library.held), (1, Some(0)), "B then Enter copies the preset box");
+
+    // "([Z] marks new corners)": two presses mark a box of the player's own, whatever was preset.
+    let (mut g, base) = prompted_game();
+    g.toggle_ghost_mode();
+    aim_at(&mut g, base);
+    g.mark_blueprint_corner();
+    assert!(g.blueprint_label().unwrap().starts_with("Marking a box"), "{:?}", g.blueprint_label());
+    aim_at(&mut g, base + IVec3::new(8, 1, 0));
+    g.mark_blueprint_corner();
+    g.copy_blueprint();
+    assert_eq!(g.library.list.len(), 1, "Z, Z, Enter copies");
+    assert_eq!(g.library.list[0].entries.len(), 3, "the new box holds all three smelters, not the preset one");
+}
+
+#[test]
+fn leaving_ghost_mode_forgets_a_half_marked_box() {
+    let (mut g, base) = prompted_game();
+    g.library.selection = None; // no preset box: the first Z marks a corner
+    g.toggle_ghost_mode();
+    aim_at(&mut g, base + IVec3::new(20, 0, 20));
+    g.mark_blueprint_corner();
+    assert!(g.library.corner.is_some());
+    g.toggle_ghost_mode();
+    assert_eq!((g.library.corner, g.library.selection), (None, None), "B forgets the corner and the box");
+    g.toggle_ghost_mode();
+    assert_eq!(g.blueprint_label(), None, "nothing is half done");
+    aim_at(&mut g, base);
+    g.mark_blueprint_corner();
+    aim_at(&mut g, base + IVec3::new(4, 1, 0));
+    g.mark_blueprint_corner();
+    g.copy_blueprint();
+    assert_eq!(g.library.list[0].entries.len(), 2, "the box is the two new corners, not a stale one");
+}
+
+#[test]
+fn the_label_always_says_what_z_does_next() {
+    let (mut g, base) = prompted_game();
+    g.toggle_ghost_mode();
+    let says = |g: &crate::Game, what: &str| {
+        let label = g.ghost_label();
+        assert!(label.contains(what), "{what:?} missing from {label:?}");
+    };
+    says(&g, "Z starts a new box"); // the preset box
+    aim_at(&mut g, base);
+    g.mark_blueprint_corner();
+    says(&g, "press Z");
+    aim_at(&mut g, base + IVec3::new(4, 1, 0));
+    g.mark_blueprint_corner();
+    says(&g, "Z starts a new box");
+    g.target = None;
+    g.mark_blueprint_corner(); // Z at the sky clears the box
+    assert_eq!(g.library.selection, None);
+    says(&g, "Z marks a box to copy");
+    for corner in [base, base + IVec3::new(4, 1, 0)] {
+        aim_at(&mut g, corner);
+        g.mark_blueprint_corner();
+    }
+    g.copy_blueprint();
+    says(&g, "Z puts it away");
+}
+
 #[test]
 fn the_blueprint_prompt_ends_by_itself() {
     use crate::block::GENERATOR;

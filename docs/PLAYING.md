@@ -19,7 +19,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | I                   | Pick up the item on the belt you point at, or the one you clicked to select if it is within reach; it goes into your pack, or stays if there is no room |
 | Left-click an item  | Select it on its belt: its readout stays up and follows it; click elsewhere to let go |
 | B                   | Ghost mode: right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
-| Z, Enter (ghost mode) | Z marks the two corners of a box (a third press clears it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
+| Z, Enter (ghost mode) | Z marks the two corners of a box (a third press starts a new box, Z at the sky clears it, leaving ghost mode forgets it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
 | L | Blueprint library: rename, hold or delete your blueprints (kept per world in this browser) |
 | Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill, flatten (with the level) or a tunnel (with its section). Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: it fetches more of the item in your hand from the nearest storage box within 32 blocks |

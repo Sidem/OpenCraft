@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-30 · Blueprint keys that do what they say
+- **Z always marks a corner.** Two presses aimed at blocks make a box, even when a box was already marked for you: pressing Z used to clear that box first, so the second press only marked one corner. Z aimed at the sky clears a box.
+- **Leaving ghost mode forgets a half-marked box**, so the next time you press Z it starts fresh instead of finishing an old corner.
+- **The label always says what Z, Enter, R and right-click do next**, also right after copying or stamping.
+
 ## 2026-10-30 · Machine icons you can tell apart
 - **Sixteen machine icons now look like the real thing** instead of a cube: a cooling tower's waisted chimney, a steam turbine's rotor, a pumpjack nodding over its well, a hoist's headframe, a winch with its hook, a robot arm for the constructor, a coiled power cable with its plug, and more.
 - **Shift-upgrading a belt line now upgrades its underpasses too**, both ends of each pair, and the label counts them (an underpass takes two kits).

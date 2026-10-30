@@ -29,6 +29,9 @@ impl Game {
     /// B: ghost mode on or off (`ghost_mode.rs`).
     pub fn toggle_ghost_mode(&mut self) {
         self.ghost_mode = !self.ghost_mode;
+        if !self.ghost_mode {
+            self.forget_blueprint_box();
+        }
         self.using = false;
         self.mine_block = None;
         self.mine_progress = 0.0;

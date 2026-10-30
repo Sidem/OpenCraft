@@ -1,8 +1,13 @@
 //! The hands of blueprints (the local player's, presentation only): in ghost mode Z marks a box's two
-//! corners (a third press clears it), Enter copies the machines in it as a new blueprint and takes it in hand,
-//! and with one in hand the use button stamps its ghosts where the crosshair points (`Action::PlantGhost`
-//! per machine; nothing is built or used), R turns it a quarter and Z puts it away. Outlines are appended
-//! to `placement_box` (`api/hud.rs`) and the label replaces the ghost label (`ghost_mode.rs`).
+//! corners, Enter copies the machines in it as a new blueprint and takes it in hand, and with one in hand
+//! the use button stamps its ghosts where the crosshair points (`Action::PlantGhost` per machine; nothing is
+//! built or used), R turns it a quarter and Z puts it away. Outlines are appended to `placement_box`
+//! (`api/hud.rs`) and the label replaces the ghost label (`ghost_mode.rs`).
+//!
+//! Invariant: two Z presses aimed at blocks always mark a box, whatever was marked before (a selected or
+//! preset box is replaced by the new first corner; Z at nothing clears it), leaving ghost mode forgets a
+//! half-marked box, and the label always says what the next Z does. Play-tests found players stuck when
+//! the same key cleared a box they could not see was there.
 
 use super::{Blueprint, Library, MAX_BLUEPRINTS};
 use crate::action::Action;
@@ -30,7 +35,8 @@ impl Game {
         self.target.filter(|h| h.normal != IVec3::ZERO && self.ghost_mode).map(|h| h.block + h.normal)
     }
 
-    /// Z: mark a corner, finish the box, or clear it; with a blueprint in hand, put it away.
+    /// Z: mark a corner (replacing a selected box) or finish the box; at nothing, drop what is marked; with a
+    /// blueprint in hand, put it away.
     pub(crate) fn mark_blueprint_corner(&mut self) {
         if !self.ghost_mode {
             return;
@@ -39,18 +45,26 @@ impl Game {
         let lib = &mut self.library;
         if lib.held.take().is_some() {
             lib.note = "Blueprint put away".into();
-        } else if lib.selection.take().is_some() {
-            lib.note = "Selection cleared".into();
         } else if let (Some(a), Some(b)) = (lib.corner, aimed) {
             lib.corner = None;
             lib.selection = Some(span(a, b));
-            lib.note = "Box selected".into();
+            lib.note.clear();
         } else if let Some(a) = lib.corner.take() {
             lib.note = format!("Corner at {}, {}, {} dropped: aim at a block first", a.x, a.y, a.z);
         } else if let Some(b) = aimed {
+            lib.selection = None;
             lib.corner = Some(b);
             lib.note = "Corner marked: aim at the opposite corner and press Z".into();
+        } else if lib.selection.take().is_some() {
+            lib.note = "Box cleared".into();
         }
+    }
+
+    /// Leaving ghost mode: forget a half-marked or selected box, so the next Z starts afresh.
+    pub(crate) fn forget_blueprint_box(&mut self) {
+        let lib = &mut self.library;
+        (lib.corner, lib.selection) = (None, None);
+        lib.note.clear();
     }
 
     /// Enter: copy the machines in the selected box as a new blueprint and take it in hand.
@@ -123,6 +137,9 @@ impl Game {
     pub(crate) fn blueprint_label(&self) -> Option<String> {
         let lib = &self.library;
         let note = |default: &str| if lib.note.is_empty() { default.to_string() } else { lib.note.clone() };
+        // What the last press did, then what the keys do now: the keys are never hidden by a note.
+        let with_note =
+            |how: &str| if lib.note.is_empty() { how.to_string() } else { format!("{} · {how}", lib.note) };
         if let Some(bp) = lib.held.and_then(|i| lib.list.get(i)) {
             let title = format!("Blueprint · {} · {} machines", bp.name, bp.entries.len());
             let inv = self.inventory();
@@ -138,11 +155,12 @@ impl Game {
             } else {
                 format!("Missing {}{more}", short.iter().take(LABEL_MISSING).cloned().collect::<Vec<_>>().join(", "))
             };
-            let hint = note("Right-click stamps ghosts · R turns · Z puts it away");
+            let hint = with_note("Right-click stamps ghosts · R turns · Z puts it away");
             return Some(format!("{title}\n{hint}\n{missing}"));
         }
         if lib.selection.is_some() {
-            return Some(format!("Box selected\n{} · Enter copies its machines · Z clears", note("")));
+            let how = with_note("Enter copies its machines · Z starts a new box · Z at the sky clears it");
+            return Some(format!("Box selected\n{how}"));
         }
         lib.corner.map(|_| format!("Marking a box\n{}", note("Aim at the opposite corner and press Z")))
     }

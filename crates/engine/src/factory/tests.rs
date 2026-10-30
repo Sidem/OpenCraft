@@ -1,5 +1,6 @@
 mod bench;
 mod bench_marks;
+mod bench_megabase;
 mod bench_orbit;
 mod face_fight;
 mod fake_round;

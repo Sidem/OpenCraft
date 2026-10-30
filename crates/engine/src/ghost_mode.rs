@@ -116,7 +116,8 @@ impl Game {
             None => "Ghost mode · hold a block or machine".to_string(),
         };
         let mut lines = vec![format!(
-            "Right-click plants a ghost, left-click marks a block for tear-down · R turns · B leaves · {} blocks reach",
+            "Right-click plants a ghost, left-click marks a block for tear-down · Z marks a box to copy · R turns · \
+             B leaves · {} blocks reach",
             self.reach() as i32
         )];
         let needs = self.sim.ghosts.needs();
