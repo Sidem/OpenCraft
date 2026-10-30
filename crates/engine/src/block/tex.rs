@@ -219,7 +219,17 @@ pub const TIER_PAINT_1: u16 = HOUSE_LAYERS_END;
 pub const TIER_PAINT_5: u16 = HOUSE_LAYERS_END + 4;
 /// The plate of a machine's product display (`textures/machines.rs` `sign`).
 pub const SIGN: u16 = TIER_PAINT_5 + 1;
-pub const COUNT: usize = SIGN as usize + 1;
+/// What flies (`textures/flight.rs`): the rocket's stainless hull and black heat tiles, the drop pod's white hull and
+/// charred heat shield, and the exhaust: its white-hot core, flame, cooling tail and the shock diamonds (all glowing).
+pub const ROCKET_STEEL: u16 = SIGN + 1;
+pub const ROCKET_TILE: u16 = SIGN + 2;
+pub const CAPSULE_HULL: u16 = SIGN + 3;
+pub const CAPSULE_SHIELD: u16 = SIGN + 4;
+pub const PLUME_CORE: u16 = SIGN + 5;
+pub const PLUME_FLAME: u16 = SIGN + 6;
+pub const PLUME_TAIL: u16 = SIGN + 7;
+pub const PLUME_DIAMOND: u16 = SIGN + 8;
+pub const COUNT: usize = PLUME_DIAMOND as usize + 1;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

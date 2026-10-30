@@ -1,11 +1,11 @@
 //! The launch site: its pad and power, a rocket built and launched (the count, the empties coming back), what a pad missing a
-//! part says, the rocket on screen only while it builds, saving, and the Rocketry tech that gates the parts.
+//! part says, the rocket on screen only while it builds and its smooth lift-off, saving, and the Rocketry tech that gates the parts.
 
 use crate::block::LAUNCH_SITE;
 use crate::block::{COAL_ORE, GENERATOR, POLE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::power::FULL_SPEED;
-use crate::factory::{Factory, Machine};
+use crate::factory::{Factory, Machine, INSTANCE_FLOATS};
 use crate::inventory::Stack;
 use crate::item::{
     name, ItemId, AI_ACCELERATOR, AVIONICS, EMPTY_CANISTER, FUEL_TANK, HYDROGEN_CANISTER, LIGHT_FRAME, OXYGEN_CANISTER,
@@ -167,6 +167,42 @@ fn the_rocket_stands_on_the_pad_only_while_it_builds() {
     assert!(boxes(&p) > idle, "a rocket is drawn while a batch runs");
     run(&mut p, 60);
     assert_eq!(boxes(&p), idle, "and gone once it has launched");
+}
+
+/// The top of the rocket's steel hull drawn at render `time` (seconds; its fraction of a tick blends the climb).
+fn nose(p: &Processor, time: f64) -> f32 {
+    let mut out = Vec::new();
+    model::draw(p, &mut out, Vec3::ZERO, time);
+    let steel = out.chunks_exact(INSTANCE_FLOATS).filter(|r| r[8] as u16 == tex::ROCKET_STEEL);
+    steel.map(|r| r[1] + r[5] / 2.0).fold(f32::MIN, f32::max)
+}
+
+/// Whether anything of the exhaust is drawn.
+fn firing(p: &Processor) -> bool {
+    let mut out = Vec::new();
+    model::draw(p, &mut out, Vec3::ZERO, 0.0);
+    out.chunks_exact(INSTANCE_FLOATS).any(|r| r[8] as u16 == tex::PLUME_DIAMOND)
+}
+
+#[test]
+fn the_rocket_lights_its_engines_then_climbs_smoothly_between_ticks() {
+    let mut p = pad();
+    feed(&mut p, &ROCKET);
+    run(&mut p, 50);
+    let on_pad = nose(&p, 0.0);
+    assert!(on_pad > 0.0 && !firing(&p), "standing cold on the pad");
+    run(&mut p, 4);
+    assert!(firing(&p), "the engines light before it lifts");
+    run(&mut p, 3);
+    // Within a tick the climb blends on, and one real tick lands where the blend was heading.
+    let quarter: Vec<f32> = (0..4).map(|k| nose(&p, k as f64 * 0.25 * crate::TICK)).collect();
+    assert!(quarter[0] > on_pad + 1.0, "climbing by now");
+    let steps: Vec<f32> = quarter.windows(2).map(|w| w[1] - w[0]).collect();
+    assert!(steps.iter().all(|&s| s > 0.0), "rises every quarter tick: {quarter:?}");
+    assert!(steps.iter().all(|&s| (s - steps[0]).abs() < steps[0] * 0.2), "evenly: {steps:?}");
+    let before = nose(&p, 0.999 * crate::TICK);
+    p.step(&mut [], FULL_SPEED, &ALL);
+    assert!((nose(&p, 0.0) - before).abs() < steps[0], "no jump at the tick");
 }
 
 #[test]

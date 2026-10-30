@@ -4,6 +4,12 @@ Earlier development entries, retained from DEV_PLAN.md so the active plan stays 
 
 ## 8. Change log of this plan
 
+- **2026-10-28: icons fill their box** (user: tool icons were tiny). `hud.ts` drew every model at a cube's scale; measured in
+  the browser, 114 of 300 icons spanned under 80% of the box (servo, sickle 34%, axes 42%). `item_models/icon_frame.rs` fits
+  each icon to its model's screen bounds (`ICON_FILL`, centred; `item_icon` carries the fit); plant-drawn blocks draw as their
+  picture trimmed to visible pixels (`ui/icon-sprite.ts`). After: none under 80% (ladder 81%, the rest 86–91%). Tests:
+  `icon_frame/tests.rs` rasterises every item's fitted icon; `web/test/icon-sprite.test.mjs`. No save or core change.
+
 - **2026-10-28: product signs and Mk studs** (user request). Every maker shows its product's model on a sign
   (`process/display.rs`, `Look::Product`; chosen recipe, else the last batch, `Processor::shown`, guessed on load), and
   every tiered machine of all 15 families wears its Mk as pale studs, collars on poles (`factory/tier_mark.rs`). Tests

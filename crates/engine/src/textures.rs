@@ -7,7 +7,7 @@
 //! `geology.rs`, shared painting helpers in `paint.rs`, machines in `machines.rs`, items in `items.rs`,
 //! planks, ladders and sticks in `wood.rs`, tier stripes in `stripes.rs`, bricks and quicklime in
 //! `masonry.rs`, the assembler, ports, concrete and the motor in `assembly.rs`, steelmaking in `steel.rs`, steam, crushing and silos in `heavy.rs`,
-//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, the plants (ground cover, indicators, saplings) in `hires.rs`, the other trees in `forest.rs`, the ruins in `ruins.rs`, the decor set in `decor.rs`, the item models' plain materials in `materials.rs`.
+//! the arc furnace, silicon, circuits and the violet pack in `electronics.rs`, solar panels and accumulators in `solar.rs`, the drone chain's parts in `robotics.rs`, water and steam pipes in `piping.rs`, worn gear in `gear.rs`, aluminium in `aluminium.rs`, trains in `transport.rs`, canisters and the pumpjack in `chemistry.rs`, washed ore, tailings and the washer in `washing.rs`, the hoist shaft and winch in `hoist.rs`, the fuel cell, centrifuge and reactor in `nuclear.rs`, the coin and the recycler in `recycling.rs`, compute's parts and the chip fab in `compute.rs`, smoke puffs in `smoke.rs`, the plants (ground cover, indicators, saplings) in `hires.rs`, the other trees in `forest.rs`, the ruins in `ruins.rs`, the decor set in `decor.rs`, the item models' plain materials in `materials.rs`, the rocket's and drop pod's hulls and their exhaust in `flight.rs`.
 
 use crate::block::tex;
 use crate::math::{hash3, unit};
@@ -20,6 +20,7 @@ mod chemistry;
 mod compute;
 mod decor;
 mod electronics;
+mod flight;
 mod forest;
 mod gear;
 mod geology;
@@ -216,6 +217,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STRIPE_1..=tex::STRIPE_5 => stripes::stripe(x, y, (layer - tex::STRIPE_1) as u8),
         tex::TIER_PAINT_1..=tex::TIER_PAINT_5 => stripes::paint(x, y, (layer - tex::TIER_PAINT_1) as u8),
         tex::SIGN => machines::sign(x, y),
+        tex::ROCKET_STEEL..=tex::PLUME_DIAMOND => flight::pixel(layer, x, y),
         tex::STONE_BRICKS => masonry::stone_bricks(x, y),
         tex::QUICKLIME => masonry::quicklime(x, y),
         tex::ASSEMBLER_SIDE..=tex::MOTOR => assembly::pixel(layer, x, y),

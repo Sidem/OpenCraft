@@ -153,9 +153,9 @@ fn displays(spec: &ProcessSpec) -> impl Iterator<Item = &Part> {
     spec.parts.iter().filter(|p| matches!(p.look, Look::Product))
 }
 
-/// Whether a part is drawn as its box (smoke and the display's slot are not).
+/// Whether a part is drawn as its box (smoke, the display's slot and the rocket's stand are not).
 fn boxed(p: &Part) -> bool {
-    !matches!(p.look, Look::Smoke | Look::Product)
+    !matches!(p.look, Look::Smoke | Look::Product | Look::Rocket)
 }
 
 fn lo(p: &Part, k: usize) -> f32 {

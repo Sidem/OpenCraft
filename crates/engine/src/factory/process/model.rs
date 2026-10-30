@@ -6,6 +6,7 @@
 
 use crate::block::tex;
 use crate::math::Vec3;
+use crate::TICK;
 
 use super::super::footprint::Role;
 use super::super::render::{push_box, push_shape, Axis, Form, UPRIGHT};
@@ -31,8 +32,9 @@ pub enum Look {
     /// The mouth of a chimney or exhaust: no box, but smoke while working (`factory/smoke.rs`), puffs scaled by
     /// the part's width.
     Smoke,
-    /// A rocket on its pad: drawn only while a batch runs, lifting off in the batch's last stretch (`LIFT_AT`).
-    Rocket([u16; 3]),
+    /// Where the rocket stands (`rocket.rs`, the part's centre on the mount): drawn only while a batch runs, its engines
+    /// lighting at `IGNITE_AT` and lifting it off at `LIFT_AT`.
+    Rocket,
     /// A solid mark in the machine's channel colour (a pod launcher or pad: `pods/channels.rs`).
     Channel,
     /// The product display (`display.rs`): the part is its slot (square, on a roof), a turning plate at its floor and
@@ -72,9 +74,11 @@ pub const fn round_x(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
 
 /// Deepest press stroke, in blocks.
 const STROKE: f64 = 0.12;
-/// A rocket starts to rise when its batch is this far along (thousandths) and climbs this many blocks by the end.
-const LIFT_AT: u32 = 920;
-const LIFT_HEIGHT: f64 = 48.0;
+/// A rocket lights its engines when its batch is this far along (thousandths), starts to rise at the next and climbs this
+/// many blocks by the end, accelerating all the way.
+const IGNITE_AT: f64 = 895.0;
+const LIFT_AT: f64 = 905.0;
+const LIFT_HEIGHT: f64 = 160.0;
 /// A port hatch: how far its centre sits from its cell's centre, and its size (across, up, thick).
 const HATCH_OUT: f64 = 0.45;
 const HATCH: [f32; 3] = [0.66, 0.5, 0.1];
@@ -113,12 +117,18 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 t
             }
             Look::Channel => [tex::GRID_FIRST + u16::from(p.channel()); 3],
-            Look::Rocket(t) => {
-                let Some(r) = p.batch_recipe().filter(|_| p.batch.is_some()) else { continue };
-                let lift = p.progress / ticks(r.seconds);
-                let lift = lift.saturating_sub(LIFT_AT) as f64 / (1000 - LIFT_AT) as f64;
-                at.y += lift * lift * LIFT_HEIGHT;
-                t
+            Look::Rocket => {
+                if let Some(r) = p.batch_recipe().filter(|_| p.batch.is_some()) {
+                    // Blended into the tick like the drones, at last tick's speed, so the climb is smooth.
+                    let rate = f64::from(p.stats().speed) * f64::from(p.speed) / 1e3 * f64::from(p.boost) / 1e3;
+                    let ahead = if working { (time / TICK).fract() * rate } else { 0.0 };
+                    let done = (f64::from(p.progress) + ahead) / f64::from(ticks(r.seconds));
+                    let lift = ((done - LIFT_AT) / (1000.0 - LIFT_AT)).clamp(0.0, 1.0);
+                    let thrust = ((done - IGNITE_AT) / (LIFT_AT - IGNITE_AT)).clamp(0.0, 1.0) as f32;
+                    let base = at - Vec3::new(0.0, f64::from(part.size[1]) / 2.0, 0.0);
+                    super::rocket::draw(out, base, yaw, lift * lift * LIFT_HEIGHT, thrust, time);
+                }
+                continue;
             }
         };
         push_shape(out, part.form, at, yaw + part.turn * std::f32::consts::FRAC_PI_2, part.size, texture, false);

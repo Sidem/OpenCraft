@@ -50,6 +50,7 @@ mod pump;
 mod rectenna;
 mod recycler;
 mod refinery;
+mod rocket;
 mod shape;
 mod solar;
 mod specs;

@@ -30,6 +30,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::POD_SIDE => pod_side(x, y),
         tex::POD_LAUNCH_TOP => pod_launch_top(x, y),
         tex::POD_PAD_TOP => pod_pad_top(x, y),
+        // The first rocket's hull (12.1), kept for the art pack; the rocket now wears `flight.rs`'s steel.
+        tex::ROCKET_HULL => hull(x, y),
         _ => hull(x, y),
     }
 }

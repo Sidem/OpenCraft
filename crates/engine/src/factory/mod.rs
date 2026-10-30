@@ -24,6 +24,7 @@ mod belt_items;
 mod belt_shape;
 mod buffer;
 mod cable;
+mod capsule;
 mod describe;
 pub mod efficiency;
 mod facts;
@@ -42,6 +43,7 @@ mod miner_model;
 mod panel;
 mod pipes;
 mod placed;
+mod plume;
 mod pole;
 pub mod pole_mount;
 mod pole_tower;
@@ -110,6 +112,7 @@ use wiring::Hook;
 
 pub use belt_items::{ItemAim, ItemKey};
 pub use buffer::Buffer;
+pub(crate) use capsule::push_capsule;
 pub use describe::fmt_int;
 pub use facts::facts;
 #[cfg(test)]

@@ -30,8 +30,19 @@ const BEACON: f32 = 2.0;
 /// A tinted beacon's flag is this plus its 12-bit colour (`mark_beacon_tinted`).
 const TINTED_BEACON: f32 = 3.0;
 /// Texture layers that give light rather than take it (status lights, lamps, laser beams, the jetpack's
-/// flame): the shader draws a box with one of them at full brightness, day or night.
-const GLOWING: [u16; 6] = [tex::LAMP_GREEN, tex::LAMP_YELLOW, tex::LAMP_RED, tex::LAMP_BLUE, tex::LAMP, tex::BEAM];
+/// flame, rocket exhaust): the shader draws a box with one of them at full brightness, day or night.
+const GLOWING: [u16; 10] = [
+    tex::LAMP_GREEN,
+    tex::LAMP_YELLOW,
+    tex::LAMP_RED,
+    tex::LAMP_BLUE,
+    tex::LAMP,
+    tex::BEAM,
+    tex::PLUME_CORE,
+    tex::PLUME_FLAME,
+    tex::PLUME_TAIL,
+    tex::PLUME_DIAMOND,
+];
 
 /// Pushes one box instance (see [`INSTANCE_FLOATS`]).
 #[allow(clippy::too_many_arguments)]
@@ -101,6 +112,26 @@ pub fn push_round(
 ) {
     push_box(out, center, yaw, size, 0.0, tex, world_uv);
     make_round(out, axis, taper);
+}
+
+/// Pushes a round body `len` long, `top` wide at its upper end and `bottom` at its lower, centred on `center`, its axis
+/// leaned by `lean` after `yaw` turns it (up goes to (-sin yaw sin lean, cos lean, cos yaw sin lean), as [`Form::Lean`]).
+/// A body wider at the top is drawn upside down, so its taper is never over 1.
+#[allow(clippy::too_many_arguments)]
+pub fn push_cone(
+    out: &mut Vec<f32>,
+    center: Vec3,
+    yaw: f32,
+    lean: f32,
+    len: f32,
+    top: f32,
+    bottom: f32,
+    tex: [u16; 3],
+) {
+    let (wide, taper, pitch) = if top <= bottom { (bottom, top, lean) } else { (top, bottom, lean + PI) };
+    push_round(out, center, yaw, Axis::Up, [wide, len, wide], taper / wide.max(1e-6), tex, false);
+    let rec = out.len() - INSTANCE_FLOATS;
+    out[rec + PITCH] = pitch;
 }
 
 /// Makes the box just pushed onto `out` (perhaps already tilted by a pitch) the round body filling it, its axis along

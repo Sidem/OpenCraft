@@ -15,7 +15,7 @@ use crate::recipes::Category;
 use crate::satellites::KINDS;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
-use super::model::{part, round, Look, Part};
+use super::model::{part, Look, Part};
 use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
 
 #[cfg(test)]
@@ -102,21 +102,18 @@ impl Processor {
 
 const SLAB: Look = Look::Tex([tex::LAUNCH_TOP, tex::LAUNCH_SIDE, tex::FRAME]);
 const GANTRY: Look = Look::Tex([tex::FRAME, tex::LAUNCH_SIDE, tex::FRAME]);
-const HULL: Look = Look::Rocket([tex::FRAME, tex::ROCKET_HULL, tex::FRAME]);
-const RED: Look = Look::Rocket([tex::LAMP_RED; 3]);
 
-/// Across and deep 7, 6 high (±3.5, ±3.5, ±3): a concrete slab, a mount, a gantry tower with two arms on the left and, while
-/// a batch runs, the rocket (hull, nose, bell and fins) standing on the mount; the status lamp sits at a corner.
-const LAUNCH_PARTS: [Part; 11] = [
+/// Across and deep 7, 6 high (±3.5, ±3.5, ±3) but for the tower: a concrete slab, a mount, a launch tower on the left with
+/// two catch arms and a quick-disconnect arm reaching for the stack, and, while a batch runs, the rocket on the mount
+/// (`rocket.rs`, standing far above the site); the status lamp sits at a corner.
+const LAUNCH_PARTS: [Part; 9] = [
     part([0.0, -2.85, 0.0], [6.96, 0.3, 6.96], SLAB),
     part([0.0, -2.6, 0.0], [2.4, 0.2, 2.4], GANTRY),
-    part([-2.9, 0.0, -0.4], [0.6, 5.6, 0.6], GANTRY),
-    part([-1.75, 1.3, -0.4], [2.1, 0.2, 0.3], GANTRY),
-    part([-1.75, -0.7, -0.4], [2.1, 0.2, 0.3], GANTRY),
-    round([0.0, 0.1, 0.0], [1.2, 4.6, 1.2], HULL),
-    part([0.0, 2.7, 0.0], [0.7, 0.6, 0.7], RED),
-    part([0.0, -2.35, 0.0], [0.9, 0.3, 0.9], Look::Rocket([tex::FRAME, tex::ROCKET_ENGINE, tex::FRAME])),
-    part([0.0, -1.7, 0.0], [2.2, 0.9, 0.1], RED),
-    part([0.0, -1.7, 0.0], [0.1, 0.8, 2.2], RED),
+    part([-2.9, 5.05, -0.4], [0.8, 15.5, 0.8], GANTRY),
+    part([-1.85, 7.0, -0.95], [1.9, 0.26, 0.24], GANTRY),
+    part([-1.85, 7.0, 0.15], [1.9, 0.26, 0.24], GANTRY),
+    part([-1.9, 3.9, -0.4], [1.7, 0.22, 0.34], GANTRY),
+    part([-2.9, 13.3, -0.4], [0.3, 1.0, 0.3], GANTRY),
+    part([0.0, -2.5, 0.0], [1.3, 0.0, 1.3], Look::Rocket),
     part([3.2, -2.55, 3.2], [0.2, 0.2, 0.2], Look::Lamp),
 ];

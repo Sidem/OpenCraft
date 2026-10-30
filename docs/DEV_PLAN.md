@@ -289,6 +289,14 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-30: a steel two-stage rocket, a capsule pod, exhaust with shock diamonds** (user: the rocket and pods did not
+  look beautiful and the climb was jagged). `process/rocket.rs` draws the launch site's rocket as round parts (steel
+  booster and ship, heat tiles, grid fins, flaps, seven bells) by a tower with catch arms; it climbs from the batch's
+  progress blended into the tick at last tick's speed, so it no longer steps once a tick. Drop pods fly as a capsule
+  (`factory/capsule.rs`) on four canted plumes; `factory/plume.rs` is the shared exhaust (glowing cells, a pale diamond
+  at each pinch). New layers in `textures/flight.rs`. Tests: `launch/tests.rs` (cold, firing, an even rise between
+  ticks), `plume/tests.rs`. Presentation only: no save or core change.
+
 - **2026-10-30: kits upgrade underpasses to their own tier** (user: a green kit took an underpass to Mk4). The host
   sends `using` every frame, so a held click on a non-belt piece re-sent `Upgrade`, and the core took whatever kit the
   next step needed. `Action::Upgrade` now names the kit's tier (the codec grew a byte: co-op peers must match). Shift
@@ -330,9 +338,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   moved back, a bar across the crusher's hopper. Tests: products fit the turning circle at every angle; each slot stands
   on a part; from 16 level directions at least two of five sight lines across it pass every part (a tall smelter
   chimney fails it).
-
-- **2026-10-28: icons fill their box** (user: tool icons were tiny). `hud.ts` drew every model at a cube's scale; measured in
-  the browser, 114 of 300 icons spanned under 80% of the box (servo, sickle 34%, axes 42%). `item_models/icon_frame.rs` fits
-  each icon to its model's screen bounds (`ICON_FILL`, centred; `item_icon` carries the fit); plant-drawn blocks draw as their
-  picture trimmed to visible pixels (`ui/icon-sprite.ts`). After: none under 80% (ladder 81%, the rest 86–91%). Tests:
-  `icon_frame/tests.rs` rasterises every item's fitted icon; `web/test/icon-sprite.test.mjs`. No save or core change.

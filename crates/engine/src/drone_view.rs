@@ -4,7 +4,7 @@
 //! `push_drone`.
 
 use crate::block::tex;
-use crate::factory::push_box;
+use crate::factory::{push_box, push_capsule};
 use crate::item;
 use crate::math::Vec3;
 use crate::{Game, TICK};
@@ -46,18 +46,17 @@ impl Game {
         self.write_companion(eye, alpha, time);
     }
 
-    /// The drop pods in their first seconds, rising out of their launchers, and in their last, falling onto their pads: a
-    /// white capsule with a red flame under it. Then the bursts of dust where they left or landed (`orbit_fx.rs`).
+    /// The drop pods in their first seconds, rising out of their launchers, and in their last, braking onto their pads: a
+    /// capsule on its thrusters (`factory/capsule.rs`). Then the bursts of dust where they left or landed (`orbit_fx.rs`).
     fn write_pod_instances(&mut self, eye: Vec3, alpha: f64) {
         let time = self.sim.tick as f64 + alpha;
         let (factory, out) = (&self.sim.factory, &mut self.instances);
-        for at in factory.falling_pods(time).into_iter().chain(factory.rising_pods(time)) {
+        for (i, at) in factory.falling_pods(time).into_iter().chain(factory.rising_pods(time)).enumerate() {
             let at = at - eye;
             if at.length() > POD_RANGE {
                 continue;
             }
-            push_box(out, at + Vec3::new(0.0, 0.5, 0.0), 0.0, [0.7, 1.0, 0.7], 0.0, [tex::DROP_POD; 3], false);
-            push_box(out, at - Vec3::new(0.0, 0.2, 0.0), 0.0, [0.3, 0.4, 0.3], 0.0, [tex::LAMP_RED; 3], false);
+            push_capsule(out, at, 1.0, time * TICK, (i as f64 * 0.37).fract());
         }
         self.orbit_fx.write(&mut self.instances, eye, time * TICK);
     }

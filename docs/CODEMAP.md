@@ -59,9 +59,9 @@ local player's hands, presentation, then the **deterministic core**, which never
   machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `shape.rs`,
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
-  `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs`,
+  `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`, its rocket),
   `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`.
-- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `fake_round` the check none is faked from boxes;
+- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `push_cone`; `plume.rs` rocket exhaust with shock diamonds, `capsule.rs` the drop pod in flight; `fake_round` the check none is faked from boxes;
   `tests/face_fight.rs` the check no two faces share a plane),
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
