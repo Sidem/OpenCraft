@@ -15,6 +15,7 @@ const GROUPS: [category: string, label: string][] = [
   ['towns', 'Towns'],
   ['sites', 'Sites'],
   ['cover', 'Satellite cover'],
+  ['dry', 'Worked out'],
 ];
 
 export class FilterPanel {

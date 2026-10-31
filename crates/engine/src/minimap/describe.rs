@@ -59,7 +59,11 @@ impl Subject {
     pub fn words(self) -> (String, String) {
         let ore_name = |ore| block::def(ore).name;
         match self {
-            Subject::Deposit { ore, tier } => (
+            Subject::Deposit { ore, tier, dry: true } => (
+                format!("{} {}: worked out", ore_name(ore), tier.name()),
+                "No ore is left in it. Miners on it have stopped: move them to another deposit.".into(),
+            ),
+            Subject::Deposit { ore, tier, dry: false } => (
                 format!("{} {}", ore_name(ore), tier.name()),
                 match tier {
                     Tier::Lode => "The richest kind of deposit. A miner placed on it draws ore until it runs dry.",
@@ -83,12 +87,18 @@ impl Subject {
                 let (name, what) = JOBS.get(usize::from(job)).copied().unwrap_or(("Terraforming", ""));
                 (format!("{name} site"), what.into())
             }
-            Subject::Machine { block, tier } => {
+            Subject::Machine { block, tier, dry } => {
                 let name = match factory::tiers::family(block) {
                     Some(_) => factory::tiers::name(block, tier),
                     None => block::def(block).name.into(),
                 };
-                (name, "One of your machines.".into())
+                match dry {
+                    true => (
+                        format!("{name}: stopped"),
+                        "Its deposit is worked out. Break it and place it on another deposit.".into(),
+                    ),
+                    false => (name, "One of your machines.".into()),
+                }
             }
             Subject::Launch => (block::def(block::LAUNCH_SITE).name.into(), "Rockets lift off from here.".into()),
             Subject::Pod { launcher, channel } => {

@@ -5,6 +5,8 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 
 ## 2026-10-31 · A playtester's notes
 - **A machine you upgraded is called by its new Mk everywhere**: on the map, when you look at it, in its panel, on the belts that feed it and in Analytics (P), which now lists each Mk on its own row. Before, an upgraded miner still said "Miner Mk1" on the map.
+- **A worked-out deposit stays on the map, crossed out in red**, and a miner standing on one shows as a red-crossed square, so a dead outpost is easy to spot. Before, the deposit's mark simply vanished. Deposits your miners stand on are marked even if you never scanned them. A "Worked out" chip hides them.
+- **The world map has a key**: open "What the marks mean" beside the filters to see every mark and what it stands for.
 
 ## 2026-10-30 · Rates where you build
 - **Every machine says what it takes and makes a minute at full speed**, in its panel and when you look at it, whatever it is doing: "Full speed: takes 40 Iron Ore, makes 40 Iron Ingot a minute". The numbers are the same ones Analytics (P) measures.

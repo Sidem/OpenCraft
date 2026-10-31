@@ -5,13 +5,16 @@
 //! Presentation only. The prospected deposits (`Known`) are the local player's memory, not core state:
 //! the scanner and core drill add veins and lodes (`remember`; outcrops show on the map by themselves),
 //! and the host keeps the list with the world's record in the browser (`export` / `import`), not in the
-//! save file. A deposit that runs dry loses its mark and is left out of the next export. Minimap records
+//! save file. A deposit that runs dry keeps a mark of its own (`MARK_DRY`), and so does a miner that worked it
+//! out, so a dead outpost stands out; deposits under the player's own miners are marked even if never scanned. Minimap records
 //! are relative to the column the image was last drawn around, so marks line up with its pixels; world
 //! map records are in world columns.
 //!
 //! To mark another machine kind: a line in `Factory::map_machines` and a colour in `machine_color`
 //! (processors: `map_colour` in their spec). Every mark is a `Subject`; a new shape constant needs a variant
 //! and its words in `describe.rs` (a test fails without them).
+
+use rustc_hash::FxHashSet;
 
 use crate::block::{self, BlockId};
 use crate::chunk::CHUNK_SHIFT;
@@ -46,6 +49,10 @@ pub const MARK_LAUNCH: i32 = 20;
 /// A town (a house at its depot), in its kind's colour (`KINDS`): this plus its state as the shape (`TOWN_STATES`:
 /// growing or supplied, stalled, dormant).
 pub const MARK_TOWN: i32 = 24;
+/// A deposit with no ore left (a crossed-out ring in the ore's colour).
+pub const MARK_DRY: i32 = 28;
+/// A miner whose deposit is worked out, so it has stopped (a machine square with a red cross).
+pub const MARK_DRY_MINER: i32 = 29;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -78,10 +85,10 @@ impl Known {
         self.deposits.iter().map(|d| (d.center.x, d.center.z, d.ore()))
     }
 
-    /// The remembered deposits that still hold ore, `KNOWN_FIELDS` numbers each.
-    pub fn export(&self, factory: &Factory) -> Vec<i32> {
+    /// The remembered deposits, worked out or not, `KNOWN_FIELDS` numbers each.
+    pub fn export(&self) -> Vec<i32> {
         let mut out = Vec::new();
-        for d in self.deposits.iter().filter(|d| !dry(factory, d)) {
+        for d in &self.deposits {
             let k = d.key;
             out.extend_from_slice(&[k.tier as i32, k.cx, k.cz, k.ore as i32, k.index as i32]);
         }
@@ -106,9 +113,11 @@ impl Known {
 /// says (`describe.rs`) cannot differ. Add a variant with its shape constant, and `describe.rs` must explain it.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum Subject {
+    /// A deposit the player knows of; `dry` once no ore is left in it.
     Deposit {
         ore: BlockId,
         tier: Tier,
+        dry: bool,
     },
     Ore(BlockId),
     /// An AI survey guess; `strength` is 1 to 3.
@@ -124,6 +133,8 @@ pub enum Subject {
     Machine {
         block: BlockId,
         tier: u8,
+        /// A miner that has worked out its deposit.
+        dry: bool,
     },
     Launch,
     Pod {
@@ -149,11 +160,13 @@ impl Subject {
     /// The shape the host draws (`MARK_*`).
     pub fn shape(self) -> i32 {
         match self {
-            Subject::Deposit { .. } => MARK_DEPOSIT,
+            Subject::Deposit { dry: false, .. } => MARK_DEPOSIT,
+            Subject::Deposit { dry: true, .. } => MARK_DRY,
             Subject::Ore(_) => MARK_ORE,
             Subject::Guess { strength, .. } => MARK_GUESS + i32::from(strength) - 1,
             Subject::Site { .. } => MARK_SITE,
-            Subject::Machine { .. } => MARK_MACHINE,
+            Subject::Machine { dry: false, .. } => MARK_MACHINE,
+            Subject::Machine { dry: true, .. } => MARK_DRY_MINER,
             Subject::Launch => MARK_LAUNCH,
             Subject::Pod { launcher, .. } => MARK_CHANNEL + i32::from(launcher),
             Subject::Cover { kind, .. } => MARK_COVER + i32::from(kind),
@@ -239,12 +252,25 @@ impl Minimap {
                 }
             }
         });
-        for d in self.known.deposits.iter().filter(|d| inside(d.center) && !dry(factory, d)) {
-            f(d.center.x, d.center.z, Subject::Deposit { ore: d.ore(), tier: d.tier() });
+        let mut deposit = |d: &Deposit| {
+            if inside(d.center) {
+                f(d.center.x, d.center.z, Subject::Deposit { ore: d.ore(), tier: d.tier(), dry: dry(factory, d) });
+            }
+        };
+        self.known.deposits.iter().for_each(&mut deposit);
+        self.seen.deposits().filter(|d| !self.known.has(&d.key)).for_each(&mut deposit);
+        // The player found the deposits their miners stand on by building there, scanned or not.
+        let mut listed: FxHashSet<DepositKey> = self.known.deposits.iter().map(|d| d.key).collect();
+        listed.extend(self.seen.deposits().map(|d| d.key));
+        for (_, key, _) in factory.miner_deposits() {
+            if !listed.insert(key) {
+                continue;
+            }
+            if let Some(st) = factory.deposits.get(&key) {
+                deposit(&st.deposit);
+            }
         }
-        for d in self.seen.deposits().filter(|d| inside(d.center) && !dry(factory, d) && !self.known.has(&d.key)) {
-            f(d.center.x, d.center.z, Subject::Deposit { ore: d.ore(), tier: d.tier() });
-        }
+        let dry_miners: Vec<IVec3> = factory.miner_deposits().filter(|m| m.2).map(|m| m.0).collect();
         for s in &factory.sites.list {
             let (x, z) = ((s.lo.0 + s.hi.0) / 2, (s.lo.1 + s.hi.1) / 2);
             if (lo.0..=hi.0).contains(&x) && (lo.1..=hi.1).contains(&z) {
@@ -255,7 +281,7 @@ impl Minimap {
             let subject = match block {
                 block::POD_LAUNCHER | block::LANDING_PAD | block::TOWN_DEPOT => return, // drawn below
                 block::LAUNCH_SITE => Subject::Launch,
-                _ => Subject::Machine { block, tier },
+                _ => Subject::Machine { block, tier, dry: dry_miners.contains(&p) },
             };
             f(p.x, p.z, subject);
         });

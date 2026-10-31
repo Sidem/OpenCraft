@@ -1,4 +1,5 @@
-//! Minimap marks: prospected veins and lodes and machines show where they are, dry deposits drop out,
+//! Minimap marks: prospected veins and lodes and machines show where they are, worked-out deposits and their miners
+//! are marked so,
 //! and the remembered list survives an export and import.
 
 use super::*;
@@ -6,7 +7,7 @@ use crate::action::Action;
 use crate::block::{BELT, IRON_ORE, SMELTER};
 use crate::deposits::owner_of;
 use crate::item::SCANNER;
-use crate::tests::{find_outcrop_block, run_until_ready};
+use crate::tests::{build_mine, find_outcrop_block, run_until_ready};
 use crate::Game;
 
 /// The marks of `shape` as (dx, dz, colour).
@@ -79,14 +80,17 @@ fn a_survey_satellite_marks_its_footprint_and_the_deposits_under_it() {
 }
 
 #[test]
-fn a_deposit_that_runs_dry_loses_its_mark() {
+fn a_worked_out_deposit_and_its_miner_are_marked_so() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
-    let (_, key) = find_outcrop_block(&mut g, 3);
+    let (p, key) = find_outcrop_block(&mut g, 3);
+    let (miner, _) = build_mine(&mut g, p);
+    g.run_ticks(1);
+    g.minimap_redraw();
+    assert_eq!(marks_of(&g, MARK_DEPOSIT).len(), 1, "the deposit under a miner is marked, scanned or not");
+    assert!(marks_of(&g, MARK_DRY).is_empty() && marks_of(&g, MARK_DRY_MINER).is_empty());
     let d = g.sim.world.generator().deposit_by_key(key).unwrap();
     g.minimap.known.deposits.push(d); // outcrops aren't remembered; this one stands in for a vein
-    g.minimap_redraw();
-    assert_eq!(marks_of(&g, MARK_DEPOSIT).len(), 1);
     assert_eq!(g.known_deposits().len(), KNOWN_FIELDS);
 
     let (lo, hi) = d.bounds();
@@ -102,8 +106,18 @@ fn a_deposit_that_runs_dry_loses_its_mark() {
         }
     }
     assert!(g.sim.factory.deposits.get(&key).unwrap().exhausted());
-    assert!(marks_of(&g, MARK_DEPOSIT).is_empty(), "dry: no mark");
-    assert!(g.known_deposits().is_empty(), "and not kept");
+    g.run_ticks(2);
+    g.minimap_redraw();
+    assert!(marks_of(&g, MARK_DEPOSIT).is_empty(), "no longer a deposit with ore");
+    assert_eq!(marks_of(&g, MARK_DRY).len(), 1, "but marked worked out");
+    let at = g.minimap.centre.unwrap();
+    let stopped = marks_of(&g, MARK_DRY_MINER);
+    assert_eq!(
+        stopped.iter().map(|m| (m.0 + at.0, m.1 + at.1)).collect::<Vec<_>>(),
+        [(miner.x, miner.z)],
+        "the miner too"
+    );
+    assert_eq!(g.known_deposits().len(), KNOWN_FIELDS, "kept with the world's record, so the mark stays");
 }
 
 #[test]

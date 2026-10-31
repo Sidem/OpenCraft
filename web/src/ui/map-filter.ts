@@ -1,17 +1,21 @@
 // Which points of interest the world map and the corner minimap show. A filter is a set of hidden categories, kept
-// in localStorage (a per-viewer convenience, not part of any world): the machines, towns, terraforming sites and
-// satellite cover as a group each, one category per ore (it covers deposits, ore seen at the surface and survey
+// in localStorage (a per-viewer convenience, not part of any world): the machines, towns, terraforming sites,
+// satellite cover and worked-out deposits as a group each, one category per ore (it covers deposits, ore seen at the surface and survey
 // guesses of that ore, told apart by the mark's colour) and one per pin kind. The rules are pure functions (tested
 // in web/test/map-filter.test.mjs: no DOM and no enums in here), and so is reading the hover lines the engine
 // answers with; the chips that change the filter are in map-filter-panel.ts. To filter a new kind of mark: give it
 // a category in `markCategory`.
 
-import { hex, MARK_CHANNEL, MARK_COVER, MARK_GUESS, MARK_MACHINE, MARK_RANGE, MARK_SITE, MARK_TOWN } from './pins.ts';
+import {
+  hex, MARK_CHANNEL, MARK_COVER, MARK_DRY, MARK_DRY_MINER, MARK_GUESS, MARK_MACHINE, MARK_RANGE, MARK_SITE, MARK_TOWN,
+} from './pins.ts';
 
 const STORAGE_KEY = 'opencraft.map.filter';
 
 /** The category of a mark, or null for one that always shows (a long-distance pole's reach, an aid while placing). */
 export function markCategory(shape: number, colour: number): string | null {
+  if (shape === MARK_DRY) return 'dry';
+  if (shape === MARK_DRY_MINER) return 'machines';
   if (shape >= MARK_TOWN) return 'towns';
   if (shape >= MARK_CHANNEL) return 'machines'; // pads, launchers and launch sites
   if (shape === MARK_RANGE) return null;

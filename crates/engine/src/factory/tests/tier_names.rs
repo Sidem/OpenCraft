@@ -24,7 +24,7 @@ fn an_upgraded_machine_is_named_at_its_tier_on_every_screen() {
             let mut marked = Vec::new();
             f.map_machines((i32::MIN, i32::MIN), (i32::MAX, i32::MAX), &mut |block, t, p| marked.push((block, t, p)));
             for &(block, t, _) in marked.iter().filter(|m| m.2 == pos) {
-                assert_eq!(Subject::Machine { block, tier: t }.words().0, want, "the map's hover words");
+                assert_eq!(Subject::Machine { block, tier: t, dry: false }.words().0, want, "the map's hover words");
             }
 
             let kind = tiers::item_of(family.block, tier).expect("tier item").0;

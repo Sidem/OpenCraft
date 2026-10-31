@@ -1,0 +1,31 @@
+/* The world map's key (ui/map-key.ts): a folding list of mark samples and what they mean. */
+
+.mk {
+  margin-bottom: 14px;
+}
+
+.mk-head {
+  font: 600 13px var(--font);
+  cursor: pointer;
+}
+
+.mk-list {
+  display: grid;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.mk-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 12px var(--font);
+}
+
+.mk-sample {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 3px;
+  background: #3a4a3a;
+}

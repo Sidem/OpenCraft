@@ -40,6 +40,9 @@ export const MARK_CHANNEL = 16;
 export const MARK_LAUNCH = 20;
 /** A town is `MARK_TOWN` plus its state (`town_states`: 0 supplied, 1 stalled, 2 dormant), in its kind's colour. */
 export const MARK_TOWN = 24;
+/** A deposit with no ore left (a dark ring in the ore's colour, crossed out), and a miner whose deposit that is. */
+export const MARK_DRY = 28;
+export const MARK_DRY_MINER = 29;
 const TOWN_STALLED = 1;
 const TOWN_DORMANT = 2;
 const EXTRA_KINDS: PinKind[] = [
@@ -113,6 +116,10 @@ export function drawMark(
 ): void {
   c.fillStyle = hex(color);
   c.beginPath();
+  if (shape === MARK_DRY || shape === MARK_DRY_MINER) {
+    drawDry(c, x, y, color, shape === MARK_DRY_MINER, px);
+    return;
+  }
   if (shape >= MARK_TOWN) {
     drawTown(c, x, y, shape - MARK_TOWN, px);
     return;
@@ -184,6 +191,27 @@ export function drawMark(
     c.strokeStyle = '#fff';
   }
   c.fill();
+  c.stroke();
+}
+
+/** A worked-out deposit (a dark disc ringed in the ore's colour) or a stopped miner (its square), crossed out in red. */
+function drawDry(c: CanvasRenderingContext2D, x: number, y: number, color: number, miner: boolean, px: number): void {
+  const r = (miner ? 2.5 : 4) * px;
+  if (miner) c.rect(x - r, y - r, 2 * r, 2 * r);
+  else c.arc(x, y, r, 0, 2 * Math.PI);
+  c.fillStyle = miner ? hex(color) : 'rgba(20, 20, 24, 0.85)';
+  c.fill();
+  c.strokeStyle = miner ? '#ef4444' : hex(color);
+  c.lineWidth = Math.max(1.5, px);
+  c.stroke();
+  const k = r * 0.8;
+  c.beginPath();
+  c.moveTo(x - k, y - k);
+  c.lineTo(x + k, y + k);
+  c.moveTo(x + k, y - k);
+  c.lineTo(x - k, y + k);
+  c.strokeStyle = '#ef4444';
+  c.lineWidth = Math.max(1.5, 1.2 * px);
   c.stroke();
 }
 

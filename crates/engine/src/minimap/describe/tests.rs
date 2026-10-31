@@ -28,10 +28,12 @@ fn shape_constants() -> Vec<(String, i32)> {
 /// One subject of every variant, and of every shape a variant makes.
 fn samples() -> Vec<Subject> {
     let mut all = vec![
-        Subject::Deposit { ore: IRON_ORE, tier: Tier::Lode },
-        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein },
+        Subject::Deposit { ore: IRON_ORE, tier: Tier::Lode, dry: false },
+        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein, dry: false },
+        Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein, dry: true },
         Subject::Ore(COAL_ORE),
-        Subject::Machine { block: SMELTER, tier: 2 },
+        Subject::Machine { block: SMELTER, tier: 2, dry: false },
+        Subject::Machine { block: block::MINER, tier: 1, dry: true },
         Subject::Launch,
         Subject::Pod { launcher: false, channel: 0 },
         Subject::Pod { launcher: true, channel: 5 },

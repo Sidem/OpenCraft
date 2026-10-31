@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { MapFilter, markCategory, oreCategory, parseHidden, parseInfo, pinCategory, visibleMarks } from '../src/ui/map-filter.ts';
 import {
-  MARK_CHANNEL, MARK_COVER, MARK_DEPOSIT, MARK_GUESS, MARK_LAUNCH, MARK_MACHINE, MARK_ORE, MARK_RANGE, MARK_SITE, MARK_TOWN,
+  MARK_CHANNEL, MARK_COVER, MARK_DEPOSIT, MARK_DRY, MARK_DRY_MINER, MARK_GUESS, MARK_LAUNCH, MARK_MACHINE, MARK_ORE,
+  MARK_RANGE, MARK_SITE, MARK_TOWN,
 } from '../src/ui/pins.ts';
 
 const IRON = 0xd0703a;
@@ -22,6 +23,8 @@ test('every engine mark shape has a category, and ore marks follow their ore', (
   assert.equal(markCategory(MARK_SITE, 0xd55e00), 'sites');
   for (let kind = 0; kind < 4; kind++) assert.equal(markCategory(MARK_COVER + kind, 768), 'cover');
   assert.equal(markCategory(MARK_RANGE, 64), null, 'a pole\'s reach is a building aid and always shows');
+  assert.equal(markCategory(MARK_DRY, IRON), 'dry', 'worked-out deposits are one chip, whatever their ore');
+  assert.equal(markCategory(MARK_DRY_MINER, 0xf2c230), 'machines');
 });
 
 test('hiding a category hides only its marks', () => {

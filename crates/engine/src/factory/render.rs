@@ -8,8 +8,10 @@ use std::f32::consts::{FRAC_PI_2, PI};
 use crate::math::{IVec3, Vec3};
 
 use crate::block::{tex, BlockId, GENERATOR, LAB, QUARRY, STORAGE};
+use crate::deposits::DepositKey;
 use crate::world::DAYLIGHT;
 
+use super::miner::MinerStatus;
 use super::{Factory, Machine};
 
 /// Floats per box instance: centre xyz (camera-relative), yaw, size xyz, uv scroll,
@@ -355,6 +357,11 @@ impl Factory {
         self.generators.iter().for_each(|m| each(GENERATOR, m.tier, m.pos()));
         self.labs.iter().for_each(|m| each(LAB, m.tier, m.pos()));
         self.quarries.iter().for_each(|m| each(QUARRY, m.tier, m.pos()));
+    }
+
+    /// Every miner standing on a deposit: where, which deposit, and whether it has worked it out (for the maps).
+    pub fn miner_deposits(&self) -> impl Iterator<Item = (IVec3, DepositKey, bool)> + '_ {
+        self.miners.iter().filter_map(|m| m.deposit.map(|k| (m.pos(), k, m.status == MinerStatus::Exhausted)))
     }
 }
 

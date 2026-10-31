@@ -13,6 +13,7 @@ import './worldmap.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
 import { FilterPanel } from './map-filter-panel';
+import { MapKey } from './map-key';
 import { fitView } from './map-focus';
 import { MapFocus } from './map-focus-layer';
 import { infoAt, type MapInfo } from './map-info';
@@ -99,7 +100,7 @@ export class WorldMap {
     }
     this.view.append(this.image, this.overlay, this.legend, this.focus.chip, this.editor);
     const side = h('aside', 'wm-side');
-    side.append(new FilterPanel(game, filter, pins.kinds).el, h('h3', '', 'Pins'), this.pinList, new OreGuide(game).el);
+    side.append(new FilterPanel(game, filter, pins.kinds).el, new MapKey(game).el, h('h3', '', 'Pins'), this.pinList, new OreGuide(game).el);
     const main = h('div', 'wm-main');
     main.append(tools, this.view);
     const body = h('div', 'wm-body');

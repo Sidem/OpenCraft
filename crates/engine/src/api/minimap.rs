@@ -49,9 +49,9 @@ impl Game {
         MARK_FIELDS as u32
     }
 
-    /// The prospected deposits still holding ore, for the host to keep with the world's record.
+    /// The prospected deposits (worked-out ones too, so their mark stays), for the host to keep with the world's record.
     pub fn known_deposits(&self) -> Vec<i32> {
-        self.minimap.known.export(&self.sim.factory)
+        self.minimap.known.export()
     }
 
     /// Restores `known_deposits` from an earlier session of this world.
