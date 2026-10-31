@@ -1,12 +1,13 @@
-//! Which family a graphed item belongs to, so the analytics screen can filter and colour materials by group.
+//! Which family an item belongs to: the analytics screen filters and colours materials by it, and the backpack sort
+//! orders ingredients by it (`inventory/kinds.rs`).
 //! Derived from the recipe tables, so a new item sorts itself: an item no recipe makes is a raw material; one a
 //! machine makes goes by the first machine recipe (`MACHINE_RECIPES`) it is the main product of; a research pack is science;
 //! an item only hand recipes make is a component. The order of [`GROUPS`] is what the screen shows.
 //!
 //! To add a group: a [`GROUPS`] row (name and colour) and a rule in [`group_of`].
 
+use super::{Category, MACHINE_RECIPES, RECIPES};
 use crate::item::ItemId;
-use crate::recipes::{Category, MACHINE_RECIPES, RECIPES};
 use crate::research::PACKS;
 
 /// One group: its name and the colour its chips and list marks use (`0xRRGGBB`).
@@ -15,7 +16,7 @@ pub struct GroupInfo {
     pub colour: u32,
 }
 
-const RAW: u8 = 0;
+pub const RAW: u8 = 0;
 const SMELTED: u8 = 1;
 const ORE_PROCESSING: u8 = 2;
 const PARTS: u8 = 3;

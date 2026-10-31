@@ -85,9 +85,9 @@ fn sorting_never_merges_tools_and_puts_empty_slots_last() {
     slots[2] = Stack { item: pick, count: 100 };
     slots[4] = Stack { item: ItemId(3), count: 1 };
     sort_stacks(&mut slots);
-    assert_eq!(slots[0], Stack { item: ItemId(3), count: 1 });
-    assert_eq!(slots[1], Stack { item: pick, count: 100 }, "the tool with more uses first");
-    assert_eq!(slots[2], Stack { item: pick, count: 40 }, "each tool keeps its own wear");
+    assert_eq!(slots[0], Stack { item: pick, count: 100 }, "tools before blocks, the one with more uses first");
+    assert_eq!(slots[1], Stack { item: pick, count: 40 }, "each tool keeps its own wear");
+    assert_eq!(slots[2], Stack { item: ItemId(3), count: 1 });
     assert!(slots[3..].iter().all(Stack::is_empty));
 }
 
@@ -135,4 +135,95 @@ fn splitting_and_placing_one_respect_stack_limits_and_tools() {
     inv.cursor = Stack { item: a, count: 2 };
     assert_eq!(inv.take_cursor_one(), Some(Stack { item: a, count: 1 }));
     assert_eq!(inv.cursor.count, 1);
+}
+
+fn every_item() -> impl Iterator<Item = ItemId> {
+    (1..crate::item::ITEM_COUNT as u16).map(ItemId).filter(|i| i.is_valid())
+}
+
+#[test]
+fn every_item_sorts_into_the_kind_a_player_expects() {
+    use super::kinds::*;
+    use crate::{block, item};
+    let expect = [
+        (ItemId::block(block::MINER), BUILDINGS),
+        (item::MINER_MK3, BUILDINGS),
+        (ItemId::block(block::BELT), BUILDINGS),
+        (item::LOCOMOTIVE, BUILDINGS),
+        (item::IRON_PICKAXE, TOOLS),
+        (ItemId::block(block::GLASS), BUILDING_BLOCKS),
+        (item::IRON_PLATE, INGREDIENTS),
+        (item::RED_PACK, INGREDIENTS),
+        (ItemId::block(block::IRON_ORE), RAW),
+        (ItemId::block(block::SLAG), RAW),
+        (ItemId::block(block::DIRT), NATURAL),
+        (ItemId::block(block::LOG), NATURAL),
+    ];
+    for (it, kind) in expect {
+        assert_eq!(KINDS[kind_of(it) as usize], KINDS[kind as usize], "{}", item::name(it));
+    }
+    for it in every_item() {
+        let kind = kind_of(it);
+        assert!((kind as usize) < KINDS.len(), "{} has no kind", item::name(it));
+        if it.0 >= 256 {
+            assert!(kind != RAW && kind != NATURAL, "{} is made, not found", item::name(it));
+        }
+    }
+    // Every tier of every machine sorts as a building (or a tool), next to its Mk1.
+    for f in crate::factory::tiers::FAMILIES {
+        let mk1 = sort_key(f.items[0]) >> 16;
+        for &it in f.items {
+            assert!(matches!(kind_of(it), BUILDINGS | TOOLS), "{}", item::name(it));
+            assert_eq!(sort_key(it) >> 16, mk1, "{} sorts away from its Mk1", item::name(it));
+        }
+    }
+}
+
+#[test]
+fn a_fuzzed_sort_keeps_every_item_and_leaves_the_hotbar_alone() {
+    let items: Vec<ItemId> = every_item().collect();
+    let mut seed = 0x2545_f491_4f6c_dd1du64;
+    let mut next = |n: usize| {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        (seed % n as u64) as usize
+    };
+    for _ in 0..300 {
+        let mut inv = Inventory::default();
+        let cap = inv.capacity();
+        for s in inv.slots[..cap].iter_mut() {
+            if next(3) > 0 {
+                // A few items at a time, so equal items meet often.
+                let item = items[next(12) * items.len() / 12 + next(3)];
+                let max = if tools::tool(item).is_some() { 100 } else { stack_size(item) };
+                *s = Stack { item, count: 1 + next(max as usize) as u32 };
+            }
+        }
+        let before = inv.slots;
+        inv.sort();
+        let hotbar = HOTBAR_SLOTS;
+        assert_eq!(inv.slots[..hotbar], before[..hotbar], "the hotbar keeps its layout");
+        let tally = |slots: &[Stack]| {
+            let mut t: Vec<(u16, u32)> = Vec::new();
+            for s in slots.iter().filter(|s| !s.is_empty()) {
+                let key = if tools::tool(s.item).is_some() { s.count } else { 0 };
+                match t.iter_mut().find(|e| e.0 == s.item.0 && (key == 0 || e.1 == key)) {
+                    Some(e) if key == 0 => e.1 += s.count,
+                    _ => t.push((s.item.0, if key == 0 { s.count } else { key })),
+                }
+            }
+            t.sort_unstable();
+            t
+        };
+        assert_eq!(tally(&inv.slots[hotbar..cap]), tally(&before[hotbar..cap]), "the sort lost or made items");
+        let backpack = &inv.slots[hotbar..cap];
+        let filled = backpack.iter().take_while(|s| !s.is_empty()).count();
+        assert!(backpack[filled..].iter().all(Stack::is_empty), "empty slots come last");
+        let keys: Vec<u64> = backpack[..filled].iter().map(|s| super::kinds::sort_key(s.item)).collect();
+        assert!(keys.windows(2).all(|w| w[0] <= w[1]), "sorted by kind");
+        let again = inv.slots;
+        inv.sort();
+        assert_eq!(inv.slots, again, "sorting twice changes nothing");
+    }
 }

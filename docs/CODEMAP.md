@@ -30,7 +30,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `join.rs`: compile-time joins of const tables (`TECHS`, `MACHINE_RECIPES`). `math.rs`: vectors, hashes, `Rng`, small sort.
 - `doors.rs`: `Action::ToggleDoor` swings a door (and the doors stacked on it) and the use button on one (`block/house.rs`).
 - `deposits.rs`: deposit pools, tiers, draw caps, taper, `HAND_YIELD`. `daytime.rs`: time of day and sunlight from the tick.
-- `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks. `equipment.rs`: worn gear, packs. `offhand.rs`: the left-hand
+- `inventory.rs` + `inventory/stacks.rs`: slots, cursor, clicks; `inventory/kinds.rs`: what the sort orders by. `equipment.rs`: worn gear, packs. `offhand.rs`: the left-hand
   stack (swap, click, the tool that suits a block). `tools.rs`: tool tiers.
 - `crafting.rs`: the hand-craft queue. `take_apart.rs`: taking a hand-crafted item apart (most inputs back, iron as scrap). `perks.rs`: `player_bonus` (techs plus gear). `mode.rs`: normal or creative.
 - `research.rs`: `Tech`, `Unlock`, `Research`. `research/`: tech tables by era (`techs.rs` first, then `electronics.rs`;
@@ -72,7 +72,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
-  `menu_order.rs` (build menu), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
+  `menu_order.rs` (build menu), `item_groups.rs` (item families for analytics and sorting), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
 - `item_models.rs` + `item_models/`: box and cylinder assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box; `machines.rs` + `machines_plant.rs` hand-built machine icons; `placed.rs` icons from a placed model via `factory::shape_of`).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
@@ -103,7 +103,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `entities.rs` + `entities/merge.rs` (loose items; resting ones merge into stacks), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `item_guide.rs`: every way to get an item (found, hand, machine) and what uses it; a test makes every needed item answerable.
-- `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`, `groups.rs`); never saved.
+- `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`); never saved.
 - `surroundings/`: nine floats for ambient sound, `roof.rs` (where rain stops).
 
 ### Co-op

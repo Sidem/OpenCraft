@@ -13,7 +13,6 @@
 //!
 //! To graph another quantity: a `Series` here or in `power.rs`, pushed in `close_second`, and a row in its export.
 
-mod groups;
 mod machines;
 mod power;
 mod series;
@@ -25,7 +24,7 @@ use crate::factory::Factory;
 use crate::item::ItemId;
 use crate::TICK_RATE;
 
-pub use groups::GROUPS;
+pub use crate::recipes::item_groups::GROUPS;
 #[cfg(test)]
 pub(crate) use machines::kind_at;
 pub use machines::{Machines, KIND_FIELDS, TYPE_FIELDS};
@@ -117,7 +116,7 @@ impl Analytics {
         if let Some(i) = self.items.iter().position(|it| it.id == item) {
             return i;
         }
-        let (group, secs) = (groups::group_of(item), self.secs);
+        let (group, secs) = (crate::recipes::item_groups::group_of(item), self.secs);
         self.items.push(Item { id: item, group, made: Flow::after(secs), used: Flow::after(secs) });
         self.items.len() - 1
     }

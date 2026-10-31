@@ -416,8 +416,8 @@ fn sorting_merges_and_orders_a_box_and_the_backpack() {
     sim.apply(P, Action::SortInventory);
     let stacks = &inv(&sim).slots;
     assert_eq!(stacks[0], Stack { item: STONE.into(), count: 9 }, "the hotbar stays");
-    assert_eq!(stacks[HOTBAR_SLOTS], Stack { item: DIRT.into(), count: 3 }, "blocks come before items");
-    assert_eq!(stacks[HOTBAR_SLOTS + 1], Stack { item: IRON_PLATE, count: 2 });
+    assert_eq!(stacks[HOTBAR_SLOTS], Stack { item: IRON_PLATE, count: 2 }, "ingredients come before natural blocks");
+    assert_eq!(stacks[HOTBAR_SLOTS + 1], Stack { item: DIRT.into(), count: 3 });
     assert!(stacks[HOTBAR_SLOTS + 2..].iter().all(Stack::is_empty));
 }
 

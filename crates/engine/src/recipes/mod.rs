@@ -23,6 +23,7 @@ mod gold;
 mod group;
 mod heavy;
 mod house;
+pub mod item_groups;
 mod machine;
 mod machine_later;
 mod materials;

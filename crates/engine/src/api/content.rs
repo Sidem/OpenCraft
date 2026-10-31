@@ -44,6 +44,12 @@ impl Game {
         item::name(ItemId(id)).to_string()
     }
 
+    /// The kinds the backpack and box sort orders by, in their order, lower case and comma-separated
+    /// (`inventory/kinds.rs`).
+    pub fn sort_kinds(&self) -> String {
+        crate::inventory::kinds::KINDS.join(", ").to_lowercase()
+    }
+
     /// How to draw an item's icon: texture layers top, side, bottom, then its box proportions x, y, z
     /// (1 = a full cube), then its fit (`item_models::icon_frame`): one cube unit as a share of the box side,
     /// the icon's centre right and down in cube units, and 1 if it is drawn flat as its side picture. Empty for

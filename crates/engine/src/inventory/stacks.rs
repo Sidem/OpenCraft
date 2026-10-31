@@ -3,7 +3,7 @@
 //! the cursor stack: `click_stack` (pick up, put down, merge, swap), `split_stack` (right-click: half) and
 //! `place_one` (shift- or ctrl-right-click) and `take_one` (ctrl-click). A tool's count is its wear, so tools never merge or split.
 
-use super::Stack;
+use super::{kinds, Stack};
 use crate::item::{stack_size, ItemId};
 use crate::math::sort_small_by_key;
 use crate::tools;
@@ -47,7 +47,8 @@ pub fn move_all_of(from: &mut [Stack], to: &mut [Stack], item: ItemId) -> bool {
 }
 
 /// Sorts `slots` in place: like items merged into full stacks (a tool's count is its wear, so tools
-/// never merge), ordered by item id (blocks first) with the fullest stack first, empty slots last.
+/// never merge), ordered by kind (`kinds.rs`: buildings, tools, ..., natural blocks) with the fullest stack first,
+/// empty slots last.
 pub fn sort_stacks(slots: &mut [Stack]) {
     let mut sorted: Vec<Stack> = Vec::with_capacity(slots.len());
     for s in slots.iter().filter(|s| !s.is_empty()) {
@@ -63,9 +64,10 @@ pub fn sort_stacks(slots: &mut [Stack]) {
             sorted.push(Stack { item: s.item, count: left });
         }
     }
-    sort_small_by_key(&mut sorted, |s| (s.item.0, std::cmp::Reverse(s.count)));
+    let mut keyed: Vec<(u64, Stack)> = sorted.into_iter().map(|s| (kinds::sort_key(s.item), s)).collect();
+    sort_small_by_key(&mut keyed, |&(key, s)| (key, std::cmp::Reverse(s.count)));
     for (i, slot) in slots.iter_mut().enumerate() {
-        *slot = sorted.get(i).copied().unwrap_or_default();
+        *slot = keyed.get(i).map_or_else(Stack::default, |k| k.1);
     }
 }
 

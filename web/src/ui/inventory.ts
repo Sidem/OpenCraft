@@ -160,13 +160,13 @@ export class InventoryPanel {
     takeAll.addEventListener('click', () => this.box && game.take_machine_output(...this.box));
     const sortBox = h('button', 'secondary-btn', 'Sort');
     sortBox.type = 'button';
-    sortBox.title = 'Merge stacks and order them by item';
+    sortBox.title = `Merge stacks and order them by kind: ${game.sort_kinds()}`;
     sortBox.addEventListener('click', () => this.box && game.sort_box(...this.box));
     boxHead.append(h('h3', '', 'Storage box'), sortBox, takeAll);
     this.boxSection.append(boxHead, this.boxGrid);
     const sortPack = h('button', 'secondary-btn', 'Sort');
     sortPack.type = 'button';
-    sortPack.title = 'Merge stacks and order the backpack by item (the hotbar stays as you set it)';
+    sortPack.title = `Merge stacks and order the backpack by kind: ${game.sort_kinds()} (the hotbar stays as you set it)`;
     sortPack.addEventListener('click', () => game.sort_inventory());
     const packHead = h('div', 'inv-box-head');
     packHead.append(h('h3', '', 'Backpack'), this.packPager.el, sortPack);

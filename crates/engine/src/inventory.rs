@@ -44,6 +44,7 @@ impl Stack {
     }
 }
 
+pub mod kinds;
 mod stacks;
 pub use stacks::{add_to_slots, click_stack, move_all_of, place_one, sort_stacks, split_stack, take_one};
 

@@ -96,7 +96,7 @@ fn a_late_item_reads_blank_before_the_world_was_opened_and_zero_before_it_appear
 #[test]
 fn items_sort_into_material_groups() {
     use crate::item::{COPPER_WIRE, CRUSHED_IRON, GREEN_PACK, MOTOR, SILICON};
-    let group = |item: ItemId| GROUPS[groups::group_of(item) as usize].name;
+    let group = |item: ItemId| GROUPS[crate::recipes::item_groups::group_of(item) as usize].name;
     assert_eq!(group(IRON_ORE.into()), "Raw materials");
     assert_eq!(group(COAL_ORE.into()), "Raw materials");
     assert_eq!(group(IRON_INGOT), "Ingots and bricks");
