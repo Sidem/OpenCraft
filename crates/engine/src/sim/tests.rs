@@ -8,6 +8,7 @@ use crate::block::{
 };
 use crate::deposits::{owner_of, Deposit, DepositKey, Tier};
 use crate::item::{IRON_INGOT, IRON_PLATE, IRON_ROD, RED_PACK};
+use crate::math::IVec3;
 use crate::recipes::{MACHINE_RECIPES, RECIPES};
 
 pub(crate) use super::water::tests::{build_pond_above_a_pit, DAM};
@@ -32,7 +33,9 @@ const B: PlayerId = PlayerId(1);
 /// previous hash was 0xc43e_fd0a_5b2b_73e3. On 2026-10-25 (save version 60) each player's inventory began to write the
 /// left-hand stack after the worn gear: the previous hash was 0x3ef4_9b04_e930_3ec1. On 2026-10-31 (save version 62) each belt
 /// began to write its bend after its tier; without that byte the run still hashes to the previous 0xbdfb_8546_261a_a991.
-const GOLDEN_HASH: u64 = 0xcc54_60f0_52c9_69fd;
+/// On 2026-10-31 (save version 63) the core began to end with the note signs (an empty list here): the previous hash was
+/// 0xcc54_60f0_52c9_69fd.
+const GOLDEN_HASH: u64 = 0x0e1f_7e20_bd4b_d44d;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

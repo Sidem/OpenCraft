@@ -217,6 +217,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::STRIPE_1..=tex::STRIPE_5 => stripes::stripe(x, y, (layer - tex::STRIPE_1) as u8),
         tex::TIER_PAINT_1..=tex::TIER_PAINT_5 => stripes::paint(x, y, (layer - tex::TIER_PAINT_1) as u8),
         tex::SIGN => machines::sign(x, y),
+        tex::SIGN_FACE..=tex::SIGN_FACE_LAST => [230, 211, 163, 255],
         tex::ROCKET_STEEL..=tex::PLUME_DIAMOND => flight::pixel(layer, x, y),
         tex::STONE_BRICKS => masonry::stone_bricks(x, y),
         tex::QUICKLIME => masonry::quicklime(x, y),

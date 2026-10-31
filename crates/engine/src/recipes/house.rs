@@ -97,3 +97,12 @@ pub const CHIMNEY_BRICKS_RECIPE: Recipe = Recipe {
     inputs: &[(b(STONE_BRICKS), 4), (b(COAL_ORE), 1)],
     blurb: "Sooty red bricks for a chimney stack.",
 };
+
+/// The note sign (`block/sign.rs`, `signs/`): not a house piece, but built from the same wood.
+pub const SIGN_RECIPE: Recipe = Recipe {
+    output: b(SIGN),
+    group: Group::Building,
+    count: 1,
+    inputs: &[(b(PLANKS), 4), (STICK, 2)],
+    blurb: "A board two blocks wide for notes. Right-click it to write up to four lines and pick its colours.",
+};

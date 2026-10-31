@@ -214,8 +214,8 @@ impl Game {
             self.using = false;
             return;
         }
-        // A ruin's logbook or a vault's door: ask the host to show its page or dials (`api/ruins.rs`).
-        let ruin_block = |id| id == block::LOGBOOK || id == block::VAULT_DOOR;
+        // A ruin's logbook, a vault's door or a sign: ask the host to show its page, dials or editor (`api/ruins.rs`, `api/signs.rs`).
+        let ruin_block = |id| id == block::LOGBOOK || id == block::VAULT_DOOR || id == block::SIGN;
         if let Some(hit) = self.target.filter(|h| !self.body().input.crouch && ruin_block(h.id)) {
             self.panel_request = Some(hit.block);
             self.using = false;

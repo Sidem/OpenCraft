@@ -15,6 +15,7 @@ import { Input } from './input';
 import { wirePause } from './pause';
 import { composeTextures } from './render/art-pack';
 import { Renderer } from './render/renderer';
+import { SignFaces } from './render/sign-faces';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
 import { AnalyticsPanel } from './ui/analytics';
@@ -27,6 +28,7 @@ import { CraftQueueView } from './ui/craftqueue';
 import { BlueprintPanel } from './ui/blueprints';
 import { SitePanel } from './ui/site';
 import { LogbookPanel } from './ui/logbook';
+import { SignPanel } from './ui/sign';
 import { VaultPanel } from './ui/vault';
 import { ConsolePanel } from './ui/console';
 import { consoleHost } from './console/host';
@@ -145,6 +147,8 @@ async function main(): Promise<void> {
   const pins = new Pins(game, meta.pins);
   const logbook = new LogbookPanel(game, pins);
   const vault = new VaultPanel(game);
+  const signEditor = new SignPanel(game);
+  const signFaces = new SignFaces(game, renderer, texSize);
   const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);
   const scope = new Scope(game, renderer, comfort, pins, () => input.locked, () => sound.ui());
@@ -162,16 +166,16 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, analytics, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, adminConsole]; // a machine's panel is in the inventory
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, adminConsole]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock (pause.ts)
-  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, adminConsole];
+  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, adminConsole];
   const pause = wirePause({ game, opened, viewRadius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
 
   // Handy for poking at the engine from the devtools console.
   const handles = {
-    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, signEditor, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -251,7 +255,7 @@ async function main(): Promise<void> {
     if (request.length === 3) {
       const [x, y, z] = request;
       if (game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
-      else if (!logbook.open(x, y, z) && !vault.open(x, y, z)) machine.open(x, y, z);
+      else if (!logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z)) machine.open(x, y, z);
       input.unlock();
       sound.ui();
     }
@@ -318,6 +322,7 @@ async function main(): Promise<void> {
     scope.update();
     const hasTarget = game.has_target();
     const cursorBlock = game.view_mode() >= 2 ? game.strategy_hover() : [];
+    signFaces.update();
     renderer.render({
       eye: [game.eye_x(), game.eye_y(), game.eye_z()],
       yaw: game.camera_yaw(),

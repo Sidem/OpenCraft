@@ -141,11 +141,11 @@ fn a_save_from_before_towns_loads_with_none_and_a_bad_kind_is_refused() {
     let mut world = ByteWriter::default();
     sim.world.write_state(&mut world);
     let world_at = w.bytes.windows(world.bytes.len()).position(|s| s == world.bytes).expect("the world's bytes");
-    // Save 47 ended with the opening scene: cut the empty town list, the tips' progress byte (57) and the lessons taught (58) off the
+    // Save 47 ended with the opening scene: cut the empty town list, the tips' progress byte (57), the lessons taught (58) and the signs' count (63) off the
     // end, and the cleared cover (save 55, an empty count) off the end of the world's edited chunks.
     let cleared_at = world_at + world.bytes.len() - 4;
     let mut old = w.bytes[..cleared_at].to_vec();
-    old.extend_from_slice(&w.bytes[cleared_at + 4..w.bytes.len() - empty.bytes.len() - 5]);
+    old.extend_from_slice(&w.bytes[cleared_at + 4..w.bytes.len() - empty.bytes.len() - 9]);
     let mut back = Sim::new(SEED, 2);
     let mut r = ByteReader::new(&old);
     r.version = 47;

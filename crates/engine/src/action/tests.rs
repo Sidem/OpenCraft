@@ -562,6 +562,7 @@ fn samples() -> Vec<Action> {
         Action::ToggleDoor { pos: IVec3::new(4, 70, -2) },
         Action::ThrowCursorAll,
         Action::BendBelt { pos, bend: 2 },
+        Action::EditSign { pos, line: 3, text: crate::signs::line_bytes("Kiln → north"), back: 0xabcdef, ink: 7 },
     ]
 }
 

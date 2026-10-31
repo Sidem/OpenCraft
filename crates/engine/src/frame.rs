@@ -63,6 +63,7 @@ impl Game {
         self.write_move_marker(eye);
         self.write_drone_instances(eye, alpha);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
+        self.write_signs(eye);
         let world = &mut self.sim.world;
         factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
         self.write_line_preview(eye, time);

@@ -55,6 +55,13 @@ impl Action {
             66 => Action::ToggleDoor { pos: r.ivec3()? },
             67 => Action::ThrowCursorAll,
             68 => Action::BendBelt { pos: r.ivec3()?, bend: r.u8()? },
+            69 => Action::EditSign {
+                pos: r.ivec3()?,
+                line: r.u8()?,
+                text: r.bytes(crate::signs::LINE_BYTES)?.try_into().ok()?,
+                back: r.u32()?,
+                ink: r.u32()?,
+            },
             33 => Action::PlaceGhost { pos: r.ivec3()?, slot: r.u8()?, facing: r.u8()? },
             34 => Action::RemoveGhost { pos: r.ivec3()? },
             36 => Action::MarkRemoval { pos: r.ivec3()? },

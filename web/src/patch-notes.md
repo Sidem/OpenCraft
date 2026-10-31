@@ -9,6 +9,7 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - **Power statistics per grid**: with two or more separate power grids, the Power tab of Analytics (P) has a button for each, in the colour its poles wear. Pick one to see only that grid: what it makes, from which sources, which machines use it, and whether it runs short.
 - **The world map has a key**: open "What the marks mean" beside the filters to see every mark and what it stands for.
 - **Belts can bend where you want them to** (Shift+R on a belt): a bent belt takes items in from its left or right instead of its back, so it can start right beside a constructor, assembler or splitter, pick up its output and carry it along the machine, or turn just before a ramp. A belt simply running past a machine still takes nothing from it. With nothing pointed at, Shift+R bends the first belt of the next line you lay. Corners are now drawn curved, and items ride round them.
+- **Signs for notes** (Building section: 4 planks, 2 sticks): a board two blocks wide on a wall, or on two posts in the open. Right-click it to write up to four lines and pick the board's and the letters' colours on a colour wheel. Everyone in a co-op world sees what you write.
 - **Sort groups your backpack by kind**: buildings first (in build-menu order, each Mk next to its Mk1), then tools, building blocks, ingredients, raw materials and natural blocks. Storage boxes sort the same way. The hotbar still stays as you set it.
 
 ## 2026-10-30 · Rates where you build

@@ -1,0 +1,83 @@
+/* The sign editor (ui/sign.ts) under the machine panel's frame: a preview board twice as wide as tall (as the sign), the
+   four lines, then the colour wheel beside the board/text choice, the swatches and Done. */
+.sign-editor {
+  max-width: 480px;
+}
+
+.sign-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  aspect-ratio: 2 / 1;
+  margin-bottom: 12px;
+  padding: 4% 6%;
+  border: 6px solid #8a6a3f;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 22px;
+  line-height: 1.5;
+  text-align: center;
+  white-space: pre;
+  overflow: hidden;
+}
+
+.sign-preview-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sign-lines {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.sign-line {
+  padding: 6px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font: inherit;
+}
+
+.sign-line:focus {
+  outline: 1px solid var(--accent);
+}
+
+.sign-colours {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.sign-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.sign-parts {
+  display: flex;
+  gap: 6px;
+}
+
+.sign-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
+  gap: 6px;
+}
+
+.sign-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sign-swatch:hover {
+  outline: 2px solid var(--accent);
+}

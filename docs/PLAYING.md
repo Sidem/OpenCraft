@@ -182,7 +182,9 @@ items that a machine makes more cheaply than the hand recipe (empty canisters, u
 
 **House pieces** (Building section, crafted by hand): wooden and iron doors (right-click to open or close; two stacked swing
 together, an open one can be walked through and will not close on you), roof tiles in three colours (stone bricks plus iron,
-coal or copper), thatch, plaster, timber frame, wood floor, windows and chimney bricks. All are whole blocks.
+coal or copper), thatch, plaster, timber frame, wood floor, windows and chimney bricks. All are whole blocks. A **sign** (4 planks, 2
+sticks) is a board two blocks wide, from where you place it to your right: right-click it to write up to four lines and pick
+the board's and the letters' colours on a colour wheel. Everyone in a co-op world sees it; blueprints copy it blank.
 
 **Bootstrapping, without raw ore in a recipe.** Nothing is built from raw ore. Wood comes first (Materials): a log
 saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles

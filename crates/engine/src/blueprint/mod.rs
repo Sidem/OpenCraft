@@ -5,7 +5,7 @@
 //! world save. The host keeps their bytes with the world's record in the browser (`export` / `import`).
 //!
 //! A blueprint holds every machine anchored inside the selected box: its offset from the box's lowest
-//! corner, block, facing and tier. Plain terrain and building blocks are not copied (the engine cannot
+//! corner, block, facing and tier, and every note sign placed inside it (`signs/`; not its words). Plain terrain and building blocks are not copied (the engine cannot
 //! tell a placed block from a natural one), and neither are machine settings (recipe, filter, rule): a
 //! ghost carries none yet. Stamping turns it in quarter turns about the vertical axis, which turns
 //! each machine's facing the same way, so multi-block machines keep their shape.
@@ -87,7 +87,8 @@ impl Blueprint {
             for y in lo.y..=hi.y {
                 for z in lo.z..=hi.z {
                     let cell = IVec3::new(x, y, z);
-                    let Some((facing, tier)) = sim.factory.placed_as(cell) else { continue };
+                    let sign = || sim.signs.list.iter().find(|s| s.pos == cell).map(|s| (s.dir, 0));
+                    let Some((facing, tier)) = sim.factory.placed_as(cell).or_else(sign) else { continue };
                     let Some(id) = sim.world.block_anywhere(cell) else { continue };
                     let tier = if tiers::family(id).is_some() { tier } else { 0 };
                     if entries.len() == MAX_ENTRIES {

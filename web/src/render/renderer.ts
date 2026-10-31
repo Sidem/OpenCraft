@@ -87,6 +87,7 @@ export class Renderer {
   private quadCapacity = 0;
   private texture: WebGLTexture | null = null;
   private glowTexture: WebGLTexture | null = null;
+  private texSize = 0;
 
   private readonly opaque;
   private readonly cutout;
@@ -155,6 +156,7 @@ export class Renderer {
       return tex;
     };
     this.texture = upload(gl.RGBA8, gl.RGBA, pixels, size, layers);
+    this.texSize = size;
     const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
     if (aniso) {
       const max = gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
@@ -162,6 +164,19 @@ export class Renderer {
     }
     // Self-light, one byte a texel on its own unit; without any, a single black layer (array layers clamp).
     this.glowTexture = glow ? upload(gl.R8, gl.RED, glow, size, layers) : upload(gl.R8, gl.RED, new Uint8Array(1), 1, 1);
+  }
+
+  /** Replaces one layer of the block textures (`size` × `size` RGBA, the size `setTextures` was given): a sign's text. */
+  paintLayer(layer: number, pixels: Uint8Array): void {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texture);
+    gl.texSubImage3D(gl.TEXTURE_2D_ARRAY, 0, 0, 0, layer, this.texSize, this.texSize, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+  }
+
+  /** Rebuilds the block textures' mipmaps after `paintLayer`. */
+  refreshMipmaps(): void {
+    this.gl.bindTexture(this.gl.TEXTURE_2D_ARRAY, this.texture);
+    this.gl.generateMipmap(this.gl.TEXTURE_2D_ARRAY);
   }
 
   /** How each layer turns per block (`game.texture_turns()`: two bits a layer, 32 words); all zeros turns none. */

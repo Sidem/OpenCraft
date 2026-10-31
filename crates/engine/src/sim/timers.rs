@@ -90,7 +90,7 @@ impl BlockTimers {
 impl Sim {
     /// Starts the timers a block change at `pos` (from `old` to what is there now) calls for: leaves
     /// near a removed log, dirt that can grow grass and grass that is now covered, around `pos`, and a
-    /// sapling planted at `pos`; a torch on `pos` losing its support (torches.rs); then the water checks
+    /// sapling planted at `pos`; a torch on `pos` losing its support (torches.rs), a sign losing a cell (`signs/`); then the water checks
     /// (water.rs).
     pub(crate) fn block_changed(&mut self, pos: IVec3, old: BlockId) {
         if is_sapling(self.block(pos)) {
@@ -113,6 +113,7 @@ impl Sim {
         }
         self.factory.beam_cut_check(pos);
         self.torch_support_changed(pos);
+        self.sign_cell_changed(pos, old);
         self.water_changed(pos, old);
     }
 
@@ -182,7 +183,7 @@ impl Sim {
         self.timers.schedule(Timer { due: self.tick + ticks.max(1), pos, kind });
     }
 
-    pub(super) fn block(&mut self, p: IVec3) -> BlockId {
+    pub(crate) fn block(&mut self, p: IVec3) -> BlockId {
         self.world.block_anywhere_or_generate(p)
     }
 

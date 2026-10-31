@@ -1,0 +1,60 @@
+/* The colour wheel (ui/colour-wheel.ts): the disc with its marker ring, and the brightness slider under it, shaded from
+   black to the colour at full brightness (`--full`, set by the script). */
+.cw {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 168px;
+}
+
+.cw-wrap {
+  position: relative;
+  width: 168px;
+  height: 168px;
+}
+
+.cw-disc {
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.cw-mark {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.cw-value {
+  width: 100%;
+  height: 12px;
+  margin: 0;
+  border-radius: 6px;
+  appearance: none;
+  background: linear-gradient(to right, #000, var(--full, #fff));
+  cursor: pointer;
+}
+
+.cw-value::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.cw-value::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: transparent;
+}

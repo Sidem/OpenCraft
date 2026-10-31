@@ -16,13 +16,13 @@ local player's hands, presentation, then the **deterministic core**, which never
   one frame (whole ticks, then camera, targeting, instances).
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content` (names, icons, getters),
-  `hud`, `sites`, `save`, `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `opening`, `blueprint`,
+  `hud`, `sites`, `save`, `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`,
   `hand_waste`, `lessons`, `guide`, `surroundings`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics counts. `authority.rs`: every body, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
 - `sim.rs`: `Sim` (tick, world, factory, players, rng, towns), `step`, `state_hash`, `PlayerId`, `SimEvent`.
-- `sim/`: `timers.rs` (leaf decay, grass, saplings), `water.rs` (flowing water rules, capped per tick), `saplings.rs`,
+- `sim/`: `event.rs` (`SimEvent`), `timers.rs` (leaf decay, grass, saplings), `water.rs` (flowing water rules, capped per tick), `saplings.rs`,
   `torches.rs`, `scrap.rs` (salvage from ruins), `vault.rs` (the ruin vault's dial puzzle).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm per action), `clicks.rs` (inventory and box clicks),
   `blocks.rs` (break and place), `multiblock.rs` (footprints), `codec.rs` + `codec/read.rs` (bytes; tags append only).
@@ -37,6 +37,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `later.rs` is the open end), `queue.rs`, `bonus.rs` (endless techs).
 - `ghosts.rs`: planned blocks. `drones/`: construction drones, `earthworks.rs` (terraforming), `cargo/` (cargo routes).
 - `helpers/`: jetpack, personal drone, hover pack. `blueprint/mod.rs`: blueprint data and bytes (`plan.rs` the library's view from above).
+- `signs/`: note signs (both cells, text, colours, `Action::EditSign`, bytes); `view.rs` draws the boards and gives the nearest their text slots.
 - `satellites.rs`: satellites in orbit. `pods.rs`: drop pods in flight. `opening.rs`: a new world's opening scene.
 - `settlements/`: towns (Milestone 13). `orders.rs` data (orders, upkeep), `run.rs` (the tick), `plans.rs` and `plots.rs`
   (buildings), `build.rs` (the town's drones), `state.rs` (bytes), `perks/` (forge, workshop, relay, `harbour/`).
@@ -68,7 +69,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157); `ores.rs`.
+  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
@@ -121,7 +122,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `patch-notes.md`: "What's new".
 - `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes, and round bodies from `round-mesh.ts`),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
-  `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `gl.ts`, `mat4.ts`.
+  `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `sign-faces.ts` + `sign-layout.ts` (paint signs' text into texture layers), `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
   `ambience.ts` + `ambience-levels.ts` + `ambience-mix.ts` + `synth-ambience.ts`, `surroundings.ts`,
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
@@ -135,7 +136,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it
     makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`.
-  - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`.
+  - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (sign editor; `colour-wheel.ts`, `colour.ts`).
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
   - Maps: `worldmap.ts`, `pins.ts` (+ drawing), `map-pin-list.ts`, `map-filter.ts` (pure filter rules, saved state) + `map-filter-panel.ts`, `map-info.ts` (hover box), `map-key.ts` (what each mark means; rows in `map-key-rows.ts`), `map-focus.ts` (pure: "Show on map" list and view fit) + `map-focus-layer.ts` (its rings and chip), `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in

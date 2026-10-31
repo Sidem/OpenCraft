@@ -248,6 +248,7 @@ pub const RECIPES: &[Recipe] = &[
     SLATE_ROOF_RECIPE,
     GREEN_ROOF_RECIPE,
     CHIMNEY_BRICKS_RECIPE,
+    SIGN_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

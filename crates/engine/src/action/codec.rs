@@ -15,7 +15,7 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 69;
+pub const TAG_COUNT: u8 = 70;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -118,6 +118,14 @@ impl Action {
                 w.u8(68);
                 w.ivec3(pos);
                 w.u8(bend);
+            }
+            Action::EditSign { pos, line, text, back, ink } => {
+                w.u8(69);
+                w.ivec3(pos);
+                w.u8(line);
+                text.iter().for_each(|&b| w.u8(b));
+                w.u32(back);
+                w.u32(ink);
             }
             Action::SetQuarry { pos, width, depth, paused } => {
                 w.u8(20);

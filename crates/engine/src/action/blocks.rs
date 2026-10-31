@@ -161,6 +161,9 @@ impl Sim {
         if let Some(fp) = factory::footprint::of(placed) {
             return self.put_footprint(player, pos, item, (placed, fp), facing);
         }
+        if placed == block::SIGN {
+            return self.put_sign(player, pos, facing);
+        }
         if block::is_sapling(placed) && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
             return false;
         }

@@ -27,6 +27,7 @@ mod render;
 mod research;
 mod ruins;
 mod save;
+mod signs;
 mod sites;
 mod surroundings;
 mod telescope;

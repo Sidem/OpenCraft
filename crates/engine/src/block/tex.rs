@@ -229,7 +229,10 @@ pub const PLUME_CORE: u16 = SIGN + 5;
 pub const PLUME_FLAME: u16 = SIGN + 6;
 pub const PLUME_TAIL: u16 = SIGN + 7;
 pub const PLUME_DIAMOND: u16 = SIGN + 8;
-pub const COUNT: usize = PLUME_DIAMOND as usize + 1;
+/// The note signs' text (`signs/view.rs`): two layers a slot, the host paints them (`web/src/render/sign-faces.ts`).
+pub const SIGN_FACE: u16 = PLUME_DIAMOND + 1;
+pub const SIGN_FACE_LAST: u16 = SIGN_FACE + 2 * crate::signs::view::SLOTS as u16 - 1;
+pub const COUNT: usize = SIGN_FACE_LAST as usize + 1;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

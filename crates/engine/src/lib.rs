@@ -88,6 +88,7 @@ mod satellites;
 mod save;
 mod settlements;
 mod sickle;
+pub mod signs;
 mod sim;
 mod site_hands;
 mod sound;
@@ -228,6 +229,8 @@ pub struct Game {
     place_turn: u8,
     /// The bend Shift+R gives the first belt of a line laid by hand (`belt_bend.rs`).
     held_bend: u8,
+    /// Which note sign each text slot of the texture array shows (`signs/view.rs`).
+    sign_slots: signs::view::Slots,
     /// Pole and cable placing (`power_tools.rs`).
     tools: PowerTools,
     /// Track laying (`rail_tools.rs`).
@@ -309,6 +312,7 @@ impl Game {
             rails: RailTools::default(),
             place_turn: 0,
             held_bend: 0,
+            sign_slots: Default::default(),
             analytics: analytics::Analytics::default(),
         }
     }

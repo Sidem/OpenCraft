@@ -113,6 +113,7 @@ impl Sim {
             Action::BendBelt { pos, bend } => {
                 self.factory.set_bend(pos, bend);
             }
+            Action::EditSign { pos, line, text, back, ink } => self.signs.edit(pos, line, &text, back, ink),
             Action::ToggleDoor { pos } => self.toggle_door(pos),
             Action::Connect { pole, to } => self.factory.connect(pole, to),
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),

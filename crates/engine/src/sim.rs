@@ -7,16 +7,15 @@
 //! It never takes frame time, the camera or `Sounds`, and never asks which chunks are loaded. Core code
 //! reads and writes blocks through `World::block_anywhere_or_generate` / `set_block_anywhere`. `World`
 //! also still holds the render cache (loaded chunks, meshes, streaming), which the core must not read.
-//! Anything the rest of the game should react to leaves as a [`SimEvent`] in `events`;
+//! Anything the rest of the game should react to leaves as a [`SimEvent`] (`sim/event.rs`) in `events`;
 //! `Game::handle_sim_events` (events.rs) drains them every tick.
 //!
 //! To add core state: a field here (or on the type that owns it) and its bytes in that type's
 //! `write_state`, which `state_hash` and saves use. To change it: an `Action`. Core code that changes a
 //! block calls `block_changed` (sim/timers.rs), so timed rules (leaf decay, grass) and water react.
-//! To tell the game about something: a `SimEvent` variant and its arm in `handle_sim_events`.
+//! To tell the game about something: a `SimEvent` variant (`sim/event.rs`) and its arm in `handle_sim_events`.
 
 use crate::action::Action;
-use crate::block::BlockId;
 use crate::bytes::{fnv1a, ByteReader, ByteWriter};
 use crate::crafting::CraftQueue;
 use crate::drones::{cargo::Cargo, Drones};
@@ -24,14 +23,15 @@ use crate::factory::Factory;
 use crate::ghosts::Ghosts;
 use crate::helpers::Helpers;
 use crate::inventory::Inventory;
-use crate::item::ItemId;
-use crate::math::{hash2, IVec3, Rng, Vec3};
+use crate::math::{hash2, Rng, Vec3};
 use crate::mode::Mode;
 use crate::opening::Opening;
 use crate::settlements::Settlements;
+use crate::signs::Signs;
 use crate::world::World;
 use crate::worldgen::WorldGen;
 
+mod event;
 mod saplings;
 mod scrap;
 mod timers;
@@ -39,111 +39,13 @@ mod torches;
 pub mod vault;
 mod water;
 
+pub use event::SimEvent;
 pub use timers::BlockTimers;
 pub use water::WaterQueue;
 
 /// Index of a player in `Sim::players`. Ids are reused after a player leaves.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct PlayerId(pub u8);
-
-/// Something that happened in the core that the authority or the view reacts to.
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum SimEvent {
-    /// A miner is drawing ore; `pos` is the block it drills. Sent every `MINER_PULSE_TICKS`.
-    MinerWorking {
-        pos: IVec3,
-    },
-    BlockBroken {
-        player: PlayerId,
-        pos: IVec3,
-        block: BlockId,
-    },
-    /// A block was placed, or the machine there upgraded in place (lock is its family's).
-    BlockPlaced {
-        player: PlayerId,
-        pos: IVec3,
-        block: BlockId,
-    },
-    /// A door at `pos` swung to `block` (its new state: `doors.rs`).
-    DoorMoved {
-        pos: IVec3,
-        block: BlockId,
-    },
-    /// Items entered a player's inventory from the world (a pickup or a machine's contents).
-    Gained {
-        player: PlayerId,
-        item: ItemId,
-        count: u32,
-    },
-    /// A player crafted `count` of `item` (some may have been thrown for lack of room).
-    Crafted {
-        player: PlayerId,
-        item: ItemId,
-        count: u32,
-    },
-    /// Loose items to spawn at `pos` with velocity `vel` (a broken block's drops).
-    Dropped {
-        pos: Vec3,
-        vel: Vec3,
-        item: ItemId,
-        count: u32,
-    },
-    /// A player broke a deposit's ore block by hand: they keep `kept` ore and `lost` units of the deposit are gone.
-    HandMined {
-        player: PlayerId,
-        ore: BlockId,
-        kept: u32,
-        lost: u32,
-    },
-    /// A launch site's rocket went up with a satellite (`item`); `pos` is the site's anchor.
-    Launched {
-        pos: IVec3,
-        item: ItemId,
-    },
-    /// The pod launcher at `pos` sent a drop pod up.
-    PodSent {
-        pos: IVec3,
-    },
-    /// A drop pod touched down on the landing pad at `pos` (its cargo lands as the pad has room).
-    PodLanded {
-        pos: IVec3,
-    },
-    /// A player's tool broke a block with its last use and is gone.
-    ToolWornOut {
-        player: PlayerId,
-        item: ItemId,
-    },
-    /// A leaf decayed (block timers): it is gone (a sapling it left comes as a `Dropped`).
-    LeafDecayed {
-        pos: IVec3,
-    },
-    /// The sapling at `pos` grew into a tree.
-    TreeGrew {
-        pos: IVec3,
-    },
-    /// A quarry dug the `block` at `pos` (its drop went into the quarry).
-    QuarryDug {
-        pos: IVec3,
-        block: BlockId,
-    },
-    /// A machine made `count` of `item` (a miner's ore, a quarry's block, a finished batch, byproducts included),
-    /// for the production graphs (`analytics/`).
-    Produced {
-        item: ItemId,
-        count: u32,
-    },
-    /// A machine used up `count` of `item` (a batch's inputs, burned fuel, research packs), for the graphs.
-    Consumed {
-        item: ItemId,
-        count: u32,
-    },
-    /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
-    Thrown {
-        player: PlayerId,
-        item: ItemId,
-        count: u32,
-    },
-}
 
 /// A player's core state. The body (position, physics) is not core: it belongs to the authority.
 #[derive(Default)]
@@ -194,6 +96,8 @@ pub struct Sim {
     pub opening: Option<Opening>,
     /// The towns the players founded (settlements/).
     pub settlements: Settlements,
+    /// The players' note signs (signs/).
+    pub signs: Signs,
     /// How far the main tips and the lessons got in this world (hints.rs, lessons.rs); neither ever goes back.
     pub hints_reached: u8,
     pub taught: u32,
@@ -228,6 +132,7 @@ impl Sim {
             mode: Mode::Normal,
             opening: None,
             settlements: Settlements::default(),
+            signs: Signs::default(),
             hints_reached: 0,
             taught: 0,
             events: Vec::new(),
@@ -338,6 +243,7 @@ impl Sim {
         self.settlements.write_state(w);
         w.u8(self.hints_reached);
         w.u32(self.taught);
+        self.signs.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -384,6 +290,7 @@ impl Sim {
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         self.hints_reached = if r.version >= 57 { r.u8()? } else { 0 };
         self.taught = if r.version >= 58 { r.u32()? } else { crate::lessons::STALL_MASK };
+        self.signs = if r.version >= 63 { Signs::read_state(r)? } else { Signs::default() };
         Some(())
     }
 }

@@ -43,6 +43,15 @@ pub enum Action {
         pos: IVec3,
         bend: u8,
     },
+    /// Writes line `line` of the sign with a cell at `pos` (`text`: UTF-8, zero-padded) and sets its board and ink
+    /// colours (0xRRGGBB); `signs/`.
+    EditSign {
+        pos: IVec3,
+        line: u8,
+        text: [u8; crate::signs::LINE_BYTES],
+        back: u32,
+        ink: u32,
+    },
     /// Empties the box or miner at `pos` into the inventory, or takes a machine's output.
     TakeContents {
         pos: IVec3,

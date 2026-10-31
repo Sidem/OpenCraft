@@ -6,11 +6,12 @@ use super::coal_miner::COAL_MINER_DEFS;
 use super::ejector::EJECTOR_DEFS;
 use super::house::HOUSE_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
+use super::sign::SIGN_DEFS;
 use super::*;
 
-/// Every block's row: the base table, then the decor set's, the coal miner's, the house set's and the ejector's.
+/// Every block's row: the base table, then the decor set's, the coal miner's, the house set's, the ejector's and the sign's.
 pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] =
-    crate::join::join(&[&BASE_DEFS, &DECOR_DEFS, &COAL_MINER_DEFS, &HOUSE_DEFS, &EJECTOR_DEFS]);
+    crate::join::join(&[&BASE_DEFS, &DECOR_DEFS, &COAL_MINER_DEFS, &HOUSE_DEFS, &EJECTOR_DEFS, &SIGN_DEFS]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [
     BlockDef {
