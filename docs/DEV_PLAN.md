@@ -242,7 +242,7 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
     block of a track needs ground within 1 block under the rails and the car's clearance free. The preview reddens the
     failing stretch, the label says why; ballast reaches the ground on slopes. Old saves keep their track. *Done when:*
     0 floating or buried tracks accepted over 2,000 seeded pairs (HEAD's rate reported); old save fixture loads.
-  - [ ] **T2 Docks are track.** A dock is a straight piece of rail: put in line like a node or onto a straight node,
+  - [x] **T2 Docks are track** (2026-10-31)**.** A dock is a straight piece of rail: put in line like a node or onto a straight node,
     nowhere else; belts feed its sides; loading is a chute over the wagon, unloading a pit between the rails; items pour
     while trading. Old docks keep working. *Done when:* a red-team test finds no way to stand a dock off the rails (hand,
     ghost, blueprint, client, old save); a train with wagons stops at and trades with it.
@@ -281,6 +281,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-31: docks are track (T2).** `factory/rail/pieces.rs`: a dock (`is_dock`) goes only onto a rail node with a
+  grid heading, one track each end, no signal or train (`dock_fit`), and takes its place keeping its tracks
+  (`swap_rail_piece`); `rail_yaw` answers for it, so trains stop on it (`dock_at` is the node itself) and a third track
+  at a dock end is `Fit::DockEnd`. Core path `action/docks.rs` (`put_block`, `dismantle`); dock ghosts only onto such a
+  node (`plant_ghost`; before, a dock ghost could only stand in air, where no drone could build it). Hand:
+  `dock_tools.rs`. Models: a gantry with a chute and a shed over a grate, `Look::Pour` streams goods while the trade
+  sets the dock `Working`; `every_car_fits_through_both_docks` caught the chute 0.02 into the cars' way. Save 64
+  clears an old 2×2 dock's other cells. Not done: laying a dock in line on bare ground (one more click; T5 counts).
+
 - **2026-10-30: track lies on the ground (T1).** `factory/rail/ground.rs`: a node needs a solid block under it (`Sim::put_block`), a
   track is checked at every quarter block and at each column it crosses (`faults`): ground within `MAX_DROP` under its
   bed, at most `MAX_SINK` into it, the car's `CLEARANCE` empty (`Sim::connect`). The hand drops a node to the ground and
@@ -297,9 +306,3 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   - Note signs (`signs/`, block 158, save 63). Their text is painted into reserved texture layers
     (`render/sign-faces.ts`).
   - Checks: the playtester's three saves gave the same item flows before and after the belt change.
-- **2026-10-30: rates where you build** (health check task 3: rates lived only in the analytics hub). A processor's
-  panel and readout give what it takes and makes a minute at full speed in every state (`process/view.rs` `rates`,
-  `machine_rates`); a belt counts items handed on per `FLOW_SECS` window against `most_a_minute` (`belt.rs`; also
-  on the build card); the item guide gives machine ratios (`item_guide::ratios`, `machine_recipe_ratios`), all from
-  one sum (`tenths_a_minute`). Tests: `the_panel_and_belt_numbers_match_what_analytics_measures`,
-  `a_full_belt_moves_the_most_its_readout_says`, `the_plate_ratio_is_what_the_two_machines_panels_say`.

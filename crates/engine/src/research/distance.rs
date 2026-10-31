@@ -50,7 +50,7 @@ pub const DISTANCE: [Tech; 6] = [
     Tech {
         name: "Freight",
         blurb: "Wagons with a box's worth of slots coupled behind a locomotive, and loading and unloading docks: \
-                belts fill a loading dock, a train stopped beside it takes the items, and an unloading dock empties \
+                belts fill a loading dock, a train stopped on it takes the items, and an unloading dock empties \
                 the cargo onto belts at the other end. Rail signals keep trains of one railway apart.",
         needs: &[38],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],

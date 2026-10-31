@@ -40,6 +40,9 @@ pub enum Look {
     /// The product display (`display.rs`): the part is its slot (square, on a roof), a turning plate at its floor and
     /// the product standing on it. Every machine that makes items has one (tested).
     Product,
+    /// A dock's stream of goods (`docks.rs`): no box, but while it trades with a train its first stored item falls
+    /// from the part's top to its bottom, `POUR_ITEMS` at a time, the part's width across.
+    Pour,
 }
 
 #[derive(Clone, Copy)]
@@ -79,6 +82,9 @@ const STROKE: f64 = 0.12;
 const IGNITE_AT: f64 = 895.0;
 const LIFT_AT: f64 = 905.0;
 const LIFT_HEIGHT: f64 = 160.0;
+/// Items in a dock's stream at once, and streams a second.
+const POUR_ITEMS: usize = 5;
+const POUR_RATE: f64 = 1.6;
 /// A port hatch: how far its centre sits from its cell's centre, and its size (across, up, thick).
 const HATCH_OUT: f64 = 0.45;
 const HATCH: [f32; 3] = [0.66, 0.5, 0.1];
@@ -100,6 +106,12 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             }
             Look::Product => {
                 super::display::draw(p, out, at, yaw, part.size, time);
+                continue;
+            }
+            Look::Pour => {
+                if working {
+                    pour(p, out, at, part.size, time);
+                }
                 continue;
             }
             Look::Tex(t) => t,
@@ -151,6 +163,21 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             let yaw = ((side + 2) % 4) as f32 * std::f32::consts::FRAC_PI_2;
             push_box(out, at, yaw, HATCH, 0.0, [tex::FRAME, layer, tex::FRAME], false);
         }
+    }
+}
+
+/// Items falling through the pour part centred at camera-relative `at`, `size` across and high: the first item the
+/// machine stores, `POUR_ITEMS` evenly apart, each falling the height in `1 / POUR_RATE` seconds.
+fn pour(p: &Processor, out: &mut Vec<f32>, at: Vec3, size: [f32; 3], time: f64) {
+    let Some(item) = p.out.slots.iter().find(|s| !s.is_empty()).map(|s| s.item) else { return };
+    let Some(def) = crate::item::def(item) else { return };
+    let (unit, fall) = (f64::from(size[0]), f64::from(size[1]));
+    for k in 0..POUR_ITEMS {
+        let share = (time * POUR_RATE + k as f64 / POUR_ITEMS as f64).fract();
+        let wobble = Vec3::new((k as f64 * 2.4).sin() * unit * 0.3, 0.0, (k as f64 * 1.7).cos() * unit * 0.3);
+        let spot = at + wobble + Vec3::new(0.0, fall * (0.5 - share), 0.0);
+        let yaw = (k as f64 * 1.3 + time * 3.0) as f32;
+        push_box(out, spot, yaw, def.size.map(|s| s * unit as f32), 0.0, def.tex, false);
     }
 }
 

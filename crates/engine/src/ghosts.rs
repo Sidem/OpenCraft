@@ -167,11 +167,16 @@ impl Sim {
     }
 
     /// Plants a ghost of `block` outright (what a stamped blueprint does). Nothing happens for air, a tier
-    /// the block has no item for, a cell it would take being solid or held by a machine, or a full world.
+    /// the block has no item for, a cell it would take being solid or held by a machine, or a full world. A dock
+    /// is a piece of rail: its ghost goes only onto a rail node a dock fits now (`DockFit`), and nowhere else.
     pub(crate) fn plant_ghost(&mut self, pos: IVec3, block: BlockId, facing: u8, tier: u8) {
         let ghost = Ghost { pos, block, facing: factory::clean_facing(block, facing), tier };
         let valid = block != block::AIR && (tier == 0 || tiers::item_of(block, tier).is_some());
-        let free = ghost.cells().into_iter().all(|c| block::replaceable(self.world.block_anywhere_or_generate(c)));
+        let free = if factory::is_dock(block) {
+            self.factory.dock_fit(pos) == factory::DockFit::Ok
+        } else {
+            ghost.cells().into_iter().all(|c| block::replaceable(self.world.block_anywhere_or_generate(c)))
+        };
         if valid && free {
             self.ghosts.set(ghost);
         }

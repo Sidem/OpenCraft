@@ -50,8 +50,8 @@ pub const LOADING_DOCK_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(STEEL_PLATE, 10), (MOTOR, 2), (CIRCUIT, 2), (b(STORAGE), 1)],
-    blurb: "A dock beside the track (within 2 blocks of a rail node). Belts feed it on any side; a train with wagons \
-            that stops there takes the items on board, and leaves when full or after 5 idle seconds.",
+    blurb: "A piece of track: build it onto a rail node on straight track. Belts feed it from the sides; a train with \
+            wagons stops on it, takes the items on board, and leaves when full or after 5 idle seconds.",
 };
 
 pub const UNLOADING_DOCK_RECIPE: Recipe = Recipe {
@@ -59,6 +59,7 @@ pub const UNLOADING_DOCK_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(STEEL_PLATE, 10), (MOTOR, 2), (CIRCUIT, 2), (b(STORAGE), 1)],
-    blurb: "A dock beside the track (within 2 blocks of a rail node). A train with wagons that stops there empties \
-            its cargo into it; belts leading away from any side carry the items off.",
+    blurb:
+        "A piece of track: build it onto a rail node on straight track. A train with wagons stops on it and empties \
+            its cargo through the grate; belts leading away from its sides carry the items off.",
 };

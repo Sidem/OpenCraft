@@ -57,7 +57,7 @@ impl Factory {
     /// before 8 no labs or research, before 14 no pipework, before 15 no quarries, before 17 no sites, before 30 no rails, before 40 no fibre nodes (31: headings and tracks; 32: trains; 33: their wagons and cargo; 34: schedules; 35: signals);
     /// before 18 smelters and constructors had lists of their own (`process/legacy.rs`); before 24 poles
     /// linked and machines hung on poles by range, so those saves are wired that way once (`hook_by_reach`); before 61
-    /// long-distance poles stood three high (`raise_old_towers`).
+    /// long-distance poles stood three high (`raise_old_towers`); before 64 docks stood 2×2 beside the track (`shrink_old_docks`).
     pub fn read_state(world: &mut World, r: &mut ByteReader) -> Option<Factory> {
         let mut f = Factory { dirty: true, ..Factory::default() };
         read_list(r, &mut f.belts, &mut f.at, Slot::Belt)?;
@@ -130,6 +130,9 @@ impl Factory {
         }
         if r.version < 61 {
             f.raise_old_towers(world);
+        }
+        if r.version < 64 {
+            f.shrink_old_docks(world);
         }
         Some(f)
     }

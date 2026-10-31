@@ -36,6 +36,7 @@ mod chunk;
 mod crafting;
 mod daytime;
 mod deposits;
+mod dock_tools;
 mod doors;
 mod drone_view;
 mod drones;

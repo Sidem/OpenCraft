@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-31 · Docks are part of the track
+- **A loading or unloading dock is now a piece of track.** Hold one and the rail nodes it fits are outlined: click one on straight north-south or east-west track and the dock takes its place, keeping the track on both sides. Breaking it gives the rail node back.
+- **Trains stop right on the dock.** The loading dock is a gantry with a chute that pours the goods into the wagon below; the unloading dock is a shed with a grate between the rails. Belts feed and empty them from the sides.
+- **You can see the trade:** goods pour from the chute, or down through the grate, while a train loads or unloads, and the dock's lamp turns green.
+- Docks in older worlds keep their place and what they hold; join track to them to use them again.
+
 ## 2026-10-31 · A playtester's notes
 - **A machine you upgraded is called by its new Mk everywhere**: on the map, when you look at it, in its panel, on the belts that feed it and in Analytics (P), which now lists each Mk on its own row. Before, an upgraded miner still said "Miner Mk1" on the map.
 - **A worked-out deposit stays on the map, crossed out in red**, and a miner standing on one shows as a red-crossed square, so a dead outpost is easy to spot. Before, the deposit's mark simply vanished. Deposits your miners stand on are marked even if you never scanned them. A "Worked out" chip hides them.

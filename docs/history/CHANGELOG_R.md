@@ -437,6 +437,13 @@ U1 to U3 and pod channels, as recorded when they were built.
   footprints, belts and routers as arrows), lists its items as chips and what you are short of (`blueprint_needs`),
   and counts pieces. Tests: `the_plan_shows_every_piece_from_above`, `web/test/blueprint-plan.test.mjs`.
 
+- **2026-10-30: rates where you build** (health check task 3: rates lived only in the analytics hub). A processor's
+  panel and readout give what it takes and makes a minute at full speed in every state (`process/view.rs` `rates`,
+  `machine_rates`); a belt counts items handed on per `FLOW_SECS` window against `most_a_minute` (`belt.rs`; also
+  on the build card); the item guide gives machine ratios (`item_guide::ratios`, `machine_recipe_ratios`), all from
+  one sum (`tenths_a_minute`). Tests: `the_panel_and_belt_numbers_match_what_analytics_measures`,
+  `a_full_belt_moves_the_most_its_readout_says`, `the_plate_ratio_is_what_the_two_machines_panels_say`.
+
 - **2026-10-30: blueprint keys do what they say** (health check task 1: following the repeat prompt's "[Z] marks new
   corners" left one corner, as Z first cleared the preset box; a corner also survived leaving ghost mode). Z aimed at
   a block always marks a corner (replacing a selected box), Z at nothing clears, leaving ghost mode forgets the box

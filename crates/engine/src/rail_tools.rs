@@ -305,6 +305,7 @@ fn why_not(fit: Fit) -> String {
         Fit::TooSteep => "Too steep: track climbs at most 1 in 3".to_string(),
         Fit::TooSharp => "Bend too sharp: the node's heading or a radius under 8 blocks".to_string(),
         Fit::Full => format!("A node holds at most {MAX_LINKS} tracks"),
+        Fit::DockEnd => "A dock takes one track at each end".to_string(),
     }
 }
 

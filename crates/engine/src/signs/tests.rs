@@ -131,7 +131,7 @@ fn signs_are_saved_and_older_saves_have_none() {
         sim.write_state(&mut core);
         assert!(core.bytes.ends_with(&bytes), "the core ends with the signs");
     }
-    assert_eq!(SAVE_VERSION, 63, "signs came with save 63");
+    assert!(SAVE_VERSION >= 63, "signs came with save 63");
     // A core from save 62 ends before the signs' count: it reads whole, with none.
     let mut w = ByteWriter::default();
     crate::sim::Sim::new(2024, 2).write_state(&mut w);

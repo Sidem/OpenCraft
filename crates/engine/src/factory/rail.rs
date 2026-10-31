@@ -12,9 +12,11 @@
 
 mod curve;
 mod ground;
+mod pieces;
 
 pub use curve::{dir_of, fit, write_node, write_track, yaw_of, Curve, Fit, MAX_SPAN};
 pub use ground::{faults as rail_faults, node_stands as rail_node_stands, Fault};
+pub use pieces::{is_dock, DockFit};
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
@@ -58,12 +60,17 @@ impl Track {
 }
 
 impl Factory {
-    /// The heading of the rail node at `pos`, if there is one.
+    /// The heading of the rail node at `pos`, if there is one (a dock is one too: `pieces.rs`).
     pub fn rail_yaw(&self, pos: IVec3) -> Option<u8> {
         match self.at.get(&pos) {
             Some(&Slot::Rail(i)) => Some(self.rails[i as usize].yaw),
-            _ => None,
+            _ => self.dock_piece(pos).map(|i| self.processors[i].dir * 64),
         }
+    }
+
+    /// The cell of every rail node (docks not included).
+    pub fn rail_nodes(&self) -> impl Iterator<Item = IVec3> + '_ {
+        self.rails.iter().map(|r| r.pos)
     }
 
     /// Whether the nodes at `a` and `b` are joined.
@@ -83,6 +90,11 @@ impl Factory {
             Fit::Joined
         } else if self.track_count(a) >= MAX_LINKS || self.track_count(b) >= MAX_LINKS {
             Fit::Full
+        } else if [(a, ya, b), (b, yb, a)]
+            .iter()
+            .any(|&(p, y, q)| self.dock_piece(p).is_some() && self.end_taken(p, y, q))
+        {
+            Fit::DockEnd
         } else {
             fit(a, ya, b, yb)
         })
@@ -139,8 +151,10 @@ impl Factory {
     /// Drops tracks whose ends are gone.
     pub(super) fn prune_tracks(&mut self) {
         if !self.tracks.is_empty() {
-            let at = &self.at;
-            self.tracks.retain(|t| [t.a, t.b].iter().all(|p| matches!(at.get(p), Some(Slot::Rail(_)))));
+            let pieces: Vec<bool> =
+                self.tracks.iter().map(|t| [t.a, t.b].iter().all(|&p| self.rail_yaw(p).is_some())).collect();
+            let mut keep = pieces.into_iter();
+            self.tracks.retain(|_| keep.next().unwrap_or(false));
         }
     }
 

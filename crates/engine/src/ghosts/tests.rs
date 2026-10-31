@@ -42,6 +42,25 @@ fn ghosts_need_free_cells_a_held_block_and_stay_sorted() {
 }
 
 #[test]
+fn a_dock_ghost_goes_only_onto_a_rail_node_and_builds_there() {
+    use crate::block::{LOADING_DOCK, RAIL, STONE};
+    let mut sim = Sim::new(7, 2);
+    let node = spot();
+    sim.world.set_block_anywhere(node - IVec3::new(0, 1, 0), STONE);
+    assert!(sim.put_block(P, node, RAIL.into(), 64, node - IVec3::new(0, 1, 0)));
+    sim.apply(P, Action::Give { item: LOADING_DOCK.into(), count: 1 });
+    plant(&mut sim, node + IVec3::new(2, 0, 0), 0);
+    sim.plant_ghost(node + IVec3::new(0, 1, 0), LOADING_DOCK, 0, 0);
+    assert_eq!(sim.ghosts.len(), 0, "no dock ghost off the rails, from the hand or a blueprint");
+    plant(&mut sim, node, 0);
+    assert_eq!(sim.ghosts.covering(node).map(|g| g.block), Some(LOADING_DOCK), "onto the node");
+    sim.apply(P, Action::PlaceBlock { pos: node, slot: 0, facing: 0, against: node - IVec3::new(0, 1, 0) });
+    assert_eq!(sim.world.block_anywhere(node), Some(LOADING_DOCK));
+    assert_eq!(sim.factory.rail_yaw(node), Some(64));
+    assert_eq!(sim.ghosts.len(), 0, "the ghost is built");
+}
+
+#[test]
 fn building_on_a_ghost_takes_its_facing_and_clears_it() {
     let mut sim = Sim::new(7, 2);
     sim.apply(P, Action::Give { item: BELT.into(), count: 2 });

@@ -92,7 +92,7 @@ impl Sim {
         }
         // A tiered machine drops its tier's item (`factory/tiers.rs`).
         let tiered = self.factory.tiered_at(pos).and_then(|t| factory::tiers::item_of(def.drop, t.1));
-        let mut drops = self.factory.remove(pos);
+        let mut drops = if factory::is_dock(id) { self.take_dock(pos) } else { self.factory.remove(pos) };
         // Breaking a port calls its drones home as items.
         drops.extend(self.recall_drones(pos));
         drops.extend(self.recall_cargo(pos));
@@ -158,6 +158,9 @@ impl Sim {
     /// caller pays. False when nothing was placed.
     pub(crate) fn put_block(&mut self, player: PlayerId, pos: IVec3, item: ItemId, facing: u8, against: IVec3) -> bool {
         let Some(placed) = item.places() else { return false };
+        if factory::is_dock(placed) {
+            return self.put_dock(player, pos, placed);
+        }
         if let Some(fp) = factory::footprint::of(placed) {
             return self.put_footprint(player, pos, item, (placed, fp), facing);
         }

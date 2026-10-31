@@ -153,9 +153,9 @@ fn displays(spec: &ProcessSpec) -> impl Iterator<Item = &Part> {
     spec.parts.iter().filter(|p| matches!(p.look, Look::Product))
 }
 
-/// Whether a part is drawn as its box (smoke, the display's slot and the rocket's stand are not).
+/// Whether a part is drawn as its box (smoke, the display's slot, the rocket's stand and a pour are not).
 fn boxed(p: &Part) -> bool {
-    !matches!(p.look, Look::Smoke | Look::Product | Look::Rocket)
+    !matches!(p.look, Look::Smoke | Look::Product | Look::Rocket | Look::Pour)
 }
 
 fn lo(p: &Part, k: usize) -> f32 {
@@ -189,4 +189,31 @@ fn shared_face(a: &Part, b: &Part) -> Option<usize> {
         }
     }
     None
+}
+
+/// Extents across and up of a part as (x min, x max, y min, y max), round bodies taken as their boxes. Every dock part
+/// is in one cell along the track, so the length does not matter.
+fn spans(at: [f32; 3], size: [f32; 3]) -> [f32; 4] {
+    [at[0] - size[0] / 2.0, at[0] + size[0] / 2.0, at[1] - size[1] / 2.0, at[1] + size[1] / 2.0]
+}
+
+#[test]
+fn every_car_fits_through_both_docks() {
+    use super::super::docks::{CAR_HALF, CAR_TOP, LOADING_DOCK_SPEC, UNLOADING_DOCK_SPEC};
+    use crate::factory::trains::model::{LOCOMOTIVE_BOXES, RAIL_TOP, WAGON_BOXES};
+    const EPS: f32 = 1e-4;
+    let rail = RAIL_TOP as f32;
+    for (x, y, _, size, ..) in LOCOMOTIVE_BOXES.iter().chain(WAGON_BOXES.iter()) {
+        let [x0, x1, _, y1] = spans([*x as f32, rail + *y as f32, 0.0], *size);
+        assert!(x0 >= -CAR_HALF && x1 <= CAR_HALF, "a car part sticks out sideways: {x}, {y}, {size:?}");
+        assert!(y1 <= CAR_TOP, "a car part is taller than a dock lets through: {x}, {y}, {size:?}");
+    }
+    for spec in [LOADING_DOCK_SPEC, UNLOADING_DOCK_SPEC] {
+        assert_eq!(spec.parts.iter().filter(|p| matches!(p.look, Look::Pour)).count(), 1, "{} pours", spec.verb);
+        for p in spec.parts.iter().filter(|p| boxed(p)) {
+            let [x0, x1, y0, y1] = spans(p.at, p.size);
+            let inside = x0 < CAR_HALF - EPS && x1 > -CAR_HALF + EPS && y0 < CAR_TOP - EPS && y1 > rail + EPS;
+            assert!(!inside, "{} has a part in the cars' way: {:?} {:?}", spec.verb, p.at, p.size);
+        }
+    }
 }

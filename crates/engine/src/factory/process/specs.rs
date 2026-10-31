@@ -82,9 +82,9 @@ pub enum Pick {
     Hangar,
     /// Takes only empty canisters and fills them from the reservoir below (pump.rs).
     Pump,
-    /// A loading dock: stores like a silo, and a train stopped beside it takes what it holds (docks.rs).
+    /// A loading dock: stores like a silo, and a train stopped on it takes what it holds (docks.rs).
     Load,
-    /// An unloading dock: stores like a silo, a train stopped beside it gives it its cargo (docks.rs).
+    /// An unloading dock: stores like a silo, a train stopped on it gives it its cargo (docks.rs).
     Unload,
     /// A research center: takes science packs and researches the chosen tech (center.rs).
     Research,

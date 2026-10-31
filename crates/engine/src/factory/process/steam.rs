@@ -167,8 +167,8 @@ impl Processor {
             (_, pick) if pick.stores() => {
                 let used = self.out.slots.iter().filter(|s| !s.is_empty()).count();
                 let job = match pick {
-                    Pick::Load => " · a train beside it takes them",
-                    Pick::Unload => " · a train beside it unloads into it",
+                    Pick::Load => " · a train stopped on it takes them",
+                    Pick::Unload => " · a train stopped on it unloads into it",
                     _ => "",
                 };
                 Some(format!("Holding {used} of {} stacks{job}", self.out.slots.len()))

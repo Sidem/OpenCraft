@@ -98,7 +98,7 @@ impl Train {
         LOCO_MM + i64::from(self.cars) * CAR_MM
     }
 
-    fn touches(&self, p: IVec3) -> bool {
+    pub(super) fn touches(&self, p: IVec3) -> bool {
         self.path.iter().any(|&(a, b)| a == p || b == p)
     }
 }

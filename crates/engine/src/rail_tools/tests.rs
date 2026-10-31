@@ -187,18 +187,22 @@ fn clicking_docks_with_a_locomotive_builds_the_selected_trains_schedule() {
         g.sim.world.set_block_anywhere(p, RAIL);
         g.sim.factory.place(&mut g.sim.world, RAIL, p, 64, p - IVec3::new(0, 1, 0), 0);
     }
+    let c = v(28, y + 1, 0);
+    g.sim.world.set_block_anywhere(c, RAIL);
+    g.sim.factory.place(&mut g.sim.world, RAIL, c, 64, c - IVec3::new(0, 1, 0), 0);
     g.sim.factory.lay_track(a, b);
-    let dock = v(14, y + 1, 4);
-    g.sim.factory.place(&mut g.sim.world, LOADING_DOCK, dock, 0, dock, 0);
+    g.sim.factory.lay_track(b, c);
+    let dock = b;
+    g.sim.factory.swap_rail_piece(&mut g.sim.world, dock, LOADING_DOCK);
+    g.sim.world.set_block_anywhere(dock, LOADING_DOCK);
     g.give(LOCOMOTIVE.0, 2);
     g.run_ticks(3);
     let slot = g.inventory().slots.iter().position(|s| s.item == LOCOMOTIVE).expect("given") as u32;
     g.select_slot(slot);
     g.run_ticks(2);
-    // No train is selected yet: a dock click does nothing and says so.
+    // No train is selected yet: a dock is a node like any other, to put the train on.
     aim_at(&mut g, dock, IVec3::ZERO);
-    assert!(g.train_label().contains("select it first"), "{}", g.train_label());
-    assert_eq!(g.train_boxes()[6], BLOCKED_RED);
+    assert!(g.train_label().contains("put it on the track"), "{}", g.train_label());
     // Put the locomotive on, which selects it; then the dock joins its schedule, and a crouch-click clears it.
     aim_at(&mut g, a, IVec3::ZERO);
     click_train(&mut g);

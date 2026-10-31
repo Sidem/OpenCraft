@@ -65,6 +65,10 @@ impl Game {
         if !trains.is_empty() {
             return trains;
         }
+        let docks = self.dock_boxes();
+        if !docks.is_empty() {
+            return docks;
+        }
         let cargo = self.cargo_boxes();
         if !cargo.is_empty() {
             return cargo;
@@ -111,6 +115,7 @@ impl Game {
             let power = self.power_label();
             let power = if power.is_empty() { self.rail_label() } else { power };
             let power = if power.is_empty() { self.train_label() } else { power };
+            let power = if power.is_empty() { self.dock_label() } else { power };
             return if power.is_empty() { self.cargo_label() } else { power };
         }
         let held = self.inventory().selected_stack().item;

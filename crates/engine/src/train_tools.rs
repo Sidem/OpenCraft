@@ -47,6 +47,12 @@ impl Game {
         let f = &self.sim.factory;
         let item = self.rolling_stock()?;
         let cell = self.target?.block;
+        // A dock is a rail node too: with a train selected, a locomotive's click adds it to the schedule.
+        if item == LOCOMOTIVE && self.rails.train.is_some() {
+            if let Some(dock) = f.dock_anchor(cell) {
+                return Some(Aim::Dock(dock));
+            }
+        }
         if f.rail_yaw(cell).is_some() {
             return Some(match item {
                 RAIL_SIGNAL => Aim::Signal(cell),

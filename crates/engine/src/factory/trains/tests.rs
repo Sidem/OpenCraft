@@ -46,18 +46,23 @@ fn sound(f: &Factory) {
 
 const AB: [(IVec3, u8); 3] = [(IVec3::new(0, 0, 0), E), (IVec3::new(12, 0, 0), E), (IVec3::new(24, 0, 0), E)];
 
-/// A line of three nodes, a loading dock by the first (fed from a box of `n` iron ingots by a belt) and an
-/// unloading dock by the last (into a box through a belt), and a locomotive with `cars` wagons at the first node.
+/// Puts a dock of `block` onto the rail node at `pos`, as `Action::PlaceBlock` would.
+fn dock(f: &mut Factory, pos: IVec3, block: crate::block::BlockId) {
+    assert_eq!(f.dock_fit(pos), crate::factory::DockFit::Ok);
+    f.swap_rail_piece(&mut World::new(1, 2), pos, block);
+}
+
+/// A line of three nodes, a loading dock on the first (fed from a box of `n` iron ingots by a belt from the side)
+/// and an unloading dock on the last (into a box through a belt), and a locomotive with `cars` wagons at the first.
 fn freight(n: u32, cars: u8) -> Factory {
     let mut f = line(&AB, &[(0, 1), (1, 2)]);
-    let mut world = World::new(1, 2);
-    f.place(&mut world, LOADING_DOCK, v(0, 0, 3), 0, v(0, 0, 3), 0);
-    f.add_storage(v(0, 0, 5));
-    f.stock(v(0, 0, 5), IRON_INGOT, n);
-    f.add_belt(v(0, 0, 4), 0);
-    f.place(&mut world, UNLOADING_DOCK, v(22, 0, 3), 0, v(22, 0, 3), 0);
-    f.add_belt(v(22, 0, 4), 2);
-    f.add_storage(v(22, 0, 5));
+    dock(&mut f, v(0, 0, 0), LOADING_DOCK);
+    f.add_storage(v(0, 0, 2));
+    f.stock(v(0, 0, 2), IRON_INGOT, n);
+    f.add_belt(v(0, 0, 1), 0);
+    dock(&mut f, v(24, 0, 0), UNLOADING_DOCK);
+    f.add_belt(v(24, 0, 1), 2);
+    f.add_storage(v(24, 0, 2));
     assert!(f.place_train(v(0, 0, 0)));
     for _ in 0..cars {
         assert!(f.couple(v(0, 0, 0)), "couples at the first node");
@@ -116,15 +121,15 @@ fn ore_goes_from_a_box_by_belt_into_a_train_across_the_line_and_out_by_belt_into
     run(&mut f, 300.0, |f| {
         stops += f.trains[0].idle.is_some() as u32;
         let held = f.trains[0].cargo.count(IRON_INGOT)
-            + f.processor_at(v(0, 0, 3), LOADING_DOCK).out.count(IRON_INGOT)
-            + f.processor_at(v(22, 0, 3), UNLOADING_DOCK).out.count(IRON_INGOT)
-            + f.storage_count_at(v(0, 0, 5), IRON_INGOT)
-            + f.storage_count_at(v(22, 0, 5), IRON_INGOT)
+            + f.processor_at(v(0, 0, 0), LOADING_DOCK).out.count(IRON_INGOT)
+            + f.processor_at(v(24, 0, 0), UNLOADING_DOCK).out.count(IRON_INGOT)
+            + f.storage_count_at(v(0, 0, 2), IRON_INGOT)
+            + f.storage_count_at(v(24, 0, 2), IRON_INGOT)
             + f.belts.iter().map(|b| b.items.len() as u32).sum::<u32>();
         assert_eq!(held, 40, "no ingot appears or disappears");
     });
     assert!(stops > 0, "the train stopped at the docks");
-    assert_eq!(f.storage_count_at(v(22, 0, 5), IRON_INGOT), 40, "all of it arrived");
+    assert_eq!(f.storage_count_at(v(24, 0, 2), IRON_INGOT), 40, "all of it arrived");
     sound(&f);
 }
 
@@ -165,6 +170,24 @@ fn picking_a_train_up_gives_back_the_locomotive_wagons_and_cargo() {
 }
 
 #[test]
+fn a_dock_works_while_goods_move_and_stops_when_the_train_is_taken() {
+    use crate::factory::process::Status;
+    let mut f = freight(0, 1);
+    let load = f.dock_piece(v(0, 0, 0)).unwrap();
+    f.processors[load].out.add(IRON_INGOT, 200);
+    // It leaves the loading dock, waits at the empty unloading dock and comes back to load.
+    let mut worked = 0;
+    run(&mut f, 13.0, |f| worked += u32::from(f.processors[load].status == Status::Working));
+    assert!(worked > 0, "pours while loading");
+    let t = &f.trains[0];
+    assert!(t.idle.is_some() && t.cargo.count(IRON_INGOT) == 200, "loaded and waiting: {:?} {:?}", t.idle, t.path);
+    assert_eq!(f.processors[load].status, Status::NoInput, "rests once nothing moves");
+    f.processors[load].status = Status::Working;
+    f.take_train(v(0, 0, 0));
+    assert_eq!(f.processors[load].status, Status::NoInput, "no stream once the train is gone");
+}
+
+#[test]
 fn wagons_cargo_and_a_stop_save_and_load() {
     let mut f = freight(40, 2);
     run(&mut f, 70.0, |_| {});
@@ -198,15 +221,14 @@ fn locomotives_from_a_version_32_save_load_without_wagons() {
     assert_eq!((f.trains.len(), f.trains[0].cars, f.trains[0].idle), (1, 0, None));
 }
 
-/// A fork: nodes 0 - 1, then 1 to 2 (left) and 1 to 3 (right); a dock beside each of 0, 2 and 3; a locomotive and one
-/// wagon at node 0. Returns the factory and the docks' cells (by node 0, 2, 3).
+/// A fork: nodes 0 - 1, then 1 to 2 (left) and 1 to 3 (right); a dock on each of 0, 2 and 3; a locomotive and one
+/// wagon at node 0. Returns the factory and the docks' cells (nodes 0, 2, 3).
 fn fork() -> (Factory, [IVec3; 3]) {
     let nodes = [(v(0, 0, 0), E), (v(12, 0, 0), E), (v(24, 0, -4), E), (v(24, 0, 6), E)];
     let mut f = line(&nodes, &[(0, 1), (1, 2), (1, 3)]);
-    let docks = [v(0, 0, 3), v(22, 0, -1), v(22, 0, 9)];
-    let mut world = World::new(1, 2);
+    let docks = [v(0, 0, 0), v(24, 0, -4), v(24, 0, 6)];
     for d in docks {
-        f.place(&mut world, UNLOADING_DOCK, d, 0, d, 0);
+        dock(&mut f, d, UNLOADING_DOCK);
     }
     assert!(f.place_train(v(0, 0, 0)) && f.couple(v(0, 0, 0)));
     (f, docks)
@@ -248,7 +270,7 @@ fn schedules_are_edited_by_dock_and_limited() {
     let (mut f, docks) = fork();
     assert!(!f.set_stop(v(0, 0, 0), v(5, 0, 5), false), "no dock there");
     assert!(!f.set_stop(v(24, 0, 6), docks[0], false), "needs a train near the node");
-    assert!(f.set_stop(v(0, 0, 0), v(23, 0, -2), false), "any cell of the dock names it");
+    assert!(f.set_stop(v(0, 0, 0), docks[1], false));
     assert_eq!(f.schedule_near(v(0, 0, 0)), vec![docks[1]]);
     assert!(!f.set_stop(v(0, 0, 0), docks[1], false), "not twice in a row");
     for i in 0..10 {

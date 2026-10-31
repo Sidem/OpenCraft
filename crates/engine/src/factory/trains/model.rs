@@ -12,7 +12,7 @@ use super::{Factory, Train, CAR_MM, LOCO_MM};
 /// Samples used to turn an arc length along an edge into a curve parameter.
 const SAMPLES: usize = 24;
 /// The top of the steel rails, from a node's centre (`rail/curve.rs`: rails at -0.38, 0.08 thick).
-const RAIL_TOP: f64 = -0.34;
+pub(crate) const RAIL_TOP: f64 = -0.34;
 
 /// One part of a car: x to the right, y above the rails, z backwards from its centre; its size; its texture; a box or a
 /// round body (a wheel turns about x, the boiler lies along z).

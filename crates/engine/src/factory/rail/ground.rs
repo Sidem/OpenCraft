@@ -2,7 +2,7 @@
 //! A rail node needs a solid block under it (`node_stands`). A track is checked every `STEP` blocks along its curve
 //! (`faults`): the ground's top must be within `MAX_DROP` below the bed (the height a level track's bed has on its
 //! node's ground) and at most `MAX_SINK` above it, so a ramp may cross the voxel steps under it, and the cells a car
-//! passes through (`CLEARANCE`) must be empty (air or another rail node). Pure helpers over a block query, so the
+//! passes through (`CLEARANCE`) must be empty (air or a rail piece: a node, a dock). Pure helpers over a block query, so the
 //! core (`Sim::connect`, with `block_anywhere_or_generate`) and the hand's preview (`rail_tools.rs`, loaded chunks)
 //! share one rule. The renderer draws ballast from the bed down to `MAX_DROP` (`curve::write_track`), so every
 //! stretch the rule allows reaches the ground. Older saves keep the track they have; the rule applies to new track.
@@ -83,10 +83,7 @@ fn fault_at(p: Vec3, block: &mut impl FnMut(IVec3) -> BlockId) -> Option<(IVec3,
     let bed = p.y - 0.5;
     let (x, z) = (p.x.floor() as i32, p.z.floor() as i32);
     let cell = |y: f64| IVec3::new(x, y.floor() as i32, z);
-    if let Some(c) = CLEARANCE.iter().map(|&h| cell(bed + h)).find(|&c| {
-        let b = block(c);
-        b != AIR && b != RAIL
-    }) {
+    if let Some(c) = CLEARANCE.iter().map(|&h| cell(bed + h)).find(|&c| !passable(block(c))) {
         return Some((c, Fault::Buried));
     }
     // Ground tops are whole numbers: the highest one allowed, and every solid block down to `MAX_DROP`.
@@ -96,5 +93,10 @@ fn fault_at(p: Vec3, block: &mut impl FnMut(IVec3) -> BlockId) -> Option<(IVec3,
     // The cell to fill: the highest whose top would carry the track.
     (!grounded).then_some((IVec3::new(x, top - 1, z), Fault::Floating))
 }
+/// Whether a car runs through a cell holding `b`: empty, or a rail piece (a node, a dock).
+fn passable(b: BlockId) -> bool {
+    b == AIR || b == RAIL || super::is_dock(b)
+}
+
 #[cfg(test)]
 mod tests;

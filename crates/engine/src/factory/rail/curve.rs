@@ -51,6 +51,8 @@ pub enum Fit {
     TooSharp,
     /// A node already holds `MAX_LINKS` tracks.
     Full,
+    /// A dock already has a track at that end (`pieces.rs`).
+    DockEnd,
 }
 
 /// The horizontal unit vector (x, z) a heading byte faces.

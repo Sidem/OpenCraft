@@ -369,6 +369,7 @@ mod apply;
 mod blocks;
 mod clicks;
 mod codec;
+mod docks;
 mod multiblock;
 #[cfg(test)]
 mod tests;

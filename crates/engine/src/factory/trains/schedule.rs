@@ -7,7 +7,6 @@
 use crate::math::IVec3;
 
 use super::super::links::Slot;
-use super::docks::near as near_dock;
 use super::{key, Factory, Train, MIN_AHEAD};
 
 /// Docks on one train's schedule at most.
@@ -70,13 +69,13 @@ impl Factory {
         if t.schedule.is_empty() {
             return self.dock_at(at);
         }
-        self.scheduled(t).filter(|&p| near_dock(&self.processors[p], at))
+        self.scheduled(t).filter(|&p| self.processors[p].pos == at)
     }
 
     /// The node a train that came from `prev` to `at` goes on to: toward its next dock if it has one it can reach.
     pub(super) fn steer(&self, t: &mut Train, prev: IVec3, at: IVec3) -> Option<IVec3> {
         let goals: Vec<IVec3> = match self.scheduled(t) {
-            Some(p) => self.rails.iter().map(|r| r.pos).filter(|&n| near_dock(&self.processors[p], n)).collect(),
+            Some(p) => vec![self.processors[p].pos],
             None => Vec::new(),
         };
         self.route(prev, at, &goals).or_else(|| self.next_from(prev, at))

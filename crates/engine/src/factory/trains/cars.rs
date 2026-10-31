@@ -57,7 +57,9 @@ impl Factory {
     /// Picks up the train nearest the node at `pos` (within `PICKUP_BLOCKS`) with its wagons and cargo.
     pub fn take_train(&mut self, pos: IVec3) -> Option<Vec<Stack>> {
         let i = self.train_near(pos)?;
-        Some(stock(self.trains.remove(i)))
+        let t = self.trains.remove(i);
+        self.leave_dock(&t);
+        Some(stock(t))
     }
 
     /// Takes every train off the track touching the node at `pos`, as the stock it gives back.
@@ -65,6 +67,7 @@ impl Factory {
         let (gone, kept): (Vec<Train>, Vec<Train>) =
             std::mem::take(&mut self.trains).into_iter().partition(|t| t.touches(pos));
         self.trains = kept;
+        gone.iter().for_each(|t| self.leave_dock(t));
         gone.into_iter().flat_map(stock).collect()
     }
 

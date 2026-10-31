@@ -155,9 +155,12 @@ size.
   fuel yet, and trains pass through each other.
 - **Freight** (Freight research, after Trains): a wagon (8 steel plates, 2 steel beams and a storage box) holds 24 slots;
   hold one and click a rail node beside a train to couple it on behind (up to 6; a train on its first node is pulled
-  forward to make room). A loading dock and an unloading dock (2×2×1: 10 steel plates, 2 motors, 2 circuits and a
-  storage box) stand within 2 blocks of a rail node. Belts feed the loading dock from any side; a train with wagons
-  that reaches the node takes the items on board, an unloading dock takes the cargo and belts leading away empty it.
+  forward to make room). A loading dock and an unloading dock (10 steel plates, 2 motors, 2 circuits and a storage
+  box) are pieces of track (`rail/pieces.rs`): one goes only onto a rail node on north-south or east-west track with
+  one track at each end, no signal and no train, and takes its place, keeping its tracks; breaking it puts the node
+  back. With one in hand the nodes it fits are outlined. Belts feed the loading dock from its sides; a train with
+  wagons stops on it and takes the items on board, an unloading dock takes the cargo and belts leading away empty it.
+  A dock ghost (hand or blueprint) goes only onto such a node too. Docks from older saves keep their anchor cell.
   A train waits at a dock until nothing has moved for 5 seconds, then drives on. Crouch-click picks up the whole
   train with its wagons and cargo.
 - **Schedules**: with a locomotive in hand, click a node a train is on to select it (a freshly placed one is selected),

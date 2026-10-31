@@ -25,7 +25,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `sim/`: `event.rs` (`SimEvent`), `timers.rs` (leaf decay, grass, saplings), `water.rs` (flowing water rules, capped per tick), `saplings.rs`,
   `torches.rs`, `scrap.rs` (salvage from ruins), `vault.rs` (the ruin vault's dial puzzle).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm per action), `clicks.rs` (inventory and box clicks),
-  `blocks.rs` (break and place), `multiblock.rs` (footprints), `codec.rs` + `codec/read.rs` (bytes; tags append only).
+  `blocks.rs` (break and place), `docks.rs` (docks onto rail nodes), `multiblock.rs` (footprints), `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (`write_state` / `read_state`). `save.rs`: the file (core, bodies, loose items), `SAVE_VERSION`.
 - `join.rs`: compile-time joins of const tables (`TECHS`, `MACHINE_RECIPES`). `math.rs`: vectors, hashes, `Rng`, small sort.
 - `doors.rs`: `Action::ToggleDoor` swings a door (and the doors stacked on it) and the use button on one (`block/house.rs`).
@@ -54,7 +54,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
-- Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` (track lies on the ground: one rule for the core and the preview), `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
+- Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` (track lies on the ground: one rule for the core and the preview) + `rail/pieces.rs` (a dock is a piece of track: `dock_fit`, `swap_rail_piece`; the core side is `action/docks.rs`), `trains.rs` + `trains/` (cars, schedule, signals, docks, model).
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
   machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `shape.rs`,
@@ -94,7 +94,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
-  `rail_tools.rs`, `train_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
+  `rail_tools.rs`, `train_tools.rs`, `dock_tools.rs` (the dock hand), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
   `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
   `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).
