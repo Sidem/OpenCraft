@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-31 · Straight rails, docks anywhere
+- **Rails snap straight.** Aim within about 13 degrees of north, south, east or west (or straight on from the last node) and the node goes onto that line, so straight track is the usual result. The first node of a line faces an axis too. Aim wider and the track still bends as before.
+- **Docks go anywhere along straight track.** Hold a dock and aim at the ground along north-south or east-west track: it goes down right there and cuts the track in two. It needs 3 blocks of track on each side, no train on it, and ground under both halves.
+
 ## 2026-10-31 · Quicker freight lines
 - **Lay a dock in line, like a rail.** Place a rail node, then hold a loading or unloading dock and aim along the track: the dock goes down where you aim, joined to the node, and your rails carry on from it. Where the ground is in the way or missing, the blocks to fill or clear are outlined, as for rails.
 - **Shift-click with wagons to couple them all at once** (up to six).

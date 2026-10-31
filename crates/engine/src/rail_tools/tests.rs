@@ -78,6 +78,50 @@ fn the_first_node_faces_the_view_and_the_next_one_lays_a_curve_from_it() {
 }
 
 #[test]
+fn aiming_near_a_straight_line_lays_straight_track_on_an_axis_and_a_wide_aim_still_bends() {
+    let (mut g, y) = on_a_platform();
+    // The player looks 20 degrees south of east: the first node faces east, not along the view.
+    g.body_mut().yaw = std::f64::consts::FRAC_PI_2 + 0.35;
+    aim_at(&mut g, v(4, y, 0), UP);
+    click(&mut g);
+    assert_eq!(g.sim.factory.rail_yaw(v(4, y + 1, 0)), Some(64), "a first node snaps to an axis");
+    // 2 blocks off the line in 14: 8 degrees, so the node goes onto the axis and the track is straight.
+    aim_at(&mut g, v(18, y, 2), UP);
+    assert!(
+        matches!(g.rail_plan(), Some(Plan::Place { pos, yaw: 64, fit: Some(Fit::Ok), .. }) if pos == v(18, y + 1, 0))
+    );
+    click(&mut g);
+    assert!(g.sim.factory.track_between(v(4, y + 1, 0), v(18, y + 1, 0)));
+    // A real bend is untouched: the new node faces the mirror of the heading in the chord.
+    aim_at(&mut g, v(30, y, 8), UP);
+    click(&mut g);
+    assert_eq!(g.sim.factory.rail_yaw(v(30, y + 1, 8)), Some(112));
+    // Leaving the bend, a node aimed a little off an axis goes on it and takes it as its heading.
+    aim_at(&mut g, v(31, y, 18), UP);
+    click(&mut g);
+    assert_eq!(
+        g.sim.factory.rail_yaw(v(30, y + 1, 18)),
+        Some(128),
+        "10 blocks south, 1 off: on the axis, facing south"
+    );
+}
+
+#[test]
+fn track_laid_by_aiming_roughly_straight_takes_docks() {
+    let (mut g, y) = on_a_platform();
+    for (x, z) in [(4, 0), (18, 2), (32, -1)] {
+        aim_at(&mut g, v(x, y, z), UP);
+        click(&mut g);
+    }
+    let nodes = [v(4, y + 1, 0), v(18, y + 1, 0), v(32, y + 1, 0)];
+    assert_eq!(g.sim.factory.count(Kind::Rail), 3);
+    for n in nodes {
+        assert_eq!(g.sim.factory.dock_fit(n), crate::factory::DockFit::Ok, "{n:?}");
+    }
+    assert!(g.sim.factory.track_between(nodes[0], nodes[1]) && g.sim.factory.track_between(nodes[1], nodes[2]));
+}
+
+#[test]
 fn a_node_that_does_not_fit_is_not_placed_and_crouching_starts_a_new_line() {
     let (mut g, y) = on_a_platform();
     aim_at(&mut g, v(4, y, 0), v(0, 1, 0));

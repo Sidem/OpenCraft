@@ -4,6 +4,9 @@
 //! `PlaceBlock` onto the node, which the core turns into the dock or refuses. Aiming at the ground next to a node
 //! takes that node (a rail is thin to hit).
 //!
+//! Aiming at the ground along a straight track (both nodes on one grid axis) puts the dock right there, cutting the
+//! track in two: the same `PlaceBlock`, `against` one of the track's nodes (`action/docks.rs`).
+//!
 //! Laid in line: with a rail node selected (the one just placed with rails, `rail_tools.rs`) and no node aimed at,
 //! the dock goes where the aim crosses that node's straight line, joined to it in the same action
 //! (`PlaceBlock` with the heading as the facing and the node as `against`), and is selected so rails continue from
@@ -13,7 +16,7 @@
 
 use crate::action::Action;
 use crate::block::{self, BlockId, AIR, LOADING_DOCK};
-use crate::factory::{dir_of, fit_track, is_dock, rail_faults, write_track, Curve, DockFit, Fault, Fit};
+use crate::factory::{dir_of, fit_track, is_dock, rail_faults, write_track, Curve, DockFit, Fault, Fit, SplitWhy};
 use crate::math::{IVec3, Vec3};
 use crate::rail_tools::{ground_why, why_not};
 use crate::sound;
@@ -43,6 +46,16 @@ struct InLine {
     why: Option<String>,
 }
 
+/// A dock in the middle of a straight track: its cell, the track node it is placed against (and the heading of
+/// both), the cells the halves need filled or cleared, and why it cannot go there (`None`: a click cuts the track).
+struct OnTrack {
+    pos: IVec3,
+    from: IVec3,
+    yaw: u8,
+    faults: Vec<(IVec3, Fault)>,
+    why: Option<String>,
+}
+
 impl Game {
     /// The dock block in hand.
     fn held_dock(&self) -> Option<BlockId> {
@@ -65,9 +78,34 @@ impl Game {
         Some((cell, f.dock_fit(cell)))
     }
 
+    /// With no node aimed at: the straight track the aimed cell lies on, if a dock could cut it there, or why not.
+    fn dock_on_track(&self) -> Option<OnTrack> {
+        if self.dock_aim().is_some() {
+            return None;
+        }
+        let hit = self.target.filter(|h| h.normal != IVec3::ZERO)?;
+        let f = &self.sim.factory;
+        let world = &self.sim.world;
+        let (t, spots) = f.tracks_through(hit.block + hit.normal).next()?;
+        let mut first = None;
+        for pos in spots {
+            let mut found = OnTrack { pos, from: t.a, yaw: f.rail_yaw(t.a)?, faults: Vec::new(), why: None };
+            match f.split_fit(t, pos, |p| world.get_block(p).unwrap_or(AIR)) {
+                Ok(()) => return Some(found),
+                Err(SplitWhy::Ground(faults)) => {
+                    found.why = Some(ground_why(&faults));
+                    found.faults = faults;
+                }
+                Err(why) => found.why = Some(split_why(&why)),
+            }
+            first.get_or_insert(found);
+        }
+        first
+    }
+
     /// With no node aimed at and one selected: the dock laid on the selected node's line where the aim crosses it.
     fn dock_in_line(&self) -> Option<InLine> {
-        if self.dock_aim().is_some() {
+        if self.dock_aim().is_some() || self.dock_on_track().is_some() {
             return None;
         }
         let (a, ya) = self.rail_anchor()?;
@@ -108,12 +146,16 @@ impl Game {
             return true;
         }
         let slot = self.inventory().selected as u8;
-        let pos = match (self.dock_aim(), self.dock_in_line()) {
-            (Some((pos, DockFit::Ok)), _) => {
+        let pos = match (self.dock_aim(), self.dock_on_track(), self.dock_in_line()) {
+            (Some((pos, DockFit::Ok)), ..) => {
                 self.act(Action::PlaceBlock { pos, slot, facing: 0, against: pos - UP });
                 pos
             }
-            (None, Some(InLine { pos, from: (a, ya), why: None, .. })) => {
+            (None, Some(OnTrack { pos, from, yaw, why: None, .. }), _) => {
+                self.act(Action::PlaceBlock { pos, slot, facing: yaw, against: from });
+                pos
+            }
+            (None, None, Some(InLine { pos, from: (a, ya), why: None, .. })) => {
                 self.act(Action::PlaceBlock { pos, slot, facing: ya, against: a });
                 self.select_rail_piece(pos, ya);
                 pos
@@ -144,6 +186,12 @@ impl Game {
         if let Some((p, fit)) = aim {
             boxed(p, if fit == DockFit::Ok { GHOST_GREEN } else { BLOCKED_RED });
         }
+        if let Some(on) = self.dock_on_track() {
+            boxed(on.pos, if on.why.is_none() { GHOST_GREEN } else { BLOCKED_RED });
+            for &(cell, fault) in &on.faults {
+                boxed(cell, if fault == Fault::Floating { FILL_AMBER } else { BLOCKED_RED });
+            }
+        }
         if let Some(line) = self.dock_in_line() {
             boxed(line.from.0, ANCHOR_BLUE);
             boxed(line.pos, if line.why.is_none() { GHOST_GREEN } else { BLOCKED_RED });
@@ -162,17 +210,21 @@ impl Game {
         } else {
             ("Unloading Dock", "belts lead away from its sides")
         };
-        let text = match (self.dock_aim(), self.dock_in_line()) {
-            (Some((_, DockFit::Ok)), _) => format!("click to build it here: trains stop on it, {belts}"),
-            (Some((p, _)), _) if self.sim.factory.dock_anchor(p).is_some() => "this is a dock already".to_string(),
-            (Some((_, why)), _) => why_not_here(why).to_string(),
-            (None, Some(InLine { pos, from: (a, _), why: None, .. })) => {
+        let text = match (self.dock_aim(), self.dock_on_track(), self.dock_in_line()) {
+            (Some((_, DockFit::Ok)), ..) => format!("click to build it here: trains stop on it, {belts}"),
+            (Some((p, _)), ..) if self.sim.factory.dock_anchor(p).is_some() => "this is a dock already".to_string(),
+            (Some((_, why)), ..) => why_not_here(why).to_string(),
+            (None, Some(OnTrack { why: None, .. }), _) => {
+                format!("click to build it here, cutting the track in two: trains stop on it, {belts}")
+            }
+            (None, Some(OnTrack { why: Some(why), .. }), _) => why,
+            (None, None, Some(InLine { pos, from: (a, _), why: None, .. })) => {
                 let run = (pos - a).x.abs() + (pos - a).z.abs();
                 format!("click to lay it in line: {run} blocks of track from the selected node · trains stop on it")
             }
-            (None, Some(InLine { why: Some(why), .. })) => why,
-            (None, None) => "aim at a rail node on straight track: the dock takes its place (nodes it fits are \
-                             outlined), or along the track after the node you just placed to lay it in line"
+            (None, None, Some(InLine { why: Some(why), .. })) => why,
+            (None, None, None) => "aim anywhere along straight track (or at a rail node on it): the dock goes there, \
+                                   or after the node you just placed to lay it in line"
                 .to_string(),
         };
         format!("{name}\n{text}")
@@ -186,6 +238,16 @@ impl Game {
         if let Some(InLine { pos, from: (a, ya), why: None, .. }) = self.dock_in_line() {
             write_track(&mut self.instances, &Curve::new(a, ya, pos, ya), eye, 1.0e9);
         }
+    }
+}
+
+fn split_why(why: &SplitWhy) -> String {
+    match why {
+        SplitWhy::Train => "a train is on this track: wait for it to move on".into(),
+        SplitWhy::Spot => "needs clear ground to stand on: aim at the ground along the track".into(),
+        SplitWhy::Fit(Fit::TooClose) => "too close to a node: leave 3 blocks of track each side · move the aim".into(),
+        SplitWhy::Fit(fit) => format!("{} · move the aim", why_not(*fit)),
+        SplitWhy::Ground(faults) => ground_why(faults),
     }
 }
 

@@ -1,10 +1,11 @@
 //! Docks as pieces of rail in the core (`factory/rail/pieces.rs`): a dock is built onto a straight rail node, taking
-//! its place and keeping its tracks, or laid in line after a rail piece like a new node, joined to it in the same
-//! action; breaking a dock that has track puts the rail node back. Every way a block is placed (hands, drones,
+//! its place and keeping its tracks, or into the middle of a straight track (`against` one of its nodes), cutting it
+//! in two, or laid in line after a rail piece like a new node, joined to it in the same action; breaking a dock
+//! that has track puts the rail node back. Every way a block is placed (hands, drones,
 //! blueprints) goes through `put_block`, so no dock stands off the rails.
 
 use crate::block::{self, BlockId, AIR, RAIL};
-use crate::factory::{self, Curve, DockFit, Fit};
+use crate::factory::{self, Curve, DockFit, Fit, Track};
 use crate::inventory::Stack;
 use crate::math::IVec3;
 use crate::sim::{PlayerId, Sim, SimEvent};
@@ -28,9 +29,15 @@ impl Sim {
             DockFit::Ok => {
                 self.factory.swap_rail_piece(&mut self.world, pos, placed);
             }
-            DockFit::NoNode if self.dock_in_line_fits(pos, facing, against) => {
-                self.factory.place(&mut self.world, placed, pos, facing / AXIS, pos, 0);
-                self.factory.lay_track(against, pos);
+            DockFit::NoNode => {
+                if let Some(t) = self.dock_on_track(pos, against) {
+                    self.factory.split_track(&mut self.world, t, pos, placed);
+                } else if self.dock_in_line_fits(pos, facing, against) {
+                    self.factory.place(&mut self.world, placed, pos, facing / AXIS, pos, 0);
+                    self.factory.lay_track(against, pos);
+                } else {
+                    return false;
+                }
             }
             _ => return false,
         }
@@ -51,6 +58,17 @@ impl Sim {
         self.world.set_block_anywhere(pos, RAIL);
         self.block_changed(pos, AIR);
         held
+    }
+
+    /// The straight track from the node `against` that runs through the free cell `pos`, if a dock there would cut
+    /// it in two and both halves fit and lie on the ground (`Factory::split_fit`).
+    fn dock_on_track(&mut self, pos: IVec3, against: IVec3) -> Option<Track> {
+        let (t, _) = self
+            .factory
+            .tracks_through(pos)
+            .find(|(t, spots)| (t.a == against || t.b == against) && spots.contains(&pos))?;
+        let world = &mut self.world;
+        self.factory.split_fit(t, pos, |p| world.block_anywhere_or_generate(p)).ok().map(|()| t)
     }
 
     /// Whether a dock at the free cell `pos` heading `facing` can be joined to the rail piece at `from`: a heading

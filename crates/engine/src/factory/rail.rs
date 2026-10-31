@@ -16,7 +16,7 @@ mod pieces;
 
 pub use curve::{dir_of, fit, write_node, write_track, yaw_of, Curve, Fit, MAX_SPAN};
 pub use ground::{faults as rail_faults, node_stands as rail_node_stands, Fault};
-pub use pieces::{is_dock, DockFit};
+pub use pieces::{is_dock, DockFit, SplitWhy};
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;

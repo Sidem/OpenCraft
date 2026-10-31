@@ -21,6 +21,7 @@ use crate::factory::{
 };
 use crate::math::{IVec3, Vec3};
 use crate::power_tools::plan_pole;
+use crate::rail_snap::{first_heading, snap_chord};
 use crate::sound;
 use crate::Game;
 
@@ -35,6 +36,8 @@ const CUT_AMBER: i32 = 0xfbbf24;
 const FILL_AMBER: i32 = 0xfbbf24;
 /// How far down from the aim a node looks for ground to stand on, and the most fault cells outlined.
 const SETTLE: i32 = 8;
+/// How far over a snapped node's cell it looks for the ground (the ground may rise along the line).
+const SNAP_RISE: i32 = 2;
 const MAX_FAULT_BOXES: usize = 64;
 
 /// The track hand's input state: never saved.
@@ -102,20 +105,24 @@ impl Game {
         let look = self.body().look_dir();
         // Crouching starts a new line instead of continuing the selected one.
         let anchor = anchor.filter(|_| !self.body().input.crouch);
-        let (pos, yaw) = match anchor {
+        // `fixed`: a heading the node must take (the first node's, or the axis a snapped chord lies on).
+        let (pos, fixed, rise) = match anchor {
             Some((a, ya)) => {
                 let aim = self.aim_cell();
                 let snap = self.body().input.sprint;
                 let (pos, _) = plan_pole(|p| world.get_block(p), a, aim, look, MAX_SPAN, snap)?;
-                (pos, Self::follow_yaw(a, ya, pos))
+                match snap_chord(a, ya, pos) {
+                    Some(s) => (s.pos, s.yaw, SNAP_RISE),
+                    None => (pos, None, 0),
+                }
             }
             None => {
                 let hit = self.target.filter(|h| h.normal != IVec3::ZERO)?;
-                (hit.block + hit.normal, yaw_of(look.x, look.z))
+                (hit.block + hit.normal, Some(first_heading(yaw_of(look.x, look.z))), 0)
             }
         };
-        let (pos, free) = self.settle_node(pos, 0);
-        let yaw = anchor.map_or(yaw, |(a, ya)| Self::follow_yaw(a, ya, pos));
+        let (pos, free) = self.settle_node(pos, rise);
+        let yaw = fixed.or_else(|| anchor.map(|(a, ya)| Self::follow_yaw(a, ya, pos))).unwrap_or(0);
         let fit = anchor.map(|(a, ya)| f.lay_fit(a, pos, yaw).unwrap_or_else(|| fit_track(a, ya, pos, yaw)));
         Some(Plan::Place { pos, yaw, fit, free })
     }

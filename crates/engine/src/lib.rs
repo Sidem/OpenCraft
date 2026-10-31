@@ -81,6 +81,7 @@ mod pods;
 mod power_tools;
 mod prospect;
 mod quarry_preview;
+mod rail_snap;
 mod rail_tools;
 mod raycast;
 mod recipes;

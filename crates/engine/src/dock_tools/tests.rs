@@ -59,7 +59,7 @@ fn outlined(g: &Game, colour: i32) -> Vec<IVec3> {
 fn a_dock_goes_onto_a_straight_node_keeping_its_tracks_and_says_why_not_elsewhere() {
     let (mut g, [a, b, c, d]) = scene();
     aim_at(&mut g, v(10, a.y - 1, 6), UP);
-    assert!(g.dock_label().contains("aim at a rail node on straight track"), "{}", g.dock_label());
+    assert!(g.dock_label().contains("aim anywhere along straight track"), "{}", g.dock_label());
     let mut can = outlined(&g, CAN_TEAL);
     can.sort_by_key(|p| p.x);
     assert_eq!(can, vec![a, b, c], "the straight nodes, not the diagonal one");
@@ -84,6 +84,55 @@ fn a_dock_goes_onto_a_straight_node_keeping_its_tracks_and_says_why_not_elsewher
     g.sim.world.set_block_anywhere(e, RAIL);
     g.sim.factory.place(&mut g.sim.world, RAIL, e, 64, e - UP, 0);
     assert_eq!(g.sim.factory.track_fit(b, e), Some(Fit::DockEnd));
+}
+
+#[test]
+fn a_dock_goes_anywhere_along_straight_track_cutting_it_in_two() {
+    let (mut g, [a, b, c, _]) = scene();
+    let at = v(10, a.y, 0);
+    aim_at(&mut g, at - UP, UP);
+    assert!(g.dock_label().contains("cutting the track in two"), "{}", g.dock_label());
+    assert_eq!(outlined(&g, GHOST_GREEN), vec![at]);
+    click(&mut g);
+    let f = &g.sim.factory;
+    assert_eq!(f.dock_anchor(at), Some(at), "a dock in the middle of the track");
+    assert!(f.track_between(a, at) && f.track_between(at, b) && !f.track_between(a, b), "the track is cut in two");
+    assert!(f.track_between(b, c), "the next one is left alone");
+    assert_eq!((f.rail_yaw(at), g.sim.world.get_block(at)), (Some(64), Some(LOADING_DOCK)));
+    // Two blocks from a node is too close: red, with the reason, and a click does nothing.
+    aim_at(&mut g, v(6, a.y - 1, 0), UP);
+    assert!(g.dock_label().contains("too close to a node"), "{}", g.dock_label());
+    assert_eq!(outlined(&g, BLOCKED_RED), vec![v(6, a.y, 0)]);
+    click(&mut g);
+    assert_eq!(g.sim.factory.dock_anchor(v(6, a.y, 0)), None);
+    // A train on the track: wait for it.
+    assert!(g.sim.factory.place_train(c));
+    aim_at(&mut g, v(22, a.y - 1, 0), UP);
+    assert!(g.dock_label().contains("a train is on this track"), "{}", g.dock_label());
+    click(&mut g);
+    assert_eq!(g.sim.factory.dock_anchor(v(22, a.y, 0)), None);
+}
+
+#[test]
+fn a_dock_in_the_middle_of_track_waits_for_the_ground_and_a_second_dock_goes_where_the_first_cut() {
+    let (mut g, [a, b, ..]) = scene();
+    // A hole under the track at x = 10: outlined amber, nothing built.
+    let hole = v(10, a.y - 1, 0);
+    g.sim.world.set_block_anywhere(hole, AIR);
+    aim_at(&mut g, v(10, a.y - 2, 0), UP);
+    assert!(g.dock_label().contains("needs clear ground") || g.dock_label().contains("fill"), "{}", g.dock_label());
+    click(&mut g);
+    assert_eq!(g.sim.factory.dock_anchor(v(10, a.y, 0)), None);
+    g.sim.world.set_block_anywhere(hole, STONE);
+    // A dock, then a second on the half: the track a to b ends up a-dock-dock-b.
+    for x in [8, 12] {
+        aim_at(&mut g, v(x, a.y - 1, 0), UP);
+        click(&mut g);
+    }
+    let f = &g.sim.factory;
+    let (d1, d2) = (v(8, a.y, 0), v(12, a.y, 0));
+    assert!(f.track_between(a, d1) && f.track_between(d1, d2) && f.track_between(d2, b));
+    assert_eq!(f.count(crate::factory::Kind::Process), 2);
 }
 
 #[test]

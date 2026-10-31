@@ -7,7 +7,7 @@
 //! Invariants: a dock's heading is its `dir` turned to a heading byte (`dir * 64`); a dock end holds one track.
 //! To add another rail piece: a `Pick` that `docks()`, and its block in `swap_rail_piece`'s callers.
 
-use crate::block::{BlockId, AIR, MACHINE_PART, RAIL};
+use crate::block::{replaceable, BlockId, AIR, MACHINE_PART, RAIL};
 use crate::inventory::Stack;
 use crate::math::IVec3;
 use crate::world::World;
@@ -15,13 +15,16 @@ use crate::world::World;
 use super::super::footprint::Footprint;
 use super::super::links::Slot;
 use super::super::Factory;
-use super::{dir_of, Track};
+use super::ground::{faults as rail_faults, node_stands, Fault};
+use super::{dir_of, fit, Curve, Fit, Track};
 
 #[cfg(test)]
 mod tests;
 
 /// Heading steps between grid axes.
 const AXIS: u8 = 64;
+/// How far above or below a straight track a cell aimed at still counts as on it (blocks).
+const REACH: i32 = 2;
 
 /// Whether a dock can go onto the cell `pos`, and why not.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -36,6 +39,19 @@ pub enum DockFit {
     Signal,
     /// A train is on a track that ends there.
     Train,
+}
+
+/// Why a dock cannot go into the middle of a straight track at a cell (`Factory::split_fit`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SplitWhy {
+    /// A train is on the track.
+    Train,
+    /// The cell is taken, or has no ground under it.
+    Spot,
+    /// One of the two stretches it would make does not fit (too short, too steep).
+    Fit(Fit),
+    /// One of them would not lie on the ground: the cells to fill or clear.
+    Ground(Vec<(IVec3, Fault)>),
 }
 
 /// Whether `block` is a dock (a rail piece of its own).
@@ -87,6 +103,67 @@ impl Factory {
         self.tracks.extend(kept);
         self.dirty = true;
         held
+    }
+
+    /// The straight tracks (both nodes heading along the same grid axis, on one line) that run through the column of
+    /// `cell` strictly between their nodes, each with the two cells in that column the track's height falls
+    /// between (one if it is level there). Nothing for a cell more than `REACH` above or below the track.
+    pub fn tracks_through(&self, cell: IVec3) -> impl Iterator<Item = (Track, [IVec3; 2])> + '_ {
+        self.tracks.iter().filter_map(move |&t| {
+            let (ya, yb) = (self.rail_yaw(t.a)?, self.rail_yaw(t.b)?);
+            if !ya.is_multiple_of(AXIS) || ya % 128 != yb % 128 {
+                return None;
+            }
+            // North-south track runs along z at one x; east-west along x at one z.
+            let pick = |p: IVec3| if ya % 128 == 0 { (p.z, p.x) } else { (p.x, p.z) };
+            let ((at, line), (from, line_a), (to, line_b)) = (pick(cell), pick(t.a), pick(t.b));
+            // Distance along the track from node a, and its length, both counted towards b.
+            let (len, k) = ((to - from).abs(), (at - from) * (to - from).signum());
+            if line != line_a || line_b != line_a || k <= 0 || k >= len {
+                return None;
+            }
+            // The track's height in this column: a + rise * k / len, between `low` and the cell above.
+            let rise = (t.b.y - t.a.y) * k;
+            let low = t.a.y + rise.div_euclid(len);
+            let high = low + i32::from(rise.rem_euclid(len) != 0);
+            (cell.y >= low - REACH && cell.y <= high + REACH)
+                .then_some((t, [IVec3::new(cell.x, low, cell.z), IVec3::new(cell.x, high, cell.z)]))
+        })
+    }
+
+    /// Whether a dock can stand at `pos` (a cell `tracks_through` gave) in the middle of the track `t`, which it
+    /// would cut in two: no train on it, a free cell with ground under it, and both new stretches fit and lie on
+    /// the ground (`block` is the world's blocks).
+    pub fn split_fit(&self, t: Track, pos: IVec3, mut block: impl FnMut(IVec3) -> BlockId) -> Result<(), SplitWhy> {
+        let (Some(ya), Some(yb)) = (self.rail_yaw(t.a), self.rail_yaw(t.b)) else { return Err(SplitWhy::Spot) };
+        if self.train_on(t.a, t.b) {
+            return Err(SplitWhy::Train);
+        }
+        if !replaceable(block(pos)) || !node_stands(&mut block, pos) {
+            return Err(SplitWhy::Spot);
+        }
+        let mut faults = Vec::new();
+        for (a, ya, b, yb) in [(t.a, ya, pos, ya), (pos, ya, t.b, yb)] {
+            match fit(a, ya, b, yb) {
+                Fit::Ok => faults.extend(rail_faults(&Curve::new(a, ya, b, yb), &mut block)),
+                other => return Err(SplitWhy::Fit(other)),
+            }
+        }
+        if faults.is_empty() {
+            Ok(())
+        } else {
+            Err(SplitWhy::Ground(faults))
+        }
+    }
+
+    /// Cuts the track `t` in two at `pos` with `dock` standing there (the caller checked `split_fit`, and sets the
+    /// world's block): both halves keep the heading of the track, so the dock has one track at each end.
+    pub fn split_track(&mut self, world: &mut World, t: Track, pos: IVec3, dock: BlockId) {
+        let yaw = self.rail_yaw(t.a).unwrap_or(0);
+        self.tracks.retain(|&x| x != t);
+        self.place(world, dock, pos, yaw / AXIS, pos, 0);
+        self.tracks.extend([Track { a: t.a, b: pos }, Track { a: pos, b: t.b }]);
+        self.dirty = true;
     }
 
     /// Saves before version 64 stood docks 2×2 beside the track: each keeps its anchor cell, holding what it held,

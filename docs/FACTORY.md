@@ -138,8 +138,10 @@ size.
   and an assembler makes a battery from a plate, a circuit and 4 copper wire in 6 s.
 - **Rails** (Rails research, after Violet Science and Earthworks): 1 steel beam and 1 concrete make 6. Rails are laid
   like power poles: each one is a node on the grid, and a smooth curve of track joins it to the node before. With
-  rails in hand, click the ground to place the first node (its track runs the way you face), then click on to place
-  the next: the track bends in an arc between them (a node faces so the curve leaves smoothly; hold Shift to place at
+  rails in hand, click the ground to place the first node (its track runs the way you face, snapped to north-south or
+  east-west unless you face a diagonal), then click on to place the next: aimed within about 13 degrees of a grid
+  axis (or of the node's own heading) it snaps onto that straight line, and a node that snaps to an axis faces along
+  it; aim wider and the track bends in an arc between them (a node faces so the curve leaves smoothly; hold Shift to place at
   the full 32-block reach along the way you face, crouch-click the ground to start a separate line). Click a node to
   select it, click another to join them, crouch-click a joined node to cut the track. A pair joins if it is 3 to 32
   blocks apart, climbs no more than 1 in 3 and bends no tighter than 8 blocks of radius; a node holds up to 4 tracks
@@ -158,7 +160,9 @@ size.
   forward to make room); Shift-click couples every wagon in hand. A loading dock and an unloading dock (10 steel
   plates, 2 motors, 2 circuits and a storage box) are pieces of track (`rail/pieces.rs`): one goes onto a rail node on
   north-south or east-west track with one track at each end, no signal and no train, and takes its place, keeping its
-  tracks; breaking it puts the node back. Or it is laid in line like a rail node: with a node selected (the one just
+  tracks; breaking it puts the node back. Or aim at the ground anywhere along straight track (both nodes on one
+  axis, a stretch at least 3 blocks from each node, nothing on it) and the dock goes down right there, cutting the
+  track in two; a ramp's grade and the ground rule must hold for both halves. Or it is laid in line like a rail node: with a node selected (the one just
   placed) and on straight track, aim along that track and click, and the dock goes down where the aim crosses it,
   joined to the node at once, with the same ground rule and outlines as rails; rails then go on from the dock. With
   one in hand the nodes it fits are outlined. Belts feed the loading dock from its sides; a train with
