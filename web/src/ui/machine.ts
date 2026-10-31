@@ -89,7 +89,7 @@ export class MachinePanel implements Beside {
       this.recipes.build(data[0]);
     }
     this.recipes.reveal();
-    this.title = this.game.block_name(data[0]);
+    this.title = this.game.machine_name(x, y, z) || this.game.block_name(data[0]);
     this.drawn = '';
     this.shown = true;
     this.inventory.open(null, this);

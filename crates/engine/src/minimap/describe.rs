@@ -83,7 +83,13 @@ impl Subject {
                 let (name, what) = JOBS.get(usize::from(job)).copied().unwrap_or(("Terraforming", ""));
                 (format!("{name} site"), what.into())
             }
-            Subject::Machine(block) => (block::def(block).name.into(), "One of your machines.".into()),
+            Subject::Machine { block, tier } => {
+                let name = match factory::tiers::family(block) {
+                    Some(_) => factory::tiers::name(block, tier),
+                    None => block::def(block).name.into(),
+                };
+                (name, "One of your machines.".into())
+            }
             Subject::Launch => (block::def(block::LAUNCH_SITE).name.into(), "Rockets lift off from here.".into()),
             Subject::Pod { launcher, channel } => {
                 let colour = factory::channel_name(channel);

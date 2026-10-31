@@ -6,10 +6,10 @@
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, BLOCK_COUNT};
+use crate::block::BlockId;
 use crate::factory::efficiency::{Cause, Sample, CAUSES};
-use crate::factory::Factory;
-use crate::math::IVec3;
+use crate::factory::{tiers, Factory};
+use crate::math::{sort_small_by_key, IVec3};
 
 /// Seconds the average looks back over, roughly.
 pub const WINDOW_SECS: u32 = 10;
@@ -22,7 +22,8 @@ const FULL: f32 = 0.985;
 const MINOR: f32 = 0.03;
 
 struct Entry {
-    block: BlockId,
+    /// What it is: the item of its tier (`Miner Mk3`), or its block's for a machine without tiers.
+    kind: u16,
     /// Average share of full pace (0 to 1), and the average share lost to each cause.
     work: f32,
     lost: [f32; CAUSES],
@@ -44,14 +45,17 @@ impl Machines {
         self.stamp = self.stamp.wrapping_add(1);
         let stamp = self.stamp;
         factory.samples(|block, pos, s| {
+            let kind = kind_at(factory, block, pos);
             let e = self.map.entry(pos).or_insert(Entry {
-                block,
+                kind,
                 work: 1.0,
                 lost: [0.0; CAUSES],
                 ready: false,
                 idle: true,
                 stamp,
             });
+            // An upgrade in place keeps the entry: it is the same machine at a higher tier.
+            e.kind = kind;
             e.stamp = stamp;
             e.idle = s.is_none();
             if let Some(Sample { work, short }) = s {
@@ -116,14 +120,23 @@ impl Machines {
         out
     }
 
-    /// One row of [`TYPE_FIELDS`] numbers per kind of machine seen: `[block, working, at full pace, average percent
-    /// of those working, idle, then one count per cause]` (a short machine counts under what costs it most).
+    /// One row of [`TYPE_FIELDS`] numbers per kind of machine seen, by item id (each tier its own row):
+    /// `[kind, working, at full pace, average percent of those working, idle, then one count per cause]` (a short
+    /// machine counts under what costs it most), in item id order.
     pub fn by_type(&self) -> Vec<u32> {
-        let mut rows = vec![[0u32; TYPE_FIELDS]; BLOCK_COUNT];
-        let mut percent_sum = vec![0u32; BLOCK_COUNT];
+        let mut rows: Vec<[u32; TYPE_FIELDS]> = Vec::new();
+        let mut percent_sum: Vec<u32> = Vec::new();
         for e in self.map.values().filter(|e| e.ready) {
-            let b = e.block as usize;
-            rows[b][0] = e.block as u32;
+            let b = match rows.iter().position(|r| r[0] == u32::from(e.kind)) {
+                Some(b) => b,
+                None => {
+                    let mut row = [0; TYPE_FIELDS];
+                    row[0] = u32::from(e.kind);
+                    rows.push(row);
+                    percent_sum.push(0);
+                    rows.len() - 1
+                }
+            };
             if e.idle {
                 rows[b][4] += 1;
                 continue;
@@ -136,18 +149,15 @@ impl Machines {
                 rows[b][5 + main_cause(e)] += 1;
             }
         }
-        let mut out = Vec::new();
         for (row, sum) in rows.iter_mut().zip(percent_sum) {
-            if row[1] + row[4] == 0 {
-                continue;
-            }
             row[3] = sum.checked_div(row[1]).unwrap_or(0);
-            out.extend_from_slice(row);
         }
-        out
+        sort_small_by_key(&mut rows, |r| r[0]);
+        rows.concat()
     }
 
-    /// The `n` working machines furthest below full pace, worst first, as `[x, y, z, block, percent, cause]` each.
+    /// The `n` working machines furthest below full pace, worst first, as `[x, y, z, kind, percent, cause]` each
+    /// (`kind` as in `by_type`).
     pub fn worst(&self, n: usize) -> Vec<i32> {
         let mut found: Vec<(u32, IVec3, &Entry)> = Vec::with_capacity(n + 1);
         for (&pos, e) in self.map.iter().filter(|(_, e)| e.ready && !e.idle && e.work < FULL) {
@@ -162,16 +172,17 @@ impl Machines {
         }
         found
             .iter()
-            .flat_map(|&(pct, p, e)| [p.x, p.y, p.z, e.block as i32, pct as i32, main_cause(e) as i32])
+            .flat_map(|&(pct, p, e)| [p.x, p.y, p.z, i32::from(e.kind), pct as i32, main_cause(e) as i32])
             .collect()
     }
 
-    /// Every machine of kind `block` that `by_type` counts (working or idle), as [`KIND_FIELDS`] numbers each:
-    /// `[x, y, z, percent, cause]`. Percent is -1 for an idle machine; cause is -1 for one idle or at full pace, else
-    /// what costs it most. For the world map's "Show on map" (`web/src/ui/map-focus.ts`); order is not meaningful.
-    pub fn of_kind(&self, block: BlockId) -> Vec<i32> {
+    /// Every machine of `kind` (an item id, as in `by_type`) that `by_type` counts (working or idle), as
+    /// [`KIND_FIELDS`] numbers each: `[x, y, z, percent, cause]`. Percent is -1 for an idle machine; cause is -1 for one
+    /// idle or at full pace, else what costs it most. For the world map's "Show on map" (`web/src/ui/map-focus.ts`);
+    /// order is not meaningful.
+    pub fn of_kind(&self, kind: u16) -> Vec<i32> {
         let mut out = Vec::new();
-        for (p, e) in self.map.iter().filter(|(_, e)| e.ready && e.block == block) {
+        for (p, e) in self.map.iter().filter(|(_, e)| e.ready && e.kind == kind) {
             let (pct, cause) = match (e.idle, e.work >= FULL) {
                 (true, _) => (-1, -1),
                 (false, true) => ((e.work * 100.0).round() as i32, -1),
@@ -187,6 +198,11 @@ impl Machines {
 pub const TYPE_FIELDS: usize = 5 + CAUSES;
 /// Numbers per machine in [`Machines::of_kind`].
 pub const KIND_FIELDS: usize = 5;
+
+/// What the analytics call the machine of `block` at `pos`: the item of its tier, so each Mk is a row of its own.
+pub(crate) fn kind_at(factory: &Factory, block: BlockId, pos: IVec3) -> u16 {
+    factory.tiered_at(pos).and_then(|(b, t)| tiers::item_of(b, t)).map_or(u16::from(block), |i| i.0)
+}
 
 /// The cause that cost the machine most of its pace (an index into the causes).
 fn main_cause(e: &Entry) -> usize {

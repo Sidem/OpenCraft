@@ -119,5 +119,16 @@ pub fn item_of(block: BlockId, tier: u8) -> Option<ItemId> {
     family(block)?.items.get(tier as usize).copied()
 }
 
+/// What a placed machine of family `block` at `tier` is called: its tier's item name, with the Mk added where the
+/// name has none ("Smelter Mk1", "Miner Mk3"), so a map or panel never reads as a lower tier.
+pub fn name(block: BlockId, tier: u8) -> String {
+    let base = item_of(block, tier).map_or(crate::block::def(block).name, crate::item::name);
+    if base.contains(" Mk") {
+        base.to_string()
+    } else {
+        format!("{base} Mk{}", u32::from(tier) + 1)
+    }
+}
+
 #[cfg(test)]
 mod tests;

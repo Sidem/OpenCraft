@@ -8,10 +8,11 @@
 //! To add a tier's kit: its item (`item.rs`, wearing `tex::stripe(tier)`), a `KITS` entry and its hand
 //! or assembler recipe.
 
-use crate::block::{BlockId, BELT, GENERATOR, LAB, MINER, POLE, PUMP, QUARRY, STORAGE, UNDERPASS_IN};
+use crate::block::{BlockId, BELT, GENERATOR, LAB, LIFT, MINER, POLE, PUMP, QUARRY, STORAGE, UNDERPASS_IN};
 use crate::item::{ItemId, BLUE_KIT, GOLD_KIT, GREEN_KIT, VIOLET_KIT};
 use crate::math::IVec3;
 
+use super::belt_shape::Shape;
 use super::links::Slot;
 use super::pipes::Part;
 use super::tiers;
@@ -46,7 +47,29 @@ impl Factory {
     /// The family block and tier of the tiered machine at `pos` (a belt of any shape, a miner, a
     /// processor, a box, a generator, a pole, a lab, a pump or a quarry).
     pub fn tiered_at(&self, pos: IVec3) -> Option<(BlockId, u8)> {
-        match *self.at.get(&pos)? {
+        self.tiered_slot(*self.at.get(&pos)?)
+    }
+
+    /// What the machine at `cell` is called, with its Mk if it has tiers ("Miner Mk3", not the block's
+    /// "Miner Mk1"): the one name every readout, panel and map uses for a placed machine.
+    pub fn name_at(&self, cell: IVec3) -> Option<String> {
+        self.at.get(&cell).map(|&s| self.name_of(s))
+    }
+
+    /// [`Self::name_at`] for a machine named by its slot.
+    pub(crate) fn name_of(&self, slot: Slot) -> String {
+        match self.tiered_slot(slot) {
+            // A lift is a belt of the belt's tiers that is not called one.
+            Some((_, tier)) if matches!(slot, Slot::Belt(i) if self.belts[i as usize].shape == Shape::Lift) => {
+                format!("{} Mk{}", crate::block::def(LIFT).name, u32::from(tier) + 1)
+            }
+            Some((block, tier)) => tiers::name(block, tier),
+            None => crate::block::def(self.block_in(slot)).name.to_string(),
+        }
+    }
+
+    fn tiered_slot(&self, slot: Slot) -> Option<(BlockId, u8)> {
+        match slot {
             Slot::Belt(i) => {
                 let b = &self.belts[i as usize];
                 Some((if b.shape.is_pass() { UNDERPASS_IN } else { BELT }, b.tier))

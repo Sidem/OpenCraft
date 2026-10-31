@@ -4,7 +4,6 @@
 use wasm_bindgen::prelude::*;
 
 use crate::analytics::{self, GROUPS};
-use crate::block::BlockId;
 use crate::math::IVec3;
 use crate::Game;
 
@@ -80,7 +79,8 @@ impl Game {
         self.analytics.machines.summary().to_vec()
     }
 
-    /// Machines by kind: rows of `analytics_type_fields` numbers, `[block, working, at full speed, average percent,
+    /// Machines by kind, each tier its own (the kind is the item id of the machine's tier, its block's for a machine without
+    /// tiers): rows of `analytics_type_fields` numbers, `[kind, working, at full speed, average percent,
     /// idle, then a count held back by each cause]` (the causes in the order of `analytics_machines`).
     pub fn analytics_machine_types(&self) -> Vec<u32> {
         self.analytics.machines.by_type()
@@ -91,17 +91,17 @@ impl Game {
         analytics::TYPE_FIELDS as u32
     }
 
-    /// The `n` slowest working machines: `[x, y, z, block, percent, cause]` each (the cause indexes
+    /// The `n` slowest working machines: `[x, y, z, kind, percent, cause]` each (the cause indexes
     /// `analytics_machines` after its first two counts).
     pub fn analytics_worst_machines(&self, n: u32) -> Vec<i32> {
         self.analytics.machines.worst(n as usize)
     }
 
-    /// Every machine of the kind `block` counted in `analytics_machine_types`, `analytics_kind_fields` numbers each:
+    /// Every machine of `kind` (an item id) counted in `analytics_machine_types`, `analytics_kind_fields` numbers each:
     /// `[x, y, z, percent, cause]` (percent -1 when idle; cause -1 when idle or at full speed, else an index as in
     /// `analytics_worst_machines`).
-    pub fn analytics_machines_of(&self, block: u32) -> Vec<i32> {
-        self.analytics.machines.of_kind(block as BlockId)
+    pub fn analytics_machines_of(&self, kind: u32) -> Vec<i32> {
+        self.analytics.machines.of_kind(kind as u16)
     }
 
     /// How many numbers a machine of `analytics_machines_of` has.

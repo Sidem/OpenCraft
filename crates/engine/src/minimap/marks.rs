@@ -120,7 +120,11 @@ pub enum Subject {
     Site {
         job: u8,
     },
-    Machine(BlockId),
+    /// One of the player's machines, at its tier (0 for a machine without tiers).
+    Machine {
+        block: BlockId,
+        tier: u8,
+    },
     Launch,
     Pod {
         launcher: bool,
@@ -149,7 +153,7 @@ impl Subject {
             Subject::Ore(_) => MARK_ORE,
             Subject::Guess { strength, .. } => MARK_GUESS + i32::from(strength) - 1,
             Subject::Site { .. } => MARK_SITE,
-            Subject::Machine(_) => MARK_MACHINE,
+            Subject::Machine { .. } => MARK_MACHINE,
             Subject::Launch => MARK_LAUNCH,
             Subject::Pod { launcher, .. } => MARK_CHANNEL + i32::from(launcher),
             Subject::Cover { kind, .. } => MARK_COVER + i32::from(kind),
@@ -163,7 +167,7 @@ impl Subject {
         match self {
             Subject::Deposit { ore, .. } | Subject::Ore(ore) | Subject::Guess { ore, .. } => ore_color(ore),
             Subject::Site { job } => SITE_COLOURS[usize::from(job)],
-            Subject::Machine(block) => machine_color(block),
+            Subject::Machine { block, .. } => machine_color(block),
             Subject::Launch => machine_color(block::LAUNCH_SITE),
             Subject::Pod { channel, .. } => factory::channel_colour(channel) as i32,
             Subject::Cover { reach, .. } | Subject::Range { reach } => reach,
@@ -247,11 +251,11 @@ impl Minimap {
                 f(x, z, Subject::Site { job: s.job as u8 });
             }
         }
-        factory.map_machines(lo, hi, &mut |block, p| {
+        factory.map_machines(lo, hi, &mut |block, tier, p| {
             let subject = match block {
                 block::POD_LAUNCHER | block::LANDING_PAD | block::TOWN_DEPOT => return, // drawn below
                 block::LAUNCH_SITE => Subject::Launch,
-                _ => Subject::Machine(block),
+                _ => Subject::Machine { block, tier },
             };
             f(p.x, p.z, subject);
         });

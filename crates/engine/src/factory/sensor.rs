@@ -148,12 +148,13 @@ impl Factory {
     }
 
     /// The block standing in `slot`, for readouts.
-    fn block_in(&self, slot: Slot) -> BlockId {
+    pub(super) fn block_in(&self, slot: Slot) -> BlockId {
         match slot {
             Slot::Belt(_) => block::BELT,
             Slot::Miner(i) => self.miners[i as usize].block(),
             Slot::Storage(_) => block::STORAGE,
             Slot::Process(i) => self.processors[i as usize].spec.block,
+            Slot::Router(i) if self.routers[i as usize].is_filter => block::FILTER,
             Slot::Router(_) => block::SPLITTER,
             Slot::Generator(_) => block::GENERATOR,
             Slot::Pole(i) if self.poles[i as usize].is_long() => block::LONG_POLE,
@@ -168,10 +169,6 @@ impl Factory {
             Slot::Rail(_) => block::RAIL,
             Slot::Node(_) => block::FIBRE_NODE,
         }
-    }
-
-    fn name_at(&self, cell: IVec3) -> Option<&'static str> {
-        self.at.get(&cell).map(|&s| block::def(self.block_in(s)).name)
     }
 }
 

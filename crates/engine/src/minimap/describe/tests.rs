@@ -31,7 +31,7 @@ fn samples() -> Vec<Subject> {
         Subject::Deposit { ore: IRON_ORE, tier: Tier::Lode },
         Subject::Deposit { ore: IRON_ORE, tier: Tier::Vein },
         Subject::Ore(COAL_ORE),
-        Subject::Machine(SMELTER),
+        Subject::Machine { block: SMELTER, tier: 2 },
         Subject::Launch,
         Subject::Pod { launcher: false, channel: 0 },
         Subject::Pod { launcher: true, channel: 5 },

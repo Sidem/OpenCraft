@@ -41,8 +41,8 @@ impl Game {
         let Some(hit) = self.target else { return Aim::default() };
         let f = &self.sim.factory;
         let Some((block, tier)) = f.tiered_at(hit.block) else { return Aim::default() };
-        let (name, from) = (block::def(block).name, tier + 1);
-        let say = |detail: String| Aim { label: format!("{name} · Mk{from}\n{detail}"), ..Aim::default() };
+        let (name, from) = (crate::factory::tiers::name(block, tier), tier + 1);
+        let say = |detail: String| Aim { label: format!("{name}\n{detail}"), ..Aim::default() };
         let Some(step) = f.next_upgrade(hit.block) else { return say("Nothing higher to upgrade to yet".into()) };
         if step.kit != kit {
             return say(format!("Needs a {} to reach Mk{}", item::name(step.kit), from + 1));

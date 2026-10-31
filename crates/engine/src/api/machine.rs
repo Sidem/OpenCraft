@@ -23,6 +23,11 @@ impl Game {
     /// The panel of the machine at a position, flat: `[block, recipe (u32::MAX for none), progress in
     /// thousandths, seconds of fire, 1 if the player chooses the recipe, slot count, then (role, item,
     /// count) per slot]`. Empty if there is no machine with a panel there. Roles: `panel_role_*`.
+    /// The machine at a cell by name, with its Mk if it has tiers (the panel's title); empty if there is none.
+    pub fn machine_name(&self, x: i32, y: i32, z: i32) -> String {
+        self.sim.factory.name_at(IVec3::new(x, y, z)).unwrap_or_default()
+    }
+
     pub fn machine_panel(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
         let Some(p) = self.sim.factory.panel(IVec3::new(x, y, z)) else { return Vec::new() };
         let recipe = p.recipe.map_or(u32::MAX, u32::from);

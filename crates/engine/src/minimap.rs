@@ -17,6 +17,8 @@ mod sites;
 
 pub use atlas::Atlas;
 #[cfg(test)]
+pub(crate) use marks::Subject;
+#[cfg(test)]
 pub use marks::MARK_GUESS;
 #[cfg(test)]
 pub use marks::MARK_RANGE;

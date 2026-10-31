@@ -174,7 +174,7 @@ export class Hud {
       this.target.classList.remove('hidden');
       // A belt item under the crosshair, or the one clicked and kept selected, is named instead of its belt.
       const itemName = g.target_item_name();
-      this.targetName.textContent = itemName || (this.names[g.target_block()] ?? '');
+      this.targetName.textContent = itemName || g.target_name();
       const itemState = g.target_item_state();
       this.targetKey.classList.toggle('hidden', itemState === 0);
       this.targetKey.firstElementChild!.classList.toggle('hidden', itemState > ITEM_TAKEABLE);

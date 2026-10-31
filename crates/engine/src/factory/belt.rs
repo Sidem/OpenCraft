@@ -12,7 +12,7 @@
 
 use std::f32::consts::FRAC_PI_2;
 
-use crate::block::{self, tex};
+use crate::block::tex;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::entities::push_item_model;
 use crate::inventory::Stack;
@@ -299,7 +299,7 @@ impl Machine for Belt {
                 Link::None => " · nothing in front, items wait at the end".to_string(),
                 Link::Belt { mid: true, .. } => " · joins the next belt from the side".to_string(),
                 Link::Belt { .. } => String::new(),
-                Link::Machine(slot) => format!(" · delivers into the {}", block::def(slot.kind().def().block).name),
+                Link::Machine(slot) => format!(" · delivers into the {}", f.name_of(slot)),
             }
         };
         let most = most_a_minute(self.tier);

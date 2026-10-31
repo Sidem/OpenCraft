@@ -150,6 +150,13 @@ impl Game {
         self.target.map_or(AIR, |t| t.id)
     }
 
+    /// The target's name: a tiered machine's with its Mk ("Miner Mk3"), else its block's; empty without a target.
+    pub fn target_name(&self) -> String {
+        let Some(t) = self.target else { return String::new() };
+        let f = &self.sim.factory;
+        f.tiered_at(t.block).and_then(|_| f.name_at(t.block)).unwrap_or_else(|| crate::block::def(t.id).name.into())
+    }
+
     /// Where the target's model sits in its cell as 6 numbers (lowest corner, then size), for the outline of
     /// a pole or a belt; empty when the whole cell is the target.
     pub fn target_fit(&self) -> Vec<f32> {

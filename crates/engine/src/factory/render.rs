@@ -341,20 +341,20 @@ impl Factory {
         self.write_cables(out, eye, range);
     }
 
-    /// Calls `f` with the block and position of every machine a map marks (not belts, routers or poles,
-    /// which are many and show as terrain) whose column lies in `lo..=hi` (x, z).
-    pub fn map_machines(&self, lo: (i32, i32), hi: (i32, i32), f: &mut impl FnMut(BlockId, IVec3)) {
-        let mut each = |block: BlockId, p: IVec3| {
+    /// Calls `f` with the block, tier (0 for a machine without tiers) and position of every machine a map marks
+    /// (not belts, routers or poles, which are many and show as terrain) whose column lies in `lo..=hi` (x, z).
+    pub fn map_machines(&self, lo: (i32, i32), hi: (i32, i32), f: &mut impl FnMut(BlockId, u8, IVec3)) {
+        let mut each = |block: BlockId, tier: u8, p: IVec3| {
             if (lo.0..=hi.0).contains(&p.x) && (lo.1..=hi.1).contains(&p.z) {
-                f(block, p);
+                f(block, tier, p);
             }
         };
-        self.miners.iter().for_each(|m| each(m.block(), m.pos()));
-        self.storages.iter().for_each(|m| each(STORAGE, m.pos()));
-        self.processors.iter().for_each(|m| each(m.spec.block, m.pos()));
-        self.generators.iter().for_each(|m| each(GENERATOR, m.pos()));
-        self.labs.iter().for_each(|m| each(LAB, m.pos()));
-        self.quarries.iter().for_each(|m| each(QUARRY, m.pos()));
+        self.miners.iter().for_each(|m| each(m.block(), if m.is_coal() { 0 } else { m.tier }, m.pos()));
+        self.storages.iter().for_each(|m| each(STORAGE, m.tier, m.pos()));
+        self.processors.iter().for_each(|m| each(m.spec.block, m.tier, m.pos()));
+        self.generators.iter().for_each(|m| each(GENERATOR, m.tier, m.pos()));
+        self.labs.iter().for_each(|m| each(LAB, m.tier, m.pos()));
+        self.quarries.iter().for_each(|m| each(QUARRY, m.tier, m.pos()));
     }
 }
 

@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-31 · A playtester's notes
+- **A machine you upgraded is called by its new Mk everywhere**: on the map, when you look at it, in its panel, on the belts that feed it and in Analytics (P), which now lists each Mk on its own row. Before, an upgraded miner still said "Miner Mk1" on the map.
+
 ## 2026-10-30 · Rates where you build
 - **Every machine says what it takes and makes a minute at full speed**, in its panel and when you look at it, whatever it is doing: "Full speed: takes 40 Iron Ore, makes 40 Iron Ingot a minute". The numbers are the same ones Analytics (P) measures.
 - **A belt says how many items it moved** over the last ten seconds and how much of its most that is: "Moves 36 items a minute, 21% of the 171 it can carry". The build menu lists each belt's most too.

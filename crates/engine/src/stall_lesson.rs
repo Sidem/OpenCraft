@@ -84,7 +84,8 @@ impl Game {
     /// The card's text for a lesson from `stall_lesson`.
     pub(crate) fn stall_text(&self, pos: IVec3, cause: Cause) -> String {
         let block = self.stall.watch.filter(|w| w.pos == pos).map_or(block::AIR, |w| w.block);
-        LESSONS[cause as usize].replace("{m}", block::def(block).name)
+        let name = self.sim.factory.name_at(pos).unwrap_or_else(|| block::def(block).name.into());
+        LESSONS[cause as usize].replace("{m}", &name)
     }
 
     /// The player waves the lesson away (H): taught, and quiet for a while.
