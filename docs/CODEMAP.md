@@ -49,7 +49,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `MACHINES`. `machine.rs`: the `Machine` trait. `state.rs`: bytes of every list. `tiers.rs`: tier families.
   `upgrades.rs`: kits, in-place upgrades. `tier_mark.rs`: the Mk studs every tiered machine wears (presentation).
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
-  `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `belt_curve.rs` (corners: the player's bend, the arc items ride, the curved model), `underpass.rs`, `belt_chain.rs`,
+  `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `belt_model.rs` (drawing a belt), `belt_curve.rs` (corners: the player's bend, the arc items ride, the curved model), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),

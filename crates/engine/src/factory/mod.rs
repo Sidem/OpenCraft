@@ -22,6 +22,7 @@ mod belt;
 mod belt_chain;
 mod belt_curve;
 mod belt_items;
+mod belt_model;
 mod belt_shape;
 mod buffer;
 mod cable;
