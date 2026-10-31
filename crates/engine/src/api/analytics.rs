@@ -44,19 +44,37 @@ impl Game {
 
     /// The last `secs` seconds of the power graphs, laid out like the item graphs (kW): the grids' capacity, power
     /// given and power asked for, then a row per source (`analytics_power_sources`), then a row per kind of machine
-    /// asking for power (`analytics_power_users`).
-    pub fn analytics_power_graphs(&self, secs: u32, points: u32) -> Vec<f32> {
-        self.analytics.export_power(secs, points as usize)
+    /// asking for power (`analytics_power_users`). `grid` -1 is the whole factory, else an index into
+    /// `analytics_power_grids` (empty once that grid is gone).
+    pub fn analytics_power_graphs(&self, secs: u32, points: u32, grid: i32) -> Vec<f32> {
+        self.analytics.export_power(secs, points as usize, grid)
     }
 
-    /// The newest value of every power row.
-    pub fn analytics_power_now(&self) -> Vec<f32> {
-        self.analytics.power_now()
+    /// The newest value of every power row of `grid`.
+    pub fn analytics_power_now(&self, grid: i32) -> Vec<f32> {
+        self.analytics.power_now(grid)
     }
 
-    /// What each power source could give right now (kW).
-    pub fn analytics_power_could(&self) -> Vec<u32> {
-        self.analytics.power_could()
+    /// What each power source of `grid` could give right now (kW).
+    pub fn analytics_power_could(&self, grid: i32) -> Vec<u32> {
+        self.analytics.power_could(grid)
+    }
+
+    /// The grids with a machine on them (up to 8, first built first), `analytics_grid_fields` numbers each: `[x, y, z`
+    /// of the grid's oldest pole (it names the grid), `colour as 0xRRGGBB, poles, machines, could give, given, asked
+    /// for]` (kW).
+    pub fn analytics_power_grids(&self) -> Vec<i32> {
+        self.analytics.power_grids().0
+    }
+
+    /// The colour name of each grid in `analytics_power_grids`, one a line ("blue").
+    pub fn analytics_power_grid_names(&self) -> String {
+        self.analytics.power_grids().1
+    }
+
+    /// How many numbers a grid of `analytics_power_grids` has.
+    pub fn analytics_grid_fields(&self) -> u32 {
+        analytics::GRID_FIELDS as u32
     }
 
     /// The power sources' names, one a line, in row order.
@@ -69,9 +87,9 @@ impl Game {
         analytics::power_source_colours()
     }
 
-    /// The block of each kind of machine that has asked for power (rows after the sources), usable as an item id.
-    pub fn analytics_power_users(&self) -> Vec<u32> {
-        self.analytics.power_users()
+    /// The block of each kind of machine on `grid` that has asked for power (rows after the sources), usable as an item id.
+    pub fn analytics_power_users(&self, grid: i32) -> Vec<u32> {
+        self.analytics.power_users(grid)
     }
 
     /// Machine counts: `[working, at full speed, held back by power, input, output, fuel, water, deposit, other]`.

@@ -30,6 +30,7 @@ pub use groups::GROUPS;
 pub(crate) use machines::kind_at;
 pub use machines::{Machines, KIND_FIELDS, TYPE_FIELDS};
 use power::PowerHistory;
+pub use power::GRID_FIELDS;
 use series::Series;
 
 /// Ticks between readings of the power grids and the machines (6 a second).
@@ -145,25 +146,31 @@ impl Analytics {
         export(self.items.iter().flat_map(|it| [&it.made.series, &it.used.series]), secs, points)
     }
 
-    /// The same for the power rows (kW): could give, given, asked for, then one per source (`power_sources` order),
-    /// then one per kind of machine in `power_users` order.
-    pub fn export_power(&self, secs: u32, points: usize) -> Vec<f32> {
-        export(self.power.rows(), secs, points)
+    /// The same for the power rows (kW) of the whole factory (`grid` -1) or of one grid (an index into `power_grids`):
+    /// could give, given, asked for, then one per source (`power_sources` order), then one per kind of machine in
+    /// `power_users` order.
+    pub fn export_power(&self, secs: u32, points: usize, grid: i32) -> Vec<f32> {
+        export(self.power.rows(grid).into_iter(), secs, points)
     }
 
-    /// The newest value of every power row, in the same order.
-    pub fn power_now(&self) -> Vec<f32> {
-        self.power.rows().map(Series::latest).collect()
+    /// The newest value of every power row of `grid`, in the same order.
+    pub fn power_now(&self, grid: i32) -> Vec<f32> {
+        self.power.rows(grid).into_iter().map(Series::latest).collect()
     }
 
-    /// What each power source could give right now (kW), in source order.
-    pub fn power_could(&self) -> Vec<u32> {
-        self.power.could().to_vec()
+    /// What each power source of `grid` could give right now (kW), in source order.
+    pub fn power_could(&self, grid: i32) -> Vec<u32> {
+        self.power.could(grid).to_vec()
     }
 
-    /// The block of each machine-kind row after the totals and sources in `export_power`.
-    pub fn power_users(&self) -> Vec<u32> {
-        self.power.user_blocks()
+    /// The block of each machine-kind row of `grid` after the totals and sources in `export_power`.
+    pub fn power_users(&self, grid: i32) -> Vec<u32> {
+        self.power.user_blocks(grid)
+    }
+
+    /// The grids with a history of their own (`power.rs` `GRID_FIELDS` numbers each), and their colours' names.
+    pub fn power_grids(&self) -> (Vec<i32>, String) {
+        (self.power.grids(), self.power.grid_names())
     }
 }
 

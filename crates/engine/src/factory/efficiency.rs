@@ -75,11 +75,6 @@ impl Factory {
         self.power.mix
     }
 
-    /// Calls `f` with the block and kW of every kind of machine that asked for power last tick.
-    pub fn power_uses(&self, f: impl FnMut(BlockId, u32)) {
-        self.power.each_use(f);
-    }
-
     /// Calls `f` with the block, anchor and latest [`Sample`] of every machine that does work (miners, quarries, labs,
     /// processors; not belts, boxes, power sources or docks).
     pub fn samples(&self, mut f: impl FnMut(BlockId, IVec3, Option<Sample>)) {

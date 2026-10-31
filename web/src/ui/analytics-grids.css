@@ -1,0 +1,32 @@
+/* The power tab's grid picker (ui/analytics-grids.ts): a row of toggle buttons, one per power grid. */
+
+.an-grids {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.an-grid {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: 13px var(--font);
+  cursor: pointer;
+}
+
+.an-grid[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.an-grid-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}

@@ -139,7 +139,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
   - Maps: `worldmap.ts`, `pins.ts` (+ drawing), `map-pin-list.ts`, `map-filter.ts` (pure filter rules, saved state) + `map-filter-panel.ts`, `map-info.ts` (hover box), `map-key.ts` (what each mark means; rows in `map-key-rows.ts`), `map-focus.ts` (pure: "Show on map" list and view fit) + `map-focus-layer.ts` (its rings and chip), `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in
-    `analytics-overview.ts`, `analytics-power.ts`, `analytics-items.ts`, `analytics-machines.ts` (base `analytics-tab.ts`),
+    `analytics-overview.ts`, `analytics-power.ts` (+ `analytics-grids.ts`, its grid picker), `analytics-items.ts`, `analytics-machines.ts` (base `analytics-tab.ts`),
     `analytics-chart.ts`, `analytics-format.ts`, `analytics-panels.css`.
   - Menu: `menu.ts` (+ `menu-pages.css`), `worlds.ts`, `coop.ts`, `players.ts`, `patch-notes.ts` (+ `inline-text.ts`: bold and code spans), `comfort.ts`, `sky.ts`,
     `desktop-only.ts`, `blueprints.ts` (+ `blueprint-plan.ts`, each card's picture from above), `console.ts`, `view.css`.

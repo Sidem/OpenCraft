@@ -3,14 +3,18 @@
 //!
 //! - Sources: every place that adds to a grid's supply calls [`Power::give`] with its [`Source`], so the totals per
 //!   source (what was given, what could have been) always add up to the grids' own.
-//! - Users: each powered machine asks through [`Power::note_use`] with its block, so `uses` holds the kW each kind of
-//!   machine asked for this tick (indexed by block id).
+//!   `grid_mix` keeps the same per grid.
+//! - Users: `Factory::power_uses` walks `Power::each_demand`, the list the balance itself sums, by grid and block.
+//! - Grids: `Factory::power_grids` reads each grid with a machine on it, keyed by where its oldest pole stands.
 //!
 //! To add a power source: a `Source` variant with its row in `ALL`, `name` and `colour`, and `give` where it supplies.
 
-use crate::block::{BlockId, BLOCK_COUNT};
+use crate::block::BlockId;
+use crate::math::IVec3;
 
-use super::power::Power;
+use super::grid_colour::PALETTE;
+use super::power::{Power, Users};
+use super::Factory;
 
 /// How many kinds of power source there are.
 pub const SOURCES: usize = 8;
@@ -78,38 +82,92 @@ pub struct Mix {
     pub could: u32,
 }
 
-/// Per-block kW asked for this tick: a table `BLOCK_COUNT` long.
-pub fn empty_uses() -> Vec<u32> {
-    vec![0; BLOCK_COUNT]
-}
-
-/// Notes in `uses` (`Power::uses`) that a machine of `block` asks for `kw` this tick.
-pub(super) fn note_use(uses: &mut [u32], block: BlockId, kw: u32) {
-    if let Some(asked) = uses.get_mut(block as usize) {
-        *asked += kw;
-    }
-}
-
 impl Power {
     /// Adds `given` kW (of a possible `could`) from `source` to `grid`'s supply and capacity.
     pub(crate) fn give(&mut self, source: Source, grid: usize, given: u32, could: u32) {
         self.supply[grid] += given;
         self.capacity[grid] += could;
-        let mix = &mut self.mix[source as usize];
-        mix.given += given;
-        mix.could += could;
-    }
-
-    /// Calls `f` with the block and kW of every kind of machine that asked for power last tick.
-    pub fn each_use(&self, mut f: impl FnMut(BlockId, u32)) {
-        for (block, &kw) in self.uses.iter().enumerate().filter(|(_, &kw)| kw > 0) {
-            f(block as BlockId, kw);
+        for mix in [&mut self.mix[source as usize], &mut self.grid_mix[grid][source as usize]] {
+            mix.given += given;
+            mix.could += could;
         }
     }
 
     /// Clears the per-tick totals (the start of `balance`).
     pub(super) fn clear_mix(&mut self) {
         self.mix = [Mix::default(); SOURCES];
-        self.uses.iter_mut().for_each(|u| *u = 0);
+        self.grid_mix.iter_mut().for_each(|m| *m = [Mix::default(); SOURCES]);
+    }
+}
+
+/// One grid as the analytics show it (`Factory::power_grids`): last tick's totals and sources.
+#[derive(Clone, Copy, Debug)]
+pub struct GridReading {
+    /// Its number in this relink's `Power` lists (`power_uses` names grids by it).
+    pub grid: usize,
+    /// Where the grid's oldest pole stands: it names the grid from one reading to the next, through relinks, as long
+    /// as that pole stays (when two grids join, the older pole's name goes on).
+    pub key: IVec3,
+    /// Its accent colour (`grid_colour::PALETTE`) as a name and as `0xRRGGBB`.
+    pub colour: &'static str,
+    pub rgb: u32,
+    pub poles: u32,
+    /// Machines and power sources wired to it.
+    pub machines: u32,
+    pub capacity: u32,
+    pub supply: u32,
+    pub demand: u32,
+    pub mix: [Mix; SOURCES],
+}
+
+impl Factory {
+    /// Every grid with at least one machine or power source on it, in grid order (the main grid is not always first).
+    pub fn power_grids(&self) -> Vec<GridReading> {
+        let p = &self.power;
+        let mut machines = vec![0u32; p.supply.len()];
+        let lists = [&p.gen_pole, &p.miner_pole, &p.process_pole, &p.lab_pole, &p.pipe_pole, &p.quarry_pole];
+        for pole in lists.into_iter().flatten().flatten() {
+            machines[p.pole_grid[*pole as usize] as usize] += 1;
+        }
+        let mut out: Vec<Option<GridReading>> = vec![None; p.supply.len()];
+        for (i, &g) in p.pole_grid.iter().enumerate() {
+            let g = g as usize;
+            match &mut out[g] {
+                Some(r) => r.poles += 1,
+                None if machines[g] > 0 => {
+                    let (colour, [r, gr, b]) = PALETTE[usize::from(p.grid_colour[g]) % PALETTE.len()];
+                    out[g] = Some(GridReading {
+                        grid: g,
+                        key: self.poles[i].pos,
+                        colour,
+                        rgb: u32::from_be_bytes([0, r, gr, b]),
+                        poles: 1,
+                        machines: machines[g],
+                        capacity: p.capacity[g],
+                        supply: p.supply[g],
+                        demand: p.demand[g],
+                        mix: p.grid_mix[g],
+                    });
+                }
+                None => {}
+            }
+        }
+        out.into_iter().flatten().collect()
+    }
+
+    /// Calls `f` with the grid, block and kW of every wired machine asking for power now: the list the tick's balance
+    /// sums (`Power::each_demand`), for the analytics' "where the power goes", whole or per grid.
+    pub fn power_uses(&self, mut f: impl FnMut(usize, BlockId, u32)) {
+        let unlocked = self.research.machine_recipes_unlocked();
+        let users = Users {
+            miners: &self.miners,
+            processors: &self.processors,
+            labs: &self.labs,
+            pipework: &self.pipework,
+            quarries: &self.quarries,
+            research: &self.research,
+            unlocked: &unlocked,
+        };
+        self.power.each_demand(&users, |pole, block, kw| f(self.power.pole_grid[pole as usize] as usize, block, kw));
     }
 }

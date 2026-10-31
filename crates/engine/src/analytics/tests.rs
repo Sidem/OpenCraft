@@ -1,4 +1,4 @@
-use super::power::TOTALS;
+use super::power::{GRID_FIELDS, TOTALS};
 use super::series::{Series, COARSE_STEP};
 use super::*;
 use crate::block::{COAL_ORE, CONSTRUCTOR, IRON_ORE, LAB, MINER, SLAG, SMELTER};
@@ -301,6 +301,56 @@ fn bench_machines_of_kind() {
 }
 
 #[test]
+fn each_grid_reads_on_its_own_and_the_grids_add_up_to_the_whole() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    let (p, key) = find_outcrop_block(&mut g, 6);
+    let (m, _) = build_mine(&mut g, p);
+    // A second grid far out of any pole's reach: a miner drawing on the same deposit, with its own pole and generator.
+    let far = m + IVec3::new(64, 0, 0);
+    g.sim.factory.add_miner(far, crate::block::FACE_BOTTOM as u8, Some(key), 0);
+    crate::tests::power_up(&mut g, far);
+    g.skip_time(5.0);
+
+    let grids = g.analytics_power_grids();
+    let n = grids.len() / GRID_FIELDS;
+    assert_eq!(n, 2, "two grids with machines: {grids:?}");
+    let keys: Vec<&[i32]> = grids.chunks(GRID_FIELDS).map(|r| &r[..3]).collect();
+    assert_ne!(keys[0], keys[1]);
+    // Live numbers: each grid's could give, gave and asked for add up to the factory's.
+    let totals = g.sim.factory.power_totals();
+    let sum = |f: usize| grids.chunks(GRID_FIELDS).map(|r| r[f]).sum::<i32>() as u32;
+    assert_eq!([sum(6), sum(7), sum(8)], [totals.capacity, totals.supply, totals.demand]);
+    assert!(grids.chunks(GRID_FIELDS).all(|r| r[4] >= 1 && r[5] == 2), "a pole, a miner and a generator each");
+    assert_eq!(g.analytics_power_grid_names().lines().count(), 2);
+
+    // History: every total and source row of the grids adds up to the whole factory's, and so do the users.
+    let whole = g.analytics.power_now(-1);
+    let each: Vec<Vec<f32>> = (0..n as i32).map(|i| g.analytics.power_now(i)).collect();
+    for row in 0..TOTALS + SOURCE_LIST.len() {
+        let parts: f32 = each.iter().map(|e| e[row]).sum();
+        assert!((parts - whole[row]).abs() < 0.01, "row {row}: {parts} of {}", whole[row]);
+    }
+    assert!(each.iter().all(|e| e[1] > 0.0), "each grid's own generator gave power");
+    for i in 0..n as i32 {
+        assert_eq!(g.analytics.power_users(i), vec![MINER as u32]);
+    }
+    let users = |e: &[f32]| e[TOTALS + SOURCE_LIST.len()];
+    assert!((each.iter().map(|e| users(e)).sum::<f32>() - users(&whole)).abs() < 0.01);
+
+    // A relink that leaves both grids alone keeps their names and their histories.
+    let belt = m + IVec3::new(0, 0, 5);
+    g.sim.factory.add_belt(belt, 1);
+    g.skip_time(2.0);
+    let again = g.analytics_power_grids();
+    let again: Vec<&[i32]> = again.chunks(GRID_FIELDS).map(|r| &r[..3]).collect();
+    assert_eq!(again, keys);
+    // `[points, rows, ...]`: a tracked grid has every row, one that is not tracked none.
+    assert_eq!(g.analytics_power_graphs(60, 30, 1)[1] as usize, TOTALS + SOURCE_LIST.len() + 1);
+    assert_eq!(g.analytics_power_graphs(60, 30, 9)[1], 0.0);
+}
+
+#[test]
 fn a_miner_without_power_reads_low_power_and_one_with_it_reads_full() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
@@ -311,7 +361,7 @@ fn a_miner_without_power_reads_low_power_and_one_with_it_reads_full() {
     let line = g.efficiency_line(m);
     assert!(line.starts_with("Efficiency"), "{line}");
     assert!(g.machine_efficiency_percent(m.x, m.y, m.z) >= 90, "{line}");
-    let now = g.analytics.power_now();
+    let now = g.analytics.power_now(-1);
     assert!(now[1] > 0.0 && now[0] >= now[1], "capacity {} must cover use {}", now[0], now[1]);
     let items = g.analytics.item_now();
     assert!(items.chunks(4).any(|c| c[0] > 0.0), "the miner's ore has a graph row and was made");
@@ -322,10 +372,10 @@ fn a_miner_without_power_reads_low_power_and_one_with_it_reads_full() {
     let sources = TOTALS..TOTALS + SOURCE_LIST.len();
     assert!(now[TOTALS] > 0.0, "the generator gave power");
     assert!((now[1] - now[sources].iter().sum::<f32>()).abs() < 0.5, "the sources add up to the supply");
-    let users = g.analytics.power_users();
+    let users = g.analytics.power_users(-1);
     assert_eq!(users, vec![MINER as u32]);
     assert!((now[2] - now[TOTALS + SOURCE_LIST.len()]).abs() < 0.5, "the miner asked for all of it");
-    assert!(g.analytics.power_could()[0] > 0);
+    assert!(g.analytics.power_could(-1)[0] > 0);
 
     // Take the generator away: the average falls and names the power.
     g.sim.factory.remove(m + IVec3::new(0, 3, 0));

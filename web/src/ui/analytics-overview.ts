@@ -60,7 +60,7 @@ export class OverviewTab implements Tab {
       this.names = g.analytics_power_sources().split('\n');
       this.colours = Array.from(g.analytics_power_source_colours(), hex);
     }
-    const power = g.analytics_power_now();
+    const power = g.analytics_power_now(-1);
     const [capacity, used, wanted] = [power[0], power[1], power[2]];
     const [working, full, ...held] = Array.from(g.analytics_machines());
     const stride = g.analytics_type_fields();
@@ -80,7 +80,7 @@ export class OverviewTab implements Tab {
     this.paintTiles(capacity, used, wanted, working, full, overall, stat);
     this.paintAlerts(alerts, ctx);
 
-    const graph = readGraph(g.analytics_power_graphs(ctx.secs, pointsFor(this.chart.width)));
+    const graph = readGraph(g.analytics_power_graphs(ctx.secs, pointsFor(this.chart.width), -1));
     const areas: Line[] = this.names.map((name, s) => ({ name, colour: this.colours[s], values: graph.row(TOTALS + s) }));
     this.chart.set({ areas, lines: [{ name: 'Machines want', colour: WANTED, values: graph.row(2), dashed: true }], secs: ctx.secs, ticks: ctx.ticks });
     this.paintBusiest(stat, ctx);

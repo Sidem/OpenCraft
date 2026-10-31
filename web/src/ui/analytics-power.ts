@@ -1,11 +1,12 @@
 // Power tab of the analytics hub: how much power the grids make, from which kind of source, and which kinds of
-// machine use it. Two stacked charts (supply by source, demand by machine kind) over the shared timescale, each with a
+// machine use it, for all grids or one (the picker, analytics-grids.ts). Two stacked charts (supply by source, demand by machine kind) over the shared timescale, each with a
 // list that doubles as legend: click a row to leave it out of the chart, hover it to light its area. Source names and
 // colours come from the engine (`analytics_power_*`), machine kinds are blocks (names and icons as for items).
 
 import './analytics-panels.css';
 import { hex, kw, lastOf, Palette, readGraph } from './analytics-format';
 import { LineChart, type Line } from './analytics-chart';
+import { GridPicker } from './analytics-grids';
 import { dot, iconCanvas, pointsFor, type Ctx, type Tab } from './analytics-tab';
 import { h } from './dom';
 
@@ -87,6 +88,7 @@ export class PowerTab implements Tab {
   private readonly users = new Breakdown(this.useChart, () => this.again());
   private readonly palette = new Palette();
   private readonly other = h('p', 'an-note');
+  private readonly grids = new GridPicker(() => this.again());
   private names: string[] = [];
   private colours: string[] = [];
   private ctx: Ctx | null = null;
@@ -95,6 +97,7 @@ export class PowerTab implements Tab {
     const key = h('p', 'an-key');
     key.append(dot(WANTED), h('span', '', 'Machines want'), dot(CAPACITY), h('span', '', 'Could make'));
     this.el.append(
+      this.grids.el,
       this.summary,
       this.tiles,
       h('h3', '', 'Where the power comes from'),
@@ -119,13 +122,15 @@ export class PowerTab implements Tab {
       this.names = g.analytics_power_sources().split('\n');
       this.colours = Array.from(g.analytics_power_source_colours(), hex);
     }
+    const grid = this.grids.refresh(g);
     const points = pointsFor(this.supplyChart.width);
-    const graph = readGraph(g.analytics_power_graphs(ctx.secs, points));
-    const now = g.analytics_power_now();
-    const could = g.analytics_power_could();
+    const graph = readGraph(g.analytics_power_graphs(ctx.secs, points, grid));
+    const now = g.analytics_power_now(grid);
+    const could = g.analytics_power_could(grid);
     const sourceCount = this.names.length;
     const [capacity, used, wanted] = [now[0], now[1], now[2]];
-    this.summary.textContent = summary(capacity, used, wanted);
+    const which = this.grids.label();
+    this.summary.textContent = (which ? `: ` : '') + summary(capacity, used, wanted);
     this.paintTiles(capacity, used, wanted);
 
     // Sources: every kind that has ever given or could give power gets a row.
@@ -145,7 +150,7 @@ export class PowerTab implements Tab {
     this.supplyChart.set({ areas, lines, secs: ctx.secs, ticks: ctx.ticks });
 
     // Users: one row per kind of machine; kinds past the palette are summed as "Other".
-    const blocks = Array.from(g.analytics_power_users());
+    const blocks = Array.from(g.analytics_power_users(grid));
     const useAreas: Line[] = [];
     let otherNow = 0;
     const rest: Float32Array[] = [];
@@ -162,6 +167,8 @@ export class PowerTab implements Tab {
       this.users.paint(entry, now[TOTALS + sourceCount + k], wanted);
       if (!this.users.hidden.has(block)) useAreas.push({ name, colour, values });
     });
+    // Kinds from another grid's view stay listed but hidden.
+    for (const [block, entry] of this.users.entries) entry.el.classList.toggle('hidden', !blocks.includes(block));
     if (rest.length > 0) useAreas.push({ name: 'Other machines', colour: '#6b7280', values: sum(rest) });
     this.other.textContent = rest.length > 0 ? `Other machines: ${kw(otherNow)} (${rest.length} more kinds).` : '';
     this.useChart.set({ areas: useAreas, lines: [], secs: ctx.secs, ticks: ctx.ticks });

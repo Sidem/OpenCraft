@@ -20,7 +20,7 @@
 
 use rustc_hash::FxHashSet;
 
-use crate::block::{LAB, MINER, PUMP, QUARRY};
+use crate::block::{BlockId, LAB, MINER, PUMP, QUARRY};
 use crate::inventory::Stack;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::fuel_energy;
@@ -33,7 +33,7 @@ use super::laser::LOSS_DIVISOR;
 use super::miner::Miner;
 use super::pipes::{Part, Pipework};
 use super::pole::{dist2, hang_cable, linked, nearest_of, Pole};
-use super::power_mix::{empty_uses, note_use, Mix, Source, SOURCES};
+use super::power_mix::{Mix, Source, SOURCES};
 use super::process::{run_diesel, run_hydro, run_reactor, run_rectenna, run_renewables, run_turbine, Kinds, Processor};
 use super::quarry::Quarry;
 use super::render::push_box;
@@ -44,6 +44,17 @@ use super::Factory;
 pub const NOT_WIRED: &str = "No power: select a power pole in reach, then click this machine to wire it";
 /// Full speed, in thousandths.
 pub const FULL_SPEED: u32 = 1000;
+
+/// The machines that can ask for power, and what decides whether they do (`Power::each_demand`).
+pub(super) struct Users<'a> {
+    pub miners: &'a [Miner],
+    pub processors: &'a [Processor],
+    pub labs: &'a [Lab],
+    pub pipework: &'a [Pipework],
+    pub quarries: &'a [Quarry],
+    pub research: &'a Research,
+    pub unlocked: &'a [bool],
+}
 
 /// The grids, derived from positions by `rebuild`, plus last tick's supply and demand per grid.
 #[derive(Default)]
@@ -73,9 +84,10 @@ pub(crate) struct Power {
     pub supply: Vec<u32>,
     pub demand: Vec<u32>,
     pub capacity: Vec<u32>,
-    /// Last tick's kW per kind of source, and the kW each kind of machine asked for (`power_mix.rs`, for the analytics).
+    /// Last tick's kW per kind of source (`power_mix.rs`, for the analytics).
     pub mix: [Mix; SOURCES],
-    pub uses: Vec<u32>,
+    /// Last tick's kW per kind of source on each grid (the analytics' per-grid view).
+    pub grid_mix: Vec<[Mix; SOURCES]>,
     /// This tick's demand per side, before laser losses are added to the grids (scratch for alance).
     side_demand: Vec<u32>,
 }
@@ -148,7 +160,7 @@ impl Power {
             demand: vec![0; grids as usize],
             capacity: vec![0; grids as usize],
             mix: [Mix::default(); SOURCES],
-            uses: empty_uses(),
+            grid_mix: vec![[Mix::default(); SOURCES]; grids as usize],
             side_demand: vec![0; sides as usize],
         }
     }
@@ -173,36 +185,10 @@ impl Power {
         self.capacity.iter_mut().for_each(|c| *c = 0);
         self.side_demand.iter_mut().for_each(|d| *d = 0);
         self.clear_mix();
-        for (m, p) in miners.iter().zip(&self.miner_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.side_demand[self.pole_side[p as usize] as usize] += m.stats().power;
-                note_use(&mut self.uses, MINER, m.stats().power);
-            }
-        }
-        for (m, p) in processors.iter().zip(&self.process_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| m.wants_power(unlocked, research)) {
-                self.side_demand[self.pole_side[p as usize] as usize] += m.power();
-                note_use(&mut self.uses, m.spec.block, m.power());
-            }
-        }
-        for (l, p) in labs.iter().zip(&self.lab_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| l.wants_power(research)) {
-                self.side_demand[self.pole_side[p as usize] as usize] += l.stats().power;
-                note_use(&mut self.uses, LAB, l.stats().power);
-            }
-        }
-        for (m, p) in pipework.iter().zip(&self.pipe_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| m.wants_power()) {
-                self.side_demand[self.pole_side[p as usize] as usize] += m.pump_stats().power;
-                note_use(&mut self.uses, PUMP, m.pump_stats().power);
-            }
-        }
-        for (q, p) in quarries.iter().zip(&self.quarry_pole) {
-            if let Some(&p) = p.as_ref().filter(|_| q.wants_power()) {
-                self.side_demand[self.pole_side[p as usize] as usize] += q.stats().power;
-                note_use(&mut self.uses, QUARRY, q.stats().power);
-            }
-        }
+        let mut side_demand = std::mem::take(&mut self.side_demand);
+        let users = Users { miners, processors, labs, pipework, quarries, research, unlocked };
+        self.each_demand(&users, |p, _, kw| side_demand[self.pole_side[p as usize] as usize] += kw);
+        self.side_demand = side_demand;
         // Each side's demand joins its grid; a beam also costs its emitter's grid a tenth of what arrives.
         for (s, &d) in self.side_demand.iter().enumerate() {
             self.demand[self.side_grid[s] as usize] += d;
@@ -245,6 +231,31 @@ impl Power {
             self.give(Source::Turbine, grid, given, could);
         }
         run_diesel(self, processors, &kinds.diesel);
+    }
+
+    /// Calls `f` with the pole, block and kW of every wired machine that asks for power now: the one list of
+    /// consumers, so the tick's balance and the analytics' per-grid view (`power_mix.rs`) cannot disagree.
+    pub(super) fn each_demand(&self, u: &Users, mut f: impl FnMut(u32, BlockId, u32)) {
+        let mut each = |pole: &Option<u32>, wants: bool, block: BlockId, kw: u32| {
+            if let Some(&p) = pole.as_ref().filter(|_| wants) {
+                f(p, block, kw);
+            }
+        };
+        for (m, p) in u.miners.iter().zip(&self.miner_pole) {
+            each(p, m.wants_power(), MINER, m.stats().power);
+        }
+        for (m, p) in u.processors.iter().zip(&self.process_pole) {
+            each(p, m.wants_power(u.unlocked, u.research), m.spec.block, m.power());
+        }
+        for (l, p) in u.labs.iter().zip(&self.lab_pole) {
+            each(p, l.wants_power(u.research), LAB, l.stats().power);
+        }
+        for (m, p) in u.pipework.iter().zip(&self.pipe_pole) {
+            each(p, m.wants_power(), PUMP, m.pump_stats().power);
+        }
+        for (q, p) in u.quarries.iter().zip(&self.quarry_pole) {
+            each(p, q.wants_power(), QUARRY, q.stats().power);
+        }
     }
 
     /// Speed in thousandths for a machine hanging on `pole` (0 with no pole or no power).
