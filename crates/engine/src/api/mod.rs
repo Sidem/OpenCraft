@@ -32,6 +32,7 @@ mod sites;
 mod surroundings;
 mod telescope;
 mod towns;
+mod trains;
 mod view;
 
 use wasm_bindgen::prelude::*;

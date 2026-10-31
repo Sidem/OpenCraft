@@ -1,0 +1,126 @@
+/* Train panel (train.ts): what the train is doing, a bar per wagon (the open one marked), the schedule. A column of
+   the inventory screen (inventory.css), beside the open wagon's slots; scrolls by itself. */
+
+/* With a wagon open, the screen's second column holds its slots above this panel; the backpack spans both rows.
+   `tp-host` marks the inventory screen's body while the panel is in it (train.ts). */
+.tp-host {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.tp-host > :first-child {
+  grid-row: 1 / span 2;
+}
+
+.tp-panel {
+  grid-column: 2;
+  width: min(420px, 100%);
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.tp-panel h3 {
+  margin: 16px 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tp-state {
+  margin: 0 0 4px;
+  font-size: 14px;
+}
+
+.tp-hint {
+  margin: 6px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tp-cars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* One wagon: its name, a fill bar and its counts; click to open it in the slots. */
+.tp-car {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 2px 10px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tp-car:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.tp-car.open {
+  border-color: var(--accent);
+}
+
+.tp-name {
+  font-size: 13px;
+}
+
+.tp-gauge {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.tp-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #e8a33a, #f4cf5c);
+}
+
+.tp-count {
+  grid-column: 2;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tp-stops {
+  margin: 0;
+  padding-left: 22px;
+}
+
+.tp-stops li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 13px;
+}
+
+.tp-stops li.next {
+  color: var(--accent);
+}
+
+.tp-stop {
+  flex: 1;
+}
+
+.tp-next {
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.tp-drop {
+  position: static;
+}
+
+.tp-clear {
+  margin-top: 8px;
+}

@@ -54,7 +54,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
-- Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` (track lies on the ground: one rule for the core and the preview) + `rail/pieces.rs` (a dock is a piece of track: `dock_fit`, `swap_rail_piece`; the core side is `action/docks.rs`), `trains.rs` + `trains/` (cars, schedule, signals, docks, model, motion: speeding up and braking to the stop).
+- Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` (track lies on the ground: one rule for the core and the preview) + `rail/pieces.rs` (a dock is a piece of track: `dock_fit`, `swap_rail_piece`; the core side is `action/docks.rs`), `trains.rs` + `trains/` (cars, schedule, signals, docks, model, motion: speeding up and braking to the stop; view: aiming at a car, its readout, and its cargo as a box at `car_box`).
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
   machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `shape.rs`,
@@ -136,7 +136,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it
     makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`.
-  - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (sign editor; `colour-wheel.ts`, `colour.ts`).
+  - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (sign editor; `colour-wheel.ts`, `colour.ts`), `train.ts` (a train's wagons, state and schedule).
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
   - Maps: `worldmap.ts`, `pins.ts` (+ drawing), `map-pin-list.ts`, `map-filter.ts` (pure filter rules, saved state) + `map-filter-panel.ts`, `map-info.ts` (hover box), `map-key.ts` (what each mark means; rows in `map-key-rows.ts`), `map-focus.ts` (pure: "Show on map" list and view fit) + `map-focus-layer.ts` (its rings and chip), `ore-guide.ts`. Analytics (P): `analytics.ts`, a tab each in

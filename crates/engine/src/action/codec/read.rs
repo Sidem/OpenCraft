@@ -72,6 +72,7 @@ impl Action {
             41 => Action::PlaceTrain { pos: r.ivec3()?, slot: r.u8()? },
             42 => Action::TakeTrain { pos: r.ivec3()? },
             43 => Action::TrainStop { node: r.ivec3()?, dock: r.ivec3()?, clear: r.bool()? },
+            70 => Action::DropStop { train: r.u32()?, index: r.u8()? },
             44 => Action::ToggleSignal { pos: r.ivec3()?, slot: r.u8()? },
             45 => Action::Hover { on: r.bool()? },
             46 => Action::Charge { pole: r.ivec3()?, on: r.bool()? },

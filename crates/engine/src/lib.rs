@@ -168,6 +168,8 @@ pub struct Game {
     target_fit: Option<[f32; 6]>,
     /// The belt item the crosshair is on, if the target is a belt (`factory/belt_items.rs`).
     target_item: Option<factory::ItemAim>,
+    /// The train car the crosshair is on (`target` is then None: a car is no block; `interaction.rs`).
+    target_car: Option<factory::CarAim>,
     /// The belt item a click selected (`item_select.rs`).
     selected_item: Option<item_select::Selection>,
     mining: bool,
@@ -272,6 +274,7 @@ impl Game {
             target: None,
             target_fit: None,
             target_item: None,
+            target_car: None,
             selected_item: None,
             mining: false,
             mine_block: None,

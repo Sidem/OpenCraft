@@ -37,6 +37,7 @@ import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
 import { MachinePanel } from './ui/machine';
+import { TrainPanel } from './ui/train';
 import { Menu } from './ui/menu';
 import { MapFilter } from './ui/map-filter';
 import { MapInfo } from './ui/map-info';
@@ -134,7 +135,7 @@ async function main(): Promise<void> {
   const soundLab = new SoundLab(sound, blocks, (id) => hud.itemIcon(id));
   const inventory = new InventoryPanel(game, (id) => hud.itemIcon(id));
   inventory.onCraft = () => sound.ui();
-  const machine = new MachinePanel(game, (id) => hud.itemIcon(id), inventory);
+  const machine = new MachinePanel(game, (id) => hud.itemIcon(id), inventory), trains = new TrainPanel(game, inventory);
   const research = new ResearchPanel(game, (id) => hud.itemIcon(id));
   research.onDone = () => sound.ui();
   const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
@@ -254,8 +255,8 @@ async function main(): Promise<void> {
     const request = game.take_panel_request();
     if (request.length === 3) {
       const [x, y, z] = request;
-      if (game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
-      else if (!logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z)) machine.open(x, y, z);
+      if (!trains.open(x, y, z) && game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
+      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z)) machine.open(x, y, z);
       input.unlock();
       sound.ui();
     }

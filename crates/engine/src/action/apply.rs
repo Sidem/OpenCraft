@@ -122,6 +122,9 @@ impl Sim {
             Action::TrainStop { node, dock, clear } => {
                 self.factory.set_stop(node, dock, clear);
             }
+            Action::DropStop { train, index } => {
+                self.factory.drop_stop(train, index);
+            }
             Action::ToggleSignal { pos, slot } => self.toggle_signal(player, pos, slot),
             Action::SetRoute { from, to, clear } => self.set_route(from, to, clear),
             Action::Hover { on } => self.set_hover(player, on),

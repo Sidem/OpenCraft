@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-31 · Trains you can read
+- **Look at a locomotive or wagon to see how full it is**: how many of its slots are used and what it carries, and what the train is doing ("Loading at a dock", "Running to stop 2 of 3"…).
+- **Right-click a train to open it.** Each wagon opens like a chest: take goods out or put them in. The panel shows a bar per wagon, what the train is doing, and its stops; take a stop off with ×, or clear them all.
+- **Open wagons show their load**: a heap of what they carry, rising as they fill.
+
 ## 2026-10-31 · A modern train
 - **The locomotive is now a modern diesel**: a long blue hood with an amber band, a cab with a raked windscreen, headlamps, roof fans and two three-axle bogies. Wagons wear the same colours.
 - **Wheels turn as the train moves**, and trains **speed up and brake smoothly**, so they glide into a dock and stop with the first wagon right under the chute or over the grate.

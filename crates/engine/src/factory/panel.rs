@@ -87,14 +87,14 @@ impl Factory {
     pub fn box_slots(&self, pos: IVec3) -> Option<&[Stack]> {
         match self.at.get(&pos) {
             Some(Slot::Storage(i)) => Some(&self.storages[*i as usize].buf.slots),
-            _ => None,
+            _ => self.car_slots(pos),
         }
     }
 
     pub(crate) fn box_slots_mut(&mut self, pos: IVec3) -> Option<&mut [Stack]> {
         match self.at.get(&pos) {
             Some(Slot::Storage(i)) => Some(&mut self.storages[*i as usize].buf.slots),
-            _ => None,
+            _ => self.car_slots_mut(pos),
         }
     }
 

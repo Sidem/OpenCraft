@@ -29,6 +29,10 @@ pub(crate) mod model;
 mod motion;
 mod schedule;
 mod signals;
+mod view;
+
+pub use schedule::DROP_ALL;
+pub use view::{car_at, car_box, CarAim};
 
 use signals::Way;
 
@@ -55,6 +59,8 @@ pub const CAR_SLOTS: usize = 24;
 const DWELL_TICKS: u32 = 300;
 
 pub struct Train {
+    /// Names the train while it lasts (from 1; iew.rs addresses its cargo by it).
+    pub id: u32,
     /// Directed edges, tail first.
     pub path: Vec<(IVec3, IVec3)>,
     /// The front's distance along the last edge (mm).
@@ -97,6 +103,7 @@ fn key(p: IVec3) -> (i32, i32, i32) {
 impl Train {
     fn new(path: Vec<(IVec3, IVec3)>, head: i64) -> Train {
         Train {
+            id: 0,
             path,
             head,
             cars: 0,
@@ -184,7 +191,9 @@ impl Factory {
             return false;
         }
         let Some(to) = self.launch(pos) else { return false };
-        self.trains.push(Train::new(vec![(pos, to)], LOCO_MM));
+        let mut t = Train::new(vec![(pos, to)], LOCO_MM);
+        t.id = self.trains.iter().map(|t| t.id).max().unwrap_or(0) + 1;
+        self.trains.push(t);
         true
     }
 
@@ -297,11 +306,12 @@ impl Factory {
             w.u8(t.speed as u8);
             w.u32(t.odo);
             w.u8(t.halts.map_or(0, |h| 1 + u8::from(h)));
+            w.u32(t.id);
         }
     }
 
     /// Saves from before version 33 hold locomotives only (no wagons, never stopped), before 34 no schedules, before 65
-    /// no speed (a moving train starts from standing).
+    /// no speed (a moving train starts from standing), before 66 no id (numbered in order).
     pub(super) fn read_trains(&mut self, r: &mut ByteReader) -> Option<()> {
         for _ in 0..r.count()? {
             let mut path = Vec::new();
@@ -339,9 +349,13 @@ impl Factory {
                     h => Some(h == 2),
                 };
             }
+            if r.version >= 66 {
+                t.id = r.u32()?;
+            }
             self.trains.push(t);
         }
         self.prune_trains();
+        self.number_trains();
         Some(())
     }
 }

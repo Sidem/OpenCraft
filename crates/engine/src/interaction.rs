@@ -82,6 +82,7 @@ impl Game {
 
     pub(crate) fn update_target(&mut self) {
         self.target_item = None;
+        self.target_car = None;
         if self.strategy.active() {
             self.strategy_target();
             return;
@@ -122,6 +123,19 @@ impl Game {
             Some(pole) => RayHit { block: pole, ..h },
             None => RayHit { id: machine(&h).unwrap_or(h.id), ..h },
         });
+        // A train car nearer than the block stands in for it (not with a locomotive, wagon or signal in hand, which aim
+        // at the rail nodes under a train).
+        let block_at = self.target.map_or(f64::MAX, |h| {
+            (aim::surface(origin, dir, h, factory.aim_boxes(h.block).as_ref()) - origin).length()
+        });
+        let reach = self.reach() + (origin - eye).length();
+        self.target_car = factory
+            .car_hit(origin, dir, reach)
+            .filter(|&(d, _)| d < block_at && self.rolling_stock().is_none())
+            .map(|(_, car)| car);
+        if self.target_car.is_some() {
+            self.target = None;
+        }
         self.target_fit = self.target.and_then(|h| factory.hit_boxes(h.block)).map(|b| b.bounds());
         // Aiming at a belt's item outlines the item instead of the belt.
         self.target_item = self.target.and_then(|h| factory.belt_item_under(h.block, origin, dir));
@@ -204,6 +218,12 @@ impl Game {
         }
         self.use_cooldown -= dt;
         if self.use_cooldown > 0.0 {
+            return;
+        }
+        // A train car: ask the host for the train panel, on that car (`api/trains.rs`).
+        if let Some(car) = self.target_car {
+            self.panel_request = Some(factory::car_box(car.train, car.car));
+            self.using = false;
             return;
         }
         // A sensor has no panel: a click steps to its next rule (crouching places against it, as everywhere).

@@ -37,7 +37,7 @@ enum Aim {
 
 impl Game {
     /// The locomotive, wagon or signal in hand.
-    fn rolling_stock(&self) -> Option<ItemId> {
+    pub(crate) fn rolling_stock(&self) -> Option<ItemId> {
         let stack = self.inventory().selected_stack();
         (!stack.is_empty() && (stack.item == LOCOMOTIVE || stack.item == WAGON || stack.item == RAIL_SIGNAL))
             .then_some(stack.item)

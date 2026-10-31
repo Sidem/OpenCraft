@@ -2,7 +2,7 @@
 //! with an empty list stops at every dock it reaches (`docks.rs`). At a node it goes on toward the scheduled dock by
 //! the shortest route (`route`: a breadth-first search over the track the train may turn onto, within `MAX_STATES`
 //! states), else as `next_from` does. Docks are kept by their anchor cell; one that is gone is skipped.
-//! The hand edits a schedule with `Action::TrainStop` (`set_stop`).
+//! The hand edits a schedule with `Action::TrainStop` (`set_stop`), the train panel with `Action::DropStop` (`drop_stop`).
 
 use crate::math::IVec3;
 
@@ -11,6 +11,8 @@ use super::{key, Factory, Train, MIN_AHEAD};
 
 /// Docks on one train's schedule at most.
 pub const MAX_STOPS: usize = 8;
+/// `drop_stop`'s index for every stop at once.
+pub const DROP_ALL: u8 = u8::MAX;
 /// The most track states a route search looks at.
 const MAX_STATES: usize = 512;
 
@@ -32,6 +34,24 @@ impl Factory {
             return false;
         }
         t.schedule.push(anchor);
+        true
+    }
+
+    /// Takes stop `index` off the schedule of the train with id `id` (`DROP_ALL`: all of them). False (nothing done)
+    /// if there is no such train or stop.
+    pub fn drop_stop(&mut self, id: u32, index: u8) -> bool {
+        let Some(t) = self.trains.iter_mut().find(|t| t.id == id) else { return false };
+        if index == DROP_ALL {
+            t.schedule.clear();
+        } else if usize::from(index) < t.schedule.len() {
+            t.schedule.remove(usize::from(index));
+        } else {
+            return false;
+        }
+        if usize::from(t.next) >= t.schedule.len().max(1) {
+            t.next = 0;
+        }
+        t.halts = None;
         true
     }
 

@@ -135,20 +135,21 @@ impl Game {
         self.belt_line_label()
     }
 
+    /// Whether a block or a train car is aimed at.
     pub fn has_target(&self) -> bool {
-        self.target.is_some()
+        self.target.is_some() || self.target_car.is_some()
     }
 
     pub fn target_x(&self) -> i32 {
-        self.target.map_or(0, |t| t.block.x)
+        self.target_cell().x
     }
 
     pub fn target_y(&self) -> i32 {
-        self.target.map_or(0, |t| t.block.y)
+        self.target_cell().y
     }
 
     pub fn target_z(&self) -> i32 {
-        self.target.map_or(0, |t| t.block.z)
+        self.target_cell().z
     }
 
     pub fn target_block(&self) -> u8 {
@@ -157,6 +158,9 @@ impl Game {
 
     /// The target's name: a tiered machine's with its Mk ("Miner Mk3"), else its block's; empty without a target.
     pub fn target_name(&self) -> String {
+        if let Some(car) = self.target_car {
+            return self.sim.factory.car_name(car);
+        }
         let Some(t) = self.target else { return String::new() };
         let f = &self.sim.factory;
         f.tiered_at(t.block).and_then(|_| f.name_at(t.block)).unwrap_or_else(|| crate::block::def(t.id).name.into())
@@ -165,6 +169,9 @@ impl Game {
     /// Where the target's model sits in its cell as 6 numbers (lowest corner, then size), for the outline of
     /// a pole or a belt; empty when the whole cell is the target.
     pub fn target_fit(&self) -> Vec<f32> {
+        if let Some(car) = self.target_car {
+            return self.car_fit(car).map_or_else(Vec::new, |(_, fit)| fit.to_vec());
+        }
         self.target_fit.map_or_else(Vec::new, |fit| fit.to_vec())
     }
 
@@ -208,6 +215,9 @@ impl Game {
     pub fn target_detail(&mut self) -> String {
         if let Some(aim) = self.shown_item() {
             return self.sim.factory.belt_item_report(&aim).1;
+        }
+        if let Some(car) = self.target_car {
+            return self.sim.factory.car_report(car);
         }
         let Some(hit) = self.target else { return String::new() };
         if let Some(text) = self.sim.factory.describe(hit.block) {
@@ -301,5 +311,34 @@ impl Game {
 
     pub fn deposits_tracked(&self) -> u32 {
         self.sim.factory.deposits.tracked() as u32
+    }
+}
+
+impl Game {
+    /// The aimed-at block's cell, or the cell at the lowest corner of the aimed-at car.
+    fn target_cell(&self) -> IVec3 {
+        match (self.target, self.target_car.and_then(|car| self.car_fit(car))) {
+            (Some(t), _) => t.block,
+            (None, Some((cell, _))) => cell,
+            _ => IVec3::ZERO,
+        }
+    }
+
+    /// The cell at the lowest corner of a car's box, and the box within it (lowest corner, size), for its outline.
+    fn car_fit(&self, car: factory::CarAim) -> Option<(IVec3, [f32; 6])> {
+        let b = self.sim.factory.car_bounds(car)?;
+        let cell = IVec3::new(b[0].floor() as i32, b[1].floor() as i32, b[2].floor() as i32);
+        let low = cell.as_vec3();
+        Some((
+            cell,
+            [
+                (b[0] - low.x) as f32,
+                (b[1] - low.y) as f32,
+                (b[2] - low.z) as f32,
+                b[3] as f32,
+                b[4] as f32,
+                b[5] as f32,
+            ],
+        ))
     }
 }

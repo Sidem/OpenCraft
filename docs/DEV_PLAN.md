@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes, and 16 machine icons drawn after the real things, and blueprint keys that do what the label says and library cards with a picture and contents, and rates on machines, belts and the item guide (2026-10-30); a playtester's six notes: bendable belts with curved corners, sort by kind, power per grid, note signs, Mk names on the map and worked-out deposits marked (2026-10-31); trains: track lies on the ground, docks are pieces of track, a modern diesel that eases into its stops (T1–T3, 2026-10-31). **Next: T4 and T5, then the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes, and 16 machine icons drawn after the real things, and blueprint keys that do what the label says and library cards with a picture and contents, and rates on machines, belts and the item guide (2026-10-30); a playtester's six notes: bendable belts with curved corners, sort by kind, power per grid, note signs, Mk names on the map and worked-out deposits marked (2026-10-31); trains: track lies on the ground, docks are pieces of track, a modern diesel that eases into its stops, cars you can aim at and open (T1–T4, 2026-10-31). **Next: T5, then the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -243,9 +243,8 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
   - [x] **T3 A modern train** (2026-10-31)**.** Streamlined freight locomotive (raked windscreen, lamps, roof gear, two three-axle
     bogies), wagons to match, turning wheels, a gauge the cars fit, easing into and out of stops (core, save bump).
     *Done when:* `fake_round` and `face_fight` pass; a blind judge prefers it in 5 of 6; `bench_trains` within ±5%.
-  - [ ] **T4 Trains you can read.** Aim at a car: its fill (items, slots of `CAR_SLOTS`); use it: a train panel (each
-    car's bar and contents, take and put like a box, state, schedule edit). Open wagons show a heap of their main item
-    as high as they are full. *Done when:* 48 rays pick the right car; readouts equal the cargo; panel seen in the pane.
+  - [x] **T4 Trains you can read** (2026-10-31): aim at a car for its fill, right-click for the train panel (wagons as
+    boxes, state, stops), heaps in wagons; `factory/trains/view.rs`, `web/src/ui/train.ts`.
   - [ ] **T5 The journey.** A bot doing only what the labels say builds a two-dock line on uneven ground: no dead ends,
     ≥ 30% fewer clicks than HEAD. Instances for 20 trains × 6 wagons within +10%, wasm ≤ +15 KB gz; manual, patch notes.
 - **Parked, fit in where a session has room:** P3 cheaper box instances, P4 an incremental co-op checksum, P5 small TS
@@ -275,6 +274,11 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-10-31: trains you can read (T4).** `trains/view.rs`: a ray picks a car (a box per car along its `Pose`; 48 rays
+  on straight and bent track), the readout says its slots and items, and each train has an `id` (save 66) so a wagon's
+  cargo is a box at `car_box` (`y = i32::MIN`): every box action works on wagons unchanged. Right-click opens
+  `ui/train.ts` in the inventory screen: the wagon's slots, a bar per wagon, the state, stops with × (`DropStop`).
+  Wagons heap their main item as high as they are full (`model.rs`). Game-level test: `tests/train_aim.rs`.
 - **2026-10-31: a modern train (T3).** `trains/model.rs`: a 37-box diesel (hood, raked windscreen with `Form::Lean`,
   headlamps, roof fans, two three-axle bogies, handrails) and 17-box wagons in one livery (`textures/transport.rs`,
   art pack `loco_body` in `tools/art/later.py`); wheels are spoked cylinders turned by the train's `odo`.

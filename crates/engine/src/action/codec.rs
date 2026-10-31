@@ -15,7 +15,7 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 70;
+pub const TAG_COUNT: u8 = 71;
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -243,6 +243,11 @@ impl Action {
                 w.ivec3(node);
                 w.ivec3(dock);
                 w.bool(clear);
+            }
+            Action::DropStop { train, index } => {
+                w.u8(70);
+                w.u32(train);
+                w.u8(index);
             }
             Action::ToggleSignal { pos, slot } => {
                 w.u8(44);

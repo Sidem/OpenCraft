@@ -28,6 +28,10 @@ const WHEEL_R: f64 = 0.12;
 /// The point of a locomotive's exhaust stack, where its smoke starts (x, y, z as in `CarBox`), and the puffs' size.
 const CHIMNEY_MOUTH: [f64; 3] = [0.0, 1.32, -0.1];
 const PUFF: f32 = 0.35;
+/// A wagon's heap of goods: where the hold's floor is, and how high the heap stands empty and full (CarBox y).
+const HOLD: f64 = 0.992;
+const HEAP_MIN: f64 = 0.04;
+const HEAP_HIGH: f64 = 0.26;
 /// How far back the cab's windscreen leans (radians).
 const RAKE: f32 = 0.346;
 
@@ -143,20 +147,27 @@ impl Factory {
         None
     }
 
-    /// Draws every car of every train within `range` of the camera at `eye`; a moving locomotive smokes.
+    /// Where car `car` of `t` stands (0 the locomotive, then the wagons), relative to `eye`.
+    pub(super) fn car_pose(&self, t: &Train, car: u8, eye: Vec3) -> Option<Pose> {
+        let car = i64::from(car);
+        let (from, to) = if car == 0 { (0, LOCO_MM) } else { (LOCO_MM + (car - 1) * CAR_MM, LOCO_MM + car * CAR_MM) };
+        let (front, rear) = (self.point_back(t, from)?, self.point_back(t, to)?);
+        Some(Pose::new((front + rear) * 0.5 - eye, front - rear))
+    }
+
+    /// Draws every car of every train within `range` of the camera at `eye`; a moving locomotive smokes, and an open
+    /// wagon shows a heap of what it carries most of, as high as it is full.
     pub(in crate::factory) fn write_train_models(&self, out: &mut Vec<f32>, eye: Vec3, time: f64, range: f64) {
         for (i, t) in self.trains.iter().enumerate() {
-            for car in 0..=i64::from(t.cars) {
-                let (from, to) =
-                    if car == 0 { (0, LOCO_MM) } else { (LOCO_MM + (car - 1) * CAR_MM, LOCO_MM + car * CAR_MM) };
-                let (Some(front), Some(rear)) = (self.point_back(t, from), self.point_back(t, to)) else { continue };
-                let mid = (front + rear) * 0.5 - eye;
-                if mid.length() > range {
-                    continue;
-                }
-                let pose = Pose::new(mid, front - rear);
+            for car in 0..=t.cars {
+                let Some(pose) = self.car_pose(t, car, eye).filter(|p| p.mid.length() <= range) else { continue };
                 let spin = (-f64::from(t.odo) / 1000.0 / WHEEL_R).rem_euclid(std::f64::consts::TAU) as f32;
                 pose.draw(out, if car == 0 { &LOCOMOTIVE_BOXES } else { &WAGON_BOXES }, spin);
+                if let Some((layer, fill)) = Factory::heap(t, car) {
+                    let (h, crown) = (HEAP_MIN + HEAP_HIGH * fill, (HEAP_MIN + HEAP_HIGH * fill) * 0.5);
+                    pose.draw(out, &[(0.0, HOLD + h * 0.5, 0.0, [0.7, h as f32, 2.1], layer, B)], 0.0);
+                    pose.draw(out, &[(0.0, HOLD + h + crown * 0.5, 0.0, [0.42, crown as f32, 1.5], layer, B)], 0.0);
+                }
                 if car == 0 && t.idle.is_none() {
                     let [x, y, z] = CHIMNEY_MOUTH;
                     smoke::puffs(out, pose.point(x, y, z), time, (i as f64 * 0.37).fract(), PUFF);
@@ -166,14 +177,15 @@ impl Factory {
     }
 }
 
-/// Where a car stands: its camera-relative centre, its turn and slope, and its axes.
-struct Pose {
-    mid: Vec3,
+/// Where a car stands: its centre (camera-relative, or in the world for an eye at the origin), its turn and slope, and
+/// its axes.
+pub(super) struct Pose {
+    pub(super) mid: Vec3,
     yaw: f64,
     pitch: f64,
-    right: Vec3,
-    up: Vec3,
-    fwd: Vec3,
+    pub(super) right: Vec3,
+    pub(super) up: Vec3,
+    pub(super) fwd: Vec3,
 }
 
 impl Pose {

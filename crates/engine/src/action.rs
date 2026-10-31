@@ -195,6 +195,11 @@ pub enum Action {
         dock: IVec3,
         clear: bool,
     },
+    /// Takes stop `index` off the schedule of the train with id `train` (`DROP_ALL`: every stop; `Factory::drop_stop`).
+    DropStop {
+        train: u32,
+        index: u8,
+    },
     /// Takes the signal off the rail node at `pos` back into the inventory, or puts the one in `slot` on it.
     ToggleSignal {
         pos: IVec3,
