@@ -54,6 +54,7 @@ impl Action {
             65 => Action::Offhand { swap: r.bool()? },
             66 => Action::ToggleDoor { pos: r.ivec3()? },
             67 => Action::ThrowCursorAll,
+            68 => Action::BendBelt { pos: r.ivec3()?, bend: r.u8()? },
             33 => Action::PlaceGhost { pos: r.ivec3()?, slot: r.u8()?, facing: r.u8()? },
             34 => Action::RemoveGhost { pos: r.ivec3()? },
             36 => Action::MarkRemoval { pos: r.ivec3()? },

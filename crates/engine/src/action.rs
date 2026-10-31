@@ -38,6 +38,11 @@ pub enum Action {
     Rotate {
         pos: IVec3,
     },
+    /// Bends the flat belt at `pos` to take items in from its back, left or right (`factory::BENDS`; Shift+R).
+    BendBelt {
+        pos: IVec3,
+        bend: u8,
+    },
     /// Empties the box or miner at `pos` into the inventory, or takes a machine's output.
     TakeContents {
         pos: IVec3,

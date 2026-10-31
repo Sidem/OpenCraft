@@ -19,6 +19,7 @@ use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
 
+use super::belt_curve::{bend_of, bend_words, BENDS, BEND_STRAIGHT};
 use super::belt_shape::Shape;
 use super::links::{deliver, Link, Sinks, Slot};
 use super::provenance::Tag;
@@ -65,9 +66,12 @@ pub struct Belt {
     /// Front (highest `p`) first.
     pub items: Vec<BeltItem>,
     pub out: Link,
-    /// Set when the only thing feeding this belt comes in from one side: items then enter from that
-    /// side and turn the corner at the centre.
+    /// The side items come in from when they turn a corner here (elt_curve.rs): the player's bend, or else set when the
+    /// only thing feeding this belt comes in from one side (derived).
     pub curve_from: Option<u8>,
+    /// The player's bend (elt_curve.rs: straight, or taking items in from the left or right), relative to dir.
+    /// Only flat belts bend; core state.
+    pub bend: u8,
     pub shape: Shape,
     /// A lift that takes items from the lift below / hands them to the lift above (derived).
     pub lift_below: bool,
@@ -97,9 +101,15 @@ pub fn most_a_minute(tier: u8) -> u32 {
     60 * crate::TICK_RATE / ticks
 }
 
-/// A belt's model where none stands yet (the line tool's preview, `belt_line.rs`), without items.
-pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, dir: u8, shape: Shape, tier: u8, rel: Vec3, time: f64) {
-    Belt::new(pos, dir, shape, tier).model(out, rel, time);
+/// A belt's model where none stands yet (the line tool's preview, `belt_line.rs`), without items. `facing` carries a
+/// flat belt's bend (`belt_facing`).
+pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, facing: u8, shape: Shape, tier: u8, rel: Vec3, time: f64) {
+    let mut belt = Belt::new(pos, facing, shape, tier);
+    if shape == Shape::Flat && bend_of(facing) != BEND_STRAIGHT {
+        belt.bend = bend_of(facing);
+        belt.curve_from = Some(belt.entry_side());
+    }
+    belt.model(out, rel, time);
 }
 
 impl Belt {
@@ -107,7 +117,22 @@ impl Belt {
         let (items, out, curve_from) = (Vec::new(), Link::None, None);
         let (lift_below, lift_above) = (false, false);
         let (passed, recent, windows) = (0, [0; FLOW_WINDOWS], 0);
-        Belt { pos, dir: dir % 4, items, out, curve_from, shape, lift_below, lift_above, tier, passed, recent, windows }
+        let bend = BEND_STRAIGHT;
+        Belt {
+            pos,
+            dir: dir % 4,
+            items,
+            out,
+            curve_from,
+            bend,
+            shape,
+            lift_below,
+            lift_above,
+            tier,
+            passed,
+            recent,
+            windows,
+        }
     }
 
     /// Items a minute it handed on over its closed windows (the last [`FLOW_WINDOWS`]), if one has closed.
@@ -124,11 +149,11 @@ impl Belt {
 
     /// Item offset from the cell centre (horizontal) at progress `p`.
     pub fn offset(&self, p: f32) -> (f32, f32) {
-        let (d, t) = match self.curve_from {
-            Some(side) if p < 0.5 => (DIRS[side as usize], 0.5 - p),
-            _ => (DIRS[self.dir as usize], p - 0.5),
-        };
-        (d.x as f32 * t, d.z as f32 * t)
+        if let Some(side) = self.curve_from {
+            return self.curve_offset(side, p);
+        }
+        let d = DIRS[self.dir as usize];
+        (d.x as f32 * (p - 0.5), d.z as f32 * (p - 0.5))
     }
 
     pub fn mid_free(&self) -> bool {
@@ -239,12 +264,13 @@ impl Machine for Belt {
 
     /// Core state: position, direction, shape, speed and items (`out`, `curve_from` and the lift flags
     /// are rebuilt by `relink`). Saves before version 6 have only flat belts, before 9 only Mk1 ones (the
-    /// tier byte was a `fast` bool then, so tiers 0 and 1 are byte-identical to it).
+    /// tier byte was a `fast` bool then, so tiers 0 and 1 are byte-identical to it), before 62 only straight ones.
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.dir);
         w.u8(self.shape as u8);
         w.u8(self.tier);
+        w.u8(self.bend);
         w.count(self.items.len());
         for it in &self.items {
             w.item(it.item);
@@ -259,6 +285,7 @@ impl Machine for Belt {
         let shape = if r.version >= 6 { Shape::from_u8(r.u8()?)? } else { Shape::Flat };
         let tier = if r.version >= 9 { r.u8()? } else { 0 };
         let mut belt = Belt::new(pos, dir, shape, tier);
+        belt.bend = if r.version >= 62 { r.u8()? } else { BEND_STRAIGHT };
         for _ in 0..r.count()? {
             let item = r.item()?;
             // Before version 39 a tool on a belt was one use per item.
@@ -266,7 +293,8 @@ impl Machine for Belt {
             let p = r.f32()?;
             belt.items.push(BeltItem { item, n, p, tag: Tag::read_state(r)? });
         }
-        (dir < 4 && (tier as usize) < BELT_TIERS.len()).then_some(belt)
+        let bend_ok = belt.bend == BEND_STRAIGHT || (belt.bend < BENDS && shape == Shape::Flat);
+        (dir < 4 && (tier as usize) < BELT_TIERS.len() && bend_ok).then_some(belt)
     }
 
     /// The carried items, merged into stacks.
@@ -307,7 +335,8 @@ impl Machine for Belt {
             Some(n) => format!("Moves {n} items a minute, {}% of the {most} it can carry", n * 100 / most),
             None => format!("Carries up to {most} items a minute"),
         };
-        format!("{load} · heading {}{}{end}\n{flow}", DIR_NAMES[self.dir as usize], self.shape.words())
+        let (heading, bend) = (DIR_NAMES[self.dir as usize], bend_words(self.bend));
+        format!("{load} · heading {heading}{bend}{}{end}\n{flow}", self.shape.words())
     }
 
     /// A scrolling rubber top between two rails (or the shape's model), and the items riding on it.
@@ -351,6 +380,9 @@ impl Belt {
         let yaw = self.dir as f32 * FRAC_PI_2;
         let (s, c) = yaw.sin_cos();
         let at = |x: f32, y: f32, z: f32| base + Vec3::new((c * x - s * z) as f64, y as f64, (s * x + c * z) as f64);
+        if let (Shape::Flat, Some(side)) = (self.shape, self.curve_from) {
+            return self.curve_model(out, base, scroll, side);
+        }
         if matches!(self.shape, Shape::Flat | Shape::Entry | Shape::Exit) {
             let top = [BELT_TIERS[self.tier as usize].top, tex::FRAME, tex::FRAME];
             push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, top, true);

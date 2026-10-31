@@ -219,6 +219,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'drop') game.drop_selected();
       else if (a.kind === 'swap-hands') game.swap_offhand();
       else if (a.kind === 'rotate') game.rotate_target();
+      else if (a.kind === 'bend') game.bend_target();
       else if (a.kind === 'ghost') game.toggle_ghost_mode();
       else if (a.kind === 'fetch') game.fetch_held();
       else if (a.kind === 'take-item') game.take_target_item();

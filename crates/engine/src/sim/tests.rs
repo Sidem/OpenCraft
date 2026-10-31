@@ -30,8 +30,9 @@ const B: PlayerId = PlayerId(1);
 /// town list (save version 48), and on 2026-10-22 (U3, save version 55) for the empty count of cleared ground cover the
 /// world now writes after its edited chunks: the old hash, 0x018f_cf55_a36a_19a3, is what these bytes give without those 4. On 2026-10-24 (save version 56) the belt items' and routers' tags (16 bytes each) came in: the
 /// previous hash was 0xc43e_fd0a_5b2b_73e3. On 2026-10-25 (save version 60) each player's inventory began to write the
-/// left-hand stack after the worn gear: the previous hash was 0x3ef4_9b04_e930_3ec1.
-const GOLDEN_HASH: u64 = 0xbdfb_8546_261a_a991;
+/// left-hand stack after the worn gear: the previous hash was 0x3ef4_9b04_e930_3ec1. On 2026-10-31 (save version 62) each belt
+/// began to write its bend after its tier; without that byte the run still hashes to the previous 0xbdfb_8546_261a_a991.
+const GOLDEN_HASH: u64 = 0xcc54_60f0_52c9_69fd;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

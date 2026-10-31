@@ -5,15 +5,19 @@ use crate::math::{IVec3, Vec3};
 
 use super::links::Slot;
 use super::miner::MinerStatus;
-use super::Factory;
+use super::{belt_facing, Factory};
 
 impl Factory {
     /// The facing and tier the machine anchored at `pos` was placed with; `None` unless a machine's anchor
-    /// cell (not another cell of a multi-block machine) is at `pos`. Tier is 0 for untiered machines.
+    /// cell (not another cell of a multi-block machine) is at `pos`. Tier is 0 for untiered machines; a belt's facing
+    /// carries its bend (`belt_facing`).
     pub fn placed_as(&self, pos: IVec3) -> Option<(u8, u8)> {
         let slot = *self.at.get(&pos)?;
         let facing = match slot {
-            Slot::Belt(i) => self.belts[i as usize].dir,
+            Slot::Belt(i) => {
+                let b = &self.belts[i as usize];
+                return Some((belt_facing(b.dir, b.bend), b.tier));
+            }
             Slot::Process(i) => {
                 let p = &self.processors[i as usize];
                 if p.pos != pos {

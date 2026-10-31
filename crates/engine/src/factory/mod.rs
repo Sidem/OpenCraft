@@ -20,6 +20,7 @@
 
 mod belt;
 mod belt_chain;
+mod belt_curve;
 mod belt_items;
 mod belt_shape;
 mod buffer;
@@ -112,6 +113,7 @@ use wiring::Hook;
 
 #[cfg(test)]
 pub use belt::{FLOW_SECS, FLOW_WINDOWS};
+pub use belt_curve::{belt_facing, bend_of, clean_facing, BENDS, BEND_LEFT, BEND_RIGHT, BEND_STRAIGHT};
 pub use belt_items::{ItemAim, ItemKey};
 pub use buffer::Buffer;
 pub(crate) use capsule::push_capsule;
@@ -304,9 +306,14 @@ impl Factory {
         self.add_shaped_belt(pos, dir, Shape::Flat, 0);
     }
 
-    fn add_shaped_belt(&mut self, pos: IVec3, dir: u8, shape: Shape, tier: u8) {
+    /// A belt at `pos`; `facing` is its heading, with a flat belt's bend in its upper bits (`belt_facing`).
+    fn add_shaped_belt(&mut self, pos: IVec3, facing: u8, shape: Shape, tier: u8) {
         self.remove(pos);
-        add_to(&mut self.belts, Belt::new(pos, dir, shape, tier), &mut self.at, Slot::Belt);
+        let mut belt = Belt::new(pos, facing, shape, tier);
+        if shape == Shape::Flat {
+            belt.bend = bend_of(facing);
+        }
+        add_to(&mut self.belts, belt, &mut self.at, Slot::Belt);
         self.dirty = true;
     }
 

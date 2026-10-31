@@ -30,7 +30,7 @@ impl Blueprint {
                     hi(|c| c.z),
                     hi(|c| c.y),
                     item,
-                    i32::from(g.facing),
+                    i32::from(g.facing & 3),
                     i32::from(flow),
                 ]
             })

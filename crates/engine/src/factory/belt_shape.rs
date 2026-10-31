@@ -20,6 +20,7 @@ use crate::block::{tex, BlockId, LIFT, RAMP_DOWN, RAMP_UP, UNDERPASS_IN, UNDERPA
 use crate::math::{IVec3, Vec3};
 
 use super::belt::{Belt, BELT_HEIGHT, BELT_TIERS};
+use super::belt_curve::BEND_STRAIGHT;
 use super::links::Slot;
 use super::render::push_box;
 use super::{tier_mark, DIRS};
@@ -93,12 +94,14 @@ impl Shape {
 /// Gives every flat belt or ramp the shape its neighbours call for: an up ramp when a belt facing the
 /// same way waits one cell ahead and one up (and nothing is straight ahead), a down ramp when one
 /// facing the same way stands one cell behind and one up (with nothing in front of it or behind this
-/// one), otherwise flat. Depends only on positions and directions, so the order doesn't matter.
+/// one), otherwise flat; a bent belt keeps its shape. Depends only on positions, directions and bends, so the order
+/// doesn't matter.
 pub(super) fn derive_slopes(belts: &mut [Belt], at: &FxHashMap<IVec3, Slot>) {
     let shapes: Vec<Shape> = belts
         .iter()
         .map(|b| {
-            if !b.shape.sloped_by_placement() {
+            // A belt the player bent stays flat: a ramp has no side to take items in from.
+            if !b.shape.sloped_by_placement() || b.bend != BEND_STRAIGHT {
                 return b.shape;
             }
             let d = DIRS[b.dir as usize];

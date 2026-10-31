@@ -181,8 +181,8 @@ fn corner_turns_and_side_joins() {
 
     // Items entering the corner start at its west edge and leave through its south edge.
     let corner = f.belt_at(IVec3::new(1, 0, 0));
-    assert_eq!(corner.offset(0.0), (-0.5, 0.0));
-    assert_eq!(corner.offset(1.0), (0.0, 0.5));
+    let near = |(x, z): (f32, f32), (a, b): (f32, f32)| (x - a).abs() < 1e-5 && (z - b).abs() < 1e-5;
+    assert!(near(corner.offset(0.0), (-0.5, 0.0)) && near(corner.offset(1.0), (0.0, 0.5)));
 }
 
 #[test]

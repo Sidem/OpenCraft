@@ -46,7 +46,11 @@ size.
 - **Conveyor belts** carry items one block per second. Hold right-click on the ground and drag to lay a
   whole line: outlines show where the belts go (red past the belts you have) and releasing builds it.
   A single belt runs the way you face; press R on a belt to turn it. A belt ending in another belt's side
-  merges into it. A belt fed only from one side turns the corner. Stand on a belt and it carries you
+  merges into it. A belt fed only from one side turns the corner. Machines feed only belts that take items in
+  on the side facing them: Shift+R on a belt bends it to take items in from its left or right, so a belt
+  running past a machine's output (or a splitter's side) picks up from it and turns, and a belt can turn right
+  beside a machine or ramp; with nothing pointed at, Shift+R bends the first belt of the next line you lay. A
+  bent belt stays flat and keeps its bend when R turns it. Stand on a belt and it carries you
   along at its speed (you can still walk on it; crouch to stop at its end).
 - **Climbing and crossing.** Belts climb and drop one-block steps by themselves: a belt with a belt one
   block ahead and one up becomes a ramp up, and one below a belt one up behind it a ramp down. Stacked lifts carry items straight up, and the top one hands them on

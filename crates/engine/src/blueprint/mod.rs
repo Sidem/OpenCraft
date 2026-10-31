@@ -24,7 +24,7 @@ mod tests;
 
 use crate::block::{self, BlockId};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::factory::tiers;
+use crate::factory::{self, tiers};
 use crate::ghosts::{Ghost, Ghosts};
 use crate::item::ItemId;
 use crate::math::IVec3;
@@ -110,7 +110,8 @@ impl Blueprint {
         for _ in 0..turns % 4 {
             for e in &mut entries {
                 e.off = IVec3::new(size.z - 1 - e.off.z, e.off.y, e.off.x);
-                e.facing = (e.facing + 1) % 4;
+                // A belt's bend rides in the upper bits and is relative to its heading, so it stays.
+                e.facing = (e.facing & !3) | ((e.facing + 1) & 3);
             }
             size = IVec3::new(size.z, size.y, size.x);
         }
@@ -181,7 +182,7 @@ pub fn import(bytes: &[u8]) -> Option<Vec<Blueprint>> {
             let e = Entry { off: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? };
             let inside =
                 (0..size.x).contains(&e.off.x) && (0..size.y).contains(&e.off.y) && (0..size.z).contains(&e.off.z);
-            if !inside || e.facing >= 4 || e.block == block::AIR {
+            if !inside || e.facing != factory::clean_facing(e.block, e.facing) || e.block == block::AIR {
                 return None;
             }
             entries.push(e);

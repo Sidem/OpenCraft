@@ -1,6 +1,6 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
 //! a processor, filter, generator, lab, quarry or coal miner), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
-//! `rotate` (belts and routers, the R key), `set_quarry`, `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
+//! `rotate` (belts and routers, the R key), `set_bend` (belts, Shift+R), `set_quarry`, `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
 //!
@@ -12,10 +12,11 @@ use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::math::IVec3;
 
+use super::belt_shape::Shape;
 use super::links::Slot;
 use super::process::Pick;
 use super::quarry::{Quarry, DEPTHS, WIDTHS};
-use super::Factory;
+use super::{Factory, BENDS, BEND_STRAIGHT};
 
 /// Buffer roles in `Panel::slots`.
 pub const ROLE_INPUT: u8 = 0;
@@ -110,6 +111,29 @@ impl Factory {
             _ => return false,
         };
         *dir = (*dir + 1) % 4;
+        self.dirty = true;
+        true
+    }
+
+    /// The bend of the belt at `pos` if it can bend (a flat belt, or a ramp that a bend would lay flat).
+    pub fn bend_at(&self, pos: IVec3) -> Option<u8> {
+        let Some(&Slot::Belt(i)) = self.at.get(&pos) else { return None };
+        let b = &self.belts[i as usize];
+        b.shape.sloped_by_placement().then_some(b.bend)
+    }
+
+    /// Bends the flat belt (or ramp, which then lies flat) at `pos` to take items in from its back, left or right
+    /// (`belt_curve.rs`). False when no such belt is there or the bend does not exist.
+    pub fn set_bend(&mut self, pos: IVec3, bend: u8) -> bool {
+        let Some(&Slot::Belt(i)) = self.at.get(&pos) else { return false };
+        let b = &mut self.belts[i as usize];
+        if bend >= BENDS || !b.shape.sloped_by_placement() {
+            return false;
+        }
+        b.bend = bend;
+        if bend != BEND_STRAIGHT {
+            b.shape = Shape::Flat;
+        }
         self.dirty = true;
         true
     }

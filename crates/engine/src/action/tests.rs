@@ -561,6 +561,7 @@ fn samples() -> Vec<Action> {
         Action::Offhand { swap: true },
         Action::ToggleDoor { pos: IVec3::new(4, 70, -2) },
         Action::ThrowCursorAll,
+        Action::BendBelt { pos, bend: 2 },
     ]
 }
 

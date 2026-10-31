@@ -110,6 +110,9 @@ impl Sim {
             Action::Rotate { pos } => {
                 self.factory.rotate(pos);
             }
+            Action::BendBelt { pos, bend } => {
+                self.factory.set_bend(pos, bend);
+            }
             Action::ToggleDoor { pos } => self.toggle_door(pos),
             Action::Connect { pole, to } => self.factory.connect(pole, to),
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),

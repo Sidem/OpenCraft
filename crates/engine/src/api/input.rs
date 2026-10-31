@@ -66,6 +66,17 @@ impl Game {
         true
     }
 
+    /// Shift+R: bends the targeted flat belt to take items in from its left, its right or its back, in turn, or else steps
+    /// the bend the next belt laid by hand gets (`belt_bend.rs`). False when neither applies.
+    pub fn bend_target(&mut self) -> bool {
+        self.bend_target_belt()
+    }
+
+    /// The bend the next belt laid by hand gets: 0 straight, 1 taking items in from its left, 2 from its right.
+    pub fn held_bend(&self) -> u8 {
+        self.next_bend()
+    }
+
     /// Drops a belt line being dragged out (the host calls this when it frees the pointer).
     pub fn cancel_line(&mut self) {
         self.cancel_belt_line();

@@ -178,6 +178,7 @@ impl Game {
                     },
                 };
                 self.assign_passes();
+                self.bend_line_start();
                 true
             }
             (Some(_), false) => {
@@ -197,7 +198,7 @@ impl Game {
     /// Queues `cells` to be built, as far as the inventory pays for (`line_budget`): belts placed from the
     /// held stack and then the other stacks (underpasses from their own stacks, left out when there is no
     /// pair), or, with `upgrading`, upgrades paid with kits.
-    fn queue_build(&mut self, cells: &[LineCell], upgrading: bool) {
+    pub(crate) fn queue_build(&mut self, cells: &[LineCell], upgrading: bool) {
         let item = self.inventory().selected_stack().item;
         let mut queue = Vec::with_capacity(cells.len());
         if upgrading {
@@ -303,6 +304,7 @@ impl Game {
             let facing = factory::dir_from_yaw(self.body().yaw);
             self.line.start = Some((start, facing));
             self.line.cells = vec![LineCell::belt(start, facing, Shape::Flat)];
+            self.bend_line_start();
         }
         true
     }

@@ -15,6 +15,7 @@ export type Action =
   | { kind: 'research' }
   | { kind: 'analytics' }
   | { kind: 'rotate' }
+  | { kind: 'bend' }
   | { kind: 'ghost' }
   | { kind: 'fetch' }
   | { kind: 'take-item' }
@@ -199,7 +200,7 @@ export class Input {
       else if (e.code === 'KeyM') this.actions.push({ kind: 'world-map' });
       else if (e.code === 'KeyO') this.actions.push({ kind: 'sound-lab' });
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
-      else if (e.code === 'KeyR') this.actions.push({ kind: 'rotate' });
+      else if (e.code === 'KeyR') this.actions.push({ kind: e.shiftKey ? 'bend' : 'rotate' });
       else if (e.code === 'KeyB') this.actions.push({ kind: 'ghost' });
       else if (e.code === 'KeyY') this.actions.push({ kind: 'fetch' });
       else if (e.code === 'KeyI') this.actions.push({ kind: 'take-item' });

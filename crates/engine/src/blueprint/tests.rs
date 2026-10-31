@@ -111,6 +111,29 @@ fn stamping_plants_ghosts_and_building_clears_them() {
     assert_eq!(sim.ghosts.len(), 3, "the belt's ghost is built");
 }
 
+/// A bent belt's bend rides in its facing's upper bits through the copy, a turn, the bytes, a ghost and the build.
+#[test]
+fn a_bent_belt_is_copied_turned_and_built_bent() {
+    use crate::factory::{belt_facing, BEND_LEFT};
+    let mut sim = Sim::new(7, 2);
+    build(&mut sim, BELT, spot(), belt_facing(1, BEND_LEFT));
+    assert_eq!(sim.factory.bend_at(spot()), Some(BEND_LEFT), "placed bent");
+    let bp = whole_box(&sim);
+    assert_eq!(bp.entries[0].facing, belt_facing(1, BEND_LEFT));
+    assert_eq!(bp.turned(1).1[0].facing, belt_facing(2, BEND_LEFT), "a turn keeps the bend");
+    assert_eq!(import(&export(std::slice::from_ref(&bp))), Some(vec![bp.clone()]));
+    let origin = IVec3::new(520, 200, -520);
+    let planned = bp.ghosts_at(origin, 3)[0];
+    sim.apply(P, Action::PlantGhost { pos: planned.pos, block: BELT, facing: planned.facing, tier: 0 });
+    let ghost = *sim.ghosts.covering(planned.pos).expect("the belt's ghost");
+    assert_eq!(ghost.facing, belt_facing(0, BEND_LEFT));
+    let mut w = ByteWriter::default();
+    sim.ghosts.write_state(&mut w);
+    assert!(Ghosts::read_state(&mut ByteReader::new(&w.bytes)).is_some(), "a bent ghost reads back");
+    build(&mut sim, BELT, ghost.pos, 1);
+    assert_eq!(sim.factory.placed_as(ghost.pos).map(|p| p.0), Some(belt_facing(0, BEND_LEFT)), "built as the ghost");
+}
+
 #[test]
 fn bytes_round_trip_and_damage_is_refused() {
     let bp = whole_box(&factory());

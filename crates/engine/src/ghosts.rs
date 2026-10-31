@@ -14,7 +14,7 @@
 
 use crate::block::{self, BlockId};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::factory::{footprint, tiers};
+use crate::factory::{self, footprint, tiers};
 use crate::item::ItemId;
 use crate::math::IVec3;
 use crate::sim::{PlayerId, Sim};
@@ -127,8 +127,10 @@ impl Ghosts {
         let mut ghosts = Ghosts::default();
         for _ in 0..n {
             let g = Ghost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? };
-            // Damage: a ghost out of order or twice, or a facing that is not a quarter turn.
-            if g.facing >= 4 || ghosts.list.last().is_some_and(|l| l.key() >= g.key()) {
+            // Damage: a ghost out of order or twice, or a facing that is not a quarter turn (plus a flat belt's bend).
+            if g.facing != factory::clean_facing(g.block, g.facing)
+                || ghosts.list.last().is_some_and(|l| l.key() >= g.key())
+            {
                 return None;
             }
             ghosts.list.push(g);
@@ -167,7 +169,7 @@ impl Sim {
     /// Plants a ghost of `block` outright (what a stamped blueprint does). Nothing happens for air, a tier
     /// the block has no item for, a cell it would take being solid or held by a machine, or a full world.
     pub(crate) fn plant_ghost(&mut self, pos: IVec3, block: BlockId, facing: u8, tier: u8) {
-        let ghost = Ghost { pos, block, facing: facing % 4, tier };
+        let ghost = Ghost { pos, block, facing: factory::clean_facing(block, facing), tier };
         let valid = block != block::AIR && (tier == 0 || tiers::item_of(block, tier).is_some());
         let free = ghost.cells().into_iter().all(|c| block::replaceable(self.world.block_anywhere_or_generate(c)));
         if valid && free {

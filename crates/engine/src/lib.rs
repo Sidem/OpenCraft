@@ -25,6 +25,7 @@ mod analytics;
 mod api;
 mod authority;
 mod avatars;
+mod belt_bend;
 mod belt_line;
 mod block;
 mod blueprint;
@@ -225,6 +226,8 @@ pub struct Game {
     line: BeltLine,
     /// Quarter turns R added to a held quarry's or multi-block machine's facing (quarry_preview.rs).
     place_turn: u8,
+    /// The bend Shift+R gives the first belt of a line laid by hand (`belt_bend.rs`).
+    held_bend: u8,
     /// Pole and cable placing (`power_tools.rs`).
     tools: PowerTools,
     /// Track laying (`rail_tools.rs`).
@@ -305,6 +308,7 @@ impl Game {
             tools: PowerTools::default(),
             rails: RailTools::default(),
             place_turn: 0,
+            held_bend: 0,
             analytics: analytics::Analytics::default(),
         }
     }

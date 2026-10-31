@@ -1,4 +1,4 @@
-﻿//! Where items go. `Slot` names a machine, `Link` is where a belt or miner delivers, `Sinks` borrows
+//! Where items go. `Slot` names a machine, `Link` is where a belt or miner delivers, `Sinks` borrows
 //! the machines that take items and `deliver` hands one over. `relink` rebuilds the derived data after
 //! any machine is added or removed: belt outputs (for every belt shape) and corner curves, the outputs of every other machine,
 //! and the downstream-first belt update order, and the power grids (`power.rs`). Nothing here is saved; links are a pure function of the
@@ -9,6 +9,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 
 use super::belt::Belt;
+use super::belt_curve::BEND_STRAIGHT;
 use super::belt_shape::{derive_slopes, Shape};
 use super::fibre::Data;
 use super::generator::Generator;
@@ -194,6 +195,10 @@ impl Factory {
                 if b.shape != Shape::Flat {
                     return None;
                 }
+                // The player's bend wins over what the neighbours would make of it.
+                if b.bend != BEND_STRAIGHT {
+                    return Some(b.entry_side());
+                }
                 for s in 0..4u8 {
                     if s == b.dir {
                         continue;
@@ -243,7 +248,9 @@ impl Factory {
                 } else if o.dir == opposite(dir) {
                     Link::None
                 } else {
-                    let from_back = o.dir == dir || curves[*j as usize] == Some(opposite(dir));
+                    // Onto its start where it takes items in (a bent belt: only there), else into its middle.
+                    let enters = curves[*j as usize] == Some(opposite(dir));
+                    let from_back = enters || (o.bend == BEND_STRAIGHT && o.dir == dir);
                     Link::Belt { belt: *j, mid: !from_back }
                 }
             }
@@ -274,10 +281,11 @@ impl Factory {
             })
             .collect();
 
-        // Machines feed belts that lead away from them (not down ramps or underpass exits).
+        // Machines feed belts that take items in on the side facing them: a straight belt leading away, or one the
+        // player bent towards them (not down ramps or underpass exits).
         let lead_away = |pos: IVec3, s: u8| {
             let o = belt_at(pos + DIRS[s as usize]);
-            o.filter(|&j| belts[j as usize].dir == s && belts[j as usize].shape.fed_from_back())
+            o.filter(|&j| belts[j as usize].entry_side() == opposite(s) && belts[j as usize].shape.fed_from_back())
         };
         let feeds = |pos: IVec3| -> Vec<u32> { (0..4u8).filter_map(|s| lead_away(pos, s)).collect() };
         // Miners and quarries: belts leading away, then machines on every face but `skip` (a miner's drill).

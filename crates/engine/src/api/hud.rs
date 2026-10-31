@@ -95,8 +95,8 @@ impl Game {
             if self.ghost_mode {
                 return self.ghost_label();
             }
-            if let Some(label) = self.planner_label().or_else(|| self.telescope_label()).or_else(|| self.sickle_label())
-            {
+            let tools = self.planner_label().or_else(|| self.telescope_label()).or_else(|| self.sickle_label());
+            if let Some(label) = tools.or_else(|| self.bend_label()) {
                 return label;
             }
             if !self.line.aim.label.is_empty() {
