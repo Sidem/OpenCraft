@@ -94,7 +94,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
-  `rail_tools.rs`, `train_tools.rs`, `dock_tools.rs` (the dock hand), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
+  `rail_tools.rs`, `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
   `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
   `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).

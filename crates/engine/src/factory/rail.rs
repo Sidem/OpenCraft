@@ -100,6 +100,19 @@ impl Factory {
         })
     }
 
+    /// Whether a node not yet placed at `pos` facing `yaw` could be joined to the node at `a`, `None` unless `a` is
+    /// one: the rule `track_fit` applies once both stand (the hand's preview, a dock laid in line).
+    pub fn lay_fit(&self, a: IVec3, pos: IVec3, yaw: u8) -> Option<Fit> {
+        let ya = self.rail_yaw(a)?;
+        Some(if self.track_count(a) >= MAX_LINKS {
+            Fit::Full
+        } else if self.dock_piece(a).is_some() && self.end_taken(a, ya, pos) {
+            Fit::DockEnd
+        } else {
+            fit(a, ya, pos, yaw)
+        })
+    }
+
     /// Joins the nodes at `a` and `b` (`Action::Connect`); quietly nothing unless they fit.
     pub fn lay_track(&mut self, a: IVec3, b: IVec3) {
         if self.track_fit(a, b) == Some(Fit::Ok) {

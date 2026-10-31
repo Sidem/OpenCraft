@@ -3,7 +3,7 @@
 //! - A locomotive in hand: click a rail node that has track to put it on (`Action::PlaceTrain`); click a node with a
 //!   train near it to select that train; with one selected, click a dock to add it to the train's schedule and
 //!   crouch-click a dock to clear the schedule (`Action::TrainStop`).
-//! - A wagon in hand: click a node beside a train to couple it on.
+//! - A wagon in hand: click a node beside a train to couple it on (Shift: every wagon in hand, up to `MAX_CARS`).
 //! - A signal in hand: click a rail node to put it there, click it again to take it back (`Action::ToggleSignal`).
 //! - A locomotive or wagon: crouch-click a node to pick up the train nearest it with all it carries (`Action::TakeTrain`).
 //!
@@ -14,7 +14,7 @@
 
 use crate::action::Action;
 use crate::block;
-use crate::factory::Spot;
+use crate::factory::{Spot, MAX_CARS};
 use crate::item::{ItemId, LOCOMOTIVE, RAIL_SIGNAL, WAGON};
 use crate::math::{IVec3, Vec3};
 use crate::sound;
@@ -82,8 +82,13 @@ impl Game {
             }
             Aim::Node(node, spot) => {
                 if spot == Spot::Ok {
+                    // Shift with wagons in hand couples them all (the core stops at a full train or the track's end).
+                    let all = item == WAGON && self.body().input.sprint;
+                    let times = if all { self.inventory().selected_stack().count.min(u32::from(MAX_CARS)) } else { 1 };
                     let slot = self.inventory().selected as u8;
-                    self.act(Action::PlaceTrain { pos: node, slot });
+                    for _ in 0..times {
+                        self.act(Action::PlaceTrain { pos: node, slot });
+                    }
                 } else if spot != Spot::Occupied {
                     return true;
                 }
@@ -142,20 +147,20 @@ impl Game {
             (false, Some(Aim::Dock(_))) if self.rails.train.is_none() => {
                 "click a node a train is on to select it first"
             }
-            (_, Some(Aim::Dock(_))) => "click to add this dock to the schedule · crouch-click to clear the schedule",
+            (_, Some(Aim::Dock(_))) => "click to add this dock to the schedule Â· crouch-click to clear the schedule",
             (false, Some(Aim::Node(_, Spot::Ok))) => {
-                "click to put it on the track here · crouch-click to pick up the train nearest"
+                "click to put it on the track here Â· crouch-click to pick up the train nearest"
             }
             (true, Some(Aim::Node(_, Spot::Ok))) => {
-                "click to couple it behind the train here · crouch-click to pick it up"
+                "click to couple it behind the train here Â· Shift-click: every wagon in hand Â· crouch-click to pick it up"
             }
             (_, Some(Aim::Node(_, Spot::NoTrack))) => {
                 "this node has no track long enough: join it to another node first"
             }
             (false, Some(Aim::Node(_, Spot::Occupied))) => {
-                "click to select the train here · crouch-click to pick it up"
+                "click to select the train here Â· crouch-click to pick it up"
             }
-            (true, Some(Aim::Node(_, Spot::Occupied))) => "a train is already here · crouch-click to pick it up",
+            (true, Some(Aim::Node(_, Spot::Occupied))) => "a train is already here Â· crouch-click to pick it up",
             (_, Some(Aim::Node(_, Spot::NoTrain))) => "no train is near this node",
             (_, Some(Aim::Node(_, Spot::Full))) => "this train has all the wagons it can pull (6)",
             (_, Some(Aim::Node(_, Spot::NoRoom))) => {
@@ -176,6 +181,6 @@ impl Game {
             return "Selected train: no schedule, it stops at every dock".to_string();
         }
         let named: Vec<String> = stops.iter().map(|d| format!("dock {}, {}", d.x, d.z)).collect();
-        format!("Selected train: {}, then round again", named.join(" → "))
+        format!("Selected train: {}, then round again", named.join(" â†’ "))
     }
 }

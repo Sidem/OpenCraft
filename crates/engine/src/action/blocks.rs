@@ -159,7 +159,7 @@ impl Sim {
     pub(crate) fn put_block(&mut self, player: PlayerId, pos: IVec3, item: ItemId, facing: u8, against: IVec3) -> bool {
         let Some(placed) = item.places() else { return false };
         if factory::is_dock(placed) {
-            return self.put_dock(player, pos, placed);
+            return self.put_dock(player, pos, placed, facing, against);
         }
         if let Some(fp) = factory::footprint::of(placed) {
             return self.put_footprint(player, pos, item, (placed, fp), facing);

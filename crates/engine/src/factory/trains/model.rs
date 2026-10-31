@@ -147,7 +147,9 @@ impl Factory {
         None
     }
 
-    /// Where car `car` of `t` stands (0 the locomotive, then the wagons), relative to `eye`.
+    /// Where car `car` of `t` stands (0 the locomotive, then the wagons), relative to `eye`. Not inlined: drawing,
+    /// aiming and the outline each call it (one copy in the wasm).
+    #[inline(never)]
     pub(super) fn car_pose(&self, t: &Train, car: u8, eye: Vec3) -> Option<Pose> {
         let car = i64::from(car);
         let (from, to) = if car == 0 { (0, LOCO_MM) } else { (LOCO_MM + (car - 1) * CAR_MM, LOCO_MM + car * CAR_MM) };

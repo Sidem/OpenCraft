@@ -5,7 +5,7 @@ response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realis
 as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
 Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
 belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes, and 16 machine icons drawn after the real things, and blueprint keys that do what the label says and library cards with a picture and contents, and rates on machines, belts and the item guide (2026-10-30); a playtester's six notes: bendable belts with curved corners, sort by kind, power per grid, note signs, Mk names on the map and worked-out deposits marked (2026-10-31); trains: track lies on the ground, docks are pieces of track, a modern diesel that eases into its stops, cars you can aim at and open (T1–T4, 2026-10-31). **Next: T5, then the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes, and 16 machine icons drawn after the real things, and blueprint keys that do what the label says and library cards with a picture and contents, and rates on machines, belts and the item guide (2026-10-30); a playtester's six notes: bendable belts with curved corners, sort by kind, power per grid, note signs, Mk names on the map and worked-out deposits marked (2026-10-31); trains: track lies on the ground, docks are pieces of track, a modern diesel that eases into its stops, cars you can aim at and open, docks laid in line (T1–T5, 2026-10-31). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -233,20 +233,9 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
 - [ ] **FX Sound effects from recordings** (decided 2026-10-27, `docs/DECISIONS.md`). FX1–FX4 are built and **held back** on the
   local branch `sound-effects` (user, 2026-10-28: not happy with it yet); `main` plays the synthesised effects. The steps,
   findings and tools: `docs/history/CHANGELOG_R.md` (moved 2026-10-30). Bring them back when the user is ready.
-- [ ] **T Trains people build and enjoy** (user, 2026-10-30, via `/deepen`; one commit per step, in order). Evidence: the
-  36 h save researched Rails, Trains and Freight and built none; rails float, docks stand beside the track, cars can't be
-  aimed at, the schedule is built by a hidden click. Decided: **strict ground** (track goes only where ground is under it;
-  the player fills or cuts), docks only on straight north-south or east-west track. Not: fuel, signal types, wait
-  conditions, rail tiers, riding, research, sound files.
-  - [x] **T1 Grounded track** (2026-10-30): track only where ground is under it; `factory/rail/ground.rs`.
-  - [x] **T2 Docks are track** (2026-10-31): a dock is a piece of straight rail; `factory/rail/pieces.rs`.
-  - [x] **T3 A modern train** (2026-10-31)**.** Streamlined freight locomotive (raked windscreen, lamps, roof gear, two three-axle
-    bogies), wagons to match, turning wheels, a gauge the cars fit, easing into and out of stops (core, save bump).
-    *Done when:* `fake_round` and `face_fight` pass; a blind judge prefers it in 5 of 6; `bench_trains` within ±5%.
-  - [x] **T4 Trains you can read** (2026-10-31): aim at a car for its fill, right-click for the train panel (wagons as
-    boxes, state, stops), heaps in wagons; `factory/trains/view.rs`, `web/src/ui/train.ts`.
-  - [ ] **T5 The journey.** A bot doing only what the labels say builds a two-dock line on uneven ground: no dead ends,
-    ≥ 30% fewer clicks than HEAD. Instances for 20 trains × 6 wagons within +10%, wasm ≤ +15 KB gz; manual, patch notes.
+- [x] **T Trains people build and enjoy** (user, 2026-10-30, via `/deepen`; done 2026-10-31): track on the ground, docks
+  as pieces of track (onto a node or laid in line), a modern diesel easing into stops, cars you aim at and open, the
+  journey bot (`tests/train_journey.rs`). Steps, targets and results: `docs/history/CHANGELOG_R.md`.
 - **Parked, fit in where a session has room:** P3 cheaper box instances, P4 an incremental co-op checksum, P5 small TS
   savings (`docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to rectennas; incremental `relink` if
   big bases hitch on placing (measured above).
@@ -274,17 +263,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
-- **2026-10-31: trains you can read (T4).** `trains/view.rs`: a ray picks a car (a box per car along its `Pose`; 48 rays
-  on straight and bent track), the readout says its slots and items, and each train has an `id` (save 66) so a wagon's
-  cargo is a box at `car_box` (`y = i32::MIN`): every box action works on wagons unchanged. Right-click opens
-  `ui/train.ts` in the inventory screen: the wagon's slots, a bar per wagon, the state, stops with × (`DropStop`).
-  Wagons heap their main item as high as they are full (`model.rs`). Game-level test: `tests/train_aim.rs`.
-- **2026-10-31: a modern train (T3).** `trains/model.rs`: a 37-box diesel (hood, raked windscreen with `Form::Lean`,
-  headlamps, roof fans, two three-axle bogies, handrails) and 17-box wagons in one livery (`textures/transport.rs`,
-  art pack `loco_body` in `tools/art/later.py`); wheels are spoked cylinders turned by the train's `odo`.
-  `trains/motion.rs`: trains speed up by `ACCEL` and brake by `BRAKE` to stop exactly where they halt (at a dock,
-  the first wagon over it: `STOP_PAST`); `halts` caches the edge's verdict, so `bench_trains` stayed within +2.4%.
-  Save 65 adds each train's speed and distance. A blind judge (6 agents, 3 views × both orders) preferred it 6 of 6;
-  all six called it dark on dark ground, so the blue was lifted and the exhaust made smaller after the vote.
+- **2026-10-31: the journey (T5).** A dock is laid in line like a rail node (`dock_tools.rs` aims it on the selected
+  node's line; `action/docks.rs` places it and lays the track in one action, or refuses, so it never stands off the
+  track; `Factory::lay_fit` is the join rule for a node not yet placed, now also the rail hand's). A dock joins and
+  cuts track as an end (`wiring.rs`: `connect` keyed on `rail_yaw`, a dead end before); Shift-click couples every
+  wagon in hand. `tests/train_journey.rs`: a bot that does only what the label says builds a hump-and-dip line with
+  two docks and a two-wagon train that delivers: **5 building clicks (HEAD 7: −29%, short of the −30% target; 6
+  wagons: 11 → 5, −55%) plus 6 earthwork clicks** the outlines asked for (HEAD floated and buried the track instead).
+  `bench_train_instances`: 3,120 train instances against HEAD's 2,960 (+5.4%); writing them takes about 20–25% longer
+  (noisy here). Wasm +14.9 KB gz over HEAD for T1–T5 (`rail::ground::faults` behind one `dyn FnMut`, `car_pose`
+  not inlined).
 
 Older entries: `docs/history/CHANGELOG_R.md`.

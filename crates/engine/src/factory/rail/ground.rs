@@ -41,10 +41,16 @@ pub fn node_stands(mut block: impl FnMut(IVec3) -> BlockId, pos: IVec3) -> bool 
 /// ground carries the track (`Floating`). Points are checked every `STEP` and just either side of every place the
 /// track crosses into another column, so no column it passes over is missed.
 pub fn faults(curve: &Curve, mut block: impl FnMut(IVec3) -> BlockId) -> Vec<(IVec3, Fault)> {
+    faults_with(curve, &mut block)
+}
+
+/// `faults` behind one function pointer: one copy in the wasm for its four callers' block queries.
+#[inline(never)]
+fn faults_with(curve: &Curve, block: &mut dyn FnMut(IVec3) -> BlockId) -> Vec<(IVec3, Fault)> {
     let n = ((curve.length() / STEP).ceil() as usize).max(1);
     let mut out: Vec<(IVec3, Fault)> = Vec::new();
     let mut note = |p: Vec3| {
-        if let Some(f) = fault_at(p, &mut block).filter(|f| !out.contains(f)) {
+        if let Some(f) = fault_at(p, block).filter(|f| !out.contains(f)) {
             out.push(f);
         }
     };
@@ -78,7 +84,7 @@ pub fn faults(curve: &Curve, mut block: impl FnMut(IVec3) -> BlockId) -> Vec<(IV
 }
 
 /// What is wrong at the point `p` of a track (its centreline, a node's cell centre high), if anything.
-fn fault_at(p: Vec3, block: &mut impl FnMut(IVec3) -> BlockId) -> Option<(IVec3, Fault)> {
+fn fault_at(p: Vec3, block: &mut dyn FnMut(IVec3) -> BlockId) -> Option<(IVec3, Fault)> {
     // The bed: the bottom of the cell a level track's node stands in.
     let bed = p.y - 0.5;
     let (x, z) = (p.x.floor() as i32, p.z.floor() as i32);

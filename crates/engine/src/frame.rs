@@ -69,6 +69,7 @@ impl Game {
         self.write_line_preview(eye, time);
         self.write_power_preview(eye);
         self.write_rail_preview(eye);
+        self.write_dock_preview(eye);
         self.hide_unexplored_instances(eye);
         self.write_scope_beacons(eye);
         self.write_strategy_fog(eye);

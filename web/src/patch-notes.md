@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-31 · Quicker freight lines
+- **Lay a dock in line, like a rail.** Place a rail node, then hold a loading or unloading dock and aim along the track: the dock goes down where you aim, joined to the node, and your rails carry on from it. Where the ground is in the way or missing, the blocks to fill or clear are outlined, as for rails.
+- **Shift-click with wagons to couple them all at once** (up to six).
+- A dock at the end of a line now joins on to new rails; before, joining track to it did nothing.
+
 ## 2026-10-31 · Trains you can read
 - **Look at a locomotive or wagon to see how full it is**: how many of its slots are used and what it carries, and what the train is doing ("Loading at a dock", "Running to stop 2 of 3"…).
 - **Right-click a train to open it.** Each wagon opens like a chest: take goods out or put them in. The panel shows a bar per wagon, what the train is doing, and its stops; take a stop off with ×, or clear them all.

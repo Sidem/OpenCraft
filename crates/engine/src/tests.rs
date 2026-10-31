@@ -921,6 +921,7 @@ mod ejector;
 #[cfg(test)]
 mod frame_bench;
 mod train_aim;
+mod train_journey;
 
 #[test]
 fn the_console_finds_items_by_name_and_knows_the_day_length() {

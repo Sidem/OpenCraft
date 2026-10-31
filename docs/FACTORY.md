@@ -155,11 +155,17 @@ size.
   fuel yet, and trains pass through each other.
 - **Freight** (Freight research, after Trains): a wagon (8 steel plates, 2 steel beams and a storage box) holds 24 slots;
   hold one and click a rail node beside a train to couple it on behind (up to 6; a train on its first node is pulled
-  forward to make room). A loading dock and an unloading dock (10 steel plates, 2 motors, 2 circuits and a storage
-  box) are pieces of track (`rail/pieces.rs`): one goes only onto a rail node on north-south or east-west track with
-  one track at each end, no signal and no train, and takes its place, keeping its tracks; breaking it puts the node
-  back. With one in hand the nodes it fits are outlined. Belts feed the loading dock from its sides; a train with
+  forward to make room); Shift-click couples every wagon in hand. A loading dock and an unloading dock (10 steel
+  plates, 2 motors, 2 circuits and a storage box) are pieces of track (`rail/pieces.rs`): one goes onto a rail node on
+  north-south or east-west track with one track at each end, no signal and no train, and takes its place, keeping its
+  tracks; breaking it puts the node back. Or it is laid in line like a rail node: with a node selected (the one just
+  placed) and on straight track, aim along that track and click, and the dock goes down where the aim crosses it,
+  joined to the node at once, with the same ground rule and outlines as rails; rails then go on from the dock. With
+  one in hand the nodes it fits are outlined. Belts feed the loading dock from its sides; a train with
   wagons stops on it and takes the items on board, an unloading dock takes the cargo and belts leading away empty it.
+  Aim at a locomotive or wagon to read how many of its slots are used, what it carries and what the train is doing;
+  right-click it to open the train: each wagon opens like a chest, with a bar per wagon, the state and the stops (×
+  takes one off). Open wagons show a heap of their main load, as high as they are full.
   A dock ghost (hand or blueprint) goes only onto such a node too. Docks from older saves keep their anchor cell.
   A train waits at a dock until nothing has moved for 5 seconds, then drives on. Crouch-click picks up the whole
   train with its wagons and cargo.

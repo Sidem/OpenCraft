@@ -143,7 +143,7 @@ pub use render::{
 };
 pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
-pub use trains::{car_at, car_box, CarAim, Spot, DROP_ALL};
+pub use trains::{car_at, car_box, CarAim, Spot, DROP_ALL, MAX_CARS};
 pub use wiring::Hookup;
 pub use {belt::belt_preview, belt_shape::Shape, cable::preview_cable};
 

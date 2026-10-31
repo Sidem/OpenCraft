@@ -576,6 +576,50 @@ fn bench_trains() {
     }
 }
 
+/// `cargo test --release bench_train_instances -- --ignored --nocapture`: 20 trains of 6 half-loaded wagons in view,
+/// the instances they draw and the time to write them (DEV_PLAN T5: within +10% of before the train work).
+#[test]
+#[ignore]
+fn bench_train_instances() {
+    let mut f = Factory::default();
+    for i in 0..20 {
+        let nodes: Vec<(IVec3, u8)> = (0..4).map(|n| (v(n * 12, 0, i * 20), E)).collect();
+        for &(c, yaw) in &nodes {
+            f.place(&mut World::new(1, 2), RAIL, c, yaw, c, 0);
+        }
+        for n in 0..3 {
+            f.lay_track(nodes[n].0, nodes[n + 1].0);
+        }
+        assert!(f.place_train(nodes[0].0));
+        while f.couple(nodes[0].0) {}
+    }
+    for t in &mut f.trains {
+        assert_eq!(t.cars, 6);
+        for s in t.cargo.slots.iter_mut().step_by(2) {
+            *s = Stack { item: IRON_INGOT, count: 32 };
+        }
+    }
+    // The same scene with and without the trains: the trains' share of instances and writing time.
+    let measure = |f: &Factory| {
+        let (eye, runs) = (Vec3::new(18.0, 6.0, 190.0), 2000);
+        let mut out = Vec::new();
+        let t = std::time::Instant::now();
+        for _ in 0..runs {
+            out.clear();
+            f.write_instances(&mut out, eye, 0.0, 200.0);
+        }
+        (out.len() / INSTANCE_FLOATS, t.elapsed() / runs)
+    };
+    let (all, all_time) = measure(&f);
+    f.trains.clear();
+    let (track, track_time) = measure(&f);
+    println!(
+        "20 trains × 6 wagons: {} instances, {:?} to write (track alone {track}, {track_time:?})",
+        all - track,
+        all_time.saturating_sub(track_time)
+    );
+}
+
 #[test]
 fn a_train_draws_its_boiler_and_wheels_round_not_faked_from_boxes() {
     let f = freight(1, 2);

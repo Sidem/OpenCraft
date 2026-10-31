@@ -502,6 +502,27 @@ U1 to U3 and pod channels, as recorded when they were built.
 
 ## Moved from the plan's recent changes (2026-10-31)
 
+The T steps as they stood in the plan (user, 2026-10-30, via `/deepen`): **T1 Grounded track**; **T2 Docks are
+track**; **T3 A modern train** (done when `fake_round` and `face_fight` pass, a blind judge prefers it in 5 of 6,
+`bench_trains` within ±5%); **T4 Trains you can read** (aim at a car for its fill, a train panel, heaps; done when 48
+rays pick the right car, readouts equal the cargo, the panel is seen in the pane); **T5 The journey** (a bot doing
+only what the labels say builds a two-dock line on uneven ground with no dead ends and ≥ 30% fewer clicks than HEAD;
+instances for 20 trains × 6 wagons within +10%, wasm ≤ +15 KB gz; manual, patch notes). Decided: strict ground (no
+auto embankment), docks only on north-south or east-west track. Not: fuel, signal types, wait conditions, rail tiers,
+riding, research, sound files.
+
+- **2026-10-31: trains you can read (T4).** `trains/view.rs`: a ray picks a car (a box per car along its `Pose`; 48 rays
+  on straight and bent track), the readout says its slots and items, and each train has an `id` (save 66) so a wagon's
+  cargo is a box at `car_box` (`y = i32::MIN`): every box action works on wagons unchanged. Right-click opens
+  `ui/train.ts` in the inventory screen: the wagon's slots, a bar per wagon, the state, stops with × (`DropStop`).
+  Wagons heap their main item as high as they are full (`model.rs`). Game-level test: `tests/train_aim.rs`.
+- **2026-10-31: a modern train (T3).** `trains/model.rs`: a 37-box diesel (hood, raked windscreen with `Form::Lean`,
+  headlamps, roof fans, two three-axle bogies, handrails) and 17-box wagons in one livery (`textures/transport.rs`,
+  art pack `loco_body` in `tools/art/later.py`); wheels are spoked cylinders turned by the train's `odo`.
+  `trains/motion.rs`: trains speed up by `ACCEL` and brake by `BRAKE` to stop exactly where they halt (at a dock,
+  the first wagon over it: `STOP_PAST`); `halts` caches the edge's verdict, so `bench_trains` stayed within +2.4%.
+  Save 65 adds each train's speed and distance. A blind judge (6 agents, 3 views × both orders) preferred it 6 of 6;
+  all six called it dark on dark ground, so the blue was lifted and the exhaust made smaller after the vote.
 - **2026-10-31: docks are track (T2).** `factory/rail/pieces.rs`: a dock (`is_dock`) goes only onto a rail node with a
   grid heading, one track each end, no signal or train (`dock_fit`), and takes its place keeping its tracks
   (`swap_rail_piece`); `rail_yaw` answers for it, so trains stop on it (`dock_at` is the node itself) and a third track

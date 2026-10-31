@@ -65,8 +65,9 @@ impl Game {
         !stack.is_empty() && stack.item.places() == Some(RAIL)
     }
 
-    /// The selected node and its heading, while it stands (or has just been placed).
-    fn rail_anchor(&self) -> Option<(IVec3, u8)> {
+    /// The selected node and its heading, while it stands (or has just been placed). A dock laid in line
+    /// (`dock_tools.rs`) is selected the same way, so the next node continues from it.
+    pub(crate) fn rail_anchor(&self) -> Option<(IVec3, u8)> {
         let sel = self.rails.sel?;
         let pending = self.rails.last.filter(|l| l.0 == sel && l.2 < PENDING_TICKS).map(|l| l.1);
         Some((sel, self.sim.factory.rail_yaw(sel).or(pending)?))
@@ -113,17 +114,28 @@ impl Game {
                 (hit.block + hit.normal, yaw_of(look.x, look.z))
             }
         };
-        // A node aimed at a wall or into the air drops to the ground under it.
+        let (pos, free) = self.settle_node(pos, 0);
+        let yaw = anchor.map_or(yaw, |(a, ya)| Self::follow_yaw(a, ya, pos));
+        let fit = anchor.map(|(a, ya)| f.lay_fit(a, pos, yaw).unwrap_or_else(|| fit_track(a, ya, pos, yaw)));
+        Some(Plan::Place { pos, yaw, fit, free })
+    }
+
+    /// A node aimed at a wall or into the air drops to the ground under it: the first cell from `above` cells over
+    /// `pos` down that is empty and stands on solid ground (else `pos`), and whether a node can stand there.
+    pub(crate) fn settle_node(&self, pos: IVec3, above: i32) -> (IVec3, bool) {
+        let world = &self.sim.world;
         let block_at = |p| world.get_block(p).unwrap_or(AIR);
-        let pos = (0..=SETTLE)
+        let pos = (-above..=SETTLE)
             .map(|d| pos - UP * d)
             .find(|&p| block_at(p) == AIR && rail_node_stands(block_at, p))
             .unwrap_or(pos);
-        let yaw = anchor.map_or(yaw, |(a, ya)| Self::follow_yaw(a, ya, pos));
-        let free = world.get_block(pos).is_some_and(block::replaceable) && rail_node_stands(block_at, pos);
-        let fit =
-            anchor.map(|(a, ya)| if f.track_count(a) >= MAX_LINKS { Fit::Full } else { fit_track(a, ya, pos, yaw) });
-        Some(Plan::Place { pos, yaw, fit, free })
+        (pos, world.get_block(pos).is_some_and(block::replaceable) && rail_node_stands(block_at, pos))
+    }
+
+    /// Selects the piece just sent to the core at `pos` (heading `yaw`): new track continues from it.
+    pub(crate) fn select_rail_piece(&mut self, pos: IVec3, yaw: u8) {
+        self.rails.last = Some((pos, yaw, 0));
+        self.rails.sel = Some(pos);
     }
 
     /// Where the track a click would lay leaves the ground (`factory/rail/ground.rs`): the cells to fill or clear.
@@ -177,8 +189,7 @@ impl Game {
                 if let (Some(a), Some(Fit::Ok)) = (anchor, fit) {
                     self.act(Action::Connect { pole: a, to: pos });
                 }
-                self.rails.last = Some((pos, yaw, 0));
-                self.rails.sel = Some(pos);
+                self.select_rail_piece(pos, yaw);
             }
             _ => return true,
         }
@@ -285,7 +296,7 @@ fn describe_span(a: IVec3, ya: u8, b: IVec3, yb: u8) -> String {
 }
 
 /// Why a track cannot be laid along the ground: how many cells to fill and to clear (outlined amber and red).
-fn ground_why(faults: &[(IVec3, Fault)]) -> String {
+pub(crate) fn ground_why(faults: &[(IVec3, Fault)]) -> String {
     let fill = faults.iter().filter(|f| f.1 == Fault::Floating).count();
     let clear = faults.len() - fill;
     let cells = |n: usize| if n == 1 { "1 block".to_string() } else { format!("{n} blocks") };
@@ -296,7 +307,7 @@ fn ground_why(faults: &[(IVec3, Fault)]) -> String {
     }
 }
 
-fn why_not(fit: Fit) -> String {
+pub(crate) fn why_not(fit: Fit) -> String {
     match fit {
         Fit::Ok => String::new(),
         Fit::Joined => "Already joined".to_string(),

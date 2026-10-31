@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{AIR, RAIL, STONE};
+use crate::block::{AIR, RAIL, STONE, UNLOADING_DOCK};
 use crate::factory::Fit;
 use crate::raycast::RayHit;
 use crate::sim::PlayerId;
@@ -101,6 +101,63 @@ fn the_core_refuses_a_dock_off_the_rails_by_every_way_a_block_is_placed() {
     assert!(!g.sim.put_block(me, a + UP, LOADING_DOCK.into(), 0, a), "nor above a node");
     assert!(g.sim.put_block(me, a, LOADING_DOCK.into(), 0, a - UP), "onto a node it goes");
     assert_eq!(g.sim.factory.count(crate::factory::Kind::Process), 1);
+}
+
+#[test]
+fn a_dock_is_laid_in_line_after_the_selected_node_joined_to_it_and_rails_go_on_from_it() {
+    let (mut g, [_, _, c, _]) = scene();
+    g.select_rail_piece(c, 64);
+    // Aim at the ground a little off the line, 8 blocks on: the dock lands on the line itself.
+    let at = c + IVec3::new(8, 0, 1);
+    aim_at(&mut g, at - UP, UP);
+    assert!(g.dock_label().contains("click to lay it in line: 8 blocks"), "{}", g.dock_label());
+    assert!(outlined(&g, ANCHOR_BLUE) == vec![c] && outlined(&g, GHOST_GREEN) == vec![c + IVec3::new(8, 0, 0)]);
+    click(&mut g);
+    let d = c + IVec3::new(8, 0, 0);
+    let f = &g.sim.factory;
+    assert_eq!(f.dock_anchor(d), Some(d), "a dock");
+    assert!(f.track_between(c, d), "joined in the same action");
+    assert_eq!(g.rail_anchor(), Some((d, 64)), "and selected");
+    // A hole in the ground under the next stretch is outlined amber, and a click does nothing.
+    let hole = d + IVec3::new(4, -1, 0);
+    for h in hole.y - 2..=hole.y {
+        g.sim.world.set_block_anywhere(IVec3::new(hole.x, h, 0), AIR);
+    }
+    g.give(UNLOADING_DOCK.into(), 1);
+    g.run_ticks(1);
+    let slot = g.inventory().slots.iter().position(|s| s.item == UNLOADING_DOCK.into()).unwrap() as u32;
+    g.select_slot(slot);
+    g.run_ticks(1);
+    aim_at(&mut g, d + IVec3::new(8, -1, 0), UP);
+    assert!(g.dock_label().contains("fill 1 block (amber)"), "{}", g.dock_label());
+    assert_eq!(outlined(&g, FILL_AMBER), vec![hole]);
+    click(&mut g);
+    assert_eq!(g.sim.factory.dock_anchor(d + IVec3::new(8, 0, 0)), None);
+}
+
+#[test]
+fn the_core_lays_a_dock_in_line_only_joined_on_the_ground_along_an_axis() {
+    let (mut g, [_, b, c, d]) = scene();
+    let me = PlayerId(0);
+    let dock = LOADING_DOCK.into();
+    let on = c + IVec3::new(4, 0, 0);
+    assert!(!g.sim.put_block(me, on, dock, 64, on - UP), "against the ground: nothing to join");
+    assert!(!g.sim.put_block(me, on, dock, 32, c), "a diagonal heading");
+    assert!(!g.sim.put_block(me, on + UP * 2, dock, 64, c), "in the air");
+    assert!(!g.sim.put_block(me, d + IVec3::new(0, 0, 10), dock, 0, d), "after a diagonal node: a bend");
+    assert!(!g.sim.put_block(me, b + IVec3::new(2, 0, 0), dock, 64, b), "too close to join");
+    assert!(g.sim.put_block(me, on, dock, 64, c));
+    assert!(g.sim.factory.track_between(c, on));
+    // A dock is an end of the line too: rails join on from it, and cut from it (`Action::Connect` from a dock).
+    let e = on + IVec3::new(6, 0, 0);
+    g.sim.world.set_block_anywhere(e, RAIL);
+    g.sim.factory.place(&mut g.sim.world, RAIL, e, 64, e - UP, 0);
+    g.act(Action::Connect { pole: on, to: e });
+    g.run_ticks(1);
+    assert!(g.sim.factory.track_between(on, e), "joined from the dock");
+    g.act(Action::Disconnect { pole: on, to: e });
+    g.run_ticks(1);
+    assert!(!g.sim.factory.track_between(on, e), "and cut from it");
 }
 
 #[test]
