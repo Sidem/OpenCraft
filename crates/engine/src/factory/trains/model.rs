@@ -14,66 +14,92 @@ const SAMPLES: usize = 24;
 /// The top of the steel rails, from a node's centre (`rail/curve.rs`: rails at -0.38, 0.08 thick).
 pub(crate) const RAIL_TOP: f64 = -0.34;
 
-/// One part of a car: x to the right, y above the rails, z backwards from its centre; its size; its texture; a box or a
-/// round body (a wheel turns about x, the boiler lies along z).
+/// One part of a car: x to the right, y above the rails, z backwards from its centre; its size; its texture; a box, a
+/// box leaning back (the windscreen) or a round body (a wheel turns about x, the fuel tank lies along z).
 pub(crate) type CarBox = (f64, f64, f64, [f32; 3], u16, Form);
 
 const B: Form = Form::Box;
 /// A wheel or disc facing sideways, and a round body along the car.
 const SIDEWAYS: Form = Form::Round(Axis::X, 1.0);
 const ALONG: Form = Form::Round(Axis::Z, 1.0);
-const WHEEL: [f32; 3] = [0.08, 0.22, 0.22];
-const DRIVER: [f32; 3] = [0.08, 0.42, 0.42];
-/// The point of a locomotive's chimney mouth, where its smoke starts (x, y, z as in `CarBox`).
-const CHIMNEY_MOUTH: [f64; 3] = [0.0, 1.3, -0.85];
+const WHEEL: [f32; 3] = [0.08, 0.24, 0.24];
+/// A wheel's radius (blocks): it turns by the distance driven over this (`Pose::draw`).
+const WHEEL_R: f64 = 0.12;
+/// The point of a locomotive's exhaust stack, where its smoke starts (x, y, z as in `CarBox`), and the puffs' size.
+const CHIMNEY_MOUTH: [f64; 3] = [0.0, 1.32, -0.1];
+const PUFF: f32 = 0.35;
+/// How far back the cab's windscreen leans (radians).
+const RAKE: f32 = 0.346;
 
-/// A steam locomotive, nose at -z: a frame with a red buffer beam, a round green boiler with a dark smokebox door and
-/// a headlamp, a chimney, a brass dome, the cab with its roof, three pairs of tall driving wheels joined by coupling
-/// rods.
-pub(crate) const LOCOMOTIVE_BOXES: [CarBox; 17] = [
-    (0.0, 0.3, 0.0, [0.8, 0.14, 2.5], tex::FRAME, B),
-    (0.0, 0.32, -1.27, [0.92, 0.16, 0.08], tex::stripe(3), B),
-    (0.0, 0.7, -0.35, [0.6, 0.6, 1.5], tex::LOCO_BODY, ALONG),
-    (0.0, 0.7, -1.11, [0.48, 0.48, 0.04], tex::SOOT, ALONG),
-    (0.0, 1.0, -1.12, [0.14, 0.12, 0.05], tex::LAMP_YELLOW, B),
-    (0.0, 1.13, -0.85, [0.16, 0.34, 0.16], tex::SOOT, UPRIGHT),
-    (0.0, 1.06, -0.25, [0.22, 0.14, 0.22], tex::COPPER_INGOT, UPRIGHT),
-    (0.0, 0.84, 0.8, [0.8, 0.86, 0.8], tex::LOCO_BODY, B),
-    (0.0, 1.3, 0.8, [0.92, 0.07, 0.96], tex::FRAME, B),
-    (-0.46, 0.21, -0.75, DRIVER, tex::SOOT, SIDEWAYS),
-    (0.46, 0.21, -0.75, DRIVER, tex::SOOT, SIDEWAYS),
-    (-0.46, 0.21, -0.25, DRIVER, tex::SOOT, SIDEWAYS),
-    (0.46, 0.21, -0.25, DRIVER, tex::SOOT, SIDEWAYS),
-    (-0.46, 0.21, 0.25, DRIVER, tex::SOOT, SIDEWAYS),
-    (0.46, 0.21, 0.25, DRIVER, tex::SOOT, SIDEWAYS),
-    (-0.51, 0.21, -0.25, [0.03, 0.05, 1.1], tex::STEEL, B),
-    (0.51, 0.21, -0.25, [0.03, 0.05, 1.1], tex::STEEL, B),
+const fn wheel(x: f64, z: f64) -> CarBox {
+    (x, 0.12, z, WHEEL, tex::WHEEL, SIDEWAYS)
+}
+
+/// A modern freight locomotive, nose at -z, in the blue and amber livery: a short nose with headlamps under a raked
+/// windscreen, the cab with side windows, a long hood with a radiator, two fans and an exhaust stack, handrails, red
+/// tail lamps, a fuel tank slung between two three-axle bogies.
+pub(crate) const LOCOMOTIVE_BOXES: [CarBox; 37] = [
+    (0.0, 0.34, 0.0, [0.86, 0.1, 2.36], tex::FRAME, B),
+    (0.0, 0.3, -1.2, [0.88, 0.14, 0.06], tex::MAT_GUNMETAL, B),
+    (0.0, 0.3, 1.2, [0.88, 0.14, 0.06], tex::MAT_GUNMETAL, B),
+    (0.0, 0.2, 0.0, [0.6, 0.17, 0.62], tex::MAT_GUNMETAL, ALONG),
+    (0.0, 0.16, -0.72, [0.74, 0.12, 0.76], tex::FRAME, B),
+    (0.0, 0.16, 0.72, [0.74, 0.12, 0.76], tex::FRAME, B),
+    wheel(-0.43, -0.98),
+    wheel(0.43, -0.98),
+    wheel(-0.43, -0.72),
+    wheel(0.43, -0.72),
+    wheel(-0.43, -0.46),
+    wheel(0.43, -0.46),
+    wheel(-0.43, 0.46),
+    wheel(0.43, 0.46),
+    wheel(-0.43, 0.72),
+    wheel(0.43, 0.72),
+    wheel(-0.43, 0.98),
+    wheel(0.43, 0.98),
+    // The long hood, the cab, the nose and the raked front with its windscreen.
+    (0.0, 0.76, 0.345, [0.74, 0.74, 1.59], tex::LOCO_BODY, B),
+    (0.0, 0.845, -0.635, [0.84, 0.93, 0.43], tex::LOCO_BODY, B),
+    (0.0, 0.5925, -1.015, [0.8, 0.415, 0.37], tex::LOCO_BODY, B),
+    (0.0, 0.999, -0.769, [0.82, 0.531, 0.3], tex::LOCO_BODY, Form::Lean(RAKE)),
+    (0.0, 1.06, -0.938, [0.66, 0.42, 0.04], tex::CAB_GLASS, Form::Lean(RAKE)),
+    (-0.425, 1.1, -0.66, [0.02, 0.22, 0.3], tex::CAB_GLASS, B),
+    (0.425, 1.1, -0.66, [0.02, 0.22, 0.3], tex::CAB_GLASS, B),
+    (0.0, 1.325, -0.62, [0.86, 0.04, 0.5], tex::MAT_GUNMETAL, B),
+    (0.15, 1.365, -0.55, [0.06, 0.04, 0.12], tex::STEEL, B),
+    (-0.25, 0.68, -1.205, [0.12, 0.08, 0.02], tex::LAMP_YELLOW, B),
+    (0.25, 0.68, -1.205, [0.12, 0.08, 0.02], tex::LAMP_YELLOW, B),
+    // Roof gear: the radiator and its fans, the exhaust stack.
+    (0.0, 1.155, 0.78, [0.62, 0.05, 0.56], tex::MAT_METAL, B),
+    (0.0, 1.19, 0.64, [0.24, 0.03, 0.24], tex::FRAME, UPRIGHT),
+    (0.0, 1.19, 0.92, [0.24, 0.03, 0.24], tex::FRAME, UPRIGHT),
+    (0.0, 1.22, -0.1, [0.1, 0.18, 0.1], tex::SOOT, UPRIGHT),
+    (-0.3, 0.6, 1.145, [0.08, 0.06, 0.02], tex::LAMP_RED, B),
+    (0.3, 0.6, 1.145, [0.08, 0.06, 0.02], tex::LAMP_RED, B),
+    (-0.41, 0.62, 0.35, [0.02, 0.02, 1.5], tex::STEEL, B),
+    (0.41, 0.62, 0.35, [0.02, 0.02, 1.5], tex::STEEL, B),
 ];
 
-/// An open wagon: a bed, a steel body with upright ribs, a dark hold seen over a rim of rails, two bogies of two
+/// An open wagon in the locomotive's livery: a frame, the body with a dark hold under a gunmetal rim, two bogies of two
 /// axles each.
-pub(crate) const WAGON_BOXES: [CarBox; 21] = [
-    (0.0, 0.3, 0.0, [0.8, 0.14, 2.4], tex::FRAME, B),
-    (0.0, 0.67, 0.0, [0.76, 0.6, 2.2], tex::STEEL, B),
-    (0.0, 0.98, 0.0, [0.66, 0.04, 2.1], tex::SOOT, B),
-    (-0.4, 1.0, 0.0, [0.06, 0.06, 2.26], tex::stripe(3), B),
-    (0.4, 1.0, 0.0, [0.06, 0.06, 2.26], tex::stripe(3), B),
-    (0.0, 0.995, -1.11, [0.84, 0.05, 0.06], tex::stripe(3), B),
-    (0.0, 0.995, 1.11, [0.84, 0.05, 0.06], tex::stripe(3), B),
-    (-0.39, 0.67, -0.55, [0.04, 0.6, 0.07], tex::FRAME, B),
-    (0.39, 0.67, -0.55, [0.04, 0.6, 0.07], tex::FRAME, B),
-    (-0.39, 0.67, 0.55, [0.04, 0.6, 0.07], tex::FRAME, B),
-    (0.39, 0.67, 0.55, [0.04, 0.6, 0.07], tex::FRAME, B),
-    (0.0, 0.17, -0.75, [0.74, 0.1, 0.62], tex::FRAME, B),
-    (0.0, 0.17, 0.75, [0.74, 0.1, 0.62], tex::FRAME, B),
-    (-0.43, 0.11, -0.97, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (0.43, 0.11, -0.97, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (-0.43, 0.11, -0.53, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (0.43, 0.11, -0.53, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (-0.43, 0.11, 0.53, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (0.43, 0.11, 0.53, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (-0.43, 0.11, 0.97, WHEEL, tex::BELT_TOP, SIDEWAYS),
-    (0.43, 0.11, 0.97, WHEEL, tex::BELT_TOP, SIDEWAYS),
+pub(crate) const WAGON_BOXES: [CarBox; 17] = [
+    (0.0, 0.3, 0.0, [0.8, 0.1, 2.36], tex::FRAME, B),
+    (0.0, 0.67, 0.0, [0.82, 0.62, 2.24], tex::LOCO_BODY, B),
+    (0.0, 0.985, 0.0, [0.72, 0.01, 2.14], tex::SOOT, B),
+    (-0.4, 0.99, 0.0, [0.06, 0.04, 2.26], tex::MAT_GUNMETAL, B),
+    (0.4, 0.99, 0.0, [0.06, 0.04, 2.26], tex::MAT_GUNMETAL, B),
+    (0.0, 0.99, -1.11, [0.84, 0.05, 0.06], tex::MAT_GUNMETAL, B),
+    (0.0, 0.99, 1.11, [0.84, 0.05, 0.06], tex::MAT_GUNMETAL, B),
+    (0.0, 0.16, -0.75, [0.72, 0.12, 0.66], tex::FRAME, B),
+    (0.0, 0.16, 0.75, [0.72, 0.12, 0.66], tex::FRAME, B),
+    wheel(-0.43, -0.96),
+    wheel(0.43, -0.96),
+    wheel(-0.43, -0.54),
+    wheel(0.43, -0.54),
+    wheel(-0.43, 0.54),
+    wheel(0.43, 0.54),
+    wheel(-0.43, 0.96),
+    wheel(0.43, 0.96),
 ];
 
 impl Factory {
@@ -129,10 +155,11 @@ impl Factory {
                     continue;
                 }
                 let pose = Pose::new(mid, front - rear);
-                pose.draw(out, if car == 0 { &LOCOMOTIVE_BOXES } else { &WAGON_BOXES });
+                let spin = (-f64::from(t.odo) / 1000.0 / WHEEL_R).rem_euclid(std::f64::consts::TAU) as f32;
+                pose.draw(out, if car == 0 { &LOCOMOTIVE_BOXES } else { &WAGON_BOXES }, spin);
                 if car == 0 && t.idle.is_none() {
                     let [x, y, z] = CHIMNEY_MOUTH;
-                    smoke::puffs(out, pose.point(x, y, z), time, (i as f64 * 0.37).fract(), 1.0);
+                    smoke::puffs(out, pose.point(x, y, z), time, (i as f64 * 0.37).fract(), PUFF);
                 }
             }
         }
@@ -164,12 +191,15 @@ impl Pose {
         self.mid + self.right * x + self.up * (RAIL_TOP + y) - self.fwd * z
     }
 
-    fn draw(&self, out: &mut Vec<f32>, boxes: &[CarBox]) {
+    /// Draws `boxes` turned with the car, its wheels turned `spin` about their axles (a round body's roll).
+    fn draw(&self, out: &mut Vec<f32>, boxes: &[CarBox], spin: f32) {
         for &(x, y, z, size, layer, shape) in boxes {
             push_shape(out, shape, self.point(x, y, z), self.yaw as f32, size, [layer; 3], false);
-            // The slope tilts the part about the car's x: a wheel turning about x stays as it is.
-            if shape != SIDEWAYS {
-                let n = out.len();
+            // The slope tilts the part about the car's x: a wheel turning about x turns instead.
+            let n = out.len();
+            if shape == SIDEWAYS {
+                out[n - 3] = spin;
+            } else {
                 out[n - 4] += self.pitch as f32;
             }
         }

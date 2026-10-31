@@ -229,8 +229,11 @@ pub const PLUME_CORE: u16 = SIGN + 5;
 pub const PLUME_FLAME: u16 = SIGN + 6;
 pub const PLUME_TAIL: u16 = SIGN + 7;
 pub const PLUME_DIAMOND: u16 = SIGN + 8;
+/// The train (`textures/transport.rs`): a wheel's face (spokes, so a turning wheel shows it) and the cab's tinted glass.
+pub const WHEEL: u16 = SIGN + 9;
+pub const CAB_GLASS: u16 = SIGN + 10;
 /// The note signs' text (`signs/view.rs`): two layers a slot, the host paints them (`web/src/render/sign-faces.ts`).
-pub const SIGN_FACE: u16 = PLUME_DIAMOND + 1;
+pub const SIGN_FACE: u16 = CAB_GLASS + 1;
 pub const SIGN_FACE_LAST: u16 = SIGN_FACE + 2 * crate::signs::view::SLOTS as u16 - 1;
 pub const COUNT: usize = SIGN_FACE_LAST as usize + 1;
 

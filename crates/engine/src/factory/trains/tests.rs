@@ -324,14 +324,59 @@ fn a_locomotive_runs_to_the_end_of_the_track_turns_round_and_comes_back() {
     assert!(lo > 0.4 && lo < 3.2, "and comes back to the first: {lo}");
     let turns = xs.windows(3).filter(|w| (w[1] - w[0]) * (w[2] - w[1]) < 0.0).count();
     assert!(turns >= 2, "it turned round at both ends ({turns})");
-    // 150 mm a tick, 9 blocks a second.
-    assert!((xs[1] - xs[0] - 0.15).abs() < 1e-3);
+    // Up to 150 mm a tick, 9 blocks a second, starting from standing.
+    // (Turning round, the front jumps to the other end.)
+    let fastest = xs.windows(2).map(|w| (w[1] - w[0]).abs()).filter(|&d| d < 1.0).fold(0.0, f64::max);
+    assert!((fastest - 0.15).abs() < 1e-3 && xs[1] - xs[0] < 0.01, "{fastest}");
+}
+
+#[test]
+fn a_train_stops_with_its_first_wagon_over_a_dock_the_track_runs_on_from() {
+    let mut f = line(&AB, &[(0, 1), (1, 2)]);
+    dock(&mut f, v(12, 0, 0), LOADING_DOCK);
+    let d = f.dock_piece(v(12, 0, 0)).unwrap();
+    f.processors[d].out.add(IRON_INGOT, 50);
+    assert!(f.place_train(v(0, 0, 0)) && f.couple(v(0, 0, 0)));
+    run(&mut f, 4.0, |_| {});
+    let t = &f.trains[0];
+    assert!(t.idle.is_some(), "stopped");
+    let wagon = f.point_back(t, LOCO_MM + CAR_MM / 2).unwrap();
+    assert!((wagon - Vec3::new(12.5, 0.5, 0.5)).length() < 0.05, "the wagon's middle is over the dock: {wagon:?}");
+    assert_eq!(t.cargo.count(IRON_INGOT), 50, "and it loaded there");
+    // At the end of the line, where the track does not go on, it stops on the dock.
+    let mut f = freight(10, 1);
+    let mut at_end = false;
+    run(&mut f, 12.0, |f| {
+        let t = &f.trains[0];
+        at_end |= t.idle.is_some() && t.path.last() == Some(&(v(12, 0, 0), v(24, 0, 0))) && t.head == 12_000;
+    });
+    assert!(at_end);
+}
+
+#[test]
+fn a_train_eases_into_and_out_of_every_stop() {
+    let mut f = freight(30, 2);
+    let (mut last, mut stops, mut was) = (f.trains[0].speed, 0, 1);
+    run(&mut f, 40.0, |f| {
+        let t = &f.trains[0];
+        // Speed changes by at most `ACCEL` up and `BRAKE` down a tick (one more for rounding), and a stop is reached
+        // from a crawl.
+        assert!(t.speed - last <= 3 && last - t.speed <= 7 || t.speed == 0 && last <= 16, "{last} to {}", t.speed);
+        if t.speed == 0 && was > 0 {
+            stops += 1;
+        }
+        (last, was) = (t.speed, t.speed);
+    });
+    assert!(stops >= 3, "it stopped at the docks and turned round: {stops}");
 }
 
 #[test]
 fn on_a_bend_it_keeps_its_speed() {
     let mut f = line(&[(v(0, 0, 0), N), (v(16, 0, -16), E)], &[(0, 1)]);
     assert!(f.place_train(v(0, 0, 0)));
+    for _ in 0..60 {
+        f.step_trains();
+    }
     let mut last = head(&f);
     for _ in 0..60 {
         f.step_trains();

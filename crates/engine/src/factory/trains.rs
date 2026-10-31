@@ -3,7 +3,7 @@
 //! its front is along the last edge, in millimetres. Distances along an edge are arc lengths of its curve
 //! (`Factory::edge_mm`), so speed is the same on straights and bends.
 //!
-//! Each tick (`step_trains`) a train moves `STEP_MM`. Reaching a node it takes the track that leads on most
+//! Each tick (`step_trains`) a train moves up to `STEP_MM`, easing into and out of stops (`motion.rs`). Reaching a node it takes the track that leads on most
 //! straight (`next_from`: within 60 degrees of its heading, the straightest first, ties by cell); with none it
 //! reverses (the tail becomes the head), so a lone line shuttles between its ends. Edges it has left are
 //! dropped from the tail of `path`. Trains are placed on and picked up from a node (`Action::PlaceTrain`,
@@ -26,6 +26,7 @@
 mod cars;
 mod docks;
 pub(crate) mod model;
+mod motion;
 mod schedule;
 mod signals;
 
@@ -66,6 +67,11 @@ pub struct Train {
     /// The docks it serves in turn, as anchor cells (`schedule.rs`), and which is next.
     pub schedule: Vec<IVec3>,
     pub next: u8,
+    /// Speed (mm a tick, up to `STEP_MM`) and the distance driven (mm, wrapping): `motion.rs`.
+    pub speed: i64,
+    pub odo: u32,
+    /// Whether it halts at the end of its last edge, once decided (`motion.rs`).
+    pub halts: Option<bool>,
 }
 
 /// What putting a locomotive on a node, or coupling a wagon beside it, would do.
@@ -90,7 +96,18 @@ fn key(p: IVec3) -> (i32, i32, i32) {
 
 impl Train {
     fn new(path: Vec<(IVec3, IVec3)>, head: i64) -> Train {
-        Train { path, head, cars: 0, cargo: Buffer::new(0), idle: None, schedule: Vec::new(), next: 0 }
+        Train {
+            path,
+            head,
+            cars: 0,
+            cargo: Buffer::new(0),
+            idle: None,
+            schedule: Vec::new(),
+            next: 0,
+            speed: 0,
+            odo: 0,
+            halts: None,
+        }
     }
 
     /// Locomotive and wagons, in millimetres.
@@ -182,20 +199,24 @@ impl Factory {
             if t.idle.is_some() {
                 self.trade(&mut t);
             } else {
-                self.advance(&mut t, STEP_MM);
+                self.drive(&mut t);
             }
             self.trains[i] = t;
         }
     }
 
-    fn advance(&self, t: &mut Train, mm: i64) {
-        let Some(&(a, b)) = t.path.last() else { return };
-        let Some(len) = self.edge_mm(a, b) else { return };
+    /// Moves `t` `mm` along its last edge, from `a` to `b` and `len` long, and on past `b` or stops there.
+    fn advance(&self, t: &mut Train, mm: i64, (a, b): (IVec3, IVec3), len: i64) {
         let before = t.head;
         t.head += mm;
-        if before < len && t.head >= len && t.cars > 0 && self.stop_dock(t, b).is_some() {
+        if self.past_dock(t, a, before, len) {
+            t.head = motion::STOP_PAST;
+            (t.idle, t.speed) = (Some(0), 0);
+            return;
+        }
+        if before < len && t.head >= len && t.cars > 0 && self.stop_dock(t, b).is_some() && !self.passes(t, a, b) {
             t.head = len;
-            t.idle = Some(0);
+            (t.idle, t.speed) = (Some(0), 0);
             return;
         }
         if t.head > len {
@@ -203,10 +224,11 @@ impl Factory {
                 Way::Go(c) => {
                     t.head -= len;
                     t.path.push((b, c));
+                    t.halts = None;
                 }
-                Way::Wait => t.head = len,
+                Way::Wait => (t.head, t.speed) = (len, 0),
                 Way::End => {
-                    t.head = len;
+                    (t.head, t.speed, t.halts) = (len, 0, None);
                     self.reverse(t);
                 }
             }
@@ -247,7 +269,8 @@ impl Factory {
                 let inside =
                     t.path.last().and_then(|&(a, b)| self.edge_mm(a, b)).is_some_and(|l| (0..=l).contains(&t.head));
                 let covered = self.tail_room(t).is_some_and(|room| room >= 0);
-                let stopped = t.idle.is_none() || t.path.last().and_then(|&(a, b)| self.edge_mm(a, b)) == Some(t.head);
+                let at_end = t.path.last().and_then(|&(a, b)| self.edge_mm(a, b)) == Some(t.head);
+                let stopped = t.idle.is_none() || at_end || t.head == motion::STOP_PAST;
                 !t.path.is_empty() && ends && joined && inside && covered && stopped
             })
             .collect();
@@ -271,10 +294,14 @@ impl Factory {
             w.count(t.schedule.len());
             t.schedule.iter().for_each(|&d| w.ivec3(d));
             w.u8(t.next);
+            w.u8(t.speed as u8);
+            w.u32(t.odo);
+            w.u8(t.halts.map_or(0, |h| 1 + u8::from(h)));
         }
     }
 
-    /// Saves from before version 33 hold locomotives only (no wagons, never stopped), before 34 no schedules.
+    /// Saves from before version 33 hold locomotives only (no wagons, never stopped), before 34 no schedules, before 65
+    /// no speed (a moving train starts from standing).
     pub(super) fn read_trains(&mut self, r: &mut ByteReader) -> Option<()> {
         for _ in 0..r.count()? {
             let mut path = Vec::new();
@@ -303,6 +330,14 @@ impl Factory {
                 if usize::from(t.next) >= stops.max(1) {
                     t.next = 0;
                 }
+            }
+            if r.version >= 65 {
+                t.speed = i64::from(r.u8()?).min(STEP_MM);
+                t.odo = r.u32()?;
+                t.halts = match r.u8()? {
+                    0 => None,
+                    h => Some(h == 2),
+                };
             }
             self.trains.push(t);
         }

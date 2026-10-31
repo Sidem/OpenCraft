@@ -20,6 +20,7 @@ impl Factory {
     /// cell is no dock.
     pub fn set_stop(&mut self, node: IVec3, dock: IVec3, clear: bool) -> bool {
         let Some(i) = self.train_near(node) else { return false };
+        self.trains[i].halts = None;
         if clear {
             self.trains[i].schedule.clear();
             self.trains[i].next = 0;

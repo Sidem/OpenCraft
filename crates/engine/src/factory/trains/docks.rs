@@ -1,5 +1,6 @@
 //! A stopped train trading with a dock (`process/docks.rs`): a loading dock's items go into the wagons, the wagons'
-//! cargo goes into an unloading dock. A dock is a rail node (`rail/pieces.rs`), so a train stops at one it reaches.
+//! cargo goes into an unloading dock. A dock is a rail node (`rail/pieces.rs`), so a train stops at one it reaches,
+//! with its first wagon over the dock where the track goes on far enough (`motion.rs`).
 //! Up to `TRADE_PER_TICK` items a tick; the train drives on once nothing has been traded for `DWELL_TICKS` (it is
 //! full or empty, or the dock is, or the dock is gone).
 
@@ -21,7 +22,7 @@ impl Factory {
 
     /// Stops the stream of the dock `t` is stopped on, as `t` is taken off the track.
     pub(super) fn leave_dock(&mut self, t: &Train) {
-        let at = t.path.last().map(|e| e.1).filter(|_| t.idle.is_some());
+        let at = self.stop_node(t).filter(|_| t.idle.is_some());
         if let Some(i) = at.and_then(|n| self.dock_at(n)) {
             self.processors[i].status = Status::NoInput;
         }
@@ -31,8 +32,7 @@ impl Factory {
     /// dock of its schedule, if it has one).
     pub(super) fn trade(&mut self, t: &mut Train) {
         let Some(idle) = t.idle else { return };
-        let node = t.path.last().map(|e| e.1);
-        let dock = node.and_then(|n| self.stop_dock(t, n));
+        let dock = self.stop_node(t).and_then(|n| self.stop_dock(t, n));
         let moved = dock.map_or(0, |i| swap(&mut self.processors[i], &mut t.cargo));
         if let Some(i) = dock {
             // Working while goods move (its lamp and the stream of goods in its model).

@@ -235,8 +235,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 64,
-        "the layout above is unchanged since version 29 (30 to 48: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before; 45 added the satellites after the research; 46 the drop pods in flight after them; 47 the opening scene after the game mode; 48 the towns after it; 56 only added the belt items' tags; 57 only added the opening's progress and the tips'; 58 the lessons taught; 59 only added the coal miner's fuel to a miner; 60 only added the off-hand stack after the worn gear; 61 wrote nothing new, only raised old long-distance poles; 62 only added each belt's bend; 63 only added the signs at the end of the core; 64 wrote nothing new, only shrank old docks)"
+        SAVE_VERSION, 65,
+        "the layout above is unchanged since version 29 (30 to 48: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before; 45 added the satellites after the research; 46 the drop pods in flight after them; 47 the opening scene after the game mode; 48 the towns after it; 56 only added the belt items' tags; 57 only added the opening's progress and the tips'; 58 the lessons taught; 59 only added the coal miner's fuel to a miner; 60 only added the off-hand stack after the worn gear; 61 wrote nothing new, only raised old long-distance poles; 62 only added each belt's bend; 63 only added the signs at the end of the core; 64 wrote nothing new, only shrank old docks; 65 only added each train's speed)"
     );
 
     // A save with a pack's rows full but no pack on is refused.

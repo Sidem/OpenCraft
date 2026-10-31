@@ -30,6 +30,30 @@ fn no_model_has_two_faces_in_one_plane() {
     assert!(clashes.is_empty(), "coplanar faces:\n{}", clashes.join("\n"));
 }
 
+/// The same for the locomotive and the wagon (`trains/model.rs`), their boxes taken as parts.
+#[test]
+fn no_train_car_has_two_faces_in_one_plane() {
+    use crate::factory::trains::model::{LOCOMOTIVE_BOXES, WAGON_BOXES};
+    let mut clashes = Vec::new();
+    for (name, boxes) in [("locomotive", &LOCOMOTIVE_BOXES[..]), ("wagon", &WAGON_BOXES[..])] {
+        let parts: Vec<Part> = boxes
+            .iter()
+            .map(|&(x, y, z, size, layer, form)| Part {
+                form,
+                ..part([x as f32, y as f32, z as f32], size, Look::Tex([layer; 3]))
+            })
+            .collect();
+        for (i, a) in parts.iter().enumerate() {
+            for (j, b) in parts.iter().enumerate().skip(i + 1) {
+                if let Some(axis) = shared_face(a, b) {
+                    clashes.push(format!("{name} boxes {i} and {j} along {axis}"));
+                }
+            }
+        }
+    }
+    assert!(clashes.is_empty(), "coplanar faces:\n{}", clashes.join("\n"));
+}
+
 /// Every machine that makes items has one product display and no other machine has one: a new maker can't ship
 /// without it.
 #[test]

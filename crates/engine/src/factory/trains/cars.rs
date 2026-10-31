@@ -49,6 +49,7 @@ impl Factory {
             t.idle = None;
         }
         t.head = fit.head;
+        t.halts = None;
         t.cars += 1;
         t.cargo.slots.resize(usize::from(t.cars) * CAR_SLOTS, Stack::default());
         true

@@ -16,20 +16,54 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::DOCK_UNLOAD_TOP => dock_top(x, y, [48.0, 160.0, 224.0], false),
         tex::SIGNAL => signal(x, y),
         tex::LOCO_BODY => loco_body(x, y),
+        tex::WHEEL => wheel(x, y),
+        tex::CAB_GLASS => cab_glass(x, y),
         _ => [255, 0, 255, 255],
     }
 }
 
-/// The locomotive's paint: deep green with a brass band round it and dark seams at its ends (rows: its boiler is round,
-/// and a round body's texture runs along it in y).
+/// The train's livery, locomotive and wagons alike: deep blue with an amber band low on every side and dark seams at
+/// the edges.
 fn loco_body(x: i32, y: i32) -> [u8; 4] {
     if y == 0 || y == 15 {
-        return rgb([30.0, 34.0, 32.0], 1.0);
+        return rgb([24.0, 28.0, 36.0], 1.0);
     }
-    if y == 7 || y == 8 {
-        return rgb([214.0, 172.0, 70.0], 0.95 + 0.1 * n(436, x, y));
+    if y == 10 || y == 11 {
+        return rgb([236.0, 168.0, 40.0], 0.95 + 0.1 * n(436, x, y));
     }
-    rgb([46.0, 92.0, 70.0], 0.92 + 0.1 * n(437, x, y))
+    if y == 12 {
+        return rgb([236.0, 236.0, 230.0], 0.95 + 0.05 * n(438, x, y));
+    }
+    rgb([44.0, 84.0, 156.0], 0.92 + 0.1 * n(437, x, y))
+}
+
+/// A wheel's face: a bright tyre round a dark disc, five spokes and a hub, so its turning shows.
+fn wheel(x: i32, y: i32) -> [u8; 4] {
+    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
+    let r = dx.hypot(dy);
+    let spoke = (dy.atan2(dx) * 5.0 / std::f64::consts::TAU).rem_euclid(1.0);
+    if r > 6.5 {
+        rgb([168.0, 172.0, 180.0], 0.9 + 0.1 * n(470, x, y))
+    } else if r < 1.8 {
+        rgb([200.0, 160.0, 60.0], 1.0)
+    } else if !(0.12..=0.88).contains(&spoke) {
+        rgb([120.0, 124.0, 132.0], 0.95 + 0.1 * n(471, x, y))
+    } else {
+        rgb([34.0, 36.0, 42.0], 0.9 + 0.2 * n(472, x, y))
+    }
+}
+
+/// Tinted cab glass: dark blue-grey with a pale streak where it catches the sky, and a dark frame.
+fn cab_glass(x: i32, y: i32) -> [u8; 4] {
+    if x == 0 || x == 15 || y == 0 || y == 15 {
+        return rgb([24.0, 26.0, 30.0], 1.0);
+    }
+    let streak = (x + y - 9).abs() <= 1 || (x + y - 14).abs() == 0;
+    if streak {
+        rgb([150.0, 176.0, 196.0], 1.0)
+    } else {
+        rgb([44.0, 62.0, 82.0], 0.92 + 0.1 * n(473, x, y))
+    }
 }
 
 /// A signal: a steel post under an amber lamp, on a dark ground.

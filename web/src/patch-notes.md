@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-10-31 · A modern train
+- **The locomotive is now a modern diesel**: a long blue hood with an amber band, a cab with a raked windscreen, headlamps, roof fans and two three-axle bogies. Wagons wear the same colours.
+- **Wheels turn as the train moves**, and trains **speed up and brake smoothly**, so they glide into a dock and stop with the first wagon right under the chute or over the grate.
+
 ## 2026-10-31 · Docks are part of the track
 - **A loading or unloading dock is now a piece of track.** Hold one and the rail nodes it fits are outlined: click one on straight north-south or east-west track and the dock takes its place, keeping the track on both sides. Breaking it gives the rail node back.
 - **Trains stop right on the dock.** The loading dock is a gantry with a chute that pours the goods into the wagon below; the unloading dock is a shed with a grate between the rails. Belts feed and empty them from the sides.

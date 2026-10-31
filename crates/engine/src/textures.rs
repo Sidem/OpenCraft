@@ -252,7 +252,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::WOOD_DOOR..=tex::PLASTER => house::pixel(layer, x, y),
         tex::MAT_METAL..=tex::MAT_AETHER => materials::pixel(layer, x, y),
         tex::SMOKE..=tex::SMOKE_THIN | tex::SOOT => smoke::pixel(layer, x, y),
-        tex::LOCO_BODY => transport::pixel(layer, x, y),
+        tex::LOCO_BODY | tex::WHEEL | tex::CAB_GLASS => transport::pixel(layer, x, y),
         tex::STEEL_PICKAXE..=tex::STEEL_SHOVEL => tools::tool(x, y, layer - tex::STEEL_PICKAXE, tools::STEEL_HEAD),
         _ => [255, 0, 255, 255],
     }

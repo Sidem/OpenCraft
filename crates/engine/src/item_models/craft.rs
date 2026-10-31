@@ -2,7 +2,7 @@
 //! models on the rails, `factory/trains/model.rs`), the rail signal, the fluid canisters and the light frame.
 //! Add a const and a `parts` row.
 
-use std::f32::consts::FRAC_PI_4;
+use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
 
 use super::shapes::{cylinder, Build, EMPTY};
 use super::{part, turned, Axis, Form, Part};
@@ -88,8 +88,12 @@ const fn car<const N: usize>(boxes: &[CarBox; N], s: f32, mid: f32) -> [Part; N]
     while i < N {
         let (x, y, z, size, layer, shape) = boxes[i];
         let c = [-z as f32 * s, (y as f32 - mid) * s, x as f32 * s];
-        out[i] = part(c, [size[2] * s, size[1] * s, size[0] * s], layer);
-        // The car's x is the item's z and the other way round.
+        // The car's x is the item's z and the other way round; a leaning part (it leans about its own x) is turned a
+        // quarter instead.
+        out[i] = match shape {
+            Form::Lean(_) => turned(c, [size[0] * s, size[1] * s, size[2] * s], FRAC_PI_2, layer),
+            _ => part(c, [size[2] * s, size[1] * s, size[0] * s], layer),
+        };
         out[i].form = match shape {
             Form::Round(Axis::X, t) => Form::Round(Axis::Z, t),
             Form::Round(Axis::Z, t) => Form::Round(Axis::X, t),
@@ -111,8 +115,8 @@ const fn depth(p: &Part) -> f32 {
     p.center[0] + p.center[1] + p.center[2]
 }
 
-const LOCO: [Part; 17] = car(&LOCOMOTIVE_BOXES, 0.35, 0.667);
-const WAGON_MODEL: [Part; 21] = car(&WAGON_BOXES, 0.36, 0.515);
+const LOCO: [Part; 37] = car(&LOCOMOTIVE_BOXES, 0.35, 0.667);
+const WAGON_MODEL: [Part; 17] = car(&WAGON_BOXES, 0.36, 0.515);
 
 /// A rail signal: a gunmetal footing, a steel post, the signal head with green over red lamps under their hoods.
 const SIGNAL: [Part; 7] = [

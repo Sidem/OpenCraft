@@ -296,8 +296,11 @@ def pod_pad_top():
 def loco_body():
     f = Face(283, STEEL, 1)
     # Flat paint: the round body the game draws it on shades itself (the box shader, `factory::push_round`).
-    f.fill(np.ones((N, N), bool), GREEN, 0.45)
-    f.rect((0, 52, N, 76), GOLD, 0.55, 1.0, 3, outline=False)
+    # Deep blue over an amber band and a pale pinstripe, dark seams top and bottom (`textures/transport.rs` in small).
+    f.fill(np.ones((N, N), bool), BLUE, 0.38, grain=0.05)
+    f.rect((0, 80, N, 96), GOLD, 0.6, 1.0, 3, outline=False)
+    f.rect((0, 96, N, 104), STEEL, 0.9, 0.5, 2, outline=False)
+    f.fill((YS < 6) | (YS >= N - 6), DARK, 0.4)
     return f.rgba()
 
 

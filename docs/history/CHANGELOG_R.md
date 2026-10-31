@@ -500,6 +500,34 @@ U1 to U3 and pod channels, as recorded when they were built.
   on a part; from 16 level directions at least two of five sight lines across it pass every part (a tall smelter
   chimney fails it).
 
+## Moved from the plan's recent changes (2026-10-31)
+
+- **2026-10-31: docks are track (T2).** `factory/rail/pieces.rs`: a dock (`is_dock`) goes only onto a rail node with a
+  grid heading, one track each end, no signal or train (`dock_fit`), and takes its place keeping its tracks
+  (`swap_rail_piece`); `rail_yaw` answers for it, so trains stop on it (`dock_at` is the node itself) and a third track
+  at a dock end is `Fit::DockEnd`. Core path `action/docks.rs` (`put_block`, `dismantle`); dock ghosts only onto such a
+  node (`plant_ghost`; before, a dock ghost could only stand in air, where no drone could build it). Hand:
+  `dock_tools.rs`. Models: a gantry with a chute and a shed over a grate, `Look::Pour` streams goods while the trade
+  sets the dock `Working`; `every_car_fits_through_both_docks` caught the chute 0.02 into the cars' way. Save 64
+  clears an old 2×2 dock's other cells. Not done: laying a dock in line on bare ground (one more click; T5 counts).
+
+- **2026-10-30: track lies on the ground (T1).** `factory/rail/ground.rs`: a node needs a solid block under it (`Sim::put_block`), a
+  track is checked at every quarter block and at each column it crosses (`faults`): ground within `MAX_DROP` under its
+  bed, at most `MAX_SINK` into it, the car's `CLEARANCE` empty (`Sim::connect`). The hand drops a node to the ground and
+  outlines cells to fill (amber) or clear (red); a gravel bed is drawn down to `MAX_DROP`. Fuzz over 2,000 seeded pairs:
+  1,670 fit the shape, 1,272 of them (76%) floated or cut through the ground before; 0 of the 398 now accepted fail a
+  separate 1/50-block oracle (it caught a 0.01 mismatch first). Old track kept; no save change.
+
+- **2026-10-31: a playtester's six notes.** Each landed as its own commit; all are unpushed on branch `worktree-playtest-notes`.
+  - Map: Mk names everywhere (`Factory::name_at`); worked-out deposits and stopped miners are marked, and the map has a key.
+  - Power statistics per grid (`analytics/`).
+  - Sort by kind (`inventory/kinds.rs`).
+  - Belts bend with Shift+R (`factory/belt_curve.rs`, save 62). A bent belt takes items from one side. Corners are
+    derived as before, and items ride an arc round them.
+  - Note signs (`signs/`, block 158, save 63). Their text is painted into reserved texture layers
+    (`render/sign-faces.ts`).
+  - Checks: the playtester's three saves gave the same item flows before and after the belt change.
+
 ## The FX step as it stood in the plan (moved 2026-10-30)
 
 - [ ] **FX Sound effects from recordings** (decided 2026-10-27, `docs/DECISIONS.md`). One step per session, in order. Tools
