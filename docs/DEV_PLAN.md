@@ -1,11 +1,11 @@
 # OpenCraft development plan
 
-**Status (2026-10-19):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b) and the play-test
-response R1–R7 plus S1–S4 (sky and weather) are built and pushed; the realistic art pass is live. R8 is decided
-as "none for now" (2026-10-22) and pod channels by name are done (2026-10-20); 13.6b waits for the user to play
-Milestone 13. Map hover and filters (U1), the telescope (U2) and the sickle for ground plants (U3) are done (2026-10-22), and
-belt items tell where they came from and can be clicked to stay selected (2026-10-24). Tips stay done, and the
-machine-stopped lesson is built (L1, 2026-10-24); the coal miner bridges to electricity and hand-crafted items can be taken apart, a torch in the hand lights the way and a left hand holds a second tool, and houses get doors, roof tiles and more, and a playtester's five notes are done (2026-10-25); the item guide answers how to get any item and the belt ejector drops a belt's items on the ground, with loose items merging into stacks (2026-10-26). Recorded sound effects (FX1–FX4) are held back on branch `sound-effects` (2026-10-28). Machines show what they make and wear their Mk as studs, and item icons fill their box (2026-10-28); the product turns on top of each machine, and round things are real cylinders and the long-distance pole a 2×2×4 transmission tower (2026-10-29); analytics' machines can be shown on the map (2026-10-29); round pipes, a round wire spool and two UI fixes, and 16 machine icons drawn after the real things, and blueprint keys that do what the label says and library cards with a picture and contents, and rates on machines, belts and the item guide (2026-10-30); a playtester's six notes: bendable belts with curved corners, sort by kind, power per grid, note signs, Mk names on the map and worked-out deposits marked (2026-10-31); trains: track lies on the ground, docks are pieces of track, a modern diesel that eases into its stops, cars you can aim at and open, docks laid in line (T1–T5, 2026-10-31); rails snap straight and docks cut straight track anywhere (2026-10-31). **Next: the feel-and-feedback interlude**, then the carry's era pieces, Milestone 14 (the space elevator).
+**Status (2026-11-01):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now" and the realistic art pass
+is live. Open: **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
+held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines, belts, maps, trains, playtester
+notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
+pieces, Milestone 14 (the space elevator).
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -54,7 +54,7 @@ industrialise. Not a Minecraft clone; its conventions can be broken freely.
 
 - **Needs before techs** (2026-10-16): new work gives the player a problem its tech solves. No more multiplier layers
   (compute, orbit) and no more perk layers. Depth in existing systems beats new systems.
-- **Peaceful**, no combat or PvE; pressure comes without enemies (R8). **Open-ended**: the megaproject unlocks, never ends.
+- **Peaceful**, no combat or PvE; no pressure system for now (R8, parked in the roadmap). **Open-ended**: the megaproject unlocks, never ends.
 - **Co-op 2–4 players**, lockstep over WebRTC with a deterministic core. **Old saves keep loading.** New generation rules
   apply to new worlds only (a world keeps its generator version).
 - **Content is data:** tiers index tables, processing machines are spec rows (`docs/TECH_TREE.md` section 8).

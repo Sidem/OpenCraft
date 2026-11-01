@@ -4,7 +4,8 @@ Future work only; read it when a milestone ends and the next is planned. `docs/D
 at each milestone's cleanup step, move the next item from here into the plan and detail it there (steps with where, how
 and done-when). Finished designs live in `docs/history/`, settled choices in `docs/DECISIONS.md`.
 
-**Order (2026-10-16):** R8, then the feel-and-feedback interlude, the carry's era pieces, Milestone 14. The order can
+**Order (2026-10-16, R8 dropped 2026-10-22):** the feel-and-feedback interlude, the carry's era pieces, Milestone 14.
+The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
 change with the user's priorities. Determinism (DEV_PLAN section 3.4), the agent rules (section 3.1) and the content
 architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone ends with a cleanup step.
 
@@ -12,9 +13,9 @@ architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone
 area → machines and drones doing the work → building from afar), carried by a tech tree where every technology opens
 something, improves efficiency or helps the player. Since 2026-10-16: needs before techs (`docs/DECISIONS.md`).
 
-## R8: pressure without combat (talk first)
+## Parked: pressure without combat (R8, decided "none for now" 2026-10-22; reopen only if the user asks)
 
-- **Pressure without combat (R8).** What enemies give Factorio is pressure: the factory can't be left alone. Peaceful options,
+- **Pressure without combat.** What enemies give Factorio is pressure: the factory can't be left alone. Peaceful options,
   all deterministic and built on existing systems: **subsidence** (hollowed lodes collapse unless backfilled or supported;
   already in "Later / maybe"), **groundwater** (deep mines below the water table seep and need pumps), **storms** (rare, from
   the core tick; lines in the open stop or wear unless roofed), **pollution** (smelters and generators spread a haze value
@@ -103,7 +104,7 @@ resources; completing it **unlocks** something rather than ending the game. Play
 ## Later / maybe
 
 - A tower-defence mode as a world setting (the user's idea; explicitly not now; 2026-10-16: still peaceful, no combat).
-- Subsidence: hollowed-out lodes collapse the ground above unless backfilled or supported (an R8 candidate).
+- Subsidence: hollowed-out lodes collapse the ground above unless backfilled or supported (one of the parked R8 options above).
 - Slabs, stairs and beams for building (R7's decor set is cubes only; needs non-cube meshing and hit boxes).
 - A world settings screen: ore richness, deposit size, peaceful toggle.
 - Catch-up on return: factories run forward for the time the game was closed, capped.

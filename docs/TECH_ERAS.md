@@ -88,7 +88,7 @@ Blueprints · Construction Drones · Jetpack · Personal Drone · Mk4 Logistics
 
 ## 4. Era 5: Earthworks (Milestone 8)
 
-The terraforming design (`docs/ROADMAP.md`, Milestone 8): planner, earthworks by drone ports (decided 2026-10-04: no
+The terraforming design (`docs/history/ROADMAP_DONE.md`, Milestone 8): planner, earthworks by drone ports (decided 2026-10-04: no
 separate excavator), tunnels. Techs (r g b v): Earthworks (planner, excavator), Tunnelling, Earthworks
 Mk2–3 via kits. Fill materials: dirt, stone, slag, later tailings. Concrete foundations: a fill job
 that places concrete as the top layer.
@@ -216,4 +216,4 @@ coverage (building from the map); science satellites downlink space data, the la
 
 A space elevator (chosen 2026-10-16, `docs/DECISIONS.md`; design in `docs/ROADMAP.md`). Built in phases in the world.
 Completing it unlocks, never ends: asteroid mining (ore arriving by drop pod: resources beyond the
-finite ground), and endless bonus techs keep compute busy.
+finite ground). No bonus-tech layer: "needs before techs" (`docs/DECISIONS.md`, 2026-10-16).

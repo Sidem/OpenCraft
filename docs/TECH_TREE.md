@@ -71,14 +71,14 @@ depend on it.
 | Era | Milestone | Research input | Tier colour | The new problem | Headline |
 |---|---|---|---|---|---|
 | 0–2 Iron, mechanical | M1–M5 (done) | red, green packs | Mk1 red, Mk2 green | quantity, throughput | miners, belts, power, labs, quarry |
-| 3 Industry | **M6 (now)** | blue packs | Mk3 blue | heat and flux | upgrades, assembler, steel, steam |
+| 3 Industry | M6 (done) | blue packs | Mk3 blue | heat and flux | upgrades, assembler, steel, steam |
 | 4 Electronics | M7 | violet packs | Mk4 violet | precision, depth | circuits, logic, blueprints, drones, jetpack |
 | 5 Earthworks | M8 | violet packs | — | terrain | planner, excavator, tunnels |
 | 6 Distance | M9 | violet packs | — | distance | aluminium, trains, cargo drones, hover pack |
 | 7 Chemistry | M10 | gold packs | Mk5 gold | fluids | oil, plastics, electrolysis, washer, nuclear |
 | 8 Compute | M11 | gold packs + compute | — | heat and bandwidth | chip fab, AI datacenters, laser links |
 | 9 Orbit | M12 | compute + space data | white (not a tier) | orbit | rockets, satellites, constellations |
-| 10 Megaproject | M13 | everything | — | scale | the final construction, which unlocks more |
+| 10 Megaproject | M14 (next big one; M13 Settlements is built, outside the era table) | everything | — | scale | the space elevator, which unlocks more |
 
 **Research inputs change form:** items (packs) through era 7, then **compute** (a flow from datacenters
 over the data network), then **space data** downlinked from science satellites. Late techs cost packs
