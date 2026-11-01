@@ -20,6 +20,7 @@
 //! To add a processor: a spec row (`specs.rs`). New behaviour (flows) goes here.
 
 mod ailab;
+mod assembly_view;
 mod basic;
 mod center;
 mod datacenter;

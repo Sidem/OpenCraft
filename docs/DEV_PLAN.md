@@ -263,6 +263,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-01: five machines remodelled** (user request): assembler, blast furnace, electrolytic cell, crusher and
+  arc furnace are real-looking models in `process/parts.rs` (new part builders `leaned`, `tapered` in `model.rs`), nine
+  pack faces redrawn (`docs/ART_HANDOVER.md`). The assembler's work is animated (`assembly_view.rs`, `Look::Work`): its
+  arms carry each batch's inputs off the conveyor to the fixture, a cartoon cloud hides the joining while the gantry
+  hammer pounds, and the product rides out; a pure function of the batch share (`model::batch_share`), at least
+  `MIN_CYCLE` a show, presentation only. Boxes per model: blast 11→23, cell 8→20, crusher 13→18, arc 8→21, assembler
+  10→about 40 (inputs, cloud and product only within `display::NEAR`); about 8.4 ns a box to write
+  (`bench_machine_marks`, which places no assemblers), so 200 such machines in view cost about 25 µs a frame more.
+
 - **2026-10-31: straight rails, docks anywhere.** A user note: "the rail is on a diagonal" blocked docks. The rail hand
   snaps (`rail_snap.rs`): a first node faces an axis (or a compass point), a later one aimed within 13° of an axis or of
   the node's heading goes onto that line, and onto an axis it takes the axis as its heading. A dock aimed at the ground

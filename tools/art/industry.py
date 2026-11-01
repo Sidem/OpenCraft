@@ -7,7 +7,7 @@ import numpy as np
 
 from kit import AETHER, BLUE, BRONZE, CONCRETE, COPPER, DARK, EMBER, FIREBRICK, GOLD, STEEL, TIERS, VERDIGRIS, VIOLET, XS, YS, Face
 from lib import N, coords, fbm, paint, rgba, vnoise
-from machines import arch_mask, rivet
+from machines import rivet
 from natural import RAMPS
 
 TIER_BELT = [EMBER, AETHER, BLUE, VIOLET]
@@ -165,26 +165,33 @@ def pole_side():
 
 
 def assembler_side():
+    """A machine cabinet: a teal strip under the lip, two louvred doors with handles, a status screen low on one. It
+    covers the assembler's bed (a wide, low face), its carriage and drive cabinet, and the upgrader's housing, so
+    nothing in it must stay round when stretched."""
     f = Face(121, STEEL, 7)
-    f.window((16, 16, 112, 68), VERDIGRIS, 0.55)
-    f.bar((30, 58), (50, 30), 6, STEEL, 0.6)
-    f.bar((50, 30), (84, 30), 6, STEEL, 0.6)
-    f.bar((84, 30), (98, 58), 6, STEEL, 0.55)
-    f.screen((16, 78, 58, 110), VERDIGRIS, 0.8, "bars")
-    f.slots((66, 78, 112, 110), 4, False, DARK)
-    f.stripe((8, 114, 120, 120), VERDIGRIS)
-    f.bolts()
+    f.rect((4, 4, 124, 124), STEEL, 0.36, 1.0, 3)
+    f.stripe((4, 10, 124, 20), VERDIGRIS)
+    for x0 in (10, 68):
+        f.rect((x0, 26, x0 + 50, 118), STEEL, 0.5, 1.0, 4)
+        f.slots((x0 + 8, 34, x0 + 42, 72), 4, False, DARK)
+        f.rect((x0 + 8, 80, x0 + 42, 110), STEEL, 0.4, -1.0, 3)
+    f.screen((18, 84, 50, 106), VERDIGRIS, 0.8, "bars")
+    f.lines((84, 86, 108, 104), 3, STEEL, 0.75)
+    f.bar((63, 60), (63, 84), 4, BRONZE, 0.6)
+    f.bar((66, 60), (66, 84), 4, BRONZE, 0.6)
+    f.bolts(((8, 8), (119, 8), (8, 119), (119, 119)), 3)
     return f.rgba()
 
 
 def assembler_top():
+    """The assembler's work table from above: a steel bed cut with T-slots, teal safety edges, bolted corners."""
     f = Face(122, STEEL, 7)
-    f.rect((16, 16, 112, 112), STEEL, 0.5, -1.0, 5)
-    f.rect((30, 30, 98, 98), DARK, 0.3, -1.0, 4)
-    for dx, dy in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-        f.bar((64 + dx * 10, 64 + dy * 10), (64 + dx * 30, 64 + dy * 30), 6, VERDIGRIS, 0.6, 0.5)
-    f.disc((64, 64), 12, BRONZE, 0.55, 1.0, 4)
-    f.bolts()
+    f.rect((4, 4, 124, 124), STEEL, 0.48, 1.0, 4)
+    for y in range(20, 112, 14):
+        f.rect((14, y, 114, y + 5), DARK, 0.28, -1.0, 2)
+    for box in ((4, 4, 124, 10), (4, 118, 124, 124), (4, 4, 10, 124), (118, 4, 124, 124)):
+        f.rect(box, VERDIGRIS, 0.6, 1.0, 2, 0.25)
+    f.bolts(((16, 14), (111, 14), (16, 113), (111, 113)), 3)
     return f.rgba()
 
 
@@ -237,15 +244,19 @@ def motor_side():
 
 
 def blast_side():
-    """A tall brick stack bound with iron hoops, an ember mouth low down."""
+    """A blast furnace's shell: firebrick-red plates in staggered courses, bound by riveted steel hoops. It wraps once
+    round the stack, hearth and stove (so it wraps sideways without a seam and reads stretched along the courses) and
+    also clads the cast-house floor and the boiler's firebox."""
     f = Face(127, STEEL, 7)
-    f.rect((8, 8, 120, 120), FIREBRICK, 0.4, 1.0, 3, grain=0.4)
-    for y in (20, 60, 100):
-        f.rect((8, y, 120, y + 10), STEEL, 0.4, 1.0, 3)
-        f.bolts(((18, y + 5), (110, y + 5)), 2, STEEL)
-    mouth = arch_mask(40, 88, 66, 98)
-    f.fill(mouth, EMBER, 0.75, 0.9, 0.5)
-    f.rect((36, 98, 92, 104), STEEL, 0.4, 1.0, 2)
+    f.rect((-8, -8, 136, 136), FIREBRICK, 0.42, 1.0, 3, grain=0.4)
+    courses = ((-8, 16), (30, 56), (70, 96), (110, 136))
+    for row, (y0, y1) in enumerate(courses):
+        for k in range(4):
+            x = (k * 32 + row * 16) % 128
+            f.rect((x, y0, x + 2, y1), DARK, 0.35, -1.0, 1)
+    for y in (16, 56, 96):
+        f.rect((-8, y, 136, y + 14), STEEL, 0.42, 1.0, 3)
+        f.bolts(tuple((x, y + 7) for x in range(8, 128, 16)), 2, STEEL)
     return f.rgba()
 
 

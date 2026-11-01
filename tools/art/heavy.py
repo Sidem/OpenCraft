@@ -135,23 +135,30 @@ def turbine_top():
 
 
 def crusher_side():
+    """A jaw crusher's cast frame cheek: heavy plate under a flange, crossed stiffener ribs round a bearing boss, a
+    hazard band along the foot (the jaws are on top, the flywheels outside)."""
     f = Face(145, STEEL, 7)
-    f.rect((10, 10, 118, 118), STEEL, 0.4, 1.0, 4)
-    f.hazard((10, 92, 118, 112), GOLD, DARK, 18, 0.6)
-    f.rect((26, 20, 102, 80), DARK, 0.25, -1.0, 5)
-    for i in range(5):
-        x = 34 + i * 16
-        f.bar((x, 26), (x + 8, 72), 7, STEEL, 0.6)
+    f.rect((4, 4, 124, 124), STEEL, 0.34, 1.0, 4)
+    f.rect((4, 6, 124, 18), STEEL, 0.55, 1.0, 2)
+    f.bar((16, 28), (112, 86), 10, STEEL, 0.58)
+    f.bar((16, 86), (112, 28), 10, STEEL, 0.58)
+    f.disc((64, 57), 14, BRONZE, 0.5, 1.0, 4)
+    f.disc((64, 57), 6, DARK, 0.3, -1.0, 2)
+    f.hazard((4, 98, 124, 118), GOLD, DARK, 18, 0.6)
+    f.bolts(((10, 26), (117, 26), (10, 90), (117, 90)), 3)
     return f.rgba()
 
 
 def crusher_top():
+    """The crusher's deck from above: a dark feed slot between two toothed jaw plates, bolted steel round it."""
     f = Face(146, STEEL, 7)
-    _recess(f)
-    f.rect((26, 26, 102, 102), STEEL, 0.4, -1.0, 4)
-    for i in range(4):
-        for j in range(4):
-            f.disc((40 + i * 16, 40 + j * 16), 6, DARK, 0.3, -1.0, 3)
+    f.rect((4, 4, 124, 124), STEEL, 0.44, 1.0, 4)
+    f.rect((18, 24, 110, 104), DARK, 0.22, -1.0, 5)
+    for y0, y1, tip in ((24, 44, 1), (84, 104, -1)):
+        f.rect((18, y0, 110, y1), STEEL, 0.5, 1.0, 3)
+        for x in range(22, 106, 12):
+            y = y1 if tip > 0 else y0 - 6
+            f.rect((x, y, x + 8, y + 6), STEEL, 0.62, 1.0, 2)
     f.bolts()
     return f.rgba()
 
@@ -178,20 +185,33 @@ def silo_top():
 
 
 def arc_side():
+    """An arc furnace's vessel: water-cooled panels of tubes running round it, fed by two blue headers, over a firebrick
+    hearth band. It wraps round the round vessel, so every row runs past the tile's edges."""
     f = Face(151, STEEL, 7)
-    f.rect((10, 10, 118, 118), STEEL, 0.4, 1.0, 4)
-    f.stripe((10, 24, 118, 40), VIOLET)
-    f.slots((24, 56, 104, 100), 5, False, VIOLET, 0.8)
-    f.bolts()
+    f.rect((-8, -8, 136, 136), STEEL, 0.3, 1.0, 3)
+    for y in range(4, 84, 11):
+        f.pipe((-8, y, 136, y + 10), False, STEEL, 0.5)
+    for x in (32, 96):
+        f.pipe((x - 6, 0, x + 6, 88), True, BLUE, 0.45)
+        f.bolts(((x, 10), (x, 78)), 2, STEEL)
+    f.rect((-8, 86, 136, 94), STEEL, 0.55, 1.0, 2)
+    f.rect((-8, 94, 136, 136), FIREBRICK, 0.4, 1.0, 3, grain=0.4)
+    for k in range(4):
+        f.rect((k * 32 + 14, 94, k * 32 + 16, 136), DARK, 0.35, -1.0, 1)
+    f.bolts(tuple((x, 90) for x in range(8, 128, 16)), 2, STEEL)
     return f.rgba()
 
 
 def arc_top():
+    """The furnace's roof (the cone round the glowing centre): finer cooling tubes, ringed round, with a violet bus
+    stripe for the electrode power and two blue headers."""
     f = Face(152, STEEL, 7)
-    _recess(f)
-    for x in (40, 88):
-        f.port((x, 64), 22, EMBER, 0.85, STEEL)
-    f.bar((40, 64), (88, 64), 5, VIOLET, 0.7, 0.9)
+    f.rect((-8, -8, 136, 136), STEEL, 0.32, 1.0, 3)
+    for y in range(2, 128, 8):
+        f.pipe((-8, y, 136, y + 7), False, STEEL, 0.48)
+    f.stripe((-8, 58, 136, 70), VIOLET)
+    for x in (16, 80):
+        f.pipe((x - 5, 0, x + 5, 128), True, BLUE, 0.45)
     return f.rgba()
 
 

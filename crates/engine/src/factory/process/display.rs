@@ -5,6 +5,7 @@
 //! and stop where they are when it doesn't. The product is the chosen recipe's (`Pick::Chosen`), else the last batch's
 //! (`Processor::shown`), so a machine that picks by input keeps showing it between batches; with none the plate turns
 //! empty. Drawn within `NEAR` only. Presentation only: the turn lives in a `Cell` and is neither saved nor hashed.
+//! `draw_item` fits any item's model to a slot (the assembler's work cell, `assembly_view.rs`, uses it too).
 
 use std::f32::consts::{FRAC_PI_2, TAU};
 
@@ -32,7 +33,7 @@ const FILL: f32 = 0.9;
 /// An item whose height is under this share of its narrower side lies flat and is stood on its edge.
 const FLAT: f32 = 0.5;
 /// The display is drawn within this many blocks of the camera: a small display is 5 px across there (1080p).
-const NEAR: f64 = 48.0;
+pub(super) const NEAR: f64 = 48.0;
 
 impl Processor {
     /// What its display shows: the chosen recipe's product, else the last batch's.
@@ -69,13 +70,22 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
         return;
     }
     let turn = yaw + p.display_turn(time);
-    let (s, c) = (turn.sin() as f64, turn.cos() as f64);
-    let place =
-        |v: [f32; 3]| at + Vec3::new(c * v[0] as f64 - s * v[2] as f64, v[1] as f64, s * v[0] as f64 + c * v[2] as f64);
-    let floor = -size[1] / 2.0;
+    let floor = at - Vec3::new(0.0, f64::from(size[1]) / 2.0, 0.0);
     let plate = [size[0] * PLATE_SIDE, PLATE, size[2] * PLATE_SIDE];
-    push_box(out, place([0.0, floor + PLATE / 2.0, 0.0]), turn, plate, 0.0, [tex::SIGN, tex::FRAME, tex::FRAME], false);
+    let lid = [tex::SIGN, tex::FRAME, tex::FRAME];
+    push_box(out, floor + Vec3::new(0.0, f64::from(PLATE) / 2.0, 0.0), turn, plate, 0.0, lid, false);
     let Some(item) = p.product() else { return };
+    let rest = floor + Vec3::new(0.0, f64::from(PLATE), 0.0);
+    draw_item(out, item, rest, turn, [size[0], size[1] - PLATE], true);
+}
+
+/// Draws `item`'s model scaled to fit a turning slot `size` across and high whose floor's centre is at `floor`
+/// (relative to the camera), turned by `turn`; a flat item (a plate, a tool) stands on its edge when `stand_flat`.
+pub(super) fn draw_item(out: &mut Vec<f32>, item: ItemId, floor: Vec3, turn: f32, size: [f32; 2], stand_flat: bool) {
+    let (s, c) = (turn.sin() as f64, turn.cos() as f64);
+    let place = |v: [f32; 3]| {
+        floor + Vec3::new(c * v[0] as f64 - s * v[2] as f64, v[1] as f64, s * v[0] as f64 + c * v[2] as f64)
+    };
     let plain;
     let parts = match item_models::parts(item) {
         [] => {
@@ -85,14 +95,14 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
         }
         parts => parts,
     };
-    let stand = lies_flat(parts);
+    let stand = stand_flat && lies_flat(parts);
     let (lo, hi) = bounds(parts, stand);
     let radius = (hi[0] - lo[0]).hypot(hi[2] - lo[2]) / 2.0;
-    let k = (size[0] * FILL / 2.0 / radius.max(1e-3)).min((size[1] - PLATE) * FILL / (hi[1] - lo[1]).max(1e-3));
+    let k = (size[0] * FILL / 2.0 / radius.max(1e-3)).min(size[1] * FILL / (hi[1] - lo[1]).max(1e-3));
     let mid = [(lo[0] + hi[0]) / 2.0, (lo[2] + hi[2]) / 2.0];
     for part in parts {
         let t = if stand { up(part.center) } else { part.center };
-        let v = [(t[0] - mid[0]) * k, floor + PLATE + (t[1] - lo[1]) * k, (t[2] - mid[1]) * k];
+        let v = [(t[0] - mid[0]) * k, (t[1] - lo[1]) * k, (t[2] - mid[1]) * k];
         let size = part.size.map(|x| x * k);
         match (stand, part.form) {
             (false, form) => push_shape(out, form, place(v), turn + part.yaw, size, part.tex, false),

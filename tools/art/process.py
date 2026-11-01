@@ -15,22 +15,30 @@ def _recess(f, box=(14, 14, 114, 114)):
 
 
 def cell_side():
+    """A reduction pot's steel shell: a high-current hazard flange along the top, heavy riveted plate, and along the foot
+    the copper ends of the cathode collector bars, each with its flexible lead. Drawn on a long low box, so it is a row
+    of even repeats."""
     f = Face(191, STEEL, 7)
-    f.rect((10, 10, 118, 118), STEEL, 0.4, 1.0, 4)
-    f.hazard((10, 14, 118, 30), AMBER, DARK, 18, 0.6)
-    f.window((22, 42, 106, 86), AETHER, 0.75)
-    f.bar((34, 82), (34, 50), 6, COPPER, 0.6)
-    f.bar((94, 82), (94, 50), 6, COPPER, 0.6)
-    f.slots((22, 96, 106, 112), 3, False, DARK)
+    f.rect((-8, 0, 136, 128), STEEL, 0.36, 1.0, 3, grain=0.25)
+    f.hazard((-8, 6, 136, 24), AMBER, DARK, 18, 0.6)
+    f.rect((-8, 24, 136, 32), STEEL, 0.55, 1.0, 2)
+    f.bolts(tuple((x, 46) for x in range(8, 128, 16)), 2, STEEL)
+    for k in range(4):
+        x = 8 + k * 32
+        f.rect((x, 64, x + 16, 88), COPPER, 0.55, 1.0, 3)
+        f.bar((x + 8, 88), (x + 8, 120), 6, COPPER, 0.42)
     return f.rgba()
 
 
 def cell_top():
+    """The pot's hood covers (the sloped hoods, and the icon's top): eight lift-off panels with a grab handle each.
+    A hood squeezes it about four to one along its length, so each panel ends near square."""
     f = Face(192, STEEL, 7)
-    _recess(f)
-    f.rect((24, 24, 104, 104), AETHER, 0.5, -1.0, 6, 0.7)
-    f.bar((34, 34), (94, 94), 4, COPPER, 0.6)
-    f.bar((94, 34), (34, 94), 4, COPPER, 0.6)
+    for k in range(8):
+        x = k * 16
+        f.rect((x, 2, x + 16, 126), STEEL, 0.46 + 0.06 * (k % 2), 1.0, 2)
+        f.rect((x + 6, 40, x + 10, 88), DARK, 0.3, -1.0, 1)
+        f.rect((x + 4, 56, x + 12, 72), BRONZE, 0.55, 1.0, 1)
     return f.rgba()
 
 

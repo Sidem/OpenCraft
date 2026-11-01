@@ -1,7 +1,7 @@
 //! Processor models as data: a spec's `parts` are boxes (centre and size in block units, relative to
 //! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band (with the
 //! Mk studs of `tier_mark.rs` round it), the product display (`display.rs`), the status lamp, a fire that glows while working, a press that pumps and a chimney's smoke are looks, so a new
-//! processor is rows, not drawing code. Round bodies are real ones (`round`, `round_x`: `push_round`). A multi-block
+//! processor is rows, not drawing code. Round bodies are real ones (`round`, `round_x`, `tapered`: `push_round`); `leaned` tilts a box (an arm, a hood). A multi-block
 //! machine's port hatches are drawn from its footprint.
 
 use crate::block::tex;
@@ -43,6 +43,9 @@ pub enum Look {
     /// A dock's stream of goods (`docks.rs`): no box, but while it trades with a train its first stored item falls
     /// from the part's top to its bottom, `POUR_ITEMS` at a time, the part's width across.
     Pour,
+    /// The assembler's work cell in motion (`assembly_view.rs`): its arms, the batch's inputs, the work cloud, the
+    /// hammer and the product. No box; the part only marks the fixture's top.
+    Work,
 }
 
 #[derive(Clone, Copy)]
@@ -65,9 +68,20 @@ pub const fn turned(at: [f32; 3], size: [f32; 3], look: Look, turn: f32) -> Part
     Part { at, size, look, turn, form: Form::Box }
 }
 
+/// A part turned `turn` quarter turns more than its machine, then leaned by `pitch` about its own x (`Form::Lean`):
+/// with no turn its top goes towards +z, a quarter turn more towards -x (a robot's arm, a sloped hood).
+pub const fn leaned(at: [f32; 3], size: [f32; 3], look: Look, turn: f32, pitch: f32) -> Part {
+    Part { at, size, look, turn, form: Form::Lean(pitch) }
+}
+
 /// An upright round body (a tank, column or drum) `size` across, high and deep.
 pub const fn round(at: [f32; 3], size: [f32; 3], look: Look) -> Part {
     Part { at, size, look, turn: 0.0, form: UPRIGHT }
+}
+
+/// An upright round body whose top is `taper` times as wide as its foot (a furnace's stack, a dome).
+pub const fn tapered(at: [f32; 3], size: [f32; 3], look: Look, taper: f32) -> Part {
+    Part { at, size, look, turn: 0.0, form: Form::Round(Axis::Up, taper) }
 }
 
 /// A round body lying along x (a boiler drum), `size` long, high and deep.
@@ -114,6 +128,10 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
                 }
                 continue;
             }
+            Look::Work => {
+                super::assembly_view::draw(p, out, centre, yaw, time);
+                continue;
+            }
             Look::Tex(t) => t,
             Look::Band(top) => {
                 // A machine that comes in tiers wears its Mk studs around its band.
@@ -130,11 +148,8 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             }
             Look::Channel => [tex::GRID_FIRST + u16::from(p.channel()); 3],
             Look::Rocket => {
-                if let Some(r) = p.batch_recipe().filter(|_| p.batch.is_some()) {
-                    // Blended into the tick like the drones, at last tick's speed, so the climb is smooth.
-                    let rate = f64::from(p.stats().speed) * f64::from(p.speed) / 1e3 * f64::from(p.boost) / 1e3;
-                    let ahead = if working { (time / TICK).fract() * rate } else { 0.0 };
-                    let done = (f64::from(p.progress) + ahead) / f64::from(ticks(r.seconds));
+                if let Some(share) = batch_share(p, time) {
+                    let done = share * 1000.0;
                     let lift = ((done - LIFT_AT) / (1000.0 - LIFT_AT)).clamp(0.0, 1.0);
                     let thrust = ((done - IGNITE_AT) / (LIFT_AT - IGNITE_AT)).clamp(0.0, 1.0) as f32;
                     let base = at - Vec3::new(0.0, f64::from(part.size[1]) / 2.0, 0.0);
@@ -179,6 +194,26 @@ fn pour(p: &Processor, out: &mut Vec<f32>, at: Vec3, size: [f32; 3], time: f64) 
         let yaw = (k as f64 * 1.3 + time * 3.0) as f32;
         push_box(out, spot, yaw, def.size.map(|s| s * unit as f32), 0.0, def.tex, false);
     }
+}
+
+/// How much of its batch `p` has done at render `time` (0 to 1), or None with no batch: blended into the tick like
+/// the drones, at last tick's speed, so what follows it (a rocket's climb, an arm) moves smoothly.
+pub(super) fn batch_share(p: &Processor, time: f64) -> Option<f64> {
+    let r = p.batch_recipe()?;
+    let ahead = if p.status == Status::Working { (time / TICK).fract() * rate(p) } else { 0.0 };
+    // Progress counts thousandths of a Mk1 tick.
+    Some(((f64::from(p.progress) + ahead) / f64::from(ticks(r.seconds)) / 1000.0).min(1.0))
+}
+
+/// How many seconds `p`'s batch takes at last tick's speed, or None with no batch.
+pub(super) fn batch_seconds(p: &Processor) -> Option<f64> {
+    let r = p.batch_recipe()?;
+    Some(f64::from(ticks(r.seconds)) * 1000.0 / rate(p).max(1.0) * TICK)
+}
+
+/// Progress a tick at last tick's speed: thousandths of a Mk1 tick.
+fn rate(p: &Processor) -> f64 {
+    f64::from(p.stats().speed) * f64::from(p.speed) / 1e3 * f64::from(p.boost) / 1e3
 }
 
 /// A point `at` of a part, in the machine's own frame (front towards +z), turned by `yaw` about `centre`.

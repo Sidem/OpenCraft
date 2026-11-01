@@ -3,6 +3,13 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-01 · Machines that look the part
+- **The assembler is now a robot cell you can watch work**: two orange robot arms pick each part off the conveyor and set it on the fixture, a little work cloud puffs up while the hammer pounds, and the finished item rides out of the front. An overhead gantry carries the turning display of what it makes, at the top centre.
+- **The arc furnace** is a round, water-cooled furnace with a domed roof, three graphite electrodes on copper arms from a mast at the back, and a glowing roof, slag door and tap spout while it runs.
+- **The blast furnace** is a tall tapering stack with a hot-blast stove, a skip bridge climbing to the top and a glowing tap hole.
+- **The electrolytic cell** is a long reduction pot with sloped hood covers and a copper anode beam; its bath glows at the seams while it works.
+- **The crusher** is a jaw crusher: a hopper on top, a jaw that pounds, and big flywheels driven by a belt from its motor.
+
 ## 2026-10-31 · Straight rails, docks anywhere
 - **Rails snap straight.** Aim within about 13 degrees of north, south, east or west (or straight on from the last node) and the node goes onto that line, so straight track is the usual result. The first node of a line faces an axis too. Aim wider and the track still bends as before.
 - **Docks go anywhere along straight track.** Hold a dock and aim at the ground along north-south or east-west track: it goes down right there and cuts the track in two. It needs 3 blocks of track on each side, no train on it, and ground under both halves.
