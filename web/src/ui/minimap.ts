@@ -5,7 +5,7 @@
 // machine marks (`minimap_marks`, colours from the engine) and the player's pins (pins.ts; those out of
 // range sit on the rim, pointing the way) go on an overlay canvas at the same rate, clipped by the round
 // frame; the map filters (map-filter.ts) hide marks and pins, and resting the cursor on one shows what it is
-// (map-info.ts, while the cursor is free: in a menu or panel). Under it sits the XYZ readout with its look gizmo (compass.ts). N toggles both for this page only: a new game or reload always starts with the map shown, and `update`
+// (map-info.ts, while the cursor is free: in a menu or panel). Under it sits the XYZ readout with its facing signs (compass.ts). N toggles both for this page only: a new game or reload always starts with the map shown, and `update`
 // puts it back if anything else hid it. While shown it sets `--map-space` on #hud so the other top-right
 // HUD items move below it.
 

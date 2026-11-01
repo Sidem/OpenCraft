@@ -1,4 +1,4 @@
-/* Position readout under the minimap (ui/compass.ts): the gizmo canvas and the X / Y / Z rows. The
+/* Position readout under the minimap (ui/compass.ts): the X / Y / Z rows, each with its facing sign. The
    height is mirrored as COMPASS_PX in compass.ts. */
 
 .compass {
@@ -10,20 +10,12 @@
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 10px 0 4px;
+  padding: 0 10px;
   border-radius: 10px;
   background: var(--panel);
   border: 2px solid var(--panel-border);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   pointer-events: none;
-}
-
-.cp-gizmo {
-  width: 64px;
-  height: 64px;
-  flex: none;
-  margin: -2px 0;
 }
 
 .cp-rows {
@@ -37,11 +29,30 @@
 
 .cp-row {
   display: flex;
-  justify-content: space-between;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   text-shadow: 0 1px 2px #000;
 }
 
 .cp-value {
+  flex: 1;
   color: #fff;
+}
+
+/* The facing sign: faint when only partly facing that axis, a solid pill in the axis colour when it is the main one. */
+.cp-tag {
+  width: 18px;
+  height: 15px;
+  border-radius: 8px;
+  text-align: center;
+  line-height: 15px;
+  color: var(--axis);
+  opacity: 0.6;
+  text-shadow: none;
+}
+
+.cp-tag.main {
+  background: var(--axis);
+  color: #111;
+  opacity: 1;
 }

@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-01 · Which way am I facing?
+- **The coordinates under the minimap now say which way you face.** The little 3D arrow, which could point towards you or away from you, is gone. Instead each of X, Y and Z ends in a "+" or "−": a solid coloured badge on the axis you face most (so "+" on X means you look towards growing X, east), and a faint sign on any other axis you are also partly facing, such as when looking diagonally or up and down.
+
 ## 2026-11-01 · Machines that look the part
 - **The assembler is now a robot cell you can watch work**: two orange robot arms pick each part off the conveyor and set it on the fixture, a little work cloud puffs up while the hammer pounds, and the finished item rides out of the front. An overhead gantry carries the turning display of what it makes, at the top centre.
 - **The arc furnace** is a round, water-cooled furnace with a domed roof, three graphite electrodes on copper arms from a mast at the back, and a glowing roof, slag door and tap spout while it runs.
