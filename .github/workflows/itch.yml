@@ -1,0 +1,75 @@
+name: Deploy to itch.io
+
+# The itch.io build is `main` plus the `itch` branch (itch/ holds the store page notes and pack script).
+# A push to either branch redeploys: the job checks out `itch`, merges `main` into the workspace (nothing
+# is pushed back), builds, and pushes the bundle with butler. Does nothing until the repo variable
+# ITCH_TARGET ("user/game", no channel) and the secret BUTLER_API_KEY exist: docs/WORKFLOW.md section 4.
+
+on:
+  push:
+    branches: [main, itch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: itch
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.ITCH_TARGET != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: itch
+          fetch-depth: 0
+
+      - name: Merge main into the workspace
+        run: |
+          git config user.name "itch deploy"
+          git config user.email "itch-deploy@users.noreply.github.com"
+          git merge --no-edit origin/main
+
+      - name: Install Rust toolchain
+        run: rustup toolchain install --profile minimal
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build engine
+        run: npm run build:wasm
+
+      - name: Check
+        run: npm run check
+
+      - name: Bundle
+        run: npx vite build
+
+      # Fails on absolute asset URLs and over-limit bundles, and writes itch-build/opencraft-html5.zip.
+      - name: Pack
+        run: node itch/pack.mjs
+
+      - name: Install butler
+        run: |
+          curl -fsSL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler-bin
+          chmod +x butler-bin/butler
+          echo "$PWD/butler-bin" >> "$GITHUB_PATH"
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: butler push dist "${{ vars.ITCH_TARGET }}:html5" --userversion "$(git rev-parse --short origin/main)"

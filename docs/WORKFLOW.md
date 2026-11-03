@@ -73,6 +73,15 @@ section 3.1) and use the browser for final visual proof.
 Every push to `main` runs `.github/workflows/pages.yml`: engine tests, build, then publish to GitHub Pages.
 **Ask the user before any push to `main`.** The user may ask to push without waiting for the deployment.
 
+### itch.io (the `itch` branch)
+
+The itch.io build is `main` plus the `itch` branch, which holds only itch-specific files (`itch/`: pack script,
+store page notes). `.github/workflows/itch.yml` runs on a push to either branch: it checks out `itch`, merges
+`main` into the workspace (nothing is pushed back), checks, builds and `butler push`es `dist` to the `html5`
+channel. It does nothing until the repo variable `ITCH_TARGET` (`user/game`) and the secret `BUTLER_API_KEY` are
+set (the user holds both). Keep `itch` current with `git merge main` whenever you touch it. Pushing `itch` never
+touches GitHub Pages. The Worker allows `https://*.itch.zone` (see below); setup and store page: `itch/STORE.md`.
+
 ### The co-op signalling Worker (`signal/`, Cloudflare)
 
 Deployed at **<https://opencraft-signal.opencraft.workers.dev>** (the user's account, subdomain

@@ -57,7 +57,20 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 function originAllowed(origin: string, env: Env): boolean {
-  return LOCAL_ORIGIN.test(origin) || env.ALLOWED_ORIGINS.split(',').some((o) => o.trim() === origin);
+  return LOCAL_ORIGIN.test(origin) || env.ALLOWED_ORIGINS.split(',').some((o) => originMatches(o.trim(), origin));
+}
+
+/** An exact origin, or one with a `*` standing for a single subdomain label (`https://*.itch.zone`). */
+function originMatches(pattern: string, origin: string): boolean {
+  const star = pattern.indexOf('*');
+  if (star < 0) return pattern === origin;
+  const prefix = pattern.slice(0, star);
+  const suffix = pattern.slice(star + 1);
+  return (
+    origin.startsWith(prefix) &&
+    origin.endsWith(suffix) &&
+    /^[a-z0-9-]+$/i.test(origin.slice(prefix.length, origin.length - suffix.length))
+  );
 }
 
 function newCode(): string {

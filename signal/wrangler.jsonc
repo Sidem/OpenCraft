@@ -10,7 +10,8 @@
   // SQLite-backed Durable Objects are the kind the Workers Free plan offers.
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
   "vars": {
-    // Pages allowed to call the Worker from a browser, besides localhost.
-    "ALLOWED_ORIGINS": "https://sidem.github.io"
+    // Pages allowed to call the Worker from a browser, besides localhost. `*` stands for one subdomain
+    // label: itch.io serves HTML5 games from html-classic.itch.zone and similar hosts.
+    "ALLOWED_ORIGINS": "https://sidem.github.io,https://*.itch.zone"
   }
 }
