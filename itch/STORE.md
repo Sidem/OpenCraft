@@ -7,8 +7,8 @@ the two branches fit together is in `docs/WORKFLOW.md` section 4.
 
 1. **Project page:** itch.io → Upload new project. Kind of project: **HTML**. Save as a draft first; the page must
    exist before the first push.
-2. **API key:** itch.io → Settings → API keys → Generate. In the GitHub repo: Settings → Secrets and variables →
-   Actions → secret `BUTLER_API_KEY` (the key), variable `ITCH_TARGET` (`<itch user>/<game url slug>`).
+2. **API key:** itch.io → Settings → API keys → Generate. Follow `itch/butler-key.example.txt`: it sets the secret
+   `BUTLER_API_KEY` and the variable `ITCH_TARGET` (`hexlife/opencraft`, the page at hexlife.itch.io/opencraft).
 3. **Worker:** redeploy the signalling Worker so it accepts itch (`cd signal; npx wrangler deploy`).
 4. **First push:** push `main` and `itch` to GitHub. The workflow uploads the `html5` channel.
 5. **Page settings** (Edit game): the `html5` upload is ticked "This file will be played in the browser"; viewport

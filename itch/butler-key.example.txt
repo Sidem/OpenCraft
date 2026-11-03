@@ -1,0 +1,8 @@
+Copy this file to itch/butler-key.txt (git-ignored) and replace everything in it with your itch.io API key,
+on a single line, nothing else. Get the key at https://itch.io/user/settings/api-keys ("Generate new API key").
+Then, from the repo root, in PowerShell:
+
+  gh secret set BUTLER_API_KEY --repo Sidem/OpenCraft --body (Get-Content itch/butler-key.txt -Raw).Trim()
+  gh variable set ITCH_TARGET --repo Sidem/OpenCraft --body hexlife/opencraft
+
+Delete itch/butler-key.txt afterwards. Never paste the key into chat, an issue or a commit.
