@@ -30,7 +30,7 @@ export interface ComfortSettings {
 
 /** [min, max, step] of every numeric setting; the menu sliders and the loader share them. */
 export const RANGES = {
-  fov: [50, 100, 1],
+  fov: [70, 120, 1],
   sensitivity: [25, 200, 5],
   vignette: [0, 3, 1],
   thirdDistance: [2, 8, 0.5],
@@ -40,9 +40,9 @@ export const RANGES = {
 } as const;
 
 export const DEFAULTS: ComfortSettings = {
-  fov: 72,
+  fov: 100,
   sensitivity: 100,
-  vignette: 1,
+  vignette: 0,
   thirdPerson: false,
   thirdDistance: 4,
   crosshairStyle: 'cross',
