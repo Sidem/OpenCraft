@@ -102,7 +102,7 @@ export class Renderer {
   private readonly viewProj = new Float32Array(16);
   private readonly planes = new Float32Array(24);
 
-  fovY = (72 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
+  fovY = (100 * Math.PI) / 180; // vertical field of view in radians (the comfort setting)
   skySettings: SkySettings = SKY_DEFAULTS; // how the sky is drawn (sky/settings.ts, set from the menu)
   readonly weather = new WeatherSky(); // the weather as drawn (`.ease.value`); the rain and snow pass reads it
   readonly precip: PrecipPass; // rain, snow and the ground's wet or snowy look (precip.ts)

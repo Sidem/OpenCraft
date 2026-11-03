@@ -18,7 +18,7 @@ interface Slider {
 }
 
 const SLIDERS: Slider[] = [
-  { key: 'fov', label: 'Field of view', help: 'Try 60 to 90. Too wide stretches the edges; too narrow feels like a tunnel.', unit: '°' },
+  { key: 'fov', label: 'Field of view', help: 'Try 90 to 110. Too wide stretches the edges; too narrow feels like a tunnel.', unit: '°' },
   { key: 'sensitivity', label: 'Mouse sensitivity', help: 'Slower turning is easier on the stomach.', unit: '%' },
   { key: 'thirdDistance', label: 'Camera distance', help: 'How far behind the player the camera sits in third person.', unit: ' blocks' },
   { key: 'crosshairSize', label: 'Crosshair size', help: 'A fixed point to rest your eyes on.', unit: ' px' },
