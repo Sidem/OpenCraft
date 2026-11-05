@@ -75,7 +75,7 @@ float cloudNoise(vec3 dir, float wind, vec2 shift) {
 }
 float cloudThick(float d, float cover) {
   float edge = 1.0 - cover;
-  return smoothstep(edge - 0.1, edge + 0.22, d);
+  return smoothstep(edge - 0.03, edge + 0.08, d); // crisp edges: puffy cumulus, not haze
 }
 float cloudAt(vec3 dir, float cover, float wind) {
   return cloudThick(cloudNoise(dir, wind, vec2(0.0)), cover);

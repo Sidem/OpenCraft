@@ -32,8 +32,9 @@ export interface SkyView {
   look?: SkyLook;
 }
 
-const DAY_ZENITH: Rgb = [0.36, 0.58, 0.92];
-const DAY_HORIZON: Rgb = [0.62, 0.79, 0.96];
+// The day's blues follow the key art (docs/ART_STYLE.md, "The key-art look"): deep azure overhead, pale clear blue low.
+const DAY_ZENITH: Rgb = [0.1, 0.42, 0.94];
+const DAY_HORIZON: Rgb = [0.52, 0.77, 0.98];
 const NIGHT_ZENITH: Rgb = [0.015, 0.025, 0.07];
 const NIGHT_HORIZON: Rgb = [0.05, 0.08, 0.17];
 const DUSK_HORIZON: Rgb = [0.96, 0.56, 0.32];
@@ -120,8 +121,10 @@ function weathered(s: Sky, look: SkyLook): Sky {
 function cloudColours(s: Sky, look: SkyLook): { lit: Rgb; dark: Rgb } {
   const h = s.sun[1];
   let lit = mix(mix([0.14, 0.17, 0.28], [1, 0.8, 0.6], s.day), [1.05, 1.05, 1.05], smoothstep(0.05, 0.4, h) * s.day);
-  let dark = mix(lit, [0.55, 0.62, 0.78], 0.5);
-  dark = [dark[0] * 0.62, dark[1] * 0.62, dark[2] * 0.66];
+  // Shaded sides: a light blue-grey under fair-weather cloud by day, darker at night.
+  let dark = mix(lit, [0.58, 0.66, 0.84], 0.5);
+  const shade = 0.62 + 0.2 * s.day;
+  dark = [dark[0] * shade, dark[1] * shade, dark[2] * (shade + 0.04)];
   if (look.dusk) {
     const glow = duskGlow(h) * (1 - look.gloom);
     lit = mix(lit, [1.1, 0.45, 0.22], glow * 0.85);
@@ -271,10 +274,11 @@ void main() {
   vec3 dir = normalize(u_forward + v_ndc.x * u_right + v_ndc.y * u_up);
   vec3 col = mix(u_horizon, u_zenith, pow(clamp(dir.y, 0.0, 1.0), 0.55));
   float s = dot(dir, u_sun);
-  // Sun: a crisp disc with a soft glow; it fades as it sets.
+  // Sun: a crisp disc in a bright glow and a wide warm halo; it fades as it sets.
   float up = smoothstep(-0.1, 0.05, u_sun.y);
   col += vec3(1.0, 0.85, 0.6) * pow(max(s, 0.0), 48.0) * 0.35 * up;
-  col = mix(col, vec3(1.0, 0.96, 0.84), smoothstep(0.9990, 0.9994, s) * up);
+  col += vec3(1.0, 0.95, 0.82) * (pow(max(s, 0.0), 6.0) * 0.16 + pow(max(s, 0.0), 400.0) * 0.5) * up * u_day;
+  col = mix(col, vec3(1.0, 0.98, 0.9), smoothstep(0.9987, 0.9991, s) * up);
   float night = 1.0 - u_day;
   if (u_quality == 0) {
     // The classic night: a full moon opposite the sun and hashed stars.

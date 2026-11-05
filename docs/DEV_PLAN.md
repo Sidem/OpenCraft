@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
-**Status (2026-11-01):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
-response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now" and the realistic art pass
-is live. Open: **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
+**Status (2026-11-05):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
+is live and graded toward the key art. Open: **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines, belts, maps, trains, playtester
 notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
 pieces, Milestone 14 (the space elevator).
@@ -262,6 +262,10 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-11-05: the key-art look** (user request): the sky, clouds, vegetation colours and meadow density moved toward
+  the store thumbnail (`docs/ART_STYLE.md`, "The key-art look": measurements, costs, what was kept). Vegetation greens
+  ship through `tools/art/grade.py`; grassland cover denser (`mesher/cover.rs`); mesh fingerprint re-recorded on purpose.
 
 - **2026-11-01: five machines remodelled** (user request): assembler, blast furnace, electrolytic cell, crusher and
   arc furnace are real-looking models in `process/parts.rs` (new part builders `leaned`, `tapered` in `model.rs`), nine

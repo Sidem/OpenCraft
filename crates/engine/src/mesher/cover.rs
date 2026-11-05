@@ -147,10 +147,11 @@ fn turf(biome: Biome, roll: u32, kind: u32, meadow: bool) -> Option<u16> {
     const PLAINS: [u16; 3] = [tex::DAISY, tex::POPPY, tex::BLUEBELL];
     const WET: [u16; 2] = [tex::BLUEBELL, tex::DAISY];
     const HILLS: [u16; 2] = [tex::BLUEBELL, tex::BLUEBELL];
+    // Grassland is lush (docs/ART_STYLE.md, "The key-art look"): about a quarter of plains columns carry a tuft.
     let (tufts, ferns, flowers, kinds): (u32, u32, u32, &[u16]) = match biome {
-        Biome::Plains => (130, 0, 14, &PLAINS),
-        Biome::Lowlands => (90, 80, 10, &WET),
-        Biome::Highlands => (70, 40, 12, &HILLS),
+        Biome::Plains => (250, 0, 26, &PLAINS),
+        Biome::Lowlands => (150, 80, 16, &WET),
+        Biome::Highlands => (100, 40, 16, &HILLS),
         Biome::Desert => (20, 0, 0, &[]),
         Biome::BasaltFields => (40, 0, 0, &[]),
     };

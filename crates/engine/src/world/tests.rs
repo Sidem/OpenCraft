@@ -86,6 +86,7 @@ fn bench_meshing() {
 
 /// Fingerprint of every mesh a seed-1337 world makes around spawn (view radius 3), sorted by chunk. Recorded from the
 /// mesher before ground cover could be cleared (U3): an empty cleared set must keep producing exactly these bytes.
+/// Re-recorded on purpose 2026-11-04 when grassland got denser cover (`mesher/cover.rs`, the key-art pass).
 #[test]
 fn untouched_chunks_mesh_as_they_always_did() {
     let mut w = World::new(1337, 3);
@@ -102,8 +103,8 @@ fn untouched_chunks_mesh_as_they_always_did() {
         bytes.extend(m.verts.iter().flat_map(|v| v.to_le_bytes()));
     }
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
-    // Taken from the mesher as it was before `Cover::cleared` existed: 39 chunks, 75,464 cutout quads, 1,983,916 bytes.
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 75_464, 0x9ebe_2cfe_4b82_78ad));
+    // 39 chunks and 90,868 cutout quads (75,464 before the denser grassland cover).
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 90_868, 0xb5f1_81e1_aa0d_362a));
 }
 
 fn drain_meshes(w: &mut World) {

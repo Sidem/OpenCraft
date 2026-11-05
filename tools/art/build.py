@@ -3,7 +3,7 @@
 Writes `artifacts/art2/tiles/<layer>_<name>.png` (each 128 x 128 RGBA tile), `artifacts/art2/sheet.png` (every
 tile; repeating ones shown 2 x 2 so seams show; glowing texels brightened beside the tile) and, for a full run, the pack
 the game loads: `web/src/art/pack.png` (the tiles stacked, RGBA), `pack_glow.png` (their glow, grey) and `pack.json`
-(layer table). Pass names to render a subset and skip the pack.
+(layer table). Pass names to render a subset and skip the pack. Vegetation ships through `grade.py` (the sunny grade).
 """
 import json
 import sys
@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+import grade
 import registry
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,7 +35,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     cells, tiles = [], []
     for e in registry.LAYERS:
-        tile = e.make()
+        tile = grade.finish(e, e.make())
         tiles.append(tile)
         if want and e.name not in want:
             continue

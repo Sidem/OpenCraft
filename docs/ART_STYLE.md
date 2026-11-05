@@ -325,3 +325,31 @@ per alternate, and no ore pair with quartz is under 0.08. Pack 3.24 MB (+0.32 MB
 seed 4242, pillars at (8..30, 67, 8), rain): bark, birch, dead wood, planks, log ends, the canopies and quartz were
 looked at; the hotbar-sized handle and stick were not. Still stylized among natural blocks:
 cactus, water (its own renderer work), the plant sprites, and batch 4 (stone and masonry bricks, concrete, basalt tiles).
+
+## The key-art look (2026-11-05)
+
+The user asked for the game to look more like its key art (the store thumbnail: a bright meadow, deep blue sky, white
+clouds). Measured on the key art against a noon frame in game (sRGB means, the game first):
+
+| Region | Game before | Key art | Game after |
+|---|---|---|---|
+| sky near the top of the view | 117, 167, 239 | 25, 124, 241 | 67, 141, 245 |
+| grass tops on screen | 64, 90, 41 | 96, 121, 25 (near), 71, 119, 65 (mid) | 89, 124, 46 |
+| canopies on screen | 44, 68, 26 | 91, 139, 49 | brighter lime (tile 110, 162, 55) |
+
+**What changed.** The sky's day colours (`render/sky.ts`: `DAY_ZENITH`, `DAY_HORIZON`, which is also the fog), a wide
+warm halo round the sun, lighter cloud undersides by day; a clear day's cloud cover (`sky/weather.ts` `CLEAR`) and
+crisper cloud edges (`sky/clouds.ts` `cloudThick`). The art pack ships vegetation through `tools/art/grade.py`: green
+texels only (an Oklab hue band times a chroma ramp) get lightness ×1.25 (canopies ×1.4, seen mostly from the shaded
+side), chroma ×1.4 and a 3° turn toward yellow, so soil, stains, bark and petals keep their bytes. The photo judge
+still scores the tiles as painted (`check.py`); every other rule scores what ships (rusty grass now stands out on 42%,
+limit 45%). Normal maps come from the painted tiles. Plants: a taller, fuller tuft and larger poppy and daisy heads
+(`plants.py`); grassland grows about twice the tufts and more flowers (`mesher/cover.rs` `turf`).
+
+**Costs.** Pack +47 KB (3.29 MB, budget 4 MB). Cutout quads around spawn 75,464 → 90,868 (the mesh fingerprint test
+was re-recorded on purpose); `bench_meshing` 0.57–0.60 ms a chunk before and after (within noise).
+
+**Kept on purpose.** The key art draws pixel-art grass, a square sun and clouds built of cubes. Those are Minecraft
+markers, and the art decision is to move away from Minecraft (`docs/DECISIONS.md`), so the tiles keep their
+photo-referenced structure, the sun stays round and the clouds stay a noise layer. The clouds are the weakest match
+still: fewer and smaller than in the key art.

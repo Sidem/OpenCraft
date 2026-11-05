@@ -35,7 +35,8 @@ export interface SkyLook {
   clouds: 0 | 1 | 2;
 }
 
-export const CLEAR: Weather = { cover: 0.12, gloom: 0, precip: 0, snow: false };
+/** A clear day still has scattered fair-weather clouds (the key art's sky); `kindOf` calls it cloudy above 0.4. */
+export const CLEAR: Weather = { cover: 0.38, gloom: 0, precip: 0, snow: false };
 
 /** Biomes in the engine's order (audio/surroundings.ts): plains, desert, highlands, lowlands, basalt fields. */
 const WET = [0, -0.12, 0.02, 0.04, 0];

@@ -5,7 +5,7 @@ Rules, each measured on the rendered tiles (docs/ART_STYLE.md section 6):
   phase   texel phases look alike (>= 0.15; upscaled grids score 0.0, hard-edged machine faces 0.2-0.9), so no layer is an upscaled 64 or 32 grid
   colours at most 96 distinct colours in a tile (a painted palette, not noise); `real` tiles are continuous tone instead
   realism `real` tiles with a material in realism.py: colour distance, hard-edge share and lightness spread against the
-          CC0 photos of that material (limits in `realism_fails`)
+          CC0 photos of that material (limits in `realism_fails`), judged as painted, before `grade.py`'s sunny grade
   deposits no two ores' deposits share a colour under any colour-vision type (`deposit_colours`)
   value   mean Oklab lightness 0.18..0.78: no tile near black or white (glowing tiles may go down to 0.12)
   cutout  alpha is only 0 or 255; leaves 55-85% covered, glass 10-45%
@@ -17,6 +17,7 @@ import sys
 
 import numpy as np
 
+import grade
 import realism
 import registry
 from stains import KINDS
@@ -134,7 +135,8 @@ def main():
     fails, tiles = [], {}
     print(f"{'layer':>5} {'name':16} {'seam':>5} {'phase':>6} {'cols':>5} {'L':>5}  shadow->light hue")
     for e in registry.LAYERS:
-        tile = e.make()
+        painted = e.make()
+        tile = grade.finish(e, painted)  # every rule judges what ships, except realism: the photos judge the painting
         tiles[e.name] = (e, tile)
         rgb, alpha, glow = tile[..., :3], tile[..., 3], tile[..., 4]
         lab = to_lab(rgb)
@@ -153,7 +155,7 @@ def main():
         if cols > 96 and not e.real:
             fails.append(f"{e.name}: {cols} colours")
         if e.real and e.name in REAL_TILES:
-            fails += realism_fails(e.name, rgb, REAL_TILES[e.name])
+            fails += realism_fails(e.name, painted[..., :3], REAL_TILES[e.name])
         if not lo <= mean_l <= (0.95 if glow.max() > 8 else 0.78):
             fails.append(f"{e.name}: mean lightness {mean_l:.2f}")
         if e.cutout:

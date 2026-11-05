@@ -155,7 +155,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `check-map.mjs` (this map and the core layer),
   `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
   `bench-flight.mjs` (frame timing on a real save), `bake-sky/` (star data, not part of the build).
-- `tools/art/`: the art pack's Python tool (`build.py`, `check.py`); see `docs/ART_STYLE.md`.
+- `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).
 
 ## Where the tuning knobs live

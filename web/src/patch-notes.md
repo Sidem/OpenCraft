@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-05 · A sunnier world
+- **The world now looks more like the game's cover picture.** The daytime sky is a deeper blue, the sun has a wider warm glow, and a clear day has a few white clouds drifting over it with crisper edges.
+- **Grass, leaves and plants are brighter and greener**, a fresh meadow green instead of the old dark olive. Bark, soil and stone keep their natural colours.
+- **Meadows are fuller:** grass tufts are taller and about twice as common on the plains, and there are more flowers. Poppies and daisies have bigger heads.
+
 ## 2026-11-01 · Which way am I facing?
 - **The coordinates under the minimap now say which way you face.** The little 3D arrow, which could point towards you or away from you, is gone. Instead each of X, Y and Z ends in a "+" or "−": a solid coloured badge on the axis you face most (so "+" on X means you look towards growing X, east), and a faint sign on any other axis you are also partly facing, such as when looking diagonally or up and down.
 

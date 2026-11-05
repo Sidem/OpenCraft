@@ -1,7 +1,7 @@
 """Plants on crossed transparent quads (docs/ART_STYLE.md): ground cover, saplings, the indicator plants over stained
 ground, and the torch. Drawn with `draw.Pen` in plant space (0..1, standing on y = 0); each recipe is seeded, so a
-rebuild gives the same plant. Colours stay muted and cool-shadowed so a meadow reads as one place; flowers are the
-accents. To add one: a function returning `pen.rgba()` and a row in `registry.py` (`cutout=True`).
+rebuild gives the same plant. Colours stay cool-shadowed so a meadow reads as one place; flowers are the accents; the
+greens ship brighter through `grade.py`. To add one: a function returning `pen.rgba()` and a row in `registry.py` (`cutout=True`).
 """
 import numpy as np
 
@@ -33,10 +33,10 @@ def tuft(seed=1):
     rng = np.random.default_rng(seed)
     pen = Pen()
     blades = []
-    for i in range(15):
-        f = i / 14
-        x0 = 0.1 + 0.8 * f + rng.uniform(-0.03, 0.03)
-        h = (0.22 + 0.4 * rng.uniform() * (1 - abs(f - 0.5) * 1.1))
+    for i in range(20):  # a full, knee-high tuft (the key art's meadow), tallest in the middle
+        f = i / 19
+        x0 = 0.08 + 0.84 * f + rng.uniform(-0.03, 0.03)
+        h = (0.3 + 0.5 * rng.uniform() * (1 - abs(f - 0.5) * 1.1))
         blades.append((rng.uniform(0.12, 0.55), x0, h, rng.uniform(-0.12, 0.12), rng.uniform(-0.1, 0.1)))
     for light, x0, h, lean, bow in sorted(blades):
         pen.blade((x0, 0.0), (x0 + lean, h), bow, 0.024 + 0.012 * light, GREEN, light)
@@ -54,10 +54,10 @@ def _stem(pen, top, bow, rng, leaves=2):
 def daisy():
     rng = np.random.default_rng(2)
     pen = Pen()
-    _stem(pen, (0.55, 0.62), 0.05, rng)
-    pen.petals((0.55, 0.66), 14, 0.2, 0.026, CREAM, 0.65)
-    pen.ellipse((0.55, 0.66), 0.058, 0.058, 0, AMBER, 0.55)
-    pen.ellipse((0.55, 0.66), 0.026, 0.026, 0, AMBER, 0.2)
+    _stem(pen, (0.55, 0.64), 0.05, rng)
+    pen.petals((0.55, 0.68), 14, 0.27, 0.034, CREAM, 0.65)
+    pen.ellipse((0.55, 0.68), 0.075, 0.075, 0, AMBER, 0.55)
+    pen.ellipse((0.55, 0.68), 0.034, 0.034, 0, AMBER, 0.2)
     return pen.rgba()
 
 
@@ -65,9 +65,9 @@ def poppy():
     rng = np.random.default_rng(3)
     pen = Pen()
     _stem(pen, (0.5, 0.56), -0.06, rng)
-    for dx, dy, rot, r in ((-0.075, 0.0, 0.5, 0.085), (0.075, 0.0, -0.5, 0.085), (0.0, 0.06, 0.0, 0.08), (0.0, -0.05, 0.0, 0.08)):
-        pen.ellipse((0.5 + dx, 0.62 + dy), r, r * 0.92, rot, CRIMSON, 0.58)
-    pen.ellipse((0.5, 0.62), 0.026, 0.026, 0, CRIMSON, 0.0)
+    for dx, dy, rot, r in ((-0.1, 0.0, 0.5, 0.11), (0.1, 0.0, -0.5, 0.11), (0.0, 0.08, 0.0, 0.105), (0.0, -0.065, 0.0, 0.105)):
+        pen.ellipse((0.5 + dx, 0.64 + dy), r, r * 0.92, rot, CRIMSON, 0.62)
+    pen.ellipse((0.5, 0.64), 0.034, 0.034, 0, CRIMSON, 0.0)
     return pen.rgba()
 
 
