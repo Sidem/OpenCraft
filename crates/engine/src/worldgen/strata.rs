@@ -187,6 +187,12 @@ impl WorldGen {
         starters.iter().fold((i32::MAX, 0), |(lo, hi), s| (lo.min(s.1 .0), hi.max(s.1 .1)))
     }
 
+    /// The top block of the nearest starter outcrop of `ore` (it shows there: `a_starter_set_shows_near_spawn`), for
+    /// the opening's guide (`opening/miners.rs`).
+    pub(crate) fn starter_patch(&self, ore: BlockId) -> Option<IVec3> {
+        self.starter_outcrops().into_iter().find(|d| d.ore() == ore).map(|d| d.center + IVec3::new(0, 1, 0))
+    }
+
     /// The chance that an outcrop slot of `ore` on bare rock shows at the surface.
     fn exposed_chance(&self, ore: BlockId) -> f64 {
         let metal = matches!(ore, COAL_ORE | IRON_ORE | COPPER_ORE | BAUXITE_ORE);

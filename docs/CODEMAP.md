@@ -38,7 +38,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `ghosts.rs`: planned blocks. `drones/`: construction drones, `earthworks.rs` (terraforming), `cargo/` (cargo routes).
 - `helpers/`: jetpack, personal drone, hover pack. `blueprint/mod.rs`: blueprint data and bytes (`plan.rs` the library's view from above).
 - `signs/`: note signs (both cells, text, colours, `Action::EditSign`, bytes); `view.rs` draws the boards and gives the nearest their text slots.
-- `satellites.rs`: satellites in orbit. `pods.rs`: drop pods in flight. `opening.rs`: a new world's opening scene.
+- `satellites.rs`: satellites in orbit. `pods.rs`: drop pods in flight. `opening.rs`: a new world's opening scene (`opening/miners.rs` the guide on to two coal miners).
 - `settlements/`: towns (Milestone 13). `orders.rs` data (orders, upkeep), `run.rs` (the tick), `plans.rs` and `plots.rs`
   (buildings), `build.rs` (the town's drones), `state.rs` (bytes), `perks/` (forge, workshop, relay, `harbour/`).
 - `hints.rs`: onboarding tips (checks on the core; `Sim::step_tips` latches the opening's and the main tips' progress).

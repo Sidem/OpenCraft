@@ -46,6 +46,8 @@ export class Hints {
   private readonly skipped: Set<number>;
   private shown = -1;
   private openingStep = 0;
+  /** The opening card's text as drawn: a walk to a starter patch counts its blocks down without a new animation. */
+  private openingText = '';
   /** The lesson on the card (`lesson_now`'s number), so another cause redraws it. */
   private lesson = 0;
   /** Whether the opening's line ran last frame (null before the first, so loading a world never cheers). */
@@ -128,9 +130,11 @@ export class Hints {
       return;
     }
     if (step > 0) {
-      if (this.shown === OPENING && step === this.openingStep) return;
-      this.show(OPENING, 'Getting started', g.opening_text(step));
+      const text = g.opening_text(step);
+      if (this.shown !== OPENING || step !== this.openingStep) this.show(OPENING, 'Getting started', text);
+      else if (text !== this.openingText) this.draw(text);
       this.openingStep = step;
+      this.openingText = text;
       return;
     }
     // A machine that has stood stalled near the player: its lesson goes ahead of the side and main tips.

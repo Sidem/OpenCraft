@@ -45,6 +45,7 @@ pub use bearing::Bearing;
 pub use biome::Biome;
 use caves::CaveField;
 pub use geology::ore_shares;
+pub(crate) use logbook::compass;
 pub use ore::LODE_HEIGHTS;
 pub use trees::tree_blocks;
 pub(crate) use trees::{species_of_sapling, trunk_range};

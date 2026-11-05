@@ -47,24 +47,25 @@ pub const HINTS: &[Hint] = &[
         done: |inv, f| f.processors_of(crate::block::SMELTER) > 0 || inv.count(IRON_INGOT) > 0,
     },
     Hint {
-        text: "Build a miner: in the build menu craft iron plates, iron rods and copper wire from ingots (a \
-               craft takes a few seconds and queues up), then a *Miner Mk1*. Asking for the miner queues the \
-               parts itself when you hold the ingots. Mining by hand wastes most of the ore, so build one early. \
-               No copper yet? A *Coal Miner* needs only iron and stone and burns coal instead of power.",
+        text: "Build a miner: press [E] and craft a *Coal Miner* from iron ingots and stone (asking for it queues \
+               its iron plates and rods by themselves). It burns coal instead of power, so it works the moment you \
+               light it. Mining by hand wastes most of the ore, so build one early.",
         done: |inv, _| inv.count(MINER.into()) > 0 || inv.count(COAL_MINER.into()) > 0,
     },
     Hint {
         text: "Place the miner on ore: rock speckled with colour (dark coal, rusty iron, orange and green copper) \
                shows a short walk from where you start, and [M] opens the map. Select the miner on the hotbar and \
-               [Right-click] an *ore block*: it drills the whole deposit for you. *Coal first*, to fuel its power. \
-               A Coal Miner is fuelled by hand instead: [Right-click] it to open it.",
+               [Right-click] an *ore block*: it drills the whole deposit for you. *Coal first*: [Right-click] the \
+               miner and give it a coal, and on coal it keeps its own fire going. A second one on iron needs coal \
+               from the first.",
         done: |_, f| f.count(Kind::Miner) > 0,
     },
     Hint {
-        text: "Power it: a Mk1 miner runs on electricity (a coal miner burns fuel instead). Build a *coal generator* and a *power pole* within 5 blocks \
-               of both. A new pole is selected: click the generator and the miner to wire them to it (a Mk1 \
-               pole holds 4 wires). Start the generator with coal ore or logs ([Right-click] it). A miner on coal \
-               next to the generator keeps it fuelled: one coal runs a miner long enough to dig about 32.",
+        text: "Go electric: a *Miner Mk1* digs three times the ore of a coal miner and wastes less, but it runs on \
+               power, and it, the *coal generator* and the *power pole* need copper wire: mine copper (orange and \
+               green) by hand or set a coal miner on it. Put a pole within 5 blocks of the generator and the miner; \
+               a new pole is selected: click both to wire them (a Mk1 pole holds 4 wires). Start the generator with \
+               coal ([Right-click] it); a miner on coal next to it keeps it fuelled.",
         done: |_, f| f.count(Kind::Generator) > 0 && f.count(Kind::Pole) > 0,
     },
     Hint {

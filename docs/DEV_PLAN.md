@@ -263,6 +263,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-05: the opening leads to two coal miners (user, `/deepen`).** A probe of 60 new worlds: the player
+  started with no stone (the slab drops bricks), plain stone showed within 90 blocks on 17, digging down hit granite on 8
+  (high ground), and the scene paid exactly for a Miner Mk1 nobody could power. Now the source box holds the iron for two
+  coal miners, no copper; the end box their stone and coal (`opening.rs` `STOCK`, `OUT_STOCK`); `opening/miners.rs`
+  guides craft, place on the starter coal patch, light, place on iron, fuel, with a Coal/Iron prompt over a patch block in
+  the open (`open_top`; seed 7 has a tree over its coal) and a live distance and bearing on the card. Save version 67 (the
+  patches; older scenes end at the ingots as before). `guide_on_many_seeds` plays it through actions on 200 seeds, all
+  pass: walks spawn to coal median 26 (max 28), coal to iron 45 (max 50). Crafting both takes about a minute.
+
 - **2026-11-05: the key-art look** (user request): the sky, clouds, vegetation colours and meadow density moved toward
   the store thumbnail (`docs/ART_STYLE.md`, "The key-art look": measurements, costs, what was kept). Vegetation greens
   ship through `tools/art/grade.py`; grassland cover denser (`mesher/cover.rs`); mesh fingerprint re-recorded on purpose.

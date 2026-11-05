@@ -208,8 +208,10 @@ outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 s
 electricity is the **Coal Miner** (4 iron plates, 3 iron rods and 8 stone, no copper): it burns coal ore or logs
 (right-click it to open it and give it fuel) instead of drawing power, digs a third as much as a Mk1 and keeps 40%, and
 has no upgrades. On a coal deposit it keeps a few coal back from its own digging, so it runs by itself. A belt that
-ends at it feeds it coal ore or logs, so one coal line can keep a row of them going. Hand-mining
-an outcrop or two and a furnace cover your first miner, generator and poles. After that, let them do the work.
+ends at it feeds it coal ore or logs, so one coal line can keep a row of them going. A new world starts at a small
+stopped line: mend it, and its box pays for two coal miners (iron, stone and coal), and the tips walk you to the nearest
+coal and iron patches, marked where they lie, to set one on each. Hand-mining an outcrop or two and a furnace then cover
+your first electric miner, generator and poles. After that, let them do the work.
 
 - **Upgrades.** Machines come in tiers, shown by the coloured stripe on them (red Mk1, green Mk2, with one
   dot per Mk). Green kits (2 gears, 4 screws and 2 copper wire make 4) upgrade a placed machine in place,

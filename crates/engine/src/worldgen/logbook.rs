@@ -91,7 +91,7 @@ impl WorldGen {
 }
 
 /// The compass point of (dx, dz) in words; north is -z.
-fn compass(dx: i32, dz: i32) -> &'static str {
+pub(crate) fn compass(dx: i32, dz: i32) -> &'static str {
     let (ax, az) = (dx.abs() * 100, dz.abs() * 100);
     let (ew, ns) = (dx > 0, dz < 0);
     if az * 100 < 41 * ax {

@@ -10,6 +10,7 @@
 use crate::block::{tex, BlockId, COAL_MINER, MINER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::item::{self, ItemId};
+use crate::math::IVec3;
 use crate::recipes::fuel_energy;
 use crate::TICK_RATE;
 
@@ -96,6 +97,30 @@ impl Burner {
             parts.push(format!("{} kJ stored", self.stored_kj()));
         }
         (!parts.is_empty()).then(|| parts.join(" · "))
+    }
+}
+
+/// A coal miner set against a deposit, as the opening's guide sees it (`opening/miners.rs`).
+pub struct CoalMinerView {
+    pub pos: IVec3,
+    pub ore: ItemId,
+    /// It has been given fuel: some is held or burning, or it has dug something.
+    pub lit: bool,
+}
+
+impl super::Factory {
+    /// Every coal miner on a deposit.
+    pub fn coal_miners(&self) -> impl Iterator<Item = CoalMinerView> + '_ {
+        self.miners.iter().filter(|m| m.is_coal() && m.deposit.is_some()).map(|m| CoalMinerView {
+            pos: m.pos,
+            ore: m.ore,
+            lit: m.burner.fuel.total() > 0 || m.burner.energy > 0 || m.out.total() > 0,
+        })
+    }
+
+    /// How many electric miners there are.
+    pub fn electric_miners(&self) -> usize {
+        self.miners.iter().filter(|m| !m.is_coal()).count()
     }
 }
 

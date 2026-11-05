@@ -17,6 +17,8 @@ const KINDS: Record<number, { icon: Icon; label: string }> = {
   3: { icon: { key: 'R' }, label: 'Turn' },
   4: { icon: { mouse: 'right' }, label: 'Open' },
   5: { icon: { mouse: 'right' }, label: 'Check' },
+  6: { icon: { mouse: 'right' }, label: 'Coal' },
+  7: { icon: { mouse: 'right' }, label: 'Iron' },
 };
 
 export class KeyPrompt {

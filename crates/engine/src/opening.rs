@@ -2,23 +2,24 @@
 //! player, on a stone-brick slab, a small line has stopped (a box of ore, belts, a stone furnace with coal,
 //! a box for the ingots). One belt has come loose and lies on the grass in front of the gap it left (outlined
 //! by the HUD), with ore waiting at its edge. Picking the loose belt up, putting it back and turning it with R
-//! (it runs the way the player faced) starts the line, and its last load is the iron and copper for a first miner.
+//! (it runs the way the player faced) starts the line. Its load is the iron for two coal miners, and the box at the
+//! end already holds their stone and the coal to light them. Then the guide (`opening/miners.rs`) walks the player
+//! through crafting them and setting one on the starter coal patch and one on the starter iron patch.
 //!
 //! Built once by `Sim::build_opening` (from `Game::new_normal`, before the first tick), with plain world
 //! edits and `Sim::put_block`. `Opening` (core state, saved since version 47) remembers where it is, so the
 //! HUD can say what to do next (`Opening::step`, read-only). Old and creative worlds have none.
 //!
 //! Invariants: the scene is a pure function of the generator. Progress only moves forward (`Opening::advance`,
-//! once a tick, saved since version 57): once the line has run or a miner exists, the tips for putting the belt
-//! back never return, however the player later rebuilds the scene.
+//! once a tick, saved since version 57): once the line has run, the tips for putting the belt back never return,
+//! however the player later rebuilds the scene; once both coal miners burn, or an electric miner exists, nothing does.
+//! Scenes from before version 67 have no patches (`coal`, `iron`) and end when the ingots are taken, as they did.
 //! To change the scene: the constants below (cells in the scene's frame: `r` to the right, `d` away from
 //! the player, `y` up from the ground the player starts on) and `STOCK`.
 
 use std::f64::consts::FRAC_PI_2;
 
-use crate::block::{
-    self, BlockId, AIR, BELT, COAL_ORE, COPPER_ORE, DIRT, GRASS, IRON_ORE, SMELTER, STONE_BRICKS, STORAGE,
-};
+use crate::block::{self, BlockId, AIR, BELT, COAL_ORE, DIRT, GRASS, IRON_ORE, SMELTER, STONE, STONE_BRICKS, STORAGE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::{Factory, Kind, DIRS};
 use crate::inventory::{add_to_slots, Inventory};
@@ -38,6 +39,10 @@ pub struct Opening {
     pub source: IVec3,
     pub out: IVec3,
     pub progress: Progress,
+    /// The top blocks of the starter coal and iron patches, where the coal miners go (`opening/miners.rs`). None in
+    /// scenes from before version 67.
+    pub coal: Option<IVec3>,
+    pub iron: Option<IVec3>,
 }
 
 /// How far the world's opening has got. It never goes back.
@@ -47,9 +52,14 @@ pub enum Progress {
     Start,
     /// The gap belt has been put back the right way round; the ingots are still to be taken.
     Fixed,
-    /// Someone took ingots or has a miner: nothing more to teach.
+    /// The ingots are taken: two coal miners are still to be set up (`opening/miners.rs`).
+    Mining,
+    /// Both coal miners burn, or someone has an electric miner: nothing more to teach.
     Over,
 }
+
+/// `Progress` by its saved byte (Mining came last, in version 67).
+const PROGRESS_BYTES: [Progress; 4] = [Progress::Start, Progress::Fixed, Progress::Over, Progress::Mining];
 
 /// What the opening asks of the player now.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -64,17 +74,42 @@ pub enum Step {
     Rotate,
     /// Take the ingots from the box at the end.
     Take,
+    /// Craft a coal miner.
+    Craft,
+    /// Set it against the starter coal patch.
+    PlaceCoal,
+    /// Give the coal miner on coal its first fuel.
+    FuelCoal,
+    /// Set the second against the starter iron patch.
+    PlaceIron,
+    /// Give the coal miner on iron fuel.
+    FuelIron,
     Done,
 }
 
-/// The steps by number for the host (`api/opening.rs`): 0 is done.
-pub const STEPS: [Step; 6] = [Step::Done, Step::Pick, Step::Collect, Step::Place, Step::Rotate, Step::Take];
+/// The steps by number for the host (`api/opening.rs`): 0 is done. Append only.
+pub const STEPS: [Step; 11] = [
+    Step::Done,
+    Step::Pick,
+    Step::Collect,
+    Step::Place,
+    Step::Rotate,
+    Step::Take,
+    Step::Craft,
+    Step::PlaceCoal,
+    Step::FuelCoal,
+    Step::PlaceIron,
+    Step::FuelIron,
+];
 
 /// What a floating prompt over the scene shows (`Opening::marker`; drawn by `web/src/ui/key-prompt.ts`).
 pub const PROMPT_HOLD_LEFT: u8 = 1;
 pub const PROMPT_RIGHT_CLICK: u8 = 2;
 pub const PROMPT_KEY_R: u8 = 3;
 pub const PROMPT_OPEN: u8 = 4;
+/// 5 is the stall lesson's (`stall_lesson.rs`).
+pub const PROMPT_COAL: u8 = 6;
+pub const PROMPT_IRON: u8 = 7;
 
 impl Step {
     /// The HUD tip for this step (empty when done). `*words*` are highlighted and `[keys]` drawn as keys
@@ -88,7 +123,30 @@ impl Step {
                 "*Wrong way round!* A belt runs the way you face. Look at it and press [R] to turn it until its \
                  arrows point to the furnace."
             }
-            Step::Take => "*It runs again!* Ingots collect in the box at the end: [Right-click] it to take them.",
+            Step::Take => {
+                "*It runs again!* Ingots collect in the box at the end, where stone and coal wait too: [Right-click] \
+                 it and press *Take all*."
+            }
+            Step::Craft => {
+                "*Build a coal miner:* press [E] and craft a *Coal Miner* (its iron parts queue up by themselves). \
+                 You have enough for two: one for coal, one for iron. It burns coal instead of power."
+            }
+            Step::PlaceCoal => {
+                "*Coal first:* walk to the coal patch (dark speckled rock) where the marker floats, select the coal \
+                 miner and [Right-click] a coal block to set it against it."
+            }
+            Step::FuelCoal => {
+                "*Light it:* [Right-click] the coal miner and put coal ore in its fuel slot. On coal it keeps its \
+                 own fire going, so one is enough: keep the rest for your second miner."
+            }
+            Step::PlaceIron => {
+                "*Now iron:* walk to the iron patch (rock speckled rusty brown) where the marker floats and \
+                 [Right-click] an iron ore block with your second coal miner."
+            }
+            Step::FuelIron => {
+                "*Fuel it:* [Right-click] it and give it coal. It digs iron, not coal, so keep it fed: the miner on \
+                 coal fills up with coal you can take."
+            }
             Step::Done => "",
         }
     }
@@ -107,20 +165,23 @@ const LOOSE_D: i32 = 3;
 /// Cells cleared above the ground, and filled below it where the ground dips.
 const CLEAR: i32 = 12;
 const FILL: i32 = 4;
-/// The source box: exactly the ingots for a Miner Mk1 (14 iron, 3 copper) and a copper ingot over.
-/// Copper goes in last, so it comes out first and waits at the gap.
-const STOCK: [(BlockId, u32); 2] = [(IRON_ORE, 14), (COPPER_ORE, 4)];
+/// The source box: the iron for two coal miners, and no copper, so nothing tempts a miner that needs power
+/// (`the_scene_pays_for_two_coal_miners` checks it against the recipe).
+const STOCK: [(BlockId, u32); 1] = [(IRON_ORE, 22)];
+/// Waiting in the box for the ingots: the stone for two coal miners and coal to light them and keep the one on iron
+/// going for a few minutes.
+const OUT_STOCK: [(BlockId, u32); 2] = [(STONE, 16), (COAL_ORE, 8)];
 /// Coal in the furnace, more than the load needs; what is left is the player's.
-const COAL: u32 = 6;
+const COAL: u32 = 8;
 /// Looking down at the loose belt (the gap is straight ahead, the loose belt in line before it), so the first
 /// thing aimed at is what to pick up.
 pub const PITCH: f64 = -0.42;
 
 impl Opening {
     /// What the player should do now, from the progress and what the scene and their inventory show. The belt
-    /// steps only show before the line was first mended, and nothing shows once they have a miner.
+    /// steps only show before the line was first mended, and nothing shows once the coal miners burn.
     pub fn step(&self, inv: &Inventory, f: &Factory) -> Step {
-        if self.progress == Progress::Over || f.count(Kind::Miner) > 0 || inv.count(block::MINER.into()) > 0 {
+        if self.progress == Progress::Over || self.ended(f, inv.count(block::MINER.into()) > 0) {
             return Step::Done;
         }
         if self.progress == Progress::Start {
@@ -140,23 +201,31 @@ impl Opening {
         }
         let holds = |pos| f.box_slots(pos).is_some_and(|s| s.iter().any(|s| s.count > 0));
         let holding = inv.count(IRON_INGOT) > 0 || inv.count(COPPER_INGOT) > 0;
-        if !holding && (holds(self.source) || holds(self.out)) {
+        if self.progress < Progress::Mining && !holding && (holds(self.source) || holds(self.out)) {
             Step::Take
         } else {
-            Step::Done
+            self.mining_step(inv, f)
         }
     }
 
     /// Where the floating prompt for `step` goes (the middle of the cell it points at) and what it shows
     /// (`PROMPT_*`).
-    pub fn marker(&self, step: Step) -> Option<(IVec3, u8)> {
+    pub fn marker(&self, step: Step, f: &Factory) -> Option<(IVec3, u8)> {
         match step {
             Step::Pick => Some((self.loose, PROMPT_HOLD_LEFT)),
             Step::Place => Some((self.gap, PROMPT_RIGHT_CLICK)),
             Step::Rotate => Some((self.gap, PROMPT_KEY_R)),
             Step::Take => Some((self.out, PROMPT_OPEN)),
-            Step::Collect | Step::Done => None,
+            Step::PlaceCoal | Step::FuelCoal | Step::PlaceIron | Step::FuelIron => self.mining_marker(step, f),
+            Step::Collect | Step::Craft | Step::Done => None,
         }
+    }
+
+    /// Whether the opening is over whatever its progress: an electric miner stands or is `held` (the player went
+    /// their own way), both coal miners burn, or (a scene from before the guide) any miner stands.
+    fn ended(&self, f: &Factory, held: bool) -> bool {
+        let old = self.coal.is_none() && f.count(Kind::Miner) > 0;
+        held || old || f.electric_miners() > 0 || self.miners_done(f)
     }
 
     /// The way the line runs (a `DIRS` index): from the source box towards the ingot box.
@@ -173,14 +242,14 @@ impl Opening {
             return;
         }
         let has = |item: ItemId| inventories.clone().any(|inv| inv.count(item) > 0);
-        if f.count(Kind::Miner) > 0 || has(block::MINER.into()) {
+        if self.ended(f, has(block::MINER.into())) {
             self.progress = Progress::Over;
         } else if self.progress == Progress::Start {
             if f.placed_as(self.gap).is_some_and(|(dir, _)| dir == self.run()) {
                 self.progress = Progress::Fixed;
             }
-        } else if has(IRON_INGOT) || has(COPPER_INGOT) {
-            self.progress = Progress::Over;
+        } else if self.progress == Progress::Fixed && (has(IRON_INGOT) || has(COPPER_INGOT)) {
+            self.progress = if self.coal.is_some() { Progress::Mining } else { Progress::Over };
         }
     }
 
@@ -197,22 +266,32 @@ impl Opening {
         w.bool(this.is_some());
         if let Some(o) = this {
             [o.gap, o.loose, o.source, o.out].into_iter().for_each(|p| w.ivec3(p));
-            w.u8(o.progress as u8);
+            w.u8(PROGRESS_BYTES.iter().position(|&p| p == o.progress).unwrap_or(0) as u8);
+            for patch in [o.coal, o.iron] {
+                w.bool(patch.is_some());
+                if let Some(p) = patch {
+                    w.ivec3(p);
+                }
+            }
         }
     }
 
-    /// Before version 57 there was no progress byte: the scene starts at `Start` (see `migrate`).
+    /// Before version 57 there was no progress byte: the scene starts at `Start` (see `migrate`). Before version 67
+    /// there were no patches.
     pub fn read_state(r: &mut ByteReader) -> Option<Option<Opening>> {
         if !r.bool()? {
             return Some(None);
         }
         let (gap, loose, source, out) = (r.ivec3()?, r.ivec3()?, r.ivec3()?, r.ivec3()?);
-        let progress = if r.version >= 57 {
-            [Progress::Start, Progress::Fixed, Progress::Over].get(r.u8()? as usize).copied()?
-        } else {
-            Progress::Start
+        let progress = if r.version >= 57 { PROGRESS_BYTES.get(r.u8()? as usize).copied()? } else { Progress::Start };
+        let mut patch = || -> Option<Option<IVec3>> {
+            if r.version < 67 || !r.bool()? {
+                return Some(None);
+            }
+            Some(Some(r.ivec3()?))
         };
-        Some(Some(Opening { gap, loose, source, out, progress }))
+        let (coal, iron) = (patch()?, patch()?);
+        Some(Some(Opening { gap, loose, source, out, progress, coal, iron }))
     }
 }
 
@@ -223,6 +302,8 @@ impl Sim {
         let gen = self.world.generator();
         let ground = gen.height_at(0, 0);
         let k = (0..4).min_by_key(|&k| roughness(gen, k, ground)).unwrap_or(0);
+        let patches = [COAL_ORE, IRON_ORE].map(|ore| gen.starter_patch(ore).map(|top| (top, ore)));
+        let [coal, iron] = patches.map(|p| p.map(|(top, ore)| miners::open_top(&mut self.world, top, ore)));
         let (fwd, right) = (DIRS[k], DIRS[(k + 1) % 4]);
         let at = |r: i32, d: i32, y: i32| right * r + fwd * d + IVec3::new(0, ground + y, 0);
         let slab_r = (LINE_R - 1, LINE_R + LINE.len() as i32);
@@ -248,22 +329,20 @@ impl Sim {
         }
         let loose = at(LINE_R + GAP, LOOSE_D, 1);
         self.put_block(PlayerId(0), loose, BELT.into(), ((k + 2) % 4) as u8, loose);
-        if let Some(slots) = self.factory.box_slots_mut(line(0)) {
-            for (ore, n) in STOCK {
-                add_to_slots(slots, ore.into(), n);
+        let last = line(LINE.len() as i32 - 1);
+        for (pos, stock) in [(line(0), &STOCK[..]), (last, &OUT_STOCK[..])] {
+            if let Some(slots) = self.factory.box_slots_mut(pos) {
+                for &(item, n) in stock {
+                    add_to_slots(slots, item.into(), n);
+                }
             }
         }
         let furnace = LINE.iter().position(|&b| b == SMELTER).unwrap_or(0) as i32;
         self.factory.insert(line(furnace), ItemId::from(COAL_ORE), COAL);
         // Building it is not news: no sounds or drops on the first tick.
         self.events.clear();
-        self.opening = Some(Opening {
-            gap: line(GAP),
-            loose,
-            source: line(0),
-            out: line(LINE.len() as i32 - 1),
-            progress: Progress::Start,
-        });
+        self.opening =
+            Some(Opening { gap: line(GAP), loose, source: line(0), out: last, progress: Progress::Start, coal, iron });
         k as f64 * FRAC_PI_2
     }
 }
@@ -281,5 +360,6 @@ fn roughness(gen: &WorldGen, k: usize, ground: i32) -> i32 {
     sum
 }
 
+mod miners;
 #[cfg(test)]
 mod tests;
