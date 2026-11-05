@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-05 · Gentle ground, quieter water
+- **New worlds no longer start you on a mountain.** Whatever the seed, the land around where you start is low and gently rolling; hills and ranges rise again a few hundred blocks out. Worlds you already have keep their ground.
+- **The sea and rivers are much quieter**, a soft wash under the wind and birds instead of the loudest thing around, and the surf now swells as you reach the shore rather than filling the land behind it.
+- **Ambience starts quieter**: its slider now begins at 15%. If you have moved it yourself, your setting stays.
+
 ## 2026-11-05 · A smoother first five minutes
 - **New worlds now start you on two coal miners.** The little stopped line by the start smelts the iron for two coal miners, and its end box also holds the stone and coal they need, so you no longer have to dig for stone first.
 - **The tips walk you all the way to them**: craft the coal miners, then follow a floating "Coal" marker to the nearest coal patch, set one on it and light it, then an "Iron" marker to the iron patch for the second. The card says how far and which way, and counts down as you walk.

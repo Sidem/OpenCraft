@@ -34,8 +34,9 @@ const B: PlayerId = PlayerId(1);
 /// left-hand stack after the worn gear: the previous hash was 0x3ef4_9b04_e930_3ec1. On 2026-10-31 (save version 62) each belt
 /// began to write its bend after its tier; without that byte the run still hashes to the previous 0xbdfb_8546_261a_a991.
 /// On 2026-10-31 (save version 63) the core began to end with the note signs (an empty list here): the previous hash was
-/// 0xcc54_60f0_52c9_69fd.
-const GOLDEN_HASH: u64 = 0x0e1f_7e20_bd4b_d44d;
+/// 0xcc54_60f0_52c9_69fd. On 2026-11-05 generator version 11 lowered the ground around spawn, where this script mines:
+/// the previous hash was 0x0e1f_7e20_bd4b_d44d.
+const GOLDEN_HASH: u64 = 0xca51_6c7e_ec96_d2ee;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -170,7 +171,7 @@ fn same_actions_give_the_same_state_every_tick() {
         assert_eq!(a.state_hash(), b.state_hash(), "tick {t}");
     }
     assert_ne!(a.state_hash(), start);
-    // Recorded with generator version 6 (version 6 moved the outcrop this script mines) and save version 58 (the core ends with the main tips' progress byte and the lessons taught); before that 53 (the research table has the Architecture tech 85; before thatthe towns write what the machines have made after the towns); before that 47 (the core writes where the opening scene is after the game mode); before that 46 (the research table has the Drop Pods tech 83 and the factory writes the pods in flight after the satellites); before that 45 (the research table has the Orbital Comms and Orbital Power techs 79 and 80; before that the factory writes the satellites in orbit after the research); before that 44 (the inventory writes six worn slots, with the gloves'; the research table has the Rocketry tech 78 after the Fabricator Gloves tech 77); before that 43 (five worn slots, with the jetpack's; the Handcrafting techs 74–76); before that 40 (the factory writes its fibre nodes; the research table has the three endless bonus techs and the Optimizer); before that 39 (belts write each item's count), 37 and 4 and 32 (the inventory writes its pack rows and worn gear). Only a deliberate
+    // Recorded with generator version 11 (versions 6 and 11 moved the outcrop this script mines) and save version 58 (the core ends with the main tips' progress byte and the lessons taught); before that 53 (the research table has the Architecture tech 85; before thatthe towns write what the machines have made after the towns); before that 47 (the core writes where the opening scene is after the game mode); before that 46 (the research table has the Drop Pods tech 83 and the factory writes the pods in flight after the satellites); before that 45 (the research table has the Orbital Comms and Orbital Power techs 79 and 80; before that the factory writes the satellites in orbit after the research); before that 44 (the inventory writes six worn slots, with the gloves'; the research table has the Rocketry tech 78 after the Fabricator Gloves tech 77); before that 43 (five worn slots, with the jetpack's; the Handcrafting techs 74–76); before that 40 (the factory writes its fibre nodes; the research table has the three endless bonus techs and the Optimizer); before that 39 (belts write each item's count), 37 and 4 and 32 (the inventory writes its pack rows and worn gear). Only a deliberate
     // change to the rules or the state bytes may update it.
     assert_eq!(a.state_hash(), GOLDEN_HASH, "the scripted run ended somewhere new");
 

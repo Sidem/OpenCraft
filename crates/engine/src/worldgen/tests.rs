@@ -84,6 +84,7 @@ fn released_versions_never_change() {
     assert_eq!(digest(8), 0xf662_465f_c7cd_b6a8, "version 8");
     assert_eq!(digest(9), 0xd202_3f1f_8f38_5ae0, "version 9");
     assert_eq!(digest(10), 0xac2b_b598_000a_659b, "version 10");
+    assert_eq!(digest(11), 0x666a_ec6d_ac18_3ef8, "version 11");
 }
 
 #[test]

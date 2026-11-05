@@ -21,7 +21,8 @@ export interface AmbienceSettings {
 }
 
 const STORAGE_KEY = 'opencraft.ambience';
-const DEFAULTS: AmbienceSettings = { volume: 50, muted: false };
+/** A background layer: 15 (the level chosen by ear in play-testing) sits well under the effects; 50 was louder than them. */
+const DEFAULTS: AmbienceSettings = { volume: 15, muted: false };
 /** Seconds between readings of the surroundings, and the time a bed takes to settle on a new level. */
 const POLL = 0.25;
 const GLIDE = 1.2;

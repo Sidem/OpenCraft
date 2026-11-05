@@ -1,6 +1,7 @@
 //! Version 7 landforms (Milestone 10): the terrain noise with larger continents, taller and sharper mountain
 //! ranges, stepped mesas in the hot dry regions and a guaranteed dry spawn. Rivers and lakes are carved into this
-//! height afterwards (`rivers.rs`); ponds after those (`water.rs`). Version 8 bends the distance from spawn by noise.
+//! height afterwards (`rivers.rs`); ponds after those (`water.rs`). Version 8 bends the distance from spawn by noise;
+//! version 11 flattens what rises near spawn, so no world starts on a mountain (`SPAWN_LOW`).
 //!
 //! Invariants: a pure function of the seed and the column; versions before 7 never call into this file. The result
 //! stays inside `4..=WORLD_HEIGHT - 16` (a soft cap bends the highest peaks under it). To tune: the constants below.
@@ -19,6 +20,11 @@ const SPAWN_LAND: (f64, f64) = (50.0, 170.0);
 const SPAWN_FLOOR: f64 = 66.0;
 /// Version 8 bends the distance from spawn within this far (past the mesas' fade even bent 35% short).
 const BENT: f64 = 620.0;
+/// Version 11's lowland start: within the first figure of spawn, ground above `LOW_BASE` keeps `LOW_KEEP` of its rise,
+/// back to all of it by the second (the starter patches, out to 110 blocks, lie in the lowland).
+const SPAWN_LOW: (f64, f64) = (120.0, 320.0);
+const LOW_BASE: f64 = 68.0;
+const LOW_KEEP: f64 = 0.25;
 
 impl WorldGen {
     /// Version 7's terrain height at (x, z), before rivers (version 8 with the spawn ring bent).
@@ -49,6 +55,12 @@ impl WorldGen {
         }
         if h > SOFT_CAP {
             h = SOFT_CAP + (h - SOFT_CAP) * 0.5;
+        }
+        // Version 11 starts every world in low, gentle country: near spawn whatever rises above the lowland base keeps
+        // only `LOW_KEEP` of its height (hills become rolls, ranges become hills), easing back to full by `SPAWN_LOW.1`.
+        if self.version >= 11 && h > LOW_BASE {
+            let keep = lerp(smoothstep(SPAWN_LOW.0, SPAWN_LOW.1, dist), LOW_KEEP, 1.0);
+            h = LOW_BASE + (h - LOW_BASE) * keep;
         }
         h = h.max(SPAWN_FLOOR * smoothstep(SPAWN_LAND.1, SPAWN_LAND.0, dist));
         (h.round() as i32).clamp(4, WORLD_HEIGHT - 16)

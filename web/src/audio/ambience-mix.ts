@@ -25,8 +25,9 @@ export const WATER: readonly BedName[] = ['surf', 'river'];
 /** The most the beds may add up to, in the wind's units: one full wind bed. */
 export const CEILING = 0.4;
 
-/** The most the water beds may add up to: a river or the sea at its loudest is about a third of a full wind bed. */
-export const WATER_CEILING = 0.13;
+/** The most the water beds may add up to: a river or the sea at its loudest is a tenth of a full wind bed, no louder than
+ * the breeze on an open shore (at 0.13, 10 dB up, the water drowned out everything else near any shore). */
+export const WATER_CEILING = 0.04;
 
 const loudness = (gains: Record<BedName, number>, names: readonly BedName[]): number =>
   Math.sqrt(names.reduce((sum, name) => sum + (gains[name] * BEDS[name].loud) ** 2, 0));

@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mixFor } from '../src/audio/ambience-levels.ts';
+import { BEDS, bedGains } from '../src/audio/ambience-mix.ts';
 import { S } from '../src/audio/surroundings.ts';
 
 const NOON = 0.5, NIGHT = 0;
@@ -15,6 +16,16 @@ const reading = (over = {}) => {
 };
 const RAIN = { precip: 1, snow: false };
 const SNOW = { precip: 1, snow: true };
+
+test('on an open shore the surf is no louder than the breeze', () => {
+  const g = bedGains(mixFor(reading({ [S.trees]: 0, [S.height]: 2, [S.sea]: 1, [S.fresh]: 1 }), NOON));
+  const water = Math.hypot(g.surf * BEDS.surf.loud, g.river * BEDS.river.loud);
+  assert.ok(water > 0 && water <= g.wind * BEDS.wind.loud + 1e-9, `water ${water}, wind ${g.wind * BEDS.wind.loud}`);
+});
+
+test('the sea fades sooner than its reading, as a river does', () => {
+  assert.ok(mixFor(reading({ [S.sea]: 0.5 }), NOON).surf < 0.5 * mixFor(reading({ [S.sea]: 1 }), NOON).surf);
+});
 
 test('no weather, no rain: the mix is what it was before', () => {
   const m = mixFor(reading(), NOON);

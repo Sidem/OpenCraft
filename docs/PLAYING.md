@@ -83,7 +83,8 @@ The **Worlds** list in the pause menu manages several worlds:
   move a world to another browser.
 - **Delete** removes a world for good, after asking.
 
-New worlds have **biomes**: plains and forest around where you start, sandy deserts over sandstone,
+New worlds start you in low, gently rolling country (mountains rise only a few hundred blocks out) and have
+**biomes**: plains and forest around where you start, sandy deserts over sandstone,
 highlands over granite, wet lowlands thick with trees, and bare black basalt fields. The rock under
 each biome decides which ores lie in it: coal and limestone in the lowlands, copper and quartz in the
 highlands, quartz and limestone in the deserts, rich iron in the basalt, a bit of everything on the plains.

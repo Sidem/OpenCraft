@@ -263,6 +263,12 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-05: a lowland start and quieter water (user).** Over 300 seeds, generator 10 started 83 above height 90 and 18
+  with over a tenth of the ground within 48 blocks steep. Generator 11 (`worldgen/landform.rs` `SPAWN_LOW`) keeps a quarter
+  of any rise above the lowland base near spawn, back to full by 320 blocks: 0 steep starts, height spread within 48
+  blocks median 5 (was 16), max 28 (was 110); the ramp ring is no cliffier. The sim golden was re-recorded; the mesh
+  golden is pinned to generator 10. Ambience defaults to 15 (was 50), the water beds' ceiling drops 10 dB, under the
+  breeze on an open shore (`audio/ambience-mix.ts`), and the sea's reading takes a curve like the river's.
 - **2026-11-05: the opening leads to two coal miners (user, `/deepen`).** A probe of 60 new worlds: the player
   started with no stone (the slab drops bricks), plain stone showed within 90 blocks on 17, digging down hit granite on 8
   (high ground), and the scene paid exactly for a Miner Mk1 nobody could power. Now the source box holds the iron for two

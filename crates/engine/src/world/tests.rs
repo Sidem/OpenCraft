@@ -89,7 +89,8 @@ fn bench_meshing() {
 /// Re-recorded on purpose 2026-11-04 when grassland got denser cover (`mesher/cover.rs`, the key-art pass).
 #[test]
 fn untouched_chunks_mesh_as_they_always_did() {
-    let mut w = World::new(1337, 3);
+    // Generator version 10, so a new terrain version (11 flattened the spawn) never moves what this guards: the mesher.
+    let mut w = World::with_generator(crate::worldgen::WorldGen::with_version(1337, 10), 3);
     let spawn = Vec3::new(0.5, w.generator().height_at(0, 0) as f64 + 1.0, 0.5);
     w.update_streaming(spawn, &[]);
     drain_meshes(&mut w);
