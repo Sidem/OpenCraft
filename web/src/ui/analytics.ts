@@ -105,6 +105,7 @@ export class AnalyticsPanel {
 
   open(): void {
     this.backdrop.classList.remove('hidden');
+    this.game.power_screen_opened(); // the low-power lesson's job is done (`need_lesson.rs`)
     this.tabs[this.active].tab.open?.();
     this.refresh();
     this.dialog.focus();

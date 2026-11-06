@@ -34,13 +34,25 @@ fn a_save_from_before_the_lessons_counts_every_stall_lesson_as_taught() {
     old.version = 57;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 57 loads");
-    assert_eq!(back.taught, STALL_MASK);
+    assert_eq!(back.taught, STALL_MASK | KNOWN_BEFORE_68);
     assert_eq!(old.u8(), None, "every byte read");
 
     let mut fresh = ByteReader::new(&w.bytes);
     let mut again = Sim::new(7, 2);
     again.read_state(&mut fresh).expect("reads back");
     assert_eq!(again.taught, 0, "a new world has taught nothing");
+}
+
+#[test]
+fn a_save_from_before_the_need_lessons_counts_them_as_taught() {
+    let mut w = ByteWriter::default();
+    Sim::new(7, 2).write_state(&mut w);
+    let mut old = ByteReader::new(&w.bytes);
+    old.version = 67;
+    let mut back = Sim::new(7, 2);
+    back.read_state(&mut old).expect("a save 67 loads");
+    assert_eq!(back.taught, KNOWN_BEFORE_68, "a world played before them is never shown the new cards");
+    assert_ne!(back.taught & mask(LOW_POWER_BIT), 0);
 }
 
 /// What a tip or lesson can never lose: the opening's progress, the main tips' and the lessons taught.

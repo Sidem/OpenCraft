@@ -5,8 +5,9 @@
 //! Rules every lesson follows (the design is in `docs/DEV_PLAN.md`, step L1): it shows only for a need the player
 //! has right now and near them, one card at a time, with a quiet spell after each; a lesson whose job is already done
 //! when it would start never shows; older saves count as taught (`STALL_MASK` on load: those players know). Bits:
-//! 0..`CAUSES` the stall lessons (`stall_lesson.rs`, by `efficiency::Cause`), `SIDE_BIT` on the side tips
-//! (`hints::SIDE_HINTS`). To add a lesson: take the next free bit here, a watcher like `stall_lesson.rs`, a card in
+//! 0..`CAUSES` the stall lessons (`stall_lesson.rs`, by `efficiency::Cause`), then the need lessons
+//! (`need_lesson.rs`: `LOW_POWER_BIT`), `SIDE_BIT` on the side tips (`hints::SIDE_HINTS`). A lesson added later is
+//! taught in older saves (`KNOWN_BEFORE_68`), as the stall lessons were before 58. To add a lesson: take the next free bit here, a watcher like `stall_lesson.rs`, a card in
 //! `web/src/ui/hints.ts`.
 
 use crate::factory::efficiency::{Cause, CAUSES};
@@ -14,10 +15,15 @@ use crate::hints::SIDE_HINTS;
 
 /// Every stall lesson's bit: bit `cause as u8` is the lesson for that [`Cause`].
 pub const STALL_MASK: u32 = (1 << CAUSES) - 1;
+/// The low-power lesson (`need_lesson.rs`): a machine near the player works slower for want of power.
+pub const LOW_POWER_BIT: u8 = 7;
 /// The side tip `k` is bit `SIDE_BIT + k`.
 pub const SIDE_BIT: u32 = 16;
+/// Lessons added in save version 68, which a world saved before it counts as taught: its players are past them.
+pub const KNOWN_BEFORE_68: u32 = 1 << LOW_POWER_BIT | 1 << (SIDE_BIT as usize + crate::hints::SLAG_SIDE);
 
-const _: () = assert!(CAUSES as u32 <= SIDE_BIT && SIDE_BIT as usize + SIDE_HINTS.len() <= 32);
+const _: () = assert!(CAUSES as u8 <= LOW_POWER_BIT && (LOW_POWER_BIT as u32) < SIDE_BIT);
+const _: () = assert!(SIDE_BIT as usize + SIDE_HINTS.len() <= 32);
 
 /// The bit for lesson number `bit` (nothing for a number out of range, so a bad action does nothing).
 pub fn mask(bit: u8) -> u32 {

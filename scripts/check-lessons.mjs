@@ -1,8 +1,8 @@
-// Checks the machine-stopped lessons against real saves: a player who already knows their factory must see none.
+// Checks the lessons (machine stopped, short of power, the slag side tip) against real saves: a player who already knows their factory must see none.
 //   npm run build:wasm once, then: node scripts/check-lessons.mjs <world.ocworld>...
 // Each save is loaded headlessly (read-only), run five simulated minutes with the player where the save left them, and
-// asked every second which lesson is on show (`lesson_now`). Older saves count every stall lesson as taught (save 58),
-// so any lesson that fires is a failure; the stalled-machine count printed beside it is what would have fired without
+// asked every second which lesson is on show (`lesson_now`). Older saves count every stall lesson as taught (save 58)
+// and the need lessons and the slag tip too (save 68), so any lesson or that tip showing is a failure; the stalled-machine count printed beside it is what would have fired without
 // that. A fresh world with its opening scene is run the same way: its idle furnace must stay quiet too.
 // Exit code 1 when a lesson showed anywhere. To check a new lesson: it comes through `lesson_now` like the others.
 import { readFileSync } from 'node:fs';
@@ -17,6 +17,8 @@ engine.initSync({ module: readFileSync(new URL('engine_bg.wasm', wasm)) });
 
 const CAUSES = ['power', 'input', 'output', 'fuel', 'water', 'deposit', 'other'];
 const MINUTES = 5;
+/** `lesson_now` numbers the need lessons from here (`need_lesson::NEED_BASE`). */
+const NEED_BASE = 100;
 let failed = false;
 
 function run(label, g) {
@@ -27,7 +29,8 @@ function run(label, g) {
   for (let s = 0; s < MINUTES * 60; s++) {
     g.run_ticks(60);
     const now = g.lesson_now();
-    if (now) fired.add(`${CAUSES[now - 1]}: ${g.lesson_text()}`);
+    if (now) fired.add(`${now >= NEED_BASE ? 'need' : CAUSES[now - 1]}: ${g.lesson_text()}`);
+    for (const s of g.hint_side()) if (g.hint_text(s).startsWith('Slag into sand')) fired.add(`side tip: ${g.hint_text(s)}`);
   }
   console.log(`${label}: ${working} machines working, held back by ${stalled || 'nothing'}`);
   console.log(fired.size ? `  FAILED: a lesson showed in ${MINUTES} minutes:\n    ${[...fired].join('\n    ')}` : `  quiet for ${MINUTES} minutes`);

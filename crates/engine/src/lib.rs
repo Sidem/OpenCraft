@@ -44,6 +44,7 @@ mod entities;
 mod equipment;
 mod events;
 mod factory;
+mod first_steps;
 mod footprint_preview;
 mod frame;
 mod ghost_mode;
@@ -67,6 +68,7 @@ mod math;
 mod mesher;
 mod minimap;
 mod mode;
+mod need_lesson;
 mod net;
 mod noise;
 mod offhand;
@@ -217,6 +219,10 @@ pub struct Game {
     waste: hand_waste::HandWaste,
     /// The machine stall lesson being watched for the local player (`stall_lesson.rs`); never saved.
     stall: stall_lesson::StallWatch,
+    /// The need lessons being watched for (`need_lesson.rs`); never saved.
+    need: need_lesson::NeedWatch,
+    /// The copper starter patch the Go electric tip points at, worked out once (`first_steps.rs`); never saved.
+    copper_patch: std::cell::OnceCell<Option<IVec3>>,
     /// Launch and landing effects, and launches the HUD has yet to toast (`orbit_fx.rs`).
     orbit_fx: orbit_fx::OrbitFx,
     cur_pickup: (ItemId, u32),
@@ -306,6 +312,8 @@ impl Game {
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),
             stall: stall_lesson::StallWatch::default(),
+            need: need_lesson::NeedWatch::default(),
+            copper_patch: Default::default(),
             orbit_fx: orbit_fx::OrbitFx::default(),
             cur_pickup: (ItemId::NONE, 0),
             cur_mesh: None,
@@ -353,6 +361,7 @@ impl Game {
         self.handle_sim_events();
         self.analytics.record(&self.sim.factory);
         self.watch_stalls();
+        self.watch_needs();
     }
 
     /// Queues an action by the local player for the coming tick.

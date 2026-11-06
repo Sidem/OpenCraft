@@ -3,6 +3,18 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-07 · A guided first hour
+- **The first coal miners are walked through step by step.** Pressing E makes the Production tab and the Coal Miner glow, so you can see what to click. Once the first miner burns, the tips show you how to put a storage box beside it so the coal it digs piles up. Then they ask for another coal miner, this one for iron.
+- **The tips point to the map.** The patch they send you to has a flag on the minimap and on the world map (M).
+- **Going electric starts with copper.** The tip asks for one more coal miner and points to the nearest copper patch with a floating marker, a flag on the map and its distance and direction.
+
+## 2026-11-06 · Machines that say what they need
+- **A machine waiting for something now names only what is missing**, and how many more: "Waiting for 2 Sand" instead of every ingredient. Point at it and it also says where that comes from: dig sand on a beach or set a quarry there, a crusher makes it from slag, quicklime comes from limestone a scanner finds.
+- **A machine stuck with a full output says what its product is good for**: a blast furnace full of slag tells you a crusher turns slag into sand.
+- **Short of power?** When a machine near you has worked slowly for want of power for a while, a card says how much it gets and that [P] shows what each grid makes and uses. Open it once and the card is gone for good.
+- **Researched Ore Crushing?** A tip now shows how to belt your blast furnaces' slag into a crusher for a steady supply of sand.
+- Worlds you already play keep quiet: they count the new cards as already learned.
+
 ## 2026-11-05 · Gentle ground, quieter water
 - **New worlds no longer start you on a mountain.** Whatever the seed, the land around where you start is low and gently rolling; hills and ranges rise again a few hundred blocks out. Worlds you already have keep their ground.
 - **The sea and rivers are much quieter**, a soft wash under the wind and birds instead of the loudest thing around, and the surf now swells as you reach the shore rather than filling the land behind it.

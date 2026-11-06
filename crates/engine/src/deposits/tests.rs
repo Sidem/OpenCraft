@@ -1,6 +1,15 @@
 use super::*;
 use crate::block::IRON_ORE;
 
+impl Deposits {
+    /// Tests: the deposit is dug out (its blocks stay as they are).
+    pub(crate) fn exhaust(&mut self, key: &DepositKey) {
+        if let Some(s) = self.states.get_mut(key) {
+            s.remaining_blocks = 0;
+        }
+    }
+}
+
 fn deposit(tier: Tier, r: f32) -> Deposit {
     Deposit {
         key: DepositKey { tier, cx: 0, cz: 0, ore: IRON_ORE, index: 0 },

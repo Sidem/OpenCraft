@@ -123,6 +123,7 @@ pub use facts::facts;
 #[cfg(test)]
 pub use miner::MinerStatus;
 pub use miner::MINER_TIERS;
+pub use miner_burner::CoalMinerView;
 pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
 pub use pole::{POLE_TIERS, POLE_WIRE_Y};
@@ -245,6 +246,11 @@ impl Factory {
     /// How many processors of `block` there are (smelters, constructors).
     pub fn processors_of(&self, block: BlockId) -> usize {
         self.processors.iter().filter(|p| p.spec.block == block).count()
+    }
+
+    /// Whether any `block` machine holds `item` to work on (a crusher fed slag: `hints::SIDE_HINTS`).
+    pub fn any_fed(&self, block: BlockId, item: crate::item::ItemId) -> bool {
+        self.processors.iter().any(|p| p.spec.block == block && p.input.count(item) > 0)
     }
 
     /// Adds the machine that `block` is at `pos` (nothing for other blocks). `facing` is the placing

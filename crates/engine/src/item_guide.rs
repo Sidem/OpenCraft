@@ -15,6 +15,7 @@ use crate::block::{self, BlockId};
 use crate::factory::{first_maker, tenths, tenths_a_minute, tiers};
 use crate::item::{ItemId, COIN, CRUDE_CANISTER, SCRAP_METAL};
 use crate::recipes::{Category, MACHINE_RECIPES, RECIPES};
+use crate::research::{Research, Unlock, TECHS};
 use crate::worldgen::WorldGen;
 
 /// One way to come by an item.
@@ -46,6 +47,90 @@ pub fn ways(gen: &WorldGen, item: ItemId) -> Vec<Way> {
         }
     }
     out
+}
+
+/// Where `item` comes from, in a sentence or three, for a machine waiting for it ("Dig it on beaches… A Crusher makes it
+/// from Slag (research Ore Crushing) or Tailings (research Ore Washing)."): how it is found (its first sentence, and any
+/// that names the scanner or a quarry), then the first two machines that make it, each with what from. An item only a
+/// machine makes from one found input says where that is found too. `None` for an item no machine makes and nothing
+/// finds (hand-crafted parts: the recipe list says it all).
+pub fn source_line(gen: &WorldGen, research: &Research, item: ItemId) -> Option<String> {
+    let ways = ways(gen, item);
+    let mut parts: Vec<String> =
+        ways.iter().filter_map(|w| if let Way::Found(t) = w { Some(brief(t)) } else { None }).collect();
+    // Each machine once, with every input it makes this from: "a Crusher makes it from Slag or Tailings".
+    let mut machines: Vec<(ItemId, Vec<String>)> = Vec::new();
+    for way in &ways {
+        let Way::Machine { recipe, machine } = way else { continue };
+        let r = &MACHINE_RECIPES[*recipe];
+        let from: Vec<&str> = r.inputs.iter().map(|i| crate::item::name(i.0)).collect();
+        let from = format!("{}{}", from.join(" and "), research_note(research, *recipe));
+        if let Some(m) = machines.iter_mut().find(|m| m.0 == *machine) {
+            m.1.push(from);
+        } else if machines.len() < 2 {
+            machines.push((*machine, vec![from]));
+        }
+    }
+    parts.extend(
+        machines.iter().map(|(m, from)| format!("A {} makes it from {}.", crate::item::name(*m), from.join(" or "))),
+    );
+    if parts.is_empty() {
+        return None;
+    }
+    // Made from one raw material: say where that is found (quicklime from limestone, dug below the ground).
+    if let Some(Way::Machine { recipe, .. }) = ways.first() {
+        let inputs = MACHINE_RECIPES[*recipe].inputs;
+        if let (1, Some(t)) = (inputs.len(), found(gen, inputs[0].0)) {
+            parts.push(format!("{}: {}", crate::item::name(inputs[0].0), lower_first(&brief(&t))));
+        }
+    }
+    Some(parts.join(" "))
+}
+
+/// What a stuck output is good for, for a machine that has nowhere to put it ("A Crusher makes Sand from it (research
+/// Ore Crushing)."): the first two machine recipes that take it. `None` when none does.
+pub fn use_line(research: &Research, item: ItemId) -> Option<String> {
+    let each: Vec<String> = uses(item)
+        .into_iter()
+        .filter(|&(machine, _)| machine)
+        .filter_map(|(_, i)| {
+            let r = &MACHINE_RECIPES[i];
+            let by = machine_for(r.category)?;
+            let made = crate::item::name(r.main().0);
+            Some(format!("a {} makes {made} from it{}", crate::item::name(by), research_note(research, i)))
+        })
+        .take(2)
+        .collect();
+    (!each.is_empty()).then(|| format!("{}.", upper_first(&each.join("; "))))
+}
+
+/// " (research Ore Crushing)" while machine recipe `recipe` is locked.
+fn research_note(research: &Research, recipe: usize) -> String {
+    research
+        .locked_by(Unlock::MachineRecipe(recipe as u16))
+        .map_or(String::new(), |t| format!(" (research {})", TECHS[t as usize].name))
+}
+
+/// A found text cut to its first sentence and any sentence naming the scanner or a quarry.
+fn brief(text: &str) -> String {
+    let mut out: Vec<&str> = Vec::new();
+    for (k, s) in text.split_inclusive(". ").enumerate() {
+        let lower = s.to_ascii_lowercase();
+        if k == 0 || lower.contains("scanner") || lower.contains("quarry") {
+            out.push(s.trim_end());
+        }
+    }
+    out.join(" ")
+}
+
+fn lower_first(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map_or(String::new(), |f| f.to_lowercase().chain(c).collect())
+}
+
+fn upper_first(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map_or(String::new(), |f| f.to_uppercase().chain(c).collect())
 }
 
 /// What uses `item`: the hand recipes (`false`, index) and machine recipes (`true`, index) that take it, in table order.
@@ -112,9 +197,12 @@ pub fn machine_for(category: Category) -> Option<ItemId> {
 
 /// Sources that are not recipes, by the item they give.
 const FOUND: &[(ItemId, &str)] = &[
-    (b(block::STONE), "Dig it almost anywhere below the soil, best with a pickaxe."),
+    (
+        b(block::STONE),
+        "Dig it almost anywhere below the soil, best with a pickaxe. A quarry digs it for you by the beltful.",
+    ),
     (b(block::DIRT), "Dig the ground: grass and soil give dirt."),
-    (b(block::SAND), "Dig it on beaches, along rivers and in deserts."),
+    (b(block::SAND), "Dig it on beaches, along rivers and in deserts. A quarry set on a beach digs it for you."),
     (b(block::LOG), "Chop the trunk of any tree, best with an axe."),
     (b(block::LEAVES), "Break the leaves of a tree."),
     (b(block::SAPLING), "Leaves now and then leave one behind when broken or when they wither."),

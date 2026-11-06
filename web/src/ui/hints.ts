@@ -13,8 +13,10 @@
 // Building the same machine a third time nearby brings the blueprint prompt (`blueprint_prompt`,
 // `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it. A machine that has stood stalled near
 // the player brings its lesson (`lesson_now`, `stall_lesson.rs`): the card names the cause and the fix, a prompt hangs over
-// the machine, the engine ends it when the machine works again, and H teaches it away for the world. Side tips
+// the machine, the engine ends it when the machine works again, and H teaches it away for the world. A need lesson
+// (`need_lesson.rs`: a machine short of power) comes the same way, card only. Side tips
 // (`hint_side`: towns, once Settlements is researched) come next, ahead of the main order, until done or skipped.
+// A main tip can point somewhere too (`hint_marker`: Go electric's copper patch, `first_steps.rs`).
 
 import './hints.css';
 import type { Game } from '../wasm/engine.js';
@@ -48,6 +50,8 @@ export class Hints {
   private openingStep = 0;
   /** The opening card's text as drawn: a walk to a starter patch counts its blocks down without a new animation. */
   private openingText = '';
+  /** The main tip's text as drawn (Go electric counts the walk to the copper patch down). */
+  private tipText = '';
   /** The lesson on the card (`lesson_now`'s number), so another cause redraws it. */
   private lesson = 0;
   /** Whether the opening's line ran last frame (null before the first, so loading a world never cheers). */
@@ -112,7 +116,9 @@ export class Hints {
     const g = this.game;
     this.again.classList.toggle('hidden', this.skipped.size === 0);
     const step = this.skipped.has(OPENING) ? 0 : g.opening_step();
-    const marker = step > 0 ? g.opening_marker() : this.shown === LESSON ? g.lesson_marker() : [];
+    const main = this.shown >= 0 && this.shown === g.hint_progress(); // the main tip, not a skipped one or a side tip
+    const marker =
+      step > 0 ? g.opening_marker() : this.shown === LESSON ? g.lesson_marker() : main ? g.hint_marker() : [];
     this.prompt.update(marker, this.renderer);
     const running = step > 0 && g.opening_runs();
     if (running && this.running === false) this.onLineRuns();
@@ -140,7 +146,7 @@ export class Hints {
     // A machine that has stood stalled near the player: its lesson goes ahead of the side and main tips.
     const lesson = g.lesson_now();
     if (lesson) {
-      if (this.shown !== LESSON || lesson !== this.lesson) this.show(LESSON, 'Machine stopped', g.lesson_text());
+      if (this.shown !== LESSON || lesson !== this.lesson) this.show(LESSON, g.lesson_head(), g.lesson_text());
       this.lesson = lesson;
       return;
     }
@@ -158,8 +164,10 @@ export class Hints {
         break;
       }
     }
-    if (tip === this.shown) return;
-    this.show(tip, `Tip ${tip + 1} of ${count}`, tip < 0 ? '' : g.hint_text(tip));
+    const text = tip < 0 ? '' : g.hint_text(tip);
+    if (tip !== this.shown) this.show(tip, `Tip ${tip + 1} of ${count}`, text);
+    else if (text !== this.tipText) this.draw(text); // a walk to the copper patch counts down: no new animation
+    this.tipText = text;
   }
 
   /** Flashes the latest hand-mined block's loss, and returns the warning card's text while it should show. */

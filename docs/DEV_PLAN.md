@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-05):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+**Status (2026-11-06):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines, belts, maps, trains, playtester
@@ -224,6 +224,15 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
     taught (power, input, output, fuel, water, deposit, blocked) brings a card with the cause and the fix and a "Check" prompt
     on it; it works again, or H, and the cause is taught. The opening scene's machines are left alone. Side tips now stay
     done too (bits 16 up).
+  - *Need lessons built (2026-11-06, `need_lesson.rs`):* a waiting or full machine's readout and card name the item and
+    where it comes from or what takes it (`item_guide::source_line`, `use_line`: sand from a beach quarry or a crusher, slag
+    into sand); a machine short of power 30 s brings a card naming [P] (bit 7; taught by full power, opening P, or H); a
+    side tip on slag into sand after Ore Crushing. Save 68 marks them taught in older worlds. The cold-player benchmark
+    (`need_lesson/tests.rs` `benchmark_screens`, Haiku agents shown only the screen) went from 5/17 to 17/19.
+  - *First steps guided (2026-11-07, `first_steps.rs`, after the user's play-test):* opening steps CraftIron ("another
+    coal miner, for iron") and BoxCoal (the line's first box set beside the lit coal miner, outlined); a goal flag on
+    both maps (`MARK_GOAL`); the build menu makes the asked-for recipe and its tab glow (`guide_craft`); Go electric
+    points to the starter copper patch (prompt, flag, bearing) until a miner digs copper. All presentation, not saved.
   - *Next:* **L2 No recipe** (an assembler with no recipe chosen: its sample is `None` today; add a bit and a prompt "Open").
     **L3 Blueprint walk-through** (once the player accepts the repeat prompt: prompts on the two corners; done: a blueprint
     saved). **L4 Planner** (planner crafted, no site; card only; done: first site). **L5 Upgrade with kits** (a bottleneck
@@ -262,6 +271,12 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-11-06: teach at the moment of need (user, `/deepen`).** An audit found [P] taught nowhere, the scanner only in
+  the item guide, the quarry tip silent on sand, and slag into sand only in a research blurb; "Waiting for 1 Quicklime,
+  2 Sand, 2 Stone" read as all three missing. Now a stuck machine names the missing item and its source, the full one
+  what its output is for, low power names [P], and Ore Crushing brings a slag tip (L1 above). Benchmark: every scene of
+  the user's list passes on both agents; the one still failing is finding a deposit again (the map: L6).
 
 - **2026-11-05: a lowland start and quieter water (user).** Over 300 seeds, generator 10 started 83 above height 90 and 18
   with over a tenth of the ground within 48 blocks steep. Generator 11 (`worldgen/landform.rs` `SPAWN_LOW`) keeps a quarter

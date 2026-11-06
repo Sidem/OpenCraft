@@ -102,6 +102,26 @@ fn guide_on_many_seeds() {
 
 const SWEEP_SEEDS: u32 = 200;
 
+/// Takes the line's first box and sets it where the prompt and outline show, beside the lit coal miner on coal, as
+/// the Catch the coal step asks; returns where it stands.
+fn box_beside_the_coal_miner(g: &mut Game, seed: u32) -> IVec3 {
+    let o = g.sim.opening.unwrap();
+    assert_eq!(step(g), Step::BoxCoal, "seed {seed}: a lit miner with nowhere to put its coal");
+    assert_eq!(g.opening_prompt(), Some((o.source, PROMPT_HOLD_LEFT)), "seed {seed}: take the line's first box");
+    g.act(Action::BreakBlock { pos: o.source });
+    g.run_ticks(1);
+    g.give(STORAGE as u16, 1);
+    g.run_ticks(1);
+    let (ground, kind) = g.opening_prompt().expect("a spot beside the miner");
+    assert_eq!(kind, PROMPT_RIGHT_CLICK, "seed {seed}");
+    let at = ground + IVec3::new(0, 1, 0);
+    assert_eq!(g.opening_boxes()[..3], [at.x, at.y, at.z], "seed {seed}: the spot is outlined");
+    let slot = g.inventory().slots.iter().position(|s| s.item == STORAGE.into()).unwrap() as u8;
+    g.act(Action::PlaceBlock { pos: at, slot, facing: 0, against: ground });
+    g.run_ticks(2);
+    at
+}
+
 /// Plays the opening as the tips ask, through actions, and returns the walks (spawn to coal, coal to iron).
 fn play_the_guide(seed: u32) -> (i32, i32) {
     let mut g = Game::new_normal(seed, 2);
@@ -119,6 +139,7 @@ fn play_the_guide(seed: u32) -> (i32, i32) {
     g.run_ticks(1);
     assert_eq!(g.sim.opening.unwrap().progress, Progress::Mining);
     assert_eq!(step(&g), Step::Craft);
+    assert_eq!(g.guide_craft(), block::COAL_MINER as i32, "seed {seed}: the build menu points at the coal miner");
     assert_eq!(g.inventory().count(block::STONE.into()), 16, "seed {seed}: stone came with the ingots");
 
     let recipe = crate::recipes::RECIPES.iter().position(|r| r.output == block::COAL_MINER.into()).unwrap();
@@ -128,20 +149,23 @@ fn play_the_guide(seed: u32) -> (i32, i32) {
     assert_eq!(g.inventory().count(block::MINER.into()), 0);
 
     assert_eq!(step(&g), Step::PlaceCoal);
+    assert_eq!(g.guide_craft(), -1, "seed {seed}: held, so nothing glows");
     assert_eq!(g.sim.opening.unwrap().marker(Step::PlaceCoal, &g.sim.factory), Some((coal, PROMPT_COAL)));
+    assert_eq!(g.guide_goal(), Some((coal, COAL_ORE)), "seed {seed}: the maps flag the coal patch");
     place_on(&mut g, coal);
     assert_eq!(step(&g), Step::FuelCoal, "seed {seed}");
     fuel(&mut g);
+    let at = box_beside_the_coal_miner(&mut g, seed);
     assert_eq!(step(&g), Step::PlaceIron, "seed {seed}");
     assert_eq!(g.sim.opening.unwrap().marker(Step::PlaceIron, &g.sim.factory), Some((iron, PROMPT_IRON)));
     place_on(&mut g, iron);
     assert_eq!(step(&g), Step::FuelIron, "seed {seed}");
-    // All the coal went into the first miner (a shift-click does that): take some back from it, as the tip says.
+    // All the coal went into the first miner (a shift-click does that): take some from its box, as the tip says.
     assert_eq!(g.inventory().count(COAL_ORE.into()), 0);
     g.skip_time(30.0);
-    g.act(Action::TakeContents { pos: coal + IVec3::new(0, 1, 0) });
+    g.act(Action::TakeContents { pos: at });
     g.run_ticks(1);
-    assert!(g.inventory().count(COAL_ORE.into()) > 0, "seed {seed}: the miner on coal had coal to take");
+    assert!(g.inventory().count(COAL_ORE.into()) > 0, "seed {seed}: the box by the miner on coal had coal to take");
     assert_eq!(step(&g), Step::FuelIron, "seed {seed}: taking from it leaves it lit");
     fuel(&mut g);
     assert_eq!(step(&g), Step::Done, "seed {seed}");
@@ -177,7 +201,10 @@ fn the_guide_takes_the_miners_in_any_order() {
     assert_eq!(step(&g), Step::FuelIron);
     g.act(Action::BreakBlock { pos: o.iron.unwrap() + IVec3::new(0, 1, 0) });
     g.run_ticks(1);
-    assert_eq!(step(&g), Step::Craft, "the one on iron was taken back and lies on the ground");
+    box_beside_the_coal_miner(&mut g, 2024);
+    assert_eq!(step(&g), Step::CraftIron, "the one on iron was taken back and lies on the ground");
+    assert!(Step::CraftIron.text().contains("Another coal miner"), "not the first craft's words again");
+    assert_eq!(g.guide_craft(), block::COAL_MINER as i32);
     g.give(block::COAL_MINER as u16, 1);
     g.run_ticks(1);
     assert_eq!(step(&g), Step::PlaceIron, "picked up: asked to set it again");

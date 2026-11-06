@@ -42,7 +42,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `settlements/`: towns (Milestone 13). `orders.rs` data (orders, upkeep), `run.rs` (the tick), `plans.rs` and `plots.rs`
   (buildings), `build.rs` (the town's drones), `state.rs` (bytes), `perks/` (forge, workshop, relay, `harbour/`).
 - `hints.rs`: onboarding tips (checks on the core; `Sim::step_tips` latches the opening's and the main tips' progress).
-  `lessons.rs`: the bits of `Sim::taught` (what the world was taught; `Action::LessonTaught`).
+  `lessons.rs`: the bits of `Sim::taught` (what the world was taught: stall and need lessons, side tips; `Action::LessonTaught`).
 
 ### Factory (core): `factory/`
 - `mod.rs`: `Factory` (a `Vec` per kind, cell index, place, remove). `tick.rs`: `update`, one tick. `table.rs`: `Kind`,
@@ -95,7 +95,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `rail_snap.rs` (pure: aims snap onto grid axes and the heading's line), `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, into the middle of straight track, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
-  `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
+  `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `need_lesson.rs` (what a stuck machine's item comes from or is for, and the short-of-power card that names [P]), `first_steps.rs` + `first_steps/` (the maps' goal flag, the build menu's glowing recipe, Go electric's copper patch), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
   `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).
 

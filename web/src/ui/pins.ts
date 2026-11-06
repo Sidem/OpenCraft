@@ -43,6 +43,8 @@ export const MARK_TOWN = 24;
 /** A deposit with no ore left (a dark ring in the ore's colour, crossed out), and a miner whose deposit that is. */
 export const MARK_DRY = 28;
 export const MARK_DRY_MINER = 29;
+/** The patch the first-steps tips send the player to: a flag on a ring, in the ore's colour. */
+export const MARK_GOAL = 30;
 const TOWN_STALLED = 1;
 const TOWN_DORMANT = 2;
 const EXTRA_KINDS: PinKind[] = [
@@ -120,6 +122,10 @@ export function drawMark(
     drawDry(c, x, y, color, shape === MARK_DRY_MINER, px);
     return;
   }
+  if (shape === MARK_GOAL) {
+    drawGoal(c, x, y, color, px);
+    return;
+  }
   if (shape >= MARK_TOWN) {
     drawTown(c, x, y, shape - MARK_TOWN, px);
     return;
@@ -191,6 +197,34 @@ export function drawMark(
     c.strokeStyle = '#fff';
   }
   c.fill();
+  c.stroke();
+}
+
+/** Where the tips send the player: a white-edged ring in the ore's colour with a flag standing in it, big enough to
+ * find at a glance. */
+function drawGoal(c: CanvasRenderingContext2D, x: number, y: number, color: number, px: number): void {
+  const r = 6 * px;
+  c.arc(x, y, r, 0, 2 * Math.PI);
+  c.lineWidth = Math.max(3, 2.5 * px);
+  c.strokeStyle = '#fff';
+  c.stroke();
+  c.lineWidth = Math.max(1.5, 1.2 * px);
+  c.strokeStyle = hex(color);
+  c.stroke();
+  c.beginPath();
+  c.moveTo(x, y);
+  c.lineTo(x, y - 2.4 * r);
+  c.lineWidth = Math.max(1.5, px);
+  c.strokeStyle = '#fff';
+  c.stroke();
+  c.beginPath();
+  c.moveTo(x, y - 2.4 * r);
+  c.lineTo(x + 1.4 * r, y - 1.95 * r);
+  c.lineTo(x, y - 1.5 * r);
+  c.closePath();
+  c.fillStyle = hex(color);
+  c.fill();
+  c.strokeStyle = '#fff';
   c.stroke();
 }
 

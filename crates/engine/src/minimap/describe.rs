@@ -134,6 +134,9 @@ impl Subject {
                 }
                 .into(),
             ),
+            Subject::Goal { ore } => {
+                (format!("{} patch", ore_name(ore)), "Where the tips send you: set a coal miner on this patch.".into())
+            }
         }
     }
 }

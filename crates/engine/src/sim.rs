@@ -290,6 +290,9 @@ impl Sim {
         self.settlements = if r.version >= 48 { Settlements::read_state(r)? } else { Settlements::default() };
         self.hints_reached = if r.version >= 57 { r.u8()? } else { 0 };
         self.taught = if r.version >= 58 { r.u32()? } else { crate::lessons::STALL_MASK };
+        if r.version < 68 {
+            self.taught |= crate::lessons::KNOWN_BEFORE_68;
+        }
         self.signs = if r.version >= 63 { Signs::read_state(r)? } else { Signs::default() };
         Some(())
     }

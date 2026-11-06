@@ -33,6 +33,19 @@ pub fn fmt_duration(seconds: f64) -> String {
 }
 
 impl Factory {
+    /// What the processing machine at `pos` is stuck on: the inputs it lacks (`Processor::lacking`) and the output it
+    /// has nowhere to put. Empty for anything else, so the HUD can say where an item comes from or what it is for.
+    pub fn stuck_on(&self, pos: IVec3) -> (Vec<item::ItemId>, Option<item::ItemId>) {
+        let anchor = self.anchor_of(pos).unwrap_or(pos);
+        match self.at.get(&anchor) {
+            Some(&Slot::Process(i)) => {
+                let p = &self.processors[i as usize];
+                (p.lacking().into_iter().map(|(item, _)| item).collect(), p.blocked_output())
+            }
+            _ => (Vec::new(), None),
+        }
+    }
+
     /// Detail lines for the target readout; `None` when there is no machine or nothing to say.
     pub fn describe(&self, pos: IVec3) -> Option<String> {
         let text = match *self.at.get(&pos)? {

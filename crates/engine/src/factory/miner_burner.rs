@@ -106,6 +106,8 @@ pub struct CoalMinerView {
     pub ore: ItemId,
     /// It has been given fuel: some is held or burning, or it has dug something.
     pub lit: bool,
+    /// It has somewhere to put what it digs: a box or smelter beside it, or a belt leading away.
+    pub feeds: bool,
 }
 
 impl super::Factory {
@@ -115,6 +117,7 @@ impl super::Factory {
             pos: m.pos,
             ore: m.ore,
             lit: m.burner.fuel.total() > 0 || m.burner.energy > 0 || m.out.total() > 0,
+            feeds: !m.outs.is_empty(),
         })
     }
 

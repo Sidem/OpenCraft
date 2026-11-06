@@ -1,7 +1,8 @@
 // A floating input prompt in the world (the way games point at "press this here"): a key cap or a mouse with
 // the button to use lit, and one word under it, hanging over the thing to act on and bobbing gently. The engine
 // says where and which (`opening_marker`: a camera-relative point and a `PROMPT_*` kind from `opening.rs`;
-// `lesson_marker` the same for a stalled machine, kind `PROMPT_CHECK` from `stall_lesson.rs`);
+// `lesson_marker` the same for a stalled machine, kind `PROMPT_CHECK` from `stall_lesson.rs`; `hint_marker` the copper
+// patch);
 // this places it with the renderer's camera each frame. To add a prompt: a row in `KINDS` and its engine kind.
 
 import './key-prompt.css';
@@ -19,6 +20,7 @@ const KINDS: Record<number, { icon: Icon; label: string }> = {
   5: { icon: { mouse: 'right' }, label: 'Check' },
   6: { icon: { mouse: 'right' }, label: 'Coal' },
   7: { icon: { mouse: 'right' }, label: 'Iron' },
+  8: { icon: { mouse: 'right' }, label: 'Copper' },
 };
 
 export class KeyPrompt {

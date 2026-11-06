@@ -66,7 +66,10 @@ impl Processor {
             },
             (Status::NoRecipe, _) => "No recipe: choose what it makes".to_string(),
             (_, Some(r)) if s.pick == Pick::Chosen => {
-                let each: Vec<String> = r.inputs.iter().map(|&(i, n)| format!("{n} {}", item::name(i))).collect();
+                // Only what is missing: a list of every input reads as if all of them were.
+                let lacking = self.lacking();
+                let list = if lacking.is_empty() { r.inputs.to_vec() } else { lacking };
+                let each: Vec<String> = list.iter().map(|&(i, n)| format!("{n} {}", item::name(i))).collect();
                 format!("Waiting for {}", each.join(", "))
             }
             _ => s.waiting.to_string(),
@@ -155,6 +158,27 @@ impl Processor {
             lines.push("Right-click to open".to_string());
         }
         lines.join("\n")
+    }
+
+    /// What a machine with a chosen recipe still lacks for its next batch, and how many of each: empty unless it is
+    /// waiting for input.
+    pub fn lacking(&self) -> Vec<(ItemId, u32)> {
+        let Some(r) = self.chosen().filter(|_| self.status == Status::NoInput && self.spec.pick == Pick::Chosen) else {
+            return Vec::new();
+        };
+        r.inputs
+            .iter()
+            .filter_map(|&(i, n)| n.checked_sub(self.input.count(i)).filter(|&m| m > 0).map(|m| (i, m)))
+            .collect()
+    }
+
+    /// The product or byproduct it has stopped for, having nowhere to put it.
+    pub fn blocked_output(&self) -> Option<ItemId> {
+        if self.status != Status::OutputFull {
+            return None;
+        }
+        let r = self.batch_recipe().or(self.chosen()).or_else(|| self.held_recipe())?;
+        self.full_output(r).map(|(item, _)| item)
     }
 
     /// The recipe the first input it holds would run (a machine that picks by input), whatever research allows.

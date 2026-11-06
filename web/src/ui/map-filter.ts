@@ -7,13 +7,15 @@
 // a category in `markCategory`.
 
 import {
-  hex, MARK_CHANNEL, MARK_COVER, MARK_DRY, MARK_DRY_MINER, MARK_GUESS, MARK_MACHINE, MARK_RANGE, MARK_SITE, MARK_TOWN,
+  hex, MARK_CHANNEL, MARK_COVER, MARK_DRY, MARK_DRY_MINER, MARK_GOAL, MARK_GUESS, MARK_MACHINE, MARK_RANGE, MARK_SITE,
+  MARK_TOWN,
 } from './pins.ts';
 
 const STORAGE_KEY = 'opencraft.map.filter';
 
 /** The category of a mark, or null for one that always shows (a long-distance pole's reach, an aid while placing). */
 export function markCategory(shape: number, colour: number): string | null {
+  if (shape === MARK_GOAL) return null; // where the tips send the player
   if (shape === MARK_DRY) return 'dry';
   if (shape === MARK_DRY_MINER) return 'machines';
   if (shape >= MARK_TOWN) return 'towns';

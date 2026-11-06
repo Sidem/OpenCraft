@@ -36,9 +36,16 @@ const LESSONS: [&str; crate::factory::efficiency::CAUSES] = [
      products out by hand. A full machine just waits and loses nothing.",
     "Out of fuel: [Right-click] the {m} and give it *coal ore* or *logs*, or belt the fuel in.",
     "No water: pipe the {m}'s blue inlet to a *pump* that stands in water.",
-    "No ore: the {m} has nothing left to dig here. Move it onto a fresh deposit; [M] marks the ore you have seen.",
+    "No ore: the {m} has nothing left to dig here. Move it onto a fresh deposit: a *Scanner* (craft it with [E]) lists \
+     the deposits near you, and [M] marks the ore you have seen.",
     "Can't work: the {m} is overheated or flooded. Give it time to cool, or pump the water out.",
 ];
+/// The waiting card when the machine knows what it lacks: `{i}` the items, `{w}` where they come from (`item_guide`).
+const WAITING_FOR: &str = "Waiting for {i}: the {m} has run out; belt it in or put it in by hand. {w}";
+/// The full card when the machine knows what it cannot put down: `{i}` the item, `{u}` what takes it (`item_guide`).
+const FULL_OF: &str =
+    "Full of {i}: the {m} has nowhere to put it. Lead a *belt* away or set a *storage box* beside it; \
+                       a full machine just waits. {u}";
 
 #[derive(Clone, Copy)]
 struct Watch {
@@ -52,7 +59,8 @@ struct Watch {
 #[derive(Default)]
 pub struct StallWatch {
     watch: Option<Watch>,
-    quiet_until: u64,
+    /// No lesson starts before this tick (shared with the need lessons, `need_lesson.rs`).
+    pub(crate) quiet_until: u64,
 }
 
 impl Game {
@@ -85,7 +93,24 @@ impl Game {
     pub(crate) fn stall_text(&self, pos: IVec3, cause: Cause) -> String {
         let block = self.stall.watch.filter(|w| w.pos == pos).map_or(block::AIR, |w| w.block);
         let name = self.sim.factory.name_at(pos).unwrap_or_else(|| block::def(block).name.into());
-        LESSONS[cause as usize].replace("{m}", &name)
+        // Waiting for an item or stuck with one: the item in the title, where it comes from or what it is good for.
+        let (gen, research) = (self.sim.world.generator(), &self.sim.factory.research);
+        let (lacking, blocked) = self.sim.factory.stuck_on(pos);
+        match (cause, blocked) {
+            (Cause::Input, _) if !lacking.is_empty() => {
+                let names: Vec<&str> = lacking.iter().map(|&i| crate::item::name(i)).collect();
+                let whence: Vec<String> =
+                    lacking.iter().take(2).filter_map(|&i| crate::item_guide::source_line(gen, research, i)).collect();
+                WAITING_FOR.replace("{i}", &names.join(" and ")).replace("{m}", &name).replace("{w}", &whence.join(" "))
+            }
+            (Cause::Output, Some(item)) => {
+                let uses = crate::item_guide::use_line(research, item).unwrap_or_default();
+                FULL_OF.replace("{i}", crate::item::name(item)).replace("{m}", &name).replace("{u}", &uses)
+            }
+            _ => LESSONS[cause as usize].replace("{m}", &name),
+        }
+        .trim_end()
+        .to_string()
     }
 
     /// The player waves the lesson away (H): taught, and quiet for a while.

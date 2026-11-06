@@ -15,8 +15,8 @@
 //! `SIDE_BASE`, so main tips appended later don't renumber the ones a player skipped.
 
 use crate::block::{
-    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_MINER, COAL_ORE, COPPER_ORE, DATACENTER, DRONE_PORT, IRON_ORE,
-    LASER_EMITTER, LAUNCH_SITE, MINER, POD_LAUNCHER, PUMPJACK, REACTOR, SOLAR_PANEL, TURBINE,
+    ARC_FURNACE, ASSEMBLER, BLAST_FURNACE, COAL_MINER, COAL_ORE, COPPER_ORE, CRUSHER, DATACENTER, DRONE_PORT, IRON_ORE,
+    LASER_EMITTER, LAUNCH_SITE, MINER, POD_LAUNCHER, PUMPJACK, REACTOR, SLAG, SOLAR_PANEL, TURBINE,
 };
 use crate::factory::{Factory, Kind};
 use crate::inventory::Inventory;
@@ -61,11 +61,11 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Miner) > 0,
     },
     Hint {
-        text: "Go electric: a *Miner Mk1* digs three times the ore of a coal miner and wastes less, but it runs on \
-               power, and it, the *coal generator* and the *power pole* need copper wire: mine copper (orange and \
-               green) by hand or set a coal miner on it. Put a pole within 5 blocks of the generator and the miner; \
-               a new pole is selected: click both to wire them (a Mk1 pole holds 4 wires). Start the generator with \
-               coal ([Right-click] it); a miner on coal next to it keeps it fuelled.",
+        text: "Go electric: a *Miner Mk1* digs three times the ore of a coal miner, but it runs on power, and it, \
+               the *coal generator* and the *power pole* need copper wire. *Copper first:* craft another *coal \
+               miner* (smelt your iron miner's ore in the furnace for its parts), set it on the copper patch the \
+               marker shows (orange and green rock; [M] shows it on the map) and give it coal. Then put a pole within \
+               5 blocks of the generator and the miner and click both to wire them. Start the generator with coal.",
         done: |_, f| f.count(Kind::Generator) > 0 && f.count(Kind::Pole) > 0,
     },
     Hint {
@@ -94,8 +94,9 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.count(Kind::Pipe) > 0,
     },
     Hint {
-        text: "Dig for real: a *quarry* digs the ground in front of it into a pit and fills a belt or box with the \
-               stone and dirt. Hold one to see its box ([R] turns it); right-click it to choose size and depth.",
+        text: "Dig for real: a *quarry* digs the ground in front of it into a pit and fills a belt or box with what it \
+               digs: stone and dirt, or *sand* on a beach. Hold one to see its box ([R] turns it); right-click it to \
+               choose size and depth.",
         done: |_, f| f.count(Kind::Quarry) > 0,
     },
     Hint {
@@ -253,6 +254,9 @@ pub struct SideHint {
     done: fn(&Factory, &Settlements) -> bool,
 }
 
+/// The Go electric tip (`HINTS[GO_ELECTRIC]`): while it shows, the guide points at the nearest copper (`first_steps.rs`).
+pub const GO_ELECTRIC: usize = 4;
+
 /// The host's number for `SIDE_HINTS[0]`.
 pub const SIDE_BASE: usize = 1000;
 
@@ -283,7 +287,16 @@ pub const SIDE_HINTS: &[SideHint] = &[
             s.towns.iter().any(|t| t.built >= 2) || (!s.towns.is_empty() && far)
         },
     },
+    SideHint {
+        after: "Ore Crushing",
+        text: "Slag into sand: a *crusher* grinds the slag of your blast furnaces into *sand*, so steel feeds your \
+               glass and concrete. Belt a furnace's slag hatch into a crusher.",
+        done: |f, _| f.any_fed(CRUSHER, SLAG.into()),
+    },
 ];
+
+/// The side tip on slag into sand (`SIDE_HINTS[SLAG_SIDE]`; older saves count it as taught: `lessons.rs`).
+pub const SLAG_SIDE: usize = 3;
 
 /// The side tips to show now, by the host's numbers (`SIDE_BASE` on): researched and not yet done. `taught` is
 /// `Sim::taught`, which keeps a done tip done (`Sim::step_tips`).

@@ -766,7 +766,12 @@ fn right_click_opens_a_panel_whose_buttons_drive_the_machine() {
     g.skip_time(7.0);
     assert_eq!(g.machine_status(gen.x, gen.y, gen.z), "Idle: nothing on its grid needs power");
     assert_eq!(g.machine_panel(gen.x, gen.y, gen.z)[5], 1, "one fuel slot");
-    assert!(g.machine_status(c.x, c.y, c.z).starts_with("Waiting for 2 Iron Ingot"));
+    // One ingot left of the two a plate takes: it asks for the one more it lacks.
+    assert!(
+        g.machine_status(c.x, c.y, c.z).starts_with("Waiting for 1 Iron Ingot"),
+        "{}",
+        g.machine_status(c.x, c.y, c.z)
+    );
     g.take_machine_output(c.x, c.y, c.z);
     g.run_ticks(1);
     assert_eq!((g.item_total(IRON_PLATE.0), g.item_total(IRON_INGOT.0)), (3, 0));

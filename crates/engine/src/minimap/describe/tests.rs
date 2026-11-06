@@ -38,6 +38,7 @@ fn samples() -> Vec<Subject> {
         Subject::Pod { launcher: false, channel: 0 },
         Subject::Pod { launcher: true, channel: 5 },
         Subject::Range { reach: 100 },
+        Subject::Goal { ore: COAL_ORE },
     ];
     all.extend((0..4).map(|job| Subject::Site { job }));
     all.extend((1..=3).map(|strength| Subject::Guess { ore: COAL_ORE, strength }));

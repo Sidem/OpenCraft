@@ -3,8 +3,8 @@
 // pins.ts must hold the same numbers. To explain a new mark: a row here.
 
 import {
-  MARK_CHANNEL, MARK_COVER, MARK_DEPOSIT, MARK_DRY, MARK_DRY_MINER, MARK_GUESS, MARK_LAUNCH, MARK_MACHINE, MARK_ORE,
-  MARK_RANGE, MARK_SITE, MARK_TOWN,
+  MARK_CHANNEL, MARK_COVER, MARK_DEPOSIT, MARK_DRY, MARK_DRY_MINER, MARK_GOAL, MARK_GUESS, MARK_LAUNCH, MARK_MACHINE,
+  MARK_ORE, MARK_RANGE, MARK_SITE, MARK_TOWN,
 } from './pins.ts';
 
 /** How a row's sample is coloured: in an ore's colour, a machine's, or the number the shape reads (a reach). */
@@ -21,6 +21,7 @@ export interface KeyRow {
 }
 
 export const KEY_ROWS: KeyRow[] = [
+  { shape: MARK_GOAL, span: 1, tint: 'ore', label: 'Where the tips send you next' },
   { shape: MARK_DEPOSIT, span: 1, tint: 'ore', label: 'Deposit: scanned, seen from orbit or under your miner' },
   { shape: MARK_DRY, span: 1, tint: 'ore', label: 'Worked out: no ore left' },
   { shape: MARK_ORE, span: 1, tint: 'ore', label: 'Ore seen at the surface' },

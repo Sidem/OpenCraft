@@ -1,13 +1,16 @@
 //! A new normal world with its opening scene, and the tip, floating prompt and outline that walk the player
-//! through it and to the starter patches (`opening.rs`, `opening/miners.rs`).
+//! through it and to the starter patches (`opening.rs`, `opening/miners.rs`); past it, the copper patch for the Go
+//! electric tip and the recipe the build menu points at (`first_steps.rs`).
 
 use wasm_bindgen::prelude::*;
 
 use crate::ghost_mode::push_box;
-use crate::math::Vec3;
-use crate::opening::{Step, PITCH, PROMPT_COAL, PROMPT_IRON, STEPS};
-use crate::worldgen::{compass, WorldGen};
+use crate::math::{IVec3, Vec3};
+use crate::opening::{box_spot, Step, PITCH, PROMPT_COAL, PROMPT_COPPER, PROMPT_IRON, PROMPT_RIGHT_CLICK, STEPS};
+use crate::worldgen::WorldGen;
 use crate::Game;
+
+const UP: IVec3 = IVec3::new(0, 1, 0);
 
 /// The gap's outline colour (the cyan of ghosts).
 const GAP_CYAN: i32 = 0x4cc9f0;
@@ -18,7 +21,7 @@ const PROMPT_RANGE: f64 = 24.0;
 const PATCH_RANGE: f64 = 160.0;
 
 fn is_patch(kind: u8) -> bool {
-    kind == PROMPT_COAL || kind == PROMPT_IRON
+    kind == PROMPT_COAL || kind == PROMPT_IRON || kind == PROMPT_COPPER
 }
 
 #[wasm_bindgen]
@@ -46,10 +49,7 @@ impl Game {
         let mut text = s.text().to_string();
         let patch = self.sim.opening.and_then(|o| o.marker(s, &self.sim.factory)).filter(|m| is_patch(m.1));
         if let Some((cell, _)) = patch {
-            let eye = self.body().eye();
-            let (dx, dz) = (cell.x - eye.x.floor() as i32, cell.z - eye.z.floor() as i32);
-            let far = ((dx * dx + dz * dz) as f64).sqrt() as i32;
-            text += &format!(" It lies about {far} blocks {} of you.", compass(dx, dz));
+            text += &self.bearing(cell);
         }
         text
     }
@@ -63,36 +63,56 @@ impl Game {
     /// The floating prompt over the scene this frame: the camera-relative point it hangs at and what it shows
     /// (`opening::PROMPT_*`), or nothing.
     pub fn opening_marker(&self) -> Vec<f32> {
-        let Some((cell, kind)) = self.sim.opening.and_then(|o| o.marker(self.opening_now(), &self.sim.factory)) else {
-            return Vec::new();
-        };
-        let at = cell.as_vec3() + Vec3::new(0.5, 0.5 + PROMPT_LIFT, 0.5) - self.render_eye;
-        if at.length() > if is_patch(kind) { PATCH_RANGE } else { PROMPT_RANGE } {
-            return Vec::new();
-        }
-        vec![at.x as f32, at.y as f32, at.z as f32, kind as f32]
+        self.opening_prompt().map_or_else(Vec::new, |(cell, kind)| self.float_prompt(cell, kind))
+    }
+
+    /// The floating prompt for the main tip, as `opening_marker`: over the copper patch while Go electric sends the
+    /// player there.
+    pub fn hint_marker(&self) -> Vec<f32> {
+        self.copper_goal().map_or_else(Vec::new, |cell| self.float_prompt(cell, PROMPT_COPPER))
+    }
+
+    /// The item the build menu makes glow (its tab and tile) because the tips ask for it now, or -1.
+    pub fn guide_craft(&self) -> i32 {
+        self.guide_craft_item().map_or(-1, |id| id.0 as i32)
     }
 }
 
 impl Game {
-    /// The gap's outline while the belt is still to be put back, and the patch's top block while a coal miner is to
-    /// be set on it (`placement_box`).
+    /// The gap's outline while the belt is still to be put back, the patch's top block while a coal miner is to
+    /// be set on it, and the cell beside the coal miner its box goes in (`placement_box`).
     pub(crate) fn opening_boxes(&self) -> Vec<i32> {
         let mut out = Vec::new();
         let Some(o) = self.sim.opening else { return out };
-        match self.opening_now() {
-            Step::Pick | Step::Collect | Step::Place => push_box(&mut out, &[o.gap], GAP_CYAN),
-            s @ (Step::PlaceCoal | Step::PlaceIron) => {
-                if let Some((cell, _)) = o.marker(s, &self.sim.factory) {
-                    push_box(&mut out, &[cell], GAP_CYAN);
-                }
-            }
+        match (self.opening_now(), self.opening_prompt()) {
+            (Step::Pick | Step::Collect | Step::Place, _) => push_box(&mut out, &[o.gap], GAP_CYAN),
+            (Step::PlaceCoal | Step::PlaceIron, Some((cell, _))) => push_box(&mut out, &[cell], GAP_CYAN),
+            (Step::BoxCoal, Some((ground, PROMPT_RIGHT_CLICK))) => push_box(&mut out, &[ground + UP], GAP_CYAN),
             _ => {}
         }
         out
     }
 
-    fn opening_now(&self) -> Step {
+    pub(crate) fn opening_now(&self) -> Step {
         self.sim.opening.map_or(Step::Done, |o| o.step(self.inventory(), &self.sim.factory))
+    }
+
+    /// The opening's prompt: `Opening::marker`, but the box for the coal miner is set on the ground beside it.
+    pub(crate) fn opening_prompt(&self) -> Option<(IVec3, u8)> {
+        let step = self.opening_now();
+        let (cell, kind) = self.sim.opening?.marker(step, &self.sim.factory)?;
+        if step == Step::BoxCoal && kind == PROMPT_RIGHT_CLICK {
+            return box_spot(&self.sim.world, cell).map(|c| (c - UP, kind));
+        }
+        Some((cell, kind))
+    }
+
+    /// A floating prompt over `cell`: the camera-relative point and the kind, or nothing when it is too far to show.
+    fn float_prompt(&self, cell: IVec3, kind: u8) -> Vec<f32> {
+        let at = cell.as_vec3() + Vec3::new(0.5, 0.5 + PROMPT_LIFT, 0.5) - self.render_eye;
+        if at.length() > if is_patch(kind) { PATCH_RANGE } else { PROMPT_RANGE } {
+            return Vec::new();
+        }
+        vec![at.x as f32, at.y as f32, at.z as f32, kind as f32]
     }
 }

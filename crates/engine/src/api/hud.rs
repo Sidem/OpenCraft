@@ -225,8 +225,10 @@ impl Game {
                 Some(town) => format!("{town}\n{text}"),
                 None => text,
             };
-            let efficiency = self.efficiency_line(hit.block);
-            return if efficiency.is_empty() { text } else { format!("{text}\n{efficiency}") };
+            let mut lines = vec![text, self.efficiency_line(hit.block)];
+            lines.extend(self.stuck_lines(hit.block));
+            lines.retain(|l| !l.is_empty());
+            return lines.join("\n");
         }
         if let Some(text) = ore_guide::stain_reading(self.sim.world.generator(), hit.block, hit.id) {
             return text;
@@ -265,9 +267,16 @@ impl Game {
         HINTS.len() as u32
     }
 
-    /// Tip `i`'s text: a main tip below `hint_count`, a side tip from `hint_side`'s numbers.
+    /// Tip `i`'s text: a main tip below `hint_count`, a side tip from `hint_side`'s numbers. Go electric also says
+    /// which way the copper patch lies while it sends the player there (`first_steps.rs`).
     pub fn hint_text(&self, i: u32) -> String {
-        hints::text(i as usize).to_string()
+        let mut text = hints::text(i as usize).to_string();
+        if i as usize == hints::GO_ELECTRIC {
+            if let Some(cell) = self.copper_goal() {
+                text += &self.bearing(cell);
+            }
+        }
+        text
     }
 
     /// The side tips to show now, ahead of the main ones (`hints::SIDE_HINTS`: researched, not done yet).

@@ -16,11 +16,12 @@ use crate::Game;
 #[wasm_bindgen]
 impl Game {
     /// Redraws the map around the local player if they moved to another column or chunks changed
-    /// nearby. Returns whether the image changed. The host calls it a few times a second at most.
+    /// nearby, and moves the guide's goal mark (`first_steps.rs`). Returns whether the image changed. The host calls it a few times a second at most.
     pub fn minimap_redraw(&mut self) -> bool {
         let p = self.body().pos.floor();
         let changed = self.minimap.redraw(&self.sim.world, (p.x, p.z));
         self.refresh_survey();
+        self.minimap.goal = self.guide_goal().map(|(c, ore)| (c.x, c.z, ore));
         changed
     }
 
@@ -64,6 +65,7 @@ impl Game {
     /// `world_map_ptr` (`w`·`h`·4 bytes of RGBA).
     pub fn world_map_draw(&mut self, x0: i32, z0: i32, scale: i32, w: usize, h: usize) {
         self.refresh_survey();
+        self.minimap.goal = self.guide_goal().map(|(c, ore)| (c.x, c.z, ore));
         let (w, h, scale) = (w.min(WORLD_MAP_MAX), h.min(WORLD_MAP_MAX), scale.clamp(1, 64));
         let mut pixels = std::mem::take(&mut self.minimap.world_pixels);
         self.minimap.draw(x0, z0, scale, w, h, &mut pixels);

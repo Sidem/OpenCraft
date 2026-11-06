@@ -30,6 +30,39 @@
   font-weight: 600;
 }
 
+/* The tab and tile of the recipe the tips ask for (the first coal miners): a gentle pulse to click. */
+.craft-tab.craft-goal,
+.craft-tile.craft-goal {
+  animation: craft-goal 1.4s ease-in-out infinite;
+}
+
+.craft-tab.craft-goal {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.craft-tile.craft-goal {
+  border-color: var(--accent);
+}
+
+@keyframes craft-goal {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 10px 2px var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .craft-tab.craft-goal,
+  .craft-tile.craft-goal {
+    animation: none;
+    box-shadow: 0 0 6px 1px var(--accent);
+  }
+}
+
 .craft-page-head {
   display: flex;
   align-items: center;

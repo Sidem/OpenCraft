@@ -85,10 +85,14 @@ pub enum Step {
     /// Give the coal miner on iron fuel.
     FuelIron,
     Done,
+    /// Craft the second coal miner, the first standing on coal.
+    CraftIron,
+    /// Give the lit coal miner on coal a box beside it (or a belt away) to fill.
+    BoxCoal,
 }
 
 /// The steps by number for the host (`api/opening.rs`): 0 is done. Append only.
-pub const STEPS: [Step; 11] = [
+pub const STEPS: [Step; 13] = [
     Step::Done,
     Step::Pick,
     Step::Collect,
@@ -100,6 +104,8 @@ pub const STEPS: [Step; 11] = [
     Step::FuelCoal,
     Step::PlaceIron,
     Step::FuelIron,
+    Step::CraftIron,
+    Step::BoxCoal,
 ];
 
 /// What a floating prompt over the scene shows (`Opening::marker`; drawn by `web/src/ui/key-prompt.ts`).
@@ -110,6 +116,8 @@ pub const PROMPT_OPEN: u8 = 4;
 /// 5 is the stall lesson's (`stall_lesson.rs`).
 pub const PROMPT_COAL: u8 = 6;
 pub const PROMPT_IRON: u8 = 7;
+/// The copper patch while the Go electric tip shows (`first_steps.rs`).
+pub const PROMPT_COPPER: u8 = 8;
 
 impl Step {
     /// The HUD tip for this step (empty when done). `*words*` are highlighted and `[keys]` drawn as keys
@@ -128,24 +136,33 @@ impl Step {
                  it and press *Take all*."
             }
             Step::Craft => {
-                "*Build a coal miner:* press [E] and craft a *Coal Miner* (its iron parts queue up by themselves). \
-                 You have enough for two: one for coal, one for iron. It burns coal instead of power."
+                "*Build a coal miner:* press [E], open the glowing *Production* tab and click the *Coal Miner* (its \
+                 iron parts queue up by themselves). You have enough for two. It burns coal instead of power."
             }
             Step::PlaceCoal => {
-                "*Coal first:* walk to the coal patch (dark speckled rock) where the marker floats, select the coal \
-                 miner and [Right-click] a coal block to set it against it."
+                "*Coal first:* walk to the coal patch (dark speckled rock) where the marker floats ([M] shows it on \
+                 the map), select the coal miner and [Right-click] a coal block to set it against it."
+            }
+            Step::BoxCoal => {
+                "*Catch the coal:* a coal miner keeps what it digs until it is full, then stops. Give it a *storage \
+                 box* to fill: take the box at the start of the line, its work done (hold [Left mouse] on it), then \
+                 [Right-click] the ground right beside the miner, where the outline shows."
+            }
+            Step::CraftIron => {
+                "*Another coal miner, for iron:* press [E] and craft a second *Coal Miner* in the *Production* tab. \
+                 Your first one digs coal; this one will dig iron."
             }
             Step::FuelCoal => {
                 "*Light it:* [Right-click] the coal miner and put coal ore in its fuel slot. On coal it keeps its \
                  own fire going, so one is enough: keep the rest for your second miner."
             }
             Step::PlaceIron => {
-                "*Now iron:* walk to the iron patch (rock speckled rusty brown) where the marker floats and \
-                 [Right-click] an iron ore block with your second coal miner."
+                "*Now iron:* walk to the iron patch (rock speckled rusty brown) where the marker floats ([M] shows it \
+                 on the map) and [Right-click] an iron ore block with your second coal miner."
             }
             Step::FuelIron => {
-                "*Fuel it:* [Right-click] it and give it coal. It digs iron, not coal, so keep it fed: the miner on \
-                 coal fills up with coal you can take."
+                "*Fuel it:* [Right-click] it and give it coal. It digs iron, not coal, so keep it fed: the box beside \
+                 the miner on coal fills up with coal you can take."
             }
             Step::Done => "",
         }
@@ -216,8 +233,10 @@ impl Opening {
             Step::Place => Some((self.gap, PROMPT_RIGHT_CLICK)),
             Step::Rotate => Some((self.gap, PROMPT_KEY_R)),
             Step::Take => Some((self.out, PROMPT_OPEN)),
-            Step::PlaceCoal | Step::FuelCoal | Step::PlaceIron | Step::FuelIron => self.mining_marker(step, f),
-            Step::Collect | Step::Craft | Step::Done => None,
+            Step::PlaceCoal | Step::FuelCoal | Step::PlaceIron | Step::FuelIron | Step::BoxCoal => {
+                self.mining_marker(step, f)
+            }
+            Step::Collect | Step::Craft | Step::CraftIron | Step::Done => None,
         }
     }
 
@@ -361,5 +380,6 @@ fn roughness(gen: &WorldGen, k: usize, ground: i32) -> i32 {
 }
 
 mod miners;
+pub(crate) use miners::{box_spot, on as miners_on};
 #[cfg(test)]
 mod tests;

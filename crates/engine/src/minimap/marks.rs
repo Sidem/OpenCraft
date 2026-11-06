@@ -53,6 +53,8 @@ pub const MARK_TOWN: i32 = 24;
 pub const MARK_DRY: i32 = 28;
 /// A miner whose deposit is worked out, so it has stopped (a machine square with a red cross).
 pub const MARK_DRY_MINER: i32 = 29;
+/// Where the first-steps guide sends the player (a flag on a ring, in the ore's colour): `Minimap::goal`.
+pub const MARK_GOAL: i32 = 30;
 /// Numbers per deposit in `export` / `import`: tier, chunk column x and z, ore, index (a `DepositKey`).
 const KNOWN_FIELDS: usize = 5;
 /// The most deposits remembered; the oldest is forgotten first.
@@ -154,6 +156,10 @@ pub enum Subject {
         kind: u8,
         state: u8,
     },
+    /// The patch of this ore the first-steps guide sends the player to.
+    Goal {
+        ore: BlockId,
+    },
 }
 
 impl Subject {
@@ -172,13 +178,16 @@ impl Subject {
             Subject::Cover { kind, .. } => MARK_COVER + i32::from(kind),
             Subject::Range { .. } => MARK_RANGE,
             Subject::Town { state, .. } => MARK_TOWN + i32::from(state),
+            Subject::Goal { .. } => MARK_GOAL,
         }
     }
 
     /// The third number of the mark: its colour (0xRRGGBB), or the reach in blocks for a footprint or a pole's ring.
     pub fn colour(self) -> i32 {
         match self {
-            Subject::Deposit { ore, .. } | Subject::Ore(ore) | Subject::Guess { ore, .. } => ore_color(ore),
+            Subject::Deposit { ore, .. } | Subject::Ore(ore) | Subject::Guess { ore, .. } | Subject::Goal { ore } => {
+                ore_color(ore)
+            }
             Subject::Site { job } => SITE_COLOURS[usize::from(job)],
             Subject::Machine { block, .. } => machine_color(block),
             Subject::Launch => machine_color(block::LAUNCH_SITE),
@@ -290,6 +299,9 @@ impl Minimap {
         }
         for t in towns.iter().filter(|t| inside(t.pos)) {
             f(t.pos.x, t.pos.z, Subject::Town { kind: t.kind, state: t.state() });
+        }
+        if let Some((x, z, ore)) = self.goal.filter(|g| inside(IVec3::new(g.0, 0, g.1))) {
+            f(x, z, Subject::Goal { ore });
         }
     }
 }

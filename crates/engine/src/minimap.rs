@@ -20,9 +20,9 @@ pub use atlas::Atlas;
 pub(crate) use marks::Subject;
 #[cfg(test)]
 pub use marks::MARK_GUESS;
-#[cfg(test)]
-pub use marks::MARK_RANGE;
 pub use marks::{ore_color, Known, MARK_FIELDS};
+#[cfg(test)]
+pub use marks::{MARK_GOAL, MARK_RANGE};
 pub use sites::Sites;
 
 use atlas::{column_index, Tile};
@@ -63,6 +63,8 @@ pub struct Minimap {
     pub seen: Seen,
     /// Where towns fit (`sites.rs`), worked out as the world map asks.
     pub sites: Sites,
+    /// The patch the first-steps guide sends the player to, and its ore (`first_steps.rs`; set as the marks are read).
+    pub goal: Option<(i32, i32, BlockId)>,
 }
 
 impl Minimap {
@@ -86,6 +88,7 @@ impl Minimap {
             survey: Survey::default(),
             seen: Seen::default(),
             sites: Sites::default(),
+            goal: None,
         }
     }
 

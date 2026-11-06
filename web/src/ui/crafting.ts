@@ -8,7 +8,8 @@
 // match marked, Enter opens it; shown even if locked), then what is made from it or related. Hover or focus shows a tile's card (craft-info.ts). Clicking a tile
 // queues one craft (craftqueue.ts shows the queue), Shift-click up to 5, right-click takes one apart (take-apart.ts);
 // clicking one you cannot craft yet opens its page in the item guide (item-guide.ts). The inventory panel calls
-// `update` when the inventory changes. To rank search results differently: `nameScore` in craft-terms.ts.
+// `update` when the inventory changes. To rank search results differently: `nameScore` in craft-terms.ts. The recipe
+// the tips ask for (`guide_craft`: the first coal miners) glows, and so does its category's tab.
 
 import './crafting.css';
 import './craft-nav.css';
@@ -91,6 +92,8 @@ export class BuildMenu {
   private hovered: Tile | null = null;
   /** The search's best match (Enter opens it), if its name answers the search. */
   private best: Tile | null = null;
+  /** The category of the recipe the tips ask for (`guide_craft`), whose tab glows with its tile; -1 for none. */
+  private goalGroup = -1;
 
   constructor(
     private readonly game: Game,
@@ -149,10 +152,14 @@ export class BuildMenu {
   /** Recomputes which recipes can be crafted; call when the inventory changed. */
   update(): void {
     const g = this.game;
+    const goal = g.guide_craft();
+    this.goalGroup = -1;
     for (const t of this.tiles) {
       if (t.state === 'guide') continue;
       t.state = g.recipe_locked_by(t.id) >= 0 ? 'locked' : g.craftable_times(t.id) > 0 ? 'ready' : 'short';
       t.root.dataset.state = t.state;
+      t.root.classList.toggle('craft-goal', t.item === goal);
+      if (t.item === goal) this.goalGroup = t.group;
     }
     this.applyFilter();
     if (this.hovered) this.showInfo(this.hovered);
@@ -327,6 +334,7 @@ export class BuildMenu {
       const b = h('button', 'craft-tab', this.sectionName(page.section));
       b.type = 'button';
       b.dataset.section = String(page.section);
+      b.classList.toggle('craft-goal', page.section === this.goalGroup);
       b.addEventListener('click', () => this.pager.go(index));
       buttons.push(b);
     });
