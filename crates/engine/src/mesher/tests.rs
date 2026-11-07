@@ -62,11 +62,13 @@ fn hidden_faces_are_culled() {
 }
 
 #[test]
-fn leaves_go_to_cutout_pass() {
-    let m = mesh_single(|c| c.set(0, 0, 0, LEAVES));
-    assert_eq!(m.opaque_quads, 0);
-    assert_eq!(m.cutout_quads, 6);
-    assert_eq!(m.vertex_count(), 24);
+fn leaves_go_to_the_shaped_list_not_the_cubes() {
+    let m = mesh_single(|c| c.set(5, 5, 5, LEAVES));
+    assert_eq!(m.vertex_count(), 0);
+    assert_eq!((m.shaped_opaque, m.shaped_cutout), (6, 12), "a quad a side of hull, then of shell and of fringe");
+    // A leaf in the corner: the quads towards -x, -y and -z belong to the chunks there (their lower cell).
+    let corner = mesh_single(|c| c.set(0, 0, 0, LEAVES));
+    assert_eq!((corner.shaped_opaque, corner.shaped_cutout), (3, 6));
 }
 
 #[test]

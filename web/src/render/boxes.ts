@@ -4,11 +4,12 @@
 // instanced draw calls: every record over the unit cube, which skips the round bodies, then the round bodies (copied
 // out by the engine, `split_round`) over the unit cylinder (`round-mesh.ts`).
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
-// top/side/bottom, mode bits + 4 × light, pitch, roll, taper, glow. Four vec4s (see `S.boxVert`).
+// top/side/bottom, mode bits + 4 × light, pitch, roll, taper, glow. Four vec4s (see `boxVert` in box-glsl.ts).
 
 import { createProgram, uniforms } from './gl';
 import { uploadHeldLights } from './held-light';
 import { roundMesh } from './round-mesh';
+import { boxVert } from './box-glsl';
 import * as S from './shaders';
 import type { Sky } from './sky';
 
@@ -28,7 +29,7 @@ export class BoxPipeline {
   private readonly round: Pass;
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number, roundBit: number) {
-    this.prog = createProgram(gl, S.boxVert, S.litFrag, ['CUTOUT', 'BOXES', `ROUND_BIT ${roundBit}u`]);
+    this.prog = createProgram(gl, boxVert, S.litFrag, ['CUTOUT', 'BOXES', `ROUND_BIT ${roundBit}u`]);
     this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held', 'u_round'] as const);
     this.cube = this.pass(boxCorners(), null);
     const { corners, indices } = roundMesh();

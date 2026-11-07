@@ -14,6 +14,7 @@ import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
 import { wirePause } from './pause';
 import { composeTextures } from './render/art-pack';
+import { drainMeshes } from './render/mesh-events';
 import { Renderer } from './render/renderer';
 import { SignFaces } from './render/sign-faces';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
@@ -188,21 +189,6 @@ async function main(): Promise<void> {
   let loaded = false; // the world has been ready once: from then on streaming never takes a loading-screen budget
   let wasReady = false;
 
-  const drainEvents = () => {
-    for (;;) {
-      const kind = game.next_event();
-      if (kind === 0) break;
-      const x = game.event_x(), y = game.event_y(), z = game.event_z();
-      if (kind === 1) {
-        // Zero-copy: a view straight into wasm memory, uploaded to the GPU and dropped.
-        const verts = new Uint32Array(wasm.memory.buffer, game.mesh_ptr(), game.mesh_len());
-        renderer.upsertChunk(x, y, z, verts, game.mesh_opaque_quads(), game.mesh_cutout_quads(), game.mesh_liquid_quads());
-      } else {
-        renderer.removeChunk(x, y, z);
-      }
-    }
-  };
-
   // Everything but drawing: input, the engine, co-op, panels, sounds, streaming work. A co-op tab whose
   // frames stopped (hidden, minimised) runs just this (net/ticker.ts), so a hidden host doesn't stop
   // everyone.
@@ -292,7 +278,7 @@ async function main(): Promise<void> {
       if (now - w0 + (loaded ? stepMs * 0.5 : 0) >= budget) break;
     }
     workMs = workMs * 0.9 + (performance.now() - w0) * 0.1;
-    drainEvents();
+    drainMeshes(game, wasm.memory, renderer);
     return dt;
   };
 

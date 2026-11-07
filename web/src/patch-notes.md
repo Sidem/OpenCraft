@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-07 · Round trees
+- **Trees are no longer made of cubes.** Trunks are round, with bark all the way round, a wider foot where they meet the ground and rings of end grain where they are cut. Branches running sideways join their trunk.
+- **Leaves grow together into one soft, lumpy crown**, shaped by all the leaves around them, with a leafy fringe at the edge and shade inside. A row of trees becomes one hedge-like canopy.
+- Only the look changed: you still chop, mine and place logs and leaves block by block, and you bump into them exactly as before.
+
 ## 2026-11-07 · The forester
 - **A new machine, the forester, keeps a wood lot for you.** Research Forestry (red packs only, right at the start) and place it facing flat grass or dirt: it works an 11×11 patch in front of it, with 9 spots for trees on a grid, and a fence shows its edge. While you hold one, a green outline shows the patch; if stones, holes, water or buildings are in the way, they light up red and it won't place.
 - **A harvester crane does the work.** Its knuckle boom swings out, the head grips a trunk, saws it through at the foot, lays the tree down and feeds it through its rollers into logs, then carries them back to the bunk and plants a sapling. Wild trees on its patch are felled too, and its neighbours keep their crowns.

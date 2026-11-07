@@ -89,6 +89,25 @@ impl Game {
         self.cur_mesh.as_ref().map_or(0, |m| m.liquid_quads)
     }
 
+    /// Byte offset of the current mesh's shaped list (round trunks and canopies, engine `mesher/shaped.rs`).
+    pub fn mesh_shaped_ptr(&self) -> usize {
+        self.cur_mesh.as_ref().map_or(0, |m| m.shaped.as_ptr() as usize)
+    }
+
+    /// Number of u32 in the current mesh's shaped list (three a vertex).
+    pub fn mesh_shaped_len(&self) -> usize {
+        self.cur_mesh.as_ref().map_or(0, |m| m.shaped.len())
+    }
+
+    pub fn mesh_shaped_opaque(&self) -> u32 {
+        self.cur_mesh.as_ref().map_or(0, |m| m.shaped_opaque)
+    }
+
+    /// Shaped cutout quads (the leafy shell of a canopy), stored after the opaque ones.
+    pub fn mesh_shaped_cutout(&self) -> u32 {
+        self.cur_mesh.as_ref().map_or(0, |m| m.shaped_cutout)
+    }
+
     /// Camera position for this frame, interpolated between the last two ticks.
     pub fn eye_x(&self) -> f64 {
         self.render_eye.x

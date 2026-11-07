@@ -1,6 +1,6 @@
 // The unit cylinder the box pipeline draws round bodies with (`boxes.ts`, engine `factory::push_round`): diameter
 // and height 1, centred on 0, its axis y. Each vertex is (x, y, z, face): face 2 is the top cap, 3 the bottom one,
-// and 6 plus the share of the way round is the side (`boxVert` in `shaders.ts` reads it). Side and caps keep their own
+// and 6 plus the share of the way round is the side (`boxVert` in `box-glsl.ts` reads it). Side and caps keep their own
 // vertices so the rim stays sharp, the side's seam vertex repeats so its texture wraps, and `ROUND_SIDES` is a
 // multiple of 4 so a vertex stands on every quarter turn, where the shader mirrors the texture. Triangles wind
 // counter-clockwise seen from outside, as the cube's do. More `ROUND_SIDES` is rounder and costs vertices per body.

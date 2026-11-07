@@ -2,9 +2,12 @@
 // frustum-culled, front to back with fog in the horizon colour), instanced boxes (boxes.ts), water (water.ts:
 // blended, last, and the underwater fog), then the overlays (outlines.ts: mining cracks, the target outline, a dragged
 // belt line, placement boxes).
-// Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer.
+// Chunk meshes are uploaded from wasm memory as they arrive and share one quad index buffer. A chunk's round trunks
+// and canopies are a second list beside its cubes (shaped.ts), drawn in passes of their own after each cube pass.
 
 import { BoxPipeline } from './boxes';
+import type { FrameInfo, RenderStats } from './frame';
+import { deleteShaped, shapedVert, uploadShaped, type ShapedPart } from './shaped';
 import { createProgram, uniforms } from './gl';
 import { PrecipPass } from './precip';
 import { setHeldLights, uploadHeldLights } from './held-light';
@@ -29,51 +32,14 @@ interface ChunkMesh {
   opaque: number;
   cutout: number;
   liquid: number;
+  shaped: ShapedPart | null;
   dist: number;
 }
 
-export interface FrameInfo {
-  eye: [number, number, number];
-  yaw: number;
-  pitch: number;
-  target: [number, number, number] | null;
-  /** Where the target's model sits in its cell (lowest corner, size) so the outline hugs a pole or belt; empty: whole cell. */
-  targetFit: number[];
-  /** The selected belt item's box in the world (lowest corner, then size), or empty. */
-  selectedItem: number[];
-  mineProgress: number;
-  /** The engine's time of day (0 midnight, 0.5 noon). */
-  time: number;
-  /** Days since the world began as a fraction (0 at the first midnight); moves the stars and the moon's phase. */
-  days: number;
-  /** The world's seed and the biome the player stands in (engine order): what the weather is a function of (sky/weather.ts). */
-  seed: number;
-  biome: number;
-  /** Box instances (dropped items, belt items, machine parts), `INSTANCE_FLOATS` each. */
-  boxes: Float32Array;
-  boxCount: number;
-  /** The round bodies among them, copied out (`round_ptr`), drawn with the cylinder mesh. */
-  round: Float32Array;
-  roundCount: number;
-  /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
-  lineCells: Int32Array;
-  /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */
-  quarryBoxes: Int32Array;
-  /** Blocks quarries are digging: x, y, z and progress in thousandths each. */
-  cracks: Int32Array;
-  underwater: boolean; // the engine's `eye_in_water`
-  /** Satellites in orbit as the sky draws them (engine `sky_satellites`: x, y, z, kind each). */
-  satellites: Float32Array;
-  /** Lights held in hands this frame: camera-relative x, y, z and reach in blocks each (held-light.ts). */
-  held: Float32Array;
-}
+export type { FrameInfo, RenderStats } from './frame';
 
-export interface RenderStats {
-  meshes: number;
-  visible: number;
-  drawCalls: number;
-  quads: number;
-}
+/** A pass's quads in one chunk: how many, the first, and the vertex array holding them. */
+type Draws = (m: ChunkMesh) => [number, number, WebGLVertexArrayObject | null];
 
 const chunkKey = (x: number, y: number, z: number) => ((x + 1048576) * 2097152 + (z + 1048576)) * 16 + y;
 
@@ -91,6 +57,8 @@ export class Renderer {
 
   private readonly opaque;
   private readonly cutout;
+  private readonly shapedOpaque;
+  private readonly shapedCutout;
 
   private readonly boxes: BoxPipeline;
   private readonly sky: SkyPass;
@@ -118,10 +86,14 @@ export class Renderer {
     this.gl = gl;
 
     const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_held'] as const;
-    const opaqueProg = createProgram(gl, S.chunkVert, S.litFrag, ['TERRAIN']);
-    const cutoutProg = createProgram(gl, S.chunkVert, S.litFrag, ['CUTOUT', 'TERRAIN']);
-    this.opaque = { prog: opaqueProg, u: uniforms(gl, opaqueProg, lit) };
-    this.cutout = { prog: cutoutProg, u: uniforms(gl, cutoutProg, lit) };
+    const pass = (vert: string, defines: string[]) => {
+      const prog = createProgram(gl, vert, S.litFrag, ['TERRAIN', ...defines]);
+      return { prog, u: uniforms(gl, prog, lit) };
+    };
+    this.opaque = pass(S.chunkVert, []);
+    this.cutout = pass(S.chunkVert, ['CUTOUT']);
+    this.shapedOpaque = pass(shapedVert, ['SHAPED']);
+    this.shapedCutout = pass(shapedVert, ['SHAPED', 'CUTOUT']);
 
     this.quadIndex = gl.createBuffer()!;
     this.ensureQuadCapacity(1 << 15);
@@ -190,18 +162,20 @@ export class Renderer {
   /**
    * Creates or replaces a chunk mesh. `verts` may be a view into wasm memory; it is consumed
    * immediately and never retained. It holds the packed vertices, then one light byte per vertex
-   * (`mesher.rs`), read as attribute 1. Quads come opaque, then cutout, then liquid.
+   * (`mesher.rs`), read as attribute 1. Quads come opaque, then cutout, then liquid. `shaped` (also a view) is the
+   * round trunks and canopies, `shapedOpaque` quads then `shapedCutout` (shaped.ts).
    */
-  upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number, liquid: number): void {
+  upsertChunk(x: number, y: number, z: number, verts: Uint32Array, opaque: number, cutout: number, liquid: number,
+    shaped: Uint32Array = new Uint32Array(0), shapedOpaque = 0, shapedCutout = 0): void {
     const key = chunkKey(x, y, z);
     let mesh = this.meshes.get(key);
     const total = opaque + cutout + liquid;
-    if (total === 0) {
+    if (total + shapedOpaque + shapedCutout === 0) {
       if (mesh) this.deleteMesh(key, mesh);
       return;
     }
     const gl = this.gl;
-    this.ensureQuadCapacity(total);
+    this.ensureQuadCapacity(Math.max(total, shapedOpaque + shapedCutout));
     if (!mesh) {
       const vao = gl.createVertexArray()!;
       const vbo = gl.createBuffer()!;
@@ -212,7 +186,7 @@ export class Renderer {
       gl.enableVertexAttribArray(1);
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.quadIndex);
       gl.bindVertexArray(null);
-      mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, liquid: 0, dist: 0 };
+      mesh = { x, y, z, vao, vbo, capacity: 0, opaque: 0, cutout: 0, liquid: 0, shaped: null, dist: 0 };
       this.meshes.set(key, mesh);
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vbo);
@@ -228,6 +202,7 @@ export class Renderer {
     mesh.opaque = opaque;
     mesh.cutout = cutout;
     mesh.liquid = liquid;
+    mesh.shaped = uploadShaped(gl, mesh.shaped, this.quadIndex, shaped, shapedOpaque, shapedCutout);
   }
 
   removeChunk(x: number, y: number, z: number): void {
@@ -239,6 +214,7 @@ export class Renderer {
   private deleteMesh(key: number, mesh: ChunkMesh): void {
     this.gl.deleteVertexArray(mesh.vao);
     this.gl.deleteBuffer(mesh.vbo);
+    if (mesh.shaped) deleteShaped(this.gl, mesh.shaped);
     this.meshes.delete(key);
   }
 
@@ -323,8 +299,14 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.texture);
 
     let drawCalls = 0, quads = 0;
-    for (const pass of [this.opaque, this.cutout]) {
-      const isCutout = pass === this.cutout;
+    // Cubes, then trunks and inner canopies; then the cutout cubes, then the leafy shells.
+    const passes: [typeof this.opaque, Draws][] = [
+      [this.opaque, (m) => [m.opaque, 0, m.vao]],
+      [this.shapedOpaque, (m) => [m.shaped?.opaque ?? 0, 0, m.shaped?.vao ?? null]],
+      [this.cutout, (m) => [m.cutout, m.opaque, m.vao]],
+      [this.shapedCutout, (m) => [m.shaped?.cutout ?? 0, m.shaped?.opaque ?? 0, m.shaped?.vao ?? null]],
+    ];
+    for (const [pass, draws] of passes) {
       gl.useProgram(pass.prog);
       gl.uniformMatrix4fv(pass.u.u_viewProj, false, this.viewProj);
       gl.uniform1i(pass.u.u_tex, 0);
@@ -337,14 +319,14 @@ export class Renderer {
       gl.uniform2f(pass.u.u_ground, ground[0], ground[1]);
       uploadHeldLights(gl, pass.u.u_held);
       for (const m of vis) {
-        const n = isCutout ? m.cutout : m.opaque;
+        const [n, first, vao] = draws(m);
         if (n === 0) continue;
         gl.uniform3f(pass.u.u_offset, m.x * CHUNK - ex, m.y * CHUNK - ey, m.z * CHUNK - ez);
         const period = S.TERRAIN_TINT_PERIOD;
         gl.uniform3f(pass.u.u_worldOrigin, (m.x * CHUNK) % period, (m.y * CHUNK) % period, (m.z * CHUNK) % period);
-        gl.bindVertexArray(m.vao);
+        gl.bindVertexArray(vao);
         // Cutout quads are stored after the opaque ones; the shared index buffer is offset to match.
-        gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, isCutout ? m.opaque * 24 : 0);
+        gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, first * 24);
         drawCalls++;
         quads += n;
       }

@@ -272,6 +272,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-07: round trees (user, `/deepen`).** Logs and leaves leave the cube mesher for a per-chunk shaped list
+  (`mesher/shaped.rs`, drawn by `render/shaped.ts` in two passes of their own): logs are 12-sided cylinders
+  (`logs.rs`), leaves one surface-nets shell over the leaves within `foliage::REACH`, Taubin-smoothed, with
+  world-anchored lumps and three layers (`foliage.rs`, `foliage/shell.rs`). Leaf and log edits remesh the chunks within
+  that reach. Tests: crack-free across 8 chunks, the same bits whatever was meshed before, caps only where an end
+  shows. `bench_forest_mesh` (seed 1337): canopy surface facing an axis 14.7% (cubes 100%), trunk sides 0%; quads per
+  tree chunk 1.21×, vertex bytes 2.2×, mesh time 1.28×. Flight bench on the user's save: engine frame average 4.70 ms
+  (4.66 without), p99 11.4 (12.8). Wasm +20.2 KB raw, +9.8 KB gzip (the surface nets; vertex packing kept out of
+  line). User's blind A/B: "looks pretty good".
 - **2026-11-07: the forester (user).** Block 159, a processor with `Pick::Forest` and `Extra::Forest`
   (`factory/process/forester.rs` + `forester/`), unlocked by Forestry (tech 86: red packs, no prerequisites). It works an
   11×11 patch in front of it with a 3×3 grid of plots: looks for a tree, swings its crane, strips the crown top-down

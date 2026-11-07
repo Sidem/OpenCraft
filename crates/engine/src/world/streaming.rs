@@ -1,4 +1,4 @@
-﻿//! Streaming and meshing, the render cache side of `World`: re-centring on the player, the
+//! Streaming and meshing, the render cache side of `World`: re-centring on the player, the
 //! generation and mesh queues, one unit of work per `work_step`, and remeshing edited chunks.
 //!
 //! Chunks load within the view radius of the local player and within `OTHERS_RADIUS` of every other
@@ -9,6 +9,7 @@
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
+use crate::block::BlockId;
 use crate::chunk::{Chunk, CHUNK_SHIFT};
 use crate::math::{IVec3, Vec3};
 use crate::mesher::{neighbor_index, Cover, Mesher};
@@ -198,6 +199,7 @@ impl World {
     /// Meshes `p` if all neighbours are present; emits a mesh event when the visible result changes.
     pub(super) fn remesh(&mut self, p: IVec3) -> bool {
         let Some(refs) = neighbourhood(&self.chunks, &self.air, &self.floor, p) else { return false };
+        self.mesher.set_origin([p.x << CHUNK_SHIFT, p.y << CHUNK_SHIFT, p.z << CHUNK_SHIFT]);
         let out = if Mesher::is_trivially_empty(&refs) {
             self.mesher.mesh(&refs, &[], None)
         } else {
@@ -210,7 +212,7 @@ impl World {
         };
         self.dirty.remove(&p);
         let entry = self.chunks.get_mut(&p).expect("centre chunk is loaded");
-        let quads = out.opaque_quads + out.cutout_quads + out.liquid_quads;
+        let quads = out.opaque_quads + out.cutout_quads + out.liquid_quads + out.shaped_opaque + out.shaped_cutout;
         if quads == 0 && !entry.has_mesh {
             return true;
         }
@@ -221,9 +223,60 @@ impl World {
             opaque_quads: out.opaque_quads,
             cutout_quads: out.cutout_quads,
             liquid_quads: out.liquid_quads,
+            shaped: out.shaped,
+            shaped_opaque: out.shaped_opaque,
+            shaped_cutout: out.shaped_cutout,
         }));
         true
     }
+}
+
+#[cfg(test)]
+impl World {
+    /// Remeshes every loaded chunk holding a tree block (`block::is_tree`), for the tree meshing bench
+    /// (`tests/forest_bench.rs`): how many chunks, their meshes and the seconds it took.
+    pub(crate) fn remesh_trees(&mut self) -> (u32, Vec<super::MeshData>, f64) {
+        let trees = |c: &Chunk| match c.dense() {
+            Some(d) => d.iter().any(|&b| crate::block::is_tree(b)),
+            None => crate::block::is_tree(c.get(0, 0, 0)),
+        };
+        let mut at: Vec<IVec3> = self.chunks.iter().filter(|(_, e)| trees(&e.chunk)).map(|(p, _)| *p).collect();
+        at.sort_unstable_by_key(|p| (p.x, p.y, p.z));
+        self.events.clear();
+        let start = std::time::Instant::now();
+        for &p in &at {
+            self.remesh(p);
+        }
+        let secs = start.elapsed().as_secs_f64();
+        let meshes =
+            self.events.drain(..).filter_map(|e| if let Event::Mesh(m) = e { Some(m) } else { None }).collect();
+        (at.len() as u32, meshes, secs)
+    }
+}
+
+/// How far, in blocks, an edit from `old` to `new` can change the meshes around it: a cube's faces and corners reach
+/// one block, a canopy's shape further (`mesher::FOLIAGE_REACH`).
+pub(super) fn mesh_reach(old: BlockId, new: BlockId) -> i32 {
+    let tree = |b: BlockId| crate::block::is_leaves(b) || crate::block::is_log(b);
+    if tree(old) || tree(new) {
+        crate::mesher::FOLIAGE_REACH as i32
+    } else {
+        1
+    }
+}
+
+/// Every chunk holding a block within `r` blocks of `p` on each axis.
+pub(super) fn chunks_around(p: IVec3, r: i32) -> Vec<IVec3> {
+    let (lo, hi) = (super::chunk_of(p - IVec3::new(r, r, r)), super::chunk_of(p + IVec3::new(r, r, r)));
+    let mut out = Vec::with_capacity(8);
+    for z in lo.z..=hi.z {
+        for y in lo.y..=hi.y {
+            for x in lo.x..=hi.x {
+                out.push(IVec3::new(x, y, z));
+            }
+        }
+    }
+    out
 }
 
 /// The 27 chunks around `p` (`neighbor_index`), or `None` while one of them isn't loaded.

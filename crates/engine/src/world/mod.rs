@@ -37,6 +37,10 @@ pub struct MeshData {
     pub opaque_quads: u32,
     pub cutout_quads: u32,
     pub liquid_quads: u32,
+    /// Round trunks and canopies (`mesher/shaped.rs`): opaque quads, then cutout ones.
+    pub shaped: Vec<u32>,
+    pub shaped_opaque: u32,
+    pub shaped_cutout: u32,
 }
 
 pub enum Event {
@@ -315,21 +319,14 @@ impl World {
         entry.chunk.set(x, y, z, b);
         entry.chunk.modified = true;
 
-        let mut affected: Vec<IVec3> = Vec::with_capacity(8);
-        for dz in -1..=1 {
-            for dy in -1..=1 {
-                for dx in -1..=1 {
-                    let c = chunk_of(p + IVec3::new(dx, dy, dz));
-                    if self.chunks.contains_key(&c) && !affected.contains(&c) {
-                        affected.push(c);
-                    }
+        // Those its faces and corners touch remesh now; the rest of a canopy's reach (`mesher/foliage.rs`) with the queue.
+        let near = streaming::chunks_around(p, 1);
+        for c in streaming::chunks_around(p, streaming::mesh_reach(old, b)) {
+            if self.chunks.contains_key(&c) {
+                self.dirty.insert(c);
+                if remesh_now && near.contains(&c) {
+                    self.remesh(c);
                 }
-            }
-        }
-        for c in affected {
-            self.dirty.insert(c);
-            if remesh_now {
-                self.remesh(c);
             }
         }
         self.light_changed(p, old, b);

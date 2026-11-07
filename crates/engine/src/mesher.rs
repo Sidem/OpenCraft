@@ -27,14 +27,22 @@
 //! opaque nor liquid, unshaded by AO, into a third list the host draws blended after the others. Their
 //! surface corners sit below the block's top by a height read from the cells around (`water::corner_drop`), so
 //! flows slope smoothly and no face is needed between two liquid cells.
+//!
+//! Trees are not cubes: logs (round trunks, `logs.rs`) and leaves (rounded canopies, `foliage.rs`) go into a fourth,
+//! "shaped" list with its own vertex format (`shaped.rs`). Logs hide no faces beside them (`HIDES`).
 
-use crate::block::{BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
+use crate::block::{is_log, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
+use shaped::{HIDES, SHAPED};
 
 mod cover;
+mod foliage;
+mod logs;
 mod quad;
+pub mod shaped;
 mod water;
 pub use cover::{bears_cover, Cover};
+pub use foliage::REACH as FOLIAGE_REACH;
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
 pub use water::height as water_height;
 
@@ -71,6 +79,10 @@ pub struct MeshOutput {
     pub opaque_quads: u32,
     pub cutout_quads: u32,
     pub liquid_quads: u32,
+    /// The shaped list (`shaped.rs`): opaque quads, then cutout ones, three `u32` a vertex.
+    pub shaped: Vec<u32>,
+    pub shaped_opaque: u32,
+    pub shaped_cutout: u32,
 }
 
 #[cfg(test)]
@@ -94,6 +106,8 @@ pub struct Mesher {
     opaque_light: Vec<u8>,
     cutout_light: Vec<u8>,
     liquid_light: Vec<u8>,
+    shaped: shaped::Shaped,
+    foliage: foliage::Foliage,
 }
 
 impl Default for Mesher {
@@ -123,7 +137,14 @@ impl Mesher {
             opaque_light: Vec::new(),
             cutout_light: Vec::new(),
             liquid_light: Vec::new(),
+            shaped: shaped::Shaped::default(),
+            foliage: foliage::Foliage::default(),
         }
+    }
+
+    /// The world block at the lowest corner of the chunks meshed next: the canopies' clumps are fixed to the world.
+    pub fn set_origin(&mut self, origin: [i32; 3]) {
+        self.foliage.origin = origin;
     }
 
     /// Meshes the centre chunk of a 3×3×3 neighbourhood (see [`neighbor_index`]), lit by `light`
@@ -135,6 +156,7 @@ impl Mesher {
         self.opaque_light.clear();
         self.cutout_light.clear();
         self.liquid_light.clear();
+        self.shaped.clear();
         if !Self::is_trivially_empty(n) {
             self.fill_padded(n);
             for face in 0..6 {
@@ -144,6 +166,10 @@ impl Mesher {
             if let Some(cover) = cover {
                 self.mesh_cover(light, cover);
             }
+            if self.pad.iter().any(|&b| is_log(b)) {
+                logs::mesh_logs(&self.pad, light, &mut self.shaped);
+            }
+            self.foliage.mesh(n, &self.pad, light, &mut self.shaped);
         }
         let count = self.opaque.len() + self.cutout.len() + self.liquid.len();
         let mut verts = Vec::with_capacity(count + count.div_ceil(4));
@@ -154,11 +180,18 @@ impl Mesher {
             self.opaque_light.iter().chain(&self.cutout_light).chain(&self.liquid_light).copied().collect::<Vec<u8>>();
         verts.extend(bytes.chunks(4).map(|c| c.iter().rev().fold(0u32, |w, &b| (w << 8) | u32::from(b))));
         let quads = |v: &Vec<u32>| (v.len() / 4) as u32;
+        let shaped_quads = |v: &Vec<u32>| (v.len() / 12) as u32;
+        let mut shaped = Vec::with_capacity(self.shaped.opaque.len() + self.shaped.cutout.len());
+        shaped.extend_from_slice(&self.shaped.opaque);
+        shaped.extend_from_slice(&self.shaped.cutout);
         MeshOutput {
             verts,
             opaque_quads: quads(&self.opaque),
             cutout_quads: quads(&self.cutout),
             liquid_quads: quads(&self.liquid),
+            shaped,
+            shaped_opaque: shaped_quads(&self.shaped.opaque),
+            shaped_cutout: shaped_quads(&self.shaped.cutout),
         }
     }
 
@@ -168,7 +201,7 @@ impl Mesher {
         match n[neighbor_index(0, 0, 0)].as_uniform() {
             Some(b) if !MESHED[b as usize] => true,
             Some(b) if OPAQUE[b as usize] || LIQUID[b as usize] => {
-                let hides = |u: BlockId| OPAQUE[u as usize] || (LIQUID[b as usize] && LIQUID[u as usize]);
+                let hides = |u: BlockId| HIDES[u as usize] || (LIQUID[b as usize] && LIQUID[u as usize]);
                 [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
                     .iter()
                     .all(|&(x, y, z)| n[neighbor_index(x, y, z)].as_uniform().is_some_and(hides))
@@ -218,10 +251,10 @@ impl Mesher {
                     let p = pidx(c[0], c[1], c[2]);
                     let b = pad[p];
                     let mut key = 0u64;
-                    if MESHED[b as usize] {
+                    if MESHED[b as usize] && !SHAPED[b as usize] {
                         let q = (p as isize + sn) as usize;
                         let liquid = LIQUID[b as usize];
-                        if !(OPAQUE[pad[q] as usize] || liquid && LIQUID[pad[q] as usize]) {
+                        if !(HIDES[pad[q] as usize] || liquid && LIQUID[pad[q] as usize]) {
                             // A liquid under an open cell: its top face and the top edges of its sides sit lower.
                             let above = pad[p + P2] as usize;
                             let surface = liquid && !LIQUID[above] && !OPAQUE[above];

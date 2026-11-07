@@ -86,7 +86,8 @@ fn bench_meshing() {
 
 /// Fingerprint of every mesh a seed-1337 world makes around spawn (view radius 3), sorted by chunk. Recorded from the
 /// mesher before ground cover could be cleared (U3): an empty cleared set must keep producing exactly these bytes.
-/// Re-recorded on purpose 2026-11-04 when grassland got denser cover (`mesher/cover.rs`, the key-art pass).
+/// Re-recorded on purpose 2026-11-04 when grassland got denser cover (`mesher/cover.rs`, the key-art pass), and
+/// 2026-11-07 when trees left the cubes for the shaped list (round trunks and canopies, `mesher/shaped.rs`).
 #[test]
 fn untouched_chunks_mesh_as_they_always_did() {
     // Generator version 10, so a new terrain version (11 flattened the spawn) never moves what this guards: the mesher.
@@ -102,10 +103,12 @@ fn untouched_chunks_mesh_as_they_always_did() {
         let head = [m.pos.x, m.pos.y, m.pos.z, m.opaque_quads as i32, m.cutout_quads as i32, m.liquid_quads as i32];
         bytes.extend(head.iter().flat_map(|v| v.to_le_bytes()));
         bytes.extend(m.verts.iter().flat_map(|v| v.to_le_bytes()));
+        bytes.extend([m.shaped_opaque, m.shaped_cutout].iter().flat_map(|v| v.to_le_bytes()));
+        bytes.extend(m.shaped.iter().flat_map(|v| v.to_le_bytes()));
     }
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
-    // 39 chunks and 90,868 cutout quads (75,464 before the denser grassland cover).
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 90_868, 0xb5f1_81e1_aa0d_362a));
+    // 39 chunks and 36,236 cutout quads (90,868 while leaves were cubes, 75,464 before the denser grassland cover).
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 36_236, 0xe566_c6eb_340e_b05d));
 }
 
 fn drain_meshes(w: &mut World) {

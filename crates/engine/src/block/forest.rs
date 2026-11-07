@@ -17,13 +17,13 @@ pub const PINE_SAPLING: BlockId = 123;
 
 /// A trunk block of any species: leaves hang on it and decay without one.
 #[inline]
-pub fn is_log(b: BlockId) -> bool {
+pub const fn is_log(b: BlockId) -> bool {
     matches!(b, LOG | BIRCH_LOG | SNAG_LOG)
 }
 
 /// A leaf block of any species.
 #[inline]
-pub fn is_leaves(b: BlockId) -> bool {
+pub const fn is_leaves(b: BlockId) -> bool {
     matches!(b, LEAVES | BIRCH_LEAVES | PINE_LEAVES)
 }
 

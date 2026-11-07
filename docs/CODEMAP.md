@@ -103,7 +103,9 @@ local player's hands, presentation, then the **deterministic core**, which never
   `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
-- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants).
+- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants). Trees are
+  not cubes: `shaped.rs` (the shaped list's vertex format, `SHAPED`, `HIDES`), `logs.rs` (round trunks), `foliage.rs` +
+  `foliage/shell.rs` (canopies as one smoothed surface over the leaves within `REACH`, seam-exact across chunks).
 - `entities.rs` + `entities/merge.rs` (loose items; resting ones merge into stacks), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `item_guide.rs`: every way to get an item (found, hand, machine) and what uses it; a test makes every needed item answerable.
@@ -116,14 +118,16 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Tests and benches
 - `tests.rs` (scenarios), `tests/frame_bench.rs`; ignored `bench_*` tests time hot paths (`cargo test --release -q bench_
-  -- --ignored --nocapture`): meshing, big base, trains, towns, water, drones, orbit, worldgen, machine marks (`factory/tests/bench_marks.rs`), a spread-out megabase (`factory/tests/bench_megabase.rs`).
+  -- --ignored --nocapture`): meshing, tree meshing and squareness (`tests/forest_bench.rs`), big base, trains, towns, water, drones, orbit, worldgen, machine marks (`factory/tests/bench_marks.rs`), a spread-out megabase (`factory/tests/bench_megabase.rs`).
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 
 - `main.ts`: bootstrap, frame loop (`advance`, `frame`). `pause.ts`: play, pause, pointer lock, Escape. `input.ts`: keys
   and mouse, one-shot `Action`s. `controls/view.ts`: perspective input. `base.css`: theme and shared classes.
   `patch-notes.md`: "What's new".
-- `render/`: `renderer.ts` (chunk passes, fog), `geometry.ts`, `shaders.ts` (GLSL), `boxes.ts` (instanced boxes, and round bodies from `round-mesh.ts`),
+- `render/`: `renderer.ts` (chunk passes, fog; `frame.ts` its frame types), `mesh-events.ts` (uploads finished
+  chunk meshes), `shaped.ts` (the trees' shaped list: buffers and vertex shader), `geometry.ts`, `shaders.ts` (GLSL),
+  `boxes.ts` (instanced boxes, and round bodies from `round-mesh.ts`; `box-glsl.ts` their vertex shader),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `sky.ts` +
   `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `sign-faces.ts` + `sign-layout.ts` (paint signs' text into texture layers), `gl.ts`, `mat4.ts`.
 - `audio/`: `sound.ts` (events → voices, `AudioContext`), `synth.ts` + `synth-orbit.ts` (foley), `settings.ts`,
