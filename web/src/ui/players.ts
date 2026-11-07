@@ -31,6 +31,7 @@ export class PlayerList {
   }
 
   notice(text: string): void {
+    if (!text) return;
     const el = h('div', 'coop-notice', text);
     this.notices.append(el);
     setTimeout(() => el.classList.add('out'), NOTICE_MS);

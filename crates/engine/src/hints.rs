@@ -65,8 +65,16 @@ pub const HINTS: &[Hint] = &[
                the *coal generator* and the *power pole* need copper wire. *Copper first:* craft another *coal \
                miner* (smelt your iron miner's ore in the furnace for its parts), set it on the copper patch the \
                marker shows (orange and green rock; [M] shows it on the map) and give it coal. Then put a pole within \
-               5 blocks of the generator and the miner and click both to wire them. Start the generator with coal.",
+               5 blocks of the generator and the miner and click both to wire them. Start the generator with coal. \
+               Out of stone? It lies under the grass and dirt: *dig straight down* a few blocks.",
         done: |_, f| f.count(Kind::Generator) > 0 && f.count(Kind::Pole) > 0,
+    },
+    Hint {
+        text: "Stone by machine: furnaces, generators and constructors all use *stone*, which lies under the grass \
+               and dirt. Rather than digging by hand, craft a *quarry* and wire it to a pole: it digs a pit in \
+               front of it and fills a belt or box beside it with stone and dirt (or *sand* on a beach). Hold one to \
+               see its box ([R] turns it); [Right-click] it to choose size and depth.",
+        done: |_, f| f.count(Kind::Quarry) > 0,
     },
     Hint {
         text: "Carry the ore away: hold [Right-click] on the ground next to the miner and *drag* to lay a \
@@ -92,12 +100,6 @@ pub const HINTS: &[Hint] = &[
         text: "Move water: research Fluid Handling, put a *pump* in a pond or a flooded pit and power it, and \
                pipe it to an *outlet* facing where the water should go. Nothing lowers the sea.",
         done: |_, f| f.count(Kind::Pipe) > 0,
-    },
-    Hint {
-        text: "Dig for real: a *quarry* digs the ground in front of it into a pit and fills a belt or box with what it \
-               digs: stone and dirt, or *sand* on a beach. Hold one to see its box ([R] turns it); right-click it to \
-               choose size and depth.",
-        done: |_, f| f.count(Kind::Quarry) > 0,
     },
     Hint {
         text: "Upgrade in place: *Mechanics* unlocks *green kits* (by hand, or by the beltful in an assembler). Hold \
@@ -142,17 +144,18 @@ pub const HINTS: &[Hint] = &[
         done: |_, f| f.processors_of(SOLAR_PANEL) > 0,
     },
     Hint {
-        text: "Ghosts: press [B] for *ghost mode*, hold a block or machine and right-click to plant a see-through plan \
-               instead of building it; left-click marks a block to tear down. [Z] marks two corners and [Enter] copies \
-               a build as a blueprint ([L] lists them) you can stamp elsewhere.",
-        done: |_, f| tech_done(f, "Processors"),
-    },
-    Hint {
         text: "Drones: a long road. Research Processors, Robotics, Drone Power and Navigation, then Construction \
                Drones: an assembler builds the drone from actuators, a drone cell and a guidance module. Build a \
-               *drone port* (a 3×3 pad, 40 kW while drones fly), put drones in it, and set storage boxes touching \
-               the pad with what your ghosts need. They build ghosts and clear your marks within 32 blocks.",
+               *drone port* (a 3×3 pad, 40 kW while drones fly) and put drones in it.",
         done: |_, f| f.processors_of(DRONE_PORT) > 0,
+    },
+    Hint {
+        text: "Plan for the drones: Construction Drones opened *ghost mode*. Press [B], hold a block or machine and \
+               right-click to plant a see-through *ghost* instead of building it; left-click marks a block to tear \
+               down. Drones build ghosts and clear marks within 32 blocks of their port, from storage boxes touching \
+               its pad. [Z] marks two corners and [Enter] copies a build as a blueprint ([L] lists them) to stamp \
+               elsewhere.",
+        done: |_, f| f.ports().iter().any(|p| p.home > 0),
     },
     Hint {
         text: "Fly and fetch: research *Jetpack*, wear it in the Jetpack slot ([Shift]-click it in the inventory) \

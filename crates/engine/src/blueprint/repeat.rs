@@ -5,8 +5,8 @@
 //!
 //! Fed by `SimEvent::BlockPlaced` in `events.rs`; the host shows the tip (`api/blueprint.rs` `blueprint_prompt`,
 //! `web/src/ui/hints.ts`). Invariants: once per machine kind (block and tier) a session, never in creative
-//! worlds, and never again once the world has a blueprint (the player knows the tool). To change the wording:
-//! `prompt_text`.
+//! worlds, never before ghost mode is researched, and never again once the world has a blueprint (the player knows
+//! the tool). The preset box is drawn only in ghost mode (`blueprint_boxes`). To change the wording: `prompt_text`.
 
 use crate::block::{self, BlockId};
 use crate::math::IVec3;
@@ -37,7 +37,9 @@ pub struct Repeat {
 impl Game {
     /// The local player placed `block` with its anchor at `pos`.
     pub(crate) fn note_placed(&mut self, pos: IVec3, block: BlockId) {
-        if self.sim.mode == Mode::Creative || !self.library.list.is_empty() || !self.sim.factory.works_at(pos) {
+        let locked = !self.ghost_lock_note().is_empty();
+        if locked || self.sim.mode == Mode::Creative || !self.library.list.is_empty() || !self.sim.factory.works_at(pos)
+        {
             return;
         }
         let tier = self.sim.factory.placed_as(pos).map_or(0, |(_, tier)| tier);

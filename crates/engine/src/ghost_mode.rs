@@ -6,11 +6,13 @@
 //! what building them all needs. Building the real block on a ghost is just placing it (`Sim::place_block`).
 //! Left-click (held to drag) marks the aimed block for tear-down instead of mining it (`Action::MarkRemoval`, a
 //! red outline; clicking a marked block clears the mark): drone ports break marked blocks (`drones/`).
+//! Research unlocks it with the drones that build ghosts (`Feature::GhostMode`); until then B only says so.
 
 use crate::action::Action;
 use crate::block;
 use crate::item;
 use crate::math::IVec3;
+use crate::research::{Feature, Unlock, TECHS};
 use crate::Game;
 
 /// How far the hands reach in ghost mode (normally `interaction::REACH`).
@@ -27,6 +29,14 @@ const MARK_RED: i32 = 0xff4d4d;
 const LABEL_NEEDS: usize = 3;
 
 impl Game {
+    /// Why ghost mode cannot be turned on yet ("" once its tech is researched).
+    pub(crate) fn ghost_lock_note(&self) -> String {
+        match self.sim.factory.research.locked_by(Unlock::Feature(Feature::GhostMode)) {
+            Some(t) => format!("Ghost mode opens with the {} research", TECHS[t as usize].name),
+            None => String::new(),
+        }
+    }
+
     /// Reach of the hands now.
     pub(crate) fn reach(&self) -> f64 {
         if self.ghost_mode {

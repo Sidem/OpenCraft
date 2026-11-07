@@ -272,6 +272,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-07: stray gold boxes, ghost mode later, stone tips (user).** The "random ghost" was the
+  blueprint prompt's preset box (`blueprint/repeat.rs`, a third copy of a machine: the opening's two coal miners make
+  a third likely), which `blueprint_boxes` drew outside ghost mode until B twice cleared it; it now draws only in ghost
+  mode, and B also drops a half-dragged belt line. Ghost mode, holding blueprints and the prompt need
+  `Feature::GhostMode` (Construction Drones; `docs/DECISIONS.md`). Tips: "Go electric" also says to dig down for stone;
+  the quarry tip moved right after it, about stone; the drones tip now comes before the ghost-mode one, done when a
+  port holds drones.
 - **2026-11-06: teach at the moment of need (user, `/deepen`).** An audit found [P] taught nowhere, the scanner only in
   the item guide, the quarry tip silent on sand, and slag into sand only in a research blurb; "Waiting for 1 Quicklime,
   2 Sand, 2 Stone" read as all three missing. Now a stuck machine names the missing item and its source, the full one

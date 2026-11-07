@@ -24,6 +24,8 @@ export class BlueprintPanel {
   private readonly backdrop = h('div', 'mp-backdrop hidden');
   private readonly dialog = h('div', 'mp bp');
   private readonly list = h('div', 'bp-list');
+  /** What research still locks ghost mode and blueprints behind (hidden once researched). */
+  private readonly lock = h('p', 'bp-help bp-missing hidden');
 
   constructor(
     private readonly game: Game,
@@ -44,7 +46,7 @@ export class BlueprintPanel {
         'blueprint, then right-click to stamp it as ghosts (R turns it); build over the ghosts to make them real.',
     );
     const body = h('div', 'mp-body');
-    body.append(help, this.list);
+    body.append(this.lock, help, this.list);
     this.dialog.append(head, body);
     this.backdrop.append(this.dialog);
     this.backdrop.addEventListener('pointerdown', (e) => {
@@ -84,6 +86,9 @@ export class BlueprintPanel {
   private render(): void {
     const rows = this.game.blueprint_list();
     const held = this.game.blueprint_held();
+    const locked = this.game.ghost_mode_lock();
+    this.lock.textContent = locked ? `${locked}: until then you can't copy or hold blueprints.` : '';
+    this.lock.classList.toggle('hidden', !locked);
     this.list.replaceChildren();
     if (!rows) {
       this.list.append(h('p', 'bp-empty', 'No blueprints yet.'));

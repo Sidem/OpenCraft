@@ -61,6 +61,8 @@ pub enum Feature {
     AutoRoute,
     /// The maps guess where ore lies from the stained soil seen (`survey.rs`).
     AiSurvey,
+    /// Ghost mode (B) and blueprints: planning for construction drones (`ghost_mode.rs`).
+    GhostMode,
 }
 
 impl Unlock {
@@ -220,6 +222,13 @@ impl Research {
             self.prune();
             self.advance();
         }
+    }
+
+    /// Tests: finishes the tech called `name` at once.
+    #[cfg(test)]
+    pub fn finish(&mut self, name: &str) {
+        let t = TECHS.iter().position(|t| t.name == name).expect("a tech of that name") as u8;
+        (0..TECHS[t as usize].units).for_each(|_| self.add_unit(t));
     }
 
     /// Current tech (`u8::MAX` for none), units done for every tech, then the queue (since save 41).

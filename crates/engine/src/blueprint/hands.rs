@@ -111,9 +111,14 @@ impl Game {
         held
     }
 
-    /// Outlines (7 numbers each): the box being marked or selected, and a held blueprint's stamp preview.
+    /// Outlines (7 numbers each), in ghost mode only: the box being marked or selected, and a held blueprint's stamp
+    /// preview. Outside it a box can still be selected (the blueprint prompt presets one: `repeat.rs`), but drawing it
+    /// left a gold box in the world that only B twice or a reload cleared.
     pub(crate) fn blueprint_boxes(&self) -> Vec<i32> {
         let mut out = Vec::new();
+        if !self.ghost_mode {
+            return out;
+        }
         let lib = &self.library;
         let marking = lib.corner.zip(self.aimed_block()).map(|(a, b)| span(a, b));
         if let Some((lo, hi)) = lib.selection.or(marking) {

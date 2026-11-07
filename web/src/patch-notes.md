@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-07 · Ghosts when you need them, stone when you run out
+- **No more stray gold boxes.** Building the same machine a third time used to leave a gold outline standing in the world until you pressed B twice or reloaded. That box now only shows in ghost mode, where it belongs.
+- **Ghost mode and blueprints now open with the Construction Drones research**, the drones that build ghosts for you. Before that, B just tells you so, and the blueprint list (L) says what it waits for. Worlds that already researched it keep it.
+- **The tips now tell you where more stone is**: under the grass and dirt, so dig straight down. Right after you get power, a new tip shows how a quarry digs stone for you.
+
 ## 2026-11-07 · A guided first hour
 - **The first coal miners are walked through step by step.** Pressing E makes the Production tab and the Coal Miner glow, so you can see what to click. Once the first miner burns, the tips show you how to put a storage box beside it so the coal it digs piles up. Then they ask for another coal miner, this one for iron.
 - **The tips point to the map.** The patch they send you to has a flag on the minimap and on the world map (M).

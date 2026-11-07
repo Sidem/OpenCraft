@@ -203,6 +203,7 @@ fn ghost_mode_left_click_marks_and_unmarks_and_drones_are_drawn() {
     };
     click(&mut g, 1);
     assert_eq!(g.sim.ghosts.len(), 0, "mining is normal outside ghost mode");
+    g.sim.factory.research.finish("Construction Drones");
     g.toggle_ghost_mode();
     click(&mut g, 3);
     assert_eq!(g.sim.ghosts.covering(spot).map(|m| m.block), Some(crate::block::AIR), "marked once");

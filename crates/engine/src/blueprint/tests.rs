@@ -179,6 +179,7 @@ fn the_hands_mark_copy_and_stamp_through_the_game() {
 
     g.mark_blueprint_corner();
     assert!(g.library.corner.is_none(), "marking needs ghost mode");
+    g.sim.factory.research.finish("Construction Drones");
     g.toggle_ghost_mode();
     aim(&mut g, base);
     g.mark_blueprint_corner();
@@ -216,6 +217,7 @@ fn a_third_copy_of_a_machine_offers_a_blueprint_once() {
         build(&mut g.sim, block, base + at, 1);
         g.run_ticks(1);
     };
+    g.sim.factory.research.finish("Construction Drones");
     place(&mut g, SMELTER, IVec3::ZERO);
     place(&mut g, SMELTER, IVec3::new(4, 0, 0));
     for i in 0..3 {
@@ -249,6 +251,7 @@ fn prompted_game() -> (crate::Game, IVec3) {
     use crate::block::SMELTER;
     let mut g = crate::Game::new(2024, 3);
     crate::tests::run_until_ready(&mut g);
+    g.sim.factory.research.finish("Construction Drones");
     let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
     for i in 0..3 {
         build(&mut g.sim, SMELTER, base + IVec3::new(4 * i, 0, 0), 1);
@@ -256,6 +259,41 @@ fn prompted_game() -> (crate::Game, IVec3) {
     }
     assert!(g.repeat_prompt().contains("[Z] marks new corners"));
     (g, base)
+}
+
+#[test]
+fn the_preset_box_shows_only_in_ghost_mode() {
+    // A play-test found a gold box left standing in the world after the prompt, until B twice or a reload.
+    let (mut g, base) = prompted_game();
+    assert!(g.library.selection.is_some(), "the prompt presets a box");
+    aim_at(&mut g, base);
+    assert!(g.blueprint_boxes().is_empty(), "not drawn outside ghost mode");
+    g.toggle_ghost_mode();
+    aim_at(&mut g, base);
+    assert!(!g.blueprint_boxes().is_empty(), "B shows it");
+}
+
+#[test]
+fn ghost_mode_and_the_prompt_wait_for_construction_drones() {
+    use crate::block::SMELTER;
+    let mut g = crate::Game::new(2024, 3);
+    crate::tests::run_until_ready(&mut g);
+    let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
+    for i in 0..3 {
+        build(&mut g.sim, SMELTER, base + IVec3::new(4 * i, 0, 0), 1);
+        g.run_ticks(1);
+    }
+    assert_eq!((g.repeat_prompt(), g.library.selection), (String::new(), None), "no prompt, no box");
+    let why = g.toggle_ghost_mode();
+    assert!(!g.ghost_mode && why.contains("Construction Drones"), "{why}");
+    g.library.list.push(Blueprint { name: "Line".into(), size: IVec3::new(1, 1, 1), entries: Vec::new() });
+    g.blueprint_hold(0);
+    assert!(!g.ghost_mode && g.library.held.is_none(), "holding a blueprint is locked too");
+    g.sim.factory.research.finish("Construction Drones");
+    assert_eq!(g.toggle_ghost_mode(), "");
+    assert!(g.ghost_mode);
+    g.toggle_ghost_mode();
+    assert!(!g.ghost_mode, "leaving is never locked");
 }
 
 fn aim_at(g: &mut crate::Game, block: IVec3) {
@@ -335,6 +373,7 @@ fn the_blueprint_prompt_ends_by_itself() {
     use crate::block::GENERATOR;
     let mut g = crate::Game::new(2024, 3);
     crate::tests::run_until_ready(&mut g);
+    g.sim.factory.research.finish("Construction Drones");
     let base = g.body().eye().floor() + IVec3::new(3, 3, 3);
     for i in 0..3 {
         build(&mut g.sim, GENERATOR, base + IVec3::new(2 * i, 0, 0), 0);

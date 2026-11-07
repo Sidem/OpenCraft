@@ -8,7 +8,7 @@ use crate::block::{
 use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK, SCANNER_MK2, VIOLET_PACK};
 use crate::recipes::{ACCUMULATOR_ROW, DRONE_RECIPES, ELECTRONICS_RECIPES, SOLAR_PANEL_ROW, VIOLET_RECIPES};
 
-use super::{r, Tech, Unlock};
+use super::{r, Feature, Tech, Unlock};
 
 pub(super) const ELECTRONICS: [Tech; 13] = [
     Tech {
@@ -146,12 +146,13 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
         name: "Construction Drones",
         blurb: "The drone: two actuators, a drone cell and a guidance module, 30 seconds in an assembler, and the \
                 drone port, a 3×3 pad that keeps four and sends them out to build your ghosts and tear down what \
-                you mark, working from storage boxes beside it.",
+                you mark, working from storage boxes beside it. Also ghost mode (B), to plan their work, and \
+                blueprints.",
         needs: &[26, 27],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 240,
         seconds: 40.0,
-        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[5]), r(DRONE_PORT)],
+        unlocks: &[Unlock::MachineRecipe(DRONE_RECIPES[5]), r(DRONE_PORT), Unlock::Feature(Feature::GhostMode)],
     },
     Tech {
         name: "Swarm Logistics",

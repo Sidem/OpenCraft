@@ -53,9 +53,13 @@ impl Game {
         self.library.held.map_or(-1, |i| i as i32)
     }
 
-    /// Takes blueprint `i` in hand (turns ghost mode on); -1 or out of range puts it away.
+    /// Takes blueprint `i` in hand (turns ghost mode on); -1 or out of range puts it away. Nothing while
+    /// research locks ghost mode.
     pub fn blueprint_hold(&mut self, i: i32) {
         let held = usize::try_from(i).ok().filter(|&i| i < self.library.list.len());
+        if held.is_some() && !self.ghost_lock_note().is_empty() {
+            return;
+        }
         self.library.held = held;
         self.library.turns = 0;
         self.library.note.clear();

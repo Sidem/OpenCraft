@@ -26,19 +26,33 @@ impl Game {
         body.pitch = (body.pitch - d_pitch).clamp(-1.55, 1.55);
     }
 
-    /// B: ghost mode on or off (`ghost_mode.rs`).
-    pub fn toggle_ghost_mode(&mut self) {
+    /// B: ghost mode on or off (`ghost_mode.rs`). Returns why it stays off while research locks it, else "".
+    pub fn toggle_ghost_mode(&mut self) -> String {
+        if !self.ghost_mode {
+            let lock = self.ghost_lock_note();
+            if !lock.is_empty() {
+                return lock;
+            }
+        }
         self.ghost_mode = !self.ghost_mode;
         if !self.ghost_mode {
             self.forget_blueprint_box();
         }
+        // A line half dragged would stay drawn while ghost mode skips the line tool (without Auto-Routing).
+        self.cancel_belt_line();
         self.using = false;
         self.mine_block = None;
         self.mine_progress = 0.0;
+        String::new()
     }
 
     pub fn ghost_mode(&self) -> bool {
         self.ghost_mode
+    }
+
+    /// Why ghost mode and blueprints are not open yet ("" once researched).
+    pub fn ghost_mode_lock(&self) -> String {
+        self.ghost_lock_note()
     }
 
     /// Turns the targeted belt, splitter or filter a quarter turn clockwise, at the next tick, or the
