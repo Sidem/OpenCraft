@@ -375,3 +375,35 @@ fn each_tier_gives_a_slow_steady_supply() {
     assert!((5.0..=8.0).contains(&means[0]), "Mk1 {:.2} a minute", means[0]);
     assert!(means[1] >= 1.7 * means[0] && means[2] >= 2.4 * means[0], "{means:?}");
 }
+
+/// The head's records holding a stem `logs` long, fed `fed` of a log through.
+fn holding(logs: f64, fed: f64) -> Vec<Vec<f32>> {
+    use super::view::{Load, Pose};
+    use crate::math::Vec3;
+    let head = Vec3::new(3.0, 2.0, 0.0);
+    let pose =
+        Pose { head, toward: Vec3::new(1.0, 0.0, 0.0), tilt: 1.0, arms: 1.0, saw: 0.0, load: Load::Stem { logs, fed } };
+    let mut out = Vec::new();
+    super::crane::draw(&mut out, Vec3::ZERO, &pose, 8.0);
+    out.chunks_exact(crate::factory::INSTANCE_FLOATS).map(<[f32]>::to_vec).collect()
+}
+
+#[test]
+fn a_bucked_stem_slides_whole_with_its_bark_and_keeps_a_round_crown() {
+    use crate::block::tex;
+    let stem = |logs, fed| holding(logs, fed).into_iter().find(|r| r[9] as u16 == tex::LOG_SIDE && r[4] > 0.5).unwrap();
+    // Bark texel row at the stem's top end (world-scale v there: slide - length / 2 - 1/2), modulo a tile.
+    let top_v = |r: &[f32]| (r[7] - r[5] * 0.5).rem_euclid(1.0);
+    let (a, b) = (stem(3.0, 0.2), stem(3.0, 0.6));
+    assert_eq!((a[5], b[5]), (3.0, 3.0), "the stem keeps its length while it is fed");
+    assert_eq!(a[7], b[7], "and its bark slides with it, not over it");
+    let moved = ((a[0] - b[0]).powi(2) + (a[1] - b[1]).powi(2) + (a[2] - b[2]).powi(2)).sqrt();
+    assert!((moved - 0.4).abs() < 1e-4, "it moved {moved}");
+    assert_eq!(a[11] as u32 & 1, 1, "bark at world scale");
+    let (fed, cut) = (stem(3.0, 1.0), stem(2.0, 0.0));
+    assert_eq!(cut[5], 2.0, "a cut takes a whole log off");
+    assert!((top_v(&fed) - top_v(&cut)).abs() < 1e-4, "the bark stays put on the wood across the cut");
+    let leaves: Vec<_> = holding(3.0, 0.0).into_iter().filter(|r| r[9] as u16 == tex::LEAVES).collect();
+    assert!(leaves.len() >= 3, "a crown");
+    assert!(leaves.iter().all(|r| r[11] as u32 & crate::factory::ROUND != 0), "the crown is round, not a box");
+}

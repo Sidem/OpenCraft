@@ -6,6 +6,8 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 ## 2026-11-07 · Round trees
 - **Trees are no longer made of cubes.** Trunks are round, with bark all the way round, a wider foot where they meet the ground and rings of end grain where they are cut. Branches running sideways join their trunk.
 - **Leaves grow together into one soft, lumpy crown**, shaped by all the leaves around them, with a leafy fringe at the edge and shade inside. A row of trees becomes one hedge-like canopy.
+- **Logs you carry, drop or send down a belt are round logs too**, with end grain on their cut ends, in your hand and in the inventory.
+- **The forester's crane keeps the tree looking like a tree**: the crown it lifts stays round, and when it cuts the trunk into logs, the trunk slides through the head and a log drops off at each cut, instead of the whole trunk shrinking.
 - Only the look changed: you still chop, mine and place logs and leaves block by block, and you bump into them exactly as before.
 
 ## 2026-11-07 · The forester

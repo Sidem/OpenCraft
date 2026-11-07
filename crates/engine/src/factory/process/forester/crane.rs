@@ -7,7 +7,7 @@
 use crate::block::tex;
 use crate::math::Vec3;
 
-use super::super::super::render::push_framed;
+use super::super::super::render::{push_framed, Framed};
 use super::view::{up, Load, Pose, YELLOW};
 
 /// The main boom's and the stick's fixed section as shares of the farthest reach, and how far the stick runs on past
@@ -85,7 +85,8 @@ impl Frame {
 
     /// A box in the frame, `size` along its x, y and z.
     fn part(&self, out: &mut Vec<f32>, c: [f64; 3], size: [f32; 3], layer: u16, round: bool) {
-        push_framed(out, self.at(c[0], c[1], c[2]), [self.x, self.y, self.z], size, [layer; 3], round);
+        let look = Framed { taper: round.then_some(1.0), slide: None };
+        push_framed(out, self.at(c[0], c[1], c[2]), [self.x, self.y, self.z], size, [layer; 3], look);
     }
 }
 
@@ -112,14 +113,17 @@ fn head(out: &mut Vec<f32>, f: &Frame, pose: &Pose) {
     beam(out, start, start + dir * 1.0, [0.03, 0.12], [tex::STEEL; 3], false);
     match pose.load {
         Load::Empty => {}
-        Load::Stem(logs) if logs > 0.0 => {
-            let (butt, top) = (f.at(0.0, -0.35, 0.0), f.at(0.0, logs - 0.35, 0.0));
-            beam(out, butt, top, [STEM, STEM], LOGS, true);
-            if logs >= 1.0 {
-                f.part(out, [0.0, logs - 0.1, 0.0], [1.7, 1.3, 1.7], tex::LEAVES, false);
+        Load::Stem { logs, fed } if logs > 0.0 => {
+            // The stem slides through whole, its bark moving with it: texels at world scale, slid so they stay put
+            // on the wood when a cut takes a log off its butt.
+            let top = logs - 0.35 - fed;
+            let look = Framed { taper: Some(1.0), slide: Some(-(logs * 0.5).fract() as f32) };
+            push_framed(out, f.at(0.0, top - logs * 0.5, 0.0), [f.x, f.y, f.z], [STEM, logs as f32, STEM], LOGS, look);
+            if logs - fed >= 0.5 {
+                crown(out, f, top + 0.3, 1.0);
             }
         }
-        Load::Stem(_) => {}
+        Load::Stem { .. } => {}
         Load::Bundle(n) => {
             for k in 0..n.min(6) {
                 let (row, layer) = (f64::from(k % 3) - 1.0, f64::from(k / 3));
@@ -128,10 +132,24 @@ fn head(out: &mut Vec<f32>, f: &Frame, pose: &Pose) {
             }
         }
         Load::Sapling => {
-            f.part(out, [0.0, -0.1, 0.0], [0.08, 0.5, 0.08], tex::LOG_SIDE, false);
-            f.part(out, [0.0, 0.15, 0.0], [0.34, 0.3, 0.34], tex::LEAVES, false);
+            f.part(out, [0.0, -0.1, 0.0], [0.08, 0.5, 0.08], tex::LOG_SIDE, true);
+            crown(out, f, 0.17, 0.2);
         }
     }
+}
+
+/// A leafy crown round the head's y axis, `scale` times a felled tree's, centred `y` along it: an ellipsoid of three
+/// round bodies (a bowl widening up, a band, a dome), as round as the canopies in the world (`mesher/foliage.rs`).
+fn crown(out: &mut Vec<f32>, f: &Frame, y: f64, scale: f32) {
+    // Rings of an ellipsoid 1.9 across and 1.6 high at 0.3 and 0.8 of its half-height: 1.81 and 1.14 across.
+    let (w, wide, half) = (1.14 * scale, 1.81 * scale, f64::from(0.8 * scale));
+    let leaves = [tex::LEAVES; 3];
+    let round = |taper| Framed { taper: Some(taper), slide: None };
+    // The bowl, drawn upside down so it narrows towards its far end (a round body's taper is never over 1).
+    let (flip, h) = ([f.x * -1.0, f.y * -1.0, f.z], (half * 0.5) as f32);
+    push_framed(out, f.at(0.0, y - half * 0.55, 0.0), flip, [wide, h, wide], leaves, round(w / wide));
+    push_framed(out, f.at(0.0, y, 0.0), [f.x, f.y, f.z], [wide, (half * 0.6) as f32, wide], leaves, round(1.0));
+    push_framed(out, f.at(0.0, y + half * 0.55, 0.0), [f.x, f.y, f.z], [wide, h, wide], leaves, round(w / wide));
 }
 
 /// One segment of a grab arm, between two points of the head's frame.
@@ -155,7 +173,8 @@ fn beam(out: &mut Vec<f32>, a: Vec3, b: Vec3, thick: [f32; 2], layers: [u16; 3],
     let y = (b - a) * (1.0 / len);
     let side = if y.y.abs() > 0.99 { Vec3::new(1.0, 0.0, 0.0) } else { unit(cross(y, up(1.0))) };
     let z = cross(side, y);
-    push_framed(out, a + (b - a) * 0.5, [side, y, z], [thick[0], len as f32, thick[1]], layers, round);
+    let look = Framed { taper: round.then_some(1.0), slide: None };
+    push_framed(out, a + (b - a) * 0.5, [side, y, z], [thick[0], len as f32, thick[1]], layers, look);
 }
 
 /// `a` × `b`.

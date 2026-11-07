@@ -55,8 +55,12 @@ pub(super) const PARTS: [Part; 17] = [
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(super) enum Load {
     Empty,
-    /// A felled stem, this many logs long still.
-    Stem(f64),
+    /// A felled stem `logs` long still, fed `fed` of a log on through the head past the saw (the stem slides whole;
+    /// a log comes off it only at the cut).
+    Stem {
+        logs: f64,
+        fed: f64,
+    },
     /// A bundle of bucked logs.
     Bundle(u8),
     Sapling,
@@ -168,11 +172,12 @@ fn pose(at: &Place, s: f64) -> Pose {
         }
         Job::Fell => {
             (pose.head, pose.tilt, pose.arms) = (at.grip(f.tree) + up(LAID * s), s, 1.0);
-            pose.load = Load::Stem(stem);
+            pose.load = Load::Stem { logs: stem, fed: 0.0 };
         }
         Job::Buck => {
+            // The rollers feed a log's length through, then the saw swings through the cut.
             (pose.head, pose.tilt, pose.arms) = (laid, 1.0, 1.0);
-            pose.load = Load::Stem(stem - s);
+            pose.load = Load::Stem { logs: stem, fed: (s / 0.75).min(1.0) };
             pose.saw = ((s - 0.8) / 0.2).clamp(0.0, 1.0);
         }
         Job::Gather => {

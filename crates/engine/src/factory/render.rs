@@ -136,17 +136,32 @@ pub fn push_cone(
     out[rec + PITCH] = pitch;
 }
 
-/// Pushes a box whose own x, y and z lie along the unit vectors `axes` (right-handed), `size` along each, round when
-/// `round` (along its y); yaw · roll · pitch solved as the shader composes them (`hitbox.rs`). For `forester/crane.rs`.
-pub fn push_framed(out: &mut Vec<f32>, center: Vec3, [x, y, z]: [Vec3; 3], size: [f32; 3], tex: [u16; 3], round: bool) {
+/// How `push_framed` draws its box: plain, or a round body along its y whose far end is `taper` times as wide; `slide`
+/// gives the round body world-scale texels slid that far along its axis (a stem fed through a harvester head).
+#[derive(Clone, Copy)]
+pub struct Framed {
+    pub taper: Option<f32>,
+    pub slide: Option<f32>,
+}
+
+/// Pushes a box whose own x, y and z lie along the unit vectors `axes` (right-handed), `size` along each, drawn as
+/// `look`; yaw · roll · pitch solved as the shader composes them (`hitbox.rs`). For `forester/crane.rs`.
+pub fn push_framed(
+    out: &mut Vec<f32>,
+    center: Vec3,
+    [x, y, z]: [Vec3; 3],
+    size: [f32; 3],
+    tex: [u16; 3],
+    look: Framed,
+) {
     let yaw = x.z.atan2(x.x) as f32;
     let roll = x.y.clamp(-1.0, 1.0).asin() as f32;
     let pitch = (-z.y).atan2(y.y) as f32;
-    push_box(out, center, yaw, size, 0.0, tex, false);
+    push_box(out, center, yaw, size, look.slide.unwrap_or(0.0), tex, look.slide.is_some());
     let rec = out.len() - INSTANCE_FLOATS;
     (out[rec + PITCH], out[rec + PITCH + 1]) = (pitch, roll);
-    if round {
-        make_round(out, Axis::Up, 1.0);
+    if let Some(taper) = look.taper {
+        make_round(out, Axis::Up, taper);
     }
 }
 

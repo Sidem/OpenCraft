@@ -13,7 +13,7 @@ precision highp float;
 // unit cylinder and its face: 2 its top, 3 its bottom, 6 plus the share of the way round on its side.
 layout(location = 0) in vec4 a_corner;
 layout(location = 1) in vec4 a_i0;     // camera-relative centre, yaw
-layout(location = 2) in vec4 a_i1;     // size, uv scroll (top face)
+layout(location = 2) in vec4 a_i1;     // size, uv scroll (a box's top face, a round body's side)
 layout(location = 3) in vec4 a_i2;     // texture layer top, side, bottom; mode bits (1 world-scaled uv, ROUND_BIT) + 4 * light
 layout(location = 4) in vec4 a_i3;     // pitch, roll, top-width taper (a round body's top-radius share), glow (0 or 1)
 
@@ -50,14 +50,15 @@ void main() {
   vec3 q = mix(a_corner.xyz, local, worldUv) + 0.5;
   vec2 uv;
   // Round once a quarter of the way (a box's four sides), every other copy mirrored so the copies meet without a seam
-  // (the mesh has vertices on those quarters); or by the circumference at world scale.
+  // (the mesh has vertices on those quarters); or by the circumference at world scale. The scroll slides a round body's
+  // side along its axis (a stem fed through a harvester head), a box's top across it (a belt).
   if (side) {
     float around = (a_corner.w - 6.0) * 4.0, copy = floor(around), along = around - copy;
-    uv = vec2(mix(mod(copy, 2.0) < 0.5 ? along : 1.0 - along, around * 0.25 * 3.14159265 * a_i1.x, worldUv), -q.y);
+    uv = vec2(mix(mod(copy, 2.0) < 0.5 ? along : 1.0 - along, around * 0.25 * 3.14159265 * a_i1.x, worldUv), a_i1.w - q.y);
   }
   else if (face == 0) uv = vec2(-q.z, -q.y);
   else if (face == 1) uv = vec2(q.z, -q.y);
-  else if (face == 2) uv = vec2(q.x, q.z + a_i1.w);
+  else if (face == 2) uv = vec2(q.x, q.z + (u_round ? 0.0 : a_i1.w));
   else if (face == 3) uv = vec2(q.x, -q.z);
   else if (face == 4) uv = vec2(q.x, -q.y);
   else uv = vec2(-q.x, -q.y);

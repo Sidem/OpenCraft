@@ -272,6 +272,10 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-07: round logs everywhere (user).** Log items are a lying cylinder (`item_models/stock.rs`), so loose, belt,
+  held and icon logs match the trunks. The forester's lifted crown and sapling are round (`forester/crane.rs` `crown`),
+  and a bucked stem slides whole through the head with world-scale bark (`render.rs` `Framed`, the round side's scroll
+  in `box-glsl.ts`), losing a whole log at each cut instead of shrinking. Test: `a_bucked_stem_slides_whole_…`.
 - **2026-11-07: round trees (user, `/deepen`).** Logs and leaves leave the cube mesher for a per-chunk shaped list
   (`mesher/shaped.rs`, drawn by `render/shaped.ts` in two passes of their own): logs are 12-sided cylinders
   (`logs.rs`), leaves one surface-nets shell over the leaves within `foliage::REACH`, Taubin-smoothed, with
