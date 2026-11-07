@@ -3,8 +3,8 @@
 //! Its inputs are worked out from `FAMILIES` and `upgrades::KITS` at compile time (`ladder`), so the cost is exactly what
 //! upgrading in place step by step costs (`recipes/tests.rs` checks every tier has a row). Also the upgrader's hand recipe.
 //!
-//! To add a tier: nothing here but its number in `REFIT`'s row of the family (the test names a missing one). To add a
-//! family: a line in `REFIT`.
+//! To add a tier or a family: a line at the end of `REFIT_LATER`, never in `REFIT` (saved machines hold row indices;
+//! the test names a missing one).
 
 use crate::block::*;
 use crate::factory::tiers::{Family, FAMILIES};
@@ -76,4 +76,9 @@ pub const REFIT: &[MachineRecipe] = rows! {
     GENERATOR: 1;
     DRONE_PORT: 1 2 3 4;
     RESEARCH_CENTER: 1 2 3 4;
+};
+
+/// Families tiered after the table above was saved: rows of their own at the very end of `MACHINE_RECIPES`.
+pub const REFIT_LATER: &[MachineRecipe] = rows! {
+    FORESTER: 1 2;
 };

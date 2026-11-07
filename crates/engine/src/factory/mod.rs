@@ -130,6 +130,7 @@ pub use pole::{POLE_TIERS, POLE_WIRE_Y};
 pub use ports::PortInfo;
 pub(crate) use process::EJECTOR_ICON;
 pub use process::{channel_colour, channel_name, first_maker, makes, spec as process_spec, Want};
+pub use process::{forester_survey, ForesterPatch, ForesterSurvey};
 pub use process::{tenths, tenths_a_minute};
 #[cfg(test)]
 pub use process::{ProcessSpec, Status as ProcessStatus, SPECS};

@@ -46,6 +46,7 @@ mod events;
 mod factory;
 mod first_steps;
 mod footprint_preview;
+mod forester_preview;
 mod frame;
 mod ghost_mode;
 mod ghosts;

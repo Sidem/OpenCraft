@@ -2,7 +2,7 @@
 //! tech. Coloured concretes are plain concrete tinted by a mineral already mined (iron ore red, copper ore green, coal
 //! black, quicklime white, sulfur yellow; one mineral colours four blocks); rock bricks are fired in a smelter from the
 //! rock of each province, slag bricks use the blast furnace's slag; the rest come from an assembler. Rows 136 on
-//! (`DECOR_FIRST`), the last table of `MACHINE_RECIPES`.
+//! (`DECOR_FIRST`) of `MACHINE_RECIPES`, followed only by `refit::REFIT_LATER`.
 
 use crate::block::*;
 use crate::item::*;

@@ -1,10 +1,10 @@
-//! Placing a quarry (the local player's, presentation only): while one is held and aimed at a free
-//! cell, `quarry_preview` is the box it would dig there (outlined by the host), `quarry_label` says
-//! how big it is and what it would yield, and R turns it a quarter (`turn_placement`, from
-//! `rotate_target`; multi-block machines share the turn: `footprint_preview.rs`). The turn goes into the
-//! placing action's facing (`interaction.rs`). Reads loaded chunks only; never touches the core.
+//! Placing a quarry (the local player's, presentation only): while one is held and aimed at a free cell,
+//! `quarry_preview` is the box it would dig there (outlined by the host), its label says how big it is and what is in
+//! it, and R turns it a quarter (`turn_placement`, from `rotate_target`; multi-block machines and the forester,
+//! `forester_preview.rs`, share the turn: `footprint_preview.rs`). The turn goes into the placing action's facing
+//! (`interaction.rs`). Reads loaded chunks only; never touches the core.
 
-use crate::block::{self, QUARRY};
+use crate::block::{self, BlockId, FORESTER, QUARRY};
 use crate::factory::{self, survey, DigBox, DEFAULT_DEPTH, DEFAULT_WIDTH, DEPTHS};
 use crate::item;
 use crate::math::IVec3;
@@ -13,8 +13,17 @@ use crate::Game;
 impl Game {
     /// Whether the selected slot holds a quarry.
     pub(crate) fn holds_quarry(&self) -> bool {
+        self.holds(QUARRY)
+    }
+
+    /// Whether the selected slot holds a machine that works a box in front of it, which R turns.
+    pub(crate) fn holds_boxed(&self) -> bool {
+        self.holds(QUARRY) || self.holds(FORESTER)
+    }
+
+    fn holds(&self, block: BlockId) -> bool {
         let stack = self.inventory().selected_stack();
-        !stack.is_empty() && stack.item.places() == Some(QUARRY)
+        !stack.is_empty() && stack.item.places() == Some(block)
     }
 
     /// The way a quarry or multi-block machine placed now would face: the player's facing, turned by R.

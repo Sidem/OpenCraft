@@ -286,7 +286,11 @@ impl Game {
         if self.body_blocks(placed, pos) {
             return None;
         }
-        let facing = if placed == block::QUARRY { self.placing_facing() } else { factory::dir_from_yaw(body.yaw) };
+        if placed == block::FORESTER && self.forester_refused().is_some() {
+            return None;
+        }
+        let boxed = matches!(placed, block::QUARRY | block::FORESTER);
+        let facing = if boxed { self.placing_facing() } else { factory::dir_from_yaw(body.yaw) };
         Some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block })
     }
 

@@ -1,5 +1,5 @@
 //! What only one kind of processor keeps (`Processor::extra`): a pumpjack's well, a research center's unit, a recycler's
-//! debt, a launch site's count, a depot's wants, a drone port's fleet. Chosen from the spec when the processor is made
+//! debt, a launch site's count, a depot's wants, a drone port's fleet, a forester's job. Chosen from the spec when the processor is made
 //! (`Extra::new`), so a processor never carries another kind's state.
 //!
 //! Invariant: the variant follows the spec alone (pick, or the launch site's block), so a kind's file may match on it in
@@ -16,6 +16,7 @@ use crate::pods::CHANNELS;
 
 use super::center::Study;
 use super::depot::Want;
+use super::forester::Forest;
 use super::hangar::Hangar;
 use super::pods::CHANNEL_SAVED;
 use super::pump::Pump;
@@ -47,6 +48,8 @@ pub enum Extra {
     Channel(u8),
     /// What a belt ejector threw out this tick, until `report_made` (ejector.rs; derived).
     Ejector(Vec<Stack>),
+    /// A forester's job on its patch (forester.rs; saved).
+    Forest(Forest),
 }
 
 impl Extra {
@@ -59,6 +62,7 @@ impl Extra {
             Pick::Hangar => Extra::Hangar(Hangar::default()),
             Pick::Pods | Pick::Land => Extra::Channel(0),
             Pick::Eject => Extra::Ejector(Vec::new()),
+            Pick::Forest => Extra::Forest(Forest::default()),
             _ if spec.block == LAUNCH_SITE => Extra::Launch { launches: 0, lifted: None },
             _ => Extra::None,
         }
@@ -71,6 +75,7 @@ impl Extra {
             Extra::Recycler { owed } => w.u32(*owed),
             Extra::Launch { launches, .. } => w.u32(*launches),
             Extra::Channel(channel) => w.u8(*channel),
+            Extra::Forest(forest) => forest.write_state(w),
             Extra::None | Extra::Depot { .. } | Extra::Hangar(_) | Extra::Ejector(_) => {}
         }
     }
@@ -83,6 +88,7 @@ impl Extra {
             Extra::Launch { launches, .. } => *launches = r.u32()?,
             // Older saves have none: `Processor::load` set it from the facing.
             Extra::Channel(channel) if r.version >= CHANNEL_SAVED => *channel = r.u8()? % CHANNELS,
+            Extra::Forest(forest) => *forest = Forest::read_state(r)?,
             Extra::Channel(_) | Extra::None | Extra::Depot { .. } | Extra::Hangar(_) | Extra::Ejector(_) => {}
         }
         Some(())

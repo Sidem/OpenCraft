@@ -36,8 +36,9 @@ const B: PlayerId = PlayerId(1);
 /// On 2026-10-31 (save version 63) the core began to end with the note signs (an empty list here): the previous hash was
 /// 0xcc54_60f0_52c9_69fd. On 2026-11-05 generator version 11 lowered the ground around spawn, where this script mines:
 /// the previous hash was 0x0e1f_7e20_bd4b_d44d. On 2026-11-07 the quarry tip moved up to sixth, so this run's furthest main
-/// tip is 10, not 9; with 9 the run still hashes to the previous 0xca51_6c7e_ec96_d2ee.
-const GOLDEN_HASH: u64 = 0x36e7_1721_57fb_dcdb;
+/// tip is 10, not 9; with 9 the run still hashes to the previous 0xca51_6c7e_ec96_d2ee. On 2026-11-07 the Forestry tech
+/// added a research entry to the state bytes; without it the run still hashes to the previous 0x36e7_1721_57fb_dcdb.
+const GOLDEN_HASH: u64 = 0x2f92_e7fa_95f3_0250;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

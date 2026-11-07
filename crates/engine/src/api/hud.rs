@@ -53,6 +53,10 @@ impl Game {
             let (lo, hi) = d.bounds();
             return vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, 0];
         }
+        let forester = self.forester_boxes();
+        if !forester.is_empty() {
+            return forester;
+        }
         let power = self.power_boxes();
         if !power.is_empty() {
             return power;
@@ -107,6 +111,7 @@ impl Game {
                 return self.line.aim.label.clone();
             }
             let quarry = self.quarry_label();
+            let quarry = if quarry.is_empty() { self.forester_label() } else { quarry };
             let quarry = if quarry.is_empty() { self.crowded_label() } else { quarry };
             let footprint = if quarry.is_empty() { self.footprint_label() } else { quarry };
             if !footprint.is_empty() {

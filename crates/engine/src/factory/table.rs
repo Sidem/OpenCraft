@@ -9,7 +9,7 @@ use super::lab::LAB_PACK_SLOTS;
 use crate::block::{
     BlockId, ACCUMULATOR, AI_LAB, ARC_FURNACE, ASSEMBLER, BELT, BELT_EJECTOR, BLAST_FURNACE, BOILER, CABLE, CENTRIFUGE,
     CHEMICAL_PLANT, CHIP_FAB, COAL_MINER, CONSTRUCTOR, COOLING_TOWER, CRACKER, CRUSHER, DATACENTER, DATA_RECEIVER,
-    DIESEL_GENERATOR, DRONE_PORT, ELECTROLYSER, ELECTROLYTIC_CELL, FAST_BELT, FIBRE_NODE, FILTER, GENERATOR,
+    DIESEL_GENERATOR, DRONE_PORT, ELECTROLYSER, ELECTROLYTIC_CELL, FAST_BELT, FIBRE_NODE, FILTER, FORESTER, GENERATOR,
     GROUND_STATION, LAB, LANDING_PAD, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER, LAUNCH_SITE, LIFT, LOADING_DOCK,
     LONG_POLE, MINER, MINER_MK2, OPTIMIZER, OUTLET, PIPE, POD_LAUNCHER, POLE, PUMP, PUMPJACK, QUARRY, RAIL, RAMP_DOWN,
     RAMP_UP, REACTOR, RECTENNA, RECYCLER, REFINERY, RESEARCH_CENTER, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER,
@@ -47,7 +47,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 71] = [
+pub const MACHINES: [MachineDef; 72] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -115,6 +115,7 @@ pub const MACHINES: [MachineDef; 71] = [
     MachineDef { block: TOWN_DEPOT, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: COAL_MINER, kind: Kind::Miner, slots: 1, panel: true },
     MachineDef { block: BELT_EJECTOR, kind: Kind::Process, slots: 0, panel: false },
+    MachineDef { block: FORESTER, kind: Kind::Process, slots: 0, panel: true },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
     MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },

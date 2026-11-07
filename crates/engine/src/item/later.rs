@@ -84,3 +84,6 @@ pub const SCRAP_METAL: ItemId = ItemId(396);
 pub const TELESCOPE: ItemId = ItemId(397);
 /// The sickle (`sickle.rs`): right-click cuts the ground plants of a 3 × 3 patch (`world/cover_clear.rs`).
 pub const SICKLE: ItemId = ItemId(398);
+/// The forester Mk2 and Mk3 (`factory/process/forester.rs`): faster, and a bigger patch where the ground allows.
+pub const FORESTER_MK2: ItemId = ItemId(399);
+pub const FORESTER_MK3: ItemId = ItemId(400);

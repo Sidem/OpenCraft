@@ -28,7 +28,7 @@ const GRASS_DIE_HALF_LIFE: f64 = 15.0;
 /// Removing a log checks the leaves this far away (in each axis).
 const LEAF_CHECK_RADIUS: i32 = 6;
 /// A leaf stays while a log is at most this many face steps away through leaves.
-const LEAF_SUPPORT_STEPS: i32 = 4;
+pub(crate) const LEAF_SUPPORT_STEPS: i32 = 4;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum TimerKind {

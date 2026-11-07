@@ -1,9 +1,9 @@
 //! The open end of `techs::TECHS`: techs added after Milestone 12's first steps, so that `orbit.rs` stays closed and no saved
-//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85. Add rows at the
-//! bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Masonry 7, Assembly 8, Blue Science 10,
+//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86.
+//! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Masonry 7, Assembly 8, Blue Science 10,
 //! Mk4 Logistics 19, Bauxite Processing 36, Rocketry 78, Orbital Comms 79.
 
-use crate::block::{LANDING_PAD, LONG_POLE, POD_LAUNCHER, TOWN_DEPOT};
+use crate::block::{FORESTER, LANDING_PAD, LONG_POLE, POD_LAUNCHER, TOWN_DEPOT};
 use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, LONG_POLE_ROW};
 
@@ -20,7 +20,7 @@ const DECOR_UNLOCKS: [Unlock; DECOR_ROWS as usize] = {
     out
 };
 
-pub const LATER: [Tech; 4] = [
+pub const LATER: [Tech; 5] = [
     Tech {
         name: "Long-Distance Power",
         blurb: "Lattice towers, 2×2 and 3 high, that link to each other 160 blocks apart (an ordinary pole only 16), \
@@ -68,5 +68,15 @@ pub const LATER: [Tech; 4] = [
         units: 40,
         seconds: 10.0,
         unlocks: &DECOR_UNLOCKS,
+    },
+    Tech {
+        name: "Forestry",
+        blurb: "The forester: it keeps a patch of land in front of it as a wood lot, felling each tree, gathering its \
+                saplings and planting them again, for a slow but endless supply of logs.",
+        needs: &[],
+        packs: &[RED_PACK],
+        units: 15,
+        seconds: 5.0,
+        unlocks: &[r(FORESTER)],
     },
 ];

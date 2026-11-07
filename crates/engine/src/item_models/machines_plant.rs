@@ -1,6 +1,7 @@
 //! Icons of the plant machines, built after the real thing as `machines.rs` builds the rest: a pumpjack's nodding beam
 //! and horsehead, a refinery's columns and flare, a centrifuge's rotor of tubes, an ore washer's drum over its trough,
-//! a constructor's robot arm over its bench. Parts back to front (the viewer looks from +x and +z), floor at -0.5.
+//! a constructor's robot arm over its bench, a forester's harvester crane gripping a tree. Parts back to front (the viewer
+//! looks from +x and +z), floor at -0.5.
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_3, FRAC_PI_4, PI};
 
@@ -18,6 +19,7 @@ pub(super) fn parts(block: BlockId) -> &'static [Part] {
         block::WASHER => &WASHER,
         block::CONSTRUCTOR => &CONSTRUCTOR,
         block::PUMP => &PUMP,
+        block::FORESTER => &FORESTER,
         _ => &[],
     }
 }
@@ -103,6 +105,39 @@ const WASHER: [Part; 14] = [
     part([0.33, -0.08, -0.33], [0.05, 0.56, 0.05], tex::FRAME),
     cylinder([-0.32, -0.21, -0.26], 0.12, 0.02, tex::MAT_METAL),
     cylinder([0.3, -0.21, 0.24], 0.12, 0.02, tex::MAT_METAL),
+];
+
+/// The carrier's yellow (`factory/process/forester/view.rs`).
+const YELLOW: u16 = tex::GRID_FIRST + 4;
+
+/// A log lying along z on the bunk.
+const fn bunk_log(c: [f32; 3]) -> Part {
+    Part { center: c, size: [0.12, 0.12, 0.5], yaw: 0.0, tex: [tex::LOG_SIDE; 3], form: Form::Round(Axis::Z, 1.0) }
+}
+
+/// A yellow carrier with a glazed cab and logs on its bunk; from its slewing column a knuckle boom reaches to the
+/// orange harvester head, whose arms grip a standing tree, its saw bar under them (`factory/process/forester/`).
+const FORESTER: [Part; 19] = [
+    part([0.0, -0.47, 0.0], [0.94, 0.06, 0.94], tex::FRAME),
+    part([-0.1, -0.32, -0.1], [0.7, 0.24, 0.7], YELLOW),
+    bunk_log([-0.33, -0.14, -0.12]),
+    bunk_log([-0.27, -0.04, -0.12]),
+    bunk_log([-0.21, -0.14, -0.12]),
+    Part { tex: [YELLOW, tex::CAB_GLASS, YELLOW], ..part([0.1, -0.04, -0.3], [0.26, 0.32, 0.26], 0) },
+    part([0.1, 0.135, -0.3], [0.3, 0.03, 0.3], tex::MAT_GUNMETAL),
+    cylinder([-0.12, -0.19, 0.08], 0.24, 0.04, tex::MAT_GUNMETAL),
+    cylinder([-0.12, -0.08, 0.08], 0.16, 0.24, YELLOW),
+    // Main boom from the column's top to the knuckle, the stick from there down to the rotator over the head.
+    lean([-0.06, 0.23, 0.1], [0.07, 0.4, 0.07], -1.249, 0.32, YELLOW),
+    part([0.0, 0.42, 0.12], [0.08, 0.08, 0.08], tex::MAT_EMBER),
+    lean([0.122, 0.285, 0.203], [0.05, 0.4, 0.05], 2.168, 0.83, YELLOW),
+    cylinder([0.244, 0.12, 0.286], 0.06, 0.06, tex::MAT_GUNMETAL),
+    turned([0.244, 0.0, 0.286], [0.1, 0.18, 0.13], 0.51, tex::MAT_EMBER),
+    turned([0.384, 0.03, 0.262], [0.04, 0.07, 0.05], 0.51, tex::MAT_GUNMETAL),
+    turned([0.33, -0.1, 0.35], [0.24, 0.015, 0.05], -1.06, tex::STEEL),
+    cylinder([0.34, -0.12, 0.34], 0.14, 0.7, tex::LOG_SIDE),
+    part([0.34, 0.31, 0.34], [0.26, 0.2, 0.26], tex::LEAVES),
+    turned([0.296, 0.03, 0.418], [0.04, 0.07, 0.05], 0.51, tex::MAT_GUNMETAL),
 ];
 
 /// A robot arm on a workbench, its gripper over the plate it is making.

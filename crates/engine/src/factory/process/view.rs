@@ -38,6 +38,7 @@ impl Processor {
             .or_else(|| self.optimizer_text())
             .or_else(|| self.hub_text())
             .or_else(|| self.ground_text())
+            .or_else(|| self.forest_text())
             .or_else(|| self.laser_text());
         if let Some(text) = special.or_else(|| self.pump_text()) {
             return text;

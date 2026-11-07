@@ -99,6 +99,26 @@ pub const QUARRY_MK3_RECIPE: Recipe = Recipe {
     blurb: "Digs 6 blocks a second and needs 30 kW. Or upgrade a placed quarry with 4 blue kits.",
 };
 
+pub const FORESTER_MK2_RECIPE: Recipe = Recipe {
+    output: FORESTER_MK2,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(b(FORESTER), 1), (GREEN_KIT, 4)],
+    blurb:
+        "Works twice as fast for 40 kW, and a 17 wide, 14 deep patch where the ground in front is flat that far. Or \
+            upgrade a placed forester with 4 green kits.",
+};
+
+pub const FORESTER_MK3_RECIPE: Recipe = Recipe {
+    output: FORESTER_MK3,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(FORESTER_MK2, 1), (BLUE_KIT, 4)],
+    blurb:
+        "Works three times as fast for 60 kW, and a 23 wide, 17 deep patch where the ground in front is flat that far. \
+            Or upgrade a placed forester with 4 blue kits.",
+};
+
 pub const LAB_MK2_RECIPE: Recipe = Recipe {
     output: LAB_MK2,
     group: Group::Science,

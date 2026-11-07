@@ -222,6 +222,19 @@ pub const QUARRY_RECIPE: Recipe = Recipe {
             size and depth. Needs 10 kW.",
 };
 
+pub const FORESTER_RECIPE: Recipe = Recipe {
+    output: b(FORESTER),
+    group: Group::Production,
+    count: 1,
+    inputs: &[(IRON_PLATE, 8), (IRON_ROD, 6), (SCREW, 8), (COPPER_WIRE, 6), (b(PLANKS), 8)],
+    blurb:
+        "Keeps flat grass or dirt in front of it, 11×11, as a wood lot: its crane's harvester head grips each tree, \
+            saws it down, cuts it into logs and brings them home, then plants a sapling, 9 trees in all, about 6 \
+            logs a minute onto a belt leading away. Leaves give it saplings; give it a few to start a bare patch. \
+            Hold it to see its patch (red where the ground is not flat), R turns it. Needs 20 kW while it works; \
+            kits make it faster and its patch bigger.",
+};
+
 pub const SCANNER_RECIPE: Recipe = Recipe {
     output: SCANNER,
     group: Group::Tools,

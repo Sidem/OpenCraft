@@ -32,6 +32,7 @@ mod ejector;
 mod extra;
 mod fab;
 mod facts;
+mod forester;
 mod ground;
 mod hangar;
 mod hoist;
@@ -71,6 +72,7 @@ pub(super) use diesel::run as run_diesel;
 pub(crate) use ejector::ICON as EJECTOR_ICON;
 use extra::Extra;
 pub use facts::facts;
+pub use forester::{survey as forester_survey, Patch as ForesterPatch, Survey as ForesterSurvey};
 pub(super) use hub::{bonus_at as hub_bonus_at, bonuses as hub_bonuses};
 pub(super) use hydro::run as run_hydro;
 pub(super) use kinds::Kinds;
@@ -220,7 +222,8 @@ impl Processor {
             (e, _) if e.is_source() => {}
             (_, Pick::Recycle) => self.recycle(power),
             (_, Pick::Eject) => self.eject(),
-            (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research) => {}
+            (_, pick) if pick.stores() || matches!(pick, Pick::Hangar | Pick::Pump | Pick::Research | Pick::Forest) => {
+            }
             _ => self.work(power, unlocked),
         }
         self.out.feed(&self.outs, &mut self.next_out, belts, self.pos);
@@ -233,6 +236,7 @@ impl Processor {
             Pick::Research => return self.center_wants_power(research),
             Pick::Hangar => return self.port().is_some_and(|(_, h)| h.busy),
             Pick::Pump => return self.pump_wants_power(),
+            Pick::Forest => return self.forest_wants_power(),
             Pick::Recycle => return self.recycle_wants_power(),
             Pick::Pods => return self.pod_wants_power(),
             _ => {}

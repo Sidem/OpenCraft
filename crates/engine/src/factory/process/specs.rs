@@ -98,6 +98,8 @@ pub enum Pick {
     Depot,
     /// A belt ejector: takes a few of anything and drops them on the ground in front of it (ejector.rs).
     Eject,
+    /// A forester: takes only saplings, fells the trees on its patch and replants them (forester.rs).
+    Forest,
 }
 
 impl Pick {
@@ -187,6 +189,7 @@ pub const SPECS: &[ProcessSpec] = &[
     super::upgrader::UPGRADER_SPEC,
     super::depot::DEPOT_SPEC,
     super::ejector::EJECTOR_SPEC,
+    super::forester::FORESTER_SPEC,
     super::basic::SMELTER_SPEC,
     super::basic::CONSTRUCTOR_SPEC,
     super::basic::ASSEMBLER_SPEC,

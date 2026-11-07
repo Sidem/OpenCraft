@@ -46,6 +46,8 @@ pub enum Look {
     /// The assembler's work cell in motion (`assembly_view.rs`): its arms, the batch's inputs, the work cloud, the
     /// hammer and the product. No box; the part only marks the fixture's top.
     Work,
+    /// A forester's crane (`forester/view.rs`): no box, but the crane from the part's centre (its pivot), its head, and the fence round its patch.
+    Crane,
 }
 
 #[derive(Clone, Copy)]
@@ -130,6 +132,10 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             }
             Look::Work => {
                 super::assembly_view::draw(p, out, centre, yaw, time);
+                continue;
+            }
+            Look::Crane => {
+                super::forester::draw_crane(p, out, rel, at, time);
                 continue;
             }
             Look::Tex(t) => t,

@@ -175,6 +175,14 @@ impl Sim {
         if placed == block::POLE && !factory::pole_mount::is_held_up(solid, pos) {
             return false;
         }
+        // A forester needs flat grass or dirt in front of it (`factory/process/forester/patch.rs`).
+        if placed == block::FORESTER {
+            let world = &mut self.world;
+            let ground = factory::forester_survey(pos, facing, 0, |p| world.block_anywhere_or_generate(p));
+            if ground.size.is_none() {
+                return false;
+            }
+        }
         // A rail node stands on the ground (`factory/rail/ground.rs`).
         if placed == block::RAIL && !factory::rail_node_stands(|p| self.world.block_anywhere_or_generate(p), pos) {
             return false;

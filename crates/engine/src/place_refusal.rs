@@ -1,7 +1,7 @@
 //! Telling the player why a placement did not happen (the local player's hands, presentation only; the core checks
 //! every placement again). A block in hand is refused when the player's own body stands in the cell (`crowded_cell`),
-//! and a multi-block machine when any cell of its footprint is taken (`footprint_preview.rs` marks those red). Both
-//! show red on the screen (`crowded_box`, `crowded_label`) and, when the right button tries, play `sound::DENIED` once
+//! a multi-block machine when any cell of its footprint is taken (`footprint_preview.rs` marks those red), and a forester
+//! on uneven ground (`forester_preview.rs`). All show red on the screen (`crowded_box`, `crowded_label`) and, when the right button tries, play `sound::DENIED` once
 //! per click and then every `REFUSE_REPEAT_SECONDS` while the button stays down (`refuse_placing`).
 //! To extend: another thing that stops a click is one more arm in `refused_at`.
 
@@ -56,6 +56,9 @@ impl Game {
 
     /// Where the held block was refused: its footprint's anchor when a cell is taken, or the crowded cell.
     fn refused_at(&self) -> Option<IVec3> {
+        if let Some(at) = self.forester_refused() {
+            return Some(at);
+        }
         if self.held_footprint().is_some() {
             let (_, anchor, _, cells) = self.footprint_ghost()?;
             return cells.iter().any(|c| c.1).then_some(anchor);

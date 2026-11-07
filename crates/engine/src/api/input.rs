@@ -62,7 +62,7 @@ impl Game {
         if self.cycle_scan_filter() {
             return true;
         }
-        if self.ghost_mode || self.holds_quarry() || self.held_footprint().is_some() {
+        if self.ghost_mode || self.holds_boxed() || self.held_footprint().is_some() {
             if !(self.ghost_mode && self.turn_held_blueprint()) {
                 self.turn_placement();
             }

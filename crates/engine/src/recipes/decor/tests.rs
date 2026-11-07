@@ -14,7 +14,8 @@ fn decor_blocks() -> impl Iterator<Item = block::BlockId> {
 #[test]
 fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
     assert_eq!(DECOR.len(), DECOR_ROWS as usize);
-    assert_eq!(MACHINE_RECIPES.len(), DECOR_FIRST as usize + DECOR.len());
+    let later = crate::recipes::refit::REFIT_LATER.len();
+    assert_eq!(MACHINE_RECIPES.len(), DECOR_FIRST as usize + DECOR.len() + later, "only later upgrader rows follow");
     assert_eq!(MACHINE_RECIPES[DECOR_FIRST as usize - 1].inputs, &[(item::SCRAP_METAL, 3)][..], "the salvage row");
     assert_eq!(
         block::COAL_MINER as usize,

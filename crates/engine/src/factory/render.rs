@@ -136,6 +136,20 @@ pub fn push_cone(
     out[rec + PITCH] = pitch;
 }
 
+/// Pushes a box whose own x, y and z lie along the unit vectors `axes` (right-handed), `size` along each, round when
+/// `round` (along its y); yaw · roll · pitch solved as the shader composes them (`hitbox.rs`). For `forester/crane.rs`.
+pub fn push_framed(out: &mut Vec<f32>, center: Vec3, [x, y, z]: [Vec3; 3], size: [f32; 3], tex: [u16; 3], round: bool) {
+    let yaw = x.z.atan2(x.x) as f32;
+    let roll = x.y.clamp(-1.0, 1.0).asin() as f32;
+    let pitch = (-z.y).atan2(y.y) as f32;
+    push_box(out, center, yaw, size, 0.0, tex, false);
+    let rec = out.len() - INSTANCE_FLOATS;
+    (out[rec + PITCH], out[rec + PITCH + 1]) = (pitch, roll);
+    if round {
+        make_round(out, Axis::Up, 1.0);
+    }
+}
+
 /// Makes the box just pushed onto `out` (perhaps already tilted by a pitch) the round body filling it, its axis along
 /// `axis` in the box's own frame (the held items: `avatars/model.rs`).
 pub fn make_round(out: &mut [f32], axis: Axis, taper: f32) {

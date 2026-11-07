@@ -1,4 +1,4 @@
-//! Tiered families (Mk1, Mk2, …; boxes, pumps and quarries stop at Mk3, generators at Mk2): which machines come in tiers and which item is each tier.
+//! Tiered families (Mk1, Mk2, …; boxes, pumps, quarries and foresters stop at Mk3, generators at Mk2): which machines come in tiers and which item is each tier.
 //!
 //! A tier is machine state: `tier: u8`, an index (0 is Mk1) into the family's numbers, which live atop
 //! the machine's own module as one array (`BELT_TIERS`, `MINER_TIERS`, `LAB_TIERS`, `POLE_TIERS`,
@@ -17,8 +17,8 @@
 //! array, and its arms in `Factory::tiered_at` and `Factory::set_tier` (`upgrades.rs`).
 
 use crate::block::{
-    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, FAST_BELT, GENERATOR, LAB, MINER, MINER_MK2,
-    POLE, PUMP, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE, UNDERPASS_IN,
+    BlockId, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, FAST_BELT, FORESTER, GENERATOR, LAB, MINER,
+    MINER_MK2, POLE, PUMP, QUARRY, RESEARCH_CENTER, SMELTER, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{
     ItemId, ASSEMBLER_MK2, ASSEMBLER_MK3, ASSEMBLER_MK4, BELT_MK3, BELT_MK4, BLAST_FURNACE_MK2, BLAST_FURNACE_MK3,
@@ -29,7 +29,7 @@ use crate::item::{
 use crate::item::{
     ASSEMBLER_MK5, BLAST_FURNACE_MK5, CONSTRUCTOR_MK5, DRONE_PORT_MK5, MINER_MK5, RESEARCH_CENTER_MK5, SMELTER_MK5,
 };
-use crate::item::{DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4};
+use crate::item::{DRONE_PORT_MK2, DRONE_PORT_MK3, DRONE_PORT_MK4, FORESTER_MK2, FORESTER_MK3};
 use crate::item::{RESEARCH_CENTER_MK2, RESEARCH_CENTER_MK3, RESEARCH_CENTER_MK4};
 use crate::item::{UNDERPASS_MK2, UNDERPASS_MK3, UNDERPASS_MK4};
 
@@ -84,6 +84,7 @@ pub const FAMILIES: &[Family] = &[
     Family { block: STORAGE, items: &[ItemId::block(STORAGE), BOX_MK2, BOX_MK3], kits: 4 },
     Family { block: PUMP, items: &[ItemId::block(PUMP), PUMP_MK2, PUMP_MK3], kits: 4 },
     Family { block: QUARRY, items: &[ItemId::block(QUARRY), QUARRY_MK2, QUARRY_MK3], kits: 4 },
+    Family { block: FORESTER, items: &[ItemId::block(FORESTER), FORESTER_MK2, FORESTER_MK3], kits: 4 },
     Family { block: LAB, items: &[ItemId::block(LAB), LAB_MK2, LAB_MK3, LAB_MK4], kits: 4 },
     Family { block: GENERATOR, items: &[ItemId::block(GENERATOR), GENERATOR_MK2], kits: 4 },
     Family {

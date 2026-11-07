@@ -4,8 +4,8 @@
 //! `recycling.rs`'s, `compute.rs`'s, `bonus.rs`'s, `ai.rs`'s, `hands.rs`'s, `orbit.rs`'s and `later.rs`'s techs (joined by `crate::join`); add to the last.
 
 use crate::block::{
-    ASSEMBLER, BELT, BELT_EJECTOR, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, GENERATOR, LAB, LIFT, MINER,
-    OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
+    ASSEMBLER, BELT, BELT_EJECTOR, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, FORESTER, GENERATOR, LAB, LIFT,
+    MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
 };
 use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
 use crate::recipes::{
@@ -119,6 +119,7 @@ const MAIN: [Tech; 17] = [
             Unlock::Upgrade(STORAGE, 1),
             Unlock::Upgrade(PUMP, 1),
             Unlock::Upgrade(QUARRY, 1),
+            Unlock::Upgrade(FORESTER, 1),
             Unlock::Upgrade(LAB, 1),
             Unlock::Upgrade(GENERATOR, 1),
         ],
@@ -231,6 +232,7 @@ const MAIN: [Tech; 17] = [
             Unlock::Upgrade(LAB, 2),
             Unlock::Upgrade(PUMP, 2),
             Unlock::Upgrade(QUARRY, 2),
+            Unlock::Upgrade(FORESTER, 2),
         ],
     },
     Tech {

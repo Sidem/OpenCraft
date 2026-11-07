@@ -70,7 +70,7 @@ pub const SOLAR_PANEL_ROW: u16 = 82;
 pub const ACCUMULATOR_ROW: u16 = 83;
 pub const UNDERPASS_ROW: u16 = 86;
 pub const RAIL_ROW: u16 = 87;
-/// The decor set's rows (`decor.rs`, tech Architecture) are the last `DECOR_ROWS` of the table, after the ruins' row 135.
+/// The decor set's rows (`decor.rs`, tech Architecture): `DECOR_ROWS` after the ruins' row 135; then `refit::REFIT_LATER`.
 pub const DECOR_FIRST: u16 = 136;
 pub const DECOR_ROWS: u16 = 14;
 // Rows 88 on are the upgrader's, one per tier (`refit.rs`; research locks them by category, `Research::locked_by`).

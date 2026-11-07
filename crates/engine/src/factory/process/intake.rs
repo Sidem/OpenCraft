@@ -1,6 +1,7 @@
 //! What a processor takes in: how much of an item it has room and a use for (by what it makes, burns or stores),
 //! and putting items where they belong (fuel, input or output buffer).
 
+use crate::block::is_sapling;
 use crate::item::{stack_size, ItemId, EMPTY_CANISTER};
 use crate::recipes::recycling::millicoins;
 
@@ -41,6 +42,7 @@ impl Processor {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
             Pick::Pump => item == EMPTY_CANISTER,
+            Pick::Forest => item.places().is_some_and(is_sapling),
             Pick::Store
             | Pick::Hangar
             | Pick::Load

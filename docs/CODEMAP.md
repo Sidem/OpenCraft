@@ -61,15 +61,18 @@ local player's hands, presentation, then the **deterministic core**, which never
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
   `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`, its rocket),
-  `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`.
-- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `push_cone`; `plume.rs` rocket exhaust with shock diamonds, `capsule.rs` the drop pod in flight; `fake_round` the check none is faked from boxes;
+  `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`,
+  `forester.rs` + `forester/` (a harvester crane that fells, bucks and replants a fenced patch of flat ground, bigger by tier:
+  `patch.rs` plots and the flat-ground `survey`, `work.rs` the job cycle, `fell.rs` a tree and the leaves only it held;
+  `view.rs` the carrier and pose, `crane.rs` the knuckle boom and harvester head, `scene.rs` fence, marker and logs; `Look::Crane`).
+- Readouts and views: `describe.rs`, `panel.rs`, `facts.rs`, `efficiency.rs` (analytics samples), `render.rs` (instances; `push_round` round bodies, `push_cone`, `push_framed` a box along any axes; `plume.rs` rocket exhaust with shock diamonds, `capsule.rs` the drop pod in flight; `fake_round` the check none is faked from boxes;
   `tests/face_fight.rs` the check no two faces share a plane),
   `hitbox.rs`, `smoke.rs`, `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158); `ores.rs`.
+  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158), `forester.rs` (id 159); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
@@ -93,7 +96,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `item_select.rs` (a clicked belt item stays selected: readout, outline, pick-up in reach).
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
-- `quarry_preview.rs`, `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
+- `quarry_preview.rs`, `forester_preview.rs` (patch outline or uneven cells, refusal), `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `rail_snap.rs` (pure: aims snap onto grid axes and the heading's line), `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, into the middle of straight track, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
   `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `need_lesson.rs` (what a stuck machine's item comes from or is for, and the short-of-power card that names [P]), `first_steps.rs` + `first_steps/` (the maps' goal flag, the build menu's glowing recipe, Go electric's copper patch), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),

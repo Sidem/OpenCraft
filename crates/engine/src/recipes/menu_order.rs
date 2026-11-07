@@ -24,6 +24,7 @@ const MENU: &[ItemId] = &[
     b(COAL_MINER),
     b(MINER),
     b(QUARRY),
+    b(FORESTER),
     b(SMELTER),
     b(BLAST_FURNACE),
     b(ARC_FURNACE),

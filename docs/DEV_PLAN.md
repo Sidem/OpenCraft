@@ -272,6 +272,18 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-07: the forester (user).** Block 159, a processor with `Pick::Forest` and `Extra::Forest`
+  (`factory/process/forester.rs` + `forester/`), unlocked by Forestry (tech 86: red packs, no prerequisites). It works an
+  11×11 patch in front of it with a 3×3 grid of plots: looks for a tree, swings its crane, strips the crown top-down
+  (one sapling per 25 leaves, deterministic), fells the trunk top-down into its output, replants, rests when a round
+  finds nothing. Placing needs flat grass or dirt over the whole patch (`forester/patch.rs` `survey`; refusal in
+  `put_block`, red preview in `forester_preview.rs`); Mk2/Mk3 (items 399, 400, kits like the quarry's, rows in
+  `refit::REFIT_LATER` at the end of `MACHINE_RECIPES`) work 2× and 3× as fast on 14×17 and 17×23 patches as far as the
+  ground is flat; a knuckle-boom crane with a harvester head grips, saws, fells, bucks, hauls to the bunk and replants
+  (`work.rs`, `crane.rs`, `scene.rs`, `render::push_framed`); felling takes the trunk and only the leaves no other log
+  holds (`fell.rs`). Measured (3 seeds × 75 min after 15 min warm-up): Mk1 6.06, Mk2 12.13, Mk3 18.07 logs a minute,
+  CV ≤ 0.085, ≈200 kJ a log at every tier, no plot bare for want of saplings. Golden hash re-recorded (one more
+  research entry).
 - **2026-11-07: stray gold boxes, ghost mode later, stone tips (user).** The "random ghost" was the
   blueprint prompt's preset box (`blueprint/repeat.rs`, a third copy of a machine: the opening's two coal miners make
   a third likely), which `blueprint_boxes` drew outside ghost mode until B twice cleared it; it now draws only in ghost

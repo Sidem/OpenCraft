@@ -189,8 +189,12 @@ pub use ejector::*;
 /// The note sign, id 158 (`sign.rs`).
 mod sign;
 pub use sign::*;
+/// The forester, id 159 (`forester.rs`).
+mod forester;
+pub use forester::*;
 const BASE_COUNT: usize = 129;
-pub const BLOCK_COUNT: usize = BASE_COUNT + DECOR_COUNT + COAL_MINER_COUNT + HOUSE_COUNT + EJECTOR_COUNT + SIGN_COUNT;
+pub const BLOCK_COUNT: usize =
+    BASE_COUNT + DECOR_COUNT + COAL_MINER_COUNT + HOUSE_COUNT + EJECTOR_COUNT + SIGN_COUNT + FORESTER_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

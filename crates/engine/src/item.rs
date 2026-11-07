@@ -206,7 +206,7 @@ pub fn stack_size(id: ItemId) -> u32 {
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 143] = [
+const EXTRA: [ItemDef; 145] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -350,6 +350,8 @@ const EXTRA: [ItemDef; 143] = [
     part("Scrap Metal", tex::SCRAP, [0.6, 0.3, 0.6]),
     device("Telescope", tex::MAT_BRASS, [0.9, 0.3, 0.3]),
     device("Sickle", tex::STEEL, [0.6, 0.8, 0.1]),
+    machine("Forester Mk2", [tex::FRAME, tex::LOG_SIDE, tex::FRAME]),
+    machine("Forester Mk3", [tex::FRAME, tex::LOG_SIDE, tex::FRAME]),
 ];
 
 /// One row per block: its name and faces, placeable blocks place themselves.

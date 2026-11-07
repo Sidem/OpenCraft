@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-07 · The forester
+- **A new machine, the forester, keeps a wood lot for you.** Research Forestry (red packs only, right at the start) and place it facing flat grass or dirt: it works an 11×11 patch in front of it, with 9 spots for trees on a grid, and a fence shows its edge. While you hold one, a green outline shows the patch; if stones, holes, water or buildings are in the way, they light up red and it won't place.
+- **A harvester crane does the work.** Its knuckle boom swings out, the head grips a trunk, saws it through at the foot, lays the tree down and feeds it through its rollers into logs, then carries them back to the bunk and plants a sapling. Wild trees on its patch are felled too, and its neighbours keep their crowns.
+- **A slow but steady supply**: about 6 logs a minute from a full patch. Put a few saplings in it to start; after that it keeps itself in saplings. Logs leave on a belt leading away from it, or take them from its panel. It needs 20 kW while it works.
+- **Upgrade it with kits** (unlocked by the same research as the quarry's upgrades): Mk2 works twice as fast on a 14×17 patch, Mk3 three times as fast on 17×23, as far as the ground in front is flat. Its card says how much more ground to flatten.
+
 ## 2026-11-07 · Ghosts when you need them, stone when you run out
 - **No more stray gold boxes.** Building the same machine a third time used to leave a gold outline standing in the world until you pressed B twice or reloaded. That box now only shows in ghost mode, where it belongs.
 - **Ghost mode and blueprints now open with the Construction Drones research**, the drones that build ghosts for you. Before that, B just tells you so, and the blueprint list (L) says what it waits for. Worlds that already researched it keep it.

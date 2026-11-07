@@ -14,7 +14,7 @@ use super::automate::AUTOMATE;
 use super::decor::DECOR;
 use super::machine_later::LATER;
 use super::orbit::ORBIT;
-use super::refit::REFIT;
+use super::refit::{REFIT, REFIT_LATER};
 use super::rows::*;
 use super::scrap::SCRAP;
 use crate::block::*;
@@ -81,11 +81,21 @@ use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelti
 /// (`orbit.rs`), the automated buildings' (`automate.rs`) and the upgrader's, one per tier (`refit.rs`). Saved machines
 /// hold row indices, so rows only ever go on the end: a new table joins after the last one (a tier or family added to
 /// `refit.rs` later goes in a table of its own too, as the upgrader's rows are derived from `FAMILIES`, and a test asks
-/// that every tier has one). The ruins' salvage row (`scrap.rs`) follows; the decor set's rows (`decor.rs`) are last.
+/// that every tier has one). The ruins' salvage row (`scrap.rs`) follows, then the decor set's rows (`decor.rs`),
+/// then upgrader rows for families tiered later (`REFIT_LATER`).
 pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
     MachineRecipe,
-    { MAIN.len() + LATER.len() + ORBIT.len() + AUTOMATE.len() + REFIT.len() + SCRAP.len() + DECOR.len() },
->(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR]);
+    {
+        MAIN.len()
+            + LATER.len()
+            + ORBIT.len()
+            + AUTOMATE.len()
+            + REFIT.len()
+            + SCRAP.len()
+            + DECOR.len()
+            + REFIT_LATER.len()
+    },
+>(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },

@@ -1,6 +1,6 @@
 use super::*;
 use crate::action::Action;
-use crate::block::{BLOCK_COUNT, SIGN_COUNT, STONE};
+use crate::block::{BLOCK_COUNT, FORESTER, FORESTER_COUNT, SIGN_COUNT, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 use crate::item::ItemId;
@@ -34,8 +34,9 @@ fn signs_held(g: &Game) -> u32 {
 }
 
 #[test]
-fn the_sign_is_the_last_block() {
-    assert_eq!(usize::from(SIGN) + SIGN_COUNT, BLOCK_COUNT);
+fn the_sign_is_followed_only_by_the_forester() {
+    assert_eq!(usize::from(SIGN) + SIGN_COUNT, usize::from(FORESTER));
+    assert_eq!(usize::from(FORESTER) + FORESTER_COUNT, BLOCK_COUNT);
 }
 
 #[test]

@@ -102,7 +102,7 @@ fn a_creative_world_completes_techs_added_after_it_was_saved() {
     // Pretend the newest tech did not exist yet when this world was saved.
     let last = TECHS.len() as u8 - 1;
     g.sim.factory.research = crate::research::Research::default();
-    assert_eq!(g.sim.factory.research.state(last), TechState::Locked);
+    assert_ne!(g.sim.factory.research.state(last), TechState::Done);
     let back = Game::from_save(&g.save(), 2).expect("loads");
     assert!(all_techs_done(&back));
 }
