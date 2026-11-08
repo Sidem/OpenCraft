@@ -107,7 +107,7 @@ impl World {
             focus: IVec3::ZERO,
             others: Vec::new(),
             observer: Vec::new(),
-            view_radius: view_radius.max(2),
+            view_radius: view_radius.max(streaming::MIN_VIEW_RADIUS),
             mesher: Mesher::new(),
             lighting: Lighting::default(),
             light_cache: FxHashMap::default(),

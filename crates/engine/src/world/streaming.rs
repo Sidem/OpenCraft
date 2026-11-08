@@ -19,11 +19,22 @@ use super::{Entry, Event, MeshData, World};
 
 /// Chunks loaded around each other player, in chunks (plus the neighbours generation needs).
 pub const OTHERS_RADIUS: i32 = 1;
+/// The smallest view radius, in chunks: meshing needs a ring of neighbours.
+pub const MIN_VIEW_RADIUS: i32 = 2;
 
 impl World {
     pub fn set_observer_columns(&mut self, columns: Vec<IVec3>) {
         if self.observer != columns {
             self.observer = columns;
+            self.center = None;
+        }
+    }
+
+    /// Changes how far chunks load and draw while playing; the next `update_streaming` unloads or queues the difference.
+    pub fn set_view_radius(&mut self, radius: i32) {
+        let radius = radius.max(MIN_VIEW_RADIUS);
+        if self.view_radius != radius {
+            self.view_radius = radius;
             self.center = None;
         }
     }

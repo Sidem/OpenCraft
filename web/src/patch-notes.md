@@ -3,6 +3,13 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-08 · If the game runs slowly
+- **The game now tells you when your browser isn't using your graphics card**, and how to turn it on. Without it everything is very slow, so this is the first thing to check.
+- **Settings has a new Performance section** with a Copy report button. Play for a minute, copy the report and paste it wherever you tell us about the problem. It holds no names or saves, and goes nowhere unless you paste it.
+- **New Picture quality settings:** sharpness, render distance and smooth edges. Render distance now changes while you play, no address tricks needed.
+- **The game lowers its own sharpness if it runs slowly**, and tells you when it does. If that isn't enough it suggests something else on the home page, and never changes how the world looks without asking. Turn Automatic off in Settings if you would rather choose yourself.
+- The frame counter on F3 now reads true on slow computers, and shows how slow the slowest frames are.
+
 ## 2026-11-07 · Round trees
 - **Trees are no longer made of cubes.** Trunks are round, with bark all the way round, a wider foot where they meet the ground and rings of end grain where they are cut. Branches running sideways join their trunk.
 - **Leaves grow together into one soft, lumpy crown**, shaped by all the leaves around them, with a leafy fringe at the edge and shade inside. A row of trees becomes one hedge-like canopy.

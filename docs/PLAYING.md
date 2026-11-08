@@ -253,6 +253,13 @@ Each slab holds a logbook (a green book on the concrete, it cannot be broken): r
 that holds an ore (with a button to pin it on your map), or gives a recipe tip; ruins far from the start also tell the story of the
 people who left them.
 
+## If the game runs slowly
+
+The home page tells you if your browser isn't using your graphics card, and how to change that: check it first. **Settings >
+Picture quality** has sharpness, render distance and smooth edges. With **Automatic** on, the game lowers its sharpness when it
+runs slowly and tells you; anything more it only suggests, on the home page. **Settings > Performance** has a report to copy if
+you want to tell us about a problem. **F3** shows the frame rate.
+
 ## Music and sound
 
 The menu's **Sound** page has a volume slider and a mute button each for sound effects, ambience (wind, water, birds) and

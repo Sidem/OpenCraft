@@ -7,6 +7,7 @@
 
 import './hud.css';
 import './hud-columns.css';
+import type { FrameTimes } from '../render/frame-stats';
 import type { Game } from '../wasm/engine.js';
 import { HeldName } from './held-name';
 import { paintBox, paintParts } from './icon-paint';
@@ -46,7 +47,7 @@ interface Toast {
 }
 
 export interface DebugInfo {
-  fps: number;
+  frames: FrameTimes;
   frameMs: number;
   workMs: number;
   meshes: number;
@@ -220,7 +221,7 @@ export class Hud {
       const yawDeg = ((g.yaw() * 180) / Math.PI + 360) % 360;
       const facing = ['N (-Z)', 'E (+X)', 'S (+Z)', 'W (-X)'][Math.round(yawDeg / 90) % 4];
       this.debug.textContent = [
-        `OpenCraft · ${f(info.fps, 0)} fps · ${f(info.frameMs, 2)} ms/frame · worldgen+mesh ${f(info.workMs, 2)} ms`,
+        `OpenCraft · ${f(info.frames.fps, 0)} fps · slowest 5% over ${f(info.frames.current.summary().p95Ms, 0)} ms · script ${f(info.frameMs, 2)} ms/frame · worldgen+mesh ${f(info.workMs, 2)} ms`,
         `XYZ ${f(g.player_x(), 2)} / ${f(g.player_y(), 2)} / ${f(g.player_z(), 2)}   facing ${facing}`,
         `mode ${g.flying() ? 'fly' : 'walk'}${g.on_ground() ? ' · on ground' : ''}`,
         `chunks ${g.chunks_loaded()} loaded · ${g.chunks_pending()} queued · ${g.chunks_dirty()} awaiting mesh`,

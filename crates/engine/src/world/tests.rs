@@ -119,3 +119,29 @@ fn drain_meshes(w: &mut World) {
         }
     }
 }
+
+#[test]
+fn the_view_radius_changes_while_playing_and_edits_survive() {
+    let mut w = World::new(9, 5);
+    let at = Vec3::new(0.5, 100.0, 0.5);
+    w.update_streaming(at, &[]);
+    drain(&mut w);
+    let wide = w.chunks.len();
+    let far = IVec3::new(5 * CHUNK_SIZE + 3, 200, 3);
+    assert!(w.set_block(far, STONE), "only the wide view loads this chunk");
+
+    w.set_view_radius(2);
+    w.update_streaming(at, &[]);
+    let (_, unloads) = drain(&mut w);
+    assert!(unloads > 0 && w.chunks.len() < wide);
+    assert_eq!(w.get_block(far), None);
+
+    w.set_view_radius(5);
+    w.update_streaming(at, &[]);
+    drain(&mut w);
+    assert_eq!(w.chunks.len(), wide, "the same ground as before");
+    assert_eq!(w.get_block(far), Some(STONE));
+
+    w.set_view_radius(0);
+    assert_eq!(w.view_distance(), (streaming::MIN_VIEW_RADIUS * CHUNK_SIZE) as f64);
+}

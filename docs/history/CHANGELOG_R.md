@@ -583,3 +583,53 @@ riding, research, sound files.
     often as held-out real recordings (the ceiling) and no material under 2 of 5 (user, 2026-10-27: real recordings
     scored 7 of 13, so 11 of 14 was out of reach; not run on the label set, ear tests ended); `npm run check` passes;
     credits list (`audio/effects/CREDITS.md`) and patch note (met).
+
+## Performance check (Q1, Q2, Q4–Q6; 2026-11-08)
+
+A player reported "website is laggy, ingame is laggy"; the user could not reproduce it. Built: detection and a report to paste
+(Q1), the measurements below (Q2), Picture quality settings with a live render distance (Q4), Auto (Q5). Q3 (a cheaper menu) is
+open in the plan. Browsers: the desktop top three on StatCounter, July 2026 (Chrome 70.6%, Edge 11.2%, Firefox 6.5%; Safari 5.7%, and it
+can't run on Windows).
+
+**Measured** (`scripts/frame-bench.mjs`, the user's save with 6,813 belts, about 1920x1000, RTX 3060, 16 cores, median frame in ms; "heavy"
+is Chrome at 7648x4130 to make the GPU the limit, frames drawn in 10 s because its frames come in bursts):
+
+| Row | Firefox software (WARP) | Chrome software (SwiftShader) | Edge software | Chrome heavy (frames) |
+|---|---|---|---|---|
+| playing | 190 | 1641 | 1597 | 408 |
+| launcher, blurred | 211 | 1758 | 1800 | 375 |
+| launcher, no blur | 212 | 1664 | 1627 | 414 |
+| launcher, world not drawn | 2.7 | 16.6 | 16.7 | 603 (60 Hz) |
+| inventory open | 240 | 1850 | 1783 | 375 |
+| sharpness 75% | 157 | 1275 | 1250 | 712 |
+| sharpness 50% | 101 | 958 | 942 | 1444 |
+| playing again | 229 | 1650 | 1645 | 413 |
+| render distance 6 | 170 | 1500 | 1483 | 426 |
+| render distance 4 | 171 | 1600 | 1583 | 430 |
+| antialiasing off | 172 | 1217 | 1216 | 441 |
+| classic lighting | 100 | 1158 | 1083 | 692 |
+
+On the RTX 3060 at 1080p the rows stay near 3 ms in Chrome and Edge and 4–10 ms in Firefox (the world-not-drawn row idles at the display's rate
+in Chrome and Edge): nothing here matters to a fast GPU. The one row that moves is render distance 4, about 30% more frames in Chrome and Edge,
+the knob for when the script is the limit.
+
+**What it means.** Sharpness is the strong knob when drawing is the limit (3.5x the frames at 50%), then plain lighting (up to 2x), then
+antialiasing; render distance barely helps, so Auto suggests lighting when drawing is the limit and render distance only when the
+script is. The launcher costs a whole play frame because the world is drawn behind it; the suspected blur is only 5–10% of that.
+Software drawing is 8x faster in Firefox than in Chrome here.
+
+**Auto in real browsers** (new world, 1280x800, software): Chrome and Edge went 100 → 75% at 12 s, 50% at 24 s, then suggested simple
+lighting at about 44 s. Firefox lowered at 11 s, measured under 5% gain, restored 100% and suggested lighting. A 10-minute flight over
+12,000 blocks in Chrome on the GPU changed nothing, no notices. Detection named SwiftShader, WARP and the masked Firefox GPU correctly.
+
+**Traps.** A leftover Firefox (its first process hands over to another, so killing the pid misses it) took 93% CPU and spoiled a whole run:
+the bench now stops its browser by profile name. Uncapped frames stall for seconds under SwiftShader, so `software` leaves the cap on. Headless
+Firefox composites in software (a blur "cost" 80 ms): it runs in a window. A median hid stutter (11 and 149 ms alternating), and one
+3-second window was too noisy to judge a step: Auto uses the average less the slowest frame, over two windows.
+
+**Wasm:** +15 bytes gzipped for `set_view_radius`, built with and without it; the rest is TypeScript.
+
+**Not proven:** real weak GPUs, Safari, and the player's own machine; the reporting player has yet to try it.
+
+**On main:** the settings for relief and lamp lighting are not on main yet, so the measurements above were taken with that lighting on (it makes the default dearer than
+main's, about as "classic lighting" shows), and Auto's first suggestion when drawing is the limit is turning off smooth edges, the next best knob, then a shorter distance.

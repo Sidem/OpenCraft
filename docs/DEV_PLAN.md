@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
-**Status (2026-11-06):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+**Status (2026-11-08):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
-is live and graded toward the key art. Open: **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
+is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines, belts, maps, trains, playtester
 notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
 pieces, Milestone 14 (the space elevator).
@@ -258,6 +258,13 @@ tally only), Milestone 14. Art goes on in parallel (`docs/ART_HANDOVER.md`).
 
 ---
 
+- [x] **Q Performance check** (user, 2026-11-08, after a player's lag report): detection, a report to paste, quality settings, automatic
+  quality. Measurements: `docs/history/CHANGELOG_R.md`. The reporting player has yet to try it.
+  - [ ] **Q3 A cheaper menu** (the user left it out for now). The launcher costs a whole play frame: not drawing the world behind it took
+    software Chrome from 0.6 to 60 fps; removing the blur gains only 5–10%. Skip `renderer.render` in `main.ts` `frame` while the menu is
+    open and not `menu.previewing`; `advance` keeps running. *Done when:* software Chrome's launcher p95 is under 33 ms, settings still
+    preview, the picture behind doesn't go blank.
+
 ## 5. Open questions for the user
 
 Ask when the step that needs the answer comes up. Record answers in `docs/DECISIONS.md`.
@@ -272,6 +279,10 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-08: performance check.** The launcher warns when the browser draws without the graphics card (`render/gpu-probe.ts`), settings has a
+  report to copy (`ui/perf-report.ts`), Picture quality settings with a live render distance (`render/quality.ts`, `World::set_view_radius`),
+  and Auto lowers sharpness when frames are slow (`render/auto-quality.ts`). Measured in Chrome, Edge and Firefox (`scripts/frame-bench.mjs`);
+  results in `docs/history/CHANGELOG_R.md`.
 - **2026-11-07: round logs everywhere (user).** Log items are a lying cylinder (`item_models/stock.rs`), so loose, belt,
   held and icon logs match the trunks. The forester's lifted crown and sapling are round (`forester/crane.rs` `crown`),
   and a bucked stem slides whole through the head with world-scale bark (`render.rs` `Framed`, the round side's scroll

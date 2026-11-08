@@ -74,9 +74,11 @@ export class Renderer {
   skySettings: SkySettings = SKY_DEFAULTS; // how the sky is drawn (sky/settings.ts, set from the menu)
   readonly weather = new WeatherSky(); // the weather as drawn (`.ease.value`); the rain and snow pass reads it
   readonly precip: PrecipPass; // rain, snow and the ground's wet or snowy look (precip.ts)
-  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number, roundBit: number) {
+  private scale = 1;
+
+  constructor(private readonly canvas: HTMLCanvasElement, private viewRadius: number, instanceFloats: number, roundBit: number, antialias = true) {
     const gl = canvas.getContext('webgl2', {
-      antialias: true,
+      antialias,
       alpha: false,
       depth: true,
       stencil: false,
@@ -108,6 +110,11 @@ export class Renderer {
 
   setViewRadius(r: number): void {
     this.viewRadius = r;
+  }
+
+  /** The share of the screen's pixels' width drawn: 1 sharp, 0.5 half as many each way (quality.ts). */
+  setScale(s: number): void {
+    this.scale = s;
   }
 
   /** Uploads all block textures as one TEXTURE_2D_ARRAY (one layer per texture, no atlas bleeding). */
@@ -238,7 +245,7 @@ export class Renderer {
   }
 
   private resize(): void {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * this.scale;
     const w = Math.max(1, Math.round(this.canvas.clientWidth * dpr));
     const h = Math.max(1, Math.round(this.canvas.clientHeight * dpr));
     if (this.canvas.width !== w || this.canvas.height !== h) {

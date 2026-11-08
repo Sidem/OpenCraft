@@ -3,6 +3,7 @@
 // player's movement and hands. To add a screen that frees the mouse: list it in `closers` (main.ts) so closing it plays on.
 import type { SoundSystem } from './audio/sound';
 import type { Input } from './input';
+import { DEFAULT_RADIUS } from './render/quality';
 import { clock } from './render/sky';
 import type { Opened, Session } from './save/session';
 import type { InventoryPanel } from './ui/inventory';
@@ -14,7 +15,7 @@ import type { Game } from './wasm/engine';
 export interface PauseParts {
   game: Game;
   opened: Opened;
-  viewRadius: number;
+  viewRadius: () => number;
   menu: Menu;
   canvas: HTMLCanvasElement;
   input: Input;
@@ -34,8 +35,8 @@ export function wirePause(parts: PauseParts): () => void {
   const play = menu.play;
   // Worlds made before Milestone 4 keep their first terrain (generator version 1).
   const terrain = game.worldgen_version() === 1 ? ' · classic terrain' : '';
-  const range = viewRadius === 8 ? '' : ` · render distance ${viewRadius}`;
   const showWorldInfo = () => {
+    const range = viewRadius() === DEFAULT_RADIUS ? '' : ` · render distance ${viewRadius()}`;
     const time = `Day ${game.day_number()}, ${clock(game.time_of_day())}`;
     menu.world(meta.name, `${time} · seed ${meta.seed}${terrain}${range}`);
   };

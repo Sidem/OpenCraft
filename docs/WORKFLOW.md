@@ -56,6 +56,15 @@ section 3.1) and use the browser for final visual proof.
 - A tested scene: the iron outcrop at (11, 62, 2), seed 1337. Dig (11, 64, z) for z = 2..6. Place a box
   at z = 6, belts facing +Z (yaw π) at z = 5, 4, 3, and the miner at z = 2 against the ore top face.
 
+### Frame timing and the slow case
+
+The pane's `requestAnimationFrame` stops when it is hidden, so measure in a real browser. `scripts/frame-bench.mjs` (usage in its
+header) runs Chrome, Edge or Firefox from a build, in a throwaway profile, on the GPU, GPU-limited (`heavy`) or in software.
+By hand: `chrome --use-angle=swiftshader --enable-unsafe-swiftshader --user-data-dir=<temp dir>`, confirmed by Settings > Performance
+("Using the graphics card: no"). Firefox: `webgl.angle.force-warp` and `gfx.webrender.software` true in a test profile. Software is
+the worst case, not an integrated GPU. Close everything else first: a leftover browser spoiled one whole run (the bench now
+stops its browser by profile name, because Firefox's first process hands over to another).
+
 ## 3. Environment gotchas (Windows)
 
 - The shell is PowerShell 5.1: no `&&` (use `; if ($?) { … }`). **The Bash tool fails on this machine.**

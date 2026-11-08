@@ -1,0 +1,18 @@
+/* The launcher's suggested render distance (quality.ts). */
+
+.quality-suggestion {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.quality-suggestion p {
+  margin: 6px 0 10px;
+}
+
+.quality-suggestion .secondary-btn {
+  margin-right: 6px;
+}

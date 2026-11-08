@@ -14,7 +14,9 @@ import { tickWhenStalled } from './net/ticker';
 import { Input } from './input';
 import { wirePause } from './pause';
 import { composeTextures } from './render/art-pack';
+import { FrameTimes } from './render/frame-stats';
 import { drainMeshes } from './render/mesh-events';
+import { DEFAULT_RADIUS, QualityStore } from './render/quality';
 import { Renderer } from './render/renderer';
 import { SignFaces } from './render/sign-faces';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
@@ -52,6 +54,8 @@ import { SoundLab } from './ui/sound-lab';
 import { Vignette } from './ui/vignette';
 import { WorldMap } from './ui/worldmap';
 import { LeavePrompt } from './ui/leave-prompt';
+import { PerfPanel } from './ui/perf-report';
+import { QualityPanel } from './ui/quality';
 import { WorldsPanel } from './ui/worlds';
 
 const MOUSE_SENSITIVITY = 0.0022; // radians per pixel at 100% (the comfort setting scales it)
@@ -73,7 +77,8 @@ async function main(): Promise<void> {
   const wasm = await init();
   const params = new URLSearchParams(location.search);
   const seed = params.has('seed') ? intParam(params, 'seed', FIRST_SEED, 0, 0xffffffff) : null;
-  const viewRadius = intParam(params, 'rd', 8, 2, 24);
+  const quality = new QualityStore(params.has('rd') ? intParam(params, 'rd', DEFAULT_RADIUS, 2, 24) : null);
+  const viewRadius = quality.settings.radius;
   // `?seed=` starts a new world once; dropping it makes a reload continue that world.
   if (seed !== null) {
     params.delete('seed');
@@ -104,7 +109,7 @@ async function main(): Promise<void> {
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();
-  const renderer = new Renderer(canvas, viewRadius, instanceFloats, game.round_bit());
+  const renderer = new Renderer(canvas, viewRadius, instanceFloats, game.round_bit(), quality.settings.antialias);
   const engineTex = new Uint8Array(wasm.memory.buffer, game.texture_ptr(), game.texture_byte_len()).slice();
   // The hand-painted art pack (tools/art) over the engine's generated layers; `?art=off` shows the generated ones.
   const art = params.get('art') === 'off' ? null : await composeTextures(engineTex, game.texture_size(), game.texture_layers());
@@ -173,11 +178,19 @@ async function main(): Promise<void> {
 
   // ---- menu / pointer lock (pause.ts)
   const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, adminConsole];
-  const pause = wirePause({ game, opened, viewRadius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
+  const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
 
   // Handy for poking at the engine from the devtools console.
+  const frames = new FrameTimes();
+  const perf = new PerfPanel({ game, renderer, frames, sky: skyStore, quality, canvas, coop: () => coop, timing: () => ({ frameMs, workMs }) });
+  document.getElementById('perf-settings')!.append(perf.el);
+  document.getElementById('perf-banner')!.append(perf.banner);
+  const qualityPanel = new QualityPanel({ store: quality, game, renderer, frames, notice: (text) => playerList.notice(text) });
+  document.getElementById('quality-settings')!.append(qualityPanel.el);
+  document.getElementById('quality-suggestion')!.append(qualityPanel.suggestion);
+
   const handles = {
-    game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, signEditor, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, signEditor, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -185,7 +198,7 @@ async function main(): Promise<void> {
   let last = performance.now();
   let lastFrame = last;
   let lastSlot = game.selected_slot();
-  let fps = 0, frameMs = 0, workMs = 0, stepMs = 0;
+  let frameMs = 0, workMs = 0, stepMs = 0;
   let loaded = false; // the world has been ready once: from then on streaming never takes a loading-screen budget
   let wasReady = false;
 
@@ -297,6 +310,7 @@ async function main(): Promise<void> {
   const frame = (now: number) => {
     const t0 = performance.now();
     lastFrame = t0;
+    frames.tick(now, menu.isOpen);
     const dt = advance(now);
     const ready = game.ready();
 
@@ -340,8 +354,8 @@ async function main(): Promise<void> {
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));
 
     frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
-    fps = fps * 0.9 + (dt > 0 ? 1 / dt : 0) * 0.1;
-    hud.update(now, { fps, frameMs, workMs, ...renderer.stats });
+    qualityPanel.update(now, frameMs, ready && !menu.isOpen && !panelOpen() && !document.hidden);
+    hud.update(now, { frames, frameMs, workMs, ...renderer.stats });
     inventory.update(); // and the machine panel shown in it
     research.update(now);
     analytics.update(now);

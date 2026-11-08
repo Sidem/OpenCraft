@@ -1,0 +1,27 @@
+/* The Performance settings section and the launcher's no-graphics-card banner (perf-report.ts). */
+
+.perf-value {
+  grid-column: 2 / 4;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+
+.perf-box {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  font-size: 11px;
+}
+
+.perf-banner {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.perf-banner p {
+  margin: 6px 0 10px;
+}

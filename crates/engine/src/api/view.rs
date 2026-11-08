@@ -5,6 +5,10 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 impl Game {
+    /// How far the world loads and draws, in chunks; changes only the render cache, never the core.
+    pub fn set_view_radius(&mut self, chunks: u32) {
+        self.sim.world.set_view_radius(chunks as i32);
+    }
     pub fn view_mode(&self) -> u32 {
         self.strategy.mode
     }

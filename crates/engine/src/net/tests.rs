@@ -556,3 +556,33 @@ fn a_client_that_went_apart_resyncs_from_a_fresh_snapshot() {
     assert!(!mine.is_empty() && theirs.ends_with(&mine), "the checksums since the resync match");
     assert!(host.resync(&host.snapshot()).is_err(), "only clients resync");
 }
+
+#[test]
+fn players_with_different_render_distances_stay_in_step() {
+    let (top, other, _) = outcrop();
+    let log = script(top, other);
+    let (mut host, mut client) = pair();
+    let mut hashes = vec![host.sim.state_hash()];
+    for t in 0..900u64 {
+        match t {
+            200 => client.set_view_radius(3),
+            500 => host.set_view_radius(3),
+            700 => client.set_view_radius(2),
+            _ => {}
+        }
+        for &(_, player, action) in log.iter().filter(|q| q.0 == t && !matches!(q.2, Action::Join { .. })) {
+            if player == A {
+                host.act(action);
+            } else {
+                client.act(action);
+            }
+        }
+        assert!(host.host_stamp(1, &client.take_outbox()));
+        let frames = frames_of(&mut host, 1);
+        hashes.push(host.sim.state_hash());
+        assert!(client.push_frames(&frames));
+        client.update(1.0 / 60.0);
+        assert_eq!(client.sim.state_hash(), hashes[client.sim.tick as usize], "tick {t}");
+    }
+    assert!(client.sim.tick > 800);
+}
