@@ -16,7 +16,7 @@ use crate::inventory::Stack;
 use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
 
-use super::belt::{Belt, ITEM_DETAIL_RANGE, ITEM_SIZE};
+use super::belt::{ride_unit, Belt, ITEM_DETAIL_RANGE};
 use super::panel::{Panel, ROLE_INPUT};
 use super::provenance::Tag;
 use super::render::push_box;
@@ -181,9 +181,10 @@ impl Machine for Router {
             push_box(out, at(0.0, -0.16, -0.26), yaw, [0.5, 0.1, 0.36], 0.0, [tex::IRON_PLATE; 3], false);
         }
         if let Some(def) = item::def(self.held).filter(|_| self.held != ItemId::NONE) {
-            let size = def.size.map(|s| s * ITEM_SIZE);
+            let unit = ride_unit(self.held);
+            let size = def.size.map(|s| s * unit);
             let pos = rel + Vec3::new(0.0, -0.22 + size[1] as f64 * 0.5, 0.0);
-            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, self.held, pos, yaw, ITEM_SIZE as f64) {
+            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, self.held, pos, yaw, unit as f64) {
                 push_box(out, pos, yaw, size, 0.0, def.tex, false);
             }
         }

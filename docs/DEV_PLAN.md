@@ -279,6 +279,9 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-09: bigger belt items.** Items ride at `belt::ITEM_SIZE` (just under `ITEM_SPACING`), canisters `CANISTER_BOOST` bigger
+  (`belt::ride_unit`, `item::is_canister`). Drawing only: `END_STOP` is fixed, so belt capacity and the state hash are unchanged.
+
 - **2026-11-08: performance check.** The launcher warns when the browser draws without the graphics card (`render/gpu-probe.ts`), settings has a
   report to copy (`ui/perf-report.ts`), Picture quality settings with a live render distance (`render/quality.ts`, `World::set_view_radius`),
   and Auto lowers sharpness when frames are slow (`render/auto-quality.ts`). Measured in Chrome, Edge and Firefox (`scripts/frame-bench.mjs`);

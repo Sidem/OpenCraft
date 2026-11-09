@@ -182,6 +182,11 @@ pub struct ItemDef {
     pub places: BlockId,
 }
 
+/// Whether `id` is a fluid canister (one of the drums).
+pub fn is_canister(id: ItemId) -> bool {
+    def(id).is_some_and(|d| d.size == CANISTER_SIZE)
+}
+
 /// Looks up an item; `None` for ids in neither table.
 #[inline]
 pub fn def(id: ItemId) -> Option<&'static ItemDef> {

@@ -15,9 +15,12 @@ pub(super) const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> Item
     ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
 }
 
+/// The proportions of every canister (`item::is_canister` tells them apart by it).
+pub(super) const CANISTER_SIZE: [f32; 3] = [0.5, 0.6, 0.5];
+
 /// A canister: a small drum that holds a fluid, 16 to a slot.
 pub(super) const fn canister(name: &'static str, layer: u16) -> ItemDef {
-    ItemDef { name, stack: 16, tex: [layer; 3], size: [0.5, 0.6, 0.5], places: AIR }
+    ItemDef { name, stack: 16, tex: [layer; 3], size: CANISTER_SIZE, places: AIR }
 }
 
 /// A tier of a machine block: that block's look (the icon adds the tier chip).

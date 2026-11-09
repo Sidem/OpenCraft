@@ -43,11 +43,27 @@ pub const BELT_TIERS: [BeltTier; 4] = [
 ];
 /// Minimum distance between item centres on a belt, in blocks.
 pub const ITEM_SPACING: f32 = 0.35;
-pub const ITEM_SIZE: f32 = 0.25;
+/// How big a full-size (1.0) item model rides: every item's own `size` is scaled by this, so proportions between
+/// items hold. Kept just under `ITEM_SPACING` so full cubes never overlap on a packed belt.
+pub const ITEM_SIZE: f32 = 0.34;
+/// Canisters ride this much bigger than their proportions say: a drum is small and hard to tell apart otherwise.
+const CANISTER_BOOST: f32 = 1.4;
+
+/// The unit an item's model (and its `size`) is scaled by while riding a belt or held by a router.
+pub fn ride_unit(item: ItemId) -> f32 {
+    if crate::item::is_canister(item) {
+        ITEM_SIZE * CANISTER_BOOST
+    } else {
+        ITEM_SIZE
+    }
+}
+
 /// Beyond this many blocks from the camera, an item riding a belt is one plain box, not its model.
 pub const ITEM_DETAIL_RANGE: f64 = 24.0;
 /// Where items wait on a belt with nothing in front of it (still fully on the belt).
-pub const END_STOP: f32 = 1.0 - ITEM_SIZE * 0.5;
+/// Fixed (not from `ITEM_SIZE`: the drawn size must not move the simulation), so a big item's box pokes a little
+/// past the belt's end.
+pub const END_STOP: f32 = 0.875;
 pub const BELT_HEIGHT: f32 = 0.18;
 
 #[derive(Clone, Copy, Debug)]
@@ -347,7 +363,7 @@ impl Machine for Belt {
         for it in self.items.iter().filter(|it| self.shows(it.p)) {
             let Some((pos, size)) = self.item_pose(it, base) else { continue };
             // Only near the camera: a modelled item is many boxes, and far belts hold thousands of them.
-            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ITEM_SIZE as f64) {
+            if rel.length() > ITEM_DETAIL_RANGE || !push_item_model(out, it.item, pos, yaw, ride_unit(it.item) as f64) {
                 push_box(out, pos, yaw, size, 0.0, item::def(it.item).map_or([0; 3], |d| d.tex), false);
             }
         }

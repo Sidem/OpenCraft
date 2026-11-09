@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-09 · Bigger items on belts
+- **Items riding a belt are bigger**, so you can tell plates from rods from ingots at a glance. Fluid canisters ride bigger still. Belts carry exactly as much as before.
+
 ## 2026-11-08 · If the game runs slowly
 - **The game now tells you when your browser isn't using your graphics card**, and how to turn it on. Without it everything is very slow, so this is the first thing to check.
 - **Settings has a new Performance section** with a Copy report button. Play for a minute, copy the report and paste it wherever you tell us about the problem. It holds no names or saves, and goes nowhere unless you paste it.

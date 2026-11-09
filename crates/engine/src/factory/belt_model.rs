@@ -8,7 +8,7 @@ use crate::block::tex;
 use crate::item;
 use crate::math::Vec3;
 
-use super::belt::{Belt, BeltItem, BELT_HEIGHT, BELT_TIERS, ITEM_SIZE};
+use super::belt::{ride_unit, Belt, BeltItem, BELT_HEIGHT, BELT_TIERS};
 use super::belt_shape::Shape;
 use super::render::push_box;
 use super::tier_mark;
@@ -18,7 +18,7 @@ impl Belt {
     pub(super) fn item_pose(&self, it: &BeltItem, base: Vec3) -> Option<(Vec3, [f32; 3])> {
         let def = item::def(it.item)?;
         let (x, y, z) = self.item_at(it.p);
-        let size = def.size.map(|s| s * ITEM_SIZE);
+        let size = def.size.map(|s| s * ride_unit(it.item));
         Some((base + Vec3::new(x as f64, (y + BELT_HEIGHT + size[1] * 0.5) as f64, z as f64), size))
     }
 

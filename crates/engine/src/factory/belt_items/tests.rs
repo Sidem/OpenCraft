@@ -142,14 +142,14 @@ fn the_crosshair_picks_the_item_under_it_and_a_tall_item_counts_as_part_of_its_b
     f.add_belt(v(0, 5, 0), EAST);
     let belt = &mut f.belts[0];
     assert!(belt.accept(IRON_ORE.into(), 1, Tag::made_at(v(0, 0, 0)), false, 0.5));
-    assert!(belt.accept(IRON_ORE.into(), 1, Tag::made_at(v(7, 0, 0)), false, 0.3));
-    // p is 0.5 for the first and 0.15 for the second (spacing): x = 0.5 and 0.15 in the cell.
+    assert!(belt.accept(IRON_ORE.into(), 1, Tag::made_at(v(7, 0, 0)), false, 0.05));
+    // p is 0.5 for the first and 0.05 for the second: x = 0.5 and 0.05 in the cell (a gap between their boxes).
     let down = Vec3::new(0.0, -1.0, 0.0);
     let hit = f.belt_item_under(v(0, 5, 0), Vec3::new(0.5, 7.0, 0.5), down).expect("the first item");
     assert_eq!(hit.index, 0);
-    let second = f.belt_item_under(v(0, 5, 0), Vec3::new(0.15, 7.0, 0.5), down).expect("the second item");
+    let second = f.belt_item_under(v(0, 5, 0), Vec3::new(0.05, 7.0, 0.5), down).expect("the second item");
     assert_eq!(second.index, 1);
-    assert!(f.belt_item_under(v(0, 5, 0), Vec3::new(0.32, 7.0, 0.5), down).is_none(), "between them");
+    assert!(f.belt_item_under(v(0, 5, 0), Vec3::new(0.275, 7.0, 0.5), down).is_none(), "between them");
     assert!(f.belt_item_under(v(0, 5, 0), Vec3::new(0.5, 7.0, 0.95), down).is_none(), "beside them");
     assert!(f.belt_item_under(v(3, 5, 0), Vec3::new(3.5, 7.0, 0.5), down).is_none(), "no belt there");
 
