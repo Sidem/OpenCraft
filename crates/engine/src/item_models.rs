@@ -79,11 +79,11 @@ const SCREWS: [Part; 3] = [
     part([-0.36, -0.06, -0.1], [0.13, 0.24, 0.24], tex::IRON_PLATE),
     part([0.11, 0.09, 0.17], [0.43, 0.09, 0.09], tex::SCREW),
 ];
-/// A round spool on its side: copper windings between two round wooden flanges, a dark axle hole, and a loose end
-/// unrolled from under it along the ground.
+/// A round spool on its side: copper windings (rings, `tex::COIL`) between two round wooden flanges, a dark axle hole,
+/// and a loose end unrolled from under it along the ground.
 const WIRE: [Part; 5] = [
     shapes::bar_x([-0.22, 0.0, 0.0], 0.06, 0.5, tex::HANDLE),
-    shapes::bar_x([0.0, 0.0, 0.0], 0.38, 0.4, tex::COPPER_WIRE),
+    shapes::bar_x([0.0, 0.0, 0.0], 0.38, 0.4, tex::COIL),
     Part {
         center: [0.08, -0.23, 0.18],
         size: [0.04, 0.04, 0.36],

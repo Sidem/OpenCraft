@@ -33,10 +33,11 @@ def plate_item(tones, seed):
     return f.rgba()
 
 
-def wire(seed=28):
-    """Copper windings: each turn a round tube, lit on its left, with a dark gap and a little wander."""
+def wire(seed=28, rings=False):
+    """Copper windings: each turn a round tube, lit on its left, with a dark gap and a little wander. `rings` turns
+    them across the tile (stripes along x), for a spool: a round body's side runs the tile's x round it."""
     X, Y = coords()
-    phase = ((XS + 3 * np.sin(Y * 6 + seed)) % 12) / 12
+    phase = (((YS + 3 * np.sin(X * 6 + seed)) if rings else (XS + 3 * np.sin(Y * 6 + seed))) % 12) / 12
     tube = 0.25 + 0.65 * np.sin(np.pi * phase) ** 0.8
     img = paint(COPPER, tube + (fbm(X, Y, 12, 2, seed) - 0.5) * 0.12, 0.25)
     img[phase < 0.07] = COPPER[0]

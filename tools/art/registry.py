@@ -209,6 +209,7 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     # metals
     (23, "iron_ingot", lambda: items.ingot(icons.IRON_HEAD, 23), {}), (24, "copper_ingot", lambda: items.ingot(machines.COPPER, 24), {}),
     (27, "iron_plate", lambda: items.plate_item(icons.IRON_HEAD, 27), {}), (28, "copper_wire", items.wire, {}),
+    (383, "copper_coil", lambda: items.wire(28, rings=True), {}),
     (70, "iron_rod", items.rod, {}), (71, "screw", items.screw, {}), (113, "gear", icons.gear_icon, {}),
     (131, "steel_ingot", lambda: items.ingot(icons.STEEL_HEAD, 131), {}), (132, "steel_plate", lambda: items.plate_item(icons.STEEL_HEAD, 132), {}),
     (133, "steel_beam", items.beam, {}), (137, "steel_head", items.forged, {}), (130, "slag", items.slag, {}),

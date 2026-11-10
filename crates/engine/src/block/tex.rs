@@ -232,8 +232,11 @@ pub const PLUME_DIAMOND: u16 = SIGN + 8;
 /// The train (`textures/transport.rs`): a wheel's face (spokes, so a turning wheel shows it) and the cab's tinted glass.
 pub const WHEEL: u16 = SIGN + 9;
 pub const CAB_GLASS: u16 = SIGN + 10;
+/// Copper windings as rings: `COPPER_WIRE` run across the way round, for a round spool's winding (`item_models`: a
+/// round body's side takes its texture's x round it and its y along it, which is how the cable block's stripes run).
+pub const COIL: u16 = CAB_GLASS + 1;
 /// The note signs' text (`signs/view.rs`): two layers a slot, the host paints them (`web/src/render/sign-faces.ts`).
-pub const SIGN_FACE: u16 = CAB_GLASS + 1;
+pub const SIGN_FACE: u16 = COIL + 1;
 pub const SIGN_FACE_LAST: u16 = SIGN_FACE + 2 * crate::signs::view::SLOTS as u16 - 1;
 pub const COUNT: usize = SIGN_FACE_LAST as usize + 1;
 

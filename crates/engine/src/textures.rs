@@ -180,7 +180,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SMELTER_SIDE => smelter(x, y, true),
         tex::SMELTER_TOP => smelter(x, y, false),
         tex::IRON_PLATE => plate(x, y),
-        tex::COPPER_WIRE => wire(x, y),
+        tex::COPPER_WIRE | tex::COIL => wire(x, y),
         tex::CONSTRUCTOR_SIDE => constructor(x, y, true),
         tex::CONSTRUCTOR_TOP => constructor(x, y, false),
         tex::SPLITTER_TOP => router_top(x, y, false),
