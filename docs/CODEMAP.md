@@ -50,12 +50,13 @@ local player's hands, presentation, then the **deterministic core**, which never
   `upgrades.rs`: kits, in-place upgrades. `tier_mark.rs`: the Mk studs every tiered machine wears (presentation).
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
   `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `belt_model.rs` (drawing a belt), `belt_curve.rs` (corners: the player's bend, the arc items ride, the curved model), `underpass.rs`, `belt_chain.rs`,
-  `router.rs` (splitter, filter), `storage.rs`, `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
+  `router.rs` (splitter, filter), `storage.rs` + `box_label.rs` (what a box's sides show: its most common item or a picked category), `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` (track lies on the ground: one rule for the core and the preview) + `rail/pieces.rs` (a dock is a piece of track: `dock_fit`, `swap_rail_piece`, `tracks_through` and `split_track` cut straight track; the core side is `action/docks.rs`), `trains.rs` + `trains/` (cars, schedule, signals, docks, model, motion: speeding up and braking to the stop; view: aiming at a car, its readout, and its cargo as a box at `car_box`).
-- `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines.
+- `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines;
+  `port_marks.rs` (presentation): a machine's port stubs, arrows and riding items, from the footprint's port rows.
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
   machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `assembly_view.rs` (the assembler's arms, inputs, work cloud and product in motion, `Look::Work`), `shape.rs`,
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
@@ -96,7 +97,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `item_select.rs` (a clicked belt item stays selected: readout, outline, pick-up in reach).
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
-- `quarry_preview.rs`, `forester_preview.rs` (patch outline or uneven cells, refusal), `footprint_preview.rs`, `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
+- `quarry_preview.rs`, `forester_preview.rs` (patch outline or uneven cells, refusal), `footprint_preview.rs`, `port_view.rs` + `port_view/` (a held machine's see-through ghost with its port marks; marks on built machines while a belt is held; the HUD's side line), `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `rail_snap.rs` (pure: aims snap onto grid axes and the heading's line), `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, into the middle of straight track, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
   `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `need_lesson.rs` (what a stuck machine's item comes from or is for, and the short-of-power card that names [P]), `first_steps.rs` + `first_steps/` (the maps' goal flag, the build menu's glowing recipe, Go electric's copper patch), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
@@ -142,7 +143,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it
-    makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`.
+    makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`, `box-label.ts` (the box screen's label chips).
   - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (sign editor; `colour-wheel.ts`, `colour.ts`), `train.ts` (a train's wagons, state and schedule).
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.
@@ -161,7 +162,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `scripts/`: `check.mjs` (`npm run check`), `check-size.mjs` (budgets), `check-css.mjs` (one stylesheet per class),
   `check-map.mjs` (this map and the core layer),
   `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
-  `bench-flight.mjs` (frame timing on a real save), `frame-bench.mjs` (what each graphics knob buys, in real Chrome, Edge or Firefox; on the GPU or software), `bake-sky/` (star data, not part of the build).
+  `bench-flight.mjs` (frame timing on a real save), `frame-bench.mjs` (what each graphics knob buys, in real Chrome, Edge or Firefox; on the GPU or software), `port-shots.mjs` (every machine's ports at every turn as a player sees them, with the truth, for a blind reader), `bake-sky/` (star data, not part of the build).
 - `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).
 

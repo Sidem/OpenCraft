@@ -143,6 +143,8 @@ fn a_version_9_save_still_loads() {
     assert_eq!(g.sim.player(PlayerId(1)).map(|p| p.key), Some(0), "no keys before version 10");
     assert!(g.sim.away.is_empty());
     assert!(!g.is_creative(), "no mode before version 38");
+    let chest = IVec3::new(5, 200, 5);
+    assert_eq!(g.sim.factory.box_label(chest), Some(crate::factory::box_label::AUTO), "no labels before 69");
     assert_eq!((g.items.list[0].item, g.items.list[0].count), (STONE.into(), 3));
 
     g.give(IRON_INGOT.0, 1);

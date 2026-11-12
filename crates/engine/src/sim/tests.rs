@@ -38,7 +38,8 @@ const B: PlayerId = PlayerId(1);
 /// the previous hash was 0x0e1f_7e20_bd4b_d44d. On 2026-11-07 the quarry tip moved up to sixth, so this run's furthest main
 /// tip is 10, not 9; with 9 the run still hashes to the previous 0xca51_6c7e_ec96_d2ee. On 2026-11-07 the Forestry tech
 /// added a research entry to the state bytes; without it the run still hashes to the previous 0x36e7_1721_57fb_dcdb.
-const GOLDEN_HASH: u64 = 0x2f92_e7fa_95f3_0250;
+/// On 2026-11-12 every storage box saves its label (`factory/box_label.rs`); the previous hash was 0x2f92_e7fa_95f3_0250.
+const GOLDEN_HASH: u64 = 0x7952_43fa_9222_820c;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {

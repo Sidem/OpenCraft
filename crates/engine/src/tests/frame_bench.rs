@@ -1,6 +1,8 @@
 //! Frame cost of a real save, piece by piece (ignored; needs a save):
 //!   OC_SAVE=path\to\world.ocworld cargo test --release -q bench_save_frame -- --ignored --nocapture
 //! Times each presentation step `Game::update` runs after the ticks, so a slow frame can be pinned on one of them.
+//! `bench_port_view_and_labels` needs no save: the worst cases of the placement ghost, port marks and box labels
+//!   cargo test --release -q bench_port_view_and_labels -- --ignored --nocapture
 
 use std::time::Instant;
 
@@ -58,4 +60,48 @@ fn bench_save_frame() {
     ms("refresh_some", 10, || g.minimap.atlas.refresh_some(&g.sim.world));
     ms("catch_up", 10, || g.catch_up());
     ms("write_line_preview", 10, || g.write_line_preview(eye, time));
+}
+
+#[test]
+#[ignore]
+fn bench_port_view_and_labels() {
+    use crate::factory::{box_label, port_marks};
+    use crate::math::{IVec3, Vec3};
+    let (eye, time) = (Vec3::new(0.5, 66.0, 8.0), 3.0);
+    let (mut solid, mut ghost) = (Vec::new(), Vec::new());
+    // The ghost of the machine with the most ports, and the marks of 30 machines built near, a belt in hand.
+    let most = (1..=255u8).max_by_key(|&b| port_marks::port_faces(b, IVec3::ZERO, 0).len()).unwrap();
+    ms("ghost + marks, most ports", 1000, || {
+        solid.clear();
+        ghost.clear();
+        port_marks::draw_ghost(most, IVec3::new(0, 64, 0), 1, eye, time, |_| true, &mut solid, &mut ghost)
+    });
+    println!(
+        "  -> {} solid, {} see-through",
+        solid.len() / factory::INSTANCE_FLOATS,
+        ghost.len() / factory::INSTANCE_FLOATS
+    );
+    let mut world = crate::world::World::new(1, 2);
+    let mut f = factory::Factory::default();
+    let many: Vec<u8> = (1..=255u8).filter(|&b| !port_marks::port_faces(b, IVec3::ZERO, 0).is_empty()).collect();
+    for i in 0..30 {
+        let at = IVec3::new((i % 6) * 6 - 15, 64, (i / 6) * 6 - 15);
+        f.place(&mut world, many[i as usize % many.len()], at, (i % 4) as u8, at, 0);
+    }
+    ms("port marks of 30 machines", 1000, || {
+        solid.clear();
+        ghost.clear();
+        f.write_port_marks(eye, time, |_| true, &mut solid, &mut ghost)
+    });
+    // 100 full boxes of mixed items, each seen from a corner (two labelled sides).
+    let slots: Vec<_> =
+        (0..48).map(|i| crate::inventory::Stack { item: crate::item::ItemId(256 + i % 7), count: 30 }).collect();
+    ms("100 box labels (48 mixed slots)", 1000, || {
+        solid.clear();
+        for i in 0..100 {
+            let item = box_label::shown(&slots, box_label::AUTO).unwrap();
+            box_label::draw(&mut solid, item, Vec3::new(3.0 + f64::from(i % 10), 0.0, -3.0 - f64::from(i / 10)));
+        }
+    });
+    println!("  -> {} boxes", solid.len() / factory::INSTANCE_FLOATS);
 }

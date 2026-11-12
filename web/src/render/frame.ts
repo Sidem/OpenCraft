@@ -1,5 +1,28 @@
 // What the renderer is handed each frame (`FrameInfo`, filled by main.ts from the engine) and what it reports back
-// (`RenderStats`). A new per-frame input is a field here, read in renderer.ts or the pass that draws it.
+// (`RenderStats`). A new per-frame input is a field here, read in renderer.ts or the pass that draws it; `boxViews`
+// reads the box instance lists (views into wasm memory, valid for this frame only).
+
+import type { Game } from '../wasm/engine.js';
+
+/** The box lists of this frame from `game`: the world's, the ghost's and the port marks', each with its round bodies. */
+export function boxViews(game: Game, memory: WebAssembly.Memory, floats: number) {
+  const view = (ptr: number, count: number) => new Float32Array(memory.buffer, ptr, count * floats);
+  return {
+    boxes: view(game.instance_ptr(), game.instance_count()),
+    boxCount: game.instance_count(),
+    round: view(game.round_ptr(), game.round_count()),
+    roundCount: game.round_count(),
+    ghost: view(game.ghost_ptr(), game.ghost_count()),
+    ghostCount: game.ghost_count(),
+    ghostRound: view(game.ghost_round_ptr(), game.ghost_round_count()),
+    ghostRoundCount: game.ghost_round_count(),
+    ghostBlocked: game.ghost_blocked(),
+    marks: view(game.marks_ptr(), game.marks_count()),
+    marksCount: game.marks_count(),
+    marksRound: view(game.marks_round_ptr(), game.marks_round_count()),
+    marksRoundCount: game.marks_round_count(),
+  };
+}
 
 export interface FrameInfo {
   eye: [number, number, number];
@@ -24,6 +47,17 @@ export interface FrameInfo {
   /** The round bodies among them, copied out (`round_ptr`), drawn with the cylinder mesh. */
   round: Float32Array;
   roundCount: number;
+  /** See-through boxes (a held machine's ghost, belt stubs at ports), their round bodies, and whether the ghost is in the way. */
+  ghost: Float32Array;
+  ghostCount: number;
+  ghostRound: Float32Array;
+  ghostRoundCount: number;
+  ghostBlocked: boolean;
+  /** Port marks (arrows, riding items) and their round bodies: solid, drawn after the ghost so they show through it. */
+  marks: Float32Array;
+  marksCount: number;
+  marksRound: Float32Array;
+  marksRoundCount: number;
   /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
   lineCells: Int32Array;
   /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */

@@ -564,6 +564,7 @@ fn samples() -> Vec<Action> {
         Action::BendBelt { pos, bend: 2 },
         Action::EditSign { pos, line: 3, text: crate::signs::line_bytes("Kiln → north"), back: 0xabcdef, ink: 7 },
         Action::DropStop { train: 7, index: 2 },
+        Action::LabelBox { pos, label: 9 },
     ]
 }
 

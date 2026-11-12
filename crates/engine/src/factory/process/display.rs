@@ -81,7 +81,14 @@ pub(super) fn draw(p: &Processor, out: &mut Vec<f32>, at: Vec3, yaw: f32, size: 
 
 /// Draws `item`'s model scaled to fit a turning slot `size` across and high whose floor's centre is at `floor`
 /// (relative to the camera), turned by `turn`; a flat item (a plate, a tool) stands on its edge when `stand_flat`.
-pub(super) fn draw_item(out: &mut Vec<f32>, item: ItemId, floor: Vec3, turn: f32, size: [f32; 2], stand_flat: bool) {
+pub(in crate::factory) fn draw_item(
+    out: &mut Vec<f32>,
+    item: ItemId,
+    floor: Vec3,
+    turn: f32,
+    size: [f32; 2],
+    stand_flat: bool,
+) {
     let (s, c) = (turn.sin() as f64, turn.cos() as f64);
     let place = |v: [f32; 3]| {
         floor + Vec3::new(c * v[0] as f64 - s * v[2] as f64, v[1] as f64, s * v[0] as f64 + c * v[2] as f64)

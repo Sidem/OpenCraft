@@ -177,6 +177,25 @@ impl Game {
         self.act(Action::SortBox { pos: IVec3::new(x, y, z) });
     }
 
+    /// The label of the storage box at the cell (a `box_label_names` index), or -1 where there is none (a wagon).
+    pub fn box_label(&self, x: i32, y: i32, z: i32) -> i32 {
+        self.sim.factory.box_label(IVec3::new(x, y, z)).map_or(-1, i32::from)
+    }
+
+    /// Box-screen label chip: what the box's sides show (next tick).
+    pub fn label_box(&mut self, x: i32, y: i32, z: i32, label: u8) {
+        self.act(Action::LabelBox { pos: IVec3::new(x, y, z), label });
+    }
+
+    /// The labels a box can have, one name a line; `box_label_icons` gives the item each shows (0: what it holds).
+    pub fn box_label_names(&self) -> String {
+        crate::factory::box_label::LABELS.map(|l| l.0).join("\n")
+    }
+
+    pub fn box_label_icons(&self) -> Vec<u16> {
+        crate::factory::box_label::LABELS.iter().map(|l| l.1 .0).collect()
+    }
+
     /// Box-screen shift-click on inventory slot `slot`: moves its stack into the box.
     pub fn store_slot(&mut self, x: i32, y: i32, z: i32, slot: u8) {
         self.act(Action::StoreSlot { pos: IVec3::new(x, y, z), slot });

@@ -81,6 +81,7 @@ mod physics;
 mod place_refusal;
 mod player;
 mod pods;
+mod port_view;
 mod power_tools;
 mod prospect;
 mod quarry_preview;
@@ -215,6 +216,8 @@ pub struct Game {
     instances: Vec<f32>,
     /// This frame's round bodies, copied out of `instances` (`factory::split_round`) for the host's cylinder pass.
     round_instances: Vec<f32>,
+    /// Box instances drawn see-through: a held machine's ghost and the belt stubs at ports (`port_view.rs`).
+    ghosts: port_view::Ghosts,
     pickups: VecDeque<(ItemId, u32)>,
     /// Ore the local player wasted by hand mining this session (`hand_waste.rs`).
     waste: hand_waste::HandWaste,
@@ -310,6 +313,7 @@ impl Game {
             textures,
             instances: Vec::new(),
             round_instances: Vec::new(),
+            ghosts: port_view::Ghosts::default(),
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),
             stall: stall_lesson::StallWatch::default(),

@@ -139,7 +139,8 @@ fn older_saves_load_boxes_poles_and_generators_at_tier_one() {
         w.bytes
     };
     let mut old = bytes(&|w| Storage::new(IVec3::ZERO).write_state(w));
-    old.remove(12); // Version 21 wrote the tier right after the position.
+    old.remove(12); // Version 21 wrote the tier right after the position,
+    old.pop(); // and 69 the label last.
     let mut r = ByteReader::new(&old);
     r.version = 20;
     let s = Storage::read_state(&mut r).unwrap();

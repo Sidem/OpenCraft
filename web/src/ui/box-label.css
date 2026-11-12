@@ -1,0 +1,42 @@
+/* The storage box's label picker (box-label.ts): a wrapping row of chips under the box's title. */
+
+.box-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 8px;
+}
+
+.box-label-title {
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.box-label-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.box-label-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.box-label-chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.box-label-chip canvas {
+  width: 20px;
+  height: 20px;
+  image-rendering: pixelated;
+}

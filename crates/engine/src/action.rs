@@ -337,6 +337,11 @@ pub enum Action {
     SortBox {
         pos: IVec3,
     },
+    /// Labels the storage box at `pos` with `label` (a `factory::box_label::LABELS` index).
+    LabelBox {
+        pos: IVec3,
+        label: u8,
+    },
     /// The inventory screen closed: the cursor stack goes back, or is thrown if there is no room.
     CloseInventory,
     SelectSlot {

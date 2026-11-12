@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-12 · See where items go, and what's in each box
+- **A see-through ghost shows a big machine before you place it**, right where it will stand. It turns red when something is in the way.
+- **Every side that takes or gives items now shows it plainly.** A short belt sticks out of each such side with arrows on it, and an item rides along it: into the machine where it takes items, out where its product leaves, and a single arrow where a byproduct like slag leaves. The ports on the far side show through the ghost, and the hint line names the sides as you see them ("in: far, left · out: near"). Press R and it all turns with the machine.
+- **Hold a belt to see the same arrows on machines you already built**, so you know where to run it.
+- **Storage boxes show what's inside on their sides**: the item they hold most of. Or pick a label in the box's screen (Ores, Metals, Parts, Electronics, Tools, Wood, Stone, Fuel, Science) and the box shows that icon instead, full or empty. Your co-op friends see the same labels.
+
 ## 2026-11-09 · Bigger items on belts
 - **Items riding a belt are bigger**, so you can tell plates from rods from ingots at a glance. Fluid canisters ride bigger still. Belts carry exactly as much as before.
 

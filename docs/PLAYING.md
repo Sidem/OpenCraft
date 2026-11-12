@@ -56,7 +56,14 @@ to throw the whole stack. With an empty hand, Shift-right-click moves every
 stack of that item (between hotbar and backpack, or box and inventory). Tools always move whole. These work
 on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
 merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
-merge, so each keeps its own wear.
+merge, so each keeps its own wear. A storage box shows on its sides what it holds most of; the **Label** chips in
+its screen show a category's icon instead (Ores, Metals, Tools...), or **Contents** to go back.
+
+Holding a machine bigger than one block shows a see-through ghost where it would stand (red where something is in
+the way). A short belt sticks out of every side that takes or gives items, with arrows and an item riding it: two blue
+arrows pointing in where it takes items, two orange arrows pointing out where its product leaves, one violet arrow
+where a byproduct leaves. The hint line names those sides as you see them, and R turns it all with the machine.
+Holding a belt shows the same arrows on the machines you have built nearby.
 
 **Analytics (P)** is a hub with four tabs (keys 1 to 4). *Overview* shows power, machines and materials at a glance and lists what needs attention. *Power* shows how much power the grids could make, how much is used and how much the machines asked for (when that is above what is used, the grid is short and everything on it slows down), stacked by source (generators, turbines, solar, water wheels...) and by the kind of machine using it. *Materials* graphs what is made and what is used up of each item, a minute at a time: filter by group (raw materials, ingots, parts, electronics...), search, switch between Made, Used, Both and Balance, click a row to plot it, hover a row to light its line. *Machines* shows what holds machines back, per kind of machine, and the slowest ones with where they stand; **Show on map** on a row opens the map with every machine of that kind circled in its health colour (grey dashed when idle; hover a circle for its speed, cause and place). The buttons at the top pick the timescale, from the last minute to the last three hours. Every machine also says how close to full speed it has run over the last ten seconds, for example "Efficiency 62%: lost 25% to waiting for input, 13% to low power": it is in the machine's panel and on the readout when you look at a machine. Above it, the panel and readout say what the machine takes and makes a minute at full speed ("Full speed: takes 40 Iron Ore, makes 40 Iron Ingot a minute"), in every state, so you can plan how many machines a line needs. A belt's readout says how many items a minute it moved over the last ten seconds and how much of its most that is ("Moves 36 items a minute, 21% of the 171 it can carry"). The graphs start when you open the world; they are not saved.
 

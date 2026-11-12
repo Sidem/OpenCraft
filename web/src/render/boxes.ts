@@ -2,7 +2,8 @@
 // (`factory/render.rs`); this uploads them into growing GPU buffers and draws them with the lit cutout shader: the
 // daylight, lamps and shade of the cell each box stands in (the engine packs that light into the mode float). Two
 // instanced draw calls: every record over the unit cube, which skips the round bodies, then the round bodies (copied
-// out by the engine, `split_round`) over the unit cylinder (`round-mesh.ts`).
+// out by the engine, `split_round`) over the unit cylinder (`round-mesh.ts`). `drawGhost` draws the engine's see-through
+// records the same way, tinted and blended (`u_ghost`).
 // Instance layout (INSTANCE_FLOATS floats): centre xyz, yaw, size xyz, uv scroll, texture layers
 // top/side/bottom, mode bits + 4 × light, pitch, roll, taper, glow. Four vec4s (see `boxVert` in box-glsl.ts).
 
@@ -12,6 +13,11 @@ import { roundMesh } from './round-mesh';
 import { boxVert } from './box-glsl';
 import * as S from './shaders';
 import type { Sky } from './sky';
+
+/** `u_ghost` (tint, opacity) for solid boxes, a ghost, and a ghost in the way of something. */
+const SOLID = [0, 0, 0, 0] as const;
+const GHOST = [0.55, 0.85, 1.0, 0.4] as const;
+const GHOST_BLOCKED = [1.0, 0.3, 0.25, 0.4] as const;
 
 /** One mesh drawn once an instance: its vertex array, instance buffer and how many indices (or vertices) it has. */
 interface Pass {
@@ -30,7 +36,7 @@ export class BoxPipeline {
 
   constructor(private readonly gl: WebGL2RenderingContext, private readonly instanceFloats: number, roundBit: number) {
     this.prog = createProgram(gl, boxVert, S.litFrag, ['CUTOUT', 'BOXES', `ROUND_BIT ${roundBit}u`]);
-    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held', 'u_round'] as const);
+    this.u = uniforms(gl, this.prog, ['u_viewProj', 'u_offset', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_held', 'u_round', 'u_ghost'] as const);
     this.cube = this.pass(boxCorners(), null);
     const { corners, indices } = roundMesh();
     this.round = this.pass(corners, indices);
@@ -72,10 +78,12 @@ export class BoxPipeline {
     count: number,
     round: Float32Array,
     roundCount: number,
+    ghost: readonly [number, number, number, number] = SOLID,
   ): number {
     if (count === 0) return 0;
     const gl = this.gl;
     gl.useProgram(this.prog);
+    gl.uniform4f(this.u.u_ghost, ...ghost);
     gl.uniformMatrix4fv(this.u.u_viewProj, false, viewProj);
     gl.uniform1i(this.u.u_tex, 0);
     gl.uniform1i(this.u.u_glow, S.GLOW_UNIT);
@@ -91,6 +99,31 @@ export class BoxPipeline {
     gl.uniform1i(this.u.u_round, 1);
     this.drawPass(this.round, round, roundCount);
     return 2;
+  }
+
+  /**
+   * Draws see-through boxes (a held machine's ghost, belt stubs at ports: engine `port_view.rs`) over what is drawn:
+   * tinted, blended, without writing depth, so what stands behind them still shows. Red while `blocked`.
+   */
+  drawGhost(
+    viewProj: Float32Array,
+    sky: Sky,
+    fog: { color: [number, number, number]; range: [number, number] },
+    boxes: Float32Array,
+    count: number,
+    round: Float32Array,
+    roundCount: number,
+    blocked: boolean,
+  ): number {
+    if (count === 0) return 0;
+    const gl = this.gl;
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+    const calls = this.draw(viewProj, sky, fog, boxes, count, round, roundCount, blocked ? GHOST_BLOCKED : GHOST);
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+    return calls;
   }
 
   private drawPass(pass: Pass, records: Float32Array, count: number): void {

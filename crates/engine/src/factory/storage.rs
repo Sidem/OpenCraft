@@ -1,7 +1,8 @@
 //! Storage boxes: a buffer of item stacks, `BOX_SLOTS[tier]` of them. Belts and miners deliver into
 //! them; each step a box pushes one item from its last non-empty slot into the next belt leading away
-//! (round-robin). The box is an ordinary meshed cube; its model is only its Mk studs (`tier_mark.rs`). Tiers add
-//! slots (an upgrade keeps every stack where it is).
+//! (round-robin). The box is an ordinary meshed cube; its model is its Mk studs (`tier_mark.rs`) and its label
+//! (`box_label.rs`: what it holds most of, or a category the player picked). Tiers add slots (an upgrade keeps every
+//! stack where it is).
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
@@ -11,7 +12,7 @@ use crate::math::{sort_small_by_key, IVec3, Vec3};
 use super::belt::Belt;
 use super::buffer::Buffer;
 use super::describe::fmt_int;
-use super::{tier_mark, Factory, Machine};
+use super::{box_label, tier_mark, Factory, Machine};
 
 /// Slots of each tier, Mk1 first.
 pub const BOX_SLOTS: [usize; 3] = [24, 36, 48];
@@ -23,11 +24,13 @@ pub struct Storage {
     /// Belt indices leading away from this box.
     pub outs: Vec<u32>,
     pub next_out: usize,
+    /// A `box_label::LABELS` index: what its sides show.
+    pub label: u8,
 }
 
 impl Storage {
     pub fn new(pos: IVec3) -> Storage {
-        Storage { pos, tier: 0, buf: Buffer::new(BOX_SLOTS[0]), outs: Vec::new(), next_out: 0 }
+        Storage { pos, tier: 0, buf: Buffer::new(BOX_SLOTS[0]), outs: Vec::new(), next_out: 0, label: box_label::AUTO }
     }
 
     /// Makes it tier `tier`, adding empty slots.
@@ -47,12 +50,13 @@ impl Machine for Storage {
         self.pos
     }
 
-    /// Core state: position, slots and the round-robin position (`outs` is rebuilt by `relink`).
+    /// Core state: position, slots, the round-robin position and the label (`outs` is rebuilt by `relink`).
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.tier);
         self.buf.write_state(w);
         w.u32(self.next_out as u32);
+        w.u8(self.label);
     }
 
     fn read_state(r: &mut ByteReader) -> Option<Storage> {
@@ -64,6 +68,11 @@ impl Machine for Storage {
         s.set_tier(tier);
         s.buf = Buffer::read_state(r, s.buf.slots.len())?;
         s.next_out = r.u32()? as usize;
+        // Older boxes show what they hold.
+        s.label = if r.version >= 69 { r.u8()? } else { box_label::AUTO };
+        if s.label as usize >= box_label::LABELS.len() {
+            return None;
+        }
         Some(s)
     }
 
@@ -95,8 +104,11 @@ impl Machine for Storage {
         lines.join("\n")
     }
 
-    /// Only its Mk studs, low on its four sides (the cube itself is meshed).
+    /// Its Mk studs, low on its four sides, and its label on the sides facing the camera (the cube itself is meshed).
     fn model(&self, out: &mut Vec<f32>, rel: Vec3, _: f64) {
         tier_mark::ring(out, rel - Vec3::new(0.0, 0.32, 0.0), 0.0, [0.5, 0.5], self.tier);
+        if let Some(item) = box_label::shown(&self.buf.slots, self.label) {
+            box_label::draw(out, item, rel);
+        }
     }
 }

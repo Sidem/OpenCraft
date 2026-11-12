@@ -174,6 +174,7 @@ out vec4 o_color;
 #ifdef BOXES
 in float v_haze; // 0 for a beacon, which the fog doesn't hide
 in vec4 v_beacon; // a tinted beacon's colour and 1 (a flat light, whatever the texture), else 0
+uniform vec4 u_ghost; // a see-through pass (render/boxes.ts drawGhost): tint and opacity; opacity 0 draws solid
 #endif
 #ifdef TERRAIN
 in vec2 v_ground;
@@ -350,6 +351,9 @@ void main() {
   shown = mix(shown, v_beacon.rgb, v_beacon.a);
 #endif
   o_color = vec4(applyFog(shown, hazed), 1.0);
+#ifdef BOXES
+  if (u_ghost.a > 0.0) o_color = vec4(mix(o_color.rgb, u_ghost.rgb, 0.4), u_ghost.a);
+#endif
 #endif
 }
 `;

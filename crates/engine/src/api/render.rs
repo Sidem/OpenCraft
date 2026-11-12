@@ -204,6 +204,49 @@ impl Game {
         self.round_instances.len() / INSTANCE_FLOATS
     }
 
+    /// Byte offset of this frame's see-through box instances (a held machine's ghost, belt stubs at ports:
+    /// `port_view.rs`), `ghost_count()` records like `instance_ptr`'s; the host draws them blended over the rest.
+    pub fn ghost_ptr(&self) -> usize {
+        self.ghosts.boxes.as_ptr() as usize
+    }
+
+    pub fn ghost_count(&self) -> usize {
+        self.ghosts.boxes.len() / INSTANCE_FLOATS
+    }
+
+    /// The round bodies among the see-through boxes, copied out as `round_ptr`'s are.
+    pub fn ghost_round_ptr(&self) -> usize {
+        self.ghosts.round.as_ptr() as usize
+    }
+
+    pub fn ghost_round_count(&self) -> usize {
+        self.ghosts.round.len() / INSTANCE_FLOATS
+    }
+
+    /// Byte offset of this frame's port marks (arrows and riding items at a machine's ports: `port_view.rs`),
+    /// `marks_count()` records; the host draws them solid after the ghost, so they show through it.
+    pub fn marks_ptr(&self) -> usize {
+        self.ghosts.marks.as_ptr() as usize
+    }
+
+    pub fn marks_count(&self) -> usize {
+        self.ghosts.marks.len() / INSTANCE_FLOATS
+    }
+
+    /// The round bodies among the port marks.
+    pub fn marks_round_ptr(&self) -> usize {
+        self.ghosts.marks_round.as_ptr() as usize
+    }
+
+    pub fn marks_round_count(&self) -> usize {
+        self.ghosts.marks_round.len() / INSTANCE_FLOATS
+    }
+
+    /// Whether the held machine's ghost stands where something is in the way (the host tints it red).
+    pub fn ghost_blocked(&self) -> bool {
+        self.ghosts.blocked
+    }
+
     /// The mode bit that marks a round body in an instance's mode-and-light float.
     pub fn round_bit(&self) -> u32 {
         crate::factory::ROUND

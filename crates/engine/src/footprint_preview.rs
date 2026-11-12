@@ -59,7 +59,11 @@ impl Game {
         match self.depot_line() {
             Some((why, false)) => format!("{name}\n{why}"),
             Some((town, true)) => format!("{name}\n{town} · {state}{turn}"),
-            None => format!("{name}\n{w}×{d}×{h} · {state}{turn}"),
+            None => match self.ports_line(block) {
+                ports if ports.is_empty() => format!("{name}\n{w}×{d}×{h} · {state}{turn}"),
+                // Where items go in and come out, as the player sees it (`port_view.rs`).
+                ports => format!("{name}\n{ports}\n{w}×{d}×{h} · {state}{turn}"),
+            },
         }
     }
 }

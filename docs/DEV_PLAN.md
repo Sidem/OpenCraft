@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-08):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+**Status (2026-11-12):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines, belts, maps, trains, playtester
@@ -278,6 +278,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-11-12: ports that read, box labels (playtester notes).** A held multi-block machine draws a see-through ghost
+  and, per port face, a belt stub, arrows and the item riding it (`factory/port_marks.rs`, `port_view.rs`; marks are a
+  solid pass after the ghost). Judged blind from screenshots (`scripts/port-shots.mjs`): 44.8% of sides right with the
+  hatches alone, 96.1% with the ghost (target 95%; every miss a near stub out of frame). A save scan found belts on dead
+  faces rare (0–1 a save) and 83 of 89 filled boxes holding one kind, so a box shows its most common item unless a
+  label is picked (`factory/box_label.rs`, `Action::LabelBox`, save version 69).
 
 - **2026-11-09: bigger belt items.** Items ride at `belt::ITEM_SIZE` (just under `ITEM_SPACING`), canisters `CANISTER_BOOST` bigger
   (`belt::ride_unit`, `item::is_canister`). Drawing only: `END_STOP` is fixed, so belt capacity and the state hash are unchanged.

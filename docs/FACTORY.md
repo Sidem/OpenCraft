@@ -89,6 +89,15 @@ size.
   plate means nothing chosen yet. Every machine that comes in tiers wears one pale stud per
   Mk on its sides, tinted with the tier colour (Mk3: three studs on a blue band; poles wear rings, a belt run shows them every few blocks, an underpass on its
   hood). Products show within 48 blocks, studs within 24 (`process/display.rs`, `tier_mark.rs`).
+- **Where a big machine takes and gives items shows before you build it.** Held and aimed, a machine of more than
+  one cell stands as a see-through ghost (red where something is in the way); at every side that takes or gives items
+  a see-through belt stub sticks out with arrows gliding the way items move and an item riding it: two blue arrows
+  pointing in at an inlet, two orange arrows pointing out at the product's outlet, one violet arrow at a byproduct's.
+  The arrows and items show through the ghost, so the far side's ports read too, and the hint line names the sides as
+  the player sees them. Holding a belt shows the same marks on built machines within 16 blocks, with the items of
+  their recipe (`factory/port_marks.rs`, `port_view.rs`). The hatches on the machines stay as they were.
+- **A storage box shows what it holds** on the sides facing you, within 24 blocks: a light plate with the item it
+  holds most of standing on a ledge, or the icon of a label picked in its screen (`factory/box_label.rs` `LABELS`).
 - **The assembler** (Assembly research) is 2×2×2: the ghost shows where it goes (red where something is in
   the way) and R turns it. Belts bring parts in at the cyan hatches on its back and sides, and a belt leading
   away from the amber hatch at its front takes what it makes: motors (a rod, 2 gears, 4 wire), concrete (4

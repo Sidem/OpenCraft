@@ -34,6 +34,17 @@ impl Game {
         self.sim.apply(me, Action::PlaceBlock { pos, slot: slot as u8, facing, against: pos - IVec3::new(0, 1, 0) });
     }
 
+    /// Scene building: every machine block of more than one cell that turns (`scripts/port-shots.mjs`).
+    pub fn footprint_blocks(&self) -> Vec<u8> {
+        crate::port_view::footprint_blocks()
+    }
+
+    /// The ports of `block` placed `turn` quarter turns from the way the player faces, as the player sees them: pairs
+    /// of (side: 0 far, 1 right, 2 near, 3 left; flow: 0 in, 1 out, 2 byproduct), one per face (`port_view.rs`).
+    pub fn placement_ports(&self, block: u8, turn: u8) -> Vec<u8> {
+        self.ports_as_seen(block, turn)
+    }
+
     /// Scene building: wires a pole to a machine or pole, or lays track between two rail nodes, at once.
     pub fn connect_at(&mut self, ax: i32, ay: i32, az: i32, bx: i32, by: i32, bz: i32) {
         let (pole, to) = (IVec3::new(ax, ay, az), IVec3::new(bx, by, bz));

@@ -15,6 +15,7 @@ import { Input } from './input';
 import { wirePause } from './pause';
 import { composeTextures } from './render/art-pack';
 import { FrameTimes } from './render/frame-stats';
+import { boxViews } from './render/frame';
 import { drainMeshes } from './render/mesh-events';
 import { DEFAULT_RADIUS, QualityStore } from './render/quality';
 import { Renderer } from './render/renderer';
@@ -337,10 +338,7 @@ async function main(): Promise<void> {
       days: game.day_number() - 1 + game.time_of_day(),
       seed: worldSeed,
       biome: biomeNow(now),
-      boxes: new Float32Array(wasm.memory.buffer, game.instance_ptr(), game.instance_count() * instanceFloats),
-      boxCount: game.instance_count(),
-      round: new Float32Array(wasm.memory.buffer, game.round_ptr(), game.round_count() * instanceFloats),
-      roundCount: game.round_count(),
+      ...boxViews(game, wasm.memory, instanceFloats),
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
       cracks: game.quarry_cracks(),

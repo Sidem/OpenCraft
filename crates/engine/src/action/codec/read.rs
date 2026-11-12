@@ -89,6 +89,7 @@ impl Action {
             57 => Action::InsertCursor { pos: r.ivec3()? },
             58 => Action::SetHarbourProduct { pos: r.ivec3()?, item: r.item()? },
             59 => Action::OpenVault { pos: r.ivec3()?, dials: r.u32()? },
+            71 => Action::LabelBox { pos: r.ivec3()?, label: r.u8()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

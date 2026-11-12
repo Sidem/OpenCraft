@@ -343,6 +343,9 @@ export class Renderer {
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
     drawCalls += waterCalls;
     quads += waterQuads;
+    drawCalls += this.boxes.drawGhost(this.viewProj, sky, fog, f.ghost, f.ghostCount, f.ghostRound, f.ghostRoundCount, f.ghostBlocked);
+    // The ghost writes no depth, so a port behind it still shows its marks; a wall still hides them.
+    drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.marks, f.marksCount, f.marksRound, f.marksRoundCount);
     if (!f.underwater) drawCalls += this.precip.draw(this.viewProj, f.eye, sky, drawn, this.skySettings.precip, now);
 
     drawCalls += this.overlays.draw(this.viewProj, f, [ex, ey, ez]);
