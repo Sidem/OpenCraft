@@ -293,10 +293,9 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   faces rare (0–1 a save) and 83 of 89 filled boxes holding one kind, so a box shows its most common item unless a
   label is picked (`factory/box_label.rs`, `Action::LabelBox`, save version 69). Second round: built machines show a
   floor pad at each open port (`Factory::write_port_pads`): 75.3% of sides right blind from 2 blocks (far 29%: the
-  machine hides the far pad), so a hidden pad also gets a sign over the model's top. From 7.5 blocks
-  (`port-shots.mjs … placed 7.5`, the same 50 shots): 46.0% with pads only, 95.0% with the signs (far sides with
-  ports 1/43 → 42/43); up close the signs are above the view. Box labels moved onto the lid, facing the camera and drawn as
-  far as the box; the label picker is a searchable dropdown; heaps ride belts `belt::HEAP_BOOST` bigger.
+  machine hides the far pad). Signs over the roof for hidden pads read blind (95.0% vs 46.0% from 7.5 blocks,
+  `port-shots.mjs … placed 7.5`) but the user found them distracting in play and they were removed. Box labels moved
+  onto the lid, facing the camera and drawn as far as the box; the label picker is a searchable dropdown; heaps ride belts `belt::HEAP_BOOST` bigger.
 
 - **2026-11-09: bigger belt items.** Items ride at `belt::ITEM_SIZE` (just under `ITEM_SPACING`), canisters `CANISTER_BOOST` bigger
   (`belt::ride_unit`, `item::is_canister`). Drawing only: `END_STOP` is fixed, so belt capacity and the state hash are unchanged.

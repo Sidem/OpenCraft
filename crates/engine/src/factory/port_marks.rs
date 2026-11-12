@@ -8,13 +8,11 @@
 //! every marked face of every machine at every turn and checks the items go where the marks say).
 //!
 //! With nothing in hand, built machines show the still version: a floor pad at each open port with chevrons pointing
-//! the way items move and the item in a corner, plus a sign over the roof for a pad the machine hides from the camera
-//! (`write_port_pads`); the hatches on the walls stay as sockets.
+//! the way items move and the item in a corner (`write_port_pads`); the hatches on the walls stay as sockets.
 //!
 //! To mark another kind of port: a `Flow` and its look in `arrow_look`.
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
-use std::sync::OnceLock;
 
 use crate::block::{tex, BlockId};
 use crate::item::ItemId;
@@ -25,7 +23,7 @@ use super::belt::belt_preview;
 use super::belt_shape::Shape;
 use super::footprint::{self, Role};
 use super::process::{self, Pick, Processor};
-use super::render::{mark_beacon_tinted, push_box, INSTANCE_FLOATS};
+use super::render::{mark_beacon_tinted, push_box};
 use super::{opposite, Factory, DIRS};
 
 /// What a port does with items.
@@ -52,13 +50,6 @@ pub const PAD_NEAR: f64 = 32.0;
 const PAD: [f64; 3] = [0.74, 0.04, 0.96];
 /// The size of the item on a pad (a full cube's width).
 const PAD_ITEM: f64 = 0.24;
-/// A far port's sign: its side and thickness, how far over the machine's top it starts, and the item on it.
-const SIGN: [f64; 2] = [0.62, 0.04];
-const SIGN_CLEAR: f64 = 0.25;
-const SIGN_ITEM: f64 = 0.3;
-/// A port's pad is behind its machine (and gets a sign) when the camera looks along its face's way out at least this
-/// much (the cosine, flat): straight behind is 1, from the side 0.
-const BEHIND: f64 = 0.6;
 
 /// The items a machine's ports show: one of the inputs it takes, its product, its byproduct.
 #[derive(Default, Clone)]
@@ -123,95 +114,21 @@ impl Factory {
     /// what a machine says about its ports at a glance, with nothing in hand. A low plate in the cell a belt would
     /// take, chevrons down its middle pointing the way items move (two for the main flow, one for a byproduct) and the
     /// port's item, small, in an outer corner. A port with something built in front of it shows none: the belt there
-    /// says the rest. A pad the machine hides from the camera also gets a sign on a post over the machine's top
-    /// (`sign`), so the far side reads from the front.
+    /// says the rest.
     pub fn write_port_pads(&self, eye: Vec3, free: impl Fn(IVec3) -> bool, out: &mut Vec<f32>) {
         for p in self.processors.iter().filter(|p| !p.footprint().is_single()) {
             if (centre(p.pos) - eye).length() > PAD_NEAR + 4.0 {
                 continue;
             }
             let (shown, mut next_input) = (shown_by(p), 0);
-            // The model's top, or the footprint's where a model stays lower (a tower rises over its cells).
-            let top = f64::from(p.pos.y) + model_top(p.spec.block).max(f64::from(p.footprint().size[1]));
             for (cell, side, flow) in port_faces(p.spec.block, p.pos, p.dir) {
                 let item = item_at(&shown, flow, &mut next_input);
                 let stub = cell + DIRS[side as usize];
                 if free(stub) {
-                    let rel = centre(stub) - eye;
-                    pad(out, rel, side, flow, item);
-                    if behind(rel, side) {
-                        sign(out, rel, top - f64::from(stub.y), flow, item);
-                    }
+                    pad(out, centre(stub) - eye, side, flow, item);
                 }
             }
         }
-    }
-}
-
-/// How high the model of the machine `block` reaches over its anchor cell's floor, at rest (measured from its drawn
-/// boxes once per block, then kept).
-fn model_top(block: BlockId) -> f64 {
-    static TOPS: OnceLock<Vec<f32>> = OnceLock::new();
-    let tops = TOPS.get_or_init(|| {
-        (0..=255u8)
-            .map(|b| {
-                let Some(spec) = process::spec(b) else { return 0.0 };
-                let mut out = Vec::new();
-                process::draw_model(&Processor::new(IVec3::ZERO, spec, 0), &mut out, Vec3::new(0.0, 0.5, 0.0), 0.0);
-                // A leaned or rolled box may stand its longest side up.
-                let reach = |r: &[f32]| if r[12] != 0.0 || r[13] != 0.0 { r[4].max(r[5]).max(r[6]) } else { r[5] };
-                out.chunks_exact(INSTANCE_FLOATS).map(|r| r[1] + reach(r) / 2.0).fold(0.0, f32::max)
-            })
-            .collect()
-    });
-    f64::from(tops[block as usize])
-}
-
-/// Whether the pad at camera-relative `rel`, in front of a face looking out along `DIRS[side]`, is behind its machine
-/// as the camera sees it.
-fn behind(rel: Vec3, side: u8) -> bool {
-    let out = DIRS[side as usize].as_vec3();
-    let flat = (rel.x * rel.x + rel.z * rel.z).sqrt();
-    flat > 0.0 && rel.x * out.x + rel.z * out.z > BEHIND * flat
-}
-
-/// A far port's sign over the cell centred at camera-relative `rel`: a post from the pad to `height` (the machine's
-/// top over the cell's floor) and a plate turned to the camera with the pad's chevrons stood up on it and its item on
-/// top. Seen from the front, into the machine is toward the camera, which is down: an inlet's chevrons point down, an
-/// outlet's up.
-fn sign(out: &mut Vec<f32>, rel: Vec3, height: f64, flow: Flow, item: Option<ItemId>) {
-    let floor = rel - Vec3::new(0.0, 0.5, 0.0);
-    // A box's own +z looks along (-sin yaw, 0, cos yaw): this yaw points it at the camera, which is at -rel.
-    let yaw = rel.x.atan2(-rel.z) as f32;
-    let (sin, cos) = (f64::from(yaw.sin()), f64::from(yaw.cos()));
-    let (facing, across, up) = (Vec3::new(-sin, 0.0, cos), Vec3::new(cos, 0.0, sin), Vec3::new(0.0, 1.0, 0.0));
-    let post = height + SIGN_CLEAR - PAD[1];
-    push_box(out, floor + up * (PAD[1] + post / 2.0), 0.0, [0.06, post as f32, 0.06], 0.0, [tex::FRAME; 3], false);
-    let mid = floor + up * (height + SIGN_CLEAR + SIGN[0] / 2.0);
-    push_box(out, mid, yaw, [SIGN[0] as f32, SIGN[0] as f32, SIGN[1] as f32], 0.0, [tex::FRAME; 3], false);
-    let front = mid + facing * ((SIGN[1] + f64::from(ARM[1])) / 2.0 + 0.005);
-    let (tips, scale): (&[f64], f32) = if flow == Flow::Byproduct { (&[0.06], 0.9) } else { (&[-0.14, 0.12], 1.0) };
-    for &v in tips {
-        let tip = if flow == Flow::In { v - 0.1 } else { v + 0.1 };
-        upright_chevron(out, front + up * tip, yaw, across, flow == Flow::In, scale, arrow_look(flow));
-    }
-    if let Some(item) = item {
-        item_model(out, item, mid + up * ((SIGN[0] + SIGN_ITEM) / 2.0), SIGN_ITEM);
-    }
-}
-
-/// One chevron standing on a plate turned by `yaw` (its own x is `across`), its tip at camera-relative `tip`, pointing
-/// down or up.
-fn upright_chevron(out: &mut Vec<f32>, tip: Vec3, yaw: f32, across: Vec3, down: bool, scale: f32, look: u32) {
-    let half = f64::from(ARM[2] * scale) / 2.0;
-    for hand in [-1.0f32, 1.0] {
-        // Each arm runs from the tip at 45° up (or down) to one side; the roll turns the box's own x to that angle.
-        let angle = if down { FRAC_PI_2 - hand * FRAC_PI_4 } else { -FRAC_PI_2 + hand * FRAC_PI_4 };
-        let way = across * f64::from(angle.cos()) + Vec3::new(0.0, f64::from(angle.sin()), 0.0);
-        push_box(out, tip + way * half, yaw, [ARM[2] * scale, ARM[0] * scale, ARM[1]], 0.0, [tex::FRAME; 3], false);
-        let n = out.len();
-        out[n - 3] = angle; // the box's roll (`render.rs`): about its own z, which faces the camera
-        mark_beacon_tinted(out, look);
     }
 }
 

@@ -97,9 +97,7 @@ size.
   the player sees them. Holding a belt shows the same marks on built machines within 16 blocks, with the items of
   their recipe (`factory/port_marks.rs`, `port_view.rs`). Otherwise each open port of a built machine nearby has a
   floor pad: a plate with chevrons pointing in or out (one smaller for a byproduct) and the port's item in a corner
-  (`Factory::write_port_pads`, within `port_marks::PAD_NEAR`); a port with a block in front of it has none. A pad the
-  machine hides from the camera also gets a sign on a post over the model's top, turned to the camera: its chevrons
-  point down for an inlet (toward the machine is toward the viewer), up for an outlet, its item on top.
+  (`Factory::write_port_pads`, within `port_marks::PAD_NEAR`); a port with a block in front of it has none.
 - **A storage box shows what it holds** on its lid, as far as the box draws: a light plate with the item it holds
   most of standing on it, turned to the camera, or the icon of a label picked in its screen (`factory/box_label.rs`
   `LABELS`; the screen's dropdown searches them). Heaps (crushed and washed ore, sulfur, quicklime) ride belts
