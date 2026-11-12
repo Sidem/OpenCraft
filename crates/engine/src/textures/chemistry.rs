@@ -106,30 +106,13 @@ pub(super) fn canister(x: i32, y: i32, band: [f64; 3]) -> [u8; 4] {
     }
 }
 
-/// Olive-green plating with riveted seams and a dark oil stain creeping up from the foot.
+/// The pumpjack's oilfield green: even paint with a faint weathering, no seams, since the placed jack
+/// (`factory/process/pump/view.rs`) wears it on beams and legs of every size.
 fn pumpjack_side(x: i32, y: i32) -> [u8; 4] {
-    if y == 0 || y == 15 || y == 7 {
-        return rgb([60.0, 64.0, 58.0], 0.9 + 0.1 * n(485, x, y));
-    }
-    let stain = (y as f64) > 10.0 + 4.0 * smooth(486, x, 0, 4);
-    let base = if stain { [40.0, 34.0, 28.0] } else { [112.0, 122.0, 82.0] };
-    let rivet = (x == 2 || x == 13) && (y == 3 || y == 11);
-    if rivet {
-        rgb([170.0, 176.0, 150.0], 1.0)
-    } else {
-        rgb(base, 0.88 + 0.16 * n(487, x, y) + 0.1 * smooth(488, x, y, 4))
-    }
+    rgb([78.0, 120.0, 74.0], 0.94 + 0.06 * n(487, x, y) + 0.04 * smooth(488, x, y, 4))
 }
 
-/// A steel deck with a round black well-head in the middle.
+/// The pumpjack's safety yellow (its belt guard), even paint like its green.
 fn pumpjack_top(x: i32, y: i32) -> [u8; 4] {
-    let (dx, dy) = (x as f64 - 7.5, y as f64 - 7.5);
-    let d = dx * dx + dy * dy;
-    if d < 6.0 {
-        rgb([22.0, 20.0, 18.0], 0.9 + 0.2 * n(489, x, y))
-    } else if d < 12.0 {
-        rgb([200.0, 150.0, 44.0], 0.95 + 0.1 * n(490, x, y))
-    } else {
-        frame(x, y)
-    }
+    rgb([222.0, 182.0, 46.0], 0.94 + 0.06 * n(489, x, y) + 0.04 * smooth(490, x, y, 4))
 }

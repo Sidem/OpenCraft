@@ -6,7 +6,7 @@ import numpy as np
 
 from kit import (AETHER, BLUE, BRONZE, CONCRETE, COPPER, DARK, EMBER, FIREBRICK, GOLD, GREEN, MOSS, RED, STEEL, VERDIGRIS,
                  VIOLET, XS, YS, Face)
-from lib import N, coords, fbm, paint, rgba
+from lib import N, coords, fbm, paint, ramp, rgba
 from machines import AMBER, arch_mask
 
 
@@ -42,21 +42,21 @@ def cell_top():
     return f.rgba()
 
 
+JACK_GREEN = ramp(["#0e1c10", "#1e3a22", "#335c36", "#4e7c4a", "#74a06c", "#a8c8a0"])
+JACK_YELLOW = ramp(["#2a1e04", "#6a4c0a", "#b08414", "#dcb42e", "#f0d468", "#fff0b8"])
+
+
 def pumpjack_side():
+    """The pumpjack's oilfield green: flat paint, since the placed jack wears it on beams and legs of every size."""
     f = Face(206, STEEL, 7)
-    f.rect((10, 10, 118, 118), STEEL, 0.4, 1.0, 4)
-    f.pipe((52, 10, 76, 118), True, STEEL, 0.5, 4)
-    f.rect((20, 80, 108, 108), DARK, 0.25, -1.0, 4)
-    f.bar((30, 100), (98, 88), 6, BRONZE, 0.55)
+    f.fill(np.ones((N, N), bool), JACK_GREEN, 0.55)
     return f.rgba()
 
 
 def pumpjack_top():
+    """The pumpjack's safety yellow (its belt guard), flat paint like its green."""
     f = Face(207, STEEL, 7)
-    _recess(f)
-    f.port((64, 64), 36, DARK, 0.0, BRONZE)
-    f.disc((64, 64), 16, STEEL, 0.5, 1.0, 4)
-    f.bolts()
+    f.fill(np.ones((N, N), bool), JACK_YELLOW, 0.55)
     return f.rgba()
 
 

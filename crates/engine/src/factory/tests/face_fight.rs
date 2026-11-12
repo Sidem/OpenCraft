@@ -165,6 +165,30 @@ fn pipework_draws_no_faces_that_fight() {
     assert_eq!(scenes, 3 * 3 * 4 * 64);
 }
 
+/// A pumpjack (`process/pump/view.rs`) facing each way, full size and compact, at the crank angles where its beam lies
+/// level (its moving boxes then on the axes too) and between.
+#[test]
+fn the_pumpjack_draws_no_faces_that_fight() {
+    use crate::block::PUMPJACK;
+    for facing in 0..4 {
+        for compact in [false, true] {
+            for crank in [0.0, 0.125, 0.25, 0.5, 0.75] {
+                let (mut world, mut f) = (World::new(1, 2), Factory { by_hand: true, ..Factory::default() });
+                let pos = IVec3::new(0, 64, 0);
+                f.place(&mut world, PUMPJACK, pos, facing, pos - IVec3::new(0, 1, 0), 0);
+                let pump = f.processors[0].pump_mut();
+                (pump.compact, pump.crank) = (compact, crank);
+                let mut out = Vec::new();
+                f.write_instances(&mut out, Vec3::new(0.5, 66.0, 0.5), 0.0, 40.0);
+                if let Some((a, b)) = face_fight(&out) {
+                    let at = |i: usize| &out[i * INSTANCE_FLOATS..i * INSTANCE_FLOATS + 7];
+                    panic!("facing {facing}, compact {compact}, crank {crank}: {:?} and {:?} fight", at(a), at(b));
+                }
+            }
+        }
+    }
+}
+
 #[test]
 fn the_detector_finds_shared_faces_and_passes_faces_facing_apart() {
     let o = Vec3::new(0.0, 0.0, 0.0);

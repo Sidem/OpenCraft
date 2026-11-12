@@ -58,9 +58,9 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `lab.rs`: research labs. `sites.rs` + `sites/` (terraforming sites, survey, tunnels). `footprint/`: multi-block machines;
   `port_marks.rs` (presentation): a machine's port stubs, arrows and riding items, from the footprint's port rows.
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; the first
-  machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `assembly_view.rs` (the assembler's arms, inputs, work cloud and product in motion, `Look::Work`), `shape.rs`,
+  machines' rows in `basic.rs`); `mod.rs`, `work.rs` (the loop), `state.rs` (bytes), `extra.rs` (one kind's own state), `kinds.rs` (index lists for the per-kind passes), `status.rs`, `view.rs`, `model.rs` + `parts.rs` (models as data), `display.rs` (the turning product display, `Look::Product`), `assembly_view.rs` (the assembler's arms, inputs, work cloud and product in motion, `Look::Work`), `shape.rs` (cells and ports from `footprint()`: ask it, not the spec),
   `intake.rs`, `legacy.rs`, `facts.rs`. Machines with logic of their own: `steam.rs` (+ `steam_view.rs`), `solar.rs`,
-  `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs`, `refinery.rs`, `washer.rs`, `recycler.rs`,
+  `diesel.rs`, `hydro.rs`, `nuclear.rs`, `rectenna.rs`, `ground.rs`, `pump.rs` (+ `pump/view.rs`, the pumpjack's beam and crank linkage, `Look::Jack`), `refinery.rs`, `washer.rs`, `recycler.rs`,
   `center.rs` (research center), `ailab.rs`, `datacenter.rs`, `tower.rs`, `optimizer.rs`, `hub.rs`, `fab.rs`, `launch.rs` (+ `rocket.rs`, its rocket),
   `pods.rs` + `pods/channels.rs` (launcher, pad, their colour channel), `hangar.rs` (drone port), `hoist.rs`, `docks.rs`, `depot.rs` (town depot), `ejector.rs` (belt ejector: drops items as `SimEvent::Dropped`), `upgrader.rs`, `laser.rs`,
   `forester.rs` + `forester/` (a harvester crane that fells, bucks and replants a fenced patch of flat ground, bigger by tier:

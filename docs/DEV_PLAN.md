@@ -3,7 +3,7 @@
 **Status (2026-11-12):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
-held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines, belts, maps, trains, playtester
+held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
 notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
 pieces, Milestone 14 (the space elevator).
 
@@ -279,6 +279,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-12: a real pumpjack (playtester note).** 2×3×3 (`pump::FOOTPRINT`: empties in at the back, canisters out
+  at the front), drawn by `pump/view.rs` (`Look::Jack`): motor, gearbox, crank arms with counterweights, pitman arms,
+  samson post, walking beam, horsehead, bridle, polished rod and wellhead. The beam follows the crank through the real
+  four-bar linkage (`view::pose`); the crank (`Pump::crank`, derived, not saved) eases to the power share and stops in
+  place. The well is sought under every base cell. Old saves: none of the user's 5 pumpjacks (6 saves) had room to grow
+  (each in a straight belt line), so a pumpjack from before save 70 loads `compact`: one cell, every side, drawn at a
+  third (`Processor::footprint`). Fixture `pump/v69.ocworld` written by the commit before.
 - **2026-11-12: ports that read, box labels (playtester notes).** A held multi-block machine draws a see-through ghost
   and, per port face, a belt stub, arrows and the item riding it (`factory/port_marks.rs`, `port_view.rs`; marks are a
   solid pass after the ghost). Judged blind from screenshots (`scripts/port-shots.mjs`): 44.8% of sides right with the

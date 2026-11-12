@@ -24,20 +24,23 @@ pub(super) fn parts(block: BlockId) -> &'static [Part] {
     }
 }
 
+/// The placed pumpjack's paint (`factory/process/pump/view.rs`).
+const JACK_GREEN: u16 = tex::PUMPJACK_SIDE;
+
 /// A walking beam on its post, the horsehead at its front over the well, cranks and weights at its back.
 const PUMPJACK: [Part; 14] = [
     part([0.0, -0.47, 0.0], [0.96, 0.06, 0.4], tex::CONCRETE),
-    part([-0.3, -0.24, -0.12], [0.26, 0.24, 0.04], tex::MAT_GUNMETAL),
+    part([-0.3, -0.24, -0.12], [0.26, 0.24, 0.04], tex::STEEL),
     part([-0.3, -0.37, 0.0], [0.18, 0.14, 0.18], tex::MOTOR),
     part([-0.33, -0.03, -0.1], [0.03, 0.4, 0.03], tex::STEEL),
-    lean([0.0, -0.14, -0.1], [0.05, 0.62, 0.05], 0.0, 0.18, tex::FRAME),
-    lean([-0.12, -0.16, 0.0], [0.05, 0.6, 0.05], -FRAC_PI_2, 0.38, tex::FRAME),
-    lean([0.0, -0.14, 0.1], [0.05, 0.62, 0.05], PI, 0.18, tex::FRAME),
-    part([0.0, 0.2, 0.0], [0.74, 0.08, 0.08], tex::MAT_BRASS),
-    part([0.4, 0.17, 0.0], [0.09, 0.22, 0.1], tex::MAT_BRASS),
-    lean([0.37, 0.02, 0.0], [0.1, 0.16, 0.08], FRAC_PI_2, -0.6, tex::MAT_BRASS),
+    lean([0.0, -0.14, -0.1], [0.05, 0.62, 0.05], 0.0, 0.18, JACK_GREEN),
+    lean([-0.12, -0.16, 0.0], [0.05, 0.6, 0.05], -FRAC_PI_2, 0.38, JACK_GREEN),
+    lean([0.0, -0.14, 0.1], [0.05, 0.62, 0.05], PI, 0.18, JACK_GREEN),
+    part([0.0, 0.2, 0.0], [0.74, 0.08, 0.08], JACK_GREEN),
+    part([0.4, 0.17, 0.0], [0.09, 0.22, 0.1], JACK_GREEN),
+    lean([0.37, 0.02, 0.0], [0.1, 0.16, 0.08], FRAC_PI_2, -0.6, JACK_GREEN),
     part([-0.33, -0.03, 0.1], [0.03, 0.4, 0.03], tex::STEEL),
-    part([-0.3, -0.24, 0.12], [0.26, 0.24, 0.04], tex::MAT_GUNMETAL),
+    part([-0.3, -0.24, 0.12], [0.26, 0.24, 0.04], tex::STEEL),
     part([0.43, -0.17, 0.0], [0.015, 0.36, 0.015], tex::MAT_RUBBER),
     cylinder([0.43, -0.39, 0.0], 0.1, 0.1, tex::STEEL),
 ];

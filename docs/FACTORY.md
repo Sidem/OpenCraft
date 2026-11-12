@@ -275,9 +275,11 @@ size.
   the bottom up. With nowhere to pour, the pumps stop. Drain a pond or a flooded pit this way; the sea
   refills whatever you take, so it can't be lowered.
 - **Fluids and chemistry** (Milestone 10). Pipes carry only water; every other fluid rides belts in **canisters**
-  (an empty one is 1 steel plate for 2, and empties come back). Oil Processing unlocks the **pumpjack** (90 kW):
-  placed over oil sand it drills straight down its own column and fills a canister about every 2 s from the deposit's
-  shared pool. Refining unlocks the **refinery** (3 crude canisters and water give naphtha, diesel and heavy oil
+  (an empty one is 1 steel plate for 2, and empties come back). Oil Processing unlocks the **pumpjack** (90 kW,
+  2×3×3: a motor and a crank with counterweights at the back, the beam and horsehead over the wellhead at the front):
+  placed over oil sand it drills straight down under its base and fills a canister about every 2 s from the deposit's
+  shared pool. Belts bring empties in at its back and take full canisters from its front. A pumpjack built before
+  2026-11-12 stays one block (a small model of the new one, taking and giving on every side) until you place it again. Refining unlocks the **refinery** (3 crude canisters and water give naphtha, diesel and heavy oil
   canisters and sulfur: the first leaves the front, the rest the right-hand hatches, so sort the belt with filters) and the
   **cracker** (heavy oil and water into naphtha and diesel). Plastics, then Acids and Lubricants, unlock the
   **chemical plant** (plastic from naphtha and coal, acid from sulfur and water, lubricant from heavy oil). A

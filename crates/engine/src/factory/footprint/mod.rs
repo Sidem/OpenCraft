@@ -172,7 +172,7 @@ impl Factory {
         match *self.at.get(&pos)? {
             Slot::Process(i) => {
                 let p = &self.processors[i as usize];
-                (!p.spec.footprint.is_single()).then(|| (p.pos, p.spec.block, p.cells()))
+                (!p.footprint().is_single()).then(|| (p.pos, p.spec.block, p.cells()))
             }
             Slot::Pole(i) => {
                 let p = &self.poles[i as usize];

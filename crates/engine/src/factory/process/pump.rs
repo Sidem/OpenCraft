@@ -1,31 +1,38 @@
-//! The pumpjack (Milestone 10): a one-block processor that draws crude oil from a reservoir and fills canisters.
-//! Placed on the ground, it drills straight down to the first oil sand (or spent rock of an oil deposit) of its
-//! column, up to [`MAX_DEPTH`] blocks (`sink_well`, at placing); that deposit's draw cap and taper decide its pace
-//! like any miner's (`deposits.rs`), so a vein gives about 20 canisters a minute for hours. Oil is never a block in
-//! the world, so there is nothing for the water simulation to flow.
+//! The pumpjack (Milestone 10): a 2 × 3 × 3 processor (`FOOTPRINT`: the well at its front, the motor and crank at its
+//! back) that draws crude oil from a reservoir and fills canisters. Placed on the ground, it drills straight down
+//! under its base, front cells first, to the first oil sand (or spent rock of an oil deposit), up to [`MAX_DEPTH`]
+//! blocks (`sink_well`, at placing); that deposit's draw cap and taper decide its pace like any miner's
+//! (`deposits.rs`), so a vein gives about 20 canisters a minute for hours. Oil is never a block in the world.
 //!
 //! - Each tick it draws `RATE` units a second at full power, `RECOVERY` of it kept, into `Pump::carry`; every
-//!   [`CANISTER_UNITS`] kept fills one empty canister from its input slot into its output (belts bring the empties
-//!   and take the full ones). It stops drawing while a canister's worth waits (no empties, or a full output).
-//! - Saved for pumpjacks only: the well (deposit and drill bit) and the carry.
+//!   [`CANISTER_UNITS`] kept fills one empty canister from its input (belts bring the empties to its back and take
+//!   the full ones from its front). It stops drawing while a canister's worth waits (no empties, or a full output).
+//! - Saved for pumpjacks only: the well (deposit and drill bit), the carry, and whether it is `compact`: a pumpjack
+//!   from before save 70 was one block, and stays one (taking and giving on every side, drawn a third the size), as
+//!   its neighbours leave no room to grow (none of the user's five could). Placed again, it is full size.
+//! - Drawn by `view.rs` from `Pump::crank`, which turns while it works (derived, eased so it starts and stops softly).
 //!
 //! To change its pace: the constants and its spec's power.
 
-use crate::block::{tex, OIL_SAND, PUMPJACK, SPENT_ROCK};
+use crate::block::{OIL_SAND, PUMPJACK, SPENT_ROCK};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 use crate::item::{CRUDE_CANISTER, EMPTY_CANISTER};
 use crate::math::IVec3;
 use crate::world::World;
-use crate::TICK;
+use crate::{TICK, TICK_RATE};
 
 use super::super::describe::fmt_int;
-use super::super::footprint::SINGLE;
+use super::super::footprint::{Footprint, Port, Role, Side, Which};
 use super::super::power::{FULL_SPEED, NOT_WIRED};
 use super::super::Factory;
 use super::model::{part, Look, Part};
 use super::{Energy, Extra, Pick, ProcessSpec, ProcessTier, Processor, Status};
+
+mod view;
+
+pub(super) use view::draw as draw_jack;
 
 #[cfg(test)]
 mod tests;
@@ -36,8 +43,24 @@ pub const CANISTER_UNITS: f64 = 10.0;
 const RATE: f64 = 5.0;
 /// Share of what is drawn that reaches the canister.
 const RECOVERY: f64 = 0.9;
-/// How far below its own block it searches for oil.
+/// How far below its base it searches for oil.
 const MAX_DEPTH: i32 = 100;
+/// Seconds a turn of the crank takes at full power (a real one strokes 5 to 15 times a minute), and the share of the
+/// gap to that pace it closes each tick, so it winds up and runs down over about half a second.
+pub const CRANK_SECONDS: f64 = 4.0;
+const CRANK_EASE: f64 = 0.06;
+/// The first save version with full-size pumpjacks; older ones load `compact`.
+pub const FULL_SIZE_SAVED: u32 = 70;
+
+/// Two cells across, three deep (the well at the front), three high; empties in at the back, full canisters out at
+/// the front.
+pub const FOOTPRINT: Footprint = Footprint {
+    size: [2, 3, 3],
+    ports: &[
+        Port { side: Side::Back, role: Role::In, cell: Which::All },
+        Port { side: Side::Front, role: Role::Out, cell: Which::All },
+    ],
+};
 
 /// Where a pumpjack draws: the reservoir and the block its drill bit reaches (spent rock forms around it).
 #[derive(Clone, Copy)]
@@ -51,8 +74,14 @@ pub struct Pump {
     pub well: Option<Well>,
     /// Oil units kept towards the next canister.
     pub carry: f64,
+    /// A one-block pumpjack from an older save (saved; see the header).
+    pub compact: bool,
     /// Smoothed units drawn a second, for the readout (derived).
     pub rate: f64,
+    /// The crank's angle in turns, and how far it turned last tick (derived, presentation only: never read by the
+    /// core, not saved, so a loaded pumpjack starts from its rest pose).
+    pub crank: f64,
+    pub spin: f64,
 }
 
 impl Pump {
@@ -63,12 +92,14 @@ impl Pump {
             w.ivec3(well.bit);
         }
         w.f64(self.carry);
+        w.bool(self.compact);
     }
 
     pub(super) fn read_state(r: &mut ByteReader) -> Option<Pump> {
         let well = if r.bool()? { Some(Well { key: DepositKey::read_state(r)?, bit: r.ivec3()? }) } else { None };
         let carry = r.f64()?;
-        (carry.is_finite() && carry >= 0.0).then_some(Pump { well, carry, rate: 0.0 })
+        let compact = if r.version >= FULL_SIZE_SAVED { r.bool()? } else { true };
+        (carry.is_finite() && carry >= 0.0).then_some(Pump { well, carry, compact, ..Pump::default() })
     }
 }
 
@@ -79,7 +110,7 @@ pub const PUMPJACK_SPEC: ProcessSpec = ProcessSpec {
     buffers: [1, 0, 1],
     side: 0,
     tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 90 }],
-    footprint: SINGLE,
+    footprint: FOOTPRINT,
     verb: "Pumping",
     products: "crude oil canisters",
     waiting: "Idle",
@@ -88,37 +119,43 @@ pub const PUMPJACK_SPEC: ProcessSpec = ProcessSpec {
     parts: &PARTS,
 };
 
-const BODY: [u16; 3] = [tex::PUMPJACK_TOP, tex::PUMPJACK_SIDE, tex::FRAME];
-const MAST: Look = Look::Tex([tex::PUMPJACK_SIDE; 3]);
-
-/// A banded plinth under an olive housing with a well-head on the front, an A-frame carrying a walking beam that
-/// rocks while it pumps (a head at the front, a counterweight behind) and a status lamp.
-const PARTS: [Part; 9] = [
-    part([0.0, -0.42, 0.0], [0.94, 0.16, 0.94], Look::Band(tex::FRAME)),
-    part([0.0, -0.12, -0.04], [0.8, 0.44, 0.7], Look::Tex(BODY)),
-    part([0.0, -0.1, 0.4], [0.22, 0.3, 0.12], Look::Tex([tex::FRAME; 3])),
-    part([-0.3, 0.36, -0.04], [0.1, 0.5, 0.1], MAST),
-    part([0.3, 0.36, -0.04], [0.1, 0.5, 0.1], MAST),
-    part([0.0, 0.64, -0.04], [0.2, 0.1, 0.9], Look::Press(0.4, [tex::STEEL; 3])),
-    part([0.0, 0.5, 0.42], [0.16, 0.3, 0.1], Look::Press(1.0, [tex::FRAME; 3])),
-    part([0.0, 0.56, -0.4], [0.3, 0.22, 0.14], Look::Press(-0.5, [tex::FRAME; 3])),
-    part([0.33, 0.14, 0.36], [0.12, 0.08, 0.12], Look::Lamp),
-];
+/// The whole machine, still and moving, is drawn by `view.rs` from this part (its box is the footprint).
+const PARTS: [Part; 1] = [part([0.0, 0.0, 0.0], [2.0, 3.0, 3.0], Look::Jack)];
 
 impl Processor {
-    /// Finds the well below a freshly placed pumpjack (nothing for other processors, or with no oil underneath).
+    /// Finds the well below a freshly placed pumpjack (nothing for other processors, or with no oil underneath): the
+    /// first oil straight down from its bottom cells, front row first.
     pub(crate) fn sink_well(&mut self, deposits: &mut Deposits, world: &mut World) {
-        let pos = self.pos;
+        let base: Vec<IVec3> = self.cells().into_iter().filter(|c| c.y == self.pos.y).collect();
         let Extra::Pump(pump) = &mut self.extra else { return };
-        pump.well = (1..=MAX_DEPTH.min(pos.y)).map(|d| pos - IVec3::new(0, d, 0)).find_map(|bit| {
+        let below = |c: IVec3| (1..=MAX_DEPTH.min(c.y)).map(move |d| c - IVec3::new(0, d, 0));
+        pump.well = base.into_iter().flat_map(below).find_map(|bit| {
             let block = world.block_anywhere_or_generate(bit);
             let found = matches!(block, OIL_SAND | SPENT_ROCK).then(|| deposits.lookup(world, bit)).flatten();
             found.filter(|key| key.ore == OIL_SAND).map(|key| Well { key, bit })
         });
     }
 
-    /// One tick of pumping at `share` of full power (called before `step`).
+    /// Whether this is a one-block pumpjack from an older save.
+    pub fn is_compact(&self) -> bool {
+        matches!(&self.extra, Extra::Pump(p) if p.compact)
+    }
+
+    /// One tick of pumping at `share` of full power (called before `step`), then the crank's turn.
     pub(crate) fn pump(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, share: u32) {
+        self.draw_oil(deposits, world, tick, share);
+        let working = self.status == Status::Working;
+        let Extra::Pump(pump) = &mut self.extra else { return };
+        let pace =
+            if working { f64::from(share) / f64::from(FULL_SPEED) / (CRANK_SECONDS * TICK_RATE as f64) } else { 0.0 };
+        pump.spin += (pace - pump.spin) * CRANK_EASE;
+        if pump.spin < 1e-6 && !working {
+            pump.spin = 0.0;
+        }
+        pump.crank = (pump.crank + pump.spin).fract();
+    }
+
+    fn draw_oil(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, share: u32) {
         let Extra::Pump(pump) = &mut self.extra else { return };
         let Some(well) = pump.well else {
             self.status = Status::NoDeposit;

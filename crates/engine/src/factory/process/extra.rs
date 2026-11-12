@@ -103,6 +103,11 @@ impl super::Processor {
         pump
     }
 
+    pub fn pump_mut(&mut self) -> &mut Pump {
+        let Extra::Pump(pump) = &mut self.extra else { panic!("not a pumpjack") };
+        pump
+    }
+
     pub fn study_state(&self) -> &Study {
         let Extra::Study(study) = &self.extra else { panic!("not a research center") };
         study

@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-12 · A real pumpjack
+- **The pumpjack is now a full-size oilfield pump**, 2 blocks wide, 3 long and 3 tall. A motor turns a crank with heavy counterweights, two arms rock the walking beam on its A-frame, and the curved horsehead at the front lifts the rod in and out of the wellhead. It moves while it pumps and comes gently to a stop where it is when it waits.
+- **Empty canisters go in at the back** (the motor end), and **full ones come out at the front** (the wellhead end).
+- **It finds oil under any part of its base**, so you no longer have to line up one exact block over the reservoir.
+- **Pumpjacks you already built keep working as they are**: they stay one block, as a small model of the new one. Pick one up and place it again to get the full-size pumpjack.
+
 ## 2026-11-12 · See where items go, and what's in each box
 - **A see-through ghost shows a big machine before you place it**, right where it will stand. It turns red when something is in the way.
 - **Every side that takes or gives items now shows it plainly.** A short belt sticks out of each such side with arrows on it, and an item rides along it: into the machine where it takes items, out where its product leaves, and a single arrow where a byproduct like slag leaves. The ports on the far side show through the ghost, and the hint line names the sides as you see them ("in: far, left · out: near"). Press R and it all turns with the machine.

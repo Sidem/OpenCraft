@@ -48,6 +48,8 @@ pub enum Look {
     Work,
     /// A forester's crane (`forester/view.rs`): no box, but the crane from the part's centre (its pivot), its head, and the fence round its patch.
     Crane,
+    /// A pumpjack (`pump/view.rs`): no box, but the whole machine, its beam rocking with its turning crank.
+    Jack,
 }
 
 #[derive(Clone, Copy)]
@@ -110,7 +112,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
     let working = p.status == Status::Working;
     let stroke = if working { (time * 6.0).sin().abs() * STROKE } else { 0.0 };
     let yaw = p.dir as f32 * std::f32::consts::FRAC_PI_2;
-    let centre = rel + p.spec.footprint.centre(p.dir);
+    let centre = rel + p.footprint().centre(p.dir);
     for part in p.spec.parts {
         let mut at = local(centre, yaw, part.at.map(f64::from));
         let texture = match part.look {
@@ -136,6 +138,10 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             }
             Look::Crane => {
                 super::forester::draw_crane(p, out, rel, at, time);
+                continue;
+            }
+            Look::Jack => {
+                super::pump::draw_jack(p, out, centre, yaw, time);
                 continue;
             }
             Look::Tex(t) => t,
@@ -172,12 +178,12 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         Energy::Turbine => return steam_view::draw_turbine(p, out, rel),
         _ => {}
     }
-    if p.spec.footprint.is_single() {
+    if p.footprint().is_single() {
         return;
     }
     steam_view::fittings(p, out, rel, Role::Water, tex::PIPE_WATER, steam_view::WATER_WIDE);
     for (role, layer) in [(Role::In, tex::PORT_IN), (Role::Out, tex::PORT_OUT), (Role::Side, tex::PORT_SIDE)] {
-        for (cell, side) in p.spec.footprint.faces(p.pos, p.dir, role) {
+        for (cell, side) in p.footprint().faces(p.pos, p.dir, role) {
             let at =
                 rel + (cell - p.pos).as_vec3() + DIRS[side as usize].as_vec3() * HATCH_OUT - Vec3::new(0.0, 0.12, 0.0);
             // Turned so its +z face (the hatch) looks out of `side`.
@@ -229,7 +235,7 @@ pub(super) fn local(centre: Vec3, yaw: f32, at: [f64; 3]) -> Vec3 {
     centre + Vec3::new(c * x - s * z, y, s * x + c * z)
 }
 
-fn lamp(status: Status) -> u16 {
+pub(super) fn lamp(status: Status) -> u16 {
     match status {
         Status::Working => tex::LAMP_GREEN,
         Status::OutputFull => tex::LAMP_YELLOW,
