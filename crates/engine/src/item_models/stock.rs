@@ -12,6 +12,22 @@ use crate::item::{
     SCRAP_METAL, SILICON, STICK, SULFUR, WAFER, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON,
 };
 
+/// Whether `item` is a heap of loose stuff (crushed and washed ore, sulfur, quicklime): small lumps that ride a belt
+/// bigger than their proportions say (`factory::belt::ride_unit`).
+pub fn is_heap(item: ItemId) -> bool {
+    matches!(
+        item,
+        CRUSHED_IRON
+            | CRUSHED_COPPER
+            | CRUSHED_BAUXITE
+            | WASHED_IRON
+            | WASHED_COPPER
+            | WASHED_BAUXITE
+            | SULFUR
+            | QUICKLIME
+    )
+}
+
 pub(super) fn parts(item: ItemId) -> &'static [Part] {
     match item {
         STICK => &STICK_MODEL,

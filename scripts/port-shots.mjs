@@ -1,8 +1,9 @@
 // Pictures for a blind reader: every multi-block machine with item ports at each of its four turns, seen from where the
 // player stands to place it, the page's HUD hidden, so only the 3D view says where items go in and come out.
-//   a running game server (npm run dev), then: node scripts/port-shots.mjs <url> <out dir> <ghost|placed|belt>
+//   a running game server (npm run dev), then: node scripts/port-shots.mjs <url> <out dir> <ghost|placed|belt> [back]
 // `ghost`: the machine held and aimed at the ground (the placement preview); `placed`: built there, hand empty; `belt`:
-// built there, a belt held. Writes <block>-<turn>.jpg and truth.json, per shot the machine's name and the roles of the
+// built there, a belt held. `back`: how many blocks south of the anchor the player stands (3.5, placing distance; 7.5
+// sees over the machine to its far side, as when planning belts). Writes <block>-<turn>.jpg and truth.json, per shot the machine's name and the roles of the
 // ports on each side as the player sees it (`placement_ports`: the same port data the simulation uses). Headless Chrome
 // on the GPU, a throwaway profile, no dependencies (as scripts/frame-bench.mjs).
 import { spawn } from 'node:child_process';
@@ -10,7 +11,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const [url, outDir, mode = 'ghost'] = process.argv.slice(2);
+const [url, outDir, mode = 'ghost', backArg = '3.5'] = process.argv.slice(2);
+const BACK = Number(backArg);
 if (!outDir || !['ghost', 'placed', 'belt'].includes(mode)) throw new Error('usage: node scripts/port-shots.mjs <url> <out dir> <ghost|placed|belt>');
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const [WIDTH, HEIGHT] = [1920, 1080];
@@ -92,8 +94,8 @@ for (const block of blocks) {
     await run(hold(mode === 'ghost' ? block : mode === 'belt' ? BELT : -1));
     const ports = await run(`(() => {
       const g = opencraft.game;
-      g.teleport(${X + 0.5}, ${Y}, ${Z + 3.5});
-      const eye = [${X + 0.5}, ${Y} + 1.62, ${Z + 3.5}], aim = [${X + 0.5}, ${Y}, ${Z + 0.5}];
+      g.teleport(${X + 0.5}, ${Y}, ${Z + BACK});
+      const eye = [${X + 0.5}, ${Y} + 1.62, ${Z + BACK}], aim = [${X + 0.5}, ${Y}, ${Z + 0.5}];
       const d = aim.map((a, i) => a - eye[i]), len = Math.hypot(...d);
       g.set_look(Math.atan2(d[0], -d[2]), Math.asin(d[1] / len));
       for (let k = 0; k < 4; k++) g.update(1 / 60);

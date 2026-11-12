@@ -73,3 +73,60 @@ fn a_ghost_draws_its_model_and_one_stub_per_open_port() {
     assert_eq!(solid_open, solid_shut, "arrows and items show either way");
     assert!(ghost_open > ghost_shut && ghost_shut > 10, "model {ghost_shut}, with stubs {ghost_open}");
 }
+
+/// A built machine shows one floor pad per open port, none where something stands in front, and none past `PAD_NEAR`.
+#[test]
+fn a_built_machine_shows_a_pad_at_each_open_port() {
+    use crate::factory::INSTANCE_FLOATS;
+    let mut world = World::new(1, 2);
+    let anchor = IVec3::new(0, 64, 0);
+    let block = (1..=255u8).find(|&b| port_faces(b, anchor, 0).len() >= 3).expect("a machine with ports");
+    let mut f = Factory::default();
+    f.place(&mut world, block, anchor, 0, anchor, 0);
+    let faces = port_faces(block, anchor, 0);
+    let pads = |eye: Vec3, shut: Option<IVec3>| {
+        let mut out = Vec::new();
+        f.write_port_pads(eye, |c| Some(c) != shut, &mut out);
+        // The pad plates: the only boxes PAD across and high.
+        out.chunks_exact(INSTANCE_FLOATS).filter(|r| r[4] == PAD[0] as f32 && r[5] == PAD[1] as f32).count()
+    };
+    let eye = Vec3::new(0.5, 66.0, 6.0);
+    assert_eq!(pads(eye, None), faces.len());
+    let (cell, side, _) = faces[0];
+    assert_eq!(pads(eye, Some(cell + DIRS[side as usize])), faces.len() - 1, "a belt or block in front: no pad");
+    assert_eq!(pads(Vec3::new(0.5, 66.0, PAD_NEAR + 20.0), None), 0, "too far");
+}
+
+#[test]
+fn a_port_behind_its_machine_gets_a_sign_over_the_roof() {
+    use crate::factory::INSTANCE_FLOATS;
+    let mut world = World::new(1, 2);
+    let anchor = IVec3::new(0, 64, 0);
+    let block = (1..=255u8).find(|&b| port_faces(b, anchor, 0).len() >= 3).expect("a machine with ports");
+    let mut f = Factory::default();
+    f.place(&mut world, block, anchor, 0, anchor, 0);
+    let faces = port_faces(block, anchor, 0);
+    let height = f64::from(process::spec(block).unwrap().footprint.size[1]);
+    assert!(model_top(block) > 1.0, "the model's top is measured");
+    let top = f64::from(anchor.y) + model_top(block).max(height);
+    let mut signed = [false; 4];
+    // From far off along each way out, a sign stands over exactly the ports that look the other way.
+    for (s, d) in DIRS.iter().enumerate() {
+        let eye = Vec3::new(1.0, 66.0, 1.0) + d.as_vec3() * 12.0;
+        let mut out = Vec::new();
+        f.write_port_pads(eye, |_| true, &mut out);
+        let signs: Vec<&[f32]> = out
+            .chunks_exact(INSTANCE_FLOATS)
+            .filter(|r| r[4] == SIGN[0] as f32 && r[5] == SIGN[0] as f32 && r[6] == SIGN[1] as f32)
+            .collect();
+        let away = faces.iter().filter(|f| f.1 == opposite(s as u8)).count();
+        assert_eq!(signs.len(), away, "seen from side {s}");
+        for r in &signs {
+            assert!(f64::from(r[1]) + eye.y - SIGN[0] / 2.0 >= top, "the sign clears the roof");
+        }
+        signed[opposite(s as u8) as usize] |= away > 0;
+    }
+    for (_, side, _) in &faces {
+        assert!(signed[*side as usize], "every port's sign shows from somewhere");
+    }
+}

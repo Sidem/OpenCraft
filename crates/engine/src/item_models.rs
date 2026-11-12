@@ -30,6 +30,7 @@ mod power;
 mod shapes;
 mod space;
 mod stock;
+pub use stock::is_heap;
 mod wear;
 
 pub use icon_frame::icon_frame;

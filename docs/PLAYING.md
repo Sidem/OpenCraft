@@ -56,8 +56,9 @@ to throw the whole stack. With an empty hand, Shift-right-click moves every
 stack of that item (between hotbar and backpack, or box and inventory). Tools always move whole. These work
 on a box's slots too. **Sort** (beside "Backpack", and beside a box's slots when you have one open)
 merges partial stacks and orders everything by item; the hotbar keeps the layout you made, and tools never
-merge, so each keeps its own wear. A storage box shows on its sides what it holds most of; the **Label** chips in
-its screen show a category's icon instead (Ores, Metals, Tools...), or **Contents** to go back.
+merge, so each keeps its own wear. A storage box shows on its lid what it holds most of, turned to face you; the
+**Label** menu in its screen (type to search) shows a category's icon instead (Ores, Metals, Tools...), or
+**Contents** to go back.
 
 Holding a machine bigger than one block shows a see-through ghost where it would stand (red where something is in
 the way). A short belt sticks out of every side that takes or gives items, with arrows and an item riding it: two blue

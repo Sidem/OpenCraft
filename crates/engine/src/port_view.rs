@@ -1,7 +1,8 @@
 //! How a multi-block machine's ports read (the local player's, presentation only): while one is held and aimed, a
 //! see-through ghost of it stands where it would go (red when something is in the way) with its port marks
 //! (`factory/port_marks.rs`: a belt stub, arrows and the item carried at every face that takes or gives items); while a
-//! belt is held, built machines nearby show the same marks. The HUD names the sides as the player sees them
+//! belt is held, built machines nearby show the same marks, and otherwise a floor pad at each open port. The HUD names
+//! the sides as the player sees them
 //! (`ports_line`). Every answer comes from the footprint's port rows, the data the simulation uses, so what is shown
 //! cannot disagree with what works (`port_view/tests.rs` belts every marked face of every machine at every turn).
 //! Nothing here touches the core.
@@ -45,14 +46,26 @@ impl Game {
         boxes.clear();
         marks.clear();
         *blocked = false;
+        if belt {
+            self.sim.factory.write_port_marks(eye, time, free, marks, boxes);
+        }
         if let Some((block, anchor, dir, cells)) = ghost {
             *blocked = cells.iter().any(|c| c.1);
             port_marks::draw_ghost(block, anchor, dir, eye, time, free, marks, boxes);
-        } else if belt {
-            self.sim.factory.write_port_marks(eye, time, free, marks, boxes);
         }
         factory::split_round(boxes, round);
         factory::split_round(marks, marks_round);
+    }
+
+    /// Built machines' open ports at a glance: a floor pad at each (`Factory::write_port_pads`), into the world's boxes
+    /// before they are lit; none while a belt is held (the full marks show then).
+    pub(crate) fn write_port_pads(&mut self, eye: Vec3) {
+        if self.holds_belt() {
+            return;
+        }
+        let world = &self.sim.world;
+        let free = |c: IVec3| world.get_block(c).is_some_and(block::replaceable);
+        self.sim.factory.write_port_pads(eye, free, &mut self.instances);
     }
 
     /// The ports of `block` placed `turn` quarter turns from the way the player faces, as the player sees them: pairs

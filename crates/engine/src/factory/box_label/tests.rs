@@ -41,22 +41,31 @@ fn every_label_names_an_item_that_draws() {
         assert!(item::def(icon).is_some(), "{name}");
         let mut out = Vec::new();
         draw(&mut out, icon, Vec3::new(0.0, 0.0, -3.0));
-        assert!(out.len() > 2 * crate::factory::INSTANCE_FLOATS, "{name}: a plate, a ledge and the item");
+        assert!(out.len() >= 2 * crate::factory::INSTANCE_FLOATS, "{name}: a plate and the item");
     }
 }
 
 #[test]
-fn only_the_sides_the_camera_sees_are_drawn_and_only_near() {
-    let count = |rel: Vec3| {
+fn the_label_stands_on_the_lid_from_any_side_and_any_distance() {
+    use crate::factory::INSTANCE_FLOATS;
+    let draw_at = |rel: Vec3| {
         let mut out = Vec::new();
         draw(&mut out, item::GEAR, rel);
-        out.len()
+        out
     };
-    let one = count(Vec3::new(0.0, 0.0, -3.0)); // the camera due south: one side
-    assert!(one > 0);
-    assert_eq!(count(Vec3::new(3.0, 0.0, -3.0)), 2 * one, "seen from a corner: two sides");
-    assert_eq!(count(Vec3::new(0.0, -4.0, 0.0)), 0, "seen from straight above: none");
-    assert_eq!(count(Vec3::new(0.0, 0.0, -(NEAR + 1.0))), 0, "too far");
+    // Seen from every side, from above and from afar: always drawn, all of it on the lid.
+    for rel in
+        [Vec3::new(0.0, 0.0, -3.0), Vec3::new(4.0, 1.0, 2.0), Vec3::new(0.0, -4.0, 0.0), Vec3::new(0.0, 0.0, 30.0)]
+    {
+        let out = draw_at(rel);
+        assert!(out.len() >= 2 * INSTANCE_FLOATS, "{rel:?}");
+        for rec in out.chunks_exact(INSTANCE_FLOATS) {
+            // Every part sits on the lid, none on the box's sides.
+            assert!(f64::from(rec[1]) >= rel.y + 0.5, "{rel:?}: a part below the lid");
+        }
+    }
+    // Far off, the item is one plain box on its plate.
+    assert_eq!(draw_at(Vec3::new(0.0, 0.0, DETAIL + 10.0)).len(), 2 * INSTANCE_FLOATS);
 }
 
 #[test]

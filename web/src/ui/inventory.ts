@@ -160,9 +160,9 @@ export class InventoryPanel {
     const takeAll = button('secondary-btn', 'Take all', () => this.box && game.take_machine_output(...this.box));
     const sortBox = button('secondary-btn', 'Sort', () => this.box && game.sort_box(...this.box));
     sortBox.title = `Merge stacks and order them by kind: ${game.sort_kinds()}`;
-    boxHead.append(h('h3', '', 'Storage box'), sortBox, takeAll);
     this.boxLabel = new BoxLabel(game, icon);
-    this.boxSection.append(boxHead, this.boxLabel.el, this.boxGrid);
+    boxHead.append(h('h3', '', 'Storage box'), this.boxLabel.el, sortBox, takeAll);
+    this.boxSection.append(boxHead, this.boxGrid);
     const sortPack = button('secondary-btn', 'Sort', () => game.sort_inventory());
     sortPack.title = `Merge stacks and order the backpack by kind: ${game.sort_kinds()} (the hotbar stays as you set it)`;
     const packHead = h('div', 'inv-box-head');

@@ -95,9 +95,15 @@ size.
   pointing in at an inlet, two orange arrows pointing out at the product's outlet, one violet arrow at a byproduct's.
   The arrows and items show through the ghost, so the far side's ports read too, and the hint line names the sides as
   the player sees them. Holding a belt shows the same marks on built machines within 16 blocks, with the items of
-  their recipe (`factory/port_marks.rs`, `port_view.rs`). The hatches on the machines stay as they were.
-- **A storage box shows what it holds** on the sides facing you, within 24 blocks: a light plate with the item it
-  holds most of standing on a ledge, or the icon of a label picked in its screen (`factory/box_label.rs` `LABELS`).
+  their recipe (`factory/port_marks.rs`, `port_view.rs`). Otherwise each open port of a built machine nearby has a
+  floor pad: a plate with chevrons pointing in or out (one smaller for a byproduct) and the port's item in a corner
+  (`Factory::write_port_pads`, within `port_marks::PAD_NEAR`); a port with a block in front of it has none. A pad the
+  machine hides from the camera also gets a sign on a post over the model's top, turned to the camera: its chevrons
+  point down for an inlet (toward the machine is toward the viewer), up for an outlet, its item on top.
+- **A storage box shows what it holds** on its lid, as far as the box draws: a light plate with the item it holds
+  most of standing on it, turned to the camera, or the icon of a label picked in its screen (`factory/box_label.rs`
+  `LABELS`; the screen's dropdown searches them). Heaps (crushed and washed ore, sulfur, quicklime) ride belts
+  `belt::HEAP_BOOST` bigger.
 - **The assembler** (Assembly research) is 2×2×2: the ghost shows where it goes (red where something is in
   the way) and R turns it. Belts bring parts in at the cyan hatches on its back and sides, and a belt leading
   away from the amber hatch at its front takes what it makes: motors (a rod, 2 gears, 4 wire), concrete (4

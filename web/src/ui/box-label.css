@@ -1,42 +1,84 @@
-/* The storage box's label picker (box-label.ts): a wrapping row of chips under the box's title. */
+/* The storage box's label picker (box-label.ts): a compact button in the box's title row and the searchable list it
+   opens below it. */
 
 .box-label {
+  position: relative;
+}
+
+.box-label-btn,
+.box-label-row {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
-  margin: 0 0 8px;
-}
-
-.box-label-title {
-  color: var(--muted);
-  margin-right: 4px;
-}
-
-.box-label-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 9px 2px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255, 255, 255, 0.04);
+  gap: 6px;
   color: inherit;
   font: inherit;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.box-label-chip:hover {
+.box-label-btn {
+  padding: 4px 8px 4px 6px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.box-label-btn:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.box-label-chip[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+.box-label-caret {
+  color: var(--muted);
 }
 
-.box-label-chip canvas {
+.box-label canvas,
+.box-label-blank {
   width: 20px;
   height: 20px;
+  flex: none;
   image-rendering: pixelated;
+}
+
+.box-label-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 210px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(24, 26, 34, 0.99);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.box-label-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.3);
+  color: inherit;
+  font: inherit;
+}
+
+.box-label-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.box-label-row {
+  width: 100%;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+}
+
+.box-label-row:hover,
+.box-label-row[aria-selected='true'] {
+  background: var(--accent-soft);
 }

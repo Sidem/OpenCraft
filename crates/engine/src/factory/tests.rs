@@ -1012,3 +1012,15 @@ mod tools_on_belts {
         assert_eq!(carried, 87);
     }
 }
+
+#[test]
+fn heaps_ride_half_again_bigger_but_never_overlap() {
+    use super::belt::{ride_unit, ITEM_SIZE};
+    use crate::item::{self, def};
+    for heap in [item::CRUSHED_IRON, item::WASHED_BAUXITE, item::SULFUR, item::QUICKLIME] {
+        assert_eq!(ride_unit(heap), ITEM_SIZE * 1.5, "{}", item::name(heap));
+        let across = def(heap).unwrap().size[0].max(def(heap).unwrap().size[2]) * ride_unit(heap);
+        assert!(across < ITEM_SPACING, "{} is {across} across", item::name(heap));
+    }
+    assert_eq!(ride_unit(item::IRON_PLATE), ITEM_SIZE, "everything else as before");
+}
