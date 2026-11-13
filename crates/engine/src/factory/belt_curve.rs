@@ -80,7 +80,8 @@ impl Belt {
     }
 
     /// The corner's model: a quarter ring of belt pieces whose tops scroll along it, each with its stretch of the outer
-    /// rail. The belts before and after it draw the cross bars at its edges. `base` is the cell's bottom centre.
+    /// rail. It has no cross bars: a straight belt before or after it draws one at that edge only if not joined to it.
+    /// `base` is the cell's bottom centre.
     pub(super) fn curve_model(&self, out: &mut Vec<f32>, base: Vec3, scroll: f32, side: u8) {
         let top = [BELT_TIERS[self.tier as usize].top, tex::FRAME, tex::FRAME];
         let rail = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];

@@ -10,10 +10,16 @@ use crate::math::Vec3;
 
 use super::belt::{ride_unit, Belt, BeltItem, BELT_HEIGHT, BELT_TIERS};
 use super::belt_shape::Shape;
+use super::links::Link;
 use super::render::push_box;
 use super::tier_mark;
 
 impl Belt {
+    /// It hands items onto the start of another belt (not into one's side).
+    pub(super) fn hands_to_belt(&self) -> bool {
+        matches!(self.out, Link::Belt { mid: false, .. })
+    }
+
     /// Where a riding item's box centre is and how big it is, `base` being the cell's bottom centre.
     pub(super) fn item_pose(&self, it: &BeltItem, base: Vec3) -> Option<(Vec3, [f32; 3])> {
         let def = item::def(it.item)?;
@@ -49,8 +55,11 @@ impl Belt {
                 let rail = [tex::FRAME, tex::stripe(self.tier), tex::FRAME];
                 push_box(out, at(side, 0.13, 0.0), yaw, [0.08, 0.26, 1.0], 0.0, rail, true);
             }
-            for z in [-0.45, 0.45] {
-                push_box(out, at(0.0, 0.2, z), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
+            // Cross bars only where the belt ends: none between two belts that hand items on, so a run reads as one.
+            for (z, joined) in [(-0.45, self.hands_to_belt()), (0.45, self.fed_by_belt)] {
+                if !joined {
+                    push_box(out, at(0.0, 0.2, z), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
+                }
             }
             // A run shows its Mk every `BELT_EVERY` cells: studs along the tops of both rails.
             let marked = (self.pos.x + self.pos.z).rem_euclid(tier_mark::BELT_EVERY) == 0;

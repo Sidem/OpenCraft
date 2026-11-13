@@ -629,6 +629,9 @@ fn a_stack_of_lifts_carries_items_up_and_hands_them_on_ahead() {
     let (bottom, top) = (f.belt_at(IVec3::new(2, 0, 0)), f.belt_at(IVec3::new(2, 2, 0)));
     assert_eq!((bottom.lift_below, bottom.lift_above, top.lift_below, top.lift_above), (false, true, true, false));
     assert_eq!(top.item_at(1.0), (0.5, 1.0, 0.0), "the top lift hands on ahead and up");
+    let feeder = f.belt_at(IVec3::new(1, 0, 0));
+    assert!(!feeder.fed_by_belt && feeder.hands_to_belt(), "a box feeds the first belt, which hands on to the lift");
+    assert!(bottom.fed_by_belt && !top.hands_to_belt(), "the top lift hands into a box");
 }
 
 #[test]

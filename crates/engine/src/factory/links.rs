@@ -316,7 +316,14 @@ impl Factory {
         let router_outs: Vec<[Option<u32>; 3]> =
             self.routers.iter().map(|r| r.out_dirs().map(|s| lead_away(r.pos, s))).collect();
 
-        for (((b, c), o), l) in self.belts.iter_mut().zip(curves).zip(outs).zip(lifts) {
+        let mut fed = vec![false; self.belts.len()];
+        for o in &outs {
+            if let Link::Belt { belt, mid: false } = *o {
+                fed[belt as usize] = true;
+            }
+        }
+        for ((((b, c), o), l), f) in self.belts.iter_mut().zip(curves).zip(outs).zip(lifts).zip(fed) {
+            b.fed_by_belt = f;
             b.curve_from = c;
             b.out = o;
             (b.lift_below, b.lift_above) = l;

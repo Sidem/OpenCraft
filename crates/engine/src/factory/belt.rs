@@ -97,6 +97,9 @@ pub struct Belt {
     /// A lift that takes items from the lift below / hands them to the lift above (derived).
     pub lift_below: bool,
     pub lift_above: bool,
+    /// Another belt hands items onto its start (derived): its model leaves out the back cross bar, so the two read as
+    /// one belt. The front bar goes when `out` is the start of another belt.
+    pub fed_by_belt: bool,
     /// Index into [`BELT_TIERS`] (0 is Mk1).
     pub tier: u8,
     /// Items handed on so far this [`FLOW_SECS`] window, in the last [`FLOW_WINDOWS`] whole ones (newest first), and
@@ -149,6 +152,7 @@ impl Belt {
             shape,
             lift_below,
             lift_above,
+            fed_by_belt: false,
             tier,
             passed,
             recent,

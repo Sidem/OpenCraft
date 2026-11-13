@@ -25,7 +25,7 @@ pub const INSTANCE_FLOATS: usize = 16;
 /// The mode bit of a round body (`push_round`): the host draws it as a cylinder, not a box (`render/boxes.ts`).
 pub const ROUND: u32 = 2;
 const MODE_LIGHT: usize = 11;
-const PITCH: usize = 12;
+pub(super) const PITCH: usize = 12;
 const TAPER: usize = 14;
 const GLOW: usize = 15;
 const BEACON: f32 = 2.0;

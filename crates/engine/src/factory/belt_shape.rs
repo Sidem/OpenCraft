@@ -14,6 +14,8 @@
 //! rederived at every relink; `lift_below` / `lift_above` are derived. To add a shape: a variant (append,
 //! it is saved by index), its block in `Shape::of`, its path in `item_at`, its model, and its output in `relink`.
 
+use std::f32::consts::FRAC_PI_2;
+
 use rustc_hash::FxHashMap;
 
 use crate::block::{tex, BlockId, LIFT, RAMP_DOWN, RAMP_UP, UNDERPASS_IN, UNDERPASS_OUT};
@@ -22,7 +24,7 @@ use crate::math::{IVec3, Vec3};
 use super::belt::{Belt, BELT_HEIGHT, BELT_TIERS};
 use super::belt_curve::BEND_STRAIGHT;
 use super::links::Slot;
-use super::render::push_box;
+use super::render::{push_box, INSTANCE_FLOATS, PITCH};
 use super::{tier_mark, DIRS};
 
 const UP: IVec3 = IVec3::new(0, 1, 0);
@@ -183,16 +185,7 @@ impl Belt {
                     }
                 }
             }
-            Shape::Lift => {
-                for (x, z) in [(-0.42, -0.42), (0.42, -0.42), (-0.42, 0.42), (0.42, 0.42)] {
-                    push_box(out, at(x, 0.5, z), yaw, [0.08, 1.0, 0.08], 0.0, [tex::FRAME; 3], true);
-                }
-                if !self.lift_below {
-                    push_box(out, at(0.0, BELT_HEIGHT * 0.5, 0.0), yaw, [0.84, BELT_HEIGHT, 1.0], scroll, belt, true);
-                }
-                push_box(out, at(0.0, 0.5, -0.4), yaw, [0.66, 0.86, 0.08], scroll, [top; 3], true);
-                push_box(out, at(0.0, 0.95, 0.0), yaw, [0.92, 0.09, 0.92], 0.0, rail, false);
-            }
+            Shape::Lift => self.lift_model(out, at, yaw, scroll, belt, rail),
             Shape::Entry | Shape::Exit => {
                 let z = if self.shape == Shape::Entry { -0.25 } else { 0.25 };
                 for x in [-0.42, 0.42] {
@@ -207,6 +200,61 @@ impl Belt {
                         push_box(out, at(o, 0.67 + d / 2.0, z), yaw, stud, 0.0, paint, false);
                     }
                 }
+            }
+        }
+    }
+
+    /// A lift: one belt that comes in along the floor from the back (the bottom lift), climbs the front spine
+    /// (every lift, a full cell high so a stack reads as one belt) and turns forward over the top (the top lift),
+    /// level with the belt one ahead and one up, which it overhangs into the cell above by `BELT_HEIGHT`.
+    /// Open between stacked lifts: only the top one has a frame ring.
+    fn lift_model(
+        &self,
+        out: &mut Vec<f32>,
+        at: &dyn Fn(f32, f32, f32) -> Vec3,
+        yaw: f32,
+        scroll: f32,
+        belt: [u16; 3],
+        rail: [u16; 3],
+    ) {
+        const FACE: f32 = -0.18; // the climbing belt's face (items rise at the centre, just behind it)
+        const BELT_T: f32 = 0.06;
+        const SPINE_FRONT: f32 = -0.44;
+        let frame = [tex::FRAME; 3];
+        // The spine and the belt climbing it. The belt is a box stood on end (pitched so its top faces back and
+        // its forward scroll runs upwards): every piece is a full cell high, so stacked pieces scroll in phase.
+        let spine_back = FACE - BELT_T;
+        let spine = [0.92, 1.0, spine_back - SPINE_FRONT];
+        push_box(out, at(0.0, 0.5, (spine_back + SPINE_FRONT) * 0.5), yaw, spine, 0.0, rail, true);
+        push_box(out, at(0.0, 0.5, FACE - BELT_T * 0.5), yaw, [0.84, BELT_T, 1.0], scroll, belt, true);
+        let rec = out.len() - INSTANCE_FLOATS;
+        out[rec + PITCH] = FRAC_PI_2;
+        for x in [-0.42, 0.42] {
+            push_box(out, at(x, 0.5, 0.42), yaw, [0.08, 1.0, 0.08], 0.0, frame, true);
+        }
+        // A flat belt span with its rails at height `y`, from `back` to `front` (local z).
+        let span = |out: &mut Vec<f32>, y: f32, back: f32, front: f32| {
+            let (z, len) = ((back + front) * 0.5, back - front);
+            push_box(out, at(0.0, y + BELT_HEIGHT * 0.5, z), yaw, [0.84, BELT_HEIGHT, len], scroll, belt, true);
+            for x in [-0.46, 0.46] {
+                push_box(out, at(x, y + 0.13, z), yaw, [0.08, 0.26, len], 0.0, rail, true);
+            }
+        };
+        if !self.lift_below {
+            // The way in: a belt from the back edge into the foot of the climb, with a flat belt's back bar unless a
+            // belt feeds it.
+            span(out, 0.0, 0.5, FACE - 0.02);
+            if !self.fed_by_belt {
+                push_box(out, at(0.0, 0.2, 0.45), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
+            }
+        }
+        if !self.lift_above {
+            // The way out: over the top of the spine to the front edge, where the next belt starts.
+            span(out, 1.0, FACE + 0.01, -0.5);
+            push_box(out, at(0.0, 0.96, 0.42), yaw, [0.84, 0.08, 0.08], 0.0, frame, true);
+            let (z, len) = ((0.42 + spine_back) * 0.5, 0.42 - spine_back);
+            for x in [-0.42, 0.42] {
+                push_box(out, at(x, 0.96, z), yaw, [0.08, 0.08, len], 0.0, frame, true);
             }
         }
     }

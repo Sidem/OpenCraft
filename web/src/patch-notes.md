@@ -9,6 +9,8 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - **You can see what you hold.** In first person your hand shows low on the right with the tool or block in it, and it swings as you dig. Everything you hold is the same size, a little larger than a block used to be, and stays still on screen as you look up and down. Tools are held by the handle and swing like the real thing: a pick or axe winds up and strikes edge first, a shovel stabs in and levers up, a sickle sweeps across. Other players now hold their tool in the right hand. Don't want it? **Settings → Comfort → Hand in first person.**
 - **Power lines stay off the ground.** When a wire between two poles would cut through a hill, a free wooden prop appears to hold it up. It costs nothing and moves if you dig the hill away.
 - **Canisters are now called barrels.** Searching "canister" still finds them.
+- **Belt lifts look like one belt.** A lift's belt now comes in level with the belt that feeds it, climbs its front in one unbroken run however many lifts you stack, and turns over the top level with the belt it hands to. The plates between stacked lifts are gone.
+- **Belt lines look like one belt.** The cross bars between belts that hand items to each other are gone; a bar shows only where a line starts or ends.
 
 ## 2026-11-13 · A personal drone that runs your errands
 - **Press Y to open your personal drone's panel.** Search anything in the storage boxes and machine outputs within 64 blocks (twice as far as before) and send the drone for a stack or for all of it. It takes from your storage boxes before boxes on a belt line, and those before what machines have made, and makes as many trips as it takes.
