@@ -5,9 +5,8 @@
 //!   thrust (the player holds jump in the air; the hands send it on changes). While it is on, the core burns
 //!   [`JET_TICKS_PER_COAL`] ticks of fuel per coal taken from the pack and stops by itself when the pack has no
 //!   coal left. The body lifts while `thrusting` (`player.rs`, set from here by `authority.rs`).
-//! - **Personal drone** (`item::PERSONAL_DRONE`, in the pack): `Action::Fetch { item, at }` sends it to the
-//!   nearest storage box within [`FETCH_RANGE`] blocks of the player's cell that holds the item; after the
-//!   round trip a stack of it lands in the pack (what does not fit goes back in the box). One errand at a time.
+//! - **Personal drone** (`item::PERSONAL_DRONE`, in the pack): fetches, stores, puts away and gathers the parts of
+//!   a craft between the player and their boxes and machines (`drone/`, its own module and state).
 //!
 //! - **Hover pack** (`item::HOVER_PACK`, worn in the jetpack's slot (so not with a jetpack), `equipment.rs`, Milestone 9): `Action::Hover { on }` starts and stops the
 //!   hover (the player holds jump in the air; the body holds its height and moves faster while `hover`, `player.rs`).
@@ -17,16 +16,16 @@
 //!   stands and the pack is held. The hands play the power-up and power-down sounds as the tie starts and ends.
 //!
 //! Invariants: `thrusting` implies `jet > 0` and a jetpack in the pack; `hover` implies `charge > 0` and a hover pack
-//! worn; an errand needs the drone in the pack when it starts and when it ends. All deterministic: integer
-//! counters only (the trip time uses one `sqrt`). To change a number: the constants below.
+//! worn. All deterministic: integer counters only. To change a number: the constants below.
 
+pub mod drone;
 #[cfg(test)]
 mod tests;
 
 use crate::block;
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::inventory::{Inventory, Stack};
-use crate::item::{self, ItemId, PERSONAL_DRONE};
+use crate::inventory::Inventory;
+use crate::item::ItemId;
 use crate::math::IVec3;
 use crate::sim::{PlayerId, Sim};
 use crate::TICK_RATE;
@@ -43,23 +42,6 @@ pub const CHARGE_RANGE: i32 = 6;
 pub const CHARGE_RANGE_LONG: i32 = 32;
 /// A pack already tied to a pole stays tied this much further out, so walking along the edge does not flicker.
 pub const CHARGE_HOLD: i32 = 2;
-/// How far from the player the drone looks for a box, in blocks.
-pub const FETCH_RANGE: i32 = 32;
-/// Blocks a second the personal drone flies (it is quicker than a construction drone).
-const FETCH_SPEED: f64 = 12.0;
-/// The shortest errand, in ticks.
-const FETCH_MIN_TICKS: u32 = TICK_RATE;
-
-/// An errand in progress.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct Fetch {
-    pub item: ItemId,
-    /// The box it flies to.
-    pub from: IVec3,
-    /// Ticks until it is back, and the whole trip's ticks (for drawing the flight).
-    pub left: u32,
-    pub total: u32,
-}
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
 pub struct Helpers {
@@ -67,7 +49,8 @@ pub struct Helpers {
     pub thrusting: bool,
     /// Ticks of thrust left in the fuel already burnt.
     pub jet: u32,
-    pub fetch: Option<Fetch>,
+    /// The personal drone's errands (`drone/`).
+    pub drone: drone::Drone,
     /// The hover pack is hovering now.
     pub hover: bool,
     /// Ticks of hover left in the hover pack.
@@ -80,13 +63,7 @@ impl Helpers {
     pub fn write_state(&self, w: &mut ByteWriter) {
         w.bool(self.thrusting);
         w.u32(self.jet);
-        w.bool(self.fetch.is_some());
-        if let Some(f) = &self.fetch {
-            w.item(f.item);
-            w.ivec3(f.from);
-            w.u32(f.left);
-            w.u32(f.total);
-        }
+        self.drone.write_state(w);
         w.bool(self.hover);
         w.u32(self.charge);
         w.bool(self.pole.is_some());
@@ -97,12 +74,18 @@ impl Helpers {
 
     pub fn read_state(r: &mut ByteReader) -> Option<Helpers> {
         let (thrusting, jet) = (r.bool()?, r.u32()?);
-        let fetch = if r.bool()? {
-            Some(Fetch { item: r.item()?, from: r.ivec3()?, left: r.u32()?, total: r.u32()? })
+        let drone = if r.version >= 71 {
+            drone::Drone::read_state(r)?
+        } else if r.bool()? {
+            // One errand: item, box, ticks left, ticks in all.
+            let (item, from) = (r.item()?, r.ivec3()?);
+            r.u32()?;
+            r.u32()?;
+            drone::Drone::from_errand(item, from)
         } else {
-            None
+            drone::Drone::default()
         };
-        let mut h = Helpers { thrusting, jet, fetch, ..Helpers::default() };
+        let mut h = Helpers { thrusting, jet, drone, ..Helpers::default() };
         if r.version >= 36 {
             h.hover = r.bool()?;
             h.charge = r.u32()?;
@@ -148,6 +131,26 @@ impl Helpers {
     }
 }
 
+/// Test helper: the core bytes `stream` of `sim` as saves before version 71 wrote each player's helpers, with the
+/// drone's state cut down to one `false` (no errand). Every drone must be idle. `offhand::before_offhand` calls it.
+#[cfg(test)]
+pub(crate) fn before_drone_orders(sim: &Sim, stream: &[u8]) -> Vec<u8> {
+    let mut out = stream.to_vec();
+    for p in sim.players.iter().flatten() {
+        assert!(p.helpers.drone.idle(), "a save before 71 had no drone orders");
+        let mut lead = ByteWriter::default();
+        p.inventory.write_state(&mut lead);
+        lead.u64(p.key);
+        p.crafts.write_state(&mut lead);
+        let at = out.windows(lead.bytes.len()).position(|s| s == lead.bytes).expect("the player's bytes");
+        let start = at + lead.bytes.len() + 5; // after thrusting and jet
+        let mut drone = ByteWriter::default();
+        p.helpers.drone.write_state(&mut drone);
+        out.splice(start..start + drone.bytes.len(), [0]);
+    }
+    out
+}
+
 /// The jetpack's fuel.
 pub fn coal() -> ItemId {
     ItemId::block(block::COAL_ORE)
@@ -173,39 +176,13 @@ impl Sim {
         core.helpers.pole = tied.then_some(pole);
     }
 
-    /// `Action::Fetch`: sends the drone for `item` if the player has one, is not on an errand and a box holds it.
-    pub(crate) fn start_fetch(&mut self, player: PlayerId, item: ItemId, at: IVec3) {
-        let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return };
-        if core.helpers.fetch.is_some() || core.inventory.count(PERSONAL_DRONE) == 0 || item::def(item).is_none() {
-            return;
-        }
-        let Some((from, d2)) = self.factory.nearest_box_with(at, item, FETCH_RANGE) else { return };
-        let trip = 2.0 * (d2 as f64).sqrt() / FETCH_SPEED;
-        let total = ((trip * f64::from(TICK_RATE)) as u32).max(FETCH_MIN_TICKS);
-        core.helpers.fetch = Some(Fetch { item, from, left: total, total });
-    }
-
-    /// One tick of every player's jetpack, hover pack and errand.
+    /// One tick of every player's jetpack, hover pack and personal drone.
     pub(crate) fn run_helpers(&mut self) {
         for slot in &mut self.players {
             let Some(core) = slot else { continue };
             core.helpers.step_jet(&mut core.inventory);
             core.helpers.step_hover(&core.inventory, |p| self.factory.charge_poles().any(|(c, ..)| c == p));
-            let Some(f) = core.helpers.fetch.as_mut() else { continue };
-            f.left = f.left.saturating_sub(1);
-            if f.left > 0 {
-                continue;
-            }
-            let (item, from) = (f.item, f.from);
-            core.helpers.fetch = None;
-            if core.inventory.count(PERSONAL_DRONE) == 0 {
-                continue;
-            }
-            let took = self.factory.box_take_up_to(from, item, item::stack_size(item));
-            let left = core.inventory.add(item, took);
-            if left > 0 {
-                self.factory.store_in_boxes(&[from], Stack { item, count: left });
-            }
         }
+        self.run_drones();
     }
 }

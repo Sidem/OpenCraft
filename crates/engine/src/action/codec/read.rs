@@ -4,6 +4,7 @@
 use super::super::Action;
 use crate::bytes::ByteReader;
 use crate::factory::Job;
+use crate::helpers::drone::{DroneOrder, Job as DroneJob};
 
 impl Action {
     pub fn read(r: &mut ByteReader) -> Option<Action> {
@@ -66,7 +67,15 @@ impl Action {
             34 => Action::RemoveGhost { pos: r.ivec3()? },
             36 => Action::MarkRemoval { pos: r.ivec3()? },
             37 => Action::Jetpack { on: r.bool()? },
-            38 => Action::Fetch { item: r.item()?, at: r.ivec3()? },
+            38 => {
+                let item = r.item()?;
+                let job = DroneJob::Fetch {
+                    item,
+                    count: crate::item::stack_size(item),
+                    slot: crate::helpers::drone::ANY_SLOT,
+                };
+                Action::Drone { order: DroneOrder::Job(job), at: r.ivec3()? }
+            }
             39 => Action::ClickGear { slot: r.u8()?, shift: r.bool()? },
             40 => Action::MarkTunnel { from: r.ivec3()?, to: r.ivec3()?, size: r.u8()? },
             41 => Action::PlaceTrain { pos: r.ivec3()?, slot: r.u8()? },
@@ -90,6 +99,7 @@ impl Action {
             58 => Action::SetHarbourProduct { pos: r.ivec3()?, item: r.item()? },
             59 => Action::OpenVault { pos: r.ivec3()?, dials: r.u32()? },
             71 => Action::LabelBox { pos: r.ivec3()?, label: r.u8()? },
+            72 => Action::Drone { order: DroneOrder::read(r)?, at: r.ivec3()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

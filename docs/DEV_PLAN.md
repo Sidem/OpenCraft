@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-12):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+**Status (2026-11-13):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
@@ -278,6 +278,17 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-11-13: the personal drone reworked (user request, save 71).** Orders instead of one errand
+  (`helpers/drone/`: Fetch, Store, PutAway, Craft; a queue of `MAX_JOBS`; `Action::Drone`, tag 72; tag 38 reads as a
+  fetch). A trip tours the nearest stops (`trip.rs`) through boxes and machine outputs (`factory/stock.rs`) within
+  `RANGE` 64. Craft gathers what `crafting::fetches_for` lacks, then hand-crafts. Restock and HUD words in
+  `drone_hands.rs`, the panel `ui/drone.ts` (Y; Shift+Y the old fetch). Flight `companion_view.rs`: spring follow, lean
+  from thrust, eased legs. On the user's save the reach rise from 32 to 64 took the base centre from 56 to 85 boxes;
+  put-away would clear 22 kinds (47 stacks) there. Fixture `helpers/drone/v70.ocworld`; golden hash re-recorded. Then
+  (user notes): fetches and stores tie to a pack slot (`ANY_SLOT` for none); boxes on a belt line are never filled and
+  empty labelled ones only by hand, except the `box_label::MISC` catch-all, filled last and mixed (`stock.rs` roles); slots are picked in the inventory (`ui/drone-slots.ts`) and wear
+  badges from `drone_slots` there and on the HUD hotbar.
 
 - **2026-11-12: a real pumpjack (playtester note).** 2×3×3 (`pump::FOOTPRINT`: empties in at the back, canisters out
   at the front), drawn by `pump/view.rs` (`Look::Jack`): motor, gearbox, crank arms with counterweights, pitman arms,

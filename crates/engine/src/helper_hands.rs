@@ -2,14 +2,13 @@
 //! with a jetpack in the pack and fuel to burn sends `Action::Jetpack` on changes, and with a charged hover pack
 //! `Action::Hover` (which wins over the jetpack and lasts until the body lands); standing near a power pole
 //! with a hover pack sends `Action::Charge` (a long-distance pole from much further away), and the power-up and
-//! power-down sounds follow whether the pack is tied to a pole. Y sends the personal drone for the held item (`fetch_held`), and the
-//! HUD line says how much fuel or charge is left or what the drone is on.
+//! power-down sounds follow whether the pack is tied to a pole, and the HUD line says how much fuel or charge is left or what
+//! the personal drone is doing (`drone_hands.rs`).
 
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
 use crate::helpers::{self, CHARGE_HOLD, CHARGE_RANGE, CHARGE_RANGE_LONG, HOVER_CAP, JET_TICKS_PER_COAL};
-use crate::item;
 use crate::math::{IVec3, Vec3};
 use crate::sound;
 use crate::{Game, TICK_RATE};
@@ -94,12 +93,9 @@ impl Game {
             let state = if p.helpers.pole.is_some() { ", charging" } else { "" };
             lines.push(format!("Hover pack · {secs} s of charge{state}"));
         }
-        if let Some(f) = p.helpers.fetch {
-            lines.push(format!(
-                "Personal drone fetching {} · back in {} s",
-                item::name(f.item),
-                f.left.div_ceil(TICK_RATE)
-            ));
+        let drone = self.drone_label();
+        if !drone.is_empty() {
+            lines.push(drone);
         }
         if p.helpers.thrusting || (p.helpers.jet > 0 && p.inventory.has_jetpack()) {
             let coal = p.inventory.count(helpers::coal());
@@ -115,21 +111,5 @@ impl Game {
     /// The helpers' status text for the HUD's own line ("" when there is nothing to say).
     pub fn helper_status(&self) -> String {
         self.helper_label()
-    }
-
-    /// Y: sends the personal drone for more of the item in hand. False when nothing is sent (no drone in the
-    /// pack, an empty hand, or no box within reach holds it).
-    pub fn fetch_held(&mut self) -> bool {
-        let stack = self.inventory().selected_stack();
-        let at = self.body().pos.floor();
-        let Some(p) = self.sim.player(self.local) else { return false };
-        let ready = !stack.is_empty()
-            && p.helpers.fetch.is_none()
-            && p.inventory.count(item::PERSONAL_DRONE) > 0
-            && self.sim.factory.nearest_box_with(at, stack.item, helpers::FETCH_RANGE).is_some();
-        if ready {
-            self.act(Action::Fetch { item: stack.item, at });
-        }
-        ready
     }
 }

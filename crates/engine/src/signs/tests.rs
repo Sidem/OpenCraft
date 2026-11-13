@@ -135,8 +135,10 @@ fn signs_are_saved_and_older_saves_have_none() {
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
     // A core from save 62 ends before the signs' count: it reads whole, with none.
     let mut w = ByteWriter::default();
-    crate::sim::Sim::new(2024, 2).write_state(&mut w);
-    let old = &w.bytes[..w.bytes.len() - 4];
+    let fresh = crate::sim::Sim::new(2024, 2);
+    fresh.write_state(&mut w);
+    let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
+    let old = &cut[..cut.len() - 4];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

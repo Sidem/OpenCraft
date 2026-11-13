@@ -126,8 +126,9 @@ pub const PERSONAL_DRONE_RECIPE: Recipe = Recipe {
     group: Group::Tools,
     count: 1,
     inputs: &[(DRONE, 1), (CIRCUIT, 2)],
-    blurb: "Keep it in your pack. With an item in your hand, press Y: the drone flies to the nearest storage box \
-            within 32 blocks that holds it and brings back a stack. One errand at a time. Never wears out.",
+    blurb: "Keep it in your pack. Press Y to send it: it fetches from storage boxes and machine outputs within 64 \
+            blocks, puts your backpack away into the boxes that hold the same things, and fetches the parts for a \
+            craft, then crafts it. It tops up the stack in your hand as it runs low. Never wears out.",
 };
 
 pub const PLANNER_RECIPE: Recipe = Recipe {

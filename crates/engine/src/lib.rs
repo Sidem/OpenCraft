@@ -33,11 +33,13 @@ mod bytes;
 mod camera;
 mod cargo_tools;
 mod chunk;
+mod companion_view;
 mod crafting;
 mod daytime;
 mod deposits;
 mod dock_tools;
 mod doors;
+mod drone_hands;
 mod drone_view;
 mod drones;
 mod entities;
@@ -198,6 +200,9 @@ pub struct Game {
     charge_heard: bool,
     /// Whether the three above have been taken from the core yet (a loaded save may be mid-thrust).
     hands_synced: bool,
+    /// The personal drone's hands (`drone_hands.rs`) and every player's drone as drawn (`companion_view.rs`).
+    drone_hands: drone_hands::DroneHands,
+    companions: companion_view::Companions,
     /// The first port of the cargo route being set, and whether the use button was down (`cargo_tools.rs`).
     cargo_from: Option<IVec3>,
     cargo_down: bool,
@@ -301,6 +306,8 @@ impl Game {
             charge_sent: None,
             charge_heard: false,
             hands_synced: false,
+            drone_hands: Default::default(),
+            companions: Default::default(),
             cargo_from: None,
             cargo_down: false,
             library: blueprint::Library::default(),
@@ -345,6 +352,7 @@ impl Game {
         let feet = self.body().pos;
         self.step_navigation();
         self.update_jetpack();
+        self.update_drone_hands();
         self.step_bodies();
         self.update_movement_sounds(feet);
         self.update_target();

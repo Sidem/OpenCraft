@@ -73,9 +73,42 @@ const fn quad(cover: u16, s: f32, under: Part) -> [Part; 15] {
 
 /// The construction drone: an ember cover and a camera under its nose.
 const DRONE_MODEL: [Part; 15] = quad(tex::MAT_EMBER, 1.0, part([0.0, -0.08, 0.12], [0.07, 0.05, 0.07], GUNMETAL));
-/// The personal drone: smaller, a teal cover and a lamp under its nose.
-const PERSONAL_DRONE_MODEL: [Part; 15] =
-    quad(tex::MAT_AETHER, 0.75, part([0.0, -0.06, 0.09], [0.05, 0.03, 0.05], tex::LAMP_BLUE));
+/// The personal drone as it flies (`companion_view.rs`), nose to +x: skids, carbon arms out to four round motors, a
+/// pale moulded shell with a teal canopy and a battery on its back, a camera on its gimbal under the nose, and a
+/// two-blade prop on each motor. Back to front for the icon.
+const PERSONAL_DRONE_MODEL: [Part; 22] = {
+    const T: f32 = 0.2;
+    const fn motor(x: f32, z: f32) -> Part {
+        cylinder([x, -0.01, z], 0.065, 0.055, GUNMETAL)
+    }
+    const fn prop(x: f32, z: f32, yaw: f32) -> Part {
+        turned([x, 0.03, z], [0.26, 0.006, 0.035], yaw, RUBBER)
+    }
+    Build::new()
+        .with(part([0.0, -0.11, -0.065], [0.26, 0.014, 0.014], GUNMETAL))
+        .with(part([0.0, -0.11, 0.065], [0.26, 0.014, 0.014], GUNMETAL))
+        .with(turned([0.0, -0.02, 0.0], [0.58, 0.024, 0.032], FRAC_PI_4, tex::DRONE_CARBON))
+        .with(turned([0.0, -0.02, 0.0], [0.58, 0.024, 0.032], -FRAC_PI_4, tex::DRONE_CARBON))
+        .with(motor(-T, -T))
+        .with(prop(-T, -T, 0.4))
+        .with(motor(T, -T))
+        .with(prop(T, -T, 1.9))
+        .with(motor(-T, T))
+        .with(prop(-T, T, 2.6))
+        .with(part([0.0, -0.06, 0.0], [0.24, 0.03, 0.17], GUNMETAL))
+        .with(part([0.0, -0.025, 0.0], [0.28, 0.06, 0.19], tex::DRONE_SHELL))
+        .with(part([0.02, 0.015, 0.0], [0.19, 0.025, 0.14], tex::MAT_AETHER))
+        .with(part([-0.06, 0.035, 0.0], [0.1, 0.022, 0.1], GUNMETAL))
+        .with(part([-0.06, 0.047, 0.0], [0.07, 0.004, 0.03], tex::LAMP_GREEN))
+        .with(part([0.15, -0.025, 0.0], [0.02, 0.045, 0.11], tex::DRONE_SHELL))
+        .with(part([0.12, -0.075, 0.0], [0.03, 0.04, 0.03], GUNMETAL))
+        .with(cylinder([0.13, -0.1, 0.0], 0.05, 0.045, GUNMETAL))
+        .with(part([0.158, -0.1, 0.0], [0.01, 0.026, 0.026], tex::CAB_GLASS))
+        .with(motor(T, T))
+        .with(prop(T, T, 0.9))
+        .with(part([T, -0.045, T], [0.02, 0.012, 0.02], tex::LAMP_GREEN))
+        .done()
+};
 /// The cargo drone: a crate slung under it.
 const CARGO_DRONE_MODEL: [Part; 15] =
     quad(tex::MAT_EMBER, 1.0, part([0.0, -0.19, 0.0], [0.26, 0.16, 0.26], tex::BOX_SIDE));

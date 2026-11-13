@@ -76,7 +76,7 @@ impl Inventory {
 #[cfg(test)]
 pub(crate) fn before_offhand(sim: &crate::sim::Sim, stream: &[u8]) -> Vec<u8> {
     use crate::bytes::ByteWriter;
-    let mut out = stream.to_vec();
+    let mut out = crate::helpers::before_drone_orders(sim, stream);
     let mut empty = ByteWriter::default();
     Stack::default().write_state(&mut empty);
     for p in sim.players.iter().flatten() {

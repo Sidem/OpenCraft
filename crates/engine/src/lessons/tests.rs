@@ -46,8 +46,10 @@ fn a_save_from_before_the_lessons_counts_every_stall_lesson_as_taught() {
 #[test]
 fn a_save_from_before_the_need_lessons_counts_them_as_taught() {
     let mut w = ByteWriter::default();
-    Sim::new(7, 2).write_state(&mut w);
-    let mut old = ByteReader::new(&w.bytes);
+    let sim = Sim::new(7, 2);
+    sim.write_state(&mut w);
+    let bytes = crate::helpers::before_drone_orders(&sim, &w.bytes);
+    let mut old = ByteReader::new(&bytes);
     old.version = 67;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 67 loads");

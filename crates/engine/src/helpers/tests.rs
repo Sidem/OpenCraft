@@ -97,59 +97,12 @@ fn a_thrusting_body_climbs_to_a_steady_rate_and_falls_without() {
     assert!(step(false) < -10.0, "falls");
 }
 
-fn errand_sim(box_has: u32) -> (Sim, IVec3) {
-    let mut sim = Sim::new(7, 2);
-    let at = IVec3::new(900, 200, -900);
-    let spot = at + IVec3::new(6, 0, 0);
-    sim.apply(P, Action::Give { item: STORAGE.into(), count: 1 });
-    sim.apply(P, Action::PlaceBlock { pos: spot, slot: 0, facing: 0, against: spot });
-    sim.factory.stock(spot, IRON_PLATE, box_has);
-    (sim, at)
-}
-
-#[test]
-fn the_personal_drone_brings_a_stack_from_the_nearest_box() {
-    let (mut sim, at) = errand_sim(100);
-    sim.apply(P, Action::Fetch { item: IRON_PLATE, at });
-    assert!(helpers(&sim).fetch.is_none(), "no drone in the pack");
-    sim.apply(P, Action::Give { item: PERSONAL_DRONE, count: 1 });
-    sim.apply(P, Action::Fetch { item: IRON_PLATE, at });
-    let errand = helpers(&sim).fetch.expect("on its way");
-    assert_eq!(errand.total, TICK_RATE, "a short hop takes the minimum");
-    sim.apply(P, Action::Fetch { item: IRON_PLATE, at });
-    assert_eq!(helpers(&sim).fetch, Some(errand), "one errand at a time");
-    run(&mut sim, TICK_RATE);
-    assert!(helpers(&sim).fetch.is_none());
-    assert_eq!(pack(&sim, IRON_PLATE), 64, "one stack");
-    assert_eq!(sim.factory.box_count(errand.from, IRON_PLATE), 36);
-}
-
-#[test]
-fn it_fetches_nothing_from_out_of_reach_or_empty_boxes_and_returns_what_does_not_fit() {
-    let (mut sim, at) = errand_sim(5);
-    sim.apply(P, Action::Give { item: PERSONAL_DRONE, count: 1 });
-    sim.apply(P, Action::Fetch { item: IRON_PLATE, at: at + IVec3::new(-100, 0, 0) });
-    assert!(helpers(&sim).fetch.is_none(), "too far");
-    sim.apply(P, Action::Fetch { item: item::STEEL_PLATE, at });
-    assert!(helpers(&sim).fetch.is_none(), "the box holds none");
-    // A full pack: the plates stay in the box.
-    let inv = &mut sim.players[0].as_mut().unwrap().inventory;
-    for s in inv.slots.iter_mut().filter(|s| s.is_empty()) {
-        *s = Stack { item: item::STEEL_PLATE, count: 64 };
-    }
-    sim.apply(P, Action::Fetch { item: IRON_PLATE, at });
-    run(&mut sim, 2 * TICK_RATE);
-    assert_eq!(pack(&sim, IRON_PLATE), 0);
-    let from = at + IVec3::new(6, 0, 0);
-    assert_eq!(sim.factory.box_count(from, IRON_PLATE), 5, "all went back");
-}
-
 #[test]
 fn helpers_round_trip_through_bytes() {
     let h = Helpers {
         thrusting: true,
         jet: 77,
-        fetch: Some(Fetch { item: IRON_PLATE, from: IVec3::new(-4, 70, 9), left: 12, total: 90 }),
+        drone: drone::Drone::from_errand(IRON_PLATE, IVec3::new(-4, 70, 9)),
         hover: true,
         charge: 1234,
         pole: Some(IVec3::new(5, 64, -3)),

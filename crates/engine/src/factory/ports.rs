@@ -122,21 +122,6 @@ impl Factory {
         }
     }
 
-    /// The storage box nearest to `from` (within `range` blocks) that holds `item`, with its squared distance.
-    /// Ties go to the box placed first.
-    pub fn nearest_box_with(&self, from: IVec3, item: ItemId, range: i32) -> Option<(IVec3, i64)> {
-        let reach = i64::from(range) * i64::from(range);
-        let mut best: Option<(IVec3, i64)> = None;
-        for s in self.storages.iter().filter(|s| s.buf.count(item) > 0) {
-            let d = s.pos - from;
-            let d2 = i64::from(d.x).pow(2) + i64::from(d.y).pow(2) + i64::from(d.z).pow(2);
-            if d2 <= reach && best.is_none_or(|b| d2 < b.1) {
-                best = Some((s.pos, d2));
-            }
-        }
-        best
-    }
-
     /// Takes up to `n` of `item` from the box at `pos`; how many came out.
     pub fn box_take_up_to(&mut self, pos: IVec3, item: ItemId, n: u32) -> u32 {
         let Some(&Slot::Storage(i)) = self.at.get(&pos) else { return 0 };

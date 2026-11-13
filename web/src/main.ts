@@ -31,6 +31,7 @@ import { CoopPanel } from './ui/coop';
 import { CraftQueueView } from './ui/craftqueue';
 import { BlueprintPanel } from './ui/blueprints';
 import { SitePanel } from './ui/site';
+import { DronePanel } from './ui/drone';
 import { LogbookPanel } from './ui/logbook';
 import { SignPanel } from './ui/sign';
 import { VaultPanel } from './ui/vault';
@@ -148,7 +149,7 @@ async function main(): Promise<void> {
   const analytics = new AnalyticsPanel(game, (id) => hud.itemIcon(id));
   const hints = new Hints(game, renderer, () => sound.preview('powerup', 0));
   const blueprints = new BlueprintPanel(game, (id) => hud.itemIcon(id));
-  const sites = new SitePanel(game);
+  const sites = new SitePanel(game), drone = new DronePanel(game, (id) => hud.itemIcon(id));
   const craftQueue = new CraftQueueView(game, (id) => hud.itemIcon(id));
   const prospect = new ProspectPanel(game);
   prospect.onReading = () => sound.scan();
@@ -173,12 +174,12 @@ async function main(): Promise<void> {
   });
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
-  const screens = { blueprints, research, analytics, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, adminConsole]; // a machine's panel is in the inventory
+  const screens = { blueprints, research, analytics, drone, 'world-map': worldMap };
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, adminConsole, drone]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock (pause.ts)
-  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, adminConsole];
+  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, adminConsole, drone];
   const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
 
   // Handy for poking at the engine from the devtools console.
@@ -191,7 +192,7 @@ async function main(): Promise<void> {
   document.getElementById('quality-suggestion')!.append(qualityPanel.suggestion);
 
   const handles = {
-    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, logbook, vault, signEditor, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
+    frames, perf, quality, qualityPanel, game, menu, renderer, wasm, sound, soundLab, inventory, machine, research, analytics, blueprints, sites, drone, logbook, vault, signEditor, adminConsole, hints, prospect, minimap, worldMap, pins, session, coop, comfort, vignette, views, scope,
   };
   Object.assign(window, { opencraft: handles });
 
@@ -226,7 +227,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'bend') game.bend_target();
       else if (a.kind === 'ghost') playerList.notice(game.toggle_ghost_mode()); // "" unless research locks it
-      else if (a.kind === 'fetch') game.fetch_held();
+      else if (a.kind === 'fetch') game.drone_fetch_held();
       else if (a.kind === 'take-item') game.take_target_item();
       else if (a.kind === 'scan-target') prospect.nextTarget();
       else if (a.kind === 'blueprint-mark') game.blueprint_mark();

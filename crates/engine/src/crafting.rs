@@ -127,9 +127,26 @@ pub fn plan(inv: &Inventory, research: &Research, half: bool, recipe: u16, times
     if times == 0 || !research.has(Unlock::Recipe(r.output)) {
         return None;
     }
-    let mut p = Planner { inv, research, half, used: Vec::new(), steps: Vec::new() };
+    let mut p = Planner { inv, research, half, used: Vec::new(), steps: Vec::new(), stock: None, fetched: Vec::new() };
     p.craft(recipe, r, times, 0, true)?;
     Some(Plan { steps: p.steps, leaves: p.used })
+}
+
+/// What the personal drone must fetch (item, count) for `times` of `recipe`, `stock` saying how many of an item lie
+/// in reach: the pack first, then stock, then hand crafts of the rest. `None` when that falls short (`helpers/drone/`).
+pub fn fetches_for(
+    inv: &Inventory,
+    research: &Research,
+    half: bool,
+    recipe: u16,
+    times: u32,
+    stock: &dyn Fn(ItemId) -> u32,
+) -> Option<Vec<(ItemId, u32)>> {
+    let r = RECIPES.get(recipe as usize).filter(|r| times > 0 && research.has(Unlock::Recipe(r.output)))?;
+    let mut p =
+        Planner { inv, research, half, used: Vec::new(), steps: Vec::new(), stock: Some(stock), fetched: Vec::new() };
+    p.craft(recipe, r, times, 0, true)?;
+    Some(p.fetched)
 }
 
 /// The most crafts of `recipe` (up to `MAX_TIMES`) that `plan` allows.
@@ -156,18 +173,19 @@ struct Planner<'a> {
     /// What the plan takes from the inventory so far.
     used: Vec<(ItemId, u32)>,
     steps: Vec<Step>,
+    /// What the drone can bring, and what the plan has it fetch so far (`fetches_for`; none for a plain plan).
+    stock: Option<&'a dyn Fn(ItemId) -> u32>,
+    fetched: Vec<(ItemId, u32)>,
 }
 
 impl Planner<'_> {
-    /// Makes sure `n` of `item` will be there: from the inventory first, else crafted by hand.
+    /// Makes sure `n` of `item` will be there: from the inventory first, then from what the drone can fetch, else
+    /// crafted by hand.
     fn need(&mut self, item: ItemId, n: u32, depth: u32) -> Option<()> {
-        let taken = self.used.iter_mut().find(|u| u.0 == item);
-        let have = self.inv.count(item).saturating_sub(taken.as_ref().map_or(0, |u| u.1));
-        let take = have.min(n);
-        if take > 0 {
-            match taken {
-                Some(u) => u.1 += take,
-                None => self.used.push((item, take)),
+        let mut take = claim(&mut self.used, item, n, self.inv.count(item));
+        if take < n {
+            if let Some(stock) = self.stock {
+                take += claim(&mut self.fetched, item, n - take, stock(item));
             }
         }
         if take == n {
@@ -191,6 +209,19 @@ impl Planner<'_> {
         self.steps.push(Step { recipe: index, times, deliver, half: self.half && discounted(r.output) });
         Some(())
     }
+}
+
+/// Claims up to `n` of `item` from a supply of `have`, of which `claims` already holds some; how many it got.
+fn claim(claims: &mut Vec<(ItemId, u32)>, item: ItemId, n: u32, have: u32) -> u32 {
+    let taken = claims.iter_mut().find(|u| u.0 == item);
+    let take = have.saturating_sub(taken.as_ref().map_or(0, |u| u.1)).min(n);
+    if take > 0 {
+        match taken {
+            Some(u) => u.1 += take,
+            None => claims.push((item, take)),
+        }
+    }
+    take
 }
 
 fn add_to_pool(pool: &mut Vec<Stack>, item: ItemId, count: u32) {

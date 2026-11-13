@@ -98,6 +98,12 @@ pub enum SimEvent {
         item: ItemId,
         count: u32,
     },
+    /// A player's personal drone could not do what it was told, and why (`helpers/drone/`; `item` may be none).
+    DroneNote {
+        player: PlayerId,
+        note: crate::helpers::drone::Note,
+        item: ItemId,
+    },
     /// Loose items to throw out in front of a player (dropping, or no room in the inventory).
     Thrown {
         player: PlayerId,

@@ -15,7 +15,10 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 72;
+pub const TAG_COUNT: u8 = 73;
+/// Tags only read, never written: 38, the personal drone's old fetch, now an `Action::Drone` (tag 72).
+#[cfg(test)]
+pub const READ_ONLY: [u8; 1] = [38];
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -210,9 +213,9 @@ impl Action {
                 w.u8(37);
                 w.bool(on);
             }
-            Action::Fetch { item, at } => {
-                w.u8(38);
-                w.item(item);
+            Action::Drone { order, at } => {
+                w.u8(72);
+                order.write(w);
                 w.ivec3(at);
             }
             Action::Offhand { swap } => {

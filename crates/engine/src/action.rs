@@ -10,6 +10,7 @@
 
 use crate::block::BlockId;
 use crate::factory::Job;
+use crate::helpers::drone::DroneOrder;
 use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 
@@ -137,9 +138,10 @@ pub enum Action {
     Jetpack {
         on: bool,
     },
-    /// Sends the personal drone to fetch `item` from the nearest box to `at`, the player's cell (`helpers/`).
-    Fetch {
-        item: ItemId,
+    /// An order to the personal drone; `at` is the player's cell, the drone's home (`helpers/drone/`). Tag 38, the
+    /// old `Fetch { item, at }`, reads as a fetch of a stack.
+    Drone {
+        order: DroneOrder,
         at: IVec3,
     },
     /// Removes the ghost covering `pos`.

@@ -27,6 +27,12 @@ impl Factory {
         self.storages[*i as usize].buf.add(item, n);
     }
 
+    /// Puts `n` of `item` into the output of the machine at `pos`, as if it had made them.
+    pub(crate) fn stock_output(&mut self, pos: IVec3, item: ItemId, n: u32) {
+        let Some(Slot::Process(i)) = self.at.get(&pos) else { panic!("no machine at {pos:?}") };
+        self.processors[*i as usize].out.add(item, n);
+    }
+
     pub(crate) fn smelter_at(&self, pos: IVec3) -> &Processor {
         self.processor_at(pos, crate::block::SMELTER)
     }

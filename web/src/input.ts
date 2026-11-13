@@ -18,6 +18,7 @@ export type Action =
   | { kind: 'bend' }
   | { kind: 'ghost' }
   | { kind: 'fetch' }
+  | { kind: 'drone' }
   | { kind: 'take-item' }
   | { kind: 'scan-target' }
   | { kind: 'blueprint-mark' }
@@ -202,7 +203,7 @@ export class Input {
       else if (e.code === 'KeyE') this.actions.push({ kind: 'inventory' });
       else if (e.code === 'KeyR') this.actions.push({ kind: e.shiftKey ? 'bend' : 'rotate' });
       else if (e.code === 'KeyB') this.actions.push({ kind: 'ghost' });
-      else if (e.code === 'KeyY') this.actions.push({ kind: 'fetch' });
+      else if (e.code === 'KeyY') this.actions.push({ kind: e.shiftKey ? 'fetch' : 'drone' });
       else if (e.code === 'KeyI') this.actions.push({ kind: 'take-item' });
       else if (e.code === 'KeyU') this.actions.push({ kind: 'scan-target' });
       else if (e.code === 'KeyZ') this.actions.push({ kind: 'blueprint-mark' });

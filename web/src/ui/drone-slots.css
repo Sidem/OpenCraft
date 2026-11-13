@@ -1,0 +1,168 @@
+/* The personal drone on the slots (ui/drone-slots.ts): marked slots, the bar under the hotbar, and the badges on slots
+   an order is tied to (inventory screen and HUD hotbar; both slots are `position: relative`). */
+.ds-marked {
+  outline: 2px dashed var(--accent);
+  outline-offset: 1px;
+}
+
+.ds-bar {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--accent-soft);
+  border-radius: 8px;
+  background: rgba(250, 149, 73, 0.06);
+}
+
+.ds-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.ds-actions,
+.ds-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ds-fill {
+  margin-top: 10px;
+}
+
+.ds-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.ds-search {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+
+.ds-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 3px;
+  border-radius: 6px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ds-choice:hover {
+  border-color: var(--accent);
+}
+
+.ds-choice canvas {
+  width: 24px;
+  height: 24px;
+}
+
+.ds-choice b {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* A badge covers its slot: the faint picture fills it, the ring and arrow sit in the top-right corner. */
+.ds-badge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ds-ghost {
+  position: absolute;
+  inset: 12%;
+  width: 76%;
+  height: 76%;
+  opacity: 0;
+}
+
+.ds-empty .ds-ghost {
+  opacity: 0.4;
+}
+
+.ds-fly.ds-in.ds-empty .ds-ghost {
+  animation: ds-arrive 1.2s ease-in-out infinite alternate;
+}
+
+.ds-ring {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) var(--p, 0%), rgba(20, 22, 28, 0.9) 0);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+
+.ds-arrow {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgb(20, 22, 28);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.ds-out .ds-arrow {
+  color: #7fd3ff;
+}
+
+.ds-time {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-shadow: 0 1px 2px #000;
+}
+
+.ds-wait .ds-ring {
+  animation: ds-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes ds-pulse {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ds-arrive {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-wait .ds-ring,
+  .ds-fly.ds-in.ds-empty .ds-ghost {
+    animation: none;
+  }
+}

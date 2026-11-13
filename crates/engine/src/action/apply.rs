@@ -26,6 +26,7 @@ impl Sim {
                 }
             }
             Action::Leave { pos } => {
+                self.recall_drone(player);
                 let Some(mut core) = self.players.get_mut(slot).and_then(Option::take) else { return };
                 core.crafts.cancel_all(&mut core.inventory, player, &mut self.events);
                 if core.key != 0 {
@@ -103,7 +104,7 @@ impl Sim {
             Action::PlantGhost { pos, block, facing, tier } => self.plant_ghost(pos, block, facing, tier),
             Action::MarkRemoval { pos } => self.mark_removal(pos),
             Action::Jetpack { on } => self.set_thrust(player, on),
-            Action::Fetch { item, at } => self.start_fetch(player, item, at),
+            Action::Drone { order, at } => self.drone_order(player, order, at),
             Action::RemoveGhost { pos } => {
                 self.ghosts.remove_at(pos);
             }

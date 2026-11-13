@@ -2,6 +2,7 @@ use super::*;
 use crate::block::{AIR, BEDROCK, BELT, DIRT, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::Kind;
+use crate::helpers::drone::{DroneOrder, Job as DroneJob};
 use crate::inventory::{Stack, HOTBAR_SLOTS, INVENTORY_SLOTS};
 use crate::item::{IRON_PLATE, IRON_ROD, MAX_STACK};
 use crate::recipes::RECIPES;
@@ -531,7 +532,6 @@ fn samples() -> Vec<Action> {
         Action::PlantGhost { pos, block: STORAGE, facing: 1, tier: 2 },
         Action::MarkRemoval { pos },
         Action::Jetpack { on: true },
-        Action::Fetch { item: IRON_PLATE, at: pos },
         Action::ClickGear { slot: 1, shift: true },
         Action::MarkTunnel { from: pos, to: against, size: 2 },
         Action::PlaceTrain { pos, slot: 3 },
@@ -565,6 +565,7 @@ fn samples() -> Vec<Action> {
         Action::EditSign { pos, line: 3, text: crate::signs::line_bytes("Kiln → north"), back: 0xabcdef, ink: 7 },
         Action::DropStop { train: 7, index: 2 },
         Action::LabelBox { pos, label: 9 },
+        Action::Drone { order: DroneOrder::Job(DroneJob::Craft { recipe: 7, times: 3 }), at: pos },
     ]
 }
 
@@ -578,7 +579,8 @@ fn encode(a: &Action) -> Vec<u8> {
 fn every_action_round_trips_through_bytes() {
     let all = samples();
     let tags: Vec<u8> = all.iter().map(|a| encode(a)[0]).collect();
-    assert_eq!(tags, (0..codec::TAG_COUNT).collect::<Vec<_>>(), "one sample per tag, in tag order");
+    let written = (0..codec::TAG_COUNT).filter(|t| !codec::READ_ONLY.contains(t));
+    assert_eq!(tags, written.collect::<Vec<_>>(), "one sample per tag, in tag order");
 
     let mut w = ByteWriter::default();
     for a in &all {

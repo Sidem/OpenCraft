@@ -1,11 +1,10 @@
-//! Drawing the construction and cargo drones (presentation only; the flight is core state: `drones/`) and the local
-//! player's personal drone (`helpers/`). Each drone is a few boxes, blended between its last two ticks,
+//! Drawing the construction and cargo drones (presentation only; the flight is core state: `drones/`); the personal
+//! drones are `companion_view.rs`. Each drone is a few boxes, blended between its last two ticks,
 //! bobbing a little, with a lamp underneath and the block it carries slung below. To change the look:
 //! `push_drone`.
 
 use crate::block::tex;
 use crate::factory::{push_box, push_capsule};
-use crate::item;
 use crate::math::Vec3;
 use crate::{Game, TICK};
 
@@ -43,7 +42,7 @@ impl Game {
         }
         self.write_town_instances(eye, alpha);
         self.write_pod_instances(eye, alpha);
-        self.write_companion(eye, alpha, time);
+        self.write_companions(eye, alpha, time);
     }
 
     /// The drop pods in their first seconds, rising out of their launchers, and in their last, braking onto their pads: a
@@ -59,28 +58,6 @@ impl Game {
             push_capsule(out, at, 1.0, time * TICK, (i as f64 * 0.37).fract());
         }
         self.orbit_fx.write(&mut self.instances, eye, time * TICK);
-    }
-
-    /// The local player's personal drone: hovering at their right shoulder, or out on an errand to its box.
-    fn write_companion(&mut self, eye: Vec3, alpha: f64, time: f64) {
-        let Some(p) = self.sim.player(self.local).filter(|p| p.inventory.count(item::PERSONAL_DRONE) > 0) else {
-            return;
-        };
-        let body = self.body();
-        let (sy, cy) = body.yaw.sin_cos();
-        let home = self.prev_eye
-            + (body.eye() - self.prev_eye) * alpha
-            + Vec3::new(cy, 0.0, sy)
-            + Vec3::new(-sy, 0.0, cy) * 0.7
-            + Vec3::new(0.0, 0.1 + 0.06 * (time * 3.0).sin(), 0.0);
-        let mut at = home;
-        if let Some(f) = p.helpers.fetch {
-            let done = 1.0 - (f64::from(f.left) - alpha) / f64::from(f.total.max(1));
-            let leg = if done < 0.5 { 2.0 * done } else { 2.0 - 2.0 * done }.clamp(0.0, 1.0);
-            let goal = f.from.as_vec3() + Vec3::new(0.5, 1.6, 0.5);
-            at = home + (goal - home) * leg;
-        }
-        push_drone(&mut self.instances, at - eye, (time * 1.5) as f32, false);
     }
 }
 

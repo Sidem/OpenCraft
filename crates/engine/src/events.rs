@@ -82,6 +82,8 @@ impl Game {
                     self.spawn_item(pos, vel, item, count, DROP_PICKUP_DELAY)
                 }
                 SimEvent::Thrown { player, item, count } => self.throw(player, item, count),
+                SimEvent::DroneNote { player, note, item } if player == local => self.drone_noted(note, item),
+                SimEvent::DroneNote { .. } => {}
                 SimEvent::Produced { item, count } => self.analytics.produced(item, count),
                 SimEvent::Consumed { item, count } => self.analytics.consumed(item, count),
                 SimEvent::Launched { .. } | SimEvent::PodSent { .. } | SimEvent::PodLanded { .. } => {

@@ -36,7 +36,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `research.rs`: `Tech`, `Unlock`, `Research`. `research/`: tech tables by era (`techs.rs` first, then `electronics.rs`;
   `later.rs` is the open end), `queue.rs`, `bonus.rs` (endless techs).
 - `ghosts.rs`: planned blocks. `drones/`: construction drones, `earthworks.rs` (terraforming), `cargo/` (cargo routes).
-- `helpers/`: jetpack, personal drone, hover pack. `blueprint/mod.rs`: blueprint data and bytes (`plan.rs` the library's view from above).
+- `helpers/`: jetpack, hover pack, `drone/` (personal drone: order queue; `trip.rs` plans and times each tour). `blueprint/mod.rs`: blueprint data and bytes (`plan.rs` the library's view from above).
 - `signs/`: note signs (both cells, text, colours, `Action::EditSign`, bytes); `view.rs` draws the boards and gives the nearest their text slots.
 - `satellites.rs`: satellites in orbit. `pods.rs`: drop pods in flight. `opening.rs`: a new world's opening scene (`opening/miners.rs` the guide on to two coal miners).
 - `settlements/`: towns (Milestone 13). `orders.rs` data (orders, upkeep), `run.rs` (the tick), `plans.rs` and `plots.rs`
@@ -50,7 +50,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `upgrades.rs`: kits, in-place upgrades. `tier_mark.rs`: the Mk studs every tiered machine wears (presentation).
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
   `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `belt_model.rs` (drawing a belt), `belt_curve.rs` (corners: the player's bend, the arc items ride, the curved model), `underpass.rs`, `belt_chain.rs`,
-  `router.rs` (splitter, filter), `storage.rs` + `box_label.rs` (what a box's sides show: its most common item or a picked category), `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads).
+  `router.rs` (splitter, filter), `storage.rs` + `box_label.rs` (what a box's sides show: its most common item or a picked category), `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads), `stock.rs` (what boxes and machine outputs near a spot hold).
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
   `grid_colour.rs`. Data and light: `fibre.rs` (data grid), `laser.rs` (beams). Logic: `sensor.rs`.
@@ -98,7 +98,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `forester_preview.rs` (patch outline or uneven cells, refusal), `footprint_preview.rs`, `port_view.rs` + `port_view/` (a held machine's see-through ghost with its port marks; marks on built machines while a belt is held; the HUD's side line), `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
-  `rail_tools.rs`, `rail_snap.rs` (pure: aims snap onto grid axes and the heading's line), `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, into the middle of straight track, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `blueprint/hands.rs`,
+  `rail_tools.rs`, `rail_snap.rs` (pure: aims snap onto grid axes and the heading's line), `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, into the middle of straight track, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `drone_hands.rs` (restock, the drone's HUD words, panel orders), `blueprint/hands.rs`,
   `blueprint/repeat.rs` (blueprint prompt), `stall_lesson.rs` (the machine-stopped lesson: card, prompt, taught when mended), `need_lesson.rs` (what a stuck machine's item comes from or is for, and the short-of-power card that names [P]), `first_steps.rs` + `first_steps/` (the maps' goal flag, the build menu's glowing recipe, Go electric's copper patch), `prospect.rs` (scanner, core drill), `survey.rs` + `survey/orbit.rs`,
   `telescope.rs` + `telescope/` (`ground.rs` long ray over loaded blocks then the heightfield, `beacons.rs` pin columns),
   `sickle.rs` (right-click cuts a 3×3 patch of ground plants: `Action::ClearCover`).
@@ -107,7 +107,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants). Trees are
   not cubes: `shaped.rs` (the shaped list's vertex format, `SHAPED`, `HIDES`), `logs.rs` (round trunks), `foliage.rs` +
   `foliage/shell.rs` (canopies as one smoothed surface over the leaves within `REACH`, seam-exact across chunks).
-- `entities.rs` + `entities/merge.rs` (loose items; resting ones merge into stacks), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs`, `orbit_fx.rs`, `sound.rs` (event buffer).
+- `entities.rs` + `entities/merge.rs` (loose items; resting ones merge into stacks), `avatars.rs` + `avatars/`, `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs` + `companion_view.rs` (each player's personal drone in flight), `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `item_guide.rs`: every way to get an item (found, hand, machine) and what uses it; a test makes every needed item answerable.
 - `analytics/`: history and efficiency (`series.rs`, `machines.rs`, `power.rs`); never saved.
@@ -143,7 +143,7 @@ local player's hands, presentation, then the **deterministic core**, which never
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
     `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it
-    makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`, `box-label.ts` (the box screen's label chips).
+    makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`, `box-label.ts` (the box screen's label chips), `drone.ts` (personal drone orders, Y), `drone-slots.ts` (pick slots for the drone; badges on slots it serves), `slot-view.ts` (one slot drawn).
   - Machines: `machine.ts`, `machine-recipes.ts`, `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (sign editor; `colour-wheel.ts`, `colour.ts`), `train.ts` (a train's wagons, state and schedule).
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,
     `research-node.ts`, `research-map.ts`, `research-search.ts`, `research-queue.ts`.

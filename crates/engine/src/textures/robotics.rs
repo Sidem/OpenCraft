@@ -19,6 +19,8 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::JETPACK => jetpack(x, y),
         tex::PERSONAL_DRONE => personal_drone(x, y),
         tex::PLANNER => planner(x, y),
+        tex::DRONE_SHELL => drone_shell(x, y),
+        tex::DRONE_CARBON => carbon(x, y),
         _ => drone(x, y),
     }
 }
@@ -173,6 +175,32 @@ fn personal_drone(x: i32, y: i32) -> [u8; 4] {
         return rgb([188.0, 192.0, 202.0], 0.9);
     }
     rgb([22.0, 24.0, 30.0], 0.9)
+}
+
+/// The personal drone's moulded shell: pale grey plastic, a teal pin-stripe across it, a seam along each edge and a
+/// row of dark vent slots.
+#[inline(never)] // kept out of `generate`: about 1 KB less wasm
+fn drone_shell(x: i32, y: i32) -> [u8; 4] {
+    if (7..9).contains(&y) {
+        return rgb([46.0, 168.0, 168.0], 0.95 + 0.08 * n(412, x, y));
+    }
+    if x == 0 || y == 0 || x == 15 || y == 15 {
+        return rgb([150.0, 156.0, 166.0], 0.9);
+    }
+    if (11..13).contains(&y) && (3..13).contains(&x) && x % 2 == 1 {
+        return rgb([40.0, 44.0, 52.0], 0.9);
+    }
+    // A soft sheen from the top left, as on moulded plastic.
+    let sheen = 1.0 - 0.012 * f64::from(x + y);
+    rgb([222.0, 226.0, 232.0], sheen + 0.04 * n(413, x, y))
+}
+
+/// Carbon-fibre twill: two-by-two tows crossing at right angles, dark with a faint sheen on the tows that run across.
+#[inline(never)]
+fn carbon(x: i32, y: i32) -> [u8; 4] {
+    let across = ((x / 2 + y / 2) % 2) == 0;
+    let tone = if across { 1.0 } else { 0.7 };
+    rgb([46.0, 48.0, 54.0], tone + 0.06 * n(414, x, y))
 }
 
 /// A dark tablet with a pale survey grid, an orange site rectangle and a cyan corner marker.

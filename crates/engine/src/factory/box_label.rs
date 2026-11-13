@@ -18,8 +18,11 @@ use super::{Factory, Slot};
 /// The label that shows the most common item inside.
 pub const AUTO: u8 = 0;
 
+/// The label that makes a box the personal drone's catch-all: it fills it, last, with anything (`stock.rs`).
+pub const MISC: u8 = 10;
+
 /// Every label a player can pick: its name and the item drawn for it (`ItemId::NONE` for [`AUTO`]).
-pub const LABELS: [(&str, ItemId); 10] = [
+pub const LABELS: [(&str, ItemId); 11] = [
     ("Contents", ItemId::NONE),
     ("Ores", ItemId::block(block::IRON_ORE)),
     ("Metals", item::IRON_INGOT),
@@ -30,6 +33,7 @@ pub const LABELS: [(&str, ItemId); 10] = [
     ("Stone", ItemId::block(block::STONE_BRICKS)),
     ("Fuel", ItemId::block(block::COAL_ORE)),
     ("Science", item::RED_PACK),
+    ("Misc (drone fills)", item::PERSONAL_DRONE),
 ];
 
 /// Within this many blocks a label is the item's model; farther, one plain box in its colours (it is a few pixels

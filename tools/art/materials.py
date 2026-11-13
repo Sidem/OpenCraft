@@ -68,6 +68,35 @@ def plastic(seed=216):
     return rgba(_shade("#aeb1b6", v + gloss))
 
 
+def drone_shell(seed=970):
+    """The personal drone's moulded shell, a face printed on its parts: pale grey plastic with a glossy sheen, a teal
+    pin-stripe across the middle, a fine seam round the edge where the mould halves meet, a row of dark vent slots."""
+    X, Y = coords()
+    v = _sheen(X, Y, 0.18) + (fbm(X, Y, 4, 2, seed) - 0.5) * 0.03
+    v = v + np.exp(-(((X - 0.3) * 0.8 + (Y - 0.25)) / 0.12) ** 2) * 0.07
+    img = _shade("#b4b8be", v).astype(float)
+    stripe = (YS >= 58) & (YS < 70)
+    edge = 0.85 + 0.15 * np.sin((YS - 58 + 0.5) / 12 * np.pi)
+    img[stripe] = _shade("#2c9c9c", v * edge)[stripe]
+    seam = np.minimum(np.minimum(XS, N - 1 - XS), np.minimum(YS, N - 1 - YS)) < 2
+    img[seam] *= 0.72
+    vents = (YS >= 90) & (YS < 102) & (XS >= 26) & (XS < 102) & ((XS - 26) % 10 < 5)
+    img[vents] = _shade("#262a32", 1 + (fbm(X, Y, 8, 2, seed + 1) - 0.5) * 0.1)[vents]
+    return rgba(np.clip(img, 0, 255).astype(np.uint8))
+
+
+def carbon(seed=980):
+    """Carbon-fibre twill: 8-texel tows in a 2/2 twill, each round-shaded across its width, near black with a cool
+    sheen that differs between the tows running across and along, so the weave glints."""
+    X, Y = coords()
+    i, j = XS // 8, YS // 8
+    across = ((i + j) % 4) < 2
+    pos = np.where(across, YS % 8, XS % 8)
+    tow = 0.78 + 0.22 * np.sin((pos + 0.5) / 8 * np.pi)
+    v = tow * np.where(across, 1.08, 0.86) + (fbm(X, Y, 6, 2, seed) - 0.5) * 0.05 + _sheen(X, Y, 0.1) - 1
+    return rgba(_shade("#3a3e46", v))
+
+
 def drum(colour, seed, bare=False):
     """A canister's painted steel: its fluid's colour (bare brushed steel when empty), a darker rolled rim top and
     bottom, faint wear on the paint."""

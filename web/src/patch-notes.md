@@ -3,6 +3,17 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-13 · A personal drone that runs your errands
+- **Press Y to open your personal drone's panel.** Search anything in the storage boxes and machine outputs within 64 blocks (twice as far as before) and send the drone for a stack or for all of it. It takes from your storage boxes before boxes on a belt line, and those before what machines have made, and makes as many trips as it takes.
+- **Need something you have none of?** Search it anyway: if you can craft it by hand, **Fetch parts & craft** sends the drone for the materials and crafts it for you when they arrive. The item's page in the build menu has the same button.
+- **Put away** takes every stack in your backpack whose item already has a box nearby back to that box, like quick-stacking into chests. Your hotbar stays as it is. **Store** sends a single stack to its box, or to an empty one. **It never puts anything into a box on a belt line** (one a belt or miner fills, or one that feeds a belt), so your production lines never clog with the wrong items, and it never fills an empty box you labelled. **For everything else, label a box "Misc (drone fills)"** in its box screen: when nothing has a box of its own and no empty box is left, the drone puts it there, several kinds together.
+- **It keeps the stack in your hand topped up**: when you have built or used your way down to a quarter of a stack, it fetches the rest by itself. Turn it off in the panel.
+- **Orders queue up** and the panel shows what it is doing and when it will be back. The line by your hotbar says so too, and tells you when something is not in reach or there is no room.
+- **Order it from your inventory:** press **Drone** above the backpack (or Alt-click a slot) and click the slots you mean. Send the full ones to storage, or fill the empty ones with a stack of anything in reach.
+- **See at a glance what it is doing for each slot:** a slot it is filling shows a faint picture of what is coming, a ring that fills up as the drone flies, and the seconds until it lands. A slot it is emptying shows an arrow up. Your hotbar at the bottom of the screen shows the same, so you can watch it without opening anything.
+- **Shift+Y** still sends it for a stack more of what you hold, and it lands in your hand. So does a top-up.
+- **A new look:** a white quadcopter with carbon arms, spinning props, a camera underneath and red, green and white lights. It flies smoothly, leans into its turns, dips at each box and carries what it picked up on a line under it. Your co-op friends' drones fly too.
+
 ## 2026-11-12 · A real pumpjack
 - **The pumpjack is now a full-size oilfield pump**, 2 blocks wide, 3 long and 3 tall. A motor turns a crank with heavy counterweights, two arms rock the walking beam on its A-frame, and the curved horsehead at the front lifts the rod in and out of the wellhead. It moves while it pumps and comes gently to a stop where it is when it waits.
 - **Empty canisters go in at the back** (the motor end), and **full ones come out at the front** (the wellhead end).

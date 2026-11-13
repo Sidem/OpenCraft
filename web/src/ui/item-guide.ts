@@ -167,6 +167,9 @@ export class ItemGuide {
       if (tech >= 0) foot.append(lock(`Research ${g.tech_name(tech)} to unlock it (T)`));
       else if (g.craftable_times(way.recipe) > 0) {
         foot.append(button('guide-craft', 'Craft one', () => { g.craft(way.recipe, 1); }));
+      } else if (g.drone_ready() && g.drone_craft_fetches(way.recipe, 1).length > 0) {
+        // The parts lie in boxes or machines nearby: the personal drone gathers them (ui/drone.ts).
+        foot.append(button('guide-craft', 'Drone: fetch the parts and craft one', () => g.drone_craft(way.recipe, 1)));
       } else foot.append(h('span', 'guide-short', ' · Gather what is missing first'));
     } else {
       label.append('In ', this.link(way.machine));

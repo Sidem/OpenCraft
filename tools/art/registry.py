@@ -281,6 +281,8 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     (348, "mat_gunmetal", lambda: materials.brushed("#4c525c", 910), _REAL), (349, "mat_rubber", materials.rubber, _REAL),
     (350, "mat_brass", lambda: materials.brushed("#c09c52", 930), _REAL), (351, "mat_fabric", materials.webbing, _REAL),
     (352, "mat_ember", lambda: materials.paint("#d4672e", 950), _REAL), (353, "mat_aether", lambda: materials.paint("#33a0a0", 960), _REAL),
+    # the personal drone in flight (companion_view.rs)
+    (384, "drone_shell", materials.drone_shell, _REAL), (385, "drone_carbon", materials.carbon, _REAL),
 )]
 
 LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS

@@ -11,6 +11,7 @@
 // panel, `machine.ts`), that panel takes the build menu's place and Shift-click puts a stack into it.
 // The clicks are taught by the controls bar along the bottom (`slot-controls.ts`): it shows what applies to the
 // hovered slot (`data-slot`, `data-item`) and the held stack, so the screen needs no wall of instructions.
+// The Drone button picks slots for the personal drone to empty into storage or fill (`drone-slots.ts`).
 
 import './inventory.css';
 import type { Game } from '../wasm/engine.js';
@@ -19,12 +20,12 @@ import { CreativeMenu, withCreativeTabs } from './creative';
 import { DragThrow } from './drag-throw';
 import { BoxLabel } from './box-label';
 import { button, h } from './dom';
-import { showAmount } from './hud';
 import { PackUpgrade } from './pack-upgrade';
 import { Pager } from './pager';
 import { type SlotContext, SlotControls } from './slot-controls';
+import { drawSlot, ICON_PX, type SlotView } from './slot-view';
+import { DroneSlots } from './drone-slots';
 
-const ICON_PX = 64;
 /** Backpack slots on a page: three rows of nine, so the equipment and hotbar never scroll out of view. */
 const PAGE_SLOTS = 27;
 
@@ -40,14 +41,6 @@ export interface Beside {
   wants(item: number): boolean;
   /** The screen closed. */
   closed(): void;
-}
-
-interface SlotView {
-  root: HTMLDivElement;
-  icon: HTMLCanvasElement;
-  count: HTMLSpanElement;
-  item: number;
-  n: number;
 }
 
 export class InventoryPanel {
@@ -166,12 +159,13 @@ export class InventoryPanel {
     const sortPack = button('secondary-btn', 'Sort', () => game.sort_inventory());
     sortPack.title = `Merge stacks and order the backpack by kind: ${game.sort_kinds()} (the hotbar stays as you set it)`;
     const packHead = h('div', 'inv-box-head');
-    packHead.append(h('h3', '', 'Backpack'), this.packPager.el, sortPack);
+    const drone = new DroneSlots(game, icon, this.slots.map((s) => s.root));
+    packHead.append(h('h3', '', 'Backpack'), this.packPager.el, drone.button, sortPack);
     this.packPager.onChange = () => this.showPackPage();
     this.packPager.wheel(pack);
     this.packUpgrade = new PackUpgrade(game);
     items.append(
-      h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, note,
+      h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar, note,
     );
 
     this.menu = new BuildMenu(game, icon);
@@ -377,18 +371,7 @@ export class InventoryPanel {
   }
 
   private drawSlot(s: SlotView, item: number, n: number): void {
-    const uses = this.game.tool_uses(item);
-    const amount = uses > 0 ? ` (${n} of ${uses} uses left)` : n > 1 ? ` ×${n}` : '';
-    const effect = n > 0 ? this.game.gear_blurb(item) : '';
-    s.root.title = n > 0 ? `${this.game.item_name(item)}${amount}${effect ? `: ${effect}` : ''}` : '';
-    s.root.dataset.item = n > 0 ? String(item) : '';
-    if (item === s.item && n === s.n) return;
-    const ctx = s.icon.getContext('2d')!;
-    ctx.clearRect(0, 0, ICON_PX, ICON_PX);
-    if (n > 0) ctx.drawImage(this.icon(item), 0, 0);
-    showAmount(this.game, s.root, s.count, item, n);
-    s.item = item;
-    s.n = n;
+    drawSlot(this.game, this.icon, s, item, n);
   }
 
   /** Follows the pointer (on moves and clicks): the held stack, and where `showControls` looks. */
