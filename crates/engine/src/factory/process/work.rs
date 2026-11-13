@@ -65,7 +65,7 @@ impl Processor {
         }
     }
 
-    /// Reports what this tick made (a finished batch, a filled canister) and used up as `Produced` and `Consumed` events.
+    /// Reports what this tick made (a finished batch, a filled barrel) and used up as `Produced` and `Consumed` events.
     pub fn report_made(&mut self, events: &mut Vec<SimEvent>) {
         events.extend(self.made.drain(..).map(|s| SimEvent::Produced { item: s.item, count: s.count }));
         events.extend(self.used.drain(..).map(|s| SimEvent::Consumed { item: s.item, count: s.count }));

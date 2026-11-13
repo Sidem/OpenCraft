@@ -81,8 +81,8 @@ pub const FILTER_RECIPE: Recipe = Recipe {
     group: Group::Logistics,
     count: 1,
     inputs: &[(IRON_PLATE, 2), (COPPER_WIRE, 2), (b(BELT), 2)],
-    blurb: "Sends the item you choose straight on and everything else to the left and right. \
-            Right-click to choose the item.",
+    blurb: "Sorts a belt three ways: pick which items go left, straight on or right, and which way everything \
+            else goes. Right-click to set it up.",
 };
 
 pub const LIFT_RECIPE: Recipe = Recipe {

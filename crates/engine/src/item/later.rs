@@ -3,24 +3,24 @@
 
 use super::ItemId;
 
-/// An empty canister (the Oil Processing tech): pressed from steel, it comes back from every fluid it carried.
-pub const EMPTY_CANISTER: ItemId = ItemId(348);
-/// A canister of crude oil, filled by a pumpjack (`factory/process/pump.rs`).
-pub const CRUDE_CANISTER: ItemId = ItemId(349);
-/// The refinery's streams (the Refining tech; `factory/process/refinery.rs`): canisters of naphtha (light), diesel
+/// An empty barrel (the Oil Processing tech): pressed from steel, it comes back from every fluid it carried.
+pub const EMPTY_BARREL: ItemId = ItemId(348);
+/// A barrel of crude oil, filled by a pumpjack (`factory/process/pump.rs`).
+pub const CRUDE_BARREL: ItemId = ItemId(349);
+/// The refinery's streams (the Refining tech; `factory/process/refinery.rs`): barrels of naphtha (light), diesel
 /// (middle) and heavy oil, and the sulfur it leaves.
-pub const NAPHTHA_CANISTER: ItemId = ItemId(350);
-pub const DIESEL_CANISTER: ItemId = ItemId(351);
-pub const HEAVY_OIL_CANISTER: ItemId = ItemId(352);
+pub const NAPHTHA_BARREL: ItemId = ItemId(350);
+pub const DIESEL_BARREL: ItemId = ItemId(351);
+pub const HEAVY_OIL_BARREL: ItemId = ItemId(352);
 pub const SULFUR: ItemId = ItemId(353);
-/// The chemical plant's products (the Plastics tech, `factory/process/refinery.rs`): plastic, and canisters of acid
+/// The chemical plant's products (the Plastics tech, `factory/process/refinery.rs`): plastic, and barrels of acid
 /// and lubricant.
 pub const PLASTIC: ItemId = ItemId(354);
-pub const ACID_CANISTER: ItemId = ItemId(355);
-pub const LUBRICANT_CANISTER: ItemId = ItemId(356);
-/// The electrolyser's gases (the Electrolysis tech, `factory/process/refinery.rs`), canisters of hydrogen and oxygen.
-pub const HYDROGEN_CANISTER: ItemId = ItemId(357);
-pub const OXYGEN_CANISTER: ItemId = ItemId(358);
+pub const ACID_BARREL: ItemId = ItemId(355);
+pub const LUBRICANT_BARREL: ItemId = ItemId(356);
+/// The electrolyser's gases (the Electrolysis tech, `factory/process/refinery.rs`), barrels of hydrogen and oxygen.
+pub const HYDROGEN_BARREL: ItemId = ItemId(357);
+pub const OXYGEN_BARREL: ItemId = ItemId(358);
 /// Washed ore (the Ore Washing tech): crushed ore cleaned in the washer, one ingot for one.
 pub const WASHED_IRON: ItemId = ItemId(359);
 pub const WASHED_COPPER: ItemId = ItemId(360);
@@ -50,9 +50,9 @@ pub const UNDERPASS_MK4: ItemId = ItemId(377);
 /// [`COIN_STACK`], is worth nothing itself and is not offered in creative worlds.
 pub const COIN: ItemId = ItemId(378);
 pub const COIN_STACK: u32 = 1024;
-/// Compute's parts (the Wafers and Accelerators techs, `factory/process/fab.rs`): a canister of ultra-pure water (a
+/// Compute's parts (the Wafers and Accelerators techs, `factory/process/fab.rs`): a barrel of ultra-pure water (a
 /// chemical plant recipe), the wafer and the AI accelerator, both made in the chip fab.
-pub const PURE_WATER_CANISTER: ItemId = ItemId(379);
+pub const PURE_WATER_BARREL: ItemId = ItemId(379);
 pub const WAFER: ItemId = ItemId(380);
 pub const AI_ACCELERATOR: ItemId = ItemId(381);
 /// The hauler packs Mk3 to Mk5 (Mk1 and Mk2 are 333 and 334): 18 more backpack slots each (`equipment.rs`).
@@ -62,12 +62,12 @@ pub const HAULER_PACK_MK5: ItemId = ItemId(384);
 /// Fabricator gloves (worn in the Gloves slot, `equipment.rs`): hand crafting 50% faster.
 pub const CRAFT_GLOVES: ItemId = ItemId(385);
 /// Rocket parts (the Rocketry tech; `recipes/orbit.rs`): the assembler builds the light frame, engine, fuel tank and
-/// avionics, the chemical plant fills rocket fuel canisters, and the launch site consumes them all.
+/// avionics, the chemical plant fills rocket fuel barrels, and the launch site consumes them all.
 pub const LIGHT_FRAME: ItemId = ItemId(386);
 pub const ROCKET_ENGINE: ItemId = ItemId(387);
 pub const FUEL_TANK: ItemId = ItemId(388);
 pub const AVIONICS: ItemId = ItemId(389);
-pub const ROCKET_FUEL_CANISTER: ItemId = ItemId(390);
+pub const ROCKET_FUEL_BARREL: ItemId = ItemId(390);
 /// A survey satellite (`satellites.rs`): the assembler builds it, a launch site's rocket carries it into orbit.
 pub const SURVEY_SATELLITE: ItemId = ItemId(391);
 /// A comms satellite: data grids and drone ports reach across its footprint (`factory/fibre.rs`, `factory/ports.rs`).

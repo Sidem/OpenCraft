@@ -44,13 +44,13 @@ pub enum Category {
     Arc,
     /// Crushed bauxite and quicklime into aluminium and slag (the electrolytic cell).
     Electrolysis,
-    /// Crude oil canisters and water into naphtha, diesel and heavy oil canisters and sulfur (the refinery).
+    /// Crude oil barrels and water into naphtha, diesel and heavy oil barrels and sulfur (the refinery).
     Distilling,
     /// Heavy oil and water into naphtha and diesel (the cracker).
     Cracking,
     /// Plastic, acid and lubricant (the chemical plant).
     Chemistry,
-    /// Empty canisters and water into hydrogen and oxygen canisters (the electrolyser).
+    /// Empty barrels and water into hydrogen and oxygen barrels (the electrolyser).
     Splitting,
     /// Crushed ore and water into washed ore and tailings (the washer).
     Washing,

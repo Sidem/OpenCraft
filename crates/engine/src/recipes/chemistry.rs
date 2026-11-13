@@ -1,4 +1,4 @@
-//! Hand recipes of Chemistry (Milestone 10), listed in `RECIPES`. Canisters are also pressed by constructors
+//! Hand recipes of Chemistry (Milestone 10), listed in `RECIPES`. Barrels are also pressed by constructors
 //! (`machine.rs`). To add one: a `pub const` here, and its name in `RECIPES`.
 
 use crate::block::*;
@@ -12,9 +12,9 @@ pub const PUMPJACK_RECIPE: Recipe = Recipe {
     count: 1,
     inputs: &[(STEEL_PLATE, 12), (STEEL_BEAM, 4), (MOTOR, 2), (CIRCUIT, 2)],
     blurb: "Stand it on the ground right above an oil reservoir (the scanner's oil filter and the map show where): it \
-            drills straight down to the oil sand. It fills an empty canister with crude oil every few seconds, \
-            from the reservoir's own pace (a vein gives about 20 canisters a minute), until the field runs dry. \
-            Belts bring empty canisters and take the full ones. Needs 90 kW.",
+            drills straight down to the oil sand. It fills an empty barrel with crude oil every few seconds, \
+            from the reservoir's own pace (a vein gives about 20 barrels a minute), until the field runs dry. \
+            Belts bring empty barrels and take the full ones. Needs 90 kW.",
 };
 
 pub const WATER_WHEEL_RECIPE: Recipe = Recipe {
@@ -72,11 +72,10 @@ pub const REFINERY_RECIPE: Recipe = Recipe {
     group: Group::Production,
     count: 1,
     inputs: &[(STEEL_PLATE, 16), (STEEL_BEAM, 8), (b(STONE_BRICKS), 12), (MOTOR, 2), (CIRCUIT, 6)],
-    blurb:
-        "Fractional distillation, 3×3×4 (R turns it before you place it). Belts bring crude oil canisters in at the \
+    blurb: "Fractional distillation, 3×3×4 (R turns it before you place it). Belts bring crude oil barrels in at the \
             hatches on its back, a pipe from a pump brings water to the blue inlet on its left; a batch of 3 crude \
-            canisters and a unit of water takes 6 seconds and gives a naphtha canister out of the front and, out of \
-            the violet side hatches on the right, a diesel canister, a heavy oil canister and a sulfur. Every stream \
+            barrels and a unit of water takes 6 seconds and gives a naphtha barrel out of the front and, out of \
+            the violet side hatches on the right, a diesel barrel, a heavy oil barrel and a sulfur. Every stream \
             must be used or stored, or it stops. Needs 150 kW.",
 };
 
@@ -85,8 +84,8 @@ pub const CRACKER_RECIPE: Recipe = Recipe {
     group: Group::Production,
     count: 1,
     inputs: &[(STEEL_PLATE, 10), (STEEL_BEAM, 4), (MOTOR, 1), (CIRCUIT, 4)],
-    blurb: "Splits heavy oil, 2×2×3: 2 heavy oil canisters and a unit of water (blue inlet on the left) make a \
-            naphtha and a diesel canister in 4 seconds. Belts bring heavy oil in at the back; naphtha leaves by the \
+    blurb: "Splits heavy oil, 2×2×3: 2 heavy oil barrels and a unit of water (blue inlet on the left) make a \
+            naphtha and a diesel barrel in 4 seconds. Belts bring heavy oil in at the back; naphtha leaves by the \
             front and diesel by the violet hatches on the right. Needs 90 kW.",
 };
 
@@ -97,7 +96,7 @@ pub const CHEMICAL_PLANT_RECIPE: Recipe = Recipe {
     inputs: &[(STEEL_PLATE, 14), (STEEL_BEAM, 6), (b(GLASS), 8), (MOTOR, 2), (CIRCUIT, 6)],
     blurb: "Plastic, acid and lubricant, 3×2×3 (R turns it before you place it); choose what it makes in its panel. \
             Belts bring the inputs in at the hatches on its back and take the product from the front; plastic's two \
-            spare empty canisters leave by the violet hatches on the right. Acid needs a unit of water from a pipe \
+            spare empty barrels leave by the violet hatches on the right. Acid needs a unit of water from a pipe \
             to the blue inlet on its left. Needs 120 kW.",
 };
 
@@ -106,8 +105,8 @@ pub const DIESEL_GENERATOR_RECIPE: Recipe = Recipe {
     group: Group::Power,
     count: 1,
     inputs: &[(STEEL_PLATE, 14), (STEEL_BEAM, 6), (MOTOR, 4), (CIRCUIT, 4)],
-    blurb: "Burns diesel canisters for 400 kW, 2×2×2 (R turns it before you place it): one canister lasts 100 \
-            seconds at full load, far more energy than the oil cost to make. Belts bring diesel canisters in at the \
+    blurb: "Burns diesel barrels for 400 kW, 2×2×2 (R turns it before you place it): one barrel lasts 100 \
+            seconds at full load, far more energy than the oil cost to make. Belts bring diesel barrels in at the \
             back and take the empties from the front. Wire it to a pole like any power source; it burns only what \
             the grid asks for, after solar, coal and steam.",
 };
@@ -117,12 +116,12 @@ pub const ELECTROLYSER_RECIPE: Recipe = Recipe {
     group: Group::Production,
     count: 1,
     inputs: &[(STEEL_PLATE, 12), (STEEL_BEAM, 4), (b(GLASS), 6), (COPPER_WIRE, 24), (CIRCUIT, 4)],
-    blurb: "Splits water, 2×2×2 (R turns it before you place it): 3 empty canisters and 2 units of water (a pipe to \
-            the blue inlet on its left) make 2 hydrogen canisters out of the front and an oxygen canister out of \
+    blurb: "Splits water, 2×2×2 (R turns it before you place it): 3 empty barrels and 2 units of water (a pipe to \
+            the blue inlet on its left) make 2 hydrogen barrels out of the front and an oxygen barrel out of \
             the violet hatch on the right in 6 seconds. Both gases must be used or stored. Needs 500 kW.",
 };
-pub const CANISTER_RECIPE: Recipe = Recipe {
-    output: EMPTY_CANISTER,
+pub const BARREL_RECIPE: Recipe = Recipe {
+    output: EMPTY_BARREL,
     group: Group::Materials,
     count: 2,
     inputs: &[(STEEL_PLATE, 1)],

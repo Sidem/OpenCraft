@@ -77,6 +77,7 @@ impl World {
                 self.events.push_back(Event::Unload(p));
             }
             self.dirty.remove(&p);
+            self.glows.remove(&p);
         }
         self.generator.retain_columns(keep);
 
@@ -223,6 +224,10 @@ impl World {
         };
         self.dirty.remove(&p);
         let entry = self.chunks.get_mut(&p).expect("centre chunk is loaded");
+        match super::glows::scan(&entry.chunk, p) {
+            g if g.is_empty() => self.glows.remove(&p),
+            g => self.glows.insert(p, g),
+        };
         let quads = out.opaque_quads + out.cutout_quads + out.liquid_quads + out.shaped_opaque + out.shaped_cutout;
         if quads == 0 && !entry.has_mesh {
             return true;

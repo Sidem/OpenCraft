@@ -47,14 +47,14 @@ fn generator(f: &Factory) -> &Processor {
 }
 
 #[test]
-fn it_gives_what_the_grid_lacks_and_hands_the_empty_canister_back() {
+fn it_gives_what_the_grid_lacks_and_hands_the_empty_barrel_back() {
     let mut f = rig(true);
-    assert_eq!(f.insert(GEN, DIESEL_CANISTER, 2), 2);
-    assert_eq!(f.insert(GEN, EMPTY_CANISTER, 1), 0, "only diesel goes in");
+    assert_eq!(f.insert(GEN, DIESEL_BARREL, 2), 2);
+    assert_eq!(f.insert(GEN, EMPTY_BARREL, 1), 0, "only diesel goes in");
     run(&mut f, 10, true);
     let g = generator(&f);
-    assert_eq!((g.input.count(DIESEL_CANISTER), g.out.count(EMPTY_CANISTER)), (1, 1), "one lit, its shell out");
-    let burned = CANISTER_KJ * TICK_RATE - g.store.charge;
+    assert_eq!((g.input.count(DIESEL_BARREL), g.out.count(EMPTY_BARREL)), (1, 1), "one lit, its shell out");
+    let burned = BARREL_KJ * TICK_RATE - g.store.charge;
     assert!(burned > 0 && burned <= 15 * 10 * TICK_RATE, "burned {burned} kW·ticks for a 15 kW load");
     assert_eq!(f.power.supply[0], 15);
     assert!(g.status_text().starts_with("Giving 15 of 400 kW"), "{}", g.status_text());
@@ -63,10 +63,10 @@ fn it_gives_what_the_grid_lacks_and_hands_the_empty_canister_back() {
 #[test]
 fn with_no_load_it_burns_nothing_and_stands_by() {
     let mut f = rig(false);
-    f.insert(GEN, DIESEL_CANISTER, 2);
+    f.insert(GEN, DIESEL_BARREL, 2);
     run(&mut f, 5, false);
     let g = generator(&f);
-    assert_eq!((g.input.count(DIESEL_CANISTER), g.store.charge), (2, 0));
+    assert_eq!((g.input.count(DIESEL_BARREL), g.store.charge), (2, 0));
     assert!(g.status_text().starts_with("Standing by"), "{}", g.status_text());
     assert_eq!(f.power.capacity[0], DIESEL_KW, "it could give 400 kW");
 }
@@ -76,12 +76,12 @@ fn a_full_output_stops_it_lighting_and_an_empty_one_says_so() {
     let mut f = rig(true);
     run(&mut f, 2, true);
     assert!(generator(&f).status_text().starts_with("Out of fuel"));
-    f.insert(GEN, DIESEL_CANISTER, 1);
+    f.insert(GEN, DIESEL_BARREL, 1);
     let crate::factory::Slot::Process(i) = f.at[&GEN] else { unreachable!() };
-    f.processors[i as usize].out.add(EMPTY_CANISTER, 16);
+    f.processors[i as usize].out.add(EMPTY_BARREL, 16);
     run(&mut f, 2, true);
     let g = generator(&f);
-    assert_eq!((g.status, g.input.count(DIESEL_CANISTER), g.store.charge), (Status::OutputFull, 1, 0));
+    assert_eq!((g.status, g.input.count(DIESEL_BARREL), g.store.charge), (Status::OutputFull, 1, 0));
     assert_eq!(f.power.supply[0], 0);
 }
 

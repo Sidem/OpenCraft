@@ -22,7 +22,7 @@ fn generators_show_what_they_make_and_what_they_burn() {
     let reactor = rows(ItemId::block(REACTOR));
     assert!(reactor.contains("size\tSize\t3×3×3") && reactor.contains("up to 2,000 kW"), "{reactor}");
     assert!(reactor.contains("Fuel Cell"), "{reactor}");
-    assert!(rows(ItemId::block(DIESEL_GENERATOR)).contains("Diesel Canister"));
+    assert!(rows(ItemId::block(DIESEL_GENERATOR)).contains("Diesel Barrel"));
 }
 
 #[test]

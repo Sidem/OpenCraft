@@ -282,22 +282,24 @@ impl Power {
 }
 
 impl Factory {
-    /// Wires between linked poles and from each powered machine to its pole, as thin sagging segments.
-    pub(super) fn write_wires(&self, out: &mut Vec<f32>, eye: Vec3, range: f64) {
+    /// Every wire whose middle is within `range` of `eye`: between linked poles and from each powered machine to its
+    /// pole, as its two ends in the world, the texture layer of its grid's colour and whether it runs between two
+    /// real poles (not cables), the only spans that may stand on props (`wire_props.rs` draws them all).
+    pub fn for_each_wire(&self, eye: Vec3, range: f64, mut each: impl FnMut(Vec3, Vec3, u16, bool)) {
         let top = |pos: IVec3, h: f64| pos.as_vec3() + Vec3::new(0.5, h, 0.5);
         // A pole's wire leaves its crossarm, a cable's its centre.
         let pole = |i: u32| self.poles[i as usize].wire_point();
         // A wire wears the colour of the grid it hangs from.
-        let mut span = |a: Vec3, b: Vec3, from: u32| {
+        let mut span = |a: Vec3, b: Vec3, from: u32, poles: bool| {
             let mid = (a + b) * 0.5 - eye;
             if mid.x * mid.x + mid.y * mid.y + mid.z * mid.z <= range * range {
-                wire(out, a - eye, b - eye, self.power.pole_layer(from));
+                each(a, b, self.power.pole_layer(from), poles);
             }
         };
         // Cables touching each other need no wire: their models meet.
         let bare = |i: u32| self.poles[i as usize].is_cable();
         for &(i, j) in self.power.wires.iter().filter(|&&(i, j)| !(bare(i) && bare(j))) {
-            span(pole(i), pole(j), i);
+            span(pole(i), pole(j), i, !bare(i) && !bare(j));
         }
         // A multi-block processor's wire goes to its cell nearest the pole.
         let hook = |(p, pole): (&Processor, &Option<u32>)| {
@@ -315,7 +317,7 @@ impl Factory {
         for (poles, positions) in hookups {
             for (p, pos) in poles.iter().zip(positions) {
                 if let Some(p) = *p {
-                    span(pole(p), top(pos, 0.7), p);
+                    span(pole(p), top(pos, 0.7), p, false);
                 }
             }
         }
@@ -355,18 +357,22 @@ fn root(parent: &mut [u32], mut i: u32) -> u32 {
     i
 }
 
+/// The point a share `t` (0..1) of the way along the wire from `a` to `b`: the straight line dropped by a parabola
+/// whose depth is a twenty-fifth of the span. Drawing (`wire`) and the props under wires (`wire_props.rs`) share it.
+pub fn sag_point(a: Vec3, b: Vec3, t: f64) -> Vec3 {
+    let d = b - a;
+    let sag = 0.04 * (d.x * d.x + d.y * d.y + d.z * d.z).sqrt();
+    a + d * t - Vec3::new(0.0, sag * 4.0 * t * (1.0 - t), 0.0)
+}
+
 /// A wire from `a` to `b` (camera-relative) as one sagging string, drawn with texture `layer`: straight
 /// pieces, each turned (yaw and pitch) to run from one point of the curve to the next, so the joints meet
 /// however steep the span.
-pub(super) fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3, layer: u16) {
+pub fn wire(out: &mut Vec<f32>, a: Vec3, b: Vec3, layer: u16) {
     let d = b - a;
     let len = (d.x * d.x + d.y * d.y + d.z * d.z).sqrt();
     let n = ((len * 0.5).ceil() as usize).max(2);
-    let sag = 0.04 * len;
-    let point = |i: usize| {
-        let t = i as f64 / n as f64;
-        a + d * t - Vec3::new(0.0, sag * 4.0 * t * (1.0 - t), 0.0)
-    };
+    let point = |i: usize| sag_point(a, b, i as f64 / n as f64);
     let mut from = point(0);
     for i in 1..=n {
         let to = point(i);

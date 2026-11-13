@@ -129,7 +129,7 @@ export class RecipePicker {
 
   private buildCard(id: number): Card {
     const g = this.game;
-    // A launch's product is the satellite it sends up; the empty canisters it gives back show as "Also gives".
+    // A launch's product is the satellite it sends up; the empty barrels it gives back show as "Also gives".
     const payload = g.machine_recipe_payload(id);
     const outs = payload ? [payload, 1, ...g.machine_recipe_output(id)] : Array.from(g.machine_recipe_output(id));
     const ins = g.machine_recipe_inputs(id);

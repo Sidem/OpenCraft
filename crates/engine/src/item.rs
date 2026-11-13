@@ -182,9 +182,9 @@ pub struct ItemDef {
     pub places: BlockId,
 }
 
-/// Whether `id` is a fluid canister (one of the drums).
-pub fn is_canister(id: ItemId) -> bool {
-    def(id).is_some_and(|d| d.size == CANISTER_SIZE)
+/// Whether `id` is a fluid barrel (one of the drums).
+pub fn is_barrel(id: ItemId) -> bool {
+    def(id).is_some_and(|d| d.size == BARREL_SIZE)
 }
 
 /// Looks up an item; `None` for ids in neither table.
@@ -304,17 +304,17 @@ const EXTRA: [ItemDef; 145] = [
     ItemDef { name: "Rail Signal", stack: 64, tex: [tex::SIGNAL; 3], size: [0.4, 0.8, 0.4], places: AIR },
     device("Hover Pack", tex::HOVER_PACK, [0.8, 0.5, 0.4]),
     part("Cargo Drone", tex::CARGO_DRONE, [0.8, 0.55, 0.8]),
-    canister("Empty Canister", tex::EMPTY_CANISTER),
-    canister("Crude Oil Canister", tex::CRUDE_CANISTER),
-    canister("Naphtha Canister", tex::NAPHTHA_CANISTER),
-    canister("Diesel Canister", tex::DIESEL_CANISTER),
-    canister("Heavy Oil Canister", tex::HEAVY_OIL_CANISTER),
+    barrel("Empty Barrel", tex::EMPTY_BARREL),
+    barrel("Crude Oil Barrel", tex::CRUDE_BARREL),
+    barrel("Naphtha Barrel", tex::NAPHTHA_BARREL),
+    barrel("Diesel Barrel", tex::DIESEL_BARREL),
+    barrel("Heavy Oil Barrel", tex::HEAVY_OIL_BARREL),
     part("Sulfur", tex::SULFUR, [0.6, 0.4, 0.6]),
     part("Plastic", tex::PLASTIC, [0.85, 0.12, 0.6]),
-    canister("Acid Canister", tex::ACID_CANISTER),
-    canister("Lubricant Canister", tex::LUBRICANT_CANISTER),
-    canister("Hydrogen Canister", tex::HYDROGEN_CANISTER),
-    canister("Oxygen Canister", tex::OXYGEN_CANISTER),
+    barrel("Acid Barrel", tex::ACID_BARREL),
+    barrel("Lubricant Barrel", tex::LUBRICANT_BARREL),
+    barrel("Hydrogen Barrel", tex::HYDROGEN_BARREL),
+    barrel("Oxygen Barrel", tex::OXYGEN_BARREL),
     part("Washed Iron", tex::WASHED_IRON, [0.6, 0.4, 0.6]),
     part("Washed Copper", tex::WASHED_COPPER, [0.6, 0.4, 0.6]),
     part("Washed Bauxite", tex::WASHED_BAUXITE, [0.6, 0.4, 0.6]),
@@ -335,7 +335,7 @@ const EXTRA: [ItemDef; 145] = [
     machine("Underpass Mk3", [tex::BELT_MK3_TOP, tex::UNDERPASS_IN_SIDE, tex::FRAME]),
     machine("Underpass Mk4", [tex::BELT_MK4_TOP, tex::UNDERPASS_IN_SIDE, tex::FRAME]),
     ItemDef { name: "Recycling Coin", stack: COIN_STACK, tex: [tex::COIN; 3], size: [0.6, 0.1, 0.6], places: AIR },
-    canister("Pure Water Canister", tex::PURE_WATER_CANISTER),
+    barrel("Pure Water Barrel", tex::PURE_WATER_BARREL),
     part("Wafer", tex::WAFER, [0.7, 0.08, 0.7]),
     part("AI Accelerator", tex::ACCELERATOR, [0.8, 0.12, 0.6]),
     device("Hauler Pack Mk3", tex::HAULER_PACK_MK3, PACK),
@@ -346,7 +346,7 @@ const EXTRA: [ItemDef; 145] = [
     part("Rocket Engine", tex::ROCKET_ENGINE, [0.7, 0.8, 0.7]),
     part("Fuel Tank", tex::FUEL_TANK, [0.6, 0.85, 0.6]),
     part("Avionics", tex::AVIONICS, [0.7, 0.14, 0.7]),
-    canister("Rocket Fuel Canister", tex::ROCKET_FUEL_CANISTER),
+    barrel("Rocket Fuel Barrel", tex::ROCKET_FUEL_BARREL),
     part("Survey Satellite", tex::SURVEY_SATELLITE, [0.9, 0.5, 0.9]),
     part("Comms Satellite", tex::COMMS_SATELLITE, [0.9, 0.5, 0.9]),
     part("Power Satellite", tex::POWER_SATELLITE, [0.9, 0.5, 0.9]),

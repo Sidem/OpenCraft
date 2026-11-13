@@ -59,7 +59,7 @@ fn reactor(f: &Factory) -> &Processor {
 fn it_takes_only_fuel_cells_and_gives_what_the_grid_lacks() {
     let mut f = rig(true);
     assert_eq!(f.insert(REACTOR_AT, FUEL_CELL, 2), 2);
-    assert_eq!(f.insert(REACTOR_AT, DIESEL_CANISTER, 1), 0, "only fuel cells go in");
+    assert_eq!(f.insert(REACTOR_AT, DIESEL_BARREL, 1), 0, "only fuel cells go in");
     reactor_mut(&mut f).steam.water = COOLANT_UNIT;
     run(&mut f, 10, true);
     let r = reactor(&f);

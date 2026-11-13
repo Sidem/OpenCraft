@@ -1,16 +1,16 @@
 //! The diesel generator (Milestone 10): a processor that is a power source, like a steam turbine or a solar panel
-//! (`steam.rs`, `solar.rs`) but fuelled by canisters. Belts bring diesel canisters in at the back; when its grid
-//! lacks power and what it holds can't cover this tick it lights one, which gives `CANISTER_KJ` and hands the empty
-//! canister to the output at once (a full output stops it lighting). It gives only what the grid lacks, up to
-//! `DIESEL_KW`, so a canister lasts exactly as long as the load allows.
+//! (`steam.rs`, `solar.rs`) but fuelled by barrels. Belts bring diesel barrels in at the back; when its grid
+//! lacks power and what it holds can't cover this tick it lights one, which gives `BARREL_KJ` and hands the empty
+//! barrel to the output at once (a full output stops it lighting). It gives only what the grid lacks, up to
+//! `DIESEL_KW`, so a barrel lasts exactly as long as the load allows.
 //!
 //! - The energy it holds is `Store::charge` in kW·ticks (1 kJ = `TICK_RATE`), saved for it like an accumulator's.
 //! - Power order (`Power::balance`): sun and accumulators, coal generators, steam turbines, then diesel.
 //!
-//! To add another canister-fuelled source: an `Energy` variant, a spec like this and its arm in `run`.
+//! To add another barrel-fuelled source: an `Energy` variant, a spec like this and its arm in `run`.
 
 use crate::block::{tex, DIESEL_GENERATOR};
-use crate::item::{DIESEL_CANISTER, EMPTY_CANISTER};
+use crate::item::{DIESEL_BARREL, EMPTY_BARREL};
 use crate::TICK_RATE;
 
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
@@ -22,9 +22,9 @@ use crate::inventory::Stack;
 
 /// The most a diesel generator gives, in kW.
 pub const DIESEL_KW: u32 = 400;
-/// The energy of a diesel canister in kJ: 400 kW for 100 s (coal is 270 kJ an item).
-pub const CANISTER_KJ: u32 = 40_000;
-const CANISTER_CHARGE: u32 = CANISTER_KJ * TICK_RATE;
+/// The energy of a diesel barrel in kJ: 400 kW for 100 s (coal is 270 kJ an item).
+pub const BARREL_KJ: u32 = 40_000;
+const BARREL_CHARGE: u32 = BARREL_KJ * TICK_RATE;
 
 pub const DIESEL_SPEC: ProcessSpec = ProcessSpec {
     block: DIESEL_GENERATOR,
@@ -41,8 +41,8 @@ pub const DIESEL_SPEC: ProcessSpec = ProcessSpec {
         ],
     },
     verb: "Generating",
-    products: "empty canisters",
-    waiting: "Waiting for diesel canisters",
+    products: "empty barrels",
+    waiting: "Waiting for diesel barrels",
     map_colour: 0xc8742a,
     compute: 0,
     parts: &DIESEL_PARTS,
@@ -75,17 +75,15 @@ impl Processor {
             Status::Working => {
                 format!("Giving {} of {DIESEL_KW} kW · {} kJ lit", self.store.given, self.store.charge / TICK_RATE)
             }
-            Status::NoFuel => "Out of fuel: bring diesel canisters".to_string(),
-            Status::OutputFull => {
-                "Empty canisters have nowhere to go: put a belt leading away, or take them".to_string()
-            }
+            Status::NoFuel => "Out of fuel: bring diesel barrels".to_string(),
+            Status::OutputFull => "Empty barrels have nowhere to go: put a belt leading away, or take them".to_string(),
             Status::NoPower => NOT_WIRED.to_string(),
             _ => "Standing by: the grid wants no more power".to_string(),
         })
     }
 }
 
-/// One tick of every diesel generator on a grid: each gives what its grid still lacks, lighting a canister when it
+/// One tick of every diesel generator on a grid: each gives what its grid still lacks, lighting a barrel when it
 /// must. Called by `Power::balance` after the demands, the sun, the generators and the turbines.
 pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], generators: &[u32]) {
     for &i in generators {
@@ -98,13 +96,13 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], g
         let grid = power.pole_grid[pole as usize] as usize;
         let want = (power.demand[grid] - power.supply[grid].min(power.demand[grid])).min(DIESEL_KW);
         let mut stuck = false;
-        if want > p.store.charge && p.input.count(DIESEL_CANISTER) > 0 {
-            if p.out.space_for(EMPTY_CANISTER) > 0 {
-                p.input.remove(DIESEL_CANISTER, 1);
-                p.out.add(EMPTY_CANISTER, 1);
-                p.used.push(Stack { item: DIESEL_CANISTER, count: 1 });
-                p.made.push(Stack { item: EMPTY_CANISTER, count: 1 });
-                p.store.charge += CANISTER_CHARGE;
+        if want > p.store.charge && p.input.count(DIESEL_BARREL) > 0 {
+            if p.out.space_for(EMPTY_BARREL) > 0 {
+                p.input.remove(DIESEL_BARREL, 1);
+                p.out.add(EMPTY_BARREL, 1);
+                p.used.push(Stack { item: DIESEL_BARREL, count: 1 });
+                p.made.push(Stack { item: EMPTY_BARREL, count: 1 });
+                p.store.charge += BARREL_CHARGE;
             } else {
                 stuck = true;
             }
@@ -112,7 +110,7 @@ pub(in crate::factory) fn run(power: &mut Power, processors: &mut [Processor], g
         let given = want.min(p.store.charge);
         p.store.charge -= given;
         p.store.given = given;
-        let fuelled = p.store.charge > 0 || p.input.count(DIESEL_CANISTER) > 0;
+        let fuelled = p.store.charge > 0 || p.input.count(DIESEL_BARREL) > 0;
         power.give(Source::Diesel, grid, given, if fuelled { DIESEL_KW } else { 0 });
         p.status = match () {
             _ if given > 0 => Status::Working,

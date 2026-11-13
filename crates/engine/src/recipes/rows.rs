@@ -24,8 +24,8 @@ pub const DRONE_RECIPES: [u16; 6] = [31, 32, 33, 34, 35, 36];
 pub const BAUXITE_RECIPES: [u16; 4] = [37, 38, 39, 40];
 /// The assembler's cargo drone (Cargo Drones).
 pub const CARGO_RECIPE: u16 = 41;
-/// The constructor's empty canister (Oil Processing).
-pub const CANISTER_MACHINE_RECIPE: u16 = 42;
+/// The constructor's empty barrel (Oil Processing).
+pub const BARREL_MACHINE_RECIPE: u16 = 42;
 /// The refinery's Distil and the cracker's Crack (Refining).
 pub const DISTIL_RECIPE: u16 = 43;
 pub const CRACK_RECIPE: u16 = 44;

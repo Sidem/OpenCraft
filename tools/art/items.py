@@ -1,7 +1,7 @@
 """Item materials (docs/ART_STYLE.md): the surfaces that skin small models and machine lights, not pictures. Metals are
 bevelled slabs with a brushed grain and a stamp; rubble (crushed, washed ores, tailings, sulfur, plastic) is a field of lit
 grains; science packs are glowing liquid under a glass meniscus; the avatar's parts, the status lamps, the tier stripes, the
-ladder and smoke are small recipes of their own. Pictures (tools, canisters, robot parts) are in `icons.py`.
+ladder and smoke are small recipes of their own. Pictures (tools, barrels, robot parts) are in `icons.py`.
 """
 import numpy as np
 

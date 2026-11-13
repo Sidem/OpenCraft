@@ -15,8 +15,8 @@ pub const LAUNCH_SITE_RECIPE: Recipe = Recipe {
     inputs: &[(b(CONCRETE), 200), (STEEL_BEAM, 60), (MOTOR, 20)],
     blurb: "A pad and gantry, 7×7 and 6 high (R turns it before you place it). Belts bring rocket parts, fuel and a \
             satellite in at the back hatches. With 4 light frames, 2 engines, 2 fuel tanks, an avionics, 8 rocket fuel \
-            canisters and a survey satellite it builds a rocket in a minute and launches the satellite into orbit; the \
-            empty canisters come out of the front. Needs 2 MW. A pad missing a part says which.",
+            barrels and a survey satellite it builds a rocket in a minute and launches the satellite into orbit; the \
+            empty barrels come out of the front. Needs 2 MW. A pad missing a part says which.",
 };
 
 pub const RECTENNA_RECIPE: Recipe = Recipe {
@@ -88,14 +88,14 @@ pub const ORBIT: &[MachineRecipe] = &[
         outputs: &[(AVIONICS, 1)],
         seconds: 30.0,
     },
-    // Three shells in, three out: the fuel canister and two empties.
+    // Three shells in, three out: the fuel barrel and two empties.
     MachineRecipe {
         category: Category::Chemistry,
-        inputs: &[(HYDROGEN_CANISTER, 2), (OXYGEN_CANISTER, 1)],
-        outputs: &[(ROCKET_FUEL_CANISTER, 1), (EMPTY_CANISTER, 2)],
+        inputs: &[(HYDROGEN_BARREL, 2), (OXYGEN_BARREL, 1)],
+        outputs: &[(ROCKET_FUEL_BARREL, 1), (EMPTY_BARREL, 2)],
         seconds: 6.0,
     },
-    // The launch: everything is used up, the fuel's eight empty canisters come back, and the satellite is in orbit
+    // The launch: everything is used up, the fuel's eight empty barrels come back, and the satellite is in orbit
     // (`satellites.rs`). One row a kind of satellite; the payload is always the last input.
     MachineRecipe {
         category: Category::Launch,
@@ -104,10 +104,10 @@ pub const ORBIT: &[MachineRecipe] = &[
             (ROCKET_ENGINE, 2),
             (FUEL_TANK, 2),
             (AVIONICS, 1),
-            (ROCKET_FUEL_CANISTER, 8),
+            (ROCKET_FUEL_BARREL, 8),
             (SURVEY_SATELLITE, 1),
         ],
-        outputs: &[(EMPTY_CANISTER, 8)],
+        outputs: &[(EMPTY_BARREL, 8)],
         seconds: 60.0,
     },
     MachineRecipe {
@@ -130,10 +130,10 @@ pub const ORBIT: &[MachineRecipe] = &[
             (ROCKET_ENGINE, 2),
             (FUEL_TANK, 2),
             (AVIONICS, 1),
-            (ROCKET_FUEL_CANISTER, 8),
+            (ROCKET_FUEL_BARREL, 8),
             (COMMS_SATELLITE, 1),
         ],
-        outputs: &[(EMPTY_CANISTER, 8)],
+        outputs: &[(EMPTY_BARREL, 8)],
         seconds: 60.0,
     },
     // The power satellite (tech Orbital Power) and the launch that carries it.
@@ -150,10 +150,10 @@ pub const ORBIT: &[MachineRecipe] = &[
             (ROCKET_ENGINE, 2),
             (FUEL_TANK, 2),
             (AVIONICS, 1),
-            (ROCKET_FUEL_CANISTER, 8),
+            (ROCKET_FUEL_BARREL, 8),
             (POWER_SATELLITE, 1),
         ],
-        outputs: &[(EMPTY_CANISTER, 8)],
+        outputs: &[(EMPTY_BARREL, 8)],
         seconds: 60.0,
     },
     // The science satellite (tech Orbital Science) and the launch that carries it.
@@ -170,10 +170,10 @@ pub const ORBIT: &[MachineRecipe] = &[
             (ROCKET_ENGINE, 2),
             (FUEL_TANK, 2),
             (AVIONICS, 1),
-            (ROCKET_FUEL_CANISTER, 8),
+            (ROCKET_FUEL_BARREL, 8),
             (SCIENCE_SATELLITE, 1),
         ],
-        outputs: &[(EMPTY_CANISTER, 8)],
+        outputs: &[(EMPTY_BARREL, 8)],
         seconds: 60.0,
     },
     // The drop pod (tech Drop Pods): a pod launcher spends one for each load it sends.

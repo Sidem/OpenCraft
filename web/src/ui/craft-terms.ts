@@ -12,7 +12,7 @@ const ROWS: [string, string][] = [
   ],
   [
     'water|fluid|fluids|liquid|pipe|pipes|pump|pumping|plumbing',
-    'pump|pipe|outlet|boiler|water wheel|steam turbine|washer|cooling tower|electrolyser|canister|silo',
+    'pump|pipe|outlet|boiler|water wheel|steam turbine|washer|cooling tower|electrolyser|barrel|silo',
   ],
   ['steam|boil|heat', 'boiler|steam turbine|cooling tower'],
   [
@@ -21,7 +21,9 @@ const ROWS: [string, string][] = [
   ],
   ['fuel|burn|coal|diesel', 'generator|boiler|jetpack|smelter|blast furnace'],
   ['solar|sun|daylight|panel', 'solar|accumulator'],
-  ['storage|store|chest|container|inventory|bulk|stockpile', 'storage box|silo|hauler pack|canister'],
+  ['storage|store|chest|container|inventory|bulk|stockpile', 'storage box|silo|hauler pack|barrel'],
+  // Barrels were called canisters until 2026-11-13.
+  ['canister|canisters|drum|drums|keg', 'barrel'],
   [
     'mine|mining|miner|dig|drill|ore|excavate|extract|quarry|stone|rock',
     'miner|quarry|pickaxe|shovel|core drill|scanner|mining rig|pumpjack|drone port|planner|crusher|washer',
@@ -35,7 +37,7 @@ const ROWS: [string, string][] = [
   ['research|science|lab|laboratory|tech|study|knowledge', 'research|science pack|ai lab'],
   [
     'oil|petroleum|chemical|chemistry|plastic|refine|refining|gas',
-    'pumpjack|refinery|cracker|chemical plant|diesel|canister|electrolyser|centrifuge',
+    'pumpjack|refinery|cracker|chemical plant|diesel|barrel|electrolyser|centrifuge',
   ],
   [
     'compute|computer|data|ai|chip|network|processor|brain|intelligence',

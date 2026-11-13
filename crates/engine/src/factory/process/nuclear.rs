@@ -15,7 +15,7 @@
 //! To add another water-cooled source: an `Energy` variant like this one's and a spec row.
 
 use crate::block::{tex, CENTRIFUGE, REACTOR};
-use crate::item::{ItemId, DIESEL_CANISTER, FUEL_CELL};
+use crate::item::{ItemId, DIESEL_BARREL, FUEL_CELL};
 use crate::recipes::Category;
 use crate::TICK_RATE;
 
@@ -108,12 +108,12 @@ const REACTOR_PARTS: [Part; 6] = [
 ];
 
 impl Processor {
-    /// The one item a generator that burns items takes: diesel canisters, or fuel cells.
+    /// The one item a generator that burns items takes: diesel barrels, or fuel cells.
     pub(super) fn generator_fuel(&self) -> ItemId {
         if self.energy() == Energy::Reactor {
             FUEL_CELL
         } else {
-            DIESEL_CANISTER
+            DIESEL_BARREL
         }
     }
 

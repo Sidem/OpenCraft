@@ -8,7 +8,7 @@ use super::hangar::TIERS as HANGAR_TIERS;
 use super::specs::{Energy, Pick, ProcessSpec};
 use super::steam::TURBINE_KW;
 use crate::block::{BLAST_FURNACE, HOIST, WINCH};
-use crate::item::{self, DIESEL_CANISTER, FUEL_CELL};
+use crate::item::{self, DIESEL_BARREL, FUEL_CELL};
 
 pub fn facts(spec: &ProcessSpec, tier: usize) -> Facts {
     let t = &spec.tiers[tier.min(spec.tiers.len() - 1)];
@@ -34,7 +34,7 @@ pub fn facts(spec: &ProcessSpec, tier: usize) -> Facts {
             f.stat("Stores", format!("{} kJ", fmt_int((super::solar::CHARGE_CAP / crate::TICK_RATE).into())));
         }
         Energy::Diesel => {
-            f.fuel = Some(item::name(DIESEL_CANISTER).to_string());
+            f.fuel = Some(item::name(DIESEL_BARREL).to_string());
             f.makes = Some((super::diesel::DIESEL_KW, ""));
         }
         Energy::Hydro => {

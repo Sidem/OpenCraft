@@ -109,7 +109,7 @@ impl Processor {
 
     pub(super) fn read_store(&mut self, r: &mut ByteReader) -> Option<()> {
         if matches!(self.energy(), Energy::Accumulator | Energy::Diesel | Energy::Reactor) {
-            let cap = CHARGE_CAP.max(super::diesel::CANISTER_KJ * TICK_RATE).max(super::nuclear::CELL_CHARGE);
+            let cap = CHARGE_CAP.max(super::diesel::BARREL_KJ * TICK_RATE).max(super::nuclear::CELL_CHARGE);
             self.store.charge = r.u32()?.min(cap);
         }
         Some(())

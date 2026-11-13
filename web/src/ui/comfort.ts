@@ -1,6 +1,6 @@
 // "Comfort" on the menu's settings page: sliders and choices for the settings that help against motion
 // sickness (comfort/settings.ts): field of view, mouse sensitivity, the movement vignette (ui/vignette.ts),
-// third-person view and the crosshair, which this file also draws from the settings. The menu steps aside
+// third-person view, the hand in first person and the crosshair, which this file also draws from the settings. The menu steps aside
 // while its settings page shows (ui/menu.ts `previewing`), so changes show on the game behind it.
 // To add a control: a row in `SLIDERS` or a choice in the constructor.
 
@@ -39,6 +39,8 @@ export class ComfortPanel {
       ...view.map((s) => this.slider(s)),
       this.slider(third),
       h('p', 'comfort-help', 'Third person shows your character, a fixed shape on screen to anchor your eyes. The crosshair still marks where you aim.'),
+      this.choices('Hand in first person', ['Shown', 'Hidden'], () => (comfort.settings.showHand ? 0 : 1), (i) => comfort.set('showHand', i === 0)),
+      h('p', 'comfort-help', 'Your hand and what it holds, low on the right. It moves only when you dig or use something.'),
       this.choices('Movement vignette', VIGNETTE_LABELS, () => comfort.settings.vignette, (i) => comfort.set('vignette', i)),
       h('p', 'comfort-help', 'Darkens the screen edges while you turn or move fast, which narrows the motion your eyes see.'),
       this.choices('Crosshair style', CROSSHAIR_STYLES.map((k) => STYLE_LABELS[k]), () => CROSSHAIR_STYLES.indexOf(comfort.settings.crosshairStyle), (i) =>

@@ -69,6 +69,10 @@ export interface FrameInfo {
   satellites: Float32Array;
   /** Lights held in hands this frame: camera-relative x, y, z and reach in blocks each (held-light.ts). */
   held: Float32Array;
+  /** Halos round light-giving blocks (engine `halos.rs`): `haloFloats` floats each, `haloCount` of them. */
+  halos: Float32Array;
+  haloCount: number;
+  haloFloats: number;
 }
 
 export interface RenderStats {

@@ -13,7 +13,7 @@
 
 use crate::block::{self, BlockId};
 use crate::factory::{first_maker, tenths, tenths_a_minute, tiers};
-use crate::item::{ItemId, COIN, CRUDE_CANISTER, SCRAP_METAL};
+use crate::item::{ItemId, COIN, CRUDE_BARREL, SCRAP_METAL};
 use crate::recipes::{Category, MACHINE_RECIPES, RECIPES};
 use crate::research::{Research, Unlock, TECHS};
 use crate::worldgen::WorldGen;
@@ -38,7 +38,7 @@ pub fn ways(gen: &WorldGen, item: ItemId) -> Vec<Way> {
     }
     out.extend(RECIPES.iter().enumerate().filter(|(_, r)| r.output == item).map(|(i, _)| Way::Hand(i)));
     for (i, r) in MACHINE_RECIPES.iter().enumerate() {
-        // A launch's outputs are the empty canisters coming back: not a way to make canisters.
+        // A launch's outputs are the empty barrels coming back: not a way to make barrels.
         if r.category == Category::Launch || !r.outputs.iter().any(|o| o.0 == item) {
             continue;
         }
@@ -214,7 +214,7 @@ const FOUND: &[(ItemId, &str)] = &[
     (b(block::BASALT), "The black rock of basalt fields."),
     (b(block::SPENT_ROCK), "What ore turns into once a miner has drawn its share out: dig it where a deposit ran dry."),
     (SCRAP_METAL, "Break the rusted plating, girders and machines of ruins. Taking iron things apart gives some too."),
-    (CRUDE_CANISTER, "A pumpjack set on oil sand fills empty canisters with crude oil."),
+    (CRUDE_BARREL, "A pumpjack set on oil sand fills empty barrels with crude oil."),
     (COIN, "A recycler pays coins for the items it destroys."),
 ];
 

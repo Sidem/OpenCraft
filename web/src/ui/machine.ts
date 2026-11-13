@@ -2,7 +2,7 @@
 // `take_panel_request`). It shows inside the inventory screen in place of the build menu (`InventoryPanel.open`'s
 // `beside`), so items move between the two like a chest: click a slot with a stack held to put it in, click a filled
 // slot to take it, Shift-click an inventory stack to put it in. Shows what the machine is doing, its buffers, the
-// recipe choice for machines where the player picks it, a filter's item choice, one-click put-in buttons, a
+// recipe choice for machines where the player picks it, where a filter sends what (ui/filter-panel.ts), one-click put-in buttons, a
 // take-output button, a quarry's choices (ui/quarry.ts; `quarryBox` for its outline), a pod launcher's or pad's channel
 // (ui/pod-channel.ts) and a depot's town on top (ui/town.ts). Sections a machine doesn't use are hidden.
 // Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions.
@@ -11,6 +11,7 @@
 import './machine.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
+import { FilterSection } from './filter-panel';
 import type { Beside, InventoryPanel } from './inventory';
 import { RecipePicker } from './machine-recipes';
 import { ChannelSection } from './pod-channel';
@@ -33,8 +34,7 @@ export class MachinePanel implements Beside {
   private readonly inserts = h('div', 'mp-inserts');
   private readonly put = h('section', 'mp-put');
   private readonly progress = h('div', 'mp-bar');
-  private readonly filterSection = h('section', 'mp-filter');
-  private readonly filterList = h('div', 'mp-inserts');
+  private readonly filter: FilterSection;
   private readonly take: HTMLButtonElement;
   private readonly quarry: QuarrySection;
   private readonly channel: ChannelSection;
@@ -64,7 +64,7 @@ export class MachinePanel implements Beside {
     state.append(this.status, this.rates, this.efficiency, this.progress, this.fire, this.slots, this.take);
 
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
-    this.filterSection.append(h('h3', '', 'Goes straight on'), this.filterList);
+    this.filter = new FilterSection(game, icon);
     this.quarry = new QuarrySection(game);
     this.channel = new ChannelSection(game);
     this.town = new TownSection(game, icon);
@@ -72,7 +72,7 @@ export class MachinePanel implements Beside {
       const current = this.game.machine_panel(...this.pos)[1];
       this.game.set_machine_recipe(...this.pos, current === id ? -1 : id);
     });
-    this.el.append(this.town.el, state, this.quarry.el, this.channel.el, this.filterSection, this.recipeHead, this.recipes.el, this.put);
+    this.el.append(this.town.el, state, this.quarry.el, this.channel.el, this.filter.el, this.recipeHead, this.recipes.el, this.put);
   }
 
   get isOpen(): boolean {
@@ -104,9 +104,11 @@ export class MachinePanel implements Beside {
     this.shown = false;
   }
 
-  /** Shift-click on inventory slot `slot`: puts that item in if the machine takes it. */
+  /** Shift-click on inventory slot `slot`: puts that item in if the machine takes it (a filter with its item picker
+   * open: adds the item to the way the picker is for). */
   shiftSlot(slot: number): boolean {
     const g = this.game;
+    if (g.slot_count(slot) > 0 && this.filter.shiftItem(g.slot_item(slot))) return true;
     if (g.slot_count(slot) === 0 || !g.machine_wants(...this.pos, g.slot_item(slot))) return false;
     g.insert_into_machine(...this.pos, g.slot_item(slot));
     return true;
@@ -158,35 +160,19 @@ export class MachinePanel implements Beside {
     this.take.disabled = output <= 0;
     this.take.classList.toggle('hidden', output < 0);
 
-    const filtering = filter !== 0xffffffff;
-    this.filterSection.classList.toggle('hidden', !filtering);
+    const filtering = filter.length > 0;
+    this.filter.el.classList.toggle('hidden', !filtering);
     this.put.classList.toggle('hidden', filtering || quarry);
     this.progress.classList.toggle('hidden', filtering);
-    if (filtering) this.drawFilter(filter, held);
+    // The filter's cards say the same as its status line.
+    this.status.classList.toggle('hidden', filtering);
+    if (filtering) this.filter.update(this.pos, filter, held, this.inventoryTotals());
     this.recipeHead.classList.toggle('hidden', this.recipes.isEmpty);
     this.recipes.el.classList.toggle('hidden', this.recipes.isEmpty);
     this.recipes.update(recipe === 0xffffffff ? -1 : recipe, choosable === 1);
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from what it gets)';
     if (!filtering && !quarry) this.drawInserts();
     return true;
-  }
-
-  /** The filter's choice: nothing, or any item in the inventory, the current choice or the held item. */
-  private drawFilter(filter: number, held: number): void {
-    const g = this.game;
-    const items = new Set(this.inventoryTotals().keys());
-    if (filter !== 0) items.add(filter);
-    if (held !== 0) items.add(held);
-    const none = button('secondary-btn mp-insert', 'Nothing', () => g.set_machine_filter(...this.pos, 0));
-    none.classList.toggle('active', filter === 0);
-    const buttons = [none];
-    for (const item of items) {
-      const b = button('secondary-btn mp-insert', '', () => g.set_machine_filter(...this.pos, item));
-      b.classList.toggle('active', item === filter);
-      b.append(this.iconCanvas(item, 'mp-chip-icon'), g.item_name(item));
-      buttons.push(b);
-    }
-    this.filterList.replaceChildren(...buttons);
   }
 
   /** Each item in the inventory with how many there are. */

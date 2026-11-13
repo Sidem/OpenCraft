@@ -1,9 +1,9 @@
 //! The launch site (Milestone 12, the Rocketry tech): a 7×7×6 pad and gantry, an ordinary recipe machine
 //! (`Pick::ByInput`, `Category::Launch`, 2 MW). Belts bring the five kinds of rocket part and fuel, and a satellite, in at
 //! the back hatches; once it holds a rocket's worth (`recipes/orbit.rs`: 4 light frames, 2 engines, 2 fuel tanks, an
-//! avionics, 8 fuel canisters, the satellite) a 60 s batch builds it, and when the batch ends the rocket is up:
+//! avionics, 8 fuel barrels, the satellite) a 60 s batch builds it, and when the batch ends the rocket is up:
 //! `launches` counts them (saved for this block only), `lifted` hands the satellite to `Factory::update`, which puts it in
-//! orbit (`satellites.rs`), and the empty canisters come out of the front. A half-fed pad names what it lacks
+//! orbit (`satellites.rs`), and the empty barrels come out of the front. A half-fed pad names what it lacks
 //! (`half_fed_text`); its readout also says how many of each kind are up and over the pad (`sky_line`).
 //!
 //! To make another launch: a `Category::Launch` recipe row whose last input is the satellite item (a `satellites::KINDS` row).
@@ -25,7 +25,7 @@ pub const LAUNCH_SPEC: ProcessSpec = ProcessSpec {
     block: LAUNCH_SITE,
     categories: &[Category::Launch],
     pick: Pick::ByInput,
-    // Light frames, engines, fuel tanks, avionics, fuel canisters and the satellite: one slot for each.
+    // Light frames, engines, fuel tanks, avionics, fuel barrels and the satellite: one slot for each.
     buffers: [6, 0, 1],
     side: 0,
     tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 2000 }],
@@ -37,8 +37,8 @@ pub const LAUNCH_SPEC: ProcessSpec = ProcessSpec {
         ],
     },
     verb: "Building a rocket",
-    products: "empty canisters",
-    waiting: "Waiting for light frames, rocket engines, fuel tanks, avionics, rocket fuel canisters and a satellite",
+    products: "empty barrels",
+    waiting: "Waiting for light frames, rocket engines, fuel tanks, avionics, rocket fuel barrels and a satellite",
     map_colour: 0xe8ecf4,
     compute: 0,
     parts: &LAUNCH_PARTS,

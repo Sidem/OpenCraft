@@ -445,6 +445,7 @@ fn players_see_each_other_through_state_bytes() {
 #[test]
 fn items_live_on_the_host_and_clients_draw_them() {
     let (mut host, mut client) = ready_pair();
+    client.set_show_hand(false);
     let a = host.spawn + Vec3::new(12.0, 0.0, 0.0);
     host.teleport(a.x, a.y, a.z);
     client.act(Action::Give { item: STONE.into(), count: 1 });

@@ -348,7 +348,8 @@ fn brighter(a: u8, b: u8) -> u8 {
 }
 
 impl Factory {
-    /// Writes box instances for every machine within `range` of the camera.
+    /// Writes box instances for every machine within `range` of the camera. Power wires are drawn by the host's view
+    /// (`wire_props.rs`, from `for_each_wire`), which lifts them over the ground.
     pub fn write_instances(&self, out: &mut Vec<f32>, eye: Vec3, time: f64, range: f64) {
         models(&self.belts, out, eye, time, range);
         models(&self.miners, out, eye, time, range);
@@ -368,7 +369,6 @@ impl Factory {
         models(&self.rails, out, eye, time, range);
         self.write_tracks(out, eye, range);
         self.write_train_models(out, eye, time, range);
-        self.write_wires(out, eye, range);
         self.write_cables(out, eye, range);
     }
 

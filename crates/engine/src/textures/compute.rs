@@ -1,17 +1,17 @@
-//! Compute (Milestone 11): the pure water canister (the canister drawing with a clear band), the wafer (a bluish disc
+//! Compute (Milestone 11): the pure water barrel (the barrel drawing with a clear band), the wafer (a bluish disc
 //! on a dark ground with a die grid), the AI accelerator (a dark board with a gold-pinned chip) and the chip fab's
 //! clean-room panels and roof fan grille. Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
 
-use super::chemistry::canister;
+use super::chemistry::barrel;
 use super::{frame, n, rgb, smooth};
 
 const PURE_BAND: [f64; 3] = [190.0, 236.0, 250.0];
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
-        tex::PURE_WATER_CANISTER => canister(x, y, PURE_BAND),
+        tex::PURE_WATER_BARREL => barrel(x, y, PURE_BAND),
         tex::WAFER => wafer(x, y),
         tex::ACCELERATOR => accelerator(x, y),
         tex::FAB_SIDE => fab_side(x, y),

@@ -516,7 +516,8 @@ fn a_filter_sends_its_item_straight_on_and_the_rest_aside() {
     f.stock(IVec3::new(0, 0, 0), COAL_ORE.into(), 10);
     f.add_belt(IVec3::new(1, 0, 0), EAST);
     router(&mut f, IVec3::new(2, 0, 0), EAST, true);
-    f.set_filter(IVec3::new(2, 0, 0), IRON_ORE.into());
+    // An old filter's rules (before save version 72): its item straight on, the rest shared by both sides.
+    f.routers.last_mut().unwrap().rules = super::filter_rules::FilterRules::legacy(IRON_ORE.into());
     let front = belt_to_box(&mut f, IVec3::new(3, 0, 0), EAST);
     let left = belt_to_box(&mut f, IVec3::new(2, 0, -1), NORTH);
     let right = belt_to_box(&mut f, IVec3::new(2, 0, 1), SOUTH);
@@ -537,11 +538,37 @@ fn a_filter_sends_its_item_straight_on_and_the_rest_aside() {
 }
 
 #[test]
-fn a_filter_with_no_item_sends_everything_aside() {
+fn a_filter_sends_picks_left_and_right_and_everything_else_the_chosen_way() {
+    use super::filter_rules::{LEFT, RIGHT, STRAIGHT};
+    use crate::block::{COAL_ORE, COPPER_ORE};
+    const NORTH: u8 = 0;
+    let at = IVec3::new(2, 0, 0);
+    let mut f = Factory::default();
+    stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 6);
+    f.stock(IVec3::new(0, 0, 0), COAL_ORE.into(), 6);
+    f.stock(IVec3::new(0, 0, 0), COPPER_ORE.into(), 6);
+    f.add_belt(IVec3::new(1, 0, 0), EAST);
+    router(&mut f, at, EAST, true);
+    f.filter_pick(at, COAL_ORE.into(), LEFT);
+    f.filter_pick(at, IRON_ORE.into(), STRAIGHT);
+    // Moving iron to the right takes it off the straight list; making the right the rest would clear its picks.
+    f.filter_pick(at, IRON_ORE.into(), RIGHT);
+    let front = belt_to_box(&mut f, IVec3::new(3, 0, 0), EAST);
+    let left = belt_to_box(&mut f, IVec3::new(2, 0, -1), NORTH);
+    let right = belt_to_box(&mut f, IVec3::new(2, 0, 1), SOUTH);
+    run(&mut f, 30.0, spacing_ok);
+    let count = |pos, item: crate::block::BlockId| f.storage_count_at(pos, item.into());
+    assert_eq!((count(left, COAL_ORE), count(right, IRON_ORE), count(front, COPPER_ORE)), (6, 6, 6));
+    assert_eq!(count(front, IRON_ORE) + count(front, COAL_ORE) + count(left, IRON_ORE), 0);
+}
+
+#[test]
+fn a_filter_with_everything_else_to_the_right_sends_all_there() {
     let mut f = Factory::default();
     stocked_box(&mut f, IVec3::new(0, 0, 0), IRON_ORE.into(), 6);
     f.add_belt(IVec3::new(1, 0, 0), EAST);
     router(&mut f, IVec3::new(2, 0, 0), EAST, true);
+    f.filter_rest(IVec3::new(2, 0, 0), super::filter_rules::RIGHT);
     let front = belt_to_box(&mut f, IVec3::new(3, 0, 0), EAST);
     let right = belt_to_box(&mut f, IVec3::new(2, 0, 1), SOUTH);
     run(&mut f, 15.0, spacing_ok);

@@ -194,7 +194,7 @@ pub const HINTS: &[Hint] = &[
     Hint {
         text:
             "Oil: research Oil Processing, find *oil sand* with the Scanner Mk2 (200 or more blocks out, deep down) and \
-               stand a *pumpjack* right above it. It fills empty canisters, pressed from steel plates, with crude oil; \
+               stand a *pumpjack* right above it. It fills empty barrels, pressed from steel plates, with crude oil; \
                the refinery splits that into naphtha, diesel, heavy oil and sulfur, and every stream must be used or \
                stored. Diesel generators burn the diesel; the chemical plant makes plastic.",
         done: |_, f| f.processors_of(PUMPJACK) > 0,
@@ -232,8 +232,8 @@ pub const HINTS: &[Hint] = &[
     },
     Hint {
         text: "Rockets: research Rocketry and build a *launch site* (7×7×6, 2 MW). Belt 4 light frames, 2 engines, 2 \
-               fuel tanks, avionics, 8 *rocket fuel* canisters and a *satellite* into its back hatches: a minute later \
-               the satellite is in orbit and the empty canisters come out of the front.",
+               fuel tanks, avionics, 8 *rocket fuel* barrels and a *satellite* into its back hatches: a minute later \
+               the satellite is in orbit and the empty barrels come out of the front.",
         done: |_, f| f.processors_of(LAUNCH_SITE) > 0,
     },
     Hint {

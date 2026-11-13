@@ -2,13 +2,13 @@
 //! All parts use the shared instance draw call. Legs solve a two-link chain to planted/lifting feet;
 //! arms pivot at shoulder and elbow, and each hand's item model (the selected slot right, `offhand.rs` left) follows it.
 
+use super::grip;
 use super::motion::Motion;
+use super::tool_hold::{self, Pose, Stroke};
 use crate::block::tex;
-use crate::factory::{make_round, push_box, Form, INSTANCE_FLOATS};
-use crate::item::{self, ItemId};
-use crate::item_models;
+use crate::factory::{make_round, push_box, Axis, INSTANCE_FLOATS};
+use crate::item::ItemId;
 use crate::math::Vec3;
-use crate::tools::{self, ToolKind};
 use std::f64::consts::{FRAC_PI_2, PI};
 
 const NEAR: f64 = 0.9;
@@ -29,7 +29,7 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
     rig.part(torso, [0.46, 0.43, 0.3], lean, roll, 1.22, tex::AVATAR_SKIN);
     rig.part(torso + Vec3::new(0.0, 0.04, -0.164), [0.27, 0.23, 0.025], lean, roll, 0.72, tex::AVATAR_SUIT);
     rig.part(torso + Vec3::new(0.0, 0.1, -0.183), [0.09, 0.035, 0.015], lean, roll, 1.0, tex::AVATAR_TRIM);
-    // Offset field pack and one canister give the back its own recognisable silhouette.
+    // Offset field pack and one barrel give the back its own recognisable silhouette.
     rig.part(torso + Vec3::new(-0.045, -0.01, 0.23), [0.32, 0.37, 0.17], lean, roll, 0.8, tex::AVATAR_PACK);
     rig.part(torso + Vec3::new(-0.045, -0.03, 0.323), [0.23, 0.06, 0.025], lean, roll, 1.0, tex::AVATAR_HELMET);
     rig.part(torso + Vec3::new(0.2, -0.03, 0.21), [0.1, 0.3, 0.13], lean, roll, 0.85, tex::AVATAR_SKIN);
@@ -99,9 +99,12 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
         let mut upper = walk + m.crouch * 0.28 + m.air * 0.25 + m.swim * 0.8;
         let mut elbow = 0.22 + gait * 0.2 + m.crouch * 0.3;
         if side > 0.0 {
-            let work = 1.15 + m.work_phase.cos() * 0.75 + pitch * 0.65;
+            // Raised at -1, struck at 1, on the held tool's stroke (`tool_hold.rs`).
+            let arm = tool_hold::arm(hands[0], m.work_phase);
+            let work = 1.15 - arm * 0.75 + pitch * 0.65;
             upper = upper * (1.0 - m.mining) + work * m.mining;
-            elbow += (0.65 + m.work_phase.sin() * 0.45) * m.mining;
+            // Bent more when raised, so the head stays behind the hand; opening onto the strike.
+            elbow += (0.75 - arm * 0.15) * m.mining;
             upper = upper * (1.0 - m.using) + (1.35 + pitch * 0.6 + m.use_phase.sin() * 0.13) * m.using;
             elbow *= 1.0 - m.using * 0.8;
         } else {
@@ -121,10 +124,54 @@ pub(super) fn push_avatar(out: &mut Vec<f32>, at: Vec3, yaw: f64, pitch: f64, m:
         rig.part(joint, [0.15, 0.13, 0.16], upper, 0.0, 1.0, tex::AVATAR_JOINT);
         rig.link(joint, wrist, [0.16, 0.0, 0.18], tex::AVATAR_SKIN);
         rig.part(wrist, [0.16, 0.15, 0.16], upper + elbow, 0.0, 0.9, tex::AVATAR_JOINT);
-        rig.held_item(wrist, upper + elbow - FRAC_PI_2, hands[usize::from(side > 0.0)]);
+        // The right hand (+x, the working arm) holds the selected item.
+        let held = hands[usize::from(side < 0.0)];
+        rig.held_item(wrist, upper + elbow - FRAC_PI_2, 0.0, held, 1.0, false, &Pose::default());
     }
     true
 }
+
+/// The first-person view of the right hand: a forearm and glove in the lower right of the view holding `held`, all
+/// at [`VIEW_SCALE`] of the avatar's size and as much nearer, so it looks life-size but stays inside the body (a wall
+/// in front of the face is never nearer than the body's half-width). It turns with the camera; mining swings it a
+/// little and using lifts it (pushing forward would reach into a wall), gently (some players feel sick from a bobbing view: no walking bob).
+pub(super) fn push_view_hand(out: &mut Vec<f32>, yaw: f64, pitch: f64, m: &Motion, held: ItemId) {
+    let mut rig = Rig { out, at: Vec3::ZERO, yaw, head_yaw: yaw };
+    // A tool makes its own stroke (`tool_hold.rs`); anything else bobs evenly with each hit. A sickle cuts with the use
+    // button (`sickle.rs`), so its sweep follows that too.
+    let tool = tool_hold::hold(held).map(|h| h.stroke);
+    let sweeping = tool == Some(Stroke::Sweep) && m.using > m.mining;
+    let pose = match tool {
+        Some(s) if sweeping => tool_hold::pose(s, m.use_phase, m.using),
+        Some(s) => tool_hold::pose(s, m.work_phase, m.mining),
+        None => Pose::default(),
+    };
+    let swing = if tool.is_some() { 0.0 } else { m.mining * (0.5 - 0.5 * m.work_phase.cos()) };
+    let push = if sweeping { 0.0 } else { m.using * m.use_phase.sin().abs() };
+    // In the camera's frame before its pitch: x right, y up, -z ahead. A tool's hand sits a little nearer, so its head
+    // stays inside the body at the far end of its stroke; a shovel's stab drives the hand forward.
+    let near = if tool.is_some() { 0.1 } else { 0.0 };
+    let hand = Vec3::new(
+        0.36 + 0.35 * pose.sweep,
+        -0.3 - 0.05 * swing + 0.05 * push + pose.lift + 0.1 * pose.thrust,
+        -0.5 + near - 0.35 * pose.thrust,
+    ) * VIEW_SCALE;
+    let elbow = Vec3::new(0.36, -0.68, -0.2) * VIEW_SCALE;
+    let at = |p: Vec3| rotate(p, pitch);
+    rig.link(at(elbow), at(hand), [(0.11 * VIEW_SCALE) as f32, 0.0, (0.13 * VIEW_SCALE) as f32], tex::AVATAR_SUIT);
+    let glove = [0.11, 0.09, 0.12].map(|s| (s * VIEW_SCALE) as f32);
+    rig.part(at(hand), glove, pitch, 0.0, 0.9, tex::AVATAR_JOINT);
+    // A tool is posed by its stroke about its grip. Anything else tips its top towards the eye about its own middle, so a
+    // flat item (a plate, a drone) shows its face rather than its edge.
+    let tip = VIEW_TIP_BACK - 0.6 * swing;
+    rig.held_item(at(hand), pitch, tip, held, VIEW_SCALE, true, &pose);
+}
+
+/// How far a held item that isn't a tool tips its top towards the eye in first person, radians.
+const VIEW_TIP_BACK: f64 = 0.45;
+
+/// How much smaller and nearer the first-person hand is than an avatar's.
+const VIEW_SCALE: f64 = 0.33;
 
 struct Rig<'a> {
     out: &'a mut Vec<f32>,
@@ -162,39 +209,18 @@ impl Rig<'_> {
         self.part((from + to) * 0.5, size, (-delta.z).atan2(-delta.y), 0.0, 0.85, layer);
     }
 
-    fn held_item(&mut self, hand: Vec3, pitch: f64, held: ItemId) {
-        let parts = item_models::parts(held);
-        if parts.is_empty() {
-            if let Some(def) = item::def(held).filter(|_| held != ItemId::NONE) {
-                self.part(hand + rotate(Vec3::new(0.0, 0.08, -0.1), pitch), [0.21; 3], pitch, 0.0, 1.0, def.tex[1]);
-                let i = self.out.len() - INSTANCE_FLOATS;
-                self.out[i + 8..i + 11].copy_from_slice(&def.tex.map(f32::from));
-            }
-        } else {
-            // Pick/axe edges run along model +X. Turn them into the arm's YZ swing plane so
-            // their working end leads the stroke. Yaw -90 then roll equals wrist pitch then -90.
-            let edge_on = tools::tool(held).is_some_and(|t| matches!(t.kind, ToolKind::Pickaxe | ToolKind::Axe));
-            let at = self.world(hand);
-            let yaw = self.yaw - if edge_on { FRAC_PI_2 } else { 0.0 };
-            let mut grip = Rig { out: self.out, at, yaw, head_yaw: yaw };
-            for p in parts {
-                let offset = Vec3::new(p.center[0] as f64, p.center[1] as f64 + 0.28, p.center[2] as f64) * 0.55;
-                let (center, tilt, roll) = if edge_on {
-                    let (s, c) = pitch.sin_cos();
-                    (Vec3::new(offset.x * c - offset.y * s, offset.x * s + offset.y * c, offset.z), 0.0, pitch)
-                } else {
-                    (rotate(offset, pitch), pitch, 0.0)
-                };
-                grip.part(center, p.size.map(|v| v * 0.55), tilt, roll, 1.0, p.tex[1]);
-                let i = grip.out.len() - INSTANCE_FLOATS;
-                grip.out[i + 8..i + 11].copy_from_slice(&p.tex.map(f32::from));
-                // A turned part (the cog's teeth) is exact while the wrist is level, close otherwise.
-                grip.out[i + 3] += p.yaw;
-                // A leaned part (the long-distance pole's legs) is held upright: a pitch on top of the wrist's needs the
-                // two rotations composed, and the tower only shows its shape on the icon and in the world.
-                if let Form::Round(axis, taper) = p.form {
-                    make_round(grip.out, axis, taper);
-                }
+    /// `held` in the hand at `hand` turned by `pitch`, at `scale` times its size on an avatar (the first-person view's is
+    /// smaller and nearer, so it looks the same size and never reaches into a wall). Every item is one size (`grip.rs`).
+    #[allow(clippy::too_many_arguments)]
+    fn held_item(&mut self, hand: Vec3, pitch: f64, tip: f64, held: ItemId, scale: f64, view: bool, pose: &Pose) {
+        for p in grip::held_parts(held, hand, pitch, tip, scale, view, pose) {
+            self.part(p.center, p.size, p.pitch, p.roll, 1.0, p.tex[1]);
+            let i = self.out.len() - INSTANCE_FLOATS;
+            self.out[i + 8..i + 11].copy_from_slice(&p.tex.map(f32::from));
+            self.out[i + 3] += p.yaw as f32;
+            if let Some(taper) = p.taper {
+                // Already laid along its axis: only marks it round.
+                make_round(self.out, Axis::Up, taper);
             }
         }
     }

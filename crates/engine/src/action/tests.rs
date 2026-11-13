@@ -498,7 +498,6 @@ fn samples() -> Vec<Action> {
         Action::PlaceBlock { pos, slot: 7, facing: 3, against },
         Action::TakeContents { pos },
         Action::SetRecipe { pos, recipe: u16::MAX },
-        Action::SetFilter { pos, item: IRON_PLATE },
         Action::SetResearch { tech: 2 },
         Action::Insert { pos, item: STONE.into() },
         Action::Craft { recipe: 4, times: 70_000 },
@@ -566,6 +565,8 @@ fn samples() -> Vec<Action> {
         Action::DropStop { train: 7, index: 2 },
         Action::LabelBox { pos, label: 9 },
         Action::Drone { order: DroneOrder::Job(DroneJob::Craft { recipe: 7, times: 3 }), at: pos },
+        Action::FilterPick { pos, item: IRON_PLATE, out: 2 },
+        Action::FilterRest { pos, out: 1 },
     ]
 }
 

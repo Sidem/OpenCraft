@@ -1,6 +1,6 @@
 //! The chip fab (Milestone 11, the Wafers and Accelerators techs): a 4×4×3 clean room, an ordinary recipe machine
 //! (`Pick::ByInput`, `Category::Fabrication`, 1 MW). It takes what either recipe uses, so one fab does both jobs:
-//! - **Wafer** (8 s): 2 silicon, an acid canister and a pure water canister; the two shells come back through the
+//! - **Wafer** (8 s): 2 silicon, an acid barrel and a pure water barrel; the two shells come back through the
 //!   side hatches (the pure water is filled in a chemical plant: `recipes/machine.rs`).
 //! - **AI accelerator** (20 s): 2 wafers, 2 processors and a plastic, so the player belts wafers back in.
 //!
@@ -46,7 +46,7 @@ pub const FAB_SPEC: ProcessSpec = ProcessSpec {
 };
 
 impl Processor {
-    /// What a chip fab or launch site that holds part of a batch still lacks ("Waiting for 1 Acid Canister"); `None` for
+    /// What a chip fab or launch site that holds part of a batch still lacks ("Waiting for 1 Acid Barrel"); `None` for
     /// another machine, one that is working, or an empty one (which says what it takes).
     pub(super) fn half_fed_text(&self) -> Option<String> {
         let category =

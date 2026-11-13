@@ -33,7 +33,7 @@ pub enum Energy {
     Solar,
     /// An accumulator: stores spare solar power and gives it back before any fuel burns (solar.rs).
     Accumulator,
-    /// A diesel generator: a power source burning diesel canisters (diesel.rs).
+    /// A diesel generator: a power source burning diesel barrels (diesel.rs).
     Diesel,
     /// A water wheel: a power source driven by the water that touches it (hydro.rs).
     Hydro,
@@ -80,7 +80,7 @@ pub enum Pick {
     Store,
     /// Takes only drones, up to its fleet, and keeps them for `drones/` to fly (hangar.rs).
     Hangar,
-    /// Takes only empty canisters and fills them from the reservoir below (pump.rs).
+    /// Takes only empty barrels and fills them from the reservoir below (pump.rs).
     Pump,
     /// A loading dock: stores like a silo, and a train stopped on it takes what it holds (docks.rs).
     Load,

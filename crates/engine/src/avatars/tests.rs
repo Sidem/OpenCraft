@@ -6,7 +6,8 @@ use crate::player::Player;
 
 #[test]
 fn pickaxe_point_leads_the_downstroke_in_the_arm_swing_plane_for_every_tier() {
-    let pose = Motion { mining: 1.0, work_phase: PI, ..Default::default() };
+    // The moment of the strike (`tool_hold.rs`).
+    let pose = Motion { mining: 1.0, work_phase: 0.75 * std::f64::consts::TAU, ..Default::default() };
     for held in [STONE_PICKAXE, IRON_PICKAXE, STEEL_PICKAXE] {
         for yaw in [0.0, 0.8] {
             let mut boxes = Vec::new();
@@ -17,7 +18,9 @@ fn pickaxe_point_leads_the_downstroke_in_the_arm_swing_plane_for_every_tier() {
             let to =
                 Vec3::new((point[0] - socket[0]) as f64, (point[1] - socket[1]) as f64, (point[2] - socket[2]) as f64);
             let (s, c) = yaw.sin_cos();
-            assert!(to.x * s - to.z * c > 0.1, "the pick's point faces forward into the strike");
+            // In the right hand (+x), the working arm, not the off hand.
+            assert!(socket[0] as f64 * c + (socket[2] as f64 + 4.0) * s > 0.1, "the pick is in the right hand");
+            assert!(to.x * s - to.z * c > 0.1, "the pick's point faces forward into the strike: {to:?}");
             assert!((to.x * c + to.z * s).abs() < 0.001, "the head stays in the arm's swing plane");
             assert!(to.y < 0.0, "the point leads downward, not the flat face");
         }
@@ -115,4 +118,56 @@ fn work_gestures_articulate_the_arm_and_the_equipped_tool_follows_it() {
     body.gesture = 0;
     pose.advance(&body, 0.05);
     assert!(pose.using > 0.2, "a released placement keeps its follow-through");
+}
+
+#[test]
+fn the_first_person_hand_holds_the_item_low_right_ahead_and_inside_the_body() {
+    for (yaw, pitch) in [(0.0, 0.0), (1.1, 0.9), (-2.4, -1.2)] {
+        let mut empty = Vec::new();
+        model::push_view_hand(&mut empty, yaw, pitch, &Motion::default(), ItemId::NONE);
+        let mut boxes = Vec::new();
+        let swing = Motion { mining: 1.0, work_phase: PI, ..Default::default() };
+        model::push_view_hand(&mut boxes, yaw, pitch, &swing, IRON_PICKAXE);
+        assert!(boxes.len() > empty.len(), "the pick is drawn as well as the hand");
+        let (s, c) = yaw.sin_cos();
+        let (sp, cp) = pitch.sin_cos();
+        let ahead = Vec3::new(s * cp, sp, -c * cp);
+        let right = Vec3::new(c, 0.0, s);
+        // Every item, at rest and through its whole stroke.
+        let strokes: Vec<Motion> = (0..12)
+            .map(|i| i as f64 / 12.0 * std::f64::consts::TAU)
+            .flat_map(|a| {
+                [
+                    Motion { mining: 1.0, work_phase: a, ..Default::default() },
+                    Motion { using: 1.0, use_phase: a, ..Default::default() },
+                ]
+            })
+            .chain([Motion::default()])
+            .collect();
+        for item in (1..crate::item::ITEM_COUNT as u16).map(ItemId) {
+            for motion in &strokes {
+                boxes.clear();
+                model::push_view_hand(&mut boxes, yaw, pitch, motion, item);
+                for b in boxes.chunks_exact(INSTANCE_FLOATS) {
+                    let at = Vec3::new(b[0] as f64, b[1] as f64, b[2] as f64);
+                    let name = crate::item::name(item);
+                    // Within the body's half-width all round, so inside its box whichever way it faces.
+                    let inside = (at.x * at.x + at.z * at.z).sqrt() < crate::player::HALF_WIDTH;
+                    // The body's box reaches 0.18 above the eye (1.8 tall, the eye at 1.62).
+                    let phase = motion.work_phase + motion.use_phase;
+                    assert!(
+                        inside && at.y < 0.18,
+                        "{name} stays inside the body, so never in a wall: {at:?} at {phase}"
+                    );
+                    assert!(
+                        at.x * ahead.x + at.y * ahead.y + at.z * ahead.z > 0.0,
+                        "{name} in front of the eye: {at:?}"
+                    );
+                }
+            }
+        }
+        let hand = &empty[INSTANCE_FLOATS..];
+        let hand = Vec3::new(hand[0] as f64, hand[1] as f64, hand[2] as f64);
+        assert!(hand.x * right.x + hand.z * right.z > 0.05, "on the right of the view");
+    }
 }

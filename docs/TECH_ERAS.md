@@ -112,10 +112,10 @@ Cargo Drones (port to port, battery-limited range) · Hover Pack.
 
 ## 6. Era 7: Chemistry (gold, Milestone 10)
 
-Fluids other than water travel as **canister items** on belts: pipes stay water-only, so oil never exists as a
+Fluids other than water travel as **barrel items** on belts: pipes stay water-only, so oil never exists as a
 flowing block and costs the world simulation nothing (only water flows: `sim/water.rs`, capped at 256 checks a tick,
-measured worst tick 0.09 ms). A canister is a steel shell: **Empty canister** (1 steel plate → 2, constructor). Every
-machine that empties one gives the empty back through its output, so a plant is a loop: empties in, full canisters
+measured worst tick 0.09 ms). A barrel is a steel shell: **Empty barrel** (1 steel plate → 2, constructor). Every
+machine that empties one gives the empty back through its output, so a plant is a loop: empties in, full barrels
 out, and the player routes both. Rivers and hydro, hoists and nuclear power (for what compute will need) land here.
 
 **The new ground (generator version 6, `worldgen/geology.rs` `EXTRAS`):** oil sand (plains and lowlands, 200+ blocks
@@ -127,27 +127,27 @@ lakes, drier and wetter regions (a dry region has a third of the rivers), larger
 
 **Oil economics** (numbers are the plan; tune in the step):
 - **Reserves:** a deposit holds `blocks × grade` units (vein 1,000 a block and about 130 blocks; lode 2,000 and about
-  1,500). One **crude canister is 10 units**. A pumpjack (built, step 10.2) draws up to 5 units/s (recovery 0.9:
-  0.45 canisters/s, 27 a minute) but a deposit's draw cap is shared (vein 4 units/s, so about 22 canisters a minute from
+  1,500). One **crude barrel is 10 units**. A pumpjack (built, step 10.2) draws up to 5 units/s (recovery 0.9:
+  0.45 barrels/s, 27 a minute) but a deposit's draw cap is shared (vein 4 units/s, so about 22 barrels a minute from
   one vein; lode 20): a vein feeds one pumpjack and lasts about 9 hours, a lode feeds four for days. It drills straight
   down under its base from the surface (up to 100 blocks), so the player places it above the deposit the scanner found. The Mk2 scanner shows units and minutes to exhaustion; a core drill gives exact figures.
 - **Cost of a well:** pumpjack (steel, motors, pipes, circuits; 90 kW), empties by belt, a power line, and a way
   home (belt, train dock or cargo drone: crude is a bulky haul, so a refinery near the field and products shipped is
   usually cheaper than crude shipped). Oil beyond the nearest 500 blocks is what makes trains and cargo drones pay.
-- **Return:** a refinery cycle turns 3 crude canisters into 4 useful things (below), and a diesel generator returns
+- **Return:** a refinery cycle turns 3 crude barrels into 4 useful things (below), and a diesel generator returns
   many times the energy a pumpjack and refinery use, so oil is a net energy source, never a trap.
 
-**Refining (fractional distillation):** one recipe, **Distil** (refinery 3×3×4, 150 kW, 6 s): 3 crude canisters +
-1 water → 1 **naphtha** canister (light), 1 **diesel** canister (middle), 1 **heavy oil** canister and 1 sulfur. All four
+**Refining (fractional distillation):** one recipe, **Distil** (refinery 3×3×4, 150 kW, 6 s): 3 crude barrels +
+1 water → 1 **naphtha** barrel (light), 1 **diesel** barrel (middle), 1 **heavy oil** barrel and 1 sulfur. All four
 come out together, so the player must use or store each stream or the refinery stops: balancing is the game.
 (Built, 10.3: shells go through, so the refinery needs no empties; naphtha leaves the front and the other three the
 right-hand hatches on one belt, to sort with filters; the water inlet is on the left side.)
 | Stream | Used for |
 |---|---|
 | Naphtha | plastic (chemical plant: 2 naphtha + 1 coal → 4 plastic); cracked from heavy oil |
-| Diesel | diesel generator (built, 10.5: 2×2×2, a canister is 40 MJ: 400 kW for 100 s, the empty comes back); fuel for the later drill rig and vehicles |
-| Heavy oil | **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil + 1 empty → 2 lubricant: Mk5 kits and gears; boilers cannot burn it, their steam cap is under a canister's energy) |
-| Sulfur | acid (1 sulfur + 1 water → 1 acid canister; ore leaching, etched circuits, the chip fab) |
+| Diesel | diesel generator (built, 10.5: 2×2×2, a barrel is 40 MJ: 400 kW for 100 s, the empty comes back); fuel for the later drill rig and vehicles |
+| Heavy oil | **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil + 1 empty → 2 lubricant: Mk5 kits and gears; boilers cannot burn it, their steam cap is under a barrel's energy) |
+| Sulfur | acid (1 sulfur + 1 water → 1 acid barrel; ore leaching, etched circuits, the chip fab) |
 
 **Ore washing and the crusher do not conflict:** the crusher (steel, 30 kW) stays the first step for iron, copper and
 bauxite (2 ore → 3 crushed, and it grinds slag to sand); the **washer** (2×2×2, 60 kW, needs a water pipe) takes only
@@ -165,12 +165,12 @@ no slot for is researched only in a center; the small lab stays valid for the fo
 | Item | Recipe | Uses |
 |---|---|---|
 | Oil sand, uranium ore | found by scanning (veins and lodes); hand-mined oil sand burns as a poor fuel (a third of coal) | pumpjack, centrifuge |
-| Empty canister | 1 steel plate → 2 (constructor, 1 s) | every fluid |
-| Crude canister | pumpjack (2×3×3, 90 kW) over oil sand, an empty canister in per 10 units drawn | refinery |
-| Naphtha, diesel, heavy oil canisters; sulfur | Distil (above) | plastic, power, lubricant, acid |
+| Empty barrel | 1 steel plate → 2 (constructor, 1 s) | every fluid |
+| Crude barrel | pumpjack (2×3×3, 90 kW) over oil sand, an empty barrel in per 10 units drawn | refinery |
+| Naphtha, diesel, heavy oil barrels; sulfur | Distil (above) | plastic, power, lubricant, acid |
 | Plastic | 2 naphtha + 1 coal → 4 (chemical plant 3×2×3, 4 s; the empties come back) | gold pack and kit, chips, frames |
-| Acid canister | 1 sulfur + 1 water → 1 (chemical plant, 3 s) | etched circuits (4 per batch), chip fab |
-| Hydrogen, oxygen canisters | 3 empties + 2 water → 2 H + 1 O canisters (electrolyser 2×2×2, 500 kW, 6 s; built, 10.5) | rocket fuel, fuel cells |
+| Acid barrel | 1 sulfur + 1 water → 1 (chemical plant, 3 s) | etched circuits (4 per batch), chip fab |
+| Hydrogen, oxygen barrels | 3 empties + 2 water → 2 H + 1 O barrels (electrolyser 2×2×2, 500 kW, 6 s; built, 10.5) | rocket fuel, fuel cells |
 | Washed ore | 3 crushed + 1 water → 4 + 1 tailings (washer 2×2×2, 60 kW, 3 s; built, 10.6: crushed ore only, tailings are a fill block the crusher grinds to sand) | smelting |
 | Uranium fuel cell | 4 uranium ore + a steel plate → centrifuge (2×2×3, 200 kW, 10 s; built, 10.10: Nuclear Power, after Steam Power and Refining) → fuel cell | reactor (3×3×3, up to 2 MW, a cell lasts 150 s at full load; water-cooled, overheating stops it until cooled; built, 10.10) |
 | Gold pack, gold kit | pack: 1 plastic, 1 battery, 1 processor → 2 (assembler, 20 s); kit: 1 processor, 2 aluminium plates, 1 plastic → 4 (assembler, 5 s); built, 10.11: Gold Science (after Processors, Bauxite Processing, Plastics, Research Center) | packs: centers only; kits make Mk5 (Mk5 Machines, all five packs: miner, smelter, constructor, assembler, blast furnace, drone port, research center; belts, poles and labs stop at Mk4) |
@@ -203,7 +203,7 @@ within 256 blocks from surface hints).
 |---|---|---|
 | Light frame | 2 aluminium plates, 1 steel beam, 1 plastic | rocket bodies, satellites |
 | Rocket engine, fuel tank, avionics | steel, aluminium, AI accelerators | rocket parts |
-| Rocket fuel | 2 hydrogen, 1 oxygen canisters → 1 (chemical plant) | launches |
+| Rocket fuel | 2 hydrogen, 1 oxygen barrels → 1 (chemical plant) | launches |
 | Launch site (7×7 pad and tower) | 200 concrete, 60 steel beams, 20 motors | assembles, fuels and launches |
 | Satellites | light frames, solar panels, AI accelerators, plus a payload | survey · comms · power · science |
 | Rectenna (5×5), ground station (3×3 dish), landing pad (3×3) | steel, aluminium, circuits | orbital power in; space data down; drop pods in |

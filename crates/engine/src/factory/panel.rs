@@ -1,5 +1,5 @@
 //! What a player does to a machine by hand, and what its panel shows: `panel` (a read-only view of
-//! a processor, filter, generator, lab, quarry or coal miner), `box_slots` (a box's screen), `set_recipe`, `set_filter`,
+//! a processor, filter, generator, lab, quarry or coal miner), `box_slots` (a box's screen), `set_recipe`, `filter_pick` and `filter_rest`,
 //! `rotate` (belts and routers, the R key), `set_bend` (belts, Shift+R), `set_quarry`, `insert` (put items in from the inventory) and `take_contents` (right-click on a miner, the take
 //! buttons). The actions that call these live in `action.rs`; the host draws the panels
 //! (`web/src/ui/machine.ts`, and `ui/inventory.ts` for a box).
@@ -13,6 +13,7 @@ use crate::item::ItemId;
 use crate::math::IVec3;
 
 use super::belt_shape::Shape;
+use super::filter_rules::FilterRules;
 use super::links::Slot;
 use super::process::Pick;
 use super::quarry::{Quarry, DEPTHS, WIDTHS};
@@ -45,8 +46,8 @@ pub struct Panel {
     pub slots: Vec<(u8, Stack)>,
     /// One line: what it's doing or what it needs.
     pub status: String,
-    /// A filter's chosen item (`Some(NONE)`: none yet); `None` for machines that don't filter.
-    pub filter: Option<ItemId>,
+    /// What a filter sends where (`filter_rules.rs`); `None` for machines that don't filter.
+    pub filter: Option<FilterRules>,
 }
 
 impl Factory {
@@ -138,13 +139,24 @@ impl Factory {
         true
     }
 
-    /// Sets what the filter at `pos` sends straight on (`NONE` for nothing).
-    pub fn set_filter(&mut self, pos: IVec3, item: ItemId) {
-        if let Some(&Slot::Router(i)) = self.at.get(&pos) {
-            let r = &mut self.routers[i as usize];
-            if r.is_filter && (item == ItemId::NONE || item.is_valid()) {
-                r.filter = item;
-            }
+    /// Sends `item` out output `out` of the filter at `pos` (`filter_rules::UNPICKED`: with everything else).
+    pub fn filter_pick(&mut self, pos: IVec3, item: ItemId, out: u8) {
+        if let Some(rules) = self.filter_rules_mut(pos) {
+            rules.pick(item, out);
+        }
+    }
+
+    /// Makes output `out` of the filter at `pos` the one that takes everything else.
+    pub fn filter_rest(&mut self, pos: IVec3, out: u8) {
+        if let Some(rules) = self.filter_rules_mut(pos) {
+            rules.set_rest(out);
+        }
+    }
+
+    fn filter_rules_mut(&mut self, pos: IVec3) -> Option<&mut FilterRules> {
+        match self.at.get(&pos) {
+            Some(&Slot::Router(i)) if self.routers[i as usize].is_filter => Some(&mut self.routers[i as usize].rules),
+            _ => None,
         }
     }
 

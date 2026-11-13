@@ -1,9 +1,9 @@
-//! Orbit (Milestone 12): the launch site's pad and gantry, the rocket parts' icons, the rocket fuel canister and the
+//! Orbit (Milestone 12): the launch site's pad and gantry, the rocket parts' icons, the rocket fuel barrel and the
 //! rocket's hull. Placeholders until the art pass (`docs/ART_HANDOVER.md`).
 
 use crate::block::tex;
 
-use super::chemistry::canister;
+use super::chemistry::barrel;
 use super::paint::round_shade;
 use super::{frame, n, rgb};
 
@@ -17,7 +17,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::ROCKET_ENGINE => engine(x, y),
         tex::FUEL_TANK => tank(x, y),
         tex::AVIONICS => avionics(x, y),
-        tex::ROCKET_FUEL_CANISTER => canister(x, y, FUEL_BAND),
+        tex::ROCKET_FUEL_BARREL => barrel(x, y, FUEL_BAND),
         tex::SURVEY_SATELLITE => survey_satellite(x, y),
         tex::COMMS_SATELLITE => comms_satellite(x, y),
         tex::POWER_SATELLITE => power_satellite(x, y),

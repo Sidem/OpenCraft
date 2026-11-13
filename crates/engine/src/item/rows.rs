@@ -1,4 +1,4 @@
-//! Row builders for `EXTRA` in `item.rs`: one per kind of item (ingot, part, canister, machine tier, tool, worn
+//! Row builders for `EXTRA` in `item.rs`: one per kind of item (ingot, part, barrel, machine tier, tool, worn
 //! device) and the proportions some rows share. Add a builder when a new kind of item arrives.
 
 use super::{ItemDef, MAX_STACK};
@@ -15,12 +15,12 @@ pub(super) const fn part(name: &'static str, layer: u16, size: [f32; 3]) -> Item
     ItemDef { name, stack: MAX_STACK, tex: [layer; 3], size, places: AIR }
 }
 
-/// The proportions of every canister (`item::is_canister` tells them apart by it).
-pub(super) const CANISTER_SIZE: [f32; 3] = [0.5, 0.6, 0.5];
+/// The proportions of every barrel (`item::is_barrel` tells them apart by it).
+pub(super) const BARREL_SIZE: [f32; 3] = [0.5, 0.6, 0.5];
 
-/// A canister: a small drum that holds a fluid, 16 to a slot.
-pub(super) const fn canister(name: &'static str, layer: u16) -> ItemDef {
-    ItemDef { name, stack: 16, tex: [layer; 3], size: CANISTER_SIZE, places: AIR }
+/// A barrel: a small drum that holds a fluid, 16 to a slot.
+pub(super) const fn barrel(name: &'static str, layer: u16) -> ItemDef {
+    ItemDef { name, stack: 16, tex: [layer; 3], size: BARREL_SIZE, places: AIR }
 }
 
 /// A tier of a machine block: that block's look (the icon adds the tier chip).

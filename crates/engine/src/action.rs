@@ -107,10 +107,17 @@ pub enum Action {
         pos: IVec3,
         recipe: u16,
     },
-    /// Sets what the filter at `pos` sends straight on (`NONE` for nothing).
-    SetFilter {
+    /// Sends `item` out output `out` of the filter at `pos` (`factory::filter_rules`: straight, left, right, or
+    /// `UNPICKED` to drop it from every list), off any other output's list.
+    FilterPick {
         pos: IVec3,
         item: ItemId,
+        out: u8,
+    },
+    /// Makes output `out` of the filter at `pos` the one that takes everything not picked.
+    FilterRest {
+        pos: IVec3,
+        out: u8,
     },
     /// Chooses the rule of the sensor at `pos` (`factory::sensor::RULES` index).
     SetSensor {

@@ -17,6 +17,7 @@ const DT: f64 = 1.0 / 60.0;
 
 fn hold_telescope() -> Game {
     let mut g = Game::new(2024, 6);
+    g.set_show_hand(false);
     crate::tests::run_until_ready(&mut g);
     g.give(TELESCOPE.0, 1);
     g.update(DT);

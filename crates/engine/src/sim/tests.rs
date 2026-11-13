@@ -40,8 +40,10 @@ const B: PlayerId = PlayerId(1);
 /// added a research entry to the state bytes; without it the run still hashes to the previous 0x36e7_1721_57fb_dcdb.
 /// On 2026-11-12 every storage box saves its label (`factory/box_label.rs`); the previous hash was 0x2f92_e7fa_95f3_0250.
 /// On 2026-11-13 each player's personal drone saves its home, jobs and trip (`helpers/drone/`, save 71; the script gives
-/// no drone orders); the previous hash was 0x7952_43fa_9222_820c.
-const GOLDEN_HASH: u64 = 0x1950_c0db_8418_86c0;
+/// no drone orders); the previous hash was 0x7952_43fa_9222_820c. On 2026-11-13 a filter saves its rules instead of one
+/// item (`factory/filter_rules.rs`, save 72; the script now picks its plate straight on and sends the rest left); the
+/// previous hash was 0x1950_c0db_8418_86c0.
+const GOLDEN_HASH: u64 = 0x8c39_f9dc_7642_877f;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
@@ -135,7 +137,8 @@ pub(crate) fn script(top: IVec3, other: IVec3) -> Vec<(u64, PlayerId, Action)> {
         (4, B, Action::SetRecipe { pos: press, recipe: plates }),
         (5, B, Action::Insert { pos: press, item: IRON_INGOT }),
         (6, B, place(sieve, 4, 1, cell(1))),
-        (7, B, Action::SetFilter { pos: sieve, item: IRON_PLATE }),
+        (7, B, Action::FilterRest { pos: sieve, out: 1 }),
+        (7, B, Action::FilterPick { pos: sieve, item: IRON_PLATE, out: 0 }),
         (8, B, place(cell(4), 5, 1, cell(4))),
         (9, B, place(post, 7, 0, press)),
         (9, B, place(dynamo, 6, 0, above_box)),
@@ -192,7 +195,8 @@ fn same_actions_give_the_same_state_every_tick() {
     let press = a.factory.constructor_at(top + IVec3::new(2, 2, 0));
     assert_eq!((press.out.total(), press.input.total()), (2, 1), "two plates from four ingots, one left");
     assert_eq!(a.player(B).unwrap().inventory.count(IRON_INGOT), 0);
-    assert_eq!(a.factory.panel(top + IVec3::new(1, 2, 0)).and_then(|p| p.filter), Some(IRON_PLATE));
+    let rules = a.factory.panel(top + IVec3::new(1, 2, 0)).and_then(|p| p.filter).unwrap();
+    assert_eq!((rules.picks[0].clone(), rules.rest), (vec![IRON_PLATE], 1 << 1));
     let ramp = a.factory.belt_at(top + IVec3::new(4, 1, 0));
     assert!(ramp.item_at(1.0).1 == 0.0 && !ramp.items.is_empty(), "the box feeds the old ramp, which lies flat");
     let fuel = a.factory.panel(top + IVec3::new(3, 3, 0)).unwrap().slots[0].1.count;

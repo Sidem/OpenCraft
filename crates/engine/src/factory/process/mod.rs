@@ -153,7 +153,7 @@ pub struct Processor {
     pub status: Status,
     /// What it made this tick, until `report_made` (derived, not saved).
     pub made: Vec<Stack>,
-    /// What it used up this tick (batch inputs, fuel, canisters), until `report_made` (derived, not saved).
+    /// What it used up this tick (batch inputs, fuel, barrels), until `report_made` (derived, not saved).
     pub used: Vec<Stack>,
     /// The time its product display was last drawn and its turn then (presentation only, `display.rs`).
     pub display_turn: Cell<(f64, f32)>,

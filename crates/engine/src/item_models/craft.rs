@@ -1,5 +1,5 @@
 //! Item models of vehicles and containers: the three quad-rotor drones, the locomotive and wagon (scaled from their
-//! models on the rails, `factory/trains/model.rs`), the rail signal, the fluid canisters and the light frame.
+//! models on the rails, `factory/trains/model.rs`), the rail signal, the fluid barrels and the light frame.
 //! Add a const and a `parts` row.
 
 use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
@@ -9,9 +9,9 @@ use super::{part, turned, Axis, Form, Part};
 use crate::block::tex;
 use crate::factory::trains::model::{CarBox, LOCOMOTIVE_BOXES, WAGON_BOXES};
 use crate::item::{
-    ItemId, ACID_CANISTER, CARGO_DRONE, CRUDE_CANISTER, DIESEL_CANISTER, DRONE, EMPTY_CANISTER, HEAVY_OIL_CANISTER,
-    HYDROGEN_CANISTER, LIGHT_FRAME, LOCOMOTIVE, LUBRICANT_CANISTER, NAPHTHA_CANISTER, OXYGEN_CANISTER, PERSONAL_DRONE,
-    PURE_WATER_CANISTER, RAIL_SIGNAL, ROCKET_FUEL_CANISTER, WAGON,
+    ItemId, ACID_BARREL, CARGO_DRONE, CRUDE_BARREL, DIESEL_BARREL, DRONE, EMPTY_BARREL, HEAVY_OIL_BARREL,
+    HYDROGEN_BARREL, LIGHT_FRAME, LOCOMOTIVE, LUBRICANT_BARREL, NAPHTHA_BARREL, OXYGEN_BARREL, PERSONAL_DRONE,
+    PURE_WATER_BARREL, RAIL_SIGNAL, ROCKET_FUEL_BARREL, WAGON,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -26,17 +26,17 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         LOCOMOTIVE => &LOCO,
         WAGON => &WAGON_MODEL,
         RAIL_SIGNAL => &SIGNAL,
-        EMPTY_CANISTER => &EMPTY_DRUM,
-        CRUDE_CANISTER => &CRUDE_DRUM,
-        NAPHTHA_CANISTER => &NAPHTHA_DRUM,
-        DIESEL_CANISTER => &DIESEL_DRUM,
-        HEAVY_OIL_CANISTER => &HEAVY_OIL_DRUM,
-        ACID_CANISTER => &ACID_DRUM,
-        LUBRICANT_CANISTER => &LUBRICANT_DRUM,
-        HYDROGEN_CANISTER => &HYDROGEN_DRUM,
-        OXYGEN_CANISTER => &OXYGEN_DRUM,
-        PURE_WATER_CANISTER => &PURE_WATER_DRUM,
-        ROCKET_FUEL_CANISTER => &ROCKET_FUEL_DRUM,
+        EMPTY_BARREL => &EMPTY_DRUM,
+        CRUDE_BARREL => &CRUDE_DRUM,
+        NAPHTHA_BARREL => &NAPHTHA_DRUM,
+        DIESEL_BARREL => &DIESEL_DRUM,
+        HEAVY_OIL_BARREL => &HEAVY_OIL_DRUM,
+        ACID_BARREL => &ACID_DRUM,
+        LUBRICANT_BARREL => &LUBRICANT_DRUM,
+        HYDROGEN_BARREL => &HYDROGEN_DRUM,
+        OXYGEN_BARREL => &OXYGEN_DRUM,
+        PURE_WATER_BARREL => &PURE_WATER_DRUM,
+        ROCKET_FUEL_BARREL => &ROCKET_FUEL_DRUM,
         LIGHT_FRAME => &FRAME,
         _ => &[],
     }
@@ -162,7 +162,7 @@ const SIGNAL: [Part; 7] = [
     part([0.0, 0.215, 0.08], [0.1, 0.015, 0.05], GUNMETAL),
 ];
 
-/// A canister: a round steel drum painted in its fluid's colour (`paint`), as an oil drum is made: a gunmetal chime at
+/// A barrel: a round steel drum painted in its fluid's colour (`paint`), as an oil drum is made: a gunmetal chime at
 /// its foot and its top rim, two painted rolling hoops standing out of it in thirds, the painted lid inside the top chime and a brass
 /// bung and vent on it. Stacked bottom up (the icon has no depth test, so a hoop drawn after a taller body would paint
 /// over it).
@@ -180,17 +180,17 @@ const fn drum(paint: u16) -> [Part; 10] {
         .with(cylinder([0.1, 0.295, 0.08], 0.07, 0.02, tex::MAT_BRASS))
         .done()
 }
-const EMPTY_DRUM: [Part; 10] = drum(tex::EMPTY_CANISTER);
-const CRUDE_DRUM: [Part; 10] = drum(tex::CRUDE_CANISTER);
-const NAPHTHA_DRUM: [Part; 10] = drum(tex::NAPHTHA_CANISTER);
-const DIESEL_DRUM: [Part; 10] = drum(tex::DIESEL_CANISTER);
-const HEAVY_OIL_DRUM: [Part; 10] = drum(tex::HEAVY_OIL_CANISTER);
-const ACID_DRUM: [Part; 10] = drum(tex::ACID_CANISTER);
-const LUBRICANT_DRUM: [Part; 10] = drum(tex::LUBRICANT_CANISTER);
-const HYDROGEN_DRUM: [Part; 10] = drum(tex::HYDROGEN_CANISTER);
-const OXYGEN_DRUM: [Part; 10] = drum(tex::OXYGEN_CANISTER);
-const PURE_WATER_DRUM: [Part; 10] = drum(tex::PURE_WATER_CANISTER);
-const ROCKET_FUEL_DRUM: [Part; 10] = drum(tex::ROCKET_FUEL_CANISTER);
+const EMPTY_DRUM: [Part; 10] = drum(tex::EMPTY_BARREL);
+const CRUDE_DRUM: [Part; 10] = drum(tex::CRUDE_BARREL);
+const NAPHTHA_DRUM: [Part; 10] = drum(tex::NAPHTHA_BARREL);
+const DIESEL_DRUM: [Part; 10] = drum(tex::DIESEL_BARREL);
+const HEAVY_OIL_DRUM: [Part; 10] = drum(tex::HEAVY_OIL_BARREL);
+const ACID_DRUM: [Part; 10] = drum(tex::ACID_BARREL);
+const LUBRICANT_DRUM: [Part; 10] = drum(tex::LUBRICANT_BARREL);
+const HYDROGEN_DRUM: [Part; 10] = drum(tex::HYDROGEN_BARREL);
+const OXYGEN_DRUM: [Part; 10] = drum(tex::OXYGEN_BARREL);
+const PURE_WATER_DRUM: [Part; 10] = drum(tex::PURE_WATER_BARREL);
+const ROCKET_FUEL_DRUM: [Part; 10] = drum(tex::ROCKET_FUEL_BARREL);
 
 /// A light frame: an aluminium space frame of two square rings of bars on four corner posts, each ring crossed by
 /// a diagonal brace.

@@ -15,10 +15,11 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 73;
-/// Tags only read, never written: 38, the personal drone's old fetch, now an `Action::Drone` (tag 72).
+pub const TAG_COUNT: u8 = 75;
+/// Tags only read, never written: 4, the filter's old one item straight on, now a `FilterPick` (tag 73); 38, the
+/// personal drone's old fetch, now an `Action::Drone` (tag 72).
 #[cfg(test)]
-pub const READ_ONLY: [u8; 1] = [38];
+pub const READ_ONLY: [u8; 2] = [4, 38];
 
 impl Action {
     pub fn write(&self, w: &mut ByteWriter) {
@@ -42,11 +43,6 @@ impl Action {
                 w.u8(3);
                 w.ivec3(pos);
                 w.u16(recipe);
-            }
-            Action::SetFilter { pos, item } => {
-                w.u8(4);
-                w.ivec3(pos);
-                w.item(item);
             }
             Action::SetResearch { tech } => {
                 w.u8(5);
@@ -354,6 +350,17 @@ impl Action {
                 w.u8(71);
                 w.ivec3(pos);
                 w.u8(label);
+            }
+            Action::FilterPick { pos, item, out } => {
+                w.u8(73);
+                w.ivec3(pos);
+                w.item(item);
+                w.u8(out);
+            }
+            Action::FilterRest { pos, out } => {
+                w.u8(74);
+                w.ivec3(pos);
+                w.u8(out);
             }
         }
     }

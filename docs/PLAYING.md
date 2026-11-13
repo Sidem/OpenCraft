@@ -188,7 +188,7 @@ miner. The queue shows each step in that order, parts first and what you asked f
 craft makes: four belts, one machine), Shift-right-click for up to five. You get back about four in five of each
 material, and a little of the lost iron as scrap metal (a smelter melts 3 scrap into an iron ingot); the card says
 exactly what. A Miner made by mistake gives back enough for a Coal Miner. Tools cannot be taken apart, nor the few
-items that a machine makes more cheaply than the hand recipe (empty canisters, underpasses Mk2 and up).
+items that a machine makes more cheaply than the hand recipe (empty barrels, underpasses Mk2 and up).
 
 **House pieces** (Building section, crafted by hand): wooden and iron doors (right-click to open or close; two stacked swing
 together, an open one can be walked through and will not close on you), roof tiles in three colours (stone bricks plus iron,

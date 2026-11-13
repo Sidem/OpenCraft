@@ -112,7 +112,7 @@ pub fn facts(item: ItemId) -> Option<Facts> {
             f.stat("Reach", format!("{} blocks", UNDERPASS_SPAN[tier.min(UNDERPASS_SPAN.len() - 1)]));
         }
         SPLITTER => f.stat("Splits", "Evenly between the belts leading away"),
-        FILTER => f.stat("Passes", "One chosen item straight on, the rest aside"),
+        FILTER => f.stat("Sorts", "Picked items left, straight on or right; everything else one way"),
         LIFT => f.stat("Carries", "Items up or down one block at a time"),
         STORAGE => f.stat("Holds", format!("{} stacks", BOX_SLOTS[tier.min(BOX_SLOTS.len() - 1)])),
         PUMP => {

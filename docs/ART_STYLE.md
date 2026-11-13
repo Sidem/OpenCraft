@@ -159,13 +159,13 @@ a stamp and brushed grain (ingots, plates, wire, rod, screw, beam, forged head, 
 washed ores, tailings, quicklime, sulfur and plastic (`items.rubble`), glowing flask liquid under a glass meniscus for the
 five science packs, status lens lights, tier stripes with pips, scanner screens, the avatar's seven parts, the ladder and
 smoke cutouts, and three ore blocks in `ores.py` (bauxite pebbles, tar-soaked oil sand, glowing uranium prisms).
-**Pictures** the item shows as its whole tile (`icons.py`, `icons2.py`): tools by metal, gear, robot parts, canisters (steel
+**Pictures** the item shows as its whole tile (`icons.py`, `icons2.py`): tools by metal, gear, robot parts, barrels (steel
 can, brass cap, a window of the fluid), vehicles, the rocket parts, satellites, drop pod, coin, wafer. They are drawn on the
 machine kit's `Face` over a navy backdrop (`icons.canvas`), plus `poly` and `shape` for free-form bevelled solids.
 `check.py` passes (three tiles needed darkening: flask glass, avatar skin, fuel tank).
 Pack: 1.71 MB for 347 tiles (4.9 KB each; the 3-4 MB target is met with room). Decode and merge of all 347 layers measured
 140-220 ms warm in the browser pane, inside the 300 ms budget (my 250-400 ms extrapolation was pessimistic). In game the
-hotbar icons are too small to judge; the review sheets are the evidence. Soft spots: the canisters differ by liquid colour
+hotbar icons are too small to judge; the review sheets are the evidence. Soft spots: the barrels differ by liquid colour
 only (their names tell the rest), the boots read as boots only because of the sole, the uranium prisms are thin.
 
 ## 11. Next, in order (each one green and its own commit; ask before pushing)

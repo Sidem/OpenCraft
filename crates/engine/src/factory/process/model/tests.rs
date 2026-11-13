@@ -6,7 +6,7 @@ use crate::factory::tier_mark::{DEPTH, ROW_MAX, STUD};
 use crate::factory::tiers;
 use crate::recipes::MACHINE_RECIPES;
 
-/// Makers whose product is no product to show: a launch site's batch launches a rocket; its canisters are change.
+/// Makers whose product is no product to show: a launch site's batch launches a rocket; its barrels are change.
 const NO_DISPLAY: [crate::block::BlockId; 1] = [LAUNCH_SITE];
 /// The smallest slot side: 16 px at 16 blocks on a 1080p screen.
 const MIN_SLOT: f32 = 0.34;

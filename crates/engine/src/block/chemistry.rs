@@ -3,14 +3,14 @@
 
 use super::BlockId;
 
-/// The pumpjack (the Oil Processing tech): drills down to an oil reservoir and fills canisters.
+/// The pumpjack (the Oil Processing tech): drills down to an oil reservoir and fills barrels.
 pub const PUMPJACK: BlockId = 83;
-/// The refinery and the cracker (the Refining tech): fractional distillation of crude oil canisters.
+/// The refinery and the cracker (the Refining tech): fractional distillation of crude oil barrels.
 pub const REFINERY: BlockId = 84;
 pub const CRACKER: BlockId = 85;
 /// The chemical plant (the Plastics tech): plastic, acid and lubricant.
 pub const CHEMICAL_PLANT: BlockId = 86;
-/// The diesel generator (Diesel Power) and the electrolyser (Electrolysis): canisters in, power or gas canisters out.
+/// The diesel generator (Diesel Power) and the electrolyser (Electrolysis): barrels in, power or gas barrels out.
 pub const DIESEL_GENERATOR: BlockId = 87;
 pub const ELECTROLYSER: BlockId = 88;
 /// The ore washer (the Ore Washing tech) and its tailings: a fill block that the crusher grinds to sand.

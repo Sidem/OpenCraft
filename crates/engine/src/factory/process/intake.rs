@@ -2,7 +2,7 @@
 //! and putting items where they belong (fuel, input or output buffer).
 
 use crate::block::is_sapling;
-use crate::item::{stack_size, ItemId, EMPTY_CANISTER};
+use crate::item::{stack_size, ItemId, EMPTY_BARREL};
 use crate::recipes::recycling::millicoins;
 
 use super::{Energy, Pick, Processor};
@@ -41,7 +41,7 @@ impl Processor {
         let wanted = match self.spec.pick {
             Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
-            Pick::Pump => item == EMPTY_CANISTER,
+            Pick::Pump => item == EMPTY_BARREL,
             Pick::Forest => item.places().is_some_and(is_sapling),
             Pick::Store
             | Pick::Hangar

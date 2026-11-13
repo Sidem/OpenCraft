@@ -6,9 +6,9 @@ use crate::block::{
     ASSEMBLER, BLAST_FURNACE, CENTRIFUGE, CHEMICAL_PLANT, CONSTRUCTOR, CRACKER, DIESEL_GENERATOR, DRONE_PORT,
     ELECTROLYSER, HOIST, MINER, PUMPJACK, REACTOR, REFINERY, RESEARCH_CENTER, SMELTER, WASHER, WATER_WHEEL, WINCH,
 };
-use crate::item::{BLUE_PACK, EMPTY_CANISTER, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
+use crate::item::{BLUE_PACK, EMPTY_BARREL, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{
-    ACID_RECIPE, BLAST_WASHED_RECIPE, CANISTER_MACHINE_RECIPE, CRACK_RECIPE, DISTIL_RECIPE, ELECTROLYSE_RECIPE,
+    ACID_RECIPE, BARREL_MACHINE_RECIPE, BLAST_WASHED_RECIPE, CRACK_RECIPE, DISTIL_RECIPE, ELECTROLYSE_RECIPE,
     ENRICH_RECIPE, GOLD_RECIPES, LUBRICANT_RECIPE, PLASTIC_RECIPE, WASH_RECIPES,
 };
 
@@ -17,20 +17,20 @@ use super::{r, Tech, Unlock};
 pub const CHEMISTRY: [Tech; 13] = [
     Tech {
         name: "Oil Processing",
-        blurb: "Pumpjacks (90 kW) drill down to an oil reservoir and fill canisters with crude oil, a steel drum each \
-                that belts carry like any item. Press empty canisters from steel plates, by hand or in a constructor. \
+        blurb: "Pumpjacks (90 kW) drill down to an oil reservoir and fill barrels with crude oil, a steel drum each \
+                that belts carry like any item. Press empty barrels from steel plates, by hand or in a constructor. \
                 Oil sand burns as a weak fuel; refining comes next.",
         needs: &[6, 17],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 140,
         seconds: 40.0,
-        unlocks: &[r(PUMPJACK), Unlock::Recipe(EMPTY_CANISTER), Unlock::MachineRecipe(CANISTER_MACHINE_RECIPE)],
+        unlocks: &[r(PUMPJACK), Unlock::Recipe(EMPTY_BARREL), Unlock::MachineRecipe(BARREL_MACHINE_RECIPE)],
     },
     Tech {
         name: "Refining",
         blurb:
-            "The refinery (150 kW, a water pipe) distils 3 crude oil canisters into a naphtha, a diesel and a heavy \
-                oil canister and a sulfur; the cracker (90 kW, a water pipe) splits 2 heavy oil canisters into a \
+            "The refinery (150 kW, a water pipe) distils 3 crude oil barrels into a naphtha, a diesel and a heavy \
+                oil barrel and a sulfur; the cracker (90 kW, a water pipe) splits 2 heavy oil barrels into a \
                 naphtha and a diesel. Every stream must be used or stored, or the plant stops.",
         needs: &[42],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
@@ -41,8 +41,8 @@ pub const CHEMISTRY: [Tech; 13] = [
     Tech {
         name: "Plastics",
         blurb:
-            "The chemical plant (120 kW) turns 2 naphtha canisters and a coal into 4 plastic in 4 seconds and gives \
-                the two empty canisters back. Choose what it makes in its panel.",
+            "The chemical plant (120 kW) turns 2 naphtha barrels and a coal into 4 plastic in 4 seconds and gives \
+                the two empty barrels back. Choose what it makes in its panel.",
         needs: &[43],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 120,
@@ -52,8 +52,8 @@ pub const CHEMISTRY: [Tech; 13] = [
     Tech {
         name: "Acids and Lubricants",
         blurb:
-            "The chemical plant fills an empty canister with acid from a sulfur and a unit of water (3 seconds), or \
-                turns a heavy oil canister and an empty one into 2 lubricant canisters.",
+            "The chemical plant fills an empty barrel with acid from a sulfur and a unit of water (3 seconds), or \
+                turns a heavy oil barrel and an empty one into 2 lubricant barrels.",
         needs: &[44],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 120,
@@ -62,8 +62,8 @@ pub const CHEMISTRY: [Tech; 13] = [
     },
     Tech {
         name: "Diesel Power",
-        blurb: "The diesel generator gives 400 kW from diesel canisters, 100 seconds each at full load, and hands the \
-                empty canisters back. It burns only what the grid asks for, after solar, coal and steam.",
+        blurb: "The diesel generator gives 400 kW from diesel barrels, 100 seconds each at full load, and hands the \
+                empty barrels back. It burns only what the grid asks for, after solar, coal and steam.",
         needs: &[43],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 140,
@@ -73,8 +73,8 @@ pub const CHEMISTRY: [Tech; 13] = [
     Tech {
         name: "Electrolysis",
         blurb:
-            "The electrolyser (500 kW, a water pipe) splits water: 3 empty canisters become 2 hydrogen and an oxygen \
-                canister in 6 seconds. Both gases must be used or stored.",
+            "The electrolyser (500 kW, a water pipe) splits water: 3 empty barrels become 2 hydrogen and an oxygen \
+                barrel in 6 seconds. Both gases must be used or stored.",
         needs: &[45],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 160,

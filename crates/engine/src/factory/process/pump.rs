@@ -1,12 +1,12 @@
 //! The pumpjack (Milestone 10): a 2 × 3 × 3 processor (`FOOTPRINT`: the well at its front, the motor and crank at its
-//! back) that draws crude oil from a reservoir and fills canisters. Placed on the ground, it drills straight down
+//! back) that draws crude oil from a reservoir and fills barrels. Placed on the ground, it drills straight down
 //! under its base, front cells first, to the first oil sand (or spent rock of an oil deposit), up to [`MAX_DEPTH`]
 //! blocks (`sink_well`, at placing); that deposit's draw cap and taper decide its pace like any miner's
-//! (`deposits.rs`), so a vein gives about 20 canisters a minute for hours. Oil is never a block in the world.
+//! (`deposits.rs`), so a vein gives about 20 barrels a minute for hours. Oil is never a block in the world.
 //!
 //! - Each tick it draws `RATE` units a second at full power, `RECOVERY` of it kept, into `Pump::carry`; every
-//!   [`CANISTER_UNITS`] kept fills one empty canister from its input (belts bring the empties to its back and take
-//!   the full ones from its front). It stops drawing while a canister's worth waits (no empties, or a full output).
+//!   [`BARREL_UNITS`] kept fills one empty barrel from its input (belts bring the empties to its back and take
+//!   the full ones from its front). It stops drawing while a barrel's worth waits (no empties, or a full output).
 //! - Saved for pumpjacks only: the well (deposit and drill bit), the carry, and whether it is `compact`: a pumpjack
 //!   from before save 70 was one block, and stays one (taking and giving on every side, drawn a third the size), as
 //!   its neighbours leave no room to grow (none of the user's five could). Placed again, it is full size.
@@ -18,7 +18,7 @@ use crate::block::{OIL_SAND, PUMPJACK, SPENT_ROCK};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
-use crate::item::{CRUDE_CANISTER, EMPTY_CANISTER};
+use crate::item::{CRUDE_BARREL, EMPTY_BARREL};
 use crate::math::IVec3;
 use crate::world::World;
 use crate::{TICK, TICK_RATE};
@@ -37,11 +37,11 @@ pub(super) use view::draw as draw_jack;
 #[cfg(test)]
 mod tests;
 
-/// Units a canister holds.
-pub const CANISTER_UNITS: f64 = 10.0;
+/// Units a barrel holds.
+pub const BARREL_UNITS: f64 = 10.0;
 /// Units drawn a second at full power, before the deposit's cap and taper.
 const RATE: f64 = 5.0;
-/// Share of what is drawn that reaches the canister.
+/// Share of what is drawn that reaches the barrel.
 const RECOVERY: f64 = 0.9;
 /// How far below its base it searches for oil.
 const MAX_DEPTH: i32 = 100;
@@ -52,7 +52,7 @@ const CRANK_EASE: f64 = 0.06;
 /// The first save version with full-size pumpjacks; older ones load `compact`.
 pub const FULL_SIZE_SAVED: u32 = 70;
 
-/// Two cells across, three deep (the well at the front), three high; empties in at the back, full canisters out at
+/// Two cells across, three deep (the well at the front), three high; empties in at the back, full barrels out at
 /// the front.
 pub const FOOTPRINT: Footprint = Footprint {
     size: [2, 3, 3],
@@ -72,7 +72,7 @@ pub struct Well {
 #[derive(Default)]
 pub struct Pump {
     pub well: Option<Well>,
-    /// Oil units kept towards the next canister.
+    /// Oil units kept towards the next barrel.
     pub carry: f64,
     /// A one-block pumpjack from an older save (saved; see the header).
     pub compact: bool,
@@ -112,7 +112,7 @@ pub const PUMPJACK_SPEC: ProcessSpec = ProcessSpec {
     tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 90 }],
     footprint: FOOTPRINT,
     verb: "Pumping",
-    products: "crude oil canisters",
+    products: "crude oil barrels",
     waiting: "Idle",
     map_colour: 0x3a2e22,
     compute: 0,
@@ -161,19 +161,16 @@ impl Processor {
             self.status = Status::NoDeposit;
             return;
         };
-        if pump.carry >= CANISTER_UNITS
-            && self.input.count(EMPTY_CANISTER) > 0
-            && self.out.space_for(CRUDE_CANISTER) > 0
-        {
-            self.input.remove(EMPTY_CANISTER, 1);
-            self.used.push(Stack { item: EMPTY_CANISTER, count: 1 });
-            self.out.add(CRUDE_CANISTER, 1);
-            self.made.push(Stack { item: CRUDE_CANISTER, count: 1 });
-            pump.carry -= CANISTER_UNITS;
+        if pump.carry >= BARREL_UNITS && self.input.count(EMPTY_BARREL) > 0 && self.out.space_for(CRUDE_BARREL) > 0 {
+            self.input.remove(EMPTY_BARREL, 1);
+            self.used.push(Stack { item: EMPTY_BARREL, count: 1 });
+            self.out.add(CRUDE_BARREL, 1);
+            self.made.push(Stack { item: CRUDE_BARREL, count: 1 });
+            pump.carry -= BARREL_UNITS;
         }
         let mut drawn = 0.0;
-        self.status = if pump.carry >= CANISTER_UNITS {
-            if self.out.space_for(CRUDE_CANISTER) == 0 {
+        self.status = if pump.carry >= BARREL_UNITS {
+            if self.out.space_for(CRUDE_BARREL) == 0 {
                 Status::OutputFull
             } else {
                 Status::NoInput
@@ -194,7 +191,7 @@ impl Processor {
     /// Whether it would draw this tick if powered.
     pub(super) fn pump_wants_power(&self) -> bool {
         let Extra::Pump(pump) = &self.extra else { return false };
-        pump.well.is_some() && pump.carry < CANISTER_UNITS && self.status != Status::Exhausted
+        pump.well.is_some() && pump.carry < BARREL_UNITS && self.status != Status::Exhausted
     }
 
     /// The status line of a pumpjack (`None`: another processor).
@@ -204,9 +201,9 @@ impl Processor {
             Status::NoDeposit => "No oil below: stand it on the ground right above an oil reservoir".to_string(),
             Status::Exhausted => "The reservoir is dry".to_string(),
             Status::NoPower => NOT_WIRED.to_string(),
-            Status::NoInput => "Waiting for empty canisters: a belt brings them in".to_string(),
-            Status::OutputFull => "Output full: put a belt leading away, or take the canisters".to_string(),
-            _ => format!("Pumping crude oil · {} canisters a minute", (pump.rate * RECOVERY * 6.0).round() as u32),
+            Status::NoInput => "Waiting for empty barrels: a belt brings them in".to_string(),
+            Status::OutputFull => "Output full: put a belt leading away, or take the barrels".to_string(),
+            _ => format!("Pumping crude oil · {} barrels a minute", (pump.rate * RECOVERY * 6.0).round() as u32),
         })
     }
 
@@ -215,7 +212,7 @@ impl Processor {
         let Extra::Pump(pump) = &self.extra else { return String::new() };
         let left = pump.well.and_then(|w| f.deposits.get(&w.key)).map(|s| s.remaining_units() * RECOVERY);
         left.map_or_else(String::new, |units| {
-            format!("\nReservoir: {} canisters left", fmt_int((units / CANISTER_UNITS) as u64))
+            format!("\nReservoir: {} barrels left", fmt_int((units / BARREL_UNITS) as u64))
         })
     }
 }

@@ -13,7 +13,7 @@ impl Action {
             1 => Action::PlaceBlock { pos: r.ivec3()?, slot: r.u8()?, facing: r.u8()?, against: r.ivec3()? },
             2 => Action::TakeContents { pos: r.ivec3()? },
             3 => Action::SetRecipe { pos: r.ivec3()?, recipe: r.u16()? },
-            4 => Action::SetFilter { pos: r.ivec3()?, item: r.item()? },
+            4 => Action::FilterPick { pos: r.ivec3()?, item: r.item()?, out: 0 },
             5 => Action::SetResearch { tech: r.u8()? },
             6 => Action::Insert { pos: r.ivec3()?, item: r.item()? },
             7 => Action::Craft { recipe: r.u16()?, times: r.u32()? },
@@ -100,6 +100,8 @@ impl Action {
             59 => Action::OpenVault { pos: r.ivec3()?, dials: r.u32()? },
             71 => Action::LabelBox { pos: r.ivec3()?, label: r.u8()? },
             72 => Action::Drone { order: DroneOrder::read(r)?, at: r.ivec3()? },
+            73 => Action::FilterPick { pos: r.ivec3()?, item: r.item()?, out: r.u8()? },
+            74 => Action::FilterRest { pos: r.ivec3()?, out: r.u8()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

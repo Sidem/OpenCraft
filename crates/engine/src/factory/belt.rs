@@ -46,16 +46,16 @@ pub const ITEM_SPACING: f32 = 0.35;
 /// How big a full-size (1.0) item model rides: every item's own `size` is scaled by this, so proportions between
 /// items hold. Kept just under `ITEM_SPACING` so full cubes never overlap on a packed belt.
 pub const ITEM_SIZE: f32 = 0.34;
-/// Canisters ride this much bigger than their proportions say: a drum is small and hard to tell apart otherwise.
-const CANISTER_BOOST: f32 = 1.4;
+/// Barrels ride this much bigger than their proportions say: a drum is small and hard to tell apart otherwise.
+const BARREL_BOOST: f32 = 1.4;
 /// Heaps (crushed and washed ore, sulfur, quicklime) ride this much bigger: a low heap 0.6 wide is a speck otherwise.
 /// Still under `ITEM_SPACING` across (0.6 × 1.5 × `ITEM_SIZE`), so a packed belt doesn't overlap them.
 const HEAP_BOOST: f32 = 1.5;
 
 /// The unit an item's model (and its `size`) is scaled by while riding a belt or held by a router.
 pub fn ride_unit(item: ItemId) -> f32 {
-    if crate::item::is_canister(item) {
-        ITEM_SIZE * CANISTER_BOOST
+    if crate::item::is_barrel(item) {
+        ITEM_SIZE * BARREL_BOOST
     } else if crate::item_models::is_heap(item) {
         ITEM_SIZE * HEAP_BOOST
     } else {

@@ -11,6 +11,7 @@
 
 mod boxlight;
 mod cover_clear;
+mod glows;
 mod streaming;
 
 pub use boxlight::DAYLIGHT;
@@ -83,6 +84,8 @@ pub struct World {
     /// Recently generated, unedited chunks, oldest first (never shadows an edit: `chunks` and
     /// `saved` are asked first).
     generated: Vec<(IVec3, Chunk)>,
+    /// The light-giving blocks of each meshed chunk that holds any (`glows.rs`; render cache).
+    glows: FxHashMap<IVec3, Vec<(IVec3, BlockId)>>,
     pub events: VecDeque<Event>,
 }
 
@@ -116,6 +119,7 @@ impl World {
             air: Chunk::uniform(AIR),
             floor: Chunk::uniform(STONE),
             generated: Vec::new(),
+            glows: FxHashMap::default(),
             events: VecDeque::new(),
         }
     }

@@ -63,6 +63,7 @@ impl Game {
         self.write_move_marker(eye);
         self.write_drone_instances(eye, alpha);
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
+        self.write_wires(eye);
         self.write_signs(eye);
         self.write_port_pads(eye);
         let world = &mut self.sim.world;
@@ -75,6 +76,7 @@ impl Game {
         self.hide_unexplored_instances(eye);
         self.write_scope_beacons(eye);
         self.write_strategy_fog(eye);
+        self.write_halos(eye);
         factory::split_round(&self.instances, &mut self.round_instances);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }

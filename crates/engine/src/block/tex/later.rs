@@ -25,29 +25,29 @@ pub const CARGO_DRONE: u16 = 201;
 /// Oil sand and uranium ore (`textures/ores.rs`): one look each, the alternates are full.
 pub const OIL_SAND: u16 = 202;
 pub const URANIUM_ORE: u16 = 203;
-/// Canisters and the pumpjack (`textures/chemistry.rs`).
-pub const EMPTY_CANISTER: u16 = 204;
-pub const CRUDE_CANISTER: u16 = 205;
+/// Barrels and the pumpjack (`textures/chemistry.rs`).
+pub const EMPTY_BARREL: u16 = 204;
+pub const CRUDE_BARREL: u16 = 205;
 pub const PUMPJACK_SIDE: u16 = 206;
 pub const PUMPJACK_TOP: u16 = 207;
-/// The refinery's streams (naphtha, diesel, heavy oil canisters; sulfur) and the refinery's and cracker's faces.
-pub const NAPHTHA_CANISTER: u16 = 208;
-pub const DIESEL_CANISTER: u16 = 209;
-pub const HEAVY_OIL_CANISTER: u16 = 210;
+/// The refinery's streams (naphtha, diesel, heavy oil barrels; sulfur) and the refinery's and cracker's faces.
+pub const NAPHTHA_BARREL: u16 = 208;
+pub const DIESEL_BARREL: u16 = 209;
+pub const HEAVY_OIL_BARREL: u16 = 210;
 pub const SULFUR: u16 = 211;
 pub const REFINERY_SIDE: u16 = 212;
 pub const REFINERY_TOP: u16 = 213;
 pub const CRACKER_SIDE: u16 = 214;
 pub const CRACKER_TOP: u16 = 215;
-/// The chemical plant's products (plastic, acid and lubricant canisters) and its faces.
+/// The chemical plant's products (plastic, acid and lubricant barrels) and its faces.
 pub const PLASTIC: u16 = 216;
-pub const ACID_CANISTER: u16 = 217;
-pub const LUBRICANT_CANISTER: u16 = 218;
+pub const ACID_BARREL: u16 = 217;
+pub const LUBRICANT_BARREL: u16 = 218;
 pub const CHEM_SIDE: u16 = 219;
 pub const CHEM_TOP: u16 = 220;
-/// Hydrogen and oxygen canisters, the diesel generator's and the electrolyser's faces.
-pub const HYDROGEN_CANISTER: u16 = 221;
-pub const OXYGEN_CANISTER: u16 = 222;
+/// Hydrogen and oxygen barrels, the diesel generator's and the electrolyser's faces.
+pub const HYDROGEN_BARREL: u16 = 221;
+pub const OXYGEN_BARREL: u16 = 222;
 pub const DIESEL_SIDE: u16 = 223;
 pub const DIESEL_TOP: u16 = 224;
 pub const ELECTROLYSER_SIDE: u16 = 225;
@@ -76,8 +76,8 @@ pub const MINER_MK5_SIDE: u16 = 242;
 pub const COIN: u16 = 243;
 pub const RECYCLER_SIDE: u16 = 244;
 pub const RECYCLER_TOP: u16 = 245;
-/// The pure water canister, the wafer and the AI accelerator icons, and the chip fab's faces.
-pub const PURE_WATER_CANISTER: u16 = 246;
+/// The pure water barrel, the wafer and the AI accelerator icons, and the chip fab's faces.
+pub const PURE_WATER_BARREL: u16 = 246;
 pub const WAFER: u16 = 247;
 pub const ACCELERATOR: u16 = 248;
 pub const FAB_SIDE: u16 = 249;
@@ -135,7 +135,7 @@ pub const LIGHT_FRAME: u16 = 288;
 pub const ROCKET_ENGINE: u16 = 289;
 pub const FUEL_TANK: u16 = 290;
 pub const AVIONICS: u16 = 291;
-pub const ROCKET_FUEL_CANISTER: u16 = 292;
+pub const ROCKET_FUEL_BARREL: u16 = 292;
 pub const ROCKET_HULL: u16 = 293;
 pub const SURVEY_SATELLITE: u16 = 294;
 pub const COMMS_SATELLITE: u16 = 295;

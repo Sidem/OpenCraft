@@ -1,7 +1,7 @@
 """Plain materials for the item models (`crates/engine/src/item_models`, `textures/materials.rs`): even surfaces in
 real-world colours with only fine structure (brushing, mottle, weave, a soft sheen), never frames, rivets or a picture
 of an item, so they read on parts of any size. Also the faces printed on such parts (a circuit board's traces, a
-processor's lid, a wafer's dies) and the canisters' paints. Continuous tone: registry entries are `real` (no photo
+processor's lid, a wafer's dies) and the barrels' paints. Continuous tone: registry entries are `real` (no photo
 references, so only the value rule judges them).
 """
 import numpy as np
@@ -98,7 +98,7 @@ def carbon(seed=980):
 
 
 def drum(colour, seed, bare=False):
-    """A canister's painted steel: its fluid's colour (bare brushed steel when empty), a darker rolled rim top and
+    """A barrel's painted steel: its fluid's colour (bare brushed steel when empty), a darker rolled rim top and
     bottom, faint wear on the paint."""
     X, Y = coords()
     if bare:

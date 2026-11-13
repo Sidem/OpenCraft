@@ -3,6 +3,13 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-13 · Three-way filters, glowing lamps and your hand in view
+- **Filters now sort three ways.** Right-click a filter: its panel shows left, straight on and right as the filter sees them. Add items to each way, remove them with ×, and pick which way gets **everything else**. While the item list is open, Shift-click a stack in your inventory to add it. New filters send everything straight on until you pick something; filters you already built work as before.
+- **Lamps glow.** Lamps, torches and panel lights now cast a soft glow around them, strong at night and faint by day.
+- **You can see what you hold.** In first person your hand shows low on the right with the tool or block in it, and it swings as you dig. Everything you hold is the same size, a little larger than a block used to be, and stays still on screen as you look up and down. Tools are held by the handle and swing like the real thing: a pick or axe winds up and strikes edge first, a shovel stabs in and levers up, a sickle sweeps across. Other players now hold their tool in the right hand. Don't want it? **Settings → Comfort → Hand in first person.**
+- **Power lines stay off the ground.** When a wire between two poles would cut through a hill, a free wooden prop appears to hold it up. It costs nothing and moves if you dig the hill away.
+- **Canisters are now called barrels.** Searching "canister" still finds them.
+
 ## 2026-11-13 · A personal drone that runs your errands
 - **Press Y to open your personal drone's panel.** Search anything in the storage boxes and machine outputs within 64 blocks (twice as far as before) and send the drone for a stack or for all of it. It takes from your storage boxes before boxes on a belt line, and those before what machines have made, and makes as many trips as it takes.
 - **Need something you have none of?** Search it anyway: if you can craft it by hand, **Fetch parts & craft** sends the drone for the materials and crafts it for you when they arrive. The item's page in the build menu has the same button.

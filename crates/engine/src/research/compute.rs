@@ -21,8 +21,8 @@ pub const COMPUTE: [Tech; 7] = [
     Tech {
         name: "Wafers",
         blurb:
-            "The chip fab (1 MW, 4×4×3) etches wafers from 2 silicon, an acid canister and a pure water canister in \
-                8 seconds, giving both shells back. The chemical plant fills pure water from an empty canister, a sand \
+            "The chip fab (1 MW, 4×4×3) etches wafers from 2 silicon, an acid barrel and a pure water barrel in \
+                8 seconds, giving both shells back. The chemical plant fills pure water from an empty barrel, a sand \
                 and 2 units of piped water. Gold packs: research it in a research center.",
         needs: &[45, 53],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],

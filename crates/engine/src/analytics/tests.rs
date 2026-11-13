@@ -4,7 +4,7 @@ use super::*;
 use crate::block::{COAL_ORE, CONSTRUCTOR, IRON_ORE, LAB, MINER, SLAG, SMELTER};
 use crate::factory::efficiency::CAUSES;
 use crate::factory::Factory;
-use crate::item::{DIESEL_CANISTER, IRON_INGOT, IRON_PLATE};
+use crate::item::{DIESEL_BARREL, IRON_INGOT, IRON_PLATE};
 use crate::math::IVec3;
 use crate::sim::SimEvent;
 use crate::tests::{build_mine, find_outcrop_block, run_until_ready};
@@ -105,7 +105,7 @@ fn items_sort_into_material_groups() {
     assert_eq!(group(MOTOR), "Components and kits");
     assert_eq!(group(GREEN_PACK), "Science packs");
     assert_eq!(group(SILICON), "Electronics");
-    assert_eq!(group(DIESEL_CANISTER), "Chemicals and fuel");
+    assert_eq!(group(DIESEL_BARREL), "Chemicals and fuel");
     assert_eq!(group(SLAG.into()), "Raw materials", "a block the crusher gives back is bulk, not processed ore");
 }
 

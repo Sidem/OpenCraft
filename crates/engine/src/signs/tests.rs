@@ -16,6 +16,7 @@ const RIGHT: IVec3 = IVec3::new(1, 201, 0);
 /// A game over the test slab with signs in the selected slot.
 fn holding_signs() -> Game {
     let mut g = Game::new(2024, 3);
+    g.set_show_hand(false);
     run_until_ready(&mut g);
     belt_test_slab(&mut g);
     let inv = &mut g.sim.players[0].as_mut().unwrap().inventory;

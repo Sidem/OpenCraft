@@ -24,7 +24,7 @@ use super::{Pick, ProcessSpec};
 
 pub enum Extra {
     None,
-    /// A pumpjack's well and the oil kept towards a canister (pump.rs; saved).
+    /// A pumpjack's well and the oil kept towards a barrel (pump.rs; saved).
     Pump(Pump),
     /// A research center's or AI lab's unit in progress (center.rs; saved).
     Study(Study),

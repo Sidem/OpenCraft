@@ -346,6 +346,9 @@ async function main(): Promise<void> {
       underwater: game.eye_in_water(),
       satellites: game.sky_satellites(),
       held: new Float32Array(wasm.memory.buffer, game.held_light_ptr(), game.held_light_count() * 4),
+      halos: new Float32Array(wasm.memory.buffer, game.halo_ptr(), game.halo_count() * game.halo_floats()),
+      haloCount: game.halo_count(),
+      haloFloats: game.halo_floats(),
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
     views.sync();

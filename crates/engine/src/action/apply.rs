@@ -88,7 +88,8 @@ impl Sim {
                     }
                 }
             }
-            Action::SetFilter { pos, item } => self.factory.set_filter(pos, item),
+            Action::FilterPick { pos, item, out } => self.factory.filter_pick(pos, item, out),
+            Action::FilterRest { pos, out } => self.factory.filter_rest(pos, out),
             Action::SetHarbourProduct { pos, item } => self.settlements.set_product(pos, item),
             Action::OpenVault { pos, dials } => self.open_vault(player, pos, dials),
             Action::SetSensor { pos, rule } => self.factory.set_sensor(pos, rule),

@@ -1,9 +1,7 @@
 use super::*;
 use crate::action::Action;
 use crate::block::{self, COAL_MINER, MINER, SMELTER, STONE};
-use crate::item::{
-    self, COPPER_WIRE, EMPTY_CANISTER, IRON_PLATE, IRON_ROD, UNDERPASS_MK2, UNDERPASS_MK3, UNDERPASS_MK4,
-};
+use crate::item::{self, COPPER_WIRE, EMPTY_BARREL, IRON_PLATE, IRON_ROD, UNDERPASS_MK2, UNDERPASS_MK3, UNDERPASS_MK4};
 use crate::recipes::MACHINE_RECIPES;
 use crate::settlements::discounted;
 use crate::sim::Sim;
@@ -109,8 +107,8 @@ fn only_these_cannot_be_taken_apart() {
         UNDERPASS_MK2,
         UNDERPASS_MK3,
         UNDERPASS_MK4,
-        // Refining and the wafer line give canisters back as a byproduct: taken apart they would turn oil into steel.
-        EMPTY_CANISTER,
+        // Refining and the wafer line give barrels back as a byproduct: taken apart they would turn oil into steel.
+        EMPTY_BARREL,
     ];
     let names = |v: &[ItemId]| v.iter().map(|&i| item::name(i)).collect::<Vec<_>>();
     assert_eq!(names(&refused), names(&expected));

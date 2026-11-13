@@ -6,8 +6,7 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::power::FULL_SPEED;
 use crate::factory::{Factory, Machine};
 use crate::item::{
-    name, ItemId, ACID_CANISTER, AI_ACCELERATOR, EMPTY_CANISTER, PLASTIC, PROCESSOR, PURE_WATER_CANISTER, SILICON,
-    WAFER,
+    name, ItemId, ACID_BARREL, AI_ACCELERATOR, EMPTY_BARREL, PLASTIC, PROCESSOR, PURE_WATER_BARREL, SILICON, WAFER,
 };
 use crate::math::IVec3;
 use crate::recipes::{water_use, ACCELERATOR_RECIPE, MACHINE_RECIPES, PURE_WATER_RECIPE, RECIPES, WAFER_RECIPE};
@@ -46,11 +45,11 @@ fn a_clean_room_with_hatches_on_three_sides_and_a_megawatt() {
 #[test]
 fn a_wafer_takes_silicon_acid_and_pure_water_and_gives_both_shells_back() {
     let mut p = fab();
-    feed(&mut p, &[(SILICON, 2), (ACID_CANISTER, 1), (PURE_WATER_CANISTER, 1)]);
+    feed(&mut p, &[(SILICON, 2), (ACID_BARREL, 1), (PURE_WATER_BARREL, 1)]);
     run(&mut p, 7);
     assert_eq!((p.out.total(), p.status), (0, Status::Working), "8 seconds a wafer");
     run(&mut p, 2);
-    assert_eq!((p.out.count(WAFER), p.side.count(EMPTY_CANISTER), p.input.total()), (1, 2, 0));
+    assert_eq!((p.out.count(WAFER), p.side.count(EMPTY_BARREL), p.input.total()), (1, 2, 0));
 }
 
 #[test]
@@ -66,7 +65,7 @@ fn an_accelerator_takes_two_wafers_two_processors_and_a_plastic() {
 #[test]
 fn one_fab_holds_the_inputs_of_both_recipes_and_a_full_output_stops_the_second_batch() {
     let mut p = fab();
-    feed(&mut p, &[(SILICON, 2), (ACID_CANISTER, 1), (PURE_WATER_CANISTER, 1)]);
+    feed(&mut p, &[(SILICON, 2), (ACID_BARREL, 1), (PURE_WATER_BARREL, 1)]);
     feed(&mut p, &[(WAFER, 2), (PROCESSOR, 2), (PLASTIC, 1)]);
     run(&mut p, 9);
     assert_eq!(p.out.count(WAFER), 1, "a wafer came first: its inputs were held first");
@@ -82,10 +81,10 @@ fn a_half_fed_fab_says_what_it_lacks() {
     assert_eq!(p.status_text(), FAB_SPEC.waiting, "an empty fab says what it takes");
     feed(&mut p, &[(SILICON, 2)]);
     run(&mut p, 1);
-    assert_eq!(p.status_text(), "Waiting for 1 Acid Canister, 1 Pure Water Canister");
+    assert_eq!(p.status_text(), "Waiting for 1 Acid Barrel, 1 Pure Water Barrel");
     feed(&mut p, &[(WAFER, 1), (PROCESSOR, 2)]);
     run(&mut p, 1);
-    assert_eq!(p.status_text(), "Waiting for 1 Acid Canister, 1 Pure Water Canister", "a tie keeps the first recipe");
+    assert_eq!(p.status_text(), "Waiting for 1 Acid Barrel, 1 Pure Water Barrel", "a tie keeps the first recipe");
     feed(&mut p, &[(WAFER, 1)]);
     run(&mut p, 1);
     assert_eq!(p.status_text(), "Waiting for 1 Plastic");
@@ -97,14 +96,14 @@ fn pure_water_is_a_chemical_plant_recipe_that_spends_two_units_of_water() {
     assert!(FAB_SPEC.recipe(PURE_WATER_RECIPE).is_none(), "the fab takes it canned");
     assert_eq!(water_use(PURE_WATER_RECIPE), 2);
     let r = &MACHINE_RECIPES[PURE_WATER_RECIPE as usize];
-    assert_eq!((r.inputs[0], r.outputs), ((EMPTY_CANISTER, 1), &[(PURE_WATER_CANISTER, 1)][..]));
+    assert_eq!((r.inputs[0], r.outputs), ((EMPTY_BARREL, 1), &[(PURE_WATER_BARREL, 1)][..]));
 }
 
 #[test]
 fn a_wafer_gives_back_every_shell_it_took() {
     let r = &MACHINE_RECIPES[WAFER_RECIPE as usize];
     let shells = |list: &[(ItemId, u32)]| {
-        let is_shell = |i: ItemId| [ACID_CANISTER, PURE_WATER_CANISTER, EMPTY_CANISTER].contains(&i);
+        let is_shell = |i: ItemId| [ACID_BARREL, PURE_WATER_BARREL, EMPTY_BARREL].contains(&i);
         list.iter().filter(|x| is_shell(x.0)).map(|x| x.1).sum::<u32>()
     };
     assert_eq!((shells(r.inputs), shells(r.outputs)), (2, 2));
@@ -135,7 +134,7 @@ fn the_fab_waits_for_its_techs() {
 #[test]
 fn a_batch_in_progress_survives_a_save() {
     let mut p = fab();
-    feed(&mut p, &[(SILICON, 2), (ACID_CANISTER, 1), (PURE_WATER_CANISTER, 1), (PLASTIC, 1)]);
+    feed(&mut p, &[(SILICON, 2), (ACID_BARREL, 1), (PURE_WATER_BARREL, 1), (PLASTIC, 1)]);
     run(&mut p, 3);
     let mut w = ByteWriter::default();
     p.write_state(&mut w);

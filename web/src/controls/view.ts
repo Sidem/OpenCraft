@@ -52,6 +52,7 @@ export class ViewControls {
         this.thirdPreference = s.thirdPerson;
       }
       game.set_shoulder_distance(s.thirdDistance);
+      game.set_show_hand(s.showHand);
       this.sync();
     });
   }

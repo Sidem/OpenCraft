@@ -38,7 +38,7 @@ depend on it.
 | **Control and data** | scanner, map → logic (sensors, switches) → data network (fibre) → laser data links → comms satellites (global coverage) | drones, compute, space |
 | **Construction** | hands, belt drag → blueprints → construction drones → earthworks (excavator with drones) → tunnels → AI swarms and auto-routing → building from the map anywhere in coverage | terrain, logistics |
 | **Player gear** | ladders, stone and iron tools → steel tools → jetpack → personal drone → hover pack → laser cutter → exosuit (reach, carry) | exploration |
-| **Fluids and chemistry** | pumps, pipes → boiler water → oil (canisters) → plastics, sulfur, acid → electrolysis (hydrogen, oxygen) → coolant loops → rocket fuel | power, compute, space |
+| **Fluids and chemistry** | pumps, pipes → boiler water → oil (barrels) → plastics, sulfur, acid → electrolysis (hydrogen, oxygen) → coolant loops → rocket fuel | power, compute, space |
 | **Space** | rocket parts → launch site → satellites (survey, comms, power, science) → constellations visible at night → megaproject | compute, power, logistics, extraction |
 
 ## 3. How the lines connect (the links that make it one tree)
@@ -175,5 +175,5 @@ That pattern must not spread. These rules hold for every step from Milestone 6 o
 
 - A deposit gives 3.2× as much metal at Mk5 as at Mk1. Each miner tier roughly fills the belt tier below
   it (Mk3 3.4 ore/s against a Mk1 belt's 2.9), so upgrading miners pushes belt upgrades.
-- **Power per coal:** 270 → 340 → 540 kJ; then solar, diesel (3,000 kJ a canister), nuclear, orbital.
+- **Power per coal:** 270 → 340 → 540 kJ; then solar, diesel (3,000 kJ a barrel), nuclear, orbital.
 - **Research:** Mk3 labs make every fifth unit free, Mk4 every third; AI research and bonus techs later.

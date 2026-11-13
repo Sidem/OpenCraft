@@ -1,5 +1,5 @@
 """Item icons (docs/ART_STYLE.md): the items drawn as a picture on a deep navy backdrop, for the layers an item shows as its
-whole tile (tools, gear, robot parts, canisters, satellites). They are built on the machine kit's `Face` (so parts, outlines
+whole tile (tools, gear, robot parts, barrels, satellites). They are built on the machine kit's `Face` (so parts, outlines
 and glow work as for machines) plus polygons and curves in texel coordinates, y down, content inside 14..114. Materials that
 only skin a model (ingots, packs, avatar) are in `items.py`.
 """
@@ -292,7 +292,7 @@ def gloves(seed=285):
 
 # ---------------------------------------------------------------------------------------------------- liquids and cans
 
-def canister(liquid, seed, level=0.8, glow=0.45, dark_fill=False):
+def barrel(liquid, seed, level=0.8, glow=0.45, dark_fill=False):
     """A steel can with a brass cap and a glass window: the fluid (`liquid` ramp, None when empty) shows at its level."""
     f = canvas(seed)
     f.rect((38, 36, 90, 112), STEEL, 0.5, 1.0, 7)

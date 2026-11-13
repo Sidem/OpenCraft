@@ -86,7 +86,7 @@ impl Game {
     }
 
     /// What a launch recipe sends into orbit (its last input, the satellite: `process/work.rs` lifts it), or 0 for any
-    /// other recipe. The recipe picker shows it as the product and the empty canisters as what it also gives.
+    /// other recipe. The recipe picker shows it as the product and the empty barrels as what it also gives.
     pub fn machine_recipe_payload(&self, i: u32) -> u16 {
         MACHINE_RECIPES
             .get(i as usize)
@@ -110,15 +110,29 @@ impl Game {
         self.act(Action::SetRecipe { pos: IVec3::new(x, y, z), recipe });
     }
 
-    /// The filter's chosen item (0 for none), or `u32::MAX` if the machine there isn't a filter.
-    pub fn machine_filter(&self, x: i32, y: i32, z: i32) -> u32 {
+    /// What the filter at a position sends where (`factory/filter_rules.rs`): the outputs taking everything else (bit
+    /// 1 straight on, 2 left, 4 right), then for straight, left and right in turn the count of items picked and their
+    /// ids. Empty if the machine there isn't a filter.
+    pub fn machine_filter(&self, x: i32, y: i32, z: i32) -> Vec<i32> {
         let p = self.sim.factory.panel(IVec3::new(x, y, z));
-        p.and_then(|p| p.filter).map_or(u32::MAX, |f| f.0 as u32)
+        p.and_then(|p| p.filter).map_or_else(Vec::new, |f| f.to_ints())
     }
 
-    /// Sets what the filter sends straight on (0 for nothing; next tick).
-    pub fn set_machine_filter(&mut self, x: i32, y: i32, z: i32, item: u16) {
-        self.act(Action::SetFilter { pos: IVec3::new(x, y, z), item: ItemId(item) });
+    /// Sends `item` out of the filter by output `out` (0 straight on, 1 left, 2 right; 3 with everything else), off
+    /// any other output's list (next tick).
+    pub fn filter_pick(&mut self, x: i32, y: i32, z: i32, item: u16, out: u8) {
+        self.act(Action::FilterPick { pos: IVec3::new(x, y, z), item: ItemId(item), out });
+    }
+
+    /// Makes output `out` of the filter (0 straight on, 1 left, 2 right) the one that takes everything else; what
+    /// was picked for it joins everything else (next tick).
+    pub fn filter_rest(&mut self, x: i32, y: i32, z: i32, out: u8) {
+        self.act(Action::FilterRest { pos: IVec3::new(x, y, z), out });
+    }
+
+    /// The most items one output of a filter can list.
+    pub fn filter_max_picks(&self) -> usize {
+        crate::factory::filter_rules::MAX_PICKS
     }
 
     /// The channel of the pod launcher or landing pad at a position, or -1 if the machine there isn't one.

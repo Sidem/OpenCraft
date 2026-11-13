@@ -3,7 +3,8 @@
 **Status (2026-11-13):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
-held back on branch `sound-effects`). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
+held back on branch `sound-effects`). 2026-11-13 also: three-way filters, glowing lamps, the hand in first person, wire
+props over hills, barrels (section 6). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
 notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
 pieces, Milestone 14 (the space elevator).
 
@@ -166,7 +167,7 @@ The 2026-10-16 review and the user's 32-hour play-test became steps R1–R8 (`do
 findings and every finished step). Rules that bind every step: content architecture per `docs/TECH_TREE.md` section 8;
 each save-format change bumps `SAVE_VERSION` with a migration and a fixture test; golden hashes are re-recorded only on
 purpose, noted in the step; new ids append (EXTENDING.md says where the next free one comes from); each new look gets a
-placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than water ride belts as canister items.
+placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than water ride belts as barrel items.
 
 - [x] R1–R7 and S1–S4 (talks, rivers, plants, ambient sound, music, ruins, decor, sky and weather): built and pushed.
   Not built from them: the era as a music context (waits for an industrial or space piece), rain splashes, lightning,
@@ -279,6 +280,15 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-13: five user suggestions (save 72).** Canisters are barrels everywhere (search still finds "canister",
+  `ui/craft-terms.ts`). Filters sort three ways (`factory/filter_rules.rs`: picks per output, one output takes
+  everything else; `FilterPick` / `FilterRest`, tags 73–74, tag 4 reads as a straight pick; old filters load their
+  item straight on, the rest shared by both sides) with a panel of three direction cards (`ui/filter-panel.ts`).
+  Lamps glow: `halos.rs` + `world/glows.rs` (render cache) feed an additive pass (`render/halos.ts`), and glowing
+  texels are brighter. First person shows the hand and held item (`avatars/model.rs` `push_view_hand`; comfort
+  setting "Hand in first person"). Tools are held at their grip and make their own stroke (`avatars/tool_hold.rs`:
+  chop, dig, sweep; the avatar's arm follows it); avatars now hold the selected item in the right hand. Power wires that would cut through a hill get free props (`wire_props.rs`,
+  presentation only, cached and rechecked). Golden hash re-recorded (`sim/tests.rs` note).
 - **2026-11-13: the personal drone reworked (user request, save 71).** Orders instead of one errand
   (`helpers/drone/`: Fetch, Store, PutAway, Craft; a queue of `MAX_JOBS`; `Action::Drone`, tag 72; tag 38 reads as a
   fetch). A trip tours the nearest stops (`trip.rs`) through boxes and machine outputs (`factory/stock.rs`) within
@@ -290,7 +300,7 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   empty labelled ones only by hand, except the `box_label::MISC` catch-all, filled last and mixed (`stock.rs` roles); slots are picked in the inventory (`ui/drone-slots.ts`) and wear
   badges from `drone_slots` there and on the HUD hotbar.
 
-- **2026-11-12: a real pumpjack (playtester note).** 2×3×3 (`pump::FOOTPRINT`: empties in at the back, canisters out
+- **2026-11-12: a real pumpjack (playtester note).** 2×3×3 (`pump::FOOTPRINT`: empties in at the back, barrels out
   at the front), drawn by `pump/view.rs` (`Look::Jack`): motor, gearbox, crank arms with counterweights, pitman arms,
   samson post, walking beam, horsehead, bridle, polished rod and wellhead. The beam follows the crank through the real
   four-bar linkage (`view::pose`); the crank (`Pump::crank`, derived, not saved) eases to the power share and stops in
@@ -308,8 +318,8 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   `port-shots.mjs … placed 7.5`) but the user found them distracting in play and they were removed. Box labels moved
   onto the lid, facing the camera and drawn as far as the box; the label picker is a searchable dropdown; heaps ride belts `belt::HEAP_BOOST` bigger.
 
-- **2026-11-09: bigger belt items.** Items ride at `belt::ITEM_SIZE` (just under `ITEM_SPACING`), canisters `CANISTER_BOOST` bigger
-  (`belt::ride_unit`, `item::is_canister`). Drawing only: `END_STOP` is fixed, so belt capacity and the state hash are unchanged.
+- **2026-11-09: bigger belt items.** Items ride at `belt::ITEM_SIZE` (just under `ITEM_SPACING`), barrels `BARREL_BOOST` bigger
+  (`belt::ride_unit`, `item::is_barrel`). Drawing only: `END_STOP` is fixed, so belt capacity and the state hash are unchanged.
 
 - **2026-11-08: performance check.** The launcher warns when the browser draws without the graphics card (`render/gpu-probe.ts`), settings has a
   report to copy (`ui/perf-report.ts`), Picture quality settings with a live render distance (`render/quality.ts`, `World::set_view_radius`),

@@ -1,7 +1,7 @@
-//! Chemistry (Milestone 10): the canister icons and the pumpjack's faces. Every fluid but water travels in a
-//! canister, so one drawing (`canister`) serves them all: a steel drum with a coloured band, the band's colour
+//! Chemistry (Milestone 10): the barrel icons and the pumpjack's faces. Every fluid but water travels in a
+//! barrel, so one drawing (`barrel`) serves them all: a steel drum with a coloured band, the band's colour
 //! telling the fluid; empty is plain. Placeholder looks until the art pass (`docs/ART_HANDOVER.md`).
-//! To add a canister: a band colour here and a `tex` layer in the range `pixel` matches.
+//! To add a barrel: a band colour here and a `tex` layer in the range `pixel` matches.
 
 use crate::block::tex;
 
@@ -26,19 +26,19 @@ fn plastic(x: i32, y: i32) -> [u8; 4] {
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {
-        tex::EMPTY_CANISTER => canister(x, y, EMPTY_BAND),
-        tex::CRUDE_CANISTER => canister(x, y, CRUDE_BAND),
-        tex::NAPHTHA_CANISTER => canister(x, y, NAPHTHA_BAND),
-        tex::DIESEL_CANISTER => canister(x, y, DIESEL_BAND),
-        tex::HEAVY_OIL_CANISTER => canister(x, y, HEAVY_BAND),
+        tex::EMPTY_BARREL => barrel(x, y, EMPTY_BAND),
+        tex::CRUDE_BARREL => barrel(x, y, CRUDE_BAND),
+        tex::NAPHTHA_BARREL => barrel(x, y, NAPHTHA_BAND),
+        tex::DIESEL_BARREL => barrel(x, y, DIESEL_BAND),
+        tex::HEAVY_OIL_BARREL => barrel(x, y, HEAVY_BAND),
         tex::SULFUR => sulfur(x, y),
         tex::PLASTIC => plastic(x, y),
-        tex::ACID_CANISTER => canister(x, y, ACID_BAND),
-        tex::LUBRICANT_CANISTER => canister(x, y, LUBRICANT_BAND),
+        tex::ACID_BARREL => barrel(x, y, ACID_BAND),
+        tex::LUBRICANT_BARREL => barrel(x, y, LUBRICANT_BAND),
         tex::CHEM_SIDE => plant_side(x, y, [96.0, 138.0, 124.0]),
         tex::CHEM_TOP => plant_top(x, y, 2),
-        tex::HYDROGEN_CANISTER => canister(x, y, HYDROGEN_BAND),
-        tex::OXYGEN_CANISTER => canister(x, y, OXYGEN_BAND),
+        tex::HYDROGEN_BARREL => barrel(x, y, HYDROGEN_BAND),
+        tex::OXYGEN_BARREL => barrel(x, y, OXYGEN_BAND),
         tex::DIESEL_SIDE => plant_side(x, y, [176.0, 108.0, 40.0]),
         tex::DIESEL_TOP => plant_top(x, y, 5),
         tex::ELECTROLYSER_SIDE => plant_side(x, y, [70.0, 120.0, 150.0]),
@@ -88,7 +88,7 @@ fn plant_top(x: i32, y: i32, bars: i32) -> [u8; 4] {
 }
 
 /// A drum seen from the front on a dark ground: steel body with rim lines, a cap and a band of `band` across it.
-pub(super) fn canister(x: i32, y: i32, band: [f64; 3]) -> [u8; 4] {
+pub(super) fn barrel(x: i32, y: i32, band: [f64; 3]) -> [u8; 4] {
     let body = (4..=11).contains(&x) && (3..=14).contains(&y);
     if (6..=9).contains(&x) && (1..=2).contains(&y) {
         return rgb([196.0, 200.0, 208.0], 0.9 + 0.1 * n(480, x, y));

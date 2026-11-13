@@ -10,8 +10,10 @@ use crate::math::Vec3;
 use crate::Game;
 use motion::Motion;
 
+mod grip;
 mod model;
 mod motion;
+mod tool_hold;
 
 pub const LABEL_FLOATS: usize = 4;
 const LABEL_RANGE: f64 = 64.0;
@@ -51,6 +53,9 @@ impl Game {
         let inv = self.inventory();
         let (hands, reach) = ([inv.selected_stack().item, inv.offhand.item], held_light::reach_of(inv));
         let focus = self.avatar_focus() - eye;
+        // The first-person hand: not from behind or above, nor while looking through the telescope.
+        let view_hand =
+            self.show_hand && self.third_person.feet.is_none() && !self.strategy.active() && !self.scope_active();
         let a = &mut self.avatars;
         a.labels.clear();
         a.lights.clear();
@@ -68,6 +73,8 @@ impl Game {
                 add_light(&mut a.lights, at, reach);
                 if let Some(feet) = self.third_person.feet {
                     model::push_avatar(&mut self.instances, feet - eye, body.yaw, body.pitch, &a.local_motion, hands);
+                } else if view_hand {
+                    model::push_view_hand(&mut self.instances, body.yaw, body.pitch, &a.local_motion, hands[0]);
                 }
                 continue;
             }

@@ -1,4 +1,4 @@
-//! The machine rows of Chemistry and Compute (Milestones 10 and 11), from canisters to AI accelerators: the second
+//! The machine rows of Chemistry and Compute (Milestones 10 and 11), from barrels to AI accelerators: the second
 //! table `MACHINE_RECIPES` (`machine.rs`) joins, straight after the main one, so their indices are unchanged.
 //! Saved machines hold row indices: never reorder; new rows go in the last table `MACHINE_RECIPES` joins.
 
@@ -11,44 +11,44 @@ use super::Category::{Crushing, Pressing, Smelting, Splitting, Washing};
 use super::MachineRecipe;
 
 pub(super) const LATER: &[MachineRecipe] = &[
-    MachineRecipe { category: Pressing, inputs: &[(STEEL_PLATE, 1)], outputs: &[(EMPTY_CANISTER, 2)], seconds: 1.5 },
-    // Distil and Crack pour a canister's oil into another, so the shells go through: 3 in, 3 out, and 2 in, 2 out.
+    MachineRecipe { category: Pressing, inputs: &[(STEEL_PLATE, 1)], outputs: &[(EMPTY_BARREL, 2)], seconds: 1.5 },
+    // Distil and Crack pour a barrel's oil into another, so the shells go through: 3 in, 3 out, and 2 in, 2 out.
     MachineRecipe {
         category: Distilling,
-        inputs: &[(CRUDE_CANISTER, 3)],
-        outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1), (HEAVY_OIL_CANISTER, 1), (SULFUR, 1)],
+        inputs: &[(CRUDE_BARREL, 3)],
+        outputs: &[(NAPHTHA_BARREL, 1), (DIESEL_BARREL, 1), (HEAVY_OIL_BARREL, 1), (SULFUR, 1)],
         seconds: 6.0,
     },
     MachineRecipe {
         category: Cracking,
-        inputs: &[(HEAVY_OIL_CANISTER, 2)],
-        outputs: &[(NAPHTHA_CANISTER, 1), (DIESEL_CANISTER, 1)],
+        inputs: &[(HEAVY_OIL_BARREL, 2)],
+        outputs: &[(NAPHTHA_BARREL, 1), (DIESEL_BARREL, 1)],
         seconds: 4.0,
     },
-    // The chemical plant: plastic gives its two naphtha canisters' shells back (byproduct), acid and lubricant fill one.
+    // The chemical plant: plastic gives its two naphtha barrels' shells back (byproduct), acid and lubricant fill one.
     MachineRecipe {
         category: Chemistry,
-        inputs: &[(NAPHTHA_CANISTER, 2), (b(COAL_ORE), 1)],
-        outputs: &[(PLASTIC, 4), (EMPTY_CANISTER, 2)],
+        inputs: &[(NAPHTHA_BARREL, 2), (b(COAL_ORE), 1)],
+        outputs: &[(PLASTIC, 4), (EMPTY_BARREL, 2)],
         seconds: 4.0,
     },
     MachineRecipe {
         category: Chemistry,
-        inputs: &[(SULFUR, 1), (EMPTY_CANISTER, 1)],
-        outputs: &[(ACID_CANISTER, 1)],
+        inputs: &[(SULFUR, 1), (EMPTY_BARREL, 1)],
+        outputs: &[(ACID_BARREL, 1)],
         seconds: 3.0,
     },
     MachineRecipe {
         category: Chemistry,
-        inputs: &[(HEAVY_OIL_CANISTER, 1), (EMPTY_CANISTER, 1)],
-        outputs: &[(LUBRICANT_CANISTER, 2)],
+        inputs: &[(HEAVY_OIL_BARREL, 1), (EMPTY_BARREL, 1)],
+        outputs: &[(LUBRICANT_BARREL, 2)],
         seconds: 3.0,
     },
-    // The electrolyser splits two units of water into three canisters of gas (three empties in, three out).
+    // The electrolyser splits two units of water into three barrels of gas (three empties in, three out).
     MachineRecipe {
         category: Splitting,
-        inputs: &[(EMPTY_CANISTER, 3)],
-        outputs: &[(HYDROGEN_CANISTER, 2), (OXYGEN_CANISTER, 1)],
+        inputs: &[(EMPTY_BARREL, 3)],
+        outputs: &[(HYDROGEN_BARREL, 2), (OXYGEN_BARREL, 1)],
         seconds: 6.0,
     },
     // The washer takes only crushed ore: 3 crushed + 1 water → 4 washed + 1 tailings (the crusher stays the first step).
@@ -119,14 +119,14 @@ pub(super) const LATER: &[MachineRecipe] = &[
     // builds an AI accelerator from wafers, processors and plastic.
     MachineRecipe {
         category: Chemistry,
-        inputs: &[(EMPTY_CANISTER, 1), (b(SAND), 1)],
-        outputs: &[(PURE_WATER_CANISTER, 1)],
+        inputs: &[(EMPTY_BARREL, 1), (b(SAND), 1)],
+        outputs: &[(PURE_WATER_BARREL, 1)],
         seconds: 3.0,
     },
     MachineRecipe {
         category: Fabrication,
-        inputs: &[(SILICON, 2), (ACID_CANISTER, 1), (PURE_WATER_CANISTER, 1)],
-        outputs: &[(WAFER, 1), (EMPTY_CANISTER, 2)],
+        inputs: &[(SILICON, 2), (ACID_BARREL, 1), (PURE_WATER_BARREL, 1)],
+        outputs: &[(WAFER, 1), (EMPTY_BARREL, 2)],
         seconds: 8.0,
     },
     MachineRecipe {

@@ -1,4 +1,4 @@
-//! The pumpjack: finds its well, fills canisters at the reservoir's pace, stops for want of empties, runs dry and saves;
+//! The pumpjack: finds its well, fills barrels at the reservoir's pace, stops for want of empties, runs dry and saves;
 //! its footprint and ports, the linkage it is drawn with, and a one-block pumpjack from an older save.
 
 use super::*;
@@ -54,26 +54,26 @@ fn jack(f: &Factory) -> &Processor {
 }
 
 #[test]
-fn a_pumpjack_drills_down_to_the_oil_below_and_fills_canisters_at_the_veins_pace() {
+fn a_pumpjack_drills_down_to_the_oil_below_and_fills_barrels_at_the_veins_pace() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
     let well = jack(&f).pump_state().well.expect("oil under the pumpjack");
     assert_eq!(well.key.ore, OIL_SAND);
     assert!(well.bit.y < spot.y - 10, "the oil is deep: bit at {:?}", well.bit);
-    assert_eq!(f.insert(spot, EMPTY_CANISTER, 16), 16);
+    assert_eq!(f.insert(spot, EMPTY_BARREL, 16), 16);
     run(&mut f, &mut world, 0, 30);
     let p = jack(&f);
-    // A vein gives 4 units a second, 0.9 of it kept, 10 to a canister: about 11 in 30 s.
-    let full = p.out.count(CRUDE_CANISTER);
-    assert!((9..=11).contains(&full), "{full} canisters in 30 s");
-    assert_eq!(p.input.count(EMPTY_CANISTER), 16 - full, "every full canister used an empty one");
+    // A vein gives 4 units a second, 0.9 of it kept, 10 to a barrel: about 11 in 30 s.
+    let full = p.out.count(CRUDE_BARREL);
+    assert!((9..=11).contains(&full), "{full} barrels in 30 s");
+    assert_eq!(p.input.count(EMPTY_BARREL), 16 - full, "every full barrel used an empty one");
     assert_eq!(p.status, Status::Working);
-    assert!(p.reservoir_line(&f).contains("canisters left"));
+    assert!(p.reservoir_line(&f).contains("barrels left"));
 }
 
 #[test]
-fn it_waits_for_empties_and_stops_drawing_while_a_canister_s_worth_is_held() {
+fn it_waits_for_empties_and_stops_drawing_while_a_barrel_s_worth_is_held() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
@@ -82,15 +82,15 @@ fn it_waits_for_empties_and_stops_drawing_while_a_canister_s_worth_is_held() {
     let p = jack(&f);
     assert_eq!((p.status, p.out.total()), (Status::NoInput, 0));
     let held = p.pump_state().carry;
-    assert!((CANISTER_UNITS..CANISTER_UNITS + 1.0).contains(&held), "{held} units kept");
+    assert!((BARREL_UNITS..BARREL_UNITS + 1.0).contains(&held), "{held} units kept");
     let left = f.deposits.get(&key).unwrap().remaining_units();
     run(&mut f, &mut world, 1200, 20);
     assert_eq!(f.deposits.get(&key).unwrap().remaining_units(), left, "nothing more is drawn while it waits");
     assert!(!jack(&f).pump_wants_power());
-    // Only empty canisters go in.
+    // Only empty barrels go in.
     let unlocked = f.research.machine_recipes_unlocked();
     assert_eq!(
-        f.processors.iter_mut().find(|p| p.spec.block == PUMPJACK).unwrap().insert(CRUDE_CANISTER, 4, &unlocked),
+        f.processors.iter_mut().find(|p| p.spec.block == PUMPJACK).unwrap().insert(CRUDE_BARREL, 4, &unlocked),
         0
     );
 }
@@ -113,7 +113,7 @@ fn the_well_and_the_oil_kept_survive_a_save() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
-    f.insert(spot, EMPTY_CANISTER, 3);
+    f.insert(spot, EMPTY_BARREL, 3);
     run(&mut f, &mut world, 0, 5);
     let p = jack(&f);
     let mut w = ByteWriter::default();
@@ -123,8 +123,8 @@ fn the_well_and_the_oil_kept_survive_a_save() {
     assert_eq!(r.u8(), None, "every byte read");
     assert_eq!(back.pump_state().well.map(|x| (x.key, x.bit)), p.pump_state().well.map(|x| (x.key, x.bit)));
     assert_eq!(
-        (back.pump_state().carry, back.status, back.out.count(CRUDE_CANISTER)),
-        (p.pump_state().carry, p.status, p.out.count(CRUDE_CANISTER))
+        (back.pump_state().carry, back.status, back.out.count(CRUDE_BARREL)),
+        (p.pump_state().carry, p.status, p.out.count(CRUDE_BARREL))
     );
 }
 
@@ -138,7 +138,7 @@ fn a_dry_reservoir_leaves_a_pumpjack_that_says_so_and_asks_for_no_power() {
     for _ in 0..f.deposits.get(&key).unwrap().remaining_blocks {
         f.deposits.hand_mined(&mut world, bit);
     }
-    f.insert(spot, EMPTY_CANISTER, 4);
+    f.insert(spot, EMPTY_BARREL, 4);
     run(&mut f, &mut world, 0, 2);
     let p = jack(&f);
     assert_eq!(p.status, Status::Exhausted);
@@ -148,7 +148,7 @@ fn a_dry_reservoir_leaves_a_pumpjack_that_says_so_and_asks_for_no_power() {
 }
 
 #[test]
-fn it_stands_two_by_three_by_three_taking_empties_at_its_back_and_giving_canisters_at_its_front() {
+fn it_stands_two_by_three_by_three_taking_empties_at_its_back_and_giving_barrels_at_its_front() {
     for dir in 0..4u8 {
         let cells = FOOTPRINT.cells(IVec3::ZERO, dir);
         assert_eq!(cells.len(), 18);
@@ -157,12 +157,12 @@ fn it_stands_two_by_three_by_three_taking_empties_at_its_back_and_giving_caniste
         let outs = FOOTPRINT.faces(IVec3::ZERO, dir, Role::Out);
         assert_eq!((ins.len(), outs.len()), (2, 2), "two cells across at each end");
         assert!(ins.iter().all(|f| f.1 == dir && outward(f)), "empties go in at the back: {ins:?}");
-        assert!(outs.iter().all(|f| f.1 == opposite(dir) && outward(f)), "canisters leave the front: {outs:?}");
+        assert!(outs.iter().all(|f| f.1 == opposite(dir) && outward(f)), "barrels leave the front: {outs:?}");
     }
 }
 
 #[test]
-fn belts_bring_empties_to_its_back_and_take_full_canisters_from_its_front() {
+fn belts_bring_empties_to_its_back_and_take_full_barrels_from_its_front() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
@@ -171,7 +171,7 @@ fn belts_bring_empties_to_its_back_and_take_full_canisters_from_its_front() {
     assert!(cells.iter().all(|c| f.at.contains_key(c)), "every cell is the pumpjack's");
     let (back, s) = FOOTPRINT.faces(spot, 0, Role::In)[0];
     let feed = back + DIRS[s as usize];
-    stocked_box(&mut f, feed + DIRS[s as usize], EMPTY_CANISTER, 16);
+    stocked_box(&mut f, feed + DIRS[s as usize], EMPTY_BARREL, 16);
     f.add_belt(feed, opposite(s));
     let (front, s) = FOOTPRINT.faces(spot, 0, Role::Out)[0];
     let lead = front + DIRS[s as usize];
@@ -183,8 +183,8 @@ fn belts_bring_empties_to_its_back_and_take_full_canisters_from_its_front() {
     assert!(jack(&f).takes_from(back, feed));
     assert!(!jack(&f).takes_from(cells[2], side) && !jack(&f).takes_from(front, lead));
     run(&mut f, &mut world, 0, 30);
-    let filled = f.storage_count_at(end, CRUDE_CANISTER);
-    assert!((8..=11).contains(&filled), "{filled} canisters reached the box in 30 s");
+    let filled = f.storage_count_at(end, CRUDE_BARREL);
+    assert!((8..=11).contains(&filled), "{filled} barrels reached the box in 30 s");
 }
 
 #[test]
@@ -269,14 +269,14 @@ fn the_crank_winds_up_while_it_works_and_stops_where_it_is_when_it_waits() {
     let mut world = World::new(1337, 2);
     let spot = above_a_vein(&world);
     let mut f = rig(&mut world, spot);
-    f.insert(spot, EMPTY_CANISTER, 2);
+    f.insert(spot, EMPTY_BARREL, 2);
     let t = run(&mut f, &mut world, 0, 4);
     let pace = 1.0 / (CRANK_SECONDS * crate::TICK_RATE as f64);
     let state = |f: &Factory| (jack(f).status, jack(f).pump_state().crank, jack(f).pump_state().spin);
     let (status, _, spin) = state(&f);
     assert_eq!(status, Status::Working);
     assert!((spin - pace).abs() < pace * 0.01, "full pace after a few seconds: {spin} of {pace}");
-    // Two canisters take about 6 s; then it waits, eases to a stop, and stays put.
+    // Two barrels take about 6 s; then it waits, eases to a stop, and stays put.
     let t = run(&mut f, &mut world, t, 8);
     let (status, crank, spin) = state(&f);
     assert_eq!((status, spin), (Status::NoInput, 0.0));
@@ -293,19 +293,19 @@ fn a_one_block_pumpjack_from_save_69_stays_compact_and_keeps_pumping_through_its
     assert_eq!(u32::from_le_bytes(V69_SAVE[4..8].try_into().unwrap()), 69);
     let mut g = Game::load(V69_SAVE, 2).expect("loads");
     let p = jack(&g.sim.factory);
-    let (pos, empties) = (p.pos, p.input.count(EMPTY_CANISTER));
+    let (pos, empties) = (p.pos, p.input.count(EMPTY_BARREL));
     assert!(p.is_compact());
     assert_eq!((p.cells(), p.footprint().is_single()), (vec![pos], true), "one cell, taking from every side");
     assert!(p.takes_from(pos, pos + DIRS[1]), "its belt from the east still feeds it");
     let west = |f: &Factory| f.belts.iter().find(|b| b.pos == pos + DIRS[3]).expect("the belt west").items.len();
-    let (on_belt, held) = (west(&g.sim.factory), p.out.count(CRUDE_CANISTER) as usize);
+    let (on_belt, held) = (west(&g.sim.factory), p.out.count(CRUDE_BARREL) as usize);
     assert!(on_belt > 0, "the belt west took what it made before");
     g.run_ticks(20 * crate::TICK_RATE);
     let p = jack(&g.sim.factory);
-    let made = (empties - p.input.count(EMPTY_CANISTER)) as usize;
-    assert!(made >= 5, "it fills canisters: {made} in 20 s");
-    let now = west(&g.sim.factory) + p.out.count(CRUDE_CANISTER) as usize;
-    assert_eq!(now, on_belt + held + made, "every canister is on its belt or waiting in it");
+    let made = (empties - p.input.count(EMPTY_BARREL)) as usize;
+    assert!(made >= 5, "it fills barrels: {made} in 20 s");
+    let now = west(&g.sim.factory) + p.out.count(CRUDE_BARREL) as usize;
+    assert_eq!(now, on_belt + held + made, "every barrel is on its belt or waiting in it");
 
     // Saved anew it stays compact; placed again it is full size.
     let saved = g.save();

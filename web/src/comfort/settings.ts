@@ -1,5 +1,5 @@
 // Comfort settings for players prone to motion sickness: field of view, mouse sensitivity, the
-// movement vignette, third-person view and the crosshair. `ComfortStore` holds them, keeps them in localStorage and tells
+// movement vignette, third-person view, the hand in first person and the crosshair. `ComfortStore` holds them, keeps them in localStorage and tells
 // subscribers (the renderer, the crosshair, the vignette, the menu section) when one changes.
 // To add a setting: a field in `ComfortSettings` and `DEFAULTS` (a number also gets a row in `RANGES`),
 // then use it where it matters and add a control in ui/comfort.ts.
@@ -21,6 +21,8 @@ export interface ComfortSettings {
   thirdPerson: boolean;
   /** Blocks behind the head in third person. */
   thirdDistance: number;
+  /** First person shows your hand and what it holds. */
+  showHand: boolean;
   /** CSS pixels. */
   crosshairSize: number;
   crosshairThickness: number;
@@ -45,6 +47,7 @@ export const DEFAULTS: ComfortSettings = {
   vignette: 0,
   thirdPerson: false,
   thirdDistance: 4,
+  showHand: true,
   crosshairStyle: 'cross',
   crosshairSize: 28,
   crosshairThickness: 3,
@@ -69,6 +72,7 @@ function load(): ComfortSettings {
       if (typeof v === 'number' && Number.isFinite(v)) s[key] = clamp(key, v);
     }
     if (typeof rec.thirdPerson === 'boolean') s.thirdPerson = rec.thirdPerson;
+    if (typeof rec.showHand === 'boolean') s.showHand = rec.showHand;
     if (CROSSHAIR_STYLES.includes(rec.crosshairStyle as CrosshairStyle)) s.crosshairStyle = rec.crosshairStyle as CrosshairStyle;
   } catch {
     // Storage unavailable or corrupt: the defaults.

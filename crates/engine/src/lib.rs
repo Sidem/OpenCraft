@@ -52,6 +52,7 @@ mod forester_preview;
 mod frame;
 mod ghost_mode;
 mod ghosts;
+mod halos;
 mod hand_waste;
 mod held_light;
 mod helper_hands;
@@ -111,6 +112,7 @@ mod tools;
 mod town_preview;
 mod train_tools;
 mod upgrade_aim;
+mod wire_props;
 mod world;
 mod worldgen;
 
@@ -221,6 +223,12 @@ pub struct Game {
     instances: Vec<f32>,
     /// This frame's round bodies, copied out of `instances` (`factory::split_round`) for the host's cylinder pass.
     round_instances: Vec<f32>,
+    /// This frame's halos round light-giving blocks (`halos.rs`), `halos::HALO_FLOATS` each.
+    halos: Vec<f32>,
+    /// Whether first person shows the local player's hand and what it holds (a comfort setting; `avatars.rs`).
+    show_hand: bool,
+    /// The props under power wires that would touch the ground, routed and cached (`wire_props.rs`).
+    wire_props: wire_props::WireProps,
     /// Box instances drawn see-through: a held machine's ghost and the belt stubs at ports (`port_view.rs`).
     ghosts: port_view::Ghosts,
     pickups: VecDeque<(ItemId, u32)>,
@@ -320,6 +328,9 @@ impl Game {
             textures,
             instances: Vec::new(),
             round_instances: Vec::new(),
+            halos: Vec::new(),
+            show_hand: true,
+            wire_props: Default::default(),
             ghosts: port_view::Ghosts::default(),
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),

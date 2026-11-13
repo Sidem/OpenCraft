@@ -8,8 +8,8 @@ use crate::factory::power::FULL_SPEED;
 use crate::factory::{Factory, Machine, INSTANCE_FLOATS};
 use crate::inventory::Stack;
 use crate::item::{
-    name, ItemId, AI_ACCELERATOR, AVIONICS, EMPTY_CANISTER, FUEL_TANK, HYDROGEN_CANISTER, LIGHT_FRAME, OXYGEN_CANISTER,
-    ROCKET_ENGINE, ROCKET_FUEL_CANISTER, SURVEY_SATELLITE,
+    name, ItemId, AI_ACCELERATOR, AVIONICS, EMPTY_BARREL, FUEL_TANK, HYDROGEN_BARREL, LIGHT_FRAME, OXYGEN_BARREL,
+    ROCKET_ENGINE, ROCKET_FUEL_BARREL, SURVEY_SATELLITE,
 };
 use crate::math::{IVec3, Vec3};
 use crate::recipes::{
@@ -24,13 +24,13 @@ use super::super::{model, spec};
 use super::*;
 
 const ALL: [bool; MACHINE_RECIPES.len()] = [true; MACHINE_RECIPES.len()];
-/// One rocket: 4 light frames, 2 engines, 2 fuel tanks, an avionics, 8 fuel canisters and a survey satellite.
+/// One rocket: 4 light frames, 2 engines, 2 fuel tanks, an avionics, 8 fuel barrels and a survey satellite.
 const ROCKET: [(ItemId, u32); 6] = [
     (LIGHT_FRAME, 4),
     (ROCKET_ENGINE, 2),
     (FUEL_TANK, 2),
     (AVIONICS, 1),
-    (ROCKET_FUEL_CANISTER, 8),
+    (ROCKET_FUEL_BARREL, 8),
     (SURVEY_SATELLITE, 1),
 ];
 
@@ -72,7 +72,7 @@ fn a_full_load_builds_a_rocket_in_a_minute_and_launches_it() {
     assert_eq!((p.launch_state().0, p.status), (0, Status::Working), "{}", p.status_text());
     assert!(p.status_text().starts_with("Building a rocket: 98%"), "{}", p.status_text());
     run(&mut p, 2);
-    assert_eq!((p.launch_state().0, p.out.count(EMPTY_CANISTER), p.input.total()), (1, 8, 0));
+    assert_eq!((p.launch_state().0, p.out.count(EMPTY_BARREL), p.input.total()), (1, 8, 0));
     assert_eq!(p.readout().lines().filter(|l| *l == "1 in orbit").count(), 1);
 }
 
@@ -83,7 +83,7 @@ fn the_empties_must_leave_before_a_third_rocket_and_each_launch_counts() {
         feed(&mut p, &ROCKET);
         run(&mut p, 61);
     }
-    assert_eq!((p.launch_state().0, p.out.count(EMPTY_CANISTER)), (2, 16));
+    assert_eq!((p.launch_state().0, p.out.count(EMPTY_BARREL)), (2, 16));
     feed(&mut p, &ROCKET);
     run(&mut p, 1);
     assert_eq!(p.status, Status::OutputFull, "{}", p.status_text());
@@ -97,11 +97,11 @@ fn a_pad_missing_a_part_says_which_and_does_not_start() {
     let mut p = pad();
     assert_eq!(p.status_text(), LAUNCH_SPEC.waiting, "an empty pad says what it takes");
     feed(&mut p, &ROCKET[..4]);
-    feed(&mut p, &[(ROCKET_FUEL_CANISTER, 5)]);
+    feed(&mut p, &[(ROCKET_FUEL_BARREL, 5)]);
     run(&mut p, 100);
     assert_eq!((p.launch_state().0, p.batch), (0, None));
-    assert_eq!(p.status_text(), "Waiting for 3 Rocket Fuel Canister, 1 Survey Satellite");
-    feed(&mut p, &[(ROCKET_FUEL_CANISTER, 3), (SURVEY_SATELLITE, 1)]);
+    assert_eq!(p.status_text(), "Waiting for 3 Rocket Fuel Barrel, 1 Survey Satellite");
+    feed(&mut p, &[(ROCKET_FUEL_BARREL, 3), (SURVEY_SATELLITE, 1)]);
     run(&mut p, 61);
     assert_eq!(p.launch_state().0, 1);
 }
@@ -250,11 +250,11 @@ fn a_pad_saved_before_the_satellite_slot_still_loads() {
 fn the_shells_come_back_and_the_parts_come_from_the_right_machines() {
     let r = &MACHINE_RECIPES[ROCKET_RECIPE as usize];
     assert_eq!(r.inputs, &ROCKET[..]);
-    assert_eq!(r.outputs, &[(EMPTY_CANISTER, 8)], "eight fuel canisters in, eight empties out");
+    assert_eq!(r.outputs, &[(EMPTY_BARREL, 8)], "eight fuel barrels in, eight empties out");
     let fuel = &MACHINE_RECIPES[ROCKET_FUEL_RECIPE as usize];
     let shells = |l: &[(ItemId, u32)]| l.iter().map(|x| x.1).sum::<u32>();
     assert_eq!((shells(fuel.inputs), shells(fuel.outputs)), (3, 3));
-    assert_eq!(fuel.inputs, &[(HYDROGEN_CANISTER, 2), (OXYGEN_CANISTER, 1)]);
+    assert_eq!(fuel.inputs, &[(HYDROGEN_BARREL, 2), (OXYGEN_BARREL, 1)]);
     assert!(PLANT_SPEC.recipe(ROCKET_FUEL_RECIPE).is_some(), "the chemical plant mixes the fuel");
     assert!(LAUNCH_SPEC.recipe(ROCKET_RECIPE).is_some());
     let assembler = spec(crate::block::ASSEMBLER).expect("the assembler is a processor");

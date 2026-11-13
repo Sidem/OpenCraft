@@ -70,14 +70,14 @@ const WORLD_BLOCKS: &[BlockId] = &[
     GREEN_SAND,
     PALE_SAND,
 ];
-/// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude canisters;
+/// Items the world gives other than block drops (leaves drop saplings: `action.rs`; pumpjacks fill crude barrels;
 /// recyclers pay coins; the ruins' rusted blocks leave scrap metal: `sim/scrap.rs`).
 const GATHERED: &[ItemId] = &[
     item::SCRAP_METAL,
     ItemId::block(SAPLING),
     ItemId::block(block::BIRCH_SAPLING),
     ItemId::block(block::PINE_SAPLING),
-    item::CRUDE_CANISTER,
+    item::CRUDE_BARREL,
     item::COIN,
 ];
 /// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
@@ -87,8 +87,8 @@ const NO_USE_YET: &[ItemId] = &[
     item::CIRCUIT,
     item::DRONE,
     item::PLASTIC,
-    item::ACID_CANISTER,
-    item::LUBRICANT_CANISTER,
+    item::ACID_BARREL,
+    item::LUBRICANT_BARREL,
     item::AI_ACCELERATOR, // datacenters, 11.3
 ];
 
@@ -119,7 +119,7 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || it == item::LOCOMOTIVE
             || it == item::WAGON
             || it == item::RAIL_SIGNAL
-            || it == item::DIESEL_CANISTER // burned by the diesel generator
+            || it == item::DIESEL_BARREL // burned by the diesel generator
             || it == item::FUEL_CELL // burned by the reactor
             || it == item::COIN // spent on cosmetics, a later step
             || it == item::DROP_POD // spent by the pod launcher (`factory/process/pods.rs`)

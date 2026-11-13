@@ -5,7 +5,7 @@
 //! To add a hand recipe: a `pub const` in its era's or set's file, named in `RECIPES` (its `group` is its build-menu
 //! section); the first machines', tools' and wood's are in `first.rs`, tier items' are in `tiers.rs`, the
 //! heavy machines' in `heavy.rs`, Electronics' in `electronics.rs`, cables' in `wiring.rs`, solar power's in
-//! `solar.rs`, the upgrader's (and its machine row per tier) in `refit.rs`, the automated buildings' machine rows in `automate.rs`, the chip fab's in `compute.rs`, the launch site's (and the rocket parts' machine rows) in `orbit.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and canisters' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
+//! `solar.rs`, the upgrader's (and its machine row per tier) in `refit.rs`, the automated buildings' machine rows in `automate.rs`, the chip fab's in `compute.rs`, the launch site's (and the rocket parts' machine rows) in `orbit.rs`, the recycler's in `recycler.rs` (what it pays: `recycling.rs`), the electrolytic cell's in `aluminium.rs`, the pumpjack's and barrels' in `chemistry.rs`, the railway's in `transport.rs`, plates, rods, screws and wire in `materials.rs`. How long a craft takes by hand: `timing.rs`.
 
 use crate::block::*;
 use crate::item::ItemId;
@@ -193,7 +193,7 @@ pub const RECIPES: &[Recipe] = &[
     MINING_RIG_RECIPE,
     HOVER_PACK_RECIPE,
     PUMPJACK_RECIPE,
-    CANISTER_RECIPE,
+    BARREL_RECIPE,
     REFINERY_RECIPE,
     CRACKER_RECIPE,
     CHEMICAL_PLANT_RECIPE,

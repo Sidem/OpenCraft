@@ -121,6 +121,11 @@ impl Game {
         self.render_eye.z
     }
 
+    /// Whether first person shows your hand and what it holds (on by default).
+    pub fn set_show_hand(&mut self, on: bool) {
+        self.show_hand = on;
+    }
+
     /// Third-person view: how many blocks behind the head the camera sits, 0 for first person
     /// (camera.rs). The camera position above is then behind the eye and the player's avatar is drawn.
     pub fn set_third_person(&mut self, distance: f64) {
@@ -270,6 +275,20 @@ impl Game {
 
     pub fn held_light_count(&self) -> usize {
         self.avatars.lights.len() / held_light::LIGHT_FLOATS
+    }
+
+    /// Byte offset of this frame's halos round light-giving blocks (`halos.rs`): `halo_count()` records of
+    /// `halo_floats()` f32 (camera-relative x, y, z, radius, r, g, b, strength).
+    pub fn halo_ptr(&self) -> usize {
+        self.halos.as_ptr() as usize
+    }
+
+    pub fn halo_count(&self) -> usize {
+        self.halos.len() / crate::halos::HALO_FLOATS
+    }
+
+    pub fn halo_floats(&self) -> usize {
+        crate::halos::HALO_FLOATS
     }
 
     /// Byte offset of this frame's sound events: `sound_count()` records of

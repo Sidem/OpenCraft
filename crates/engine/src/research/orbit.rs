@@ -16,8 +16,8 @@ pub const ORBIT: [Tech; 4] = [
     Tech {
     name: "Rocketry",
     blurb: "Light frames, rocket engines, fuel tanks and avionics come from assemblers; the chemical plant mixes \
-            hydrogen and oxygen canisters into rocket fuel. The launch site (7×7×6, 2 MW) builds a rocket from 4 light \
-            frames, 2 engines, 2 fuel tanks, an avionics and 8 fuel canisters, and launches it with a survey satellite \
+            hydrogen and oxygen barrels into rocket fuel. The launch site (7×7×6, 2 MW) builds a rocket from 4 light \
+            frames, 2 engines, 2 fuel tanks, an avionics and 8 fuel barrels, and launches it with a survey satellite \
             (an assembler builds those) into orbit.",
     needs: &[47, 57],
     packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],

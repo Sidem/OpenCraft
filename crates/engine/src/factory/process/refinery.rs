@@ -4,11 +4,11 @@
 //! the machine's small tank, a few units) and a recipe's `water_use` units are spent when a batch starts. With the
 //! tank empty a machine reports `NoWater` and waits.
 //!
-//! - **Shells go through:** Distil turns 3 crude oil canisters into a naphtha, a diesel and a heavy oil canister
-//!   and a sulfur; Crack turns 2 heavy oil canisters into a naphtha and a diesel canister. The first output leaves
+//! - **Shells go through:** Distil turns 3 crude oil barrels into a naphtha, a diesel and a heavy oil barrel
+//!   and a sulfur; Crack turns 2 heavy oil barrels into a naphtha and a diesel barrel. The first output leaves
 //!   the front, the others the side hatches on the right (a mixed belt: the player sorts it with filters). A full
 //!   stream stops the machine (`Status::OutputFull`, with the stream named), so using or storing every one is the
-//!   game. Numbers: docs/TECH_ERAS.md section 6. The plant (plastic, acid, lubricant) hands the empty canisters
+//!   game. Numbers: docs/TECH_ERAS.md section 6. The plant (plastic, acid, lubricant) hands the empty barrels
 //!   back through its side hatch.
 //!
 //! To add a chemistry machine: a spec row here, a `Category`, a block and a `MACHINES` row.
@@ -41,7 +41,7 @@ pub const REFINERY_SPEC: ProcessSpec = ProcessSpec {
     },
     verb: "Distilling",
     products: "naphtha",
-    waiting: "Waiting for crude oil canisters",
+    waiting: "Waiting for crude oil barrels",
     map_colour: 0x6a7a8e,
     compute: 0,
     parts: &REFINERY_PARTS,
@@ -60,7 +60,7 @@ pub const CRACKER_SPEC: ProcessSpec = ProcessSpec {
     },
     verb: "Cracking",
     products: "naphtha",
-    waiting: "Waiting for heavy oil canisters",
+    waiting: "Waiting for heavy oil barrels",
     map_colour: 0x96705f,
     compute: 0,
     parts: &CRACKER_PARTS,
@@ -87,7 +87,7 @@ pub const PLANT_SPEC: ProcessSpec = ProcessSpec {
     parts: &PLANT_PARTS,
 };
 
-/// The electrolyser splits water into hydrogen and oxygen canisters (`Splitting`): empties in at the back, hydrogen out
+/// The electrolyser splits water into hydrogen and oxygen barrels (`Splitting`): empties in at the back, hydrogen out
 /// of the front and oxygen from the right-hand hatch.
 pub const ELECTROLYSER_SPEC: ProcessSpec = ProcessSpec {
     block: ELECTROLYSER,
@@ -102,7 +102,7 @@ pub const ELECTROLYSER_SPEC: ProcessSpec = ProcessSpec {
     },
     verb: "Splitting",
     products: "hydrogen",
-    waiting: "Waiting for empty canisters",
+    waiting: "Waiting for empty barrels",
     map_colour: 0x4f86a8,
     compute: 0,
     parts: &ELECTROLYSER_PARTS,

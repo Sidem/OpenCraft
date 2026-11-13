@@ -346,7 +346,9 @@ void main() {
   vec3 hazed = v_rel;
 #endif
   float glow = textureGrad(u_glow, uvl, dx, dy).r;
-  vec3 shown = mix(c.rgb * (v_light * tint + v_sun), c.rgb * 1.1, glow);
+  // A self-lit texel is brighter than any lit one, hottest where its colour is strongest, so a lamp reads as giving
+  // light even at noon (its halo, render/halos.ts, does the rest).
+  vec3 shown = mix(c.rgb * (v_light * tint + v_sun), c.rgb * 1.2 + c.rgb * c.rgb * 0.75, glow);
 #ifdef BOXES
   shown = mix(shown, v_beacon.rgb, v_beacon.a);
 #endif

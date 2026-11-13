@@ -201,8 +201,10 @@ size.
   Wire both to a power pole like any machine. Six panels and one accumulator carry a steady 15 kW round the
   clock; the world's day is 20 minutes.
 - **Splitters and filters** sit in a belt line. A splitter shares items between the belts leading away in
-  front, to the left and to the right, skipping any that are full. A filter sends the item you choose in
-  its panel straight on and everything else to the sides.
+  front, to the left and to the right, skipping any that are full. A filter's panel lists, for left, straight
+  on and right, the items picked to go that way (up to `filter_rules::MAX_PICKS` each); exactly one way takes
+  everything else (a new filter: straight on). Filters from before save version 72 keep their one item straight
+  on and share everything else between the sides.
 - **Power.** Miners, constructors, labs, pumps and quarries need power; the smelter burns its own fuel, and
   belts, splitters and filters need none. A coal generator turns coal ore (270 kJ) or logs (135 kJ), brought
   by belt, by a miner beside it or by hand, into stored energy and gives up to 60 kW, only as much as its
@@ -278,16 +280,16 @@ size.
   of it (it faces the way you did when you placed it): down to where it lands, then filling that pool from
   the bottom up. With nowhere to pour, the pumps stop. Drain a pond or a flooded pit this way; the sea
   refills whatever you take, so it can't be lowered.
-- **Fluids and chemistry** (Milestone 10). Pipes carry only water; every other fluid rides belts in **canisters**
+- **Fluids and chemistry** (Milestone 10). Pipes carry only water; every other fluid rides belts in **barrels**
   (an empty one is 1 steel plate for 2, and empties come back). Oil Processing unlocks the **pumpjack** (90 kW,
   2×3×3: a motor and a crank with counterweights at the back, the beam and horsehead over the wellhead at the front):
-  placed over oil sand it drills straight down under its base and fills a canister about every 2 s from the deposit's
-  shared pool. Belts bring empties in at its back and take full canisters from its front. A pumpjack built before
-  2026-11-12 stays one block (a small model of the new one, taking and giving on every side) until you place it again. Refining unlocks the **refinery** (3 crude canisters and water give naphtha, diesel and heavy oil
-  canisters and sulfur: the first leaves the front, the rest the right-hand hatches, so sort the belt with filters) and the
+  placed over oil sand it drills straight down under its base and fills a barrel about every 2 s from the deposit's
+  shared pool. Belts bring empties in at its back and take full barrels from its front. A pumpjack built before
+  2026-11-12 stays one block (a small model of the new one, taking and giving on every side) until you place it again. Refining unlocks the **refinery** (3 crude barrels and water give naphtha, diesel and heavy oil
+  barrels and sulfur: the first leaves the front, the rest the right-hand hatches, so sort the belt with filters) and the
   **cracker** (heavy oil and water into naphtha and diesel). Plastics, then Acids and Lubricants, unlock the
   **chemical plant** (plastic from naphtha and coal, acid from sulfur and water, lubricant from heavy oil). A
-  **diesel generator** burns a canister for 100 s of 400 kW and gives only what the grid lacks; the
+  **diesel generator** burns a barrel for 100 s of 400 kW and gives only what the grid lacks; the
   **electrolyser** splits water into hydrogen and oxygen for later. **Ore washing** (the washer takes *crushed* ore
   only, water from a pipe) turns a raw ore's 1.0 ingots into 2.0 and leaves tailings you must belt away. A **research
   center** (2×2×2, eight pack slots, twice a lab's speed and power) takes the gold pack that a lab has no slot for.
@@ -302,9 +304,9 @@ size.
   recipes: the material that went in and how deep the chain is, on a flattening curve, so a motor pays 4, an AI accelerator
   11, a drone 27 and a Mk5 drone port 55. A tool pays by its uses, so a worn one pays less. Slag and tailings pay the least,
   and so does what is crushed from them. An item is worth what its cheapest recipe makes it, so no route earns more.- **Chips.** The Wafers tech (gold packs, so in a research center) opens the **chip fab** (4×4×3 clean room, 1 MW):
-  2 silicon, an acid canister and a pure water canister make a **wafer** in 8 seconds and the two shells come back out of
+  2 silicon, an acid barrel and a pure water barrel make a **wafer** in 8 seconds and the two shells come back out of
   the side hatches; belt wafers back in with 2 processors and a plastic and the Accelerators tech lets it build an **AI
-  accelerator** (20 s). **Pure water** is a chemical plant recipe (an empty canister, a sand and 2 units of piped
+  accelerator** (20 s). **Pure water** is a chemical plant recipe (an empty barrel, a sand and 2 units of piped
   water). A half-fed fab says what it still lacks.
 - **Data grid.** The Data Network tech (after Wafers) gives **fibre nodes** (2 from 2 processors, 4 glass, 2 plastic and 6 copper
   wire). Nodes within 12 blocks join into one data grid by themselves, and a machine that makes or uses compute (TF) hangs on
@@ -345,10 +347,10 @@ size.
   stained soil you have seen within 256 blocks (bigger rings for more stain). They are hints: scan or drill to be sure.
 - **Rocketry.** Rocketry (after Electrolysis and Accelerators, all five science packs) gives four rocket parts the assembler
   builds (light frame, rocket engine, fuel tank, avionics), **rocket fuel** (the chemical plant mixes 2 hydrogen and 1 oxygen
-  canister into a fuel canister and 2 empties), the **survey satellite** (an assembler: 2 light frames, 4 solar panels, 4 AI
+  barrel into a fuel barrel and 2 empties), the **survey satellite** (an assembler: 2 light frames, 4 solar panels, 4 AI
   accelerators) and the **launch site**, a 7×7×6 pad and gantry (2 MW). Belt 4 light frames, 2 engines, 2 fuel tanks, an
-  avionics, 8 fuel canisters and a satellite in at the back hatches: the pad builds a rocket for a minute (you see it standing
-  there), launches the satellite into orbit and gives the 8 empty canisters back at the front. A pad missing a part says
+  avionics, 8 fuel barrels and a satellite in at the back hatches: the pad builds a rocket for a minute (you see it standing
+  there), launches the satellite into orbit and gives the 8 empty barrels back at the front. A pad missing a part says
   which, and says how many satellites are up and how many are over it. Satellites fly across the sky at 6 blocks a second, a
   lap of the world's repeating sky in a few minutes, and show as small gold lights (brightest at night); a satellite covers
   the ground within 768 blocks of the point under it. The first 24 of a kind stay up; a 25th retires the oldest.

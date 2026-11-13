@@ -2,8 +2,8 @@
 //! side; each holds one item at a time and passes it into a belt leading away in front, to the left or
 //! to the right (`outs`, rebuilt by `relink`).
 //! - Splitter: round robin over the three outputs, skipping any that are missing or blocked.
-//! - Filter: its chosen item (set in the panel, `SetFilter`) goes straight on; everything else goes
-//!   left or right (round robin). With no item chosen, everything goes to the sides.
+//! - Filter: each output takes the items picked for it in the panel, and one (or, in filters from before save
+//!   version 72, both sides) takes everything else (`filter_rules.rs`). A new filter sends everything straight on.
 //!
 //! Neither needs power: like belts they work without a connection to the grid.
 //!
@@ -17,18 +17,22 @@ use crate::item::{self, ItemId};
 use crate::math::{IVec3, Vec3};
 
 use super::belt::{ride_unit, Belt, ITEM_DETAIL_RANGE};
+use super::filter_rules::FilterRules;
 use super::panel::{Panel, ROLE_INPUT};
 use super::provenance::Tag;
 use super::render::push_box;
 use super::{Factory, Machine};
+
+/// The save version that stores a filter's rules (`filter_rules.rs`) instead of one item.
+const RULES_SAVED: u32 = 72;
 
 pub struct Router {
     pub pos: IVec3,
     pub dir: u8,
     /// A filter (true) or a splitter.
     pub is_filter: bool,
-    /// The item a filter sends straight on (`NONE`: nothing chosen).
-    pub filter: ItemId,
+    /// What a filter sends where (unused by a splitter).
+    pub rules: FilterRules,
     /// The item passing through (`NONE`: empty).
     pub held: ItemId,
     /// How many of it: 1, or a tool's uses.
@@ -49,7 +53,7 @@ impl Router {
             pos,
             dir: dir % 4,
             is_filter,
-            filter: none,
+            rules: FilterRules::default(),
             held: none,
             held_n: 0,
             held_tag: Tag::UNKNOWN,
@@ -80,7 +84,7 @@ impl Router {
         if self.held == ItemId::NONE {
             return;
         }
-        let allowed = |slot: usize| !self.is_filter || (slot == 0) == (self.held == self.filter);
+        let allowed = |slot: usize| !self.is_filter || self.rules.allows(self.held, slot);
         for k in 0..3 {
             let slot = (self.next_out as usize + k) % 3;
             let Some(b) = self.outs[slot].filter(|_| allowed(slot)) else { continue };
@@ -95,10 +99,7 @@ impl Router {
     }
 
     fn status_text(&self) -> String {
-        match self.filter {
-            ItemId::NONE => "No item chosen: everything goes left and right".to_string(),
-            f => format!("{} goes straight on; everything else left and right", item::name(f)),
-        }
+        self.rules.describe()
     }
 
     pub fn panel(&self) -> Panel {
@@ -110,7 +111,7 @@ impl Router {
             fire: 0,
             slots: vec![(ROLE_INPUT, Stack { item: self.held, count: self.held_n })],
             status: self.status_text(),
-            filter: Some(self.filter),
+            filter: Some(self.rules.clone()),
         }
     }
 }
@@ -120,12 +121,12 @@ impl Machine for Router {
         self.pos
     }
 
-    /// Core state: position, facing, kind, filter item, held item, round-robin position.
+    /// Core state: position, facing, kind, filter rules, held item, round-robin position.
     fn write_state(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
         w.u8(self.dir);
         w.bool(self.is_filter);
-        w.item(self.filter);
+        self.rules.write_state(w);
         w.item(self.held);
         w.u32(self.held_n);
         w.u8(self.next_out);
@@ -135,7 +136,9 @@ impl Machine for Router {
     fn read_state(r: &mut ByteReader) -> Option<Router> {
         let (pos, dir, is_filter) = (r.ivec3()?, r.u8()?, r.bool()?);
         let mut m = Router::new(pos, dir, is_filter);
-        (m.filter, m.held) = (r.item()?, r.item()?);
+        // Before version 72 a filter had one item, sent straight on.
+        m.rules = if r.version >= RULES_SAVED { FilterRules::read_state(r)? } else { FilterRules::legacy(r.item()?) };
+        m.held = r.item()?;
         // Before version 39 a router held a single item (a tool: one use).
         m.held_n = if r.version >= 39 { r.u32()? } else { (m.held != ItemId::NONE) as u32 };
         m.next_out = r.u8()?;
@@ -155,7 +158,7 @@ impl Machine for Router {
         let used = self.outs.iter().filter(|o| o.is_some()).count();
         let outs = format!("{used} of 3 outputs connected (front, left, right)");
         if self.is_filter {
-            format!("{}\n{outs}\nRight-click to choose the item", self.status_text())
+            format!("{}\n{outs}\nRight-click to choose what goes where", self.status_text())
         } else {
             format!("Splits items evenly between the belts leading away\n{outs}")
         }
