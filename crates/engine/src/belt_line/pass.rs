@@ -11,7 +11,7 @@
 //! two same-tier pieces in a line facing the same way, no further apart than the entry's reach.
 //! To change which underpass is picked: `assign`; what the HUD says: `belt_line_label`.
 
-use crate::block::UNDERPASS_IN;
+use crate::block::{LIFT, UNDERPASS_IN};
 use crate::factory::underpass::UNDERPASS_SPAN;
 use crate::factory::{tiers, Shape};
 use crate::item::ItemId;
@@ -31,6 +31,7 @@ impl LineCell {
             Piece::Entry(_) | Piece::Exit => {
                 tiers::item_of(UNDERPASS_IN, self.tier).unwrap_or(ItemId::block(UNDERPASS_IN))
             }
+            Piece::Lift => ItemId::block(LIFT),
         }
     }
 }
@@ -87,7 +88,7 @@ pub(super) fn assign(cells: &mut [LineCell], belt_tier: u8, mut have: [u32; UNDE
                     (cells[i].tier, cells[i].short) = (cells[e].tier, cells[e].short);
                 }
             }
-            Piece::Belt => {}
+            Piece::Belt | Piece::Lift => {}
         }
     }
 }
@@ -130,8 +131,10 @@ impl Game {
         let cells = &self.line.cells;
         let plural = |n: usize, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
         let belts = cells.iter().filter(|c| c.piece == Piece::Belt).count();
-        let passes = cells.iter().filter(|c| c.piece != Piece::Belt).count();
-        let short = cells.iter().filter(|c| c.piece != Piece::Belt && c.short).count();
+        let is_pass = |c: &&LineCell| matches!(c.piece, Piece::Entry(_) | Piece::Exit);
+        let passes = cells.iter().filter(is_pass).count();
+        let short = cells.iter().filter(is_pass).filter(|c| c.short).count();
+        let lifts = cells.iter().filter(|c| c.piece == Piece::Lift).count();
         let sloped = cells.iter().filter(|c| matches!(c.shape, Shape::Up | Shape::Down)).count();
         let have = self.inventory().count(self.inventory().selected_stack().item) as usize;
         let title = if self.line.route == super::Route::Found { "Auto-route" } else { "Belt line" };
@@ -141,6 +144,9 @@ impl Game {
         }
         if passes > 0 {
             s += &format!(", {}", plural(passes, "underpass", "underpasses"));
+        }
+        if lifts > 0 {
+            s += &format!(", {} up or down a cliff", plural(lifts, "lift", "lifts"));
         }
         if have < belts && !self.ghost_mode {
             s += &format!(" · you have {have}");

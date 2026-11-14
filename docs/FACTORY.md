@@ -54,7 +54,10 @@ size.
   along at its speed (you can still walk on it; crouch to stop at its end).
 - **Climbing and crossing.** Belts climb and drop one-block steps by themselves: a belt with a belt one
   block ahead and one up becomes a ramp up, and one below a belt one up behind it a ramp down. Stacked lifts carry items straight up, and the top one hands them on
-  one ahead and one up. Underpasses are one item in Mk1 to Mk4 (the same speed as the belt of that Mk): place two facing the same
+  one ahead and one up. The same lifts carry items down when a belt one behind and one up feeds the top of the stack and
+  nothing feeds its foot: the bottom one hands them on straight ahead. Dragging a belt line with lifts in your inventory
+  climbs a cliff more than a block high on a stack of lifts, and goes down one on lifts when you point at lower ground
+  (pointing level with the top keeps the line level over the drop). Underpasses are one item in Mk1 to Mk4 (the same speed as the belt of that Mk): place two facing the same
   way and the first sends items under whatever lies between to the next one, up to 4 / 6 / 8 / 10 blocks ahead, so
   two lines can cross. Drag a belt line over a belt, a machine or a wall and it dives under by itself with the
   lowest underpass that reaches, is at least as fast as your belt and that you hold a pair of. Pairs you don't have
@@ -252,7 +255,8 @@ size.
   Jetpack and Bauxite Processing; 6 aluminium plates, 2 motors, 4 batteries, 2 processors) makes a pack that hovers:
   hold jump in the air and you stay at your height (jump rises, crouch sinks) and glide at 8 blocks a second, 13 when
   sprinting. It runs on charge, 90 seconds of hover at most, and refills (twice as fast as it drains) while you stand
-  within 6 blocks of a power pole (32 of a long-distance pole); the line under the hotbar shows the charge. A hover pack wins over the jetpack. The Earthworks tech (needs
+  as close to a power pole as it can be wired to another pole of its kind (Mk1 10 blocks, Mk2 16, Mk3 and Mk4 32, a
+  long-distance pole 160); the line under the hotbar shows the charge. A hover pack wins over the jetpack. The Earthworks tech (needs
   Construction Drones) unlocks the **Planner** (3 iron plates, 4 copper wire, 2 glass, a circuit): mark an area to
   dig, fill or flatten and drone ports in reach do the work, digging into the storage boxes beside their pad and
   filling from them (dirt on top, else stone, dirt, sand or grass), so ground dug in one site fills another.

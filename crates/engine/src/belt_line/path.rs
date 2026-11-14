@@ -1,5 +1,7 @@
 //! The path of a dragged belt line (part of `belt_line.rs`): [`plan`] lays the columns from the start towards
-//! the pointer and follows the ground; where something is in the way it asks `pass.rs` for an underpass pair.
+//! the pointer and follows the ground; where something is in the way it asks `pass.rs` for an underpass pair, and
+//! a cliff more than a block high is climbed on lifts or gone down on drops (`belt_shape.rs` turns a column fed
+//! over its top into drops by itself).
 //! [`plan_upgrade`] is the same path over existing belts, for upgrade kits. Both read blocks or tiers through a
 //! closure, never the core, so they are plain functions of their arguments (tests: `tests.rs`).
 
@@ -34,15 +36,21 @@ fn columns(start: IVec3, end: IVec3, facing: u8) -> Vec<((i32, i32), u8)> {
     cols
 }
 
+/// The tallest lift column a dragged line builds, in lifts.
+pub const MAX_LIFT: i32 = 16;
+
 /// The cells of a line from `start` towards the column of `end`, reading blocks through `block`
 /// (`None`: not loaded), and where it was stopped by something too wide to go under (`pass.rs`: an
 /// obstacle in the way becomes an underpass entry and exit). A line of one cell runs `facing`. Empty
-/// when `start` isn't free.
+/// when `start` isn't free. With `lifts` in hand the line climbs a cliff more than a block high on a lift column
+/// (when it can't go under it), and goes down one on a column of drops when `end` lies below it (otherwise it
+/// stays level over the gap); it never plans more lifts than `lifts`.
 pub fn plan(
     block: impl Fn(IVec3) -> Option<BlockId>,
     start: IVec3,
     end: IVec3,
     facing: u8,
+    mut lifts: usize,
 ) -> (Vec<LineCell>, Option<IVec3>) {
     let free = |p: IVec3| block(p).is_some_and(block::replaceable);
     let solid = |p: IVec3| block(p).is_some_and(|b| SOLID[b as usize] && factory::machine(b).is_none());
@@ -66,10 +74,21 @@ pub fn plan(
     let (mut y, mut blocked, mut i, mut after_exit) = (start.y, None, 0, false);
     while i < cols.len() {
         let (col, dir) = cols[i];
+        let straight = i > 0 && cols[i - 1].1 == dir;
         if i == 0 {
             if !free(IVec3::new(col.0, y, col.1)) {
                 break;
             }
+        } else if let Some(k) =
+            drop_depth(&free, &solid, col, y, end.y).filter(|&k| straight && !after_exit && k <= lifts)
+        {
+            // Down a cliff towards a lower end: a column of drops in this column, from just below the line to the
+            // ground (or the end's level); the line goes on from its bottom.
+            for j in 1..=k {
+                cells.push(lift_cell(IVec3::new(col.0, y - j as i32, col.1), dir, Shape::Drop));
+            }
+            (y, lifts, i) = (y - k as i32, lifts - k, i + 1);
+            continue;
         } else if let Some(next) = level(col, y) {
             if after_exit && next != y {
                 break; // an underpass exit hands items on level
@@ -79,6 +98,15 @@ pub fn plan(
             pass::dive(&mut cells, &cols, i, k, y);
             (i, after_exit) = (i + k + 1, true);
             continue;
+        } else if let Some(h) = climb_height(&free, &solid, &cells, col, y).filter(|&h| h <= lifts) {
+            // Up a cliff: the belt before it becomes the foot of a lift column, whose top hands on onto the cliff.
+            let foot = cells.last_mut().expect("climb_height needs a belt before the cliff");
+            (foot.piece, foot.shape) = (Piece::Lift, Shape::Lift);
+            let foot = *foot;
+            for j in 1..h {
+                cells.push(LineCell { pos: foot.pos + IVec3::new(0, j as i32, 0), ..foot });
+            }
+            (y, lifts) = (y + h as i32, lifts - h);
         } else {
             blocked = Some(IVec3::new(col.0, y, col.1));
             break;
@@ -89,6 +117,49 @@ pub fn plan(
     }
     slopes(&mut cells);
     (cells, blocked)
+}
+
+/// A lift (`Shape::Lift`) or drop (`Shape::Drop`) of a planned line.
+fn lift_cell(pos: IVec3, dir: u8, shape: Shape) -> LineCell {
+    LineCell { piece: Piece::Lift, ..LineCell::belt(pos, dir, shape) }
+}
+
+/// How many drops take a line at level `y` down into column `col`: from the cell below the line down to the ground,
+/// or to `end_y` if that comes first. None for less than two (a one-block step is a ramp), when the end is not below,
+/// or when no ground or end lies within `MAX_LIFT`.
+fn drop_depth(
+    free: &impl Fn(IVec3) -> bool,
+    solid: &impl Fn(IVec3) -> bool,
+    (x, z): (i32, i32),
+    y: i32,
+    end_y: i32,
+) -> Option<usize> {
+    let at = |y: i32| IVec3::new(x, y, z);
+    if end_y > y - 2 || !free(at(y)) {
+        return None;
+    }
+    let k = (1..=MAX_LIFT).take_while(|&j| free(at(y - j))).find(|&j| y - j == end_y || solid(at(y - j - 1)))?;
+    (k >= 2).then_some(k as usize)
+}
+
+/// How many lifts take a line at level `y` up the cliff in column `col`: a column standing on the last cell, as tall
+/// as the cliff is above it (the top hands on onto the ground there). None when the last cell can't be a lift's
+/// foot (not a plain belt, or fed from above), when the column has no room, or the cliff is taller than `MAX_LIFT`.
+fn climb_height(
+    free: &impl Fn(IVec3) -> bool,
+    solid: &impl Fn(IVec3) -> bool,
+    cells: &[LineCell],
+    (x, z): (i32, i32),
+    y: i32,
+) -> Option<usize> {
+    let foot = cells.last().filter(|c| c.piece == Piece::Belt && c.pos.y == y)?;
+    let behind = cells.len().checked_sub(2).map(|i| cells[i]);
+    if behind.is_some_and(|b| b.pos.y > y || b.dir != foot.dir) {
+        return None; // fed from above or from the side (a corner): a lift takes items only from straight behind
+    }
+    let at = |y: i32| IVec3::new(x, y, z);
+    let h = (2..=MAX_LIFT).find(|&h| solid(at(y + h - 1)) && free(at(y + h)))?;
+    (1..h).all(|j| free(foot.pos + IVec3::new(0, j, 0))).then_some(h as usize)
 }
 
 /// Marks the belts the factory will turn into ramps (it derives them from the heights), for the preview.

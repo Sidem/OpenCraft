@@ -3,6 +3,11 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-14 · Lifts that go down, and hover packs that charge from further away
+- **Belt lifts can carry items down.** Feed the top of a stack of lifts from a belt one block behind and one up, leave its foot unfed, and the stack lowers items and hands them on straight ahead at the bottom.
+- **Dragging a belt line uses lifts at cliffs.** With lifts in your inventory, a line that meets a cliff more than one block high climbs it on a stack of lifts, and a line you point down at lower ground goes down the cliff on lifts. Point level with the top and the line stays level over the drop, as before. The line's card says how many lifts it uses.
+- **Hover packs charge as far from a pole as the pole reaches another of its kind:** 10 blocks from a Mk1 pole, 16 from Mk2, 32 from Mk3 and Mk4, and 160 from a long-distance pole (was 6, and 32 for long-distance poles).
+
 ## 2026-11-13 · Three-way filters, glowing lamps and your hand in view
 - **Filters now sort three ways.** Right-click a filter: its panel shows left, straight on and right as the filter sees them. Add items to each way, remove them with ×, and pick which way gets **everything else**. While the item list is open, Shift-click a stack in your inventory to add it. New filters send everything straight on until you pick something; filters you already built work as before.
 - **Lamps glow.** Lamps, torches and panel lights now cast a soft glow around them, strong at night and faint by day.

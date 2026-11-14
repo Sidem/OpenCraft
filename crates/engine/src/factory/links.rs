@@ -10,7 +10,7 @@ use crate::math::IVec3;
 
 use super::belt::Belt;
 use super::belt_curve::BEND_STRAIGHT;
-use super::belt_shape::{derive_slopes, Shape};
+use super::belt_shape::{derive_lift_ways, derive_slopes, Shape};
 use super::fibre::Data;
 use super::generator::Generator;
 use super::lab::Lab;
@@ -170,6 +170,7 @@ impl Factory {
     pub(crate) fn relink(&mut self) {
         self.dirty = false;
         let exit_of = derive_passes(&mut self.belts);
+        derive_lift_ways(&mut self.belts, &self.at);
         derive_slopes(&mut self.belts, &self.at);
         let at = &self.at;
         let belts = &self.belts;
@@ -256,12 +257,15 @@ impl Factory {
             }
             Some(&s) if s.is_sink() && takes(s, t, t - DIRS[dir as usize]) => Link::Machine(s),
             Some(_) => Link::None,
-            None => shaped(t - UP, Shape::Down, dir).map_or(Link::None, start),
+            // Over a down ramp's high end or a drop column's top.
+            None => {
+                shaped(t - UP, Shape::Down, dir).or_else(|| shaped(t - UP, Shape::Drop, dir)).map_or(Link::None, start)
+            }
         };
         let lifts: Vec<(bool, bool)> = belts
             .iter()
             .map(|b| {
-                let lift = |pos| b.shape == Shape::Lift && shaped(pos, Shape::Lift, b.dir).is_some();
+                let lift = |pos| b.shape.is_lift() && shaped(pos, b.shape, b.dir).is_some();
                 (lift(b.pos - UP), lift(b.pos + UP))
             })
             .collect();
@@ -269,13 +273,15 @@ impl Factory {
             .iter()
             .zip(&lifts)
             .zip(&exit_of)
-            .map(|((b, &(_, above)), exit)| {
+            .map(|((b, &(below, above)), exit)| {
                 let d = DIRS[b.dir as usize];
                 match b.shape {
                     Shape::Flat | Shape::Down | Shape::Exit => into(b.pos + d, b.dir),
                     Shape::Up => into(b.pos + d + UP, b.dir),
                     Shape::Lift if above => shaped(b.pos + UP, Shape::Lift, b.dir).map_or(Link::None, start),
                     Shape::Lift => into(b.pos + d + UP, b.dir),
+                    Shape::Drop if below => shaped(b.pos - UP, Shape::Drop, b.dir).map_or(Link::None, start),
+                    Shape::Drop => into(b.pos + d, b.dir),
                     Shape::Entry => exit.map_or(Link::None, start),
                 }
             })

@@ -271,11 +271,12 @@ impl Factory {
     }
 
     /// Every pole a hover pack can charge from (everything but cables) as its anchor, the middle of its body and
-    /// whether it is a long-distance pole, which charges from further away (`helpers/`).
-    pub fn charge_poles(&self) -> impl Iterator<Item = (IVec3, Vec3, bool)> + '_ {
+    /// how far it charges: as far as it wires to a pole of its own kind (`span`), so a Mk3 pole charges from 32
+    /// blocks and a long-distance pole from 160 (`helpers/`).
+    pub fn charge_poles(&self) -> impl Iterator<Item = (IVec3, Vec3, i32)> + '_ {
         self.poles.iter().filter(|p| !p.is_cable()).map(|p| {
             let mid = p.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
-            (p.pos, if p.is_long() { mid + LONG_FOOTPRINT.centre(0) } else { mid }, p.is_long())
+            (p.pos, if p.is_long() { mid + LONG_FOOTPRINT.centre(0) } else { mid }, span(p.tier, p.tier))
         })
     }
 

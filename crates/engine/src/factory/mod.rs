@@ -152,7 +152,7 @@ pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};
 pub use trains::{car_at, car_box, CarAim, Spot, DROP_ALL, MAX_CARS};
 pub use wiring::Hookup;
-pub use {belt::belt_preview, belt_shape::Shape, cable::preview_cable};
+pub use {belt::belt_preview, belt::lift_preview, belt_shape::Shape, cable::preview_cable};
 
 /// Horizontal directions in player-yaw quarter turns: 0 = -Z (north), 1 = +X, 2 = +Z, 3 = -X.
 pub const DIRS: [IVec3; 4] = [IVec3::new(0, 0, -1), IVec3::new(1, 0, 0), IVec3::new(0, 0, 1), IVec3::new(-1, 0, 0)];

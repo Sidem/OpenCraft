@@ -8,7 +8,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::helpers::{self, CHARGE_HOLD, CHARGE_RANGE, CHARGE_RANGE_LONG, HOVER_CAP, JET_TICKS_PER_COAL};
+use crate::helpers::{self, CHARGE_HOLD, HOVER_CAP, JET_TICKS_PER_COAL};
 use crate::math::{IVec3, Vec3};
 use crate::sound;
 use crate::{Game, TICK_RATE};
@@ -55,16 +55,17 @@ impl Game {
 
     /// The nearest pole within reach of `feet` for a hover pack to charge from: none with no pack, and a pack not
     /// tied to a pole only starts when it is not full (a tied one stays tied, so a full pack does not flicker).
-    /// A long-distance pole reaches much further; the pole the pack is tied to reaches a little further still.
+    /// A pole charges as far as it wires to its own kind (`Factory::charge_poles`); the pole the pack is tied to
+    /// reaches a little further still.
     fn charging_pole(&self, feet: Vec3, packed: bool, charge: u32) -> Option<IVec3> {
         if !packed || (self.charge_sent.is_none() && charge >= HOVER_CAP) {
             return None;
         }
         // Squared distance from `feet` to the pole's middle, and the squared range it must be within.
-        let near = |(c, mid, long): (IVec3, Vec3, bool)| {
+        let near = |(c, mid, reach): (IVec3, Vec3, i32)| {
             let d = mid - feet;
             let hold = if self.charge_sent == Some(c) { CHARGE_HOLD } else { 0 };
-            let range = f64::from(if long { CHARGE_RANGE_LONG } else { CHARGE_RANGE } + hold);
+            let range = f64::from(reach + hold);
             let d2 = d.x * d.x + d.y * d.y + d.z * d.z;
             (d2 <= range * range).then_some((d2, c))
         };

@@ -11,8 +11,8 @@
 //! - **Hover pack** (`item::HOVER_PACK`, worn in the jetpack's slot (so not with a jetpack), `equipment.rs`, Milestone 9): `Action::Hover { on }` starts and stops the
 //!   hover (the player holds jump in the air; the body holds its height and moves faster while `hover`, `player.rs`).
 //!   It runs on `charge` (ticks of hover, at most [`HOVER_CAP`]), one a tick. `Action::Charge { pole, on }` ties the
-//!   pack to a power pole (the hands send it as the player walks within [`CHARGE_RANGE`] of one, or
-//!   [`CHARGE_RANGE_LONG`] of a long-distance pole) and the charge fills [`CHARGE_RATE`] a tick while that pole
+//!   pack to a power pole (the hands send it as the player walks within the distance that pole wires to another of
+//!   its kind: `Factory::charge_poles`, `pole::span`) and the charge fills [`CHARGE_RATE`] a tick while that pole
 //!   stands and the pack is held. The hands play the power-up and power-down sounds as the tie starts and ends.
 //!
 //! Invariants: `thrusting` implies `jet > 0` and a jetpack in the pack; `hover` implies `charge > 0` and a hover pack
@@ -36,10 +36,6 @@ pub const JET_TICKS_PER_COAL: u32 = 10 * TICK_RATE;
 pub const HOVER_CAP: u32 = 90 * TICK_RATE;
 /// Charge gained a tick while tied to a pole (the pack drains one a tick while hovering).
 pub const CHARGE_RATE: u32 = 2;
-/// How close to a pole the player must stand to charge, in blocks (the hands' check; the core wants the pole to exist).
-pub const CHARGE_RANGE: i32 = 6;
-/// The same for a long-distance pole, which charges from much further away.
-pub const CHARGE_RANGE_LONG: i32 = 32;
 /// A pack already tied to a pole stays tied this much further out, so walking along the edge does not flicker.
 pub const CHARGE_HOLD: i32 = 2;
 

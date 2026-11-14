@@ -280,6 +280,12 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-14: lifts down, cliffs in drags, hover range (user).** `Shape::Drop` (appended, no save bump): a lift
+  column fed over its top with an unfed foot carries items down (`belt_shape::derive_lift_ways`, run before ramps so
+  rederiving is idempotent). A dragged line climbs cliffs over a block high on lifts and goes down them towards a lower
+  end, while lifts in hand last (`belt_line/path.rs` `MAX_LIFT`). A pole charges a hover pack as far as it wires to its
+  own kind (`Factory::charge_poles`, `pole::span`). Tests: `factory/tests/lift_ways.rs`, `belt_line/tests.rs`.
+
 - **2026-11-13: five user suggestions (save 72).** Canisters are barrels everywhere (search still finds "canister",
   `ui/craft-terms.ts`). Filters sort three ways (`factory/filter_rules.rs`: picks per output, one output takes
   everything else; `FilterPick` / `FilterRest`, tags 73–74, tag 4 reads as a straight pick; old filters load their

@@ -136,6 +136,22 @@ pub fn belt_preview(out: &mut Vec<f32>, pos: IVec3, facing: u8, shape: Shape, ti
     belt.model(out, rel, time);
 }
 
+/// A lift or drop of a planned line (`shape`), drawn as part of its column: `stack` says whether pieces of the
+/// column stand below and above it.
+pub fn lift_preview(
+    out: &mut Vec<f32>,
+    pos: IVec3,
+    facing: u8,
+    shape: Shape,
+    stack: (bool, bool),
+    rel: Vec3,
+    time: f64,
+) {
+    let mut belt = Belt::new(pos, facing, shape, 0);
+    (belt.lift_below, belt.lift_above, belt.fed_by_belt) = (stack.0, stack.1, true);
+    belt.model(out, rel, time);
+}
+
 impl Belt {
     pub fn new(pos: IVec3, dir: u8, shape: Shape, tier: u8) -> Belt {
         let (items, out, curve_from) = (Vec::new(), Link::None, None);
@@ -219,7 +235,7 @@ impl Factory {
             Some(&Slot::Belt(i)) => {
                 let belt = &self.belts[i as usize];
                 let d = DIRS[belt.dir as usize];
-                let speed = if belt.shape == Shape::Lift { 0.0 } else { f64::from(belt.speed()) };
+                let speed = if belt.shape.is_lift() { 0.0 } else { f64::from(belt.speed()) };
                 Vec3::new(d.x as f64 * speed, 0.0, d.z as f64 * speed)
             }
             _ => Vec3::ZERO,

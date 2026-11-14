@@ -4,6 +4,7 @@ mod bench_megabase;
 mod bench_orbit;
 mod face_fight;
 mod fake_round;
+mod lift_ways;
 mod tier_names;
 
 use super::belt::{END_STOP, ITEM_SPACING};

@@ -7,12 +7,18 @@
 //!   ahead, or one step up behind), so a line laid over a terrain step slopes by itself.
 //! - Lift: items rise through the cell. A lift above facing the same way takes them on straight up;
 //!   the top lift hands them on one ahead and one up, like an up ramp.
+//! - Drop: a lift column carrying items down, the same block and cells as a lift with the way reversed: the top
+//!   takes items from a belt one behind and one up (as a down ramp's high end is fed), the bottom hands them on
+//!   straight ahead at its own level. [`derive_lift_ways`] turns a column into drops by itself when such a belt
+//!   feeds its top and nothing stands behind its bottom, so a line laid down a cliff descends by itself.
 //! - Underpass entry: hands items to the exit its pair has (`underpass.rs` pairs the pieces up), under
 //!   whatever lies between. The exit carries on like a flat belt.
 //!
-//! Invariants: the shape is core state (saved from version 6), but flat, ramp and underpass shapes are
-//! rederived at every relink; `lift_below` / `lift_above` are derived. To add a shape: a variant (append,
-//! it is saved by index), its block in `Shape::of`, its path in `item_at`, its model, and its output in `relink`.
+//! Invariants: the shape is core state (saved from version 6), but flat, ramp, lift-or-drop and underpass shapes
+//! are rederived at every relink; `lift_below` / `lift_above` are derived. Rederiving twice gives the same shapes
+//! (joins resync from a relinked save): lift ways read no ramp shape, ramps read lift ways. To add a shape: a
+//! variant (append, it is saved by index), its block in `Shape::of`, its path in `item_at`, its model, and its
+//! output in `relink`.
 
 use std::f32::consts::FRAC_PI_2;
 
@@ -40,9 +46,10 @@ pub enum Shape {
     Lift,
     Entry,
     Exit,
+    Drop,
 }
 
-const SHAPES: [Shape; 6] = [Shape::Flat, Shape::Up, Shape::Down, Shape::Lift, Shape::Entry, Shape::Exit];
+const SHAPES: [Shape; 7] = [Shape::Flat, Shape::Up, Shape::Down, Shape::Lift, Shape::Entry, Shape::Exit, Shape::Drop];
 
 impl Shape {
     /// The shape belt block `block` has.
@@ -60,14 +67,19 @@ impl Shape {
         SHAPES.get(v as usize).copied()
     }
 
-    /// Hands items on straight ahead at its own level, like a flat belt.
+    /// Hands items on straight ahead at its own level, like a flat belt (a drop: the bottom of its column).
     pub fn flat_out(self) -> bool {
-        matches!(self, Shape::Flat | Shape::Down | Shape::Exit)
+        matches!(self, Shape::Flat | Shape::Down | Shape::Exit | Shape::Drop)
     }
 
     /// Takes items from the cell behind it at its own level (belts and machines feed it there).
     pub fn fed_from_back(self) -> bool {
-        !matches!(self, Shape::Down | Shape::Exit)
+        !matches!(self, Shape::Down | Shape::Exit | Shape::Drop)
+    }
+
+    /// A lift either way (the Belt Lift block): stacks into a column with the lifts above and below it.
+    pub fn is_lift(self) -> bool {
+        matches!(self, Shape::Lift | Shape::Drop)
     }
 
     /// An underpass piece (an entry or an exit; `underpass.rs` decides which).
@@ -87,6 +99,7 @@ impl Shape {
             Shape::Up => ", climbing one level",
             Shape::Down => ", going down one level",
             Shape::Lift => ", lifting items up",
+            Shape::Drop => ", lowering items down",
             Shape::Entry => ", taking items under to its exit ahead",
             Shape::Exit => ", bringing items back up",
         }
@@ -129,6 +142,47 @@ pub(super) fn derive_slopes(belts: &mut [Belt], at: &FxHashMap<IVec3, Slot>) {
     }
 }
 
+/// Turns every lift column the way its neighbours call for: drops ([`Shape::Drop`]) when a belt facing the same
+/// way hands items in over its top (one cell behind and one up) and nothing stands behind its bottom to feed it
+/// there, otherwise lifts. Every piece of a column turns together. Reads only positions, directions, which belts
+/// are lifts and the non-lift shapes' kind (never a ramp's slope), so ramps can be derived after it.
+pub(super) fn derive_lift_ways(belts: &mut [Belt], at: &FxHashMap<IVec3, Slot>) {
+    let ways: Vec<Shape> = belts
+        .iter()
+        .map(|b| match b.shape.is_lift() {
+            true if column_drops(belts, at, b.pos, b.dir) => Shape::Drop,
+            true => Shape::Lift,
+            false => b.shape,
+        })
+        .collect();
+    for (b, s) in belts.iter_mut().zip(ways) {
+        b.shape = s;
+    }
+}
+
+/// Whether the lift column through `pos` facing `dir` carries items down (`derive_lift_ways`). A drop column's
+/// bottom can feed the top of another below it, so this asks again of the feeding column, always a higher one.
+fn column_drops(belts: &[Belt], at: &FxHashMap<IVec3, Slot>, pos: IVec3, dir: u8) -> bool {
+    let d = DIRS[dir as usize];
+    let lift = |q: IVec3| matches!(at.get(&q), Some(Slot::Belt(j)) if belts[*j as usize].shape.is_lift() && belts[*j as usize].dir == dir);
+    let (mut top, mut bottom) = (pos, pos);
+    while lift(top + UP) {
+        top = top + UP;
+    }
+    while lift(bottom - UP) {
+        bottom = bottom - UP;
+    }
+    let feeder = top - d + UP;
+    let fed_over_top = match at.get(&feeder) {
+        Some(Slot::Belt(j)) if belts[*j as usize].dir == dir => match belts[*j as usize].shape {
+            s if s.is_lift() => !lift(feeder - UP) && column_drops(belts, at, feeder, dir),
+            s => s.sloped_by_placement() || s.flat_out(),
+        },
+        _ => false,
+    };
+    fed_over_top && !at.contains_key(&(bottom - d))
+}
+
 impl Belt {
     /// Where an item at progress `p` rides: offset from the bottom centre of the cell (x, height, z).
     pub fn item_at(&self, p: f32) -> (f32, f32, f32) {
@@ -146,6 +200,18 @@ impl Belt {
                     along((p - b) / (1.0 - b) * 0.5, 1.0)
                 } else {
                     along(0.0, (p - a) / (b - a))
+                }
+            }
+            Shape::Drop => {
+                // A lift run backwards: in over the top from behind, down the middle, out along the floor ahead.
+                let a = if self.lift_above { 0.0 } else { LIFT_EDGE };
+                let b = if self.lift_below { 1.0 } else { 1.0 - LIFT_EDGE };
+                if p < a {
+                    along((p / a - 1.0) * 0.5, 1.0)
+                } else if p > b {
+                    along((p - b) / (1.0 - b) * 0.5, 0.0)
+                } else {
+                    along(0.0, 1.0 - (p - a) / (b - a))
                 }
             }
             Shape::Flat | Shape::Entry | Shape::Exit => {
@@ -186,6 +252,12 @@ impl Belt {
                 }
             }
             Shape::Lift => self.lift_model(out, at, yaw, scroll, belt, rail),
+            // A drop stands where a lift facing the other way would (its parts mirrored), but its boxes keep the
+            // drop's own heading so the belts' arrows and scroll point the way items go: on, then down, then out.
+            Shape::Drop => {
+                let back = |x: f32, y: f32, z: f32| at(-x, y, -z);
+                self.lift_model(out, &back, yaw, scroll, belt, rail);
+            }
             Shape::Entry | Shape::Exit => {
                 let z = if self.shape == Shape::Entry { -0.25 } else { 0.25 };
                 for x in [-0.42, 0.42] {
@@ -228,7 +300,8 @@ impl Belt {
         push_box(out, at(0.0, 0.5, (spine_back + SPINE_FRONT) * 0.5), yaw, spine, 0.0, rail, true);
         push_box(out, at(0.0, 0.5, FACE - BELT_T * 0.5), yaw, [0.84, BELT_T, 1.0], scroll, belt, true);
         let rec = out.len() - INSTANCE_FLOATS;
-        out[rec + PITCH] = FRAC_PI_2;
+        // Stood on end: a lift's arrows run up its face, a drop's down (tipped the other way).
+        out[rec + PITCH] = if self.shape == Shape::Drop { -FRAC_PI_2 } else { FRAC_PI_2 };
         for x in [-0.42, 0.42] {
             push_box(out, at(x, 0.5, 0.42), yaw, [0.08, 1.0, 0.08], 0.0, frame, true);
         }
@@ -244,7 +317,8 @@ impl Belt {
             // The way in: a belt from the back edge into the foot of the climb, with a flat belt's back bar unless a
             // belt feeds it.
             span(out, 0.0, 0.5, FACE - 0.02);
-            if !self.fed_by_belt {
+            // (A drop's floor belt is its way out: no end bar.)
+            if !self.fed_by_belt && self.shape == Shape::Lift {
                 push_box(out, at(0.0, 0.2, 0.45), yaw, [0.83, 0.07, 0.08], 0.0, [tex::DRILL; 3], false);
             }
         }

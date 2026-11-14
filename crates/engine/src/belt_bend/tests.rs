@@ -46,7 +46,7 @@ fn the_held_bend_goes_on_the_first_belt_of_the_next_line() {
     let mut g = holding_belts();
     g.held_bend = BEND_RIGHT;
     let (start, end) = (IVec3::new(-2, 201, 0), IVec3::new(2, 201, 0));
-    g.line.cells = crate::belt_line::plan(|p| g.sim.world.get_block(p), start, end, EAST).0;
+    g.line.cells = crate::belt_line::plan(|p| g.sim.world.get_block(p), start, end, EAST, 0).0;
     g.bend_line_start();
     assert_eq!(g.line.cells[0].dir, belt_facing(EAST, BEND_RIGHT));
     assert!(g.line.cells[1..].iter().all(|c| c.dir == EAST), "only the first");

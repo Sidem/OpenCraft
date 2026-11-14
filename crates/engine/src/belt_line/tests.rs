@@ -27,8 +27,8 @@ fn flat(_: i32, _: i32) -> i32 {
 }
 
 /// The planned cells only (the tests of the underpass behaviour look at where the line was blocked too).
-fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8) -> Vec<LineCell> {
-    super::plan(block, start, end, facing).0
+fn plan(block: impl Fn(IVec3) -> Option<BlockId>, start: IVec3, end: IVec3, facing: u8, lifts: usize) -> Vec<LineCell> {
+    super::plan(block, start, end, facing, lifts).0
 }
 
 fn positions(cells: &[LineCell]) -> Vec<(i32, i32, i32)> {
@@ -37,7 +37,7 @@ fn positions(cells: &[LineCell]) -> Vec<(i32, i32, i32)> {
 
 #[test]
 fn a_straight_line_on_flat_ground() {
-    let cells = plan(terrain(flat, &[]), IVec3::new(0, 10, 0), IVec3::new(5, 10, 1), NORTH);
+    let cells = plan(terrain(flat, &[]), IVec3::new(0, 10, 0), IVec3::new(5, 10, 1), NORTH, 0);
     let mut expected: Vec<_> = (0..6).map(|x| (x, 10, 0)).collect();
     expected.push((5, 10, 1));
     assert_eq!(positions(&cells), expected, "the longer axis first, then the turn");
@@ -47,13 +47,13 @@ fn a_straight_line_on_flat_ground() {
 
 #[test]
 fn a_click_without_dragging_lays_one_belt_the_way_you_face() {
-    let cells = plan(terrain(flat, &[]), IVec3::new(3, 10, 3), IVec3::new(3, 10, 3), NORTH);
+    let cells = plan(terrain(flat, &[]), IVec3::new(3, 10, 3), IVec3::new(3, 10, 3), NORTH, 0);
     assert_eq!(cells, vec![LineCell::belt(IVec3::new(3, 10, 3), NORTH, Shape::Flat)]);
 }
 
 #[test]
 fn a_line_turns_once_and_the_corner_runs_the_new_way() {
-    let cells = plan(terrain(flat, &[]), IVec3::new(0, 10, 0), IVec3::new(4, 10, -2), NORTH);
+    let cells = plan(terrain(flat, &[]), IVec3::new(0, 10, 0), IVec3::new(4, 10, -2), NORTH, 0);
     assert_eq!(cells.len(), 7);
     assert_eq!((cells[4].pos, cells[4].dir), (IVec3::new(4, 10, 0), NORTH));
     assert_eq!((cells[3].dir, cells[6].pos), (EAST, IVec3::new(4, 10, -2)));
@@ -63,7 +63,7 @@ fn a_line_turns_once_and_the_corner_runs_the_new_way() {
 fn a_line_follows_steps_up_and_down() {
     // A one-block hill from x = 3 to x = 5.
     let hill = |x: i32, _: i32| if (3..=5).contains(&x) { 11 } else { 10 };
-    let cells = plan(terrain(hill, &[]), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH);
+    let cells = plan(terrain(hill, &[]), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH, 0);
     let ys: Vec<i32> = cells.iter().map(|c| c.pos.y).collect();
     assert_eq!(ys, [10, 10, 10, 11, 11, 11, 10, 10, 10]);
     let shapes: Vec<Shape> = cells.iter().map(|c| c.shape).collect();
@@ -74,11 +74,11 @@ fn a_line_follows_steps_up_and_down() {
 #[test]
 fn a_line_stops_at_a_wall_or_a_machine() {
     let wall = |x: i32, _: i32| if x >= 4 { 12 } else { 10 };
-    let (cells, blocked) = super::plan(terrain(wall, &[]), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH);
+    let (cells, blocked) = super::plan(terrain(wall, &[]), IVec3::new(0, 10, 0), IVec3::new(8, 10, 0), NORTH, 0);
     assert_eq!(cells.len(), 4, "a two-block wall too wide to go under ends the line");
     assert_eq!(blocked, Some(IVec3::new(4, 10, 0)), "and is marked");
     let with_box = [(IVec3::new(3, 10, 0), STORAGE)];
-    let cells = plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(2, 10, 0), NORTH);
+    let cells = plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(2, 10, 0), NORTH, 0);
     assert_eq!(cells.len(), 3, "a line ending before the box feeds it");
     assert!(cells.iter().all(|c| c.shape == Shape::Flat));
 }
@@ -86,7 +86,7 @@ fn a_line_stops_at_a_wall_or_a_machine() {
 #[test]
 fn a_line_dives_under_a_box_in_the_way_and_comes_back_up() {
     let with_box = [(IVec3::new(3, 10, 0), STORAGE)];
-    let (cells, blocked) = super::plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(6, 10, 0), NORTH);
+    let (cells, blocked) = super::plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(6, 10, 0), NORTH, 0);
     assert_eq!(blocked, None);
     assert_eq!(positions(&cells), (0..=6).filter(|&x| x != 3).map(|x| (x, 10, 0)).collect::<Vec<_>>());
     let pieces: Vec<Piece> = cells.iter().map(|c| c.piece).collect();
@@ -101,7 +101,8 @@ fn the_width_it_can_go_under_is_the_best_underpass_reach() {
     let boxes = |width: i32| (3..3 + width).map(|x| (IVec3::new(x, 10, 0), STORAGE)).collect::<Vec<_>>();
     for (width, ok) in [(4, true), (10, true), (11, false)] {
         let extra = boxes(width);
-        let (cells, blocked) = super::plan(terrain(flat, &extra), IVec3::new(0, 10, 0), IVec3::new(20, 10, 0), NORTH);
+        let (cells, blocked) =
+            super::plan(terrain(flat, &extra), IVec3::new(0, 10, 0), IVec3::new(20, 10, 0), NORTH, 0);
         assert_eq!(blocked.is_none(), ok, "{width} wide");
         assert_eq!(cells.iter().filter(|c| c.piece == Piece::Exit).count(), usize::from(ok));
         if ok {
@@ -113,14 +114,14 @@ fn the_width_it_can_go_under_is_the_best_underpass_reach() {
 #[test]
 fn a_line_that_ends_inside_the_obstacle_is_blocked() {
     let with_box = [(IVec3::new(3, 10, 0), STORAGE), (IVec3::new(4, 10, 0), STORAGE)];
-    let (cells, blocked) = super::plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(4, 10, 0), NORTH);
+    let (cells, blocked) = super::plan(terrain(flat, &with_box), IVec3::new(0, 10, 0), IVec3::new(4, 10, 0), NORTH, 0);
     assert_eq!((cells.len(), blocked), (3, Some(IVec3::new(3, 10, 0))), "no free cell before the path ends");
 }
 
 #[test]
 fn the_cheapest_stocked_underpass_that_covers_the_width_is_chosen() {
     let with_boxes: Vec<_> = (3..8).map(|x| (IVec3::new(x, 10, 0), STORAGE)).collect(); // five wide: Mk2 or better
-    let plan5 = || super::plan(terrain(flat, &with_boxes), IVec3::new(0, 10, 0), IVec3::new(10, 10, 0), NORTH).0;
+    let plan5 = || super::plan(terrain(flat, &with_boxes), IVec3::new(0, 10, 0), IVec3::new(10, 10, 0), NORTH, 0).0;
     let pick = |belt_tier: u8, have: [u32; 4]| {
         let mut cells = plan5();
         pass::assign(&mut cells, belt_tier, have);
@@ -151,9 +152,9 @@ fn only_the_underpass_pairs_and_belts_in_stock_are_built() {
 
 #[test]
 fn a_line_is_at_most_max_line_long_and_needs_a_free_start() {
-    let cells = plan(terrain(flat, &[]), IVec3::new(0, 10, 0), IVec3::new(500, 10, 0), NORTH);
+    let cells = plan(terrain(flat, &[]), IVec3::new(0, 10, 0), IVec3::new(500, 10, 0), NORTH, 0);
     assert_eq!(cells.len(), MAX_LINE);
-    assert!(plan(terrain(flat, &[]), IVec3::new(0, 9, 0), IVec3::new(5, 9, 0), NORTH).is_empty());
+    assert!(plan(terrain(flat, &[]), IVec3::new(0, 9, 0), IVec3::new(5, 9, 0), NORTH, 0).is_empty());
 }
 
 #[test]
@@ -219,7 +220,7 @@ fn line_over_a_box(stacks: &[(usize, ItemId, u32)]) -> Game {
     stock(&mut g, stacks, 0);
     let (start, end) = (IVec3::new(-2, 201, 0), IVec3::new(4, 201, 0));
     g.line.start = Some((start, EAST));
-    g.line.cells = super::plan(|p| g.sim.world.get_block(p), start, end, EAST).0;
+    g.line.cells = super::plan(|p| g.sim.world.get_block(p), start, end, EAST, 0).0;
     g.assign_passes();
     let planned = g.line.cells.clone();
     g.queue_build(&planned, false);
@@ -254,7 +255,7 @@ fn without_underpasses_the_line_is_built_but_the_tunnel_is_left_out() {
     belt_test_slab(&mut g);
     g.sim.world.set_block(IVec3::new(1, 201, 0), STORAGE);
     stock(&mut g, &[(0, BELT.into(), 10)], 0);
-    g.line.cells = super::plan(|p| g.sim.world.get_block(p), IVec3::new(-2, 201, 0), IVec3::new(4, 201, 0), EAST).0;
+    g.line.cells = super::plan(|p| g.sim.world.get_block(p), IVec3::new(-2, 201, 0), IVec3::new(4, 201, 0), EAST, 0).0;
     g.assign_passes();
     let flags: Vec<i32> = g.planned_cells().chunks(4).map(|c| c[3]).collect();
     assert_eq!(flags, [1, 1, 0, 0, 1, 1]);
@@ -361,4 +362,69 @@ fn without_shift_a_click_upgrades_only_the_dragged_belts() {
     g.run_ticks(30);
     let tiers: Vec<u8> = (0..4).map(|x| g.sim.factory.belt_at(IVec3::new(x, 70, 0)).tier).collect();
     assert_eq!(tiers, [0, 1, 0, 0]);
+}
+
+/// A cliff: ground at height 10 for x < 4 and `high` from x = 4 on.
+fn cliff(high: i32) -> impl Fn(i32, i32) -> i32 {
+    move |x, _| if x >= 4 { high } else { 10 }
+}
+
+#[test]
+fn with_lifts_in_hand_a_line_climbs_a_cliff_on_a_lift_column() {
+    let (start, end) = (IVec3::new(0, 10, 0), IVec3::new(8, 13, 0));
+    let cells = plan(terrain(cliff(13), &[]), start, end, NORTH, 10);
+    let at = |x: i32, y: i32| cells.iter().find(|c| c.pos == IVec3::new(x, y, 0)).copied();
+    for y in 10..13 {
+        let lift = at(3, y).unwrap();
+        assert_eq!((lift.piece, lift.shape, lift.dir), (Piece::Lift, Shape::Lift, EAST), "a lift at y {y}");
+    }
+    assert!((4..=8).all(|x| at(x, 13).is_some_and(|c| c.piece == Piece::Belt)), "on along the top: {cells:?}");
+    assert_eq!(cells.len(), 3 + 3 + 5);
+    // Too few lifts for the height: the line stops at the cliff as it did before lifts.
+    let (cells, blocked) = super::plan(terrain(cliff(13), &[]), start, end, NORTH, 2);
+    assert_eq!((cells.len(), blocked), (4, Some(IVec3::new(4, 10, 0))));
+}
+
+#[test]
+fn with_lifts_in_hand_a_line_goes_down_a_cliff_towards_a_lower_end() {
+    // Ground at 13 up to x = 3, at 10 from x = 4: dragging from the top towards the foot.
+    let low = |x: i32, _: i32| if x >= 4 { 10 } else { 13 };
+    let cells = plan(terrain(low, &[]), IVec3::new(0, 13, 0), IVec3::new(8, 10, 0), NORTH, 10);
+    let drops: Vec<_> = cells.iter().filter(|c| c.piece == Piece::Lift).map(|c| (c.pos.x, c.pos.y, c.shape)).collect();
+    assert_eq!(drops, [(4, 12, Shape::Drop), (4, 11, Shape::Drop), (4, 10, Shape::Drop)]);
+    assert!((5..=8).all(|x| cells.iter().any(|c| c.pos == IVec3::new(x, 10, 0))), "on along the foot");
+    // Towards an end level with the top, the line stays level over the drop, as before.
+    let level = plan(terrain(low, &[]), IVec3::new(0, 13, 0), IVec3::new(8, 13, 0), NORTH, 10);
+    assert!(level.iter().all(|c| c.pos.y == 13 && c.piece == Piece::Belt));
+}
+
+#[test]
+fn a_line_dragged_down_a_cliff_builds_drops_that_the_factory_turns_downwards() {
+    let mut g = Game::new(2024, 3);
+    run_until_ready(&mut g);
+    belt_test_slab(&mut g);
+    // A ledge three blocks over the slab for x < 2 (row z = 0).
+    for x in -2..2 {
+        for y in 201..204 {
+            g.sim.world.set_block(IVec3::new(x, y, 0), STONE);
+        }
+    }
+    g.teleport(3.5, 202.0, 2.5);
+    stock(&mut g, &[(0, BELT.into(), 10), (1, ItemId::block(block::LIFT), 5)], 0);
+    let (start, end) = (IVec3::new(-2, 204, 0), IVec3::new(4, 201, 0));
+    g.line.start = Some((start, EAST));
+    let lifts = g.inventory().count(ItemId::block(block::LIFT)) as usize;
+    g.line.cells = super::plan(|p| g.sim.world.get_block(p), start, end, EAST, lifts).0;
+    assert!(g.belt_line_label().contains("3 lifts"), "{}", g.belt_line_label());
+    let planned = g.line.cells.clone();
+    g.queue_build(&planned, false);
+    for _ in 0..60 {
+        g.update(1.0 / 60.0);
+    }
+    let f = &g.sim.factory;
+    for y in 201..204 {
+        assert_eq!(f.belt_at(IVec3::new(2, y, 0)).shape, Shape::Drop, "a drop at y {y}");
+    }
+    assert_eq!((g.item_total(BELT.into()), g.item_total(ItemId::block(block::LIFT).0)), (4, 2));
+    assert!(f.describe(IVec3::new(2, 202, 0)).unwrap().contains("lowering items down"));
 }

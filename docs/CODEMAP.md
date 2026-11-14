@@ -49,7 +49,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `MACHINES`. `machine.rs`: the `Machine` trait. `state.rs`: bytes of every list. `tiers.rs`: tier families.
   `upgrades.rs`: kits, in-place upgrades. `tier_mark.rs`: the Mk studs every tiered machine wears (presentation).
 - Logistics: `belt.rs` (`BELT_TIERS`, `belt_step`), `provenance.rs` (the tag each belt item carries: maker and ticks on belts),
-  `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts), `belt_model.rs` (drawing a belt), `belt_curve.rs` (corners: the player's bend, the arc items ride, the curved model), `underpass.rs`, `belt_chain.rs`,
+  `belt_items.rs` (the crosshair picks a belt item, reads its tag, takes it, finds it again by `ItemKey`), `belt_shape.rs` (ramps, lifts up and down), `belt_model.rs` (drawing a belt), `belt_curve.rs` (corners: the player's bend, the arc items ride, the curved model), `underpass.rs`, `belt_chain.rs`,
   `router.rs` (splitter, filter) + `filter_rules.rs` (what a filter sends which way; one way takes everything else), `storage.rs` + `box_label.rs` (what a box's sides show: its most common item or a picked category), `buffer.rs`, `links.rs` (`relink`: where items go), `ports.rs` (drone pads), `stock.rs` (what boxes and machine outputs near a spot hold).
 - Extraction: `miner.rs` (+ `miner_model.rs`; `miner_burner.rs` the coal miner's fuel and fire), `quarry.rs` + `quarry/` (dig box, model), `pipes.rs`, `pumping.rs`.
 - Power: `power.rs` (grids, `balance`), `pole.rs` + `pole_mount.rs` (what a pole stands or hangs on) + `pole_tower.rs` (the long-distance tower's model), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs` (sources),
@@ -95,7 +95,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `interaction.rs` + `interaction/aim.rs`: targeting, mining, placing, footsteps. `player.rs`, `physics.rs`, `raycast.rs`,
   `hitbox.rs`, `camera.rs`, `strategy.rs` + `strategy/navigation.rs` (overhead camera, walking orders).
   `item_select.rs` (a clicked belt item stays selected: readout, outline, pick-up in reach).
-- `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
+- `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, lifts up and down cliffs in `path.rs`, `preview.rs` the ghost line, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `forester_preview.rs` (patch outline or uneven cells, refusal), `footprint_preview.rs`, `port_view.rs` + `port_view/` (a held machine's see-through ghost with its port marks; marks on built machines while a belt is held; the HUD's side line), `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
   `rail_tools.rs`, `rail_snap.rs` (pure: aims snap onto grid axes and the heading's line), `train_tools.rs`, `dock_tools.rs` (the dock hand: onto a node, into the middle of straight track, or laid in line), `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `drone_hands.rs` (restock, the drone's HUD words, panel orders), `blueprint/hands.rs`,

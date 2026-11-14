@@ -23,7 +23,10 @@
 //! With Auto-Routing researched, a line whose pointer rests on a machine routes itself there (`route.rs`: an A* over
 //! the voxels, round walls and over steps), and in ghost mode (B) a dragged line is planted as ghosts for drones.
 //!
-//! To change the path: `plan` / `plan_upgrade` (`path.rs`), or a route (`route.rs`). The preview: ghost belts (`write_line_preview`) and the
+//! A cliff more than a block high is climbed on Belt Lifts, or gone down on them towards a lower end, as far as the
+//! lifts in the inventory last (`path.rs`).
+//!
+//! To change the path: `plan` / `plan_upgrade` (`path.rs`), or a route (`route.rs`). The preview: ghost belts (`preview.rs`) and the
 //! host's outline boxes and label (`api/hud.rs` `line_cells`, `line_label`), in the kit's colour when
 //! upgrading.
 
@@ -31,7 +34,7 @@ use crate::action::Action;
 use crate::block::{self, BlockId, BELT, FAST_BELT, RAMP_DOWN, RAMP_UP, UNDERPASS_IN};
 use crate::factory::{self, tiers, upgrades, Shape};
 use crate::item::ItemId;
-use crate::math::{IVec3, Vec3};
+use crate::math::IVec3;
 use crate::raycast::{raycast, RayHit};
 use crate::research::Unlock;
 use crate::upgrade_aim::{Aim, MAX_CHAIN};
@@ -54,6 +57,8 @@ pub enum Piece {
     /// The underpass that dives in, with the blocks it passes under.
     Entry(u8),
     Exit,
+    /// A Belt Lift up or down a cliff (`path.rs`; its shape says which way).
+    Lift,
 }
 
 /// One cell of a planned line: where, which way it runs, and how it will slope. An underpass has its
@@ -171,7 +176,8 @@ impl Game {
                             })
                         }
                         None => {
-                            let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing);
+                            let lifts = self.inventory().count(ItemId::block(block::LIFT)) as usize;
+                            let (cells, blocked) = plan(|p| self.sim.world.get_block(p), start, end, facing, lifts);
                             (self.line.route, self.line.blocked) = (Route::Off, blocked);
                             cells
                         }
@@ -357,42 +363,11 @@ impl Game {
         }
         true
     }
-
-    /// Ghost belts along the planned line, drawn with the machines.
-    pub(crate) fn write_line_preview(&mut self, eye: Vec3, time: f64) {
-        let held = self.inventory().selected_stack().item;
-        if upgrades::kit_tier(held).is_some() {
-            return; // upgrades show as coloured outlines only; the belts are already there
-        }
-        let tier = tiers::placed_by(held).map_or(0, |(_, t)| t);
-        for c in &self.line.cells {
-            let rel = c.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye;
-            let tier = if c.piece == Piece::Belt { tier } else { c.tier };
-            factory::belt_preview(&mut self.instances, c.pos, c.dir, c.shape, tier, rel, time);
-        }
-    }
-
-    /// Cells of the planned line for the host's outlines: x, y, z and 1 if it will be built, or the kit's
-    /// tier colour (0xRRGGBB) if it will be upgraded; 0 (red) past what the held stack pays for, for
-    /// underpasses the inventory has no pair of, and for what is too wide to go under.
-    pub(crate) fn planned_cells(&self) -> Vec<i32> {
-        let have = self.line_budget();
-        let kit = upgrades::kit_tier(self.inventory().selected_stack().item);
-        let colour = kit.map_or(1, |t| upgrades::TIER_COLOURS[t as usize] as i32);
-        let paid: Vec<bool> = match kit {
-            Some(_) => (0..self.line.cells.len()).map(|i| i < have).collect(),
-            None => pass::affordable(&self.line.cells, have),
-        };
-        let cell = |p: IVec3, ok: bool| [p.x, p.y, p.z, if ok { colour } else { 0 }];
-        let planned = self.line.cells.iter().zip(paid).map(|(c, ok)| cell(c.pos, ok));
-        let aimed = self.line.aim.belts.iter().enumerate().map(|(i, &p)| cell(p, self.line.cells.len() + i < have));
-        let blocked = self.line.blocked.map(|p| cell(p, false));
-        planned.chain(aimed).chain(blocked).flatten().collect()
-    }
 }
 
 mod pass;
 mod path;
+mod preview;
 mod route;
 #[cfg(test)]
 mod tests;

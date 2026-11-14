@@ -244,7 +244,8 @@ impl Minimap {
             }
         }
         let reach = factory::LONG_STATS.link;
-        for (p, _, _) in factory.charge_poles().filter(|p| ranges && p.2) {
+        // Only long-distance poles draw their charging range (no other pole charges from that far).
+        for (p, _, _) in factory.charge_poles().filter(|p| ranges && p.2 == reach) {
             if (p.x - mid.0).abs() <= half + reach && (p.z - mid.1).abs() <= half + reach {
                 f(p.x, p.z, Subject::Range { reach });
             }

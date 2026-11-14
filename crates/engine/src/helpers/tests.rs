@@ -198,9 +198,13 @@ fn a_pole_charges_the_pack_to_its_cap_and_losing_the_pole_stops_it() {
 
 /// Puts `block` down at `pos` for player `who` (a bare placement: it gives the block first).
 fn place(sim: &mut Sim, who: PlayerId, block: u8, pos: IVec3) {
-    sim.apply(who, Action::Give { item: ItemId::block(block), count: 1 });
+    place_item(sim, who, ItemId::block(block), pos);
+}
+
+fn place_item(sim: &mut Sim, who: PlayerId, item: ItemId, pos: IVec3) {
+    sim.apply(who, Action::Give { item, count: 1 });
     let inv = &sim.player(who).unwrap().inventory;
-    let slot = inv.slots.iter().position(|s| s.item == ItemId::block(block)).unwrap();
+    let slot = inv.slots.iter().position(|s| s.item == item).unwrap();
     sim.apply(who, Action::PlaceBlock { pos, slot: slot as u8, facing: 0, against: pos });
 }
 
@@ -217,13 +221,20 @@ fn a_long_distance_pole_can_charge_the_pack_too() {
 
 /// A game with the local player wearing a hover pack, and a pole of `block` put `up` blocks above them.
 fn pole_game(block: u8, up: i32) -> (crate::Game, IVec3) {
+    pole_game_at(ItemId::block(block), IVec3::new(0, up, 0))
+}
+
+/// The same with any pole item, put at `offset` from the feet.
+fn pole_game_at(item: ItemId, offset: IVec3) -> (crate::Game, IVec3) {
     let mut g = crate::Game::new(2024, 3);
     crate::tests::run_until_ready(&mut g);
     let me = g.local.0 as usize;
     g.sim.players[me].as_mut().unwrap().inventory.worn[4] = HOVER_PACK;
     let feet = g.body().pos.floor();
-    let pole = IVec3::new(feet.x, feet.y + up, feet.z);
-    place(&mut g.sim, g.local, block, pole);
+    let pole = IVec3::new(feet.x, feet.y, feet.z) + offset;
+    // An ordinary pole needs something solid under it (`pole_mount.rs`).
+    g.sim.world.set_block_anywhere(pole - IVec3::new(0, 1, 0), STORAGE);
+    place_item(&mut g.sim, g.local, item, pole);
     (g, pole)
 }
 
@@ -231,21 +242,29 @@ fn tied(g: &crate::Game) -> Option<IVec3> {
     g.sim.player(g.local).unwrap().helpers.pole
 }
 
-#[test]
-fn the_hands_tie_the_pack_to_a_long_pole_from_far_away_but_not_to_an_ordinary_one() {
-    let (mut g, _) = pole_game(POLE, 25);
-    g.update(1.0 / 20.0);
-    g.update(1.0 / 20.0);
-    assert_eq!(tied(&g), None, "an ordinary pole 25 blocks up is out of reach");
-    let (mut g, pole) = pole_game(LONG_POLE, 25);
+/// Whether the hands tie the pack to a pole of `item` put `offset` from the feet.
+fn ties(item: ItemId, offset: IVec3) -> bool {
+    let (mut g, pole) = pole_game_at(item, offset);
     for _ in 0..3 {
         g.update(1.0 / 20.0);
     }
-    assert_eq!(tied(&g), Some(pole), "a long-distance pole reaches that far");
-    let (mut g, _) = pole_game(LONG_POLE, CHARGE_RANGE_LONG + 5);
-    g.update(1.0 / 20.0);
-    g.update(1.0 / 20.0);
-    assert_eq!(tied(&g), None, "but not past its own range");
+    tied(&g) == Some(pole)
+}
+
+#[test]
+fn a_pole_charges_as_far_as_it_wires_to_its_own_kind() {
+    use crate::factory::{tier_stats, LONG_STATS};
+    use crate::item::{POLE_MK3, POLE_MK4};
+    let poles = [(ItemId::block(POLE), 0), (POLE_MK3, 2), (POLE_MK4, 3)];
+    for (item, tier) in poles {
+        let link = tier_stats(tier).link;
+        assert!(ties(item, IVec3::new(0, link - 1, 0)), "Mk{} charges from just inside {link}", tier + 1);
+        assert!(!ties(item, IVec3::new(0, link + 4, 0)), "Mk{} not past {link}", tier + 1);
+    }
+    // A long-distance pole charges from 160 blocks: further than the world is tall, so across as well as up.
+    let link = LONG_STATS.link;
+    assert!(ties(ItemId::block(LONG_POLE), IVec3::new(link - 70, 60, 0)), "a long-distance pole from far away");
+    assert!(!ties(ItemId::block(LONG_POLE), IVec3::new(link, 60, 0)), "but not past its own span");
 }
 
 #[test]

@@ -12,7 +12,6 @@ use crate::block::{BlockId, BELT, GENERATOR, LAB, LIFT, MINER, POLE, PUMP, QUARR
 use crate::item::{ItemId, BLUE_KIT, GOLD_KIT, GREEN_KIT, VIOLET_KIT};
 use crate::math::IVec3;
 
-use super::belt_shape::Shape;
 use super::links::Slot;
 use super::pipes::Part;
 use super::tiers;
@@ -60,7 +59,7 @@ impl Factory {
     pub(crate) fn name_of(&self, slot: Slot) -> String {
         match self.tiered_slot(slot) {
             // A lift is a belt of the belt's tiers that is not called one.
-            Some((_, tier)) if matches!(slot, Slot::Belt(i) if self.belts[i as usize].shape == Shape::Lift) => {
+            Some((_, tier)) if matches!(slot, Slot::Belt(i) if self.belts[i as usize].shape.is_lift()) => {
                 format!("{} Mk{}", crate::block::def(LIFT).name, u32::from(tier) + 1)
             }
             Some((block, tier)) => tiers::name(block, tier),
