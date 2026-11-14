@@ -13,6 +13,11 @@ use crate::research::{self, Unlock};
 use crate::upgrade_aim::BLOCKED_RED;
 use crate::Game;
 
+/// What the readout says on a grown tree: how felling works, and when the swing is too high to count.
+const CHOP_HOW: &str =
+    "Swing at the trunk near the ground to fell the whole tree. Strike the mark to fell it twice as fast.";
+const CHOP_LOWER: &str = "Too high up: swing at the trunk near the ground.";
+
 #[wasm_bindgen]
 impl Game {
     pub fn flying(&self) -> bool {
@@ -181,8 +186,10 @@ impl Game {
     }
 
     /// 0..1 while the targeted block is being mined, or drilled for a core sample.
-    pub fn mine_progress(&self) -> f32 {
+    pub fn mine_progress(&mut self) -> f32 {
         if let Some(p) = self.prospect.drill_progress() {
+            p
+        } else if let Some(p) = self.chop_progress() {
             p
         } else if self.mine_block.is_some() {
             self.mine_progress
@@ -225,6 +232,9 @@ impl Game {
             return self.sim.factory.car_report(car);
         }
         let Some(hit) = self.target else { return String::new() };
+        if block::is_tree_wood(hit.id) {
+            return if self.chop_too_high() { CHOP_LOWER } else { CHOP_HOW }.to_string();
+        }
         if let Some(text) = self.sim.factory.describe(hit.block) {
             let text = match self.town_line(hit.block) {
                 Some(town) => format!("{town}\n{text}"),

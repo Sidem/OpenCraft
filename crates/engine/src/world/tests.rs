@@ -109,7 +109,7 @@ fn untouched_chunks_mesh_as_they_always_did() {
     }
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
     // 39 chunks and 36,236 cutout quads (90,868 while leaves were cubes, 75,464 before the denser grassland cover).
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 36_236, 0x835e_0d85_6a3b_f902));
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 36_236, 0x648a_b1d4_cfd5_1f2d));
 }
 
 fn drain_meshes(w: &mut World) {

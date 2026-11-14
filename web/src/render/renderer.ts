@@ -13,6 +13,7 @@ import { createProgram, uniforms } from './gl';
 import { PrecipPass } from './precip';
 import { setHeldLights, uploadHeldLights } from './held-light';
 import { boxInFrustum, frustumPlanes, multiply, perspective, viewRotation } from './mat4';
+import { Falling } from './falling';
 import { Overlays } from './outlines';
 import * as S from './shaders';
 import { skyAt, SkyPass } from './sky';
@@ -22,6 +23,7 @@ import { WeatherSky } from './sky/weather';
 import { fogFor, WaterPass } from './water';
 
 const CHUNK = 32;
+const IDENTITY3 = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
 interface ChunkMesh {
   x: number;
@@ -66,6 +68,7 @@ export class Renderer {
   private readonly sky: SkyPass;
   private readonly water: WaterPass;
   private readonly overlays: Overlays;
+  readonly falling: Falling; // trees coming down (falling.ts); main.ts feeds it from `take_fallen`
 
   private readonly proj = new Float32Array(16);
   private readonly view = new Float32Array(16);
@@ -89,7 +92,7 @@ export class Renderer {
     if (!gl) throw new Error('WebGL2 is not available in this browser.');
     this.gl = gl;
 
-    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_held'] as const;
+    const lit = ['u_viewProj', 'u_offset', 'u_worldOrigin', 'u_tex', 'u_glow', 'u_fogColor', 'u_fog', 'u_skyLight', 'u_sunDir', 'u_direct', 'u_ground', 'u_turns', 'u_held', 'u_pivot', 'u_turn'] as const;
     const pass = (vert: string, defines: string[]) => {
       const prog = createProgram(gl, vert, S.litFrag, ['TERRAIN', ...defines]);
       return { prog, u: uniforms(gl, prog, lit) };
@@ -109,6 +112,7 @@ export class Renderer {
     this.precip = new PrecipPass(gl);
 
     this.overlays = new Overlays(gl);
+    this.falling = new Falling(gl, this.quadIndex, (quads) => this.ensureQuadCapacity(quads));
   }
 
   setViewRadius(r: number): void {
@@ -330,6 +334,8 @@ export class Renderer {
       gl.uniform2f(pass.u.u_fog, fogStart, fogEnd);
       gl.uniform2f(pass.u.u_ground, ground[0], ground[1]);
       uploadHeldLights(gl, pass.u.u_held);
+      gl.uniform3f(pass.u.u_pivot, 0, 0, 0);
+      gl.uniformMatrix3fv(pass.u.u_turn, false, IDENTITY3);
       for (const m of vis) {
         const [n, first, vao] = draws(m);
         if (n === 0) continue;
@@ -341,6 +347,9 @@ export class Renderer {
         gl.drawElements(gl.TRIANGLES, n * 6, gl.UNSIGNED_INT, first * 24);
         drawCalls++;
         quads += n;
+      }
+      if (pass === this.shapedOpaque || pass === this.shapedCutout) {
+        drawCalls += this.falling.draw(pass.u, pass === this.shapedCutout, now, [ex, ey, ez]);
       }
     }
     gl.enable(gl.CULL_FACE);

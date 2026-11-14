@@ -9,6 +9,7 @@ use super::house::HOUSE_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
 use super::sign::SIGN_DEFS;
 use super::trees::TREES_DEFS;
+use super::woods::WOODS_DEFS;
 use super::*;
 
 /// Every block's row: the base table, then the decor set's, the coal miner's, the house set's, the ejector's, the sign's
@@ -22,6 +23,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &SIGN_DEFS,
     &FORESTER_DEFS,
     &TREES_DEFS,
+    &WOODS_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

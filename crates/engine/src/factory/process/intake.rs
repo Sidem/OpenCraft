@@ -4,6 +4,7 @@
 use crate::block::is_sapling;
 use crate::item::{stack_size, ItemId, EMPTY_BARREL};
 use crate::recipes::recycling::millicoins;
+use crate::wood;
 
 use super::{Energy, Pick, Processor};
 
@@ -39,7 +40,7 @@ impl Processor {
             return self.eject_room(item);
         }
         let wanted = match self.spec.pick {
-            Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| x.0 == item)),
+            Pick::Chosen => self.chosen().is_some_and(|r| r.inputs.iter().any(|x| wood::like(item, x.0))),
             Pick::ByInput => self.spec.recipe_using(item, unlocked).is_some(),
             Pick::Pump => item == EMPTY_BARREL,
             Pick::Forest => item.places().is_some_and(is_sapling),

@@ -139,3 +139,19 @@ fn an_old_world_says_it_lacks_the_newer_ores() {
     let Some(Way::Found(text)) = ways(&gen, ItemId::block(block::BAUXITE_ORE)).into_iter().next() else { panic!() };
     assert!(text.contains("new world"), "{text}");
 }
+
+#[test]
+fn woods_after_the_oak_say_what_they_are() {
+    let gen = WorldGen::new(7);
+    for w in 1..crate::wood::WOODS {
+        for form in [Form::Log, Form::Planks, Form::Floor, Form::Door] {
+            let id = crate::wood::item(w, form);
+            assert!(matches!(ways(&gen, id).first(), Some(Way::Found(_))), "{} has no text", item::name(id));
+        }
+    }
+    let pine = crate::wood::item(2, Form::Planks);
+    assert_eq!(
+        found(&gen, pine).unwrap(),
+        "Pine Planks: the same as oak planks in every recipe, in pine's own colour."
+    );
+}

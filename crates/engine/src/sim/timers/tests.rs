@@ -31,12 +31,14 @@ fn place(sim: &mut Sim, pos: IVec3, block: BlockId) {
     assert_eq!(sim.block(pos), block, "placed");
 }
 
-/// A generated tree near the origin: its log positions (trunk and limbs, joined edge or corner), bottom first.
+/// A generated tree near the origin: its log positions (trunk and limbs, joined edge or corner), bottom first. Its wood
+/// is turned into the oak's LOG, as an old world's trees are, so it mines block by block.
 fn tree(sim: &mut Sim) -> Vec<IVec3> {
     for z in -48..48 {
         for x in -48..48 {
             let h = sim.world.generator().height_at(x, z);
-            let Some(y) = (h - 3..h + 4).find(|&y| sim.block(at(x, y, z)) == LOG && sim.block(at(x, y - 1, z)) == DIRT)
+            let Some(y) = (h - 3..h + 4)
+                .find(|&y| crate::block::is_log(sim.block(at(x, y, z))) && sim.block(at(x, y - 1, z)) == DIRT)
             else {
                 continue;
             };
@@ -52,6 +54,9 @@ fn tree(sim: &mut Sim) -> Vec<IVec3> {
                 i += 1;
             }
             logs.sort_by_key(|p| p.y);
+            for &p in &logs {
+                sim.world.set_block_anywhere_later(p, LOG);
+            }
             return logs;
         }
     }
@@ -66,6 +71,7 @@ fn leaves_near(sim: &mut Sim, top: IVec3) -> Vec<IVec3> {
 fn a_felled_tree_loses_its_leaves_within_a_minute_on_every_core() {
     let (mut a, mut b) = (Sim::new(SEED, 2), Sim::new(SEED, 2));
     let logs = tree(&mut a);
+    tree(&mut b);
     let top = *logs.last().unwrap();
     let before = leaves_near(&mut a, top).len();
     assert!(before > 15, "{before} leaves");

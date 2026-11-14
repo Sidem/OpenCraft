@@ -85,8 +85,9 @@ fn released_versions_never_change() {
     assert_eq!(digest(9), 0xd202_3f1f_8f38_5ae0, "version 9");
     assert_eq!(digest(10), 0xac2b_b598_000a_659b, "version 10");
     assert_eq!(digest(11), 0x666a_ec6d_ac18_3ef8, "version 11");
-    // Version 12 (grown trees, forest biomes): pinned 2026-11-14.
-    assert_eq!(digest(12), 0xa643_a7cf_b010_85aa, "version 12");
+    // Version 12 (grown trees, forest biomes): pinned 2026-11-14, re-pinned that day before release (grown oaks of their
+    // own log, no wood dug into the ground, palm fronds arching lower).
+    assert_eq!(digest(12), 0x1e26_f2b5_5860_7d5b, "version 12");
 }
 
 #[test]

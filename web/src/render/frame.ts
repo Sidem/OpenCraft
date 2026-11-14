@@ -62,6 +62,8 @@ export interface FrameInfo {
   lineCells: Int32Array;
   /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */
   quarryBoxes: Int32Array;
+  /** The felling mark on the tree under the crosshair (engine `chop_mark_at`): x, y, z, or empty. */
+  chopMark: ArrayLike<number>;
   /** Blocks quarries are digging: x, y, z and progress in thousandths each. */
   cracks: Int32Array;
   underwater: boolean; // the engine's `eye_in_water`

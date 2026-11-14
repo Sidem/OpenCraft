@@ -633,3 +633,51 @@ Firefox composites in software (a blur "cost" 80 ms): it runs in a window. A med
 
 **On main:** the settings for relief and lamp lighting are not on main yet, so the measurements above were taken with that lighting on (it makes the default dearer than
 main's, about as "classic lighting" shows), and Auto's first suggestion when drawing is the limit is turning off smooth edges, the next best knob, then a shorter distance.
+
+## Moved from the plan's recent changes (2026-11-14)
+
+- **2026-11-05: a lowland start and quieter water (user).** Over 300 seeds, generator 10 started 83 above height 90 and 18
+  with over a tenth of the ground within 48 blocks steep. Generator 11 (`worldgen/landform.rs` `SPAWN_LOW`) keeps a quarter
+  of any rise above the lowland base near spawn, back to full by 320 blocks: 0 steep starts, height spread within 48
+  blocks median 5 (was 16), max 28 (was 110); the ramp ring is no cliffier. The sim golden was re-recorded; the mesh
+  golden is pinned to generator 10. Ambience defaults to 15 (was 50), the water beds' ceiling drops 10 dB, under the
+  breeze on an open shore (`audio/ambience-mix.ts`), and the sea's reading takes a curve like the river's.
+- **2026-11-05: the opening leads to two coal miners (user, `/deepen`).** A probe of 60 new worlds: the player
+  started with no stone (the slab drops bricks), plain stone showed within 90 blocks on 17, digging down hit granite on 8
+  (high ground), and the scene paid exactly for a Miner Mk1 nobody could power. Now the source box holds the iron for two
+  coal miners, no copper; the end box their stone and coal (`opening.rs` `STOCK`, `OUT_STOCK`); `opening/miners.rs`
+  guides craft, place on the starter coal patch, light, place on iron, fuel, with a Coal/Iron prompt over a patch block in
+  the open (`open_top`; seed 7 has a tree over its coal) and a live distance and bearing on the card. Save version 67 (the
+  patches; older scenes end at the ingots as before). `guide_on_many_seeds` plays it through actions on 200 seeds, all
+  pass: walks spawn to coal median 26 (max 28), coal to iron 45 (max 50). Crafting both takes about a minute.
+
+- **2026-11-05: the key-art look** (user request): the sky, clouds, vegetation colours and meadow density moved toward
+  the store thumbnail (`docs/ART_STYLE.md`, "The key-art look": measurements, costs, what was kept). Vegetation greens
+  ship through `tools/art/grade.py`; grassland cover denser (`mesher/cover.rs`); mesh fingerprint re-recorded on purpose.
+
+- **2026-11-01: five machines remodelled** (user request): assembler, blast furnace, electrolytic cell, crusher and
+  arc furnace are real-looking models in `process/parts.rs` (new part builders `leaned`, `tapered` in `model.rs`), nine
+  pack faces redrawn (`docs/ART_HANDOVER.md`). The assembler's work is animated (`assembly_view.rs`, `Look::Work`): its
+  arms carry each batch's inputs off the conveyor to the fixture, a cartoon cloud hides the joining while the gantry
+  hammer pounds, and the product rides out; a pure function of the batch share (`model::batch_share`), at least
+  `MIN_CYCLE` a show, presentation only. Boxes per model: blast 11→23, cell 8→20, crusher 13→18, arc 8→21, assembler
+  10→about 40 (inputs, cloud and product only within `display::NEAR`); about 8.4 ns a box to write
+  (`bench_machine_marks`, which places no assemblers), so 200 such machines in view cost about 25 µs a frame more.
+
+- **2026-10-31: straight rails, docks anywhere.** A user note: "the rail is on a diagonal" blocked docks. The rail hand
+  snaps (`rail_snap.rs`): a first node faces an axis (or a compass point), a later one aimed within 13° of an axis or of
+  the node's heading goes onto that line, and onto an axis it takes the axis as its heading. A dock aimed at the ground
+  on straight track cuts it in two (`Factory::tracks_through`, `split_fit`, `split_track`; `Sim::put_dock` takes the
+  node it is `against`). Old diagonal nodes stay as they are and still refuse docks. Tests in `rail_snap`, `pieces`,
+  `dock_tools` and `rail_tools`.
+
+- **2026-10-31: the journey (T5).** A dock is laid in line like a rail node (`dock_tools.rs` aims it on the selected
+  node's line; `action/docks.rs` places it and lays the track in one action, or refuses, so it never stands off the
+  track; `Factory::lay_fit` is the join rule for a node not yet placed, now also the rail hand's). A dock joins and
+  cuts track as an end (`wiring.rs`: `connect` keyed on `rail_yaw`, a dead end before); Shift-click couples every
+  wagon in hand. `tests/train_journey.rs`: a bot that does only what the label says builds a hump-and-dip line with
+  two docks and a two-wagon train that delivers: **5 building clicks (HEAD 7: −29%, short of the −30% target; 6
+  wagons: 11 → 5, −55%) plus 6 earthwork clicks** the outlines asked for (HEAD floated and buried the track instead).
+  `bench_train_instances`: 3,120 train instances against HEAD's 2,960 (+5.4%); writing them takes about 20–25% longer
+  (noisy here). Wasm +14.9 KB gz over HEAD for T1–T5 (`rail::ground::faults` behind one `dyn FnMut`, `car_pose`
+  not inlined).

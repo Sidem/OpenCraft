@@ -3,10 +3,16 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-14 · Felling whole trees, and wood in every colour
+- **Trees come down whole.** You no longer dig a grown tree out a block at a time. Swing at its trunk near the ground and keep swinging: a red mark shows on the bark, and hitting it counts twice. When enough is done the tree tips over away from you, and its logs land along where the trunk falls. With a bare hand it takes about as long as digging out every block of the trunk used to; an axe is quicker, as before.
+- **Each tree gives its own wood.** Birch, pine, palm, cherry, baobab, acacia, redwood and eucalyptus trees drop their own logs, and bamboo drops bamboo. Branches come down as sticks, and the crown leaves a sapling or two.
+- **Planks, floors and doors in every wood's colour.** Saw any log into planks of its own wood, and make floors and doors from them. Every wood works in every recipe that asks for logs or planks, and what you make keeps the colour of the wood you used.
+- **Tree fixes.** No more dark patches round the feet of bamboo and baobabs or on pine trunks, palm trunks bend smoothly with their fronds arching from the top, and branch ends taper instead of looking sawn off.
+- **Logs you placed, and trees in worlds you already have, still break a block at a time.**
 ## 2026-11-14 · Eleven kinds of tree, and bamboo
 - **New worlds grow real-looking trees.** Leaves are drawn as leaves, not blobs, and every tree grows its own branches: wide oaks, slim birches, pine cones of needles, pink cherry blossom in groves, palms leaning over beaches, flat-topped acacias and fat baobabs on warm dry plains, giant redwoods on wet highlands, pale tall eucalyptus and stands of bamboo in warm lowlands.
 - **Forests have their own places.** New worlds have savannas, boreal forests, eucalyptus woodlands, bamboo forests and redwood forests, each with its own trees and ground cover.
-- **Trunks stay clear.** No leaves hang around a trunk below its crown, so you can see the wood and chop it from the ground.
+- **Trunks stay clear.** No leaves hang around a trunk below its crown, so you can see the wood and reach it from the ground.
 - **Each new tree drops its own sapling.** Plant one and it grows into a young tree of its kind. A forester plants and fells them like oaks; it takes the trunk and chips the branches.
 - **Worlds you already have keep their trees.** Only new worlds (and new saplings) grow the new ones.
 ## 2026-11-14 · Lifts that go down, and hover packs that charge from further away

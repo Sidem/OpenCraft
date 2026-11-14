@@ -12,6 +12,7 @@
 use crate::block::BlockId;
 use crate::item::ItemId;
 use crate::recipes::{Category, MachineRecipe, MACHINE_RECIPES};
+use crate::wood;
 
 use super::super::footprint::Footprint;
 use super::model::Part;
@@ -233,7 +234,7 @@ impl ProcessSpec {
         let fits = |(i, r): &(usize, &MachineRecipe)| {
             self.categories.contains(&r.category)
                 && unlocked.get(*i) == Some(&true)
-                && r.inputs.iter().any(|x| x.0 == item)
+                && r.inputs.iter().any(|x| wood::like(item, x.0))
                 && ok(r)
         };
         MACHINE_RECIPES.iter().enumerate().find(fits).map(|(i, _)| i as u16)

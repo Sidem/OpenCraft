@@ -169,7 +169,7 @@ impl Processor {
         };
         r.inputs
             .iter()
-            .filter_map(|&(i, n)| n.checked_sub(self.input.count(i)).filter(|&m| m > 0).map(|m| (i, m)))
+            .filter_map(|&(i, n)| n.checked_sub(self.input.count_like(i)).filter(|&m| m > 0).map(|m| (i, m)))
             .collect()
     }
 

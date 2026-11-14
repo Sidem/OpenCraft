@@ -54,6 +54,7 @@ mod transport;
 mod trees;
 mod washing;
 mod wood;
+mod woods;
 
 use machines::{
     belt_side, belt_top, constructor, crate_wood, drill, generator, ingot, lab, lamp, miner_side, miner_top, plate,
@@ -250,6 +251,7 @@ fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::BIRCH_SIDE..=tex::DEAD_SIDE => forest::pixel(layer, x, y),
         tex::RUST_PLATE..=tex::VAULT_DOOR => ruins::pixel(layer, x, y),
         tex::PINE_SIDE..=tex::BAMBOO_SHOOT => trees::pixel(layer, x, y),
+        l if l >= tex::planks_layer(0) => woods::pixel(layer, x, y),
         tex::RED_CONCRETE..=tex::PANEL_LIGHT => decor::pixel(layer, x, y),
         tex::WOOD_DOOR..=tex::PLASTER => house::pixel(layer, x, y),
         tex::MAT_METAL..=tex::MAT_AETHER => materials::pixel(layer, x, y),

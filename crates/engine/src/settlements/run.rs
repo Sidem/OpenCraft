@@ -52,11 +52,12 @@ impl Town {
     pub fn step(&mut self, store: &mut Buffer, tick: u64, events: &mut Vec<SimEvent>) {
         let upkeep = self.upkeep();
         if !upkeep.is_empty() && tick >= self.due {
-            self.stalled = upkeep.iter().any(|&(item, n)| store.count(item) < n);
+            self.stalled = upkeep.iter().any(|&(item, n)| store.count_like(item) < n);
             if !self.stalled {
                 for &(item, n) in &upkeep {
-                    store.remove(item, n);
-                    events.push(SimEvent::Consumed { item, count: n });
+                    for s in store.remove_like(item, n) {
+                        events.push(SimEvent::Consumed { item: s.item, count: s.count });
+                    }
                 }
                 self.due = tick + MINUTE;
             }
@@ -67,10 +68,11 @@ impl Town {
         let order = self.order();
         for (&(item, want), got) in order.iter().zip(&mut self.delivered) {
             let reserve = upkeep.iter().find(|u| u.0 == item).map_or(0, |u| u.1);
-            let n = (want - *got).min(store.count(item).saturating_sub(reserve));
+            let n = (want - *got).min(store.count_like(item).saturating_sub(reserve));
             if n > 0 {
-                store.remove(item, n);
-                events.push(SimEvent::Consumed { item, count: n });
+                for s in store.remove_like(item, n) {
+                    events.push(SimEvent::Consumed { item: s.item, count: s.count });
+                }
                 *got += n;
             }
         }

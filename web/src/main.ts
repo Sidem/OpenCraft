@@ -294,6 +294,7 @@ async function main(): Promise<void> {
     }
     workMs = workMs * 0.9 + (performance.now() - w0) * 0.1;
     drainMeshes(game, wasm.memory, renderer);
+    renderer.falling.take(game, performance.now());
     return dt;
   };
 
@@ -343,6 +344,7 @@ async function main(): Promise<void> {
       lineCells: game.line_cells(),
       quarryBoxes: machine.quarryBox() ?? game.placement_box(),
       cracks: game.quarry_cracks(),
+      chopMark: game.chop_mark_at(),
       underwater: game.eye_in_water(),
       satellites: game.sky_satellites(),
       held: new Float32Array(wasm.memory.buffer, game.held_light_ptr(), game.held_light_count() * 4),

@@ -5,6 +5,7 @@ use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::recipes::{burn_time, water_use, MachineRecipe, MACHINE_RECIPES};
 use crate::sim::SimEvent;
+use crate::wood;
 
 use super::super::power::FULL_SPEED;
 use super::super::ticks;
@@ -24,10 +25,11 @@ impl Processor {
                 self.status = why;
                 return;
             }
+            self.taken.clear();
             for &(item, n) in MACHINE_RECIPES[i as usize].inputs {
-                self.input.remove(item, n);
-                self.used.push(Stack { item, count: n });
+                self.taken.extend(self.input.remove_like(item, n));
             }
+            self.used.extend(self.taken.iter().copied());
             self.steam.water -= water_use(i);
             (self.batch, self.shown, self.progress) = (Some(i), Some(i), 0);
         }
@@ -50,6 +52,7 @@ impl Processor {
         self.progress += work;
         if self.progress >= ticks(r.seconds) * FULL_SPEED {
             for (k, &(item, n)) in r.outputs.iter().enumerate() {
+                let item = wood::made_from(item, self.taken.iter().map(|s| s.item));
                 self.made.push(Stack { item, count: n });
                 if self.to_side(k) {
                     self.side.add(item, n);
@@ -62,6 +65,7 @@ impl Processor {
                 *lifted = r.inputs.last().map(|&(payload, _)| payload);
             }
             (self.batch, self.progress) = (None, 0);
+            self.taken.clear();
         }
     }
 
@@ -80,7 +84,7 @@ impl Processor {
                 let held = self.input.slots.iter().find(|s| !s.is_empty()).ok_or(Status::NoInput)?;
                 // A recipe whose inputs are all here wins, so a furnace holding coal and lime but crushed
                 // (not raw) iron still starts; else the first recipe using what it holds (and says what is missing).
-                let ready = |r: &MachineRecipe| r.inputs.iter().all(|&(item, n)| self.input.count(item) >= n);
+                let ready = |r: &MachineRecipe| r.inputs.iter().all(|&(item, n)| self.input.count_like(item) >= n);
                 let startable = (self.input.slots.iter())
                     .filter(|s| !s.is_empty())
                     .find_map(|s| self.spec.recipe_using_if(s.item, unlocked, ready));
@@ -104,7 +108,7 @@ impl Processor {
     /// Why a new batch of recipe `i` can't start, if it can't.
     pub(super) fn blocked(&self, i: u16) -> Option<Status> {
         let r = &MACHINE_RECIPES[i as usize];
-        if r.inputs.iter().any(|&(item, n)| self.input.count(item) < n) {
+        if r.inputs.iter().any(|&(item, n)| self.input.count_like(item) < n) {
             Some(Status::NoInput)
         } else if self.short_of_water(i) {
             Some(Status::NoWater)
@@ -123,6 +127,7 @@ impl Processor {
     /// The first output of `r` with no room left in its buffer, and whether it is a byproduct.
     pub(super) fn full_output(&self, r: &MachineRecipe) -> Option<(ItemId, bool)> {
         let full = |&(k, &(item, n)): &(usize, &(ItemId, u32))| {
+            let item = wood::made_from(item, self.would_take(r));
             if self.to_side(k) {
                 self.side.total() + n > SIDE_ROOM || self.side.space_for(item) < n
             } else {
@@ -130,7 +135,12 @@ impl Processor {
             }
         };
         let (k, &(item, _)) = r.outputs.iter().enumerate().find(full)?;
-        Some((item, self.to_side(k)))
+        Some((wood::made_from(item, self.would_take(r)), self.to_side(k)))
+    }
+
+    /// What a batch of `r` would take first of each input held now: the stock that decides the wood of its output.
+    fn would_take<'a>(&'a self, r: &'a MachineRecipe) -> impl Iterator<Item = ItemId> + 'a {
+        r.inputs.iter().filter_map(move |&(want, _)| wood::kinds(want).find(|&i| self.input.count(i) > 0))
     }
 
     /// Lights the first fuel item it holds.

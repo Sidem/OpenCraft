@@ -3,8 +3,8 @@
 //! drawn as one thick trunk) that joins its neighbours, across a corner too, so a branch laid as a staircase of blocks
 //! reads as one slanting limb. A node draws its half of each join, from its middle to the join's middle; a thin
 //! branch running into a much thicker node draws all of it, into that node's middle, out of sight.
-//! Ends: a trunk on the ground flares at its foot; a free upright end is cut flat (end grain), as a stump is; a free
-//! living limb's end tapers to a point; a full-thickness free end is cut flat.
+//! Ends: a trunk on the ground flares at its foot; a free living limb's end tapers to a point, whichever way it points
+//! (up, hanging down, out); a full-thickness free end is cut flat (end grain), as a stump is.
 //! Invariants: logs hide no neighbour's faces (`HIDES` in the mesher), so the ground shows round a trunk; light and
 //! shade are still those of an opaque block. Two chunks drawing the halves of one join compute its middle ring from
 //! the same blocks, so they meet. To give a log block its own thickness: a row in `node::radii`.
@@ -115,12 +115,16 @@ fn draw(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], n: &Node, nea
         }
         return;
     }
-    // A trunk's foot on the ground, flared; an upright free end, cut flat.
+    // A trunk's foot on the ground, flared; an upright free end: a living limb's tapers (up or hanging down), full
+    // thickness is cut flat.
+    let living = r < node::radii(n.block).1 * 0.99;
     if up && !down {
         let ground = OPAQUE[below as usize] && !is_log(below);
         if ground {
             let rings = [(bottom, r * FLARE), (bottom + FLARE_HEIGHT, r), (n.centre[1], r)];
             upright(&f, n, &rings, own_sides, own_tiles, out);
+        } else if living && near.len() == 1 {
+            f.strip(n.centre, r, at_y(n.centre[1] - TIP - r), 0.02, own_sides, own_tiles, out);
         } else {
             upright(&f, n, &[(bottom, r), (n.centre[1], r)], own_sides, own_tiles, out);
             if !HIDES[below as usize] {
@@ -129,9 +133,13 @@ fn draw(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], n: &Node, nea
         }
     }
     if down && !up && near.len() == 1 {
-        upright(&f, n, &[(n.centre[1], r), (top, r)], own_sides, own_tiles, out);
-        if !HIDES[above as usize] {
-            f.cap(at_y(top), [0.0, 1.0, 0.0], r, own_sides, out);
+        if living {
+            f.strip(n.centre, r, at_y(n.centre[1] + TIP + r), 0.02, own_sides, own_tiles, out);
+        } else {
+            upright(&f, n, &[(n.centre[1], r), (top, r)], own_sides, own_tiles, out);
+            if !HIDES[above as usize] {
+                f.cap(at_y(top), [0.0, 1.0, 0.0], r, own_sides, out);
+            }
         }
     }
     // A straight or gently bending run through the node: one stretch from end to end.
@@ -173,11 +181,12 @@ fn upright(f: &Ring, n: &Node, rings: &[(f32, f32)], sides: usize, tiles: f32, o
     }
 }
 
-/// The node's light: the mean of the open cells beside its corner log (a square's corner has two open sides).
+/// The node's light: the mean of the open cells beside its corner log (a square's corner has two open sides), or,
+/// with wood all round (a whorl of branches), its own cell's: a grown tree's wood lets light through (`light.rs`).
 fn node_light(pad: &[crate::block::BlockId], light: &[u8], c: [i32; 3]) -> u8 {
     let p = pidx(c[0] as usize + 1, c[1] as usize + 1, c[2] as usize + 1);
     let open = STRIDE.iter().flat_map(|&s| [p as isize + s, p as isize - s]).map(|i| i as usize);
-    super::shaped::mean_light(open.filter(|&i| !OPAQUE[pad[i] as usize]).map(|i| light[i])).unwrap_or(0)
+    super::shaped::mean_light(open.filter(|&i| !OPAQUE[pad[i] as usize]).map(|i| light[i])).unwrap_or(light[p])
 }
 
 /// Leaves in the 3×3×3 box round a cell: a branch deep in a crown is shaded.

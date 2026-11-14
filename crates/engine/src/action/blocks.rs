@@ -69,7 +69,8 @@ impl Sim {
         let pos = self.factory.footprint_at(pos).map_or(pos, |f| f.0);
         let id = self.world.block_anywhere_or_generate(pos);
         let def = block::def(id);
-        if id == AIR || def.break_time < 0.0 {
+        // A grown tree is felled whole, never a block at a time (`sim/felling.rs`).
+        if id == AIR || def.break_time < 0.0 || block::is_tree_wood(id) {
             return None;
         }
         let ore = block::is_ore(id);
@@ -118,7 +119,7 @@ impl Sim {
 
     /// The item the player breaks `block` with: the tool for it in the right hand, else in the left (`offhand.rs`),
     /// else the right hand's item. A tool for it loses a use (its stack count); one that wears out reports it.
-    fn wear_tool(&mut self, player: PlayerId, block: BlockId) -> ItemId {
+    pub(crate) fn wear_tool(&mut self, player: PlayerId, block: BlockId) -> ItemId {
         let Some(Some(core)) = self.players.get_mut(player.0 as usize) else { return ItemId::NONE };
         let inv = &mut core.inventory;
         let hand = inv.tool_hand(block);

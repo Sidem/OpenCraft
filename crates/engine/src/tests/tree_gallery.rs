@@ -3,6 +3,7 @@
 //! Output: `artifacts/tree-gallery.raw.ocworld` (raw save bytes, git-ignored); gzip it for the Worlds panel's import
 //! (the panel also accepts raw bytes). Row one (z = spawn z): the 11 mature kinds 20 blocks apart along +x. Row two
 //! (12 blocks further along +z): the young form of each. The player stands a few blocks before the first tree, facing +x.
+//! A row 8 blocks before the trees (-z): each wood's planks (two high), floor and door, 4 blocks apart along +x.
 //! The save is loaded back and the first log of every mature tree is asserted.
 
 use super::run_until_ready;
@@ -70,6 +71,20 @@ fn tree_gallery() {
             grow_young(k, ground, 5, SEED, &mut put);
         }
         println!("kind {k} row {row}: x {x} z {z} logs {logs} leaves {leaves}");
+    }
+    for w in 0..crate::wood::WOODS {
+        let block = |form| crate::wood::item(w, form).0 as crate::block::BlockId;
+        let x = x0 + w as i32 * 4;
+        let z = z0 - 8;
+        use crate::wood::Form;
+        for (p, b) in [
+            ((x, top + 1), Form::Planks),
+            ((x, top + 2), Form::Planks),
+            ((x + 1, top + 1), Form::Floor),
+            ((x + 2, top + 1), Form::Door),
+        ] {
+            world.set_block_anywhere_later(IVec3::new(p.0, p.1, z), block(b));
+        }
     }
     let stand = IVec3::new(x0 - 8, top + 1, z0);
     g.teleport(stand.x as f64 + 0.5, stand.y as f64, stand.z as f64 + 0.5);

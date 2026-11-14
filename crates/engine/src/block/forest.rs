@@ -1,7 +1,8 @@
 //! The forest's blocks (generator version 9, `worldgen/trees.rs`) and what groups them: logs, leaves and saplings
 //! of every tree species. Birch, snag and pine blocks are generated, never held: they drop the oak's log and leaves,
 //! so every log still saws into the same planks. Cactus and the two new saplings are items like any block.
-//! Generator 12's species add their blocks in `trees.rs`; their groups are here too. To add a species: its blocks in`n//! `trees.rs`, then here in `is_log` / `is_leaves` / `is_sapling` / `sapling_of`.
+//! Generator 12's species add their blocks in `trees.rs`; their groups are here too. To add a species: its blocks in
+//! `trees.rs`, then here in `is_log` / `is_leaves` / `is_sapling` / `sapling_of`.
 
 use super::trees::*;
 use super::{BlockId, LEAVES, LOG, SAPLING};
@@ -18,11 +19,18 @@ pub const PINE_SAPLING: BlockId = 123;
 /// A trunk block of any species: leaves hang on it and decay without one.
 #[inline]
 pub const fn is_log(b: BlockId) -> bool {
-    matches!(b, LOG | BIRCH_LOG | SNAG_LOG)
+    matches!(b, LOG | BIRCH_LOG | SNAG_LOG | super::OAK_TREE_LOG)
         || matches!(
             b,
             PINE_LOG | PALM_LOG | CHERRY_LOG | BAOBAB_LOG | ACACIA_LOG | REDWOOD_LOG | EUCALYPTUS_LOG | BAMBOO
         )
+}
+
+/// A grown tree's wood, felled whole and never mined a block at a time (`sim/felling.rs`): every log but the oak's,
+/// which old worlds' oaks and player builds are made of.
+#[inline]
+pub const fn is_tree_wood(b: BlockId) -> bool {
+    is_log(b) && b != LOG
 }
 
 /// A leaf block of any species.

@@ -1,5 +1,5 @@
 //! Item models of raw and semi-finished stock: the stick, heaps of crushed and washed ore, sulfur and quicklime, the
-//! silicon boule, aluminium, plastic sheets, coins, the wafer, scrap and the logs (round, though blocks). Mostly one material each; the shape says
+//! silicon boule, aluminium, plastic sheets, coins, the wafer, scrap and the logs of every wood (round, though blocks). Mostly one material each; the shape says
 //! what the thing is. Add a model as a const and a row in `parts`.
 
 use std::f32::consts::FRAC_PI_4;
@@ -8,8 +8,8 @@ use super::shapes::{bar_x, cone_x, cylinder, pile, Build};
 use super::{part, turned, Part};
 use crate::block::{self, tex};
 use crate::item::{
-    ItemId, ALUMINIUM_INGOT, ALUMINIUM_PLATE, COIN, CRUSHED_BAUXITE, CRUSHED_COPPER, CRUSHED_IRON, PLASTIC, QUICKLIME,
-    SCRAP_METAL, SILICON, STICK, SULFUR, WAFER, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON,
+    ItemId, ALUMINIUM_INGOT, ALUMINIUM_PLATE, COIN, CRUSHED_BAUXITE, CRUSHED_COPPER, CRUSHED_IRON, FIRST_WOOD_LOG,
+    PLASTIC, QUICKLIME, SCRAP_METAL, SILICON, STICK, SULFUR, WAFER, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON,
 };
 
 /// Whether `item` is a heap of loose stuff (crushed and washed ore, sulfur, quicklime): small lumps that ride a belt
@@ -49,6 +49,9 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         LOG_ITEM => &OAK_LOG,
         BIRCH_ITEM => &BIRCH_LOG_MODEL,
         SNAG_ITEM => &SNAG_LOG_MODEL,
+        id if (FIRST_WOOD_LOG.0..FIRST_WOOD_LOG.0 + WOOD_LOGS.len() as u16).contains(&id.0) => {
+            &WOOD_LOGS[(id.0 - FIRST_WOOD_LOG.0) as usize]
+        }
         _ => &[],
     }
 }
@@ -67,6 +70,18 @@ const fn log(d: f32, side: u16) -> [Part; 1] {
 const OAK_LOG: [Part; 1] = log(0.8, tex::LOG_SIDE);
 const BIRCH_LOG_MODEL: [Part; 1] = log(0.6, tex::BIRCH_SIDE);
 const SNAG_LOG_MODEL: [Part; 1] = log(0.7, tex::DEAD_SIDE);
+/// The other woods' logs (item::FIRST_WOOD_LOG order), each as thick as its trunk, then a bamboo cane.
+static WOOD_LOGS: [[Part; 1]; 9] = [
+    log(0.6, tex::BIRCH_SIDE),
+    log(0.72, tex::PINE_SIDE),
+    log(0.68, tex::PALM_SIDE),
+    log(0.76, tex::CHERRY_SIDE),
+    log(0.84, tex::BAOBAB_SIDE),
+    log(0.76, tex::ACACIA_SIDE),
+    log(0.84, tex::REDWOOD_SIDE),
+    log(0.72, tex::EUCALYPTUS_SIDE),
+    log(0.26, tex::BAMBOO_SIDE),
+];
 
 /// A crooked stick: two lengths meeting at a slight bend, and a twig.
 const STICK_MODEL: [Part; 3] = [

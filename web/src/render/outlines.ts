@@ -13,7 +13,7 @@ import { createProgram, uniforms, type Uniforms } from './gl';
 
 type Overlaid = Pick<
   FrameInfo,
-  'cracks' | 'target' | 'targetFit' | 'selectedItem' | 'mineProgress' | 'lineCells' | 'quarryBoxes'
+  'cracks' | 'target' | 'targetFit' | 'selectedItem' | 'mineProgress' | 'lineCells' | 'quarryBoxes' | 'chopMark'
 >;
 /** How far the selected item's outline stands off its box, so it clears the item. */
 const SELECT_PAD = 0.02;
@@ -92,6 +92,7 @@ export class Overlays {
       endOverlay(gl);
       drawCalls++;
     }
+    drawCalls += drawChopMark(gl, this.line, this.lineVao, viewProj, f.chopMark, eye);
     drawCalls += drawLineCells(gl, this.line, this.lineVao, viewProj, f.lineCells, eye);
     drawCalls += drawBoxes(gl, this.line, this.lineVao, viewProj, f.quarryBoxes, eye);
     return drawCalls;
@@ -101,6 +102,21 @@ export class Overlays {
 type LineProgram = { prog: WebGLProgram; u: Uniforms<'u_viewProj' | 'u_offset' | 'u_scale' | 'u_color'> };
 type CrackProgram = { prog: WebGLProgram; u: Uniforms<'u_viewProj' | 'u_offset' | 'u_progress'> };
 type Eye = [number, number, number];
+
+/** The felling mark (engine `chop_mark_at`: x, y, z or empty): two nested bright outlines, seen through the trunk. */
+function drawChopMark(gl: WebGL2RenderingContext, line: LineProgram, edges: WebGLVertexArrayObject, viewProj: Float32Array,
+  mark: ArrayLike<number>, eye: Eye): number {
+  if (mark.length !== 3) return 0;
+  beginOverlay(gl, line, edges, viewProj);
+  for (const [size, r, g, b] of [[0.4, 1, 0.12, 0.08], [0.24, 1, 0.9, 0.2]]) {
+    gl.uniform4f(line.u.u_color, r, g, b, 1);
+    gl.uniform3f(line.u.u_scale, size, size, size);
+    gl.uniform3f(line.u.u_offset, mark[0] - eye[0] - size / 2, mark[1] - eye[1] - size / 2, mark[2] - eye[2] - size / 2);
+    gl.drawArrays(gl.LINES, 0, 24);
+  }
+  endOverlay(gl);
+  return 2;
+}
 
 /** Draws the outlines of `cells` (x, y, z, then 0 short, 1 built or 0xRRGGBB upgraded) relative to `eye`; returns the draw calls. */
 function drawLineCells(

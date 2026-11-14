@@ -45,6 +45,7 @@ impl Sim {
         match action {
             Action::Join { .. } | Action::Leave { .. } => {}
             Action::BreakBlock { pos } => self.break_block(player, pos),
+            Action::ChopTree { pos, at, from } => self.chop_tree(player, pos, at, from),
             Action::PlaceBlock { pos, slot, facing, against } => self.place_block(player, pos, slot, facing, against),
             Action::TakeContents { pos } => {
                 let events = &mut self.events;

@@ -27,6 +27,7 @@ const LAND_SOUND_MIN_SPEED: f64 = 5.0;
 const SPLASH_MIN_SPEED: f64 = 1.5;
 
 mod aim;
+mod chop;
 
 impl Game {
     /// Exact crosshair surface for the avatar's head; sky aim follows the distant camera ray.
@@ -163,6 +164,9 @@ impl Game {
             self.mine_block = Some(hit.block);
             self.mine_progress = 0.0;
             self.dig_timer = 0.0;
+        }
+        if block::is_tree_wood(hit.id) {
+            return self.update_chopping(hit, dt);
         }
         let def = block::def(hit.id);
         let center = hit.block.as_vec3() + Vec3::new(0.5, 0.5, 0.5);

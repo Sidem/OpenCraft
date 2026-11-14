@@ -94,6 +94,24 @@ fn a_shaft_lets_the_sky_down() {
 }
 
 #[test]
+fn a_grown_trees_wood_lets_light_round_it_but_a_built_log_wall_does_not() {
+    use crate::block::{BAMBOO, BAOBAB_LOG, LOG};
+    // A bamboo stalk and a 3×3 baobab bole on open ground, and a placed log box round (24, 17, 24).
+    let world = |x: i32, y: i32, z: i32| match (x, y, z) {
+        (8, 16..=30, 8) | (3, 15..=30, 3) => BAMBOO,
+        (14..=16, 16..=30, 14..=16) => BAOBAB_LOG,
+        (23..=25, 16..=18, 23..=25) if (x, y, z) != (24, 17, 24) => LOG,
+        _ => ground(y, 16),
+    };
+    let pad = light_chunk(&world, 0, 0, 0);
+    // The ground under a round trunk shows round it: it must not be black.
+    assert!(at(&pad, 8, 16, 8).0 >= 13, "under the bamboo: {:?}", at(&pad, 8, 16, 8));
+    assert!(at(&pad, 14, 16, 14).0 >= 13, "under the bole's edge: {:?}", at(&pad, 14, 16, 14));
+    assert!(at(&pad, 3, 15, 3).0 >= 12, "a culm sunk into the ground: {:?}", at(&pad, 3, 15, 3));
+    assert_eq!(at(&pad, 24, 17, 24).0, 0, "inside a log box");
+}
+
+#[test]
 fn leaves_shade_the_column_but_let_light_through() {
     let pad = light_chunk(&|x, y, z| if sheet(x, y, z, 20) { LEAVES } else { ground(y, 16) }, 0, 0, 0);
     assert_eq!(at(&pad, 16, 17, 16).0, 11, "15 above the leaves, then 1 less per block");

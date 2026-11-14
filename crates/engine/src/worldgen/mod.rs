@@ -52,7 +52,7 @@ use caves::CaveField;
 pub use geology::ore_shares;
 #[cfg(test)]
 pub use grow::{grow, height_of, KINDS, YOUNG_MAX};
-pub use grow::{grow_young, kind_of_sapling};
+pub use grow::{grow_young, kind_of_sapling, REACH};
 pub(crate) use logbook::compass;
 pub use ore::LODE_HEIGHTS;
 use trees::{stamp_tree, Tree};

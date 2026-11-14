@@ -167,6 +167,9 @@ pub const RAIL_SIGNAL: ItemId = ItemId(345);
 pub const HOVER_PACK: ItemId = ItemId(346);
 /// A cargo drone (the Cargo Drones tech): kept in a drone port, it flies loads to another port (`drones/cargo.rs`).
 pub const CARGO_DRONE: ItemId = ItemId(347);
+/// Each wood's logs after the oak's (`wood.rs` order: birch, pine, palm, cherry, baobab, acacia, redwood, eucalyptus),
+/// then bamboo: what a felled tree drops (`sim/felling.rs`).
+pub const FIRST_WOOD_LOG: ItemId = ItemId(256 + EXTRA.len() as u16 - 9);
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
 
@@ -211,7 +214,7 @@ pub fn stack_size(id: ItemId) -> u32 {
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 145] = [
+const EXTRA: [ItemDef; 154] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -357,7 +360,21 @@ const EXTRA: [ItemDef; 145] = [
     device("Sickle", tex::STEEL, [0.6, 0.8, 0.1]),
     machine("Forester Mk2", [tex::FRAME, tex::LOG_SIDE, tex::FRAME]),
     machine("Forester Mk3", [tex::FRAME, tex::LOG_SIDE, tex::FRAME]),
+    log("Birch Log", tex::BIRCH_SIDE),
+    log("Pine Log", tex::PINE_SIDE),
+    log("Palm Log", tex::PALM_SIDE),
+    log("Cherry Log", tex::CHERRY_SIDE),
+    log("Baobab Log", tex::BAOBAB_SIDE),
+    log("Acacia Log", tex::ACACIA_SIDE),
+    log("Redwood Log", tex::REDWOOD_SIDE),
+    log("Eucalyptus Log", tex::EUCALYPTUS_SIDE),
+    ItemDef { size: [0.3, 1.0, 0.3], ..log("Bamboo", tex::BAMBOO_SIDE) },
 ];
+
+/// A wood's log: bark round, the oak's rings at the ends; it places nothing.
+const fn log(name: &'static str, side: u16) -> ItemDef {
+    ItemDef { name, stack: MAX_STACK, tex: [tex::LOG_TOP, side, tex::LOG_TOP], size: [1.0, 1.0, 1.0], places: AIR }
+}
 
 /// One row per block: its name and faces, placeable blocks place themselves.
 static BLOCK_ITEMS: [ItemDef; BLOCK_COUNT] = {

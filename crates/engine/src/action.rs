@@ -119,6 +119,13 @@ pub enum Action {
         pos: IVec3,
         out: u8,
     },
+    /// A swing at the grown tree's log `pos`, landing at `at` from the side `from` (sixteenths of a turn from +x
+    /// towards +z): `sim/felling.rs`.
+    ChopTree {
+        pos: IVec3,
+        at: Vec3,
+        from: u8,
+    },
     /// Chooses the rule of the sensor at `pos` (`factory::sensor::RULES` index).
     SetSensor {
         pos: IVec3,

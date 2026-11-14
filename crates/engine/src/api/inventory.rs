@@ -152,7 +152,7 @@ impl Game {
     }
 
     pub fn item_total(&self, item: u16) -> u32 {
-        self.inventory().count(ItemId(item))
+        self.inventory().count_like(ItemId(item))
     }
 
     /// Pops the next pickup notification; read it with `pickup_item` / `pickup_count`.

@@ -61,6 +61,8 @@ uniform mat4 u_viewProj;
 uniform vec3 u_offset; // chunk origin minus camera position
 uniform vec3 u_worldOrigin; // chunk origin modulo the tint's period
 uniform vec3 u_skyLight;
+uniform vec3 u_pivot; // a falling tree: the pivot in the part's local space (falling.ts)
+uniform mat3 u_turn; // and how far it has tipped; the identity for chunks
 
 out vec3 v_uvl;
 out float v_light;
@@ -89,7 +91,7 @@ void main() {
   float ao = mix(0.4, 1.0, float((w0 >> 27u) & 7u) / 7.0);
   float u = float((w1 >> 12u) & 4095u) / 256.0;
   uint light = w1 >> 24u;
-  vec3 n = octahedral(w2 & 65535u);
+  vec3 n = u_turn * octahedral(w2 & 65535u);
   float layer = float((w2 >> 16u) & 511u);
   vec2 uv = vec2(0.0);
   v_card = vec2(-1.0);
@@ -115,7 +117,7 @@ void main() {
   v_tint = lightTint(light, u_skyLight);
   v_pos = p;
   v_kind = kind;
-  v_rel = u_offset + p;
+  v_rel = u_offset + u_pivot + u_turn * (p - u_pivot);
   v_ground = (u_worldOrigin + p).xz;
   v_open = vec2(clamp(float(light & 15u) - 12.0, 0.0, 3.0) / 3.0, smoothstep(0.45, 0.8, n.y));
   gl_Position = u_viewProj * vec4(v_rel, 1.0);

@@ -102,6 +102,7 @@ impl Action {
             72 => Action::Drone { order: DroneOrder::read(r)?, at: r.ivec3()? },
             73 => Action::FilterPick { pos: r.ivec3()?, item: r.item()?, out: r.u8()? },
             74 => Action::FilterRest { pos: r.ivec3()?, out: r.u8()? },
+            75 => Action::ChopTree { pos: r.ivec3()?, at: r.vec3()?, from: r.u8()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

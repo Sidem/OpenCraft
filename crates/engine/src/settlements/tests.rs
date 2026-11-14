@@ -404,3 +404,26 @@ fn bench_towns() {
     sim.step();
     println!("towns: planning one stage in each of 4 towns at once: {:?}", t.elapsed());
 }
+
+#[test]
+fn a_town_counts_any_wood_toward_its_planks_and_uses_the_oaks_first() {
+    use crate::factory::Buffer;
+    let pine = crate::wood::item(2, crate::wood::Form::Planks);
+    let oak = ItemId::block(block::PLANKS);
+    let mut town = Town::new(IVec3::new(0, 70, 0), 0);
+    let mut store = Buffer::new(8);
+    store.add(pine, 100);
+    store.add(oak, 50);
+    let mut events = Vec::new();
+    town.step(&mut store, 0, &mut events);
+    assert_eq!(town.delivered[0], 150, "both count toward the planks line");
+    assert_eq!((store.count(oak), store.count(pine)), (0, 0));
+    let used: Vec<(ItemId, u32)> = events
+        .iter()
+        .filter_map(|e| match e {
+            crate::sim::SimEvent::Consumed { item, count } => Some((*item, *count)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(used, [(oak, 50), (pine, 100)]);
+}

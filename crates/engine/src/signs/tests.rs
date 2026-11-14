@@ -38,7 +38,13 @@ fn signs_held(g: &Game) -> u32 {
 fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
     assert_eq!(usize::from(SIGN) + SIGN_COUNT, usize::from(FORESTER));
     assert_eq!(usize::from(FORESTER) + FORESTER_COUNT, usize::from(crate::block::PINE_LOG));
-    assert_eq!(usize::from(crate::block::PINE_LOG) + crate::block::TREES_COUNT, BLOCK_COUNT);
+    // Then the grown oak's log and the other woods' planks, floors and doors (lock/woods.rs), last.
+    assert_eq!(
+        usize::from(crate::block::PINE_LOG) + crate::block::TREES_COUNT,
+        usize::from(crate::block::OAK_TREE_LOG)
+    );
+    let last_door = crate::block::door_of(crate::block::OTHER_WOODS - 1);
+    assert_eq!(usize::from(last_door) + 2, BLOCK_COUNT, "the last wood's door, then its open door");
 }
 
 #[test]
@@ -132,7 +138,10 @@ fn signs_are_saved_and_older_saves_have_none() {
     for sim in [&g.sim, &loaded.sim] {
         let mut core = ByteWriter::default();
         sim.write_state(&mut core);
-        assert!(core.bytes.ends_with(&bytes), "the core ends with the signs");
+        let mut felling = ByteWriter::default();
+        sim.felling.write_state(&mut felling);
+        let tail = [bytes.as_slice(), &felling.bytes].concat();
+        assert!(core.bytes.ends_with(&tail), "the core ends with the signs, then the trees being felled");
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
     // A core from save 62 ends before the signs' count: it reads whole, with none.

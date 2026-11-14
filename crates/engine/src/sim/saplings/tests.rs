@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::action::Action;
-use crate::block::{BlockId, LEAVES, LOG, SAPLING, STONE};
+use crate::block::{BlockId, LEAVES, OAK_TREE_LOG, SAPLING, STONE};
 use crate::item::ItemId;
 use crate::sim::tests::SEED;
 use crate::sim::PlayerId;
@@ -71,12 +71,12 @@ fn a_planted_sapling_grows_into_a_tree_on_every_core() {
     assert_eq!(grew, 1, "grew within ten minutes");
     assert_eq!(a.state_hash(), b.state_hash());
     // A young oak: a trunk no taller than a sapling grows, limbs and a crown of leaves round its top.
-    let trunk = (SKY..SKY + 30).take_while(|&y| a.block(at(0, y, 0)) == LOG).count() as i32;
+    let trunk = (SKY..SKY + 30).take_while(|&y| a.block(at(0, y, 0)) == OAK_TREE_LOG).count() as i32;
     assert!((4..=crate::worldgen::YOUNG_MAX).contains(&trunk), "trunk {trunk}");
     assert_eq!(a.block(at(0, SKY - 1, 0)), DIRT);
     let crown = cube_around(at(0, SKY + trunk - 1, 0), 5);
     assert!(crown.iter().filter(|&&p| a.block(p) == LEAVES).count() >= 40, "a full crown");
-    assert!(crown.iter().filter(|&&p| a.block(p) == LOG && (p.x != 0 || p.z != 0)).count() >= 3, "limbs");
+    assert!(crown.iter().filter(|&&p| a.block(p) == OAK_TREE_LOG && (p.x != 0 || p.z != 0)).count() >= 3, "limbs");
 }
 
 #[test]
@@ -94,7 +94,7 @@ fn saplings_need_soil_and_room() {
     assert!(sim.timers.pending(at(0, SKY, 0), TimerKind::SaplingGrow), "still trying");
     sim.world.set_block_anywhere(at(0, SKY + 2, 0), crate::block::AIR);
     assert_eq!(run(&mut sim, 900), 1);
-    assert_eq!(sim.block(at(0, SKY, 0)), LOG);
+    assert_eq!(sim.block(at(0, SKY, 0)), OAK_TREE_LOG);
 }
 
 #[test]

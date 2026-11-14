@@ -59,7 +59,7 @@ pub struct Kind {
 
 /// A broadleaf's defaults; rows below change what differs.
 const BROADLEAF: Kind = Kind {
-    log: LOG,
+    log: OAK_TREE_LOG,
     leaves: LEAVES,
     sapling: SAPLING,
     ground: GRASS,

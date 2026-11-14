@@ -22,6 +22,7 @@ use crate::recipes::{Recipe, RECIPES};
 use crate::settlements::gear_cost;
 use crate::sim::{PlayerId, SimEvent};
 use crate::tools;
+use crate::wood;
 
 #[cfg(test)]
 mod tests;
@@ -63,7 +64,7 @@ pub fn parts(recipe: usize) -> Option<Parts> {
 /// How many batches of `recipe` the inventory holds (0 when it cannot be taken apart).
 pub fn batches(inv: &Inventory, recipe: usize) -> u32 {
     match parts(recipe) {
-        Some(_) => inv.count(RECIPES[recipe].output) / RECIPES[recipe].count,
+        Some(_) => inv.count_like(RECIPES[recipe].output) / RECIPES[recipe].count,
         None => 0,
     }
 }
@@ -74,9 +75,11 @@ pub fn take_apart(inv: &mut Inventory, recipe: usize, times: u32, player: Player
     let times = times.min(batches(inv, recipe));
     let Some(p) = parts(recipe).filter(|_| times > 0) else { return };
     let r: &Recipe = &RECIPES[recipe];
-    inv.remove(r.output, times * r.count);
+    // A wooden thing gives back its own wood (the first wood item taken, oak's first: `Inventory::remove_like`).
+    let taken: Vec<ItemId> = inv.remove_like(r.output, times * r.count).iter().map(|s| s.item).collect();
     let scrap = (p.scrap > 0).then_some((SCRAP_METAL, p.scrap));
     for (item, n) in p.items.into_iter().chain(scrap) {
+        let item = wood::made_from(item, taken.iter().copied());
         let count = n * times;
         let left = inv.add(item, count);
         if left < count {

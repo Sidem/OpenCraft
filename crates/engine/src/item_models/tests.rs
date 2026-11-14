@@ -59,11 +59,12 @@ fn every_item_that_is_not_a_block_is_a_model_resting_on_its_floor() {
 #[test]
 fn a_log_item_is_a_round_log_with_end_grain_resting_on_the_floor() {
     use crate::block::{BIRCH_LOG, LOG, SNAG_LOG};
-    for b in [LOG, BIRCH_LOG, SNAG_LOG] {
-        let model = parts(ItemId::block(b));
-        assert_eq!(model.len(), 1, "block {b} is one log");
+    let woods = (0..9).map(|i| ItemId(crate::item::FIRST_WOOD_LOG.0 + i));
+    for b in [LOG, BIRCH_LOG, SNAG_LOG].map(ItemId::block).into_iter().chain(woods) {
+        let model = parts(b);
+        assert_eq!(model.len(), 1, "{b:?} is one log");
         let p = model[0];
-        assert!(matches!(p.form, Form::Round(Axis::X, t) if t == 1.0), "block {b} is a cylinder, not a cube");
+        assert!(matches!(p.form, Form::Round(Axis::X, t) if t == 1.0), "{b:?} is a cylinder, not a cube");
         assert_eq!((p.tex[0], p.tex[2]), (tex::LOG_TOP, tex::LOG_TOP), "end grain on its cut ends");
         assert!((p.center[1] - p.size[1] * 0.5 + 0.5).abs() < 1e-6, "it rests on the floor");
         assert!(p.size[0] <= 1.0 && p.size[1] <= 1.0);

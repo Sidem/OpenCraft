@@ -42,6 +42,13 @@ pub enum SimEvent {
         item: ItemId,
         count: u32,
     },
+    /// A swing at a grown tree landed at `pos`: on its mark or not, and whether it brought the tree down.
+    Chopped {
+        player: PlayerId,
+        pos: Vec3,
+        struck: bool,
+        felled: bool,
+    },
     /// Loose items to spawn at `pos` with velocity `vel` (a broken block's drops).
     Dropped {
         pos: Vec3,

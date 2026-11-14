@@ -386,6 +386,7 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (playtest, landed) The note sign (block 158, `signs/view.rs`): a board of `tex::PLANKS` boxes across two cells, on two posts when nothing is behind it; its item is a planks cube. The text layers (`tex::SIGN_FACE`..`SIGN_FACE_LAST`) are painted at run time by `web/src/render/sign-faces.ts`: leave them out of the pack. It wants a framed board model and an icon.
 - [ ] (forester, 2026-11-07) The forester (block 159, `block/forester.rs`; model parts in `factory/process/forester/view.rs`, crane and harvester head in `crane.rs`, fence and logs in `scene.rs`, icon in `item_models/machines_plant.rs`): a yellow carrier (`tex::GRID_FIRST + 4`, the grid accents' flat yellow), `tex::CAB_GLASS` cab, an orange head from `tex::MAT_EMBER`, rubber rollers, `tex::LOG`/`PLANKS` fence. The crane (`Look::Crane`) is drawn each frame from its pivot, boxes turned along any axes (`render::push_framed`); a real machine-paint yellow and orange layer, and the block's faces, want layers of their own.
 - [ ] (personal drone, 2026-11-13) Model `companion_view.rs`, icon `item_models/craft.rs`; layers 384 `DRONE_SHELL`, 385 `DRONE_CARBON` (`materials.py`). Wants a prop blur disc; construction and cargo drones to match.
+- [ ] (woods, 2026-11-14) Art for the 36 wood layers 432-467 (`block/woods.rs`); oak recolours now.
 
 ## 8. Log
 

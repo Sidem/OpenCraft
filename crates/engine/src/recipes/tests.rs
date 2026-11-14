@@ -110,11 +110,13 @@ fn items() -> Vec<ItemId> {
 
 fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
     let mut errors = Vec::new();
-    for it in items() {
+    for each in items() {
+        // Every wood serves where the oak's does (wood.rs): a pine floor is made and used as the oak floor is.
+        let it = crate::wood::standard(each);
         let made = hand.iter().any(|r| r.output == it) || machine.iter().any(|r| r.outputs.iter().any(|o| o.0 == it));
         let gathered = GATHERED.contains(&it) || WORLD_BLOCKS.iter().any(|&w| ItemId::block(block::def(w).drop) == it);
         if !made && !gathered {
-            errors.push(format!("{} has no source", item::name(it)));
+            errors.push(format!("{} has no source", item::name(each)));
         }
         let input = |ins: &[(ItemId, u32)]| ins.iter().any(|i| i.0 == it);
         let used = hand.iter().any(|r| input(r.inputs))
@@ -134,7 +136,7 @@ fn lint_items(hand: &[Recipe], machine: &[MachineRecipe]) -> Vec<String> {
             || tools::device(it).is_some()
             || crate::equipment::gear(it).is_some();
         if !used && !end && !NO_USE_YET.contains(&it) {
-            errors.push(format!("{} has no use", item::name(it)));
+            errors.push(format!("{} has no use", item::name(each)));
         }
     }
     errors

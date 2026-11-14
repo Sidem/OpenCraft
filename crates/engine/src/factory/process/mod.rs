@@ -155,6 +155,9 @@ pub struct Processor {
     pub made: Vec<Stack>,
     /// What it used up this tick (batch inputs, fuel, barrels), until `report_made` (derived, not saved).
     pub used: Vec<Stack>,
+    /// What the batch in progress took from the input buffer: its wood decides the wood of its output (derived, not
+    /// saved: a batch loaded in progress makes the oak's item and gives back the recipe's own inputs).
+    pub taken: Vec<Stack>,
     /// The time its product display was last drawn and its turn then (presentation only, `display.rs`).
     pub display_turn: Cell<(f64, f32)>,
 }
@@ -190,6 +193,7 @@ impl Processor {
             status,
             made: Vec::new(),
             used: Vec::new(),
+            taken: Vec::new(),
             display_turn: Cell::new((0.0, 0.0)),
         }
     }
@@ -206,6 +210,7 @@ impl Processor {
         back.extend(self.batch_inputs());
         self.input = Buffer::new(self.input.slots.len());
         (self.recipe, self.batch, self.progress) = (recipe, None, 0);
+        self.taken.clear();
         self.status = if recipe.is_some() { Status::NoInput } else { Status::NoRecipe };
         back
     }
@@ -280,6 +285,9 @@ impl Processor {
     }
 
     fn batch_inputs(&self) -> Vec<Stack> {
+        if !self.taken.is_empty() && self.batch.is_some() {
+            return self.taken.clone();
+        }
         let r = self.batch_recipe();
         r.map_or_else(Vec::new, |r| r.inputs.iter().map(|&(item, count)| Stack { item, count }).collect())
     }

@@ -26,7 +26,8 @@ pub const REACH: i32 = 9;
 const ABOVE: i32 = 6;
 
 /// A tree of `kind` standing on the block at `ground` with a trunk `height` blocks tall, block by block: leaves
-/// (which only go into air), then logs (which replace anything), then dirt under the trunk.
+/// (which only go into air), then logs (which replace anything above the ground, and go only into air at or under
+/// it), then dirt under the trunk.
 pub fn grow(kind: usize, ground: IVec3, height: i32, seed: u32, put: impl FnMut(IVec3, BlockId, bool)) {
     grow_as(&KINDS[kind], ground, height, seed, put);
 }
@@ -52,12 +53,15 @@ fn grow_as(k: &Kind, ground: IVec3, height: i32, seed: u32, mut put: impl FnMut(
             put(p, k.leaves, false);
         }
     }
+    // Wood at or under the ground block only roots where the ground falls away: dug into it, a round trunk would
+    // stand in a pit that shows round it.
     for (p, cell) in plot.cells() {
         if cell == WOOD {
-            put(p, k.log, true);
+            put(p, k.log, p.y > ground.y);
         }
     }
-    if k.ground == GRASS {
+    // Dirt under a trunk that stands on the ground; a wide bole sunk through it keeps its wood.
+    if k.ground == GRASS && !plot.is_wood(ground) {
         put(ground, DIRT, true);
     }
 }

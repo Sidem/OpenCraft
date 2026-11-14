@@ -25,6 +25,7 @@ use crate::recipes::{Recipe, RECIPES};
 use crate::research::{Research, Unlock};
 use crate::settlements::{discounted, gear_cost};
 use crate::sim::{PlayerId, Sim, SimEvent};
+use crate::wood;
 
 /// Most crafts one order may ask for, and most orders a player may queue.
 pub const MAX_TIMES: u32 = 999;
@@ -70,6 +71,9 @@ pub struct Order {
     pub ticks: u32,
     /// Ticks the whole order takes, for its progress bar.
     pub total: u32,
+    /// What the craft in progress took from the pool, which decides the wood of its output (derived, not saved: a
+    /// craft loaded in progress makes the oak's item and gives back the recipe's own inputs).
+    pub taken: Vec<Stack>,
 }
 
 impl Order {
@@ -182,10 +186,13 @@ impl Planner<'_> {
     /// Makes sure `n` of `item` will be there: from the inventory first, then from what the drone can fetch, else
     /// crafted by hand.
     fn need(&mut self, item: ItemId, n: u32, depth: u32) -> Option<()> {
-        let mut take = claim(&mut self.used, item, n, self.inv.count(item));
-        if take < n {
-            if let Some(stock) = self.stock {
-                take += claim(&mut self.fetched, item, n - take, stock(item));
+        let mut take = 0;
+        for like in wood::kinds(item) {
+            take += claim(&mut self.used, like, n - take, self.inv.count(like));
+        }
+        if let Some(stock) = self.stock.filter(|_| take < n) {
+            for like in wood::kinds(item) {
+                take += claim(&mut self.fetched, like, n - take, stock(like));
             }
         }
         if take == n {
@@ -231,19 +238,28 @@ fn add_to_pool(pool: &mut Vec<Stack>, item: ItemId, count: u32) {
     }
 }
 
-/// Takes `inputs` out of the pool, or none of them.
-fn take_from_pool(pool: &mut Vec<Stack>, inputs: &[(ItemId, u32)]) -> bool {
-    let has = |pool: &[Stack], item, n| pool.iter().find(|s| s.item == item).is_some_and(|s| s.count >= n);
-    if !inputs.iter().all(|&(item, n)| has(pool, item, n)) {
-        return false;
+/// Takes `inputs` out of the pool, or none of them: any wood's item serves where an input names the oak's, oak's
+/// first, then by wood number (`wood::kinds`). Returns what it took, in that order (`Order::taken`).
+fn take_from_pool(pool: &mut Vec<Stack>, inputs: &[(ItemId, u32)]) -> Option<Vec<Stack>> {
+    let held = |pool: &[Stack], item| pool.iter().filter(|s| s.item == item).map(|s| s.count).sum::<u32>();
+    let has = |pool: &[Stack], want| wood::kinds(want).map(|i| held(pool, i)).sum::<u32>();
+    if !inputs.iter().all(|&(want, n)| has(pool, want) >= n) {
+        return None;
     }
-    for &(item, n) in inputs {
-        if let Some(s) = pool.iter_mut().find(|s| s.item == item) {
-            s.count -= n;
+    let mut taken = Vec::new();
+    for &(want, n) in inputs {
+        let mut left = n;
+        for item in wood::kinds(want) {
+            let k = left.min(held(pool, item));
+            if let Some(s) = pool.iter_mut().find(|s| s.item == item).filter(|_| k > 0) {
+                s.count -= k;
+                taken.push(Stack { item, count: k });
+                left -= k;
+            }
         }
     }
     pool.retain(|s| s.count > 0);
-    true
+    Some(taken)
 }
 
 /// Puts `count` of `item` in the inventory, throwing what doesn't fit.
@@ -279,8 +295,13 @@ impl CraftQueue {
         let order = self.orders.remove(index);
         if order.busy {
             let step = order.steps[0];
-            for (item, n) in gear_cost(&RECIPES[step.recipe as usize], step.half) {
-                give(inv, player, item, n, events);
+            if order.taken.is_empty() {
+                for (item, n) in gear_cost(&RECIPES[step.recipe as usize], step.half) {
+                    give(inv, player, item, n, events);
+                }
+            }
+            for s in &order.taken {
+                give(inv, player, s.item, s.count, events);
             }
         }
         for s in order.held {
@@ -301,21 +322,22 @@ impl CraftQueue {
         let step = order.steps[0];
         let r = &RECIPES[step.recipe as usize];
         if !order.busy {
-            if !take_from_pool(&mut order.held, &gear_cost(r, step.half).collect::<Vec<_>>()) {
+            let Some(taken) = take_from_pool(&mut order.held, &gear_cost(r, step.half).collect::<Vec<_>>()) else {
                 return self.cancel(0, inv, player, events);
-            }
-            (order.busy, order.ticks) = (true, 0);
+            };
+            (order.busy, order.ticks, order.taken) = (true, 0, taken);
         }
         order.ticks += 1;
         if order.ticks < craft_ticks(r, speed) {
             return;
         }
         order.busy = false;
+        let output = wood::made_from(r.output, order.taken.drain(..).map(|s| s.item));
         if step.deliver {
-            give(inv, player, r.output, r.count, events);
-            events.push(SimEvent::Crafted { player, item: r.output, count: r.count });
+            give(inv, player, output, r.count, events);
+            events.push(SimEvent::Crafted { player, item: output, count: r.count });
         } else {
-            add_to_pool(&mut order.held, r.output, r.count);
+            add_to_pool(&mut order.held, output, r.count);
         }
         order.steps[0].times -= 1;
         if order.steps[0].times == 0 {

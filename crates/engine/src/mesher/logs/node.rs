@@ -3,7 +3,8 @@
 //! Invariants: every number here is read from the grid relative to the node's cells in a fixed order, so the two
 //! chunks drawing the two halves of a join agree. Two nodes join when a cell of one touches a cell of the other on a
 //! face, or on an edge or corner with no log between them (so a staircase branch is one line, not a zigzag).
-//! A chunk works each log's node out once (`Nodes`): its neighbours all ask for it.
+//! A chunk works each log's node out once (`Nodes`): its neighbours all ask for it. A single log in a bending run sits
+//! a little off its cell (`bend`), read from its neighbours only, so a leaning stem curves.
 
 use rustc_hash::FxHashMap;
 
@@ -86,9 +87,36 @@ fn node_of(g: &TreeGrid, c: [i32; 3]) -> Node {
             block,
         };
     }
-    let centre = c.map(|v| v as f32 + 0.5);
+    let centre = std::array::from_fn(|k| c[k] as f32 + 0.5 + bend(g, c)[k]);
     Node { corner: c, width: 1, centre, radius: thickness(g, c, block), block }
 }
+
+/// How far a single log in a run of single logs (joining exactly two) sits off its cell's middle: `SMOOTH` of the way
+/// to the middle of its two neighbours, so a stem stepping over a block curves instead of turning at an elbow. A
+/// straight run, level or slanting, stays on its cells.
+fn bend(g: &TreeGrid, c: [i32; 3]) -> [f32; 3] {
+    let mut sum = [0i32; 3];
+    let mut n = 0;
+    for i in 0..27 {
+        let d = [i % 3 - 1, i / 3 % 3 - 1, i / 9 - 1];
+        let b = [c[0] + d[0], c[1] + d[1], c[2] + d[2]];
+        if d != [0; 3] && log(g, b) && direct(g, c, d) {
+            if n == 2 || square(g, b).is_some() {
+                return [0.0; 3];
+            }
+            sum = std::array::from_fn(|k| sum[k] + d[k]);
+            n += 1;
+        }
+    }
+    if n == 2 {
+        sum.map(|v| v as f32 * 0.5 * SMOOTH)
+    } else {
+        [0.0; 3]
+    }
+}
+
+/// How far a log in a bending run moves towards its neighbours' middle.
+const SMOOTH: f32 = 0.5;
 
 /// The nodes `n` joins, each once, in a fixed order.
 pub fn joins(g: &TreeGrid, n: &Node, nodes: &mut Nodes, out: &mut Vec<Node>) {

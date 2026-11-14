@@ -362,6 +362,12 @@ impl Action {
                 w.ivec3(pos);
                 w.u8(out);
             }
+            Action::ChopTree { pos, at, from } => {
+                w.u8(75);
+                w.ivec3(pos);
+                w.vec3(at);
+                w.u8(from);
+            }
         }
     }
 

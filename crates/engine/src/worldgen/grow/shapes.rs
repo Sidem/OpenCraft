@@ -252,11 +252,12 @@ impl Builder {
         let az0 = self.f() * TAU;
         for i in 0..n {
             let az = az0 + i as f32 * TAU / n as f32 + 0.3 * self.f();
-            let mut d = aim(az, 1.1);
+            // Out of the stem's top a little upwards, then arching over and down.
+            let mut d = aim(az, 0.6);
             let mut p = top;
             let mut last = cell(p);
             for step in 0..9 {
-                d[1] -= 0.16 * (step as f32 / 4.0);
+                d[1] -= 0.2 * (step as f32 / 4.0);
                 d = unit3(d);
                 p = [p[0] + d[0] * 0.5, p[1] + d[1] * 0.5, p[2] + d[2] * 0.5];
                 let c = cell(p);

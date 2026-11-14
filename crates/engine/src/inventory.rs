@@ -8,6 +8,7 @@ use crate::bytes::{ByteReader, ByteWriter};
 use crate::equipment::{self, SLOTS};
 use crate::item::{stack_size, ItemId};
 use crate::tools;
+use crate::wood;
 
 pub const HOTBAR_SLOTS: usize = 9;
 /// Slots without gear; a hauler pack opens up to `MAX_SLOTS - INVENTORY_SLOTS` more.
@@ -173,6 +174,29 @@ impl Inventory {
     /// Total number of `item` held.
     pub fn count(&self, item: ItemId) -> u32 {
         self.open().iter().filter(|s| s.item == item).map(|s| s.count).sum()
+    }
+
+    /// How many of `want` it holds, counting any wood's item of the same form when `want` is an oak item (`wood.rs`).
+    pub fn count_like(&self, want: ItemId) -> u32 {
+        wood::kinds(want).map(|i| self.count(i)).sum()
+    }
+
+    /// Removes `n` of `want` or another wood's item of its form: oak's first, then by wood number (`wood::kinds`).
+    /// Returns what was taken; empty (and nothing removed) when there are fewer than `n`.
+    pub fn remove_like(&mut self, want: ItemId, n: u32) -> Vec<Stack> {
+        if self.count_like(want) < n {
+            return Vec::new();
+        }
+        let mut left = n;
+        let mut taken = Vec::new();
+        for item in wood::kinds(want) {
+            let k = left.min(self.count(item));
+            if k > 0 && self.remove(item, k) {
+                taken.push(Stack { item, count: k });
+                left -= k;
+            }
+        }
+        taken
     }
 
     /// Removes `n` of `item`, backpack first so the hotbar keeps its layout. All or nothing.

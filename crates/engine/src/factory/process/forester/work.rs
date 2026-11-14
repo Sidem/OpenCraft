@@ -2,7 +2,7 @@
 //! timed step adds this tick's work (`Crane::done`) and moves on when its seconds are done; a step that needs power
 //! says `NoPower` without it. The jobs' order and meaning are in the header.
 
-use crate::block::{self, is_log, is_sapling, sapling_of, BlockId, AIR, DIRT, GRASS};
+use crate::block::{is_log, is_sapling, sapling_of, BlockId, AIR, DIRT, GRASS};
 use crate::inventory::Stack;
 use crate::item::ItemId;
 use crate::math::IVec3;
@@ -141,9 +141,14 @@ impl Forest {
         Status::Working
     }
 
+    /// The log item its tree gives: its wood's (`wood.rs`).
+    fn logs(&self) -> ItemId {
+        crate::wood::item(crate::wood::of_tree(self.log).unwrap_or(0), crate::wood::Form::Log)
+    }
+
     /// Whether its output has room for the logs it holds.
     fn room(&self, c: &Crane) -> bool {
-        c.out.can_hold(ItemId::block(block::def(self.log).drop), u32::from(self.cut))
+        c.out.can_hold(self.logs(), u32::from(self.cut))
     }
 
     /// Looks over the next columns for a tree or a plot to plant, surveying the ground at the start of each round;
@@ -199,7 +204,7 @@ impl Forest {
 
     /// The logs go onto its bunk (its output); then it plants the tree's plot, or looks on.
     fn unload(&mut self, c: &mut Crane, patch: Patch) {
-        let drop = ItemId::block(block::def(self.log).drop);
+        let drop = self.logs();
         c.out.add(drop, u32::from(self.cut));
         c.made.push(Stack { item: drop, count: u32::from(self.cut) });
         (self.felled, self.stem, self.cut) = (self.felled + 1, 0, 0);

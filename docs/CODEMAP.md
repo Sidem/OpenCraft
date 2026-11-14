@@ -23,7 +23,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Deterministic core (changes only through `Action`s at a tick)
 - `sim.rs`: `Sim` (tick, world, factory, players, rng, towns), `step`, `state_hash`, `PlayerId`, `SimEvent`.
 - `sim/`: `event.rs` (`SimEvent`), `timers.rs` (leaf decay, grass, saplings), `water.rs` (flowing water rules, capped per tick), `saplings.rs`,
-  `torches.rs`, `scrap.rs` (salvage from ruins), `vault.rs` (the ruin vault's dial puzzle).
+  `torches.rs`, `scrap.rs` (salvage from ruins), `vault.rs` (the ruin vault's dial puzzle), `felling.rs` + `felling/tree.rs`
+  (grown trees felled whole: swings, the mark, the fall and its drops; `tree.rs` finds a trunk and takes a tree).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm per action), `clicks.rs` (inventory and box clicks),
   `blocks.rs` (break and place), `docks.rs` (docks onto rail nodes), `multiblock.rs` (footprints), `codec.rs` + `codec/read.rs` (bytes; tags append only).
 - `bytes.rs`: canonical encoding (`write_state` / `read_state`). `save.rs`: the file (core, bodies, loose items), `SAVE_VERSION`.
@@ -73,8 +74,10 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`, `trees.rs` (generator 12's species), `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158), `forester.rs` (id 159); `ores.rs`.
+  `decor.rs`, `trees.rs` (generator 12's species), `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158), `forester.rs` (id 159); `woods.rs` (the grown oak's log, every other wood's
+  planks, floor and doors); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
+- `wood.rs`: the ten woods and their forms (log, planks, floor, door); any wood serves where a recipe names the oak's.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `item_groups.rs` (item families for analytics and sorting), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
@@ -94,7 +97,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Local player: hands, tools and previews (presentation; act only by queuing actions)
 - `interaction.rs` + `interaction/aim.rs`: targeting, mining, placing, footsteps. `player.rs`, `physics.rs`, `raycast.rs`,
   `hitbox.rs`, `camera.rs`, `strategy.rs` + `strategy/navigation.rs` (overhead camera, walking orders).
-  `item_select.rs` (a clicked belt item stays selected: readout, outline, pick-up in reach).
+  `item_select.rs` (a clicked belt item stays selected: readout, outline, pick-up in reach). `interaction/chop.rs`: swinging at a
+  grown tree (`api/felling.rs` hands the host the mark and the fallen trees).
 - `belt_line.rs` + `belt_line/` (drag-built lines, underpass bridging, lifts up and down cliffs in `path.rs`, `preview.rs` the ghost line, `route.rs` A* auto-routing), `upgrade_aim.rs`, `belt_bend.rs` (Shift+R bends a belt or the next one laid).
 - `place_refusal.rs` (a placement the body or a taken cell stops: red box, "step aside", `sound::DENIED`).
 - `quarry_preview.rs`, `forester_preview.rs` (patch outline or uneven cells, refusal), `footprint_preview.rs`, `port_view.rs` + `port_view/` (a held machine's see-through ghost with its port marks; marks on built machines while a belt is held; the HUD's side line), `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`,
@@ -127,7 +131,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   and mouse, one-shot `Action`s. `controls/view.ts`: perspective input. `base.css`: theme and shared classes.
   `patch-notes.md`: "What's new".
 - `render/`: `renderer.ts` (chunk passes, fog; `frame.ts` its frame types), `mesh-events.ts` (uploads finished
-  chunk meshes), `shaped.ts` (the trees' shaped list: buffers and vertex shader), `geometry.ts`, `shaders.ts` (GLSL),
+  chunk meshes), `shaped.ts` (the trees' shaped list: buffers and vertex shader), `falling.ts` (felled trees tipping over, `take_fallen`), `geometry.ts`, `shaders.ts` (GLSL),
   `boxes.ts` (instanced boxes, and round bodies from `round-mesh.ts`; `box-glsl.ts` their vertex shader),
   `water.ts`, `outlines.ts` (overlays: cracks, target outline, belt line, boxes), `precip.ts` (rain, snow), `halos.ts` (additive glow round lamps), `sky.ts` +
   `sky/` (stars, weather, clouds, wet ground), `art-pack.ts` (merges the 128 px pack from `art/`), `held-light.ts` (the held lights' uniform), `sign-faces.ts` + `sign-layout.ts` (paint signs' text into texture layers), `frame-stats.ts` (real frame intervals, play and menu apart), `gpu-probe.ts` (graphics card or software), `quality.ts` (sharpness, render distance, antialiasing, Auto: settings), `auto-quality.ts` (when to lower them: pure), `gl.ts`, `mat4.ts`.
@@ -163,7 +167,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `check-map.mjs` (this map and the core layer),
   `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
   `bench-flight.mjs` (frame timing on a real save), `frame-bench.mjs` (what each graphics knob buys, in real Chrome, Edge or Firefox; on the GPU or software), `port-shots.mjs` (every machine's ports at every turn as a player sees them, with the truth, for a blind reader), `bake-sky/` (star data, not part of the build).
-- `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade, `trees.py` the species' bark and leaves); see `docs/ART_STYLE.md`.
+- `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade, `trees.py` the species' bark and leaves, `woods.py` their planks, floors and doors); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).
 
 ## Where the tuning knobs live

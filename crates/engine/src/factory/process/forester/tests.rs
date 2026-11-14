@@ -3,7 +3,7 @@
 
 use super::*;
 use crate::action::Action;
-use crate::block::{is_leaves, AIR};
+use crate::block::{is_leaves, is_log, AIR};
 use crate::block::{BELT, COAL_ORE, DIRT, GENERATOR, GRASS, LEAVES, LOG, POLE, SAPLING, STONE, STORAGE, WATER};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::factory::generator::GENERATOR_TIERS;
@@ -224,7 +224,7 @@ fn a_forester_plants_fells_and_replants_onto_a_belt() {
     let in_box: u32 = boxed.iter().filter(|s| s.item == LOG.into()).map(|s| s.count).sum();
     let home = t.boxed + in_box + forester(&sim).out.total();
     assert!(home <= logs && logs - home <= 12, "every log reached the box, waits, or rides the belt: {home} of {logs}");
-    assert!(t.cut.iter().all(|&(c, b)| b == LOG && patch(&sim).contains(c)), "it only fells inside its patch");
+    assert!(t.cut.iter().all(|&(c, b)| is_log(b) && patch(&sim).contains(c)), "it only fells inside its patch");
     assert!(forester(&sim).input.total() > 0, "its trees gave it saplings back");
     let kj_per_log = energy_used(&sim, &t) / f64::from(logs);
     assert!(kj_per_log > best_burn(), "a log cost {kj_per_log:.0} kJ, gives {:.0} burned", best_burn());

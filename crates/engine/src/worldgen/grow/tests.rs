@@ -347,3 +347,19 @@ fn bench_tree_generation() {
         );
     }
 }
+
+#[test]
+fn a_tree_on_flat_ground_digs_no_pit_for_its_wood() {
+    // Wood at or below the ground block only fills where nothing is (a slope falling away), never into the ground.
+    for (kind, k) in KINDS.iter().enumerate() {
+        for seed in 1..=4 {
+            let mut puts = Vec::new();
+            grow(kind, FOOT, k.height.0, seed, |p, id, replace| puts.push((p, id, replace)));
+            for (p, id, replace) in puts {
+                if is_log(id) && p.y <= FOOT.y {
+                    assert!(!replace, "kind {kind} seed {seed}: a log replaces the ground at {p:?}");
+                }
+            }
+        }
+    }
+}

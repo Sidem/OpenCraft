@@ -199,6 +199,9 @@ pub use trees::{
     BAOBAB_SAPLING, CHERRY_BLOSSOM, CHERRY_LOG, CHERRY_SAPLING, EUCALYPTUS_LEAVES, EUCALYPTUS_LOG, EUCALYPTUS_SAPLING,
     PALM_FRONDS, PALM_LOG, PALM_SAPLING, PINE_LOG, REDWOOD_LOG, REDWOOD_NEEDLES, REDWOOD_SAPLING, TREES_COUNT,
 };
+/// Each wood's planks, floor and door, and the oak's tree log, ids 182–218 (`woods.rs`).
+mod woods;
+pub use woods::{door_of, floor_of, planks_of, wood_block, OAK_TREE_LOG, OTHER_WOODS};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -207,7 +210,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + EJECTOR_COUNT
     + SIGN_COUNT
     + FORESTER_COUNT
-    + TREES_COUNT;
+    + TREES_COUNT
+    + woods::WOODS_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

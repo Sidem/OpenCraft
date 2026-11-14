@@ -30,6 +30,7 @@ import rocks
 import stains
 import trees
 import wood
+import woods
 from lib import ramp
 
 
@@ -297,4 +298,12 @@ TREES = [Entry(layer, name, getattr(trees, name), **kw) for layer, name, kw in (
     (429, "bamboo_culm", _BARK), (430, "bamboo_leaves", _LEAF),
 )]
 
-LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS + TREES
+# Woods after the oak: planks, floor, door and open door each from layer 432 (`block/woods.rs`'s `layers`).
+WOODS = [Entry(432 + 4 * w + i, f"{name}_{kind}", lambda w=w, f=getattr(woods, fn): f(w), **kw)
+         for w, name in enumerate(woods.NAMES)
+         for i, (kind, fn, kw) in enumerate((("planks", "planks", dict(tiles=True, real=True)),
+                                             ("floor", "floor", dict(tiles=True, real=True)),
+                                             ("door", "door", dict(real=True)),
+                                             ("door_open", "door_open", dict(cutout=True, cover=(0.1, 0.15), real=True))))]
+
+LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS + TREES + WOODS

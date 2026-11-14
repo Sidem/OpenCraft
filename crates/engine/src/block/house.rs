@@ -54,13 +54,17 @@ pub const fn toggled(id: BlockId) -> Option<BlockId> {
         WOOD_DOOR_OPEN => Some(WOOD_DOOR),
         IRON_DOOR => Some(IRON_DOOR_OPEN),
         IRON_DOOR_OPEN => Some(IRON_DOOR),
-        _ => None,
+        _ => match super::woods::wood_block(id) {
+            Some((w, 2)) => Some(super::woods::open_door_of(w)),
+            Some((w, 3)) => Some(super::woods::door_of(w)),
+            _ => None,
+        },
     }
 }
 
 /// Whether `id` is a door that is open (see-through, not solid).
 pub const fn is_open_door(id: BlockId) -> bool {
-    matches!(id, WOOD_DOOR_OPEN | IRON_DOOR_OPEN)
+    matches!(id, WOOD_DOOR_OPEN | IRON_DOOR_OPEN) || matches!(super::woods::wood_block(id), Some((_, 3)))
 }
 
 /// An open door: a see-through block that is not held and breaks into its closed twin.

@@ -4,7 +4,7 @@
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). 2026-11-13 also: three-way filters, glowing lamps, the hand in first person, wire
-props over hills, barrels; 2026-11-14 realistic trees and forest biomes, generator 12 (section 6). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
+props over hills, barrels; 2026-11-14 realistic trees and forest biomes, generator 12, then trees felled whole and every wood its own (section 6). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
 notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
 pieces, Milestone 14 (the space elevator).
 
@@ -179,6 +179,8 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
 - [x] **TR Realistic trees (user, `/deepen`, 2026-11-14).** Generator 12 grows eleven kinds (`worldgen/grow/`) in
   five new forest biomes (`biome.rs` `local_biome_at`); leaf cards and branching log rings (`mesher/foliage.rs`,
   `mesher/logs/`). Open: blind judging of the looks, and the GPU cost (section 6).
+- [x] **TF Felling whole trees, species wood (user, `/deepen`, 2026-11-14).** Grown trees fall whole (`sim/felling.rs`);
+  ten woods' logs, planks, floors and doors, any wood in any recipe (`wood.rs`, `block/woods.rs`).
 - [ ] **13.6b Balance from the user's next play-test** (`scripts/inspect-save.mjs`): order sizes, upkeep rates, perk
   rates and the harbour's price, once the user has played Milestone 13. Their latest save (2026-10-17, 32.4 h) has not
   yet researched Settlements.
@@ -283,6 +285,20 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-14: trees felled whole, and every wood its own (user, `/deepen`).** Grown trees' wood (`is_tree_wood`;
+  grown oaks now `OAK_TREE_LOG`) never mines a block at a time: swings at the trunk's lowest `LOW` layers add work, a
+  mark on the bark counts whole and moves, elsewhere half (`sim/felling.rs`, like the game Rust); the tree leaves the
+  world at once, the host draws it tipping over (`render/falling.ts`), and after `FALL_TICKS` its logs land along the
+  fall line. Placed logs and old worlds' trees still mine block by block. Ten woods (`wood.rs`): own logs (bamboo
+  drops bamboo), planks, floors and doors in their colour (`block/woods.rs`, `tools/art/woods.py`); any wood serves
+  where a recipe names the oak's, and the output keeps the wood used. Look fixes, each from a failing test: tree wood
+  lets light through (black feet, the pine whorl), wood no longer digs a pit below the foot, runs of single logs bend
+  smoothly (palm stems), living limb ends taper whichever way they point. Measured: 38 of 43 kind × tool runs fell
+  within ±15% of mining the trunk (mean +5.5%); the rest are small trees with an axe, rounded up to a whole swing
+  (worst +25%: 1.5 s against 1.2 s). Off the mark about twice as long; all logs land within 1.5 blocks of the line
+  (tests). Wasm +18.3 KB gzipped against 2d32cf2. Save 73. Pins re-recorded: the scripted run (only the felling's
+  bytes, checked), the mesh pin, generator 12 (not yet released). Gap: a craft or batch loaded mid-way forgets which
+  wood it took and makes the oak's.
 - **2026-11-14: realistic trees and forest biomes (user, `/deepen`; generator 12).** Trees grow from a species row
   (`worldgen/grow/kinds.rs`: oak, broadleaf, birch, pine, cherry, palm, baobab, acacia, redwood, eucalyptus, bamboo)
   as a trunk, drooping limbs and leaf clusters, built in their own box (`grow/mod.rs` `Plot`), so saplings
@@ -383,51 +399,5 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
   2 Sand, 2 Stone" read as all three missing. Now a stuck machine names the missing item and its source, the full one
   what its output is for, low power names [P], and Ore Crushing brings a slag tip (L1 above). Benchmark: every scene of
   the user's list passes on both agents; the one still failing is finding a deposit again (the map: L6).
-
-- **2026-11-05: a lowland start and quieter water (user).** Over 300 seeds, generator 10 started 83 above height 90 and 18
-  with over a tenth of the ground within 48 blocks steep. Generator 11 (`worldgen/landform.rs` `SPAWN_LOW`) keeps a quarter
-  of any rise above the lowland base near spawn, back to full by 320 blocks: 0 steep starts, height spread within 48
-  blocks median 5 (was 16), max 28 (was 110); the ramp ring is no cliffier. The sim golden was re-recorded; the mesh
-  golden is pinned to generator 10. Ambience defaults to 15 (was 50), the water beds' ceiling drops 10 dB, under the
-  breeze on an open shore (`audio/ambience-mix.ts`), and the sea's reading takes a curve like the river's.
-- **2026-11-05: the opening leads to two coal miners (user, `/deepen`).** A probe of 60 new worlds: the player
-  started with no stone (the slab drops bricks), plain stone showed within 90 blocks on 17, digging down hit granite on 8
-  (high ground), and the scene paid exactly for a Miner Mk1 nobody could power. Now the source box holds the iron for two
-  coal miners, no copper; the end box their stone and coal (`opening.rs` `STOCK`, `OUT_STOCK`); `opening/miners.rs`
-  guides craft, place on the starter coal patch, light, place on iron, fuel, with a Coal/Iron prompt over a patch block in
-  the open (`open_top`; seed 7 has a tree over its coal) and a live distance and bearing on the card. Save version 67 (the
-  patches; older scenes end at the ingots as before). `guide_on_many_seeds` plays it through actions on 200 seeds, all
-  pass: walks spawn to coal median 26 (max 28), coal to iron 45 (max 50). Crafting both takes about a minute.
-
-- **2026-11-05: the key-art look** (user request): the sky, clouds, vegetation colours and meadow density moved toward
-  the store thumbnail (`docs/ART_STYLE.md`, "The key-art look": measurements, costs, what was kept). Vegetation greens
-  ship through `tools/art/grade.py`; grassland cover denser (`mesher/cover.rs`); mesh fingerprint re-recorded on purpose.
-
-- **2026-11-01: five machines remodelled** (user request): assembler, blast furnace, electrolytic cell, crusher and
-  arc furnace are real-looking models in `process/parts.rs` (new part builders `leaned`, `tapered` in `model.rs`), nine
-  pack faces redrawn (`docs/ART_HANDOVER.md`). The assembler's work is animated (`assembly_view.rs`, `Look::Work`): its
-  arms carry each batch's inputs off the conveyor to the fixture, a cartoon cloud hides the joining while the gantry
-  hammer pounds, and the product rides out; a pure function of the batch share (`model::batch_share`), at least
-  `MIN_CYCLE` a show, presentation only. Boxes per model: blast 11→23, cell 8→20, crusher 13→18, arc 8→21, assembler
-  10→about 40 (inputs, cloud and product only within `display::NEAR`); about 8.4 ns a box to write
-  (`bench_machine_marks`, which places no assemblers), so 200 such machines in view cost about 25 µs a frame more.
-
-- **2026-10-31: straight rails, docks anywhere.** A user note: "the rail is on a diagonal" blocked docks. The rail hand
-  snaps (`rail_snap.rs`): a first node faces an axis (or a compass point), a later one aimed within 13° of an axis or of
-  the node's heading goes onto that line, and onto an axis it takes the axis as its heading. A dock aimed at the ground
-  on straight track cuts it in two (`Factory::tracks_through`, `split_fit`, `split_track`; `Sim::put_dock` takes the
-  node it is `against`). Old diagonal nodes stay as they are and still refuse docks. Tests in `rail_snap`, `pieces`,
-  `dock_tools` and `rail_tools`.
-
-- **2026-10-31: the journey (T5).** A dock is laid in line like a rail node (`dock_tools.rs` aims it on the selected
-  node's line; `action/docks.rs` places it and lays the track in one action, or refuses, so it never stands off the
-  track; `Factory::lay_fit` is the join rule for a node not yet placed, now also the rail hand's). A dock joins and
-  cuts track as an end (`wiring.rs`: `connect` keyed on `rail_yaw`, a dead end before); Shift-click couples every
-  wagon in hand. `tests/train_journey.rs`: a bot that does only what the label says builds a hump-and-dip line with
-  two docks and a two-wagon train that delivers: **5 building clicks (HEAD 7: −29%, short of the −30% target; 6
-  wagons: 11 → 5, −55%) plus 6 earthwork clicks** the outlines asked for (HEAD floated and buried the track instead).
-  `bench_train_instances`: 3,120 train instances against HEAD's 2,960 (+5.4%); writing them takes about 20–25% longer
-  (noisy here). Wasm +14.9 KB gz over HEAD for T1–T5 (`rail::ground::faults` behind one `dyn FnMut`, `car_pose`
-  not inlined).
 
 Older entries: `docs/history/CHANGELOG_R.md`.

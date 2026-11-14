@@ -99,6 +99,45 @@ fn a_stub_reaches_into_its_trunk_and_caps_its_free_end() {
 }
 
 #[test]
+fn a_leaning_stem_bends_gently_not_at_an_elbow() {
+    // A palm's stem: straight up from (5, 3, 5), then over a block in x at y 8 and again at y 10.
+    let cells = [[5, 3], [5, 4], [5, 5], [5, 6], [5, 7], [6, 8], [6, 9], [7, 10], [7, 11]];
+    let mut c = Chunk::uniform(AIR);
+    for [x, y] in cells {
+        c.set(x as usize, y as usize, 5, crate::block::PALM_LOG);
+    }
+    let air = Chunk::uniform(AIR);
+    let mut refs = [&air; 27];
+    refs[neighbor_index(0, 0, 0)] = &c;
+    let mut g = crate::mesher::tree_grid::TreeGrid::default();
+    g.fill(&refs);
+    let mut nodes = super::node::Nodes::default();
+    let centres: Vec<[f32; 3]> = cells.iter().map(|&[x, y]| nodes.of(&g, [x, y, 5]).centre).collect();
+    // The sharpest turn between one stretch and the next.
+    let way = |a: [f32; 3], b: [f32; 3]| super::unit(super::sub(b, a));
+    let sharpest = centres
+        .windows(3)
+        .map(|w| super::dot(way(w[0], w[1]), way(w[1], w[2])).clamp(-1.0, 1.0).acos().to_degrees())
+        .fold(0.0, f32::max);
+    assert!(sharpest < 30.0, "a {sharpest} degree elbow: {centres:?}");
+}
+
+#[test]
+fn a_whorl_where_four_branches_leave_the_trunk_is_lit() {
+    // A pine's trunk with a branch out of each side at one height: the log there has wood on all six sides.
+    let m = mesh_single(|c| {
+        for y in 3..9 {
+            c.set(8, y, 8, crate::block::PINE_LOG);
+        }
+        for (x, z) in [(9, 8), (7, 8), (8, 9), (8, 7), (10, 8), (6, 8), (8, 10), (8, 6)] {
+            c.set(x, 5, z, crate::block::PINE_LOG);
+        }
+    });
+    let dark = m.shaped.chunks(3).filter(|v| v[1] >> 24 & 15 == 0).count();
+    assert_eq!(dark, 0, "{dark} vertices of {} unlit", m.shaped.len() / 3);
+}
+
+#[test]
 fn a_log_walled_in_by_stone_draws_nothing_of_itself() {
     let m = mesh_single(|c| {
         for y in 4..7 {
@@ -160,6 +199,34 @@ fn a_trunk_under_leaves_tapers_to_its_top() {
     };
     let (low, high) = (width_at(6.0), width_at(11.0));
     assert!(low >= 38 && high < low * 3 / 4, "thick low down ({low}), thinner at the top ({high})");
+}
+
+#[test]
+fn a_living_limb_hanging_down_tapers_with_no_cut_end() {
+    // A trunk, a limb out along +x, its end hanging straight down a block, all among leaves.
+    let m = mesh_single(|c| {
+        c.set(8, 2, 8, STONE);
+        for y in 3..10 {
+            c.set(8, y, 8, LOG);
+        }
+        for x in 9..12 {
+            c.set(x, 9, 8, LOG);
+        }
+        c.set(12, 8, 8, LOG);
+        c.set(12, 7, 8, LOG);
+        for y in 6..12 {
+            for z in 5..12 {
+                for x in 5..15 {
+                    if c.get(x, y, z) == AIR {
+                        c.set(x, y, z, LEAVES);
+                    }
+                }
+            }
+        }
+    });
+    // No end cut across y below the limb's lowest log's middle.
+    let cut_below = quads(&m).iter().filter(|q| q.1 == END_Y && q.0.iter().all(|p| p[1] < fixed(7.5))).count();
+    assert_eq!(cut_below, 0, "the hanging end is cut flat");
 }
 
 #[test]

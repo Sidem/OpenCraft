@@ -659,3 +659,38 @@ fn a_depot_from_before_the_perks_loads_with_empty_perk_buffers() {
     assert_eq!((back.input.slots.len(), back.side.slots.len()), (8, 8));
     assert_eq!(back.out.count(STONE_BRICKS.into()), 30);
 }
+
+#[test]
+fn a_constructor_fed_pine_logs_saws_pine_planks_and_oak_logs_still_make_oak() {
+    use crate::wood::{item as wood_item, Form};
+    let planks = |logs: ItemId| {
+        let mut f = Factory::default();
+        powered(&mut f);
+        place(&mut f, CONSTRUCTOR, IVec3::ZERO, 0);
+        assert!(f.set_recipe(IVec3::ZERO, Some(recipe_for(crate::block::PLANKS.into()))).is_some());
+        assert_eq!(f.insert(IVec3::ZERO, logs, 2), 2, "takes the logs");
+        run(&mut f, 12.0, |_| {});
+        let out = &f.constructor_at(IVec3::ZERO).out;
+        (0..crate::wood::WOODS).map(|w| out.count(wood_item(w, Form::Planks))).collect::<Vec<u32>>()
+    };
+    let mut pine = vec![0; crate::wood::WOODS];
+    pine[2] = 8;
+    let mut oak = vec![0; crate::wood::WOODS];
+    oak[0] = 8;
+    assert_eq!(planks(wood_item(2, Form::Log)), pine, "two logs sawn, four planks each, all pine");
+    assert_eq!(planks(wood_item(0, Form::Log)), oak);
+}
+
+#[test]
+fn a_depot_takes_any_wood_where_its_town_asks_for_planks() {
+    use super::specs::spec;
+    use crate::factory::Want;
+    let planks: ItemId = crate::block::PLANKS.into();
+    let pine = crate::wood::item(2, crate::wood::Form::Planks);
+    let mut depot = Processor::new(IVec3::ZERO, spec(crate::block::TOWN_DEPOT).unwrap(), 0);
+    depot.extra = Extra::Depot { wants: vec![Want { item: planks, cap: 100, perk: false }] };
+    assert_eq!(depot.room_for(pine, &[]), 100, "pine planks fit where the town wants planks");
+    assert_eq!(depot.insert(pine, 60, &[]), 60);
+    assert_eq!(depot.insert(planks, 60, &[]), 40, "the cap counts every wood");
+    assert_eq!(depot.room_for(crate::wood::item(2, crate::wood::Form::Log), &[]), 0, "a log is no planks");
+}

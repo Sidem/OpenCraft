@@ -113,6 +113,7 @@ mod town_preview;
 mod train_tools;
 mod upgrade_aim;
 mod wire_props;
+pub mod wood;
 mod world;
 mod worldgen;
 
@@ -184,6 +185,8 @@ pub struct Game {
     mining: bool,
     mine_block: Option<IVec3>,
     mine_progress: f32,
+    /// The grown tree's trunk under the crosshair, by the block aimed at (`interaction/chop.rs`).
+    chop: Option<(IVec3, crate::sim::Trunk)>,
     mine_cooldown: f32,
     using: bool,
     use_cooldown: f32,
@@ -303,6 +306,7 @@ impl Game {
             mining: false,
             mine_block: None,
             mine_progress: 0.0,
+            chop: None,
             mine_cooldown: 0.0,
             using: false,
             use_cooldown: 0.0,

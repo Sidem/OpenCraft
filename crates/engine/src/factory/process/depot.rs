@@ -11,6 +11,7 @@
 use crate::block::{tex, TOWN_DEPOT};
 use crate::item::ItemId;
 use crate::math::IVec3;
+use crate::wood;
 
 use super::super::buffer::Buffer;
 use super::super::footprint::{Footprint, Port, Role, Side, Which};
@@ -90,14 +91,14 @@ impl Processor {
     /// How many of `item` a depot takes now: up to its want's cap, in the buffer the want names.
     pub(super) fn depot_room(&self, item: ItemId) -> u32 {
         let Extra::Depot { wants } = &self.extra else { return 0 };
-        let Some(w) = wants.iter().find(|w| w.item == item) else { return 0 };
+        let Some(w) = wants.iter().find(|w| wood::like(item, w.item)) else { return 0 };
         let buf = if w.perk { &self.input } else { &self.out };
-        w.cap.saturating_sub(buf.count(item)).min(buf.space_for(item))
+        w.cap.saturating_sub(buf.count_like(w.item)).min(buf.space_for(item))
     }
 
     /// Whether `item` goes to the depot's perk (`input`) rather than its store.
     pub(super) fn for_perk(&self, item: ItemId) -> bool {
-        matches!(&self.extra, Extra::Depot { wants } if wants.iter().any(|w| w.item == item && w.perk))
+        matches!(&self.extra, Extra::Depot { wants } if wants.iter().any(|w| wood::like(item, w.item) && w.perk))
     }
 }
 

@@ -31,6 +31,10 @@ impl Game {
                         self.play(sound::DIG, block::sound::STONE, at, 0.35);
                     }
                 }
+                SimEvent::Chopped { pos, struck, felled, .. } => {
+                    let volume = if struck { 1.0 } else { 0.6 };
+                    self.play(if felled { sound::BREAK } else { sound::DIG }, block::sound::WOOD, pos, volume);
+                }
                 SimEvent::BlockBroken { pos, block, .. } => {
                     self.play(sound::BREAK, block::def(block).sound, pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5), 1.0);
                 }

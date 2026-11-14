@@ -7,6 +7,7 @@ use crate::inventory::{add_to_slots, Stack};
 use crate::item::{stack_size, ItemId};
 use crate::math::IVec3;
 use crate::tools;
+use crate::wood;
 
 use super::belt::Belt;
 use super::provenance::Tag;
@@ -38,6 +39,26 @@ impl Buffer {
     /// How many of `item` it holds.
     pub fn count(&self, item: ItemId) -> u32 {
         self.slots.iter().filter(|s| !s.is_empty() && s.item == item).map(|s| s.count).sum()
+    }
+
+    /// How many of `want` it holds, any wood's item of the same form counting for an oak item (`wood.rs`).
+    pub fn count_like(&self, want: ItemId) -> u32 {
+        wood::kinds(want).map(|i| self.count(i)).sum()
+    }
+
+    /// Removes `n` of `want` (it must hold that many) from oak's items first, then by wood number; returns what it took.
+    pub fn remove_like(&mut self, want: ItemId, n: u32) -> Vec<Stack> {
+        let mut left = n;
+        let mut taken = Vec::new();
+        for item in wood::kinds(want) {
+            let k = left.min(self.count(item));
+            if k > 0 {
+                self.remove(item, k);
+                taken.push(Stack { item, count: k });
+                left -= k;
+            }
+        }
+        taken
     }
 
     /// How many items it holds in all.

@@ -6,7 +6,8 @@
 //! and borders match. Sky light is 15 in every cell open to the sky straight above (the columns above
 //! the field come from the chunks higher up); it floods outward, losing 1 per block, through
 //! everything that isn't an opaque cube. Leaves let flooded light through but stop the straight sky
-//! column, so forests are shady; water does too and takes twice as much per block.
+//! column, so forests are shady; so does a grown tree's wood (drawn round, so the ground beside it shows); water
+//! does too and takes twice as much per block.
 //!
 //! Block light starts at emitting blocks (`BlockDef::light` names a row of [`SOURCES`]: strength and
 //! loss per block). Sources losing 1 per block flood one field, those losing 2 (torches: bright but
@@ -18,7 +19,7 @@
 //! light in the high one. To change how a block treats light: `CLASS` below; to add a kind of light:
 //! a row in `SOURCES` (a loss of 1 or 2).
 
-use crate::block::{BlockId, Render, BLOCK_COUNT, DEFS, GLASS, HOIST, LADDER};
+use crate::block::{is_tree_wood, BlockId, Render, BLOCK_COUNT, DEFS, GLASS, HOIST, LADDER};
 use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
@@ -42,6 +43,8 @@ const CLASS: [u8; 256] = {
     let mut i = 0;
     while i < BLOCK_COUNT {
         let passes = match DEFS[i].render {
+            // A grown tree's wood is drawn round and thinner than its cell: the ground beside it shows, lit.
+            _ if is_tree_wood(i as BlockId) => PASSES,
             Render::Opaque => 0,
             Render::Cutout if i != GLASS as usize && i != LADDER as usize && i != HOIST as usize => PASSES,
             Render::Liquid => PASSES | DIMS,

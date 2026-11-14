@@ -32,6 +32,7 @@ use crate::world::World;
 use crate::worldgen::WorldGen;
 
 mod event;
+mod felling;
 mod saplings;
 mod scrap;
 mod timers;
@@ -40,6 +41,9 @@ pub mod vault;
 mod water;
 
 pub use event::SimEvent;
+#[cfg(test)]
+pub(crate) use felling::before_felling;
+pub use felling::{mark_of, trunk, work_needed, Fallen, Felling, Trunk, LOW, SWING_SECONDS};
 pub(crate) use saplings::SAPLING_CHANCE;
 pub use timers::BlockTimers;
 pub(crate) use timers::LEAF_SUPPORT_STEPS;
@@ -100,6 +104,10 @@ pub struct Sim {
     pub settlements: Settlements,
     /// The players' note signs (signs/).
     pub signs: Signs,
+    /// Trees being chopped and falling (`felling.rs`).
+    pub felling: Felling,
+    /// Trees that came down since the last drain, for the host to draw falling; not state.
+    pub fallen: Vec<Fallen>,
     /// How far the main tips and the lessons got in this world (hints.rs, lessons.rs); neither ever goes back.
     pub hints_reached: u8,
     pub taught: u32,
@@ -135,6 +143,8 @@ impl Sim {
             opening: None,
             settlements: Settlements::default(),
             signs: Signs::default(),
+            felling: Felling::default(),
+            fallen: Vec::new(),
             hints_reached: 0,
             taught: 0,
             events: Vec::new(),
@@ -199,6 +209,7 @@ impl Sim {
         self.step_drones();
         self.step_cargo();
         self.step_tips();
+        self.run_felling();
         self.tick += 1;
     }
 
@@ -246,6 +257,7 @@ impl Sim {
         w.u8(self.hints_reached);
         w.u32(self.taught);
         self.signs.write_state(w);
+        self.felling.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -296,6 +308,7 @@ impl Sim {
             self.taught |= crate::lessons::KNOWN_BEFORE_68;
         }
         self.signs = if r.version >= 63 { Signs::read_state(r)? } else { Signs::default() };
+        self.felling = if r.version >= 73 { Felling::read_state(r)? } else { Felling::default() };
         Some(())
     }
 }

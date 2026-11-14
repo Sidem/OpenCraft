@@ -97,7 +97,10 @@ New worlds start you in low, gently rolling country (mountains rise only a few h
 highlands over granite, wet lowlands thick with trees, and bare black basalt fields. Within them lie
 forests of their own, each with its trees: warm dry savanna (acacias and baobabs), cold boreal forest (pines and
 birches), eucalyptus woodland, bamboo forest in warm lowlands and redwood forest on wet highlands; cherry trees
-gather in groves on the plains and palms lean over warm beaches. The rock under
+gather in groves on the plains and palms lean over warm beaches. A grown tree comes down whole: hold the button at its
+trunk near the ground (a red mark on the bark counts double, then moves); it falls away from you and drops its own
+wood's logs (bamboo drops bamboo) where it lands, its branches as sticks and a sapling or two. It takes about as long
+as digging out its trunk would; an axe is quicker. Logs you place still break one by one. The rock under
 each biome decides which ores lie in it: coal and limestone in the lowlands, copper and quartz in the
 highlands, quartz and limestone in the deserts, rich iron in the basalt, a bit of everything on the plains.
 Deep veins and lodes give themselves away at the surface: rusty soil above iron, dark soil above coal,
@@ -200,7 +203,8 @@ sticks) is a board two blocks wide, from where you place it to your right: right
 the board's and the letters' colours on a colour wheel. Everyone in a co-op world sees it; blueprints copy it blank.
 
 **Bootstrapping, without raw ore in a recipe.** Nothing is built from raw ore. Wood comes first (Materials): a log
-saws into 4 planks (a building block that also burns briefly), and 2 planks make 4 sticks, for tools, torches, poles
+saws into 4 planks (a building block that also burns briefly; every wood keeps its colour in planks, floors and doors,
+and any wood works in any recipe), and 2 planks make 4 sticks, for tools, torches, poles
 and **ladders** (4 sticks make 3). A ladder is a see-through frame you climb: stand in it and hold jump to go up,
 crouch to go down, let go to stay put. Belt lifts climb the same way. Then: 16 stone make a **stone furnace** (the
 Smelter), which you feed by hand (right-click it) with iron or copper ore and coal ore or logs; it melts ingots and you

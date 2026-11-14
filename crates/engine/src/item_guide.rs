@@ -16,6 +16,7 @@ use crate::factory::{first_maker, tenths, tenths_a_minute, tiers};
 use crate::item::{ItemId, COIN, CRUDE_BARREL, SCRAP_METAL};
 use crate::recipes::{Category, MACHINE_RECIPES, RECIPES};
 use crate::research::{Research, Unlock, TECHS};
+use crate::wood::Form;
 use crate::worldgen::WorldGen;
 
 /// One way to come by an item.
@@ -232,7 +233,31 @@ fn found(gen: &WorldGen, item: ItemId) -> Option<String> {
         let lacks = "This world was made before it was in the game: only a new world has it.";
         return Some(crate::ore_guide::ore_way(gen, b).unwrap_or_else(|| lacks.to_string()));
     }
+    if let Some(text) = other_wood(item) {
+        return Some(text);
+    }
     FOUND.iter().find(|f| f.0 == item).map(|f| f.1.to_string())
+}
+
+/// What an item of one of the woods after the oak is (`wood.rs`): recipes take any wood's as the oak's, so these have
+/// no recipe of their own to describe them.
+fn other_wood(item: ItemId) -> Option<String> {
+    let (w, form) = crate::wood::of(item).filter(|&(w, _)| w > 0)?;
+    let name = crate::item::name(item);
+    let wood = name.split(' ').next().unwrap_or(name);
+    let lower = wood.to_lowercase();
+    let same = |what: &str| format!("{name}: the same as oak {what} in every recipe, in {lower}'s own colour.");
+    Some(match form {
+        Form::Log if w == crate::wood::WOODS - 1 => {
+            "Cut from bamboo. Works in any recipe that takes logs; saws into bamboo planks.".to_string()
+        }
+        Form::Log => {
+            format!("Felled from {lower} trees. Saws into {lower} planks; works in any recipe that takes logs.")
+        }
+        Form::Planks => same("planks"),
+        Form::Floor => same("floor"),
+        Form::Door => same("door"),
+    })
 }
 
 const fn b(id: BlockId) -> ItemId {

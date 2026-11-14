@@ -131,7 +131,7 @@ impl Helpers {
 /// drone's state cut down to one `false` (no errand). Every drone must be idle. `offhand::before_offhand` calls it.
 #[cfg(test)]
 pub(crate) fn before_drone_orders(sim: &Sim, stream: &[u8]) -> Vec<u8> {
-    let mut out = stream.to_vec();
+    let mut out = crate::sim::before_felling(sim, stream);
     for p in sim.players.iter().flatten() {
         assert!(p.helpers.drone.idle(), "a save before 71 had no drone orders");
         let mut lead = ByteWriter::default();
