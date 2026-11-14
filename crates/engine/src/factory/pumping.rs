@@ -84,7 +84,7 @@ pub(super) fn step_pipework(
         }
         match find_source(world, p.pos) {
             Some(s) => {
-                world.set_block_anywhere(s, AIR);
+                world.set_block_anywhere_later(s, AIR);
                 changed.push((s, WATER));
                 p.held += 1;
                 p.progress = 0;
@@ -112,7 +112,7 @@ pub(super) fn step_pipework(
             continue;
         };
         let old = world.block_anywhere_or_generate(cell);
-        world.set_block_anywhere(cell, WATER);
+        world.set_block_anywhere_later(cell, WATER);
         changed.push((cell, old));
         out.progress = 0;
         pieces[pump].held -= 1;

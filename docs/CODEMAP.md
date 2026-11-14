@@ -87,7 +87,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### World and generation
 - `chunk.rs` (32³ storage), `world/mod.rs` (loaded chunks, `*_anywhere` accessors for core code), `world/streaming.rs`
-  (generate and mesh queues), `world/boxlight.rs` (light for box-drawn things), `world/glows.rs` (where each meshed chunk's lamps stand: render cache), `world/cover_clear.rs` (columns whose
+  (generate and mesh queues), `world/boxlight.rs` (light for box-drawn things), `world/glows.rs` (lamp positions per meshed chunk), `world/settle.rs` (liquid edits made by
+  the simulation wait 0.15 s before they dirty meshes, so a refilled pump source marks nothing), `world/cover_clear.rs` (columns whose
   ground plants the sickle cut: core state, saved).
 - `worldgen/mod.rs`: heights, caves, trees, `generate`, generator versions (pinned by `released_versions_never_change`).
   `column.rs` (per-column data), `biome.rs`, `landform.rs`, `caves.rs`, `water.rs` (sea, ponds), `rivers.rs` + `rivers/` (course, seg), `shore.rs`,
@@ -140,7 +141,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `music.ts` + `music-director.ts` + `music-pieces.ts` (one row a piece) + `music/`.
 - `net/`: `session.ts` (start co-op from URL or menu), `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`,
   `webrtc.ts`, `broadcast.ts`, `signal.ts`, `ticker.ts` (keeps a hidden host ticking).
-- `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds), `export.ts` (`.ocworld` downloads), `leave-guard.ts` (the ask-before-closing setting and rule; `ui/leave-prompt.ts` draws it). `comfort/settings.ts`: comfort options.
+- `save/`: `store.ts` (IndexedDB, gzip), `session.ts` (autosave, switching worlds), `export.ts` (`.ocworld` downloads), `leave-guard.ts` (the ask-before-closing setting and rule; `ui/leave-prompt.ts` draws it); without storage `ui/no-storage.ts` fills the Worlds page. `comfort/settings.ts`: comfort options.
 - `console/`: `commands.ts` (pure admin commands), `host.ts` (wires them to the engine).
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements. Screens and panels:
   - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` draws every icon through `icon-paint.ts` and `icon-geometry.ts`), `icon-sprite.ts` (flat icons), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
@@ -166,7 +167,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `scripts/`: `check.mjs` (`npm run check`), `check-size.mjs` (budgets), `check-css.mjs` (one stylesheet per class),
   `check-map.mjs` (this map and the core layer),
   `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
-  `bench-flight.mjs` (frame timing on a real save), `frame-bench.mjs` (what each graphics knob buys, in real Chrome, Edge or Firefox; on the GPU or software), `port-shots.mjs` (every machine's ports at every turn as a player sees them, with the truth, for a blind reader), `bake-sky/` (star data, not part of the build).
+  `bench-flight.mjs` (headless frame timing on a real save; `still` stands in place), `frame-bench.mjs` (real Chrome, Edge or Firefox, GPU or software; p50/p95/p99/worst, heap; `PROFILE=` writes a `.cpuprofile`), `prof-top.mjs` (top functions of a profile; build `npm run build:wasm -- --profiling` for names), `port-shots.mjs` (every machine's ports at every turn as a player sees them, with the truth, for a blind reader), `bake-sky/` (star data, not part of the build).
 - `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade, `trees.py` the species' bark and leaves, `woods.py` their planks, floors and doors); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).
 

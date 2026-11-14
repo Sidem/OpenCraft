@@ -43,6 +43,9 @@ line followed by `- ` lines, written for players in plain words. Anything else i
 - **Shift+Y** still sends it for a stack more of what you hold, and it lands in your hand. So does a top-up.
 - **A new look:** a white quadcopter with carbon arms, spinning props, a camera underneath and red, green and white lights. It flies smoothly, leans into its turns, dips at each box and carries what it picked up on a line under it. Your co-op friends' drones fly too.
 
+## 2026-11-12 · Saving on itch.io
+- **If your browser won't let the game save while it's shown inside the itch.io page**, the Worlds page now says so and offers to **open the game in its own tab**, where saving and importing work. This happens when a browser blocks third-party cookies or storage, as many private windows do.
+
 ## 2026-11-12 · A real pumpjack
 - **The pumpjack is now a full-size oilfield pump**, 2 blocks wide, 3 long and 3 tall. A motor turns a crank with heavy counterweights, two arms rock the walking beam on its A-frame, and the curved horsehead at the front lifts the rod in and out of the wellhead. It moves while it pumps and comes gently to a stop where it is when it waits.
 - **Empty canisters go in at the back** (the motor end), and **full ones come out at the front** (the wellhead end).

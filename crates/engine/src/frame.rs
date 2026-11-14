@@ -20,6 +20,7 @@ impl Game {
     /// Per frame: runs the whole ticks that `dt` seconds of frame time add up to, then prepares this
     /// frame's camera and box instances.
     pub fn update(&mut self, dt: f64) {
+        self.sim.world.advance_clock(dt);
         self.stream_around_players();
         self.accumulator += dt.max(0.0);
         let mut ran = 0;

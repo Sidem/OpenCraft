@@ -6,8 +6,6 @@
 
 export type CrosshairStyle = 'cross' | 'dot' | 'both';
 export const CROSSHAIR_STYLES: readonly CrosshairStyle[] = ['cross', 'dot', 'both'];
-/** Vignette strength choices: 0 is off. */
-export const VIGNETTE_LEVELS = [0, 1, 2, 3] as const;
 
 export interface ComfortSettings {
   /** Vertical field of view in degrees (Minecraft's slider uses the same measure). */

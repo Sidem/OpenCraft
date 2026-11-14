@@ -14,31 +14,31 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 - `Game` never mutates `Sim` state: it reads it and queues `self.act(Action::…)` (`act_as` for another
   player), applied at the next tick. Only `World`'s render cache (streaming, meshes) is touched
   directly. `Sim.players` and `Game.bodies` are both indexed by `PlayerId`.
-- Header first (`//!`: owns, invariants, how to extend), then public items, then private helpers.
-- Balance numbers are named constants atop their module. Format: `rustfmt.toml` (width 120).
+- Header first (`//!`: owns, invariants, how to extend), then public items, then helpers. Balance numbers are named
+  constants atop their module. Format: `rustfmt.toml` (width 120).
 
 ## Testing
 
 - `npm run check` before commits; `cargo test --workspace -q` (filter: `cargo test -q <name>`) to iterate.
-- Prefer headless scenario tests over the browser. Patterns to copy:
+- Prefer headless scenario tests. Patterns to copy:
   - `src/tests.rs`: `run_until_ready(&mut g)` streams the world in; `find_outcrop_block` finds ore;
     `build_mine` places a miner, belt and box directly through `factory`. Actions: `g.act(…)` or the
     API method, then `g.run_ticks(1)`. More players: `g.add_player()`, `g.act_as(id, …)`, `g.bodies`.
   - `action/tests.rs`: a bare `Sim` with `apply` / `queue` + `step`; works without loaded chunks.
     `net/tests.rs`: `pair()` wires a host and a client `Game` through bytes.
   - `factory/tests.rs`: `run(&mut f, seconds, check)` steps a bare `Factory`; `stocked_box` fills a box.
-- Keep tests fast (CI runs them all on every deploy): editing many blocks in a test uses `set_block_anywhere_later`
-  (`set_block_anywhere` remeshes the chunk on every call, about 1 ms: 50,000 calls were 48 s a test), and a fuzz loop over
-  a save samples bytes instead of loading a world per byte.
-- Worldgen is seeded; tests use fixed seeds (2024, 1337, 7). Changing generation can move the features
-  such tests look for.
+- Keep tests fast (CI runs them all): many block edits in a test use `set_block_anywhere_later` (50,000 immediate
+  remeshes were 48 s), and a fuzz loop over a save samples bytes instead of loading a world per byte.
+- Worldgen is seeded; tests use fixed seeds (2024, 1337, 7); changing generation can move what they look for.
+- A world edit the simulation repeats (growth, pumps, felling) uses `set_block_anywhere_later`, never `set_block_anywhere`
+  (an immediate remesh); liquid edits also wait 0.15 s in `world/settle.rs`.
 
 ## Wasm size (check `npx vite build` when it could grow; what grew: `node scripts/wasm-sizes.mjs`)
 
 - No float formatting (`{:.1}`, `to_string()` on floats): about 25 KB. Round to integers or format in TS.
 - No new instantiations of std sorts (5–9 KB each): use `math::sort_small_by_key` (insertion sort).
   A sort key that does real work is inlined into every comparison: make it `#[inline(never)]`.
-- No new crates without a reason worth their size. Hand-written serialisation over serde.
+- No new crates without a reason worth their size; hand-written serialisation over serde.
 
 ## Determinism (DEV_PLAN section 3.4)
 
@@ -56,8 +56,6 @@ Rust → wasm. Owns all game state and every hot loop. Module map: `docs/CODEMAP
 
 ## Gotchas
 
-- A `pub` field whose type is private to the parent module triggers the `private_interfaces` lint; make
-  the type `pub(crate)` (see `factory::links::Link`).
-- `Factory::relink` runs lazily when `dirty` is set, so read links only after an `update` (the belt
-  readout skips link text while dirty).
+- A `pub` field of a parent-private type trips `private_interfaces`: make the type `pub(crate)`.
+- `Factory::relink` runs lazily when `dirty` is set: read links only after an `update`.
 - Items are `ItemId` (`item.rs`); ids below 256 are the blocks. Append block and item ids, never renumber.

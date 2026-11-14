@@ -2,7 +2,8 @@
 
 Future work only; read it when a milestone ends and the next is planned. `docs/DEV_PLAN.md` details the current work;
 at each milestone's cleanup step, move the next item from here into the plan and detail it there (steps with where, how
-and done-when). Finished designs live in `docs/history/`, settled choices in `docs/DECISIONS.md`.
+and done-when). Finished work is in `git log` (the changelogs removed from `docs/history/` are at commit `025edaf`:
+`git show 025edaf:docs/history/CHANGELOG_R.md`); settled choices are in `docs/DECISIONS.md`.
 
 **Order (2026-10-16, R8 dropped 2026-10-22):** the feel-and-feedback interlude, the carry's era pieces, Milestone 14.
 The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can

@@ -49,15 +49,6 @@ export function apply(m: ArrayLike<number>, v: Vec3): Vec3 {
   ];
 }
 
-/** The same turn the other way (the matrix is a rotation, so its transpose). */
-export function applyInverse(m: ArrayLike<number>, v: Vec3): Vec3 {
-  return [
-    m[0] * v[0] + m[3] * v[1] + m[6] * v[2],
-    m[1] * v[0] + m[4] * v[1] + m[7] * v[2],
-    m[2] * v[0] + m[5] * v[1] + m[8] * v[2],
-  ];
-}
-
 export function skyFrame(days: number): SkyFrame {
   const t = days - Math.floor(days);
   const sunRa = SUN_RA0 + (TAU * days) / YEAR_DAYS;

@@ -1,7 +1,7 @@
 // Budgets from docs/DEV_PLAN.md section 3.1: lines for code (every line, blank ones included), bytes for docs
 // (a line budget only made doc lines longer), and bytes for the session-start read. Prints only what is over a
-// limit (warn at the soft limit, FAIL at the hard one) and exits 1 on any FAIL. Tests (tests.rs), generated wasm
-// bindings and docs/history/ are exempt.
+// limit (warn at the soft limit, FAIL at the hard one) and exits 1 on any FAIL. Tests (tests.rs) and generated wasm
+// bindings are exempt.
 //   node scripts/check-size.mjs
 import fs from 'node:fs';
 import path from 'node:path';

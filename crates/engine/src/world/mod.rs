@@ -12,6 +12,7 @@
 mod boxlight;
 mod cover_clear;
 mod glows;
+mod settle;
 mod streaming;
 
 pub use boxlight::DAYLIGHT;
@@ -86,6 +87,8 @@ pub struct World {
     generated: Vec<(IVec3, Chunk)>,
     /// The light-giving blocks of each meshed chunk that holds any (`glows.rs`; render cache).
     glows: FxHashMap<IVec3, Vec<(IVec3, BlockId)>>,
+    /// Liquid edits not yet passed on to the meshes, and the frame clock they wait on (`settle.rs`).
+    settling: settle::Settling,
     pub events: VecDeque<Event>,
 }
 
@@ -120,6 +123,7 @@ impl World {
             floor: Chunk::uniform(STONE),
             generated: Vec::new(),
             glows: FxHashMap::default(),
+            settling: settle::Settling::default(),
             events: VecDeque::new(),
         }
     }
@@ -322,19 +326,11 @@ impl World {
         }
         entry.chunk.set(x, y, z, b);
         entry.chunk.modified = true;
-
-        // Those its faces and corners touch remesh now; the rest of a canopy's reach (`mesher/foliage.rs`) with the queue.
-        let near = streaming::chunks_around(p, 1);
-        for c in streaming::chunks_around(p, streaming::mesh_reach(old, b)) {
-            if self.chunks.contains_key(&c) {
-                self.dirty.insert(c);
-                if remesh_now && near.contains(&c) {
-                    self.remesh(c);
-                }
-            }
+        if !remesh_now && (LIQUID[old as usize] || LIQUID[b as usize]) {
+            self.settle_edit(p, old);
+        } else {
+            self.invalidate(p, old, b, remesh_now);
         }
-        self.light_changed(p, old, b);
-        self.mesh_queue_stale = true;
         true
     }
 

@@ -30,5 +30,8 @@ wasm-opt = [
   "--enable-multivalue",
 ]
 
+[package.metadata.wasm-pack.profile.profiling]
+wasm-opt = ["-O3", "-g", "--enable-simd", "--enable-bulk-memory", "--enable-nontrapping-float-to-int", "--enable-sign-ext", "--enable-mutable-globals", "--enable-reference-types", "--enable-multivalue"]
+
 [package.metadata.wasm-pack.profile.dev]
 wasm-opt = false

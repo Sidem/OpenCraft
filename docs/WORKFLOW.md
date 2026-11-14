@@ -23,6 +23,9 @@ Rules and direction live in `docs/DEV_PLAN.md`.
 | `node scripts/bench-flight.mjs <file.ocworld> [seconds] [yaw] [rd] [sprint]` | After `npm run build:wasm`: loads a save headlessly, flies a line and prints the engine's share of the frame (`update`, streaming `work`, event `drain`: avg, p50, p99, max, frames over 16.6 ms; `SPIKES=1` lists spikes). Run it on a big play-test save after any per-frame change. |
 | `OC_SAVE=<unpacked save> cargo test --release -q bench_save_frame -- --ignored --nocapture` | Times each presentation step of `Game::update` on a real save (`src/tests/frame_bench.rs`); gunzip the `.ocworld` first. Add `CARGO_PROFILE_RELEASE_LTO=off` for a fast build. |
 
+| `node scripts/bench-flight.mjs <save> 60 0 8 0 still` | Same, standing in place: a scene at rest must show `meshes` near 0 (no streaming work). A nonzero count means something re-dirties chunks every tick (the 2026-11-14 pump loop did). |
+| `npm run build:wasm -- --profiling` | A release wasm that keeps function names (`-g`), for `PROFILE=<out.cpuprofile> WARM=20000 node scripts/frame-bench.mjs <dist> chrome gpu <save>` (needs a `vite build` of that wasm); `node scripts/prof-top.mjs <out.cpuprofile>` prints time by kind and the top functions. Rebuild without the flag before committing size numbers. |
+
 Frame budget (60 fps = 16.6 ms): `Game::update` about 2 ms, streaming work at most 6 ms (`main.ts` sizes it from what `update` left), drawing under 6 ms of GPU on a mid card. In the browser pane the page cannot run `requestAnimationFrame` while hidden: step `game.update`, `work_step` and `renderer.render` by hand and time them, and use `EXT_disjoint_timer_query_webgl2` for real GPU time.
 
 Line counts: use `(Get-Content <file>).Count`. `Measure-Object -Line` skips blank lines and undercounts.

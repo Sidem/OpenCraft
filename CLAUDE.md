@@ -3,13 +3,13 @@
 Browser voxel sandbox × factory builder: a Rust → wasm engine (`crates/engine`) with a thin TypeScript/WebGL2
 host (`web/src`).
 
-**Start every session by reading `docs/DEV_PLAN.md`, then `docs/CODEMAP.md`** (together under 48 KB, checked).
+**Start every session by reading `docs/DEV_PLAN.md`, then `docs/CODEMAP.md`** (with this file under 48 KB, checked).
 Area conventions live in `crates/engine/CLAUDE.md` and `web/src/CLAUDE.md`. The plan is the plan of record: status,
 the decisions that bind new work, the rules, and the next steps with acceptance criteria. Keep it current: tick
 finished steps, update its status line, add to its change log. Read the other docs only when a task needs them:
 `docs/DECISIONS.md` (every settled choice), `docs/ROADMAP.md` (future work), `docs/TECH_TREE.md` and `TECH_ERAS.md`
 (tech tree), `docs/EXTENDING.md` (how to add content), `docs/WORKFLOW.md` (commands, browser, deploying),
-`docs/ART_HANDOVER.md` (who owns which art files), `docs/history/` (finished work).
+`docs/ART_HANDOVER.md` (who owns which art files). Finished work is in `git log`.
 
 ## Top priority: keep the codebase small and cheap to work on
 
@@ -38,6 +38,7 @@ costs tokens and time. **This matters as much as any feature.** The full rules a
 - Checks: `npm run check` (fmt, clippy, tests, typecheck, budgets, code map; needs `npm run build:wasm` once).
   Browser: `preview_start` name `opencraft`, then drive `window.opencraft.game` directly.
 - Performance first: state and hot loops in Rust, zero-copy data to TS, dependencies justified, wasm size
-  watched.
+  watched. Measure frame cost with `scripts/bench-flight.mjs` / `frame-bench.mjs` (plan section 3.2); a standing scene
+  must remesh nothing, and simulation edits use `set_block_anywhere_later`.
 - The deterministic core (world edits, factory, deposits, inventories) stays deterministic: fixed ticks,
   changes only through actions, no dependence on loaded chunks, camera or frame time (plan section 3.4).

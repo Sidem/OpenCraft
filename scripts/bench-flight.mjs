@@ -7,8 +7,8 @@ import { readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
 import { pathToFileURL } from 'node:url';
 
-const [file, secs = '60', yaw = '0', rd = '8', sprint = '1'] = process.argv.slice(2);
-if (!file) throw new Error('usage: node scripts/bench-flight.mjs <world.ocworld> [seconds] [yaw] [rd] [sprint]');
+const [file, secs = '60', yaw = '0', rd = '8', sprint = '1', still = ''] = process.argv.slice(2);
+if (!file) throw new Error('usage: node scripts/bench-flight.mjs <world.ocworld> [seconds] [yaw] [rd] [sprint] [still]');
 const WORK_BUDGET_MS = 6;
 const wasmDir = new URL('../web/src/wasm/', import.meta.url);
 const engine = await import(new URL('engine.js', wasmDir).href);
@@ -38,7 +38,7 @@ console.log(`start (${g.player_x().toFixed(0)}, ${g.player_y().toFixed(0)}, ${g.
 
 if (!g.flying()) g.toggle_fly();
 g.set_look(Number(yaw), 0);
-g.set_move(1, 0, false, sprint === '1', false);
+g.set_move(still ? 0 : 1, 0, false, sprint === '1', false); // `still`: stand where the save starts and count the meshes it keeps asking for
 const frames = [];
 const frameCount = Math.round(Number(secs) * 60);
 for (let i = 0; i < frameCount; i++) {

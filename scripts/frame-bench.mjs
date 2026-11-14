@@ -15,7 +15,9 @@ import path from 'node:path';
 const [dist, browser, mode, save, out] = process.argv.slice(2);
 if (!save) throw new Error('usage: node scripts/frame-bench.mjs <dist> <chrome|edge|firefox> <gpu|software> <world.ocworld> [out.json]');
 const SECONDS = mode === 'gpu' ? 8 : 10;
-const WARM_MS = 1500;
+/** Settle time before each row; `WARM=20000` waits for the renderer to hold every mesh. `PROFILE=<file>` writes a CPU profile of 'playing' only. */
+const WARM_MS = Number(process.env.WARM || 1500);
+const PROFILE = process.env.PROFILE;
 const WIDTH = 1920, HEIGHT = 1080;
 const PROGRAMS = {
   chrome: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
@@ -72,7 +74,7 @@ async function retry(fn, tries = 80) {
 async function chromium(profile, port) {
   const flags = mode === 'software' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : ['--use-angle=d3d11', '--ignore-gpu-blocklist'];
   if (mode === 'heavy') flags.push('--force-device-scale-factor=2'); // four times the pixels twice over: a fast GPU made pixel-bound, like a weak one
-  const proc = spawn(PROGRAMS[browser], [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--headless=new', '--no-first-run', '--no-default-browser-check',
+  const proc = spawn(PROGRAMS[browser], [`--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, '--headless=new', '--no-first-run', '--no-default-browser-check', '--enable-precise-memory-info',
     mode === 'heavy' ? '--window-size=3840,2160' : `--window-size=${WIDTH},${HEIGHT}`,
     // Uncapped, a software renderer queues frames faster than it can draw them and stalls for seconds; it never reaches the cap anyway.
     ...(mode === 'software' ? [] : ['--disable-gpu-vsync', '--disable-frame-rate-limit']), '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', ...flags, 'about:blank'], { stdio: 'ignore' });
@@ -85,7 +87,7 @@ async function chromium(profile, port) {
   await send('Page.enable');
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `(${PRELOAD})()` });
   return {
-    proc, ws,
+    proc, ws, send,
     nav: (url) => send('Page.navigate', { url }),
     run: async (expression) => {
       const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true });
@@ -179,10 +181,10 @@ async function measure(name, rows, traces) {
   const a = JSON.parse(json);
   const s = [...a].sort((x, y) => x - y);
   const at = (q) => s[Math.min(s.length - 1, Math.ceil(q * s.length) - 1)];
-  const row = { name, frames: a.length, p50: at(0.5), p95: at(0.95), p99: at(0.99) };
+  const row = { name, frames: a.length, p50: at(0.5), p95: at(0.95), p99: at(0.99), max: s[s.length - 1], over25: a.filter((v) => v > 25).length, over50: a.filter((v) => v > 50).length };
   rows.push(row);
   traces[name] = a.slice(0, 600);
-  console.log(`${browser} ${mode}  ${name.padEnd(24)} ${String(row.frames).padStart(6)} frames  p50 ${row.p50.toFixed(1).padStart(7)}  p95 ${row.p95.toFixed(1).padStart(7)}  p99 ${row.p99.toFixed(1).padStart(7)} ms`);
+  console.log(`${browser} ${mode}  ${name.padEnd(24)} ${String(row.frames).padStart(6)} frames  p50 ${row.p50.toFixed(1).padStart(7)}  p95 ${row.p95.toFixed(1).padStart(7)}  p99 ${row.p99.toFixed(1).padStart(7)}  max ${row.max.toFixed(1).padStart(7)} ms  >25ms ${row.over25}  >50ms ${row.over50}`);
 }
 
 const SCALE = (s) => `(() => {
@@ -214,15 +216,24 @@ try {
   await importSave();
   await load();
   gpu = JSON.parse(await run(`JSON.stringify(opencraft.perf.gpu)`));
-  stats = JSON.parse(await run(`JSON.stringify({ ...opencraft.renderer.stats, drawn: [document.getElementById('game').width, document.getElementById('game').height], chunks: opencraft.game.chunks_loaded(), belts: opencraft.game.belts() })`));
+  stats = JSON.parse(await run(`JSON.stringify({ ...opencraft.renderer.stats, drawn: [document.getElementById('game').width, document.getElementById('game').height], chunks: opencraft.game.chunks_loaded(), belts: opencraft.game.belts(), heapMB: +(performance.memory.usedJSHeapSize / 1048576).toFixed(1), wasmMB: +(opencraft.wasm.memory.buffer.byteLength / 1048576).toFixed(1) })`));
   console.log(browser, mode, JSON.stringify(gpu), JSON.stringify(stats));
-  for (const [name, code] of SAME_PAGE) {
-    await run(code);
-    await measure(name, rows, traces);
-  }
-  for (const [name, query] of RELOADED) {
-    await load(query);
-    await measure(name, rows, traces);
+  if (PROFILE) {
+    // One profiled 'playing' row, then the engine's and the host's top functions: `node scripts/prof-top.mjs <file>`.
+    await page.send('Profiler.enable');
+    await page.send('Profiler.setSamplingInterval', { interval: 200 });
+    await page.send('Profiler.start');
+    await measure('playing (profiled)', rows, traces);
+    writeFileSync(PROFILE, JSON.stringify((await page.send('Profiler.stop')).result.profile));
+  } else {
+    for (const [name, code] of SAME_PAGE) {
+      await run(code);
+      await measure(name, rows, traces);
+    }
+    for (const [name, query] of RELOADED) {
+      await load(query);
+      await measure(name, rows, traces);
+    }
   }
 } finally {
   if (out) writeFileSync(out, JSON.stringify({ browser, mode, gpu, stats, seconds: SECONDS, rows, traces }));

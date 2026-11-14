@@ -22,6 +22,7 @@ import { Renderer } from './render/renderer';
 import { SignFaces } from './render/sign-faces';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
+import { noStorage } from './ui/no-storage';
 import { AnalyticsPanel } from './ui/analytics';
 import { ComfortPanel } from './ui/comfort';
 import { SkyStore } from './render/sky/settings';
@@ -107,7 +108,7 @@ async function main(): Promise<void> {
   const session = store && !game.is_client() ? new Session(store, meta, game) : null;
   if (store && session) document.getElementById('data-settings')!.append(new LeavePrompt(game, store, session).row);
   if (store) worlds.append(new WorldsPanel(store, session, opened.notice).el);
-  else worlds.textContent = preview ? 'Controls preview · this world is not saved' : opened.notice;
+  else worlds.append(preview ? 'Controls preview · this world is not saved' : noStorage(opened.notice));
 
   const canvas = document.getElementById('game') as HTMLCanvasElement;
   const instanceFloats = game.instance_floats();

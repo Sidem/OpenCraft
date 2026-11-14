@@ -42,13 +42,9 @@ impl Game {
         self.inventory().worn.get(slot as usize).map_or(0, |i| i.0)
     }
 
-    /// What an item does when worn (empty for anything that is not gear), and the slot it goes in (-1 for none).
+    /// What an item does when worn (empty for anything that is not gear).
     pub fn gear_blurb(&self, item: u16) -> String {
         equipment::gear(ItemId(item)).map_or_else(String::new, |g| g.blurb.to_string())
-    }
-
-    pub fn gear_slot_of(&self, item: u16) -> i32 {
-        equipment::gear(ItemId(item)).map_or(-1, |g| g.slot as i32)
     }
 
     /// The upgrade of the worn hauler pack: `[next pack, kit, kits needed, kits held, unlocked (0 or 1)]`, or empty

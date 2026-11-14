@@ -68,7 +68,7 @@ export class QualityPanel {
   }
 
   /** Offered and never just done, because the player would see the difference. What is offered follows the measurements
-   *  (docs/history/CHANGELOG_R.md, "Performance check"): when drawing is the limit smooth edges cost more than distance does;
+   *  (2026-11-08, `scripts/frame-bench.mjs`): when drawing is the limit smooth edges cost more than distance does;
    *  when the script is the limit only a shorter distance helps. False when there is nothing to offer. */
   private suggest(drawing: boolean): boolean {
     const { store } = this.src;

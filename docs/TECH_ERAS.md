@@ -88,7 +88,7 @@ Blueprints · Construction Drones · Jetpack · Personal Drone · Mk4 Logistics
 
 ## 4. Era 5: Earthworks (Milestone 8)
 
-The terraforming design (`docs/history/ROADMAP_DONE.md`, Milestone 8): planner, earthworks by drone ports (decided 2026-10-04: no
+The terraforming design (Milestone 8): planner, earthworks by drone ports (decided 2026-10-04: no
 separate excavator), tunnels. Techs (r g b v): Earthworks (planner, excavator), Tunnelling, Earthworks
 Mk2–3 via kits. Fill materials: dirt, stone, slag, later tailings. Concrete foundations: a fill job
 that places concrete as the top layer.
