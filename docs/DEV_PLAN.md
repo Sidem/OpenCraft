@@ -285,6 +285,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 ## 6. Recent changes
 
+- **2026-11-14: tree lag spikes (user).** A sapling's growth remeshed per block (`set_block_anywhere`: 214 remeshes
+  for one young oak, 0.4–1.3 s native); it now uses `set_block_anywhere_later` like felling and the forester. A fall
+  checked the leaves round every removed log (`LEAF_CHECK_RADIUS` cube each, 3–15 ms); `Sim::logs_removed` now checks
+  once over the tree's box, and `tree::take` stops reading at the first layer with no wood or leaves. Native, host
+  frame with its 6 ms work budget (`tests/tree_spikes.rs` `bench_tree_spikes`): growth tick about 0.1 ms, the fall's
+  frame 7–13 ms (was up to 65), the floor being one forest-chunk remesh (3–6 ms, `bench_forest_mesh`). Guarded by
+  `growing_and_felling_leave_remeshing_to_the_budget`. Not measured in wasm.
 - **2026-11-14: trees felled whole, and every wood its own (user, `/deepen`).** Grown trees' wood (`is_tree_wood`;
   grown oaks now `OAK_TREE_LOG`) never mines a block at a time: swings at the trunk's lowest `LOW` layers add work, a
   mark on the bark counts whole and moves, elsewhere half (`sim/felling.rs`, like the game Rust); the tree leaves the

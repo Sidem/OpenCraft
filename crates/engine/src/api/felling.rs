@@ -31,14 +31,17 @@ impl Game {
             let base =
                 IVec3::new(tree.foot.x.floor() as i32 - 16, tree.foot.y as i32 - 4, tree.foot.z.floor() as i32 - 16);
             let mut parts = [Chunk::uniform(AIR), Chunk::uniform(AIR)];
+            let mut used = [false; 2];
             for &(p, b) in &tree.blocks {
                 let l = p - base;
                 if (0..32).contains(&l.x) && (0..64).contains(&l.y) && (0..32).contains(&l.z) {
                     parts[(l.y / 32) as usize].set(l.x as usize, (l.y % 32) as usize, l.z as usize, b);
+                    used[(l.y / 32) as usize] = true;
                 }
             }
             let air = Chunk::uniform(AIR);
-            for i in 0..2 {
+            // Most trees fill only the lower part: an empty one is not meshed.
+            for i in (0..2).filter(|&i| used[i]) {
                 let mut refs = [&air; 27];
                 refs[neighbor_index(0, 0, 0)] = &parts[i];
                 refs[neighbor_index(0, if i == 0 { 1 } else { -1 }, 0)] = &parts[1 - i];

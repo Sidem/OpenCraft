@@ -202,10 +202,17 @@ impl Sim {
     fn fell(&mut self, trunk: &Trunk, from: u8) {
         let world = &mut self.world;
         let taken = tree::take(|p| world.block_anywhere_or_generate(p), trunk);
+        // Remeshed with the streaming budget. The leaves its logs held are checked once for the whole tree (a check a log was most of a fall's tick).
+        let (mut lo, mut hi) = (trunk.foot, trunk.foot);
         for &(p, old) in &taken.blocks {
             self.world.set_block_anywhere_later(p, block::AIR);
-            self.block_changed(p, old);
+            self.block_changed_but_leaves(p, old);
+            if block::is_log(old) {
+                lo = IVec3::new(lo.x.min(p.x), lo.y.min(p.y), lo.z.min(p.z));
+                hi = IVec3::new(hi.x.max(p.x), hi.y.max(p.y), hi.z.max(p.z));
+            }
         }
+        self.logs_removed(lo, hi);
         let angle = (from as f32 + 8.0) * std::f32::consts::TAU / 16.0;
         let (dx, dz) = (angle.cos(), angle.sin());
         let foot = Vec3::new(trunk.centre[0] as f64, trunk.foot.y as f64, trunk.centre[1] as f64);

@@ -93,16 +93,33 @@ impl Sim {
     /// sapling planted at `pos`; a torch on `pos` losing its support (torches.rs), a sign losing a cell (`signs/`); then the water checks
     /// (water.rs).
     pub(crate) fn block_changed(&mut self, pos: IVec3, old: BlockId) {
-        if is_sapling(self.block(pos)) {
-            self.schedule_growth(pos);
-        }
         if is_log(old) {
-            let r = LEAF_CHECK_RADIUS;
-            for p in cube(pos, r) {
-                if is_leaves(self.block(p)) && !self.leaf_supported(p) {
-                    self.schedule(p, TimerKind::LeafDecay, LEAF_HALF_LIFE);
+            self.logs_removed(pos, pos);
+        }
+        self.block_changed_but_leaves(pos, old);
+    }
+
+    /// Logs went from the box `lo`..=`hi`: leaves near it that no log holds now start to decay. One call for a
+    /// whole felled tree, rather than one a log (each looks `LEAF_CHECK_RADIUS` round, so most cells again).
+    pub(crate) fn logs_removed(&mut self, lo: IVec3, hi: IVec3) {
+        let r = IVec3::new(LEAF_CHECK_RADIUS, LEAF_CHECK_RADIUS, LEAF_CHECK_RADIUS);
+        let (lo, hi) = (lo - r, hi + r);
+        for y in lo.y..=hi.y {
+            for z in lo.z..=hi.z {
+                for x in lo.x..=hi.x {
+                    let p = IVec3::new(x, y, z);
+                    if is_leaves(self.block(p)) && !self.leaf_supported(p) {
+                        self.schedule(p, TimerKind::LeafDecay, LEAF_HALF_LIFE);
+                    }
                 }
             }
+        }
+    }
+
+    /// `block_changed` without the leaf check of a removed log: for callers that then call `logs_removed` once.
+    pub(crate) fn block_changed_but_leaves(&mut self, pos: IVec3, old: BlockId) {
+        if is_sapling(self.block(pos)) {
+            self.schedule_growth(pos);
         }
         for p in cube(pos, 1) {
             match self.block(p) {

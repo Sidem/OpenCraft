@@ -4,7 +4,7 @@
 //!
 //! Invariants: growth is a block timer (`TimerKind::SaplingGrow`, started by `Sim::block_changed`), so
 //! it is core state: its delay, the tree's height and the drop chance come from `Sim.rng`, and its edits
-//! go through `set_block_anywhere`. A sapling grows only with dirt or grass under it and every log of its tree
+//! go through `set_block_anywhere_later` (a tree is hundreds of blocks). A sapling grows only with dirt or grass under it and every log of its tree
 //! going into air, leaves or wood (never through a build); otherwise it tries again later. Its leaves only go into
 //! air. To tune: the constants.
 
@@ -36,7 +36,7 @@ impl Sim {
     }
 
     /// Grows the sapling at `pos` into a tree if it has room, else tries again later.
-    pub(super) fn grow_sapling(&mut self, pos: IVec3) {
+    pub(crate) fn grow_sapling(&mut self, pos: IVec3) {
         let sapling = self.block(pos);
         if !is_sapling(sapling) {
             return;
@@ -58,7 +58,8 @@ impl Sim {
         }
         for (p, id, replace) in edits {
             if replace || self.block(p) == AIR {
-                self.world.set_block_anywhere(p, id);
+                // Remeshed with the streaming budget: one remesh per block was a whole-second freeze.
+                self.world.set_block_anywhere_later(p, id);
             }
         }
         self.events.push(SimEvent::TreeGrew { pos });

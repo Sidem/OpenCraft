@@ -3,6 +3,9 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-14 · Smoother trees
+- **No more freeze when a sapling grows into a tree**, and a shorter hitch when a tree falls. The game now redraws a new or fallen tree over the next few frames instead of all at once.
+
 ## 2026-11-14 · Felling whole trees, and wood in every colour
 - **Trees come down whole.** You no longer dig a grown tree out a block at a time. Swing at its trunk near the ground and keep swinging: a red mark shows on the bark, and hitting it counts twice. When enough is done the tree tips over away from you, and its logs land along where the trunk falls. With a bare hand it takes about as long as digging out every block of the trunk used to; an axe is quicker, as before.
 - **Each tree gives its own wood.** Birch, pine, palm, cherry, baobab, acacia, redwood and eucalyptus trees drop their own logs, and bamboo drops bamboo. Branches come down as sticks, and the crown leaves a sapling or two.

@@ -123,7 +123,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Tests and benches
 - `tests.rs` (scenarios), `tests/frame_bench.rs`; ignored `bench_*` tests time hot paths (`cargo test --release -q bench_
-  -- --ignored --nocapture`): meshing, tree meshing and squareness (`tests/forest_bench.rs`), big base, trains, towns, water, drones, orbit, worldgen, machine marks (`factory/tests/bench_marks.rs`), a spread-out megabase (`factory/tests/bench_megabase.rs`).
+  -- --ignored --nocapture`): meshing, tree meshing and squareness (`tests/forest_bench.rs`), tree growth and fall frames (`tests/tree_spikes.rs`), big base, trains, towns, water, drones, orbit, worldgen, machine marks (`factory/tests/bench_marks.rs`), a spread-out megabase (`factory/tests/bench_megabase.rs`).
 
 ## Web host: `web/src` (TypeScript + WebGL2, thin platform layer)
 

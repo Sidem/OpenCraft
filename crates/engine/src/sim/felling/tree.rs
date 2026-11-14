@@ -98,12 +98,20 @@ pub fn take(mut get: impl FnMut(IVec3) -> BlockId, trunk: &Trunk) -> Taken {
     let at = |p: IVec3| ((p.y * SIDE + p.z) * SIDE + p.x) as usize;
     let inside = |p: IVec3| (0..SIDE).contains(&p.x) && (0..LAYERS).contains(&p.y) && (0..SIDE).contains(&p.z);
     let mut grid = vec![AIR; (SIDE * SIDE * LAYERS) as usize];
+    // Read up to the first layer above the foot with no wood and no leaves: nothing over it joins this tree (most of
+    // the box is sky, and reading it was most of a fall's tick).
     for y in 0..LAYERS {
+        let mut tree = false;
         for z in 0..SIDE {
             for x in 0..SIDE {
                 let p = IVec3::new(x, y, z);
-                grid[at(p)] = get(origin + p);
+                let b = get(origin + p);
+                tree |= is_tree_wood(b) || is_leaves(b);
+                grid[at(p)] = b;
             }
+        }
+        if !tree && y > 2 {
+            break;
         }
     }
     // Other trunks: tree wood standing on something else, not in this one's bottom layer.
