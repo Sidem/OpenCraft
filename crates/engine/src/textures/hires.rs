@@ -14,6 +14,8 @@ const BARK: Rgb = [83.0, 71.0, 54.0];
 /// Whether `layer` is painted here, at full resolution, instead of at 16 × 16 and repeated.
 pub fn covers(layer: u16) -> bool {
     matches!(layer, tex::SAPLING | tex::GRASS_TUFT..=tex::LICHEN | tex::BIRCH_SAPLING..=tex::INDICATOR_PALE)
+        || matches!(layer, tex::PALM_SAPLING | tex::CHERRY_SAPLING | tex::BAOBAB_SAPLING | tex::ACACIA_SAPLING)
+        || matches!(layer, tex::REDWOOD_SAPLING | tex::EUCALYPTUS_SAPLING | tex::BAMBOO_SHOOT)
 }
 
 /// Texel (`x`, `y`) of a layer `covers` says is painted here.
@@ -31,6 +33,11 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SAPLING => needle_sapling(&mut pen, [62.0, 105.0, 79.0]),
         tex::PINE_SAPLING => needle_sapling(&mut pen, [36.0, 74.0, 62.0]),
         tex::BIRCH_SAPLING => birch_sapling(&mut pen),
+        tex::REDWOOD_SAPLING => needle_sapling(&mut pen, [44.0, 84.0, 56.0]),
+        tex::PALM_SAPLING | tex::BAMBOO_SHOOT => needle_sapling(&mut pen, [92.0, 140.0, 66.0]),
+        tex::CHERRY_SAPLING | tex::BAOBAB_SAPLING | tex::ACACIA_SAPLING | tex::EUCALYPTUS_SAPLING => {
+            birch_sapling(&mut pen)
+        }
         tex::INDICATOR_IRON => rust_bloom(&mut pen),
         tex::INDICATOR_COAL => coal_shrub(&mut pen),
         tex::INDICATOR_COPPER => copper_bell(&mut pen),

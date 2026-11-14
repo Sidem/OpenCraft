@@ -142,25 +142,36 @@ fn pick(biome: Biome, ground: Ground, h: u32, meadow: bool, wet: bool) -> Option
     }
 }
 
-/// Cover on grass, by biome: (tufts, ferns, flowers) in thousandths of the columns, and the flowers it takes.
+/// Cover on grass, by biome: (tufts, ferns, dry brush, flowers) in thousandths of the columns, and the flowers it
+/// takes.
 fn turf(biome: Biome, roll: u32, kind: u32, meadow: bool) -> Option<u16> {
     const PLAINS: [u16; 3] = [tex::DAISY, tex::POPPY, tex::BLUEBELL];
     const WET: [u16; 2] = [tex::BLUEBELL, tex::DAISY];
     const HILLS: [u16; 2] = [tex::BLUEBELL, tex::BLUEBELL];
+    const DRY: [u16; 1] = [tex::POPPY];
     // Grassland is lush (docs/ART_STYLE.md, "The key-art look"): about a quarter of plains columns carry a tuft.
-    let (tufts, ferns, flowers, kinds): (u32, u32, u32, &[u16]) = match biome {
-        Biome::Plains => (250, 0, 26, &PLAINS),
-        Biome::Lowlands => (150, 80, 16, &WET),
-        Biome::Highlands => (100, 40, 16, &HILLS),
-        Biome::Desert => (20, 0, 0, &[]),
-        Biome::BasaltFields => (40, 0, 0, &[]),
+    let (tufts, ferns, brush, flowers, kinds): (u32, u32, u32, u32, &[u16]) = match biome {
+        Biome::Plains => (250, 0, 0, 26, &PLAINS),
+        Biome::Lowlands => (150, 80, 0, 16, &WET),
+        Biome::Highlands => (100, 40, 0, 16, &HILLS),
+        Biome::Desert => (20, 0, 0, 0, &[]),
+        Biome::BasaltFields => (40, 0, 0, 0, &[]),
+        Biome::Savanna => (300, 0, 90, 6, &DRY),
+        Biome::Boreal => (110, 110, 0, 10, &HILLS),
+        Biome::Woodland => (220, 20, 30, 14, &PLAINS),
+        Biome::BambooForest => (120, 150, 0, 10, &WET),
+        Biome::Redwoods => (60, 200, 0, 8, &HILLS),
     };
     let flowers = flowers * if meadow { MEADOW_BOOST } else { 1 };
+    let ferns = tufts + ferns;
+    let brush = ferns + brush;
     if roll < tufts {
         Some(tex::GRASS_TUFT)
-    } else if roll < tufts + ferns {
+    } else if roll < ferns {
         Some(tex::FERN)
-    } else if roll < tufts + ferns + flowers {
+    } else if roll < brush {
+        Some(tex::DRY_BRUSH)
+    } else if roll < brush + flowers {
         Some(kinds[kind as usize % kinds.len()])
     } else {
         None

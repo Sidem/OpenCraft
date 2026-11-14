@@ -26,13 +26,16 @@
 //! highlands, cacti in deserts, dead snags on basalt fields) and R5's ruins of the last factory (`ruins.rs`);
 //! 10 = R5c's vaults: in about one far ruin in five a sealed room off the shaft's chamber (`ruins.rs`);
 //! 11 = a lowland start: near spawn the ground keeps a quarter of its rise, so no world starts on a mountain
-//! (`landform.rs`).
+//! (`landform.rs`);
+//! 12 = grown trees: eleven kinds with branching limbs and clear trunks, placed by forest biome, shore and grove
+//! (`grow/`, `biome.rs` `local_biome_at`).
 
 mod bearing;
 mod biome;
 mod caves;
 mod column;
 mod geology;
+mod grow;
 mod landform;
 mod logbook;
 mod ore;
@@ -47,10 +50,11 @@ pub use bearing::Bearing;
 pub use biome::Biome;
 use caves::CaveField;
 pub use geology::ore_shares;
+#[cfg(test)]
+pub use grow::{grow, height_of, KINDS, YOUNG_MAX};
+pub use grow::{grow_young, kind_of_sapling};
 pub(crate) use logbook::compass;
 pub use ore::LODE_HEIGHTS;
-pub use trees::tree_blocks;
-pub(crate) use trees::{species_of_sapling, trunk_range};
 use trees::{stamp_tree, Tree};
 pub use water::Water;
 use water::WaterGuard;
@@ -67,7 +71,7 @@ use crate::math::{hash2, hash3, smoothstep, unit, IVec3};
 use crate::noise::Perlin;
 
 /// The newest generator version, which new worlds get. A save records its world's own version.
-pub const WORLDGEN_VERSION: u32 = 11;
+pub const WORLDGEN_VERSION: u32 = 12;
 pub const WORLD_HEIGHT_CHUNKS: i32 = 8;
 pub const WORLD_HEIGHT: i32 = WORLD_HEIGHT_CHUNKS * CHUNK_SIZE;
 const SAND_LEVEL: i32 = 60;
@@ -211,8 +215,11 @@ impl WorldGen {
     }
 
     /// Trees whose trunk or canopy can overlap the column starting at (x0, z0).
-    /// One candidate per TREE_CELLÂ² cell keeps trunks apart without any neighbour search.
+    /// One candidate per TREE_CELL² cell keeps trunks apart without any neighbour search.
     fn trees_near(&self, x0: i32, z0: i32) -> Vec<Tree> {
+        if self.version >= 12 {
+            return self.trees_v12(x0, z0);
+        }
         let reach = if self.version >= 9 { TREE_REACH_V9 } else { TREE_REACH };
         let (min_x, max_x) = (x0 - reach, x0 + CHUNK_SIZE - 1 + reach);
         let (min_z, max_z) = (z0 - reach, z0 + CHUNK_SIZE - 1 + reach);
@@ -250,7 +257,7 @@ impl WorldGen {
                     continue;
                 }
                 let trunk = trees::SPECIES[species].trunk_min + ((h >> 16) % trees::SPECIES[species].spread) as i32;
-                out.push(Tree { x, z, ground, trunk, species });
+                out.push(Tree { x, z, ground, trunk, species, grown: Vec::new() });
             }
         }
         out

@@ -1,10 +1,10 @@
 # OpenCraft development plan
 
-**Status (2026-11-13):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
+**Status (2026-11-14):** Milestones 1–12, Milestone 13 (Settlements, all but its balance step 13.6b), the play-test
 response R1–R7, S1–S4, U1–U3 and trains (T) are built and pushed; R8 is decided "none for now", the realistic art pass
 is live and graded toward the key art. Open: **Q3** (a cheaper menu), **L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13) and **FX** (recorded sounds,
 held back on branch `sound-effects`). 2026-11-13 also: three-way filters, glowing lamps, the hand in first person, wire
-props over hills, barrels (section 6). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
+props over hills, barrels; 2026-11-14 realistic trees and forest biomes, generator 12 (section 6). What changed since 2026-10-22 (items, machines such as the 2×3×3 pumpjack, belts, maps, trains, playtester
 notes): `web/src/patch-notes.md` and `git log`. **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era
 pieces, Milestone 14 (the space elevator).
 
@@ -176,6 +176,9 @@ placeholder layer and a `docs/ART_HANDOVER.md` request line; fluids other than w
   storms, subsidence) stay in `docs/ROADMAP.md`; reopen only if the user asks.
 - [x] **Pod channels by name (small).** A launcher and a pad pick one of six named colours in their panel
   (`factory/process/pods/channels.rs`, `ui/pod-channel.ts`), not by facing. Save version 54: the facing becomes the colour.
+- [x] **TR Realistic trees (user, `/deepen`, 2026-11-14).** Generator 12 grows eleven kinds (`worldgen/grow/`) in
+  five new forest biomes (`biome.rs` `local_biome_at`); leaf cards and branching log rings (`mesher/foliage.rs`,
+  `mesher/logs/`). Open: blind judging of the looks, and the GPU cost (section 6).
 - [ ] **13.6b Balance from the user's next play-test** (`scripts/inspect-save.mjs`): order sizes, upkeep rates, perk
   rates and the harbour's price, once the user has played Milestone 13. Their latest save (2026-10-17, 32.4 h) has not
   yet researched Settlements.
@@ -279,6 +282,18 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ---
 
 ## 6. Recent changes
+
+- **2026-11-14: realistic trees and forest biomes (user, `/deepen`; generator 12).** Trees grow from a species row
+  (`worldgen/grow/kinds.rs`: oak, broadleaf, birch, pine, cherry, palm, baobab, acacia, redwood, eucalyptus, bamboo)
+  as a trunk, drooping limbs and leaf clusters, built in their own box (`grow/mod.rs` `Plot`), so saplings
+  (`sim/saplings.rs`, `grow_young`) match generation. Invariants tested in `grow/tests.rs`: no leaf within a block and a
+  half of a trunk below its crown, none that would decay. `biome_at` keeps the five broad biomes (ores, towns, sound,
+  weather); `local_biome_at` refines them for trees and ground cover only. Leaves are cards (`mesher/foliage/`), logs
+  rings that follow limbs (`mesher/logs/`), bark and leaf layers from `tools/art/trees.py`. Measured against HEAD
+  509ed60: wasm +18 KB gzipped; native forest-chunk meshing 1.99 → 2.07 ms; generation 1.66 → 2.48 ms a column;
+  GPU frame (RTX 3060, forest save, `scripts/frame-bench.mjs`) p50 1.8 → 3.9 ms and p99 5.5 → 8.9 ms, over the
+  +10% target: about 2.5× the shaped quads. Next if it matters: distance LOD for cards and limbs. Pins re-recorded:
+  `world/tests.rs` mesh, `worldgen/tests.rs` version 12.
 
 - **2026-11-14: lifts down, cliffs in drags, hover range (user).** `Shape::Drop` (appended, no save bump): a lift
   column fed over its top with an unfed foot carries items down (`belt_shape::derive_lift_ways`, run before ramps so

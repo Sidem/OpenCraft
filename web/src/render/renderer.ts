@@ -317,6 +317,8 @@ export class Renderer {
       [this.shapedCutout, (m) => [m.shaped?.cutout ?? 0, m.shaped?.opaque ?? 0, m.shaped?.vao ?? null]],
     ];
     for (const [pass, draws] of passes) {
+      // Leaf cards are seen from both sides.
+      if (pass === this.shapedCutout) gl.disable(gl.CULL_FACE);
       gl.useProgram(pass.prog);
       gl.uniformMatrix4fv(pass.u.u_viewProj, false, this.viewProj);
       gl.uniform1i(pass.u.u_tex, 0);
@@ -341,6 +343,7 @@ export class Renderer {
         quads += n;
       }
     }
+    gl.enable(gl.CULL_FACE);
 
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount);
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);

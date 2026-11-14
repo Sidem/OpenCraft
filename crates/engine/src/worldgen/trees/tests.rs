@@ -1,5 +1,5 @@
 use super::*;
-use crate::block::{LEAVES, LOG, SAPLING};
+use crate::block::{LEAVES, LOG};
 use crate::math::IVec3;
 use crate::worldgen::{WorldGen, WORLD_HEIGHT_CHUNKS};
 use std::collections::HashMap;
@@ -44,17 +44,6 @@ fn every_species_builds_its_own_shape() {
 fn only_trees_with_a_foot_replace_the_ground() {
     for (species, foot) in [(OAK, true), (BIRCH, true), (PINE, true), (CACTUS_PLANT, false), (SNAG, false)] {
         assert_eq!(stamp(species, 4).contains_key(&(0, 10, 0)), foot, "species {species}");
-    }
-}
-
-#[test]
-fn saplings_grow_their_own_species() {
-    assert_eq!(species_of_sapling(SAPLING), OAK);
-    assert_eq!(species_of_sapling(BIRCH_SAPLING), BIRCH);
-    assert_eq!(species_of_sapling(PINE_SAPLING), PINE);
-    for s in [OAK, BROAD, PINE, BIRCH] {
-        let (min, spread) = trunk_range(s);
-        assert!(min >= 3 && spread >= 2);
     }
 }
 

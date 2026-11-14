@@ -87,7 +87,8 @@ fn bench_meshing() {
 /// Fingerprint of every mesh a seed-1337 world makes around spawn (view radius 3), sorted by chunk. Recorded from the
 /// mesher before ground cover could be cleared (U3): an empty cleared set must keep producing exactly these bytes.
 /// Re-recorded on purpose 2026-11-04 when grassland got denser cover (`mesher/cover.rs`, the key-art pass), and
-/// 2026-11-07 when trees left the cubes for the shaped list (round trunks and canopies, `mesher/shaped.rs`).
+/// 2026-11-07 when trees left the cubes for the shaped list (round trunks and canopies, `mesher/shaped.rs`), and
+/// 2026-11-14 when canopies became leaf cards and logs branching limbs (`mesher/foliage.rs`, `mesher/logs.rs`).
 #[test]
 fn untouched_chunks_mesh_as_they_always_did() {
     // Generator version 10, so a new terrain version (11 flattened the spawn) never moves what this guards: the mesher.
@@ -108,7 +109,7 @@ fn untouched_chunks_mesh_as_they_always_did() {
     }
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
     // 39 chunks and 36,236 cutout quads (90,868 while leaves were cubes, 75,464 before the denser grassland cover).
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 36_236, 0xe566_c6eb_340e_b05d));
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 36_236, 0x835e_0d85_6a3b_f902));
 }
 
 fn drain_meshes(w: &mut World) {

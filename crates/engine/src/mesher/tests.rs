@@ -65,10 +65,10 @@ fn hidden_faces_are_culled() {
 fn leaves_go_to_the_shaped_list_not_the_cubes() {
     let m = mesh_single(|c| c.set(5, 5, 5, LEAVES));
     assert_eq!(m.vertex_count(), 0);
-    assert_eq!((m.shaped_opaque, m.shaped_cutout), (6, 12), "a quad a side of hull, then of shell and of fringe");
-    // A leaf in the corner: the quads towards -x, -y and -z belong to the chunks there (their lower cell).
+    assert_eq!((m.shaped_opaque, m.shaped_cutout), (0, 3), "three cutout cards");
+    // A leaf in the corner is the chunk's own: all its cards are drawn here.
     let corner = mesh_single(|c| c.set(0, 0, 0, LEAVES));
-    assert_eq!((corner.shaped_opaque, corner.shaped_cutout), (3, 6));
+    assert_eq!((corner.shaped_opaque, corner.shaped_cutout), (0, 3));
 }
 
 #[test]

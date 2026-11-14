@@ -1,351 +1,218 @@
-//! Canopies as one rounded mass: the leaf blocks around a chunk become a smooth surface (constrained surface nets) in
-//! the shaped list (`shaped.rs`), instead of a cube per block. The leaves (and a log inside them, so no tunnel shows
-//! round a trunk) are "inside". One vertex sits in each cell of the dual grid whose eight corners are not all alike,
-//! at the mean of where its edges cross a softened field; a few smoothing passes that keep the volume (Taubin's λ|μ)
-//! then round it, each vertex staying in its own dual cell so the shape never breaks. One quad faces out across each
-//! edge between a leaf and an empty cell. Normals come from the slope of the softened field: soft, outward light.
+//! Leaves as cards: each leaf block of the chunk becomes a few cutout cards of leaves in the shaped list
+//! (`shaped.rs`), not a cube and not one smooth mass. Cards overlap their neighbours, stray a little from the grid
+//! and lie as the species' leaves do (`style.rs`: clumps facing out, flat sprays, hanging curtains, arching fronds),
+//! so a crown has a ragged edge and gaps, and the branches inside show through them. Their light comes from the
+//! crown's shape, not the card's: the normal points out of the crown (the open cells around the leaf), so a crown is
+//! lit as one rounded volume, and a leaf deep inside it is shaded. Cards are drawn from both sides.
 //!
-//! Three layers: a cutout shell textured with the leaves (light shows through its gaps), a sparser fringe `FRINGE`
-//! outside it (a ragged edge, and depth as the two shift past each other) and, `INSET` behind it, an opaque darker
-//! hull, so through the gaps one sees shaded leaves rather than the sky.
-//!
-//! Invariants: a chunk writes the quads of the edges whose lower cell is its own, so each quad is written once.
-//! Every number is computed from the blocks within `REACH` of its vertex, relative to its cell and in the same order
-//! in any chunk, so two chunks meet without a crack. An edit can change the canopy `REACH` blocks away (the world
-//! remeshes that far: `world/mod.rs`). The finished vertex (normal, light, clumps, its three layers): `shell.rs`.
+//! Invariants: a leaf block's cards depend only on the blocks within 2 of it (`tree_grid.rs`) and its world cell
+//! (their scatter is a hash of it), so they are the same whichever chunk was meshed before; each chunk draws its own
+//! leaves' cards and no others. To give a leaf block its own look: a row in `style.rs`.
 
-use super::shaped::{pack, Shaped};
-use super::{pick_layer, N};
-use crate::block::{is_leaves, is_log, BlockId, AIR};
-use crate::chunk::{index, Chunk};
+use super::shaped::{pack, Shaped, Vert, KIND_CARD};
+use super::tree_grid::{TreeGrid, STEP_Y, STEP_Z};
+use super::{pidx, N};
+use crate::block::{is_leaves, BlockId, ALT_TEX, FACE_TEX};
+use crate::math::hash3;
 
-mod shell;
+mod style;
+pub use style::{style_of, Lie, Style};
 
-/// How far, in blocks, the blocks around a chunk shape its canopy.
-/// (The smoothing passes, plus the softening's three, plus the chunk's own ring of dual cells.)
-pub const REACH: usize = 7;
-/// The smoothing passes: λ shrinks, μ swells back (Taubin), so a canopy rounds without shrinking.
-const PASSES: [f32; 4] = [0.6, -0.62, 0.6, -0.62];
+const SEED: u32 = 0x1EAF_CA2D;
+/// How far round a leaf the crown's shape is read, in blocks.
+const WINDOW: i32 = 2;
+const FACES: [[i32; 3]; 6] = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]];
 
-const G: usize = N + 2 * REACH;
-const G2: usize = G * G;
-const R: i32 = REACH as i32;
-/// Dual cells (by their lowest corner, in grid cells) that are smoothed: the chunk's own, and `PASSES.len()` around.
-const DUAL_LO: i32 = R - 1 - PASSES.len() as i32;
-const DUAL_HI: i32 = R + N as i32 + PASSES.len() as i32; // exclusive
-
-#[inline]
-const fn gidx(x: i32, y: i32, z: i32) -> usize {
-    ((y as usize * G) + z as usize) * G + x as usize
-}
-
-const AXES: [[i32; 3]; 3] = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
-
-pub struct Foliage {
-    /// The world block at the chunk's lowest corner (`Mesher::origin`): where the clumps are.
-    pub origin: [i32; 3],
-    /// The grid around the chunk (`REACH` blocks of border): the leaf block an inside cell is textured with, else air.
-    leaf: Vec<BlockId>,
-    /// 1 inside, 0 outside.
-    occ: Vec<u8>,
-    /// Inside cells in the 3×3×3 box around each cell (0..=27), and a scratch row for computing it.
-    blur: Vec<u8>,
-    scratch: Vec<u8>,
-    /// Per dual cell: its vertex + 1, or 0.
-    vert: Vec<u32>,
-    cells: Vec<[i32; 3]>,
-    off: Vec<[f32; 3]>,
-    next: Vec<[f32; 3]>,
-    links: Vec<[u32; 6]>,
-    shells: Vec<Option<[[u32; 3]; 3]>>,
-    /// Logs in the grid (index, and once worn the leaf block in the top byte).
-    logs: Vec<u32>,
-}
-
-impl Default for Foliage {
-    fn default() -> Self {
-        Self {
-            origin: [0; 3],
-            leaf: vec![AIR; G * G2],
-            occ: vec![0; G * G2],
-            blur: vec![0; G * G2],
-            scratch: vec![0; G * G2],
-            vert: vec![0; G * G2],
-            cells: Vec::new(),
-            off: Vec::new(),
-            next: Vec::new(),
-            links: Vec::new(),
-            shells: Vec::new(),
-            logs: Vec::new(),
+/// Every leaf block of the chunk as cards, into `out`'s cutout list. `origin` is the chunk's lowest world block.
+pub fn mesh_leaves(g: &TreeGrid, light: &[u8], origin: [i32; 3], out: &mut Shaped) {
+    for y in 0..N as i32 {
+        for z in 0..N as i32 {
+            for x in 0..N as i32 {
+                let b = g.at(x, y, z);
+                if is_leaves(b) {
+                    leaf(g, light, origin, [x, y, z], b, out);
+                }
+            }
         }
     }
+}
+
+/// What a leaf sees round it: its open faces, the way out of its crown, and how deep in it it is (0..1).
+struct Around {
+    open: usize,
+    out: [f32; 3],
+    depth: f32,
+}
+
+/// `around` for a leaf in the chunk (so its window lies in the grid), reading the grid's tree mask row by row.
+fn around(g: &TreeGrid, c: [i32; 3]) -> Around {
+    let centre = TreeGrid::index(c[0], c[1], c[2]);
+    let tree = |d: [i32; 3]| {
+        let off = d[1] as isize * STEP_Y as isize + d[2] as isize * STEP_Z as isize + d[0] as isize;
+        g.tree_at((centre as isize + off) as usize)
+    };
+    let (mut o, mut full) = ([0f32; 3], 0u32);
+    for dy in -WINDOW..=WINDOW {
+        for dz in -WINDOW..=WINDOW {
+            let row = TreeGrid::index(c[0] - WINDOW, c[1] + dy, c[2] + dz);
+            for (k, dx) in (-WINDOW..=WINDOW).enumerate() {
+                if g.tree_at(row + k) {
+                    full += u32::from(dx != 0 || dy != 0 || dz != 0);
+                } else {
+                    let d2 = (dx * dx + dy * dy + dz * dz) as f32;
+                    o[0] += dx as f32 / d2;
+                    o[1] += dy as f32 / d2;
+                    o[2] += dz as f32 / d2;
+                }
+            }
+        }
+    }
+    let len = dot(o, o).sqrt();
+    let out = if len < 0.3 { unit([o[0], o[1] + 0.3, o[2]]) } else { o.map(|v| v / len) };
+    let side = (2 * WINDOW + 1) as f32;
+    Around { open: FACES.iter().filter(|&&d| !tree(d)).count(), out, depth: full as f32 / (side * side * side - 1.0) }
+}
+
+#[inline(never)]
+fn leaf(g: &TreeGrid, light: &[u8], origin: [i32; 3], c: [i32; 3], b: BlockId, out: &mut Shaped) {
+    let a = around(g, c);
+    let st = style_of(b);
+    let count = if a.open == 0 { st.buried } else { st.cards };
+    let w = [origin[0] + c[0], origin[1] + c[1], origin[2] + c[2]];
+    let card = Card {
+        cell: c,
+        light: light[pidx(c[0] as usize + 1, c[1] as usize + 1, c[2] as usize + 1)],
+        occlusion: (7.0 - ((a.depth - 0.3).max(0.0) * 9.0)).round().clamp(1.0, 7.0) as u32,
+        lit: unit([a.out[0] * 0.75, a.out[1] * 0.75 + 0.25, a.out[2] * 0.75]),
+        layer: leaf_layer(b, w),
+    };
+    for k in 0..count {
+        let h = hash3(SEED ^ k.wrapping_mul(0x9E37_79B9), w[0], w[1], w[2]);
+        let h2 = hash3(h, w[2], w[0], w[1]);
+        if st.lie == Lie::Fronds {
+            card.frond(&st, a.out, h, h2, out);
+        } else {
+            card.flat(&st, a.out, h, h2, out);
+        }
+    }
+}
+
+/// A value in -1..=1 from five bits of `h` (`i` picks which).
+fn r(h: u32, i: u32) -> f32 {
+    ((h >> (i * 5)) & 31) as f32 / 31.0 * 2.0 - 1.0
+}
+
+/// What a leaf block's cards share.
+struct Card {
+    cell: [i32; 3],
+    light: u8,
+    occlusion: u32,
+    lit: [f32; 3],
+    layer: u16,
+}
+
+impl Card {
+    /// One flat card: clumps and sprays turn round their normal; hanging ones stay upright.
+    fn flat(&self, st: &Style, out_dir: [f32; 3], h: u32, h2: u32, out: &mut Shaped) {
+        let mut centre = [0.5 + r(h, 0) * st.stray, 0.5 + r(h, 1) * st.stray, 0.5 + r(h, 2) * st.stray];
+        let half = st.size * 0.5 * (1.0 + r(h, 3) * 0.15);
+        let jit = [r(h2, 0), r(h2, 1), r(h2, 2)];
+        let (right, up, hh) = match st.lie {
+            Lie::Hanging => {
+                let (s, c) = (r(h, 4) * std::f32::consts::PI).sin_cos();
+                centre[1] -= 0.3;
+                ([c, 0.0, s], [0.0, 1.0, 0.0], half * 1.4)
+            }
+            lie => {
+                let n = if lie == Lie::Sprays {
+                    unit([out_dir[0] * st.tilt + jit[0] * 0.2, 1.0, out_dir[2] * st.tilt + jit[2] * 0.2])
+                } else {
+                    unit(std::array::from_fn(|k| out_dir[k] + jit[k] * st.tilt))
+                };
+                let (e1, e2) = across(n);
+                let (s, c) = (r(h, 4) * std::f32::consts::PI).sin_cos();
+                let right = std::array::from_fn(|k| e1[k] * c + e2[k] * s);
+                (right, cross(n, right), half)
+            }
+        };
+        let at = |su: f32, sv: f32| std::array::from_fn(|k| centre[k] + right[k] * su * half + up[k] * sv * hh);
+        let span = st.size;
+        let q = [(0, 0, at(-1.0, -1.0)), (1, 0, at(1.0, -1.0)), (1, 2, at(1.0, 1.0)), (0, 2, at(-1.0, 1.0))];
+        out.packed(true, q.map(|(u, v, p)| self.vert(p, u, v, h2, span)), self.layer);
+    }
+
+    /// A frond: two strips arching out of the crown and down, narrowing to its tip.
+    fn frond(&self, st: &Style, out_dir: [f32; 3], h: u32, h2: u32, out: &mut Shaped) {
+        let flat = (out_dir[0] * out_dir[0] + out_dir[2] * out_dir[2]).sqrt();
+        let yaw =
+            if flat < 0.25 { r(h, 4) * std::f32::consts::PI } else { out_dir[2].atan2(out_dir[0]) + r(h, 4) * 0.5 };
+        let (s, c) = yaw.sin_cos();
+        let (f, side) = ([c, 0.0, s], [-s, 0.0, c]);
+        let len = st.size * (1.0 + r(h, 3) * 0.15);
+        let lift = st.tilt * (0.5 + 0.5 * r(h2, 3).abs());
+        let centre = [0.5 + r(h, 0) * st.stray, 0.5 + r(h, 1) * st.stray * 0.5, 0.5 + r(h, 2) * st.stray];
+        let along = |p: [f32; 3], d: f32, dy: f32| [p[0] + f[0] * d, p[1] + dy, p[2] + f[2] * d];
+        let p0 = along(centre, -0.2, 0.0);
+        let p1 = along(p0, len * 0.5, len * 0.12 * lift);
+        let p2 = along(p1, len * 0.42, -len * 0.5 * (0.4 + lift));
+        let wide = |p: [f32; 3], w: f32, sgn: f32| std::array::from_fn(|k| p[k] + side[k] * w * sgn);
+        let (w0, w1, w2) = (0.12, len * 0.17, 0.05);
+        for (a, b, wa, wb, va, vb) in [(p0, p1, w0, w1, 0, 1), (p1, p2, w1, w2, 1, 2)] {
+            let q = [
+                (0, va, wide(a, wa, -1.0)),
+                (1, va, wide(a, wa, 1.0)),
+                (1, vb, wide(b, wb, 1.0)),
+                (0, vb, wide(b, wb, -1.0)),
+            ];
+            out.packed(true, q.map(|(u, v, p)| self.vert(p, u, v, h2, len)), self.layer);
+        }
+    }
+
+    /// A card vertex: `u` 0 or 1 across, `v` 0, 1 or 2 halves along, `span` the blocks its texture covers.
+    fn vert(&self, off: [f32; 3], u: u32, v: u32, h2: u32, span: f32) -> [u32; 3] {
+        let bits = u | v << 1 | (h2 >> 20 & 15) << 3 | ((span * 8.0).round() as u32).min(31) << 7;
+        let vert = Vert {
+            cell: self.cell,
+            off,
+            normal: self.lit,
+            u: bits as f32 / 256.0,
+            kind: KIND_CARD,
+            occlusion: self.occlusion,
+            light: self.light,
+            layer: 0,
+        };
+        pack(&vert)
+    }
+}
+
+/// The leaf texture of block `b` at world cell `w`: one of its alternates, by a hash of the cell.
+fn leaf_layer(b: BlockId, w: [i32; 3]) -> u16 {
+    let (base, alt) = (FACE_TEX[b as usize][0], ALT_TEX[b as usize][0]);
+    match (alt, hash3(SEED, w[0], w[1], w[2]) >> 30) {
+        (0, _) | (_, 0) => base,
+        (alt, k) => alt + k as u16 - 1,
+    }
+}
+
+/// Two unit vectors across `n`.
+fn across(n: [f32; 3]) -> ([f32; 3], [f32; 3]) {
+    let up = if n[1].abs() < 0.9 { [0.0, 1.0, 0.0] } else { [1.0, 0.0, 0.0] };
+    let e1 = unit(cross(up, n));
+    (e1, cross(n, e1))
+}
+
+fn cross(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
+    [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+}
+
+fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+fn unit(a: [f32; 3]) -> [f32; 3] {
+    let l = dot(a, a).sqrt().max(1e-6);
+    a.map(|v| v / l)
 }
 
 #[cfg(test)]
 mod tests;
-
-impl Foliage {
-    /// Meshes the canopy of the centre chunk of `n` (`super::neighbor_index` order) into `out`. `pad` and `light` are
-    /// the mesher's padded blocks and light.
-    pub fn mesh(&mut self, n: &[&Chunk; 27], pad: &[BlockId], light: &[u8], out: &mut Shaped) {
-        if !pad.iter().any(|&b| is_leaves(b)) {
-            return;
-        }
-        self.fill(n);
-        let Some((lo, hi)) = self.inside() else { return };
-        self.soften(lo, hi);
-        self.place(lo, hi);
-        for &step in &PASSES {
-            self.smooth(step);
-        }
-        self.emit(pad, light, (lo, hi), out);
-    }
-
-    /// The grid's blocks from the 27 chunks.
-    #[inline(never)]
-    fn fill(&mut self, n: &[&Chunk; 27]) {
-        let split = |g: usize| {
-            let v = g as i32 - R;
-            ((v.div_euclid(N as i32) + 1) as usize, v.rem_euclid(N as i32) as usize)
-        };
-        for gy in 0..G {
-            let (cy, ly) = split(gy);
-            for gz in 0..G {
-                let (cz, lz) = split(gz);
-                let row = (gy * G + gz) * G;
-                for (cx, from, to, lx) in [(0, 0, REACH, N - REACH), (1, REACH, REACH + N, 0), (2, REACH + N, G, 0)] {
-                    let c = n[cx + cy * 3 + cz * 9];
-                    let dst = &mut self.leaf[row + from..row + to];
-                    match c.dense() {
-                        Some(d) => {
-                            let s = index(lx, ly, lz);
-                            dst.copy_from_slice(&d[s..s + (to - from)]);
-                        }
-                        None => dst.fill(c.get(0, 0, 0)),
-                    }
-                }
-            }
-        }
-    }
-
-    /// Marks the inside cells (and gives a log among leaves a leaf block to wear); their bounds, if any.
-    #[inline(never)]
-    fn inside(&mut self) -> Option<([i32; 3], [i32; 3])> {
-        let (mut lo, mut hi) = ([G as i32; 3], [-1i32; 3]);
-        let mut grow = |i: usize| {
-            let (x, y, z) = ((i % G) as i32, (i / G2) as i32, (i / G % G) as i32);
-            lo = [lo[0].min(x), lo[1].min(y), lo[2].min(z)];
-            hi = [hi[0].max(x), hi[1].max(y), hi[2].max(z)];
-        };
-        self.logs.clear();
-        for (i, (&b, o)) in self.leaf.iter().zip(self.occ.iter_mut()).enumerate() {
-            *o = u8::from(is_leaves(b));
-            if *o == 1 {
-                grow(i);
-            } else if is_log(b) {
-                self.logs.push(i as u32);
-            }
-        }
-        // A log among leaves wears the first leaf beside it; written back only after every log has looked.
-        let steps = [1isize, -1, G as isize, -(G as isize), G2 as isize, -(G2 as isize)];
-        let mut worn = std::mem::take(&mut self.logs);
-        worn.retain_mut(|i| {
-            let p = *i as usize;
-            let (x, y, z) = (p % G, p / G2, p / G % G);
-            if x == 0 || y == 0 || z == 0 || x == G - 1 || y == G - 1 || z == G - 1 {
-                return false;
-            }
-            let Some(leaf) = steps.iter().map(|&d| self.leaf[(p as isize + d) as usize]).find(|&b| is_leaves(b)) else {
-                return false;
-            };
-            *i = p as u32 | u32::from(leaf) << 24;
-            true
-        });
-        for &w in &worn {
-            let p = (w & 0xFF_FFFF) as usize;
-            self.leaf[p] = (w >> 24) as BlockId;
-            self.occ[p] = 1;
-            grow(p);
-        }
-        self.logs = worn;
-        (hi[0] >= 0).then_some((lo, hi))
-    }
-
-    /// `blur` = inside cells in the 3×3×3 box around each cell, within the inside cells' bounds and one more.
-    #[inline(never)]
-    fn soften(&mut self, lo: [i32; 3], hi: [i32; 3]) {
-        let lo = lo.map(|v| (v - 1).max(1));
-        let hi = hi.map(|v| (v + 1).min(G as i32 - 2));
-        self.blur.fill(0);
-        self.scratch.fill(0);
-        // Three passes of three along x, then z, then y: occ → blur → scratch → blur.
-        let pass = |src: &[u8], dst: &mut [u8], d: usize, lo: [i32; 3], hi: [i32; 3]| {
-            for y in lo[1] - 1..=hi[1] + 1 {
-                for z in lo[2] - 1..=hi[2] + 1 {
-                    for x in lo[0] - 1..=hi[0] + 1 {
-                        let (x, y, z) = (x.clamp(1, G as i32 - 2), y.clamp(1, G as i32 - 2), z.clamp(1, G as i32 - 2));
-                        let i = gidx(x, y, z);
-                        dst[i] = src[i - d] + src[i] + src[i + d];
-                    }
-                }
-            }
-        };
-        pass(&self.occ, &mut self.blur, 1, lo, hi);
-        pass(&self.blur, &mut self.scratch, G, lo, hi);
-        pass(&self.scratch, &mut self.blur, G2, lo, hi);
-    }
-
-    /// The softened field at grid cell `i`: inside cells above one half, outside below, by how full their box is.
-    #[inline]
-    fn field(&self, i: usize) -> f32 {
-        0.5 * f32::from(self.occ[i]) + f32::from(self.blur[i]) / 54.0
-    }
-
-    /// One vertex per dual cell whose corners differ, at the mean of its edges' crossings; then who links to whom.
-    #[inline(never)]
-    fn place(&mut self, lo: [i32; 3], hi: [i32; 3]) {
-        for &[x, y, z] in &self.cells {
-            self.vert[gidx(x, y, z)] = 0;
-        }
-        self.cells.clear();
-        self.off.clear();
-        let from = lo.map(|v| (v - 1).max(DUAL_LO));
-        let to = hi.map(|v| (v + 1).min(DUAL_HI));
-        for y in from[1]..to[1] {
-            for z in from[2]..to[2] {
-                for x in from[0]..to[0] {
-                    let base = gidx(x, y, z);
-                    let corner = |k: usize| base + (k & 1) + (k >> 2 & 1) * G + (k >> 1 & 1) * G2;
-                    let first = self.occ[corner(0)];
-                    if (1..8).all(|k| self.occ[corner(k)] == first) {
-                        continue;
-                    }
-                    let mut sum = [0f32; 3];
-                    let mut count = 0.0;
-                    // Corner k sits at (k & 1, k >> 1 & 1, k >> 2 & 1) in (x, y, z); its edges run to k ^ 1, k ^ 2, k ^ 4.
-                    for k in 0..8usize {
-                        for bit in [1usize, 2, 4] {
-                            let j = k ^ bit;
-                            if j < k || self.occ[corner(k)] == self.occ[corner(j)] {
-                                continue;
-                            }
-                            let (fk, fj) = (self.field(corner(k)), self.field(corner(j)));
-                            let t = (0.5 - fk) / (fj - fk);
-                            let at = |c: usize| [(c & 1) as f32, (c >> 1 & 1) as f32, (c >> 2 & 1) as f32];
-                            let (a, b) = (at(k), at(j));
-                            for (s, (a, b)) in sum.iter_mut().zip(a.iter().zip(b)) {
-                                *s += a + (b - a) * t;
-                            }
-                            count += 1.0;
-                        }
-                    }
-                    self.cells.push([x, y, z]);
-                    self.off.push(sum.map(|s| s / count));
-                    self.vert[base] = self.cells.len() as u32;
-                }
-            }
-        }
-        // Links: the six face neighbours, in a fixed order, where the face between holds a crossing.
-        self.links.clear();
-        for &c in &self.cells {
-            let mut l = [u32::MAX; 6];
-            for (a, axis) in AXES.iter().enumerate() {
-                for (s, sign) in [1i32, -1].into_iter().enumerate() {
-                    let d = [c[0] + axis[0] * sign, c[1] + axis[1] * sign, c[2] + axis[2] * sign];
-                    if (0..3).any(|i| d[i] < DUAL_LO || d[i] >= DUAL_HI) {
-                        continue;
-                    }
-                    let v = self.vert[gidx(d[0], d[1], d[2])];
-                    // The shared face's four corners: the higher cell's low face.
-                    let f = if sign > 0 { d } else { c };
-                    let (u, w) = (AXES[(a + 1) % 3], AXES[(a + 2) % 3]);
-                    let at = |i: i32, j: i32| {
-                        self.occ
-                            [gidx(f[0] + u[0] * i + w[0] * j, f[1] + u[1] * i + w[1] * j, f[2] + u[2] * i + w[2] * j)]
-                    };
-                    let mixed = !(at(0, 0) == at(1, 0) && at(0, 0) == at(0, 1) && at(0, 0) == at(1, 1));
-                    if v != 0 && mixed {
-                        l[a * 2 + s] = v - 1;
-                    }
-                }
-            }
-            self.links.push(l);
-        }
-    }
-
-    /// One smoothing pass: each vertex moves `step` of the way to its linked neighbours' mean, kept in its dual cell.
-    #[inline(never)]
-    fn smooth(&mut self, step: f32) {
-        self.next.clear();
-        for (i, l) in self.links.iter().enumerate() {
-            let c = self.cells[i];
-            let o = self.off[i];
-            let (mut sum, mut n) = ([0f32; 3], 0.0);
-            for &j in l {
-                if j == u32::MAX {
-                    continue;
-                }
-                let (cj, oj) = (self.cells[j as usize], self.off[j as usize]);
-                for k in 0..3 {
-                    sum[k] += oj[k] + (cj[k] - c[k]) as f32;
-                }
-                n += 1.0;
-            }
-            if n == 0.0 {
-                self.next.push(o);
-                continue;
-            }
-            self.next.push(std::array::from_fn(|k| (o[k] + step * (sum[k] / n - o[k])).clamp(0.02, 0.98)));
-        }
-        std::mem::swap(&mut self.off, &mut self.next);
-    }
-
-    /// A quad across every edge between an inside and an outside cell whose lower cell is the chunk's.
-    #[inline(never)]
-    fn emit(&mut self, pad: &[BlockId], light: &[u8], (lo, hi): ([i32; 3], [i32; 3]), out: &mut Shaped) {
-        // Each vertex the chunk's quads use, worked out once (dual cells R - 1 .. R + N on every axis).
-        let mut shells = std::mem::take(&mut self.shells);
-        shells.clear();
-        for &c in &self.cells {
-            let own = c.iter().all(|&v| (R - 1..R + N as i32).contains(&v));
-            shells.push(own.then(|| self.shell(pad, light, c).map(|v| pack(&v))));
-        }
-        let at = |c: [i32; 3]| shells[self.vert[gidx(c[0], c[1], c[2])] as usize - 1].expect("an owned vertex");
-        // An edge with a side inside starts at most one cell before the inside cells' bounds.
-        let from = lo.map(|v| (v - 1).max(R));
-        let to = hi.map(|v| (v + 1).min(R + N as i32));
-        for y in from[1]..to[1] {
-            for z in from[2]..to[2] {
-                for x in from[0]..to[0] {
-                    let g = [x, y, z];
-                    let here = self.occ[gidx(x, y, z)];
-                    for a in 0..3 {
-                        let e = AXES[a];
-                        let there = self.occ[gidx(x + e[0], y + e[1], z + e[2])];
-                        if here == there {
-                            continue;
-                        }
-                        let (u, v) = (AXES[(a + 1) % 3], AXES[(a + 2) % 3]);
-                        let d = |i: i32, j: i32| {
-                            [g[0] - u[0] * i - v[0] * j, g[1] - u[1] * i - v[1] * j, g[2] - u[2] * i - v[2] * j]
-                        };
-                        // (u, v, a) is right-handed, so d(1,1) → d(0,1) → d(0,0) → d(1,0) runs counter-clockwise seen from +a.
-                        let ring = [d(1, 1), d(0, 1), d(0, 0), d(1, 0)];
-                        let (inside, face) =
-                            if here == 1 { (g, a * 2) } else { ([x + e[0], y + e[1], z + e[2]], a * 2 + 1) };
-                        let b = self.leaf[gidx(inside[0], inside[1], inside[2])];
-                        let layer = pick_layer(b, face, inside.map(|v| (v - R + 1) as usize));
-                        let mut shell = ring.map(at);
-                        if here == 0 {
-                            shell.reverse();
-                        }
-                        for (i, cutout) in [(0, true), (1, true), (2, false)] {
-                            out.packed(cutout, shell.map(|s| s[i]), layer);
-                        }
-                    }
-                }
-            }
-        }
-        self.shells = shells;
-    }
-}

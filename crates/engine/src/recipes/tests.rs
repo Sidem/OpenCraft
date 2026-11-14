@@ -77,6 +77,13 @@ const GATHERED: &[ItemId] = &[
     ItemId::block(SAPLING),
     ItemId::block(block::BIRCH_SAPLING),
     ItemId::block(block::PINE_SAPLING),
+    ItemId::block(block::PALM_SAPLING),
+    ItemId::block(block::CHERRY_SAPLING),
+    ItemId::block(block::BAOBAB_SAPLING),
+    ItemId::block(block::ACACIA_SAPLING),
+    ItemId::block(block::REDWOOD_SAPLING),
+    ItemId::block(block::EUCALYPTUS_SAPLING),
+    ItemId::block(block::BAMBOO_SHOOT),
     item::CRUDE_BARREL,
     item::COIN,
 ];

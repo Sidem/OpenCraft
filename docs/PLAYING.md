@@ -94,7 +94,10 @@ The **Worlds** list in the pause menu manages several worlds:
 
 New worlds start you in low, gently rolling country (mountains rise only a few hundred blocks out) and have
 **biomes**: plains and forest around where you start, sandy deserts over sandstone,
-highlands over granite, wet lowlands thick with trees, and bare black basalt fields. The rock under
+highlands over granite, wet lowlands thick with trees, and bare black basalt fields. Within them lie
+forests of their own, each with its trees: warm dry savanna (acacias and baobabs), cold boreal forest (pines and
+birches), eucalyptus woodland, bamboo forest in warm lowlands and redwood forest on wet highlands; cherry trees
+gather in groves on the plains and palms lean over warm beaches. The rock under
 each biome decides which ores lie in it: coal and limestone in the lowlands, copper and quartz in the
 highlands, quartz and limestone in the deserts, rich iron in the basalt, a bit of everything on the plains.
 Deep veins and lodes give themselves away at the surface: rusty soil above iron, dark soil above coal,

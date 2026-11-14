@@ -46,134 +46,96 @@ fn mesh(m: &mut Mesher, w: &HashMap<[i32; 3], Chunk>, c: [i32; 3]) -> MeshOutput
     m.mesh(&refs, &DAYLIGHT, None)
 }
 
-/// The shell's quads (kind 0 in the shaped cutout list) as world positions in fixed point (`shaped.rs`), four a quad.
-fn shell_positions(out: &MeshOutput, c: [i32; 3]) -> Vec<[i32; 3]> {
+/// The cards (kind 0 in the cutout list): per quad its four positions in chunk-local blocks and its normal.
+fn cards(out: &MeshOutput) -> Vec<([[f32; 3]; 4], [f32; 3])> {
     let start = out.shaped_opaque as usize * 12;
     out.shaped[start..]
-        .chunks(3)
-        .filter(|w| w[0] >> 24 & 7 == 0)
-        .map(|w| {
-            let local = [w[0] & 4095, w[0] >> 12 & 4095, w[1] & 4095];
-            std::array::from_fn(|k| local[k] as i32 + c[k] * 32 * 100)
+        .chunks(12)
+        .filter(|q| q[0] >> 24 & 7 == 0)
+        .map(|q| {
+            let p = std::array::from_fn(|i| {
+                let w = &q[i * 3..i * 3 + 3];
+                [w[0] & 4095, w[0] >> 12 & 4095, w[1] & 4095].map(|v| v as f32 / 100.0 - 2.0)
+            });
+            (p, octahedral(q[2] & 0xFFFF))
         })
         .collect()
 }
 
-fn hash(x: i32, y: i32, z: i32) -> u32 {
-    let h = (x as u32).wrapping_mul(0x9E37_79B1)
-        ^ (y as u32).wrapping_mul(0x85EB_CA77)
-        ^ (z as u32).wrapping_mul(0xC2B2_AE3D);
-    (h ^ (h >> 15)).wrapping_mul(0x2C1B_3C6D) >> 16
+/// `shaped::octahedral` undone (as `render/shaped.ts` does).
+fn octahedral(bits: u32) -> [f32; 3] {
+    let e = [(bits & 255) as f32 / 255.0 * 2.0 - 1.0, (bits >> 8) as f32 / 255.0 * 2.0 - 1.0];
+    let mut n = [e[0], 1.0 - e[0].abs() - e[1].abs(), e[1]];
+    if n[1] < 0.0 {
+        let (x, z) = (n[0], n[2]);
+        n[0] = (1.0 - z.abs()) * x.signum();
+        n[2] = (1.0 - x.abs()) * z.signum();
+    }
+    let l = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
+    n.map(|v| v / l)
 }
 
-/// A ragged canopy round the world origin, so it crosses the borders of the eight chunks there on every axis: most
-/// cells within 6 blocks, two kinds of leaves, a trunk up into it, and stray leaves around.
-fn ragged(x: i32, y: i32, z: i32) -> BlockId {
-    let d2 = x * x + y * y + z * z;
-    if x == 0 && z == 0 && (-9..=2).contains(&y) {
-        return LOG;
-    }
-    let h = hash(x, y, z) % 100;
-    if d2 <= 36 && h < 80 || d2 <= 100 && h < 3 {
-        if x > 2 {
-            BIRCH_LEAVES
+/// A ball of leaves round (16, 16, 16) of radius `r`, with a trunk up into it.
+fn ball(r: i32) -> impl Fn(i32, i32, i32) -> BlockId {
+    move |x, y, z| {
+        let (dx, dy, dz) = (x - 16, y - 16, z - 16);
+        if dx == 0 && dz == 0 && (6..=16).contains(&y) {
+            LOG
+        } else if dx * dx + dy * dy + dz * dz <= r * r {
+            if dx > 1 {
+                BIRCH_LEAVES
+            } else {
+                LEAVES
+            }
         } else {
-            LEAVES
+            AIR
         }
-    } else {
-        AIR
     }
 }
 
 #[test]
-fn a_canopy_across_chunk_borders_is_closed_with_no_crack() {
-    let w = world(ragged);
-    let mut m = Mesher::new();
-    // Every directed edge of the shell must be matched by as many running back: a closed surface, wound consistently,
-    // whose vertices on a border are the same bits in both chunks.
-    let mut edges: HashMap<([i32; 3], [i32; 3]), i32> = HashMap::new();
-    let mut quads = 0;
-    for cy in -1..=0 {
-        for cz in -1..=0 {
-            for cx in -1..=0 {
-                let out = mesh(&mut m, &w, [cx, cy, cz]);
-                let p = shell_positions(&out, [cx, cy, cz]);
-                quads += p.len() / 4;
-                for q in p.chunks(4) {
-                    for i in 0..4 {
-                        let (a, b) = (q[i], q[(i + 1) % 4]);
-                        *edges.entry((a, b)).or_default() += 1;
-                        *edges.entry((b, a)).or_default() -= 1;
-                    }
-                }
-            }
-        }
-    }
-    assert!(quads > 300, "the canopy has a shell: {quads} quads");
-    let open: Vec<_> = edges.iter().filter(|(_, &n)| n != 0).collect();
-    assert!(open.is_empty(), "{} of {} edges are open, e.g. {:?}", open.len(), edges.len(), open.first());
+fn a_lone_leaf_is_three_cards_and_a_buried_one_one() {
+    let lone = world(|x, y, z| if (x, y, z) == (5, 5, 5) { LEAVES } else { AIR });
+    assert_eq!(cards(&mesh(&mut Mesher::new(), &lone, [0, 0, 0])).len(), 3);
+    // A 3×3×3 block of leaves: 26 that show, one inside them.
+    let cube =
+        world(|x, y, z| if (4..7).contains(&x) && (4..7).contains(&y) && (4..7).contains(&z) { LEAVES } else { AIR });
+    assert_eq!(cards(&mesh(&mut Mesher::new(), &cube, [0, 0, 0])).len(), 26 * 3 + 1);
 }
 
 #[test]
 fn a_chunk_meshes_the_same_whatever_was_meshed_before() {
-    let w = world(ragged);
+    let w = world(ball(6));
     let fresh = mesh(&mut Mesher::new(), &w, [0, 0, 0]);
     let mut m = Mesher::new();
     mesh(&mut m, &w, [-1, -1, -1]);
-    mesh(&mut m, &w, [-1, 0, 0]);
+    mesh(&mut m, &w, [0, 0, -1]);
     let again = mesh(&mut m, &w, [0, 0, 0]);
     assert!(fresh.shaped_cutout > 0);
     assert_eq!((fresh.shaped, fresh.shaped_opaque), (again.shaped, again.shaped_opaque));
 }
 
-/// The share of the shell of a cube of leaves `side` blocks wide that faces within 10° of an axis, by area.
-fn square_share(side: i32) -> f64 {
-    let (lo, hi) = (17 - (side + 1) / 2, 17 - (side + 1) / 2 + side);
-    let w = world(|x, y, z| if [x, y, z].iter().all(|v| (lo..hi).contains(v)) { LEAVES } else { AIR });
-    let p = shell_positions(&mesh(&mut Mesher::new(), &w, [0, 0, 0]), [0, 0, 0]);
-    let (mut all, mut square) = (0.0, 0.0);
-    for q in p.chunks(4) {
-        let q = q.iter().map(|v| v.map(f64::from)).collect::<Vec<_>>();
-        for [a, b, c] in [[q[0], q[1], q[2]], [q[0], q[2], q[3]]] {
-            let (u, v): ([f64; 3], [f64; 3]) =
-                (std::array::from_fn(|k| b[k] - a[k]), std::array::from_fn(|k| c[k] - a[k]));
-            let n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
-            let len = (n[0] * n[0] + n[1] * n[1] + n[2] * n[2]).sqrt();
-            all += len;
-            if n.iter().any(|&c| c.abs() > len * 10f64.to_radians().cos()) {
-                square += len;
-            }
+#[test]
+fn a_crown_is_lit_as_a_ball() {
+    // Cards on the outer shell of the ball have normals pointing out of it, so it shades as one rounded volume.
+    let out = mesh(&mut Mesher::new(), &world(ball(6)), [0, 0, 0]);
+    let (mut outer, mut out_facing) = (0, 0);
+    for (p, n) in cards(&out) {
+        let c: [f32; 3] = std::array::from_fn(|k| p.iter().map(|v| v[k]).sum::<f32>() / 4.0 - 16.5);
+        let d = (c[0] * c[0] + c[1] * c[1] + c[2] * c[2]).sqrt();
+        if d > 4.5 {
+            outer += 1;
+            out_facing += usize::from(c[0] * n[0] + c[1] * n[1] + c[2] * n[2] > 0.3 * d);
         }
     }
-    square / all
+    assert!(outer > 300 && out_facing * 100 >= outer * 90, "{out_facing} of {outer} outer cards face out");
 }
 
 #[test]
-fn a_cube_of_leaves_comes_out_rounded() {
-    // Drawn as cubes, all of it would face an axis. A shell keeps within half a block of its leaves, so a tree-sized
-    // cube becomes a ball and a hedge-sized one a cushion with rounded edges and lumps.
-    let (small, big) = (square_share(3), square_share(7));
-    assert!(small < 0.25, "3 blocks: {:.0}% faces an axis", small * 100.0);
-    assert!(big < 0.5, "7 blocks: {:.0}% faces an axis", big * 100.0);
-}
-
-#[test]
-fn the_hull_lies_inside_the_shell_and_the_fringe_outside() {
-    let w = world(|x, y, z| if [x, y, z].iter().all(|v| (13..20).contains(v)) { LEAVES } else { AIR });
-    let out = mesh(&mut Mesher::new(), &w, [0, 0, 0]);
-    // Per edge: a shell quad and a fringe quad in the cutout list, a hull quad in the opaque one.
-    assert_eq!(out.shaped_opaque * 2, out.shaped_cutout);
-    let n = out.shaped_opaque as usize * 4;
-    let occlusion = |v: usize| out.shaped[v * 3] >> 27 & 7;
-    let radius = |v: usize| {
-        let w = &out.shaped[v * 3..v * 3 + 3];
-        let p = [w[0] & 4095, w[0] >> 12 & 4095, w[1] & 4095].map(|c| c as f32 / 100.0 - 2.0 - 16.5);
-        (p[0] * p[0] + p[1] * p[1] + p[2] * p[2]).sqrt()
-    };
-    for hull in 0..n {
-        let shell = n + (hull / 4 * 2) * 4 + hull % 4;
-        let fringe = shell + 4;
-        assert!(radius(hull) < radius(shell) && radius(shell) < radius(fringe), "vertex {hull}: hull, shell, fringe");
-        assert!(occlusion(hull) <= occlusion(shell));
-    }
+fn leaves_on_a_chunk_border_are_drawn_once() {
+    // A slab of leaves across x = 0: each chunk draws the cards of its own leaves only.
+    let w = world(|x, y, z| if (-2..2).contains(&x) && y == 5 && (4..8).contains(&z) { LEAVES } else { AIR });
+    let left = cards(&mesh(&mut Mesher::new(), &w, [-1, 0, 0])).len();
+    let right = cards(&mesh(&mut Mesher::new(), &w, [0, 0, 0])).len();
+    assert_eq!((left, right), (2 * 4 * 3, 2 * 4 * 3));
 }

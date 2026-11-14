@@ -39,7 +39,7 @@ impl WorldGen {
                 let i = z * 32 + x;
                 heights[i] = h;
                 if self.version >= 2 {
-                    let biome = self.biome_at(x0 + x as i32, z0 + z as i32, h);
+                    let biome = self.local_biome_at(x0 + x as i32, z0 + z as i32, h);
                     biomes.push(biome);
                     (surface[i], rock[i]) = Self::surface_v2(biome, h, slope);
                     if self.version >= 3 {
@@ -54,7 +54,7 @@ impl WorldGen {
         }
         let trees = self.trees_near(x0, z0);
         let ruins = self.ruins_near(x0, z0);
-        let max_y = trees.iter().map(|t| t.ground + t.trunk + 2).fold(max_ground, i32::max);
+        let max_y = trees.iter().map(|t| t.top()).fold(max_ground, i32::max);
         let max_y = ruins.iter().map(|r| r.top()).fold(max_y, i32::max);
         let falls = if self.version >= 8 { falls(&wet, P) } else { Vec::new() };
         let max_y = water.iter().chain(&falls).copied().fold(max_y, i32::max);

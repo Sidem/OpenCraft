@@ -277,9 +277,11 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Ruins (R5a, 2026-10-17, `textures/ruins.rs`, layers 326–329): `RUST_PLATE` (rusted panels, bolts, flaked patches showing grey iron; also the husk's top and
   bottom), `RUST_MACHINE` (a husk's side: dead hatch and gauge), `RUST_GIRDER` (an I-beam seen end-on, cross-braced) and `SCRAP` (the Scrap Metal item, a heap of bent plate).
   The ruin's silhouette matters more than the tiles: husks and poles are plain cubes now (`worldgen/ruins.rs` `build`); broken pipes, collapsed roofs and leaning poles would sell it.
-  Forest (R2b, 2026-10-17, `textures/forest.rs`, layers 314–321): `BIRCH_SIDE` (pale bark with dark scars), `BIRCH_LEAVES`, `PINE_LEAVES` (dark
-  needles), `CACTUS_SIDE` / `CACTUS_TOP` (ribs and spines; blocks 120), `DEAD_SIDE` (grey cracked wood), `BIRCH_SAPLING`, `PINE_SAPLING`. Shapes of
-  the trees (`worldgen/trees.rs` `Shape`) are blocky placeholders: silhouettes that read from afar matter most (a real cone, drooping broad trees).
+  Forest (R2b, `textures/forest.rs`, layers 314–321): `BIRCH_SIDE`, `BIRCH_LEAVES`, `PINE_LEAVES`, `CACTUS_SIDE`/`TOP`, `DEAD_SIDE`, two saplings.
+  Trees (2026-11-14, generator 12): shapes are grown in `worldgen/grow/` (one `Kind` row per species), leaves drawn as crossed cards
+  (`mesher/foliage/style.rs`), limbs as tapered logs (`mesher/logs/`). Bark and leaf tiles of the seven new species (layers 410–430,
+  `tools/art/trees.py`, realistic look; engine fallbacks in `textures/trees.rs`) are shifted from the oak and pine palettes, not drawn from
+  photos: real bark references (redwood fibre, eucalyptus peel, baobab grey) would lift them most. The saplings (413…431) are the engine's.
   The hover pack (9.5a): `tex::HOVER_PACK` (200) is an icon only; the worn pack has no model and hovering draws nothing yet.
   The cargo drone (9.5b): `tex::CARGO_DRONE` (201) is the icon; in flight it is the builder's boxes with a crate slung
   under it (`drone_view.rs`). It should read as a heavier hauler; a route has no line drawn between its ports yet.

@@ -192,9 +192,22 @@ pub use sign::*;
 /// The forester, id 159 (`forester.rs`).
 mod forester;
 pub use forester::*;
+/// Generator 12's species and bamboo, ids 160–181 (`trees.rs`).
+mod trees;
+pub use trees::{
+    ACACIA_LEAVES, ACACIA_LOG, ACACIA_SAPLING, BAMBOO, BAMBOO_LEAVES, BAMBOO_SHOOT, BAOBAB_LEAVES, BAOBAB_LOG,
+    BAOBAB_SAPLING, CHERRY_BLOSSOM, CHERRY_LOG, CHERRY_SAPLING, EUCALYPTUS_LEAVES, EUCALYPTUS_LOG, EUCALYPTUS_SAPLING,
+    PALM_FRONDS, PALM_LOG, PALM_SAPLING, PINE_LOG, REDWOOD_LOG, REDWOOD_NEEDLES, REDWOOD_SAPLING, TREES_COUNT,
+};
 const BASE_COUNT: usize = 129;
-pub const BLOCK_COUNT: usize =
-    BASE_COUNT + DECOR_COUNT + COAL_MINER_COUNT + HOUSE_COUNT + EJECTOR_COUNT + SIGN_COUNT + FORESTER_COUNT;
+pub const BLOCK_COUNT: usize = BASE_COUNT
+    + DECOR_COUNT
+    + COAL_MINER_COUNT
+    + HOUSE_COUNT
+    + EJECTOR_COUNT
+    + SIGN_COUNT
+    + FORESTER_COUNT
+    + TREES_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

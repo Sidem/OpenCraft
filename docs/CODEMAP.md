@@ -73,7 +73,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs` (row builders), `tables.rs` (hot-loop lookups), `tex.rs` +
   `tex/later.rs` (texture layers), `turn.rs` (tile turning), id ranges in `chemistry.rs`, `forest.rs`, `ruins.rs`,
-  `decor.rs`, `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158), `forester.rs` (id 159); `ores.rs`.
+  `decor.rs`, `trees.rs` (generator 12's species), `coal_miner.rs` (id 143), `house.rs` (ids 144–156: doors, roofs, walls; `toggled` pairs the doors), `ejector.rs` (id 157), `sign.rs` (id 158), `forester.rs` (id 159); `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs` builders): `ItemId`; ids below 256 are blocks.
 - `recipes/`: `mod.rs` (`RECIPES`, hand; the first era's rows in `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`;
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
@@ -88,7 +88,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   ground plants the sickle cut: core state, saved).
 - `worldgen/mod.rs`: heights, caves, trees, `generate`, generator versions (pinned by `released_versions_never_change`).
   `column.rs` (per-column data), `biome.rs`, `landform.rs`, `caves.rs`, `water.rs` (sea, ponds), `rivers.rs` + `rivers/` (course, seg), `shore.rs`,
-  `trees.rs` (species), `geology.rs` + `strata.rs` + `ore.rs` (deposit seeding), `bearing.rs`, `ruins.rs`, `logbook.rs`.
+  `trees.rs` (trees up to version 11, `Tree`, stamping), `grow/` (version 12's trees: `kinds.rs` one row a species and where each grows, `shapes.rs` the crowns, `place.rs` placement; `grow_young` for saplings), `geology.rs` + `strata.rs` + `ore.rs` (deposit seeding), `bearing.rs`, `ruins.rs`, `logbook.rs`.
 - `noise.rs`: Perlin and fBm. `light.rs`: sky and block light while meshing (render cache only).
 
 ### Local player: hands, tools and previews (presentation; act only by queuing actions)
@@ -105,8 +105,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs` surface shape, `cover.rs` ground cover and indicator plants). Trees are
-  not cubes: `shaped.rs` (the shaped list's vertex format, `SHAPED`, `HIDES`), `logs.rs` (round trunks), `foliage.rs` +
-  `foliage/shell.rs` (canopies as one smoothed surface over the leaves within `REACH`, seam-exact across chunks).
+  not cubes: `shaped.rs` (the shaped list's vertex format, `SHAPED`, `HIDES`), `tree_grid.rs` (the blocks round a chunk trees are
+  drawn from), `logs.rs` + `logs/` (branches: `node.rs` thickness and joins, `ring.rs` the wood), `foliage.rs` + `foliage/style.rs` (leaf cards per species).
 - `entities.rs` + `entities/merge.rs` (loose items; resting ones merge into stacks), `avatars.rs` + `avatars/` (also the first-person hand: `model::push_view_hand`; `grip.rs` how any item sits in a hand, all one size; `tool_hold.rs` where picks, axes, shovels and sickles are gripped and the stroke each makes), `halos.rs` (glow round lamps and torches), `wire_props.rs` (free props that hold a power wire off the ground over hills), `held_light.rs` (the light a torch in a hand gives: reach and what the frame reports), `drone_view.rs` + `companion_view.rs` (each player's personal drone in flight), `orbit_fx.rs`, `sound.rs` (event buffer).
 - `minimap.rs` + `minimap/` (`atlas.rs` explored map, `marks.rs` the marks as `Subject`s, `describe.rs` their words for the hover box, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `item_guide.rs`: every way to get an item (found, hand, machine) and what uses it; a test makes every needed item answerable.
@@ -163,7 +163,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `check-map.mjs` (this map and the core layer),
   `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
   `bench-flight.mjs` (frame timing on a real save), `frame-bench.mjs` (what each graphics knob buys, in real Chrome, Edge or Firefox; on the GPU or software), `port-shots.mjs` (every machine's ports at every turn as a player sees them, with the truth, for a blind reader), `bake-sky/` (star data, not part of the build).
-- `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade); see `docs/ART_STYLE.md`.
+- `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade, `trees.py` the species' bark and leaves); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).
 
 ## Where the tuning knobs live

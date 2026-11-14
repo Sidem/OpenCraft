@@ -1,7 +1,7 @@
-// Round trunks and canopies: the chunk meshes' "shaped" list (engine `mesher/shaped.rs` says how a vertex is packed:
+// Branches and leaf cards: the chunk meshes' "shaped" list (engine `mesher/shaped.rs` says how a vertex is packed:
 // three u32, position, normal, light and texture together). This file owns their GPU buffers and vertex shader; the
-// renderer draws them with the terrain's fragment shader (`litFrag` with SHAPED), opaque trunks and dark inner
-// canopies after the opaque terrain, the leafy shells after the cutout terrain.
+// renderer draws them with the terrain's fragment shader (`litFrag` with SHAPED), the wood after the opaque terrain,
+// the leaf cards (from both sides) after the cutout terrain.
 
 import { LIGHT } from './shaders';
 
@@ -49,8 +49,8 @@ export function deleteShaped(gl: WebGL2RenderingContext, part: ShapedPart): void
   gl.deleteBuffer(part.vbo);
 }
 
-// The outputs match chunkVert's (shaders.ts), so `litFrag` serves both; SHAPED adds the chunk-local position and the
-// kind, from which the fragment shader textures a canopy by its triangle's main axis.
+// The outputs match chunkVert's (shaders.ts), so `litFrag` serves both; SHAPED adds the chunk-local position, the
+// kind and a card's corner, from which the fragment shader rounds a leaf card's outline.
 export const shapedVert = /* glsl */ `#version 300 es
 precision highp float;
 precision highp int;
@@ -70,6 +70,7 @@ out vec3 v_rel;
 out vec2 v_ground;
 out vec2 v_open;
 out vec3 v_pos;
+out vec2 v_card;
 flat out uint v_kind;
 
 const float SCALE = 100.0; // engine SHAPED_SCALE
@@ -90,8 +91,16 @@ void main() {
   uint light = w1 >> 24u;
   vec3 n = octahedral(w2 & 65535u);
   float layer = float((w2 >> 16u) & 511u);
-  vec2 uv = vec2(0.0); // a canopy's comes per pixel
-  if (kind >= 1u && kind <= 3u) {
+  vec2 uv = vec2(0.0);
+  v_card = vec2(-1.0);
+  if (kind == 0u) {
+    // A leaf card: its corner, which part of the texture, and the blocks the texture spans (engine foliage.rs).
+    uint b = (w1 >> 12u) & 4095u;
+    vec2 corner = vec2(float(b & 1u), float((b >> 1u) & 3u) * 0.5);
+    uint part = (b >> 3u) & 15u;
+    uv = corner * (float(b >> 7u) / 8.0) + vec2(float(part & 3u) * 0.37, float(part >> 2u) * 0.29);
+    v_card = corner;
+  } else if (kind >= 1u && kind <= 3u) {
     uint a = kind - 1u;
     uv = vec2(u, -p[a]); // around, then along the trunk
   } else if (kind >= 4u && kind <= 6u) {

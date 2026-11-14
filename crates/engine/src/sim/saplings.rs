@@ -1,17 +1,18 @@
-﻿//! Saplings: leaves now and then leave one behind (broken by hand or decayed), and a sapling planted
-//! on dirt or grass grows into a tree after a while, in the same shape as generated trees
-//! (`worldgen::tree_blocks`).
+//! Saplings: leaves now and then leave one behind (broken by hand or decayed), and a sapling planted
+//! on dirt or grass grows into a tree after a while, grown like generated trees but young (`worldgen::grow_young`:
+//! a trunk one block wide, at most `YOUNG_MAX` tall), so it fits a forester's patch.
 //!
 //! Invariants: growth is a block timer (`TimerKind::SaplingGrow`, started by `Sim::block_changed`), so
-//! it is core state: its delay, the trunk height and the drop chance come from `Sim.rng`, and its edits
-//! go through `set_block_anywhere`. A sapling grows only with dirt or grass under it and air where its
-//! trunk goes; otherwise it tries again later. Its leaves only go into air. To tune: the constants.
+//! it is core state: its delay, the tree's height and the drop chance come from `Sim.rng`, and its edits
+//! go through `set_block_anywhere`. A sapling grows only with dirt or grass under it and every log of its tree
+//! going into air, leaves or wood (never through a build); otherwise it tries again later. Its leaves only go into
+//! air. To tune: the constants.
 
 use super::timers::TimerKind;
-use crate::block::{is_sapling, AIR, DIRT, GRASS};
+use crate::block::{is_leaves, is_log, is_sapling, AIR, DIRT, GRASS};
 use crate::math::IVec3;
 use crate::sim::{Sim, SimEvent};
-use crate::worldgen::{species_of_sapling, tree_blocks, trunk_range, WORLD_HEIGHT};
+use crate::worldgen::{grow_young, kind_of_sapling, WORLD_HEIGHT};
 
 /// Chance that a leaf leaves a sapling when it is broken or decays.
 pub const SAPLING_CHANCE: f64 = 1.0 / 25.0;
@@ -40,21 +41,21 @@ impl Sim {
         if !is_sapling(sapling) {
             return;
         }
-        let species = species_of_sapling(sapling);
-        let (trunk_min, spread) = trunk_range(species);
-        let trunk = trunk_min + self.rng.below(spread) as i32;
-        let mut room = self.can_plant(pos) && pos.y + trunk + 1 < WORLD_HEIGHT;
-        for dy in 1..trunk {
-            room = room && self.block(pos + IVec3::new(0, dy, 0)) == AIR;
+        let ground = pos - IVec3::new(0, 1, 0);
+        let mut edits = Vec::new();
+        let roll = self.rng.next_u32();
+        grow_young(kind_of_sapling(sapling), ground, roll, self.world.generator().seed(), |p, id, replace| {
+            edits.push((p, id, replace))
+        });
+        let mut room = self.can_plant(pos);
+        for &(p, _, replace) in &edits {
+            let b = if replace && p != pos && p != ground { self.block(p) } else { AIR };
+            room = room && p.y < WORLD_HEIGHT && (b == AIR || is_leaves(b) || is_log(b));
         }
         if !room {
             self.schedule_growth(pos);
             return;
         }
-        let mut edits = Vec::new();
-        tree_blocks(pos - IVec3::new(0, 1, 0), trunk, species, self.world.generator().seed(), |p, id, replace| {
-            edits.push((p, id, replace))
-        });
         for (p, id, replace) in edits {
             if replace || self.block(p) == AIR {
                 self.world.set_block_anywhere(p, id);

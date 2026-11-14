@@ -223,27 +223,13 @@ vec2 turnUv(vec2 uv, inout vec2 dx, inout vec2 dy) {
 #endif
 #endif
 #ifdef SHAPED
-// Round trunks and canopies (render/shaped.ts): a canopy is textured flat along its triangle's main axis (the smooth
-// normal can lean far from the surface, and the leaves would smear); the gradients come from the position, so they
-// don't jump where the axis changes.
-in vec3 v_pos;
-flat in uint v_kind;
-void canopyUv(inout vec3 uvl, inout vec2 dx, inout vec2 dy) {
-  vec3 px = dFdx(v_pos), py = dFdy(v_pos), a = abs(cross(px, py));
-  if (v_kind != 0u && v_kind != 7u) return;
-  if (a.x >= a.y && a.x >= a.z) {
-    uvl.xy = vec2(v_pos.z, -v_pos.y); dx = vec2(px.z, -px.y); dy = vec2(py.z, -py.y);
-  } else if (a.y >= a.z) {
-    uvl.xy = v_pos.xz; dx = px.xz; dy = py.xz;
-  } else {
-    uvl.xy = vec2(v_pos.x, -v_pos.y); dx = vec2(px.x, -px.y); dy = vec2(py.x, -py.y);
-  }
-  // The fringe (kind 7) shows other leaves than the shell beneath it: the tile turned and shifted.
-  if (v_kind == 7u) {
-    uvl.xy = vec2(uvl.y, -uvl.x) + vec2(0.5, 0.31);
-    dx = vec2(dx.y, -dx.x);
-    dy = vec2(dy.y, -dy.x);
-  }
+// Branches and leaf cards (render/shaped.ts). A card's outline is rounded off (a frond's along its length), so a
+// card reads as a clump of leaves rather than a square; its corner is (-1, -1) for wood.
+in vec2 v_card;
+float cardMask() {
+  if (v_card.x < 0.0) return 1.0;
+  vec2 d = v_card * 2.0 - 1.0;
+  return 1.0 - smoothstep(0.8, 1.0, dot(d, d));
 }
 #endif
 #ifdef WATER
@@ -321,12 +307,13 @@ void main() {
 #else
   vec3 uvl = v_uvl;
   vec2 dx = dFdx(uvl.xy), dy = dFdy(uvl.xy);
-#ifdef SHAPED
-  canopyUv(uvl, dx, dy);
-#elif defined(TERRAIN)
+#if defined(TERRAIN) && !defined(SHAPED)
   uvl.xy = turnUv(uvl.xy, dx, dy);
 #endif
   vec4 c = textureGrad(u_tex, uvl, dx, dy);
+#ifdef SHAPED
+  c.a *= cardMask();
+#endif
 #ifdef CUTOUT
   if (c.a < 0.5) discard;
 #endif

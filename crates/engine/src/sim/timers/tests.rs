@@ -31,7 +31,7 @@ fn place(sim: &mut Sim, pos: IVec3, block: BlockId) {
     assert_eq!(sim.block(pos), block, "placed");
 }
 
-/// A generated tree near the origin: its log positions, bottom first.
+/// A generated tree near the origin: its log positions (trunk and limbs, joined edge or corner), bottom first.
 fn tree(sim: &mut Sim) -> Vec<IVec3> {
     for z in -48..48 {
         for x in -48..48 {
@@ -40,14 +40,26 @@ fn tree(sim: &mut Sim) -> Vec<IVec3> {
             else {
                 continue;
             };
-            return (y..).take_while(|&y| sim.block(at(x, y, z)) == LOG).map(|y| at(x, y, z)).collect();
+            let mut logs = vec![at(x, y, z)];
+            let mut i = 0;
+            while i < logs.len() {
+                let p = logs[i];
+                for n in cube(p, 1) {
+                    if crate::block::is_log(sim.block(n)) && !logs.contains(&n) {
+                        logs.push(n);
+                    }
+                }
+                i += 1;
+            }
+            logs.sort_by_key(|p| p.y);
+            return logs;
         }
     }
     panic!("no tree near the origin");
 }
 
 fn leaves_near(sim: &mut Sim, top: IVec3) -> Vec<IVec3> {
-    cube(top, 3).filter(|&p| sim.block(p) == LEAVES).collect()
+    cube(top, 3).filter(|&p| crate::block::is_leaves(sim.block(p))).collect()
 }
 
 #[test]

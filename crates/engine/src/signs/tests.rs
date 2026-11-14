@@ -35,9 +35,10 @@ fn signs_held(g: &Game) -> u32 {
 }
 
 #[test]
-fn the_sign_is_followed_only_by_the_forester() {
+fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
     assert_eq!(usize::from(SIGN) + SIGN_COUNT, usize::from(FORESTER));
-    assert_eq!(usize::from(FORESTER) + FORESTER_COUNT, BLOCK_COUNT);
+    assert_eq!(usize::from(FORESTER) + FORESTER_COUNT, usize::from(crate::block::PINE_LOG));
+    assert_eq!(usize::from(crate::block::PINE_LOG) + crate::block::TREES_COUNT, BLOCK_COUNT);
 }
 
 #[test]

@@ -22,7 +22,9 @@ BAND = (85.0, 105.0, 165.0, 195.0)
 GREY = (0.015, 0.04)
 
 GRADED = {"grass_top", "grass_side", "tuft", "daisy", "poppy", "bluebell", "fern", "reed", "sapling",
-          "birch_sapling", "pine_sapling", "rust_bloom", "copper_bell", "pale_star", "birch_leaves", "pine_leaves"}
+          "birch_sapling", "pine_sapling", "rust_bloom", "copper_bell", "pale_star", "birch_leaves", "pine_leaves",
+          "palm_fronds", "cherry_blossom", "baobab_leaves", "acacia_leaves", "redwood_needles", "eucalyptus_leaves",
+          "bamboo_leaves"}
 PREFIXES = ("grass_top_", "grass_side_", "leaves")
 
 

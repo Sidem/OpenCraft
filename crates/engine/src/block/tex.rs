@@ -242,7 +242,9 @@ pub const DRONE_CARBON: u16 = COIL + 2;
 /// The note signs' text (`signs/view.rs`): two layers a slot, the host paints them (`web/src/render/sign-faces.ts`).
 pub const SIGN_FACE: u16 = DRONE_CARBON + 1;
 pub const SIGN_FACE_LAST: u16 = SIGN_FACE + 2 * crate::signs::view::SLOTS as u16 - 1;
-pub const COUNT: usize = SIGN_FACE_LAST as usize + 1;
+/// Generator 12's species, after every other (`block/trees.rs`, `textures/trees.rs`).
+pub use super::trees::layers::*;
+pub const COUNT: usize = TREE_LAYERS_END as usize;
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

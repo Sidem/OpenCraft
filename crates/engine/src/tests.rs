@@ -928,6 +928,7 @@ mod forest_bench;
 mod frame_bench;
 mod train_aim;
 mod train_journey;
+mod tree_gallery;
 
 #[test]
 fn the_console_finds_items_by_name_and_knows_the_day_length() {

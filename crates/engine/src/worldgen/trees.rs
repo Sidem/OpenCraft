@@ -1,25 +1,34 @@
-//! Trees: where one stands (`Tree`, chosen per cell in `WorldGen::trees_near`) and how one is built block by block
-//! (`tree_blocks`, shared with grown saplings in `sim/saplings.rs` so they look alike). Version 1 depends on both.
+//! Trees up to generator version 11: where one stands (`Tree`, chosen per cell in `WorldGen::trees_near`) and how
+//! one is built block by block (`tree_blocks`). Version 1 depends on both. From version 12 trees are grown
+//! (`grow/`) and a `Tree` carries its blocks; only the bare cactus and snag still come from here.
 //!
 //! A tree is a row of `SPECIES` (blocks, shape, trunk height, the ground it needs) and a `Shape` that lays its blocks;
-//! versions before 9 only ever grow the oak. To add a species: a row, an index constant, a `Shape` arm if it needs a new
-//! shape, a line in `pick`, and (for one with leaves) its sapling in `block/forest.rs` and `species_of_sapling`.
+//! versions before 9 only ever grow the oak. These rows are frozen with the versions that use them: new species go in
+//! `grow/kinds.rs`.
 
 use super::Biome;
 use crate::block::{
-    BlockId, AIR, BASALT, BIRCH_LEAVES, BIRCH_LOG, BIRCH_SAPLING, CACTUS, DIRT, GRASS, LEAVES, LOG, PINE_LEAVES,
-    PINE_SAPLING, SAND, SNAG_LOG,
+    BlockId, AIR, BASALT, BIRCH_LEAVES, BIRCH_LOG, CACTUS, DIRT, GRASS, LEAVES, LOG, PINE_LEAVES, SAND, SNAG_LOG,
 };
 use crate::chunk::{index, CHUNK_SIZE};
 use crate::math::{hash3, IVec3};
 
-/// A tree to stamp: its trunk's foot column, the ground it stands on, its trunk's height and its species.
+/// A tree to stamp: its trunk's foot column, the ground it stands on, its trunk's height and its species (a row of
+/// `SPECIES`), or from version 12 the blocks it grew (`grown`: position, block, whether it replaces solid ground).
 pub(super) struct Tree {
     pub x: i32,
     pub z: i32,
     pub ground: i32,
     pub trunk: i32,
     pub species: usize,
+    pub grown: Vec<(IVec3, BlockId, bool)>,
+}
+
+impl Tree {
+    /// The highest block it puts.
+    pub fn top(&self) -> i32 {
+        self.grown.iter().map(|g| g.0.y).max().unwrap_or(self.ground + self.trunk + 2)
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -82,29 +91,16 @@ pub(super) const SPECIES: [Species; 6] = [
     Species { log: SNAG_LOG, leaves: AIR, shape: Shape::Snag, trunk_min: 3, spread: 4, ground: BASALT, foot: None },
 ];
 
-/// The species a planted sapling grows into.
-pub(crate) fn species_of_sapling(sapling: BlockId) -> usize {
-    match sapling {
-        BIRCH_SAPLING => BIRCH,
-        PINE_SAPLING => PINE,
-        _ => OAK,
-    }
-}
-
-/// A species' trunk heights: the least, and how many heights it has.
-pub(crate) fn trunk_range(species: usize) -> (i32, u32) {
-    (SPECIES[species].trunk_min, SPECIES[species].spread)
-}
-
 /// Generator version 9: the species of a tree candidate in `biome`, from the cell's hash `h`.
 pub(super) fn pick(biome: Biome, h: u32) -> usize {
     let roll = (h >> 24) % 10;
-    match biome {
+    match biome.base() {
         Biome::Plains => [OAK, OAK, OAK, OAK, OAK, OAK, OAK, BIRCH, BIRCH, BIRCH][roll as usize],
         Biome::Lowlands => [BROAD, BROAD, BROAD, BROAD, BROAD, BROAD, OAK, OAK, OAK, BIRCH][roll as usize],
         Biome::Highlands => [PINE, PINE, PINE, PINE, PINE, PINE, PINE, PINE, PINE, OAK][roll as usize],
         Biome::Desert => CACTUS_PLANT,
-        Biome::BasaltFields => SNAG,
+        // `base()` is always one of the five broad biomes: this is the basalt fields.
+        _ => SNAG,
     }
 }
 
@@ -118,7 +114,7 @@ pub(super) fn bare_density(species: usize) -> Option<u32> {
 }
 
 pub(super) fn stamp_tree(t: &Tree, base: IVec3, seed: u32, b: &mut [BlockId]) {
-    tree_blocks(IVec3::new(t.x, t.ground, t.z), t.trunk, t.species, seed, |p, id, replace_solid| {
+    let mut put = |p: IVec3, id: BlockId, replace_solid: bool| {
         let l = p - base;
         if !(0..CHUNK_SIZE).contains(&l.x) || !(0..CHUNK_SIZE).contains(&l.y) || !(0..CHUNK_SIZE).contains(&l.z) {
             return;
@@ -127,13 +123,22 @@ pub(super) fn stamp_tree(t: &Tree, base: IVec3, seed: u32, b: &mut [BlockId]) {
         if replace_solid || b[i] == AIR {
             b[i] = id;
         }
-    });
+    };
+    if !t.grown.is_empty() {
+        if t.top() >= base.y && t.ground - 4 < base.y + CHUNK_SIZE {
+            for &(p, id, replace) in &t.grown {
+                put(p, id, replace);
+            }
+        }
+        return;
+    }
+    tree_blocks(IVec3::new(t.x, t.ground, t.z), t.trunk, t.species, seed, put);
 }
 
 /// A tree of `species` standing on the block at `ground` with a trunk `trunk` blocks tall, block by block: leaves
-/// (which only go into air), then the logs and the dirt under them (which replace anything). Shared
-/// by generation and grown saplings (`sim/saplings.rs`), so they look alike. Version 1 depends on it for the oak.
-pub fn tree_blocks(ground: IVec3, trunk: i32, species: usize, seed: u32, mut put: impl FnMut(IVec3, BlockId, bool)) {
+/// (which only go into air), then the logs and the dirt under them (which replace anything). Version 1 depends on it
+/// for the oak.
+fn tree_blocks(ground: IVec3, trunk: i32, species: usize, seed: u32, mut put: impl FnMut(IVec3, BlockId, bool)) {
     let sp = &SPECIES[species];
     let (x, z) = (ground.x, ground.z);
     let top = ground.y + trunk;

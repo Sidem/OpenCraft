@@ -1,15 +1,16 @@
-//! The shaped list: tree surfaces that are not cubes (log cylinders, `logs.rs`; rounded canopies, `foliage.rs`).
+//! The shaped list: tree surfaces that are not cubes (branches, `logs.rs`; leaf cards, `foliage.rs`).
 //! Three `u32` per vertex, four vertices per quad (the host's shared quad index buffer), opaque quads then cutout ones:
 //!
 //! ```text
 //! word 0: bits  0..12  x   (blocks + SHAPED_OFFSET, in 1/SHAPED_SCALE: chunk-local, a little outside the chunk allowed)
 //!         bits 12..24  y
-//!         bits 24..27  kind: 0 a canopy (textured by its normal's main axis, per pixel), 1..=3 a log's side around
-//!                      x, y, z (u below, v along that axis), 4..=6 a log's end, flat across x, y, z, 7 a canopy's
-//!                      sparser outer layer (textured as 0, shifted and thinned)
+//!         bits 24..27  kind: 0 a leaf card (drawn from both sides), 1..=3 a log's side mostly along x, y, z (u
+//!                      below, v along that axis), 4..=6 a log's end, flat across x, y, z (7 unused)
 //!         bits 27..30  occlusion (0 darkest .. 7 open)
 //! word 1: bits  0..12  z
-//!         bits 12..24  u   (texture tiles in 1/256: around a log)
+//!         bits 12..24  u   (a log: texture tiles in 1/256 around it; a card: bit 0 its corner across, bits 1..3
+//!                      its corner along in halves, bits 3..7 which part of the texture, bits 7..12 the blocks the
+//!                      texture spans in eighths)
 //!         bits 24..32  light (sky | block << 4, as the cube mesher's light byte)
 //! word 2: bits  0..16  normal, octahedral (8 bits each)
 //!         bits 16..25  texture layer
@@ -44,10 +45,9 @@ pub const HIDES: [bool; 256] = {
 
 pub const SHAPED_SCALE: f32 = 100.0;
 pub const SHAPED_OFFSET: i32 = 2;
-pub const KIND_CANOPY: u32 = 0;
+pub const KIND_CARD: u32 = 0;
 pub const KIND_SIDE: u32 = 1;
 pub const KIND_END: u32 = 4;
-pub const KIND_FRINGE: u32 = 7;
 
 /// One vertex before packing: `cell` is chunk-local, `off` the position in it (may run a little outside it).
 #[derive(Clone, Copy)]
@@ -88,16 +88,17 @@ impl Shaped {
 }
 
 /// Fixed-point coordinate of an offset `off` in cell `cell` (`SHAPED_SCALE` steps a block, `SHAPED_OFFSET` blocks shifted).
+/// Rounds ties to even: one wasm instruction, where `round` is a library call.
 #[inline]
 pub fn fixed(cell: i32, off: f32) -> u32 {
-    ((cell + SHAPED_OFFSET) * SHAPED_SCALE as i32 + (off * SHAPED_SCALE).round() as i32).clamp(0, 4095) as u32
+    ((cell + SHAPED_OFFSET) * SHAPED_SCALE as i32 + (off * SHAPED_SCALE).round_ties_even() as i32).clamp(0, 4095) as u32
 }
 
 /// Never inlined: it is called from many places, and each copy costs wasm size.
 #[inline(never)]
 pub fn pack(v: &Vert) -> [u32; 3] {
     let [x, y, z] = std::array::from_fn(|i| fixed(v.cell[i], v.off[i]));
-    let u = ((v.u * 256.0).round() as i32).clamp(0, 4095) as u32;
+    let u = ((v.u * 256.0).round_ties_even() as i32).clamp(0, 4095) as u32;
     [
         x | y << 12 | v.kind << 24 | v.occlusion.min(7) << 27,
         z | u << 12 | u32::from(v.light) << 24,
@@ -114,7 +115,7 @@ pub fn octahedral(n: [f32; 3]) -> u32 {
         a = (1.0 - pb.abs()) * pa.signum();
         b = (1.0 - pa.abs()) * pb.signum();
     }
-    let q = |t: f32| ((t * 0.5 + 0.5) * 255.0).round().clamp(0.0, 255.0) as u32;
+    let q = |t: f32| ((t * 0.5 + 0.5) * 255.0).round_ties_even().clamp(0.0, 255.0) as u32;
     q(a) | q(b) << 8
 }
 

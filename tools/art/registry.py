@@ -28,6 +28,7 @@ import plants
 import real
 import rocks
 import stains
+import trees
 import wood
 from lib import ramp
 
@@ -285,4 +286,15 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     (384, "drone_shell", materials.drone_shell, _REAL), (385, "drone_carbon", materials.carbon, _REAL),
 )]
 
-LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS
+# Generator 12's species (layers from `block/trees.rs`'s `layers`, after every other; saplings come from the engine).
+_LEAF = dict(cutout=True, cover=(0.4, 0.85), real=True)
+_BARK = dict(tiles=True, real=True)
+TREES = [Entry(layer, name, getattr(trees, name), **kw) for layer, name, kw in (
+    (410, "pine_bark", _BARK), (411, "palm_bark", _BARK), (412, "palm_fronds", _LEAF), (414, "cherry_bark", _BARK),
+    (415, "cherry_blossom", _LEAF), (417, "baobab_bark", _BARK), (418, "baobab_leaves", _LEAF),
+    (420, "acacia_bark", _BARK), (421, "acacia_leaves", _LEAF), (423, "redwood_bark", _BARK),
+    (424, "redwood_needles", _LEAF), (426, "eucalyptus_bark", _BARK), (427, "eucalyptus_leaves", _LEAF),
+    (429, "bamboo_culm", _BARK), (430, "bamboo_leaves", _LEAF),
+)]
+
+LAYERS += NATURAL + INDUSTRY + HEAVY + LATER + DECOR + ITEMS + TREES

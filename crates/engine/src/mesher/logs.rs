@@ -1,237 +1,210 @@
-//! Logs as round trunks: each log block becomes a `SIDES`-sided bark cylinder in the shaped list (`shaped.rs`) instead
-//! of a cube. Its axis follows the logs beside it (`axis_of`): upright unless it only has logs beside it on one
-//! horizontal axis, as a dead tree's stub does. An end gets a cap of end grain only where it shows: not against a log
-//! running on, not against a cube that hides it. A stub running into a trunk reaches half a block into it, out of
-//! sight. An upright log standing on the ground flares out at its foot.
-//! Invariants: logs hide no neighbour's faces (`HIDES` in the mesher), so the ground shows around a trunk; light and
-//! shade are still those of an opaque block. To give a new log block its own thickness: a row in `radius`.
+//! Logs as branches: the logs of a tree are drawn as one skeleton of round, tapering wood in the shaped list
+//! (`shaped.rs`), not a cylinder per block. Each log is a node (`node.rs`: a single log, or a square of upright logs
+//! drawn as one thick trunk) that joins its neighbours, across a corner too, so a branch laid as a staircase of blocks
+//! reads as one slanting limb. A node draws its half of each join, from its middle to the join's middle; a thin
+//! branch running into a much thicker node draws all of it, into that node's middle, out of sight.
+//! Ends: a trunk on the ground flares at its foot; a free upright end is cut flat (end grain), as a stump is; a free
+//! living limb's end tapers to a point; a full-thickness free end is cut flat.
+//! Invariants: logs hide no neighbour's faces (`HIDES` in the mesher), so the ground shows round a trunk; light and
+//! shade are still those of an opaque block. Two chunks drawing the halves of one join compute its middle ring from
+//! the same blocks, so they meet. To give a log block its own thickness: a row in `node::radii`.
 
-use super::shaped::{mean_light, pack, Shaped, Vert, HIDES, KIND_END, KIND_SIDE};
-use super::{pidx, N, P, STRIDE};
-use crate::block::{is_log, BlockId, BIRCH_LOG, FACE_TEX, OPAQUE, SNAG_LOG};
+use super::shaped::{Shaped, HIDES};
+use super::tree_grid::TreeGrid;
+use super::{pidx, N, STRIDE};
+use crate::block::{is_leaves, is_log, FACE_TEX, OPAQUE};
 
-/// Sides of a trunk's cross-section.
-pub const SIDES: usize = 12;
-/// (cos, sin) round the cross-section, a side apart: a table, not `sin_cos` per vertex.
-const H: f32 = 0.866_025_4; // √3 / 2
-const RING: [(f32, f32); SIDES] = [
-    (1.0, 0.0),
-    (H, 0.5),
-    (0.5, H),
-    (0.0, 1.0),
-    (-0.5, H),
-    (-H, 0.5),
-    (-1.0, 0.0),
-    (-H, -0.5),
-    (-0.5, -H),
-    (0.0, -1.0),
-    (0.5, -H),
-    (H, -0.5),
-];
+mod node;
+mod ring;
+use node::{joins, Node, Nodes};
+use ring::Ring;
+
 /// How much wider than the trunk its foot is, and how high the flare reaches.
 const FLARE: f32 = 1.35;
 const FLARE_HEIGHT: f32 = 0.3;
+/// A join where one side is this much thicker than the other is drawn by the thin side alone.
+const THIN: f32 = 1.5;
+/// A limb's free end tapers to a point this much longer than it is thick.
+const TIP: f32 = 0.4;
+/// A join steeper than this (the sine of its slope) counts as upright: a trunk's, with a foot and a flat top.
+const UPRIGHT: f32 = 0.8;
+/// A run through a node bending less than this (the cosine between its two ways) is drawn as one stretch.
+const STRAIGHT: f32 = -0.9;
 
-/// The trunk's radius for each log block, in blocks.
-fn radius(b: BlockId) -> f32 {
-    match b {
-        BIRCH_LOG => 0.3,
-        SNAG_LOG => 0.35,
-        _ => 0.4,
-    }
-}
-
-/// The axis (0 x, 1 y, 2 z) the log at padded index `p` runs along.
-/// A neighbour outside the padded volume counts as no log.
-pub fn axis_of(pad: &[BlockId], p: usize) -> usize {
-    let at = [p % P, p / (P * P), p / P % P];
-    let log = |axis: usize, s: isize| {
-        let c = at[axis] as isize + s;
-        (0..P as isize).contains(&c) && is_log(pad[(p as isize + STRIDE[axis] * s) as usize])
-    };
-    let along = |axis: usize| log(axis, 1) || log(axis, -1);
-    if along(1) {
-        1
-    } else if along(0) {
-        0
-    } else if along(2) {
-        2
-    } else {
-        1
-    }
-}
-
-/// Every log in the chunk as cylinders, into `out`'s opaque list.
-pub fn mesh_logs(pad: &[BlockId], light: &[u8], out: &mut Shaped) {
-    for y in 0..N {
-        for z in 0..N {
-            for x in 0..N {
-                let p = pidx(x + 1, y + 1, z + 1);
-                if is_log(pad[p]) {
-                    trunk(pad, light, p, [x as i32, y as i32, z as i32], out);
+/// Every log node owned by the chunk (by its lowest corner) as wood, into `out`'s opaque list.
+pub fn mesh_logs(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], out: &mut Shaped) {
+    let (mut near, mut nodes) = (Vec::new(), Nodes::default());
+    for y in 0..N as i32 {
+        for z in 0..N as i32 {
+            for x in 0..N as i32 {
+                if !is_log(g.at(x, y, z)) {
+                    continue;
+                }
+                let n = nodes.of(g, [x, y, z]);
+                if n.corner == [x, y, z] {
+                    joins(g, &n, &mut nodes, &mut near);
+                    draw(g, pad, light, &n, &near, out);
                 }
             }
         }
     }
 }
 
-/// The two axes across `a`, ordered so that (p × q) = a.
-fn across(a: usize) -> (usize, usize) {
-    match a {
-        0 => (1, 2),
-        1 => (2, 0),
-        _ => (0, 1),
-    }
+/// One stretch of wood from a node: from its middle to `to`, its radius going from `r0` to `r1`.
+struct Seg {
+    to: [f32; 3],
+    r0: f32,
+    r1: f32,
+    sides: usize,
+    tiles: f32,
 }
 
 #[inline(never)]
-fn trunk(pad: &[BlockId], light: &[u8], p: usize, cell: [i32; 3], out: &mut Shaped) {
-    let b = pad[p];
-    let a = axis_of(pad, p);
-    let (pa, qa) = across(a);
-    let at = |axis: usize, sign: isize| (p as isize + STRIDE[axis] * sign) as usize;
-    let hides = |i: usize| HIDES[pad[i] as usize];
-    // Each end: how far it reaches (0 or 1, or half a block more into a log of another axis) and whether it is capped.
-    let end = |sign: isize| {
-        let q = at(a, sign);
-        if is_log(pad[q]) {
-            let on = axis_of(pad, q) == a;
-            (if on { 0.0 } else { 0.5 }, false)
+fn draw(g: &TreeGrid, pad: &[crate::block::BlockId], light: &[u8], n: &Node, near: &[Node], out: &mut Shaped) {
+    let mut segs: Vec<Seg> = Vec::with_capacity(near.len());
+    let (mut up, mut down) = (false, false);
+    let c = n.corner;
+    let walled = n.width == 1
+        && STRIDE.iter().all(|&s| {
+            let p = pidx(c[0] as usize + 1, c[1] as usize + 1, c[2] as usize + 1) as isize;
+            HIDES[pad[(p + s) as usize] as usize] && HIDES[pad[(p - s) as usize] as usize]
+        });
+    if walled {
+        return;
+    }
+    for o in near {
+        let d = unit(sub(o.centre, n.centre));
+        up |= d[1] > UPRIGHT;
+        down |= d[1] < -UPRIGHT;
+        let (sides, tiles) = ring::detail(n.radius.max(o.radius));
+        if o.radius * THIN < n.radius {
+            continue; // the thin side draws it
+        }
+        let seg = if n.radius * THIN < o.radius {
+            Seg { to: o.centre, r0: n.radius, r1: n.radius, sides, tiles }
         } else {
-            (0.0, !hides(q))
+            let mid = std::array::from_fn(|k| (n.centre[k] + o.centre[k]) * 0.5);
+            Seg { to: mid, r0: n.radius, r1: (n.radius + o.radius) * 0.5, sides, tiles }
+        };
+        segs.push(seg);
+    }
+    let f = Ring {
+        cell: c,
+        light: node_light(pad, light, c),
+        occlusion: 7 - (leaves_round(g, c) / 5).min(4),
+        side_layer: FACE_TEX[n.block as usize][0],
+        end_layer: FACE_TEX[n.block as usize][2],
+    };
+    let (own_sides, own_tiles) = ring::detail(n.radius);
+    let below = g.at(c[0], c[1] - 1, c[2]);
+    let above = g.at(c[0], c[1] + 1, c[2]);
+    let (bottom, top) = (n.centre[1] - 0.5, n.centre[1] + 0.5);
+    let at_y = |y: f32| [n.centre[0], y, n.centre[2]];
+    let r = n.radius;
+    // A lone log: a short upright trunk, capped where it shows.
+    if near.is_empty() {
+        let foot = OPAQUE[below as usize] && !is_log(below);
+        let rings: &[(f32, f32)] =
+            if foot { &[(bottom, r * FLARE), (bottom + FLARE_HEIGHT, r), (top, r)] } else { &[(bottom, r), (top, r)] };
+        upright(&f, n, rings, own_sides, own_tiles, out);
+        if !HIDES[below as usize] {
+            f.cap(at_y(bottom), [0.0, -1.0, 0.0], r, own_sides, out);
         }
-    };
-    let (lo_ext, lo_cap) = end(-1);
-    let (hi_ext, hi_cap) = end(1);
-    let r = radius(b);
-    let open_side = [(pa, 1), (pa, -1), (qa, 1), (qa, -1)].iter().any(|&(ax, s)| !hides(at(ax, s)));
-    let below = pad[at(1, -1)];
-    let flare = a == 1 && OPAQUE[below as usize] && !is_log(below);
-    // Rings along the axis: (position, radius).
-    let all = [(-lo_ext, r * FLARE), (FLARE_HEIGHT, r), (1.0 + hi_ext, r)];
-    let one = [(-lo_ext, r), (1.0 + hi_ext, r)];
-    let rings: &[(f32, f32)] = if flare { &all } else { &one };
-    let tiles = (std::f32::consts::TAU * r).round().max(1.0);
-    let side_layer = FACE_TEX[b as usize][0];
-    let end_layer = FACE_TEX[b as usize][2];
-    let f = Frame {
-        cell,
-        axes: [a, pa, qa],
-        tiles,
-        // The four cells beside the log (+p, -p, +q, -q) and their light where open.
-        open: [(pa, 1), (pa, -1), (qa, 1), (qa, -1)].map(|(ax, s)| {
-            let i = at(ax, s);
-            (!OPAQUE[pad[i] as usize]).then(|| light[i])
-        }),
-        fallback: fallback(pad, light, p),
-    };
-    // Rings are packed once each, a vertex at a time in `Frame` (opt-level 3 unrolls these loops: whatever their
-    // bodies inline is copied into the wasm a dozen times).
-    let mut ring = [[[0u32; 3]; SIDES + 1]; 2];
-    if open_side {
-        for w in rings.windows(2) {
-            let slope = (w[0].1 - w[1].1) / (w[1].0 - w[0].0);
-            let foot = flare && w[0].0 == rings[0].0;
-            for (e, &(t, rad)) in w.iter().enumerate() {
-                let occlusion = if foot && e == 0 { 4 } else { 7 };
-                for (i, slot) in ring[e].iter_mut().enumerate() {
-                    *slot = f.side(t, rad, i, slope, occlusion);
-                }
-            }
-            let [low, high] = &ring;
-            for i in 0..SIDES {
-                out.packed(false, [low[i], low[i + 1], high[i + 1], high[i]], side_layer);
+        if !HIDES[above as usize] {
+            f.cap(at_y(top), [0.0, 1.0, 0.0], r, own_sides, out);
+        }
+        return;
+    }
+    // A trunk's foot on the ground, flared; an upright free end, cut flat.
+    if up && !down {
+        let ground = OPAQUE[below as usize] && !is_log(below);
+        if ground {
+            let rings = [(bottom, r * FLARE), (bottom + FLARE_HEIGHT, r), (n.centre[1], r)];
+            upright(&f, n, &rings, own_sides, own_tiles, out);
+        } else {
+            upright(&f, n, &[(bottom, r), (n.centre[1], r)], own_sides, own_tiles, out);
+            if !HIDES[below as usize] {
+                f.cap(at_y(bottom), [0.0, -1.0, 0.0], r, own_sides, out);
             }
         }
     }
-    for (cap, sign, (t, rad)) in [(lo_cap, -1isize, rings[0]), (hi_cap, 1, rings[rings.len() - 1])] {
-        if !cap {
-            continue;
+    if down && !up && near.len() == 1 {
+        upright(&f, n, &[(n.centre[1], r), (top, r)], own_sides, own_tiles, out);
+        if !HIDES[above as usize] {
+            f.cap(at_y(top), [0.0, 1.0, 0.0], r, own_sides, out);
         }
-        let l = if OPAQUE[pad[at(a, sign)] as usize] { f.fallback } else { light[at(a, sign)] };
-        // The rim's vertices, then the centre (radius 0) in the last slot.
-        let fan = &mut ring[0];
-        for (i, slot) in fan.iter_mut().enumerate() {
-            *slot = f.end(t, if i == SIDES { 0.0 } else { rad }, i, sign as f32, l);
+    }
+    // A straight or gently bending run through the node: one stretch from end to end.
+    if let [a, b] = &segs[..] {
+        let (da, db) = (unit(sub(a.to, n.centre)), unit(sub(b.to, n.centre)));
+        if dot(da, db) < STRAIGHT && a.sides == b.sides && a.tiles == b.tiles {
+            f.strip(a.to, a.r1, b.to, b.r1, a.sides, a.tiles, out);
+            return;
         }
-        for i in (0..SIDES).step_by(2) {
-            let [c, r0, r1, r2] = [fan[SIDES], fan[i], fan[i + 1], fan[(i + 2) % SIDES]];
-            // Seen from outside the end, the rim runs counter-clockwise on the high end and clockwise on the low one.
-            out.packed(false, if sign > 0 { [c, r0, r1, r2] } else { [c, r2, r1, r0] }, end_layer);
+    }
+    let back = if segs.len() >= 2 { r * 0.7 } else { 0.0 };
+    for s in &segs {
+        let d = unit(sub(s.to, n.centre));
+        let from = std::array::from_fn(|k| n.centre[k] - d[k] * back);
+        f.strip(from, s.r0, s.to, s.r1, s.sides, s.tiles, out);
+    }
+    // A free end of a slanting or level branch: a living tree's limb (thinned among leaves) tapers to a point, longer
+    // the thicker it is; full-thickness wood (a beam someone built, a dead tree) is cut flat.
+    if let [s] = &segs[..] {
+        let d = unit(sub(s.to, n.centre));
+        if d[1].abs() <= UPRIGHT {
+            if r < node::radii(n.block).1 * 0.99 {
+                let tip = std::array::from_fn(|k| n.centre[k] - d[k] * (TIP + r));
+                f.strip(n.centre, r, tip, 0.02, s.sides, s.tiles, out);
+            } else {
+                let end = std::array::from_fn(|k| n.centre[k] - d[k] * 0.5);
+                f.strip(n.centre, r, end, r, s.sides, s.tiles, out);
+                f.cap(end, d.map(|v| -v), r, s.sides, out);
+            }
         }
     }
 }
 
-/// One log's axes (along, then the two across) and surroundings, for building its vertices.
-struct Frame {
-    cell: [i32; 3],
-    axes: [usize; 3],
-    tiles: f32,
-    open: [Option<u8>; 4],
-    fallback: u8,
+/// An upright stretch through the node's middle, ring by ring: (height, radius).
+fn upright(f: &Ring, n: &Node, rings: &[(f32, f32)], sides: usize, tiles: f32, out: &mut Shaped) {
+    for w in rings.windows(2) {
+        let at = |y: f32| [n.centre[0], y, n.centre[2]];
+        f.strip(at(w[0].0), w[0].1, at(w[1].0), w[1].1, sides, tiles, out);
+    }
 }
 
-impl Frame {
-    /// Ring vertex `i` at `t` along the axis and `rad` out: its offset, and the cosine and sine of its angle.
-    fn point(&self, t: f32, rad: f32, i: usize) -> ([f32; 3], f32, f32) {
-        let [a, pa, qa] = self.axes;
-        let (c, s) = RING[i % SIDES];
-        let mut off = [0.5f32; 3];
-        off[a] = t;
-        off[pa] += rad * c;
-        off[qa] += rad * s;
-        (off, c, s)
-    }
+/// The node's light: the mean of the open cells beside its corner log (a square's corner has two open sides).
+fn node_light(pad: &[crate::block::BlockId], light: &[u8], c: [i32; 3]) -> u8 {
+    let p = pidx(c[0] as usize + 1, c[1] as usize + 1, c[2] as usize + 1);
+    let open = STRIDE.iter().flat_map(|&s| [p as isize + s, p as isize - s]).map(|i| i as usize);
+    super::shaped::mean_light(open.filter(|&i| !OPAQUE[pad[i] as usize]).map(|i| light[i])).unwrap_or(0)
+}
 
-    /// A side vertex, packed. Its normal leans along the axis by how fast the cone narrows (`slope`); its light is the
-    /// mean of the open cells it faces.
-    #[inline(never)]
-    fn side(&self, t: f32, rad: f32, i: usize, slope: f32, occlusion: u32) -> [u32; 3] {
-        let [a, pa, qa] = self.axes;
-        let (off, c, s) = self.point(t, rad, i);
-        let k = 1.0 / (1.0 + slope * slope).sqrt();
-        let mut n = [0f32; 3];
-        n[pa] = c * k;
-        n[qa] = s * k;
-        n[a] = slope * k;
-        let facing = [c * k, -c * k, s * k, -s * k];
-        let lit = (0..4).filter(|&j| facing[j] > 0.25).filter_map(|j| self.open[j]);
-        pack(&Vert {
-            cell: self.cell,
-            off,
-            normal: n,
-            u: self.tiles * i as f32 / SIDES as f32,
-            kind: KIND_SIDE + a as u32,
-            occlusion,
-            light: mean_light(lit).unwrap_or(self.fallback),
-            layer: 0,
-        })
+/// Leaves in the 3×3×3 box round a cell: a branch deep in a crown is shaded.
+fn leaves_round(g: &TreeGrid, c: [i32; 3]) -> u32 {
+    let mut n = 0;
+    for dy in -1..=1 {
+        for dz in -1..=1 {
+            for dx in -1..=1 {
+                n += u32::from(is_leaves(g.at(c[0] + dx, c[1] + dy, c[2] + dz)));
+            }
+        }
     }
+    n
+}
 
-    /// An end vertex facing `sign` along the axis, packed.
-    #[inline(never)]
-    fn end(&self, t: f32, rad: f32, i: usize, sign: f32, light: u8) -> [u32; 3] {
-        let a = self.axes[0];
-        let mut normal = [0f32; 3];
-        normal[a] = sign;
-        let off = self.point(t, rad, i).0;
-        pack(&Vert { cell: self.cell, off, normal, u: 0.0, kind: KIND_END + a as u32, occlusion: 7, light, layer: 0 })
-    }
+fn sub(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
+    [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+fn dot(a: [f32; 3], b: [f32; 3]) -> f32 {
+    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+}
+
+fn unit(a: [f32; 3]) -> [f32; 3] {
+    let l = dot(a, a).sqrt().max(1e-6);
+    a.map(|v| v / l)
 }
 
 #[cfg(test)]
 mod tests;
-
-/// The brightest open cell beside the log: for the faces whose own neighbour is solid.
-fn fallback(pad: &[BlockId], light: &[u8], p: usize) -> u8 {
-    let mut best = 0u8;
-    for stride in STRIDE {
-        for s in [-1isize, 1] {
-            let i = (p as isize + stride * s) as usize;
-            if !OPAQUE[pad[i] as usize] && (light[i] & 15).max(light[i] >> 4) > (best & 15).max(best >> 4) {
-                best = light[i];
-            }
-        }
-    }
-    best
-}

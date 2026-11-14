@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use super::SIDES;
-use crate::block::{AIR, LOG, SNAG_LOG, STONE};
+use crate::block::{BlockId, AIR, LEAVES, LOG, SNAG_LOG, STONE};
 use crate::chunk::Chunk;
 use crate::mesher::{neighbor_index, MeshOutput, Mesher, PAD_VOLUME};
 
@@ -30,23 +29,27 @@ fn quads(out: &MeshOutput) -> Vec<([[u32; 3]; 4], u32)> {
         .collect()
 }
 
-const SIDE_Y: u32 = 2; // kind: a side around y
+const SIDE_Y: u32 = 2; // kind: a side mostly along y
 const END_Y: u32 = 5; // kind: an end across y
 const SIDE_X: u32 = 1;
 const END_X: u32 = 4;
+const fn fixed(v: f32) -> u32 {
+    ((v + 2.0) * 100.0) as u32
+}
+
+/// The sides of wood `r` thick (an oak log is 0.4, a snag 0.35), and the quads of one of its caps.
+fn sides(r: f32) -> usize {
+    super::ring::detail(r).0
+}
 
 fn count(out: &MeshOutput, kind: u32) -> usize {
     quads(out).iter().filter(|q| q.1 == kind).count()
 }
 
-#[test]
-fn a_floating_log_is_a_closed_cylinder() {
-    let m = mesh_single(|c| c.set(5, 5, 5, LOG));
-    assert_eq!(m.vertex_count(), 0, "no cube faces");
-    assert_eq!((count(&m, SIDE_Y), count(&m, END_Y)), (SIDES, SIDES), "a side all round, a cap at each end");
-    // Closed: every edge, by position, runs both ways as often.
+/// Every edge, by position, runs both ways as often: a closed surface wound one way.
+fn closed(quads: &[([[u32; 3]; 4], u32)]) -> bool {
     let mut edges: HashMap<([u32; 3], [u32; 3]), i32> = HashMap::new();
-    for (q, _) in quads(&m) {
+    for (q, _) in quads {
         for i in 0..4 {
             let (a, b) = (q[i], q[(i + 1) % 4]);
             if a != b {
@@ -55,7 +58,15 @@ fn a_floating_log_is_a_closed_cylinder() {
             }
         }
     }
-    assert!(edges.values().all(|&n| n == 0), "the cylinder is closed and wound outwards");
+    edges.values().all(|&n| n == 0)
+}
+
+#[test]
+fn a_floating_log_is_a_closed_cylinder() {
+    let m = mesh_single(|c| c.set(5, 5, 5, LOG));
+    assert_eq!(m.vertex_count(), 0, "no cube faces");
+    assert_eq!((count(&m, SIDE_Y), count(&m, END_Y)), (sides(0.4), sides(0.4)), "a side all round, a cap at each end");
+    assert!(closed(&quads(&m)), "the cylinder is closed and wound outwards");
 }
 
 #[test]
@@ -66,9 +77,9 @@ fn a_trunk_on_the_ground_flares_and_shows_only_its_top_end() {
             c.set(5, y, 5, LOG);
         }
     });
-    // Three logs: the foot has two rings of sides (the flare), the others one; one cap, on top.
-    assert_eq!(count(&m, SIDE_Y), SIDES * 4);
-    assert_eq!(count(&m, END_Y), SIDES / 2);
+    // The foot: flare, foot to middle, its half up; the middle: one stretch; the top: its half down, up to its top.
+    assert_eq!(count(&m, SIDE_Y), sides(0.4) * 6);
+    assert_eq!(count(&m, END_Y), sides(0.4) / 2, "one cap, on top");
     // The stone's top face still shows round the trunk: a log hides nothing.
     assert_eq!(m.opaque_quads, 6);
 }
@@ -81,12 +92,10 @@ fn a_stub_reaches_into_its_trunk_and_caps_its_free_end() {
         }
         c.set(6, 7, 5, SNAG_LOG);
     });
-    assert_eq!(count(&m, SIDE_X), SIDES, "the stub runs along x");
-    assert_eq!(count(&m, END_X), SIDES / 2, "capped at its free end only");
-    // Its sides reach from half into the trunk (x = 5.5) to its free end (x = 7).
+    assert_eq!(count(&m, END_X), sides(0.35) / 2, "capped at its free end only");
     let xs: Vec<u32> = quads(&m).iter().filter(|q| q.1 == SIDE_X).flat_map(|q| q.0.map(|p| p[0])).collect();
-    let fixed = |x: f32| ((x + 2.0) * 100.0) as u32;
-    assert_eq!((*xs.iter().min().unwrap(), *xs.iter().max().unwrap()), (fixed(5.5), fixed(7.0)));
+    let (lo, hi) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
+    assert!(lo < fixed(5.6) && hi == fixed(7.0), "from inside the trunk to the stub's end: {lo}..{hi}");
 }
 
 #[test]
@@ -102,4 +111,127 @@ fn a_log_walled_in_by_stone_draws_nothing_of_itself() {
         c.set(5, 5, 5, LOG);
     });
     assert_eq!(m.shaped_opaque + m.shaped_cutout, 0);
+}
+
+#[test]
+fn a_staircase_of_logs_is_one_slanting_limb() {
+    // Three logs touching on edges only: one limb, no caps but at its two ends, no corner between.
+    let m = mesh_single(|c| {
+        for i in 0..3 {
+            c.set(5 + i, 5 + i, 5, LOG);
+        }
+    });
+    let all = quads(&m);
+    let ends = all.iter().filter(|q| q.1 >= 4).count();
+    assert_eq!(ends, sides(0.4), "a cut at each end and nowhere else");
+    // The middle log is one straight stretch from join to join, so the limb runs from (5.5, 5.5) to (7.5, 7.5).
+    let ys: Vec<u32> = all.iter().flat_map(|q| q.0.map(|p| p[1])).collect();
+    assert!(*ys.iter().max().unwrap() >= fixed(7.5) && *ys.iter().min().unwrap() <= fixed(5.5));
+    assert!(closed(&all), "the limb is one closed surface");
+}
+
+#[test]
+fn a_trunk_under_leaves_tapers_to_its_top() {
+    let m = mesh_single(|c| {
+        c.set(8, 4, 8, STONE);
+        for y in 5..12 {
+            c.set(8, y, 8, LOG);
+        }
+        for y in 10..13 {
+            for z in 6..11 {
+                for x in 6..11 {
+                    if c.get(x, y, z) == AIR {
+                        c.set(x, y, z, LEAVES);
+                    }
+                }
+            }
+        }
+    });
+    // Half the trunk's width at a height: how far its bark reaches out in x from its middle (8.5).
+    let width_at = |y: f32| {
+        quads(&m)
+            .iter()
+            .filter(|q| q.1 == SIDE_Y)
+            .flat_map(|q| q.0)
+            .filter(|p| p[1].abs_diff(fixed(y)) <= 2)
+            .map(|p| p[0].abs_diff(fixed(8.5)))
+            .max()
+            .unwrap_or(0)
+    };
+    let (low, high) = (width_at(6.0), width_at(11.0));
+    assert!(low >= 38 && high < low * 3 / 4, "thick low down ({low}), thinner at the top ({high})");
+}
+
+#[test]
+fn a_square_of_logs_is_one_thick_trunk() {
+    let m = mesh_single(|c| {
+        for y in 5..9 {
+            for (x, z) in [(5, 5), (6, 5), (5, 6), (6, 6)] {
+                c.set(x, y, z, LOG);
+            }
+        }
+    });
+    // Drawn round the square's middle (6, 6), out to nearly a block, in 24 sides.
+    let xs: Vec<u32> = quads(&m).iter().filter(|q| q.1 == SIDE_Y).flat_map(|q| q.0.map(|p| p[0])).collect();
+    let (lo, hi) = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
+    assert_eq!(lo + hi, 2 * fixed(6.0), "centred on the square");
+    assert!(hi - lo > 180, "about two blocks across: {}", hi - lo);
+    assert_eq!(count(&m, SIDE_Y) % 24, 0);
+    assert!(closed(&quads(&m)));
+}
+
+/// Chunks 0 and 1 along x, filled from `block(x, y, z)`.
+fn two_chunks(block: impl Fn(i32, i32, i32) -> BlockId) -> [Chunk; 2] {
+    std::array::from_fn(|cx| {
+        let mut c = Chunk::uniform(AIR);
+        for y in 0..32 {
+            for z in 0..32 {
+                for x in 0..32 {
+                    let b = block(cx as i32 * 32 + x as i32, y as i32, z as i32);
+                    if b != AIR {
+                        c.set(x, y, z, b);
+                    }
+                }
+            }
+        }
+        c
+    })
+}
+
+#[test]
+fn a_branch_across_a_chunk_border_meets_itself() {
+    // A level branch from x 28 to 35 through leaves (so it tapers), across the border x 32.
+    let block = |x: i32, y: i32, z: i32| match (x, y, z) {
+        (28..=35, 10, 8) => LOG,
+        (26..=37, 9..=12, 6..=10) => LEAVES,
+        _ => AIR,
+    };
+    let chunks = two_chunks(block);
+    let air = Chunk::uniform(AIR);
+    let mut sides: [Vec<[u32; 3]>; 2] = [Vec::new(), Vec::new()];
+    for cx in 0..2 {
+        let mut refs = [&air; 27];
+        refs[neighbor_index(0, 0, 0)] = &chunks[cx];
+        if cx == 0 {
+            refs[neighbor_index(1, 0, 0)] = &chunks[1];
+        } else {
+            refs[neighbor_index(-1, 0, 0)] = &chunks[0];
+        }
+        let m = Mesher::new().mesh(&refs, &DAYLIGHT, None);
+        let opaque = m.shaped_opaque as usize;
+        for (q, _) in quads(&m).into_iter().take(opaque) {
+            for mut p in q {
+                p[0] += cx as u32 * 3200;
+                if p[0] == fixed(32.0) {
+                    sides[cx].push(p);
+                }
+            }
+        }
+    }
+    for s in &mut sides {
+        s.sort_unstable();
+        s.dedup();
+    }
+    assert!(sides[0].len() >= 4, "the join's ring (4 sides at least) lies on the border: {:?}", sides[0]);
+    assert_eq!(sides[0], sides[1], "both chunks draw the same ring there");
 }

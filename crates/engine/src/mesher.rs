@@ -28,10 +28,11 @@
 //! surface corners sit below the block's top by a height read from the cells around (`water::corner_drop`), so
 //! flows slope smoothly and no face is needed between two liquid cells.
 //!
-//! Trees are not cubes: logs (round trunks, `logs.rs`) and leaves (rounded canopies, `foliage.rs`) go into a fourth,
-//! "shaped" list with its own vertex format (`shaped.rs`). Logs hide no faces beside them (`HIDES`).
+//! Trees are not cubes: logs (branches, `logs.rs`) and leaves (cards, `foliage.rs`), read from the blocks around the
+//! chunk (`tree_grid.rs`), go into a fourth, "shaped" list with its own vertex format (`shaped.rs`). Logs hide no
+//! faces beside them (`HIDES`).
 
-use crate::block::{is_log, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
+use crate::block::{is_leaves, is_log, BlockId, AIR, ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT};
 use crate::chunk::{index, Chunk};
 use shaped::{HIDES, SHAPED};
 
@@ -40,10 +41,11 @@ mod foliage;
 mod logs;
 mod quad;
 pub mod shaped;
+mod tree_grid;
 mod water;
 pub use cover::{bears_cover, Cover};
-pub use foliage::REACH as FOLIAGE_REACH;
 use quad::{corner, corners_of, emit_quad, CORNER_BITS, KEY_CUTOUT, KEY_FLAG, KEY_LAYER, KEY_LIQUID};
+pub use tree_grid::REACH as TREE_REACH;
 pub use water::height as water_height;
 
 const N: usize = 32;
@@ -107,7 +109,9 @@ pub struct Mesher {
     cutout_light: Vec<u8>,
     liquid_light: Vec<u8>,
     shaped: shaped::Shaped,
-    foliage: foliage::Foliage,
+    trees: tree_grid::TreeGrid,
+    /// The world block at the chunk's lowest corner: leaf cards scatter by world cell.
+    origin: [i32; 3],
 }
 
 impl Default for Mesher {
@@ -138,13 +142,14 @@ impl Mesher {
             cutout_light: Vec::new(),
             liquid_light: Vec::new(),
             shaped: shaped::Shaped::default(),
-            foliage: foliage::Foliage::default(),
+            trees: tree_grid::TreeGrid::default(),
+            origin: [0; 3],
         }
     }
 
-    /// The world block at the lowest corner of the chunks meshed next: the canopies' clumps are fixed to the world.
+    /// The world block at the lowest corner of the chunks meshed next: leaf cards are scattered by world cell.
     pub fn set_origin(&mut self, origin: [i32; 3]) {
-        self.foliage.origin = origin;
+        self.origin = origin;
     }
 
     /// Meshes the centre chunk of a 3×3×3 neighbourhood (see [`neighbor_index`]), lit by `light`
@@ -166,10 +171,12 @@ impl Mesher {
             if let Some(cover) = cover {
                 self.mesh_cover(light, cover);
             }
-            if self.pad.iter().any(|&b| is_log(b)) {
-                logs::mesh_logs(&self.pad, light, &mut self.shaped);
+            let (logs, leaves) = (self.pad.iter().any(|&b| is_log(b)), self.pad.iter().any(|&b| is_leaves(b)));
+            if logs || leaves {
+                self.trees.fill(n);
+                logs::mesh_logs(&self.trees, &self.pad, light, &mut self.shaped);
+                foliage::mesh_leaves(&self.trees, light, self.origin, &mut self.shaped);
             }
-            self.foliage.mesh(n, &self.pad, light, &mut self.shaped);
         }
         let count = self.opaque.len() + self.cutout.len() + self.liquid.len();
         let mut verts = Vec::with_capacity(count + count.div_ceil(4));

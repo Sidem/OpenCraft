@@ -271,11 +271,11 @@ impl World {
 }
 
 /// How far, in blocks, an edit from `old` to `new` can change the meshes around it: a cube's faces and corners reach
-/// one block, a canopy's shape further (`mesher::FOLIAGE_REACH`).
+/// one block, a tree's drawing further (`mesher::TREE_REACH`).
 pub(super) fn mesh_reach(old: BlockId, new: BlockId) -> i32 {
     let tree = |b: BlockId| crate::block::is_leaves(b) || crate::block::is_log(b);
     if tree(old) || tree(new) {
-        crate::mesher::FOLIAGE_REACH as i32
+        crate::mesher::TREE_REACH as i32
     } else {
         1
     }

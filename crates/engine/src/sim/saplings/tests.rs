@@ -16,6 +16,11 @@ fn at(x: i32, y: i32, z: i32) -> IVec3 {
     IVec3::new(x, y, z)
 }
 
+/// The blocks within `r` of `c` in each axis.
+fn cube_around(c: IVec3, r: i32) -> Vec<IVec3> {
+    (-r..=r).flat_map(|y| (-r..=r).flat_map(move |z| (-r..=r).map(move |x| c + at(x, y, z)))).collect()
+}
+
 /// Runs `seconds`, counting the trees that grew.
 fn run(sim: &mut Sim, seconds: u32) -> usize {
     let mut grew = 0;
@@ -65,13 +70,13 @@ fn a_planted_sapling_grows_into_a_tree_on_every_core() {
     run(&mut b, 630);
     assert_eq!(grew, 1, "grew within ten minutes");
     assert_eq!(a.state_hash(), b.state_hash());
-    let trunk = (SKY..SKY + 8).take_while(|&y| a.block(at(0, y, 0)) == LOG).count();
-    assert!((4..=6).contains(&trunk), "trunk {trunk}");
+    // A young oak: a trunk no taller than a sapling grows, limbs and a crown of leaves round its top.
+    let trunk = (SKY..SKY + 30).take_while(|&y| a.block(at(0, y, 0)) == LOG).count() as i32;
+    assert!((4..=crate::worldgen::YOUNG_MAX).contains(&trunk), "trunk {trunk}");
     assert_eq!(a.block(at(0, SKY - 1, 0)), DIRT);
-    // The lower wide canopy layer: 5 × 5 around the trunk, some corners trimmed.
-    let y = SKY + trunk as i32 - 3;
-    let leaves = (-2..=2).flat_map(|z| (-2..=2).map(move |x| (x, z))).filter(|&(x, z)| a.block(at(x, y, z)) == LEAVES);
-    assert!(leaves.count() >= 20, "a full canopy");
+    let crown = cube_around(at(0, SKY + trunk - 1, 0), 5);
+    assert!(crown.iter().filter(|&&p| a.block(p) == LEAVES).count() >= 40, "a full crown");
+    assert!(crown.iter().filter(|&&p| a.block(p) == LOG && (p.x != 0 || p.z != 0)).count() >= 3, "limbs");
 }
 
 #[test]
@@ -94,7 +99,7 @@ fn saplings_need_soil_and_room() {
 
 #[test]
 fn each_species_leaves_and_grows_its_own_sapling() {
-    use crate::block::{BIRCH_LEAVES, BIRCH_LOG, BIRCH_SAPLING, PINE_LEAVES, PINE_SAPLING};
+    use crate::block::{BIRCH_LEAVES, BIRCH_LOG, BIRCH_SAPLING, PINE_LEAVES, PINE_LOG, PINE_SAPLING};
     let mut sim = Sim::new(SEED, 2);
     for (leaves, sapling) in [(BIRCH_LEAVES, BIRCH_SAPLING), (PINE_LEAVES, PINE_SAPLING), (LEAVES, SAPLING)] {
         assert_eq!(crate::block::sapling_of(leaves), sapling);
@@ -112,13 +117,14 @@ fn each_species_leaves_and_grows_its_own_sapling() {
         }
         assert!(got > 0, "{leaves} leaves left no sapling");
     }
-    // A planted pine sapling grows a pine (a log trunk of at least 6 under needles), a birch a birch.
+    // A planted pine sapling grows a pine (its own log, needles round its top), a birch a birch.
     sim.world.set_block_anywhere(at(0, SKY - 1, 100), GRASS);
     sim.world.set_block_anywhere(at(10, SKY - 1, 100), GRASS);
     assert!(place(&mut sim, at(0, SKY, 100), PINE_SAPLING) && place(&mut sim, at(10, SKY, 100), BIRCH_SAPLING));
     assert_eq!(run(&mut sim, 900), 2);
-    let trunk = (SKY..SKY + 10).take_while(|&y| sim.block(at(0, y, 100)) == LOG).count();
-    assert!((6..=8).contains(&trunk), "pine trunk {trunk}");
-    assert_eq!(sim.block(at(0, SKY + trunk as i32 - 1, 101)), PINE_LEAVES);
+    let trunk = (SKY..SKY + 30).take_while(|&y| sim.block(at(0, y, 100)) == PINE_LOG).count() as i32;
+    assert!((4..=crate::worldgen::YOUNG_MAX).contains(&trunk), "pine trunk {trunk}");
+    let top = cube_around(at(0, SKY + trunk - 1, 100), 2);
+    assert!(top.iter().any(|&p| sim.block(p) == PINE_LEAVES), "needles at the top");
     assert_eq!(sim.block(at(10, SKY, 100)), BIRCH_LOG);
 }

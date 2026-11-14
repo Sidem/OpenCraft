@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-14 · Eleven kinds of tree, and bamboo
+- **New worlds grow real-looking trees.** Leaves are drawn as leaves, not blobs, and every tree grows its own branches: wide oaks, slim birches, pine cones of needles, pink cherry blossom in groves, palms leaning over beaches, flat-topped acacias and fat baobabs on warm dry plains, giant redwoods on wet highlands, pale tall eucalyptus and stands of bamboo in warm lowlands.
+- **Forests have their own places.** New worlds have savannas, boreal forests, eucalyptus woodlands, bamboo forests and redwood forests, each with its own trees and ground cover.
+- **Trunks stay clear.** No leaves hang around a trunk below its crown, so you can see the wood and chop it from the ground.
+- **Each new tree drops its own sapling.** Plant one and it grows into a young tree of its kind. A forester plants and fells them like oaks; it takes the trunk and chips the branches.
+- **Worlds you already have keep their trees.** Only new worlds (and new saplings) grow the new ones.
 ## 2026-11-14 · Lifts that go down, and hover packs that charge from further away
 - **Belt lifts can carry items down.** Feed the top of a stack of lifts from a belt one block behind and one up, leave its foot unfed, and the stack lowers items and hands them on straight ahead at the bottom.
 - **Dragging a belt line uses lifts at cliffs.** With lifts in your inventory, a line that meets a cliff more than one block high climbs it on a stack of lifts, and a line you point down at lower ground goes down the cliff on lifts. Point level with the top and the line stays level over the drop, as before. The line's card says how many lifts it uses.
