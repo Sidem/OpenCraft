@@ -1,9 +1,11 @@
 # Patch notes
 
-Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
-line followed by `- ` lines, written for players in plain words. Anything else is ignored.
+Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · vX.Y.Z · title`
+line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
+version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
-## 2026-11-15 · A better research order, and square research tiles
+## 2026-11-15 · v0.8.0 · A better research order, and square research tiles
+- **OpenCraft has version numbers now.** This is 0.8.0; you can see it at the bottom of the menu and next to each update here from now on. Small updates count up the last number, big additions the middle one, and 1.0 waits until the game has been played and balanced from start to finish.
 - **Research tiles are square now,** each with an icon for its kind of research (logistics, power, fluids, electronics, drones, personal gear and so on) in a ring that fills as the research goes. Zoom out and the names get bigger; zoom further and you see only colours. The hover card shows the same icon.
 - **The tech tree follows when you need things.** Masonry (bricks, quicklime) and Fluid Handling now come right after Mechanics, and Hydropower no longer waits for Steam Power. Rails need Earthworks, Ore Washing comes with Ore Crushing, Jetpack needs Exosuit gear, and the Hauler packs (Mk2 in Hauler Gear, Mk3 to Mk5 each later) are spread along the game instead of bunched. Auto-Routing and AI Survey now use violet packs instead of gold. Forestry (the forester) moved up to the violet era, after Violet Science. Research you already finished stays finished, but a Forestry already in progress now needs violet packs.
 

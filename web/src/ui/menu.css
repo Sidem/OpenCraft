@@ -200,6 +200,11 @@
   height: 14px;
 }
 
+.app-version {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
 /* ---- the page area (what the pages hold: menu-pages.css) */
 
 .menu-main {

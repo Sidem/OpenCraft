@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-14):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-15, v0.8.0):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. The 2026-11-14
 `/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **L2–L6** (mini-lessons),
 **FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Next: L2–L6, then FIRE,
@@ -30,7 +30,9 @@ Before you change code:
 2. `npm run build:wasm` (if `web/src/wasm` is missing), then `npm run check` for a green baseline.
 3. Do one step of section 4, or one clean part of it, per session; stop green.
 4. When a step is done: tick it here, update the status line, add a line to section 6. Players will notice it: a line in
-   `web/src/patch-notes.md` (newest `## date · title` first). Structural change: `docs/CODEMAP.md` in the same commit.
+   `web/src/patch-notes.md` (newest `## date · vX.Y.Z · title` first); a new note bumps the version in `package.json` and
+   `crates/engine/Cargo.toml` (+0.0.1 small, +0.1.0 a major addition; `docs/DECISIONS.md` "Version numbers").
+   Structural change: `docs/CODEMAP.md` in the same commit.
 
 Ground rules (details in `docs/WORKFLOW.md`): **never push to `main` without asking** (a push deploys the live site);
 commit only when asked; PowerShell and the file tools on this Windows machine (the Bash tool fails); performance first,
@@ -222,6 +224,9 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ## 6. Recent changes
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
+
+- **2026-11-15: version numbers (user).** 0.8.0, shown in the menu footer and patch-note headings (`VERSION`,
+  `ui/patch-notes.ts`); rule in `docs/DECISIONS.md`.
 
 - **2026-11-15: boxes to Mk5, pumpjack Mk2, sapling models (user).** `Family::first_kit` (`factory/tiers.rs`): a tier's kit and
   paint is `Family::colour`, the tier itself except the pumpjack, whose Mk2 takes gold kits (`Step::colour`; `Action::Upgrade`'s

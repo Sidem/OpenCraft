@@ -9,7 +9,7 @@
 
 import './menu.css';
 import './menu-pages.css';
-import { PatchNotes } from './patch-notes';
+import { PatchNotes, VERSION } from './patch-notes';
 
 export type Page = 'home' | 'worlds' | 'together' | 'settings' | 'sound' | 'controls' | 'notes';
 /** first: a new player; back: a saved world opened; fresh: a new world opened; paused: Escape during play. */
@@ -43,6 +43,7 @@ export class Menu {
     this.notes = new PatchNotes(notesTab, () => this.show('notes'));
     document.getElementById('notes')!.append(this.notes.el);
     document.getElementById('menu-latest')!.append(this.notes.teaser);
+    document.getElementById('app-version')!.textContent = `Version ${VERSION}`;
   }
 
   /** A world was opened (`restored`: from a save). A new world for someone who never pressed Play here
