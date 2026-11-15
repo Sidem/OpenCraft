@@ -19,6 +19,7 @@ import { BuildMenu } from './crafting';
 import { CreativeMenu, withCreativeTabs } from './creative';
 import { DragThrow } from './drag-throw';
 import { BoxLabel } from './box-label';
+import { MachineUpgrade } from './machine-upgrade';
 import { button, h } from './dom';
 import { PackUpgrade } from './pack-upgrade';
 import { Pager } from './pager';
@@ -67,6 +68,9 @@ export class InventoryPanel {
   private readonly boxGrid = h('div', 'inv-grid inv-box-grid');
   private readonly boxSlots: SlotView[] = [];
   private readonly boxLabel: BoxLabel;
+  private readonly boxUpgrade: MachineUpgrade;
+  /** How many of `boxSlots` are showing. */
+  private boxShown = 0;
   /** The open box's position, or null for the plain inventory screen. */
   private box: [number, number, number] | null = null;
   /** The panel shown beside the inventory, if any. */
@@ -155,7 +159,8 @@ export class InventoryPanel {
     sortBox.title = `Merge stacks and order them by kind: ${game.sort_kinds()}`;
     this.boxLabel = new BoxLabel(game, icon);
     boxHead.append(h('h3', '', 'Storage box'), this.boxLabel.el, sortBox, takeAll);
-    this.boxSection.append(boxHead, this.boxGrid);
+    this.boxUpgrade = new MachineUpgrade(game);
+    this.boxSection.append(boxHead, this.boxUpgrade.el, this.boxGrid);
     const sortPack = button('secondary-btn', 'Sort', () => game.sort_inventory());
     sortPack.title = `Merge stacks and order the backpack by kind: ${game.sort_kinds()} (the hotbar stays as you set it)`;
     const packHead = h('div', 'inv-box-head');
@@ -221,7 +226,22 @@ export class InventoryPanel {
     this.beside = beside;
     this.box = box;
     this.boxLabel.open(box);
-    const n = box ? this.game.box_slots(...box).length / 2 : 0;
+    this.showBoxSlots(box ? this.game.box_slots(...box).length / 2 : 0);
+    this.boxSection.classList.toggle('hidden', !box);
+    this.right.classList.toggle('hidden', !!box || !!beside);
+    this.dialog.classList.toggle('inv-with-box', !!box || !!beside);
+    this.title.textContent = beside ? beside.title : box ? 'Storage box' : 'Inventory & build';
+    this.backdrop.classList.remove('hidden');
+    this.version = -1;
+    this.boxKey = '';
+    this.update();
+    this.dialog.focus();
+  }
+
+  /** Makes the box grid `n` slots long. Slots are kept between boxes; a smaller box hides the extras, and an upgraded
+   * box has more (called again from `update` when the open box's slot count changes). */
+  private showBoxSlots(n: number): void {
+    this.boxShown = n;
     while (this.boxSlots.length < n) {
       const i = this.boxSlots.length;
       const slot = this.makeSlot(
@@ -240,17 +260,7 @@ export class InventoryPanel {
       this.boxSlots.push(slot);
       this.boxGrid.append(slot.root);
     }
-    // Slots are kept between boxes; a smaller box hides the extras (an upgraded box has more).
     this.boxSlots.forEach((s, i) => s.root.classList.toggle('hidden', i >= n));
-    this.boxSection.classList.toggle('hidden', !box);
-    this.right.classList.toggle('hidden', !!box || !!beside);
-    this.dialog.classList.toggle('inv-with-box', !!box || !!beside);
-    this.title.textContent = beside ? beside.title : box ? 'Storage box' : 'Inventory & build';
-    this.backdrop.classList.remove('hidden');
-    this.version = -1;
-    this.boxKey = '';
-    this.update();
-    this.dialog.focus();
   }
 
   close(resume: boolean): void {
@@ -270,14 +280,17 @@ export class InventoryPanel {
       this.close(true); // the machine is gone
       return;
     }
+    if (this.beside) this.title.textContent = this.beside.title;
     const g = this.game;
     this.boxLabel.update();
+    if (this.box) this.boxUpgrade.update(this.box);
     const v = g.inventory_version();
     const boxData = this.box ? g.box_slots(...this.box) : null;
     if (boxData && boxData.length === 0) {
       this.close(false); // the box is gone
       return;
     }
+    if (boxData && boxData.length / 2 !== this.boxShown) this.showBoxSlots(boxData.length / 2); // upgraded: more slots
     const boxKey = boxData ? boxData.join(',') : '';
     if (v === this.version && boxKey === this.boxKey) return this.showControls();
     this.version = v;

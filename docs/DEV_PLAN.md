@@ -225,6 +225,14 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
 
+- **2026-11-15: recipe speed and miner panels (user, v0.8.4).** Recipe cards read the machine's real batch time
+  (`Processor::batch_seconds`, `Game::machine_recipe_seconds_at`) and print a minute and a second (`ui/recipe-rates.ts`);
+  the panel's top is a table (`ui/rate-table.ts`, rows from `Factory::rate_rows`), the readout one short line
+  (`rates_text`). Miners (`MINER`, `MINER_MK2`) have `panel: true`: right-click opens `Miner::panel`, never
+  `TakeContents`; the Take output button and slot clicks still do.
+- **2026-11-15: upgrade button, diesel (user, v0.8.3).** `ui/machine-upgrade.ts` on machine panels and box screens, through
+  `Game::machine_upgrade` / `upgrade_machine` (`api/machine.rs`; the same `Action::Upgrade`). Diesel: `BARREL_KJ` halved, still
+  `DIESEL_KW`, so a barrel lasts 50 s. A generator's saved charge above the new barrel just burns off.
 - **2026-11-15: Controls keyboard picture (user, v0.8.2).** The Controls page draws a keyboard with each used key lit by category
   and the list below; one table (`ui/control-bindings.ts`) feeds both, labels follow the layout (`ui/keyboard-layout.ts`: chosen,
   browser map, learned, QWERTY). Bindings stay by `e.code`. `web/test/controls.test.mjs` guards: table vs `input.ts`, presets vs

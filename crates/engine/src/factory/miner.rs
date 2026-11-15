@@ -237,6 +237,45 @@ impl Miner {
         self.pulse -= 1;
     }
 
+    /// Tenths of an ore a minute it makes at full power (before the deposit's draw cap and taper, which the status
+    /// line reports as it works): the panel's rate table.
+    pub(super) fn tenths_a_minute(&self) -> u32 {
+        (self.rate() * self.recovery() * 600.0).round() as u32
+    }
+
+    /// The panel's notes under the rate table: how much of the draw it keeps, the deposit and how long it lasts.
+    pub(super) fn notes(&self, f: &Factory) -> String {
+        let mut lines = vec![format!("Keeps {}% of what it draws", (self.recovery() * 100.0).round() as u32)];
+        lines.extend(self.deposit_head(f));
+        lines.extend(self.deposit_tail(f));
+        lines.join("\n")
+    }
+
+    /// "Iron Ore · 12,345 of 20,000 blocks left" for the deposit it works.
+    fn deposit_head(&self, f: &Factory) -> Option<String> {
+        let st = f.deposits.get(&self.deposit?)?;
+        Some(format!(
+            "{} · {} of {} blocks left",
+            st.deposit.name(),
+            fmt_int(st.remaining_blocks as u64),
+            fmt_int(st.initial_blocks as u64)
+        ))
+    }
+
+    /// How long the deposit lasts at the draw of every miner on it, while any is drawing.
+    fn deposit_tail(&self, f: &Factory) -> Option<String> {
+        let key = self.deposit?;
+        let st = f.deposits.get(&key)?;
+        let total_draw: f64 = f.miners.iter().filter(|o| o.deposit == Some(key)).map(|o| o.draw_rate).sum();
+        (total_draw > 0.01 && !st.exhausted()).then(|| {
+            format!(
+                "{} units left · about {} at the current draw",
+                fmt_int(st.remaining_units() as u64),
+                fmt_duration(st.remaining_units() / total_draw)
+            )
+        })
+    }
+
     /// What it is doing, in a line (the readout and a coal miner's panel).
     pub(super) fn status_line(&self) -> String {
         match self.status {
@@ -310,31 +349,17 @@ impl Machine for Miner {
 
     /// Deposit, status, what it holds and how long the deposit lasts at the current draw.
     fn describe(&self, f: &Factory) -> String {
-        let Some(key) = self.deposit else {
+        if self.deposit.is_none() {
             return "Not on an ore deposit. Place miners against an ore block.".to_string();
-        };
-        let Some(st) = f.deposits.get(&key) else { return String::new() };
-        let mut lines = vec![format!(
-            "{} · {} of {} blocks left",
-            st.deposit.name(),
-            fmt_int(st.remaining_blocks as u64),
-            fmt_int(st.initial_blocks as u64)
-        )];
-        lines.push(self.status_line());
+        }
+        let Some(head) = self.deposit_head(f) else { return String::new() };
+        let mut lines = vec![head, self.status_line()];
         let held = self.out.total();
         if held > 0 {
-            let then = if self.is_coal() { "right-click to open" } else { "right-click to take" };
-            lines.push(format!("Holding {held} {} · {then}", item::name(self.ore)));
+            lines.push(format!("Holding {held} {} · right-click to open", item::name(self.ore)));
         }
         lines.extend(self.burner.line().filter(|_| self.is_coal()));
-        let total_draw: f64 = f.miners.iter().filter(|o| o.deposit == Some(key)).map(|o| o.draw_rate).sum();
-        if total_draw > 0.01 && !st.exhausted() {
-            lines.push(format!(
-                "{} units left · about {} at the current draw",
-                fmt_int(st.remaining_units() as u64),
-                fmt_duration(st.remaining_units() / total_draw)
-            ));
-        }
+        lines.extend(self.deposit_tail(f));
         lines.join("\n")
     }
 

@@ -61,6 +61,11 @@ fn it_gives_what_the_grid_lacks_and_hands_the_empty_barrel_back() {
 }
 
 #[test]
+fn a_barrel_lasts_fifty_seconds_at_full_power() {
+    assert_eq!(BARREL_KJ / DIESEL_KW, 50);
+}
+
+#[test]
 fn with_no_load_it_burns_nothing_and_stands_by() {
     let mut f = rig(false);
     f.insert(GEN, DIESEL_BARREL, 2);

@@ -91,14 +91,22 @@ impl Processor {
         (work > 0).then(|| (a_minute(r.inputs), a_minute(r.outputs)))
     }
 
-    /// `rates` in words: "Full speed: takes 30 Iron Ore, makes 30 Iron Ingot a minute".
+    /// `rates` as one short line for the readout: "Full speed: 30 Iron Ore → 30 Iron Ingot a minute". The panel draws
+    /// the same numbers as a table, a minute and a second (`Factory::rate_rows`).
     pub fn rates_text(&self) -> Option<String> {
         let (ins, outs) = self.rates()?;
-        let words = |list: Rates| -> String {
+        let words = |list: &Rates| -> String {
             let each: Vec<String> = list.iter().map(|&(i, t)| format!("{} {}", tenths(t), item::name(i))).collect();
-            each.join(" and ")
+            each.join(" + ")
         };
-        Some(format!("Full speed: takes {}, makes {} a minute", words(ins), words(outs)))
+        Some(format!("Full speed: {} → {} a minute", words(&ins), words(&outs)))
+    }
+
+    /// Seconds one batch of recipe `r` takes in this machine at full power (its tier and research's bonus), counted in
+    /// whole ticks as `work.rs` does: the time the recipe card shows, so a Mk3 smelter reads shorter than a Mk1.
+    pub fn batch_seconds(&self, r: &MachineRecipe) -> f64 {
+        let work = self.stats().speed * self.boost / FULL_SPEED;
+        batch_ticks(r, work) as f64 / f64::from(TICK_RATE)
     }
 
     pub fn panel(&self) -> Panel {
@@ -198,8 +206,13 @@ impl Processor {
 /// Tenths of an item a minute that `n` a batch of `r` comes to at `work` thousandths of a Mk1 tick each tick (a
 /// tier's `speed` at full power), a batch taking whole ticks as `work.rs` counts them.
 pub fn tenths_a_minute(r: &MachineRecipe, n: u32, work: u32) -> u32 {
-    let batch = u64::from((ticks(r.seconds) * FULL_SPEED).div_ceil(work.max(1)));
+    let batch = batch_ticks(r, work);
     ((u64::from(n) * 600 * u64::from(TICK_RATE) + batch / 2) / batch) as u32
+}
+
+/// Ticks one batch of `r` takes at `work` thousandths of a Mk1 tick each tick.
+fn batch_ticks(r: &MachineRecipe, work: u32) -> u64 {
+    u64::from((ticks(r.seconds) * FULL_SPEED).div_ceil(work.max(1)))
 }
 
 /// Tenths as words: "7.5", or "30" when whole (integers only: float formatting costs wasm size).

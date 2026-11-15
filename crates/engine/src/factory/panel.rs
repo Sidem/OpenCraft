@@ -64,7 +64,7 @@ impl Factory {
             Slot::Quarry(i) => Some(self.quarries[i as usize].panel(self)),
             Slot::Miner(i) => {
                 let m = &self.miners[i as usize];
-                m.panel(m.status_line())
+                Some(m.panel(m.status_line()))
             }
             Slot::Belt(_)
             | Slot::Storage(_)
@@ -76,12 +76,37 @@ impl Factory {
         }
     }
 
-    /// What the machine at `pos` takes and makes a minute at full speed, in words (`Processor::rates_text`), if it says.
-    pub fn rates(&self, pos: IVec3) -> Option<String> {
+    /// The rows of the panel's rate table at full speed: `(is an output, item, tenths of an item a minute)`, inputs
+    /// first. A processor's are its recipe's; a miner's is its one ore. Empty for anything else.
+    pub fn rate_rows(&self, pos: IVec3) -> Vec<(bool, ItemId, u32)> {
+        match self.at.get(&pos) {
+            Some(&Slot::Process(i)) => {
+                let (ins, outs) = self.processors[i as usize].rates().unwrap_or_default();
+                let mut rows: Vec<_> = ins.into_iter().map(|(item, t)| (false, item, t)).collect();
+                rows.extend(outs.into_iter().map(|(item, t)| (true, item, t)));
+                rows
+            }
+            Some(&Slot::Miner(i)) => {
+                let m = &self.miners[i as usize];
+                vec![(true, m.ore, m.tenths_a_minute())]
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// A line or three of context under the rate table (a miner's recovery and deposit), if the machine has any.
+    pub fn rate_notes(&self, pos: IVec3) -> Option<String> {
         match self.at.get(&pos)? {
-            Slot::Process(i) => self.processors[*i as usize].rates_text(),
+            Slot::Miner(i) => Some(self.miners[*i as usize].notes(self)),
             _ => None,
         }
+    }
+
+    /// Seconds one batch of machine recipe `recipe` takes in the machine at `pos` at full power (its Mk and research's
+    /// bonus counted), or `None` when it is not a recipe machine.
+    pub fn recipe_seconds(&self, pos: IVec3, recipe: u16) -> Option<f64> {
+        let Some(&Slot::Process(i)) = self.at.get(&pos) else { return None };
+        Some(self.processors[i as usize].batch_seconds(crate::recipes::MACHINE_RECIPES.get(usize::from(recipe))?))
     }
 
     /// The slots of the box at `pos`, if there is one (its screen shows them, `ClickBox` edits them).
@@ -230,9 +255,10 @@ impl Factory {
             Some(&Slot::Process(i)) => self.processors[i as usize].take_slot(slot, take),
             Some(&Slot::Miner(i)) => {
                 let m = &mut self.miners[i as usize];
-                match slot {
-                    0 => m.burner.fuel.drain(take),
-                    1 => m.out.drain(take),
+                // Panel order: a coal miner's fuel then its output; an electric miner has the output alone.
+                match (m.is_coal(), slot) {
+                    (true, 0) => m.burner.fuel.drain(take),
+                    (true, 1) | (false, 0) => m.out.drain(take),
                     _ => {}
                 }
             }

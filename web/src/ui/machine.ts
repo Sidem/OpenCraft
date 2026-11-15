@@ -5,7 +5,8 @@
 // recipe choice for machines where the player picks it, where a filter sends what (ui/filter-panel.ts), one-click put-in buttons, a
 // take-output button, a quarry's choices (ui/quarry.ts; `quarryBox` for its outline), a pod launcher's or pad's channel
 // (ui/pod-channel.ts) and a depot's town on top (ui/town.ts). Sections a machine doesn't use are hidden.
-// Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions.
+// Everything shown is read from the engine each frame (`machine_panel`); buttons queue engine actions. What it takes and
+// makes a minute and a second is the table of `rate-table.ts`.
 // A new machine with a panel needs no change here unless it adds a buffer role (`ROLE_LABELS`).
 
 import './machine.css';
@@ -13,8 +14,10 @@ import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
 import { FilterSection } from './filter-panel';
 import type { Beside, InventoryPanel } from './inventory';
+import { MachineUpgrade } from './machine-upgrade';
 import { RecipePicker } from './machine-recipes';
 import { ChannelSection } from './pod-channel';
+import { RateTable } from './rate-table';
 import { QuarrySection } from './quarry';
 import { TownSection } from './town';
 
@@ -24,7 +27,7 @@ export class MachinePanel implements Beside {
   readonly el = h('section', 'mp-panel');
   title = '';
   private readonly status = h('p', 'mp-status');
-  private readonly rates = h('p', 'mp-rates');
+  private readonly rates: RateTable;
   private readonly efficiency = h('p', 'mp-efficiency');
   private readonly bar = h('div', 'mp-bar-fill');
   private readonly fire = h('span', 'mp-fire');
@@ -39,6 +42,7 @@ export class MachinePanel implements Beside {
   private readonly quarry: QuarrySection;
   private readonly channel: ChannelSection;
   private readonly town: TownSection;
+  private readonly upgrade: MachineUpgrade;
   private readonly roleLabels: Map<number, string>;
   private pos: [number, number, number] = [0, 0, 0];
   private block = -1;
@@ -60,8 +64,10 @@ export class MachinePanel implements Beside {
     this.take = button('secondary-btn mp-take', 'Take output', () => {
       this.game.take_machine_output(...this.pos);
     });
+    this.upgrade = new MachineUpgrade(game);
+    this.rates = new RateTable(game, icon);
     const state = h('section', 'mp-state');
-    state.append(this.status, this.rates, this.efficiency, this.progress, this.fire, this.slots, this.take);
+    state.append(this.upgrade.el, this.status, this.rates.el, this.efficiency, this.progress, this.fire, this.slots, this.take);
 
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filter = new FilterSection(game, icon);
@@ -126,6 +132,8 @@ export class MachinePanel implements Beside {
     if (data.length === 0) return false;
     const [, recipe, progress, fire, choosable, count] = data;
     this.bar.style.transform = `scaleX(${progress / 1000})`;
+    this.upgrade.update(this.pos);
+    this.title = g.machine_name(...this.pos) || this.title; // an upgrade changes the Mk in the heading
     const quarry = this.quarry.update(this.pos);
     this.town.update(this.pos);
     const channel = this.channel.update(this.pos);
@@ -134,26 +142,33 @@ export class MachinePanel implements Beside {
     if (this.efficiency.textContent !== efficiency) this.efficiency.textContent = efficiency;
     const percent = g.machine_efficiency_percent(...this.pos);
     this.efficiency.dataset.level = percent < 0 ? 'idle' : percent >= 98 ? 'full' : percent >= 60 ? 'ok' : 'low';
-    // Everything else changes rarely: redraw it only when the rest of the data or the inventory does.
+    // The status line carries live numbers (a generator's kJ lit), so it follows every frame too.
+    const status = g.machine_status(...this.pos);
+    if (this.status.textContent !== status) this.status.textContent = status;
+    // The rates follow the machine's Mk (an upgrade) and research's bonus, so they are read every frame too.
+    this.rates.update(this.pos);
+    // Everything else changes rarely: redraw it only when the rest of the data or the inventory does. The recipe cards'
+    // times depend on the Mk, which is in the title.
     data[2] = 0;
     const filter = g.machine_filter(...this.pos);
-    const key = `${data.join(',')}|${g.inventory_version()}|${channel}|${filter}`;
+    const key = `${data.join(',')}|${g.inventory_version()}|${channel}|${filter}|${this.title}`;
     if (key === this.drawn) return true;
     this.drawn = key;
 
-    this.status.textContent = g.machine_status(...this.pos);
-    this.rates.textContent = g.machine_rates(...this.pos);
-    this.rates.classList.toggle('hidden', !this.rates.textContent);
     this.fire.textContent = fire > 0 ? `Fire: ${fire} s left` : '';
     this.slots.replaceChildren();
     let output = -1;
     let held = 0;
+    let intake = false; // an electric miner has only an output: nothing to put in
     // A silo has 144 slots: show only the ones that hold something.
     const many = count > 12;
     for (let i = 0; i < count; i++) {
       const role = data[6 + i * 3], item = data[7 + i * 3], n = data[8 + i * 3];
       if (role === g.panel_role_output()) output = Math.max(output, 0) + n;
-      else if (n > 0) held = item;
+      else {
+        intake = true;
+        if (n > 0) held = item;
+      }
       if (many && n === 0) continue;
       this.slots.append(this.slotView(this.roleLabels.get(role) ?? '', item, n, i));
     }
@@ -162,16 +177,16 @@ export class MachinePanel implements Beside {
 
     const filtering = filter.length > 0;
     this.filter.el.classList.toggle('hidden', !filtering);
-    this.put.classList.toggle('hidden', filtering || quarry);
+    this.put.classList.toggle('hidden', filtering || quarry || !intake);
     this.progress.classList.toggle('hidden', filtering);
     // The filter's cards say the same as its status line.
     this.status.classList.toggle('hidden', filtering);
     if (filtering) this.filter.update(this.pos, filter, held, this.inventoryTotals());
     this.recipeHead.classList.toggle('hidden', this.recipes.isEmpty);
     this.recipes.el.classList.toggle('hidden', this.recipes.isEmpty);
-    this.recipes.update(recipe === 0xffffffff ? -1 : recipe, choosable === 1);
+    this.recipes.update(recipe === 0xffffffff ? -1 : recipe, choosable === 1, this.pos);
     this.recipeHead.textContent = choosable ? 'Choose what it makes' : 'It makes (from what it gets)';
-    if (!filtering && !quarry) this.drawInserts();
+    if (!filtering && !quarry && intake) this.drawInserts();
     return true;
   }
 

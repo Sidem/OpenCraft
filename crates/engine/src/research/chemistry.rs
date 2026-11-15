@@ -63,7 +63,7 @@ pub const CHEMISTRY: [Tech; 13] = [
     },
     Tech {
         name: "Diesel Power",
-        blurb: "The diesel generator gives 400 kW from diesel barrels, 100 seconds each at full load, and hands the \
+        blurb: "The diesel generator gives 400 kW from diesel barrels, 50 seconds each at full load, and hands the \
                 empty barrels back. It burns only what the grid asks for, after solar, coal and steam.",
         needs: &[43],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],

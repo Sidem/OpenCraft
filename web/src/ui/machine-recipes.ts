@@ -3,11 +3,14 @@
 // it, "Uses" and a chip for each ingredient (icon, count, name). Byproducts show as "Also gives". A recipe research still
 // locks goes last, dimmed, with the tech to finish. Long lists (the upgrader has dozens) get a search box, and the list
 // scrolls within a height of its own (machine-recipes.css); `reveal` scrolls it to the active card on the next update.
-// `update` marks the active card and re-sorts only when a lock changed. To change a card: `buildCard`.
+// `update` marks the active card, re-sorts only when a lock changed, and rewrites every card's batch time and rates for
+// the machine the panel is open on (a Mk3 smelter is quicker than a Mk1, so its cards say so). Each ingredient and
+// product shows items a minute and a second (`recipe-rates.ts`). To change a card: `buildCard`.
 
 import './machine-recipes.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
+import { formatSeconds, perMinute, rateWords } from './recipe-rates';
 
 const ICON_PX = 64;
 /** More recipes than this and the list gets a search box. */
@@ -25,14 +28,14 @@ interface Card {
   /** Lower-case words to search: product and ingredient names. */
   words: string;
   locked: boolean;
-}
-
-/** "4 s", "1.5 s", "1 min 30 s". */
-export function formatSeconds(s: number): string {
-  if (s < 60) return `${Number.isInteger(s) ? s : s.toFixed(1)} s`;
-  const m = Math.floor(s / 60);
-  const rest = Math.round(s - m * 60);
-  return rest === 0 ? `${m} min` : `${m} min ${rest} s`;
+  /** The batch time label, and the rate text of what it makes. */
+  time: HTMLElement;
+  makes: HTMLElement;
+  /** The product's count a batch, every ingredient and byproduct with its count and rate element. */
+  product: number;
+  amounts: { n: number; rate: HTMLElement }[];
+  /** The batch time last drawn, in seconds. */
+  seconds: number;
 }
 
 export class RecipePicker {
@@ -89,9 +92,11 @@ export class RecipePicker {
     this.revealing = true;
   }
 
-  /** Marks the card of recipe `active` (or none: -1), and whether cards can be clicked at all. */
-  update(active: number, choosable: boolean): void {
+  /** Marks the card of recipe `active` (or none: -1), and whether cards can be clicked at all. `pos` is the machine the
+   * panel is open on: the times and rates are the ones it runs at (its Mk, research's bonus). */
+  update(active: number, choosable: boolean, pos: [number, number, number]): void {
     for (const c of this.cards) {
+      this.showSpeed(c, this.game.machine_recipe_seconds_at(...pos, c.id));
       const tech = this.game.machine_recipe_locked_by(c.id);
       c.locked = tech >= 0;
       c.el.classList.toggle('active', c.id === active);
@@ -113,6 +118,15 @@ export class RecipePicker {
       const card = this.cards.find((c) => c.id === active)?.el;
       this.list.scrollTop = card ? card.offsetTop - (this.list.clientHeight - card.offsetHeight) / 2 : 0;
     }
+  }
+
+  /** Writes the batch time and the rates of a card for a batch taking `seconds` (nothing when it has not changed). */
+  private showSpeed(c: Card, seconds: number): void {
+    if (c.seconds === seconds) return;
+    c.seconds = seconds;
+    c.time.textContent = formatSeconds(seconds);
+    c.makes.textContent = `Makes ${rateWords(c.product, seconds)}`;
+    for (const a of c.amounts) a.rate.textContent = perMinute(a.n, seconds);
   }
 
   private filter(): void {
@@ -139,12 +153,16 @@ export class RecipePicker {
     const tile = h('span', 'rp-tile');
     tile.append(this.iconCanvas(outs[0], 'rp-icon'), h('b', 'rp-amount', `×${outs[1]}`));
 
+    const amounts: Card['amounts'] = [];
+    const timeText = h('span');
     const time = h('span', 'rp-time');
     time.innerHTML = CLOCK;
-    time.append(formatSeconds(g.machine_recipe_seconds(id)));
-    time.title = 'How long one batch takes at Mk1 speed';
+    time.append(timeText);
+    time.title = "How long one batch takes in this machine, at full power (its Mk and research's bonus count)";
     const top = h('span', 'rp-top');
     top.append(h('b', 'rp-name', name), h('span', 'rp-making', payload ? 'Into orbit' : 'Making'), time);
+    const makes = h('span', 'rp-makes');
+    makes.title = 'What one machine makes in a minute and in a second, running without a break';
 
     const cost = h('span', 'rp-cost');
     cost.append(h('span', 'rp-label', 'Uses'));
@@ -152,20 +170,25 @@ export class RecipePicker {
       const chip = h('span', 'rp-chip');
       const label = g.item_name(ins[k]);
       names.push(label);
-      chip.title = `${ins[k + 1]} ${label}`;
-      chip.append(this.iconCanvas(ins[k], 'rp-chip-icon'), h('b', '', String(ins[k + 1])), label);
+      chip.title = `${ins[k + 1]} ${label} a batch`;
+      const rate = h('i', 'rp-rate');
+      amounts.push({ n: ins[k + 1], rate });
+      chip.append(this.iconCanvas(ins[k], 'rp-chip-icon'), h('b', '', String(ins[k + 1])), label, rate);
       cost.append(chip);
     }
 
     const main = h('span', 'rp-main');
-    main.append(top, cost);
+    main.append(top, makes, cost);
     if (outs.length > 2) {
       const extra = h('span', 'rp-extra');
       extra.append(h('span', 'rp-label', 'Also gives'));
       for (let k = 2; k + 1 < outs.length; k += 2) {
         const label = g.item_name(outs[k]);
         names.push(label);
+        const rate = h('i', 'rp-rate');
+        amounts.push({ n: outs[k + 1], rate });
         extra.append(h('span', 'rp-chip rp-chip-extra', `${outs[k + 1]} ${label}`));
+        extra.lastElementChild!.append(rate);
       }
       main.append(extra);
     }
@@ -177,7 +200,10 @@ export class RecipePicker {
     el.title = 'Click to choose it; click again to clear. What the machine holds comes back to you.';
     el.append(tile, main);
     el.addEventListener('click', () => this.pick(id));
-    return { id, el, lock, words: names.join(' ').toLowerCase(), locked: false };
+    return {
+      id, el, lock, words: names.join(' ').toLowerCase(), locked: false,
+      time: timeText, makes, product: outs[1], amounts, seconds: -1,
+    };
   }
 
   private iconCanvas(item: number, className: string): HTMLCanvasElement {

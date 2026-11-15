@@ -105,7 +105,7 @@ pub const DIESEL_GENERATOR_RECIPE: Recipe = Recipe {
     group: Group::Power,
     count: 1,
     inputs: &[(STEEL_PLATE, 14), (STEEL_BEAM, 6), (MOTOR, 4), (CIRCUIT, 4)],
-    blurb: "Burns diesel barrels for 400 kW, 2×2×2 (R turns it before you place it): one barrel lasts 100 \
+    blurb: "Burns diesel barrels for 400 kW, 2×2×2 (R turns it before you place it): one barrel lasts 50 \
             seconds at full load, far more energy than the oil cost to make. Belts bring diesel barrels in at the \
             back and take the empties from the front. Wire it to a pole like any power source; it burns only what \
             the grid asks for, after solar, coal and steam.",

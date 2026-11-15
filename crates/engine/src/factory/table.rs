@@ -49,7 +49,7 @@ pub struct MachineDef {
 /// an existing kind.
 pub const MACHINES: [MachineDef; 72] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
-    MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: false },
+    MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: true },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
     MachineDef { block: SMELTER, kind: Kind::Process, slots: 0, panel: true },
     MachineDef { block: SPLITTER, kind: Kind::Router, slots: 0, panel: false },
@@ -117,7 +117,7 @@ pub const MACHINES: [MachineDef; 72] = [
     MachineDef { block: BELT_EJECTOR, kind: Kind::Process, slots: 0, panel: false },
     MachineDef { block: FORESTER, kind: Kind::Process, slots: 0, panel: true },
     // Legacy blocks: worlds from before tiers (`tiers.rs`) still hold them; nothing places them now.
-    MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: false },
+    MachineDef { block: MINER_MK2, kind: Kind::Miner, slots: 1, panel: true },
     MachineDef { block: FAST_BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: PUMP, kind: Kind::Pipe, slots: 0, panel: false },
     MachineDef { block: OUTLET, kind: Kind::Pipe, slots: 0, panel: false },

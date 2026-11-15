@@ -75,7 +75,7 @@ size.
   it (an amber outline marks it); click another item to move the selection, anywhere else to let go. Selected and
   within reach, **I** still takes it. `item_select.rs`.
 - **Storage boxes** accept items from belts that end in them. They push items into belts that lead away
-  from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to take its ore.
+  from them, and miners next to a box fill it directly. Right-click a box to open it like a chest (Take all empties it); right-click a miner to open its panel (output, ore a minute and a second, what is left of the deposit; Take output empties it).
 - **A smelter** melts iron or copper ore into ingots, one every 1.5 seconds while its fire burns (and sand into
   glass, one block every 2 seconds, or a quartz ore into two). Feed it ore
   and fuel (coal ore burns 8 seconds, a log 4) by belt or from a miner next to it; it sorts them itself.
@@ -293,7 +293,7 @@ size.
   barrels and sulfur: the first leaves the front, the rest the right-hand hatches, so sort the belt with filters) and the
   **cracker** (heavy oil and water into naphtha and diesel). Plastics, then Acids and Lubricants, unlock the
   **chemical plant** (plastic from naphtha and coal, acid from sulfur and water, lubricant from heavy oil). A
-  **diesel generator** burns a barrel for 100 s of 400 kW and gives only what the grid lacks; the
+  **diesel generator** burns a barrel for 50 s of 400 kW and gives only what the grid lacks; the
   **electrolyser** splits water into hydrogen and oxygen for later. **Ore washing** (the washer takes *crushed* ore
   only, water from a pipe) turns a raw ore's 1.0 ingots into 2.0 and leaves tailings you must belt away. A **research
   center** (2×2×2, eight pack slots, twice a lab's speed and power) takes the gold pack that a lab has no slot for.

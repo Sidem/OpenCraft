@@ -4,6 +4,15 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-15 · v0.8.4 · Real recipe times, rates a minute and a second, miner menus
+- **Recipe times follow the machine.** The time on a recipe card was always the Mk1 time; a Mk3 smelter now shows the shorter time it really takes, and it changes the moment you upgrade.
+- **Every recipe card shows what one machine makes a minute and a second** ("Makes 40/min · 0.67/s"), and each ingredient shows how many it uses a minute, so the ratio between machines reads straight off the panels. The top of a machine's menu is a small table: one row for each item it uses and makes, with the amount per minute and per second.
+- **Miners open a menu.** Right-click a miner (any Mk) to see its output, how much ore it makes a minute and a second, how much of the deposit is left and how long it lasts. Right-clicking no longer empties it into your inventory; use the Take output button or click the stack.
+
+## 2026-11-15 · v0.8.3 · Upgrade buildings from their menu
+- **An "Upgrade to Mk N" button in a building's menu.** Open a miner, smelter, constructor, assembler, lab, generator or storage box that has a higher Mk and the button shows the next Mk and the kits it costs, with how many you carry. It is greyed out until you have the research and the kits. Nothing inside the building moves.
+- **Diesel is half as energy-rich.** A diesel generator still gives up to 400 kW, but a barrel now lasts 50 seconds at full load instead of 100, so it needs twice the barrels.
+
 ## 2026-11-15 · v0.8.2 · A keyboard picture on the Controls page
 - **The Controls page shows your keyboard.** Every key the game uses is lit in the colour of its group (getting around, building, screens, planning, camera, other). Point at a key, or press it, to see what it does. Pick a group to fade the rest. The list is still below, and the mouse buttons have their own row.
 - **It follows your keyboard layout.** The keys are printed the way yours are (French Z Q S D, German Y and Z, Dvorak, Colemak). The game reads your browser's layout when it can, learns from the keys you press otherwise, and lets you pick a layout by hand. The controls themselves stay where they are: W A S D is always the same four keys.

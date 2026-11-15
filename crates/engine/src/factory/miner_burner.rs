@@ -142,21 +142,26 @@ impl Miner {
         }
     }
 
-    /// The panel of a coal miner: its fuel and its output.
-    pub fn panel(&self, status: String) -> Option<Panel> {
-        self.is_coal().then(|| {
-            let burning = self.status == MinerStatus::Running;
-            Panel {
-                block: COAL_MINER,
-                recipe: None,
-                choosable: false,
-                progress: 0,
-                fire: if burning { self.burner.energy.div_ceil(self.stats().power * TICK_RATE) } else { 0 },
-                slots: vec![(ROLE_FUEL, self.burner.fuel.slots[0]), (ROLE_OUTPUT, self.out.slots[0])],
-                status,
-                filter: None,
-            }
-        })
+    /// The panel of a miner: a coal miner's fuel and its output (slot 0 fuel, 1 output), an electric one's output
+    /// alone (slot 0), so right-clicking opens it instead of emptying it.
+    pub fn panel(&self, status: String) -> Panel {
+        let coal = self.is_coal();
+        let burning = coal && self.status == MinerStatus::Running;
+        let mut slots = Vec::new();
+        if coal {
+            slots.push((ROLE_FUEL, self.burner.fuel.slots[0]));
+        }
+        slots.push((ROLE_OUTPUT, self.out.slots[0]));
+        Panel {
+            block: self.block(),
+            recipe: None,
+            choosable: false,
+            progress: 0,
+            fire: if burning { self.burner.energy.div_ceil(self.stats().power * TICK_RATE) } else { 0 },
+            slots,
+            status,
+            filter: None,
+        }
     }
 }
 

@@ -62,6 +62,13 @@ impl Factory {
             _ => panic!("no miner at {pos:?}"),
         }
     }
+
+    pub(crate) fn miner_at_mut(&mut self, pos: IVec3) -> &mut Miner {
+        match self.at.get(&pos) {
+            Some(Slot::Miner(i)) => &mut self.miners[*i as usize],
+            _ => panic!("no miner at {pos:?}"),
+        }
+    }
 }
 
 const EAST: u8 = 1;

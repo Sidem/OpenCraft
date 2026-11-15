@@ -119,6 +119,20 @@
   min-width: 0;
 }
 
+/* What one machine makes a minute and a second, and the same a minute beside each ingredient. */
+.rp-makes {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.rp-rate {
+  margin-left: 2px;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .rp-top {
   display: flex;
   align-items: center;

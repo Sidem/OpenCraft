@@ -926,6 +926,8 @@ mod ejector;
 #[cfg(test)]
 mod forest_bench;
 mod frame_bench;
+mod machine_panels;
+mod machine_upgrade;
 mod train_aim;
 mod train_journey;
 mod tree_gallery;

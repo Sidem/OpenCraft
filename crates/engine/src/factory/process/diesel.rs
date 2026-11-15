@@ -22,8 +22,8 @@ use crate::inventory::Stack;
 
 /// The most a diesel generator gives, in kW.
 pub const DIESEL_KW: u32 = 400;
-/// The energy of a diesel barrel in kJ: 400 kW for 100 s (coal is 270 kJ an item).
-pub const BARREL_KJ: u32 = 40_000;
+/// The energy of a diesel barrel in kJ: 400 kW for 50 s (coal is 270 kJ an item).
+pub const BARREL_KJ: u32 = 20_000;
 const BARREL_CHARGE: u32 = BARREL_KJ * TICK_RATE;
 
 pub const DIESEL_SPEC: ProcessSpec = ProcessSpec {

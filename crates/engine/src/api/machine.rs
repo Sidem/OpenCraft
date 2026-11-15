@@ -43,9 +43,38 @@ impl Game {
         self.sim.factory.panel(IVec3::new(x, y, z)).map_or_else(String::new, |p| p.status)
     }
 
-    /// What the machine takes and makes a minute at full speed, in words (empty for one without recipes).
-    pub fn machine_rates(&self, x: i32, y: i32, z: i32) -> String {
-        self.sim.factory.rates(IVec3::new(x, y, z)).unwrap_or_default()
+    /// The panel's rate table at full speed, flat: `[kind (0 uses, 1 makes), item, tenths of an item a minute]` per row,
+    /// inputs first. Empty for a machine without recipes, or before it has one.
+    pub fn machine_rate_rows(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        let rows = self.sim.factory.rate_rows(IVec3::new(x, y, z));
+        rows.into_iter().flat_map(|(out, item, tenths)| [u32::from(out), u32::from(item.0), tenths]).collect()
+    }
+
+    /// Context lines under the rate table (a miner's recovery and deposit); empty for most machines.
+    pub fn machine_rate_notes(&self, x: i32, y: i32, z: i32) -> String {
+        self.sim.factory.rate_notes(IVec3::new(x, y, z)).unwrap_or_default()
+    }
+
+    /// The next Mk of the tiered machine at a cell, for the panel's upgrade button: `[next Mk (2 for a Mk1), kit item,
+    /// kits it takes, kits the player holds, researched (0 or 1)]`; empty when the machine has no higher Mk.
+    pub fn machine_upgrade(&self, x: i32, y: i32, z: i32) -> Vec<u32> {
+        let Some(step) = self.sim.factory.next_upgrade(IVec3::new(x, y, z)) else { return Vec::new() };
+        let unlocked = self.sim.factory.research.has(Unlock::Upgrade(step.block, step.tier));
+        vec![
+            u32::from(step.tier) + 1,
+            u32::from(step.kit.0),
+            step.kits,
+            self.inventory().count(step.kit),
+            u32::from(unlocked),
+        ]
+    }
+
+    /// Raises the machine at a cell one Mk with kits from the inventory (next tick; the same action as a kit in hand).
+    pub fn upgrade_machine(&mut self, x: i32, y: i32, z: i32) {
+        let pos = IVec3::new(x, y, z);
+        if let Some(step) = self.sim.factory.next_upgrade(pos) {
+            self.act(Action::Upgrade { pos, tier: step.colour });
+        }
     }
 
     pub fn panel_role_input(&self) -> u32 {
@@ -95,8 +124,16 @@ impl Game {
             .map_or(0, |&(item, _)| item.0)
     }
 
+    /// A recipe's batch time at Mk1 speed (see `machine_recipe_seconds_at` for a placed machine).
     pub fn machine_recipe_seconds(&self, i: u32) -> f64 {
         MACHINE_RECIPES.get(i as usize).map_or(0.0, |r| r.seconds)
+    }
+
+    /// Seconds one batch of recipe `i` takes in the machine at a cell at full power, counting its Mk and research's
+    /// bonus (a Mk3 smelter is quicker than a Mk1); Mk1 speed when there is no such machine.
+    pub fn machine_recipe_seconds_at(&self, x: i32, y: i32, z: i32, i: u32) -> f64 {
+        let recipe = u16::try_from(i).unwrap_or(u16::MAX);
+        self.sim.factory.recipe_seconds(IVec3::new(x, y, z), recipe).unwrap_or_else(|| self.machine_recipe_seconds(i))
     }
 
     /// Whether the machine at a position would take `item` from the inventory now.

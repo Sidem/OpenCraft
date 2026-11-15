@@ -212,8 +212,8 @@ fn the_panel_and_belt_numbers_match_what_analytics_measures() {
     );
     let text = f.describe(at(4)).unwrap();
     assert!(text.contains(&format!("Moves {} items a minute", flow(4))), "{text}");
-    let line = f.rates(at(3)).unwrap();
-    assert!(line.starts_with("Full speed: takes") && line.contains("Iron Ingot a minute"), "{line}");
+    let line = f.smelter_at(at(3)).rates_text().unwrap();
+    assert!(line.starts_with("Full speed:") && line.contains("→") && line.ends_with("Iron Ingot a minute"), "{line}");
 }
 
 /// A row of machines: smelters that run and then wait for ore, constructors with a recipe and nothing to make it

@@ -1,0 +1,11 @@
+/* The upgrade button of a machine panel or box screen (machine-upgrade.ts). */
+
+.machine-upgrade {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.machine-upgrade:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

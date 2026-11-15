@@ -8,7 +8,7 @@
 import './item-guide.css';
 import type { Game } from '../wasm/engine.js';
 import { button, h } from './dom';
-import { formatSeconds } from './machine-recipes';
+import { formatSeconds } from './recipe-rates';
 
 const ICON_PX = 64;
 /** A page lists this many uses, then says how many more there are. */
