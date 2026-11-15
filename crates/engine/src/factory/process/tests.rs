@@ -147,7 +147,7 @@ fn a_smelter_upgrades_in_place_with_four_kits() {
     let mut f = Factory::default();
     place(&mut f, SMELTER, IVec3::ZERO, 0);
     f.insert(IVec3::ZERO, IRON_ORE.into(), 5);
-    assert_eq!(f.next_upgrade(IVec3::ZERO), Some(Step { block: SMELTER, tier: 1, kit: GREEN_KIT, kits: 4 }));
+    assert_eq!(f.next_upgrade(IVec3::ZERO), Some(Step { block: SMELTER, tier: 1, kit: GREEN_KIT, kits: 4, colour: 1 }));
     assert!(f.upgrade(IVec3::ZERO));
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!((s.tier, s.stats().speed, s.input.total()), (1, 2000, 5));

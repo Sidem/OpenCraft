@@ -3,6 +3,12 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-15 · Bigger boxes, a better pumpjack, and real saplings in your hand
+- **Storage boxes go up to Mk5.** Violet kits make a Mk4 box (60 stacks; Mk4 Logistics) and gold kits a Mk5 box (72 stacks; Mk5 Machines). Upgrade a placed box in place, or craft one; what is inside stays.
+- **Pumpjack Mk2.** Once Mk5 Machines is done, 4 gold kits upgrade a pumpjack: it draws twice as fast and keeps 97% of the oil instead of 90% (160 kW instead of 90). The oil field's own limit still caps how much it can give, so the most you gain is on a rich reservoir. A pumpjack now stands on a slab wearing its Mk studs.
+- **Saplings look like saplings when you hold or drop them.** They were a block with the picture on every side; now they are the plant itself, two crossed sheets like the one you plant, for every tree and the bamboo shoot. The inventory icon is unchanged.
+- **A tidier build menu: one tile per building, whatever its Mks.** Smelters, miners, belts, boxes, hauler packs and the rest that come in Mk1, Mk2, … are now a single tile showing the Mks you can see (Mk1–5). Click it and a small popover lists the Mks: craft one, Shift-click for several, right-click to take one apart, and the popover stays open so you can craft more. It never covers the rest of the menu: click anywhere else or press Escape and it goes away. With only one Mk unlocked the tile is just that building.
+
 ## 2026-11-14 · Smoother trees
 - **No more freeze when a sapling grows into a tree**, and a shorter hitch when a tree falls. The game now redraws a new or fallen tree over the next few frames instead of all at once.
 

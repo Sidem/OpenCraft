@@ -203,6 +203,11 @@ impl Processor {
         &self.spec.tiers[self.tier as usize]
     }
 
+    /// The colour of this tier's kit (`Family::colour`): the paint of its studs and band (the tier itself for most).
+    pub fn tier_colour(&self) -> u8 {
+        super::tiers::family(self.spec.block).map_or(self.tier, |f| f.colour(self.tier))
+    }
+
     /// Switches to `recipe` (one it makes, or `None`) and returns the inputs it held, an unfinished
     /// batch's included.
     pub fn set_recipe(&mut self, recipe: Option<u16>) -> Vec<Stack> {

@@ -177,7 +177,7 @@ fn lint_tiers(families: &[Family], hand: &[Recipe]) -> Vec<String> {
     let mut errors = Vec::new();
     for f in families {
         for (t, &it) in f.items.iter().enumerate() {
-            let want = match (t, crate::factory::upgrades::kit(t as u8)) {
+            let want = match (t, crate::factory::upgrades::kit(f.colour(t as u8))) {
                 // Underpasses are made from belts of their Mk (`underpass_pieces_cost_belts_of_their_mk`).
                 _ if f.block == block::UNDERPASS_IN => None,
                 (0, _) => None,
@@ -245,16 +245,17 @@ fn the_lint_catches_a_planted_mistake_of_each_kind() {
     }];
     assert!(has(lint_outputs(&TWO, SPECS), "machine recipe 0 has 2 outputs; Smelter holds 1"));
     // A tier nobody can make.
-    const FAMILY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(BEDROCK)], kits: 1 }];
+    const FAMILY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(BEDROCK)], kits: 1, first_kit: 1 }];
     assert!(has(lint_tiers(&FAMILY, RECIPES), "tier item 10 has no recipe"));
     // A tier recipe that doesn't match the kit step (the belt family takes 1 kit, not 4).
-    const COSTLY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT)], kits: 4 }];
+    const COSTLY: [Family; 1] = [Family { block: BELT, items: &[b(BELT), b(FAST_BELT)], kits: 4, first_kit: 1 }];
     assert!(has(lint_tiers(&COSTLY, RECIPES), "tier item 28 has no recipe"));
     // A tier with no kit yet.
     const HIGH: [Family; 1] = [Family {
         block: BELT,
         items: &[b(BELT), b(FAST_BELT), item::BELT_MK3, item::BELT_MK4, b(STONE), b(BEDROCK)],
         kits: 1,
+        first_kit: 1,
     }];
     assert!(has(lint_tiers(&HIGH, RECIPES), "tier 5 of block 12 has no kit"));
 }
@@ -343,7 +344,7 @@ fn the_upgrader_makes_every_tier_for_the_mk1_item_and_every_steps_kits() {
             let row =
                 refit.iter().find(|r| r.main().0 == f.items[t]).unwrap_or_else(|| panic!("tier {t} of {}", f.block));
             let mut want = vec![(f.items[0], 1)];
-            want.extend((1..=t).map(|s| (crate::factory::upgrades::KITS[s], f.kits)));
+            want.extend((1..=t).map(|s| (crate::factory::upgrades::KITS[f.colour(s as u8) as usize], f.kits)));
             assert_eq!(row.inputs, &want[..], "tier {t} of block {}", f.block);
             assert_eq!(row.seconds, 4.0 * t as f64);
         }

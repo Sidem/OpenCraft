@@ -4,7 +4,7 @@
 //! blocks (`sink_well`, at placing); that deposit's draw cap and taper decide its pace like any miner's
 //! (`deposits.rs`), so a vein gives about 20 barrels a minute for hours. Oil is never a block in the world.
 //!
-//! - Each tick it draws `RATE` units a second at full power, `RECOVERY` of it kept, into `Pump::carry`; every
+//! - Each tick it draws its tier's rate (`JACK_TIERS`: units a second at full power, and the share kept) into `Pump::carry`; every
 //!   [`BARREL_UNITS`] kept fills one empty barrel from its input (belts bring the empties to its back and take
 //!   the full ones from its front). It stops drawing while a barrel's worth waits (no empties, or a full output).
 //! - Saved for pumpjacks only: the well (deposit and drill bit), the carry, and whether it is `compact`: a pumpjack
@@ -12,9 +12,10 @@
 //!   its neighbours leave no room to grow (none of the user's five could). Placed again, it is full size.
 //! - Drawn by `view.rs` from `Pump::crank`, which turns while it works (derived, eased so it starts and stops softly).
 //!
-//! To change its pace: the constants and its spec's power.
+//! Mk2 (a gold kit, `factory/tiers.rs`) is `JACK_TIERS[1]` and the spec's second tier. To change its pace: the constants and
+//! the spec's power.
 
-use crate::block::{OIL_SAND, PUMPJACK, SPENT_ROCK};
+use crate::block::{tex, OIL_SAND, PUMPJACK, SPENT_ROCK};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
@@ -39,10 +40,16 @@ mod tests;
 
 /// Units a barrel holds.
 pub const BARREL_UNITS: f64 = 10.0;
-/// Units drawn a second at full power, before the deposit's cap and taper.
-const RATE: f64 = 5.0;
-/// Share of what is drawn that reaches the barrel.
-const RECOVERY: f64 = 0.9;
+/// What a pumpjack tier draws, Mk1 first (the spec's tiers, `PUMPJACK_SPEC`, hold the power).
+pub struct JackTier {
+    /// Units drawn a second at full power, before the deposit's cap and taper.
+    pub rate: f64,
+    /// Share of what is drawn that reaches the barrel.
+    pub recovery: f64,
+}
+
+/// Mk2 is the gold kit's (`factory/tiers.rs`): twice the draw, which a lode's higher cap can use, and a miner Mk5's recovery.
+pub const JACK_TIERS: [JackTier; 2] = [JackTier { rate: 5.0, recovery: 0.9 }, JackTier { rate: 10.0, recovery: 0.97 }];
 /// How far below its base it searches for oil.
 const MAX_DEPTH: i32 = 100;
 /// Seconds a turn of the crank takes at full power (a real one strokes 5 to 15 times a minute), and the share of the
@@ -109,7 +116,10 @@ pub const PUMPJACK_SPEC: ProcessSpec = ProcessSpec {
     pick: Pick::Pump,
     buffers: [1, 0, 1],
     side: 0,
-    tiers: &[ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 90 }],
+    tiers: &[
+        ProcessTier { energy: Energy::Electric, speed: 1000, fuel: 0, power: 90 },
+        ProcessTier { energy: Energy::Electric, speed: 2000, fuel: 0, power: 160 },
+    ],
     footprint: FOOTPRINT,
     verb: "Pumping",
     products: "crude oil barrels",
@@ -120,7 +130,13 @@ pub const PUMPJACK_SPEC: ProcessSpec = ProcessSpec {
 };
 
 /// The whole machine, still and moving, is drawn by `view.rs` from this part (its box is the footprint).
-const PARTS: [Part; 1] = [part([0.0, 0.0, 0.0], [2.0, 3.0, 3.0], Look::Jack)];
+///
+/// The slab under it is the tier's band (`Look::Band`: the Mk studs on its sides, its stripe in the kit's colour), a hair
+/// outside the concrete pad `view.rs` lays; a one-block pumpjack from an old save has no room for it (`model.rs`).
+const PARTS: [Part; 2] = [
+    part([0.0, -1.44, 0.0], [1.9, 0.12, 2.9], Look::Band(tex::CONCRETE)),
+    part([0.0, 0.0, 0.0], [2.0, 3.0, 3.0], Look::Jack),
+];
 
 impl Processor {
     /// Finds the well below a freshly placed pumpjack (nothing for other processors, or with no oil underneath): the
@@ -141,6 +157,11 @@ impl Processor {
         matches!(&self.extra, Extra::Pump(p) if p.compact)
     }
 
+    /// What this pumpjack's tier draws.
+    fn jack(&self) -> &'static JackTier {
+        &JACK_TIERS[usize::from(self.tier).min(JACK_TIERS.len() - 1)]
+    }
+
     /// One tick of pumping at `share` of full power (called before `step`), then the crank's turn.
     pub(crate) fn pump(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, share: u32) {
         self.draw_oil(deposits, world, tick, share);
@@ -156,6 +177,7 @@ impl Processor {
     }
 
     fn draw_oil(&mut self, deposits: &mut Deposits, world: &mut World, tick: u64, share: u32) {
+        let jack = self.jack();
         let Extra::Pump(pump) = &mut self.extra else { return };
         let Some(well) = pump.well else {
             self.status = Status::NoDeposit;
@@ -180,8 +202,8 @@ impl Processor {
         } else if share == 0 {
             Status::NoPower
         } else {
-            drawn = deposits.draw(world, &well.key, RATE * share as f64 / FULL_SPEED as f64, well.bit, tick, TICK);
-            pump.carry += drawn * RECOVERY;
+            drawn = deposits.draw(world, &well.key, jack.rate * share as f64 / FULL_SPEED as f64, well.bit, tick, TICK);
+            pump.carry += drawn * jack.recovery;
             Status::Working
         };
         let rate = drawn / TICK;
@@ -203,14 +225,19 @@ impl Processor {
             Status::NoPower => NOT_WIRED.to_string(),
             Status::NoInput => "Waiting for empty barrels: a belt brings them in".to_string(),
             Status::OutputFull => "Output full: put a belt leading away, or take the barrels".to_string(),
-            _ => format!("Pumping crude oil · {} barrels a minute", (pump.rate * RECOVERY * 6.0).round() as u32),
+            _ => {
+                format!(
+                    "Pumping crude oil · {} barrels a minute",
+                    (pump.rate * self.jack().recovery * 6.0).round() as u32
+                )
+            }
         })
     }
 
     /// A line on how much oil is left in the reservoir (empty for other processors).
     pub(super) fn reservoir_line(&self, f: &Factory) -> String {
         let Extra::Pump(pump) = &self.extra else { return String::new() };
-        let left = pump.well.and_then(|w| f.deposits.get(&w.key)).map(|s| s.remaining_units() * RECOVERY);
+        let left = pump.well.and_then(|w| f.deposits.get(&w.key)).map(|s| s.remaining_units() * self.jack().recovery);
         left.map_or_else(String::new, |units| {
             format!("\nReservoir: {} barrels left", fmt_int((units / BARREL_UNITS) as u64))
         })

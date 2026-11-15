@@ -59,7 +59,7 @@ impl Game {
         if block != block::BELT && block != block::UNDERPASS_IN {
             let cells = f.footprint_at(hit.block).map_or_else(|| vec![hit.block], |f| f.2);
             let (kits, cost) = cost(step.kits);
-            let colour = if have >= kits { upgrades::TIER_COLOURS[step.tier as usize] as i32 } else { BLOCKED_RED };
+            let colour = if have >= kits { upgrades::TIER_COLOURS[step.colour as usize] as i32 } else { BLOCKED_RED };
             return Aim {
                 machine: Some(bounds(&cells)),
                 colour,

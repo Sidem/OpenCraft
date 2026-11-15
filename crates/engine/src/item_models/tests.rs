@@ -56,6 +56,29 @@ fn every_item_that_is_not_a_block_is_a_model_resting_on_its_floor() {
     }
 }
 
+/// A sapling in the hand or on the ground is the plant: two crossed sheets showing its picture, not a cube.
+#[test]
+fn every_sapling_is_two_crossed_sheets_of_its_own_picture() {
+    use crate::block::{is_sapling, DEFS, FACE_SIDE};
+    let mut seen = 0;
+    for id in 0..256u16 {
+        if !is_sapling(id as crate::block::BlockId) {
+            continue;
+        }
+        seen += 1;
+        let model = parts(ItemId(id));
+        assert_eq!(model.len(), 2, "block {id} is a cube still");
+        let layer = DEFS[id as usize].faces[FACE_SIDE];
+        for p in model {
+            assert_eq!((p.form, p.tex), (Form::Box, [layer; 3]));
+            assert!(p.size[2] < 0.05 && p.size[0] > 0.5, "a sheet, not a box");
+            assert!(p.center[1] - p.size[1] * 0.5 >= -0.5 - 1e-6, "it stands on the floor");
+        }
+        assert!((model[0].yaw - model[1].yaw).abs() > 1.0, "the sheets cross");
+    }
+    assert_eq!(seen, 10, "every sapling and the bamboo shoot");
+}
+
 #[test]
 fn a_log_item_is_a_round_log_with_end_grain_resting_on_the_floor() {
     use crate::block::{BIRCH_LOG, LOG, SNAG_LOG};

@@ -253,7 +253,9 @@ your first electric miner, generator and poles. After that, let them do the work
   Logistics or Mk4 Machines is done: a Belt Mk4 moves 8 blocks a second (about 20 items), a Miner Mk4 draws six
   times as fast and keeps 92% (90 kW), smelters, constructors, assemblers and blast furnaces work five times as
   fast (a smelter 80 kW), a Mk4 pole (a substation) links 32 blocks and reaches 16, and a Mk4 lab works four
-  times as fast and skips the packs of every third unit. Boxes, pumps and quarries stop at Mk3.
+  times as fast and skips the packs of every third unit; Mk4 Logistics also takes boxes to 60 stacks. Pumps and
+  quarries stop at Mk3. Gold kits take boxes to Mk5 (72 stacks), and a pumpjack to Mk2 (its first step up, so it
+  takes gold kits: twice the draw, 97% of the oil kept, 160 kW), once Mk5 Machines is done.
 - **Machine panels.** Right-click a smelter, constructor, assembler, arc furnace, boiler, crusher, silo, filter, generator, lab or quarry to see what it's doing, put items in
   straight from your inventory (ore, fuel, ingots, packs), and take what it made. The panel opens next to your
   inventory: click a held stack into one of its slots, Shift-click a stack in your inventory to put it in, or click

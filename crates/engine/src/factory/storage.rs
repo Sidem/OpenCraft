@@ -15,7 +15,7 @@ use super::describe::fmt_int;
 use super::{box_label, tier_mark, Factory, Machine};
 
 /// Slots of each tier, Mk1 first.
-pub const BOX_SLOTS: [usize; 3] = [24, 36, 48];
+pub const BOX_SLOTS: [usize; 5] = [24, 36, 48, 60, 72];
 
 pub struct Storage {
     pub pos: IVec3,

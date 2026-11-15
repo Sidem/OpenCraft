@@ -1,4 +1,4 @@
-//! The pumpjack's model (presentation only), after a classic beam pumping unit: a concrete pad and a steel skid; at
+﻿//! The pumpjack's model (presentation only), after a classic beam pumping unit: a concrete pad and a steel skid; at
 //! the back an electric motor driving a gearbox through a belt guard, the gearbox's crank arms carrying counterweights
 //! and the wrist pins; a samson post (an A-frame) carrying the walking beam on a saddle bearing; at the beam's front a
 //! curved horsehead, its bridle hanging straight down to the carrier bar and the polished rod that runs into the
@@ -103,9 +103,12 @@ impl Model<'_> {
         self.beam(pose);
     }
 
-    /// The pad, the skid's rails and cross members, and the plinths under the gearbox and motor.
+    /// The pad (a full-size jack stands on the tier's band slab instead, `pump.rs` `PARTS`, which the faces of a pad
+    /// would fight), the skid's rails and cross members, and the plinths under the gearbox and motor.
     fn base(&mut self) {
-        self.fixed([0.0, -1.45, 0.0], [1.8, 0.1, 2.86], [tex::CONCRETE; 3], Form::Box);
+        if self.scale < 1.0 {
+            self.fixed([0.0, -1.45, 0.0], [1.8, 0.1, 2.86], [tex::CONCRETE; 3], Form::Box);
+        }
         for x in [-0.42, 0.42] {
             self.fixed([x, -1.33, -0.225], [0.12, 0.14, 2.35], [IRON; 3], Form::Box);
         }

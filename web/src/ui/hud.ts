@@ -320,7 +320,7 @@ export class Hud {
     if (tier >= 0) {
       ctx.fillStyle = '#1a1a1a';
       ctx.fillRect(2, 2, 8 + tier * 5, 12);
-      ctx.fillStyle = `#${this.game.tier_colour(tier).toString(16).padStart(6, '0')}`;
+      ctx.fillStyle = `#${this.game.item_tier_colour(item).toString(16).padStart(6, '0')}`;
       ctx.fillRect(3, 3, 6 + tier * 5, 10);
       ctx.fillStyle = '#f5f5f0';
       for (let p = 0; p <= tier; p++) ctx.fillRect(4 + p * 5, 6, 3, 4);

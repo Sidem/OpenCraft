@@ -67,6 +67,14 @@ pub const BOX_MK3_RECIPE: Recipe = Recipe {
     blurb: "Holds 48 stacks. Or upgrade a placed box with 4 blue kits; what is in it stays.",
 };
 
+pub const BOX_MK4_RECIPE: Recipe = Recipe {
+    output: BOX_MK4,
+    group: Group::Logistics,
+    count: 1,
+    inputs: &[(BOX_MK3, 1), (VIOLET_KIT, 4)],
+    blurb: "Holds 60 stacks. Or upgrade a placed box with 4 violet kits; what is in it stays.",
+};
+
 pub const PUMP_MK2_RECIPE: Recipe = Recipe {
     output: PUMP_MK2,
     group: Group::Logistics,

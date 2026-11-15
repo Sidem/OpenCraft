@@ -45,10 +45,16 @@ pub fn offsets(tier: u8) -> impl Iterator<Item = f32> {
 /// Studs on the sides of a box centred at `at` (relative to the camera) whose half sizes across are `half` (x, z, in
 /// its own frame), turned by `yaw`. Only the sides that face the camera (at most two): the others are out of sight.
 pub fn ring(out: &mut Vec<f32>, at: Vec3, yaw: f32, half: [f32; 2], tier: u8) {
+    ring_coloured(out, at, yaw, half, tier, tier);
+}
+
+/// [`ring`] with the studs painted in kit colour `colour` rather than the tier's own (a family that starts at a later
+/// kit, `Family::colour`: the pumpjack's Mk2 is two gold studs).
+pub fn ring_coloured(out: &mut Vec<f32>, at: Vec3, yaw: f32, half: [f32; 2], tier: u8, colour: u8) {
     if !near(at) {
         return;
     }
-    let layer = [tex::paint(tier); 3];
+    let layer = [tex::paint(colour); 3];
     let (s, c) = (yaw.sin() as f64, yaw.cos() as f64);
     let turn = |x: f32, z: f32| Vec3::new(c * x as f64 - s * z as f64, 0.0, s * x as f64 + c * z as f64);
     let [hx, hz] = [half[0] + DEPTH / 2.0, half[1] + DEPTH / 2.0];

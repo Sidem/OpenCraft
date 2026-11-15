@@ -147,10 +147,15 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
             Look::Tex(t) => t,
             Look::Band(top) => {
                 // A machine that comes in tiers wears its Mk studs around its band.
-                if p.spec.tiers.len() > 1 {
-                    tier_mark::ring(out, at, yaw, [part.size[0] / 2.0, part.size[2] / 2.0], p.tier);
+                // (A one-block pumpjack from an old save is drawn a third the size and has no room for one.)
+                if p.is_compact() {
+                    continue;
                 }
-                [top, tex::stripe(p.tier), tex::FRAME]
+                if p.spec.tiers.len() > 1 {
+                    let half = [part.size[0] / 2.0, part.size[2] / 2.0];
+                    tier_mark::ring_coloured(out, at, yaw, half, p.tier, p.tier_colour());
+                }
+                [top, tex::stripe(p.tier_colour()), tex::FRAME]
             }
             Look::Fire(idle) => [if working { tex::LAMP_YELLOW } else { idle }; 3],
             Look::Lamp => [lamp(p.status); 3],

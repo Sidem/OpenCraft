@@ -169,7 +169,7 @@ pub const HOVER_PACK: ItemId = ItemId(346);
 pub const CARGO_DRONE: ItemId = ItemId(347);
 /// Each wood's logs after the oak's (`wood.rs` order: birch, pine, palm, cherry, baobab, acacia, redwood, eucalyptus),
 /// then bamboo: what a felled tree drops (`sim/felling.rs`).
-pub const FIRST_WOOD_LOG: ItemId = ItemId(256 + EXTRA.len() as u16 - 9);
+pub const FIRST_WOOD_LOG: ItemId = ItemId(FORESTER_MK3.0 + 1);
 /// Stack size of every item except tools (whose stack is their uses: tools.rs).
 pub const MAX_STACK: u32 = 64;
 
@@ -214,7 +214,7 @@ pub fn stack_size(id: ItemId) -> u32 {
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 154] = [
+const EXTRA: [ItemDef; 157] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -369,6 +369,9 @@ const EXTRA: [ItemDef; 154] = [
     log("Redwood Log", tex::REDWOOD_SIDE),
     log("Eucalyptus Log", tex::EUCALYPTUS_SIDE),
     ItemDef { size: [0.3, 1.0, 0.3], ..log("Bamboo", tex::BAMBOO_SIDE) },
+    machine("Storage Box Mk4", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
+    machine("Storage Box Mk5", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
+    machine("Pumpjack Mk2", [tex::PUMPJACK_TOP, tex::PUMPJACK_SIDE, tex::FRAME]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

@@ -33,7 +33,7 @@ fn every_tiered_machine_shows_its_mk_near_and_none_far() {
             let studs = |eye: Vec3| {
                 let mut out = Vec::new();
                 f.write_instances(&mut out, eye, 0.0, 500.0);
-                out.chunks_exact(INSTANCE_FLOATS).filter(|b| b[9] as u16 == tex::paint(tier)).count()
+                out.chunks_exact(INSTANCE_FLOATS).filter(|b| b[9] as u16 == tex::paint(family.colour(tier))).count()
             };
             let here = pos.as_vec3() + Vec3::new(0.5, 2.0, 4.0);
             let near = studs(here);

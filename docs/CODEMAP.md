@@ -82,7 +82,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   Milestones 10–11 in `machine_later.rs`), `rows.rs` (row indices), `tiers.rs`, `refit.rs`, `timing.rs`, `group.rs` +
   `menu_order.rs` (build menu), `item_groups.rs` (item families for analytics and sorting), `recycling.rs` (coin values), `content.rs` (raw materials in an item); one file per era or set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house` (hand recipes).
-- `item_models.rs` + `item_models/`: box and cylinder assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box; `machines.rs` + `machines_plant.rs` hand-built machine icons; `placed.rs` icons from a placed model via `factory::shape_of`).
+- `item_models.rs` + `item_models/`: box and cylinder assemblies for loose items and icons (`shapes.rs` helpers; `power.rs` the poles; `belts.rs` the belt family and ejector; `icon_frame.rs` fits each icon to its box; `machines.rs` + `machines_plant.rs` hand-built machine icons; `placed.rs` icons from a placed model via `factory::shape_of`; `plants.rs` saplings as crossed sheets in the hand and on the ground).
 - `textures.rs` + `textures/`: procedural placeholder layers, one file per set (the art pack overrides them in the browser).
 
 ### World and generation
@@ -147,7 +147,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` draws every icon through `icon-paint.ts` and `icon-geometry.ts`), `icon-sprite.ts` (flat icons), `hints.ts`, `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts` (telescope view and pins), `vignette.ts`,
     `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`),
-    `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it
+    `craft-family.ts` (a building's Mks as one tile and its pick-a-Mk popover), `craft-tiers.ts` (the pure grouping rules; tested), `craft-card.ts`, `craft-info.ts` (a tile's hover card), `item-guide.ts` (an item's page: how to get it, what it
     makes), `take-apart.ts`, `offhand.ts` (the left-hand slot by the hotbar), `held-name.ts` (the selected item's name over the bar), `drag-throw.ts` (drag a stack out to throw it), `craft-terms.ts` (search synonyms, ranking), `creative.ts`, `pack-upgrade.ts`, `box-label.ts` (the box screen's label chips), `drone.ts` (personal drone orders, Y), `drone-slots.ts` (pick slots for the drone; badges on slots it serves), `slot-view.ts` (one slot drawn).
   - Machines: `machine.ts`, `machine-recipes.ts`, `filter-panel.ts` (a filter's left, straight and right cards, item picker), `quarry.ts`, `pod-channel.ts`, `town.ts`, `harbour.ts`, `site.ts`, `logbook.ts`, `vault.ts`, `sign.ts` (sign editor; `colour-wheel.ts`, `colour.ts`), `train.ts` (a train's wagons, state and schedule).
   - Research: `research.ts` (+ `research-card.css`), `research-view.ts`, `tech-tree.ts` (pure layout), `research-eras.ts`,

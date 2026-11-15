@@ -129,8 +129,12 @@ impl Game {
         tiers::placed_by(ItemId(item)).map_or(-1, |(_, t)| i32::from(t))
     }
 
-    /// A tier's colour as 0xRRGGBB: Mk1 red, green, blue, violet, Mk5 gold.
-    pub fn tier_colour(&self, tier: u32) -> u32 {
-        TIER_COLOURS.get(tier as usize).copied().unwrap_or(0)
+    /// The colour of a tiered machine's item as 0xRRGGBB (0 for other items): the colour of the kit that makes its tier,
+    /// red, green, blue, violet or gold (a pumpjack's Mk2 is gold: `Family::colour`).
+    pub fn item_tier_colour(&self, item: u16) -> u32 {
+        tiers::placed_by(ItemId(item)).map_or(0, |(block, tier)| {
+            let colour = tiers::family(block).map_or(tier, |f| f.colour(tier));
+            TIER_COLOURS.get(usize::from(colour)).copied().unwrap_or(0)
+        })
     }
 }

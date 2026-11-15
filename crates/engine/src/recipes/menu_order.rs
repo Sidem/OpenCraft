@@ -1,7 +1,8 @@
 //! The order of the build menu inside each section: `MENU` lists the buildings and tools of the sections that are
 //! curated (production, logistics, power, science, tools) in the order a player meets them, grouped by what they
 //! do; `menu_order` sorts by it. Every tier of a building (Mk2, Mk3, ...) takes the place of its Mk1, right behind it,
-//! so all Mks of one building stand together. A recipe not listed comes after the listed ones, in recipe order, so a
+//! so all Mks of one building stand together (the build menu folds them into one tile: `ui/craft-family.ts`; the
+//! unplaced items with Mks, scanners and hauler packs, are listed in `ITEM_TIERS` to do the same). A recipe not listed comes after the listed ones, in recipe order, so a
 //! section that is not curated (materials, computing, space, building) simply keeps the recipe order.
 //! To place a new recipe: add its item (the Mk1 for a tiered building) to `MENU` where it belongs.
 
@@ -93,7 +94,6 @@ const MENU: &[ItemId] = &[
     STEEL_SHOVEL,
     SICKLE,
     SCANNER,
-    SCANNER_MK2,
     TELESCOPE,
     CORE_DRILL,
     PERSONAL_DRONE,
@@ -101,10 +101,6 @@ const MENU: &[ItemId] = &[
     JETPACK,
     HOVER_PACK,
     HAULER_PACK,
-    HAULER_PACK_MK2,
-    HAULER_PACK_MK3,
-    HAULER_PACK_MK4,
-    HAULER_PACK_MK5,
     SPRING_BOOTS,
     SERVO_BOOTS,
     EXO_FRAME,
@@ -112,12 +108,18 @@ const MENU: &[ItemId] = &[
     CRAFT_GLOVES,
 ];
 
+/// Items that come in Mks without being a placed machine: each chain is Mk1 first, and takes one rank in the menu.
+const ITEM_TIERS: &[&[ItemId]] =
+    &[&[SCANNER, SCANNER_MK2], &[HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5]];
+
 /// Where recipe `r` sorts inside its section (see the module header).
 pub fn menu_order(r: usize) -> usize {
     let item = RECIPES[r].output;
     let (leader, tier) = match tiers::placed_by(item) {
         Some((block, tier)) => (tiers::item_of(block, 0).unwrap_or(item), usize::from(tier)),
-        None => (item, 0),
+        None => {
+            ITEM_TIERS.iter().find_map(|c| c.iter().position(|&i| i == item).map(|t| (c[0], t))).unwrap_or((item, 0))
+        }
     };
     let rank = MENU
         .iter()

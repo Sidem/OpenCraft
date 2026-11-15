@@ -143,7 +143,8 @@ impl Sim {
                 self.factory.sites.remove(id);
             }
             Action::Upgrade { pos, tier } => {
-                let Some(step) = self.factory.next_upgrade(pos).filter(|s| s.tier == tier) else { return };
+                // `tier` is the kit's colour (`Step::colour`), the same number as the next tier for most families.
+                let Some(step) = self.factory.next_upgrade(pos).filter(|s| s.colour == tier) else { return };
                 if !self.factory.research.has(Unlock::Upgrade(step.block, step.tier)) || inv.count(step.kit) < step.kits
                 {
                     return;

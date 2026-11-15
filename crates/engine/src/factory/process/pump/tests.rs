@@ -25,6 +25,23 @@ fn above_a_vein(world: &World) -> IVec3 {
     panic!("no oil vein within reach");
 }
 
+/// The pumpjack came with violet science, so its Mk2 takes the gold kit (`Family::first_kit`), not the green one, and
+/// draws twice as fast for 160 kW.
+#[test]
+fn a_pumpjack_goes_to_mk2_with_gold_kits() {
+    use crate::factory::upgrades::KITS;
+    let mut f = Factory::default();
+    f.place(&mut World::new(1, 2), PUMPJACK, IVec3::ZERO, 0, IVec3::ZERO, 0);
+    let step = f.next_upgrade(IVec3::ZERO).unwrap();
+    assert_eq!((step.tier, step.kit, step.kits, step.colour), (1, crate::item::GOLD_KIT, 4, 4));
+    assert_eq!(KITS[step.colour as usize], step.kit);
+    assert!(f.upgrade(IVec3::ZERO) && f.tiered_at(IVec3::ZERO) == Some((PUMPJACK, 1)));
+    assert_eq!(f.next_upgrade(IVec3::ZERO), None, "Mk2 is its top tier");
+    assert_eq!(f.name_at(IVec3::ZERO).as_deref(), Some("Pumpjack Mk2"));
+    assert_eq!((JACK_TIERS[1].rate, JACK_TIERS[1].recovery), (2.0 * JACK_TIERS[0].rate, 0.97));
+    assert_eq!((PUMPJACK_SPEC.tiers[0].power, PUMPJACK_SPEC.tiers[1].power), (90, 160));
+}
+
 /// A factory with a pumpjack on `spot`, a pole and two generators with coal beside it.
 fn rig(world: &mut World, spot: IVec3) -> Factory {
     let mut f = Factory::default();

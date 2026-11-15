@@ -5,8 +5,8 @@ at each milestone's cleanup step, move the next item from here into the plan and
 and done-when). Finished work is in `git log` (the changelogs removed from `docs/history/` are at commit `025edaf`:
 `git show 025edaf:docs/history/CHANGELOG_R.md`); settled choices are in `docs/DECISIONS.md`.
 
-**Order (2026-10-16, R8 dropped 2026-10-22):** the feel-and-feedback interlude, the carry's era pieces, Milestone 14.
-The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
+**Order (2026-10-16, R8 dropped 2026-10-22, the carry dropped 2026-11-14):** fire (FIRE, in the plan), the feel-and-feedback
+interlude, Milestone 14. The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
 change with the user's priorities. Determinism (DEV_PLAN section 3.4), the agent rules (section 3.1) and the content
 architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone ends with a cleanup step.
 
@@ -60,33 +60,48 @@ moved earlier if a session has room. Each one is its own module.
   version) and a wind turbine whose output grows with height. The value is computed at placement, stored,
   and **shown on the ghost before placing** ("Solar here: 125%, desert"), so the player can choose a site.
 
-## Thread: the carry (p-adic numbers and fractals, by discovery; chosen 2026-10-11, trimmed 2026-10-16)
+## Fire: a flamethrower and burning trees (user, 2026-11-14; the next build after L2–L6)
 
-Mechanisms that behave exactly like p-adic numbers, so players find the ideas by playing. **Trimmed on 2026-10-16** (the
-user agreed with Claude's review: the puzzles cost a lot of design for a small audience, and "names only, never explained"
-would leave most players at a locked door): two cheap era pieces that come out of normal play, and one vault in the ruins
-as an easter egg. Dropped: the 3-door, the 10-door, the Cantor sieve, the Hanoi crane and the layer printer. Parked, only if
-a later step wants more depth for datacenters or comms: fractal radiators with the analyzer, and antenna bands.
+Detail of the plan step FIRE (`docs/DEV_PLAN.md` section 4).
 
-- **Pure discovery, names only** (user's choice). When a player does the thing, a discovery shows only its name ("3-adic
-  address"); digits are shown right to left with a leading "…" ("…0110"), so carries and endless digits are visible.
-- **The thread, for agents** (never shown in game): a binary counter's carry length is the ruler sequence 1 2 1 3 1 2 1 4;
-  a carry that never ends gives …1111 = −1, so 1 + 2 + 4 + … = −1 in the 2-adics. Two numbers are p-adically close when
-  their last digits agree, which is a tree.
-- **Discoveries (S).** One module: a list of named entries, each a pure check on state, a toast with the name, a page in the
-  menu. Decide at planning whether it is core state (shared per world in co-op, a save bump) or kept beside the save.
-- **Splitter addresses (S, primes 2 and 3, presentation only).** A splitter round-robins its outputs (`factory/router.rs`),
-  so a cascade sends item n to leaf n mod 2^k (two outputs) or n mod 3^k (three). Looking at a belt fed by a tree at least 3
-  deep shows its address, first split rightmost ("…0110", "…210"). Discoveries "2-adic integers", "3-adic integers".
-- **The tally (S, Electronics retrofit, prime 2, core state).** A logic block that counts the box or belt behind it: +1 for
-  each item in, −1 for each item out, shown on 16 binary lamps. Below zero it rolls to all lamps lit (…1111). A sensor rule
-  can fire on one bit, so it doubles as a divider ("every 8th item"). Discoveries "2-adic −1", "two's complement".
-- **The vault (ruins, the one easter egg, prime 5).** A door of rings, each a dial of 5 digits, showing …4444 (−1 in base
-  5). Ring k opens when the number on rings 1..k, squared, ends in the target's last k digits: the first ring is found by
-  trial (2 or 3), then each ring has exactly one right digit (2 → 12 → 212 → …). Modest loot; rewards stop after about 6
-  rings. Discoveries "5-adic integers", "√−1".
-
-**Order:** discoveries, splitter addresses and the tally after the feel-and-feedback interlude; the vault with the ruins (R5).
+- [ ] **FIRE A flamethrower and fire that burns trees to charcoal** (user, 2026-11-14). *Need:* wood is the only thing that
+  clears a forest or feeds an early fire, and felling is slow. *Rules:* fire burns only what grows (what `felling/tree.rs`
+  `trunk` finds as a tree, saplings, ground cover); never a placed block, machine or house; a tree burns whole, like a
+  felling, so a fire never edits more blocks than a fall does. *Cheap by design (the contract of every step):*
+  1. **The unit is a tree or a front cell, not a block.** A `Blaze` is one record per tree (trunk foot, logs, leaves, heat,
+     progress); its blocks are touched twice at most (the crown, then the trunk), through `set_block_anywhere_later`.
+  2. **Event-driven.** Only burning things exist, in a due-sorted queue like `sim/timers.rs`; nothing is scanned; a world
+     with no fire does no fire work (a test, and `bench-flight.mjs ... still` stays at 0 meshes).
+  3. **Flat load.** Each record steps every `FIRE_STEP` ticks, offset by `hash3(foot)`, so a forest fire costs the same
+     every tick; `MAX_FIRE_UPDATES` a tick, the rest waits (as `water.rs`); `MAX_BLAZES` and `MAX_FRONT` cap the records.
+  4. **Spread by sampling, bounded by heat.** Every `SPREAD_STEP` a blaze reads a few points (`SPREAD_SAMPLES`) in its
+     crown radius picked by `hash3(foot, tick)` (never `Sim.rng`, so other streams don't move), never a neighbour scan. A
+     new blaze starts with the parent's heat minus 1 and at 0 nothing spreads: total work is bounded by a geometric series.
+  5. **No new per-column state for plants.** Ground cover is a hash drawn by the mesher; `world/cover_clear.rs` already holds
+     one bit per bare column, so it also means "burnt": a grass fire is a front of positions that spreads only onto columns
+     that bear cover and are not yet bare, sets their bit, and dies at water, bare ground or `FRONT_REACH` blocks from where
+     it started.
+  6. **Presentation costs nothing per flame:** one emitter per blaze (nearest `MAX_SHOWN` only), animated in the shader from
+     the time uniform, glow through `halos`; no particle system, no per-block change while burning.
+  - **FIRE1 Core** (`sim/fire/`: `blaze.rs`, `front.rs`, `tests.rs`): the queue, tree burn (crown, then trunk), saved
+    (`SAVE_VERSION` bump, migration, fixture), `Action::Ignite` for tests and the creative panel. **Charcoal** is a new item
+    (appended id): a burnt tree drops `charcoal_for(logs)` on the ground at its foot; a `FUELS` row; the item guide must
+    answer it. *Done when:* tests (a tree burns to charcoal and its neighbours do or don't by heat; placed logs, houses and
+    machines never burn; water stops it; caps hold; same hash at every frame rate; co-op pair agrees), and a bench
+    `tests/fire_spikes.rs` on the `tree_spikes.rs` pattern: a 1,000-tree forest lit at its centre keeps a native host frame
+    with the 6 ms work budget under 8 ms worst and the added core tick under 0.3 ms p99.
+  - **FIRE2 Flamethrower** (`flame_hands.rs`, `Action::Flame`): a hand tool (item and tech gate: ask the user which pack),
+    held use button sends a flame every `FLAME_SECONDS`; the core casts `FLAME_RAYS` rays up to `FLAME_RANGE`, each stopping
+    at the first solid cell, and per ray ignites a tree, scorches 3×3 columns (the sickle's `ClearCover` rule, no drop) and
+    starts a front; one fuel item (coal or charcoal) per `FLAME_SECONDS * N`, taken in the action. Synthesised sound
+    (`audio/synth.ts`), no camera effect (motion sickness). *Done when:* a headless test clears a meadow and fells a tree to
+    charcoal; an empty tank does nothing; a flame never lights a placed block or a body.
+  - **FIRE3 Look** (presentation): blaze emitters, embers along fronts, a glow, smoke from a smouldering trunk
+    (`factory/smoke.rs` pattern); art request line in `docs/ART_HANDOVER.md`. *Done when:* seen in the browser pane, and
+    `frame-bench.mjs` with a big fire shows no regression against section 2.
+  - **FIRE4 Manual and cleanup:** `PLAYING.md`, patch note, code map, budgets clean, plan compressed.
+  - *Defaults chosen, change on request:* fire spreads between trees by itself (bounded by heat); rain puts nothing out
+    (weather is presentation); old worlds' trees (the oak's `LOG`) don't burn, as they still mine block by block.
 
 ## Milestone 14: The megaproject, a space elevator (era 10; optional, non-ending; theme chosen 2026-10-16)
 

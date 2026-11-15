@@ -256,7 +256,7 @@ export class InventoryPanel {
   close(resume: boolean): void {
     if (!this.isOpen) return;
     this.backdrop.classList.add('hidden');
-    this.menu.hideInfo();
+    this.menu.close();
     this.beside?.el.remove();
     this.beside?.closed();
     this.beside = null;

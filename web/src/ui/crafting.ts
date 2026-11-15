@@ -1,5 +1,6 @@
 // Build menu in the inventory screen: every hand recipe as a compact tile (icon, name, how many it makes), grouped by
-// the engine's recipe groups (every tier of one building side by side: `recipe_order`) and paged instead of scrolled:
+// the engine's recipe groups (`recipe_order`) and paged instead of scrolled. A building with several Mks is one tile
+// that opens a popover with its Mks (craft-family.ts), so the grid shows each building once. Pages:
 // a category starts a new page, and so does a full page (as many tiles as the menu's height and width hold). The page
 // header above the grid, the pager below it, the mouse wheel and a row of category tabs all change page. A state
 // filter (unlocked, the default; all, can craft, missing items, locked) and a text search (names of outputs and
@@ -14,6 +15,7 @@
 import './crafting.css';
 import './craft-nav.css';
 import type { Game } from '../wasm/engine.js';
+import { Families } from './craft-family';
 import { BULK_CRAFT, CraftInfo } from './craft-info';
 import { hasWord, nameScore, relatedWords } from './craft-terms';
 import { h } from './dom';
@@ -49,7 +51,7 @@ interface Page {
   tiles: Tile[];
 }
 
-interface Tile {
+export interface Tile {
   /** The hand recipe, or -1 for a guide tile. */
   id: number;
   item: number;
@@ -83,6 +85,7 @@ export class BuildMenu {
   private readonly pageNext = h('button', 'craft-page-step more');
   private readonly grid = h('div', 'craft-grid');
   private readonly pager = new Pager();
+  private readonly families: Families;
   /** The tiles of each page, for the current search and filter. */
   private pages: Page[] = [];
   /** The tiles on show, to leave the DOM alone (and any hover on it) when a redraw changes nothing. */
@@ -147,6 +150,7 @@ export class BuildMenu {
     this.info = new CraftInfo(game, icon);
     this.guide = new ItemGuide(game, icon);
     this.el.append(head, filters, this.tabs, list, this.pager.el, this.info.el, this.guide.el);
+    this.families = new Families(this.el, () => this.hideInfo(), () => this.hideInfo());
   }
 
   /** Recomputes which recipes can be crafted; call when the inventory changed. */
@@ -166,7 +170,13 @@ export class BuildMenu {
     this.guide.refresh();
   }
 
-  /** Hides the info card (the screen closed). */
+  /** Closes the Mk popover and hides the info card (the screen closed). */
+  close(): void {
+    this.families.close();
+    this.hideInfo();
+  }
+
+  /** Hides the info card. */
   hideInfo(): void {
     this.hovered = null;
     this.info.hide();
@@ -231,10 +241,11 @@ export class BuildMenu {
 
   private showInfo(t: Tile): void {
     this.hovered = t;
-    this.info.show(t, this.groupNames[t.group]);
+    this.info.show(t, this.groupNames[t.group], this.families.anchorOf(t));
   }
 
   private openGuide(item: number): void {
+    this.families.close();
     this.hideInfo();
     this.guide.open(item);
   }
@@ -273,13 +284,15 @@ export class BuildMenu {
       b.textContent = `${f.label} ${counts[f.id]}`;
       b.setAttribute('aria-pressed', String(f.id === this.filter));
     }
-    // A stable sort: within a score, the category order stays.
-    if (words.length > 0) visible.sort((a, b) => a.score - b.score);
+    // A building's Mks fold into one tile (it takes the rank of its best Mk), then a stable sort: within a score, the
+    // category order stays.
+    const entries = this.families.fold(visible);
+    if (words.length > 0) entries.sort((a, b) => a.score - b.score);
     this.best?.root.classList.remove('best');
-    this.best = visible.length > 0 && visible[0].score < 3 ? visible[0] : null;
+    this.best = entries.length > 0 && entries[0].score < 3 ? entries[0] : null;
     this.best?.root.classList.add('best');
-    this.empty.classList.toggle('hidden', visible.length > 0);
-    this.layout(visible, words.length > 0);
+    this.empty.classList.toggle('hidden', entries.length > 0);
+    this.layout(entries, words.length > 0);
   }
 
   /** Cuts `visible` (in order) into pages: a new section (a category; a `search` is one section, so its best results
@@ -295,17 +308,8 @@ export class BuildMenu {
       const section = sectionOf(visible[i]);
       let end = i;
       while (end < visible.length && sectionOf(visible[end]) === section) end++;
-      // A page ends before a building's tiers (Mk1, Mk2, ...) that would be split over two pages, unless they are
-      // more than a page.
       const cuts: number[] = [i];
-      while (cuts[cuts.length - 1] < end) {
-        const start = cuts[cuts.length - 1];
-        let stop = Math.min(end, start + size);
-        let family = stop;
-        while (family > start && stop < end && sameFamily(visible[family - 1], visible[family])) family--;
-        if (family > start) stop = family;
-        cuts.push(stop);
-      }
+      while (cuts[cuts.length - 1] < end) cuts.push(Math.min(end, cuts[cuts.length - 1] + size));
       const parts = cuts.length - 1;
       for (let p = 0; p < parts; p++) {
         const name = this.sectionName(section);
@@ -364,9 +368,11 @@ export class BuildMenu {
       const on = page !== undefined && (b as HTMLElement).dataset.section === String(page.section);
       b.setAttribute('aria-pressed', String(on));
     }
-    if (tiles.length === this.shown.length && tiles.every((t, i) => t === this.shown[i])) return;
-    this.shown = tiles;
-    this.grid.replaceChildren(...tiles.map((t) => t.root));
+    if (!(tiles.length === this.shown.length && tiles.every((t, i) => t === this.shown[i]))) {
+      this.shown = tiles;
+      this.grid.replaceChildren(...tiles.map((t) => t.root));
+    }
+    this.families.sync(tiles);
   }
 
   /** Whether the chosen state filter lets `t` through. "Unlocked" still shows a locked tile the search names: you
@@ -375,9 +381,4 @@ export class BuildMenu {
     if (this.filter === 'all') return true;
     return this.filter === 'unlocked' ? t.state !== 'locked' || t.score < 3 : t.state === this.filter;
   }
-}
-
-/** Whether two tiles are tiers of one building (the engine's `recipe_order` gives a building's tiers one rank). */
-function sameFamily(a: Tile, b: Tile): boolean {
-  return a.group === b.group && Math.floor(a.order / 8) === Math.floor(b.order / 8);
 }

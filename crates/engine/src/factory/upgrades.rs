@@ -3,7 +3,9 @@
 //! power. Kits per step come from the family (`tiers.rs`); research gates each step
 //! (`Unlock::Upgrade`, checked by `Action::Upgrade`). Breaking returns the upgraded machine, never kits.
 //!
-//! Invariants: an upgrade only changes the machine's `tier`, by exactly one, to a tier its family has.
+//! Invariants: an upgrade only changes the machine's `tier`, by exactly one, to a tier its family has. A kit's
+//! "tier" (`kit_tier`, the byte of `Action::Upgrade`) is its colour: it equals the machine's next tier unless the
+//! family starts at a later colour (`Family::first_kit`, the pumpjack).
 //!
 //! To add a tier's kit: its item (`item.rs`, wearing `tex::stripe(tier)`), a `KITS` entry and its hand
 //! or assembler recipe.
@@ -30,6 +32,8 @@ pub struct Step {
     pub tier: u8,
     pub kit: ItemId,
     pub kits: u32,
+    /// The kit's colour (`KITS`, `TIER_COLOURS`): the tier itself for most families (`Family::colour`).
+    pub colour: u8,
 }
 
 /// The kit that raises machines to `tier`.
@@ -103,7 +107,8 @@ impl Factory {
         if usize::from(next) >= family.items.len() {
             return None;
         }
-        Some(Step { block, tier: next, kit: kit(next)?, kits: family.kits })
+        let colour = family.colour(next);
+        Some(Step { block, tier: next, kit: kit(colour)?, kits: family.kits, colour })
     }
 
     /// The kits the next upgrade of every machine at `cells` takes together (an underpass takes more than a belt).

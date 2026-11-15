@@ -2,10 +2,10 @@
 
 **Status (2026-11-14):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. The 2026-11-14
-`/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **Q3** (a cheaper menu),
-**L2–L6** (mini-lessons), **13.6b** (waits for the user to play Milestone 13), **FX** (recorded sounds, held back on branch
-`sound-effects`). **Next: L2–L6, then the feel-and-feedback interlude**, the carry's era pieces, Milestone 14 (the space
-elevator). What changed lately for players: `web/src/patch-notes.md` and `git log`.
+`/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **L2–L6** (mini-lessons),
+**FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Next: L2–L6, then FIRE,
+then the feel-and-feedback interlude**, Milestone 14 (the space elevator). Dropped 2026-11-14: recorded sound effects, the
+cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
 > **Keeping the codebase small, modular and cheap to read is as important as any feature** (section 3.1, mandatory).
@@ -182,23 +182,19 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
     (planner crafted, no site; card only; done: first site). **L5 Upgrade with kits** (a bottleneck machine pointed at while
     kits are held; first check an upgrade would help). **L6 Map and pins** (the first 150 blocks out from spawn).
   - *Done when (each):* its bot test passes; `node scripts/check-lessons.mjs <saves>` stays quiet; seen in the browser pane.
-- [ ] **FX Sound effects from recordings** (decided 2026-10-27, `docs/DECISIONS.md`). FX1–FX4 are built and **held back** on
-  the local branch `sound-effects` (user, 2026-10-28: not happy with it yet); `main` plays the synthesised effects. Steps and
-  findings: `git show 025edaf:docs/history/CHANGELOG_R.md`. Bring them back when the user is ready.
-- [ ] **Q3 A cheaper menu** (the user left it out for now). The launcher costs a whole play frame: not drawing the world
-  behind it took software Chrome from 0.6 to 60 fps; removing the blur gains only 5–10%. Skip `renderer.render` in `main.ts`
-  `frame` while the menu is open and not `menu.previewing`; `advance` keeps running. *Done when:* software Chrome's launcher
-  p95 is under 33 ms, settings still preview, the picture behind doesn't go blank.
+- [ ] **FIRE A flamethrower, and fire that burns grown trees whole to charcoal** (user, 2026-11-14; four steps, FIRE1 core,
+  FIRE2 flamethrower, FIRE3 look, FIRE4 manual). Full design, the six rules that keep it cheap and each step's done-when:
+  `docs/ROADMAP.md` "Fire". Binding rules: fire burns only what grows (trees as `felling/tree.rs` finds them, saplings, ground
+  cover), never a placed block, machine or house; a burning tree is one record, not a block automaton; a world with no fire
+  does no fire work; every record and every tick's work is capped.
 - **Measured performance options, none built** (2026-11-14; section 2 has the baseline). In order of value:
-  (1) skip factory boxes behind the camera: `Factory::write_instances` writes 52k boxes, about half behind the view, about
-  1 ms of `update` plus the upload; needs the render camera's direction in every camera mode (first person, third person,
-  strategy) and a margin for the largest multi-block machine. (2) The atlas as lossless WebP (`art/pack.png` 4.52 MB → 2.68 MB
+  (1) The atlas as lossless WebP (`art/pack.png` 4.52 MB → 2.68 MB
   in four slices of at most 16,383 rows, bit-exact): needs a decode that keeps un-premultiplied alpha (`art-pack.ts`) and
-  `tools/art/build.py` to write it. (3) Cache static machine geometry per chunk instead of rewriting it relative to the
-  eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (4) In the core, leave
+  `tools/art/build.py` to write it. (2) Cache static machine geometry per chunk instead of rewriting it relative to the
+  eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (3) In the core, leave
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose.
-- **Parked, fit in where a session has room:** P3 cheaper box instances (see (1) and (3) above), P4 an incremental co-op
+- **Parked, fit in where a session has room:** P3 cheaper box instances (see (2) above), P4 an incremental co-op
   checksum, P5 small TS savings (`git show 025edaf:docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to
   rectennas; incremental `relink` if big bases hitch on placing (measured in section 2).
 - **The user's to do:** add the two TURN secrets (`docs/WORKFLOW.md` section 4), then test with `&relay` on both ends.
@@ -206,8 +202,8 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   disagrees, never touch the core (`interaction.rs`). A real resync logged by a client becomes a replayable test.
 
 **After these:** the feel-and-feedback interlude (`docs/ROADMAP.md`: the instrument with few voices and a distance cap,
-follow one item, timelapse; then seismic prospecting and site bonuses), the carry's era pieces (splitter addresses and the
-tally only), Milestone 14. Art goes on in parallel (`docs/ART_HANDOVER.md`).
+follow one item, timelapse; then seismic prospecting and site bonuses), Milestone 14. Art goes on in parallel
+(`docs/ART_HANDOVER.md`).
 
 ## 5. Open questions for the user
 
@@ -217,6 +213,7 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 |---|---|
 | Any UI step | A colour-blind palette for tier colours (pips and "Mk" text are there regardless)? |
 | A world-settings step | Should old worlds be able to opt into newer generation (rivers, trees, ruins)? Should far deposits seen once get a map pin? |
+| FIRE2 | Which research opens the flamethrower, and may charcoal serve a second purpose besides fuel (steel, filters)? |
 | Music | A sea piece; industrial and space pieces (with the era as a context). |
 | Repo | `web/public/` (untracked: 11 `.ocreplay` files, 5 MB, nothing references them): whose are they, and should they be ignored or deleted? |
 
@@ -225,6 +222,17 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ## 6. Recent changes
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
+
+- **2026-11-15: boxes to Mk5, pumpjack Mk2, sapling models (user).** `Family::first_kit` (`factory/tiers.rs`): a tier's kit and
+  paint is `Family::colour`, the tier itself except the pumpjack, whose Mk2 takes gold kits (`Step::colour`; `Action::Upgrade`'s
+  byte is the kit's colour). Boxes: Mk4 (violet, Mk4 Logistics) 60 stacks, Mk5 (gold, Mk5 Machines) 72. Pumpjack Mk2
+  (`pump.rs` `JACK_TIERS`): 2× draw, 97% kept, 160 kW, on a studded band slab (`Look::Band`). New item ids 410–412 sit after the
+  woods' logs (`FIRST_WOOD_LOG` is now fixed, not counted from the table's end); recipes and refit rows appended. Saplings: `item_models/plants.rs`
+  crossed sheets for the hand and the ground, icon still flat. No save bump. Numbers for Mk2 are a first guess to tune.
+- **2026-11-15: build menu folds Mks into one tile (user).** `ui/craft-family.ts` + `craft-tiers.ts`: tiles of one section with
+  the same `recipe_order >> 3` become one tile with a non-modal popover of the Mks (Escape, outside press, page change or
+  closing the inventory close it; the hover card anchors to the popover). Scanners and hauler packs join through
+  `ITEM_TIERS` (`recipes/menu_order.rs`). A building with one visible Mk stays a plain tile.
 
 - **2026-11-14: frame cost, repo and docs (`/deepen`).** Found with a CPU profile of the 37.6 h save: three sea pumps lifted
   a source and the sea refilled it 5 ticks later, again and again; water and air light differently, so each edit marked 27

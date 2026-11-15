@@ -23,15 +23,15 @@ fn an_upgraded_belt_keeps_its_items_and_each_tier_doubles_its_speed() {
     let mut f = Factory::default();
     f.add_belt(P, 1);
     assert!(f.belts[0].accept(IRON_ORE.into(), 1, Tag::UNKNOWN, false, 0.3));
-    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 1, kit: GREEN_KIT, kits: 1 }));
+    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 1, kit: GREEN_KIT, kits: 1, colour: 1 }));
     let speed = f.belt_at(P).speed();
     assert!(f.upgrade(P));
     let belt = f.belt_at(P);
     assert_eq!((belt.tier, belt.dir, belt.items.len(), belt.speed()), (1, 1, 1, speed * 2.0));
-    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 2, kit: BLUE_KIT, kits: 1 }));
+    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 2, kit: BLUE_KIT, kits: 1, colour: 2 }));
     assert!(f.upgrade(P));
     assert_eq!((f.belt_at(P).tier, f.belt_at(P).speed(), f.belt_at(P).items.len()), (2, speed * 4.0, 1));
-    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 3, kit: VIOLET_KIT, kits: 1 }));
+    assert_eq!(f.next_upgrade(P), Some(Step { block: BELT, tier: 3, kit: VIOLET_KIT, kits: 1, colour: 3 }));
     assert!(f.upgrade(P));
     assert_eq!(f.belt_at(P).speed(), speed * 8.0);
     assert_eq!(f.next_upgrade(P), None, "Mk4 is the top tier for now");
@@ -72,7 +72,7 @@ fn every_family_climbs_to_its_top_tier_one_kit_colour_at_a_time() {
             let step = f.next_upgrade(P).unwrap();
             assert_eq!(
                 (step.tier, Some(step.kit), step.kits),
-                (tier, kit(tier), family.kits),
+                (tier, kit(family.colour(tier)), family.kits),
                 "block {}",
                 family.block
             );

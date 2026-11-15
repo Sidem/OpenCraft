@@ -159,19 +159,20 @@ fn older_saves_load_boxes_poles_and_generators_at_tier_one() {
 }
 
 #[test]
-fn boxes_hold_24_36_and_48_stacks_and_an_upgrade_keeps_what_is_in_them() {
+fn boxes_climb_to_mk5_holding_24_36_48_60_and_72_stacks_and_an_upgrade_keeps_what_is_in_them() {
     let mut f = Factory::default();
     f.add_storage(IVec3::ZERO);
     f.stock(IVec3::ZERO, IRON_ORE.into(), 100);
-    for (tier, slots) in [24, 36, 48].into_iter().enumerate() {
+    for (tier, slots) in [24, 36, 48, 60, 72].into_iter().enumerate() {
         assert_eq!(f.storages[0].buf.slots.len(), slots);
         assert_eq!(f.storage_count_at(IVec3::ZERO, IRON_ORE.into()), 100, "Mk{} keeps its stock", tier + 1);
-        if tier < 2 {
+        if tier < 4 {
             assert!(f.upgrade(IVec3::ZERO));
         }
     }
-    // Full: 48 stacks of 64.
-    assert_eq!(f.storages[0].buf.add(IRON_ORE.into(), 10_000), 10_000 - (48 * 64 - 100));
+    assert!(!f.upgrade(IVec3::ZERO), "Mk5 is the top");
+    // Full: 72 stacks of 64.
+    assert_eq!(f.storages[0].buf.add(IRON_ORE.into(), 10_000), 10_000 - (72 * 64 - 100));
 }
 
 #[test]

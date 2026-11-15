@@ -26,6 +26,7 @@ mod icon_frame;
 mod machines;
 mod machines_plant;
 mod placed;
+mod plants;
 mod power;
 mod shapes;
 mod space;
@@ -353,6 +354,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
                 belts::parts,
                 machines::parts,
                 placed::parts,
+                plants::parts,
             ] {
                 let model = find(item);
                 if !model.is_empty() {

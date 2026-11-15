@@ -1,9 +1,10 @@
 //! Hand recipes of the Mk5 items (`factory/tiers.rs`, the Mk5 Machines tech): each is the Mk4 plus gold kits, and the
 //! lint in `tests.rs` checks it. Listed in `RECIPES`. To add one: a `pub const` here, and its name in `RECIPES`.
 
+use crate::block::PUMPJACK;
 use crate::item::*;
 
-use super::{Group, Recipe};
+use super::{b, Group, Recipe};
 
 pub const MINER_MK5_RECIPE: Recipe = Recipe {
     output: MINER_MK5,
@@ -55,6 +56,25 @@ pub const DRONE_PORT_MK5_RECIPE: Recipe = Recipe {
     blurb:
         "Keeps 24 drones and sends them up to 128 blocks out; draws 200 kW while they fly. Or upgrade a placed port \
             with 8 gold kits.",
+};
+
+pub const BOX_MK5_RECIPE: Recipe = Recipe {
+    output: BOX_MK5,
+    group: Group::Logistics,
+    count: 1,
+    inputs: &[(BOX_MK4, 1), (GOLD_KIT, 4)],
+    blurb: "Holds 72 stacks. Or upgrade a placed box with 4 gold kits; what is in it stays.",
+};
+
+/// The pumpjack arrived with violet science, so its first step up is a gold one (`Family::first_kit`).
+pub const PUMPJACK_MK2_RECIPE: Recipe = Recipe {
+    output: PUMPJACK_MK2,
+    group: Group::Production,
+    count: 1,
+    inputs: &[(b(PUMPJACK), 1), (GOLD_KIT, 4)],
+    blurb:
+        "Draws twice as fast and gets 97% of the oil to the barrel; needs 160 kW. Or upgrade a placed pumpjack with \
+            4 gold kits.",
 };
 
 pub const RESEARCH_CENTER_MK5_RECIPE: Recipe = Recipe {

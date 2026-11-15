@@ -24,6 +24,7 @@ export interface InfoTile {
 
 export class CraftInfo {
   readonly el = h('div', 'craft-info hidden');
+  private anchor: HTMLElement = this.el;
 
   constructor(
     private readonly game: Game,
@@ -34,8 +35,10 @@ export class CraftInfo {
     this.el.classList.add('hidden');
   }
 
-  /** Fills the card for `t` (in the build menu section `section`) and places it beside the tile. */
-  show(t: InfoTile, section: string): void {
+  /** Fills the card for `t` (in the build menu section `section`) and places it beside the tile, or beside `anchor`
+   * when the tile sits in something bigger that the card should not cover (the Mk popover). */
+  show(t: InfoTile, section: string, anchor?: HTMLElement): void {
+    this.anchor = anchor ?? t.root;
     const g = this.game;
     const out = t.item;
     const title = h('h4', '', g.item_name(out));
@@ -46,7 +49,7 @@ export class CraftInfo {
     if (t.id < 0) {
       const ways = waySummary(g, out).map((line) => h('p', 'craft-way', line));
       const note = h('p', 'craft-status ready', 'Click for how to get it.');
-      this.place(t, [head, h('p', 'craft-blurb', 'No hand recipe makes it:'), ...ways, note]);
+      this.place([head, h('p', 'craft-blurb', 'No hand recipe makes it:'), ...ways, note]);
       return;
     }
     const inputs = h('div', 'craft-inputs');
@@ -73,14 +76,14 @@ export class CraftInfo {
     const apart = takeApartNote(g, t.id);
     const blurb = h('p', 'craft-blurb', g.recipe_blurb(t.id));
     const note = h('p', `craft-status ${t.state}`, status);
-    this.place(t, [head, ...(facts ? [facts] : []), blurb, inputs, time, note, ...(apart ? [apart] : [])]);
+    this.place([head, ...(facts ? [facts] : []), blurb, inputs, time, note, ...(apart ? [apart] : [])]);
   }
 
   /** Fills the card with `parts` and places it beside tile `t`, inside the window. */
-  private place(t: InfoTile, parts: HTMLElement[]): void {
+  private place(parts: HTMLElement[]): void {
     this.el.replaceChildren(...parts);
     this.el.classList.remove('hidden');
-    const r = t.root.getBoundingClientRect(), box = this.el.getBoundingClientRect();
+    const r = this.anchor.getBoundingClientRect(), box = this.el.getBoundingClientRect();
     const right = r.right + 8 + box.width <= window.innerWidth;
     const x = right ? r.right + 8 : Math.max(8, r.left - 8 - box.width);
     const y = Math.min(Math.max(8, r.top), window.innerHeight - box.height - 8);

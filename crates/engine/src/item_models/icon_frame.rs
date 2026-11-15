@@ -30,7 +30,7 @@ impl IconFrame {
 
 /// The frame of an item's icon, from the boxes it draws (`icon_boxes`). A flat one spans 1, so its `scale` is the fill.
 pub fn icon_frame(item: ItemId) -> IconFrame {
-    if item.0 < 256 && crate::block::PLANT[usize::from(item.0)] && parts(item).is_empty() {
+    if is_flat(item) {
         return IconFrame { span: 1.0, centre: [0.0; 2], flat: true };
     }
     let mut lo = [f32::MAX; 2];
@@ -48,10 +48,16 @@ pub fn icon_frame(item: ItemId) -> IconFrame {
     IconFrame { span, centre: [(lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5], flat: false }
 }
 
+/// Whether the icon is the item's side picture: a plant-drawn block. (A sapling has a 3D model for the hand and the
+/// ground, `plants.rs`, but its icon stays the picture.)
+fn is_flat(item: ItemId) -> bool {
+    item.0 < 256 && crate::block::PLANT[usize::from(item.0)]
+}
+
 /// The boxes an item's icon draws: its model's parts, or for a block without one its single box of the def's size.
 pub fn icon_boxes(item: ItemId) -> Vec<Part> {
     let model = parts(item);
-    if !model.is_empty() {
+    if !model.is_empty() && !is_flat(item) {
         return model.to_vec();
     }
     let size = item::def(item).map_or([1.0; 3], |d| d.size);

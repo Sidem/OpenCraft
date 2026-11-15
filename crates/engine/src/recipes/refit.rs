@@ -42,7 +42,7 @@ const fn ladder<const N: usize>(f: &Family, tier: usize) -> [(ItemId, u32); N] {
     let mut inputs = [(f.items[0], 1); N];
     let mut step = 1;
     while step <= tier {
-        inputs[step] = (KITS[step], f.kits);
+        inputs[step] = (KITS[f.colour(step as u8) as usize], f.kits);
         step += 1;
     }
     inputs
@@ -81,4 +81,6 @@ pub const REFIT: &[MachineRecipe] = rows! {
 /// Families tiered after the table above was saved: rows of their own at the very end of `MACHINE_RECIPES`.
 pub const REFIT_LATER: &[MachineRecipe] = rows! {
     FORESTER: 1 2;
+    STORAGE: 3 4;
+    PUMPJACK: 1;
 };

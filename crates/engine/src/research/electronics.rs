@@ -3,7 +3,7 @@
 
 use crate::block::{
     ACCUMULATOR, ARC_FURNACE, ASSEMBLER, BELT, BLAST_FURNACE, CONSTRUCTOR, DRONE_PORT, LAB, MINER, POLE, SENSOR,
-    SMELTER, SOLAR_PANEL, UNDERPASS_IN,
+    SMELTER, SOLAR_PANEL, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{BLUE_PACK, GREEN_PACK, RED_PACK, SCANNER_MK2, VIOLET_PACK};
 use crate::recipes::{ACCUMULATOR_ROW, DRONE_RECIPES, ELECTRONICS_RECIPES, SOLAR_PANEL_ROW, VIOLET_RECIPES};
@@ -37,8 +37,8 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
     },
     Tech {
         name: "Mk4 Logistics",
-        blurb: "Violet kits, made in an assembler, and Mk4 belts (eight times a Mk1) and underpasses, and substations that link 32 \
-                blocks and power machines within 16.",
+        blurb: "Violet kits, made in an assembler, and Mk4 belts (eight times a Mk1) and underpasses, substations that link 32 \
+                blocks and power machines within 16, and storage boxes of 60 stacks.",
         needs: &[18],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 100,
@@ -48,6 +48,7 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
             Unlock::Upgrade(BELT, 3),
             Unlock::Upgrade(UNDERPASS_IN, 3),
             Unlock::Upgrade(POLE, 3),
+            Unlock::Upgrade(STORAGE, 3),
         ],
     },
     Tech {

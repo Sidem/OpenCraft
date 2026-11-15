@@ -4,7 +4,8 @@
 
 use crate::block::{
     ASSEMBLER, BLAST_FURNACE, CENTRIFUGE, CHEMICAL_PLANT, CONSTRUCTOR, CRACKER, DIESEL_GENERATOR, DRONE_PORT,
-    ELECTROLYSER, HOIST, MINER, PUMPJACK, REACTOR, REFINERY, RESEARCH_CENTER, SMELTER, WASHER, WATER_WHEEL, WINCH,
+    ELECTROLYSER, HOIST, MINER, PUMPJACK, REACTOR, REFINERY, RESEARCH_CENTER, SMELTER, STORAGE, WASHER, WATER_WHEEL,
+    WINCH,
 };
 use crate::item::{BLUE_PACK, EMPTY_BARREL, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
 use crate::recipes::{
@@ -160,7 +161,8 @@ pub const CHEMISTRY: [Tech; 13] = [
         name: "Mk5 Machines",
         blurb: "Gold kits (a processor, 2 aluminium plates and a plastic make 4, in an assembler) raise miners, \
                 smelters, constructors, assemblers, blast furnaces, drone ports and research centers to Mk5: eight \
-                times as fast (a center ten), miners recover 97%, ports keep 24 drones 128 blocks out.",
+                times as fast (a center ten), miners recover 97%, ports keep 24 drones 128 blocks out. Storage \
+                boxes reach Mk5 (72 stacks), and a pumpjack goes to Mk2: twice the draw, 97% of the oil kept.",
         needs: &[20, 29, 53],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
         units: 200,
@@ -174,6 +176,8 @@ pub const CHEMISTRY: [Tech; 13] = [
             Unlock::Upgrade(BLAST_FURNACE, 4),
             Unlock::Upgrade(DRONE_PORT, 4),
             Unlock::Upgrade(RESEARCH_CENTER, 4),
+            Unlock::Upgrade(STORAGE, 4),
+            Unlock::Upgrade(PUMPJACK, 1),
         ],
     },
 ];

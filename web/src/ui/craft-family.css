@@ -1,0 +1,96 @@
+/* A building's Mks as one build-menu tile and the popover that picks one (craft-family.ts). */
+
+/* The family tile: a double line under it says "several here", the Mks it covers sit top right, a caret bottom right. */
+.craft-family {
+  border-bottom: 3px double rgba(255, 255, 255, 0.28);
+}
+
+.craft-family::before {
+  content: '▾';
+  position: absolute;
+  right: 5px;
+  bottom: 1px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.craft-family[aria-expanded='true'] {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.craft-family[aria-expanded='true']::before {
+  content: '▴';
+  color: var(--accent);
+}
+
+.craft-mks {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* The popover: over the grid but beside nothing that matters, no backdrop, so the rest of the menu stays usable. */
+.craft-family-pop {
+  position: absolute;
+  z-index: 10;
+  box-sizing: border-box;
+  max-width: calc(100% - 4px);
+  padding: 6px 8px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: rgba(14, 16, 22, 0.98);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.craft-family-pop:not(.hidden) {
+  animation: craft-pop-in 0.12s ease-out;
+}
+
+@keyframes craft-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .craft-family-pop:not(.hidden) {
+    animation: none;
+  }
+}
+
+.craft-pop-title {
+  margin-bottom: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.craft-pop-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.craft-pop-row > .craft-tile {
+  flex: none;
+  width: 74px;
+}
+
+/* A Mk's own tile shows its Mk only inside the popover. */
+.craft-mk {
+  display: none;
+}
+
+.craft-pop-row .craft-mk {
+  display: block;
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+}

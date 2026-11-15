@@ -87,3 +87,8 @@ pub const SICKLE: ItemId = ItemId(398);
 /// The forester Mk2 and Mk3 (`factory/process/forester.rs`): faster, and a bigger patch where the ground allows.
 pub const FORESTER_MK2: ItemId = ItemId(399);
 pub const FORESTER_MK3: ItemId = ItemId(400);
+/// Ids 401 to 409 are the woods' logs and the bamboo cane (`FIRST_WOOD_LOG`, `item.rs`): new items go after them, their
+/// rows after the bamboo's. The storage box's Mk4 and Mk5 and the pumpjack's Mk2 (`factory/tiers.rs`).
+pub const BOX_MK4: ItemId = ItemId(410);
+pub const BOX_MK5: ItemId = ItemId(411);
+pub const PUMPJACK_MK2: ItemId = ItemId(412);
