@@ -229,6 +229,8 @@ Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
   and the list below; one table (`ui/control-bindings.ts`) feeds both, labels follow the layout (`ui/keyboard-layout.ts`: chosen,
   browser map, learned, QWERTY). Bindings stay by `e.code`. `web/test/controls.test.mjs` guards: table vs `input.ts`, presets vs
   real Windows layouts (fixture), category colours under colour blindness (CIEDE2000). Not built: rebinding, touch.
+  Same day: the Home page for a returning player is an overview (`ui/home.ts`: next tip or lesson, research, E P T M buttons,
+  three stats); handy keys removed. Greeting lines are a random pick per visit (`ui/greetings.ts`).
 - **2026-11-15: menu and sound tidy (user, v0.8.1).** Settings has tabs and no longer slides aside (`ui/settings-tabs.ts`); Sound has
   a master level and mute through one final gain node (`masterGain`, `web/test/sound-settings.test.mjs`), and K mutes the master.
 

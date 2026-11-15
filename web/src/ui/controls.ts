@@ -194,9 +194,8 @@ export class ControlsPage {
 
   private onKey(e: KeyboardEvent, down: boolean): void {
     if (!this.el.offsetParent || !this.view.has(e.code)) return;
-    const target = e.target as HTMLElement | null;
     // Keys that move around or press the focused control are for that control, not for the picture.
-    if (target?.closest('button, select, input, textarea') && /^(Tab|Enter|Space|Arrow\w+)$/.test(e.code)) return;
+    if (e.target instanceof Element && e.target.closest('button, select, input, textarea') && /^(Tab|Enter|Space|Arrow\w+)$/.test(e.code)) return;
     this.view.press(e.code, down);
     if (down && !e.repeat && categoryOf(e.code)) this.pin(e.code);
   }

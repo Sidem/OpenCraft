@@ -111,9 +111,12 @@
 /* What the pointed-at key does: two lines tall so the page below does not jump. */
 .ctl-detail {
   display: grid;
-  align-content: center;
+  align-content: start;
   gap: 2px;
-  min-height: 3.4em;
+  /* A fixed height, so moving from key to key never makes the page below jump: it fits the longest case (the right mouse button,
+     Shift); a narrow window scrolls the rest. */
+  height: 9.4em;
+  overflow-y: auto;
   margin: 0;
   padding: 8px 12px;
   border-radius: 10px;

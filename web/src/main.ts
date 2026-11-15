@@ -39,6 +39,7 @@ import { VaultPanel } from './ui/vault';
 import { ConsolePanel } from './ui/console';
 import { consoleHost } from './console/host';
 import { Hints } from './ui/hints';
+import { wireHome } from './ui/home';
 import { ProspectPanel } from './ui/prospect';
 import { Hud } from './ui/hud';
 import { InventoryPanel } from './ui/inventory';
@@ -183,6 +184,12 @@ async function main(): Promise<void> {
   // ---- menu / pointer lock (pause.ts)
   const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, adminConsole, drone];
   const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
+  wireHome(menu, game, sound, [
+    { code: 'KeyE', name: 'Inventory and crafting', screen: inventory },
+    { code: 'KeyP', name: 'Power and production', screen: analytics },
+    { code: 'KeyT', name: 'Research', screen: research },
+    { code: 'KeyM', name: 'World map', screen: worldMap },
+  ]);
 
   // Handy for poking at the engine from the devtools console.
   const frames = new FrameTimes();

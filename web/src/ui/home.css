@@ -1,0 +1,126 @@
+/* The Home page's overview (ui/home.ts): where you left off, shortcut buttons, a few numbers about the world. */
+
+.home {
+  display: grid;
+  gap: 14px;
+  margin: 16px 0;
+}
+
+.home-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.home section h3 {
+  margin: 0 0 8px;
+}
+
+.home-title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.home-body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  /* A long tip shows its first lines; the full text is on the tip card in the game. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.home-body .hint-em {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.home-research {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 13px;
+}
+
+.home-research b {
+  font-weight: 700;
+}
+
+.home-muted {
+  color: var(--muted);
+}
+
+.home-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.home-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.home-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-shortcut:hover:not([aria-disabled='true']),
+.home-shortcut:focus-visible {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.home-shortcut[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.home-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.home-stat {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+}
+
+.home-stat b {
+  display: block;
+  font-size: 16px;
+}
+
+.home-stat span {
+  font-size: 12px;
+  color: var(--muted);
+}

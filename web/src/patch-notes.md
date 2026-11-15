@@ -7,7 +7,10 @@ version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/t
 ## 2026-11-15 · v0.8.2 · A keyboard picture on the Controls page
 - **The Controls page shows your keyboard.** Every key the game uses is lit in the colour of its group (getting around, building, screens, planning, camera, other). Point at a key, or press it, to see what it does. Pick a group to fade the rest. The list is still below, and the mouse buttons have their own row.
 - **It follows your keyboard layout.** The keys are printed the way yours are (French Z Q S D, German Y and Z, Dvorak, Colemak). The game reads your browser's layout when it can, learns from the keys you press otherwise, and lets you pick a layout by hand. The controls themselves stay where they are: W A S D is always the same four keys.
-- **Handy keys on the Home page and the "Turn" prompt in the world** use the same labels.
+- **The "Turn" prompt in the world and the first steps on the Home page** use the same labels.
+- **A new Home page for when you come back.** It shows where you left off (the tip you were on and the research running), four buttons that open the inventory, power and production, research and the map (E, P, T, M), and a few numbers about your world. The handy keys list is gone: every key is under Controls.
+- **The Home page greets you with a different line now and then.** The old plain lines are still among them.
+- **The menu's header is tidier:** the version number sits small beside the name, and the subtitle is gone.
 
 ## 2026-11-15 · v0.8.1 · A tidier menu and a master volume
 - **The version number sits next to the game's name** at the top of the menu, where it is easy to see.

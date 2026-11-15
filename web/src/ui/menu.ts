@@ -1,9 +1,9 @@
 // The launcher and pause menu (`#menu` in index.html). A side column holds what matters most: the Play
 // button with the loading bar, the world it opens, the page buttons and the GitHub links. Beside it one
-// page shows at a time: home (a welcome and the first steps for a new player, handy keys and the latest
+// page shows at a time: home (a welcome and the first steps for a new player, the latest
 // update for a returning one), worlds, play together, settings, sound, controls and what's new. Pages' contents
 // come from their own panels, which main.ts builds into each page's container; this file switches pages,
-// shows loading and the play state, greets, shows the game's version beside the title, and starts the key labels
+// shows loading and the play state, greets (the returning player's overview is home.ts, drawn when `onHome` fires), shows the game's version beside the title, and starts the key labels
 // (keyboard-layout.ts) that the Controls page (controls.ts) and every `kbd[data-code]` print. While the settings page
 // shows, the dim and blur go so changes show on the game behind the panel (`previewing`); the panel never moves.
 // To add a page: a nav button with `data-tab` and a `.menu-page` with the same `data-page` in index.html.
@@ -11,20 +11,12 @@
 import './menu.css';
 import './menu-pages.css';
 import { ControlsPage } from './controls';
+import { type Greeting, greeting } from './greetings';
 import { keyLabels } from './keyboard-layout';
 import { PatchNotes, VERSION } from './patch-notes';
 import { wireSettingsTabs } from './settings-tabs';
 
 export type Page = 'home' | 'worlds' | 'together' | 'settings' | 'sound' | 'controls' | 'notes';
-/** first: a new player; back: a saved world opened; fresh: a new world opened; paused: Escape during play. */
-export type Greeting = 'first' | 'back' | 'fresh' | 'paused';
-
-const GREETINGS: Record<Greeting, [string, string]> = {
-  first: ['Welcome to OpenCraft', ''],
-  back: ['Welcome back', 'Your world is just as you left it.'],
-  fresh: ['A new world', 'Fresh ground, waiting for its first factory.'],
-  paused: ['Paused', 'Take your time. Press Esc or Resume when you are ready.'],
-};
 const WELCOMED_KEY = 'opencraft.welcomed';
 
 export class Menu {
@@ -40,6 +32,8 @@ export class Menu {
   private readonly notes: PatchNotes;
   private page: Page = 'home';
   private greeting: Greeting = 'first';
+  /** Called when the home page shows and when loading ends: redraws the overview (home.ts), which main.ts sets. */
+  onHome: () => void = () => {};
 
   constructor() {
     for (const tab of this.tabs) tab.addEventListener('click', () => this.show(tab.dataset.tab as Page));
@@ -86,6 +80,7 @@ export class Menu {
     for (const p of this.pages) p.classList.toggle('hidden', p.dataset.page !== page);
     this.el.classList.toggle('previewing', page === 'settings');
     this.main.scrollTop = 0;
+    if (page === 'home') this.onHome();
     if (page === 'notes') this.notes.markRead();
   }
 
@@ -99,10 +94,10 @@ export class Menu {
 
   greet(kind: Greeting): void {
     this.greeting = kind;
-    const [title, line] = GREETINGS[kind];
+    const [title, line] = greeting(kind);
     document.getElementById('home-title')!.textContent = title;
     document.getElementById('home-lead')!.textContent = line;
-    // A new player sees the first steps; anyone else the handy keys.
+    // A new player sees the first steps; anyone else the latest update.
     this.el.classList.toggle('first-visit', kind === 'first');
   }
 
@@ -113,6 +108,7 @@ export class Menu {
     this.say(done ? '' : `Generating terrain... ${pct}%`);
     this.play.disabled = !done;
     this.el.classList.toggle('ready', done);
+    if (done) this.onHome();
   }
 
   /** A line under the Play button: loading steps, or what went wrong (empty hides it). */

@@ -3,7 +3,7 @@
 // tip on screen. Skipped tips are UI state kept in localStorage (per browser, not per world); the menu's
 // controls page gets a "Show tips again" button once any were skipped. New tips are engine rows (`hints.rs`).
 // Tip text is drawn to be skimmed: a lead-in before the first colon becomes the title, `*words*` are
-// highlighted and `[keys]` drawn as key caps (`richText`).
+// highlighted and `[keys]` drawn as key caps (tip-text.ts).
 // A new world's opening scene comes first (`opening_step`, `opening.rs`): its tips replace the list until it
 // is done, a floating prompt points at what to do (`key-prompt.ts`), the card cheers briefly each time one of
 // its steps is done, and `onLineRuns` fires when its line starts again.
@@ -23,6 +23,7 @@ import type { Game } from '../wasm/engine.js';
 import type { Renderer } from '../render/renderer';
 import { button, h } from './dom';
 import { KeyPrompt } from './key-prompt';
+import { richText, tipParts } from './tip-text';
 
 const STORAGE_KEY = 'opencraft.hints.skipped';
 /** `shown` and the skipped set use this for the opening scene's tips (-1 is no tip). */
@@ -33,8 +34,6 @@ const WASTE = -3;
 const REPEAT = -4;
 /** `shown` for a machine-stopped lesson. */
 const LESSON = -5;
-/** A lead-in this short before the first ": " is the tip's title. */
-const TITLE_MAX = 40;
 /** The hand-mining warning stays this long after the latest ore block broken by hand. */
 const WASTE_MS = 45_000;
 /** Skipping the warning hides it until this many more ore blocks are broken by hand. */
@@ -205,28 +204,12 @@ export class Hints {
   /** The card's title and body from a tip's text. */
   private draw(text: string): void {
     this.text.replaceChildren();
-    const lead = text.indexOf(': ');
-    if (lead > 0 && lead <= TITLE_MAX && !/[*[]/.test(text.slice(0, lead))) {
-      this.text.append(h('div', 'hint-title', text.slice(0, lead)));
-      text = text.slice(lead + 2);
-      text = text.charAt(0).toUpperCase() + text.slice(1);
-    }
-    const body = h('p', 'hint-body');
-    richText(body, text);
-    this.text.append(body);
+    const { title, body } = tipParts(text);
+    if (title) this.text.append(h('div', 'hint-title', title));
+    const p = h('p', 'hint-body');
+    richText(p, body);
+    this.text.append(p);
   }
-}
-
-/** Appends `text` to `el`, with `*words*` highlighted and `[keys]` as key caps. Never parses HTML. */
-function richText(el: HTMLElement, text: string): void {
-  const marks = /\*([^*]+)\*|\[([^\]]+)\]/g;
-  let at = 0;
-  for (const m of text.matchAll(marks)) {
-    if (m.index > at) el.append(text.slice(at, m.index));
-    el.append(m[1] !== undefined ? h('strong', 'hint-em', m[1]) : h('kbd', 'hint-cap', m[2]));
-    at = m.index + m[0].length;
-  }
-  if (at < text.length) el.append(text.slice(at));
 }
 
 // Storage can be unavailable (private windows, blocked site data); tips then just aren't remembered.
