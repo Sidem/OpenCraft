@@ -342,25 +342,21 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   kits; stone bricks (block 60, `tex::STONE_BRICKS`, 119) and quicklime (item 275, `tex::QUICKLIME`, 120)
   in `textures/masonry.rs`. The Smelter and Constructor Mk2 items (276, 277) reuse their block faces; the
   hotbar adds the tier chip (`web/src/ui/hud.ts` `itemIcon`).
+- [ ] (2026-11-15, landed) Kit cases: `tex::KIT_PAINT_2`..`5` (468–471, `stripes.rs` `kit`), tier colour all over plus Mk pips.
 - [ ] (2026-10-28, landed) Tier paint (`tex::TIER_PAINT_1`..`TIER_PAINT_5`, `tex::paint`, `textures/stripes.rs` `paint`):
-  the plain tier colour on the Mk studs and pole collars (`factory/tier_mark.rs`). Keep it flat and bright: a stud is a
-  few pixels across, so any pattern is lost and the colour has to stand out from the band beneath it. The product
-  display's plate (`tex::SIGN`, `textures/machines.rs` `sign`): a light panel in a dark rim; keep it light and plain so
-  dark and light products both read on it.
+  the tier colour on the Mk studs and pole collars (`factory/tier_mark.rs`); keep it flat and bright (a stud is a few
+  pixels). The product display's plate (`tex::SIGN`, `machines.rs` `sign`): a light panel in a dark rim, so dark and
+  light products both read.
 - [ ] (6.5, landed) Assembly: the assembler (block 61, 2×2×2; its model is spec parts in
   `factory/process/specs.rs` `ASSEMBLER_PARTS`, drawn by `process/model.rs`), its housing layers
   (`tex::ASSEMBLER_SIDE`/`TOP`, 121–122), the port hatches every multi-block machine gets (`tex::PORT_IN`,
   `PORT_OUT`, 123–124: in and out must read apart without colour too), concrete (block 63, `tex::CONCRETE`,
   125) and the motor item (278, `tex::MOTOR`, 126), all placeholders in `textures/assembly.rs`.
 - [x] (2026-11-01, user request) Five machines remodelled to look like the real thing (`factory/process/parts.rs`): the
-  assembler is a robot cell (two orange arms that carry the inputs, `assembly_view.rs`; a conveyor, an overhead gantry
-  carrying the product display at the top centre), the blast furnace a tapered stack with bustle main, stove and skip
-  bridge, the electrolytic cell a reduction pot with hoods and an anode beam, the crusher a jaw crusher with flywheels,
-  the arc furnace a round water-cooled vessel with three electrodes on a mast. Pack faces redrawn in `tools/art`:
-  `arc_side`/`arc_top` (cooling-tube panels over a firebrick hearth; the roof),
-  `assembler_side` (a cabinet panel; also the upgrader's housing), `assembler_top` (a work table), `blast_side` (a
-  hooped shell that wraps round bodies; also the boiler's firebox), `cell_side`/`cell_top` (pot shell, hood covers),
-  `crusher_side`/`crusher_top`. The procedural placeholders in `textures/` were left as they were.
+  assembler is a robot cell (two orange arms, `assembly_view.rs`; a conveyor, a gantry carrying the product display),
+  the blast furnace a tapered stack with bustle main, stove and skip bridge, the electrolytic cell a reduction pot, the
+  crusher a jaw crusher with flywheels, the arc furnace a water-cooled vessel with three electrodes. Pack faces in `tools/art`
+  (`arc_*`, `assembler_*` also the upgrader's housing, `blast_side` also the boiler's firebox, `cell_*`, `crusher_*`).
 - [ ] (6.6, landed) Steel: the blast furnace (block 64, 2×2×3; model parts `BLAST_PARTS` in `factory/process/specs.rs`; `tex::BLAST_SIDE`/`TOP`, 127–128), its byproduct hatch (`tex::PORT_SIDE`, 129: three hatches now, told apart by chevron shape as well as colour), slag (block 65, `tex::SLAG`, 130), the steel ingot, plate and beam (items 279–281, 131–133; models in `item_models.rs`) and the steel tools (282–284, 134–136, plus the head material `tex::STEEL_HEAD`, 137), all in `textures/steel.rs`.
 - [ ] (6.7, landed) Blue tier: the blue science pack (item 285, `tex::BLUE_PACK` 138: a flask like the red and green; model `BLUE_FLASK` in `item_models.rs`), the blue kit (286, wears `tex::stripe(2)`), the Mk3 belt top (`tex::BELT_MK3_TOP`, 139) and Mk3 miner housing (`tex::MINER_MK3_SIDE`, 140); the Mk3 and Mk2 multi-block items (287–294) reuse their block's faces with the tier chip, so they read as Mk only by the chip and the stripe on the machine.
 - [ ] (6.7b, landed) The Mk2 and Mk3 items of poles, boxes, pumps, quarries and labs, and the Mk2 generator (295–305) reuse their block's faces with the tier chip. On the machine a pole, pump, quarry and generator wear a `tex::stripe(tier)` band; a box is a plain cube, so nothing shows its tier but the readout: it wants a stripe on its faces (a new layer per tier).

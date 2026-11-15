@@ -10,7 +10,7 @@ from lib import N, coords, fbm, paint, rgba, vnoise
 from machines import rivet
 from natural import RAMPS
 
-TIER_BELT = [EMBER, AETHER, BLUE, VIOLET]
+TIER_BELT = TIERS[:4]
 
 
 def belt(tier=0, seed=0):

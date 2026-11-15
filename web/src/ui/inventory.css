@@ -134,14 +134,9 @@
   gap: 3px;
 }
 
-.pack-upgrade {
+/* The look is machine-upgrade.css's; here only where it sits under the equipment row. */
+.inv-items .pack-upgrade {
   margin: -6px 0 14px;
-  font-size: 12px;
-}
-
-.pack-upgrade:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .inv-gear-name {
@@ -179,24 +174,9 @@
   background: none;
 }
 
-.inv-note {
-  max-width: 460px;
-  margin: 14px 0 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--muted);
-}
-
 /* Side by side (inventory left, build menu right): the backpack and the build menu are paged, so nothing scrolls. */
 .inv-items {
   min-height: 0;
-}
-
-/* Short windows give up the explanation first. */
-@media (max-height: 760px) {
-  .inv-note {
-    display: none;
-  }
 }
 
 /* One column on narrow windows: the screen scrolls, and the build menu gets a height of its own to page in. */

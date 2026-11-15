@@ -206,6 +206,7 @@ ITEMS = [Entry(layer, name, make, **kw) for layer, name, make, kw in (
     (20, "lamp_green", lambda: items.lamp_light(kit.GREEN, 20), {}), (21, "lamp_yellow", lambda: items.lamp_light(kit.GOLD, 21), {}),
     (22, "lamp_red", lambda: items.lamp_light(kit.RED, 22), {}), (107, "lamp_blue", lambda: items.lamp_light(kit.BLUE, 107), {}),
     *[(114 + i, f"stripe_{i + 1}", lambda i=i: items.stripe(i, 114 + i), {}) for i in range(5)],
+    *[(467 + i, f"kit_paint_{i + 1}", lambda i=i: items.kit_paint(i, 467 + i), {}) for i in range(1, 5)],
     (68, "scanner", lambda: items.scanner(kit.GREEN, 68), {}), (166, "scanner_mk2", lambda: items.scanner(kit.VIOLET, 166), {}),
     (165, "strategy_fog", items.fog, dict(tiles=True)),
     # metals

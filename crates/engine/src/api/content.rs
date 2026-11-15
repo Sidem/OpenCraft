@@ -4,10 +4,9 @@
 use wasm_bindgen::prelude::*;
 
 use crate::block::{self, BLOCK_COUNT};
-use crate::deposits::HAND_YIELD;
 use crate::factory::tiers;
 use crate::factory::upgrades::TIER_COLOURS;
-use crate::factory::{Axis, Form, MINER_TIERS};
+use crate::factory::{Axis, Form};
 use crate::item::{self, ItemId};
 use crate::item_models;
 use crate::tools;
@@ -112,16 +111,6 @@ impl Game {
     /// anything that isn't a tool or doesn't wear (the prospecting devices).
     pub fn tool_uses(&self, id: u16) -> u32 {
         tools::tool(ItemId(id)).filter(|t| tools::device(t.item).is_none()).map_or(0, |t| t.tier.uses)
-    }
-
-    /// Ore kept per block mined by hand.
-    pub fn hand_yield(&self) -> u32 {
-        HAND_YIELD
-    }
-
-    /// Fraction of drilled ore a miner delivers.
-    pub fn miner_recovery(&self) -> f64 {
-        MINER_TIERS[0].recovery
     }
 
     /// The tier (0 is Mk1) of a tiered machine's item, or -1 for other items.

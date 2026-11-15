@@ -145,13 +145,6 @@ export class InventoryPanel {
     const handCell = h('div', 'inv-gear-cell');
     handCell.append(this.offhand.root, h('span', 'inv-gear-name', 'Left hand (J)'));
     gearRow.append(handCell);
-    const note = h(
-      'p',
-      'inv-note',
-      `Mining ore by hand keeps ${game.hand_yield()} per block; the rest of that block's share of its deposit is lost. ` +
-        `A miner recovers ${Math.round(game.miner_recovery() * 100)}% of what it drills, so build one early. ` +
-        'Look at ore to see how big its deposit is.',
-    );
     const items = h('section', 'inv-items');
     const boxHead = h('div', 'inv-box-head');
     const takeAll = button('secondary-btn', 'Take all', () => this.box && game.take_machine_output(...this.box));
@@ -159,7 +152,7 @@ export class InventoryPanel {
     sortBox.title = `Merge stacks and order them by kind: ${game.sort_kinds()}`;
     this.boxLabel = new BoxLabel(game, icon);
     boxHead.append(h('h3', '', 'Storage box'), this.boxLabel.el, sortBox, takeAll);
-    this.boxUpgrade = new MachineUpgrade(game);
+    this.boxUpgrade = new MachineUpgrade(game, icon);
     this.boxSection.append(boxHead, this.boxUpgrade.el, this.boxGrid);
     const sortPack = button('secondary-btn', 'Sort', () => game.sort_inventory());
     sortPack.title = `Merge stacks and order the backpack by kind: ${game.sort_kinds()} (the hotbar stays as you set it)`;
@@ -168,9 +161,9 @@ export class InventoryPanel {
     packHead.append(h('h3', '', 'Backpack'), this.packPager.el, drone.button, sortPack);
     this.packPager.onChange = () => this.showPackPage();
     this.packPager.wheel(pack);
-    this.packUpgrade = new PackUpgrade(game);
+    this.packUpgrade = new PackUpgrade(game, icon);
     items.append(
-      h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar, note,
+      h('h3', '', 'Equipment'), gearRow, this.packUpgrade.el, packHead, pack, h('h3', '', 'Hotbar'), bar, drone.bar,
     );
 
     this.menu = new BuildMenu(game, icon);

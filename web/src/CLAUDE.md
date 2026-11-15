@@ -19,6 +19,7 @@ TypeScript + WebGL2 + DOM + Web Audio: a thin platform layer. Module map: `docs/
 - **One `game` per page.** Switching worlds saves and reloads the page (`save/session.ts`), so panels
   take `game` once in their constructor. Save bytes are the engine's (`game.save()`, `Game.load`); TS
   only stores them.
+- **Show, don't write** (`docs/DECISIONS.md`): question every sentence a player must read; an icon, number, bar or colour first, words in tooltips.
 - Every file starts with a header comment: what it owns and how to extend it.
 - Size budgets: 400/600 lines per TS file, 300/500 per CSS file (`npm run check` reports them).
 - The menu (`ui/menu.ts`) shows one page at a time; a new menu section is a page in `index.html`, not more

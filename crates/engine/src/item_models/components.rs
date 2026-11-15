@@ -37,16 +37,17 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
     }
 }
 
-/// An upgrade kit: a gunmetal case under a lid in its tier's colour, a rubber grip on two posts, two latches.
+/// An upgrade kit: a case painted all over in its tier's colour (with one pip per Mk, the top included) on a gunmetal
+/// foot, a rubber grip on two posts, two latches.
 const fn kit(tier: u8) -> [Part; 7] {
     [
-        part([0.0, -0.08, 0.0], [0.74, 0.32, 0.44], GUNMETAL),
-        part([0.0, 0.11, 0.0], [0.76, 0.06, 0.46], tex::stripe(tier)),
-        part([-0.15, 0.17, 0.0], [0.04, 0.06, 0.05], METAL),
-        part([0.15, 0.17, 0.0], [0.04, 0.06, 0.05], METAL),
-        part([0.0, 0.21, 0.0], [0.36, 0.04, 0.07], RUBBER),
-        part([-0.22, 0.05, 0.225], [0.07, 0.08, 0.02], METAL),
-        part([0.22, 0.05, 0.225], [0.07, 0.08, 0.02], METAL),
+        part([0.0, -0.22, 0.0], [0.78, 0.05, 0.48], GUNMETAL),
+        part([0.0, -0.04, 0.0], [0.74, 0.32, 0.44], tex::kit_paint(tier)),
+        part([-0.15, 0.16, 0.0], [0.04, 0.06, 0.05], METAL),
+        part([0.15, 0.16, 0.0], [0.04, 0.06, 0.05], METAL),
+        part([0.0, 0.2, 0.0], [0.36, 0.04, 0.07], RUBBER),
+        part([-0.22, -0.04, 0.225], [0.07, 0.08, 0.02], METAL),
+        part([0.22, -0.04, 0.225], [0.07, 0.08, 0.02], METAL),
     ]
 }
 const KIT_2: [Part; 7] = kit(1);

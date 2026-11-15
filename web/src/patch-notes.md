@@ -4,6 +4,14 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-15 · v0.8.6 · Bolder upgrade kits
+- **Kits are now fully painted in their tier colour,** top and sides, with one white pip per Mk, so you can tell them apart at a glance in a full backpack.
+- **The Green Kit is really green** (it was a teal close to blue), and so is everything else that marks Mk2: belt chevrons, miner bands, pole and pump stripes.
+
+## 2026-11-15 · v0.8.5 · A simpler upgrade button
+- **The upgrade button is now a picture:** an up arrow and the next Mk, the kit's icon and how many you hold out of how many it needs (red while you are short, a padlock while the research is missing). The hauler pack's button looks the same. The full sentence is in the tooltip.
+- **The mining note under the hotbar is gone** from the inventory.
+
 ## 2026-11-15 · v0.8.4 · Real recipe times, rates a minute and a second, miner menus
 - **Recipe times follow the machine.** The time on a recipe card was always the Mk1 time; a Mk3 smelter now shows the shorter time it really takes, and it changes the moment you upgrade.
 - **Every recipe card shows what one machine makes a minute and a second** ("Makes 40/min · 0.67/s"), and each ingredient shows how many it uses a minute, so the ratio between machines reads straight off the panels. The top of a machine's menu is a small table: one row for each item it uses and makes, with the amount per minute and per second.

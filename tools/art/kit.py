@@ -19,7 +19,8 @@ GOLD = ramp(["#2a1606", "#5e3a0c", "#a2701a", "#d9a42e", "#f4cf5c", "#fff3b0"])
 BLUE = ramp(["#07102a", "#102a5e", "#1f4fa8", "#3f7fe0", "#8cb8ff", "#dcebff"])
 GREEN = ramp(["#06200f", "#0f4a22", "#1f8a3a", "#4cc866", "#9af0a8", "#e0ffe4"])
 RED = ramp(["#2a0508", "#661016", "#b32030", "#e84a3a", "#ff8d63", "#ffd9c0"])
-TIERS = [EMBER, AETHER, BLUE, VIOLET, GOLD]  # Mk1 to Mk5 accents (the belts' chevron colours, the miners' stripes)
+LEAF = ramp(["#07240c", "#12581c", "#2a9d34", "#4cd04a", "#a0f09a", "#e4ffe0"])  # a true green (hue ~120), not aether's teal
+TIERS = [EMBER, LEAF, BLUE, VIOLET, GOLD]  # Mk1 to Mk5 accents (the belts' chevron colours, the miners' stripes, the kits)
 
 
 class Face:

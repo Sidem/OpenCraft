@@ -24,6 +24,22 @@ pub(super) fn stripe(x: i32, y: i32, tier: u8) -> [u8; 4] {
     }
 }
 
+/// A kit's case: the whole face in the tier colour, a darker rim, and the Mk's pips (white, as on the stripe).
+pub(super) fn kit(x: i32, y: i32, tier: u8) -> [u8; 4] {
+    let c = TIER_COLOURS[tier as usize];
+    let base = [(c >> 16) as f64, (c >> 8 & 0xff) as f64, (c & 0xff) as f64];
+    let pips = tier as i32 + 1;
+    let first = 8 - (pips * 3 - 1) / 2;
+    let pip = (7..=8).contains(&y) && x >= first && x < first + pips * 3 - 1 && (x - first) % 3 < 2;
+    if pip {
+        rgb([245.0, 245.0, 240.0], 1.0)
+    } else if x == 0 || y == 0 || x == 15 || y == 15 {
+        rgb(base, 0.6)
+    } else {
+        rgb(base, 0.97 + 0.06 * n(260 + u32::from(tier), x, y))
+    }
+}
+
 pub(super) fn paint(x: i32, y: i32, tier: u8) -> [u8; 4] {
     let c = TIER_COLOURS[tier as usize];
     let base = [(c >> 16) as f64, (c >> 8 & 0xff) as f64, (c & 0xff) as f64];

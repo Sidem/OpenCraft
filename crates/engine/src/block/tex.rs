@@ -245,7 +245,16 @@ pub const SIGN_FACE_LAST: u16 = SIGN_FACE + 2 * crate::signs::view::SLOTS as u16
 /// Generator 12's species, after every other (`block/trees.rs`, `textures/trees.rs`).
 pub use super::trees::layers::*;
 pub use super::woods::layers::*;
-pub const COUNT: usize = WOOD_LAYERS_END as usize;
+/// The upgrade kits' cases, after every other layer: the whole face in the tier colour with one pip per Mk, for Mk2
+/// to Mk5 (`kit_paint`, `textures/stripes.rs`; the kit models in `item_models/components.rs`).
+pub const KIT_PAINT_2: u16 = WOOD_LAYERS_END;
+pub const KIT_PAINT_5: u16 = KIT_PAINT_2 + 3;
+pub const COUNT: usize = KIT_PAINT_5 as usize + 1;
+
+/// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
+pub const fn kit_paint(tier: u8) -> u16 {
+    KIT_PAINT_2 + tier as u16 - 1
+}
 
 /// The stripe layer of tier `tier` (0 is Mk1).
 pub const fn stripe(tier: u8) -> u16 {

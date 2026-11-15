@@ -64,7 +64,7 @@ export class MachinePanel implements Beside {
     this.take = button('secondary-btn mp-take', 'Take output', () => {
       this.game.take_machine_output(...this.pos);
     });
-    this.upgrade = new MachineUpgrade(game);
+    this.upgrade = new MachineUpgrade(game, icon);
     this.rates = new RateTable(game, icon);
     const state = h('section', 'mp-state');
     state.append(this.upgrade.el, this.status, this.rates.el, this.efficiency, this.progress, this.fire, this.slots, this.take);

@@ -173,6 +173,14 @@ def stripe(tier, seed):
     return f.rgba()
 
 
+def kit_paint(tier, seed):
+    """An upgrade kit's case: the whole face in the tier colour (bevelled, lit), one white pip per Mk."""
+    f = Face(seed, TIERS[tier], 2)
+    f.rect((2, 2, 126, 126), TIERS[tier], 0.64, 1.0, 8, 0.25)
+    f.pips(tier, 56, 64, 12, 6)
+    return f.rgba()
+
+
 def scanner(tones, seed):
     """A scanner screen: concentric sweep arcs above a ping, on a dark glass."""
     f = Face(seed, STEEL, 1)

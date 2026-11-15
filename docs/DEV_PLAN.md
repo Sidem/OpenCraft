@@ -225,6 +225,10 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
 
+- **2026-11-15: bolder kits, a true green Mk2 (user, v0.8.6).** Kit cases wear their own layers `tex::kit_paint` (468–471: whole
+  face in the tier colour plus Mk pips; `item_models/components.rs` `kit`). Mk2's art colour is `kit.LEAF` (hue ~120), not aether.
+- **2026-11-15: upgrade button drawn, mining note removed (user, v0.8.5).** `ui/machine-upgrade.ts` `UpgradeButton`: arrow and
+  Mk, kit icon, held/needed (also the hauler pack's). New standing rule "show, don't write": `docs/DECISIONS.md`, `web/src/CLAUDE.md`.
 - **2026-11-15: recipe speed and miner panels (user, v0.8.4).** Recipe cards read the machine's real batch time
   (`Processor::batch_seconds`, `Game::machine_recipe_seconds_at`) and print a minute and a second (`ui/recipe-rates.ts`);
   the panel's top is a table (`ui/rate-table.ts`, rows from `Factory::rate_rows`), the readout one short line
