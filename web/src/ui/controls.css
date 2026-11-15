@@ -1,0 +1,179 @@
+/* The menu's Controls page (controls.ts): category chips and layout picker above the keyboard (keyboard-view.css), the mouse
+   row, the detail line and the list. Category colour arrives as --cat. */
+
+.controls-page {
+  display: grid;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.ctl-top {
+  display: grid;
+  gap: 8px;
+}
+
+.ctl-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ctl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font: 600 12px var(--font);
+  cursor: pointer;
+}
+
+.ctl-chip::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--cat);
+}
+
+.ctl-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.ctl-chip[aria-pressed='true'] {
+  border-color: var(--cat);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ctl-layout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.ctl-layout select {
+  padding: 3px 6px;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font: 12px var(--font);
+}
+
+.ctl-layout select option {
+  color: #10131a;
+}
+
+.ctl-status {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ctl-mouse {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctl-mouse-name {
+  margin-right: 4px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ctl-pill {
+  padding: 3px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cat);
+  color: #10131a;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.28);
+  font: 600 12px var(--font);
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.ctl-pill.ctl-hot,
+.ctl-pill:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+.ctl-dim {
+  opacity: 0.25;
+}
+
+/* What the pointed-at key does: two lines tall so the page below does not jump. */
+.ctl-detail {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  min-height: 3.4em;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  line-height: 1.4;
+}
+
+.ctl-detail kbd {
+  justify-self: start;
+}
+
+.ctl-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 3px;
+}
+
+.ctl-line b {
+  margin-right: 4px;
+}
+
+/* The same controls as a list. */
+.ctl-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 6px;
+}
+
+.ctl-section h3::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--cat);
+}
+
+.ctl-row {
+  display: grid;
+  grid-template-columns: 11em 1fr;
+  gap: 4px 16px;
+  padding: 3px 6px;
+  border-radius: 6px;
+}
+
+.ctl-row.ctl-hot {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 3px 0 0 var(--cat);
+}
+
+.ctl-name {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .ctl-row {
+    grid-template-columns: 1fr;
+  }
+}

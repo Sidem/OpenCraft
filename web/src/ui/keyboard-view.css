@@ -1,0 +1,70 @@
+/* The Controls page's keyboard picture (keyboard-view.ts). Sizes come from the width the page gives it (container units),
+   so the board shrinks with the window; --x, --y and --w are in key widths. */
+
+.kb-wrap {
+  container-type: inline-size;
+}
+
+.kb {
+  --u: calc(100cqw / var(--cols));
+  position: relative;
+  height: calc(var(--u) * var(--rows));
+  user-select: none;
+}
+
+.kb-key {
+  position: absolute;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: calc(var(--w) * var(--u) - 3px);
+  height: calc(var(--u) - 3px);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  border-radius: 5px;
+  font: 600 clamp(8px, calc(var(--u) * 0.36), 13px) / 1 var(--font);
+  white-space: nowrap;
+  transition: opacity 0.12s, transform 0.06s;
+}
+
+.kb-key.kb-long {
+  font-size: clamp(7px, calc(var(--u) * 0.27), 10px);
+}
+
+/* A key nothing uses. */
+.kb-key.kb-unused {
+  background: #262b36;
+  color: #d4d9e2;
+  opacity: 0.45;
+}
+
+/* A key the game uses: its category's colour, a darker lip below. */
+button.kb-key {
+  background: var(--cat);
+  color: #10131a;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+}
+
+.kb-key.kb-hot {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.kb-key.kb-pressed {
+  transform: translateY(2px);
+  filter: brightness(1.2);
+}
+
+.kb-key.kb-dim {
+  opacity: 0.18;
+}
+
+button.kb-key:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+  z-index: 1;
+}

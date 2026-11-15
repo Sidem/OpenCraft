@@ -1,5 +1,5 @@
 /* Menu pages (ui/menu.ts, markup in index.html): headings, lead and note lines, the first steps, key caps, the
-   handy keys and the controls lists, the settings sound row. The frame and side column are menu.css. */
+   handy keys, the settings sound row. The Controls page is controls.css. The frame and side column are menu.css. */
 
 .menu-page h2 {
   margin: 0 0 6px;
@@ -74,23 +74,6 @@ kbd {
 
 .keys kbd {
   margin-right: 6px;
-}
-
-.controls {
-  display: grid;
-  grid-template-columns: 11em 1fr;
-  gap: 5px 16px;
-  margin: 0;
-  font-size: 13px;
-}
-
-.controls dt {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.controls dd {
-  margin: 0;
 }
 
 #menu-tips {

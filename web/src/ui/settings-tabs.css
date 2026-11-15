@@ -1,0 +1,18 @@
+/* The Settings page's tab strip (settings-tabs.ts): one segmented row of buttons above the groups. */
+
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+
+.settings-tabs .secondary-btn {
+  flex: 1 1 0;
+  min-width: max-content;
+  padding: 7px 10px;
+}
+
+.settings-group > h3:first-child {
+  margin-top: 16px;
+}

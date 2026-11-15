@@ -3,13 +3,17 @@
 // page shows at a time: home (a welcome and the first steps for a new player, handy keys and the latest
 // update for a returning one), worlds, play together, settings, sound, controls and what's new. Pages' contents
 // come from their own panels, which main.ts builds into each page's container; this file switches pages,
-// shows loading and the play state, and greets. While the settings page shows, the menu steps aside so
-// changes show on the game (`previewing`).
+// shows loading and the play state, greets, shows the game's version beside the title, and starts the key labels
+// (keyboard-layout.ts) that the Controls page (controls.ts) and every `kbd[data-code]` print. While the settings page
+// shows, the dim and blur go so changes show on the game behind the panel (`previewing`); the panel never moves.
 // To add a page: a nav button with `data-tab` and a `.menu-page` with the same `data-page` in index.html.
 
 import './menu.css';
 import './menu-pages.css';
+import { ControlsPage } from './controls';
+import { keyLabels } from './keyboard-layout';
 import { PatchNotes, VERSION } from './patch-notes';
+import { wireSettingsTabs } from './settings-tabs';
 
 export type Page = 'home' | 'worlds' | 'together' | 'settings' | 'sound' | 'controls' | 'notes';
 /** first: a new player; back: a saved world opened; fresh: a new world opened; paused: Escape during play. */
@@ -43,7 +47,10 @@ export class Menu {
     this.notes = new PatchNotes(notesTab, () => this.show('notes'));
     document.getElementById('notes')!.append(this.notes.el);
     document.getElementById('menu-latest')!.append(this.notes.teaser);
-    document.getElementById('app-version')!.textContent = `Version ${VERSION}`;
+    document.getElementById('app-version')!.textContent = `v${VERSION}`;
+    wireSettingsTabs(this.el.querySelector<HTMLElement>('[data-page="settings"]')!);
+    keyLabels.start();
+    document.getElementById('controls-page')!.append(new ControlsPage().el);
   }
 
   /** A world was opened (`restored`: from a save). A new world for someone who never pressed Play here
@@ -64,7 +71,7 @@ export class Menu {
     return this.isOpen && this.greeting === 'paused';
   }
 
-  /** True while the settings page shows: the vignette and other settings preview on the game. */
+  /** True while the settings page shows: the vignette and other settings preview on the game (any settings tab). */
   get previewing(): boolean {
     return this.isOpen && this.page === 'settings';
   }

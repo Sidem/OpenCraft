@@ -79,6 +79,8 @@ export class Music {
   private current: Playing | null = null;
   /** The tab or window is not in focus (not saved). */
   private away = false;
+  /** The master is muted (not saved). */
+  private hushed = false;
   /** How much working machinery lowers the music (1 for none). */
   private duck = 1;
   private since = POLL;
@@ -95,12 +97,26 @@ export class Music {
     return this.current?.piece.id ?? null;
   }
 
-  start(ctx: AudioContext): void {
+  /** `to` is where the music goes: the sound system's master. */
+  start(ctx: AudioContext, to: AudioNode): void {
     if (this.ctx) return;
     this.ctx = ctx;
     this.out = ctx.createGain();
     this.out.gain.value = this.level();
-    this.out.connect(ctx.destination);
+    this.out.connect(to);
+  }
+
+  /** The master is muted (not saved): a piece waits where it is, as it does in the background. */
+  setHushed(hushed: boolean): void {
+    this.hushed = hushed;
+    this.apply();
+  }
+
+  /** Volume, mute and the background setting back to their defaults (the mode stays). */
+  resetLevels(): void {
+    const { volume, muteInBackground } = DEFAULTS;
+    Object.assign(this.settings, { volume, muted: false, muteInBackground });
+    this.update();
   }
 
   setVolume(volume: number): void {
@@ -134,7 +150,7 @@ export class Music {
   /** Call every frame with the game: reads the place twice a second and starts or fades pieces as the director says. */
   poll(game: { surroundings(): Float32Array; time_of_day(): number }, dt: number): void {
     if (!this.ctx || !this.out) return;
-    const hushed = !this.audible || (this.away && this.settings.muteInBackground);
+    const hushed = !this.audible || this.hushed || (this.away && this.settings.muteInBackground);
     this.pauseWhile(hushed);
     if (hushed) return;
     this.since += dt;
@@ -149,7 +165,7 @@ export class Music {
   }
 
   private level(): number {
-    const hushed = this.away && this.settings.muteInBackground;
+    const hushed = this.hushed || (this.away && this.settings.muteInBackground);
     return this.audible && !hushed ? (this.settings.volume / 100) ** 2 * this.duck : 0;
   }
 

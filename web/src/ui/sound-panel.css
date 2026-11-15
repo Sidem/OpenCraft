@@ -4,12 +4,36 @@
   font-size: 13px;
 }
 
+/* The master dial on the left, the three channels beside it (below it in a narrow window). */
+.sound-mixer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin: 14px 0 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sound-channels {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
 .sound-panel-row {
   display: grid;
-  grid-template-columns: 8.5em 1fr;
+  grid-template-columns: 9.5em 1fr;
   align-items: center;
   gap: 8px;
-  margin: 10px 0;
+  margin: 8px 0;
+}
+
+.sound-panel-label small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
 }
 
 .sound-panel-check {
@@ -35,4 +59,8 @@
   margin: 8px 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+.sound-reset {
+  margin-top: 14px;
 }

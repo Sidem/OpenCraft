@@ -44,10 +44,6 @@ export function wirePause(parts: PauseParts): () => void {
   menu.opened(opened.restored);
   if (opened.restored) play.textContent = 'Continue';
   document.getElementById('sound-panel')!.append(new SoundPanel(sound).el);
-  document.getElementById('open-sound-lab')!.addEventListener('click', () => {
-    sound.unlock();
-    soundLab.open(sound.lastMaterial);
-  });
   // Audio can only start inside a user gesture, so the same click that captures the mouse unlocks it.
   const start = () => {
     sound.unlock();

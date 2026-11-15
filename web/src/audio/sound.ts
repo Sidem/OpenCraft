@@ -3,13 +3,16 @@
 // (settings.ts) on first use, and again after a dial changes, so edits in the sound designer are
 // heard immediately, in the designer and in the game. The only audio files are the music pieces, which
 // `music` streams (music.ts); `ambience` (ambience.ts) adds the sounds of the place. This class owns the
-// shared AudioContext, so effects, music and ambience are three channels with a level and a mute each.
+// shared AudioContext, so effects, music and ambience are three channels with a level and a mute each, all ending at one
+// master (`out`: a level and a mute over everything; K mutes it, so each channel keeps its own settings).
 
 import {
   ACTIONS,
   MATERIALS,
+  DEFAULT_LEVELS,
   clampDial,
   loadSettings,
+  masterGain,
   saveSettings,
   type ActionDial,
   type ActionName,
@@ -21,6 +24,7 @@ import {
 } from './settings';
 import { Ambience } from './ambience';
 import { Music } from './music';
+import { ACTION_BASE, EVENT_ACTIONS, PREVIEW_DISTANCE, PREVIEW_VOLUME } from './sound-actions';
 import { blip, breakSound, denied, hitSound, mulberry32, ping, powerDown, powerUp, splash, tick, whoosh, type HitMods } from './synth';
 import { launch, podDown, podUp } from './synth-orbit';
 
@@ -31,48 +35,6 @@ const HEARING_RANGE = 40;
 const WARM_SLICE_MS = 4;
 /** Warm-up waits this long after the last dial change, instead of redoing work mid-drag. */
 const WARM_DELAY_MS = 400;
-
-/** Engine event kinds, in order. */
-const EVENT_ACTIONS: readonly ActionName[] = ['dig', 'break', 'place', 'step', 'land', 'pickup', 'drop', 'splash', 'powerdown', 'powerup', 'launch', 'podup', 'poddown', 'denied'];
-
-interface ActionBase {
-  /** Mix level before the Volume dials. */
-  gain: number;
-  /** Random playback-rate spread per play, scaled by the material's Variation. */
-  jitter: number;
-  variants: number;
-  /** Uses the material's sound (as opposed to one shared sound). */
-  material: boolean;
-  pitch: number;
-  length: number;
-  weight: number;
-  /** Heard this many times as far as an ordinary sound (40 blocks), fading as slowly; 1 when left out. */
-  reach?: number;
-}
-
-/** Built-in shaping per action; the designer's action dials adjust it around these values. */
-const ACTION_BASE: Record<ActionName, ActionBase> = {
-  dig: { gain: 0.32, jitter: 0.1, variants: 4, material: true, pitch: 1, length: 1, weight: 0 },
-  break: { gain: 0.75, jitter: 0.08, variants: 4, material: true, pitch: 1, length: 1.4, weight: 0 },
-  place: { gain: 0.6, jitter: 0.08, variants: 4, material: true, pitch: 0.85, length: 1.1, weight: 0.15 },
-  step: { gain: 0.2, jitter: 0.12, variants: 4, material: true, pitch: 1.08, length: 0.85, weight: 0 },
-  land: { gain: 0.42, jitter: 0.06, variants: 4, material: true, pitch: 0.75, length: 1.3, weight: 0.25 },
-  pickup: { gain: 0.2, jitter: 0.35, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
-  drop: { gain: 0.28, jitter: 0.1, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
-  click: { gain: 0.12, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
-  scan: { gain: 0.22, jitter: 0, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
-  splash: { gain: 0.45, jitter: 0.1, variants: 3, material: false, pitch: 1, length: 1, weight: 0 },
-  powerdown: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
-  powerup: { gain: 0.4, jitter: 0.03, variants: 2, material: false, pitch: 1, length: 1, weight: 0 },
-  launch: { gain: 0.9, jitter: 0.04, variants: 1, material: false, pitch: 1, length: 1, weight: 0, reach: 12 },
-  podup: { gain: 0.6, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
-  poddown: { gain: 0.7, jitter: 0.05, variants: 2, material: false, pitch: 1, length: 1, weight: 0, reach: 3 },
-  denied: { gain: 0.35, jitter: 0.03, variants: 1, material: false, pitch: 1, length: 1, weight: 0 },
-};
-
-/** Typical in-game event volume and distance, so previews match what you hear while playing. */
-const PREVIEW_VOLUME: Partial<Record<ActionName, number>> = { step: 0.6, land: 0.7 };
-const PREVIEW_DISTANCE = 2;
 
 /** Dial position (0–100, 50 = normal) to gain: silent at 0, +12 dB at 100. */
 const level = (dial: number) => (dial / 50) ** 2;
@@ -92,7 +54,10 @@ export class SoundSystem {
   readonly ambience = new Ambience(() => this.notify());
 
   private ctx: AudioContext | null = null;
-  private master: GainNode | null = null;
+  /** The effects channel's level; its sounds go through the compressor, then `out`. */
+  private effects: GainNode | null = null;
+  /** The master: effects, music and ambience all end here, then the speakers. */
+  private out: GainNode | null = null;
   private readonly banks = new Map<string, Bank>();
   private readonly listeners = new Set<() => void>();
   private voices = 0;
@@ -115,8 +80,12 @@ export class SoundSystem {
     return this.settings.muted;
   }
 
-  /** Effects, music and ambience are all muted. */
+  /** Nothing is heard: the master is muted, or effects, music and ambience all are. */
   get silent(): boolean {
+    return this.settings.masterMuted || this.channelsMuted;
+  }
+
+  private get channelsMuted(): boolean {
     return this.muted && this.music.settings.muted && this.ambience.settings.muted;
   }
 
@@ -133,17 +102,22 @@ export class SoundSystem {
   unlock(): void {
     if (!this.ctx) {
       const ctx = new AudioContext({ latencyHint: 'interactive' });
+      const out = ctx.createGain();
+      out.gain.value = masterGain(this.settings.master, this.settings.masterMuted);
+      out.connect(ctx.destination);
       const compressor = ctx.createDynamicsCompressor();
       compressor.threshold.value = -12;
       compressor.ratio.value = 6;
-      compressor.connect(ctx.destination);
-      this.master = ctx.createGain();
-      this.master.gain.value = this.masterGain();
-      this.master.connect(compressor);
+      compressor.connect(out);
+      this.effects = ctx.createGain();
+      this.effects.gain.value = this.effectsGain();
+      this.effects.connect(compressor);
+      this.out = out;
       this.ctx = ctx;
       this.scheduleWarm(0);
-      this.music.start(ctx);
-      this.ambience.start(ctx);
+      this.music.start(ctx, out);
+      this.ambience.start(ctx, out);
+      this.hush();
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -156,34 +130,61 @@ export class SoundSystem {
 
   setMuted(muted: boolean): void {
     this.settings.muted = muted;
+    this.effectsChanged();
+  }
+
+  /** The master dial: 0–100 over everything, leaving each channel's own level alone. */
+  setMasterVolume(volume: number): void {
+    this.settings.master = clampDial(volume);
     this.masterChanged();
   }
 
-  /** The K key: mutes everything, or unmutes everything when it was all off. */
+  setMasterMuted(muted: boolean): void {
+    this.settings.masterMuted = muted;
+    this.masterChanged();
+  }
+
+  /** The K key: mutes everything at the master (each channel keeps its level and mute), or unmutes everything. */
   toggleMute(): boolean {
     const off = !this.silent;
-    this.setMuted(off);
-    this.music.setMuted(off);
-    this.ambience.setMuted(off);
+    this.setMasterMuted(off);
+    if (!off && this.channelsMuted) {
+      this.setMuted(false);
+      this.music.setMuted(false);
+      this.ambience.setMuted(false);
+    }
     return off;
+  }
+
+  /** Master, effects, music and ambience back to their starting levels, unmuted (the music's mode and the sound design stay). */
+  resetLevels(): void {
+    this.settings.master = DEFAULT_LEVELS.master;
+    this.settings.masterMuted = false;
+    this.settings.volume = DEFAULT_LEVELS.volume;
+    this.settings.muted = false;
+    this.settings.muteInBackground = false;
+    this.music.resetLevels();
+    this.ambience.resetLevels();
+    this.effectsChanged();
+    this.masterChanged();
   }
 
   setMuteInBackground(on: boolean): void {
     this.settings.muteInBackground = on;
-    this.ambience.setAway(this.away && on);
-    this.masterChanged();
+    this.hush();
+    this.effectsChanged();
   }
 
   private setAway(away: boolean): void {
     this.away = away;
     this.music.setAway(away);
-    this.ambience.setAway(away && this.settings.muteInBackground);
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.masterGain(), this.ctx.currentTime, 0.02);
+    this.hush();
+    this.glide(this.effects, this.effectsGain());
   }
 
   setVolume(volume: number): void {
     this.settings.volume = clampDial(volume);
-    this.masterChanged();
+    this.effectsChanged();
   }
 
   setMaterialDial(material: number, dial: MaterialDial, value: number): void {
@@ -252,18 +253,36 @@ export class SoundSystem {
   }
 
   private audible(): boolean {
-    return this.ctx?.state === 'running' && this.masterGain() > 0;
+    return this.ctx?.state === 'running' && this.effectsGain() > 0 && masterGain(this.settings.master, this.settings.masterMuted) > 0;
   }
 
-  private masterGain(): number {
+  private effectsGain(): number {
     const hushed = this.muted || (this.away && this.settings.muteInBackground);
     return hushed ? 0 : 1.25 * (this.settings.volume / 100) ** 2;
   }
 
-  private masterChanged(): void {
-    if (this.master && this.ctx) this.master.gain.setTargetAtTime(this.masterGain(), this.ctx.currentTime, 0.02);
+  /** A short glide, so a level change never clicks. */
+  private glide(node: GainNode | null, gain: number): void {
+    if (node && this.ctx) node.gain.setTargetAtTime(gain, this.ctx.currentTime, 0.02);
+  }
+
+  private effectsChanged(): void {
+    this.glide(this.effects, this.effectsGain());
     this.save();
     this.notify();
+  }
+
+  private masterChanged(): void {
+    this.glide(this.out, masterGain(this.settings.master, this.settings.masterMuted));
+    this.hush();
+    this.save();
+    this.notify();
+  }
+
+  /** Music and ambience stop (rather than play on unheard) while the master is muted, and ambience also in the background if set. */
+  private hush(): void {
+    this.music.setHushed(this.settings.masterMuted);
+    this.ambience.setAway(this.settings.masterMuted || (this.away && this.settings.muteInBackground));
   }
 
   private notify(): void {
@@ -295,7 +314,7 @@ export class SoundSystem {
     g.gain.value = gain;
     const p = ctx.createStereoPanner();
     p.pan.value = pan;
-    src.connect(g).connect(p).connect(this.master!);
+    src.connect(g).connect(p).connect(this.effects!);
     this.voices++;
     src.onended = () => {
       this.voices--;

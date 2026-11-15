@@ -138,6 +138,12 @@ export class Knob {
     });
   }
 
+  /** Moves the dial to `value` (from outside, such as a reset); does not call `onInput`. */
+  set(value: number): void {
+    this.value = Math.round(Math.min(100, Math.max(0, value)));
+    this.render();
+  }
+
   private change(raw: number): void {
     const v = Math.round(Math.min(100, Math.max(0, raw)));
     if (v === this.value) return;

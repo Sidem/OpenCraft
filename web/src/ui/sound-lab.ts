@@ -102,6 +102,7 @@ export class SoundLab {
     this.note.append('Sound is muted, so you will not hear anything. ', button('secondary-btn', 'Unmute', () => {
       this.sound.unlock();
       this.sound.setMuted(false);
+      this.sound.setMasterMuted(false);
       if (this.sound.settings.volume === 0) this.sound.setVolume(80);
     }));
 
@@ -356,7 +357,8 @@ export class SoundLab {
   }
 
   private syncNote(): void {
-    this.note.classList.toggle('hidden', !this.sound.muted && this.sound.settings.volume > 0);
+    const { settings, muted } = this.sound;
+    this.note.classList.toggle('hidden', !muted && !settings.masterMuted && settings.volume > 0 && settings.master > 0);
   }
 
   private setHelp(text: string | null): void {

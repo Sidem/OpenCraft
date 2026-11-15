@@ -266,13 +266,23 @@ export const DEFAULT_DESIGN: SoundDesign = {
 export const defaultDesign = (): SoundDesign => structuredClone(DEFAULT_DESIGN);
 
 export interface SoundSettings {
-  /** Master volume, 0–100. */
+  /** The sound effects' level, 0–100 (the channel; `master` sits above it and music and ambience). */
   volume: number;
   muted: boolean;
   /** Sound effects are silent while the tab or window is not in focus. */
   muteInBackground: boolean;
+  /** The master level over everything, 0–100; 100 leaves every channel as it is. */
+  master: number;
+  /** Everything is muted (the K key) while every channel keeps its own level and mute. */
+  masterMuted: boolean;
   design: SoundDesign;
 }
+
+/** Where the effects channel and the master start, and what "reset levels" returns them to. */
+export const DEFAULT_LEVELS = { volume: 80, master: 100 } as const;
+
+/** Master dial position (0–100) to gain: 1 (no change) at 100, silent at 0 or muted, the squared taper the channels use. */
+export const masterGain = (master: number, muted: boolean): number => (muted ? 0 : (clampDial(master) / 100) ** 2);
 
 const STORAGE_KEY = 'opencraft.sound';
 const LEGACY_MUTE_KEY = 'opencraft.muted';
@@ -327,14 +337,23 @@ function changedDials(design: SoundDesign): Partial<Record<string, Record<string
 }
 
 export function loadSettings(): SoundSettings {
-  const settings: SoundSettings = { volume: 80, muted: false, muteInBackground: false, design: defaultDesign() };
+  const settings: SoundSettings = {
+    volume: DEFAULT_LEVELS.volume,
+    muted: false,
+    muteInBackground: false,
+    master: DEFAULT_LEVELS.master,
+    masterMuted: false,
+    design: defaultDesign(),
+  };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const saved: unknown = JSON.parse(raw);
       if (isRecord(saved)) {
         if (typeof saved.volume === 'number' && Number.isFinite(saved.volume)) settings.volume = clampDial(saved.volume);
+        if (typeof saved.master === 'number' && Number.isFinite(saved.master)) settings.master = clampDial(saved.master);
         settings.muted = saved.muted === true;
+        settings.masterMuted = saved.masterMuted === true;
         settings.muteInBackground = saved.muteInBackground === true;
         mergeDesign(settings.design, saved.design);
       }
@@ -349,8 +368,8 @@ export function loadSettings(): SoundSettings {
 
 export function saveSettings(s: SoundSettings): void {
   try {
-    const { volume, muted, muteInBackground } = s;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume, muted, muteInBackground, design: changedDials(s.design) }));
+    const { volume, muted, muteInBackground, master, masterMuted } = s;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ volume, muted, muteInBackground, master, masterMuted, design: changedDials(s.design) }));
   } catch {
     // Not persisted; the settings still apply for this session.
   }

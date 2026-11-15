@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-15, v0.8.0):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-15, v0.8.2):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. The 2026-11-14
 `/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **L2–L6** (mini-lessons),
 **FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Next: L2–L6, then FIRE,
@@ -224,6 +224,13 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ## 6. Recent changes
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
+
+- **2026-11-15: Controls keyboard picture (user, v0.8.2).** The Controls page draws a keyboard with each used key lit by category
+  and the list below; one table (`ui/control-bindings.ts`) feeds both, labels follow the layout (`ui/keyboard-layout.ts`: chosen,
+  browser map, learned, QWERTY). Bindings stay by `e.code`. `web/test/controls.test.mjs` guards: table vs `input.ts`, presets vs
+  real Windows layouts (fixture), category colours under colour blindness (CIEDE2000). Not built: rebinding, touch.
+- **2026-11-15: menu and sound tidy (user, v0.8.1).** Settings has tabs and no longer slides aside (`ui/settings-tabs.ts`); Sound has
+  a master level and mute through one final gain node (`masterGain`, `web/test/sound-settings.test.mjs`), and K mutes the master.
 
 - **2026-11-15: version numbers (user).** 0.8.0, shown in the menu footer and patch-note headings (`VERSION`,
   `ui/patch-notes.ts`); rule in `docs/DECISIONS.md`.

@@ -1,5 +1,5 @@
 /* Launcher and pause menu (index.html #menu, ui/menu.ts): the frame, the side column (brand, Play, loading,
-   world, page buttons, links) and the page area; the step-aside look while settings show; the narrow layout;
+   world, page buttons, links) and the page area; the clear backdrop while settings show; the narrow layout;
    the "click to keep playing" hint shown after Escape closes a panel. Page contents: menu-pages.css. */
 
 #resume-hint {
@@ -48,6 +48,13 @@
   overflow-y: auto;
   background: rgba(0, 0, 0, 0.22);
   border-right: 1px solid var(--panel-border);
+}
+
+.brand-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
 }
 
 .brand h1 {
@@ -201,8 +208,13 @@
 }
 
 .app-version {
+  padding: 1px 7px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
-  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- the page area (what the pages hold: menu-pages.css) */
@@ -213,11 +225,10 @@
   overflow-y: auto;
 }
 
-/* While settings show, the menu steps aside so changes show on the game behind it. */
+/* While settings show, the dim and blur go so changes show on the game behind (the panel stays where it is). */
 #menu.previewing {
   background: none;
   backdrop-filter: none;
-  place-items: center end;
 }
 
 /* Narrow windows: the side column becomes a header above the page. */

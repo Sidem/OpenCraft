@@ -8,14 +8,16 @@
 import './key-prompt.css';
 import type { Renderer } from '../render/renderer';
 import { h } from './dom';
+import { keyLabels } from './keyboard-layout';
 
+/** A mouse button, or a key place (`KeyboardEvent.code`), printed with the player's layout (keyboard-layout.ts). */
 type Icon = { mouse: 'left' | 'right' } | { key: string };
 
 /** By the engine's `PROMPT_*` number. */
 const KINDS: Record<number, { icon: Icon; label: string }> = {
   1: { icon: { mouse: 'left' }, label: 'Hold' },
   2: { icon: { mouse: 'right' }, label: 'Place' },
-  3: { icon: { key: 'R' }, label: 'Turn' },
+  3: { icon: { key: 'KeyR' }, label: 'Turn' },
   4: { icon: { mouse: 'right' }, label: 'Open' },
   5: { icon: { mouse: 'right' }, label: 'Check' },
   6: { icon: { mouse: 'right' }, label: 'Coal' },
@@ -29,6 +31,7 @@ export class KeyPrompt {
 
   constructor() {
     document.getElementById('hud')!.append(this.el);
+    keyLabels.subscribe(() => (this.kind = 0)); // redrawn with the new caps at the next marker
   }
 
   /** Call after rendering with the engine's marker (empty for none). */
@@ -46,7 +49,7 @@ export class KeyPrompt {
     const { icon, label } = KINDS[kind];
     const face = h('div', 'key-prompt-bob');
     if ('key' in icon) {
-      face.append(h('div', 'key-prompt-cap', icon.key));
+      face.append(h('div', 'key-prompt-cap', keyLabels.label(icon.key)));
     } else {
       const mouse = h('div', `key-prompt-mouse lit-${icon.mouse}`);
       mouse.append(h('span', 'key-prompt-btn left'), h('span', 'key-prompt-btn right'));

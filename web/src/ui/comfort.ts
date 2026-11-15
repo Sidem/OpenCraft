@@ -1,8 +1,8 @@
-// "Comfort" on the menu's settings page: sliders and choices for the settings that help against motion
-// sickness (comfort/settings.ts): field of view, mouse sensitivity, the movement vignette (ui/vignette.ts),
-// third-person view, the hand in first person and the crosshair, which this file also draws from the settings. The menu steps aside
-// while its settings page shows (ui/menu.ts `previewing`), so changes show on the game behind it.
-// To add a control: a row in `SLIDERS` or a choice in the constructor.
+// The View and Comfort tabs of the menu's settings page: sliders and choices for field of view, mouse sensitivity, camera
+// distance and the hand (`view`), and the movement vignette (ui/vignette.ts) and the crosshair (`screen`), which this file also
+// draws from the settings (comfort/settings.ts; they help against motion sickness). The menu's backdrop clears while its
+// settings page shows (ui/menu.ts `previewing`), so changes show on the game behind it.
+// To add a control: a row in `SLIDERS` or a choice in the constructor, on whichever of `view` and `screen` it belongs to.
 
 import './comfort.css';
 import { type ComfortSettings, type ComfortStore, CROSSHAIR_STYLES, RANGES } from '../comfort/settings';
@@ -29,25 +29,30 @@ const VIGNETTE_LABELS = ['Off', 'Low', 'Medium', 'High'];
 const STYLE_LABELS = { cross: 'Cross', dot: 'Dot', both: 'Both' };
 
 export class ComfortPanel {
-  readonly el = h('div', 'comfort');
+  /** The Settings page's View tab: field of view, turning speed, camera distance, the hand. */
+  readonly view = h('div', 'comfort');
+  /** The Comfort tab: the vignette, the crosshair, reset and tips. */
+  readonly screen = h('div', 'comfort');
   private readonly sync: (() => void)[] = [];
 
   constructor(private readonly comfort: ComfortStore) {
     const crosshair = document.getElementById('crosshair')!;
-    const [view, third, aim] = [SLIDERS.slice(0, 2), SLIDERS[2], SLIDERS.slice(3)];
-    this.el.append(
-      ...view.map((s) => this.slider(s)),
+    const [look, third, aim] = [SLIDERS.slice(0, 2), SLIDERS[2], SLIDERS.slice(3)];
+    this.view.append(
+      ...look.map((s) => this.slider(s)),
       this.slider(third),
       h('p', 'comfort-help', 'Third person shows your character, a fixed shape on screen to anchor your eyes. The crosshair still marks where you aim.'),
       this.choices('Hand in first person', ['Shown', 'Hidden'], () => (comfort.settings.showHand ? 0 : 1), (i) => comfort.set('showHand', i === 0)),
       h('p', 'comfort-help', 'Your hand and what it holds, low on the right. It moves only when you dig or use something.'),
+    );
+    this.screen.append(
       this.choices('Movement vignette', VIGNETTE_LABELS, () => comfort.settings.vignette, (i) => comfort.set('vignette', i)),
       h('p', 'comfort-help', 'Darkens the screen edges while you turn or move fast, which narrows the motion your eyes see.'),
       this.choices('Crosshair style', CROSSHAIR_STYLES.map((k) => STYLE_LABELS[k]), () => CROSSHAIR_STYLES.indexOf(comfort.settings.crosshairStyle), (i) =>
         comfort.set('crosshairStyle', CROSSHAIR_STYLES[i]),
       ),
       ...aim.map((s) => this.slider(s)),
-      button('secondary-btn', 'Reset to defaults', () => comfort.reset()),
+      button('secondary-btn', 'Reset view and comfort to defaults', () => comfort.reset()),
       h('p', 'comfort-help', "Also helps: a lit room, sitting an arm's length from the screen, a steady frame rate (F3 shows it), short sessions, and stopping at the first queasiness."),
     );
 

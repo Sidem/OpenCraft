@@ -125,13 +125,14 @@ async function main(): Promise<void> {
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);
   vignette.previewing = () => menu.previewing;
-  document.getElementById('comfort')!.append(new ComfortPanel(comfort).el);
+  const comfortPanel = new ComfortPanel(comfort);
+  document.getElementById('comfort')!.append(comfortPanel.screen);
   const skyStore = new SkyStore();
   skyStore.subscribe(() => (renderer.skySettings = skyStore.settings));
   document.getElementById('sky-settings')!.append(new SkyPanel(skyStore).el);
   const input = new Input(canvas);
   const views =new ViewControls(game, input, renderer, canvas, comfort);
-  document.getElementById('menu-camera')!.append(views.menu);
+  document.getElementById('menu-camera')!.append(views.menu, comfortPanel.view);
   const sound = new SoundSystem();
   hud.setMuted(sound.silent);
   sound.subscribe(() => hud.setMuted(sound.silent));

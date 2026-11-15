@@ -4,6 +4,18 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-15 · v0.8.2 · A keyboard picture on the Controls page
+- **The Controls page shows your keyboard.** Every key the game uses is lit in the colour of its group (getting around, building, screens, planning, camera, other). Point at a key, or press it, to see what it does. Pick a group to fade the rest. The list is still below, and the mouse buttons have their own row.
+- **It follows your keyboard layout.** The keys are printed the way yours are (French Z Q S D, German Y and Z, Dvorak, Colemak). The game reads your browser's layout when it can, learns from the keys you press otherwise, and lets you pick a layout by hand. The controls themselves stay where they are: W A S D is always the same four keys.
+- **Handy keys on the Home page and the "Turn" prompt in the world** use the same labels.
+
+## 2026-11-15 · v0.8.1 · A tidier menu and a master volume
+- **The version number sits next to the game's name** at the top of the menu, where it is easy to see.
+- **Settings no longer slide to the side.** The menu stays where it is; behind it the game still shows your changes straight away (field of view, the movement vignette, the crosshair).
+- **Settings are in groups.** Tabs along the top: View (camera, field of view, turning speed, your hand), Comfort & aim (the vignette and the crosshair), Picture (sharpness, render distance, the performance report), Sky and Saving. Each fits on about one screen, and the menu remembers the tab you were on.
+- **Sound has a master dial.** It turns everything up or down at once and plays a short sound when you let go, so you can judge the level. Sound effects, ambience and music keep their own levels under it. **Mute all** (or K) mutes the master, so when you unmute your own mix comes back. **Reset levels** puts every level back to the start.
+- **The sound designer button is gone from the menu.** Press O in game to open the designer, as before.
+
 ## 2026-11-15 · v0.8.0 · A better research order, and square research tiles
 - **OpenCraft has version numbers now.** This is 0.8.0; you can see it at the bottom of the menu and next to each update here from now on. Small updates count up the last number, big additions the middle one, and 1.0 waits until the game has been played and balanced from start to finish.
 - **Research tiles are square now,** each with an icon for its kind of research (logistics, power, fluids, electronics, drones, personal gear and so on) in a ring that fills as the research goes. Zoom out and the names get bigger; zoom further and you see only colours. The hover card shows the same icon.

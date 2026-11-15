@@ -274,22 +274,24 @@ people who left them.
 ## If the game runs slowly
 
 The home page tells you if your browser isn't using your graphics card, and how to change that: check it first. **Settings >
-Picture quality** has sharpness, render distance and smooth edges. With **Automatic** on, the game lowers its sharpness when it
-runs slowly and tells you; anything more it only suggests, on the home page. **Settings > Performance** has a report to copy if
-you want to tell us about a problem. **F3** shows the frame rate.
+Picture** has sharpness, render distance and smooth edges. With **Automatic** on, the game lowers its sharpness when it
+runs slowly and tells you; anything more it only suggests, on the home page. **Settings > Picture > Performance report** has
+a report to copy if you want to tell us about a problem. **F3** shows the frame rate.
 
 ## Music and sound
 
-The menu's **Sound** page has a volume slider and a mute button each for sound effects, ambience (wind, water, birds) and
-music, and a choice of how the music is picked: **By place** (the default: night, caves, deserts and highlands each have a
+The menu's **Sound** page has a **Master** dial over everything (drag it, scroll on it, use the arrow keys, double-click to
+reset; a short sound plays when you stop) and a volume slider and a mute button each for sound effects, ambience (wind,
+water, birds) and music, and a choice of how the music is picked: **By place** (the default: night, caves, deserts and highlands each have a
 piece of their own, the two Open Ground pieces play by day and at the coast; a piece plays now and then with a few quiet
 minutes between, and the music changes only after you have stayed somewhere about 20 seconds), **Always calm** (soft, slow
-pieces one after another) or **Always adventurous** (fuller pieces). Switching crossfades. **K** mutes or unmutes everything.
-Settings are kept in the browser.
+pieces one after another) or **Always adventurous** (fuller pieces). Switching crossfades. **K** (or **Mute all**) mutes the
+master, so unmuting brings your own mix back; **Reset levels** returns every level to its start. Settings are kept in the
+browser.
 
 ## Sound designer
 
-Press **O** in game (or **Sound designer** on the menu's Sound page) to tune every sound with dials. You don't need
+Press **O** in game to tune every sound with dials. You don't need
 any sound-design experience to use it.
 
 - **Materials** (Stone, Dirt, Grass, Sand, Wood, Leaves, Metal): each has ten dials with plain meanings, such as

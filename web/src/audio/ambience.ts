@@ -95,12 +95,13 @@ export class Ambience {
     return !this.settings.muted && this.settings.volume > 0 && !this.away;
   }
 
-  start(ctx: AudioContext): void {
+  /** `to` is where the ambience goes: the sound system's master. */
+  start(ctx: AudioContext, to: AudioNode): void {
     if (this.ctx) return;
     this.ctx = ctx;
     this.out = ctx.createGain();
     this.out.gain.value = this.level();
-    this.out.connect(ctx.destination);
+    this.out.connect(to);
     this.bus = ctx.createGain();
     this.bus.connect(this.out);
     const rand = mulberry32(7);
@@ -126,7 +127,13 @@ export class Ambience {
     this.update();
   }
 
-  /** Hushed while the tab or window is not in focus (when the sound effects are set to be). */
+  /** Volume and mute back to their defaults. */
+  resetLevels(): void {
+    Object.assign(this.settings, DEFAULTS);
+    this.update();
+  }
+
+  /** Hushed while the tab or window is not in focus (when the sound effects are set to be) or the master is muted (`SoundSystem.hush`). */
   setAway(away: boolean): void {
     this.away = away;
     this.apply();

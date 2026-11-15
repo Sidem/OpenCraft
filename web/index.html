@@ -28,8 +28,8 @@
       <div id="toasts"></div>
       <div id="hotbar"></div>
       <pre id="debug" class="hidden"></pre>
-      <div id="muted" class="hidden">Sound off · K</div>
-      <div id="resume-hint" class="hidden">Click to keep playing · Esc for the menu</div>
+      <div id="muted" class="hidden">Sound off Â· K</div>
+      <div id="resume-hint" class="hidden">Click to keep playing Â· Esc for the menu</div>
     </div>
 
     <!-- Launcher and pause menu: ui/menu.ts. Each nav button's data-tab names the data-page it shows. -->
@@ -37,7 +37,10 @@
       <div class="panel">
         <aside class="menu-side">
           <header class="brand">
-            <h1>OpenCraft</h1>
+            <div class="brand-line">
+              <h1>OpenCraft</h1>
+              <span id="app-version" class="app-version" title="Game version"></span>
+            </div>
             <p class="tagline">Mine it. Shape it. Automate it.</p>
           </header>
           <div class="launch">
@@ -63,7 +66,6 @@
               OpenCraft on GitHub
             </a>
             <a href="https://github.com/Sidem/OpenCraft/issues" target="_blank" rel="noopener">Report a problem</a>
-            <span id="app-version" class="app-version"></span>
           </footer>
         </aside>
 
@@ -80,22 +82,22 @@
               </p>
               <h3>Your first minutes</h3>
               <ol class="steps">
-                <li><b>Click Play.</b> Look around with the mouse, walk with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> and jump with <kbd>Space</kbd>.</li>
+                <li><b>Click Play.</b> Look around with the mouse, walk with <kbd data-code="KeyW">W</kbd><kbd data-code="KeyA">A</kbd><kbd data-code="KeyS">S</kbd><kbd data-code="KeyD">D</kbd> and jump with <kbd data-code="Space">Space</kbd>.</li>
                 <li><b>Break something.</b> Hold the left mouse button on a block. A tree is a good start.</li>
-                <li><b>Make something.</b> Press <kbd>E</kbd> for your inventory and everything you can craft.</li>
+                <li><b>Make something.</b> Press <kbd data-code="KeyE">E</kbd> for your inventory and everything you can craft.</li>
                 <li><b>Follow the tips</b> on the left of the screen. They lead you from your first tools to your first factory.</li>
               </ol>
             </div>
             <div class="return-only">
               <h3>Handy keys</h3>
               <ul class="keys">
-                <li><kbd>E</kbd> Inventory and crafting</li>
-                <li><kbd>T</kbd> Research</li>
-                <li><kbd>/</kbd> Command line (weather, time, items)</li>
-                <li><kbd>M</kbd> Map</li>
-                <li><kbd>P</kbd> Power and production</li>
-                <li><kbd>B</kbd> Plan with ghosts</li>
-                <li><kbd>V</kbd> Camera view</li>
+                <li><kbd data-code="KeyE">E</kbd> Inventory and crafting</li>
+                <li><kbd data-code="KeyT">T</kbd> Research</li>
+                <li><kbd data-code="Slash">/</kbd> Command line (weather, time, items)</li>
+                <li><kbd data-code="KeyM">M</kbd> Map</li>
+                <li><kbd data-code="KeyP">P</kbd> Power and production</li>
+                <li><kbd data-code="KeyB">B</kbd> Plan with ghosts</li>
+                <li><kbd data-code="KeyV">V</kbd> Camera view</li>
               </ul>
             </div>
             <p class="note">Esc brings you back here. Your world saves by itself in this browser. Every key is under Controls.</p>
@@ -120,93 +122,57 @@
 
           <section class="menu-page hidden" data-page="settings">
             <h2>Settings</h2>
-            <p class="lead">Changes show on the game behind this menu as you make them, and are kept in this browser.</p>
-            <h3>Camera</h3>
-            <div id="menu-camera"></div>
-            <h3>Comfort</h3>
-            <p class="note">If moving in first person makes you queasy, these help.</p>
-            <div id="comfort"></div>
-            <h3>Sky</h3>
-            <p class="note">How the night looks. Turn things off if the game runs slowly.</p>
-            <div id="sky-settings"></div>
-            <h3>Picture quality</h3>
-            <div id="quality-settings"></div>
-            <h3>Performance</h3>
-            <p class="note">If the game runs slowly, play for a minute, come back here, copy the report and paste it wherever you tell us about it. It holds no names or saves, and goes nowhere unless you paste it.</p>
-            <div id="perf-settings"></div>
-            <h3>Saving</h3>
-            <p class="note">Worlds are stored in this browser. Export them from the Worlds page to keep a copy.</p>
-            <div id="data-settings"></div>
+            <p class="lead">Changes show on the game right away and are kept in this browser.</p>
+            <div class="settings-tabs" role="tablist" aria-label="Settings groups">
+              <button type="button" role="tab" class="secondary-btn settings-tab" data-group="view">View</button>
+              <button type="button" role="tab" class="secondary-btn settings-tab" data-group="comfort">Comfort &amp; aim</button>
+              <button type="button" role="tab" class="secondary-btn settings-tab" data-group="picture">Picture</button>
+              <button type="button" role="tab" class="secondary-btn settings-tab" data-group="sky">Sky</button>
+              <button type="button" role="tab" class="secondary-btn settings-tab" data-group="saving">Saving</button>
+            </div>
+
+            <div class="settings-group" data-group="view">
+              <h3>Camera</h3>
+              <div id="menu-camera"></div>
+            </div>
+
+            <div class="settings-group hidden" data-group="comfort">
+              <h3>Comfort and crosshair</h3>
+              <p class="note">If moving in first person makes you queasy, these help.</p>
+              <div id="comfort"></div>
+            </div>
+
+            <div class="settings-group hidden" data-group="sky">
+              <h3>Sky</h3>
+              <p class="note">How the night looks. Turn things off if the game runs slowly.</p>
+              <div id="sky-settings"></div>
+            </div>
+
+            <div class="settings-group hidden" data-group="picture">
+              <h3>Picture quality</h3>
+              <div id="quality-settings"></div>
+              <h3>Performance report</h3>
+              <p class="note">Game running slowly? Play for a minute, then copy this report and paste it where you ask for help. It holds no names or saves.</p>
+              <div id="perf-settings"></div>
+            </div>
+
+            <div class="settings-group hidden" data-group="saving">
+              <h3>Saving</h3>
+              <p class="note">Worlds are stored in this browser. Export them from the Worlds page to keep a copy.</p>
+              <div id="data-settings"></div>
+            </div>
           </section>
 
           <section class="menu-page hidden" data-page="sound">
             <h2>Sound</h2>
-            <p class="lead">Sound effects, ambience (wind, water, birds) and music have a level and a mute button each. Changes are kept in this browser, and K mutes or unmutes everything while you play.</p>
+            <p class="lead">Levels are kept in this browser. K mutes or unmutes everything while you play.</p>
             <div id="sound-panel"></div>
-            <h3>Sound designer</h3>
-            <p class="note">Sound effects are made on the fly. Tune how any of them sounds with dials.</p>
-            <button id="open-sound-lab" type="button" class="secondary-btn" title="Tune every sound effect with dials (O)">
-              Open the sound designer
-            </button>
           </section>
 
           <section class="menu-page hidden" data-page="controls">
             <h2>Controls</h2>
-            <h3>Getting around</h3>
-            <dl class="controls">
-              <dt>Mouse</dt><dd>Look around</dd>
-              <dt>W A S D</dt><dd>Walk</dd>
-              <dt>Space</dt><dd>Jump; in water, swim up</dd>
-              <dt>Shift</dt><dd>Sprint</dd>
-              <dt>C / Ctrl</dt><dd>Crouch (you won't walk off edges)</dd>
-              <dt>F</dt><dd>Fly on or off, in creative worlds (Space and C rise and sink)</dd>
-            </dl>
-            <h3>Building</h3>
-            <dl class="controls">
-              <dt>Hold left mouse</dt><dd>Mine the block you point at</dd>
-              <dt>Right mouse</dt><dd>Place the selected block (belts run the way you face; drag to lay a line)</dd>
-              <dt>Right mouse on a box or machine</dt><dd>Open it (hold C to place against it instead)</dd>
-              <dt>R</dt><dd>Turn the belt or machine you point at</dd>
-              <dt>Shift + R</dt><dd>Bend the belt you point at to take items in from its left or right, so a machine beside it can feed it (with nothing pointed at: the next belt you lay)</dd>
-              <dt>I</dt><dd>Pick up the item on a belt you point at (or the one you clicked to select)</dd>
-              <dt>1–9 / wheel</dt><dd>Pick a hotbar slot</dd>
-              <dt>J</dt><dd>Swap the selected slot with your left hand (a torch there still lights the way; a tool there mines too)</dd>
-              <dt>Q</dt><dd>Drop one item</dd>
-            </dl>
-            <h3>Screens</h3>
-            <dl class="controls">
-              <dt>E</dt><dd>Inventory and build menu</dd>
-              <dt>T</dt><dd>Research: choose what labs work on</dd>
-              <dt>/</dt><dd>Command line for testing: weather, time of day, teleport, items (type help)</dd>
-              <dt>M</dt><dd>Map: where you've been, your pins, where each ore lies</dd>
-              <dt>N</dt><dd>Minimap on or off</dd>
-              <dt>P</dt><dd>Power and production graphs</dd>
-              <dt>L</dt><dd>Blueprints</dd>
-              <dt>Hold Tab</dt><dd>Who is playing with you</dd>
-            </dl>
-            <h3>Planning and helpers</h3>
-            <dl class="controls">
-              <dt>B</dt><dd>Ghost mode: right-click plants a free ghost to build later</dd>
-              <dt>Z, Enter</dt><dd>In ghost mode: mark a box, then copy its machines as a blueprint</dd>
-              <dt>Y</dt><dd>Personal drone: fetch, put away, store, or fetch the parts and craft</dd>
-              <dt>Shift+Y</dt><dd>Your personal drone fetches a stack more of what you hold</dd>
-              <dt>U</dt><dd>Point the scanner at the next deposit</dd>
-            </dl>
-            <h3>Camera</h3>
-            <dl class="controls">
-              <dt>V</dt><dd>First person, third person or strategy view</dd>
-              <dt>G / Home</dt><dd>Free or follow camera; Home returns to your character</dd>
-              <dt>Strategy view</dt><dd>WASD pans, wheel zooms, right-click walks there, X stops</dd>
-              <dt>Ctrl + right mouse</dt><dd>Use or place in strategy view (within reach)</dd>
-            </dl>
-            <h3>Other</h3>
-            <dl class="controls">
-              <dt>H</dt><dd>Skip the tip on screen</dd>
-              <dt>K</dt><dd>Sound on or off</dd>
-              <dt>O</dt><dd>Sound designer</dd>
-              <dt>F3</dt><dd>Debug stats</dd>
-              <dt>Esc</dt><dd>Close a screen, free the mouse, then this menu; on the menu, play on</dd>
-            </dl>
+            <p class="lead">Point at a key to see what it does, or press it. The list below says the same in words.</p>
+            <div id="controls-page"></div>
             <div id="menu-tips"></div>
           </section>
 
