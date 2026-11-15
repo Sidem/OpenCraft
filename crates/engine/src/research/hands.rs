@@ -39,7 +39,7 @@ pub const HANDS: [Tech; 4] = [
         name: "Fabricator Gloves",
         blurb: "Gloves with servo fingers, worn in their own slot: you craft by hand another 50% faster, on top of \
                 Handcrafting. Open the inventory and Shift-click them to put them on.",
-        needs: &[76, 53],
+        needs: &[76, 54, 25],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
         units: 150,
         seconds: 40.0,

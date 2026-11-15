@@ -58,6 +58,10 @@
   opacity: 1;
 }
 
+.rs-node.queued .rs-badge {
+  background: var(--accent);
+}
+
 .rs-node.queued .rs-node-state {
   color: var(--accent);
   font-weight: 600;

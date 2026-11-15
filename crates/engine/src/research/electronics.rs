@@ -39,7 +39,7 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
         name: "Mk4 Logistics",
         blurb: "Violet kits, made in an assembler, and Mk4 belts (eight times a Mk1) and underpasses, substations that link 32 \
                 blocks and power machines within 16, and storage boxes of 60 stacks.",
-        needs: &[18],
+        needs: &[18, 11],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 100,
         seconds: 30.0,
@@ -55,7 +55,7 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
         name: "Mk4 Machines",
         blurb: "Violet kits make miners, smelters, constructors, assemblers, blast furnaces and labs Mk4: five \
                 times as fast (a lab four), miners recover 92%, and labs skip the packs of every third unit.",
-        needs: &[19],
+        needs: &[19, 12],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 120,
         seconds: 30.0,
@@ -117,7 +117,7 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
         name: "Robotics",
         blurb: "Servos (a motor, circuits and gears) and the actuators built from them: the muscles of a machine \
                 that moves. Assemblers only.",
-        needs: &[20, 24],
+        needs: &[24],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 140,
         seconds: 30.0,
@@ -159,7 +159,7 @@ pub(super) const ELECTRONICS: [Tech; 13] = [
         name: "Swarm Logistics",
         blurb: "Kits upgrade drone ports in place: Mk2 keeps 8 drones and reaches 48 blocks, Mk3 12 and 64, Mk4 16 \
                 and 96.",
-        needs: &[28],
+        needs: &[28, 19],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 200,
         seconds: 40.0,

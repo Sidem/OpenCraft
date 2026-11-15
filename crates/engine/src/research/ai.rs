@@ -35,16 +35,16 @@ pub const AI: [Tech; 8] = [
         name: "Hauler Mk3",
         blurb: "Four blue kits raise your Mk2 hauler pack (right in the inventory screen) to Mk3: 18 more \
                 backpack slots, 63 in all.",
-        needs: &[35],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
-        units: 120,
-        seconds: 30.0,
+        needs: &[33, 11],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 60,
+        seconds: 20.0,
         unlocks: &[Unlock::Recipe(HAULER_PACK_MK3)],
     },
     Tech {
         name: "Hauler Mk4",
         blurb: "Four violet kits raise a Mk3 pack to Mk4: 18 more backpack slots, 81 in all.",
-        needs: &[68],
+        needs: &[68, 19],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 200,
         seconds: 40.0,
@@ -53,7 +53,7 @@ pub const AI: [Tech; 8] = [
     Tech {
         name: "Hauler Mk5",
         blurb: "Four gold kits raise a Mk4 pack to Mk5: 18 more backpack slots, 99 in all.",
-        needs: &[69, 53],
+        needs: &[69, 54],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 300,
         seconds: 50.0,
@@ -74,10 +74,10 @@ pub const AI: [Tech; 8] = [
         name: "Auto-Routing",
         blurb: "Drag a belt line onto a machine and it finds its own way there: round walls, up and down steps. In \
                 ghost mode (B) a dragged line is planted as ghosts for the drones to build.",
-        needs: &[62, 29],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
-        units: 200,
-        seconds: 60.0,
+        needs: &[28],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 150,
+        seconds: 40.0,
         unlocks: &[Unlock::Feature(Feature::AutoRoute)],
     },
     Tech {
@@ -85,10 +85,10 @@ pub const AI: [Tech; 8] = [
         blurb: "The maps mark where ore probably lies, guessed from the stained soil you have seen within 256 blocks: \
                 faint rings in the ore's colour, bigger over more stain. Rough, not the full truth: scan or drill to \
                 be sure. Deposits you have already prospected are not guessed again.",
-        needs: &[62],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
-        units: 150,
-        seconds: 60.0,
+        needs: &[22, 24],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
+        units: 100,
+        seconds: 40.0,
         unlocks: &[Unlock::Feature(Feature::AiSurvey)],
     },
 ];

@@ -3,6 +3,10 @@
 Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each update is a `## date · title`
 line followed by `- ` lines, written for players in plain words. Anything else is ignored.
 
+## 2026-11-15 · A better research order, and square research tiles
+- **Research tiles are square now,** each with an icon for its kind of research (logistics, power, fluids, electronics, drones, personal gear and so on) in a ring that fills as the research goes. Zoom out and the names get bigger; zoom further and you see only colours. The hover card shows the same icon.
+- **The tech tree follows when you need things.** Masonry (bricks, quicklime) and Fluid Handling now come right after Mechanics, and Hydropower no longer waits for Steam Power. Rails need Earthworks, Ore Washing comes with Ore Crushing, Jetpack needs Exosuit gear, and the Hauler packs (Mk2 in Hauler Gear, Mk3 to Mk5 each later) are spread along the game instead of bunched. Auto-Routing and AI Survey now use violet packs instead of gold. Forestry (the forester) moved up to the violet era, after Violet Science. Research you already finished stays finished, but a Forestry already in progress now needs violet packs.
+
 ## 2026-11-15 · Bigger boxes, a better pumpjack, and real saplings in your hand
 - **Storage boxes go up to Mk5.** Violet kits make a Mk4 box (60 stacks; Mk4 Logistics) and gold kits a Mk5 box (72 stacks; Mk5 Machines). Upgrade a placed box in place, or craft one; what is inside stays.
 - **Pumpjack Mk2.** Once Mk5 Machines is done, 4 gold kits upgrade a pumpjack: it draws twice as fast and keeps 97% of the oil instead of 90% (160 kW instead of 90). The oil field's own limit still caps how much it can give, so the most you gain is on a rich reservoir. A pumpjack now stands on a slab wearing its Mk studs.

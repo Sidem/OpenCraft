@@ -19,7 +19,7 @@ pub const ORBIT: [Tech; 4] = [
             hydrogen and oxygen barrels into rocket fuel. The launch site (7×7×6, 2 MW) builds a rocket from 4 light \
             frames, 2 engines, 2 fuel tanks, an avionics and 8 fuel barrels, and launches it with a survey satellite \
             (an assembler builds those) into orbit.",
-    needs: &[47, 57],
+    needs: &[47, 57, 21],
     packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
     units: 300,
     seconds: 60.0,

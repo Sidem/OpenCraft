@@ -176,7 +176,7 @@ no slot for is researched only in a center; the small lab stays valid for the fo
 | Gold pack, gold kit | pack: 1 plastic, 1 battery, 1 processor → 2 (assembler, 20 s); kit: 1 processor, 2 aluminium plates, 1 plastic → 4 (assembler, 5 s); built, 10.11: Gold Science (after Processors, Bauxite Processing, Plastics, Research Center) | packs: centers only; kits make Mk5 (Mk5 Machines, all five packs: miner, smelter, constructor, assembler, blast furnace, drone port, research center; boxes also reach Mk5 and the pumpjack's Mk2 takes gold kits, `Family::first_kit`; belts, poles and labs stop at Mk4) |
 
 | Hoist shaft ×2, Hoist winch | shaft: 2 steel beams + 4 rods → 2; winch: 10 steel plates, 4 beams, 4 gears, 2 motors, 2 circuits (hand; built, 10.9: Hoists, after Electronics, red + green + blue) | a shaft is a 3 blocks/s climbing frame; a powered winch (20 kW) above or beside its top cell makes it carry riders at 9 blocks/s; belt lifts still carry ore |
-| Water wheel | 12 planks, 8 rods, 4 gears, 6 wire (hand; built, 10.8: Hydropower, after Steam Power, red + green) | 3×3×1; 2 kW per touching water block (flowing 4), up to 48 kW, no fuel; weirs and piped pools are the dams |
+| Water wheel | 12 planks, 8 rods, 4 gears, 6 wire (hand; built, 10.8: Hydropower, after Mechanics, red + green) | 3×3×1; 2 kW per touching water block (flowing 4), up to 48 kW, no fuel; weirs and piped pools are the dams |
 
 Techs: Oil Processing · Plastics · Sulfur and Acid · Ore Washing · Diesel Power · Electrolysis · Hydropower · Hoists ·
 Research Center · Nuclear Power · Gold Science · Mk5 Machines (all built).

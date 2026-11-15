@@ -1,54 +1,85 @@
-/* A tech node on the research tree (research-node.ts): its states, the search highlight and the levels of detail by zoom
-   (research-view.ts sets lod-near, lod-far or lod-tiny on the viewport). Size must match NODE_W and NODE_H in
-   research-eras.ts. The dialog, viewport and edges are research.css. */
-
-/* Nodes. */
+/* A tech node on the research tree (research-node.ts): a square tile with a round medal (the icon of its kind of
+   research inside a progress ring), its name, the items it unlocks and its cost. Its states, the search highlight and the
+   levels of detail by zoom (research-view.ts sets lod-near, lod-far or lod-tiny on the viewport). Size must match NODE_W
+   and NODE_H in research-eras.ts. `--kind` is the kind's colour as "r, g, b". The dialog, viewport and edges are
+   research.css. */
 
 .rs-node {
   position: absolute;
-  width: 176px;
-  height: 58px;
+  width: 132px;
+  height: 132px;
   box-sizing: border-box;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 2px;
-  padding: 7px 10px 9px;
-  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 12px 8px 8px;
+  border-radius: 16px;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  background: rgba(30, 33, 42, 0.96);
+  background: linear-gradient(180deg, rgba(var(--kind), 0.16), rgba(30, 33, 42, 0.96) 62%);
   color: var(--text);
   font: inherit;
-  text-align: left;
+  text-align: center;
   cursor: default;
   overflow: hidden;
-  transition: opacity 0.15s, border-color 0.15s;
+  transition: opacity 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+/* The medal: the kind's icon on a tinted disc, with a ring around it that fills as the research goes (`--p` is the
+   percentage done, `--ring` the ring's colour). */
+.rs-medal {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 2px;
+  border-radius: 50%;
+  color: rgb(var(--kind));
+  background: radial-gradient(circle at 35% 28%, rgba(var(--kind), 0.42), rgba(var(--kind), 0.12) 75%);
+  box-shadow: inset 0 0 0 1px rgba(var(--kind), 0.35);
+}
+
+.rs-medal svg {
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.rs-medal::before {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  background: conic-gradient(var(--ring, rgb(var(--kind))) calc(var(--p, 0) * 1%), rgba(255, 255, 255, 0.09) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
 }
 
 .rs-node-name {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.rs-node-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--muted);
+  max-width: 100%;
+  font-size: 12.5px;
+  font-weight: 650;
+  line-height: 1.18;
 }
 
 .rs-unlocks {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 3px;
+  min-height: 16px;
+  margin-top: auto;
 }
 
 .rs-more {
   font-size: 10px;
+  color: var(--muted);
 }
 
 .rs-pack {
@@ -57,31 +88,46 @@
   image-rendering: pixelated;
 }
 
-.rs-node-track {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.07);
+.rs-node-state {
+  font-size: 10.5px;
+  line-height: 1;
+  color: var(--muted);
+  white-space: nowrap;
 }
 
-.rs-node-track i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left;
+/* The corner mark: a tick when done, the place in the queue (research-queue.css colours it). */
+.rs-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  color: #10131a;
+}
+
+.rs-badge:empty {
+  display: none;
 }
 
 .rs-node.locked {
-  opacity: 0.5;
+  opacity: 0.55;
   border-style: dashed;
 }
 
+.rs-node.locked .rs-medal {
+  filter: grayscale(0.75);
+}
+
 .rs-node.done {
+  --ring: var(--rs-done);
   border-color: var(--rs-done);
-  background: rgba(38, 66, 46, 0.96);
+  background: linear-gradient(180deg, rgba(143, 220, 156, 0.2), rgba(30, 48, 38, 0.96) 62%);
 }
 
 .rs-node.done .rs-node-state {
@@ -89,16 +135,12 @@
   font-weight: 600;
 }
 
-.rs-node.done .rs-node-state::before {
-  content: '\2713  ';
-}
-
-.rs-node.done .rs-node-track i {
+.rs-node.done .rs-badge {
   background: var(--rs-done);
-  transform: scaleX(1);
 }
 
 .rs-node.available {
+  --ring: var(--rs-horizon);
   cursor: pointer;
   border-color: var(--rs-horizon);
   animation: rs-glow 2.2s ease-in-out infinite;
@@ -110,10 +152,11 @@
 }
 
 .rs-node.chosen {
+  --ring: var(--accent);
   border-color: var(--accent);
-  background: rgba(70, 48, 30, 0.96);
+  background: linear-gradient(180deg, rgba(250, 149, 73, 0.22), rgba(52, 40, 32, 0.96) 62%);
   animation: none;
-  box-shadow: 0 0 10px rgba(250, 149, 73, 0.45);
+  box-shadow: 0 0 14px rgba(250, 149, 73, 0.45);
 }
 
 .rs-node.chosen .rs-node-state {
@@ -121,10 +164,28 @@
   font-weight: 600;
 }
 
+/* Being researched: the badge is a breathing dot. */
+.rs-node.chosen .rs-badge {
+  display: block;
+  width: 10px;
+  min-width: 10px;
+  height: 10px;
+  padding: 0;
+  top: 10px;
+  right: 10px;
+  background: var(--accent);
+  animation: rs-pulse 1.4s ease-in-out infinite;
+}
+
 .rs-node:hover,
 .rs-node:focus-visible {
   outline: none;
   border-color: #fff;
+}
+
+.rs-node.available:hover,
+.rs-node.locked:hover {
+  transform: translateY(-2px);
 }
 
 .rs-focus .rs-node:not(.rel) {
@@ -143,33 +204,42 @@
   animation: none;
 }
 
-/* Level of detail: zoomed out, a node drops its small print and shows its name big; further out, only its colour. */
+/* Level of detail: zoomed out, a node drops its small print and shows a bigger medal and name; further out, only its
+   colour. */
 
 .lod-far .rs-node {
   border-width: 3px;
-  padding: 2px 8px 8px;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
 }
 
-.lod-far .rs-node-meta {
+.lod-far .rs-unlocks,
+.lod-far .rs-node-state {
   display: none;
 }
 
+.lod-far .rs-medal {
+  width: 56px;
+  height: 56px;
+}
+
+.lod-far .rs-medal svg {
+  width: 32px;
+  height: 32px;
+}
+
 .lod-far .rs-node-name {
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.1;
-  white-space: normal;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 
 .lod-tiny .rs-node {
-  border-width: 12px;
+  border-width: 14px;
   animation: none;
 }
 
-.lod-tiny .rs-node-name,
-.lod-tiny .rs-node-meta {
+.lod-tiny .rs-node > * {
   visibility: hidden;
 }
 
@@ -199,13 +269,27 @@
 
 @keyframes rs-glow {
   0%, 100% { box-shadow: 0 0 3px rgba(125, 211, 252, 0.3); }
-  50% { box-shadow: 0 0 12px rgba(125, 211, 252, 0.75); }
+  50% { box-shadow: 0 0 14px rgba(125, 211, 252, 0.75); }
+}
+
+@keyframes rs-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.7); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rs-node.available {
     animation: none;
     box-shadow: 0 0 8px rgba(125, 211, 252, 0.6);
+  }
+
+  .rs-node.chosen .rs-badge {
+    animation: none;
+  }
+
+  .rs-node.available:hover,
+  .rs-node.locked:hover {
+    transform: none;
   }
 
   .rs-stage.glide {

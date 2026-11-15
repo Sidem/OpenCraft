@@ -10,10 +10,10 @@ import { itemIcon } from './research-node';
 import type { Rect } from './research-view';
 import type { TreeLayout } from './tech-tree';
 
-export const NODE_W = 176;
-export const NODE_H = 58;
-const COL_GAP = 56;
-const ROW_GAP = 16;
+export const NODE_W = 132;
+export const NODE_H = 132;
+const COL_GAP = 52;
+const ROW_GAP = 22;
 const ERA_GAP = 56;
 const HEAD_H = 180;
 const PAD = 20;

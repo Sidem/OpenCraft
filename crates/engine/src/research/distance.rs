@@ -29,9 +29,9 @@ pub const DISTANCE: [Tech; 6] = [
     Tech {
         name: "Rails",
         blurb: "Rails from a steel beam and a concrete, six at a time: place rail nodes like power poles and a smooth \
-                curve of track joins each pair, up to 32 blocks apart, climbing one block in three at most. Level and \
-                cut the ground with the planner first.",
-        needs: &[18, 32],
+                curve of track joins each pair, up to 32 blocks apart, climbing one block in three at most. The \
+                planner (Earthworks) levels and cuts the ground for it.",
+        needs: &[18, 36],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 100,
         seconds: 30.0,
@@ -63,7 +63,7 @@ pub const DISTANCE: [Tech; 6] = [
         blurb: "Six aluminium plates, two motors, four batteries and two processors make a pack that hovers: hold \
                 jump in the air to stay up, and glide at 8 blocks a second. It charges while you stand near a power \
                 pole.",
-        needs: &[30, 36],
+        needs: &[30, 36, 24],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 160,
         seconds: 40.0,

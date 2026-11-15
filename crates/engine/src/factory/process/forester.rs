@@ -1,4 +1,4 @@
-//! The forester (Forestry, an early red tech; Mk2 and Mk3 by kits): a one-block electric processor that keeps the flat
+//! The forester (Forestry, a violet-pack tech; Mk2 and Mk3 by kits): a one-block electric processor that keeps the flat
 //! grass or dirt in front of it (the way its placer faced) as a wood lot ([`Patch`]), worked by a knuckle-boom crane with
 //! a harvester head, as a real one works a stand:
 //!

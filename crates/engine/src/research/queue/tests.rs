@@ -64,7 +64,10 @@ fn choosing_a_tech_now_puts_the_old_one_at_the_front() {
 #[test]
 fn giving_up_the_current_tech_moves_on_and_drops_what_needed_it() {
     let mut r = Research::default();
+    finish(&mut r, by_name("Belt Routing"));
     r.enqueue(by_name("Construction Drones"));
+    // A tech that needs nothing more takes over when the first one's whole chain falls away.
+    r.enqueue(by_name("Belt Lifts"));
     let chain = order(&r);
     r.set_current(None);
     assert!(r.current.is_some() && !r.is_chosen(chain[0]), "the next one takes over");

@@ -13,7 +13,7 @@ pub const PERSONAL: [Tech; 6] = [
         name: "Jetpack",
         blurb: "Four steel plates, two motors and two circuits: a coal-burning pack, worn in its own slot, that \
                 lifts you while you hold jump. Ten seconds of thrust a coal.",
-        needs: &[25],
+        needs: &[18, 22],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 120,
         seconds: 30.0,
@@ -42,12 +42,12 @@ pub const PERSONAL: [Tech; 6] = [
     Tech {
         name: "Hauler Gear",
         blurb: "Equipment slots: wear a hauler pack on your back for 27 more backpack slots. Open the inventory and \
-                Shift-click gear to put it on.",
+                Shift-click gear to put it on. Four green kits raise the pack to Mk2: 18 more slots, 45 in all.",
         needs: &[9],
         packs: &[RED_PACK, GREEN_PACK],
-        units: 40,
+        units: 50,
         seconds: 10.0,
-        unlocks: &[Unlock::Recipe(HAULER_PACK)],
+        unlocks: &[Unlock::Recipe(HAULER_PACK), Unlock::Recipe(HAULER_PACK_MK2)],
     },
     Tech {
         name: "Field Gear",
@@ -61,14 +61,13 @@ pub const PERSONAL: [Tech; 6] = [
     },
     Tech {
         name: "Exosuit",
-        blurb: "Powered gear built from servos and actuators: servo boots (15% faster), an exo frame (sprint 10% \
-                faster) and the Mk2 hauler pack (18 more backpack slots, 45 in all: four green kits raise your pack in \
-                the inventory).",
+        blurb: "Powered gear built from servos and actuators: servo boots (15% faster) and an exo frame (sprint 10% \
+                faster).",
         needs: &[25, 34],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 140,
         seconds: 30.0,
-        unlocks: &[Unlock::Recipe(SERVO_BOOTS), Unlock::Recipe(EXO_FRAME), Unlock::Recipe(HAULER_PACK_MK2)],
+        unlocks: &[Unlock::Recipe(SERVO_BOOTS), Unlock::Recipe(EXO_FRAME)],
     },
 ];
 // The hauler packs Mk3 to Mk5 are techs of their own in `ai.rs` (the last table, so indices stay put).

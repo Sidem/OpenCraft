@@ -1,11 +1,13 @@
-// One tech on the research screen: the node on the tree (name, a few icons of what it unlocks, its state and a
-// progress bar) and the hover card with the full story (research.ts places the nodes and shows the card).
+// One tech on the research screen: the node on the tree, a square tile (a round medal with the icon of its kind of
+// research (research-kinds.ts) inside a progress ring, its name, a few icons of what it unlocks and its cost or
+// progress) and the hover card with the full story (research.ts places the nodes and shows the card).
 // `makeTech` builds both from the engine's `tech_*` data; `paintTech` sets their state from the engine each time
 // something changed. Item icons are canvases from the renderer's icon cache, drawn small.
 
 import './research-node.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
+import { glyphSvg, kindOf, KINDS } from './research-kinds';
 
 const ICON_PX = 64;
 const NODE_ICONS = 3;
@@ -13,7 +15,10 @@ const NODE_ICONS = 3;
 export interface TechView {
   node: HTMLButtonElement;
   nodeState: HTMLSpanElement;
-  nodeBar: HTMLElement;
+  /** The medal with the kind's icon; its ring shows the progress (`--p`, 0 to 100). */
+  medal: HTMLElement;
+  /** The corner mark: a tick when done, the place in the queue. */
+  badge: HTMLElement;
   /** The hover card. */
   card: HTMLDivElement;
   state: HTMLSpanElement;
@@ -53,7 +58,12 @@ export function makeTech(game: Game, t: number, icon: (item: number) => HTMLCanv
   const unlocked = Array.from(g.tech_unlocks(t));
   const node = h('button', 'rs-node') as HTMLButtonElement;
   node.type = 'button';
-  node.setAttribute('aria-label', g.tech_name(t));
+  const kind = kindOf(g.tech_name(t));
+  node.setAttribute('aria-label', `${g.tech_name(t)}, ${KINDS[kind].label}`);
+  node.style.setProperty('--kind', KINDS[kind].colour);
+  const medal = h('span', 'rs-medal');
+  medal.innerHTML = glyphSvg(kind);
+  const badge = h('span', 'rs-badge');
   const unlocks = h('span', 'rs-unlocks');
   for (const item of unlocked.slice(0, NODE_ICONS)) {
     const c = itemIcon(icon, item, 'rs-pack');
@@ -62,17 +72,18 @@ export function makeTech(game: Game, t: number, icon: (item: number) => HTMLCanv
   }
   if (unlocked.length > NODE_ICONS) unlocks.append(h('span', 'rs-more', `+${unlocked.length - NODE_ICONS}`));
   const nodeState = h('span', 'rs-node-state');
-  const meta = h('span', 'rs-node-meta');
-  meta.append(unlocks, nodeState);
-  const track = h('span', 'rs-node-track');
-  const nodeBar = h('i', '');
-  track.append(nodeBar);
-  node.append(h('span', 'rs-node-name', g.tech_name(t)), meta, track);
+  node.append(badge, medal, h('span', 'rs-node-name', g.tech_name(t)), unlocks, nodeState);
 
   const card = h('div', 'rs-card');
   const title = h('div', 'rs-title');
   const state = h('span', 'rs-state');
-  title.append(h('h4', '', g.tech_name(t)), state);
+  const kindTag = h('span', 'rs-kind');
+  kindTag.innerHTML = glyphSvg(kind);
+  kindTag.title = KINDS[kind].label;
+  kindTag.style.setProperty('--kind', KINDS[kind].colour);
+  const heading = h('div', 'rs-heading');
+  heading.append(kindTag, h('h4', '', g.tech_name(t)));
+  title.append(heading, state);
   const chips = h('div', 'rs-chips');
   chips.append(h('span', 'rs-label', 'Unlocks'));
   for (const item of unlocked) chips.append(chip(icon, item, g.item_name(item)));
@@ -90,7 +101,7 @@ export function makeTech(game: Game, t: number, icon: (item: number) => HTMLCanv
   const action = h('p', 'rs-action');
   card.append(title, h('p', 'rs-blurb', g.tech_blurb(t)), chips, cost, progress, action);
   const words = [g.tech_name(t), ...unlocked.map((i) => g.item_name(i))].join(' ').toLowerCase();
-  return { node, nodeState, nodeBar, card, state, bar, count, seconds, action, words };
+  return { node, nodeState, medal, badge, card, state, bar, count, seconds, action, words };
 }
 
 /** Sets the node's and the card's look and words from the tech's current state. */
@@ -104,9 +115,10 @@ export function paintTech(v: TechView, s: TechState): void {
   const started = s.chosen || (s.available && s.progress > 0);
   v.nodeState.textContent = started ? amount : s.place > 0 ? label : s.done ? 'Done' : s.endless ? 'endless' : `${s.units} units`;
   v.state.textContent = label;
-  const fill = `scaleX(${s.endless ? 0 : s.progress / s.units})`;
-  v.nodeBar.style.transform = fill;
-  v.bar.style.transform = fill;
+  const share = s.endless ? 0 : s.progress / s.units;
+  v.medal.style.setProperty('--p', String(s.done ? 100 : Math.round(share * 100)));
+  v.badge.textContent = s.done ? '✓' : s.place > 0 ? String(s.place) : '';
+  v.bar.style.transform = `scaleX(${share})`;
   v.count.textContent = s.endless ? `${amount} · endless` : `${amount} units`;
   v.seconds.textContent = `${Math.round(s.seconds)} s in a ${s.endless ? 'AI lab, using compute' : 'lab'}`;
   v.action.textContent = s.done

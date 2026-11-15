@@ -264,3 +264,4 @@ Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
 - **2026-11-14: lifts down, cliffs in drags, hover range (user).** `Shape::Drop` (appended, no save bump): a lift column fed
   over its top with an unfed foot carries items down (`belt_shape::derive_lift_ways`). A dragged line climbs cliffs on lifts
   (`belt_line/path.rs` `MAX_LIFT`). A pole charges a hover pack as far as it wires to its own kind (`pole::span`).
+- **2026-11-15: tech order reviewed, research tiles square (user).** Prerequisites and costs moved so each unlock arrives when the game needs it (Masonry, Fluid Handling, Hydropower early; Rails, Jetpack, Ore Washing, Hauler packs, Auto-Routing, AI Survey later; Forestry now violet, after Violet Science); lint test `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it`. Nodes are 132x132 tiles with a kind icon (`ui/research-kinds.ts`, by tech name) in a progress ring.

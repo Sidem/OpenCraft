@@ -1,5 +1,5 @@
 //! The open end of `techs::TECHS`: techs added after Milestone 12's first steps, so that `orbit.rs` stays closed and no saved
-//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86.
+//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18).
 //! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Masonry 7, Assembly 8, Blue Science 10,
 //! Mk4 Logistics 19, Bauxite Processing 36, Rocketry 78, Orbital Comms 79.
 
@@ -73,10 +73,10 @@ pub const LATER: [Tech; 5] = [
         name: "Forestry",
         blurb: "The forester: it keeps a patch of land in front of it as a wood lot, felling each tree, gathering its \
                 saplings and planting them again, for a slow but endless supply of logs.",
-        needs: &[],
-        packs: &[RED_PACK],
+        needs: &[18], // Violet Science
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 15,
-        seconds: 5.0,
+        seconds: 20.0,
         unlocks: &[r(FORESTER)],
     },
 ];

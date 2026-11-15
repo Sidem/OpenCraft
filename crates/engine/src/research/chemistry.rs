@@ -88,10 +88,10 @@ pub const CHEMISTRY: [Tech; 13] = [
             "The washer (60 kW, a water pipe) cleans crushed iron, copper or bauxite: 3 crushed ore and a unit of \
                 water make 4 washed ore and a tailings block, which smelt one for one (blast furnaces take 2 washed iron for steel). Raw ore does not fit, so the \
                 crusher stays first: 2.0 ingots an ore washed against 1.5 crushed. The crusher grinds tailings to sand.",
-        needs: &[6, 15, 36],
-        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
-        units: 160,
-        seconds: 40.0,
+        needs: &[6, 15],
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 100,
+        seconds: 30.0,
         unlocks: &[
             r(WASHER),
             Unlock::MachineRecipe(WASH_RECIPES[0]),
@@ -119,10 +119,10 @@ pub const CHEMISTRY: [Tech; 13] = [
         blurb: "The water wheel (3×3×1) stands beside or in water and turns it into power: 2 kW for every water block \
                 that touches it (4 for flowing water), up to 48 kW, with no fuel and day and night. A river with a \
                 weir, or a pool piped from a pump, drives it. Hang it on a power pole.",
-        needs: &[14],
+        needs: &[4],
         packs: &[RED_PACK, GREEN_PACK],
-        units: 60,
-        seconds: 30.0,
+        units: 40,
+        seconds: 15.0,
         unlocks: &[r(WATER_WHEEL)],
     },
     Tech {
@@ -140,7 +140,7 @@ pub const CHEMISTRY: [Tech; 13] = [
         blurb: "The centrifuge (200 kW) turns 4 uranium ore and a steel plate into a fuel cell; the reactor gives up to \
                 2 MW, a cell lasting 150 seconds at full load, and burns only what the grid asks for. It needs \
                 coolant: pipe water to its blue inlet, or it overheats and shuts down until it has cooled.",
-        needs: &[14, 43],
+        needs: &[14, 43, 44],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK],
         units: 200,
         seconds: 45.0,
@@ -163,7 +163,7 @@ pub const CHEMISTRY: [Tech; 13] = [
                 smelters, constructors, assemblers, blast furnaces, drone ports and research centers to Mk5: eight \
                 times as fast (a center ten), miners recover 97%, ports keep 24 drones 128 blocks out. Storage \
                 boxes reach Mk5 (72 stacks), and a pumpjack goes to Mk2: twice the draw, 97% of the oil kept.",
-        needs: &[20, 29, 53],
+        needs: &[20, 53],
         packs: &[RED_PACK, GREEN_PACK, BLUE_PACK, VIOLET_PACK, GOLD_PACK],
         units: 200,
         seconds: 45.0,

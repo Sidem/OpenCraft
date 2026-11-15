@@ -221,7 +221,7 @@ arc furnace 10 steel plates, 16 stone bricks and 24 copper wire, an electrolytic
 pair of underpasses 4 belts (6 Mk2 belts for a Mk2 pair, 8 Mk3 and 10 Mk4: as many belts as the blocks they reach; underpasses are only made in pairs). A belt ejector costs 4 iron plates, 2 iron rods and 2 belts. A research lab costs 6 iron plates, 8 copper wire and 4 belts;
 Mk2 machines their Mk1 and green kits (see Upgrades); four torches a stick and a coal ore; two lamps a glass block,
 an iron plate and 2 copper wire; a pump 6 iron plates, 4 iron rods and 6 copper wire; four pipes 2 iron plates; an
-outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire; a forester (after Forestry, red packs) 8 iron plates,
+outlet 3 iron plates and 2 iron rods; a quarry 12 iron plates, 8 iron rods, 16 screws and 8 copper wire; a forester (after Forestry, violet packs) 8 iron plates,
 6 iron rods, 8 screws, 6 copper wire and 8 planks: it needs flat grass or dirt in front of it (11 deep, 11 wide; the
 held preview marks what is in the way in red) and fells, bucks and replants the trees there for about 6 logs a minute
 (give it a few saplings to start). Mk2 and Mk3 work twice and three times as fast on 14×17 and 17×23 patches, as far
