@@ -14,6 +14,9 @@ node_modules/
 # The user's local direction hub (hub/build.mjs writes hub/index.html): local only
 /hub/
 
+# Replay recordings made while testing (5 MB, nothing references them): local only
+/web/public/replays/
+
 # Editors / OS
 .vscode/*
 !.vscode/extensions.json

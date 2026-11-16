@@ -5,8 +5,8 @@ trains, the performance check, realistic trees (generator 12) and whole-tree fel
 (mini-lessons), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 chemistry design talk, doc compaction, lessons L2 and L5, the instrument, MERGE, WebP atlas, the rest of the cheap wins,
-then **ROOM** (only 37 block ids and 40 cube layers are free) and **M14A** (the elevator's first phase, early: the saves
-show idle chains after about 25 h); fire in the third wave; M14B stays the capstone. Dropped 2026-11-14: recorded sound effects, the
+then **ROOM** (block ids become `u16`; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
+stays last (user, 2026-11-16). Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
@@ -190,7 +190,7 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   FIRE2 flamethrower, FIRE3 look, FIRE4 manual). Full design, the six rules that keep it cheap and each step's done-when:
   `docs/ROADMAP.md` "Fire". Binding rules: fire burns only what grows (trees as `felling/tree.rs` finds them, saplings, ground
   cover), never a placed block, machine or house; a burning tree is one record, not a block automaton; a world with no fire
-  does no fire work; every record and every tick's work is capped.
+  does no fire work; every record and every tick's work is capped. Charcoal is treated as coal everywhere (2026-11-16).
 - **Measured performance options, none built** (2026-11-14; section 2 has the baseline). In order of value:
   (1) The atlas as lossless WebP (`art/pack.png` 4.52 MB → 2.68 MB
   in four slices of at most 16,383 rows, bit-exact): needs a decode that keeps un-premultiplied alpha (`art-pack.ts`) and
@@ -199,9 +199,11 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose.
 - **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** MERGE a merger belt
-  building; LOOK clearer splitter, filter and merger models; XRAY goggles that show buried builds; WIRES power lines hung from
-  the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer. Light and colour: GLASS stained glass
-  and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour control; STREET tall street lamps.
+  building; LOOK clearer splitter, filter and merger models; XRAY goggles, worn in an equipment slot, that show buried builds; WIRES power lines hung from
+  the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer (deposits only; no map pin for far deposits).
+  Light and colour: GLASS stained glass and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour
+  control (a later tech, unpowered); STREET tall street lamps; CBPAL a colour-blind palette for tier colours, as a setting;
+  MUSIC a sea piece and industrial and space pieces by era.
   In `docs/ROADMAP_CHEMISTRY.md`: CHEM expand the chemical tree incl. natural gas and helium (design step first; the
   dead-end report `scripts/recipe-graph.mjs` is done: lubricant has no use); PUMPDOWN pumping out a sealed flooded shaft
   (analysed: feasible); CODEX a periodic table of discovered and made elements, with achievements (no rewards).
@@ -220,14 +222,8 @@ session; the interlude's presentation items are cheap and sit in the first two w
 
 Ask when the step that needs the answer comes up. Record answers in `docs/DECISIONS.md`.
 
-| Needed by | Question |
-|---|---|
-| ROOM, M14A | Block ids: `u16`, a per-chunk palette, or a ration? Move the elevator's first phase up to wave 2? (`docs/ROADMAP_ORDER.md` "Audit") |
-| Any UI step | A colour-blind palette for tier colours (pips and "Mk" text are there regardless)? |
-| A world-settings step | Old worlds opting into newer generation: decided 2026-11-16, deposits layer only (`docs/DECISIONS.md`, `docs/ROADMAP_REQUESTS.md` "Worlds"). Should far deposits seen once get a map pin? |
-| FIRE2 | Which research opens the flamethrower, and may charcoal serve a second purpose besides fuel (steel, filters)? |
-| Music | A sea piece; industrial and space pieces (with the era as a context). |
-| Repo | `web/public/` (untracked: 11 `.ocreplay` files, 5 MB, nothing references them): whose are they, and should they be ignored or deleted? |
+None open (the 2026-11-16 answers are rows in `docs/DECISIONS.md`). Still to choose when planned, by Claude: the research for the
+flamethrower (FIRE2) and for the LED lamps.
 
 ---
 
@@ -235,8 +231,12 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
 
+- **2026-11-16: the user's ten answers (direction hub).** Block ids `u16` everywhere (ROOM); M14A stays last; fire stays in
+  wave 3; charcoal = coal; goggles worn; LED a later tech, unpowered; colour-blind palette as a setting (CBPAL); no pin for far
+  deposits; three more music pieces (MUSIC); `web/public/replays/` git-ignored. Rows in `docs/DECISIONS.md`; CBPAL and MUSIC added
+  to `docs/ROADMAP_ORDER.md`, M14A moved to the end of it.
 - **2026-11-16: roadmap audit (`/deepen`).** Checked against the code and the user's six exported saves: new gate ROOM, M14
-  split (M14A early), LED row (64, 2) measured, gas fields placed apart from `ore_at`, codex from `Produced` events, multiplier
+  split (M14A first, later kept last), LED row (64, 2) measured, gas fields placed apart from `ore_at`, codex from `Produced` events, multiplier
   sinks cut from chemistry. Details: `docs/ROADMAP_ORDER.md` "Audit".
 
 - **2026-11-15: bolder kits, a true green Mk2 (user, v0.8.6).** Kit cases wear their own layers `tex::kit_paint` (468–471: whole

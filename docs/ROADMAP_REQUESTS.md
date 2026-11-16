@@ -23,7 +23,7 @@ layer and an `ART_HANDOVER.md` line, players get a patch note and a `FACTORY.md`
   Per the "show, don't write" rule the filter's outlets carry the picked item's icon, and the take-everything-else outlet
   is distinct. *Done when:* the three are told apart in a side-by-side shot in the browser pane at belt-view distance and
   while running, footprints and hit boxes are unchanged, and `frame-bench.mjs` shows no regression.
-- **XRAY: X-ray goggles** (a new tool, a key toggles them on and off; it solves lost underpass and lift lines). While on, what
+- **XRAY: X-ray goggles** (a new worn item; it solves lost underpass and lift lines). While on, what
   the player built shows through terrain, tinted. Build it in two steps. **XRAY1 logistics:** belts, underpasses, lifts, routers,
   pipes, poles and machines, which are factory records and already drawn per frame; add one overlay pass of the same instances
   with the depth test set to *greater*, so only the hidden parts draw, capped to a radius of the player. It must remesh
@@ -35,8 +35,9 @@ layer and an `ART_HANDOVER.md` line, players get a patch note and a `FACTORY.md`
   *Research (user, 2026-11-16):* a blue-science tech after Hoists: a `Tech` row with `needs: &[51]` (Hoists) and
   `packs: &[RED_PACK, GREEN_PACK, BLUE_PACK]`, appended at the bottom of `techs::TECHS` (the table's order is the saved
   index; `research/chemistry.rs` shows the pattern), unlocking the goggles; the lint
-  `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it` must pass for the goggles' recipe. Open for the user:
-  worn versus toggled.
+  `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it` must pass for the goggles' recipe. *Decided (user,
+  2026-11-16):* the goggles are **worn in an equipment slot**, not toggled from the hotbar (the key then only matters if the
+  slot needs a quick off switch); XRAY1 starts by finding how worn gear (jetpack, hover pack) is held and adds the slot there.
 - **WIRES: power lines that hang from the arms** (presentation only). *Found:* every wire of an ordinary pole leaves one point
   on its centre line (`Pole::wire_point`, `POLE_WIRE_Y`), though the model has a crossarm with an insulator at each end
   (`Pole::model`); a long-distance tower's wires leave its earth-wire peak (`pole_tower::TOP`), though it has four arm tips with
@@ -63,8 +64,8 @@ per cell, `SOURCES` rows of strength and loss per block, never above `MARGIN` 32
 chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); plain `GLASS`. No dyes or pigments exist yet.
 
 - **GLASS: stained glass and coloured lamps.** One palette table (16 hues) feeds both. *Ids (audit 2026-11-16):* only 37
-  block ids are free (`BlockId` is `u8`; ROOM in `docs/ROADMAP_ORDER.md`), so coloured lamps take the LED's per-lamp colour
-  record, not 16 ids; stained glass keeps its 16. Stained glass lets light and laser beams
+  block ids are free until ROOM widens `BlockId` to `u16` (decided 2026-11-16, `docs/ROADMAP_ORDER.md`); coloured lamps still
+  take the LED's per-lamp colour record, not 16 ids (one record beats 16 blocks per brightness); stained glass keeps its 16. Stained glass lets light and laser beams
   through like glass (`light.rs` class, `laser.rs`). A coloured lamp lights as a lamp does, its halo and face in its hue.
   *Method:* block ids per hue, appended in one run, textures made by one `tools/art` script that tints a base layer (no
   hand-drawn set); colour then needs no new state, saves or mesher input. *Limit, said plainly:* block light is one channel, so
@@ -84,9 +85,9 @@ chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); p
   a row (47, 1) stays 15 to 32 blocks, then cells at distance 33 read 0 or 14 by chunk position: rejected. A row **(64, 2)** in
   the short field is seamless and full-bright to 24 blocks (twice the lamp's area), 0 at 32: use it; measure the remesh cost. Light is derived from blocks only (never core state), so the lamp's **brightness steps are block ids** (three rows),
   and its **colour is a per-lamp record** (cell to hue from the palette above, saved, set by an action from the lamp's own
-  panel, as miners have `panel: true`) read by the halo and the lamp's drawn face. First cut is unpowered like the lamp;
-  powering it would need the light to follow the grid (swap ids by the later-edit path), a separate decision. *Open for the
-  user:* which research (suggest after Electronics) and whether LEDs should need power. *Done when:* a lamp's colour and
+  panel, as miners have `panel: true`) read by the halo and the lamp's drawn face. *Decided (user, 2026-11-16):* LEDs are
+  **unpowered** like the lamp (powering them would need the light to follow the grid: not planned) and come from **a later
+  tech**, not Electronics; Claude picks which when LED is planned. *Done when:* a lamp's colour and
   brightness change from its panel and survive a save and a co-op client, the cost is measured against the plan's section 2
   and reported, and a standing scene still remeshes nothing.
 - **STREET: tall street lamps.** A 1×1×4 post (a `Footprint` like the tower's: the light-giving head is the top cell, the cells
@@ -95,6 +96,21 @@ chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); p
   is wider where you walk). Uses the lamp's `SOURCES` row; takes the LED row once that exists. *Done when:* a headless test
   places it, breaks it from any cell and round-trips a save, the head lights the ground four blocks below it, and the
   model is seen in the browser pane by day and by night.
+
+## Colour-blind palette and more music (user, 2026-11-16; one session each; ids CBPAL and MUSIC)
+
+- **CBPAL: a colour-blind palette for tier colours, as a setting.** Mk1–Mk5 are told apart by colour (`Family::colour`, the
+  kit cases' baked layers `tex::kit_paint`, panels, research and craft tiles); pips and "Mk" text already say the tier too. A
+  Settings choice (`ui/settings-tabs.ts`) swaps in a second palette whose five colours stay apart under protan, deuter and
+  tritan, checked as `web/test/controls.test.mjs` checks the control categories (CIEDE2000). Presentation only, the state hash
+  does not move, and the choice is a local setting. Kit paint is baked into atlas layers, so decide when planning between
+  tinting at draw time and alternate layers (an art request line either way). *Done when:* the test passes for both palettes,
+  the setting survives a reload, and a kit, a panel and a research tile are seen in each palette in the browser pane.
+- **MUSIC: a sea piece, an industrial piece and a space piece.** The sea piece is a place (shore and open water); the other two
+  follow the **era** of the player's research, a new context for the music director beside place (`web/src/audio/`, one row a
+  piece in `music-pieces.ts`; composed in the user's MusicComposer as the pipeline does, small files, 64 kbit/s Opus). Era must
+  read research state from the host, never the core. *Done when:* `scripts/check-music.mjs` passes with the three pieces, a
+  director test picks each in its context, and the download budget (9.3 MB of music today, plan section 2) is reported.
 
 ## Worlds: carrying old saves forward (user, 2026-11-16; analysed, not scheduled; id WORLDS)
 
@@ -124,7 +140,7 @@ menu then offers each layer with its measured safety:
 - **Ground: not offered to worlds with builds,** or only after a seam blend (unbuilt, untested: rewrite a ring of unedited
   chunks round the edits, easing the old edge height into the new height over about 4 chunks, stored as edited chunks, perhaps
   1–2 MB more).
-*Decided (user, 2026-11-16):* a deposits-only upgrade is enough. *Telling players:* a world whose deposits layer is older
+*Decided (user, 2026-11-16):* a deposits-only upgrade is enough, and **far deposits seen once get no map pin**. *Telling players:* a world whose deposits layer is older
 shows a one-time notice and a button in its menu, "Upgrade deposits: new ores and gas fields in ground you have not touched; your
 base is unchanged", with one more line, "A new world has more changes: terrain, rivers, trees", and a patch-note line when the
 layer ships. The upgrade is an action (core state), applied once and saved; co-op: the host decides.
