@@ -6,7 +6,8 @@ and done-when). Finished work is in `git log` (the changelogs removed from `docs
 `git show 025edaf:docs/history/CHANGELOG_R.md`); settled choices are in `docs/DECISIONS.md`.
 
 **Order (re-ranked by impact per session 2026-11-16: `docs/ROADMAP_ORDER.md`, which supersedes the order of this
-file):** the cheap wins first, fire in the third wave, Milestone 14 last. The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
+file):** the cheap wins first, then ROOM (block ids and layers) and M14A (the elevator's first phase), fire in the third
+wave, M14B last. The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
 change with the user's priorities. Determinism (DEV_PLAN section 3.4), the agent rules (section 3.1) and the content
 architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone ends with a cleanup step.
 
@@ -119,6 +120,9 @@ resources; completing it **unlocks** something rather than ending the game. Play
   the climber cars. Each finished section shows: the tower grows visibly into the sky, seen from far away, lit at night.
 - **What finishing unlocks:** asteroid mining. Climbers carry mining craft up; asteroid ore returns by drop pod to landing
   pads, resources beyond the finite ground (pillar 2's answer at the end).
+- **Split (audit 2026-11-16):** M14A, the anchor and first sections as standing orders of goods the player already makes,
+  comes early (wave 2 of `docs/ROADMAP_ORDER.md`: the saves show idle chains and no goal after about 25 h); M14B, the rest,
+  asks for carbon fibre and liquid oxygen and stays the capstone.
 - **Engine notes for planning:** a very tall structure must stay cheap to draw (boxes or a dedicated mesh, not 4,000 blocks),
   and its sections are core state like a machine's; the sky already draws satellites (`render/sky.ts`).
 

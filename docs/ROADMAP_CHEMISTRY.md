@@ -36,8 +36,8 @@ from `docs/DEV_PLAN.md` section 4. When one is built, move it into the plan, the
      smelters gives CO₂ (and is the natural cleaner if pollution ever returns: parked R8). Helium is not in the air in a
      useful amount: it comes from natural gas (next).
   3. **Natural gas** (user, 2026-11-16: helium is a by-product of natural gas in the real world, so do the same). *Where the gas
-     comes from:* (a) **gas fields**: a new ore row in `EXTRAS` (`worldgen/geology.rs`; its `since` is the next generator version,
-     so new worlds only, as oil and uranium were at version 6), found by scanning, drilled by a *gas well* (a pumpjack variant)
+     comes from:* (a) **gas fields**: placed by their own hash, not a row in `EXTRAS` (`worldgen/geology.rs` `ore_at` picks over
+     the weight sum, so a new row re-rolls every far deposit in its biomes; see WORLDS), from the next generator version, found by scanning, drilled by a *gas well* (a pumpjack variant)
      into *natural gas barrels*; (b) **associated gas** so existing worlds get it too: a *wellhead separator* takes a
      pumpjack's crude barrels and gives crude plus gas barrels, at a gas-to-oil ratio taken from a hash of the deposit. Old
      worlds get gas fields through the deposits-layer upgrade (decided: WORLDS in `docs/ROADMAP_REQUESTS.md`); (b) is then
@@ -73,6 +73,12 @@ from `docs/DEV_PLAN.md` section 4. When one is built, move it into the plan, the
      ultra-pure wafers) as a higher-yield path beside the existing wafer recipe, not a replacement.
   8. **Smaller:** synthetic rubber, fibreglass, a second battery chemistry (`MAT_RUBBER`, `BATTERY` models exist); only when a
      recipe asks for them.
+  *Audit (2026-11-16):* at 39 h the user's chemical plants, pumpjacks and chip fabs stood at 0% with half the base's machines
+  waiting on output (`docs/ROADMAP_ORDER.md` "Audit"): today's chemistry lacks pull. So the design step starts from the space
+  elevator's bill of materials (M14A, then M14B's carbon fibre and liquid oxygen), and every product ends in the elevator, a
+  town order or a player's want. Drop the multiplier sinks above (oxygen and coke for blast-furnace yield, silicon as a
+  higher-yield path); wires lose no power (only laser beams do), so superconducting cable needs another reason or goes.
+  New blocks and layers come from ROOM (37 block ids free).
   *Done when (the design step):* the dead-end report is in the plan; a table of accepted families, each with the problem it
   solves, its tech's place (`needs`, packs), its machines and recipes, and the one-line real process for its cards; the user's
   ranking; a decision on boil-off (none) and on whether gases need a pressure/cold container type of their own; then each
@@ -124,8 +130,8 @@ The idea: an unlocking periodic table where the player sees which elements they 
 which forms; achievements beside it. It also makes the game teach, and gives the long chemistry tree a map.
 - **One small piece of state, everything else derived.** A saved, world-wide bitset of *items ever obtained* (every item and
   block id, about 500 bits; world-wide like `Sim::taught`, so co-op shares it): set when an item first enters a player
-  inventory or a machine's output (found by a deterministic scan every few ticks, not by hooks at every call site, so the
-  core stays one module). The table, the element cards and the achievements are *views* of that set plus the research state: no
+  inventory or a machine's output: fold the core's `SimEvent::Produced` (every producer emits it already) plus hand crafts
+  and pickups in `Sim::step`, one place, no hooks at call sites; a scan every 30 ticks would miss items that pass through. The table, the element cards and the achievements are *views* of that set plus the research state: no
   per-feature state, no second source of truth.
 - **Data, not code.** One table maps an item or block to (element, form): ore, oxide, carbonate, pure element, alloy, compound,
   gas, liquid. Element rows hold symbol, number, a real-world fact and what it does in this game. The card shows each form as

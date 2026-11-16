@@ -1,12 +1,12 @@
 # OpenCraft development plan
 
 **Status (2026-11-16, v0.8.6):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
-trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. The 2026-11-14
-`/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **L2–L6** (mini-lessons),
-**FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
-`docs/ROADMAP_ORDER.md`** (every item rated by impact and sessions, 2026-11-16): chemistry design talk, doc compaction, lessons
-L2 and L5, the instrument, MERGE, WebP atlas, then the rest of the cheap wins; fire moved to the third wave; Milestone 14 (the
-space elevator) stays the capstone. Dropped 2026-11-14: recorded sound effects, the
+trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L2–L6**
+(mini-lessons), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
+`docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
+chemistry design talk, doc compaction, lessons L2 and L5, the instrument, MERGE, WebP atlas, the rest of the cheap wins,
+then **ROOM** (only 37 block ids and 40 cube layers are free) and **M14A** (the elevator's first phase, early: the saves
+show idle chains after about 25 h); fire in the third wave; M14B stays the capstone. Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
@@ -222,6 +222,7 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 
 | Needed by | Question |
 |---|---|
+| ROOM, M14A | Block ids: `u16`, a per-chunk palette, or a ration? Move the elevator's first phase up to wave 2? (`docs/ROADMAP_ORDER.md` "Audit") |
 | Any UI step | A colour-blind palette for tier colours (pips and "Mk" text are there regardless)? |
 | A world-settings step | Old worlds opting into newer generation: decided 2026-11-16, deposits layer only (`docs/DECISIONS.md`, `docs/ROADMAP_REQUESTS.md` "Worlds"). Should far deposits seen once get a map pin? |
 | FIRE2 | Which research opens the flamethrower, and may charcoal serve a second purpose besides fuel (steel, filters)? |
@@ -233,6 +234,10 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 ## 6. Recent changes
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
+
+- **2026-11-16: roadmap audit (`/deepen`).** Checked against the code and the user's six exported saves: new gate ROOM, M14
+  split (M14A early), LED row (64, 2) measured, gas fields placed apart from `ore_at`, codex from `Produced` events, multiplier
+  sinks cut from chemistry. Details: `docs/ROADMAP_ORDER.md` "Audit".
 
 - **2026-11-15: bolder kits, a true green Mk2 (user, v0.8.6).** Kit cases wear their own layers `tex::kit_paint` (468–471: whole
   face in the tier colour plus Mk pips; `item_models/components.rs` `kit`). Mk2's art colour is `kit.LEAF` (hue ~120), not aether.

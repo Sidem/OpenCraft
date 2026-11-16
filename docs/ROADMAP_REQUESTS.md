@@ -62,7 +62,9 @@ What exists: a lamp block (`LAMP`, unpowered) and the panel light, torches; one 
 per cell, `SOURCES` rows of strength and loss per block, never above `MARGIN` 32 blocks because the mesher reads only the 3×3×3
 chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); plain `GLASS`. No dyes or pigments exist yet.
 
-- **GLASS: stained glass and coloured lamps.** One palette table (16 hues) feeds both. Stained glass lets light and laser beams
+- **GLASS: stained glass and coloured lamps.** One palette table (16 hues) feeds both. *Ids (audit 2026-11-16):* only 37
+  block ids are free (`BlockId` is `u8`; ROOM in `docs/ROADMAP_ORDER.md`), so coloured lamps take the LED's per-lamp colour
+  record, not 16 ids; stained glass keeps its 16. Stained glass lets light and laser beams
   through like glass (`light.rs` class, `laser.rs`). A coloured lamp lights as a lamp does, its halo and face in its hue.
   *Method:* block ids per hue, appended in one run, textures made by one `tools/art` script that tints a base layer (no
   hand-drawn set); colour then needs no new state, saves or mesher input. *Limit, said plainly:* block light is one channel, so
@@ -78,9 +80,9 @@ chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); p
   *Done when:* each hue is placed and seen with a lamp behind it, a test shows light and a laser pass stained glass, a
   headless test checks ids and recipes, and the halo colours match.
 - **LED: brighter LED lamps with colour control.** *Evidence:* a lamp is already full strength (15) within 17 blocks and reaches
-  31, so "brighter" can only mean farther, up to the field's cap of 32. A `SOURCES` row of strength 47 and loss 1 saturates out
-  to exactly 32 blocks (about 3.5 times the area); measure the remesh cost of that before choosing it (more lit cells per chunk
-  mesh). Light is derived from blocks only (never core state), so the lamp's **brightness steps are block ids** (three rows),
+  31, and light must be 0 by 32 blocks (`MARGIN`) or chunk borders seam. *Measured 2026-11-16* (throwaway test, sealed tunnel):
+  a row (47, 1) stays 15 to 32 blocks, then cells at distance 33 read 0 or 14 by chunk position: rejected. A row **(64, 2)** in
+  the short field is seamless and full-bright to 24 blocks (twice the lamp's area), 0 at 32: use it; measure the remesh cost. Light is derived from blocks only (never core state), so the lamp's **brightness steps are block ids** (three rows),
   and its **colour is a per-lamp record** (cell to hue from the palette above, saved, set by an action from the lamp's own
   panel, as miners have `panel: true`) read by the halo and the lamp's drawn face. First cut is unpowered like the lamp;
   powering it would need the light to follow the grid (swap ids by the later-edit path), a separate decision. *Open for the
@@ -113,8 +115,9 @@ header (a save-version bump; old saves read every layer as their one version): *
 (rivers and ponds, v8), **cover** (trees v9 and v12, ruins v9 and v10), **deposits** (ores and `EXTRAS`: oil and uranium at v6,
 gas fields next). The 49 version checks in 12 worldgen files each read the layer they belong to, a mechanical edit. A world's
 menu then offers each layer with its measured safety:
-- **Deposits: safe.** Underground only, no seams. Conditions: the new row rolls independently (adding a row to `EXTRAS` changes
-  the weight sum, which could move existing oil and uranium: pin it), and every saved `Deposits` key still resolves. This alone
+- **Deposits: safe.** Underground only, no seams. Conditions: gas fields are placed apart from `ore_at` (own hash and grid; a
+  row in `EXTRAS` changes the biome's weight sum, and `ore_at` draws one pick over it, so every far deposit there would re-roll,
+  any ore: checked 2026-11-16), every ore deposit of the bench save is pinned identical, and every saved `Deposits` key resolves. This alone
   gives the 37 h world gas fields in ground nobody has edited, which answers the natural-gas open question for old worlds.
 - **Cover: cosmetic.** New trees and ruins in unedited chunks; species change at the edit borders.
 - **Water: not offered near builds.** A new river course could end at the edge of a base and spill into it.
