@@ -5,8 +5,8 @@ at each milestone's cleanup step, move the next item from here into the plan and
 and done-when). Finished work is in `git log` (the changelogs removed from `docs/history/` are at commit `025edaf`:
 `git show 025edaf:docs/history/CHANGELOG_R.md`); settled choices are in `docs/DECISIONS.md`.
 
-**Order (2026-10-16, R8 dropped 2026-10-22, the carry dropped 2026-11-14):** fire (FIRE, in the plan), the feel-and-feedback
-interlude, Milestone 14. The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
+**Order (re-ranked by impact per session 2026-11-16: `docs/ROADMAP_ORDER.md`, which supersedes the order of this
+file):** the cheap wins first, fire in the third wave, Milestone 14 last. The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
 change with the user's priorities. Determinism (DEV_PLAN section 3.4), the agent rules (section 3.1) and the content
 architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone ends with a cleanup step.
 

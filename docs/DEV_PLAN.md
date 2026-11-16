@@ -3,8 +3,10 @@
 **Status (2026-11-16, v0.8.6):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. The 2026-11-14
 `/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **L2–L6** (mini-lessons),
-**FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Next: L2–L6, then FIRE,
-then the feel-and-feedback interlude**, Milestone 14 (the space elevator). Dropped 2026-11-14: recorded sound effects, the
+**FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
+`docs/ROADMAP_ORDER.md`** (every item rated by impact and sessions, 2026-11-16): chemistry design talk, doc compaction, lessons
+L2 and L5, the instrument, MERGE, WebP atlas, then the rest of the cheap wins; fire moved to the third wave; Milestone 14 (the
+space elevator) stays the capstone. Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
 
 > **This project is written entirely by AI coding agents.** Every session starts cold and every line read costs tokens.
@@ -196,7 +198,7 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (3) In the core, leave
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose.
-- **Requested 2026-11-16, unordered, one session each (`docs/ROADMAP_REQUESTS.md`):** MERGE a merger belt
+- **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** MERGE a merger belt
   building; LOOK clearer splitter, filter and merger models; XRAY goggles that show buried builds; WIRES power lines hung from
   the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer. Light and colour: GLASS stained glass
   and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour control; STREET tall street lamps.
@@ -210,8 +212,8 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
 - **Only if placing feels laggy in co-op:** show your own edits at once in the render cache, undo them if the core
   disagrees, never touch the core (`interaction.rs`). A real resync logged by a client becomes a replayable test.
 
-**After these:** the feel-and-feedback interlude (`docs/ROADMAP.md`: the instrument with few voices and a distance cap,
-follow one item, timelapse; then seismic prospecting and site bonuses), Milestone 14. Art goes on in parallel
+**Order:** `docs/ROADMAP_ORDER.md` ranks all of the above, the interlude (`docs/ROADMAP.md`) and Milestone 14 by impact per
+session; the interlude's presentation items are cheap and sit in the first two waves. Art goes on in parallel
 (`docs/ART_HANDOVER.md`).
 
 ## 5. Open questions for the user
