@@ -167,7 +167,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `signal/`: the Cloudflare signalling Worker (`src/index.ts` routes, `src/room.ts` the room); deploying: WORKFLOW section 4.
 - `scripts/`: `check.mjs` (`npm run check`), `check-size.mjs` (budgets), `check-css.mjs` (one stylesheet per class),
   `check-map.mjs` (this map and the core layer),
-  `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly),
+  `check-lessons.mjs` (saves must stay quiet), `check-music.mjs`, `build-wasm.mjs`, `dev.mjs`, `wasm-sizes.mjs`, `inspect-save.mjs` (read a save headlessly), `recipe-graph.mjs` (recipe dead ends),
   `bench-flight.mjs` (headless frame timing on a real save; `still` stands in place), `frame-bench.mjs` (real Chrome, Edge or Firefox, GPU or software; p50/p95/p99/worst, heap; `PROFILE=` writes a `.cpuprofile`), `prof-top.mjs` (top functions of a profile; build `npm run build:wasm -- --profiling` for names), `port-shots.mjs` (every machine's ports at every turn as a player sees them, with the truth, for a blind reader), `bake-sky/` (star data, not part of the build).
 - `tools/art/`: the art pack's Python tool (`build.py`, `check.py`, `grade.py` the vegetation's key-art grade, `trees.py` the species' bark and leaves, `woods.py` their planks, floors and doors); see `docs/ART_STYLE.md`.
 - `.github/workflows/pages.yml`: CI on push to `main` (check, build, deploy).

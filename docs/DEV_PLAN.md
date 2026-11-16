@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-15, v0.8.2):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-16, v0.8.6):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. The 2026-11-14
 `/deepen` pass (frame cost, repo, docs; section 6) is in the working tree, uncommitted. Open: **L2–L6** (mini-lessons),
 **FIRE** (flamethrower and burning, planned), **13.6b** (waits for the user to play Milestone 13). **Next: L2–L6, then FIRE,
@@ -196,6 +196,13 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (3) In the core, leave
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose.
+- **Requested 2026-11-16, unordered, one session each (`docs/ROADMAP_REQUESTS.md`):** MERGE a merger belt
+  building; LOOK clearer splitter, filter and merger models; XRAY goggles that show buried builds; WIRES power lines hung from
+  the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer. Light and colour: GLASS stained glass
+  and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour control; STREET tall street lamps.
+  In `docs/ROADMAP_CHEMISTRY.md`: CHEM expand the chemical tree incl. natural gas and helium (design step first; the
+  dead-end report `scripts/recipe-graph.mjs` is done: lubricant has no use); PUMPDOWN pumping out a sealed flooded shaft
+  (analysed: feasible); CODEX a periodic table of discovered and made elements, with achievements (no rewards).
 - **Parked, fit in where a session has room:** P3 cheaper box instances (see (2) above), P4 an incremental co-op
   checksum, P5 small TS savings (`git show 025edaf:docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to
   rectennas; incremental `relink` if big bases hitch on placing (measured in section 2).
@@ -214,7 +221,7 @@ Ask when the step that needs the answer comes up. Record answers in `docs/DECISI
 | Needed by | Question |
 |---|---|
 | Any UI step | A colour-blind palette for tier colours (pips and "Mk" text are there regardless)? |
-| A world-settings step | Should old worlds be able to opt into newer generation (rivers, trees, ruins)? Should far deposits seen once get a map pin? |
+| A world-settings step | Old worlds opting into newer generation: decided 2026-11-16, deposits layer only (`docs/DECISIONS.md`, `docs/ROADMAP_REQUESTS.md` "Worlds"). Should far deposits seen once get a map pin? |
 | FIRE2 | Which research opens the flamethrower, and may charcoal serve a second purpose besides fuel (steel, filters)? |
 | Music | A sea piece; industrial and space pieces (with the era as a context). |
 | Repo | `web/public/` (untracked: 11 `.ocreplay` files, 5 MB, nothing references them): whose are they, and should they be ignored or deleted? |

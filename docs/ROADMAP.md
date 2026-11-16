@@ -103,6 +103,11 @@ Detail of the plan step FIRE (`docs/DEV_PLAN.md` section 4).
   - *Defaults chosen, change on request:* fire spreads between trees by itself (bounded by heat); rain puts nothing out
     (weather is presentation); old worlds' trees (the oak's `LOG`) don't burn, as they still mine block by block.
 
+## Requests from play (2026-11-16)
+
+Logistics and power polish, light and colour: `docs/ROADMAP_REQUESTS.md`. Chemistry (natural gas, helium, cryogenics,
+Haber–Bosch), the flooded-shaft pump-out and the codex: `docs/ROADMAP_CHEMISTRY.md`.
+
 ## Milestone 14: The megaproject, a space elevator (era 10; optional, non-ending; theme chosen 2026-10-16)
 
 Milestone 13 (Settlements) took the number 13. Optional, built in phases, physically in the world, needing enormous
