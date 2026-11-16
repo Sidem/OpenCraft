@@ -129,6 +129,8 @@ resources; completing it **unlocks** something rather than ending the game. Play
 
 ## Later / maybe
 
+- A space program on a finite round home planet, with rockets from parts, real orbits, moons and planets (user,
+  2026-11-16): measured feasible, 80–140 sessions in four stages, after the roadmap; `docs/ROADMAP_SPACE.md`.
 - A tower-defence mode as a world setting (the user's idea; explicitly not now; 2026-10-16: still peaceful, no combat).
 - Subsidence: hollowed-out lodes collapse the ground above unless backfilled or supported (one of the parked R8 options above).
 - Slabs, stairs and beams for building (R7's decor set is cubes only; needs non-cube meshing and hit boxes).
