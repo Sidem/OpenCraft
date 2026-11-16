@@ -4,7 +4,7 @@
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L2–L6**
 (mini-lessons), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
-chemistry design talk, doc compaction, lessons L2 and L5, the instrument, MERGE, WebP atlas, the rest of the cheap wins,
+(chemistry design talk CHEM0 done 2026-11-16), doc compaction, lessons L2 and L5, the instrument, MERGE, WebP atlas, the rest of the cheap wins,
 then **ROOM** (block ids become `u16`; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
 stays last (user, 2026-11-16). Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
@@ -204,8 +204,8 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   Light and colour: GLASS stained glass and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour
   control (a later tech, unpowered); STREET tall street lamps; CBPAL a colour-blind palette for tier colours, as a setting;
   MUSIC a sea piece and industrial and space pieces by era.
-  In `docs/ROADMAP_CHEMISTRY.md`: CHEM expand the chemical tree incl. natural gas and helium (design step first; the
-  dead-end report `scripts/recipe-graph.mjs` is done: lubricant has no use); PUMPDOWN pumping out a sealed flooded shaft
+  In `docs/ROADMAP_CHEMISTRY.md`: CHEM the chemical tree (**design done 2026-11-16**: TEACH, DYE, GAS early; AIR, COOL, CARB beside the
+  elevator; lubricant goes into rotating machines; no boil-off, gases stay barrels; the oil chain's jam is diesel); PUMPDOWN pumping out a sealed flooded shaft
   (analysed: feasible); CODEX a periodic table of discovered and made elements, with achievements (no rewards).
 - **Parked, fit in where a session has room:** P3 cheaper box instances (see (2) above), P4 an incremental co-op
   checksum, P5 small TS savings (`git show 025edaf:docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to
@@ -231,6 +231,10 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
 
+- **2026-11-16: CHEM0, the chemistry design (docs only).** Measured on the 37.6 h save: both refineries and the cracker stand on
+  "Diesel Barrel has nowhere to go" (no diesel generator built). Families ranked by the need they meet; elevator-only ones moved
+  next to it; decisions in `docs/DECISIONS.md`; the design and each step's done-when in `docs/ROADMAP_CHEMISTRY.md`. Code: only
+  `recipes/tests.rs` `NO_USE_YET` shrank to lubricant. No patch note (players see nothing).
 - **2026-11-16: the user's ten answers (direction hub).** Block ids `u16` everywhere (ROOM); M14A stays last; fire stays in
   wave 3; charcoal = coal; goggles worn; LED a later tech, unpowered; colour-blind palette as a setting (CBPAL); no pin for far
   deposits; three more music pieces (MUSIC); `web/public/replays/` git-ignored. Rows in `docs/DECISIONS.md`; CBPAL and MUSIC added

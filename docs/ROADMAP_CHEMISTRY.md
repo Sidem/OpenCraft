@@ -6,83 +6,88 @@ from `docs/DEV_PLAN.md` section 4. When one is built, move it into the plan, the
 
 ## Chemistry and water (unordered)
 
-- **CHEM: expand the chemical tech and recipe tree, and make it teach** (a design step first, then one family per session).
-  Today (`research/chemistry.rs`, `docs/TECH_ERAS.md` section 6): Oil Processing → Refining → Plastics → Acids and Lubricants →
-  Electrolysis, Ore Washing, Diesel Power; fluids ride belts as barrels (crude, naphtha, diesel, heavy oil, lubricant, acid,
-  hydrogen, oxygen); rocket fuel is 2 hydrogen + 1 oxygen barrels. *Step 0 done, 2026-11-16:* `scripts/recipe-graph.mjs` (it
-  reads the built wasm: `npm run build:wasm` first) lists every item and recipe (375 named items, 331 recipes: 176 by hand,
-  155 in machines, 52 of those upgrader rows) and the loose ends. It found: (1) **Lubricant Barrel has no consumer anywhere**
-  in the code (`TECH_ERAS.md` promises "Mk5 kits and gears"; no recipe takes it): the heavy-oil → lubricant branch is a dead
-  end, so give it a use in the design step or drop the recipe. (2) Chemistry is thin: the chemical plant has 5 recipes, the
-  refinery, cracker, electrolyser and centrifuge one each, and every product has one sink: naphtha → plastic only, acid and
-  pure water → the chip fab only, hydrogen and oxygen → rocket fuel only, sulfur → acid and yellow concrete (diesel →
-  generators and fuel cells → the reactor are fuels, outside the graph). (3) The pigment idea already lives in the coloured
-  concretes (`recipes/decor.rs`; see GLASS in `docs/ROADMAP_REQUESTS.md`). (4) The eight extra woods and the Recycling Coin
-  are unused by design. *Blind spot:* fuels, placing a building, town orders and drone fuel are not recipe inputs, so each
-  "made, used nowhere" line is a question, not a verdict. New families should land on these gaps (a second sink for each
-  product) before adding more stock. *Rules for every family:* it
-  answers a problem the player has now (needs before techs; and no multiplier layers: cooling, fertiliser and the like solve a
-  problem, they do not add a percentage); it uses what exists (iron, copper, coal, limestone, sand, quartz, bauxite, uranium,
-  oil, sulfur, water, sea water, air), the one exception being natural gas fields (family 3, new worlds only); old recipes and saves are untouched (a new stream or product
-  comes with a new recipe row or machine, never by changing `Distil`); fluids stay barrels; recipes are data rows. *Teaching:* a
-  recipe's hover card names the real process and its conditions in one line (Haber–Bosch: N₂ + 3 H₂ → 2 NH₃, about 200 bar,
-  450 °C, iron catalyst), and the codex (below) lists what the player has made. Numbers are real where they cost nothing (N₂
-  boils at −196 °C, O₂ at −183 °C, H₂ at −253 °C, He at −269 °C, CO₂ sublimes at −78 °C). *Families, most fitting first (none
-  decided; the user ranks them in the design step):*
-  1. **Dyes and pigments** (decided, see GLASS in `docs/ROADMAP_REQUESTS.md`): a base-and-mix tree; metal oxides colour stained glass, as in life.
-  2. **Air and gas capture.** An *air compressor* feeds a *distillation column* (cryogenic, Linde: compress, cool, expand, separate
-     by boiling point): nitrogen, oxygen, argon barrels, and a trace of CO₂. Sinks: nitrogen and argon for the chip fab's clean
-     room and for welding aluminium; oxygen for steel (blast furnace yield) and rocket fuel. *Carbon capture* beside generators and
-     smelters gives CO₂ (and is the natural cleaner if pollution ever returns: parked R8). Helium is not in the air in a
-     useful amount: it comes from natural gas (next).
-  3. **Natural gas** (user, 2026-11-16: helium is a by-product of natural gas in the real world, so do the same). *Where the gas
-     comes from:* (a) **gas fields**: placed by their own hash, not a row in `EXTRAS` (`worldgen/geology.rs` `ore_at` picks over
-     the weight sum, so a new row re-rolls every far deposit in its biomes; see WORLDS), from the next generator version, found by scanning, drilled by a *gas well* (a pumpjack variant)
-     into *natural gas barrels*; (b) **associated gas** so existing worlds get it too: a *wellhead separator* takes a
-     pumpjack's crude barrels and gives crude plus gas barrels, at a gas-to-oil ratio taken from a hash of the deposit. Old
-     worlds get gas fields through the deposits-layer upgrade (decided: WORLDS in `docs/ROADMAP_REQUESTS.md`); (b) is then
-     optional, for old worlds that do not upgrade.
-     *What a gas plant does* (one machine, one recipe per step, the real processes named on the cards): sweetening (H₂S → sulfur,
-     Claus: a sulfur source apart from the refinery), then separation into **methane**, **ethane**, **propane and butane
-     (LPG)** and **nitrogen**, and a cryogenic *nitrogen-rejection* step that pulls out **helium** (it stays gas to 4 K, the
-     rest liquefies first; needs the chiller below). Helium is rare on purpose: a field's fraction comes from its hash, most
-     under 0.1 %, a few around 1–2 % (balance numbers to tune; the scanner and core drill show it). *Sinks, the point of the
-     family:* methane burns in a **gas turbine** (a power source beside diesel) and is the feed for **steam methane
-     reforming** (CH₄ + H₂O → CO + 3 H₂, shift CO + H₂O → CO₂ + H₂: hydrogen without the 500 kW electrolyser, CO₂ out, the
-     real source of most hydrogen) and for methanol; ethane → ethylene (steam cracking) → **polyethylene**, a plastic that does
-     not use naphtha; LPG for drone and vehicle fuel and gas-fired smelting; **LNG** (methane at −162 °C in insulated barrels)
-     is the answer to far gas fields (pillar 5, distance), carried by train or cargo drone.
-  4. **Cooling and heating** (`heat` already flows into coolant loops for datacenters; reuse it). A *chiller* (compressor,
-     condenser rejecting heat to a cooling loop, evaporator) takes power and a loop and produces cold; a *heat exchanger* and
-     *recuperator* return heat (steam, smelters). Cold makes: **liquid oxygen and hydrogen** (rocket fuel gets denser: fewer
-     barrels per launch; an *insulated barrel*, a steel-glass-plastic flask, holds them and has no boil-off, said in the
-     manual), **liquid nitrogen** (a water-free datacenter loop for deserts, still a cost, not a multiplier), **liquid helium**
-     (from natural gas; 4 K: superconducting cable for lossless long-distance lines and maglev rails; confirm there is a loss to remove, else a
-     longer span), **dry ice** (CO₂ at −78 °C: fire suppression for FIRE, a cold chain for town orders, fog for the look),
-     **CO₂ as feedstock** (Sabatier: CO₂ + H₂ → methane; methanol) and for greenhouses (the forester's growth).
-  5. **Nitrogen, Haber–Bosch and the nitrogen compounds.** Nitrogen from the column + hydrogen from the electrolyser (or from
-     reforming, family 3) → ammonia
-     (200 bar, 450 °C, an *iron catalyst* that wears out slowly, promoted with alumina: a use for bauxite). Ammonia → fertiliser
-     (the forester's saplings, town order goods), → nitric acid (Ostwald: ammonia + oxygen) → ammonium nitrate, etching acid, and a
-     hydrogen carrier or refrigerant. The first reason for the air column; it makes the electrolyser's hydrogen matter.
-  6. **Salt, alkali and glass** (a machine at the sea takes sea water for salt and fresh water; brine electrolysis: chlorine, lye,
-     hydrogen; Solvay: salt + limestone + ammonia → soda ash): soda-lime glass the way it is really made (sand, soda ash,
-     limestone), lye for soap, chlorine for a second plastic. Needs no deposit, only the sea.
-  7. **Carbon and silicon.** Coke from coal (blast-furnace yield); carbon fibre (heavy oil + plastic) for light frames and
-     Milestone 14's tether, a sink for heavy oil; silicon the real way (quartz + coke → silicon → trichlorosilane → distilled →
-     ultra-pure wafers) as a higher-yield path beside the existing wafer recipe, not a replacement.
-  8. **Smaller:** synthetic rubber, fibreglass, a second battery chemistry (`MAT_RUBBER`, `BATTERY` models exist); only when a
-     recipe asks for them.
-  *Audit (2026-11-16):* at 39 h the user's chemical plants, pumpjacks and chip fabs stood at 0% with half the base's machines
-  waiting on output (`docs/ROADMAP_ORDER.md` "Audit"): today's chemistry lacks pull. So the design step starts from the space
-  elevator's bill of materials (M14A, then M14B's carbon fibre and liquid oxygen), and every product ends in the elevator, a
-  town order or a player's want. Drop the multiplier sinks above (oxygen and coke for blast-furnace yield, silicon as a
-  higher-yield path); wires lose no power (only laser beams do), so superconducting cable needs another reason or goes.
-  New blocks and layers come from ROOM (37 block ids free).
-  *Done when (the design step):* the dead-end report is in the plan; a table of accepted families, each with the problem it
-  solves, its tech's place (`needs`, packs), its machines and recipes, and the one-line real process for its cards; the user's
-  ranking; a decision on boil-off (none) and on whether gases need a pressure/cold container type of their own; then each
-  family is a step with its own done-when.
+- **CHEM: the chemical tree, made to teach.** *Design step CHEM0 done 2026-11-16* (the user accepted the draft ranking below;
+  decisions in `docs/DECISIONS.md`). Rules for every family: it answers a need the player has now or the elevator will have
+  (needs before techs); no multiplier layers (cooling, fertiliser, "higher yield" solve a problem, they add no percentage); it
+  uses what exists (the one exception: gas fields, new worlds and the deposits upgrade); old recipes, rows and saves are never
+  changed (a new stream or product is a new row or machine, never an edit of `Distil`); fluids stay barrels; recipes are data
+  rows; every product ends in a sink (check: `recipe-graph.mjs` lists no new "made, used nowhere" item); a recipe's card names
+  the real process in one line.
+  **Dead-end report** (`npm run build:wasm`, then `node scripts/recipe-graph.mjs`, 2026-11-16): 375 named items, 331 recipes
+  (176 by hand, 155 in machines, 52 of those upgrader rows). 16 items are raw inputs (ores, crude barrel, scrap). 31 are made and
+  used in no recipe: tools, gear, vehicles, buildings (ends by design) and, in chemistry, **Lubricant Barrel (no consumer)**,
+  Diesel Barrel (a fuel: generators only), Fuel Cell (reactor), Cargo Drone, Drop Pod (pods). Neither made nor used: the Recycling
+  Coin, eight woods, bamboo (by design). Every chemical product has one sink: naphtha → plastic; acid and pure water → the chip
+  fab; hydrogen and oxygen → rocket fuel; sulfur → acid and yellow concrete. *Blind spot:* fuels, placing a building, town
+  orders and drone fuel are not recipe inputs, so each "used nowhere" line is a question, not a verdict.
+  **What stops a real base** (the 37.6 h save, each chemistry machine's status after one second): both refineries and the cracker
+  say "Diesel Barrel has nowhere to go" (the base has no diesel generator); two of three chemical plants say "Output full" and
+  the third waits for naphtha; two of three pumpjacks wait for empty barrels. One closed loop (refine twice, crack the heavy oil
+  once, plastic from the naphtha) turns 6 crude barrels into 6 plastic, 3 diesel and 2 sulfur, so **the jam is diesel and
+  sulfur, not lubricant**: a refinery runs only while every stream leaves.
+  **The elevator's bill** (first guesses, tune at M14; the city stage's order is 16,000 items, `settlements/orders.rs`). *M14A:*
+  anchor 16,000 concrete, 2,000 steel beam, 1,000 steel plate; four tether sections, each 1,000 steel beam, 500 aluminium plate,
+  500 plastic, 100 processor, 20 rocket fuel barrels. Chemistry's share: 2,000 plastic is 2,000 crude barrels (about 15% of a
+  130,000-unit vein, `TECH_ERAS.md` section 6) and 80 rocket fuel barrels (about 8 minutes of one electrolyser): small. *M14B:*
+  eight more sections ask for **carbon fibre** (sized so the whole tether needs more heavy oil than one vein holds, which
+  sends the player to a second field: pillar 2) and climber cars (motors, batteries, 50 lubricant barrels each, liquid oxygen
+  and hydrogen as fuel, **helium** to pressurise their tanks). The elevator pulls nothing of diesel and sulfur, so those two
+  need their own wants: pigments (sulfur, acid), power (diesel, gas).
+  **Decisions (user, 2026-11-16, recommended picks accepted):**
+  1. **Boil-off: none.** A liquefied gas keeps forever in its barrel.
+  2. **Gases keep the barrel; no pressure or cold container type.** With no boil-off a second type changes nothing in play, yet
+     costs an empty-container item, its return loop, belts that mix two empties and a layer per fluid. Liquefied gases wear a
+     frost band, one data field of the item row (`textures/chemistry.rs` bands). Each new fluid still needs a barrel texture
+     layer: 40 cube layers are free, so ROOM's wider item layers come first (`docs/ROADMAP_ORDER.md` "Audit").
+  3. **Lubricant is an ingredient of rotating-machine buildings** (air compressor, chiller, gas turbine, wellhead separator) and
+     of M14B's climber cars, so heavy oil → lubricant gains its sinks with the machines that really burn it. No existing recipe
+     changes (a saved assembler mid-batch would stall). `recipes/tests.rs` `NO_USE_YET` holds only lubricant until the first such
+     row lands; delete the entry then.
+  4. **Diesel gets no new sink.** The stall is a lesson (the stalled-machine card names the diesel generator and the recycler,
+     which destroys anything for coins). A fuel-burning locomotive is rejected: trains have no fuel mechanic, and adding one
+     changes running trains.
+  5. **Ranking** (accepted): CHEM-TEACH, CHEM-DYE, CHEM-GAS, then CHEM-AIR, CHEM-COOL and CHEM-CARB beside the elevator they feed
+     (built back to back before M14A; alone they would be stock with no pull). Parked: nitrogen compounds, salt and alkali,
+     the small families. Cut: every multiplier sink (oxygen or coke for furnace yield, higher-yield silicon, liquid nitrogen
+     datacenter loops, denser rocket fuel, fertiliser growth), superconducting cable (wires lose nothing), heat exchangers,
+     dry ice, LH₂.
+  **Accepted families** (tech rows are appended at the bottom of `techs::TECHS` by their own step; `needs` are today's indices;
+  every unlocked recipe's ingredients must come from a tech before it: the lint
+  `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it`). New block ids come from ROOM (`u16`).
+
+  | Family | Problem it solves | Tech (needs; packs) | Machines and recipes | Real process on the card |
+  |---|---|---|---|---|
+  | **TEACH** | cards say what, not why; the diesel jam is unexplained | none | `recipes/process_notes.rs`: one line per chemical product, shown on the item page and the recipe card | each row below |
+  | **DYE** pigments | decor and light wants (GLASS, LED); a sink for sulfur, acid, ores, quicklime | Pigments (45; red, green, blue, violet) | chemical plant rows only, 0 block ids: 6 bases (red from iron ore, green from copper ore, black from coal, white from quicklime, yellow from sulfur, blue from copper and acid) and about a dozen mixes, one tinted pouch model | blue: Cu + 2 H₂SO₄ → CuSO₄ + SO₂ + 2 H₂O; red: iron oxide, rust |
+  | **GAS** natural gas | oil runs dry (a vein lasts about 9 h); a second feedstock and power source | Gas Wells (43, 22; four packs), Gas Processing (Gas Wells, 45; four packs) | gas well (a pumpjack variant) on a gas field (own hash, not `EXTRAS`; new worlds and the deposits upgrade, WORLDS), wellhead separator (associated gas for old worlds), gas plant (sweeten, then methane, ethane, LPG), gas turbine, steam reformer (hydrogen without the electrolyser), ethylene to polyethylene (a plastic without naphtha); about 5 ids | Claus: 2 H₂S + SO₂ → 3 S + 2 H₂O; SMR: CH₄ + H₂O → CO + 3 H₂ |
+  | **AIR** | gate for cold and carbonising: nitrogen and oxygen | Air Separation (47, 53; five packs) | air compressor (lubricant in its recipe), distillation column: nitrogen, oxygen, argon barrels; 2 ids | Linde: compress, cool, expand, separate by boiling point (N₂ −196 °C, O₂ −183 °C) |
+  | **COOL** | M14B's liquid oxygen; helium; LNG for far gas fields (pillar 5) | Cryogenics (Air Separation, 60; five packs) | chiller (lubricant), liquid oxygen, nitrogen-rejection step that takes helium from gas (most fields under 0.1%, a few 1–2%; numbers to tune), LNG barrels; 1 id | helium stays gas to 4 K, the rest liquefies first; LNG: methane at −162 °C |
+  | **CARB** carbon fibre | M14B's tether; the one sink for heavy oil and for nitrogen | Carbon Fibre (43, Air Separation; five packs) | one row on an existing furnace: heavy oil and plastic, nitrogen barrels; 0 ids | pitch spun and carbonised near 1,000 °C under nitrogen |
+
+  **Steps, one session each (parts are separate sessions only for GAS), each with its own done-when.** Every step also needs: a
+  headless test, `recipe-graph.mjs` clean of new dead ends, a placeholder layer and an `ART_HANDOVER.md` line per new look, the
+  manual (`FACTORY.md`) and a patch note.
+  - **CHEM-TEACH.** The notes table and its API getter, the card line, notes for today's chemistry (Distil, Crack, plastic,
+    acid, lubricant, electrolysis, rocket fuel, enrichment). *Done when:* a test says every product of the refinery, cracker,
+    chemical plant, electrolyser and centrifuge has a note; the note shows on an item page and a recipe card in the browser pane;
+    a refinery stopped on diesel shows a card naming the generator and the recycler (a test, unless the generic need lesson
+    already says it).
+  - **CHEM-DYE.** *Done when:* each hue is made from raw in a headless test; every base and mix has a sink (a coloured
+    concrete, glass or lamp, as GLASS plans); acid and sulfur have their second sink; the lint passes for the new tech.
+  - **CHEM-GAS** (a) fields, well, plant: gas fields found by the scanner, a well fills barrels, the plant gives methane, ethane,
+    LPG, nitrogen; *done when* the fields' placement leaves every ore deposit of the bench save identical (WORLDS' pin test). (b)
+    turbine and reformer: *done when* a turbine runs a grid on methane and the reformer makes hydrogen. (c) polyethylene and
+    associated gas: *done when* a wellhead separator gives an old world's pumpjack gas by a hash of the deposit. Helium and LNG
+    wait for the chiller.
+  - **CHEM-AIR.** *Done when:* the column makes nitrogen, oxygen and argon from air and water; the compressor's recipe takes
+    lubricant and `NO_USE_YET` is gone; the recipe graph shows nitrogen and oxygen waiting for COOL and CARB (argon is codex
+    only).
+  - **CHEM-COOL.** *Done when:* the chiller makes liquid oxygen (frost band) and a gas plant with a chiller takes helium; a test
+    shows no boil-off over a long run; LNG barrels move by train or cargo drone.
+  - **CHEM-CARB.** *Done when:* carbon fibre is made from heavy oil, plastic and nitrogen; the elevator's recipe can ask for it.
+  - **Parked** (no sink today, so no pull): nitrogen compounds (Haber–Bosch ammonia, fertiliser, nitric acid; the game has no
+    farms), salt and alkali (Solvay soda-lime glass; glass already exists), smaller families (synthetic rubber, fibreglass, a
+    second battery). Reopen one when a recipe or a town order asks for it. Elements these would light stay dark in the codex.
 - **PUMPDOWN: pumping out a flooded shaft whose breach was sealed** (analysis done 2026-11-16, revised the same day after the
   user's two points: the ocean test must be very efficient, and an outlet pouring into the ocean just deletes the water; build
   step not scheduled). *Findings.* `sim/water.rs` `water_rule`: at or below `SEA_LEVEL` (62) an air or flowing cell next to a
