@@ -42,8 +42,13 @@ pub const POLE_TIERS: [PoleTier; 4] = [
 /// How far a pole's post stands above its own cell's old height: it is two blocks tall, the upper half drawn (and
 /// aimed at: `Factory::tall_pole_boxes`) in the air cell above. Nothing is stored for it, so old saves are unchanged.
 pub const POLE_RISE: f64 = 1.0;
-/// Where an ordinary pole's wires hang, above the bottom of its cell.
+/// Where an ordinary pole's wires hang, above the bottom of its cell (a pole's middle: its wires themselves leave the
+/// insulators, `pole_hang.rs`; this is what props, previews of the pole itself and its side tests use).
 pub const POLE_WIRE_Y: f64 = 0.92 + POLE_RISE;
+/// The crossarm's insulators: how far out from the post each stands, and the height of its cap's middle above the
+/// pole's cell middle before `POLE_RISE`. The model and the wires' hang points (`pole_hang.rs`) share them.
+pub(super) const INSULATOR_X: f64 = 0.28;
+pub(super) const INSULATOR_Y: f64 = 0.55;
 
 /// The saved byte holds the tier in its low bits and the wall above them.
 const TIER_BITS: u32 = 4;
@@ -254,11 +259,11 @@ impl Machine for Pole {
         tier_mark::collars(out, rel + Vec3::new(0.0, -0.08, 0.0), 0.13, self.tier);
         let top = POLE_RISE;
         push_box(out, rel + Vec3::new(0.0, 0.34 + top, 0.0), 0.0, [0.72, 0.08, 0.11], 0.0, [tex::FRAME; 3], false);
-        for x in [-0.28, 0.28] {
+        for x in [-INSULATOR_X, INSULATOR_X] {
             let c = [tex::COPPER_WIRE; 3];
             let glass = [tex::FLASK_GLASS; 3];
-            push_box(out, rel + Vec3::new(x, 0.45 + top, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, glass, false);
-            push_box(out, rel + Vec3::new(x, 0.55 + top, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
+            push_box(out, rel + Vec3::new(x, INSULATOR_Y - 0.1 + top, 0.0), 0.0, [0.12, 0.17, 0.12], 0.0, glass, false);
+            push_box(out, rel + Vec3::new(x, INSULATOR_Y + top, 0.0), 0.0, [0.08, 0.05, 0.08], 0.0, c, false);
         }
     }
 }

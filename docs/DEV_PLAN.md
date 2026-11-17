@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.14):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-17, v0.8.15):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
@@ -223,6 +223,10 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-17: WIRES, power lines hang from the insulators (v0.8.15, no save bump, state hash unmoved).** `factory/pole_hang.rs`: `Pole::hang_point(side,
+  rank)` and the chooser (side towards the other end, levels in `Power::wires` order, then fanned); `pole_tower::HANGS` (arm clamps; the peak
+  carries nothing); `Factory::for_each_wire` counts every wire so ends never depend on the camera; the wire and long-pole previews use
+  `Factory::pole_hang` / `ghost_hang`. Props and `wire_point` stay at the pole's middle. Not built: the arm turning to face its neighbours.
 - **2026-11-17: L6, the map and pins lesson (v0.8.14, save 76).** `map_lesson.rs`: 150 blocks from spawn (column 0, 0) for 3 s with the map
   never opened brings a card (press M, click to pin your base); drops without teaching when the player walks back inside 130. Bit
   `MAP_BIT` (12), taught by `Game::map_opened` (called from `worldmap.ts` `open()`, even before any card) or H; pins live in the browser,

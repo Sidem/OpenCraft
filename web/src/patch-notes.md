@@ -4,6 +4,10 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.15 · Power lines hang from the insulators
+- **Wires now leave the crossarm's insulators, not the middle of the post.** A pole's wire picks the insulator on the side the other end lies towards, so a line between two poles runs from the near insulator of one to the near insulator of the other. Several wires on the same side fan out a few centimetres along the arm.
+- **Towers hang their wires from the arm tips.** A long-distance tower's wires leave the clamps of its two crossarms, lower arm first, and the lightning wire at the peak carries none. Nothing about power changes: only where the wire is drawn, and the wire you are about to make previews the same way.
+
 ## 2026-11-17 · v0.8.14 · A card to point you at the map
 - **Walk 150 blocks from where you started and a card tells you about the map.** It says to press M for the map of where you've been, then click it to pin your base so you can find the way back. It goes away once you open the map (or press H), and it never shows in worlds you have already played.
 

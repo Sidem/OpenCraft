@@ -97,8 +97,11 @@ impl Game {
             factory::preview_pole(&mut self.instances, LONG_TIER, 0, anchor.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye);
         }
         let Some((to, _)) = far_pole(link) else { return };
-        let Some(from) = self.sim.factory.pole_top(to) else { return };
-        let top = factory::long_top(anchor);
+        let Some(far_mid) = self.sim.factory.pole_top(to) else { return };
+        let top_mid = factory::long_top(anchor);
+        // The wire runs from an arm tip of one tower to an arm tip of the other (`pole_hang.rs`); the beacon stays on top.
+        let Some(from) = self.sim.factory.pole_hang(to, top_mid) else { return };
+        let top = factory::ghost_hang(anchor, LONG_TIER, 0, far_mid);
         let layer = if let LongLink::Links { layer, .. } = link { layer } else { tex::LAMP_RED };
         // Too far: the wire runs out at full reach, short of the ghost. Full or unpowered: no wire.
         let end = match link {
@@ -111,8 +114,8 @@ impl Game {
         }
         let long = !matches!(link, LongLink::Links { span, .. } if span != LONG_STATS.link);
         if long {
-            let centre = from + Vec3::new(0.0, 0.3 + f64::from(BEACON_HEIGHT) / 2.0, 0.0) - eye;
-            let width = ((from - eye).length() * BEACON_WIDTH).max(BEACON_MIN_WIDTH) as f32;
+            let centre = far_mid + Vec3::new(0.0, 0.3 + f64::from(BEACON_HEIGHT) / 2.0, 0.0) - eye;
+            let width = ((far_mid - eye).length() * BEACON_WIDTH).max(BEACON_MIN_WIDTH) as f32;
             let size = [width, BEACON_HEIGHT, width];
             push_box(&mut self.instances, centre, 0.0, size, 0.0, [layer; 3], false);
             factory::mark_beacon(&mut self.instances);

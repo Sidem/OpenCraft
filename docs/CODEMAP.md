@@ -41,7 +41,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `belt_curve.rs`, `underpass.rs`, `belt_chain.rs`, `router.rs` (splitter, filter, merger) + `router_model.rs` + `filter_rules.rs`, `storage.rs` +
   `box_label.rs`, `buffer.rs`, `links.rs` (`relink`) + `belt_order.rs`, `ports.rs` (drone pads), `stock.rs`.
 - Extraction: `miner.rs` (+ `miner_model.rs`, `miner_burner.rs`), `quarry.rs` + `quarry/`, `pipes.rs`, `pumping.rs`.
-- Power: `power.rs`, `pole.rs` + `pole_mount.rs` + `pole_tower.rs`, `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs`,
+- Power: `power.rs`, `pole.rs` + `pole_mount.rs` + `pole_tower.rs` + `pole_hang.rs` (where wires hang: insulators), `wiring.rs`, `cable.rs`, `generator.rs`, `power_mix.rs`,
   `grid_colour.rs`. Data and light: `fibre.rs`, `laser.rs`. Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` + `rail/pieces.rs` (docks as track pieces; core side `action/docks.rs`),
   `trains.rs` + `trains/` (cars, schedule, signals, docks, model, motion, view).

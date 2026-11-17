@@ -25,7 +25,8 @@ module (plan 3.1), each new look gets a placeholder layer and an `ART_HANDOVER.m
   `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it` must pass for the goggles' recipe. *Decided (user,
   2026-11-16):* the goggles are **worn in an equipment slot**, not toggled from the hotbar (the key then only matters if the
   slot needs a quick off switch); XRAY1 starts by finding how worn gear (jetpack, hover pack) is held and adds the slot there.
-- **WIRES: power lines that hang from the arms** (presentation only). *Found:* every wire of an ordinary pole leaves one point
+- **WIRES: power lines that hang from the arms** (presentation only; **built 2026-11-17, v0.8.15** in `factory/pole_hang.rs`; the
+  arm's yaw from the wired neighbours, the "second step" below, is not built). *Found:* every wire of an ordinary pole leaves one point
   on its centre line (`Pole::wire_point`, `POLE_WIRE_Y`), though the model has a crossarm with an insulator at each end
   (`Pole::model`); a long-distance tower's wires leave its earth-wire peak (`pole_tower::TOP`), though it has four arm tips with
   insulators and grid-coloured sleeves (`long_accent`). *Proposal:* a pole lists its **hang points**, the tops of its insulators

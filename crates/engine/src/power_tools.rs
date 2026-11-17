@@ -343,11 +343,14 @@ impl Game {
     /// Ghost pole and wire, or ghost cables, drawn with the machines.
     pub(crate) fn write_power_preview(&mut self, eye: Vec3) {
         let half = Vec3::new(0.5, 0.5, 0.5);
-        let top = |p: IVec3| p.as_vec3() + Vec3::new(0.5, factory::POLE_WIRE_Y, 0.5) - eye;
+        let middle = |p: IVec3| p.as_vec3() + Vec3::new(0.5, factory::POLE_WIRE_Y, 0.5);
         if let Some(g) = self.pole_ghost().filter(|g| g.free && g.held_up) {
             factory::preview_pole(&mut self.instances, g.tier, g.wall, g.pos.as_vec3() + half - eye);
             if let Some(hook) = self.sim.factory.auto_hook(g.pos, g.tier) {
-                factory::preview_wire(&mut self.instances, top(hook), top(g.pos), tex::GRID_FIRST);
+                // The wire runs insulator to insulator, as it will once placed (`pole_hang.rs`).
+                let from = self.sim.factory.pole_hang(hook, middle(g.pos)).unwrap_or_else(|| middle(hook));
+                let to = factory::ghost_hang(g.pos, g.tier, g.wall, middle(hook));
+                factory::preview_wire(&mut self.instances, from - eye, to - eye, tex::GRID_FIRST);
             }
         } else if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
