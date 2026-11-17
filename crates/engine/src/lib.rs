@@ -71,6 +71,7 @@ mod item_select;
 mod join;
 mod lessons;
 mod light;
+mod map_lesson;
 mod math;
 mod mesher;
 mod minimap;

@@ -91,7 +91,7 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 | 5 | PERF1 | **Done 2026-11-17** (v0.8.9): atlas as lossless WebP, 4.5 to 2.7 MB | 3 | 1.5 | 2.00 | 12% | - |
 | 6 | L3 | **Done 2026-11-17** (v0.8.10): lesson, blueprint walk-through | 2 | 1 | 2.00 | 14% | - |
 | 7 | L4 | **Done 2026-11-17** (v0.8.13): lesson, planner | 2 | 1 | 2.00 | 16% | - |
-| 8 | L6 | Lesson: map and pins | 2 | 1 | 2.00 | 17% | - |
+| 8 | L6 | **Done 2026-11-17** (v0.8.14): lesson, map and pins | 2 | 1 | 2.00 | 17% | - |
 | 9 | WIRES | Wires hang from the pole arms (visual only) | 2 | 1 | 2.00 | 19% | - |
 | 10 | CBPAL | Colour-blind palette for tier colours, a setting (presentation only) | 2 | 1 | 2.00 | 20% | - |
 | 11 | CHEM-TEACH | Chemistry cards teach: one-line real process per product, the diesel-jam lesson (`docs/ROADMAP_CHEMISTRY.md`) | 2 | 1 | 2.00 | 22% | - |
