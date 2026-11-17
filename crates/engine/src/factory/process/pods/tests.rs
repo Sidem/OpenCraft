@@ -167,8 +167,8 @@ fn a_full_pad_takes_what_fits_and_the_pod_lands_the_rest_when_it_is_emptied() {
     let mut l = launcher(0);
     load(&mut l, &[(IRON_PLATE, 30)]);
     let mut pad = pad_at(10, 0);
-    for slot in 0..PAD_SLOTS {
-        pad.out.slots[slot] = Stack { item: IRON_INGOT, count: 64 };
+    for slot in &mut pad.out.slots[..PAD_SLOTS] {
+        *slot = Stack { item: IRON_INGOT, count: 64 };
     }
     pad.out.take(0, 64);
     pad.out.add(IRON_PLATE, 64 - 10);

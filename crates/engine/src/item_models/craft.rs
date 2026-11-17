@@ -134,9 +134,7 @@ const fn car<const N: usize>(boxes: &[CarBox; N], s: f32, mid: f32) -> [Part; N]
         };
         let mut j = i;
         while j > 0 && depth(&out[j - 1]) > depth(&out[j]) {
-            let p = out[j - 1];
-            out[j - 1] = out[j];
-            out[j] = p;
+            out.swap(j - 1, j);
             j -= 1;
         }
         i += 1;

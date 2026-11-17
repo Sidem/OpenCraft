@@ -249,8 +249,8 @@ fn put_away_leaves_the_hotbar_and_homeless_items_and_takes_the_rest_over_trips()
     let inv = &mut sim.players[0].as_mut().unwrap().inventory;
     inv.slots[1] = Stack { item: IRON_PLATE, count: 40 };
     let stack = item::stack_size(COPPER_WIRE);
-    for s in HOTBAR_SLOTS..HOTBAR_SLOTS + CARGO_STACKS as usize + 2 {
-        inv.slots[s] = Stack { item: COPPER_WIRE, count: stack };
+    for slot in &mut inv.slots[HOTBAR_SLOTS..HOTBAR_SLOTS + CARGO_STACKS as usize + 2] {
+        *slot = Stack { item: COPPER_WIRE, count: stack };
     }
     inv.slots[HOTBAR_SLOTS + 10] = Stack { item: IRON_PLATE, count: 25 };
     inv.slots[HOTBAR_SLOTS + 11] = Stack { item: STEEL_PLATE, count: 9 };
