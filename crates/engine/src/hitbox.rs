@@ -84,15 +84,15 @@ impl Obb {
         let rel = [0, 1, 2].map(|i| origin[i] - self.centre[i]);
         let local = |v: [f64; 3], axis: usize| (0..3).map(|k| self.rot[k][axis] * v[k]).sum::<f64>();
         let (mut near, mut far) = (0.0_f64, f64::INFINITY);
-        for axis in 0..3 {
+        for (axis, &half) in self.half.iter().enumerate() {
             let (o, d) = (local(rel, axis), local(dir, axis));
             if d.abs() < 1e-12 {
-                if o.abs() > self.half[axis] {
+                if o.abs() > half {
                     return None;
                 }
                 continue;
             }
-            let (a, b) = ((-self.half[axis] - o) / d, (self.half[axis] - o) / d);
+            let (a, b) = ((-half - o) / d, (half - o) / d);
             near = near.max(a.min(b));
             far = far.min(a.max(b));
         }
