@@ -1,10 +1,10 @@
 //! The lesson cards for the host (`stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs`, `upgrade_lesson.rs`,
-//! `blueprint_lesson.rs`, `lessons.rs`): which one is on show, its words, the floating prompt(s), and the way to wave it away. The host calls `lesson_now` each frame; the
+//! `blueprint_lesson.rs`, `planner_lesson.rs`, `lessons.rs`): which one is on show, its words, the floating prompt(s), and the way to wave it away. The host calls `lesson_now` each frame; the
 //! watchers only scan once a second.
 
 use wasm_bindgen::prelude::*;
 
-use crate::lessons::{BLUEPRINT_BIT, LOW_POWER_BIT, NO_RECIPE_BIT, UPGRADE_BIT};
+use crate::lessons::{BLUEPRINT_BIT, LOW_POWER_BIT, NO_RECIPE_BIT, PLANNER_BIT, UPGRADE_BIT};
 use crate::math::Vec3;
 use crate::need_lesson::NEED_BASE;
 use crate::opening::PROMPT_OPEN;
@@ -29,6 +29,8 @@ impl Game {
             NEED_BASE + UPGRADE_BIT as u32
         } else if self.blueprint_lesson().is_some() {
             NEED_BASE + BLUEPRINT_BIT as u32
+        } else if self.planner_lesson() {
+            NEED_BASE + PLANNER_BIT as u32
         } else {
             0
         }
@@ -46,7 +48,8 @@ impl Game {
             None if self.low_power_lesson().is_some() => self.low_power_text(),
             None if self.recipe_lesson().is_some() => self.recipe_text(),
             None if self.upgrade_lesson().is_some() => self.upgrade_text(),
-            None => self.blueprint_text(),
+            None if self.blueprint_lesson().is_some() => self.blueprint_text(),
+            None => self.planner_text(),
         }
     }
 
@@ -83,8 +86,10 @@ impl Game {
             self.recipe_dismiss();
         } else if self.upgrade_lesson().is_some() {
             self.upgrade_dismiss();
-        } else {
+        } else if self.blueprint_lesson().is_some() {
             self.blueprint_dismiss();
+        } else {
+            self.planner_dismiss();
         }
     }
 

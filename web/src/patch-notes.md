@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.13 · A card for your first planner site
+- **Craft the Planner and a card now shows you how to use it.** It says to hold it, then right-click one corner of the ground you want to move, then the opposite corner, and to pick dig, fill or flatten in the panel. It goes away when your first site is marked, or press H to wave it off. Worlds that already have a site never see it.
+
 ## 2026-11-17 · v0.8.12 · Build a ghost yourself with X
 - **Aim at a ghost and press X to build it now.** The item comes from anywhere in your pack, whether it is in your hand or not, and the building faces the way the ghost does. With the item missing, a line tells you which one. Works in and out of ghost mode, within arm's reach. (In strategy view X still stops walking.) A blueprint stamp plus X is the fast way to build a layout by hand: aim, tap, aim, tap.
 

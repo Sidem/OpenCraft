@@ -310,6 +310,9 @@ impl Sim {
         if r.version < 74 {
             self.taught |= crate::lessons::KNOWN_BEFORE_74;
         }
+        if r.version < 75 {
+            self.taught |= crate::lessons::KNOWN_BEFORE_75;
+        }
         self.signs = if r.version >= 63 { Signs::read_state(r)? } else { Signs::default() };
         self.felling = if r.version >= 73 { Felling::read_state(r)? } else { Felling::default() };
         Some(())

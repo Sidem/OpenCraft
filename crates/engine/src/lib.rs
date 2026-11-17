@@ -85,6 +85,7 @@ mod ore_guide;
 mod perks;
 mod physics;
 mod place_refusal;
+mod planner_lesson;
 mod player;
 mod pods;
 mod port_view;

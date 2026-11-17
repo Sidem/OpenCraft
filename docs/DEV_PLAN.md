@@ -1,8 +1,8 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.9):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
-trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L4, L6**
-(mini-lessons; L2, L3 and L5 done), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
+**Status (2026-11-17, v0.8.13):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L6**
+(mini-lesson; L2 to L5 done), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
 then **ROOM** (block ids become `u16`; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
@@ -175,14 +175,13 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
 - [ ] **13.6b Balance from the user's next play-test** (`scripts/inspect-save.mjs`): order sizes, upkeep rates, perk rates
   and the harbour's price, once the user has played Milestone 13.
 - [ ] **L1 Mini-lessons.** Built: the rules, the machine-stopped lesson (`stall_lesson.rs`), need lessons
-  (`need_lesson.rs`), no recipe (`recipe_lesson.rs`, L2), upgrade with kits (`upgrade_lesson.rs`, L5), blueprint walk-through (`blueprint_lesson.rs`, L3), guided first steps (`first_steps.rs`). L4, L6 are one session each, in this order, each with a patch note.
+  (`need_lesson.rs`), no recipe (`recipe_lesson.rs`, L2), upgrade with kits (`upgrade_lesson.rs`, L5), blueprint walk-through (`blueprint_lesson.rs`, L3), guided first steps (`first_steps.rs`). L4 done (`planner_lesson.rs`); L6 is one session, with a patch note.
   - *Rules (every lesson):* shown only for a need standing near the player now, never on a timeline; one card at a time in
     `ui/hints.ts` order, with `QUIET_TICKS` after each; done is a bit of `Sim::taught` (`lessons.rs`; saved, world-wide, set
     by doing the job or by H via `Action::LessonTaught`, never cleared); one escalation (card, then a prompt on the object,
     `key-prompt.ts`), no camera effects; a lesson whose job is already done never shows; a headless test completes it and
     `lessons/tests.rs` fuzzes the latches. Teach a stall once per cause, never nag; a lesson cannot create a need.
-  - *Next:* **L4 Planner** (planner crafted, no site; card only; done: first site). **L6 Map and pins** (the first 150
-    blocks out from spawn).
+  - *Next:* **L6 Map and pins** (the first 150 blocks out from spawn).
   - *Done when (each):* its bot test passes; `node scripts/check-lessons.mjs <saves>` stays quiet; seen in the browser pane.
 - [ ] **FIRE A flamethrower, and fire that burns grown trees whole to charcoal** (user, 2026-11-14; four steps, FIRE1 core,
   FIRE2 flamethrower, FIRE3 look, FIRE4 manual). Full design, the six rules that keep it cheap and each step's done-when:
@@ -226,6 +225,10 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-17: L4, the planner lesson (v0.8.13, save 75).** `planner_lesson.rs`: a planner in the pack and no site marked, past
+  the quiet spell, brings a card by stage (hold it, first corner, opposite corner); bit `PLANNER_BIT` (11), taught by the first site
+  or H; save 75 writes nothing new, older worlds count it taught (`KNOWN_BEFORE_75`: `check-lessons` showed the card in 4 of 6 long-play
+  saves, which hold an unused planner); a world that already has a site is also taught silently. Card only (no prompt). Tests: `planner_lesson/tests.rs`.
 - **2026-11-17: X builds the aimed ghost (user, after L3; v0.8.12, no save bump, codec tag 76 appended).** `Action::BuildGhost`
   (`Sim::build_ghost` in `ghosts.rs`: item from any slot, `put_block` with the ghost's facing, clears the ghost); `ghost_build.rs` aims
   (ray through ghost cells, hands' reach, occluded by blocks) and returns a notice when nothing is aimed or the item is missing. Key X
