@@ -75,6 +75,22 @@ async function decodePng(url: string): Promise<{ width: number; height: number; 
 }
 
 /**
+ * Pushes 16 known texels through the same upload-and-`readPixels` path the pack takes. False when the browser tampers
+ * with readback (Firefox's fingerprint protection and canvas-blocking extensions answer with zeros or noise), which
+ * would turn every pack layer black without any error: the caller then keeps the engine's own textures.
+ */
+async function readbackIsExact(gl: WebGL2RenderingContext, raw: ImageBitmapOptions): Promise<boolean> {
+  const known = new Uint8ClampedArray(64);
+  for (let i = 0; i < 16; i++) known.set([(i * 37 + 11) & 255, (i * 91 + 5) & 255, (i * 53 + 200) & 255, 255], i * 4);
+  const probe = await createImageBitmap(new ImageData(known, 4, 4), raw);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, probe);
+  probe.close();
+  const back = new Uint8Array(64);
+  gl.readPixels(0, 0, 4, 4, gl.RGBA, gl.UNSIGNED_BYTE, back);
+  return back.every((v, i) => v === known[i]);
+}
+
+/**
  * Decodes the WebP slices into one RGBA stack of `rows` rows, keeping un-premultiplied alpha: canvas 2D would premultiply
  * and wreck the colour under transparent texels (the shaders read it), so the bitmaps go through a WebGL texture and
  * `readPixels` with premultiplication off. Needs WebGL2, which the game needs anyway.
@@ -92,15 +108,21 @@ async function decodeWebpStack(urls: string[], rows: number): Promise<Uint8Array
   const frame = gl.createFramebuffer();
   gl.bindFramebuffer(gl.FRAMEBUFFER, frame);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  if (!(await readbackIsExact(gl, raw))) throw new Error('the browser alters canvas readback');
   let row = 0;
   const downloads = urls.map((url) => fetch(url).then((response) => response.blob())); // all slices download at once
+  const maxRows = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
   for (const download of downloads) {
-    const slice = await createImageBitmap(await download, raw);
-    for (let top = 0; top < slice.height; top += CHUNK_ROWS) {
-      const height = Math.min(CHUNK_ROWS, slice.height - top);
-      const chunk = await createImageBitmap(slice, 0, top, ART_SIZE, height, raw);
+    const blob = await download;
+    const slice = await createImageBitmap(blob, raw);
+    // A slice the GPU takes whole goes up in one piece. Otherwise chunks are cut from the blob, never from `slice`:
+    // Firefox ignores the vertical offset when cropping an ImageBitmap, so every chunk came out as the slice's first rows.
+    const whole = slice.height <= maxRows;
+    for (let top = 0; top < slice.height; top += whole ? slice.height : CHUNK_ROWS) {
+      const height = whole ? slice.height : Math.min(CHUNK_ROWS, slice.height - top);
+      const chunk = whole ? slice : await createImageBitmap(blob, 0, top, ART_SIZE, height, raw);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, chunk);
-      chunk.close();
+      if (!whole) chunk.close();
       gl.readPixels(0, 0, ART_SIZE, height, gl.RGBA, gl.UNSIGNED_BYTE, out.subarray(row * ART_SIZE * 4, (row + height) * ART_SIZE * 4));
       row += height;
     }
@@ -137,7 +159,8 @@ export async function composeTextures(engine: Uint8Array, engineSize: number, la
       glow.set(grey.data.subarray(i * layerTexels, (i + 1) * layerTexels), entry.layer * layerTexels);
     });
     return { size: ART_SIZE, pixels, glow };
-  } catch {
+  } catch (error) {
+    console.warn('art pack not used, the engine textures are shown instead:', error);
     return null;
   }
 }

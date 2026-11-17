@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.19 · Firefox textures fixed
+- **Firefox shows the right textures again.** Leaves and stone were drawn with the wrong pictures there. Browsers that block canvas reading (a privacy setting or extension) now get the plain built-in textures instead of a black world.
+
 ## 2026-11-17 · v0.8.18 · Room for many more blocks
 - **Under the hood: the game can now hold far more kinds of block.** Until now it had room for 255 and 220 were taken, which would have stopped the next machines, lamps and glass. Nothing looks different and your worlds load as before. The one cost: the map's remembered tiles take twice the room in this browser, and a loaded world uses more memory for its ground.
 
