@@ -383,6 +383,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
 - [ ] (forester, 2026-11-07) The forester (block 159, `block/forester.rs`; model parts in `factory/process/forester/view.rs`, crane and harvester head in `crane.rs`, fence and logs in `scene.rs`, icon in `item_models/machines_plant.rs`): a yellow carrier (`tex::GRID_FIRST + 4`, the grid accents' flat yellow), `tex::CAB_GLASS` cab, an orange head from `tex::MAT_EMBER`, rubber rollers, `tex::LOG`/`PLANKS` fence. The crane (`Look::Crane`) is drawn each frame from its pivot, boxes turned along any axes (`render::push_framed`); a real machine-paint yellow and orange layer, and the block's faces, want layers of their own.
 - [ ] (personal drone, 2026-11-13) Model `companion_view.rs`, icon `item_models/craft.rs`; layers 384 `DRONE_SHELL`, 385 `DRONE_CARBON` (`materials.py`). Wants a prop blur disc; construction and cargo drones to match.
 - [ ] (woods, 2026-11-14) Art for the 36 wood layers 432-467 (`block/woods.rs`); oak recolours now.
+- [ ] (LOOK, 2026-11-17) Router roofs `splitter_top`/`filter_top`/`merger_top` (31, 32, 472; cyan in, gold out); models
+  `router_model.rs`, doorways `process/port_mouth.rs` (dark, `FRAME` lintel): existing layers, want a frame face.
 
 ## 8. Log
 

@@ -14,7 +14,8 @@
 // `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it. A machine that has stood stalled near
 // the player brings its lesson (`lesson_now`, `stall_lesson.rs`): the card names the cause and the fix, a prompt hangs over
 // the machine, the engine ends it when the machine works again, and H teaches it away for the world. A need lesson
-// (`need_lesson.rs`: a machine short of power) comes the same way, card only. Side tips
+// (`need_lesson.rs`: a machine short of power) comes the same way, card only; so does the no-recipe lesson
+// (`recipe_lesson.rs`), with an Open prompt over the machine. Side tips
 // (`hint_side`: towns, once Settlements is researched) come next, ahead of the main order, until done or skipped.
 // A main tip can point somewhere too (`hint_marker`: Go electric's copper patch, `first_steps.rs`).
 

@@ -1,4 +1,4 @@
-﻿//! The standing check that models draw no two faces in one plane facing one way: such faces fight over each pixel and
+//! The standing check that models draw no two faces in one plane facing one way: such faces fight over each pixel and
 //! flicker as the camera moves (joined pipes once did). `face_fight` looks at every axis-aligned box and cylinder of a
 //! scene, faces of one instance against another's, the same cell or a neighbour's. Back faces are culled, so faces
 //! facing apart never fight and pass. Applied to pipework: every set of joined faces, each kind of piece around each.
@@ -213,4 +213,63 @@ fn the_detector_finds_shared_faces_and_passes_faces_facing_apart() {
     // Turned a quarter, a box is the same box: still checked.
     let turned = |out: &mut Vec<f32>| push_box(out, x(0.1), std::f32::consts::FRAC_PI_2, [0.5; 3], 0.0, [0; 3], false);
     assert!(fight(&cube(o, 0.5), &turned), "a box turned a quarter");
+}
+
+/// Splitters, filters (with picks and a wildcard outlet, holding an item) and mergers at every facing.
+#[test]
+fn routers_draw_no_faces_that_fight() {
+    use crate::block::{COAL_ORE, FILTER, IRON_ORE, MERGER, SPLITTER};
+    for block in [SPLITTER, FILTER, MERGER] {
+        for facing in 0..4 {
+            let (mut world, mut f) = (World::new(1, 2), Factory::default());
+            let pos = IVec3::new(0, 64, 0);
+            f.place(&mut world, block, pos, facing, pos, 0);
+            let r = &mut f.routers[0];
+            r.rules.pick(COAL_ORE.into(), crate::factory::filter_rules::LEFT);
+            (r.held, r.held_n) = (IRON_ORE.into(), 1);
+            let mut out = Vec::new();
+            f.write_instances(&mut out, Vec3::new(0.5, 66.0, 0.5), 0.0, 40.0);
+            if let Some((a, b)) = face_fight(&out) {
+                let at = |i: usize| &out[i * INSTANCE_FLOATS..i * INSTANCE_FLOATS + 7];
+                panic!("block {block}, facing {facing}: {:?} and {:?} fight", at(a), at(b));
+            }
+        }
+    }
+}
+
+/// Every multi-block machine's port openings (`process/port_mouth.rs`), at every facing: no face of an opening fights
+/// another opening's or the machine's (fights between the machine's own parts are its model's business).
+#[test]
+fn port_openings_draw_no_faces_that_fight() {
+    use crate::factory::process::{draw_model, draw_port_openings, Processor, SPECS};
+    let mut checked = 0;
+    for spec in SPECS.iter().filter(|s| !s.footprint.is_single()) {
+        for facing in 0..4 {
+            let mut p = Processor::new(IVec3::new(0, 64, 0), spec, 0);
+            p.dir = facing;
+            // Every port with a belt joined, so its lamp lights too.
+            p.linked = u64::MAX;
+            let (mut all, mut ports) = (Vec::new(), Vec::new());
+            draw_model(&p, &mut all, Vec3::ZERO, 0.0);
+            draw_port_openings(&p, &mut ports, Vec3::ZERO);
+            // The openings are drawn last; a boiler and a turbine draw chutes and fittings instead.
+            if ports.is_empty() || !all.ends_with(&ports) {
+                continue;
+            }
+            checked += 1;
+            let n = all.len() / INSTANCE_FLOATS;
+            let first_port = n - ports.len() / INSTANCE_FLOATS;
+            let shapes: Vec<_> = all.chunks_exact(INSTANCE_FLOATS).map(shape).collect();
+            for i in first_port..n {
+                for j in (0..n).filter(|&j| j != i && (j < first_port || j > i)) {
+                    let (Some((fa, _)), Some((fb, _))) = (&shapes[i], &shapes[j]) else { continue };
+                    if fa.iter().any(|a| fb.iter().any(|b| faces_fight(a, b))) {
+                        let at = |i: usize| &all[i * INSTANCE_FLOATS..i * INSTANCE_FLOATS + 11];
+                        panic!("block {}, facing {facing}: {:?} and {:?} fight", spec.block, at(i), at(j));
+                    }
+                }
+            }
+        }
+    }
+    assert!(checked >= 80, "only {checked} machine facings had openings");
 }

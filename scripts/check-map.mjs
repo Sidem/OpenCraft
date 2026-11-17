@@ -29,7 +29,7 @@ const EXEMPT = {
   'blueprint/hands.rs': { may: VIEW, why: 'the local player blueprint hands, not core' },
   'blueprint/repeat.rs': { may: VIEW, why: 'the blueprint prompt, presentation' },
   'factory/belt.rs': { may: ['entities'], why: 'draws belt items with the loose-item model (push_item_model)' },
-  'factory/router.rs': { may: ['entities'], why: 'draws the held item with the loose-item model (push_item_model)' },
+  'factory/router_model.rs': { may: ['entities'], why: 'draws the held item and the filter picks with the loose-item model' },
   'factory/port_marks.rs': { may: ['entities'], why: 'draws the item riding a port stub with the loose-item model' },
 };
 

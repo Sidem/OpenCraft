@@ -13,7 +13,7 @@ One ranked list of every open item in `docs/DEV_PLAN.md`, `ROADMAP.md`, `ROADMAP
   design notes and how much core, save, art and test work the item has.
 - **Value** = impact ÷ sessions. Items sort by value, except that an item waits for what it needs (**needs**), and a
   gate is ranked with what it unlocks (WORLDS is 3 ÷ 4 alone but 7 ÷ 7 with natural gas and helium).
-- **Done** is the share of all impact (132 points over 118.5 sessions) delivered once that row is finished.
+- **Done** is the share of all impact (129 points over 117.5 sessions) delivered once that row is finished.
 
 Not in the table: **13.6b** balance (needs the user to play Milestone 13 first) and the user's **TURN secrets**.
 Do them when their turn comes; each is one session or less.
@@ -68,8 +68,8 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 
 ## What the numbers say
 
-- The first 12 rows take 13.5 sessions and deliver 23% of the impact; the first 25 take 43.5 sessions for 53%.
-- **Fire (FIRE1–4) sits at rows 27–37, and stays in wave 3 (user, 2026-11-16).** Each step rates 1–3; nothing else
+- The first 12 rows take 15.5 sessions and deliver 25% of the impact; the first 25 take 45.5 sessions for 55%.
+- **Fire (FIRE1–4) sits at rows 26–36, and stays in wave 3 (user, 2026-11-16).** Each step rates 1–3; nothing else
   depends on it.
 - **CHEM0 is done** (it decided the order of the chemistry families, the lubricant dead end and what GLASS, CODEX and
   the elevator need). **CHEM-TEACH** is the cheap first chemistry step; the oil chain's real jam is diesel, not lubricant.
@@ -84,71 +84,78 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 
 | # | Id | Item | Impact | Sessions | Value | Done | Needs |
 |---|---|---|---|---|---|---|---|
-| 1 | DOCS | Compact plan and code map under 48 KB (every future session reads them) | 3 | 1 | 3.00 | 2% | - |
-| 2 | L2 | Lesson: no recipe chosen (most common stall) | 3 | 1 | 3.00 | 5% | - |
-| 3 | L5 | Lesson: upgrade with kits (upgrading is new in v0.8.3) | 3 | 1 | 3.00 | 7% | - |
-| 4 | F-BEAT | Factory as an instrument (presentation only) | 3 | 1 | 3.00 | 9% | - |
-| 5 | MERGE | Merger building (new building, save bump, art request) | 4 | 2 | 2.00 | 12% | - |
-| 6 | PERF1 | Atlas as lossless WebP (4.5 to 2.7 MB) (load time on slow links) | 3 | 1.5 | 2.00 | 14% | - |
-| 7 | L3 | Lesson: blueprint walk-through | 2 | 1 | 2.00 | 16% | - |
-| 8 | L4 | Lesson: planner | 2 | 1 | 2.00 | 17% | - |
-| 9 | L6 | Lesson: map and pins | 2 | 1 | 2.00 | 19% | - |
-| 10 | WIRES | Wires hang from the pole arms (visual only) | 2 | 1 | 2.00 | 20% | - |
-| 11 | CBPAL | Colour-blind palette for tier colours, a setting (presentation only) | 2 | 1 | 2.00 | 22% | - |
-| 12 | CHEM-TEACH | Chemistry cards teach: one-line real process per product, the diesel-jam lesson (`docs/ROADMAP_CHEMISTRY.md`) | 2 | 1 | 2.00 | 23% | - |
-| 13 | ROOM | Room for content: block ids to `u16` everywhere (decided; measure memory and save size) and model layers past 512 | 4 | 3 | 1.33 | 27% | - |
+| 1 | DOCS | **Done 2026-11-16** (session-start read 57 → 38 KB; keep it under 48) | 3 | 1 | 3.00 | 2% | - |
+| 2 | L2 | **Done 2026-11-16** (v0.8.7): lesson, no recipe chosen | 3 | 1 | 3.00 | 5% | - |
+| 3 | L5 | **Done 2026-11-16** (v0.8.7): lesson, upgrade with kits | 3 | 1 | 3.00 | 7% | - |
+| 4 | MERGE | **Done 2026-11-17** (v0.8.8, no save bump): merger building | 4 | 2 | 2.00 | 10% | - |
+| 5 | PERF1 | Atlas as lossless WebP (4.5 to 2.7 MB) (load time on slow links) | 3 | 1.5 | 2.00 | 12% | - |
+| 6 | L3 | Lesson: blueprint walk-through | 2 | 1 | 2.00 | 14% | - |
+| 7 | L4 | Lesson: planner | 2 | 1 | 2.00 | 16% | - |
+| 8 | L6 | Lesson: map and pins | 2 | 1 | 2.00 | 17% | - |
+| 9 | WIRES | Wires hang from the pole arms (visual only) | 2 | 1 | 2.00 | 19% | - |
+| 10 | CBPAL | Colour-blind palette for tier colours, a setting (presentation only) | 2 | 1 | 2.00 | 20% | - |
+| 11 | CHEM-TEACH | Chemistry cards teach: one-line real process per product, the diesel-jam lesson (`docs/ROADMAP_CHEMISTRY.md`) | 2 | 1 | 2.00 | 22% | - |
+| 12 | ROOM | Room for content: block ids to `u16` everywhere (decided; measure memory and save size) and model layers past 512 | 4 | 3 | 1.33 | 25% | - |
 
 ## Wave 2: logistics, light and the first chemistry (two sessions each)
 
 | # | Id | Item | Impact | Sessions | Value | Done | Needs |
 |---|---|---|---|---|---|---|---|
-| 14 | LOOK | Clearer splitter, filter, merger models (art-dependent) | 3 | 2 | 1.50 | 29% | MERGE |
-| 15 | XRAY1 | X-ray goggles, worn in an equipment slot: buried logistics (tech in blue science after hoists) | 3 | 2 | 1.50 | 31% | - |
-| 16 | LED | LED lamps, unpowered, a later tech; light row (64, 2), colour record (measured above) | 3 | 2 | 1.50 | 33% | ROOM |
-| 17 | STREET | Tall street lamps (uses the led light row) | 2 | 1 | 2.00 | 35% | LED |
-| 18 | CHEM-DYE | Chemistry: pigments (chemical-plant rows only, no new block id) | 3 | 2 | 1.50 | 37% | - |
-| 19 | GLASS | Stained glass (16 ids); coloured lamps via the LED record | 3 | 2 | 1.50 | 39% | CHEM-DYE, LED |
-| 20 | F-TAG | Follow one item (host-side watcher first) | 3 | 2 | 1.50 | 42% | - |
-| 21 | F-TIME | Timelapse of the world (shareable) | 3 | 2 | 1.50 | 44% | - |
-| 22 | F-SITE | Site bonuses: solar by biome, wind by height (shown on the ghost) | 3 | 2 | 1.50 | 46% | - |
+| 13 | LOOK | **Done 2026-11-17** (v0.8.8, with MERGE): router family look, dark machine doorways | 3 | 2 | 1.50 | 27% | MERGE |
+| 14 | XRAY1 | X-ray goggles, worn in an equipment slot: buried logistics (tech in blue science after hoists) | 3 | 2 | 1.50 | 29% | - |
+| 15 | LED | LED lamps, unpowered, a later tech; light row (64, 2), colour record (measured above) | 3 | 2 | 1.50 | 32% | ROOM |
+| 16 | STREET | Tall street lamps (uses the led light row) | 2 | 1 | 2.00 | 33% | LED |
+| 17 | CHEM-DYE | Chemistry: pigments (chemical-plant rows only, no new block id) | 3 | 2 | 1.50 | 36% | - |
+| 18 | GLASS | Stained glass (16 ids); coloured lamps via the LED record | 3 | 2 | 1.50 | 38% | CHEM-DYE, LED |
+| 19 | F-TAG | Follow one item (host-side watcher first) | 3 | 2 | 1.50 | 40% | - |
+| 20 | F-TIME | Timelapse of the world (shareable) | 3 | 2 | 1.50 | 43% | - |
+| 21 | F-SITE | Site bonuses: solar by biome, wind by height (shown on the ghost) | 3 | 2 | 1.50 | 45% | - |
 
 ## Wave 3: the heavier engine work, water, worlds, gas and fire
 
 | # | Id | Item | Impact | Sessions | Value | Done | Needs |
 |---|---|---|---|---|---|---|---|
-| 23 | PERF2 | Cache static machine geometry (about 25% of a steady frame) (touches render hot path) | 3 | 3 | 1.00 | 48% | - |
-| 24 | PUMPDOWN | Pump out a sealed flooded shaft (core change, lockstep search) | 3 | 3 | 1.00 | 51% | - |
-| 25 | WORLDS | Upgrade old worlds by generator layer (deposits) (gates gas fields in old saves) | 3 | 4 | 0.75 | 53% | - |
-| 26 | CHEM-GAS | Chemistry: natural gas (fields apart from `ore_at`, well, plant, turbine, reformer, polyethylene; helium and LNG wait for COOL) | 4 | 3 | 1.33 | 56% | WORLDS, ROOM |
-| 27 | FIRE1 | Fire core: burning trees to charcoal | 3 | 3 | 1.00 | 58% | - |
-| 28 | FIRE3 | Fire look | 2 | 1 | 2.00 | 60% | FIRE1 |
-| 29 | FIRE2 | Flamethrower (research: Claude's pick; charcoal counts as coal) | 3 | 2 | 1.50 | 62% | FIRE1 |
-| 30 | F-SEIS | Seismic prospecting | 3 | 3 | 1.00 | 64% | - |
-| 31 | L-AWAY | Catch-up on return | 3 | 3 | 1.00 | 67% | - |
-| 32 | XRAY2 | X-ray goggles: buried blocks (only if the cost measures well) | 2 | 2 | 1.00 | 68% | XRAY1 |
-| 33 | L-BEAM | Power beam from satellites | 2 | 2 | 1.00 | 70% | - |
-| 34 | L-SET | World settings screen | 2 | 2 | 1.00 | 71% | WORLDS |
-| 35 | MUSIC | Music: a sea piece, industrial and space pieces by era (era is a new director context) | 2 | 2 | 1.00 | 73% | - |
-| 36 | PERF3 | Pump leaves its source cell alone (changes the state hash) | 1 | 1 | 1.00 | 73% | - |
-| 37 | FIRE4 | Fire manual and cleanup | 1 | 1 | 1.00 | 74% | FIRE2, FIRE3 |
-| 38 | CODEX | Periodic table and achievements, set from `Produced` events (fills as chemistry grows) | 3 | 4 | 0.75 | 77% | CHEM-DYE |
+| 22 | PERF2 | Cache static machine geometry (about 25% of a steady frame) (touches render hot path) | 3 | 3 | 1.00 | 47% | - |
+| 23 | PUMPDOWN | Pump out a sealed flooded shaft (core change, lockstep search) | 3 | 3 | 1.00 | 50% | - |
+| 24 | WORLDS | Upgrade old worlds by generator layer (deposits) (gates gas fields in old saves) | 3 | 4 | 0.75 | 52% | - |
+| 25 | CHEM-GAS | Chemistry: natural gas (fields apart from `ore_at`, well, plant, turbine, reformer, polyethylene; helium and LNG wait for COOL) | 4 | 3 | 1.33 | 55% | WORLDS, ROOM |
+| 26 | FIRE1 | Fire core: burning trees to charcoal | 3 | 3 | 1.00 | 57% | - |
+| 27 | FIRE3 | Fire look | 2 | 1 | 2.00 | 59% | FIRE1 |
+| 28 | FIRE2 | Flamethrower (research: Claude's pick; charcoal counts as coal) | 3 | 2 | 1.50 | 61% | FIRE1 |
+| 29 | F-SEIS | Seismic prospecting | 3 | 3 | 1.00 | 64% | - |
+| 30 | L-AWAY | Catch-up on return | 3 | 3 | 1.00 | 66% | - |
+| 31 | XRAY2 | X-ray goggles: buried blocks (only if the cost measures well) | 2 | 2 | 1.00 | 67% | XRAY1 |
+| 32 | L-BEAM | Power beam from satellites | 2 | 2 | 1.00 | 69% | - |
+| 33 | L-SET | World settings screen | 2 | 2 | 1.00 | 71% | WORLDS |
+| 34 | MUSIC | Music: a sea piece, industrial and space pieces by era (era is a new director context) | 2 | 2 | 1.00 | 72% | - |
+| 35 | PERF3 | Pump leaves its source cell alone (changes the state hash) | 1 | 1 | 1.00 | 73% | - |
+| 36 | FIRE4 | Fire manual and cleanup | 1 | 1 | 1.00 | 74% | FIRE2, FIRE3 |
+| 37 | CODEX | Periodic table and achievements, set from `Produced` events (fills as chemistry grows) | 3 | 4 | 0.75 | 76% | CHEM-DYE |
 
 ## Wave 4: big and long-term, then the elevator and its chemistry last (user, 2026-11-16)
 
 | # | Id | Item | Impact | Sessions | Value | Done | Needs |
 |---|---|---|---|---|---|---|---|
-| 39 | L-SLAB | Slabs and stairs (meshing, placement, collision) | 4 | 6 | 0.67 | 80% | ROOM |
-| 40 | F-GEO | Geothermal on basalt vents (a worldgen feature) | 2 | 3 | 0.67 | 81% | WORLDS |
-| 41 | L-TD | Tower-defence mode (still peaceful) | 3 | 6 | 0.50 | 83% | - |
-| 42 | L-SRV | Dedicated server | 2 | 5 | 0.40 | 85% | - |
-| 43 | L-MOD | Mod support | 2 | 6 | 0.33 | 86% | - |
-| 44 | L-P345 | Cheaper box instances, incremental checksum, small TS savings (three parked items) | 1 | 3 | 0.33 | 87% | - |
-| 45 | CHEM-AIR | Chemistry: air compressor and column (nitrogen, oxygen, argon), built beside the elevator it feeds | 3 | 2 | 1.50 | 89% | ROOM |
-| 46 | CHEM-COOL | Chemistry: chiller, liquid oxygen, helium and LNG (M14B pull) | 3 | 3 | 1.00 | 92% | CHEM-AIR, CHEM-GAS |
-| 47 | CHEM-CARB | Chemistry: carbon fibre from heavy oil, plastic and nitrogen (M14B pull) | 3 | 2 | 1.50 | 94% | CHEM-AIR |
-| 48 | M14A | Space elevator phase 1: anchor and first tether sections as standing orders of existing goods (kept last by the user) | 5 | 3 | 1.67 | 98% | - |
-| 49 | M14B | Space elevator, the rest (capstone, optional and never-ending) | 3 | 7 | 0.43 | 100% | M14A, CHEM-CARB, CHEM-COOL |
+| 38 | L-SLAB | Slabs and stairs (meshing, placement, collision) | 4 | 6 | 0.67 | 79% | ROOM |
+| 39 | F-GEO | Geothermal on basalt vents (a worldgen feature) | 2 | 3 | 0.67 | 81% | WORLDS |
+| 40 | L-TD | Tower-defence mode (still peaceful) | 3 | 6 | 0.50 | 83% | - |
+| 41 | L-SRV | Dedicated server | 2 | 5 | 0.40 | 84% | - |
+| 42 | L-MOD | Mod support | 2 | 6 | 0.33 | 86% | - |
+| 43 | L-P345 | Cheaper box instances, incremental checksum, small TS savings (three parked items) | 1 | 3 | 0.33 | 87% | - |
+| 44 | CHEM-AIR | Chemistry: air compressor and column (nitrogen, oxygen, argon), built beside the elevator it feeds | 3 | 2 | 1.50 | 89% | ROOM |
+| 45 | CHEM-COOL | Chemistry: chiller, liquid oxygen, helium and LNG (M14B pull) | 3 | 3 | 1.00 | 91% | CHEM-AIR, CHEM-GAS |
+| 46 | CHEM-CARB | Chemistry: carbon fibre from heavy oil, plastic and nitrogen (M14B pull) | 3 | 2 | 1.50 | 94% | CHEM-AIR |
+| 47 | M14A | Space elevator phase 1: anchor and first tether sections as standing orders of existing goods (kept last by the user) | 5 | 3 | 1.67 | 98% | - |
+| 48 | M14B | Space elevator, the rest (capstone, optional and never-ending) | 3 | 7 | 0.43 | 100% | M14A, CHEM-CARB, CHEM-COOL |
 
 Ids: Lx lessons (DEV_PLAN L1); F-* the feel-and-feedback interlude (`ROADMAP.md`); CHEM-* the chemistry families and steps
 (`ROADMAP_CHEMISTRY.md`); L-* items from "Later / maybe" and the parked list; ROOM and M14A from
 the audit above; CBPAL and MUSIC from the user's 2026-11-16 answers (`ROADMAP_REQUESTS.md`).
+
+## Backlog (parked by the user, not ranked)
+
+Build only when the user asks; the numbers above leave them out.
+
+| Id | Item | Impact | Sessions | Where |
+|---|---|---|---|---|
+| F-BEAT | Factory as an instrument: pitched notes on a shared beat, a few nearest families, a distance cap, music quiets (presentation only, in web/src/audio/) | 3 | 1 | docs/ROADMAP.md interlude; limits in docs/DECISIONS.md (2026-10-16) |

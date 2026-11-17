@@ -36,4 +36,22 @@ impl Processor {
     pub fn side_faces(&self) -> Vec<(IVec3, u8)> {
         self.footprint().faces(self.pos, self.dir, Role::Side)
     }
+
+    /// Every port face, its role, cell and the `DIRS` index it faces: inlets, then outlets, then byproduct ports (the
+    /// order of the bits of `linked`).
+    pub fn port_faces(&self) -> Vec<(Role, IVec3, u8)> {
+        let roles = [Role::In, Role::Out, Role::Side];
+        let each = |role| self.footprint().faces(self.pos, self.dir, role).into_iter().map(move |(c, s)| (role, c, s));
+        roles.into_iter().flat_map(each).collect()
+    }
+
+    /// Which port faces have a belt joined, bit k for the k-th of `port_faces`: an inlet a belt `feeds`, an outlet or
+    /// byproduct port with a belt `leading_away`, each asked with the face's cell and side.
+    pub fn linked_ports(&self, feeds: impl Fn(IVec3, u8) -> bool, leading_away: impl Fn(IVec3, u8) -> bool) -> u64 {
+        let joined = |(k, (role, c, s)): (usize, (Role, IVec3, u8))| {
+            let yes = if role == Role::In { feeds(c, s) } else { leading_away(c, s) };
+            u64::from(yes && k < 64) << k.min(63)
+        };
+        self.port_faces().into_iter().enumerate().map(joined).fold(0, |a, b| a | b)
+    }
 }

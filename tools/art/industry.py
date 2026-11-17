@@ -5,7 +5,7 @@ the tier ramp as a band with one pip per Mk. Recipes return `Face.rgba()` tiles;
 """
 import numpy as np
 
-from kit import AETHER, BLUE, BRONZE, CONCRETE, COPPER, DARK, EMBER, FIREBRICK, GOLD, STEEL, TIERS, VERDIGRIS, VIOLET, XS, YS, Face
+from kit import AETHER, BLUE, BRONZE, CONCRETE, COPPER, DARK, EMBER, FIREBRICK, GOLD, GREEN, RED, STEEL, TIERS, VERDIGRIS, VIOLET, XS, YS, Face
 from lib import N, coords, fbm, paint, rgba, vnoise
 from machines import rivet
 from natural import RAMPS
@@ -35,26 +35,68 @@ def belt(tier=0, seed=0):
     return rgba(img, glow=np.where(chev, 0.35, 0.0))
 
 
-def _router(arrows):
-    f = Face(31, STEEL, 7)
-    f.rect((18, 18, 110, 110), DARK, 0.3, -1.0, 4)
-    f.bar((64, 106), (64, 70), 9, AETHER, 0.6, 0.7)
-    for ox in (-1, 1):
-        f.bar((64, 70), (64 + ox * 28, 40), 9, AETHER, 0.6, 0.7)
-        f.bar((64 + ox * 28, 40), (64 + ox * 28, 26), 9, AETHER, 0.6, 0.7)
-    if arrows:  # a filter: a bronze diamond sits in the throat
-        f.disc((64, 70), 12, BRONZE, 0.6, 1.0, 4)
-        f.disc((64, 70), 5, DARK, 0.3, -1.0, 2)
-    f.bolts(((14, 14), (113, 14), (14, 113), (113, 113)), 3)
-    return f.rgba()
+# The routers' roofs, front at row 0: their ports in the port hatches' language (`port_in`, `port_out`), cyan where items
+# come in, gold where they go out, each an arrow the way items move. A splitter is one cyan arrow in and three gold out,
+# a merger three cyan in and one gold out, a filter one in, three out through a bronze sieve with a sorted item at each
+# outlet. They are also the routers' inventory icons (`item_models/belts.rs`), where a roof is a diamond about 30 pixels
+# wide: the arrows are fat and run to the edges so the three differ at a glance.
+_HUB = (64, 64)
+_EDGES = {"front": (64, 9), "left": (9, 64), "right": (118, 64), "back": (64, 118)}
+
+
+def _arrow(f, p0, p1, tones, w=16, head=27):
+    """A glowing arrow from `p0` to its tip at `p1`."""
+    (ax, ay), (bx, by) = p0, p1
+    L = max(np.hypot(bx - ax, by - ay), 1e-6)
+    ux, uy = (bx - ax) / L, (by - ay) / L
+    f.bar(p0, (bx - ux * head * 0.6, by - uy * head * 0.6), w, tones, 0.6, 0.7)
+    u = (XS - bx) * -ux + (YS - by) * -uy
+    v = np.abs(-(XS - bx) * uy + (YS - by) * ux)
+    m = (u >= 0) & (u <= head) & (v <= u * 0.75)
+    f.fill(m, tones, 0.62, 0.8, 0.1)
+    f.img[m & (v > u * 0.75 - 2.5)] = tones[1]
+
+
+def _router_face(seed):
+    f = Face(seed, STEEL, 4)
+    f.rect((6, 6, 122, 122), DARK, 0.3, -1.0, 3)
+    return f
 
 
 def splitter_top():
-    return _router(False)
+    f = _router_face(31)
+    _arrow(f, _EDGES["back"], (64, 74), AETHER)
+    for side in ("front", "left", "right"):
+        _arrow(f, _HUB, _EDGES[side], GOLD)
+    f.disc(_HUB, 13, STEEL, 0.55, 1.0, 3)
+    return f.rgba()
+
+
+def merger_top():
+    f = _router_face(472)
+    for side in ("back", "left", "right"):
+        (x, y) = _EDGES[side]
+        _arrow(f, (x, y), (64 + (x - 64) * 0.2, 64 + (y - 64) * 0.2), AETHER, 16, 27)
+    _arrow(f, _HUB, _EDGES["front"], GOLD)
+    f.disc(_HUB, 7, STEEL, 0.55, 1.0, 2)
+    return f.rgba()
 
 
 def filter_top():
-    return _router(True)
+    f = _router_face(32)
+    _arrow(f, _EDGES["back"], (64, 80), AETHER, 16, 27)
+    sorted_items = {"front": RED, "left": GREEN, "right": BLUE}
+    for side, item in sorted_items.items():
+        (x, y) = _EDGES[side]
+        _arrow(f, _HUB, (x, y), GOLD, 14, 24)
+        # The item this outlet takes, on its way out: one colour per outlet.
+        cx, cy = 64 + (x - 64) * 0.42, 64 + (y - 64) * 0.42
+        f.rect((cx - 11, cy - 11, cx + 11, cy + 11), item, 0.6, 1.0, 2, 0.5)
+    # The sieve: a bronze ring with a grid of holes.
+    sieve = f.disc(_HUB, 17, BRONZE, 0.62, 1.0, 4)
+    holes = sieve & (np.hypot(XS - 63.5, YS - 63.5) < 12) & ((XS % 6) < 3) & ((YS % 6) < 3)
+    f.img[holes] = DARK[0]
+    return f.rgba()
 
 
 def _band(f, tier, y=82):

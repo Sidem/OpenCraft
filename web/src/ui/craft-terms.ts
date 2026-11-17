@@ -7,8 +7,8 @@
 /** [words typed, item names (parts of the output's lower-case name)], both separated by `|`. */
 const ROWS: [string, string][] = [
   [
-    'belt|belts|conveyor|transport|logistics|route|sort|split|merge|move',
-    'belt|splitter|filter|underpass|lift|sensor',
+    'belt|belts|conveyor|transport|logistics|route|sort|split|merge|join|combine|move',
+    'belt|splitter|filter|merger|underpass|lift|sensor',
   ],
   [
     'water|fluid|fluids|liquid|pipe|pipes|pump|pumping|plumbing',

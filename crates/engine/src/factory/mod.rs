@@ -23,6 +23,7 @@ mod belt_chain;
 mod belt_curve;
 mod belt_items;
 mod belt_model;
+mod belt_order;
 mod belt_shape;
 pub mod box_label;
 mod buffer;
@@ -62,6 +63,7 @@ mod quarry;
 mod rail;
 mod render;
 mod router;
+mod router_model;
 mod sensor;
 mod sites;
 pub(crate) mod smoke;
@@ -79,7 +81,7 @@ mod wiring;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE, SOLID};
+use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, LONG_POLE, MINER_MK2, POLE, SOLID};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
@@ -110,7 +112,7 @@ use power::Power;
 use process::Processor;
 use quarry::Quarry;
 use rail::Rail;
-use router::Router;
+use router::{Router, RouterKind};
 use sensor::Sensor;
 use storage::Storage;
 use trains::Train;
@@ -286,7 +288,9 @@ impl Factory {
                     add_to(&mut self.processors, p, at, Slot::Process);
                 }
             }
-            Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
+            Kind::Router => {
+                add_to(&mut self.routers, Router::new(pos, facing, RouterKind::of(block)), at, Slot::Router)
+            }
             Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
             Kind::Pole => {
                 let tier = match block {

@@ -4,7 +4,8 @@ use crate::world::World;
 
 /// The marks show exactly the faces that work: for every machine with ports at every turn, a belt pointing into a
 /// marked inlet links into the machine, a belt leading away from a marked outlet takes its product (a byproduct outlet
-/// its byproduct), and on every other face of its bottom layer neither happens.
+/// its byproduct), and on every other face of its bottom layer neither happens. The openings say the same: exactly the
+/// face a working belt joins shows it joined (`Processor::linked`, `process/port_mouth.rs`).
 #[test]
 fn marks_show_exactly_the_faces_that_work() {
     let mut world = World::new(1, 2);
@@ -30,6 +31,15 @@ fn marks_show_exactly_the_faces_that_work() {
                         continue;
                     }
                     let mark = |flow| faces.contains(&(c, s, flow));
+                    let joined = |f: &Factory| {
+                        let p = &f.processors[i as usize];
+                        let faces = p.port_faces().into_iter().enumerate();
+                        faces
+                            .filter(|(k, _)| p.linked >> k & 1 == 1)
+                            .map(|(_, (_, pc, ps))| (pc, ps))
+                            .collect::<Vec<_>>()
+                    };
+                    let only_this = |works: bool| if works { vec![(c, s)] } else { Vec::new() };
                     let belt = |f: &Factory| match f.at.get(&stub) {
                         Some(&Slot::Belt(j)) => j,
                         _ => panic!("no belt"),
@@ -38,6 +48,9 @@ fn marks_show_exactly_the_faces_that_work() {
                     f.relink();
                     let fed = matches!(f.belts[belt(&f) as usize].out, Link::Machine(Slot::Process(k)) if k == i);
                     assert_eq!(fed, mark(Flow::In), "{name} turned {dir}, cell {c:?} side {s}: a belt pointing in");
+                    assert_eq!(joined(&f), only_this(fed), "{name} turned {dir}, {c:?} side {s}: joined inlet");
+                    let into = f.belts[belt(&f) as usize].ends_in_opening();
+                    assert_eq!(into, fed, "{name} turned {dir}, {c:?} side {s}: no end bar into the inlet");
                     f.remove(stub);
                     f.add_belt(stub, s);
                     f.relink();
@@ -45,6 +58,10 @@ fn marks_show_exactly_the_faces_that_work() {
                     assert_eq!(p.outs.contains(&j), mark(Flow::Out), "{name} turned {dir}, {c:?} side {s}: product");
                     let side = p.side_outs.contains(&j);
                     assert_eq!(side, mark(Flow::Byproduct), "{name} turned {dir}, {c:?} side {s}: byproduct");
+                    let leads = p.outs.contains(&j) || side;
+                    assert_eq!(joined(&f), only_this(leads), "{name} turned {dir}, {c:?} side {s}: joined outlet");
+                    let from = f.belts[j as usize].fed_by_port;
+                    assert_eq!(from, leads, "{name} turned {dir}, {c:?} side {s}: no end bar out of the outlet");
                     f.remove(stub);
                     faces_checked += 1;
                 }

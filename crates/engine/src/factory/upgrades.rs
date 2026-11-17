@@ -111,6 +111,15 @@ impl Factory {
         Some(Step { block, tier: next, kit: kit(colour)?, kits: family.kits, colour })
     }
 
+    /// The machine under `cell` when a faster Mk would help it (`Processor::is_bottleneck`): its anchor and its next
+    /// upgrade step. `upgrade_lesson.rs` teaches the kits with it.
+    pub fn bottleneck_at(&self, cell: IVec3) -> Option<(IVec3, Step)> {
+        let anchor = self.anchor_of(cell)?;
+        let Slot::Process(i) = *self.at.get(&anchor)? else { return None };
+        self.processors[i as usize].is_bottleneck().then_some(())?;
+        Some((anchor, self.next_upgrade(anchor)?))
+    }
+
     /// The kits the next upgrade of every machine at `cells` takes together (an underpass takes more than a belt).
     pub fn upgrade_kits(&self, cells: impl IntoIterator<Item = IVec3>) -> u32 {
         cells.into_iter().filter_map(|p| self.next_upgrade(p)).map(|s| s.kits).sum()

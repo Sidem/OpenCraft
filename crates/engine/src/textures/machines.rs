@@ -159,19 +159,22 @@ pub(super) fn constructor(x: i32, y: i32, side: bool) -> [u8; 4] {
     }
 }
 
-/// Router top: dark steel with arrows pointing towards row 0 (the router's front, like the belt) and,
-/// for the splitter, out to both sides; the filter's front arrow is amber.
-pub(super) fn router_top(x: i32, y: i32, filter: bool) -> [u8; 4] {
+/// Router top (`kind`: 0 splitter, 1 filter, 2 merger): dark steel with an arrow pointing towards row 0 (the router's
+/// front, like the belt) and bars to both sides; the filter's front arrow is amber, the merger's teal with arrowheads
+/// on its side bars pointing in.
+pub(super) fn router_top(x: i32, y: i32, kind: u8) -> [u8; 4] {
     let (fx, fy) = (x as f64 - 7.5, y as f64 - 7.5);
     // Arrowhead: a triangle with its tip at row 0.
     let front = (-7.0..-1.0).contains(&fy) && fx.abs() <= (fy + 7.0) * 0.7;
+    let inward = kind == 2 && (2.0..5.0).contains(&fx.abs()) && fy.abs() <= (fx.abs() - 2.0) * 0.8;
     let side = fy.abs() < 1.2 && fx.abs() > 2.0 && fx.abs() < 7.0;
     let stem = fx.abs() < 1.0 && (0.0..6.0).contains(&fy);
     let k = 0.9 + 0.1 * n(64, x, y);
     if x == 0 || y == 0 || x == 15 || y == 15 {
         rgb([34.0, 36.0, 42.0], k)
-    } else if front {
-        rgb(if filter { [236.0, 170.0, 60.0] } else { [200.0, 204.0, 212.0] }, k)
+    } else if front || inward {
+        let colour = [[200.0, 204.0, 212.0], [236.0, 170.0, 60.0], [70.0, 200.0, 190.0]][kind as usize];
+        rgb(colour, k)
     } else if side || stem {
         rgb([150.0, 156.0, 166.0], k)
     } else {

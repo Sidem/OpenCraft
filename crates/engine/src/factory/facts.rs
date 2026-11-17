@@ -21,8 +21,8 @@ use super::storage::BOX_SLOTS;
 use super::tiers::placed_by;
 use super::underpass::UNDERPASS_SPAN;
 use crate::block::{
-    BELT, CABLE, COAL_MINER, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MINER, MINER_MK2, OUTLET, PIPE, POLE,
-    PUMP, QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
+    BELT, CABLE, COAL_MINER, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MERGER, MINER, MINER_MK2, OUTLET,
+    PIPE, POLE, PUMP, QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{self, ItemId};
 use crate::recipes::FUELS;
@@ -113,6 +113,7 @@ pub fn facts(item: ItemId) -> Option<Facts> {
         }
         SPLITTER => f.stat("Splits", "Evenly between the belts leading away"),
         FILTER => f.stat("Sorts", "Picked items left, straight on or right; everything else one way"),
+        MERGER => f.stat("Joins", "Up to three belts into one, taking from each in turn"),
         LIFT => f.stat("Carries", "Items up or down one block at a time"),
         STORAGE => f.stat("Holds", format!("{} stacks", BOX_SLOTS[tier.min(BOX_SLOTS.len() - 1)])),
         PUMP => {

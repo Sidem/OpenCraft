@@ -1,10 +1,10 @@
 # OpenCraft development plan
 
-**Status (2026-11-16, v0.8.6):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
-trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L2–L6**
-(mini-lessons), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
+**Status (2026-11-17, v0.8.8):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L3, L4, L6**
+(mini-lessons; L2 and L5 done), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
-(chemistry design talk CHEM0 done 2026-11-16), doc compaction, lessons L2 and L5, the instrument, MERGE, WebP atlas, the rest of the cheap wins,
+(chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE and LOOK 2026-11-17), WebP atlas, the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
 then **ROOM** (block ids become `u16`; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
 stays last (user, 2026-11-16). Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
@@ -175,16 +175,15 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
 - [ ] **13.6b Balance from the user's next play-test** (`scripts/inspect-save.mjs`): order sizes, upkeep rates, perk rates
   and the harbour's price, once the user has played Milestone 13.
 - [ ] **L1 Mini-lessons.** Built: the rules, the machine-stopped lesson (`stall_lesson.rs`), need lessons
-  (`need_lesson.rs`), guided first steps (`first_steps.rs`). L2–L6 are one session each, in this order, each with a patch note.
+  (`need_lesson.rs`), no recipe (`recipe_lesson.rs`, L2), upgrade with kits (`upgrade_lesson.rs`, L5), guided first steps (`first_steps.rs`). L3, L4, L6 are one session each, in this order, each with a patch note.
   - *Rules (every lesson):* shown only for a need standing near the player now, never on a timeline; one card at a time in
     `ui/hints.ts` order, with `QUIET_TICKS` after each; done is a bit of `Sim::taught` (`lessons.rs`; saved, world-wide, set
     by doing the job or by H via `Action::LessonTaught`, never cleared); one escalation (card, then a prompt on the object,
     `key-prompt.ts`), no camera effects; a lesson whose job is already done never shows; a headless test completes it and
     `lessons/tests.rs` fuzzes the latches. Teach a stall once per cause, never nag; a lesson cannot create a need.
-  - *Next:* **L2 No recipe** (an assembler with no recipe chosen: add a bit and a prompt "Open"). **L3 Blueprint
+  - *Next:* **L3 Blueprint
     walk-through** (after the repeat prompt is accepted: prompts on the two corners; done: a blueprint saved). **L4 Planner**
-    (planner crafted, no site; card only; done: first site). **L5 Upgrade with kits** (a bottleneck machine pointed at while
-    kits are held; first check an upgrade would help). **L6 Map and pins** (the first 150 blocks out from spawn).
+    (planner crafted, no site; card only; done: first site). **L6 Map and pins** (the first 150 blocks out from spawn).
   - *Done when (each):* its bot test passes; `node scripts/check-lessons.mjs <saves>` stays quiet; seen in the browser pane.
 - [ ] **FIRE A flamethrower, and fire that burns grown trees whole to charcoal** (user, 2026-11-14; four steps, FIRE1 core,
   FIRE2 flamethrower, FIRE3 look, FIRE4 manual). Full design, the six rules that keep it cheap and each step's done-when:
@@ -198,8 +197,7 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (3) In the core, leave
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose.
-- **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** MERGE a merger belt
-  building; LOOK clearer splitter, filter and merger models; XRAY goggles, worn in an equipment slot, that show buried builds; WIRES power lines hung from
+- **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** XRAY goggles, worn in an equipment slot, that show buried builds; WIRES power lines hung from
   the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer (deposits only; no map pin for far deposits).
   Light and colour: GLASS stained glass and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour
   control (a later tech, unpowered); STREET tall street lamps; CBPAL a colour-blind palette for tier colours, as a setting;
@@ -229,7 +227,25 @@ flamethrower (FIRE2) and for the LED lamps.
 
 ## 6. Recent changes
 
-Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
+Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
+
+- **2026-11-17: MERGE and LOOK, the merger and the router family look (v0.8.8, no save bump).** `RouterKind::Merger` (block
+  `merger.rs`; the kind is the byte older saves wrote as the filter flag): inputs in turn, idle ones skipped (`router/tests.rs`).
+  `router_model.rs`: one gatehouse, roof art per job (cyan in, gold out), a lit band per opening, a chevron over the served side.
+  Machine ports are black doorways (`process/port_mouth.rs`, `render::mark_dark`) with a lamp when a belt is joined (`Processor::linked`).
+
+- **2026-11-16: L5, the upgrade lesson (v0.8.7).** upgrade_lesson.rs: the crosshair on a bottleneck (Processor::is_bottleneck: working at full pace,
+  every input piled up; found by Factory::bottleneck_at) with the next step's kits and research in hand brings a card and an Open prompt after
+  2 s; bit UPGRADE_BIT (9), taught by upgrading that machine or H; saved worlds count it taught (KNOWN_BEFORE_74, still save 74). Tests:
+  
+eed_lesson/tests.rs (they aim the real camera: update_target reruns every tick, so a test cannot just set g.target).
+- **2026-11-16: L2, the no-recipe lesson (v0.8.7, save 74).** `recipe_lesson.rs`: a `Pick::Chosen` machine with no recipe (found by
+  `Factory::unchosen`, since it reports no efficiency sample) near the player for `STALL_TICKS` brings a card and an Open prompt;
+  bit `NO_RECIPE_BIT` (8) in `Sim::taught`; choosing a recipe or H teaches it; save 74 writes nothing new, older worlds count it
+  taught (`KNOWN_BEFORE_74`). Tests in `need_lesson/tests.rs`, `lessons/tests.rs`.
+- **2026-11-16: DOCS, session-start read 57 → 38 KB (docs only).** `CODEMAP.md` 25.7 → 15.4 KB: entries are names plus a few words
+  (detail lives in module headers; the map's own header says so); `check-map.mjs` still passes. This plan 27.6 → 20.1 KB: change-log
+  entries before 2026-11-15 dropped. Keep new entries to two or three lines.
 
 - **2026-11-16: CHEM0, the chemistry design (docs only).** Measured on the 37.6 h save: both refineries and the cracker stand on
   "Diesel Barrel has nowhere to go" (no diesel generator built). Families ranked by the need they meet; elevator-only ones moved
@@ -247,65 +263,3 @@ Older entries: `git show 025edaf:docs/DEV_PLAN.md`.
   face in the tier colour plus Mk pips; `item_models/components.rs` `kit`). Mk2's art colour is `kit.LEAF` (hue ~120), not aether.
 - **2026-11-15: upgrade button drawn, mining note removed (user, v0.8.5).** `ui/machine-upgrade.ts` `UpgradeButton`: arrow and
   Mk, kit icon, held/needed (also the hauler pack's). New standing rule "show, don't write": `docs/DECISIONS.md`, `web/src/CLAUDE.md`.
-- **2026-11-15: recipe speed and miner panels (user, v0.8.4).** Recipe cards read the machine's real batch time
-  (`Processor::batch_seconds`, `Game::machine_recipe_seconds_at`) and print a minute and a second (`ui/recipe-rates.ts`);
-  the panel's top is a table (`ui/rate-table.ts`, rows from `Factory::rate_rows`), the readout one short line
-  (`rates_text`). Miners (`MINER`, `MINER_MK2`) have `panel: true`: right-click opens `Miner::panel`, never
-  `TakeContents`; the Take output button and slot clicks still do.
-- **2026-11-15: upgrade button, diesel (user, v0.8.3).** `ui/machine-upgrade.ts` on machine panels and box screens, through
-  `Game::machine_upgrade` / `upgrade_machine` (`api/machine.rs`; the same `Action::Upgrade`). Diesel: `BARREL_KJ` halved, still
-  `DIESEL_KW`, so a barrel lasts 50 s. A generator's saved charge above the new barrel just burns off.
-- **2026-11-15: Controls keyboard picture (user, v0.8.2).** The Controls page draws a keyboard with each used key lit by category
-  and the list below; one table (`ui/control-bindings.ts`) feeds both, labels follow the layout (`ui/keyboard-layout.ts`: chosen,
-  browser map, learned, QWERTY). Bindings stay by `e.code`. `web/test/controls.test.mjs` guards: table vs `input.ts`, presets vs
-  real Windows layouts (fixture), category colours under colour blindness (CIEDE2000). Not built: rebinding, touch.
-  Same day: the Home page for a returning player is an overview (`ui/home.ts`: next tip or lesson, research, E P T M buttons,
-  three stats); handy keys removed. Greeting lines are a random pick per visit (`ui/greetings.ts`).
-- **2026-11-15: menu and sound tidy (user, v0.8.1).** Settings has tabs and no longer slides aside (`ui/settings-tabs.ts`); Sound has
-  a master level and mute through one final gain node (`masterGain`, `web/test/sound-settings.test.mjs`), and K mutes the master.
-
-- **2026-11-15: version numbers (user).** 0.8.0, shown in the menu footer and patch-note headings (`VERSION`,
-  `ui/patch-notes.ts`); rule in `docs/DECISIONS.md`.
-
-- **2026-11-15: boxes to Mk5, pumpjack Mk2, sapling models (user).** `Family::first_kit` (`factory/tiers.rs`): a tier's kit and
-  paint is `Family::colour`, the tier itself except the pumpjack, whose Mk2 takes gold kits (`Step::colour`; `Action::Upgrade`'s
-  byte is the kit's colour). Boxes: Mk4 (violet, Mk4 Logistics) 60 stacks, Mk5 (gold, Mk5 Machines) 72. Pumpjack Mk2
-  (`pump.rs` `JACK_TIERS`): 2× draw, 97% kept, 160 kW, on a studded band slab (`Look::Band`). New item ids 410–412 sit after the
-  woods' logs (`FIRST_WOOD_LOG` is now fixed, not counted from the table's end); recipes and refit rows appended. Saplings: `item_models/plants.rs`
-  crossed sheets for the hand and the ground, icon still flat. No save bump. Numbers for Mk2 are a first guess to tune.
-- **2026-11-15: build menu folds Mks into one tile (user).** `ui/craft-family.ts` + `craft-tiers.ts`: tiles of one section with
-  the same `recipe_order >> 3` become one tile with a non-modal popover of the Mks (Escape, outside press, page change or
-  closing the inventory close it; the hover card anchors to the popover). Scanners and hauler packs join through
-  `ITEM_TIERS` (`recipes/menu_order.rs`). A building with one visible Mk stays a plain tile.
-
-- **2026-11-14: frame cost, repo and docs (`/deepen`).** Found with a CPU profile of the 37.6 h save: three sea pumps lifted
-  a source and the sea refilled it 5 ticks later, again and again; water and air light differently, so each edit marked 27
-  chunks for lighting and meshing, 43 remeshes a second with the player standing still (39% of the frame; the pump's own
-  edit also remeshed inside the tick). Now simulation edits to liquid wait 0.15 s of frame time in `world/settle.rs`
-  (render cache only; an edit the sea undoes in time marks nothing; a remesh near a waiting edit passes it on first), and
-  `pumping.rs` uses `set_block_anywhere_later`. Engine meshes are byte-identical (435 chunks, 622,911 quads, equal hashes)
-  and the renderer holds the same 435 after warm-up; wasm +3.9 KB. Numbers: section 2. Also: `scripts/prof-top.mjs`,
-  `frame-bench.mjs` (`PROFILE`, `WARM`, worst frame, memory), `build-wasm.mjs --profiling`, `bench-flight.mjs ... still`; three
-  unused symbols removed; `docs/history/` removed (8 files, 265 KB; `git log` has them). Docs: session-start read 62 → 47 KB;
-  8-task locate benchmark (cold Haiku) 8/8 first path, mean 71.4k → 65.2k tokens, 5.6 → 6.0 tool calls. Not done, measured: section 4.
-- **2026-11-14: tree lag spikes (user).** A sapling's growth remeshed per block (`set_block_anywhere`: 214 remeshes for one
-  young oak, 0.4–1.3 s native); it uses `set_block_anywhere_later` like felling and the forester. A fall checked the leaves
-  round every removed log (3–15 ms); `Sim::logs_removed` checks once over the tree's box. Native host frame with its 6 ms work
-  budget (`tests/tree_spikes.rs`): growth tick about 0.1 ms, the fall's frame 7–13 ms (was up to 65). Guarded by
-  `growing_and_felling_leave_remeshing_to_the_budget`.
-- **2026-11-14: trees felled whole, every wood its own (user).** Grown trees' wood (`is_tree_wood`) never mines a block at a
-  time: a swing at the trunk's low layers adds work, a mark on the bark counts whole (`sim/felling.rs`); the tree leaves the
-  world at once, the host draws it tipping over (`render/falling.ts`), its logs land along the fall line after `FALL_TICKS`.
-  Placed logs and old worlds' trees still mine block by block. Ten woods (`wood.rs`, `block/woods.rs`,
-  `tools/art/woods.py`); any wood serves where a recipe names the oak's. Save 73. Gap: a craft or batch loaded mid-way
-  forgets which wood it took and makes the oak's.
-- **2026-11-14: realistic trees and forest biomes (user; generator 12).** Trees grow from a species row
-  (`worldgen/grow/kinds.rs`, eleven kinds) as a trunk, drooping limbs and leaf clusters (`grow/mod.rs` `Plot`); saplings
-  (`sim/saplings.rs`) match generation. `biome_at` keeps the five broad biomes; `local_biome_at` refines them for trees and
-  ground cover only. Leaves are cards (`mesher/foliage/`), logs rings that follow limbs (`mesher/logs/`). Measured against
-  `509ed60`: wasm +18 KB gzipped; GPU frame p50 1.8 → 3.9 ms, p99 5.5 → 8.9 ms (2.5× the shaped quads). Next if it matters:
-  distance LOD for cards and limbs.
-- **2026-11-14: lifts down, cliffs in drags, hover range (user).** `Shape::Drop` (appended, no save bump): a lift column fed
-  over its top with an unfed foot carries items down (`belt_shape::derive_lift_ways`). A dragged line climbs cliffs on lifts
-  (`belt_line/path.rs` `MAX_LIFT`). A pole charges a hover pack as far as it wires to its own kind (`pole::span`).
-- **2026-11-15: tech order reviewed, research tiles square (user).** Prerequisites and costs moved so each unlock arrives when the game needs it (Masonry, Fluid Handling, Hydropower early; Rails, Jetpack, Ore Washing, Hauler packs, Auto-Routing, AI Survey later; Forestry now violet, after Violet Science); lint test `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it`. Nodes are 132x132 tiles with a kind icon (`ui/research-kinds.ts`, by tech name) in a progress ring.

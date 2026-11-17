@@ -321,6 +321,17 @@ impl Factory {
             .collect();
         let router_outs: Vec<[Option<u32>; 3]> =
             self.routers.iter().map(|r| r.out_dirs().map(|s| lead_away(r.pos, s))).collect();
+        let router_ins = super::router::merger_ins(&self.routers, belts, &outs);
+        // Which port faces of each machine have a belt joined: one ending in an inlet, one leading away from an outlet.
+        let process_linked: Vec<u64> = (processors.iter().enumerate())
+            .map(|(i, p)| {
+                let into = |j: u32, s: u8| {
+                    outs[j as usize] == Link::Machine(Slot::Process(i as u32)) && belts[j as usize].dir == opposite(s)
+                };
+                let feeds = |c: IVec3, s: u8| belt_at(c + DIRS[s as usize]).is_some_and(|j| into(j, s));
+                p.linked_ports(feeds, |c, s| lead_away(c, s).is_some())
+            })
+            .collect();
 
         let mut fed = vec![false; self.belts.len()];
         for o in &outs {
@@ -328,8 +339,14 @@ impl Factory {
                 fed[belt as usize] = true;
             }
         }
-        for ((((b, c), o), l), f) in self.belts.iter_mut().zip(curves).zip(outs).zip(lifts).zip(fed) {
-            b.fed_by_belt = f;
+        // Belts leading away from an opening (a machine's outlet, a router's exit).
+        let mut ported = vec![false; self.belts.len()];
+        let router_belts = router_outs.iter().flatten().flatten();
+        for &j in process_outs.iter().chain(&process_side_outs).flatten().chain(router_belts) {
+            ported[j as usize] = true;
+        }
+        for (((((b, c), o), l), f), p) in self.belts.iter_mut().zip(curves).zip(outs).zip(lifts).zip(fed).zip(ported) {
+            (b.fed_by_belt, b.fed_by_port) = (f, p);
             b.curve_from = c;
             b.out = o;
             (b.lift_below, b.lift_above) = l;
@@ -346,14 +363,17 @@ impl Factory {
             s.outs = o;
             s.next_out %= s.outs.len().max(1);
         }
-        for ((p, o), side) in self.processors.iter_mut().zip(process_outs).zip(process_side_outs) {
+        for (((p, o), side), linked) in
+            self.processors.iter_mut().zip(process_outs).zip(process_side_outs).zip(process_linked)
+        {
+            p.linked = linked;
             p.outs = o;
             p.next_out %= p.outs.len().max(1);
             p.side_outs = side;
             p.next_side %= p.side_outs.len().max(1);
         }
-        for (r, o) in self.routers.iter_mut().zip(router_outs) {
-            r.outs = o;
+        for ((r, o), i) in self.routers.iter_mut().zip(router_outs).zip(router_ins) {
+            r.set_links(o, i);
         }
 
         #[cfg(test)]
@@ -372,24 +392,6 @@ impl Factory {
         self.link_rails();
         process::link_steam(&mut self.processors, &self.at, &mut self.pipework);
 
-        // Each belt has at most one belt downstream, so walking the chain from every unvisited belt
-        // and appending it reversed puts every belt after the one it feeds.
-        let n = self.belts.len();
-        let mut visited = vec![false; n];
-        let mut path = Vec::new();
-        self.order.clear();
-        for start in 0..n {
-            let mut cur = start;
-            path.clear();
-            while !visited[cur] {
-                visited[cur] = true;
-                path.push(cur as u32);
-                match self.belts[cur].out {
-                    Link::Belt { belt, .. } => cur = belt as usize,
-                    _ => break,
-                }
-            }
-            self.order.extend(path.iter().rev());
-        }
+        super::belt_order::belt_order(&self.belts, &mut self.order);
     }
 }

@@ -87,6 +87,16 @@ impl Factory {
     }
 }
 
+impl Factory {
+    /// Calls `f` with the block and anchor of every machine whose recipe the player chooses (`Pick::Chosen`) and has not
+    /// yet. Such a machine reports no [`Sample`], so `recipe_lesson.rs` finds it here.
+    pub fn unchosen(&self, mut f: impl FnMut(BlockId, IVec3)) {
+        for p in self.processors.iter().filter(|p| p.spec.pick == Pick::Chosen && p.recipe.is_none()) {
+            f(p.spec.block, p.pos);
+        }
+    }
+}
+
 /// Whether a processor is a worker (not a power source, a store, a hangar or a research center).
 fn works(p: &Processor) -> bool {
     !p.energy().is_source()

@@ -7,6 +7,7 @@ use super::ejector::EJECTOR_DEFS;
 use super::forester::FORESTER_DEFS;
 use super::house::HOUSE_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
+use super::merger::MERGER_DEFS;
 use super::sign::SIGN_DEFS;
 use super::trees::TREES_DEFS;
 use super::woods::WOODS_DEFS;
@@ -24,6 +25,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &FORESTER_DEFS,
     &TREES_DEFS,
     &WOODS_DEFS,
+    &MERGER_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

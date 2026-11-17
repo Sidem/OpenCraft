@@ -202,6 +202,9 @@ pub use trees::{
 /// Each wood's planks, floor and door, and the oak's tree log, ids 182–218 (`woods.rs`).
 mod woods;
 pub use woods::{door_of, floor_of, planks_of, wood_block, OAK_TREE_LOG, OTHER_WOODS};
+/// The merger, id 219 (`merger.rs`).
+mod merger;
+pub use merger::{MERGER, MERGER_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -211,7 +214,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + SIGN_COUNT
     + FORESTER_COUNT
     + TREES_COUNT
-    + woods::WOODS_COUNT;
+    + woods::WOODS_COUNT
+    + MERGER_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

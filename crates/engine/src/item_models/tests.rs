@@ -197,18 +197,21 @@ fn tall(mask: &[bool]) -> usize {
 
 #[test]
 fn every_belt_family_icon_is_a_model_inside_its_cell() {
-    use crate::block::{BELT, BELT_EJECTOR, FILTER, LIFT, SPLITTER, UNDERPASS_IN};
+    use crate::block::{BELT, BELT_EJECTOR, FILTER, LIFT, MERGER, SPLITTER, UNDERPASS_IN};
     use crate::factory::tiers::item_of;
     let mut items: Vec<ItemId> = (0..4).flat_map(|t| [item_of(BELT, t), item_of(UNDERPASS_IN, t)]).flatten().collect();
-    items.extend([SPLITTER, FILTER, LIFT, BELT_EJECTOR].map(ItemId::block));
-    assert_eq!(items.len(), 12);
+    items.extend([SPLITTER, FILTER, MERGER, LIFT, BELT_EJECTOR].map(ItemId::block));
+    assert_eq!(items.len(), 13);
     for item in items {
         let model = parts(item);
         assert!(model.len() >= 4, "{item:?} is still a cube");
         for p in model {
             assert!(p.size.iter().all(|&s| s > 0.0) && p.tex.iter().all(|&t| (t as usize) < tex::COUNT));
-            for axis in 0..3 {
-                assert!(p.center[axis].abs() + p.size[axis] * 0.5 <= 0.501, "{item:?} leaves its cell");
+            // A part turned an odd number of quarters lies across: its x and z sizes swap.
+            let odd = (p.yaw / std::f32::consts::FRAC_PI_2).round() as i32 % 2 != 0;
+            let size = if odd { [p.size[2], p.size[1], p.size[0]] } else { p.size };
+            for (c, s) in p.center.iter().zip(size) {
+                assert!(c.abs() + s * 0.5 <= 0.501, "{item:?} leaves its cell");
             }
         }
     }

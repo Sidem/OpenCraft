@@ -11,9 +11,9 @@ use crate::block::{
     CHEMICAL_PLANT, CHIP_FAB, COAL_MINER, CONSTRUCTOR, COOLING_TOWER, CRACKER, CRUSHER, DATACENTER, DATA_RECEIVER,
     DIESEL_GENERATOR, DRONE_PORT, ELECTROLYSER, ELECTROLYTIC_CELL, FAST_BELT, FIBRE_NODE, FILTER, FORESTER, GENERATOR,
     GROUND_STATION, LAB, LANDING_PAD, LASER_EMITTER, LASER_MIRROR, LASER_RECEIVER, LAUNCH_SITE, LIFT, LOADING_DOCK,
-    LONG_POLE, MINER, MINER_MK2, OPTIMIZER, OUTLET, PIPE, POD_LAUNCHER, POLE, PUMP, PUMPJACK, QUARRY, RAIL, RAMP_DOWN,
-    RAMP_UP, REACTOR, RECTENNA, RECYCLER, REFINERY, RESEARCH_CENTER, SENSOR, SILO, SMELTER, SOLAR_PANEL, SPLITTER,
-    STORAGE, SWARM_HUB, TOWN_DEPOT, TURBINE, UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK, UPGRADER, WASHER,
+    LONG_POLE, MERGER, MINER, MINER_MK2, OPTIMIZER, OUTLET, PIPE, POD_LAUNCHER, POLE, PUMP, PUMPJACK, QUARRY, RAIL,
+    RAMP_DOWN, RAMP_UP, REACTOR, RECTENNA, RECYCLER, REFINERY, RESEARCH_CENTER, SENSOR, SILO, SMELTER, SOLAR_PANEL,
+    SPLITTER, STORAGE, SWARM_HUB, TOWN_DEPOT, TURBINE, UNDERPASS_IN, UNDERPASS_OUT, UNLOADING_DOCK, UPGRADER, WASHER,
     WATER_WHEEL, WINCH,
 };
 /// Machine kinds, in `MACHINES` order.
@@ -47,7 +47,7 @@ pub struct MachineDef {
 
 /// The machine table: first one row per kind, in `Kind` order (`Kind::def`), then further blocks of
 /// an existing kind.
-pub const MACHINES: [MachineDef; 72] = [
+pub const MACHINES: [MachineDef; 73] = [
     MachineDef { block: BELT, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: MINER, kind: Kind::Miner, slots: 1, panel: true },
     MachineDef { block: STORAGE, kind: Kind::Storage, slots: 24, panel: true },
@@ -62,6 +62,7 @@ pub const MACHINES: [MachineDef; 72] = [
     MachineDef { block: RAIL, kind: Kind::Rail, slots: 0, panel: false },
     MachineDef { block: FIBRE_NODE, kind: Kind::Node, slots: 0, panel: false },
     MachineDef { block: FILTER, kind: Kind::Router, slots: 0, panel: true },
+    MachineDef { block: MERGER, kind: Kind::Router, slots: 0, panel: false },
     MachineDef { block: RAMP_UP, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: RAMP_DOWN, kind: Kind::Belt, slots: 0, panel: false },
     MachineDef { block: LIFT, kind: Kind::Belt, slots: 0, panel: false },

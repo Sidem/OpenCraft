@@ -6,23 +6,10 @@ from `docs/DEV_PLAN.md` section 4; when one is built, move it into the plan, the
 
 ## Logistics and power polish (user, 2026-11-16; unordered, one session each; in `docs/DEV_PLAN.md` section 4 as one line)
 
-Four requests from play. Rules for all: new content is data and a new module (plan 3.1), each new look gets a placeholder
-layer and an `ART_HANDOVER.md` line, players get a patch note and a `FACTORY.md` / `PLAYING.md` line.
+Two requests from play left (MERGE and LOOK built 2026-11-17, plan section 6). Rules for all: new content is data and a new
+module (plan 3.1), each new look gets a placeholder layer and an `ART_HANDOVER.md` line, players get a patch note and a
+`FACTORY.md` / `PLAYING.md` line.
 
-- **MERGE: a merger** (new building, unlocked with Belt Routing beside the splitter and filter). The splitter's mirror: up to
-  three input belts (back, left, right), one output in front; it takes from the inputs in turn and skips any with nothing
-  waiting, so one busy belt cannot starve the others (a belt side-feeding another belt today wins or loses by position).
-  New `factory/merger.rs` modelled on `router.rs` (one item held, no power, invariant: nothing lost), its state in
-  `write_state`/`read_state` (`SAVE_VERSION` bump if the layout needs it), ids appended. *Done when:* a headless test feeds
-  three saturated belts and each gets an equal share of the output (within one item over a long run), one idle input hands
-  its share to the others, a blocked output loses nothing, and the save round trip and hash are stable.
-- **LOOK: splitter, filter and merger models that read at a glance** (presentation only, the state hash does not move).
-  One family look, different silhouette per job: the splitter one inlet fanning to three outlets, the merger three inlets
-  converging on one outlet, the filter the splitter's body with a visible sorting gate. Every port wears a chevron that
-  points the way items travel, the held item is drawn, and the outlet being served is marked (a paddle that swings to it).
-  Per the "show, don't write" rule the filter's outlets carry the picked item's icon, and the take-everything-else outlet
-  is distinct. *Done when:* the three are told apart in a side-by-side shot in the browser pane at belt-view distance and
-  while running, footprints and hit boxes are unchanged, and `frame-bench.mjs` shows no regression.
 - **XRAY: X-ray goggles** (a new worn item; it solves lost underpass and lift lines). While on, what
   the player built shows through terrain, tinted. Build it in two steps. **XRAY1 logistics:** belts, underpasses, lifts, routers,
   pipes, poles and machines, which are factory records and already drawn per frame; add one overlay pass of the same instances

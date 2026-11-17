@@ -5,7 +5,7 @@
 
 use crate::block::{
     ASSEMBLER, BELT, BELT_EJECTOR, BLAST_FURNACE, BOILER, CONSTRUCTOR, CRUSHER, FILTER, FORESTER, GENERATOR, LAB, LIFT,
-    MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
+    MERGER, MINER, OUTLET, PIPE, POLE, PUMP, QUARRY, SILO, SMELTER, SPLITTER, STORAGE, TURBINE, UNDERPASS_IN, UPGRADER,
 };
 use crate::item::{BLUE_PACK, GREEN_KIT, GREEN_PACK, RED_PACK, STEEL_AXE, STEEL_PICKAXE, STEEL_SHOVEL};
 use crate::recipes::{
@@ -63,12 +63,12 @@ pub const TECHS: &[Tech] = &join::<
 const MAIN: [Tech; 17] = [
     Tech {
         name: "Belt Routing",
-        blurb: "Splitters share items between belts; filters sort them.",
+        blurb: "Splitters share items between belts, filters sort them, mergers join them.",
         needs: &[],
         packs: &[RED_PACK],
         units: 10,
         seconds: 5.0,
-        unlocks: &[r(SPLITTER), r(FILTER)],
+        unlocks: &[r(SPLITTER), r(FILTER), r(MERGER)],
     },
     Tech {
         name: "Belt Lifts",

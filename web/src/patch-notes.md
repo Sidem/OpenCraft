@@ -4,6 +4,16 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.8 · Mergers, clearer splitters and filters, machine doorways
+- **New: the merger** (Belt Routing, beside the splitter and filter). Belts come in at the back and both sides, one belt leaves at the front. It takes from each input in turn and skips any that are empty, so one busy belt can no longer starve the others.
+- **Splitters, filters and mergers look different at a glance.** The splitter's roof shows gold arrows fanning out, the merger's cyan arrows coming together, and the filter's a sieve over coloured items. Each opening has a cyan band if items go in and a gold band if they come out, and a lit arrow shows which side is served right now. Their inventory icons follow the same colours.
+- **One colour language for every port:** cyan means items go in, gold means they come out, and arrows always point the way the items move.
+- **Machine ports are now dark doorways** that items disappear into. A small lamp above a doorway lights in the port's colour when a belt is really connected to it, and a connected belt runs straight in or out with no end bar.
+
+## 2026-11-16 · v0.8.7 · Hints for recipes and upgrades
+- **An assembler (or chemical plant, upgrader) with no recipe chosen now gets a hint:** a card and a floating **Open** prompt over the machine tell you to right-click it and pick what it makes. It shows once, only when the machine stands near you for a while, and never in worlds you already played.
+- **A machine that is running flat out with its inputs piling up now gets an upgrade hint** when you point at it while carrying the kits for its next Mk: a card and an **Open** prompt, where the panel has the upgrade arrow. It shows once, and only when an upgrade would really help.
+
 ## 2026-11-15 · v0.8.6 · Bolder upgrade kits
 - **Kits are now fully painted in their tier colour,** top and sides, with one white pip per Mk, so you can tell them apart at a glance in a full backpack.
 - **The Green Kit is really green** (it was a teal close to blue), and so is everything else that marks Mk2: belt chevrons, miner bands, pole and pump stripes.

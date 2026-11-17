@@ -15,7 +15,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | Hold left mouse     | Mine the targeted block                   |
 | Right mouse (hold)  | Place the selected block                  |
 | Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
-| R                   | Turn the belt or splitter/filter you point at; while holding a quarry or an assembler, turn it before placing |
+| R                   | Turn the belt or splitter/filter/merger you point at; while holding a quarry or an assembler, turn it before placing |
 | I                   | Pick up the item on the belt you point at, or the one you clicked to select if it is within reach; it goes into your pack, or stays if there is no room |
 | Left-click an item  | Select it on its belt: its readout stays up and follows it; click elsewhere to let go |
 | B                   | Ghost mode (opens with the Construction Drones research): right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
@@ -212,7 +212,7 @@ take them from its panel. From ingots you craft, by hand and slowly, iron plates
 screws (a rod makes 4) and copper wire (an ingot makes 2). Those make the first machines: a Miner Mk1 costs 5 plates,
 4 rods and 6 wire, four belts a plate and a rod, a box 8 planks and 2 plates, a generator 4 plates, 8 wire and 12
 stone, two poles 2 sticks and 2 wire. Once a constructor (10 iron ingots, 4 copper ingots, 8 stone) makes the
-parts for you, hand crafting is for one-offs. Also by recipe: a constructor is as above; a splitter 2 iron plates and
+parts for you, hand crafting is for one-offs. Also by recipe: a constructor is as above; a splitter or a merger 2 iron plates and
 2 belts, a filter 2 iron plates, 2 copper wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and
 4 iron rods; a boiler 24 stone bricks, 8 steel plates and 6 pipes, a steam turbine 12 steel plates, 4 motors and 16
 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an
