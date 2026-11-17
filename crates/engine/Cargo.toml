@@ -1,6 +1,6 @@
 [package]
 name = "opencraft-engine"
-version = "0.8.8"
+version = "0.8.9"
 description = "OpenCraft simulation core: world, terrain generation, meshing, physics"
 edition.workspace = true
 rust-version.workspace = true

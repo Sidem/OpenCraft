@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.9 · Faster first load
+- The picture pack is now 2.7 MB instead of 4.5 MB, with every pixel identical. The game starts sooner on slow connections.
+
 ## 2026-11-17 · v0.8.8 · Mergers, clearer splitters and filters, machine doorways
 - **New: the merger** (Belt Routing, beside the splitter and filter). Belts come in at the back and both sides, one belt leaves at the front. It takes from each input in turn and skips any that are empty, so one busy belt can no longer starve the others.
 - **Splitters, filters and mergers look different at a glance.** The splitter's roof shows gold arrows fanning out, the merger's cyan arrows coming together, and the filter's a sieve over coloured items. Each opening has a cyan band if items go in and a gold band if they come out, and a lit arrow shows which side is served right now. Their inventory icons follow the same colours.

@@ -88,7 +88,7 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 | 2 | L2 | **Done 2026-11-16** (v0.8.7): lesson, no recipe chosen | 3 | 1 | 3.00 | 5% | - |
 | 3 | L5 | **Done 2026-11-16** (v0.8.7): lesson, upgrade with kits | 3 | 1 | 3.00 | 7% | - |
 | 4 | MERGE | **Done 2026-11-17** (v0.8.8, no save bump): merger building | 4 | 2 | 2.00 | 10% | - |
-| 5 | PERF1 | Atlas as lossless WebP (4.5 to 2.7 MB) (load time on slow links) | 3 | 1.5 | 2.00 | 12% | - |
+| 5 | PERF1 | **Done 2026-11-17** (v0.8.9): atlas as lossless WebP, 4.5 to 2.7 MB | 3 | 1.5 | 2.00 | 12% | - |
 | 6 | L3 | Lesson: blueprint walk-through | 2 | 1 | 2.00 | 14% | - |
 | 7 | L4 | Lesson: planner | 2 | 1 | 2.00 | 16% | - |
 | 8 | L6 | Lesson: map and pins | 2 | 1 | 2.00 | 17% | - |

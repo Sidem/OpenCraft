@@ -1,10 +1,10 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.8):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-17, v0.8.9):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **L3, L4, L6**
 (mini-lessons; L2 and L5 done), **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
-(chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE and LOOK 2026-11-17), WebP atlas, the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
+(chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
 then **ROOM** (block ids become `u16`; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
 stays last (user, 2026-11-16). Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
@@ -89,8 +89,8 @@ Ryzen 7 5800X, RTX 3060, Chrome headless 1904×985 uncapped, `node scripts/frame
   (`bench-flight.mjs <save> 60 0 8 0 still`): `update` 2.6 ms, no streaming work, 0 mesh events (it was 3.8 ms of work,
   43 meshes a second, worst frame 18.7 ms). Profile of a steady frame (`scripts/prof-top.mjs`): wasm 77%, JS 6%, GC 0.2%;
   `Game::update` self time 26%, `World::light_at` 9%, belt posing and models 14%, `bufferSubData` 5%.
-- Download before the menu: JS 534 KB (175 KB gzipped), CSS 88 KB (18), wasm 2.24 MB (813), `art/pack.png` 4.52 MB and its
-  glow map 42 KB; music (9.3 MB) loads later. Software rendering (SwiftShader) at this size draws 0.8 frames a second:
+- Download before the menu: JS 534 KB (175 KB gzipped), CSS 88 KB (18), wasm 2.24 MB (813), the art pack 2.74 MB (four `pack_<n>.webp`; 4.52 MB as PNG
+  before 2026-11-17) and its glow map 42 KB; music (9.3 MB) loads later. Software rendering (SwiftShader) at this size draws 0.8 frames a second:
   fill-bound, not a target.
 - A 30,000-belt, 3,000-processor base (2026-10-19, `bench_*`): a steady tick 112 µs; any belt placed relinks the whole
   factory (3.4 ms); `write_instances` writes 1 M floats (0.5 ms) a frame. Towns plan every stage in 92 ms at once.
@@ -191,12 +191,10 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   cover), never a placed block, machine or house; a burning tree is one record, not a block automaton; a world with no fire
   does no fire work; every record and every tick's work is capped. Charcoal is treated as coal everywhere (2026-11-16).
 - **Measured performance options, none built** (2026-11-14; section 2 has the baseline). In order of value:
-  (1) The atlas as lossless WebP (`art/pack.png` 4.52 MB → 2.68 MB
-  in four slices of at most 16,383 rows, bit-exact): needs a decode that keeps un-premultiplied alpha (`art-pack.ts`) and
-  `tools/art/build.py` to write it. (2) Cache static machine geometry per chunk instead of rewriting it relative to the
-  eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (3) In the core, leave
+  (1) Cache static machine geometry per chunk instead of rewriting it relative to the
+  eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (2) In the core, leave
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
-  checks per pump operation, but it changes the state hash, so re-record the pins on purpose.
+  checks per pump operation, but it changes the state hash, so re-record the pins on purpose. (The atlas as WebP is done.)
 - **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** XRAY goggles, worn in an equipment slot, that show buried builds; WIRES power lines hung from
   the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer (deposits only; no map pin for far deposits).
   Light and colour: GLASS stained glass and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour
@@ -205,7 +203,7 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   In `docs/ROADMAP_CHEMISTRY.md`: CHEM the chemical tree (**design done 2026-11-16**: TEACH, DYE, GAS early; AIR, COOL, CARB beside the
   elevator; lubricant goes into rotating machines; no boil-off, gases stay barrels; the oil chain's jam is diesel); PUMPDOWN pumping out a sealed flooded shaft
   (analysed: feasible); CODEX a periodic table of discovered and made elements, with achievements (no rewards).
-- **Parked, fit in where a session has room:** P3 cheaper box instances (see (2) above), P4 an incremental co-op
+- **Parked, fit in where a session has room:** P3 cheaper box instances (see (1) above), P4 an incremental co-op
   checksum, P5 small TS savings (`git show 025edaf:docs/history/CHANGELOG_M12.md`); a power beam drawn from satellites to
   rectennas; incremental `relink` if big bases hitch on placing (measured in section 2).
 - **The user's to do:** add the two TURN secrets (`docs/WORKFLOW.md` section 4), then test with `&relay` on both ends.
@@ -229,6 +227,9 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-17: PERF1, the atlas as lossless WebP (v0.8.9, no save bump).** `tools/art/build.py` writes `pack_<n>.webp` (127 layers a file,
+  `exact=True` keeps the colour under transparent texels); `art-pack.ts` decodes through `createImageBitmap` (premultiply off) and a
+  WebGL2 `readPixels`, 1024 rows at a time. 4.53 → 2.74 MB; the browser's decoded stack hashes identical to the old PNG's.
 - **2026-11-17: MERGE and LOOK, the merger and the router family look (v0.8.8, no save bump).** `RouterKind::Merger` (block
   `merger.rs`; the kind is the byte older saves wrote as the filter flag): inputs in turn, idle ones skipped (`router/tests.rs`).
   `router_model.rs`: one gatehouse, roof art per job (cyan in, gold out), a lit band per opening, a chevron over the served side.
