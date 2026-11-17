@@ -4,6 +4,10 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.17 · Why the chemistry works
+- **The chemical machines' recipe cards say what the batch stands for.** Distilling, cracking, plastic, acid, lubricant, pure water, electrolysis, rocket fuel and enriching uranium each carry one line of the real process behind them, on the recipe card in the machine's panel and on the item's page in the build menu.
+- **A refinery stuck on diesel now says what to do with it.** The "full" card for a diesel barrel names the diesel generator that burns it for power and the recycler that destroys it for coins, with the research each one needs. Any stuck item that no recipe takes now mentions the recycler too.
+
 ## 2026-11-17 · v0.8.16 · Colour-blind colours for the tiers
 - **Settings, Picture, "Colour-blind colours": a second set of tier colours.** Mk1 to Mk5 are normally red, green, blue, violet and gold, and a blue and a violet look the same to some eyes. The colour-blind set is blue, vermillion, violet, teal and gold, picked so every pair stays apart for red-green and blue-yellow colour blindness, and it runs from dark to light. The stripes on belts and machines, the upgrade kits, the studs, the item chips and the upgrade outlines all follow it. The pips and the Mk numbers are the same either way, and the choice is kept in this browser only.
 

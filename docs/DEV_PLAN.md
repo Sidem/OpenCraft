@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.16):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-17, v0.8.17):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
@@ -223,6 +223,12 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-17: CHEM-TEACH, the chemistry cards teach (v0.8.17, no save bump, state hash unmoved).** `recipes/process_notes.rs`: one line of
+  real process for each of the nine rows of the refinery, cracker, chemical plant, electrolyser and centrifuge (a test names any row
+  without one); `Game::machine_recipe_note` shows it under the recipe card (`machine-recipes.ts`) and in the item guide's machine way
+  (`item-guide.ts`). The diesel jam: `item_guide::use_line` now adds the machine that burns an item for power (`BURNED_BY`: diesel
+  generator) and the recycler for any stuck item no recipe takes, each with its research, so the Full card names both (test in
+  `stall_lesson/tests.rs`). No new lesson bit: the existing "full" card carries it.
 - **2026-11-17: CBPAL, a colour-blind palette for the tier colours (v0.8.16, no save bump, state hash unmoved).** `tier_palette.rs` holds
   both palettes (standard = `upgrades::TIER_COLOURS`; `TIER_COLOURS_CB`, dark to light: blue, vermillion, violet, teal, gold) and the
   local `Game::tier_palette` the host sets (`set_tier_palette`; never saved). Engine colours (item chip, upgrade outline, line outlines)

@@ -184,6 +184,9 @@ export class ItemGuide {
     // How many machines feed how many, to plan a line before building it.
     const ratios = way.kind === 'machine' ? g.machine_recipe_ratios(way.recipe) : '';
     if (ratios) row.append(h('p', 'guide-ratio', `At full speed: ${ratios}`));
+    // The real process a chemical machine's batch stands for (`recipes/process_notes.rs`).
+    const why = way.kind === 'machine' ? g.machine_recipe_note(way.recipe) : '';
+    if (why) row.append(h('p', 'guide-note guide-why', why));
     return row;
   }
 

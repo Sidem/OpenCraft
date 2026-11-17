@@ -67,7 +67,7 @@ from `docs/DEV_PLAN.md` section 4. When one is built, move it into the plan, the
   **Steps, one session each (parts are separate sessions only for GAS), each with its own done-when.** Every step also needs: a
   headless test, `recipe-graph.mjs` clean of new dead ends, a placeholder layer and an `ART_HANDOVER.md` line per new look, the
   manual (`FACTORY.md`) and a patch note.
-  - **CHEM-TEACH.** The notes table and its API getter, the card line, notes for today's chemistry (Distil, Crack, plastic,
+  - **CHEM-TEACH (done 2026-11-17, v0.8.17; `DEV_PLAN.md` section 6).** The notes table and its API getter, the card line, notes for today's chemistry (Distil, Crack, plastic,
     acid, lubricant, electrolysis, rocket fuel, enrichment). *Done when:* a test says every product of the refinery, cracker,
     chemical plant, electrolyser and centrifuge has a note; the note shows on an item page and a recipe card in the browser pane;
     a refinery stopped on diesel shows a card naming the generator and the recycler (a test, unless the generic need lesson

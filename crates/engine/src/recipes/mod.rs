@@ -29,6 +29,7 @@ mod machine_later;
 mod materials;
 mod menu_order;
 mod orbit;
+pub mod process_notes;
 mod recycler;
 pub mod recycling;
 mod refit;

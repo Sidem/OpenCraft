@@ -116,6 +116,24 @@ fn a_world_taught_every_cause_never_scans() {
 }
 
 #[test]
+fn a_refinery_full_of_diesel_names_the_generator_and_the_recycler() {
+    use crate::factory::ProcessStatus;
+    use crate::item::{CRUDE_BARREL, DIESEL_BARREL};
+    let mut g = ready();
+    let at = IVec3::new(0, 200, 0);
+    g.sim.factory.place(&mut g.sim.world, block::REFINERY, at, 0, at, 0);
+    let p = g.sim.factory.processor_at_mut(at, block::REFINERY);
+    // Crude waiting, the diesel hatch full and nothing taking it: the refinery stops on diesel.
+    p.input.add(CRUDE_BARREL, 3);
+    p.side.add(DIESEL_BARREL, 16);
+    p.status = ProcessStatus::OutputFull;
+    g.stall.watch = Some(Watch { pos: at, block: block::REFINERY, cause: Cause::Output, since: 0 });
+    let text = g.stall_text(at, Cause::Output);
+    assert!(text.starts_with("Full of Diesel Barrel: the Refinery"), "{text}");
+    assert!(text.contains("Diesel Generator") && text.contains("Recycler"), "{text}");
+}
+
+#[test]
 fn every_cause_has_words_that_name_the_machine() {
     for (cause, text) in LESSONS.iter().enumerate() {
         assert!(text.contains("{m}") && text.contains(": "), "cause {cause}: a title, then the machine's name");

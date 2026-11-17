@@ -297,7 +297,9 @@ size.
   **cracker** (heavy oil and water into naphtha and diesel). Plastics, then Acids and Lubricants, unlock the
   **chemical plant** (plastic from naphtha and coal, acid from sulfur and water, lubricant from heavy oil). A
   **diesel generator** burns a barrel for 50 s of 400 kW and gives only what the grid lacks; the
-  **electrolyser** splits water into hydrogen and oxygen for later. **Ore washing** (the washer takes *crushed* ore
+  **electrolyser** splits water into hydrogen and oxygen for later. Every chemical recipe's card and item page carries
+  a line of the real process behind it (`recipes/process_notes.rs`), and a machine stuck full of diesel is told a
+  generator burns it and a recycler destroys it for coins. **Ore washing** (the washer takes *crushed* ore
   only, water from a pipe) turns a raw ore's 1.0 ingots into 2.0 and leaves tailings you must belt away. A **research
   center** (2×2×2, eight pack slots, twice a lab's speed and power) takes the gold pack that a lab has no slot for.
   The **water wheel** (rivers and lakes exist in worlds made from this version on) gives 2 kW per still water block

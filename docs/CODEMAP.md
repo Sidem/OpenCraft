@@ -63,7 +63,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `chemistry.rs`, `forest.rs`, `ruins.rs`, `decor.rs`, `trees.rs`, `coal_miner.rs`, `house.rs`, `ejector.rs`, `sign.rs`,
   `forester.rs`, `woods.rs`, `ores.rs`.
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks. `wood.rs`: the ten woods.
-- `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `rows.rs`, `tiers.rs`,
+- `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
   set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
   `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house`.

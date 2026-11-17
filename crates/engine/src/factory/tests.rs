@@ -49,6 +49,15 @@ impl Factory {
         }
     }
 
+    pub(crate) fn processor_at_mut(&mut self, pos: IVec3, block: BlockId) -> &mut Processor {
+        match self.at.get(&pos) {
+            Some(Slot::Process(i)) if self.processors[*i as usize].spec.block == block => {
+                &mut self.processors[*i as usize]
+            }
+            _ => panic!("no block {block} processor at {pos:?}"),
+        }
+    }
+
     pub(crate) fn belt_at(&self, pos: IVec3) -> &Belt {
         match self.at.get(&pos) {
             Some(Slot::Belt(i)) => &self.belts[*i as usize],
