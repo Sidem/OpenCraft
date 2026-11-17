@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.16 · Colour-blind colours for the tiers
+- **Settings, Picture, "Colour-blind colours": a second set of tier colours.** Mk1 to Mk5 are normally red, green, blue, violet and gold, and a blue and a violet look the same to some eyes. The colour-blind set is blue, vermillion, violet, teal and gold, picked so every pair stays apart for red-green and blue-yellow colour blindness, and it runs from dark to light. The stripes on belts and machines, the upgrade kits, the studs, the item chips and the upgrade outlines all follow it. The pips and the Mk numbers are the same either way, and the choice is kept in this browser only.
+
 ## 2026-11-17 · v0.8.15 · Power lines hang from the insulators
 - **Wires now leave the crossarm's insulators, not the middle of the post.** A pole's wire picks the insulator on the side the other end lies towards, so a line between two poles runs from the near insulator of one to the near insulator of the other. Several wires on the same side fan out a few centimetres along the arm.
 - **Towers hang their wires from the arm tips.** A long-distance tower's wires leave the clamps of its two crossarms, lower arm first, and the lightning wire at the peak carries none. Nothing about power changes: only where the wire is drawn, and the wire you are about to make previews the same way.

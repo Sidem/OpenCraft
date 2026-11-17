@@ -20,6 +20,7 @@ import { drainMeshes } from './render/mesh-events';
 import { DEFAULT_RADIUS, QualityStore } from './render/quality';
 import { Renderer } from './render/renderer';
 import { SignFaces } from './render/sign-faces';
+import { wireTierPalette } from './render/tier-wire';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
 import { noStorage } from './ui/no-storage';
@@ -123,6 +124,7 @@ async function main(): Promise<void> {
   renderer.setTurns(new Uint32Array(game.texture_turns()));
   renderer.setWaterLayer(game.water_layer());
   const hud = new Hud(game, texPixels, texSize);
+  wireTierPalette(game, renderer, hud, texPixels, texSize, document.getElementById('tier-palette')!);
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);
   vignette.previewing = () => menu.previewing;

@@ -1,5 +1,6 @@
 use super::*;
 use crate::block::{BELT, MINER};
+use crate::factory::upgrades;
 use crate::item::{BLUE_KIT, GREEN_KIT};
 use crate::raycast::RayHit;
 
@@ -42,6 +43,9 @@ fn a_kit_over_a_machine_outlines_it_and_says_what_it_costs() {
     assert!(!aim.label.contains("you have"), "{}", aim.label);
     g.line.aim = aim;
     assert_eq!(g.aim_box(), [0, 70, 0, 0, 70, 0, upgrades::TIER_COLOURS[1] as i32]);
+    g.set_tier_palette(crate::tier_palette::COLOUR_BLIND);
+    let aim = aim_at(&mut g, AT, MINER, GREEN_KIT);
+    assert_eq!(aim.colour, crate::tier_palette::TIER_COLOURS_CB[1] as i32, "the outline wears the chosen palette");
 }
 
 #[test]

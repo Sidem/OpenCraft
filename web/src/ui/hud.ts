@@ -58,6 +58,9 @@ export interface DebugInfo {
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
+/** Counts how often the item icons were redrawn from new layers (`Hud.repaintLayers`); panels that keep their own copies compare it. */
+export const iconEpoch = { n: 0 };
+
 /** Shows a slot's amount: the count, or a wear bar for a tool (its count is the uses left; hud.css). */
 export function showAmount(game: Game, root: HTMLElement, count: HTMLElement, item: number, n: number): void {
   const uses = n > 0 ? game.tool_uses(item) : 0;
@@ -125,6 +128,17 @@ export class Hud {
     bar.append(this.offhand.root);
     this.heldName = new HeldName(game);
     bar.append(this.heldName.el);
+  }
+
+  /** Swaps in new pixels for texture layers (a tier palette: render/tier-wire.ts) and redraws every icon from them. */
+  repaintLayers(pixels: Map<number, Uint8Array>): void {
+    for (const [layer, data] of pixels) {
+      const c = this.layers[layer];
+      c.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(data), c.width, c.height), 0, 0);
+    }
+    this.icons.clear();
+    iconEpoch.n++;
+    for (const slot of this.slots) slot.item = -1; // the hotbar redraws its icons on the next update
   }
 
   toggleDebug(): void {

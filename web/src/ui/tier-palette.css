@@ -1,0 +1,20 @@
+/* The tier-colour choice (ui/tier-palette.ts): five chips and the palette's name on each button. */
+.comfort-choices .secondary-btn:has(.tier-chip) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.tier-chip {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 55%);
+}
+
+.tier-chip-name {
+  flex-basis: 100%;
+  text-align: center;
+}

@@ -36,7 +36,7 @@ impl Game {
     pub(crate) fn planned_cells(&self) -> Vec<i32> {
         let have = self.line_budget();
         let kit = upgrades::kit_tier(self.inventory().selected_stack().item);
-        let colour = kit.map_or(1, |t| upgrades::TIER_COLOURS[t as usize] as i32);
+        let colour = kit.map_or(1, |t| self.tier_colour(t) as i32);
         let paid: Vec<bool> = match kit {
             Some(_) => (0..self.line.cells.len()).map(|i| i < have).collect(),
             None => pass::affordable(&self.line.cells, have),

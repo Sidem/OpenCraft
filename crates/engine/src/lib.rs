@@ -114,6 +114,7 @@ mod survey;
 mod take_apart;
 mod telescope;
 mod textures;
+mod tier_palette;
 mod tools;
 mod town_preview;
 mod train_tools;
@@ -274,6 +275,8 @@ pub struct Game {
     rails: RailTools,
     /// Power and production history and machine efficiency (`analytics/`; presentation, not saved).
     analytics: analytics::Analytics,
+    /// Which tier-colour palette this player chose (`tier_palette.rs`; a local setting, not saved).
+    tier_palette: u8,
 }
 
 #[wasm_bindgen]
@@ -361,6 +364,7 @@ impl Game {
             held_bend: 0,
             sign_slots: Default::default(),
             analytics: analytics::Analytics::default(),
+            tier_palette: tier_palette::STANDARD,
         }
     }
 }

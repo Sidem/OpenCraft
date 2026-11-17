@@ -93,7 +93,7 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 | 7 | L4 | **Done 2026-11-17** (v0.8.13): lesson, planner | 2 | 1 | 2.00 | 16% | - |
 | 8 | L6 | **Done 2026-11-17** (v0.8.14): lesson, map and pins | 2 | 1 | 2.00 | 17% | - |
 | 9 | WIRES | **Done 2026-11-17** (v0.8.15, no save bump): wires hang from the pole arms (visual only) | 2 | 1 | 2.00 | 19% | - |
-| 10 | CBPAL | Colour-blind palette for tier colours, a setting (presentation only) | 2 | 1 | 2.00 | 20% | - |
+| 10 | CBPAL | **Done 2026-11-17** (v0.8.16, no save bump): colour-blind palette for tier colours, a setting (presentation only) | 2 | 1 | 2.00 | 20% | - |
 | 11 | CHEM-TEACH | Chemistry cards teach: one-line real process per product, the diesel-jam lesson (`docs/ROADMAP_CHEMISTRY.md`) | 2 | 1 | 2.00 | 22% | - |
 | 12 | ROOM | Room for content: block ids to `u16` everywhere (decided; measure memory and save size) and model layers past 512 | 4 | 3 | 1.33 | 25% | - |
 

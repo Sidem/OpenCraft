@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.15):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-17, v0.8.16):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
@@ -223,6 +223,15 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-17: CBPAL, a colour-blind palette for the tier colours (v0.8.16, no save bump, state hash unmoved).** `tier_palette.rs` holds
+  both palettes (standard = `upgrades::TIER_COLOURS`; `TIER_COLOURS_CB`, dark to light: blue, vermillion, violet, teal, gold) and the
+  local `Game::tier_palette` the host sets (`set_tier_palette`; never saved). Engine colours (item chip, upgrade outline, line outlines)
+  read `Game::tier_colour`. The 14 baked layers (stripes, studs' paint, kit cases; `tier_layers()`) are recoloured by the host from the
+  standard pixels (`render/tier-paint.ts`, wired in `render/tier-wire.ts`): texels carrying the colour take the new hue, steel and
+  pips stay; no new atlas layers. Row in Settings, Picture (`ui/tier-palette.ts`, localStorage). Test `web/test/tier-palette.test.mjs`
+  reads the Rust constants: worst pair 20+ (CIEDE2000) in all four sights where the standard palette's deutan worst pair is under 1;
+  `web/test/colour.mjs` now holds the colour maths. Live change repaints the world, hotbar and inventory; other lists (research
+  tiles) catch up on the next page load.
 - **2026-11-17: WIRES, power lines hang from the insulators (v0.8.15, no save bump, state hash unmoved).** `factory/pole_hang.rs`: `Pole::hang_point(side,
   rank)` and the chooser (side towards the other end, levels in `Power::wires` order, then fanned); `pole_tower::HANGS` (arm clamps; the peak
   carries nothing); `Factory::for_each_wire` counts every wire so ends never depend on the camera; the wire and long-pole previews use

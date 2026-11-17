@@ -87,7 +87,8 @@ chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); p
 
 ## Colour-blind palette and more music (user, 2026-11-16; one session each; ids CBPAL and MUSIC)
 
-- **CBPAL: a colour-blind palette for tier colours, as a setting.** Mk1–Mk5 are told apart by colour (`Family::colour`, the
+- **CBPAL (done 2026-11-17, v0.8.16: the host recolours the baked layers, no art request, no new layers; `DEV_PLAN.md` section 6):**
+  a colour-blind palette for tier colours, as a setting. Mk1–Mk5 are told apart by colour (`Family::colour`, the
   kit cases' baked layers `tex::kit_paint`, panels, research and craft tiles); pips and "Mk" text already say the tier too. A
   Settings choice (`ui/settings-tabs.ts`) swaps in a second palette whose five colours stay apart under protan, deuter and
   tritan, checked as `web/test/controls.test.mjs` checks the control categories (CIEDE2000). Presentation only, the state hash
