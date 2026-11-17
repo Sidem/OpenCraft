@@ -7,8 +7,8 @@
 //! - The low-power lesson: a machine near the player that has worked short of power (slower, not stopped) for
 //!   `STALL_TICKS` brings one card naming the power screen (P). Getting it full power again, opening that screen, or H
 //!   teaches it for good (`lessons::LOW_POWER_BIT`).
-//! - The no-recipe and upgrade lessons (`recipe_lesson.rs`, `upgrade_lesson.rs`) keep their watches here and are
-//!   scanned from `watch_needs`.
+//! - The no-recipe, upgrade and blueprint lessons (`recipe_lesson.rs`, `upgrade_lesson.rs`, `blueprint_lesson.rs`) keep
+//!   their watches here and are scanned from `watch_needs`.
 //!
 //! Invariants: the stall lesson's rules hold (near, one card at a time, never over a stall lesson, the shared quiet
 //! spell after each); a world that was taught it never scans. To add a need lesson: a bit in `lessons.rs`, a watcher
@@ -18,7 +18,7 @@ use crate::action::Action;
 use crate::block::{self, BlockId};
 use crate::factory::efficiency::{Cause, Sample};
 use crate::item_guide;
-use crate::lessons::{mask, LOW_POWER_BIT, UPGRADE_BIT};
+use crate::lessons::{mask, BLUEPRINT_BIT, LOW_POWER_BIT, UPGRADE_BIT};
 use crate::math::IVec3;
 use crate::stall_lesson::{QUIET_TICKS, RANGE, STALL_TICKS};
 use crate::{Game, TICK_RATE};
@@ -52,6 +52,8 @@ pub struct NeedWatch {
     pub(crate) recipe: Option<crate::recipe_lesson::Watch>,
     /// The upgrade lesson's machine (`upgrade_lesson.rs`).
     pub(crate) upgrade: Option<crate::upgrade_lesson::Watch>,
+    /// The blueprint walk-through's box (`blueprint_lesson.rs`).
+    pub(crate) blueprint: Option<crate::blueprint_lesson::Watch>,
 }
 
 impl Game {
@@ -79,6 +81,9 @@ impl Game {
         }
         if self.sim.taught & mask(UPGRADE_BIT) == 0 {
             self.scan_upgrades();
+        }
+        if self.sim.taught & mask(BLUEPRINT_BIT) == 0 {
+            self.scan_blueprints();
         }
     }
 

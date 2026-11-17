@@ -45,7 +45,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `grid_colour.rs`. Data and light: `fibre.rs`, `laser.rs`. Logic: `sensor.rs`.
 - Rails: `rail.rs` + `rail/curve.rs` + `rail/ground.rs` + `rail/pieces.rs` (docks as track pieces; core side `action/docks.rs`),
   `trains.rs` + `trains/` (cars, schedule, signals, docks, model, motion, view).
-- `lab.rs`. `sites.rs` + `sites/` (terraforming, survey, tunnels). `footprint/`: multi-block machines; `port_marks.rs` (port stubs).
+- `lab.rs`. `sites.rs` + `sites/` (terraforming, survey, tunnels). `footprint/`: multi-block machines; `port_marks.rs` (port stubs); `preview.rs` (`place_preview`: a scratch factory for ghost models).
 - `process/`: every inputs-to-outputs machine is one `Processor` driven by a `ProcessSpec` row (`specs.rs`; `basic.rs` the first
   rows); `mod.rs`, `work.rs`, `state.rs`, `extra.rs`, `kinds.rs`, `status.rs`, `view.rs`, `model.rs` + `parts.rs`, `display.rs`
   (`Look::Product`), `assembly_view.rs` (`Look::Work`), `port_mouth.rs` (port openings), `shape.rs` (cells and ports: ask it, not the spec), `intake.rs`,
@@ -84,9 +84,9 @@ local player's hands, presentation, then the **deterministic core**, which never
   `strategy.rs` + `strategy/navigation.rs`, `item_select.rs`.
 - `belt_line.rs` + `belt_line/` (`path.rs`, `preview.rs`, `route.rs`), `upgrade_aim.rs`, `belt_bend.rs`, `place_refusal.rs`.
 - Previews and hands: `quarry_preview.rs`, `forester_preview.rs`, `footprint_preview.rs`, `port_view.rs` + `port_view/`,
-  `town_preview.rs`, `ghost_mode.rs`, `power_tools.rs` + `power_tools/`, `rail_tools.rs`, `rail_snap.rs`, `train_tools.rs`,
+  `town_preview.rs`, `ghost_mode.rs` + `ghost_models.rs` (ghosts and blueprint stamps as see-through models), `ghost_build.rs` (X: build the aimed ghost from the pack), `power_tools.rs` + `power_tools/`, `rail_tools.rs`, `rail_snap.rs`, `train_tools.rs`,
   `dock_tools.rs`, `cargo_tools.rs`, `site_hands.rs`, `helper_hands.rs`, `drone_hands.rs`, `blueprint/hands.rs`, `blueprint/repeat.rs`.
-- Lessons: `stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs` (no recipe chosen), `upgrade_lesson.rs` (a bottleneck and kits in the pack), `first_steps.rs` + `first_steps/`.
+- Lessons: `stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs` (no recipe chosen), `upgrade_lesson.rs` (a bottleneck and kits in the pack), `blueprint_lesson.rs` (the walk-through after the blueprint prompt), `first_steps.rs` + `first_steps/`.
 - Tools: `prospect.rs`, `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
@@ -120,7 +120,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `save/`: `store.ts` (IndexedDB), `session.ts`, `export.ts`, `leave-guard.ts` (drawn by `ui/leave-prompt.ts`; `ui/no-storage.ts` fills Worlds without storage); `comfort/settings.ts`. `console/`: `commands.ts`, `host.ts`.
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements.
   - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` via `icon-paint.ts`, `icon-geometry.ts`), `icon-sprite.ts`, `hints.ts`,
-    `key-prompt.ts`, `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `craftqueue.ts`.
+    `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`), `craft-family.ts`,
     `craft-tiers.ts`, `craft-card.ts`, `craft-info.ts`, `item-guide.ts`, `take-apart.ts`, `offhand.ts`, `held-name.ts`,
     `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `pack-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.

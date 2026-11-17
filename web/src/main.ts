@@ -236,6 +236,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'bend') game.bend_target();
       else if (a.kind === 'ghost') playerList.notice(game.toggle_ghost_mode()); // "" unless research locks it
+      else if (a.kind === 'build-ghost') playerList.notice(game.build_ghost()); // "" when the build was queued
       else if (a.kind === 'fetch') game.drone_fetch_held();
       else if (a.kind === 'take-item') game.take_target_item();
       else if (a.kind === 'scan-target') prospect.nextTarget();

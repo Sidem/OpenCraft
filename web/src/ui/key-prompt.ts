@@ -1,9 +1,9 @@
-// A floating input prompt in the world (the way games point at "press this here"): a key cap or a mouse with
+// Floating input prompts in the world (the way games point at "press this here"): a key cap or a mouse with
 // the button to use lit, and one word under it, hanging over the thing to act on and bobbing gently. The engine
 // says where and which (`opening_marker`: a camera-relative point and a `PROMPT_*` kind from `opening.rs`;
-// `lesson_marker` the same for a stalled machine, kind `PROMPT_CHECK` from `stall_lesson.rs`; `hint_marker` the copper
-// patch);
-// this places it with the renderer's camera each frame. To add a prompt: a row in `KINDS` and its engine kind.
+// `lesson_marker` the same for a lesson, kinds from `stall_lesson.rs` and `blueprint_lesson.rs`, and it may carry
+// several prompts, four numbers each; `hint_marker` the copper patch);
+// this places them with the renderer's camera each frame. To add a prompt: a row in `KINDS` and its engine kind.
 
 import './key-prompt.css';
 import type { Renderer } from '../render/renderer';
@@ -23,29 +23,50 @@ const KINDS: Record<number, { icon: Icon; label: string }> = {
   6: { icon: { mouse: 'right' }, label: 'Coal' },
   7: { icon: { mouse: 'right' }, label: 'Iron' },
   8: { icon: { mouse: 'right' }, label: 'Copper' },
+  9: { icon: { key: 'KeyZ' }, label: 'Corner' },
+  10: { icon: { key: 'Enter' }, label: 'Copy' },
 };
 
+/** One prompt on screen: its element and the kind it shows now. */
+interface Slot {
+  el: HTMLElement;
+  kind: number;
+}
+
 export class KeyPrompt {
-  private readonly el = h('div', 'key-prompt hidden');
-  private kind = 0;
+  private readonly slots: Slot[] = [];
 
   constructor() {
-    document.getElementById('hud')!.append(this.el);
-    keyLabels.subscribe(() => (this.kind = 0)); // redrawn with the new caps at the next marker
+    keyLabels.subscribe(() => this.slots.forEach((s) => (s.kind = 0))); // redrawn with the new caps at the next marker
   }
 
-  /** Call after rendering with the engine's marker (empty for none). */
+  /** Call after rendering with the engine's marker: groups of x, y, z, kind (empty for none). */
   update(marker: Float32Array | number[], renderer: Renderer): void {
-    const at = marker.length >= 4 ? renderer.project(marker[0], marker[1], marker[2]) : null;
-    const kind = at ? marker[3] : 0;
-    this.el.classList.toggle('hidden', !at || !KINDS[kind]);
-    if (!at || !KINDS[kind]) return;
-    if (kind !== this.kind) this.draw(kind);
-    this.el.style.transform = `translate(${Math.round(at[0])}px, ${Math.round(at[1])}px) translate(-50%, -100%)`;
+    let used = 0;
+    for (let i = 0; i + 3 < marker.length; i += 4) {
+      const kind = marker[i + 3];
+      const at = KINDS[kind] ? renderer.project(marker[i], marker[i + 1], marker[i + 2]) : null;
+      if (!at) continue;
+      const slot = this.slot(used++);
+      slot.el.classList.remove('hidden');
+      if (kind !== slot.kind) this.draw(slot, kind);
+      slot.el.style.transform = `translate(${Math.round(at[0])}px, ${Math.round(at[1])}px) translate(-50%, -100%)`;
+    }
+    for (let i = used; i < this.slots.length; i++) this.slots[i].el.classList.add('hidden');
   }
 
-  private draw(kind: number): void {
-    this.kind = kind;
+  /** Prompt number `i`, made when first needed. */
+  private slot(i: number): Slot {
+    if (!this.slots[i]) {
+      const el = h('div', 'key-prompt hidden');
+      document.getElementById('hud')!.append(el);
+      this.slots[i] = { el, kind: 0 };
+    }
+    return this.slots[i];
+  }
+
+  private draw(slot: Slot, kind: number): void {
+    slot.kind = kind;
     const { icon, label } = KINDS[kind];
     const face = h('div', 'key-prompt-bob');
     if ('key' in icon) {
@@ -56,6 +77,6 @@ export class KeyPrompt {
       face.append(mouse);
     }
     face.append(h('div', 'key-prompt-label', label));
-    this.el.replaceChildren(face);
+    slot.el.replaceChildren(face);
   }
 }

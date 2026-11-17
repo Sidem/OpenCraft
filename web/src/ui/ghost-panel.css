@@ -1,0 +1,99 @@
+/* The ghost-mode controls panel (ghost-panel.ts): a card on the right edge of the HUD (hover a row for its sentence).
+   Key caps match hints.css and key-prompt.css; the exit row is lit so the way out is the first thing seen. */
+
+.ghost-panel {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  width: 210px;
+  padding: 10px 12px 8px;
+  border-radius: 12px;
+  background: rgba(14, 16, 22, 0.86);
+  border: 1px solid rgba(76, 201, 240, 0.6);
+  border-left: 4px solid #4cc9f0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  color: #fff;
+  transform: translateY(-50%);
+}
+
+.ghost-head {
+  margin-bottom: 6px;
+  color: #4cc9f0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.ghost-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ghost-icons {
+  flex: none;
+  width: 56px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 3px;
+}
+
+.ghost-word {
+  min-width: 0;
+  line-height: 1.2;
+}
+
+/* The way out: a lit row under the title. */
+.ghost-exit {
+  margin-bottom: 4px;
+  padding: 5px 6px;
+  border-radius: 8px;
+  background: rgba(76, 201, 240, 0.2);
+  font-weight: 800;
+}
+
+.ghost-cap {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: linear-gradient(#ffffff, #dfe3ea);
+  border: 1px solid #1b1e25;
+  box-shadow: 0 2px 0 #1b1e25;
+  color: #1b1e25;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+/* A mouse seen from above, the button to use lit. */
+.ghost-mouse {
+  position: relative;
+  width: 18px;
+  height: 26px;
+  display: flex;
+  border-radius: 9px 9px 8px 8px;
+  background: #dfe3ea;
+  border: 1px solid #1b1e25;
+  overflow: hidden;
+}
+
+.ghost-mouse i {
+  flex: 1;
+  height: 45%;
+  border-bottom: 1px solid #1b1e25;
+}
+
+.ghost-mouse i.left {
+  border-right: 1px solid #1b1e25;
+}
+
+.ghost-mouse.lit-left i.left,
+.ghost-mouse.lit-right i.right {
+  background: var(--accent);
+}

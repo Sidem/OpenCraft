@@ -70,6 +70,7 @@ export const BINDINGS: readonly Binding[] = [
 
   key('plan', ['KeyB'], '{KeyB}', 'Ghost mode: right-click plants a free ghost to build later'),
   key('plan', ['KeyZ', 'Enter'], '{KeyZ}, {Enter}', 'In ghost mode: mark a box, then copy its machines as a blueprint'),
+  key('plan', ['KeyX'], '{KeyX}', 'Build the ghost you aim at, taking its item from anywhere in your pack (in strategy view: stop walking)'),
   key('plan', ['KeyY'], '{KeyY}', 'Personal drone: fetch, put away, store, or fetch the parts and craft'),
   key('plan', [...SHIFTS, 'KeyY'], '{ShiftLeft} + {KeyY}', 'Your personal drone fetches a stack more of what you hold'),
   key('plan', ['KeyU'], '{KeyU}', 'Point the scanner at the next deposit'),

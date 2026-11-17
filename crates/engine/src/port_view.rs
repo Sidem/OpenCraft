@@ -23,6 +23,8 @@ pub(crate) struct Ghosts {
     pub marks: Vec<f32>,
     pub marks_round: Vec<f32>,
     pub blocked: bool,
+    /// The planted ghosts and the blueprint stamp as models, written into `boxes` (`ghost_models.rs`).
+    pub models: crate::ghost_models::GhostModels,
 }
 
 /// Every machine block of more than one cell that turns (a long-distance pole does not).
@@ -42,7 +44,9 @@ impl Game {
         let belt = self.holds_belt();
         let world = &self.sim.world;
         let free = |c: IVec3| world.get_block(c).is_some_and(block::replaceable);
-        let Ghosts { boxes, round, marks, marks_round, blocked } = &mut self.ghosts;
+        let lib = &self.library;
+        let stamp = self.stamp_key().and_then(|key| Some((key, lib.list.get(key.0)?)));
+        let Ghosts { boxes, round, marks, marks_round, blocked, models } = &mut self.ghosts;
         boxes.clear();
         marks.clear();
         *blocked = false;
@@ -53,6 +57,7 @@ impl Game {
             *blocked = cells.iter().any(|c| c.1);
             port_marks::draw_ghost(block, anchor, dir, eye, time, free, marks, boxes);
         }
+        models.write(&self.sim.ghosts, stamp, eye, time, boxes);
         factory::split_round(boxes, round);
         factory::split_round(marks, marks_round);
     }

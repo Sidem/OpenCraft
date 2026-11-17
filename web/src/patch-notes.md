@@ -4,6 +4,16 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.12 · Build a ghost yourself with X
+- **Aim at a ghost and press X to build it now.** The item comes from anywhere in your pack, whether it is in your hand or not, and the building faces the way the ghost does. With the item missing, a line tells you which one. Works in and out of ghost mode, within arm's reach. (In strategy view X still stops walking.) A blueprint stamp plus X is the fast way to build a layout by hand: aim, tap, aim, tap.
+
+## 2026-11-17 · v0.8.11 · Ghosts look like buildings, and ghost mode shows its keys
+- **Ghosts are now see-through blue copies of the real building** (machines, belts, poles, boxes), not empty boxes. Stamping a blueprint previews every machine the same way, so you can see what it holds before you place it.
+- **Ghost mode has a controls card** on the right. It says you are in ghost mode, puts **B: Exit** at the top, and lists the keys that work right now (plant, tear down, mark a box, copy, deselect, stamp, turn), drawn with your own keyboard layout. The list changes as you mark corners, select a box or hold a blueprint.
+
+## 2026-11-17 · v0.8.10 · A walk through your first blueprint
+- When the "Building the same again" tip offers a blueprint and you press B, a card and floating key prompts now lead you through it: **Z** on one corner of your machines, **Z** on the opposite corner, then **Enter** to copy. The prompts follow what you have done, so they always show the next key. Saving a blueprint finishes the lesson, and H dismisses it.
+
 ## 2026-11-17 · v0.8.9 · Faster first load
 - The picture pack is now 2.7 MB instead of 4.5 MB, with every pixel identical. The game starts sooner on slow connections.
 

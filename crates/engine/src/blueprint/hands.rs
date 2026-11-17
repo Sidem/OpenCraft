@@ -11,16 +11,14 @@
 
 use super::{Blueprint, Library, MAX_BLUEPRINTS};
 use crate::action::Action;
+use crate::ghost_models::StampKey;
 use crate::item;
 use crate::math::IVec3;
 use crate::Game;
 
-/// Selection box outline colour (gold) and the stamp preview's (pale cyan, its box green).
+/// Selection box outline colour (gold) and the stamp preview's box (green; its machines are models: `ghost_models.rs`).
 const SELECT_GOLD: i32 = 0xffd166;
-const PREVIEW_PALE: i32 = 0xcaf0f8;
 const PREVIEW_GREEN: i32 = 0x80ed99;
-/// Machine outlines drawn in a preview at most.
-const MAX_PREVIEW: usize = 300;
 /// Shortages listed in the label.
 const LABEL_MISSING: usize = 3;
 
@@ -132,10 +130,27 @@ impl Game {
         let (size, _) = bp.turned(lib.turns);
         let hi = origin + size - IVec3::new(1, 1, 1);
         out.extend([origin.x, origin.y, origin.z, hi.x, hi.y, hi.z, PREVIEW_GREEN]);
-        for g in bp.ghosts_at(origin, lib.turns).iter().take(MAX_PREVIEW) {
-            crate::ghost_mode::push_box(&mut out, &g.cells(), PREVIEW_PALE);
-        }
         out
+    }
+
+    /// What the next Z or Enter does, for the host's controls panel (`web/src/ui/ghost-panel.ts`): 0 nothing marked, 1
+    /// one corner marked, 2 a box selected, 3 a blueprint in hand. The same state `blueprint_label` words.
+    pub(crate) fn ghost_stage_now(&self) -> u8 {
+        let lib = &self.library;
+        match (lib.held.is_some(), lib.selection.is_some(), lib.corner.is_some()) {
+            (true, _, _) => 3,
+            (_, true, _) => 2,
+            (_, _, true) => 1,
+            _ => 0,
+        }
+    }
+
+    /// What the stamp preview shows now, as `ghost_models.rs` keys it: the blueprint in hand, its turns, the cell its
+    /// lowest corner would take and the library's version. `None` unless one is held in ghost mode, aimed at a face.
+    pub(crate) fn stamp_key(&self) -> Option<StampKey> {
+        let lib = &self.library;
+        let held = lib.held.filter(|&i| i < lib.list.len())?;
+        Some((held, lib.turns, self.stamp_origin()?, lib.version))
     }
 
     /// The ghost mode label while a blueprint is being marked, selected or held; `None` otherwise.

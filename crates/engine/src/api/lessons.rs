@@ -1,10 +1,10 @@
-//! The lesson cards for the host (`stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs`, `upgrade_lesson.rs`, `lessons.rs`): which one is on show, its words,
-//! the floating prompt over the machine, and the way to wave it away. The host calls `lesson_now` each frame; the
+//! The lesson cards for the host (`stall_lesson.rs`, `need_lesson.rs`, `recipe_lesson.rs`, `upgrade_lesson.rs`,
+//! `blueprint_lesson.rs`, `lessons.rs`): which one is on show, its words, the floating prompt(s), and the way to wave it away. The host calls `lesson_now` each frame; the
 //! watchers only scan once a second.
 
 use wasm_bindgen::prelude::*;
 
-use crate::lessons::{LOW_POWER_BIT, NO_RECIPE_BIT, UPGRADE_BIT};
+use crate::lessons::{BLUEPRINT_BIT, LOW_POWER_BIT, NO_RECIPE_BIT, UPGRADE_BIT};
 use crate::math::Vec3;
 use crate::need_lesson::NEED_BASE;
 use crate::opening::PROMPT_OPEN;
@@ -27,6 +27,8 @@ impl Game {
             NEED_BASE + NO_RECIPE_BIT as u32
         } else if self.upgrade_lesson().is_some() {
             NEED_BASE + UPGRADE_BIT as u32
+        } else if self.blueprint_lesson().is_some() {
+            NEED_BASE + BLUEPRINT_BIT as u32
         } else {
             0
         }
@@ -43,7 +45,8 @@ impl Game {
             Some((pos, cause)) => self.stall_text(pos, cause),
             None if self.low_power_lesson().is_some() => self.low_power_text(),
             None if self.recipe_lesson().is_some() => self.recipe_text(),
-            None => self.upgrade_text(),
+            None if self.upgrade_lesson().is_some() => self.upgrade_text(),
+            None => self.blueprint_text(),
         }
     }
 
@@ -51,6 +54,10 @@ impl Game {
     /// prompt kind; empty for none (also when no right-click would fix the cause: `stall_prompt`; the low-power lesson
     /// is a card only; the no-recipe lesson points at the machine to open).
     pub fn lesson_marker(&self) -> Vec<f32> {
+        let walk = self.blueprint_markers(); // the walk-through may hang several prompts: groups of four
+        if !walk.is_empty() {
+            return walk;
+        }
         let (pos, kind) = match (self.stall_lesson(), self.stall_prompt()) {
             (Some((pos, _)), Some(kind)) => (pos, kind),
             (None, _) => match self.recipe_lesson().or_else(|| self.upgrade_lesson()) {
@@ -74,8 +81,10 @@ impl Game {
             self.need_dismiss();
         } else if self.recipe_lesson().is_some() {
             self.recipe_dismiss();
-        } else {
+        } else if self.upgrade_lesson().is_some() {
             self.upgrade_dismiss();
+        } else {
+            self.blueprint_dismiss();
         }
     }
 

@@ -10,6 +10,7 @@
 //! Invariants: kept sorted by anchor (so the state bytes are canonical), at most [`MAX_GHOSTS`], at most
 //! one per anchor. A multi-block machine's ghost covers its footprint (`covers`).
 //!
+//! `Action::BuildGhost` (X, aimed by `ghost_build.rs`) builds one ghost now from any pack slot.
 //! The hands that plant ghosts and the outlines that draw them are presentation (`ghost_mode.rs`).
 
 use crate::block::{self, BlockId};
@@ -154,6 +155,24 @@ impl Sim {
         let Some(block) = stack.item.places().filter(|_| !stack.is_empty()) else { return };
         let tier = tiers::placed_by(stack.item).map_or(0, |(_, t)| t);
         self.plant_ghost(pos, block, facing, tier);
+    }
+
+    /// Builds the ghost covering `pos` as the player: its item comes from anywhere in their pack (not only the selected
+    /// slot), it is put down as a drone would (`put_block`, the ghost's facing) and the ghost clears. Nothing happens
+    /// without the item, on a tear-down mark, or when the cells are not free.
+    pub(crate) fn build_ghost(&mut self, player: PlayerId, pos: IVec3) {
+        let Some(g) = self.ghosts.covering(pos).copied().filter(|g| g.block != block::AIR) else { return };
+        let item = g.item();
+        if !self.player(player).is_some_and(|c| c.inventory.count(item) > 0) {
+            return;
+        }
+        if !self.put_block(player, g.pos, item, g.facing, g.pos - IVec3::new(0, 1, 0)) {
+            return;
+        }
+        if let Some(Some(core)) = self.players.get_mut(player.0 as usize) {
+            core.inventory.remove(item, 1);
+        }
+        self.ghosts.built(g.pos, g.block);
     }
 
     /// Marks the block at `pos` (a multi-block machine by its anchor) for tear-down by drones: a ghost of air.

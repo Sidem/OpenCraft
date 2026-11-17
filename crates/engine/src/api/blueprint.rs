@@ -20,6 +20,12 @@ impl Game {
         self.copy_blueprint();
     }
 
+    /// Where ghost mode's blueprint keys stand, for the controls panel: 0 nothing marked, 1 one corner marked, 2 a box
+    /// selected (Enter copies), 3 a blueprint in hand.
+    pub fn ghost_stage(&self) -> u8 {
+        self.ghost_stage_now()
+    }
+
     /// Changes whenever the list does.
     pub fn blueprint_version(&self) -> u32 {
         self.library.version

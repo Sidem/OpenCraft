@@ -359,7 +359,8 @@ fn the_label_always_says_what_z_does_next() {
     g.target = None;
     g.mark_blueprint_corner(); // Z at the sky clears the box
     assert_eq!(g.library.selection, None);
-    says(&g, "Z marks a box to copy");
+    // Nothing marked: the keys are the controls card's (`ghost_stage` 0), the label says only what the plan needs.
+    assert_eq!((g.ghost_stage_now(), g.ghost_label().contains("Z ")), (0, false));
     for corner in [base, base + IVec3::new(4, 1, 0)] {
         aim_at(&mut g, corner);
         g.mark_blueprint_corner();
@@ -382,4 +383,23 @@ fn the_blueprint_prompt_ends_by_itself() {
     assert!(!g.repeat_prompt().is_empty());
     g.sim.tick += super::repeat::SHOW_TICKS;
     assert_eq!(g.repeat_prompt(), "");
+}
+
+#[test]
+fn the_controls_panel_stage_follows_the_keys() {
+    // 0 nothing marked, 1 one corner, 2 a box selected, 3 a blueprint in hand (`web/src/ui/ghost-panel.ts`).
+    let (mut g, base) = prompted_game();
+    g.library.selection = None;
+    assert_eq!(g.ghost_stage_now(), 0);
+    g.toggle_ghost_mode();
+    aim_at(&mut g, base);
+    g.mark_blueprint_corner();
+    assert_eq!(g.ghost_stage_now(), 1);
+    aim_at(&mut g, base + IVec3::new(8, 1, 0));
+    g.mark_blueprint_corner();
+    assert_eq!(g.ghost_stage_now(), 2);
+    g.copy_blueprint();
+    assert_eq!(g.ghost_stage_now(), 3);
+    g.mark_blueprint_corner(); // Z puts it away
+    assert_eq!(g.ghost_stage_now(), 0);
 }

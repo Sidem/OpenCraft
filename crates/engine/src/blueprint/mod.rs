@@ -19,6 +19,8 @@ mod plan;
 mod repeat;
 
 pub use plan::PLAN_FIELDS;
+/// How near earlier copies count, which the walk-through (`blueprint_lesson.rs`) also uses to know it was left.
+pub(crate) use repeat::RANGE as GROUP_RANGE;
 #[cfg(test)]
 mod tests;
 

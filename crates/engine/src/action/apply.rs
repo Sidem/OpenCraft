@@ -104,6 +104,7 @@ impl Sim {
             }
             Action::PlaceGhost { pos, slot, facing } => self.place_ghost(player, pos, slot, facing),
             Action::PlantGhost { pos, block, facing, tier } => self.plant_ghost(pos, block, facing, tier),
+            Action::BuildGhost { pos } => self.build_ghost(player, pos),
             Action::MarkRemoval { pos } => self.mark_removal(pos),
             Action::Jetpack { on } => self.set_thrust(player, on),
             Action::Drone { order, at } => self.drone_order(player, order, at),
