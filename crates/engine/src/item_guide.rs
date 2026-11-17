@@ -248,7 +248,7 @@ const FOUND: &[(ItemId, &str)] = &[
 
 /// How `item` is found or dug, if it is.
 fn found(gen: &WorldGen, item: ItemId) -> Option<String> {
-    let as_block = (item.0 < 256).then_some(item.0 as BlockId);
+    let as_block = item.as_block();
     if let Some(b) = as_block.filter(|&b| block::is_ore(b)) {
         let lacks = "This world was made before it was in the game: only a new world has it.";
         return Some(crate::ore_guide::ore_way(gen, b).unwrap_or_else(|| lacks.to_string()));

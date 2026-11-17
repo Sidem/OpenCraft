@@ -91,7 +91,7 @@ impl DepositKey {
         w.u8(self.tier as u8);
         w.i32(self.cx);
         w.i32(self.cz);
-        w.u8(self.ore);
+        w.block(self.ore);
         w.u16(self.index);
     }
 

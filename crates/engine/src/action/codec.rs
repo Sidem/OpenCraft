@@ -201,7 +201,7 @@ impl Action {
             Action::PlantGhost { pos, block, facing, tier } => {
                 w.u8(35);
                 w.ivec3(pos);
-                w.u8(block);
+                w.block(block);
                 w.u8(facing);
                 w.u8(tier);
             }

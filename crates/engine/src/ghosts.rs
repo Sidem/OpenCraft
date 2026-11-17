@@ -114,7 +114,7 @@ impl Ghosts {
         w.count(self.list.len());
         for g in &self.list {
             w.ivec3(g.pos);
-            w.u8(g.block);
+            w.block(g.block);
             w.u8(g.facing);
             w.u8(g.tier);
         }

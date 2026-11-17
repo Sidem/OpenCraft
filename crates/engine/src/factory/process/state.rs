@@ -3,7 +3,6 @@
 //! slot from 45 (`launch.rs`), a town depot's perk buffers from 52 (`depot.rs`), a pod machine's channel from 54 (`pods/channels.rs`).
 //! To save something new: write it last, behind its spec's condition, and read it behind the same and a version check.
 
-use crate::block::BlockId;
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
 
@@ -16,7 +15,7 @@ impl Processor {
     /// then the byproduct buffer and its round-robin position if its spec has one (`outs` come from `relink`).
     pub(super) fn save(&self, w: &mut ByteWriter) {
         w.ivec3(self.pos);
-        w.u8(self.spec.block);
+        w.block(self.spec.block);
         w.u8(self.tier);
         w.u8(self.dir);
         for i in [self.recipe, self.batch] {
@@ -41,7 +40,7 @@ impl Processor {
 
     pub(super) fn load(r: &mut ByteReader) -> Option<Processor> {
         let pos = r.ivec3()?;
-        let spec = spec(r.u8()? as BlockId)?;
+        let spec = spec(r.block()?)?;
         let tier = r.u8()?;
         if tier as usize >= spec.tiers.len() {
             return None;

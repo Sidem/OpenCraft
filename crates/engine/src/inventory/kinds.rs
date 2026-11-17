@@ -56,8 +56,8 @@ fn place_of(item: ItemId) -> (u8, u8, usize) {
         Some(_) if PACKS.contains(&item) => ingredient,
         Some((Group::Building, order)) => (BUILDING_BLOCKS, 0, order),
         Some((group, order)) => (BUILDINGS, group as u8, order),
-        None if item.0 >= 256 => ingredient,
-        None if is_ore(item.0 as u8) => (RAW, 0, 0),
+        None if item.as_block().is_none() => ingredient,
+        None if item.as_block().is_some_and(is_ore) => (RAW, 0, 0),
         None if MACHINE_RECIPES.iter().any(|m| m.outputs.iter().any(|&(out, _)| out == item)) => {
             // Slag, sand and tailings are what machines give back; glass, bricks and concrete are made to build with.
             if group_of(item) == RAW_GROUP {

@@ -87,7 +87,7 @@ fn the_explored_map_outlives_the_chunks_and_round_trips() {
     let c = g.body().pos.floor();
     let (x, z) = (c.x + 20, c.z - 30);
     let seen = g.minimap.atlas.column(x, z);
-    assert_eq!(((seen >> 8) as i32, (seen & 0xff) as BlockId), top_of(&g, x, z));
+    assert_eq!((atlas::column_height(seen), atlas::column_block(seen)), top_of(&g, x, z));
 
     // A fresh game of the same world, far from here, shows it from the bytes alone.
     let mut other = Game::new(2024, 3);
@@ -98,8 +98,10 @@ fn the_explored_map_outlives_the_chunks_and_round_trips() {
     // shaded by the step from the column 2 blocks north-west.
     other.world_map_draw(x - 10, z - 10, 2, 16, 16);
     let nw = other.minimap.atlas.column(x - 2, z - 2);
-    let k = 256 + ((seen >> 8) as i32 - (nw >> 8) as i32).clamp(-SHADE_MAX_STEP, SHADE_MAX_STEP) * SHADE_PER_BLOCK;
-    let [r, gr, b] = g.minimap.colors[(seen & 0xff) as usize].map(|v| ((v as i32 * k) >> 8).min(255) as u8);
+    let k = 256
+        + (atlas::column_height(seen) - atlas::column_height(nw)).clamp(-SHADE_MAX_STEP, SHADE_MAX_STEP)
+            * SHADE_PER_BLOCK;
+    let [r, gr, b] = g.minimap.colors[atlas::column_block(seen) as usize].map(|v| ((v as i32 * k) >> 8).min(255) as u8);
     let p = (5 * 16 + 5) * 4;
     assert_eq!(other.minimap.world_pixels[p..p + 4], [r, gr, b, 255]);
     other.set_explored_map(&[9, 1, 2]);
@@ -116,7 +118,7 @@ fn ore_seen_at_the_surface_is_marked_and_coloured() {
     for z in -96..96 {
         for x in -96..96 {
             let v = g.minimap.atlas.column(x, z);
-            let block = (v & 0xff) as BlockId;
+            let block = atlas::column_block(v);
             if v == 0 || !crate::block::is_ore(block) {
                 continue;
             }
@@ -202,4 +204,24 @@ fn sites_are_shaded_only_while_a_depot_is_held_and_away_from_spawn_and_towns() {
     assert_eq!(g.world_map_sites(-64, -64, x + 64, 64), [x, 0, size, i32::from(kind)], "spawn's tile is left out");
     g.sim.settlements.towns.push(crate::settlements::Town::new(IVec3::new(x + 100, 70, 0), 0));
     assert!(g.world_map_sites(-64, -64, x + 64, 64).is_empty(), "too near a town");
+}
+
+#[test]
+fn the_atlas_keeps_block_ids_past_a_byte_and_reads_the_old_format() {
+    let mut atlas = Atlas::default();
+    atlas.plant(5, 6, 300);
+    let seen = atlas.column(5, 6);
+    assert_eq!((atlas::column_height(seen), atlas::column_block(seen)), (64, 300));
+    let mut back = Atlas::default();
+    back.import(&atlas.export());
+    assert_eq!(back.column(5, 6), seen, "a wide id survives export and import");
+
+    // Format 1 (a u16 per column, `height << 8 | block`) still loads, with the same heights and blocks.
+    let mut old = vec![1u8];
+    old.extend_from_slice(&[0; 8]);
+    (0..1024u32).for_each(|i| old.extend_from_slice(&((70u16 << 8) | (i % 200) as u16).to_le_bytes()));
+    let mut loaded = Atlas::default();
+    loaded.import(&old);
+    let v = loaded.column(3, 0);
+    assert_eq!((atlas::column_height(v), atlas::column_block(v)), (70, 3));
 }

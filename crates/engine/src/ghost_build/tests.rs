@@ -42,7 +42,7 @@ fn x_builds_the_aimed_ghost_from_a_slot_that_is_not_selected() {
     let mut g = ready();
     let cell = at(0, 0);
     plant(&mut g, cell);
-    g.give(block::SMELTER as u16, 3);
+    g.give(block::SMELTER, 3);
     g.select_slot(8); // an empty hand
     g.run_ticks(2);
     assert!(g.inventory().selected_stack().is_empty());
@@ -72,7 +72,7 @@ fn without_the_item_nothing_is_built_and_the_player_is_told() {
 fn aiming_at_nothing_says_so() {
     let mut g = ready();
     plant(&mut g, at(0, 0));
-    g.give(block::SMELTER as u16, 1);
+    g.give(block::SMELTER, 1);
     aim(&mut g, at(2, 4), at(10, 10));
     assert!(g.build_aimed_ghost().contains("Aim at a ghost"));
     g.run_ticks(2);
@@ -84,7 +84,7 @@ fn a_ghost_behind_a_wall_is_not_the_one_aimed_at() {
     let mut g = ready();
     let cell = at(0, 0);
     plant(&mut g, cell);
-    g.give(block::SMELTER as u16, 1);
+    g.give(block::SMELTER, 1);
     // A stone wall between the eye and the ghost, on the line of sight.
     g.fill_blocks(1, PAD_Y, 1, 3, PAD_Y + 3, 3, block::STONE);
     aim(&mut g, at(4, 5), cell);
@@ -96,7 +96,7 @@ fn the_nearest_of_two_ghosts_in_line_is_built() {
     let mut g = ready();
     plant(&mut g, at(0, 0));
     plant(&mut g, at(0, -2));
-    g.give(block::SMELTER as u16, 1);
+    g.give(block::SMELTER, 1);
     aim(&mut g, at(0, 3), at(0, -2)); // both within the hands' reach
     assert_eq!(g.aimed_ghost(), Some(at(0, 0)), "the near one is in front");
 }

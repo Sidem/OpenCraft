@@ -197,7 +197,7 @@ fn a_pole_charges_the_pack_to_its_cap_and_losing_the_pole_stops_it() {
 }
 
 /// Puts `block` down at `pos` for player `who` (a bare placement: it gives the block first).
-fn place(sim: &mut Sim, who: PlayerId, block: u8, pos: IVec3) {
+fn place(sim: &mut Sim, who: PlayerId, block: crate::block::BlockId, pos: IVec3) {
     place_item(sim, who, ItemId::block(block), pos);
 }
 
@@ -220,7 +220,7 @@ fn a_long_distance_pole_can_charge_the_pack_too() {
 }
 
 /// A game with the local player wearing a hover pack, and a pole of `block` put `up` blocks above them.
-fn pole_game(block: u8, up: i32) -> (crate::Game, IVec3) {
+fn pole_game(block: crate::block::BlockId, up: i32) -> (crate::Game, IVec3) {
     pole_game_at(ItemId::block(block), IVec3::new(0, up, 0))
 }
 

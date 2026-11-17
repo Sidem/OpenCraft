@@ -17,7 +17,7 @@ use super::*;
 
 /// A plant: `block` at the origin, a pole and three generators (180 kW) with coal, Refining researched, and, if
 /// `water`, a pump piece on the machine's water inlet holding ten units.
-fn plant(block: u8, water: bool) -> Factory {
+fn plant(block: crate::block::BlockId, water: bool) -> Factory {
     let mut world = World::new(1, 2);
     let mut f = Factory::default();
     for name in ["Refining", "Plastics", "Acids and Lubricants", "Electrolysis"] {
@@ -129,7 +129,7 @@ fn nothing_goes_in_before_refining_is_researched_and_the_water_tank_is_saved() {
     assert_eq!((back.steam.water, back.status, back.batch), (p.steam.water, p.status, p.batch));
 }
 
-fn chosen(block: u8, recipe: u16, water: bool) -> Factory {
+fn chosen(block: crate::block::BlockId, recipe: u16, water: bool) -> Factory {
     let mut f = plant(block, water);
     assert!(f.set_recipe(IVec3::ZERO, Some(recipe)).is_some());
     f

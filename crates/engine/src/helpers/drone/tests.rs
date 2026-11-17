@@ -21,7 +21,7 @@ fn sim_with_drone() -> Sim {
 }
 
 /// Puts `block` down at `HOME + off` for the player.
-fn place(sim: &mut Sim, block: u8, off: IVec3) -> IVec3 {
+fn place(sim: &mut Sim, block: crate::block::BlockId, off: IVec3) -> IVec3 {
     let pos = HOME + off;
     sim.apply(P, Action::Give { item: ItemId::block(block), count: 1 });
     let slot = sim.player(P).unwrap().inventory.slots.iter().position(|s| s.item == ItemId::block(block)).unwrap();

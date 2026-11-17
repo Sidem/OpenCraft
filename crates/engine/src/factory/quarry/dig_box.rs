@@ -19,8 +19,8 @@ pub const DEFAULT_DEPTH: u8 = 1;
 
 /// What the quarry digs: stone, the rocks, soil and sand. Ore, spent rock (part of a deposit),
 /// bedrock, wood, glass, lamps and machines stay.
-pub const QUARRIABLE: [bool; 256] = {
-    let mut t = [false; 256];
+pub const QUARRIABLE: [bool; block::TABLE_LEN] = {
+    let mut t = [false; block::TABLE_LEN];
     let ids = [
         block::STONE,
         block::DIRT,

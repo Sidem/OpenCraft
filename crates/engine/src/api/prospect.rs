@@ -3,7 +3,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::block;
+use crate::block::{self, BlockId};
 use crate::deposits::Tier;
 use crate::prospect::{is_advanced, scan_range_of, DRILL_FIELDS, READING_DRILL, READING_SCAN, SCANNERS, SCAN_FIELDS};
 use crate::tools::{self, ToolKind};
@@ -39,7 +39,7 @@ impl Game {
     }
 
     /// The ore the advanced scanner's list is limited to (0 for every ore).
-    pub fn scan_filter(&self) -> u8 {
+    pub fn scan_filter(&self) -> BlockId {
         self.prospect.filter.filter(|_| self.scanner_advanced()).unwrap_or(0)
     }
 
@@ -70,17 +70,17 @@ impl Game {
 
     /// The nearest ground that can hold `ore`, as seen from where the latest scan was taken: `[x, z, blocks away]`
     /// (0 blocks: the scan itself stood on it), or empty when this world has none (or no biome ores).
-    pub fn ore_bearing(&self, ore: u8) -> Vec<i32> {
+    pub fn ore_bearing(&self, ore: BlockId) -> Vec<i32> {
         self.ore_bearing_of(ore).map(|b| vec![b.x, b.z, b.distance]).unwrap_or_default()
     }
 
     /// An ore's name, e.g. "Iron".
-    pub fn ore_name(&self, ore: u8) -> String {
+    pub fn ore_name(&self, ore: BlockId) -> String {
         block::ore_label(ore).to_string()
     }
 
     /// A deposit's name from its ore and tier, e.g. "Iron vein".
-    pub fn deposit_label(&self, ore: u8, tier: u8) -> String {
+    pub fn deposit_label(&self, ore: BlockId, tier: u8) -> String {
         format!("{} {}", block::ore_label(ore), Tier::from_u8(tier).map_or("deposit", Tier::name))
     }
 }

@@ -84,7 +84,7 @@ pub fn fuel_names() -> String {
 
 /// The card of the building `item` places, or None for anything that is not a machine.
 pub fn facts(item: ItemId) -> Option<Facts> {
-    let (block, tier) = placed_by(item).or_else(|| u8::try_from(item.0).ok().map(|b| (b, 0)))?;
+    let (block, tier) = placed_by(item).or_else(|| item.as_block().map(|b| (b, 0)))?;
     let tier = usize::from(tier);
     if let Some(s) = spec(block) {
         return Some(process_facts(s, tier));

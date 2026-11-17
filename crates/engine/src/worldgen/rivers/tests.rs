@@ -322,7 +322,7 @@ fn version_7_rivers_never_change() {
         }
         let (x, z) = axis_points(s, 9.0)[1];
         let chunk = g.generate(IVec3::new(x >> 5, g.height_at(x, z) >> 5, z >> 5));
-        bytes.extend((0..crate::chunk::CHUNK_VOLUME).map(|i| chunk.get(i & 31, i >> 10, (i >> 5) & 31)));
+        bytes.extend((0..crate::chunk::CHUNK_VOLUME).map(|i| chunk.get(i & 31, i >> 10, (i >> 5) & 31) as u8));
     }
     assert_eq!(crate::bytes::fnv1a(&bytes), 0x119e_c1c9_a2d5_08b9, "version 7 rivers");
 }

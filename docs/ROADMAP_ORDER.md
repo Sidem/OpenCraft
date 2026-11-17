@@ -95,7 +95,7 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 | 9 | WIRES | **Done 2026-11-17** (v0.8.15, no save bump): wires hang from the pole arms (visual only) | 2 | 1 | 2.00 | 19% | - |
 | 10 | CBPAL | **Done 2026-11-17** (v0.8.16, no save bump): colour-blind palette for tier colours, a setting (presentation only) | 2 | 1 | 2.00 | 20% | - |
 | 11 | CHEM-TEACH | **Done 2026-11-17** (v0.8.17, no save bump): chemistry cards teach: one-line real process per product, the diesel-jam card (`docs/ROADMAP_CHEMISTRY.md`) | 2 | 1 | 2.00 | 22% | - |
-| 12 | ROOM | Room for content: block ids to `u16` everywhere (decided; measure memory and save size) and model layers past 512 | 4 | 3 | 1.33 | 25% | - |
+| 12 | ROOM | **Done 2026-11-17** (v0.8.18, save 77): block ids `u16` everywhere, model layers past 512 (decision row of `docs/DECISIONS.md`) | 4 | 3 | 1.33 | 25% | - |
 
 ## Wave 2: logistics, light and the first chemistry (two sessions each)
 

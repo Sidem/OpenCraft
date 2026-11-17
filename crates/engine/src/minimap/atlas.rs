@@ -18,20 +18,37 @@ use crate::math::IVec3;
 use crate::world::World;
 use crate::worldgen::WORLD_HEIGHT_CHUNKS;
 
-/// The most chunk columns remembered (2 KB each).
+/// The most chunk columns remembered (4 KB each).
 pub const MAX_TILES: usize = 4096;
 /// Dirty tiles rebuilt per frame outside the minimap's window.
 const TILES_PER_FRAME: usize = 4;
 /// Ore spots: at most one per square of this many blocks on a side.
 const SPOT_CELL: usize = 8;
-/// First byte of `export`; `import` ignores anything else.
-const FORMAT: u8 = 1;
+/// First byte of `export`; `import` reads this and the last one (`FORMAT_U8_BLOCKS`) and ignores anything else.
+const FORMAT: u8 = 2;
+/// Format 1 stored a column as `height << 8 | block` in a `u16`, from when block ids were bytes.
+const FORMAT_U8_BLOCKS: u8 = 1;
 const COLUMNS: usize = (CHUNK_SIZE * CHUNK_SIZE) as usize;
+/// A column's height sits above its block id in a `u32`.
+const HEIGHT_SHIFT: u32 = 16;
+
+/// One block column's value: its top block's height and id (0 = not seen).
+pub fn column_value(height: i32, block: BlockId) -> u32 {
+    (height as u32) << HEIGHT_SHIFT | u32::from(block)
+}
+
+pub fn column_block(value: u32) -> BlockId {
+    (value & 0xffff) as BlockId
+}
+
+pub fn column_height(value: u32) -> i32 {
+    (value >> HEIGHT_SHIFT) as i32
+}
 
 /// One chunk column's top blocks.
 pub struct Tile {
-    /// `height << 8 | block` per block column (index `z << 5 | x`); 0 = not seen.
-    pub columns: Box<[u16]>,
+    /// `column_value` per block column (index `z << 5 | x`); 0 = not seen.
+    pub columns: Box<[u32]>,
     /// Where ore shows at the top: (x, z within the tile, ore).
     pub spots: Vec<(u8, u8, BlockId)>,
 }
@@ -107,12 +124,12 @@ impl Atlas {
             .tiles
             .entry((x >> CHUNK_SHIFT, z >> CHUNK_SHIFT))
             .or_insert_with(|| Tile { columns: vec![0; COLUMNS].into_boxed_slice(), spots: Vec::new() });
-        tile.columns[column_index(x, z)] = 64 << 8 | block as u16;
+        tile.columns[column_index(x, z)] = column_value(64, block);
     }
 
-    /// `height << 8 | block` of block column (x, z), 0 if never seen.
+    /// The `column_value` of block column (x, z), 0 if never seen.
     #[cfg(test)]
-    pub fn column(&self, x: i32, z: i32) -> u16 {
+    pub fn column(&self, x: i32, z: i32) -> u32 {
         self.tile(x >> CHUNK_SHIFT, z >> CHUNK_SHIFT).map_or(0, |t| t.columns[column_index(x, z)])
     }
 
@@ -122,9 +139,9 @@ impl Atlas {
     }
 
     /// Every remembered tile as bytes for the host to store: `FORMAT`, then per tile its column (two
-    /// i32) and its 1024 columns (u16), little-endian.
+    /// i32) and its 1024 columns (u32), little-endian.
     pub fn export(&self) -> Vec<u8> {
-        let mut out = Vec::with_capacity(1 + self.tiles.len() * (8 + COLUMNS * 2));
+        let mut out = Vec::with_capacity(1 + self.tiles.len() * (8 + COLUMNS * 4));
         out.push(FORMAT);
         for (&(cx, cz), tile) in &self.tiles {
             out.extend_from_slice(&cx.to_le_bytes());
@@ -137,14 +154,28 @@ impl Atlas {
     /// Adds the tiles in `export`'s bytes (a broken or unknown format adds nothing). Tiles already
     /// here stay: they are newer.
     pub fn import(&mut self, bytes: &[u8]) {
-        let Some((&FORMAT, rest)) = bytes.split_first() else { return };
-        for rec in rest.chunks_exact(8 + COLUMNS * 2) {
+        let Some((&format, rest)) = bytes.split_first() else { return };
+        let width = match format {
+            FORMAT => 4,
+            FORMAT_U8_BLOCKS => 2,
+            _ => return,
+        };
+        for rec in rest.chunks_exact(8 + COLUMNS * width) {
             let cx = i32::from_le_bytes(rec[0..4].try_into().unwrap());
             let cz = i32::from_le_bytes(rec[4..8].try_into().unwrap());
             if self.tiles.contains_key(&(cx, cz)) || self.tiles.len() >= MAX_TILES {
                 continue;
             }
-            let columns: Box<[u16]> = rec[8..].chunks_exact(2).map(|b| u16::from_le_bytes([b[0], b[1]])).collect();
+            let columns: Box<[u32]> = rec[8..]
+                .chunks_exact(width)
+                .map(|b| match width {
+                    4 => u32::from_le_bytes([b[0], b[1], b[2], b[3]]),
+                    _ => {
+                        let old = u16::from_le_bytes([b[0], b[1]]);
+                        column_value(i32::from(old >> 8), BlockId::from(old & 0xff))
+                    }
+                })
+                .collect();
             self.tiles.insert((cx, cz), Tile { spots: spots(&columns), columns });
         }
         self.changes = self.changes.wrapping_add(1);
@@ -173,17 +204,17 @@ impl Atlas {
 
 /// The top non-air block of each column in chunk column (`cx`, `cz`), from its loaded chunks (an
 /// unloaded chunk counts as air). `None` if none of them is loaded.
-fn build_tile(world: &World, cx: i32, cz: i32) -> Option<Box<[u16]>> {
-    let mut columns = vec![0u16; COLUMNS];
+fn build_tile(world: &World, cx: i32, cz: i32) -> Option<Box<[u32]>> {
+    let mut columns = vec![0u32; COLUMNS];
     let (mut any, mut left) = (false, COLUMNS);
     for cy in (0..WORLD_HEIGHT_CHUNKS).rev() {
         let Some(chunk) = world.loaded_chunk(IVec3::new(cx, cy, cz)) else { continue };
         any = true;
-        let base = (cy * CHUNK_SIZE) as u16;
+        let base = cy * CHUNK_SIZE;
         match (chunk.as_uniform(), chunk.dense()) {
             (Some(AIR), _) => continue,
             (Some(b), _) => {
-                let top = (base + CHUNK_SIZE as u16 - 1) << 8 | b as u16;
+                let top = column_value(base + CHUNK_SIZE - 1, b);
                 columns.iter_mut().filter(|c| **c == 0).for_each(|c| *c = top);
                 left = 0;
             }
@@ -191,7 +222,7 @@ fn build_tile(world: &World, cx: i32, cz: i32) -> Option<Box<[u16]>> {
                 for (i, c) in columns.iter_mut().enumerate().filter(|(_, c)| **c == 0) {
                     let top = (0..CHUNK_SIZE as usize).rev().find(|&y| blocks[y << 10 | i] != AIR);
                     if let Some(y) = top {
-                        *c = (base + y as u16) << 8 | blocks[y << 10 | i] as u16;
+                        *c = column_value(base + y as i32, blocks[y << 10 | i]);
                         left -= 1;
                     }
                 }
@@ -206,14 +237,12 @@ fn build_tile(world: &World, cx: i32, cz: i32) -> Option<Box<[u16]>> {
 }
 
 /// The first column showing ore in each `SPOT_CELL`² square of a tile.
-fn spots(columns: &[u16]) -> Vec<(u8, u8, BlockId)> {
+fn spots(columns: &[u32]) -> Vec<(u8, u8, BlockId)> {
     let side = CHUNK_SIZE as usize;
     let mut out = Vec::new();
     for (sz, sx) in (0..side / SPOT_CELL).flat_map(|z| (0..side / SPOT_CELL).map(move |x| (z, x))) {
         let cell = (0..SPOT_CELL * SPOT_CELL).map(|i| (sx * SPOT_CELL + i % SPOT_CELL, sz * SPOT_CELL + i / SPOT_CELL));
-        if let Some((x, z, b)) =
-            cell.map(|(x, z)| (x, z, (columns[z * side + x] & 0xff) as BlockId)).find(|s| is_ore(s.2))
-        {
+        if let Some((x, z, b)) = cell.map(|(x, z)| (x, z, column_block(columns[z * side + x]))).find(|s| is_ore(s.2)) {
             out.push((x as u8, z as u8, b));
         }
     }

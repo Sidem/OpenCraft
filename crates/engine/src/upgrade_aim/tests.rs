@@ -22,7 +22,7 @@ fn factory_game() -> Game {
 }
 
 /// The aim of `kit` at the block `pos` (a tick re-aims the real crosshair, so the target is set last).
-fn aim_at(g: &mut Game, pos: IVec3, id: u8, kit: ItemId) -> Aim {
+fn aim_at(g: &mut Game, pos: IVec3, id: crate::block::BlockId, kit: ItemId) -> Aim {
     g.target = Some(RayHit { block: pos, normal: IVec3::ZERO, id });
     g.upgrade_aim(kit)
 }

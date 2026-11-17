@@ -4,6 +4,9 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.18 · Room for many more blocks
+- **Under the hood: the game can now hold far more kinds of block.** Until now it had room for 255 and 220 were taken, which would have stopped the next machines, lamps and glass. Nothing looks different and your worlds load as before. The one cost: the map's remembered tiles take twice the room in this browser, and a loaded world uses more memory for its ground.
+
 ## 2026-11-17 · v0.8.17 · Why the chemistry works
 - **The chemical machines' recipe cards say what the batch stands for.** Distilling, cracking, plastic, acid, lubricant, pure water, electrolysis, rocket fuel and enriching uranium each carry one line of the real process behind them, on the recipe card in the machine's panel and on the item's page in the build menu.
 - **A refinery stuck on diesel now says what to do with it.** The "full" card for a diesel barrel names the diesel generator that burns it for power and the recycler that destroys it for coins, with the research each one needs. Any stuck item that no recipe takes now mentions the recycler too.

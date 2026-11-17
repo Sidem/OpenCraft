@@ -181,7 +181,7 @@ impl Forest {
         w.u32(self.felled);
         w.u8(self.stem);
         w.u8(self.cut);
-        w.u8(self.log);
+        w.block(self.log);
         w.u8(self.ground.size.unwrap_or(u8::MAX));
         w.u16(self.ground.uneven);
         w.bool(self.ground.blocker.is_some());
@@ -196,7 +196,7 @@ impl Forest {
         let col = r.u16()?;
         let (tree, rest, from) = (read_spot(r)?, read_spot(r)?, read_spot(r)?);
         let (step, busy, leaves, felled) = (r.u16()?, r.bool()?, r.u8()?, r.u32()?);
-        let (stem, cut, log) = (r.u8()?, r.u8()?, r.u8()?);
+        let (stem, cut, log) = (r.u8()?, r.u8()?, r.block()?);
         let size = Some(r.u8()?).filter(|&s| s != u8::MAX);
         let (uneven, blocked) = (r.u16()?, r.bool()?);
         let b = IVec3::new(r.i32()?, r.i32()?, r.i32()?);

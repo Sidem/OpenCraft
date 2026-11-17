@@ -4,7 +4,7 @@ use crate::block::{BEDROCK, BELT, IRON_ORE, STONE};
 #[test]
 fn block_items_share_the_block_ids() {
     let stone = ItemId::block(STONE);
-    assert_eq!(stone.0, STONE as u16);
+    assert_eq!(stone.0, STONE);
     assert_eq!(name(stone), "Stone");
     assert_eq!(stone.places(), Some(STONE));
     assert_eq!(ItemId::block(BELT).places(), Some(BELT));
@@ -39,5 +39,23 @@ fn every_belt_tier_is_drawn_the_same_way() {
         let tex = def(belt).unwrap().tex;
         assert_eq!(tex[1..], [frame; 2], "{}'s sides and bottom are the frame", name(belt));
         assert_ne!(tex[0], frame, "{}'s top shows the belt", name(belt));
+    }
+}
+
+#[test]
+fn blocks_below_256_are_their_own_items_and_wide_ones_are_listed() {
+    for b in 0..256 {
+        assert_eq!(ItemId::block(b), ItemId(b));
+        assert_eq!(ItemId(b).as_block(), Some(b));
+    }
+    assert_eq!(ItemId::block(256), ItemId::NONE, "a wide block with no listed item has none");
+    assert_eq!(IRON_INGOT.as_block(), None, "an ingot is no block");
+    // Every block past 255 needs its item row, whose `places` is that block, so it can be held and placed.
+    for b in 256..BLOCK_COUNT as BlockId {
+        let (_, item) = *WIDE_BLOCK_ITEMS.iter().find(|p| p.0 == b).unwrap_or_else(|| panic!("block {b} has no item"));
+        assert_eq!((item.as_block(), item.places()), (Some(b), Some(b)));
+    }
+    for &(b, item) in &WIDE_BLOCK_ITEMS {
+        assert!(b >= 256 && item.0 >= 256 && item.is_valid(), "{b} -> {item:?}");
     }
 }

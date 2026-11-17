@@ -33,7 +33,7 @@ fn go_electric_sends_the_player_to_the_copper_patch_until_a_miner_digs_it() {
     assert_eq!((goal[0], goal[1]), (patch.x, patch.z));
 
     // A coal miner set on it ends the guide.
-    g.give(COAL_MINER as u16, 1);
+    g.give(COAL_MINER, 1);
     g.run_ticks(1);
     assert_eq!(g.guide_craft(), -1, "one held: nothing to craft");
     assert_eq!(g.sim.world.block_anywhere_or_generate(patch + IVec3::new(0, 1, 0)), AIR, "room on top");

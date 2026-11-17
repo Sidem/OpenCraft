@@ -3,7 +3,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::block::{self, AIR, SPENT_ROCK};
+use crate::block::{self, BlockId, AIR, SPENT_ROCK};
 use crate::deposits::{owner_of, DepositState, HAND_YIELD};
 use crate::factory::{self, Kind, MINER_TIERS};
 use crate::hints::{self, HINTS};
@@ -162,7 +162,7 @@ impl Game {
         self.target_cell().z
     }
 
-    pub fn target_block(&self) -> u8 {
+    pub fn target_block(&self) -> BlockId {
         self.target.map_or(AIR, |t| t.id)
     }
 

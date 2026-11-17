@@ -72,7 +72,7 @@ impl TownDrone {
     pub fn write(&self, w: &mut ByteWriter) {
         w.vec3(self.pos);
         w.ivec3(self.target);
-        w.u8(self.block);
+        w.block(self.block);
         w.u8(ROLES.iter().position(|&r| r == self.role).unwrap_or(0) as u8);
         w.u8(self.phase as u8);
         w.u32(self.timer);
@@ -80,7 +80,7 @@ impl TownDrone {
     }
 
     pub fn read(r: &mut ByteReader) -> Option<TownDrone> {
-        let (pos, target, block) = (r.vec3()?, r.ivec3()?, r.u8()?);
+        let (pos, target, block) = (r.vec3()?, r.ivec3()?, r.block()?);
         let role = *ROLES.get(r.u8()? as usize)?;
         let phase = [Phase::Out, Phase::Work, Phase::Home].get(r.u8()? as usize).copied()?;
         let (timer, load) = (r.u32()?, r.u8()?);

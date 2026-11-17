@@ -2,7 +2,7 @@ use super::*;
 use crate::block::{GENERATOR, LAB, MINER, POLE};
 use crate::world::World;
 
-fn put(f: &mut Factory, block: u8, pos: IVec3) {
+fn put(f: &mut Factory, block: crate::block::BlockId, pos: IVec3) {
     f.place(&mut World::new(1, 2), block, pos, 0, pos, 0);
 }
 

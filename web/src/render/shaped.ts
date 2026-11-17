@@ -92,7 +92,7 @@ void main() {
   float u = float((w1 >> 12u) & 4095u) / 256.0;
   uint light = w1 >> 24u;
   vec3 n = u_turn * octahedral(w2 & 65535u);
-  float layer = float((w2 >> 16u) & 511u);
+  float layer = float(w2 >> 16u);
   vec2 uv = vec2(0.0);
   v_card = vec2(-1.0);
   if (kind == 0u) {

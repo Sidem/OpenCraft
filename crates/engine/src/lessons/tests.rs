@@ -136,7 +136,7 @@ fn nothing_taught_is_ever_forgotten_whatever_the_player_does_to_the_scene() {
                 let at = o.gap + IVec3::new(rng.below(11) as i32 - 5, 0, rng.below(11) as i32 - 5);
                 g.act(Action::BreakBlock { pos: at });
             }
-            2 => g.give(BELT as u16, 1 + rng.below(3)),
+            2 => g.give(BELT, 1 + rng.below(3)),
             3 => g.give(crate::item::IRON_INGOT.0, 1),
             4 => g.act(Action::LessonTaught { bit: rng.below(13) as u8 }),
             _ => g.sim.players[0].as_mut().unwrap().inventory = Default::default(),

@@ -47,13 +47,13 @@ pub fn group_of(item: ItemId) -> u8 {
     let main = MACHINE_RECIPES.iter().find(|r| r.outputs[0].0 == item);
     let made_by = main.or_else(|| MACHINE_RECIPES.iter().find(|r| r.outputs.iter().any(|&(out, _)| out == item)));
     let made_by = made_by.map(|r| r.category);
-    if main.is_none() && made_by.is_some() && item.0 < 256 {
+    if main.is_none() && made_by.is_some() && item.as_block().is_some() {
         return RAW;
     }
     match made_by {
         Some(Category::Smelting | Category::Blasting | Category::Electrolysis) => SMELTED,
         // Slag, sand and tailings are plain blocks the crusher and washer give back.
-        Some(Category::Crushing | Category::Washing) if item.0 < 256 => RAW,
+        Some(Category::Crushing | Category::Washing) if item.as_block().is_some() => RAW,
         Some(Category::Crushing | Category::Washing) => ORE_PROCESSING,
         Some(Category::Pressing) => PARTS,
         Some(Category::Assembly) => COMPONENTS,

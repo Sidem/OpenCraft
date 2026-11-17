@@ -7,7 +7,7 @@
 //! cannot disagree with what works (`port_view/tests.rs` belts every marked face of every machine at every turn).
 //! Nothing here touches the core.
 
-use crate::block::{self, BlockId};
+use crate::block::{self, BlockId, BLOCK_COUNT};
 use crate::factory::port_marks::{self, Flow};
 use crate::factory::{self, footprint, Kind};
 use crate::math::{IVec3, Vec3};
@@ -28,8 +28,8 @@ pub(crate) struct Ghosts {
 }
 
 /// Every machine block of more than one cell that turns (a long-distance pole does not).
-pub(crate) fn footprint_blocks() -> Vec<u8> {
-    (1..=255u8).filter(|&b| b != block::LONG_POLE && footprint::of(b).is_some()).collect()
+pub(crate) fn footprint_blocks() -> Vec<BlockId> {
+    (1..BLOCK_COUNT as BlockId).filter(|&b| b != block::LONG_POLE && footprint::of(b).is_some()).collect()
 }
 
 /// Which side a face looking out along `DIRS[s]` is to a player facing `DIRS[facing]`: 0 far, 1 right, 2 near, 3 left.

@@ -55,7 +55,7 @@ fn digest(version: u32) -> u64 {
     for c in chunks {
         let chunk = g.generate(c);
         for i in 0..CHUNK_VOLUME {
-            bytes.push(chunk.get(i & 31, i >> 10, (i >> 5) & 31));
+            bytes.push(chunk.get(i & 31, i >> 10, (i >> 5) & 31) as u8);
         }
         for d in g.deposits_for_column(c.x, c.z) {
             let k = d.key;

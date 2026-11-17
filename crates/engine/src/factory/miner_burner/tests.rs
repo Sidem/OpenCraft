@@ -13,7 +13,7 @@ use crate::Game;
 const UP: IVec3 = IVec3::new(0, 1, 0);
 
 /// A coal miner on the first outcrop of `ore` near spawn, with no fuel: its cell, the ore block under it, the deposit.
-fn coal_miner_on(g: &mut Game, ore: u8) -> (IVec3, IVec3, DepositKey) {
+fn coal_miner_on(g: &mut Game, ore: crate::block::BlockId) -> (IVec3, IVec3, DepositKey) {
     let (p, key) = nearby_ore(g)
         .into_iter()
         .find_map(|p| {

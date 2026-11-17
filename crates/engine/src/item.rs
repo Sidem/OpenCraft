@@ -2,7 +2,8 @@
 //!
 //! Invariants: ids below 256 are the blocks with the same number, and their rows are derived from
 //! `block::BLOCK_DEFS`, so block ids and old saves stay valid items. Non-block items start at 256
-//! (`EXTRA`, in id order). `ItemId::NONE` (air) is "no item". Every item is drawn as a box with three
+//! (`EXTRA`, in id order). Block ids are `u16`: a block of 256 or more is an `EXTRA` row that places it,
+//! paired with it in `WIDE_BLOCK_ITEMS` (`ItemId::block` and `as_block` read the pairs). `ItemId::NONE` (air) is "no item". Every item is drawn as a box with three
 //! texture layers (top, side, bottom) and proportions `size`: blocks are full cubes. Manufactured
 //! loose items and HUD icons additionally use the presentation-only assemblies in `item_models`.
 //!
@@ -21,11 +22,31 @@ use rows::*;
 pub struct ItemId(pub u16);
 
 impl ItemId {
-    pub const NONE: ItemId = ItemId(AIR as u16);
+    pub const NONE: ItemId = ItemId(AIR);
 
-    /// The item that is the block `b`.
+    /// The item that is the block `b`: the same number below 256, else its row of `WIDE_BLOCK_ITEMS`
+    /// (`NONE` for a wide block with no item, like water).
     pub const fn block(b: BlockId) -> ItemId {
-        ItemId(b as u16)
+        if b < 256 {
+            return ItemId(b);
+        }
+        let mut i = 0;
+        while i < WIDE_BLOCK_ITEMS.len() {
+            if WIDE_BLOCK_ITEMS[i].0 == b {
+                return WIDE_BLOCK_ITEMS[i].1;
+            }
+            i += 1;
+        }
+        ItemId::NONE
+    }
+
+    /// The block this item *is* (the inverse of [`ItemId::block`]): not what it places, which is
+    /// [`ItemId::places`]. `None` for every other item.
+    pub fn as_block(self) -> Option<BlockId> {
+        if self.0 < 256 {
+            return Some(self.0);
+        }
+        WIDE_BLOCK_ITEMS.iter().find(|&&(_, item)| item == self).map(|&(b, _)| b)
     }
 
     /// The block this item puts into the world, if it can be placed. Every tier of a tiered machine
@@ -210,6 +231,11 @@ pub fn name(id: ItemId) -> &'static str {
 pub fn stack_size(id: ItemId) -> u32 {
     def(id).map_or(MAX_STACK, |d| d.stack)
 }
+
+/// Blocks with ids of 256 and up and the item each is. Item ids stay dense (the tables are `0..ITEM_COUNT`), so
+/// such an item is an ordinary `EXTRA` row whose `places` is the block; list the pair here, in block order.
+/// Empty until `BLOCK_COUNT` passes 255.
+pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 0] = [];
 
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();

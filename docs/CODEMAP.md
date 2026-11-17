@@ -24,7 +24,7 @@ local player's hands, presentation, then the **deterministic core**, which never
   `saplings.rs`, `torches.rs`, `scrap.rs`, `vault.rs` (ruin vault puzzle), `felling.rs` + `felling/tree.rs` (grown trees felled whole).
 - `action.rs`: the `Action` enum. `action/`: `apply.rs` (one arm each), `clicks.rs`, `blocks.rs`, `docks.rs`, `multiblock.rs`,
   `codec.rs` + `codec/read.rs` (bytes; tags append only).
-- `bytes.rs`: canonical encoding. `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
+- `bytes.rs`: canonical encoding (a block id is one byte below 255, else 255 and a `u16`). `save.rs`: the file, `SAVE_VERSION`. `join.rs`: const-table joins. `math.rs`: vectors, hashes, `Rng`.
 - `doors.rs`, `deposits.rs` (pools, tiers, `HAND_YIELD`), `daytime.rs`, `crafting.rs`, `take_apart.rs`, `perks.rs`, `mode.rs`, `tools.rs`.
 - `inventory.rs` + `inventory/stacks.rs` + `inventory/kinds.rs`; `equipment.rs` (worn gear, packs); `offhand.rs`.
 - `research.rs`; `research/`: `techs.rs` (first era), `electronics.rs`, `later.rs` (open end), `queue.rs`, `bonus.rs`.
@@ -59,10 +59,10 @@ local player's hands, presentation, then the **deterministic core**, which never
   `placed.rs` (what blueprints copy).
 
 ### Content tables (data; append ids, never renumber)
-- `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs`, `tables.rs`, `tex.rs` + `tex/later.rs`, `turn.rs`; id ranges in
+- `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs`, `tables.rs` (`TABLE_LEN`), `tex.rs` + `tex/later.rs`, `turn.rs`; id ranges in
   `chemistry.rs`, `forest.rs`, `ruins.rs`, `decor.rs`, `trees.rs`, `coal_miner.rs`, `house.rs`, `ejector.rs`, `sign.rs`,
   `forester.rs`, `woods.rs`, `ores.rs`.
-- `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks. `wood.rs`: the ten woods.
+- `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
   set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,

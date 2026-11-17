@@ -150,7 +150,7 @@ pub fn export(list: &[Blueprint]) -> Vec<u8> {
         w.count(b.entries.len());
         for e in &b.entries {
             w.ivec3(e.off);
-            w.u8(e.block);
+            w.block(e.block);
             w.u8(e.facing);
             w.u8(e.tier);
         }

@@ -55,9 +55,9 @@ fn finish(g: &mut Game, name: &str) {
 /// A coal generator with fuel and a pole beside it, wired to `machines`.
 fn power(g: &mut Game, pole: IVec3, machines: &[IVec3]) {
     let gen = pole + IVec3::new(-1, 0, -1);
-    g.place_at(gen.x, gen.y, gen.z, block::GENERATOR as u16, 0);
-    g.stock_at(gen.x, gen.y, gen.z, block::COAL_ORE as u16, 64);
-    g.place_at(pole.x, pole.y, pole.z, block::POLE as u16, 0);
+    g.place_at(gen.x, gen.y, gen.z, block::GENERATOR, 0);
+    g.stock_at(gen.x, gen.y, gen.z, block::COAL_ORE, 64);
+    g.place_at(pole.x, pole.y, pole.z, block::POLE, 0);
     for &m in std::iter::once(&gen).chain(machines) {
         g.connect_at(pole.x, pole.y, pole.z, m.x, m.y, m.z);
     }
@@ -97,13 +97,13 @@ fn short_grid(mut g: Game) -> Game {
     let tech = TECHS.iter().position(|t| t.needs.is_empty() && t.packs == [item::RED_PACK]).unwrap() as u8;
     let labs: Vec<IVec3> = (0..8).map(|i| at(i * 2, 3)).collect();
     for &l in &labs {
-        g.place_at(l.x, l.y, l.z, block::LAB as u16, 0);
+        g.place_at(l.x, l.y, l.z, block::LAB, 0);
         stock(&mut g, l, item::RED_PACK, 50);
     }
     let poles: Vec<IVec3> = (0..4).map(|i| at(2 + i * 4, 1)).collect();
     power(&mut g, poles[0], &labs[0..2]);
     for (i, p) in poles.iter().enumerate().skip(1) {
-        g.place_at(p.x, p.y, p.z, block::POLE as u16, 0);
+        g.place_at(p.x, p.y, p.z, block::POLE, 0);
         let prev = poles[i - 1];
         g.connect_at(prev.x, prev.y, prev.z, p.x, p.y, p.z);
         for l in &labs[i * 2..i * 2 + 2] {
@@ -125,7 +125,7 @@ fn slag_blocked() -> Game {
     let mut g = ready();
     finish(&mut g, "Ore Crushing");
     let f = at(0, 0);
-    g.place_at(f.x, f.y, f.z, block::BLAST_FURNACE as u16, 0);
+    g.place_at(f.x, f.y, f.z, block::BLAST_FURNACE, 0);
     for (item, n) in [(block::IRON_ORE.into(), 200), (block::COAL_ORE.into(), 100), (item::QUICKLIME, 100)] {
         stock(&mut g, f, item, n);
     }
@@ -138,7 +138,7 @@ fn concrete_without(missing: ItemId) -> Game {
     let mut g = ready();
     finish(&mut g, "Assembly");
     let a = at(0, 0);
-    g.place_at(a.x, a.y, a.z, block::ASSEMBLER as u16, 0);
+    g.place_at(a.x, a.y, a.z, block::ASSEMBLER, 0);
     g.act(Action::SetRecipe { pos: a, recipe: recipe_making(block::CONCRETE.into()) });
     g.run_ticks(2);
     for (item, n) in [(item::QUICKLIME, 20), (block::SAND.into(), 40), (block::STONE.into(), 40)] {
@@ -155,7 +155,7 @@ fn concrete_without(missing: ItemId) -> Game {
 fn lab_idle() -> Game {
     let mut g = ready();
     let l = at(0, 0);
-    g.place_at(l.x, l.y, l.z, block::LAB as u16, 0);
+    g.place_at(l.x, l.y, l.z, block::LAB, 0);
     stock(&mut g, l, item::RED_PACK, 20);
     power(&mut g, at(2, -2), &[l]);
     stay(&mut g, at(3, 3), l, 45.0);
@@ -166,17 +166,17 @@ fn lab_idle() -> Game {
 fn first_line() -> Game {
     let mut g = ready();
     let c = at(0, 0);
-    g.place_at(c.x, c.y, c.z, block::CONSTRUCTOR as u16, 0);
+    g.place_at(c.x, c.y, c.z, block::CONSTRUCTOR, 0);
     g.act(Action::SetRecipe { pos: c, recipe: recipe_making(item::IRON_PLATE) });
     g.run_ticks(2);
     stock(&mut g, c, item::IRON_INGOT, 50);
     for (b, x) in [(block::SMELTER, 6), (block::STORAGE, 8), (block::BELT, 10)] {
-        g.place_at(x, PAD_Y, 4, b as u16, 0);
+        g.place_at(x, PAD_Y, 4, b, 0);
     }
     power(&mut g, at(3, -2), &[c]);
     let (ore, _) = find_outcrop_block(&mut g, 4);
     let m = ore + IVec3::new(0, 1, 0);
-    g.place_at(m.x, m.y, m.z, block::MINER as u16, 0);
+    g.place_at(m.x, m.y, m.z, block::MINER, 0);
     stay(&mut g, at(3, 3), c, 10.0);
     g
 }
@@ -186,7 +186,7 @@ fn coal_miners_burn() -> Game {
     let mut g = ready();
     let (ore, _) = find_outcrop_block(&mut g, 4);
     let m = ore + IVec3::new(0, 1, 0);
-    g.place_at(m.x, m.y, m.z, block::COAL_MINER as u16, 0);
+    g.place_at(m.x, m.y, m.z, block::COAL_MINER, 0);
     stock(&mut g, m, block::COAL_ORE.into(), 5);
     stay(&mut g, m + IVec3::new(3, 0, 3), m, 10.0);
     g
@@ -197,7 +197,7 @@ fn deposit_dry() -> Game {
     let mut g = ready();
     let (ore, key) = find_outcrop_block(&mut g, 4);
     let m = ore + IVec3::new(0, 1, 0);
-    g.place_at(m.x, m.y, m.z, block::COAL_MINER as u16, 0);
+    g.place_at(m.x, m.y, m.z, block::COAL_MINER, 0);
     stock(&mut g, m, block::COAL_ORE.into(), 5);
     g.sim.factory.deposits.exhaust(&key);
     stay(&mut g, m + IVec3::new(3, 0, 3), m, 45.0);
@@ -244,8 +244,8 @@ fn a_second_generator_mends_the_grid_and_that_teaches_it() {
     let mut g = power_short();
     assert_eq!(g.lesson_now(), LOW_POWER);
     let (pole, gen) = (at(2, 1), at(3, 0));
-    g.place_at(gen.x, gen.y, gen.z, block::GENERATOR as u16, 0);
-    g.stock_at(gen.x, gen.y, gen.z, block::COAL_ORE as u16, 64);
+    g.place_at(gen.x, gen.y, gen.z, block::GENERATOR, 0);
+    g.stock_at(gen.x, gen.y, gen.z, block::COAL_ORE, 64);
     g.connect_at(pole.x, pole.y, pole.z, gen.x, gen.y, gen.z);
     stay(&mut g, at(14, 6), at(14, 3), 20.0);
     assert!(taught(&g, LOW_POWER_BIT));
@@ -314,7 +314,7 @@ fn the_slag_side_tip_shows_after_ore_crushing_and_ends_with_a_fed_crusher() {
     let slag = side.iter().copied().find(|&s| g.hint_text(s).starts_with("Slag into sand"));
     let slag = slag.unwrap_or_else(|| panic!("no slag tip in {side:?}"));
     let c = at(0, 0);
-    g.place_at(c.x, c.y, c.z, block::CRUSHER as u16, 0);
+    g.place_at(c.x, c.y, c.z, block::CRUSHER, 0);
     stock(&mut g, c, block::SLAG.into(), 5);
     g.run_ticks(2);
     assert!(!g.hint_side().contains(&slag), "done once a crusher has slag");
@@ -327,7 +327,7 @@ fn bare_assembler(secs: f64) -> Game {
     let mut g = ready();
     finish(&mut g, "Assembly");
     let a = at(0, 0);
-    g.place_at(a.x, a.y, a.z, block::ASSEMBLER as u16, 0);
+    g.place_at(a.x, a.y, a.z, block::ASSEMBLER, 0);
     stay(&mut g, at(4, 4), a, secs);
     g
 }
@@ -397,7 +397,7 @@ fn a_world_that_was_taught_the_no_recipe_lesson_never_shows_it() {
     g.act(Action::LessonTaught { bit: NO_RECIPE_BIT });
     finish(&mut g, "Assembly");
     let a = at(0, 0);
-    g.place_at(a.x, a.y, a.z, block::ASSEMBLER as u16, 0);
+    g.place_at(a.x, a.y, a.z, block::ASSEMBLER, 0);
     stay(&mut g, at(4, 4), a, 120.0);
     assert_eq!(g.lesson_now(), 0, "{}", screen(&mut g));
 }
@@ -408,7 +408,7 @@ fn a_stall_lesson_goes_first_and_the_recipe_card_waits_for_it() {
     let mut g = slag_blocked();
     finish(&mut g, "Assembly");
     let a = at(8, 0);
-    g.place_at(a.x, a.y, a.z, block::ASSEMBLER as u16, 0);
+    g.place_at(a.x, a.y, a.z, block::ASSEMBLER, 0);
     stay(&mut g, at(4, -4), a, 45.0);
     assert!(g.lesson_now() >= 1 && g.lesson_now() < NEED_BASE, "the stall lesson first: {}", screen(&mut g));
     g.lesson_dismiss();
@@ -439,7 +439,7 @@ fn plate_maker(ingots: u32, kits: u32, secs: f64) -> Game {
         (0..tech.units).for_each(|_| g.sim.factory.research.add_unit(t as u8));
     }
     let c = at(0, 0);
-    g.place_at(c.x, c.y, c.z, block::CONSTRUCTOR as u16, 0);
+    g.place_at(c.x, c.y, c.z, block::CONSTRUCTOR, 0);
     g.act(Action::SetRecipe { pos: c, recipe: recipe_making(item::IRON_PLATE) });
     g.run_ticks(2);
     stock(&mut g, c, item::IRON_INGOT, ingots);
@@ -503,7 +503,7 @@ fn a_world_that_was_taught_the_upgrade_lesson_never_shows_it() {
     for (t, tech) in TECHS.iter().enumerate() {
         (0..tech.units).for_each(|_| g.sim.factory.research.add_unit(t as u8));
     }
-    g.place_at(c.x, c.y, c.z, block::CONSTRUCTOR as u16, 0);
+    g.place_at(c.x, c.y, c.z, block::CONSTRUCTOR, 0);
     g.act(Action::SetRecipe { pos: c, recipe: recipe_making(item::IRON_PLATE) });
     g.run_ticks(2);
     stock(&mut g, c, item::IRON_INGOT, 60);

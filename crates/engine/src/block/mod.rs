@@ -8,7 +8,7 @@
 //! any new texture layers in `tex` with their patterns in `textures::pixel`. A machine also needs factory code
 //! (docs/CODEMAP.md).
 
-pub type BlockId = u8;
+pub type BlockId = u16;
 
 pub const AIR: BlockId = 0;
 pub const STONE: BlockId = 1;
@@ -277,6 +277,10 @@ pub mod sound {
 
 pub static BLOCK_DEFS: [BlockDef; BLOCK_COUNT] = DEFS;
 
+/// Length of the flat per-block lookup tables (`tables.rs` and the like): BLOCK_COUNT rounded up to a multiple of 256, so every
+/// id below it indexes safely and a table grows by itself as blocks are added.
+pub const TABLE_LEN: usize = BLOCK_COUNT.next_multiple_of(256);
+
 /// Flat lookup tables for hot loops (`tables.rs`).
 mod tables;
 pub use tables::{ALT_TEX, CUTOUT, FACE_TEX, LIQUID, MESHED, OPAQUE, PLANT, SOLID};
@@ -290,13 +294,13 @@ pub fn replaceable(id: BlockId) -> bool {
 /// The flowing water block of `level` (1..=7).
 #[inline]
 pub fn flow(level: u8) -> BlockId {
-    FLOW_1 + level.clamp(1, 7) - 1
+    FLOW_1 + level.clamp(1, 7) as BlockId - 1
 }
 
 /// The level of a flowing water block (1..=7), or `None` for any other block (sources included).
 #[inline]
 pub fn flow_level(id: BlockId) -> Option<u8> {
-    (FLOW_1..=FLOW_7).contains(&id).then(|| id - FLOW_1 + 1)
+    (FLOW_1..=FLOW_7).contains(&id).then(|| (id - FLOW_1 + 1) as u8)
 }
 
 #[inline]

@@ -1,10 +1,10 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.17):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-17, v0.8.18):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
-then **ROOM** (block ids become `u16`; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
+then (ROOM, block ids as `u16`, done 2026-11-17; only 40 cube layers are free); fire in the third wave; Milestone 14 (M14A, then M14B)
 stays last (user, 2026-11-16). Dropped 2026-11-14: recorded sound effects, the
 cheaper menu, skipping boxes behind the camera, the carry. What changed lately for players: `web/src/patch-notes.md` and `git log`.
 
@@ -223,6 +223,13 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-17: ROOM, block ids are `u16` (v0.8.18, save 77, state hash unmoved).** `BlockId` is `u16` in memory, chunks, meshes, the wasm API
+  and the host. Saves, hashes and the net write an id below 255 as the same one byte, wider ids as 255 and a `u16` (`bytes.rs`), so a
+  v76 save is byte-identical but for the version (fixture `save/v76.ocworld`, test in `save/tests.rs`); golden hashes did not move.
+  The per-block tables size from `block::TABLE_LEN`; the map atlas widened to `u32` columns (format 2, format 1 still imports);
+  `item.rs` `WIDE_BLOCK_ITEMS` pairs a block of 256 or more with its item row. The shaped (model) layer takes 16 bits, cube faces stay
+  below 512 (a test). Cost: dense chunks 32 → 64 KB (849 of 2152 chunks at view 8: 27.8 → 55.6 MB), wasm +33 KB (2.26 → 2.29 MB),
+  atlas tiles 2 → 4 KB; world load time and golden bytes unchanged. Room today: ids 220–255 are free with no item work.
 - **2026-11-17: CHEM-TEACH, the chemistry cards teach (v0.8.17, no save bump, state hash unmoved).** `recipes/process_notes.rs`: one line of
   real process for each of the nine rows of the refinery, cracker, chemical plant, electrolyser and centrifuge (a test names any row
   without one); `Game::machine_recipe_note` shows it under the recipe card (`machine-recipes.ts`) and in the item guide's machine way

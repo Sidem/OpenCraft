@@ -7,7 +7,7 @@ use crate::item::{
     STEEL_PICKAXE, STONE_PICKAXE, WASHED_IRON,
 };
 
-fn b(block: u8) -> ItemId {
+fn b(block: crate::block::BlockId) -> ItemId {
     ItemId::block(block)
 }
 

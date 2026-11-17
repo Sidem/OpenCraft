@@ -5,6 +5,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
+use crate::block::BlockId;
 use crate::factory;
 use crate::factory::makes;
 use crate::item::ItemId;
@@ -90,7 +91,7 @@ impl Game {
     }
 
     /// Indices of the machine recipes the machine block `block` makes.
-    pub fn machine_recipes(&self, block: u8) -> Vec<u32> {
+    pub fn machine_recipes(&self, block: BlockId) -> Vec<u32> {
         (0..MACHINE_RECIPES.len() as u32).filter(|&i| makes(block, MACHINE_RECIPES[i as usize].category)).collect()
     }
 

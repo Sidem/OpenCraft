@@ -11,7 +11,7 @@ fn marks_show_exactly_the_faces_that_work() {
     let mut world = World::new(1, 2);
     let anchor = IVec3::new(0, 64, 0);
     let (mut machines, mut faces_checked, mut marked) = (0, 0, 0);
-    for b in 1..=255u8 {
+    for b in 1..=255u16 {
         if process::spec(b).is_none_or(|s| s.footprint.is_single()) {
             continue;
         }
@@ -97,7 +97,7 @@ fn a_built_machine_shows_a_pad_at_each_open_port() {
     use crate::factory::INSTANCE_FLOATS;
     let mut world = World::new(1, 2);
     let anchor = IVec3::new(0, 64, 0);
-    let block = (1..=255u8).find(|&b| port_faces(b, anchor, 0).len() >= 3).expect("a machine with ports");
+    let block = (1..=255u16).find(|&b| port_faces(b, anchor, 0).len() >= 3).expect("a machine with ports");
     let mut f = Factory::default();
     f.place(&mut world, block, anchor, 0, anchor, 0);
     let faces = port_faces(block, anchor, 0);

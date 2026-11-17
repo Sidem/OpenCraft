@@ -21,7 +21,7 @@ fn on_a_platform() -> (Game, i32) {
             }
         }
     }
-    g.give(RAIL.into(), 16);
+    g.give(RAIL, 16);
     g.run_ticks(3);
     let slot = g.inventory().slots.iter().position(|s| s.item == RAIL.into()).expect("given") as u32;
     g.select_slot(slot);

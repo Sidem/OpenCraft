@@ -19,7 +19,7 @@
 //! light in the high one. To change how a block treats light: `CLASS` below; to add a kind of light:
 //! a row in `SOURCES` (a loss of 1 or 2).
 
-use crate::block::{is_tree_wood, BlockId, Render, BLOCK_COUNT, DEFS, GLASS, HOIST, LADDER};
+use crate::block::{is_tree_wood, BlockId, Render, BLOCK_COUNT, DEFS, GLASS, HOIST, LADDER, TABLE_LEN};
 use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
@@ -38,8 +38,8 @@ const FULL: u8 = 15;
 
 /// Per block: bit 0 lets light through, bit 1 also lets the straight sky column through, bit 2 dims it
 /// twice as fast; its `SOURCES` row in the high nibble.
-const CLASS: [u8; 256] = {
-    let mut t = [0u8; 256];
+const CLASS: [u8; TABLE_LEN] = {
+    let mut t = [0u8; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         let passes = match DEFS[i].render {

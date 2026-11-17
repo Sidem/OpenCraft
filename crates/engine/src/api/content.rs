@@ -3,7 +3,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::block::{self, BLOCK_COUNT};
+use crate::block::{self, BlockId, BLOCK_COUNT};
 use crate::factory::tiers;
 use crate::factory::{Axis, Form};
 use crate::item::{self, ItemId};
@@ -18,12 +18,12 @@ impl Game {
         BLOCK_COUNT as u32
     }
 
-    pub fn block_name(&self, id: u8) -> String {
+    pub fn block_name(&self, id: BlockId) -> String {
         block::def(id).name.to_string()
     }
 
     /// Sound material a block uses (`block::sound`), i.e. which bank its dig/step/place sounds come from.
-    pub fn block_sound(&self, id: u8) -> u8 {
+    pub fn block_sound(&self, id: BlockId) -> u8 {
         block::def(id).sound
     }
 
