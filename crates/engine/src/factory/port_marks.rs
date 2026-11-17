@@ -232,7 +232,7 @@ fn arrows(out: &mut Vec<f32>, rel: Vec3, along: u8, flow: Flow, time: f64) {
 }
 
 /// One flat chevron with its tip at camera-relative `tip`, pointing along `DIRS[along]`, in colour `look`.
-fn chevron(out: &mut Vec<f32>, tip: Vec3, along: u8, scale: f32, look: u32) {
+pub(super) fn chevron(out: &mut Vec<f32>, tip: Vec3, along: u8, scale: f32, look: u32) {
     let yaw = ((along + 2) % 4) as f32 * FRAC_PI_2;
     for hand in [-1.0f32, 1.0] {
         // Each arm runs back from the tip at 45° to one side: its centre half its length back along it.
@@ -246,7 +246,7 @@ fn chevron(out: &mut Vec<f32>, tip: Vec3, along: u8, scale: f32, look: u32) {
 }
 
 /// The colour of a port's arrows, the hues of its hatch (`tex::PORT_*`): blue in, orange out, purple byproduct.
-fn arrow_look(flow: Flow) -> u32 {
+pub(super) fn arrow_look(flow: Flow) -> u32 {
     match flow {
         Flow::In => 0x2e9bff,
         Flow::Out => 0xff8c1a,

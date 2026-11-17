@@ -34,7 +34,7 @@ fn a_save_from_before_the_lessons_counts_every_stall_lesson_as_taught() {
     old.version = 57;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 57 loads");
-    assert_eq!(back.taught, STALL_MASK | KNOWN_BEFORE_68);
+    assert_eq!(back.taught, STALL_MASK | KNOWN_BEFORE_68 | KNOWN_BEFORE_74 | KNOWN_BEFORE_75 | KNOWN_BEFORE_76);
     assert_eq!(old.u8(), None, "every byte read");
 
     let mut fresh = ByteReader::new(&w.bytes);
@@ -53,8 +53,69 @@ fn a_save_from_before_the_need_lessons_counts_them_as_taught() {
     old.version = 67;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 67 loads");
-    assert_eq!(back.taught, KNOWN_BEFORE_68, "a world played before them is never shown the new cards");
+    assert_eq!(
+        back.taught,
+        KNOWN_BEFORE_68 | KNOWN_BEFORE_74 | KNOWN_BEFORE_75 | KNOWN_BEFORE_76,
+        "a world played before them is never shown the new cards"
+    );
     assert_ne!(back.taught & mask(LOW_POWER_BIT), 0);
+}
+
+#[test]
+fn a_save_from_before_the_no_recipe_and_upgrade_lessons_counts_them_as_taught() {
+    let mut w = ByteWriter::default();
+    let sim = Sim::new(7, 2);
+    sim.write_state(&mut w);
+    // Save 73 wrote the same bytes; only the version read differs.
+    let mut old = ByteReader::new(&w.bytes);
+    old.version = 73;
+    let mut back = Sim::new(7, 2);
+    back.read_state(&mut old).expect("a save 73 loads");
+    assert_eq!(
+        back.taught,
+        KNOWN_BEFORE_74 | KNOWN_BEFORE_75 | KNOWN_BEFORE_76,
+        "older worlds know how to pick a recipe"
+    );
+    assert_ne!(back.taught & mask(NO_RECIPE_BIT), 0);
+    assert_ne!(back.taught & mask(UPGRADE_BIT), 0, "and the upgrade lesson");
+}
+
+#[test]
+fn a_save_from_before_the_planner_lesson_counts_it_as_taught_and_a_new_one_does_not() {
+    let mut w = ByteWriter::default();
+    let sim = Sim::new(7, 2);
+    sim.write_state(&mut w);
+    // Save 74 wrote the same bytes; only the version read differs.
+    let mut old = ByteReader::new(&w.bytes);
+    old.version = 74;
+    let mut back = Sim::new(7, 2);
+    back.read_state(&mut old).expect("a save 74 loads");
+    assert_eq!(back.taught, KNOWN_BEFORE_75 | KNOWN_BEFORE_76, "a world played before it never sees the planner card");
+    assert_ne!(back.taught & mask(PLANNER_BIT), 0);
+
+    let mut now = ByteReader::new(&w.bytes);
+    let mut fresh = Sim::new(7, 2);
+    fresh.read_state(&mut now).expect("reads back");
+    assert_eq!(fresh.taught & mask(PLANNER_BIT), 0, "a new world still gets it");
+}
+
+#[test]
+fn a_save_from_before_the_map_lesson_counts_it_as_taught_and_a_new_one_does_not() {
+    let mut w = ByteWriter::default();
+    let sim = Sim::new(7, 2);
+    sim.write_state(&mut w);
+    // Save 75 wrote the same bytes; only the version read differs.
+    let mut old = ByteReader::new(&w.bytes);
+    old.version = 75;
+    let mut back = Sim::new(7, 2);
+    back.read_state(&mut old).expect("a save 75 loads");
+    assert_eq!(back.taught, KNOWN_BEFORE_76, "a world played before it never sees the map card");
+    assert_ne!(back.taught & mask(MAP_BIT), 0);
+
+    let mut now = ByteReader::new(&w.bytes);
+    let mut fresh = Sim::new(7, 2);
+    fresh.read_state(&mut now).expect("reads back");
+    assert_eq!(fresh.taught & mask(MAP_BIT), 0, "a new world still gets it");
 }
 
 /// What a tip or lesson can never lose: the opening's progress, the main tips' and the lessons taught.
@@ -75,9 +136,9 @@ fn nothing_taught_is_ever_forgotten_whatever_the_player_does_to_the_scene() {
                 let at = o.gap + IVec3::new(rng.below(11) as i32 - 5, 0, rng.below(11) as i32 - 5);
                 g.act(Action::BreakBlock { pos: at });
             }
-            2 => g.give(BELT as u16, 1 + rng.below(3)),
+            2 => g.give(BELT, 1 + rng.below(3)),
             3 => g.give(crate::item::IRON_INGOT.0, 1),
-            4 => g.act(Action::LessonTaught { bit: rng.below(8) as u8 }),
+            4 => g.act(Action::LessonTaught { bit: rng.below(13) as u8 }),
             _ => g.sim.players[0].as_mut().unwrap().inventory = Default::default(),
         }
         g.skip_time(1.1);

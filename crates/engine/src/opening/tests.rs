@@ -24,7 +24,7 @@ fn putting_the_loose_belt_back_runs_the_line_and_pays_for_a_miner() {
     g.act(Action::BreakBlock { pos: o.loose });
     g.run_ticks(1);
     assert_eq!(step(&g), Step::Collect, "the loose belt is a drop now");
-    g.give(BELT as u16, 1);
+    g.give(BELT, 1);
     g.run_ticks(1);
     assert_eq!(step(&g), Step::Place);
     let slot = g.inventory().slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
@@ -110,7 +110,7 @@ fn box_beside_the_coal_miner(g: &mut Game, seed: u32) -> IVec3 {
     assert_eq!(g.opening_prompt(), Some((o.source, PROMPT_HOLD_LEFT)), "seed {seed}: take the line's first box");
     g.act(Action::BreakBlock { pos: o.source });
     g.run_ticks(1);
-    g.give(STORAGE as u16, 1);
+    g.give(STORAGE, 1);
     g.run_ticks(1);
     let (ground, kind) = g.opening_prompt().expect("a spot beside the miner");
     assert_eq!(kind, PROMPT_RIGHT_CLICK, "seed {seed}");
@@ -189,13 +189,13 @@ fn the_guide_takes_the_miners_in_any_order() {
     g.give(IRON_INGOT.0, 1);
     g.run_ticks(2);
     assert_eq!(step(&g), Step::Craft);
-    g.give(block::COAL_MINER as u16, 2);
+    g.give(block::COAL_MINER, 2);
     g.run_ticks(1);
     place_on(&mut g, o.iron.unwrap());
     assert_eq!(step(&g), Step::PlaceCoal, "iron first: still asked for coal, the one on iron counts");
     place_on(&mut g, o.coal.unwrap());
     assert_eq!(step(&g), Step::FuelCoal, "the one on coal is lit first");
-    g.give(COAL_ORE as u16, 1);
+    g.give(COAL_ORE, 1);
     g.run_ticks(1);
     fuel(&mut g);
     assert_eq!(step(&g), Step::FuelIron);
@@ -205,7 +205,7 @@ fn the_guide_takes_the_miners_in_any_order() {
     assert_eq!(step(&g), Step::CraftIron, "the one on iron was taken back and lies on the ground");
     assert!(Step::CraftIron.text().contains("Another coal miner"), "not the first craft's words again");
     assert_eq!(g.guide_craft(), block::COAL_MINER as i32);
-    g.give(block::COAL_MINER as u16, 1);
+    g.give(block::COAL_MINER, 1);
     g.run_ticks(1);
     assert_eq!(step(&g), Step::PlaceIron, "picked up: asked to set it again");
     assert_eq!(g.sim.opening.unwrap().progress, Progress::Mining, "not over before both burn");
@@ -250,7 +250,7 @@ fn version_66_scenes_read_without_patches() {
 fn mend(g: &mut Game, o: &Opening) {
     g.act(Action::BreakBlock { pos: o.loose });
     g.run_ticks(1);
-    g.give(BELT as u16, 1);
+    g.give(BELT, 1);
     g.run_ticks(1);
     let slot = g.inventory().slots.iter().position(|s| s.item == BELT.into()).unwrap() as u8;
     let away = (o.run() + 3) % 4;
@@ -270,7 +270,7 @@ fn taking_the_belts_away_later_does_not_bring_the_belt_steps_back() {
     // Reusing the belts before taking the ingots: the gap is empty again and the pack holds a belt.
     g.act(Action::BreakBlock { pos: o.gap });
     g.run_ticks(2);
-    g.give(BELT as u16, 1);
+    g.give(BELT, 1);
     g.run_ticks(1);
     assert!(!matches!(step(&g), Step::Pick | Step::Collect | Step::Place | Step::Rotate), "{:?}", step(&g));
 
@@ -288,7 +288,7 @@ fn taking_the_belts_away_later_does_not_bring_the_belt_steps_back() {
 #[test]
 fn a_miner_ends_the_opening_for_good() {
     let mut g = Game::new_normal(2024, 2);
-    g.give(block::MINER as u16, 1);
+    g.give(block::MINER, 1);
     g.run_ticks(1);
     assert_eq!(g.sim.opening.unwrap().progress, Progress::Over);
     g.sim.players[0].as_mut().unwrap().inventory = Default::default(); // the miner is used up elsewhere

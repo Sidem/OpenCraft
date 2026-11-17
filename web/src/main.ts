@@ -20,6 +20,7 @@ import { drainMeshes } from './render/mesh-events';
 import { DEFAULT_RADIUS, QualityStore } from './render/quality';
 import { Renderer } from './render/renderer';
 import { SignFaces } from './render/sign-faces';
+import { wireTierPalette } from './render/tier-wire';
 import { FIRST_SEED, message, openWorld, type Opened, Session } from './save/session';
 import { WorldStore } from './save/store';
 import { noStorage } from './ui/no-storage';
@@ -123,6 +124,7 @@ async function main(): Promise<void> {
   renderer.setTurns(new Uint32Array(game.texture_turns()));
   renderer.setWaterLayer(game.water_layer());
   const hud = new Hud(game, texPixels, texSize);
+  wireTierPalette(game, renderer, hud, texPixels, texSize, document.getElementById('tier-palette')!);
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);
   vignette.previewing = () => menu.previewing;
@@ -236,6 +238,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'rotate') game.rotate_target();
       else if (a.kind === 'bend') game.bend_target();
       else if (a.kind === 'ghost') playerList.notice(game.toggle_ghost_mode()); // "" unless research locks it
+      else if (a.kind === 'build-ghost') playerList.notice(game.build_ghost()); // "" when the build was queued
       else if (a.kind === 'fetch') game.drone_fetch_held();
       else if (a.kind === 'take-item') game.take_target_item();
       else if (a.kind === 'scan-target') prospect.nextTarget();

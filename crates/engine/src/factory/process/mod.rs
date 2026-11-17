@@ -48,6 +48,7 @@ mod nuclear;
 mod optimizer;
 mod parts;
 mod pods;
+mod port_mouth;
 mod pump;
 mod rectenna;
 mod recycler;
@@ -83,6 +84,8 @@ pub(super) use nuclear::run as run_reactor;
 pub(super) use optimizer::{bonus_at as optimizer_bonus_at, bonuses as optimizer_bonuses};
 pub(super) use pods::run as run_pods;
 pub use pods::{channel_colour, channel_name};
+#[cfg(test)]
+pub(super) use port_mouth::draw as draw_port_openings;
 pub(super) use rectenna::{run as run_rectenna, sense_sources};
 pub(super) use solar::run as run_renewables;
 use solar::Store;
@@ -150,6 +153,9 @@ pub struct Processor {
     pub side_outs: Vec<u32>,
     pub next_out: usize,
     pub next_side: usize,
+    /// Which port faces have a belt joined, a bit each in `port_faces` order (derived in `relink`, not saved; the port
+    /// openings show it: `port_mouth.rs`).
+    pub linked: u64,
     pub status: Status,
     /// What it made this tick, until `report_made` (derived, not saved).
     pub made: Vec<Stack>,
@@ -190,6 +196,7 @@ impl Processor {
             side_outs: Vec::new(),
             next_out: 0,
             next_side: 0,
+            linked: 0,
             status,
             made: Vec::new(),
             used: Vec::new(),

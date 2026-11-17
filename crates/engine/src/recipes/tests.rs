@@ -87,17 +87,10 @@ const GATHERED: &[ItemId] = &[
     item::CRUDE_BARREL,
     item::COIN,
 ];
-/// Known exceptions: items whose use waits for a later step (circuits: the violet pack, logic and drones;
-/// batteries: the hover pack and cargo drones, Milestone 9 steps 9.5; plastic and acid for gold science and the chip fab,
-/// lubricant for Mk5).
-const NO_USE_YET: &[ItemId] = &[
-    item::CIRCUIT,
-    item::DRONE,
-    item::PLASTIC,
-    item::ACID_BARREL,
-    item::LUBRICANT_BARREL,
-    item::AI_ACCELERATOR, // datacenters, 11.3
-];
+/// Known exceptions: items whose use waits for a later step. Only lubricant is left: it becomes an ingredient of the
+/// rotating machines of the chemistry families and of M14's climber cars (`docs/ROADMAP_CHEMISTRY.md`, decided at CHEM0);
+/// delete the entry when the first such recipe lands.
+const NO_USE_YET: &[ItemId] = &[item::LUBRICANT_BARREL];
 
 /// Every item a player can hold: what breakable blocks drop, and the non-block items.
 fn items() -> Vec<ItemId> {

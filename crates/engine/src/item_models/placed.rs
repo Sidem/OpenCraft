@@ -1,4 +1,4 @@
-﻿//! Icons and loose models of machines drawn from their placed model: each machine in `PLACED` is put in a scratch
+//! Icons and loose models of machines drawn from their placed model: each machine in `PLACED` is put in a scratch
 //! factory and what it draws there becomes its parts (`factory::shape_of`), so its icon is the machine as the player
 //! sees it standing in the world and can never drift from it. A row picks the facing that turns the machine's face to
 //! the icon's viewer (who looks from +x and +z, above) and the neighbours a joining piece is shown with (a pipe between
@@ -45,7 +45,7 @@ thread_local! {
 /// The parts of a machine in `PLACED`, else none.
 pub(super) fn parts(item: ItemId) -> &'static [Part] {
     static BUILT: OnceLock<Vec<(ItemId, Vec<Part>)>> = OnceLock::new();
-    if item.0 >= 256 || !PLACED.iter().any(|p| ItemId::block(p.block) == item) || BUILDING.get() {
+    if item.as_block().is_none() || !PLACED.iter().any(|p| ItemId::block(p.block) == item) || BUILDING.get() {
         return &[];
     }
     let built = BUILT.get_or_init(|| {

@@ -172,3 +172,8 @@
   font-size: 12px;
   color: var(--muted);
 }
+
+.guide-why {
+  margin-top: 4px;
+  font-style: italic;
+}

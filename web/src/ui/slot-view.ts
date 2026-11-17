@@ -2,7 +2,7 @@
 // left, what worn gear does). Redraws the icon only when the item or count changed. To show more on a slot: here.
 
 import type { Game } from '../wasm/engine.js';
-import { showAmount } from './hud';
+import { iconEpoch, showAmount } from './hud';
 
 export const ICON_PX = 64;
 
@@ -14,6 +14,9 @@ export interface SlotView {
   n: number;
 }
 
+/** The icon epoch each slot was last drawn in: a new tier palette (`hud.repaintLayers`) redraws every slot. */
+const drawn = new WeakMap<SlotView, number>();
+
 /** Shows `n` of `item` (nothing when `n` is 0) in slot `s`; `data-item` tells the controls bar what it holds. */
 export function drawSlot(game: Game, icon: (item: number) => HTMLCanvasElement, s: SlotView, item: number, n: number): void {
   const uses = game.tool_uses(item);
@@ -21,7 +24,8 @@ export function drawSlot(game: Game, icon: (item: number) => HTMLCanvasElement, 
   const effect = n > 0 ? game.gear_blurb(item) : '';
   s.root.title = n > 0 ? `${game.item_name(item)}${amount}${effect ? `: ${effect}` : ''}` : '';
   s.root.dataset.item = n > 0 ? String(item) : '';
-  if (item === s.item && n === s.n) return;
+  if (item === s.item && n === s.n && drawn.get(s) === iconEpoch.n) return;
+  drawn.set(s, iconEpoch.n);
   const ctx = s.icon.getContext('2d')!;
   ctx.clearRect(0, 0, ICON_PX, ICON_PX);
   if (n > 0) ctx.drawImage(icon(item), 0, 0);

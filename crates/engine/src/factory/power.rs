@@ -287,8 +287,10 @@ impl Factory {
     /// real poles (not cables), the only spans that may stand on props (`wire_props.rs` draws them all).
     pub fn for_each_wire(&self, eye: Vec3, range: f64, mut each: impl FnMut(Vec3, Vec3, u16, bool)) {
         let top = |pos: IVec3, h: f64| pos.as_vec3() + Vec3::new(0.5, h, 0.5);
-        // A pole's wire leaves its crossarm, a cable's its centre.
+        // A pole's middle (a wire's end is the insulator it hangs from: `pole_hang.rs`, a cable's its centre).
         let pole = |i: u32| self.poles[i as usize].wire_point();
+        // Wires counted on each side of each pole, every one in the list's order, shown or not.
+        let mut used = vec![[0u8; 2]; self.poles.len()];
         // A wire wears the colour of the grid it hangs from.
         let mut span = |a: Vec3, b: Vec3, from: u32, poles: bool| {
             let mid = (a + b) * 0.5 - eye;
@@ -299,7 +301,8 @@ impl Factory {
         // Cables touching each other need no wire: their models meet.
         let bare = |i: u32| self.poles[i as usize].is_cable();
         for &(i, j) in self.power.wires.iter().filter(|&&(i, j)| !(bare(i) && bare(j))) {
-            span(pole(i), pole(j), i, !bare(i) && !bare(j));
+            let (a, b) = (self.hang_end(i, pole(j), &mut used), self.hang_end(j, pole(i), &mut used));
+            span(a, b, i, !bare(i) && !bare(j));
         }
         // A multi-block processor's wire goes to its cell nearest the pole.
         let hook = |(p, pole): (&Processor, &Option<u32>)| {
@@ -317,7 +320,8 @@ impl Factory {
         for (poles, positions) in hookups {
             for (p, pos) in poles.iter().zip(positions) {
                 if let Some(p) = *p {
-                    span(pole(p), top(pos, 0.7), p, false);
+                    let lead = top(pos, 0.7);
+                    span(self.hang_end(p, lead, &mut used), lead, p, false);
                 }
             }
         }

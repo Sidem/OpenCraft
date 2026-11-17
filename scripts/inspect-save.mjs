@@ -30,7 +30,7 @@ const demand = new Map();
 let labSeconds = 0;
 for (let t = 0; t < g.tech_count(); t++) {
   if (g.tech_done(t)) done.push(g.tech_name(t));
-  else if (g.tech_available(t)) open.push(`${g.tech_name(t)} ${Math.round(g.tech_progress(t) * 100)}%`);
+  else if (g.tech_available(t)) open.push(`${g.tech_name(t)} ${Math.round((g.tech_progress(t) * 100) / Math.max(1, g.tech_units(t)))}%`);
   if (g.tech_endless(t)) continue;
   labSeconds += g.tech_units(t) * g.tech_seconds(t);
   for (const pack of g.tech_packs(t)) demand.set(pack, (demand.get(pack) ?? 0) + g.tech_units(t));

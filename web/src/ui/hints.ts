@@ -14,7 +14,8 @@
 // `blueprint/repeat.rs`) ahead of the tips; the engine ends it, and H dismisses it. A machine that has stood stalled near
 // the player brings its lesson (`lesson_now`, `stall_lesson.rs`): the card names the cause and the fix, a prompt hangs over
 // the machine, the engine ends it when the machine works again, and H teaches it away for the world. A need lesson
-// (`need_lesson.rs`: a machine short of power) comes the same way, card only. Side tips
+// (`need_lesson.rs`: a machine short of power) comes the same way, card only; so does the no-recipe lesson
+// (`recipe_lesson.rs`), with an Open prompt over the machine. Side tips
 // (`hint_side`: towns, once Settlements is researched) come next, ahead of the main order, until done or skipped.
 // A main tip can point somewhere too (`hint_marker`: Go electric's copper patch, `first_steps.rs`).
 
@@ -22,6 +23,7 @@ import './hints.css';
 import type { Game } from '../wasm/engine.js';
 import type { Renderer } from '../render/renderer';
 import { button, h } from './dom';
+import { GhostPanel } from './ghost-panel';
 import { KeyPrompt } from './key-prompt';
 import { richText, tipParts } from './tip-text';
 
@@ -43,6 +45,8 @@ export class Hints {
   private readonly counter = h('span', 'hint-count');
   private readonly text = h('div', 'hint-text');
   private readonly prompt = new KeyPrompt();
+  /** The controls card shown in ghost mode (`ghost-panel.ts`), drawn from `update`. */
+  private readonly ghostPanel: GhostPanel;
   private readonly again: HTMLButtonElement;
   private readonly skipped: Set<number>;
   private shown = -1;
@@ -70,6 +74,7 @@ export class Hints {
   ) {
     this.skipped = loadSkipped();
     this.creative = game.is_creative();
+    this.ghostPanel = new GhostPanel(game);
     document.getElementById('hud')!.append(this.notice);
     this.notice.addEventListener('animationend', () => this.notice.classList.remove('waste-show'));
     const head = h('div', 'hint-head');
@@ -113,6 +118,7 @@ export class Hints {
   /** Call every frame, after rendering; redraws the card only when the tip changes. */
   update(): void {
     const g = this.game;
+    this.ghostPanel.update();
     this.again.classList.toggle('hidden', this.skipped.size === 0);
     const step = this.skipped.has(OPENING) ? 0 : g.opening_step();
     const main = this.shown >= 0 && this.shown === g.hint_progress(); // the main tip, not a skipped one or a side tip

@@ -137,6 +137,10 @@ pub enum Action {
         slot: u8,
         facing: u8,
     },
+    /// Builds the ghost covering `pos` for real, paying with its item from anywhere in the player's pack (`ghosts.rs`).
+    BuildGhost {
+        pos: IVec3,
+    },
     /// Plants a ghost of `block` at `pos` outright (a stamped blueprint: `blueprint/`); nothing is used.
     PlantGhost {
         pos: IVec3,

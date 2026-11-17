@@ -67,7 +67,7 @@ fn water_blocks_touching_it_give_2_kw_each_and_flowing_water_double() {
     tick(&mut f, &mut world, 2);
     assert_eq!(wheel(&f).store.flow, 6);
     for &c in &ring[3..6] {
-        world.set_block_anywhere(c, flow(FLOW_7 - crate::block::FLOW_1 + 1));
+        world.set_block_anywhere(c, flow((FLOW_7 - crate::block::FLOW_1 + 1) as u8));
     }
     tick(&mut f, &mut world, 2);
     assert_eq!(wheel(&f).store.flow, 6 + 12);

@@ -206,7 +206,7 @@ fn a_line_longer_than_the_held_stack_takes_belts_from_the_other_stacks() {
     }
     let built = planned.min(14);
     assert_eq!(g.sim.factory.count(factory::Kind::Belt), built, "every cell the stacks pay for");
-    assert_eq!(g.item_total(BELT.into()), 14 - built as u32);
+    assert_eq!(g.item_total(BELT), 14 - built as u32);
     assert_eq!(g.slot_count(2), 0, "the held stack went first");
 }
 
@@ -240,7 +240,7 @@ fn a_line_over_a_box_builds_an_underpass_pair_from_the_inventory() {
     let at = |x| IVec3::new(x, 201, 0);
     assert_eq!((f.belt_at(at(0)).shape, f.belt_at(at(2)).shape), (Shape::Entry, Shape::Exit));
     assert!(!f.describe(at(0)).unwrap().contains("needs another underpass"), "the entry found its exit");
-    assert_eq!((g.item_total(BELT.into()), g.item_total(pass.0)), (6, 1), "belts for belts, underpasses for the pair");
+    assert_eq!((g.item_total(BELT), g.item_total(pass.0)), (6, 1), "belts for belts, underpasses for the pair");
 }
 
 #[test]
@@ -248,7 +248,7 @@ fn without_underpasses_the_line_is_built_but_the_tunnel_is_left_out() {
     use crate::factory::Kind;
     let g = line_over_a_box(&[(0, BELT.into(), 10)]);
     assert_eq!(g.sim.factory.count(Kind::Belt), 4, "the belts either side, no tunnel");
-    assert_eq!(g.item_total(BELT.into()), 6);
+    assert_eq!(g.item_total(BELT), 6);
     // The preview marks the pair red (flag 0) and the belts ok (1) before building.
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
@@ -425,6 +425,6 @@ fn a_line_dragged_down_a_cliff_builds_drops_that_the_factory_turns_downwards() {
     for y in 201..204 {
         assert_eq!(f.belt_at(IVec3::new(2, y, 0)).shape, Shape::Drop, "a drop at y {y}");
     }
-    assert_eq!((g.item_total(BELT.into()), g.item_total(ItemId::block(block::LIFT).0)), (4, 2));
+    assert_eq!((g.item_total(BELT), g.item_total(ItemId::block(block::LIFT).0)), (4, 2));
     assert!(f.describe(IVec3::new(2, 202, 0)).unwrap().contains("lowering items down"));
 }

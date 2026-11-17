@@ -88,7 +88,7 @@ fn the_worlds_own_stains_stand_for_the_ore_the_generator_put_below() {
     let (mut seen, mut wrong) = (0, Vec::new());
     g.minimap.atlas.each_tile_in((-40, -40), (40, 40), |cx, cz, tile| {
         for (i, &c) in tile.columns.iter().enumerate() {
-            let stain = (c & 0xff) as BlockId;
+            let stain = crate::minimap::atlas::column_block(c);
             let Some(ore) = ore_of(stain) else { continue };
             let (x, z) = ((cx << 5) + (i as i32 & 31), (cz << 5) + (i as i32 >> 5));
             seen += 1;

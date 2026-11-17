@@ -1,10 +1,10 @@
 //! Flat lookup tables over `DEFS`, indexed by raw block id, so hot loops (mesher, light, physics)
 //! never bounds-check or branch on the registry. Derived at compile time; to add one, copy a table.
 
-use super::{tex, Render, BLOCK_COUNT, DEFS};
+use super::{tex, Render, BLOCK_COUNT, DEFS, TABLE_LEN};
 /// Flat lookup tables indexed by raw block id, so hot loops never bounds-check or branch on the registry.
-pub const OPAQUE: [bool; 256] = {
-    let mut t = [false; 256];
+pub const OPAQUE: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = matches!(DEFS[i].render, Render::Opaque);
@@ -13,8 +13,8 @@ pub const OPAQUE: [bool; 256] = {
     t
 };
 
-pub const CUTOUT: [bool; 256] = {
-    let mut t = [false; 256];
+pub const CUTOUT: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = matches!(DEFS[i].render, Render::Cutout);
@@ -24,8 +24,8 @@ pub const CUTOUT: [bool; 256] = {
 };
 
 /// Blocks the chunk mesher draws as cubes (opaque, cutout or liquid).
-pub const MESHED: [bool; 256] = {
-    let mut t = [false; 256];
+pub const MESHED: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = matches!(DEFS[i].render, Render::Opaque | Render::Cutout | Render::Liquid);
@@ -35,8 +35,8 @@ pub const MESHED: [bool; 256] = {
 };
 
 /// Liquids: drawn translucent in their own mesh range, never against each other.
-pub const LIQUID: [bool; 256] = {
-    let mut t = [false; 256];
+pub const LIQUID: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = matches!(DEFS[i].render, Render::Liquid);
@@ -46,8 +46,8 @@ pub const LIQUID: [bool; 256] = {
 };
 
 /// Blocks the chunk mesher draws as crossed quads.
-pub const PLANT: [bool; 256] = {
-    let mut t = [false; 256];
+pub const PLANT: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = matches!(DEFS[i].render, Render::Plant);
@@ -56,8 +56,8 @@ pub const PLANT: [bool; 256] = {
     t
 };
 
-pub const SOLID: [bool; 256] = {
-    let mut t = [false; 256];
+pub const SOLID: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = DEFS[i].solid;
@@ -66,8 +66,8 @@ pub const SOLID: [bool; 256] = {
     t
 };
 
-pub const FACE_TEX: [[u16; 6]; 256] = {
-    let mut t = [[0u16; 6]; 256];
+pub const FACE_TEX: [[u16; 6]; TABLE_LEN] = {
+    let mut t = [[0u16; 6]; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         t[i] = DEFS[i].faces;
@@ -77,8 +77,8 @@ pub const FACE_TEX: [[u16; 6]; 256] = {
 };
 
 /// Per block and face, the first of the layer's alternates (`tex::alternates`), or 0.
-pub const ALT_TEX: [[u16; 6]; 256] = {
-    let mut t = [[0u16; 6]; 256];
+pub const ALT_TEX: [[u16; 6]; TABLE_LEN] = {
+    let mut t = [[0u16; 6]; TABLE_LEN];
     let mut i = 0;
     while i < BLOCK_COUNT {
         let mut f = 0;

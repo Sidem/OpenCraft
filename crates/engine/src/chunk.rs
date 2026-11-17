@@ -95,7 +95,7 @@ impl Chunk {
         let blocks = match &self.data {
             Data::Uniform(b) => {
                 w.u16(CHUNK_VOLUME as u16);
-                w.u8(*b);
+                w.block(*b);
                 return;
             }
             Data::Dense(d) => d,
@@ -104,7 +104,7 @@ impl Chunk {
         for i in 1..=CHUNK_VOLUME {
             if i == CHUNK_VOLUME || blocks[i] != blocks[start] {
                 w.u16((i - start) as u16);
-                w.u8(blocks[start]);
+                w.block(blocks[start]);
                 start = i;
             }
         }

@@ -2,7 +2,7 @@
 //! the footprint's centre, front towards +z) turned with the machine, each with a `Look`. The tier band (with the
 //! Mk studs of `tier_mark.rs` round it), the product display (`display.rs`), the status lamp, a fire that glows while working, a press that pumps and a chimney's smoke are looks, so a new
 //! processor is rows, not drawing code. Round bodies are real ones (`round`, `round_x`, `tapered`: `push_round`); `leaned` tilts a box (an arm, a hood). A multi-block
-//! machine's port hatches are drawn from its footprint.
+//! machine's ports are openings drawn from its footprint (`port_mouth.rs`).
 
 use crate::block::tex;
 use crate::math::Vec3;
@@ -10,7 +10,7 @@ use crate::TICK;
 
 use super::super::footprint::Role;
 use super::super::render::{push_box, push_shape, Axis, Form, UPRIGHT};
-use super::super::{smoke, ticks, tier_mark, DIRS};
+use super::super::{smoke, ticks, tier_mark};
 use super::{steam_view, Energy, Processor, Status};
 
 #[cfg(test)]
@@ -103,9 +103,6 @@ const LIFT_HEIGHT: f64 = 160.0;
 /// Items in a dock's stream at once, and streams a second.
 const POUR_ITEMS: usize = 5;
 const POUR_RATE: f64 = 1.6;
-/// A port hatch: how far its centre sits from its cell's centre, and its size (across, up, thick).
-const HATCH_OUT: f64 = 0.45;
-const HATCH: [f32; 3] = [0.66, 0.5, 0.1];
 
 /// Draws `p`'s parts at `rel` (its anchor cell's centre relative to the camera).
 pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
@@ -187,15 +184,7 @@ pub fn draw(p: &Processor, out: &mut Vec<f32>, rel: Vec3, time: f64) {
         return;
     }
     steam_view::fittings(p, out, rel, Role::Water, tex::PIPE_WATER, steam_view::WATER_WIDE);
-    for (role, layer) in [(Role::In, tex::PORT_IN), (Role::Out, tex::PORT_OUT), (Role::Side, tex::PORT_SIDE)] {
-        for (cell, side) in p.footprint().faces(p.pos, p.dir, role) {
-            let at =
-                rel + (cell - p.pos).as_vec3() + DIRS[side as usize].as_vec3() * HATCH_OUT - Vec3::new(0.0, 0.12, 0.0);
-            // Turned so its +z face (the hatch) looks out of `side`.
-            let yaw = ((side + 2) % 4) as f32 * std::f32::consts::FRAC_PI_2;
-            push_box(out, at, yaw, HATCH, 0.0, [tex::FRAME, layer, tex::FRAME], false);
-        }
-    }
+    super::port_mouth::draw(p, out, rel);
 }
 
 /// Items falling through the pour part centred at camera-relative `at`, `size` across and high: the first item the

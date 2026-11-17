@@ -29,7 +29,7 @@ fn scene() -> (Game, [IVec3; 4]) {
     }
     g.sim.factory.lay_track(nodes[0], nodes[1]);
     g.sim.factory.lay_track(nodes[1], nodes[2]);
-    g.give(LOADING_DOCK.into(), 4);
+    g.give(LOADING_DOCK, 4);
     g.run_ticks(3);
     let slot = g.inventory().slots.iter().position(|s| s.item == LOADING_DOCK.into()).expect("given") as u32;
     g.select_slot(slot);
@@ -172,7 +172,7 @@ fn a_dock_is_laid_in_line_after_the_selected_node_joined_to_it_and_rails_go_on_f
     for h in hole.y - 2..=hole.y {
         g.sim.world.set_block_anywhere(IVec3::new(hole.x, h, 0), AIR);
     }
-    g.give(UNLOADING_DOCK.into(), 1);
+    g.give(UNLOADING_DOCK, 1);
     g.run_ticks(1);
     let slot = g.inventory().slots.iter().position(|s| s.item == UNLOADING_DOCK.into()).unwrap() as u32;
     g.select_slot(slot);

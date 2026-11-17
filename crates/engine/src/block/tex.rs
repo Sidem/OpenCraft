@@ -249,7 +249,9 @@ pub use super::woods::layers::*;
 /// to Mk5 (`kit_paint`, `textures/stripes.rs`; the kit models in `item_models/components.rs`).
 pub const KIT_PAINT_2: u16 = WOOD_LAYERS_END;
 pub const KIT_PAINT_5: u16 = KIT_PAINT_2 + 3;
-pub const COUNT: usize = KIT_PAINT_5 as usize + 1;
+/// The merger's top (`block/merger.rs`): three arrows meeting in one (`textures.rs` `router_top`).
+pub const MERGER_TOP: u16 = KIT_PAINT_5 + 1;
+pub const COUNT: usize = MERGER_TOP as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

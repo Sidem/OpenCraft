@@ -19,6 +19,8 @@ mod plan;
 mod repeat;
 
 pub use plan::PLAN_FIELDS;
+/// How near earlier copies count, which the walk-through (`blueprint_lesson.rs`) also uses to know it was left.
+pub(crate) use repeat::RANGE as GROUP_RANGE;
 #[cfg(test)]
 mod tests;
 
@@ -148,7 +150,7 @@ pub fn export(list: &[Blueprint]) -> Vec<u8> {
         w.count(b.entries.len());
         for e in &b.entries {
             w.ivec3(e.off);
-            w.u8(e.block);
+            w.block(e.block);
             w.u8(e.facing);
             w.u8(e.tier);
         }

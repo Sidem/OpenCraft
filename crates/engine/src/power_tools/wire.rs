@@ -117,17 +117,17 @@ impl Game {
         out
     }
 
-    /// The wire a click would make, as its two ends in the world: the selected pole's crossarm and the
-    /// machine (or other pole).
+    /// The wire a click would make, as its two ends in the world: the insulator of the selected pole and the machine's
+    /// lead point or the other pole's insulator (`pole_hang.rs`).
     pub(super) fn wire_preview(&self) -> Option<(Vec3, Vec3)> {
         let aim = self.wire_aim()?;
         let sel = aim.sel.filter(|_| matches!(aim.hookup, Hookup::Connect | Hookup::Move(_)))?;
         let f = &self.sim.factory;
-        let end = match f.pole_top(aim.anchor).filter(|_| aim.pole) {
-            Some(top) => top,
-            None => aim.anchor.as_vec3() + Vec3::new(0.5, 0.7, 0.5),
-        };
-        Some((f.pole_top(sel)?, end))
+        let sel_mid = f.pole_top(sel)?;
+        let pole_mid = f.pole_top(aim.anchor).filter(|_| aim.pole);
+        let lead = pole_mid.unwrap_or(aim.anchor.as_vec3() + Vec3::new(0.5, 0.7, 0.5));
+        let end = if pole_mid.is_some() { f.pole_hang(aim.anchor, sel_mid)? } else { lead };
+        Some((f.pole_hang(sel, lead)?, end))
     }
 
     /// The HUD lines for the aimed pole or machine: what a click does, and what stops it.

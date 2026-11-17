@@ -46,6 +46,7 @@ const MENU: &[ItemId] = &[
     b(BELT),
     b(SPLITTER),
     b(FILTER),
+    b(MERGER),
     b(LIFT),
     b(UNDERPASS_IN),
     b(BELT_EJECTOR),

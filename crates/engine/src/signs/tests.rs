@@ -44,7 +44,8 @@ fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
         usize::from(crate::block::OAK_TREE_LOG)
     );
     let last_door = crate::block::door_of(crate::block::OTHER_WOODS - 1);
-    assert_eq!(usize::from(last_door) + 2, BLOCK_COUNT, "the last wood's door, then its open door");
+    assert_eq!(last_door + 2, crate::block::MERGER, "the last wood's door, its open door, then the merger");
+    assert_eq!(usize::from(crate::block::MERGER) + crate::block::MERGER_COUNT, BLOCK_COUNT);
 }
 
 #[test]

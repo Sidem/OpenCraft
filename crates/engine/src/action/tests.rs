@@ -567,6 +567,8 @@ fn samples() -> Vec<Action> {
         Action::Drone { order: DroneOrder::Job(DroneJob::Craft { recipe: 7, times: 3 }), at: pos },
         Action::FilterPick { pos, item: IRON_PLATE, out: 2 },
         Action::FilterRest { pos, out: 1 },
+        Action::ChopTree { pos, at: crate::math::Vec3::new(0.25, -2.5, 1.75), from: 3 },
+        Action::BuildGhost { pos },
     ]
 }
 

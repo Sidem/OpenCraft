@@ -12,7 +12,7 @@ use crate::factory::Kind;
 use crate::item::{ItemId, IRON_INGOT, LOCOMOTIVE, WAGON};
 use crate::math::{IVec3, Vec3};
 
-const RAILS: ItemId = ItemId(RAIL as u16);
+const RAILS: ItemId = ItemId(RAIL);
 const UP: IVec3 = IVec3::new(0, 1, 0);
 const FILL_AMBER: i32 = 0xfbbf24;
 const BLOCKED_RED: i32 = 0xff4a3d;
@@ -183,7 +183,7 @@ fn a_bot_following_the_labels_builds_a_freight_line_on_uneven_ground() {
         g.give(item.0, n);
     }
     g.give(WAGON.0, 2);
-    g.give(DIRT.into(), 32);
+    g.give(DIRT, 32);
     g.run_ticks(2);
     let mut bot = Bot { g, clicks: 0, earthwork: 0, labels: Vec::new() };
     let start = IVec3::new(2, y + 1, 0);

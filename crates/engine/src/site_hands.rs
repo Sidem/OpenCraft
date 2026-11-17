@@ -34,6 +34,11 @@ impl Game {
         self.inventory().selected_stack().item == PLANNER
     }
 
+    /// Whether the first corner is set (the planner lesson's stage).
+    pub(crate) fn planner_corner_set(&self) -> bool {
+        self.planner.corner.is_some()
+    }
+
     /// Runs the planner for one tick. Returns whether one is in hand (the use button is then its own).
     pub(crate) fn update_planner(&mut self) -> bool {
         if !self.planner_held() {

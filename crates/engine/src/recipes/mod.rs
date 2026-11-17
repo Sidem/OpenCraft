@@ -29,6 +29,7 @@ mod machine_later;
 mod materials;
 mod menu_order;
 mod orbit;
+pub mod process_notes;
 mod recycler;
 pub mod recycling;
 mod refit;
@@ -255,6 +256,7 @@ pub const RECIPES: &[Recipe] = &[
     BOX_MK4_RECIPE,
     BOX_MK5_RECIPE,
     PUMPJACK_MK2_RECIPE,
+    MERGER_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

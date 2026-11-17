@@ -247,7 +247,7 @@ fn every_kind_lists_the_machines_its_row_counts_where_the_map_marks_them() {
     let (f, a, idle) = yard();
     let mut marked = Vec::new();
     f.map_machines((i32::MIN, i32::MIN), (i32::MAX, i32::MAX), &mut |b, t, p| {
-        marked.push((crate::factory::tiers::item_of(b, t).map_or(u16::from(b), |i| i.0), p))
+        marked.push((crate::factory::tiers::item_of(b, t).map_or(b, |i| i.0), p))
     });
     let types = a.machines.by_type();
     assert!(types.len() >= 2 * TYPE_FIELDS, "smelters and constructors both counted");
@@ -266,10 +266,10 @@ fn every_kind_lists_the_machines_its_row_counts_where_the_map_marks_them() {
             assert!(marked.contains(&(block, p)), "{p:?} is a {block} mark on the map");
         }
     }
-    let constructors = a.machines.of_kind(CONSTRUCTOR.into());
+    let constructors = a.machines.of_kind(CONSTRUCTOR);
     let gone = constructors.chunks(KIND_FIELDS).find(|m| IVec3::new(m[0], m[1], m[2]) == idle).expect("listed");
     assert_eq!((gone[3], gone[4]), (-1, -1), "the constructor without a recipe reads idle");
-    assert!(a.machines.of_kind(LAB.into()).is_empty());
+    assert!(a.machines.of_kind(LAB).is_empty());
 }
 
 /// `cargo test --release -q bench_machines_of_kind -- --ignored --nocapture`: one kind picked out of 3,025 machines.
@@ -295,7 +295,7 @@ fn bench_machines_of_kind() {
     let start = std::time::Instant::now();
     let mut n = 0;
     for _ in 0..1000 {
-        n += a.machines.of_kind(SMELTER.into()).len() / KIND_FIELDS;
+        n += a.machines.of_kind(SMELTER).len() / KIND_FIELDS;
     }
     println!("of_kind: {} smelters of {} machines in {} µs", n / 1000, 55 * 55, start.elapsed().as_micros() / 1000);
 }

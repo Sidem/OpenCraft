@@ -29,6 +29,7 @@ mod belt_bend;
 mod belt_line;
 mod block;
 mod blueprint;
+mod blueprint_lesson;
 mod bytes;
 mod camera;
 mod cargo_tools;
@@ -50,7 +51,9 @@ mod first_steps;
 mod footprint_preview;
 mod forester_preview;
 mod frame;
+mod ghost_build;
 mod ghost_mode;
+mod ghost_models;
 mod ghosts;
 mod halos;
 mod hand_waste;
@@ -68,6 +71,7 @@ mod item_select;
 mod join;
 mod lessons;
 mod light;
+mod map_lesson;
 mod math;
 mod mesher;
 mod minimap;
@@ -82,6 +86,7 @@ mod ore_guide;
 mod perks;
 mod physics;
 mod place_refusal;
+mod planner_lesson;
 mod player;
 mod pods;
 mod port_view;
@@ -91,6 +96,7 @@ mod quarry_preview;
 mod rail_snap;
 mod rail_tools;
 mod raycast;
+mod recipe_lesson;
 mod recipes;
 mod research;
 mod satellites;
@@ -108,10 +114,12 @@ mod survey;
 mod take_apart;
 mod telescope;
 mod textures;
+mod tier_palette;
 mod tools;
 mod town_preview;
 mod train_tools;
 mod upgrade_aim;
+mod upgrade_lesson;
 mod wire_props;
 pub mod wood;
 mod world;
@@ -267,6 +275,8 @@ pub struct Game {
     rails: RailTools,
     /// Power and production history and machine efficiency (`analytics/`; presentation, not saved).
     analytics: analytics::Analytics,
+    /// Which tier-colour palette this player chose (`tier_palette.rs`; a local setting, not saved).
+    tier_palette: u8,
 }
 
 #[wasm_bindgen]
@@ -354,6 +364,7 @@ impl Game {
             held_bend: 0,
             sign_slots: Default::default(),
             analytics: analytics::Analytics::default(),
+            tier_palette: tier_palette::STANDARD,
         }
     }
 }

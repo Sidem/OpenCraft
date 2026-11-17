@@ -3,11 +3,17 @@
 // doesn't cover are repeated 2 × 2 to 128 so every layer has one size, pack layers are copied in, and a second array
 // holds each texel's self-light (glow). To add layers, extend `tools/art/registry.py` and rebuild the pack.
 
-import packUrl from '../art/pack.png?url';
 import glowUrl from '../art/pack_glow.png?url';
 import table from '../art/pack.json';
 
 export const ART_SIZE = 128;
+
+// The colour stack ships as lossless WebP slices (`pack_<n>.webp`, 127 layers each: WebP images are at most 16383 rows).
+const sliceUrls = Object.entries(import.meta.glob<string>('../art/pack_[0-9]*.webp', { query: '?url', import: 'default', eager: true }))
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([, url]) => url);
+/** Rows read back from the GPU at a time: any WebGL2 device accepts a texture this tall. */
+const CHUNK_ROWS = 1024;
 
 export interface ArtTextures {
   size: number;
@@ -68,10 +74,50 @@ async function decodePng(url: string): Promise<{ width: number; height: number; 
   return { width, height, data: out };
 }
 
+/**
+ * Decodes the WebP slices into one RGBA stack of `rows` rows, keeping un-premultiplied alpha: canvas 2D would premultiply
+ * and wreck the colour under transparent texels (the shaders read it), so the bitmaps go through a WebGL texture and
+ * `readPixels` with premultiplication off. Needs WebGL2, which the game needs anyway.
+ */
+async function decodeWebpStack(urls: string[], rows: number): Promise<Uint8Array> {
+  const out = new Uint8Array(rows * ART_SIZE * 4);
+  const gl = new OffscreenCanvas(1, 1).getContext('webgl2');
+  if (!gl) throw new Error('no WebGL2 to decode the art pack');
+  const raw = { premultiplyAlpha: 'none', colorSpaceConversion: 'none', imageOrientation: 'none' } as const;
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+  gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  const frame = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, frame);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+  let row = 0;
+  const downloads = urls.map((url) => fetch(url).then((response) => response.blob())); // all slices download at once
+  for (const download of downloads) {
+    const slice = await createImageBitmap(await download, raw);
+    for (let top = 0; top < slice.height; top += CHUNK_ROWS) {
+      const height = Math.min(CHUNK_ROWS, slice.height - top);
+      const chunk = await createImageBitmap(slice, 0, top, ART_SIZE, height, raw);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, chunk);
+      chunk.close();
+      gl.readPixels(0, 0, ART_SIZE, height, gl.RGBA, gl.UNSIGNED_BYTE, out.subarray(row * ART_SIZE * 4, (row + height) * ART_SIZE * 4));
+      row += height;
+    }
+    slice.close();
+  }
+  gl.getExtension('WEBGL_lose_context')?.loseContext();
+  if (row !== rows) throw new Error(`art pack has ${row} rows, expected ${rows}`);
+  return out;
+}
+
 /** Loads the pack and merges it over the engine's layers; null when the pack can't be read (the engine's own are used). */
 export async function composeTextures(engine: Uint8Array, engineSize: number, layers: number): Promise<ArtTextures | null> {
   try {
-    const [art, grey] = await Promise.all([decodePng(packUrl), decodePng(glowUrl)]);
+    const [art, grey] = await Promise.all([
+      decodeWebpStack(sliceUrls, table.length * ART_SIZE).then((data) => ({ data })),
+      decodePng(glowUrl),
+    ]);
     const layerTexels = ART_SIZE * ART_SIZE;
     const pixels = new Uint8Array(layers * layerTexels * 4);
     // Whole texels move as one 32-bit word each.

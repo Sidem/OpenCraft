@@ -2,8 +2,8 @@
 
 Writes `artifacts/art2/tiles/<layer>_<name>.png` (each 128 x 128 RGBA tile), `artifacts/art2/sheet.png` (every
 tile; repeating ones shown 2 x 2 so seams show; glowing texels brightened beside the tile) and, for a full run, the pack
-the game loads: `web/src/art/pack.png` (the tiles stacked, RGBA), `pack_glow.png` (their glow, grey) and `pack.json`
-(layer table). Pass names to render a subset and skip the pack. Vegetation ships through `grade.py` (the sunny grade).
+the game loads: `web/src/art/pack_<n>.webp` (the tiles stacked, RGBA, lossless, 127 layers a file), `pack_glow.png` (their glow,
+grey) and `pack.json` (layer table). Pass names to render a subset and skip the pack. Vegetation ships through `grade.py` (the sunny grade).
 """
 import json
 import sys
@@ -19,6 +19,8 @@ ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "artifacts" / "art2" / "tiles"
 SHEET = ROOT / "artifacts" / "art2" / "sheet.png"
 PACK = ROOT / "web" / "src" / "art"
+# WebP images are at most 16383 rows tall: the stack ships as slices of whole 128-row layers (127 layers each).
+SLICE_ROWS = 127 * 128
 
 
 def show(tile, cutout):
@@ -57,7 +59,12 @@ def main():
     if not want:
         PACK.mkdir(parents=True, exist_ok=True)
         stack = np.concatenate(tiles)
-        Image.fromarray(stack[..., :4], "RGBA").save(PACK / "pack.png", optimize=True)
+        for old in PACK.glob("pack_[0-9]*.webp"):
+            old.unlink()
+        for n, top in enumerate(range(0, len(stack), SLICE_ROWS)):
+            # exact=True keeps the colour under fully transparent texels, so the pack stays bit-exact.
+            Image.fromarray(stack[top:top + SLICE_ROWS, :, :4], "RGBA").save(
+                PACK / f"pack_{n}.webp", lossless=True, quality=100, method=6, exact=True)
         Image.fromarray(stack[..., 4], "L").save(PACK / "pack_glow.png", optimize=True)
         table = [{"layer": e.layer, "name": e.name, "cutout": e.cutout} for e in registry.LAYERS]
         (PACK / "pack.json").write_text(json.dumps(table, separators=(",", ":")))

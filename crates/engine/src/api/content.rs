@@ -3,12 +3,12 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::block::{self, BLOCK_COUNT};
+use crate::block::{self, BlockId, BLOCK_COUNT};
 use crate::factory::tiers;
-use crate::factory::upgrades::TIER_COLOURS;
 use crate::factory::{Axis, Form};
 use crate::item::{self, ItemId};
 use crate::item_models;
+use crate::tier_palette;
 use crate::tools;
 use crate::Game;
 
@@ -18,12 +18,12 @@ impl Game {
         BLOCK_COUNT as u32
     }
 
-    pub fn block_name(&self, id: u8) -> String {
+    pub fn block_name(&self, id: BlockId) -> String {
         block::def(id).name.to_string()
     }
 
     /// Sound material a block uses (`block::sound`), i.e. which bank its dig/step/place sounds come from.
-    pub fn block_sound(&self, id: u8) -> u8 {
+    pub fn block_sound(&self, id: BlockId) -> u8 {
         block::def(id).sound
     }
 
@@ -121,9 +121,23 @@ impl Game {
     /// The colour of a tiered machine's item as 0xRRGGBB (0 for other items): the colour of the kit that makes its tier,
     /// red, green, blue, violet or gold (a pumpjack's Mk2 is gold: `Family::colour`).
     pub fn item_tier_colour(&self, item: u16) -> u32 {
-        tiers::placed_by(ItemId(item)).map_or(0, |(block, tier)| {
-            let colour = tiers::family(block).map_or(tier, |f| f.colour(tier));
-            TIER_COLOURS.get(usize::from(colour)).copied().unwrap_or(0)
-        })
+        tiers::placed_by(ItemId(item))
+            .map_or(0, |(block, tier)| self.tier_colour(tiers::family(block).map_or(tier, |f| f.colour(tier))))
+    }
+
+    /// Chooses the tier-colour palette (`tier_palette.rs`: 0 standard, 1 colour-blind). Presentation only, not saved.
+    pub fn set_tier_palette(&mut self, palette: u8) {
+        self.tier_palette = palette;
+    }
+
+    /// The five tier colours (0xRRGGBB, Mk1 first) of a palette, for the host to recolour the baked layers.
+    pub fn tier_palette_colours(&self, palette: u8) -> Vec<u32> {
+        tier_palette::colours(palette).to_vec()
+    }
+
+    /// The texture layers that wear a tier colour, three numbers each: the layer, the tier (0 is Mk1) and what it is
+    /// (0 a stripe, 1 a stud's paint, 2 a kit's case): the layers the host recolours for a palette.
+    pub fn tier_layers(&self) -> Vec<u16> {
+        tier_palette::layers()
     }
 }

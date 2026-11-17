@@ -181,6 +181,16 @@ impl Processor {
             .collect()
     }
 
+    /// Whether a faster Mk would do more: a machine with a chosen recipe, working at full pace, with every input piled up
+    /// (two batches' worth, or a full stack). A machine short of power, starved or full gains nothing from a kit.
+    pub fn is_bottleneck(&self) -> bool {
+        let Some(r) = self.chosen().filter(|_| self.status == Status::Working && self.spec.pick == Pick::Chosen) else {
+            return false;
+        };
+        let at_pace = !self.draws_power() || self.speed >= FULL_SPEED;
+        at_pace && r.inputs.iter().all(|&(i, n)| self.input.count_like(i) >= (2 * n).min(item::stack_size(i)))
+    }
+
     /// The product or byproduct it has stopped for, having nowhere to put it.
     pub fn blocked_output(&self) -> Option<ItemId> {
         if self.status != Status::OutputFull {

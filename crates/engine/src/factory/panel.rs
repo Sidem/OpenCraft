@@ -55,7 +55,7 @@ impl Factory {
     pub fn panel(&self, pos: IVec3) -> Option<Panel> {
         match *self.at.get(&pos)? {
             Slot::Process(i) => Some(self.processors[i as usize].panel()),
-            Slot::Router(i) => Some(&self.routers[i as usize]).filter(|r| r.is_filter).map(|r| r.panel()),
+            Slot::Router(i) => Some(&self.routers[i as usize]).filter(|r| r.is_filter()).map(|r| r.panel()),
             Slot::Generator(i) => {
                 let g = &self.generators[i as usize];
                 Some(g.panel(g.status_text(self)))
@@ -180,7 +180,7 @@ impl Factory {
 
     fn filter_rules_mut(&mut self, pos: IVec3) -> Option<&mut FilterRules> {
         match self.at.get(&pos) {
-            Some(&Slot::Router(i)) if self.routers[i as usize].is_filter => Some(&mut self.routers[i as usize].rules),
+            Some(&Slot::Router(i)) if self.routers[i as usize].is_filter() => Some(&mut self.routers[i as usize].rules),
             _ => None,
         }
     }

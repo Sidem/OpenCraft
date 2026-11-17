@@ -1,5 +1,6 @@
 use super::*;
 use crate::block::{BELT, MINER};
+use crate::factory::upgrades;
 use crate::item::{BLUE_KIT, GREEN_KIT};
 use crate::raycast::RayHit;
 
@@ -21,7 +22,7 @@ fn factory_game() -> Game {
 }
 
 /// The aim of `kit` at the block `pos` (a tick re-aims the real crosshair, so the target is set last).
-fn aim_at(g: &mut Game, pos: IVec3, id: u8, kit: ItemId) -> Aim {
+fn aim_at(g: &mut Game, pos: IVec3, id: crate::block::BlockId, kit: ItemId) -> Aim {
     g.target = Some(RayHit { block: pos, normal: IVec3::ZERO, id });
     g.upgrade_aim(kit)
 }
@@ -42,6 +43,9 @@ fn a_kit_over_a_machine_outlines_it_and_says_what_it_costs() {
     assert!(!aim.label.contains("you have"), "{}", aim.label);
     g.line.aim = aim;
     assert_eq!(g.aim_box(), [0, 70, 0, 0, 70, 0, upgrades::TIER_COLOURS[1] as i32]);
+    g.set_tier_palette(crate::tier_palette::COLOUR_BLIND);
+    let aim = aim_at(&mut g, AT, MINER, GREEN_KIT);
+    assert_eq!(aim.colour, crate::tier_palette::TIER_COLOURS_CB[1] as i32, "the outline wears the chosen palette");
 }
 
 #[test]

@@ -85,6 +85,15 @@ pub const FILTER_RECIPE: Recipe = Recipe {
             else goes. Right-click to set it up.",
 };
 
+pub const MERGER_RECIPE: Recipe = Recipe {
+    output: b(MERGER),
+    group: Group::Logistics,
+    count: 1,
+    inputs: &[(IRON_PLATE, 2), (b(BELT), 2)],
+    blurb: "Joins up to three belts into one: takes from the belts coming in behind and at the sides in turn, so \
+            none is starved, and puts everything out in front.",
+};
+
 pub const LIFT_RECIPE: Recipe = Recipe {
     output: b(LIFT),
     group: Group::Logistics,

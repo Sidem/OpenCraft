@@ -4,6 +4,7 @@ use super::*;
 use crate::block::{BLOCK_COUNT, CONCRETE, LIMESTONE};
 use crate::item::{self, QUICKLIME, STEEL_INGOT};
 use crate::recipes::FUELS;
+use crate::research::{Research, TECHS};
 use crate::settlements::{upkeep, ORDERS, STAGES};
 
 /// Every item something asks for (a hand or machine recipe, a fuel slot, a town's order or upkeep) and every item a
@@ -29,6 +30,32 @@ fn needed() -> Vec<ItemId> {
     out.sort();
     out.dedup();
     out
+}
+
+#[test]
+fn a_stuck_diesel_barrel_names_the_generator_that_burns_it_and_the_recycler_that_destroys_it() {
+    let mut research = Research::default();
+    let line = use_line(&research, item::DIESEL_BARREL).expect("diesel has sinks");
+    assert!(line.starts_with("A Diesel Generator "), "{line}");
+    assert!(line.contains("burns it for power") && line.contains("turns anything into coins"), "{line}");
+    assert!(
+        line.contains("Generator (research Diesel Power)") && line.contains("Recycler (research Recycling)"),
+        "locked sinks name their research: {line}"
+    );
+    for (t, tech) in TECHS.iter().enumerate() {
+        (0..tech.units).for_each(|_| research.add_unit(t as u8));
+    }
+    let line = use_line(&research, item::DIESEL_BARREL).unwrap();
+    assert!(!line.contains("research"), "nothing to unlock any more: {line}");
+}
+
+#[test]
+fn only_an_item_no_recipe_takes_is_offered_the_recycler() {
+    let research = Research::default();
+    let sulfur = use_line(&research, item::SULFUR).expect("acid takes sulfur");
+    assert!(sulfur.contains("makes") && !sulfur.contains("Recycler"), "{sulfur}");
+    let plastic = use_line(&research, item::NAPHTHA_BARREL).unwrap();
+    assert!(!plastic.contains("Recycler"), "a recipe takes naphtha: {plastic}");
 }
 
 #[test]

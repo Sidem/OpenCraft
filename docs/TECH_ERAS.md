@@ -146,7 +146,7 @@ right-hand hatches on one belt, to sort with filters; the water inlet is on the 
 |---|---|
 | Naphtha | plastic (chemical plant: 2 naphtha + 1 coal → 4 plastic); cracked from heavy oil |
 | Diesel | diesel generator (built, 10.5: 2×2×2, a barrel is 20 MJ: 400 kW for 50 s, the empty comes back); fuel for the later drill rig and vehicles |
-| Heavy oil | **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil + 1 empty → 2 lubricant: Mk5 kits and gears; boilers cannot burn it, their steam cap is under a barrel's energy) |
+| Heavy oil | **Crack** (cracker 2×2×3: 2 heavy oil + 1 water → 1 naphtha + 1 diesel, rebalances), lubricant (1 heavy oil + 1 empty → 2 lubricant: no consumer yet; CHEM0 decided it goes into rotating machines and M14B's climbers, `ROADMAP_CHEMISTRY.md`; boilers cannot burn it, their steam cap is under a barrel's energy) |
 | Sulfur | acid (1 sulfur + 1 water → 1 acid barrel; ore leaching, etched circuits, the chip fab) |
 
 **Ore washing and the crusher do not conflict:** the crusher (steel, 30 kW) stays the first step for iron, copper and

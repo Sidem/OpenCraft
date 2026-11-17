@@ -70,7 +70,7 @@ Ramps (dark → light, interpolated in Oklab to 7–9 tones; defined in `natural
 ## 4. Pipeline
 
 ```
-tools/art (Python, numpy + Pillow)  →  web/src/art/pack.png, pack_glow.png, pack.json  →  render/art-pack.ts  →  Renderer
+tools/art (Python, numpy + Pillow)  →  web/src/art/pack_<n>.webp, pack_glow.png, pack.json  →  render/art-pack.ts  →  Renderer
 ```
 
 | Command | What it does |

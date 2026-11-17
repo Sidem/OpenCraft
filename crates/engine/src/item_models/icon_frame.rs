@@ -51,7 +51,7 @@ pub fn icon_frame(item: ItemId) -> IconFrame {
 /// Whether the icon is the item's side picture: a plant-drawn block. (A sapling has a 3D model for the hand and the
 /// ground, `plants.rs`, but its icon stays the picture.)
 fn is_flat(item: ItemId) -> bool {
-    item.0 < 256 && crate::block::PLANT[usize::from(item.0)]
+    item.as_block().is_some_and(|b| crate::block::PLANT[usize::from(b)])
 }
 
 /// The boxes an item's icon draws: its model's parts, or for a block without one its single box of the def's size.

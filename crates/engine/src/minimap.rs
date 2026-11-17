@@ -10,7 +10,7 @@
 //! Deposit, ore, machine and town marks over the images are in `minimap/marks.rs`, what a hovered mark is in words in
 //! `minimap/describe.rs`; where towns fit, shaded on the world map while a depot is held, in `minimap/sites.rs`.
 
-mod atlas;
+pub(crate) mod atlas;
 mod describe;
 mod marks;
 mod sites;
@@ -25,7 +25,7 @@ pub use marks::{ore_color, Known, MARK_FIELDS};
 pub use marks::{MARK_GOAL, MARK_RANGE};
 pub use sites::Sites;
 
-use atlas::{column_index, Tile};
+use atlas::{column_block, column_height, column_index, Tile};
 
 use crate::block::{is_ore, BlockId, AIR, BLOCK_COUNT, FACE_TEX};
 use crate::chunk::CHUNK_SHIFT;
@@ -127,12 +127,12 @@ impl Minimap {
                 let x = x0 + i as i32 * scale;
                 let (v, n) = (here.get(x, z), nw.get(x - scale, z - scale));
                 let p = (j * w + i) * 4;
-                let block = (v & 0xff) as usize;
+                let block = column_block(v) as usize;
                 if block == AIR as usize {
                     out[p..p + 4].fill(0);
                     continue;
                 }
-                let step = if n == 0 { 0 } else { (v >> 8) as i32 - (n >> 8) as i32 };
+                let step = if n == 0 { 0 } else { column_height(v) - column_height(n) };
                 let k = 256 + step.clamp(-SHADE_MAX_STEP, SHADE_MAX_STEP) * SHADE_PER_BLOCK;
                 let [r, g, b] = self.colors[block].map(|c| ((c as i32 * k) >> 8).min(255) as u8);
                 out[p..p + 4].copy_from_slice(&[r, g, b, 255]);
@@ -165,7 +165,7 @@ impl<'a> Lookup<'a> {
         Self { atlas, key: (i32::MIN, i32::MIN), tile: None }
     }
 
-    fn get(&mut self, x: i32, z: i32) -> u16 {
+    fn get(&mut self, x: i32, z: i32) -> u32 {
         let key = (x >> CHUNK_SHIFT, z >> CHUNK_SHIFT);
         if key != self.key {
             self.key = key;

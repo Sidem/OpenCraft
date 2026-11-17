@@ -77,7 +77,23 @@ impl ByteWriter {
     pub fn item(&mut self, v: ItemId) {
         self.u16(v.0);
     }
+
+    /// A block id: one byte below `BLOCK_ESCAPE`, else the escape byte and a `u16`. Ids below 255 keep
+    /// the one-byte form every save before the wider ids used, so saves and hashes of old content
+    /// do not change size or value.
+    #[inline(never)]
+    pub fn block(&mut self, v: BlockId) {
+        if v < BLOCK_ESCAPE as BlockId {
+            self.bytes.push(v as u8);
+        } else {
+            self.bytes.push(BLOCK_ESCAPE);
+            self.bytes.extend_from_slice(&v.to_le_bytes());
+        }
+    }
 }
+
+/// The byte that announces a two-byte block id (`ByteWriter::block`).
+const BLOCK_ESCAPE: u8 = 255;
 
 /// Reads what a `ByteWriter` wrote, in the same order. Its primitives are not inlined either (0.4 KB).
 pub struct ByteReader<'a> {
@@ -164,7 +180,9 @@ impl<'a> ByteReader<'a> {
     /// A block id that exists (unknown ids would index past the block tables).
     #[inline(never)]
     pub fn block(&mut self) -> Option<BlockId> {
-        self.u8().filter(|&b| (b as usize) < BLOCK_COUNT)
+        let first = self.u8()?;
+        let id = if first == BLOCK_ESCAPE { self.u16()? } else { first as BlockId };
+        ((id as usize) < BLOCK_COUNT).then_some(id)
     }
 
     /// An item id in the table, or `ItemId::NONE`. Version 1 saves stored items as block ids (`u8`).
@@ -183,3 +201,6 @@ pub fn fnv1a(bytes: &[u8]) -> u64 {
     }
     h
 }
+
+#[cfg(test)]
+mod tests;

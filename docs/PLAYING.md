@@ -15,11 +15,12 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | Hold left mouse     | Mine the targeted block                   |
 | Right mouse (hold)  | Place the selected block                  |
 | Right mouse drag with belts | Lay a line of belts: press on the ground, drag to where it should end (it turns once and climbs or drops one-block steps by itself), release to build. Left-click cancels |
-| R                   | Turn the belt or splitter/filter you point at; while holding a quarry or an assembler, turn it before placing |
+| R                   | Turn the belt or splitter/filter/merger you point at; while holding a quarry or an assembler, turn it before placing |
 | I                   | Pick up the item on the belt you point at, or the one you clicked to select if it is within reach; it goes into your pack, or stays if there is no room |
 | Left-click an item  | Select it on its belt: its readout stays up and follows it; click elsewhere to let go |
-| B                   | Ghost mode (opens with the Construction Drones research): right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost's outline is cyan and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
-| Z, Enter (ghost mode) | Z marks the two corners of a box (a third press starts a new box, Z at the sky clears it, leaving ghost mode forgets it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts, R turns it and Z puts it away |
+| B                   | Ghost mode (opens with the Construction Drones research): right-click plants a free ghost of the held block or machine (again on it removes it), left-click marks the aimed block for tear-down (red outline; again clears it), R turns it, reach 16, no mining; a ghost shows as a see-through blue copy of the building inside a cyan outline, a card on the right lists the keys that work now (B is its first row), and the label lists what the ghosts need. Placing the real block on a ghost builds it facing the same way |
+| X                   | Builds the ghost under the crosshair at once (hands' reach), taking its item from anywhere in the pack, selected or not; a notice names a missing item. In strategy view X stops walking instead |
+| Z, Enter (ghost mode) | Z marks the two corners of a box (a third press starts a new box, Z at the sky clears it, leaving ghost mode forgets it); Enter copies the machines in it as a blueprint and takes it in hand. With one in hand, right-click stamps its ghosts (a see-through preview shows each machine), R turns it and Z puts it away |
 | L | Blueprint library: each blueprint as a picture from above with what it holds and what you are missing; rename, hold or delete them (kept per world in this browser) |
 | Right-click (Planner in hand) | Marks a site: a corner block, then the opposite one (reach 64); a panel picks dig, fill, flatten (with the level) or a tunnel (with its section). Right-click a marked site to look at it or remove it |
 | Y | With a Personal Drone in your pack: its panel. Fetch anything in boxes or machine outputs within 64 blocks, fetch the parts for a hand craft and craft it, put the backpack away into boxes holding the same items, store one stack; orders queue. It never fills a box on a belt line (fed by a belt or miner, or feeding a belt) nor an empty labelled box; a box labelled "Misc (drone fills)" takes, last, anything that has no other box. In the inventory, Drone (or Alt-click) picks slots to send to storage or fill; slots it serves show a ring, an arrow and seconds left, on the hotbar too. It also tops up the hand stack when it drops to a quarter (a panel switch) |
@@ -212,7 +213,7 @@ take them from its panel. From ingots you craft, by hand and slowly, iron plates
 screws (a rod makes 4) and copper wire (an ingot makes 2). Those make the first machines: a Miner Mk1 costs 5 plates,
 4 rods and 6 wire, four belts a plate and a rod, a box 8 planks and 2 plates, a generator 4 plates, 8 wire and 12
 stone, two poles 2 sticks and 2 wire. Once a constructor (10 iron ingots, 4 copper ingots, 8 stone) makes the
-parts for you, hand crafting is for one-offs. Also by recipe: a constructor is as above; a splitter 2 iron plates and
+parts for you, hand crafting is for one-offs. Also by recipe: a constructor is as above; a splitter or a merger 2 iron plates and
 2 belts, a filter 2 iron plates, 2 copper wire and 2 belts, an assembler 12 iron plates, 6 gears, 12 copper wire and
 4 iron rods; a boiler 24 stone bricks, 8 steel plates and 6 pipes, a steam turbine 12 steel plates, 4 motors and 16
 copper wire, a crusher 6 steel plates, 2 motors and 4 gears, a silo 24 steel plates, 8 concrete and 4 steel beams, an

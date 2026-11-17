@@ -23,6 +23,7 @@ use crate::block::{BlockId, COAL_ORE, COPPER_ORE, DARK_SAND, DARK_SOIL, GREEN_SA
 use crate::block::{LIMESTONE, PALE_SAND, PALE_SOIL, RUSTY_SAND, RUSTY_SOIL};
 use crate::chunk::{CHUNK_SHIFT, CHUNK_SIZE};
 use crate::math::sort_small_by_key;
+use crate::minimap::atlas::column_block;
 use crate::minimap::{Atlas, Known};
 use crate::research::{Feature, Unlock};
 use crate::Game;
@@ -100,7 +101,7 @@ pub fn survey(atlas: &Atlas, centre: (i32, i32), known: &[(i32, i32, BlockId)]) 
     let hi = ((centre.0 + RADIUS) >> CHUNK_SHIFT, (centre.1 + RADIUS) >> CHUNK_SHIFT);
     atlas.each_tile_in(lo, hi, |cx, cz, tile| {
         for (i, &c) in tile.columns.iter().enumerate() {
-            let Some(ore) = ore_of((c & 0xff) as BlockId) else { continue };
+            let Some(ore) = ore_of(column_block(c)) else { continue };
             let x = (cx << CHUNK_SHIFT) + (i as i32 & (CHUNK_SIZE - 1));
             let z = (cz << CHUNK_SHIFT) + (i as i32 >> CHUNK_SHIFT);
             if (x - centre.0).pow(2) + (z - centre.1).pow(2) > RADIUS * RADIUS {

@@ -1,7 +1,7 @@
 //! The long-distance pole's model (`pole.rs` stands it on `LONG_FOOTPRINT`): a lattice transmission tower 2×2×4. Four
 //! legs on concrete footings lean in to a waist and run up a narrower body, X-braced on all four faces; two levels of
 //! crossarms (the lower one wider) carry a string of insulator discs at each tip, and an earth-wire peak crowns it,
-//! where the wire hangs (`TOP`). Members are boxes run between two points (`strut`). The grid-coloured sleeves are drawn
+//! the lightning wire (`TOP`: nothing hangs from it; the wires hang from the arm tips, `HANGS`). Members are boxes run between two points (`strut`). The grid-coloured sleeves are drawn
 //! apart (`long_accent`) because the grid's colour is the factory's, not the pole's. All points are relative to the
 //! footprint's centre, y from -2 (the ground) to 2.
 
@@ -10,8 +10,15 @@ use crate::math::Vec3;
 
 use super::render::{push_box, push_round, Axis};
 
-/// How high the earth-wire peak, where the wire hangs, stands above the footprint's centre.
+/// How high the earth-wire peak stands above the footprint's centre (the tower's wire point, for side tests and props).
 pub const TOP: f64 = 1.95;
+
+/// How far below a crossarm's tip the insulator string's copper clamp hangs.
+const CLAMP_DROP: f64 = 0.31;
+
+/// Where a tower's wires hang (`pole_hang.rs`), lowest level first: how far out a clamp stands from the middle and how
+/// high, relative to the footprint's centre. Each is one arm's tip, mirrored to the other side.
+pub const HANGS: [(f64, f64); 2] = [(ARMS[0].1, ARMS[0].0 - CLAMP_DROP), (ARMS[1].1, ARMS[1].0 - CLAMP_DROP)];
 
 /// A leg's half-width at its foot, its waist (where the lower arms are) and the top of the body, and their heights.
 const FOOT: (f64, f64) = (0.82, -1.88);
@@ -124,7 +131,7 @@ fn insulators(out: &mut Vec<f32>, tip: Vec3) {
     for d in [0.08, 0.15, 0.22] {
         push_round(out, down(d), 0.0, Axis::Up, [0.12, 0.035, 0.12], 1.0, [tex::FLASK_GLASS; 3], false);
     }
-    push_box(out, down(0.31), 0.0, [0.07, 0.05, 0.05], 0.0, [tex::COPPER_WIRE; 3], false);
+    push_box(out, down(CLAMP_DROP), 0.0, [0.07, 0.05, 0.05], 0.0, [tex::COPPER_WIRE; 3], false);
 }
 
 /// A square bar `t` thick from `a` to `b` (camera-relative), a little longer so joints close: a box turned by its yaw

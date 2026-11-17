@@ -37,7 +37,7 @@ fn denials(g: &Game) -> usize {
 
 #[test]
 fn a_block_where_the_player_stands_is_refused_with_words_a_red_box_and_one_knock_a_click() {
-    let (mut g, y) = on_a_floor(u16::from(STONE), 3.5, 3.5);
+    let (mut g, y) = on_a_floor(STONE, 3.5, 3.5);
     g.set_look(0.0, -1.5); // straight down: the floor under the feet, so the new block would fill the player's cell
     g.update(FRAME);
     assert!(g.line_label().contains("step aside"), "{}", g.line_label());
@@ -60,7 +60,7 @@ fn a_block_where_the_player_stands_is_refused_with_words_a_red_box_and_one_knock
 
 #[test]
 fn stepping_aside_places_the_block_without_a_knock() {
-    let (mut g, y) = on_a_floor(u16::from(STONE), 3.5, 3.5);
+    let (mut g, y) = on_a_floor(STONE, 3.5, 3.5);
     g.set_look(0.0, -1.5);
     g.teleport(5.5, (y + 1) as f64, 3.5);
     g.set_look(std::f64::consts::PI * 1.5, -0.9); // towards -x and down: the floor a block or two ahead
@@ -80,7 +80,7 @@ fn stepping_aside_places_the_block_without_a_knock() {
 
 #[test]
 fn a_machine_that_does_not_fit_knocks_and_one_that_does_is_placed_in_silence() {
-    let (mut g, y) = on_a_floor(u16::from(LONG_POLE), 3.5, 3.5);
+    let (mut g, y) = on_a_floor(LONG_POLE, 3.5, 3.5);
     g.set_look(0.0, -1.5); // its footprint would take the player's own cells
     g.update(FRAME);
     g.sounds.clear();

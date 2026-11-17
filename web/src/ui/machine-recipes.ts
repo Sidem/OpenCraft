@@ -192,6 +192,9 @@ export class RecipePicker {
       }
       main.append(extra);
     }
+    // The real process the batch stands for (`recipes/process_notes.rs`), for the chemical machines.
+    const why = g.machine_recipe_note(id);
+    if (why) main.append(h('span', 'rp-why', why));
     const lock = h('span', 'rp-lock');
     main.append(lock);
 

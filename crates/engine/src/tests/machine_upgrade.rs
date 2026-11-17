@@ -14,7 +14,7 @@ fn a_smelter_panel_offers_mk2_for_green_kits_and_the_button_upgrades_it() {
     run_until_ready(&mut g);
     let y = g.sim.world.generator().height_at(0, 0);
     let pos = IVec3::new(0, y + 40, 0);
-    g.place_at(pos.x, pos.y, pos.z, u16::from(SMELTER), 0);
+    g.place_at(pos.x, pos.y, pos.z, SMELTER, 0);
     assert_eq!(g.machine_upgrade(pos.x, pos.y, pos.z).len(), 5, "a Mk1 smelter has a Mk2 to go to");
     assert_eq!(g.machine_name(pos.x, pos.y, pos.z), "Smelter Mk1");
 

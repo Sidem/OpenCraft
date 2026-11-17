@@ -32,6 +32,11 @@ impl Game {
         }
     }
 
+    /// One line of the real process a chemical machine recipe stands for (`recipes/process_notes.rs`); empty if it has none.
+    pub fn machine_recipe_note(&self, recipe: u32) -> String {
+        crate::recipes::process_notes::note(recipe as usize).to_string()
+    }
+
     /// What uses `item`, as flat (kind, recipe) pairs: kind 0 a hand recipe, 1 a machine recipe.
     pub fn item_uses(&self, item: u16) -> Vec<u32> {
         uses(ItemId(item)).into_iter().flat_map(|(machine, r)| [u32::from(machine), r as u32]).collect()

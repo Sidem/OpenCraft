@@ -50,6 +50,12 @@ impl Game {
         self.ghost_mode
     }
 
+    /// X: builds the ghost under the crosshair, taking its item from anywhere in the pack (`ghost_build.rs`). Returns
+    /// a line to show when it could not be tried (nothing aimed, item missing), else "".
+    pub fn build_ghost(&mut self) -> String {
+        self.build_aimed_ghost()
+    }
+
     /// Why ghost mode and blueprints are not open yet ("" once researched).
     pub fn ghost_mode_lock(&self) -> String {
         self.ghost_lock_note()

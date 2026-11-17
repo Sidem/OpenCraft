@@ -32,6 +32,9 @@ pub struct Repeat {
     offered: Vec<(BlockId, u8)>,
     /// The kind on offer and the tick its prompt ends.
     prompt: Option<(BlockId, u64)>,
+    /// The box around the previous copy the prompt suggested (preset as the selection when none was in use):
+    /// the walk-through (`blueprint_lesson.rs`) points at its corners.
+    suggested: Option<(IVec3, IVec3)>,
 }
 
 impl Game {
@@ -59,10 +62,22 @@ impl Game {
         repeat.offered.push((block, tier));
         repeat.prompt = Some((block, sim.tick + SHOW_TICKS));
         let lib = &mut self.library;
+        let suggested = around(&self.sim.factory.footprint_at(before).map_or(vec![before], |f| f.2));
+        lib.repeat.suggested = Some(suggested);
         if lib.held.is_none() && lib.corner.is_none() && lib.selection.is_none() {
-            lib.selection = Some(around(&self.sim.factory.footprint_at(before).map_or(vec![before], |f| f.2)));
+            lib.selection = Some(suggested);
             lib.note = "Marked around your previous copy".into();
         }
+    }
+
+    /// The player accepted the prompt (pressed B while it showed): it ends, and its suggested box is handed to the
+    /// walk-through. `None` while no prompt shows.
+    pub(crate) fn accept_repeat_prompt(&mut self) -> Option<(IVec3, IVec3)> {
+        if self.repeat_prompt().is_empty() {
+            return None;
+        }
+        self.library.repeat.prompt = None;
+        self.library.repeat.suggested
     }
 
     /// The prompt's text (hint markup) while it shows, else empty.

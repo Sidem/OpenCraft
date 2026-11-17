@@ -1,4 +1,4 @@
-﻿use super::*;
+use super::*;
 use crate::block::{LEAVES, STONE, WATER};
 
 /// Full sky light everywhere.
@@ -159,4 +159,13 @@ fn water_inside_water_is_trivially_empty() {
     assert!(Mesher::is_trivially_empty(&refs));
     refs[neighbor_index(0, 1, 0)] = &air;
     assert!(!Mesher::is_trivially_empty(&refs));
+}
+
+/// The cube vertex holds its layer in 9 bits (`quad.rs`, read by `shaders.ts`), so a block's faces stay below 512;
+/// item and model layers may go past it (the shaped list has 16 bits).
+#[test]
+fn cube_faces_use_layers_the_vertex_can_hold() {
+    for (id, def) in crate::block::BLOCK_DEFS.iter().enumerate() {
+        assert!(def.faces.iter().all(|&l| l < 512), "block {id} ({}) has a face layer past 511", def.name);
+    }
 }

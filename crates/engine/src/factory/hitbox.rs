@@ -19,7 +19,7 @@ impl Factory {
         let here = Vec3::ZERO;
         match *self.at.get(&cell)? {
             Slot::Belt(i) => self.belts[i as usize].frame(&mut out, here, 0.0),
-            Slot::Router(i) => self.routers[i as usize].model(&mut out, here, 0.0),
+            Slot::Router(_) => super::router_model::hull(&mut out, here),
             Slot::Pole(i) => {
                 let pole = &self.poles[i as usize];
                 if pole.is_cable() {

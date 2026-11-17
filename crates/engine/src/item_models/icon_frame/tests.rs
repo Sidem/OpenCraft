@@ -103,7 +103,7 @@ fn every_icon_fills_its_box_with_a_margin() {
 }
 
 /// Machines whose icons were drawn after the real thing to be told apart at hotbar size (`machines.rs`, `placed.rs`).
-const LOOKALIKES: [u8; 16] = {
+const LOOKALIKES: [crate::block::BlockId; 16] = {
     use crate::block::*;
     [
         PIPE,

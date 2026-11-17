@@ -212,7 +212,7 @@ fn mine_collect_place_loop() {
     for _ in 0..300 {
         g.update(1.0 / 60.0);
     }
-    let expected = block::def(mined).drop as u16;
+    let expected = block::def(mined).drop;
     assert_eq!(g.slot_item(0), expected);
     assert_eq!(g.slot_count(0), 1);
     assert!(g.next_pickup());
@@ -233,7 +233,7 @@ fn mine_collect_place_loop() {
     g.update(1.0 / 60.0);
     g.set_using(false);
     assert_eq!(g.slot_count(0), 0, "placing consumes the item");
-    assert_eq!(g.sim.world.get_block(IVec3::new(tx, ty, tz)), Some(expected as u8));
+    assert_eq!(g.sim.world.get_block(IVec3::new(tx, ty, tz)), Some(expected as crate::block::BlockId));
     assert_eq!(g.sounds.kinds(), vec![sound::PLACE]);
 }
 
@@ -485,7 +485,7 @@ fn miner_without_output_fills_up_and_stops() {
     // Right-click empties it into the inventory.
     g.act(Action::TakeContents { pos: m });
     g.run_ticks(1);
-    assert_eq!(g.item_total(key.ore.into()), crate::item::MAX_STACK);
+    assert_eq!(g.item_total(key.ore), crate::item::MAX_STACK);
     assert!(g.sounds.kinds().contains(&sound::PICKUP));
 }
 
@@ -584,7 +584,7 @@ fn a_second_player_has_its_own_body_pickups_and_throws() {
     g.act_as(b, Action::BreakBlock { pos: wall });
     g.run_ticks(60);
     assert_eq!(g.sim.player(b).unwrap().inventory.count(STONE.into()), 1);
-    assert_eq!(g.item_total(STONE.into()), 0);
+    assert_eq!(g.item_total(STONE), 0);
     assert!(!g.next_pickup());
 
     // B's throw leaves from B's body.
@@ -611,19 +611,19 @@ fn crafting_is_queued_takes_time_and_consumes_inputs() {
     g.run_ticks(1);
     let belt = RECIPES.iter().position(|r| r.output == BELT.into()).unwrap() as u32;
     assert_eq!(g.craft(belt, 5), 3, "what the inventory can pay for");
-    assert_eq!(g.item_total(BELT.into()), 0, "applied at the next tick");
+    assert_eq!(g.item_total(BELT), 0, "applied at the next tick");
     g.run_ticks(1);
     assert_eq!((g.item_total(IRON_PLATE.0), g.item_total(IRON_ROD.0)), (0, 2), "paid for when queued");
     assert_eq!(g.craft_queue()[..2], [BELT as u32, 12]);
     // Each craft takes 2.5 s by hand; the belts arrive one craft at a time.
     g.run_ticks(150);
-    assert_eq!(g.item_total(BELT.into()), 4);
+    assert_eq!(g.item_total(BELT), 4);
     g.run_ticks(300);
-    assert_eq!(g.item_total(BELT.into()), 12);
+    assert_eq!(g.item_total(BELT), 12);
     assert!(g.craft_queue().is_empty());
     let mut notices = Vec::new();
     while g.next_pickup() {
-        if g.pickup_item() == BELT as u16 {
+        if g.pickup_item() == BELT {
             notices.push(g.pickup_count());
         }
     }
@@ -646,7 +646,7 @@ fn a_machine_crafted_from_ingots_queues_its_parts_and_can_be_cancelled() {
     g.cancel_craft(0);
     g.run_ticks(1);
     assert!(g.craft_queue().is_empty());
-    assert_eq!(g.item_total(MINER.into()), 0);
+    assert_eq!(g.item_total(MINER), 0);
     // Everything is back, as parts or ingots: the same again can be made.
     assert_eq!(g.craftable_times(miner), 1);
 }
@@ -761,8 +761,8 @@ fn right_click_opens_a_panel_whose_buttons_drive_the_machine() {
     }
     g.act(Action::Give { item: block::COAL_ORE.into(), count: 2 });
     g.run_ticks(1);
-    assert!(g.machine_wants(gen.x, gen.y, gen.z, block::COAL_ORE as u16));
-    g.insert_into_machine(gen.x, gen.y, gen.z, block::COAL_ORE as u16);
+    assert!(g.machine_wants(gen.x, gen.y, gen.z, block::COAL_ORE));
+    g.insert_into_machine(gen.x, gen.y, gen.z, block::COAL_ORE);
     g.skip_time(7.0);
     assert_eq!(g.machine_status(gen.x, gen.y, gen.z), "Idle: nothing on its grid needs power");
     assert_eq!(g.machine_panel(gen.x, gen.y, gen.z)[5], 1, "one fuel slot");
@@ -855,9 +855,9 @@ fn dragging_with_belts_lays_a_line_that_climbs_a_step() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
     belt_test_slab(&mut g);
-    g.give(BELT.into(), 20);
+    g.give(BELT, 20);
     g.run_ticks(2);
-    let slot = (0..INVENTORY_SLOTS).find(|&s| g.slot_item(s as u32) == BELT as u16).unwrap();
+    let slot = (0..INVENTORY_SLOTS).find(|&s| g.slot_item(s as u32) == BELT).unwrap();
     g.select_slot(slot as u32);
     g.run_ticks(2);
 
@@ -900,9 +900,9 @@ fn a_left_click_cancels_a_belt_line() {
     let mut g = Game::new(2024, 3);
     run_until_ready(&mut g);
     belt_test_slab(&mut g);
-    g.give(BELT.into(), 20);
+    g.give(BELT, 20);
     g.run_ticks(2);
-    let slot = (0..INVENTORY_SLOTS).find(|&s| g.slot_item(s as u32) == BELT as u16).unwrap();
+    let slot = (0..INVENTORY_SLOTS).find(|&s| g.slot_item(s as u32) == BELT).unwrap();
     g.select_slot(slot as u32);
     g.run_ticks(2);
     g.set_look(std::f64::consts::FRAC_PI_2, -1.3);

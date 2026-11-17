@@ -23,6 +23,7 @@ mod belt_chain;
 mod belt_curve;
 mod belt_items;
 mod belt_model;
+mod belt_order;
 mod belt_shape;
 pub mod box_label;
 mod buffer;
@@ -49,12 +50,14 @@ mod pipes;
 mod placed;
 mod plume;
 mod pole;
+mod pole_hang;
 pub mod pole_mount;
 mod pole_tower;
 pub mod port_marks;
 mod ports;
 mod power;
 pub mod power_mix;
+mod preview;
 mod process;
 mod provenance;
 mod pumping;
@@ -62,6 +65,7 @@ mod quarry;
 mod rail;
 mod render;
 mod router;
+mod router_model;
 mod sensor;
 mod sites;
 pub(crate) mod smoke;
@@ -79,7 +83,7 @@ mod wiring;
 
 use rustc_hash::FxHashMap;
 
-use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, FILTER, LONG_POLE, MINER_MK2, POLE, SOLID};
+use crate::block::{BlockId, CABLE, COAL_MINER, FACE_BOTTOM, FAST_BELT, LONG_POLE, MINER_MK2, POLE, SOLID};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
 #[cfg(test)]
@@ -110,7 +114,7 @@ use power::Power;
 use process::Processor;
 use quarry::Quarry;
 use rail::Rail;
-use router::Router;
+use router::{Router, RouterKind};
 use sensor::Sensor;
 use storage::Storage;
 use trains::Train;
@@ -131,6 +135,7 @@ pub use miner_burner::CoalMinerView;
 pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
 pub use pole::{POLE_TIERS, POLE_WIRE_Y};
+pub use pole_hang::ghost_hang;
 pub use ports::PortInfo;
 pub use power::{sag_point, wire};
 pub(crate) use process::EJECTOR_ICON;
@@ -286,7 +291,9 @@ impl Factory {
                     add_to(&mut self.processors, p, at, Slot::Process);
                 }
             }
-            Kind::Router => add_to(&mut self.routers, Router::new(pos, facing, block == FILTER), at, Slot::Router),
+            Kind::Router => {
+                add_to(&mut self.routers, Router::new(pos, facing, RouterKind::of(block)), at, Slot::Router)
+            }
             Kind::Generator => add_to(&mut self.generators, Generator::new(pos), at, Slot::Generator),
             Kind::Pole => {
                 let tier = match block {

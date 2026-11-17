@@ -207,9 +207,12 @@ size.
   front, to the left and to the right, skipping any that are full. A filter's panel lists, for left, straight
   on and right, the items picked to go that way (up to `filter_rules::MAX_PICKS` each); exactly one way takes
   everything else (a new filter: straight on). Filters from before save version 72 keep their one item straight
-  on and share everything else between the sides.
+  on and share everything else between the sides. A **merger** (`router.rs`, `RouterKind::Merger`) is the mirror: belts
+  in at the back and both sides, one out in front, taken in turn, skipping inputs with nothing waiting. Roofs and
+  opening bands say the job: cyan where items go in, gold where they leave; a lit chevron marks the side being served.
+  Machine ports are dark doorways; the lamp over one lights when a belt is joined to it (`Processor::linked`).
 - **Power.** Miners, constructors, labs, pumps and quarries need power; the smelter burns its own fuel, and
-  belts, splitters and filters need none. A coal generator turns coal ore (270 kJ) or logs (135 kJ), brought
+  belts, splitters, filters and mergers need none. A coal generator turns coal ore (270 kJ) or logs (135 kJ), brought
   by belt, by a miner beside it or by hand, into stored energy and gives up to 60 kW, only as much as its
   grid draws, so fuel lasts longer under a light load. Power poles connect only what you wire to them, and
   each wire takes one of a pole's slots (Mk1 4, Mk2 8, Mk3 12, Mk4 16): a pole wires to poles within 10
@@ -274,7 +277,7 @@ size.
   tree (done techs are green, the ones you can start glow blue, the one being researched is orange; hover any
   tech for its details), click one to choose it, and every powered lab with the right packs works on it, one unit at a time (5 or 10 s each, one of each of
   the tech's packs). Red packs are an iron plate and 2 copper wire; green packs, unlocked by research, are
-  2 belts and 4 screws. Belt Routing (10 red) unlocks splitters and filters, then Belt Lifts (20 red),
+  2 belts and 4 screws. Belt Routing (10 red) unlocks splitters, filters and mergers, then Belt Lifts (20 red),
   Green Science (30 red), and with red and green packs Underpasses (15), Mechanics (30: gears, green kits
   and Mk2 miners, smelters and constructors), Belt Mk2 (20) Assembly (40: the assembler, motors, concrete) Steelmaking (50, after Assembly and Masonry: the blast furnace, steel) and Blue Science (50: blue packs, from a motor, a steel plate and concrete in an assembler). With blue packs too: Mk3 Logistics (60: blue kits, Mk3 belts), Mk3 Machines (80) and Steel Tools (30), and after Blue Science Steam Power (60, also after Fluid Handling), Ore Crushing (60) and Bulk Storage (40). Fluid Handling (15 red, after Belt
   Routing) unlocks pumps, pipes and outlets; Masonry (15 red) stone bricks and quicklime. A lab draws 10 kW
@@ -294,7 +297,9 @@ size.
   **cracker** (heavy oil and water into naphtha and diesel). Plastics, then Acids and Lubricants, unlock the
   **chemical plant** (plastic from naphtha and coal, acid from sulfur and water, lubricant from heavy oil). A
   **diesel generator** burns a barrel for 50 s of 400 kW and gives only what the grid lacks; the
-  **electrolyser** splits water into hydrogen and oxygen for later. **Ore washing** (the washer takes *crushed* ore
+  **electrolyser** splits water into hydrogen and oxygen for later. Every chemical recipe's card and item page carries
+  a line of the real process behind it (`recipes/process_notes.rs`), and a machine stuck full of diesel is told a
+  generator burns it and a recycler destroys it for coins. **Ore washing** (the washer takes *crushed* ore
   only, water from a pipe) turns a raw ore's 1.0 ingots into 2.0 and leaves tailings you must belt away. A **research
   center** (2×2×2, eight pack slots, twice a lab's speed and power) takes the gold pack that a lab has no slot for.
   The **water wheel** (rivers and lakes exist in worlds made from this version on) gives 2 kW per still water block

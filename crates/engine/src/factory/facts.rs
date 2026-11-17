@@ -21,8 +21,8 @@ use super::storage::BOX_SLOTS;
 use super::tiers::placed_by;
 use super::underpass::UNDERPASS_SPAN;
 use crate::block::{
-    BELT, CABLE, COAL_MINER, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MINER, MINER_MK2, OUTLET, PIPE, POLE,
-    PUMP, QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
+    BELT, CABLE, COAL_MINER, FAST_BELT, FILTER, GENERATOR, LAB, LIFT, LONG_POLE, MERGER, MINER, MINER_MK2, OUTLET,
+    PIPE, POLE, PUMP, QUARRY, SENSOR, SPLITTER, STORAGE, UNDERPASS_IN,
 };
 use crate::item::{self, ItemId};
 use crate::recipes::FUELS;
@@ -84,7 +84,7 @@ pub fn fuel_names() -> String {
 
 /// The card of the building `item` places, or None for anything that is not a machine.
 pub fn facts(item: ItemId) -> Option<Facts> {
-    let (block, tier) = placed_by(item).or_else(|| u8::try_from(item.0).ok().map(|b| (b, 0)))?;
+    let (block, tier) = placed_by(item).or_else(|| item.as_block().map(|b| (b, 0)))?;
     let tier = usize::from(tier);
     if let Some(s) = spec(block) {
         return Some(process_facts(s, tier));
@@ -113,6 +113,7 @@ pub fn facts(item: ItemId) -> Option<Facts> {
         }
         SPLITTER => f.stat("Splits", "Evenly between the belts leading away"),
         FILTER => f.stat("Sorts", "Picked items left, straight on or right; everything else one way"),
+        MERGER => f.stat("Joins", "Up to three belts into one, taking from each in turn"),
         LIFT => f.stat("Carries", "Items up or down one block at a time"),
         STORAGE => f.stat("Holds", format!("{} stacks", BOX_SLOTS[tier.min(BOX_SLOTS.len() - 1)])),
         PUMP => {

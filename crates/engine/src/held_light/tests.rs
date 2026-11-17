@@ -32,9 +32,9 @@ fn the_frame_reports_one_light_for_the_player_at_the_eye_and_none_without_a_torc
     run_until_ready(&mut g);
     g.update(1.0 / 60.0);
     assert_eq!(g.held_light_count(), 0);
-    g.give(u16::from(TORCH), 10);
+    g.give(TORCH, 10);
     g.update(1.0 / 60.0);
-    let slot = (0..9).find(|&i| g.slot_item(i) == u16::from(TORCH)).expect("in the hotbar");
+    let slot = (0..9).find(|&i| g.slot_item(i) == TORCH).expect("in the hotbar");
     g.select_slot(slot);
     g.update(1.0 / 60.0);
     g.update(1.0 / 60.0);

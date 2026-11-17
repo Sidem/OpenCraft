@@ -6,7 +6,7 @@
 use wasm_bindgen::prelude::*;
 
 use crate::action::Action;
-use crate::block::{AIR, STONE};
+use crate::block::{BlockId, AIR, STONE};
 use crate::deposits::Tier;
 use crate::inventory::{add_to_slots, Stack};
 use crate::item::ItemId;
@@ -25,7 +25,7 @@ impl Game {
     /// facing `facing`, bypassing reach and co-op routing (like `debug_desync`, solo worlds only).
     pub fn place_at(&mut self, x: i32, y: i32, z: i32, block: u16, facing: u8) {
         let me = self.local;
-        let item = ItemId(block);
+        let item = ItemId::block(block);
         self.sim.apply(me, Action::Give { item, count: 1 });
         let Some(slot) = self.sim.player(me).and_then(|p| p.inventory.slots.iter().position(|s| s.item == item)) else {
             return;
@@ -35,13 +35,13 @@ impl Game {
     }
 
     /// Scene building: every machine block of more than one cell that turns (`scripts/port-shots.mjs`).
-    pub fn footprint_blocks(&self) -> Vec<u8> {
+    pub fn footprint_blocks(&self) -> Vec<BlockId> {
         crate::port_view::footprint_blocks()
     }
 
     /// The ports of `block` placed `turn` quarter turns from the way the player faces, as the player sees them: pairs
     /// of (side: 0 far, 1 right, 2 near, 3 left; flow: 0 in, 1 out, 2 byproduct), one per face (`port_view.rs`).
-    pub fn placement_ports(&self, block: u8, turn: u8) -> Vec<u8> {
+    pub fn placement_ports(&self, block: BlockId, turn: u8) -> Vec<u8> {
         self.ports_as_seen(block, turn)
     }
 
@@ -97,7 +97,7 @@ impl Game {
     }
 
     /// Scene building: plants a ghost of `block` (for drones to build) at once.
-    pub fn ghost_at(&mut self, x: i32, y: i32, z: i32, block: u8, facing: u8) {
+    pub fn ghost_at(&mut self, x: i32, y: i32, z: i32, block: BlockId, facing: u8) {
         let pos = IVec3::new(x, y, z);
         self.sim.apply(self.local, Action::PlantGhost { pos, block, facing, tier: 0 });
     }
@@ -106,7 +106,7 @@ impl Game {
     /// only, bypassing actions (no drops; never use it on machines). Clears or levels ground for a set;
     /// remeshing is left to streaming, so big fills stay fast.
     #[allow(clippy::too_many_arguments)]
-    pub fn fill_blocks(&mut self, x0: i32, y0: i32, z0: i32, x1: i32, y1: i32, z1: i32, block: u8) {
+    pub fn fill_blocks(&mut self, x0: i32, y0: i32, z0: i32, x1: i32, y1: i32, z1: i32, block: BlockId) {
         for x in x0.min(x1)..=x0.max(x1) {
             for y in y0.min(y1)..=y0.max(y1) {
                 for z in z0.min(z1)..=z0.max(z1) {
@@ -199,7 +199,7 @@ impl Game {
     }
 
     /// Block at a position in a loaded chunk (air otherwise). For testing and the console.
-    pub fn block_at(&self, x: i32, y: i32, z: i32) -> u8 {
+    pub fn block_at(&self, x: i32, y: i32, z: i32) -> BlockId {
         self.sim.world.get_block(IVec3::new(x, y, z)).unwrap_or(AIR)
     }
 

@@ -18,7 +18,7 @@ use crate::Game;
 /// How far the hands reach in ghost mode (normally `interaction::REACH`).
 pub(crate) const GHOST_REACH: f64 = 16.0;
 /// Ghosts further than this from the eye are not outlined.
-const DRAW_RANGE: f64 = 64.0;
+pub(crate) const DRAW_RANGE: f64 = 64.0;
 /// Outline boxes drawn at most.
 const MAX_DRAWN: usize = 600;
 /// Ghost outline colour (cyan).
@@ -125,11 +125,8 @@ impl Game {
             Some(b) => format!("Ghost mode · {}", block::def(b).name),
             None => "Ghost mode · hold a block or machine".to_string(),
         };
-        let mut lines = vec![format!(
-            "Right-click plants a ghost, left-click marks a block for tear-down · Z marks a box to copy · R turns · \
-             B leaves · {} blocks reach",
-            self.reach() as i32
-        )];
+        // The keys are the controls panel's (`web/src/ui/ghost-panel.ts`); the label keeps what the plan needs.
+        let mut lines = Vec::new();
         let needs = self.sim.ghosts.needs();
         let marks = self.sim.ghosts.iter().filter(|g| g.block == block::AIR).count();
         if marks > 0 {

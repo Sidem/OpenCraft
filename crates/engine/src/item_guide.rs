@@ -13,7 +13,7 @@
 
 use crate::block::{self, BlockId};
 use crate::factory::{first_maker, tenths, tenths_a_minute, tiers};
-use crate::item::{ItemId, COIN, CRUDE_BARREL, SCRAP_METAL};
+use crate::item::{ItemId, COIN, CRUDE_BARREL, DIESEL_BARREL, SCRAP_METAL};
 use crate::recipes::{Category, MACHINE_RECIPES, RECIPES};
 use crate::research::{Research, Unlock, TECHS};
 use crate::wood::Form;
@@ -89,9 +89,10 @@ pub fn source_line(gen: &WorldGen, research: &Research, item: ItemId) -> Option<
 }
 
 /// What a stuck output is good for, for a machine that has nowhere to put it ("A Crusher makes Sand from it (research
-/// Ore Crushing)."): the first two machine recipes that take it. `None` when none does.
+/// Ore Crushing)."): the first two machine recipes that take it, then the machine that burns it for power if one does, and
+/// the recycler when no recipe takes it (it destroys anything for coins). `None` when nothing does.
 pub fn use_line(research: &Research, item: ItemId) -> Option<String> {
-    let each: Vec<String> = uses(item)
+    let mut each: Vec<String> = uses(item)
         .into_iter()
         .filter(|&(machine, _)| machine)
         .filter_map(|(_, i)| {
@@ -102,7 +103,26 @@ pub fn use_line(research: &Research, item: ItemId) -> Option<String> {
         })
         .take(2)
         .collect();
+    let by_recipe = !each.is_empty();
+    // Both are named with the research that unlocks them, so a stuck player knows what to work towards.
+    let built = |b: BlockId| format!("{}{}", block::def(b).name, block_note(research, b));
+    if let Some(&(_, burner)) = BURNED_BY.iter().find(|n| n.0 == item) {
+        each.push(format!("a {} burns it for power", built(burner)));
+    }
+    if !by_recipe {
+        each.push(format!("a {} turns anything into coins", built(block::RECYCLER)));
+    }
     (!each.is_empty()).then(|| format!("{}.", upper_first(&each.join("; "))))
+}
+
+/// What a machine burns for power that no recipe takes, so `uses` does not list it: item, then the block that burns it.
+const BURNED_BY: &[(ItemId, BlockId)] = &[(DIESEL_BARREL, block::DIESEL_GENERATOR)];
+
+/// " (research Recycling)" while the block's recipe is locked.
+fn block_note(research: &Research, b: BlockId) -> String {
+    research
+        .locked_by(Unlock::Recipe(ItemId::block(b)))
+        .map_or(String::new(), |t| format!(" (research {})", TECHS[t as usize].name))
 }
 
 /// " (research Ore Crushing)" while machine recipe `recipe` is locked.
@@ -228,7 +248,7 @@ const FOUND: &[(ItemId, &str)] = &[
 
 /// How `item` is found or dug, if it is.
 fn found(gen: &WorldGen, item: ItemId) -> Option<String> {
-    let as_block = (item.0 < 256).then_some(item.0 as BlockId);
+    let as_block = item.as_block();
     if let Some(b) = as_block.filter(|&b| block::is_ore(b)) {
         let lacks = "This world was made before it was in the game: only a new world has it.";
         return Some(crate::ore_guide::ore_way(gen, b).unwrap_or_else(|| lacks.to_string()));

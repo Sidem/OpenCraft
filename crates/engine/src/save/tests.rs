@@ -19,7 +19,7 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     g.act_as(c, Action::Give { item: LOG.into(), count: 4 });
     g.run_ticks(1);
     g.leave(c);
-    g.give(BELT.into(), 3);
+    g.give(BELT, 3);
     g.toggle_fly();
     let far = g.body().pos + Vec3::new(20.0, 5.0, 0.0);
     g.items.spawn(far, Vec3::ZERO, STONE.into(), 2, 0.0);
@@ -34,7 +34,7 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
     assert!(loaded.body().flying);
     assert_eq!(loaded.items.list.len(), g.items.list.len());
     assert_eq!(loaded.sim.player(b).unwrap().inventory.count(STONE.into()), 7);
-    assert_eq!(loaded.item_total(BELT.into()), 3);
+    assert_eq!(loaded.item_total(BELT), 3);
     let away = &loaded.sim.away[0];
     assert_eq!((loaded.sim.away.len(), away.key, away.inventory.count(LOG.into())), (1, 5, 4));
 
@@ -49,8 +49,8 @@ fn a_saved_world_loads_back_to_the_same_bytes() {
 fn small_save() -> Vec<u8> {
     let mut g = Game::new(7, 2);
     let (chest, belt) = (IVec3::new(5, 200, 5), IVec3::new(6, 200, 5));
-    g.give(STORAGE.into(), 1);
-    g.give(BELT.into(), 2);
+    g.give(STORAGE, 1);
+    g.give(BELT, 2);
     g.act(Action::PlaceBlock { pos: chest, slot: 0, facing: 0, against: chest });
     g.act(Action::PlaceBlock { pos: belt, slot: 1, facing: 1, against: belt });
     g.join(0).unwrap();
@@ -101,9 +101,9 @@ const V1_SAVE: &[u8] = include_bytes!("v1.ocworld");
 fn a_version_1_save_still_loads() {
     assert_eq!(u32::from_le_bytes(V1_SAVE[4..8].try_into().unwrap()), 1);
     let mut g = Game::load(V1_SAVE, 2).expect("loads");
-    assert_eq!(g.item_total(STONE.into()), 30);
-    assert_eq!(g.item_total(LOG.into()), 5);
-    assert_eq!(g.item_total(BELT.into()), 1);
+    assert_eq!(g.item_total(STONE), 30);
+    assert_eq!(g.item_total(LOG), 5);
+    assert_eq!(g.item_total(BELT), 1);
     assert!(g.sim.player(PlayerId(1)).is_some());
     let loose = &g.items.list[0];
     assert_eq!((loose.item, loose.count), (COPPER_ORE.into(), 3));
@@ -151,4 +151,21 @@ fn a_version_9_save_still_loads() {
     g.run_ticks(1);
     let back = Game::load(&g.save(), 2).expect("loads");
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
+}
+
+/// Saved at version 76, when block ids were bytes: a box at (5, 200, 5), a belt east of it, a second player,
+/// 3 stone lying at (40.5, 150, 40.5) and an iron ingot in the inventory. Version 77 writes ids below 255 as the
+/// same single byte, so the file is also what version 77 would write for this world.
+const V76_SAVE: &[u8] = include_bytes!("v76.ocworld");
+
+#[test]
+fn a_version_76_save_still_loads_and_saves_the_same_bytes() {
+    assert_eq!(u32::from_le_bytes(V76_SAVE[4..8].try_into().unwrap()), 76);
+    let g = Game::load(V76_SAVE, 2).expect("loads");
+    assert_eq!(g.item_total(IRON_INGOT.0), 1);
+    assert_eq!(g.sim.factory.count(crate::factory::Kind::Storage), 1);
+    assert_eq!((g.items.list[0].item, g.items.list[0].count), (STONE.into(), 3));
+    let saved = g.save();
+    assert_eq!(u32::from_le_bytes(saved[4..8].try_into().unwrap()), SAVE_VERSION);
+    assert_eq!(&saved[8..], &V76_SAVE[8..], "only the version number differs");
 }

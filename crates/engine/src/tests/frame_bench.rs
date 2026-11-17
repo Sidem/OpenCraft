@@ -70,7 +70,7 @@ fn bench_port_view_and_labels() {
     let (eye, time) = (Vec3::new(0.5, 66.0, 8.0), 3.0);
     let (mut solid, mut ghost) = (Vec::new(), Vec::new());
     // The ghost of the machine with the most ports, and the marks of 30 machines built near, a belt in hand.
-    let most = (1..=255u8).max_by_key(|&b| port_marks::port_faces(b, IVec3::ZERO, 0).len()).unwrap();
+    let most = (1..=255u16).max_by_key(|&b| port_marks::port_faces(b, IVec3::ZERO, 0).len()).unwrap();
     ms("ghost + marks, most ports", 1000, || {
         solid.clear();
         ghost.clear();
@@ -83,7 +83,7 @@ fn bench_port_view_and_labels() {
     );
     let mut world = crate::world::World::new(1, 2);
     let mut f = factory::Factory::default();
-    let many: Vec<u8> = (1..=255u8).filter(|&b| !port_marks::port_faces(b, IVec3::ZERO, 0).is_empty()).collect();
+    let many: Vec<u16> = (1..=255u16).filter(|&b| !port_marks::port_faces(b, IVec3::ZERO, 0).is_empty()).collect();
     for i in 0..30 {
         let at = IVec3::new((i % 6) * 6 - 15, 64, (i / 6) * 6 - 15);
         f.place(&mut world, many[i as usize % many.len()], at, (i % 4) as u8, at, 0);

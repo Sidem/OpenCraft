@@ -5,8 +5,9 @@ at each milestone's cleanup step, move the next item from here into the plan and
 and done-when). Finished work is in `git log` (the changelogs removed from `docs/history/` are at commit `025edaf`:
 `git show 025edaf:docs/history/CHANGELOG_R.md`); settled choices are in `docs/DECISIONS.md`.
 
-**Order (2026-10-16, R8 dropped 2026-10-22, the carry dropped 2026-11-14):** fire (FIRE, in the plan), the feel-and-feedback
-interlude, Milestone 14. The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
+**Order (re-ranked by impact per session 2026-11-16: `docs/ROADMAP_ORDER.md`, which supersedes the order of this
+file):** the cheap wins first, then ROOM (`u16` block ids, model layers), fire in the third wave, Milestone 14
+(M14A, then M14B) last (user, 2026-11-16). The open steps of the play-test response (L2–L6, 13.6b) are in `docs/DEV_PLAN.md` section 4. The order can
 change with the user's priorities. Determinism (DEV_PLAN section 3.4), the agent rules (section 3.1) and the content
 architecture (`docs/TECH_TREE.md` section 8) apply to all of it. Every milestone ends with a cleanup step.
 
@@ -90,10 +91,11 @@ Detail of the plan step FIRE (`docs/DEV_PLAN.md` section 4).
     machines never burn; water stops it; caps hold; same hash at every frame rate; co-op pair agrees), and a bench
     `tests/fire_spikes.rs` on the `tree_spikes.rs` pattern: a 1,000-tree forest lit at its centre keeps a native host frame
     with the 6 ms work budget under 8 ms worst and the added core tick under 0.3 ms p99.
-  - **FIRE2 Flamethrower** (`flame_hands.rs`, `Action::Flame`): a hand tool (item and tech gate: ask the user which pack),
-    held use button sends a flame every `FLAME_SECONDS`; the core casts `FLAME_RAYS` rays up to `FLAME_RANGE`, each stopping
-    at the first solid cell, and per ray ignites a tree, scorches 3×3 columns (the sickle's `ClearCover` rule, no drop) and
-    starts a front; one fuel item (coal or charcoal) per `FLAME_SECONDS * N`, taken in the action. Synthesised sound
+  - **FIRE2 Flamethrower** (`flame_hands.rs`, `Action::Flame`): a hand tool (item and tech gate: Claude picks the research
+    when planning; the user chose none), held use button sends a flame every `FLAME_SECONDS`; the core casts `FLAME_RAYS` rays
+    up to `FLAME_RANGE`, each stopping at the first solid cell, and per ray ignites a tree, scorches 3×3 columns (the sickle's
+    `ClearCover` rule, no drop) and starts a front; one fuel item (coal or charcoal, which are the same to every recipe and
+    fuel, `docs/DECISIONS.md` 2026-11-16) per `FLAME_SECONDS * N`, taken in the action. Synthesised sound
     (`audio/synth.ts`), no camera effect (motion sickness). *Done when:* a headless test clears a meadow and fells a tree to
     charcoal; an empty tank does nothing; a flame never lights a placed block or a body.
   - **FIRE3 Look** (presentation): blaze emitters, embers along fronts, a glow, smoke from a smouldering trunk
@@ -102,6 +104,11 @@ Detail of the plan step FIRE (`docs/DEV_PLAN.md` section 4).
   - **FIRE4 Manual and cleanup:** `PLAYING.md`, patch note, code map, budgets clean, plan compressed.
   - *Defaults chosen, change on request:* fire spreads between trees by itself (bounded by heat); rain puts nothing out
     (weather is presentation); old worlds' trees (the oak's `LOG`) don't burn, as they still mine block by block.
+
+## Requests from play (2026-11-16)
+
+Logistics and power polish, light and colour: `docs/ROADMAP_REQUESTS.md`. Chemistry (natural gas, helium, cryogenics,
+Haber–Bosch), the flooded-shaft pump-out and the codex: `docs/ROADMAP_CHEMISTRY.md`.
 
 ## Milestone 14: The megaproject, a space elevator (era 10; optional, non-ending; theme chosen 2026-10-16)
 
@@ -114,11 +121,16 @@ resources; completing it **unlocks** something rather than ending the game. Play
   the climber cars. Each finished section shows: the tower grows visibly into the sky, seen from far away, lit at night.
 - **What finishing unlocks:** asteroid mining. Climbers carry mining craft up; asteroid ore returns by drop pod to landing
   pads, resources beyond the finite ground (pillar 2's answer at the end).
+- **Split (audit 2026-11-16):** M14A, the anchor and first sections as standing orders of goods the player already makes;
+  M14B, the rest, asks for carbon fibre and liquid oxygen. The audit proposed M14A for wave 2 (the saves show idle chains and
+  no goal after about 25 h); **the user kept both last** (2026-11-16), so they close `docs/ROADMAP_ORDER.md`.
 - **Engine notes for planning:** a very tall structure must stay cheap to draw (boxes or a dedicated mesh, not 4,000 blocks),
   and its sections are core state like a machine's; the sky already draws satellites (`render/sky.ts`).
 
 ## Later / maybe
 
+- A space program on a finite round home planet, with rockets from parts, real orbits, moons and planets (user,
+  2026-11-16): measured feasible, 80–140 sessions in four stages, after the roadmap; `docs/ROADMAP_SPACE.md`.
 - A tower-defence mode as a world setting (the user's idea; explicitly not now; 2026-10-16: still peaceful, no combat).
 - Subsidence: hollowed-out lodes collapse the ground above unless backfilled or supported (one of the parked R8 options above).
 - Slabs, stairs and beams for building (R7's decor set is cubes only; needs non-cube meshing and hit boxes).

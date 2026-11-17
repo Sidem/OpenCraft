@@ -31,6 +31,7 @@ export type Action =
   | { kind: 'free-camera' }
   | { kind: 'recenter' }
   | { kind: 'stop-order' }
+  | { kind: 'build-ghost' }
   | { kind: 'move-order' }
   | { kind: 'console' }
   | { kind: 'debug' };
@@ -217,7 +218,7 @@ export class Input {
       else if (e.code === 'KeyV') this.actions.push({ kind: 'view' });
       else if (e.code === 'KeyG') this.actions.push({ kind: 'free-camera' });
       else if (e.code === 'Home') this.actions.push({ kind: 'recenter' });
-      else if (e.code === 'KeyX') this.actions.push({ kind: 'stop-order' });
+      else if (e.code === 'KeyX') this.actions.push({ kind: this.strategy ? 'stop-order' : 'build-ghost' });
     }
     if (e.code === 'Space' || e.code === 'Tab' || e.code.startsWith('Arrow')) e.preventDefault();
   }

@@ -13,19 +13,19 @@
 //!                      texture spans in eighths)
 //!         bits 24..32  light (sky | block << 4, as the cube mesher's light byte)
 //! word 2: bits  0..16  normal, octahedral (8 bits each)
-//!         bits 16..25  texture layer
+//!         bits 16..32  texture layer (item and model layers may pass 511; cube faces may not: `quad.rs`)
 //! ```
 //!
 //! Invariant: a vertex's position is its cell (an integer) plus an offset computed only from the blocks around it,
 //! quantised apart (`fixed`), so two chunks that both write a vertex on their shared border write the same bits.
 
-use crate::block::{is_leaves, is_log, BlockId, OPAQUE};
+use crate::block::{is_leaves, is_log, BlockId, OPAQUE, TABLE_LEN};
 
 /// Blocks drawn by the shaped list, not as cubes: logs and leaves.
-pub const SHAPED: [bool; 256] = {
-    let mut t = [false; 256];
+pub const SHAPED: [bool; TABLE_LEN] = {
+    let mut t = [false; TABLE_LEN];
     let mut i = 0;
-    while i < 256 {
+    while i < TABLE_LEN {
         t[i] = is_log(i as BlockId) || is_leaves(i as BlockId);
         i += 1;
     }
@@ -33,10 +33,10 @@ pub const SHAPED: [bool; 256] = {
 };
 
 /// Blocks that hide the cube faces against them: the opaque cubes. A log is opaque to light, but round.
-pub const HIDES: [bool; 256] = {
+pub const HIDES: [bool; TABLE_LEN] = {
     let mut t = OPAQUE;
     let mut i = 0;
-    while i < 256 {
+    while i < TABLE_LEN {
         t[i] = t[i] && !is_log(i as BlockId);
         i += 1;
     }

@@ -4,6 +4,49 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-17 · v0.8.18 · Room for many more blocks
+- **Under the hood: the game can now hold far more kinds of block.** Until now it had room for 255 and 220 were taken, which would have stopped the next machines, lamps and glass. Nothing looks different and your worlds load as before. The one cost: the map's remembered tiles take twice the room in this browser, and a loaded world uses more memory for its ground.
+
+## 2026-11-17 · v0.8.17 · Why the chemistry works
+- **The chemical machines' recipe cards say what the batch stands for.** Distilling, cracking, plastic, acid, lubricant, pure water, electrolysis, rocket fuel and enriching uranium each carry one line of the real process behind them, on the recipe card in the machine's panel and on the item's page in the build menu.
+- **A refinery stuck on diesel now says what to do with it.** The "full" card for a diesel barrel names the diesel generator that burns it for power and the recycler that destroys it for coins, with the research each one needs. Any stuck item that no recipe takes now mentions the recycler too.
+
+## 2026-11-17 · v0.8.16 · Colour-blind colours for the tiers
+- **Settings, Picture, "Colour-blind colours": a second set of tier colours.** Mk1 to Mk5 are normally red, green, blue, violet and gold, and a blue and a violet look the same to some eyes. The colour-blind set is blue, vermillion, violet, teal and gold, picked so every pair stays apart for red-green and blue-yellow colour blindness, and it runs from dark to light. The stripes on belts and machines, the upgrade kits, the studs, the item chips and the upgrade outlines all follow it. The pips and the Mk numbers are the same either way, and the choice is kept in this browser only.
+
+## 2026-11-17 · v0.8.15 · Power lines hang from the insulators
+- **Wires now leave the crossarm's insulators, not the middle of the post.** A pole's wire picks the insulator on the side the other end lies towards, so a line between two poles runs from the near insulator of one to the near insulator of the other. Several wires on the same side fan out a few centimetres along the arm.
+- **Towers hang their wires from the arm tips.** A long-distance tower's wires leave the clamps of its two crossarms, lower arm first, and the lightning wire at the peak carries none. Nothing about power changes: only where the wire is drawn, and the wire you are about to make previews the same way.
+
+## 2026-11-17 · v0.8.14 · A card to point you at the map
+- **Walk 150 blocks from where you started and a card tells you about the map.** It says to press M for the map of where you've been, then click it to pin your base so you can find the way back. It goes away once you open the map (or press H), and it never shows in worlds you have already played.
+
+## 2026-11-17 · v0.8.13 · A card for your first planner site
+- **Craft the Planner and a card now shows you how to use it.** It says to hold it, then right-click one corner of the ground you want to move, then the opposite corner, and to pick dig, fill or flatten in the panel. It goes away when your first site is marked, or press H to wave it off. Worlds that already have a site never see it.
+
+## 2026-11-17 · v0.8.12 · Build a ghost yourself with X
+- **Aim at a ghost and press X to build it now.** The item comes from anywhere in your pack, whether it is in your hand or not, and the building faces the way the ghost does. With the item missing, a line tells you which one. Works in and out of ghost mode, within arm's reach. (In strategy view X still stops walking.) A blueprint stamp plus X is the fast way to build a layout by hand: aim, tap, aim, tap.
+
+## 2026-11-17 · v0.8.11 · Ghosts look like buildings, and ghost mode shows its keys
+- **Ghosts are now see-through blue copies of the real building** (machines, belts, poles, boxes), not empty boxes. Stamping a blueprint previews every machine the same way, so you can see what it holds before you place it.
+- **Ghost mode has a controls card** on the right. It says you are in ghost mode, puts **B: Exit** at the top, and lists the keys that work right now (plant, tear down, mark a box, copy, deselect, stamp, turn), drawn with your own keyboard layout. The list changes as you mark corners, select a box or hold a blueprint.
+
+## 2026-11-17 · v0.8.10 · A walk through your first blueprint
+- When the "Building the same again" tip offers a blueprint and you press B, a card and floating key prompts now lead you through it: **Z** on one corner of your machines, **Z** on the opposite corner, then **Enter** to copy. The prompts follow what you have done, so they always show the next key. Saving a blueprint finishes the lesson, and H dismisses it.
+
+## 2026-11-17 · v0.8.9 · Faster first load
+- The picture pack is now 2.7 MB instead of 4.5 MB, with every pixel identical. The game starts sooner on slow connections.
+
+## 2026-11-17 · v0.8.8 · Mergers, clearer splitters and filters, machine doorways
+- **New: the merger** (Belt Routing, beside the splitter and filter). Belts come in at the back and both sides, one belt leaves at the front. It takes from each input in turn and skips any that are empty, so one busy belt can no longer starve the others.
+- **Splitters, filters and mergers look different at a glance.** The splitter's roof shows gold arrows fanning out, the merger's cyan arrows coming together, and the filter's a sieve over coloured items. Each opening has a cyan band if items go in and a gold band if they come out, and a lit arrow shows which side is served right now. Their inventory icons follow the same colours.
+- **One colour language for every port:** cyan means items go in, gold means they come out, and arrows always point the way the items move.
+- **Machine ports are now dark doorways** that items disappear into. A small lamp above a doorway lights in the port's colour when a belt is really connected to it, and a connected belt runs straight in or out with no end bar.
+
+## 2026-11-16 · v0.8.7 · Hints for recipes and upgrades
+- **An assembler (or chemical plant, upgrader) with no recipe chosen now gets a hint:** a card and a floating **Open** prompt over the machine tell you to right-click it and pick what it makes. It shows once, only when the machine stands near you for a while, and never in worlds you already played.
+- **A machine that is running flat out with its inputs piling up now gets an upgrade hint** when you point at it while carrying the kits for its next Mk: a card and an **Open** prompt, where the panel has the upgrade arrow. It shows once, and only when an upgrade would really help.
+
 ## 2026-11-15 · v0.8.6 · Bolder upgrade kits
 - **Kits are now fully painted in their tier colour,** top and sides, with one white pip per Mk, so you can tell them apart at a glance in a full backpack.
 - **The Green Kit is really green** (it was a teal close to blue), and so is everything else that marks Mk2: belt chevrons, miner bands, pole and pump stripes.

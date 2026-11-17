@@ -13,7 +13,7 @@ renumber), add a `DEFS` row in `block/defs.rs` (`cube`, `ore` or `machine` helpe
 (`block/tex.rs`), a painter arm in that set's `textures/<set>.rs` `pixel`, and a request line in
 `docs/ART_HANDOVER.md`. Placeable blocks work at once; worldgen use goes in `worldgen/`.
 
-**An item or recipe.** A block is already an item. Any other item: an id constant (from 256, append only)
+**An item or recipe.** A block below 256 is already an item (`BLOCK_COUNT` is far from 256 today; every id from it to 255 is free). A block of 256 or more has no item of its own: add an `EXTRA` row that places it and pair them in `WIDE_BLOCK_ITEMS` (`item.rs`; a test asks every such block for its pair). Any other item: an id constant (from 256, append only)
 and a row in `item.rs` `EXTRA`, and a model in `item_models/` (a test asks every non-block item for one; round parts are `cylinder` / `frustum` /
 `bar_x`, never crossed boxes: `factory/tests/fake_round.rs` checks).
 A hand recipe is a `pub const` in its era's file under `recipes/`, named in `RECIPES` (`recipes/mod.rs`); its

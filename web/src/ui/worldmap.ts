@@ -125,6 +125,7 @@ export class WorldMap {
 
   open(): void {
     this.backdrop.classList.remove('hidden');
+    this.game.map_opened(); // the map lesson's job is done (`map_lesson.rs`)
     this.centreOnPlayer();
     this.fillPinList();
     (this.backdrop.firstElementChild as HTMLElement).focus();

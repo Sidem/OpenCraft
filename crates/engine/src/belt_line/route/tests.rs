@@ -122,9 +122,9 @@ fn routed_game() -> (Game, u32) {
     belt_test_slab(&mut g);
     g.sim.world.set_block(at(13, 202, 0), STORAGE);
     g.sim.factory.research.complete_all();
-    g.give(crate::block::BELT.into(), 20);
+    g.give(crate::block::BELT, 20);
     g.run_ticks(2);
-    let slot = (0..INVENTORY_SLOTS as u32).find(|&s| g.slot_item(s) == crate::block::BELT as u16).unwrap();
+    let slot = (0..INVENTORY_SLOTS as u32).find(|&s| g.slot_item(s) == crate::block::BELT).unwrap();
     g.select_slot(slot);
     g.run_ticks(2);
     (g, slot)

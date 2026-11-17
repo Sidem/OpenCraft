@@ -37,3 +37,21 @@ fn from_blocks_collapses() {
     v[100] = 1;
     assert!(Chunk::from_blocks(v).dense().is_some());
 }
+
+#[test]
+fn a_chunk_holds_and_saves_block_ids_past_a_byte() {
+    let mut c = Chunk::uniform(0);
+    c.set(1, 2, 3, 300);
+    c.set(4, 5, 6, 70);
+    assert_eq!((c.get(1, 2, 3), c.get(4, 5, 6), c.get(0, 0, 0)), (300, 70, 0));
+    let mut w = ByteWriter::default();
+    c.write_state(&mut w);
+    // 300 is past the block table, so a load refuses the chunk rather than index past a table.
+    assert!(Chunk::read_state(&mut ByteReader::new(&w.bytes)).is_none());
+    // The same chunk with ids in the table loads back whole.
+    c.set(1, 2, 3, 200);
+    let mut w = ByteWriter::default();
+    c.write_state(&mut w);
+    let back = Chunk::read_state(&mut ByteReader::new(&w.bytes)).expect("loads");
+    assert_eq!((back.get(1, 2, 3), back.get(4, 5, 6)), (200, 70));
+}
