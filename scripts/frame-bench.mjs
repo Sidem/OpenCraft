@@ -225,6 +225,10 @@ try {
     await page.send('Profiler.start');
     await measure('playing (profiled)', rows, traces);
     writeFileSync(PROFILE, JSON.stringify((await page.send('Profiler.stop')).result.profile));
+  } else if (process.env.ONLY_PLAYING) {
+    // `SETUP=<js>` runs first (e.g. give and wear a piece of gear); then only 'playing' is timed, `REPEAT` times.
+    if (process.env.SETUP) await run(process.env.SETUP);
+    for (let i = 0; i < Number(process.env.REPEAT || 1); i++) await measure('playing', rows, traces);
   } else {
     for (const [name, code] of SAME_PAGE) {
       await run(code);

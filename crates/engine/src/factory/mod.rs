@@ -150,8 +150,8 @@ pub use rail::{
     Fault, Fit, SplitWhy, Track, MAX_LINKS, MAX_SPAN,
 };
 pub use render::{
-    light_boxes, make_round, mark_beacon, mark_beacon_tinted, push_box, push_framed, push_shape, shape_of, split_round,
-    Axis, Form, Framed, INSTANCE_FLOATS, ROUND,
+    copy_near, light_boxes, make_round, mark_beacon, mark_beacon_tinted, push_box, push_cone, push_framed, push_round,
+    push_shape, shape_of, split_round, Axis, Form, Framed, INSTANCE_FLOATS, ROUND,
 };
 pub use sensor::RULES as SENSOR_RULES;
 pub use sites::{cut_takes, survey_site, survey_tunnel, touches_water, Job, Site, SiteSurvey, Sites, Tunnel, SECTIONS};

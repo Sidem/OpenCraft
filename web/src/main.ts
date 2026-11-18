@@ -35,6 +35,7 @@ import { BlueprintPanel } from './ui/blueprints';
 import { SitePanel } from './ui/site';
 import { DronePanel } from './ui/drone';
 import { LogbookPanel } from './ui/logbook';
+import { LedPanel } from './ui/led-panel';
 import { SignPanel } from './ui/sign';
 import { VaultPanel } from './ui/vault';
 import { ConsolePanel } from './ui/console';
@@ -57,6 +58,7 @@ import { PlayerList } from './ui/players';
 import { ResearchPanel } from './ui/research';
 import { SoundLab } from './ui/sound-lab';
 import { Vignette } from './ui/vignette';
+import { XrayBadge } from './ui/xray-badge';
 import { WorldMap } from './ui/worldmap';
 import { LeavePrompt } from './ui/leave-prompt';
 import { PerfPanel } from './ui/perf-report';
@@ -128,6 +130,7 @@ async function main(): Promise<void> {
   const comfort = new ComfortStore();
   const vignette = new Vignette(comfort);
   vignette.previewing = () => menu.previewing;
+  const xray = new XrayBadge(game);
   const comfortPanel = new ComfortPanel(comfort);
   document.getElementById('comfort')!.append(comfortPanel.screen);
   const skyStore = new SkyStore();
@@ -162,6 +165,7 @@ async function main(): Promise<void> {
   const logbook = new LogbookPanel(game, pins);
   const vault = new VaultPanel(game);
   const signEditor = new SignPanel(game);
+  const ledPanel = new LedPanel(game);
   const signFaces = new SignFaces(game, renderer, texSize);
   const adminConsole = new ConsolePanel(consoleHost(game, renderer, () => coop !== null));
   session?.keepPins(pins);
@@ -180,11 +184,11 @@ async function main(): Promise<void> {
   document.getElementById('coop')!.append(coopPanel.el);
   // Screens the keys open (the action's kind names them); each frees the mouse while open.
   const screens = { blueprints, research, analytics, drone, 'world-map': worldMap };
-  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, adminConsole, drone]; // a machine's panel is in the inventory
+  const panels = [inventory, research, worldMap, blueprints, sites, analytics, logbook, vault, signEditor, ledPanel, adminConsole, drone]; // a machine's panel is in the inventory
   const panelOpen = () => panels.some((p) => p.isOpen);
 
   // ---- menu / pointer lock (pause.ts)
-  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, adminConsole, drone];
+  const closers = [research, blueprints, sites, worldMap, analytics, logbook, vault, signEditor, ledPanel, adminConsole, drone];
   const pause = wirePause({ game, opened, viewRadius: () => quality.settings.radius, menu, canvas, input, sound, soundLab, session, inventory, closers, panelOpen });
   wireHome(menu, game, sound, [
     { code: 'KeyE', name: 'Inventory and crafting', screen: inventory },
@@ -239,6 +243,7 @@ async function main(): Promise<void> {
       else if (a.kind === 'bend') game.bend_target();
       else if (a.kind === 'ghost') playerList.notice(game.toggle_ghost_mode()); // "" unless research locks it
       else if (a.kind === 'build-ghost') playerList.notice(game.build_ghost()); // "" when the build was queued
+      else if (a.kind === 'toggle-xray') playerList.notice(xray.toggle()); // "" once switched
       else if (a.kind === 'fetch') game.drone_fetch_held();
       else if (a.kind === 'take-item') game.take_target_item();
       else if (a.kind === 'scan-target') prospect.nextTarget();
@@ -269,7 +274,7 @@ async function main(): Promise<void> {
     if (request.length === 3) {
       const [x, y, z] = request;
       if (!trains.open(x, y, z) && game.box_slots(x, y, z).length > 0) inventory.open([x, y, z]);
-      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z)) machine.open(x, y, z);
+      else if (!trains.isOpen && !logbook.open(x, y, z) && !vault.open(x, y, z) && !signEditor.open(x, y, z) && !ledPanel.open(x, y, z)) machine.open(x, y, z);
       input.unlock();
       sound.ui();
     }
@@ -366,6 +371,7 @@ async function main(): Promise<void> {
     });
     vignette.update(dt, game.camera_yaw(), game.camera_pitch(), game.eye_x(), game.eye_y(), game.eye_z());
     views.sync();
+    xray.update();
     const labels = new Float32Array(wasm.memory.buffer, game.label_ptr(), game.label_count() * 4);
     nameTags.update(labels, game.label_count(), renderer, (id) => coop?.name(id));
 

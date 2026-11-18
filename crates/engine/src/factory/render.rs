@@ -247,6 +247,27 @@ pub fn split_round(boxes: &[f32], round: &mut Vec<f32>) {
     }
 }
 
+/// Copies the records of `boxes` whose centre lies within `radius` of the camera (records are camera-relative) into
+/// `out`, at most `max` of them, and the round bodies among those also into `round` (as [`split_round`] does).
+/// Returns whether the cap cut any off.
+pub fn copy_near(boxes: &[f32], radius: f32, max: usize, out: &mut Vec<f32>, round: &mut Vec<f32>) -> bool {
+    out.clear();
+    round.clear();
+    for rec in boxes.chunks_exact(INSTANCE_FLOATS) {
+        if rec[0] * rec[0] + rec[1] * rec[1] + rec[2] * rec[2] > radius * radius {
+            continue;
+        }
+        if out.len() >= max * INSTANCE_FLOATS {
+            return true;
+        }
+        out.extend_from_slice(rec);
+        if rec[MODE_LIGHT] as u32 & ROUND != 0 {
+            round.extend_from_slice(rec);
+        }
+    }
+    false
+}
+
 #[cfg(test)]
 mod fake_round;
 #[cfg(test)]

@@ -80,6 +80,14 @@ pub const CRAFT_GLOVES_RECIPE: Recipe = Recipe {
     blurb: "Gloves with servo fingers, worn in the Gloves slot: you craft by hand 50% faster, on top of Handcrafting.",
 };
 
+pub const XRAY_GOGGLES_RECIPE: Recipe = Recipe {
+    output: XRAY_GOGGLES,
+    group: Group::Tools,
+    count: 1,
+    inputs: &[(STEEL_PLATE, 2), (CIRCUIT, 4), (COPPER_WIRE, 6), (SILICON, 2)],
+    blurb: "Goggles that see the machines you built through solid ground, worn in the Head slot.",
+};
+
 pub const MINING_RIG_RECIPE: Recipe = Recipe {
     output: MINING_RIG,
     group: Group::Tools,

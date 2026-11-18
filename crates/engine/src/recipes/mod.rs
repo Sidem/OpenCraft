@@ -24,6 +24,7 @@ mod group;
 mod heavy;
 mod house;
 pub mod item_groups;
+mod led;
 mod machine;
 mod machine_later;
 mod materials;
@@ -52,6 +53,7 @@ use gold::*;
 pub use group::{Group, GROUPS};
 use heavy::*;
 use house::*;
+use led::{LED_RECIPE, STREET_RECIPE};
 pub use machine::*;
 use materials::*;
 pub use menu_order::menu_order;
@@ -257,6 +259,9 @@ pub const RECIPES: &[Recipe] = &[
     BOX_MK5_RECIPE,
     PUMPJACK_MK2_RECIPE,
     MERGER_RECIPE,
+    XRAY_GOGGLES_RECIPE,
+    LED_RECIPE,
+    STREET_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

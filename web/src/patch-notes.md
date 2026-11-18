@@ -4,6 +4,15 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-18 · v0.9.2 · Street lamps
+- **Tall street lamps.** The "LED Lamps" tech also unlocks a street lamp: a slim post four blocks tall that bends over into a lantern, made from iron rods, iron plates and an LED. The arm leans the way you were facing when you placed it, so it reaches over the road in front of you. Its light is the brightest LED light, from high up where low walls and machines don't shade it, but its pool on the ground is 3 blocks smaller than an LED's standing on the ground. Break any part and the whole lamp comes down. Needs no power. Older worlds load fine.
+
+## 2026-11-18 · v0.9.1 · LED lamps
+- **LED lamps: brighter light, any colour.** The new tech "LED Lamps" (after Architecture and Electronics) unlocks a lamp made from glass, silicon and copper wire. It lights the ground around it wider than a plain lamp (full light out to 24 blocks, where a lamp's is 17) and needs no power. **Right-click** one to open its panel: three brightness bars (a placed LED starts at the brightest; the dimmer two are for mood), a colour wheel and swatches. The lamp and its glow take the colour you pick; the walls it lights stay plain light. Crouch to place a block against one. Older worlds load fine.
+
+## 2026-11-17 · v0.9.0 · X-ray goggles
+- **See your belts, pipes and machines through the ground.** The new **Head** slot holds the X-ray Goggles (tech "X-ray Goggles", after Hoists: steel plates, circuits, copper wire and silicon). Wear them from the inventory with a Shift-click, then press **Shift+X** to switch the view on or off. Buried belts, underpasses, lifts and machines show through the ground within about 28 blocks, tinted cyan; whatever is in the open looks as it always did. A goggles badge at the top and a faint blue rim tell you it is on, and the choice is remembered in this browser. Older worlds load with the Head slot empty.
+
 ## 2026-11-17 · v0.8.19 · Firefox textures fixed
 - **Firefox shows the right textures again.** Leaves and stone were drawn with the wrong pictures there. Browsers that block canvas reading (a privacy setting or extension) now get the plain built-in textures instead of a black world.
 

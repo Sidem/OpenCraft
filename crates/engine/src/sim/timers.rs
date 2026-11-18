@@ -131,6 +131,8 @@ impl Sim {
         self.factory.beam_cut_check(pos);
         self.torch_support_changed(pos);
         self.sign_cell_changed(pos, old);
+        self.led_cell_changed(pos);
+        self.street_cell_changed(pos, old);
         self.water_changed(pos, old);
     }
 

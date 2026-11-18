@@ -1,0 +1,76 @@
+/* The LED lamp panel (ui/led-panel.ts) under the machine panel's frame: a lit preview square, then the colour wheel
+   beside the brightness bars, the swatches and Done. */
+.led-panel {
+  max-width: 440px;
+}
+
+.led-preview {
+  width: 72px;
+  height: 72px;
+  margin: 8px auto 22px;
+  border: 3px solid #3a3e46;
+  border-radius: 6px;
+}
+
+.led-colours {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.led-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.led-levels {
+  display: flex;
+  gap: 6px;
+}
+
+.led-level {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  align-items: flex-end;
+  justify-content: center;
+  height: 36px;
+  padding: 4px 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+
+.led-level.active {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+}
+
+.led-pip {
+  width: 6px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--text);
+}
+
+.led-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 28px);
+  gap: 6px;
+}
+
+.led-swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.led-swatch:hover {
+  outline: 2px solid var(--accent);
+}

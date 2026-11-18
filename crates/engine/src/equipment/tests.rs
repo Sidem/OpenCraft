@@ -197,6 +197,47 @@ fn gloves_fit_only_the_gloves_slot() {
 }
 
 #[test]
+fn goggles_fit_only_the_head_slot_and_do_not_displace_the_flight_pack() {
+    let mut inv = Inventory { cursor: Stack { item: XRAY_GOGGLES, count: 1 }, ..Default::default() };
+    for slot in 0..SLOTS - 1 {
+        inv.click_gear(slot, false);
+        assert_eq!((inv.worn[slot], inv.cursor.item), (ItemId::NONE, XRAY_GOGGLES), "not {}", SLOT_NAMES[slot]);
+    }
+    inv.worn[JET] = JETPACK;
+    inv.click_gear(HEAD, false);
+    assert!(inv.has_xray_goggles() && inv.cursor.is_empty() && inv.has_jetpack(), "both worn at once");
+
+    // Shift-click in the pack puts them on, and Shift on the slot takes them off into the pack.
+    let mut inv = Inventory::default();
+    inv.add(XRAY_GOGGLES, 1);
+    assert!(!inv.has_xray_goggles(), "in the pack they do nothing");
+    assert!(inv.wear_from(0) && inv.has_xray_goggles() && inv.count(XRAY_GOGGLES) == 0);
+    inv.click_gear(HEAD, true);
+    assert!(!inv.has_xray_goggles() && inv.count(XRAY_GOGGLES) == 1);
+}
+
+#[test]
+fn a_version_77_inventory_has_six_slots_and_loads_with_the_head_slot_empty() {
+    let mut inv = Inventory::default();
+    inv.worn[GLOVES] = CRAFT_GLOVES;
+    let mut w = ByteWriter::default();
+    inv.write_state(&mut w);
+    // Version 77 wrote six worn items and then the left-hand stack: take the seventh item out before the stack.
+    let hand = {
+        let mut h = ByteWriter::default();
+        inv.offhand.write_state(&mut h);
+        h.bytes.len()
+    };
+    let at = w.bytes.len() - hand - 2;
+    w.bytes.drain(at..at + 2);
+    let mut r = ByteReader::new(&w.bytes);
+    r.version = 77;
+    let back = Inventory::read_state(&mut r).expect("a version 77 inventory reads");
+    assert_eq!((back.worn[GLOVES], back.worn[HEAD]), (CRAFT_GLOVES, ItemId::NONE));
+    assert!(r.bytes(1).is_none(), "and the whole stream was used");
+}
+
+#[test]
 fn the_cursor_swaps_gear_and_only_the_right_gear_fits() {
     let mut inv = Inventory { cursor: Stack { item: MINING_RIG, count: 1 }, ..Default::default() };
     inv.click_gear(1, false);
@@ -235,8 +276,8 @@ fn gear_rides_the_actions_and_the_save() {
     assert_eq!(back.worn, inv(&sim).worn);
     assert_eq!(back.slots, inv(&sim).slots);
     assert_eq!(
-        SAVE_VERSION, 77,
-        "the layout above is unchanged since version 29 (30 to 48: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before; 45 added the satellites after the research; 46 the drop pods in flight after them; 47 the opening scene after the game mode; 48 the towns after it; 56 only added the belt items' tags; 57 only added the opening's progress and the tips'; 58 the lessons taught; 59 only added the coal miner's fuel to a miner; 60 only added the off-hand stack after the worn gear; 61 wrote nothing new, only raised old long-distance poles; 62 only added each belt's bend; 63 only added the signs at the end of the core; 64 wrote nothing new, only shrank old docks; 65 only added each train's speed; 66 each train's id; 67 only added the opening's starter patches; 68 wrote nothing new, only marked the new lessons taught in older worlds; 69 only added each storage box's label; 70 only added the pumpjack's compact flag; 71 only changed each player's personal drone, after the jetpack's fuel; 72 only changed each filter's rules; 73 only added the trees being felled at the end of the core; 74 wrote nothing new, only marked the no-recipe and upgrade lessons taught in older worlds; 75 wrote nothing new, only marked the planner lesson taught in older worlds; 76 wrote nothing new, only marked the map lesson taught in older worlds; 77 wrote nothing new, only widened block ids to u16 (below 255 they keep their one byte))"
+        SAVE_VERSION, 79,
+        "the layout above is unchanged since version 29 (30 to 48: rails, trains, hover pack, cargo, game mode, tools on belts, fibre nodes, research queue; 42 made the pack rows 99, read back as 18 before; 43 added the jetpack slot, four slots before; 44 added the gloves slot, five before; 45 added the satellites after the research; 46 the drop pods in flight after them; 47 the opening scene after the game mode; 48 the towns after it; 56 only added the belt items' tags; 57 only added the opening's progress and the tips'; 58 the lessons taught; 59 only added the coal miner's fuel to a miner; 60 only added the off-hand stack after the worn gear; 61 wrote nothing new, only raised old long-distance poles; 62 only added each belt's bend; 63 only added the signs at the end of the core; 64 wrote nothing new, only shrank old docks; 65 only added each train's speed; 66 each train's id; 67 only added the opening's starter patches; 68 wrote nothing new, only marked the new lessons taught in older worlds; 69 only added each storage box's label; 70 only added the pumpjack's compact flag; 71 only changed each player's personal drone, after the jetpack's fuel; 72 only changed each filter's rules; 73 only added the trees being felled at the end of the core; 74 wrote nothing new, only marked the no-recipe and upgrade lessons taught in older worlds; 75 wrote nothing new, only marked the planner lesson taught in older worlds; 76 wrote nothing new, only marked the map lesson taught in older worlds; 77 wrote nothing new, only widened block ids to u16 (below 255 they keep their one byte); 78 added the head slot, six before; 79 only added the LED lamps' colours at the end of the core)"
     );
 
     // A save with a pack's rows full but no pack on is refused.
@@ -265,7 +306,7 @@ fn old_saves_read_without_gear() {
 fn boots_and_frames_scale_the_body_and_a_rig_the_hands() {
     let mut inv = Inventory::default();
     assert_eq!((inv.boost(), inv.mining_speed()), (Default::default(), 1.0));
-    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG, ItemId::NONE, ItemId::NONE];
+    inv.worn = [ItemId::NONE, SERVO_BOOTS, EXO_FRAME, MINING_RIG, ItemId::NONE, ItemId::NONE, ItemId::NONE];
     let b = inv.boost();
     assert!((b.walk - 1.15).abs() < 1e-9 && (b.sprint - 1.15 * 1.1).abs() < 1e-9 && b.jump == 1.0);
     assert_eq!(inv.mining_speed(), 1.5);

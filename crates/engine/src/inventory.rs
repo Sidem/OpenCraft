@@ -113,9 +113,11 @@ impl Inventory {
             for s in &mut inv.slots[INVENTORY_SLOTS..INVENTORY_SLOTS + rows] {
                 *s = Stack::read_state(r)?;
             }
-            // Four slots before version 43 (the jetpack slot came after them), five before version 44 (gloves).
+            // Four slots before version 43 (the jetpack slot came after them), five before version 44 (gloves), six
+            // before version 78 (head).
             let worn = match r.version {
-                44.. => SLOTS,
+                78.. => SLOTS,
+                44..=77 => equipment::GLOVES_SLOTS,
                 43 => equipment::JETPACK_SLOTS,
                 _ => equipment::LEGACY_SLOTS,
             };

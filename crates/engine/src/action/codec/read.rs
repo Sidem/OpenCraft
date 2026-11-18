@@ -104,6 +104,7 @@ impl Action {
             74 => Action::FilterRest { pos: r.ivec3()?, out: r.u8()? },
             75 => Action::ChopTree { pos: r.ivec3()?, at: r.vec3()?, from: r.u8()? },
             76 => Action::BuildGhost { pos: r.ivec3()? },
+            77 => Action::SetLed { pos: r.ivec3()?, step: r.u8()?, rgb: r.u32()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

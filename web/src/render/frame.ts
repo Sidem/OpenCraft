@@ -21,6 +21,12 @@ export function boxViews(game: Game, memory: WebAssembly.Memory, floats: number)
     marksCount: game.marks_count(),
     marksRound: view(game.marks_round_ptr(), game.marks_round_count()),
     marksRoundCount: game.marks_round_count(),
+    xray: view(game.xray_ptr(), game.xray_count()),
+    xrayCount: game.xray_count(),
+    xrayRound: view(game.xray_round_ptr(), game.xray_round_count()),
+    xrayRoundCount: game.xray_round_count(),
+    xrayRadius: game.xray_radius(),
+    xrayFade: game.xray_fade_from(),
   };
 }
 
@@ -58,6 +64,14 @@ export interface FrameInfo {
   marksCount: number;
   marksRound: Float32Array;
   marksRoundCount: number;
+  /** The X-ray goggles' view (engine `xray.rs`): the factory's boxes near the eye, empty unless worn and on; drawn behind the terrain only. */
+  xray: Float32Array;
+  xrayCount: number;
+  xrayRound: Float32Array;
+  xrayRoundCount: number;
+  /** Blocks the view reaches, and the share of it where it starts to fade. */
+  xrayRadius: number;
+  xrayFade: number;
   /** A belt line being dragged out: x, y, z and 1 (will be built) or 0 (past the belts in hand) per cell. */
   lineCells: Int32Array;
   /** Quarry boxes to outline, as lowest and highest cells (6 numbers each). */

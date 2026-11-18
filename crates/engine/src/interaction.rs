@@ -239,8 +239,9 @@ impl Game {
             self.using = false;
             return;
         }
-        // A ruin's logbook, a vault's door or a sign: ask the host to show its page, dials or editor (`api/ruins.rs`, `api/signs.rs`).
-        let ruin_block = |id| id == block::LOGBOOK || id == block::VAULT_DOOR || id == block::SIGN;
+        // A ruin's logbook, a vault's door, a sign or an LED lamp: ask the host to show its page, dials or editor
+        // (`api/ruins.rs`, `api/signs.rs`, `api/led.rs`).
+        let ruin_block = |id| id == block::LOGBOOK || id == block::VAULT_DOOR || id == block::SIGN || block::is_led(id);
         if let Some(hit) = self.target.filter(|h| !self.body().input.crouch && ruin_block(h.id)) {
             self.panel_request = Some(hit.block);
             self.using = false;

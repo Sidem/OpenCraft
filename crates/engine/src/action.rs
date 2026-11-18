@@ -53,6 +53,13 @@ pub enum Action {
         back: u32,
         ink: u32,
     },
+    /// Sets the LED lamp at `pos` to brightness step `step` (an index of `block::LED_STEPS`) and colour `rgb`
+    /// (0xRRGGBB); `led/`.
+    SetLed {
+        pos: IVec3,
+        step: u8,
+        rgb: u32,
+    },
     /// Empties the box or miner at `pos` into the inventory, or takes a machine's output.
     TakeContents {
         pos: IVec3,

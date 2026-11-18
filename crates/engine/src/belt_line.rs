@@ -190,6 +190,7 @@ impl Game {
             (Some(_), false) => {
                 self.line.start = None;
                 self.line.route = Route::Off;
+                self.held_bend = factory::BEND_STRAIGHT; // the bend was for this line only
                 let cells = std::mem::take(&mut self.line.cells);
                 if self.ghost_mode && kit.is_none() {
                     self.queue_ghosts(&cells);
@@ -252,6 +253,7 @@ impl Game {
 
     /// Drops the line being dragged (the pointer was freed, or a left click).
     pub(crate) fn cancel_belt_line(&mut self) {
+        self.held_bend = factory::BEND_STRAIGHT;
         self.line.start = None;
         self.line.route = Route::Off;
         self.line.cells.clear();

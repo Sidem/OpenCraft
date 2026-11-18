@@ -175,6 +175,7 @@ out vec4 o_color;
 in float v_haze; // 0 for a beacon, which the fog doesn't hide
 in vec4 v_beacon; // a tinted beacon's colour and 1 (a flat light, whatever the texture), else 0
 uniform vec4 u_ghost; // a see-through pass (render/boxes.ts drawGhost): tint and opacity; opacity 0 draws solid
+uniform vec2 u_xray; // the X-ray pass (drawXray): its radius in blocks (0: not that pass) and where the fade starts, as a share
 #endif
 #ifdef TERRAIN
 in vec2 v_ground;
@@ -341,7 +342,12 @@ void main() {
 #endif
   o_color = vec4(applyFog(shown, hazed), 1.0);
 #ifdef BOXES
-  if (u_ghost.a > 0.0) o_color = vec4(mix(o_color.rgb, u_ghost.rgb, 0.4), u_ghost.a);
+  if (u_xray.x > 0.0) {
+    // X-ray goggles (render/boxes.ts drawXray): what sits behind the ground is unlit, so draw it flat in the texture's
+    // own colours, tinted, and fade it out towards the radius so the edge is soft.
+    float edge = 1.0 - smoothstep(u_xray.x * u_xray.y, u_xray.x, length(v_rel));
+    o_color = vec4(mix(c.rgb * 0.9, u_ghost.rgb, 0.4), u_ghost.a * edge);
+  } else if (u_ghost.a > 0.0) o_color = vec4(mix(o_color.rgb, u_ghost.rgb, 0.4), u_ghost.a);
 #endif
 #endif
 }

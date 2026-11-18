@@ -354,6 +354,8 @@ export class Renderer {
     }
     gl.enable(gl.CULL_FACE);
 
+    // Before the solid boxes, so the depth buffer holds only terrain and the view shows exactly what the ground hides.
+    drawCalls += this.boxes.drawXray(this.viewProj, sky, fog, f.xray, f.xrayCount, f.xrayRound, f.xrayRoundCount, f.xrayRadius, f.xrayFade);
     drawCalls += this.boxes.draw(this.viewProj, sky, fog, f.boxes, f.boxCount, f.round, f.roundCount);
     const [waterCalls, waterQuads] = this.water.draw(vis, this.viewProj, [ex, ey, ez], sky, fog);
     drawCalls += waterCalls;

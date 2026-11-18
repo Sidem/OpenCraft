@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-17, v0.8.18):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-18, v0.9.2, save 79):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
@@ -191,8 +191,8 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   eye each frame (`Belt::frame`, `item_pose`, `model`, `light_at`: about 25% of a steady frame). (2) In the core, leave
   alone a pump's source cell when the sea refills it at once (`pumping.rs`, `sim/water.rs`): two fewer core edits and water
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose. (The atlas as WebP is done.)
-- **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** XRAY goggles, worn in an equipment slot, that show buried builds; WIRES power lines hung from
-  the poles' arms (XRAY's tech sits in blue science after Hoists); WORLDS upgrade old saves by generator layer (deposits only; no map pin for far deposits).
+- **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** XRAY2 (XRAY1, the goggles and buried logistics, **built 2026-11-17**: section 6) buried blocks, only if the measured cost is
+  acceptable; WIRES power lines hung from the poles' arms (built, v0.8.15); WORLDS upgrade old saves by generator layer (deposits only; no map pin for far deposits).
   Light and colour: GLASS stained glass and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour
   control (a later tech, unpowered); STREET tall street lamps; CBPAL a colour-blind palette for tier colours, as a setting;
   MUSIC a sea piece and industrial and space pieces by era.
@@ -223,6 +223,29 @@ flamethrower (FIRE2) and for the LED lamps.
 
 Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-18: STREET, street lamps (v0.9.2, no save bump, state hash unmoved).** Blocks 223–227 (`block/street.rs`): the head `STREET` (the item; light row `LED_LIGHTS[2]`) over three posts, `street_post(dir)`, one id a facing so the arm direction is kept with no record. `street/` places the four cells together and, from `Sim::block_changed`, clears the other three when any breaks (a head ends a column, so stacked lamps stay apart); nothing is saved but the blocks. The roadmap's "wider pool" was wrong: light floods by faces, so a head three blocks up lights a ground pool 3 blocks smaller in radius than an LED on the ground (`light/tests.rs` pins it); height buys only a light that low walls don't shade, a halo at the lantern, and the look (a stronger row would pass `MARGIN` and seam). Hand recipe in `recipes/led.rs`, unlocked by tech 88. Model `street/model.rs` and icon `item_models/street.rs` by an Opus 5.5 subagent (19 parts, a test pins it inside its column and the glass at the lantern's place). Seen in the browser pane by day and night.
+- **2026-11-18: LED, LED lamps (v0.9.1, save 79, golden state hash moved on purpose).** Blocks 220–222 (`block/led.rs`) are one lamp's three
+  brightness steps (light is derived from blocks, so the panel swaps the id in place; the item, 220, is the BRIGHTEST: the first cut made it the
+  dimmest, which a lamp outshone, found by the user in play; `light/tests.rs` now pins LED ≥ lamp at every distance); `light::SOURCES` gained rows (40, 2), (52, 2), (64, 2):
+  full to 12, 18 and 24 blocks, dark by 20, 26 and 32, in the torches' loss-2 field, so chunk borders never seam (`light/tests.rs`, incl. the
+  far end). `led/` keeps the colour record (sorted by cell, none for the default warm white; forgotten when the cell stops being an LED);
+  `Action::SetLed` (codec tag 77), host panel `ui/led-panel.ts` (right-click; crouch builds against it), `api/led.rs`. Halo and a self-lit tint box
+  (`led/view.rs`, within 64 blocks) carry the colour; the light on the ground stays plain (one block-light channel). Hand recipe `recipes/led.rs`,
+  tech "LED Lamps" (index 88, blue packs, needs Architecture and Electronics). The hash moved for two reasons only (the colours' count; tech 88). *Measured* (release benches in `light/tests.rs`, `led/tests.rs`): lighting a
+  chunk with a brightest LED 0.65 ms, a lamp 0.62, none 0.46; 256 coloured LEDs 12 µs a frame; a standing scene remeshes 0 chunks. Seen in the browser pane; the browser frame bench was not re-run.
+- **2026-11-17: XRAY1, X-ray goggles (v0.9.0, save 78, golden state hash moved on purpose).** A seventh worn slot, Head (`equipment.rs`
+  `HEAD`; `inventory.rs` reads 6 slots below save 78, so a v77 save loads with it empty); item `XRAY_GOGGLES` (413, `tex::XRAY_GOGGLES`, worn
+  model `GOGGLES`); recipe (`recipes/gear.rs`); tech "X-ray Goggles" (index 87, `needs: &[51]` Hoists, red/green/blue). Overlay: `xray.rs` +
+  `factory/render.rs` `copy_near` copy the factory's box records within `RADIUS` of the eye (capped at `MAX_RECORDS`; none in the strategy
+  view) into their own buffer; `render/boxes.ts` `drawXray` draws them after the terrain with depth GREATER and no depth write, then the solid
+  boxes paint over any visible part, so open-air parts never tint. The on/off switch is a browser setting (`ui/xray-badge.ts`, key Shift+X in
+  `input.ts`), never core state; a badge and a rim show the state. The hash moved for two reasons only (the slot and the tech); hiding both
+  reproduces the pinned value. *Measured* (frame bench, Chrome/RTX 3060, the 37.6 h save, `WARM=20000`, three 8 s rows per run, runs
+  interleaved): before 4.0–4.4 ms p50 and 4.9–5.4 p95; goggles off or not worn 4.0–4.4 and 4.9–5.5 (the same, inside run-to-run spread
+  of about 0.2 ms); goggles on 4.6–4.8 and 5.5–6.3 (about +0.5 ms, under the +1.5 target). The first no-goggles run was disturbed by other
+  work and is not counted. `scripts/frame-bench.mjs` gained `ONLY_PLAYING`, `SETUP` and `REPEAT`. XRAY2 (buried blocks) is not built.
+- **2026-11-17: FIREFOX-TEX, the art pack decodes right in Firefox (v0.8.19, no save bump).** `render/art-pack.ts`: the WebP decode (PERF1) drew
+  wrong layers in Firefox; a blank `readPixels` (canvas-readback blocking) now falls back to the built-in textures instead of a black world.
 - **2026-11-17: ROOM, block ids are `u16` (v0.8.18, save 77, state hash unmoved).** `BlockId` is `u16` in memory, chunks, meshes, the wasm API
   and the host. Saves, hashes and the net write an id below 255 as the same one byte, wider ids as 255 and a `u16` (`bytes.rs`), so a
   v76 save is byte-identical but for the version (fixture `save/v76.ocworld`, test in `save/tests.rs`); golden hashes did not move.
@@ -279,30 +302,9 @@ Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 ar
   `router_model.rs`: one gatehouse, roof art per job (cyan in, gold out), a lit band per opening, a chevron over the served side.
   Machine ports are black doorways (`process/port_mouth.rs`, `render::mark_dark`) with a lamp when a belt is joined (`Processor::linked`).
 
-- **2026-11-16: L5, the upgrade lesson (v0.8.7).** upgrade_lesson.rs: the crosshair on a bottleneck (Processor::is_bottleneck: working at full pace,
-  every input piled up; found by Factory::bottleneck_at) with the next step's kits and research in hand brings a card and an Open prompt after
-  2 s; bit UPGRADE_BIT (9), taught by upgrading that machine or H; saved worlds count it taught (KNOWN_BEFORE_74, still save 74). Tests:
-  
-eed_lesson/tests.rs (they aim the real camera: update_target reruns every tick, so a test cannot just set g.target).
-- **2026-11-16: L2, the no-recipe lesson (v0.8.7, save 74).** `recipe_lesson.rs`: a `Pick::Chosen` machine with no recipe (found by
-  `Factory::unchosen`, since it reports no efficiency sample) near the player for `STALL_TICKS` brings a card and an Open prompt;
-  bit `NO_RECIPE_BIT` (8) in `Sim::taught`; choosing a recipe or H teaches it; save 74 writes nothing new, older worlds count it
-  taught (`KNOWN_BEFORE_74`). Tests in `need_lesson/tests.rs`, `lessons/tests.rs`.
-- **2026-11-16: DOCS, session-start read 57 → 38 KB (docs only).** `CODEMAP.md` 25.7 → 15.4 KB: entries are names plus a few words
-  (detail lives in module headers; the map's own header says so); `check-map.mjs` still passes. This plan 27.6 → 20.1 KB: change-log
-  entries before 2026-11-15 dropped. Keep new entries to two or three lines.
-
-- **2026-11-16: CHEM0, the chemistry design (docs only).** Measured on the 37.6 h save: both refineries and the cracker stand on
-  "Diesel Barrel has nowhere to go" (no diesel generator built). Families ranked by the need they meet; elevator-only ones moved
-  next to it; decisions in `docs/DECISIONS.md`; the design and each step's done-when in `docs/ROADMAP_CHEMISTRY.md`. Code: only
-  `recipes/tests.rs` `NO_USE_YET` shrank to lubricant. No patch note (players see nothing).
-- **2026-11-16: the user's ten answers (direction hub).** Block ids `u16` everywhere (ROOM); M14A stays last; fire stays in
-  wave 3; charcoal = coal; goggles worn; LED a later tech, unpowered; colour-blind palette as a setting (CBPAL); no pin for far
-  deposits; three more music pieces (MUSIC); `web/public/replays/` git-ignored. Rows in `docs/DECISIONS.md`; CBPAL and MUSIC added
-  to `docs/ROADMAP_ORDER.md`, M14A moved to the end of it.
-- **2026-11-16: roadmap audit (`/deepen`).** Checked against the code and the user's six exported saves: new gate ROOM, M14
-  split (M14A first, later kept last), LED row (64, 2) measured, gas fields placed apart from `ore_at`, codex from `Produced` events, multiplier
-  sinks cut from chemistry. Details: `docs/ROADMAP_ORDER.md` "Audit".
+- **2026-11-16: L5 and L2, the upgrade and no-recipe lessons (v0.8.7, save 74).** upgrade_lesson.rs (a bottleneck with the next kits in hand; bit 9) and ecipe_lesson.rs (a chosen-recipe machine with none set; bit 8); taught by doing the job or H, older worlds count them taught (KNOWN_BEFORE_74). Tests: 
+eed_lesson/tests.rs, lessons/tests.rs.
+- **2026-11-16: DOCS, CHEM0, the user's ten answers, the roadmap audit (docs only).** Session-start read 57 → 38 KB (keep it under 48); chemistry families ranked by need, the diesel jam found (docs/ROADMAP_CHEMISTRY.md); answers are rows of docs/DECISIONS.md (ROOM, M14A last, charcoal = coal, goggles worn, LED unpowered, CBPAL, MUSIC); the audit and its corrections: docs/ROADMAP_ORDER.md.
 
 - **2026-11-15: bolder kits, a true green Mk2 (user, v0.8.6).** Kit cases wear their own layers `tex::kit_paint` (468–471: whole
   face in the tier colour plus Mk pips; `item_models/components.rs` `kit`). Mk2's art colour is `kit.LEAF` (hue ~120), not aether.

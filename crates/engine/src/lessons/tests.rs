@@ -29,8 +29,8 @@ fn a_save_from_before_the_lessons_counts_every_stall_lesson_as_taught() {
     let sim = Sim::new(7, 2);
     sim.write_state(&mut w);
     let before = crate::offhand::before_offhand(&sim, &w.bytes);
-    // Save 57 ended before the lessons taught (4 bytes) and the signs' count (4 more, save 63).
-    let mut old = ByteReader::new(&before[..before.len() - 8]);
+    // Save 57 ended before the lessons taught (4 bytes), the signs' count (4 more, save 63) and the LED colours' (save 79).
+    let mut old = ByteReader::new(&before[..before.len() - 12]);
     old.version = 57;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 57 loads");
@@ -66,8 +66,9 @@ fn a_save_from_before_the_no_recipe_and_upgrade_lessons_counts_them_as_taught() 
     let mut w = ByteWriter::default();
     let sim = Sim::new(7, 2);
     sim.write_state(&mut w);
-    // Save 73 wrote the same bytes; only the version read differs.
-    let mut old = ByteReader::new(&w.bytes);
+    // Save 73 wrote the same bytes but for the head slot; only the version read differs.
+    let before = crate::equipment::before_head_slot(&sim, &w.bytes);
+    let mut old = ByteReader::new(&before);
     old.version = 73;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 73 loads");
@@ -85,8 +86,9 @@ fn a_save_from_before_the_planner_lesson_counts_it_as_taught_and_a_new_one_does_
     let mut w = ByteWriter::default();
     let sim = Sim::new(7, 2);
     sim.write_state(&mut w);
-    // Save 74 wrote the same bytes; only the version read differs.
-    let mut old = ByteReader::new(&w.bytes);
+    // Save 74 wrote the same bytes but for the head slot; only the version read differs.
+    let before = crate::equipment::before_head_slot(&sim, &w.bytes);
+    let mut old = ByteReader::new(&before);
     old.version = 74;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 74 loads");
@@ -104,8 +106,9 @@ fn a_save_from_before_the_map_lesson_counts_it_as_taught_and_a_new_one_does_not(
     let mut w = ByteWriter::default();
     let sim = Sim::new(7, 2);
     sim.write_state(&mut w);
-    // Save 75 wrote the same bytes; only the version read differs.
-    let mut old = ByteReader::new(&w.bytes);
+    // Save 75 wrote the same bytes but for the head slot; only the version read differs.
+    let before = crate::equipment::before_head_slot(&sim, &w.bytes);
+    let mut old = ByteReader::new(&before);
     old.version = 75;
     let mut back = Sim::new(7, 2);
     back.read_state(&mut old).expect("a save 75 loads");

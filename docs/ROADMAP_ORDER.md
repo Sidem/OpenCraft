@@ -102,9 +102,9 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 | # | Id | Item | Impact | Sessions | Value | Done | Needs |
 |---|---|---|---|---|---|---|---|
 | 13 | LOOK | **Done 2026-11-17** (v0.8.8, with MERGE): router family look, dark machine doorways | 3 | 2 | 1.50 | 27% | MERGE |
-| 14 | XRAY1 | X-ray goggles, worn in an equipment slot: buried logistics (tech in blue science after hoists) | 3 | 2 | 1.50 | 29% | - |
-| 15 | LED | LED lamps, unpowered, a later tech; light row (64, 2), colour record (measured above) | 3 | 2 | 1.50 | 32% | ROOM |
-| 16 | STREET | Tall street lamps (uses the led light row) | 2 | 1 | 2.00 | 33% | LED |
+| 14 | XRAY1 | **Done 2026-11-17** (v0.9.0, save 78): X-ray goggles in a seventh Head slot, buried logistics through the ground, Shift+X switch (tech after Hoists) | 3 | 2 | 1.50 | 29% | - |
+| 15 | LED | **Done 2026-11-18** (v0.9.1, save 79): LED lamps, three steps (rows 40, 52, 64 at loss 2), colour record, panel; tech after Architecture and Electronics | 3 | 2 | 1.50 | 32% | ROOM |
+| 16 | STREET | **Done 2026-11-18** (v0.9.2, no save bump): tall street lamps, 5 block ids from 223, brightest LED row, unlocked by LED Lamps | 2 | 1 | 2.00 | 33% | LED |
 | 17 | CHEM-DYE | Chemistry: pigments (chemical-plant rows only, no new block id) | 3 | 2 | 1.50 | 36% | - |
 | 18 | GLASS | Stained glass (16 ids); coloured lamps via the LED record | 3 | 2 | 1.50 | 38% | CHEM-DYE, LED |
 | 19 | F-TAG | Follow one item (host-side watcher first) | 3 | 2 | 1.50 | 40% | - |

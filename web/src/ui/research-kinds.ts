@@ -142,8 +142,8 @@ const LISTS: Record<Kind, string> = {
   drone:
     'Robotics|Drone Power|Navigation|Construction Drones|Swarm Logistics|Personal Drone|Cargo Drones|Drone Swarms',
   tools: 'Steel Tools|Handcrafting I|Handcrafting II|Handcrafting III|Fabricator Gloves',
-  player: 'Hauler Gear|Field Gear|Exosuit|Jetpack|Hover Pack|Hauler Mk3|Hauler Mk4|Hauler Mk5',
-  build: 'Earthworks|Hoists|Settlements|Architecture',
+  player: 'Hauler Gear|Field Gear|Exosuit|Jetpack|Hover Pack|Hauler Mk3|Hauler Mk4|Hauler Mk5|X-ray Goggles',
+  build: 'Earthworks|Hoists|Settlements|Architecture|LED Lamps',
   nature: 'Forestry',
   survey: 'Advanced Scanning|AI Survey',
   space: 'Rocketry|Orbital Comms|Orbital Science|Drop Pods',

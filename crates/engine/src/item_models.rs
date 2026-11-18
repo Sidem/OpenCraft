@@ -32,6 +32,7 @@ mod shapes;
 mod space;
 mod stock;
 pub use stock::is_heap;
+mod street;
 mod wear;
 
 pub use icon_frame::icon_frame;
@@ -351,6 +352,7 @@ pub fn parts(item: ItemId) -> &'static [Part] {
                 craft::parts,
                 space::parts,
                 power::parts,
+                street::parts,
                 belts::parts,
                 machines::parts,
                 placed::parts,

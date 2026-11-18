@@ -6,9 +6,11 @@ use super::coal_miner::COAL_MINER_DEFS;
 use super::ejector::EJECTOR_DEFS;
 use super::forester::FORESTER_DEFS;
 use super::house::HOUSE_DEFS;
+use super::led::LED_DEFS;
 use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
 use super::merger::MERGER_DEFS;
 use super::sign::SIGN_DEFS;
+use super::street::STREET_DEFS;
 use super::trees::TREES_DEFS;
 use super::woods::WOODS_DEFS;
 use super::*;
@@ -26,6 +28,8 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &TREES_DEFS,
     &WOODS_DEFS,
     &MERGER_DEFS,
+    &LED_DEFS,
+    &STREET_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

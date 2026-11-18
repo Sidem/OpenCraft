@@ -18,12 +18,18 @@ pub const HALO_RANGE: f64 = 160.0;
 /// thousands of lamps keeps its frame cost bounded).
 const MAX_HALOS: usize = 2048;
 
+/// An LED lamp's halo radius at each brightness step (a plain lamp's is 1.7).
+const LED_RADII: [f32; 3] = [2.0, 2.4, 2.9];
+
 /// How a light-giving block's halo looks: offset of its centre from the cell's centre (up), radius, colour, strength.
 fn look(b: BlockId) -> (f64, f32, [f32; 3], f32) {
     match b {
         block::LAMP => (0.0, 1.7, [1.0, 0.72, 0.32], 1.0),
         block::TORCH => (0.15, 0.75, [1.0, 0.58, 0.22], 0.8),
         block::PANEL_LIGHT => (0.0, 1.2, [0.86, 0.92, 1.0], 0.7),
+        // A little wider than a lamp's and softer: it hangs four blocks up, and is seen from far down the street, but
+        // the lantern itself (`street/model.rs`) must stay readable close by.
+        block::STREET => (0.0, 2.4, [1.0, 0.8, 0.5], 0.65),
         _ => (0.0, 1.0, [1.0, 0.9, 0.7], 0.7),
     }
 }
@@ -44,8 +50,19 @@ impl Game {
                 if self.halos.len() >= MAX_HALOS * HALO_FLOATS {
                     return;
                 }
-                let (up, radius, [r, g, bl], strength) = look(b);
-                let at = cell.as_vec3() + Vec3::new(0.5, 0.5 + up, 0.5) - eye;
+                let (up, mut radius, mut rgb, strength) = look(b);
+                if let Some(step) = block::is_led(b).then(|| crate::led::step_of(b)).flatten() {
+                    // An LED lamp: wider with each brightness step, in the colour its panel set.
+                    let c = self.sim.leds.colour(cell);
+                    rgb = [(c >> 16 & 255) as f32 / 255.0, (c >> 8 & 255) as f32 / 255.0, (c & 255) as f32 / 255.0];
+                    radius = LED_RADII[step];
+                }
+                let [r, g, bl] = rgb;
+                let mut at = cell.as_vec3() + Vec3::new(0.5, 0.5 + up, 0.5) - eye;
+                if b == block::STREET {
+                    // A street lamp's halo hangs round its lantern, out on the arm.
+                    at = crate::street::lantern_at(cell, crate::street::arm_dir(&self.sim.world, cell)) - eye;
+                }
                 if at.length() <= HALO_RANGE {
                     self.halos.extend_from_slice(&[at.x as f32, at.y as f32, at.z as f32, radius, r, g, bl, strength]);
                 }

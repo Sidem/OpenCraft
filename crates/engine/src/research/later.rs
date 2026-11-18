@@ -1,10 +1,10 @@
 //! The open end of `techs::TECHS`: techs added after Milestone 12's first steps, so that `orbit.rs` stays closed and no saved
-//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18).
+//! index moves. Saved index order: Long-Distance Power 82, Drop Pods 83, Settlements 84, Architecture 85, Forestry 86 (violet packs, after Violet Science 18), X-ray Goggles 87 (blue packs, after Hoists 51), LED Lamps 88 (blue packs, after Architecture 85 and Electronics 17).
 //! Add rows at the bottom, never reorder (new Orbit techs go here too). Needs name earlier indices: Masonry 7, Assembly 8, Blue Science 10,
 //! Mk4 Logistics 19, Bauxite Processing 36, Rocketry 78, Orbital Comms 79.
 
-use crate::block::{FORESTER, LANDING_PAD, LONG_POLE, POD_LAUNCHER, TOWN_DEPOT};
-use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK};
+use crate::block::{FORESTER, LANDING_PAD, LED, LONG_POLE, POD_LAUNCHER, STREET, TOWN_DEPOT};
+use crate::item::{BLUE_PACK, GOLD_PACK, GREEN_PACK, RED_PACK, VIOLET_PACK, XRAY_GOGGLES};
 use crate::recipes::{DECOR_FIRST, DECOR_ROWS, DROP_POD_RECIPE, LONG_POLE_ROW};
 
 use super::{r, Tech, Unlock};
@@ -20,7 +20,7 @@ const DECOR_UNLOCKS: [Unlock; DECOR_ROWS as usize] = {
     out
 };
 
-pub const LATER: [Tech; 5] = [
+pub const LATER: [Tech; 7] = [
     Tech {
         name: "Long-Distance Power",
         blurb: "Lattice towers, 2×2 and 3 high, that link to each other 160 blocks apart (an ordinary pole only 16), \
@@ -78,5 +78,26 @@ pub const LATER: [Tech; 5] = [
         units: 15,
         seconds: 20.0,
         unlocks: &[r(FORESTER)],
+    },
+    Tech {
+        name: "X-ray Goggles",
+        blurb: "Goggles for the Head slot that show the belts, pipes, poles and machines you built through the ground \
+                around you, tinted, so a lost underpass or lift line can be found without digging. Open the inventory \
+                and Shift-click them to put them on; a key switches the view on and off.",
+        needs: &[51], // Hoists
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 120,
+        seconds: 30.0,
+        unlocks: &[Unlock::Recipe(XRAY_GOGGLES)],
+    },
+    Tech {
+        name: "LED Lamps",
+        blurb: "A lamp that lights twice the ground of a plain one and takes any colour. Right-click one to pick its \
+                colour and one of three brightnesses. Also tall street lamps. No power needed.",
+        needs: &[85, 17], // Architecture, Electronics (the silicon)
+        packs: &[RED_PACK, GREEN_PACK, BLUE_PACK],
+        units: 80,
+        seconds: 20.0,
+        unlocks: &[r(LED), r(STREET)],
     },
 ];

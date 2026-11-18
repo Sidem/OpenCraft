@@ -69,6 +69,7 @@ mod item_guide;
 mod item_models;
 mod item_select;
 mod join;
+pub mod led;
 mod lessons;
 mod light;
 mod map_lesson;
@@ -109,6 +110,7 @@ mod site_hands;
 mod sound;
 mod stall_lesson;
 mod strategy;
+pub mod street;
 mod surroundings;
 mod survey;
 mod take_apart;
@@ -124,6 +126,7 @@ mod wire_props;
 pub mod wood;
 mod world;
 mod worldgen;
+mod xray;
 
 use std::collections::VecDeque;
 
@@ -242,6 +245,8 @@ pub struct Game {
     wire_props: wire_props::WireProps,
     /// Box instances drawn see-through: a held machine's ghost and the belt stubs at ports (`port_view.rs`).
     ghosts: port_view::Ghosts,
+    /// The X-ray goggles' view: the local on/off choice and this frame's records (`xray.rs`).
+    xray: xray::Xray,
     pickups: VecDeque<(ItemId, u32)>,
     /// Ore the local player wasted by hand mining this session (`hand_waste.rs`).
     waste: hand_waste::HandWaste,
@@ -346,6 +351,7 @@ impl Game {
             show_hand: true,
             wire_props: Default::default(),
             ghosts: port_view::Ghosts::default(),
+            xray: xray::Xray::default(),
             pickups: VecDeque::new(),
             waste: hand_waste::HandWaste::default(),
             stall: stall_lesson::StallWatch::default(),

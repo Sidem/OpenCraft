@@ -41,6 +41,7 @@ the in-game tips (`crates/engine/src/hints.rs`). Keep this file in sync for anyt
 | 1–9 / mouse wheel   | Select hotbar slot                        |
 | J                   | Swap the selected slot with your **left hand** (the dashed slot beside the hotbar; it is also in the inventory screen, where you click it with the cursor). A torch or lamp in either hand lights the ground, machines and players around you, brighter than the dark but never darker than daylight; it shines through walls. A tool in the left hand breaks the blocks it is made for when the one in your right hand is not (wearing as usual); everything else (placing, tools that aim) works from the selected slot only |
 | Q                   | Drop one item                             |
+| Shift + X           | X-ray goggles on or off, once worn in the **Head** slot (Shift-click them in the inventory; tech "X-ray Goggles", after Hoists): your belts, pipes and machines show through the ground within about 28 blocks, tinted cyan; a badge at the top shows the state and the choice is kept in this browser |
 | F                   | Toggle fly mode, in creative worlds only (Space / C: up / down); a normal world has the jetpack and hover pack |
 | Hold Tab            | Who is playing with you (in a shared game) |
 | K                   | Mute / unmute sound                       |
@@ -138,7 +139,14 @@ stand on top of any block and light about 11 blocks around them, full light with
 under them goes. **Lamps** (glass, an iron plate and 2 copper wire make two) are far stronger: full light within
 17 blocks, fading out about 31 blocks away, in a warm glow, day and night. Machines, belts, the items on
 them and dropped items are lit by the same light as the ground they stand on: a lamp lights a factory at
-night, and a machine under a roof or in a cave is dark.
+night, and a machine under a roof or in a cave is dark. **LED lamps** (tech "LED Lamps", after Architecture and
+Electronics; glass, silicon and 2 copper wire make two) need no power either and light twice the area of a lamp:
+right-click one to set its brightness (three steps, full light within 12, 18 or 24 blocks; a placed LED starts at the
+brightest, never weaker than a lamp) and its colour. The lamp
+and its halo take the colour; the light on the ground stays plain, since block light has one channel. The same tech
+gives **street lamps** (4 iron rod, 2 iron plate and an LED): a post four blocks tall whose arm leans the way you
+faced, with the brightest LED light at its top. Walls and machines below that height don't shade it, but its ground
+pool is 3 blocks smaller than an LED's standing on the ground. Breaking any part removes the whole lamp.
 
 Worlds are stored in this browser only. Clearing the site's data deletes them, so export any world you
 want to keep. The game also keeps each world's previous save as a backup and uses it automatically if the

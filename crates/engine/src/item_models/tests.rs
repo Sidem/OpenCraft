@@ -132,6 +132,27 @@ fn every_power_pole_is_a_post_with_a_crossarm_inside_its_cell_and_a_tier_wears_i
     assert_ne!(band(POLE_MK3), band(POLE_MK4));
 }
 
+#[test]
+fn the_street_lamp_is_a_tall_post_with_an_arm_and_a_glowing_head_inside_its_cell() {
+    let model = parts(ItemId::block(crate::block::STREET));
+    assert!(model.len() >= 8, "the street lamp is still a cube");
+    let (mut lo, mut hi) = ([f32::MAX; 3], [f32::MIN; 3]);
+    for p in model {
+        assert!(p.size.iter().all(|&s| s > 0.0) && p.tex.iter().all(|&t| (t as usize) < tex::COUNT));
+        for v in icon_frame::outline_points(p) {
+            for k in 0..3 {
+                (lo[k], hi[k]) = (lo[k].min(v[k]), hi[k].max(v[k]));
+            }
+        }
+    }
+    assert!(lo.iter().chain(&hi).all(|v| v.abs() <= 0.501), "it leaves its cell");
+    assert!(lo[1] < -0.49 && hi[1] > 0.45, "it stands the cube's full height");
+    assert!(hi[0] - lo[0] < 0.3 && hi[2] - lo[2] < 0.2, "and is thin");
+    assert!(model.iter().any(|p| matches!(p.form, Form::Lean(_))), "its arm bends");
+    let head = model.iter().find(|p| p.tex[1] == tex::LAMP).expect("a glowing head");
+    assert!(head.center[0] > 0.05 && head.center[1] > 0.3, "hanging from the arm's end at the top");
+}
+
 const GRID: usize = 96;
 
 /// The silhouette of an item's model as its icon draws it (`web/src/ui/hud.ts` `itemIcon`: x runs right-down, z

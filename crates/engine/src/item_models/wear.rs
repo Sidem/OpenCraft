@@ -9,7 +9,7 @@ use super::{part, turned, Part};
 use crate::block::tex;
 use crate::item::{
     ItemId, CRAFT_GLOVES, EXO_FRAME, HAULER_PACK, HAULER_PACK_MK2, HAULER_PACK_MK3, HAULER_PACK_MK4, HAULER_PACK_MK5,
-    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE,
+    HOVER_PACK, JETPACK, MINING_RIG, PLANNER, SERVO_BOOTS, SICKLE, SPRING_BOOTS, TELESCOPE, XRAY_GOGGLES,
 };
 
 const METAL: u16 = tex::MAT_METAL;
@@ -34,6 +34,7 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         EXO_FRAME => &EXO,
         MINING_RIG => &RIG,
         CRAFT_GLOVES => &GLOVES,
+        XRAY_GOGGLES => &GOGGLES,
         PLANNER => &TABLET,
         TELESCOPE => &TELESCOPE_MODEL,
         SICKLE => &SICKLE_MODEL,
@@ -202,6 +203,17 @@ const fn glove(x: f32, inner: f32) -> [Part; 8] {
 
 /// Fabricator gloves: a pair, thumbs inward.
 const GLOVES: [Part; 16] = Build::new().all(glove(-0.2, 1.0)).all(glove(0.2, -1.0)).done();
+
+/// X-ray goggles facing the viewer: a webbing strap, two brass-rimmed square lenses of glowing cyan glass and a bridge.
+const GOGGLES: [Part; 7] = [
+    part([0.0, 0.0, -0.06], [0.62, 0.1, 0.04], WEBBING),
+    part([-0.17, 0.0, 0.0], [0.26, 0.26, 0.1], BRASS),
+    part([0.17, 0.0, 0.0], [0.26, 0.26, 0.1], BRASS),
+    part([-0.17, 0.0, 0.055], [0.18, 0.18, 0.02], tex::LAMP_BLUE),
+    part([0.17, 0.0, 0.055], [0.18, 0.18, 0.02], tex::LAMP_BLUE),
+    part([0.0, 0.03, 0.0], [0.1, 0.05, 0.08], BRASS),
+    part([0.0, -0.04, -0.02], [0.4, 0.04, 0.06], RUBBER),
+];
 
 /// The telescope lying along x: a gunmetal eyepiece, a steel middle draw and a brass objective tube, glass at the far end.
 const TELESCOPE_MODEL: [Part; 4] = Build::new()

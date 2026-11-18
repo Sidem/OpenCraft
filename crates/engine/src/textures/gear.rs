@@ -19,6 +19,7 @@ pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
         tex::SERVO_BOOTS => boots(x, y, [60.0, 90.0, 170.0], false),
         tex::EXO_FRAME => exo_frame(x, y),
         tex::CRAFT_GLOVES => gloves(x, y),
+        tex::XRAY_GOGGLES => goggles(x, y),
         _ => mining_rig(x, y),
     }
 }
@@ -120,6 +121,32 @@ fn gloves(x: i32, y: i32) -> [u8; 4] {
         return rgb([90.0, 226.0, 255.0], 1.1);
     }
     rgb([54.0, 58.0, 72.0], 0.85 + 0.2 * n(428, x, y))
+}
+
+/// Two round lenses glowing cyan in brass rims, joined by a bridge, on a dark strap running off both sides.
+fn goggles(x: i32, y: i32) -> [u8; 4] {
+    let lens = |cx: f64| ((x as f64 - cx).powi(2) + (y as f64 - 8.0).powi(2)).sqrt();
+    let (l, r) = (lens(4.5), lens(11.5));
+    let nearest = l.min(r);
+    if nearest < 2.6 {
+        // A glint in the upper left of each lens, the glass brighter at its middle.
+        let glint = (x as f64 - if l < r { 3.5 } else { 10.5 }).abs() < 1.0 && y == 7;
+        return if glint {
+            rgb([235.0, 255.0, 255.0], 1.2)
+        } else {
+            rgb([90.0, 226.0, 255.0], 1.15 - 0.3 * nearest / 2.6)
+        };
+    }
+    if nearest < 3.8 {
+        return rgb([184.0, 140.0, 60.0], 0.9 + 0.2 * n(429, x, y));
+    }
+    if (7..=8).contains(&x) && (7..=8).contains(&y) {
+        return rgb([184.0, 140.0, 60.0], 0.9);
+    }
+    if (7..10).contains(&y) && !(1..=14).contains(&x) {
+        return rgb([44.0, 48.0, 60.0], 1.0);
+    }
+    dark()
 }
 
 /// A leather belt with a drill bit hanging from it and an orange gauge.

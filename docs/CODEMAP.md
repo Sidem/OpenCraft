@@ -16,7 +16,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `api/`: the JS API, one `#[wasm_bindgen] impl Game` per area; methods only forward. `engine.d.ts` (generated) lists them.
   `input`, `view`, `render`, `inventory`, `machine`, `crafting`, `research`, `creative`, `content`, `hud`, `sites`, `save`,
   `net`, `minimap`, `prospect`, `analytics`, `towns`, `orbit`, `ruins`, `signs`, `opening`, `blueprint`, `hand_waste`,
-  `lessons`, `guide`, `surroundings`, `debug` (give, teleport, run_ticks, scene building).
+  `lessons`, `guide`, `surroundings`, `xray`, `led`, `debug` (give, teleport, run_ticks, scene building).
 - `events.rs`: `SimEvent`s → item spawns, sounds, toasts, analytics. `authority.rs`: bodies, loose items, join/leave.
 
 ### Deterministic core (changes only through `Action`s at a tick)
@@ -30,7 +30,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `research.rs`; `research/`: `techs.rs` (first era), `electronics.rs`, `later.rs` (open end), `queue.rs`, `bonus.rs`.
 - `ghosts.rs` (planned blocks). `drones/` (construction drones, `earthworks.rs`, `cargo/`).
 - `helpers/`: jetpack, hover pack, `drone/` (personal drone, `trip.rs`). `blueprint/mod.rs` (data, bytes; `plan.rs` the view from above).
-- `signs/` (note signs; `view.rs` draws boards). `satellites.rs`, `pods.rs`, `opening.rs` (+ `opening/miners.rs`).
+- `signs/` (note signs; `view.rs` draws boards). `led/` (LED lamp colours, `SetLed`; `view.rs` the tint box). `street/` (street lamps: placing and breaking a 1×1×4 column of blocks, no state; `model.rs` the model, `view.rs` draws it from the head). `satellites.rs`, `pods.rs`, `opening.rs` (+ `opening/miners.rs`).
 - `settlements/`: towns. `orders.rs`, `run.rs`, `plans.rs`, `plots.rs`, `build.rs`, `state.rs`, `perks/` (+ `harbour/`).
 - `hints.rs`: onboarding tips. `lessons.rs`: the bits of `Sim::taught`.
 
@@ -61,12 +61,12 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Content tables (data; append ids, never renumber)
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs`, `tables.rs` (`TABLE_LEN`), `tex.rs` + `tex/later.rs`, `turn.rs`; id ranges in
   `chemistry.rs`, `forest.rs`, `ruins.rs`, `decor.rs`, `trees.rs`, `coal_miner.rs`, `house.rs`, `ejector.rs`, `sign.rs`,
-  `forester.rs`, `woods.rs`, `ores.rs`.
+  `forester.rs`, `woods.rs`, `ores.rs`, `merger.rs`, `led.rs` (ids 220–222, the lamp's three steps), `street.rs` (ids 223–227: head + four post ids by arm direction).
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or
   set: `materials`, `tooling`, `heavy`, `electronics`, `aluminium`, `transport`, `wiring`, `solar`, `chemistry`, `compute`,
-  `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house`.
+  `gear`, `gold`, `orbit`, `automate`, `recycler`, `scrap`, `towns`, `decor`, `house`, `led`.
 - `item_models.rs` + `item_models/`: loose items and icons built of boxes and cylinders (`shapes.rs`, `power.rs`, `belts.rs`,
   `icon_frame.rs`, `machines.rs` + `machines_plant.rs`, `placed.rs`, `plants.rs`).
 - `textures.rs` + `textures/`: procedural placeholder layers (the art pack overrides them in the browser).
@@ -95,6 +95,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `tool_hold.rs`; first-person hand), `halos.rs`, `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.
 - `minimap.rs` + `minimap/` (`atlas.rs`, `marks.rs`, `describe.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
+- `xray.rs`: the X-ray goggles' view (a local switch; the factory's boxes near the camera, drawn behind the terrain only).
 - `tier_palette.rs`: the two palettes of the tier colours Mk1–Mk5 (standard, colour-blind) and the player's local choice.
 - `item_guide.rs`: every way to get an item and what uses it. `analytics/` (`series.rs`, `machines.rs`, `power.rs`; never saved).
   `surroundings/` (ambient sound floats, `roof.rs`).
@@ -121,7 +122,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `save/`: `store.ts` (IndexedDB), `session.ts`, `export.ts`, `leave-guard.ts` (drawn by `ui/leave-prompt.ts`; `ui/no-storage.ts` fills Worlds without storage); `comfort/settings.ts`. `console/`: `commands.ts`, `host.ts`.
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements.
   - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` via `icon-paint.ts`, `icon-geometry.ts`), `icon-sprite.ts`, `hints.ts`,
-    `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `craftqueue.ts`.
+    `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `xray-badge.ts` (the goggles' icon and rim; keeps the on/off choice), `led-panel.ts` (an LED lamp's brightness and colour), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`), `craft-family.ts`,
     `craft-tiers.ts`, `craft-card.ts`, `craft-info.ts`, `item-guide.ts`, `take-apart.ts`, `offhand.ts`, `held-name.ts`,
     `drag-throw.ts`, `craft-terms.ts`, `creative.ts`, `pack-upgrade.ts`, `box-label.ts`, `drone.ts`, `drone-slots.ts`, `slot-view.ts`.

@@ -240,7 +240,7 @@ pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 0] = [];
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 157] = [
+const EXTRA: [ItemDef; 158] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -398,6 +398,7 @@ const EXTRA: [ItemDef; 157] = [
     machine("Storage Box Mk4", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
     machine("Storage Box Mk5", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
     machine("Pumpjack Mk2", [tex::PUMPJACK_TOP, tex::PUMPJACK_SIDE, tex::FRAME]),
+    device("X-ray Goggles", tex::XRAY_GOGGLES, [0.8, 0.3, 0.5]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

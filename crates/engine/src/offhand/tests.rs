@@ -124,12 +124,11 @@ fn the_left_hand_is_saved_and_older_saves_have_it_empty() {
     assert_eq!(Inventory::read_state(&mut r).map(|i| i.offhand), Some(stack(TORCH, 12)));
     assert!(r.is_done());
 
-    // Version 59 wrote the same bytes without the stack at the end.
-    let mut w = ByteWriter::default();
-    Inventory::default().write_state(&mut w);
+    // Version 59 wrote the same bytes without the stack at the end (and without the head slot, version 78's).
+    let before_head = Inventory::default().state_before_head_slot();
     let mut last = ByteWriter::default();
     Stack::default().write_state(&mut last);
-    let old = &w.bytes[..w.bytes.len() - last.bytes.len()];
+    let old = &before_head[..before_head.len() - last.bytes.len()];
     let mut r = ByteReader::new(old);
     r.version = 59;
     assert_eq!(Inventory::read_state(&mut r).map(|i| i.offhand), Some(Stack::default()));

@@ -251,7 +251,11 @@ pub const KIT_PAINT_2: u16 = WOOD_LAYERS_END;
 pub const KIT_PAINT_5: u16 = KIT_PAINT_2 + 3;
 /// The merger's top (`block/merger.rs`): three arrows meeting in one (`textures.rs` `router_top`).
 pub const MERGER_TOP: u16 = KIT_PAINT_5 + 1;
-pub const COUNT: usize = MERGER_TOP as usize + 1;
+/// The X-ray goggles' icon (`textures/gear.rs`; the worn model is `item_models/wear.rs`).
+pub const XRAY_GOGGLES: u16 = MERGER_TOP + 1;
+/// The LED lamp's diffuser (`block/led.rs`, `textures/led.rs`): frosted white in a dark frame, so a tint reads on it.
+pub const LED_PANEL: u16 = XRAY_GOGGLES + 1;
+pub const COUNT: usize = LED_PANEL as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

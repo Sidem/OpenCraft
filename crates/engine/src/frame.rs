@@ -63,9 +63,13 @@ impl Game {
         self.write_avatars(dt, eye);
         self.write_move_marker(eye);
         self.write_drone_instances(eye, alpha);
+        let factory_from = self.instances.len() / crate::factory::INSTANCE_FLOATS;
         self.sim.factory.write_instances(&mut self.instances, eye, time, self.sim.world.view_distance());
+        let factory_to = self.instances.len() / crate::factory::INSTANCE_FLOATS;
         self.write_wires(eye);
         self.write_signs(eye);
+        self.write_leds(eye);
+        self.write_streets(eye);
         self.write_port_pads(eye);
         let world = &mut self.sim.world;
         factory::light_boxes(&mut self.instances, eye, |cell| world.light_at(cell));
@@ -79,6 +83,7 @@ impl Game {
         self.write_strategy_fog(eye);
         self.write_halos(eye);
         factory::split_round(&self.instances, &mut self.round_instances);
+        self.write_xray(factory_from..factory_to);
         self.minimap.atlas.refresh_some(&self.sim.world);
     }
 }

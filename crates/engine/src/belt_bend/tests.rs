@@ -42,6 +42,26 @@ fn shift_r_steps_the_bend_of_the_belt_you_look_at() {
 }
 
 #[test]
+fn the_held_bend_is_used_up_by_one_line() {
+    let mut g = holding_belts();
+    g.target = Some(RayHit { block: IVec3::new(0, 200, 0), normal: IVec3::new(0, 1, 0), id: STONE });
+    // Placing: press the use button on the ground, then release it.
+    g.held_bend = BEND_RIGHT;
+    g.using = true;
+    g.update_belt_line();
+    assert_eq!(g.line.cells[0].dir, belt_facing(g.line.cells[0].dir & 3, BEND_RIGHT), "the line starts bent");
+    g.using = false;
+    g.update_belt_line();
+    assert_eq!(g.next_bend(), BEND_STRAIGHT, "a placed line takes the bend with it");
+    // Cancelling: start a line, then drop it.
+    g.held_bend = BEND_LEFT;
+    g.using = true;
+    g.update_belt_line();
+    g.cancel_belt_line();
+    assert_eq!(g.next_bend(), BEND_STRAIGHT, "so does a cancelled one");
+}
+
+#[test]
 fn the_held_bend_goes_on_the_first_belt_of_the_next_line() {
     let mut g = holding_belts();
     g.held_bend = BEND_RIGHT;

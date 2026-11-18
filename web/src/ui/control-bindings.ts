@@ -74,6 +74,7 @@ export const BINDINGS: readonly Binding[] = [
   key('plan', ['KeyY'], '{KeyY}', 'Personal drone: fetch, put away, store, or fetch the parts and craft'),
   key('plan', [...SHIFTS, 'KeyY'], '{ShiftLeft} + {KeyY}', 'Your personal drone fetches a stack more of what you hold'),
   key('plan', ['KeyU'], '{KeyU}', 'Point the scanner at the next deposit'),
+  key('plan', [...SHIFTS, 'KeyX'], '{ShiftLeft} + {KeyX}', 'X-ray goggles on or off (worn in the Head slot): your belts, pipes and machines show through the ground'),
 
   key('camera', ['KeyV'], '{KeyV}', 'First person, third person or strategy view'),
   key('camera', ['KeyG', 'Home'], '{KeyG} / {Home}', 'Free or follow camera; {Home} returns to your character'),

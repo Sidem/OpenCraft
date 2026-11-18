@@ -92,3 +92,5 @@ pub const FORESTER_MK3: ItemId = ItemId(400);
 pub const BOX_MK4: ItemId = ItemId(410);
 pub const BOX_MK5: ItemId = ItemId(411);
 pub const PUMPJACK_MK2: ItemId = ItemId(412);
+/// The X-ray goggles (worn in the Head slot, `equipment.rs`): while on, what is built shows through the ground.
+pub const XRAY_GOGGLES: ItemId = ItemId(413);

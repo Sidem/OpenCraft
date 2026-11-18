@@ -10,21 +10,10 @@ Two requests from play left (MERGE and LOOK built 2026-11-17, plan section 6). R
 module (plan 3.1), each new look gets a placeholder layer and an `ART_HANDOVER.md` line, players get a patch note and a
 `FACTORY.md` / `PLAYING.md` line.
 
-- **XRAY: X-ray goggles** (a new worn item; it solves lost underpass and lift lines). While on, what
-  the player built shows through terrain, tinted. Build it in two steps. **XRAY1 logistics:** belts, underpasses, lifts, routers,
-  pipes, poles and machines, which are factory records and already drawn per frame; add one overlay pass of the same instances
-  with the depth test set to *greater*, so only the hidden parts draw, capped to a radius of the player. It must remesh
-  nothing and add no chunk work. **XRAY2 building blocks:** the world keeps only a per-chunk `modified` flag
-  (`world/mod.rs`), so "placed by the player" means "differs from generation": measure that comparison per chunk first and cache
-  it per chunk as a bit set, built over the streaming budget; if it costs too much, show only what sits within a few blocks of
-  the logistics. *Done when:* XRAY1 shows a buried belt line from above in the browser pane and the frame bench is unchanged
-  with the goggles off (and costs are reported with them on); XRAY2 only if its measured cost is acceptable.
-  *Research (user, 2026-11-16):* a blue-science tech after Hoists: a `Tech` row with `needs: &[51]` (Hoists) and
-  `packs: &[RED_PACK, GREEN_PACK, BLUE_PACK]`, appended at the bottom of `techs::TECHS` (the table's order is the saved
-  index; `research/chemistry.rs` shows the pattern), unlocking the goggles; the lint
-  `every_ingredient_comes_from_a_tech_before_the_tech_that_needs_it` must pass for the goggles' recipe. *Decided (user,
-  2026-11-16):* the goggles are **worn in an equipment slot**, not toggled from the hotbar (the key then only matters if the
-  slot needs a quick off switch); XRAY1 starts by finding how worn gear (jetpack, hover pack) is held and adds the slot there.
+- **XRAY2: X-ray goggles show buried blocks** (XRAY1, buried logistics, built 2026-11-17: plan section 6). The world keeps only a per-chunk
+  `modified` flag (`world/mod.rs`), so "placed by the player" means "differs from generation": measure that comparison per chunk first and
+  cache it per chunk as a bit set, built over the streaming budget; if it costs too much, show only what sits within a few blocks of the
+  logistics. *Done when:* the measured cost is acceptable (XRAY1's overlay costs are in the plan's entry). Reuse `xray.rs` and the goggles' switch.
 - **WIRES: power lines that hang from the arms** (presentation only; **built 2026-11-17, v0.8.15** in `factory/pole_hang.rs`; the
   arm's yaw from the wired neighbours, the "second step" below, is not built). *Found:* every wire of an ordinary pole leaves one point
   on its centre line (`Pole::wire_point`, `POLE_WIRE_Y`), though the model has a crossarm with an insulator at each end

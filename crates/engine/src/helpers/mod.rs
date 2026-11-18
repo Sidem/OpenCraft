@@ -128,7 +128,8 @@ impl Helpers {
 }
 
 /// Test helper: the core bytes `stream` of `sim` as saves before version 71 wrote each player's helpers, with the
-/// drone's state cut down to one `false` (no errand). Every drone must be idle. `offhand::before_offhand` calls it.
+/// drone's state cut down to one `false` (no errand), and before version 78 (no head slot, `equipment::before_head_slot`).
+/// Every drone must be idle. `offhand::before_offhand` calls it.
 #[cfg(test)]
 pub(crate) fn before_drone_orders(sim: &Sim, stream: &[u8]) -> Vec<u8> {
     let mut out = crate::sim::before_felling(sim, stream);
@@ -144,7 +145,7 @@ pub(crate) fn before_drone_orders(sim: &Sim, stream: &[u8]) -> Vec<u8> {
         p.helpers.drone.write_state(&mut drone);
         out.splice(start..start + drone.bytes.len(), [0]);
     }
-    out
+    crate::equipment::before_head_slot(sim, &out)
 }
 
 /// The jetpack's fuel.

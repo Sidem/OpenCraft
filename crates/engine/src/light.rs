@@ -24,9 +24,12 @@ use crate::chunk::{index, Chunk};
 use crate::mesher::{neighbor_index, PAD, PAD_VOLUME};
 
 /// Kinds of block light (`BlockDef::light` indexes this): strength at the block, loss per block.
-pub const SOURCES: [(u8, u8); 3] = [(0, 0), (32, 1), (24, 2)];
+pub const SOURCES: [(u8, u8); 6] = [(0, 0), (32, 1), (24, 2), (40, 2), (52, 2), (64, 2)];
 pub const LAMP_LIGHT: u8 = 1;
 pub const TORCH_LIGHT: u8 = 2;
+/// The LED lamp's three steps (`block/led.rs`): full within 12, 18 and 24 blocks, none past 20, 26 and 32. All lose 2 a
+/// block, so they share the torches' field, and none reaches `MARGIN` with light (a loss of 1 would seam at chunk borders).
+pub const LED_LIGHTS: [u8; 3] = [3, 4, 5];
 
 /// How far past the chunk the field reaches: the farthest any light travels (a lamp's 32).
 pub const MARGIN: usize = 32;

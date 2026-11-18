@@ -81,10 +81,10 @@ pub(crate) fn before_offhand(sim: &crate::sim::Sim, stream: &[u8]) -> Vec<u8> {
     Stack::default().write_state(&mut empty);
     for p in sim.players.iter().flatten() {
         assert!(p.inventory.offhand.is_empty(), "a save before 60 had no left hand");
-        let mut w = ByteWriter::default();
-        p.inventory.write_state(&mut w);
-        let at = out.windows(w.bytes.len()).position(|s| s == w.bytes).expect("the inventory's bytes");
-        let end = at + w.bytes.len();
+        // `before_drone_orders` already cut the head slot out of the inventory.
+        let w = p.inventory.state_before_head_slot();
+        let at = out.windows(w.len()).position(|s| s == w).expect("the inventory's bytes");
+        let end = at + w.len();
         out.drain(end - empty.bytes.len()..end);
     }
     out

@@ -155,17 +155,28 @@ fn a_version_9_save_still_loads() {
 
 /// Saved at version 76, when block ids were bytes: a box at (5, 200, 5), a belt east of it, a second player,
 /// 3 stone lying at (40.5, 150, 40.5) and an iron ingot in the inventory. Version 77 writes ids below 255 as the
-/// same single byte, so the file is also what version 77 would write for this world.
+/// same single byte, so the file is also what version 77 would write for this world; version 78 adds each player's
+/// seventh worn slot (two bytes) and the X-ray Goggles tech's progress (four bytes).
 const V76_SAVE: &[u8] = include_bytes!("v76.ocworld");
 
 #[test]
-fn a_version_76_save_still_loads_and_saves_the_same_bytes() {
+fn a_version_76_save_still_loads_and_saves_with_only_the_head_slot_and_the_new_tech_added() {
     assert_eq!(u32::from_le_bytes(V76_SAVE[4..8].try_into().unwrap()), 76);
     let g = Game::load(V76_SAVE, 2).expect("loads");
     assert_eq!(g.item_total(IRON_INGOT.0), 1);
     assert_eq!(g.sim.factory.count(crate::factory::Kind::Storage), 1);
     assert_eq!((g.items.list[0].item, g.items.list[0].count), (STONE.into(), 3));
+    let players = g.sim.players.iter().flatten().count();
+    assert!(g.sim.players.iter().flatten().all(|p| !p.inventory.has_xray_goggles()), "the Head slot is empty");
     let saved = g.save();
     assert_eq!(u32::from_le_bytes(saved[4..8].try_into().unwrap()), SAVE_VERSION);
-    assert_eq!(&saved[8..], &V76_SAVE[8..], "only the version number differs");
+    // A Head slot each, two more techs (X-ray Goggles, LED Lamps) and the LED colours' count.
+    let leds = crate::bytes::ByteWriter::default().bytes.len() + {
+        let mut w = crate::bytes::ByteWriter::default();
+        g.sim.leds.write_state(&mut w);
+        w.bytes.len()
+    };
+    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 8 + leds);
+    let back = Game::load(&saved, 2).expect("the new format loads");
+    assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

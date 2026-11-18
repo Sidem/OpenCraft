@@ -18,6 +18,7 @@ mod hand_waste;
 mod hud;
 mod input;
 mod inventory;
+mod led;
 mod lessons;
 mod machine;
 mod minimap;
@@ -36,6 +37,7 @@ mod telescope;
 mod towns;
 mod trains;
 mod view;
+mod xray;
 
 use wasm_bindgen::prelude::*;
 

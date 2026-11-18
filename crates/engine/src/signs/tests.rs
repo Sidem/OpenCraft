@@ -45,7 +45,9 @@ fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
     );
     let last_door = crate::block::door_of(crate::block::OTHER_WOODS - 1);
     assert_eq!(last_door + 2, crate::block::MERGER, "the last wood's door, its open door, then the merger");
-    assert_eq!(usize::from(crate::block::MERGER) + crate::block::MERGER_COUNT, BLOCK_COUNT);
+    assert_eq!(usize::from(crate::block::MERGER) + crate::block::MERGER_COUNT, usize::from(crate::block::LED));
+    assert_eq!(usize::from(crate::block::LED) + crate::block::LED_COUNT, usize::from(crate::block::STREET));
+    assert_eq!(usize::from(crate::block::STREET) + crate::block::STREET_COUNT, BLOCK_COUNT);
 }
 
 #[test]
@@ -141,8 +143,10 @@ fn signs_are_saved_and_older_saves_have_none() {
         sim.write_state(&mut core);
         let mut felling = ByteWriter::default();
         sim.felling.write_state(&mut felling);
-        let tail = [bytes.as_slice(), &felling.bytes].concat();
-        assert!(core.bytes.ends_with(&tail), "the core ends with the signs, then the trees being felled");
+        let mut leds = ByteWriter::default();
+        sim.leds.write_state(&mut leds);
+        let tail = [bytes.as_slice(), &felling.bytes, &leds.bytes].concat();
+        assert!(core.bytes.ends_with(&tail), "the core ends with the signs, the trees being felled, the LED colours");
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
     // A core from save 62 ends before the signs' count: it reads whole, with none.
@@ -150,7 +154,8 @@ fn signs_are_saved_and_older_saves_have_none() {
     let fresh = crate::sim::Sim::new(2024, 2);
     fresh.write_state(&mut w);
     let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
-    let old = &cut[..cut.len() - 4];
+    // (Cut the signs' count and the LED colours', which a save 62 does not have either.)
+    let old = &cut[..cut.len() - 8];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

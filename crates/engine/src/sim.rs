@@ -23,6 +23,7 @@ use crate::factory::Factory;
 use crate::ghosts::Ghosts;
 use crate::helpers::Helpers;
 use crate::inventory::Inventory;
+use crate::led::Leds;
 use crate::math::{hash2, Rng, Vec3};
 use crate::mode::Mode;
 use crate::opening::Opening;
@@ -104,6 +105,8 @@ pub struct Sim {
     pub settlements: Settlements,
     /// The players' note signs (signs/).
     pub signs: Signs,
+    /// The colours of the players' LED lamps (led/).
+    pub leds: Leds,
     /// Trees being chopped and falling (`felling.rs`).
     pub felling: Felling,
     /// Trees that came down since the last drain, for the host to draw falling; not state.
@@ -143,6 +146,7 @@ impl Sim {
             opening: None,
             settlements: Settlements::default(),
             signs: Signs::default(),
+            leds: Leds::default(),
             felling: Felling::default(),
             fallen: Vec::new(),
             hints_reached: 0,
@@ -258,6 +262,7 @@ impl Sim {
         w.u32(self.taught);
         self.signs.write_state(w);
         self.felling.write_state(w);
+        self.leds.write_state(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -318,6 +323,7 @@ impl Sim {
         }
         self.signs = if r.version >= 63 { Signs::read_state(r)? } else { Signs::default() };
         self.felling = if r.version >= 73 { Felling::read_state(r)? } else { Felling::default() };
+        self.leds = if r.version >= 79 { Leds::read_state(r)? } else { Leds::default() };
         Some(())
     }
 }

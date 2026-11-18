@@ -168,6 +168,9 @@ impl Sim {
         if placed == block::SIGN {
             return self.put_sign(player, pos, facing);
         }
+        if placed == block::STREET {
+            return self.put_street_lamp(player, pos, facing);
+        }
         if block::is_sapling(placed) && !self.can_plant(pos) || placed == block::TORCH && !self.torch_fits(pos) {
             return false;
         }

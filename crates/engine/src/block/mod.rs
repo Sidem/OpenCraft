@@ -205,6 +205,12 @@ pub use woods::{door_of, floor_of, planks_of, wood_block, OAK_TREE_LOG, OTHER_WO
 /// The merger, id 219 (`merger.rs`).
 mod merger;
 pub use merger::{MERGER, MERGER_COUNT};
+/// The LED lamp's three brightness steps, ids 220–222 (`led.rs`).
+mod led;
+pub use led::{is_led, LED, LED_COUNT, LED_STEPS};
+/// The street lamp's head and four post cells, ids 223–227 (`street.rs`).
+mod street;
+pub use street::{is_street, post_dir, street_post, STREET, STREET_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -215,7 +221,9 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + FORESTER_COUNT
     + TREES_COUNT
     + woods::WOODS_COUNT
-    + MERGER_COUNT;
+    + MERGER_COUNT
+    + LED_COUNT
+    + STREET_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;
