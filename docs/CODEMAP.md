@@ -92,7 +92,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
 - `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `cover.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
-- `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `tool_hold.rs`; first-person hand), `halos.rs`, `wire_props.rs`,
+- `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.
 - `minimap.rs` + `minimap/` (`atlas.rs`, `marks.rs`, `describe.rs`, `sites.rs`), `ore_guide.rs`, `hand_waste.rs`.
 - `xray.rs`: the X-ray goggles' view (a local switch; the factory's boxes near the camera, drawn behind the terrain only).

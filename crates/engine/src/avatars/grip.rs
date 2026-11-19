@@ -19,10 +19,10 @@ pub const HELD_SIZE: f64 = 0.273;
 /// A tool with a handle is this much longer than other items are large: a long, thin thing at a block's size looks
 /// like a toy, and its handle should reach past the fist.
 pub const TOOL_SIZE: f64 = 1.3;
-/// Where a tool's grip sits from the hand's centre: in the fist, a little low and ahead. In blocks on an avatar.
-const TOOL_AT: [f64; 3] = [0.0, -0.03, -0.03];
+/// Where a tool's grip sits from the hand's attachment point (`model.rs` passes `hand::GRIP_POCKET`, so zero offset).
+const TOOL_AT: [f64; 3] = [0.0, 0.0, 0.0];
 /// Where the middle of anything else sits from the hand's centre: about as far ahead as the old block cube's middle,
-/// and high enough that a thin item (a drone) shows over the first-person glove while a block's top stays below the
+/// and high enough that a thin item (a drone) shows over the first-person hand while a block's top stays below the
 /// crosshair. It turns about there.
 const HOLD_AT: [f64; 3] = [0.0, 0.088, -0.1];
 /// First person draws held items this much larger than the hand's scale (as games draw view models), so a block shows
@@ -43,28 +43,29 @@ pub(super) struct HeldPart {
     pub taper: Option<f32>,
 }
 
-/// How a tool sits before its stroke: its turn about its handle (from the model's: a pick's or axe's edge along +x, a
-/// shovel's blade face towards +z, a sickle's hook towards +x) and its lean forward about x, on an avatar (the wrist
-/// leans it) and in first person.
-fn rest(stroke: Stroke, view: bool) -> (M3, f64) {
+/// How a tool sits before its stroke: `(turn about handle, lean forward about x, roll about -z)`.
+/// From the model's axes: a pick's or axe's edge along +x, a shovel's blade face towards +z, a sickle's hook towards +x.
+pub(super) fn rest(stroke: Stroke, view: bool) -> (M3, f64, f64) {
     match (stroke, view) {
-        // Edge ahead, in the arm's swing plane.
-        (Stroke::Chop, false) => (yaw_m(-FRAC_PI_2), 0.0),
-        // Edge ahead and to the left, towards the crosshair, so the head shows from the side and leads the strike.
-        (Stroke::Chop, true) => (yaw_m(-2.2), -0.55),
-        (Stroke::Dig, false) => (IDENTITY, 0.0),
-        // The blade up and ahead towards the crosshair, its face a little towards the eye: the hand is low in the view, so
-        // a blade hanging down would be out of sight.
-        (Stroke::Dig, true) => (yaw_m(-0.4), PI - 0.55),
-        (Stroke::Sweep, false) => (yaw_m(-FRAC_PI_2), 0.0),
-        // The hook towards the crosshair.
-        (Stroke::Sweep, true) => (yaw_m(PI), -0.3),
+        // Pickaxe: edge straight ahead in the arm's vertical swing plane on an avatar; angled toward crosshair in POV.
+        (Stroke::Pick, false) => (yaw_m(-FRAC_PI_2), 0.0, 0.0),
+        (Stroke::Pick, true) => (yaw_m(-2.15), -0.48, -0.06),
+        // Axe: upright at rest on an avatar; angled diagonally in POV so the cutting blade leads a side-chop.
+        (Stroke::Axe, false) => (yaw_m(-FRAC_PI_2), 0.0, 0.0),
+        (Stroke::Axe, true) => (yaw_m(-1.95), -0.40, -0.26),
+        // Shovel: blade up and ahead in POV so the face is visible and ready to stab down & scoop.
+        (Stroke::Dig, false) => (IDENTITY, 0.0, 0.0),
+        (Stroke::Dig, true) => (yaw_m(-0.4), PI - 0.55, 0.0),
+        // Sickle: hook inward toward the crosshair for a horizontal reap.
+        (Stroke::Sweep, false) => (yaw_m(-FRAC_PI_2), 0.0, 0.0),
+        (Stroke::Sweep, true) => (yaw_m(PI), -0.3, 0.0),
+        (Stroke::Punch, _) => (IDENTITY, 0.0, 0.0),
     }
 }
 
 /// `held` in the hand at `hand`, the wrist turned by `pitch` about x, at `scale` times its size on an avatar. Anything
-/// but a tool turns by `tip` about x through its middle; a tool is held at its grip and posed by `pose` (its stroke,
-/// `tool_hold.rs`). First person (`view`) holds tools so their working end shows.
+/// but a tool turns by `tip` about x through its middle (plus any strike `pose`); a tool is held at its grip and posed
+/// by `pose` (`tool_hold.rs`). First person (`view`) holds tools so their working end shows.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn held_parts(
     held: ItemId,
@@ -95,16 +96,20 @@ pub(super) fn held_parts(
     let k = HELD_SIZE * size * scale / largest;
     let v = |a: [f64; 3]| Vec3::new(a[0], a[1], a[2]);
     // The item's own turn about its pivot, in the hand's frame. A tool swings along its edge (about its model z), then
-    // leans and sweeps with the wrist.
+    // rolls, leans and sweeps with the wrist.
     let (pivot, anchor, own) = match tool {
         Some(t) => {
-            let (turn, lean) = rest(t.stroke, view);
-            let own = mul(yaw_m(pose.sweep), mul(rx_m(lean + pose.lean), mul(turn, rz_m(-pose.swing))));
+            let (turn, lean, base_roll) = rest(t.stroke, view);
+            let own = mul(
+                yaw_m(pose.sweep),
+                mul(rx_m(lean + pose.lean), mul(rz_m(base_roll + pose.roll), mul(turn, rz_m(-pose.swing)))),
+            );
             (v(t.grip), v(TOOL_AT) * scale, own)
         }
         None => {
             let mid = Vec3::new((lo[0] + hi[0]) * 0.5, (lo[1] + hi[1]) * 0.5, (lo[2] + hi[2]) * 0.5);
-            (mid, v(HOLD_AT) * scale, rx_m(tip))
+            let own = mul(yaw_m(pose.sweep * 0.6), mul(rz_m(pose.roll * 0.5), rx_m(tip + pose.lean * 0.7)));
+            (mid, v(HOLD_AT) * scale, own)
         }
     };
     let tilt = rx_m(pitch);
@@ -165,29 +170,29 @@ fn model(held: ItemId) -> Vec<ModelPart> {
 }
 
 /// A rotation, rows of a 3×3 matrix.
-type M3 = [[f64; 3]; 3];
+pub(super) type M3 = [[f64; 3]; 3];
 
-const IDENTITY: M3 = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+pub(super) const IDENTITY: M3 = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
 
 /// The shader's yaw: x towards (cos, 0, sin), -z towards (sin, 0, -cos).
-fn yaw_m(a: f64) -> M3 {
+pub(super) fn yaw_m(a: f64) -> M3 {
     let (s, c) = a.sin_cos();
     [[c, 0.0, -s], [0.0, 1.0, 0.0], [s, 0.0, c]]
 }
 
 /// The shader's pitch: y towards (0, cos, sin).
-fn rx_m(a: f64) -> M3 {
+pub(super) fn rx_m(a: f64) -> M3 {
     let (s, c) = a.sin_cos();
     [[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]]
 }
 
 /// The shader's roll: x towards (cos, sin, 0).
-fn rz_m(a: f64) -> M3 {
+pub(super) fn rz_m(a: f64) -> M3 {
     let (s, c) = a.sin_cos();
     [[c, -s, 0.0], [s, c, 0.0], [0.0, 0.0, 1.0]]
 }
 
-fn mul(a: M3, b: M3) -> M3 {
+pub(super) fn mul(a: M3, b: M3) -> M3 {
     let mut m = [[0.0; 3]; 3];
     for (i, row) in m.iter_mut().enumerate() {
         for (j, v) in row.iter_mut().enumerate() {
@@ -197,13 +202,13 @@ fn mul(a: M3, b: M3) -> M3 {
     m
 }
 
-fn apply(m: M3, v: Vec3) -> Vec3 {
+pub(super) fn apply(m: M3, v: Vec3) -> Vec3 {
     let r = |i: usize| m[i][0] * v.x + m[i][1] * v.y + m[i][2] * v.z;
     Vec3::new(r(0), r(1), r(2))
 }
 
 /// `m` as the shader's yaw, roll and pitch (`m` = yaw · roll · pitch).
-fn euler(m: M3) -> (f64, f64, f64) {
+pub(super) fn euler(m: M3) -> (f64, f64, f64) {
     let roll = m[1][0].clamp(-1.0, 1.0).asin();
     if roll.cos() < 1e-6 {
         // Rolled a quarter turn: pitch and yaw turn about one axis; all of it goes to yaw.

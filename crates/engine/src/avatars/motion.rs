@@ -4,6 +4,9 @@
 use crate::player::Player;
 use std::f64::consts::TAU;
 
+/// One full mining/chopping stroke, in seconds (matches `sim::SWING_SECONDS` for tree felling).
+pub(super) const WORK_CYCLE: f64 = 0.50;
+
 #[derive(Default)]
 pub(super) struct Motion {
     /// Local crosshair surface relative to the camera; remote players use their reported look.
@@ -19,6 +22,8 @@ pub(super) struct Motion {
     pub using: f64,
     pub work_phase: f64,
     pub use_phase: f64,
+    /// Gentle idle breathing phase for subtle living poise (no walking bob).
+    pub breath: f64,
     /// The jetpack's flame (0 off, 1 full) and the phase its length flickers by.
     pub thrust: f64,
     pub flicker: f64,
@@ -39,13 +44,15 @@ impl Motion {
         self.strafe += (((body.vel.x * cy + body.vel.z * sy) / 6.6).clamp(-1.0, 1.0) - self.strafe) * k;
         let mine = body.gesture & 1 != 0;
         let using = body.gesture & 2 != 0 && !mine;
-        self.mining += (f64::from(mine) - self.mining) * k;
+        let mine_k = 1.0 - (-(if mine { 18.0 } else { 10.0 }) * dt).exp();
+        self.mining += (f64::from(mine) - self.mining) * mine_k;
         self.using += (f64::from(using) - self.using) * (1.0 - (-(if using { 24.0 } else { 7.0 }) * dt).exp());
         if mine || self.mining > 0.01 {
-            self.work_phase = (self.work_phase + dt * TAU / 0.48).rem_euclid(TAU);
+            self.work_phase = (self.work_phase + dt * TAU / WORK_CYCLE).rem_euclid(TAU);
         } else {
             self.work_phase = 0.0;
         }
+        self.breath = (self.breath + dt * TAU * 0.35).rem_euclid(TAU);
         self.thrust += (f64::from(body.thrust) - self.thrust) * k;
         self.flicker = (self.flicker + dt * TAU * 9.0).rem_euclid(TAU);
         if using || self.using > 0.01 {

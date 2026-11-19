@@ -108,18 +108,26 @@ fn a_tools_head_comes_down_and_forward_onto_the_strike() {
         let at =
             |t: f64| held_parts(item, hand, 0.0, 0.0, 0.33, true, &tool_hold::pose(stroke, t * TAU, 1.0))[head].center;
         let (back, hit) = match stroke {
-            Stroke::Chop => (at(0.55), at(0.75)),
-            Stroke::Dig => (at(0.3), at(0.65)),
-            Stroke::Sweep => (at(0.5), at(0.72)),
+            Stroke::Pick => (at(0.52), at(0.72)),
+            Stroke::Axe => (at(0.50), at(0.70)),
+            Stroke::Dig => (at(0.36), at(0.66)),
+            Stroke::Sweep => (at(0.46), at(0.68)),
+            Stroke::Punch => (at(0.36), at(0.58)),
         };
         let name = item::name(item);
         match stroke {
             Stroke::Sweep => assert!(hit.x < back.x - 0.01, "{name} cuts across to the left: {back:?} {hit:?}"),
             Stroke::Dig => assert!(hit.y > back.y + 0.005, "{name} prises its blade up: {back:?} {hit:?}"),
-            Stroke::Chop => {
+            Stroke::Pick => {
                 assert!(hit.y < back.y - 0.02, "{name} comes down onto the strike: {back:?} {hit:?}");
                 assert!(hit.z < back.z, "{name} drives forward: {back:?} {hit:?}");
             }
+            Stroke::Axe => {
+                assert!(hit.x < back.x - 0.02, "{name} cleaves across right-to-left: {back:?} {hit:?}");
+                assert!(hit.y < back.y - 0.01, "{name} drops diagonally into the trunk: {back:?} {hit:?}");
+                assert!(hit.z < back.z, "{name} drives forward into the wood: {back:?} {hit:?}");
+            }
+            Stroke::Punch => {}
         }
     }
 }

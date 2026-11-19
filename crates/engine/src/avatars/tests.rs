@@ -6,8 +6,8 @@ use crate::player::Player;
 
 #[test]
 fn pickaxe_point_leads_the_downstroke_in_the_arm_swing_plane_for_every_tier() {
-    // The moment of the strike (`tool_hold.rs`).
-    let pose = Motion { mining: 1.0, work_phase: 0.75 * std::f64::consts::TAU, ..Default::default() };
+    // The moment of the pickaxe strike (`tool_hold.rs`).
+    let pose = Motion { mining: 1.0, work_phase: 0.72 * std::f64::consts::TAU, ..Default::default() };
     for held in [STONE_PICKAXE, IRON_PICKAXE, STEEL_PICKAXE] {
         for yaw in [0.0, 0.8] {
             let mut boxes = Vec::new();
@@ -170,4 +170,65 @@ fn the_first_person_hand_holds_the_item_low_right_ahead_and_inside_the_body() {
         let hand = Vec3::new(hand[0] as f64, hand[1] as f64, hand[2] as f64);
         assert!(hand.x * right.x + hand.z * right.z > 0.05, "on the right of the view");
     }
+}
+
+#[test]
+fn pov_arm_and_hand_match_the_characters_body_materials_and_have_articulated_fingers() {
+    let mut view = Vec::new();
+    model::push_view_hand(&mut view, 0.0, 0.0, &Motion::default(), ItemId::NONE);
+    let parts: Vec<&[f32]> = view.chunks_exact(INSTANCE_FLOATS).collect();
+    // Forearm (5) + palm/dorsal/knuckle (3) + thumb (2) + 4 articulated fingers (8) = 18 parts.
+    assert!(parts.len() >= 18, "modelled forearm and articulated hand have 18+ parts, got {}", parts.len());
+    for layer in [tex::AVATAR_SKIN, tex::AVATAR_SUIT, tex::AVATAR_HELMET, tex::AVATAR_JOINT, tex::AVATAR_TRIM] {
+        assert!(parts.iter().any(|p| p[9] == layer as f32), "POV arm/hand includes Kestrel body layer {layer}");
+    }
+}
+
+#[test]
+fn bare_hand_mining_clenches_into_a_fist_and_drives_forward() {
+    let mut idle = Vec::new();
+    let mut strike = Vec::new();
+    model::push_view_hand(&mut idle, 0.0, 0.0, &Motion::default(), ItemId::NONE);
+    let punch = Motion { mining: 1.0, work_phase: 0.58 * std::f64::consts::TAU, ..Default::default() };
+    model::push_view_hand(&mut strike, 0.0, 0.0, &punch, ItemId::NONE);
+    let palm_z = |v: &[f32]| v[6 * INSTANCE_FLOATS + 2] as f64;
+    assert!(palm_z(&strike) < palm_z(&idle) - 0.015, "punch drives the fist forward toward the target");
+    // Fingers curl tighter into a fist: their bounding span along local reach shrinks compared to open fingers.
+    let finger_span = |v: &[f32]| {
+        let mut lo = f32::MAX;
+        let mut hi = f32::MIN;
+        for p in v.chunks_exact(INSTANCE_FLOATS).skip(9) {
+            lo = lo.min(p[2]);
+            hi = hi.max(p[2]);
+        }
+        hi - lo
+    };
+    assert!(finger_span(&strike) < finger_span(&idle), "clenched fist curls fingers tighter than idle hand");
+}
+
+#[test]
+fn axe_and_pickaxe_have_distinct_mining_animations_in_pov_and_third_person() {
+    use crate::item::IRON_AXE;
+    let at_phase = |item: ItemId, t: f64| {
+        let mut out = Vec::new();
+        let m = Motion { mining: 1.0, work_phase: t * std::f64::consts::TAU, ..Default::default() };
+        model::push_view_hand(&mut out, 0.0, 0.0, &m, item);
+        // The tool head is the last emitted part.
+        let p = &out[out.len() - INSTANCE_FLOATS..];
+        Vec3::new(p[0] as f64, p[1] as f64, p[2] as f64)
+    };
+    let axe_dx = (at_phase(IRON_AXE, 0.50).x - at_phase(IRON_AXE, 0.70).x).abs();
+    let pick_dx = (at_phase(IRON_PICKAXE, 0.52).x - at_phase(IRON_PICKAXE, 0.72).x).abs();
+    assert!(axe_dx > pick_dx * 1.4, "axe sweeps wider horizontally ({axe_dx:.3}) than pickaxe ({pick_dx:.3})");
+
+    // In 3rd-person too, an axe chop swings the avatar's hand laterally across the body unlike a vertical pick.
+    let mut avatar_axe_a = Vec::new();
+    let mut avatar_axe_b = Vec::new();
+    let ma = Motion { mining: 1.0, work_phase: 0.50 * std::f64::consts::TAU, ..Default::default() };
+    let mb = Motion { mining: 1.0, work_phase: 0.70 * std::f64::consts::TAU, ..Default::default() };
+    model::push_avatar(&mut avatar_axe_a, Vec3::new(0.0, 0.0, -4.0), 0.0, 0.0, &ma, [IRON_AXE, ItemId::NONE]);
+    model::push_avatar(&mut avatar_axe_b, Vec3::new(0.0, 0.0, -4.0), 0.0, 0.0, &mb, [IRON_AXE, ItemId::NONE]);
+    let ax_a = avatar_axe_a[avatar_axe_a.len() - INSTANCE_FLOATS] as f64;
+    let ax_b = avatar_axe_b[avatar_axe_b.len() - INSTANCE_FLOATS] as f64;
+    assert!(ax_a - ax_b > 0.15, "3rd-person axe head sweeps right-to-left: {ax_a:.3} -> {ax_b:.3}");
 }

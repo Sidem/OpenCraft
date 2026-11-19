@@ -11,6 +11,7 @@ use crate::Game;
 use motion::Motion;
 
 mod grip;
+mod hand;
 mod model;
 mod motion;
 mod tool_hold;
