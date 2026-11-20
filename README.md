@@ -1,18 +1,10 @@
 # OpenCraft
 
-**A voxel sandbox with a factory builder inside it, in the browser.** Mine and build in a fully editable block world,
-then automate it with miners, belts, smelters, power lines, trains and drones. Peaceful, open-ended, co-op for 2–4
-players. The whole game is written by AI coding agents.
+**Voxel sandbox with factory builder.** Mine and build in a fully editable block world,
+then automate it with miners, belts, smelters, power lines, trains and drones. Peaceful, open-ended, co-op for 1–4
+players.
 
-**Play: <https://sidem.github.io/OpenCraft/>** (desktop browser, keyboard and mouse; no install, no account).
-
-## How to play, in a paragraph
-
-A new world opens in front of a broken production line with a missing belt; fixing it teaches the controls. Hand mining
-is slow and lossy, deposits are finite, and machines are efficient, so the game is to automate: research (five science
-packs) opens tiers Mk1–Mk5, steam, chemistry, nuclear power, compute, towns and orbit. Terrain is material: quarries leave
-pits, and a planner with drones flattens, fills or tunnels whole sites. The manual: [docs/PLAYING.md](docs/PLAYING.md)
-(controls, worlds, co-op) and [docs/FACTORY.md](docs/FACTORY.md) (deposits, machines, power, research, every era).
+**Play: <https://sidem.github.io/OpenCraft/>**.
 
 ## Run, build, check
 
