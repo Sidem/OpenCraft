@@ -5,7 +5,8 @@
 //! word 0: bits  0..12  x   (blocks + SHAPED_OFFSET, in 1/SHAPED_SCALE: chunk-local, a little outside the chunk allowed)
 //!         bits 12..24  y
 //!         bits 24..27  kind: 0 a leaf card (drawn from both sides), 1..=3 a log's side mostly along x, y, z (u
-//!                      below, v along that axis), 4..=6 a log's end, flat across x, y, z (7 unused)
+//!                      below, v along that axis), 4..=6 a log's end, flat across x, y, z, 7 a ground-cover plant
+//!                      quad (u holds 6-bit u and v in 60ths, drawn from both sides without the card mask)
 //!         bits 27..30  occlusion (0 darkest .. 7 open)
 //! word 1: bits  0..12  z
 //!         bits 12..24  u   (a log: texture tiles in 1/256 around it; a card: bit 0 its corner across, bits 1..3
@@ -48,6 +49,7 @@ pub const SHAPED_OFFSET: i32 = 2;
 pub const KIND_CARD: u32 = 0;
 pub const KIND_SIDE: u32 = 1;
 pub const KIND_END: u32 = 4;
+pub const KIND_PLANT: u32 = 7;
 
 /// One vertex before packing: `cell` is chunk-local, `off` the position in it (may run a little outside it).
 #[derive(Clone, Copy)]

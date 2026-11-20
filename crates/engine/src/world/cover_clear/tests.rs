@@ -4,8 +4,8 @@ use super::*;
 use crate::math::Vec3;
 use crate::world::{Event, MeshData};
 
-/// One drawn plant: its world column and its 16 vertex words.
-type Plant = (i32, i32, [u32; 16]);
+/// One drawn plant column: its world column and all of its shaped vertex words.
+type Plant = (i32, i32, Vec<u32>);
 type Seen = BTreeMap<(i32, i32, i32), Vec<Plant>>;
 
 fn all_set(c: &ClearedCover, xs: std::ops::RangeInclusive<i32>, zs: std::ops::RangeInclusive<i32>) -> bool {
@@ -114,19 +114,26 @@ fn settle(w: &mut World, seen: &mut Seen) {
     }
 }
 
-/// The plants of a mesh: the cover is added last, 16 words a plant, on faces 6 and 7 (`mesher::push_plant`).
+/// The cover plants of a mesh: every `KIND_PLANT` quad in `shaped`, grouped by world column.
 fn plants_of(m: &MeshData) -> Vec<Plant> {
-    let start = m.opaque_quads as usize * 4;
-    let cutout = &m.verts[start..start + m.cutout_quads as usize * 4];
-    let first = cutout.chunks(4).position(|q| matches!(q[0] >> 18 & 7, 6 | 7)).map_or(cutout.len(), |i| i * 4);
-    assert_eq!((cutout.len() - first) % 16, 0, "only whole plants follow the first one");
-    cutout[first..]
-        .chunks_exact(16)
-        .map(|p| {
-            let words: [u32; 16] = p.try_into().expect("16 words");
-            ((m.pos.x << 5) + (words[0] & 63) as i32, (m.pos.z << 5) + (words[0] >> 12 & 63) as i32, words)
-        })
-        .collect()
+    use crate::mesher::shaped::{KIND_PLANT, SHAPED_OFFSET, SHAPED_SCALE};
+    let start = m.shaped_opaque as usize * 12;
+    let cutout = &m.shaped[start..start + m.shaped_cutout as usize * 12];
+    let mut by_col: BTreeMap<(i32, i32), Vec<u32>> = BTreeMap::new();
+    for q in cutout.chunks_exact(12) {
+        if (q[0] >> 24) & 7 != KIND_PLANT {
+            continue;
+        }
+        let (mut sx, mut sz) = (0.0f32, 0.0f32);
+        for i in 0..4 {
+            sx += (q[i * 3] & 4095) as f32 / SHAPED_SCALE - SHAPED_OFFSET as f32;
+            sz += (q[i * 3 + 1] & 4095) as f32 / SHAPED_SCALE - SHAPED_OFFSET as f32;
+        }
+        let wx = (m.pos.x << 5) + (sx * 0.25).floor() as i32;
+        let wz = (m.pos.z << 5) + (sz * 0.25).floor() as i32;
+        by_col.entry((wx, wz)).or_default().extend_from_slice(q);
+    }
+    by_col.into_iter().map(|((x, z), words)| (x, z, words)).collect()
 }
 
 /// A world column well inside its chunk, so a patch around it stays in one chunk column.
@@ -154,7 +161,7 @@ fn busiest_patch(seen: &Seen, fits: impl Fn(i32, i32) -> bool) -> (IVec3, usize)
 fn clear_and_compare(w: &mut World, seen: &mut Seen, centre: IVec3) -> usize {
     let expected: Seen = seen
         .iter()
-        .map(|(&k, plants)| (k, plants.iter().filter(|p| !in_patch(centre, p)).copied().collect()))
+        .map(|(&k, plants)| (k, plants.iter().filter(|p| !in_patch(centre, p)).cloned().collect()))
         .collect();
     let before: usize = seen.values().map(Vec::len).sum();
     assert!(w.clear_cover(centre));

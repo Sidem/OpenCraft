@@ -52,94 +52,108 @@ fn green(base: Rgb, seed: u32, i: i32) -> Rgb {
     shade(base, 0.9 + 0.2 * rand(seed, i))
 }
 
-/// Eleven blades of uneven height, the middle ones tallest, a few leaning.
+/// Eleven slender curving blades of uneven height, standing on y = 0.
 fn tuft(p: &mut Pen) {
-    for i in 0..11 {
-        let f = f64::from(i) / 10.0;
-        let x0 = 0.14 + 0.72 * f + (rand(1, i) - 0.5) * 0.06;
-        let height = 0.2 + 0.4 * rand(2, i) * (1.0 - (f - 0.5).abs() * 1.2);
-        let lean = (rand(3, i) - 0.5) * 0.3;
+    for i in 0..13 {
+        let f = f64::from(i) / 12.0;
+        let x0 = 0.12 + 0.76 * f + (rand(1, i) - 0.5) * 0.05;
+        let height = 0.36 + 0.52 * rand(2, i) * (1.0 - (f - 0.5).abs() * 0.7);
+        let lean = (f - 0.5) * 0.32 + (rand(3, i) - 0.5) * 0.14;
         p.blade(
             (x0, 0.0),
-            (x0 + lean, height),
-            (rand(4, i) - 0.5) * 0.14,
-            0.024 + 0.014 * rand(5, i),
+            ((x0 + lean).clamp(0.05, 0.95), height),
+            -lean * 0.45,
+            0.016 + 0.008 * rand(5, i),
             green(GREEN, 6, i),
         );
     }
 }
 
-fn stem_and_leaves(p: &mut Pen, top: Pt, bow: f64) {
-    p.blade((0.5, 0.0), top, bow, 0.016, STEM);
-    p.ellipse((0.41, 0.17), 0.1, 0.024, 0.45, green(GREEN, 20, 0));
-    p.ellipse((0.6, 0.27), 0.09, 0.022, -0.5, green(GREEN, 20, 1));
+/// Bottom-left stem (rooted at (0.25, 0.0) to (0.25, 0.46)) and bottom-right basal leaf tuft (around (0.75, 0.0))
+/// for the split 2x2 wildflower layout (`mesher/cover/shape.rs`).
+fn quad_stem_and_basal(p: &mut Pen, stem: Rgb, leaf: Rgb, bow: f64) {
+    p.blade((0.25, 0.0), (0.25, 0.47), bow, 0.022, stem);
+    p.ellipse((0.17, 0.14), 0.075, 0.024, 0.45, green(leaf, 20, 0));
+    p.ellipse((0.33, 0.24), 0.07, 0.022, -0.5, green(leaf, 20, 1));
+    for i in 0..6 {
+        let f = (f64::from(i) / 5.0) * 2.0 - 1.0;
+        p.blade(
+            (0.75 + f * 0.04, 0.0),
+            (0.75 + f * 0.18, 0.20 + (1.0 - f.abs() * 0.45) * 0.16),
+            -f * 0.04,
+            0.022,
+            green(leaf, 21, i),
+        );
+    }
 }
 
-/// A white daisy: thirteen petals round a yellow heart on a stem with two leaves.
+/// Split 2x2 white daisy: two top-down blossom variants in the upper quadrants, stem and basal tuft below.
 fn daisy(p: &mut Pen) {
-    stem_and_leaves(p, (0.54, 0.62), 0.05);
-    p.petals((0.54, 0.65), 13, 0.075, 0.062, 0.02, 0.2, [238.0, 236.0, 222.0]);
-    p.disc((0.54, 0.65), 0.044, [226.0, 186.0, 70.0]);
-    p.disc((0.54, 0.65), 0.022, [190.0, 140.0, 44.0]);
+    quad_stem_and_basal(p, STEM, GREEN, 0.02);
+    for (cx, n, reach, len, core) in [(0.25, 13, 0.105, 0.082, 0.052), (0.75, 11, 0.095, 0.075, 0.046)] {
+        p.petals((cx, 0.75), n, reach, len, 0.022, 0.2, [232.0, 230.0, 218.0]);
+        p.disc((cx, 0.75), core, [224.0, 182.0, 68.0]);
+        p.disc((cx, 0.75), core * 0.48, [186.0, 136.0, 40.0]);
+    }
 }
 
-/// A poppy: four overlapping red petals round a dark heart.
+/// Split 2x2 poppy: two top-down crimson blossom cups above, stem and basal rosette below.
 fn poppy(p: &mut Pen) {
-    stem_and_leaves(p, (0.52, 0.6), -0.05);
-    for (i, (dx, dy)) in [(-0.05, 0.03), (0.05, 0.035), (-0.035, -0.04), (0.04, -0.035)].into_iter().enumerate() {
-        p.disc((0.52 + dx, 0.64 + dy), 0.065, shade([196.0, 64.0, 56.0], 0.92 + 0.08 * i as f64));
+    quad_stem_and_basal(p, STEM, GREEN, -0.02);
+    for (cx, r) in [(0.25, 0.092), (0.75, 0.086)] {
+        for (i, (dx, dy)) in [(-0.07, 0.04), (0.07, 0.045), (-0.05, -0.06), (0.055, -0.055)].into_iter().enumerate() {
+            p.disc((cx + dx, 0.75 + dy), r, shade([204.0, 58.0, 50.0], 0.90 + 0.06 * i as f64));
+        }
+        p.disc((cx, 0.75), 0.038, [44.0, 32.0, 38.0]);
     }
-    p.disc((0.52, 0.64), 0.026, [52.0, 40.0, 40.0]);
 }
 
-/// Four small bells hanging from an arched stem.
+/// Graceful arching stem rooted at x = 0.22 with five small blue bells hanging outward (`mesher/cover/shape.rs`).
 fn bluebell(p: &mut Pen) {
-    let (from, to, bow) = ((0.34, 0.0), (0.68, 0.66), -0.3);
-    p.blade(from, to, bow, 0.016, STEM);
-    p.ellipse((0.36, 0.1), 0.09, 0.022, 0.2, green(GREEN, 30, 0));
-    for (i, s) in [0.42, 0.58, 0.74, 0.9].into_iter().enumerate() {
+    let (from, to, bow) = ((0.22, 0.0), (0.84, 0.74), -0.34);
+    p.blade((0.22, 0.0), (0.08, 0.44), 0.14, 0.02, green(GREEN, 30, 0));
+    p.blade((0.22, 0.0), (0.44, 0.34), -0.14, 0.02, green(GREEN, 30, 1));
+    p.blade(from, to, bow, 0.014, STEM);
+    for (i, s) in [0.44, 0.58, 0.71, 0.83, 0.93].into_iter().enumerate() {
         let (x, y) = curve(from, to, bow, s);
-        p.blade((x, y), (x + 0.03, y - 0.03), 0.0, 0.008, STEM);
-        p.ellipse((x + 0.035, y - 0.075), 0.034, 0.052, 0.1, shade([108.0, 128.0, 206.0], 0.92 + 0.05 * i as f64));
-        p.ellipse((x + 0.035, y - 0.118), 0.047, 0.016, 0.0, [146.0, 162.0, 228.0]);
+        p.blade((x, y), (x + 0.025, y - 0.03), 0.0, 0.007, STEM);
+        p.ellipse((x + 0.03, y - 0.075), 0.034, 0.052, 0.12, shade([104.0, 126.0, 208.0], 0.92 + 0.04 * i as f64));
+        p.ellipse((x + 0.03, y - 0.118), 0.046, 0.016, 0.0, [146.0, 166.0, 232.0]);
     }
 }
 
-/// Two arching fronds: a midrib with pairs of leaflets that shorten towards the tip.
+/// One symmetrical woodland fern frond rooted at (0.5, 0.0), bent into a 5-frond 3D rosette by `cover/shape.rs`.
 fn fern(p: &mut Pen) {
-    for (f, (tip, bow)) in [((0.3, 0.9), 0.18), ((0.74, 0.84), -0.16), ((0.52, 0.97), 0.02)].into_iter().enumerate() {
-        let from = (0.5, 0.0);
-        p.blade(from, tip, bow, 0.014, [60.0, 104.0, 62.0]);
-        for k in 1..=13 {
-            let s = f64::from(k) / 14.0 * 0.95;
-            let at = curve(from, tip, bow, s);
-            let ahead = curve(from, tip, bow, s + 0.02);
-            let along = (ahead.1 - at.1).atan2(ahead.0 - at.0);
-            let len = 0.13 * (1.0 - s).powf(0.7) + 0.03;
-            for side in [-1.0, 1.0] {
-                let a = along + side * (PI / 3.0);
-                let c = (at.0 + a.cos() * len * 0.9, at.1 + a.sin() * len * 0.9);
-                p.ellipse(c, len, 0.017, a, shade([60.0, 104.0, 62.0], 0.9 + 0.2 * rand(40 + f as u32, k)));
-            }
+    let from = (0.5, 0.0);
+    let tip = (0.5, 0.95);
+    p.blade(from, tip, 0.01, 0.016, [60.0, 104.0, 62.0]);
+    for k in 1..=14 {
+        let s = f64::from(k) / 15.0 * 0.92;
+        let y = s * 0.95;
+        let len = 0.22 * (PI * s.powf(0.75)).sin().powf(0.75) + 0.025;
+        let wide = 0.026 * (1.0 - 0.5 * s);
+        for side in [-1.0, 1.0] {
+            let a = FRAC_PI_2 - side * (1.2 - 0.35 * s);
+            let c = (0.5 + a.cos() * len, y + a.sin() * len * 0.8);
+            p.ellipse(c, len, wide, a, shade([62.0, 110.0, 64.0], 0.88 + 0.24 * s + 0.06 * side));
         }
     }
 }
 
-/// Tall thin stalks, the tallest crowned with a brown seed head, and two long leaves.
+/// Slender riverside sedge blades and two clean stalks crowned with centred brown cattails.
 fn reed(p: &mut Pen) {
     const STALK: Rgb = [112.0, 132.0, 74.0];
-    const HEAD: Rgb = [112.0, 80.0, 52.0];
-    p.blade((0.4, 0.0), (0.1, 0.52), 0.14, 0.034, green(STALK, 50, 0));
-    p.blade((0.6, 0.0), (0.9, 0.44), -0.12, 0.034, green(STALK, 50, 1));
-    for (i, (x, top, lean)) in
-        [(0.22, 0.62, -0.03), (0.4, 0.97, 0.02), (0.55, 0.74, 0.04), (0.72, 0.84, -0.02), (0.84, 0.5, 0.05)]
+    const HEAD: Rgb = [108.0, 74.0, 46.0];
+    for (i, (x0, lean, h)) in
+        [(0.24, -0.14, 0.56), (0.38, 0.14, 0.66), (0.52, -0.08, 0.72), (0.68, 0.14, 0.60), (0.78, -0.12, 0.48)]
             .into_iter()
             .enumerate()
     {
-        p.blade((x, 0.0), (x + lean, top), 0.03 * (i as f64 - 2.0) * 0.3, 0.014, green(STALK, 51, i as i32));
-        if top > 0.7 {
-            p.ellipse((x + lean, top - 0.06), 0.022, 0.075, 0.0, shade(HEAD, 0.9 + 0.2 * rand(52, i as i32)));
-        }
+        p.blade((x0, 0.0), (x0 + lean, h), -lean * 0.3, 0.018, green(STALK, 50, i as i32));
+    }
+    for (i, (x, top)) in [(0.38, 0.92), (0.62, 0.80)].into_iter().enumerate() {
+        p.blade((x, 0.0), (x, top), 0.01, 0.012, green(STALK, 51, i as i32));
+        p.ellipse((x, top - 0.12), 0.028, 0.088, 0.0, shade(HEAD, 0.9 + 0.15 * rand(52, i as i32)));
     }
 }
 
@@ -161,22 +175,24 @@ fn twig(p: &mut Pen, from: Pt, angle: f64, len: f64, depth: i32, i: i32) {
     }
 }
 
-/// Low flat patches of pale lichen, grey-green with warmer flecks.
+/// Top-down organic patch of pale foliose rock lichen with tiny amber fruiting cups (`mesher/cover/shape.rs`).
 fn lichen(p: &mut Pen) {
     const BASE: Rgb = [140.0, 156.0, 108.0];
-    for i in 0..16 {
-        let x = 0.08 + 0.84 * rand(70, i);
-        let h = 0.04 + 0.14 * rand(71, i) * (1.0 - (x - 0.5).abs() * 1.4).max(0.2);
-        p.ellipse(
-            (x, h),
-            0.07 + 0.08 * rand(72, i),
-            0.035 + 0.04 * rand(73, i),
-            0.0,
-            shade(BASE, 0.85 + 0.25 * rand(74, i)),
-        );
+    for (i, (cx, cy, rx, ry)) in [
+        (0.48, 0.52, 0.26, 0.21),
+        (0.34, 0.42, 0.19, 0.16),
+        (0.64, 0.58, 0.19, 0.15),
+        (0.56, 0.36, 0.16, 0.13),
+        (0.38, 0.66, 0.15, 0.13),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        p.ellipse((cx, cy), rx, ry, rand(72, i as i32), shade(BASE, 0.88 + 0.22 * rand(74, i as i32)));
     }
-    for i in 0..9 {
-        p.disc((0.1 + 0.8 * rand(75, i), 0.03 + 0.1 * rand(76, i)), 0.012 + 0.01 * rand(77, i), [182.0, 150.0, 82.0]);
+    for i in 0..10 {
+        let (a, r) = (rand(75, i) * PI * 2.0, 0.05 + 0.22 * rand(76, i));
+        p.disc((0.5 + a.cos() * r, 0.5 + a.sin() * r), 0.018, [186.0, 146.0, 72.0]);
     }
 }
 
@@ -217,68 +233,62 @@ fn birch_sapling(p: &mut Pen) {
     p.ellipse((0.53, 0.9), 0.045, 0.06, FRAC_PI_2, green(LEAF, 91, 20));
 }
 
-/// A rosette of leaves with three rust-orange blooms on short stems.
+/// Split 2x2 iron-indicator rust bloom: two top-down burnt-orange 6-petal flowers above, stem and basal tuft below.
 fn rust_bloom(p: &mut Pen) {
-    const LEAF: Rgb = [88.0, 112.0, 64.0];
-    for i in 0..9 {
-        let a = FRAC_PI_2 + (f64::from(i) - 4.0) * 0.36;
-        let len = 0.26 + 0.1 * rand(100, i);
-        p.blade(
-            (0.5, 0.0),
-            (0.5 + a.cos() * len, a.sin() * len),
-            (rand(101, i) - 0.5) * 0.1,
-            0.05,
-            green(LEAF, 102, i),
-        );
-    }
-    for (x, y) in [(0.28, 0.4), (0.5, 0.62), (0.72, 0.4)] {
-        p.blade((0.5, 0.05), (x, y - 0.02), 0.0, 0.012, STEM);
-        p.petals((x, y), 7, 0.04, 0.036, 0.016, 0.1, [220.0, 118.0, 48.0]);
-        p.disc((x, y), 0.026, [150.0, 66.0, 30.0]);
+    quad_stem_and_basal(p, STEM, [84.0, 110.0, 62.0], 0.02);
+    for (cx, reach, len) in [(0.25, 0.10, 0.082), (0.75, 0.092, 0.076)] {
+        p.petals((cx, 0.75), 6, reach, len, 0.036, 0.15, [224.0, 116.0, 44.0]);
+        p.disc((cx, 0.75), 0.046, [226.0, 174.0, 62.0]);
+        p.disc((cx, 0.75), 0.022, [138.0, 56.0, 26.0]);
     }
 }
 
-/// A round bush of dark purple-green leaves with a few black berries.
+/// Split 2x2 coal-indicator heath shrub: dark woody stems below, two slate-charcoal foliage & black-berry sprigs above.
 fn coal_shrub(p: &mut Pen) {
-    const LEAF: Rgb = [100.0, 108.0, 118.0];
-    p.blade((0.5, 0.0), (0.5, 0.2), 0.0, 0.03, [58.0, 46.0, 40.0]);
-    for i in 0..80 {
-        let (a, r) = (rand(110, i) * PI * 2.0, rand(111, i).sqrt());
-        let c = (0.5 + a.cos() * r * 0.4, 0.4 + a.sin() * r * 0.3);
-        p.ellipse(c, 0.07, 0.04, rand(112, i) * PI, shade(LEAF, 0.62 + 0.42 * rand(113, i)));
+    const LEAF: Rgb = [72.0, 86.0, 102.0];
+    for ox in [0.25, 0.75] {
+        p.blade((ox, 0.0), (ox, 0.42), 0.01, 0.02, [64.0, 50.0, 42.0]);
+        p.blade((ox, 0.16), (ox - 0.14, 0.28), 0.02, 0.011, [64.0, 50.0, 42.0]);
+        p.blade((ox, 0.24), (ox + 0.14, 0.36), -0.02, 0.011, [64.0, 50.0, 42.0]);
     }
-    for i in 0..10 {
-        let (a, r) = (rand(114, i) * PI * 2.0, 0.3 + 0.7 * rand(115, i));
-        p.disc((0.5 + a.cos() * r * 0.36, 0.4 + a.sin() * r * 0.27), 0.02, [34.0, 28.0, 40.0]);
+    for (q, cx) in [0.25, 0.75].into_iter().enumerate() {
+        for i in 0..24 {
+            let (a, r) = (rand(110 + q as u32, i) * PI * 2.0, rand(111 + q as u32, i).sqrt() * 0.15);
+            let c = (cx + a.cos() * r, 0.75 + a.sin() * r);
+            p.ellipse(c, 0.055, 0.024, a + 0.3, shade(LEAF, 0.62 + 0.50 * rand(113, i)));
+        }
+        for i in 0..6 {
+            let (a, r) = (rand(114 + q as u32, i) * PI * 2.0, 0.04 + 0.10 * rand(115, i));
+            p.disc((cx + a.cos() * r, 0.75 + a.sin() * r), 0.02, [28.0, 26.0, 38.0]);
+        }
     }
 }
 
-/// A tall spike with teal bells hanging up its length.
+/// Copper-indicator arching spire rooted at x = 0.24 with five hanging verdigris-teal bells.
 fn copper_bell(p: &mut Pen) {
-    p.blade((0.5, 0.0), (0.5, 0.94), 0.0, 0.016, STEM);
-    p.blade((0.5, 0.0), (0.25, 0.3), 0.1, 0.04, green(GREEN, 120, 0));
-    p.blade((0.5, 0.0), (0.76, 0.26), -0.1, 0.04, green(GREEN, 120, 1));
-    for i in 0..6 {
-        let y = 0.24 + 0.115 * f64::from(i);
-        let side = if i % 2 == 0 { -1.0 } else { 1.0 };
-        p.blade((0.5, y), (0.5 + side * 0.07, y - 0.03), 0.0, 0.008, STEM);
+    let (from, to, bow) = ((0.24, 0.0), (0.78, 0.88), -0.24);
+    p.blade((0.24, 0.0), (0.08, 0.44), 0.12, 0.022, green(GREEN, 120, 0));
+    p.blade((0.24, 0.0), (0.46, 0.34), -0.12, 0.022, green(GREEN, 120, 1));
+    p.blade(from, to, bow, 0.014, STEM);
+    for (i, s) in [0.40, 0.53, 0.66, 0.79, 0.91].into_iter().enumerate() {
+        let (x, y) = curve(from, to, bow, s);
+        p.blade((x, y), (x + 0.032, y - 0.025), 0.0, 0.007, STEM);
         p.ellipse(
-            (0.5 + side * 0.085, y - 0.065),
-            0.034,
+            (x + 0.038, y - 0.07),
+            0.032,
             0.048,
-            0.0,
-            shade([62.0, 172.0, 152.0], 0.9 + 0.2 * rand(121, i)),
+            0.1,
+            shade([62.0, 174.0, 156.0], 0.9 + 0.18 * rand(121, i as i32)),
         );
-        p.ellipse((0.5 + side * 0.085, y - 0.105), 0.044, 0.014, 0.0, [110.0, 210.0, 190.0]);
+        p.ellipse((x + 0.038, y - 0.11), 0.042, 0.014, 0.0, [118.0, 214.0, 198.0]);
     }
 }
 
-/// Thin stems each crowned with a small pale star.
+/// Split 2x2 limestone/quartz-indicator pale star: two 5-pointed pale-lavender-white stars above, stem and tuft below.
 fn pale_star(p: &mut Pen) {
-    for (i, (x, top)) in [(0.24, 0.5), (0.5, 0.86), (0.76, 0.62)].into_iter().enumerate() {
-        p.blade((x, 0.0), (x + 0.02, top), 0.03, 0.013, green(GREEN, 130, i as i32));
-        p.ellipse((x - 0.06, 0.12 + 0.03 * i as f64), 0.07, 0.016, 0.4, green(GREEN, 131, i as i32));
-        p.petals((x + 0.02, top + 0.03), 5, 0.048, 0.05, 0.014, FRAC_PI_2, [226.0, 220.0, 244.0]);
-        p.disc((x + 0.02, top + 0.03), 0.022, [236.0, 214.0, 120.0]);
+    quad_stem_and_basal(p, [94.0, 126.0, 88.0], [88.0, 118.0, 84.0], -0.02);
+    for (cx, reach, len) in [(0.25, 0.105, 0.088), (0.75, 0.098, 0.082)] {
+        p.petals((cx, 0.75), 5, reach, len, 0.026, FRAC_PI_2, [224.0, 222.0, 240.0]);
+        p.disc((cx, 0.75), 0.034, [232.0, 206.0, 114.0]);
     }
 }

@@ -92,7 +92,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - Tools: `prospect.rs`, `survey.rs` + `survey/orbit.rs`, `telescope.rs` + `telescope/` (`ground.rs`, `beacons.rs`), `sickle.rs`.
 
 ### Presentation: drawing, sound, maps, analytics (never feeds the core)
-- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `cover.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
+- `mesher.rs` + `mesher/` (`quad.rs`, `water.rs`, `cover.rs` + `cover/shape.rs`); trees: `shaped.rs`, `tree_grid.rs`, `logs.rs` + `logs/`
   (`node.rs`, `ring.rs`), `foliage.rs` + `foliage/style.rs`.
 - `entities.rs` + `entities/merge.rs`, `avatars.rs` + `avatars/` (`grip.rs`, `hand.rs`, `tool_hold.rs`; first-person hand & character rig), `halos.rs`, `wire_props.rs`,
   `held_light.rs`, `drone_view.rs` + `companion_view.rs`, `orbit_fx.rs`, `sound.rs`.

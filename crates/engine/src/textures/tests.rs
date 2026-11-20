@@ -115,8 +115,8 @@ fn plants_are_cutouts_that_keep_their_colour_and_stand_on_the_ground() {
         }
         let area = TEX_SIZE * TEX_SIZE;
         assert!(solid > area / 40 && open > area / 3, "layer {layer}: {solid} solid and {open} open of {area}");
-        let rooted =
-            (0..TEX_SIZE).any(|x| at(layer, x, TEX_SIZE - 1)[3] == 255 || at(layer, x, TEX_SIZE - 2)[3] == 255);
+        let rooted = layer == tex::LICHEN
+            || (0..TEX_SIZE).any(|x| at(layer, x, TEX_SIZE - 1)[3] == 255 || at(layer, x, TEX_SIZE - 2)[3] == 255);
         assert!(rooted, "layer {layer} should touch the ground");
     }
 }

@@ -88,7 +88,9 @@ fn bench_meshing() {
 /// mesher before ground cover could be cleared (U3): an empty cleared set must keep producing exactly these bytes.
 /// Re-recorded on purpose 2026-11-04 when grassland got denser cover (`mesher/cover.rs`, the key-art pass), and
 /// 2026-11-07 when trees left the cubes for the shaped list (round trunks and canopies, `mesher/shaped.rs`), and
-/// 2026-11-14 when canopies became leaf cards and logs branching limbs (`mesher/foliage.rs`, `mesher/logs.rs`).
+/// 2026-11-14 when canopies became leaf cards and logs branching limbs (`mesher/foliage.rs`, `mesher/logs.rs`), and
+/// 2026-11-20 when ground cover left crossed quads for compact 3D botanical shapes in the shaped list
+/// (`mesher/cover/shape.rs`).
 #[test]
 fn untouched_chunks_mesh_as_they_always_did() {
     // Generator version 10, so a new terrain version (11 flattened the spawn) never moves what this guards: the mesher.
@@ -108,8 +110,8 @@ fn untouched_chunks_mesh_as_they_always_did() {
         bytes.extend(m.shaped.iter().flat_map(|v| v.to_le_bytes()));
     }
     let cutout: u32 = meshes.iter().map(|m| m.cutout_quads).sum();
-    // 39 chunks and 36,236 cutout quads (90,868 while leaves were cubes, 75,464 before the denser grassland cover).
-    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 36_236, 0x648a_b1d4_cfd5_1f2d));
+    // 39 chunks and 0 cube-cutout quads (ground cover and leaves now live in `shaped_cutout`, hashed into `bytes`).
+    assert_eq!((meshes.len(), cutout, crate::bytes::fnv1a(&bytes)), (39, 0, 0xcea6_0443_3f96_e312));
 }
 
 fn drain_meshes(w: &mut World) {

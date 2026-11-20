@@ -17,6 +17,8 @@ use crate::block::{
 use crate::math::hash2;
 use crate::worldgen::Biome;
 
+mod shape;
+
 /// What a chunk needs to grow cover: its biomes and its lowest world corner.
 pub struct Cover<'a> {
     pub x0: i32,
@@ -102,7 +104,8 @@ impl Mesher {
                     let wet = !matches!(ground, Ground::Rock(_)) && self.water_beside(p, y);
                     let stain = indicator_of(below).filter(|_| h % 1000 < INDICATOR_PERMILLE);
                     if let Some(layer) = stain.or_else(|| pick(cover.biomes[z * N + x], ground, h, meadow, wet)) {
-                        self.push_plant(x as u32, y as u32, z as u32, u32::from(layer), light[p]);
+                        let seed = h ^ (y as u32).wrapping_mul(0x9E37_79B9);
+                        shape::push(&mut self.shaped, [x as i32, y as i32, z as i32], layer, light[p], seed);
                     }
                 }
             }

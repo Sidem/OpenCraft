@@ -108,6 +108,10 @@ void main() {
   } else if (kind >= 4u && kind <= 6u) {
     uint a = kind - 4u;
     uv = vec2(p[(a + 1u) % 3u], p[(a + 2u) % 3u]);
+  } else if (kind == 7u) {
+    // Ground cover (engine mesher/cover/shape.rs): 6-bit u and v in 60ths, drawn whole without the leaf-card mask.
+    uint b = (w1 >> 12u) & 4095u;
+    uv = vec2(float(b & 63u), float((b >> 6u) & 63u)) / 60.0;
   }
   v_uvl = vec3(uv, layer);
   // The cubes' face shades (top 1.0, sides about 0.8, bottom 0.52), blended by the normal.

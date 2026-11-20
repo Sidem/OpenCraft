@@ -56,9 +56,10 @@ def hints(first, make, **kw):
     return [Entry(first + i, f"{make.__name__}_{k}", lambda k=k: make(k), **kw) for i, k in enumerate(stains.KINDS)]
 
 
-PLANTS = [(306, "tuft"), (307, "daisy"), (308, "poppy"), (309, "bluebell"), (310, "fern"), (311, "reed"), (312, "dry_brush"),
-          (313, "lichen"), (57, "sapling"), (320, "birch_sapling"), (321, "pine_sapling"), (322, "rust_bloom"),
-          (323, "coal_shrub"), (324, "copper_bell"), (325, "pale_star"), (108, "torch")]
+COVER_PLANTS = [(306, "tuft"), (307, "daisy"), (308, "poppy"), (309, "bluebell"), (310, "fern"), (311, "reed"),
+                (312, "dry_brush"), (313, "lichen"), (322, "rust_bloom"), (323, "coal_shrub"), (324, "copper_bell"),
+                (325, "pale_star")]
+PLANTS = [(57, "sapling"), (320, "birch_sapling"), (321, "pine_sapling"), (108, "torch")]
 
 NATURAL = [
     Entry(11, "bedrock", rocks.bedrock, tiles=True, real=True),
@@ -79,6 +80,7 @@ NATURAL = [
     Entry(317, "cactus_side", forest.cactus_side, tiles=True),
     Entry(318, "cactus_top", forest.cactus_top),
     Entry(319, "dead_wood", wood.dead_wood, tiles=True, real=True),
+    *[Entry(layer, name, getattr(plants, name), cutout=True, cover=(0.02, 0.55), real=True) for layer, name in COVER_PLANTS],
     *[Entry(layer, name, getattr(plants, name), cutout=True, cover=(0.02, 0.5)) for layer, name in PLANTS],
 ]
 
