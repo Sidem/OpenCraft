@@ -4,6 +4,12 @@ Shown in the menu under "What's new" (ui/patch-notes.ts). Newest first. Each upd
 line followed by `- ` lines, written for players in plain words. Anything else is ignored. Each new update raises the
 version in `package.json` (rule: `docs/DECISIONS.md`, "Version numbers"); `web/test/version.test.mjs` checks they agree.
 
+## 2026-11-18 · v0.9.4 · Pigments tech: eleven more colours
+- **A new tech, "Pigments"** (after Acids and Lubricants and Architecture; four packs). The chemical plant makes **blue pigment** from a copper ingot, a barrel of acid and a unit of water (the empty barrel comes back), and **mixes two pigments into a new hue**: orange (red and yellow), purple (red and blue), cyan (blue and green), lime (green and yellow), pink (red and white), sky (blue and white), grey (black and white), brown (red and green), maroon (red and black) and navy (blue and black). Every new pigment tints concrete in an assembler (4 concrete and one pigment make 4 blocks), so there are now **16 coloured concretes**. Acid finally has a second use besides chips. Older worlds load fine; the tech starts unresearched.
+
+## 2026-11-18 · v0.9.3 · Ground pigments
+- **Colours now come from pigment.** Five new powders, ground by hand from what you already have: **red** from an iron ingot, **green** from a copper ingot, **black** from coal, **white** from quicklime, **yellow** from sulfur. Coloured concrete (an assembler, 4 concrete and one pigment make 4 blocks) and the three roof tiles (4 tiles from 2 stone bricks and one pigment) take a pigment instead of the raw mineral. Red and green roofs and red and green concrete now cost an ingot's worth of metal where they cost an ore or a smaller pinch before; nothing is locked. More hues from the chemical plant come later. Older worlds load fine.
+
 ## 2026-11-18 · v0.9.2 · Street lamps
 - **Tall street lamps.** The "LED Lamps" tech also unlocks a street lamp: a slim post four blocks tall that bends over into a lantern, made from iron rods, iron plates and an LED. The arm leans the way you were facing when you placed it, so it reaches over the road in front of you. Its light is the brightest LED light, from high up where low walls and machines don't shade it, but its pool on the ground is 3 blocks smaller than an LED's standing on the ground. Break any part and the whole lamp comes down. Needs no power. Older worlds load fine.
 

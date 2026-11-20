@@ -62,6 +62,8 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `block/`: `mod.rs` (ids), `defs.rs` (`DEFS` rows), `make.rs`, `tables.rs` (`TABLE_LEN`), `tex.rs` + `tex/later.rs`, `turn.rs`; id ranges in
   `chemistry.rs`, `forest.rs`, `ruins.rs`, `decor.rs`, `trees.rs`, `coal_miner.rs`, `house.rs`, `ejector.rs`, `sign.rs`,
   `forester.rs`, `woods.rs`, `ores.rs`, `merger.rs`, `led.rs` (ids 220–222, the lamp's three steps), `street.rs` (ids 223–227: head + four post ids by arm direction).
+  Ground pigments: items 414–418 (`item/later.rs`), `recipes/pigment.rs` (hand grind rows), heap models in `item_models/stock.rs`.
+  Pigments tech (tech 89): items 419–429, blocks 228–238 (`block/tints.rs`, the mixed-hue concretes), `recipes/dye.rs` (`HUES` palette, machine rows 155–176).
 - `item.rs` + `item/` (`later.rs` ids, `rows.rs`): `ItemId`; ids below 256 are blocks, wider blocks pair with items in `WIDE_BLOCK_ITEMS`. `wood.rs`: the ten woods.
 - `recipes/`: `mod.rs` (`RECIPES`; `first.rs`), `machine.rs` (`MACHINE_RECIPES`, `FUELS`; `machine_later.rs`), `process_notes.rs` (one line of real chemistry a chemical machine row; shown on its card and in the item guide), `rows.rs`, `tiers.rs`,
   `refit.rs`, `timing.rs`, `group.rs` + `menu_order.rs`, `item_groups.rs`, `recycling.rs`, `content.rs`; one file per era or

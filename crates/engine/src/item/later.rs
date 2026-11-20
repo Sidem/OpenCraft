@@ -94,3 +94,23 @@ pub const BOX_MK5: ItemId = ItemId(411);
 pub const PUMPJACK_MK2: ItemId = ItemId(412);
 /// The X-ray goggles (worn in the Head slot, `equipment.rs`): while on, what is built shows through the ground.
 pub const XRAY_GOGGLES: ItemId = ItemId(413);
+/// The five ground pigments (`recipes/pigment.rs`): a mineral ground fine, by hand. Concrete tints and roof tiles take them
+/// in place of the raw mineral; the Pigments tech mixes more hues from them (`docs/ROADMAP_CHEMISTRY.md` DYE).
+pub const PIGMENT_RED: ItemId = ItemId(414);
+pub const PIGMENT_GREEN: ItemId = ItemId(415);
+pub const PIGMENT_BLACK: ItemId = ItemId(416);
+pub const PIGMENT_WHITE: ItemId = ItemId(417);
+pub const PIGMENT_YELLOW: ItemId = ItemId(418);
+/// The eleven pigments of the Pigments tech (`recipes/dye.rs`), in `HUES` order: blue from copper and acid in a chemical plant,
+/// then ten mixes of two others. Ids 419 to 429.
+pub const PIGMENT_BLUE: ItemId = ItemId(419);
+pub const PIGMENT_ORANGE: ItemId = ItemId(420);
+pub const PIGMENT_PURPLE: ItemId = ItemId(421);
+pub const PIGMENT_CYAN: ItemId = ItemId(422);
+pub const PIGMENT_LIME: ItemId = ItemId(423);
+pub const PIGMENT_PINK: ItemId = ItemId(424);
+pub const PIGMENT_SKY: ItemId = ItemId(425);
+pub const PIGMENT_GREY: ItemId = ItemId(426);
+pub const PIGMENT_BROWN: ItemId = ItemId(427);
+pub const PIGMENT_MAROON: ItemId = ItemId(428);
+pub const PIGMENT_NAVY: ItemId = ItemId(429);

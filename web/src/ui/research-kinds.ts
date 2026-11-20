@@ -138,7 +138,7 @@ const LISTS: Record<Kind, string> = {
     'Green Science|Blue Science|Violet Science|Gold Science|Research Center|AI Labs|AI Research',
   chip: 'Electronics|Logic|Processors|Wafers|Accelerators|Data Network|Datacenters|Cooling|Optimizer|Photonics',
   fluid: 'Fluid Handling|Electrolysis',
-  oil: 'Oil Processing|Refining|Plastics|Acids and Lubricants',
+  oil: 'Oil Processing|Refining|Plastics|Acids and Lubricants|Pigments',
   drone:
     'Robotics|Drone Power|Navigation|Construction Drones|Swarm Logistics|Personal Drone|Cargo Drones|Drone Swarms',
   tools: 'Steel Tools|Handcrafting I|Handcrafting II|Handcrafting III|Fabricator Gloves',

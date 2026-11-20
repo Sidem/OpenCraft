@@ -1,6 +1,6 @@
 # OpenCraft development plan
 
-**Status (2026-11-18, v0.9.2, save 79):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
+**Status (2026-11-18, v0.9.4, save 79):** Milestones 1–13 (all but the balance step 13.6b), the play-test response R1–R8, S1–S4, U1–U3,
 trains, the performance check, realistic trees (generator 12) and whole-tree felling are built and pushed. Open: **FIRE** (planned), **13.6b** (waits for the user to play Milestone 13). **Build in the order of
 `docs/ROADMAP_ORDER.md`** (rated by impact and sessions, audited against the code and the user's saves 2026-11-16): the
 (chemistry design CHEM0 and doc compaction and lessons L2 and L5 done 2026-11-16, MERGE, LOOK and the WebP atlas 2026-11-17), the rest of the cheap wins (F-BEAT, the factory as an instrument, is parked in the backlog of `ROADMAP_ORDER.md`, 2026-11-16),
@@ -193,8 +193,8 @@ ids append (`docs/EXTENDING.md` says where the next free one comes from); each n
   checks per pump operation, but it changes the state hash, so re-record the pins on purpose. (The atlas as WebP is done.)
 - **Requested 2026-11-16, ordered in `docs/ROADMAP_ORDER.md` (`docs/ROADMAP_REQUESTS.md`):** XRAY2 (XRAY1, the goggles and buried logistics, **built 2026-11-17**: section 6) buried blocks, only if the measured cost is
   acceptable; WIRES power lines hung from the poles' arms (built, v0.8.15); WORLDS upgrade old saves by generator layer (deposits only; no map pin for far deposits).
-  Light and colour: GLASS stained glass and coloured lamps (pigments from ores in chemical plants); LED brighter lamps with colour
-  control (a later tech, unpowered); STREET tall street lamps; CBPAL a colour-blind palette for tier colours, as a setting;
+  Light and colour (user 2026-11-18: dyes, stained glass and LEDs are separate; LEDs make their own colour): CHEM-DYE built
+  (v0.9.3, v0.9.4); GLASS stained glass (no dyes; 21 cube layers are left under 512); LED and STREET built; CBPAL a colour-blind palette for tier colours, as a setting;
   MUSIC a sea piece and industrial and space pieces by era.
   In `docs/ROADMAP_CHEMISTRY.md`: CHEM the chemical tree (**design done 2026-11-16**: TEACH, DYE, GAS early; AIR, COOL, CARB beside the
   elevator; lubricant goes into rotating machines; no boil-off, gases stay barrels; the oil chain's jam is diesel); PUMPDOWN pumping out a sealed flooded shaft
@@ -221,8 +221,10 @@ flamethrower (FIRE2) and for the LED lamps.
 
 ## 6. Recent changes
 
-Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 are in `git log -p -- docs/DEV_PLAN.md`).
+Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-17 CBPAL, which was trimmed on 2026-11-18, are in `git log -p -- docs/DEV_PLAN.md`).
 
+- **2026-11-18: DYE-b, the Pigments tech (v0.9.4, no save bump, golden state hash moved on purpose).** Tech 89 "Pigments" (needs Acids and Lubricants 45, Architecture 85; four packs) unlocks `recipes/dye.rs`'s rows 155–176 (`DYE_FIRST`, after `REFIT_LATER`, which is now full: a later tier goes in a table after `dye::DYE`): the plant's blue (copper ingot, acid barrel, 1 water; the shell comes back) and ten mixes (two pigments for two), then the assembler's eleven tints. Items 419–429, blocks 228–238 (`block/tints.rs`), one palette table `HUES` that paints the concretes (`textures/decor.rs`). Pigment heaps reuse their concrete's layer, so a hue costs one cube layer; `tex::COUNT` is 491, 21 left under 512 for stained glass. Hash moved once, for the research entry; the v76 save test grew by 4 bytes. Tests (`recipes/dye/tests.rs`): all 16 pigments and concretes reachable from raw by a fixpoint over every recipe, every pigment used, rows where saved machines expect them, plant and assembler fit, the tech locks exactly these rows; `textures/tests.rs`: the 16 concretes are 40+ apart in mean colour. Lint exception `("Pigments", "Copper Ingot")` (the smelter's first row is ungated; Ore Crushing only adds a second). Mixes share one card note.
+- **2026-11-18: DYE-a, ground pigments (v0.9.3, no save bump, state hash unmoved).** Items 414–418 (`item/later.rs`): red, green, black, white and yellow pigment, each one mineral ground by hand (`recipes/pigment.rs`, ungated; an iron and a copper ingot for red and green, because `no_hand_recipe_is_made_of_raw_ore` forbids ore). The five coloured concretes (rows 136–140, same indices) and the three roof tiles take a pigment instead of the mineral: **replaced**, per the user, who also ruled that dyes, stained glass and LEDs stay separate (`docs/DECISIONS.md`). Chimney bricks keep coal (soot, not a dye). Saved assemblers keep their rows and wait for pigment; a batch in progress finishes. Layers `tex::PIGMENT_*` after `LED_PANEL` (a test pins each heap to its concrete's colour); `tex::COUNT` +5, about 37 cube layers left. Tests: `recipes/pigment/tests.rs` (each pigment one mineral; every coloured block that existed takes its pigment and no raw mineral). DYE-b (Pigments tech, blue, mixes, new concretes) is not built.
 - **2026-11-18: STREET, street lamps (v0.9.2, no save bump, state hash unmoved).** Blocks 223–227 (`block/street.rs`): the head `STREET` (the item; light row `LED_LIGHTS[2]`) over three posts, `street_post(dir)`, one id a facing so the arm direction is kept with no record. `street/` places the four cells together and, from `Sim::block_changed`, clears the other three when any breaks (a head ends a column, so stacked lamps stay apart); nothing is saved but the blocks. The roadmap's "wider pool" was wrong: light floods by faces, so a head three blocks up lights a ground pool 3 blocks smaller in radius than an LED on the ground (`light/tests.rs` pins it); height buys only a light that low walls don't shade, a halo at the lantern, and the look (a stronger row would pass `MARGIN` and seam). Hand recipe in `recipes/led.rs`, unlocked by tech 88. Model `street/model.rs` and icon `item_models/street.rs` by an Opus 5.5 subagent (19 parts, a test pins it inside its column and the glass at the lantern's place). Seen in the browser pane by day and night.
 - **2026-11-18: LED, LED lamps (v0.9.1, save 79, golden state hash moved on purpose).** Blocks 220–222 (`block/led.rs`) are one lamp's three
   brightness steps (light is derived from blocks, so the panel swaps the id in place; the item, 220, is the BRIGHTEST: the first cut made it the
@@ -259,54 +261,3 @@ Older entries: `git show 025edaf:docs/DEV_PLAN.md` (entries before 2026-11-15 ar
   (`item-guide.ts`). The diesel jam: `item_guide::use_line` now adds the machine that burns an item for power (`BURNED_BY`: diesel
   generator) and the recycler for any stuck item no recipe takes, each with its research, so the Full card names both (test in
   `stall_lesson/tests.rs`). No new lesson bit: the existing "full" card carries it.
-- **2026-11-17: CBPAL, a colour-blind palette for the tier colours (v0.8.16, no save bump, state hash unmoved).** `tier_palette.rs` holds
-  both palettes (standard = `upgrades::TIER_COLOURS`; `TIER_COLOURS_CB`, dark to light: blue, vermillion, violet, teal, gold) and the
-  local `Game::tier_palette` the host sets (`set_tier_palette`; never saved). Engine colours (item chip, upgrade outline, line outlines)
-  read `Game::tier_colour`. The 14 baked layers (stripes, studs' paint, kit cases; `tier_layers()`) are recoloured by the host from the
-  standard pixels (`render/tier-paint.ts`, wired in `render/tier-wire.ts`): texels carrying the colour take the new hue, steel and
-  pips stay; no new atlas layers. Row in Settings, Picture (`ui/tier-palette.ts`, localStorage). Test `web/test/tier-palette.test.mjs`
-  reads the Rust constants: worst pair 20+ (CIEDE2000) in all four sights where the standard palette's deutan worst pair is under 1;
-  `web/test/colour.mjs` now holds the colour maths. Live change repaints the world, hotbar and inventory; other lists (research
-  tiles) catch up on the next page load.
-- **2026-11-17: WIRES, power lines hang from the insulators (v0.8.15, no save bump, state hash unmoved).** `factory/pole_hang.rs`: `Pole::hang_point(side,
-  rank)` and the chooser (side towards the other end, levels in `Power::wires` order, then fanned); `pole_tower::HANGS` (arm clamps; the peak
-  carries nothing); `Factory::for_each_wire` counts every wire so ends never depend on the camera; the wire and long-pole previews use
-  `Factory::pole_hang` / `ghost_hang`. Props and `wire_point` stay at the pole's middle. Not built: the arm turning to face its neighbours.
-- **2026-11-17: L6, the map and pins lesson (v0.8.14, save 76).** `map_lesson.rs`: 150 blocks from spawn (column 0, 0) for 3 s with the map
-  never opened brings a card (press M, click to pin your base); drops without teaching when the player walks back inside 130. Bit
-  `MAP_BIT` (12), taught by `Game::map_opened` (called from `worldmap.ts` `open()`, even before any card) or H; pins live in the browser,
-  so the core cannot see one. Save 76 writes nothing new, older worlds count it taught (`KNOWN_BEFORE_76`). Tests: `map_lesson/tests.rs`.
-- **2026-11-17: L4, the planner lesson (v0.8.13, save 75).** `planner_lesson.rs`: a planner in the pack and no site marked, past
-  the quiet spell, brings a card by stage (hold it, first corner, opposite corner); bit `PLANNER_BIT` (11), taught by the first site
-  or H; save 75 writes nothing new, older worlds count it taught (`KNOWN_BEFORE_75`: `check-lessons` showed the card in 4 of 6 long-play
-  saves, which hold an unused planner); a world that already has a site is also taught silently. Card only (no prompt). Tests: `planner_lesson/tests.rs`.
-- **2026-11-17: X builds the aimed ghost (user, after L3; v0.8.12, no save bump, codec tag 76 appended).** `Action::BuildGhost`
-  (`Sim::build_ghost` in `ghosts.rs`: item from any slot, `put_block` with the ghost's facing, clears the ghost); `ghost_build.rs` aims
-  (ray through ghost cells, hands' reach, occluded by blocks) and returns a notice when nothing is aimed or the item is missing. Key X
-  (strategy view keeps stop-order), a row in `control-bindings.ts`, a "Build ghost" row on the ghost card.
-- **2026-11-17: ghosts read as buildings, and a controls card (user, after L3; v0.8.11, no save bump).** `ghost_models.rs` draws planted ghosts
-  and the blueprint stamp as the machines' own models in the blue see-through pass (scratch `Factory::place_preview`, `factory/preview.rs`; a
-  stone or storage box as a cube; outlines stay for planted ghosts, the stamp lost its white outlines). `web/src/ui/ghost-panel.ts`: a card
-  in ghost mode with B first and the keys that work now by `ghost_stage` (layout-aware caps); the label lost its key sentence.
-
-- **2026-11-17: L3, the blueprint walk-through (v0.8.10, no save bump).** `blueprint_lesson.rs`: B pressed while the repeat prompt shows
-  hands its suggested box (`Repeat::suggested`) to a watch; in ghost mode the card and Z / Enter key prompts (kinds 9, 10; `KeyPrompt` now
-  draws several) follow the library's hands: both corners, the far one, Enter. Bit `BLUEPRINT_BIT` (10), taught by a saved blueprint or H;
-  older saves stay untaught (the prompt needs an empty library). Tests: `blueprint_lesson/tests.rs`.
-
-- **2026-11-17: PERF1, the atlas as lossless WebP (v0.8.9, no save bump).** `tools/art/build.py` writes `pack_<n>.webp` (127 layers a file,
-  `exact=True` keeps the colour under transparent texels); `art-pack.ts` decodes through `createImageBitmap` (premultiply off) and a
-  WebGL2 `readPixels`, 1024 rows at a time. 4.53 → 2.74 MB; the browser's decoded stack hashes identical to the old PNG's.
-- **2026-11-17: MERGE and LOOK, the merger and the router family look (v0.8.8, no save bump).** `RouterKind::Merger` (block
-  `merger.rs`; the kind is the byte older saves wrote as the filter flag): inputs in turn, idle ones skipped (`router/tests.rs`).
-  `router_model.rs`: one gatehouse, roof art per job (cyan in, gold out), a lit band per opening, a chevron over the served side.
-  Machine ports are black doorways (`process/port_mouth.rs`, `render::mark_dark`) with a lamp when a belt is joined (`Processor::linked`).
-
-- **2026-11-16: L5 and L2, the upgrade and no-recipe lessons (v0.8.7, save 74).** upgrade_lesson.rs (a bottleneck with the next kits in hand; bit 9) and ecipe_lesson.rs (a chosen-recipe machine with none set; bit 8); taught by doing the job or H, older worlds count them taught (KNOWN_BEFORE_74). Tests: 
-eed_lesson/tests.rs, lessons/tests.rs.
-- **2026-11-16: DOCS, CHEM0, the user's ten answers, the roadmap audit (docs only).** Session-start read 57 → 38 KB (keep it under 48); chemistry families ranked by need, the diesel jam found (docs/ROADMAP_CHEMISTRY.md); answers are rows of docs/DECISIONS.md (ROOM, M14A last, charcoal = coal, goggles worn, LED unpowered, CBPAL, MUSIC); the audit and its corrections: docs/ROADMAP_ORDER.md.
-
-- **2026-11-15: bolder kits, a true green Mk2 (user, v0.8.6).** Kit cases wear their own layers `tex::kit_paint` (468–471: whole
-  face in the tier colour plus Mk pips; `item_models/components.rs` `kit`). Mk2's art colour is `kit.LEAF` (hue ~120), not aether.
-- **2026-11-15: upgrade button drawn, mining note removed (user, v0.8.5).** `ui/machine-upgrade.ts` `UpgradeButton`: arrow and
-  Mk, kit icon, held/needed (also the hauler pack's). New standing rule "show, don't write": `docs/DECISIONS.md`, `web/src/CLAUDE.md`.

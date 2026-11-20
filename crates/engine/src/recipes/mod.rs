@@ -16,6 +16,7 @@ mod chemistry;
 mod compute;
 pub mod content;
 mod decor;
+pub mod dye;
 mod electronics;
 mod first;
 mod gear;
@@ -30,6 +31,7 @@ mod machine_later;
 mod materials;
 mod menu_order;
 mod orbit;
+mod pigment;
 pub mod process_notes;
 mod recycler;
 pub mod recycling;
@@ -58,6 +60,9 @@ pub use machine::*;
 use materials::*;
 pub use menu_order::menu_order;
 use orbit::{GROUND_STATION_RECIPE, LANDING_PAD_RECIPE, LAUNCH_SITE_RECIPE, POD_LAUNCHER_RECIPE, RECTENNA_RECIPE};
+use pigment::{
+    BLACK_PIGMENT_RECIPE, GREEN_PIGMENT_RECIPE, RED_PIGMENT_RECIPE, WHITE_PIGMENT_RECIPE, YELLOW_PIGMENT_RECIPE,
+};
 use recycler::*;
 use refit::UPGRADER_RECIPE;
 pub use rows::*;
@@ -262,6 +267,11 @@ pub const RECIPES: &[Recipe] = &[
     XRAY_GOGGLES_RECIPE,
     LED_RECIPE,
     STREET_RECIPE,
+    RED_PIGMENT_RECIPE,
+    GREEN_PIGMENT_RECIPE,
+    BLACK_PIGMENT_RECIPE,
+    WHITE_PIGMENT_RECIPE,
+    YELLOW_PIGMENT_RECIPE,
 ];
 
 /// The item that is block `id`, to keep the tables short.

@@ -255,7 +255,20 @@ pub const MERGER_TOP: u16 = KIT_PAINT_5 + 1;
 pub const XRAY_GOGGLES: u16 = MERGER_TOP + 1;
 /// The LED lamp's diffuser (`block/led.rs`, `textures/led.rs`): frosted white in a dark frame, so a tint reads on it.
 pub const LED_PANEL: u16 = XRAY_GOGGLES + 1;
-pub const COUNT: usize = LED_PANEL as usize + 1;
+/// The ground pigments' heaps (`textures/decor.rs` `pigment`; the colours are the coloured concretes').
+pub const PIGMENT_RED: u16 = LED_PANEL + 1;
+pub const PIGMENT_GREEN: u16 = LED_PANEL + 2;
+pub const PIGMENT_BLACK: u16 = LED_PANEL + 3;
+pub const PIGMENT_WHITE: u16 = LED_PANEL + 4;
+pub const PIGMENT_YELLOW: u16 = LED_PANEL + 5;
+/// The mixed-hue concretes' faces (`block/tints.rs`; painted from `recipes/dye.rs` `HUES` by `textures/decor.rs`). Their pigment
+/// heaps reuse these layers, so a hue costs one cube layer (the budget under 512 is shared with stained glass later).
+pub const TINT_FIRST: u16 = PIGMENT_YELLOW + 1;
+pub const fn tint_layer(i: u16) -> u16 {
+    TINT_FIRST + i
+}
+pub const TINT_LAST: u16 = tint_layer(crate::block::TINT_COUNT as u16 - 1);
+pub const COUNT: usize = TINT_LAST as usize + 1;
 
 /// The case layer of the kit of tier `tier` (1 is Mk2, the green kit).
 pub const fn kit_paint(tier: u8) -> u16 {

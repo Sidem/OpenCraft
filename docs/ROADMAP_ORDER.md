@@ -105,8 +105,8 @@ the ratios hold; what the table missed was the unbudgeted gate above.
 | 14 | XRAY1 | **Done 2026-11-17** (v0.9.0, save 78): X-ray goggles in a seventh Head slot, buried logistics through the ground, Shift+X switch (tech after Hoists) | 3 | 2 | 1.50 | 29% | - |
 | 15 | LED | **Done 2026-11-18** (v0.9.1, save 79): LED lamps, three steps (rows 40, 52, 64 at loss 2), colour record, panel; tech after Architecture and Electronics | 3 | 2 | 1.50 | 32% | ROOM |
 | 16 | STREET | **Done 2026-11-18** (v0.9.2, no save bump): tall street lamps, 5 block ids from 223, brightest LED row, unlocked by LED Lamps | 2 | 1 | 2.00 | 33% | LED |
-| 17 | CHEM-DYE | Chemistry: pigments (chemical-plant rows only, no new block id) | 3 | 2 | 1.50 | 36% | - |
-| 18 | GLASS | Stained glass (16 ids); coloured lamps via the LED record | 3 | 2 | 1.50 | 38% | CHEM-DYE, LED |
+| 17 | CHEM-DYE | **Done 2026-11-18** (v0.9.3 and v0.9.4, no save bump): dyes colour objects only (user). Five hand-ground pigments replace the minerals in the 5 concretes and 3 roofs; the Pigments tech (tech 89) adds blue and ten mixes in the chemical plant and 11 new concretes (cube layers left under 512: 21) | 3 | 2 | 1.50 | 36% | - |
+| 18 | GLASS | Stained glass (16 ids, 16 cube layers), not made from dyes; LEDs make their own colour and take nothing from it | 3 | 2 | 1.50 | 38% | - |
 | 19 | F-TAG | Follow one item (host-side watcher first) | 3 | 2 | 1.50 | 40% | - |
 | 20 | F-TIME | Timelapse of the world (shareable) | 3 | 2 | 1.50 | 43% | - |
 | 21 | F-SITE | Site bonuses: solar by biome, wind by height (shown on the ghost) | 3 | 2 | 1.50 | 45% | - |

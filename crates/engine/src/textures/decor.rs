@@ -4,6 +4,7 @@
 use super::paint::mottle;
 use super::{n, rgb};
 use crate::block::tex;
+use crate::recipes::dye::HUES;
 
 const RED: [f64; 3] = [172.0, 72.0, 58.0];
 const GREEN: [f64; 3] = [78.0, 124.0, 82.0];
@@ -11,6 +12,20 @@ const BLACK: [f64; 3] = [52.0, 54.0, 60.0];
 const WHITE: [f64; 3] = [222.0, 222.0, 214.0];
 const YELLOW: [f64; 3] = [214.0, 182.0, 62.0];
 const STEEL: [f64; 3] = [150.0, 156.0, 164.0];
+
+/// The ground pigments' colours, red, green, black, white, yellow: the coloured concretes' own, so a heap reads as the
+/// block it tints.
+const PIGMENTS: [[f64; 3]; 5] = [RED, GREEN, BLACK, WHITE, YELLOW];
+
+/// A heap of fine powder: the colour with grain, close to the poured concrete's own.
+pub fn pigment(x: i32, y: i32, which: usize) -> [u8; 4] {
+    rgb(PIGMENTS[which], 0.92 + 0.2 * mottle(715, x, y, 0.3) + 0.06 * n(716, x, y))
+}
+
+/// A mixed-hue concrete (`recipes/dye.rs` `HUES`): poured concrete in the hue's colour.
+pub fn tint(x: i32, y: i32, which: usize) -> [u8; 4] {
+    concrete(x, y, HUES[which])
+}
 
 pub fn pixel(layer: u16, x: i32, y: i32) -> [u8; 4] {
     match layer {

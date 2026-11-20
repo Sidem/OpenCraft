@@ -228,6 +228,8 @@ layer with a plain placeholder pattern, so nothing is blocked. Tick the line whe
   Fabricator gloves (2026-10-11): `tex::CRAFT_GLOVES` (285, `textures/gear.rs`) is an icon only: a dark glove with a gold cuff and a
   cyan servo pad, worn in the new Gloves slot. It should read as "hands, faster" next to the mining rig and exo frame.
   X-ray goggles (XRAY1, 2026-11-17): `tex::XRAY_GOGGLES` (`textures/gear.rs`): cyan lenses in brass rims, worn in Head; model `GOGGLES` (`wear.rs`).
+  Mixed-hue concretes (2026-11-18): `tex::tint_layer(0..11)` (`textures/decor.rs` `tint`, colours in `recipes/dye.rs` `HUES`), the same poured-concrete look as the five decor concretes in blue, orange, purple, cyan, lime, pink, sky, grey, brown, maroon, navy; their pigment heaps reuse these layers (no layer of their own).
+  Ground pigments (2026-11-18): `tex::PIGMENT_RED` to `PIGMENT_YELLOW` (`textures/decor.rs` `pigment`), a heap of powder in the matching concrete's colour; the item model is a `pile`.
   LED lamp (2026-11-18): `tex::LED_PANEL` (`textures/led.rs`), frosted white in a dark frame; keep it near-white (a tint box and halo colour it).
   Launch site and rocket (12.1, 2026-10-11, `textures/orbit.rs`): `tex::LAUNCH_SIDE` and `LAUNCH_TOP` (286–287) are the 7×7×6 pad's
   braced concrete with a hazard band, and its blast ring, with a launch tower and catch arms in `LAUNCH_PARTS` (`launch.rs`).

@@ -211,6 +211,9 @@ pub use led::{is_led, LED, LED_COUNT, LED_STEPS};
 /// The street lamp's head and four post cells, ids 223–227 (`street.rs`).
 mod street;
 pub use street::{is_street, post_dir, street_post, STREET, STREET_COUNT};
+/// The eleven mixed-hue concretes, ids 228–238 (`tints.rs`).
+mod tints;
+pub use tints::{BLUE_CONCRETE, TINT_COUNT};
 const BASE_COUNT: usize = 129;
 pub const BLOCK_COUNT: usize = BASE_COUNT
     + DECOR_COUNT
@@ -223,7 +226,8 @@ pub const BLOCK_COUNT: usize = BASE_COUNT
     + woods::WOODS_COUNT
     + MERGER_COUNT
     + LED_COUNT
-    + STREET_COUNT;
+    + STREET_COUNT
+    + TINT_COUNT;
 
 /// Every block's row (`defs.rs`), built with `make.rs`.
 mod defs;

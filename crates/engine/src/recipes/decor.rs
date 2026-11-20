@@ -1,6 +1,6 @@
 //! The decor set's machine rows (R7, `block/decor.rs`), made by machines only and unlocked together by the Architecture
-//! tech. Coloured concretes are plain concrete tinted by a mineral already mined (iron ore red, copper ore green, coal
-//! black, quicklime white, sulfur yellow; one mineral colours four blocks); rock bricks are fired in a smelter from the
+//! tech. Coloured concretes are plain concrete tinted by a ground pigment (`pigment.rs`: red from iron ore, green from
+//! copper ore, black from coal, white from quicklime, yellow from sulfur; one pigment colours four blocks); rock bricks are fired in a smelter from the
 //! rock of each province, slag bricks use the blast furnace's slag; the rest come from an assembler. Rows 136 on
 //! (`DECOR_FIRST`) of `MACHINE_RECIPES`, followed only by `refit::REFIT_LATER`.
 
@@ -16,17 +16,19 @@ use super::{
 #[cfg(test)]
 mod tests;
 
-/// Four concrete and one pinch of a mineral make four coloured blocks.
+/// Four concrete and one pinch of pigment make four coloured blocks.
 macro_rules! tint {
-    ($mineral:expr, $out:expr) => {
+    ($pigment:expr, $out:expr) => {
         MachineRecipe {
             category: Assembly,
-            inputs: &[(b(CONCRETE), 4), ($mineral, 1)],
+            inputs: &[(b(CONCRETE), 4), ($pigment, 1)],
             outputs: &[(b($out), 4)],
             seconds: 4.0,
         }
     };
 }
+
+pub(super) use tint;
 
 /// One block of rock fired into one block of bricks.
 macro_rules! fire {
@@ -36,11 +38,11 @@ macro_rules! fire {
 }
 
 pub const DECOR: &[MachineRecipe] = &[
-    tint!(b(IRON_ORE), RED_CONCRETE),
-    tint!(b(COPPER_ORE), GREEN_CONCRETE),
-    tint!(b(COAL_ORE), BLACK_CONCRETE),
-    tint!(QUICKLIME, WHITE_CONCRETE),
-    tint!(SULFUR, YELLOW_CONCRETE),
+    tint!(PIGMENT_RED, RED_CONCRETE),
+    tint!(PIGMENT_GREEN, GREEN_CONCRETE),
+    tint!(PIGMENT_BLACK, BLACK_CONCRETE),
+    tint!(PIGMENT_WHITE, WHITE_CONCRETE),
+    tint!(PIGMENT_YELLOW, YELLOW_CONCRETE),
     fire!(BASALT, BASALT_TILES),
     fire!(GRANITE, GRANITE_BRICKS),
     fire!(SANDSTONE, SANDSTONE_BRICKS),

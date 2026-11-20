@@ -240,7 +240,7 @@ pub const WIDE_BLOCK_ITEMS: [(BlockId, ItemId); 0] = [];
 /// How many item ids there are: the table is `0..ITEM_COUNT`, blocks then `EXTRA`.
 pub const ITEM_COUNT: usize = 256 + EXTRA.len();
 
-const EXTRA: [ItemDef; 158] = [
+const EXTRA: [ItemDef; 174] = [
     ingot("Iron Ingot", tex::IRON_INGOT),
     ingot("Copper Ingot", tex::COPPER_INGOT),
     part("Iron Plate", tex::IRON_PLATE, [0.85, 0.14, 0.85]),
@@ -399,6 +399,22 @@ const EXTRA: [ItemDef; 158] = [
     machine("Storage Box Mk5", [tex::BOX_TOP, tex::BOX_SIDE, tex::BOX_TOP]),
     machine("Pumpjack Mk2", [tex::PUMPJACK_TOP, tex::PUMPJACK_SIDE, tex::FRAME]),
     device("X-ray Goggles", tex::XRAY_GOGGLES, [0.8, 0.3, 0.5]),
+    part("Red Pigment", tex::PIGMENT_RED, [0.6, 0.4, 0.6]),
+    part("Green Pigment", tex::PIGMENT_GREEN, [0.6, 0.4, 0.6]),
+    part("Black Pigment", tex::PIGMENT_BLACK, [0.6, 0.4, 0.6]),
+    part("White Pigment", tex::PIGMENT_WHITE, [0.6, 0.4, 0.6]),
+    part("Yellow Pigment", tex::PIGMENT_YELLOW, [0.6, 0.4, 0.6]),
+    part("Blue Pigment", tex::tint_layer(0), [0.6, 0.4, 0.6]),
+    part("Orange Pigment", tex::tint_layer(1), [0.6, 0.4, 0.6]),
+    part("Purple Pigment", tex::tint_layer(2), [0.6, 0.4, 0.6]),
+    part("Cyan Pigment", tex::tint_layer(3), [0.6, 0.4, 0.6]),
+    part("Lime Pigment", tex::tint_layer(4), [0.6, 0.4, 0.6]),
+    part("Pink Pigment", tex::tint_layer(5), [0.6, 0.4, 0.6]),
+    part("Sky Pigment", tex::tint_layer(6), [0.6, 0.4, 0.6]),
+    part("Grey Pigment", tex::tint_layer(7), [0.6, 0.4, 0.6]),
+    part("Brown Pigment", tex::tint_layer(8), [0.6, 0.4, 0.6]),
+    part("Maroon Pigment", tex::tint_layer(9), [0.6, 0.4, 0.6]),
+    part("Navy Pigment", tex::tint_layer(10), [0.6, 0.4, 0.6]),
 ];
 
 /// A wood's log: bark round, the oak's rings at the ends; it places nothing.

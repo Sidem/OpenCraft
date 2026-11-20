@@ -11,6 +11,7 @@ use super::make::{self, all, cube, frame, liquid, machine, ore, pillar};
 use super::merger::MERGER_DEFS;
 use super::sign::SIGN_DEFS;
 use super::street::STREET_DEFS;
+use super::tints::TINT_DEFS;
 use super::trees::TREES_DEFS;
 use super::woods::WOODS_DEFS;
 use super::*;
@@ -30,6 +31,7 @@ pub(crate) const DEFS: [BlockDef; BLOCK_COUNT] = crate::join::join(&[
     &MERGER_DEFS,
     &LED_DEFS,
     &STREET_DEFS,
+    &TINT_DEFS,
 ]);
 
 const BASE_DEFS: [BlockDef; BASE_COUNT] = [

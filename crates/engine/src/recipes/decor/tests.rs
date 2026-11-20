@@ -15,7 +15,12 @@ fn decor_blocks() -> impl Iterator<Item = block::BlockId> {
 fn the_decor_rows_are_the_last_of_the_table_where_research_says() {
     assert_eq!(DECOR.len(), DECOR_ROWS as usize);
     let later = crate::recipes::refit::REFIT_LATER.len();
-    assert_eq!(MACHINE_RECIPES.len(), DECOR_FIRST as usize + DECOR.len() + later, "only later upgrader rows follow");
+    let dye = crate::recipes::dye::DYE.len();
+    assert_eq!(
+        MACHINE_RECIPES.len(),
+        DECOR_FIRST as usize + DECOR.len() + later + dye,
+        "only upgrader and dye rows follow"
+    );
     assert_eq!(MACHINE_RECIPES[DECOR_FIRST as usize - 1].inputs, &[(item::SCRAP_METAL, 3)][..], "the salvage row");
     assert_eq!(
         block::COAL_MINER as usize,
@@ -47,12 +52,12 @@ fn rows_fit_a_stack_and_the_machine_that_takes_them() {
 }
 
 #[test]
-fn colours_come_from_concrete_and_a_mineral() {
+fn colours_come_from_concrete_and_a_pigment() {
     let concrete = b(block::CONCRETE);
     let tinted: Vec<_> = DECOR.iter().filter(|r| r.inputs[0].0 == concrete).collect();
     assert_eq!(tinted.len(), 5, "red, green, black, white, yellow");
     for r in tinted {
-        assert_eq!((r.inputs[0], r.inputs.len(), r.outputs[0].1), ((concrete, 4), 2, 4), "one mineral, four blocks");
+        assert_eq!((r.inputs[0], r.inputs.len(), r.outputs[0].1), ((concrete, 4), 2, 4), "one pigment, four blocks");
     }
 }
 

@@ -3,8 +3,9 @@
 //! Its inputs are worked out from `FAMILIES` and `upgrades::KITS` at compile time (`ladder`), so the cost is exactly what
 //! upgrading in place step by step costs (`recipes/tests.rs` checks every tier has a row). Also the upgrader's hand recipe.
 //!
-//! To add a tier or a family: a line at the end of `REFIT_LATER`, never in `REFIT` (saved machines hold row indices;
-//! the test names a missing one).
+//! To add a tier or a family: a table of its own joined after `dye::DYE` in `machine.rs`, never a line in `REFIT` or
+//! `REFIT_LATER` (saved machines hold row indices, and `REFIT_LATER` is now followed by the Pigments rows; the test names a
+//! missing one).
 
 use crate::block::*;
 use crate::factory::tiers::{Family, FAMILIES};
@@ -78,7 +79,7 @@ pub const REFIT: &[MachineRecipe] = rows! {
     RESEARCH_CENTER: 1 2 3 4;
 };
 
-/// Families tiered after the table above was saved: rows of their own at the very end of `MACHINE_RECIPES`.
+/// Families tiered after the table above was saved: rows of their own, five rows (150 to 154), full since `dye::DYE`.
 pub const REFIT_LATER: &[MachineRecipe] = rows! {
     FORESTER: 1 2;
     STORAGE: 3 4;

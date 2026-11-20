@@ -137,8 +137,10 @@ fn unlock_recipes(u: Unlock) -> Vec<(ItemId, Vec<ItemId>)> {
 /// something not yet usable: (tech, ingredient). Mechanics lists every family's Mk2, whether or not the player has the
 /// base machine yet; the Mk5 port is made from the Mk4 one (Swarm Logistics); washing bauxite needs crushed bauxite;
 /// concrete takes sand, which lies about in the world and is only also a crusher product; the tints and bricks of
-/// Architecture take whatever the player has found (slag, sulfur) whenever they get it.
+/// Architecture take whatever the player has found (slag, sulfur) whenever they get it; blue pigment takes a copper ingot,
+/// smelted from ore from the start (Ore Crushing only adds a second way, from crushed ore).
 const EARLY_INGREDIENTS: &[(&str, &str)] = &[
+    ("Pigments", "Copper Ingot"),
     ("Mechanics", "Pump"),
     ("Mechanics", "Forester"),
     ("Mk5 Machines", "Drone Port Mk4"),

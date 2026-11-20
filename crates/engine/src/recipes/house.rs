@@ -1,9 +1,9 @@
 //! The house set's hand recipes (`block/house.rs`), all in the build menu's Building section from the start: wood, sand,
-//! dirt, glass and stone bricks for the common pieces, iron for the iron door, and a little of the metal that colours each
-//! roof (iron red, coal slate, copper green, as in the decor concretes). Never raw ore (a lint in `recipes/tests.rs`).
+//! dirt, glass and stone bricks for the common pieces, iron for the iron door, and a pinch of the ground pigment that
+//! colours each roof (red, black for slate, green; `pigment.rs`). Never raw ore (a lint in `recipes/tests.rs`).
 
 use crate::block::*;
-use crate::item::{COPPER_INGOT, IRON_INGOT, IRON_PLATE, IRON_ROD, STICK};
+use crate::item::{IRON_PLATE, IRON_ROD, PIGMENT_BLACK, PIGMENT_GREEN, PIGMENT_RED, STICK};
 
 use super::{b, Group, Recipe};
 
@@ -70,24 +70,24 @@ pub const RED_ROOF_RECIPE: Recipe = Recipe {
     output: b(RED_ROOF),
     group: Group::Building,
     count: 4,
-    inputs: &[(b(STONE_BRICKS), 2), (IRON_INGOT, 1)],
-    blurb: "Clay-red roof tiles: stone bricks tinted with a little iron.",
+    inputs: &[(b(STONE_BRICKS), 2), (PIGMENT_RED, 1)],
+    blurb: "Clay-red roof tiles: stone bricks tinted with red pigment.",
 };
 
 pub const SLATE_ROOF_RECIPE: Recipe = Recipe {
     output: b(SLATE_ROOF),
     group: Group::Building,
     count: 4,
-    inputs: &[(b(STONE_BRICKS), 2), (b(COAL_ORE), 1)],
-    blurb: "Dark slate roof tiles: stone bricks tinted with a pinch of coal.",
+    inputs: &[(b(STONE_BRICKS), 2), (PIGMENT_BLACK, 1)],
+    blurb: "Dark slate roof tiles: stone bricks tinted with black pigment.",
 };
 
 pub const GREEN_ROOF_RECIPE: Recipe = Recipe {
     output: b(GREEN_ROOF),
     group: Group::Building,
     count: 4,
-    inputs: &[(b(STONE_BRICKS), 2), (COPPER_INGOT, 1)],
-    blurb: "Weathered green roof tiles: stone bricks tinted with a little copper.",
+    inputs: &[(b(STONE_BRICKS), 2), (PIGMENT_GREEN, 1)],
+    blurb: "Weathered green roof tiles: stone bricks tinted with green pigment.",
 };
 
 pub const CHIMNEY_BRICKS_RECIPE: Recipe = Recipe {

@@ -40,7 +40,9 @@ What exists: a lamp block (`LAMP`, unpowered) and the panel light, torches; one 
 per cell, `SOURCES` rows of strength and loss per block, never above `MARGIN` 32 blocks because the mesher reads only the 3×3×3
 chunk neighbours); coloured halos per block (`halos.rs` `look`, presentation); plain `GLASS`. No dyes or pigments exist yet.
 
-- **GLASS: stained glass and coloured lamps.** One palette table (16 hues) feeds both. *Ids (audit 2026-11-16):* only 37
+- **GLASS: stained glass.** *(User 2026-11-18: LEDs make their own colour and take nothing from glass or dyes; glass is not a dye
+  sink and does not wait for CHEM-DYE. The lamp and pigment parts below are superseded; its colour source is chosen when planned.)*
+  One palette table (16 hues) feeds both. *Ids (audit 2026-11-16):* only 37
   block ids are free until ROOM widens `BlockId` to `u16` (decided 2026-11-16, `docs/ROADMAP_ORDER.md`); coloured lamps still
   take the LED's per-lamp colour record, not 16 ids (one record beats 16 blocks per brightness); stained glass keeps its 16. Stained glass lets light and laser beams
   through like glass (`light.rs` class, `laser.rs`). A coloured lamp lights as a lamp does, its halo and face in its hue.

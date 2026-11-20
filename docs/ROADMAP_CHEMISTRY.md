@@ -58,7 +58,7 @@ from `docs/DEV_PLAN.md` section 4. When one is built, move it into the plan, the
   | Family | Problem it solves | Tech (needs; packs) | Machines and recipes | Real process on the card |
   |---|---|---|---|---|
   | **TEACH** | cards say what, not why; the diesel jam is unexplained | none | `recipes/process_notes.rs`: one line per chemical product, shown on the item page and the recipe card | each row below |
-  | **DYE** pigments | decor and light wants (GLASS, LED); a sink for sulfur, acid, ores, quicklime | Pigments (45; red, green, blue, violet) | chemical plant rows only, 0 block ids: 6 bases (red from iron ore, green from copper ore, black from coal, white from quicklime, yellow from sulfur, blue from copper and acid) and about a dozen mixes, one tinted pouch model | blue: Cu + 2 H₂SO₄ → CuSO₄ + SO₂ + 2 H₂O; red: iron oxide, rust |
+  | **DYE** pigments | decor wants (coloured concrete and roofs; not glass, not LEDs); a sink for sulfur, acid, metal, quicklime | Pigments (45; red, green, blue, violet) | five ground bases by hand (done, DYE-a), then chemical plant rows: blue (copper and acid) and about a dozen mixes; about 11 new concrete blocks as sinks | blue: Cu + 2 H₂SO₄ → CuSO₄ + SO₂ + 2 H₂O; red: iron oxide, rust |
   | **GAS** natural gas | oil runs dry (a vein lasts about 9 h); a second feedstock and power source | Gas Wells (43, 22; four packs), Gas Processing (Gas Wells, 45; four packs) | gas well (a pumpjack variant) on a gas field (own hash, not `EXTRAS`; new worlds and the deposits upgrade, WORLDS), wellhead separator (associated gas for old worlds), gas plant (sweeten, then methane, ethane, LPG), gas turbine, steam reformer (hydrogen without the electrolyser), ethylene to polyethylene (a plastic without naphtha); about 5 ids | Claus: 2 H₂S + SO₂ → 3 S + 2 H₂O; SMR: CH₄ + H₂O → CO + 3 H₂ |
   | **AIR** | gate for cold and carbonising: nitrogen and oxygen | Air Separation (47, 53; five packs) | air compressor (lubricant in its recipe), distillation column: nitrogen, oxygen, argon barrels; 2 ids | Linde: compress, cool, expand, separate by boiling point (N₂ −196 °C, O₂ −183 °C) |
   | **COOL** | M14B's liquid oxygen; helium; LNG for far gas fields (pillar 5) | Cryogenics (Air Separation, 60; five packs) | chiller (lubricant), liquid oxygen, nitrogen-rejection step that takes helium from gas (most fields under 0.1%, a few 1–2%; numbers to tune), LNG barrels; 1 id | helium stays gas to 4 K, the rest liquefies first; LNG: methane at −162 °C |
@@ -72,8 +72,13 @@ from `docs/DEV_PLAN.md` section 4. When one is built, move it into the plan, the
     chemical plant, electrolyser and centrifuge has a note; the note shows on an item page and a recipe card in the browser pane;
     a refinery stopped on diesel shows a card naming the generator and the recycler (a test, unless the generic need lesson
     already says it).
-  - **CHEM-DYE.** *Done when:* each hue is made from raw in a headless test; every base and mix has a sink (a coloured
-    concrete, glass or lamp, as GLASS plans); acid and sulfur have their second sink; the lint passes for the new tech.
+  - **CHEM-DYE (user 2026-11-18: dyes colour objects, never LEDs or stained glass; replace the mineral tints).** *DYE-a done
+    2026-11-18 (v0.9.3):* `recipes/pigment.rs`, five hand-ground pigments (items 414–418; no raw ore in a hand recipe, so red
+    and green grind from an iron and a copper ingot); the five concretes and three roofs take them in place of the mineral.
+    *DYE-b done 2026-11-18 (v0.9.4):* the Pigments tech adds blue (copper ingot, acid barrel, water) and ten mixes as plant rows
+    and eleven concretes as the sinks (`recipes/dye.rs`, `block/tints.rs`); a headless graph search reaches all 16 hues from raw;
+    acid has its second sink. Not done: a mix ratio balance from play, and the unused-mix check (a hue nothing needs beyond
+    its concrete).
   - **CHEM-GAS** (a) fields, well, plant: gas fields found by the scanner, a well fills barrels, the plant gives methane, ethane,
     LPG, nitrogen; *done when* the fields' placement leaves every ore deposit of the bench save identical (WORLDS' pin test). (b)
     turbine and reformer: *done when* a turbine runs a grid on methane and the reformer makes hydrogen. (c) polyethylene and

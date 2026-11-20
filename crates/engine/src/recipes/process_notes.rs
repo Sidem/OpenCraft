@@ -53,8 +53,21 @@ const NOTES: &[(u16, &str)] = &[
     ),
 ];
 
-/// The note of machine recipe `recipe`, or "" when it has none.
+const BLUE_NOTE: &str =
+    "Copper dissolved in sulfuric acid gives copper sulfate, the bright blue crystals that coloured \
+                         pigments and old glass.";
+const MIX_NOTE: &str = "Pigments mix like paint: stir two hues together and the result sits between them, as red and \
+                       yellow make orange.";
+
+/// The note of machine recipe `recipe`, or "" when it has none. The ten mixed hues share one.
 pub fn note(recipe: usize) -> &'static str {
+    let dye = recipe.wrapping_sub(usize::from(DYE_FIRST));
+    if dye == 0 {
+        return BLUE_NOTE;
+    }
+    if dye < usize::from(DYE_PLANT_ROWS) {
+        return MIX_NOTE;
+    }
     NOTES.iter().find(|n| usize::from(n.0) == recipe).map_or("", |n| n.1)
 }
 

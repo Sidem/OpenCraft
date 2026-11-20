@@ -10,6 +10,47 @@ fn looks(layer: u16) -> Vec<u16> {
     std::iter::once(layer).chain(first..first + tex::ALTERNATES).collect()
 }
 
+/// The pigment heaps wear the colour of the concrete they tint (`decor.rs`), so a heap and its block read as a pair.
+#[test]
+fn each_pigment_heap_matches_its_concrete() {
+    let mean = |layer: u16| {
+        let px = layer_px(layer);
+        [0, 1, 2].map(|c| px.iter().map(|p| i32::from(p[c])).sum::<i32>() / px.len() as i32)
+    };
+    for (heap, concrete) in [
+        (tex::PIGMENT_RED, tex::RED_CONCRETE),
+        (tex::PIGMENT_GREEN, tex::GREEN_CONCRETE),
+        (tex::PIGMENT_BLACK, tex::BLACK_CONCRETE),
+        (tex::PIGMENT_WHITE, tex::WHITE_CONCRETE),
+        (tex::PIGMENT_YELLOW, tex::YELLOW_CONCRETE),
+    ] {
+        let (a, b) = (mean(heap), mean(concrete));
+        assert!((0..3).all(|c| (a[c] - b[c]).abs() < 40), "layer {heap} {a:?} against {concrete} {b:?}");
+    }
+}
+
+/// Sixteen coloured concretes (five ground, eleven mixed) are told apart on sight: no two share a mean colour within 40.
+#[test]
+fn the_sixteen_concretes_are_far_apart_in_colour() {
+    let mean = |layer: u16| {
+        let px = layer_px(layer);
+        [0, 1, 2].map(|c| px.iter().map(|p| f64::from(p[c])).sum::<f64>() / px.len() as f64)
+    };
+    let layers: Vec<u16> =
+        [tex::RED_CONCRETE, tex::GREEN_CONCRETE, tex::BLACK_CONCRETE, tex::WHITE_CONCRETE, tex::YELLOW_CONCRETE]
+            .into_iter()
+            .chain(tex::TINT_FIRST..=tex::TINT_LAST)
+            .collect();
+    assert_eq!(layers.len(), 16);
+    for (i, &a) in layers.iter().enumerate() {
+        for &b in &layers[i + 1..] {
+            let (m, n) = (mean(a), mean(b));
+            let d = ((m[0] - n[0]).powi(2) + (m[1] - n[1]).powi(2) + (m[2] - n[2]).powi(2)).sqrt();
+            assert!(d >= 40.0, "layers {a} and {b} are {d:.0} apart");
+        }
+    }
+}
+
 #[test]
 fn every_layer_is_generated() {
     let px = generate();

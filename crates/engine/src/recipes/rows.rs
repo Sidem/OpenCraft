@@ -73,4 +73,11 @@ pub const RAIL_ROW: u16 = 87;
 /// The decor set's rows (`decor.rs`, tech Architecture): `DECOR_ROWS` after the ruins' row 135; then `refit::REFIT_LATER`.
 pub const DECOR_FIRST: u16 = 136;
 pub const DECOR_ROWS: u16 = 14;
+/// The Pigments tech's rows (`dye.rs`), after `refit::REFIT_LATER`'s five (rows 150 to 154): the plant's blue and ten mixes
+/// (`DYE_FIRST` on), then the assembler's eleven tints, in `HUES` order. `REFIT_LATER` is full: a tier added later goes in a
+/// table after `dye::DYE`.
+pub const DYE_FIRST: u16 = 155;
+pub const DYE_ROWS: u16 = 22;
+/// The first eleven rows of `DYE_ROWS` are the chemical plant's.
+pub const DYE_PLANT_ROWS: u16 = 11;
 // Rows 88 on are the upgrader's, one per tier (`refit.rs`; research locks them by category, `Research::locked_by`).

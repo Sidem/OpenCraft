@@ -9,26 +9,42 @@ use super::{part, turned, Part};
 use crate::block::{self, tex};
 use crate::item::{
     ItemId, ALUMINIUM_INGOT, ALUMINIUM_PLATE, COIN, CRUSHED_BAUXITE, CRUSHED_COPPER, CRUSHED_IRON, FIRST_WOOD_LOG,
-    PLASTIC, QUICKLIME, SCRAP_METAL, SILICON, STICK, SULFUR, WAFER, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON,
+    PIGMENT_BLACK, PIGMENT_BLUE, PIGMENT_GREEN, PIGMENT_RED, PIGMENT_WHITE, PIGMENT_YELLOW, PLASTIC, QUICKLIME,
+    SCRAP_METAL, SILICON, STICK, SULFUR, WAFER, WASHED_BAUXITE, WASHED_COPPER, WASHED_IRON,
 };
 
 /// Whether `item` is a heap of loose stuff (crushed and washed ore, sulfur, quicklime): small lumps that ride a belt
 /// bigger than their proportions say (`factory::belt::ride_unit`).
 pub fn is_heap(item: ItemId) -> bool {
-    matches!(
-        item,
-        CRUSHED_IRON
-            | CRUSHED_COPPER
-            | CRUSHED_BAUXITE
-            | WASHED_IRON
-            | WASHED_COPPER
-            | WASHED_BAUXITE
-            | SULFUR
-            | QUICKLIME
-    )
+    tint_pigment(item).is_some()
+        || matches!(
+            item,
+            CRUSHED_IRON
+                | CRUSHED_COPPER
+                | CRUSHED_BAUXITE
+                | WASHED_IRON
+                | WASHED_COPPER
+                | WASHED_BAUXITE
+                | SULFUR
+                | QUICKLIME
+                | PIGMENT_RED
+                | PIGMENT_GREEN
+                | PIGMENT_BLACK
+                | PIGMENT_WHITE
+                | PIGMENT_YELLOW
+        )
+}
+
+/// The `HUES` index of a mixed-hue pigment (ids `PIGMENT_BLUE` on, in order), if `item` is one.
+fn tint_pigment(item: ItemId) -> Option<usize> {
+    let i = item.0.checked_sub(PIGMENT_BLUE.0)? as usize;
+    (i < block::TINT_COUNT).then_some(i)
 }
 
 pub(super) fn parts(item: ItemId) -> &'static [Part] {
+    if let Some(i) = tint_pigment(item) {
+        return &TINT_HEAPS[i];
+    }
     match item {
         STICK => &STICK_MODEL,
         CRUSHED_IRON => &CRUSHED_IRON_HEAP,
@@ -39,6 +55,11 @@ pub(super) fn parts(item: ItemId) -> &'static [Part] {
         WASHED_BAUXITE => &WASHED_BAUXITE_HEAP,
         SULFUR => &SULFUR_HEAP,
         QUICKLIME => &QUICKLIME_HEAP,
+        PIGMENT_RED => &RED_PIGMENT_HEAP,
+        PIGMENT_GREEN => &GREEN_PIGMENT_HEAP,
+        PIGMENT_BLACK => &BLACK_PIGMENT_HEAP,
+        PIGMENT_WHITE => &WHITE_PIGMENT_HEAP,
+        PIGMENT_YELLOW => &YELLOW_PIGMENT_HEAP,
         SILICON => &BOULE,
         ALUMINIUM_INGOT => &ALUMINIUM_BAR,
         ALUMINIUM_PLATE => &ALUMINIUM_SHEET,
@@ -98,6 +119,21 @@ const WASHED_COPPER_HEAP: [Part; 8] = pile(tex::WASHED_COPPER);
 const WASHED_BAUXITE_HEAP: [Part; 8] = pile(tex::WASHED_BAUXITE);
 const SULFUR_HEAP: [Part; 8] = pile(tex::SULFUR);
 const QUICKLIME_HEAP: [Part; 8] = pile(tex::QUICKLIME);
+/// The mixed-hue pigments' heaps, textured with their concrete's layer (no layer of their own).
+static TINT_HEAPS: [[Part; 8]; block::TINT_COUNT] = {
+    let mut t = [pile(tex::tint_layer(0)); block::TINT_COUNT];
+    let mut i = 1;
+    while i < block::TINT_COUNT {
+        t[i] = pile(tex::tint_layer(i as u16));
+        i += 1;
+    }
+    t
+};
+const RED_PIGMENT_HEAP: [Part; 8] = pile(tex::PIGMENT_RED);
+const GREEN_PIGMENT_HEAP: [Part; 8] = pile(tex::PIGMENT_GREEN);
+const BLACK_PIGMENT_HEAP: [Part; 8] = pile(tex::PIGMENT_BLACK);
+const WHITE_PIGMENT_HEAP: [Part; 8] = pile(tex::PIGMENT_WHITE);
+const YELLOW_PIGMENT_HEAP: [Part; 8] = pile(tex::PIGMENT_YELLOW);
 
 /// A silicon boule lying on its side, as it is pulled from the melt: a short cone of a tail, the long round body, the
 /// shoulder narrowing to the thin seed neck at the front (+x). Back to front for the icon.

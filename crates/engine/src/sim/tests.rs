@@ -43,7 +43,9 @@ const B: PlayerId = PlayerId(1);
 /// no drone orders); the previous hash was 0x7952_43fa_9222_820c. On 2026-11-13 a filter saves its rules instead of one
 /// item (`factory/filter_rules.rs`, save 72; the script now picks its plate straight on and sends the rest left); the
 /// previous hash was 0x1950_c0db_8418_86c0.
-const GOLDEN_HASH: u64 = 0x7da4_9ec8_a301_3e01;
+/// On 2026-11-18 the Pigments tech (index 89) added one research entry to the state bytes and nothing else; the previous
+/// hash was 0x7da4_9ec8_a301_3e01.
+const GOLDEN_HASH: u64 = 0x22fd_80b0_5699_aac0;
 
 /// Generates the chunks around `p` (no meshing), as streaming around a player would.
 fn load_around(sim: &mut Sim, p: IVec3) {
