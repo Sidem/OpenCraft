@@ -66,7 +66,8 @@ impl Game {
         let Some(size) = plan.ground.size else {
             let n = plan.ground.uneven;
             let cells = if n == 1 { "1 cell".to_string() } else { format!("{n} cells") };
-            return format!("{name}\nNeeds flat grass or dirt in front: {cells} in the way (red) · R turns it");
+            let keys = crate::factory::hud_keys(&[("R", "Turn")]);
+            return format!("{name}\nNeeds flat grass or dirt in front · {cells} in the way (red)\n{keys}");
         };
         let patch = ForesterPatch { pos: plan.pos, dir: plan.dir, size };
         let world = &self.sim.world;
@@ -78,6 +79,6 @@ impl Game {
             let (big_rows, big_half) = ForesterPatch { size: plan.tier, ..patch }.extent();
             label += &format!(" · {}×{big_rows} on flatter ground", 2 * big_half + 1);
         }
-        label + " · R turns it"
+        format!("{label}\n{}", crate::factory::hud_keys(&[("RMB", "Place"), ("R", "Turn")]))
     }
 }

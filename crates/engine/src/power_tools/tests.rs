@@ -123,8 +123,8 @@ fn the_ghost_pole_goes_where_aimed_and_shift_snaps_it_to_full_reach() {
     // By default it stands where aimed, when that is within reach of the last pole.
     let ghost = g.pole_ghost().expect("a pole is near");
     assert_eq!((ghost.pos, ghost.anchor, ghost.full, ghost.free), (v(4, y + 1, 0), anchor, false, true));
-    assert!(g.power_label().contains("4 of 10 blocks"), "{}", g.power_label());
-    assert!(g.power_label().contains("no powered pole in range"), "{}", g.power_label());
+    assert!(g.power_label().contains("4 / 10 blocks"), "{}", g.power_label());
+    assert!(g.power_label().contains("No powered pole in range"), "{}", g.power_label());
     assert_eq!(g.power_boxes(), [4, y + 1, 0, 4, y + 1, 0, GHOST_GREEN]);
     // Aimed beyond its reach, it is clamped to the widest spacing.
     aim_at(&mut g, v(25, y, 0), v(0, 1, 0));
@@ -139,7 +139,7 @@ fn the_ghost_pole_goes_where_aimed_and_shift_snaps_it_to_full_reach() {
     // A pole in the way is shown red.
     g.sim.world.set_block(v(4, y + 1, 0), STORAGE);
     assert!(!g.pole_ghost().unwrap().free);
-    assert!(g.power_label().contains("in the way"));
+    assert!(g.power_label().contains("Blocked"));
     // Something else in hand: no ghost.
     g.select_slot(8);
     g.run_ticks(2);
@@ -154,7 +154,7 @@ fn a_pole_in_open_air_is_refused_and_one_against_a_wall_is_bolted_to_it() {
     aim_at(&mut g, v(4, y + 3, 0), v(0, 1, 0));
     let ghost = g.pole_ghost().unwrap();
     assert_eq!((ghost.pos, ghost.free, ghost.held_up), (v(4, y + 4, 0), true, false));
-    assert!(g.power_label().contains("Needs the ground under it or a wall beside it"), "{}", g.power_label());
+    assert!(g.power_label().contains("Needs ground below or a wall beside it"), "{}", g.power_label());
     assert_eq!(g.power_boxes(), [4, y + 4, 0, 4, y + 4, 0, BLOCKED_RED]);
     tick_using(&mut g, true);
     tick_using(&mut g, false);
@@ -181,7 +181,7 @@ fn the_ghost_pole_shows_the_powered_pole_it_will_wire_itself_to() {
     g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
     aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
     assert_eq!(g.power_boxes(), [0, y + 1, 0, 0, y + 1, 0, ANCHOR_BLUE, 4, y + 1, 0, 4, y + 1, 0, GHOST_GREEN]);
-    assert!(g.power_label().contains("wires itself to the powered pole 4 blocks away"), "{}", g.power_label());
+    assert!(g.power_label().contains("Auto-wires · 4 / 10 blocks"), "{}", g.power_label());
 }
 
 #[test]
@@ -198,13 +198,13 @@ fn a_placed_pole_is_selected_and_a_click_wires_the_machine_aimed_at() {
     let miner = v(4, y + 1, 0);
     put(&mut g, MINER, miner);
     aim_at(&mut g, miner, v(0, 1, 0));
-    assert!(g.power_label().contains("click to connect"), "{}", g.power_label());
+    assert!(g.power_label().contains("RMB=Connect"), "{}", g.power_label());
     assert_eq!(g.power_boxes(), [2, y + 1, 0, 2, y + 1, 0, ANCHOR_BLUE, 4, y + 1, 0, 4, y + 1, 0, GHOST_GREEN]);
     tick_using(&mut g, true);
     tick_using(&mut g, false);
     assert_eq!(g.sim.factory.wired_pole(miner), Some(pole));
     assert_eq!(g.sim.factory.slots_used(pole), 1);
-    assert!(g.power_label().contains("disconnect"), "{}", g.power_label());
+    assert!(g.power_label().contains("Disconnect"), "{}", g.power_label());
 
     // A plain click now leaves a wired machine alone; crouch-click cuts the wire.
     tick_using(&mut g, true);
@@ -227,7 +227,7 @@ fn right_clicking_a_pole_selects_it_and_again_deselects() {
     tick_using(&mut g, false);
     assert_eq!(g.selected_pole(), Some(a));
     aim_at(&mut g, b, v(0, 1, 0));
-    assert!(g.power_label().contains("crouch-click to link"), "{}", g.power_label());
+    assert!(g.power_label().contains("Ctrl+RMB/R=Link"), "{}", g.power_label());
     tick_using(&mut g, true);
     tick_using(&mut g, false);
     assert_eq!(g.selected_pole(), Some(b), "a plain click selects the other pole");
@@ -287,7 +287,7 @@ fn a_cable_click_hangs_cables_to_the_ground_and_crouching_places_one() {
         (Some(v(6, y - 1, 0)), Some(v(6, y - 14, 0)), 14)
     );
     assert_eq!(g.power_boxes(), [6, y - 14, 0, 6, y - 1, 0, GHOST_GREEN]);
-    assert!(g.power_label().contains("14 hang from here"), "{}", g.power_label());
+    assert!(g.power_label().contains("14 cables hanging"), "{}", g.power_label());
     tick_using(&mut g, true);
     for _ in 0..8 {
         tick_using(&mut g, false);
@@ -326,7 +326,7 @@ fn a_held_long_distance_pole_shows_what_it_links_to_and_how_much_reach_is_left()
     g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
     aim_at(&mut g, v(20, y, 0), v(0, 1, 0));
     assert!(
-        g.line_label().contains("Links to the long-distance pole 30 blocks away · 130 to spare"),
+        g.line_label().contains("Links to long-distance pole · 30 / 160 blocks (130 to spare)"),
         "{}",
         g.line_label()
     );
@@ -344,11 +344,60 @@ fn a_held_long_distance_pole_shows_what_it_links_to_and_how_much_reach_is_left()
     put(&mut g, LONG_POLE, v(-200, y + 1, 0));
     g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
     tick_using(&mut g, false);
-    assert!(g.line_label().contains("Out of reach: the nearest long-distance pole is 220 blocks away, 160 at most"));
+    assert!(g.line_label().contains("Out of reach · nearest is 220 blocks away (max 160)"));
     assert_eq!(g.placement_box()[6], BLOCKED_RED);
     assert_eq!(g.sounds.kinds(), [sound::POWER_DOWN]);
     // Something else in hand: no rings.
     g.select_slot(8);
     g.run_ticks(2);
     assert!(!g.world_map_marks(-300, -200, 200, 200).chunks_exact(4).any(|m| m[3] == crate::minimap::MARK_RANGE));
+}
+
+#[test]
+fn crouching_places_a_standalone_pole_and_r_connects_and_severs_wires() {
+    let (mut g, y) = on_a_platform(POLE.into(), 4);
+    let (a, gen) = (v(0, y + 1, 0), v(-2, y + 1, 0));
+    put(&mut g, POLE, a);
+    put(&mut g, GENERATOR, gen);
+    g.sim.factory.connect(a, gen);
+    g.sim.factory.update(&mut g.sim.world, 1, &mut Vec::new());
+
+    // Holding crouch places a new pole right next to `a` without auto-wiring to the existing grid.
+    let b = v(4, y + 1, 0);
+    aim_at(&mut g, v(4, y, 0), v(0, 1, 0));
+    g.body_mut().input.crouch = true;
+    assert!(g.power_label().contains("Standalone"), "{}", g.power_label());
+    assert!(g.pole_ghost().unwrap().unlinked);
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    g.body_mut().input.crouch = false;
+    g.sim.factory.update(&mut g.sim.world, 2, &mut Vec::new());
+    assert_eq!(g.sim.factory.slots_used(b), 0, "standalone pole starts unwired");
+    assert_eq!(g.selected_pole(), Some(b));
+
+    // Aim at `a` with `b` selected: pressing R connects the two poles.
+    aim_at(&mut g, a, v(0, 1, 0));
+    assert!(g.wire_preview().is_some_and(|(_, _, layer)| layer == block::tex::GRID_FIRST));
+    assert!(g.rotate_target(), "R connects the two poles");
+    g.sim.step();
+    assert_eq!(g.sim.factory.slots_used(b), 1, "b is now connected to a");
+
+    // Still aiming at `a`: cut preview is red, pressing R severs the wire between `a` and `b`.
+    assert!(g.wire_preview().is_some_and(|(_, _, layer)| layer == block::tex::LAMP_RED));
+    assert!(g.power_label().contains("Sever wire"), "{}", g.power_label());
+    assert!(g.rotate_target(), "R severs the wire");
+    g.sim.step();
+    assert_eq!(g.sim.factory.slots_used(b), 0, "wire severed cleanly");
+    assert_eq!(g.sim.factory.slots_used(a), 1, "a's wire to its generator stays");
+
+    // Reconnect and crouch-click the selected pole itself to sever all wires on it.
+    assert!(g.rotate_target());
+    g.sim.step();
+    assert_eq!(g.sim.factory.slots_used(b), 1);
+    aim_at(&mut g, b, v(0, 1, 0));
+    g.body_mut().input.crouch = true;
+    tick_using(&mut g, true);
+    tick_using(&mut g, false);
+    g.sim.step();
+    assert_eq!(g.sim.factory.slots_used(b), 0, "crouch-clicking the pole disconnects all its wires");
 }

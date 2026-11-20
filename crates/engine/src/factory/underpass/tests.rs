@@ -35,7 +35,7 @@ fn pieces_in_a_line_pair_up_in_order_and_a_lone_one_dangles() {
     assert_eq!(roles(&mut f, &[0, 5, 6, 11, 20], 0), [Entry, Exit, Entry, Exit, Entry]);
     assert_eq!(f.belt_at(IVec3::new(0, 0, 0)).out, Link::Belt { belt: 1, mid: false });
     assert_eq!(f.belt_at(IVec3::new(20, 0, 0)).out, Link::None, "nothing ahead: a dangling entry");
-    assert!(f.describe(IVec3::new(20, 0, 0)).unwrap().contains("needs another underpass"));
+    assert!(f.describe(IVec3::new(20, 0, 0)).unwrap().contains("Needs exit underpass"));
 }
 
 #[test]

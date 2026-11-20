@@ -122,7 +122,7 @@ impl Factory {
                 _ => format!("{used} of {CAR_SLOTS} slots used: {}{more}", named.join(", ")),
             }
         };
-        format!("{load}\n{}\nRight-click: its cargo and schedule", self.train_state(t))
+        format!("{load}\n{}\n\tRMB=Cargo & schedule", self.train_state(t))
     }
 
     /// What a train is doing, in a few words.

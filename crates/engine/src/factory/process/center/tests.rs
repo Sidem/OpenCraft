@@ -69,7 +69,7 @@ fn it_waits_for_packs_and_names_them() {
     run(&mut f, 1.0);
     assert!(center(&f).status_text().starts_with("Researching Belt Routing"), "{}", center(&f).status_text());
     let text = f.describe(IVec3::ZERO).unwrap();
-    assert!(text.contains("×2 speed · needs 20 kW") && text.contains("Belt Routing: 0 of 10 units"), "{text}");
+    assert!(text.contains("@stats|×2 speed|20 kW") && text.contains("@bar|Belt Routing|0|10|0 / 10|cyan"), "{text}");
 }
 
 #[test]

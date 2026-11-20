@@ -113,8 +113,11 @@ size.
   hand have assembler recipes too, at the hand cost: poles, long-distance poles, solar panels, accumulators, lamps,
   boxes, underpasses and rails (the constructor saws planks and sticks).
 - **Decor** (Architecture research, after Masonry and Assembly; red and green packs) is machine-made only, 14 blocks for
-  building something that looks good. An assembler tints 4 concrete with one pinch of a mineral into 4 coloured blocks: iron
-  ore red, copper ore green, coal black, quicklime white, sulfur yellow. A smelter fires basalt, granite, sandstone or slag
+  building something that looks good. An assembler tints 4 concrete with one ground pigment into 4 coloured blocks. Grind
+  pigments by hand (Materials): an iron ingot red, a copper ingot green, coal black, quicklime white, sulfur yellow. The
+  **Pigments** tech (after Acids and Lubricants and Architecture) adds eleven more in the chemical plant: blue (a copper
+  ingot, an acid barrel and a unit of water; the empty barrel comes back) and ten mixes of two pigments for twice as
+  much (orange, purple, cyan, lime, pink, sky, grey, brown, maroon, navy), each tinting concrete the same way. A smelter fires basalt, granite, sandstone or slag
   into basalt tiles, granite, sandstone and slag bricks (one block each). An assembler also makes framed glass (4 glass, 2
   rods for 4), metal panels (4 plates for 4), catwalks (a see-through grating you walk on: 4 rods, a plate for 4), railings
   (non-solid, you walk through: 4 rods for 4) and panel lights (glass, plate, wire for 2; a soft light like a torch's).
@@ -226,11 +229,15 @@ size.
   pole (further off, at the widest spacing towards the aim); hold Shift to snap to the widest spacing along
   your view, and hold Shift and right-click while walking to lay a line. A new pole wires itself to the
   nearest powered pole in range (one with a generator on its grid), so it is live at once, and it is selected.
+  Hold crouch (C or Ctrl) while placing a pole (or long-distance pole) to place it standalone without wiring
+  it to an existing grid.
   A pole needs the ground under it or a wall beside it (the spot turns red in open air); with no ground under
   it, it is bolted to the wall (a plate and two struts), on the side you aimed at.
   **Wiring:** right-click a pole to select it (blue box; right-click again to deselect). Aim at a machine
-  with no power and it shows a green outline and a wire: click to connect. Crouch-click moves a machine to
-  the selected pole, cuts a wire, or links two poles (the label says which). A power cable (4 from an iron
+  with no power and it shows a green outline and a wire: click to connect. Crouch-click or press R to move a
+  machine to the selected pole, sever a wire (shown in red), or connect two poles; crouch-click or press R on
+  the selected pole itself to disconnect all of its wires. Active machines also have an **On/Off** switch in
+  their panel to shut them down and save electricity or fuel. A power cable (4 from an iron
   plate and 2 copper wire) needs no wiring: it joins the grid of a pole within 5 blocks and links to touching
   cables: right-click drops a column of cables to the ground, down a shaft to a miner (crouch places one), and
   a machine within 2 blocks of a cable is powered. The Logic tech (violet science) adds the **sensor** (a

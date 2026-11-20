@@ -57,7 +57,9 @@ impl Processor {
         };
         // One item fills at most one input slot (a stack), so a belt of one input can't crowd out the others.
         let cap = match self.spec.pick {
-            Pick::Chosen | Pick::ByInput => stack_size(item).saturating_sub(self.input.count(item)),
+            Pick::Chosen | Pick::ByInput => {
+                stack_size(item).saturating_sub(self.input.count_like(wood::standard(item)))
+            }
             _ => u32::MAX,
         };
         if wanted {

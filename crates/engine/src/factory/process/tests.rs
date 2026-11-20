@@ -152,7 +152,7 @@ fn a_smelter_upgrades_in_place_with_four_kits() {
     let s = f.smelter_at(IVec3::ZERO);
     assert_eq!((s.tier, s.stats().speed, s.input.total()), (1, 2000, 5));
     let text = f.describe(IVec3::ZERO).unwrap();
-    assert!(text.starts_with("Mk2 · next: Blue Kit ×4\nWaiting for"), "{text}");
+    assert!(text.starts_with("@tier|2|") && text.contains("Waiting for"), "{text}");
 }
 
 #[test]
@@ -339,7 +339,7 @@ fn a_blast_furnace_with_nowhere_for_slag_stops_and_says_so() {
     let p = &f.processors[0];
     assert_eq!((p.status, p.side.count(SLAG.into())), (Status::OutputFull, 16));
     let text = f.describe(IVec3::ZERO).unwrap();
-    assert!(text.contains("Slag has nowhere to go"), "{text}");
+    assert!(text.contains("Side output full (Slag)"), "{text}");
     // Taking the slag by hand starts it again.
     let mut slag = 0;
     f.take_contents(IVec3::ZERO, |item, n| {

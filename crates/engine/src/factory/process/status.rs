@@ -16,10 +16,12 @@ pub enum Status {
     Exhausted,
     /// A reactor that has shut down until its heat has fallen.
     Overheated,
+    /// Switched off by the player in its panel (`factory/switch.rs`).
+    Off,
 }
 
 /// Every status, in declaration order.
-pub(super) const STATUSES: [Status; 10] = [
+pub(super) const STATUSES: [Status; 11] = [
     Status::NoRecipe,
     Status::Working,
     Status::NoInput,
@@ -30,4 +32,5 @@ pub(super) const STATUSES: [Status; 10] = [
     Status::NoDeposit,
     Status::Exhausted,
     Status::Overheated,
+    Status::Off,
 ];

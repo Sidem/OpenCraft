@@ -31,7 +31,7 @@ pub const LINK: i32 = 12;
 pub const REACH: i32 = 5;
 
 /// What a processor with no node in reach says.
-pub const NO_NODE: &str = "No data link: put a fibre node within 5 blocks";
+pub const NO_NODE: &str = "@status|err|No fibre node in reach";
 
 pub struct Node {
     pub pos: IVec3,
@@ -153,11 +153,15 @@ impl Data {
         unlocked: &[bool],
         research: &crate::research::Research,
         (sats, tick): (&Satellites, u64),
+        manual_off: &[IVec3],
     ) {
         self.uplink(nodes, sats, tick);
         self.supply.iter_mut().for_each(|s| *s = 0);
         self.demand.iter_mut().for_each(|d| *d = 0);
         for (i, p) in processors.iter().enumerate() {
+            if super::switch::is_listed(manual_off, p.pos) {
+                continue;
+            }
             let Some(node) = self.process_node[i] else { continue };
             let grid = self.grid_of(node);
             if p.spec.compute > 0 {
@@ -200,6 +204,7 @@ impl Machine for Node {
     }
 
     fn describe(&self, f: &Factory) -> String {
+        use super::describe::{hud_bar, hud_stats};
         let Some(me) = f.nodes.iter().position(|n| n.pos == self.pos).filter(|_| !f.dirty) else {
             return "Fibre node".to_string();
         };
@@ -211,11 +216,17 @@ impl Machine for Node {
         let users = here.count() - makers;
         let (s, d) = (f.data.supply[grid], f.data.demand[grid]);
         let sat = f.orbit.covering(COMMS, self.pos.x, self.pos.z, f.orbit.now) > 0;
-        let sat = if sat { "\nUnder a comms satellite: this grid is joined to every other node it covers" } else { "" };
-        format!(
-            "Data grid: {s} TF supplied, {d} TF wanted\n{nodes} nodes, {makers} producers, {users} consumers on this grid\n\
-             Nodes within {LINK} blocks join; machines within {REACH} blocks hang on the nearest node{sat}"
-        )
+        let tone = if d > s { "err" } else { "cyan" };
+        let bar = hud_bar("Compute", u64::from(d), u64::from(s.max(d).max(1)), &format!("{d} / {s} TF"), tone);
+        let mut chips = vec![
+            format!("{nodes} nodes"),
+            format!("{makers} producers · {users} consumers"),
+            format!("Reach {LINK} node · {REACH} machine"),
+        ];
+        if sat {
+            chips.push("Comms satellite".to_string());
+        }
+        format!("{bar}\n{}", hud_stats(&chips).unwrap_or_default())
     }
 
     /// A short post on a base, a cap and a lit tip.
@@ -229,8 +240,9 @@ impl Machine for Node {
 }
 
 impl Factory {
-    /// The data line of the processor `i`, for machines that make or use compute.
+    /// The data bar of the processor `i`, for machines that make or use compute.
     pub(super) fn compute_line(&self, i: usize) -> Option<String> {
+        use super::describe::hud_bar;
         let p = &self.processors[i];
         if p.spec.compute == 0 || self.dirty {
             return None;
@@ -238,12 +250,13 @@ impl Factory {
         let Some(node) = self.data.process_node[i] else { return Some(NO_NODE.to_string()) };
         let grid = self.data.grid_of(node);
         let (s, d) = (self.data.supply[grid], self.data.demand[grid]);
-        Some(match p.spec.compute > 0 {
-            true => format!("Data grid: {s} TF supplied, {d} TF wanted"),
-            false => {
-                format!("Data grid: {} TF wanted of {s} TF supplied · {}%", d, self.data.satisfaction(Some(node)) / 10)
-            }
-        })
+        let sat = self.data.satisfaction(Some(node)) / 10;
+        let tone = if d > s { "err" } else { "cyan" };
+        let right = match p.spec.compute > 0 {
+            true => format!("{d} / {s} TF"),
+            false => format!("{d} / {s} TF · {sat}%"),
+        };
+        Some(hud_bar("Compute", u64::from(d), u64::from(s.max(d).max(1)), &right, tone))
     }
 
     /// Thin light lines between linked nodes and from each producer and consumer to its node, within `range`.

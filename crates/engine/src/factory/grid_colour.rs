@@ -54,10 +54,19 @@ impl Power {
     }
 
     /// What a pole's readout calls its grid: "Main grid (blue)" or "Separate grid (orange)".
+    #[cfg(test)]
     pub(super) fn grid_label(&self, pole: u32) -> String {
         let colour = (self.pole_layer(pole) - tex::GRID_FIRST) as usize;
         let kind = if colour == 0 { "Main grid" } else { "Separate grid" };
         format!("{kind} ({})", PALETTE[colour].0)
+    }
+
+    /// Structured grid header badge (`@grid|Main grid|#0072b2`) for `target-card.ts`.
+    pub(super) fn grid_badge(&self, pole: u32) -> String {
+        let colour = (self.pole_layer(pole) - tex::GRID_FIRST) as usize;
+        let kind = if colour == 0 { "Main grid" } else { "Separate grid" };
+        let [r, g, b] = PALETTE[colour].1;
+        format!("@grid|{kind}|#{r:02x}{g:02x}{b:02x}")
     }
 }
 

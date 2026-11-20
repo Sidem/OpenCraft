@@ -253,6 +253,9 @@ pub(in crate::factory) fn run(
     land((processors, &kinds.pad), pods, sats, tick, events);
     for &i in &kinds.launcher {
         let i = i as usize;
+        if processors[i].status == Status::Off {
+            continue;
+        }
         let (pos, channel) = (processors[i].pos, processors[i].channel());
         let pad = pad_index((processors, &kinds.pad), pos, channel, sats, tick).map(|k| processors[k].pos);
         let uplink = sats.covering(COMMS, pos.x, pos.z, tick) > 0;

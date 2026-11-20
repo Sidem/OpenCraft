@@ -131,3 +131,25 @@ fn pine_floor_taken_apart_gives_pine_planks() {
     assert!(inv.count(item(2, Form::Planks)) > 0, "pine planks back");
     assert_eq!(inv.count(item(0, Form::Planks)), 0);
 }
+
+#[test]
+fn every_wood_burns_as_fuel_recycles_and_lists_its_uses() {
+    use crate::recipes::recycling::millicoins;
+    use crate::recipes::{burn_time, fuel_energy};
+
+    let oak_log = item(0, Form::Log);
+    let oak_planks = item(0, Form::Planks);
+    for w in 1..WOODS {
+        let log = item(w, Form::Log);
+        let planks = item(w, Form::Planks);
+        assert_eq!(burn_time(log), burn_time(oak_log), "wood {w} log burns");
+        assert_eq!(fuel_energy(log), fuel_energy(oak_log), "wood {w} log energy");
+        assert_eq!(burn_time(planks), burn_time(oak_planks), "wood {w} planks burn");
+        assert_eq!(fuel_energy(planks), fuel_energy(oak_planks), "wood {w} planks energy");
+        for f in FORMS {
+            assert_eq!(millicoins(item(w, f)), millicoins(item(0, f)), "wood {w} {f:?} recycles like oak");
+        }
+        assert_eq!(crate::item_guide::uses(log), crate::item_guide::uses(oak_log));
+        assert_eq!(crate::item_guide::uses(planks), crate::item_guide::uses(oak_planks));
+    }
+}

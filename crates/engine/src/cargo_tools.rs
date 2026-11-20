@@ -94,41 +94,45 @@ impl Game {
         out
     }
 
-    /// The HUD lines while a cargo drone is in hand: a title, what a click does, then the aimed port's route.
+    /// The HUD lines while a cargo drone is in hand: title, route info, and control chips.
     pub(crate) fn cargo_label(&self) -> String {
         if !self.cargo_in_hand() {
             return String::new();
         }
         let Some(port) = self.cargo_aim() else {
-            return "Cargo Drone\naim at a drone port: click it, then another port, to send cargo from the first to the \
-                    second"
-                .to_string();
+            return "Cargo Drone\nAim at a drone port to link a route".to_string();
         };
-        let text = match self.cargo_from {
+        let keys = crate::factory::hud_keys;
+        let (status, controls) = match self.cargo_from {
             Some(from) if from != port => match self.cargo_leg(from, port) {
-                Some((dist, true)) => {
-                    format!(
-                        "click to send cargo here · {} blocks, {} batteries a trip",
-                        dist as u32,
-                        trip_batteries(dist)
-                    )
-                }
-                Some((dist, false)) => format!("{} blocks is too far for the first port's range", dist as u32),
-                None => "the first port is gone".to_string(),
+                Some((dist, true)) => (
+                    format!("{} blocks · {} batteries / trip", dist as u32, trip_batteries(dist)),
+                    keys(&[("RMB", "Send cargo here")]),
+                ),
+                Some((dist, false)) => (format!("{} blocks · out of first port's range", dist as u32), String::new()),
+                None => ("First port is gone".to_string(), String::new()),
             },
-            Some(_) => "click to start the route again · crouch-click to clear its route".to_string(),
-            None => "click to start a route from this port · crouch-click to clear its route".to_string(),
+            Some(_) => (String::new(), keys(&[("RMB", "Restart route"), ("Ctrl+RMB", "Clear route")])),
+            None => (String::new(), keys(&[("RMB", "Start route"), ("Ctrl+RMB", "Clear route")])),
         };
         let route = match self.sim.cargo.route_from(port).and_then(|d| self.cargo_leg(port, d).map(|l| (d, l.0))) {
             Some((dest, dist)) => format!(
-                "Route: to the port at {}, {} · {} blocks, {} batteries a trip",
+                "Route: port at {}, {} · {} blocks, {} batteries / trip",
                 dest.x,
                 dest.z,
                 dist as u32,
                 trip_batteries(dist)
             ),
-            None => "This port has no route".to_string(),
+            None => "No route set".to_string(),
         };
-        format!("Cargo Drone\n{text}\n{route}")
+        let mut lines = vec!["Cargo Drone".to_string()];
+        if !status.is_empty() {
+            lines.push(status);
+        }
+        lines.push(route);
+        if !controls.is_empty() {
+            lines.push(controls);
+        }
+        lines.join("\n")
     }
 }

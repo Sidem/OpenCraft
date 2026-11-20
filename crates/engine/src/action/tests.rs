@@ -570,6 +570,7 @@ fn samples() -> Vec<Action> {
         Action::ChopTree { pos, at: crate::math::Vec3::new(0.25, -2.5, 1.75), from: 3 },
         Action::BuildGhost { pos },
         Action::SetLed { pos, step: 2, rgb: 0x3366cc },
+        Action::SetMachineEnabled { pos, on: false },
     ]
 }
 

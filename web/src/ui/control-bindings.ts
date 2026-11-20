@@ -52,7 +52,7 @@ export const BINDINGS: readonly Binding[] = [
   mouse('build', ['left'], 'Hold left mouse', 'Mine the block you point at'),
   mouse('build', ['right'], 'Right mouse', 'Place the selected block (belts run the way you face; drag to lay a line)'),
   mouse('build', ['right'], 'Right mouse on a box or machine', 'Open it (hold {KeyC} to place against it instead)'),
-  key('build', ['KeyR'], '{KeyR}', 'Turn the belt or machine you point at'),
+  key('build', ['KeyR'], '{KeyR}', 'Turn the belt or machine you point at (or connect/sever a wire with a power pole selected)'),
   key('build', [...SHIFTS, 'KeyR'], '{ShiftLeft} + {KeyR}', 'Bend the belt you point at to take items in from its left or right, so a machine beside it can feed it (with nothing pointed at: the next belt you lay)'),
   key('build', ['KeyI'], '{KeyI}', 'Pick up the item on a belt you point at (or the one you clicked to select)'),
   mouse('build', ['wheel'], '{Digit1}–{Digit9} / wheel', 'Pick a hotbar slot', DIGITS),

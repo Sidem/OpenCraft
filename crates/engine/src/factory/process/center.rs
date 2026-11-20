@@ -185,28 +185,44 @@ impl Processor {
                 "No power or no compute: hang it on a pole and a fibre node whose grid has a datacenter".to_string()
             }
             Some(LabStatus::NoPower) => NOT_WIRED.to_string(),
+            Some(LabStatus::Off) => super::super::switch::SWITCHED_OFF.to_string(),
         })
     }
 
-    /// The readout's tech line for a center: its progress, speed and power (empty for another processor).
+    /// The readout's tech bar and stat chips for a center (empty for another processor).
     pub(super) fn center_line(&self, research: &Research) -> String {
+        use super::super::describe::{hud_bar, hud_stats, ordinal};
         if !self.is_center() {
             return String::new();
         }
         let mut out = String::new();
         if let Some(t) = self.study_unit().or(research.current) {
             let tech = &TECHS[t as usize];
-            out += &if is_bonus(t) {
-                format!("\n{}: level {}", tech.name, research.progress(t))
+            if is_bonus(t) {
+                out += &format!("\n{}: level {}", tech.name, research.progress(t));
             } else {
-                format!("\n{}: {} of {} units", tech.name, research.progress(t), tech.units)
-            };
+                let done = research.progress(t);
+                out += &format!(
+                    "\n{}",
+                    hud_bar(
+                        tech.name,
+                        u64::from(done),
+                        u64::from(tech.units),
+                        &format!("{done} / {}", tech.units),
+                        "cyan"
+                    )
+                );
+            }
         }
-        let free = match self.free_every(&FREE_EVERY) {
-            0 => String::new(),
-            n => format!(" · every {n}th unit is free"),
-        };
-        out + &format!("\n×{} speed · needs {} kW{free}", self.stats().speed / 1000, self.power())
+        let mut chips = vec![format!("×{} speed", self.stats().speed / 1000), format!("{} kW", self.power())];
+        let free = self.free_every(&FREE_EVERY);
+        if free > 0 {
+            chips.push(format!("Every {} free", ordinal(free)));
+        }
+        if let Some(stats) = hud_stats(&chips) {
+            out += &format!("\n{stats}");
+        }
+        out
     }
 
     /// An unfinished unit's packs, given back with the rest rather than lost.
@@ -289,6 +305,9 @@ pub(in crate::factory) fn step_centers(
 ) {
     for &i in centers {
         let (i, c) = (i as usize, &mut processors[i as usize]);
+        if c.status == Status::Off {
+            continue;
+        }
         let mut speed = power.speed(pole[i]);
         if c.spec.compute < 0 {
             speed = speed * data.satisfaction(data.process_node[i]) / FULL_SPEED;

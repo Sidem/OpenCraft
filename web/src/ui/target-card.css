@@ -1,0 +1,463 @@
+/* Visual target inspector card (#target, target-card.ts + target-controls.ts): tier/grid badges, glowing status
+   pills, isometric recipe flow diagrams, mini inventory slots, segmented efficiency/load meters, connection pips,
+   stat chips, and keycap/mouse controls strip. */
+
+#target {
+  order: 2;
+  min-width: 170px;
+  max-width: min(560px, calc(100vw - 24px));
+  padding: 8px 14px 9px;
+  border-radius: 10px;
+  background: rgba(14, 17, 24, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 24px rgba(0, 0, 0, 0.42);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+#target-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 8px;
+}
+
+#target-name {
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+#target-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tcard-tier {
+  --tier-col: var(--accent);
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tier-col) 22%, rgba(255, 255, 255, 0.05));
+  border: 1px solid color-mix(in srgb, var(--tier-col) 65%, transparent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.45;
+}
+
+.tcard-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px 1px 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcard-arrow-up {
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.tcard-grid {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tcard-gdot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+
+#target-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
+.tcard-text {
+  max-width: 440px;
+  margin: 0 auto;
+  white-space: pre-line;
+}
+
+.tcard-status-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.tcard-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f3f5f8;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tcard-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tcard-tone-ok { background: rgba(74, 222, 128, 0.13); border-color: rgba(74, 222, 128, 0.34); }
+.tcard-tone-ok .tcard-dot { background: #4ade80; box-shadow: 0 0 7px rgba(74, 222, 128, 0.75); }
+.tcard-tone-warn { background: rgba(251, 191, 36, 0.13); border-color: rgba(251, 191, 36, 0.36); }
+.tcard-tone-warn .tcard-dot { background: #fbbf24; box-shadow: 0 0 7px rgba(251, 191, 36, 0.7); }
+.tcard-tone-err { background: rgba(248, 113, 113, 0.15); border-color: rgba(248, 113, 113, 0.42); }
+.tcard-tone-err .tcard-dot { background: #f87171; box-shadow: 0 0 7px rgba(248, 113, 113, 0.75); }
+.tcard-tone-off { background: rgba(148, 163, 184, 0.12); border-color: rgba(148, 163, 184, 0.25); color: var(--muted); }
+.tcard-tone-off .tcard-dot { background: #94a3b8; }
+.tcard-tone-info .tcard-dot { background: #38bdf8; }
+
+/* Visual recipe flow: isometric item icons + rates + names. */
+.tcard-recipe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.tcard-rnode {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 4px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  text-align: left;
+}
+
+.tcard-rout {
+  background: rgba(250, 149, 73, 0.09);
+  border-color: rgba(250, 149, 73, 0.28);
+}
+
+.tcard-rmeta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.tcard-rrate {
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcard-rname {
+  color: var(--muted);
+  font-size: 10px;
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcard-op {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tcard-arrow {
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 800;
+  padding: 0 2px;
+}
+
+/* Mini inventory slots buffer tray (reuses the hotbar's icon + corner-count grammar). */
+.tcard-buffers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+}
+
+.tcard-bgroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tcard-bgroup + .tcard-bgroup {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.11);
+}
+
+.tcard-blabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tcard-slots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tcard-slot {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  place-items: center;
+}
+
+.tcard-scount {
+  position: absolute;
+  right: 2px;
+  bottom: 0;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #fff;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcard-icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Horizontal progress, load, flow, compute, and segmented efficiency bars. */
+.tcard-bar {
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tcard-bar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+}
+
+.tcard-bar-label {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tcard-bar-val {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcard-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.tcard-track-seg {
+  display: flex;
+}
+
+.tcard-fill {
+  height: 100%;
+  transition: width 0.15s ease-out;
+}
+
+.tcard-fill-ok { background: linear-gradient(90deg, #22c55e, #4ade80); }
+.tcard-fill-warn { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.tcard-fill-err { background: linear-gradient(90deg, #ef4444, #f87171); }
+.tcard-fill-cyan { background: linear-gradient(90deg, #0ea5e9, #38bdf8); }
+.tcard-fill-accent,
+.tcard-fill-info,
+.tcard-fill-off { background: linear-gradient(90deg, #f97316, var(--accent)); }
+
+.tcard-eff-left {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.tcard-eff-pct {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcard-pct-ok { color: #4ade80; }
+.tcard-pct-warn { color: #fbbf24; }
+.tcard-pct-err { color: #f87171; }
+
+.tcard-eff-cause {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fde68a;
+}
+
+.tcard-eff-idle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Connection slot pip meter. */
+.tcard-pips {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+}
+
+.tcard-pip-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tcard-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.28);
+  background: transparent;
+}
+
+.tcard-pip-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(250, 149, 73, 0.6);
+}
+
+.tcard-pip-full {
+  border-color: #f87171;
+  background: #f87171;
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.65);
+}
+
+/* Compact metadata stat chips. */
+.tcard-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 6px;
+}
+
+.tcard-chip {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Structured control chips below the target status (target-controls.ts). */
+#target-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px 14px;
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.11);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.tc-item { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--text); }
+.tc-keys { display: inline-flex; align-items: center; gap: 3px; }
+.tc-mod, .tc-sep { font-size: 11px; font-weight: 500; color: var(--muted); }
+.tc-label { color: var(--text); font-weight: 500; }
+
+.tc-cap {
+  display: inline-block;
+  min-width: 19px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: linear-gradient(#ffffff, #dfe3ea);
+  border: 1px solid #1b1e25;
+  box-shadow: 0 1.5px 0 #1b1e25;
+  color: #1b1e25;
+  font: 800 10.5px/17px var(--font);
+  text-align: center;
+}
+
+.tc-mouse {
+  position: relative;
+  display: inline-flex;
+  width: 13px;
+  height: 18px;
+  border-radius: 6.5px 6.5px 5.5px 5.5px;
+  background: #dfe3ea;
+  border: 1.5px solid #1b1e25;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tc-btn { flex: 1; height: 46%; border-bottom: 1.5px solid #1b1e25; }
+.tc-btn:first-child { border-right: 1.5px solid #1b1e25; }
+.tc-mouse.tc-left .tc-btn:first-child,
+.tc-mouse.tc-right .tc-btn:nth-child(2) { background: var(--accent); }
+
+.tc-wheel {
+  position: absolute;
+  left: 50%;
+  top: 2px;
+  width: 3px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 0 1px #1b1e25;
+}

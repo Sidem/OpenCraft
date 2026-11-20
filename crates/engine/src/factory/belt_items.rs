@@ -208,7 +208,9 @@ impl Factory {
     /// " from Iron Ore ×1": the recipe of this machine's kind that makes `item` (" or " the next, if two do).
     /// The machine's own recipe may have changed since, so the kind's table is the answer, not its state.
     fn recipe_words(&self, spec: &ProcessSpec, item: ItemId) -> String {
-        let makes = |r: &&MachineRecipe| spec.categories.contains(&r.category) && r.outputs.iter().any(|o| o.0 == item);
+        let makes = |r: &&MachineRecipe| {
+            spec.categories.contains(&r.category) && r.outputs.iter().any(|o| crate::wood::like(item, o.0))
+        };
         let words = |r: &MachineRecipe| {
             let inputs: Vec<String> = r.inputs.iter().map(|(i, n)| format!("{} ×{n}", item::name(*i))).collect();
             inputs.join(" + ")

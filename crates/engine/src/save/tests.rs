@@ -170,13 +170,13 @@ fn a_version_76_save_still_loads_and_saves_with_only_the_head_slot_and_the_new_t
     assert!(g.sim.players.iter().flatten().all(|p| !p.inventory.has_xray_goggles()), "the Head slot is empty");
     let saved = g.save();
     assert_eq!(u32::from_le_bytes(saved[4..8].try_into().unwrap()), SAVE_VERSION);
-    // A Head slot each, two more techs (X-ray Goggles, LED Lamps) and the LED colours' count.
+    // A Head slot each, three more techs (X-ray Goggles, LED Lamps, Pigments), the switched-off count (4 bytes) and the LED colours' count.
     let leds = crate::bytes::ByteWriter::default().bytes.len() + {
         let mut w = crate::bytes::ByteWriter::default();
         g.sim.leds.write_state(&mut w);
         w.bytes.len()
     };
-    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 8 + leds);
+    assert_eq!(saved.len(), V76_SAVE.len() + 2 * players + 12 + 4 + leds);
     let back = Game::load(&saved, 2).expect("the new format loads");
     assert_eq!(back.sim.state_hash(), g.sim.state_hash());
 }

@@ -82,7 +82,7 @@ impl Generated {
 fn right_click_raises_the_telescope_and_left_click_pins_what_the_crosshair_meets_once() {
     let mut g = hold_telescope();
     g.set_look(0.0, -0.05);
-    assert!(!g.scope_on() && g.telescope_label().unwrap().contains("Right-click"));
+    assert!(!g.scope_on() && g.telescope_label().unwrap().contains("RMB=Look through"));
     click_use(&mut g);
     assert!(g.scope_on(), "one click raises it, holding the button does not flip it back");
     g.update(DT);

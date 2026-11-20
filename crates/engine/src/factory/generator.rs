@@ -8,7 +8,7 @@
 use crate::block::{tex, GENERATOR};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
-use crate::item::{self, ItemId};
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::recipes::fuel_energy;
 use crate::TICK_RATE;
@@ -85,6 +85,9 @@ impl Generator {
 
     /// What it is doing (needs the factory for its grid).
     pub fn status_text(&self, f: &Factory) -> String {
+        if f.is_off(self.pos) {
+            return super::switch::SWITCHED_OFF.to_string();
+        }
         let pole = f.generators.iter().position(|g| g.pos == self.pos).and_then(|i| f.power.gen_pole.get(i).copied());
         match pole.flatten() {
             _ if f.dirty => String::new(),
@@ -141,19 +144,31 @@ impl Machine for Generator {
     }
 
     fn describe(&self, f: &Factory) -> String {
-        let mut lines = vec![self.status_text(f)];
+        use super::describe::{hud_items, hud_stats, hud_status};
+        let pole = f.generators.iter().position(|g| g.pos == self.pos).and_then(|i| f.power.gen_pole[i]);
+        let (tone, text) = if f.is_off(self.pos) {
+            ("off", super::switch::SWITCHED_OFF.to_string())
+        } else if f.power.off.contains(&self.pos) {
+            ("off", super::sensor::SWITCHED_OFF.to_string())
+        } else if pole.is_none() {
+            ("err", "Not wired to a pole".to_string())
+        } else if self.fuel.total() == 0 && self.energy == 0 {
+            ("err", "Out of fuel".to_string())
+        } else {
+            ("ok", self.status_text(f))
+        };
+        let mut lines = vec![hud_status(tone, &text)];
+        if pole.is_some() && !f.dirty {
+            lines.push(f.power.grid_bar(pole));
+        }
         let s = self.fuel.slots[0];
-        let mut parts = Vec::new();
         if !s.is_empty() {
-            parts.push(format!("Fuel: {} {}", s.count, item::name(s.item)));
+            lines.extend(hud_items("Fuel", &[(s.item, s.count)]));
         }
         if self.energy > 0 {
-            parts.push(format!("{} kJ stored", self.stored_kj()));
+            lines.extend(hud_stats(&[format!("{} kJ stored", self.stored_kj())]));
         }
-        if !parts.is_empty() {
-            lines.push(parts.join(" · "));
-        }
-        lines.push("Right-click to open".to_string());
+        lines.push("\tRMB=Open".to_string());
         lines.join("\n")
     }
 

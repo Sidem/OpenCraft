@@ -249,7 +249,7 @@ fn labs_work_at_one_two_and_three_times_the_speed_and_a_mk3_skips_every_fifth_pa
     // The lab says so.
     let mut f = Factory::default();
     place_at(&mut f, LAB, IVec3::ZERO, 2);
-    assert!(f.describe(IVec3::ZERO).unwrap().contains("×3 speed · needs 30 kW · every 5th unit is free"));
+    assert!(f.describe(IVec3::ZERO).unwrap().contains("@stats|×3 speed|30 kW|Every 5th free"));
 }
 
 #[test]
@@ -302,7 +302,7 @@ fn a_mk4_lab_works_four_times_as_fast_and_every_third_unit_is_free() {
     // 5 s a unit at full power is 1.25 s at Mk4: eight units in 10 s, two of them free (6 packs), and the ninth,\n    // a free one too, is under way.
     run(&mut f, 603.5 / crate::TICK_RATE as f64, |_| {});
     assert_eq!((f.research.progress(0), f.lab_at(IVec3::ZERO).packs.total(), f.power.demand[0]), (8, 14, 40));
-    assert!(f.describe(IVec3::ZERO).unwrap().contains("×4 speed · needs 40 kW · every 3rd unit is free"));
+    assert!(f.describe(IVec3::ZERO).unwrap().contains("@stats|×4 speed|40 kW|Every 3rd free"));
 }
 
 #[test]

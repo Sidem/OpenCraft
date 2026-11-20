@@ -52,6 +52,7 @@ impl Game {
         let names: Vec<String> = drops.iter().map(|&d| item::name(d).to_ascii_lowercase()).collect();
         let what = if names.is_empty() { String::new() } else { format!(": {}", names.join(", ")) };
         let (w, depth) = (dig.width, DEPTHS[DEFAULT_DEPTH as usize].label());
-        format!("Quarry\n{w}×{w}, {depth} · about {about} blocks{what} · R turns it")
+        let keys = factory::hud_keys(&[("RMB", "Place"), ("R", "Turn")]);
+        format!("Quarry\n{w}×{w}, {depth} · about {about} blocks{what}\n{keys}")
     }
 }

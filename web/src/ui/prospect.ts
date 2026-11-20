@@ -10,6 +10,8 @@
 import './prospect.css';
 import type { Game } from '../wasm/engine.js';
 import { h } from './dom';
+import { keyLabels } from './keyboard-layout';
+import { renderControlChip } from './target-controls';
 
 /** `held_device` / `prospect_kind` of the scanner (the core drill is 2). */
 const SCAN = 1;
@@ -69,6 +71,8 @@ export class ProspectPanel {
   private readonly track = h('div', 'prospect-track hidden');
   private readonly trackArrow = h('span', 'prospect-arrow', '↑');
   private readonly trackText = h('span', 'prospect-track-text');
+  private readonly trackNext = h('span', 'prospect-next hidden');
+  private trackNextKey = '';
   private tracked: Tracked | null = null;
   /** The latest advanced scan's veins and lodes, then outcrops, nearest first (what U steps through). */
   private candidates: Tracked[] = [];
@@ -82,10 +86,11 @@ export class ProspectPanel {
 
   constructor(private readonly game: Game) {
     this.el.append(this.title, this.list);
-    this.track.append(this.trackArrow, this.trackText);
+    this.track.append(this.trackArrow, this.trackText, this.trackNext);
     document.getElementById('hud-left')!.append(this.el);
     document.getElementById('hud-top')!.append(this.track);
     this.seq = game.prospect_seq();
+    keyLabels.subscribe(() => (this.trackNextKey = ''));
   }
 
   /** Call every frame. */
@@ -259,11 +264,16 @@ export class ProspectPanel {
       const vertical = depth >= 0 ? `${depth} down` : `${-depth} up`;
       text = near ? `${t.name} · right below you, ${vertical}` : `${t.name} · ${Math.round(dist)} m ${compass} · ${vertical}`;
     }
-    // Say how the target was picked, and that U picks another.
     const mode = t.y === null ? '' : this.chosen ? 'Chosen' : 'Nearest';
-    const more = this.candidates.length > 1 && t.y !== null ? ` · U: next of ${this.candidates.length}` : '';
-    if (mode) text = `${mode}: ${text}${more}`;
+    if (mode) text = `${mode}: ${text}`;
     if (this.trackText.textContent !== text) this.trackText.textContent = text;
+    const more = this.candidates.length > 1 && t.y !== null ? `Next (${this.candidates.indexOf(t) + 1}/${this.candidates.length})` : '';
+    if (more !== this.trackNextKey) {
+      this.trackNextKey = more;
+      this.trackNext.classList.toggle('hidden', more === '');
+      if (more === '') this.trackNext.replaceChildren();
+      else this.trackNext.replaceChildren(renderControlChip({ spec: 'U', label: more }));
+    }
   }
 
   /** Points each listed deposit's arrow and distance from where the player stands and faces now. */

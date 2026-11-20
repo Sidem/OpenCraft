@@ -50,3 +50,31 @@ fn the_town_panel_reads_its_depot_and_the_news_follows_a_stall_and_its_end() {
     assert_eq!(taken, vec![(IRON_PLATE, 6)]);
     assert_eq!(g.sim.factory.depot_held(AT).unwrap().count(ItemId::block(COAL_ORE)), 10);
 }
+
+#[test]
+fn town_panel_and_readout_count_birch_planks_for_upkeep_and_orders() {
+    use crate::block::{GLASS, PLANKS};
+    use crate::settlements::HARBOUR;
+    use crate::wood::{item as wood_item, Form};
+
+    let mut g = Game::new(2024, 2);
+    g.sim.factory.place(&mut g.sim.world, TOWN_DEPOT, AT, 0, AT - IVec3::new(0, 1, 0), 0);
+    let mut t = Town::new(AT, HARBOUR);
+    (t.built, t.planned, t.due) = (1, 1, 1000);
+    t.delivered = vec![0; ORDERS[1].len()];
+    g.sim.settlements.towns.push(t);
+    g.sim.step(); // syncs depot wants
+
+    let birch = wood_item(1, Form::Planks);
+    assert!(g.machine_wants(AT.x, AT.y, AT.z, birch.0), "depot accepts birch planks");
+    let store = g.sim.factory.depot_store(AT).unwrap();
+    store.add(birch, 15);
+    store.add(ItemId::block(GLASS), 15);
+
+    // Town panel reports birch planks as held for the Planks upkeep line.
+    let p = g.town_panel(AT.x, AT.y, AT.z);
+    let upkeep_at = 5 + 3 * ORDERS[1].len();
+    assert_eq!(p[upkeep_at + 1], u32::from(PLANKS));
+    assert_eq!(p[upkeep_at + 3], 15, "birch planks count as held upkeep");
+    assert!(g.short_of(&g.sim.settlements.towns[0]).is_empty(), "not reported short of planks");
+}

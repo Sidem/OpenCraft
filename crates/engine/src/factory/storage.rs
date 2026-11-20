@@ -6,12 +6,11 @@
 
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::inventory::Stack;
-use crate::item::{self, ItemId};
+use crate::item::ItemId;
 use crate::math::{sort_small_by_key, IVec3, Vec3};
 
 use super::belt::Belt;
 use super::buffer::Buffer;
-use super::describe::fmt_int;
 use super::{box_label, tier_mark, Factory, Machine};
 
 /// Slots of each tier, Mk1 first.
@@ -80,9 +79,11 @@ impl Machine for Storage {
         self.buf.contents()
     }
 
-    /// Slots used and the three largest stocks.
+    /// Capacity bar and top held stacks as icon chips.
     fn describe(&self, _: &Factory) -> String {
+        use super::describe::{hud_bar, hud_items};
         let used = self.buf.slots.iter().filter(|st| !st.is_empty()).count();
+        let cap = self.buf.slots.len();
         let mut totals: Vec<(ItemId, u32)> = Vec::new();
         for st in self.buf.contents() {
             match totals.iter_mut().find(|(item, _)| *item == st.item) {
@@ -91,15 +92,15 @@ impl Machine for Storage {
             }
         }
         sort_small_by_key(&mut totals, |&(_, n)| u32::MAX - n);
-        let mut lines = vec![format!("{used} of {} slots used", self.buf.slots.len())];
+        let tone = if used == cap { "warn" } else { "accent" };
+        let mut lines = vec![hud_bar("Slots", used as u64, cap as u64, &format!("{used} / {cap}"), tone)];
         if !totals.is_empty() {
-            let list: Vec<String> = totals
-                .iter()
-                .take(3)
-                .map(|(item, n)| format!("{} {}", fmt_int(*n as u64), item::name(*item)))
-                .collect();
-            lines.push(list.join(", ") + if totals.len() > 3 { ", ..." } else { "" });
-            lines.push("Right-click to take everything".to_string());
+            let shown: Vec<(ItemId, u32)> = totals.iter().take(6).copied().collect();
+            lines.extend(hud_items("Stored", &shown));
+            if totals.len() > 6 {
+                lines.push(format!("+{} more kinds", totals.len() - 6));
+            }
+            lines.push("\tRMB=Take all".to_string());
         }
         lines.join("\n")
     }

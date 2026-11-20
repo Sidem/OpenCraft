@@ -125,53 +125,59 @@ impl Game {
         out
     }
 
-    /// The HUD lines while a locomotive or wagon is in hand: a title, then what a click does, then the selected
-    /// train's schedule.
+    /// The HUD lines while a locomotive, wagon, or signal is in hand: title, status/schedule, and control chips.
     pub(crate) fn train_label(&self) -> String {
         let Some(item) = self.rolling_stock() else { return String::new() };
+        let keys = crate::factory::hud_keys;
         if item == RAIL_SIGNAL {
-            let text = match self.train_aim() {
-                Some(Aim::Signal(p)) if self.sim.factory.signal_at(p) => "click to take the signal back",
-                Some(_) => "click to put a signal on this node",
-                None => "aim at a rail node to put a signal there: trains wait for the track ahead to be clear",
+            return match self.train_aim() {
+                Some(Aim::Signal(p)) if self.sim.factory.signal_at(p) => {
+                    format!("Rail Signal\n{}", keys(&[("RMB", "Remove signal")]))
+                }
+                Some(_) => format!("Rail Signal\n{}", keys(&[("RMB", "Place signal")])),
+                None => "Rail Signal\nAim at a rail node · trains wait for clear track".to_string(),
             };
-            return format!("Rail Signal\n{text}");
         }
         let wagon = item == WAGON;
-        let text = match (wagon, self.train_aim()) {
-            (_, Some(Aim::Signal(_))) => "",
-            (false, None) => {
-                "aim at a rail node to put it on the track, or a dock to add it to the selected train's schedule"
-            }
-            (true, None) => "aim at a rail node beside a train and click to couple the wagon on behind",
+        let (status, controls) = match (wagon, self.train_aim()) {
+            (_, Some(Aim::Signal(_))) => ("", String::new()),
+            (false, None) => ("Aim at a rail node or dock", String::new()),
+            (true, None) => ("Aim at a rail node beside a train", String::new()),
             (false, Some(Aim::Dock(_))) if self.rails.train.is_none() => {
-                "click a node a train is on to select it first"
+                ("Select a train on a rail node first", String::new())
             }
-            (_, Some(Aim::Dock(_))) => "click to add this dock to the schedule Â· crouch-click to clear the schedule",
+            (_, Some(Aim::Dock(_))) => ("", keys(&[("RMB", "Add dock"), ("Ctrl+RMB", "Clear schedule")])),
             (false, Some(Aim::Node(_, Spot::Ok))) => {
-                "click to put it on the track here Â· crouch-click to pick up the train nearest"
+                ("", keys(&[("RMB", "Place train"), ("Ctrl+RMB", "Pick up nearest")]))
             }
             (true, Some(Aim::Node(_, Spot::Ok))) => {
-                "click to couple it behind the train here Â· Shift-click: every wagon in hand Â· crouch-click to pick it up"
+                ("", keys(&[("RMB", "Couple 1"), ("Shift+RMB", "Couple all"), ("Ctrl+RMB", "Pick up train")]))
             }
             (_, Some(Aim::Node(_, Spot::NoTrack))) => {
-                "this node has no track long enough: join it to another node first"
+                ("No track long enough · join to another node first", String::new())
             }
             (false, Some(Aim::Node(_, Spot::Occupied))) => {
-                "click to select the train here Â· crouch-click to pick it up"
+                ("", keys(&[("RMB", "Select train"), ("Ctrl+RMB", "Pick up")]))
             }
-            (true, Some(Aim::Node(_, Spot::Occupied))) => "a train is already here Â· crouch-click to pick it up",
-            (_, Some(Aim::Node(_, Spot::NoTrain))) => "no train is near this node",
-            (_, Some(Aim::Node(_, Spot::Full))) => "this train has all the wagons it can pull (6)",
+            (true, Some(Aim::Node(_, Spot::Occupied))) => ("Train already here", keys(&[("Ctrl+RMB", "Pick up")])),
+            (_, Some(Aim::Node(_, Spot::NoTrain))) => ("No train near this node", String::new()),
+            (_, Some(Aim::Node(_, Spot::Full))) => ("Train already has 6 wagons (max)", String::new()),
             (_, Some(Aim::Node(_, Spot::NoRoom))) => {
-                "no track behind the train to stand a wagon on: lay more track first"
+                ("No track behind the train · lay more track first", String::new())
             }
         };
         let title = if wagon { "Wagon" } else { "Locomotive" };
-        match self.rails.train.filter(|_| !wagon) {
-            Some(node) => format!("{title}\n{text}\n{}", self.schedule_line(node)),
-            None => format!("{title}\n{text}"),
+        let mut lines = vec![title.to_string()];
+        if !status.is_empty() {
+            lines.push(status.to_string());
         }
+        if let Some(node) = self.rails.train.filter(|_| !wagon) {
+            lines.push(self.schedule_line(node));
+        }
+        if !controls.is_empty() {
+            lines.push(controls);
+        }
+        lines.join("\n")
     }
 
     /// The schedule of the train near `node` as one line.

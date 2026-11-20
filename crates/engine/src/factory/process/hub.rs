@@ -70,10 +70,14 @@ pub(in crate::factory) fn bonuses(
     hubs: &[u32],
     power: &Power,
     data: &Data,
+    manual_off: &[IVec3],
 ) -> Vec<(IVec3, u32)> {
     let mut out = Vec::new();
     for &i in hubs {
         let (i, p) = (i as usize, &processors[i as usize]);
+        if super::super::switch::is_listed(manual_off, p.pos) {
+            continue;
+        }
         let share = power.speed(power.process_pole[i]) as u64 * data.satisfaction(data.process_node[i]) as u64;
         out.push((p.pos, (BONUS_PERMILLE as u64 * share / (FULL_SPEED as u64 * FULL_SPEED as u64)) as u32));
     }

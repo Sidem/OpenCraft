@@ -81,6 +81,8 @@ pub struct PoleGhost {
     pub held_up: bool,
     /// The wall it would hang on (`pole_mount::wall_for`), 0 when it stands on the ground.
     pub wall: u8,
+    /// Placed standalone (crouch held): does not snap to or auto-wire to any existing grid.
+    pub unlinked: bool,
 }
 
 fn dist2(a: IVec3, b: IVec3) -> i32 {
@@ -176,17 +178,35 @@ impl Game {
             return None;
         }
         let held_link = POLE_TIERS[tier as usize].link;
+        let world = &self.sim.world;
+        let solid = |p: IVec3| world.get_block(p).is_some_and(|b| SOLID[b as usize]);
+        if self.body().input.crouch {
+            let hit = self.target.filter(|h| h.normal != IVec3::ZERO)?;
+            let pos = hit.block + hit.normal;
+            let free = world.get_block(pos).is_some_and(block::replaceable);
+            let held_up = pole_mount::is_held_up(solid, pos);
+            let wall = pole_mount::wall_for(solid, pos, self.pole_against(pos));
+            return Some(PoleGhost {
+                pos,
+                anchor: pos,
+                tier,
+                link: held_link,
+                full: false,
+                free,
+                held_up,
+                wall,
+                unlinked: true,
+            });
+        }
         let aim = self.aim_cell();
         let (anchor, anchor_tier) = self.pole_anchor(aim, held_link)?;
         let link = POLE_TIERS[anchor_tier as usize].link.max(held_link);
         let look = self.body().look_dir();
-        let world = &self.sim.world;
         let (pos, full) = plan_pole(|p| world.get_block(p), anchor, aim, look, link, self.body().input.sprint)?;
         let free = world.get_block(pos).is_some_and(block::replaceable);
-        let solid = |p: IVec3| world.get_block(p).is_some_and(|b| SOLID[b as usize]);
         let held_up = pole_mount::is_held_up(solid, pos);
         let wall = pole_mount::wall_for(solid, pos, self.pole_against(pos));
-        Some(PoleGhost { pos, anchor, tier, link, full, free, held_up, wall })
+        Some(PoleGhost { pos, anchor, tier, link, full, free, held_up, wall, unlinked: false })
     }
 
     /// The block a pole at `pos` counts as clicked against: the wall aimed at when the pole goes right in front of
@@ -255,23 +275,24 @@ impl Game {
             let fits =
                 |p: IVec3| world.get_block(p).is_some_and(block::replaceable) && pole_mount::is_held_up(solid, p);
             if let Some(pos) = pos.filter(|&p| edge && fits(p)) {
-                self.place_pole(pos, tier);
+                self.place_pole(pos, tier, crouch);
             }
             return true;
         };
         let centre = ghost.pos.as_vec3() + Vec3::new(0.5, 0.5, 0.5);
         let close = (centre - self.body().eye()).length() <= HOLD_REACH;
-        let line = self.body().input.sprint && ghost.full && close;
+        let line = !ghost.unlinked && self.body().input.sprint && ghost.full && close;
         if ghost.free && ghost.held_up && (edge || line) {
-            self.place_pole(ghost.pos, ghost.tier);
+            self.place_pole(ghost.pos, ghost.tier, ghost.unlinked);
         }
         true
     }
 
     /// Sends a pole from the selected slot to `pos` and selects it, so it can be wired at once.
-    fn place_pole(&mut self, pos: IVec3, tier: u8) {
+    fn place_pole(&mut self, pos: IVec3, tier: u8, unlinked: bool) {
         let slot = self.inventory().selected as u8;
-        self.act(Action::PlaceBlock { pos, slot, facing: 0, against: self.pole_against(pos) });
+        let facing = if unlinked { factory::POLE_UNLINKED } else { 0 };
+        self.act(Action::PlaceBlock { pos, slot, facing, against: self.pole_against(pos) });
         self.tools.last = Some((pos, tier, 0));
         self.tools.selected = Some(pos);
         self.use_cooldown = PLACE_REPEAT_SECONDS;
@@ -284,7 +305,10 @@ impl Game {
         let mut boxed = |lo: IVec3, hi: IVec3, colour: i32| out.extend([lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, colour]);
         if let Some(g) = self.pole_ghost() {
             let ok = g.free && g.held_up;
-            let hook = self.sim.factory.auto_hook(g.pos, g.tier).filter(|&h| ok && self.selected_pole() != Some(h));
+            let hook = (!g.unlinked && ok)
+                .then(|| self.sim.factory.auto_hook(g.pos, g.tier))
+                .flatten()
+                .filter(|&h| self.selected_pole() != Some(h));
             if let Some(hook) = hook {
                 boxed(hook, hook, ANCHOR_BLUE);
             }
@@ -298,8 +322,7 @@ impl Game {
         out
     }
 
-    /// The HUD lines while poles, wiring or cables are in hand and aimed: a title, then the details
-    /// ("" otherwise).
+    /// The HUD lines while poles, wiring or cables are in hand and aimed: a title, status, and control chips.
     pub(crate) fn power_label(&self) -> String {
         if let Some(text) = self.wire_label() {
             return text;
@@ -307,35 +330,47 @@ impl Game {
         if let Some(g) = self.pole_ghost() {
             let name = if g.tier == 0 { "Power pole".to_string() } else { format!("Power pole Mk{}", g.tier + 1) };
             if !g.free {
-                return format!("{name}\nSomething is in the way");
+                return format!("{name}\nBlocked");
             }
             if !g.held_up {
-                return format!("{name}\nNeeds the ground under it or a wall beside it");
+                return format!("{name}\nNeeds ground below or a wall beside it");
+            }
+            if g.unlinked {
+                let keys = factory::hud_keys(&[("RMB", "Place"), ("Release Ctrl", "Auto-wire")]);
+                return format!("{name}\nStandalone · not wired to any grid\n{keys}");
             }
             let far = f64::from(dist2(g.pos, g.anchor)).sqrt().round() as i32;
-            let hook = match self.sim.factory.auto_hook(g.pos, g.tier) {
+            let hook = self.sim.factory.auto_hook(g.pos, g.tier);
+            let status = match hook {
+                Some(p) if p == g.anchor => format!("Auto-wires · {far} / {} blocks", g.link),
                 Some(p) => format!(
-                    "wires itself to the powered pole {} blocks away",
-                    f64::from(dist2(g.pos, p)).sqrt().round()
+                    "Auto-wires ({} blocks) · {far} / {} from anchor",
+                    f64::from(dist2(g.pos, p)).sqrt().round(),
+                    g.link
                 ),
-                None => "no powered pole in range: wire it by hand".to_string(),
+                None => format!("No powered pole in range · {far} / {} blocks", g.link),
             };
-            let how = if self.body().input.sprint { "release Shift: free placement" } else { "hold Shift: full reach" };
-            return format!(
-                "{name}\n{hook} · {far} of {} blocks from the last pole · right-click to place · {how}",
-                g.link
-            );
+            let shift =
+                if self.body().input.sprint { ("Release Shift", "Free aim") } else { ("Hold Shift", "Full reach") };
+            let keys = if hook.is_some() {
+                factory::hud_keys(&[("RMB", "Place"), shift, ("Hold Ctrl", "Unconnected")])
+            } else {
+                factory::hud_keys(&[("RMB", "Place"), shift])
+            };
+            return format!("{name}\n{status}\n{keys}");
         }
         if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
             let Some(&top) = cells.first() else { return String::new() };
             let n = cells.len();
             let joined =
-                if self.sim.factory.cable_joins(top) { "joined to a pole" } else { "not joined to a pole yet" };
+                if self.sim.factory.cable_joins(top) { "Joined to a pole" } else { "Not joined to a pole yet" };
             if n == 1 {
-                return format!("Power cable\n{joined} · right-click to place");
+                return format!("Power cable\n{joined}\n{}", factory::hud_keys(&[("RMB", "Place")]));
             }
-            return format!("Power cable\n{n} hang from here · {joined} · right-click to lower, crouch to place one");
+            let lower = format!("Lower {n}");
+            let keys = factory::hud_keys(&[("RMB", &lower), ("Ctrl+RMB", "Place 1")]);
+            return format!("Power cable\n{n} cables hanging · {joined}\n{keys}");
         }
         String::new()
     }
@@ -346,11 +381,13 @@ impl Game {
         let middle = |p: IVec3| p.as_vec3() + Vec3::new(0.5, factory::POLE_WIRE_Y, 0.5);
         if let Some(g) = self.pole_ghost().filter(|g| g.free && g.held_up) {
             factory::preview_pole(&mut self.instances, g.tier, g.wall, g.pos.as_vec3() + half - eye);
-            if let Some(hook) = self.sim.factory.auto_hook(g.pos, g.tier) {
-                // The wire runs insulator to insulator, as it will once placed (`pole_hang.rs`).
-                let from = self.sim.factory.pole_hang(hook, middle(g.pos)).unwrap_or_else(|| middle(hook));
-                let to = factory::ghost_hang(g.pos, g.tier, g.wall, middle(hook));
-                factory::preview_wire(&mut self.instances, from - eye, to - eye, tex::GRID_FIRST);
+            if !g.unlinked {
+                if let Some(hook) = self.sim.factory.auto_hook(g.pos, g.tier) {
+                    // The wire runs insulator to insulator, as it will once placed (`pole_hang.rs`).
+                    let from = self.sim.factory.pole_hang(hook, middle(g.pos)).unwrap_or_else(|| middle(hook));
+                    let to = factory::ghost_hang(g.pos, g.tier, g.wall, middle(hook));
+                    factory::preview_wire(&mut self.instances, from - eye, to - eye, tex::GRID_FIRST);
+                }
             }
         } else if self.holds_cable() && !self.body().input.crouch {
             let cells = self.cable_drop();
@@ -360,8 +397,8 @@ impl Game {
                 arms[3] = i + 1 < cells.len();
                 factory::preview_cable(&mut self.instances, c.as_vec3() + half - eye, arms);
             }
-        } else if let Some((from, to)) = self.wire_preview() {
-            factory::preview_wire(&mut self.instances, from - eye, to - eye, tex::GRID_FIRST);
+        } else if let Some((from, to, layer)) = self.wire_preview() {
+            factory::preview_wire(&mut self.instances, from - eye, to - eye, layer);
         }
         self.write_long_pole_preview(eye);
     }

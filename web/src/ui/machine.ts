@@ -27,6 +27,9 @@ export class MachinePanel implements Beside {
   readonly el = h('section', 'mp-panel');
   title = '';
   private readonly status = h('p', 'mp-status');
+  private readonly powerBtn: HTMLButtonElement;
+  private readonly powerDot = h('span', 'mp-switch-dot');
+  private readonly powerText = h('span', 'mp-switch-label', 'On');
   private readonly rates: RateTable;
   private readonly efficiency = h('p', 'mp-efficiency');
   private readonly bar = h('div', 'mp-bar-fill');
@@ -64,10 +67,17 @@ export class MachinePanel implements Beside {
     this.take = button('secondary-btn mp-take', 'Take output', () => {
       this.game.take_machine_output(...this.pos);
     });
+    this.powerBtn = button('secondary-btn mp-switch hidden', '', () => {
+      this.game.set_machine_enabled(...this.pos, !this.game.machine_enabled(...this.pos));
+    });
+    this.powerBtn.title = 'Turn off to stop this machine using electricity or fuel';
+    this.powerBtn.append(this.powerDot, this.powerText);
+    const top = h('div', 'mp-status-row');
+    top.append(this.status, this.powerBtn);
     this.upgrade = new MachineUpgrade(game, icon);
     this.rates = new RateTable(game, icon);
     const state = h('section', 'mp-state');
-    state.append(this.upgrade.el, this.status, this.rates.el, this.efficiency, this.progress, this.fire, this.slots, this.take);
+    state.append(this.upgrade.el, top, this.rates.el, this.efficiency, this.progress, this.fire, this.slots, this.take);
 
     this.put.append(h('h3', '', 'Put in from your inventory'), this.inserts);
     this.filter = new FilterSection(game, icon);
@@ -145,13 +155,21 @@ export class MachinePanel implements Beside {
     // The status line carries live numbers (a generator's kJ lit), so it follows every frame too.
     const status = g.machine_status(...this.pos);
     if (this.status.textContent !== status) this.status.textContent = status;
+    const switchable = g.machine_switchable(...this.pos);
+    const enabled = switchable && g.machine_enabled(...this.pos);
+    this.powerBtn.classList.toggle('hidden', !switchable);
+    if (switchable) {
+      this.powerBtn.dataset.on = enabled ? 'true' : 'false';
+      this.powerBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+      this.powerText.textContent = enabled ? 'On' : 'Off';
+    }
     // The rates follow the machine's Mk (an upgrade) and research's bonus, so they are read every frame too.
     this.rates.update(this.pos);
     // Everything else changes rarely: redraw it only when the rest of the data or the inventory does. The recipe cards'
     // times depend on the Mk, which is in the title.
     data[2] = 0;
     const filter = g.machine_filter(...this.pos);
-    const key = `${data.join(',')}|${g.inventory_version()}|${channel}|${filter}|${this.title}`;
+    const key = `${data.join(',')}|${g.inventory_version()}|${channel}|${filter}|${this.title}|${enabled ? 1 : 0}`;
     if (key === this.drawn) return true;
     this.drawn = key;
 

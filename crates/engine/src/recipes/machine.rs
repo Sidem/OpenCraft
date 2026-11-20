@@ -12,6 +12,7 @@
 
 use super::automate::AUTOMATE;
 use super::decor::DECOR;
+use super::dye::DYE;
 use super::machine_later::LATER;
 use super::orbit::ORBIT;
 use super::refit::{REFIT, REFIT_LATER};
@@ -82,20 +83,22 @@ use Category::{Arc, Assembly, Blasting, Crushing, Electrolysis, Pressing, Smelti
 /// hold row indices, so rows only ever go on the end: a new table joins after the last one (a tier or family added to
 /// `refit.rs` later goes in a table of its own too, as the upgrader's rows are derived from `FAMILIES`, and a test asks
 /// that every tier has one). The ruins' salvage row (`scrap.rs`) follows, then the decor set's rows (`decor.rs`),
-/// then upgrader rows for families tiered later (`REFIT_LATER`).
-pub const MACHINE_RECIPES: &[MachineRecipe] = &join::<
-    MachineRecipe,
-    {
-        MAIN.len()
-            + LATER.len()
-            + ORBIT.len()
-            + AUTOMATE.len()
-            + REFIT.len()
-            + SCRAP.len()
-            + DECOR.len()
-            + REFIT_LATER.len()
-    },
->(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER]);
+/// then upgrader rows for families tiered later (`REFIT_LATER`, full), then the Pigments tech's (`dye.rs`).
+pub const MACHINE_RECIPES: &[MachineRecipe] =
+    &join::<
+        MachineRecipe,
+        {
+            MAIN.len()
+                + LATER.len()
+                + ORBIT.len()
+                + AUTOMATE.len()
+                + REFIT.len()
+                + SCRAP.len()
+                + DECOR.len()
+                + REFIT_LATER.len()
+                + DYE.len()
+        },
+    >(&[MAIN, LATER, ORBIT, AUTOMATE, REFIT, SCRAP, DECOR, REFIT_LATER, DYE]);
 
 const MAIN: &[MachineRecipe] = &[
     MachineRecipe { category: Smelting, inputs: &[(b(IRON_ORE), 1)], outputs: &[(IRON_INGOT, 1)], seconds: 1.5 },
@@ -273,6 +276,7 @@ const WATER_USE: &[(u16, u32)] = &[
     (WASH_RECIPES[1], 1),
     (WASH_RECIPES[2], 1),
     (PURE_WATER_RECIPE, 2),
+    (DYE_FIRST, 1),
 ];
 
 /// Water units one batch of machine recipe `i` uses.
@@ -294,12 +298,12 @@ pub const FUELS: &[(ItemId, f64, u32)] =
 
 /// Seconds of work one `item` fuels, if it burns.
 pub fn burn_time(item: ItemId) -> Option<f64> {
-    FUELS.iter().find(|f| f.0 == item).map(|f| f.1)
+    FUELS.iter().find(|f| crate::wood::like(item, f.0)).map(|f| f.1)
 }
 
 /// The energy one `item` gives a generator, in kJ, if it burns.
 pub fn fuel_energy(item: ItemId) -> Option<u32> {
-    FUELS.iter().find(|f| f.0 == item).map(|f| f.2)
+    FUELS.iter().find(|f| crate::wood::like(item, f.0)).map(|f| f.2)
 }
 
 const fn b(id: BlockId) -> ItemId {

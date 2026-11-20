@@ -15,7 +15,7 @@ mod read;
 
 /// Number of tags in use; `read` refuses the rest.
 #[cfg(test)]
-pub const TAG_COUNT: u8 = 78;
+pub const TAG_COUNT: u8 = 79;
 /// Tags only read, never written: 4, the filter's old one item straight on, now a `FilterPick` (tag 73); 38, the
 /// personal drone's old fetch, now an `Action::Drone` (tag 72).
 #[cfg(test)]
@@ -377,6 +377,11 @@ impl Action {
                 w.ivec3(pos);
                 w.vec3(at);
                 w.u8(from);
+            }
+            Action::SetMachineEnabled { pos, on } => {
+                w.u8(78);
+                w.ivec3(pos);
+                w.bool(on);
             }
         }
     }

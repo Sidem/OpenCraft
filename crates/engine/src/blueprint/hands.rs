@@ -156,10 +156,7 @@ impl Game {
     /// The ghost mode label while a blueprint is being marked, selected or held; `None` otherwise.
     pub(crate) fn blueprint_label(&self) -> Option<String> {
         let lib = &self.library;
-        let note = |default: &str| if lib.note.is_empty() { default.to_string() } else { lib.note.clone() };
-        // What the last press did, then what the keys do now: the keys are never hidden by a note.
-        let with_note =
-            |how: &str| if lib.note.is_empty() { how.to_string() } else { format!("{} · {how}", lib.note) };
+        let keys = crate::factory::hud_keys;
         if let Some(bp) = lib.held.and_then(|i| lib.list.get(i)) {
             let title = format!("Blueprint · {} · {} pieces", bp.name, bp.entries.len());
             let inv = self.inventory();
@@ -175,14 +172,26 @@ impl Game {
             } else {
                 format!("Missing {}{more}", short.iter().take(LABEL_MISSING).cloned().collect::<Vec<_>>().join(", "))
             };
-            let hint = with_note("Right-click stamps ghosts · R turns · Z puts it away");
-            return Some(format!("{title}\n{hint}\n{missing}"));
+            let mut lines = vec![title];
+            if !lib.note.is_empty() {
+                lines.push(lib.note.clone());
+            }
+            lines.push(missing);
+            lines.push(keys(&[("RMB", "Stamp"), ("R", "Turn"), ("Z", "Put away")]));
+            return Some(lines.join("\n"));
         }
         if lib.selection.is_some() {
-            let how = with_note("Enter copies its machines · Z starts a new box · Z at the sky clears it");
-            return Some(format!("Box selected\n{how}"));
+            let mut lines = vec!["Box selected".to_string()];
+            if !lib.note.is_empty() {
+                lines.push(lib.note.clone());
+            }
+            lines.push(keys(&[("Enter", "Copy"), ("Z", "New box"), ("Z", "Clear (sky)")]));
+            return Some(lines.join("\n"));
         }
-        lib.corner.map(|_| format!("Marking a box\n{}", note("Aim at the opposite corner and press Z")))
+        lib.corner.map(|_| {
+            let detail = if lib.note.is_empty() { "Aim at the opposite corner" } else { &lib.note };
+            format!("Marking a box\n{detail}\n{}", keys(&[("Z", "2nd corner")]))
+        })
     }
 }
 

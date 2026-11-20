@@ -235,6 +235,6 @@ pub(super) fn lamp(status: Status) -> u16 {
         Status::OutputFull => tex::LAMP_YELLOW,
         Status::NoRecipe | Status::NoPower | Status::NoFuel | Status::NoWater => tex::LAMP_RED,
         Status::NoDeposit | Status::Exhausted | Status::Overheated => tex::LAMP_RED,
-        Status::NoInput => tex::FRAME,
+        Status::NoInput | Status::Off => tex::FRAME,
     }
 }

@@ -37,6 +37,8 @@ pub enum LabStatus {
     /// The chosen tech costs compute: only an AI lab can research it.
     NeedsAi,
     NoPower,
+    /// Switched off by the player in its panel.
+    Off,
 }
 
 /// What a lab tier does, Mk1 first.
@@ -78,6 +80,7 @@ pub struct Lab {
 }
 
 /// One tick of every lab and research center, each at its grid's speed.
+#[allow(clippy::too_many_arguments)]
 pub fn step_labs(
     labs: &mut [Lab],
     processors: &mut [Processor],
@@ -86,6 +89,7 @@ pub fn step_labs(
     power: &Power,
     data: &Data,
     research: &mut Research,
+    manual_off: &[IVec3],
 ) {
     let mut taken = [0u32; TECHS.len()];
     let studied = centers.iter().filter_map(|&i| processors[i as usize].study_unit());
@@ -93,6 +97,10 @@ pub fn step_labs(
         taken[t as usize] += 1;
     }
     for (l, &p) in labs.iter_mut().zip(poles.0) {
+        if super::switch::is_listed(manual_off, l.pos) {
+            (l.speed, l.status) = (0, LabStatus::Off);
+            continue;
+        }
         l.step(research, &mut taken, power.speed(p));
     }
     step_centers((processors, centers), poles.1, power, data, research, &mut taken);
@@ -237,6 +245,7 @@ impl Lab {
             LabStatus::NeedsCenter => format!("{} needs a research center", name(research.current)),
             LabStatus::NeedsAi => format!("{} needs an AI lab", name(research.current)),
             LabStatus::NoPower => NOT_WIRED.to_string(),
+            LabStatus::Off => super::switch::SWITCHED_OFF.to_string(),
         }
     }
 
@@ -302,27 +311,38 @@ impl Machine for Lab {
     }
 
     fn describe(&self, f: &Factory) -> String {
+        use super::describe::{hud_bar, hud_items, hud_stats, hud_status, ordinal};
         let r = &f.research;
-        let mut lines = vec![self.status_text(r)];
+        let status = match self.status {
+            LabStatus::NoResearch => format!("{}\n\tT=Research", hud_status("warn", "No research chosen")),
+            LabStatus::Working => hud_status(if self.speed < FULL_SPEED { "warn" } else { "ok" }, &self.status_text(r)),
+            LabStatus::NoPacks | LabStatus::AllTaken | LabStatus::NeedsCenter | LabStatus::NeedsAi => {
+                hud_status("warn", &self.status_text(r))
+            }
+            LabStatus::NoPower => hud_status("err", "No power"),
+            LabStatus::Off => hud_status("off", super::switch::SWITCHED_OFF),
+        };
+        let mut lines = vec![status];
         if let Some(t) = self.unit.or(r.current) {
             let tech = &TECHS[t as usize];
-            lines.push(format!("{}: {} of {} units", tech.name, r.progress(t), tech.units));
+            let done = r.progress(t);
+            lines.push(hud_bar(
+                tech.name,
+                u64::from(done),
+                u64::from(tech.units),
+                &format!("{done} / {}", tech.units),
+                "cyan",
+            ));
         }
-        let held: Vec<String> =
-            self.packs.contents().iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
-        if !held.is_empty() {
-            lines.push(held.join(" · "));
-        }
+        let packs: Vec<(ItemId, u32)> = self.packs.contents().iter().map(|s| (s.item, s.count)).collect();
+        lines.extend(hud_items("In", &packs));
         let LabTier { speed, power, free_every } = *self.stats();
-        let nth = match free_every {
-            1 => "st",
-            2 => "nd",
-            3 => "rd",
-            _ => "th",
-        };
-        let free = if free_every > 0 { format!(" · every {free_every}{nth} unit is free") } else { String::new() };
-        lines.push(format!("×{speed} speed · needs {power} kW{free}"));
-        lines.push("Right-click to open".to_string());
+        let mut chips = vec![format!("×{speed} speed"), format!("{power} kW")];
+        if free_every > 0 {
+            chips.push(format!("Every {} free", ordinal(free_every)));
+        }
+        lines.extend(hud_stats(&chips));
+        lines.push("\tRMB=Open".to_string());
         lines.join("\n")
     }
 
@@ -345,6 +365,7 @@ impl Machine for Lab {
             LabStatus::Working => tex::LAMP_GREEN,
             LabStatus::NoPacks | LabStatus::AllTaken | LabStatus::NeedsCenter | LabStatus::NeedsAi => tex::LAMP_YELLOW,
             LabStatus::NoResearch | LabStatus::NoPower => tex::LAMP_RED,
+            LabStatus::Off => tex::FRAME,
         };
         push_box(out, rel + Vec3::new(0.31, 0.35, 0.31), 0.0, [0.13, 0.08, 0.13], 0.0, [lamp; 3], false);
     }

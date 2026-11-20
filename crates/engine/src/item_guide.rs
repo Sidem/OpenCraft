@@ -98,8 +98,9 @@ pub fn use_line(research: &Research, item: ItemId) -> Option<String> {
         .filter_map(|(_, i)| {
             let r = &MACHINE_RECIPES[i];
             let by = machine_for(r.category)?;
+            let name = crate::item::name(by);
             let made = crate::item::name(r.main().0);
-            Some(format!("a {} makes {made} from it{}", crate::item::name(by), research_note(research, i)))
+            Some(format!("{} {name} makes {made} from it{}", article(name), research_note(research, i)))
         })
         .take(2)
         .collect();
@@ -107,10 +108,12 @@ pub fn use_line(research: &Research, item: ItemId) -> Option<String> {
     // Both are named with the research that unlocks them, so a stuck player knows what to work towards.
     let built = |b: BlockId| format!("{}{}", block::def(b).name, block_note(research, b));
     if let Some(&(_, burner)) = BURNED_BY.iter().find(|n| n.0 == item) {
-        each.push(format!("a {} burns it for power", built(burner)));
+        let b = built(burner);
+        each.push(format!("{} {b} burns it for power", article(&b)));
     }
     if !by_recipe {
-        each.push(format!("a {} turns anything into coins", built(block::RECYCLER)));
+        let r = built(block::RECYCLER);
+        each.push(format!("{} {r} turns anything into coins", article(&r)));
     }
     (!each.is_empty()).then(|| format!("{}.", upper_first(&each.join("; "))))
 }
@@ -149,6 +152,13 @@ fn lower_first(s: &str) -> String {
     c.next().map_or(String::new(), |f| f.to_lowercase().chain(c).collect())
 }
 
+fn article(word: &str) -> &'static str {
+    match word.chars().next().map(|c| c.to_ascii_lowercase()) {
+        Some('a' | 'e' | 'i' | 'o' | 'u') => "an",
+        _ => "a",
+    }
+}
+
 fn upper_first(s: &str) -> String {
     let mut c = s.chars();
     c.next().map_or(String::new(), |f| f.to_uppercase().chain(c).collect())
@@ -156,8 +166,9 @@ fn upper_first(s: &str) -> String {
 
 /// What uses `item`: the hand recipes (`false`, index) and machine recipes (`true`, index) that take it, in table order.
 pub fn uses(item: ItemId) -> Vec<(bool, usize)> {
-    let hand = RECIPES.iter().enumerate().filter(|(_, r)| r.inputs.iter().any(|x| x.0 == item));
-    let machine = MACHINE_RECIPES.iter().enumerate().filter(|(_, r)| r.inputs.iter().any(|x| x.0 == item));
+    let hand = RECIPES.iter().enumerate().filter(|(_, r)| r.inputs.iter().any(|x| crate::wood::like(item, x.0)));
+    let machine =
+        MACHINE_RECIPES.iter().enumerate().filter(|(_, r)| r.inputs.iter().any(|x| crate::wood::like(item, x.0)));
     hand.map(|(i, _)| (false, i)).chain(machine.map(|(i, _)| (true, i))).collect()
 }
 

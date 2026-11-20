@@ -17,7 +17,6 @@ export class QuarrySection {
   private readonly found = h('p', 'mp-note');
   private readonly widths: HTMLButtonElement[];
   private readonly depths: HTMLButtonElement[];
-  private readonly pause: HTMLButtonElement;
   private pos: Pos = [0, 0, 0];
   private data: Uint32Array = new Uint32Array(0);
   private readAt = 0;
@@ -33,12 +32,11 @@ export class QuarrySection {
         this.set(this.data[0], i, this.data[2] === 1),
       );
     });
-    this.pause = button('secondary-btn', 'Pause', () => this.set(this.data[0], this.data[1], this.data[2] !== 1));
     const size = h('div', 'mp-inserts');
     size.append(...this.widths);
     const depth = h('div', 'mp-inserts');
     depth.append(...this.depths);
-    this.el.append(h('h3', '', 'Size'), size, h('h3', '', 'Depth'), depth, this.report, this.found, this.pause);
+    this.el.append(h('h3', '', 'Size'), size, h('h3', '', 'Depth'), depth, this.report, this.found);
   }
 
   get visible(): boolean {
@@ -70,10 +68,9 @@ export class QuarrySection {
 
   private draw(key: string): void {
     this.drawn = key;
-    const [width, depth, paused, layer, layers, dug, left] = this.data;
+    const [width, depth, , layer, layers, dug, left] = this.data;
     this.widths.forEach((b, i) => b.classList.toggle('active', i === width));
     this.depths.forEach((b, i) => b.classList.toggle('active', i === depth));
-    this.pause.textContent = paused ? 'Resume' : 'Pause';
     this.report.textContent =
       layers === 0
         ? 'Nothing to dig at this depth from here.'

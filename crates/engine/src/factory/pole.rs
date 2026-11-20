@@ -53,6 +53,8 @@ pub(super) const INSULATOR_Y: f64 = 0.55;
 /// The saved byte holds the tier in its low bits and the wall above them.
 const TIER_BITS: u32 = 4;
 const TIER_MASK: u8 = (1 << TIER_BITS) - 1;
+/// High bit on `Action::PlaceBlock::facing` for a pole: place it standalone without auto-wiring to any grid.
+pub const POLE_UNLINKED: u8 = 0x80;
 
 /// The tier a cable is stored as: not an upgrade of poles (`tiers.rs` never reaches it). It was 3 in the few saves of
 /// version 21 that hold cables, before the Mk4 pole took that number.
@@ -196,36 +198,58 @@ impl Machine for Pole {
     }
 
     fn describe(&self, f: &Factory) -> String {
+        use super::describe::{hud_pips, hud_stats};
         if f.dirty {
             return "Power pole".to_string();
         }
         let me = f.poles.iter().position(|p| p.pos == self.pos).map(|i| i as u32);
-        let label = me.map_or_else(String::new, |i| format!("{}\n", f.power.grid_label(i)));
+        let badge = me.map_or_else(String::new, |i| format!("{}\n", f.power.grid_badge(i)));
         if self.is_cable() {
-            return format!("{label}{}\nPower cable: joins the grid of a pole in reach", f.power.grid_line(me));
+            return format!("{badge}{}\nJoins the grid of a pole in reach", f.power.grid_bar(me));
         }
         let grid = me.map(|i| f.power.pole_grid[i as usize]);
         let on = |p: &Option<u32>| p.is_some_and(|p| Some(f.power.pole_grid[p as usize]) == grid);
         let poles = f.power.pole_grid.iter().filter(|&&g| Some(g) == grid).count();
-        let gens = f.power.gen_pole.iter().filter(|p| on(p)).count();
+        let proc_sources = f
+            .processors
+            .iter()
+            .zip(&f.power.process_pole)
+            .filter(|(p, pole)| {
+                on(pole)
+                    && matches!(
+                        p.energy(),
+                        super::process::Energy::Turbine
+                            | super::process::Energy::Solar
+                            | super::process::Energy::Diesel
+                            | super::process::Energy::Hydro
+                            | super::process::Energy::Reactor
+                            | super::process::Energy::Rectenna
+                    )
+            })
+            .count();
+        let sources = f.power.gen_pole.iter().filter(|p| on(p)).count() + proc_sources;
         let machines = f.power.miner_pole.iter().chain(&f.power.process_pole).chain(&f.power.lab_pole);
-        let machines = machines.chain(&f.power.pipe_pole).chain(&f.power.quarry_pole).filter(|p| on(p)).count();
+        let machines = machines
+            .chain(&f.power.pipe_pole)
+            .chain(&f.power.quarry_pole)
+            .filter(|p| on(p))
+            .count()
+            .saturating_sub(proc_sources);
         let PoleTier { link, reach, slots } = *self.stats();
-        if self.is_long() {
-            return format!(
-                "{label}{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} \
-                 connections used: long-distance poles within {link} blocks, other poles within {LONG_LOCAL_LINK}, \
-                 machines within {reach}",
-                f.power.grid_line(me),
-                f.slots_used(self.pos)
-            );
+        let pips = hud_pips("Connections", f.slots_used(self.pos), slots as usize);
+        let reach_chip = if self.is_long() {
+            format!("Reach {link} long · {LONG_LOCAL_LINK} pole · {reach} machine")
+        } else {
+            format!("Reach {link} pole · {reach} machine")
+        };
+        let mut chips = vec![format!("{poles} poles")];
+        if sources > 0 {
+            chips.push(format!("{sources} power"));
         }
-        format!(
-            "{label}{}\n{poles} poles, {gens} generators, {machines} machines on this grid\n{} of {slots} connections \
-             used: poles within {link} blocks, machines within {reach}",
-            f.power.grid_line(me),
-            f.slots_used(self.pos)
-        )
+        chips.push(format!("{machines} machines"));
+        chips.push(reach_chip);
+        let stats = hud_stats(&chips).unwrap_or_default();
+        format!("{badge}{}\n{pips}\n{stats}", f.power.grid_bar(me))
     }
 
     /// A steel post two blocks tall (`POLE_RISE` above its cell's top) with a crossarm and two copper insulators; a

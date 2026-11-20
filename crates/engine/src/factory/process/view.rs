@@ -18,6 +18,9 @@ pub type Rates = Vec<(ItemId, u32)>;
 impl Processor {
     /// The first readout line, also the panel's status.
     pub fn status_text(&self) -> String {
+        if self.status == Status::Off {
+            return super::super::switch::SWITCHED_OFF.to_string();
+        }
         let special = self
             .pods_text()
             .or_else(|| self.steam_text())
@@ -51,7 +54,8 @@ impl Processor {
                 let rate = (r.main().1 as f64 * 60.0 / r.seconds * share).round() as u32;
                 let slow =
                     if self.speed < FULL_SPEED { format!(" (low power: {}%)", self.speed / 10) } else { String::new() };
-                format!("{} {} · {rate} a minute{slow}", s.verb, item::name(r.main().0))
+                let out = crate::wood::made_from(r.main().0, self.taken.iter().map(|s| s.item));
+                format!("{} {} · {rate} a minute{slow}", s.verb, item::name(out))
             }
             (Status::NoFuel, _) => "Out of fuel: bring coal ore or logs".to_string(),
             (Status::NoWater, _) => "Out of water: pipe its blue inlet to a pump with water in reach".to_string(),
@@ -93,6 +97,7 @@ impl Processor {
 
     /// `rates` as one short line for the readout: "Full speed: 30 Iron Ore → 30 Iron Ingot a minute". The panel draws
     /// the same numbers as a table, a minute and a second (`Factory::rate_rows`).
+    #[cfg(test)]
     pub fn rates_text(&self) -> Option<String> {
         let (ins, outs) = self.rates()?;
         let words = |list: &Rates| -> String {
@@ -129,42 +134,144 @@ impl Processor {
         }
     }
 
-    /// Status and rate, what it holds and its fire.
+    /// Visual status pill (`@status|tone|text`) for the top-of-screen HUD readout: concise label + colour tone,
+    /// leaving verbose tutorial wording out of hover cards.
+    fn hud_status_line(&self) -> String {
+        use super::super::describe::hud_status;
+        if self.status == Status::Off {
+            return hud_status("off", super::super::switch::SWITCHED_OFF);
+        }
+        if let super::Extra::Study(study) = &self.extra {
+            use super::super::lab::LabStatus;
+            return match study.status {
+                None | Some(LabStatus::NoResearch) => {
+                    format!("{}\n\tT=Research", hud_status("warn", "No research chosen"))
+                }
+                Some(LabStatus::Working) => {
+                    hud_status(if self.speed < FULL_SPEED { "warn" } else { "ok" }, &self.status_text())
+                }
+                Some(LabStatus::NoPacks | LabStatus::AllTaken | LabStatus::NeedsCenter | LabStatus::NeedsAi) => {
+                    hud_status("warn", &self.status_text())
+                }
+                Some(LabStatus::NoPower) => {
+                    hud_status("err", if self.is_ai_lab() { "No power or compute" } else { "No power" })
+                }
+                Some(LabStatus::Off) => hud_status("off", super::super::switch::SWITCHED_OFF),
+            };
+        }
+        if self.spec.pick == Pick::Store {
+            let used = self.out.slots.iter().filter(|s| !s.is_empty()).count();
+            let cap = self.out.slots.len();
+            let tone = if used == cap { "warn" } else { "accent" };
+            return super::super::describe::hud_bar(
+                "Slots",
+                used as u64,
+                cap as u64,
+                &format!("{used} / {cap} stacks"),
+                tone,
+            );
+        }
+        let special = self
+            .pods_text()
+            .or_else(|| self.steam_text())
+            .or_else(|| self.solar_text())
+            .or_else(|| self.hangar_text())
+            .or_else(|| self.diesel_text())
+            .or_else(|| self.hydro_text())
+            .or_else(|| self.rectenna_text())
+            .or_else(|| self.hoist_text())
+            .or_else(|| self.reactor_text())
+            .or_else(|| self.recycle_text())
+            .or_else(|| self.eject_text())
+            .or_else(|| self.launch_text())
+            .or_else(|| self.half_fed_text())
+            .or_else(|| self.datacenter_text())
+            .or_else(|| self.tower_text())
+            .or_else(|| self.optimizer_text())
+            .or_else(|| self.hub_text())
+            .or_else(|| self.ground_text())
+            .or_else(|| self.forest_text())
+            .or_else(|| self.laser_text())
+            .or_else(|| self.pump_text());
+        if let Some(text) = special {
+            let tone = match self.status {
+                Status::Working => {
+                    if self.speed > 0 && self.speed < FULL_SPEED {
+                        "warn"
+                    } else {
+                        "ok"
+                    }
+                }
+                Status::NoPower | Status::NoFuel | Status::NoWater | Status::Overheated => "err",
+                Status::OutputFull | Status::NoInput | Status::NoRecipe | Status::NoDeposit | Status::Exhausted => {
+                    "warn"
+                }
+                Status::Off => "off",
+            };
+            return hud_status(tone, &text);
+        }
+        match (self.status, self.batch_recipe().or(self.chosen())) {
+            (Status::Working, Some(r)) => {
+                let share = self.stats().speed as f64 * self.speed as f64 * self.boost as f64
+                    / (FULL_SPEED * FULL_SPEED * FULL_SPEED) as f64;
+                let rate = (r.main().1 as f64 * 60.0 / r.seconds * share).round() as u32;
+                let slow =
+                    if self.speed < FULL_SPEED { format!(" · low power {}%", self.speed / 10) } else { String::new() };
+                let out = crate::wood::made_from(r.main().0, self.taken.iter().map(|s| s.item));
+                let tone = if self.speed < FULL_SPEED { "warn" } else { "ok" };
+                hud_status(tone, &format!("{} {} · {rate}/m{slow}", self.spec.verb, item::name(out)))
+            }
+            (Status::NoFuel, _) => hud_status("err", "Out of fuel"),
+            (Status::NoWater, _) => hud_status("err", "Out of water"),
+            (Status::NoPower, _) => hud_status("err", "No power"),
+            (Status::OutputFull, r) => match r.or_else(|| self.held_recipe()).and_then(|r| self.full_output(r)) {
+                Some((item, true)) => hud_status("warn", &format!("Side output full ({})", item::name(item))),
+                _ => hud_status("warn", "Output full"),
+            },
+            (Status::NoRecipe, _) => hud_status("warn", "No recipe chosen"),
+            _ => hud_status("warn", &self.status_text()),
+        }
+    }
+
+    /// Structured visual recipe flow row (`@recipe|in_id:tenths,...|out_id:tenths,...`) for `target-card.ts`.
+    fn hud_recipe_line(&self) -> Option<String> {
+        let (ins, outs) = self.rates()?;
+        let fmt = |list: &Rates| list.iter().map(|&(i, t)| format!("{}:{t}", i.0)).collect::<Vec<_>>().join(",");
+        Some(format!("@recipe|{}|{}", fmt(&ins), fmt(&outs)))
+    }
+
+    /// Status, visual recipe flow, icon inventory slots, and fire/controls.
     pub(super) fn readout(&self) -> String {
-        let mut lines = vec![self.status_text()];
-        lines.extend(self.rates_text());
-        let held = |label: &str, b: &Buffer| {
-            let each: Vec<String> =
-                b.contents().iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
-            (!each.is_empty()).then(|| format!("{label} {}", each.join(", ")))
+        use super::super::describe::{hud_items, hud_stats};
+        let mut lines = vec![self.hud_status_line()];
+        lines.extend(self.hud_recipe_line());
+        let stacks = |b: &Buffer| -> Vec<(ItemId, u32)> {
+            let mut merged: Vec<(ItemId, u32)> = Vec::new();
+            for s in b.contents() {
+                match merged.iter_mut().find(|m| m.0 == s.item) {
+                    Some(m) => m.1 += s.count,
+                    None => merged.push((s.item, s.count)),
+                }
+            }
+            merged
         };
         // A depot's store has its own line (`Holding`); its perk takes in and gives out the front.
-        let (into, side) =
-            if self.spec.pick == Pick::Depot { ("Perk in:", "Out the front:") } else { ("In:", "Side:") };
-        let mut parts: Vec<String> =
-            [held(into, &self.input), held("Fuel:", &self.fuel)].into_iter().flatten().collect();
+        let (into, side) = if self.spec.pick == Pick::Depot { ("Perk in", "Front out") } else { ("In", "Side") };
+        lines.extend(hud_items(into, &stacks(&self.input)));
+        lines.extend(hud_items("Fuel", &stacks(&self.fuel)));
+        lines.extend(hud_items("Out", &stacks(&self.out)));
+        lines.extend(hud_items(side, &stacks(&self.side)));
         if self.burn > 0 {
-            parts.push(format!("fire for {} s", self.fire_seconds()));
-        }
-        parts.extend(held("Out:", &self.out));
-        parts.extend(held(side, &self.side));
-        if !parts.is_empty() {
-            lines.push(parts.join(" · "));
+            lines.extend(hud_stats(&[format!("Fire {} s", self.fire_seconds())]));
         }
         lines.extend(self.launch_line());
         if self.spec.pick != Pick::Eject
             && !matches!(
                 self.energy(),
-                Energy::Turbine
-                    | Energy::Solar
-                    | Energy::Accumulator
-                    | Energy::Hydro
-                    | Energy::Rectenna
-                    | Energy::Hoist
-                    | Energy::Optimizer
+                Energy::Turbine | Energy::Solar | Energy::Accumulator | Energy::Hydro | Energy::Rectenna
             )
         {
-            lines.push("Right-click to open".to_string());
+            lines.push("\tRMB=Open".to_string());
         }
         lines.join("\n")
     }

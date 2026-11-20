@@ -211,7 +211,7 @@ fn the_panel_and_belt_numbers_match_what_analytics_measures() {
         flow(4)
     );
     let text = f.describe(at(4)).unwrap();
-    assert!(text.contains(&format!("Moves {} items a minute", flow(4))), "{text}");
+    assert!(text.contains(&format!("@bar|Flow|{}|", flow(4) as u32)), "{text}");
     let line = f.smelter_at(at(3)).rates_text().unwrap();
     assert!(line.starts_with("Full speed:") && line.contains("→") && line.ends_with("Iron Ingot a minute"), "{line}");
 }
@@ -359,7 +359,7 @@ fn a_miner_without_power_reads_low_power_and_one_with_it_reads_full() {
     g.skip_time(20.0);
 
     let line = g.efficiency_line(m);
-    assert!(line.starts_with("Efficiency"), "{line}");
+    assert!(line.starts_with("@eff|"), "{line}");
     assert!(g.machine_efficiency_percent(m.x, m.y, m.z) >= 90, "{line}");
     let now = g.analytics.power_now(-1);
     assert!(now[1] > 0.0 && now[0] >= now[1], "capacity {} must cover use {}", now[0], now[1]);

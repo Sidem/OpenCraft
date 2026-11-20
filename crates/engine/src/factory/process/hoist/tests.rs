@@ -56,7 +56,7 @@ fn a_powered_winch_above_the_top_carries_riders_anywhere_in_the_shaft() {
     }
     assert_eq!(rate(&f, 70.0), 0.0, "below the shaft");
     let text = f.describe(IVec3::new(0, TOP + 1, 0)).unwrap();
-    assert!(text.starts_with("Shaft running at 9 blocks a second"), "{text}");
+    assert!(text.contains("Shaft running at 9 blocks a second"), "{text}");
 }
 
 #[test]

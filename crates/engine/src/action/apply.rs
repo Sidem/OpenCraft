@@ -120,6 +120,7 @@ impl Sim {
             }
             Action::EditSign { pos, line, text, back, ink } => self.signs.edit(pos, line, &text, back, ink),
             Action::SetLed { pos, step, rgb } => self.set_led(pos, step, rgb),
+            Action::SetMachineEnabled { pos, on } => self.factory.set_enabled(pos, on),
             Action::ToggleDoor { pos } => self.toggle_door(pos),
             Action::Connect { pole, to } => self.connect(pole, to),
             Action::Disconnect { pole, to } => self.factory.disconnect(pole, to),

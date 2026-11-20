@@ -81,34 +81,30 @@ impl Machines {
         self.map.get(&pos).filter(|e| e.ready && !e.idle).map(|e| (e.work * 100.0).round() as u32)
     }
 
-    /// The readout for the machine at `pos`: its pace and what cost it the rest (empty if it is not tracked).
+    /// The readout for the machine at `pos`: a structured efficiency bar (`@eff|...`) for `target-card.ts`
+    /// (empty if it is not tracked).
     pub fn line(&self, pos: IVec3) -> String {
         let Some(e) = self.map.get(&pos) else { return String::new() };
         if e.idle || !e.ready {
-            return "Efficiency: idle, nothing to do".to_string();
+            return "@eff|idle||0".to_string();
         }
         let pct = (e.work * 100.0).round() as u32;
         if e.work >= FULL {
-            return "Efficiency 100%: full speed".to_string();
+            return "@eff|100||0".to_string();
         }
-        let mut text = format!("Efficiency {pct}% (last {WINDOW_SECS} s)");
-        let mut left = e.lost;
-        let mut sep = ": lost ";
-        let mut power = false;
-        for _ in 0..2 {
-            let (c, &share) = left.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).expect("causes");
-            if share < MINOR {
-                break;
-            }
-            power |= CAUSE_LIST[c] == Cause::Power;
-            text += &format!("{sep}{}% to {}", (share * 100.0).round() as u32, loss_name(CAUSE_LIST[c]));
-            (left[c], sep) = (0.0, ", ");
-        }
-        // Where to see it: the power screen is the one place that adds up what a grid makes and uses.
+        let (c, &share) = e.lost.iter().enumerate().max_by(|a, b| a.1.total_cmp(b.1)).expect("causes");
+        let (cause, loss_pct, power) = if share >= MINOR {
+            let cause = CAUSE_LIST[c];
+            (loss_name(cause), (share * 100.0).round() as u32, cause == Cause::Power)
+        } else {
+            ("", 0, false)
+        };
+        let bar = format!("@eff|{pct}|{cause}|{loss_pct}");
         if power && pct > 0 {
-            text += " · [P] shows what each grid makes and uses";
+            format!("{bar}\n\tP=Power grids")
+        } else {
+            bar
         }
-        text
     }
 
     /// Counts of the machines that have something to do: `[working, at full pace, then one count per cause]`, each

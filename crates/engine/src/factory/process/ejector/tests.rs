@@ -141,11 +141,11 @@ fn a_belt_ending_in_it_is_emptied_at_its_pace_and_backs_up_beyond() {
 #[test]
 fn its_readout_says_what_it_does_and_offers_no_panel() {
     let mut f = rig();
-    assert!(f.describe(IVec3::ZERO).unwrap().starts_with("Waiting for a belt"));
+    assert!(f.describe(IVec3::ZERO).unwrap().contains("Waiting for a belt"));
     f.insert(IVec3::ZERO, DIRT.into(), 4);
     run(&mut f, 0.2, None);
     let text = f.describe(IVec3::ZERO).unwrap();
-    assert!(text.starts_with("Dropping items") && !text.contains("Right-click"), "{text}");
+    assert!(text.contains("Dropping items") && !text.contains("RMB=Open"), "{text}");
 }
 
 #[test]

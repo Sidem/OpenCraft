@@ -51,7 +51,7 @@ pub const WASTE: [ItemId; 2] = [ItemId::block(SLAG), ItemId::block(TAILINGS)];
 
 /// Thousandths of a coin a recycler pays for one `item` (0 for the coin itself and for ids that are not items).
 pub fn millicoins(item: ItemId) -> u32 {
-    VALUES.get(item.0 as usize).copied().unwrap_or(0)
+    VALUES.get(crate::wood::standard(item).0 as usize).copied().unwrap_or(0)
 }
 
 /// Whole coins one `item` pays (rounded down; see [`millicoins`]).
@@ -82,7 +82,7 @@ static RAW: [u32; ITEM_COUNT] = build(1);
 /// Millis of raw items the cheapest route to one `item` consumes (1,000 for a raw item; 0 when nothing makes it). The
 /// harbour follows the same routes (`settlements/perks/harbour/price.rs`).
 pub fn raw_cost(item: ItemId) -> u32 {
-    RAW.get(item.0 as usize).copied().unwrap_or(0)
+    RAW.get(crate::wood::standard(item).0 as usize).copied().unwrap_or(0)
 }
 
 /// Uses of `item` if it is a tool (a recipe makes that many at once), else 1.

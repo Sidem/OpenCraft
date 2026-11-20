@@ -62,15 +62,15 @@ pub struct NeedWatch {
 }
 
 impl Game {
-    /// Where the items a machine at `pos` waits for come from, and what its stuck output is good for: one line each.
+    /// Where the items a machine at `pos` waits for come from (one line each). Blocked outputs are omitted from hover
+    /// readouts so cards stay focused on what the machine is doing rather than listing downstream uses.
     pub(crate) fn stuck_lines(&self, pos: IVec3) -> Vec<String> {
-        let (lacking, blocked) = self.sim.factory.stuck_on(pos);
+        let (lacking, _) = self.sim.factory.stuck_on(pos);
         let (gen, research) = (self.sim.world.generator(), &self.sim.factory.research);
-        let named = |i, line: Option<String>| line.map(|l| format!("{}: {l}", crate::item::name(i)));
-        let mut out: Vec<String> =
-            lacking.into_iter().filter_map(|i| named(i, item_guide::source_line(gen, research, i))).collect();
-        out.extend(blocked.and_then(|i| named(i, item_guide::use_line(research, i))));
-        out
+        lacking
+            .into_iter()
+            .filter_map(|i| item_guide::source_line(gen, research, i).map(|l| format!("{}: {l}", crate::item::name(i))))
+            .collect()
     }
 
     /// Called after every core tick, beside `watch_stalls`: scans once a second until the world was taught.

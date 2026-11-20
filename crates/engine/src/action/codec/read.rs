@@ -105,6 +105,7 @@ impl Action {
             75 => Action::ChopTree { pos: r.ivec3()?, at: r.vec3()?, from: r.u8()? },
             76 => Action::BuildGhost { pos: r.ivec3()? },
             77 => Action::SetLed { pos: r.ivec3()?, step: r.u8()?, rgb: r.u32()? },
+            78 => Action::SetMachineEnabled { pos: r.ivec3()?, on: r.bool()? },
             35 => Action::PlantGhost { pos: r.ivec3()?, block: r.block()?, facing: r.u8()?, tier: r.u8()? },
             _ => return None,
         })

@@ -32,6 +32,62 @@ pub fn fmt_duration(seconds: f64) -> String {
     }
 }
 
+/// `1` → `"1st"`, `2` → `"2nd"`, `3` → `"3rd"`, `4` → `"4th"`.
+pub fn ordinal(n: u8) -> String {
+    let suffix = match n % 100 {
+        11..=13 => "th",
+        _ => match n % 10 {
+            1 => "st",
+            2 => "nd",
+            3 => "rd",
+            _ => "th",
+        },
+    };
+    format!("{n}{suffix}")
+}
+
+/// Encodes structured HUD control chips (`\tKEY=Label\t...`) for `#target-controls` (`web/src/ui/target-controls.ts`).
+/// A line starting with `\t` is rendered as keycap/mouse chips below the status text, never mixed into prose.
+pub fn hud_keys(items: &[(&str, &str)]) -> String {
+    let mut out = String::new();
+    for &(key, label) in items {
+        out.push('\t');
+        out.push_str(key);
+        out.push('=');
+        out.push_str(label);
+    }
+    out
+}
+
+/// Visual status pill row (`tone`: `ok`, `warn`, `err`, `off`, `info`) for `web/src/ui/target-card.ts`.
+pub fn hud_status(tone: &str, text: &str) -> String {
+    format!("@status|{tone}|{text}")
+}
+
+/// Visual horizontal meter row (`tone`: `ok`, `warn`, `err`, `cyan`, `accent`).
+pub fn hud_bar(label: &str, value: u64, max: u64, right: &str, tone: &str) -> String {
+    format!("@bar|{label}|{value}|{max}|{right}|{tone}")
+}
+
+/// Visual mini-slot inventory strip (`group`: `"In"`, `"Out"`, `"Fuel"`, `"Side"`, `"Holding"`, etc.).
+pub fn hud_items(group: &str, items: &[(item::ItemId, u32)]) -> Option<String> {
+    if items.is_empty() {
+        return None;
+    }
+    let list: Vec<String> = items.iter().map(|&(i, n)| format!("{}:{n}", i.0)).collect();
+    Some(format!("@items|{group}|{}", list.join(",")))
+}
+
+/// Visual dot-pip meter (`used` lit pips out of `total`).
+pub fn hud_pips(label: &str, used: usize, total: usize) -> String {
+    format!("@pips|{label}|{used}|{total}")
+}
+
+/// Compact horizontal stat chips (`@stats|chip1|chip2|...`).
+pub fn hud_stats(chips: &[String]) -> Option<String> {
+    (!chips.is_empty()).then(|| format!("@stats|{}", chips.join("|")))
+}
+
 impl Factory {
     /// What the processing machine at `pos` is stuck on: the inputs it lacks (`Processor::lacking`) and the output it
     /// has nowhere to put. Empty for anything else, so the HUD can say where an item comes from or what it is for.
@@ -71,13 +127,17 @@ impl Factory {
         // A machine a sensor switched off is wired; say so instead of 'no power'.
         let text = if self.anchor_of(pos).is_some_and(|a| self.power.off.contains(&a)) {
             text.replace(super::power::NOT_WIRED, super::sensor::SWITCHED_OFF)
+                .replace("@status|err|No power", "@status|off|Switched off by sensor")
         } else {
             text
         };
-        // A tiered machine says its Mk and what raises it: "Mk1 · next: Green Kit ×4".
+        // A tiered machine emits a header badge (`@tier|mk|item_id|kit_id|kits`) instead of duplicating Mk in prose.
         let text = match (self.tiered_at(pos), self.next_upgrade(pos)) {
-            (Some((_, t)), Some(s)) => format!("Mk{} · next: {} ×{}\n{text}", t + 1, item::name(s.kit), s.kits),
-            (Some((_, t)), None) => format!("Mk{}\n{text}", t + 1),
+            (Some((block, t)), next) => {
+                let id = super::tiers::family(block).and_then(|f| f.items.get(t as usize)).map_or(0, |i| i.0);
+                let (kit, kits) = next.map_or((0, 0), |s| (s.kit.0, s.kits));
+                format!("@tier|{}|{id}|{kit}|{kits}\n{text}", t + 1)
+            }
             _ => text,
         };
         Some(text).filter(|t| !t.is_empty())

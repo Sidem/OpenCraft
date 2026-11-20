@@ -73,7 +73,7 @@
   order: 0;
   display: flex;
   gap: 8px;
-  align-items: baseline;
+  align-items: center;
   max-width: calc(100vw - 24px);
   padding: 4px 12px;
   border-radius: 999px;
@@ -82,4 +82,11 @@
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   pointer-events: none;
+}
+
+.prospect-next {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
 }

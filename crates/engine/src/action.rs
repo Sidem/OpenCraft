@@ -60,6 +60,11 @@ pub enum Action {
         step: u8,
         rgb: u32,
     },
+    /// Switches the active machine at `pos` on or off (`factory/switch.rs`): off draws no power or fuel.
+    SetMachineEnabled {
+        pos: IVec3,
+        on: bool,
+    },
     /// Empties the box or miner at `pos` into the inventory, or takes a machine's output.
     TakeContents {
         pos: IVec3,

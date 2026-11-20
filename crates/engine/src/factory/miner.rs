@@ -10,7 +10,7 @@ use crate::block::{tex, STONE};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{DepositKey, Deposits};
 use crate::inventory::Stack;
-use crate::item::{self, ItemId};
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::sim::SimEvent;
 use crate::world::World;
@@ -58,16 +58,19 @@ pub enum MinerStatus {
     NoPower,
     /// A coal miner with nothing to burn.
     NoFuel,
+    /// Switched off by the player in its panel.
+    Off,
 }
 
 /// Every status, in declaration order: saves store `status as u8`.
-const STATUSES: [MinerStatus; 6] = [
+const STATUSES: [MinerStatus; 7] = [
     MinerStatus::Running,
     MinerStatus::OutputFull,
     MinerStatus::NoDeposit,
     MinerStatus::Exhausted,
     MinerStatus::NoPower,
     MinerStatus::NoFuel,
+    MinerStatus::Off,
 ];
 
 pub struct Miner {
@@ -288,7 +291,8 @@ impl Miner {
             MinerStatus::OutputFull => "Output full: put a belt leading away, or a box, next to it".to_string(),
             MinerStatus::Exhausted => "Deposit worked out".to_string(),
             MinerStatus::NoPower => NOT_WIRED.to_string(),
-            MinerStatus::NoFuel => "Out of fuel: right-click it and give it coal ore or logs".to_string(),
+            MinerStatus::NoFuel => "Out of fuel · add coal ore or logs".to_string(),
+            MinerStatus::Off => super::switch::SWITCHED_OFF.to_string(),
             MinerStatus::NoDeposit => String::new(),
         }
     }
@@ -347,19 +351,54 @@ impl Machine for Miner {
         held
     }
 
-    /// Deposit, status, what it holds and how long the deposit lasts at the current draw.
+    /// Status pill, deposit remaining bar, held ore/fuel icons, and remaining time.
     fn describe(&self, f: &Factory) -> String {
-        if self.deposit.is_none() {
-            return "Not on an ore deposit. Place miners against an ore block.".to_string();
-        }
-        let Some(head) = self.deposit_head(f) else { return String::new() };
-        let mut lines = vec![head, self.status_line()];
+        use super::describe::{hud_bar, hud_items, hud_stats, hud_status};
+        let Some(key) = &self.deposit else {
+            return hud_status("warn", "Not on an ore deposit");
+        };
+        let Some(st) = f.deposits.get(key) else { return String::new() };
+        let status = match self.status {
+            MinerStatus::Running if self.draw_rate > 0.01 => hud_status(
+                "ok",
+                &format!(
+                    "Mining · {}/m ({}% recovery)",
+                    (self.draw_rate * self.recovery() * 60.0).round() as u32,
+                    (self.recovery() * 100.0).round() as u32
+                ),
+            ),
+            MinerStatus::Running => hud_status("warn", "Waiting · deposit at full draw"),
+            MinerStatus::OutputFull => hud_status("warn", "Output full"),
+            MinerStatus::Exhausted => hud_status("warn", "Deposit worked out"),
+            MinerStatus::NoPower => hud_status("err", "No power"),
+            MinerStatus::NoFuel => hud_status("err", "Out of fuel"),
+            MinerStatus::Off => hud_status("off", super::switch::SWITCHED_OFF),
+            MinerStatus::NoDeposit => String::new(),
+        };
+        let mut lines = vec![status];
+        let right = format!("{} / {} blocks", fmt_int(st.remaining_blocks as u64), fmt_int(st.initial_blocks as u64));
+        lines.push(hud_bar(
+            &st.deposit.name(),
+            st.remaining_blocks as u64,
+            st.initial_blocks.max(1) as u64,
+            &right,
+            if st.exhausted() { "warn" } else { "ok" },
+        ));
         let held = self.out.total();
         if held > 0 {
-            lines.push(format!("Holding {held} {} · right-click to open", item::name(self.ore)));
+            lines.extend(hud_items("Out", &[(self.ore, held)]));
         }
-        lines.extend(self.burner.line().filter(|_| self.is_coal()));
-        lines.extend(self.deposit_tail(f));
+        if self.is_coal() {
+            let fuel: Vec<(ItemId, u32)> = self.burner.fuel.contents().iter().map(|s| (s.item, s.count)).collect();
+            lines.extend(hud_items("Fuel", &fuel));
+            if self.burner.energy > 0 {
+                lines.extend(hud_stats(&[format!("{} kJ stored", self.burner.stored_kj())]));
+            }
+        }
+        if let Some(tail) = self.deposit_tail(f) {
+            lines.push(tail);
+        }
+        lines.push("\tRMB=Open".to_string());
         lines.join("\n")
     }
 
@@ -371,6 +410,7 @@ impl Machine for Miner {
             MinerStatus::NoDeposit | MinerStatus::Exhausted | MinerStatus::NoPower | MinerStatus::NoFuel => {
                 tex::LAMP_RED
             }
+            MinerStatus::Off => tex::FRAME,
         };
         let running = self.status == MinerStatus::Running && self.draw_rate > 0.01;
         let look = Look {

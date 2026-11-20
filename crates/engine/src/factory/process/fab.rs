@@ -55,16 +55,16 @@ impl Processor {
             return None;
         }
         // The recipe it is furthest into: the most inputs fully present, among those it holds anything of.
-        let done = |r: &MachineRecipe| r.inputs.iter().filter(|&&(i, n)| self.input.count(i) >= n).count();
-        let touched = |r: &&MachineRecipe| r.inputs.iter().any(|&(i, _)| self.input.count(i) > 0);
+        let done = |r: &MachineRecipe| r.inputs.iter().filter(|&&(i, n)| self.input.count_like(i) >= n).count();
+        let touched = |r: &&MachineRecipe| r.inputs.iter().any(|&(i, _)| self.input.count_like(i) > 0);
         let fab = MACHINE_RECIPES.iter().filter(|r| r.category == category).filter(touched);
         let best = fab
             .fold(None, |b: Option<&MachineRecipe>, r| if b.is_none_or(|b| done(r) > done(b)) { Some(r) } else { b });
         let lacking: Vec<String> = best?
             .inputs
             .iter()
-            .filter(|&&(i, n)| self.input.count(i) < n)
-            .map(|&(i, n)| format!("{} {}", n - self.input.count(i), item::name(i)))
+            .filter(|&&(i, n)| self.input.count_like(i) < n)
+            .map(|&(i, n)| format!("{} {}", n - self.input.count_like(i), item::name(i)))
             .collect();
         (!lacking.is_empty()).then(|| format!("Waiting for {}", lacking.join(", ")))
     }

@@ -277,8 +277,10 @@ impl Game {
         }
         let inv = self.inventory();
         if self.held_footprint().is_some() {
-            let (_, pos, facing, cells) = self.footprint_ghost()?;
+            let (block, pos, facing, cells) = self.footprint_ghost()?;
             let free = cells.iter().all(|c| !c.1);
+            let facing =
+                if block == block::LONG_POLE && body.input.crouch { facing | factory::POLE_UNLINKED } else { facing };
             return free.then_some(Action::PlaceBlock { pos, slot: inv.selected as u8, facing, against: hit.block });
         }
         let stack = inv.selected_stack();

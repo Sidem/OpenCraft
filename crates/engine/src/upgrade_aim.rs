@@ -59,22 +59,26 @@ impl Game {
             let cells = f.footprint_at(hit.block).map_or_else(|| vec![hit.block], |f| f.2);
             let (kits, cost) = cost(step.kits);
             let colour = if have >= kits { self.tier_colour(step.colour) as i32 } else { BLOCKED_RED };
+            let keys = crate::factory::hud_keys(&[("RMB", "Upgrade")]);
             return Aim {
                 machine: Some(bounds(&cells)),
                 colour,
-                label: format!("{title}\n{cost} · right-click to upgrade"),
+                label: format!("{title}\n{cost}\n{keys}"),
                 ..Aim::default()
             };
         }
         let whole_line = self.body().input.sprint;
         let belts = if whole_line { f.belt_chain(hit.block, MAX_CHAIN) } else { vec![hit.block] };
         let passes = belts.iter().filter(|&&p| f.tiered_at(p).is_some_and(|t| t.0 == block::UNDERPASS_IN)).count();
-        let how =
-            if whole_line { "click to upgrade them all" } else { "click to upgrade · hold Shift for the whole line" };
+        let keys = if whole_line {
+            crate::factory::hud_keys(&[("RMB", "Upgrade all"), ("Release Shift", "Single belt")])
+        } else {
+            crate::factory::hud_keys(&[("RMB", "Upgrade"), ("Hold Shift", "Whole line")])
+        };
         let title = if whole_line { format!("{title} (whole line)") } else { title };
         let (_, cost) = cost(f.upgrade_kits(belts.iter().copied()));
         Aim {
-            label: format!("{title}\n{} · {cost} · {how}", pieces(belts.len() - passes, passes)),
+            label: format!("{title}\n{} · {cost}\n{keys}", pieces(belts.len() - passes, passes)),
             belts,
             ..Aim::default()
         }

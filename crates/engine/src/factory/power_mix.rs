@@ -167,6 +167,7 @@ impl Factory {
             quarries: &self.quarries,
             research: &self.research,
             unlocked: &unlocked,
+            manual_off: &self.manual_off,
         };
         self.power.each_demand(&users, |pole, block, kw| f(self.power.pole_grid[pole as usize] as usize, block, kw));
     }

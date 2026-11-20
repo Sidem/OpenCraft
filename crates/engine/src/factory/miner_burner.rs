@@ -9,7 +9,7 @@
 
 use crate::block::{tex, BlockId, COAL_MINER, MINER};
 use crate::bytes::{ByteReader, ByteWriter};
-use crate::item::{self, ItemId};
+use crate::item::ItemId;
 use crate::math::IVec3;
 use crate::recipes::fuel_energy;
 use crate::TICK_RATE;
@@ -87,16 +87,6 @@ impl Burner {
     pub fn read_state(r: &mut ByteReader) -> Option<Burner> {
         let fuel = Buffer::read_state(r, 1)?;
         Some(Burner { fuel, energy: r.u32()? })
-    }
-
-    /// What it holds, as a readout line ("Fuel: 3 Coal Ore · 270 kJ stored"), if anything.
-    pub fn line(&self) -> Option<String> {
-        let s = self.fuel.slots.first().filter(|s| !s.is_empty());
-        let mut parts = s.map(|s| format!("Fuel: {} {}", s.count, item::name(s.item))).into_iter().collect::<Vec<_>>();
-        if self.energy > 0 {
-            parts.push(format!("{} kJ stored", self.stored_kj()));
-        }
-        (!parts.is_empty()).then(|| parts.join(" · "))
     }
 }
 

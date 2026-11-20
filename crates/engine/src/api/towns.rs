@@ -41,7 +41,7 @@ impl Game {
         let upkeep = upkeep(t.kind, t.built.max(1));
         out.push(upkeep.len() as u32);
         for (item, n) in upkeep {
-            out.extend([u32::from(item.0), n, held.map_or(0, |b| b.count(item))]);
+            out.extend([u32::from(item.0), n, held.map_or(0, |b| b.count_like(item))]);
         }
         out
     }

@@ -178,11 +178,11 @@ impl Processor {
     }
 }
 
-/// A turbine's grid line for its readout: whether it hangs on a pole, and what its grid draws.
+/// A power source's grid bar for its readout: whether it hangs on a pole, and what its grid draws.
 pub(super) fn grid_line(p: &Processor, f: &Factory) -> Option<String> {
     let i = f.processors.iter().position(|q| q.pos == p.pos)?;
     let pole = f.power.process_pole.get(i).copied().flatten();
-    Some(f.power.grid_line(pole))
+    Some(f.power.grid_bar(pole))
 }
 
 /// Turbine `t` gives up to `want` kW (at most `TURBINE_KW`) from its boilers' steam. Returns what it gave
@@ -218,6 +218,9 @@ pub(in crate::factory) fn draw_water(processors: &mut [Processor], inlets: &[u32
     for &i in inlets {
         let i = i as usize;
         let b = &mut processors[i];
+        if b.status == Status::Off {
+            continue;
+        }
         let (low, unit) = match b.energy() {
             Energy::Boiler => (WATER_LOW, UNIT_ENERGY),
             Energy::Reactor => (COOLANT_LOW, COOLANT_UNIT),

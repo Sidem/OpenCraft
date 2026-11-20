@@ -87,7 +87,7 @@ fn an_accumulator_charges_from_spare_sun_only_and_gives_before_a_generator_burns
     assert!(acc.store.charge > 0 && acc.store.charge <= CHARGE_CAP);
     assert_eq!(f.power.supply[0], 0, "spare sun isn't supply");
     let text = acc.status_text();
-    assert!(text.starts_with("Charge"), "{text}");
+    assert!(text.contains("Charge"), "{text}");
 }
 
 #[test]
@@ -96,10 +96,10 @@ fn a_panel_reads_night_and_sun_and_an_accumulator_keeps_its_charge_in_a_save() {
     let mut world = World::new(1, 2);
     let mut events = Vec::new();
     f.update(&mut world, DAY_TICKS * 17 / 24, &mut events);
-    assert_eq!(f.describe(IVec3::new(0, 0, -4)).unwrap().lines().next(), Some("Night: no sunlight"));
+    assert_eq!(f.describe(IVec3::new(0, 0, -4)).unwrap().lines().next(), Some("@status|warn|Night: no sunlight"));
     f.update(&mut world, DAY_TICKS * 5 / 24, &mut events);
     let sun = f.describe(IVec3::new(0, 0, -4)).unwrap();
-    assert!(sun.starts_with("Sun 10 of 10 kW"), "{sun}");
+    assert!(sun.contains("Sun 10 of 10 kW"), "{sun}");
     let i = f.processors.iter().position(|p| p.spec.block == ACCUMULATOR).unwrap();
     f.processors[i].store.charge = 123_456;
     let mut w = ByteWriter::default();

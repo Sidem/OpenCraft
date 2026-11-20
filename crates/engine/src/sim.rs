@@ -263,6 +263,7 @@ impl Sim {
         self.signs.write_state(w);
         self.felling.write_state(w);
         self.leds.write_state(w);
+        self.factory.write_manual_off(w);
     }
 
     /// Restores what `write_state` wrote into a fresh `Sim` made with the same seed (`save.rs` lists the versions).
@@ -324,6 +325,9 @@ impl Sim {
         self.signs = if r.version >= 63 { Signs::read_state(r)? } else { Signs::default() };
         self.felling = if r.version >= 73 { Felling::read_state(r)? } else { Felling::default() };
         self.leds = if r.version >= 79 { Leds::read_state(r)? } else { Leds::default() };
+        if r.version >= 80 {
+            self.factory.read_manual_off(r)?;
+        }
         Some(())
     }
 }

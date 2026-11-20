@@ -109,7 +109,7 @@ fn process_sample(p: &Processor) -> Option<Sample> {
     let share = if p.draws_power() { p.speed } else { FULL_SPEED };
     Some(match p.status {
         Status::Working => Sample::run(share),
-        Status::NoRecipe => return None,
+        Status::NoRecipe | Status::Off => return None,
         Status::NoInput => Sample::stalled(Cause::Input),
         Status::OutputFull => Sample::stalled(Cause::Output),
         Status::NoPower => Sample::stalled(Cause::Power),
@@ -133,6 +133,7 @@ fn miner_sample(m: &Miner) -> Option<Sample> {
         MinerStatus::NoDeposit | MinerStatus::Exhausted => Sample::stalled(Cause::Deposit),
         MinerStatus::NoPower => Sample::stalled(Cause::Power),
         MinerStatus::NoFuel => Sample::stalled(Cause::Fuel),
+        MinerStatus::Off => return None,
     })
 }
 
@@ -151,6 +152,6 @@ fn lab_sample(l: &Lab) -> Option<Sample> {
         LabStatus::Working => Sample::run(l.speed),
         LabStatus::NoPacks | LabStatus::NeedsCenter | LabStatus::NeedsAi => Sample::stalled(Cause::Input),
         LabStatus::NoPower => Sample::stalled(Cause::Power),
-        LabStatus::NoResearch | LabStatus::AllTaken => return None,
+        LabStatus::NoResearch | LabStatus::AllTaken | LabStatus::Off => return None,
     })
 }

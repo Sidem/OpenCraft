@@ -202,7 +202,7 @@ impl Machine for Sensor {
             (Some(_), Some(name)) => format!("Switches: {name} {}", if self.on { "(on)" } else { "(OFF)" }),
             _ => "Switches: nothing in front that takes a power wire".to_string(),
         };
-        format!("{}\n{watching}\n{switching}\nRight-click: next rule · R: turn", RULES[self.rule as usize].name)
+        format!("{}\n{watching}\n{switching}\n\tRMB=Next rule\tR=Turn", RULES[self.rule as usize].name)
     }
 
     /// A low housing with a nose each way (the reading side behind, the switched side ahead) and a lamp.

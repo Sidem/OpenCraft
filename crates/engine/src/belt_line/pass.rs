@@ -157,7 +157,8 @@ impl Game {
         if self.line.blocked.is_some() {
             s += " · too wide to go under (red)";
         }
-        let verb = if self.ghost_mode { "plant ghosts" } else { "build" };
-        s + &format!(" · release to {verb}, left-click to cancel")
+        let verb = if self.ghost_mode { "Plant ghosts" } else { "Build" };
+        let keys = crate::factory::hud_keys(&[("Release RMB", verb), ("LMB", "Cancel")]);
+        format!("{s}\n{keys}")
     }
 }

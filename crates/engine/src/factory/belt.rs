@@ -26,8 +26,6 @@ use super::provenance::Tag;
 use super::render::push_box;
 use super::{Factory, Machine, DIRS};
 
-const DIR_NAMES: [&str; 4] = ["north", "east", "south", "west"];
-
 /// A belt tier's numbers: speed in blocks per second and the texture of its moving top.
 pub struct BeltTier {
     pub speed: f32,
@@ -354,34 +352,56 @@ impl Machine for Belt {
         out
     }
 
-    /// Load, heading and what it delivers into (skipped until the links are rebuilt).
+    /// Load, direction chips, delivery target, and visual throughput bar.
     fn describe(&self, f: &Factory) -> String {
+        use super::describe::{hud_bar, hud_stats};
+        const ARROWS: [&str; 4] = ["↑ North", "→ East", "↓ South", "← West"];
+        let mut chips = vec![ARROWS[self.dir as usize].to_string()];
         let load = match self.items.len() {
             0 => "Empty".to_string(),
-            1 => "Carrying 1 item".to_string(),
-            n => format!("Carrying {n} items"),
+            1 => "1 item".to_string(),
+            n => format!("{n} items"),
         };
-        let end = if f.dirty {
-            String::new()
-        } else {
+        chips.push(load);
+        let shape = self.shape.words().trim_start_matches(" · ");
+        if !shape.is_empty() {
+            chips.push(shape.to_string());
+        }
+        let bend = bend_words(self.bend).trim_start_matches(" · ");
+        if !bend.is_empty() {
+            chips.push(bend.to_string());
+        }
+        let mut note = String::new();
+        if !f.dirty {
             match self.out {
                 Link::None if self.shape == Shape::Entry => {
                     let blocks = super::underpass::span(self.tier);
-                    format!(" · needs another underpass facing the same way, at most {blocks} blocks ahead")
+                    note = format!("Needs exit underpass within {blocks} blocks");
                 }
-                Link::None => " · nothing in front, items wait at the end".to_string(),
-                Link::Belt { mid: true, .. } => " · joins the next belt from the side".to_string(),
-                Link::Belt { .. } => String::new(),
-                Link::Machine(slot) => format!(" · delivers into the {}", f.name_of(slot)),
+                Link::None => chips.push("End of line".to_string()),
+                Link::Belt { mid: true, .. } => chips.push("Side join".to_string()),
+                Link::Belt { .. } => {}
+                Link::Machine(slot) => chips.push(format!("→ {}", f.name_of(slot))),
             }
-        };
+        }
         let most = most_a_minute(self.tier);
         let flow = match self.flow_a_minute() {
-            Some(n) => format!("Moves {n} items a minute, {}% of the {most} it can carry", n * 100 / most),
-            None => format!("Carries up to {most} items a minute"),
+            Some(n) => {
+                let pct = n * 100 / most;
+                let tone = if n == 0 { "accent" } else { "ok" };
+                hud_bar("Flow", u64::from(n), u64::from(most), &format!("{n} / {most} /m ({pct}%)"), tone)
+            }
+            None => hud_bar("Flow", 0, u64::from(most), &format!("up to {most} /m"), "accent"),
         };
-        let (heading, bend) = (DIR_NAMES[self.dir as usize], bend_words(self.bend));
-        format!("{load} · heading {heading}{bend}{}{end}\n{flow}", self.shape.words())
+        let mut lines = Vec::new();
+        if let Some(s) = hud_stats(&chips) {
+            lines.push(s);
+        }
+        lines.push(flow);
+        if !note.is_empty() {
+            lines.push(note);
+        }
+        lines.join("\n")
     }
 
     /// A scrolling rubber top between two rails (or the shape's model), and the items riding on it.

@@ -127,18 +127,21 @@ impl Game {
         if !self.telescope_held() {
             return None;
         }
+        let keys = crate::factory::hud_keys;
         if !self.scope_active() {
-            return Some("Telescope\nRight-click to look through it (first person)".into());
+            return Some(format!("Telescope\nFirst person\n{}", keys(&[("RMB", "Look through")])));
         }
         let zoom = ZOOMS[self.scope.step] as u32;
         Some(match self.scope.aim {
             Some(a) => format!(
-                "Telescope · {zoom}×\nLeft-click pins the ground {} blocks away · wheel zooms · right-click lowers it",
-                a.dist as i32
+                "Telescope · {zoom}×\n{} blocks away\n{}",
+                a.dist as i32,
+                keys(&[("LMB", "Pin spot"), ("Wheel", "Zoom"), ("RMB", "Lower")])
             ),
-            None => {
-                format!("Telescope · {zoom}×\nNo ground in sight: look lower · wheel zooms · right-click lowers it")
-            }
+            None => format!(
+                "Telescope · {zoom}×\nLook lower to pin ground\n{}",
+                keys(&[("Wheel", "Zoom"), ("RMB", "Lower")])
+            ),
         })
     }
 

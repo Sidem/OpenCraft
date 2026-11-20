@@ -202,7 +202,7 @@ impl Game {
         out
     }
 
-    /// The HUD lines while a dock is in hand: its name, then what a click does or why it cannot.
+    /// The HUD lines while a dock is in hand: name, status, and control chips.
     pub(crate) fn dock_label(&self) -> String {
         let Some(dock) = self.held_dock() else { return String::new() };
         let (name, belts) = if dock == LOADING_DOCK {
@@ -210,22 +210,21 @@ impl Game {
         } else {
             ("Unloading Dock", "belts lead away from its sides")
         };
+        let keys = crate::factory::hud_keys;
         let text = match (self.dock_aim(), self.dock_on_track(), self.dock_in_line()) {
-            (Some((_, DockFit::Ok)), ..) => format!("click to build it here: trains stop on it, {belts}"),
-            (Some((p, _)), ..) if self.sim.factory.dock_anchor(p).is_some() => "this is a dock already".to_string(),
+            (Some((_, DockFit::Ok)), ..) => format!("Trains stop here · {belts}\n{}", keys(&[("RMB", "Build dock")])),
+            (Some((p, _)), ..) if self.sim.factory.dock_anchor(p).is_some() => "Already a dock".to_string(),
             (Some((_, why)), ..) => why_not_here(why).to_string(),
             (None, Some(OnTrack { why: None, .. }), _) => {
-                format!("click to build it here, cutting the track in two: trains stop on it, {belts}")
+                format!("Splits track · {belts}\n{}", keys(&[("RMB", "Build dock")]))
             }
             (None, Some(OnTrack { why: Some(why), .. }), _) => why,
             (None, None, Some(InLine { pos, from: (a, _), why: None, .. })) => {
                 let run = (pos - a).x.abs() + (pos - a).z.abs();
-                format!("click to lay it in line: {run} blocks of track from the selected node · trains stop on it")
+                format!("{run} blocks from selected node\n{}", keys(&[("RMB", "Lay in line")]))
             }
             (None, None, Some(InLine { why: Some(why), .. })) => why,
-            (None, None, None) => "aim anywhere along straight track (or at a rail node on it): the dock goes there, \
-                                   or after the node you just placed to lay it in line"
-                .to_string(),
+            (None, None, None) => "Aim along straight track, or after the last rail node".to_string(),
         };
         format!("{name}\n{text}")
     }

@@ -46,21 +46,21 @@ fn two_ports(gap: i32) -> (Game, IVec3, IVec3) {
 #[test]
 fn clicking_two_ports_sets_a_route_and_crouch_clicking_clears_it() {
     let (mut g, a, b) = two_ports(80);
-    assert!(g.cargo_label().starts_with("Cargo Drone\naim at a drone port"), "{}", g.cargo_label());
+    assert!(g.cargo_label().starts_with("Cargo Drone\nAim at a drone port"), "{}", g.cargo_label());
     aim_at(&mut g, a);
-    assert!(g.cargo_label().contains("start a route"), "{}", g.cargo_label());
+    assert!(g.cargo_label().contains("RMB=Start route"), "{}", g.cargo_label());
     assert_eq!(g.cargo_boxes()[6], GHOST_GREEN);
     click(&mut g);
     assert_eq!(g.cargo_from, Some(a));
     aim_at(&mut g, b);
-    assert!(g.cargo_label().contains("80 blocks, 2 batteries a trip"), "{}", g.cargo_label());
+    assert!(g.cargo_label().contains("80 blocks · 2 batteries / trip"), "{}", g.cargo_label());
     let boxes = g.cargo_boxes();
     assert_eq!((boxes[6], boxes[13]), (GHOST_GREEN, SELECTED_BLUE), "the aimed port and the first one");
     click(&mut g);
     assert_eq!(g.sim.cargo.route_from(a), Some(b));
     assert_eq!(g.cargo_from, None);
     aim_at(&mut g, a);
-    assert!(g.cargo_label().contains("Route: to the port at"), "{}", g.cargo_label());
+    assert!(g.cargo_label().contains("Route: port at"), "{}", g.cargo_label());
     assert_eq!(g.cargo_boxes()[13], ROUTE_AMBER, "the destination is outlined");
     g.body_mut().input.crouch = true;
     click(&mut g);
@@ -74,7 +74,7 @@ fn a_port_out_of_range_is_red_and_only_a_cargo_drone_in_hand_uses_the_hand() {
     aim_at(&mut g, a);
     click(&mut g);
     aim_at(&mut g, b);
-    assert!(g.cargo_label().contains("too far"), "{}", g.cargo_label());
+    assert!(g.cargo_label().contains("out of first port's range"), "{}", g.cargo_label());
     assert_eq!(g.cargo_boxes()[6], BLOCKED_RED);
     click(&mut g);
     assert_eq!(g.sim.cargo.route_from(a), None);

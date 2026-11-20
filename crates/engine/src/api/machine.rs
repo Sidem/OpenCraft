@@ -44,6 +44,21 @@ impl Game {
         self.sim.factory.panel(IVec3::new(x, y, z)).map_or_else(String::new, |p| p.status)
     }
 
+    /// Whether the machine at a cell has an on/off switch in its panel.
+    pub fn machine_switchable(&self, x: i32, y: i32, z: i32) -> bool {
+        self.sim.factory.can_switch(IVec3::new(x, y, z))
+    }
+
+    /// Whether the machine at a cell is switched on (true unless switched off in its panel, or paused for a quarry).
+    pub fn machine_enabled(&self, x: i32, y: i32, z: i32) -> bool {
+        !self.sim.factory.is_off(IVec3::new(x, y, z))
+    }
+
+    /// Switches the machine at a cell on or off (next tick).
+    pub fn set_machine_enabled(&mut self, x: i32, y: i32, z: i32, on: bool) {
+        self.act(Action::SetMachineEnabled { pos: IVec3::new(x, y, z), on });
+    }
+
     /// The panel's rate table at full speed, flat: `[kind (0 uses, 1 makes), item, tenths of an item a minute]` per row,
     /// inputs first. Empty for a machine without recipes, or before it has one.
     pub fn machine_rate_rows(&self, x: i32, y: i32, z: i32) -> Vec<u32> {

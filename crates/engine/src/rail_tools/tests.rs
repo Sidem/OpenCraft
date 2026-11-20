@@ -159,7 +159,7 @@ fn clicking_nodes_selects_joins_and_cuts() {
     click(&mut g);
     assert_eq!(g.rails.sel, Some(a));
     aim_at(&mut g, b, IVec3::ZERO);
-    assert!(g.rail_label().contains("click to lay 12 blocks"), "{}", g.rail_label());
+    assert!(g.rail_label().contains("12 blocks") && g.rail_label().contains("RMB=Lay track"), "{}", g.rail_label());
     click(&mut g);
     assert!(g.sim.factory.track_between(a, b));
     assert_eq!(g.rails.sel, Some(b));
@@ -175,7 +175,7 @@ fn clicking_nodes_selects_joins_and_cuts() {
     assert!(g.sim.factory.track_between(b, c));
     g.rails.sel = Some(c);
     aim_at(&mut g, b, IVec3::ZERO);
-    assert!(g.rail_label().contains("crouch-click to cut"), "{}", g.rail_label());
+    assert!(g.rail_label().contains("Ctrl+RMB=Cut track"), "{}", g.rail_label());
     g.body_mut().input.crouch = true;
     click(&mut g);
     g.body_mut().input.crouch = false;
@@ -198,10 +198,10 @@ fn a_locomotive_is_put_on_a_node_with_track_and_picked_up_again() {
     g.select_slot(slot);
     g.run_ticks(2);
     let count = |g: &Game| g.inventory().count(LOCOMOTIVE);
-    assert!(g.train_label().starts_with("Locomotive\naim at a rail node"), "{}", g.train_label());
+    assert!(g.train_label().starts_with("Locomotive\nAim at a rail node"), "{}", g.train_label());
     // A node with no track refuses, in red.
     aim_at(&mut g, lone, IVec3::ZERO);
-    assert!(g.train_label().contains("no track"), "{}", g.train_label());
+    assert!(g.train_label().contains("No track"), "{}", g.train_label());
     assert_eq!(g.train_boxes()[6], BLOCKED_RED);
     click_train(&mut g);
     assert_eq!(count(&g), 2);
@@ -211,7 +211,7 @@ fn a_locomotive_is_put_on_a_node_with_track_and_picked_up_again() {
     click_train(&mut g);
     assert_eq!(count(&g), 1);
     assert!(g.sim.factory.train_on(a, b));
-    assert!(g.train_label().contains("select the train"), "{}", g.train_label());
+    assert!(g.train_label().contains("RMB=Select train"), "{}", g.train_label());
     assert_eq!(g.rails.train, Some(a), "a placed train is selected for its schedule");
     // Crouch-click picks it up.
     g.body_mut().input.crouch = true;
@@ -246,7 +246,7 @@ fn clicking_docks_with_a_locomotive_builds_the_selected_trains_schedule() {
     g.run_ticks(2);
     // No train is selected yet: a dock is a node like any other, to put the train on.
     aim_at(&mut g, dock, IVec3::ZERO);
-    assert!(g.train_label().contains("put it on the track"), "{}", g.train_label());
+    assert!(g.train_label().contains("RMB=Place train"), "{}", g.train_label());
     // Put the locomotive on, which selects it; then the dock joins its schedule, and a crouch-click clears it.
     aim_at(&mut g, a, IVec3::ZERO);
     click_train(&mut g);
@@ -294,14 +294,14 @@ fn a_signal_in_hand_goes_on_a_node_and_comes_off_again() {
     g.select_slot(slot);
     g.run_ticks(2);
     let count = |g: &Game| g.inventory().count(RAIL_SIGNAL);
-    assert!(g.train_label().starts_with("Rail Signal\naim at a rail node"), "{}", g.train_label());
+    assert!(g.train_label().starts_with("Rail Signal\nAim at a rail node"), "{}", g.train_label());
     aim_at(&mut g, a, IVec3::ZERO);
-    assert!(g.train_label().contains("put a signal"), "{}", g.train_label());
+    assert!(g.train_label().contains("RMB=Place signal"), "{}", g.train_label());
     assert_eq!(g.train_boxes()[6], GHOST_GREEN);
     click_train(&mut g);
     assert!(g.sim.factory.signal_at(a));
     assert_eq!(count(&g), 2);
-    assert!(g.train_label().contains("take the signal back"), "{}", g.train_label());
+    assert!(g.train_label().contains("RMB=Remove signal"), "{}", g.train_label());
     click_train(&mut g);
     assert!(!g.sim.factory.signal_at(a));
     assert_eq!(count(&g), 3);

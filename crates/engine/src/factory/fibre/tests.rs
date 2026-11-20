@@ -136,7 +136,7 @@ fn a_comms_satellite_joins_far_apart_grids_while_it_is_overhead() {
     assert_eq!(f.data.grid_of(0), f.data.grid_of(1));
     assert_eq!((f.data.supply[0], f.data.demand[0]), (100, 40));
     assert_eq!(f.data.satisfaction(f.data.process_node[1]), FULL_SPEED);
-    assert!(f.describe(nodes[1]).unwrap().contains("Under a comms satellite"));
+    assert!(f.describe(nodes[1]).unwrap().contains("Comms satellite"));
     // Far in the future its footprint has moved on (the track runs off at 6 blocks a second): the grids part again.
     let mut world = World::new(1, 2);
     f.update(&mut world, 60 * 3600, &mut Vec::new());
@@ -147,7 +147,7 @@ fn a_comms_satellite_joins_far_apart_grids_while_it_is_overhead() {
 #[test]
 fn nodes_save_and_load_and_the_readout_names_the_grid() {
     let f = plant(&[at(0, 5), at(10, 5)], &[(at(1, 2), 100)]);
-    assert!(f.describe(at(0, 5)).unwrap().contains("2 nodes, 1 producers, 0 consumers"));
+    assert!(f.describe(at(0, 5)).unwrap().contains("2 nodes|1 producers · 0 consumers"));
     let mut w = ByteWriter::default();
     f.write_state(&mut w);
     let mut world = World::new(1, 2);

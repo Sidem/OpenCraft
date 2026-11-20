@@ -35,7 +35,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `hints.rs`: onboarding tips. `lessons.rs`: the bits of `Sim::taught`.
 
 ### Factory (core): `factory/`
-- `mod.rs`: `Factory`. `tick.rs`, `table.rs` (`Kind`, `MACHINES`), `machine.rs` (trait), `state.rs`, `tiers.rs`, `upgrades.rs` (kits),
+- `mod.rs`: `Factory`. `tick.rs`, `table.rs` (`Kind`, `MACHINES`), `machine.rs` (trait), `state.rs`, `switch.rs` (on/off switches), `tiers.rs`, `upgrades.rs` (kits),
   `tier_mark.rs` (Mk studs).
 - Logistics: `belt.rs` (`BELT_TIERS`), `provenance.rs`, `belt_items.rs`, `belt_shape.rs` (ramps, lifts), `belt_model.rs`,
   `belt_curve.rs`, `underpass.rs`, `belt_chain.rs`, `router.rs` (splitter, filter, merger) + `router_model.rs` + `filter_rules.rs`, `storage.rs` +
@@ -123,7 +123,7 @@ local player's hands, presentation, then the **deterministic core**, which never
 - `net/`: `session.ts`, `host.ts`, `client.ts`, `protocol.ts`, `coop.ts`, `transport.ts`, `webrtc.ts`, `broadcast.ts`, `signal.ts`, `ticker.ts`.
 - `save/`: `store.ts` (IndexedDB), `session.ts`, `export.ts`, `leave-guard.ts` (drawn by `ui/leave-prompt.ts`; `ui/no-storage.ts` fills Worlds without storage); `comfort/settings.ts`. `console/`: `commands.ts`, `host.ts`.
 - `ui/`: one component per `<name>.ts` + `<name>.css`; `dom.ts` builds elements.
-  - HUD: `hud.ts` (+ `hud-columns.css`; `itemIcon` via `icon-paint.ts`, `icon-geometry.ts`), `icon-sprite.ts`, `hints.ts`,
+  - HUD: `hud.ts` (+ `hud-columns.css`, `target-card.ts`, `target-card.css`, `target-controls.ts`; `itemIcon` via `icon-paint.ts`, `icon-geometry.ts`), `icon-sprite.ts`, `hints.ts`,
     `key-prompt.ts`, `ghost-panel.ts` (ghost mode's controls card), `xray-badge.ts` (the goggles' icon and rim; keeps the on/off choice), `led-panel.ts` (an LED lamp's brightness and colour), `prospect.ts`, `nametags.ts`, `scope.ts`, `vignette.ts`, `minimap.ts`, `compass.ts`, `craftqueue.ts`.
   - Inventory and building: `inventory.ts`, `pager.ts`, `slot-controls.ts`, `crafting.ts` (+ `craft-nav.css`), `craft-family.ts`,
     `craft-tiers.ts`, `craft-card.ts`, `craft-info.ts`, `item-guide.ts`, `take-apart.ts`, `offhand.ts`, `held-name.ts`,

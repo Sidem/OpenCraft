@@ -349,24 +349,24 @@ fn the_label_always_says_what_z_does_next() {
         let label = g.ghost_label();
         assert!(label.contains(what), "{what:?} missing from {label:?}");
     };
-    says(&g, "Z starts a new box"); // the preset box
+    says(&g, "Z=New box"); // the preset box
     aim_at(&mut g, base);
     g.mark_blueprint_corner();
-    says(&g, "press Z");
+    says(&g, "Z=2nd corner");
     aim_at(&mut g, base + IVec3::new(4, 1, 0));
     g.mark_blueprint_corner();
-    says(&g, "Z starts a new box");
+    says(&g, "Z=New box");
     g.target = None;
     g.mark_blueprint_corner(); // Z at the sky clears the box
     assert_eq!(g.library.selection, None);
     // Nothing marked: the keys are the controls card's (`ghost_stage` 0), the label says only what the plan needs.
-    assert_eq!((g.ghost_stage_now(), g.ghost_label().contains("Z ")), (0, false));
+    assert_eq!((g.ghost_stage_now(), g.ghost_label().contains("Z=")), (0, false));
     for corner in [base, base + IVec3::new(4, 1, 0)] {
         aim_at(&mut g, corner);
         g.mark_blueprint_corner();
     }
     g.copy_blueprint();
-    says(&g, "Z puts it away");
+    says(&g, "Z=Put away");
 }
 
 #[test]

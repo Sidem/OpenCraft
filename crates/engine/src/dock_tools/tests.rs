@@ -59,14 +59,14 @@ fn outlined(g: &Game, colour: i32) -> Vec<IVec3> {
 fn a_dock_goes_onto_a_straight_node_keeping_its_tracks_and_says_why_not_elsewhere() {
     let (mut g, [a, b, c, d]) = scene();
     aim_at(&mut g, v(10, a.y - 1, 6), UP);
-    assert!(g.dock_label().contains("aim anywhere along straight track"), "{}", g.dock_label());
+    assert!(g.dock_label().contains("Aim along straight track"), "{}", g.dock_label());
     let mut can = outlined(&g, CAN_TEAL);
     can.sort_by_key(|p| p.x);
     assert_eq!(can, vec![a, b, c], "the straight nodes, not the diagonal one");
     // Aiming at the ground beside a node takes the node.
     aim_at(&mut g, b - UP + IVec3::new(1, 0, 0), UP);
     assert_eq!(outlined(&g, GHOST_GREEN), vec![b]);
-    assert!(g.dock_label().contains("click to build it here"), "{}", g.dock_label());
+    assert!(g.dock_label().contains("RMB=Build dock"), "{}", g.dock_label());
     click(&mut g);
     let f = &g.sim.factory;
     assert_eq!(f.dock_anchor(b), Some(b), "the node is a dock now");
@@ -91,7 +91,7 @@ fn a_dock_goes_anywhere_along_straight_track_cutting_it_in_two() {
     let (mut g, [a, b, c, _]) = scene();
     let at = v(10, a.y, 0);
     aim_at(&mut g, at - UP, UP);
-    assert!(g.dock_label().contains("cutting the track in two"), "{}", g.dock_label());
+    assert!(g.dock_label().contains("Splits track"), "{}", g.dock_label());
     assert_eq!(outlined(&g, GHOST_GREEN), vec![at]);
     click(&mut g);
     let f = &g.sim.factory;
@@ -159,7 +159,11 @@ fn a_dock_is_laid_in_line_after_the_selected_node_joined_to_it_and_rails_go_on_f
     // Aim at the ground a little off the line, 8 blocks on: the dock lands on the line itself.
     let at = c + IVec3::new(8, 0, 1);
     aim_at(&mut g, at - UP, UP);
-    assert!(g.dock_label().contains("click to lay it in line: 8 blocks"), "{}", g.dock_label());
+    assert!(
+        g.dock_label().contains("8 blocks from selected node") && g.dock_label().contains("RMB=Lay in line"),
+        "{}",
+        g.dock_label()
+    );
     assert!(outlined(&g, ANCHOR_BLUE) == vec![c] && outlined(&g, GHOST_GREEN) == vec![c + IVec3::new(8, 0, 0)]);
     click(&mut g);
     let d = c + IVec3::new(8, 0, 0);

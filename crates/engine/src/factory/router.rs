@@ -244,7 +244,7 @@ impl Machine for Router {
         let count = |links: &[Option<u32>; 3]| links.iter().filter(|o| o.is_some()).count();
         match self.kind {
             RouterKind::Filter => format!(
-                "{}\n{} of 3 outputs connected (front, left, right)\nRight-click to choose what goes where",
+                "{}\n{} of 3 outputs connected (front, left, right)\n\tRMB=Configure filter",
                 self.status_text(),
                 count(&self.outs)
             ),

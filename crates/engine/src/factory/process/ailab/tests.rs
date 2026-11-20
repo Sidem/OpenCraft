@@ -107,7 +107,7 @@ fn with_a_datacenter_on_the_grid_it_researches_and_every_second_unit_is_free() {
     assert_eq!(f.power.demand[0], 101, "20 TF is on the data grid, the lab's 100 kW and the winch's 1");
     assert_eq!(lab(&f).center_text().unwrap(), "Researching AI Research");
     let i = f.processors.iter().position(|p| p.is_ai_lab()).unwrap();
-    assert_eq!(f.compute_line(i).unwrap(), "Data grid: 20 TF wanted of 100 TF supplied · 100%");
+    assert_eq!(f.compute_line(i).unwrap(), "@bar|Compute|20|100|20 / 100 TF · 100%|cyan");
 }
 
 #[test]
@@ -134,7 +134,7 @@ fn a_bonus_tech_takes_compute_alone_and_each_level_takes_a_quarter_longer() {
     assert_eq!(f.research.progress(bonus), 2);
     assert_eq!(lab(&f).input.count(PACKS[0]), 64, "no packs were used");
     assert_eq!(f.research.current, Some(bonus), "it goes on");
-    assert!(lab(&f).center_line(&f.research).starts_with("\nMining Productivity: level 2\n×2 speed"));
+    assert!(lab(&f).center_line(&f.research).starts_with("\nMining Productivity: level 2\n@stats|×2 speed"));
 }
 
 #[test]

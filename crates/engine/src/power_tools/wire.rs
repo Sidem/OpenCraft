@@ -12,7 +12,7 @@
 
 use crate::action::Action;
 use crate::block;
-use crate::factory::{tier_stats, Hookup};
+use crate::factory::{hud_keys, tier_stats, Hookup};
 use crate::math::{IVec3, Vec3};
 use crate::sound;
 use crate::Game;
@@ -37,9 +37,9 @@ pub(super) struct WireAim {
 }
 
 impl Game {
-    /// Wiring is done with a pole in hand or nothing in hand.
+    /// Wiring is done with a pole (or long-distance pole) in hand or nothing in hand.
     pub(super) fn wiring_hand(&self) -> bool {
-        self.inventory().selected_stack().is_empty() || self.held_pole_tier().is_some()
+        self.inventory().selected_stack().is_empty() || self.held_pole_tier().is_some() || self.holds_long_pole()
     }
 
     /// The selected pole while it stands (or has just been placed) near the player.
@@ -71,15 +71,37 @@ impl Game {
     /// Handles a press aimed at something wireable. True when it did something (the press is used up).
     pub(super) fn wire_click(&mut self, crouch: bool) -> bool {
         let Some(aim) = self.wire_aim() else { return false };
+        let used = self.sim.factory.slots_used(aim.anchor);
         let act = match (crouch, aim.sel, aim.hookup) {
             (true, Some(pole), Hookup::Connect | Hookup::Move(_)) => Action::Connect { pole, to: aim.anchor },
             (true, Some(pole), Hookup::Disconnect) => Action::Disconnect { pole, to: aim.anchor },
+            (true, sel, _) if aim.pole && (sel.is_none() || sel == Some(aim.anchor)) && used > 0 => {
+                Action::Disconnect { pole: aim.anchor, to: aim.anchor }
+            }
             (false, _, _) if aim.pole => {
                 self.tools.selected = Some(aim.anchor).filter(|&a| aim.sel != Some(a));
                 self.wire_sound(aim.anchor);
                 return true;
             }
             (false, Some(pole), Hookup::Connect) if aim.plain => Action::Connect { pole, to: aim.anchor },
+            _ => return false,
+        };
+        self.act(act);
+        self.wire_sound(aim.anchor);
+        true
+    }
+
+    /// R key while aiming at a pole or wired machine with a pole selected: connects, moves or severs the wire
+    /// (or severs every wire on the selected pole when aiming at it). True when it handled the key.
+    pub(crate) fn wire_toggle(&mut self) -> bool {
+        let Some(aim) = self.wire_aim() else { return false };
+        let Some(pole) = aim.sel else { return false };
+        let act = match aim.hookup {
+            Hookup::Connect | Hookup::Move(_) => Action::Connect { pole, to: aim.anchor },
+            Hookup::Disconnect => Action::Disconnect { pole, to: aim.anchor },
+            _ if aim.pole && aim.anchor == pole && self.sim.factory.slots_used(pole) > 0 => {
+                Action::Disconnect { pole, to: pole }
+            }
             _ => return false,
         };
         self.act(act);
@@ -117,64 +139,76 @@ impl Game {
         out
     }
 
-    /// The wire a click would make, as its two ends in the world: the insulator of the selected pole and the machine's
-    /// lead point or the other pole's insulator (`pole_hang.rs`).
-    pub(super) fn wire_preview(&self) -> Option<(Vec3, Vec3)> {
+    /// The wire a click would make or cut, as its two ends in the world and texture layer: grid colour when
+    /// connecting or moving, red when severing (`Hookup::Disconnect`).
+    pub(super) fn wire_preview(&self) -> Option<(Vec3, Vec3, u16)> {
         let aim = self.wire_aim()?;
-        let sel = aim.sel.filter(|_| matches!(aim.hookup, Hookup::Connect | Hookup::Move(_)))?;
+        let layer = match aim.hookup {
+            Hookup::Connect | Hookup::Move(_) => block::tex::GRID_FIRST,
+            Hookup::Disconnect => block::tex::LAMP_RED,
+            _ => return None,
+        };
+        let sel = aim.sel?;
         let f = &self.sim.factory;
         let sel_mid = f.pole_top(sel)?;
         let pole_mid = f.pole_top(aim.anchor).filter(|_| aim.pole);
         let lead = pole_mid.unwrap_or(aim.anchor.as_vec3() + Vec3::new(0.5, 0.7, 0.5));
         let end = if pole_mid.is_some() { f.pole_hang(aim.anchor, sel_mid)? } else { lead };
-        Some((f.pole_hang(sel, lead)?, end))
+        Some((f.pole_hang(sel, lead)?, end, layer))
     }
 
-    /// The HUD lines for the aimed pole or machine: what a click does, and what stops it.
+    /// The HUD lines for the aimed pole or machine: status and control chips.
     pub(super) fn wire_label(&self) -> Option<String> {
         let aim = self.wire_aim()?;
         let f = &self.sim.factory;
-        let slots = |p: IVec3| format!("{} of {}", f.slots_used(p), f.pole_slots(p).unwrap_or(0));
+        let slots = |p: IVec3| format!("{} / {} connections", f.slots_used(p), f.pole_slots(p).unwrap_or(0));
         let reach = |p: IVec3| tier_stats(f.pole_tier(p).unwrap_or(0)).reach;
         let text = match (aim.pole, aim.hookup) {
             (true, _) if aim.sel == Some(aim.anchor) => {
-                format!("Power pole (selected)\n{} connections used · click to deselect", slots(aim.anchor))
+                let keys = if f.slots_used(aim.anchor) > 0 {
+                    hud_keys(&[("RMB", "Deselect"), ("Ctrl+RMB/R", "Disconnect all")])
+                } else {
+                    hud_keys(&[("RMB", "Deselect")])
+                };
+                format!("Power pole (selected)\n{}\n{keys}", slots(aim.anchor))
             }
             (true, Hookup::Connect) => {
-                format!(
-                    "Power pole\n{} used · click to select · crouch-click to link it to the selected pole",
-                    slots(aim.anchor)
-                )
+                format!("Power pole\n{}\n{}", slots(aim.anchor), hud_keys(&[("RMB", "Select"), ("Ctrl+RMB/R", "Link")]))
             }
-            (true, Hookup::Disconnect) => {
-                format!(
-                    "Power pole\n{} used · linked to the selected pole · crouch-click to cut the link",
-                    slots(aim.anchor)
-                )
-            }
-            (true, Hookup::TooFar) => format!(
-                "Power pole\n{} used · click to select · too far from the selected pole to link",
-                slots(aim.anchor)
+            (true, Hookup::Disconnect) => format!(
+                "Power pole\n{} · linked\n{}",
+                slots(aim.anchor),
+                hud_keys(&[("RMB", "Select"), ("Ctrl+RMB/R", "Sever wire")])
             ),
+            (true, Hookup::TooFar) => {
+                format!("Power pole\n{} · too far to link\n{}", slots(aim.anchor), hud_keys(&[("RMB", "Select")]))
+            }
             (true, Hookup::PoleFull | Hookup::OtherFull) => {
-                format!(
-                    "Power pole\n{} used · click to select · no free connection to link it to the selected pole",
-                    slots(aim.anchor)
-                )
+                format!("Power pole\n{} · no free slot to link\n{}", slots(aim.anchor), hud_keys(&[("RMB", "Select")]))
             }
-            (true, _) => format!(
-                "Power pole\n{} connections used · click to select it, then wire machines to it",
-                slots(aim.anchor)
-            ),
+            (true, _) => {
+                let keys = if f.slots_used(aim.anchor) > 0 {
+                    hud_keys(&[("RMB", "Select to wire"), ("Ctrl+RMB", "Disconnect all")])
+                } else {
+                    hud_keys(&[("RMB", "Select to wire")])
+                };
+                format!("Power pole\n{}\n{keys}", slots(aim.anchor))
+            }
             (false, Hookup::Connect) => {
                 let s = aim.sel?;
-                let how = if aim.plain { "click" } else { "crouch-click" };
-                format!("Wire it to the selected pole\n{how} to connect · the pole has {} connections used", slots(s))
+                let key = if aim.plain { "RMB" } else { "Ctrl+RMB/R" };
+                format!("Wire to selected pole\nPole: {}\n{}", slots(s), hud_keys(&[(key, "Connect")]))
             }
-            (false, Hookup::Move(_)) => "On another pole\ncrouch-click to move it to the selected pole".to_string(),
-            (false, Hookup::Disconnect) => "Wired to the selected pole\ncrouch-click to disconnect it".to_string(),
-            (false, Hookup::TooFar) => format!("Out of reach\nThe selected pole reaches {} blocks", reach(aim.sel?)),
-            (false, Hookup::PoleFull | Hookup::OtherFull) => "The selected pole has no free connection".to_string(),
+            (false, Hookup::Move(_)) => {
+                format!("On another pole\n{}", hud_keys(&[("Ctrl+RMB/R", "Move wire here")]))
+            }
+            (false, Hookup::Disconnect) => {
+                format!("Wired to selected pole\n{}", hud_keys(&[("Ctrl+RMB/R", "Disconnect")]))
+            }
+            (false, Hookup::TooFar) => format!("Out of reach\nSelected pole reaches {} blocks", reach(aim.sel?)),
+            (false, Hookup::PoleFull | Hookup::OtherFull) => {
+                "Pole full\nNo free connections on selected pole".to_string()
+            }
             (false, Hookup::Nothing) => return None,
         };
         Some(text)

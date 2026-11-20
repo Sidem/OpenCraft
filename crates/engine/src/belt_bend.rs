@@ -43,7 +43,12 @@ impl Game {
             factory::BEND_RIGHT => "right",
             _ => return None,
         };
-        belts.then(|| format!("Bent belt\nThe next belt you lay takes items in from its {side} · Shift+R to change"))
+        belts.then(|| {
+            format!(
+                "Bent belt\nNext belt takes input from its {side}\n{}",
+                factory::hud_keys(&[("Shift+R", "Change bend")])
+            )
+        })
     }
 
     /// Puts the held bend on the planned line's first cell if it is a flat belt: its `dir` then carries the bend in its

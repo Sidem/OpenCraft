@@ -72,6 +72,7 @@ pub(crate) mod smoke;
 mod state;
 pub mod stock;
 mod storage;
+mod switch;
 mod table;
 mod tick;
 mod tier_mark;
@@ -126,7 +127,7 @@ pub use belt_curve::{belt_facing, bend_of, clean_facing, BENDS, BEND_LEFT, BEND_
 pub use belt_items::{ItemAim, ItemKey};
 pub use buffer::Buffer;
 pub(crate) use capsule::push_capsule;
-pub use describe::fmt_int;
+pub use describe::{fmt_int, hud_bar, hud_keys, hud_stats, hud_status};
 pub use facts::facts;
 #[cfg(test)]
 pub use miner::MinerStatus;
@@ -134,7 +135,7 @@ pub use miner::MINER_TIERS;
 pub use miner_burner::CoalMinerView;
 pub use panel::{turns, ROLE_FUEL, ROLE_INPUT, ROLE_OUTPUT, ROLE_STORE};
 pub use pole::{long_top, preview_pole, preview_wire, tier_stats, LongLink, LONG_LOCAL_LINK, LONG_STATS, LONG_TIER};
-pub use pole::{POLE_TIERS, POLE_WIRE_Y};
+pub use pole::{POLE_TIERS, POLE_UNLINKED, POLE_WIRE_Y};
 pub use pole_hang::ghost_hang;
 pub use ports::PortInfo;
 pub use power::{sag_point, wire};
@@ -206,6 +207,8 @@ pub struct Factory {
     trains: Vec<Train>,
     /// The player's power wires, saved (`wiring.rs`).
     hooks: Vec<Hook>,
+    /// Anchors of machines manually switched off (`switch.rs`, sorted, saved from version 80).
+    manual_off: Vec<IVec3>,
     /// Tests only: leave wires to `connect` (else every relink wires by range, `hook_by_reach`).
     #[cfg(test)]
     pub(crate) by_hand: bool,
@@ -319,7 +322,7 @@ impl Factory {
             self.set_tier(pos, tier);
         }
         self.dirty = true;
-        if block == POLE || block == LONG_POLE {
+        if (block == POLE || block == LONG_POLE) && facing & pole::POLE_UNLINKED == 0 {
             self.hook_new_pole(pos, tier);
         }
     }
@@ -374,6 +377,7 @@ impl Factory {
         };
         self.prune_hooks();
         self.prune_tracks();
+        self.prune_manual_off(pos);
         contents.extend(self.derail_at(pos));
         contents
     }

@@ -113,7 +113,7 @@ impl Game {
 
     /// The upkeep goods its depot holds less than a minute of.
     pub(crate) fn short_of(&self, town: &Town) -> Vec<&'static str> {
-        let held = |item| self.sim.factory.depot_held(town.pos).map_or(0, |b| b.count(item));
+        let held = |item| self.sim.factory.depot_held(town.pos).map_or(0, |b| b.count_like(item));
         upkeep(town.kind, town.built.max(1))
             .iter()
             .filter(|&&(item, n)| held(item) < n)

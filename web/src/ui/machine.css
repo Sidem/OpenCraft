@@ -18,9 +18,54 @@
   color: var(--accent);
 }
 
+.mp-status-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.mp-status-row .mp-status {
+  margin: 0;
+  flex: 1 1 auto;
+}
+
 .mp-status {
   margin: 0 0 8px;
   font-size: 14px;
+}
+
+/* On/off power switch at the top of a machine panel. */
+.mp-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-weight: 600;
+}
+
+.mp-switch-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f87171;
+}
+
+.mp-switch[data-on='true'] {
+  border-color: rgba(143, 220, 156, 0.5);
+  color: #8fdc9c;
+}
+
+.mp-switch[data-on='true'] .mp-switch-dot {
+  background: #8fdc9c;
+  box-shadow: 0 0 6px rgba(143, 220, 156, 0.7);
+}
+
+.mp-switch[data-on='false'] {
+  border-color: rgba(248, 113, 113, 0.45);
+  color: #f87171;
 }
 
 /* How well it has run lately (the engine's words); the colour follows the percentage. */

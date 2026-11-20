@@ -53,10 +53,11 @@ pub(super) fn batch(town: &mut Town, input: &mut Buffer, out: &mut Buffer, event
     let Some(price) = price(town.product) else { return };
     let mut left = BATCH;
     for (&(item, n), paid) in price.iter().zip(&mut town.paid) {
-        let take = (n - (*paid).min(n)).min(input.count(item)).min(left);
+        let take = (n - (*paid).min(n)).min(input.count_like(item)).min(left);
         if take > 0 {
-            input.remove(item, take);
-            events.push(SimEvent::Consumed { item, count: take });
+            for s in input.remove_like(item, take) {
+                events.push(SimEvent::Consumed { item: s.item, count: s.count });
+            }
             *paid += take;
             left -= take;
         }

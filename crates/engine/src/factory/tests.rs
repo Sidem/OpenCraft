@@ -277,7 +277,15 @@ fn box_readout_lists_the_largest_stock_first() {
     // 130 iron fills three stacks of 64.
     assert_eq!(
         text,
-        "Mk1 · next: Green Kit ×4\n6 of 24 slots used\n130 Iron Ore, 40 Copper Ore, 5 Coal Ore, ...\nRight-click to take everything"
+        format!(
+            "@tier|1|{}|{}|4\n@bar|Slots|6|24|6 / 24|accent\n@items|Stored|{}:130,{}:40,{}:5,{}:1\n\tRMB=Take all",
+            ItemId::from(crate::block::STORAGE).0,
+            crate::item::GREEN_KIT.0,
+            ItemId::from(IRON_ORE).0,
+            ItemId::from(COPPER_ORE).0,
+            ItemId::from(COAL_ORE).0,
+            ItemId::from(STONE).0,
+        )
     );
 }
 

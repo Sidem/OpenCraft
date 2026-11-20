@@ -27,7 +27,7 @@ fn hold_planner() -> Game {
 fn two_clicks_ask_for_a_new_site_and_a_third_asks_for_it() {
     let mut g = hold_planner();
     assert!(g.planner_held() && g.reach() > 60.0);
-    assert!(g.planner_label().unwrap().contains("Right-click a corner"));
+    assert!(g.planner_label().unwrap().contains("RMB=Mark corner"));
     let a = IVec3::new(900, 70, -900);
     aim(&mut g, a);
     click(&mut g);

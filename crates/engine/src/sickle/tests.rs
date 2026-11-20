@@ -49,7 +49,7 @@ fn cleared_count(g: &Game, centre: IVec3, reach: i32) -> usize {
 fn right_click_cuts_the_patch_and_breaks_and_places_nothing() {
     let mut g = hold_sickle();
     let ground = aim_at_turf(&mut g);
-    assert!(g.sickle_label().unwrap().contains("Right-click cuts"));
+    assert!(g.sickle_label().unwrap().contains("RMB=Cut patch"));
     assert_eq!(g.sickle_box().len(), 7, "the patch is outlined before the cut");
     let blocks = (g.sim.world.block_anywhere(ground), g.sim.world.block_anywhere(ground + IVec3::new(0, 1, 0)));
     let hand = g.inventory().count(SICKLE);
@@ -99,7 +99,7 @@ fn the_click_falls_through_when_the_aim_bears_no_cover() {
     assert!(!g.update_sickle(0.0), "stone grows nothing: the click is left to the other hands");
     g.run_ticks(3);
     assert_eq!(cleared_count(&g, ground, 2), 0);
-    assert!(g.sickle_box().is_empty() && g.sickle_label().unwrap().contains("Aim at the ground"));
+    assert!(g.sickle_box().is_empty() && g.sickle_label().unwrap().contains("Aim at ground"));
     g.set_using(false);
     g.select_slot(8);
     g.update(DT);

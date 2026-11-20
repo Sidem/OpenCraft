@@ -220,14 +220,18 @@ impl Factory {
         self.dirty = true;
     }
 
-    /// Cuts the wire between the pole at `pole` and what stands at `cell`.
+    /// Cuts the wire between the pole at `pole` and what stands at `cell` (or every wire on `pole` when both name it).
     pub fn disconnect(&mut self, pole: IVec3, cell: IVec3) {
         if self.rail_yaw(pole).is_some() {
             return self.cut_track(pole, cell);
         }
         let Some(to) = self.anchor_of(cell) else { return };
         let before = self.hooks.len();
-        self.hooks.retain(|h| !((h.pole == pole && h.to == to) || (h.pole == to && h.to == pole)));
+        if to == pole {
+            self.hooks.retain(|h| h.pole != pole && h.to != pole);
+        } else {
+            self.hooks.retain(|h| !((h.pole == pole && h.to == to) || (h.pole == to && h.to == pole)));
+        }
         self.dirty |= self.hooks.len() != before;
     }
 

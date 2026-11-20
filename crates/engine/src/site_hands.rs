@@ -106,12 +106,16 @@ impl Game {
         if !self.planner_held() {
             return None;
         }
+        let keys = crate::factory::hud_keys;
         Some(match self.planner.corner {
             Some(a) => format!(
-                "Planner\nCorner at {}, {}, {} · right-click the opposite corner (or this column to drop it)",
-                a.x, a.y, a.z
+                "Planner\nCorner at {}, {}, {}\n{}",
+                a.x,
+                a.y,
+                a.z,
+                keys(&[("RMB", "Opposite corner / cancel")])
             ),
-            None => "Planner\nRight-click a corner block to mark a site · right-click a marked site to edit it".into(),
+            None => format!("Planner\n{}", keys(&[("RMB", "Mark corner / edit site")])),
         })
     }
 }

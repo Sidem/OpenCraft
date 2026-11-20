@@ -14,9 +14,8 @@ use crate::upgrade_aim::BLOCKED_RED;
 use crate::Game;
 
 /// What the readout says on a grown tree: how felling works, and when the swing is too high to count.
-const CHOP_HOW: &str =
-    "Swing at the trunk near the ground to fell the whole tree. Strike the mark to fell it twice as fast.";
-const CHOP_LOWER: &str = "Too high up: swing at the trunk near the ground.";
+const CHOP_HOW: &str = "Strike the mark near the ground for 2× speed\n\tLMB=Chop tree";
+const CHOP_LOWER: &str = "Too high up · aim near the ground";
 
 #[wasm_bindgen]
 impl Game {
@@ -137,10 +136,8 @@ impl Game {
                 return format!("Belt upgrade to Mk{}\nResearch {} first", tier + 1, research::TECHS[t as usize].name);
             }
             let belts = if n == 1 { "belt" } else { "belts" };
-            return format!(
-                "Belt upgrade to Mk{}\n{n} {belts} · {kits} kits{short} · release to upgrade, left-click to cancel",
-                tier + 1
-            );
+            let keys = factory::hud_keys(&[("Release RMB", "Upgrade"), ("LMB", "Cancel")]);
+            return format!("Belt upgrade to Mk{}\n{n} {belts} · {kits} kits{short}\n{keys}", tier + 1);
         }
         self.belt_line_label()
     }
@@ -258,24 +255,30 @@ impl Game {
         }
         let Some(st) = self.sim.factory.deposits.get(&d.key).or(self.surveyed.as_ref()) else { return String::new() };
         let int = |n: u64| factory::fmt_int(n);
-        let left = format!(
-            "{} of {} blocks left · {} units",
+        let right = format!(
+            "{} / {} blocks · {} units",
             int(st.remaining_blocks as u64),
             int(st.initial_blocks as u64),
             int(st.remaining_units() as u64)
         );
+        let bar = factory::hud_bar(
+            &st.deposit.name(),
+            st.remaining_blocks as u64,
+            st.initial_blocks.max(1) as u64,
+            &right,
+            if hit.id == SPENT_ROCK { "warn" } else { "ok" },
+        );
         if hit.id == SPENT_ROCK {
-            return format!("Worked-out part of a {}\n{left}", st.deposit.name());
+            return format!("{}\n{bar}", factory::hud_status("warn", "Worked-out rock"));
         }
         let grade = st.grade();
-        format!(
-            "{} · {} units per block\n{left}\nBy hand you keep {HAND_YIELD} and lose {}. A Miner Mk1 recovers {}%, a Mk2 {}%.",
-            st.deposit.name(),
-            int(grade as u64),
-            int(grade.saturating_sub(HAND_YIELD) as u64),
-            (MINER_TIERS[0].recovery * 100.0).round() as u32,
-            (MINER_TIERS[1].recovery * 100.0).round() as u32
-        )
+        let chips = vec![
+            format!("{} / block", int(grade as u64)),
+            format!("Hand {HAND_YIELD}"),
+            format!("Mk1 {}%", (MINER_TIERS[0].recovery * 100.0).round() as u32),
+            format!("Mk2 {}%", (MINER_TIERS[1].recovery * 100.0).round() as u32),
+        ];
+        format!("{bar}\n{}", factory::hud_stats(&chips).unwrap_or_default())
     }
 
     pub fn hint_count(&self) -> u32 {

@@ -52,10 +52,14 @@ impl Game {
         if !self.sickle_held() {
             return None;
         }
+        let keys = crate::factory::hud_keys;
         Some(match self.target.filter(|h| bears_cover(h.id)) {
             Some(h) if self.sim.world.patch_cleared(h.block) => "Sickle\nNothing left to cut here".into(),
-            Some(_) => "Sickle\nRight-click cuts the small plants of the patch (hold to sweep) · trees stay".into(),
-            None => "Sickle\nAim at the ground and right-click to cut the plants around it".into(),
+            Some(_) => format!(
+                "Sickle\nCuts small plants · trees stay\n{}",
+                keys(&[("RMB", "Cut patch"), ("Hold RMB", "Sweep")])
+            ),
+            None => format!("Sickle\nAim at ground to cut small plants\n{}", keys(&[("RMB", "Cut patch")])),
         })
     }
 

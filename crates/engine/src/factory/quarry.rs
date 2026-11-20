@@ -22,7 +22,7 @@ use crate::block::{self, BlockId, AIR, LIQUID, QUARRY};
 use crate::bytes::{ByteReader, ByteWriter};
 use crate::deposits::{owner_of, DepositKey};
 use crate::inventory::Stack;
-use crate::item::{self, ItemId};
+use crate::item::ItemId;
 use crate::math::{IVec3, Vec3};
 use crate::sim::SimEvent;
 use crate::world::World;
@@ -354,26 +354,33 @@ impl Machine for Quarry {
         self.out.contents()
     }
 
-    /// Status, layer and count, and what it uncovered.
-    fn describe(&self, f: &Factory) -> String {
+    /// Status pill, layer progress bar, stat chips, uncovered ore, and held drops.
+    fn describe(&self, _f: &Factory) -> String {
+        use super::describe::{hud_bar, hud_items, hud_stats, hud_status};
         let (layer, layers) = self.layer();
         let dig = self.dig_box();
+        let (tone, text) = match self.status {
+            QuarryStatus::Paused => ("off", super::switch::SWITCHED_OFF.to_string()),
+            QuarryStatus::Done => ("ok", "Finished".to_string()),
+            QuarryStatus::OutputFull => ("warn", "Output full".to_string()),
+            QuarryStatus::Flooded => ("warn", "Flooded · pump water out".to_string()),
+            QuarryStatus::NoPower => ("err", "No power".to_string()),
+            QuarryStatus::Digging => (if self.speed < FULL_SPEED { "warn" } else { "ok" }, "Digging".to_string()),
+        };
         let mut lines = vec![
-            self.status_text(f),
-            format!(
-                "{w}×{w}, {} · layer {layer} of {layers} · {} dug · needs {} kW",
-                DEPTHS[self.depth as usize].label(),
-                fmt_int(self.dug as u64),
-                self.stats().power,
-                w = dig.width
-            ),
+            hud_status(tone, &text),
+            hud_bar("Layer", u64::from(layer), u64::from(layers.max(1)), &format!("{layer} / {layers}"), "accent"),
         ];
+        let chips = vec![
+            format!("{}×{} · {}", dig.width, dig.width, DEPTHS[self.depth as usize].label()),
+            format!("{} kW", self.stats().power),
+            format!("{} dug", fmt_int(self.dug as u64)),
+        ];
+        lines.extend(hud_stats(&chips));
         lines.extend(self.found_lines());
-        let held = self.out.contents();
-        if !held.is_empty() {
-            let names: Vec<String> = held.iter().map(|s| format!("{} {}", s.count, item::name(s.item))).collect();
-            lines.push(format!("Holding {} · right-click for its panel", names.join(", ")));
-        }
+        let held: Vec<(ItemId, u32)> = self.out.contents().iter().map(|s| (s.item, s.count)).collect();
+        lines.extend(hud_items("Out", &held));
+        lines.push("\tRMB=Open".to_string());
         lines.join("\n")
     }
 

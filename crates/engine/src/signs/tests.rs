@@ -47,7 +47,11 @@ fn the_sign_is_followed_only_by_the_forester_and_the_trees() {
     assert_eq!(last_door + 2, crate::block::MERGER, "the last wood's door, its open door, then the merger");
     assert_eq!(usize::from(crate::block::MERGER) + crate::block::MERGER_COUNT, usize::from(crate::block::LED));
     assert_eq!(usize::from(crate::block::LED) + crate::block::LED_COUNT, usize::from(crate::block::STREET));
-    assert_eq!(usize::from(crate::block::STREET) + crate::block::STREET_COUNT, BLOCK_COUNT);
+    assert_eq!(
+        usize::from(crate::block::STREET) + crate::block::STREET_COUNT,
+        usize::from(crate::block::BLUE_CONCRETE)
+    );
+    assert_eq!(usize::from(crate::block::BLUE_CONCRETE) + crate::block::TINT_COUNT, BLOCK_COUNT);
 }
 
 #[test]
@@ -145,8 +149,13 @@ fn signs_are_saved_and_older_saves_have_none() {
         sim.felling.write_state(&mut felling);
         let mut leds = ByteWriter::default();
         sim.leds.write_state(&mut leds);
-        let tail = [bytes.as_slice(), &felling.bytes, &leds.bytes].concat();
-        assert!(core.bytes.ends_with(&tail), "the core ends with the signs, the trees being felled, the LED colours");
+        let mut off = ByteWriter::default();
+        sim.factory.write_manual_off(&mut off);
+        let tail = [bytes.as_slice(), &felling.bytes, &leds.bytes, &off.bytes].concat();
+        assert!(
+            core.bytes.ends_with(&tail),
+            "the core ends with the signs, the trees being felled, the LED colours, the switched-off machines"
+        );
     }
     const { assert!(SAVE_VERSION >= 63, "signs came with save 63") };
     // A core from save 62 ends before the signs' count: it reads whole, with none.
@@ -154,8 +163,8 @@ fn signs_are_saved_and_older_saves_have_none() {
     let fresh = crate::sim::Sim::new(2024, 2);
     fresh.write_state(&mut w);
     let cut = crate::helpers::before_drone_orders(&fresh, &w.bytes);
-    // (Cut the signs' count and the LED colours', which a save 62 does not have either.)
-    let old = &cut[..cut.len() - 8];
+    // (Cut the signs' count, the LED colours' and the switched-off machines', which a save 62 does not have either.)
+    let old = &cut[..cut.len() - 12];
     let (mut r, mut sim) = (ByteReader::new(old), crate::sim::Sim::new(2024, 2));
     r.version = 62;
     assert!(sim.read_state(&mut r).is_some() && r.is_done(), "a version 62 core");

@@ -43,19 +43,26 @@ impl Factory {
             pods,
             order,
             changed,
+            manual_off,
             ..
         } = self;
         orbit.now = tick;
         let kinds: &process::Kinds = kinds;
         let unlocked = research.machine_recipes_unlocked();
         process::sense_sources(processors, kinds, world, orbit, tick);
-        power.balance(generators, miners, processors, kinds, labs, pipework, quarries, research, &unlocked, tick);
-        data.balance((nodes, processors), power, &unlocked, research, (orbit, tick));
+        power.balance(
+            generators, miners, processors, kinds, labs, pipework, quarries, research, &unlocked, manual_off, tick,
+        );
+        data.balance((nodes, processors), power, &unlocked, research, (orbit, tick), manual_off);
         let mut sinks = Sinks { storages, processors, routers, generators, labs, miners: &mut [], unlocked: &unlocked };
         let (mining, machines) = (research.rate_permille(Bonus::Mining), research.rate_permille(Bonus::Machines));
-        let tuned = process::optimizer_bonuses(sinks.processors, &kinds.optimizer, power, data);
-        let swarms = process::hub_bonuses(sinks.processors, &kinds.hub, power, data);
+        let tuned = process::optimizer_bonuses(sinks.processors, &kinds.optimizer, power, data, manual_off);
+        let swarms = process::hub_bonuses(sinks.processors, &kinds.hub, power, data, manual_off);
         for (m, &p) in miners.iter_mut().zip(&power.miner_pole) {
+            if switch::is_listed(manual_off, m.pos) {
+                (m.speed, m.draw_rate, m.status) = (0, 0.0, miner::MinerStatus::Off);
+                continue;
+            }
             (m.speed, m.boost) =
                 (power.speed(p), mining * process::optimizer_bonus_at(&tuned, m.pos) / power::FULL_SPEED);
             m.step(deposits, world, tick, belts, &mut sinks, events);
@@ -69,6 +76,10 @@ impl Factory {
             s.step(belts);
         }
         for (i, (m, &p)) in sinks.processors.iter_mut().zip(&power.process_pole).enumerate() {
+            if switch::is_listed(manual_off, m.pos) {
+                (m.speed, m.status) = (0, process::Status::Off);
+                continue;
+            }
             let mut share = if m.draws_power() { power.speed(p) } else { power::FULL_SPEED };
             if m.spec.compute < 0 {
                 share = share * data.satisfaction(data.process_node[i]) / power::FULL_SPEED;
@@ -101,6 +112,7 @@ impl Factory {
             power,
             data,
             research,
+            manual_off,
         );
         let used = sinks.labs.iter_mut().flat_map(|l| l.used.drain(..));
         let burned = sinks.generators.iter_mut().flat_map(|g| g.used.drain(..));

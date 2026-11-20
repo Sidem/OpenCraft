@@ -7,12 +7,16 @@
 
 import './hud.css';
 import './hud-columns.css';
+import './target-card.css';
 import type { FrameTimes } from '../render/frame-stats';
 import type { Game } from '../wasm/engine.js';
 import { HeldName } from './held-name';
 import { paintBox, paintParts } from './icon-paint';
 import { drawSprite } from './icon-sprite';
+import { keyLabels } from './keyboard-layout';
 import { OffhandSlot } from './offhand';
+import { parseTargetCard, renderTargetCard } from './target-card';
+import { type HudControl, renderHudControls } from './target-controls';
 
 const ICON_PX = 64;
 const TOAST_MS = 2600;
@@ -20,10 +24,21 @@ const TOAST_MS = 2600;
 const LAUNCHED = -100000;
 /** How often the target's detail text (deposit size, machine status) is refreshed. */
 const DETAIL_MS = 150;
-/** The pick-up chip's words by `target_item_name`'s state (api/hud.rs `target_item_state`): none, pointed at, selected,
- * selected but out of reach, selected but held in a splitter. The key shows for the states up to `ITEM_TAKEABLE`. */
-const ITEM_KEY_TEXT = ['', ' Pick up · click to keep it selected', ' Pick up · selected', 'Selected · out of reach', 'Selected · held in a splitter'];
-const ITEM_TAKEABLE = 2;
+/** Extra status line and control chips for a belt item (`target_item_state`: 1 pointed, 2 selected, 3 out of reach, 4 in splitter). */
+function itemHudExtras(state: number): { note: string; controls: HudControl[] } {
+  switch (state) {
+    case 1:
+      return { note: '', controls: [{ spec: 'I', label: 'Pick up' }, { spec: 'LMB', label: 'Keep selected' }] };
+    case 2:
+      return { note: 'Selected', controls: [{ spec: 'I', label: 'Pick up' }] };
+    case 3:
+      return { note: 'Selected · out of reach', controls: [] };
+    case 4:
+      return { note: 'Selected · held in a splitter', controls: [] };
+    default:
+      return { note: '', controls: [] };
+  }
+}
 /** Toast keys below this are towns' news, one per town; how often the towns' states are read; `town_states`'s values
  * (api/towns.rs) for a stalled and a dormant town. */
 const TOWN_KEY = -200000;
@@ -84,11 +99,14 @@ export class Hud {
   private lastDebug = 0;
   private lastDetail = 0;
   private detailKey = '';
+  private cardCache = '';
+  private controlsKey = '';
 
   private readonly target = $<HTMLDivElement>('target');
   private readonly targetName = $<HTMLSpanElement>('target-name');
+  private readonly targetBadges = $<HTMLSpanElement>('target-badges');
   private readonly targetDetail = $<HTMLDivElement>('target-detail');
-  private readonly targetKey = $<HTMLDivElement>('target-key');
+  private readonly targetControls = $<HTMLDivElement>('target-controls');
   private readonly mineFill = $<HTMLDivElement>('mine-fill');
   private readonly helperStatus = $<HTMLDivElement>('helper-status');
   private helperText = '';
@@ -128,6 +146,10 @@ export class Hud {
     bar.append(this.offhand.root);
     this.heldName = new HeldName(game);
     bar.append(this.heldName.el);
+    keyLabels.subscribe(() => {
+      this.controlsKey = '';
+      this.cardCache = '';
+    });
   }
 
   /** Swaps in new pixels for texture layers (a tier palette: render/tier-wire.ts) and redraws every icon from them. */
@@ -176,39 +198,36 @@ export class Hud {
 
     const line = g.line_label();
     if (line !== '') {
-      // Dragging out a belt line or placing a quarry: its plan (a title line, then the rest) replaces
-      // the target readout.
+      // Tool/placement preview (title on first line, structured visual rows and control chips below).
       const cut = line.indexOf('\n');
+      const title = cut < 0 ? line : line.slice(0, cut);
+      const rest = cut < 0 ? '' : line.slice(cut + 1);
       this.target.classList.remove('hidden', 'mining');
-      this.targetName.textContent = line.slice(0, cut);
-      this.targetDetail.textContent = line.slice(cut + 1);
-      this.targetDetail.classList.remove('hidden');
-      this.targetKey.classList.add('hidden');
+      this.showCard(title, rest, []);
       this.detailKey = '';
     } else if (g.has_target() || g.target_item_state() !== 0) {
       this.target.classList.remove('hidden');
       // A belt item under the crosshair, or the one clicked and kept selected, is named instead of its belt.
       const itemName = g.target_item_name();
-      this.targetName.textContent = itemName || g.target_name();
+      const title = itemName || g.target_name();
       const itemState = g.target_item_state();
-      this.targetKey.classList.toggle('hidden', itemState === 0);
-      this.targetKey.firstElementChild!.classList.toggle('hidden', itemState > ITEM_TAKEABLE);
-      this.targetKey.lastElementChild!.textContent = ITEM_KEY_TEXT[itemState];
       const p = g.mine_progress();
       this.mineFill.style.transform = `scaleX(${p})`;
       this.target.classList.toggle('mining', p > 0);
       // Refresh at once on a new target, then a few times a second for live machine status.
-      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()},${itemName},${itemState}`;
+      const key = `${g.target_x()},${g.target_y()},${g.target_z()},${g.target_block()},${itemName},${itemState},${iconEpoch.n}`;
       if (key !== this.detailKey || now - this.lastDetail > DETAIL_MS) {
         this.detailKey = key;
         this.lastDetail = now;
-        const text = g.target_detail();
-        this.targetDetail.textContent = text;
-        this.targetDetail.classList.toggle('hidden', text === '');
+        const item = itemHudExtras(itemState);
+        const body = [g.target_detail(), item.note].filter(Boolean).join('\n');
+        this.showCard(title, body, item.controls);
       }
     } else {
       this.target.classList.add('hidden');
       this.detailKey = '';
+      this.cardCache = '';
+      this.controlsKey = '';
     }
 
     const helpers = g.helper_status();
@@ -245,6 +264,28 @@ export class Hud {
         `factory ${g.belts()} belts · ${g.miners()} miners · ${g.boxes()} boxes · ${g.deposits_tracked()} deposits tracked`,
       ].join('\n');
     }
+  }
+
+  /** Renders the visual target card and its control chips, skipping DOM work when unchanged. */
+  private showCard(title: string, rawBody: string, extraControls: HudControl[]): void {
+    const cache = `${iconEpoch.n}\0${title}\0${rawBody}\0${extraControls.map((c) => `${c.spec}=${c.label}`).join('\t')}`;
+    if (cache === this.cardCache) return;
+    this.cardCache = cache;
+    const parsed = parseTargetCard(rawBody);
+    renderTargetCard(this.targetName, this.targetBadges, this.targetDetail, title, parsed, {
+      itemIcon: (id) => this.itemIcon(id),
+      itemName: (id) => this.game.item_name(id),
+      tierColour: (id) => this.game.item_tier_colour(id),
+    });
+    this.showControls([...parsed.controls, ...extraControls]);
+  }
+
+  /** Redraws `#target-controls` only when the list of control chips changes. */
+  private showControls(controls: HudControl[]): void {
+    const key = controls.map((c) => `${c.spec}=${c.label}`).join('\t');
+    if (key === this.controlsKey) return;
+    this.controlsKey = key;
+    renderHudControls(this.targetControls, controls);
   }
 
   /** A toast per item, adding up; a tool shows no amount, a count of 0 means it wore out, and `LAUNCHED` that a

@@ -38,31 +38,36 @@ impl Game {
         Some((block, anchor, dir, marked))
     }
 
-    /// "Assembler" and "2×2×2 · right-click to build · R turns it" on two lines ("" when not placing one).
+    /// Multi-block placement card: title, footprint/ports/town status, and control chips ("" when not placing one).
     pub(crate) fn footprint_label(&self) -> String {
         let Some((block, _, _, cells)) = self.footprint_ghost() else { return String::new() };
         let [w, d, h] = footprint::of(block).map_or([1; 3], |f| f.size);
         let n = cells.iter().filter(|c| c.1).count();
-        let state = match n {
-            0 => "right-click to build".to_string(),
-            1 => "1 cell in the way (red)".to_string(),
-            _ => format!("{n} cells in the way (red)"),
-        };
         let name = block::def(block).name;
         // A long-distance pole has no facing; what it would link to says more than its size.
-        let link = self.long_pole_line();
+        let link = self.long_pole_line(n);
         if !link.is_empty() {
-            return format!("{name}\n{link} · {state}");
+            return format!("{name}\n{link}");
         }
-        let turn = if block == block::LONG_POLE { "" } else { " · R turns it" };
+        let blocked = match n {
+            0 => String::new(),
+            1 => " · 1 cell in the way (red)".to_string(),
+            _ => format!(" · {n} cells in the way (red)"),
+        };
+        let keys = match (n == 0, block == block::LONG_POLE) {
+            (true, false) => crate::factory::hud_keys(&[("RMB", "Build"), ("R", "Turn")]),
+            (true, true) => crate::factory::hud_keys(&[("RMB", "Build")]),
+            (false, false) => crate::factory::hud_keys(&[("R", "Turn")]),
+            (false, true) => String::new(),
+        };
         // A depot says what town it founds, or why none fits (`town_preview.rs`).
         match self.depot_line() {
             Some((why, false)) => format!("{name}\n{why}"),
-            Some((town, true)) => format!("{name}\n{town} · {state}{turn}"),
+            Some((town, true)) => format!("{name}\n{town}{blocked}\n{keys}"),
             None => match self.ports_line(block) {
-                ports if ports.is_empty() => format!("{name}\n{w}×{d}×{h} · {state}{turn}"),
+                ports if ports.is_empty() => format!("{name}\n{w}×{d}×{h}{blocked}\n{keys}"),
                 // Where items go in and come out, as the player sees it (`port_view.rs`).
-                ports => format!("{name}\n{ports}\n{w}×{d}×{h} · {state}{turn}"),
+                ports => format!("{name}\n{ports}\n{w}×{d}×{h}{blocked}\n{keys}"),
             },
         }
     }

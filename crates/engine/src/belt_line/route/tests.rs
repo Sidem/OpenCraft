@@ -168,7 +168,7 @@ fn in_ghost_mode_the_route_is_planted_as_ghosts_and_the_world_stays_as_it_was() 
     drag_to_the_box(&mut g);
     assert_eq!(g.line.route, Route::Found);
     let cells = g.line.cells.clone();
-    assert!(g.line_label().contains("release to plant ghosts"), "{}", g.line_label());
+    assert!(g.line_label().contains("Release RMB=Plant ghosts"), "{}", g.line_label());
     g.set_using(false);
     for _ in 0..60 {
         g.update(1.0 / 60.0);

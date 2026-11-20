@@ -41,7 +41,7 @@ use super::wiring::{takes_pole, Hooked};
 use super::Factory;
 
 /// What a machine with no pole says (the readouts).
-pub const NOT_WIRED: &str = "No power: select a power pole in reach, then click this machine to wire it";
+pub const NOT_WIRED: &str = "No power · wire to a power pole in reach";
 /// Full speed, in thousandths.
 pub const FULL_SPEED: u32 = 1000;
 
@@ -54,6 +54,7 @@ pub(super) struct Users<'a> {
     pub quarries: &'a [Quarry],
     pub research: &'a Research,
     pub unlocked: &'a [bool],
+    pub manual_off: &'a [IVec3],
 }
 
 /// The grids, derived from positions by `rebuild`, plus last tick's supply and demand per grid.
@@ -178,6 +179,7 @@ impl Power {
         quarries: &[Quarry],
         research: &Research,
         unlocked: &[bool],
+        manual_off: &[IVec3],
         tick: u64,
     ) {
         self.supply.iter_mut().for_each(|s| *s = 0);
@@ -186,7 +188,7 @@ impl Power {
         self.side_demand.iter_mut().for_each(|d| *d = 0);
         self.clear_mix();
         let mut side_demand = std::mem::take(&mut self.side_demand);
-        let users = Users { miners, processors, labs, pipework, quarries, research, unlocked };
+        let users = Users { miners, processors, labs, pipework, quarries, research, unlocked, manual_off };
         self.each_demand(&users, |p, _, kw| side_demand[self.pole_side[p as usize] as usize] += kw);
         self.side_demand = side_demand;
         // Each side's demand joins its grid; a beam also costs its emitter's grid a tenth of what arrives.
@@ -201,10 +203,10 @@ impl Power {
         run_renewables(self, processors, kinds, tick);
         run_hydro(self, processors, &kinds.hydro);
         run_rectenna(self, processors, &kinds.rectenna);
-        run_reactor(self, processors, &kinds.reactor);
+        run_reactor(self, processors, &kinds.reactor, manual_off);
         for (i, g) in gens.iter_mut().enumerate() {
             g.output = 0;
-            let Some(p) = self.gen_pole[i] else { continue };
+            let Some(p) = self.gen_pole[i].filter(|_| !super::switch::is_listed(manual_off, g.pos)) else { continue };
             let grid = self.pole_grid[p as usize] as usize;
             let tier = g.stats();
             let want = (self.demand[grid] - self.supply[grid].min(self.demand[grid])).min(tier.power);
@@ -230,31 +232,31 @@ impl Power {
             let (given, could) = run_turbine(processors, t, want);
             self.give(Source::Turbine, grid, given, could);
         }
-        run_diesel(self, processors, &kinds.diesel);
+        run_diesel(self, processors, &kinds.diesel, manual_off);
     }
 
     /// Calls `f` with the pole, block and kW of every wired machine that asks for power now: the one list of
     /// consumers, so the tick's balance and the analytics' per-grid view (`power_mix.rs`) cannot disagree.
     pub(super) fn each_demand(&self, u: &Users, mut f: impl FnMut(u32, BlockId, u32)) {
-        let mut each = |pole: &Option<u32>, wants: bool, block: BlockId, kw: u32| {
-            if let Some(&p) = pole.as_ref().filter(|_| wants) {
+        let mut each = |pole: &Option<u32>, pos: IVec3, wants: bool, block: BlockId, kw: u32| {
+            if let Some(&p) = pole.as_ref().filter(|_| wants && !super::switch::is_listed(u.manual_off, pos)) {
                 f(p, block, kw);
             }
         };
         for (m, p) in u.miners.iter().zip(&self.miner_pole) {
-            each(p, m.wants_power(), MINER, m.stats().power);
+            each(p, m.pos, m.wants_power(), MINER, m.stats().power);
         }
         for (m, p) in u.processors.iter().zip(&self.process_pole) {
-            each(p, m.wants_power(u.unlocked, u.research), m.spec.block, m.power());
+            each(p, m.pos, m.wants_power(u.unlocked, u.research), m.spec.block, m.power());
         }
         for (l, p) in u.labs.iter().zip(&self.lab_pole) {
-            each(p, l.wants_power(u.research), LAB, l.stats().power);
+            each(p, l.pos, l.wants_power(u.research), LAB, l.stats().power);
         }
         for (m, p) in u.pipework.iter().zip(&self.pipe_pole) {
-            each(p, m.wants_power(), PUMP, m.pump_stats().power);
+            each(p, m.pos, m.wants_power(), PUMP, m.pump_stats().power);
         }
         for (q, p) in u.quarries.iter().zip(&self.quarry_pole) {
-            each(p, q.wants_power(), QUARRY, q.stats().power);
+            each(p, q.pos, q.wants_power(), QUARRY, q.stats().power);
         }
     }
 
@@ -277,6 +279,24 @@ impl Power {
             format!("Grid short: {s} of {d} kW needed · machines at {}%", self.speed(pole) / 10)
         } else {
             format!("Grid: {d} kW used of {c} kW")
+        }
+    }
+
+    /// Visual power meter bar (`@bar|Power|...`) for the grid `pole` is on.
+    pub fn grid_bar(&self, pole: Option<u32>) -> String {
+        use super::describe::{fmt_int, hud_bar, hud_status};
+        let Some(grid) = pole.map(|p| self.pole_grid[p as usize] as usize) else {
+            return hud_status("err", "No power");
+        };
+        let (s, d, c) = (self.supply[grid], self.demand[grid], self.capacity[grid]);
+        if s < d {
+            let pct = self.speed(pole) / 10;
+            let right = format!("{} / {} kW · {pct}%", fmt_int(u64::from(s)), fmt_int(u64::from(d)));
+            hud_bar("Power", u64::from(s), u64::from(d.max(1)), &right, "err")
+        } else {
+            let tone = if c == 0 || d * 100 >= c * 90 { "warn" } else { "ok" };
+            let right = format!("{} / {} kW", fmt_int(u64::from(d)), fmt_int(u64::from(c)));
+            hud_bar("Power", u64::from(d), u64::from(c.max(1)), &right, tone)
         }
     }
 }

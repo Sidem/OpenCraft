@@ -41,8 +41,11 @@ impl Game {
         Some((anchor, self.sim.factory.long_link(anchor)?))
     }
 
-    /// The footprint outline's colour: green when the held long-distance pole links, red when it won't, else 0 (amber).
+    /// The footprint outline's colour: green when the held long-distance pole links (or standalone), red when it won't, else 0 (amber).
     pub(crate) fn long_pole_outline(&self) -> i32 {
+        if self.body().input.crouch && self.holds_long_pole() {
+            return GHOST_GREEN;
+        }
         match self.long_pole_link() {
             Some((_, LongLink::Links { .. })) => GHOST_GREEN,
             Some(_) => BLOCKED_RED,
@@ -53,6 +56,9 @@ impl Game {
     /// An outline box (7 numbers) on the pole the held long-distance pole links to (blue), or on the long-distance pole
     /// it is measured from (red); empty otherwise.
     pub(crate) fn long_pole_boxes(&self) -> Vec<i32> {
+        if self.body().input.crouch {
+            return Vec::new();
+        }
         let Some((to, colour)) = self.long_pole_link().and_then(|(_, link)| far_pole(link)) else { return Vec::new() };
         let cells = self.sim.factory.machine_cells(to);
         let lo = cells.iter().fold(to, |m, c| IVec3::new(m.x.min(c.x), m.y.min(c.y), m.z.min(c.z)));
@@ -60,31 +66,56 @@ impl Game {
         vec![lo.x, lo.y, lo.z, hi.x, hi.y, hi.z, colour]
     }
 
-    /// The label's line about linking ("" when no long-distance pole is held and aimed): "Links to the long-distance
-    /// pole 132 blocks away · 28 to spare", or why it won't link.
-    pub(crate) fn long_pole_line(&self) -> String {
+    /// The label's status and controls for a long-distance pole ("" when none is held and aimed).
+    pub(crate) fn long_pole_line(&self, blocked: usize) -> String {
         let Some((anchor, link)) = self.long_pole_link() else { return String::new() };
+        let block_note = match blocked {
+            0 => String::new(),
+            1 => " · 1 cell in the way (red)".to_string(),
+            n => format!(" · {n} cells in the way (red)"),
+        };
+        if self.body().input.crouch {
+            let keys = if blocked == 0 {
+                factory::hud_keys(&[("RMB", "Place"), ("Release Ctrl", "Auto-wire")])
+            } else {
+                factory::hud_keys(&[("Release Ctrl", "Auto-wire")])
+            };
+            return format!("Standalone · not wired to any grid{block_note}\n{keys}");
+        }
         let away = |p: IVec3| far(p, anchor);
-        match link {
+        let (status, linked) = match link {
             LongLink::Links { to, span, .. } => {
                 let what = if span == LONG_STATS.link { "long-distance pole" } else { "power pole" };
                 let d = away(to).floor() as i32;
-                format!("Links to the {what} {d} blocks away · {} to spare", span - d)
+                (format!("Links to {what} · {d} / {span} blocks ({} to spare)", span - d), true)
             }
-            LongLink::TooFar(p) => format!(
-                "Out of reach: the nearest long-distance pole is {} blocks away, {} at most",
-                away(p).ceil() as i32,
-                LONG_STATS.link
+            LongLink::TooFar(p) => (
+                format!("Out of reach · nearest is {} blocks away (max {})", away(p).ceil() as i32, LONG_STATS.link),
+                false,
             ),
-            LongLink::Full(p) => format!(
-                "Won't link: the long-distance pole {} blocks away has all {} connections used",
-                away(p).round() as i32,
-                LONG_STATS.slots
+            LongLink::Full(p) => (
+                format!(
+                    "Won't link · pole {} blocks away is full ({}/{})",
+                    away(p).round() as i32,
+                    LONG_STATS.slots,
+                    LONG_STATS.slots
+                ),
+                false,
             ),
             LongLink::Unpowered(p) => {
-                format!("Won't link: the long-distance pole {} blocks away has no power yet", away(p).round() as i32)
+                (format!("Won't link · pole {} blocks away has no power", away(p).round() as i32), false)
             }
-            LongLink::Alone => format!("Won't link: no powered pole within {LONG_LOCAL_LINK} blocks"),
+            LongLink::Alone => (format!("Won't link · no powered pole within {LONG_LOCAL_LINK} blocks"), false),
+        };
+        let keys = match (blocked == 0, linked) {
+            (true, true) => factory::hud_keys(&[("RMB", "Place"), ("Hold Ctrl", "Unconnected")]),
+            (true, false) => factory::hud_keys(&[("RMB", "Place")]),
+            (false, _) => String::new(),
+        };
+        if keys.is_empty() {
+            format!("{status}{block_note}")
+        } else {
+            format!("{status}{block_note}\n{keys}")
         }
     }
 
@@ -95,6 +126,9 @@ impl Game {
         let free = self.footprint_ghost().is_some_and(|g| g.3.iter().all(|c| !c.1));
         if free {
             factory::preview_pole(&mut self.instances, LONG_TIER, 0, anchor.as_vec3() + Vec3::new(0.5, 0.5, 0.5) - eye);
+        }
+        if self.body().input.crouch {
+            return;
         }
         let Some((to, _)) = far_pole(link) else { return };
         let Some(far_mid) = self.sim.factory.pole_top(to) else { return };

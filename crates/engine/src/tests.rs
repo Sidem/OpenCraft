@@ -162,7 +162,7 @@ fn target_detail_leaves_the_core_unchanged() {
     aim(&mut g, p);
 
     let detail = g.target_detail();
-    assert!(detail.contains("blocks left"), "{detail}");
+    assert!(detail.contains("blocks · ") && detail.starts_with("@bar|"), "{detail}");
     assert_eq!(g.sim.factory.deposits.tracked(), 0, "looking must not track the deposit");
     assert_eq!(g.target_detail(), detail, "the survey is cached and stable");
     assert_eq!(g.sim.state_hash(), before);

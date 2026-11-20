@@ -65,7 +65,7 @@ impl Game {
     /// box of a quarry or the footprint of a multi-block machine in hand at once; with an advanced scanner in
     /// hand it steps the scanner's ore filter instead. False when nothing turns.
     pub fn rotate_target(&mut self) -> bool {
-        if self.cycle_scan_filter() {
+        if self.cycle_scan_filter() || self.wire_toggle() {
             return true;
         }
         if self.ghost_mode || self.holds_boxed() || self.held_footprint().is_some() {

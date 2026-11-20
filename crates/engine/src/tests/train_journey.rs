@@ -148,9 +148,9 @@ impl Bot {
                 } else if let Some(&cell) = fill.first() {
                     self.fill(cell);
                 }
-            } else if text.contains("Shift-click: every wagon") {
+            } else if label.contains("\tShift+RMB=Couple all") {
                 return self.click(true);
-            } else if text.starts_with("click to") {
+            } else if label.contains("\tRMB=") {
                 return self.click(false);
             } else {
                 panic!("a dead end: {label:?}");

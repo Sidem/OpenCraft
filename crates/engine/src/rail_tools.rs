@@ -230,7 +230,7 @@ impl Game {
         out
     }
 
-    /// The HUD lines while rails are in hand: a title, then what a click does (or what stops it).
+    /// The HUD lines while rails are in hand: title, status, and control chips.
     pub(crate) fn rail_label(&self) -> String {
         let Some(plan) = self.rail_plan() else { return String::new() };
         let anchor = self.rail_anchor();
@@ -238,31 +238,34 @@ impl Game {
         if !faults.is_empty() {
             return format!("Rail node\n{}", ground_why(&faults));
         }
+        let keys = crate::factory::hud_keys;
         match plan {
             Plan::Node { pos, fit } => match (fit, anchor) {
-                (_, Some((a, _))) if a == pos => "Rail node (selected)\nclick to deselect".to_string(),
+                (_, Some((a, _))) if a == pos => format!("Rail node (selected)\n{}", keys(&[("RMB", "Deselect")])),
                 (Some(Fit::Ok), Some((a, ya))) => {
                     let yb = self.sim.factory.rail_yaw(pos).unwrap_or(0);
-                    format!("Join to the selected node\nclick to lay {}", describe_span(a, ya, pos, yb))
+                    format!("Join rail node\n{}\n{}", describe_span(a, ya, pos, yb), keys(&[("RMB", "Lay track")]))
                 }
                 (Some(Fit::Joined), _) => {
-                    "Joined to the selected node\ncrouch-click to cut the track · click to select".to_string()
+                    format!("Joined rail node\n{}", keys(&[("RMB", "Select"), ("Ctrl+RMB", "Cut track")]))
                 }
-                (Some(why), _) => format!("Rail node\n{} · click to select it instead", why_not(why)),
-                (None, _) => "Rail node\nclick to select it, then join it to another node".to_string(),
+                (Some(why), _) => format!("Rail node\n{}\n{}", why_not(why), keys(&[("RMB", "Select instead")])),
+                (None, _) => format!("Rail node\n{}", keys(&[("RMB", "Select to extend")])),
             },
             Plan::Place { pos, yaw, fit, free } => match (fit, anchor) {
-                _ if !free => "Rail node\nNeeds clear ground to stand on: aim at the top of a solid block".to_string(),
+                _ if !free => "Rail node\nAim at the top of a solid block".to_string(),
                 (Some(Fit::Ok), Some((a, ya))) => {
-                    let how = if self.body().input.sprint {
-                        "release Shift: free placement"
+                    let shift = if self.body().input.sprint {
+                        ("Release Shift", "Free aim")
                     } else {
-                        "hold Shift: full reach"
+                        ("Hold Shift", "Full reach")
                     };
-                    format!("Rail node\nclick to place and lay {} · {how}", describe_span(a, ya, pos, yaw))
+                    format!("Rail node\n{}\n{}", describe_span(a, ya, pos, yaw), keys(&[("RMB", "Place & lay"), shift]))
                 }
-                (Some(why), _) => format!("Rail node\n{} · move the aim", why_not(why)),
-                (None, _) => "Rail node\nclick to place the first node: its track runs the way you face".to_string(),
+                (Some(why), _) => format!("Rail node\n{}", why_not(why)),
+                (None, _) => {
+                    format!("Rail node\nTrack runs the way you face\n{}", keys(&[("RMB", "Place first node")]))
+                }
             },
         }
     }
